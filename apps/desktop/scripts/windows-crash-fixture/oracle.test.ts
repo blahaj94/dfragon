@@ -3,37 +3,60 @@ import { expect, it } from 'vitest'
 import { encodeCredentialRecord } from '../../src/backend/auth/credential-store/credential-record'
 import type { Observation } from './observer'
 import type { DiskObservation } from './disk'
-import { judgeRecovery, validateHold } from './oracle'
+import { judgeRecovery, validateHold, type HoldEvidence, type RecoveryObservation } from './oracle'
 
 const context = {
   environment: 'synthetic',
   apiOrigin: 'https://credential.example.test',
   clientId: 'desktop'
 } as const
-const identity = { runId: 'original-run', caseId: 'normal-control' }
+const identity = { runId: 'original-run', caseId: 'normal-control' } as const
 const held = { cutpoint: 'adapter.flush', phase: 'before', outcome: 'not-called' }
 const token = (generation: 'R0' | 'R1'): string =>
   Buffer.alloc(32, generation === 'R0' ? 31 : 32).toString('base64url')
-const event = (cutpoint: string, outcome: string, scenario = 'replace.prepare') => ({
+const event = (
+  cutpoint: string,
+  outcome: string,
+  scenario = 'replace.prepare'
+): Omit<Observation, 'runId' | 'caseId' | 'sequence'> => ({
   cutpoint,
   phase: 'protocol-return',
   outcome,
   detail: { scenario }
 })
-const start = (cutpoint: string, scenario: string) => ({
+const start = (
+  cutpoint: string,
+  scenario: string
+): Omit<Observation, 'runId' | 'caseId' | 'sequence'> => ({
   cutpoint,
   phase: 'protocol-start',
   outcome: 'not-called',
   detail: { scenario }
 })
-function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>) {
-  const observations = [...points, held].map((point, index) => ({
+function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>): HoldEvidence {
+  const manifest = {
+    cutpoint: 'run-manifest',
+    phase: 'initial',
+    outcome: 'recorded',
+    detail: {
+      kind: 'ldb-synthetic-windows-crash-v1',
+      ...identity,
+      mode: 'normal',
+      rootName: 'ldb-crash-11111111-1111-4111-8111-111111111111',
+      invocationOwner: 'synthetic-owner'
+    }
+  }
+  const observations = [manifest, ...points, held].map((point, index) => ({
     ...identity,
     sequence: index + 1,
     ...point
   }))
   return {
     kind: 'ldb-synthetic-windows-hold-v1',
+    invocationOwner: 'synthetic-owner',
+    rawRecords: observations.map((record) =>
+      Buffer.from(JSON.stringify(record)).toString('base64')
+    ),
     selection: { ...identity, sequence: observations.length, ...held },
     observations
   }
@@ -88,13 +111,17 @@ function disk(
   return { entries, content: 'synthetic-only', observation: 'read-only-before-store-inspect' }
 }
 const blocked = {
+  automaticRefreshes: 0,
+  publishes: 0,
   state: 'recovery-required',
   generation: 'none',
   decryptionsBeforeRecovery: 0,
   recoveryPerformed: true,
   finalState: 'empty'
 }
-const ready = (generation: 'R0' | 'R1') => ({
+const ready = (generation: 'R0' | 'R1'): RecoveryObservation => ({
+  automaticRefreshes: 0,
+  publishes: 0,
   state: 'ready',
   generation,
   decryptionsBeforeRecovery: 1,
@@ -106,10 +133,10 @@ const r1Committed = event('store.commitCredential', 'confirmed', 'replace.commit
 
 it('requires an exactly reached adapter selection and contiguous original run evidence', () => {
   const valid = hold([markerEstablished])
-  expect(validateHold(valid).observations).toHaveLength(2)
+  expect(validateHold(valid).observations).toHaveLength(3)
   for (const invalid of [
     { ...valid, observations: [] },
-    { ...valid, selection: { ...valid.selection, sequence: 3 } },
+    { ...valid, selection: { ...valid.selection, sequence: 4 } },
     { ...valid, selection: { ...valid.selection, runId: 'another-run' } },
     { ...valid, selection: { ...valid.selection, cutpoint: 'FileDispositionInfo-to-CloseHandle' } },
     { ...valid, observations: [{ ...valid.observations[0], sequence: 9 }, valid.observations[1]] }
@@ -212,4 +239,67 @@ it('rejects missing disk and corrupted byte/hash evidence instead of assuming em
       judgeRecovery({ hold: hold([]), original: invalid, recovery: ready('R1') })
     ).toThrow()
   }
+})
+
+it('allows partial creation before preparation success but detects missing prepared paths afterward', () => {
+  const original = {
+    entries: [{ name: '.', type: 'missing', protection: 'missing' }],
+    content: 'synthetic-only',
+    observation: 'read-only-before-store-inspect'
+  }
+  const recovery = {
+    automaticRefreshes: 0,
+    publishes: 0,
+    state: 'empty',
+    generation: 'none',
+    decryptionsBeforeRecovery: 0,
+    recoveryPerformed: false,
+    finalState: 'empty'
+  }
+  expect(judgeRecovery({ hold: hold([]), original, recovery }).durabilityFindings).toEqual([])
+  expect(
+    judgeRecovery({ hold: hold([event('store.inspect', 'empty', 'prepare')]), original, recovery })
+      .durabilityFindings
+  ).toContain('reported-preparation-not-preserved')
+})
+it('allows in-progress replacement and clear to change a previously committed generation', () => {
+  const replacement = hold([
+    event('store.commitCredential', 'confirmed', 'create.commit-r0'),
+    markerEstablished,
+    start('store.commitCredential', 'replace.commit-r1')
+  ])
+  expect(
+    judgeRecovery({ hold: replacement, original: disk('R1', true), recovery: blocked })
+      .durabilityFindings
+  ).toEqual([])
+  const deletion = hold([markerEstablished, r1Committed, start('store.clearCredential', 'clear')])
+  expect(
+    judgeRecovery({ hold: deletion, original: disk('missing', true), recovery: blocked })
+      .durabilityFindings
+  ).toEqual([])
+})
+it('rejects host bytes that disagree with the parsed history and unrelated root ownership', () => {
+  const valid = hold([])
+  expect(() => validateHold({ ...valid, rawRecords: [] })).toThrow()
+  const changed = {
+    ...valid,
+    observations: valid.observations.map((point) => ({ ...point, caseId: 'recovery' }))
+  }
+  expect(() => validateHold(changed)).toThrow()
+  expect(() => validateHold({ ...valid, invocationOwner: 'another-owner' })).toThrow()
+})
+
+it('rejects missing recovery action evidence and detects automatic credential use', () => {
+  const evidence = hold([markerEstablished])
+  const recovery = { ...blocked, automaticRefreshes: 1 }
+  expect(
+    judgeRecovery({ hold: evidence, original: disk('R1', true), recovery }).recoveryFindings
+  ).toContain('automatic-credential-use')
+  expect(() =>
+    judgeRecovery({
+      hold: evidence,
+      original: disk('R1', true),
+      recovery: { ...blocked, publishes: undefined }
+    })
+  ).toThrow()
 })

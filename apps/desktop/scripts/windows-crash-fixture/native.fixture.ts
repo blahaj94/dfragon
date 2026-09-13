@@ -4,6 +4,7 @@ import { basename, dirname, isAbsolute, join } from 'node:path/win32'
 import { createWindowsCredentialNative } from '../../src/backend/auth/credential-store/windows-credential-native'
 import { createWindowsSecurityNative } from '../../src/backend/auth/windows-security-native'
 import { createObserver } from './observer'
+import { validateHold, type HoldEvidence } from './oracle'
 import { fileExchange, publishEvidence } from './transport'
 import { runScenarios } from './scenarios'
 import { assertFixtureAncestors } from './isolation'
@@ -16,6 +17,9 @@ type Settings = {
   evidence: string
   mode: 'normal' | 'recover'
   originManifest?: string
+  originHostHold?: string
+  originHold?: HoldEvidence
+  ackTimeoutMs?: number
 }
 
 async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
@@ -44,6 +48,13 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
   if (!isValid) {
     throw new Error('Synthetic fixture settings are invalid.')
   }
+  const ackTimeoutMs = settings.ackTimeoutMs ?? 30_000
+  const isTimeoutValid =
+    Number.isInteger(ackTimeoutMs) && ackTimeoutMs >= 30_000 && ackTimeoutMs <= 900_000
+  if (!isTimeoutValid) {
+    throw new Error('Fixture ACK timeout is invalid.')
+  }
+  settings.ackTimeoutMs = ackTimeoutMs
   diagnostic.enter('isolation')
   const hasOwnedName =
     /^ldb-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
@@ -81,6 +92,26 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
       throw new Error('Recovery requires the original manifest.')
     }
     const manifest = JSON.parse(await readFile(settings.originManifest!, 'utf8'))
+    const hasHostHold = typeof settings.originHostHold === 'string'
+    if (!hasHostHold) {
+      throw new Error('Recovery requires original host-held evidence.')
+    }
+    const holdInfo = await lstat(settings.originHostHold!)
+    const isBoundedPlainFile =
+      holdInfo.isFile() && !holdInfo.isSymbolicLink() && holdInfo.size <= 16_777_216
+    if (!isBoundedPlainFile) {
+      throw new Error('Original host hold is not a bounded plain file.')
+    }
+    settings.originHold = validateHold(JSON.parse(await readFile(settings.originHostHold!, 'utf8')))
+    const hostManifest = settings.originHold.observations[0].detail as Record<string, unknown>
+    const isSameHostRoot = hostManifest.rootName === basename(settings.root)
+    const isSameOriginalRun =
+      hostManifest.runId === manifest.runId && hostManifest.caseId === manifest.caseId
+    const isSameOwner = hostManifest.invocationOwner === manifest.invocationOwner
+    const isNewRecoveryRun = settings.runId !== manifest.runId
+    if (!isSameHostRoot || !isSameOriginalRun || !isSameOwner || !isNewRecoveryRun) {
+      throw new Error('Recovery host/origin identity mismatch.')
+    }
     const hasMatchingRoot = manifest.rootName === basename(settings.root)
     const hasMatchingParent = dirname(dirname(settings.originManifest!)) === dirname(settings.root)
     const hasOriginalEvidenceName =
@@ -112,8 +143,9 @@ async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
     namespaceMutation: 'unknown'
   })
   diagnostic.enter('manifest-publication')
-  await publishEvidence(join(settings.evidence, 'manifest.json'), {
+  const manifest = {
     kind: 'ldb-synthetic-windows-crash-v1',
+    invocationOwner: process.env.LDB_CRASH_OWNER ?? 'standalone',
     runId: settings.runId,
     caseId: settings.caseId,
     mode: settings.mode,
@@ -127,28 +159,35 @@ async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
       'FileDispositionInfo-to-CloseHandle',
       'physical-power-loss'
     ]
-  })
+  }
+  await publishEvidence(join(settings.evidence, 'manifest.json'), manifest)
   const observer = createObserver({
     ...settings,
-    timeoutMs: 30_000,
+    timeoutMs: settings.ackTimeoutMs!,
     exchange: fileExchange(settings.evidence)
   })
   let failure = true
   try {
+    await observer.observe({
+      cutpoint: 'run-manifest',
+      phase: 'initial',
+      outcome: 'recorded',
+      detail: manifest
+    })
     diagnostic.enter('scenario')
     const result = await runScenarios({ ...settings, observer })
     diagnostic.enter('terminal-publication')
     await observer.observe({
       cutpoint: 'run',
       phase: 'terminal',
-      outcome: settings.mode === 'normal' ? 'completed' : 'observed-unverified',
+      outcome: settings.mode === 'normal' ? 'completed' : result.verdict!.status,
       detail: result
     })
     diagnostic.enter('result-publication')
     await publishEvidence(join(settings.evidence, 'result.json'), {
       runId: settings.runId,
       caseId: settings.caseId,
-      status: settings.mode === 'normal' ? 'passed' : 'observed-unverified',
+      status: settings.mode === 'normal' ? 'passed' : result.verdict!.status,
       ...result,
       namespaceDurability: 'unverified'
     })
