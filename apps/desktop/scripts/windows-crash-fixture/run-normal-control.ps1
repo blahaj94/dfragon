@@ -35,7 +35,7 @@ function Invoke-Control([scriptblock] $Operation, [object[]] $Arguments) {
   }
 }
 try {
-  foreach ($scriptName in @('host-observer.ps1', 'run-normal-control.ps1', 'host-control.test.ps1', 'host-selection.test.ps1')) {
+  foreach ($scriptName in @('host-observer.ps1', 'run-normal-control.ps1', 'host-control.test.ps1', 'host-selection.test.ps1', 'host-publication.test.ps1')) {
     $tokens = $null
     $errors = $null
     [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot $scriptName), [ref] $tokens, [ref] $errors) | Out-Null

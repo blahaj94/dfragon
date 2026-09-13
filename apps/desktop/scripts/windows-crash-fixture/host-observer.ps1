@@ -42,13 +42,19 @@ function Write-HostArtifact {
   param([string] $Name, $Value)
   Assert-PlainDirectory $HostEvidence
   $bytes = [Text.Encoding]::UTF8.GetBytes(($Value | ConvertTo-Json -Depth 30 -Compress))
-  $stream = [IO.File]::Open((Join-Path $HostEvidence $Name), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
+  $final = Join-Path $HostEvidence $Name
+  $pending = $final + '.pending'
+  if ((Test-Path -LiteralPath $final) -or (Test-Path -LiteralPath $pending)) {
+    throw 'Host artifact must be new.'
+  }
+  $stream = [IO.File]::Open($pending, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
   try {
     $stream.Write($bytes, 0, $bytes.Length)
     $stream.Flush($true)
   } finally {
     $stream.Dispose()
   }
+  [IO.File]::Move($pending, $final)
 }
 function Wait-SelectedRelease {
   param($Event, $Events, $RawRecords)
