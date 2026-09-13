@@ -163,6 +163,7 @@ export type ReportedState = {
   marker: 'present' | 'absent' | 'unknown'
   generation: 'R0' | 'R1' | 'missing' | 'unknown'
   established: boolean
+  supersededR0: boolean
   prepared: boolean
 }
 export type RecoveryVerdict = {
@@ -261,6 +262,7 @@ function reportedState(events: Observation[]): ReportedState {
   let marker: 'present' | 'absent' | 'unknown' = 'unknown'
   let generation: 'R0' | 'R1' | 'missing' | 'unknown' = 'unknown'
   let established = false
+  let supersededR0 = false
   let prepared = false
   for (const event of events) {
     const isStart = event.phase === 'protocol-start'
@@ -310,6 +312,9 @@ function reportedState(events: Observation[]): ReportedState {
         throw new Error('Reported generation is unsupported.')
       }
       generation = isR0 ? 'R0' : 'R1'
+      if (isR1) {
+        supersededR0 = true
+      }
     }
     const isPreparedInspection =
       event.cutpoint === 'store.inspect' &&
@@ -318,7 +323,7 @@ function reportedState(events: Observation[]): ReportedState {
       prepared = true
     }
   }
-  return { marker, generation, established, prepared }
+  return { marker, generation, established, prepared, supersededR0 }
 }
 
 export function judgeRecovery(input: {
@@ -371,6 +376,21 @@ export function judgeRecovery(input: {
     recoveryFindings.push('blocked-credential-decrypted')
   }
   const needsClear = isBlockedRecord || original.generation === 'corrupt'
+  const hasRecord = original.generation !== 'missing'
+  const expectedState = needsClear ? 'recovery-required' : hasRecord ? 'ready' : 'empty'
+  const isExpectedState = recovery.state === expectedState
+  if (!isExpectedState) {
+    recoveryFindings.push('inspection-state-mismatch')
+  }
+  const isUnexpectedRecovery =
+    !needsClear && (recovery.recoveryPerformed || recovery.finalState !== expectedState)
+  if (isUnexpectedRecovery) {
+    recoveryFindings.push('unexpected-recovery-action')
+  }
+  const isSupersededR0 = reported.supersededR0 && isReady && recovery.generation === 'R0'
+  if (isSupersededR0) {
+    recoveryFindings.push('superseded-r0-restored')
+  }
   const isCleanRecovery = recovery.recoveryPerformed && recovery.finalState === 'empty'
   if (needsClear && !isCleanRecovery) {
     recoveryFindings.push('recovery-not-clean')
