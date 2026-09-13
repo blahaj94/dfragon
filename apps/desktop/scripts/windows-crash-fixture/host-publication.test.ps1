@@ -6,7 +6,8 @@ $ast = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSS
 if ($errors.Count -ne 0) { throw 'Observer parser failed.' }
 $writer = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Write-HostArtifact' }, $true))[0]
 $plain = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Assert-PlainDirectory' }, $true))[0]
-Set-Item Function:Assert-PlainDirectory -Value $plain.Body.GetScriptBlock()
+$definePlain = [scriptblock]::Create($plain.Extent.Text)
+. $definePlain
 $body = $writer.Body.Extent.Text
 $flush = '$stream.Flush($true)'
 if (($body.Split(@($flush), [StringSplitOptions]::None)).Count -ne 2) { throw 'Update publication test for changed flush boundary.' }
