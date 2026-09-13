@@ -1,4 +1,5 @@
 import { it, expect } from 'vitest'
+import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join } from 'node:path/win32'
 import { createWindowsCredentialNative } from '../../src/backend/auth/credential-store/windows-credential-native'
@@ -18,6 +19,7 @@ type Settings = {
   mode: 'normal' | 'recover'
   originManifest?: string
   originHostHold?: string
+  originHostHoldSha256?: string
   originHold?: HoldEvidence
   ackTimeoutMs?: number
 }
@@ -102,7 +104,14 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
     if (!isBoundedPlainFile) {
       throw new Error('Original host hold is not a bounded plain file.')
     }
-    settings.originHold = validateHold(JSON.parse(await readFile(settings.originHostHold!, 'utf8')))
+    const heldBytes = await readFile(settings.originHostHold!)
+    const expectedHash = settings.originHostHoldSha256
+    const isHashShape = typeof expectedHash === 'string' && /^[0-9a-f]{64}$/.test(expectedHash)
+    const hasMatchingHash = createHash('sha256').update(heldBytes).digest('hex') === expectedHash
+    if (!isHashShape || !hasMatchingHash) {
+      throw new Error('Original host hold transfer hash mismatch.')
+    }
+    settings.originHold = validateHold(JSON.parse(heldBytes.toString('utf8')))
     const hostManifest = settings.originHold.observations[0].detail as Record<string, unknown>
     const isSameHostRoot = hostManifest.rootName === basename(settings.root)
     const isSameOriginalRun =

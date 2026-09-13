@@ -251,6 +251,17 @@ function summarizeDisk(input: unknown): OriginalSummary {
     const hasToken = token != null
     generation = hasToken ? syntheticGeneration(token) : 'corrupt'
   }
+  for (const name of names) {
+    const isRoot = name === '.'
+    if (isRoot) {
+      continue
+    }
+    const parent = name.slice(0, name.lastIndexOf('/'))
+    const hasObservedParent = directories.has(parent)
+    if (!hasObservedParent) {
+      throw new Error('Original disk parent observation is missing.')
+    }
+  }
   const hasRoot = names.has('.')
   if (!hasRoot) {
     throw new Error('Original disk root observation is missing.')
