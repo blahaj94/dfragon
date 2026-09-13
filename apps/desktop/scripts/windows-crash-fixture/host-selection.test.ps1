@@ -26,3 +26,24 @@ foreach ($cutpoint in @('FileDispositionInfo-to-CloseHandle', 'store.removeTrans
   if (-not $rejected) { throw 'Unsupported boundary was selected.' }
 }
 '9 selected hold identity regressions passed'
+
+$holdFunctions = @($ast.FindAll({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Wait-SelectedRelease' }, $true))
+if ($holdFunctions.Count -ne 1) { throw 'Host hold/release is not implemented.' }
+$waitForRelease = $holdFunctions[0].Body.GetScriptBlock()
+$script:actions = [Collections.Generic.List[string]]::new()
+$script:heldValue = $null
+function Write-HostArtifact {
+  param($Name, $Value)
+  $script:actions.Add($Name)
+  if ($Name -ceq 'held.json') { $script:heldValue = $Value }
+}
+function Start-Sleep { param($Milliseconds); $script:actions.Add('withheld-ack') }
+$InvocationOwner = 'synthetic-owner'
+$RunId = 'run'
+$CaseId = 'normal-control'
+$HoldSeconds = 600
+$DemonstrateHoldMilliseconds = 1000
+& $waitForRelease $event @($event) @('raw-request-bytes')
+if (($script:actions -join ',') -cne 'held.json,withheld-ack,released.json') { throw 'Host evidence was not persisted before withholding and releasing ACK.' }
+if ($script:heldValue.invocationOwner -cne $InvocationOwner -or $script:heldValue.selection.sequence -ne 12 -or $script:heldValue.rawRecords[0] -cne 'raw-request-bytes') { throw 'Host hold lost its owner/selection/raw request provenance.' }
+'1 host hold persistence/release regression passed'

@@ -72,3 +72,30 @@ $script:LdbCrashProcess = $null
 $script:LdbCrashRun = $null
 $script:LdbCrashOwner = $null
 '2 observer process regressions passed'
+
+# The real terminal action must reject null/string/nonzero exits even with a passed result.
+$terminalAction = $actions[1].CommandElements[1].ScriptBlock.GetScriptBlock()
+function Get-Content { param($LiteralPath, [switch] $Raw); return $script:terminalResult }
+function Test-Path { param($LiteralPath); return $false }
+foreach ($code in @($null, '0', 7, 0)) {
+  $script:LdbCrashRun = 'same-run'
+  $script:LdbCrashOwner = 'current-invocation'
+  $script:LdbCrashProcess = New-ProcessStub
+  $script:LdbCrashProcess.HasExited = $true
+  $script:LdbCrashProcess | Add-Member NoteProperty ExitCode $code
+  $script:terminalResult = '{"runId":"same-run","caseId":"normal-control","status":"passed"}'
+  $accepted = $false
+  try {
+    $result = & $terminalAction 'same-run' 'C:\evidence' 'current-invocation' 'normal-control' 'normal'
+    $accepted = $result.exitCode -is [int] -and $result.exitCode -eq 0
+  } catch { }
+  $expected = $code -is [int] -and $code -eq 0
+  if ($accepted -ne $expected) { throw 'Terminal action misclassified numeric process exit evidence.' }
+}
+$script:terminalResult = '{"runId":"same-run","caseId":"recovery","status":"observed-consistent","verdict":{"namespaceDurability":"unverified"}}'
+$result = & $terminalAction 'same-run' 'C:\evidence' 'current-invocation' 'recovery' 'recover'
+if ($result.result -cne 'observed-consistent') { throw 'Recovery result was not retained separately.' }
+$script:LdbCrashProcess = $null
+$script:LdbCrashRun = $null
+$script:LdbCrashOwner = $null
+'5 terminal result regressions passed'
