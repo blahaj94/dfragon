@@ -923,7 +923,18 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
   mocks.applyProfile.mockImplementationOnce((application, config) => {
     try {
-      actual.applyAuthRuntimeProfile(application, config)
+      actual.applyAuthRuntimeProfile(application, config, {
+        ...fs,
+        realpathSync: fs.realpathSync.native,
+        windows: {
+          capabilities: { profileProtection: 'confirmed', namespaceMutation: 'confirmed' },
+          inspectDirectory: () => 'trusted',
+          createDirectory: () => {
+            throw new Error('Unexpected synthetic Windows profile creation')
+          },
+          syncDirectory: () => {}
+        }
+      })
     } catch {
       throw new runtimeConfigModule.AuthRuntimeProfileApplicationFailure()
     }
@@ -937,6 +948,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     await mocks.bootstrap
 
     expect(mocks.setPath).toHaveBeenCalledExactlyOnceWith('userData', userDataPath)
+    expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.ldb')
     expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
     expect(mocks.createIngress).not.toHaveBeenCalled()
     expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
