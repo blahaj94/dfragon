@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { vi } from 'vitest'
 import type { MockedFunction } from 'vitest'
 import type { CredentialStore } from '../types'
+import { createPosixTestFiles } from './credential-posix-test-files'
 import { createMacOsCredentialStore } from './macos-credential-store'
 
 export const CONTEXT = {
@@ -52,8 +53,16 @@ export function deferred(): Readonly<{ promise: Promise<void>; resolve: () => vo
 }
 
 // 실제 임시 file IO를 유지하고 지정한 호출의 실패·지연만 주입한다.
-export async function createStoreFixture(): Promise<StoreFixture> {
+export async function createStoreFixture({
+  modelPosix = process.platform === 'win32'
+}: Readonly<{ modelPosix?: boolean }> = {}): Promise<StoreFixture> {
   const userDataPath = await fs.mkdtemp(join(tmpdir(), 'ldb-credential-127-'))
+  const uidDescriptor = Object.getOwnPropertyDescriptor(process, 'getuid')
+  const uid = 12345
+  if (modelPosix) {
+    Object.defineProperty(process, 'getuid', { configurable: true, value: () => uid })
+  }
+  const baseFiles = modelPosix ? createPosixTestFiles({ root: userDataPath, uid }) : fs
   const directory = join(userDataPath, 'auth', CONTEXT.environment)
   const events: string[] = []
   const opens: OpenObservation[] = []
@@ -114,11 +123,11 @@ export async function createStoreFixture(): Promise<StoreFixture> {
   }
 
   const files: typeof fs = {
-    ...fs,
+    ...baseFiles,
     open: async (path, flags, mode) => {
       const kind = label(path)
       opens.push({ path: String(path), flags, mode })
-      const handle = await observe(`open:${kind}`, () => fs.open(path, flags, mode))
+      const handle = await observe(`open:${kind}`, () => baseFiles.open(path, flags, mode))
       openHandles.add(handle)
       const sync = handle.sync.bind(handle)
       const close = handle.close.bind(handle)
@@ -131,8 +140,8 @@ export async function createStoreFixture(): Promise<StoreFixture> {
       }
       return handle
     },
-    rename: (from, to) => observe(`rename:${label(to)}`, () => fs.rename(from, to)),
-    unlink: (path) => observe(`unlink:${label(path)}`, () => fs.unlink(path))
+    rename: (from, to) => observe(`rename:${label(to)}`, () => baseFiles.rename(from, to)),
+    unlink: (path) => observe(`unlink:${label(path)}`, () => baseFiles.unlink(path))
   }
 
   const createStore = (): CredentialStore =>
@@ -156,7 +165,9 @@ export async function createStoreFixture(): Promise<StoreFixture> {
   }
 
   async function writeRecord(record: unknown): Promise<void> {
-    await fs.writeFile(join(directory, 'credential.v1'), JSON.stringify(record), { mode: 0o600 })
+    await baseFiles.writeFile(join(directory, 'credential.v1'), JSON.stringify(record), {
+      mode: 0o600
+    })
   }
 
   async function readRecord(): Promise<Record<string, unknown>> {
@@ -164,9 +175,20 @@ export async function createStoreFixture(): Promise<StoreFixture> {
   }
 
   async function cleanup(): Promise<void> {
-    const leakedHandles = [...openHandles]
-    await Promise.all(leakedHandles.map((handle) => handle.close()))
-    await fs.rm(userDataPath, { recursive: true, force: true })
+    try {
+      const leakedHandles = [...openHandles]
+      await Promise.all(leakedHandles.map((handle) => handle.close()))
+      await fs.rm(userDataPath, { recursive: true, force: true })
+    } finally {
+      if (modelPosix) {
+        const hadUid = uidDescriptor != null
+        if (hadUid) {
+          Object.defineProperty(process, 'getuid', uidDescriptor)
+        } else {
+          Reflect.deleteProperty(process, 'getuid')
+        }
+      }
+    }
   }
 
   return {

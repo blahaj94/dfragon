@@ -2,6 +2,8 @@ import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { runCaptureFixture } from '../auth-capture-fixture.mjs'
 
+const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')
+
 const fixture = vi.hoisted(() => ({
   spawn: vi.fn(),
   remove: vi.fn(),
@@ -17,6 +19,7 @@ vi.mock('node:fs/promises', () => ({
   writeFile: fixture.write
 }))
 beforeEach(() => {
+  Object.defineProperty(process, 'platform', { ...originalPlatformDescriptor, value: 'darwin' })
   vi.resetAllMocks()
   fixture.create.mockResolvedValue('/synthetic/owned-profile')
   fixture.remove.mockResolvedValue(undefined)
@@ -36,6 +39,7 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
 })
 afterEach(() => {
+  Object.defineProperty(process, 'platform', originalPlatformDescriptor)
   vi.restoreAllMocks()
   vi.useRealTimers()
 })
@@ -220,4 +224,20 @@ it('검색 UI smoke 전용 모드도 같은 owned launcher와 종료 정리를 �
   expect(fixture.spawn.mock.calls[0][1]).toContain('--search-smoke')
   expect(fixture.remove).toHaveBeenCalledOnce()
   expect(console.log).toHaveBeenCalledExactlyOnceWith('Capture fixture cleanup PASS')
+})
+
+it('Windows에서는 유효한 모드도 파일과 프로세스 작업 없이 설정 단계에서 거절한다', async () => {
+  Object.defineProperty(process, 'platform', { ...originalPlatformDescriptor, value: 'win32' })
+
+  expect(await runCaptureFixture(['--ocr'])).toBe(1)
+  expect(console.error).toHaveBeenCalledExactlyOnceWith(
+    'Capture fixture launcher configuration FAIL'
+  )
+  expect(console.log).not.toHaveBeenCalled()
+  expect(fixture.create).not.toHaveBeenCalled()
+  expect(fixture.write).not.toHaveBeenCalled()
+  expect(fixture.spawn).not.toHaveBeenCalled()
+  expect(fixture.remove).not.toHaveBeenCalled()
+  expect(fixture.inspect).not.toHaveBeenCalled()
+  expect(process.kill).not.toHaveBeenCalled()
 })

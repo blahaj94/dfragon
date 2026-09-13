@@ -2,6 +2,8 @@ import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { runAuthBridgeFixture } from '../auth-bridge-fixture.mjs'
 
+const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')
+
 const fixture = vi.hoisted(() => ({
   spawn: vi.fn(),
   remove: vi.fn(),
@@ -16,6 +18,7 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 beforeEach(() => {
+  Object.defineProperty(process, 'platform', { ...originalPlatformDescriptor, value: 'darwin' })
   vi.resetAllMocks()
   fixture.create.mockResolvedValue('/synthetic/owned-profile')
   fixture.remove.mockResolvedValue(undefined)
@@ -35,6 +38,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  Object.defineProperty(process, 'platform', originalPlatformDescriptor)
   vi.restoreAllMocks()
   vi.useRealTimers()
 })
@@ -80,4 +84,19 @@ it('profile 삭제 또는 부재 확인 실패를 성공으로 숨기지 않는�
   expect(await runAuthBridgeFixture(['--smoke'])).toBe(1)
   expect(console.error).toHaveBeenCalledExactlyOnceWith('Auth bridge fixture cleanup FAIL')
   expect(console.log).not.toHaveBeenCalled()
+})
+
+it('Windows에서는 유효한 모드도 파일과 프로세스 작업 없이 설정 단계에서 거절한다', async () => {
+  Object.defineProperty(process, 'platform', { ...originalPlatformDescriptor, value: 'win32' })
+
+  expect(await runAuthBridgeFixture(['--smoke'])).toBe(1)
+  expect(console.error).toHaveBeenCalledExactlyOnceWith(
+    'Auth bridge fixture launcher configuration FAIL'
+  )
+  expect(console.log).not.toHaveBeenCalled()
+  expect(fixture.create).not.toHaveBeenCalled()
+  expect(fixture.spawn).not.toHaveBeenCalled()
+  expect(fixture.remove).not.toHaveBeenCalled()
+  expect(fixture.inspect).not.toHaveBeenCalled()
+  expect(process.kill).not.toHaveBeenCalled()
 })
