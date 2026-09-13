@@ -17,6 +17,9 @@ vi.mock('node:fs', async (importOriginal) => {
   }
 })
 
+// 먼저 로드된 test도 이 helper와 동일한 POSIX flag를 사용한다.
+export const POSIX_TEST_FILE_CONSTANTS = constants
+
 type Metadata = { mode: number; uid: number; target?: string }
 
 // Windows의 POSIX 사례와 합성 경계 자체 검사에 사용한다. 내용·exclusive 생성·rename·unlink는 실제 IO다.
