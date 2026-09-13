@@ -303,3 +303,31 @@ it('rejects missing recovery action evidence and detects automatic credential us
     })
   ).toThrow()
 })
+
+it.each([
+  { state: 'empty', generation: 'none', recoveryPerformed: false, finalState: 'empty' },
+  { state: 'recovery-required', generation: 'none', recoveryPerformed: true, finalState: 'empty' }
+])(
+  'detects inspection or unsolicited recovery that discards an intact ready record',
+  (observed) => {
+    const evidence = hold([
+      markerEstablished,
+      r1Committed,
+      event('store.removeTransition', 'confirmed', 'replace.finalize')
+    ])
+    const recovery = { ...ready('R1'), ...observed }
+    expect(
+      judgeRecovery({ hold: evidence, original: disk('R1'), recovery }).recoveryFindings
+    ).toContain('inspection-state-mismatch')
+  }
+)
+it('rejects superseded R0 restoration even after reported marker removal', () => {
+  const evidence = hold([
+    markerEstablished,
+    r1Committed,
+    event('store.removeTransition', 'confirmed', 'replace.finalize')
+  ])
+  expect(
+    judgeRecovery({ hold: evidence, original: disk('R0'), recovery: ready('R0') }).recoveryFindings
+  ).toContain('superseded-r0-restored')
+})
