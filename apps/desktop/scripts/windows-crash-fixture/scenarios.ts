@@ -6,6 +6,7 @@ import {
   finalizeCredentialTransition
 } from '../../src/backend/auth/credential-operations'
 import type { CredentialInspection, CredentialStore } from '../../src/backend/auth/types'
+import { assertPrivateRoot } from './isolation'
 import { observeDisk } from './disk'
 import { createObservedNative } from './native'
 import { observeBeforeRecovery, type Observer } from './observer'
@@ -115,6 +116,7 @@ export async function runScenarios({
     inspect: async () => observed.native.createDirectory(root)
   })
   requireStatus(rootCreation, 'created')
+  assertPrivateRoot({ root, security: observed.security })
   const store = createStore()
   requireStatus((await store.inspect()).status, 'empty')
   await check('create.prepare', () => prepareCredentialTransition(store, 'exchange'), 'established')

@@ -52,7 +52,7 @@ try {
     } finally { $env:LDB_CRASH_CONFIG = $previousConfig }
     return @{ started = $true; pid = $script:LdbCrashProcess.Id }
   } @($GuestDesktop, $GuestNode, $GuestConfig, $GuestEvidence, $RunId, $invocationOwner) | Out-Null
-  & (Join-Path $PSScriptRoot 'host-observer.ps1') -Session $Session -GuestEvidence $GuestEvidence -HostEvidence $HostEvidence -RunId $RunId -CaseId 'normal-control' -DeadlineSeconds 900 | Out-Null
+  & (Join-Path $PSScriptRoot 'host-observer.ps1') -Session $Session -GuestEvidence $GuestEvidence -HostEvidence $HostEvidence -RunId $RunId -CaseId 'normal-control' -InvocationOwner $invocationOwner -DeadlineSeconds 900 | Out-Null
 
   $terminal = Invoke-Control {
     param($Run, $Evidence, $Owner)

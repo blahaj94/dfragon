@@ -26,7 +26,7 @@ Config는 아래 형태의 UTF-8 JSON입니다. 실제 경로는 승인된 실�
 }
 ```
 
-Root parent와 ancestors의 안전한 namespace를 확인하지 못하면 생성 전에 실패합니다. Root는 실제 native private DACL로 생성합니다. 최초 disk 관측과 host ACK, 새 directory 생성, R0 저장, marker 상태의 새 store 검사와 복호화 0회, R1 교체 및 새 store의 R1 확인, clear 후 empty, marker와 R1이 남은 새 store의 복구 및 clear를 확인합니다. 실제 flush 실패 등은 실패로 보존하며 mock 성공으로 대체하지 않습니다.
+Root parent와 ancestors는 기존 native fixture와 같은 일반 directory 및 reparse 검사를 수행합니다. Ancestor의 `untrusted`는 ACL 신뢰로 승격하지 않으며 구조 관측으로만 구분합니다. 이는 격리된 VM 실험 범위이고 악의적인 parent 교체를 방어한다는 보장이 아닙니다. 새 root는 실제 native private DACL로 생성한 뒤 반드시 `private/trusted`를 확인하며 하위 제품 ACL 검사도 유지합니다. 최초 disk 관측과 host ACK, 새 directory 생성, R0 저장, marker 상태의 새 store 검사와 복호화 0회, R1 교체 및 새 store의 R1 확인, clear 후 empty, marker와 R1이 남은 새 store의 복구 및 clear를 확인합니다. 실제 flush 실패 등은 실패로 보존하며 mock 성공으로 대체하지 않습니다.
 
 ## Host ACK 실행
 
@@ -87,8 +87,12 @@ Invoke-Command -Session $session -ScriptBlock {
   -GuestConfig $config -GuestEvidence $evidence -HostEvidence $hostEvidence -RunId $runId
 ```
 
-`run-normal-control.ps1`은 시작 전에 host의 PowerShell script 세 개를 parser로 검사하고 `host-control.test.ps1`의 실제 start/cleanup AST 기반 4개 stub 회귀 검증을 실행합니다. Stub 검증은 실제 session/process/VM/file을 변경하지 않으며 통과 전에는 guest process를 시작하지 않습니다. Guest의 전용 harness typecheck는 위 명령으로 별도 통과시킨 뒤 실행합니다. Guest cwd는 `$guestDesktop`, executable은 `$guestNode`, args는 `node_modules/vitest/vitest.mjs run --config scripts/windows-crash-fixture/vitest.config.ts --pool=threads --maxWorkers=1`, environment 추가는 자식 process의 `LDB_CRASH_CONFIG=$config`입니다. 부모 session 환경은 즉시 복원합니다.
+`run-normal-control.ps1`은 시작 전에 host의 PowerShell script 세 개를 parser로 검사하고 `host-control.test.ps1`의 실제 start/cleanup AST 기반 6개 stub 회귀 검증을 실행합니다. Stub 검증은 실제 session/process/VM/file을 변경하지 않으며 통과 전에는 guest process를 시작하지 않습니다. Guest의 전용 harness typecheck는 위 명령으로 별도 통과시킨 뒤 실행합니다. Guest cwd는 `$guestDesktop`, executable은 `$guestNode`, args는 `node_modules/vitest/vitest.mjs run --config scripts/windows-crash-fixture/vitest.config.ts --pool=threads --maxWorkers=1`, environment 추가는 자식 process의 `LDB_CRASH_CONFIG=$config`입니다. 부모 session 환경은 즉시 복원합니다.
 
 Guest process는 `Start-Process -PassThru`의 정확한 Process 객체를 invocation마다 새로 만든 owner nonce 및 runId와 함께 session에 보관합니다. 같은 runId로 거절된 재실행의 finally는 이전 nonce의 process를 종료하지 않습니다. 단일 worker thread를 사용해 Vitest 자식 worker process를 만들지 않습니다. Host observer 완료 후 20초 내 guest 종료, exit 0, 같은 run/case의 result passed 및 failure 부재를 확인해야만 성공 JSON을 반환합니다. 시작/terminal/종료 제어 remoting은 각각 최대 30초, 관측은 최대 900초입니다. 모든 종료 경로에서 자신의 run Process만 종료/WaitForExit/Dispose하며 VM이나 다른 process를 종료하지 않습니다. Session이 끊겨 종료를 확인할 수 없으면 실패 상태로 보존하고 기존 Runner의 재연결/소유 process 확인 절차로 넘깁니다. 종료를 추정하거나 자동 재실행하지 않습니다.
 
 기존 스킬의 Collect 단계에 전달할 exact guest artifact는 `$evidence` 전체, `$evidence + '.stdout.log'`, `$evidence + '.stderr.log'`입니다. Host artifact는 `$hostEvidence` 전체와 wrapper의 terminal JSON/종료 코드입니다. `$root`와 `$config`는 guest에 그대로 보존합니다. 수집 실패도 완료가 아닙니다. Native 실패 후 독립적인 일반 test/lint/build/format을 진행할 때는 별도 job/result로 기록하고 최초 native 실패와 섞지 않습니다.
+
+준비 실패도 `diagnostics.ts`의 고정 stage 이름만 오류에 남깁니다. 원문 native 오류, 경로와 SID는 출력하지 않습니다. Evidence directory 검증 전 실패하면 그 위치에 failure 파일을 강제로 쓰지 않으며 guest stdout/stderr의 stage와 실제 process 종료를 진단 근거로 사용합니다.
+
+Wrapper는 host observer에 자신의 runId와 owner nonce를 전달합니다. Request polling 전에 보관된 같은 Process의 종료를 확인하여 준비 단계에서 이미 종료된 guest를 전체 900초 deadline까지 기다리지 않습니다. 다른 run/nonce이면 즉시 실패하며 process를 변경하지 않습니다. 독립 host observer 호출처럼 Process 소유권을 전달하지 않은 경우에는 기존 artifact 및 deadline 관측만 수행합니다.

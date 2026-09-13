@@ -6,6 +6,8 @@ import { createWindowsSecurityNative } from '../../src/backend/auth/windows-secu
 import { createObserver } from './observer'
 import { fileExchange, publishEvidence } from './transport'
 import { runScenarios } from './scenarios'
+import { assertFixtureAncestors } from './isolation'
+import { createStageDiagnostic, type StageDiagnostic } from './diagnostics'
 
 type Settings = {
   runId: string
@@ -16,7 +18,7 @@ type Settings = {
   originManifest?: string
 }
 
-async function readSettings(): Promise<Settings> {
+async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
   const isWindows = process.platform === 'win32'
   if (!isWindows) {
     throw new Error('Windows crash fixture requires Windows.')
@@ -26,7 +28,10 @@ async function readSettings(): Promise<Settings> {
   if (!hasConfiguration) {
     throw new Error('LDB_CRASH_CONFIG is required.')
   }
-  const settings = JSON.parse(await readFile(configuration, 'utf8')) as Settings
+  const contents = await readFile(configuration, 'utf8')
+  diagnostic.enter('config-parse')
+  const settings = JSON.parse(contents) as Settings
+  diagnostic.enter('config-shape')
   const hasRun = typeof settings.runId === 'string' && /^[a-z0-9-]{1,80}$/.test(settings.runId)
   const hasCase = settings.caseId === 'normal-control' || settings.caseId === 'recovery'
   const hasRoot = typeof settings.root === 'string' && isAbsolute(settings.root)
@@ -39,6 +44,7 @@ async function readSettings(): Promise<Settings> {
   if (!isValid) {
     throw new Error('Synthetic fixture settings are invalid.')
   }
+  diagnostic.enter('isolation')
   const hasOwnedName =
     /^ldb-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
       basename(settings.root)
@@ -51,20 +57,9 @@ async function readSettings(): Promise<Settings> {
     throw new Error('Synthetic root and evidence are not isolated siblings.')
   }
   const security = createWindowsSecurityNative()
-  let path = dirname(settings.root)
-  while (true) {
-    const inspection = security.inspect(path, 'directory', 'ancestor')
-    const isTrusted = inspection === 'trusted'
-    if (!isTrusted) {
-      throw new Error('Synthetic fixture ancestor protection is unconfirmed.')
-    }
-    const parent = dirname(path)
-    const isVolume = parent === path
-    if (isVolume) {
-      break
-    }
-    path = parent
-  }
+  diagnostic.enter('ancestor-inspection')
+  await assertFixtureAncestors({ root: settings.root, security })
+  diagnostic.enter('evidence-inspection')
   const evidenceInfo = await lstat(settings.evidence)
   const isEvidenceDirectory = evidenceInfo.isDirectory() && !evidenceInfo.isSymbolicLink()
   const isEvidenceEmpty = (await readdir(settings.evidence)).length === 0
@@ -73,12 +68,14 @@ async function readSettings(): Promise<Settings> {
   }
   const isNormal = settings.mode === 'normal'
   if (isNormal) {
+    diagnostic.enter('root-inspection')
     const rootStatus = security.inspect(settings.root, 'directory')
     const isMissing = rootStatus === 'missing'
     if (!isMissing) {
       throw new Error('Normal control refuses to reuse a fixture root.')
     }
   } else {
+    diagnostic.enter('recovery-manifest')
     const hasManifest = typeof settings.originManifest === 'string'
     if (!hasManifest) {
       throw new Error('Recovery requires the original manifest.')
@@ -106,13 +103,15 @@ async function readSettings(): Promise<Settings> {
   return settings
 }
 
-async function runFixture(): Promise<void> {
-  const settings = await readSettings()
+async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
+  const settings = await readSettings(diagnostic)
+  diagnostic.enter('product-capabilities')
   expect(createWindowsCredentialNative().capabilities).toEqual({
     profileProtection: 'unknown',
     fileMutation: 'unknown',
     namespaceMutation: 'unknown'
   })
+  diagnostic.enter('manifest-publication')
   await publishEvidence(join(settings.evidence, 'manifest.json'), {
     kind: 'ldb-synthetic-windows-crash-v1',
     runId: settings.runId,
@@ -136,13 +135,16 @@ async function runFixture(): Promise<void> {
   })
   let failure = true
   try {
+    diagnostic.enter('scenario')
     const result = await runScenarios({ ...settings, observer })
+    diagnostic.enter('terminal-publication')
     await observer.observe({
       cutpoint: 'run',
       phase: 'terminal',
       outcome: settings.mode === 'normal' ? 'completed' : 'observed-unverified',
       detail: result
     })
+    diagnostic.enter('result-publication')
     await publishEvidence(join(settings.evidence, 'result.json'), {
       runId: settings.runId,
       caseId: settings.caseId,
@@ -160,6 +162,7 @@ async function runFixture(): Promise<void> {
         runId: settings.runId,
         caseId: settings.caseId,
         status: 'failed',
+        stage: diagnostic.current(),
         artifactsPreserved: true,
         cleanup: 'not-performed'
       })
@@ -169,9 +172,6 @@ async function runFixture(): Promise<void> {
 }
 
 it('runs synthetic native normal controls with host ACK and preserves evidence', async () => {
-  try {
-    await runFixture()
-  } catch {
-    throw new Error('Synthetic Windows fixture failed; preserve guest and host evidence.')
-  }
+  const diagnostic = createStageDiagnostic()
+  await diagnostic.run(() => runFixture(diagnostic))
 })

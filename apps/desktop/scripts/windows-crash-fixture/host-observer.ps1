@@ -6,6 +6,7 @@ param(
   [Parameter(Mandatory)][string] $HostEvidence,
   [Parameter(Mandatory)][string] $RunId,
   [Parameter(Mandatory)][string] $CaseId,
+  [string] $InvocationOwner,
   [ValidateRange(1, 900)][int] $DeadlineSeconds = 900
 )
 $ErrorActionPreference = 'Stop'
@@ -19,7 +20,12 @@ function Assert-PlainDirectory([string] $Path) {
   }
 }
 $remote = {
-  param($Evidence, $Action, $Name, $Bytes)
+  param($Evidence, $Action, $Name, $Bytes, $ExpectedRun, $ExpectedOwner)
+  if (-not [string]::IsNullOrEmpty($ExpectedOwner)) {
+    $process = $script:LdbCrashProcess
+    if ($null -eq $process -or $script:LdbCrashRun -cne $ExpectedRun -or $script:LdbCrashOwner -cne $ExpectedOwner) { throw 'Guest observer process ownership mismatch.' }
+    if ($process.HasExited) { throw 'Guest fixture process exited before terminal ACK.' }
+  }
   $ErrorActionPreference = 'Stop'
   if ($Evidence -notmatch '^[A-Za-z]:\\' -or [IO.Path]::GetFullPath($Evidence) -cne $Evidence -or $Name -notmatch '^\d{6}$') { throw 'Invalid evidence identity.' }
   $current = $Evidence
@@ -49,7 +55,7 @@ $deadline = [DateTime]::UtcNow.AddSeconds($DeadlineSeconds)
 function Invoke-ObserverAction([string] $Action, [string] $Name, [byte[]] $Bytes) {
   $remaining = [Math]::Floor(($deadline - [DateTime]::UtcNow).TotalSeconds)
   if ($remaining -lt 1) { throw 'Host observer deadline exceeded.' }
-  $job = Invoke-Command -Session $Session -ScriptBlock $remote -ArgumentList $GuestEvidence, $Action, $Name, $Bytes -AsJob
+  $job = Invoke-Command -Session $Session -ScriptBlock $remote -ArgumentList $GuestEvidence, $Action, $Name, $Bytes, $RunId, $InvocationOwner -AsJob
   try {
     $finished = Wait-Job -Job $job -Timeout $remaining
     if ($null -eq $finished -or $job.State -ne 'Completed') { throw 'Remote observer action failed or timed out.' }

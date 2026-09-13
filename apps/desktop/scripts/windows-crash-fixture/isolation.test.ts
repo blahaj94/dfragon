@@ -3,7 +3,11 @@ import { assertFixtureAncestors, assertPrivateRoot } from './isolation'
 import type { ReadOnlySecurity } from './native'
 
 const root = String.raw`C:\synthetic-lab\ldb-crash-root`
-const plainDirectory = async () => ({ isDirectory: () => true, isSymbolicLink: () => false })
+type DirectoryType = { isDirectory(): boolean; isSymbolicLink(): boolean }
+const plainDirectory = async (): Promise<DirectoryType> => ({
+  isDirectory: () => true,
+  isSymbolicLink: () => false
+})
 
 it('accepts plain system-owned ancestors without declaring their ACL trusted', async () => {
   const security = { inspect: vi.fn<ReadOnlySecurity['inspect']>(() => 'untrusted') }
@@ -34,7 +38,7 @@ it.each(['file', 'symbolic-link'] as const)(
   'rejects %s ancestors before native inspection',
   async (kind) => {
     const security = { inspect: vi.fn<ReadOnlySecurity['inspect']>(() => 'untrusted') }
-    const readType = async () => ({
+    const readType = async (): Promise<DirectoryType> => ({
       isDirectory: () => kind !== 'file',
       isSymbolicLink: () => kind === 'symbolic-link'
     })
