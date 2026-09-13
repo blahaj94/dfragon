@@ -48,3 +48,27 @@ $exited = $script:LdbCrashProcess
 & $cleanup 'same-run' 'current-invocation'
 if ($exited.kills -ne 0 -or $exited.disposals -ne 1) { throw 'Exited process was killed or not released.' }
 '4 process ownership regressions passed'
+
+$hostAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PSScriptRoot 'host-observer.ps1'), [ref] $tokens, [ref] $errors)
+if ($errors.Count -ne 0) { throw 'Host observer parser validation failed.' }
+$remoteBlocks = @($hostAst.FindAll({
+  param($node)
+  $node -is [System.Management.Automation.Language.ScriptBlockExpressionAst] -and $null -ne $node.ScriptBlock.ParamBlock -and $node.ScriptBlock.ParamBlock.Parameters.Count -ge 4 -and $node.ScriptBlock.ParamBlock.Parameters[0].Name.VariablePath.UserPath -eq 'Evidence'
+}, $true))
+if ($remoteBlocks.Count -ne 1) { throw 'Update early-exit regression for changed observer boundaries.' }
+$observe = $remoteBlocks[0].ScriptBlock.GetScriptBlock()
+$script:LdbCrashRun = 'same-run'
+$script:LdbCrashOwner = 'current-invocation'
+$script:LdbCrashProcess = New-ProcessStub
+$script:LdbCrashProcess.HasExited = $true
+$exited = $script:LdbCrashProcess
+$rejected = $false
+try { & $observe '' 'read' '000001' @() 'same-run' 'current-invocation' } catch { $rejected = $_.Exception.Message -eq 'Guest fixture process exited before terminal ACK.' }
+if (-not $rejected -or $exited.kills -ne 0 -or $exited.disposals -ne 0) { throw 'Exited guest was not rejected before request polling or was modified.' }
+$rejected = $false
+try { & $observe '' 'read' '000001' @() 'same-run' 'other-invocation' } catch { $rejected = $_.Exception.Message -eq 'Guest observer process ownership mismatch.' }
+if (-not $rejected -or $exited.kills -ne 0) { throw 'Observer accepted an unrelated invocation.' }
+$script:LdbCrashProcess = $null
+$script:LdbCrashRun = $null
+$script:LdbCrashOwner = $null
+'2 observer process regressions passed'
