@@ -1,9 +1,11 @@
 import * as fs from 'node:fs/promises'
-import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { createPosixTestFiles } from './credential-posix-test-files'
+import {
+  createPosixTestFiles,
+  POSIX_TEST_FILE_CONSTANTS as constants
+} from './credential-posix-test-files'
 import { createStoreFixture } from './credential-store-test-fixture'
 
 // 실제 host와 관계없이 합성 경계 자체를 검사하며 OS 보안 지원을 검증하지 않는다.

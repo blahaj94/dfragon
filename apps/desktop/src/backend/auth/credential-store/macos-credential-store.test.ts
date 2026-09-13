@@ -1,5 +1,4 @@
 import * as fs from 'node:fs/promises'
-import { constants } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
@@ -7,6 +6,7 @@ import {
   finalizeCredentialTransition,
   prepareCredentialTransition
 } from '../credential-operations'
+import { POSIX_TEST_FILE_CONSTANTS as constants } from './credential-posix-test-files'
 import { CONTEXT, REFRESH_0, REFRESH_1, createStoreFixture } from './credential-store-test-fixture'
 import type { StoreFixture } from './credential-store-test-fixture'
 import { createMacOsCredentialStore } from './macos-credential-store'
