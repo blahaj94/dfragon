@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises'
 import { constants } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   clearCredential,
@@ -22,7 +22,9 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     const leakedHandles = fixture.openHandles.size
     await fixture.cleanup()
     expect(leakedHandles).toBe(0)
-    await expect(fs.lstat(fixture.userDataPath)).rejects.toMatchObject({ code: 'ENOENT' })
+    await expect(fs.lstat(fixture.userDataPath)).rejects.toMatchObject({
+      code: 'ENOENT'
+    })
   })
 
   it('비-macOS host는 암호화·파일 작업 전에 거절한다', async () => {
@@ -49,7 +51,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
 
   it('빈 저장소는 private directory를 만들고 empty로 검사한다', async () => {
     expect(await fixture.store.inspect()).toEqual({ status: 'empty' })
-    const stat = await fs.lstat(fixture.directory)
+    const stat = await fixture.files.lstat(fixture.directory)
     expect(stat.mode & 0o777).toBe(0o700)
     expect(stat.uid).toBe(process.getuid?.())
     expect(await fs.readdir(fixture.directory)).toEqual([])
@@ -69,7 +71,9 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     expect(disk).not.toContain(REFRESH_0)
     expect(disk).not.toContain(REFRESH_1)
     expect(await fs.readdir(fixture.directory)).toEqual(['credential.v1'])
-    expect((await fs.lstat(join(fixture.directory, 'credential.v1'))).mode & 0o777).toBe(0o600)
+    expect((await fixture.files.lstat(join(fixture.directory, 'credential.v1'))).mode & 0o777).toBe(
+      0o600
+    )
     expect(await fixture.createStore().inspect()).toEqual({
       status: 'ready',
       refreshToken: REFRESH_1
@@ -105,7 +109,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     const temporaryOpens = fixture.opens.filter((entry) => entry.path.endsWith('.tmp'))
     expect(temporaryOpens).toHaveLength(2)
     for (const entry of temporaryOpens) {
-      const isWithinCredentialDirectory = entry.path.startsWith(`${fixture.directory}/`)
+      const isWithinCredentialDirectory = dirname(entry.path) === fixture.directory
       expect(isWithinCredentialDirectory).toBe(true)
       expect(entry.mode).toBe(0o600)
       expect(Number(entry.flags) & constants.O_EXCL).toBe(constants.O_EXCL)
@@ -129,8 +133,12 @@ describe('macOS CredentialStore의 파일 protocol', () => {
   it('local clear는 marker 확립 후 credential과 소유 temp만 제거하고 marker를 마지막에 지운다', async () => {
     await fixture.seedReady()
     const ownedTemp = '.credential.v1.00000000-0000-4000-8000-000000000001.tmp'
-    await fs.writeFile(join(fixture.directory, ownedTemp), 'synthetic-incomplete', { mode: 0o600 })
-    await fs.writeFile(join(fixture.directory, 'unrelated.txt'), 'unrelated', { mode: 0o600 })
+    await fixture.files.writeFile(join(fixture.directory, ownedTemp), 'synthetic-incomplete', {
+      mode: 0o600
+    })
+    await fixture.files.writeFile(join(fixture.directory, 'unrelated.txt'), 'unrelated', {
+      mode: 0o600
+    })
 
     expect(await clearCredential(fixture.store)).toBe('cleared')
     expect(await fs.readdir(fixture.directory)).toEqual(['unrelated.txt'])
@@ -187,7 +195,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     ['oversized', 'x'.repeat(16_385)]
   ])('%s record는 복구만 요구한다', async (_kind, raw) => {
     await fixture.seedReady()
-    await fs.writeFile(join(fixture.directory, 'credential.v1'), raw)
+    await fixture.files.writeFile(join(fixture.directory, 'credential.v1'), raw)
 
     expect(await fixture.createStore().inspect()).toEqual({ status: 'recovery-required' })
     expect(fixture.safeStorage.decryptString).not.toHaveBeenCalled()
@@ -202,17 +210,17 @@ describe('macOS CredentialStore의 파일 protocol', () => {
       const isFile = kind === 'file'
       const isSymlink = kind === 'symlink'
       if (isDirectory) {
-        await fs.chmod(fixture.directory, 0o755)
+        await fixture.files.chmod(fixture.directory, 0o755)
       } else if (isFile) {
-        await fs.chmod(credentialPath, 0o644)
+        await fixture.files.chmod(credentialPath, 0o644)
       } else {
-        await fs.unlink(credentialPath)
+        await fixture.files.unlink(credentialPath)
         if (isSymlink) {
           const target = join(fixture.userDataPath, 'unrelated')
-          await fs.writeFile(target, 'unrelated', { mode: 0o600 })
-          await fs.symlink(target, credentialPath)
+          await fixture.files.writeFile(target, 'unrelated', { mode: 0o600 })
+          await fixture.files.symlink(target, credentialPath)
         } else {
-          await fs.mkdir(credentialPath, { mode: 0o700 })
+          await fixture.files.mkdir(credentialPath, { mode: 0o700 })
         }
       }
 
@@ -383,12 +391,12 @@ describe('macOS CredentialStore의 파일 protocol', () => {
       const isMalformed = kind === 'malformed'
       const unrelated = join(fixture.userDataPath, 'marker-unrelated')
       if (isSymlink) {
-        await fs.writeFile(unrelated, 'unrelated', { mode: 0o600 })
-        await fs.symlink(unrelated, path)
+        await fixture.files.writeFile(unrelated, 'unrelated', { mode: 0o600 })
+        await fixture.files.symlink(unrelated, path)
       } else if (isDirectory) {
-        await fs.mkdir(path, { mode: 0o700 })
+        await fixture.files.mkdir(path, { mode: 0o700 })
       } else {
-        await fs.writeFile(path, isMalformed ? '{' : '{"version":999}', {
+        await fixture.files.writeFile(path, isMalformed ? '{' : '{"version":999}', {
           mode: hasPermissionError ? 0o644 : 0o600
         })
       }
