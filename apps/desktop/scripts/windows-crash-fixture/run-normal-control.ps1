@@ -49,6 +49,9 @@ try {
       $script:LdbCrashOwner = $Owner
       $script:LdbCrashRun = $Run
       $script:LdbCrashProcess = Start-Process -FilePath $Node -WorkingDirectory $Desktop -ArgumentList @('node_modules/vitest/vitest.mjs', 'run', '--config', 'scripts/windows-crash-fixture/vitest.config.ts', '--pool=threads', '--maxWorkers=1') -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+      # Windows PowerShell 5.1 redirect startup needs its process handle cached for later ExitCode.
+      # The Process owns this handle until Dispose; acquisition failure remains a failed run.
+      $null = $script:LdbCrashProcess.get_Handle()
     } finally { $env:LDB_CRASH_CONFIG = $previousConfig }
     return @{ started = $true; pid = $script:LdbCrashProcess.Id }
   } @($GuestDesktop, $GuestNode, $GuestConfig, $GuestEvidence, $RunId, $invocationOwner) | Out-Null
@@ -61,8 +64,9 @@ try {
     if (-not $process.WaitForExit(20000)) { throw 'Guest process did not terminate after terminal ACK.' }
     $result = Get-Content -LiteralPath (Join-Path $Evidence 'result.json') -Raw | ConvertFrom-Json
     $failed = Test-Path -LiteralPath (Join-Path $Evidence 'failure.json')
-    if ($process.ExitCode -ne 0 -or $failed -or $result.status -cne 'passed' -or $result.runId -cne $Run -or $result.caseId -cne 'normal-control') { throw 'Guest normal control did not pass.' }
-    return @{ exitCode = $process.ExitCode; result = 'passed'; processExited = $true }
+    $exitCode = $process.ExitCode
+    if ($exitCode -isnot [int] -or $exitCode -ne 0 -or $failed -or $result.status -cne 'passed' -or $result.runId -cne $Run -or $result.caseId -cne 'normal-control') { throw 'Guest normal control did not pass.' }
+    return @{ exitCode = $exitCode; result = 'passed'; processExited = $true }
   } @($RunId, $GuestEvidence, $invocationOwner)
   $terminal | ConvertTo-Json -Compress
 } catch {

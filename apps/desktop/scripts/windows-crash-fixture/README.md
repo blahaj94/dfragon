@@ -96,3 +96,8 @@ Guest process는 `Start-Process -PassThru`의 정확한 Process 객체를 invoca
 준비 실패도 `diagnostics.ts`의 고정 stage 이름만 오류에 남깁니다. 원문 native 오류, 경로와 SID는 출력하지 않습니다. Evidence directory 검증 전 실패하면 그 위치에 failure 파일을 강제로 쓰지 않으며 guest stdout/stderr의 stage와 실제 process 종료를 진단 근거로 사용합니다.
 
 Wrapper는 host observer에 자신의 runId와 owner nonce를 전달합니다. Request polling 전에 보관된 같은 Process의 종료를 확인하여 준비 단계에서 이미 종료된 guest를 전체 900초 deadline까지 기다리지 않습니다. 다른 run/nonce이면 즉시 실패하며 process를 변경하지 않습니다. 독립 host observer 호출처럼 Process 소유권을 전달하지 않은 경우에는 기존 artifact 및 deadline 관측만 수행합니다.
+
+
+Windows PowerShell 5.1의 redirect와 `Start-Process -PassThru` 조합에서는 종료 후에도 ExitCode가 null인 사례가 있습니다. 이 실험 환경에서도 합성 child의 종료 코드 0과 7이 모두 null이었고, 시작 직후 Process.Handle을 확보하면 같은 PSSession의 서로 다른 시작/관측/종료 호출에서 두 숫자를 정확히 읽었습니다. Wrapper는 이 최소 보완을 사용하며 Process 객체가 Dispose까지 handle을 보유합니다. Handle 취득 실패나 숫자가 아닌 ExitCode를 성공으로 바꾸지 않습니다. 매우 빠른 종료의 모든 race를 보증하는 변경은 아닙니다.
+
+근거는 [PowerShell 공식 이슈 #5421](https://github.com/PowerShell/PowerShell/issues/5421)과 [Process.ExitCode 계약](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.process.exitcode?view=netframework-4.8.1)입니다. 과거 정상 대조의 result passed나 host ACK를 근거로 수집하지 못한 숫자 종료 코드를 소급 확정하지 않습니다.
