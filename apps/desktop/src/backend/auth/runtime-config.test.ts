@@ -764,10 +764,13 @@ describe('desktop auth runtime config', () => {
         application: AuthRuntimeProfileApplication,
         config: AuthRuntimeConfig,
         filesystem: RuntimeProfileFilesystemDouble,
-        pathSemantics: typeof posix
+        pathSemantics: typeof posix,
+        platform: NodeJS.Platform
       ) => void
 
-      expect(() => applyWithPathSemantics(application, config, filesystem, posix)).toThrow()
+      expect(() =>
+        applyWithPathSemantics(application, config, filesystem, posix, 'darwin')
+      ).toThrow()
       expect(calls).toEqual([])
     } finally {
       if (originalGetUid == null) {
@@ -857,9 +860,12 @@ describe('desktop auth runtime config', () => {
         application: AuthRuntimeProfileApplication,
         config: AuthRuntimeConfig,
         filesystem: RuntimeProfileFilesystemDouble,
-        pathSemantics: typeof posix
+        pathSemantics: typeof posix,
+        platform: NodeJS.Platform
       ) => void
-      expect(() => applyWithPathSemantics(application, config, filesystem, posix)).toThrow()
+      expect(() =>
+        applyWithPathSemantics(application, config, filesystem, posix, 'darwin')
+      ).toThrow()
       expect(calls).toEqual([])
     } finally {
       if (originalGetUid == null) {
@@ -925,9 +931,12 @@ describe('desktop auth runtime config', () => {
         application: AuthRuntimeProfileApplication,
         config: AuthRuntimeConfig,
         filesystem: RuntimeProfileFilesystemDouble,
-        pathSemantics: typeof posix
+        pathSemantics: typeof posix,
+        platform: NodeJS.Platform
       ) => void
-      expect(() => applyWithPathSemantics(application, config, filesystem, posix)).toThrow()
+      expect(() =>
+        applyWithPathSemantics(application, config, filesystem, posix, 'darwin')
+      ).toThrow()
       expect(openedPaths).toEqual([])
       expect(calls).toEqual([])
     } finally {
@@ -998,9 +1007,12 @@ describe('desktop auth runtime config', () => {
         application: AuthRuntimeProfileApplication,
         config: AuthRuntimeConfig,
         filesystem: RuntimeProfileFilesystemDouble,
-        pathSemantics: typeof posix
+        pathSemantics: typeof posix,
+        platform: NodeJS.Platform
       ) => void
-      expect(() => applyWithPathSemantics(application, config, filesystem, posix)).toThrow()
+      expect(() =>
+        applyWithPathSemantics(application, config, filesystem, posix, 'darwin')
+      ).toThrow()
       expect(mkdirPaths).toEqual([])
       expect(calls).toEqual([])
     } finally {
@@ -1277,9 +1289,12 @@ describe('desktop auth runtime config', () => {
       application: AuthRuntimeProfileApplication,
       config: AuthRuntimeConfig,
       filesystem: RuntimeProfileFilesystemDouble,
-      pathSemantics: typeof posix
+      pathSemantics: typeof posix,
+      platform: NodeJS.Platform
     ) => void
-    expect(() => applyWithPathSemantics(application, config, filesystem, posix)).not.toThrow()
+    expect(() =>
+      applyWithPathSemantics(application, config, filesystem, posix, 'darwin')
+    ).not.toThrow()
     expect(createdPaths).toEqual([userDataPath])
     expect(calls[0]).toBe(`path:userData:${userDataPath}`)
   })
