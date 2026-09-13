@@ -336,3 +336,15 @@ it('rejects disk evidence with a credential but missing parent directory observa
   original.entries = [original.entries[0], original.entries[4]]
   expect(() => judgeRecovery({ hold: hold([]), original, recovery: ready('R1') })).toThrow()
 })
+
+it('allows the initially committed R0 when creation marker removal is underway', () => {
+  const evidence = hold([
+    event('store.establishTransition', 'confirmed', 'create.prepare'),
+    event('store.commitCredential', 'confirmed', 'create.commit-r0'),
+    start('store.removeTransition', 'create.finalize')
+  ])
+  const result = judgeRecovery({ hold: evidence, original: disk('R0'), recovery: ready('R0') })
+  expect(result.status).toBe('observed-consistent')
+  expect(result.durabilityFindings).toEqual([])
+  expect(result.recoveryFindings).toEqual([])
+})
