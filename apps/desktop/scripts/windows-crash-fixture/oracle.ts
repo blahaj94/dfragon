@@ -163,6 +163,7 @@ export type ReportedState = {
   marker: 'present' | 'absent' | 'unknown'
   generation: 'R0' | 'R1' | 'missing' | 'unknown'
   established: boolean
+  replacementEstablished: boolean
   supersededR0: boolean
   prepared: boolean
 }
@@ -273,6 +274,7 @@ function reportedState(events: Observation[]): ReportedState {
   let marker: 'present' | 'absent' | 'unknown' = 'unknown'
   let generation: 'R0' | 'R1' | 'missing' | 'unknown' = 'unknown'
   let established = false
+  let replacementEstablished = false
   let supersededR0 = false
   let prepared = false
   for (const event of events) {
@@ -303,6 +305,14 @@ function reportedState(events: Observation[]): ReportedState {
     if (isConfirmed && isEstablishing) {
       marker = 'present'
       established = true
+      const detail = z.object({ scenario: z.string() }).safeParse(event.detail)
+      if (!detail.success) {
+        throw new Error('Reported marker scenario is missing.')
+      }
+      const isReplacement = detail.data.scenario === 'replace.prepare'
+      if (isReplacement) {
+        replacementEstablished = true
+      }
     }
     if (isConfirmed && isRemoving) {
       marker = 'absent'
@@ -334,7 +344,7 @@ function reportedState(events: Observation[]): ReportedState {
       prepared = true
     }
   }
-  return { marker, generation, established, prepared, supersededR0 }
+  return { marker, generation, established, replacementEstablished, prepared, supersededR0 }
 }
 
 export function judgeRecovery(input: {
@@ -407,7 +417,10 @@ export function judgeRecovery(input: {
     recoveryFindings.push('recovery-not-clean')
   }
   const hasUncertainR0 =
-    reported.established && reported.marker !== 'absent' && isReady && recovery.generation === 'R0'
+    reported.replacementEstablished &&
+    reported.marker !== 'absent' &&
+    isReady &&
+    recovery.generation === 'R0'
   if (hasUncertainR0) {
     recoveryFindings.push('uncertain-r0-restored')
   }
