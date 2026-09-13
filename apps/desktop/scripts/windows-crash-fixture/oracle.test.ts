@@ -331,3 +331,8 @@ it('rejects superseded R0 restoration even after reported marker removal', () =>
     judgeRecovery({ hold: evidence, original: disk('R0'), recovery: ready('R0') }).recoveryFindings
   ).toContain('superseded-r0-restored')
 })
+it('rejects disk evidence with a credential but missing parent directory observations', () => {
+  const original = disk('R1')
+  original.entries = [original.entries[0], original.entries[4]]
+  expect(() => judgeRecovery({ hold: hold([]), original, recovery: ready('R1') })).toThrow()
+})
