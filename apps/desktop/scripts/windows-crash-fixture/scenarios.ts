@@ -1,4 +1,7 @@
 import { join } from 'node:path/win32'
+import { traceStore } from './trace-store'
+import { judgeRecovery, syntheticGeneration, type HoldEvidence } from './oracle'
+import type { DiskObservation } from './disk'
 import { createWindowsCredentialStore } from '../../src/backend/auth/credential-store/windows-credential-store'
 import {
   clearCredential,
@@ -22,19 +25,23 @@ const R1 = Buffer.alloc(32, 32).toString('base64url')
 export async function runScenarios({
   root,
   observer,
-  mode
+  mode,
+  originHold
 }: {
   root: string
   observer: Observer
   mode: 'normal' | 'recover'
+  originHold?: HoldEvidence
 }): Promise<{
   state: string
   recoveryPerformed: boolean
   decryptions: number
   markerDecryptions?: number
+  verdict?: ReturnType<typeof judgeRecovery>
 }> {
   const observed = createObservedNative(observer, root)
   let decryptions = 0
+  let scenario = 'prepare'
   const safeStorage = {
     isEncryptionAvailable: () => true,
     encryptString: (plaintext: string) => Buffer.from(`synthetic-only:${plaintext}`),
@@ -49,11 +56,15 @@ export async function runScenarios({
     }
   }
   const createStore = (): CredentialStore =>
-    createWindowsCredentialStore({
-      userDataPath: join(root, 'profile'),
-      context,
-      safeStorage,
-      native: observed.native
+    traceStore({
+      observer,
+      scenario: () => scenario,
+      store: createWindowsCredentialStore({
+        userDataPath: join(root, 'profile'),
+        context,
+        safeStorage,
+        native: observed.native
+      })
     })
   const original = async (): Promise<ReturnType<typeof observeDisk>> => {
     const disk = observeDisk(observed.security, root)
@@ -65,6 +76,7 @@ export async function runScenarios({
     operation: () => Promise<string>,
     expected: string
   ): Promise<void> => {
+    scenario = cutpoint
     observer.assertActive()
     const outcome = await operation()
     await observer.observe({ cutpoint, phase: 'protocol-return', outcome })
@@ -96,18 +108,48 @@ export async function runScenarios({
   if (isRecovery) {
     const store = createStore()
     const before = decryptions
-    const state = await inspectOriginal(store)
+    let originalDisk: DiskObservation | undefined
+    const state = await observeBeforeRecovery({
+      observer,
+      snapshot: async () => {
+        originalDisk = await original()
+        return originalDisk
+      },
+      inspect: store.inspect
+    })
+    const decryptionsBeforeRecovery = decryptions - before
     const isUnavailable = state.status === 'unavailable'
     if (isUnavailable) {
       throw new Error('Original store inspection is unavailable.')
     }
     const needsRecovery = state.status === 'recovery-required'
+    let finalState: CredentialInspection['status'] = state.status
     if (needsRecovery) {
       requireStatus(String(decryptions - before), '0')
       await check('recovery.clear', () => clearCredential(store), 'cleared')
-      requireStatus((await inspectOriginal(createStore())).status, 'empty')
+      const final = await inspectOriginal(createStore())
+      requireStatus(final.status, 'empty')
+      finalState = final.status
     }
-    return { state: state.status, recoveryPerformed: needsRecovery, decryptions }
+    const isReady = state.status === 'ready'
+    const generation = isReady ? syntheticGeneration(state.refreshToken) : 'none'
+    const hasHold = originHold != null
+    const verdict = hasHold
+      ? judgeRecovery({
+          hold: originHold,
+          original: originalDisk,
+          recovery: {
+            automaticRefreshes: 0,
+            publishes: 0,
+            state: state.status,
+            generation,
+            decryptionsBeforeRecovery,
+            recoveryPerformed: needsRecovery,
+            finalState
+          }
+        })
+      : undefined
+    return { state: state.status, recoveryPerformed: needsRecovery, decryptions, verdict }
   }
 
   const rootCreation = await observeBeforeRecovery({

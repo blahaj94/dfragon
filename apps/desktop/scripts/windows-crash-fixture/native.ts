@@ -63,7 +63,7 @@ export function createObservedNative(
         cutpoint,
         phase: 'after',
         outcome: 'threw',
-        detail: { nativeReturns: returns.splice(0) }
+        detail: { path: relative(root, path), nativeReturns: returns.splice(0) }
       })
       throw error
     }
@@ -71,7 +71,7 @@ export function createObservedNative(
       cutpoint,
       phase: 'after',
       outcome: 'returned',
-      detail: { nativeReturns: returns.splice(0) }
+      detail: { path: relative(root, path), nativeReturns: returns.splice(0) }
     })
     return result
   }
