@@ -45,7 +45,7 @@ Cancel/provider 실패/만료/crash는 성공이 아니다. Provider code는 재
 
 ## Exchange code entropy 보완 — 승인됨
 
-이 절은 [exchange code entropy 리뷰](https://github.com/blahaj94/ldb/pull/48#discussion_r3940472415)의 명세 누락을 보완한 승인된 contract다. 기존 8개 승인을 소급한 것이 아니라 위 별도 추가 승인으로 이 세부 규격을 확정했다. 기존 명세의 누락을 짧은 code 선택 허용으로 해석하지 않는다. 이번 Rule-only 작업에 구현을 추가하지 않으며, 다음 작업은 별도 Issue·착수 지시·dependency와 미결정 gate를 확인하고 [`change-control.md`](change-control.md)를 따른다.
+이 절은 [exchange code entropy 리뷰](https://github.com/blahaj94/ldb/pull/48#discussion_r3940472415)의 명세 누락을 보완한 승인된 contract다. 기존 8개 승인을 소급한 것이 아니라 위 별도 추가 승인으로 이 세부 규격을 확정했다. 기존 명세의 누락을 짧은 code 선택 허용으로 해석하지 않는다. 이 보완절의 설계 승인과 제품 구현·실제 provider 검증은 구분한다. 후속 구현은 현재 사용자 요청의 실행 허용 범위, dependency와 미결정 gate를 확인하고 [개발 흐름](agent-workflow.md#판단과-권한)을 따른다.
 
 - Raw exchange code는 provider identity 검증 완료 뒤 **독립적인 새 32-byte CSPRNG 값**을 생성해 canonical unpadded base64url **43자**로 인코딩한다. 앱/provider verifier, launch ticket, state/nonce, request ID, provider code, 이전 exchange code를 재사용하거나 이 값들에서 파생하지 않는다.
 - `POST /auth/exchange`의 code는 string이며 길이가 정확히 43자, 모든 문자가 `[A-Za-z0-9_-]`에 속해야 한다. Strict base64url decode 결과가 정확히 32byte이고 이를 unpadded base64url로 다시 인코딩한 값이 입력과 정확히 같아야 한다. Padding·공백·잘린 값·비canonical 인코딩을 자동 보정하지 않는다. **SHA-256 입력은 decode한 원래 32byte**이며 인코딩된 ASCII string을 hash하지 않는다. 생성·검증 모두 그 32byte digest를 `exchange_code_hash`로 저장·비교한다.

@@ -92,6 +92,6 @@ review-after: 운영 환경 구체화 또는 최초 장애/복원 시험과 저�
 
 ## 문서 검증과 인계 증거
 
-이 설계 문서의 변경에는 `git diff --check`, 변경 Markdown의 상대 링크 대상/anchor·fence·구조·diff scope 확인, 위 정합성 대조와 독립 1차·보안/architecture 최종 review가 필요하다. 실행 결과·revision·review finding은 Issue/PR에서 관리하며 이 문서에 완료 로그를 계속 누적하지 않는다.
+이 설계 문서의 변경에는 `git diff --check`, 변경 Markdown의 상대 링크 대상/anchor·fence·구조·diff scope 확인과 위 정합성 대조가 필요하다. 독립 검토는 [개발 흐름](../rules/agent-workflow.md#리뷰와-전달)에 따라 실제 변경의 위험에 맞춰 수행한다. 실행 결과·revision·review finding은 Issue/PR에서 관리하며 이 문서에 완료 로그를 계속 누적하지 않는다.
 
 문서 검증에 app build/test·Docker·Migration·실제 backup/restore 성공을 섞지 않는다. 운영 검증 인계는 선택된 장비/권한·clock·binary revision, fault injection 위치, 기대/실제 결과, gate 상태·폐기 잔여를 구분한다. Source 위치는 file path로만 참조하고 실제 credential·개인식별 값은 포함하지 않는다.
