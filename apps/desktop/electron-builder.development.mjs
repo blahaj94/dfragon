@@ -16,6 +16,10 @@ export default {
     executableName: 'ldb-dev',
     target: [{ target: 'nsis', arch: ['x64'] }]
   },
-  nsis: { perMachine: false, runAfterFinish: false },
+  nsis: {
+    perMachine: false,
+    runAfterFinish: false,
+    include: 'build/development-installer.nsh'
+  },
   publish: null
 }

@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   main: {
     define: { __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development') },
     build: {
+      // Ky is ESM-only; bundle its default export into the CommonJS main process.
+      externalizeDeps: { exclude: ['ky'] },
       lib: {
         entry: resolve('src/backend/main.ts')
       },
