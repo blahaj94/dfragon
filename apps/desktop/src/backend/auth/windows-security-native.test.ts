@@ -40,6 +40,9 @@ type SecurityFixture = {
     accessMask?: number
     ownerIsCurrent?: boolean
     aceIsCurrent?: boolean
+    ownerWellKnownSid?: number
+    aceWellKnownSid?: number
+    finalPath?: string
   }) => void
 }
 
@@ -65,6 +68,9 @@ function createSecurityFixture(): SecurityFixture {
   let accessMask = FILE_ALL_ACCESS
   let ownerIsCurrent = true
   let aceIsCurrent = true
+  let ownerWellKnownSid: number | undefined
+  let aceWellKnownSid: number | undefined
+  let finalPath = ''
   const dacl = 102n
   let aceData = Buffer.alloc(8 + currentSidData.length)
 
@@ -78,6 +84,10 @@ function createSecurityFixture(): SecurityFixture {
       return true
     },
     getDirectoryEntries: () => false,
+    getFinalPathNameByHandle: (_handle, buffer) => {
+      buffer.write(finalPath, 'utf16le')
+      return finalPath.length
+    },
     getCurrentProcess: () => 104n,
     getLastError: () => ERROR_INSUFFICIENT_BUFFER,
     getLengthSid: () => currentSidData.length,
@@ -117,6 +127,12 @@ function createSecurityFixture(): SecurityFixture {
       return true
     },
     isValidSid: () => true,
+    isWellKnownSid: (sid, sidType) => {
+      if (sid === otherSidPointer) {
+        return ownerWellKnownSid === sidType
+      }
+      return typeof sid === 'object' && sid != null && aceWellKnownSid === sidType
+    },
     equalSid: (left, right) => {
       const currentSidCast = typeof right === 'object' && right != null
       if (left === currentSidPointer && currentSidCast) {
@@ -143,6 +159,9 @@ function createSecurityFixture(): SecurityFixture {
     accessMask = options.accessMask ?? FILE_ALL_ACCESS
     ownerIsCurrent = options.ownerIsCurrent ?? true
     aceIsCurrent = options.aceIsCurrent ?? true
+    ownerWellKnownSid = options.ownerWellKnownSid
+    aceWellKnownSid = options.aceWellKnownSid
+    finalPath = options.finalPath ?? ''
     const sidData = aceIsCurrent ? currentSidData : otherSidData
     aceData = Buffer.alloc(8 + sidData.length)
     aceData[0] = aceType
@@ -521,6 +540,8 @@ describe('Windows security native boundary', () => {
 
     const declaration = (name: string): unknown[] =>
       declarations.find((entry) => entry.name === name)?.args ?? []
+    expect(declaration('IsWellKnownSid')[3]).toHaveLength(2)
+    expect(declaration('GetFinalPathNameByHandleW')[3]).toHaveLength(4)
     expect(declaration('CreateFileW')[3]).toHaveLength(7)
     expect(declaration('GetFileInformationByHandleEx')[3]).toHaveLength(4)
     expect(declaration('GetAclInformation')[3]).toHaveLength(4)
@@ -861,4 +882,132 @@ describe('Windows security native boundary', () => {
       'untrusted'
     )
   })
+
+  it.each([22, 26])('accepts OS authority SID %s only on ancestors', (sidType) => {
+    const fixture = createSecurityFixture()
+    fixture.set({
+      ownerIsCurrent: false,
+      ownerWellKnownSid: sidType,
+      aceIsCurrent: false,
+      aceWellKnownSid: sidType,
+      aceFlags: 0x10
+    })
+    const native = createWindowsSecurityNative({ api: fixture.api })
+
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
+    expect(native.inspect('profile', 'directory', 'private')).toBe('untrusted')
+    fixture.set({ aceIsCurrent: false, aceWellKnownSid: sidType })
+    expect(native.inspect('profile', 'directory', 'private')).toBe('untrusted')
+  })
+
+  it('accepts only the exact TrustedInstaller service SID on ancestors', () => {
+    const fixture = createSecurityFixture()
+    const sid = Buffer.alloc(32)
+    sid.set([1, 6, 0, 0, 0, 0, 0, 5])
+    ;[80, 956008885, 3418522649, 1831038044, 1853292631, 2271478464].forEach((value, index) => {
+      sid.writeUInt32LE(value, 8 + index * 4)
+    })
+    const pointer = koffi.address(sid)
+    const native = createWindowsSecurityNative({
+      api: {
+        ...fixture.api,
+        getSecurityInfo: (...args) => {
+          const result = fixture.api.getSecurityInfo(...args)
+          args[3][0] = pointer
+          return result
+        },
+        getLengthSid: (value) => (value === pointer ? sid.length : fixture.api.getLengthSid(value))
+      }
+    })
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
+    expect(native.inspect('profile', 'directory', 'private')).toBe('untrusted')
+    sid[31] ^= 1
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+
+    sid[31] ^= 1
+    const ace = Buffer.alloc(8 + sid.length)
+    ace.writeUInt16LE(ace.length, 2)
+    ace.writeUInt32LE(FILE_ALL_ACCESS, 4)
+    sid.copy(ace, 8)
+    let readingAce = false
+    fixture.set({ aceIsCurrent: false })
+    const withServiceAce = createWindowsSecurityNative({
+      api: {
+        ...fixture.api,
+        getSecurityInfo: (...args) => {
+          readingAce = false
+          return fixture.api.getSecurityInfo(...args)
+        },
+        getAce: (_acl, _index, out) => {
+          readingAce = true
+          out[0] = koffi.address(ace)
+          return true
+        },
+        getLengthSid: (value) => (readingAce ? sid.length : fixture.api.getLengthSid(value))
+      }
+    })
+    expect(withServiceAce.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
+    expect(withServiceAce.inspect('profile', 'directory', 'private')).toBe('untrusted')
+    ace[39] ^= 1
+    expect(withServiceAce.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+  })
+
+  it.each([0x10000, 0x40, 0x40000, 0x80000, 0x40000000, 0x10000000])(
+    'rejects effective foreign namespace access %s but not inherit-only entries',
+    (accessMask) => {
+      const fixture = createSecurityFixture()
+      const native = createWindowsSecurityNative({ api: fixture.api })
+      fixture.set({ aceIsCurrent: false, accessMask, aceFlags: 0x0b })
+      expect(native.inspect('parent', 'directory', 'ancestor')).toBe('trusted')
+      fixture.set({ aceIsCurrent: false, accessMask, aceFlags: 0x13 })
+      expect(native.inspect('child', 'directory', 'ancestor')).toBe('untrusted')
+    }
+  )
+
+  it.each([1, 11, 23, 27, 36])('does not trust other well-known SID %s', (sidType) => {
+    const fixture = createSecurityFixture()
+    const native = createWindowsSecurityNative({ api: fixture.api })
+    fixture.set({ ownerIsCurrent: false, ownerWellKnownSid: sidType })
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+    fixture.set({ aceIsCurrent: false, aceWellKnownSid: sidType })
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+  })
+
+  it.each([5, 9])('rejects unknown/object/callback ACE type %s even if inherit-only', (aceType) => {
+    const fixture = createSecurityFixture()
+    fixture.set({ aceType, aceFlags: 0x0b })
+    const native = createWindowsSecurityNative({ api: fixture.api })
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+  })
+
+  const volumeRoot = '\\\\?\\Volume{01234567-89ab-cdef-0123-456789abcdef}\\'
+
+  it('distinguishes root DELETE from DELETE_CHILD on the same verified handle', () => {
+    const fixture = createSecurityFixture()
+    const finalPath = vi.fn(fixture.api.getFinalPathNameByHandle)
+    const native = createWindowsSecurityNative({
+      api: { ...fixture.api, getFinalPathNameByHandle: finalPath }
+    })
+    fixture.set({ finalPath: volumeRoot, aceIsCurrent: false, accessMask: DELETE_ACCESS })
+    expect(native.inspect('C:\\', 'directory', 'root')).toBe('trusted')
+    expect(finalPath).toHaveBeenCalledWith(103n, expect.any(Buffer), 64, 1)
+    expect(native.inspect('C:\\', 'directory', 'ancestor')).toBe('untrusted')
+
+    for (const accessMask of [0x40, 0x40000, 0x80000, 0x40000000, 0x10000000]) {
+      fixture.set({ finalPath: volumeRoot, aceIsCurrent: false, accessMask })
+      expect(native.inspect('C:\\', 'directory', 'root')).toBe('untrusted')
+    }
+  })
+
+  it.each(['', volumeRoot + 'subdirectory', '\\\\?\\UNC\\server\\share\\', 'C:\\', 'x'.repeat(64)])(
+    'rejects a claimed root whose opened handle resolves to %s',
+    (finalPath) => {
+      const fixture = createSecurityFixture()
+      fixture.set({ finalPath })
+      const close = vi.fn(fixture.api.closeHandle)
+      const native = createWindowsSecurityNative({ api: { ...fixture.api, closeHandle: close } })
+      expect(native.inspect('C:\\', 'directory', 'root')).toBe('untrusted')
+      expect(close).toHaveBeenCalledExactlyOnceWith(103n)
+    }
+  )
 })

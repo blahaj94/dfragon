@@ -10,7 +10,7 @@ export type WindowsProfileSecurity = Readonly<{
   }>
   inspectDirectory(path: string, role: 'root' | 'ancestor' | 'final'): WindowsProfilePathInspection
   createDirectory(path: string): 'created' | 'already-exists'
-  syncDirectory(path: string, role?: 'ancestor' | 'final'): void
+  syncDirectory(path: string, role?: 'root' | 'ancestor' | 'final'): void
 }>
 
 export function createWindowsProfileSecurity(): WindowsProfileSecurity {
@@ -23,9 +23,9 @@ export function createWindowsProfileSecurity(): WindowsProfileSecurity {
       namespaceMutation: 'unknown'
     },
     inspectDirectory: (path, role) =>
-      native.inspect(path, 'directory', role === 'final' ? 'private' : 'ancestor'),
+      native.inspect(path, 'directory', role === 'final' ? 'private' : role),
     createDirectory: (path) => native.createDirectory(path),
     syncDirectory: (path, role = 'final') =>
-      native.syncDirectory(path, role === 'final' ? 'private' : 'ancestor')
+      native.syncDirectory(path, role === 'final' ? 'private' : role)
   }
 }

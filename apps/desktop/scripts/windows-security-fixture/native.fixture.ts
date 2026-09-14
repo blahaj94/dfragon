@@ -1,5 +1,5 @@
 import { readFile, symlink } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { resolve, win32 } from 'node:path'
 import { tmpdir } from 'node:os'
 import koffi from 'koffi'
 import { expect, it } from 'vitest'
@@ -164,6 +164,29 @@ function observeApi(): {
     }
   }
 }
+
+it('accepts the local Windows appData ancestors without changing their ACLs', () => {
+  if (process.platform !== 'win32' || process.env.APPDATA == null) {
+    throw new Error('Local Windows appData is required.')
+  }
+  const observed = observeApi()
+  const native = createWindowsSecurityNative({ api: observed.api })
+  const appData = process.env.APPDATA
+  const root = win32.parse(appData).root
+  let ancestors = 0
+  try {
+    expect(native.inspect(root, 'directory', 'root')).toBe('trusted')
+    for (let path = appData; path !== root; path = win32.dirname(path)) {
+      expect(native.inspect(path, 'directory', 'ancestor')).toBe('trusted')
+      ancestors += 1
+    }
+    expect(native.inspect(appData, 'directory', 'root')).toBe('untrusted')
+    observed.assertReleased()
+    console.log(JSON.stringify({ evidence: 'readonly-windows-ancestors', ancestors }))
+  } finally {
+    expect(observed.releaseRemaining()).toBe(true)
+  }
+})
 
 it('observes synthetic Win32 files without enabling product capabilities', async () => {
   const isWindows = process.platform === 'win32'

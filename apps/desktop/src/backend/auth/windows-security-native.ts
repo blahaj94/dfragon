@@ -8,7 +8,7 @@ export type WindowsNativePathInspection =
   'missing' | 'trusted' | 'reparse' | 'untrusted' | 'unavailable'
 
 type WindowsNativePathKind = 'directory' | 'file'
-export type WindowsSecurityPolicy = 'private' | 'ancestor'
+export type WindowsSecurityPolicy = 'private' | 'ancestor' | 'root'
 
 type WindowsSecurityAttributes = Readonly<{
   value: Record<string, unknown>
@@ -79,6 +79,13 @@ const DACL_SECURITY_INFORMATION = 0x00000004
 const ACCESS_ALLOWED_ACE_TYPE = 0
 const ACCESS_DENIED_ACE_TYPE = 1
 const KNOWN_ACE_FLAGS = 0x1f
+const INHERIT_ONLY_ACE = 0x08
+const WIN_LOCAL_SYSTEM_SID = 22
+const WIN_BUILTIN_ADMINISTRATORS_SID = 26
+const TRUSTED_INSTALLER_SID = 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
+const VOLUME_NAME_GUID = 1
+const VOLUME_ROOT_PATTERN =
+  /^\\\\\?\\Volume\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}\\$/i
 const FILE_DELETE_CHILD = 0x00000040
 const WRITE_DAC = 0x00040000
 const WRITE_OWNER = 0x00080000
@@ -139,6 +146,12 @@ export type WindowsSecurityApi = Readonly<{
     buffer: Buffer,
     bufferSize: number
   ): boolean
+  getFinalPathNameByHandle(
+    handle: WindowsNativeHandle,
+    buffer: Buffer,
+    characterCount: number,
+    flags: number
+  ): number
   getCurrentProcess(): WindowsNativeHandle
   getLastError(): number
   getLengthSid(sid: WindowsNativePointer): number
@@ -174,6 +187,7 @@ export type WindowsSecurityApi = Readonly<{
   getAce(dacl: WindowsNativeHandle, index: number, ace: Array<WindowsNativeHandle | null>): boolean
   isValidSid(sid: WindowsNativePointer): boolean
   equalSid(left: WindowsNativePointer, right: WindowsNativePointer): boolean
+  isWellKnownSid(sid: WindowsNativePointer, sidType: number): boolean
   localFree(memory: WindowsNativeHandle): WindowsNativeHandle | null
   openProcessToken(
     processHandle: WindowsNativeHandle,
@@ -250,6 +264,12 @@ function bindWindowsApi(loadLibrary: WindowsLibraryLoader): WindowsApi {
     'int32_t',
     [HANDLE, 'uint32_t', koffi.out(koffi.pointer('uint8_t')), 'uint32_t']
   ) as WindowsApi['getDirectoryEntries']
+  const getFinalPathNameByHandle = kernel32.func(
+    '__stdcall',
+    'GetFinalPathNameByHandleW',
+    'uint32_t',
+    [HANDLE, koffi.out(koffi.pointer('uint16_t')), 'uint32_t', 'uint32_t']
+  ) as WindowsApi['getFinalPathNameByHandle']
   const getCurrentProcess = kernel32.func(
     '__stdcall',
     'GetCurrentProcess',
@@ -307,6 +327,10 @@ function bindWindowsApi(loadLibrary: WindowsLibraryLoader): WindowsApi {
   const isValidSid = advapi32.func('__stdcall', 'IsValidSid', 'bool', [
     SID
   ]) as WindowsApi['isValidSid']
+  const isWellKnownSid = advapi32.func('__stdcall', 'IsWellKnownSid', 'int32_t', [
+    SID,
+    'uint32_t'
+  ]) as WindowsApi['isWellKnownSid']
   const equalSid = advapi32.func('__stdcall', 'EqualSid', 'bool', [
     SID,
     SID
@@ -358,6 +382,7 @@ function bindWindowsApi(loadLibrary: WindowsLibraryLoader): WindowsApi {
     flushFileBuffers,
     getFileInformationByHandleEx,
     getDirectoryEntries,
+    getFinalPathNameByHandle,
     getCurrentProcess,
     getLastError,
     getLengthSid,
@@ -367,6 +392,7 @@ function bindWindowsApi(loadLibrary: WindowsLibraryLoader): WindowsApi {
     getAclInformation,
     getAce,
     isValidSid,
+    isWellKnownSid,
     equalSid,
     localFree,
     openProcessToken,
@@ -528,6 +554,44 @@ function currentUserSid(api: WindowsApi): {
   return result
 }
 
+function isSystemAuthority(
+  api: WindowsApi,
+  sid: WindowsNativePointer,
+  sidStorage?: Buffer
+): boolean {
+  if (
+    api.isWellKnownSid(sid, WIN_LOCAL_SYSTEM_SID) ||
+    api.isWellKnownSid(sid, WIN_BUILTIN_ADMINISTRATORS_SID)
+  ) {
+    return true
+  }
+  // TrustedInstaller is a fixed service SID, not a WELL_KNOWN_SID_TYPE enum.
+  // The caller has validated the SID; never resolve account names or groups.
+  const length = api.getLengthSid(sid)
+  if (length !== 32) {
+    return false
+  }
+  // Koffi's typed Buffer casts are call arguments, not decodable addresses.
+  const storage =
+    sidStorage ??
+    (typeof sid === 'bigint' ? Buffer.from(koffi.decode(sid, 'uint8_t', length)) : null)
+  return storage != null && sidString(storage) === TRUSTED_INSTALLER_SID
+}
+
+function isVolumeRoot(api: WindowsApi, handle: WindowsNativeHandle): boolean {
+  // A drive-letter spelling can name a SUBST directory or a network share.
+  // Only the normalized GUID root of the inspected HANDLE gets root semantics.
+  const buffer = Buffer.alloc(64 * 2)
+  const length = api.getFinalPathNameByHandle(handle, buffer, 64, VOLUME_NAME_GUID)
+  return (
+    Number.isSafeInteger(length) &&
+    length > 0 &&
+    length < 64 &&
+    buffer.readUInt16LE(length * 2) === 0 &&
+    VOLUME_ROOT_PATTERN.test(buffer.toString('utf16le', 0, length * 2))
+  )
+}
+
 function isSecureDacl(
   api: WindowsApi,
   descriptor: WindowsNativeHandle,
@@ -535,7 +599,11 @@ function isSecureDacl(
   currentSid: WindowsSidStorage,
   policy: WindowsSecurityPolicy
 ): boolean {
-  if (owner == null || !api.isValidSid(owner) || !api.equalSid(owner, sidPointer(currentSid))) {
+  if (owner == null || !api.isValidSid(owner)) {
+    return false
+  }
+  const ownerIsCurrent = api.equalSid(owner, sidPointer(currentSid))
+  if (!ownerIsCurrent && (policy === 'private' || !isSystemAuthority(api, owner))) {
     return false
   }
   const present = [0]
@@ -595,8 +663,21 @@ function isSecureDacl(
       }
       continue
     }
-    if (!isCurrentSid && aceType === ACCESS_ALLOWED_ACE_TYPE) {
-      const grantsDangerousAccess = (accessMask & DANGEROUS_ANCESTOR_MASK) !== 0
+    // Inherit-only entries do not grant access to this directory. Each actual
+    // child is inspected separately, including any effective inherited ACEs.
+    if ((aceFlags & INHERIT_ONLY_ACE) !== 0) {
+      continue
+    }
+    if (
+      !isCurrentSid &&
+      !isSystemAuthority(api, aceSid, aceMemory.subarray(8)) &&
+      aceType === ACCESS_ALLOWED_ACE_TYPE
+    ) {
+      // A verified volume root has no parent directory entry to remove/rename.
+      // DELETE_CHILD and ACL/owner changes still threaten the profile below it.
+      const dangerousMask =
+        policy === 'root' ? DANGEROUS_ANCESTOR_MASK & ~DELETE : DANGEROUS_ANCESTOR_MASK
+      const grantsDangerousAccess = (accessMask & dangerousMask) !== 0
       if (grantsDangerousAccess) {
         return false
       }
@@ -631,6 +712,9 @@ function inspectHandle(
   }
   const isDirectory = (attributes & FILE_ATTRIBUTE_DIRECTORY) !== 0
   if (isDirectory !== (kind === 'directory')) {
+    return 'untrusted'
+  }
+  if (policy === 'root' && (kind !== 'directory' || !isVolumeRoot(api, handle))) {
     return 'untrusted'
   }
   const owner = [null] as Array<WindowsNativePointer | null>

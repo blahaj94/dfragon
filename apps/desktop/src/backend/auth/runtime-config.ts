@@ -295,20 +295,24 @@ function prepareWindowsUserDataDirectory(
     const inspection = security.inspectDirectory(currentPath, role)
     if (inspection === 'missing') {
       const parentPath = pathSemantics.dirname(currentPath)
-      assertWindowsTrustedDirectory(security.inspectDirectory(parentPath, 'ancestor'))
+      assertWindowsTrustedDirectory(
+        security.inspectDirectory(parentPath, parentPath === rootPath ? 'root' : 'ancestor')
+      )
       security.createDirectory(currentPath)
       assertWindowsTrustedDirectory(security.inspectDirectory(currentPath, role))
       security.syncDirectory(currentPath, role)
-      security.syncDirectory(parentPath, 'ancestor')
+      security.syncDirectory(parentPath, parentPath === rootPath ? 'root' : 'ancestor')
       continue
     }
     assertWindowsTrustedDirectory(inspection)
   }
 
   const finalParentPath = pathSemantics.dirname(finalPath)
-  assertWindowsTrustedDirectory(security.inspectDirectory(finalParentPath, 'ancestor'))
+  assertWindowsTrustedDirectory(
+    security.inspectDirectory(finalParentPath, finalParentPath === rootPath ? 'root' : 'ancestor')
+  )
   security.syncDirectory(finalPath, 'final')
-  security.syncDirectory(finalParentPath, 'ancestor')
+  security.syncDirectory(finalParentPath, finalParentPath === rootPath ? 'root' : 'ancestor')
 }
 
 export function readAuthRuntimeConfig(
