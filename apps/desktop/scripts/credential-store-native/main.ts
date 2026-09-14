@@ -69,6 +69,8 @@ async function run(): Promise<void> {
   app.disableHardwareAcceleration()
   stage = 'runtime'
   await app.whenReady()
+  stage = 'session-profile'
+  assert.equal(app.getPath('sessionData'), profile)
   assert.equal(process.versions.electron, '39.8.10')
   assert.equal(process.versions.node, '22.22.1')
   assert.equal(process.versions.uv, '1.51.0')
@@ -110,8 +112,11 @@ async function run(): Promise<void> {
   stage = phase
 
   async function persist(refreshToken: string, kind: CredentialTransitionKind): Promise<void> {
+    stage = `${phase}:establish`
     assert.equal(await store.establishTransition(kind), 'confirmed')
+    stage = `${phase}:commit`
     assert.equal(await store.commitCredential(refreshToken), 'confirmed')
+    stage = `${phase}:remove-transition`
     assert.equal(await store.removeTransition(), 'confirmed')
   }
 
@@ -121,8 +126,13 @@ async function run(): Promise<void> {
       await persist(refresh0, 'exchange')
       break
     case 'restart':
-      assert.deepEqual(await store.inspect(), { status: 'ready', refreshToken: refresh0 })
+      {
+        const restored = await store.inspect()
+        stage = `restart:inspect:${restored.status}`
+        assert.deepEqual(restored, { status: 'ready', refreshToken: refresh0 })
+      }
       await persist(refresh1, 'refresh')
+      stage = 'restart:inspect-refreshed'
       assert.deepEqual(await store.inspect(), { status: 'ready', refreshToken: refresh1 })
       assert.deepEqual(await readdir(join(profile, 'auth', 'test')), ['credential.v1'])
       break
@@ -145,12 +155,12 @@ async function run(): Promise<void> {
 void run().then(
   () => {
     const result = { phase, ok: true, decryptCalls, encryptionAvailabilityCalls }
-    process.stdout.write(`LDB_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.exit(0))
+    process.stdout.write(`LDB_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.quit())
   },
   () => {
     // Native/OS 오류 원문·plaintext·ciphertext·profile은 출력하지 않는다.
     process.stdout.write(
-      `LDB_CREDENTIAL_NATIVE:${JSON.stringify({ phase, ok: false, stage })}\n`,
+      `LDB_CREDENTIAL_NATIVE:${JSON.stringify({ phase, ok: false, stage, decryptCalls, encryptionAvailabilityCalls })}\n`,
       () => app.exit(1)
     )
   }
