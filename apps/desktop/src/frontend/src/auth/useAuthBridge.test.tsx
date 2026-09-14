@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi, type Mocked } from 'vitest'
 import type { AuthSnapshot, AuthCommandResult, AuthApi } from '../../../preload/common/types/auth'
 import { useAuthBridge } from './useAuthBridge'
+import { AuthBridge } from './AuthBridge'
 
 function snapshot(revision: number, runId = 'run-one'): AuthSnapshot {
   return {
@@ -344,4 +345,65 @@ it('A→B→A API 객체 재사용도 이전 연결 snapshot과 늦은 reply를 
   await act(async () => queryA.resolve(snapshot(4)))
   expect(current.snapshot).toEqual(snapshot(4))
   expect(apiA.listeners.size).toBe(1)
+})
+
+it('연결 조회 실패 뒤 화면에서 다시 확인해 현재 로그인으로 복귀한다', async () => {
+  fixture.api.getAuthState.mockRejectedValueOnce(new Error('unavailable'))
+  await act(async () => root.render(<AuthBridge api={fixture.api} home={<span>보호 기능</span>} />))
+  expect(container.textContent).not.toContain('보호 기능')
+  const retry = container.querySelector('button')
+  expect(retry?.textContent).toBe('연결 다시 확인')
+
+  const query = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(query.promise)
+  await act(async () => retry?.click())
+  expect(container.textContent).toContain('인증 상태를 확인하고 있습니다')
+  expect(container.querySelector('button')).toBeNull()
+  expect(fixture.listeners.size).toBe(1)
+  const signedIn: AuthSnapshot = {
+    ...snapshot(3),
+    phase: 'signedIn',
+    user: { nickname: '중립모험가' },
+    entry: 'home'
+  }
+  await act(async () => {
+    fixture.emit(signedIn)
+    query.resolve(snapshot(1))
+  })
+  expect(container.textContent).toContain('보호 기능')
+  expect(container.textContent).toContain('중립모험가')
+  expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+  expect(fixture.api.logout).not.toHaveBeenCalled()
+})
+
+it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로그인 요청을 재전송하지 않는다', async () => {
+  await act(async () => root.render(<AuthBridge api={fixture.api} />))
+  fixture.api.beginLogin.mockRejectedValueOnce(new Error('reply lost'))
+  fixture.api.getAuthState.mockRejectedValueOnce(new Error('query lost'))
+  await act(async () => container.querySelector('button')?.click())
+  expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
+  expect(container.querySelector('button')?.textContent).toBe('연결 다시 확인')
+
+  fixture.api.getAuthState.mockResolvedValueOnce({
+    ...snapshot(3),
+    phase: 'waitingBrowser',
+    login: { attemptId: 'current-attempt', provider: 'google', expiresAt: '2030-01-01T00:10:00Z' }
+  })
+  await act(async () => container.querySelector('button')?.click())
+  expect(container.textContent).toContain('앱으로 돌아가기')
+  expect(container.textContent).toContain('로그인 취소')
+  expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
+  expect(fixture.api.cancelLogin).not.toHaveBeenCalled()
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+})
+
+it('연결 재확인도 실패하면 실패 안내와 다음 수동 재확인을 유지한다', async () => {
+  fixture.api.getAuthState.mockRejectedValue(new Error('unavailable'))
+  await act(async () => root.render(<AuthBridge api={fixture.api} />))
+  await act(async () => container.querySelector('button')?.click())
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+  expect(container.querySelector('button')?.textContent).toBe('연결 다시 확인')
+  expect(fixture.listeners.size).toBe(1)
+  expect(fixture.api.beginLogin).not.toHaveBeenCalled()
 })

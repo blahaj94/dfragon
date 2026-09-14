@@ -125,8 +125,13 @@ function PhaseContent({
         <SupportingText>
           {isExchanging
             ? '브라우저에서 돌아온 로그인 정보를 확인하고 있습니다. 잠시 기다려 주세요.'
-            : '브라우저에서 로그인을 계속해 주세요. 완료되면 앱으로 돌아옵니다.'}
+            : '브라우저에서 로그인을 마친 뒤 “앱으로 돌아가기”를 눌러 주세요. 앱 열기 확인이 나타나면 허용해 주세요.'}
         </SupportingText>
+        {isWaiting && (
+          <SupportingText>
+            브라우저에서 취소했거나 창을 닫았다면 아래 “로그인 취소”를 누른 뒤 다시 시작해 주세요.
+          </SupportingText>
+        )}
         {hasExpiry && (
           <SupportingText>
             로그인 대기 만료: <time dateTime={expiresAt}>{expiresAt}</time>
