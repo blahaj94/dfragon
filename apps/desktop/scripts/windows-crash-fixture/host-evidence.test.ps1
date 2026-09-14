@@ -20,6 +20,9 @@ function New-EvidenceFixture([string] $Variant) {
   $rootName = 'ldb-crash-11111111-1111-4111-8111-111111111111'
   $relative = 'native-lab\' + $rootName + '-run-evidence'
   $guest = Join-Path $collection $relative
+  if ($Variant -ceq 'case-variant-future-request') {
+    $guest = Join-Path $collection ($relative.Replace('native-lab', 'Native-lab'))
+  }
   $null = New-Item -ItemType Directory -Path $hostDirectory, $guest
   $manifest = @{kind='ldb-synthetic-windows-crash-v1';runId='run';caseId='normal-control';mode='normal';rootName=$rootName;invocationOwner='owner'}
   $events = @(
@@ -71,7 +74,7 @@ function New-EvidenceFixture([string] $Variant) {
   if ($Variant -ceq 'selected-ack') {
     Write-SyntheticJson (Join-Path $guest '000003.ack.json') $events[2]
   }
-  if ($Variant -ceq 'future-request') {
+  if ($Variant -in @('future-request', 'case-variant-future-request')) {
     Write-SyntheticJson (Join-Path $guest '000004.request.json.pending') $events[2]
   }
   if ($Variant -ceq 'host-release') {
@@ -125,7 +128,7 @@ foreach ($variant in $positive) {
   $after = @(Get-ChildItem -LiteralPath (Split-Path $fixture.HostEvidence) -Recurse -File | Get-FileHash | ForEach-Object Hash)
   Assert-Condition (($before -join ',') -ceq ($after -join ',')) 'Verifier changed collected files or original failure.'
 }
-$negative = @('host-gap', 'host-ack-missing', 'host-observation-conflict', 'owner-conflict', 'held-hash-conflict', 'canonical-conflict', 'pending-conflict', 'selected-ack', 'future-request', 'host-release', 'manifest-conflict', 'snapshot-content-changed', 'snapshot-path-escape', 'unlisted-file', 'unreadable-file', 'reparse-directory')
+$negative = @('host-gap', 'host-ack-missing', 'host-observation-conflict', 'owner-conflict', 'held-hash-conflict', 'canonical-conflict', 'pending-conflict', 'selected-ack', 'future-request', 'case-variant-future-request', 'host-release', 'manifest-conflict', 'snapshot-content-changed', 'snapshot-path-escape', 'unlisted-file', 'unreadable-file', 'reparse-directory')
 foreach ($variant in $negative) {
   $fixture = New-EvidenceFixture $variant
   $locked = $null
