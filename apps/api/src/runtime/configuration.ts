@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { isAbsolute } from 'node:path'
+import { createSecureContext } from 'node:tls'
 import { createAccessJwtIssuer, createAccessJwtVerifier } from '../auth/access-jwt/index.js'
 import { createGoogleProviderVerifier } from '../auth/google/index.js'
 import type { GoogleProviderRegistration } from '../auth/google/types.js'
@@ -10,6 +11,35 @@ import { parsePort } from '../port.js'
 import { parseAuthenticationInput } from './authentication-input.js'
 
 const invalidConfiguration = 'Invalid API runtime configuration'
+
+async function readLocalHttps(environment: NodeJS.ProcessEnv, port: number, apiOrigin: string) {
+  const certPath = environment.LOCAL_HTTPS_CERT_FILE
+  const keyPath = environment.LOCAL_HTTPS_KEY_FILE
+  if (certPath === undefined && keyPath === undefined) {
+    return undefined
+  }
+  if (
+    certPath === undefined ||
+    keyPath === undefined ||
+    !isAbsolute(certPath) ||
+    !isAbsolute(keyPath)
+  ) {
+    throw new Error(invalidConfiguration)
+  }
+
+  const localOrigins = [
+    new URL(`https://localhost:${port}`).origin,
+    new URL(`https://127.0.0.1:${port}`).origin
+  ]
+  if (!localOrigins.includes(apiOrigin)) {
+    throw new Error(invalidConfiguration)
+  }
+  const cert = await readFile(certPath)
+  const key = await readFile(keyPath)
+  // PEM 파싱과 certificate/key 일치를 DB 연결 전에 확인한다.
+  createSecureContext({ cert, key })
+  return { cert, key }
+}
 
 function googleProvider(input: ReturnType<typeof parseAuthenticationInput>) {
   const snapshots = new Map(
@@ -97,12 +127,14 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     const json = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
     const input = parseAuthenticationInput(JSON.parse(json) as unknown)
     const registry = new LoginRegistry(input.registry)
+    const localHttps = await readLocalHttps(environment, port, input.registry.apiOrigin)
     const pkceKeys = new ProviderPkceKeys(input.providerPkce)
     const issueAccessJwt = await createAccessJwtIssuer(input.accessJwt)
     const verifyAccessJwt = await createAccessJwtVerifier(input.accessJwt)
     const verifyProvider = googleProvider(input)
     return {
       port,
+      localHttps,
       database,
       apiKey,
       registry,

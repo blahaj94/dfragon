@@ -101,6 +101,14 @@ review-after: 기본 entry의 설정 실패·전체 HTTP 흐름·자원 정리 �
 - 파일 전체를 secret으로 취급한다. 배포 담당이 API 실행 주체와 필요한 배포 관리자만 읽도록 준비하며 source·DB·image layer·log에 넣지 않는다. API가 파일 생성·권한 변경·secret manager 호출을 맡지 않는다. 실제 저장소 제품, mount·소유자·OS 권한 설정과 운영 교체 절차는 별도 배포 gate다.
 - 시작마다 파일을 한 번 읽어 검증된 설정 사본을 해당 process 수명 동안 사용한다. 요청 중 파일을 다시 읽거나 자동 reload하지 않는다. 교체는 일관된 새 파일을 준비한 뒤 process를 재시작하는 경계이며, 실행 중인 process가 파일 교체를 즉시 반영한다고 주장하지 않는다.
 
+### 개발용 localhost HTTPS
+
+같은 컴퓨터의 Desktop 앱·브라우저·API를 연결하는 개발 실행에는 `LOCAL_HTTPS_CERT_FILE`과 `LOCAL_HTTPS_KEY_FILE`을 함께 지정할 수 있다. 각각 준비된 PEM certificate와 private key의 절대 경로이며 시작 때 한 번 읽는다. 두 변수 모두 없으면 기존 listener 동작을 유지한다. 하나만 지정하거나 빈 값·상대 경로·읽기 실패·잘못된 PEM·certificate/key 불일치가 있으면 DB 연결과 listen 전에 기존 고정 메시지로 실패한다.
+
+이 모드의 `registry.apiOrigin`은 `PORT`와 일치하는 canonical `https://localhost` 또는 `https://127.0.0.1` origin이어야 한다. Callback은 기존 exact origin 계약을 유지한다. Nest 앱 하나가 해당 port의 `127.0.0.1`에서 HTTPS로만 listen하고 기존 앱 종료 경로가 listener를 닫는다. 외부 인터페이스의 listen이나 별도 HTTP port를 추가하지 않는다.
+
+실행 담당자가 certificate 발급·신뢰 설치와 private key 접근 권한을 준비한다. API는 certificate나 CA를 생성·설치하지 않으며 client의 TLS 검증을 끄지 않는다. 개발 TLS 입력은 실제 Google 등록·credential, 운영 ingress·배포, Desktop OS 저장소 검증을 대신하지 않는다.
+
 ### JSON 필드와 기존 factory의 대응
 
 아래 object의 필드는 별도 표시가 없으면 모두 필수다. `[]`는 배열 원소의 형태를 나타내며 실제 field 이름이 아니다. 등록·key의 값과 URL은 배포 담당이 준비하고 예제 credential을 기본값으로 사용하지 않는다.

@@ -18,12 +18,39 @@ last-reviewed: 2026-09-08
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | 기존 DB reader의 개별 연결 값. `DB_PORT`도 십진 정수 `1`~`65535`이며 나머지는 비어 있지 않아야 한다. |
 | `NEOPLE_API_KEY` | 비어 있지 않은 검색 API key |
 | `AUTH_CONFIG_FILE` | 배포가 준비한 UTF-8 JSON secret 파일의 절대 경로 |
+| `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE` | 선택적인 localhost HTTPS용 PEM certificate와 private key의 절대 경로. 함께 지정해야 한다. |
 
 파일의 정확한 schema와 key 교체·과거 version 보존 기준은 [승인된 배포 설정 입력](../rules/auth-runtime.md)을 따른다. 최상위는 `accessJwt`, `providerPkce`, `registry`, `google` 네 object다. PEM은 JSON 문자열에, PKCE key는 canonical base64url 43자에 담는다. Google endpoint는 registry의 version을 참조하고 secret은 `(version, reference)`가 정확히 일치해야 한다.
 
 운영 담당이 파일을 repository와 image 밖에 준비하고 API 실행 주체와 필요한 배포 관리자만 읽도록 관리한다. 기본 경로·inline JSON 환경변수·환경변수명으로 secret reference 해석·자동 key 생성은 없다. 현재 기본 entry는 Google 등록만 받으며 Discord gate는 유지한다. 실제 값은 문서·shell history·log에 기록하지 않는다.
 
 ## 시작과 교체
+
+### 같은 컴퓨터에서 Desktop과 API 연결
+
+API와 Desktop을 같은 Windows 컴퓨터에서 실행하면 API 주소에 `https://localhost:<PORT>`를 사용할 수 있다. `LOCAL_HTTPS_CERT_FILE`과 `LOCAL_HTTPS_KEY_FILE`을 함께 지정하면 기본 Nest 앱이 `127.0.0.1`에서 HTTPS로만 listen한다. 두 변수가 모두 없으면 기존 listener 동작을 유지한다. 로컬 HTTPS 모드는 외부 IP에 공개하는 배포 설정이 아니다.
+
+프록시가 외부 HTTPS를 처리하고 Nest API에는 내부 HTTP로 전달하는 구성을 검토할 때는 두 `LOCAL_HTTPS_*` 변수를 모두 생략한다. 이때 `PORT`는 내부 HTTP listener의 port이고 `registry.apiOrigin`·Desktop API origin·provider callback은 외부에서 접근하는 HTTPS 주소를 유지한다. 내부 port와 외부 HTTPS port가 같을 필요는 없으며 localhost origin/port 일치 검사는 로컬 HTTPS 모드에서만 적용된다.
+
+기존 HTTP 경로는 `app.listen(PORT)`로 host를 제한하지 않는다. 따라서 이 설정 자체가 내부 통신의 격리나 안전성을 보장하지 않으며, HTTP port의 외부 접근 차단은 배포의 bind·container port 공개·방화벽 등에서 확인해야 한다. 프록시의 전달 동작과 실제 배포 검증은 별도이며, 로컬 HTTPS 추가가 운영 ingress 계약을 확정하지 않는다. Desktop·브라우저가 직접 사용하는 제품 API의 HTTPS 계약도 유지한다.
+
+개발 certificate는 실행 담당자가 repository 밖에 준비한다. 예를 들어 [mkcert](https://github.com/FiloSottile/mkcert)의 `-install`로 개발 CA를 신뢰 저장소에 설치한 뒤 `-cert-file`·`-key-file`로 저장 위치를 지정하고 `localhost 127.0.0.1` certificate를 발급할 수 있다. Private key와 CA private key를 공유하거나 commit하지 않는다. 발급·신뢰 설치는 API 시작이 자동 수행하지 않는다.
+
+PowerShell에서 실제 파일 경로와 선택한 port를 지정한다. 다음 경로는 placeholder이며 먼저 나머지 DB·검색·인증 입력도 준비해야 한다.
+
+```powershell
+$env:PORT = '3443'
+$env:LOCAL_HTTPS_CERT_FILE = 'C:\path\outside-repository\localhost.pem'
+$env:LOCAL_HTTPS_KEY_FILE = 'C:\path\outside-repository\localhost-key.pem'
+```
+
+`AUTH_CONFIG_FILE`의 `registry.apiOrigin`과 Desktop의 `LDB_AUTH_API_ORIGIN`은 같은 canonical origin이어야 한다. 위 port이면 `https://localhost:3443`, Google 등록과 snapshot의 callback은 `https://localhost:3443/auth/callback/google`이다. `https://127.0.0.1:3443`도 허용하지만 origin과 callback을 섞지 않는다. 실제 provider 등록값을 이 예제에 맞춰 임의로 바꾸지 않는다.
+
+브라우저의 인증서 신뢰와 Desktop main의 Node HTTP client 신뢰는 별도로 확인한다. Node 기반 실행에서 개발 CA가 신뢰되지 않으면 **실행 전에** `NODE_EXTRA_CA_CERTS`에 해당 CA의 public certificate인 `rootCA.pem` 절대 경로를 지정한다. Private key 파일을 지정하거나 TLS 검증을 끄지 않는다. 설치형 Electron 앱에서의 실제 신뢰와 OS protocol 복귀는 별도 실행 검증 대상이다.
+
+TLS 파일 누락·잘못된 PEM·key 불일치와 local origin/port 불일치는 DB 초기화 전에 고정 실패 메시지로 끝난다. Certificate의 유효기간·hostname·신뢰 체인은 실제 client의 TLS 검증으로 확인한다. API의 설정 검증이나 `/`의 404 응답만으로 Google 로그인과 Desktop 복귀 성공을 판단하지 않는다.
+
+### 실행과 종료
 
 검토한 배포 입력을 process 환경에 주입하고 이미 승인된 Migration이 적용된 DB를 준비한다. 새 DB나 pending Migration에는 배포 담당이 `pnpm --filter @ldb/api db:migrate:up`을 한 번 명시 실행한다. API 시작은 Migration을 실행하거나 schema를 자동 변경하지 않는다.
 
@@ -52,6 +79,7 @@ pnpm --filter @ldb/api start
 | `apps/api/src/runtime/application.ts` | 기존 login/session/account/search 합성, 앱·DB의 수명 |
 | `apps/api/src/auth/login/http.ts` | 기존 HTTP factory와 부분 앱 설정 실패의 정리 |
 | `apps/api/test-support/runtime-startup.test.mjs` | 실제 build entry의 설정 거절·시작·실패·signal 종료 |
+| `apps/api/test-support/runtime-local-https.test.mjs` | local TLS 입력 거절과 DB 초기화 전 정제 실패 |
 | `apps/api/test-support/runtime-handshake.test.mjs` | 응답 없는 실제 loopback TCP handshake의 신호 종료, 반복 신호와 정상 정리 뒤 timer 제거 |
 | `apps/api/test-support/runtime-http-integration.mjs` | 기존 Docker harness의 실제 DB·기본 entry·전체 HTTP 흐름 |
 
