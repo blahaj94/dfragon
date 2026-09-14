@@ -10,4 +10,4 @@
 - 요청 안의 되돌릴 수 있는 구현 선택은 담당자가 결정한다. 중요한 제품 선택이나 기존 승인·금지와의 충돌만 질문하고, 영향받지 않는 작업은 계속한다.
 - Rule은 동작·제약을, code·config·test는 현재 구현을 정의한다. Reference의 현황 오류는 고치되 제품 계약 충돌을 임의로 해소하지 않는다. 새 Rule은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 - 다른 담당자의 변경·실행 중인 job·기존 실패와 승인 기록을 보존한다. 절차 개편은 제품 완료나 미확정 OS·provider·DB·운영·복구 검증의 통과를 뜻하지 않는다.
-- Secret, credential, 개인정보, 개인 경로, 내부 대화·실행 ID와 raw log를 공개 기록에 넣지 않는다. 결과는 [작성 기준](docs/rules/writing.md)에 따라 필요한 사실과 한계를 짧게 전달한다.
+- Secret, token, credential, 개인정보는 공개·비공개 여부와 무관하게 code·commit·Issue·PR·log·문서에 기록하지 않는다. 개인 경로, 내부 대화·실행 ID와 raw log도 공개 기록에 넣지 않는다. 결과는 [작성 기준](docs/rules/writing.md)에 따라 필요한 사실과 한계를 짧게 전달한다.
