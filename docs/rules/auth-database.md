@@ -74,6 +74,6 @@ Raw token hash의 잠금 없는 조회는 ID hint다. Lock 뒤 FK·소유관계�
 
 ## 삭제 경계
 
-User 삭제 시 sessions→refresh cascade는 기본 구조다. JWT sub/sid로 삭제 계정/session을 재생성하거나 다른 새 user에 연결하지 않는다. **User 삭제 후에도 남을 탈퇴 결과 state, pending login과 삭제의 자동 재가입 경합, 백업 복원 후 삭제 회원 방지**는 이 cascade로 해결되지 않는다. 해당 정책과 최소 schema는 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 D1–D5로 승인됐다. 기존 4-table/cascade만으로 구현된 것으로 보지 않으며 별도 착수·Migration/경합/복원 검증을 요구한다. 그 승인 범위 밖 tombstone·복구 유예·장기 provider 식별 보관을 임의 추가하지 않는다.
+User 삭제 시 sessions→refresh cascade는 기본 구조다. JWT sub/sid로 삭제 계정/session을 재생성하거나 다른 새 user에 연결하지 않는다. **User 삭제 후에도 남을 탈퇴 결과 state, pending login과 삭제의 자동 재가입 경합, 백업 복원 후 삭제 회원 방지**는 이 cascade로 해결되지 않는다. 해당 정책과 최소 schema는 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 D1–D5로 승인됐다. 기존 4-table/cascade만으로 구현된 것으로 보지 않는다. 현재 요청한 탈퇴 기능에 필요한 Migration·경합을 검증하며 공개 복원 검증은 그 기능을 제공할 때 적용한다. 그 승인 범위 밖 tombstone·복구 유예·장기 provider 식별 보관을 임의 추가하지 않는다.
 
 근거는 #39가 2026-09-05에 검토한 [constraints](https://www.postgresql.org/docs/current/ddl-constraints.html), [partial index](https://www.postgresql.org/docs/current/indexes-partial.html), [INSERT/ON CONFLICT](https://www.postgresql.org/docs/current/sql-insert.html), [row lock/deadlock](https://www.postgresql.org/docs/current/explicit-locking.html)다. Schema/DB 실행 성공 evidence가 아니다.

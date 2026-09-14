@@ -74,10 +74,10 @@ App 생성은 port를 열지 않는 factory로 분리하고, `main.ts`만 설정
 
 Runtime acceptance에는 test HTTP 응답, metadata가 필요한 constructor DI, app 시작·종료 후 열린 handle 없음, child process의 build entry 실행과 종료, `PORT` 누락·빈 값·잘못된 값에서 nonzero exit·미listen을 포함한다. 검색 module 연결 후에는 해당 필수 설정 누락도 검증한다. Test의 child process는 허용한 fake environment만 받아 실제 credential을 상속하지 않는다. Build entry 검증에는 위 `build`가 선행해야 한다.
 
-검색 adapter는 fake transport 또는 loopback upstream으로 검증한다. 외부 domain·네오플 credential·인증·DB가 필요하지 않아야 한다. 계정당 제한과 session 활동의 통합 검증은 승인된 [`auth-activity.md`](auth-activity.md)의 contract와 미결정 gate를 확인하고 별도 구현 착수 지시 후 진행한다. Search query 길이의 외부 규격 미확인은 credential 없는 runtime 검증을 막지 않는다.
+검색 adapter는 fake transport 또는 loopback upstream으로 검증한다. 외부 domain·네오플 credential·인증·DB가 필요하지 않아야 한다. 계정당 제한과 session 활동의 통합 검증은 승인된 [`auth-activity.md`](auth-activity.md)의 contract를 확인하고 현재 요청한 범위에서 진행한다. 필요한 실제 운영·provider 권한은 별도로 확인한다. Search query 길이의 외부 규격 미확인은 credential 없는 runtime 검증을 막지 않는다.
 
 설계 검토 시에는 문서 대조와 `git diff --check`만 수행한다. 위 command, dependency 설치, API·DB·부하 검증은 설계 단계에서 실행하지 않는다. Runtime/test 조합의 첫 실행이 실패하면 engine·peer·metadata·ESM 원인을 공개하고, 도구 변경이 필요하면 위 의존성 관리 기준을 따른다.
 
 ## Authentication runtime contract
 
-인증·DB의 호환성 검증과 Migration은 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 [`auth-runtime.md`](auth-runtime.md), HTTP/parser 경계는 [`auth-api.md`](auth-api.md)를 따른다. 의존성 목록 정리가 compatibility 검증이나 운영 gate를 해소하지 않는다. 승인된 Node/Nest/ESM/tsc→Node 계약을 유지하며 사용자의 구현 금지 조건에 따라 별도 착수 지시 전에는 설치·구현·DB 실행하지 않는다.
+인증·DB의 호환성 검증과 Migration은 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 [`auth-runtime.md`](auth-runtime.md), HTTP/parser 경계는 [`auth-api.md`](auth-api.md)를 따른다. 의존성 목록 정리가 compatibility 검증이나 운영 gate를 해소하지 않는다. 승인된 Node/Nest/ESM/tsc→Node 계약은 유지한다. 현재 사용자 요청에 포함된 구현과 비운영 검증은 진행하며 과거 설계 작업의 실행 제외를 상시 금지로 취급하지 않는다. 실제 운영 DB·credential·배포 실행은 해당 권한 범위를 확인한다.

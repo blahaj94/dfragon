@@ -26,7 +26,9 @@ review-after: 승인 정책 변경, 운영 저장소 선정 또는 최초 경합
 | D4 삭제 후 식별/조회 | 조회 자격은 생성부터 고정 86,400초, identity HMAC fence는 완료부터 최대 1,200초, 삭제 UUID journal은 아래 8일 정책. 재가입 계정에는 이전 결과를 연결하지 않는다. | 조회 자격 없음은 응답 유실 복구를 어렵게 한다. 장기 receipt·원문 subject tombstone은 불필요한 추적/보관을 늘린다. HMAC도 익명정보로 간주하지 않는다. 저장소 장애로 삭제 불가 시에는 기간 상한을 보장할 수 없는 격리 잔여와 복구 후 우선 삭제를 D4 장애 예외로 승인했다. |
 | D5 복원/백업 | 성공 dump 최대 7개와 snapshot 나이 7일 상한을 함께 적용한다. 별도 삭제 journal 없이는 복원 공개 금지. 복원 시 전 회원 session/refresh/OAuth·receipt 무효화와 JWT key 교체, 600초 신규 로그인 중단을 수용한다. | 성공본 개수만 제한하면 백업 실패 동안 오래된 개인정보가 무기한 남는다. 선택적 session 복원은 옛 credential과 삭제 경계를 재검증하는 복잡성을 추가한다. |
 
-D1–D5와 아래 수치/권한/한계는 위 명시적 승인으로 확정됐다. 이 수치는 법적 보관기간을 주장하지 않는 제품·운영 정책이다. 선택을 변경할 때는 의존 항목의 영향까지 포함해 다시 승인받는다. 정책 승인 뒤에도 공유 schema·기능의 후속 구현과 실제 환경 실행은 별도 착수 지시가 필요하다.
+D1–D5와 아래 수치/권한/한계는 위 명시적 승인으로 확정됐다. 이 수치는 법적 보관기간을 주장하지 않는 제품·운영 정책이다. 선택을 변경할 때는 의존 항목의 영향까지 포함해 다시 승인받는다. 현재 요청에 포함된 schema·기능 구현과 비운영 검증은 연속해서 진행한다. 실제 provider·운영 삭제·복원 실행은 해당 권한 범위에서만 수행한다.
+
+MVP 운영에서는 백업 공개 복원을 선택 기능으로 분리한다. [인증 운영 구성](../architecture/auth-operations-proposal.md)에 따라 한 운영자·단일 서버로 시작할 수 있으며 장비 3대·별도 witness 구현·전체 복원 시험을 로그인이나 탈퇴 개발의 선행 조건으로 두지 않는다. D1의 durable 삭제 intent, 이전 writer 차단, D4의 보관·삭제와 D5의 사본 기한은 유지한다. 공개 복원을 제공하지 않는 동안에도 만들어진 사본에는 보관·폐기 조건을 적용한다. 공개 복원을 켤 때는 아래 삭제 재적용·외부 checkpoint·옛 자격 폐기·600초 재개 조건을 충족해야 하며, 단일 host 손실이나 공동 rollback에서 확인할 수 없으면 기존 auth를 복원해 공개하지 않는다.
 
 ## 권한과 시간 기준
 
@@ -131,7 +133,7 @@ Lock 순서는 **자기 OAuth 또는 withdrawal row → identity transaction loc
 
 ## 삭제를 보존하는 복원 기준과 순서
 
-복원 허용 조건은 **복원할 사본의 신뢰할 snapshot 시각/lineage + 현재 시점까지 누락 없는 별도 삭제 journal + 외부 checkpoint의 rollback 불가 확인**이다. 단순 checksum은 변조/되감기 부재 증명이 아니다. Journal과 최신 checkpoint/inventory는 auth DB의 restore 범위 밖에 있어야 하며 실제 저장 매체·내구성 ack·권한·동시 장애 범위는 운영 gate다. 같은 DB dump 안 tombstone만 복원하거나 최신 journal을 잃은 채 “백업 성공”만 확인해 공개하지 않는다. 외부 백업 서비스 도입은 승인 범위에 포함하지 않는다.
+복원 허용 조건은 **복원할 사본의 신뢰할 snapshot 시각/lineage + 현재 시점까지 누락 없는 별도 삭제 journal + 외부 checkpoint의 rollback 불가 확인**이다. 단순 checksum은 변조/되감기 부재 증명이 아니다. Journal과 최신 checkpoint/inventory는 auth DB의 restore 범위 밖에 있어야 하며 실제 저장 매체·내구성 ack·권한·동시 장애 범위는 운영 gate다. 같은 DB dump 안 tombstone만 복원하거나 최신 journal을 잃은 채 “백업 성공”만 확인해 공개하지 않는다. 관리형 저장·백업 서비스의 비교와 실제 도입 권한은 [인증 운영 구성](../architecture/auth-operations-proposal.md)을 따른다.
 
 1. 유지보수 gate로 API ingress·background executor·callback·exchange·refresh·account 쓰기와 기존 process를 멈춘다. Control store의 writer generation을 먼저 바꿔 이전 executor의 append를 fence하고 journal을 최종 대조한다. Preparing/accepted/완료를 durable intent로 판정한다. Primary에서만 preparing이었고 최종 journal에 없으면 미확정 실패이며 복원 user를 탈퇴 완료로 오표시하지 않는다. Journal 최신성/old writer 차단을 증명할 수 없으면 복원을 시작하지 않는다.
 2. 별도 DB에 나이 7일 미만인 승인 snapshot만 복원한다. 전체 journal checkpoint/연속성·pending intent와 backup lineage를 확인한다. 누락·복제본 미등록·clock 불명·journal/storage 손실은 fail closed이며 임의로 옛 DB를 공개하지 않는다.
@@ -157,9 +159,9 @@ Lock 순서는 **자기 OAuth 또는 withdrawal row → identity transaction loc
 
 승인된 Desktop 최소 연결은 main이 withdrawal requestId/statusToken/receipt deadline만 기존 암호화 저장 경계에 별도로 보관하고 renderer에는 정제 phase/result만 보내는 것이다. 서버 등록 browser HTML은 “앱으로 돌아가 상태 확인”을 안내하며 신규 deep-link credential을 추가하지 않는다. 자동 polling 없이 사용자 상태 확인 gesture와 재시작 시 1회 status 조회만 허용한다. Preparing/deleting 진입을 확인하면 기존 local auth/capture를 정리하고 receipt만 남기며, 확인 실패는 완료로 처리하지 않는다. Local delete 실패는 기존 storageBlocked 경계다. Receipt 만료/완료 확인 때 저장물을 제거하고 원 user나 재가입 계정에 다시 묶지 않는다. 새 feature IPC 이름·sender 검증·OS 실행은 후속 승인 Rule/구현 범위이며 일반 로그인 설계를 다시 만들지 않는다.
 
-D1–D5 승인은 완료됐으며 관련 Rule과 `docs/README.md`는 이 canonical 문서로 연결한다. 후속은 승인된 공유 schema·admission/정리/복원 state 구현 → 재인증/revoke·탈퇴 API와 Desktop 완료 조회 연결 → 경합·부분 실패·복원 통합 검증 순서다. 각 단계는 별도 bounded 범위와 착수 지시를 확인하며 이 Rule로 새 Issue나 Worker를 자동 배정하지 않는다. 기존 Google/login/refresh 작업의 AC를 소급 변경하지 않는다.
+D1–D5 승인은 완료됐으며 관련 Rule과 `docs/README.md`는 이 canonical 문서로 연결한다. 후속은 현재 요청한 기능에 필요한 schema·admission·정리와 재인증/revoke·탈퇴 API·Desktop 조회를 응집된 결과로 구현·검증한다. 공개 복원은 선택했을 때 별도 결과로 다루며 내부 단계마다 새 착수 지시나 선행 PR merge를 요구하지 않는다. 기존 Google/login/refresh 작업의 AC를 소급 변경하지 않는다.
 
-운영 미결정 gate는 provider별 실제 callback/client 등록·동일 계정 재인증과 취소의 UI 검증·revoke 응답/권한·project grant 공유 영향, Discord PKCE gate, control store의 auth DB와 독립된 내구성/rollback 감지·권한, 모든 사본 inventory·암호화/폐기, single-writer/clock·24시간 장애 대응 책임자, 실제 재인증/복원 E2E와 platform이다. 위 정책 승인을 환경 확보/실행 검증 완료로 해석하지 않는다. 실제 credential·provider 호출·삭제·복원은 별도 허가된 운영 범위에서만 수행한다.
+실제 제공할 provider의 등록·동일 계정 재인증·revoke 결과와 권한, 탈퇴 journal·single-writer·삭제·보관·장애 대응을 확인한다. 미사용 provider와 선택하지 않은 공개 복원 환경·E2E는 다른 기능의 선행 조건이 아니다. 공개 복원을 제공할 때만 auth 복원 범위 밖 기록의 최신성·rollback 방지와 복원 E2E를 함께 확인한다. 위 정책 승인을 환경 확보/실행 검증 완료로 해석하지 않는다. 실제 credential·provider 호출·삭제·복원은 별도 허가된 운영 범위에서만 수행한다.
 
 ## Validation matrix — 설계 검토와 후속 실행 구분
 
