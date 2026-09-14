@@ -30,6 +30,10 @@ last-reviewed: 2026-09-08
 
 API와 Desktop을 같은 Windows 컴퓨터에서 실행하면 API 주소에 `https://localhost:<PORT>`를 사용할 수 있다. `LOCAL_HTTPS_CERT_FILE`과 `LOCAL_HTTPS_KEY_FILE`을 함께 지정하면 기본 Nest 앱이 `127.0.0.1`에서 HTTPS로만 listen한다. 두 변수가 모두 없으면 기존 listener 동작을 유지한다. 로컬 HTTPS 모드는 외부 IP에 공개하는 배포 설정이 아니다.
 
+프록시가 외부 HTTPS를 처리하고 Nest API에는 내부 HTTP로 전달하는 구성을 검토할 때는 두 `LOCAL_HTTPS_*` 변수를 모두 생략한다. 이때 `PORT`는 내부 HTTP listener의 port이고 `registry.apiOrigin`·Desktop API origin·provider callback은 외부에서 접근하는 HTTPS 주소를 유지한다. 내부 port와 외부 HTTPS port가 같을 필요는 없으며 localhost origin/port 일치 검사는 로컬 HTTPS 모드에서만 적용된다.
+
+기존 HTTP 경로는 `app.listen(PORT)`로 host를 제한하지 않는다. 따라서 이 설정 자체가 내부 통신의 격리나 안전성을 보장하지 않으며, HTTP port의 외부 접근 차단은 배포의 bind·container port 공개·방화벽 등에서 확인해야 한다. 프록시의 전달 동작과 실제 배포 검증은 별도이며, 로컬 HTTPS 추가가 운영 ingress 계약을 확정하지 않는다. Desktop·브라우저가 직접 사용하는 제품 API의 HTTPS 계약도 유지한다.
+
 개발 certificate는 실행 담당자가 repository 밖에 준비한다. 예를 들어 [mkcert](https://github.com/FiloSottile/mkcert)의 `-install`로 개발 CA를 신뢰 저장소에 설치한 뒤 `-cert-file`·`-key-file`로 저장 위치를 지정하고 `localhost 127.0.0.1` certificate를 발급할 수 있다. Private key와 CA private key를 공유하거나 commit하지 않는다. 발급·신뢰 설치는 API 시작이 자동 수행하지 않는다.
 
 PowerShell에서 실제 파일 경로와 선택한 port를 지정한다. 다음 경로는 placeholder이며 먼저 나머지 DB·검색·인증 입력도 준비해야 한다.
