@@ -269,7 +269,12 @@ try {
         fileName: () => 'main.cjs'
       },
       rollupOptions: {
-        external: ['electron', ...builtinModules, ...builtinModules.map((name) => `node:${name}`)]
+        external: [
+          'electron',
+          'koffi',
+          ...builtinModules,
+          ...builtinModules.map((name) => `node:${name}`)
+        ]
       },
       minify: false
     }
