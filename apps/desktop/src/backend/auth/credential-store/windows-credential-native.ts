@@ -59,13 +59,6 @@ function createHandle(
 export function createWindowsCredentialNative(): WindowsCredentialNative {
   const native = createWindowsSecurityNative()
   return {
-    capabilities: {
-      // Implementation is present, but release evidence for Windows SID/DACL and
-      // namespace durability is still required before enabling the native gate.
-      profileProtection: 'unknown',
-      fileMutation: 'unknown',
-      namespaceMutation: 'unknown'
-    },
     inspect: async (path, kind) => mapInspection(native.inspect(path, kind), kind),
     createDirectory: async (path) => native.createDirectory(path),
     list: async (path) => native.list(path),

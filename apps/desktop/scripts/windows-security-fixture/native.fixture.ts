@@ -188,7 +188,7 @@ it('accepts the local Windows appData ancestors without changing their ACLs', ()
   }
 })
 
-it('observes synthetic Win32 files without enabling product capabilities', async () => {
+it('observes synthetic Win32 files through the native boundary', async () => {
   const isWindows = process.platform === 'win32'
   if (!isWindows) {
     throw new Error('Synthetic Win32 fixture requires Windows.')
@@ -287,12 +287,7 @@ it('observes synthetic Win32 files without enabling product capabilities', async
       expect(await readFile(sentinel, 'utf8')).toBe('synthetic bytes')
 
       stage = 'owned-temporary-selection'
-      expect(nativeAdapter.capabilities).toEqual({
-        profileProtection: 'unknown',
-        fileMutation: 'unknown',
-        namespaceMutation: 'unknown'
-      })
-      // Only list/name selection is exercised. prepare() and mutation gates stay closed.
+      // Only list/name selection is exercised here.
       const files = new WindowsCredentialFiles(profile, 'synthetic', {
         ...nativeAdapter,
         list: async (path) => native.list(path)
@@ -342,7 +337,6 @@ it('observes synthetic Win32 files without enabling product capabilities', async
       cleanup,
       listedBytes,
       nativeListBatches,
-      capabilities: 'unknown',
       namespaceDurability: 'unverified',
       ...observed.observations
     })

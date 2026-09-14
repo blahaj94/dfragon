@@ -978,7 +978,6 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
         ...fs,
         realpathSync: fs.realpathSync.native,
         windows: {
-          capabilities: { profileProtection: 'confirmed', namespaceMutation: 'confirmed' },
           inspectDirectory: () => 'trusted',
           createDirectory: () => {
             throw new Error('Unexpected synthetic Windows profile creation')

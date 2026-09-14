@@ -9,7 +9,7 @@ vi.mock('./windows-security-native', () => ({
   createWindowsSecurityNative: () => native
 }))
 
-it('keeps root, ancestor and private policies distinct without enabling capabilities', () => {
+it('keeps root, ancestor and private policies distinct', () => {
   const security = createWindowsProfileSecurity()
   for (const [role, policy] of [
     ['root', 'root'],
@@ -21,8 +21,4 @@ it('keeps root, ancestor and private policies distinct without enabling capabili
     security.syncDirectory('path', role)
     expect(native.syncDirectory).toHaveBeenLastCalledWith('path', policy)
   }
-  expect(security.capabilities).toEqual({
-    profileProtection: 'unknown',
-    namespaceMutation: 'unknown'
-  })
 })

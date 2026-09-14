@@ -5,7 +5,7 @@ import { createWindowsCredentialNative } from './windows-credential-native'
 vi.mock('../windows-security-native', () => ({ createWindowsSecurityNative: vi.fn() }))
 
 describe('Windows credential native enumeration connection', () => {
-  it('passes the exact directory and complete names through the native boundary without enabling capabilities', async () => {
+  it('passes the exact directory and complete names through the native boundary', async () => {
     const names = ['credential.v1', 'transition.v1', 'unrelated.txt']
     const list = vi.fn(() => names)
     vi.mocked(createWindowsSecurityNative).mockReturnValue({ list } as unknown as ReturnType<
@@ -15,11 +15,6 @@ describe('Windows credential native enumeration connection', () => {
 
     await expect(native.list(String.raw`C:\LdbProfile\auth\test`)).resolves.toEqual(names)
     expect(list).toHaveBeenCalledWith(String.raw`C:\LdbProfile\auth\test`)
-    expect(native.capabilities).toEqual({
-      profileProtection: 'unknown',
-      fileMutation: 'unknown',
-      namespaceMutation: 'unknown'
-    })
   })
 
   it('propagates native enumeration failure without turning it into an empty list', async () => {

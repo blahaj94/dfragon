@@ -7,7 +7,6 @@ const STAGES = [
   'evidence-inspection',
   'root-inspection',
   'recovery-manifest',
-  'product-capabilities',
   'manifest-publication',
   'scenario',
   'terminal-publication',

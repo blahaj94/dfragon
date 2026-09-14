@@ -1,12 +1,9 @@
 import { app, safeStorage } from 'electron'
 import { readdir } from 'node:fs/promises'
 import { basename, isAbsolute, join } from 'node:path'
-import * as fs from 'node:fs'
 import { strict as assert } from 'node:assert'
 import { createMacOsCredentialStore } from '../../src/backend/auth/credential-store/macos-credential-store'
 import { createWindowsCredentialStore } from '../../src/backend/auth/credential-store/windows-credential-store'
-import { createWindowsCredentialNative } from '../../src/backend/auth/credential-store/windows-credential-native'
-import { createWindowsProfileSecurity } from '../../src/backend/auth/windows-profile-native'
 import { applyAuthRuntimeProfile } from '../../src/backend/auth/runtime-config'
 import { clearCredential } from '../../src/backend/auth/credential-operations'
 import type { CredentialTransitionKind } from '../../src/backend/auth/types'
@@ -37,30 +34,13 @@ async function run(): Promise<void> {
   assert.ok(isWindows || process.platform === 'darwin')
   if (isWindows) {
     assert.equal(basename(profile), appName)
-    const security = createWindowsProfileSecurity()
-    assert.deepEqual(security.capabilities, {
-      profileProtection: 'unknown',
-      namespaceMutation: 'unknown'
+    applyAuthRuntimeProfile(app, {
+      ...context,
+      returnTarget: 'ldb-credential-test://auth/callback',
+      providers: ['google'],
+      appIdentity: appName,
+      userDataPath: profile
     })
-    applyAuthRuntimeProfile(
-      app,
-      {
-        ...context,
-        returnTarget: 'ldb-credential-test://auth/callback',
-        providers: ['google'],
-        appIdentity: appName,
-        userDataPath: profile
-      },
-      {
-        ...fs,
-        realpathSync: fs.realpathSync.native,
-        windows: {
-          ...security,
-          // Observation only: no product capability or durability claim is changed.
-          capabilities: { profileProtection: 'confirmed', namespaceMutation: 'confirmed' }
-        }
-      }
-    )
   } else {
     // Fix the test identity before Electron initializes its Keychain service.
     app.setName(appName)
@@ -86,29 +66,9 @@ async function run(): Promise<void> {
     }
   }
   const options = { userDataPath: profile, context, safeStorage: observedSafeStorage }
-  const native = isWindows ? createWindowsCredentialNative() : null
-  if (native != null) {
-    assert.deepEqual(native.capabilities, {
-      profileProtection: 'unknown',
-      fileMutation: 'unknown',
-      namespaceMutation: 'unknown'
-    })
-  }
-  const store =
-    native == null
-      ? createMacOsCredentialStore(options)
-      : createWindowsCredentialStore({
-          ...options,
-          native: {
-            ...native,
-            // Exercise the existing file protocol; successful calls are not power-loss evidence.
-            capabilities: {
-              profileProtection: 'confirmed',
-              fileMutation: 'confirmed',
-              namespaceMutation: 'confirmed'
-            }
-          }
-        })
+  const store = isWindows
+    ? createWindowsCredentialStore(options)
+    : createMacOsCredentialStore(options)
   stage = phase
 
   async function persist(refreshToken: string, kind: CredentialTransitionKind): Promise<void> {

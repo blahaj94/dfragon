@@ -2,7 +2,6 @@ import { it, expect } from 'vitest'
 import { createHash } from 'node:crypto'
 import { lstat, readFile, readdir } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join } from 'node:path/win32'
-import { createWindowsCredentialNative } from '../../src/backend/auth/credential-store/windows-credential-native'
 import { createWindowsSecurityNative } from '../../src/backend/auth/windows-security-native'
 import { createObserver } from './observer'
 import { validateHold, type HoldEvidence } from './oracle'
@@ -145,12 +144,6 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
 
 async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
   const settings = await readSettings(diagnostic)
-  diagnostic.enter('product-capabilities')
-  expect(createWindowsCredentialNative().capabilities).toEqual({
-    profileProtection: 'unknown',
-    fileMutation: 'unknown',
-    namespaceMutation: 'unknown'
-  })
   diagnostic.enter('manifest-publication')
   const manifest = {
     kind: 'ldb-synthetic-windows-crash-v1',
@@ -159,8 +152,6 @@ async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
     caseId: settings.caseId,
     mode: settings.mode,
     rootName: basename(settings.root),
-    capability: 'harness-only-confirmed',
-    productCapability: 'unchanged-unknown',
     observerScope: 'external-host-ack-required',
     namespaceDurability: 'unverified',
     unsupportedCutpoints: [

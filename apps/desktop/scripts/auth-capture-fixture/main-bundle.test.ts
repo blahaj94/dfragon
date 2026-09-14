@@ -139,7 +139,7 @@ it.each([
   const environment = mainEnvironment()
   if (mode === 'ldb-development') {
     // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
-    // The real Windows capability gate must stop before profile or credential IO.
+    // This isolated bundle has no Win32 module; native loading must fail before profile IO.
     environment.context.process.platform = 'win32'
     environment.context.process.env = {}
   }

@@ -18,7 +18,7 @@ review-after: 최초 실제 media/OCR 관측 후 또는 Electron version·fixtur
 
 이 문서는 [PR #135의 명시적인 사용자 승인](https://github.com/blahaj94/ldb/pull/135#issuecomment-5578416858)과 사용자 merge `489e4aac61cffd0a6540c558e1e61a6361dd1036`를 반영한 active Rule이다. 구현·실행 범위는 [Issue #126의 재개 기록](https://github.com/blahaj94/ldb/issues/126#issuecomment-5578441165)을 따른다. 기존 승인 범위의 작업과 이 예외에 의존하는 변경을 구분하며 이후 변경은 [변경 승인 절차](change-control.md#approval-evidence)를 따른다.
 
-기존 [Desktop 인증·capture 계약](desktop-auth.md#최소-화면과-capture-경계)과 [플랫폼 검증 gate](desktop-auth-platform.md#향후-검증-계획과-완료-판정)는 유지한다. 이 제안의 예외는 아래 fixture의 media request에만 적용한다. Production 인증, credential 저장, provider/API, 검색, restore 종료 정책을 결정하거나 활성화하지 않는다.
+기존 [Desktop 인증·capture 계약](desktop-auth.md#최소-화면과-capture-경계)과 [플랫폼의 기능 완료 기준](desktop-auth-platform.md#기능-완료와-배포-후-검증)는 유지한다. 이 제안의 예외는 아래 fixture의 media request에만 적용한다. Production 인증, credential 저장, provider/API, 검색, restore 종료 정책을 결정하거나 활성화하지 않는다.
 
 ## 필요한 이유와 확인한 한계
 
@@ -62,4 +62,4 @@ Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관�
 
 **대안은 fixture도 media를 계속 거절하고, unit/auth UI·cleanup·실제 OCR asset 검증까지만 완료하는 것이다.** 권한 예외가 없지만 실제 media/OCR 연결 AC는 미완료로 남는다. API 종류·source·gesture를 신뢰할 수 있게 구별하는 runtime/API 또는 architecture 결정을 후속 승인한 뒤 결합 검증을 재개한다. Runtime 교체나 새 dependency는 이 대안의 자동 승인 사항이 아니다.
 
-권장안이 승인되고 실제 관측이 성공해도 production의 모든 renderer capture 경로에 대한 source/gesture 통제는 미해결이다. 후속 production media 허용 전에 이 경계를 별도로 해결해야 한다. OS 화면 기록 권한 실패를 우회하거나 권한 설정을 자동 변경하지 않으며 실행 불가로 기록한다. 실제 인증·저장·protocol·provider 및 packaged OS 검증은 [기존 플랫폼 gate](desktop-auth-platform.md#남은-선택과-release-gate)로 남는다.
+권장안이 승인되고 실제 관측이 성공해도 production의 모든 renderer capture 경로에 대한 source/gesture 통제는 미해결이다. 후속 production media 허용 전에 이 경계를 별도로 해결해야 한다. OS 화면 기록 권한 실패를 우회하거나 권한 설정을 자동 변경하지 않으며 실행 불가로 기록한다. 실제 인증·저장·protocol·provider 및 package 실행은 [플랫폼의 배포 구성과 실행 조건](desktop-auth-platform.md#배포-구성과-실행-조건)을 따른다.

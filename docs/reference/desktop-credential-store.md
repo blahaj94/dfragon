@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: desktop macOS and Windows credential adapters and isolated validation
-last-reviewed: 2026-09-14
+last-reviewed: 2026-09-15
 ---
 
 # Desktop credential store
@@ -12,11 +12,11 @@ last-reviewed: 2026-09-14
 
 Main은 Electron에 적용·read-back 확인한 trusted config 하나를 bootstrap에 전달한다. Runtime effects의 `createDependencies(config)`가 그 config의 `userDataPath`, `environment`, exact HTTPS `apiOrigin`으로 store context를 만들고 기본 Electron `safeStorage`와 함께 OS adapter에 전달한다. Context의 `clientId`는 `"desktop"`이며 environment는 경로 구성에 안전한 소문자·숫자·하이픈 최대 32자다. Runtime 값은 renderer가 아니라 process 설정에서만 읽지만, 실제 dev/test/prod 값과 package 주입은 현재 `electron-builder.yml`에 고정되어 있지 않다. 현재 builder identity도 배포용 trusted tuple로 확정한 값이 아니다. 제품 composition entry는 OS allowlist 없이 실행되며 `darwin`은 macOS adapter, `win32`는 Windows adapter, 그 밖의 host는 `unavailable` adapter를 선택한다. `files`와 `platform` 주입은 전용 test에서 Node IO의 실패와 환경을 제어하기 위한 경계다.
 
-## Windows capability와 packaging gate
+## Windows 실행 시 검사와 packaging
 
-Windows 구현은 현재 composition에 연결되어 있지만, default native capability는 ACL/SID, selected OS/CPU ABI, packaged native module, namespace durability evidence가 없어서 `unknown`으로 닫혀 있다. Windows profile capability가 `unknown` 또는 `unavailable`이면 `setPath`, name, app identity setter 전에 main의 profile preparation이 실패하고 `preparation-failed` fallback으로 간다. Profile 적용 후 store capability가 `unavailable`일 때만 safeStorage·network mutation 전에 `storageBlocked/SECURE_STORAGE_UNAVAILABLE`을 반환한다. 파일 목록 조회는 구현되어 기존 소유 임시 파일 탐색과 정리 경로에 연결되지만, capability를 활성화하지 않는다. Directory/삭제 namespace durability도 durable 구현이 완성되지 않았다. 현재는 directory handle 재검사·`FlushFileBuffers`, handle-bound rename/delete를 호출하는 후보 경로만 있고, 신규 directory·rename·delete의 durable 보장을 주장하려면 추가 구현과 별도 evidence가 필요하다. 이 Mac host의 테스트는 Windows API 호출이나 Windows login persistence를 증명하지 않는다. 아래 격리 관측은 Windows 11 x64의 실제 Electron·DPAPI와 native profile/store를 사용한 정상 process 복원 범위를 다룬다. 다른 OS/CPU, packaged 앱의 실제 로그인과 장애 후 복구는 이 결과로 검증되지 않는다. Windows boundary dependency는 `koffi` **3.2.1**이다.
+Windows profile과 credential adapter는 기본 composition에서 실제 Koffi/Win32 호출을 사용한다. 검증 완료를 나타내던 고정 capability와 `unknown`에 의한 일괄 차단은 제거했다. Profile 준비는 실제 SID/ACL·reparse·directory sync가 실패할 때 `preparation-failed`로 끝나며, store는 권한·암호화·파일 작업 실패를 기존 `storageBlocked/SECURE_STORAGE_UNAVAILABLE` 등으로 처리한다. 성공한 파일 작업은 해당 호출의 완료이며 물리 정전 내구성 보장이 아니다. 광범위한 사전 장애/OS 검증을 배포 조건으로 두지 않는 기준은 [platform](../rules/desktop-auth-platform.md#기능-완료와-배포-후-검증)을 따른다.
 
-`pnpm-lock.yaml` entry만으로 Windows packaging 성공을 주장하지 않는다. `npmRebuild:false`를 유지한 채 선택된 target OS/CPU에서 `node_modules/@koromix/koffi-win32-*`의 정확한 variant와 packaged app의 PE architecture를 확인해야 한다. 모든 CPU variant를 임의로 설치하거나 지원 OS/CPU를 이 reference에서 확정하지 않는다. Electron-builder의 `.node` smart unpack은 바이너리 누락이나 잘못된 target variant를 해결하지 않으므로 package evidence는 별도 release gate다.
+Windows boundary dependency는 `koffi` **3.2.1**이다. `npmRebuild:false`와 Electron-builder의 `.node` smart unpack을 사용하며, 선택한 target의 native variant가 설치 파일에 포함되어 실제로 로드되어야 한다. Lockfile이나 설정 검사만으로 package 실행 성공을 주장하지 않는다. 모든 OS/CPU variant를 미리 설치·검증하는 절차는 요구하지 않는다.
 
 ## Windows flush 호출과 실패 경계
 
@@ -24,7 +24,7 @@ Windows 구현은 현재 composition에 연결되어 있지만, default native c
 
 Windows 파일 교체에서 write 또는 첫 file flush 실패는 rename을 시작하지 않고 `failed`입니다. Rename 호출 이후 file flush, directory sync 또는 close 실패는 `unknown`이며 marker가 복원을 차단합니다. Marker 삭제 뒤 directory sync 실패는 재확립 결과에 따라 `save-failed`와 `clear-unconfirmed`로 나뉩니다. 재확립도 실패하면 새 credential만 남아 다음 실행에서 복원될 가능성을 유지합니다.
 
-Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. 실제 Win32 호출, DPAPI와 namespace 내구성 검증은 별도 gate로 남습니다.
+Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. Mock 결과와 실제 Win32·DPAPI 관측을 구분하며, namespace 내구성 시험을 배포 gate로 두지 않습니다.
 
 파일 이름 교체의 `FILE_RENAME_INFO`는 UTF-16 경로 뒤에 NUL WCHAR를 포함해 할당하고, `FileNameLength`에는 종료 문자를 제외한 경로 byte 수를 기록합니다. `SetFileInformationByHandle`에는 종료 문자까지 포함한 전체 buffer 크기를 전달합니다. [Microsoft의 구조체 설명](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info)은 길이 필드와 별도로 `FileName`을 NUL-terminated 문자열로 정의합니다. 종료 공간이 없던 구현의 실제 Windows 정상 대조에서 `transition.v1` 뒤에 예상하지 못한 문자가 붙었고 다음 credential commit이 실패했습니다. ASCII·한글·비BMP 경로의 byte 길이와 종료 공간을 회귀 검사하며, 기존 실패 자료와 namespace 내구성 미검증은 유지합니다.
 
@@ -38,9 +38,9 @@ Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 sig
 
 같은 command에서 현재 `APPDATA`부터 실제 volume root까지 읽기 전용으로 검사하고, 일반 폴더를 root로 제출하면 거절하는지도 확인합니다. 이 경로에 broad effective 권한이나 reparse가 있으면 실패하며 OS ACL을 고치지 않습니다.
 
-실제 HANDLE의 배타 생성, read/write, private ACL과 메모리 내 현재 process SID 비교, 추가 ACE 및 file/directory mismatch 거절, junction 거절과 대상 sentinel 보존을 확인합니다. ASCII, 한글, 비BMP를 포함한 408개 이름의 정확한 집합을 비교합니다. 헤더와 UTF-16 이름만 합쳐 122,410 byte이며, 실제 목록 호출의 성공 batch 수도 출력합니다. `WindowsCredentialFiles.ownedTemporaries()`는 unknown capability를 유지한 adapter의 관측 list를 통해 이름 선택만 검증합니다. `prepare()`나 제품 저장 gate를 통과한 것으로 해석하지 않습니다. 유효 UUID temp만 제거하고 credential, marker와 유사 이름의 보존을 확인합니다.
+실제 HANDLE의 배타 생성, read/write, private ACL과 메모리 내 현재 process SID 비교, 추가 ACE 및 file/directory mismatch 거절, junction 거절과 대상 sentinel 보존을 확인합니다. ASCII, 한글, 비BMP를 포함한 408개 이름의 정확한 집합을 비교합니다. 헤더와 UTF-16 이름만 합쳐 122,410 byte이며, 실제 목록 호출의 성공 batch 수도 출력합니다. `WindowsCredentialFiles.ownedTemporaries()`는 adapter의 관측 list를 통해 이름 선택만 검증합니다. 이 사례는 `prepare()`나 로그인 전체를 실행하지 않습니다. 유효 UUID temp만 제거하고 credential, marker와 유사 이름의 보존을 확인합니다.
 
-Flush, 동일 HANDLE rename, disposition과 close의 성공 관측은 namespace 내구성 완료를 뜻하지 않습니다. Directory flush의 실제 성공/실패는 그대로 출력하고 capability는 unknown으로 유지합니다. 손상 buffer, close failure와 unknown-marker 복구는 기존 mock 테스트의 evidence이며 native 관측에 합치지 않습니다. 다른 owner, 전원 손실, OS/CPU 지원, packaged binary와 실제 인증 E2E는 미검증입니다.
+Flush, 동일 HANDLE rename, disposition과 close의 성공 관측은 namespace 내구성 완료를 뜻하지 않습니다. Directory flush의 실제 성공/실패는 그대로 출력합니다. 손상 buffer, close failure와 unknown-marker 복구는 기존 mock 테스트의 evidence이며 native 관측에 합치지 않습니다. 다른 owner, 전원 손실, OS/CPU 지원, packaged binary와 실제 인증 E2E는 미검증입니다.
 
 초기 긴 checkout 내부 경로 실행은 목록 파일 생성 중 실패했고 HANDLE 및 root cleanup은 완료됐습니다. 짧은 표준 임시 parent를 사용한 재실행은 통과했으며, 이는 장경로 지원을 검증한 결과가 아닙니다. 2026-09-12 Windows x64 관측에서 122,410 byte 목록은 3개 batch로 반환됐고 file/directory flush, rename과 disposition 호출이 성공했습니다. 최종 수치는 실행 JSON을 확인합니다. 기존 전체 Windows suite의 122개 실패와 canonical CRLF format 실패는 이 fixture 성공으로 해소되지 않습니다.
 
@@ -60,7 +60,7 @@ Flush, 동일 HANDLE rename, disposition과 close의 성공 관측은 namespace 
 
 - `credential-record.ts`가 최대 16,384-byte strict UTF-8/JSON, exact field·version·context, canonical base64 ciphertext와 canonical refresh를 검사한다. 암호화 payload는 동일 context·version·refresh 하나이며 access·profile·pending은 저장하지 않는다.
 - `macos-credential-files.ts`는 `userDataPath/auth/<environment>/`를 사용한다. UserData root와 auth directory는 현재 user 소유의 0700 directory, record/temp는 0600 regular file이어야 한다. 기존 권한을 임의로 바꾸지 않는다. 마지막 경로 요소에는 no-follow open을 사용하며 symlink·잘못된 type/owner/mode는 거절한다.
-- `windows-credential-files.ts`는 같은 path layout을 사용하지만 Node mode bits를 보안 근거로 삼지 않는다. Win32 opened handle에서 reparse/type와 token current SID·owner/DACL을 확인하고, private ACL이 아니면 거절한다. Temp는 `CREATE_NEW`와 write-through로 만들고 write/flush 뒤 같은 handle의 `FileRenameInfo`로 교체한다. Native capability가 `unknown`이면 이 path는 실행되지 않는다.
+- `windows-credential-files.ts`는 같은 path layout을 사용하지만 Node mode bits를 보안 근거로 삼지 않는다. Win32 opened handle에서 reparse/type와 token current SID·owner/DACL을 확인하고, private ACL이 아니면 거절한다. Temp는 `CREATE_NEW`와 write-through로 만들고 write/flush 뒤 같은 handle의 `FileRenameInfo`로 교체한다. 필요한 native 검사·호출의 실제 실패를 기존 실패 결과로 전달한다.
 - `transition.v1`에는 version·임의 local operation ID·종류만 둔다. Exclusive temp 생성→file sync→동일 directory rename→directory sync를 확인한 marker만 이 instance의 mutation 자격으로 사용한다. 재확립은 새 marker를 먼저 flush한 뒤 이전 marker temp를 제거하고 삭제 sync까지 확인한다.
 - Credential 교체도 exclusive temp→file sync→rename→directory sync이며 이전 사본을 만들지 않는다. Local clear는 확립된 clear marker 아래 credential와 소유 temp를 지우고 sync한다. 이후 marker 삭제·directory sync는 별도 port 호출이다.
 
@@ -96,14 +96,14 @@ Native runner의 `--prepare-only`는 bundle 생성·정리만 하며 Electron/Ke
 
 공통 entry인 `scripts/credential-store-native/main.ts`는 Windows에서도 실제 Electron safeStorage와 Windows credential adapter를 사용한다. 승인된 격리 Windows 실행에서는 이 entry를 CJS로 bundle하고 `electron`, `koffi`, Node built-in을 external로 유지한다. 새 `LDB-Credential-Test-<UUID>` 이름과 같은 basename의 새 절대 profile을 각각 `LDB_CREDENTIAL_NATIVE_NAME`, `LDB_CREDENTIAL_NATIVE_PROFILE`로 지정한다. 동일한 identity/profile에서 `LDB_CREDENTIAL_NATIVE_PHASE`를 `write` → `restart` → `mark` → `recover`로 바꿔 별도 Electron process를 순서대로 실행한다. 각 process의 숫자 exit 0과 해당 phase의 성공 결과를 모두 확인하며, 실패한 profile을 재사용하거나 원본 실패를 덮어쓰지 않는다. Token·암호문·OS 오류 원문은 출력하지 않는다.
 
-Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용하고 ready 이후 `sessionData`가 같은 profile인지 확인한다. 제품의 profile/store capability가 `unknown`임을 먼저 확인한 뒤 이 격리 관측 안에서만 `confirmed`를 주입한다. 실제 암호화 대상은 고정 합성 token이며 Google 계정 credential을 사용하지 않는다. `recover`는 marker가 있을 때 암호화 availability 조회와 복호화가 모두 0회이고 기존 clear 후 credential directory가 비었는지 확인한다. Windows 실행 담당은 main과 소유 보조 process의 종료를 확인한 뒤에만 자신의 새 profile/bundle을 정리하며, 종료나 정리가 불명확하면 실패 자료를 보존한다.
+Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용하고 ready 이후 `sessionData`가 같은 profile인지 확인한다. 제품과 같은 기본 profile/store adapter를 사용하며 검증 완료 flag를 주입하지 않는다. 실제 암호화 대상은 고정 합성 token이며 Google 계정 credential을 사용하지 않는다. `recover`는 marker가 있을 때 암호화 availability 조회와 복호화가 모두 0회이고 기존 clear 후 credential directory가 비었는지 확인한다. Windows 실행 담당은 main과 소유 보조 process의 종료를 확인한 뒤에만 자신의 새 profile/bundle을 정리하며, 종료나 정리가 불명확하면 실패 자료를 보존한다.
 
-성공 phase는 `app.quit()`으로 정상 종료한다. 초기 startup 중 `app.exit()`은 message loop 준비 상태에 따라 즉시 process를 끝낼 수 있고, 다음 실행에 필요한 Windows `Local State` 저장을 생략할 수 있다. 실제 Windows 관측에서 즉시 종료 뒤 credential만 남아 복원에 실패했고, 정상 종료로 바꾼 뒤 별도 process에서 복원이 성공했다. 근거는 [Electron의 Exit/Shutdown](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser.cc)과 [Local State의 생성·종료 시 저장](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser_process_impl.cc)이다. 이 결과는 정상 process 종료·복원 범위이며 강제 종료, 물리 정전 내구성, 실제 로그인 또는 제품 capability 활성화의 근거로 확대하지 않는다.
+성공 phase는 `app.quit()`으로 정상 종료한다. 초기 startup 중 `app.exit()`은 message loop 준비 상태에 따라 즉시 process를 끝낼 수 있고, 다음 실행에 필요한 Windows `Local State` 저장을 생략할 수 있다. 실제 Windows 관측에서 즉시 종료 뒤 credential만 남아 복원에 실패했고, 정상 종료로 바꾼 뒤 별도 process에서 복원이 성공했다. 근거는 [Electron의 Exit/Shutdown](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser.cc)과 [Local State의 생성·종료 시 저장](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser_process_impl.cc)이다. 이 결과는 정상 process 종료·복원 범위이며 강제 종료, 물리 정전 내구성, 실제 로그인 성공의 근거로 확대하지 않는다.
 
-## Bootstrap 연결 조건과 남은 gate
+## Bootstrap 연결과 실제 로그인 확인
 
-제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 고정된 dev/test/prod profile·API origin·배포 identity와 private root 권한의 실제 값은 아직 확인하지 않았다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 OAuth, packaged app과 production 저장 검증은 별도 통합 범위다.
+제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity·API·복귀 주소는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 OAuth, packaged app과 production 저장 검증은 별도 통합 범위다.
 
 확인한 고정 조합은 Electron **39.8.10**, Node **22.22.1**, libuv **1.51.0**이다. [Electron DEPS](https://raw.githubusercontent.com/electron/electron/v39.8.10/DEPS)와 설치 runtime을 대조했다. [Node의 libuv Apple 구현](https://raw.githubusercontent.com/nodejs/node/v22.22.1/deps/uv/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용한다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability·전원 손실 보장을 증명하지 않는다.
 
-Native 합성 저장 성공도 Keychain 잠금/사용자 거절, 실제 서명·공증·다른 bundle·업데이트/백업 복원 검증을 대체하지 않는다. 출시 filesystem·OS·identity에서 필요한 gate가 해소되기 전 로그인 유지가 검증됐다고 표시하지 않는다. 이 adapter는 OS profile rollback·동일 user malware·physical erase를 보장하지 않는다.
+Native 합성 저장 성공도 Keychain 잠금/사용자 거절, 실제 서명·공증·다른 bundle·업데이트/백업 복원 검증을 대체하지 않는다. 실제 확인한 정상 재실행 결과만 로그인 유지의 근거로 설명하며, 이 전체 시험 목록을 배포 조건으로 요구하지 않는다. 이 adapter는 OS profile rollback·동일 user malware·physical erase를 보장하지 않는다.

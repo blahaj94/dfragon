@@ -3,8 +3,8 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
-last-reviewed: 2026-09-14
-rationale: 지원 환경의 관측 사실과 OS 보장·배포 gate를 구분하고 불명확한 token의 재사용을 차단한다.
+last-reviewed: 2026-09-15
+rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
 exceptions: 실제 credential/keychain·protocol registry·OAuth app 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장·protocol E2E 시
@@ -34,7 +34,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장·prot
 
 Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간이 아닙니다. Wall clock 조정과 두 clock의 drift는 별개로 다뤄야 합니다. Electron의 이벤트 API도 실제 package에서 이벤트가 제때 도착하거나 모든 절전을 포착했다는 증거는 아닙니다. 두 시계가 같은 만큼 이동하고 OS 이벤트도 관측하지 못한 경우를 상대 차이 검사만으로 절전이라고 판별할 수 없습니다. 실제 OS clock을 변경하는 검증은 이번 주입 테스트 범위에 포함하지 않습니다.
 
-출시 OS·architecture·package마다 절전 진입/복귀, 긴 main thread 중단, 시계 조정, 장기 drift와 이벤트 전달 순서를 별도로 검증합니다. 주입된 읽기 함수와 EventEmitter의 테스트 성공은 이 native gate를 해소하지 않습니다. 1,000 ms 정책 예산의 가용성 비용도 실제 환경에서 확인하고, 변경이 필요하면 같은 Rule 변경 절차를 따릅니다.
+절전·시계 조정·장기 drift의 전체 OS/architecture/package 조합 시험은 배포 선행 조건이 아닙니다. 기존 시간 판정과 suspend/resume 처리는 유지하고, 배포 후 실제 사용에서 드러난 재현 사례에 맞춰 검증·수정합니다. 주입 테스트를 실제 OS 관측으로 표시하지 않으며, 1,000 ms 정책 예산을 바꿀 때는 사용자 동작에 미치는 영향을 함께 설명합니다.
 
 ## OS 저장 선택
 
@@ -42,8 +42,8 @@ Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간�
 
 | OS | 공식 보호 경계 | 인증 허용 조건·미확인 |
 | --- | --- | --- |
-| macOS | Keychain에 app encryption key 보관 | ready 뒤 encryption availability·실제 암복호화 성공 확인. Keychain lock/거절, 서명 identity·업데이트·다른 bundle 복원 검증 필요 |
-| Windows | DPAPI 기반. 다른 OS user에 대한 보호이며 같은 user의 다른 app 차단을 보장하지 않음 | availability·암복호화 실패 처리, user/profile 이동·업데이트 검증 필요. OS credential vault의 app 격리로 표현하지 않음 |
+| macOS | Keychain에 app encryption key 보관 | ready 뒤 encryption availability·실제 암복호화 성공 확인. Keychain lock/거절은 실패 처리. 서명·업데이트·다른 bundle 복원은 배포 후 재현 사례에 따라 검증 |
+| Windows | DPAPI 기반. 다른 OS user에 대한 보호이며 같은 user의 다른 app 차단을 보장하지 않음 | availability·암복호화 실패 처리. user/profile 이동·업데이트는 배포 후 재현 사례에 따라 검증. OS credential vault의 app 격리로 표현하지 않음 |
 | Linux | Backend는 환경에 따라 libsecret/KWallet 등 | availability=true이며 `gnome_libsecret`, `kwallet`, `kwallet5`, `kwallet6` 중 하나만 허용. `basic_text`, `unknown`, 예상 밖 backend는 storageBlocked |
 
 `setUsePlainTextEncryption(true)` 및 평문/renderer storage/access-only fallback은 금지한다. 안전한 backend가 없으면 로그인과 로그인 유지가 불가능하다는 명시적 선택이다. Capture·브라우저 권한 변경으로 저장 문제를 우회하지 않는다.
@@ -64,6 +64,8 @@ Path는 main이 고정한 `app.getPath('userData')/auth/<environment>/` 아래�
 - `transition.v1`: secret 없는 durable marker. Version, local operation ID, 종류(`exchange`, `refresh`, `clear`)만 가진다. Marker가 있으면 credential file의 값은 **어느 version이든 사용 불가**다. Local operation ID는 서버 credential/ID와 별개다.
 - File IO는 main 전용이며 directory ownership과 regular file 여부를 확인한다. Symlink/예상 밖 type·권한 오류는 fail closed다. POSIX directory/file 권한은 0700/0600, Windows는 해당 user의 private profile ACL을 검증한다. Temporary file은 동일 directory에서 exclusive 생성하고 같은 제한을 적용한다. Backup/이전 token 사본을 recovery source로 남기지 않는다.
 
+여기서 marker·commit·삭제의 durable 확인은 구현이 요구하는 write, flush, replace, directory sync와 close의 성공을 뜻한다. 물리 정전 후 디스크 상태까지 입증했다는 뜻이 아니며, 이를 입증하기 위한 장애 시험을 로그인이나 배포의 선행 조건으로 요구하지 않는다.
+
 ### POSIX profile ancestor permissions
 
 ```yaml
@@ -75,7 +77,7 @@ exceptions: sticky bit를 이용한 group/other write 예외를 두지 않으며
 review-after: Issue #425 구현 PR의 사용자 merge와 POSIX·native profile 검증 후
 ```
 
-이 절의 substantive contract는 Issue #425 구현 PR의 채택 대상이며 사용자 merge 후부터 active Rule로 적용한다. Merge 전에는 다른 작업의 active Rule로 사용하지 않으며, 이 경계를 위해 별도 승인 대기를 만들지 않는다. POSIX UID를 조회할 수 있는 경우, existing profile ancestor와 final direct parent는 root UID `0` 또는 현재 process UID가 소유하고 `mode & 0o022 === 0`이어야 한다. Final profile directory의 기존 current-UID `0700` 검사와 missing component의 `0700` 생성은 유지한다. 이 조건을 확인하기 전에는 `mkdir`, Electron `setPath`, app name, app identity setter를 시작하지 않는다. POSIX UID를 조회할 수 없는 환경과 Windows는 mode bits로 owner/ACL 안전성을 추정하지 않으며 native ACL·reparse-point 검증을 별도 gate로 남긴다.
+이 절의 substantive contract는 Issue #425 구현 PR의 채택 대상이며 사용자 merge 후부터 active Rule로 적용한다. Merge 전에는 다른 작업의 active Rule로 사용하지 않으며, 이 경계를 위해 별도 승인 대기를 만들지 않는다. POSIX UID를 조회할 수 있는 경우, existing profile ancestor와 final direct parent는 root UID `0` 또는 현재 process UID가 소유하고 `mode & 0o022 === 0`이어야 한다. Final profile directory의 기존 current-UID `0700` 검사와 missing component의 `0700` 생성은 유지한다. 이 조건을 확인하기 전에는 `mkdir`, Electron `setPath`, app name, app identity setter를 시작하지 않는다. POSIX UID를 조회할 수 없는 환경과 Windows는 mode bits로 owner/ACL 안전성을 추정하지 않으며 실행 시 native ACL·reparse-point 검사 결과로 판단한다.
 
 네트워크 transaction과 disk write를 원자적으로 묶을 수 없으므로 **결과 불명 token은 사용하지 않는 marker 방식**을 선택한다. 순서는 다음과 같다.
 
@@ -90,6 +92,8 @@ App 시작 시 marker가 있으면 새/옛 credential을 **복호화해서 자�
 
 `LOGIN_EXCHANGE_INVALID`처럼 명시적인 비성공 응답 뒤 pending을 계속 기다릴 때는 secret 없는 marker를 안전하게 clear한 다음 waitingBrowser로 돌아간다. Clear 실패는 storageBlocked다. Pending memory를 file로 이동하거나 같은 code를 자동 재전송하지 않는다.
 
+아래 복구 동작은 다음 실행에서 관측되는 marker와 파일 상태를 기준으로 한다. 정전이나 저장 장치의 손실로 marker 자체가 사라진 경우까지 복원 금지를 보장하지 않는다.
+
 | Crash/failure 지점 | 다음 실행의 선택 |
 | --- | --- |
 | Marker 확립 전 | 새 exchange/refresh 전송 없음. 기존 ready R0는 여전히 current일 수 있으며 정상 복원 대상 |
@@ -100,7 +104,7 @@ App 시작 시 marker가 있으면 새/옛 credential을 **복호화해서 자�
 | Marker 제거 durability 확인 후 | R1만 정상 복원 대상. R0 사본은 없음 |
 | Logout에서 marker 확립/credential 삭제조차 실패 | 현재 process는 사용을 중단하지만 재시작 시 이전 record가 남을 가능성을 배제하지 못함. storageBlocked/LOCAL_CLEAR_UNCONFIRMED로 안내하며 영구 logout 성공을 표시하지 않음 |
 
-Atomic replacement·flush·directory durability는 Node 호출 하나의 반환만으로 모든 filesystem/power-loss에서 보장하지 않는다. 위 순서를 만족하는 OS별 구현과 fault injection이 release gate다. 지원 filesystem에서 durability를 확인할 수 없으면 조용히 flush를 생략하거나 이전 token fallback을 넣지 않고 해당 배포의 로그인 유지를 보류한다. Disk rollback/OS profile backup 복원·동일 OS user malware까지 이 marker가 방어하지 않는다. 서버 reuse 탐지와 OS별 한계를 함께 유지한다. 암호문은 userData에 존재하므로 “credential이 OS 저장소 밖에 없다”거나 secure physical erase를 보장하지 않는다.
+Atomic replacement·flush·directory sync는 구현대로 수행하고 실제 실패나 불명확한 결과를 성공으로 바꾸지 않는다. 추가 VM 강제 종료 반복, 물리 정전 내구성 입증, 다른 OS·CPU의 전체 조합 검증은 개발·로그인 활성화·배포의 선행 조건에서 제외한다. 기능을 배포한 뒤 실제 사용과 재현된 문제에 따라 필요한 검증과 수정을 수행한다. 기존 장애 실험은 선택적인 진단 도구이며 과거 실패·미검증 결과를 삭제하거나 성공으로 바꾸지 않는다. Disk rollback/OS profile backup 복원·동일 OS user malware와 물리 정전 내구성을 이 marker가 보장하지 않는다. 서버 reuse 탐지와 OS별 한계를 유지하며, 평문 저장이나 이전 token fallback을 추가하지 않는다.
 
 ### Windows profile ACL과 namespace 경계
 
@@ -112,11 +116,11 @@ Windows profile과 credential의 현재 사용자는 process token의 user SID�
 
 Volume root는 상위 directory entry가 없으므로 `DELETE` 자체와 그 아래 자식을 지우는 `FILE_DELETE_CHILD`를 구분한다. Root 예외는 검사 중인 동일 handle의 `GetFinalPathNameByHandleW(FILE_NAME_NORMALIZED | VOLUME_NAME_GUID)` 결과가 자식 경로 없는 volume GUID root일 때만 적용하며 `DELETE` 하나만 위험 mask에서 제외한다. `FILE_DELETE_CHILD`, ACL·owner 변경과 generic write/all 검사는 유지한다. 드라이브 문자만으로 root를 신뢰하지 않으며 SUBST 하위 폴더·network share·reparse point·조회 실패·잘린 결과에는 예외를 적용하지 않는다. Profile 검사·부모 재검사·sync 모두 같은 root/ancestor/private 구분을 사용한다.
 
-이 상위 폴더 계약 변경은 정상 Windows 경로를 거절하는 로그인 준비 문제의 수정 범위이며, 해당 구현 PR의 사용자 merge 후 활성화한다. Native capability와 아래 실제 OS·저장·복구 검증 조건은 이 변경만으로 충족되지 않는다.
+상위 폴더와 최종 profile의 실제 권한 검사는 로그인 준비에서 유지한다. 과거 시험의 완료 여부를 대신 나타내는 고정 capability 값은 사용하지 않는다.
 
 Missing directory는 current SID를 명시한 private security descriptor와 `bInheritHandle=false`인 security attributes로 생성한다. Credential temp file은 같은 directory에서 `CREATE_NEW`와 `FILE_FLAG_WRITE_THROUGH`로 만들고, `WriteFile`·`FlushFileBuffers` 후 같은 handle의 `SetFileInformationByHandle(FileRenameInfo)`로 교체한 뒤 같은 handle flush를 수행한다. 삭제도 검증한 handle에 `FileDispositionInfo`를 적용한다. `FlushFileBuffers`의 directory 호출이나 delete/namespace 성공은 일반 filesystem과 power-loss durability의 증거로 간주하지 않는다.
 
-이 계약을 구현한 Koffi/Win32 binding은 존재하지만, 현재 release capability는 Windows OS·선택 CPU에서의 ABI, ACL/reparse, packaged native module과 power-loss evidence가 없으므로 `unknown`이다. Windows profile capability가 `unknown` 또는 `unavailable`이면 `setPath`, name, app identity setter 전에 profile preparation이 실패하고 main은 `preparation-failed` fallback으로 간다. Profile 적용 후 credential store capability가 `unavailable`일 때만 `storageBlocked`로 fail closed한다. 선택한 target OS/CPU package에서 native variant·PE architecture와 실제 profile/credential E2E를 확인하기 전에는 Windows login persistence를 검증됐다고 표시하지 않는다.
+Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결과를 사용한다. `profileProtection`, `fileMutation`, `namespaceMutation`을 `unknown`으로 고정해 모든 실행을 거절하던 release capability는 제거한다. 검증되지 않은 보장을 `confirmed`로 표시하는 설정이나 개발용 우회 flag로 대체하지 않는다. Native 모듈 로드, SID/ACL·reparse 검사 또는 필요한 파일 작업이 실패하면 기존 `preparation-failed` 또는 `storageBlocked` 처리를 유지한다. 배포할 설치 파일에서 native 모듈과 실제 로그인 흐름을 확인하되, 전체 OS/CPU의 ABI·권한·전원 손실 시험을 통과해야 배포할 수 있다는 조건은 두지 않는다.
 
 ## Protocol 및 browser launch 선택
 
@@ -140,11 +144,11 @@ Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopba
 
 이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `ldb.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 LDB 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 active registry의 API·provider callback·return target 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
 
-빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. Windows profile·namespace·DPAPI·복구 capability와 실제 Google 로그인 검증도 이 등록값 선택으로 해소되지 않는다.
+빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 Google 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
 ### 공통 진입점
 
-| 진입점 | 등록·처리 계약 | 미확인 gate |
+| 진입점 | 등록·처리 계약 | 실제 사용에서 확인할 사항 |
 | --- | --- | --- |
 | macOS | main entry에서 ready 이전 `open-url` listener 등록 및 preventDefault. Bundle `CFBundleURLTypes`에 승인 target의 scheme 선언. OS event를 단일 validator로 전달 | Packaged/installed cold·warm·창 없음, 서명/업데이트, 여러 bundle의 association 충돌 |
 | Windows/Linux | Packaged executable 또는 Electron `defaultApp`의 executable·app path를 제거한 user argv를 검사한다. Lock loser가 bounded/versioned `additionalData`로 같은 user argv를 보내며 owner는 이를 재검증하고 mutable `second-instance` command line을 인증 판정에 쓰지 않는다. Single-instance loser는 store/network 작업 없이 종료 | Install 경로 공백, URI 전달·중복, 실제 default handler와 OS별 focus |
@@ -160,43 +164,22 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 - Code는 auth-oauth의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
 - URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패·잘못된 scheme은 기존 pending/session·window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 동일 code의 중복·expired handling은 lifecycle을 따른다.
 
-### Linux package별 gate
+### Linux package별 동작 참고
 
 - deb: 설치된 `.desktop`, `MimeType=x-scheme-handler/...`, `Exec`의 URI 전달, default association·업데이트·제거를 검증한다. [electron-builder v26 Linux](https://www.electron.build/v26/docs/linux/)
 - AppImage: electron-builder 21 이후 self desktop integration이 없으므로 AppImage 실행 성공은 browser 복귀 보장이 아니다. Desktop integration 배포 방법을 먼저 선택한다. [AppImage 안내](https://www.electron.build/v26/docs/appimage/#desktop-integration)
 - snap: installed desktop entry·URI 전달, confinement·secret store 접근을 따로 확인한다. `password-manager-service` 자동 연결을 가정하지 않으며 추가 interface 채택은 배포 결정이다. [desktop interface](https://snapcraft.io/docs/reference/interfaces/desktop-interface/), [password-manager-service](https://snapcraft.io/docs/reference/interfaces/password-manager-service-interface/)
 
-## 향후 검증 계획과 완료 판정
+## 기능 완료와 배포 후 검증
 
-이번에 실행한 것은 source/config·승인 evidence·공식 문서 대조와 PR에 기록한 문서 검사뿐이다. 아래는 **미실행 validation matrix**다. 후속 구현은 [Testing](testing.md)의 영향별 검증과 `apps/desktop/AGENTS.md`를 따른다. Unit mock 통과와 실제 OS/provider 성공을 분리한다.
+기능 완료는 선택한 배포 환경에서 사용자가 로그인 시작 → provider 인증 → 앱 복귀 → 로그인 상태 반영 → 인증 필요 기능 사용을 수행할 수 있는지로 판단한다. 취소·실패 후 재시도와 정상 종료 후 재실행은 기존 lifecycle 계약을 따른다. 가능한 환경에서 이 흐름을 직접 확인하고, 실제 credential이나 환경 권한이 없으면 구현을 먼저 완성한 뒤 미검증 경로와 필요한 다음 실행을 명시한다. Mock 성공을 실제 로그인 성공으로 바꾸지 않는다.
 
-| 층 | 검증 사례 | 통과 기준 |
-| --- | --- | --- |
-| Main unit | 신규/중복 begin, enabled provider, exact argument/sender/frame/URL | 잘못된 입력은 HTTP/store/browser side effect 0; subframe/다른 창 거절 |
-| Preload/component | event wrapper/unsubscribe, subscribe→snapshot race, reload·늦은 revision | raw Electron event/credential 미노출, listener 누수·stale snapshot overwrite 없음 |
-| PKCE/parser | 매번 독립 verifier, S256 ASCII hash, code canonical·중복 query·alias·oversize argv | 승인된 정확한 값만 exchange; unknown target은 fetch/openExternal 0 |
-| Lifecycle unit | 600초 경계·절전/clock 변화, provider/browser 취소, 앱 취소·late response | TTL 연장/서버 취소 추정 없음; cancelled generation signedIn 0 |
-| Exchange integration | 정상 신규/기존, wrong proof/다른 request code, 중복 버튼·60초 만료·응답 유실 | 최종 서버 session 1개 이하, 저장 전 signedIn 0, code 자동 retry 0 |
-| Refresh unit/integration | 여러 caller·오래된 access 401·15초 abort·401/503/불완전 body | session당 refresh 1회·공유 결과; 결과 불명 R0 재사용 0·mutation 자동 replay 0 |
-| Store fault injection | marker/write/flush/replace/delete의 각 단계 실패와 crash; unlink 뒤 flush 실패·marker 재확립 성공/실패 포함 | marker 있으면 R0/R1 자동 복원 0. 재확립 미확인은 자동 복원 차단을 보장하지 않고 정확히 안내; clean/ready 판정 정확 |
-| Logout 경합 | refresh/exchange 중 logout·두 logout·새 로그인·늦은 200·offline | generation 복구 0; known current/consumed session만 폐기; 서버 204 미확인 성공 표시 0 |
-| Restore/activity | restart 성공·offline·refresh 성공 후 `/me` 실패·marker/손상 | pending 복원 0, 정상 refresh 뒤 `/me`·home; background 활동 heartbeat 0 |
-| UI/capture 회귀 | welcome/home, logout/401/unmount, 늦은 OCR, sandbox/preload bundle | 기존 source/media validation 유지, stream/worker/loop cleanup, 재로그인 자동 capture 0 |
-| Native storage | Keychain 잠금/거절·서명 업데이트, DPAPI user/profile 변경, 각 허용 Linux backend | 보호 가능성·decrypt 결과를 실제 확인; basic_text/unknown에서는 로그인 0 |
-| Native protocol | 출시할 OS/arch/package 각각 installed cold/warm/창 없음·다중 instance·잘못된 URL | 초기 event 유실/중복 교환 0, local renderer 복귀, 등록값과 server snapshot 일치 |
-| Provider/실배포 | 실제 HTTPS/domain/provider 등록, browser별 동의·취소, Discord 별도 PKCE gate | 실제 credential E2E를 별도 evidence로 기록. Mock 또는 Google 성공으로 Discord 성공 대체 금지 |
-| Log sink | synthetic credential canary로 main/preload/renderer/HTTP/deep-link/error·crash 경로 | 원문 credential/URL/body/user/nickname 노출 0. 실제 secret을 test evidence에 사용하지 않음 |
+변경 영향에 맞는 기존 unit·통합 검증과 선택한 설치 앱의 기본 동작 확인을 수행한다. 모든 변경에 전체 Desktop test/lint/build나 모든 OS·provider·package 조합 시험을 일괄 요구하지 않는다. 실제 필요한 검사는 [Testing](testing.md)을 따른다. Credential의 main 소유, PKCE와 callback/IPC 입력 검증, 암호화, 파일 권한·실패 처리, 취소 후 늦은 응답 차단은 계속 유지한다.
 
-제품 구현의 기본 command는 `pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'`다. Build에 typecheck가 포함된다. 연결한 서버 범위는 API validation을 함께 수행하고 실제 packaged matrix는 선택 OS/arch별 별도 evidence로 남긴다. 문서-only PR에서는 app command·설치·credential E2E를 실행하지 않는다.
+VM 강제 종료의 지점별 반복, 물리 정전, 장기 clock drift, profile 이동·backup 복원, 다른 OS·CPU·package 및 서명/업데이트 조합의 광범위한 시험 목록은 배포 gate로 관리하지 않는다. 배포 후 사용자 피드백과 재현 사례를 바탕으로 필요한 항목만 확인하고 수정한다. 이미 발견한 중요한 결함을 숨기거나 다른 환경에서의 성공을 해당 환경의 성공으로 표시하지 않는다. 장애 주입 도구의 VM 전원·복원 등 파괴적 실행은 그때 필요한 별도 허용 범위를 따른다.
 
-## 남은 선택과 release gate
+## 배포 구성과 실행 조건
 
-| 구분 | 필요한 결정·evidence | 현재 처리 |
-| --- | --- | --- |
-| Rule 승인 | 3개 문서의 main/IPC/UI·lifecycle·저장/protocol contract에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475) | 승인됨, PR #60 사용자 merge 완료. 제품 구현·실제 OS 검증과 별개 |
-| 사용자 배포 선택 | 최초 출시 OS·minimum version·architecture와 Linux 포함 시 package 종류 | 세 OS build 설정은 관측했지만 실제 지원 약속은 미결정. Windows 우선 등을 게임 맥락만으로 추정하지 않음 |
-| 실제 등록값 | API HTTPS origin, provider HTTPS callbacks/config version, owned scheme/target, app/bundle identity·서명/공증, dev/prod 분리 | 로컬 개발은 위 개발 tuple과 설치 전 확인 조건을 따른다. 운영 등록값은 미정이며 placeholder 채택 금지와 server registry·OS package 일치 조건을 유지한다. |
-| OS 실행 evidence | secret backend/권한/prompt·durability·protocol association·업데이트/복구 | 모든 native 인증 동작 미검증. 실패 platform을 성공 matrix에 포함하지 않음 |
-| 서버 선행 | login request/exchange/provider/refresh/logout/`GET /me` 구현·연동, Discord PKCE gate | PR #53은 DB 기반 완료이며 endpoint 전체 구현 완료로 해석하지 않음. #54와 후속 task의 결과 필요 |
+배포 대상과 실제 사용한 OS·architecture·package, API HTTPS origin, provider callback, 앱 return target과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 등록값이 서버와 앱에서 일치해야 하며, 다른 앱의 protocol 등록을 덮어쓰지 않는다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
 
-설계 승인과 실제 등록값 결정은 구분한다. 등록값이 없어도 mock 기반 후속 task를 구체화할 수 있지만 실제 browser/packaged release gate는 해소되지 않는다. 후속 작업의 협업과 인계는 [개발 흐름](agent-workflow.md#브랜치와-협업)을 따르며 향후 PR도 사용자가 squash merge한다.
+Endpoint·provider 지원은 현재 구현과 실제 연결 결과로 판단한다. Google 경로에 사용하지 않는 provider의 미완료 사항을 선행 조건으로 추가하지 않는다. 실제 credential·provider 등록·운영 DB·배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [개발 흐름](agent-workflow.md)을 따르며 사용자만 merge한다.

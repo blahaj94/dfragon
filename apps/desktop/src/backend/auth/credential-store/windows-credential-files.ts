@@ -4,14 +4,6 @@ import type { StoreMutationOutcome } from '../types'
 import type { CredentialFileOperations, CredentialRecordName } from './credential-files'
 import { MAX_RECORD_BYTES } from './credential-record'
 
-export type WindowsCapability = 'confirmed' | 'unknown' | 'unavailable'
-
-export type WindowsCredentialCapabilities = Readonly<{
-  profileProtection: WindowsCapability
-  fileMutation: WindowsCapability
-  namespaceMutation: WindowsCapability
-}>
-
 export type WindowsPathInspection =
   | Readonly<{ status: 'missing' }>
   | Readonly<{ status: 'trusted-directory' }>
@@ -29,7 +21,6 @@ export type WindowsCredentialFileHandle = Readonly<{
 }>
 
 export type WindowsCredentialNative = Readonly<{
-  capabilities: WindowsCredentialCapabilities
   inspect(path: string, kind: 'directory' | 'file'): Promise<WindowsPathInspection>
   createDirectory(path: string): Promise<'created' | 'already-exists'>
   list(path: string): Promise<string[]>
@@ -41,16 +32,6 @@ export type WindowsCredentialNative = Readonly<{
 
 const OWNED_TEMP =
   /^\.(credential|transition)\.v1\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.tmp$/
-
-function assertUsableCapabilities(capabilities: WindowsCredentialCapabilities): void {
-  const hasProfileProtection = capabilities.profileProtection === 'confirmed'
-  const hasFileMutation = capabilities.fileMutation === 'confirmed'
-  const hasNamespaceMutation = capabilities.namespaceMutation === 'confirmed'
-  const isUsable = hasProfileProtection && hasFileMutation && hasNamespaceMutation
-  if (!isUsable) {
-    throw new Error('Windows credential storage capability is unavailable.')
-  }
-}
 
 function assertTrustedDirectory(inspection: WindowsPathInspection): void {
   if (inspection.status !== 'trusted-directory') {
@@ -76,7 +57,6 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
   }
 
   async prepare(): Promise<void> {
-    assertUsableCapabilities(this.native.capabilities)
     for (const path of [this.userDataPath, join(this.userDataPath, 'auth'), this.directory]) {
       const inspection = await this.native.inspect(path, 'directory')
       if (inspection.status === 'missing') {

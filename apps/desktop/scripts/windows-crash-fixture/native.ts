@@ -94,11 +94,6 @@ export function createObservedNative(
       })
   })
   const native: WindowsCredentialNative = {
-    capabilities: {
-      profileProtection: 'confirmed',
-      fileMutation: 'confirmed',
-      namespaceMutation: 'confirmed'
-    },
     inspect: async (path, kind): Promise<WindowsPathInspection> => {
       observer.assertActive()
       const status = security.inspect(path, kind)
