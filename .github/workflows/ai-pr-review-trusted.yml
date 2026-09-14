@@ -12,32 +12,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  policy:
+  trigger:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.pull_requests[0].number != null
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - name: Check out trusted default branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          persist-credentials: false
-
-      - name: Publish advisory policy summary
-        run: node scripts/pr-review/src/run.mjs
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          REVIEW_LABEL: '@ldb-review'
-
-  trigger:
-    needs: policy
-    if: needs.policy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

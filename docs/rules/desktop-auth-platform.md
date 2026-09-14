@@ -142,7 +142,7 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 
 ## 향후 검증 계획과 완료 판정
 
-이번에 실행한 것은 source/config·승인 evidence·공식 문서 대조와 PR에 기록한 문서 검사뿐이다. 아래는 **미실행 validation matrix**다. 후속 구현 Issue는 [testing](testing.md)의 Red→Green과 `apps/desktop/AGENTS.md`를 따른다. Unit mock 통과와 실제 OS/provider 성공을 분리한다.
+이번에 실행한 것은 source/config·승인 evidence·공식 문서 대조와 PR에 기록한 문서 검사뿐이다. 아래는 **미실행 validation matrix**다. 후속 구현은 [Testing](testing.md)의 영향별 검증과 `apps/desktop/AGENTS.md`를 따른다. Unit mock 통과와 실제 OS/provider 성공을 분리한다.
 
 | 층 | 검증 사례 | 통과 기준 |
 | --- | --- | --- |

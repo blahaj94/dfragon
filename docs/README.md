@@ -1,112 +1,41 @@
 ---
 type: rule
 status: active
-enforcement: approval-required
 scope: repository
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-14
 ---
 
 # LDB Document Guide
 
-이 directory는 AI agent가 작은 context로 안전하게 작업하기 위한 canonical project knowledge를 관리한다. 대화 transcript나 일시적인 task backlog는 저장하지 않는다.
+## 읽기 안내
+
+현재 요청과 변경 대상에서 필요한 맥락만 고른다. 기본 개발 절차는 [개발 흐름](rules/agent-workflow.md) 한 곳에서 관리한다. 작업 경로의 하위 `AGENTS.md`와 해당 제품 계약은 실제로 읽으며, 파일이 존재한다고 자동으로 읽힌 것으로 간주하지 않는다. 같은 revision에서 읽은 본문이나 과거 승인 이력을 매번 다시 읽지 않는다. 현행 의미·상태·근거가 불확실할 때만 관련 이력으로 확장한다.
+
+| 필요한 내용 | 위치 |
+| --- | --- |
+| 요청·작업 단위·권한·협업·리뷰·PR | [개발 흐름](rules/agent-workflow.md) |
+| 변경 영향에 맞는 검사·성공 재사용·정직한 보고 | [Testing](rules/testing.md) |
+| 코드의 가독성·평가 순서·오류·신뢰 경계 | [convention.md](../convention.md) |
+| 기존 구현·표준 API·패키지 선택 | [코드 재사용](rules/code-reuse.md) |
+| formatter/linter 설정과 생성물 경계 | [도구 적용](rules/convention-tooling.md) |
+| 설명과 GitHub 글 | [작성 기준](rules/writing.md) |
+| 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
+| app·package 경계 | [Architecture Overview](architecture/overview.md) |
+| API runtime·검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md) |
+| Web·Desktop 공용 UI·SEED·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary) |
+| 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |
+
+이 표를 전부 읽는 체크리스트로 사용하지 않는다. 코드 없는 문서 작업은 해당 문서의 의미·상태·연결을 확인하며 무관한 코드 컨벤션·제품 실행 절차로 확장하지 않는다.
 
 ## Document class
 
-### Rule document
+Rule은 동작과 제약을 정의하고, Reference는 현재 code·config·command를 설명한다. `AGENTS.md`, `convention.md`, `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 이동 안내처럼 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue·PR에서 관리한다.
 
-Code가 따라야 하는 결정과 agent의 행동 경계를 정의한다. 다음 위치가 해당한다.
+Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경의 채택 범위·status를 PR에 명시하고 사용자 merge 후 적용한다. Proposed 제품 계약의 링크·절차 정리만으로 그 내용을 채택하지 않는다.
 
-- `AGENTS.md`
-- Root [`convention.md`](../convention.md)
-- `docs/rules/**`
-- `docs/architecture/**`
-- 향후 생성되는 domain rule
+같은 원문을 여러 문서에 복제하지 않는다. 지침은 짧은 진입점과 필요한 주제별 계약으로 유지하고, 문서·줄 수 할당량이나 과거 운영 문서의 필수 읽기를 만들지 않는다. 비밀정보와 개인 경로·내부 대화·실행 ID·raw log를 남기지 않는다.
 
-AI는 사용자가 요청하거나 실행을 허용한 범위에서 Rule 변경과 필요한 구현을 같은 PR에 준비할 수 있다. 사용자의 merge가 PR scope에서 채택 대상으로 명시한 문서 변경의 최종 승인이고 merge된 revision부터 그 변경을 active Rule로 적용한다. Proposed 내용의 절차 문구·link만 수정하면 그 내용 자체를 채택하거나 status를 바꾸지 않는다. 별도 승인 comment나 review approval은 요구하지 않는다. Rule document와 실제 implementation이 충돌하면 AI가 어느 한쪽을 임의로 선택하지 않고 사용자에게 질문한다.
-
-### Reference document
-
-현재 code, config, command, file 구조를 설명한다. `docs/reference/**`가 해당하며 AI가 실제 repository와 일치하도록 자율적으로 갱신한다. 충돌하면 실행되는 code, config, test를 기준으로 Reference document를 수정한다.
-
-## Reading route
-
-읽기·출력·인계·기록 기준의 기존 근거는 [PR #99의 사용자 승인](https://github.com/blahaj94/ldb/pull/99#issuecomment-5559860989)과 merge다. 단독 직접 수행, Runner와 검증 재사용의 근거는 [PR #106의 사용자 승인](https://github.com/blahaj94/ldb/pull/106#issuecomment-5561177716)에 보존한다. 해당 수행 조건과 재검토 기준은 [`agent-workflow.md`](rules/agent-workflow.md#수행-모드-선택)에 있다.
-
-아래 작업별 읽기 안내와 `AGENTS.md`, `code-quality.md`의 연결 변경은 [Issue #438](https://github.com/blahaj94/ldb/issues/438)의 채택 범위다. 이를 포함한 PR의 사용자 merge 후 적용하며, 기존 승인과 실행 의무는 유지한다. 승인 절차는 [`change-control.md`](rules/change-control.md#approval-evidence)를 따른다.
-
-```yaml
-status: active
-enforcement: approval-required
-rationale: 역할마다 반복된 문서 목록 대신 현재 판단에 필요한 본문을 선택해 사전 읽기 비용을 줄인다.
-evidence: "https://github.com/blahaj94/ldb/issues/438#issuecomment-5646425943"
-exceptions: 적용되는 Rule·AC·승인·보안·검증 의무는 생략하지 않고 불확실하면 관련 본문을 확인한다.
-review-after: merge 후 문서 수정, 코드 수정, 리뷰 작업에서 누락과 불필요한 읽기를 각각 확인한다. 관측하지 못한 유형은 검증됐다고 간주하지 않는다.
-```
-
-### 역할별 시작점
-
-역할에 고정된 읽기 순서 대신 현재 작업에 해당하는 행에서 필요한 절을 선택한다. 현재 Issue contract와 변경 대상이 출발점이며, 여러 조건이 겹치면 각 조건에 적용되는 본문을 함께 확인한다. 동일 revision의 재확인 조건은 [`AGENTS.md`](../AGENTS.md#context), 조회 범위와 출력 제한은 [`Context budget`](rules/code-quality.md#context-budget)을 따른다.
-
-| 현재 필요한 판단 | 읽을 문서와 범위 |
-| --- | --- |
-| Project 목표나 작업을 실행 Issue로 연결 | [`task-planning.md`](rules/task-planning.md)의 해당 목표 선택·착수 절 |
-| 작업 착수, 변경 승인, branch와 PR 준비 | [`change-control.md`](rules/change-control.md)의 승인·Issue/preflight·branch/worktree·commit/PR 절 |
-| 역할과 수행 모드 선택, 배정·인계·통합 | [`agent-workflow.md`](rules/agent-workflow.md)의 해당 역할·수행 모드·Escalation, [`agent-execution.md`](rules/agent-execution.md)의 해당 소유권·배정·인계·통합 절. 실행 전담 Runner는 [`agent-runner.md`](rules/agent-runner.md) |
-| 코드 작성·수정 | [`convention.md`](../convention.md#읽기-안내)의 적용 본문, [`testing.md`](rules/testing.md)의 Red-Green·evidence·integrity·validation, [`code-quality.md`](rules/code-quality.md)의 logic budget·유지보수성. 승인과 runtime 조건은 위 착수·역할 행과 아래 topic에서 확인 |
-| 코드 없는 문서 변경 | 이 문서의 [Document class](#document-class)·[Document maintenance](#document-maintenance)와 변경 대상 Rule 본문. Rule 변경안은 [Experimental Rule lifecycle](rules/code-quality.md#experimental-rule-lifecycle). Code 예시를 수정할 때만 해당 convention 확인 |
-| 읽기 전용 리뷰 | Issue AC, 통합 diff, validation evidence와 짧은 Worker 결과를 기준으로 적용 Rule 확인. [`Reviewer`](rules/agent-workflow.md#reviewer)·[`Escalation`](rules/agent-workflow.md#escalation), 코드 리뷰는 [`convention.md`](../convention.md#review에서-확인할-것)의 해당 본문과 승인·testing 기준 확인 |
-
-읽기 전용 Reviewer가 수정을 맡으면 먼저 Worker 배정과 해당 작성 기준을 확인한다. 문서 작업도 착수·승인·worktree·검증 의무를 따르며, 관련 없는 코드 예시나 운영 절을 미리 읽지 않는다.
-
-### Topic별 확장
-
-| 작업                             | Required document                                                                     |
-| -------------------------------- | ------------------------------------------------------------------------------------- |
-| 코드 단계·문자열·분기·체인·함수 입력 작성·검토 | [`rules/code-expression.md`](rules/code-expression.md). PR #146의 승인·merge를 반영한 active Rule |
-| Web·Desktop UI의 SEED 기준·공용 자산·Example·시각 검증 | [`rules/design-system.md`](rules/design-system.md); package·peer·CSS 책임은 [`Shared UI boundary`](architecture/overview.md#shared-ui-boundary) |
-| app 또는 package boundary 변경   | `docs/architecture/overview.md`                                                       |
-| 공통 로직 재사용, 자체 구현 또는 공통 package 분리 판단 | [코드 재사용과 공통 패키지 분리 기준](rules/code-reuse.md), 개별 변경의 승인은 `change-control.md` |
-| 실행 command 또는 file 위치 확인 | `docs/reference/repository-map.md`                                                    |
-| API runtime·검색 작업 | `docs/rules/api-runtime.md`, `docs/rules/character-search.md` |
-| 인증·session·DB 작업 | 아래 Authentication contract routing에서 관련 topic 선택. 승인된 contract와 미결정 gate·구현 착수 조건을 함께 확인 |
-| 기획·domain 작업                 | 향후 `docs/product/**`, `docs/domain/**`에서 task 관련 document만 선택                |
-
-## Document maintenance
-
-- 같은 Rule을 여러 document에 중복 작성하지 않고 canonical file을 link한다.
-- `AGENTS.md`는 약 150줄, 개별 Rule document는 약 250줄을 soft budget으로 사용한다.
-- soft budget을 넘으면 정보를 삭제하지 않고 topic별로 분리하고 이 index에서 routing한다.
-- Source 위치는 file path로만 기록한다. Line number는 사용하지 않는다.
-- 언어와 설명 작성 기준은 [`writing.md`의 공통 기준](rules/writing.md#사람이-읽는-설명-작성-기준)을 따른다. GitHub 글을 작성하거나 수정할 때는 같은 문서의 [GitHub 기준](rules/writing.md#github-글의-문체와-형식)도 확인한다.
-- secret, token, credential, 개인정보를 기록하지 않는다.
-- Obsidian은 논의와 기록을 위한 공간이며 repository document를 대체하지 않는다.
-
-## Index
-
-### Rule
-
-- [`convention.md`](../convention.md): 프로젝트 전체 코드의 의미별 검사·boolean 합성·오류 책임과 가독성 기준
-- [`rules/convention-exceptions-proposal.md`](rules/convention-exceptions-proposal.md): 순회 선택·독립 pure check의 좁은 승인 예외와 적용 lifecycle
-- [`rules/convention-tooling.md`](rules/convention-tooling.md): PR #163에서 승인된 도구 책임 원칙과 PR #165에서 승인된 공통 ESLint·Prettier 설정 기준
-- [`rules/code-expression.md`](rules/code-expression.md): 처리 단계·문자열 생성·분기·메서드 체인·함수 입력의 가독성 기준. [PR #146 사용자 승인](https://github.com/blahaj94/ldb/pull/146#issuecomment-5579597615)과 merge를 반영한 active Rule
-- [`rules/change-control.md`](rules/change-control.md): approval, Issue, branch, commit, PR, parallel 작업
-- [`rules/testing.md`](rules/testing.md): Red-Green workflow와 validation 기준
-- [`rules/code-quality.md`](rules/code-quality.md): logic budget과 유지보수성 기준
-- [`rules/code-reuse.md`](rules/code-reuse.md): 역할에 따른 재사용 탐색, 자체 구현 책임, 공통 package 분리와 결정 기록 기준. PR #259의 사용자 승인을 반영한 active Rule
-- [`rules/design-system.md`](rules/design-system.md): SEED 재사용·고정 source·기본값·override 금지·중립 Example·향후 검증 matrix
-- [`rules/backend-readability.md`](rules/backend-readability.md): 기존 Backend 가독성 Rule 경로, 공통 `convention.md`로 이전
-- [`rules/task-planning.md`](rules/task-planning.md): Discussion에서 목표별 Project와 실행 Issue로 이어지는 진입점, 분해와 완료 기준. PR #235의 사용자 승인 반영
-- [`rules/agent-workflow.md`](rules/agent-workflow.md): Planner, Worker, Reviewer의 GitHub handoff contract
-- [`rules/agent-text-writing.md`](rules/agent-text-writing.md): 이슈, PR, 댓글 작성 시 사용자 선택과 사실 검토 책임. 특정 모델 호출을 강제하지 않음
-- [`rules/convention-migration.md`](rules/convention-migration.md): 승인된 기존 convention의 동작 보존 이행 기준(사용자 merge 전 code 이행 불가)과 후속 Execution Issue routing
-- [`rules/agent-execution.md`](rules/agent-execution.md): 수행 모드, Worker roster, context, 상태와 통합 계약
-- [`rules/agent-runner.md`](rules/agent-runner.md): 실행 전담의 입력·job owner·완료 evidence·취소·retry·보고 계약
-- [`rules/agent-efficiency-proposal.md`](rules/agent-efficiency-proposal.md): PR #106에서 승인·canonical 반영된 제안 이력과 active Rule pointer. 별도 실행 authority 없음
-- [`architecture/overview.md`](architecture/overview.md): 현재 system boundary·Shared UI boundary 제안·peer/CSS 책임과 architecture approval 지점
-- [`architecture/auth-operations-proposal.md`](architecture/auth-operations-proposal.md): PR #132에서 승인된 인증·탈퇴의 자체 운영 배치·journal/witness·권한·보관. 복원 순서·장애 대응과 미실행 matrix는 [`architecture/auth-operations-validation-proposal.md`](architecture/auth-operations-validation-proposal.md). 두 문서는 active이며 환경 확보·구현·실행은 별도
-
-- [`rules/api-runtime.md`](rules/api-runtime.md): API runtime·dependency·build/test 계약
-- [`rules/character-search.md`](rules/character-search.md): 검색 query·응답·오류·계정 제한 계약
+## 제품 계약
 
 ### Authentication contract routing
 

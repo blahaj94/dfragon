@@ -1,107 +1,48 @@
 ---
 type: rule
 status: active
-enforcement: blocking
 scope: repository
-last-reviewed: 2026-09-08
+last-reviewed: 2026-09-14
 ---
 
 # Testing
 
-신규 test 판단과 아래 Red-Green·evidence·기대값 수정 기준은 [PR #167의 사용자 승인](https://github.com/blahaj94/ldb/pull/167#pullrequestreview-5140985917)을 반영한 active Rule이다. 기존 필수 검증과 최종 integration gate는 유지한다.
+검증은 변경이 실제로 영향을 주는 동작과 중요한 회귀 위험을 확인한다. 개발 중에는 가까운 테스트를 실행하고 마지막에는 최종 변경에 필요한 검증을 묶는다. 매 수정마다 workspace 전체 test·typecheck·lint·build를 반복하지 않는다.
 
-```yaml
-status: active
-enforcement: blocking
-rationale: 필수 검증을 유지하면서 신규 테스트의 필요성을 먼저 판단한다.
-evidence: "https://github.com/blahaj94/ldb/pull/167#pullrequestreview-5140985917; Issue #166; PR #159, #142, #138, #140 및 신규 테스트 없는 PR #143"
-exceptions: 동작 보존 검증과 test 변경 없는 Red는 아래의 구분을 따른다.
-review-after: 적용 후 서로 다른 변경 유형의 PR 3건에서 판단 근거와 검증 누락 여부를 확인한다.
-```
+## 검증 선택
 
-## 신규 test 판단
+경로 이름만으로 영향이 없다고 판단하지 않고 호출부·소비자와 실행 경계를 확인한다. 공통 설정·의존성·공유 계약·빌드 산출물처럼 영향이 넓거나 불명확하면 범위를 넓힌다. 현재 명령과 포함 관계는 [scripts 안내](../../scripts/README.md#native-validation)와 [Repository Map](../reference/repository-map.md)에서 확인한다.
 
-중요한 동작에는 검증 evidence가 필요하지만 production code 변경 자체가 신규 test의 근거는 아니다. 기존 test 축소·삭제를 목표로 하지 않는다.
+| 실제 영향 | 확인할 범위 |
+| --- | --- |
+| 문서만 변경 | 의미·상태·링크와 diff; 제품 실행에 영향을 주면 해당 소비자도 확인 |
+| 독립 tooling | 해당 도구의 동작 테스트·구문·정적 검사와 workflow 등 실제 호출부 |
+| domain·service·상태·interaction | 관련 unit·component·hook 테스트에서 변경 계약과 중요한 회귀 |
+| API·DB·provider·IPC·네이티브 경계 | 그 계약을 확인할 적절한 통합 계층과 필요한 실제 환경 검증 |
+| markup·style·생성물 | 실제 소비 경로의 build·시각 확인 또는 생성·소비자 검사 |
 
-구현 전에 Issue의 변경 범위와 관련 기존 test의 입력·assertion·실행 경로를 확인하고 필요한 최소 검증 사례를 정한다. 신규 사례마다 다음을 설명할 수 있어야 한다.
+표는 모든 계층이나 신규 테스트를 요구하는 목록이 아니다. 기존 테스트가 요구사항과 중요한 실패를 검증하면 재사용한다. 새 테스트는 어떤 중요한 실패와 기존 보호 공백을 검출하는지 설명할 수 있을 때 추가한다. 테스트 개수·coverage·fixture 양을 목표로 삼거나 구현을 복제하는 검증을 만들지 않는다.
 
-- 무엇이 잘못될 수 있고 그 결과가 왜 중요한가?
-- 기존 test의 어떤 검증이 부족한가?
-- 이 사례가 그 부족분을 실제로 검출하는가?
-- 선택한 test 계층이 그 위험을 검증하기에 적절한가?
+## 재현과 무결성
 
-근거는 실제 bug뿐 아니라 요구사항, 중요한 내부·외부 계약과 합리적으로 예상되는 실패를 포함한다. 특히 권한·보안·데이터 무결성·파괴적 작업·동시성 등의 중요한 보호 공백을 우선한다. 판단이 불명확하면 관련 context를 더 확인하며 이해 부족을 검증 생략의 근거로 삼지 않는다.
+버그 수정은 가능하면 수정 전에 실제 실패를 재현하고 중요한 보호 공백에 적절한 회귀 검증을 남긴다. 재현하지 못하면 그 한계를 알린다. 새 요구사항은 의도한 동작을 검증한다. 별도 Red 커밋, 고정 순서, 담당 분리나 중간 승인은 요구하지 않는다.
 
-구현 복제, 의미 없는 입력 변형, 독립적인 검증 가치가 없는 중복과 언어·type system·framework 보장의 반복은 추가하지 않는다. 내부 호출·순서·횟수는 그 자체가 중요한 계약일 때 검증하며, 중요한 경계값·외부 호출 제한·멱등성은 배제하지 않는다.
+동작 보존 변경에는 기존 동작 검증을 사용하고, 형식적인 실패나 중복 테스트를 만들지 않는다. 제품 코드를 일부러 망가뜨려 Red를 만들지 않는다.
 
-파일 수, test()/it() 개수나 coverage 수치를 목표로 삼지 않는다. 기존 파일의 사례 추가와 매개변수화에도 같은 판단을 적용하며, 여러 사례를 하나로 합쳐 개수만 줄이지 않는다. 작업 결과에는 신규 사례 수(0 포함), 각 사례가 보호하는 회귀 위험과 기존 검증의 부족분 또는 추가 없이 필수 검증을 충족한 근거를 짧게 남긴다.
+테스트 실행과 실제 검증 범위를 구분한다. Mock 통과를 실제 provider·OS·DB·네이티브·복구 성공으로 확대하지 않는다. 서로 다른 신뢰 경계의 runtime validation과 중요한 외부 경계 검사는 유지한다.
 
-## Red-Green workflow
+실패를 숨기기 위한 assertion 약화, skip/only/disable, 근거 없는 timeout 증가나 coverage 설정 변경은 금지한다. 잘못된 테스트나 실제 폐기한 정책의 테스트는 이유를 설명하고 수정·삭제할 수 있다. 여전히 유효한 요구사항을 통과를 위해 줄이지 않는다.
 
-핵심 logic과 behavior에는 아래 Required evidence의 검증이 필요하다. 새 동작·요구사항 변경과 bug fix에는 다음 순서를 적용한다.
+## 성공 결과 재사용
 
-1. GitHub Issue의 acceptance criteria에서 검증할 동작과 중요한 계약을 추출한다.
-2. 관련 기존 test를 확인하고 부족한 사례만 구현 전에 추가·수정한다. Bug fix는 해당 bug를 직접 재현하는 최소 검증을 우선한다.
-3. 요구사항 미구현 또는 해당 bug 때문에 실패하는 것을 확인하고, test 변경이 있으면 `test:` Red commit을 만든다.
-4. 필요한 최소 implementation을 작성해 Green으로 만든다.
-5. 관련 validation 전체를 실행한다.
+같은 검증의 입력·범위가 유지되면 유효한 PASS를 재사용한다. 필요한 정도로 명령·옵션·전체 exit/result와 관련 source·test·config·lockfile·생성 입력·runtime·외부 상태를 확인한다. SHA만 같다고 미commit 변경이나 외부 상태도 같다고 추정하지 않는다. 별도 증거 시스템은 만들지 않는다.
 
-기존 test가 이미 해당 bug를 재현하면 중복 사례를 추가하지 않는다. Test 변경이 없는 Red는 command·대상 revision·예상 실패 이유·실제 결과를 Issue/PR에 기록하며 빈 commit을 만들지 않는다. 기존 test의 통과만으로 새 요구사항의 Red를 대신하지 않는다.
+성공한 aggregate가 실제 포함한 검사는 개별 명령으로 다시 실행하지 않는다. Build에 포함된 typecheck도 같다. 실패한 aggregate의 일부 PASS를 전체 성공으로 보고하지 않으며 실행되지 않은 후속 검사는 미실행으로 남긴다.
 
-동작 보존 refactor는 기존 test로 관련 계약을 변경 전후에 확인할 수 있으면 신규 test 없이 진행한다. 중요한 보호 공백은 refactor 전에 기존 동작을 확인하는 test로 보완한다. 이때 통과하는 test는 Red가 아니며, Red를 만들려고 production code를 일부러 망가뜨리지 않는다.
+새 commit·push, 무관한 문서 변경이나 main 전진만으로 전체 결과를 초기화하지 않는다. Rebase·충돌 해결·관련 입력 변경은 영향을 확인해 해당 검사를 다시 수행한다. 영향이 넓거나 불명확하면 전체 관련 검증으로 확장한다. 예전 base의 성공은 이 확인 없이 최종 결과로 채택하지 않는다.
 
-Rule 변경이 필요한 작업도 같은 review 가능한 PR에서 Red-Green 순서를 진행할 수 있다. Rule 문서를 먼저 확정해야 기대값을 정의할 수 있으면 Rule commit 뒤 Red를 시작하고, 요구사항이 이미 Issue contract에 충분히 정해졌으면 Red commit을 먼저 만들 수 있다. Red commit은 PR branch에서 허용되지만 최종 PR head는 반드시 Green이어야 한다. Main에는 squash merge하므로 의도적으로 실패하는 중간 commit이 남지 않는다.
+## 결과와 한계
 
-Red-Green 대상의 병렬 작업도 이 선후 관계를 바꾸지 않는다. 같은 behavior의 Red 검증과 Green implementation을 서로 다른 Worker가 동시에 시작하지 않는다. Test 변경이 있으면 Issue 통합 branch에 먼저 반영하고, 기존 test 재사용도 통합 담당이 integration head에서 기대한 실패를 확인한 뒤 Green을 시작한다. 서로 다른 base에서 작성한 Red와 Green은 최신 integration head에서 실패 원인과 최종 통과를 다시 검증한다.
+기존 CI와 required check를 유지하고 필요한 원격 상태를 실제로 확인한다. 로컬 PASS로 원격 성공을 대신하지 않는다. 실패·미실행의 범위, 이유와 영향을 PR에 알린다. 관련 없는 환경을 새로 구축하거나 검증용 검증기를 늘려 우회하지 않는다.
 
-Test framework 또는 dependency가 없으면 임의로 추가하지 않는다. 새 dependency 승인을 먼저 요청한다.
-
-## Required evidence
-
-| 변경 종류                              | Required evidence                    |
-| -------------------------------------- | ------------------------------------ |
-| domain 또는 service logic              | unit test                            |
-| API contract 또는 integration boundary | integration test                     |
-| bug fix                                | 재현 가능한 regression test          |
-| React state, hook, interaction logic   | component 또는 hook test             |
-| Markup 또는 style-only                 | lint, build, visual 확인             |
-| Generated file, mock, fixture          | consumer test 또는 생성·검증 command |
-
-표는 필수 검증 종류와 범위이며 매번 신규 test 작성을 뜻하지 않는다. 기존 test도 해당 종류와 실제 검증 범위를 충족하면 사용한다. Regression은 목적이며 unit 또는 integration test가 회귀 검증을 겸할 수 있다.
-
-변경이 여러 종류에 해당하면 필요한 evidence를 조합한다. 하나의 test로 여러 항목을 충족하려면 각 항목의 검증 종류와 범위를 모두 만족해야 한다. 계층 수를 채우기 위해 같은 시나리오를 반복하지 않으며, 계층별 독립 계약과 실제 통합 실패의 검증을 중복으로 취급하지 않는다.
-
-기존 test 선택과 과거 실행의 PASS evidence 재사용은 별개다. 후자는 아래 검증 evidence 재사용의 입력·revision·환경·범위 조건을 그대로 따른다.
-
-## Test integrity
-
-- Test를 통과시키기 위해 assertion을 약화하거나 원래 acceptance criteria를 바꾸지 않는다.
-- 실제로 변경된 요구사항은 현재 Issue의 사용자 요청 또는 실행 허용 범위를 확인한 뒤 해당 test의 기대값에 반영한다. Rule 변경과 test는 같은 PR에서 검토하며, 신규 사례 수를 줄이려고 여전히 유효한 사례·assertion을 교체하거나 약화하지 않는다.
-- 잘못 작성된 test를 수정할 때는 이유를 PR에 설명한다.
-- `skip`, `only`, 임시 disable 상태를 최종 PR에 남기지 않는다.
-- Mock이 실제 contract의 중요한 behavior를 숨기지 않도록 한다.
-- 큰 fixture와 snapshot은 logic review에서 분리될 수 있도록 별도 file 또는 commit에 둔다.
-
-## Validation
-
-- 변경한 workspace의 test, typecheck, lint, build를 가능한 범위에서 모두 실행한다.
-- Main rebase 또는 semantic conflict 해결 후 전체 validation을 다시 실행한다.
-- 실행하지 못한 command와 이유를 PR에 명시한다.
-- 검증 실패를 success로 보고하지 않는다.
-- 현재 사용 가능한 command는 [`../reference/repository-map.md`](../reference/repository-map.md)를 확인한다.
-
-## 검증 evidence 재사용
-
-아래 기준은 [PR #106의 사용자 승인](https://github.com/blahaj94/ldb/pull/106#issuecomment-5561177716)을 반영한다. 실행 전담의 완료 evidence와 보고는 [`agent-runner.md`](agent-runner.md), 재검토 조건은 [`실행 효율 계약의 재검토`](agent-workflow.md#실행-효율-계약의-재검토)를 따른다.
-
-PASS는 기록된 check의 입력과 범위에만 유효하다. Parent 또는 통합 담당이 재사용 여부를 책임지며 다음을 모두 확인한다.
-
-1. 같은 command·options와 성공 기준이며, exit/result·대상 revision·실행 범위가 확인된다.
-2. 관련 source·test·config·dependency·lockfile·generated input·runtime/tool version·환경·외부 state가 동일하거나 유효성이 유지된다는 근거가 있다. Revision이 같다는 사실만으로 미commit 변경이나 외부 state의 안정성을 추정하지 않는다.
-3. 그 check가 요구된 gate를 실제 포함했고 실행 이후 관련 입력 변화가 없거나 무관함을 판단한 근거가 있다. 근거가 없으면 필요한 확인 또는 재검증으로 보완한다.
-
-Aggregate가 성공했고 포함된 command와 범위를 확인할 수 있으면 같은 입력의 개별 command를 중복 실행하지 않는다. 예를 들어 [`Native validation`](../../scripts/README.md#native-validation)의 Desktop build에 포함된 typecheck는 별도 반복을 생략한다. Aggregate가 실패했다면 전체 FAIL을 유지하고, 개별 성공이 명확한 check만 그 범위의 evidence로 기록한다. 후속 check가 실제 실행됐다고 추정하지 않는다.
-
-실패 후에는 판단 owner가 수정 원인·변경 입력과 영향을 받는 check를 정한다. 영향받은 check와 dependent check를 다시 실행하고, 독립된 기존 PASS는 위 근거가 있을 때 재사용한다. 원인을 확인하지 못한 실패를 선택적 재실행으로 숨기거나 acceptance criteria를 줄이지 않는다.
-
-이 재사용은 이 문서의 Required evidence·Test integrity·Red-Green과 [`change-control.md`](change-control.md#branch-worktree-and-parallel-work)의 통합 의무를 완화하지 않는다. Main rebase 또는 semantic conflict 해결 후 전체 validation을 다시 실행하고, 최종 integration exact head에서 필요한 전체 validation을 확인한다. Worker의 PASS만으로 이 gate를 대체하지 않는다. 최종 head에서 이미 성공한 전체 validation에 포함된 개별 command의 중복 실행을 생략하는 것은 가능하다.
+환경·권한 때문에 확인하지 못한 제품 조건은 미검증으로 남긴다. 독립적인 변경까지 막지 않으며, 필요한 검사가 남은 결과를 전체 성공으로 보고하지 않는다. 기존 실패와 작업 증거는 보존하고 이번 변경에서 도입한 실패와 구분한다. 완료 조건을 충족한 뒤 막연한 개선안을 새 필수 검증으로 추가하지 않는다.

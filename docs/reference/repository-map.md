@@ -109,18 +109,19 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 - `scripts/create-app.mjs`: 새 app workspace 생성 script
 - `pnpm create-app`: root에서 생성 script 실행
-- `scripts/start-task.mjs`: project·Issue 번호·description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
+- `scripts/start-task.mjs`: 선택적 Issue 기반 준비 도구. project·Issue 번호·description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
 - `pnpm start-task <project> <Issue 번호> <description> <새 worktree 경로>`: root에서 작업 준비; GitHub CLI 인증 필요
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
+- `scripts/workflow.mmd`: 기본 개발 흐름의 원본. `pnpm workflow`는 준비된 browser로 `.artifacts/workflow.png`를 생성하며 browser를 설치하지 않는다.
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
 
 ### AI PR review
 
 - Unprivileged signal workflow: `.github/workflows/ai-pr-review.yml`
-- Trusted policy/provider workflow: `.github/workflows/ai-pr-review-trusted.yml`
+- Trusted provider workflow: `.github/workflows/ai-pr-review-trusted.yml`
 - Review contract: `.github/ai-review/prompts/review.md`
-- Runtime와 policy check: `scripts/pr-review/src`
+- Provider 요청 runtime: `scripts/pr-review/src`
 - Test: `scripts/pr-review/test`
 - Command:
   - `pnpm test:pr-review`
@@ -128,7 +129,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 Signal workflow는 same-repository의 non-draft Pull Request에 `@ldb-review` label이 있을 때만 실행한다. `labeled`, `synchronize`, `ready_for_review`, `reopened` event를 처리하며 fork Pull Request는 제외한다. PR code를 checkout하지 않고 write permission과 Secret을 받지 않는다.
 
-Trusted workflow는 signal workflow가 완료된 뒤 `workflow_run`으로 실행된다. Default branch code만 checkout하고 source workflow result, linked Pull Request, label, draft, fork, current head SHA를 GitHub API로 다시 확인한다. Policy job과 provider trigger job을 분리하며 PAT는 provider trigger job에만 전달한다.
+Trusted workflow는 signal workflow가 완료된 뒤 `workflow_run`으로 실행된다. Default branch code만 checkout하고 source workflow result, linked Pull Request, label, draft, fork, current head SHA를 GitHub API로 다시 확인한다. 단일 trigger job이 요청 검증과 provider 댓글 게시를 수행하며 PAT는 해당 step에만 전달한다. Workflow token은 contents read 권한만 가진다.
 
 현재 provider adapter는 `codex`다. Provider-neutral label을 Codex GitHub integration의 `@codex review` comment로 변환하며, 동일한 head SHA에는 한 번만 요청한다. Trigger identity는 repository Secret `LDB_REVIEW_TRIGGER_TOKEN`을 사용한다. 이 값은 `ldb` repository만 선택한 expiring fine-grained PAT이며 `Pull requests: Read and write` 이외의 추가 repository permission을 부여하지 않는다.
 
@@ -138,7 +139,7 @@ Built-in Codex review는 `P0`와 `P1` finding만 발행하므로 `P2`와 `P3` su
 
 현재 결과 정규화 schema와 validator는 없습니다. Provider-neutral review 목표는 유지하며, 향후 직접 provider 응답을 소비하는 실행 계약이 정해지면 실제 입력과 소비자를 기준으로 결과 계약을 다시 설계합니다.
 
-Workflow가 자체적으로 확인하는 policy는 linked Issue, Red-before-Green evidence, approximate logic budget이다. PR scope에서 채택 대상으로 명시한 Rule 변경은 별도 approval comment 검사 없이 사용자의 merge로 승인·활성화한다. 결과는 하나의 advisory summary comment로 유지되며 merge를 차단하지 않는다.
+Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory summary 게시 경로는 없다. `@ldb-review`는 선택적 요청이며 PR마다 자동으로 붙이지 않는다. 라벨이 유지된 후속 head는 기존 signal event를 통해 요청한다. 요청 게시와 실제 리뷰 완료는 구분한다.
 
 ## Generated and dependency output
 

@@ -12,7 +12,7 @@ review-after: 검색 adapter 첫 validation 완료 또는 네오플 공식 규�
 
 # Character Search Contract
 
-이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. 요청·응답·오류·deadline과 code point 입력 정책, 단일 process memory quota 및 명시된 한계가 승인 범위다. 인증/session 통합 규격은 PR #48에서 승인됐으며 아래 Authentication activity contract가 canonical Rule을 연결한다. 검색 결과 저장·캐싱, OCR 보정, 인증·DB 구현과 전체 서비스 한도는 이 문서의 범위 밖이다. 구현은 해당 Execution Issue와 [`change-control.md`](change-control.md)를 따른다.
+이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. 요청·응답·오류·deadline과 code point 입력 정책, 단일 process memory quota 및 명시된 한계가 승인 범위다. 인증/session 통합 규격은 PR #48에서 승인됐으며 아래 Authentication activity contract가 canonical Rule을 연결한다. 검색 결과 저장·캐싱, OCR 보정, 인증·DB 구현과 전체 서비스 한도는 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [개발 흐름](agent-workflow.md)을 따른다.
 
 ## 요청과 성공 응답
 
@@ -145,4 +145,4 @@ Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 �
 | 예약 10개가 t=0, 요청 t=59,999ms | 429 / `SEARCH_RATE_LIMITED`, `Retry-After: 1` | 0 |
 | 같은 상태, 요청 t=60,000ms | 허용 후 upstream 결과, 이전 10개 만료 | 1 |
 
-상세 acceptance matrix와 실행 evidence는 해당 Execution Issue/PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), Red→Green 순서는 [`testing.md`](testing.md)를 따른다. 길이·raw decoding·deadline·quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.
+상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [Testing](testing.md)를 따른다. 길이·raw decoding·deadline·quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

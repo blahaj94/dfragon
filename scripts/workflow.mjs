@@ -51,10 +51,10 @@ header { border-bottom: 1px solid #d7e0ec; padding-bottom: 20px; margin-bottom: 
 svg { display: block; }
 footer { border-top: 1px solid #d7e0ec; padding-top: 16px; margin-top: 16px; font-size: 14px; }
 </style></head><body><main>
-<header><h1>작업을 고르고, 에이전트에게 맡기고, 완료하기</h1>
-<p>“이 Project의 [카드 이름]을 진행해. Issue로 나누고 구현과 검증을 마친 뒤 PR까지 만들어줘.”</p></header>
+<header><h1>요청에서 완결된 변경까지</h1>
+<p>요청 확인 → 구현 → 영향 범위 검증 → 결과/PR 전달 → 사용자 merge</p></header>
 ${svg}
-<footer>현재 실행 기준: docs/rules/task-planning.md | 원본: scripts/workflow.mmd</footer>
+<footer>현재 실행 기준: docs/rules/agent-workflow.md | 원본: scripts/workflow.mmd</footer>
 </main></body></html>`
   return html
 }
