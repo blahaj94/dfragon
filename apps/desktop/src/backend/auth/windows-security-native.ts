@@ -832,7 +832,8 @@ function renameInfo(destination: string): Buffer {
     throw new Error('Windows credential rename is unavailable on this architecture.')
   }
   const filename = Buffer.from(destination, 'utf16le')
-  const information = Buffer.alloc(20 + filename.byteLength)
+  // Win32 FileName is NUL-terminated; FileNameLength excludes that WCHAR.
+  const information = Buffer.alloc(20 + filename.byteLength + 2)
   information.writeUInt32LE(1, 0)
   information.writeBigUInt64LE(0n, 8)
   information.writeUInt32LE(filename.byteLength, 16)
