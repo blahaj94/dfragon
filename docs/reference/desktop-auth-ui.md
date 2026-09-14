@@ -23,7 +23,7 @@ last-reviewed: 2026-09-14
 
 인증 연결 조회에 실패하면 “연결 다시 확인”으로 기존 AuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
 
-기존 Google 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows capability `unknown`, 미확정 API/identity/return tuple과 Discord gate는 이 화면 변경으로 해제되지 않습니다.
+기존 Google 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한·암호화·파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, Google 경로의 사용을 Discord 지원 완료까지 막지 않습니다.
 
 ## 공용 표현
 

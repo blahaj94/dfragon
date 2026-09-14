@@ -57,13 +57,13 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 ### Desktop authentication contract routing
 
-다음은 Issue #55 설계에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 반영한다. Desktop 설계 선택은 승인됐으며 실제 지원 OS·등록값·native 검증 gate는 유지한다. 설계 승인은 제품 구현·실제 OAuth/OS 등록 또는 credential 저장소 변경의 착수 지시가 아니므로 후속 작업의 범위와 실행 조건을 별도로 확인한다.
+다음은 Issue #55 설계에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 반영한다. Desktop 설계 선택은 승인됐으며 실제 등록값과 실행 권한을 확인한다. 광범위한 OS·장애 검증을 배포 선행 조건으로 두지 않는 기준은 platform 계약을 따른다. 설계 승인은 제품 구현·실제 OAuth/OS 등록 또는 credential 저장소 변경의 착수 지시가 아니므로 후속 작업의 범위와 실행 조건을 별도로 확인한다.
 
 | 필요한 topic | Canonical Rule |
 | --- | --- |
 | Process 책임·기존 capture 연결·최소 IPC·화면 | [`rules/desktop-auth.md`](rules/desktop-auth.md) |
 | Pending/PKCE·브라우저→exchange·refresh·취소/실패·재시작 | [`rules/desktop-auth-lifecycle.md`](rules/desktop-auth-lifecycle.md) |
-| 실제 환경 근거·safeStorage/파일·protocol·미검증 matrix/등록 gate | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
+| 실제 환경 근거·safeStorage/파일·protocol·배포 후 검증·등록 조건 | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
 | 탈퇴 전용 main receipt·상태 조회·local auth 정리·재시작 연결 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
 
 탈퇴의 Desktop 확장은 PR #72에서 승인됐으며 기존 login pending·polling 없음과 구분한다. 구체적 IPC/화면·OS 구현과 실제 환경 검증은 별도 후속 범위다.

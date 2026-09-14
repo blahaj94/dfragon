@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: apps/desktop authentication profile path preparation
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-15
 ---
 
 # Desktop Auth Profile Paths
@@ -19,18 +19,18 @@ Path component는 root에서 leaf 방향으로 `lstat`한다. 기존 component�
 | Existing ancestor와 final direct parent | UID `0` 또는 현재 UID 소유, `group/other write` 없음 (`mode & 0o022 === 0`) | 권한을 보정하지 않음                    |
 | Missing component                       | 검증된 parent 아래에서 생성되고 `0700`으로 확인됨                           | 생성 후 directory와 parent entry를 sync |
 
-POSIX UID를 조회할 수 없는 환경에서는 mode bits로 owner·ACL을 추정하지 않는다. Windows에서는 mode bits로 Windows ACL 또는 reparse-point 안전성을 보장한다고 주장하지 않으며, 해당 native 검증은 별도 platform gate다. group/other write가 있는 directory는 sticky bit를 이유로 예외 허용하지 않는다.
+POSIX UID를 조회할 수 없는 환경에서는 mode bits로 owner·ACL을 추정하지 않는다. Windows에서는 mode bits로 Windows ACL 또는 reparse-point 안전성을 보장한다고 주장하지 않으며, 실행 시 native ACL/reparse 검사 결과로 판단한다. group/other write가 있는 directory는 sticky bit를 이유로 예외 허용하지 않는다.
 
 ### Windows profile path
 
-Windows에서는 `windows-profile-native.ts`가 user token의 current SID, opened-handle의 reparse/type, owner와 DACL을 확인한다. Final profile은 current SID에만 private access를 허용하고, ancestor는 다른 principal이 `DELETE`, `FILE_DELETE_CHILD`, `WRITE_DAC`, `WRITE_OWNER` 또는 generic write/all을 갖는 경우 거절한다. Missing component는 current SID를 명시한 private security descriptor와 handle inheritance disabled security attributes로 만든 뒤 다시 확인한다. Native ACL/reparse 검사나 namespace durability capability가 `unknown`이면 `setPath`, name, app identity setter를 호출하지 않는다.
+Windows에서는 `windows-profile-native.ts`가 user token의 current SID, opened-handle의 reparse/type, owner와 DACL을 확인한다. Final profile은 current SID에만 private access를 허용하고, ancestor는 현재 사용자와 platform 계약의 OS 관리 SID 이외 principal이 `DELETE`, `FILE_DELETE_CHILD`, `WRITE_DAC`, `WRITE_OWNER` 또는 generic write/all을 갖는 경우 거절한다. Missing component는 current SID를 명시한 private security descriptor와 handle inheritance disabled security attributes로 만든 뒤 다시 확인한다. Native 모듈·ACL/reparse 검사·directory sync가 실제로 실패하면 `setPath`, name, app identity setter를 호출하지 않는다. 고정 capability로 검사 자체를 막지는 않는다.
 
-Windows Koffi/Win32 실행은 이 Mac host의 테스트로 증명하지 않는다. 선택된 Windows OS/CPU에서 native module variant·PE architecture, profile ACL, reparse race와 directory/namespace durability를 별도 release evidence로 확인해야 하며, 현재 구현의 default capability gate는 그 전까지 fail closed다.
+Windows Koffi/Win32 실행은 Mac의 mock 테스트로 증명하지 않는다. 선택한 설치 앱에서의 기본 동작 확인과 실제 문제의 재현을 사용하며 전체 OS/CPU·전원 손실 시험을 배포 선행 조건으로 요구하지 않는다.
 
 검사 실패, 비 directory, symlink, canonical spelling 불일치, filesystem 오류와 Electron read-back 불일치는 fail closed다. Profile path가 안전하다고 확인되기 전에 `mkdir` 외의 profile 적용 side effect를 시작하지 않으며, `setPath`가 시작된 뒤의 name·identity·read-back 실패는 부분 적용 fatal error로 분류한다.
 
 ## 보장 범위
 
-이 검사는 관측 시점의 path entry와 POSIX owner/mode 조건을 보수적으로 제한하고 기존 native canonical·leaf `0700`·directory durability 검사를 유지한다. 확장 ACL, macOS inherited ACL, Windows ACL/reparse point, 다른 process가 검증 후 inode를 교체하는 경쟁, 모든 filesystem의 power-loss durability를 mode bits나 주입 filesystem test만으로 증명하지 않는다. 실제 OS와 packaged profile의 native 검증은 release gate다.
+이 검사는 관측 시점의 path entry와 POSIX owner/mode 조건을 보수적으로 제한하고 기존 native canonical·leaf `0700`·directory durability 검사를 유지한다. 확장 ACL, macOS inherited ACL, Windows ACL/reparse point, 다른 process가 검증 후 inode를 교체하는 경쟁, 모든 filesystem의 power-loss durability를 mode bits나 주입 filesystem test만으로 증명하지 않는다. 미검증 범위를 명시하고 배포 후 실제 문제에 맞춰 추가 검증한다.
 
 관련 보수적 POSIX 정책과 사용자 merge 후 적용 경계는 [Desktop Authentication Platform](../rules/desktop-auth-platform.md#posix-profile-ancestor-permissions)에서 관리한다.

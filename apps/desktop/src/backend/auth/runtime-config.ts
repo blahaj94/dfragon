@@ -280,12 +280,6 @@ function prepareWindowsUserDataDirectory(
   if (security == null) {
     throw new Error('Windows profile security is unavailable.')
   }
-  const hasProfileProtection = security.capabilities.profileProtection === 'confirmed'
-  const hasNamespaceMutation = security.capabilities.namespaceMutation === 'confirmed'
-  if (!hasProfileProtection || !hasNamespaceMutation) {
-    throw new Error('Windows profile security is unavailable.')
-  }
-
   const rootPath = pathSemantics.parse(path).root
   assertWindowsTrustedDirectory(security.inspectDirectory(rootPath, 'root'))
   const paths = directoryChain(path, pathSemantics)

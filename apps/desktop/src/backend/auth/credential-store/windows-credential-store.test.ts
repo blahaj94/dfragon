@@ -74,11 +74,6 @@ function createWindowsFixture(): WindowsFixture {
     })
   }
   const native: WindowsCredentialNative = {
-    capabilities: {
-      profileProtection: 'confirmed',
-      fileMutation: 'confirmed',
-      namespaceMutation: 'confirmed'
-    },
     inspect: vi.fn<WindowsCredentialNative['inspect']>(async (path, kind) => {
       const configured = inspections.get(path)
       if (configured != null) {
@@ -357,23 +352,13 @@ describe('Windows CredentialStore native boundary', () => {
 
   it.each([
     ['reparse', { status: 'reparse' }],
-    ['untrusted ACL', { status: 'untrusted' }]
+    ['untrusted ACL', { status: 'untrusted' }],
+    ['unavailable native API', { status: 'unavailable' }]
   ] as const)('fails closed for a %s profile path', async (_kind, inspection) => {
     const fixture = createWindowsFixture()
     fixture.setInspection(fixture.paths.userData, inspection)
 
     expect(await createStore(fixture).inspect()).toEqual({ status: 'unavailable' })
-    expect(fixture.safeStorage.isEncryptionAvailable).not.toHaveBeenCalled()
-  })
-
-  it('does not expose an unverified namespace durability capability as available', async () => {
-    const fixture = createWindowsFixture()
-    const native: WindowsCredentialNative = {
-      ...fixture.native,
-      capabilities: { ...fixture.native.capabilities, namespaceMutation: 'unknown' }
-    }
-
-    expect(await createStore(fixture, { native }).inspect()).toEqual({ status: 'unavailable' })
     expect(fixture.safeStorage.isEncryptionAvailable).not.toHaveBeenCalled()
   })
 

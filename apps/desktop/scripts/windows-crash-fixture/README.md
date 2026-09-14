@@ -1,8 +1,10 @@
 # Windows 합성 crash 실험 도구
 
-Issue #432의 생성, marker 확립, R0→R1 교체, clear와 재시작 복구를 기존 Windows credential store에 연결합니다. 합성 safeStorage만 사용하며 실제 credential, Electron safeStorage/DPAPI, HTTP 및 VM 전원 제어는 없습니다. 실험 adapter의 `confirmed`는 실행을 위한 주입값이며 제품 capability를 바꾸지 않습니다. 정상 대조 통과도 namespace 또는 전원 손실 내구성의 증명이 아닙니다.
+Issue #432의 생성, marker 확립, R0→R1 교체, clear와 재시작 복구를 기존 Windows credential store에 연결합니다. 합성 safeStorage만 사용하며 실제 credential, Electron safeStorage/DPAPI, HTTP 및 VM 전원 제어는 없습니다. 기존 native adapter에 관측을 연결하며 제품의 실행 시 권한·파일 검사는 유지합니다. 정상 대조 통과도 namespace 또는 전원 손실 내구성의 증명이 아닙니다.
 
 `createWindowsSecurityApiForTesting` → 반환 관측 API → `createWindowsSecurityNative` → 실험 adapter → `createWindowsCredentialStore`의 기존 `WindowsCredentialFiles` 경로를 사용합니다. 기존 `prepareCredentialTransition`, `finalizeCredentialTransition`, `clearCredential`을 재사용하며 실험 경계만 연결합니다.
+
+이 도구는 배포 후 재현된 저장 문제를 조사할 때 선택적으로 사용합니다. 로그인 개발·활성화·배포를 위해 지점별 장애 시험을 완료할 필요는 없습니다. 기존 실패와 수집 증거는 보존합니다.
 
 ## 실행
 
@@ -140,7 +142,7 @@ $inventory = foreach ($file in Get-ChildItem -LiteralPath $normalHostEvidence -F
 $inventory | Format-Table family, scenario, sequence, cutpoint, phase, path
 ```
 
-최초 실제 중단 batch 제안은 이 inventory의 `(family, cutpoint, phase)`별 첫 대표 지점마다 새 root/run을 한 번 실행하는 것입니다. Creation, marker establishment, R0→R1 replacement, clear deletion, marker removal의 다섯 분류가 모두 있어야 합니다. 실제 목록과 총 개수는 정상 inventory를 확인한 뒤 실행 승인 기록에 고정합니다. Root마다 별도 정상 준비를 처음부터 수행하고 첫 미도달, 제어/관측 실패 또는 finding에서 batch를 멈춥니다. 반복 횟수와 대표 경계가 전체 Win32 호출, 모든 경로 또는 전원 손실을 검증했다는 뜻은 아닙니다. 내부 FileDispositionInfo→CloseHandle 지점을 추가하지 않습니다.
+모든 분류의 대표 지점을 일괄 강제 종료하는 batch는 필수 절차가 아닙니다. 실제 문제를 조사할 때만 필요한 지점을 선택하고 실행 허용 범위에서 수행합니다. 기존 실행의 미도달·제어/관측 실패나 finding은 보존하며, 반복 성공을 물리 전원 손실 내구성으로 해석하지 않습니다.
 
 ```powershell
 $batch = @($inventory | Group-Object family, cutpoint, phase | ForEach-Object { $_.Group[0] })
