@@ -257,4 +257,3 @@ function Get-CrashEvidenceReport {
   }
   return [pscustomobject]@{Status=$status;HostHistoryVerified=$true;GuestNamespace=$observations;RecoveryEligibility='not-evaluated';NamespaceDurability='unverified';OriginalRunReclassified=$false}
 }
-
