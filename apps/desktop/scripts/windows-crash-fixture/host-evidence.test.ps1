@@ -65,6 +65,12 @@ function New-EvidenceFixture([string] $Variant) {
   }
   Write-SyntheticJson (Join-Path $hostDirectory 'held.json') $hold
   Write-SyntheticJson (Join-Path $hostDirectory 'failure.json') @{Status='FAILED';GuestExit='unknown'}
+  if ($Variant -ceq 'canonical') {
+    Write-SyntheticJson (Join-Path $hostDirectory 'hold-expired.json') @{status='expired-not-success'}
+  }
+  if ($Variant -ceq 'host-expiry-pending') {
+    Write-SyntheticJson (Join-Path $hostDirectory 'hold-expired.json.pending') @{status='expired-not-success'}
+  }
   if ($Variant -ceq 'pending-conflict') {
     Write-SyntheticJson (Join-Path $guest '000003.request.json.pending') @{sequence=3}
   }
@@ -128,7 +134,7 @@ foreach ($variant in $positive) {
   $after = @(Get-ChildItem -LiteralPath (Split-Path $fixture.HostEvidence) -Recurse -File | Get-FileHash | ForEach-Object Hash)
   Assert-Condition (($before -join ',') -ceq ($after -join ',')) 'Verifier changed collected files or original failure.'
 }
-$negative = @('host-gap', 'host-ack-missing', 'host-observation-conflict', 'owner-conflict', 'held-hash-conflict', 'canonical-conflict', 'pending-conflict', 'selected-ack', 'future-request', 'case-variant-future-request', 'host-release', 'manifest-conflict', 'snapshot-content-changed', 'snapshot-path-escape', 'unlisted-file', 'unreadable-file', 'reparse-directory')
+$negative = @('host-gap', 'host-ack-missing', 'host-observation-conflict', 'owner-conflict', 'held-hash-conflict', 'canonical-conflict', 'pending-conflict', 'selected-ack', 'future-request', 'case-variant-future-request', 'host-release', 'host-expiry-pending', 'manifest-conflict', 'snapshot-content-changed', 'snapshot-path-escape', 'unlisted-file', 'unreadable-file', 'reparse-directory')
 foreach ($variant in $negative) {
   $fixture = New-EvidenceFixture $variant
   $locked = $null
