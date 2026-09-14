@@ -235,7 +235,7 @@ function Get-CrashEvidenceReport {
       throw 'Original guest and host manifest identity conflict.'
     }
   }
-  $protocolPaths = @($hostRecords.Keys) + @($files.Keys | Where-Object {$_.StartsWith($guestPrefix, [StringComparison]::Ordinal) } | ForEach-Object {$_.Substring($guestPrefix.Length)})
+  $protocolPaths = @($hostRecords.Keys) + @($files.Keys | Where-Object {$_.StartsWith($guestPrefix, [StringComparison]::OrdinalIgnoreCase) } | ForEach-Object {$_.Substring($guestPrefix.Length)})
   foreach ($name in $protocolPaths) {
     $isNested = $name.Contains('\') -or $name.Contains('/')
     if ($isNested) {
