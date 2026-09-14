@@ -137,7 +137,7 @@ Clock 검사는 wall/monotonic 각각을 마지막으로 수용한 관측과 비
 
 `electron-builder.development.mjs`는 기본 packaging 설정을 재사용하며 `LDB Development`, `ldb-dev.exe`와 `ldb.dev` protocol을 선언한다. 현재 사용자용 NSIS 설치이며 설치 직후 자동 실행과 publish를 하지 않는다. Node options·inspect fuse 차단도 유지한다. 개발 ID는 로컬 패키지용이고 운영 identity·서명을 확정하지 않는다. 실제 설치·등록은 [로컬 개발용 등록 계약](../rules/desktop-auth-platform.md#로컬-개발용-등록값)의 실행 허용, 서버 active registry 일치와 현재 association 소유권 확인 뒤 수행한다. 충돌하거나 소유권이 불분명한 등록은 덮어쓰지 않는다. 설치 파일 생성만으로 이 조건을 확인했다고 보지 않는다.
 
-현재 Windows `profileProtection`·`namespaceMutation`은 `unknown`이므로 profile setter와 인증 초기화 전에 기존 `preparation-failed` fallback으로 간다. 개발 설정은 이 차단을 해제하지 않는다. 실제 저장소·DPAPI·복구, 설치 앱의 cold/warm 복귀, Google 인증 후 상태 반영과 보호 기능 사용은 별도 검증 대상이다. Compile한 main의 환경변수 없는 시작과 profile gate 검사는 합성 Electron 환경의 결과이며 실제 로그인 성공이 아니다.
+Windows profile과 credential은 고정 capability 차단 없이 실제 native 검사와 호출 결과로 판단한다. 권한·모듈·파일 작업 오류는 기존 `preparation-failed` 또는 `storageBlocked` 처리를 따른다. 설치 앱의 cold/warm 복귀, Google 인증 후 상태 반영과 보호 기능 사용은 실제 앱에서 확인한다. Compile한 main의 환경변수 없는 시작과 native 모듈 부재 처리는 합성 Electron 환경의 결과이며 실제 로그인 성공이 아니다.
 
 ## HTTP와 검증 범위
 

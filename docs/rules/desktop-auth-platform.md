@@ -42,8 +42,8 @@ Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간�
 
 | OS | 공식 보호 경계 | 인증 허용 조건·미확인 |
 | --- | --- | --- |
-| macOS | Keychain에 app encryption key 보관 | ready 뒤 encryption availability·실제 암복호화 성공 확인. Keychain lock/거절, 서명 identity·업데이트·다른 bundle 복원 검증 필요 |
-| Windows | DPAPI 기반. 다른 OS user에 대한 보호이며 같은 user의 다른 app 차단을 보장하지 않음 | availability·암복호화 실패 처리, user/profile 이동·업데이트 검증 필요. OS credential vault의 app 격리로 표현하지 않음 |
+| macOS | Keychain에 app encryption key 보관 | ready 뒤 encryption availability·실제 암복호화 성공 확인. Keychain lock/거절은 실패 처리. 서명·업데이트·다른 bundle 복원은 배포 후 재현 사례에 따라 검증 |
+| Windows | DPAPI 기반. 다른 OS user에 대한 보호이며 같은 user의 다른 app 차단을 보장하지 않음 | availability·암복호화 실패 처리. user/profile 이동·업데이트는 배포 후 재현 사례에 따라 검증. OS credential vault의 app 격리로 표현하지 않음 |
 | Linux | Backend는 환경에 따라 libsecret/KWallet 등 | availability=true이며 `gnome_libsecret`, `kwallet`, `kwallet5`, `kwallet6` 중 하나만 허용. `basic_text`, `unknown`, 예상 밖 backend는 storageBlocked |
 
 `setUsePlainTextEncryption(true)` 및 평문/renderer storage/access-only fallback은 금지한다. 안전한 backend가 없으면 로그인과 로그인 유지가 불가능하다는 명시적 선택이다. Capture·브라우저 권한 변경으로 저장 문제를 우회하지 않는다.
