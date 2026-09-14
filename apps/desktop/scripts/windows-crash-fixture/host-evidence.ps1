@@ -146,7 +146,7 @@ function Get-CrashEvidenceReport {
     }
     $hostRecords[[IO.Path]::GetFileName($file.Path)] = $file
   }
-  $releaseNames = @('released.json', 'release.request.json', 'released.json.pending', 'release.request.json.pending', 'held.json.pending')
+  $releaseNames = @('released.json', 'release.request.json', 'released.json.pending', 'release.request.json.pending', 'held.json.pending', 'hold-expired.json.pending')
   foreach ($name in $releaseNames) {
     if ($hostRecords.ContainsKey($name)) {
       throw 'Original hold has release evidence.'
