@@ -8,6 +8,37 @@ import { expect, it, vi } from 'vitest'
 
 const requireDependency = createRequire(import.meta.url)
 
+it.each([
+  ['src/backend/auth/http.ts', 'createAuthHttpClient'],
+  ['src/backend/search/http.ts', 'createSearchHttp']
+])('제품 main 설정으로 빌드한 %s는 실제 Ky export로 초기화된다', async (entry, factory) => {
+  const resolved = await resolveConfig(
+    { configFile: 'electron.vite.config.ts', logLevel: 'silent' },
+    'build',
+    'ldb-development'
+  )
+  const main = resolved.config!.main!
+  const output = await build({
+    ...main,
+    logLevel: 'silent',
+    build: { ...main.build, write: false, lib: { entry: resolve(entry), formats: ['cjs'] } }
+  })
+  const bundles = Array.isArray(output) ? output : [output]
+  expect(bundles).toHaveLength(1)
+  const bundle = bundles[0]
+  if (!('output' in bundle)) {
+    throw new Error('Expected completed HTTP client build')
+  }
+  const chunks = bundle.output.filter((item) => item.type === 'chunk')
+  expect(chunks).toHaveLength(1)
+  const environment = mainEnvironment()
+  runInContext(chunks[0].code, environment.context)
+  // Native profile failures previously let the full-main smoke skip this initialization.
+  expect(() =>
+    environment.context.exports[factory]({ apiOrigin: 'https://api.example.test' })
+  ).not.toThrow()
+})
+
 function mainEnvironment(): {
   context: ReturnType<typeof createContext>
   bootstrap: () => Promise<void> | undefined
@@ -74,6 +105,14 @@ function mainEnvironment(): {
         electronApp: { setAppUserModelId: vi.fn() },
         optimizer: { watchWindowShortcuts: vi.fn() },
         is: { dev: false }
+      }
+    }
+    if (name === 'koffi') {
+      return {
+        ...requireDependency(name),
+        load: (): never => {
+          throw new Error('Synthetic native module unavailable')
+        }
       }
     }
     // Ky와 다른 Node dependency는 mock하지 않고 설치된 package를 CJS로 읽는다.

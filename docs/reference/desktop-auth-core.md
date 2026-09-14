@@ -129,7 +129,7 @@ Clock 검사는 wall/monotonic 각각을 마지막으로 수용한 관측과 비
 
 ## Windows localhost 개발 패키지
 
-`pnpm --filter @ldb/desktop build:win:development`는 실제 Desktop main·preload·renderer와 Windows x64 NSIS 설치 파일을 빌드한다. 결과는 `apps/desktop/dist/development`에 있으며 fixture main이나 주입 저장소를 사용하지 않는다. `build:development`는 같은 설정의 앱 bundle만 만들고 OS protocol을 등록하지 않는다.
+`pnpm --filter @ldb/desktop build:win:development`는 실제 Desktop main·preload·renderer와 Windows x64 NSIS 설치 파일을 빌드한다. Main의 CommonJS bundle에는 ESM-only Ky를 포함한다. Ky를 외부 `require`로 남기면 default export 연결이 달라 HTTP client 초기화 시 앱이 종료될 수 있으므로, 제품 build 설정을 사용하는 bundle 테스트에서 인증·검색 client 생성을 확인한다. 결과는 `apps/desktop/dist/development`에 있으며 fixture main이나 주입 저장소를 사용하지 않는다. `build:development`는 같은 설정의 앱 bundle만 만들고 OS protocol을 등록하지 않는다.
 
 개발 tuple은 `apps/desktop/build/development-auth.json`에서 관리한다. API는 `https://localhost:3443`, provider는 Google, 앱 복귀는 `ldb.dev://auth/callback`, 환경은 `development`, 앱 ID는 `ldb.dev`다. Google Console callback은 API의 `https://localhost:3443/auth/callback/google`이며 앱 복귀 주소와 다르다. 서버의 Desktop return target도 패키지와 일치해야 한다. API 시작과 CA 신뢰는 [localhost HTTPS 안내](api-start-development.md#같은-컴퓨터에서-desktop과-api-연결)를 따른다.
 
