@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api authentication dependencies and database operations
-last-reviewed: 2026-09-10
+last-reviewed: 2026-09-15
 rationale: 인증의 runtime 호환성, Migration과 DB 실행 조건을 정의한다.
 evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691"
 exceptions: 문서 변경은 dependency 설치, lockfile 변경이나 DB 실행의 착수 허용이 아니다.
@@ -29,7 +29,7 @@ review-after: runtime 호환성 또는 DB 실행 조건 변경 시
 | 선택 상태 | **승인됨** |
 | 선택 승인 evidence | [PR #50 사용자 승인](https://github.com/blahaj94/ldb/pull/50#issuecomment-5552245712) (2026-09-05T13:48:26Z) |
 
-이 표가 선택 상태와 evidence의 단일 기준이다. 선택 상태가 merge 대기이면 아래 값은 proposal이며 active Rule이 아니다. 해당 선택과 상태 전환을 채택 범위로 명시한 PR의 사용자 merge부터 선택 gate만 해소된다. 표의 선택 상태와 승인 근거는 그 채택 내용을 반영하며, 별도 metadata 수정 revision을 기다리지 않는다. 절차 문구나 link만 수정하면 선택 상태를 바꾸지 않는다. 선택 승인은 image pull·DB 실행·구현 authority나 실제 compatibility·운영 검증 완료를 뜻하지 않으며 기존 승인 metadata와 아래 Migration 계약은 그대로 유지한다.
+이 표와 다음 digest·version은 최초 선택의 승인 이력이다. 현재 실행 값은 검증 도구에서 확인하고 변경은 아래 이미지 갱신 기준을 따른다. 선택 이력 자체를 실제 호환성·운영 검증 성공으로 표시하지 않는다.
 
 ### 선택과 근거
 
@@ -46,14 +46,14 @@ PostgreSQL 19는 확인 시점 Beta 3이므로 선택하지 않는다. PostgreSQ
 
 PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VOLUME`은 `/var/lib/postgresql`이다. Disposable named volume은 parent 경로 `/var/lib/postgresql`에 mount하고 `PGDATA`를 위 version-specific 경로로 명시한다. 이 경계는 local test data를 run마다 버리기 위한 것이며 운영 volume topology, backup, restore, major upgrade 정책을 정하지 않는다. [Official Image 문서](https://hub.docker.com/_/postgres)는 Docker용 환경변수와 `/docker-entrypoint-initdb.d`가 empty data directory에서만 작동하고 init script용 임시 daemon은 Unix socket만 listen한다고 설명한다.
 
-### Docker-only disposable integration contract
+### 로컬 DB 격리와 재사용
 
-1. PostgreSQL server는 Docker container에서만 실행한다. Run마다 충돌하지 않는 container와 Docker-managed named volume, 필요하면 network를 새로 만들고 재사용하지 않는다. Host bind는 `127.0.0.1`의 동적 port만 허용한다. Test credential은 run 중 생성해 repository나 log에 남기지 않는다.
-2. 위 tag+index digest와 native target platform을 함께 지정하고 named volume을 `/var/lib/postgresql`에 mount한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 4개 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
-3. Readiness는 Migration이 쓸 것과 같은 host TCP 경로·database·user·password로 인증하고 bounded retry 안에서 `SELECT 1`이 성공해야 충족된다. Container running/health 상태나 `pg_isready`만으로 migration-ready를 주장하지 않는다. 이어서 server가 18.6이고 실제 child manifest digest가 선택 platform의 고정값인지 evidence에 남긴다.
-4. 정상 종료, 관측 가능한 실패·timeout, 처리 가능한 `SIGINT`·`SIGTERM`에서는 `finally` 성격의 teardown을 수행한다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존·운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 OAuth row cleanup·보관 정책을 실행하거나 바꾸는 것이 아니다.
+1. 로컬 PostgreSQL은 Docker의 비운영 전용 환경에서 실행한다. 개발 중에는 소유자와 사용 중인 작업이 명확한 container·volume을 재사용할 수 있다. 각 검증의 DB/schema·fixture를 격리하거나 초기화해 순서 의존과 이전 결과의 오염을 막는다. Fresh Migration·rollback·teardown 자체의 검증은 새 disposable DB에서 수행한다. Host bind는 `127.0.0.1`로 제한하고 병렬 실행은 port와 DB를 분리한다. Test credential은 비운영 값만 쓰며 repository나 log에 남기지 않는다.
+2. 현재 검증 도구에 고정된 image digest와 선택 platform을 사용하고 해당 image의 `PGDATA`/volume 경로를 따른다. 위 값은 최초 승인 조합의 이력이며 업데이트의 현재 값은 검증 도구와 변경 PR에서 관리한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 4개 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
+3. Readiness는 Migration이 쓸 것과 같은 host TCP 경로·database·user·password로 인증하고 bounded retry 안에서 `SELECT 1`이 성공해야 충족된다. Container running/health 상태나 `pg_isready`만으로 migration-ready를 주장하지 않는다. 환경을 생성·갱신할 때 실제 server version과 선택 image/platform을 확인하고 기록한다. 같은 환경에서 테스트만 다시 실행할 때 이 조사를 반복하지 않는다.
+4. 일회성 환경은 정상 종료, 관측 가능한 실패·timeout, 처리 가능한 `SIGINT`·`SIGTERM`에서 `finally` 성격의 teardown을 수행한다. 재사용 환경은 작업이 만든 fixture·연결을 정리하고 소유자가 종료할 때 container·volume을 회수한다. 기존 disposable 검증 도구를 수정 없이 재사용 모드로 실행할 수 있다고 가정하지 않는다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존·운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 OAuth row cleanup·보관 정책을 실행하거나 바꾸는 것이 아니다.
 
-후속 담당자는 target platform마다 다음 결과를 실제 실행 evidence와 구분해 기록한다. 한 native platform만 실행했다면 다른 platform은 미검증으로 남긴다.
+아래 사례는 schema/Migration과 관련 경계가 바뀔 때 해당 범위를 선택한다. 최초 도입이나 major·저장 형식 변경은 범위를 넓히고, 일반 기능 수정마다 전체 목록을 반복하지 않는다. 실제 개발·배포에 선택한 platform을 검증하며 다른 platform의 미실행만으로 독립 작업을 막지 않는다.
 
 | 검증 | 실행과 통과 기준 |
 | --- | --- |
@@ -64,11 +64,11 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 | 자동 schema 변경 없음 | `synchronize:false`, `migrationsRun:false`로 app을 시작·종료한 전후 catalog가 동일해야 한다. App 시작이 fresh DB에 auth table이나 Migration history를 만들지 않고 migrated DB도 바꾸지 않는다. |
 | Disposable rollback | 별도의 빈 disposable test DB에 Migration up을 먼저 명시 적용해 auth schema와 applied history를 확인한 뒤 down을 실행한다. Auth domain table 제거와 Migration history의 일관성을 확인하며 빈 DB에서 즉시 down한 no-op를 성공으로 세거나 운영 destructive down의 근거로 사용하지 않는다. |
 
-`auth-database.md`의 transaction manager, user→session→refresh 및 OAuth 선행 잠금 순서, lock 뒤 fresh time 재확인, cleanup/terminal null·삭제 의미는 그대로다. 위 matrix가 그 runtime 경합을 이미 검증했다고 표시하지 않으며 관련 flow 구현 때 별도 Docker integration evidence가 필요하다.
+`auth-database.md`의 transaction manager, user→session→refresh 및 OAuth 선행 잠금 순서, lock 뒤 fresh time 재확인, cleanup/terminal null·삭제 의미는 그대로다. 위 schema 검증을 runtime 경합 성공으로 표시하지 않는다. 관련 flow가 바뀔 때 필요한 DB integration을 선택하고 유효한 기존 결과는 재사용한다.
 
-### 갱신 gate
+### 이미지 갱신
 
-PostgreSQL current minor/security release와 major 지원 상태, base OS의 full/LTS 지원 상태, official tag의 index 또는 target child digest, base variant, target platform, `PGDATA`/`VOLUME` 의미가 바뀌거나 실제 ESM/DB matrix가 실패하면 선택을 재검토한다. Tag/digest/version 교체는 새 dated metadata와 전체 matrix 계획을 포함한 Rule proposal로 다시 승인받는다. 고정 digest가 재현하는 오래된 bytes를 보안 update 대신 계속 사용하지 않는다.
+같은 major의 호환 patch·security update와 tag/digest 갱신은 일반 dependency 변경으로 처리한다. 바뀐 image/version·관련 release 정보와 선택 platform의 연결·Migration 호환성을 변경 PR에서 확인하며, 매번 Rule proposal이나 전체 matrix 계획을 만들지 않는다. Major·저장 경로·운영 데이터 호환성·복구 방식이 바뀌는 경우에는 영향과 필요한 Migration 검증을 함께 다룬다. 고정 digest를 보안 업데이트를 미루는 이유로 사용하지 않는다.
 
 ## 승인된 Migration 계약
 
@@ -78,7 +78,7 @@ PostgreSQL current minor/security release와 major 지원 상태, base OS의 ful
 - 배포 담당의 단일 명시 실행으로 transaction 적용하며 동시 자동 실행을 금지한다. 운영 destructive down을 자동 실행하지 않는다. Rollback 검증은 빈 disposable test DB에 한정한다.
 - 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential·key/provider 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
 
-Migration의 문서 근거는 #39가 읽은 [TypeORM Migration setup](https://typeorm.io/docs/migrations/setup/)이며 선택 version의 실제 CLI·ESM 검증이 남아 있다. 이번 사용자 지시에 따라 Migration file/command/package script를 추가하거나 실행하지 않는다. 위 proposal이 승인되더라도 별도 구현 착수 지시를 뜻하지 않는다.
+기존 Migration 명령과 구현은 `apps/api/package.json`과 `apps/api/src/database/`에서 확인한다. 현재 요청에 포함된 구현과 비운영 검증은 [개발 흐름](agent-workflow.md)에 따라 진행한다. 과거 설계 작업의 설치·실행 제외를 새 요청의 금지로 재사용하지 않으며, 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
 
 ## 기본 API의 배포 설정 입력 — 승인됨
 
@@ -91,7 +91,7 @@ exceptions: 실제 credential·등록값·secret 저장소 제품·배포 topolo
 review-after: 기본 entry의 설정 실패·전체 HTTP 흐름·자원 정리 검증 완료 또는 첫 설정 교체 검토 시
 ```
 
-이 절은 [PR #128의 사용자 승인](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)을 반영한 active 계약이다. 실제 구현·검증 완료와 구분하며, 실행 범위는 [Issue #125](https://github.com/blahaj94/ldb/issues/125)와 [`change-control.md`](change-control.md)를 따른다. 승인된 선택은 배포가 준비한 **단일 secret JSON 파일**을 시작 때 한 번 읽는 방식이다. 이미 승인된 factory의 설정 전달 경계를 연결하며 새 dependency·API·DB schema를 추가하지 않는다.
+이 절은 [PR #128의 사용자 승인](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)을 반영한 active 계약이다. [Issue #125](https://github.com/blahaj94/ldb/issues/125)는 최초 연결의 이력이며, 현재 실행 범위는 사용자 요청과 [개발 흐름](agent-workflow.md)을 따른다. 승인된 선택은 배포가 준비한 **단일 secret JSON 파일**을 시작 때 한 번 읽는 방식이다. 이미 승인된 factory의 설정 전달 경계를 연결하며 새 dependency·API·DB schema를 추가하지 않는다.
 
 ### 환경변수와 파일 경계
 
@@ -152,11 +152,11 @@ HTTP 합성은 기존 login/session/account/search factory를 사용한다. [`au
 
 API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body/deadline 정책은 승인됐다. PostgreSQL server·image·local validation 선택의 상태와 evidence는 위 canonical 구간만 따른다. 선택 승인 여부와 별개로 다음 미정이 필요한 구현은 별도 결정/검증을 완료해야 한다.
 
-- 운영 deployment topology와 single process 조건, clock 동기화·역행 감지, 실제 cleanup 시각·key 운영 절차
+- 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 장비·역할과 복원 선택은 [인증 운영 구성](../architecture/auth-operations-proposal.md)을 따름
 - 실제 선택한 dependency 조합의 compiled ESM/TypeScript/runtime compatibility
 - 실제 client/HTTPS callback/protocol 등록값·provider config snapshot, Electron OS 저장/IPC의 실제 구현·browser/OS 검증. Desktop 설계와 남은 platform gate는 승인된 [Desktop contract](desktop-auth.md)를 따름
 - Discord 일반 confidential OAuth PKCE의 공식 적용 근거와 후속 wrong/missing verifier·downgrade 거절 E2E
 - 공개 ingress/pending-request·인증 전 abuse·서비스 전체 limiter 수치와 기존 quota와의 통합 순서
 - [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 실제 provider/control store 내구성·writer fencing·사본 inventory/폐기·clock·incident 대응과 복원 E2E. D1–D5 정책 선택은 승인됐으며 실제 환경·구현/통합 검증은 미완료
 
-탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·provider 호출·백업/복원 실행의 자동 착수 지시가 아니다. 사용자가 Rule 승인과 함께 구현 금지를 명시했으므로 [개발 흐름](agent-workflow.md)의 일반 절차를 자동 착수 지시로 해석하지 않는다. 후속 구현은 별도 착수 지시·작업 범위와 승인 근거를 확인해 [Testing](testing.md)에 따른 관련 검증을 수행한다.
+탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·provider 호출·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.

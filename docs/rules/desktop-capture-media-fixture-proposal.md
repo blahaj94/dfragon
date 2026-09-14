@@ -56,7 +56,7 @@ Custom request/check handler가 없으면 media 요청과 검사가 기본 허�
 | capture 중 인증 이탈·늦은 OCR·재로그인 | Track 종료, worker/loop·인식값·main source 정리, 늦은 IPC 0, 재로그인 후 자동 capture 0. 새 source 선택·Start 뒤에만 재시작 |
 | Sandbox·asset·노출·종료 | 실제 preload/worker/WASM/asset 호환성, 외부 접근 차단과 synthetic canary 비노출, process/profile 정리를 확인 |
 
-Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관측 누락은 **FAIL**로 남긴다. Synthetic canvas를 실제 OCR worker에 넣은 단독 성공이나 test double/auth-only fixture 성공으로 실제 stream/OCR 연결을 대체하지 않는다. 성공시키려고 기존 AC를 바꾸거나 skip하지 않는다. 최종 통합 head의 Desktop 전체 validation과 독립 review는 [Issue #126](https://github.com/blahaj94/ldb/issues/126) 및 [검증 Rule](testing.md)을 따른다.
+Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관측 누락은 **FAIL**로 남긴다. Synthetic canvas를 실제 OCR worker에 넣은 단독 성공이나 test double/auth-only fixture 성공으로 실제 stream/OCR 연결을 대체하지 않는다. 성공시키려고 기존 AC를 바꾸거나 skip하지 않는다. [Issue #126](https://github.com/blahaj94/ldb/issues/126)의 당시 검증은 이력으로 보존한다. 후속 변경은 [Testing](testing.md)의 영향 범위 검증과 [개발 흐름](agent-workflow.md#리뷰와-전달)의 위험에 맞는 검토를 적용하며, 매번 Desktop 전체 validation과 독립 review를 요구하지 않는다.
 
 ## 실질적인 대안과 남는 gate
 

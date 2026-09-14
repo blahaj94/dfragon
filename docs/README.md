@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: repository
-last-reviewed: 2026-09-14
+last-reviewed: 2026-09-15
 ---
 
 # LDB Document Guide
@@ -39,7 +39,7 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 ### Authentication contract routing
 
-이 Rule은 #39 최종 설계에 대한 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한다. 승인된 contract는 현재 구현·검증 성공과 구분한다. 사용자가 미결정 gate 유지와 구현 금지를 명시했으므로 별도 착수 지시 전에는 구현·설치·DB 실행을 진행하지 않는다.
+이 Rule은 #39 최종 설계에 대한 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한다. 승인된 contract는 현재 구현·검증 성공과 구분한다. 현재 요청에 포함된 구현·비운영 검증은 진행하며, 과거 설계 작업의 실행 제외를 상시 금지로 적용하지 않는다. 현재 유효한 명시적 금지와 실제 운영·credential 실행 권한은 유지한다.
 
 | 필요한 topic | Canonical Rule |
 | --- | --- |
@@ -53,7 +53,7 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 탈퇴 D1–D5는 [PR #72 사용자 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)으로 확정됐다. Canonical file의 기존 path는 유지하며 active Rule로 관리한다. 정책 승인과 lifecycle/schema/API의 실제 구현·운영/복원 검증은 별개이고, 기존 login/refresh·초기 4-table 검증 AC를 소급 변경하지 않는다.
 
-배치·저장·backup·복원 환경을 검토할 때는 [인증 운영 구성](architecture/auth-operations-proposal.md)과 [복원·검증 기준](architecture/auth-operations-validation-proposal.md)을 읽는다. [PR #132 사용자 승인](https://github.com/blahaj94/ldb/pull/132#issuecomment-5572391826)을 반영한 active Rule이며 기존 path를 유지한다. D1–D5는 그대로이고 구체 환경 확보·구현·실제 운영 검증은 별도다.
+배치·저장·backup·복원 환경을 검토할 때는 [인증 운영 구성](architecture/auth-operations-proposal.md)과 [복원·검증 기준](architecture/auth-operations-validation-proposal.md)을 읽는다. [PR #132의 이전 승인](https://github.com/blahaj94/ldb/pull/132#issuecomment-5572391826)은 이력으로 보존한다. 현재 운영 기준은 한 운영자·단일 서버를 허용하고 공개 복원을 선택 기능으로 분리한다. D1–D5의 삭제·보관과 공개 복원 조건은 유지하며 구체 환경 확보·실행 성공을 문서 승인으로 대신하지 않는다.
 
 ### Desktop authentication contract routing
 
