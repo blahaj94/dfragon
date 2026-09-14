@@ -228,6 +228,36 @@ function createEnumerationFixture(batches: Buffer[], terminalError = 18): Enumer
   }
 }
 
+describe('Windows file rename', () => {
+  it.each(['credential.v1', 'transition.v1', '한글-😀.v1'])(
+    'terminates the UTF-16 destination for %s without counting the terminator as filename bytes',
+    (name) => {
+      const fixture = createSecurityFixture()
+      const destination = 'C:\\LdbProfile\\' + name
+      const filename = Buffer.from(destination, 'utf16le')
+      const setFileInformationByHandle = vi.fn<WindowsSecurityApi['setFileInformationByHandle']>(
+        (_handle, informationClass, information, size) => {
+          expect(informationClass).toBe(3)
+          expect(information.readUInt32LE(0)).toBe(1)
+          expect(information.readBigUInt64LE(8)).toBe(0n)
+          expect(information.readUInt32LE(16)).toBe(filename.byteLength)
+          expect(information.subarray(20, 20 + filename.byteLength)).toEqual(filename)
+          expect(size).toBe(information.byteLength)
+          expect(information.subarray(20 + filename.byteLength)).toEqual(Buffer.alloc(2))
+          return true
+        }
+      )
+      const native = createWindowsSecurityNative({
+        api: { ...fixture.api, setFileInformationByHandle }
+      })
+
+      native.renameFile(103n, destination)
+
+      expect(setFileInformationByHandle).toHaveBeenCalledOnce()
+    }
+  )
+})
+
 describe('Windows directory enumeration', () => {
   it('reads all batches on the checked directory handle and skips only dot entries', () => {
     const fixture = createEnumerationFixture([

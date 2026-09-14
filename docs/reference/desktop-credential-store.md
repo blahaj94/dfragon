@@ -26,6 +26,8 @@ Windows 파일 교체에서 write 또는 첫 file flush 실패는 rename을 시�
 
 Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. 실제 Win32 호출, DPAPI와 namespace 내구성 검증은 별도 gate로 남습니다.
 
+파일 이름 교체의 `FILE_RENAME_INFO`는 UTF-16 경로 뒤에 NUL WCHAR를 포함해 할당하고, `FileNameLength`에는 종료 문자를 제외한 경로 byte 수를 기록합니다. `SetFileInformationByHandle`에는 종료 문자까지 포함한 전체 buffer 크기를 전달합니다. [Microsoft의 구조체 설명](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info)은 길이 필드와 별도로 `FileName`을 NUL-terminated 문자열로 정의합니다. 종료 공간이 없던 구현의 실제 Windows 정상 대조에서 `transition.v1` 뒤에 예상하지 못한 문자가 붙었고 다음 credential commit이 실패했습니다. ASCII·한글·비BMP 경로의 byte 길이와 종료 공간을 회귀 검사하며, 기존 실패 자료와 namespace 내구성 미검증은 유지합니다.
+
 상위 폴더 검사는 현재 SID와 OS 관리 SID를 구분합니다. `windows-security-native.ts`는 [`IsWellKnownSid`](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-iswellknownsid)로 LocalSystem·기본 Administrators를 추가 허용하고, Windows Modules Installer의 TrustedInstaller는 검증한 고정 service SID 전체가 일치할 때만 허용합니다. 계정 이름이나 임의 service SID를 신뢰하지 않습니다. [`INHERIT_ONLY_ACE`](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-ace_header)는 실제 자식에서 effective가 됐을 때 다시 검사합니다. 최종 private profile·credential의 current-user-only DACL은 유지합니다. Root 역할은 [`GetFinalPathNameByHandleW`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)의 normalized volume GUID 경로로 같은 handle이 실제 volume root인지 확인한 뒤 `DELETE`와 `FILE_DELETE_CHILD`를 구분합니다. 문자열상의 드라이브 root나 조회 실패에는 이 예외를 적용하지 않습니다.
 
 ## Windows synthetic native fixture
