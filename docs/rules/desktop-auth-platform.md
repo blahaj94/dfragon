@@ -173,4 +173,4 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 | OS 실행 evidence | secret backend/권한/prompt·durability·protocol association·업데이트/복구 | 모든 native 인증 동작 미검증. 실패 platform을 성공 matrix에 포함하지 않음 |
 | 서버 선행 | login request/exchange/provider/refresh/logout/`GET /me` 구현·연동, Discord PKCE gate | PR #53은 DB 기반 완료이며 endpoint 전체 구현 완료로 해석하지 않음. #54와 후속 task의 결과 필요 |
 
-설계 승인과 실제 등록값 결정은 구분한다. 등록값이 없어도 mock 기반 후속 task를 구체화할 수 있지만 실제 browser/packaged release gate는 해소되지 않는다. 후속 task 배정과 부모 전체 상태 관리는 총괄에게 맡기며 향후 PR도 사용자가 squash merge한다.
+설계 승인과 실제 등록값 결정은 구분한다. 등록값이 없어도 mock 기반 후속 task를 구체화할 수 있지만 실제 browser/packaged release gate는 해소되지 않는다. 후속 작업의 협업과 인계는 [개발 흐름](agent-workflow.md#브랜치와-협업)을 따르며 향후 PR도 사용자가 squash merge한다.

@@ -10,7 +10,7 @@
     "workflow": "node scripts/workflow.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:pr-review": "node --test scripts/pr-review/test/*.test.mjs",
-    "typecheck:pr-review": "find scripts/pr-review -name '*.mjs' -type f -exec node --check {} +",
+    "typecheck:pr-review": "find scripts/pr-review -name '*.mjs' -type f -exec sh -c 'for file do node --check \"$file\" || exit; done' sh {} +",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",

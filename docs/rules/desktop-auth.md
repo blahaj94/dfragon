@@ -127,7 +127,7 @@ review-after: 초기 restore·paused retry의 저장 지연·clock 회귀와 화
 - [저장 확정 뒤 복원 종료 제안](desktop-auth-lifecycle.md#저장-확정-뒤-복원-종료-제안)의 시간 문제로 복원을 마치지 못하면 `restorePaused/RESTORE_RETRY_REQUIRED`로 안내한다.
 - 고정 문구는 “로그인 상태 확인을 마치지 못했습니다. 다시 시도해 주세요.”다. Network·서버·저장 장애나 인증 상실을 뜻하지 않는다. `user`와 `entry`는 null이고 보호 화면·capture는 열지 않는다.
 - 처리 종료 뒤 “다시 시도”(`retryAuth`)와 현재 기기 logout을 제공한다. 진행 중에는 복원 중 표시와 중복 실행 차단을 유지하고, 다시 pause로 끝나면 다음 수동 재시도를 제공한다. 저장된 credential만으로 로그인 성공을 표시하지 않는다.
-- 기존 `retryAuth`의 인자 0개·`AuthCommandResult`·snapshot/event 순서와 `ok:true`의 명령 처리 의미를 유지한다. 새 IPC, snapshot field, browser login 또는 자동 재시도를 추가하지 않는다. 이 절과 연결된 lifecycle 절은 PR #139의 substantive contract 채택·merge로 active가 됐으며, 제품 구현은 별도 실행 Issue에서 수행한다.
+- 기존 `retryAuth`의 인자 0개·`AuthCommandResult`·snapshot/event 순서와 `ok:true`의 명령 처리 의미를 유지한다. 새 IPC, snapshot field, browser login 또는 자동 재시도를 추가하지 않는다. 이 절과 연결된 lifecycle 절은 PR #139의 substantive contract 채택·merge로 active가 됐으며, 제품 구현은 사용자가 허용한 후속 작업 범위에서 수행한다.
 
 ## 승인된 선택과 서버 별도 결정
 

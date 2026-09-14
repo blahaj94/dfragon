@@ -31,7 +31,7 @@ last-reviewed: 2026-09-14
 
 Rule은 동작과 제약을 정의하고, Reference는 현재 code·config·command를 설명한다. `AGENTS.md`, `convention.md`, `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 이동 안내처럼 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue·PR에서 관리한다.
 
-Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경의 채택 범위·status를 PR에 명시하고 사용자 merge 후 적용한다. Proposed 제품 계약의 링크·절차 정리만으로 그 내용을 채택하지 않는다.
+Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경은 채택 범위·status를 PR에 명시해 구현·검증하고, 다른 작업에는 사용자 merge 후 적용한다. Proposed 제품 계약의 링크·절차 정리만으로 그 내용을 채택하지 않는다.
 
 같은 원문을 여러 문서에 복제하지 않는다. 지침은 짧은 진입점과 필요한 주제별 계약으로 유지하고, 문서·줄 수 할당량이나 과거 운영 문서의 필수 읽기를 만들지 않는다. 비밀정보와 개인 경로·내부 대화·실행 ID·raw log를 남기지 않는다.
 
