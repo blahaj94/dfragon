@@ -46,7 +46,9 @@ $env:LOCAL_HTTPS_KEY_FILE = 'C:\path\outside-repository\localhost-key.pem'
 
 `AUTH_CONFIG_FILE`의 `registry.apiOrigin`과 Desktop의 `LDB_AUTH_API_ORIGIN`은 같은 canonical origin이어야 한다. 위 port이면 `https://localhost:3443`, Google 등록과 snapshot의 callback은 `https://localhost:3443/auth/callback/google`이다. `https://127.0.0.1:3443`도 허용하지만 origin과 callback을 섞지 않는다. 실제 provider 등록값을 이 예제에 맞춰 임의로 바꾸지 않는다.
 
-브라우저의 인증서 신뢰와 Desktop main의 Node HTTP client 신뢰는 별도로 확인한다. Node 기반 실행에서 개발 CA가 신뢰되지 않으면 **실행 전에** `NODE_EXTRA_CA_CERTS`에 해당 CA의 public certificate인 `rootCA.pem` 절대 경로를 지정한다. Private key 파일을 지정하거나 TLS 검증을 끄지 않는다. 설치형 Electron 앱에서의 실제 신뢰와 OS protocol 복귀는 별도 실행 검증 대상이다.
+Desktop의 로그인·인증 검색은 Electron의 Chromium network stack을 사용한다. 실행 OS에서 개발 CA를 신뢰하도록 설치한 뒤 실제 앱의 HTTPS 연결을 확인한다. API 전용 메모리 session은 renderer의 cookie/cache와 분리되며 인증서 오류를 무시하는 handler는 추가하지 않는다.
+
+별도 Node 기반 검증 client에서 개발 CA가 신뢰되지 않으면 **실행 전에** `NODE_EXTRA_CA_CERTS`에 해당 CA의 public certificate인 `rootCA.pem` 절대 경로를 지정한다. Private key 파일을 지정하거나 TLS 검증을 끄지 않는다. 제품 package는 Node options fuse를 끄므로 이 환경변수를 Desktop 인증서 설정으로 사용하지 않는다. [Electron 39.8.10 환경변수 문서](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/api/environment-variables.md)의 제한을 따른다. 설치형 앱의 실제 신뢰, Google 인증, OS protocol 복귀와 저장소 검증은 각각 별도 확인 대상이다.
 
 TLS 파일 누락·잘못된 PEM·key 불일치와 local origin/port 불일치는 DB 초기화 전에 고정 실패 메시지로 끝난다. Certificate의 유효기간·hostname·신뢰 체인은 실제 client의 TLS 검증으로 확인한다. API의 설정 검증이나 `/`의 404 응답만으로 Google 로그인과 Desktop 복귀 성공을 판단하지 않는다.
 

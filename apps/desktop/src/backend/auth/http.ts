@@ -1,5 +1,6 @@
 import ky from 'ky'
 import type { Options } from 'ky'
+import { fetchApi } from '../api-fetch'
 import {
   AuthHttpFailure,
   parseExchange,
@@ -23,7 +24,7 @@ type AuthHttpClientConfiguration = Readonly<{
 
 export function createAuthHttpClient(configuration: AuthHttpClientConfiguration): AuthHttp {
   const apiOrigin = validateApiOrigin(configuration.apiOrigin)
-  const fetchAuth = configuration.fetch ?? globalThis.fetch
+  const fetchAuth = configuration.fetch ?? fetchApi
   const canFetch = typeof fetchAuth === 'function'
   if (!canFetch) {
     throw new AuthHttpFailure('invalid-response')

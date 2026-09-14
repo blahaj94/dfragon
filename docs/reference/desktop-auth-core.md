@@ -129,6 +129,8 @@ Clock 검사는 wall/monotonic 각각을 마지막으로 수용한 관측과 비
 
 ## HTTP와 검증 범위
 
+Desktop 로그인과 인증 검색의 기본 transport는 `apps/desktop/src/backend/api-fetch.ts`의 Electron `session.fetch`다. Ready 이후 실제 요청 시 API 전용 비영속 partition을 사용해 renderer cookie/cache와 분리하고, Chromium이 OS의 인증서·proxy 설정을 적용한다. Custom protocol handler는 우회하며 인증서 검증을 끄지 않는다. 테스트의 명시적인 fetch 주입은 유지한다.
+
 `createAuthHttpClient`는 주입된 exact HTTPS origin에서 `/auth/login-requests`, `/auth/exchange`, `/auth/refresh`, `/auth/logout`, `/me`만 호출한다. Ky instance가 JSON 직렬화·header 병합·Request 생성과 주입된 fetch 호출을 맡는다. Request는 redirect error, no-store, credential omit와 `retry:0`을 사용한다. Ky의 `throwHttpErrors:false`로 원문 error body 자동 읽기를 끄고 모든 응답을 같은 앱 parser에 전달한다. 이미 취소된 signal은 fetch 전에 거절하며 Ky·transport 오류는 고정 `AuthHttpFailure`로 치환한다.
 
 `await ky(...)` 뒤 직접 stream을 읽는 경로에서는 Ky의 shortcut body timeout이 적용되지 않는다. 따라서 Ky의 `timeout`·`totalTimeout`을 끄고 기존 outer deadline이 response header부터 body 완료까지 단일 15초를 소유한다. Strict UTF-8와 누적 16,384-byte 제한은 library의 기본 JSON 읽기로 대체하지 않는다.
