@@ -18,13 +18,14 @@ apps/
   web/
   desktop/
 packages/
+  ui/
 scripts/
 ```
 
 - `apps/api`: NestJS API workspace. 승인된 ESM runtime·dependency·build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/web`: React, TypeScript, Vite 기반 web application.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
-- `packages/*`: shared package를 위한 예약 boundary. 현재 tracked package는 없다.
+- `packages/ui`: 현재 tracked shared UI package `@ldb/ui`. 실제 구현·명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `scripts`: repository 생성·관리 script.
 
 상세한 file과 command 현황은 [`../reference/repository-map.md`](../reference/repository-map.md)를 따른다.
@@ -55,7 +56,7 @@ PostgreSQL server·image·local validation 선택의 정확한 값과 승인 상
 
 ## Shared UI boundary
 
-[Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)에 따라 다음 boundary를 PR에서 제안한다. 기존 active architecture와 인증·API·domain·platform contract는 유지한다. 현재 Issue의 사용자 실행 허용 범위에 package 생성·dependency 설치·제품 교체가 포함되지 않았다면 진행하지 않는다. 이 boundary의 substantive contract와 status 전환을 채택 범위로 명시한 PR의 사용자 merge가 문서 변경을 승인·활성화하며, 절차 문구나 link만 수정하면 기존 status를 바꾸지 않는다. 현재 tracked package가 없다는 topology 설명은 구현 현황이다.
+[Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)에 따라 다음 boundary를 PR에서 제안한다. 기존 active architecture와 인증·API·domain·platform contract는 유지한다. 현재 요청의 사용자 실행 허용 범위에 package 생성·dependency 설치·제품 교체가 포함되지 않았다면 진행하지 않는다. 이 boundary의 substantive contract와 status 전환을 채택 범위로 명시한 PR의 사용자 merge가 문서 변경을 승인·활성화하며, 절차 문구나 link만 수정하면 기존 status를 바꾸지 않는다. 현재 tracked `packages/ui`의 topology 설명은 구현 현황이며 이 proposed 계약의 status 전환을 뜻하지 않는다.
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |

@@ -12,7 +12,7 @@ review-after: API 실행 기반의 첫 validation 완료 또는 지원 major 변
 
 # API Runtime Contract
 
-이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. API runtime과 검증 계약을 정의하며 인증/DB 추가 승인 범위는 아래 Authentication runtime contract를 따른다. 구현은 해당 Execution Issue와 [`change-control.md`](change-control.md)의 Red→Green 절차를 따른다. Dependency와 architecture 변경은 공통 변경 승인 기준을 따른다.
+이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. API runtime과 검증 계약을 정의하며 인증/DB 추가 승인 범위는 아래 Authentication runtime contract를 따른다. 구현은 현재 요청 범위에서 [개발 흐름](agent-workflow.md)과 [Testing](testing.md)을 따른다. Dependency와 architecture 변경은 공통 변경 승인 기준을 따른다.
 
 ## 결정의 상태
 
@@ -36,9 +36,9 @@ Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScri
 
 API workspace의 직접 의존성과 버전 범위는 `apps/api/package.json`에서, API도 사용하는 공통 lint·format 도구의 직접 의존성과 버전 범위는 루트 `package.json`에서 관리합니다. 공통 도구의 적용 설정은 루트 `eslint.config.mjs`와 `.prettierrc.json`에서 확인합니다. 두 manifest에서 해결된 버전과 전이 의존성은 `pnpm-lock.yaml`에서 확인합니다. 이 문서와 `auth-runtime.md`의 API·인증 패키지 허용·제외 목록 및 패키지별 버전 재승인 조건을 제거합니다. [Issue #302](https://github.com/blahaj94/ldb/issues/302)의 사용자 요청에 따른 이 변경은 해당 PR의 사용자 merge로 적용합니다.
 
-새 의존성 추가와 역할 변경은 [`change-control.md`](change-control.md#approval-required), 후보 비교와 선택은 [`코드 재사용 기준`](code-reuse.md)을 따릅니다. 선택 이유, 사용자 실행 허용 근거와 검증 결과는 해당 Issue와 PR에 기록합니다. 이 문서의 runtime·build·test 계약이나 API·보안 계약을 바꾸면 해당 Rule을 함께 변경하며, API·인증 패키지 목록이나 버전의 변경만으로 이 두 runtime Rule에 항목을 추가하지 않습니다.
+의존성 선택과 중요한 영향의 판단 경계는 [개발 흐름](agent-workflow.md#판단과-권한)과 [코드 재사용 기준](code-reuse.md)을 따릅니다. 필요한 선택 이유와 검증 결과는 PR 또는 기존 작업 기록에 남깁니다. 이 문서의 runtime·build·test 계약이나 API·보안 계약을 바꾸면 해당 Rule을 함께 변경하며, API·인증 패키지 목록이나 버전의 변경만으로 이 두 runtime Rule에 항목을 추가하지 않습니다.
 
-공통 lint·format 도구의 역할, 설정과 버전 변경은 [공통 도구 계약](convention-tooling.md#공통-설정-도입-기준)을 따릅니다. 루트 manifest 안내는 현재 선언 위치를 설명하며, 그 계약의 승인 조건을 해제하지 않습니다.
+공통 lint·format 도구의 역할, 설정과 버전 변경은 [공통 도구 계약](convention-tooling.md#설정과-소유권)을 따릅니다. 루트 manifest 안내는 현재 선언 위치를 설명하며, 그 계약의 승인 조건을 해제하지 않습니다.
 
 실제 변경에서는 package의 engine과 peer 조건, ESM 및 TypeScript 호환성을 확인하고 영향받는 동작을 검증합니다. Registry metadata만으로 설치·build 성공을 주장하지 않습니다. 초기 패키지 선택의 근거는 [PR #42의 승인 이력](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)에 보존합니다.
 
@@ -61,7 +61,7 @@ App 생성은 port를 열지 않는 factory로 분리하고, `main.ts`만 설정
 
 실행 기반의 최소 **필수** 설정은 `PORT`(십진 정수 1~65535)다. 누락·빈 값·잘못된 값은 listen 전에 실패한다. 따라서 runtime-only 단계에서도 실제 필수 설정 누락 실패를 검증한다. Test factory의 loopback port 0 주입은 환경변수 검증과 구분한다. 검색 구성에 필요한 `NEOPLE_API_KEY`는 검색 module을 연결할 때부터 필수이며 누락·빈 값은 listen 전에 실패한다. Runtime-only app은 아직 연결하지 않은 인증·DB·검색 설정을 요구하지 않는다. 필수 설정 실패는 값이나 stack을 출력하지 않고 검증한다. Fake 설정은 test에서만 주입하며 운영용 인증 우회나 test mode를 추가하지 않는다.
 
-후속 구현의 표준 검증 command는 다음과 같다. Package script를 아래 동작으로 구현한 뒤 [`testing.md`](testing.md)의 Red→Green evidence를 기록한다.
+후속 구현의 표준 검증 command는 다음과 같다. Package script를 아래 동작으로 구현한 뒤 [Testing](testing.md)에 따라 실제 검증 범위와 결과를 기록한다.
 
 | Root에서 실행할 command | 구현할 동작 / 통과 기준 |
 | --- | --- |

@@ -103,6 +103,6 @@ pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-Unit/hook 검증은 실제 core와 테스트용 effects 또는 stream/worker doubles를 사용한 경합 evidence다. 실제 Electron media/OCR 관측과 구분하며 실행한 commit·command·결과는 Issue #126과 PR에 기록한다. Build에는 기존 node/web typecheck가 포함된다. 최종 integration head의 전체 validation과 독립 review는 Worker 결과와 별도다.
+Unit/hook 검증은 실제 core와 테스트용 effects 또는 stream/worker doubles를 사용한 경합 evidence다. 실제 Electron media/OCR 관측과 구분하며 실행한 commit·command·결과는 Issue #126과 PR에 기록한다. Build에는 기존 node/web typecheck가 포함된다. Issue #126의 통합 head 전체 validation과 독립 review 조건은 해당 작업 기록에 유지한다. 후속 변경의 검증 범위는 [Testing](../rules/testing.md)에 따라 실제 영향으로 판단한다.
 
 실제 native 인증의 Keychain·file durability·protocol association·provider 등록, 다른 OS/arch/package는 이 fixture로 검증되지 않는다. 남은 지원·배포 gate는 [Desktop auth platform](../rules/desktop-auth-platform.md)을 따른다. Auth-only fixture나 mocked OCR의 PASS로 실제 media/OCR 실패를 대체하지 않는다.

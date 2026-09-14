@@ -4,7 +4,7 @@
 
 ## Objective
 
-현재 Pull Request가 도입한 consequential defect만 찾는다. Style preference, 이미 존재하던 문제, 근거 없는 추측은 finding으로 발행하지 않는다.
+현재 Pull Request가 도입한 consequential defect만 찾는다. Style preference, 이미 존재하던 문제, 근거 없는 추측은 finding으로 발행하지 않는다. Issue 유무, 별도 Red 커밋, 변경 줄 수나 역할 기록을 결함으로 취급하지 않는다. 실제 제품 계약과 보안·신뢰성 위반은 diff 크기와 무관하게 검토한다.
 
 ## Severity and publication
 
@@ -20,3 +20,5 @@
 ## Evidence
 
 각 finding에는 severity, confidence, path, line, 재현 가능한 evidence, impact, 최소 suggested action을 포함한다. 판단에 필요한 맥락이 없으면 defect를 추측하지 말고 `missingContext`에 기록한다.
+
+테스트 실행 여부와 실제 검증 범위를 구분한다. 요청 댓글 게시나 자체 검토를 독립 리뷰 통과로 보고하지 않는다. 유효한 같은 head의 결과를 재사용하고 취향만으로 수정·재리뷰를 반복하지 않는다.

@@ -48,39 +48,9 @@ export class GitHubClient {
     return this.request(`/repos/${this.repository}/pulls/${number}`)
   }
 
-  listFiles(number) {
-    return this.paginate(`/repos/${this.repository}/pulls/${number}/files`)
-  }
-
-  listCommits(number) {
-    return this.paginate(`/repos/${this.repository}/pulls/${number}/commits`)
-  }
-
-  async listCommitFiles(sha) {
-    const files = []
-    for (let page = 1; ; page += 1) {
-      const commit = await this.request(
-        `/repos/${this.repository}/commits/${sha}?per_page=100&page=${page}`
-      )
-      const commitFiles = commit.files ?? []
-      files.push(...commitFiles)
-      const isFinalPage = commitFiles.length < 100
-      if (isFinalPage) {
-        return files
-      }
-    }
-  }
-
   createComment(number, body) {
     return this.request(`/repos/${this.repository}/issues/${number}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ body })
-    })
-  }
-
-  updateComment(commentId, body) {
-    return this.request(`/repos/${this.repository}/issues/comments/${commentId}`, {
-      method: 'PATCH',
       body: JSON.stringify({ body })
     })
   }

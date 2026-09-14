@@ -58,4 +58,4 @@ Health/refresh/logout/login 상태 확인은 기존 session 활동이 아니다.
 
 승인된 순서는 admission+DB commit 뒤 reserve다. 활동 best effort는 장애 중 사용해도 30일 deadline이 연장되지 않는 대안이다. Reserve 뒤 DB 실패에도 예약 유지는 upstream 없는 실패 차감 정책을 추가하고, activity 뒤 quota는 429도 활동으로 만들며, DB quota는 승인된 memory 저장 범위를 바꾼다. 어느 대안도 구현자가 묵시 선택하지 않는다.
 
-관련 validation은 401/400/429 우선순위, 정확한 만료, 11개 동시 요청의 최대 10 upstream, DB 실패/commit 불명·residual row 없음, 최종 예약 시각, 단일 2초와 late completion/취소/entry 수명, 활동 commit 뒤 logout/삭제 경합의 최종 상태를 포함한다. 상세 예상 matrix와 실행 evidence는 Execution Issue/PR에 두고 이 Rule 승인을 runtime 성공으로 표시하지 않는다.
+관련 validation은 401/400/429 우선순위, 정확한 만료, 11개 동시 요청의 최대 10 upstream, DB 실패/commit 불명·residual row 없음, 최종 예약 시각, 단일 2초와 late completion/취소/entry 수명, 활동 commit 뒤 logout/삭제 경합의 최종 상태를 포함한다. 상세 예상 matrix와 실행 evidence는 기존 작업 기록이나 PR에 두고 이 Rule 승인을 runtime 성공으로 표시하지 않는다.

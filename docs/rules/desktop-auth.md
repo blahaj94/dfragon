@@ -146,7 +146,7 @@ exceptions: 기존 인증·서버 검색·capture 계약의 승인과 구현 범
 review-after: 최초 Desktop 검색 구현의 수명·401·429 검증과 실제 Electron 화면 확인 후
 ```
 
-이 절은 검색 연결에 추가할 계약의 추천안이다. 현재 Issue에서 사용자가 substantive contract의 채택과 실행을 허용하면 [승인 절차](change-control.md#approval-evidence)에 따라 같은 PR에 구현과 검증을 준비하고, 그 범위를 명시한 PR의 사용자 merge로 승인·활성화한다. 절차 문구나 link만 수정하면 추천안 상태를 유지한다. 기존 인증 계약과 restore 종료 정책, platform gate를 유지한다. 상세 선택 비교·상황별 기대 결과·후속 검증 계획은 해당 Issue/PR에 둔다.
+이 절은 검색 연결에 추가할 계약의 추천안이다. 현재 요청에서 사용자가 substantive contract의 채택과 실행을 허용하면 [승인 절차](change-control.md#approval-evidence)에 따라 같은 PR에 구현과 검증을 준비하고, 그 범위를 명시한 PR의 사용자 merge로 승인·활성화한다. 절차 문구나 link만 수정하면 추천안 상태를 유지한다. 기존 인증 계약과 restore 종료 정책, platform gate를 유지한다. 상세 선택 비교·상황별 기대 결과·후속 검증 계획은 해당 Issue/PR에 둔다.
 
 ### 입력과 권한의 소유
 

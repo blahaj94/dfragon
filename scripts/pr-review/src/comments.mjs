@@ -1,15 +1,3 @@
-export const POLICY_MARKER = '<!-- ldb-ai-review-policy -->'
-
-const STATUS_ICON = {
-  pass: '✅',
-  warning: '⚠️',
-  skipped: '➖'
-}
-
-function cell(value) {
-  return String(value).replaceAll('|', '\\|').replaceAll('\n', '<br>')
-}
-
 export function providerMarker(provider, headSha) {
   return `<!-- ldb-ai-review:${provider}:${headSha} -->`
 }
@@ -35,25 +23,4 @@ export function findCommentByMarker(comments, marker) {
     return hasMarker
   })
   return matchingComment
-}
-
-export function buildPolicySummary({ headSha, checks }) {
-  const rows = checks.map(
-    ({ name, status, detail }) =>
-      `| ${cell(name)} | ${STATUS_ICON[status] ?? '❔'} ${cell(status)} | ${cell(detail)} |`
-  )
-
-  const policySummaryBody = [
-    POLICY_MARKER,
-    '## AI review policy check — Advisory',
-    '',
-    `Head: \`${headSha}\``,
-    '',
-    '| Check | Status | Detail |',
-    '| --- | --- | --- |',
-    ...rows,
-    '',
-    'Warnings do not block merge. The repository owner makes the final decision.'
-  ].join('\n')
-  return policySummaryBody
 }

@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
-  buildPolicySummary,
   buildProviderTriggerComment,
   findCommentByMarker,
   providerMarker
@@ -27,23 +26,4 @@ test('finds an existing trigger for the reviewed head SHA', () => {
   ]
 
   assert.equal(findCommentByMarker(comments, marker)?.id, 2)
-})
-
-test('renders one advisory policy summary with stable metadata', () => {
-  const summary = buildPolicySummary({
-    headSha: 'abc123',
-    checks: [
-      { name: 'linked_issue', status: 'pass', detail: '#2' },
-      {
-        name: 'test_evidence',
-        status: 'warning',
-        detail: 'No Red test commit found'
-      }
-    ]
-  })
-
-  assert.match(summary, /<!-- ldb-ai-review-policy -->/)
-  assert.match(summary, /Advisory/)
-  assert.match(summary, /abc123/)
-  assert.match(summary, /No Red test commit found/)
 })

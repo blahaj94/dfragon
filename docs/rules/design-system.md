@@ -43,7 +43,7 @@ SEED 채택 변경분은 [채택 결정](https://github.com/blahaj94/ldb/issues/
 - 문서·Snippet registry의 기준은 [공식 source commit `08b3600989597f4e9017731484a409685c08aa68`](https://github.com/daangn/seed-design/tree/08b3600989597f4e9017731484a409685c08aa68)이다. CLI version만으로 원격 registry가 고정되지 않으므로 가져올 source revision과 내용도 확인한다. 이 Rule 제안에서는 source를 vendor하거나 CLI를 실행하지 않는다.
 - Snippet을 가져올 때 upstream repository·commit·file path, 의존 Snippet·package, local destination, license·NOTICE와 local 변경 이유·diff를 추적한다. Action Button에는 `loading-indicator`, Text Field Input에는 공식 icon, Dialog에는 공식 icon과 `action-button` 및 그 전이 의존 Snippet이 필요하다.
 - 가져오는 각 source·package의 license와 고지를 확인하고 [LICENSE](https://github.com/daangn/seed-design/blob/08b3600989597f4e9017731484a409685c08aa68/LICENSE)·[NOTICE](https://github.com/daangn/seed-design/blob/08b3600989597f4e9017731484a409685c08aa68/NOTICE)의 적용되는 저작권·귀속 고지를 보존한다. 수정 source에는 변경 사실을 기록한다. Icon 등 별도 package의 고지까지 SEED repository의 license로 대신하지 않는다.
-- Published package의 정확한 version·integrity, source SHA, live 문서 확인 시점을 구분해 기록한다. Package와 Snippet·문서 사이에 해당 API·behavior·style·요구 조건의 불일치가 있으면 영향받는 채택·구현을 멈추고 Planner에게 근거와 차이를 전달한다. 독립적인 package version 숫자나 선택한 version을 함께 허용하는 peer 범위의 표기 차이만으로 호환성 문제를 단정하지 않는다. 새 문서나 CLI의 최신 결과로 조용히 덮어쓰지 않는다.
+- Published package의 정확한 version·integrity, source SHA, live 문서 확인 시점을 구분해 기록한다. Package와 Snippet·문서 사이에 해당 API·behavior·style·요구 조건의 불일치가 있으면 영향받는 채택·구현을 멈추고 필요한 제품 선택은 사용자에게 근거와 차이를 전달한다. 독립적인 package version 숫자나 선택한 version을 함께 허용하는 peer 범위의 표기 차이만으로 호환성 문제를 단정하지 않는다. 새 문서나 CLI의 최신 결과로 조용히 덮어쓰지 않는다.
 - Upgrade에서는 release note·migration guide·peer 범위와 실제 dependency graph, Token·recipe·기본 Variant·Theme·Motion·Snippet 변경 및 local diff를 확인한다. 소비 app과 Example의 고정 조합을 함께 갱신하고 아래 검증 matrix를 재실행한다. Peer 범위가 맞는다는 사실만으로 runtime 호환성이나 시각 동등성을 선언하지 않는다.
 
 ## 용어
@@ -74,7 +74,7 @@ SEED 채택 변경분은 [채택 결정](https://github.com/blahaj94/ldb/issues/
 | Layout·Pattern | Component 사이 간격, 영역 Padding, 페이지 배치와 정보 밀도의 기본값·적용 조건을 제공한다. |
 | 화면 | data·content·event와 의미 있는 상태를 연결하고, 제공된 Component·Variant·Layout 옵션으로 구성한다. |
 
-- 첫 UI부터 필요한 공통 자산을 함께 마련한다. 실제 사용처 개수에 따른 도입 제한은 두지 않으며, [Code Quality](code-quality.md)의 불필요한 abstraction·wrapper 방지 기준을 따른다.
+- 첫 UI부터 필요한 공통 자산을 함께 마련한다. 실제 사용처 개수에 따른 도입 제한은 두지 않으며, [코드의 이름과 책임](../../convention.md#이름과-책임)의 불필요한 abstraction·wrapper 방지 기준을 따른다.
 - Token은 허용값 목록과 함께 용도별 기본값을 제공한다. 같은 역할과 적용 조건에는 같은 기본값·Pattern을 사용한다.
 - SEED가 정의한 Token·Component·Layout·Pattern의 최초 값과 기본값은 그대로 사용한다. 공식 대응물이 없는 LDB composition은 채택 상태·적용 조건·선택 이유를 공용 자산의 문서나 Example에 기록하며, 이 구분을 독자 시각 값 선정의 허가로 사용하지 않는다.
 - 화면에서 표현할 요구가 기존 자산에 맞지 않으면 공통 정의 또는 선택지의 변경·추가로 처리한다. 화면 이름만 다른 동일 역할의 Variant를 만들어 기준을 우회하지 않는다.

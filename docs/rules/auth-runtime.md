@@ -53,7 +53,7 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 3. Readiness는 Migration이 쓸 것과 같은 host TCP 경로·database·user·password로 인증하고 bounded retry 안에서 `SELECT 1`이 성공해야 충족된다. Container running/health 상태나 `pg_isready`만으로 migration-ready를 주장하지 않는다. 이어서 server가 18.6이고 실제 child manifest digest가 선택 platform의 고정값인지 evidence에 남긴다.
 4. 정상 종료, 관측 가능한 실패·timeout, 처리 가능한 `SIGINT`·`SIGTERM`에서는 `finally` 성격의 teardown을 수행한다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존·운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 OAuth row cleanup·보관 정책을 실행하거나 바꾸는 것이 아니다.
 
-후속 Worker는 target platform마다 다음 결과를 실제 실행 evidence와 구분해 기록한다. 한 native platform만 실행했다면 다른 platform은 미검증으로 남긴다.
+후속 담당자는 target platform마다 다음 결과를 실제 실행 evidence와 구분해 기록한다. 한 native platform만 실행했다면 다른 platform은 미검증으로 남긴다.
 
 | 검증 | 실행과 통과 기준 |
 | --- | --- |
@@ -151,4 +151,4 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 - 공개 ingress/pending-request·인증 전 abuse·서비스 전체 limiter 수치와 기존 quota와의 통합 순서
 - [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 실제 provider/control store 내구성·writer fencing·사본 inventory/폐기·clock·incident 대응과 복원 E2E. D1–D5 정책 선택은 승인됐으며 실제 환경·구현/통합 검증은 미완료
 
-탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·provider 호출·백업/복원 실행의 자동 착수 지시가 아니다. 사용자가 Rule 승인과 함께 구현 금지를 명시했으므로 `change-control.md`의 승인 뒤 같은 PR Red/Green 일반 순서를 자동 착수 지시로 해석하지 않는다. 후속 구현은 별도 착수 지시·task 범위와 승인 evidence를 확인해 Red→Green과 관련 validation을 수행한다.
+탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·provider 호출·백업/복원 실행의 자동 착수 지시가 아니다. 사용자가 Rule 승인과 함께 구현 금지를 명시했으므로 [개발 흐름](agent-workflow.md)의 일반 절차를 자동 착수 지시로 해석하지 않는다. 후속 구현은 별도 착수 지시·작업 범위와 승인 근거를 확인해 [Testing](testing.md)에 따른 관련 검증을 수행한다.
