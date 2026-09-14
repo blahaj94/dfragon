@@ -177,7 +177,58 @@ beforeEach(() => {
   mocks.bootstrapAuth.mockResolvedValue(mocks.runtime)
   mocks.registerAuth.mockReturnValue(vi.fn())
 })
-afterEach(() => vi.unstubAllEnvs())
+afterEach(() => {
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
+
+it.each([false, true])(
+  '개발 빌드는 셸 설정 유무(%s)와 무관하게 고정 프로필과 복귀 주소를 사용한다',
+  async (hasShellConfiguration) => {
+    vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
+    if (hasShellConfiguration) {
+      stubTrustedRuntimeEnvironment()
+    }
+    const appData = join(process.cwd(), 'synthetic-app-data')
+    mocks.getPath.mockImplementation(() => appData)
+
+    await import('./main')
+    await mocks.bootstrap
+
+    expect(mocks.applyProfile).toHaveBeenCalledWith(expect.anything(), {
+      apiOrigin: 'https://localhost:3443',
+      returnTarget: 'ldb.dev://auth/callback',
+      environment: 'development',
+      providers: ['google'],
+      appIdentity: 'ldb.dev',
+      userDataPath: join(appData, 'ldb.dev')
+    })
+    expect(mocks.createIngress).toHaveBeenCalledWith(
+      expect.objectContaining({ returnTarget: 'ldb.dev://auth/callback' })
+    )
+    expect(mocks.bootstrapAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        config: expect.objectContaining({ apiOrigin: 'https://localhost:3443' })
+      })
+    )
+  }
+)
+
+it('개발 빌드도 Windows profile 준비 실패를 우회하지 않는다', async () => {
+  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
+  mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
+  mocks.applyProfile.mockImplementationOnce(() => {
+    throw new Error('Windows profile security is unavailable.')
+  })
+
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.createIngress).not.toHaveBeenCalled()
+  expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
+  expect(mocks.setPath).not.toHaveBeenCalled()
+  expect(mocks.constructWindow).toHaveBeenCalledOnce()
+})
 
 it('auth clock power listeners survive canceled quit and detach at committed shutdown', async () => {
   stubTrustedRuntimeEnvironment()

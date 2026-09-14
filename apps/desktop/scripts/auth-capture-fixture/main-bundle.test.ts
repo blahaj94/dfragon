@@ -12,9 +12,11 @@ function mainEnvironment(): {
   context: ReturnType<typeof createContext>
   bootstrap: () => Promise<void> | undefined
   error: ReturnType<typeof vi.fn>
+  getPath: ReturnType<typeof vi.fn>
 } {
   let bootstrap: Promise<void> | undefined
   const error = vi.fn()
+  const getPath = vi.fn(() => resolve('synthetic-app-data'))
   const session = {
     setPermissionCheckHandler: vi.fn(),
     setPermissionRequestHandler: vi.fn(),
@@ -23,6 +25,7 @@ function mainEnvironment(): {
   }
   const electron = {
     app: {
+      getPath,
       setPath: vi.fn(),
       setName: vi.fn(),
       on: vi.fn(),
@@ -101,47 +104,59 @@ function mainEnvironment(): {
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
-  return { context, bootstrap: () => bootstrap, error }
+  return { context, bootstrap: () => bootstrap, error, getPath }
 }
 
-it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
-  '%s의 실제 main bundle은 기존 composition을 초기화할 수 있다',
-  async (configFile) => {
-    const resolved = await resolveConfig({ configFile, logLevel: 'silent' }, 'build', 'production')
-    const main = resolved.config?.main
-    expect(main).toBeDefined()
-    const output = await build({
-      ...main,
-      logLevel: 'silent',
-      build: { ...main!.build, write: false }
-    })
-    const isOutputArray = Array.isArray(output)
-    const bundles = isOutputArray ? output : [output]
-    const chunks: string[] = []
-    for (const bundle of bundles) {
-      const hasOutput = 'output' in bundle
-      if (!hasOutput) {
-        throw new Error('Expected completed main build')
-      }
-      for (const item of bundle.output) {
-        const isChunk = item.type === 'chunk'
-        if (isChunk) {
-          chunks.push(item.code)
-        }
+it.each([
+  ['electron.vite.config.ts', 'production'],
+  ['scripts/auth-capture-fixture.config.ts', 'production'],
+  ['electron.vite.config.ts', 'ldb-development']
+])('%s의 %s main bundle은 기존 composition을 초기화할 수 있다', async (configFile, mode) => {
+  const resolved = await resolveConfig({ configFile, logLevel: 'silent' }, 'build', mode)
+  const main = resolved.config?.main
+  expect(main).toBeDefined()
+  const output = await build({
+    ...main,
+    logLevel: 'silent',
+    build: { ...main!.build, write: false }
+  })
+  const isOutputArray = Array.isArray(output)
+  const bundles = isOutputArray ? output : [output]
+  const chunks: string[] = []
+  for (const bundle of bundles) {
+    const hasOutput = 'output' in bundle
+    if (!hasOutput) {
+      throw new Error('Expected completed main build')
+    }
+    for (const item of bundle.output) {
+      const isChunk = item.type === 'chunk'
+      if (isChunk) {
+        chunks.push(item.code)
       }
     }
-    expect(chunks).toHaveLength(1)
-    const environment = mainEnvironment()
-    environment.context.__dirname = dirname(resolve(main!.build!.outDir!, 'main.cjs'))
-    runInContext(chunks[0], environment.context)
-    let failure: string | null = null
-    try {
-      await environment.bootstrap()
-    } catch (error) {
-      // VM의 다른 realm Error도 고정된 초기화 실패 원인으로 비교한다. Stack은 기록하지 않는다.
-      failure = String(error)
-    }
-    expect(failure).toBeNull()
-    expect(environment.error).not.toHaveBeenCalled()
   }
-)
+  expect(chunks).toHaveLength(1)
+  const environment = mainEnvironment()
+  if (mode === 'ldb-development') {
+    // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
+    // The real Windows capability gate must stop before profile or credential IO.
+    environment.context.process.platform = 'win32'
+    environment.context.process.env = {}
+  }
+  environment.context.__dirname = dirname(resolve(main!.build!.outDir!, 'main.cjs'))
+  runInContext(chunks[0], environment.context)
+  let failure: string | null = null
+  try {
+    await environment.bootstrap()
+  } catch (error) {
+    // VM의 다른 realm Error도 고정된 초기화 실패 원인으로 비교한다. Stack은 기록하지 않는다.
+    failure = String(error)
+  }
+  expect(failure).toBeNull()
+  expect(environment.error).not.toHaveBeenCalled()
+  if (mode === 'ldb-development') {
+    expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('appData')
+  } else {
+    expect(environment.getPath).not.toHaveBeenCalled()
+  }
+})
