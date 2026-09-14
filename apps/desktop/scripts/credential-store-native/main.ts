@@ -155,6 +155,8 @@ async function run(): Promise<void> {
 void run().then(
   () => {
     const result = { phase, ok: true, decryptCalls, encryptionAvailabilityCalls }
+    // Let Electron finish startup and persist Local State before the next process.
+    // An immediate app.exit() during early startup can bypass that shutdown work.
     process.stdout.write(`LDB_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.quit())
   },
   () => {
