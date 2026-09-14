@@ -82,6 +82,7 @@ const KNOWN_ACE_FLAGS = 0x1f
 const INHERIT_ONLY_ACE = 0x08
 const WIN_LOCAL_SYSTEM_SID = 22
 const WIN_BUILTIN_ADMINISTRATORS_SID = 26
+const TRUSTED_INSTALLER_SID = 'S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464'
 const VOLUME_NAME_GUID = 1
 const VOLUME_ROOT_PATTERN =
   /^\\\\\?\\Volume\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}\\$/i
@@ -553,11 +554,28 @@ function currentUserSid(api: WindowsApi): {
   return result
 }
 
-function isSystemAuthority(api: WindowsApi, sid: WindowsNativePointer): boolean {
-  return (
+function isSystemAuthority(
+  api: WindowsApi,
+  sid: WindowsNativePointer,
+  sidStorage?: Buffer
+): boolean {
+  if (
     api.isWellKnownSid(sid, WIN_LOCAL_SYSTEM_SID) ||
     api.isWellKnownSid(sid, WIN_BUILTIN_ADMINISTRATORS_SID)
-  )
+  ) {
+    return true
+  }
+  // TrustedInstaller is a fixed service SID, not a WELL_KNOWN_SID_TYPE enum.
+  // The caller has validated the SID; never resolve account names or groups.
+  const length = api.getLengthSid(sid)
+  if (length !== 32) {
+    return false
+  }
+  // Koffi's typed Buffer casts are call arguments, not decodable addresses.
+  const storage =
+    sidStorage ??
+    (typeof sid === 'bigint' ? Buffer.from(koffi.decode(sid, 'uint8_t', length)) : null)
+  return storage != null && sidString(storage) === TRUSTED_INSTALLER_SID
 }
 
 function isVolumeRoot(api: WindowsApi, handle: WindowsNativeHandle): boolean {
@@ -650,7 +668,11 @@ function isSecureDacl(
     if ((aceFlags & INHERIT_ONLY_ACE) !== 0) {
       continue
     }
-    if (!isCurrentSid && !isSystemAuthority(api, aceSid) && aceType === ACCESS_ALLOWED_ACE_TYPE) {
+    if (
+      !isCurrentSid &&
+      !isSystemAuthority(api, aceSid, aceMemory.subarray(8)) &&
+      aceType === ACCESS_ALLOWED_ACE_TYPE
+    ) {
       // A verified volume root has no parent directory entry to remove/rename.
       // DELETE_CHILD and ACL/owner changes still threaten the profile below it.
       const dangerousMask =

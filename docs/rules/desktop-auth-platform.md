@@ -106,7 +106,7 @@ Atomic replacement·flush·directory durability는 Node 호출 하나의 반환�
 
 Windows profile과 credential의 현재 사용자는 process token의 user SID로 판정한다. 이름 조회나 group membership으로 user SID를 대체하지 않는다. 열린 handle에서 reparse point와 directory/file type을 확인하고, null DACL·empty DACL·unknown/object/callback ACE·지원하지 않는 ACE flags/size는 거절한다.
 
-최종 profile과 credential file은 현재 SID owner와 현재 SID 하나에 full control을 부여한 private DACL만 허용한다. 기존 상위 폴더는 현재 SID 외에 Windows `LocalSystem`(`S-1-5-18`)과 기본 `Administrators`(`S-1-5-32-544`)를 owner 및 관리 principal로 허용한다. SID 자체를 `IsWellKnownSid`로 비교하며 임의 관리자 계정·다른 group·이름을 허용 목록에 넣지 않는다. OS 및 로컬 관리자의 권한은 이 격리 경계 밖에 있고, 일반 다른 사용자의 profile 교체를 방어한다. 기존 OS 폴더의 owner·ACL은 수정하지 않는다.
+최종 profile과 credential file은 현재 SID owner와 현재 SID 하나에 full control을 부여한 private DACL만 허용한다. 기존 상위 폴더는 현재 SID 외에 Windows `LocalSystem`(`S-1-5-18`), 기본 `Administrators`(`S-1-5-32-544`), Windows Modules Installer의 `TrustedInstaller` service SID(`S-1-5-80-956008885-3418522649-1831038044-1853292631-2271478464`)를 owner 및 관리 principal로 허용한다. 앞의 두 OS SID는 `IsWellKnownSid`로, service SID는 검증한 SID의 고정 식별자 전체로 비교하며 임의 관리자 계정·다른 group·이름을 허용 목록에 넣지 않는다. OS 및 로컬 관리자의 권한은 이 격리 경계 밖에 있고, 일반 다른 사용자의 profile 교체를 방어한다. 기존 OS 폴더의 owner·ACL은 수정하지 않는다.
 
 상위 폴더에서 나머지 principal의 effective allow ACE가 namespace 위험 mask(`DELETE`, `FILE_DELETE_CHILD`, `WRITE_DAC`, `WRITE_OWNER` 및 generic write/all)를 포함하면 거절한다. Deny ACE로 위험 allow를 상쇄했다고 추론하지 않는다. `INHERIT_ONLY_ACE`는 현재 객체에 접근 권한을 주지 않으므로 구조·SID를 검증한 뒤 현재 폴더의 위험 판정에서는 제외한다. 경로상의 실제 자식은 각각 다시 검사하여 effective inherited ACE의 위험 권한을 거절한다. 새 private 폴더와 파일의 상속 차단은 유지한다.
 

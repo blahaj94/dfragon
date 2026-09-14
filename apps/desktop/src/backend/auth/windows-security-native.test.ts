@@ -900,6 +900,58 @@ describe('Windows security native boundary', () => {
     expect(native.inspect('profile', 'directory', 'private')).toBe('untrusted')
   })
 
+  it('accepts only the exact TrustedInstaller service SID on ancestors', () => {
+    const fixture = createSecurityFixture()
+    const sid = Buffer.alloc(32)
+    sid.set([1, 6, 0, 0, 0, 0, 0, 5])
+    ;[80, 956008885, 3418522649, 1831038044, 1853292631, 2271478464].forEach((value, index) => {
+      sid.writeUInt32LE(value, 8 + index * 4)
+    })
+    const pointer = koffi.address(sid)
+    const native = createWindowsSecurityNative({
+      api: {
+        ...fixture.api,
+        getSecurityInfo: (...args) => {
+          const result = fixture.api.getSecurityInfo(...args)
+          args[3][0] = pointer
+          return result
+        },
+        getLengthSid: (value) => (value === pointer ? sid.length : fixture.api.getLengthSid(value))
+      }
+    })
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
+    expect(native.inspect('profile', 'directory', 'private')).toBe('untrusted')
+    sid[31] ^= 1
+    expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+
+    sid[31] ^= 1
+    const ace = Buffer.alloc(8 + sid.length)
+    ace.writeUInt16LE(ace.length, 2)
+    ace.writeUInt32LE(FILE_ALL_ACCESS, 4)
+    sid.copy(ace, 8)
+    let readingAce = false
+    fixture.set({ aceIsCurrent: false })
+    const withServiceAce = createWindowsSecurityNative({
+      api: {
+        ...fixture.api,
+        getSecurityInfo: (...args) => {
+          readingAce = false
+          return fixture.api.getSecurityInfo(...args)
+        },
+        getAce: (_acl, _index, out) => {
+          readingAce = true
+          out[0] = koffi.address(ace)
+          return true
+        },
+        getLengthSid: (value) => (readingAce ? sid.length : fixture.api.getLengthSid(value))
+      }
+    })
+    expect(withServiceAce.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
+    expect(withServiceAce.inspect('profile', 'directory', 'private')).toBe('untrusted')
+    ace[39] ^= 1
+    expect(withServiceAce.inspect('ancestor', 'directory', 'ancestor')).toBe('untrusted')
+  })
+
   it.each([0x10000, 0x40, 0x40000, 0x80000, 0x40000000, 0x10000000])(
     'rejects effective foreign namespace access %s but not inherit-only entries',
     (accessMask) => {
