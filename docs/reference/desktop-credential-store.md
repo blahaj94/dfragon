@@ -26,11 +26,16 @@ Windows 파일 교체에서 write 또는 첫 file flush 실패는 rename을 시�
 
 Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. 실제 Win32 호출, DPAPI와 namespace 내구성 검증은 별도 gate로 남습니다.
 
+
+상위 폴더 검사는 현재 SID와 OS 관리 SID를 구분합니다. `windows-security-native.ts`는 [`IsWellKnownSid`](https://learn.microsoft.com/en-us/windows/win32/api/securitybaseapi/nf-securitybaseapi-iswellknownsid)로 LocalSystem·기본 Administrators만 추가 허용하고, [`INHERIT_ONLY_ACE`](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-ace_header)는 실제 자식에서 effective가 됐을 때 다시 검사합니다. 최종 private profile·credential의 current-user-only DACL은 유지합니다. Root 역할은 [`GetFinalPathNameByHandleW`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew)의 normalized volume GUID 경로로 같은 handle이 실제 volume root인지 확인한 뒤 `DELETE`와 `FILE_DELETE_CHILD`를 구분합니다. 문자열상의 드라이브 root나 조회 실패에는 이 예외를 적용하지 않습니다.
+
 ## Windows synthetic native fixture
 
 일반 권한의 Windows에서 `corepack pnpm@11.23.0 --filter @ldb/desktop test:windows-native`를 실행합니다. `scripts/windows-security-fixture/native.fixture.ts`는 기존 Koffi와 public native 경계로 synthetic byte 파일만 만들고, fixture 전용 typecheck 후 실제 Win32 관측을 JSON 한 줄로 출력합니다. 기본 Desktop test에는 격리 helper의 테스트만 포함하며, native 실행은 이 명시적인 command로 분리합니다. Electron, safeStorage, DPAPI, 실제 credential과 계정 이름 조회는 사용하지 않습니다.
 
 표준 임시 directory 아래 무작위 root와 별도 manifest를 exclusive 생성합니다. 절대경로 containment와 ancestor의 reparse 여부를 검사하며, 작업 소유 자식만 생성합니다. HANDLE과 LocalFree 대상은 finally에서 해제하고 실제 반환값을 계수합니다. Cleanup은 manifest의 nonce와 root를 재확인하고 junction 자체만 제거합니다. 모르는 reparse는 순회하지 않으며, 자원 해제나 cleanup이 불명확하면 manifest를 보존하고 실패합니다. 비정상 종료 후 manifest를 근거로 자동 재귀 삭제하는 기능은 없습니다. 같은 계정의 악의적인 동시 경로 교체나 crash 내구성을 보장하는 도구가 아닙니다.
+
+같은 command에서 현재 `APPDATA`부터 실제 volume root까지 읽기 전용으로 검사하고, 일반 폴더를 root로 제출하면 거절하는지도 확인합니다. 이 경로에 broad effective 권한이나 reparse가 있으면 실패하며 OS ACL을 고치지 않습니다.
 
 실제 HANDLE의 배타 생성, read/write, private ACL과 메모리 내 현재 process SID 비교, 추가 ACE 및 file/directory mismatch 거절, junction 거절과 대상 sentinel 보존을 확인합니다. ASCII, 한글, 비BMP를 포함한 408개 이름의 정확한 집합을 비교합니다. 헤더와 UTF-16 이름만 합쳐 122,410 byte이며, 실제 목록 호출의 성공 batch 수도 출력합니다. `WindowsCredentialFiles.ownedTemporaries()`는 unknown capability를 유지한 adapter의 관측 list를 통해 이름 선택만 검증합니다. `prepare()`나 제품 저장 gate를 통과한 것으로 해석하지 않습니다. 유효 UUID temp만 제거하고 credential, marker와 유사 이름의 보존을 확인합니다.
 

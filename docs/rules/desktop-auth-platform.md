@@ -104,7 +104,15 @@ Atomic replacement·flush·directory durability는 Node 호출 하나의 반환�
 
 ### Windows profile ACL과 namespace 경계
 
-Windows profile과 credential native boundary는 현재 process token에서 얻은 user SID만 신뢰한다. Path로부터 이름을 조회하거나 group membership을 user SID로 대체하지 않는다. 열린 handle에서 reparse point와 directory/file type을 확인하고, `GetSecurityInfo`의 owner를 `EqualSid`로 비교하며, null DACL·empty DACL·foreign owner·unknown/object/callback ACE·지원하지 않는 ACE flags/size는 거절한다. 최종 profile과 credential file은 현재 SID의 private DACL만 허용하고, 기존 ancestor는 다른 principal에 의한 namespace 위험 mask(`DELETE`, `FILE_DELETE_CHILD`, `WRITE_DAC`, `WRITE_OWNER` 및 generic write/all)를 허용하지 않는다.
+Windows profile과 credential의 현재 사용자는 process token의 user SID로 판정한다. 이름 조회나 group membership으로 user SID를 대체하지 않는다. 열린 handle에서 reparse point와 directory/file type을 확인하고, null DACL·empty DACL·unknown/object/callback ACE·지원하지 않는 ACE flags/size는 거절한다.
+
+최종 profile과 credential file은 현재 SID owner와 현재 SID 하나에 full control을 부여한 private DACL만 허용한다. 기존 상위 폴더는 현재 SID 외에 Windows `LocalSystem`(`S-1-5-18`)과 기본 `Administrators`(`S-1-5-32-544`)를 owner 및 관리 principal로 허용한다. SID 자체를 `IsWellKnownSid`로 비교하며 임의 관리자 계정·다른 group·이름을 허용 목록에 넣지 않는다. OS 및 로컬 관리자의 권한은 이 격리 경계 밖에 있고, 일반 다른 사용자의 profile 교체를 방어한다. 기존 OS 폴더의 owner·ACL은 수정하지 않는다.
+
+상위 폴더에서 나머지 principal의 effective allow ACE가 namespace 위험 mask(`DELETE`, `FILE_DELETE_CHILD`, `WRITE_DAC`, `WRITE_OWNER` 및 generic write/all)를 포함하면 거절한다. Deny ACE로 위험 allow를 상쇄했다고 추론하지 않는다. `INHERIT_ONLY_ACE`는 현재 객체에 접근 권한을 주지 않으므로 구조·SID를 검증한 뒤 현재 폴더의 위험 판정에서는 제외한다. 경로상의 실제 자식은 각각 다시 검사하여 effective inherited ACE의 위험 권한을 거절한다. 새 private 폴더와 파일의 상속 차단은 유지한다.
+
+Volume root는 상위 directory entry가 없으므로 `DELETE` 자체와 그 아래 자식을 지우는 `FILE_DELETE_CHILD`를 구분한다. Root 예외는 검사 중인 동일 handle의 `GetFinalPathNameByHandleW(FILE_NAME_NORMALIZED | VOLUME_NAME_GUID)` 결과가 자식 경로 없는 volume GUID root일 때만 적용하며 `DELETE` 하나만 위험 mask에서 제외한다. `FILE_DELETE_CHILD`, ACL·owner 변경과 generic write/all 검사는 유지한다. 드라이브 문자만으로 root를 신뢰하지 않으며 SUBST 하위 폴더·network share·reparse point·조회 실패·잘린 결과에는 예외를 적용하지 않는다. Profile 검사·부모 재검사·sync 모두 같은 root/ancestor/private 구분을 사용한다.
+
+이 상위 폴더 계약 변경은 정상 Windows 경로를 거절하는 로그인 준비 문제의 수정 범위이며, 해당 구현 PR의 사용자 merge 후 활성화한다. Native capability와 아래 실제 OS·저장·복구 검증 조건은 이 변경만으로 충족되지 않는다.
 
 Missing directory는 current SID를 명시한 private security descriptor와 `bInheritHandle=false`인 security attributes로 생성한다. Credential temp file은 같은 directory에서 `CREATE_NEW`와 `FILE_FLAG_WRITE_THROUGH`로 만들고, `WriteFile`·`FlushFileBuffers` 후 같은 handle의 `SetFileInformationByHandle(FileRenameInfo)`로 교체한 뒤 같은 handle flush를 수행한다. 삭제도 검증한 handle에 `FileDispositionInfo`를 적용한다. `FlushFileBuffers`의 directory 호출이나 delete/namespace 성공은 일반 filesystem과 power-loss durability의 증거로 간주하지 않는다.
 
