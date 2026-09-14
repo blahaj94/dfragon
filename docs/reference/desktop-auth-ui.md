@@ -2,7 +2,7 @@
 type: reference
 status: current
 scope: desktop renderer auth presentation and isolated fixture
-last-reviewed: 2026-09-11
+last-reviewed: 2026-09-14
 ---
 
 # Desktop Auth UI
@@ -16,6 +16,14 @@ last-reviewed: 2026-09-11
 - `SignedIn`의 welcome dismissal만 React mount에 남는다. 같은 mount의 입력 갱신은 dismissal을 유지하고 signedIn 이탈·전체 unmount는 초기화한다. `시작하기`는 local navigation이며 auth intent를 보내지 않는다.
 - Home에는 계정·주입된 `home` content와 logout이 있다. Content를 주입하지 않는 presentation-only fixture에는 화면 캡처 안내가 남고, 제품 App은 기존 PartyCapture를 주입한다.
 - [AuthBridge](desktop-auth-bridge.md)가 subscribe/getAuthState·runId/revision과 IPC 결과 재동기화를 맡는다. 제품 entry·preload 및 capture 수명의 후속 연결은 [Auth Capture](desktop-auth-capture.md)를 따른다. 아래 과거 presentation-only fixture 관측을 실제 capture 검증으로 해석하지 않는다.
+
+## 로그인과 연결 실패 안내
+
+브라우저 로그인 대기 화면은 API 완료 페이지의 “앱으로 돌아가기” 버튼과 OS의 앱 열기 확인을 안내합니다. Provider에서 취소하거나 브라우저를 닫은 경우 앱에 즉시 전달되지 않으므로 앱의 “로그인 취소” 후 새 시도를 안내합니다. 자동 복귀나 provider 취소의 자동 감지를 약속하지 않습니다.
+
+인증 연결 조회에 실패하면 “연결 다시 확인”으로 기존 AuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
+
+기존 Google 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows capability `unknown`, 미확정 API/identity/return tuple과 Discord gate는 이 화면 변경으로 해제되지 않습니다.
 
 ## 공용 표현
 

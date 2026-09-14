@@ -24,7 +24,7 @@ Core lifecycle은 [Desktop auth core](desktop-auth-core.md), 기존 화면은 [D
 
 허용되지 않은 sender는 snapshot 없는 `AUTH_NOT_ALLOWED` rejection이다. Query인 getAuthState의 추가 인자는 `INVALID_AUTH_COMMAND` rejection이고, 4 mutation의 형식 오류는 기존 AuthCommandResult로 반환한다. 정확한 key 검사에는 enumerable 여부와 무관한 own key 전체를 사용한다. Unexpected command exception은 고정 `AUTH_OPERATION_FAILED` 결과로 정제한다.
 
-Renderer는 첫 조회가 완료되기 전 event를 보류하고 조회 결과와 같은 runId의 더 큰 revision을 적용한다. 다른 runId는 이전 구독을 해제한 뒤 새 조회로 기준을 세운다. API 교체 시 저장된 snapshot을 폐기하므로 같은 API 객체를 다시 사용해도 이전 계정이 복구되지 않는다. 명령 reply나 이전 연결의 listener가 더 최신 snapshot을 덮지 않으며, 응답 유실 시 mutation을 다시 보내지 않고 snapshot만 재조회한다. 초기 연결에 실패하면 계정 화면을 만들지 않고 화면을 다시 열도록 안내한다.
+Renderer는 첫 조회가 완료되기 전 event를 보류하고 조회 결과와 같은 runId의 더 큰 revision을 적용한다. 다른 runId는 이전 구독을 해제한 뒤 새 조회로 기준을 세운다. API 교체 시 저장된 snapshot을 폐기하므로 같은 API 객체를 다시 사용해도 이전 계정이 복구되지 않는다. 명령 reply나 이전 연결의 listener가 더 최신 snapshot을 덮지 않으며, 응답 유실 시 mutation을 다시 보내지 않고 snapshot만 재조회한다. 연결 조회에 실패하면 계정 화면을 숨기고 “연결 다시 확인”으로 구독과 snapshot 조회만 재개한다. 재확인 중에는 버튼을 숨기고 새 기준을 기다리며, 실패가 계속되면 수동 재확인과 앱 재실행 안내를 유지한다. 로그인 명령을 재전송하거나 설정·저장소 미준비를 해제하지 않는다.
 
 ## 격리 Electron fixture
 
