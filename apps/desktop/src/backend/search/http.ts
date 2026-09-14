@@ -1,5 +1,6 @@
 import ky from 'ky'
 import { z } from 'zod'
+import { fetchApi } from '../api-fetch'
 import { validateApiOrigin } from '../auth/protocol'
 import type { AuthClock } from '../auth/types'
 import { SEARCH_ERRORS } from '../../preload/common/types/search'
@@ -75,7 +76,7 @@ export type SearchHttp = (input: {
 
 export function createSearchHttp({
   apiOrigin,
-  fetch: transport = globalThis.fetch,
+  fetch: transport = fetchApi,
   clock
 }: {
   apiOrigin: string
