@@ -52,7 +52,7 @@ Desktop의 로그인·인증 검색은 Electron의 Chromium network stack을 사
 
 TLS 파일 누락·잘못된 PEM·key 불일치와 local origin/port 불일치는 DB 초기화 전에 고정 실패 메시지로 끝난다. Certificate의 유효기간·hostname·신뢰 체인은 실제 client의 TLS 검증으로 확인한다. API의 설정 검증이나 `/`의 404 응답만으로 Google 로그인과 Desktop 복귀 성공을 판단하지 않는다.
 
-개발용 Windows 설치 파일은 [Desktop localhost 개발 패키지](desktop-auth-core.md#windows-localhost-개발-패키지)에서 빌드한다. 서버와 앱을 같은 컴퓨터에서 실행하고 Desktop return target을 `ldb.dev://auth/callback`으로 맞춘다. 설치 패키지에는 이 API origin이 포함되므로 브라우저 복귀를 위해 시스템 환경변수를 추가할 필요는 없다. Windows 저장소의 native 검증 차단은 별도로 남아 있다.
+개발용 Windows 설치 파일은 [Desktop localhost 개발 패키지](desktop-auth-core.md#windows-localhost-개발-패키지)에서 빌드한다. 서버와 앱을 같은 컴퓨터에서 실행하고 Desktop return target을 `ldb.dev://auth/callback`으로 맞춘다. 설치 패키지에는 이 API origin이 포함되므로 브라우저 복귀를 위해 시스템 환경변수를 추가할 필요는 없다. Windows 저장소는 실제 native 권한·IO 검사 결과에 따라 동작하며, 광범위한 사전 검증을 로그인 차단 조건으로 두지 않는다.
 
 ### 실행과 종료
 
