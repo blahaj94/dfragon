@@ -238,7 +238,8 @@ export async function createLoginHttpApp(
   service: LoginHttpService,
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
-  searchDependencies?: AuthenticatedSearchDependencies
+  searchDependencies?: AuthenticatedSearchDependencies,
+  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
@@ -279,7 +280,8 @@ export async function createLoginHttpApp(
   const app = await NestFactory.create(LoginHttpModule, {
     logger: false,
     bodyParser: false,
-    abortOnError: false
+    abortOnError: false,
+    httpsOptions
   })
   try {
     app.use((request: Request, response: Response, next: () => void) => {

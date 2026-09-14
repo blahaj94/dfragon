@@ -65,7 +65,11 @@ async function main(): Promise<void> {
       await close(runtime)
       return
     }
-    await runtime.app.listen(configuration.port)
+    if (configuration.localHttps !== undefined) {
+      await runtime.app.listen(configuration.port, '127.0.0.1')
+    } else {
+      await runtime.app.listen(configuration.port)
+    }
     starting = false
     if (stopping) {
       await close(runtime)

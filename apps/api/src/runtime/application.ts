@@ -61,10 +61,13 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
       issueAccessJwt: configuration.issueAccessJwt
     })
     const account = { dataSource, verifyAccessJwt: configuration.verifyAccessJwt }
-    app = await createLoginHttpApp(login, session, account, {
-      ...account,
-      apiKey: configuration.apiKey
-    })
+    app = await createLoginHttpApp(
+      login,
+      session,
+      account,
+      { ...account, apiKey: configuration.apiKey },
+      configuration.localHttps
+    )
     return { app, close }
   } catch (error) {
     // 초기화 실패를 보존하며 앱을 얻지 못했거나 close가 실패해도 DB 정리를 시도한다.
