@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../packages/ui/build/notices.ts'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   main: {
+    define: { __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development') },
     build: {
       lib: {
         entry: resolve('src/backend/main.ts')
@@ -33,4 +34,4 @@ export default defineConfig({
     },
     plugins: [react(), seedDesignPlugin(), uiNotices()]
   }
-})
+}))

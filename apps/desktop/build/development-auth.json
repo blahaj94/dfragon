@@ -1,0 +1,7 @@
+{
+  "apiOrigin": "https://localhost:3443",
+  "returnTarget": "ldb.dev://auth/callback",
+  "environment": "development",
+  "providers": ["google"],
+  "appIdentity": "ldb.dev"
+}

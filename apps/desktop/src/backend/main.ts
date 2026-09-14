@@ -18,11 +18,11 @@ import { createAuthAppLifecycle } from './auth/app-lifecycle'
 import { createAuthRuntimeEffects } from './auth/runtime-effects'
 import {
   applyAuthRuntimeProfile,
-  AuthRuntimeProfileApplicationFailure,
-  readAuthRuntimeConfig
+  AuthRuntimeProfileApplicationFailure
 } from './auth/runtime-config'
+import { readAppAuthConfig } from './auth/app-config'
 
-const parsedRuntimeConfig = readAuthRuntimeConfig()
+const parsedRuntimeConfig = readAppAuthConfig(app)
 type RuntimeProfileState =
   | Readonly<{ status: 'inactive-config' }>
   | Readonly<{ status: 'preparation-failed' }>

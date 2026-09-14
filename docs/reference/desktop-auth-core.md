@@ -127,6 +127,18 @@ Clock 검사는 wall/monotonic 각각을 마지막으로 수용한 관측과 비
 
 `getSnapshot()`과 `subscribe()`가 반환하는 값은 `runId`, `revision`, `phase`, `providers`, local login 안내, nickname, entry, notice allowlist뿐이다. Refresh/access, verifier, exchange code, server request/user identity와 raw error는 포함하지 않는다.
 
+## Windows localhost 개발 패키지
+
+`pnpm --filter @ldb/desktop build:win:development`는 실제 Desktop main·preload·renderer와 Windows x64 NSIS 설치 파일을 빌드한다. 결과는 `apps/desktop/dist/development`에 있으며 fixture main이나 주입 저장소를 사용하지 않는다. `build:development`는 같은 설정의 앱 bundle만 만들고 OS protocol을 등록하지 않는다.
+
+개발 tuple은 `apps/desktop/build/development-auth.json`에서 관리한다. API는 `https://localhost:3443`, provider는 Google, 앱 복귀는 `ldb.dev://auth/callback`, 환경은 `development`, 앱 ID는 `ldb.dev`다. Google Console callback은 API의 `https://localhost:3443/auth/callback/google`이며 앱 복귀 주소와 다르다. 서버의 Desktop return target도 패키지와 일치해야 한다. API 시작과 CA 신뢰는 [localhost HTTPS 안내](api-start-development.md#같은-컴퓨터에서-desktop과-api-연결)를 따른다.
+
+`ldb-development` 빌드 mode에서는 `auth/app-config.ts`가 main bundle의 tuple을 기존 runtime validator로 검증한다. UserData는 Electron `appData` 아래의 `ldb.dev`로 고정한다. Windows에서는 일반적으로 `%APPDATA%\ldb.dev`다. 브라우저나 바로가기로 재실행해도 셸의 `LDB_AUTH_*` 설정 없이 같은 API·identity·프로필을 사용하며 환경변수로 일부 값을 덮어쓰지 않는다. 다른 빌드 mode는 기존 설정을 유지한다. Pending 로그인은 여전히 메모리에만 있으므로 cold callback으로 이전 시도를 복원하지 않는다.
+
+`electron-builder.development.mjs`는 기본 packaging 설정을 재사용하며 `LDB Development`, `ldb-dev.exe`와 `ldb.dev` protocol을 선언한다. 현재 사용자용 NSIS 설치이며 설치 직후 자동 실행과 publish를 하지 않는다. Node options·inspect fuse 차단도 유지한다. 개발 ID는 로컬 패키지용이고 운영 identity·서명을 확정하지 않는다. 실제 설치·등록은 [로컬 개발용 등록 계약](../rules/desktop-auth-platform.md#로컬-개발용-등록값)의 실행 허용, 서버 active registry 일치와 현재 association 소유권 확인 뒤 수행한다. 충돌하거나 소유권이 불분명한 등록은 덮어쓰지 않는다. 설치 파일 생성만으로 이 조건을 확인했다고 보지 않는다.
+
+현재 Windows `profileProtection`·`namespaceMutation`은 `unknown`이므로 profile setter와 인증 초기화 전에 기존 `preparation-failed` fallback으로 간다. 개발 설정은 이 차단을 해제하지 않는다. 실제 저장소·DPAPI·복구, 설치 앱의 cold/warm 복귀, Google 인증 후 상태 반영과 보호 기능 사용은 별도 검증 대상이다. Compile한 main의 환경변수 없는 시작과 profile gate 검사는 합성 Electron 환경의 결과이며 실제 로그인 성공이 아니다.
+
 ## HTTP와 검증 범위
 
 Desktop 로그인과 인증 검색의 기본 transport는 `apps/desktop/src/backend/api-fetch.ts`의 Electron `session.fetch`다. Ready 이후 실제 요청 시 API 전용 비영속 partition을 사용해 renderer cookie/cache와 분리하고, Chromium이 OS의 인증서·proxy 설정을 적용한다. Custom protocol handler는 우회하며 인증서 검증을 끄지 않는다. 테스트의 명시적인 fetch 주입은 유지한다.

@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-14
 rationale: 지원 환경의 관측 사실과 OS 보장·배포 gate를 구분하고 불명확한 token의 재사용을 차단한다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
 exceptions: 실제 credential/keychain·protocol registry·OAuth app 설정과 packaged E2E는 수행하지 않는다.
@@ -118,6 +118,24 @@ Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pendin
 
 Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopback은 listener/port/lifecycle과 현재 return registry 형태에 대한 별도 결정을 요구한다. 실제 private protocol을 안정적으로 등록할 수 없는 배포를 선택한다면 해당 대안과 서버 registry 영향부터 별도 승인받는다. 임의 loopback redirect나 manual token/code 붙여넣기를 fallback으로 추가하지 않는다.
 
+### 로컬 개발용 등록값
+
+사용자가 선택한 `ldb.dev://auth/callback`은 로컬 개발용 복귀 주소이며 placeholder가 아니다. [PR #455](https://github.com/blahaj94/ldb/pull/455)는 이 선택에 맞춘 아래 개발 tuple과 적용 범위를 채택 대상으로 포함한다. 사용자 merge 후 활성화하며 운영 배포의 namespace·identity·서명 선택이나 다른 작업의 미결정 gate를 대신하지 않는다.
+
+| 항목 | 로컬 개발 구성 |
+| --- | --- |
+| 환경·대상 | `development`, 사용자가 지정한 Windows 개발 컴퓨터의 현재 사용자, x64 NSIS |
+| API·provider | 같은 컴퓨터의 `https://localhost:3443`, Google |
+| Provider callback | `https://localhost:3443/auth/callback/google` |
+| 앱 복귀 | `ldb.dev://auth/callback` |
+| 개발 앱 identity·profile | `ldb.dev`, Electron `appData` 아래의 `ldb.dev` |
+
+이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `ldb.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 LDB 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 active registry의 API·provider callback·return target 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
+
+빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. Windows profile·namespace·DPAPI·복구 capability와 실제 Google 로그인 검증도 이 등록값 선택으로 해소되지 않는다.
+
+### 공통 진입점
+
 | 진입점 | 등록·처리 계약 | 미확인 gate |
 | --- | --- | --- |
 | macOS | main entry에서 ready 이전 `open-url` listener 등록 및 preventDefault. Bundle `CFBundleURLTypes`에 승인 target의 scheme 선언. OS event를 단일 validator로 전달 | Packaged/installed cold·warm·창 없음, 서명/업데이트, 여러 bundle의 association 충돌 |
@@ -169,7 +187,7 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 | --- | --- | --- |
 | Rule 승인 | 3개 문서의 main/IPC/UI·lifecycle·저장/protocol contract에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475) | 승인됨, PR #60 사용자 merge 완료. 제품 구현·실제 OS 검증과 별개 |
 | 사용자 배포 선택 | 최초 출시 OS·minimum version·architecture와 Linux 포함 시 package 종류 | 세 OS build 설정은 관측했지만 실제 지원 약속은 미결정. Windows 우선 등을 게임 맥락만으로 추정하지 않음 |
-| 실제 등록값 | API HTTPS origin, provider HTTPS callbacks/config version, owned scheme/target, app/bundle identity·서명/공증, dev/prod 분리 | Placeholder 채택 금지. Server registry와 OS package의 동일 tuple 확인 필요 |
+| 실제 등록값 | API HTTPS origin, provider HTTPS callbacks/config version, owned scheme/target, app/bundle identity·서명/공증, dev/prod 분리 | 로컬 개발은 위 개발 tuple과 설치 전 확인 조건을 따른다. 운영 등록값은 미정이며 placeholder 채택 금지와 server registry·OS package 일치 조건을 유지한다. |
 | OS 실행 evidence | secret backend/권한/prompt·durability·protocol association·업데이트/복구 | 모든 native 인증 동작 미검증. 실패 platform을 성공 matrix에 포함하지 않음 |
 | 서버 선행 | login request/exchange/provider/refresh/logout/`GET /me` 구현·연동, Discord PKCE gate | PR #53은 DB 기반 완료이며 endpoint 전체 구현 완료로 해석하지 않음. #54와 후속 task의 결과 필요 |
 
