@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop authentication capture integration and isolated media fixture
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-15
 ---
 
 # Desktop Auth Capture
@@ -17,7 +17,7 @@ last-reviewed: 2026-09-12
 | `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                           | 실제 coordinator를 등록하고 source 열거·선택·media 완료의 auth/window/document 수명을 확인한다. 선택 무효화, trusted 빈 선택 cleanup, 안정화 통지의 현재 main 권한과 raw log 제거를 담당한다.                   |
 | `apps/desktop/src/backend/renderer-document.ts`                                                                             | 개발 URL은 HTTP(S)의 exact `localhost`, `127.0.0.1`, `[::1]`과 canonical 입력만 허용한다. Credential·공백·control·backslash·host alias를 거절하고 Electron Vite가 제공하는 slash 없는 bare origin만 정규화한다. |
 | `apps/desktop/src/backend/main.ts`                                                                                          | 검증한 renderer URL, sandbox·contextIsolation 활성화, nodeIntegration 비활성화와 navigation/popup 차단을 구성한다. 모든 window에 exact document/capture 경계를 연결하고 capture IPC를 등록하되, trusted auth runtime이 있을 때만 auth IPC와 coordinator/search authority를 추가한다. |
-| `apps/desktop/src/backend/capture/permission-policy.ts`                                                                     | 제품 default session의 media permission check와 request를 모두 명시적으로 거절한다. Fixture 전용 빈 `mediaTypes` 예외는 이 module로 이전하지 않는다.                  |
+| `apps/desktop/src/backend/capture/permission-policy.ts`                                                                     | Media check와 기본 request를 거절한다. Windows의 구성된 제품 runtime에서는 별도 제품 정책에 따라 빈 media request를 현재 인증·선택·capture 수명당 한 번 허용하며 fixture 예외와 구분한다.                  |
 | `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                                           | auth/capture와 검색 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
 | `apps/desktop/src/frontend/src/App.tsx`, `auth/AuthBridge.tsx`, `auth/AuthPresentation.tsx`                                 | 실제 제품 App이 AuthBridge의 home content로 기존 PartyCapture를 전달한다. Welcome·인증 처리·연결 실패 화면에서는 capture를 mount하지 않는다.                                                                    |
 | `apps/desktop/src/frontend/src/capture/PartyCapture.tsx`                                                                    | 기존 source/interval·Start/Stop·인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
@@ -27,7 +27,7 @@ Capture generation은 main 내부 값이며 snapshot/IPC payload로 추가하지
 
 ## 권한과 수명
 
-Source 요청의 시작 및 비동기 완료에서 등록 window·sender·main frame·exact document와 현재 auth generation을 검사한다. Media는 기존 video 요청·audio 미요청·user gesture·선택 source 존재 검사도 적용한다. 완료 전에 logout, 선택 해제, navigation 또는 window 변경이 일어나면 이전 stream을 허용하지 않는다.
+Source 요청의 시작 및 비동기 완료에서 등록 window·sender·main frame·exact document와 현재 auth generation을 검사한다. 정상 display handler는 기존 video 요청·audio 미요청·user gesture·선택 source 존재 검사도 적용한다. [Windows 제품 권한 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)의 legacy API 한계는 별개이며 이 검사가 모든 renderer 캡처 경로를 통제한다는 뜻은 아니다. 완료 전에 logout, 선택 해제, navigation 또는 window 변경이 일어나면 이전 stream을 허용하지 않는다.
 
 Renderer는 accepted signedIn 이탈을 별도 presentation epoch로 기록하므로 React가 이탈과 재로그인을 한 render로 합쳐도 이전 capture를 재사용하지 않는다. Main runId가 바뀐 빠른 재연결도 mount key를 바꾸며, 같은 signedIn의 일반 revision 갱신은 capture를 재시작하지 않는다.
 
