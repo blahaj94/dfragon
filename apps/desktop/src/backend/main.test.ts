@@ -25,6 +25,8 @@ const mocks = vi.hoisted(() => ({
   ),
   disposeIngress: vi.fn(),
   createEffects: vi.fn(),
+  searchClock: {},
+  createSearchClock: vi.fn(),
   bindPowerMonitor: vi.fn(),
   disposePowerMonitor: vi.fn(),
   powerMonitor: { on: vi.fn(), removeListener: vi.fn() },
@@ -63,7 +65,6 @@ const mocks = vi.hoisted(() => ({
     | {
         coordinator: typeof mocks.coordinator
         apiOrigin: string
-        searchClock: object
         start: ReturnType<typeof vi.fn>
       }
     | undefined
@@ -170,11 +171,14 @@ beforeEach(() => {
   mocks.runtime = {
     coordinator: mocks.coordinator,
     apiOrigin: 'https://api.synthetic.test',
-    searchClock: {},
     start: vi.fn(async () => undefined)
   }
   mocks.bindPowerMonitor.mockReturnValue(mocks.disposePowerMonitor)
-  mocks.createEffects.mockReturnValue({ bindPowerMonitor: mocks.bindPowerMonitor })
+  mocks.createSearchClock.mockReturnValue(mocks.searchClock)
+  mocks.createEffects.mockReturnValue({
+    bindPowerMonitor: mocks.bindPowerMonitor,
+    createSearchClock: mocks.createSearchClock
+  })
   mocks.getPath.mockImplementation(() => process.env['LDB_AUTH_USER_DATA_PATH'] ?? '')
   mocks.bootstrapAuth.mockResolvedValue(mocks.runtime)
   mocks.registerAuth.mockReturnValue(vi.fn())
@@ -367,7 +371,8 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     returnTarget: 'ldb-synthetic://auth/return'
   })
   expect(mocks.selectIngressArguments).toHaveBeenCalledExactlyOnceWith(process.argv, false)
-  expect(mocks.createEffects).toHaveBeenCalledExactlyOnceWith()
+  expect(mocks.createEffects.mock.calls).toEqual([[], []])
+  expect(mocks.createSearchClock).toHaveBeenCalledExactlyOnceWith()
   expect(mocks.bootstrapAuth).toHaveBeenCalledExactlyOnceWith({
     config: appliedConfig,
     effects,
@@ -401,9 +406,9 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   )?.[1] as (event: { preventDefault(): void }) => void
   preventNavigation({ preventDefault })
   expect(preventDefault).toHaveBeenCalledOnce()
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(mocks.coordinator, {
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
     apiOrigin: 'https://api.synthetic.test',
-    clock: mocks.runtime?.searchClock
+    clock: mocks.searchClock
   })
   expect(mocks.registerWindow).toHaveBeenCalledExactlyOnceWith(
     expect.anything(),
@@ -954,10 +959,15 @@ it('does not activate product auth for the unresolved Discord provider gate', as
   await mocks.bootstrap
 
   expect(mocks.createIngress).not.toHaveBeenCalled()
-  expect(mocks.createEffects).not.toHaveBeenCalled()
+  expect(mocks.bindPowerMonitor).not.toHaveBeenCalled()
   expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
   expect(mocks.setPath).not.toHaveBeenCalled()
+  expect(mocks.createSearchClock).toHaveBeenCalledExactlyOnceWith()
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
+    apiOrigin: 'https://api.synthetic.test',
+    clock: mocks.searchClock
+  })
 })
 
 it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 시작하지 않는다', async () => {
@@ -1531,18 +1541,19 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
 })
 
 it.each([
-  { platform: 'win32', configured: true, allowed: true },
-  { platform: 'win32', configured: false, allowed: false },
-  { platform: 'darwin', configured: true, allowed: false },
-  { platform: 'linux', configured: true, allowed: false }
-])('product permission composition: %j', async ({ platform, configured, allowed }) => {
+  { platform: 'win32', configured: true, hasCapture: true, allowed: true },
+  { platform: 'win32', configured: false, hasCapture: true, allowed: true },
+  { platform: 'win32', configured: false, hasCapture: false, allowed: false },
+  { platform: 'darwin', configured: true, hasCapture: true, allowed: false },
+  { platform: 'linux', configured: true, hasCapture: true, allowed: false }
+])('product permission composition: %j', async ({ platform, configured, hasCapture, allowed }) => {
   const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
   Object.defineProperty(process, 'platform', { value: platform })
   try {
     if (configured) {
       stubTrustedRuntimeEnvironment()
     }
-    mocks.consumeCaptureMediaPermission.mockReturnValue(true)
+    mocks.consumeCaptureMediaPermission.mockReturnValue(hasCapture)
     await import('./main')
     await mocks.bootstrap
     const callback = vi.fn()
@@ -1554,8 +1565,8 @@ it.each([
     })
 
     expect(callback).toHaveBeenCalledExactlyOnceWith(allowed)
-    expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledTimes(allowed ? 1 : 0)
-    if (allowed) {
+    expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledTimes(platform === 'win32' ? 1 : 0)
+    if (platform === 'win32') {
       expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledWith(
         contents,
         'file:///fixture/index.html'
