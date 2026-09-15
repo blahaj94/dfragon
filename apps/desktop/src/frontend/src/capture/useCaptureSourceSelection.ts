@@ -25,10 +25,9 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
           setSources(nextSources)
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (!cancelled) {
-          const isError = error instanceof Error
-          setStatus(isError ? error.message : 'Could not list windows.')
+          setStatus('창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 앱을 다시 열어 주세요.')
         }
       })
     return () => {
@@ -44,6 +43,9 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
     registeredSourceIdRef.current = null
     setSelectedSourceId(sourceId)
     setSourceRegistered(false)
+    setStatus(
+      sourceId.length > 0 ? '게임 창 선택을 확인하고 있습니다.' : '캡처할 게임 창을 선택해 주세요.'
+    )
     void window.api
       .selectCaptureSource(sourceId)
       .then(() => {
@@ -60,13 +62,13 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
         if (hasCurrentSelection) {
           registeredSourceIdRef.current = sourceId
           setSourceRegistered(true)
+          setStatus('게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.')
         }
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         const hasCurrentGeneration = selectionGeneration === selectionGenerationRef.current
         if (hasCurrentGeneration) {
-          const isError = error instanceof Error
-          setStatus(isError ? error.message : 'Could not select the window.')
+          setStatus('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
         }
       })
   }

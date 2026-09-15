@@ -45,7 +45,7 @@ export function usePartyCaptureSession({
   const startingRef = useRef(false)
   const sessionRef = useRef<CaptureSession | null>(null)
 
-  function stopCapture(nextStatus = 'Capture stopped.'): void {
+  function stopCapture(nextStatus = '캡처를 중지했습니다.'): void {
     releaseSession(sessionRef.current)
     sessionRef.current = null
     startingRef.current = false
@@ -69,7 +69,7 @@ export function usePartyCaptureSession({
     }
     const isSourceRegistered = isSelectedSourceRegistered()
     if (!isSourceRegistered) {
-      setStatus('Wait until the selected window is registered.')
+      setStatus('게임 창 선택을 확인하고 있습니다. 잠시 후 캡처를 시작해 주세요.')
       return
     }
 
@@ -84,14 +84,18 @@ export function usePartyCaptureSession({
     startingRef.current = true
     setStarting(true)
     const { signal } = session.controller
+    let failureMessage = '검색을 시작하지 못했습니다. 창을 다시 선택해 주세요.'
+    setStatus('캡처를 준비하고 있습니다.')
     try {
       const captureId = await beginSearch(signal)
       signal.throwIfAborted()
       const hasCapture = captureId != null
       if (!hasCapture) {
-        throw new Error('검색을 시작하지 못했습니다. 창을 다시 선택해 주세요.')
+        throw new Error(failureMessage)
       }
       startingRef.current = false
+      failureMessage =
+        '캡처를 시작하지 못했습니다. 게임이 최소화되지 않았는지 확인하고 창을 다시 선택해 주세요.'
       const stream = await navigator.mediaDevices.getDisplayMedia({
         audio: false,
         video: {
@@ -105,10 +109,16 @@ export function usePartyCaptureSession({
       const track = stream.getVideoTracks()[0]
       const hasTrack = track != null
       if (!hasTrack) {
-        throw new Error('The selected window did not provide a video track.')
+        failureMessage = '선택한 창에서 영상을 받지 못했습니다. 게임 창을 다시 선택해 주세요.'
+        throw new Error(failureMessage)
       }
 
-      track.addEventListener('ended', () => stopCapture('Capture ended.'), { once: true, signal })
+      track.addEventListener(
+        'ended',
+        () =>
+          stopCapture('게임 창의 영상이 종료되었습니다. 창을 다시 선택하고 캡처를 시작해 주세요.'),
+        { once: true, signal }
+      )
 
       const video = document.createElement('video')
       session.video = video
@@ -118,19 +128,24 @@ export function usePartyCaptureSession({
         signal.addEventListener('abort', () => resolve(), { once: true })
       })
       video.srcObject = stream
+      failureMessage = '게임 영상을 재생하지 못했습니다. 게임 창을 확인하고 다시 시작해 주세요.'
       await video.play()
       await metadataLoaded
       signal.throwIfAborted()
       const hasSupportedWidth = video.videoWidth === SUPPORTED_WIDTH
       if (!hasSupportedWidth) {
-        throw new Error(`Unsupported capture layout: ${video.videoWidth}×${video.videoHeight}.`)
+        failureMessage = `지원하지 않는 영상 크기입니다: ${video.videoWidth}×${video.videoHeight}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
+        throw new Error(failureMessage)
       }
       const hasSupportedHeight = video.videoHeight === SUPPORTED_HEIGHT
       const hasSupportedLayout = hasSupportedWidth && hasSupportedHeight
       if (!hasSupportedLayout) {
-        throw new Error(`Unsupported capture layout: ${video.videoWidth}×${video.videoHeight}.`)
+        failureMessage = `지원하지 않는 영상 크기입니다: ${video.videoWidth}×${video.videoHeight}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
+        throw new Error(failureMessage)
       }
 
+      failureMessage = '글자 인식을 준비하지 못했습니다. 캡처를 다시 시작해 주세요.'
+      setStatus('글자 인식을 준비하고 있습니다. 잠시 기다려 주세요.')
       const worker = await createPartyOcrWorker(signal)
       session.worker = worker
       signal.throwIfAborted()
@@ -139,23 +154,23 @@ export function usePartyCaptureSession({
         signal,
         getIntervalMs: () => intervalSecondsRef.current * 1000,
         runCycle: () => recognizePartyNicknames(video, worker, signal)
-      }).catch((error: unknown) => {
+      }).catch(() => {
         const isCaptureActive = !signal.aborted
         if (isCaptureActive) {
-          const isError = error instanceof Error
-          stopCapture(isError ? error.message : 'Party OCR failed.')
+          stopCapture(
+            '글자 인식에 실패해 캡처를 중지했습니다. 다시 시작하거나 캐릭터 직접 검색을 사용해 주세요.'
+          )
         }
       })
       startingRef.current = false
       setStarting(false)
-      setStatus(`Capture ready at ${video.videoWidth}×${video.videoHeight}.`)
-    } catch (error) {
+      setStatus(`캡처 중 · ${video.videoWidth}×${video.videoHeight}`)
+    } catch {
       if (signal.aborted) {
         // 취소 후 반환된 stream/worker도 이 session에서 정리한다.
         releaseSession(session)
       } else {
-        const isError = error instanceof Error
-        stopCapture(isError ? error.message : 'Could not start capture.')
+        stopCapture(failureMessage)
       }
     }
   }

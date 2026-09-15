@@ -68,7 +68,7 @@ afterEach(async () => {
 })
 function startButton(): HTMLButtonElement {
   const start = Array.from(container.querySelectorAll('button')).find(
-    (button) => button.textContent === 'Start'
+    (button) => button.textContent === '캡처 시작'
   )
   expect(start).toBeDefined()
   return start!

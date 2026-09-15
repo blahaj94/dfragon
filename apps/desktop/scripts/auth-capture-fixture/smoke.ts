@@ -21,7 +21,7 @@ const sourcePresenceInspection = `(() => {
 
 const disabledStartInspection = `(() => {
   const hasDisabledStart = [...document.querySelectorAll('button')].some(button => {
-    const isStart = button.textContent === 'Start';
+    const isStart = button.textContent === '캡처 시작';
     const isDisabledStart = isStart && button.disabled;
     return isDisabledStart;
   });
@@ -46,7 +46,7 @@ function createDisplayInspectionSource(): string {
         ?.split('\\n') ?? [];
       let matchedSlots = 0;
       for (let slot = 0; slot < 4; slot += 1) {
-        const isExpectedDisplay = lines.includes('Slot ' + (slot + 1) + ': ALICE');
+        const isExpectedDisplay = lines.includes('슬롯 ' + (slot + 1) + ': ALICE');
         if (isExpectedDisplay) {
           matchedSlots |= 1 << slot;
         }
@@ -76,14 +76,14 @@ export async function smoke(
   assert.equal((await observe()).requests, 0)
 
   console.log('Capture fixture step: real-media-and-ocr')
-  await click('Start')
+  await click('캡처 시작')
   await until(async () => {
     const state = await observe()
     const isMediaReady = state.streams === 1
     return isMediaReady
   }, 20_000)
   console.log('Capture fixture actual stream acquired')
-  await until(() => hasText('Capture ready at 1920×1080.'), 30_000)
+  await until(() => hasText('캡처 중 · 1920×1080'), 30_000)
   console.log('Capture fixture actual OCR worker ready')
   let displayMatchedSlots = 0
   await until(async () => {
@@ -126,10 +126,10 @@ export async function smoke(
   await until(() => hasText('Google로 계속하기'))
   assert.equal((await observe()).ended, false)
   assert.equal((await observe()).terminated, 0)
-  assert.equal(await hasText('Slot 1: ALICE'), true)
+  assert.equal(await hasText('슬롯 1: ALICE'), true)
 
   console.log('Capture fixture step: stop-cleanup')
-  await click('Stop')
+  await click('캡처 중지')
   await until(async () => {
     const state = await observe()
     const hasOneStop = state.stops === 1
@@ -140,7 +140,7 @@ export async function smoke(
     return hasCompletedCleanup
   })
   assert.equal((await observe()).clearedVideos, 1)
-  assert.equal(await hasText('Slot 1:'), false)
+  assert.equal(await hasText('슬롯 1:'), false)
   assert.equal(await evaluate(sourcePresenceInspection), true)
 
   const stopped = await observe()
@@ -155,7 +155,7 @@ export async function smoke(
   assert.equal(await evaluate(disabledStartInspection), false)
   assert.equal((await observe()).requests, 1)
   assert.equal((await observe()).workers, 1)
-  assert.equal(await hasText('Slot 1:'), false)
+  assert.equal(await hasText('슬롯 1:'), false)
   // Stop 이후에는 새 Start 없이 getDisplayMedia를 허용하지 않는다.
   assert.equal(await evaluate(unselectedMediaRequest, true), true)
   assert.equal((await observe()).streams, 1)

@@ -173,6 +173,52 @@ afterEach(() => {
 })
 
 describe('usePartyCapture', () => {
+  it('창 목록과 선택 실패는 내부 오류 대신 복구 안내를 표시한다', async () => {
+    api.listCaptureSources.mockRejectedValueOnce(new Error('synthetic internal detail'))
+    const hook = await renderPartyCaptureHook()
+    expect(hook.getCurrent().status).toBe(
+      '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 앱을 다시 열어 주세요.'
+    )
+
+    api.selectCaptureSource.mockRejectedValueOnce(new Error('synthetic internal detail'))
+    await act(async () => hook.getCurrent().selectSource('synthetic-window'))
+    expect(hook.getCurrent().status).toBe('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
+    expect(hook.getCurrent().sourceRegistered).toBe(false)
+    await hook.unmount()
+  })
+
+  it.each(['media', 'worker'] as const)(
+    '%s 준비 실패를 구분하고 자원을 정리한다',
+    async (stage) => {
+      const { stream, track, worker } = captureResources()
+      getDisplayMedia.mockResolvedValue(stream)
+      moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+      vi.mocked(HTMLMediaElement.prototype.play).mockImplementation(async function (
+        this: HTMLMediaElement
+      ) {
+        loadVideoMetadata(this)
+      })
+      const failure = new Error('synthetic internal detail')
+      if (stage === 'media') {
+        getDisplayMedia.mockRejectedValueOnce(failure)
+      } else {
+        moduleMocks.createPartyOcrWorker.mockRejectedValueOnce(failure)
+      }
+      const hook = await renderPartyCaptureHook()
+      await act(async () => hook.getCurrent().selectSource('synthetic-window'))
+      await act(async () => hook.getCurrent().startCapture())
+      expect(hook.getCurrent().status).toBe(
+        stage === 'media'
+          ? '캡처를 시작하지 못했습니다. 게임이 최소화되지 않았는지 확인하고 창을 다시 선택해 주세요.'
+          : '글자 인식을 준비하지 못했습니다. 캡처를 다시 시작해 주세요.'
+      )
+      expect(hook.getCurrent().starting).toBe(false)
+      expect(hook.getCurrent().search.captureActive).toBe(false)
+      expect(track.stop).toHaveBeenCalledTimes(stage === 'worker' ? 1 : 0)
+      await hook.unmount()
+    }
+  )
+
   it('manual slot edits suppress OCR submissions until resume, and Stop resets the override', async () => {
     const { stream, worker, track } = captureResources()
     getDisplayMedia.mockResolvedValue(stream)
@@ -238,7 +284,9 @@ describe('usePartyCapture', () => {
     act(() => hook.getCurrent().selectSource('new'))
     await act(async () => hook.getCurrent().startCapture())
 
-    expect(hook.getCurrent().status).toBe('Wait until the selected window is registered.')
+    expect(hook.getCurrent().status).toBe(
+      '게임 창 선택을 확인하고 있습니다. 잠시 후 캡처를 시작해 주세요.'
+    )
 
     oldSelection.resolve(null)
     await flushPromises()
@@ -279,7 +327,7 @@ describe('usePartyCapture', () => {
         width: { ideal: 1920 }
       }
     })
-    expect(hook.getCurrent().status).toBe('Capture ready at 1920×1080.')
+    expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
     expect(worker.recognize).not.toHaveBeenCalled()
     expect(loopOptions?.getIntervalMs()).toBe(3000)
 
@@ -302,7 +350,7 @@ describe('usePartyCapture', () => {
     expect(track.stop).toHaveBeenCalledOnce()
     expect(worker.terminate).toHaveBeenCalledOnce()
     expect(hook.getCurrent().stableNicknames).toEqual([null, null, null, null])
-    expect(hook.getCurrent().status).toBe('Capture stopped.')
+    expect(hook.getCurrent().status).toBe('캡처를 중지했습니다.')
     expect(loopOptions?.signal.aborted).toBe(true)
 
     await hook.unmount()
@@ -368,7 +416,7 @@ describe('usePartyCapture', () => {
     await act(async () => hook.getCurrent().startCapture())
 
     expect(hook.getCurrent().status).toBe(
-      `Unsupported capture layout: ${dimensions.width}×${dimensions.height}.`
+      `지원하지 않는 영상 크기입니다: ${dimensions.width}×${dimensions.height}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
     )
     expect(track.stop).toHaveBeenCalledOnce()
     expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
@@ -417,7 +465,7 @@ describe('usePartyCapture', () => {
       expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
       if (hasNextHook) {
         expect(nextHook.getCurrent().stableNicknames).toEqual([null, null, null, null])
-        expect(nextHook.getCurrent().status).toBe('Capture ready at 1920×1080.')
+        expect(nextHook.getCurrent().status).toBe('캡처 중 · 1920×1080')
         await nextHook.unmount()
       }
       expect(api.selectCaptureSource).toHaveBeenLastCalledWith('')
@@ -476,7 +524,11 @@ describe('usePartyCapture', () => {
       expect(video.pause).toHaveBeenCalledOnce()
       expect(video.srcObject).toBeNull()
       expect(worker.terminate).toHaveBeenCalledOnce()
-      expect(hook.getCurrent().status).toBe(isTrackEnded ? 'Capture ended.' : 'Party OCR failed.')
+      expect(hook.getCurrent().status).toBe(
+        isTrackEnded
+          ? '게임 창의 영상이 종료되었습니다. 창을 다시 선택하고 캡처를 시작해 주세요.'
+          : '글자 인식에 실패해 캡처를 중지했습니다. 다시 시작하거나 캐릭터 직접 검색을 사용해 주세요.'
+      )
       await hook.unmount()
       expect(track.stop).toHaveBeenCalledOnce()
       expect(worker.terminate).toHaveBeenCalledOnce()
@@ -584,7 +636,7 @@ describe('usePartyCapture', () => {
     expect(current.track.stop).not.toHaveBeenCalled()
     expect(current.worker.terminate).not.toHaveBeenCalled()
     expect(moduleMocks.runSerialLoop).toHaveBeenCalledOnce()
-    expect(hook.getCurrent().status).toBe('Capture ready at 1920×1080.')
+    expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
     await hook.unmount()
   })
 
@@ -623,7 +675,7 @@ describe('usePartyCapture', () => {
       expect(current.track.stop).not.toHaveBeenCalled()
       expect(current.worker.terminate).not.toHaveBeenCalled()
       expect(moduleMocks.runSerialLoop).toHaveBeenCalledOnce()
-      expect(hook.getCurrent().status).toBe('Capture ready at 1920×1080.')
+      expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
       previous.track.dispatchEvent(new Event('ended'))
       expect(current.track.stop).not.toHaveBeenCalled()
       await hook.unmount()
@@ -668,7 +720,9 @@ describe('usePartyCapture', () => {
     expect(track.stop).toHaveBeenCalledOnce()
     expect(video.pause).toHaveBeenCalledOnce()
     expect(video.srcObject).toBeNull()
-    expect(hook.getCurrent().status).toBe('Playback failed.')
+    expect(hook.getCurrent().status).toBe(
+      '게임 영상을 재생하지 못했습니다. 게임 창을 확인하고 다시 시작해 주세요.'
+    )
     expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
     await hook.unmount()
   })
@@ -684,7 +738,9 @@ describe('usePartyCapture', () => {
     await act(async () => hook.getCurrent().startCapture())
 
     expect(track.stop).toHaveBeenCalledOnce()
-    expect(hook.getCurrent().status).toBe('The selected window did not provide a video track.')
+    expect(hook.getCurrent().status).toBe(
+      '선택한 창에서 영상을 받지 못했습니다. 게임 창을 다시 선택해 주세요.'
+    )
     expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
     await hook.unmount()
   })

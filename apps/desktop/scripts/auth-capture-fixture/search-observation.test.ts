@@ -51,10 +51,10 @@ beforeEach(async () => {
     value: () => ({ matches: true })
   })
   const controls =
-    '<select><option value="synthetic-private-source">Synthetic</option></select><button>Start</button><pre></pre><div id="results"></div>'
+    '<select><option value="synthetic-private-source">Synthetic</option></select><button>캡처 시작</button><pre></pre><div id="results"></div>'
   document.body.innerHTML = controls
   document.querySelector('pre')!.textContent = [1, 2, 3, 4]
-    .map((slot) => `Slot ${slot}: ALICE`)
+    .map((slot) => `슬롯 ${slot}: ALICE`)
     .join('\n')
   const row = {
     characterId: 'synthetic-character',

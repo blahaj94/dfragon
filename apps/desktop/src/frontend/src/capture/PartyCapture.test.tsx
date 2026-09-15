@@ -40,6 +40,6 @@ describe('PartyCapture', () => {
   })
 
   it('preserves status and slot order while omitting null and empty lines', () => {
-    expect(container.querySelector('pre')?.textContent).toBe('Capture ready.\nSlot 3: Alice')
+    expect(container.querySelector('pre')?.textContent).toBe('Capture ready.\n슬롯 3: Alice')
   })
 })
