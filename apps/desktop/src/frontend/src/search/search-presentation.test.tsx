@@ -75,11 +75,73 @@ it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후�
     candidates.textContent!.indexOf(second.characterId)
   )
   expect(candidates.querySelector('b')).toBeNull()
+  expect(candidates.querySelector('[role="status"]')?.textContent).toBe('검색 결과 2명')
+  expect([...candidates.querySelectorAll('details')].map((details) => details.open)).toEqual([
+    false,
+    false
+  ])
+  expect(candidates.querySelector('summary')?.getAttribute('aria-label')).toContain(
+    searchRow.serverName
+  )
   expect(candidates.textContent).not.toContain('undefined')
   expect(region(fixture, 2).textContent).toContain('검색 결과가 없습니다.')
   expect(region(fixture, 3).textContent).toContain(SEARCH_ERRORS.SEARCH_RESPONSE_INVALID.message)
   expect(region(fixture, 3).textContent).not.toContain('검색 결과가 없습니다.')
   expect(fixture.button('다시 시도', region(fixture, 3)).disabled).toBe(false)
+})
+
+it('검색 상태와 결과 수는 같은 status 영역에서 갱신하고 후보 목록은 밖에 표시한다', async () => {
+  const fixture = await recognized()
+  await emitSlot(fixture, searchSlot())
+  const status = region(fixture).querySelector('[role="status"]')
+  expect(status?.textContent).toBe('검색 중')
+
+  for (const slot of [
+    searchSlot({ state: 'success', rows: [searchRow] }),
+    searchSlot(),
+    searchSlot({ state: 'empty' })
+  ]) {
+    await emitSlot(fixture, slot)
+    expect(region(fixture).querySelectorAll('[role="status"]')).toHaveLength(1)
+    expect(region(fixture).querySelector('[role="status"]')).toBe(status)
+    expect(status?.textContent).toBe(
+      slot.state === 'success'
+        ? '검색 결과 1명'
+        : slot.state === 'pending'
+          ? '검색 중'
+          : '검색 결과가 없습니다.'
+    )
+    const candidates = region(fixture).querySelector('[aria-label="캐릭터 검색 후보"]')
+    if (slot.state === 'success') {
+      expect(candidates).not.toBeNull()
+      expect(status?.contains(candidates)).toBe(false)
+    } else {
+      expect(candidates).toBeNull()
+    }
+  }
+})
+
+it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별한다', async () => {
+  const fixture = await recognized()
+  await emitSlot(
+    fixture,
+    searchSlot({
+      state: 'success',
+      rows: [125850, 0, -0.25, 0.00001, null].map((fame, index) => ({
+        ...searchRow,
+        characterId: `synthetic-${index}`,
+        fame
+      }))
+    })
+  )
+  const values = region(fixture).querySelectorAll('.character-candidates__fame dd')
+  expect([...values].map((value) => value.textContent)).toEqual([
+    '125,850',
+    '0',
+    '-0.25',
+    '0.00001',
+    '정보 없음'
+  ])
 })
 
 const failures = Object.keys(SEARCH_ERRORS) as SearchErrorCode[]
