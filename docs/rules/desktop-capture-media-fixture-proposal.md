@@ -2,19 +2,19 @@
 type: rule
 status: active
 enforcement: approval-required
-scope: Issue 126 isolated desktop capture media fixture only
+scope: Windows product capture permission and Issue 126 isolated media fixture
 last-reviewed: 2026-09-15
 rationale: 고정된 검증 화면에서 실제 media와 OCR 연결을 관측하되 Electron 권한 정보의 한계를 제품 보안 보장과 구분한다.
 evidence: "PR #135 사용자 승인: https://github.com/blahaj94/ldb/pull/135#issuecomment-5578416858 ; 사용자 merge: 489e4aac61cffd0a6540c558e1e61a6361dd1036 ; Issue #126 판단: https://github.com/blahaj94/ldb/issues/126#issuecomment-5572323933 ; Electron 39.8.10 공식 source"
-exceptions: 승인 범위는 아래 전용 fixture에 한정되며 그 밖의 media 허용에는 적용하지 않는다.
+exceptions: Fixture 승인은 해당 fixture에만 적용한다. Windows 제품 정책은 아래 별도 사용자 선택과 PR 범위를 따른다.
 review-after: 최초 실제 media/OCR 관측 후 또는 Electron version·fixture 문서·권한 경계 변경 전
 ---
 
-# Desktop capture 실제 media 검증 허용안
+# Desktop capture media 권한과 격리 검증
 
 ## Windows 제품 캡처 정책
 
-이 절은 기존 fixture 승인을 확장한 것으로 간주하지 않는다. 사용자는 2026-09-15 개발 요청에서 아래 legacy API 한계를 수용하고 Windows 제품의 제한된 허용안 구현·설치·검증을 허용했다. 이 작업의 구현·검증에 적용하며, 같은 PR의 사용자 merge로 다른 작업에도 활성화한다.
+이 절은 기존 fixture 승인을 확장한 것으로 간주하지 않는다. 사용자는 2026-09-15 개발 요청에서 아래 legacy API 한계를 수용하고 Windows 제품의 제한된 허용안 구현·설치·검증을 허용했다. 이 작업의 구현·검증에 적용하며, [PR #462](https://github.com/blahaj94/ldb/pull/462)의 사용자 merge로 다른 작업에도 활성화한다.
 
 - Windows 제품의 등록된 main window, 살아 있고 attached 상태인 exact local main document, main의 현재 signedIn/auth·window·source generation과 유효한 capture 수명을 모두 확인한다. Source 선택과 `begin` 뒤 해당 capture당 media request를 한 번만 허용한다. Stop·인증 이탈·source 변경·navigation·창 종료로 무효화된 수명에는 허용하지 않는다.
 - `media`, `isMainFrame:true`, exact `requestingUrl`, 존재하는 빈 `mediaTypes` 배열만 후보로 받는다. Camera/microphone, 다른 permission, media check는 계속 거절한다. 미구성 인증과 Windows 외 제품 entry도 계속 거절한다.
@@ -74,4 +74,4 @@ Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관�
 
 **대안은 fixture도 media를 계속 거절하고, unit/auth UI·cleanup·실제 OCR asset 검증까지만 완료하는 것이다.** 권한 예외가 없지만 실제 media/OCR 연결 AC는 미완료로 남는다. API 종류·source·gesture를 신뢰할 수 있게 구별하는 runtime/API 또는 architecture 결정을 후속 승인한 뒤 결합 검증을 재개한다. Runtime 교체나 새 dependency는 이 대안의 자동 승인 사항이 아니다.
 
-권장안이 승인되고 실제 관측이 성공해도 production의 모든 renderer capture 경로에 대한 source/gesture 통제는 미해결이다. 후속 production media 허용 전에 이 경계를 별도로 해결해야 한다. OS 화면 기록 권한 실패를 우회하거나 권한 설정을 자동 변경하지 않으며 실행 불가로 기록한다. 실제 인증·저장·protocol·provider 및 package 실행은 [플랫폼의 배포 구성과 실행 조건](desktop-auth-platform.md#배포-구성과-실행-조건)을 따른다.
+권장안이 승인되고 실제 관측이 성공해도 production의 모든 renderer capture 경로에 대한 source/gesture 통제는 미해결이다. 위 Windows 제품 정책은 이 한계를 수용한 별도 선택이다. 그 밖의 제품 media 허용에는 이 fixture 승인을 적용하지 않는다. OS 화면 기록 권한 실패를 우회하거나 권한 설정을 자동 변경하지 않으며 실행 불가로 기록한다. 실제 인증·저장·protocol·provider 및 package 실행은 [플랫폼의 배포 구성과 실행 조건](desktop-auth-platform.md#배포-구성과-실행-조건)을 따른다.
