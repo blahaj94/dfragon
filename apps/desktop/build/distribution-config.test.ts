@@ -33,9 +33,11 @@ it.each([
   )
 })
 
-it.each(['https://api.example.test.', 'https://[::ffff:7eff:ffff]', 'https://[::ffff:8000:0]'])(
-  'preserves canonical non-loopback origins',
-  (origin) => {
-    expect(readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
-  }
-)
+it.each([
+  'https://api.example.test.',
+  'https://127.example.test',
+  'https://[::ffff:7eff:ffff]',
+  'https://[::ffff:8000:0]'
+])('preserves canonical non-loopback origins', (origin) => {
+  expect(readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
+})

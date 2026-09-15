@@ -16,7 +16,7 @@ export function readDistributionApiOrigin(
     if (
       hostname === 'localhost' ||
       hostname.endsWith('.localhost') ||
-      hostname.startsWith('127.') ||
+      /^127\.\d+\.\d+\.\d+$/.test(hostname) ||
       hostname === '[::1]' ||
       isMappedLoopback
     ) {
