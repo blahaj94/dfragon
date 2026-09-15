@@ -30,12 +30,19 @@ function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: str
     return false
   }
   const frame = currentMainFrame()
-  if (
-    contents !== captureWindow?.webContents ||
-    requestingUrl !== documentUrl ||
-    frame?.detached !== false ||
-    mediaPermissionCaptureId === binding.captureId
-  ) {
+  if (contents !== captureWindow?.webContents) {
+    return false
+  }
+
+  if (requestingUrl !== documentUrl) {
+    return false
+  }
+
+  if (frame?.detached !== false) {
+    return false
+  }
+
+  if (mediaPermissionCaptureId === binding.captureId) {
     return false
   }
   // Start 수명당 한 번만 허용한다. API/source/gesture 증명이 되지는 않는다.
