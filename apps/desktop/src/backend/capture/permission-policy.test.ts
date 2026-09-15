@@ -1,51 +1,35 @@
+import type { WebContents } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
 import { registerCapturePermissions } from './permission-policy'
 
 const documentUrl = 'file:///fixture/index.html'
 
-type PermissionFixture = {
+type Fixture = {
   check: ReturnType<typeof vi.fn>
   request: ReturnType<typeof vi.fn>
-  frame: { url: string; detached: boolean; isDestroyed: ReturnType<typeof vi.fn> }
-  webContents: {
-    mainFrame: { url: string; detached: boolean; isDestroyed: ReturnType<typeof vi.fn> }
-    isDestroyed: ReturnType<typeof vi.fn>
-  }
-  window: {
-    webContents: PermissionFixture['webContents']
-    isDestroyed: ReturnType<typeof vi.fn>
-  }
-  auth: { captureGeneration: ReturnType<typeof vi.fn> }
+  consume: ReturnType<typeof vi.fn<() => boolean>>
+  contents: WebContents
 }
 
-function createFixture(): PermissionFixture {
+function createFixture(configured = true): Fixture {
   const check = vi.fn()
   const request = vi.fn()
-  const frame = { url: documentUrl, detached: false, isDestroyed: vi.fn(() => false) }
-  const webContents = {
-    mainFrame: frame,
-    isDestroyed: vi.fn(() => false)
-  }
-  const window = {
-    webContents,
-    isDestroyed: vi.fn(() => false)
-  }
-  const session = {
-    setPermissionCheckHandler: check,
-    setPermissionRequestHandler: request
-  }
-  const auth = { captureGeneration: vi.fn<() => number | null>(() => 1) }
-  registerCapturePermissions(session)
-  return { check, request, frame, webContents, window, auth }
+  const consume = vi.fn(() => true)
+  const contents = {} as WebContents
+  registerCapturePermissions(
+    { setPermissionCheckHandler: check, setPermissionRequestHandler: request },
+    configured ? consume : undefined
+  )
+  return { check, request, consume, contents }
 }
 
 function ask(
   fixture: ReturnType<typeof createFixture>,
-  changes: Record<string, unknown> = {}
+  changes: Record<string, unknown> = {},
+  permission = 'media'
 ): ReturnType<typeof vi.fn> {
   const callback = vi.fn()
-  const handler = fixture.request.mock.calls[0][0]
-  handler(fixture.webContents, 'media', callback, {
+  fixture.request.mock.calls[0][0](fixture.contents, permission, callback, {
     isMainFrame: true,
     requestingUrl: documentUrl,
     mediaTypes: [],
@@ -55,38 +39,49 @@ function ask(
 }
 
 describe('capture permission policy', () => {
-  it('keeps product media request and check explicitly denied', () => {
-    const fixture = createFixture()
+  it('keeps unconfigured product media request and every check denied', () => {
+    const fixture = createFixture(false)
 
     expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(false)
+    expect(fixture.check.mock.calls[0][0]()).toBe(false)
+    expect(fixture.consume).not.toHaveBeenCalled()
+  })
+
+  it('delegates an empty media request to the current capture boundary once', () => {
+    const fixture = createFixture()
+
+    expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(true)
+    expect(fixture.consume).toHaveBeenCalledExactlyOnceWith(fixture.contents, documentUrl)
     expect(fixture.check.mock.calls[0][0]()).toBe(false)
   })
 
   it.each([
     { isMainFrame: false },
-    { requestingUrl: 'about:blank' },
+    { isMainFrame: undefined },
+    { mediaTypes: undefined },
+    { mediaTypes: null },
+    { mediaTypes: {} },
+    { mediaTypes: '' },
     { mediaTypes: ['audio'] },
-    { permission: 'notifications' },
-    { contents: 'other' }
-  ])('rejects a request outside the approved boundary: %j', (changes) => {
+    { mediaTypes: ['video'] },
+    { mediaTypes: ['audio', 'video'] }
+  ])('rejects invalid request metadata without consuming capture: %j', (changes) => {
     const fixture = createFixture()
-    const callback = vi.fn()
-    const handler = fixture.request.mock.calls[0][0]
-    const contents = changes.contents === 'other' ? {} : fixture.webContents
-    const permission = changes.permission ?? 'media'
-    handler(contents, permission, callback, {
-      isMainFrame: true,
-      requestingUrl: documentUrl,
-      mediaTypes: [],
-      ...changes
-    })
 
-    expect(callback).toHaveBeenCalledExactlyOnceWith(false)
+    expect(ask(fixture, changes)).toHaveBeenCalledExactlyOnceWith(false)
+    expect(fixture.consume).not.toHaveBeenCalled()
   })
 
-  it('does not grant media permission while auth generation is unavailable', () => {
+  it('rejects other permissions without consuming capture', () => {
     const fixture = createFixture()
-    fixture.auth.captureGeneration.mockReturnValue(null)
+
+    expect(ask(fixture, {}, 'notifications')).toHaveBeenCalledExactlyOnceWith(false)
+    expect(fixture.consume).not.toHaveBeenCalled()
+  })
+
+  it('denies when the capture boundary rejects the request', () => {
+    const fixture = createFixture()
+    fixture.consume.mockReturnValue(false)
 
     expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(false)
   })

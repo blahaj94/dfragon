@@ -12,6 +12,18 @@ review-after: 최초 실제 media/OCR 관측 후 또는 Electron version·fixtur
 
 # Desktop capture 실제 media 검증 허용안
 
+## Windows 제품 캡처 변경안 — 사용자 선택 대기
+
+이 절은 기존 fixture 승인을 확장한 것으로 간주하지 않는다. 현재 작업의 검토용 구현은 Windows 제품 entry에만 적용하며, 아래 신뢰 한계를 수용하는 사용자 선택 전에는 설치·실행하지 않는다. 채택 시 구현·검증을 같은 PR에 포함하고 사용자 merge로 활성화한다.
+
+- Windows 제품의 등록된 main window, 살아 있고 attached 상태인 exact local main document, main의 현재 signedIn/auth·window·source generation과 유효한 capture 수명을 모두 확인한다. Source 선택과 `begin` 뒤 해당 capture당 media request를 한 번만 허용한다. Stop·인증 이탈·source 변경·navigation·창 종료로 무효화된 수명에는 허용하지 않는다.
+- `media`, `isMainFrame:true`, exact `requestingUrl`, 존재하는 빈 `mediaTypes` 배열만 후보로 받는다. Camera/microphone, 다른 permission, media check는 계속 거절한다. 미구성 인증과 Windows 외 제품 entry도 계속 거절한다.
+- 정상 `getDisplayMedia`에는 기존 display handler의 video-only·Start gesture·선택 창 재열거와 비동기 완료 직전 auth/source/capture 검사를 유지한다. Renderer의 기존 stream/worker/loop 정리와 늦은 OCR·검색 결과 폐기도 유지한다.
+- **이 선택은 제품 renderer가 정상 API를 호출한다는 신뢰를 수용한다.** Electron 39.8.10의 빈 배열은 legacy desktop `getUserMedia`와 구별되지 않는다. 침해된 renderer는 허용 가능한 capture 수명을 만들고 legacy 경로로 선택하지 않은 창·전체 화면 또는 지원되는 system audio를 요청할 수 있다. 한 번 제한·CSP·sandbox·media check 거절은 이 우회를 차단한다는 보장이 아니다. Legacy stream의 강제 종료를 main이 보장한다고도 주장하지 않는다.
+- 실제 검증은 사용자가 준비한 1920×1080 게임 창의 영상→OCR→인증된 검색→화면 결과로 한정한다. 화면·닉네임·source title/ID·credential 원문은 기록하지 않는다. Mock/fixture 결과와 실제 게임 결과를 구분하며 다른 OS·해상도 전체 검증을 선행 조건으로 추가하지 않는다.
+
+대안은 제품 media 거절을 유지하면서 API/source를 main에서 통제할 수 있는 별도 native capture 또는 runtime 변경을 검토하는 것이다. 이 대안은 현재 구현 재사용 범위보다 크며 이번 실제 캡처 완료를 보류한다. 위 선택이 채택되면 아래 fixture 전용 예외와 별개인 제품 정책이며, 아래의 production 이전 금지는 이 명시적 Windows 제품 범위에 한해서 대체한다.
+
 ## 승인된 선택과 적용 경계
 
 **권장안은 고정된 local fixture에서 정상 `getDisplayMedia` → 기존 제품 main capture handler → 실제 stream → 실제 OCR 연결을 관측하도록 한정 허용하는 것이다.** 이는 통제된 fixture code를 신뢰하는 검증 예외다. 임의 renderer code의 모든 capture API를 main이 통제한다는 보장을 추가하지 않는다.

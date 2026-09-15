@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   loadURL: vi.fn(),
   loadFile: vi.fn(),
   registerWindow: vi.fn(),
+  consumeCaptureMediaPermission: vi.fn(() => false),
   permissionCheck: vi.fn(),
   permissionRequest: vi.fn(),
   registerCapture: vi.fn(),
@@ -123,7 +124,8 @@ vi.mock('@electron-toolkit/utils', () => ({
 }))
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
-  registerCaptureWindow: mocks.registerWindow
+  registerCaptureWindow: mocks.registerWindow,
+  consumeCaptureMediaPermission: mocks.consumeCaptureMediaPermission
 }))
 vi.mock('./auth/protocol-ingress', () => ({
   createProtocolIngress: mocks.createIngress,
@@ -1526,4 +1528,40 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
     rawReturnUrl,
     expect.any(Function)
   )
+})
+
+it.each([
+  { platform: 'win32', configured: true, allowed: true },
+  { platform: 'win32', configured: false, allowed: false },
+  { platform: 'darwin', configured: true, allowed: false },
+  { platform: 'linux', configured: true, allowed: false }
+])('product permission composition: %j', async ({ platform, configured, allowed }) => {
+  const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
+  Object.defineProperty(process, 'platform', { value: platform })
+  try {
+    if (configured) {
+      stubTrustedRuntimeEnvironment()
+    }
+    mocks.consumeCaptureMediaPermission.mockReturnValue(true)
+    await import('./main')
+    await mocks.bootstrap
+    const callback = vi.fn()
+    const contents = {}
+    mocks.permissionRequest.mock.calls[0][0](contents, 'media', callback, {
+      mediaTypes: [],
+      isMainFrame: true,
+      requestingUrl: 'file:///fixture/index.html'
+    })
+
+    expect(callback).toHaveBeenCalledExactlyOnceWith(allowed)
+    expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledTimes(allowed ? 1 : 0)
+    if (allowed) {
+      expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledWith(
+        contents,
+        'file:///fixture/index.html'
+      )
+    }
+  } finally {
+    Object.defineProperty(process, 'platform', originalPlatform)
+  }
 })

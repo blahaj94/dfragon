@@ -4,7 +4,11 @@ import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { validateDevRendererUrl } from './renderer-document'
-import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
+import {
+  registerCaptureIpc,
+  registerCaptureWindow,
+  consumeCaptureMediaPermission
+} from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
 import { registerAuthIpc } from './auth/ipc-handler'
 import {
@@ -91,7 +95,12 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   })
   let nextDisposeAuthIpc: (() => void) | undefined
   try {
-    registerCapturePermissions(session.defaultSession)
+    registerCapturePermissions(
+      session.defaultSession,
+      process.platform === 'win32' && authRuntime != null
+        ? consumeCaptureMediaPermission
+        : undefined
+    )
     registerCaptureWindow(window, rendererDocumentUrl)
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
