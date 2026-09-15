@@ -1,7 +1,7 @@
 import { neopleSearchFailure } from '../errors/neople-search.js'
 import type { SearchClock } from './types.js'
 
-/** Admission 대기와 DB 처리에 하나의 monotonic 2초 deadline을 사용한다. */
+/** Admission 대기에 monotonic 2초 deadline을 사용한다. */
 export class SearchDeadline {
   private readonly controller = new AbortController()
   private readonly expiresAt: number

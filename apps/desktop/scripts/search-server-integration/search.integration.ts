@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { setTimeout as delay } from 'node:timers/promises'
 import { test } from 'vitest'
 import { createSearchHttp, SearchHttpFailure } from '../../src/backend/search/http'
 import { withSearchServer } from './runtime.mjs'
@@ -25,9 +24,9 @@ const upstreamRows = [
   { characterId: 'fixture-third', characterName: 'fixture', serverId: 'anton' }
 ]
 
-test('Desktop HTTP client consumes default API, exchange JWT, activity and account quota', async () => {
-  await withSearchServer(async ({ base, accessToken, source, neople }) => {
-    const requests: Array<{ query: string; hasBearer: boolean }> = []
+test('Desktop HTTP client consumes public API defaults and peer quota without credentials', async () => {
+  await withSearchServer(async ({ base, neople }) => {
+    const requests: Array<{ query: string; hasAuthorization: boolean }> = []
     const statuses: number[] = []
     const transport: typeof fetch = async (input, options) => {
       const request = new Request(input, options)
@@ -35,8 +34,8 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
       assert.equal(url.origin, apiOrigin, 'test transport must reject other origins')
       assert.equal(url.pathname, '/characters')
       const query = url.search
-      const hasBearer = request.headers.get('authorization') === `Bearer ${accessToken}`
-      requests.push({ query, hasBearer })
+      const hasAuthorization = request.headers.has('authorization')
+      requests.push({ query, hasAuthorization })
       const response = await fetch(new Request(`${base}${url.pathname}${url.search}`, request))
       statuses.push(response.status)
       assert.equal(response.headers.get('cache-control'), 'no-store')
@@ -47,12 +46,8 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
       fetch: transport,
       clock: { read: () => ({ monotonicMs: 1234, wallMs: 0, discontinuous: false }) }
     })
-    const searchInput = { nickname, accessToken, signal: new AbortController().signal }
-    const [before] = await source.query('SELECT last_active_at FROM auth_sessions')
+    const searchInput = { nickname, signal: new AbortController().signal }
     neople.upstream.body = { rows: upstreamRows }
-
-    // 활동 인정 시각은 정수 초이므로 exchange와 다른 DB 초에서 검색한다.
-    await delay(1100)
     const rows = await search(searchInput)
 
     assert.deepEqual(rows, [
@@ -78,7 +73,7 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
         fame: null
       }
     ])
-    assert.deepEqual(requests, [{ query: '?characterName=fixture', hasBearer: true }])
+    assert.deepEqual(requests, [{ query: '?characterName=fixture', hasAuthorization: false }])
     assert.deepEqual(neople.calls, [
       {
         path: '/df/servers/all/characters',
@@ -86,9 +81,6 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
         hasExpectedKey: true
       }
     ])
-    const [after] = await source.query('SELECT last_active_at FROM auth_sessions')
-    const hasCommittedActivity = after.last_active_at.getTime() > before.last_active_at.getTime()
-    assert(hasCommittedActivity, 'search must commit session activity')
 
     neople.upstream.body = { rows: [] }
     assert.deepEqual(await search(searchInput), [])
@@ -100,25 +92,13 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
     await assert.rejects(search({ ...searchInput, nickname: 'x' }), {
       code: 'INVALID_SEARCH_QUERY'
     })
-    await assert.rejects(search({ ...searchInput, accessToken: 'synthetic-invalid-access' }), {
-      code: 'AUTHENTICATION_REQUIRED'
-    })
-    assert.deepEqual(statuses.slice(-2), [400, 401])
-    assert.equal(neople.calls.length, 3, 'input and JWT rejection must not reach upstream')
+    assert.equal(statuses.at(-1), 400)
+    assert.equal(neople.calls.length, 3, 'invalid input must not reach upstream')
 
     neople.upstream.body = { rows: [] }
     for (let request = 3; request < 10; request += 1) {
       assert.deepEqual(await search(searchInput), [])
     }
-    const [beforeQuota] = await source.query('SELECT last_active_at FROM auth_sessions')
-    // 429가 활동을 잘못 갱신해도 같은 정수 초 값에 가려지지 않게 한다.
-    await delay(1100)
-    const [quotaClock] = await source.query(
-      "SELECT date_trunc('second', clock_timestamp()) AS current_second"
-    )
-    const hasLaterDbSecond =
-      quotaClock.current_second.getTime() > beforeQuota.last_active_at.getTime()
-    assert(hasLaterDbSecond, 'quota rejection must run in a later database second')
     await assert.rejects(search(searchInput), (error: unknown) => {
       const isSearchHttpFailure = error instanceof SearchHttpFailure
       assert(isSearchHttpFailure)
@@ -127,7 +107,7 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
       const seconds = error.retryAfterSeconds
       const hasSeconds = seconds != null
       const isSafeInteger = Number.isSafeInteger(seconds)
-      const assertionMessage = 'Desktop must consume the real account Retry-After header'
+      const assertionMessage = 'Desktop must consume the real peer Retry-After header'
       if (!hasSeconds) {
         assert(false, assertionMessage)
         return true
@@ -144,7 +124,9 @@ test('Desktop HTTP client consumes default API, exchange JWT, activity and accou
     })
     assert.equal(statuses.at(-1), 429)
     assert.equal(neople.calls.length, 10, 'quota rejection must not retry or call upstream')
-    const [afterQuota] = await source.query('SELECT last_active_at FROM auth_sessions')
-    assert.equal(afterQuota.last_active_at.getTime(), beforeQuota.last_active_at.getTime())
+    assert(
+      requests.every(({ hasAuthorization }) => !hasAuthorization),
+      'public search must never send credentials'
+    )
   })
 })

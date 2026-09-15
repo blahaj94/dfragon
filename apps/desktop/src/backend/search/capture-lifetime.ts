@@ -13,7 +13,6 @@ import type {
 
 export type CaptureBinding = Readonly<{
   captureId: string
-  authGeneration: number
   windowGeneration: number
   sourceGeneration: number
 }>
@@ -25,9 +24,7 @@ type SearchRequest = {
   observationRevision: number
   nickname: string
   controller: AbortController
-  authGeneration: number
   startedAt: number
-  finalRejection: boolean
 }
 type RequestIdentity = Pick<SearchRequest, 'slot' | 'captureId' | 'requestId'>
 type RateWait = RequestIdentity & RetryAfter & { cancel: () => void }
@@ -134,11 +131,6 @@ export class CaptureSearchLifetime {
     if (!isCurrentCapture) {
       return this.result('STALE_SEARCH')
     }
-    const runtime = this.options.runtime
-    const hasRuntime = runtime != null
-    if (!hasRuntime) {
-      return this.result('SEARCH_NOT_ALLOWED')
-    }
     const previous = this.slots[input.slot]
     const isNewerObservation = input.observationRevision > previous.observationRevision
     if (!isNewerObservation) {
@@ -156,7 +148,25 @@ export class CaptureSearchLifetime {
       return this.result()
     }
 
-    return this.startRequest({ input, runtime, finalRejection: false })
+    const runtime = this.options.runtime
+    if (runtime == null) {
+      this.cancelSlot(input.slot)
+      this.slots[input.slot] = {
+        slot: input.slot,
+        observationRevision: input.observationRevision,
+        requestId: randomUUID(),
+        nickname: input.nickname,
+        state: 'failure',
+        rows: [],
+        error: {
+          code: validNickname(input.nickname) ? 'NEOPLE_UNAVAILABLE' : 'INVALID_SEARCH_QUERY',
+          retryAfterSeconds: null
+        }
+      }
+      this.emit()
+      return this.result()
+    }
+    return this.startRequest({ input, runtime })
   }
 
   clear(input: Extract<SearchControl, { action: 'clear' }>): SearchCommandResult {
@@ -210,7 +220,6 @@ export class CaptureSearchLifetime {
     if (!canStart) {
       return this.result('SEARCH_NOT_ALLOWED')
     }
-    const finalRejection = error.code === 'SEARCH_AUTH_RETRY_REQUIRED'
     return this.startRequest({
       input: {
         captureId: input.captureId,
@@ -218,19 +227,16 @@ export class CaptureSearchLifetime {
         observationRevision: slot.observationRevision,
         nickname
       },
-      runtime,
-      finalRejection
+      runtime
     })
   }
 
   private startRequest({
     input,
-    runtime,
-    finalRejection
+    runtime
   }: {
     input: SearchObservation
     runtime: SearchRuntime
-    finalRejection: boolean
   }): SearchCommandResult {
     const startedAt = runtime.clock.read().monotonicMs
     this.cancelSlot(input.slot)
@@ -262,9 +268,7 @@ export class CaptureSearchLifetime {
       ...input,
       requestId,
       controller: new AbortController(),
-      authGeneration: binding.authGeneration,
-      startedAt,
-      finalRejection
+      startedAt
     }
     if (isValidInput) {
       this.requests[input.slot] = request
@@ -316,9 +320,7 @@ export class CaptureSearchLifetime {
       outcome = await runSearchRequest({
         runtime,
         nickname: request.nickname,
-        authGeneration: request.authGeneration,
         startedAt: request.startedAt,
-        finalRejection: request.finalRejection,
         signal: request.controller.signal,
         isCurrent: () => this.canComplete(request)
       })

@@ -1,8 +1,4 @@
 import assert from 'node:assert/strict'
-import { assertSearchConcurrency } from './character-search-concurrency.mjs'
-import { assertSearchCancellation } from './character-search-cancellation.mjs'
-import { assertSearchSessionBoundaries } from './character-search-session-boundaries.mjs'
-import { assertSearchFailures } from './character-search-failures.mjs'
 import {
   searchFixture,
   withSearchApp,
@@ -11,7 +7,7 @@ import {
   snapshot
 } from './character-search-fixtures.mjs'
 
-async function authenticatedSearch(source) {
+async function publicSearch(source) {
   const f = await searchFixture(source)
   const before = await snapshot(source, f)
   await withSearchApp(f, async ({ base, calls, upstream }) => {
@@ -27,7 +23,7 @@ async function authenticatedSearch(source) {
         { characterId: 'future', characterName: 'other', serverId: 'future-server', fame: null }
       ]
     }
-    const response = await searchRequest(base, f, 'characterName=%EA%B0%80%EB%82%98')
+    const response = await fetch(`${base}/characters?characterName=%EA%B0%80%EB%82%98`)
     assert.equal(response.status, 200)
     assert.deepEqual(await response.json(), {
       rows: [
@@ -55,12 +51,7 @@ async function authenticatedSearch(source) {
       }
     ])
   })
-  const after = await snapshot(source, f)
-  const didActivityAdvance = after.session.last_active_at > before.session.last_active_at
-  assert(didActivityAdvance)
-  assert.equal(after.session.last_active_at.getMilliseconds(), 0)
-  assert.deepEqual(after.user, before.user)
-  assert.deepEqual(after.tokens, before.tokens)
+  assert.deepEqual(await snapshot(source, f), before)
 }
 
 async function initialRejections(source) {
@@ -71,8 +62,8 @@ async function initialRejections(source) {
     async ({ base, calls }) => {
       await expectSearchError(
         await fetch(`${base}/characters?unknown=%FF`),
-        401,
-        'AUTHENTICATION_REQUIRED'
+        400,
+        'INVALID_SEARCH_QUERY'
       )
       await expectSearchError(
         await searchRequest(base, f, 'characterName=ab&limit=1&%6Cimit=2'),
@@ -94,11 +85,11 @@ async function initialRejections(source) {
 export async function assertCharacterSearchHttpIntegration(source, mark) {
   const cases = [
     [
-      'real JWT and committed session activity precede loopback upstream projection',
-      () => authenticatedSearch(source)
+      'public search reaches loopback upstream without changing account or session state',
+      () => publicSearch(source)
     ],
     [
-      'initial auth and raw query refusals preserve all database state and upstream count',
+      'public raw query refusals preserve all database state and upstream count',
       () => initialRejections(source)
     ]
   ]
@@ -106,9 +97,5 @@ export async function assertCharacterSearchHttpIntegration(source, mark) {
     mark(name)
     await run()
   }
-  const concurrency = await assertSearchConcurrency(source, mark)
-  const cancellation = await assertSearchCancellation(source, mark)
-  const boundaries = await assertSearchSessionBoundaries(source, mark)
-  const failures = await assertSearchFailures(source, mark)
-  return cases.length + concurrency + cancellation + boundaries + failures
+  return cases.length
 }

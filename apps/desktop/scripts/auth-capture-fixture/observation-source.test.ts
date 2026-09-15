@@ -65,23 +65,23 @@ describe('generated capture observation source', () => {
     expect(delegatedMessages).toEqual([[null], [undefined]])
   })
 
-  it('recognize action is read once before the native postMessage call', () => {
+  it('recognition pixels are read once before the native postMessage call', () => {
     const { window, delegatedMessages } = installObservationSource()
-    const action = vi.fn(() => 'recognize')
-    const message = Object.defineProperty({}, 'action', { get: action })
+    const pixels = vi.fn(() => ({}))
+    const message = Object.defineProperty({}, 'pixels', { get: pixels })
     const worker = new window.Worker()
 
     expect(worker.postMessage(message, 'transfer')).toBe('delegated')
 
-    expect(action).toHaveBeenCalledOnce()
+    expect(pixels).toHaveBeenCalledOnce()
     expect(window.captureObservation().recognitionRequests).toBe(1)
     expect(delegatedMessages).toEqual([[message, 'transfer']])
   })
 
-  it('action getter errors remain before native postMessage', () => {
+  it('pixels getter errors remain before native postMessage', () => {
     const { window, delegatedMessages } = installObservationSource()
-    const error = new Error('action failure')
-    const message = Object.defineProperty({}, 'action', {
+    const error = new Error('pixels failure')
+    const message = Object.defineProperty({}, 'pixels', {
       get: () => {
         throw error
       }

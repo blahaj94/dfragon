@@ -1,4 +1,4 @@
-import { ActionButton, ContentStack, ExampleSection, LayoutBlock, SupportingText } from '@ldb/ui'
+import { ActionButton, ExampleSection, SupportingText } from '@ldb/ui'
 import { useState } from 'react'
 import type { AuthNotice, AuthPresentationProps } from './presentation'
 
@@ -26,7 +26,6 @@ const providerLabels = { google: 'Google로 계속하기', discord: 'Discord로 
 
 function SignedIn({
   snapshot,
-  home,
   commandPending = false,
   onIntent
 }: AuthPresentationProps): React.JSX.Element {
@@ -39,7 +38,9 @@ function SignedIn({
       <SupportingText>{snapshot.user?.nickname}</SupportingText>
       {shouldShowWelcome ? (
         <>
-          <SupportingText>준비가 끝났습니다. 시작하기를 눌러 홈으로 이동하세요.</SupportingText>
+          <SupportingText>
+            로그인을 완료했습니다. 화면 캡처는 로그인 여부와 관계없이 사용할 수 있습니다.
+          </SupportingText>
           <ActionButton
             type="button"
             disabled={commandPending}
@@ -50,9 +51,6 @@ function SignedIn({
         </>
       ) : (
         <>
-          <ExampleSection title="화면 캡처">
-            {home ?? <SupportingText>화면 캡처 기능은 준비 중입니다.</SupportingText>}
-          </ExampleSection>
           <ActionButton
             type="button"
             disabled={commandPending}
@@ -68,7 +66,6 @@ function SignedIn({
 
 function PhaseContent({
   snapshot,
-  home,
   commandPending = false,
   onIntent
 }: AuthPresentationProps): React.JSX.Element {
@@ -77,14 +74,7 @@ function PhaseContent({
   const hasUser = snapshot.user != null
   const canShowAccount = isSignedIn && hasUser
   if (canShowAccount) {
-    return (
-      <SignedIn
-        snapshot={snapshot}
-        home={home}
-        commandPending={commandPending}
-        onIntent={onIntent}
-      />
-    )
+    return <SignedIn snapshot={snapshot} commandPending={commandPending} onIntent={onIntent} />
   }
 
   const isSignedOut = phase === 'signedOut'
@@ -212,15 +202,13 @@ export function AuthPresentation(props: AuthPresentationProps): React.JSX.Elemen
   const { notice } = props.snapshot
   const hasNotice = notice != null
   return (
-    <LayoutBlock header="LDB" footer="LDB Desktop">
-      <ContentStack>
-        <PhaseContent {...props} />
-        {hasNotice && (
-          <div role="status">
-            <SupportingText>{notices[notice]}</SupportingText>
-          </div>
-        )}
-      </ContentStack>
-    </LayoutBlock>
+    <>
+      <PhaseContent {...props} />
+      {hasNotice && (
+        <div role="status">
+          <SupportingText>{notices[notice]}</SupportingText>
+        </div>
+      )}
+    </>
   )
 }

@@ -1,14 +1,14 @@
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { neopleSearchFailure } from '../errors/neople-search.js'
-import type { AuthenticatedSearchHttpService } from './types.js'
+import type { CharacterSearchHttpService } from './types.js'
 
 export const CHARACTER_SEARCH_SERVICE = Symbol('CHARACTER_SEARCH_SERVICE')
 
 @Controller('characters')
 export class CharacterSearchController {
   constructor(
-    @Inject(CHARACTER_SEARCH_SERVICE) private readonly service: AuthenticatedSearchHttpService
+    @Inject(CHARACTER_SEARCH_SERVICE) private readonly service: CharacterSearchHttpService
   ) {}
 
   @Get()
@@ -27,7 +27,7 @@ export class CharacterSearchController {
     response.once('close', cancelDisconnectedRequest)
     try {
       const result = await this.service.search(
-        request.rawHeaders,
+        request.socket.remoteAddress,
         request.originalUrl,
         controller.signal
       )

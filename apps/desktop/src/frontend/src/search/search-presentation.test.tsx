@@ -15,7 +15,7 @@ import {
   searchSlot,
   withSearchSlot
 } from '../../../preload/api/search-test-fixture'
-import { authSnapshot, createRendererFixture, media } from './search-renderer-test-fixture'
+import { createRendererFixture, media } from './search-renderer-test-fixture'
 import { SearchResults } from './SearchResults'
 
 type Fixture = ReturnType<typeof createRendererFixture>
@@ -54,7 +54,7 @@ it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후�
     searchSlot({
       slot: 3,
       state: 'failure',
-      error: { code: 'SEARCH_AUTH_NOT_READY', retryAfterSeconds: null }
+      error: { code: 'SEARCH_RESPONSE_INVALID', retryAfterSeconds: null }
     })
   ]
   await fixture.emit({ ...fixture.current(), captureId: CAPTURE_ID, revision: 10, slots })
@@ -77,15 +77,12 @@ it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후�
   expect(candidates.querySelector('b')).toBeNull()
   expect(candidates.textContent).not.toContain('undefined')
   expect(region(fixture, 2).textContent).toContain('검색 결과가 없습니다.')
-  expect(region(fixture, 3).textContent).toContain(SEARCH_ERRORS.SEARCH_AUTH_NOT_READY.message)
+  expect(region(fixture, 3).textContent).toContain(SEARCH_ERRORS.SEARCH_RESPONSE_INVALID.message)
   expect(region(fixture, 3).textContent).not.toContain('검색 결과가 없습니다.')
   expect(fixture.button('다시 시도', region(fixture, 3)).disabled).toBe(false)
 })
 
-const failures = (Object.keys(SEARCH_ERRORS) as SearchErrorCode[]).filter((code) => {
-  const isPublishedFailure = code !== 'AUTHENTICATION_REQUIRED'
-  return isPublishedFailure
-})
+const failures = Object.keys(SEARCH_ERRORS) as SearchErrorCode[]
 it.each(failures)('%s는 고정 한국어 안내와 허용된 수동 retry만 제공한다', async (code) => {
   const fixture = await recognized()
   await emitSlot(
@@ -222,7 +219,7 @@ it('retry 응답 유실은 read로 재동기화하고 retry를 자동 재전송�
   expect(region(fixture).textContent).toContain('검색 중')
 })
 
-it.each(['Stop', 'source', 'auth', 'unmount'] as const)(
+it.each(['Stop', 'source', 'unmount'] as const)(
   '%s는 main 응답 없이 현재 후보를 즉시 지운다',
   async (transition) => {
     const fixture = await recognized()
@@ -231,13 +228,10 @@ it.each(['Stop', 'source', 'auth', 'unmount'] as const)(
     fixture.search.controlCharacterSearch.mockReturnValue(new Promise(() => undefined))
     const isStop = transition === 'Stop'
     const isSource = transition === 'source'
-    const isAuth = transition === 'auth'
     if (isStop) {
       await fixture.click('Stop')
     } else if (isSource) {
       await fixture.select('next')
-    } else if (isAuth) {
-      await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
     } else {
       await fixture.unmount()
     }

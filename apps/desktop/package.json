@@ -40,12 +40,9 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@tesseract.js-data/eng": "^1.0.0",
-    "@tesseract.js-data/kor": "^1.0.0",
     "koffi": "3.2.1",
     "ky": "2.1.0",
-    "tesseract.js": "^7.0.0",
-    "tesseract.js-core": "^7.0.0",
+    "onnxruntime-web": "1.24.3",
     "zod": "4.5.4"
   },
   "devDependencies": {

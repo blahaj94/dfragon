@@ -1,4 +1,3 @@
-import type { AuthSnapshot } from '../../../preload/common/types/auth'
 import {
   SEARCH_ERRORS,
   type SearchApi,
@@ -26,7 +25,6 @@ type SearchOptions = {
   notify: (observation: SearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
-  resynchronizeAuth: () => void
 }
 
 export function emptySearchSlots(): SearchSlot[] {
@@ -56,10 +54,7 @@ export class CaptureSearch {
         this.failed = true
         this.publish()
       },
-      onRunChanged: () => {
-        this.invalidate()
-        options.resynchronizeAuth()
-      }
+      onRunChanged: () => this.invalidate()
     })
   }
 
@@ -67,13 +62,7 @@ export class CaptureSearch {
     this.connection.connect()
   }
 
-  async begin({
-    auth,
-    signal
-  }: {
-    auth: AuthSnapshot
-    signal: AbortSignal
-  }): Promise<string | null> {
+  async begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
     if (!this.connection.ready) {
       return null
     }
@@ -87,9 +76,7 @@ export class CaptureSearch {
     this.capture = ticket
     this.publish()
     const result = await this.connection.command({
-      action: 'begin',
-      authRunId: auth.runId,
-      authRevision: auth.revision
+      action: 'begin'
     })
     const isBeginSuccessful = result?.ok === true
     const captureId = isBeginSuccessful ? result.snapshot.captureId : null

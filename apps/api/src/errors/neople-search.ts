@@ -6,11 +6,6 @@ const errors = {
     code: 'INVALID_SEARCH_QUERY',
     message: '검색 조건을 확인해 주세요.'
   },
-  authentication: {
-    status: 401,
-    code: 'AUTHENTICATION_REQUIRED',
-    message: '로그인이 필요합니다.'
-  },
   limited: {
     status: 429,
     code: 'SEARCH_RATE_LIMITED',

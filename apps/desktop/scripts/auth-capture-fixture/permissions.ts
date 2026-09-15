@@ -1,11 +1,6 @@
 import type { BrowserWindow } from 'electron'
-import type { AuthCoordinator } from '../../src/backend/auth/types'
 
-export function registerFixtureMediaPermissions(
-  window: BrowserWindow,
-  documentUrl: string,
-  coordinator: Pick<AuthCoordinator, 'captureGeneration'>
-): void {
+export function registerFixtureMediaPermissions(window: BrowserWindow, documentUrl: string): void {
   const session = window.webContents.session
   session.setPermissionCheckHandler(() => false)
   session.setPermissionRequestHandler((contents, permission, callback, details) => {
@@ -25,7 +20,6 @@ export function registerFixtureMediaPermissions(
       isFrameAttached === true && isFrameAlive === true ? frame.url === documentUrl : undefined
     const isMainFrame = details.isMainFrame === true
     const hasRequestDocument = details.requestingUrl === documentUrl
-    const isSignedIn = coordinator.captureGeneration() != null
     const isMedia = permission === 'media'
     const hasMediaTypes = 'mediaTypes' in details
     const mediaTypes = hasMediaTypes ? details.mediaTypes : undefined
@@ -37,7 +31,6 @@ export function registerFixtureMediaPermissions(
       isFrameAlive === true &&
       hasCurrentDocument === true &&
       hasRequestDocument &&
-      isSignedIn &&
       isMedia &&
       hasEmptyMediaTypes === true
     callback(canAllow)

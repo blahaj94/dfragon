@@ -84,15 +84,15 @@ export function inspectMixedReadiness(view: SearchUiObservation): {
   return { ready, regionMask, statusesMatched, failureCount, pendingCount, limitedCount }
 }
 
-export function isReloginReady({
+export function isRestartReady({
   blank,
-  afterLogin,
+  afterStop,
   stopped,
   readCurrentRequests,
   expectedRequests
 }: {
   blank: SearchUiObservation
-  afterLogin: { streams: number; workers: number }
+  afterStop: { streams: number; workers: number }
   stopped: { streams: number; workers: number }
   readCurrentRequests: () => number
   expectedRequests: number
@@ -101,23 +101,23 @@ export function isReloginReady({
   if (!hasNoCapture) {
     return false
   }
-  const hasNoSelection = !blank.sourceSelected
-  if (!hasNoSelection) {
+  const hasSelection = blank.sourceSelected
+  if (!hasSelection) {
     return false
   }
-  const hasDisabledStart = blank.startDisabled === true
-  if (!hasDisabledStart) {
+  const hasEnabledStart = blank.startDisabled === false
+  if (!hasEnabledStart) {
     return false
   }
   const hasIdleView = hasState(blank, 'idle')
   if (!hasIdleView) {
     return false
   }
-  const hasUnchangedStreams = afterLogin.streams === stopped.streams
+  const hasUnchangedStreams = afterStop.streams === stopped.streams
   if (!hasUnchangedStreams) {
     return false
   }
-  const hasUnchangedWorkers = afterLogin.workers === stopped.workers
+  const hasUnchangedWorkers = afterStop.workers === stopped.workers
   if (!hasUnchangedWorkers) {
     return false
   }
@@ -272,7 +272,7 @@ export async function smokeCharacterSearch(
     assert.equal(await evaluate(sandboxInspectionSource), true)
     assert.equal(await evaluate(installObservation), true)
     search.selectScenario('empty')
-    await enterHome()
+    await until(() => hasText('Google로 계속하기'))
     await selectSyntheticSource()
     enterStage('empty')
     await start()
@@ -471,13 +471,18 @@ export async function smokeCharacterSearch(
     })
 
     await stop()
-    enterStage('pending-logout')
+    enterStage('pending-login-logout-stop')
     search.selectScenario('pending')
     await start()
     const beforeLogout = await waitFor((view) => hasState(view, 'pending'))
     const abortsBeforeLogout = search.counts.pendingAborts
+    await enterHome()
     await click('이 기기 로그아웃')
     await until(() => hasText('Google로 계속하기'))
+    assert.equal((await observe()).ended, false)
+    assert.equal((await read()).captureId, beforeLogout.captureId)
+    assert.equal(search.counts.pendingAborts, abortsBeforeLogout)
+    await stop()
     await until(async () => {
       const state = await observe()
       const isEnded = state.ended
@@ -504,7 +509,7 @@ export async function smokeCharacterSearch(
       if (hasClearedVideos) {
         const hasRemovedCapture = stoppedUi.captureId === null
         if (hasRemovedCapture) {
-          const hasRemovedRegions = stoppedUi.regionMask === 0
+          const hasRemovedRegions = stoppedUi.regionMask === 15
           if (hasRemovedRegions) {
             pendingCleanup = stoppedUi.ocrMask === 0
           }
@@ -519,18 +524,17 @@ export async function smokeCharacterSearch(
     assert.equal(main.nicknameInvokes, invokesBeforeQuiet)
     assert.equal(search.counts.requests, requestsBeforeQuiet)
 
-    enterStage('relogin')
-    await enterHome()
+    enterStage('restart')
     const blank = await read()
-    const afterLogin = await observe()
-    const relogin = isReloginReady({
+    const afterStop = await observe()
+    const restartReady = isRestartReady({
       blank,
-      afterLogin,
+      afterStop,
       stopped,
       readCurrentRequests: () => search.counts.requests,
       expectedRequests: requestsBeforeQuiet
     })
-    assert.equal(relogin, true)
+    assert.equal(restartReady, true)
     search.selectScenario('success')
     await selectSyntheticSource()
     const restarted = await start()
@@ -552,8 +556,6 @@ export async function smokeCharacterSearch(
     await inspectLayouts(window, read)
     enterStage('final-cleanup')
     await stop()
-    await click('이 기기 로그아웃')
-    await until(() => hasText('Google로 계속하기'))
     const final = await observe()
     const isFinalEnded = final.ended
     let hasTerminatedWorkers: boolean | undefined
@@ -578,7 +580,7 @@ export async function smokeCharacterSearch(
       rateWait,
       rateNoAutoGet,
       pendingCleanup,
-      relogin,
+      restartReady,
       newCapture: newCapture === true,
       displayRequests: main.displayRequests,
       displayAllowed: main.displayAllowed,

@@ -31,9 +31,9 @@ function clock() {
   }
 }
 
-async function reserve(admission, account = 'account') {
+async function reserve(admission, peerAddress = 'peerAddress') {
   const controller = new AbortController()
-  const lease = await admission.acquire(account, controller.signal)
+  const lease = await admission.acquire(peerAddress, controller.signal)
   try {
     lease.assertCapacity()
     lease.reserve()
@@ -68,7 +68,7 @@ test('search quota expires at exactly 60000ms and rejected attempts do not exten
     [59_999, 1]
   ]) {
     time.advance(now)
-    const lease = await admission.acquire('account', controller.signal)
+    const lease = await admission.acquire('peerAddress', controller.signal)
     assertLimited(lease, retryAfter)
     lease.release()
   }
@@ -80,18 +80,18 @@ test('search quota expires at exactly 60000ms and rejected attempts do not exten
   assert.equal(time.timerCount, 0)
 })
 
-test('search accounts serialize only admission and reserve using the final clock', async () => {
+test('search peers serialize only admission and reserve using the final clock', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)
-  const owner = await admission.acquire('account', new AbortController().signal)
+  const owner = await admission.acquire('peerAddress', new AbortController().signal)
   owner.assertCapacity()
   let waiterAcquired = false
-  const pending = admission.acquire('account', new AbortController().signal).then((lease) => {
+  const pending = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
     waiterAcquired = true
     return lease
   })
-  await reserve(admission, 'other-account')
+  await reserve(admission, 'other-peerAddress')
   assert.equal(waiterAcquired, false)
   time.advance(1000)
   owner.reserve()
@@ -102,20 +102,20 @@ test('search accounts serialize only admission and reserve using the final clock
     await reserve(admission)
   }
   time.advance(60_000)
-  const beforeExactExpiry = await admission.acquire('account', new AbortController().signal)
+  const beforeExactExpiry = await admission.acquire('peerAddress', new AbortController().signal)
   assertLimited(beforeExactExpiry, 1)
   beforeExactExpiry.release()
   time.advance(61_000)
   assert.equal(admission.entryCount, 0)
 })
 
-test('search cancellation removes queued references and no-reservation account entries', async () => {
+test('search cancellation removes queued references and no-reservation peerAddress entries', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const admission = new SearchAdmission(clock())
   const ownerController = new AbortController()
-  const owner = await admission.acquire('account', ownerController.signal)
+  const owner = await admission.acquire('peerAddress', ownerController.signal)
   const waiterController = new AbortController()
-  const pending = settled(admission.acquire('account', waiterController.signal))
+  const pending = settled(admission.acquire('peerAddress', waiterController.signal))
   waiterController.abort()
   const rejected = await pending
   assert.equal(rejected.error.status, 500)
@@ -123,20 +123,20 @@ test('search cancellation removes queued references and no-reservation account e
   ownerController.abort()
   owner.release()
   assert.equal(admission.entryCount, 0)
-  await assert.rejects(admission.acquire('account', waiterController.signal), { status: 500 })
+  await assert.rejects(admission.acquire('peerAddress', waiterController.signal), { status: 500 })
   assert.equal(admission.entryCount, 0)
 })
 
-test('search reservation expiry cannot replace an account entry with live admission', async () => {
+test('search reservation expiry cannot replace an peerAddress entry with live admission', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)
   await reserve(admission)
-  const owner = await admission.acquire('account', new AbortController().signal)
+  const owner = await admission.acquire('peerAddress', new AbortController().signal)
   time.advance(60_000)
   assert.equal(admission.entryCount, 1)
   let nextAcquired = false
-  const next = admission.acquire('account', new AbortController().signal).then((lease) => {
+  const next = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
     nextAcquired = true
     return lease
   })

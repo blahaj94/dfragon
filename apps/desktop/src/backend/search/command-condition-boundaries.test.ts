@@ -2,6 +2,19 @@ import { describe, expect, it, vi } from 'vitest'
 import { parseSearchControl } from './commands'
 
 describe('search command parser condition boundaries', () => {
+  it('begin은 인증 필드를 받지 않는 exact command다', () => {
+    expect(parseSearchControl([{ action: 'begin' }])).toEqual({ action: 'begin' })
+    expect(
+      parseSearchControl([
+        {
+          action: 'begin',
+          authRunId: '00000000-0000-4000-8000-000000000001',
+          authRevision: 1
+        }
+      ])
+    ).toBeNull()
+  })
+
   it('symbol key는 Object.hasOwn에 전달하지 않고 거절한다', () => {
     const symbolKey = Symbol('unexpected')
     const command = { action: 'read', [symbolKey]: true }

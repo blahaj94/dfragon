@@ -16,7 +16,7 @@ import {
   invalidSearchSnapshots
 } from '../../../preload/api/search-test-fixture'
 import { CaptureSearch } from './capture-search'
-import { authSnapshot, createRendererFixture, media } from './search-renderer-test-fixture'
+import { createRendererFixture, media } from './search-renderer-test-fixture'
 
 type Fixture = ReturnType<typeof createRendererFixture>
 function state(fixture: Fixture, slot: SearchSlot, revision?: number): SearchSnapshot {
@@ -158,7 +158,7 @@ it('초기 read 실패는 검색 연결 안내를 표시하고 command를 자동
   expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
 })
 
-it('검색 run 변경은 구독·표시를 버리고 auth 재동기화와 새 read를 수행한다', async () => {
+it('검색 run 변경은 구독·표시를 버리고 검색만 다시 조회한다', async () => {
   const fixture = await recognizedFixture()
   await fixture.emit(state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 10))
   const callback = fixture.search.onCharacterSearchChanged.mock.calls[0]?.[0]
@@ -171,7 +171,7 @@ it('검색 run 변경은 구독·표시를 버리고 auth 재동기화와 새 re
   })
   await fixture.emit(nextRun)
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
-  expect(fixture.auth.getAuthState.mock.calls.length).toBeGreaterThan(authReads)
+  expect(fixture.auth.getAuthState.mock.calls.length).toBe(authReads)
   expect(fixture.search.onCharacterSearchChanged.mock.calls.length).toBeGreaterThan(
     previousSubscriptions
   )
@@ -320,8 +320,7 @@ it.each(['pending', 'failed'] as const)(
       api: { controlCharacterSearch: control, onCharacterSearchChanged: () => () => {} },
       notify: vi.fn(),
       onChange: vi.fn(),
-      onInvalidated: vi.fn(),
-      resynchronizeAuth: vi.fn()
+      onInvalidated: vi.fn()
     })
     bridge.connect()
     const isFailed = readState === 'failed'
@@ -331,7 +330,6 @@ it.each(['pending', 'failed'] as const)(
     }
     try {
       const captureId = await bridge.begin({
-        auth: authSnapshot(),
         signal: new AbortController().signal
       })
       expect(control).toHaveBeenCalledExactlyOnceWith({ action: 'read' })

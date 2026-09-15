@@ -125,10 +125,10 @@ function request(
 it('현재 main 권한이 있는 정확한 fixture document의 존재하는 빈 mediaTypes만 허용한다', () => {
   expect(request()).toBe(true)
 })
-it('등록 후의 인증 이탈과 새 signedIn도 현재 main 권한으로 판단한다', () => {
+it('인증 이탈과 새 signedIn은 fixture media 허용을 바꾸지 않는다', () => {
   expect(request()).toBe(true)
   fixture.generation = null
-  expect(request()).toBe(false)
+  expect(request()).toBe(true)
   fixture.generation = 2
   expect(request()).toBe(true)
 })
@@ -167,9 +167,9 @@ it('현재 document가 바뀌면 과거 requestingUrl로 허용하지 않는다'
   fixture.windows[0].webContents.mainFrame.url = 'about:blank'
   expect(request()).toBe(false)
 })
-it('현재 main이 signedIn이 아니면 renderer 요청으로 권한을 만들지 않는다', () => {
+it('renderer가 제출한 인증 값은 media 권한 판단에 사용하지 않는다', () => {
   fixture.generation = null
-  expect(request({ signedIn: true, revision: 999 })).toBe(false)
+  expect(request({ signedIn: true, revision: 999 })).toBe(true)
 })
 it.each(['window', 'contents', 'frame'])('종료된 %s에서는 허용하지 않는다', (target) => {
   const window = fixture.windows[0]
@@ -241,23 +241,19 @@ it('명시적 deny-media 모드는 승인된 정상 요청도 거절한다', asy
   }
 })
 
-it('main fixture는 동일 coordinator와 clock 및 외부 네트워크 없는 고정 검색 transport를 연결한다', async () => {
+it('main fixture는 clock 및 외부 네트워크 없는 고정 검색 transport를 연결한다', async () => {
   expect(fixture.capture).toHaveBeenCalledOnce()
   const args = fixture.capture.mock.calls[0] as unknown as [
-    { captureGeneration: () => number | null },
     { apiOrigin: string; clock: { read: () => { monotonicMs: number } }; fetch: typeof fetch }
   ]
-  const [coordinator, runtime] = args
-  expect(coordinator.captureGeneration()).toBe(0)
+  const [runtime] = args
   expect(runtime, 'main 검색 runtime 구성').toBeDefined()
   expect(runtime.apiOrigin).toBe('https://api.example.test')
   expect(runtime.clock.read().monotonicMs).toBeGreaterThanOrEqual(0)
   expect(runtime.fetch).toBeTypeOf('function')
   expect(runtime.fetch).not.toBe(globalThis.fetch)
   const response = await runtime.fetch(
-    new Request('https://api.example.test/characters?characterName=ALICE', {
-      headers: { authorization: 'Bearer synthetic.payload.signature' }
-    })
+    new Request('https://api.example.test/characters?characterName=ALICE')
   )
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({ rows: expect.any(Array) })

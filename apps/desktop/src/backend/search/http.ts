@@ -26,7 +26,6 @@ const failureSchema = z.object({
 })
 const statusErrors: Readonly<Partial<Record<number, SearchErrorCode>>> = {
   400: 'INVALID_SEARCH_QUERY',
-  401: 'AUTHENTICATION_REQUIRED',
   429: 'SEARCH_RATE_LIMITED',
   500: 'INTERNAL_SERVER_ERROR',
   502: 'NEOPLE_API_ERROR',
@@ -70,7 +69,6 @@ function parseRetryAfter(value: string | null): number | null {
 
 export type SearchHttp = (input: {
   nickname: string
-  accessToken: string
   signal: AbortSignal
 }) => Promise<readonly CharacterSearchRow[]>
 
@@ -95,10 +93,10 @@ export function createSearchHttp({
     cache: 'no-store'
   })
 
-  return async ({ nickname, accessToken, signal }) => {
+  return async ({ nickname, signal }) => {
     const response = await client.get(`${origin}/characters`, {
       searchParams: { characterName: nickname },
-      headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` },
+      headers: { Accept: 'application/json' },
       signal
     })
     const receivedAt = clock?.read().monotonicMs ?? performance.now()

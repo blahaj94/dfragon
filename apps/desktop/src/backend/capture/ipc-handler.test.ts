@@ -60,8 +60,7 @@ async function setup(signedIn = true): Promise<{
     }
   }
   const window = { webContents, isDestroyed: () => false, on: vi.fn() }
-  // 기존 entry의 허용 인자만 확장하며 테스트에서 실제 coordinator를 전달한다.
-  registerCaptureIpc(auth)
+  registerCaptureIpc()
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
@@ -97,11 +96,8 @@ async function setup(signedIn = true): Promise<{
 }
 
 async function beginCapture(fixture: Awaited<ReturnType<typeof setup>>): Promise<void> {
-  const snapshot = fixture.auth.getSnapshot()
   const result = await fixture.invoke('controlCharacterSearch', {
-    action: 'begin',
-    authRunId: snapshot.runId,
-    authRevision: snapshot.revision
+    action: 'begin'
   })
 
   expect(result).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
@@ -113,7 +109,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.restoreAllMocks())
 
-describe('capture main auth boundary', () => {
+describe('capture main document and source boundary', () => {
   it('검색 read는 capture를 시작하거나 인증 HTTP를 실행하지 않는다', async () => {
     const fixture = await setup()
 
@@ -124,14 +120,11 @@ describe('capture main auth boundary', () => {
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
-  it('현재 auth와 선택 source로 begin하고 이전 end가 새 capture를 끝내지 않는다', async () => {
+  it('선택 source로 begin하고 이전 end가 새 capture를 끝내지 않는다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
-    const authSnapshot = fixture.auth.getSnapshot()
     const begin = {
-      action: 'begin',
-      authRunId: authSnapshot.runId,
-      authRevision: authSnapshot.revision
+      action: 'begin'
     }
 
     const first = await fixture.invoke('controlCharacterSearch', begin)
@@ -161,34 +154,23 @@ describe('capture main auth boundary', () => {
     ).toMatchObject({ ok: true, snapshot: { captureId: secondCaptureId } })
   })
 
-  it.each(['missing-source', 'stale-auth', 'selecting-source'])(
+  it.each(['missing-source', 'selecting-source'])(
     'begin은 %s 상태를 승인된 오류로 거절한다',
     async (condition) => {
       const fixture = await setup()
-      const authSnapshot = fixture.auth.getSnapshot()
-      const isStaleAuth = condition === 'stale-auth'
       const isSelectingSource = condition === 'selecting-source'
       const pending = deferred<typeof sources>()
       let selection: Promise<unknown> | undefined
-      if (isStaleAuth) {
-        await fixture.invoke('selectCaptureSource', sources[0].id)
-      }
       if (isSelectingSource) {
         electron.getSources.mockReturnValueOnce(pending.promise)
         selection = fixture.invoke('selectCaptureSource', sources[0].id)
         await Promise.resolve()
       }
-      const expectedCode = isStaleAuth
-        ? 'STALE_SEARCH'
-        : isSelectingSource
-          ? 'SEARCH_BUSY'
-          : 'SEARCH_NOT_ALLOWED'
+      const expectedCode = isSelectingSource ? 'SEARCH_BUSY' : 'SEARCH_NOT_ALLOWED'
 
       try {
         const result = await fixture.invoke('controlCharacterSearch', {
-          action: 'begin',
-          authRunId: authSnapshot.runId,
-          authRevision: authSnapshot.revision + (isStaleAuth ? 1 : 0)
+          action: 'begin'
         })
 
         expect(result).toMatchObject({
@@ -203,26 +185,17 @@ describe('capture main auth boundary', () => {
     }
   )
 
-  it.each(['source-clear', 'logout'])(
+  it.each(['source-clear'])(
     '%s는 main capture를 지우고 종료된 ID의 cleanup을 허용한다',
-    async (condition) => {
+    async () => {
       const fixture = await setup()
       await fixture.invoke('selectCaptureSource', sources[0].id)
-      const authSnapshot = fixture.auth.getSnapshot()
       const begun = await fixture.invoke('controlCharacterSearch', {
-        action: 'begin',
-        authRunId: authSnapshot.runId,
-        authRevision: authSnapshot.revision
+        action: 'begin'
       })
       expect(begun).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
       const captureId = (begun as { snapshot: { captureId: string } }).snapshot.captureId
-      const isLogout = condition === 'logout'
-
-      if (isLogout) {
-        await fixture.auth.logout()
-      } else {
-        await fixture.invoke('selectCaptureSource', '')
-      }
+      await fixture.invoke('selectCaptureSource', '')
 
       expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
         ok: true,
@@ -315,36 +288,70 @@ describe('capture main auth boundary', () => {
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
-  it('signedOut에서는 source 열거·선택을 거절하고 빈 선택 cleanup은 허용한다', async () => {
+  it('signedOut에서도 source 열거·선택·begin·media와 cleanup을 허용한다', async () => {
     const fixture = await setup(false)
-    await expect(fixture.invoke('listCaptureSources')).rejects.toThrow()
-    await expect(fixture.invoke('selectCaptureSource', sources[0].id)).rejects.toThrow()
+    await expect(fixture.invoke('listCaptureSources')).resolves.toEqual(sources)
+    await expect(fixture.invoke('selectCaptureSource', sources[0].id)).resolves.toEqual(sources[0])
+    await beginCapture(fixture)
+    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     await expect(fixture.invoke('selectCaptureSource', '')).resolves.toBeNull()
-    expect(electron.getSources).not.toHaveBeenCalled()
+    expect(await fixture.requestMedia()).toBeNull()
+  })
+
+  it('검색 설정이 없어도 guest capture와 OCR 관측을 유지하고 검색 불가를 표시한다', async () => {
+    const fixture = await setup(false)
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    await beginCapture(fixture)
+    const current = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+      snapshot: { captureId: string }
+    }
+    const result = await fixture.invoke('notifyStableNicknameDetected', {
+      captureId: current.snapshot.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나'
+    })
+
+    expect(result).toMatchObject({
+      ok: true,
+      snapshot: {
+        captureId: current.snapshot.captureId,
+        slots: [
+          expect.objectContaining({
+            nickname: '가나',
+            state: 'failure',
+            error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null }
+          }),
+          expect.any(Object),
+          expect.any(Object),
+          expect.any(Object)
+        ]
+      }
+    })
+    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
+    expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
   it.each(['listCaptureSources', 'selectCaptureSource'])(
-    '%s 완료 전 logout이면 결과를 허용하지 않는다',
+    '%s 완료 전 logout이어도 결과를 허용한다',
     async (channel) => {
       const fixture = await setup()
       const pending = deferred<typeof sources>()
       electron.getSources.mockReturnValue(pending.promise)
       const isSelection = channel === 'selectCaptureSource'
       const operation = fixture.invoke(channel, ...(isSelection ? [sources[0].id] : []))
-      const rejection = expect(operation).rejects.toThrow()
       await Promise.resolve()
       await fixture.auth.logout()
       pending.resolve(sources)
-      await rejection
+      expect(await operation).toEqual(isSelection ? sources[0] : sources)
     }
   )
 
-  it('이전 auth 수명의 열거는 logout과 재로그인 뒤에도 거절한다', async () => {
+  it('source 열거는 logout과 재로그인의 영향을 받지 않는다', async () => {
     const fixture = await setup()
     const pending = deferred<typeof sources>()
     electron.getSources.mockReturnValue(pending.promise)
     const operation = fixture.invoke('listCaptureSources')
-    const rejection = expect(operation).rejects.toThrow()
     await Promise.resolve()
     await fixture.auth.logout()
     await fixture.auth.beginLogin('google')
@@ -352,7 +359,7 @@ describe('capture main auth boundary', () => {
     await fixture.auth.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     expect(fixture.auth.getSnapshot().phase).toBe('signedIn')
     pending.resolve(sources)
-    await rejection
+    expect(await operation).toEqual(sources)
     expect(await fixture.requestMedia()).toBeNull()
   })
 
@@ -405,15 +412,16 @@ describe('capture main auth boundary', () => {
     expect(await fixture.requestMedia(changes)).toBeNull()
   })
 
-  it('선택 뒤 logout은 main source를 지우고 media를 거절한다', async () => {
+  it('선택 뒤 logout은 main source와 media 허용을 유지한다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     await fixture.auth.logout()
-    expect(await fixture.requestMedia()).toBeNull()
+    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
+    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(true)
   })
 
-  it.each(['logout', 'clear', 'document'])(
+  it.each(['clear', 'document'])(
     'media 열거 중 %s이면 늦은 stream을 허용하지 않는다',
     async (kind) => {
       const fixture = await setup()
@@ -424,11 +432,8 @@ describe('capture main auth boundary', () => {
       const callsBeforeMedia = electron.getSources.mock.calls.length
       const media = fixture.requestMedia()
       expect(electron.getSources).toHaveBeenCalledTimes(callsBeforeMedia + 1)
-      const isLogout = kind === 'logout'
       const isClear = kind === 'clear'
-      if (isLogout) {
-        await fixture.auth.logout()
-      } else if (isClear) {
+      if (isClear) {
         await fixture.invoke('selectCaptureSource', '')
       } else {
         fixture.mainFrame.url = 'about:blank'
@@ -532,7 +537,7 @@ describe('capture main auth boundary', () => {
   )
 
   it.each(['signedOut', 'logout'])(
-    '%s에서 trusted 관측의 권한 실패는 정제 결과와 현재 snapshot으로 응답한다',
+    '%s에서도 capture ID가 없는 관측은 STALE_SEARCH로 거절한다',
     async (phase) => {
       const startsSignedIn = phase === 'logout'
       const fixture = await setup(startsSignedIn)
@@ -549,7 +554,7 @@ describe('capture main auth boundary', () => {
         })
       ).resolves.toMatchObject({
         ok: false,
-        error: { code: 'SEARCH_NOT_ALLOWED' },
+        error: { code: 'STALE_SEARCH' },
         snapshot: { captureId: null }
       })
       expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
@@ -613,42 +618,34 @@ describe('product media permission capture lifetime', () => {
     expect(ask()).toBe(true)
   })
 
-  it.each([
-    'contents',
-    'request-document',
-    'document',
-    'detached',
-    'destroyed',
-    'source-clear',
-    'logout'
-  ])('rejects %s at permission time', async (condition) => {
-    const fixture = await setup()
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-    await beginCapture(fixture)
-    let contents = fixture.event.sender
-    let url = rendererUrl
-    if (condition === 'contents') {
-      contents = {} as typeof contents
-    }
-    if (condition === 'request-document') {
-      url = 'about:blank'
-    }
-    if (condition === 'document') {
-      fixture.mainFrame.url = 'about:blank'
-    }
-    if (condition === 'detached') {
-      fixture.mainFrame.detached = true
-    }
-    if (condition === 'destroyed') {
-      fixture.mainFrame.isDestroyed = () => true
-    }
-    if (condition === 'source-clear') {
-      await fixture.invoke('selectCaptureSource', '')
-    }
-    if (condition === 'logout') {
-      await fixture.auth.logout()
-    }
+  it.each(['contents', 'request-document', 'document', 'detached', 'destroyed', 'source-clear'])(
+    'rejects %s at permission time',
+    async (condition) => {
+      const fixture = await setup()
+      await fixture.invoke('selectCaptureSource', sources[0].id)
+      await beginCapture(fixture)
+      let contents = fixture.event.sender
+      let url = rendererUrl
+      if (condition === 'contents') {
+        contents = {} as typeof contents
+      }
+      if (condition === 'request-document') {
+        url = 'about:blank'
+      }
+      if (condition === 'document') {
+        fixture.mainFrame.url = 'about:blank'
+      }
+      if (condition === 'detached') {
+        fixture.mainFrame.detached = true
+      }
+      if (condition === 'destroyed') {
+        fixture.mainFrame.isDestroyed = () => true
+      }
+      if (condition === 'source-clear') {
+        await fixture.invoke('selectCaptureSource', '')
+      }
 
-    expect(consumeCaptureMediaPermission(contents, url)).toBe(false)
-  })
+      expect(consumeCaptureMediaPermission(contents, url)).toBe(false)
+    }
+  )
 })

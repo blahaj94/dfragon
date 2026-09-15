@@ -4,12 +4,11 @@ import type { SearchControl, SearchObservation } from '../../preload/common/type
 const text = z.string()
 const uuid = text.regex(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
 const safeInteger = z.int()
-const revision = safeInteger.nonnegative()
 const observationRevision = safeInteger.positive()
 const slot = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
 const controlSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal('read') }),
-  z.strictObject({ action: z.literal('begin'), authRunId: uuid, authRevision: revision }),
+  z.strictObject({ action: z.literal('begin') }),
   z.strictObject({ action: z.literal('end'), captureId: uuid }),
   z.strictObject({ action: z.literal('clear'), captureId: uuid, slot, observationRevision }),
   z.strictObject({ action: z.literal('retry'), captureId: uuid, slot, requestId: uuid })

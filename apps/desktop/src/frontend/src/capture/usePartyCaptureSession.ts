@@ -131,7 +131,7 @@ export function usePartyCaptureSession({
         throw new Error(`Unsupported capture layout: ${video.videoWidth}×${video.videoHeight}.`)
       }
 
-      const worker = await createPartyOcrWorker()
+      const worker = await createPartyOcrWorker(signal)
       session.worker = worker
       signal.throwIfAborted()
 

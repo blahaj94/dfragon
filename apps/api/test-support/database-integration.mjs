@@ -708,7 +708,7 @@ async function primaryScenario() {
     process.stdout.write(
       `AuthLoginRequest matrix: ${stateMatrix.accepted} accepted, ${stateMatrix.rejected} rejected\n`
     )
-    currentStage = 'authenticated character search'
+    currentStage = 'public character search'
     const searchFlows = await withDataSource(
       createDatabaseDataSource,
       resources.configuration,
@@ -718,7 +718,9 @@ async function primaryScenario() {
           (part) => (currentStage = `character search ${part}`)
         )
     )
-    process.stdout.write(`Character search HTTP/database/JWT/upstream: ${searchFlows} scenarios\n`)
+    process.stdout.write(
+      `Public character search HTTP/upstream and unchanged database: ${searchFlows} scenarios\n`
+    )
     currentStage = 'identity session module'
     const accountFlows = await withDataSource(
       createDatabaseDataSource,

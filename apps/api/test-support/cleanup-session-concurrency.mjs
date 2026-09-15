@@ -1,125 +1,44 @@
 import assert from 'node:assert/strict'
-import { blockedBy, bounded, databaseNow, settled, waitUntil } from './login-test-control.mjs'
+import { blockedBy, bounded, databaseNow, settled } from './login-test-control.mjs'
 import { fixture, stored, setDeadline, withLock } from './refresh-fixtures.mjs'
-import {
-  searchFixture,
-  withSearchApp,
-  searchRequest,
-  observeSearchRunners
-} from './character-search-fixtures.mjs'
-import { cleanupWaitingOn, targets, withCleanupDeletionHeld } from './cleanup-database-control.mjs'
-
-async function activityFirst(source, cleanup) {
-  const f = await searchFixture(source)
-  const committing = Promise.withResolvers()
-  const release = Promise.withResolvers()
-  let activityAt
-  const createQueryRunner = observeSearchRunners({
-    commit: async (runner, commit) => {
-      activityAt = (
-        await runner.query('SELECT last_active_at FROM auth_sessions WHERE id=$1', [
-          f.initial.session.id
-        ])
-      )[0].last_active_at
-      committing.resolve((await runner.query('SELECT pg_backend_pid() AS pid'))[0].pid)
-      await release.promise
-      await commit()
-    }
-  })
-  await withSearchApp(
-    f,
-    async ({ base, calls }) => {
-      const deadline = new Date((await databaseNow(source)).getTime() + 1000)
-      await setDeadline(source, f.initial.session.id, deadline)
-      const pending = settled(searchRequest(base, f))
-      try {
-        const pid = await bounded(committing.promise)
-        const isActivityBeforeDeadline = activityAt < deadline
-        assert(isActivityBeforeDeadline)
-        // 후보 조회 시에는 아직 commit되지 않은 활동을 볼 수 없어 만료된 옛 row가 선택된다.
-        await waitUntil(source, deadline)
-        await cleanupWaitingOn({
-          source,
-          cleanup,
-          table: 'auth_sessions',
-          id: f.initial.session.id,
-          blocker: pid,
-          unlock: () => release.resolve()
-        })
-        const result = await pending
-        assert.equal(result.error, undefined)
-        assert.equal(result.value.status, 200)
-        assert.equal(calls.length, 1)
-      } finally {
-        release.resolve()
-        await pending
-      }
-    },
-    { createQueryRunner }
-  )
-  const final = await stored(source, f.initial.session.id)
-  assert.equal(final.session.last_active_at.getTime(), activityAt.getTime())
-  assert.equal(final.tokens.length, 1)
-}
+import { searchFixture, withSearchApp, searchRequest } from './character-search-fixtures.mjs'
+import { cleanupWaitingOn, withCleanupDeletionHeld } from './cleanup-database-control.mjs'
 
 async function cleanupFirst(source, cleanup) {
   const f = await searchFixture(source)
   await setDeadline(source, f.initial.session.id, await databaseNow(source))
   const userBefore = await source.query('SELECT * FROM users WHERE id=$1', [f.initial.user.id])
-  const activityLock = Promise.withResolvers()
-  const createQueryRunner = observeSearchRunners({
-    query: async ({ sql, parameters, query, run }) => {
-      const isLock =
-        targets({
-          sql,
-          parameters,
-          verb: 'SELECT',
-          table: 'auth_sessions',
-          id: f.initial.session.id
-        }) && sql.includes('FOR UPDATE')
-      if (isLock) {
-        activityLock.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
-      }
-      return run()
-    }
-  })
   let signingCalls = 0
   const signer = f.deps.issueAccessJwt
   f.deps.issueAccessJwt = async (input) => {
     signingCalls++
     return signer(input)
   }
-  await withSearchApp(
-    f,
-    async ({ base, calls }) => {
-      await withCleanupDeletionHeld({
-        source,
-        cleanup,
-        table: 'auth_sessions',
-        id: f.initial.session.id,
-        operation: async ({ pid, waiter, release }) => {
-          const activity = settled(searchRequest(base, f))
-          const refresh = settled(f.rotate(f.initial.refreshToken))
-          try {
-            const activityPid = await bounded(activityLock.promise)
-            const refreshPid = await bounded(waiter)
-            await blockedBy(source, activityPid, [pid, refreshPid])
-            await blockedBy(source, refreshPid, [pid, activityPid])
-            release()
-            assert.equal((await refresh).error?.code, 'AUTHENTICATION_REQUIRED')
-            const result = await activity
-            assert.equal(result.error, undefined)
-            assert.equal(result.value.status, 200)
-            assert.equal(calls.length, 1)
-          } finally {
-            release()
-            await Promise.all([activity, refresh])
-          }
+  await withSearchApp(f, async ({ base, calls }) => {
+    await withCleanupDeletionHeld({
+      source,
+      cleanup,
+      table: 'auth_sessions',
+      id: f.initial.session.id,
+      operation: async ({ pid, waiter, release }) => {
+        const search = settled(searchRequest(base, f))
+        const refresh = settled(f.rotate(f.initial.refreshToken))
+        try {
+          const refreshPid = await bounded(waiter)
+          await blockedBy(source, refreshPid, [pid])
+          const result = await bounded(search)
+          assert.equal(result.error, undefined)
+          assert.equal(result.value.status, 200)
+          assert.equal(calls.length, 1)
+          release()
+          assert.equal((await refresh).error?.code, 'AUTHENTICATION_REQUIRED')
+        } finally {
+          release()
+          await Promise.all([search, refresh])
         }
-      })
-    },
-    { createQueryRunner }
-  )
+      }
+    })
+  })
   assert.equal(signingCalls, 0)
   assert.deepEqual(await stored(source, f.initial.session.id), { session: undefined, tokens: [] })
   assert.deepEqual(
@@ -172,9 +91,8 @@ async function staleSessionHint(source, cleanup, change) {
 
 export async function assertCleanupSessionConcurrency(source, cleanup, mark) {
   const cases = [
-    ['actual search activity commits before waiting cleanup', () => activityFirst(source, cleanup)],
     [
-      'cleanup holds deletion while refresh and residual search wait',
+      'cleanup blocks refresh while public search remains independent',
       () => cleanupFirst(source, cleanup)
     ],
     ['session disappears after cleanup hint', () => staleSessionHint(source, cleanup, 'deleted')],

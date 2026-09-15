@@ -3,7 +3,7 @@ import type { SearchUiObservation } from './search-observation'
 import {
   inspectMixedReadiness,
   inspectSandboxBoundary,
-  isReloginReady,
+  isRestartReady,
   sameRequest
 } from './search-smoke'
 
@@ -86,7 +86,7 @@ describe('search smoke protected evaluation', () => {
     expect(slots.every).not.toHaveBeenCalled()
   })
 
-  it('relogin guard는 실패 뒤 getter와 hasState 경계를 읽지 않는다', () => {
+  it('restart guard는 실패 뒤 getter와 hasState 경계를 읽지 않는다', () => {
     const reads: string[] = []
     const blank = Object.defineProperties(
       {},
@@ -114,9 +114,9 @@ describe('search smoke protected evaluation', () => {
     })
 
     expect(
-      isReloginReady({
+      isRestartReady({
         blank,
-        afterLogin: { streams: 1, workers: 1 },
+        afterStop: { streams: 1, workers: 1 },
         stopped: { streams: 1, workers: 1 },
         readCurrentRequests,
         expectedRequests: 1
@@ -126,7 +126,7 @@ describe('search smoke protected evaluation', () => {
     expect(readCurrentRequests).not.toHaveBeenCalled()
   })
 
-  it('relogin guard가 모두 통과하면 request count를 마지막에 한 번 읽는다', () => {
+  it('restart guard가 모두 통과하면 request count를 마지막에 한 번 읽는다', () => {
     const reads: string[] = []
     const slots = Array.from({ length: 4 }, () => ({
       state: 'idle',
@@ -136,8 +136,8 @@ describe('search smoke protected evaluation', () => {
       {},
       {
         captureId: { get: () => (reads.push('captureId'), null) },
-        sourceSelected: { get: () => (reads.push('sourceSelected'), false) },
-        startDisabled: { get: () => (reads.push('startDisabled'), true) },
+        sourceSelected: { get: () => (reads.push('sourceSelected'), true) },
+        startDisabled: { get: () => (reads.push('startDisabled'), false) },
         regionMask: { get: () => (reads.push('regionMask'), 15) },
         slots: { get: () => (reads.push('slots'), slots) }
       }
@@ -145,9 +145,9 @@ describe('search smoke protected evaluation', () => {
     const readCurrentRequests = vi.fn(() => (reads.push('requests'), 3))
 
     expect(
-      isReloginReady({
+      isRestartReady({
         blank,
-        afterLogin: { streams: 2, workers: 4 },
+        afterStop: { streams: 2, workers: 4 },
         stopped: { streams: 2, workers: 4 },
         readCurrentRequests,
         expectedRequests: 3

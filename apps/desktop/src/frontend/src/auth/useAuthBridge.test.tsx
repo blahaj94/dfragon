@@ -349,8 +349,10 @@ it('A→B→A API 객체 재사용도 이전 연결 snapshot과 늦은 reply를 
 
 it('연결 조회 실패 뒤 화면에서 다시 확인해 현재 로그인으로 복귀한다', async () => {
   fixture.api.getAuthState.mockRejectedValueOnce(new Error('unavailable'))
-  await act(async () => root.render(<AuthBridge api={fixture.api} home={<span>보호 기능</span>} />))
-  expect(container.textContent).not.toContain('보호 기능')
+  await act(async () =>
+    root.render(<AuthBridge api={fixture.api} home={<span>화면 캡처 기능</span>} />)
+  )
+  expect(container.textContent).toContain('화면 캡처 기능')
   const retry = container.querySelector('button')
   expect(retry?.textContent).toBe('연결 다시 확인')
 
@@ -370,7 +372,7 @@ it('연결 조회 실패 뒤 화면에서 다시 확인해 현재 로그인으�
     fixture.emit(signedIn)
     query.resolve(snapshot(1))
   })
-  expect(container.textContent).toContain('보호 기능')
+  expect(container.textContent).toContain('화면 캡처 기능')
   expect(container.textContent).toContain('중립모험가')
   expect(fixture.api.beginLogin).not.toHaveBeenCalled()
   expect(fixture.api.retryAuth).not.toHaveBeenCalled()
@@ -406,4 +408,38 @@ it('연결 재확인도 실패하면 실패 안내와 다음 수동 재확인을
   expect(container.querySelector('button')?.textContent).toBe('연결 다시 확인')
   expect(fixture.listeners.size).toBe(1)
   expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+})
+
+it('계정 확인·환영·로그아웃·연결 재설정 중에도 캡처를 같은 mount로 유지한다', async () => {
+  const mounted = vi.fn()
+  const cleaned = vi.fn()
+  function Capture(): JSX.Element {
+    useEffect(() => {
+      mounted()
+      return cleaned
+    }, [])
+    return <span>Capture fixture</span>
+  }
+  const initial = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(initial.promise)
+  await act(async () => root.render(<AuthBridge api={fixture.api} home={<Capture />} />))
+  expect(container.textContent).toContain('Capture fixture')
+  await act(async () => initial.resolve(snapshot(1)))
+  await act(async () =>
+    fixture.emit({
+      ...snapshot(2),
+      phase: 'signedIn',
+      user: { nickname: 'Synthetic' },
+      entry: 'welcome'
+    })
+  )
+  expect(container.textContent).toContain('시작하기')
+  await act(async () => fixture.emit({ ...snapshot(3), phase: 'signingOut' }))
+  await act(async () => fixture.emit(snapshot(4)))
+  fixture.api.getAuthState.mockRejectedValueOnce(new Error('unavailable'))
+  await act(async () => fixture.emit(snapshot(1, 'new-run')))
+  expect(container.textContent).toContain('연결 다시 확인')
+  expect(container.textContent).toContain('Capture fixture')
+  expect(mounted).toHaveBeenCalledOnce()
+  expect(cleaned).not.toHaveBeenCalled()
 })

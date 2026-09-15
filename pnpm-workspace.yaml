@@ -7,6 +7,6 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   koffi: true
-  tesseract.js: false
+  protobufjs: false
 
 disallowWorkspaceCycles: true
