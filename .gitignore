@@ -2,3 +2,4 @@ node_modules
 .codex/
 apps/desktop/src/frontend/public/ocr
 /.artifacts/workflow.png
+/deploy/api/.env

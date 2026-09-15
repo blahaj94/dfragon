@@ -1,0 +1,138 @@
+name: ldb
+
+x-api-runtime: &api-runtime
+  image: ldb-api:${LDB_IMAGE_TAG:?Set an immutable release tag}
+  build:
+    context: ../..
+    dockerfile: deploy/api/Dockerfile
+  user: '1000:1000'
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: ['/tmp:size=16m,mode=1777']
+  pids_limit: 128
+  mem_limit: 1g
+  cpus: 2
+  init: true
+  stop_grace_period: 15s
+  logging:
+    driver: local
+    options:
+      max-size: 10m
+      max-file: '3'
+
+x-database-environment: &database-environment
+  DB_HOST: database
+  DB_PORT: '5432'
+  DB_NAME: ldb
+
+services:
+  database:
+    image: docker.io/library/postgres:18.6-trixie@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
+    user: postgres
+    restart: unless-stopped
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 2g
+    cpus: 2
+    shm_size: 128m
+    stop_grace_period: 60s
+    environment:
+      POSTGRES_DB: ldb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      PGDATA: /var/lib/postgresql/18/docker
+    secrets: [postgres_password, ldb_migrator_password, ldb_api_password]
+    volumes:
+      - database:/var/lib/postgresql
+      - ./init-database.sh:/docker-entrypoint-initdb.d/10-ldb.sh:ro
+      - ./grant-api.sql:/opt/ldb/grant-api.sql:ro
+    networks: [database]
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          PGPASSWORD="$$(cat /run/secrets/ldb_migrator_password)"
+          psql --no-psqlrc --no-password --host=127.0.0.1 --username=ldb_migrator
+          --dbname=ldb --tuples-only --no-align --command='SELECT 1' >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    logging:
+      driver: local
+      options:
+        max-size: 10m
+        max-file: '3'
+
+  api:
+    <<: *api-runtime
+    restart: unless-stopped
+    environment:
+      <<: *database-environment
+      DB_USERNAME: ldb_api
+      PORT: '3000'
+      AUTH_CONFIG_FILE: /run/secrets/auth_config
+    secrets:
+      - source: ldb_api_password
+        target: db_password
+      - neople_api_key
+      - auth_config
+    ports: ['127.0.0.1:${LDB_API_PORT:-3000}:3000']
+    networks: [database, outbound]
+    depends_on:
+      database:
+        condition: service_healthy
+
+  migrate:
+    <<: *api-runtime
+    profiles: [maintenance]
+    command: [node, --import, reflect-metadata, dist/database/cli.js, up]
+    environment:
+      <<: *database-environment
+      DB_USERNAME: ldb_migrator
+    secrets:
+      - source: ldb_migrator_password
+        target: db_password
+    networks: [database]
+    depends_on:
+      database:
+        condition: service_healthy
+
+  cleanup:
+    <<: *api-runtime
+    profiles: [maintenance]
+    command: [node, --import, reflect-metadata, dist/auth/cleanup/cli.js]
+    environment:
+      <<: *database-environment
+      DB_USERNAME: ldb_api
+    secrets:
+      - source: ldb_api_password
+        target: db_password
+    networks: [database]
+    depends_on:
+      database:
+        condition: service_healthy
+
+networks:
+  database:
+    internal: true
+  outbound: {}
+
+volumes:
+  database: {}
+
+secrets:
+  postgres_password:
+    file: ${LDB_SECRETS_DIR:?Set an absolute directory outside the checkout}/postgres_password
+  ldb_migrator_password:
+    file: ${LDB_SECRETS_DIR}/ldb_migrator_password
+  ldb_api_password:
+    file: ${LDB_SECRETS_DIR}/ldb_api_password
+  neople_api_key:
+    file: ${LDB_SECRETS_DIR}/neople_api_key
+  auth_config:
+    file: ${LDB_SECRETS_DIR}/auth_config.json
