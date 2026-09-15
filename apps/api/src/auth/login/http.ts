@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common'
 import type { ArgumentsHost, ExceptionFilter, INestApplication } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
+import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
 import { LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
 import { createCharacterSearchService } from '../../characters/search-service.js'
@@ -277,13 +278,15 @@ export async function createLoginHttpApp(
   })
   class LoginHttpModule {}
 
-  const app = await NestFactory.create(LoginHttpModule, {
+  const app = await NestFactory.create<NestExpressApplication>(LoginHttpModule, {
     logger: false,
     bodyParser: false,
     abortOnError: false,
     httpsOptions
   })
   try {
+    // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
+    app.set('trust proxy', searchDependencies?.trustedProxyHops ?? false)
     app.use((request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')
       response.removeHeader('X-Powered-By')

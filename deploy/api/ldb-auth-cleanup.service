@@ -1,0 +1,10 @@
+[Unit]
+Description=LDB expired authentication data cleanup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ldb/deploy/api
+ExecStart=/usr/bin/docker compose --profile maintenance run --rm --no-deps cleanup
+TimeoutStartSec=15min

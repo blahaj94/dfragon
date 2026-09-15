@@ -8,6 +8,9 @@ last-reviewed: 2026-09-08
 
 `pnpm --filter @ldb/api start`는 `apps/api/dist/main.js`에서 Google 로그인·refresh/logout·계정·인증 검색을 한 앱으로 시작한다. 기존 factory와 transaction을 사용하며 필수 설정을 검증한 뒤 DB를 초기화하고 마지막에 listen한다. 실제 provider 등록·credential과 운영 ingress/TLS·배포 검증은 별도로 준비해야 한다.
 
+Ubuntu 서버에서 Docker Compose와 호스트 Caddy를 사용하는 배포 명령·권한·secret 입력은
+[단일 서버 API 배포](../../deploy/api/README.md)를 따른다.
+
 `/` 등 미등록 경로는 요청 URL이나 예외 원문을 포함하지 않는 고정 404 JSON을 반환한다. 등록된 service가 던진 예외는 기존 인증·계정·검색의 정제 오류 처리에 남으며 미등록 route의 404와 구분한다.
 
 ## 준비할 입력
@@ -18,6 +21,7 @@ last-reviewed: 2026-09-08
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | 기존 DB reader의 개별 연결 값. `DB_PORT`도 십진 정수 `1`~`65535`이며 나머지는 비어 있지 않아야 한다. |
 | `NEOPLE_API_KEY` | 비어 있지 않은 검색 API key |
 | `AUTH_CONFIG_FILE` | 배포가 준비한 UTF-8 JSON secret 파일의 절대 경로 |
+| `SEARCH_TRUST_PROXY` | 생략하면 직접 peer IP를 사용하고 전달 헤더를 무시한다. `single-hop`만 명시적으로 허용하며, [단일 Caddy 배포](../../deploy/api/README.md)의 접근 제한·헤더 덮어쓰기와 함께 사용한다. 다른 값은 시작 전에 거절한다. |
 | `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE` | 선택적인 localhost HTTPS용 PEM certificate와 private key의 절대 경로. 함께 지정해야 한다. |
 
 파일의 정확한 schema와 key 교체·과거 version 보존 기준은 [승인된 배포 설정 입력](../rules/auth-runtime.md)을 따른다. 최상위는 `accessJwt`, `providerPkce`, `registry`, `google` 네 object다. PEM은 JSON 문자열에, PKCE key는 canonical base64url 43자에 담는다. Google endpoint는 registry의 version을 참조하고 secret은 `(version, reference)`가 정확히 일치해야 한다.

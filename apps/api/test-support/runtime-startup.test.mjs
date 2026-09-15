@@ -4,6 +4,7 @@ import { createServer } from 'node:net'
 import test from 'node:test'
 import { setTimeout as delay } from 'node:timers/promises'
 import { parsePort } from '../dist/port.js'
+import { isolatedNeople } from './character-search-fixtures.mjs'
 import {
   assertStartupFailure,
   collectRuntimeExit,
@@ -132,6 +133,11 @@ test('build entry validates required environment before acquiring resources', as
   await withRuntimeConfiguration(async ({ path }) => {
     const port = await unusedRuntimePort()
     const valid = runtimeEnvironment(path, port)
+    for (const value of ['', 'true', '1', '2', 'single-hop ']) {
+      await t.test(`invalid SEARCH_TRUST_PROXY ${JSON.stringify(value)}`, () =>
+        rejectedBeforeInitialization({ ...valid, SEARCH_TRUST_PROXY: value })
+      )
+    }
     for (const name of Object.keys(valid)) {
       for (const value of [undefined, '']) {
         const isMissing = value === undefined
@@ -158,6 +164,31 @@ test('build entry validates required environment before acquiring resources', as
       ['directory', path.slice(0, path.lastIndexOf('/'))]
     ]) {
       await t.test(name, () => rejectedBeforeInitialization({ ...valid, AUTH_CONFIG_FILE: value }))
+    }
+  })
+})
+
+test('build entry applies the explicit single-proxy mode to public search', async () => {
+  await withRuntimeConfiguration(async ({ path }) => {
+    const neople = await isolatedNeople()
+    const port = await unusedRuntimePort()
+    const runtime = startRuntime(
+      { ...runtimeEnvironment(path, port), SEARCH_TRUST_PROXY: 'single-hop' },
+      { upstreams: { neople: neople.origin } }
+    )
+    try {
+      await waitForRuntime(port, runtime)
+      for (let index = 0; index < 12; index++) {
+        const response = await fetch(`http://127.0.0.1:${port}/characters?characterName=ab`, {
+          headers: { 'x-forwarded-for': index % 2 === 0 ? '192.0.2.1' : '192.0.2.2' }
+        })
+        assert.equal(response.status, 200)
+        assert.deepEqual(await response.json(), { rows: [] })
+      }
+      assert.equal(neople.calls.length, 12)
+    } finally {
+      await stopRuntime(runtime)
+      await neople.close()
     }
   })
 })

@@ -1,0 +1,18 @@
+# Only build inputs enter the context; credentials must stay outside the checkout.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!apps/
+!apps/api/
+!apps/api/package.json
+!apps/api/tsconfig*.json
+!apps/api/src/
+!apps/api/src/**
+!deploy/
+!deploy/api/
+!deploy/api/Dockerfile
+!deploy/api/entrypoint.sh
+**/*.pem
+**/*.key
+**/.env*
