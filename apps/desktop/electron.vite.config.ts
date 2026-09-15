@@ -3,10 +3,16 @@ import { defineConfig } from 'electron-vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../packages/ui/build/notices.ts'
+import { readDistributionApiOrigin } from './build/distribution-config'
 
 export default defineConfig(({ mode }) => ({
   main: {
-    define: { __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development') },
+    define: {
+      __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development'),
+      __LDB_DISTRIBUTION_API_ORIGIN__: JSON.stringify(
+        mode === 'ldb-distribution' ? readDistributionApiOrigin() : null
+      )
+    },
     build: {
       // Ky is ESM-only; bundle its default export into the CommonJS main process.
       externalizeDeps: { exclude: ['ky'] },

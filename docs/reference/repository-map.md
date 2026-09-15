@@ -80,6 +80,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 ### `apps/desktop`
 
 - Package: `@ldb/desktop`
+- Windows MVP 배포: 이름 `LDB`, x64 NSIS, `ldb` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `ldb.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
 - Stack: Electron, React, TypeScript, electron-vite
 - Process boundary: `main`, `preload`, `renderer`
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`

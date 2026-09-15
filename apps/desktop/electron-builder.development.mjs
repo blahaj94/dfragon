@@ -5,6 +5,7 @@ export default {
   extends: './electron-builder.yml',
   appId: development.appIdentity,
   productName: 'LDB Development',
+  extraMetadata: { name: '@ldb/desktop' },
   directories: { output: 'dist/development' },
   protocols: [
     {
@@ -13,8 +14,7 @@ export default {
     }
   ],
   win: {
-    executableName: 'ldb-dev',
-    target: [{ target: 'nsis', arch: ['x64'] }]
+    executableName: 'ldb-dev'
   },
   nsis: {
     perMachine: false,

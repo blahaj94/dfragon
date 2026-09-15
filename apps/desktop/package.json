@@ -1,10 +1,10 @@
 {
   "name": "@ldb/desktop",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "던전앤파이터 캐릭터 검색과 게임 화면 OCR을 제공하는 LDB 데스크톱 앱",
   "main": "./out/backend/main.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "LDB contributors",
+  "homepage": "https://github.com/blahaj94/ldb",
   "scripts": {
     "format": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
     "lint": "eslint .",
@@ -19,7 +19,8 @@
     "build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:distribution": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode ldb-distribution",
+    "build:win": "npm run build:distribution && electron-builder --win --publish never",
     "build:development": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode ldb-development",
     "build:win:development": "npm run build:development && electron-builder --win --config electron-builder.development.mjs --publish never",
     "build:mac": "npm run prepare:ocr-assets && electron-vite build && electron-builder --mac",
