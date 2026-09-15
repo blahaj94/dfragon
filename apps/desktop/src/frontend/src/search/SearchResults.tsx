@@ -57,16 +57,18 @@ export function SlotResult({
         <ContentStack>
           {editor}
           {hasNickname && <SupportingText>{slot.nickname}</SupportingText>}
-          {!isSuccess && (
+          <div className="character-candidates">
             <div role="status">
-              {shouldShowError ? (
+              {isSuccess ? (
+                <SupportingText>검색 결과 {slot.rows.length}명</SupportingText>
+              ) : shouldShowError ? (
                 <SupportingText>{SEARCH_ERRORS[error.code].message}</SupportingText>
               ) : (
                 <SupportingText>{status}</SupportingText>
               )}
             </div>
-          )}
-          {isSuccess && <CharacterCandidates rows={slot.rows} />}
+            {isSuccess && <CharacterCandidates rows={slot.rows} />}
+          </div>
           {isWaiting && (
             <SupportingText>
               {error.retryAfterSeconds}초 제한 대기 후 다시 시도할 수 있습니다.

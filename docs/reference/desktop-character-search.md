@@ -108,7 +108,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 
 ## 직접 검색과 수정 검색
 
-직접 검색과 슬롯 검색은 같은 `CharacterCandidates.tsx`로 후보를 표시한다. 닉네임·서버명·명성을 한 묶음으로 보여주고 서버 ID·캐릭터 ID는 기본적으로 접힌 ‘식별 정보’에서 확인한다. 후보 값과 서버 응답 순서를 유지하며 명성은 자릿수 구분을 적용하고 `0`과 `null`을 구분한다. 알 수 없는 서버는 응답 ID를 표시한다. 화면 전용 CSS는 SEED token을 사용하며 긴 문자열을 줄바꿈한다. Native `details`의 키보드 동작과 focus 표시를 유지한다.
+직접 검색과 슬롯 검색은 같은 `CharacterCandidates.tsx`로 후보를 표시한다. 닉네임·서버명·명성을 한 묶음으로 보여주고 서버 ID·캐릭터 ID는 기본적으로 접힌 ‘식별 정보’에서 확인한다. 후보 값과 서버 응답 순서를 유지하며 명성은 자릿수 구분을 적용하고 `0`과 `null`을 구분한다. 알 수 없는 서버는 응답 ID를 표시한다. 화면 전용 CSS는 SEED token을 사용하며 긴 문자열을 줄바꿈한다. Native `details`의 키보드 동작과 focus 표시를 유지한다. 검색 상태와 완료 시 결과 수는 같은 `role="status"` 영역의 내용을 갱신하며, 후보 목록은 이 영역 밖에 표시한다.
 
 `ManualSearch.tsx`는 캡처 없이 독립 검색 폼과 결과를 제공한다. `manual-ipc.ts`는 별도의 `CaptureSearchLifetime`으로 기존 HTTP·입력·오류·429·취소 구현을 재사용한다. 직접 검색의 시작과 종료는 실제 capture/media 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
 

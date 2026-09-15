@@ -90,6 +90,37 @@ it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후�
   expect(fixture.button('다시 시도', region(fixture, 3)).disabled).toBe(false)
 })
 
+it('검색 상태와 결과 수는 같은 status 영역에서 갱신하고 후보 목록은 밖에 표시한다', async () => {
+  const fixture = await recognized()
+  await emitSlot(fixture, searchSlot())
+  const status = region(fixture).querySelector('[role="status"]')
+  expect(status?.textContent).toBe('검색 중')
+
+  for (const slot of [
+    searchSlot({ state: 'success', rows: [searchRow] }),
+    searchSlot(),
+    searchSlot({ state: 'empty' })
+  ]) {
+    await emitSlot(fixture, slot)
+    expect(region(fixture).querySelectorAll('[role="status"]')).toHaveLength(1)
+    expect(region(fixture).querySelector('[role="status"]')).toBe(status)
+    expect(status?.textContent).toBe(
+      slot.state === 'success'
+        ? '검색 결과 1명'
+        : slot.state === 'pending'
+          ? '검색 중'
+          : '검색 결과가 없습니다.'
+    )
+    const candidates = region(fixture).querySelector('[aria-label="캐릭터 검색 후보"]')
+    if (slot.state === 'success') {
+      expect(candidates).not.toBeNull()
+      expect(status?.contains(candidates)).toBe(false)
+    } else {
+      expect(candidates).toBeNull()
+    }
+  }
+})
+
 it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별한다', async () => {
   const fixture = await recognized()
   await emitSlot(
