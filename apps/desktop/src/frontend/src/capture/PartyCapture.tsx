@@ -103,7 +103,7 @@ function PartyCapture(): React.JSX.Element {
           <ActionButton
             type="button"
             disabled={starting || search.captureActive}
-            onClick={refreshSources}
+            onClick={() => refreshSources()}
           >
             창 목록 새로고침
           </ActionButton>
