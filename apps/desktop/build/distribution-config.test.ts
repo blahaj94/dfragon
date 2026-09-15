@@ -20,10 +20,22 @@ it.each([
   'https://api.example.test?token=private',
   'https://user:private@api.example.test',
   'https://localhost:3443',
+  'https://localhost.:3443',
+  'https://game.localhost.:3443',
   'https://127.0.0.1:3443',
-  'https://[::1]:3443'
+  'https://[::1]:3443',
+  'https://[::ffff:7f00:0]:3443',
+  'https://[::ffff:7f00:1]:3443',
+  'https://[::ffff:7fff:ffff]:3443'
 ])('rejects a missing, invalid or loopback distribution origin without exposing it', (origin) => {
   expect(() => readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toThrow(
     /^Set LDB_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/
   )
 })
+
+it.each(['https://api.example.test.', 'https://[::ffff:7eff:ffff]', 'https://[::ffff:8000:0]'])(
+  'preserves canonical non-loopback origins',
+  (origin) => {
+    expect(readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
+  }
+)

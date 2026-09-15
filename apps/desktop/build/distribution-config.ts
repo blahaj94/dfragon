@@ -10,12 +10,15 @@ export function readDistributionApiOrigin(
       throw new Error()
     }
     validateApiOrigin(origin)
-    const hostname = new URL(origin).hostname
+    const hostname = new URL(origin).hostname.replace(/\.$/, '')
+    // Canonical URL hostnames encode IPv4-mapped IPv6 as ::ffff:hhhh:hhhh.
+    const isMappedLoopback = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(hostname)
     if (
       hostname === 'localhost' ||
       hostname.endsWith('.localhost') ||
       hostname.startsWith('127.') ||
-      hostname === '[::1]'
+      hostname === '[::1]' ||
+      isMappedLoopback
     ) {
       throw new Error()
     }
