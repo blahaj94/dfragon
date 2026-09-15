@@ -204,3 +204,72 @@ it('invalid replacement clears current observation and unmount ends its own sess
   expect(api.controlCharacterSearch).toHaveBeenCalledWith({ action: 'end', captureId: CAPTURE_ID })
   root = createRoot(container)
 })
+
+it.each(['success', 'empty'] as const)(
+  'resubmits the same nickname after %s while suppressing duplicate pending submits',
+  async (state) => {
+    await mount()
+    await input('ALICE')
+    await submit()
+    await submit()
+    expect(api.notifyManualNickname).toHaveBeenCalledTimes(1)
+    current = searchSnapshot({
+      revision: current.revision + 1,
+      slots: [
+        searchSlot({
+          nickname: 'ALICE',
+          state,
+          rows: state === 'success' ? [searchRow] : []
+        }),
+        ...current.slots.slice(1)
+      ]
+    })
+    await act(async () => listener(current))
+    // Dispatch twice before React renders or the new IPC reply arrives.
+    await act(async () => {
+      for (let i = 0; i < 2; i += 1) {
+        container
+          .querySelector('form')!
+          .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      }
+    })
+    expect(api.notifyManualNickname).toHaveBeenCalledTimes(2)
+    expect(api.notifyManualNickname).toHaveBeenLastCalledWith({
+      captureId: CAPTURE_ID,
+      slot: 0,
+      observationRevision: 3,
+      nickname: 'ALICE'
+    })
+    expect(container.textContent).not.toContain('synthetic-character')
+    // A late result from the first request must not unlock the current request.
+    await result('ALICE', current.revision + 1, 1)
+    await submit()
+    expect(api.notifyManualNickname).toHaveBeenCalledTimes(2)
+    await result('ALICE', current.revision + 2, 3)
+    expect(container.textContent).toContain('synthetic-character')
+  }
+)
+
+it('same-name submit cannot bypass the rate-limit retry wait', async () => {
+  await mount()
+  await input('ALICE')
+  await submit()
+  current = searchSnapshot({
+    revision: current.revision + 1,
+    slots: [
+      searchSlot({
+        nickname: 'ALICE',
+        state: 'failure',
+        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 30 }
+      }),
+      ...current.slots.slice(1)
+    ]
+  })
+  await act(async () => listener(current))
+  await submit()
+  expect(api.notifyManualNickname).toHaveBeenCalledTimes(1)
+  expect(api.controlCharacterSearch).not.toHaveBeenCalledWith(
+    expect.objectContaining({ action: 'clear' })
+  )
+  expect(container.textContent).toContain('30')
+})

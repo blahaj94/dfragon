@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
 import { CaptureSearchLifetime } from './capture-lifetime'
@@ -29,18 +30,18 @@ export function registerManualSearchIpc({
     requireSender(event)
     const control = parseSearchControl(args)
     if (control == null) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     switch (control.action) {
-      case 'read':
+      case SEARCH_ACTIONS.READ:
         return lifetime.result()
-      case 'end':
+      case SEARCH_ACTIONS.END:
         return lifetime.end(control.captureId)
-      case 'clear':
+      case SEARCH_ACTIONS.CLEAR:
         return lifetime.clear(control)
-      case 'retry':
+      case SEARCH_ACTIONS.RETRY:
         return lifetime.retry(control)
-      case 'begin':
+      case SEARCH_ACTIONS.BEGIN:
         // An explicit new begin also recovers a session whose reply was lost.
         lifetime.invalidate()
         return lifetime.begin({ windowGeneration: windowGeneration(), sourceGeneration: 0 })
@@ -51,7 +52,7 @@ export function registerManualSearchIpc({
     requireSender(event)
     const observation = parseSearchObservation(args)
     if (observation == null) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     return lifetime.observe(observation)
   })

@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import {
   desktopCapturer,
   ipcMain,
@@ -121,7 +122,7 @@ function requireSearchSender(event: IpcMainInvokeEvent): void {
   const isSender = event.sender === captureWindow?.webContents
   const isAllowed = isTrusted && isSender
   if (!isAllowed) {
-    throw new Error('SEARCH_NOT_ALLOWED')
+    throw new Error(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
   }
 }
 
@@ -256,33 +257,33 @@ function registerCaptureIpc(configuration?: {
     const control = parseSearchControl(args)
     const hasValidControl = control != null
     if (!hasValidControl) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
-    const isRead = control.action === 'read'
+    const isRead = control.action === SEARCH_ACTIONS.READ
     if (isRead) {
       return lifetime.result()
     }
-    const isEnd = control.action === 'end'
+    const isEnd = control.action === SEARCH_ACTIONS.END
     if (isEnd) {
       return lifetime.end(control.captureId)
     }
 
-    const isClear = control.action === 'clear'
+    const isClear = control.action === SEARCH_ACTIONS.CLEAR
     if (isClear) {
       return lifetime.clear(control)
     }
-    const isRetry = control.action === 'retry'
+    const isRetry = control.action === SEARCH_ACTIONS.RETRY
     if (isRetry) {
       return lifetime.retry(control)
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
     if (isBusy) {
-      return lifetime.result('SEARCH_BUSY')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
     }
     const hasSource = selectedSourceId != null
     if (!hasSource) {
-      return lifetime.result('SEARCH_NOT_ALLOWED')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
     return lifetime.begin({
       windowGeneration,
@@ -295,7 +296,7 @@ function registerCaptureIpc(configuration?: {
     const observation = parseSearchObservation(args)
     const hasValidObservation = observation != null
     if (!hasValidObservation) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     return lifetime.observe(observation)
   })

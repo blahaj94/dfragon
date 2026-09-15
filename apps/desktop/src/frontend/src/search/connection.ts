@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import type {
   SearchApi,
   SearchCommandResult,
@@ -130,7 +131,7 @@ export class SearchConnection {
   private async read(expected: number): Promise<boolean> {
     try {
       const result = parseSearchResult(
-        await this.options.api.controlCharacterSearch({ action: 'read' })
+        await this.options.api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ })
       )
       const isValid = result != null
       if (!isValid) {

@@ -113,3 +113,5 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 `SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 뒤에 관측한 OCR은 임시로 보관해 ‘OCR 다시 사용’ 때 반영하며, 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
 
 관련 UI·hook·IPC 검증은 합성 이름을 사용한다. 실제 설치 앱과 게임 확인 결과는 이번 PR에서 fixture 성공과 구분해 기록한다. 추가 OCR 튜닝은 #463의 MVP 이후 범위를 유지한다.
+
+직접 검색은 성공·0건 결과를 받은 뒤 같은 닉네임도 다시 제출할 수 있다. 진행 중 같은 입력의 중복 제출은 막고, 실패는 기존 retry 경로와 429 대기를 유지한다. 입력 길이는 API와 같은 2–12 Unicode 코드 포인트 기준이며, UTF-16 코드 유닛이나 화면상 글자 묶음(grapheme) 기준으로 변경하거나 정규화하지 않는다. 검색 action과 명령 오류는 shared `SEARCH_ACTIONS`·`SEARCH_COMMAND_ERRORS`에서 타입과 runtime 검증 값을 함께 정의한다.

@@ -42,6 +42,11 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       notify: api.notifyManualNickname,
       onChange: (next) => {
         if (active) {
+          const slot = next.slots[0]
+          const isComplete = slot.state === 'success' || slot.state === 'empty'
+          if (isComplete && slot.nickname === session.nickname) {
+            session.nickname = null
+          }
           setView(next)
         }
       },

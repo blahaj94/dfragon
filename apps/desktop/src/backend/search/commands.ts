@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS } from '../../preload/common/types/search'
 import { z } from 'zod'
 import type { SearchControl, SearchObservation } from '../../preload/common/types/search'
 
@@ -7,11 +8,21 @@ const safeInteger = z.int()
 const observationRevision = safeInteger.positive()
 const slot = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
 const controlSchema = z.discriminatedUnion('action', [
-  z.strictObject({ action: z.literal('read') }),
-  z.strictObject({ action: z.literal('begin') }),
-  z.strictObject({ action: z.literal('end'), captureId: uuid }),
-  z.strictObject({ action: z.literal('clear'), captureId: uuid, slot, observationRevision }),
-  z.strictObject({ action: z.literal('retry'), captureId: uuid, slot, requestId: uuid })
+  z.strictObject({ action: z.literal(SEARCH_ACTIONS.READ) }),
+  z.strictObject({ action: z.literal(SEARCH_ACTIONS.BEGIN) }),
+  z.strictObject({ action: z.literal(SEARCH_ACTIONS.END), captureId: uuid }),
+  z.strictObject({
+    action: z.literal(SEARCH_ACTIONS.CLEAR),
+    captureId: uuid,
+    slot,
+    observationRevision
+  }),
+  z.strictObject({
+    action: z.literal(SEARCH_ACTIONS.RETRY),
+    captureId: uuid,
+    slot,
+    requestId: uuid
+  })
 ])
 const observationSchema = z.strictObject({
   captureId: uuid,

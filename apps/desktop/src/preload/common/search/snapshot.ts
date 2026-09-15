@@ -1,5 +1,10 @@
 import { z } from 'zod'
-import { SEARCH_ERRORS, type SearchCommandResult, type SearchSnapshot } from '../types/search'
+import {
+  SEARCH_COMMAND_ERRORS,
+  SEARCH_ERRORS,
+  type SearchCommandResult,
+  type SearchSnapshot
+} from '../types/search'
 
 const uuid = z.string().regex(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
 const revision = z.int().nonnegative()
@@ -96,13 +101,7 @@ const resultSchema = z.discriminatedUnion('ok', [
     ok: z.literal(false),
     snapshot: snapshotSchema,
     error: z.strictObject({
-      code: z.enum([
-        'INVALID_SEARCH_COMMAND',
-        'SEARCH_NOT_ALLOWED',
-        'STALE_SEARCH',
-        'SEARCH_BUSY',
-        'SEARCH_RETRY_NOT_READY'
-      ])
+      code: z.enum(SEARCH_COMMAND_ERRORS)
     })
   })
 ])
