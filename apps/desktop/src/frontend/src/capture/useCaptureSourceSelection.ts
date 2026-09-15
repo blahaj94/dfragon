@@ -7,6 +7,7 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
   selectedSourceId: string
   sourceRegistered: boolean
   isSelectedSourceRegistered: () => boolean
+  refreshSources: () => void
   selectSource: (sourceId: string) => void
 } {
   const selectionGenerationRef = useRef(0)
@@ -15,6 +16,7 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
   const [sources, setSources] = useState<CaptureSource[]>([])
   const [selectedSourceId, setSelectedSourceId] = useState('')
   const [sourceRegistered, setSourceRegistered] = useState(false)
+  const [sourceListVersion, setSourceListVersion] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -27,15 +29,26 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
       })
       .catch(() => {
         if (!cancelled) {
-          setStatus('창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 앱을 다시 열어 주세요.')
+          setStatus(
+            '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 ‘창 목록 새로고침’을 눌러 주세요.'
+          )
         }
       })
     return () => {
       cancelled = true
+    }
+  }, [setStatus, sourceListVersion])
+
+  useEffect(() => {
+    return () => {
       selectionGenerationRef.current += 1
       void window.api.selectCaptureSource('').catch(() => undefined)
     }
-  }, [setStatus])
+  }, [])
+
+  function refreshSources(): void {
+    setSourceListVersion((version) => version + 1)
+  }
 
   function selectSource(sourceId: string): void {
     const selectionGeneration = ++selectionGenerationRef.current
@@ -84,6 +97,7 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
     selectedSourceId,
     sourceRegistered,
     isSelectedSourceRegistered,
+    refreshSources,
     selectSource
   }
 }

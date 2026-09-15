@@ -146,6 +146,14 @@ Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopba
 
 빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 Google 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
+### Windows MVP 배포 구성
+
+Windows x64 NSIS 배포 앱은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용한다. 이 선택은 배포 설정 PR의 채택 범위이며 사용자 merge 후 다른 작업에 적용한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다.
+
+배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. Google callback은 해당 origin의 `/auth/callback/google`이고 서버 registry의 복귀 주소는 `ldb://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret·credential은 설치 파일에 넣지 않는다. 실제 서버·HTTPS 연결·provider 등록의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
+
+개발 앱의 `ldb.dev`·profile·설치 경로는 보존한다. 배포 앱은 별도 `ldb` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트·추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
+
 ### 공통 진입점
 
 | 진입점 | 등록·처리 계약 | 실제 사용에서 확인할 사항 |

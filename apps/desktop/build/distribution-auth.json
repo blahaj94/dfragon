@@ -1,0 +1,6 @@
+{
+  "returnTarget": "ldb://auth/callback",
+  "environment": "production",
+  "providers": ["google"],
+  "appIdentity": "ldb"
+}

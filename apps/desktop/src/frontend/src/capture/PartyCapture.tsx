@@ -34,6 +34,7 @@ function PartyCapture(): React.JSX.Element {
     stableNicknames,
     status,
     selectSource,
+    refreshSources,
     setIntervalSeconds,
     startCapture,
     stopCapture
@@ -99,6 +100,13 @@ function PartyCapture(): React.JSX.Element {
           </select>
         </label>
         <div {...stylex.props(styles.actions)}>
+          <ActionButton
+            type="button"
+            disabled={starting || search.captureActive}
+            onClick={() => refreshSources()}
+          >
+            창 목록 새로고침
+          </ActionButton>
           <ActionButton
             disabled={cannotStartCapture}
             loading={starting}
