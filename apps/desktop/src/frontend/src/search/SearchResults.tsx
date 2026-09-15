@@ -1,15 +1,21 @@
+import type { ReactNode } from 'react'
+import { SlotNicknameEditor, type SlotEditing } from './SlotNicknameEditor'
 import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import type { SearchView } from './capture-search'
 
-function SlotResult({
+export function SlotResult({
   slot,
   retryPending,
-  retry
+  retry,
+  title,
+  editor
 }: {
   slot: SearchSlot
   retryPending: boolean
   retry: (slot: number) => void
+  title?: string
+  editor?: ReactNode
 }): React.JSX.Element {
   const isPending = slot.state === 'pending'
   const isSuccess = slot.state === 'success'
@@ -45,9 +51,10 @@ function SlotResult({
   const status = isPending ? '검색 중' : isEmpty ? '검색 결과가 없습니다.' : '인식 대기'
 
   return (
-    <section aria-label={`슬롯 ${slot.slot + 1} 검색`} aria-busy={isBusy}>
-      <ExampleSection title={`슬롯 ${slot.slot + 1}`}>
+    <section aria-label={title ?? `슬롯 ${slot.slot + 1} 검색`} aria-busy={isBusy}>
+      <ExampleSection title={title ?? `슬롯 ${slot.slot + 1}`}>
         <ContentStack>
+          {editor}
           {hasNickname && <SupportingText>{slot.nickname}</SupportingText>}
           <div role="status">
             {shouldShowError ? (
@@ -93,9 +100,11 @@ function SlotResult({
 
 export function SearchResults({
   view,
-  retry
+  retry,
+  editing
 }: {
   view: SearchView
+  editing?: SlotEditing
   retry: (slot: number) => void
 }): React.JSX.Element {
   return (
@@ -109,6 +118,15 @@ export function SearchResults({
           slot={slot}
           retryPending={view.retryPending[slot.slot]}
           retry={retry}
+          editor={
+            editing != null && (
+              <SlotNicknameEditor
+                slot={slot}
+                active={view.captureActive === true}
+                editing={editing}
+              />
+            )
+          }
         />
       ))}
     </ContentStack>

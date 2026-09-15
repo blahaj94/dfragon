@@ -86,7 +86,7 @@ function PartyCapture(): React.JSX.Element {
         Stop
       </ActionButton>
       <pre>{statusText}</pre>
-      <SearchResults view={search} retry={retrySearch} />
+      <SearchResults view={search} retry={retrySearch} editing={search} />
     </main>
   )
 }

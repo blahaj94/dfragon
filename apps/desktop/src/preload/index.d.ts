@@ -3,6 +3,7 @@ declare global {
     api: typeof import('./api/capture')
     auth: typeof import('./api/auth')
     search: typeof import('./api/search')
+    manualSearch: typeof import('./api/manual-search')
   }
 }
 

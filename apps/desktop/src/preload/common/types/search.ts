@@ -84,3 +84,7 @@ export type SearchApi = {
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
   onCharacterSearchChanged: (listener: (snapshot: SearchSnapshot) => void) => () => void
 }
+
+export type ManualSearchApi = SearchApi & {
+  notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
+}

@@ -11,6 +11,7 @@ import type { AuthClock } from '../auth/types'
 import { CaptureSearchLifetime, type CaptureBinding } from '../search/capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from '../search/commands'
 import { createSearchHttp } from '../search/http'
+import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
 
 let captureWindow: BrowserWindow | null = null
@@ -20,6 +21,7 @@ let sourceSelectionGeneration = 0
 let selectedSourceId: string | null = null
 let selectingSource = false
 let search: CaptureSearchLifetime | undefined
+let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
 let mediaPermissionCaptureId: string | null = null
 
 function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: string): boolean {
@@ -179,6 +181,20 @@ function registerCaptureIpc(configuration?: {
       }
     }
   })
+  manualSearch?.invalidate()
+  const manual = registerManualSearchIpc({
+    runtime,
+    requireSender: requireSearchSender,
+    windowGeneration: () => windowGeneration,
+    isCurrentDocument: (generation) =>
+      generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
+    publish: (snapshot) => {
+      if (isTrustedFrame(captureWindow, currentMainFrame())) {
+        captureWindow!.webContents.send('manualSearchChanged', snapshot)
+      }
+    }
+  })
+  manualSearch = manual
   search = lifetime
   clearSource()
   addHandler('listCaptureSources', async (event) => {
@@ -285,6 +301,7 @@ function registerCaptureIpc(configuration?: {
   })
 
   return () => {
+    manual.dispose()
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
@@ -298,6 +315,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   documentUrl = rendererDocumentUrl
   windowGeneration += 1
   clearSource()
+  manualSearch?.invalidate()
   registerDisplayMediaHandler(window)
 
   window.webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
@@ -308,6 +326,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.webContents.on('destroyed', () => {
     const isCurrentWindow = captureWindow === window
@@ -316,6 +335,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.webContents.on('render-process-gone', () => {
     const isCurrentWindow = captureWindow === window
@@ -324,6 +344,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.on('closed', () => {
     const isCurrentWindow = captureWindow === window
@@ -334,6 +355,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     documentUrl = null
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
 }
 

@@ -15,6 +15,7 @@ type CaptureTicket = {
   cleared: boolean[]
 }
 export type SearchView = {
+  captureActive?: boolean
   ready: boolean
   slots: readonly SearchSlot[]
   retryPending: readonly boolean[]
@@ -287,6 +288,7 @@ export class CaptureSearch {
   private publish(): void {
     this.options.onChange({
       ready: this.connection.ready,
+      captureActive: this.capture?.active === true && this.capture.captureId != null,
       slots: this.visibleSlots(),
       retryPending: Array.from({ length: 4 }, (_, slot) => {
         const isPending = this.pending.has(slot)

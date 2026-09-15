@@ -3,7 +3,11 @@ import type { AsyncIPCFunctions } from '../common/types/ipc'
 import type { SearchCommandResult } from '../common/types/search'
 import { parseSearchResult } from '../common/search/snapshot'
 
-type SearchChannel = 'controlCharacterSearch' | 'notifyStableNicknameDetected'
+type SearchChannel =
+  | 'controlCharacterSearch'
+  | 'notifyStableNicknameDetected'
+  | 'controlManualSearch'
+  | 'notifyManualNickname'
 export async function invokeSearchCommand<Channel extends SearchChannel>(
   channel: Channel,
   ...args: Parameters<AsyncIPCFunctions[Channel]>

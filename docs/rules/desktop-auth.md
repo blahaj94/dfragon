@@ -192,3 +192,13 @@ Renderer는 event를 먼저 구독한 뒤 `read`하고 같은 runId에서 더 �
 ## 인증 준비 미완료 검색 종료 제안
 
 PR #149의 `SEARCH_AUTH_NOT_READY`와 인증 회복 오류는 공개 검색 전환으로 제품 검색에서 사용하지 않는다. 기존 승인 이력은 해당 PR에 보존하며 계정 인증·저장·복원 정책을 변경하는 근거로 사용하지 않는다.
+
+## 닉네임 직접 입력과 슬롯 수정
+
+2026-09-15 사용자가 요청한 직접 검색·수정 검색은 기존 공개 검색과 같은 입력·응답·quota·15초 예산을 사용한다. 이름을 trim·OCR 정규화·자동 교정하지 않으며 2~12 code point 및 바깥 공백·잘못된 Unicode 검사를 main에서 다시 수행한다. 로그인은 필요하지 않다.
+
+- 직접 검색은 source 선택·캡처·OCR 없이 사용할 수 있다. 별도 검색 수명을 사용하므로 캡처 Stop/source 변경과 서로의 결과를 지우지 않는다. 등록 document 종료·navigation·renderer 종료는 모두 정리한다. 수동 검색 ID로 media를 허용하거나 캡처 검색을 조작할 수 없다.
+- Preload의 `window.manualSearch`는 기존 `SearchApi`의 control/subscribe shape와 `notifyManualNickname(SearchObservation)`을 제공한다. IPC는 `controlManualSearch`, `notifyManualNickname`, `manualSearchChanged`다. 동일한 sender/main frame/exact document·exact own key·DTO 검사를 적용한다. Shared DTO의 `captureId`는 수동 채널에서는 독립 검색 세션 ID이며 media 권한이 아니다.
+- 수동 `begin`은 이전 수동 세션을 종료하고 새 수명을 만든다. 시작 응답 유실 후 사용자 재검색으로 복구할 수 있고 늦은 이전 `end`·HTTP 결과는 새 세션에 영향을 주지 않는다. 캡처 `begin`의 source·gesture 전제는 유지한다.
+- 슬롯에서 ‘닉네임 수정’을 선택하면 해당 슬롯의 이전 검색을 취소하고 자동 검색 제출을 멈춘다. 다른 슬롯과 영상/OCR은 계속 동작한다. 편집 입력과 수정 검색 결과는 이후 OCR로 덮어쓰지 않으며 ‘OCR 다시 사용’을 누르면 최근 안정화 관측부터 자동 검색을 재개한다. Stop/source 변경·capture 종료 시 수정 모드를 해제한다.
+- 검색은 Enter 또는 명시적 버튼으로 제출하며 한글 조합 중 Enter는 제출하지 않는다. 중복된 진행 요청은 추가로 보내지 않고 새로운 이름은 이전 요청을 취소·교체한다. 오류·빈 결과·429·수동 retry는 기존 결과 UI를 재사용한다. 화면 입력값·닉네임·검색 결과를 log나 영구 저장소에 추가 기록하지 않는다.

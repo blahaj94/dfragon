@@ -1,0 +1,2 @@
+# Keep checksum-pinned OCR vendor assets byte-identical on every platform.
+/apps/desktop/assets/ocr/** -text

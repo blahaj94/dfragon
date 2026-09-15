@@ -104,7 +104,10 @@ it.each(failures)('%s는 고정 한국어 안내와 허용된 수동 retry만 �
       requestId: REQUEST_ID
     })
   } else {
-    expect(view.querySelector('button')).toBeNull()
+    expect(
+      [...view.querySelectorAll('button')].some((button) => button.textContent === '다시 시도')
+    ).toBe(false)
+    expect(fixture.button('닉네임 수정', view).disabled).toBe(false)
   }
 })
 
