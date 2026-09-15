@@ -173,11 +173,44 @@ afterEach(() => {
 })
 
 describe('usePartyCapture', () => {
+  it('새로고침으로 나중에 열린 창을 표시하며 기존 선택을 유지한다', async () => {
+    const initialSource = { id: 'initial-window', name: 'Initial window' }
+    const gameSource = { id: 'later-window', name: 'Later game window' }
+    api.listCaptureSources.mockResolvedValueOnce([initialSource])
+    const hook = await renderPartyCaptureHook()
+    await act(async () => hook.getCurrent().selectSource(initialSource.id))
+    api.selectCaptureSource.mockClear()
+    api.listCaptureSources.mockResolvedValueOnce([initialSource, gameSource])
+
+    await act(async () => hook.getCurrent().refreshSources())
+
+    expect(hook.getCurrent().sources).toEqual([initialSource, gameSource])
+    expect(hook.getCurrent().selectedSourceId).toBe(initialSource.id)
+    expect(hook.getCurrent().sourceRegistered).toBe(true)
+    expect(api.selectCaptureSource).not.toHaveBeenCalled()
+    await hook.unmount()
+  })
+
+  it('새로고침 뒤에 도착한 이전 목록은 최신 창 목록을 덮어쓰지 않는다', async () => {
+    const initialList = Promise.withResolvers<{ id: string; name: string }[]>()
+    api.listCaptureSources.mockReturnValueOnce(initialList.promise)
+    const hook = await renderPartyCaptureHook()
+    const gameSource = { id: 'later-window', name: 'Later game window' }
+    api.listCaptureSources.mockResolvedValueOnce([gameSource])
+    await act(async () => hook.getCurrent().refreshSources())
+
+    initialList.resolve([{ id: 'old-window', name: 'Old window' }])
+    await flushPromises()
+
+    expect(hook.getCurrent().sources).toEqual([gameSource])
+    await hook.unmount()
+  })
+
   it('창 목록과 선택 실패는 내부 오류 대신 복구 안내를 표시한다', async () => {
     api.listCaptureSources.mockRejectedValueOnce(new Error('synthetic internal detail'))
     const hook = await renderPartyCaptureHook()
     expect(hook.getCurrent().status).toBe(
-      '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 앱을 다시 열어 주세요.'
+      '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 ‘창 목록 새로고침’을 눌러 주세요.'
     )
 
     api.selectCaptureSource.mockRejectedValueOnce(new Error('synthetic internal detail'))

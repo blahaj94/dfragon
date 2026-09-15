@@ -15,6 +15,7 @@ type PartyCapture = {
   stableNicknames: (string | null)[]
   status: string
   selectSource: (sourceId: string) => void
+  refreshSources: () => void
   setIntervalSeconds: (seconds: number) => void
   startCapture: () => Promise<void>
   stopCapture: (nextStatus?: string) => void

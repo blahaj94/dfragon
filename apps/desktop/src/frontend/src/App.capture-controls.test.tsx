@@ -10,12 +10,19 @@ const capture = vi.hoisted(() => ({
   selectedSourceId: '',
   sourceRegistered: false,
   starting: false,
-  search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
+  search: {
+    ready: true,
+    slots: [],
+    retryPending: [],
+    connectionFailed: false,
+    captureActive: false
+  },
   retrySearch: vi.fn(),
   intervalSeconds: 3,
   stableNicknames: [null, null, null, null],
   status: 'Ready',
   selectSource: vi.fn(),
+  refreshSources: vi.fn(),
   setIntervalSeconds: vi.fn(),
   startCapture: vi.fn(),
   stopCapture: vi.fn()
@@ -30,6 +37,7 @@ let root: Root
 beforeEach(async () => {
   vi.clearAllMocks()
   capture.sourceRegistered = false
+  capture.search.captureActive = false
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   container = document.createElement('div')
   document.body.append(container)
@@ -53,6 +61,17 @@ function button(text: string): HTMLButtonElement {
   }
   return result
 }
+
+it('refreshes the window list while idle and disables refresh during capture', async () => {
+  await act(async () => button('창 목록 새로고침').click())
+  expect(capture.refreshSources).toHaveBeenCalledExactlyOnceWith()
+
+  capture.search.captureActive = true
+  await act(async () => root.render(<PartyCapture />))
+  expect(button('창 목록 새로고침').disabled).toBe(true)
+  await act(async () => button('창 목록 새로고침').click())
+  expect(capture.refreshSources).toHaveBeenCalledTimes(1)
+})
 
 it('preserves selection values and numeric OCR interval callback', async () => {
   const [source, interval] = container.querySelectorAll('select')
