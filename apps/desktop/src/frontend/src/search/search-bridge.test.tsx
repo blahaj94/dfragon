@@ -56,7 +56,7 @@ it('read 응답 전 event가 있어도 reload에서 기존 capture를 재개하�
   await act(async () => undefined)
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
   expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
-  expect(fixture.button('Start').disabled).toBe(true)
+  expect(fixture.button('캡처 시작').disabled).toBe(true)
 })
 
 it('같은 run의 오래된·중복 event는 최신 성공을 덮지 않는다', async () => {
@@ -290,7 +290,7 @@ it.each(['buffered', 'late'] as const)(
     expect(fixture.container.textContent).toContain('검색 연결을 확인할 수 없습니다')
 
     await fixture.select()
-    await fixture.click('Start')
+    await fixture.click('캡처 시작')
     await fixture.emit(searchSnapshot({ captureId: null, revision: 2 }))
 
     expect(fixture.search.controlCharacterSearch).toHaveBeenCalledExactlyOnceWith({

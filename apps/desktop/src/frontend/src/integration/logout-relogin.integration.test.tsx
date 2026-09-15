@@ -310,10 +310,10 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
       source.value = RENDERER_SOURCE_ID
       source.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    await waitForCondition(() => expect(button(container, 'Start').disabled).toBe(false))
+    await waitForCondition(() => expect(button(container, '캡처 시작').disabled).toBe(false))
 
-    await click(container, 'Start')
-    await waitForText(container, 'Capture ready at 1920×1080.')
+    await click(container, '캡처 시작')
+    await waitForText(container, '캡처 중 · 1920×1080')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
 
@@ -435,14 +435,14 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
       const nextSource = container.querySelector('select') as HTMLSelectElement | null
       expect(nextSource?.options).toHaveLength(2)
       expect(nextSource?.value).toBe(RENDERER_SOURCE_ID)
-      expect(container.textContent).toContain('Capture ready at 1920×1080.')
+      expect(container.textContent).toContain('캡처 중 · 1920×1080')
     })
     expect(container.textContent).toContain('late-character')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()
     expect(harness.http.exchange).toHaveBeenCalledTimes(2)
     expect(track.stop).not.toHaveBeenCalled()
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
-    await click(container, 'Stop')
+    await click(container, '캡처 중지')
     await waitForCondition(() => expect(track.stop).toHaveBeenCalledOnce())
     await waitForCondition(() => expect(ocrWorker.terminate).toHaveBeenCalledOnce())
     expect(container.textContent).not.toContain('late-character')

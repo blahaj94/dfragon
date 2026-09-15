@@ -1,4 +1,4 @@
-import { ActionButton } from '@ldb/ui'
+import { ActionButton, ContentStack, SupportingText } from '@ldb/ui'
 import { SearchResults } from '../search/SearchResults'
 import { usePartyCapture } from './usePartyCapture'
 
@@ -34,7 +34,7 @@ function PartyCapture(): React.JSX.Element {
         return null
       }
 
-      return `Slot ${slot + 1}: ${nickname}`
+      return `슬롯 ${slot + 1}: ${nickname}`
     })
   ]
   const statusText = displayLines
@@ -51,42 +51,64 @@ function PartyCapture(): React.JSX.Element {
 
   return (
     <main>
-      <p>현재 인식 기준: 1920×1080, 게임 UI 배율 50%.</p>
-      <label>
-        Game window
-        <select value={selectedSourceId} onChange={(event) => selectSource(event.target.value)}>
-          <option value="">Select a window</option>
-          {sources.map((source) => (
-            <option key={source.id} value={source.id}>
-              {source.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        OCR interval
-        <select
-          value={intervalSeconds}
-          onChange={(event) => setIntervalSeconds(Number(event.target.value))}
+      <ContentStack>
+        <SupportingText>
+          게임을 1920×1080 테두리 없는 창 모드·UI 배율 50%로 설정하고, 파티 닉네임이 보이게 해
+          주세요. 게임 창을 최소화하지 않은 상태에서 아래 창을 선택하고 ‘캡처 시작’을 누르세요.
+        </SupportingText>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--seed-dimension-x2)' }}>
+          게임 창
+          <select value={selectedSourceId} onChange={(event) => selectSource(event.target.value)}>
+            <option value="">게임 창 선택</option>
+            {sources.map((source) => (
+              <option key={source.id} value={source.id}>
+                {source.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--seed-dimension-x2)' }}>
+          인식 간격
+          <select
+            value={intervalSeconds}
+            onChange={(event) => setIntervalSeconds(Number(event.target.value))}
+          >
+            <option value={1}>1초</option>
+            <option value={3}>3초</option>
+            <option value={5}>5초</option>
+          </select>
+        </label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--seed-dimension-x3)' }}>
+          <ActionButton
+            disabled={cannotStartCapture}
+            loading={starting}
+            type="button"
+            onClick={() => void startCapture()}
+          >
+            캡처 시작
+          </ActionButton>
+          <ActionButton type="button" onClick={() => stopCapture()}>
+            캡처 중지
+          </ActionButton>
+        </div>
+        <pre
+          role="status"
+          style={{
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'anywhere',
+            fontFamily: 'inherit',
+            margin: 0
+          }}
         >
-          <option value={1}>1 second</option>
-          <option value={3}>3 seconds</option>
-          <option value={5}>5 seconds</option>
-        </select>
-      </label>
-      <ActionButton
-        disabled={cannotStartCapture}
-        loading={starting}
-        type="button"
-        onClick={() => void startCapture()}
-      >
-        Start
-      </ActionButton>
-      <ActionButton type="button" onClick={() => stopCapture()}>
-        Stop
-      </ActionButton>
-      <pre>{statusText}</pre>
-      <SearchResults view={search} retry={retrySearch} editing={search} />
+          {statusText}
+        </pre>
+        <SupportingText>
+          인식 대기가 계속되면 게임 설정과 닉네임이 보이는지 확인해 주세요. 잘못 읽은 이름은 슬롯의
+          ‘닉네임 수정’으로 고칠 수 있습니다. 캡처 없이 찾으려면 위의 ‘캐릭터 직접 검색’을
+          사용하세요.
+        </SupportingText>
+        <SearchResults view={search} retry={retrySearch} editing={search} />
+      </ContentStack>
     </main>
   )
 }

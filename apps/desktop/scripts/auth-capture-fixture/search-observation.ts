@@ -103,7 +103,7 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
   const lines = document.querySelector('pre')?.textContent?.split('\n') ?? []
   let ocrMask = 0
   for (let slot = 0; slot < 4; slot += 1) {
-    const hasExpectedOcr = lines.includes(`Slot ${slot + 1}: ALICE`)
+    const hasExpectedOcr = lines.includes(`슬롯 ${slot + 1}: ALICE`)
     if (hasExpectedOcr) {
       ocrMask |= 1 << slot
     }
@@ -115,7 +115,7 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
     hasSelectedSource = source.value.length > 0
   }
   const start = Array.from(document.querySelectorAll('button')).find((button) => {
-    const isStart = button.textContent?.trim() === 'Start'
+    const isStart = button.textContent?.trim() === '캡처 시작'
     return isStart
   })
   const contentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)

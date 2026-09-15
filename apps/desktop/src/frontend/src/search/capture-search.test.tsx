@@ -43,15 +43,15 @@ it('begin 완료 전 중복 Start는 새 begin·media를 만들지 않고 진행
   expect(fixture.search.controlCharacterSearch).toHaveBeenLastCalledWith({
     action: 'begin'
   })
-  expect(fixture.button('Start').disabled).toBe(true)
-  await fixture.click('Start')
+  expect(fixture.button('캡처 시작').disabled).toBe(true)
+  await fixture.click('캡처 시작')
   expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
   begin.resolve({ ok: true, snapshot: searchSnapshot() })
   await act(async () => undefined)
   expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
 })
 
-it.each(['Stop', 'source', 'unmount'] as const)(
+it.each(['캡처 중지', 'source', 'unmount'] as const)(
   '%s 뒤 늦은 begin 성공은 그 ID만 end하고 media를 시작하지 않는다',
   async (transition) => {
     const fixture = createRendererFixture()
@@ -59,10 +59,10 @@ it.each(['Stop', 'source', 'unmount'] as const)(
     const begin = Promise.withResolvers<SearchCommandResult>()
     fixture.search.controlCharacterSearch.mockReturnValueOnce(begin.promise)
     await fixture.start()
-    const isStop = transition === 'Stop'
+    const isStop = transition === '캡처 중지'
     const isSource = transition === 'source'
     if (isStop) {
-      await fixture.click('Stop')
+      await fixture.click('캡처 중지')
     } else if (isSource) {
       await fixture.select('next')
     } else {
@@ -79,7 +79,7 @@ it.each(['Stop', 'source', 'unmount'] as const)(
   }
 )
 
-it.each(['Stop', 'source', 'unmount', 'track ended', 'media failed', 'OCR failed'] as const)(
+it.each(['캡처 중지', 'source', 'unmount', 'track ended', 'media failed', 'OCR failed'] as const)(
   '%s는 현재 capture ID를 end하고 stream·worker·loop를 정리한다',
   async (transition) => {
     const fixture = createRendererFixture()
@@ -91,13 +91,13 @@ it.each(['Stop', 'source', 'unmount', 'track ended', 'media failed', 'OCR failed
     }
     await fixture.mount()
     await fixture.start()
-    const isStop = transition === 'Stop'
+    const isStop = transition === '캡처 중지'
     const isSource = transition === 'source'
     const isUnmount = transition === 'unmount'
     const isTrackEnded = transition === 'track ended'
     const isOcrFailure = transition === 'OCR failed'
     if (isStop) {
-      await fixture.click('Stop')
+      await fixture.click('캡처 중지')
     } else if (isSource) {
       await fixture.select('next')
     } else if (isUnmount) {
@@ -126,13 +126,13 @@ it('늦은 이전 begin은 새 capture를 end하거나 새 stream을 정리하�
   const first = Promise.withResolvers<SearchCommandResult>()
   fixture.search.controlCharacterSearch.mockReturnValueOnce(first.promise)
   await fixture.start()
-  await fixture.click('Stop')
+  await fixture.click('캡처 중지')
   const nextId = '00000000-0000-4000-8000-000000000099'
   fixture.search.controlCharacterSearch.mockResolvedValueOnce({
     ok: true,
     snapshot: searchSnapshot({ captureId: nextId, revision: 2 })
   })
-  await fixture.click('Start')
+  await fixture.click('캡처 시작')
   first.resolve({ ok: true, snapshot: searchSnapshot() })
   await act(async () => undefined)
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
@@ -153,11 +153,11 @@ it('새 capture의 늦은 이전 media 실패가 새 ID를 end하지 않는다',
   fixture.getDisplayMedia.mockReturnValueOnce(oldMedia.promise)
   await fixture.mount()
   await fixture.start()
-  await fixture.click('Stop')
+  await fixture.click('캡처 중지')
   const next = captureResources()
   fixture.getDisplayMedia.mockResolvedValue(next.stream)
   media.worker.mockResolvedValue(next.worker)
-  await fixture.click('Start')
+  await fixture.click('캡처 시작')
   const nextId = fixture.current().captureId
   await act(async () => oldMedia.reject(new Error('Synthetic old media failure')))
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
@@ -306,11 +306,11 @@ it('취소된 Start의 begin 응답 유실 뒤 read가 새 capture를 찾아도 
   const previous = Promise.withResolvers<SearchCommandResult>()
   fixture.search.controlCharacterSearch.mockReturnValueOnce(previous.promise)
   await fixture.start()
-  await fixture.click('Stop')
+  await fixture.click('캡처 중지')
   const nextId = '00000000-0000-4000-8000-000000000099'
   const nextSnapshot = searchSnapshot({ captureId: nextId, revision: 3 })
   fixture.search.controlCharacterSearch.mockResolvedValueOnce({ ok: true, snapshot: nextSnapshot })
-  await fixture.click('Start')
+  await fixture.click('캡처 시작')
   await fixture.emit(nextSnapshot)
   previous.reject(new Error('Synthetic old begin response loss'))
   await act(async () => undefined)

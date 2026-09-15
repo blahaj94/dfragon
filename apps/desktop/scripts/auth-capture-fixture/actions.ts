@@ -117,7 +117,7 @@ export function createCaptureActions({
     assert.equal(await evaluate(syntheticSourceSelection), true)
     const startButtonCheck = `(() => {
       const hasEnabledStart = [...document.querySelectorAll('button')].some(button => {
-        const isStart = button.textContent === 'Start';
+        const isStart = button.textContent === '캡처 시작';
         const canStart = isStart && !button.disabled;
         return canStart;
       });

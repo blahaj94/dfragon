@@ -190,8 +190,8 @@ export async function smokeCharacterSearch(
     const before = await observe()
     const displayRequests = main.displayRequests
     const displayAllowed = main.displayAllowed
-    await click('Start')
-    await until(() => hasText('Capture ready at 1920×1080.'), 30_000)
+    await click('캡처 시작')
+    await until(() => hasText('캡처 중 · 1920×1080'), 30_000)
     const view = await waitFor((current) => {
       const hasCaptureId = current.captureId != null
       let hasNewCapture: boolean | undefined
@@ -219,7 +219,7 @@ export async function smokeCharacterSearch(
     return view
   }
   async function stop(): Promise<void> {
-    await click('Stop')
+    await click('캡처 중지')
     await waitFor((view) => {
       const hasNoCapture = view.captureId === null
       let hasEnded: boolean | undefined

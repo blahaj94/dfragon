@@ -69,14 +69,14 @@ it('preserves selection values and numeric OCR interval callback', async () => {
 })
 
 it('blocks unregistered Start and preserves registered Start and Stop callbacks', async () => {
-  await act(async () => button('Start').click())
+  await act(async () => button('캡처 시작').click())
   expect(capture.startCapture).not.toHaveBeenCalled()
 
   capture.sourceRegistered = true
   await act(async () => root.render(<PartyCapture />))
   await act(async () => {
-    button('Start').click()
-    button('Stop').click()
+    button('캡처 시작').click()
+    button('캡처 중지').click()
   })
 
   expect(capture.startCapture).toHaveBeenCalledExactlyOnceWith()

@@ -284,17 +284,17 @@ it('retry 응답 유실은 read로 재동기화하고 retry를 자동 재전송�
   expect(region(fixture).textContent).toContain('검색 중')
 })
 
-it.each(['Stop', 'source', 'unmount'] as const)(
+it.each(['캡처 중지', 'source', 'unmount'] as const)(
   '%s는 main 응답 없이 현재 후보를 즉시 지운다',
   async (transition) => {
     const fixture = await recognized()
     await emitSlot(fixture, searchSlot({ state: 'success', rows: [searchRow] }))
     expect(fixture.container.textContent).toContain(searchRow.characterId)
     fixture.search.controlCharacterSearch.mockReturnValue(new Promise(() => undefined))
-    const isStop = transition === 'Stop'
+    const isStop = transition === '캡처 중지'
     const isSource = transition === 'source'
     if (isStop) {
-      await fixture.click('Stop')
+      await fixture.click('캡처 중지')
     } else if (isSource) {
       await fixture.select('next')
     } else {

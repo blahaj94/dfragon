@@ -23,7 +23,7 @@ type PartyCapture = {
 export function usePartyCapture(): PartyCapture {
   const intervalSecondsRef = useRef(3)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)
-  const [status, setStatus] = useState('Select a game window.')
+  const [status, setStatus] = useState('캡처할 게임 창을 선택해 주세요.')
   const { isSelectedSourceRegistered, ...sourceSelection } = useCaptureSourceSelection(setStatus)
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())

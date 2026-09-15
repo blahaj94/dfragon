@@ -209,7 +209,7 @@ export function createRendererFixture(): RendererFixture {
   }
   async function start(): Promise<void> {
     await select()
-    await click('Start')
+    await click('캡처 시작')
   }
   async function cycle(count = 1): Promise<void> {
     const loop = media.loop.mock.calls.at(-1)?.[0] as Loop | undefined
