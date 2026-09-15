@@ -86,6 +86,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending·generation·credential writer와 restore·refresh·logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
 - 캐릭터 검색: main 검색 수명·HTTP와 preload/renderer·격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
 - Renderer source root: `src/frontend` → `out/frontend`
+- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @ldb/desktop dev`
   - `pnpm --filter @ldb/desktop test`

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
-import react from '@vitejs/plugin-react'
+import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../packages/ui/build/notices.ts'
 
@@ -35,6 +35,6 @@ export default defineConfig(({ mode }) => ({
         { find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
       ]
     },
-    plugins: [react(), seedDesignPlugin(), uiNotices()]
+    plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()]
   }
 }))

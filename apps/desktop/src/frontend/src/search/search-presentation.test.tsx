@@ -134,14 +134,10 @@ it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별�
       }))
     })
   )
-  const values = region(fixture).querySelectorAll('.character-candidates__fame dd')
-  expect([...values].map((value) => value.textContent)).toEqual([
-    '125,850',
-    '0',
-    '-0.25',
-    '0.00001',
-    '정보 없음'
-  ])
+  const values = [...region(fixture).querySelectorAll('dt')]
+    .filter((term) => term.textContent === '명성')
+    .map((term) => term.nextElementSibling?.textContent)
+  expect(values).toEqual(['125,850', '0', '-0.25', '0.00001', '정보 없음'])
 })
 
 const failures = Object.keys(SEARCH_ERRORS) as SearchErrorCode[]
