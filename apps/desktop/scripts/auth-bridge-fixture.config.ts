@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
-import react from '@vitejs/plugin-react'
+import { rendererTransforms } from '../build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../../packages/ui/build/notices'
 
@@ -21,7 +21,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/frontend/auth-bridge-fixture'),
-    plugins: [react(), seedDesignPlugin(), uiNotices()],
+    plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()],
     resolve: {
       alias: [{ find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
     },

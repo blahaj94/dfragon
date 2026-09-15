@@ -1,9 +1,17 @@
+import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { SlotNicknameEditor, type SlotEditing } from './SlotNicknameEditor'
 import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import type { SearchView } from './capture-search'
 import { CharacterCandidates } from './CharacterCandidates'
+
+const styles = stylex.create({
+  candidates: {
+    minWidth: 0,
+    width: '100%'
+  }
+})
 
 export function SlotResult({
   slot,
@@ -57,7 +65,7 @@ export function SlotResult({
         <ContentStack>
           {editor}
           {hasNickname && <SupportingText>{slot.nickname}</SupportingText>}
-          <div className="character-candidates">
+          <div {...stylex.props(styles.candidates)}>
             <div role="status">
               {isSuccess ? (
                 <SupportingText>검색 결과 {slot.rows.length}명</SupportingText>

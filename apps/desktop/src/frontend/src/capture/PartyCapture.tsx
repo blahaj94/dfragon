@@ -1,6 +1,26 @@
+import * as stylex from '@stylexjs/stylex'
 import { ActionButton, ContentStack, SupportingText } from '@ldb/ui'
 import { SearchResults } from '../search/SearchResults'
 import { usePartyCapture } from './usePartyCapture'
+
+const styles = stylex.create({
+  field: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 'var(--seed-dimension-x2)'
+  },
+  actions: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 'var(--seed-dimension-x3)'
+  },
+  status: {
+    whiteSpace: 'pre-wrap',
+    overflowWrap: 'anywhere',
+    fontFamily: 'inherit',
+    margin: 0
+  }
+})
 
 function PartyCapture(): React.JSX.Element {
   const {
@@ -56,7 +76,7 @@ function PartyCapture(): React.JSX.Element {
           게임을 1920×1080 테두리 없는 창 모드·UI 배율 50%로 설정하고, 파티 닉네임이 보이게 해
           주세요. 게임 창을 최소화하지 않은 상태에서 아래 창을 선택하고 ‘캡처 시작’을 누르세요.
         </SupportingText>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--seed-dimension-x2)' }}>
+        <label {...stylex.props(styles.field)}>
           게임 창
           <select value={selectedSourceId} onChange={(event) => selectSource(event.target.value)}>
             <option value="">게임 창 선택</option>
@@ -67,7 +87,7 @@ function PartyCapture(): React.JSX.Element {
             ))}
           </select>
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--seed-dimension-x2)' }}>
+        <label {...stylex.props(styles.field)}>
           인식 간격
           <select
             value={intervalSeconds}
@@ -78,7 +98,7 @@ function PartyCapture(): React.JSX.Element {
             <option value={5}>5초</option>
           </select>
         </label>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--seed-dimension-x3)' }}>
+        <div {...stylex.props(styles.actions)}>
           <ActionButton
             disabled={cannotStartCapture}
             loading={starting}
@@ -91,15 +111,7 @@ function PartyCapture(): React.JSX.Element {
             캡처 중지
           </ActionButton>
         </div>
-        <pre
-          role="status"
-          style={{
-            whiteSpace: 'pre-wrap',
-            overflowWrap: 'anywhere',
-            fontFamily: 'inherit',
-            margin: 0
-          }}
-        >
+        <pre role="status" {...stylex.props(styles.status)}>
           {statusText}
         </pre>
         <SupportingText>
