@@ -100,6 +100,11 @@ function googleProvider(input: ReturnType<typeof parseAuthenticationInput>) {
 export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
   try {
     const port = parsePort(environment.PORT)
+    const proxyMode = environment.SEARCH_TRUST_PROXY
+    if (proxyMode !== undefined && proxyMode !== 'single-hop') {
+      throw new Error(invalidConfiguration)
+    }
+    const trustedProxyHops = proxyMode === 'single-hop' ? (1 as const) : undefined
     const database = readDatabaseConfiguration(environment)
     const apiKey = environment.NEOPLE_API_KEY
     const isApiKeyDefined = apiKey !== undefined
@@ -134,6 +139,7 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     const verifyProvider = googleProvider(input)
     return {
       port,
+      trustedProxyHops,
       localHttps,
       database,
       apiKey,

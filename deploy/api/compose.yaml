@@ -75,6 +75,7 @@ services:
       <<: *database-environment
       DB_USERNAME: ldb_api
       PORT: '3000'
+      SEARCH_TRUST_PROXY: single-hop
       AUTH_CONFIG_FILE: /run/secrets/auth_config
     secrets:
       - source: ldb_api_password

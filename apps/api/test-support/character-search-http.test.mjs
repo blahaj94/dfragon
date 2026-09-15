@@ -234,3 +234,39 @@ test('public HTTP search succeeds without credentials and ignores spoofed forwar
     await app.close()
   }
 })
+
+test('single-proxy mode isolates client quotas and ignores spoofed addresses to the left', async () => {
+  let upstreamCalls = 0
+  const app = await createLoginHttpApp(unusedLogin, undefined, undefined, {
+    apiKey: 'synthetic-search-key',
+    trustedProxyHops: 1,
+    async searchCharacters() {
+      upstreamCalls++
+      return { rows: [] }
+    }
+  })
+  await app.listen(0, '127.0.0.1')
+  try {
+    const base = await app.getUrl()
+    for (const client of ['192.0.2.1', '192.0.2.2']) {
+      for (let index = 0; index < 10; index++) {
+        const response = await rawGet(base, '/characters?characterName=ab', {
+          'x-forwarded-for': `198.51.100.${index + 1}, ${client}`
+        })
+        assert.equal(response.status, 200)
+      }
+      const limited = await rawGet(base, '/characters?characterName=ab', {
+        'x-forwarded-for': `203.0.113.1, ${client}`
+      })
+      expectSearchError(
+        limited,
+        429,
+        'SEARCH_RATE_LIMITED',
+        '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+      )
+    }
+    assert.equal(upstreamCalls, 20)
+  } finally {
+    await app.close()
+  }
+})

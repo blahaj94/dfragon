@@ -8,6 +8,7 @@ export interface SearchClock {
 
 export interface CharacterSearchDependencies {
   readonly apiKey: string
+  readonly trustedProxyHops?: 1
   readonly searchCharacters?: SearchCharacters
   readonly clock?: SearchClock
 }

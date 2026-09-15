@@ -21,6 +21,7 @@ Ubuntu 서버에서 Docker Compose와 호스트 Caddy를 사용하는 배포 명
 | `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` | 기존 DB reader의 개별 연결 값. `DB_PORT`도 십진 정수 `1`~`65535`이며 나머지는 비어 있지 않아야 한다. |
 | `NEOPLE_API_KEY` | 비어 있지 않은 검색 API key |
 | `AUTH_CONFIG_FILE` | 배포가 준비한 UTF-8 JSON secret 파일의 절대 경로 |
+| `SEARCH_TRUST_PROXY` | 생략하면 직접 peer IP를 사용하고 전달 헤더를 무시한다. `single-hop`만 명시적으로 허용하며, [단일 Caddy 배포](../../deploy/api/README.md)의 접근 제한·헤더 덮어쓰기와 함께 사용한다. 다른 값은 시작 전에 거절한다. |
 | `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE` | 선택적인 localhost HTTPS용 PEM certificate와 private key의 절대 경로. 함께 지정해야 한다. |
 
 파일의 정확한 schema와 key 교체·과거 version 보존 기준은 [승인된 배포 설정 입력](../rules/auth-runtime.md)을 따른다. 최상위는 `accessJwt`, `providerPkce`, `registry`, `google` 네 object다. PEM은 JSON 문자열에, PKCE key는 canonical base64url 43자에 담는다. Google endpoint는 registry의 version을 참조하고 secret은 `(version, reference)`가 정확히 일치해야 한다.

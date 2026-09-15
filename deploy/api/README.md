@@ -82,9 +82,22 @@ API의 로컬 HTTP 응답을 확인한 뒤 Caddy의 해당 site를 다음처럼 
 
 ```caddyfile
 api.example.com {
-    reverse_proxy 127.0.0.1:3000
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Forwarded-For {remote_host}
+    }
 }
 ```
+
+Compose의 `SEARCH_TRUST_PROXY=single-hop`은 Express가 Caddy가 전달한 가장 오른쪽
+`X-Forwarded-For` 주소로 사용자별 검색 한도를 구분하게 한다. Caddy는 이 헤더를 실제 연결한
+클라이언트 주소로 덮어쓴다. 기본 API 실행은 이 설정 없이 직접 peer IP를 사용하며 전달 헤더를 무시한다.
+
+이 모드는 **외부 요청이 호스트 Caddy 한 곳만 거치는 현재 배포**에 한정한다. Hop 수는 Caddy의
+신원을 인증하지 않는다. 호스트나 같은 Docker network에서 API로 직접 접근할 수 있는 관리 주체는
+신뢰 범위에 포함된다. API port를 외부에 공개하거나 다른 프록시·우회 경로를 추가할 때 이 설정을
+그대로 사용하지 않는다. 같은 외부 NAT 주소의 사용자는 여전히 한도를 공유한다.
+[Express proxy 설정](https://expressjs.com/en/guide/behind-proxies/),
+[Caddy 전달 헤더](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#defaults)
 
 `caddy validate` 성공 후 reload한다. Caddy access log는 켜지 않으며, 인증·검색 입력을
 별도 proxy/APM log에 기록하지 않는다. `/`의 고정 404는 listener 확인일 뿐 검색 성공이 아니다.

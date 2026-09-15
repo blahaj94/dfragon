@@ -26,11 +26,7 @@ export class CharacterSearchController {
     }
     response.once('close', cancelDisconnectedRequest)
     try {
-      const result = await this.service.search(
-        request.socket.remoteAddress,
-        request.originalUrl,
-        controller.signal
-      )
+      const result = await this.service.search(request.ip, request.originalUrl, controller.signal)
       const canRespond = !response.destroyed
       if (canRespond) {
         response.status(200).json(result)

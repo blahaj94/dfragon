@@ -109,7 +109,14 @@ Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 �
 
 2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무·유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT·session DB 조회·활동 갱신·refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현·검증과 같은 PR의 사용자 merge로 적용한다.
 
-호출 제한은 **서버가 직접 연결받은 peer IP당 최근 60초 10회**다. 요청 query·Authorization·X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log·DB에 남기지 않는다. 같은 NAT/프록시를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 프록시 헤더 신뢰나 새 공유 limiter는 추가하지 않는다.
+호출 제한은 **클라이언트 IP당 최근 60초 10회**다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query·Authorization·X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log·DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 새 공유 limiter는 추가하지 않는다.
+
+단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의
+1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한
+클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가
+Caddy라는 배포 경계에 의존하며 호스트·동일 Docker network의 직접 접근 주체까지 인증하는
+설정은 아니다. 다중 proxy·외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
+구현·검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다.
 
 - Raw query와 호출 설정을 먼저 검증한다. 실패·429는 upstream과 예약이 없다.
 - Upstream 직전에 단조 clock의 `(t - 60,000ms, t]` 예약을 prune/count하고 10개 미만이면 원자적으로 예약한 뒤 즉시 호출한다. 성공·0건·upstream 실패·timeout은 환불하지 않는다.

@@ -65,7 +65,7 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
       login,
       session,
       account,
-      { apiKey: configuration.apiKey },
+      { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
       configuration.localHttps
     )
     return { app, close }
