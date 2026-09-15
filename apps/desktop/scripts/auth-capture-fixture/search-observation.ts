@@ -49,16 +49,14 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
       regionMask |= 1 << slot.slot
     }
     const rows = region?.querySelectorAll('ol > li') ?? []
-    const rowFields = Array.from(rows[0]?.querySelectorAll('p') ?? []).map((field) =>
+    // 접힌 식별 정보의 DOM 포함 여부도 확인한다. 실제 펼치기 조작은 별도 UI 관측이다.
+    const rowFields = Array.from(rows[0]?.querySelectorAll('p, dd') ?? []).map((field) =>
       field.textContent?.trim()
     )
     const hasOneCandidate = rows.length === 1
-    const hasExpectedFields = [
-      'ALICE',
-      '캐릭터 ID: synthetic-character',
-      '서버: 카인 (cain)',
-      '명성: 12345'
-    ].every((field) => rowFields.includes(field))
+    const hasExpectedFields = ['ALICE', '카인', '12,345', 'cain', 'synthetic-character'].every(
+      (field) => rowFields.includes(field)
+    )
     const isSuccess = slot.state === 'success'
     const hasCandidateFields = hasOneCandidate && hasExpectedFields
     const hasCandidate = isSuccess && hasCandidateFields

@@ -3,6 +3,7 @@ import { SlotNicknameEditor, type SlotEditing } from './SlotNicknameEditor'
 import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import type { SearchView } from './capture-search'
+import { CharacterCandidates } from './CharacterCandidates'
 
 export function SlotResult({
   slot,
@@ -56,27 +57,16 @@ export function SlotResult({
         <ContentStack>
           {editor}
           {hasNickname && <SupportingText>{slot.nickname}</SupportingText>}
-          <div role="status">
-            {shouldShowError ? (
-              <SupportingText>{SEARCH_ERRORS[error.code].message}</SupportingText>
-            ) : (
-              !isSuccess && <SupportingText>{status}</SupportingText>
-            )}
-          </div>
-          {isSuccess && (
-            <ol>
-              {slot.rows.map((row, index) => (
-                <li key={`${index}:${row.characterId}`}>
-                  <SupportingText>{row.characterName}</SupportingText>
-                  <SupportingText>캐릭터 ID: {row.characterId}</SupportingText>
-                  <SupportingText>
-                    서버: {row.serverName ?? '이름 정보 없음'} ({row.serverId})
-                  </SupportingText>
-                  <SupportingText>명성: {row.fame ?? '정보 없음'}</SupportingText>
-                </li>
-              ))}
-            </ol>
+          {!isSuccess && (
+            <div role="status">
+              {shouldShowError ? (
+                <SupportingText>{SEARCH_ERRORS[error.code].message}</SupportingText>
+              ) : (
+                <SupportingText>{status}</SupportingText>
+              )}
+            </div>
           )}
+          {isSuccess && <CharacterCandidates rows={slot.rows} />}
           {isWaiting && (
             <SupportingText>
               {error.retryAfterSeconds}초 제한 대기 후 다시 시도할 수 있습니다.

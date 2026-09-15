@@ -1,0 +1,94 @@
+.character-candidates {
+  min-width: 0;
+  width: 100%;
+}
+
+.character-candidates__list {
+  list-style: none;
+  padding: 0;
+  margin: var(--seed-dimension-x3) 0 0;
+  border: 1px solid var(--seed-color-stroke-neutral-muted);
+  border-radius: var(--seed-radius-r3);
+  background: var(--seed-color-bg-layer-default);
+}
+
+.character-candidates__item {
+  padding: var(--seed-dimension-x4);
+  overflow-wrap: anywhere;
+}
+
+.character-candidates__item + .character-candidates__item {
+  border-top: 1px solid var(--seed-color-stroke-neutral-muted);
+}
+
+.character-candidates__overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--seed-dimension-x3) var(--seed-dimension-x6);
+}
+
+.character-candidates__identity {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.character-candidates__name {
+  color: var(--seed-color-fg-neutral);
+  font-size: var(--seed-font-size-t4);
+  line-height: var(--seed-line-height-t4);
+}
+
+.character-candidates__fame {
+  flex: 0 1 auto;
+  max-width: 100%;
+  margin: 0 0 0 auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.character-candidates__fame dt,
+.character-candidates__details {
+  color: var(--seed-color-fg-neutral-subtle);
+  font-size: var(--seed-font-size-t2);
+  line-height: var(--seed-line-height-t2);
+}
+
+.character-candidates__fame dd {
+  margin: 0;
+  font-size: var(--seed-font-size-t4);
+  line-height: var(--seed-line-height-t4);
+  font-weight: 600;
+}
+
+.character-candidates__details {
+  margin-top: var(--seed-dimension-x2);
+}
+
+.character-candidates__details summary {
+  width: fit-content;
+  max-width: 100%;
+  cursor: pointer;
+  border-radius: var(--seed-radius-r1);
+}
+
+.character-candidates__details summary:focus-visible {
+  outline: 2px solid var(--seed-color-stroke-focus-ring);
+  outline-offset: 2px;
+}
+
+.character-candidates__identifiers {
+  margin: var(--seed-dimension-x2) 0 0;
+}
+
+.character-candidates__identifiers > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--seed-dimension-x2);
+}
+
+.character-candidates__identifiers dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--seed-color-fg-neutral);
+}
