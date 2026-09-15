@@ -12,23 +12,23 @@ type PartySlot = {
 
 export const PARTY_MANA_COLOR = [55, 121, 170] as const
 
-// 1920×1080 borderless-window MVP layout. Add calibrated layouts only when their support is approved.
+// 1920×1080 borderless-window layout, calibrated against game UI scale 50%.
 export const PARTY_SLOTS: readonly PartySlot[] = [
   {
     nickname: { x: 42, y: 11, width: 105, height: 18 },
-    mana: { x: 42, y: 36, width: 105, height: 5 }
+    mana: { x: 42, y: 42, width: 105, height: 5 }
   },
   {
     nickname: { x: 192, y: 11, width: 105, height: 18 },
-    mana: { x: 192, y: 36, width: 105, height: 5 }
+    mana: { x: 192, y: 42, width: 105, height: 5 }
   },
   {
     nickname: { x: 342, y: 11, width: 105, height: 18 },
-    mana: { x: 342, y: 36, width: 105, height: 5 }
+    mana: { x: 342, y: 42, width: 105, height: 5 }
   },
   {
     nickname: { x: 492, y: 11, width: 105, height: 18 },
-    mana: { x: 492, y: 36, width: 105, height: 5 }
+    mana: { x: 492, y: 42, width: 105, height: 5 }
   }
 ]
 

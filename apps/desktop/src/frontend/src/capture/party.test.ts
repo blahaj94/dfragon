@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { PARTY_MANA_COLOR, PARTY_SLOTS, isPartySlotPresent } from './party'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  PARTY_MANA_COLOR,
+  PARTY_SLOTS,
+  isPartySlotPresent,
+  capturePartyNicknameCrops
+} from './party'
 
 describe('파티 layout', () => {
   it('1920×1080 기준 고정 파티 slot 네 개를 정의한다', () => {
@@ -82,4 +87,48 @@ describe('파티 layout', () => {
     expect(isPartySlotPresent(rgba as unknown as Uint8ClampedArray)).toBe(true)
     expect(access).toEqual(Array.from({ length: 50 }, () => ['red', 'green', 'blue']).flat())
   })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯은 건너뛴다', () => {
+  // 실제 확인한 MP 세로 위치를 독립적인 합성 입력으로 재현한다.
+  // 제품 좌표로 fixture 위치를 만들면 원래의 y=36 오류도 통과하므로 공유하지 않는다.
+  const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
+    const data = new Uint8ClampedArray(width * height * 4)
+    for (let row = 0; row < height; row += 1) {
+      for (let column = 0; column < width; column += 1) {
+        const pixelX = x + column
+        const pixelY = y + row
+        if (pixelX >= 42 && pixelX < 147 && pixelY >= 42 && pixelY < 47) {
+          data.set([55, 121, 170, 255], (row * width + column) * 4)
+        }
+      }
+    }
+    return { data }
+  })
+  const cropContext = { imageSmoothingEnabled: true, drawImage: vi.fn() }
+  const frameContext = { drawImage: vi.fn(), getImageData }
+  const frame = { width: 0, height: 0, getContext: () => frameContext }
+  const crop = { width: 0, height: 0, getContext: () => cropContext }
+  const createElement = vi.fn().mockReturnValueOnce(frame).mockReturnValue(crop)
+  vi.stubGlobal('document', { createElement })
+  const video = { videoWidth: 1920, videoHeight: 1080 } as HTMLVideoElement
+
+  const crops = capturePartyNicknameCrops(video)
+
+  expect(crops).toEqual([crop, null, null, null])
+  expect(cropContext.drawImage).toHaveBeenCalledExactlyOnceWith(
+    frame,
+    42,
+    11,
+    105,
+    18,
+    0,
+    0,
+    420,
+    72
+  )
+  expect(cropContext.imageSmoothingEnabled).toBe(false)
+  expect(createElement).toHaveBeenCalledTimes(2)
 })

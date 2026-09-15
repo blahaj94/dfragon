@@ -175,7 +175,7 @@ function installCanvasBoundary(): void {
       ({
         drawImage: vi.fn(),
         getImageData: vi.fn((x: number, y: number, width: number, height: number) => {
-          const isFirstSlotMana = x === 42 && y === 36 && width === 105 && height === 5
+          const isFirstSlotMana = x === 42 && y === 42 && width === 105 && height === 5
           if (!isFirstSlotMana) {
             return { data: new Uint8ClampedArray(width * height * 4) }
           }
