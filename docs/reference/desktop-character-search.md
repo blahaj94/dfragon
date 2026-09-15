@@ -2,12 +2,12 @@
 type: reference
 status: active
 scope: desktop OCR character search implementation and isolated verification
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-15
 ---
 
 # Desktop 캐릭터 검색
 
-기존 OCR 안정화 결과를 현재 capture의 네 슬롯 검색으로 연결한다. 정책은 [Desktop 검색 계약](../rules/desktop-auth.md#ocr-검색-연결-제안)과 [인증 준비 미완료 보완](../rules/desktop-auth.md#인증-준비-미완료-검색-종료-제안)을 따른다. 제품 main은 완전한 trusted runtime 설정에서 인증·검색 runtime을 조건부 구성하고 설정 누락·오류에서는 비활성화하며, native media는 계속 거절한다. 검색 module 구현과 실제 product 인증·media 성공 검증은 별개다.
+기존 OCR 안정화 결과를 현재 capture의 네 슬롯 검색으로 연결한다. 정책은 [Desktop 검색 계약](../rules/desktop-auth.md#ocr-검색-연결-제안)과 [인증 준비 미완료 보완](../rules/desktop-auth.md#인증-준비-미완료-검색-종료-제안)을 따른다. 제품 main은 완전한 trusted runtime 설정에서 인증·검색 runtime을 조건부 구성하고 설정 누락·오류에서는 비활성화하며, Windows 제품은 [제품 캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)에 따라 현재 인증·source·capture 수명당 빈 media request를 한 번 허용한다. Media check·camera/microphone·다른 permission과 Windows 외 제품 entry는 거절한다. Legacy API의 source/gesture 우회 차단을 보장하지 않으며 기존 fixture 승인을 제품 허용으로 재사용하지 않는다. 검색 module 구현과 실제 product 인증·media 성공 검증은 별개다.
 
 ## 구현 위치
 
@@ -29,6 +29,12 @@ last-reviewed: 2026-09-12
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
 
 검색 run이 바뀌면 이전 구독·표시·capture resource를 버리고 auth 재동기화와 새 조회를 시작한다. 초기 read가 성공하기 전에는 Start와 직접 begin 호출을 차단하며, 조회 실패 시 기존 앱 화면 다시 열기 안내를 유지하고 event만으로 회복하거나 자동 재시도하지 않는다. 로컬 관측·clear·Stop·source 변경은 main 응답을 기다리지 않고 이전 표시를 가린다. Renderer와 preload는 같은 DTO 검증기를 각각의 경계에서 사용한다.
+
+## 실제 게임 인식 영역
+
+현재 인식 기준은 1920×1080 테두리 없는 게임 창과 게임 UI 배율 50%다. 실제 선택한 창의 상단 영상을 확인했을 때 기존 MP 검사 영역 `y=36`은 파란 MP 바보다 위에 있어 첫 슬롯을 없는 것으로 판단했다. MP 검사 영역을 `y=42`, 높이 5로 맞췄다. 닉네임 crop에는 위 테두리와 왼쪽 슬롯 장식이 들어오므로 첫 슬롯 기준 `x=56, y=15, width=91, height=14`로 제외한다. 밝기 반전으로 밝은 글자를 어두운 글자로 바꾸고, 획을 이진화하지 않은 상태에서 고품질 보간으로 3배 확대하며 흰 여백 12픽셀을 둔다. 실제 비교에서 사용자가 이 입력의 정확한 인식을 확인했다. 기존 한영 Tesseract 모델과 single-line 설정, 두 번 연속 일치하는 관측의 안정화는 유지하며 특정 닉네임 보정은 추가하지 않는다. 앱에도 현재 인식 기준을 표시한다.
+
+MP가 없는 슬롯을 OCR에 보내지 않는 기존 색상·최소 픽셀 검사는 유지한다. 제품 좌표와 독립적인 합성 MP 위치로 회귀를 검증하며, 제품 좌표를 그대로 사용하는 기존 fixture 성공만으로 실제 정렬을 입증하지 않는다. Windows 10 x64의 실제 설치 앱에서 선택한 게임 창의 영상 수신 → 한 슬롯의 정확한 한글 OCR → 기존 로그인 세션을 사용한 검색 → 서버별 후보와 명성 표시를 확인했다. 임시 입력 비교 화면은 제품 빌드에서 제거했다. 실제 관측은 한 슬롯과 한 닉네임 표본이며 다른 글꼴·닉네임의 인식 정확도, 다른 UI 배율과 다인 파티의 가로 배치는 검증된 것으로 표시하지 않는다. Stop·인증 이탈 시 정리와 늦은 결과 차단은 관련 기존 자동 검증을 재사용했다.
 
 ## UI 구성
 

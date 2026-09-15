@@ -51,6 +51,7 @@ function PartyCapture(): React.JSX.Element {
 
   return (
     <main>
+      <p>현재 인식 기준: 1920×1080, 게임 UI 배율 50%.</p>
       <label>
         Game window
         <select value={selectedSourceId} onChange={(event) => selectSource(event.target.value)}>

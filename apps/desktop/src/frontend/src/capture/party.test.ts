@@ -1,11 +1,16 @@
-import { describe, expect, it } from 'vitest'
-import { PARTY_MANA_COLOR, PARTY_SLOTS, isPartySlotPresent } from './party'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  PARTY_MANA_COLOR,
+  PARTY_SLOTS,
+  isPartySlotPresent,
+  capturePartyNicknameCrops
+} from './party'
 
 describe('파티 layout', () => {
   it('1920×1080 기준 고정 파티 slot 네 개를 정의한다', () => {
     expect(PARTY_SLOTS).toHaveLength(4)
-    expect(PARTY_SLOTS[0].nickname).toEqual({ x: 42, y: 11, width: 105, height: 18 })
-    expect(PARTY_SLOTS[3].nickname).toEqual({ x: 492, y: 11, width: 105, height: 18 })
+    expect(PARTY_SLOTS[0].nickname).toEqual({ x: 56, y: 15, width: 91, height: 14 })
+    expect(PARTY_SLOTS[3].nickname).toEqual({ x: 506, y: 15, width: 91, height: 14 })
   })
 
   it('충분한 MP 색상 pixel이 있을 때만 slot이 존재한다고 판단한다', () => {
@@ -82,4 +87,72 @@ describe('파티 layout', () => {
     expect(isPartySlotPresent(rgba as unknown as Uint8ClampedArray)).toBe(true)
     expect(access).toEqual(Array.from({ length: 50 }, () => ['red', 'green', 'blue']).flat())
   })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯은 건너뛴다', () => {
+  // 실제 확인한 MP 세로 위치를 독립적인 합성 입력으로 재현한다.
+  // 제품 좌표로 fixture 위치를 만들면 원래의 y=36 오류도 통과하므로 공유하지 않는다.
+  const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
+    const data = new Uint8ClampedArray(width * height * 4)
+    for (let row = 0; row < height; row += 1) {
+      for (let column = 0; column < width; column += 1) {
+        const pixelX = x + column
+        const pixelY = y + row
+        if (pixelX >= 42 && pixelX < 147 && pixelY >= 42 && pixelY < 47) {
+          data.set([55, 121, 170, 255], (row * width + column) * 4)
+        }
+      }
+    }
+    if (x === 56 && y === 15) {
+      data.set([255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255])
+    }
+    return { data }
+  })
+  const nicknameContext = { putImageData: vi.fn() }
+  const cropContext = {
+    imageSmoothingEnabled: false,
+    imageSmoothingQuality: 'low',
+    drawImage: vi.fn(),
+    fillRect: vi.fn(),
+    fillStyle: ''
+  }
+  const frameContext = { drawImage: vi.fn(), getImageData }
+  const frame = { width: 0, height: 0, getContext: () => frameContext }
+  const nickname = { width: 0, height: 0, getContext: () => nicknameContext }
+  const crop = { width: 0, height: 0, getContext: () => cropContext }
+  const createElement = vi
+    .fn()
+    .mockReturnValueOnce(frame)
+    .mockReturnValueOnce(nickname)
+    .mockReturnValue(crop)
+  vi.stubGlobal('document', { createElement })
+  const video = { videoWidth: 1920, videoHeight: 1080 } as HTMLVideoElement
+
+  const crops = capturePartyNicknameCrops(video)
+
+  expect(crops).toEqual([crop, null, null, null])
+  expect(cropContext.drawImage).toHaveBeenCalledExactlyOnceWith(nickname, 12, 12, 273, 42)
+  expect(cropContext.imageSmoothingEnabled).toBe(true)
+  expect(cropContext.imageSmoothingQuality).toBe('high')
+  expect(createElement).toHaveBeenCalledTimes(3)
+  expect(getImageData).toHaveBeenCalledWith(56, 15, 91, 14)
+  expect(cropContext.fillStyle).toBe('white')
+  expect(cropContext.fillRect).toHaveBeenCalledExactlyOnceWith(0, 0, 297, 66)
+  const pixels = nicknameContext.putImageData.mock.calls[0][0].data
+  expect(Array.from(pixels.slice(0, 12))).toEqual([
+    0,
+    0,
+    0,
+    255, // White foreground becomes black.
+    255,
+    255,
+    255,
+    255, // Black background becomes white.
+    107,
+    107,
+    107,
+    255 // Cyan text keeps intermediate strokes; no binary threshold.
+  ])
 })

@@ -10,10 +10,10 @@ const hasContext = context != null
 if (!hasContext) {
   throw new Error('Synthetic source context missing')
 }
-context.fillStyle = 'white'
+context.fillStyle = 'black'
 context.fillRect(0, 0, canvas.width, canvas.height)
 for (const slot of PARTY_SLOTS) {
-  context.fillStyle = 'black'
+  context.fillStyle = 'white'
   context.font = '14px monospace'
   context.textBaseline = 'top'
   context.fillText('ALICE', slot.nickname.x + 2, slot.nickname.y + 1)

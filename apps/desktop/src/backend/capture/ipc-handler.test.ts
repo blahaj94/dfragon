@@ -8,7 +8,11 @@ import {
   CODE,
   RETURN_TARGET
 } from '../auth/auth-test-fixtures'
-import { registerCaptureIpc, registerCaptureWindow } from './ipc-handler'
+import {
+  registerCaptureIpc,
+  registerCaptureWindow,
+  consumeCaptureMediaPermission
+} from './ipc-handler'
 
 const electron = vi.hoisted(() => ({ getSources: vi.fn(), handle: vi.fn() }))
 vi.mock('electron', () => ({
@@ -29,7 +33,7 @@ async function setup(signedIn = true): Promise<{
   harness: ReturnType<typeof createAuthHarness>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
   event: IpcMainInvokeEvent
-  mainFrame: { url: string; isDestroyed: () => boolean }
+  mainFrame: { url: string; detached: boolean; isDestroyed: () => boolean }
   dispatchMedia: (callback: (result: unknown) => void) => void
   requestMedia: (
     changes?: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest>
@@ -43,7 +47,7 @@ async function setup(signedIn = true): Promise<{
   await auth.start()
   harness.http.refresh.mockClear()
   let mediaHandler: MediaHandler | undefined
-  const mainFrame = { url: rendererUrl, isDestroyed: () => false }
+  const mainFrame = { url: rendererUrl, detached: false, isDestroyed: () => false }
   const webContents = {
     mainFrame,
     on: vi.fn(),
@@ -584,5 +588,67 @@ describe('capture main auth boundary', () => {
     await fixture.invoke('notifyStableNicknameDetected', { slot: 0, nickname: 'SYNTHETIC_CANARY' })
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
     expect(log).not.toHaveBeenCalled()
+  })
+})
+
+describe('product media permission capture lifetime', () => {
+  it('requires selection and begin, permits once, and allows a new Start after Stop', async () => {
+    const fixture = await setup()
+    const ask = (): boolean => consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)
+    expect(ask()).toBe(false)
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    expect(ask()).toBe(false)
+    await beginCapture(fixture)
+    expect(ask()).toBe(true)
+    expect(ask()).toBe(false)
+    const current = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+      snapshot: { captureId: string }
+    }
+    await fixture.invoke('controlCharacterSearch', {
+      action: 'end',
+      captureId: current.snapshot.captureId
+    })
+    expect(ask()).toBe(false)
+    await beginCapture(fixture)
+    expect(ask()).toBe(true)
+  })
+
+  it.each([
+    'contents',
+    'request-document',
+    'document',
+    'detached',
+    'destroyed',
+    'source-clear',
+    'logout'
+  ])('rejects %s at permission time', async (condition) => {
+    const fixture = await setup()
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    await beginCapture(fixture)
+    let contents = fixture.event.sender
+    let url = rendererUrl
+    if (condition === 'contents') {
+      contents = {} as typeof contents
+    }
+    if (condition === 'request-document') {
+      url = 'about:blank'
+    }
+    if (condition === 'document') {
+      fixture.mainFrame.url = 'about:blank'
+    }
+    if (condition === 'detached') {
+      fixture.mainFrame.detached = true
+    }
+    if (condition === 'destroyed') {
+      fixture.mainFrame.isDestroyed = () => true
+    }
+    if (condition === 'source-clear') {
+      await fixture.invoke('selectCaptureSource', '')
+    }
+    if (condition === 'logout') {
+      await fixture.auth.logout()
+    }
+
+    expect(consumeCaptureMediaPermission(contents, url)).toBe(false)
   })
 })
