@@ -242,7 +242,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재로그인을 한 계약으로 연결한다', async () => {
+it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같은 캡처와 검색을 유지한다', async () => {
   const harness = createAuthHarness()
   const liveSearch = deferred<Response>()
   const lateSearch = deferred<Response>()
@@ -282,7 +282,7 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
     documentUrl: DOCUMENT_URL
   })
   registerCaptureWindow(fixtureWindow.window, DOCUMENT_URL)
-  const disposeCapture = registerCaptureIpc(runtime.coordinator, {
+  const disposeCapture = registerCaptureIpc({
     apiOrigin: runtime.apiOrigin,
     fetch: searchFetch,
     clock: runtime.searchClock
@@ -300,16 +300,6 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
     await act(async () => root.render(<App />))
     await waitForText(container, 'Google로 계속하기')
 
-    await click(container, 'Google로 계속하기')
-    await waitForCondition(() =>
-      expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
-    )
-    await act(async () => {
-      await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
-    })
-    await waitForText(container, '시작하기')
-
-    await click(container, '시작하기')
     await waitForCondition(() => {
       const source = container.querySelector('select') as HTMLSelectElement | null
       expect(source?.options).toHaveLength(2)
@@ -339,7 +329,7 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
     )
     await waitForCondition(() => expect(observedRequests).toHaveLength(1), { timeout: 5_000 })
     expect(observedRequests[0]?.url).toBe(`${config.apiOrigin}/characters?characterName=ALICE`)
-    expect(observedRequests[0]?.headers.get('authorization')).toBe('Bearer next.payload.signature')
+    expect(observedRequests[0]?.headers.has('authorization')).toBe(false)
     await waitForText(container, 'ALICE')
     await waitForText(container, '검색 중')
     const pendingSearchEvents = fixtureWindow.contents.send.mock.calls.filter(
@@ -372,10 +362,24 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
     })
     await waitForText(container, 'live-character')
 
+    await click(container, 'Google로 계속하기')
+    await waitForCondition(() =>
+      expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
+    )
+    await act(async () => {
+      await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
+    })
+    await waitForText(container, '시작하기')
+
+    await click(container, '시작하기')
+    expect(container.textContent).toContain('live-character')
+    expect(media.getDisplayMedia).toHaveBeenCalledOnce()
+    expect(track.stop).not.toHaveBeenCalled()
+
     ocrWorker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
     await waitForCondition(() => expect(observedRequests).toHaveLength(2), { timeout: 10_000 })
     expect(observedRequests[1]?.url).toBe(`${config.apiOrigin}/characters?characterName=BOB`)
-    expect(observedRequests[1]?.headers.get('authorization')).toBe('Bearer next.payload.signature')
+    expect(observedRequests[1]?.headers.has('authorization')).toBe(false)
     await waitForText(container, 'BOB')
     await waitForText(container, '검색 중')
 
@@ -387,18 +391,13 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
       expect.any(AbortSignal)
     )
     expect(harness.store.inspection).toEqual({ status: 'empty' })
-    await waitForCondition(() => expect(track.stop).toHaveBeenCalledOnce())
-    await waitForCondition(() => expect(ocrWorker.terminate).toHaveBeenCalledOnce())
+    expect(track.stop).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).not.toHaveBeenCalled()
     expect(fixtureWindow.contents.send.mock.calls.map(([channel]) => channel)).toContain(
       'authStateChanged'
     )
-    expect(fixtureWindow.contents.send.mock.calls.map(([channel]) => channel)).toContain(
-      'characterSearchChanged'
-    )
-    const searchEvents = fixtureWindow.contents.send.mock.calls.filter(
-      ([channel]) => channel === 'characterSearchChanged'
-    )
-    expect(searchEvents.at(-1)?.[1]).toMatchObject({ captureId: null })
+    const afterLogout = await searchApi.controlCharacterSearch({ action: 'read' })
+    expect(afterLogout.snapshot.captureId).toBe(captureId)
 
     lateSearch.resolve(
       new Response(
@@ -420,8 +419,8 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
       await lateResponseDelivered.promise
     })
     await renderSettled()
-    expect(container.textContent).not.toContain('late-character')
-    expect(container.textContent).not.toContain('화면 캡처')
+    await waitForText(container, 'late-character')
+    expect(container.textContent).toContain('화면 캡처')
 
     await click(container, 'Google로 계속하기')
     await waitForCondition(() =>
@@ -435,12 +434,21 @@ it('제품 bootstrap부터 auth IPC, capture/search IPC, renderer logout과 재�
     await waitForCondition(() => {
       const nextSource = container.querySelector('select') as HTMLSelectElement | null
       expect(nextSource?.options).toHaveLength(2)
-      expect(nextSource?.value).toBe('')
-      expect(button(container, 'Start').disabled).toBe(true)
+      expect(nextSource?.value).toBe(RENDERER_SOURCE_ID)
+      expect(container.textContent).toContain('Capture ready at 1920×1080.')
     })
-    expect(container.textContent).not.toContain('late-character')
+    expect(container.textContent).toContain('late-character')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()
     expect(harness.http.exchange).toHaveBeenCalledTimes(2)
+    expect(track.stop).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    await click(container, 'Stop')
+    await waitForCondition(() => expect(track.stop).toHaveBeenCalledOnce())
+    await waitForCondition(() => expect(ocrWorker.terminate).toHaveBeenCalledOnce())
+    expect(container.textContent).not.toContain('late-character')
+    expect(
+      (await searchApi.controlCharacterSearch({ action: 'read' })).snapshot.captureId
+    ).toBeNull()
   } finally {
     await act(async () => root.unmount())
     container.remove()

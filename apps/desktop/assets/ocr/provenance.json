@@ -1,0 +1,28 @@
+{
+  "model": "korean_PP-OCRv5_mobile_rec",
+  "source": "https://huggingface.co/PaddlePaddle/korean_PP-OCRv5_mobile_rec_onnx",
+  "revision": "5c6f574b8e2230adf4287b33e736d71b9fabd28e",
+  "dictionarySource": "https://huggingface.co/PaddlePaddle/korean_PP-OCRv5_mobile_rec/blob/c02ecaf1f22bfd1c618cce154fd19185b47e663a/config.json",
+  "files": [
+    {
+      "file": "PaddleOCR-LICENSE.txt",
+      "sha256": "3840c5c0c61c294264d2dd77b8777be6ddd90121ef4e0e64abcd22edea581d6e"
+    },
+    {
+      "file": "ONNX-Runtime-ThirdPartyNotices.txt",
+      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+    },
+    {
+      "file": "ONNX-Runtime-LICENSE.txt",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "file": "korean-rec.onnx",
+      "sha256": "92f0b7785e64fc9090106a241cf4c1eb97472824558272751b88a2a4476d3a08"
+    },
+    {
+      "file": "korean-dict.txt",
+      "sha256": "a88071c68c01707489baa79ebe0405b7beb5cca229f4fc94cc3ef992328802d7"
+    }
+  ]
+}

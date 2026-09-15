@@ -86,7 +86,7 @@ export function createCaptureActions({
     })
     await completeLogin()
     await until(() => hasText('시작하기'))
-    assert.equal(await evaluate('document.querySelector("select") === null'), true)
+    assert.equal(await evaluate('document.querySelector("select") !== null'), true)
     await click('시작하기')
     await until(() => hasText('Select a window'))
   }

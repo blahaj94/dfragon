@@ -10,7 +10,6 @@ function fixture(): ReturnType<typeof createFixtureSearch> {
 }
 function request(signal?: AbortSignal): Request {
   return new Request('https://api.example.test/characters?characterName=ALICE', {
-    headers: { authorization: 'Bearer synthetic.payload.signature' },
     signal
   })
 }
@@ -45,7 +44,7 @@ it.each([
   }
 })
 
-it('고정 origin·path·method·query·합성 access를 벗어나면 실제 fetch 없이 거절한다', async () => {
+it('고정 origin·path·method·query·무인증 요청을 벗어나면 실제 fetch 없이 거절한다', async () => {
   const search = fixture()
   const original = request()
   const invalid = [
@@ -53,7 +52,7 @@ it('고정 origin·path·method·query·합성 access를 벗어나면 실제 fet
     new Request('https://api.example.test/private?characterName=ALICE', original),
     new Request('https://api.example.test/characters?characterName=ALICE&limit=1', original),
     new Request(original, { method: 'POST' }),
-    new Request(original, { headers: {} })
+    new Request(original, { headers: { authorization: 'Bearer synthetic.payload.signature' } })
   ]
   for (const input of invalid) {
     await expect(search.runtime.fetch(input)).rejects.toThrow('Search fixture request denied')

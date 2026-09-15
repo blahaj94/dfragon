@@ -111,35 +111,20 @@ it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯
     return { data }
   })
   const nicknameContext = { putImageData: vi.fn() }
-  const cropContext = {
-    imageSmoothingEnabled: false,
-    imageSmoothingQuality: 'low',
-    drawImage: vi.fn(),
-    fillRect: vi.fn(),
-    fillStyle: ''
-  }
   const frameContext = { drawImage: vi.fn(), getImageData }
   const frame = { width: 0, height: 0, getContext: () => frameContext }
   const nickname = { width: 0, height: 0, getContext: () => nicknameContext }
-  const crop = { width: 0, height: 0, getContext: () => cropContext }
-  const createElement = vi
-    .fn()
-    .mockReturnValueOnce(frame)
-    .mockReturnValueOnce(nickname)
-    .mockReturnValue(crop)
+  const createElement = vi.fn().mockReturnValueOnce(frame).mockReturnValue(nickname)
   vi.stubGlobal('document', { createElement })
   const video = { videoWidth: 1920, videoHeight: 1080 } as HTMLVideoElement
 
   const crops = capturePartyNicknameCrops(video)
 
-  expect(crops).toEqual([crop, null, null, null])
-  expect(cropContext.drawImage).toHaveBeenCalledExactlyOnceWith(nickname, 12, 12, 273, 42)
-  expect(cropContext.imageSmoothingEnabled).toBe(true)
-  expect(cropContext.imageSmoothingQuality).toBe('high')
-  expect(createElement).toHaveBeenCalledTimes(3)
+  expect(crops).toEqual([nickname, null, null, null])
+  expect(nickname.width).toBe(91)
+  expect(nickname.height).toBe(14)
+  expect(createElement).toHaveBeenCalledTimes(2)
   expect(getImageData).toHaveBeenCalledWith(56, 15, 91, 14)
-  expect(cropContext.fillStyle).toBe('white')
-  expect(cropContext.fillRect).toHaveBeenCalledExactlyOnceWith(0, 0, 297, 66)
   const pixels = nicknameContext.putImageData.mock.calls[0][0].data
   expect(Array.from(pixels.slice(0, 12))).toEqual([
     0,

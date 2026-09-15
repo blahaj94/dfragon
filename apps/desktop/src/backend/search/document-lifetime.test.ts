@@ -35,11 +35,8 @@ it.each(['navigation', 'destruction', 'render-process-gone'] as const)(
     expect((await fixture.read()).captureId).toBeNull()
     fixture.replaceDocument()
     await fixture.invoke('selectCaptureSource', 'window:search-fixture')
-    const auth = fixture.auth.getSnapshot()
     await fixture.invoke('controlCharacterSearch', {
-      action: 'begin',
-      authRunId: auth.runId,
-      authRevision: auth.revision
+      action: 'begin'
     })
     const current = await fixture.read()
     expect(current.captureId).not.toBe(fixture.captureId)

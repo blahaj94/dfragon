@@ -5,7 +5,7 @@ import { createAccessJwtVerifier } from '../dist/auth/access-jwt/index.js'
 import { createDatabaseDataSource } from '../dist/database/index.js'
 import { databaseSnapshot, withDataSource } from './database-contract.mjs'
 import { completion, isolatedGoogle, prepare } from './google-http-integration.mjs'
-import { assertBackendGone, isolatedNeople, waitFor } from './character-search-fixtures.mjs'
+import { assertBackendGone, isolatedNeople } from './character-search-fixtures.mjs'
 import {
   assertStartupFailure,
   collectRuntimeExit,
@@ -135,45 +135,21 @@ async function search(client, accessToken) {
   })
 }
 
-async function assertSearchShutdown({ source, runtime, client, tokens, principal, neople }) {
+async function assertSearchShutdown({ source, runtime, client, principal, neople }) {
   const lock = source.createQueryRunner()
-  let pending
   try {
     await lock.startTransaction()
     await lock.query('SELECT id FROM auth_sessions WHERE id=$1 FOR UPDATE', [principal.sessionId])
     const beforeCalls = neople.calls.length
-    pending = search(client, tokens.accessToken).then(
-      (response) => ({ response }),
-      () => ({ disconnected: true })
-    )
-    let blockedPid
-    await waitFor(async () => {
-      const blockedSessionQuery = `SELECT pid FROM pg_stat_activity
-        WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%auth_sessions%'`
-      const blocked = await source.query(blockedSessionQuery)
-      blockedPid = blocked[0]?.pid
-      const hasBlockedPid = blockedPid !== undefined
-      return hasBlockedPid
-    }, 'default entry search did not reach a real database lock wait')
-    // 부모의 lock을 유지한 채 종료해 DB 연결 취소가 실제로 완료되는지 확인한다.
+    const response = await fetch(`${client.base}/characters?characterName=ab`)
+    assert.equal(response.status, 200)
+    assert.equal(neople.calls.length, beforeCalls + 1)
+    // 검색은 session lock에 의존하지 않으며 종료는 기존 app/DB 순서를 유지한다.
     await terminateRuntime(source, runtime)
-    await assertBackendGone(source, blockedPid)
-    const result = await pending
-    const hasResponse = result.response !== undefined
-    if (hasResponse) {
-      assert.equal(result.response.status, 500)
-    }
-    assert.equal(neople.calls.length, beforeCalls)
     const events = runtime.events.map(({ event }) => event)
-    const hasClosedAppBeforeDatabaseDestroy =
-      events.indexOf('app.closed') < events.indexOf('db.destroy')
-    assert(hasClosedAppBeforeDatabaseDestroy)
+    assert(events.indexOf('app.closed') < events.indexOf('db.destroy'))
   } finally {
     await stopRuntime(runtime)
-    const hasPending = pending !== undefined
-    if (hasPending) {
-      await pending
-    }
     if (lock.isTransactionActive) {
       await lock.rollbackTransaction()
     }
@@ -278,7 +254,7 @@ export async function assertRuntimeHttpIntegration(configuration, mark = () => {
         assert.equal(neople.calls[0].hasExpectedKey, true)
 
         mark(
-          'same app refreshes and logs out, denies both account routes but permits residual JWT search'
+          'same app refreshes and logs out, denies both account routes but permits public search'
         )
         const refreshed = await client.post('/auth/refresh', { refreshToken: tokens.refreshToken })
         assert.equal(refreshed.status, 200)
@@ -315,10 +291,8 @@ export async function assertRuntimeHttpIntegration(configuration, mark = () => {
         assert.equal(session.revoked_reason, 'logout')
         assert.deepEqual(await databaseSnapshot(source), beforeSchema)
 
-        mark(
-          'SIGTERM cancels a real locked search before app and DB shutdown; upstream is not called'
-        )
-        await assertSearchShutdown({ source, runtime, client, tokens: rotated, principal, neople })
+        mark('public search bypasses a session lock, then SIGTERM closes app before database')
+        await assertSearchShutdown({ source, runtime, client, principal, neople })
         assert.equal(neople.upstream.failure, undefined)
       })
     })

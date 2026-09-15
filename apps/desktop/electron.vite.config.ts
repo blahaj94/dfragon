@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
   },
   preload: { build: { externalizeDeps: false } },
   renderer: {
+    worker: { format: 'es' },
     root: resolve('src/frontend'),
     build: {
       rollupOptions: {

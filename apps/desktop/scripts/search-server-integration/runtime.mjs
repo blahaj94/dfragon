@@ -12,11 +12,6 @@ import {
   verifyApprovedImage
 } from '../../../api/test-support/docker-postgres.mjs'
 import { waitForAuthenticatedReadiness } from '../../../api/test-support/database-contract.mjs'
-import {
-  isolatedGoogle,
-  prepare,
-  completion
-} from '../../../api/test-support/google-http-integration.mjs'
 import { isolatedNeople } from '../../../api/test-support/character-search-fixtures.mjs'
 import {
   collectRuntimeExit,
@@ -41,33 +36,24 @@ function startApi(environment, upstreams) {
   }
 }
 
-async function withApi({ source, database, google, neople }, operation) {
+async function withApi({ source, database, neople }, operation) {
   return withRuntimeConfiguration(async ({ path }) => {
     const port = await unusedRuntimePort()
     const runtime = startApi(runtimeEnvironment(path, port, database), {
-      google: google.origin,
       neople: neople.origin
     })
     try {
       await waitForRuntime(port, runtime)
       const base = `http://127.0.0.1:${port}`
-      const post = (route, body) =>
-        fetch(`${base}${route}`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(body)
-        })
-      const flow = await prepare({ base, post }, google)
-      const exchange = await completion(flow, await flow.callback(), google.canaries)
-      const response = await post('/auth/exchange', exchange)
-      assert.equal(response.status, 200)
-      const tokens = await response.json()
-      const hasAccessToken = typeof tokens.accessToken === 'string'
-      assert(hasAccessToken, 'server exchange must issue access')
-      const [{ count }] = await source.query('SELECT count(*)::int AS count FROM auth_sessions')
-      assert.equal(count, 1, 'server exchange must persist a session')
-
-      await operation({ base, accessToken: tokens.accessToken, source, neople })
+      const [{ count: before }] = await source.query(
+        'SELECT count(*)::int AS count FROM auth_sessions'
+      )
+      assert.equal(before, 0, 'public search must start without a login session')
+      await operation({ base, neople })
+      const [{ count: after }] = await source.query(
+        'SELECT count(*)::int AS count FROM auth_sessions'
+      )
+      assert.equal(after, 0, 'public search must not create a login session')
     } finally {
       try {
         runtime.child.kill('SIGTERM')
@@ -93,8 +79,6 @@ async function withApi({ source, database, google, neople }, operation) {
 /**
  * @param {(context: {
  *   base: string,
- *   accessToken: string,
- *   source: ReturnType<typeof createDatabaseDataSource>,
  *   neople: Omit<Awaited<ReturnType<typeof isolatedNeople>>, 'upstream'> & { upstream: { body: unknown } }
  * }) => Promise<void>} operation
  */
@@ -103,17 +87,14 @@ export async function withSearchServer(operation) {
   const image = await verifyApprovedImage()
   const resources = await createPostgres(runId, image)
   let source
-  let google
   let neople
   try {
     source = createDatabaseDataSource(resources.configuration)
     await waitForAuthenticatedReadiness(createDatabaseDataSource, resources.configuration)
     await source.initialize()
     await source.runMigrations({ transaction: 'all' })
-    google = await isolatedGoogle()
     neople = await isolatedNeople()
-    await withApi({ source, database: resources.configuration, google, neople }, operation)
-    assert.equal(google.failed, false)
+    await withApi({ source, database: resources.configuration, neople }, operation)
     assert.equal(neople.upstream.failure, undefined)
   } finally {
     const cleanup = [
@@ -121,12 +102,6 @@ export async function withSearchServer(operation) {
         const hasNeople = neople != null
         if (hasNeople) {
           await neople.close()
-        }
-      },
-      async () => {
-        const hasGoogle = google != null
-        if (hasGoogle) {
-          await google.close()
         }
       },
       async () => {

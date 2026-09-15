@@ -38,9 +38,8 @@ export function createFixtureSearch({
     const hasMethod = request.method === 'GET'
     const keys = [...url.searchParams.keys()]
     const hasExactQuery = keys.length === 1 && keys[0] === 'characterName'
-    const hasSyntheticAuth =
-      request.headers.get('authorization') === 'Bearer synthetic.payload.signature'
-    const isAllowed = hasOrigin && hasPath && hasMethod && hasExactQuery && hasSyntheticAuth
+    const hasNoCredential = !request.headers.has('authorization')
+    const isAllowed = hasOrigin && hasPath && hasMethod && hasExactQuery && hasNoCredential
     if (!isAllowed) {
       throw new Error('Search fixture request denied')
     }

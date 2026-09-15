@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { expect, it } from 'vitest'
 import type { SearchCommandResult } from '../../../preload/common/types/search'
-import { CAPTURE_ID, searchSnapshot, SEARCH_RUN } from '../../../preload/api/search-test-fixture'
+import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import {
   authSnapshot,
   captureResources,
@@ -10,14 +10,13 @@ import {
   media
 } from './search-renderer-test-fixture'
 
-it('Start는 현재 auth snapshot으로 begin한 뒤 반환 captureId의 media와 OCR를 시작한다', async () => {
+it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 media와 OCR를 시작한다', async () => {
   const fixture = createRendererFixture()
+  await fixture.emitAuth(authSnapshot({ signedIn: false }))
   await fixture.mount()
   await fixture.start()
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
-    action: 'begin',
-    authRunId: SEARCH_RUN,
-    authRevision: 1
+    action: 'begin'
   })
   const beginOrder = fixture.search.controlCharacterSearch.mock.invocationCallOrder.at(-1)!
   expect(beginOrder).toBeLessThan(fixture.getDisplayMedia.mock.invocationCallOrder[0])
@@ -42,9 +41,7 @@ it('begin 완료 전 중복 Start는 새 begin·media를 만들지 않고 진행
   fixture.search.controlCharacterSearch.mockReturnValueOnce(begin.promise)
   await fixture.start()
   expect(fixture.search.controlCharacterSearch).toHaveBeenLastCalledWith({
-    action: 'begin',
-    authRunId: SEARCH_RUN,
-    authRevision: 1
+    action: 'begin'
   })
   expect(fixture.button('Start').disabled).toBe(true)
   await fixture.click('Start')
@@ -54,7 +51,7 @@ it('begin 완료 전 중복 Start는 새 begin·media를 만들지 않고 진행
   expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
 })
 
-it.each(['Stop', 'source', 'auth', 'unmount'] as const)(
+it.each(['Stop', 'source', 'unmount'] as const)(
   '%s 뒤 늦은 begin 성공은 그 ID만 end하고 media를 시작하지 않는다',
   async (transition) => {
     const fixture = createRendererFixture()
@@ -64,13 +61,10 @@ it.each(['Stop', 'source', 'auth', 'unmount'] as const)(
     await fixture.start()
     const isStop = transition === 'Stop'
     const isSource = transition === 'source'
-    const isAuth = transition === 'auth'
     if (isStop) {
       await fixture.click('Stop')
     } else if (isSource) {
       await fixture.select('next')
-    } else if (isAuth) {
-      await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
     } else {
       await fixture.unmount()
     }
@@ -85,54 +79,46 @@ it.each(['Stop', 'source', 'auth', 'unmount'] as const)(
   }
 )
 
-it.each([
-  'Stop',
-  'source',
-  'auth',
-  'unmount',
-  'track ended',
-  'media failed',
-  'OCR failed'
-] as const)('%s는 현재 capture ID를 end하고 stream·worker·loop를 정리한다', async (transition) => {
-  const fixture = createRendererFixture()
-  const loop = Promise.withResolvers<void>()
-  media.loop.mockReturnValue(loop.promise)
-  const isMediaFailure = transition === 'media failed'
-  if (isMediaFailure) {
-    fixture.getDisplayMedia.mockRejectedValueOnce(new Error('Synthetic media failure'))
+it.each(['Stop', 'source', 'unmount', 'track ended', 'media failed', 'OCR failed'] as const)(
+  '%s는 현재 capture ID를 end하고 stream·worker·loop를 정리한다',
+  async (transition) => {
+    const fixture = createRendererFixture()
+    const loop = Promise.withResolvers<void>()
+    media.loop.mockReturnValue(loop.promise)
+    const isMediaFailure = transition === 'media failed'
+    if (isMediaFailure) {
+      fixture.getDisplayMedia.mockRejectedValueOnce(new Error('Synthetic media failure'))
+    }
+    await fixture.mount()
+    await fixture.start()
+    const isStop = transition === 'Stop'
+    const isSource = transition === 'source'
+    const isUnmount = transition === 'unmount'
+    const isTrackEnded = transition === 'track ended'
+    const isOcrFailure = transition === 'OCR failed'
+    if (isStop) {
+      await fixture.click('Stop')
+    } else if (isSource) {
+      await fixture.select('next')
+    } else if (isUnmount) {
+      await fixture.unmount()
+    } else if (isTrackEnded) {
+      await act(async () => fixture.resources.track.dispatchEvent(new Event('ended')))
+    } else if (isOcrFailure) {
+      await act(async () => loop.reject(new Error('Synthetic OCR failure')))
+    }
+    expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
+      action: 'end',
+      captureId: CAPTURE_ID
+    })
+    if (!isMediaFailure) {
+      expect(fixture.resources.track.stop).toHaveBeenCalledOnce()
+      expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
+      expect(media.loop.mock.calls[0][0].signal.aborted).toBe(true)
+    }
+    expect(fixture.container.textContent).not.toContain('ALICE')
   }
-  await fixture.mount()
-  await fixture.start()
-  const isStop = transition === 'Stop'
-  const isSource = transition === 'source'
-  const isAuth = transition === 'auth'
-  const isUnmount = transition === 'unmount'
-  const isTrackEnded = transition === 'track ended'
-  const isOcrFailure = transition === 'OCR failed'
-  if (isStop) {
-    await fixture.click('Stop')
-  } else if (isSource) {
-    await fixture.select('next')
-  } else if (isAuth) {
-    await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
-  } else if (isUnmount) {
-    await fixture.unmount()
-  } else if (isTrackEnded) {
-    await act(async () => fixture.resources.track.dispatchEvent(new Event('ended')))
-  } else if (isOcrFailure) {
-    await act(async () => loop.reject(new Error('Synthetic OCR failure')))
-  }
-  expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
-    action: 'end',
-    captureId: CAPTURE_ID
-  })
-  if (!isMediaFailure) {
-    expect(fixture.resources.track.stop).toHaveBeenCalledOnce()
-    expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
-    expect(media.loop.mock.calls[0][0].signal.aborted).toBe(true)
-  }
-  expect(fixture.container.textContent).not.toContain('ALICE')
-})
+)
 
 it('늦은 이전 begin은 새 capture를 end하거나 새 stream을 정리하지 않는다', async () => {
   const fixture = createRendererFixture()
@@ -223,19 +209,27 @@ it('stable 값이 null이 되는 전이마다 revision을 올려 clear 한 번�
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledTimes(2)
 })
 
-it('재로그인 뒤 source 선택과 Start 없이 이전 capture와 OCR를 재개하지 않는다', async () => {
+it('로그인과 로그아웃은 진행 중 캡처와 표시된 검색 결과를 유지한다', async () => {
   const fixture = createRendererFixture()
+  await fixture.emitAuth(authSnapshot({ signedIn: false }))
   await fixture.mount()
   await fixture.start()
-  await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
-  await fixture.emitAuth(authSnapshot({ revision: 3, signedIn: true }))
-  expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
+  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
+  await fixture.cycle(2)
+  expect(fixture.container.textContent).toContain('ALICE')
+
+  await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: true }))
+  await fixture.emitAuth(authSnapshot({ revision: 3, signedIn: false }))
+  expect(fixture.search.controlCharacterSearch).not.toHaveBeenCalledWith({
     action: 'end',
     captureId: CAPTURE_ID
   })
-  expect(fixture.container.querySelector('select')?.value).toBe('')
-  expect(fixture.button('Start').disabled).toBe(true)
+  expect(fixture.container.querySelector('select')?.value).toBe('game')
+  expect(fixture.container.textContent).toContain('ALICE')
   expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(fixture.resources.track.stop).not.toHaveBeenCalled()
+  expect(fixture.resources.worker.terminate).not.toHaveBeenCalled()
+  expect(media.loop.mock.calls[0][0].signal.aborted).toBe(false)
 })
 
 it('빈 OCR 문자열은 기존 stable 값을 clear 한 번으로 무효화하고 빈 frame마다 전송하지 않는다', async () => {

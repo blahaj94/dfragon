@@ -1,4 +1,4 @@
-import type { AuthClock, AuthCoordinator } from '../auth/types'
+import type { AuthClock } from '../auth/types'
 import type {
   CharacterSearchRow,
   SearchError,
@@ -6,7 +6,7 @@ import type {
 } from '../../preload/common/types/search'
 import { SearchHttpFailure, type SearchHttp } from './http'
 
-export type SearchRuntime = { auth: AuthCoordinator; http: SearchHttp; clock: AuthClock }
+export type SearchRuntime = { http: SearchHttp; clock: AuthClock }
 export type SearchOutcome =
   | { kind: 'success'; rows: readonly CharacterSearchRow[] }
   | { kind: 'failure'; error: SearchError; retryAfterReceivedAt: number | null }
@@ -15,9 +15,7 @@ export type SearchOutcome =
 type RequestInput = {
   runtime: SearchRuntime
   nickname: string
-  authGeneration: number
   startedAt: number
-  finalRejection: boolean
   signal: AbortSignal
   isCurrent: () => boolean
 }
@@ -71,28 +69,14 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   }
 
   async function perform(): Promise<SearchOutcome> {
-    const beforeAuthorization = check()
-    if (!beforeAuthorization.active) {
-      return beforeAuthorization.result
-    }
-    const authorization = await runtime.auth.authorization(transport.signal)
     const beforeHttp = check()
     if (!beforeHttp.active) {
       return beforeHttp.result
-    }
-    const hasAuthorization = authorization.status === 'available'
-    if (!hasAuthorization) {
-      return failure('SEARCH_AUTH_NOT_READY')
-    }
-    const hasSameAuth = authorization.generation === input.authGeneration
-    if (!hasSameAuth) {
-      return null
     }
 
     try {
       const rows = await runtime.http({
         nickname: input.nickname,
-        accessToken: authorization.accessToken,
         signal: transport.signal
       })
       const completed = check()
@@ -106,29 +90,11 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
       if (!isSearchFailure) {
         return failure('SEARCH_NETWORK_ERROR')
       }
-      const needsRecovery = error.code === 'AUTHENTICATION_REQUIRED'
-      if (!needsRecovery) {
-        return {
-          kind: 'failure',
-          error: { code: error.code, retryAfterSeconds: error.retryAfterSeconds },
-          retryAfterReceivedAt: error.retryAfterReceivedAt
-        }
+      return {
+        kind: 'failure',
+        error: { code: error.code, retryAfterSeconds: error.retryAfterSeconds },
+        retryAfterReceivedAt: error.retryAfterReceivedAt
       }
-
-      const recovered = await runtime.auth.recoverAuthorization(
-        {
-          generation: authorization.generation,
-          accessGeneration: authorization.accessGeneration,
-          finalRejection: input.finalRejection
-        },
-        transport.signal
-      )
-      const afterRecovery = check()
-      if (!afterRecovery.active) {
-        return afterRecovery.result
-      }
-      const isAvailable = recovered.status === 'available'
-      return failure(isAvailable ? 'SEARCH_AUTH_RETRY_REQUIRED' : 'SEARCH_AUTH_NOT_READY')
     }
   }
 

@@ -3,8 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { AuthCaptureContext } from '../auth/capture-context'
-import { CAPTURE_ID, SEARCH_RUN, searchSnapshot } from '../../../preload/api/search-test-fixture'
+import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import type { SearchControl } from '../../../preload/common/types/search'
 import { usePartyCapture } from './usePartyCapture'
 
@@ -61,25 +60,7 @@ async function renderPartyCaptureHook(): Promise<{
   let current: HookValue | undefined
 
   await act(async () => {
-    root.render(
-      <AuthCaptureContext.Provider
-        value={{
-          snapshot: {
-            runId: SEARCH_RUN,
-            revision: 1,
-            phase: 'signedIn',
-            providers: [],
-            login: null,
-            user: { nickname: '합성 계정' },
-            entry: 'home',
-            notice: null
-          },
-          resynchronize: () => {}
-        }}
-      >
-        <HookHarness onRender={(value) => (current = value)} />
-      </AuthCaptureContext.Provider>
-    )
+    root.render(<HookHarness onRender={(value) => (current = value)} />)
   })
 
   return {

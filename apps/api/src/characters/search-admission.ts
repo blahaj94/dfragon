@@ -21,7 +21,7 @@ interface Waiter {
   cancel(): void
 }
 
-interface AccountEntry {
+interface PeerEntry {
   reservations: number[]
   owner?: Waiter
   waiting: Set<Waiter>
@@ -30,7 +30,7 @@ interface AccountEntry {
 
 /** 최근 예약과 살아 있는 admission만 유지한다. Quota가 비기를 기다리는 queue는 없다. */
 export class SearchAdmission {
-  private readonly entries = new Map<string, AccountEntry>()
+  private readonly entries = new Map<string, PeerEntry>()
   private closed = false
 
   constructor(private readonly clock: SearchClock = searchClock) {}
@@ -39,13 +39,13 @@ export class SearchAdmission {
     return this.entries.size
   }
 
-  acquire(account: string, signal: AbortSignal): Promise<Lease> {
+  acquire(peerAddress: string, signal: AbortSignal): Promise<Lease> {
     const cannotAcquire = signal.aborted || this.closed
     if (cannotAcquire) {
       return Promise.reject(neopleSearchFailure('internal'))
     }
-    const entry = this.entries.get(account) ?? { reservations: [], waiting: new Set<Waiter>() }
-    this.entries.set(account, entry)
+    const entry = this.entries.get(peerAddress) ?? { reservations: [], waiting: new Set<Waiter>() }
+    this.entries.set(peerAddress, entry)
 
     return new Promise<Lease>((resolve, reject) => {
       let released = false
@@ -61,7 +61,7 @@ export class SearchAdmission {
           entry.owner = undefined
         }
         this.grantNext(entry)
-        this.maintain(account, entry)
+        this.maintain(peerAddress, entry)
       }
       const assertActive = (): void => {
         const cannotUseLease = released || signal.aborted || this.closed
@@ -85,7 +85,7 @@ export class SearchAdmission {
               const calledAt = this.clock.now()
               this.assertCapacity(entry, calledAt)
               entry.reservations.push(calledAt)
-              this.maintain(account, entry)
+              this.maintain(peerAddress, entry)
             },
             release
           })
@@ -96,7 +96,7 @@ export class SearchAdmission {
     })
   }
 
-  private grantNext(entry: AccountEntry): void {
+  private grantNext(entry: PeerEntry): void {
     const hasOwner = entry.owner != null
     const cannotGrant = hasOwner || this.closed
     if (cannotGrant) {
@@ -112,14 +112,14 @@ export class SearchAdmission {
     next.grant()
   }
 
-  private prune(entry: AccountEntry, now: number): void {
+  private prune(entry: PeerEntry, now: number): void {
     entry.reservations = entry.reservations.filter((reservedAt) => {
       const isRecent = reservedAt > now - windowMs
       return isRecent
     })
   }
 
-  private assertCapacity(entry: AccountEntry, now: number): void {
+  private assertCapacity(entry: PeerEntry, now: number): void {
     this.prune(entry, now)
     const isFull = entry.reservations.length >= capacity
     if (!isFull) {
@@ -130,7 +130,7 @@ export class SearchAdmission {
     throw neopleSearchFailure('limited', retryAfter)
   }
 
-  private maintain(account: string, entry: AccountEntry): void {
+  private maintain(peerAddress: string, entry: PeerEntry): void {
     const hasTimer = entry.timer != null
     if (hasTimer) {
       this.clock.clearTimer(entry.timer)
@@ -143,24 +143,27 @@ export class SearchAdmission {
     const hasWaiters = entry.waiting.size > 0
     const canDelete = !hasReservations && !hasOwner && !hasWaiters
     if (canDelete) {
-      this.entries.delete(account)
+      this.entries.delete(peerAddress)
     }
     const needsExpiry = hasReservations && !this.closed
     if (!needsExpiry) {
       return
     }
     const last = entry.reservations.at(-1)!
-    entry.timer = this.clock.setTimer(() => this.maintain(account, entry), last + windowMs - now)
+    entry.timer = this.clock.setTimer(
+      () => this.maintain(peerAddress, entry),
+      last + windowMs - now
+    )
   }
 
   close(): void {
     this.closed = true
-    for (const [account, entry] of this.entries) {
+    for (const [peerAddress, entry] of this.entries) {
       for (const waiter of [...entry.waiting]) {
         waiter.cancel()
       }
       entry.owner?.cancel()
-      this.maintain(account, entry)
+      this.maintain(peerAddress, entry)
     }
     this.entries.clear()
   }

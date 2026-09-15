@@ -1,5 +1,3 @@
-import type { DataSource, QueryRunner } from 'typeorm'
-import type { VerifyAccessJwt } from '../auth/access-jwt/types.js'
 import type { CharacterSearchResult, SearchCharacters } from '../types/neople-character-search.js'
 
 export interface SearchClock {
@@ -8,18 +6,15 @@ export interface SearchClock {
   clearTimer(timer: unknown): void
 }
 
-export interface AuthenticatedSearchDependencies {
-  readonly dataSource: DataSource
-  readonly verifyAccessJwt: VerifyAccessJwt
+export interface CharacterSearchDependencies {
   readonly apiKey: string
   readonly searchCharacters?: SearchCharacters
   readonly clock?: SearchClock
-  readonly createQueryRunner?: (source: DataSource, signal: AbortSignal) => QueryRunner
 }
 
-export interface AuthenticatedSearchHttpService {
+export interface CharacterSearchHttpService {
   search(
-    rawHeaders: readonly string[],
+    peerAddress: string | undefined,
     originalUrl: string,
     signal?: AbortSignal
   ): Promise<CharacterSearchResult>

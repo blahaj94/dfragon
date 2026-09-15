@@ -11,7 +11,7 @@ afterEach(() => {
 })
 
 describe('Desktop API system networking', () => {
-  it('uses isolated Chromium networking for both login and authenticated search', async () => {
+  it('uses isolated Chromium networking for login and anonymous search', async () => {
     const nodeFetch = vi.fn(async () => {
       throw new Error('Node transport must not handle Desktop API requests')
     })
@@ -37,7 +37,6 @@ describe('Desktop API system networking', () => {
     const me = await createAuthHttpClient({ apiOrigin }).me('synthetic-access', signal)
     const rows = await createSearchHttp({ apiOrigin })({
       nickname: 'synthetic-character',
-      accessToken: 'synthetic-access',
       signal
     })
 
@@ -50,8 +49,9 @@ describe('Desktop API system networking', () => {
       expect(request.credentials).toBe('omit')
       expect(request.redirect).toBe('error')
       expect(request.cache).toBe('no-store')
-      expect(request.headers.get('authorization')).toBe('Bearer synthetic-access')
     }
+    expect(requests[0].headers.get('authorization')).toBe('Bearer synthetic-access')
+    expect(requests[1].headers.get('authorization')).toBeNull()
     for (const [, options] of transport.mock.calls) {
       expect(options).toMatchObject({ bypassCustomProtocolHandlers: true })
     }

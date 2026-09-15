@@ -7,7 +7,7 @@ import {
   type WebFrameMain
 } from 'electron'
 import { addHandler } from '../ipc'
-import type { AuthClock, AuthCoordinator } from '../auth/types'
+import type { AuthClock } from '../auth/types'
 import { CaptureSearchLifetime, type CaptureBinding } from '../search/capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from '../search/commands'
 import { createSearchHttp } from '../search/http'
@@ -19,8 +19,6 @@ let windowGeneration = 0
 let sourceSelectionGeneration = 0
 let selectedSourceId: string | null = null
 let selectingSource = false
-let auth: AuthCoordinator | undefined
-let unsubscribe: (() => void) | undefined
 let search: CaptureSearchLifetime | undefined
 let mediaPermissionCaptureId: string | null = null
 
@@ -125,20 +123,8 @@ function requireSearchSender(event: IpcMainInvokeEvent): void {
   }
 }
 
-function requireCaptureGeneration(): number {
-  const generation = auth?.captureGeneration()
-  const hasPermission = generation != null
-  if (!hasPermission) {
-    throw new Error('Capture source access denied')
-  }
-  return generation
-}
-
-function isCurrentCapture(generation: number, startedWindowGeneration: number): boolean {
-  const hasSameAuth = auth?.captureGeneration() === generation
-  const hasSameWindow = windowGeneration === startedWindowGeneration
-  const isCurrent = hasSameAuth && hasSameWindow
-  return isCurrent
+function isCurrentCapture(startedWindowGeneration: number): boolean {
+  return windowGeneration === startedWindowGeneration
 }
 
 function currentMainFrame(): WebFrameMain | null {
@@ -162,30 +148,26 @@ function currentMainFrame(): WebFrameMain | null {
 }
 
 function isCurrentSearch(binding: CaptureBinding): boolean {
-  const hasSameAuth = binding.authGeneration === auth?.captureGeneration()
   const hasSameWindow = binding.windowGeneration === windowGeneration
   const hasSameSource = binding.sourceGeneration === sourceSelectionGeneration
   const hasSelectedSource = selectedSourceId != null
   const isSourceSelectionComplete = !selectingSource
   const hasSource = hasSelectedSource && isSourceSelectionComplete
   const isTrusted = isTrustedFrame(captureWindow, currentMainFrame())
-  const isCurrent = hasSameAuth && hasSameWindow && hasSameSource && hasSource && isTrusted
+  const isCurrent = hasSameWindow && hasSameSource && hasSource && isTrusted
 
   return isCurrent
 }
 
-function registerCaptureIpc(
-  coordinator?: AuthCoordinator,
-  configuration?: { apiOrigin: string; fetch?: typeof fetch; clock: AuthClock }
-): () => void {
-  unsubscribe?.()
-  auth = coordinator
-  const hasCoordinator = coordinator != null
-  const hasConfiguration = configuration != null
-  const hasRuntime = hasCoordinator && hasConfiguration
-  const runtime = hasRuntime
-    ? { auth: coordinator, http: createSearchHttp(configuration), clock: configuration.clock }
-    : undefined
+function registerCaptureIpc(configuration?: {
+  apiOrigin: string
+  fetch?: typeof fetch
+  clock: AuthClock
+}): () => void {
+  const runtime =
+    configuration == null
+      ? undefined
+      : { http: createSearchHttp(configuration), clock: configuration.clock }
   const lifetime = new CaptureSearchLifetime({
     runtime,
     isCurrent: isCurrentSearch,
@@ -199,21 +181,13 @@ function registerCaptureIpc(
   })
   search = lifetime
   clearSource()
-  unsubscribe = auth?.subscribe(() => {
-    const isUnauthorized = auth?.captureGeneration() == null
-    if (isUnauthorized) {
-      clearSource()
-    }
-  })
-
   addHandler('listCaptureSources', async (event) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
     requireSender(event, window)
-    const generation = requireCaptureGeneration()
     const sources = await getWindowSources()
     requireSender(event, window)
-    const isCurrent = isCurrentCapture(generation, startedWindowGeneration)
+    const isCurrent = isCurrentCapture(startedWindowGeneration)
     if (!isCurrent) {
       throw new Error('Capture source access denied')
     }
@@ -233,14 +207,13 @@ function registerCaptureIpc(
       clearSource()
       return null
     }
-    const generation = requireCaptureGeneration()
     clearSource()
     const selectionGeneration = sourceSelectionGeneration
     selectingSource = true
     try {
       const source = findSelectedSource(await getWindowSources(), sourceId)
       requireSender(event, window)
-      const isCurrent = isCurrentCapture(generation, startedWindowGeneration)
+      const isCurrent = isCurrentCapture(startedWindowGeneration)
       if (!isCurrent) {
         throw new Error('Capture source selection denied')
       }
@@ -278,11 +251,6 @@ function registerCaptureIpc(
       return lifetime.end(control.captureId)
     }
 
-    const generation = auth?.captureGeneration()
-    const hasPermission = generation != null
-    if (!hasPermission) {
-      return lifetime.result('SEARCH_NOT_ALLOWED')
-    }
     const isClear = control.action === 'clear'
     if (isClear) {
       return lifetime.clear(control)
@@ -290,13 +258,6 @@ function registerCaptureIpc(
     const isRetry = control.action === 'retry'
     if (isRetry) {
       return lifetime.retry(control)
-    }
-    const snapshot = auth!.getSnapshot()
-    const hasSameRun = control.authRunId === snapshot.runId
-    const hasSameRevision = control.authRevision === snapshot.revision
-    const hasCurrentAuth = hasSameRun && hasSameRevision
-    if (!hasCurrentAuth) {
-      return lifetime.result('STALE_SEARCH')
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
@@ -308,7 +269,6 @@ function registerCaptureIpc(
       return lifetime.result('SEARCH_NOT_ALLOWED')
     }
     return lifetime.begin({
-      authGeneration: generation,
       windowGeneration,
       sourceGeneration: sourceSelectionGeneration
     })
@@ -321,17 +281,10 @@ function registerCaptureIpc(
     if (!hasValidObservation) {
       return lifetime.result('INVALID_SEARCH_COMMAND')
     }
-    const hasPermission = auth?.captureGeneration() != null
-    if (!hasPermission) {
-      return lifetime.result('SEARCH_NOT_ALLOWED')
-    }
     return lifetime.observe(observation)
   })
 
   return () => {
-    unsubscribe?.()
-    unsubscribe = undefined
-    auth = undefined
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
@@ -399,12 +352,10 @@ function deliverMediaResult(
 
 function registerDisplayMediaHandler(window: BrowserWindow): void {
   window.webContents.session.setDisplayMediaRequestHandler((request, callback) => {
-    const generation = auth?.captureGeneration()
     const startedWindowGeneration = windowGeneration
     const selectionGeneration = sourceSelectionGeneration
     const sourceId = selectedSourceId
     const binding = search?.current
-    const hasPermission = generation != null
     const hasSource = sourceId != null
     const isTrusted = isTrustedFrame(window, request.frame)
     const isRequestAllowed = isCaptureRequestAllowed({
@@ -420,11 +371,10 @@ function registerDisplayMediaHandler(window: BrowserWindow): void {
       return
     }
 
-    const hasSameAuth = binding.authGeneration === generation
     const hasSameWindow = binding.windowGeneration === startedWindowGeneration
     const hasSameSource = binding.sourceGeneration === selectionGeneration
-    const hasCurrentCapture = hasSameAuth && hasSameWindow && hasSameSource
-    const isAllowed = hasPermission && hasSource && isRequestAllowed && hasCurrentCapture
+    const hasCurrentCapture = hasSameWindow && hasSameSource
+    const isAllowed = hasSource && isRequestAllowed && hasCurrentCapture
     if (!isAllowed) {
       deliverMediaResult(callback, null)
       return
@@ -432,7 +382,7 @@ function registerDisplayMediaHandler(window: BrowserWindow): void {
     const captureId = binding.captureId
     void getWindowSources()
       .then((sources) => {
-        const isCurrent = isCurrentCapture(generation, startedWindowGeneration)
+        const isCurrent = isCurrentCapture(startedWindowGeneration)
         const isStillTrusted = isTrustedFrame(window, request.frame)
         const hasSameSelection = selectionGeneration === sourceSelectionGeneration
         const hasSameCapture = search?.current?.captureId === binding?.captureId

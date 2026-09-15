@@ -72,7 +72,7 @@ if (canStart) {
           callback(false)
         )
       } else {
-        registerFixtureMediaPermissions(window, documentUrl, coordinator)
+        registerFixtureMediaPermissions(window, documentUrl)
       }
       session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
         const isLocal = details.url.startsWith('file:')
@@ -84,12 +84,7 @@ if (canStart) {
         getWindow: () => currentWindow,
         documentUrl
       })
-      const captureObservation = registerObservedCapture(
-        coordinator,
-        window,
-        documentUrl,
-        search.runtime
-      )
+      const captureObservation = registerObservedCapture(window, documentUrl, search.runtime)
       window.on('closed', () => {
         currentWindow = null
         disposeAuth()

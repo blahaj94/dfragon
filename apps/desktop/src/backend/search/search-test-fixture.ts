@@ -45,7 +45,7 @@ export function jsonResponse({
   })
 }
 
-export async function createSearchFixture(): Promise<{
+export async function createSearchFixture(signedIn = false): Promise<{
   auth: AuthCoordinator
   harness: ReturnType<typeof createAuthHarness>
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
@@ -64,7 +64,9 @@ export async function createSearchFixture(): Promise<{
   electron.handle.mockClear()
   electron.getSources.mockResolvedValue([source])
   const harness = createAuthHarness()
-  harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
+  if (signedIn) {
+    harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
+  }
   const auth = createAuthCoordinator(harness.dependencies)
   await auth.start()
   harness.http.refresh.mockClear()
@@ -84,7 +86,7 @@ export async function createSearchFixture(): Promise<{
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
-  const dispose = registerCaptureIpc(auth, {
+  const dispose = registerCaptureIpc({
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
     clock: harness.clock
@@ -112,11 +114,8 @@ export async function createSearchFixture(): Promise<{
   }
 
   await invoke('selectCaptureSource', source.id)
-  const snapshot = auth.getSnapshot()
   await invoke('controlCharacterSearch', {
-    action: 'begin',
-    authRunId: snapshot.runId,
-    authRevision: snapshot.revision
+    action: 'begin'
   })
   const begun = await read()
   expect(begun.captureId).toEqual(expect.any(String))

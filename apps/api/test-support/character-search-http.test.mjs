@@ -85,10 +85,9 @@ function expectSearchError(response, status, code, message) {
 }
 
 const authorization = { authorization: 'Bearer synthetic-access-value' }
-const authMessage = '로그인이 필요합니다.'
 const queryMessage = '검색 조건을 확인해 주세요.'
 
-test('search requires one exact Bearer header before invalid raw query or configuration', async () => {
+test('public search ignores absent, malformed and duplicate authorization while validating raw query', async () => {
   await withSearchBoundary(
     async (base, calls) => {
       for (const headers of [
@@ -105,7 +104,7 @@ test('search requires one exact Bearer header before invalid raw query or config
           '/characters?limit=%FF&accessToken=query-token',
           headers
         )
-        expectSearchError(response, 401, 'AUTHENTICATION_REQUIRED', authMessage)
+        expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
       }
       assert.equal(calls.verification, 0)
     },
@@ -113,12 +112,12 @@ test('search requires one exact Bearer header before invalid raw query or config
   )
 })
 
-test('search verifier rejection stays sanitized JSON ahead of query and config', async () => {
+test('public search never invokes JWT verifier, including when it would reject', async () => {
   await withSearchBoundary(
     async (base, calls) => {
       const response = await rawGet(base, '/characters?unknown=%FF', authorization)
-      expectSearchError(response, 401, 'AUTHENTICATION_REQUIRED', authMessage)
-      assert.equal(calls.verification, 1)
+      expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
+      assert.equal(calls.verification, 0)
     },
     { validJwt: false, apiKey: '' }
   )
@@ -165,7 +164,7 @@ test('search original URL rejects malformed structure and strict UTF-8 before co
         const response = await rawGet(base, `/characters?${query}`, authorization)
         expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
       }
-      assert.equal(calls.verification, invalidQueries.length)
+      assert.equal(calls.verification, 0)
     },
     { apiKey: '' }
   )
@@ -181,7 +180,7 @@ test('search valid raw query reaches configuration failure without database or u
         'INTERNAL_SERVER_ERROR',
         '서버 오류로 검색을 처리하지 못했습니다.'
       )
-      assert.equal(calls.verification, 1)
+      assert.equal(calls.verification, 0)
     },
     { apiKey: '' }
   )
@@ -198,4 +197,40 @@ test('search HEAD fallback cannot verify, record activity or consume quota', asy
     assert.equal(await response.text(), '')
     assert.equal(calls.verification, 0)
   })
+})
+
+test('public HTTP search succeeds without credentials and ignores spoofed forwarded IPs for quota', async () => {
+  let upstreamCalls = 0
+  const app = await createLoginHttpApp(unusedLogin, undefined, undefined, {
+    apiKey: 'synthetic-search-key',
+    async searchCharacters() {
+      upstreamCalls++
+      return { rows: [] }
+    }
+  })
+  await app.listen(0, '127.0.0.1')
+  try {
+    const base = await app.getUrl()
+    for (let index = 0; index < 10; index++) {
+      const response = await rawGet(base, '/characters?characterName=ab', {
+        'x-forwarded-for': `192.0.2.${index + 1}`,
+        ...(index === 0 ? {} : { authorization: 'Bearer invalid-or-expired' })
+      })
+      assert.equal(response.status, 200)
+      assert.deepEqual(JSON.parse(response.body), { rows: [] })
+    }
+    const limited = await rawGet(base, '/characters?characterName=ab', {
+      'x-forwarded-for': '198.51.100.1'
+    })
+    expectSearchError(
+      limited,
+      429,
+      'SEARCH_RATE_LIMITED',
+      '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+    )
+    assert.match(limited.headers['retry-after'], /^[1-9][0-9]*$/)
+    assert.equal(upstreamCalls, 10)
+  } finally {
+    await app.close()
+  }
 })

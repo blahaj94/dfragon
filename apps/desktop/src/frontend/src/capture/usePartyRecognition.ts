@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { Worker } from 'tesseract.js'
+import type { PartyOcrWorker } from './ocr'
 import { capturePartyNicknameCrops, PARTY_SLOTS } from './party'
 import { normalizeNickname, type SlotStability, updateSlotStability } from './recognition'
 
@@ -9,7 +9,7 @@ export function usePartyRecognition(
   stableNicknames: (string | null)[]
   recognizePartyNicknames: (
     video: HTMLVideoElement,
-    worker: Worker,
+    worker: PartyOcrWorker,
     signal: AbortSignal
   ) => Promise<void>
   resetRecognition: () => void
@@ -28,7 +28,7 @@ export function usePartyRecognition(
 
   async function recognizePartyNicknames(
     video: HTMLVideoElement,
-    worker: Worker,
+    worker: PartyOcrWorker,
     signal: AbortSignal
   ): Promise<void> {
     if (signal.aborted) {

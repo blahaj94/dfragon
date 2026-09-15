@@ -22,6 +22,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    worker: { format: 'es' },
     root: resolve('src/frontend/auth-capture-fixture'),
     publicDir: resolve('src/frontend/public'),
     plugins: [react(), seedDesignPlugin(), uiNotices()],

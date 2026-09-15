@@ -62,7 +62,7 @@ beforeEach(() => {
   clock.now = 0
   vi.spyOn(performance, 'now').mockImplementation(() => clock.now)
   vi.spyOn(console, 'log').mockImplementation((message) => {
-    // 이후 logout 경로와 독립적으로 실제 smoke의 capture 성공 판정까지만 실행한다.
+    // 이후 계정 전환·Stop 경로와 독립적으로 실제 smoke의 capture 성공 판정까지만 실행한다.
     const hasPassedCapture = message === 'Capture fixture real media/OCR PASS'
     if (hasPassedCapture) {
       throw new Error('SYNTHETIC_CAPTURE_ACCEPTED')
@@ -72,7 +72,6 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks())
 
 async function runCapture(displayLines: string[], nicknameMatchedSlots: number): Promise<void> {
-  let phase = 'signedOut'
   let isActive = false
   const mainObservation = {
     displayRequests: 1,
@@ -96,10 +95,8 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
       ].join('\n')
     }
   }
-  document.body.innerHTML = '<button>Google로 계속하기</button>'
-  document.querySelector('button')!.onclick = () => {
-    phase = 'waitingBrowser'
-  }
+  renderHome()
+  document.body.insertAdjacentHTML('afterbegin', '<button>Google로 계속하기</button>')
   Object.assign(window, {
     captureObservation: () => ({
       requests: isActive ? 1 : 0,
@@ -122,16 +119,8 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
       }
     }
   } as unknown as BrowserWindow
-  const coordinator = { getSnapshot: () => ({ phase }) } as AuthCoordinator
-  await smoke(
-    browserWindow,
-    coordinator,
-    async () => {
-      document.body.innerHTML = '<button>시작하기</button>'
-      document.querySelector('button')!.onclick = renderHome
-    },
-    mainObservation
-  )
+  const coordinator = { getSnapshot: () => ({ phase: 'signedOut' }) } as AuthCoordinator
+  await smoke(browserWindow, coordinator, async () => undefined, mainObservation)
 }
 
 const completeLines = [1, 2, 3, 4].map((slot) => `Slot ${slot}: ALICE`)

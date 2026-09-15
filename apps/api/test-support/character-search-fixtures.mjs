@@ -2,7 +2,6 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { URL } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
-import { createSearchQueryRunner } from '../dist/characters/search-query-runner.js'
 import { createLoginHttpApp, createSessionHttpService } from '../dist/auth/login/http.js'
 import { createNeopleCharacterSearchForTest } from '../dist/characters/neople-character-search.js'
 import { accountFixture, snapshot } from './account-http-fixtures.mjs'
@@ -86,8 +85,6 @@ export async function withSearchApp(f, operation, overrides = {}) {
     return adapter(input)
   }
   const deps = {
-    dataSource: f.deps.dataSource,
-    verifyAccessJwt: f.verifyJwt,
     apiKey: 'synthetic-search-key',
     searchCharacters,
     ...overrides
@@ -125,30 +122,6 @@ export async function expectSearchError(response, status, code) {
   assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
   assert.equal(body.error.code, code)
   return body
-}
-
-export function observeSearchRunners(hooks = {}) {
-  return (source, signal) => {
-    const runner = createSearchQueryRunner(source, signal)
-    const query = runner.query.bind(runner)
-    const commit = runner.commitTransaction.bind(runner)
-    const release = runner.release.bind(runner)
-    runner.query = (sql, parameters, ...rest) => {
-      const run = () => query(sql, parameters, ...rest)
-      const hasHook = hooks.query != null
-      return hasHook ? hooks.query({ runner, sql, parameters, query, run }) : run()
-    }
-    runner.commitTransaction = () => {
-      const hasHook = hooks.commit != null
-      return hasHook ? hooks.commit(runner, commit) : commit()
-    }
-    runner.release = async () => {
-      await release()
-      hooks.released?.(runner)
-    }
-    hooks.created?.(runner, signal)
-    return runner
-  }
 }
 
 export function barrier() {

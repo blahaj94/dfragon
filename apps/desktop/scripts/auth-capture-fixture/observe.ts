@@ -43,7 +43,7 @@ export const installObservation = `(() => {
     postMessage(...args) {
       const hasMessage = args[0] != null;
       if (hasMessage) {
-        const isRecognitionAction = args[0].action === 'recognize';
+        const isRecognitionAction = args[0].pixels != null;
         if (isRecognitionAction) {
           counts.recognitionRequests += 1;
         }

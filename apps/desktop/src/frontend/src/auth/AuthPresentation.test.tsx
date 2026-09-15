@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, useEffect } from 'react'
+import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AuthPresentation } from './AuthPresentation'
@@ -71,7 +71,7 @@ async function click(label: string): Promise<void> {
   await act(async () => button?.click())
 }
 
-it('shows only enabled providers and emits their exact intent without granting access', async () => {
+it('shows only enabled providers and emits their exact intent without changing account state', async () => {
   await render({ input: snapshot('signedOut', { providers: ['discord'] }) })
 
   expect(labels()).toEqual(['Discord로 계속하기'])
@@ -209,9 +209,9 @@ it('renders nickname as text; welcome dismissal lasts only for the mounted signe
 
   expect(container.textContent).toContain(nickname)
   expect(container.querySelector('img')).toBeNull()
-  expect(container.textContent).not.toContain('화면 캡처')
+  expect(container.textContent).toContain('로그인 여부와 관계없이')
   await click('시작하기')
-  expect(container.textContent).toContain('화면 캡처')
+  expect(container.textContent).toContain('내 계정')
   expect(onIntent).not.toHaveBeenCalled()
   await render({ input: { ...welcome } })
   expect(labels()).not.toContain('시작하기')
@@ -226,11 +226,11 @@ it('renders nickname as text; welcome dismissal lasts only for the mounted signe
   expect(labels()).toContain('시작하기')
 })
 
-it('existing home displays account and capture placeholder, and logout does not fabricate a snapshot', async () => {
+it('existing home displays account, and logout does not fabricate a snapshot', async () => {
   await render({ input: snapshot('signedIn', { user: { nickname }, entry: 'home' }) })
 
   expect(container.textContent).toContain(nickname)
-  expect(container.textContent).toContain('화면 캡처')
+  expect(container.textContent).toContain('내 계정')
   expect(labels()).toEqual(['이 기기 로그아웃'])
   await click('이 기기 로그아웃')
   expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'logout' })
@@ -253,33 +253,4 @@ it.each([
   expect(buttons.every((button) => button.disabled)).toBe(true)
   await act(async () => buttons.forEach((button) => button.click()))
   expect(onIntent).not.toHaveBeenCalled()
-})
-
-it('home content는 signedIn home에만 mount하고 인증 이탈 뒤 새로 mount한다', async () => {
-  const mounted = vi.fn()
-  const cleaned = vi.fn()
-  function Home(): React.JSX.Element {
-    useEffect(() => {
-      mounted()
-      return cleaned
-    }, [])
-    return <div>Capture content fixture</div>
-  }
-  const homeProps = { home: <Home /> }
-  const renderHome = async (input: AuthPresentationInput): Promise<void> => {
-    await act(async () =>
-      root.render(<AuthPresentation snapshot={input} onIntent={onIntent} {...homeProps} />)
-    )
-  }
-  await renderHome(snapshot('signedOut'))
-  expect(mounted).not.toHaveBeenCalled()
-  await renderHome(snapshot('signedIn', { user: { nickname: 'Synthetic' }, entry: 'welcome' }))
-  expect(mounted).not.toHaveBeenCalled()
-  await click('시작하기')
-  expect(mounted).toHaveBeenCalledOnce()
-  await renderHome(snapshot('signingOut'))
-  expect(cleaned).toHaveBeenCalledOnce()
-  expect(container.textContent).not.toContain('Capture content fixture')
-  await renderHome(snapshot('signedIn', { user: { nickname: 'Synthetic' }, entry: 'home' }))
-  expect(mounted).toHaveBeenCalledTimes(2)
 })

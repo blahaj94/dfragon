@@ -1,5 +1,4 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { AuthSnapshot } from '../../../preload/common/types/auth'
 import type {
   SearchCommandResult,
   SearchSlot,
@@ -8,7 +7,6 @@ import type {
 import {
   CAPTURE_ID,
   REQUEST_ID,
-  SEARCH_RUN,
   searchSlot,
   searchSnapshot
 } from '../../../preload/api/search-test-fixture'
@@ -43,17 +41,6 @@ vi.mock('./connection', () => ({
 }))
 
 const { CaptureSearch } = await import('./capture-search')
-
-const auth: AuthSnapshot = {
-  runId: SEARCH_RUN,
-  revision: 1,
-  phase: 'signedIn',
-  providers: [],
-  login: null,
-  user: { nickname: '합성 계정' },
-  entry: 'home',
-  notice: null
-}
 
 type MutableCaptureSearch = {
   capture: {
@@ -92,8 +79,7 @@ function createSearch(): InstanceType<typeof CaptureSearch> {
     },
     notify: vi.fn(),
     onChange: vi.fn(),
-    onInvalidated: vi.fn(),
-    resynchronizeAuth: vi.fn()
+    onInvalidated: vi.fn()
   })
 }
 
@@ -117,7 +103,7 @@ it('begin은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽는다', 
   const response = Promise.withResolvers<SearchCommandResult | null>()
   connectionState.responses.push(response.promise)
 
-  const begin = search.begin({ auth, signal })
+  const begin = search.begin({ signal })
   const ticket = (search as unknown as MutableCaptureSearch).capture!
   let activeReadCount = 0
   Object.defineProperty(ticket, 'active', {
@@ -159,7 +145,7 @@ it('begin은 completed가 없으면 latest captureId 뒤 signal만 읽는다', a
   ;(search as unknown as MutableCaptureSearch).snapshot = latest
   connectionState.responses.push(null)
 
-  await search.begin({ auth, signal })
+  await search.begin({ signal })
 
   expect(events).toEqual(['latest.captureId', 'signal.aborted'])
 })
@@ -175,7 +161,7 @@ it('begin은 latest와 completed가 모두 없으면 snapshot getter 없이 sign
   const search = createSearch()
   connectionState.responses.push(null)
 
-  await search.begin({ auth, signal })
+  await search.begin({ signal })
 
   expect(events).toEqual(['signal.aborted'])
 })
@@ -187,7 +173,7 @@ it('늦은 begin은 stale ticket의 active getter를 읽지 않는다', async ()
   const search = createSearch()
   connectionState.responses.push(response.promise)
 
-  const begin = search.begin({ auth, signal: new AbortController().signal })
+  const begin = search.begin({ signal: new AbortController().signal })
   const mutableSearch = search as unknown as MutableCaptureSearch
   const staleTicket = mutableSearch.capture!
   Object.defineProperty(staleTicket, 'active', {

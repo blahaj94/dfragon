@@ -1,6 +1,5 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
-import type { AuthCoordinator } from '../../src/backend/auth/types'
 import { CAPTURE_ID, searchSlot, withSearchSlot } from '../../src/preload/api/search-test-fixture'
 import {
   isAcceptedParsedObservation,
@@ -79,7 +78,7 @@ describe('fixture actual handler observation', () => {
       const setDisplayMediaRequestHandler = vi.fn()
       const session = { setDisplayMediaRequestHandler }
       const window = { webContents: { session } } as unknown as BrowserWindow
-      const observation = registerObservedCapture({} as AuthCoordinator, window, 'file:///fixture')
+      const observation = registerObservedCapture(window, 'file:///fixture')
       const handler = setDisplayMediaRequestHandler.mock.calls[0][0]
       const callback = vi.fn()
 
@@ -105,7 +104,7 @@ describe('main synthetic nickname observation', () => {
     const window = {
       webContents: { session: { setDisplayMediaRequestHandler: vi.fn() } }
     } as unknown as BrowserWindow
-    const { counts } = registerObservedCapture({} as AuthCoordinator, window, 'file:///fixture')
+    const { counts } = registerObservedCapture(window, 'file:///fixture')
     const listener = vi.mocked(ipcMain.handle).mock.calls[0][1]
     for (const slot of slots) {
       const isIncorrect = slot === incorrect
@@ -133,7 +132,7 @@ describe('main synthetic nickname observation', () => {
     const window = {
       webContents: { session: { setDisplayMediaRequestHandler: vi.fn() } }
     } as unknown as BrowserWindow
-    const { counts } = registerObservedCapture({} as AuthCoordinator, window, 'file:///fixture')
+    const { counts } = registerObservedCapture(window, 'file:///fixture')
     const listener = vi.mocked(ipcMain.handle).mock.calls[0][1]
 
     expect(() =>
@@ -160,7 +159,7 @@ it.each([
     const window = {
       webContents: { session: { setDisplayMediaRequestHandler: vi.fn() } }
     } as unknown as BrowserWindow
-    const { counts } = registerObservedCapture({} as AuthCoordinator, window, 'file:///fixture')
+    const { counts } = registerObservedCapture(window, 'file:///fixture')
     const listener = vi.mocked(ipcMain.handle).mock.calls[0][1]
     const slot = searchSlot({ nickname: 'ALICE', observationRevision: 2 })
     let snapshot = withSearchSlot(slot)
@@ -213,7 +212,7 @@ it.each(['accepted', 'rejected'] as const)(
     const window = {
       webContents: { session: { setDisplayMediaRequestHandler: vi.fn() } }
     } as unknown as BrowserWindow
-    const { counts } = registerObservedCapture({} as AuthCoordinator, window, 'file:///fixture')
+    const { counts } = registerObservedCapture(window, 'file:///fixture')
     const listener = vi.mocked(ipcMain.handle).mock.calls[0][1]
     const pending = Promise.withResolvers<unknown>()
     product.commandResult = pending.promise

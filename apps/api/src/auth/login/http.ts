@@ -14,9 +14,9 @@ import type { ArgumentsHost, ExceptionFilter, INestApplication } from '@nestjs/c
 import { NestFactory } from '@nestjs/core'
 import type { Request, Response } from 'express'
 import { LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
-import { createAuthenticatedSearchService } from '../../characters/authenticated-search.js'
+import { createCharacterSearchService } from '../../characters/search-service.js'
 import { CHARACTER_SEARCH_SERVICE, CharacterSearchController } from '../../characters/http.js'
-import type { AuthenticatedSearchDependencies } from '../../characters/types.js'
+import type { CharacterSearchDependencies } from '../../characters/types.js'
 import { NeopleSearchFailure, neopleSearchFailure } from '../../errors/neople-search.js'
 import { LoginFailure, loginFailure } from '../../errors/login.js'
 import type { AuthProvider } from '../../types/auth.js'
@@ -238,7 +238,7 @@ export async function createLoginHttpApp(
   service: LoginHttpService,
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
-  searchDependencies?: AuthenticatedSearchDependencies,
+  searchDependencies?: CharacterSearchDependencies,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
@@ -265,7 +265,7 @@ export async function createLoginHttpApp(
       ? [
           {
             provide: CHARACTER_SEARCH_SERVICE,
-            useValue: createAuthenticatedSearchService(searchDependencies)
+            useValue: createCharacterSearchService(searchDependencies)
           }
         ]
       : [])

@@ -71,11 +71,11 @@ test('build entry preserves 404 for unregistered paths and existing registered r
       for (const [name, method, route, status, code] of [
         ['account authentication', 'GET', '/me', 401, 'AUTHENTICATION_REQUIRED'],
         [
-          'search authentication before query',
+          'public search query validation',
           'GET',
           '/characters?unknown=value',
-          401,
-          'AUTHENTICATION_REQUIRED'
+          400,
+          'INVALID_SEARCH_QUERY'
         ],
         ['login JSON validation', 'POST', '/auth/login-requests', 400, 'INVALID_AUTH_REQUEST'],
         ['account HEAD refusal', 'HEAD', '/me', 400],

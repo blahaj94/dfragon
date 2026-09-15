@@ -1,5 +1,4 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AuthCaptureContext } from '../auth/capture-context'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CaptureSearch, emptySearchSlots, type SearchView } from './capture-search'
 
 type CharacterSearch = SearchView & {
@@ -10,13 +9,10 @@ type CharacterSearch = SearchView & {
 }
 
 export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
-  const auth = useContext(AuthCaptureContext)
-  const authRef = useRef(auth)
   const invalidatedRef = useRef(onInvalidated)
   useLayoutEffect(() => {
-    authRef.current = auth
     invalidatedRef.current = onInvalidated
-  }, [auth, onInvalidated])
+  }, [onInvalidated])
   const bridgeRef = useRef<CaptureSearch | null>(null)
   const [view, setView] = useState<SearchView>({
     ready: false,
@@ -37,8 +33,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
           setView(value)
         }
       },
-      onInvalidated: () => invalidatedRef.current(),
-      resynchronizeAuth: () => authRef.current.resynchronize()
+      onInvalidated: () => invalidatedRef.current()
     })
     bridgeRef.current = bridge
     bridge.connect()
@@ -50,15 +45,11 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   }, [api, notify])
 
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
-    const snapshot = authRef.current.snapshot
-    const isSignedIn = snapshot?.phase === 'signedIn'
     const bridge = bridgeRef.current
-    const hasBridge = bridge != null
-    const canBegin = isSignedIn && hasBridge
-    if (!canBegin) {
+    if (bridge == null) {
       return null
     }
-    return bridge.begin({ auth: snapshot, signal })
+    return bridge.begin({ signal })
   }, [])
   const end = useCallback((): void => bridgeRef.current?.end(), [])
   const observe = useCallback((input: { slot: number; nickname: string | null }): void => {

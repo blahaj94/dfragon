@@ -34,8 +34,6 @@ export const PARTY_SLOTS: readonly PartySlot[] = [
 
 const MANA_COLOR_TOLERANCE = 35
 const MINIMUM_MANA_PIXELS = 50
-const OCR_SCALE = 3
-const OCR_PADDING = 12
 
 export function isPartySlotPresent(rgba: Uint8ClampedArray): boolean {
   let matches = 0
@@ -115,25 +113,6 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
     }
     nicknameContext.putImageData(pixels, 0, 0)
 
-    const crop = document.createElement('canvas')
-    crop.width = nickname.width * OCR_SCALE + OCR_PADDING * 2
-    crop.height = nickname.height * OCR_SCALE + OCR_PADDING * 2
-    const cropContext = crop.getContext('2d')
-    if (cropContext == null) {
-      throw new Error('Could not create a party OCR canvas.')
-    }
-
-    cropContext.fillStyle = 'white'
-    cropContext.fillRect(0, 0, crop.width, crop.height)
-    cropContext.imageSmoothingEnabled = true
-    cropContext.imageSmoothingQuality = 'high'
-    cropContext.drawImage(
-      nickname,
-      OCR_PADDING,
-      OCR_PADDING,
-      nickname.width * OCR_SCALE,
-      nickname.height * OCR_SCALE
-    )
-    return crop
+    return nickname
   })
 }

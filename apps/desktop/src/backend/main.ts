@@ -24,7 +24,7 @@ import {
   applyAuthRuntimeProfile,
   AuthRuntimeProfileApplicationFailure
 } from './auth/runtime-config'
-import { readAppAuthConfig } from './auth/app-config'
+import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
 
 const parsedRuntimeConfig = readAppAuthConfig(app)
 type RuntimeProfileState =
@@ -97,9 +97,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   try {
     registerCapturePermissions(
       session.defaultSession,
-      process.platform === 'win32' && authRuntime != null
-        ? consumeCaptureMediaPermission
-        : undefined
+      process.platform === 'win32' ? consumeCaptureMediaPermission : undefined
     )
     registerCaptureWindow(window, rendererDocumentUrl)
     if (authRuntime != null) {
@@ -185,14 +183,12 @@ app.whenReady().then(async () => {
       if (!hasAuthRuntime) {
         authAppLifecycle.disposeExternalResources()
       }
+      const apiOrigin = readAppApiOrigin()
       const searchConfiguration =
-        authRuntime == null
+        apiOrigin == null
           ? undefined
-          : {
-              apiOrigin: authRuntime.apiOrigin,
-              clock: authRuntime.searchClock
-            }
-      registerCaptureIpc(authRuntime?.coordinator, searchConfiguration)
+          : { apiOrigin, clock: createAuthRuntimeEffects().createSearchClock() }
+      registerCaptureIpc(searchConfiguration)
 
       createWindow(authRuntime)
 

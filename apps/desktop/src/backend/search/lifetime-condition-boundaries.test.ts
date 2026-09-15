@@ -11,11 +11,7 @@ type LifetimeInternals = {
   binding: CaptureBinding | null
   requests: Array<{ controller: AbortController } | null>
   slots: SearchSlot[]
-  startRequest: (input: {
-    input: SearchObservation
-    runtime: SearchRuntime
-    finalRejection: boolean
-  }) => { ok: boolean }
+  startRequest: (input: { input: SearchObservation; runtime: SearchRuntime }) => { ok: boolean }
   isCurrentSlot: (request: { slot: number; captureId: string; requestId: string }) => boolean
 }
 
@@ -25,14 +21,13 @@ function internals(lifetime: CaptureSearchLifetime): LifetimeInternals {
 
 function runtime(clock: SearchRuntime['clock']): SearchRuntime {
   return {
-    auth: {} as SearchRuntime['auth'],
     http: vi.fn(async () => []),
     clock
   }
 }
 
 function binding(): Omit<CaptureBinding, 'captureId'> {
-  return { authGeneration: 1, windowGeneration: 2, sourceGeneration: 3 }
+  return { windowGeneration: 2, sourceGeneration: 3 }
 }
 
 it('startRequest는 clock read, cancelSlot, binding 검사의 순서를 유지한다', () => {
@@ -69,8 +64,7 @@ it('startRequest는 clock read, cancelSlot, binding 검사의 순서를 유지�
       observationRevision: 1,
       nickname: ''
     },
-    runtime: runtime(clock),
-    finalRejection: false
+    runtime: runtime(clock)
   })
 
   expect(result).toMatchObject({ ok: true })

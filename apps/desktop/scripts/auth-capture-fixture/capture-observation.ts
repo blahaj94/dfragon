@@ -1,5 +1,5 @@
 import { ipcMain, type BrowserWindow } from 'electron'
-import type { AuthClock, AuthCoordinator } from '../../src/backend/auth/types'
+import type { AuthClock } from '../../src/backend/auth/types'
 import { registerCaptureIpc, registerCaptureWindow } from '../../src/backend/capture/ipc-handler'
 import { parseSearchObservation } from '../../src/backend/search/commands'
 import { parseSearchResult } from '../../src/preload/common/search/snapshot'
@@ -80,7 +80,6 @@ export function syntheticSlotMask(value: unknown): number {
 }
 
 export function registerObservedCapture(
-  coordinator: AuthCoordinator,
   window: BrowserWindow,
   documentUrl: string,
   runtime?: { apiOrigin: string; fetch: typeof fetch; clock: AuthClock }
@@ -141,7 +140,7 @@ export function registerObservedCapture(
     })
   }
   try {
-    const dispose = registerCaptureIpc(coordinator, runtime)
+    const dispose = registerCaptureIpc(runtime)
     registerCaptureWindow(window, documentUrl)
     return { counts, dispose }
   } finally {

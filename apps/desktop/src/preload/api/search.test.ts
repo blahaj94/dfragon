@@ -4,7 +4,6 @@ import { parseSearchResult } from '../common/search/snapshot'
 import {
   CAPTURE_ID,
   REQUEST_ID,
-  SEARCH_RUN,
   invalidSearchSnapshots,
   searchRow,
   searchSlot,
@@ -46,7 +45,7 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
   expect(Object.keys(search).sort()).toEqual(['controlCharacterSearch', 'onCharacterSearchChanged'])
   const controls: SearchControl[] = [
     { action: 'read' },
-    { action: 'begin', authRunId: SEARCH_RUN, authRevision: 1 },
+    { action: 'begin' },
     { action: 'end', captureId: CAPTURE_ID },
     { action: 'clear', captureId: CAPTURE_ID, slot: 2, observationRevision: 3 },
     { action: 'retry', captureId: CAPTURE_ID, slot: 2, requestId: REQUEST_ID }
@@ -122,7 +121,7 @@ it('승인된 상태·nullable 값과 후보 순서를 보존한다', async () =
     searchSlot({ state: 'empty' }),
     searchSlot({
       state: 'failure',
-      error: { code: 'SEARCH_AUTH_NOT_READY', retryAfterSeconds: null }
+      error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null }
     }),
     searchSlot({ state: 'failure', error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 } })
   ]
