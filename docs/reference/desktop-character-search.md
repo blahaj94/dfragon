@@ -7,7 +7,7 @@ last-reviewed: 2026-09-15
 
 # Desktop 캐릭터 검색
 
-기존 OCR 안정화 결과를 현재 capture의 네 슬롯 검색으로 연결한다. 정책은 [Desktop 검색 계약](../rules/desktop-auth.md#ocr-검색-연결-제안)과 [인증 준비 미완료 보완](../rules/desktop-auth.md#인증-준비-미완료-검색-종료-제안)을 따른다. 제품 main은 완전한 trusted runtime 설정에서 인증·검색 runtime을 조건부 구성하고 설정 누락·오류에서는 비활성화하며, Windows 제품 media의 검토용 변경은 [제품 권한 변경안](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-변경안--사용자-선택-대기)에 있으며 사용자 선택 전에는 설치·실행하지 않는다. 기존 fixture 승인을 제품 허용으로 재사용하지 않는다. 검색 module 구현과 실제 product 인증·media 성공 검증은 별개다.
+기존 OCR 안정화 결과를 현재 capture의 네 슬롯 검색으로 연결한다. 정책은 [Desktop 검색 계약](../rules/desktop-auth.md#ocr-검색-연결-제안)과 [인증 준비 미완료 보완](../rules/desktop-auth.md#인증-준비-미완료-검색-종료-제안)을 따른다. 제품 main은 완전한 trusted runtime 설정에서 인증·검색 runtime을 조건부 구성하고 설정 누락·오류에서는 비활성화하며, Windows 제품은 [제품 캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)에 따라 현재 인증·source·capture 수명당 빈 media request를 한 번 허용한다. Media check·camera/microphone·다른 permission과 Windows 외 제품 entry는 거절한다. Legacy API의 source/gesture 우회 차단을 보장하지 않으며 기존 fixture 승인을 제품 허용으로 재사용하지 않는다. 검색 module 구현과 실제 product 인증·media 성공 검증은 별개다.
 
 ## 구현 위치
 
