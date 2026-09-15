@@ -1,6 +1,6 @@
 import type { AuthSnapshot, AuthCommandResult, AuthProvider } from './auth'
 import type { CaptureSource, StableNicknameDetection } from './capture'
-import type { SearchControl, SearchCommandResult } from './search'
+import type { SearchControl, SearchCommandResult, SearchObservation } from './search'
 
 interface AsyncIPCFunctions {
   getAuthState: () => Promise<AuthSnapshot>
@@ -11,6 +11,8 @@ interface AsyncIPCFunctions {
   listCaptureSources: () => Promise<CaptureSource[]>
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>
   notifyStableNicknameDetected: (detection: StableNicknameDetection) => Promise<SearchCommandResult>
+  notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
+  controlManualSearch: (control: SearchControl) => Promise<SearchCommandResult>
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
 
   // Used inside tests, so we can be a bit lenient with the type checking here

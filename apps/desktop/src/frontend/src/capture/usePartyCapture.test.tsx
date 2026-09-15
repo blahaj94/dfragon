@@ -173,6 +173,46 @@ afterEach(() => {
 })
 
 describe('usePartyCapture', () => {
+  it('manual slot edits suppress OCR submissions until resume, and Stop resets the override', async () => {
+    const { stream, worker, track } = captureResources()
+    getDisplayMedia.mockResolvedValue(stream)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook()
+    act(() => hook.getCurrent().selectSource('game'))
+    await flushPromises()
+    await act(async () => hook.getCurrent().startCapture())
+
+    await act(async () => hook.getCurrent().search.observe({ slot: 0, nickname: 'SyntheticA' }))
+    await act(async () => hook.getCurrent().search.editSlot(0))
+    expect(hook.getCurrent().search.manualSlots[0]).toBe(true)
+    api.notifyStableNicknameDetected.mockClear()
+    await act(async () => hook.getCurrent().search.observe({ slot: 0, nickname: 'SyntheticB' }))
+    expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
+    await act(async () => hook.getCurrent().search.submitSlot(0, 'SyntheticC'))
+    expect(api.notifyStableNicknameDetected).toHaveBeenLastCalledWith(
+      expect.objectContaining({ nickname: 'SyntheticC', slot: 0 })
+    )
+    await act(async () => hook.getCurrent().search.observe({ slot: 0, nickname: null }))
+    expect(api.notifyStableNicknameDetected).toHaveBeenCalledTimes(1)
+    await act(async () => hook.getCurrent().search.observe({ slot: 1, nickname: 'OtherSlot' }))
+    expect(api.notifyStableNicknameDetected).toHaveBeenLastCalledWith(
+      expect.objectContaining({ nickname: 'OtherSlot', slot: 1 })
+    )
+    await act(async () => hook.getCurrent().search.observe({ slot: 0, nickname: 'SyntheticD' }))
+    await act(async () => hook.getCurrent().search.resumeOcr(0))
+    expect(api.notifyStableNicknameDetected).toHaveBeenLastCalledWith(
+      expect.objectContaining({ nickname: 'SyntheticD', slot: 0 })
+    )
+    expect(hook.getCurrent().search.manualSlots[0]).toBe(false)
+    await act(async () => hook.getCurrent().search.editSlot(0))
+    await act(async () => hook.getCurrent().stopCapture())
+    expect(hook.getCurrent().search.manualSlots).toEqual([false, false, false, false])
+    expect(hook.getCurrent().search.captureActive).toBe(false)
+    expect(track.stop).toHaveBeenCalledOnce()
+    expect(worker.terminate).toHaveBeenCalledOnce()
+    await hook.unmount()
+  })
+
   it('loads sources and registers only the latest selection', async () => {
     api.listCaptureSources.mockResolvedValue([
       { id: 'old', name: 'Old window' },

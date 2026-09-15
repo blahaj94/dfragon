@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { CharacterSearchRow, SearchControl } from '../common/types/search'
+import type { CharacterSearchRow, SearchControl, ManualSearchApi } from '../common/types/search'
 import { parseSearchResult } from '../common/search/snapshot'
 import {
   CAPTURE_ID,
@@ -30,12 +30,17 @@ beforeEach(() => {
   renderer.invoke.mockResolvedValue({ ok: true, snapshot: searchSnapshot() })
 })
 
-async function exposedSearch(): Promise<{ search: SearchTestApi; capture: ObservationTestApi }> {
+async function exposedSearch(): Promise<{
+  search: SearchTestApi
+  capture: ObservationTestApi
+  manual: ManualSearchApi
+}> {
   await import('../index')
   const exposed = new Map(renderer.expose.mock.calls)
   expect(exposed.get('search'), '검색 전용 preload API').toBeDefined()
   return {
     search: exposed.get('search') as SearchTestApi,
+    manual: exposed.get('manualSearch') as ManualSearchApi,
     capture: exposed.get('api') as ObservationTestApi
   }
 }
@@ -181,4 +186,47 @@ it('schema 성공 뒤 own field의 exact-shape get 예외를 그대로 전파한
 
   expect(() => parseSearchResult(searchResultWithRow(row))).toThrow(sentinel)
   expect(characterReads).toBe(2)
+})
+
+it('manual preload uses separate invoke and event channels with the same validated DTO', async () => {
+  const { manual } = await exposedSearch()
+  expect(Object.keys(manual).sort()).toEqual([
+    'controlCharacterSearch',
+    'notifyManualNickname',
+    'onCharacterSearchChanged'
+  ])
+  const observation = { captureId: CAPTURE_ID, slot: 0, observationRevision: 1, nickname: '가나' }
+  await manual.controlCharacterSearch({ action: 'begin' })
+  await manual.notifyManualNickname(observation)
+  expect(renderer.invoke.mock.calls).toEqual([
+    ['controlManualSearch', { action: 'begin' }],
+    ['notifyManualNickname', observation]
+  ])
+  const listener = vi.fn()
+  const unsubscribe = manual.onCharacterSearchChanged(listener)
+  const [channel, wrapper] = renderer.on.mock.calls[0]
+  wrapper({ sender: 'private' }, searchSnapshot())
+  expect(channel).toBe('manualSearchChanged')
+  expect(listener).toHaveBeenCalledExactlyOnceWith(searchSnapshot())
+  unsubscribe()
+  expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, wrapper)
+})
+
+it('manual preload rejects malformed invoke and event payloads', async () => {
+  const { manual } = await exposedSearch()
+  const invalid = { ...searchSnapshot(), private: true }
+  renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid })
+  await expect(manual.controlCharacterSearch({ action: 'read' })).rejects.toThrow()
+  await expect(
+    manual.notifyManualNickname({
+      captureId: CAPTURE_ID,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나'
+    })
+  ).rejects.toThrow()
+  const listener = vi.fn()
+  manual.onCharacterSearchChanged(listener)
+  renderer.on.mock.calls[0][1]({}, invalid)
+  expect(listener).not.toHaveBeenCalled()
 })

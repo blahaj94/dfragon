@@ -1,9 +1,27 @@
+export const SEARCH_ACTIONS = {
+  READ: 'read',
+  BEGIN: 'begin',
+  END: 'end',
+  CLEAR: 'clear',
+  RETRY: 'retry'
+} as const
+
 export type SearchControl =
-  | Readonly<{ action: 'read' }>
-  | Readonly<{ action: 'begin' }>
-  | Readonly<{ action: 'end'; captureId: string }>
-  | Readonly<{ action: 'clear'; captureId: string; slot: number; observationRevision: number }>
-  | Readonly<{ action: 'retry'; captureId: string; slot: number; requestId: string }>
+  | Readonly<{ action: typeof SEARCH_ACTIONS.READ }>
+  | Readonly<{ action: typeof SEARCH_ACTIONS.BEGIN }>
+  | Readonly<{ action: typeof SEARCH_ACTIONS.END; captureId: string }>
+  | Readonly<{
+      action: typeof SEARCH_ACTIONS.CLEAR
+      captureId: string
+      slot: number
+      observationRevision: number
+    }>
+  | Readonly<{
+      action: typeof SEARCH_ACTIONS.RETRY
+      captureId: string
+      slot: number
+      requestId: string
+    }>
 
 export type SearchObservation = Readonly<{
   captureId: string
@@ -69,12 +87,15 @@ export type SearchSnapshot = Readonly<{
   slots: readonly SearchSlot[]
 }>
 
-export type SearchCommandError =
-  | 'INVALID_SEARCH_COMMAND'
-  | 'SEARCH_NOT_ALLOWED'
-  | 'STALE_SEARCH'
-  | 'SEARCH_BUSY'
-  | 'SEARCH_RETRY_NOT_READY'
+export const SEARCH_COMMAND_ERRORS = {
+  INVALID_SEARCH_COMMAND: 'INVALID_SEARCH_COMMAND',
+  SEARCH_NOT_ALLOWED: 'SEARCH_NOT_ALLOWED',
+  STALE_SEARCH: 'STALE_SEARCH',
+  SEARCH_BUSY: 'SEARCH_BUSY',
+  SEARCH_RETRY_NOT_READY: 'SEARCH_RETRY_NOT_READY'
+} as const
+
+export type SearchCommandError = (typeof SEARCH_COMMAND_ERRORS)[keyof typeof SEARCH_COMMAND_ERRORS]
 
 export type SearchCommandResult =
   | Readonly<{ ok: true; snapshot: SearchSnapshot }>
@@ -83,4 +104,8 @@ export type SearchCommandResult =
 export type SearchApi = {
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
   onCharacterSearchChanged: (listener: (snapshot: SearchSnapshot) => void) => () => void
+}
+
+export type ManualSearchApi = SearchApi & {
+  notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
 }

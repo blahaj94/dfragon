@@ -43,6 +43,11 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       }
     }
     expect(() => runInNewContext(chunks[0], { require: requireModule, exports: {} })).not.toThrow()
-    expect(expose.mock.calls.map(([name]) => name)).toEqual(['api', 'auth', 'search'])
+    expect(expose.mock.calls.map(([name]) => name)).toEqual([
+      'api',
+      'auth',
+      'search',
+      'manualSearch'
+    ])
   }
 )

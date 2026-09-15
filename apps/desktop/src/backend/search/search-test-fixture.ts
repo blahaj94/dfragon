@@ -4,7 +4,11 @@ import { afterEach, expect, vi } from 'vitest'
 import { createAuthCoordinator } from '../auth/coordinator'
 import type { AuthCoordinator } from '../auth/types'
 import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixtures'
-import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
+import {
+  registerCaptureIpc,
+  registerCaptureWindow,
+  consumeCaptureMediaPermission
+} from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
 const electron = vi.hoisted(() => ({
@@ -45,8 +49,15 @@ export function jsonResponse({
   })
 }
 
-export async function createSearchFixture(signedIn = false): Promise<{
+export async function createSearchFixture(
+  signedIn = false,
+  searchKind: 'capture' | 'manual' = 'capture'
+): Promise<{
   auth: AuthCoordinator
+  event: IpcMainInvokeEvent
+  getSources: typeof electron.getSources
+  mediaPermissionAllowed: () => boolean
+  requestMedia: () => Promise<unknown>
   harness: ReturnType<typeof createAuthHarness>
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
@@ -62,6 +73,7 @@ export async function createSearchFixture(signedIn = false): Promise<{
   replaceDocument: () => void
 }> {
   electron.handle.mockClear()
+  electron.getSources.mockClear()
   electron.getSources.mockResolvedValue([source])
   const harness = createAuthHarness()
   if (signedIn) {
@@ -74,7 +86,8 @@ export async function createSearchFixture(signedIn = false): Promise<{
   const fetchSearch = vi
     .fn<typeof fetch>()
     .mockImplementation(async () => jsonResponse({ body: { rows: [] } }))
-  const frame = { url: rendererUrl, isDestroyed: () => false }
+  const frame = { url: rendererUrl, detached: false, isDestroyed: () => false }
+  const registerMedia = vi.fn()
   const published = vi.fn()
   const documentEvents = new EventEmitter()
   const contents = {
@@ -82,7 +95,7 @@ export async function createSearchFixture(signedIn = false): Promise<{
     isDestroyed: () => false,
     on: documentEvents.on.bind(documentEvents),
     send: published,
-    session: { setDisplayMediaRequestHandler: vi.fn() }
+    session: { setDisplayMediaRequestHandler: registerMedia }
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
@@ -107,14 +120,19 @@ export async function createSearchFixture(signedIn = false): Promise<{
     }
     return handler(event, ...args)
   }
+  const controlChannel = searchKind === 'manual' ? 'controlManualSearch' : 'controlCharacterSearch'
+  const observationChannel =
+    searchKind === 'manual' ? 'notifyManualNickname' : 'notifyStableNicknameDetected'
   const read = async (): Promise<SearchSnapshot> => {
-    const result = await invoke('controlCharacterSearch', { action: 'read' })
+    const result = await invoke(controlChannel, { action: 'read' })
     expect(result).toMatchObject({ ok: true, snapshot: expect.any(Object) })
     return (result as { snapshot: SearchSnapshot }).snapshot
   }
 
-  await invoke('selectCaptureSource', source.id)
-  await invoke('controlCharacterSearch', {
+  if (searchKind === 'capture') {
+    await invoke('selectCaptureSource', source.id)
+  }
+  await invoke(controlChannel, {
     action: 'begin'
   })
   const begun = await read()
@@ -124,13 +142,28 @@ export async function createSearchFixture(signedIn = false): Promise<{
     slot: number
     observationRevision: number
     nickname: string
-  }): Promise<unknown> => invoke('notifyStableNicknameDetected', { captureId, ...input })
+  }): Promise<unknown> => invoke(observationChannel, { captureId, ...input })
 
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   }
   return {
     auth,
+    event,
+    getSources: electron.getSources,
+    mediaPermissionAllowed: () => consumeCaptureMediaPermission(event.sender, rendererUrl),
+    requestMedia: () =>
+      new Promise((resolve) =>
+        registerMedia.mock.calls[0][0](
+          {
+            frame,
+            videoRequested: true,
+            audioRequested: false,
+            userGesture: true
+          },
+          resolve
+        )
+      ),
     harness,
     fetchSearch,
     captureId,

@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import {
   desktopCapturer,
   ipcMain,
@@ -11,6 +12,7 @@ import type { AuthClock } from '../auth/types'
 import { CaptureSearchLifetime, type CaptureBinding } from '../search/capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from '../search/commands'
 import { createSearchHttp } from '../search/http'
+import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
 
 let captureWindow: BrowserWindow | null = null
@@ -20,6 +22,7 @@ let sourceSelectionGeneration = 0
 let selectedSourceId: string | null = null
 let selectingSource = false
 let search: CaptureSearchLifetime | undefined
+let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
 let mediaPermissionCaptureId: string | null = null
 
 function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: string): boolean {
@@ -119,7 +122,7 @@ function requireSearchSender(event: IpcMainInvokeEvent): void {
   const isSender = event.sender === captureWindow?.webContents
   const isAllowed = isTrusted && isSender
   if (!isAllowed) {
-    throw new Error('SEARCH_NOT_ALLOWED')
+    throw new Error(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
   }
 }
 
@@ -179,6 +182,20 @@ function registerCaptureIpc(configuration?: {
       }
     }
   })
+  manualSearch?.invalidate()
+  const manual = registerManualSearchIpc({
+    runtime,
+    requireSender: requireSearchSender,
+    windowGeneration: () => windowGeneration,
+    isCurrentDocument: (generation) =>
+      generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
+    publish: (snapshot) => {
+      if (isTrustedFrame(captureWindow, currentMainFrame())) {
+        captureWindow!.webContents.send('manualSearchChanged', snapshot)
+      }
+    }
+  })
+  manualSearch = manual
   search = lifetime
   clearSource()
   addHandler('listCaptureSources', async (event) => {
@@ -240,33 +257,33 @@ function registerCaptureIpc(configuration?: {
     const control = parseSearchControl(args)
     const hasValidControl = control != null
     if (!hasValidControl) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
-    const isRead = control.action === 'read'
+    const isRead = control.action === SEARCH_ACTIONS.READ
     if (isRead) {
       return lifetime.result()
     }
-    const isEnd = control.action === 'end'
+    const isEnd = control.action === SEARCH_ACTIONS.END
     if (isEnd) {
       return lifetime.end(control.captureId)
     }
 
-    const isClear = control.action === 'clear'
+    const isClear = control.action === SEARCH_ACTIONS.CLEAR
     if (isClear) {
       return lifetime.clear(control)
     }
-    const isRetry = control.action === 'retry'
+    const isRetry = control.action === SEARCH_ACTIONS.RETRY
     if (isRetry) {
       return lifetime.retry(control)
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
     if (isBusy) {
-      return lifetime.result('SEARCH_BUSY')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
     }
     const hasSource = selectedSourceId != null
     if (!hasSource) {
-      return lifetime.result('SEARCH_NOT_ALLOWED')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
     return lifetime.begin({
       windowGeneration,
@@ -279,12 +296,13 @@ function registerCaptureIpc(configuration?: {
     const observation = parseSearchObservation(args)
     const hasValidObservation = observation != null
     if (!hasValidObservation) {
-      return lifetime.result('INVALID_SEARCH_COMMAND')
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     return lifetime.observe(observation)
   })
 
   return () => {
+    manual.dispose()
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
@@ -298,6 +316,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   documentUrl = rendererDocumentUrl
   windowGeneration += 1
   clearSource()
+  manualSearch?.invalidate()
   registerDisplayMediaHandler(window)
 
   window.webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
@@ -308,6 +327,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.webContents.on('destroyed', () => {
     const isCurrentWindow = captureWindow === window
@@ -316,6 +336,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.webContents.on('render-process-gone', () => {
     const isCurrentWindow = captureWindow === window
@@ -324,6 +345,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
   window.on('closed', () => {
     const isCurrentWindow = captureWindow === window
@@ -334,6 +356,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     documentUrl = null
     windowGeneration += 1
     clearSource()
+    manualSearch?.invalidate()
   })
 }
 

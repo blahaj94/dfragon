@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
 import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
 import { remainingRetryAfter, waitForRetryAfter, type RetryAfter } from './retry-after'
@@ -129,7 +130,7 @@ export class CaptureSearchLifetime {
   observe(input: SearchObservation): SearchCommandResult {
     const isCurrentCapture = this.binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const previous = this.slots[input.slot]
     const isNewerObservation = input.observationRevision > previous.observationRevision
@@ -169,10 +170,12 @@ export class CaptureSearchLifetime {
     return this.startRequest({ input, runtime })
   }
 
-  clear(input: Extract<SearchControl, { action: 'clear' }>): SearchCommandResult {
+  clear(
+    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
+  ): SearchCommandResult {
     const isCurrentCapture = this.binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const isNewer = input.observationRevision > this.slots[input.slot].observationRevision
     if (isNewer) {
@@ -183,24 +186,26 @@ export class CaptureSearchLifetime {
     return this.result()
   }
 
-  retry(input: Extract<SearchControl, { action: 'retry' }>): SearchCommandResult {
+  retry(
+    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
+  ): SearchCommandResult {
     const slot = this.slots[input.slot]
     const isCurrent = this.isCurrentSlot(input)
     if (!isCurrent) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const error = slot.error
     const isFailure = slot.state === 'failure'
     const hasError = error != null
     if (!isFailure) {
-      return this.result('SEARCH_RETRY_NOT_READY')
+      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     if (!hasError) {
-      return this.result('SEARCH_RETRY_NOT_READY')
+      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const isRetryable = SEARCH_ERRORS[error.code].retryable
     if (!isRetryable) {
-      return this.result('SEARCH_RETRY_NOT_READY')
+      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const wait = this.rateWaits[input.slot]
     const hasWait = wait != null
@@ -210,7 +215,7 @@ export class CaptureSearchLifetime {
       isWaiting = remaining > 0
     }
     if (isWaiting) {
-      return this.result('SEARCH_RETRY_NOT_READY')
+      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const runtime = this.options.runtime
     const nickname = slot.nickname
@@ -218,7 +223,7 @@ export class CaptureSearchLifetime {
     const hasNickname = nickname != null
     const canStart = hasRuntime && hasNickname
     if (!canStart) {
-      return this.result('SEARCH_NOT_ALLOWED')
+      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
     return this.startRequest({
       input: {
@@ -243,15 +248,15 @@ export class CaptureSearchLifetime {
     const binding = this.binding
     const hasBinding = binding != null
     if (!hasBinding) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const hasSameCapture = binding.captureId === input.captureId
     if (!hasSameCapture) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const hasPermission = this.options.isCurrent(binding)
     if (!hasPermission) {
-      return this.result('STALE_SEARCH')
+      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const requestId = randomUUID()
     const isValidInput = validNickname(input.nickname)

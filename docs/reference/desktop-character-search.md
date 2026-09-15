@@ -33,7 +33,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ## PaddleOCR와 실제 게임 인식 영역
 
-현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
+현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
 
 인식 기준은 기존 1920×1080 테두리 없는 게임 창·UI 배율 50%다. 첫 슬롯 기준 MP 검사 영역은 `y=42`, 높이 5이며, 닉네임 영역은 `x=56, y=15, width=91, height=14`다. MP 색상·최소 픽셀 검사를 통과한 슬롯만 인식한다. 밝기 반전으로 밝은 글자를 어두운 글자로 바꾸되 이진화하지 않는다. 기존 Tesseract용 3배 확대와 여백을 제거하고 모델 worker에서 높이 48픽셀로 한 번 리사이즈한다. BGR 정규화와 오른쪽 zero padding, CTC blank·중복 제거로 문자열을 읽는다. Confidence는 정답 확률이나 검색 허용 조건으로 사용하지 않는다.
 
@@ -105,3 +105,13 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 ## 이번 전환의 검증
 
 실제 Electron의 local PaddleOCR worker에 공개 합성 문자열을 전달한 단독 인식과 종료 정리는 통과했다. 실제 게임 영상의 PaddleOCR 진단 관측은 위에 구분하며, 새 공개 API를 포함한 Windows 설치 앱의 전체 게임 검색 흐름을 다시 확인한 것으로 주장하지 않는다. 정확도 후속 Issue #463은 열어 둔다.
+
+## 직접 검색과 수정 검색
+
+`ManualSearch.tsx`는 캡처 없이 독립 검색 폼과 결과를 제공한다. `manual-ipc.ts`는 별도의 `CaptureSearchLifetime`으로 기존 HTTP·입력·오류·429·취소 구현을 재사용한다. 직접 검색의 시작과 종료는 실제 capture/media 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
+
+`SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 뒤에 관측한 OCR은 임시로 보관해 ‘OCR 다시 사용’ 때 반영하며, 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
+
+관련 UI·hook·IPC 검증은 합성 이름을 사용한다. 실제 설치 앱과 게임 확인 결과는 이번 PR에서 fixture 성공과 구분해 기록한다. 추가 OCR 튜닝은 #463의 MVP 이후 범위를 유지한다.
+
+직접 검색은 성공·0건 결과를 받은 뒤 같은 닉네임도 다시 제출할 수 있다. 진행 중 같은 입력의 중복 제출은 막고, 실패는 기존 retry 경로와 429 대기를 유지한다. 입력 길이는 API와 같은 2–12 Unicode 코드 포인트 기준이며, UTF-16 코드 유닛이나 화면상 글자 묶음(grapheme) 기준으로 변경하거나 정규화하지 않는다. 검색 action과 명령 오류는 shared `SEARCH_ACTIONS`·`SEARCH_COMMAND_ERRORS`에서 타입과 runtime 검증 값을 함께 정의한다.

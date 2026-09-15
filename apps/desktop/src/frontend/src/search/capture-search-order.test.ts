@@ -127,9 +127,10 @@ it('begin은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽는다', 
     'latest.captureId',
     'signal.aborted',
     'current.active.publish',
+    'current.active.publish',
     'latest.captureId'
   ])
-  expect(activeReadCount).toBe(2)
+  expect(activeReadCount).toBe(3)
 })
 
 it('begin은 completed가 없으면 latest captureId 뒤 signal만 읽는다', async () => {
@@ -228,6 +229,8 @@ it('observe는 captureId, ticket active, publish와 명령의 순서를 유지�
   expect(events).toEqual([
     'ticket.captureId',
     'ticket.active',
+    'ticket.active',
+    'ticket.captureId',
     'ticket.active',
     'ticket.captureId',
     'command'

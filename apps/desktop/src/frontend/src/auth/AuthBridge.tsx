@@ -37,7 +37,7 @@ export function AuthBridge({ api, home }: { api: AuthApi; home?: ReactNode }): R
             )}
           </ExampleSection>
         )}
-        {home != null && <ExampleSection title="화면 캡처">{home}</ExampleSection>}
+        {home}
       </ContentStack>
     </LayoutBlock>
   )

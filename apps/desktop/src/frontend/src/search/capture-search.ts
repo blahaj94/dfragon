@@ -1,3 +1,4 @@
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import {
   SEARCH_ERRORS,
   type SearchApi,
@@ -15,6 +16,7 @@ type CaptureTicket = {
   cleared: boolean[]
 }
 export type SearchView = {
+  captureActive?: boolean
   ready: boolean
   slots: readonly SearchSlot[]
   retryPending: readonly boolean[]
@@ -76,7 +78,7 @@ export class CaptureSearch {
     this.capture = ticket
     this.publish()
     const result = await this.connection.command({
-      action: 'begin'
+      action: SEARCH_ACTIONS.BEGIN
     })
     const isBeginSuccessful = result?.ok === true
     const captureId = isBeginSuccessful ? result.snapshot.captureId : null
@@ -114,7 +116,7 @@ export class CaptureSearch {
       }
       // begin 자체의 성공 응답만 이 Start의 소유 ID를 증명한다. read의 ID는 사용하지 않는다.
       if (hasCaptureId) {
-        void this.connection.command({ action: 'end', captureId })
+        void this.connection.command({ action: SEARCH_ACTIONS.END, captureId })
       }
       return null
     }
@@ -139,7 +141,7 @@ export class CaptureSearch {
       const captureId = ticket.captureId
       const hasId = captureId != null
       if (hasId) {
-        void this.connection.command({ action: 'end', captureId })
+        void this.connection.command({ action: SEARCH_ACTIONS.END, captureId })
       }
     }
     this.publish()
@@ -167,7 +169,12 @@ export class CaptureSearch {
     const observationRevision = ticket.revisions[slot]
     this.publish()
     if (isClear) {
-      void this.connection.command({ action: 'clear', captureId, slot, observationRevision })
+      void this.connection.command({
+        action: SEARCH_ACTIONS.CLEAR,
+        captureId,
+        slot,
+        observationRevision
+      })
     } else {
       void this.connection.invoke(() =>
         this.options.notify({ captureId, slot, observationRevision, nickname })
@@ -207,7 +214,12 @@ export class CaptureSearch {
     const requestId = slot.requestId
     this.pending.set(slotIndex, requestId)
     this.publish()
-    await this.connection.command({ action: 'retry', captureId, slot: slotIndex, requestId })
+    await this.connection.command({
+      action: SEARCH_ACTIONS.RETRY,
+      captureId,
+      slot: slotIndex,
+      requestId
+    })
     const isSameRequest = this.pending.get(slotIndex) === requestId
     if (isSameRequest) {
       this.pending.delete(slotIndex)
@@ -287,6 +299,7 @@ export class CaptureSearch {
   private publish(): void {
     this.options.onChange({
       ready: this.connection.ready,
+      captureActive: this.capture?.active === true && this.capture.captureId != null,
       slots: this.visibleSlots(),
       retryPending: Array.from({ length: 4 }, (_, slot) => {
         const isPending = this.pending.has(slot)

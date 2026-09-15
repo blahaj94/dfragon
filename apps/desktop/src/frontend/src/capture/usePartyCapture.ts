@@ -3,10 +3,9 @@ import { useCaptureSourceSelection } from './useCaptureSourceSelection'
 import { usePartyCaptureSession } from './usePartyCaptureSession'
 import { usePartyRecognition } from './usePartyRecognition'
 import { useCharacterSearch } from '../search/useCharacterSearch'
-import type { SearchView } from '../search/capture-search'
 
 type PartyCapture = {
-  search: SearchView
+  search: ReturnType<typeof useCharacterSearch>
   retrySearch: (slot: number) => void
   starting: boolean
   sources: { id: string; name: string }[]
