@@ -18,6 +18,13 @@ import { LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
 import { createCharacterSearchService } from '../../characters/search-service.js'
 import { CHARACTER_SEARCH_SERVICE, CharacterSearchController } from '../../characters/http.js'
 import type { CharacterSearchDependencies } from '../../characters/types.js'
+import {
+  CHARACTER_DETAIL_SERVICE,
+  CharacterDetailController
+} from '../../characters/details/http.js'
+import { createCharacterDetailService } from '../../characters/details/service.js'
+import type { CharacterDetailDependencies } from '../../characters/details/service.js'
+import { characterDetailFailure } from '../../characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from '../../errors/neople-search.js'
 import { LoginFailure, loginFailure } from '../../errors/login.js'
 import type { AuthProvider } from '../../types/auth.js'
@@ -108,6 +115,14 @@ class LoginHttpFilter implements ExceptionFilter {
     }
 
     const path = request.path.toLowerCase().replace(/\/+$/, '')
+    if (path.startsWith('/characters/')) {
+      const failure = characterDetailFailure(error)
+      if (failure.retryAfter != null) {
+        response.setHeader('Retry-After', String(failure.retryAfter))
+      }
+      response.status(failure.status).json(failure.body)
+      return
+    }
     const isSearchPath = path === '/characters'
     if (isSearchPath) {
       const isSearchFailure = error instanceof NeopleSearchFailure
@@ -240,7 +255,8 @@ export async function createLoginHttpApp(
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
   searchDependencies?: CharacterSearchDependencies,
-  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
+  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
+  detailDependencies?: CharacterDetailDependencies
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
@@ -249,9 +265,18 @@ export async function createLoginHttpApp(
     LoginController,
     ...(hasSessionService ? [SessionController] : []),
     ...(hasAccountDependencies ? [AccountController] : []),
-    ...(hasSearchDependencies ? [CharacterSearchController] : [])
+    ...(hasSearchDependencies ? [CharacterSearchController] : []),
+    ...(detailDependencies ? [CharacterDetailController] : [])
   ]
   const providers = [
+    ...(detailDependencies
+      ? [
+          {
+            provide: CHARACTER_DETAIL_SERVICE,
+            useValue: createCharacterDetailService(detailDependencies)
+          }
+        ]
+      : []),
     { provide: LOGIN_SERVICE, useValue: service },
     ...(hasSessionService ? [{ provide: SESSION_SERVICE, useValue: sessionService }] : []),
     ...(hasAccountDependencies

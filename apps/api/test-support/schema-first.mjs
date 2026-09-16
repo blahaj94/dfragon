@@ -9,7 +9,7 @@ import ts from 'typescript'
 import { DataSource, EntitySchema } from 'typeorm'
 import { createDatabaseDataSource, createDatabaseOptions } from '../dist/database/index.js'
 import { generateMigration } from '../dist/database/generate.js'
-import { authSchemas } from '../dist/database/schemas/index.js'
+import { databaseSchemas } from '../dist/database/schemas/index.js'
 import { UserSchema } from '../dist/database/schemas/users.js'
 import { AuthSessionSchema } from '../dist/database/schemas/auth-sessions.js'
 import { AuthRefreshTokenSchema } from '../dist/database/schemas/auth-refresh-tokens.js'
@@ -161,7 +161,7 @@ export async function assertSchemaFirst(configuration, mark) {
         migrationProbe: { name: 'migration_probe', type: 'text', nullable: true }
       }
     })
-    const entities = authSchemas.map((schema) => (schema === UserSchema ? changedUser : schema))
+    const entities = databaseSchemas.map((schema) => (schema === UserSchema ? changedUser : schema))
     const changedFactory = () =>
       new DataSource({
         ...createDatabaseOptions(generatedConfiguration),

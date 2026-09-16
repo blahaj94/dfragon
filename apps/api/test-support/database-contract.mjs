@@ -6,6 +6,8 @@ export const DOMAIN_TABLES = [
   'auth_login_requests',
   'auth_refresh_tokens',
   'auth_sessions',
+  'character_api_responses',
+  'characters',
   'users'
 ]
 export const MIGRATIONS_TABLE = 'typeorm_migrations'
@@ -135,6 +137,21 @@ export async function databaseSnapshot(dataSource) {
 }
 
 const expectedColumns = Object.freeze({
+  characters: [
+    ['character_id', 'text', 'text', 'NO', null, null],
+    ['server_id', 'text', 'text', 'NO', null, null],
+    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
+  ],
+  character_api_responses: [
+    ['character_id', 'text', 'text', 'NO', null, null],
+    ['section', 'USER-DEFINED', 'character_data_section', 'NO', null, null],
+    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
+    ['revision', 'integer', 'int4', 'NO', null, null],
+    ['content_updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['last_successful_fetch_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
+  ],
   users: [
     ['id', 'uuid', 'uuid', 'NO', null, null],
     ['provider', 'text', 'text', 'NO', null, null],
@@ -221,6 +238,13 @@ const expectedConstraints = [
   'auth_sessions:ck_auth_sessions_revoked_time:CHECK',
   'auth_sessions:fk_auth_sessions_user:FOREIGN KEY',
   'auth_sessions:pk_auth_sessions:PRIMARY KEY',
+  'character_api_responses:ck_character_api_responses_payload:CHECK',
+  'character_api_responses:ck_character_api_responses_revision:CHECK',
+  'character_api_responses:fk_character_api_responses_character:FOREIGN KEY',
+  'character_api_responses:pk_character_api_responses:PRIMARY KEY',
+  'characters:ck_characters_id:CHECK',
+  'characters:ck_characters_server:CHECK',
+  'characters:pk_characters:PRIMARY KEY',
   'users:ck_users_nickname_nonempty:CHECK',
   'users:ck_users_provider:CHECK',
   'users:ck_users_provider_subject_nonempty:CHECK',
@@ -258,6 +282,14 @@ const expectedIndexes = [
   ['auth_sessions', 'idx_auth_sessions_last_active_at', ['last_active_at'], false, null],
   ['auth_sessions', 'idx_auth_sessions_user_id', ['user_id'], false, null],
   ['auth_sessions', 'pk_auth_sessions', ['id'], true, null],
+  [
+    'character_api_responses',
+    'pk_character_api_responses',
+    ['character_id', 'section'],
+    true,
+    null
+  ],
+  ['characters', 'pk_characters', ['character_id'], true, null],
   ['users', 'pk_users', ['id'], true, null],
   ['users', 'uq_users_provider_subject', ['provider', 'provider_subject'], true, null]
 ]
@@ -271,13 +303,21 @@ const expectedForeignKeys = [
     ['id'],
     'c'
   ],
-  ['auth_sessions', 'fk_auth_sessions_user', ['user_id'], 'users', ['id'], 'c']
+  ['auth_sessions', 'fk_auth_sessions_user', ['user_id'], 'users', ['id'], 'c'],
+  [
+    'character_api_responses',
+    'fk_character_api_responses_character',
+    ['character_id'],
+    'characters',
+    ['character_id'],
+    'c'
+  ]
 ]
 
 export async function assertSchema(
   dataSource,
   mark = () => undefined,
-  migrationNames = ['InitialAuthSchema1788600000000']
+  migrationNames = ['InitialAuthSchema1788600000000', 'AddCharacterDetails1789547642378']
 ) {
   const snapshot = await databaseSnapshot(dataSource)
   mark('relations')
@@ -375,6 +415,8 @@ export async function assertSchema(
     { table_name: 'auth_login_requests', columns: ['id'] },
     { table_name: 'auth_refresh_tokens', columns: ['token_hash'] },
     { table_name: 'auth_sessions', columns: ['id'] },
+    { table_name: 'character_api_responses', columns: ['character_id', 'section'] },
+    { table_name: 'characters', columns: ['character_id'] },
     { table_name: 'users', columns: ['id'] }
   ])
 

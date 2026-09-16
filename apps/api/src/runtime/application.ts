@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common'
+import { createCharacterDetailStore } from '../characters/details/store.js'
 import { createLoginHttpApp, createSessionHttpService } from '../auth/login/http.js'
 import { createLoginService } from '../auth/login/service.js'
 import { createDatabaseDataSource } from '../database/index.js'
@@ -66,7 +67,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
       session,
       account,
       { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
-      configuration.localHttps
+      configuration.localHttps,
+      { apiKey: configuration.apiKey, store: createCharacterDetailStore(dataSource) }
     )
     return { app, close }
   } catch (error) {

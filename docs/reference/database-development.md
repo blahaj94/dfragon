@@ -41,6 +41,8 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
 
 Migration은 build된 `database/migrations/*.js`에서 자동 발견되므로 새 class를 별도 목록에 수기 등록하지 않는다. `show`는 등록된 전체 Migration을 history와 대조하며 fresh DB에 history table을 만들지 않는다. App과 CLI 모두 `synchronize:false`, `migrationsRun:false`를 유지한다. Migration 적용은 명시적 transaction이며 Nest lifecycle은 schema를 수정하지 않는다.
 
+캐릭터 상세에는 `characters`와 `character_api_responses` EntitySchema·추가 migration이 등록되어 있다. [상세 계약](../rules/character-details.md)과 [DBML](character-details.dbml)을 참고한다. `test-support/character-details.mjs`는 최신 JSONB 저장·동등성·revision·원자성·경합과 HTTP 흐름을 검증한다. 공용 DataSource는 연결 풀 대기를 2초로 제한한다.
+
 ## ORM 사용
 
 Schema 자체를 repository target으로 사용한다. Nest 기능 module을 연결할 때는 `TypeOrmModule.forFeature([UserSchema])`로 등록할 수 있다. 기본 runtime-only AppModule은 아직 DB module을 연결하지 않는다.
@@ -63,7 +65,7 @@ const user = await users.findOneBy({ provider, providerSubject })
 
 ## 현재 검증 범위
 
-`apps/api/test-support/schema-first.mjs`는 별도 disposable DB에 EntitySchema에서 생성한 초기 Migration을 적용하고 기존 초기 Migration과 PostgreSQL constraint definition을 대조한다. 네 schema의 ORM 저장/조회·FK cascade, 적용 뒤 diff 없음, 임시 nullable column의 후속 Migration 생성·적용·rollback을 검증한다. 생성 file은 임시 directory에서 compile하며 test가 끝나면 삭제한다.
+`apps/api/test-support/schema-first.mjs`는 별도 disposable DB에 EntitySchema에서 생성한 초기 Migration을 적용하고 등록된 Migration 전체와 PostgreSQL constraint definition을 대조한다. 인증 schema의 ORM 저장/조회·FK cascade, 적용 뒤 diff 없음, 임시 nullable column의 후속 Migration 생성·적용·rollback을 검증한다. 생성 file은 임시 directory에서 compile하며 test가 끝나면 삭제한다.
 
 Docker image는 고정 index·native child·config를 검증한 뒤 같은 local image inspect의 ID를 container `.Image`와 비교한다. Classic store의 config ID와 containerd store의 index ID 차이를 허용하면서 검증한 image와의 정확한 일치를 요구한다. 실제 Docker 검증은 native `linux/arm64/v8`에서 수행했으며 `linux/amd64`와 classic store 실기 검증은 별도다.
 

@@ -71,7 +71,7 @@ for (const path of ['/app/src', '/app/test-support', '/run/secrets/postgres_pass
 const db = new pg.Client({ host: 'database', database: 'ldb', user: 'ldb_api', password: readFileSync('/run/secrets/db_password', 'utf8') })
 try {
   await db.connect()
-  for (const table of ['users', 'auth_sessions', 'auth_refresh_tokens', 'auth_login_requests']) {
+  for (const table of ['users', 'auth_sessions', 'auth_refresh_tokens', 'auth_login_requests', 'characters', 'character_api_responses']) {
     await db.query(`SELECT count(*) FROM ${table}`)
     for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
       assert.equal((await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [table, privilege])).rows[0].allowed, true, `${table}: ${privilege}`)
