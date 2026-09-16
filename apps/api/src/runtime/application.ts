@@ -1,3 +1,4 @@
+import { createAdventureSearchStore } from '../adventures/store.js'
 import type { INestApplication } from '@nestjs/common'
 import { createCharacterDetailStore } from '../characters/details/store.js'
 import { createCatalogStore } from '../characters/catalog/store.js'
@@ -78,7 +79,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
           createCatalogStore(dataSource),
           createNeopleCatalog(configuration.apiKey)
         )
-      }
+      },
+      createAdventureSearchStore(dataSource)
     )
     return { app, close }
   } catch (error) {

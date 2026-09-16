@@ -25,6 +25,16 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 
 응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
 
+## 모험단명 검색
+
+`GET /adventures/characters?adventureName=...`는 로그인 없이 우리 DB에 저장된 캐릭터를 모험단명으로 검색한다. 서버 구분 없이 이름을 정확히 비교하며 부분 일치·대소문자 변환·Unicode 정규화·공백 제거를 하지 않는다. Neople 호출, 미수집 캐릭터 발견, 검색 시 갱신은 하지 않는다. 전체 보유 캐릭터가 아니라 마지막으로 관측된 소속 목록이라는 범위를 응답의 `scope: "stored"`로 명시한다. 결과가 없으면 200과 빈 `rows`를 반환한다.
+
+Query는 `adventureName`, 선택 `limit`, 선택 `after`만 허용하며 중복·잘못된 percent encoding·알 수 없는 key와 HEAD는 400이다. 모험단명은 1~100 Unicode 코드 포인트이며 공백만 있는 값과 제어 문자는 거절한다. 이 길이는 서버 입력 상한이며 게임의 이름 생성 규칙을 정의하지 않는다. `limit`은 기본 100, 1~100의 십진 정수다. `after`는 응답의 `nextAfter`로 받은 characterId이며 기존 ID 문자·길이 규칙을 따른다.
+
+응답은 `adventureName`, `scope`, `rows`, `nextAfter`다. 각 행은 캐릭터·서버 ID, 서버명, 캐릭터명, 레벨, 직업·전직명, 명성과 기본정보의 `lastSuccessfulFetchAt`을 담는다. 공급자의 표시 값이 기대한 문자열·숫자가 아니면 null로 반환하며 JSONB 원본은 보존한다. characterId 오름차순으로 조회하고 다음 페이지에는 같은 모험단명과 `nextAfter`를 `after`로 전달한다. 마지막 페이지의 `nextAfter`는 null이다. 페이지 사이의 캐릭터 갱신에 대한 고정 snapshot은 제공하지 않는다.
+
+이 검색은 기존 검색·상세 조회와 독립적으로 IP당 최근 60초 10회를 허용한다. 유효한 요청은 DB 읽기 전에 한도를 소비하고 DB 실패도 반환하지 않는다. Admission 대기·DB 풀 연결 확보·statement에는 기존 2초 제한을 사용한다. 연결 종료·서버 종료 시 후속 처리를 중단한다. 오류는 기존 캐릭터 오류 형식의 400 `INVALID_CHARACTER_QUERY`, 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 500 `INTERNAL_SERVER_ERROR`이며 DB 오류 원문은 반환하지 않는다.
+
 ## 공용 아이템·스킬·세트 상세
 
 DB에서 읽은 캐릭터 11개 섹션에 공용 상세를 연결한다. 캐릭터 갱신 때는 저장과 commit 후 연결하며, GET 캐시 적중 때도 필요한 공용 상세를 확인한다. 원본 캐릭터 JSONB에는 공용 상세를 섞지 않는다. 일반·버프 장착 장비, 아바타·엠블렘·외형 clone, 크리쳐·아티팩트·외형 clone, 서약 info·결정, 버프 아바타·엠블렘·외형 clone과 버프 크리쳐의 유효한 itemId가 있는 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `skillStyle` 객체에는 `skillDetails`를 추가하고 캐릭터 기본정보의 `jobId`와 습득·진화·강화·체인·버프 스킬 ID로 상세를 연결한다. `skillDetails`는 skillId를 key로 사용하는 객체이며 같은 상세를 여러 선택 항목에 복제하지 않는다. `itemDetail`과 `skillDetails`는 서버 응답용으로 예약한 필드다. ID가 없는 빈 슬롯, null·빈 배열, 선택 옵션과 원본 배열 순서는 유지한다. 외형 clone의 상세를 장착 효과로 합산하지 않는다.
@@ -44,6 +54,12 @@ DB에서 읽은 캐릭터 11개 섹션에 공용 상세를 연결한다. 캐릭�
 ## 저장과 중복 처리
 
 `characters.character_id`만 PK로 둔다. `server_id`는 일반 column이다. 같은 ID가 기존과 다른 서버로 들어오면 현재는 실패 처리한다. 공급자가 전 서버 ID 고유성이나 서버 이동을 명시적으로 보장하지 않는 상황에서 서로 다른 데이터를 조용히 합치지 않는다.
+
+`characters.adventure_name`은 기본정보의 모험단명을 검색하기 위한 nullable text column이다. 이름은 변경될 수 있고 여러 캐릭터가 공유하므로 PK·UNIQUE·계정 식별자로 사용하지 않는다. 비고유 B-tree `(adventure_name, character_id)` index로 이름 일치 검색과 페이지 순서를 지원한다. 별도 모험단 테이블·소유권 인증·우리 서비스 회원과의 연결은 추가하지 않는다.
+
+Migration은 기존 `basic` JSONB의 문자열 `adventureName`을 채우며 누락·null·빈 문자열·문자열 이외 값은 null로 둔다. 원본 JSONB와 기존 내용·조회 시각은 변경하지 않는다. 이후 성공 갱신 transaction에서 요청 순서 경쟁을 이긴 저장된 기본정보를 기준으로 column을 동기화한다. 이름이 실제로 달라질 때만 characters.updated_at을 갱신한다. 이전 요청의 원문으로 모험단명이 되돌아가거나 실패한 갱신이 소속만 변경되면 안 된다.
+
+이름 변경은 갱신된 캐릭터에만 반영한다. 다른 캐릭터는 각자 갱신될 때까지 이전 이름으로 검색될 수 있다. 고유 모험단 ID를 제공받지 않은 상태에서 동일 이름의 과거·현재 사용자를 같은 계정으로 추정하거나 다른 캐릭터의 이름을 일괄 변경하지 않는다.
 
 `character_api_responses`는 `(character_id, section)`당 최신 응답 JSONB 하나만 저장한다. Section은 PostgreSQL enum이며 endpoint별 저장 단위다. JSONB에 객체 key 순서는 보존되지 않지만 필드·값과 배열 순서는 유지된다. 원본 문자열·해시·중복 응답·이력은 저장하지 않는다.
 

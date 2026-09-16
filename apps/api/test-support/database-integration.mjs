@@ -1,3 +1,4 @@
+import { assertAdventureSearch } from './adventure-search.mjs'
 import assert from 'node:assert/strict'
 import { assertCharacterDetails } from './character-details.mjs'
 import { assertCharacterCatalog } from './character-catalog.mjs'
@@ -251,9 +252,21 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 4\n')
+    assert.equal(up.stdout, 'Database migration applied: 5\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
 
+    const adventureDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(adventureDown.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      const columns = await source.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = 'characters' AND column_name = 'adventure_name'"
+      )
+      assert.deepEqual(columns, [])
+      assert.notEqual(
+        (await source.query("SELECT to_regclass('public.characters') AS relation"))[0].relation,
+        null
+      )
+    })
     const setDown = await runCompiledCli({ configuration, operation: 'down' })
     assert.equal(setDown.code, 0)
     await withDataSource(createDatabaseDataSource, configuration, async (source) => {
@@ -591,7 +604,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 4\n')
+  assert.equal(migration.stdout, 'Database migration applied: 5\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -694,7 +707,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 4\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 5\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({
@@ -739,6 +752,11 @@ async function primaryScenario() {
     await withDataSource(createDatabaseDataSource, resources.configuration, (dataSource) =>
       assertSchema(dataSource, (part) => (currentStage = `schema catalog ${part}`))
     )
+    currentStage = 'adventure search'
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertAdventureSearch(source, (part) => (currentStage = `adventure search ${part}`))
+    )
+    process.stdout.write('Adventure backfill, rename, stale write and HTTP pagination passed\n')
     currentStage = 'character details'
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
       assertCharacterCatalog(source, (part) => (currentStage = `character catalog ${part}`))

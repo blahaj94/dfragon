@@ -87,6 +87,18 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
             [identity.characterId, section, JSON.stringify(payloads[section]), requestedAt]
           )
         }
+        // Derive from the winning stored basic response, never from an older incoming refresh.
+        await manager.query(
+          `UPDATE characters AS c SET adventure_name = basic.adventure_name, updated_at = clock_timestamp()
+           FROM (
+             SELECT character_id, CASE WHEN jsonb_typeof(payload->'adventureName') = 'string'
+               THEN NULLIF(payload->>'adventureName', '') ELSE NULL END AS adventure_name
+             FROM character_api_responses WHERE character_id = $1 AND section = 'basic'
+           ) AS basic
+           WHERE c.character_id = basic.character_id
+             AND c.adventure_name IS DISTINCT FROM basic.adventure_name`,
+          [identity.characterId]
+        )
         // Read the committed-to-be values rather than returning the upstream body or UPDATE parameters.
         const stored = await manager
           .getRepository(CharacterApiResponseSchema)
