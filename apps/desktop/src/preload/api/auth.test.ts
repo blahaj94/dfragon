@@ -5,25 +5,26 @@ const renderer = vi.hoisted(() => ({ invoke: vi.fn(), on: vi.fn(), removeListene
 vi.mock('electron', () => ({ ipcRenderer: renderer }))
 beforeEach(() => vi.clearAllMocks())
 
-it('feature API는 5 invoke와 단일 event subscription만 노출한다', async () => {
+it('feature API는 6 invoke와 단일 event subscription만 노출한다', async () => {
   expect(Object.keys(auth).sort()).toEqual([
     'beginLogin',
     'cancelLogin',
     'getAuthState',
     'logout',
+    'managePasskeys',
     'onAuthStateChanged',
     'retryAuth'
   ])
   const attemptId = '00000000-0000-4000-8000-000000000002'
   await auth.getAuthState()
-  await auth.beginLogin({ provider: 'google' })
+  await auth.beginLogin({ provider: 'passkey' })
   await auth.cancelLogin({ attemptId })
   await auth.retryAuth()
   await auth.logout()
 
   expect(renderer.invoke.mock.calls).toEqual([
     ['getAuthState'],
-    ['beginLogin', { provider: 'google' }],
+    ['beginLogin', { provider: 'passkey' }],
     ['cancelLogin', { attemptId }],
     ['retryAuth'],
     ['logout']

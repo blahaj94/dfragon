@@ -1,9 +1,12 @@
+import { readFile } from 'node:fs/promises'
+import { randomUUID, randomBytes } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { Buffer } from 'node:buffer'
 import { setTimeout as delay } from 'node:timers/promises'
 
 export const DOMAIN_TABLES = [
   'auth_login_requests',
+  'auth_passkeys',
   'auth_refresh_tokens',
   'auth_sessions',
   'character_api_responses',
@@ -139,225 +142,9 @@ export async function databaseSnapshot(dataSource) {
   return { relations, columns, constraints, indexes, foreignKeys }
 }
 
-const expectedColumns = Object.freeze({
-  item_catalog: [
-    ['item_id', 'text', 'text', 'NO', null, null],
-    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
-    ['fetched_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
-  ],
-  set_item_catalog: [
-    ['set_item_id', 'text', 'text', 'NO', null, null],
-    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
-    ['fetched_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
-  ],
-  skill_catalog: [
-    ['job_id', 'text', 'text', 'NO', null, null],
-    ['skill_id', 'text', 'text', 'NO', null, null],
-    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
-    ['fetched_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
-  ],
-  characters: [
-    ['character_id', 'text', 'text', 'NO', null, null],
-    ['server_id', 'text', 'text', 'NO', null, null],
-    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['adventure_name', 'text', 'text', 'YES', null, null]
-  ],
-  character_api_responses: [
-    ['character_id', 'text', 'text', 'NO', null, null],
-    ['section', 'USER-DEFINED', 'character_data_section', 'NO', null, null],
-    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
-    ['revision', 'integer', 'int4', 'NO', null, null],
-    ['content_updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['last_successful_fetch_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
-  ],
-  users: [
-    ['id', 'uuid', 'uuid', 'NO', null, null],
-    ['provider', 'text', 'text', 'NO', null, null],
-    ['provider_subject', 'text', 'text', 'NO', 'C', null],
-    ['nickname', 'text', 'text', 'NO', null, null],
-    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0]
-  ],
-  auth_sessions: [
-    ['id', 'uuid', 'uuid', 'NO', null, null],
-    ['user_id', 'uuid', 'uuid', 'NO', null, null],
-    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0],
-    ['last_active_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0],
-    ['revoked_at', 'timestamp with time zone', 'timestamptz', 'YES', null, 0],
-    ['revoked_reason', 'text', 'text', 'YES', null, null]
-  ],
-  auth_refresh_tokens: [
-    ['token_hash', 'bytea', 'bytea', 'NO', null, null],
-    ['session_id', 'uuid', 'uuid', 'NO', null, null],
-    ['issued_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0],
-    ['consumed_at', 'timestamp with time zone', 'timestamptz', 'YES', null, 0]
-  ],
-  auth_login_requests: [
-    ['id', 'uuid', 'uuid', 'NO', null, null],
-    ['purpose', 'text', 'text', 'NO', null, null],
-    ['provider', 'text', 'text', 'NO', null, null],
-    ['client_id', 'text', 'text', 'NO', null, null],
-    ['provider_config_version', 'text', 'text', 'NO', null, null],
-    ['return_target_id', 'text', 'text', 'NO', null, null],
-    ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0],
-    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 0],
-    ['status', 'text', 'text', 'NO', null, null],
-    ['code_challenge', 'text', 'text', 'YES', null, null],
-    ['method', 'text', 'text', 'YES', null, null],
-    ['launch_ticket_hash', 'bytea', 'bytea', 'YES', null, null],
-    ['state_hash', 'bytea', 'bytea', 'YES', null, null],
-    ['browser_binding_hash', 'bytea', 'bytea', 'YES', null, null],
-    ['oidc_nonce_hash', 'bytea', 'bytea', 'YES', null, null],
-    ['provider_pkce_ciphertext', 'bytea', 'bytea', 'YES', null, null],
-    ['provider_pkce_iv', 'bytea', 'bytea', 'YES', null, null],
-    ['provider_pkce_tag', 'bytea', 'bytea', 'YES', null, null],
-    ['provider_pkce_key_id', 'text', 'text', 'YES', null, null],
-    ['verified_subject', 'text', 'text', 'YES', null, null],
-    ['exchange_code_hash', 'bytea', 'bytea', 'YES', null, null],
-    ['code_expires_at', 'timestamp with time zone', 'timestamptz', 'YES', null, 0],
-    ['consumed_at', 'timestamp with time zone', 'timestamptz', 'YES', null, 0]
-  ]
-})
-
-const expectedConstraints = [
-  'auth_login_requests:ck_auth_login_requests_browser_hash_length:CHECK',
-  'auth_login_requests:ck_auth_login_requests_browser_started_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_client:CHECK',
-  'auth_login_requests:ck_auth_login_requests_code_challenge_nonempty:CHECK',
-  'auth_login_requests:ck_auth_login_requests_code_deadline:CHECK',
-  'auth_login_requests:ck_auth_login_requests_config_nonempty:CHECK',
-  'auth_login_requests:ck_auth_login_requests_consumed_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_created_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_exchange_hash_length:CHECK',
-  'auth_login_requests:ck_auth_login_requests_exchange_ready_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_expiry:CHECK',
-  'auth_login_requests:ck_auth_login_requests_failed_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_launch_hash_length:CHECK',
-  'auth_login_requests:ck_auth_login_requests_method:CHECK',
-  'auth_login_requests:ck_auth_login_requests_nonce_hash_length:CHECK',
-  'auth_login_requests:ck_auth_login_requests_pkce_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_processing_fields:CHECK',
-  'auth_login_requests:ck_auth_login_requests_provider:CHECK',
-  'auth_login_requests:ck_auth_login_requests_purpose:CHECK',
-  'auth_login_requests:ck_auth_login_requests_return_target_nonempty:CHECK',
-  'auth_login_requests:ck_auth_login_requests_state_hash_length:CHECK',
-  'auth_login_requests:ck_auth_login_requests_status:CHECK',
-  'auth_login_requests:ck_auth_login_requests_subject_nonempty:CHECK',
-  'auth_login_requests:pk_auth_login_requests:PRIMARY KEY',
-  'auth_login_requests:uq_auth_login_requests_exchange_code_hash:UNIQUE',
-  'auth_login_requests:uq_auth_login_requests_launch_ticket_hash:UNIQUE',
-  'auth_login_requests:uq_auth_login_requests_state_hash:UNIQUE',
-  'auth_refresh_tokens:ck_auth_refresh_tokens_consumed_time:CHECK',
-  'auth_refresh_tokens:ck_auth_refresh_tokens_hash_length:CHECK',
-  'auth_refresh_tokens:fk_auth_refresh_tokens_session:FOREIGN KEY',
-  'auth_refresh_tokens:pk_auth_refresh_tokens:PRIMARY KEY',
-  'auth_sessions:ck_auth_sessions_last_active:CHECK',
-  'auth_sessions:ck_auth_sessions_revoked_pair:CHECK',
-  'auth_sessions:ck_auth_sessions_revoked_reason:CHECK',
-  'auth_sessions:ck_auth_sessions_revoked_time:CHECK',
-  'auth_sessions:fk_auth_sessions_user:FOREIGN KEY',
-  'auth_sessions:pk_auth_sessions:PRIMARY KEY',
-  'character_api_responses:ck_character_api_responses_payload:CHECK',
-  'character_api_responses:ck_character_api_responses_revision:CHECK',
-  'character_api_responses:fk_character_api_responses_character:FOREIGN KEY',
-  'character_api_responses:pk_character_api_responses:PRIMARY KEY',
-  'characters:ck_characters_id:CHECK',
-  'characters:ck_characters_server:CHECK',
-  'characters:pk_characters:PRIMARY KEY',
-  'item_catalog:ck_item_catalog_id:CHECK',
-  'item_catalog:ck_item_catalog_payload:CHECK',
-  'item_catalog:pk_item_catalog:PRIMARY KEY',
-  'set_item_catalog:ck_set_item_catalog_id:CHECK',
-  'set_item_catalog:ck_set_item_catalog_payload:CHECK',
-  'set_item_catalog:pk_set_item_catalog:PRIMARY KEY',
-  'skill_catalog:ck_skill_catalog_ids:CHECK',
-  'skill_catalog:ck_skill_catalog_payload:CHECK',
-  'skill_catalog:pk_skill_catalog:PRIMARY KEY',
-  'users:ck_users_nickname_nonempty:CHECK',
-  'users:ck_users_provider:CHECK',
-  'users:ck_users_provider_subject_nonempty:CHECK',
-  'users:pk_users:PRIMARY KEY',
-  'users:uq_users_provider_subject:UNIQUE'
-]
-
-const expectedIndexes = [
-  ['auth_login_requests', 'idx_auth_login_requests_expires_at', ['expires_at'], false, null],
-  ['auth_login_requests', 'pk_auth_login_requests', ['id'], true, null],
-  [
-    'auth_login_requests',
-    'uq_auth_login_requests_exchange_code_hash',
-    ['exchange_code_hash'],
-    true,
-    null
-  ],
-  [
-    'auth_login_requests',
-    'uq_auth_login_requests_launch_ticket_hash',
-    ['launch_ticket_hash'],
-    true,
-    null
-  ],
-  ['auth_login_requests', 'uq_auth_login_requests_state_hash', ['state_hash'], true, null],
-  ['auth_refresh_tokens', 'idx_auth_refresh_tokens_session_id', ['session_id'], false, null],
-  ['auth_refresh_tokens', 'pk_auth_refresh_tokens', ['token_hash'], true, null],
-  [
-    'auth_refresh_tokens',
-    'uq_auth_refresh_tokens_unconsumed_session',
-    ['session_id'],
-    true,
-    '(consumed_at IS NULL)'
-  ],
-  ['auth_sessions', 'idx_auth_sessions_last_active_at', ['last_active_at'], false, null],
-  ['auth_sessions', 'idx_auth_sessions_user_id', ['user_id'], false, null],
-  ['auth_sessions', 'pk_auth_sessions', ['id'], true, null],
-  [
-    'character_api_responses',
-    'pk_character_api_responses',
-    ['character_id', 'section'],
-    true,
-    null
-  ],
-  [
-    'characters',
-    'idx_characters_adventure_name_character_id',
-    ['adventure_name', 'character_id'],
-    false,
-    null
-  ],
-  ['characters', 'pk_characters', ['character_id'], true, null],
-  ['item_catalog', 'pk_item_catalog', ['item_id'], true, null],
-  ['set_item_catalog', 'pk_set_item_catalog', ['set_item_id'], true, null],
-  ['skill_catalog', 'pk_skill_catalog', ['job_id', 'skill_id'], true, null],
-  ['users', 'pk_users', ['id'], true, null],
-  ['users', 'uq_users_provider_subject', ['provider', 'provider_subject'], true, null]
-]
-
-const expectedForeignKeys = [
-  [
-    'auth_refresh_tokens',
-    'fk_auth_refresh_tokens_session',
-    ['session_id'],
-    'auth_sessions',
-    ['id'],
-    'c'
-  ],
-  ['auth_sessions', 'fk_auth_sessions_user', ['user_id'], 'users', ['id'], 'c'],
-  [
-    'character_api_responses',
-    'fk_character_api_responses_character',
-    ['character_id'],
-    'characters',
-    ['character_id'],
-    'c'
-  ]
-]
+const { expectedColumns, expectedConstraints, expectedIndexes, expectedForeignKeys } = JSON.parse(
+  await readFile(new URL('../test/fixtures/passkey-database-schema.json', import.meta.url), 'utf8')
+)
 
 export async function assertSchema(
   dataSource,
@@ -367,7 +154,8 @@ export async function assertSchema(
     'AddCharacterDetails1789547642378',
     'AddCharacterCatalog1789554193117',
     'AddSetItemCatalog1789557135610',
-    'AddCharacterAdventureName1789564164377'
+    'AddCharacterAdventureName1789564164377',
+    'ReplaceOAuthWithPasskeys1789566809748'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -382,6 +170,7 @@ export async function assertSchema(
     assert.deepEqual(
       snapshot.columns
         .filter((column) => column.table_name === table)
+        .sort((a, b) => a.column_name.localeCompare(b.column_name))
         .map((column) => [
           column.column_name,
           column.data_type,
@@ -464,6 +253,7 @@ export async function assertSchema(
   const primaryKeys = await dataSource.query(primaryKeysSql, [DOMAIN_TABLES])
   assert.deepEqual(primaryKeys, [
     { table_name: 'auth_login_requests', columns: ['id'] },
+    { table_name: 'auth_passkeys', columns: ['id'] },
     { table_name: 'auth_refresh_tokens', columns: ['token_hash'] },
     { table_name: 'auth_sessions', columns: ['id'] },
     { table_name: 'character_api_responses', columns: ['character_id', 'section'] },
@@ -508,113 +298,63 @@ const userId = '10000000-0000-4000-8000-000000000001'
 const sessionId = '20000000-0000-4000-8000-000000000001'
 const createdAt = new Date('2026-09-05T00:00:00Z')
 const later = new Date('2026-09-05T00:01:00Z')
-const expiresAt = new Date('2026-09-05T00:10:00Z')
 const hash = (fill) => Buffer.alloc(32, fill)
 
-const loginColumns = [
-  'id',
-  'purpose',
-  'provider',
-  'client_id',
-  'provider_config_version',
-  'return_target_id',
-  'created_at',
-  'expires_at',
-  'status',
-  'code_challenge',
-  'method',
-  'launch_ticket_hash',
-  'state_hash',
-  'browser_binding_hash',
-  'oidc_nonce_hash',
-  'provider_pkce_ciphertext',
-  'provider_pkce_iv',
-  'provider_pkce_tag',
-  'provider_pkce_key_id',
-  'verified_subject',
-  'exchange_code_hash',
-  'code_expires_at',
-  'consumed_at'
-]
-
 export function loginRequest(status, id, overrides = {}) {
-  const common = {
+  const row = {
     id,
     purpose: 'login',
-    provider: 'google',
-    client_id: 'desktop',
-    provider_config_version: 'v1',
-    return_target_id: 'desktop-v1',
+    configuration: 'a'.repeat(64),
     created_at: createdAt,
-    expires_at: expiresAt,
+    expires_at: later,
     status,
     code_challenge: null,
-    method: null,
     launch_ticket_hash: null,
-    state_hash: null,
     browser_binding_hash: null,
-    oidc_nonce_hash: null,
-    provider_pkce_ciphertext: null,
-    provider_pkce_iv: null,
-    provider_pkce_tag: null,
-    provider_pkce_key_id: null,
-    verified_subject: null,
+    webauthn_challenge: null,
+    operation: null,
+    pending_user_id: null,
+    verified_user_id: null,
+    credential_id: null,
+    is_new_user: false,
     exchange_code_hash: null,
     code_expires_at: null,
     consumed_at: null
   }
-  const stateFields = {
-    created: { code_challenge: 'challenge', method: 'S256', launch_ticket_hash: hash(11) },
-    browser_started: {
-      code_challenge: 'challenge',
-      method: 'S256',
-      state_hash: hash(12),
-      browser_binding_hash: hash(13),
-      oidc_nonce_hash: hash(14),
-      provider_pkce_ciphertext: hash(15),
-      provider_pkce_iv: Buffer.alloc(12, 16),
-      provider_pkce_tag: Buffer.alloc(16, 17),
-      provider_pkce_key_id: 'key-v1'
-    },
-    processing: {
-      code_challenge: 'challenge',
-      method: 'S256',
-      state_hash: hash(18),
-      browser_binding_hash: hash(19),
-      oidc_nonce_hash: hash(20),
-      provider_pkce_ciphertext: hash(21),
-      provider_pkce_iv: Buffer.alloc(12, 22),
-      provider_pkce_tag: Buffer.alloc(16, 23),
-      provider_pkce_key_id: 'key-v1'
-    },
-    exchange_ready: {
-      code_challenge: 'challenge',
-      method: 'S256',
-      verified_subject: 'subject',
-      exchange_code_hash: hash(24),
-      code_expires_at: later
-    },
-    consumed: { consumed_at: later },
-    failed: {}
+  if (status === 'created') {
+    Object.assign(row, { code_challenge: 'a'.repeat(43), launch_ticket_hash: randomBytes(32) })
   }
-  return { ...common, ...stateFields[status], ...overrides }
+  if (status === 'browser_started') {
+    Object.assign(row, { code_challenge: 'a'.repeat(43), browser_binding_hash: randomBytes(32) })
+  }
+  if (status === 'exchange_ready') {
+    Object.assign(row, {
+      code_challenge: 'a'.repeat(43),
+      verified_user_id: userId,
+      credential_id: 'key',
+      exchange_code_hash: randomBytes(32),
+      code_expires_at: later
+    })
+  }
+  if (status === 'consumed') {
+    row.consumed_at = later
+  }
+  return { ...row, ...overrides }
 }
-
-export async function insertLogin(dataSource, request) {
-  const values = loginColumns.map((column) => request[column])
-  const identifiers = loginColumns.map((column) => `"${column}"`).join(', ')
-  const parameters = values.map((_, index) => `$${index + 1}`).join(', ')
-  await dataSource.query(
-    `INSERT INTO "auth_login_requests" (${identifiers}) VALUES (${parameters})`,
-    values
+export async function insertLogin(source, row) {
+  const names = Object.keys(row)
+  await source.query(
+    `INSERT INTO auth_login_requests (${names.map((n) => '"' + n + '"').join(',')}) VALUES (${names.map((_, i) => '$' + (i + 1)).join(',')})`,
+    Object.values(row)
   )
 }
 
 export async function assertConstraintBehavior(dataSource) {
-  await dataSource.query(
-    'INSERT INTO "users" (id, provider, provider_subject, nickname, created_at) VALUES ($1, $2, $3, $4, $5)',
-    [userId, 'google', 'subject-1', 'nickname', createdAt]
-  )
+  await dataSource.query('INSERT INTO "users" (id, nickname, created_at) VALUES ($1, $2, $3)', [
+    userId,
+    'nickname',
+    createdAt
+  ])
   await dataSource.query(
     'INSERT INTO "auth_sessions" (id, user_id, created_at, last_active_at) VALUES ($1, $2, $3, $4)',
     [sessionId, userId, createdAt, later]
@@ -624,23 +364,12 @@ export async function assertConstraintBehavior(dataSource) {
     [hash(1), sessionId, createdAt]
   )
 
-  await rejectConstraint(dataSource, 'uq_users_provider_subject', (queryRunner) =>
-    queryRunner.query(
-      'INSERT INTO "users" (id, provider, provider_subject, nickname, created_at) VALUES ($1, $2, $3, $4, $5)',
-      ['10000000-0000-4000-8000-000000000002', 'google', 'subject-1', 'other', createdAt]
-    )
-  )
-  await rejectConstraint(dataSource, 'ck_users_provider_subject_nonempty', (queryRunner) =>
-    queryRunner.query(
-      'INSERT INTO "users" (id, provider, provider_subject, nickname, created_at) VALUES ($1, $2, $3, $4, $5)',
-      ['10000000-0000-4000-8000-000000000003', 'discord', '', 'other', createdAt]
-    )
-  )
   await rejectConstraint(dataSource, 'ck_users_nickname_nonempty', (queryRunner) =>
-    queryRunner.query(
-      'INSERT INTO "users" (id, provider, provider_subject, nickname, created_at) VALUES ($1, $2, $3, $4, $5)',
-      ['10000000-0000-4000-8000-000000000004', 'discord', 'subject-4', '', createdAt]
-    )
+    queryRunner.query('INSERT INTO "users" (id, nickname, created_at) VALUES ($1, $2, $3)', [
+      '10000000-0000-4000-8000-000000000004',
+      '',
+      createdAt
+    ])
   )
   await rejectConstraint(dataSource, 'fk_auth_sessions_user', (queryRunner) =>
     queryRunner.query(
@@ -708,158 +437,30 @@ export async function assertConstraintBehavior(dataSource) {
     )
   )
 
-  const validRequests = [
-    loginRequest('created', '30000000-0000-4000-8000-000000000001'),
-    loginRequest('browser_started', '30000000-0000-4000-8000-000000000002'),
-    loginRequest('processing', '30000000-0000-4000-8000-000000000003'),
-    loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000004', {
-      state_hash: hash(30),
-      browser_binding_hash: hash(31),
-      oidc_nonce_hash: hash(32),
-      provider_pkce_ciphertext: hash(33),
-      provider_pkce_iv: Buffer.alloc(12, 34),
-      provider_pkce_tag: Buffer.alloc(16, 35),
-      provider_pkce_key_id: 'retained-key'
-    }),
-    loginRequest('consumed', '30000000-0000-4000-8000-000000000005'),
-    loginRequest('failed', '30000000-0000-4000-8000-000000000006')
-  ]
-  for (const request of validRequests) {
-    await insertLogin(dataSource, request)
+  for (const status of ['created', 'browser_started', 'exchange_ready', 'consumed', 'failed']) {
+    await insertLogin(dataSource, loginRequest(status, randomUUID()))
   }
-
-  const invalidRequests = [
+  for (const [constraint, row] of [
     [
-      'ck_auth_login_requests_status',
-      loginRequest('created', '30000000-0000-4000-8000-000000000010', { status: 'unknown' })
+      'ck_passkey_request_created',
+      loginRequest('created', randomUUID(), { launch_ticket_hash: null })
     ],
     [
-      'ck_auth_login_requests_created_fields',
-      loginRequest('created', '30000000-0000-4000-8000-000000000011', { method: null })
+      'ck_passkey_request_ready',
+      loginRequest('exchange_ready', randomUUID(), { verified_user_id: null })
     ],
     [
-      'ck_auth_login_requests_browser_started_fields',
-      loginRequest('browser_started', '30000000-0000-4000-8000-000000000012', {
-        launch_ticket_hash: hash(40)
-      })
+      'ck_passkey_request_terminal',
+      loginRequest('consumed', randomUUID(), { code_challenge: 'retained' })
     ],
     [
-      'ck_auth_login_requests_processing_fields',
-      loginRequest('processing', '30000000-0000-4000-8000-000000000013', {
-        verified_subject: 'too-early'
-      })
+      'ck_passkey_request_browser_binding_hash',
+      loginRequest('browser_started', randomUUID(), { browser_binding_hash: Buffer.alloc(31) })
     ],
-    [
-      'ck_auth_login_requests_exchange_ready_fields',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000014', { method: null })
-    ],
-    [
-      'ck_auth_login_requests_consumed_fields',
-      loginRequest('consumed', '30000000-0000-4000-8000-000000000015', {
-        code_challenge: 'retained'
-      })
-    ],
-    [
-      'ck_auth_login_requests_failed_fields',
-      loginRequest('failed', '30000000-0000-4000-8000-000000000016', {
-        verified_subject: 'retained'
-      })
-    ],
-    [
-      'ck_auth_login_requests_pkce_fields',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000017', {
-        provider_pkce_ciphertext: hash(41)
-      })
-    ],
-    [
-      'ck_auth_login_requests_expiry',
-      loginRequest('created', '30000000-0000-4000-8000-000000000018', { expires_at: createdAt })
-    ],
-    [
-      'ck_auth_login_requests_code_deadline',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000019', {
-        code_expires_at: new Date('2026-09-05T00:11:00Z')
-      })
-    ],
-    [
-      'ck_auth_login_requests_launch_hash_length',
-      loginRequest('created', '30000000-0000-4000-8000-000000000020', {
-        launch_ticket_hash: Buffer.alloc(31)
-      })
-    ],
-    [
-      'ck_auth_login_requests_state_hash_length',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000021', {
-        state_hash: Buffer.alloc(31)
-      })
-    ],
-    [
-      'ck_auth_login_requests_browser_hash_length',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000022', {
-        browser_binding_hash: Buffer.alloc(31)
-      })
-    ],
-    [
-      'ck_auth_login_requests_nonce_hash_length',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000023', {
-        oidc_nonce_hash: Buffer.alloc(31)
-      })
-    ],
-    [
-      'ck_auth_login_requests_exchange_hash_length',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000024', {
-        exchange_code_hash: Buffer.alloc(31)
-      })
-    ],
-    [
-      'ck_auth_login_requests_config_nonempty',
-      loginRequest('created', '30000000-0000-4000-8000-000000000025', {
-        provider_config_version: ''
-      })
-    ],
-    [
-      'ck_auth_login_requests_return_target_nonempty',
-      loginRequest('created', '30000000-0000-4000-8000-000000000026', { return_target_id: '' })
-    ],
-    [
-      'ck_auth_login_requests_browser_started_fields',
-      loginRequest('browser_started', '30000000-0000-4000-8000-000000000030', { method: null })
-    ],
-    [
-      'ck_auth_login_requests_processing_fields',
-      loginRequest('processing', '30000000-0000-4000-8000-000000000031', { method: null })
-    ],
-    [
-      'ck_auth_login_requests_exchange_ready_fields',
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000032', {
-        verified_subject: null
-      })
-    ],
-    [
-      'ck_auth_login_requests_consumed_fields',
-      loginRequest('consumed', '30000000-0000-4000-8000-000000000033', { consumed_at: null })
-    ]
-  ]
-  for (const [constraint, request] of invalidRequests) {
-    await rejectConstraint(dataSource, constraint, (queryRunner) =>
-      insertLogin(queryRunner, request)
-    )
+    ['ck_passkey_request_status', loginRequest('processing', randomUUID())]
+  ]) {
+    await rejectConstraint(dataSource, constraint, (runner) => insertLogin(runner, row))
   }
-
-  await rejectConstraint(dataSource, 'uq_auth_login_requests_launch_ticket_hash', (queryRunner) =>
-    insertLogin(queryRunner, loginRequest('created', '30000000-0000-4000-8000-000000000027'))
-  )
-  await rejectConstraint(dataSource, 'uq_auth_login_requests_state_hash', (queryRunner) =>
-    insertLogin(
-      queryRunner,
-      loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000028', {
-        state_hash: hash(12)
-      })
-    )
-  )
-  await rejectConstraint(dataSource, 'uq_auth_login_requests_exchange_code_hash', (queryRunner) =>
-    insertLogin(queryRunner, loginRequest('exchange_ready', '30000000-0000-4000-8000-000000000029'))
-  )
 
   await dataSource.query('DELETE FROM "users" WHERE id = $1', [userId])
   const cascadeCountsSql = `

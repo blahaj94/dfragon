@@ -32,7 +32,12 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
   let app
   try {
     mark('existing JSONB migration backfill and nullable duplicate names')
-    await source.undoLastMigration({ transaction: 'all' })
+    // Exercise this migration even when later unrelated migrations exist.
+    const migration = source.migrations.find(
+      (m) => m.name === 'AddCharacterAdventureName1789564164377'
+    )
+    assert(migration)
+    await source.transaction((manager) => migration.down(manager.queryRunner))
     for (const [i, id] of ids.entries()) {
       await source.query(
         'INSERT INTO characters (character_id, server_id, created_at, updated_at) VALUES ($1,$2,clock_timestamp(),clock_timestamp())',
@@ -60,8 +65,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     }
     const before = await bodies()
     const charactersBefore = await snapshot()
-    const applied = await source.runMigrations({ transaction: 'all' })
-    assert.equal(applied.length, 1)
+    await source.transaction((manager) => migration.up(manager.queryRunner))
     assert.deepEqual(await bodies(), before)
     const characters = await snapshot()
     assert.deepEqual(

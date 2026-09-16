@@ -5,7 +5,6 @@ import { clearTimeout, setTimeout } from 'node:timers'
 import { DataSource } from 'typeorm'
 import { NestFactory } from '@nestjs/core'
 import { Module } from '@nestjs/common'
-import { jwksUri, tokenEndpoint } from './google-fixtures.mjs'
 
 // Test child의 --import에만 지정하며 제품 entry는 이 module을 import하지 않는다.
 const fault = process.env.LDB_TEST_RUNTIME_FAULT
@@ -151,16 +150,10 @@ NestFactory.create = async (...args) => {
 const nativeFetch = fetch
 globalThis.fetch = (input, options) => {
   const url = new URL(input)
-  const isTokenRequest = url.href === tokenEndpoint
-  const isKeysRequest = url.href === jwksUri
-  const isGoogleRequest = isTokenRequest || isKeysRequest
-  const isNeopleRequest = url.origin === 'https://api.neople.co.kr'
-  const isExpectedOutboundRequest = isGoogleRequest || isNeopleRequest
-  // 정의하지 않은 외부 연결은 거절한다. Test transport만 loopback URL에 대응시킨다.
-  assert(isExpectedOutboundRequest, 'unexpected outbound request in runtime test')
-  if (isGoogleRequest) {
-    const path = isTokenRequest ? '/token' : '/certs'
-    return nativeFetch(`${process.env.LDB_TEST_GOOGLE_ORIGIN}${path}`, options)
-  }
+  assert.equal(
+    url.origin,
+    'https://api.neople.co.kr',
+    'unexpected outbound request in runtime test'
+  )
   return nativeFetch(`${process.env.LDB_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`, options)
 }

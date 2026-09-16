@@ -66,7 +66,7 @@ export async function smoke(
     createCaptureActions({ window, coordinator, completeLogin })
 
   console.log('Capture fixture step: guest-and-sandbox')
-  await until(() => hasText('Google로 계속하기'))
+  await until(() => hasText('패스키로 계속하기'))
   assert.equal(await evaluate(sandboxInspectionSource), true)
   assert.equal(await evaluate(sourcePresenceInspection), true)
   assert.equal(await evaluate(installObservation), true)
@@ -123,7 +123,7 @@ export async function smoke(
   console.log('Capture fixture step: login-and-logout-preserve-capture')
   await enterHome()
   await click('이 기기 로그아웃')
-  await until(() => hasText('Google로 계속하기'))
+  await until(() => hasText('패스키로 계속하기'))
   assert.equal((await observe()).ended, false)
   assert.equal((await observe()).terminated, 0)
   assert.equal(await hasText('슬롯 1: ALICE'), true)

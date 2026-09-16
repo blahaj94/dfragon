@@ -128,10 +128,9 @@ export function ApiAuthorize() {
       description: '로그인 요청의 browserUrl에 포함된 일회용 값'
     }),
     ApiResponse({
-      status: 303,
-      description: '등록된 provider 로그인 화면으로 이동',
+      status: 200,
+      description: '패스키 가입·로그인 HTML',
       headers: {
-        Location: { schema: { type: 'string', format: 'uri' } },
         'Set-Cookie': {
           schema: { type: 'string' },
           description: 'Secure·HttpOnly 브라우저 바인딩 쿠키'
@@ -139,42 +138,6 @@ export function ApiAuthorize() {
       }
     }),
     errors({ 400: 'LOGIN_REQUEST_INVALID', ...authFailures }, true)
-  )
-}
-
-export function ApiCallback(provider: string) {
-  return applyDecorators(
-    ApiOperation({
-      summary: `${provider} 로그인 콜백`,
-      description:
-        'Provider가 브라우저를 되돌리는 경로입니다. state 하나와 code 또는 error 중 정확히 하나, 로그인 시작 때 설정된 바인딩 쿠키가 필요합니다. 완료 HTML에서 앱으로 돌아간 뒤 /auth/exchange를 호출합니다. 기본 runtime은 Google만 활성화합니다.'
-    }),
-    ApiQuery({ name: 'state', required: true, type: String }),
-    ApiQuery({
-      name: 'code',
-      required: false,
-      type: String,
-      description: 'provider code (error와 동시 전달 불가)'
-    }),
-    ApiQuery({
-      name: 'error',
-      required: false,
-      type: String,
-      description: 'provider 오류 (code와 동시 전달 불가)'
-    }),
-    ApiResponse({
-      status: 200,
-      description: '앱 복귀 버튼이 있는 완료 HTML',
-      content: { 'text/html': { schema: { type: 'string' } } }
-    }),
-    errors(
-      {
-        400: 'LOGIN_REQUEST_INVALID / LOGIN_CANCELLED',
-        502: 'AUTH_PROVIDER_ERROR',
-        ...authFailures
-      },
-      true
-    )
   )
 }
 

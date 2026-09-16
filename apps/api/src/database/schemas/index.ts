@@ -1,3 +1,4 @@
+import { PasskeySchema } from './passkeys.js'
 import { UserSchema } from './users.js'
 import { AuthSessionSchema } from './auth-sessions.js'
 import { AuthRefreshTokenSchema } from './auth-refresh-tokens.js'
@@ -10,6 +11,7 @@ import { SkillCatalogSchema } from './skill-catalog.js'
 
 export const authSchemas = [
   UserSchema,
+  PasskeySchema,
   AuthSessionSchema,
   AuthRefreshTokenSchema,
   AuthLoginRequestSchema

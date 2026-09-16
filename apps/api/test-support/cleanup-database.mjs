@@ -8,7 +8,6 @@ import { databaseNow, instrument } from './login-test-control.mjs'
 import { fixture, digest, stored, setDeadline, rejected } from './refresh-fixtures.mjs'
 import { logoutSession } from '../dist/auth/logout/index.js'
 import { assertCleanupSessionConcurrency } from './cleanup-session-concurrency.mjs'
-import { assertCleanupOAuthConcurrency } from './cleanup-oauth-concurrency.mjs'
 
 async function eligibleRows(source, cleanup) {
   const active = await fixture(source)
@@ -30,20 +29,13 @@ async function eligibleRows(source, cleanup) {
   const expired = await fixture(source)
   await setDeadline(source, expired.initial.session.id, now)
   const requestCases = []
-  for (const status of [
-    'created',
-    'browser_started',
-    'processing',
-    'exchange_ready',
-    'consumed',
-    'failed'
-  ]) {
+  for (const status of ['created', 'browser_started', 'exchange_ready', 'consumed', 'failed']) {
     for (const expiredRequest of [false, true]) {
       const request = loginRequest(status, randomUUID(), {
         created_at: new Date(now.getTime() - (expiredRequest ? 600_000 : 60_000)),
         expires_at: expiredRequest ? now : new Date(now.getTime() + 540_000)
       })
-      for (const field of ['launch_ticket_hash', 'state_hash', 'exchange_code_hash']) {
+      for (const field of ['launch_ticket_hash', 'exchange_code_hash']) {
         const hasHash = request[field] != null
         if (hasHash) {
           request[field] = randomBytes(32)
@@ -219,6 +211,5 @@ export async function assertAuthenticationCleanup(source, configuration, mark) {
     await run()
   }
   const sessions = await assertCleanupSessionConcurrency(source, cleanupAuthentication, mark)
-  const oauth = await assertCleanupOAuthConcurrency(source, cleanupAuthentication, mark)
-  return cases.length + sessions + oauth
+  return cases.length + sessions
 }

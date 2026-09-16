@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
+import { generateKeyPairSync } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
@@ -8,12 +8,9 @@ import { join } from 'node:path'
 import process from 'node:process'
 import { clearTimeout, setTimeout } from 'node:timers'
 import { setTimeout as delay } from 'node:timers/promises'
-import { registration } from './login-fixtures.mjs'
-import { jwksUri, tokenEndpoint } from './google-fixtures.mjs'
 
 export function authenticationConfiguration() {
   const keys = generateKeyPairSync('ec', { namedCurve: 'P-256' })
-  const snapshot = registration()
   return {
     accessJwt: {
       issuer: 'https://issuer.test.invalid',
@@ -29,24 +26,11 @@ export function authenticationConfiguration() {
         }
       ]
     },
-    providerPkce: {
-      activeKeyId: 'runtime-test-pkce',
-      keys: [{ id: 'runtime-test-pkce', key: randomBytes(32).toString('base64url') }]
-    },
-    registry: {
+    passkey: {
       apiOrigin: 'https://api.test.invalid',
-      activeVersions: { google: snapshot.version },
-      registrations: [snapshot]
-    },
-    google: {
-      registrations: [{ version: snapshot.version, tokenEndpoint, jwksUri }],
-      secrets: [
-        {
-          version: snapshot.version,
-          reference: snapshot.providerSecretRef,
-          value: 'fixture-client-secret'
-        }
-      ]
+      rpId: 'api.test.invalid',
+      rpName: 'LDB test',
+      returnUrl: 'ldb.dev://auth/callback'
     }
   }
 }
@@ -93,7 +77,6 @@ export function startRuntime(
     ...environment,
     LDB_TEST_RUNTIME_FAULT: fault,
     LDB_TEST_RUNTIME_DATABASE: realDatabase ? 'real' : 'fake',
-    LDB_TEST_GOOGLE_ORIGIN: upstreams.google ?? '',
     LDB_TEST_NEOPLE_ORIGIN: upstreams.neople ?? ''
   }
   const child = spawn(

@@ -64,7 +64,7 @@ const nativeRuntimePathSemantics: RuntimePathSemantics = {
 }
 
 function isAuthProvider(value: string): value is AuthProvider {
-  const isSupported = value === 'google'
+  const isSupported = value === 'passkey'
 
   return isSupported
 }

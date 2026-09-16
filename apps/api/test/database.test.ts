@@ -256,6 +256,7 @@ test('database options register typed auth and character schemas before migratio
       .sort(),
     [
       'auth_login_requests',
+      'auth_passkeys',
       'auth_refresh_tokens',
       'auth_sessions',
       'character_api_responses',

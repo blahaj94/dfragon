@@ -31,13 +31,13 @@ describe('macOS adapter와 기존 coordinator writer 경계', () => {
     const flushing = deferred()
     fixture.waits.set('sync:credential-temp', [flushing.promise])
     await coordinator.start()
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     const returning = coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     await vi.waitFor(() => expect(fixture.events).toContain('sync:credential-temp'))
 
     await coordinator.cancelLogin(ATTEMPT_ID)
-    expect(await coordinator.beginLogin('google')).toMatchObject({
+    expect(await coordinator.beginLogin('passkey')).toMatchObject({
       ok: false,
       error: { code: 'AUTH_BUSY' }
     })
@@ -50,7 +50,7 @@ describe('macOS adapter와 기존 coordinator writer 경계', () => {
     })
     expect(await fixture.createStore().inspect()).toEqual({ status: 'empty' })
     expect(harness.http.logout).toHaveBeenCalledTimes(1)
-    expect(await coordinator.beginLogin('google')).toMatchObject({ ok: true })
+    expect(await coordinator.beginLogin('passkey')).toMatchObject({ ok: true })
   })
 
   it('exchange 취소 뒤 늦은 성공은 adapter에 쓰지 않고 알려진 token만 폐기한다', async () => {
@@ -59,7 +59,7 @@ describe('macOS adapter와 기존 coordinator writer 경계', () => {
     harness.http.exchange.mockReturnValueOnce(response.promise)
     const coordinator = createAuthCoordinator({ ...harness.dependencies, store: fixture.store })
     await coordinator.start()
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     const returning = coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     await vi.waitFor(() => expect(harness.http.exchange).toHaveBeenCalledTimes(1))

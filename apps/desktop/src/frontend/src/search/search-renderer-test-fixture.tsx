@@ -166,6 +166,7 @@ export function createRendererFixture(): RendererFixture {
     beginLogin: vi.fn(),
     cancelLogin: vi.fn(),
     retryAuth: vi.fn(),
+    managePasskeys: vi.fn(),
     logout: vi.fn()
   }
   Object.defineProperty(window, 'api', { configurable: true, value: capture })

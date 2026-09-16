@@ -193,6 +193,8 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
               return api.cancelLogin({ attemptId: intent.attemptId })
             case 'retryAuth':
               return api.retryAuth()
+            case 'managePasskeys':
+              return api.managePasskeys()
             case 'logout':
               return api.logout()
           }

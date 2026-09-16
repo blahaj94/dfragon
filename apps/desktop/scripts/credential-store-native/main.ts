@@ -37,7 +37,7 @@ async function run(): Promise<void> {
     applyAuthRuntimeProfile(app, {
       ...context,
       returnTarget: 'ldb-credential-test://auth/callback',
-      providers: ['google'],
+      providers: ['passkey'],
       appIdentity: appName,
       userDataPath: profile
     })

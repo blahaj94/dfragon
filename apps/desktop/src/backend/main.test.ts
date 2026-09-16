@@ -205,7 +205,7 @@ it.each([false, true])(
       apiOrigin: 'https://localhost:3443',
       returnTarget: 'ldb.dev://auth/callback',
       environment: 'development',
-      providers: ['google'],
+      providers: ['passkey'],
       appIdentity: 'ldb.dev',
       userDataPath: join(appData, 'ldb.dev')
     })
@@ -270,7 +270,7 @@ function stubTrustedRuntimeEnvironment(): void {
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
 }
@@ -337,7 +337,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
   vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
@@ -345,7 +345,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     apiOrigin: 'https://api.synthetic.test',
     returnTarget: 'ldb-synthetic://auth/return',
     environment: 'test',
-    providers: ['google'] as const,
+    providers: ['passkey'] as const,
     appIdentity: 'com.synthetic.ldb',
     userDataPath: syntheticProfilePath
   })
@@ -947,7 +947,7 @@ it('profile owner의 activate 재구성 예외는 event 밖으로 던지지 않�
   expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
 })
 
-it('does not activate product auth for the unresolved Discord provider gate', async () => {
+it('does not activate product auth for the unsupported OAuth provider', async () => {
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
@@ -978,7 +978,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', userDataPath)
   const runtimeConfigModule = await import('./auth/runtime-config')
@@ -1040,7 +1040,7 @@ it('single-instance loser는 auth/store/window 초기화 없이 종료한다', a
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
   mocks.createIngress.mockReturnValue({
@@ -1313,7 +1313,7 @@ it('URL 없는 second-instance는 기존 창을 표시하고 focus한다', async
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
 
@@ -1482,7 +1482,7 @@ it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runti
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
   vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
@@ -1519,7 +1519,7 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
   vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
   vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'google')
+  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
   vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
 

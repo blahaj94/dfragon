@@ -7,7 +7,7 @@ interface ErrorDefinition {
   message: string
 }
 interface AuthConstants {
-  AUTH_PROVIDERS: { GOOGLE: 'google'; DISCORD: 'discord' }
+  AUTH_PROVIDERS: { PASSKEY: 'passkey' }
   AUTH_ERRORS: { INTERNAL: ErrorDefinition; UNAVAILABLE: ErrorDefinition }
   INITIAL_NICKNAME: { prefix: string; digits: number }
   REFRESH_TOKEN: { byteLength: number; encoding: string; hashAlgorithm: string }
@@ -18,7 +18,7 @@ async function constants(): Promise<AuthConstants> {
 
 test('auth constants preserve approved provider nickname and refresh values', async () => {
   const values = await constants()
-  assert.deepEqual(values.AUTH_PROVIDERS, { GOOGLE: 'google', DISCORD: 'discord' })
+  assert.deepEqual(values.AUTH_PROVIDERS, { PASSKEY: 'passkey' })
   assert.deepEqual(values.INITIAL_NICKNAME, { prefix: '모험가', digits: 6 })
   assert.deepEqual(values.REFRESH_TOKEN, {
     byteLength: 32,

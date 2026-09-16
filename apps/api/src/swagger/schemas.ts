@@ -103,8 +103,8 @@ export const apiSchemas: Record<string, SchemaObject> = {
   LoginRequest: object({
     provider: {
       type: 'string',
-      enum: ['google', 'discord'],
-      description: '기본 runtime은 Google만 등록합니다. Discord는 현재 사용할 수 없습니다.'
+      enum: ['passkey'],
+      description: '패스키만 지원합니다.'
     },
     clientId: { type: 'string', enum: ['desktop'] },
     codeChallenge: opaque,

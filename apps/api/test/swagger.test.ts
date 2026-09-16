@@ -10,7 +10,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
     throw new Error('documentation must not call services')
   }
   const app = await createLoginHttpApp(
-    { create: unused, exchange: unused, authorize: unused, callback: unused },
+    { create: unused, exchange: unused, authorize: unused, manage: unused, browser: unused },
     { refresh: unused, logout: unused },
     { dataSource: new DataSource({ type: 'postgres' }), verifyAccessJwt: unused },
     { apiKey: 'documentation-fixture', searchCharacters: unused },
@@ -41,8 +41,10 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
         'post /auth/refresh',
         'post /auth/logout',
         'get /auth/login/authorize',
-        'get /auth/callback/google',
-        'get /auth/callback/discord',
+        'get /auth/passkeys/manage',
+        'get /auth/passkeys/client.css',
+        'get /auth/passkeys/client.js',
+        'post /auth/passkeys/{action}',
         'get /me',
         'patch /me/nickname',
         'get /characters',
@@ -66,7 +68,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
       Object.hasOwn(document.paths['/auth/logout'].post!.responses['204']!, 'content'),
       false
     )
-    assert.ok(document.paths['/auth/callback/google'].get!.responses['200'])
+    assert.ok(document.paths['/auth/login/authorize'].get!.responses['200'])
     // 수동으로 기술한 request/response model을 포함해 모든 참조가 연결되어야 합니다.
     const refs = JSON.stringify(document).matchAll(/"\$ref":"#\/components\/schemas\/([^"/]+)"/g)
     for (const [, name] of refs) {
@@ -90,7 +92,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
         assert.match(content, /"validatorUrl": null/)
       }
     }
-    for (const path of ['/auth/login/authorize', '/auth/callback/google']) {
+    for (const path of ['/auth/login/authorize']) {
       const login = await fetch(`${origin}${path}`)
       assert.equal(login.status, 400)
       assert.equal(login.headers.get('content-security-policy'), LOGIN.contentSecurityPolicy)

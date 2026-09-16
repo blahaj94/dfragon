@@ -354,7 +354,7 @@ describe('capture main document and source boundary', () => {
     const operation = fixture.invoke('listCaptureSources')
     await Promise.resolve()
     await fixture.auth.logout()
-    await fixture.auth.beginLogin('google')
+    await fixture.auth.beginLogin('passkey')
     await vi.waitFor(() => expect(fixture.auth.getSnapshot().phase).toBe('waitingBrowser'))
     await fixture.auth.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     expect(fixture.auth.getSnapshot().phase).toBe('signedIn')

@@ -46,7 +46,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
     '/auth/refresh',
     '/auth/logout'
   ].includes(path)
-  const isAuthPost = isPost && isAuthJsonPath
+  const isAuthPost = isPost && (isAuthJsonPath || path.startsWith('/auth/passkeys/'))
   const isPatch = request.method === 'PATCH'
   const isNicknamePath = path === '/me/nickname'
   const isNicknamePatch = isPatch && isNicknamePath

@@ -13,9 +13,8 @@ import {
 } from './runtime-fixtures.mjs'
 
 const localConfiguration = authenticationConfiguration()
-localConfiguration.registry.apiOrigin = 'https://localhost:3443'
-localConfiguration.registry.registrations[0].callbackUrl =
-  'https://localhost:3443/auth/callback/google'
+localConfiguration.passkey.apiOrigin = 'https://localhost:3443'
+localConfiguration.passkey.rpId = 'localhost'
 
 test('local HTTPS rejects incomplete, empty, relative, unreadable and invalid TLS inputs', async (t) => {
   await withRuntimeConfiguration(async ({ path }) => {

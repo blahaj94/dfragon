@@ -1,4 +1,4 @@
-export type AuthProvider = 'google' | 'discord'
+export type AuthProvider = 'passkey'
 
 export type AuthPhase =
   | 'signedOut'
@@ -174,6 +174,7 @@ export interface AuthCoordinator {
   getSnapshot(): AuthSnapshot
   subscribe(listener: (snapshot: AuthSnapshot) => void): () => void
   start(): Promise<AuthSnapshot>
+  managePasskeys(): Promise<AuthCommandResult>
   beginLogin(provider: unknown): Promise<AuthCommandResult>
   cancelLogin(attemptId: unknown): Promise<AuthCommandResult>
   handleReturnUrl(raw: unknown, onClaimed?: () => Promise<void> | void): Promise<void>

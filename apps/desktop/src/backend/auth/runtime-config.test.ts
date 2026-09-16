@@ -35,7 +35,7 @@ const validEnvironment = {
   LDB_AUTH_API_ORIGIN: 'https://api.synthetic.test',
   LDB_AUTH_RETURN_TARGET: 'ldb-synthetic://auth/return',
   LDB_AUTH_ENVIRONMENT: 'test',
-  LDB_AUTH_PROVIDERS: 'google',
+  LDB_AUTH_PROVIDERS: 'passkey',
   LDB_AUTH_APP_IDENTITY: 'com.synthetic.ldb',
   LDB_AUTH_USER_DATA_PATH: '/synthetic/ldb-test-profile'
 }
@@ -138,7 +138,7 @@ describe('desktop auth runtime config', () => {
       apiOrigin: 'https://api.synthetic.test',
       returnTarget: 'ldb-synthetic://auth/return',
       environment: 'test',
-      providers: ['google'],
+      providers: ['passkey'],
       appIdentity: 'com.synthetic.ldb',
       userDataPath: '/synthetic/ldb-test-profile'
     })
@@ -250,7 +250,7 @@ describe('desktop auth runtime config', () => {
         apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
         returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
         environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
-        providers: ['google'],
+        providers: ['passkey'],
         appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
         userDataPath: path
       }
@@ -601,7 +601,7 @@ describe('desktop auth runtime config', () => {
         apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
         returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
         environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
-        providers: ['google'],
+        providers: ['passkey'],
         appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
         userDataPath: path
       }
@@ -649,7 +649,7 @@ describe('desktop auth runtime config', () => {
         apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
         returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
         environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
-        providers: ['google'],
+        providers: ['passkey'],
         appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
         userDataPath: path
       }

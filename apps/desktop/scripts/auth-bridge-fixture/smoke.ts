@@ -65,7 +65,7 @@ export async function smoke(
   }
 
   console.log('Auth bridge fixture step: initial')
-  await until(() => textIncludes('Google로 계속하기'))
+  await until(() => textIncludes('패스키로 계속하기'))
   assert.deepEqual(await evaluate('Object.keys(window.auth).sort()'), [
     'beginLogin',
     'cancelLogin',
@@ -85,7 +85,7 @@ export async function smoke(
     'window.fixtureEvents = []; window.fixtureOff = window.auth.onAuthStateChanged((...args) => window.fixtureEvents.push(args)); true'
   )
   console.log('Auth bridge fixture step: begin-cancel')
-  await click('Google로 계속하기')
+  await click('패스키로 계속하기')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
     return isWaitingBrowser
@@ -108,7 +108,7 @@ export async function smoke(
   await until(() => textIncludes('로그인을 취소했습니다'))
   await evaluate('window.fixtureOff(); window.fixtureEvents = []')
   console.log('Auth bridge fixture step: unsubscribe-reload')
-  await click('Discord로 계속하기')
+  await click('패스키로 계속하기')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
     return isWaitingBrowser
@@ -144,7 +144,7 @@ export async function smoke(
   await click('시작하기')
   await until(() => textIncludes('화면 캡처'))
   await click('이 기기 로그아웃')
-  await until(() => textIncludes('Google로 계속하기'))
+  await until(() => textIncludes('패스키로 계속하기'))
   assert.equal((await state()).phase, 'signedOut')
   assert.deepEqual(effects.counts, { browser: 2, exchange: 1, logout: 1, commit: 1 })
 }

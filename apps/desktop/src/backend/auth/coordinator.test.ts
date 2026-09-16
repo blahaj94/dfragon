@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createAuthCoordinator } from './coordinator'
 import { AuthHttpFailure } from './http'
 import {
+  API_ORIGIN,
   ACCESS_1,
   ACCESS_2,
   ATTEMPT_ID,
@@ -32,7 +33,7 @@ async function waitForPhase(
 async function beginWaitingLogin(
   coordinator: ReturnType<typeof createAuthCoordinator>
 ): Promise<void> {
-  const result = await coordinator.beginLogin('google')
+  const result = await coordinator.beginLogin('passkey')
   expect(result).toMatchObject({ ok: true, snapshot: { phase: 'startingLogin' } })
   await waitForPhase(coordinator, 'waitingBrowser')
 }
@@ -63,7 +64,7 @@ describe('Desktop AuthCoordinator login', () => {
       runId: expect.any(String),
       revision: 1,
       phase: 'signedOut',
-      providers: ['google', 'discord'],
+      providers: ['passkey'],
       login: null,
       user: null,
       entry: null,
@@ -94,11 +95,11 @@ describe('Desktop AuthCoordinator login', () => {
     ])
     const copy = getSnapshot()
     Reflect.set(copy, 'phase', 'signedIn')
-    Reflect.set(copy.providers, '0', 'discord')
+    Reflect.set(copy.providers, '0', 'passkey')
     expect(getSnapshot()).toMatchObject({
       revision: revision + 2,
       phase: 'signedOut',
-      providers: ['google', 'discord']
+      providers: ['passkey']
     })
     unsubscribe()
     await coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
@@ -118,7 +119,7 @@ describe('Desktop AuthCoordinator login', () => {
       }
     })
 
-    const result = await coordinator.beginLogin('google')
+    const result = await coordinator.beginLogin('passkey')
 
     expect(result).toMatchObject({
       ok: true,
@@ -150,7 +151,7 @@ describe('Desktop AuthCoordinator login', () => {
       const readClock = vi.spyOn(harness.clock, 'read')
       readClock.mockReturnValueOnce(startedAt).mockReturnValueOnce(checkedAt)
 
-      const result = await coordinator.beginLogin('google')
+      const result = await coordinator.beginLogin('passkey')
 
       expect(result.snapshot).toMatchObject({
         phase: 'signedOut',
@@ -193,7 +194,7 @@ describe('Desktop AuthCoordinator login', () => {
       readClock.mockReturnValueOnce(advanced).mockReturnValue(reversed)
     }
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await settle()
     if (isCallback) {
       expect(coordinator.getSnapshot().phase).toBe('waitingBrowser')
@@ -260,7 +261,7 @@ describe('Desktop AuthCoordinator login', () => {
     const readClock = vi.spyOn(harness.clock, 'read')
     readClock.mockReturnValueOnce({ ...normalReading, discontinuous: true })
 
-    const result = await coordinator.beginLogin('google')
+    const result = await coordinator.beginLogin('passkey')
     await settle()
 
     expect(result.snapshot).toMatchObject({
@@ -315,7 +316,7 @@ describe('Desktop AuthCoordinator login', () => {
         .mockReturnValueOnce(normalReading)
         .mockReturnValueOnce(expiredReading)
 
-      await coordinator.beginLogin('google')
+      await coordinator.beginLogin('passkey')
       await settle()
 
       expect(coordinator.getSnapshot()).toMatchObject({
@@ -352,7 +353,7 @@ describe('Desktop AuthCoordinator login', () => {
       })
       const unsubscribe = coordinator.subscribe(listener)
 
-      await coordinator.beginLogin('google')
+      await coordinator.beginLogin('passkey')
       await settle()
 
       expect(coordinator.getSnapshot()).toMatchObject({
@@ -395,7 +396,7 @@ describe('Desktop AuthCoordinator login', () => {
     expect(harness.http.createLoginRequest).toHaveBeenCalledTimes(1)
     expect(harness.http.createLoginRequest).toHaveBeenCalledWith(
       {
-        provider: 'google',
+        provider: 'passkey',
         clientId: 'desktop',
         codeChallenge: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
         codeChallengeMethod: 'S256'
@@ -407,7 +408,7 @@ describe('Desktop AuthCoordinator login', () => {
       phase: 'waitingBrowser',
       login: {
         attemptId: ATTEMPT_ID,
-        provider: 'google',
+        provider: 'passkey',
         expiresAt: '2026-09-06T12:10:00.000Z'
       }
     })
@@ -835,7 +836,7 @@ describe('Desktop AuthCoordinator login', () => {
     const coordinator = createAuthCoordinator(harness.dependencies)
     await coordinator.start()
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await coordinator.cancelLogin(ATTEMPT_ID)
     creation.resolve({
       requestId: REQUEST_ID,
@@ -907,7 +908,7 @@ describe('Desktop AuthCoordinator login', () => {
       if (isExchanging) {
         unsubscribe()
         commands.push(coordinator.cancelLogin(ATTEMPT_ID))
-        commands.push(coordinator.beginLogin('discord'))
+        commands.push(coordinator.beginLogin('passkey'))
       }
     })
 
@@ -918,7 +919,7 @@ describe('Desktop AuthCoordinator login', () => {
     await waitForPhase(coordinator, 'waitingBrowser')
     expect(coordinator.getSnapshot().login).toMatchObject({
       attemptId: NEXT_ATTEMPT_ID,
-      provider: 'discord'
+      provider: 'passkey'
     })
     expect(harness.http.exchange).not.toHaveBeenCalled()
     expect(harness.store.establishTransition).not.toHaveBeenCalled()
@@ -943,7 +944,7 @@ describe('Desktop AuthCoordinator login', () => {
       expect(harness.http.exchange).toHaveBeenCalledTimes(1)
     })
     await coordinator.cancelLogin(ATTEMPT_ID)
-    await expect(coordinator.beginLogin('google')).resolves.toMatchObject({
+    await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
       ok: false,
       error: { code: 'AUTH_BUSY' }
     })
@@ -1171,10 +1172,10 @@ describe('Desktop AuthCoordinator login', () => {
     const revisions: number[] = []
     coordinator.subscribe((snapshot) => revisions.push(snapshot.revision))
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(harness.http.createLoginRequest).toHaveBeenCalledTimes(1))
     await coordinator.cancelLogin(ATTEMPT_ID)
-    await coordinator.beginLogin('discord')
+    await coordinator.beginLogin('passkey')
     await waitForPhase(coordinator, 'waitingBrowser')
     const newAttemptRevision = coordinator.getSnapshot().revision
 
@@ -1188,7 +1189,7 @@ describe('Desktop AuthCoordinator login', () => {
     expect(coordinator.getSnapshot()).toMatchObject({
       revision: newAttemptRevision,
       phase: 'waitingBrowser',
-      login: { attemptId: NEXT_ATTEMPT_ID, provider: 'discord' }
+      login: { attemptId: NEXT_ATTEMPT_ID, provider: 'passkey' }
     })
     expect(harness.browser.open).toHaveBeenCalledTimes(1)
     const revisionsIncrease = revisions.every((value, index) => {
@@ -1211,11 +1212,11 @@ describe('Desktop AuthCoordinator login', () => {
     harness.store.inspection = { status: 'recovery-required' }
     harness.store.clearWaits.push(clear.promise)
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(harness.store.clearCredential).toHaveBeenCalledTimes(1))
     await coordinator.cancelLogin(ATTEMPT_ID)
 
-    await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+    await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
       ok: false,
       error: { code: 'AUTH_BUSY' }
     })
@@ -1223,7 +1224,7 @@ describe('Desktop AuthCoordinator login', () => {
 
     clear.resolve('confirmed')
     await vi.waitFor(() => expect(harness.store.transitionMarker).toBeNull())
-    await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+    await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
       ok: true,
       snapshot: { phase: 'startingLogin' }
     })
@@ -1241,7 +1242,7 @@ describe('Desktop AuthCoordinator login', () => {
       harness.store.inspection = { status: 'recovery-required' }
       const clear = deferred<'failed' | 'unknown'>()
       harness.store.clearWaits.push(clear.promise)
-      await coordinator.beginLogin('google')
+      await coordinator.beginLogin('passkey')
       await vi.waitFor(() => expect(harness.store.clearCredential).toHaveBeenCalledTimes(1))
 
       const isCancelled = invalidation === 'cancel'
@@ -1529,7 +1530,7 @@ describe('Desktop AuthCoordinator login', () => {
       if (isCancelled) {
         await coordinator.cancelLogin(ATTEMPT_ID)
         // 첫 completion이 새 writer를 해제했다면 signedOut의 새 login이 잘못 허용된다.
-        await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+        await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
           ok: false,
           error: { code: 'AUTH_BUSY' }
         })
@@ -1549,7 +1550,7 @@ describe('Desktop AuthCoordinator login', () => {
         expect(harness.store.clearCredential).toHaveBeenCalledTimes(1)
         disposal.resolve()
         await vi.waitFor(() => expect(harness.store.clearCredential).toHaveBeenCalledTimes(2))
-        await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+        await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
           ok: false,
           error: { code: 'AUTH_BUSY' }
         })
@@ -1587,7 +1588,7 @@ describe('Desktop AuthCoordinator login', () => {
           phase: 'signedOut',
           notice: 'LOGIN_CANCELLED'
         })
-        await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+        await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
           ok: true,
           snapshot: { phase: 'startingLogin', login: { attemptId: NEXT_ATTEMPT_ID } }
         })
@@ -1664,7 +1665,7 @@ describe('Desktop AuthCoordinator login', () => {
         phase: 'signedOut',
         notice: invalidationNotice
       })
-      await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+      await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
         ok: false,
         error: { code: 'AUTH_BUSY' }
       })
@@ -1690,7 +1691,7 @@ describe('Desktop AuthCoordinator login', () => {
       expect(harness.http.logout).not.toHaveBeenCalled()
       expect(harness.store.commitCredential).not.toHaveBeenCalled()
       if (!isLocalClean) {
-        await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+        await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
           ok: false,
           error: { code: 'AUTH_BUSY' }
         })
@@ -1802,7 +1803,7 @@ describe('Desktop AuthCoordinator login', () => {
     harness.browser.open.mockRejectedValueOnce(new Error(`browser ${CODE}`))
     const coordinator = createAuthCoordinator(harness.dependencies)
     await coordinator.start()
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await waitForPhase(coordinator, 'signedOut')
 
     expect(coordinator.getSnapshot()).toMatchObject({
@@ -1823,7 +1824,7 @@ describe('Desktop AuthCoordinator login', () => {
     const coordinator = createAuthCoordinator(harness.dependencies)
     await coordinator.start()
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await waitForPhase(coordinator, 'signedOut')
 
     expect(harness.browser.open).not.toHaveBeenCalled()
@@ -1903,7 +1904,7 @@ describe('Desktop AuthCoordinator login', () => {
       error: { code: 'INVALID_AUTH_COMMAND' }
     })
     await beginWaitingLogin(coordinator)
-    await expect(coordinator.beginLogin('discord')).resolves.toMatchObject({
+    await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
       ok: false,
       error: { code: 'AUTH_BUSY' }
     })
@@ -2610,7 +2611,7 @@ describe('Desktop AuthCoordinator restore, refresh와 logout', () => {
       expect(harness.store.establishTransition.mock.calls).toEqual(
         isWaitingDisposal ? [['refresh']] : [['refresh'], ['clear']]
       )
-      await expect(coordinator.beginLogin('google')).resolves.toMatchObject({
+      await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
         ok: false,
         error: { code: 'AUTH_BUSY' }
       })
@@ -2770,7 +2771,7 @@ describe('Desktop AuthCoordinator restore, refresh와 logout', () => {
       const logout = coordinator.logout()
       expect(coordinator.getSnapshot().phase).toBe('signingOut')
       await expect(coordinator.authorization()).resolves.toEqual({ status: 'unavailable' })
-      await expect(coordinator.beginLogin('google')).resolves.toMatchObject({
+      await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
         ok: false,
         error: { code: 'AUTH_BUSY' }
       })
@@ -2906,5 +2907,22 @@ describe('Desktop AuthCoordinator restore, refresh와 logout', () => {
       phase: 'signedOut',
       notice: 'REAUTH_REQUIRED'
     })
+  })
+})
+
+describe('Desktop passkey management', () => {
+  it('로그인 상태에서만 고정된 관리 주소를 외부 브라우저로 연다', async () => {
+    const harness = createAuthHarness()
+    const coordinator = createAuthCoordinator(harness.dependencies)
+    await coordinator.start()
+    expect((await coordinator.managePasskeys()).ok).toBe(false)
+    expect(harness.dependencies.browser.open).not.toHaveBeenCalled()
+    const signedInHarness = createAuthHarness()
+    const signedIn = createAuthCoordinator(signedInHarness.dependencies)
+    await restoreSignedIn(signedIn, signedInHarness)
+    expect((await signedIn.managePasskeys()).ok).toBe(true)
+    expect(signedInHarness.dependencies.browser.open).toHaveBeenCalledWith(
+      `${API_ORIGIN}/auth/passkeys/manage`
+    )
   })
 })

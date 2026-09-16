@@ -1,5 +1,5 @@
 // Renderer-local input. 실제 DTO adapter·구독·revision 처리는 후속 연결에서 맡는다.
-export type AuthProvider = 'google' | 'discord'
+export type AuthProvider = 'passkey'
 export type AuthPhase =
   | 'signedOut'
   | 'startingLogin'
@@ -40,6 +40,7 @@ export type AuthIntent =
   | { type: 'cancelLogin'; attemptId: string }
   | { type: 'retryAuth' }
   | { type: 'logout' }
+  | { type: 'managePasskeys' }
 
 export interface AuthPresentationProps {
   snapshot: AuthPresentationInput

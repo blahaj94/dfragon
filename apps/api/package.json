@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm run build && pnpm run start",
-    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && esbuild browser/passkeys.ts --bundle --format=iife --target=es2022 --outfile=dist/browser/passkeys.js",
     "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs",
     "test:database": "pnpm run build && node --import reflect-metadata test-support/database-integration.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
@@ -29,6 +29,9 @@
     "@nestjs/platform-express": "12.0.1",
     "@nestjs/swagger": "12.0.1",
     "@nestjs/typeorm": "12.0.1",
+    "@seed-design/css": "2.7.0",
+    "@simplewebauthn/browser": "13.3.0",
+    "@simplewebauthn/server": "13.3.3",
     "jose": "6.2.12",
     "pg": "8.23.0",
     "raw-body": "3.0.2",
@@ -41,6 +44,7 @@
     "@types/express": "5.0.6",
     "@types/node": "24.13.3",
     "@types/pg": "8.23.1",
+    "esbuild": "0.28.2",
     "tar": "7.5.22",
     "typescript": "5.9.3"
   }

@@ -285,7 +285,7 @@ describe('검색의 main authorization 소비 경계', () => {
         expect(auth.captureGeneration()).toBeNull()
         expect(auth.getSnapshot().phase).toBe('signingOut')
         expect(await auth.authorization()).toEqual({ status: 'unavailable' })
-        expect(await auth.beginLogin('google')).toMatchObject({
+        expect(await auth.beginLogin('passkey')).toMatchObject({
           ok: false,
           error: { code: 'AUTH_BUSY' }
         })
@@ -345,7 +345,7 @@ describe('검색의 main authorization 소비 경계', () => {
     const { auth, harness } = await setup()
     const previous = await usedAccess(auth)
     await auth.logout()
-    await auth.beginLogin('google')
+    await auth.beginLogin('passkey')
     await vi.waitFor(() => expect(auth.getSnapshot().phase).toBe('waitingBrowser'))
     await auth.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     const current = auth.getSnapshot()

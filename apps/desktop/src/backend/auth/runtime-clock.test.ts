@@ -41,7 +41,7 @@ function createRuntimeHarness(): RuntimeHarness {
     apiOrigin: harness.dependencies.apiOrigin,
     returnTarget: harness.dependencies.returnTarget,
     environment: 'test',
-    providers: ['google'],
+    providers: ['passkey'],
     appIdentity: 'com.synthetic.ldb',
     userDataPath: '/synthetic/user-data'
   })
@@ -158,7 +158,7 @@ describe('runtime clock and real coordinator', () => {
     const powerMonitor = new EventEmitter()
     const dispose = harness.effects.bindPowerMonitor(powerMonitor)
     await harness.coordinator.start()
-    await harness.coordinator.beginLogin('google')
+    await harness.coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(harness.coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     powerMonitor.emit('suspend')
     powerMonitor.emit('resume')
@@ -171,7 +171,7 @@ describe('runtime clock and real coordinator', () => {
       phase: 'signedOut',
       notice: 'LOGIN_EXPIRED'
     })
-    await harness.coordinator.beginLogin('google')
+    await harness.coordinator.beginLogin('passkey')
     await vi.waitFor(() => expect(harness.coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     const pending = harness.coordinator.getSnapshot().login
     expect(pending).not.toBeNull()

@@ -7,6 +7,7 @@ interface AsyncIPCFunctions {
   beginLogin: (input: { provider: AuthProvider }) => Promise<AuthCommandResult>
   cancelLogin: (input: { attemptId: string }) => Promise<AuthCommandResult>
   retryAuth: () => Promise<AuthCommandResult>
+  managePasskeys: () => Promise<AuthCommandResult>
   logout: () => Promise<AuthCommandResult>
   listCaptureSources: () => Promise<CaptureSource[]>
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>

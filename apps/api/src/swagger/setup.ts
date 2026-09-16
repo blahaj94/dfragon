@@ -7,7 +7,7 @@ export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('LDB API')
     .setDescription(
-      '캐릭터 검색·상세 조회, Desktop 로그인과 계정 API입니다. 검색·상세는 공개 API이며 계정 API는 Bearer access JWT가 필요합니다. JSON 요청은 UTF-8 application/json, 최대 16,384바이트이며 정의되지 않은 필드를 허용하지 않습니다. OAuth는 Desktop의 PKCE와 시스템 브라우저를 통해 진행합니다.'
+      '캐릭터 검색·상세 조회, Desktop 로그인과 계정 API입니다. 검색·상세는 공개 API이며 계정 API는 Bearer access JWT가 필요합니다. JSON 요청은 UTF-8 application/json, 최대 16,384바이트이며 정의되지 않은 필드를 허용하지 않습니다. 패스키 가입·로그인은 시스템 브라우저에서 진행하고 Desktop의 S256 검증으로 앱 세션을 발급합니다.'
     )
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')

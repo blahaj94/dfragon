@@ -48,7 +48,7 @@ it('uses the distribution login origin, protocol and private profile without inh
     apiOrigin: 'https://api.example.test',
     returnTarget: 'ldb://auth/callback',
     environment: 'production',
-    providers: ['google'],
+    providers: ['passkey'],
     appIdentity: 'ldb',
     userDataPath: join(appData, 'ldb')
   })

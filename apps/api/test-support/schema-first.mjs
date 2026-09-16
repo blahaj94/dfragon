@@ -14,7 +14,6 @@ import { UserSchema } from '../dist/database/schemas/users.js'
 import { AuthSessionSchema } from '../dist/database/schemas/auth-sessions.js'
 import { AuthRefreshTokenSchema } from '../dist/database/schemas/auth-refresh-tokens.js'
 import { AuthLoginRequestSchema } from '../dist/database/schemas/auth-login-requests.js'
-import { assertLoginRequestStateMatrix } from './auth-login-request-contract.mjs'
 import {
   assertConstraintBehavior,
   assertSchema,
@@ -57,8 +56,6 @@ async function assertOrmRoundTrip(dataSource) {
     const now = new Date('2026-09-06T00:00:00Z')
     const user = {
       id: randomUUID(),
-      provider: 'google',
-      providerSubject: 'Opaque:CaseSensitive',
       nickname: '테스트',
       createdAt: now
     }
@@ -86,18 +83,15 @@ async function assertOrmRoundTrip(dataSource) {
     await logins.insert({
       id,
       purpose: 'login',
-      provider: 'google',
-      clientId: 'desktop',
-      providerConfigVersion: 'test',
-      returnTargetId: 'test',
+      configuration: 'a'.repeat(64),
+      isNewUser: false,
       createdAt: now,
       expiresAt: new Date(now.getTime() + 60_000),
       status: 'failed'
     })
     const login = await logins.findOneByOrFail({ id })
     assert.equal(login.codeChallenge, null)
-    assert.equal(login.verifiedSubject, null)
-    assert.equal(login.clientId, 'desktop')
+    assert.equal(login.verifiedUserId, null)
     await users.delete({ id: user.id })
     assert.equal(await sessions.countBy({ id: session.id }), 0)
     assert.equal(await tokens.countBy({ sessionId: session.id }), 0)
@@ -145,7 +139,6 @@ export async function assertSchemaFirst(configuration, mark) {
       await assertSchema(source, mark, [new Initial().name])
       assert.deepEqual(await constraintDefinitions(source), originalDefinitions)
       await assertConstraintBehavior(source)
-      await assertLoginRequestStateMatrix(source)
       await assertOrmRoundTrip(source)
     })
     assert.equal(

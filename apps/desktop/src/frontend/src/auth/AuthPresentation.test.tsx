@@ -17,7 +17,7 @@ function snapshot(
 ): AuthPresentationInput {
   return {
     phase,
-    providers: ['google', 'discord'],
+    providers: ['passkey'],
     login: null,
     user: null,
     entry: null,
@@ -28,7 +28,7 @@ function snapshot(
 
 function pending(phase: AuthPhase, attemptId = 'fixture-attempt'): AuthPresentationInput {
   return snapshot(phase, {
-    login: { attemptId, provider: 'google', expiresAt: '2030-01-01T00:10:00Z' }
+    login: { attemptId, provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
   })
 }
 
@@ -72,12 +72,12 @@ async function click(label: string): Promise<void> {
 }
 
 it('shows only enabled providers and emits their exact intent without changing account state', async () => {
-  await render({ input: snapshot('signedOut', { providers: ['discord'] }) })
+  await render({ input: snapshot('signedOut', { providers: ['passkey'] }) })
 
-  expect(labels()).toEqual(['Discord로 계속하기'])
+  expect(labels()).toEqual(['패스키로 계속하기'])
   expect(container.textContent).toContain('같은 이메일')
-  await click('Discord로 계속하기')
-  expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'beginLogin', provider: 'discord' })
+  await click('패스키로 계속하기')
+  expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'beginLogin', provider: 'passkey' })
   expect(container.textContent).not.toContain('화면 캡처')
 })
 
@@ -93,7 +93,7 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
   async (phase) => {
     await render({ input: pending(phase) })
     expect(labels()).toContain('로그인 취소')
-    expect(labels()).not.toContain('Google로 계속하기')
+    expect(labels()).not.toContain('패스키로 계속하기')
     await click('로그인 취소')
     expect(onIntent).toHaveBeenLastCalledWith({ type: 'cancelLogin', attemptId: 'fixture-attempt' })
 
@@ -126,14 +126,14 @@ it('invalid return 새 로그인 cancels then waits for signedOut instead of beg
     type: 'cancelLogin',
     attemptId: 'fixture-attempt'
   })
-  expect(labels()).not.toContain('Google로 계속하기')
+  expect(labels()).not.toContain('패스키로 계속하기')
   await render({ input, commandPending: true })
   await click('새 로그인')
   expect(onIntent).toHaveBeenCalledTimes(1)
 
   await render({ input: snapshot('signedOut', { notice: 'LOGIN_CANCELLED' }) })
-  await click('Google로 계속하기')
-  expect(onIntent).toHaveBeenLastCalledWith({ type: 'beginLogin', provider: 'google' })
+  await click('패스키로 계속하기')
+  expect(onIntent).toHaveBeenLastCalledWith({ type: 'beginLogin', provider: 'passkey' })
 })
 
 it.each(['restoring', 'signingOut'] as const)(
@@ -231,7 +231,7 @@ it('existing home displays account, and logout does not fabricate a snapshot', a
 
   expect(container.textContent).toContain(nickname)
   expect(container.textContent).toContain('내 계정')
-  expect(labels()).toEqual(['이 기기 로그아웃'])
+  expect(labels()).toEqual(['패스키 관리', '이 기기 로그아웃'])
   await click('이 기기 로그아웃')
   expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'logout' })
   expect(container.textContent).toContain(nickname)

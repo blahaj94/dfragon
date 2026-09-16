@@ -309,7 +309,7 @@ export function createAuthHarness(): AuthHarness {
   }
 
   const dependencies: AuthCoordinatorDependencies = {
-    providers: ['google', 'discord'],
+    providers: ['passkey'],
     apiOrigin: API_ORIGIN,
     returnTarget: RETURN_TARGET,
     browser,
