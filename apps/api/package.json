@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "pnpm run build && pnpm run start",
-    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && esbuild browser/passkeys.ts --bundle --format=iife --target=es2022 --outfile=dist/browser/passkeys.js",
+    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
     "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs",
     "test:database": "pnpm run build && node --import reflect-metadata test-support/database-integration.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.test.json",

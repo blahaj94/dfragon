@@ -89,3 +89,5 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 `AddPhoneQrLogin1789601588410`은 schema diff로 생성한 추가 migration이다. 기존 실사용 계정·패스키·세션을 유지하며 과거 OAuth 데이터 초기화를 다시 실행하지 않는다. 배포는 새 API의 migration 적용 → API 업데이트 → Desktop 업데이트 순서다. 이전 Desktop의 직접 패스키 경로도 유지한다.
 
 자동 검증은 별도 PC/phone 브라우저 문맥과 WebAuthn 가상 인증기를 사용한 가입·재로그인, 양쪽 승인, ticket/claim 재사용 차단, 취소·재발급·만료·삭제 키 거부 및 기존 로그인 회귀다. 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
+
+패스키 화면의 문구·구조는 `apps/api/browser/passkeys.html`, 스타일은 같은 폴더의 `passkeys.css`에서 수정한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR 패키지의 라이선스 원문을 JS 번들에 포함한다.

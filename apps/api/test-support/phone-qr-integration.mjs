@@ -51,7 +51,10 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
   }
   const phoneVerify = async (request, operation = 'authenticate') => {
     assert.equal((await phonePage.goto(request.phoneUrl)).status(), 200)
-    assert.equal(await phonePage.locator('#confirmation').textContent(), request.confirmationCode)
+    assert.equal(
+      await phonePage.locator('#phone-confirmation').textContent(),
+      request.confirmationCode
+    )
     await phonePage.locator(`#${operation}`).click()
     await phonePage.locator('#phone-consent').waitFor({ state: 'visible' })
   }

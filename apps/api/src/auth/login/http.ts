@@ -225,7 +225,7 @@ class LoginController {
     const ticket = query.get('ticket')!
     const authorization = await this.service.authorize(ticket)
     response.setHeader('Set-Cookie', authorization.cookie)
-    const page = passkeyPage(authorization)
+    const page = await passkeyPage(authorization)
     response.setHeader('Content-Security-Policy', page.policy)
     response.status(200).type('html').send(page.html)
   }
@@ -251,7 +251,7 @@ class LoginController {
     const ticket = query.get('ticket')!
     const authorization = await this.service.authorize(ticket, 'phone')
     response.setHeader('Set-Cookie', authorization.cookie)
-    const page = passkeyPage(authorization)
+    const page = await passkeyPage(authorization)
     response.setHeader('Content-Security-Policy', page.policy)
     response.status(200).type('html').send(page.html)
   }
@@ -262,7 +262,7 @@ class LoginController {
       throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
     }
     const authorization = await this.service.manage()
-    const page = passkeyPage(authorization)
+    const page = await passkeyPage(authorization)
     response.setHeader('Set-Cookie', authorization.cookie)
     response.setHeader('Content-Security-Policy', page.policy)
     response.status(200).type('html').send(page.html)

@@ -30,11 +30,11 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 ## LDB 휴대폰 QR
 
-PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP의 기존 패스키를 사용하므로 별도 계정 이관이 없다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
+PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, 기존 계정과 별개의 계정이 생김을 안내한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
 
 QR 진입은 ticket을 한 번 소비하고 PC와 다른 요청별 `__Host-ldb-phone-` cookie를 발급한다. PC cookie나 verifier·token은 휴대폰으로 보내지 않는다. 휴대폰에서 패스키 인증 후 두 화면의 확인 번호를 비교하고 PC 로그인을 명시 승인한다. PC는 승인한 계정의 닉네임을 보여주고 별도 확인을 받아야 code를 발급한다. 확인 번호는 사용자 비교용이며 인증 secret이 아니다. 이 방식은 Bluetooth 근접성을 증명하지 않으므로 직접 시작한 요청만 승인하고 타인이 보낸 QR을 승인하지 않도록 안내한다.
 
-PC의 `qr`, `status`, `claim`, `direct`, `cancel`은 `{requestId}`와 PC cookie가 필요하다. 휴대폰의 `phone-options`는 `{requestId,operation}`, `phone-verify`는 `{requestId,response}`, `phone-approve`·`phone-cancel`은 `{requestId}`와 phone cookie가 필요하다. 모두 exact Origin을 검사한다. 휴대폰 인증은 `phone_verified`, 휴대폰 승인은 `phone_approved`로 전이한다. PC `claim`만 일회용 code를 발급하며 기존 PKCE 교환을 거쳐야 앱 session이 생긴다. 승인·claim·교환 시 해당 credential이 여전히 존재하는지 확인한다.
+PC의 `qr`, `status`, `claim`, `direct`, `cancel`은 `{requestId}`와 PC cookie가 필요하다. 휴대폰의 `phone-options`는 `{requestId,operation}` (`authenticate` 또는 `register`), `phone-verify`는 `{requestId,response}`, `phone-approve`·`phone-cancel`은 `{requestId}`와 phone cookie가 필요하다. 모두 exact Origin을 검사한다. 휴대폰 인증은 `phone_verified`, 휴대폰 승인은 `phone_approved`로 전이한다. PC `claim`만 일회용 code를 발급하며 기존 PKCE 교환을 거쳐야 앱 session이 생긴다. 승인·claim·교환 시 해당 credential이 여전히 존재하는지 확인한다.
 
 PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. 새 QR이나 직접 인증 선택은 이전 phone cookie·challenge·승인 결과를 무효화한다. 취소는 요청을 failed로 종료하고 proof를 지운다. 창 닫힘의 서버 취소는 best-effort이며, main의 pending 폐기와 서버 TTL은 늦은 앱 로그인을 차단한다.
 
