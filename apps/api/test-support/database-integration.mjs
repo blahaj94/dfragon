@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { assertCharacterDetails } from './character-details.mjs'
+import { assertCharacterCatalog } from './character-catalog.mjs'
 import { assertIdentitySessions } from './identity-session.mjs'
 import { assertRefreshRotation } from './refresh-rotation.mjs'
 import { assertRefreshConcurrency } from './refresh-concurrency.mjs'
@@ -250,9 +251,25 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 2\n')
+    assert.equal(up.stdout, 'Database migration applied: 3\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
 
+    const catalogDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(catalogDown.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      assert.equal(
+        (await source.query("SELECT to_regclass('public.item_catalog') AS relation"))[0].relation,
+        null
+      )
+      assert.equal(
+        (await source.query("SELECT to_regclass('public.skill_catalog') AS relation"))[0].relation,
+        null
+      )
+      assert.notEqual(
+        (await source.query("SELECT to_regclass('public.characters') AS relation"))[0].relation,
+        null
+      )
+    })
     const detailDown = await runCompiledCli({ configuration, operation: 'down' })
     assert.equal(detailDown.code, 0)
     await withDataSource(createDatabaseDataSource, configuration, async (source) => {
@@ -558,7 +575,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 2\n')
+  assert.equal(migration.stdout, 'Database migration applied: 3\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -661,7 +678,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 2\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 3\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({
@@ -707,6 +724,10 @@ async function primaryScenario() {
       assertSchema(dataSource, (part) => (currentStage = `schema catalog ${part}`))
     )
     currentStage = 'character details'
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertCharacterCatalog(source, (part) => (currentStage = `character catalog ${part}`))
+    )
+    process.stdout.write('Character catalog cache and concurrency passed\n')
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
       assertCharacterDetails(source, (part) => (currentStage = `character details ${part}`))
     )

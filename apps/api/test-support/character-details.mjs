@@ -4,6 +4,8 @@ import { DataSource } from 'typeorm'
 import { createCharacterDetailService } from '../dist/characters/details/service.js'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createCharacterDetailStore } from '../dist/characters/details/store.js'
+import { createCatalogStore } from '../dist/characters/catalog/store.js'
+import { createCatalogService } from '../dist/characters/catalog/service.js'
 import { createNeopleCharacterDetailsForTest } from '../dist/characters/details/neople.js'
 import {
   CHARACTER_DETAIL_SECTIONS,
@@ -193,7 +195,13 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     app = await createLoginHttpApp({}, undefined, undefined, undefined, undefined, {
       apiKey: 'fixture-neople-key',
       store,
-      fetchDetails: adapter
+      fetchDetails: adapter,
+      catalog: createCatalogService(createCatalogStore(source), async (keys) =>
+        keys.map((key) => ({
+          key,
+          payload: { itemName: '테스트 공용 상세', tune: [{ level: 0 }] }
+        }))
+      )
     })
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/characters/${identity.serverId}/${identity.characterId}`
@@ -203,6 +211,12 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(body.character.characterId, identity.characterId)
     assert.equal(body.character.serverName, '시로코')
     assert.equal(body.equipment.equipment[0].reinforce, 15)
+    assert.equal(body.equipment.equipment[0].itemDetail.status, 'fresh')
+    assert.equal(body.equipment.equipment[0].itemDetail.data.itemName, '테스트 공용 상세')
+    assert.equal(
+      (await snapshot()).find((row) => row.section === 'equipment').payload.equipment[0].itemDetail,
+      undefined
+    )
     assert.equal(body.sections.equipment.revision, 4)
     assert.equal(body.creature, null)
     assert.equal(providerCalls, 11)
@@ -242,5 +256,6 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       await new Promise((resolve) => provider.close(resolve))
     }
     await source.query('DELETE FROM characters WHERE character_id = $1', [identity.characterId])
+    await source.query('DELETE FROM item_catalog WHERE item_id = $1', ['fixture-item'])
   }
 }

@@ -7,11 +7,14 @@ import type { FetchCharacterDetails } from './neople.js'
 import { projectCharacterDetails } from './project.js'
 import type { CharacterIdentity } from './sections.js'
 import type { CharacterDetailStore } from './store.js'
+import { enrichCharacterDetails } from '../catalog/enrich.js'
+import type { CatalogService } from '../catalog/service.js'
 
 export interface CharacterDetailDependencies {
   apiKey: string
   store: CharacterDetailStore
   fetchDetails?: FetchCharacterDetails
+  catalog?: CatalogService
 }
 
 export function parseCharacterIdentity(
@@ -60,7 +63,10 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       const payloads = await upstream
       signal.throwIfAborted()
       const rows = await deps.store.saveAndRead(identity, payloads, requestedAt, signal)
-      return projectCharacterDetails(identity, rows)
+      const projected = projectCharacterDetails(identity, rows)
+      return deps.catalog
+        ? await enrichCharacterDetails(projected, deps.catalog, signal)
+        : projected
     } catch (error) {
       throw characterDetailFailure(error)
     } finally {

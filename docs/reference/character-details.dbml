@@ -35,3 +35,24 @@ Table character_api_responses {
 }
 
 Ref: character_api_responses.character_id > characters.character_id [delete: cascade]
+
+Table item_catalog {
+  item_id text [pk, not null]
+  payload jsonb [not null, note: 'Shared item detail; never replaces equipped state']
+  fetched_at timestamptz [not null]
+  expires_at timestamptz [not null, note: '24 hours after successful fetch; may be invalidated earlier']
+  request_started_at timestamptz [not null, note: 'Rejects older refresh writes']
+}
+
+Table skill_catalog {
+  job_id text [not null]
+  skill_id text [not null]
+  payload jsonb [not null, note: 'Shared skill detail, identified by the single request']
+  fetched_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  request_started_at timestamptz [not null]
+
+  indexes {
+    (job_id, skill_id) [pk]
+  }
+}

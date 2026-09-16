@@ -21,6 +21,20 @@ last-reviewed: 2026-09-16
 
 응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다.
 
+## 공용 아이템·스킬 상세
+
+캐릭터 11개 섹션의 저장과 commit 후 공용 상세를 연결한다. 원본 캐릭터 JSONB에는 공용 상세를 섞지 않는다. 일반 장착 장비와 버프 강화 장비의 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `skillStyle` 객체에는 `skillDetails`를 추가하고 캐릭터 기본정보의 `jobId`와 습득·진화·강화·체인·버프 스킬 ID로 상세를 연결한다. `skillDetails`는 skillId를 key로 사용하는 객체이며 같은 상세를 여러 선택 항목에 복제하지 않는다. `itemDetail`과 `skillDetails`는 서버 응답용으로 예약한 필드다.
+
+아이템은 `item_catalog.item_id`, 스킬은 `skill_catalog(job_id, skill_id)`를 PK로 사용한다. 상세 원본 JSONB와 `fetched_at`, `expires_at`, `request_started_at`을 저장한다. 캐릭터와의 FK나 사용률 집계·평가 테이블은 만들지 않는다. 아바타·크리쳐·서약 등의 아이템 상세 연결은 이번 범위에 포함하지 않는다.
+
+성공적으로 저장한 상세는 24시간 유효하다. 최초 접근·만료 시 요청 안에서 갱신하며 자동 주기 수집은 하지 않는다. `fresh`는 유효한 저장값, `stale`은 갱신 실패 또는 처리 예산 종료로 이전 저장값 사용, `unavailable`은 반환할 저장값이 없어 data와 fetchedAt이 null인 상태다. 공용 조회·저장 실패는 성공한 캐릭터 응답을 실패로 바꾸지 않으며, 저장하지 못한 upstream 원문을 성공값처럼 반환하지 않는다. 공용 DB 읽기 자체가 실패한 경우에도 unavailable이다. 클라이언트 연결 종료와 서버 종료는 전체 요청을 취소한다.
+
+공용 상세에서도 DB 시각의 요청 시작 순서를 비교해 늦게 끝난 이전 요청의 덮어쓰기를 막는다. 실패는 이전 payload·조회 시각을 변경하지 않는다. 아이템 다중 조회는 최대 15개를 ID로 대응하고, 없는 항목이나 중복 응답 항목은 저장하지 않는다. 스킬 상세는 응답에 skillId가 없을 수 있어 단일 조회의 요청 jobId·skillId로 대응한다. jobId 및 제공된 skillId가 다르면 저장하지 않는다.
+
+공용 참조는 요청마다 중복 제거 후 최대 128개를 처리하고 최대 3개 호출을 동시에 실행한다. 초과 참조는 unavailable로 전달하며 캐릭터 원본은 유지한다. 추가 처리에 10초 취소 신호, 개별 upstream에 5초 제한을 적용한다. DB 연결 풀 대기·statement·lock에는 기존 2초 제한을 사용하므로 DB 정리까지 포함한 HTTP 전체 시간이 정확히 10초 이내라는 보장은 아니다. 자동 재시도와 요청 간 단일 실행 보장은 없으며 여러 요청/인스턴스가 같은 만료 항목을 동시에 조회할 수 있다.
+
+장비 슬롯 수, 세트 개수, 마법부여의 직업별 스킬 증가, 숫자·문자열 능력치, 스킬 필드 누락, 체인의 null과 배열 순서를 보존한다. 공용 tune 등의 값으로 캐릭터 장착 값을 덮어쓰지 않는다. 공용 상세는 실제 적용 능력치 계산 결과나 마법부여 평가가 아니다. 패치 후 무효화는 [DB 개발 안내](../reference/database-development.md#공용-상세-캐시-운영)의 절차를 따른다.
+
 ## 저장과 중복 처리
 
 `characters.character_id`만 PK로 둔다. `server_id`는 일반 column이다. 같은 ID가 기존과 다른 서버로 들어오면 현재는 실패 처리한다. 공급자가 전 서버 ID 고유성이나 서버 이동을 명시적으로 보장하지 않는 상황에서 서로 다른 데이터를 조용히 합치지 않는다.
@@ -35,7 +49,7 @@ PostgreSQL의 JSONB 비교에서 같으면 payload·revision·content_updated_at
 
 ## 오류·호출 제한
 
-상세 조회의 IP당 최근 60초 10회 한도는 검색 한도와 별도로 계산한다. 한 번의 상세 조회는 최대 11회의 Neople 호출을 소비한다. 단일 프로세스 메모리 한도이며 재시작·여러 인스턴스의 통합 제한은 제공하지 않는다. Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다.
+상세 조회의 IP당 최근 60초 10회 한도는 검색 한도와 별도로 계산한다. 캐릭터 조회는 최대 11회의 Neople 호출을 소비하며 공용 상세 캐시 미스 시 추가 호출이 발생한다. 단일 프로세스 메모리 한도이며 재시작·여러 인스턴스의 통합 제한은 제공하지 않는다. Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다.
 
 입력·설정 확인과 DB 조회 시작 시각 확보 뒤 upstream 호출 직전에 한도를 소비한다. Upstream 실패도 한도를 돌려주지 않는다. Admission 대기는 2초, DB 풀 연결 확보는 2초로 제한한다. 저장 transaction의 statement·lock 대기는 각각 2초다. 연결 해제·종료 신호를 확인해 취소된 요청의 후속 쓰기를 중단한다.
 

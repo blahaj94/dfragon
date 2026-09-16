@@ -260,6 +260,8 @@ test('database options register typed auth and character schemas before migratio
       'auth_sessions',
       'character_api_responses',
       'characters',
+      'item_catalog',
+      'skill_catalog',
       'users'
     ]
   )
