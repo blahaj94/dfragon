@@ -230,7 +230,7 @@ export function ApiCharacterDetails() {
     ApiOperation({
       summary: '캐릭터 상세 조회·갱신',
       description:
-        '공개 API. Neople 11개 섹션을 모두 조회하여 DB에 저장하고 저장값을 반환합니다. 실패 시 부분 저장이나 이전 값으로의 대체 응답은 없습니다. IP당 최근 60초 10회로 검색 한도와 별도입니다. 호출 1회는 최대 11회의 Neople 요청을 사용합니다. Query와 HEAD는 허용하지 않습니다.'
+        '공개 API. Neople 11개 캐릭터 섹션을 모두 조회하여 DB에 저장하고 저장값을 반환합니다. 캐릭터 조회 실패 시 부분 저장이나 이전 값 대체는 없습니다. 추가 공용 장비·스킬 상세는 24시간 캐시를 사용하며 실패 시 stale 또는 unavailable 상태를 반환합니다. 공용 상세는 최대 128개 참조·동시 3호출·10초 처리 예산이며 DB 정리는 별도입니다. IP당 최근 60초 10회로 검색 한도와 별도입니다. 캐릭터 11회 외에 캐시 미스 시 추가 Neople 호출이 발생합니다. Query와 HEAD는 허용하지 않습니다.'
     }),
     ApiParam({
       name: 'serverId',

@@ -41,7 +41,39 @@ const sectionMetadata = object({
   lastSuccessfulFetchAt: timestamp
 })
 
+const catalogDetail = object({
+  data: {
+    type: 'object',
+    additionalProperties: true,
+    nullable: true,
+    description: 'DB에 저장된 공용 상세 원본. 캐릭터 장착 상태와 별개입니다.'
+  },
+  fetchedAt: { ...timestamp, nullable: true },
+  status: {
+    type: 'string',
+    enum: ['fresh', 'stale', 'unavailable'],
+    description: '유효한 캐시 / 갱신 실패·예산 종료로 이전 캐시 사용 / 전달할 캐시 없음'
+  }
+})
+const catalogEquipment: SchemaObject = {
+  description:
+    '원본 장착 배열의 각 장비에 itemDetail을 추가합니다. 슬롯 수와 시즌별 옵션은 보존합니다.',
+  oneOf: [
+    {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: true,
+        properties: { itemDetail: catalogDetail },
+        required: ['itemDetail']
+      }
+    },
+    { type: 'object', additionalProperties: true, nullable: true }
+  ]
+}
+
 export const apiSchemas: Record<string, SchemaObject> = {
+  CatalogDetail: catalogDetail,
   ApiError: object({ error: object({ code: text, message: text }) }),
   LoginRequest: object({
     provider: {
@@ -113,14 +145,32 @@ export const apiSchemas: Record<string, SchemaObject> = {
       )
     }),
     status: object({ status: providerValue, buff: providerValue }),
-    equipment: object({ equipment: providerValue, setItemInfo: providerValue }),
+    equipment: object({ equipment: catalogEquipment, setItemInfo: providerValue }),
     avatar: providerValue,
     creature: providerValue,
     oath: providerValue,
     mistAssimilation: providerValue,
-    skillStyle: providerValue,
+    skillStyle: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: true,
+      properties: {
+        skillDetails: {
+          type: 'object',
+          additionalProperties: catalogDetail,
+          description:
+            '캐릭터 직업의 skillId별 공용 상세. 습득·진화·강화·체인·버프 스킬 참조를 포함합니다.'
+        }
+      }
+    },
     buff: object({
-      equipment: { description: 'Neople skill.buff 값 또는 null' },
+      equipment: {
+        type: 'object',
+        nullable: true,
+        additionalProperties: true,
+        description: 'Neople skill.buff 값. 장비마다 itemDetail을 추가합니다.',
+        properties: { equipment: catalogEquipment }
+      },
       avatar: { description: 'Neople skill.buff 값 또는 null' },
       creature: { description: 'Neople skill.buff 값 또는 null' }
     }),

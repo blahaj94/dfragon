@@ -1,5 +1,8 @@
 import type { INestApplication } from '@nestjs/common'
 import { createCharacterDetailStore } from '../characters/details/store.js'
+import { createCatalogStore } from '../characters/catalog/store.js'
+import { createCatalogService } from '../characters/catalog/service.js'
+import { createNeopleCatalog } from '../characters/catalog/neople.js'
 import { createLoginHttpApp, createSessionHttpService } from '../auth/login/http.js'
 import { createLoginService } from '../auth/login/service.js'
 import { createDatabaseDataSource } from '../database/index.js'
@@ -68,7 +71,14 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
       account,
       { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
       configuration.localHttps,
-      { apiKey: configuration.apiKey, store: createCharacterDetailStore(dataSource) }
+      {
+        apiKey: configuration.apiKey,
+        store: createCharacterDetailStore(dataSource),
+        catalog: createCatalogService(
+          createCatalogStore(dataSource),
+          createNeopleCatalog(configuration.apiKey)
+        )
+      }
     )
     return { app, close }
   } catch (error) {
