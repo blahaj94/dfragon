@@ -7,7 +7,7 @@ last-reviewed: 2026-09-16
 
 # 패스키 인증
 
-이 변경은 사용자 요청에 따라 Google·Discord 로그인을 패스키 전용 가입·로그인으로 교체한다. 기존 실사용 계정 이관은 없으며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 인증·회원 식별·설정·재인증 규칙은 이전 OAuth 전제를 대체한다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 과거 문서의 OAuth 맥락 정리는 별도 후속 PR이다.
+가입·로그인은 패스키 전용이다. 기존 실사용 계정 이관은 없으며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 규칙이 인증·회원 식별·설정·재인증의 기준이다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 관련 문서도 이 계약에 맞춘 패스키 경계를 따른다.
 
 ## 가입과 로그인
 
@@ -48,6 +48,6 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 ## Migration과 검증 범위
 
-기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 OAuth field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users·로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제·자동 이관하지 않는다. 운영 DB에는 이 작업에서 migration을 실행하지 않는다.
+기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 이전 외부 인증 field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users·로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제·자동 이관하지 않는다. 운영 DB에는 이 작업에서 migration을 실행하지 않는다.
 
 실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비·만료·잘못된 서명/계정·삭제된 키·예비 키·세션 회귀를 검사한다. 가상 인증기 성공을 실제 휴대폰 QR·Bluetooth·운영 HTTPS·packaged Desktop OS 복귀 검증으로 확대하지 않는다.

@@ -56,6 +56,6 @@ pnpm --filter @ldb/api test:database
 git diff --check
 ```
 
-2026-09-06에 Docker server `29.7.2`, native `linux/arm64/v8`의 PostgreSQL `18.6 (Debian 18.6-1.pgdg13+2)`에서 새 HTTP matrix와 기존 catalog·constraint·schema diff·Migration·identity/login/refresh/Google·teardown matrix가 함께 통과했다. 승인된 image index/arm64 child digest를 기존 harness가 확인했다. `linux/amd64`, 실제 provider/credential·계정, Desktop, 운영 배포·proxy/APM·clock·cleanup과 물리 network 단절은 미검증이다.
+2026-09-06에 Docker server `29.7.2`, native `linux/arm64/v8`의 PostgreSQL `18.6 (Debian 18.6-1.pgdg13+2)`에서 새 HTTP matrix와 기존 catalog·constraint·schema diff·Migration·당시 identity/login/refresh·teardown matrix가 함께 통과했다. 승인된 image index/arm64 child digest를 기존 harness가 확인했다. `linux/amd64`, 실제 기기 인증·계정, Desktop, 운영 배포·proxy/APM·clock·cleanup과 물리 network 단절은 미검증이다.
 
 `rotateRefreshForTest`는 random 실패/충돌을 위한 test 전용 주입 경계이며 환경변수나 HTTP 입력으로 노출하지 않는다. Session HTTP factory도 환경변수 test mode를 두지 않으며 실제 DataSource/JWT issuer를 명시적으로 합성한다.

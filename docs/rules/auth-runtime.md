@@ -49,22 +49,22 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 ### 로컬 DB 격리와 재사용
 
 1. 로컬 PostgreSQL은 Docker의 비운영 전용 환경에서 실행한다. 개발 중에는 소유자와 사용 중인 작업이 명확한 container·volume을 재사용할 수 있다. 각 검증의 DB/schema·fixture를 격리하거나 초기화해 순서 의존과 이전 결과의 오염을 막는다. Fresh Migration·rollback·teardown 자체의 검증은 새 disposable DB에서 수행한다. Host bind는 `127.0.0.1`로 제한하고 병렬 실행은 port와 DB를 분리한다. Test credential은 비운영 값만 쓰며 repository나 log에 남기지 않는다.
-2. 현재 검증 도구에 고정된 image digest와 선택 platform을 사용하고 해당 image의 `PGDATA`/volume 경로를 따른다. 위 값은 최초 승인 조합의 이력이며 업데이트의 현재 값은 검증 도구와 변경 PR에서 관리한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 4개 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
+2. 현재 검증 도구에 고정된 image digest와 선택 platform을 사용하고 해당 image의 `PGDATA`/volume 경로를 따른다. 위 값은 최초 승인 조합의 이력이며 업데이트의 현재 값은 검증 도구와 변경 PR에서 관리한다. App schema용 init script를 `/docker-entrypoint-initdb.d`에 넣지 않는다. Image entrypoint는 empty `PGDATA`에 PostgreSQL cluster와 test DB를 초기화할 뿐이며 auth domain table은 readiness 뒤 compiled JavaScript Migration의 단일 명시 실행만 만든다.
 3. Readiness는 Migration이 쓸 것과 같은 host TCP 경로·database·user·password로 인증하고 bounded retry 안에서 `SELECT 1`이 성공해야 충족된다. Container running/health 상태나 `pg_isready`만으로 migration-ready를 주장하지 않는다. 환경을 생성·갱신할 때 실제 server version과 선택 image/platform을 확인하고 기록한다. 같은 환경에서 테스트만 다시 실행할 때 이 조사를 반복하지 않는다.
-4. 일회성 환경은 정상 종료, 관측 가능한 실패·timeout, 처리 가능한 `SIGINT`·`SIGTERM`에서 `finally` 성격의 teardown을 수행한다. 재사용 환경은 작업이 만든 fixture·연결을 정리하고 소유자가 종료할 때 container·volume을 회수한다. 기존 disposable 검증 도구를 수정 없이 재사용 모드로 실행할 수 있다고 가정하지 않는다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존·운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 OAuth row cleanup·보관 정책을 실행하거나 바꾸는 것이 아니다.
+4. 일회성 환경은 정상 종료, 관측 가능한 실패·timeout, 처리 가능한 `SIGINT`·`SIGTERM`에서 `finally` 성격의 teardown을 수행한다. 재사용 환경은 작업이 만든 fixture·연결을 정리하고 소유자가 종료할 때 container·volume을 회수한다. 기존 disposable 검증 도구를 수정 없이 재사용 모드로 실행할 수 있다고 가정하지 않는다. 각 자원에 run ownership ID를 붙이고 이번 run의 ID와 일치하는 exact container, named volume, network만 삭제해 부재를 확인한다. `SIGKILL`, host crash, Docker daemon 장애에서는 즉시 teardown을 보장하지 않으며 잔여 resource와 삭제 지연을 공개한다. 다음 실행의 recovery도 알려진 run ownership ID가 일치하는 exact resource만 회수한다. Global prune, 이름 pattern에 의한 광역 삭제, 기존·운영 resource 삭제를 금지한다. Disposable volume 삭제는 test fixture teardown이며 [`auth-database.md`](auth-database.md)의 revoked/idle session과 인증 요청 row cleanup·보관 정책을 실행하거나 바꾸는 것이 아니다.
 
 아래 사례는 schema/Migration과 관련 경계가 바뀔 때 해당 범위를 선택한다. 최초 도입이나 major·저장 형식 변경은 범위를 넓히고, 일반 기능 수정마다 전체 목록을 반복하지 않는다. 실제 개발·배포에 선택한 platform을 검증하며 다른 platform의 미실행만으로 독립 작업을 막지 않는다.
 
 | 검증 | 실행과 통과 기준 |
 | --- | --- |
-| Fresh apply | App relation이 없는 새 test DB에서 compiled ESM DataSource/Migration을 한 번 명시 실행한다. `auth-database.md`의 auth domain table은 정확히 4개다. 별도의 TypeORM Migration history metadata는 실행 기반 내부 table로 구분하며 새 auth domain table 승인으로 세지 않는다. |
+| Fresh apply | App relation이 없는 새 test DB에서 compiled ESM DataSource/Migration을 한 번 명시 실행한다. `auth-database.md`의 auth domain table은 패스키를 포함한 5개다. 별도의 TypeORM Migration history metadata는 실행 기반 내부 table로 구분하며 새 auth domain table 승인으로 세지 않는다. |
 | Re-run no-op | 같은 Migration을 다시 실행해 pending Migration과 schema 변경이 없음을 확인한다. |
-| Migration 목록·schema | Applied Migration 목록과 catalog를 조회해 column/nullability/collation, named unique·FK·CHECK, 일반 index와 partial unique index가 승인 contract와 일치하고 예상 밖 auth relation이 없음을 확인한다. `users(id)`, `auth_sessions(id)`, `auth_refresh_tokens(token_hash)`, `auth_login_requests(id)` 각각은 정확한 column 집합의 `PRIMARY KEY` constraint여야 하며 `UNIQUE NOT NULL`로 대체해 통과시키지 않는다. |
-| 위반 거절 | 각각 격리한 transaction에서 duplicate provider identity·미소비 refresh, orphan FK, nonempty/시간/revoked pair/hash/status별 CHECK, partial unique 위반이 해당 constraint/index에서 거절되고 rollback 뒤 fixture가 오염되지 않음을 확인한다. |
+| Migration 목록·schema | Applied Migration 목록과 catalog를 조회해 column/nullability/collation, named unique·FK·CHECK, 일반 index와 partial unique index가 승인 contract와 일치하고 예상 밖 auth relation이 없음을 확인한다. `users(id)`, `auth_sessions(id)`, `auth_refresh_tokens(token_hash)`, `auth_login_requests(id)`, `auth_passkeys(id)` 각각은 정확한 column 집합의 `PRIMARY KEY` constraint여야 하며 `UNIQUE NOT NULL`로 대체해 통과시키지 않는다. |
+| 위반 거절 | 각각 격리한 transaction에서 duplicate credential ID·미소비 refresh, orphan FK, nonempty/시간/revoked pair/hash/status별 CHECK, partial unique 위반이 해당 constraint/index에서 거절되고 rollback 뒤 fixture가 오염되지 않음을 확인한다. |
 | 자동 schema 변경 없음 | `synchronize:false`, `migrationsRun:false`로 app을 시작·종료한 전후 catalog가 동일해야 한다. App 시작이 fresh DB에 auth table이나 Migration history를 만들지 않고 migrated DB도 바꾸지 않는다. |
 | Disposable rollback | 별도의 빈 disposable test DB에 Migration up을 먼저 명시 적용해 auth schema와 applied history를 확인한 뒤 down을 실행한다. Auth domain table 제거와 Migration history의 일관성을 확인하며 빈 DB에서 즉시 down한 no-op를 성공으로 세거나 운영 destructive down의 근거로 사용하지 않는다. |
 
-`auth-database.md`의 transaction manager, user→session→refresh 및 OAuth 선행 잠금 순서, lock 뒤 fresh time 재확인, cleanup/terminal null·삭제 의미는 그대로다. 위 schema 검증을 runtime 경합 성공으로 표시하지 않는다. 관련 flow가 바뀔 때 필요한 DB integration을 선택하고 유효한 기존 결과는 재사용한다.
+`auth-database.md`의 transaction manager, user→session→refresh 및 인증 요청 선행 잠금 순서, lock 뒤 fresh time 재확인, cleanup/terminal null·삭제 의미는 그대로다. 위 schema 검증을 runtime 경합 성공으로 표시하지 않는다. 관련 flow가 바뀔 때 필요한 DB integration을 선택하고 유효한 기존 결과는 재사용한다.
 
 ### 이미지 갱신
 
@@ -74,79 +74,25 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 
 - `synchronize:false`, `migrationsRun:false`로 앱 시작이 schema를 자동 변경하지 않는다.
 - TypeORM compiled JavaScript DataSource/Migration CLI로 승인된 tsc→Node ESM 실행을 유지한다. ts-node/Nest CLI나 새 runner를 추가하지 않는다.
-- 최초 Migration은 [`auth-database.md`](auth-database.md)의 4개 테이블·named FK/CHECK/index를 만든다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 후속 검증한다.
+- 현재 schema는 [인증 DB](auth-database.md)의 5개 table을 사용한다. 과거 migration을 수정하지 않고 패스키 전환 migration을 이어 적용한다. 전환 up/down은 대상 table 쓰기를 잠근 뒤 users·auth_login_requests가 비었을 때만 허용한다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 후속 검증한다.
 - 배포 담당의 단일 명시 실행으로 transaction 적용하며 동시 자동 실행을 금지한다. 운영 destructive down을 자동 실행하지 않는다. Rollback 검증은 빈 disposable test DB에 한정한다.
-- 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential·key/provider 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
+- 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential·key/패스키 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
 
 기존 Migration 명령과 구현은 `apps/api/package.json`과 `apps/api/src/database/`에서 확인한다. 현재 요청에 포함된 구현과 비운영 검증은 [개발 흐름](agent-workflow.md)에 따라 진행한다. 과거 설계 작업의 설치·실행 제외를 새 요청의 금지로 재사용하지 않으며, 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
 
-## 기본 API의 배포 설정 입력 — 승인됨
+## 기본 API의 배포 설정 입력
 
-```yaml
-status: active
-enforcement: approval-required
-rationale: 기본 API 실행에 필요한 기존 factory 설정의 직렬화 입력과 historical secret 참조 해석을 확정한다.
-evidence: "PR #128 사용자 승인: https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154"
-exceptions: 실제 credential·등록값·secret 저장소 제품·배포 topology와 Discord PKCE gate는 이 제안으로 확정하지 않는다.
-review-after: 기본 entry의 설정 실패·전체 HTTP 흐름·자원 정리 검증 완료 또는 첫 설정 교체 검토 시
-```
+단일 secret JSON 파일을 시작 때 한 번 읽는 경계는 [PR #128](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)의 승인 이력을 유지한다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
 
-이 절은 [PR #128의 사용자 승인](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)을 반영한 active 계약이다. [Issue #125](https://github.com/blahaj94/ldb/issues/125)는 최초 연결의 이력이며, 현재 실행 범위는 사용자 요청과 [개발 흐름](agent-workflow.md)을 따른다. 승인된 선택은 배포가 준비한 **단일 secret JSON 파일**을 시작 때 한 번 읽는 방식이다. 이미 승인된 factory의 설정 전달 경계를 연결하며 새 dependency·API·DB schema를 추가하지 않는다.
+- `accessJwt`: issuer·audience·signingKey(kid/privateKeyPem)·verificationKeys(kid/publicKeyPem 배열). 기존 issuer/verifier를 사용하고 정상 key 교체·복원 예외는 [세션](auth-session.md)을 따른다.
+- `passkey`: apiOrigin·rpId·rpName·returnUrl. HTTPS exact origin, 같은 hostname의 RP ID와 허용된 앱 복귀 주소를 검증한다. 설정 fingerprint가 바뀌면 기존 transient 요청을 거절한다. RP 도메인 변경은 기존 패스키 호환성 문제이므로 배포 전에 확정한다.
+- `AUTH_CONFIG_FILE`은 절대 경로다. UTF-8 JSON의 field/type을 엄격히 검사하고 unknown field·coercion·fallback·자동 key 생성을 허용하지 않는다. PEM 줄바꿈은 JSON escape로 전달한다.
+- DB·PORT·NEOPLE_API_KEY는 기존 환경변수로 받는다. 파일은 배포가 실행 주체만 읽도록 저장소·image·log 밖에 준비한다. API는 파일 생성·권한 변경·secret manager 호출을 하지 않는다. 설정 교체는 새 파일 준비 후 process 재시작으로 적용한다.
+- `LOCAL_HTTPS_CERT_FILE`·`LOCAL_HTTPS_KEY_FILE`은 함께 지정하는 선택적 개발 PEM 입력이다. 절대 경로·읽기·PEM/key 일치·localhost origin/PORT를 검증하고 `127.0.0.1`에서 HTTPS로만 listen한다. 실행 담당이 인증서 발급·신뢰를 준비하며 TLS 검증을 끄지 않는다. 제품 패스키 개발 주소는 `https://localhost:<PORT>`다.
+- 모든 설정과 key를 DB 초기화·listen 전에 검증한다. 오류 원문·값·경로·stack 대신 고정 실패 메시지와 nonzero exit만 남긴다. 시작 시 migration이나 외부 인증을 자동 실행하지 않는다.
+- 정상 종료·signal·부분 초기화·listen 실패에서 이번 앱·검색 취소를 먼저 시도한 뒤 DB 연결을 정리한다. 앱 종료 실패가 DB 정리를 생략하게 하지 않는다. 강제 종료·host 장애의 즉시 정리는 보장하지 않는다.
 
-### 환경변수와 파일 경계
-
-- 기존 `PORT`, `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`, `NEOPLE_API_KEY` 입력과 검증 의미를 유지한다. 로그인·계정·검색을 합성한 기본 start에서는 모두 필수다. DB 값은 기존 DB reader로 읽고 이 JSON에 중복 저장하지 않는다.
-- 새 필수 환경변수 `AUTH_CONFIG_FILE`은 배포가 준비한 파일의 **절대 filesystem path**다. 누락·빈 값·상대 경로·파일 읽기 실패는 시작 실패다. API는 경로를 trim하거나 환경변수·`~`·URL로 확장하지 않는다. 기본 경로, inline JSON 환경변수와 다른 설정 원천으로의 fallback은 없다.
-- 파일은 UTF-8 JSON object이며 아래 필드를 가진다. JSON 문법 오류, 필수 필드 누락·잘못된 type·정의하지 않은 필드는 거절한다. 문자열·숫자 coercion과 값 보정은 하지 않는다. PEM의 줄바꿈은 JSON 문자열 escape로 전달한다.
-- 파일 전체를 secret으로 취급한다. 배포 담당이 API 실행 주체와 필요한 배포 관리자만 읽도록 준비하며 source·DB·image layer·log에 넣지 않는다. API가 파일 생성·권한 변경·secret manager 호출을 맡지 않는다. 실제 저장소 제품, mount·소유자·OS 권한 설정과 운영 교체 절차는 별도 배포 gate다.
-- 시작마다 파일을 한 번 읽어 검증된 설정 사본을 해당 process 수명 동안 사용한다. 요청 중 파일을 다시 읽거나 자동 reload하지 않는다. 교체는 일관된 새 파일을 준비한 뒤 process를 재시작하는 경계이며, 실행 중인 process가 파일 교체를 즉시 반영한다고 주장하지 않는다.
-
-### 개발용 localhost HTTPS
-
-같은 컴퓨터의 Desktop 앱·브라우저·API를 연결하는 개발 실행에는 `LOCAL_HTTPS_CERT_FILE`과 `LOCAL_HTTPS_KEY_FILE`을 함께 지정할 수 있다. 각각 준비된 PEM certificate와 private key의 절대 경로이며 시작 때 한 번 읽는다. 두 변수 모두 없으면 기존 listener 동작을 유지한다. 하나만 지정하거나 빈 값·상대 경로·읽기 실패·잘못된 PEM·certificate/key 불일치가 있으면 DB 연결과 listen 전에 기존 고정 메시지로 실패한다.
-
-이 모드의 `registry.apiOrigin`은 `PORT`와 일치하는 canonical `https://localhost` 또는 `https://127.0.0.1` origin이어야 한다. Callback은 기존 exact origin 계약을 유지한다. Nest 앱 하나가 해당 port의 `127.0.0.1`에서 HTTPS로만 listen하고 기존 앱 종료 경로가 listener를 닫는다. 외부 인터페이스의 listen이나 별도 HTTP port를 추가하지 않는다.
-
-실행 담당자가 certificate 발급·신뢰 설치와 private key 접근 권한을 준비한다. API는 certificate나 CA를 생성·설치하지 않으며 client의 TLS 검증을 끄지 않는다. 개발 TLS 입력은 실제 Google 등록·credential, 운영 ingress·배포, Desktop OS 저장소 검증을 대신하지 않는다.
-
-### JSON 필드와 기존 factory의 대응
-
-아래 object의 필드는 별도 표시가 없으면 모두 필수다. `[]`는 배열 원소의 형태를 나타내며 실제 field 이름이 아니다. 등록·key의 값과 URL은 배포 담당이 준비하고 예제 credential을 기본값으로 사용하지 않는다.
-
-| 경로 | 정확한 구조와 해석 |
-| --- | --- |
-| 최상위 | `accessJwt`, `providerPkce`, `registry`, `google` object 네 개. |
-| `accessJwt` | `issuer: string`, `audience: string`, `signingKey: {kid: string, privateKeyPem: string}`, `verificationKeys: [{kid: string, publicKeyPem: string}]`. 기존 `AccessJwtIssuerConfiguration` 그대로이며 issuer와 verifier에 같은 issuer/audience/verification key 집합을 제공한다. |
-| `providerPkce` | `activeKeyId: string`, `keys: [{id: string, key: string}]`. `key`만 canonical unpadded base64url 43자에서 정확한 32-byte Buffer로 decode/re-encode 확인 후 기존 `ProviderPkceConfiguration`에 전달한다. JWT signing key와 별도 key다. |
-| `registry` | `apiOrigin: string`, `activeVersions: {google: string}`, `registrations: [ProviderRegistration]`. 기본 entry는 Google 로그인만 연결한다. Discord 활성화나 등록을 이 입력으로 허용하지 않으며 기존 Discord gate를 유지한다. |
-| `registry.registrations[]` | `provider: "google"`, `version: string`, `providerClientId: string`, `providerSecretRef: string`, `callbackUrl: string`, `authorizationEndpoint: string`, `expectedAudience: string`, `returnTarget: {id: string, url: string}`. 기존 `LoginRegistryConfiguration`·`ProviderRegistration`의 Google 구조이며 active와 필요한 과거 version을 함께 담는다. |
-| `google` | `registrations` 배열과 `secrets` 배열. Transport 함수나 `fetch` override는 파일 입력에 없다. |
-| `google.registrations[]` | `version: string`, `tokenEndpoint: string`, `jwksUri: string`. 같은 version의 Google registry 항목 전체를 `snapshot`으로 찾아 기존 `GoogleProviderRegistration`에 전달한다. Snapshot을 이 배열에 다시 복제하거나 필드별로 덮어쓰지 않는다. |
-| `google.secrets[]` | `version: string`, `reference: string`, `value: string`. `reference`는 같은 version의 `providerSecretRef`와 exact match하는 불투명한 식별자다. `value`는 비어 있거나 공백뿐인 문자열을 거절하고 통과한 문자열을 그대로 사용한다. 참조를 환경변수명·파일 path·URL로 실행하거나 해석하지 않는다. |
-
-JWT·PKCE·registry의 의미 검증은 기존 `createAccessJwtIssuer`, `createAccessJwtVerifier`, `ProviderPkceKeys`, `LoginRegistry`를 재사용한다. JSON 경계는 위 구조를 확인하며 key import·일치·등록 URL·audience 검증을 별도 crypto나 느슨한 validator로 대체하지 않는다. Type 정의 위치는 `apps/api/src/auth/access-jwt/types.ts`, `apps/api/src/types/login.ts`, `apps/api/src/auth/google/types.ts`다.
-
-### 등록 snapshot과 secret의 결합
-
-- 각 `registry.registrations` version에 Google endpoint 항목 하나와 해당 `(version, providerSecretRef)` secret 항목 하나가 있어야 한다. 중복 Google endpoint version·중복 secret `(version, reference)`·누락·연결할 registry가 없는 항목은 listen 전에 실패한다. 문자열 exact match를 사용하고 구분자 결합으로 서로 다른 tuple이 충돌하게 만들지 않는다.
-- Google authorization/token/JWKS URL은 배포 담당이 검토한 trusted registry/discovery allowlist 값이다. 기존 factory의 HTTPS·exact URL 검증을 유지한다. 파일은 신뢰된 서버 설정이며 요청·provider token의 URL이나 `jku`/`x5u`에서 값을 채우지 않는다. URL 형태 검증만으로 Google의 실제 등록·신뢰 근거 확인이 완료됐다고 표시하지 않는다.
-- `resolveSecret({version, reference, signal})`은 시작 때 확정한 정확한 tuple만 조회한다. 취소된 signal 또는 일치 항목 부재는 실패이며 active version·같은 reference의 다른 version·첫 항목으로 fallback하지 않는다. Callback은 저장 snapshot과 동일한 provider client ID·callback·audience·secret 결합을 사용한다.
-- 과거 snapshot을 지원하려면 registry, 해당 endpoint와 secret, 복호화 key를 함께 준비한다. 제공하지 않은 과거 snapshot이나 key의 pending request는 기존 실패 경로를 따르며 새 active 설정으로 재해석하지 않는다. 같은 version의 tuple 또는 secret 의미를 교체해 과거 request를 다른 설정에 연결하지 않는다.
-- 정상 signing key의 90일 주기·public key 선배포·마지막 발급 뒤 최소 900초와 token 만료 확인 후 제거, 침해·복원 예외는 [`auth-session.md`](auth-session.md#signing-key-lifecycle)를 따른다. PKCE 이전 key의 pending 최대 10분 보존 또는 해당 request 명시 실패는 [`auth-database.md`](auth-database.md#provider-pkce-암호화)를 따른다. 시작마다 key를 생성하거나 이 파일 방식으로 기존 교체·보관 의미를 바꾸지 않는다.
-
-### 시작 실패와 종료
-
-1. 환경변수·파일 구조·key·registry·Google endpoint/secret 연결을 모두 검증한 뒤 DB와 앱을 초기화하고 마지막에 listen한다. 시작 검증을 위해 실제 provider 인증이나 자동 Migration을 실행하지 않는다.
-2. 누락·잘못된 설정과 초기화·listen 실패는 nonzero exit로 끝낸다. 설정 실패에서는 port를 열지 않는다. 오류 원문·cause·stack·파일 경로·설정값·credential을 출력하지 않고 비민감 고정 실패 메시지만 남긴다. Framework와 library의 기본 오류 출력도 같은 경계로 처리한다.
-3. 정상 종료·처리 가능한 `SIGINT`/`SIGTERM`·부분 초기화 실패·listen 실패 모두 이번 실행이 소유한 자원을 정리한다. 앱이 존재하면 앱 종료와 검색 취소 정리를 먼저 시도하고 그 뒤 DB 연결을 정리한다. 앱 종료 실패도 DB 정리를 건너뛰게 하지 않으며 초기화 완료 표시 이전에 확보된 연결도 정리 대상이다. 강제 종료·host 장애의 즉시 정리는 보장하지 않는다.
-
-HTTP 합성은 기존 login/session/account/search factory를 사용한다. [`auth-activity.md`](auth-activity.md)의 단일 2초 DB deadline·취소·residual 검색과 [`character-search.md`](character-search.md#deadline과-adapter)의 5초 upstream deadline은 그대로 유지한다. 기본 entry에 인증 우회·test mode·실제 credential을 상속하는 test 설정은 추가하지 않는다.
-
-### 비교한 대안과 선택 이유
-
-대안은 registry·metadata JSON과 개별 secret 파일을 분리하고 metadata에서 secret 파일을 참조하는 방식이다. Secret별 읽기 권한과 교체 단위를 분리할 수 있지만 참조 path의 기준·허용 범위, 여러 파일의 읽기 실패·교체 중 일관성, 과거 version과 secret 파일의 수명까지 추가로 정하고 검증해야 한다.
-
-단일 파일은 기존 typed factory 입력을 작은 loader로 변환하고 한 번 읽은 설정의 결합을 유지하기 쉽다. 반면 metadata만 바꿀 때도 secret을 포함한 파일을 다시 배포하며 파일을 읽을 수 있는 주체는 그 안의 모든 secret을 읽을 수 있다. 현재 기본 API 연결 범위에는 이 비용을 수용하는 안이 승인됐다. 서로 다른 권한·교체 주체가 실제로 필요해지면 분리안이나 secret manager adapter를 새 Rule 변경으로 검토한다.
+HTTP 합성과 기존 계정·검색 deadline은 유지한다. 제품의 인증 우회 mode나 실제 credential을 상속하는 테스트 설정을 추가하지 않는다.
 
 ## 승인과 미결정 gate
 
@@ -154,9 +100,9 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 
 - 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 장비·역할과 복원 선택은 [인증 운영 구성](../architecture/auth-operations-proposal.md)을 따름
 - 실제 선택한 dependency 조합의 compiled ESM/TypeScript/runtime compatibility
-- 실제 client/HTTPS callback/protocol 등록값·provider config snapshot, Electron OS 저장/IPC의 실제 구현·browser/OS 검증. Desktop 설계와 남은 platform gate는 승인된 [Desktop contract](desktop-auth.md)를 따름
-- Discord 일반 confidential OAuth PKCE의 공식 적용 근거와 후속 wrong/missing verifier·downgrade 거절 E2E
-- 공개 ingress/pending-request·인증 전 abuse·서비스 전체 limiter 수치와 기존 quota와의 통합 순서
-- [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 실제 provider/control store 내구성·writer fencing·사본 inventory/폐기·clock·incident 대응과 복원 E2E. D1–D5 정책 선택은 승인됐으며 실제 환경·구현/통합 검증은 미완료
+- 실제 인증 HTTPS origin·RP ID·앱 protocol과 Electron OS 저장/IPC·browser/OS 검증. Desktop의 남은 platform 조건은 [Desktop contract](desktop-auth.md)를 따름
 
-탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·provider 호출·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.
+- 공개 ingress와 서비스 전체 abuse 대응. 구현된 process 단위 제한을 다중 instance 전체 제한으로 확대 해석하지 않음
+- [탈퇴·삭제](auth-withdrawal-proposal.md)의 패스키 재인증·경합 후속 설계, control store 내구성·writer fencing·보관·장애 대응과 선택한 복원 검증
+
+탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.

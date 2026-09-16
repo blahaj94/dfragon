@@ -20,4 +20,4 @@ HTTPS origin 검사는 제품 그대로 유지한다. 검증 fetch만 고정 syn
 
 종료 시 API SIGTERM의 정상 exit·HTTP close·실제 DB disconnect와 출력 없음을 확인하고, finally에서 upstream·DB connection·소유 container/volume을 정리한다. 기존 helper가 임시 인증 설정 파일 삭제와 container/volume 부재를 확인한다. 중간 실패에도 각 자원의 정리를 시도한다.
 
-이 결과는 HTTP 클라이언트 경계에 한정된다. 계정 인증·refresh, 단일 15초 전체 예산, slot·IPC·renderer·실제 media/OCR, 외부 Google/Neople credential, 운영 TLS·배포 성공을 대신하지 않는다. 서버 구현과 추가 실행 범위는 [기본 API 설정과 실행](../../../../docs/reference/api-start-development.md), [캐릭터 검색 계약](../../../../docs/rules/character-search.md)을 따른다.
+이 결과는 HTTP 클라이언트 경계에 한정된다. 계정 인증·refresh, 단일 15초 전체 예산, slot·IPC·renderer·실제 media/OCR, 외부 Neople credential, 운영 TLS·배포 성공을 대신하지 않는다. 서버 구현과 추가 실행 범위는 [기본 API 설정과 실행](../../../../docs/reference/api-start-development.md), [캐릭터 검색 계약](../../../../docs/rules/character-search.md)을 따른다.

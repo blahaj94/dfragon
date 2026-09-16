@@ -84,4 +84,4 @@ Compact JWS/JSON parsing·서명은 `jose`에 위임한다. Local key map만 사
 pnpm --filter @ldb/api run --sequential '/^(build|lint|test|typecheck)$/'
 ```
 
-Node 24의 compiled ESM·WebCrypto ES256 경로를 실제 실행한다. DB/HTTP/OAuth provider, remote JWKS cache, 실제 운영 key 공급·교체는 이 모듈의 검증 범위가 아니다.
+Node 24의 compiled ESM·WebCrypto ES256 경로를 실제 실행한다. DB/HTTP/실제 패스키, remote JWKS cache, 실제 운영 key 공급·교체는 이 모듈의 검증 범위가 아니다.
