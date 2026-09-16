@@ -31,7 +31,7 @@ export function createFixtureEffects(): Effects {
   const wallStart = Date.parse('2030-01-01T00:00:00.000Z')
   const wallNow = (): number => wallStart + performance.now() - started
   const dependencies: AuthCoordinatorDependencies = {
-    providers: ['google', 'discord'],
+    providers: ['passkey'],
     apiOrigin: 'https://api.example.test',
     returnTarget: 'ldb-fixture://auth/return',
     clock: {

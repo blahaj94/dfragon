@@ -56,10 +56,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
     await dataSource.initialize()
     const login = createLoginService({
       dataSource,
-      registry: configuration.registry,
-      pkceKeys: configuration.pkceKeys,
-      issueAccessJwt: configuration.issueAccessJwt,
-      verifyProvider: configuration.verifyProvider
+      configuration: configuration.configuration,
+      issueAccessJwt: configuration.issueAccessJwt
     })
     const session = createSessionHttpService({
       dataSource,

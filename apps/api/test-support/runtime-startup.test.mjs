@@ -81,7 +81,7 @@ test('build entry preserves 404 for unregistered paths and existing registered r
         ['login JSON validation', 'POST', '/auth/login-requests', 400, 'INVALID_AUTH_REQUEST'],
         ['account HEAD refusal', 'HEAD', '/me', 400],
         ['authorize HEAD refusal', 'HEAD', '/auth/login/authorize', 400],
-        ['callback validation', 'GET', '/auth/callback/google', 400]
+        ['removed OAuth callback', 'GET', '/auth/callback/google', 404]
       ]) {
         await t.test(name, async () => {
           const isPost = method === 'POST'
@@ -262,171 +262,33 @@ test('build entry rejects malformed authentication JSON and exact binding violat
         }
       ],
       [
-        'missing active PKCE key',
+        'wrong RP binding',
         (c) => {
-          c.providerPkce.activeKeyId = 'unknown-key'
+          c.passkey.rpId = 'other.invalid'
         }
       ],
       [
-        'duplicate PKCE key id',
+        'HTTP origin',
         (c) => {
-          c.providerPkce.keys.push(c.providerPkce.keys[0])
+          c.passkey.apiOrigin = 'http://api.test.invalid'
         }
       ],
       [
-        'padded PKCE encoding',
+        'origin path',
         (c) => {
-          c.providerPkce.keys[0].key += '='
+          c.passkey.apiOrigin += '/path'
         }
       ],
       [
-        'noncanonical PKCE encoding',
+        'untrusted return target',
         (c) => {
-          c.providerPkce.keys[0].key = `${'A'.repeat(42)}B`
+          c.passkey.returnUrl = 'https://other.invalid'
         }
       ],
       [
-        'wrong PKCE length',
+        'unknown passkey config',
         (c) => {
-          c.providerPkce.keys[0].key = 'A'.repeat(42)
-        }
-      ],
-      [
-        'wrong PKCE value type',
-        (c) => {
-          c.providerPkce.keys[0].key = []
-        }
-      ],
-      [
-        'unknown PKCE field',
-        (c) => {
-          c.providerPkce.keys[0].extra = true
-        }
-      ],
-      [
-        'missing registry snapshot',
-        (c) => {
-          c.registry.registrations = []
-        }
-      ],
-      [
-        'unregistered active version',
-        (c) => {
-          c.registry.activeVersions.google = 'unknown-version'
-        }
-      ],
-      [
-        'unsupported active provider',
-        (c) => {
-          c.registry.activeVersions.discord = 'test-v1'
-        }
-      ],
-      [
-        'unsupported registration',
-        (c) => {
-          c.registry.registrations[0].provider = 'discord'
-        }
-      ],
-      [
-        'duplicate registry version',
-        (c) => {
-          c.registry.registrations.push(c.registry.registrations[0])
-        }
-      ],
-      [
-        'wrong audience binding',
-        (c) => {
-          c.registry.registrations[0].expectedAudience = 'wrong-client'
-        }
-      ],
-      [
-        'wrong callback binding',
-        (c) => {
-          c.registry.registrations[0].callbackUrl = 'https://other.invalid/auth/callback/google'
-        }
-      ],
-      [
-        'unknown return target field',
-        (c) => {
-          c.registry.registrations[0].returnTarget.extra = true
-        }
-      ],
-      [
-        'missing Google endpoint',
-        (c) => {
-          c.google.registrations = []
-        }
-      ],
-      [
-        'duplicate Google endpoint',
-        (c) => {
-          c.google.registrations.push(c.google.registrations[0])
-        }
-      ],
-      [
-        'orphan Google endpoint',
-        (c) => {
-          c.google.registrations[0].version = 'unknown-version'
-        }
-      ],
-      [
-        'HTTP token endpoint',
-        (c) => {
-          c.google.registrations[0].tokenEndpoint = 'http://not-trusted.invalid/token'
-        }
-      ],
-      [
-        'JWKS userinfo',
-        (c) => {
-          c.google.registrations[0].jwksUri = 'https://user:password@keys.invalid/certs'
-        }
-      ],
-      [
-        'unknown Google transport',
-        (c) => {
-          c.google.fetch = 'test-override'
-        }
-      ],
-      [
-        'missing secret',
-        (c) => {
-          c.google.secrets = []
-        }
-      ],
-      [
-        'duplicate secret tuple',
-        (c) => {
-          c.google.secrets.push(c.google.secrets[0])
-        }
-      ],
-      [
-        'wrong secret version',
-        (c) => {
-          c.google.secrets[0].version = 'unknown-version'
-        }
-      ],
-      [
-        'wrong secret reference',
-        (c) => {
-          c.google.secrets[0].reference = 'unknown-reference'
-        }
-      ],
-      [
-        'blank secret',
-        (c) => {
-          c.google.secrets[0].value = '  '
-        }
-      ],
-      [
-        'wrong secret type',
-        (c) => {
-          c.google.secrets[0].value = null
-        }
-      ],
-      [
-        'unknown secret field',
-        (c) => {
-          c.google.secrets[0].path = '/unused-secret'
+          c.passkey.secret = 'forbidden'
         }
       ]
     ]

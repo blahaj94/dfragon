@@ -99,7 +99,7 @@ const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.example.test',
   returnTarget: RETURN_TARGET,
   environment: 'test',
-  providers: ['google', 'discord'],
+  providers: ['passkey'],
   appIdentity: 'com.synthetic.ldb',
   userDataPath: '/synthetic/user-data'
 }
@@ -298,7 +298,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
 
   try {
     await act(async () => root.render(<App />))
-    await waitForText(container, 'Google로 계속하기')
+    await waitForText(container, '패스키로 계속하기')
 
     await waitForCondition(() => {
       const source = container.querySelector('select') as HTMLSelectElement | null
@@ -362,7 +362,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     })
     await waitForText(container, 'live-character')
 
-    await click(container, 'Google로 계속하기')
+    await click(container, '패스키로 계속하기')
     await waitForCondition(() =>
       expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
     )
@@ -384,7 +384,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     await waitForText(container, '검색 중')
 
     await click(container, '이 기기 로그아웃')
-    await waitForText(container, 'Google로 계속하기')
+    await waitForText(container, '패스키로 계속하기')
     expect(runtime.coordinator.getSnapshot()).toMatchObject({ phase: 'signedOut', notice: null })
     expect(harness.http.logout).toHaveBeenCalledExactlyOnceWith(
       expect.any(String),
@@ -422,7 +422,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     await waitForText(container, 'late-character')
     expect(container.textContent).toContain('화면 캡처')
 
-    await click(container, 'Google로 계속하기')
+    await click(container, '패스키로 계속하기')
     await waitForCondition(() =>
       expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
     )

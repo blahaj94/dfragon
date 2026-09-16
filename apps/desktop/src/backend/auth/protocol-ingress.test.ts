@@ -24,7 +24,7 @@ const runtimeConfig: AuthRuntimeConfig = {
   apiOrigin: 'https://api.example.test',
   returnTarget: RETURN_TARGET,
   environment: 'test',
-  providers: ['google', 'discord'],
+  providers: ['passkey'],
   appIdentity: 'com.synthetic.ldb',
   userDataPath: '/synthetic/user-data'
 }

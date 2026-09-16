@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises'
+import { passkeyPage } from './page.js'
 import 'reflect-metadata'
 import { ADVENTURE_SEARCH_SERVICE, AdventureSearchController } from '../../adventures/http.js'
 import { createAdventureSearchService } from '../../adventures/service.js'
@@ -10,6 +12,7 @@ import {
   Module,
   NotFoundException,
   Post,
+  Param,
   Req,
   Res
 } from '@nestjs/common'
@@ -21,8 +24,7 @@ import {
   ApiLoginExchange,
   ApiRefresh,
   ApiLogout,
-  ApiAuthorize,
-  ApiCallback
+  ApiAuthorize
 } from '../../swagger/operations.js'
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
@@ -40,7 +42,6 @@ import type { CharacterDetailDependencies } from '../../characters/details/servi
 import { characterDetailFailure } from '../../characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from '../../errors/neople-search.js'
 import { LoginFailure, loginFailure } from '../../errors/login.js'
-import type { AuthProvider } from '../../types/auth.js'
 import type { LoginHttpService, SessionHttpService } from '../../types/login.js'
 import { AccountFailure } from '../account/errors.js'
 import { ACCOUNT_SERVICE, AccountController } from '../account/http.js'
@@ -51,7 +52,7 @@ import { logoutSession } from '../logout/index.js'
 import { RefreshFailure } from '../refresh/errors.js'
 import { rotateRefresh } from '../refresh/index.js'
 import type { RefreshDependencies } from '../refresh/types.js'
-import { parseCallback, parseCreation, parseExchange, parseRefreshToken } from './input.js'
+import { parseCreation, parseExchange, parseRefreshToken } from './input.js'
 import { jsonError, loginJsonParser } from './json-parser.js'
 
 const LOGIN_SERVICE = Symbol('LOGIN_SERVICE')
@@ -224,43 +225,54 @@ class LoginController {
     const ticket = query.get('ticket')!
     const authorization = await this.service.authorize(ticket)
     response.setHeader('Set-Cookie', authorization.cookie)
-    response.status(303).setHeader('Location', authorization.redirectUrl)
-    response.end()
+    const page = passkeyPage(authorization)
+    response.setHeader('Content-Security-Policy', page.policy)
+    response.status(200).type('html').send(page.html)
   }
 
-  @Get('callback/google')
-  @ApiCallback('Google')
-  google(@Req() request: Request, @Res() response: Response): Promise<void> {
-    return this.callback('google', request, response)
-  }
-
-  @Get('callback/discord')
-  @ApiCallback('Discord')
-  discord(@Req() request: Request, @Res() response: Response): Promise<void> {
-    return this.callback('discord', request, response)
-  }
-
-  private async callback(
-    provider: AuthProvider,
-    request: Request,
-    response: Response
-  ): Promise<void> {
-    // HEAD는 완료 HTML을 받지 못하므로 callback claim이나 provider 검증을 시작하지 않는다.
-    const isGet = request.method === 'GET'
-    if (!isGet) {
+  @Get('passkeys/manage')
+  async manage(@Req() request: Request, @Res() response: Response): Promise<void> {
+    if (request.method !== 'GET') {
       throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
     }
+    const authorization = await this.service.manage()
+    const page = passkeyPage(authorization)
+    response.setHeader('Set-Cookie', authorization.cookie)
+    response.setHeader('Content-Security-Policy', page.policy)
+    response.status(200).type('html').send(page.html)
+  }
 
-    const query = readOriginalQuery(request)
-    // 별도 service를 주입해도 HTTP 입력 검증은 이 경계에서 수행한다.
-    parseCallback(query)
-    const completion = await this.service.callback(provider, query, request.headers.cookie ?? '')
+  @Get('passkeys/client.js')
+  async client(@Res() response: Response): Promise<void> {
+    const script = await readFile(new URL('../../browser/passkeys.js', import.meta.url), 'utf8')
+    response.status(200).type('application/javascript').send(script)
+  }
 
-    response.setHeader('Set-Cookie', completion.cookie)
-    response
-      .status(200)
-      .type('html')
-      .send(loginPage('앱으로 돌아가 로그인을 완료해 주세요.', completion.returnUrl))
+  @Get('passkeys/client.css')
+  async clientStyle(@Res() response: Response): Promise<void> {
+    const css = await readFile(new URL('../../browser/passkeys.css', import.meta.url), 'utf8')
+    response.status(200).type('text/css').send(css)
+  }
+
+  @Post('passkeys/:action')
+  async browser(
+    @Param('action') action: string,
+    @Req() request: Request,
+    @Res() response: Response
+  ): Promise<void> {
+    const origins = request.rawHeaders.filter(
+      (value, index) => index % 2 === 0 && value.toLowerCase() === 'origin'
+    )
+    if (origins.length !== 1) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+    const result = await this.service.browser(
+      action,
+      request.body,
+      request.headers.cookie ?? '',
+      request.headers.origin
+    )
+    response.status(200).json(result)
   }
 }
 
@@ -344,6 +356,34 @@ export async function createLoginHttpApp(
   try {
     // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
     app.set('trust proxy', searchDependencies?.trustedProxyHops ?? false)
+    const windows = new Map<string, { until: number; count: number }>()
+    let globalWindow = { until: 0, count: 0 }
+    app.use((request: Request, response: Response, next: () => void) => {
+      const path = request.path.toLowerCase().replace(/\/+$/, '')
+      if (
+        (request.method === 'POST' &&
+          (path === '/auth/login-requests' || path.startsWith('/auth/passkeys/'))) ||
+        path === '/auth/passkeys/manage'
+      ) {
+        const now = Date.now()
+        if (now >= globalWindow.until) {
+          globalWindow = { until: now + 60_000, count: 0 }
+          windows.clear()
+        }
+        const address = request.ip ?? request.socket.remoteAddress ?? 'unknown'
+        const window = windows.get(address) ?? { until: globalWindow.until, count: 0 }
+        if (window.count >= 120 || globalWindow.count >= 1200) {
+          response.setHeader('Retry-After', '60')
+          response.setHeader('Cache-Control', 'no-store')
+          jsonError(response, LOGIN_ERRORS.RATE_LIMIT)
+          return
+        }
+        window.count += 1
+        globalWindow.count += 1
+        windows.set(address, window)
+      }
+      next()
+    })
     app.use((request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')
       response.removeHeader('X-Powered-By')

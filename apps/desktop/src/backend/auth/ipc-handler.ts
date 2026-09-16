@@ -3,7 +3,7 @@ import { addHandler } from '../ipc'
 import type { AsyncIPCFunctions } from '../../preload/common/types/ipc'
 import type { AuthCoordinator, AuthSnapshot, AuthCommandResult } from './types'
 
-type Mutation = 'beginLogin' | 'cancelLogin' | 'retryAuth' | 'logout'
+type Mutation = 'beginLogin' | 'cancelLogin' | 'retryAuth' | 'logout' | 'managePasskeys'
 type Options = {
   coordinator: AuthCoordinator
   getWindow: () => BrowserWindow | null
@@ -62,10 +62,7 @@ function validArguments(channel: Mutation, args: unknown[]): boolean {
   const isBegin = channel === 'beginLogin'
   if (isBegin) {
     const provider = exactField(args, 'provider')
-    const isGoogle = provider === 'google'
-    const isDiscord = provider === 'discord'
-    const isProvider = isGoogle || isDiscord
-    return isProvider
+    return provider === 'passkey'
   }
   const isCancel = channel === 'cancelLogin'
   if (isCancel) {
@@ -200,6 +197,9 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
         case 'retryAuth':
           result = await coordinator.retryAuth()
           break
+        case 'managePasskeys':
+          result = await coordinator.managePasskeys()
+          break
         case 'logout':
           result = await coordinator.logout()
           break
@@ -225,6 +225,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     register('beginLogin', (event, ...args) => mutate('beginLogin', event, args))
     register('cancelLogin', (event, ...args) => mutate('cancelLogin', event, args))
     register('retryAuth', (event, ...args) => mutate('retryAuth', event, args))
+    register('managePasskeys', (event, ...args) => mutate('managePasskeys', event, args))
     register('logout', (event, ...args) => mutate('logout', event, args))
 
     unsubscribe = coordinator.subscribe((snapshot) => {

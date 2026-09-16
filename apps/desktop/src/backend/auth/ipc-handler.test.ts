@@ -9,7 +9,14 @@ const electron = vi.hoisted(() => ({ handle: vi.fn(), removeHandler: vi.fn() }))
 vi.mock('electron', () => ({ ipcMain: electron }))
 
 const DOCUMENT_URL = 'file:///fixture/index.html'
-const CHANNELS = ['getAuthState', 'beginLogin', 'cancelLogin', 'retryAuth', 'logout']
+const CHANNELS = [
+  'getAuthState',
+  'beginLogin',
+  'cancelLogin',
+  'retryAuth',
+  'managePasskeys',
+  'logout'
+]
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => Promise<unknown>
 
 type FixtureFrame = {
@@ -105,7 +112,7 @@ describe('auth IPC trust boundary', () => {
     ])
   })
 
-  it('5 invoke만 등록하며 local snapshot 조회는 effect가 없다', async () => {
+  it('6 invoke만 등록하며 local snapshot 조회는 effect가 없다', async () => {
     const fixture = await setup()
 
     expect(electron.handle.mock.calls.map(([channel]) => channel)).toEqual(CHANNELS)
@@ -198,11 +205,11 @@ describe('auth IPC trust boundary', () => {
     ['beginLogin', []],
     ['beginLogin', [null]],
     ['beginLogin', [[]]],
-    ['beginLogin', [{ provider: 'google' }, undefined]],
-    ['beginLogin', [{ provider: 'google', url: 'https://example.test' }]],
+    ['beginLogin', [{ provider: 'passkey' }, undefined]],
+    ['beginLogin', [{ provider: 'passkey', url: 'https://example.test' }]],
     ['beginLogin', [{ provider: 'GOOGLE' }]],
     ['beginLogin', [{ provider: 1 }]],
-    ['beginLogin', [Object.create({ provider: 'google' })]],
+    ['beginLogin', [Object.create({ provider: 'passkey' })]],
     ['cancelLogin', [{ attemptId: 'invalid' }]],
     ['cancelLogin', [{ attemptId: ATTEMPT_ID, code: 'unexpected' }]],
     ['cancelLogin', [{ attemptId: 'a'.repeat(4096) }]]
@@ -222,7 +229,7 @@ describe('auth IPC trust boundary', () => {
   it('real core의 begin/cancel/exchange/logout 결과와 정제 snapshot event를 전달한다', async () => {
     const fixture = await setup()
     const begin = (await fixture.invoke('beginLogin', [
-      { provider: 'google' }
+      { provider: 'passkey' }
     ])) as AuthCommandResult
     expect(begin).toMatchObject({ ok: true, snapshot: { phase: 'startingLogin' } })
     await vi.waitFor(() => expect(fixture.coordinator.getSnapshot().phase).toBe('waitingBrowser'))
@@ -231,7 +238,7 @@ describe('auth IPC trust boundary', () => {
       ok: true,
       snapshot: { phase: 'signedOut', notice: 'LOGIN_CANCELLED' }
     })
-    await fixture.invoke('beginLogin', [{ provider: 'discord' }])
+    await fixture.invoke('beginLogin', [{ provider: 'passkey' }])
     await vi.waitFor(() => expect(fixture.coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     await fixture.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     await expect(fixture.invoke('getAuthState')).resolves.toMatchObject({
@@ -274,12 +281,12 @@ describe('auth IPC trust boundary', () => {
 
   it('현재 attempt의 busy와 stale 결과를 그대로 유지한다', async () => {
     const fixture = await setup()
-    await fixture.invoke('beginLogin', [{ provider: 'google' }])
+    await fixture.invoke('beginLogin', [{ provider: 'passkey' }])
     await vi.waitFor(() => expect(fixture.coordinator.getSnapshot().phase).toBe('waitingBrowser'))
     const initial = fixture.coordinator.getSnapshot()
     fixture.effects.operations.length = 0
 
-    await expect(fixture.invoke('beginLogin', [{ provider: 'discord' }])).resolves.toEqual({
+    await expect(fixture.invoke('beginLogin', [{ provider: 'passkey' }])).resolves.toEqual({
       ok: false,
       error: { code: 'AUTH_BUSY' },
       snapshot: initial
@@ -318,14 +325,14 @@ describe('auth IPC trust boundary', () => {
     result.resolve({ ok: true, snapshot: fixture.coordinator.getSnapshot() })
 
     await expect(reply).rejects.toThrow(/^AUTH_NOT_ALLOWED$/)
-    await fixture.coordinator.beginLogin('google')
+    await fixture.coordinator.beginLogin('passkey')
     expect(fixture.contents.send).not.toHaveBeenCalled()
   })
 
   it('dispose 뒤 core publication이 listener에 남지 않는다', async () => {
     const fixture = await setup()
     fixture.dispose()
-    await fixture.coordinator.beginLogin('google')
+    await fixture.coordinator.beginLogin('passkey')
 
     expect(fixture.contents.send).not.toHaveBeenCalled()
   })

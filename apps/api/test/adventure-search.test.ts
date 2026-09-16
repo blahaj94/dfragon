@@ -49,7 +49,7 @@ test('adventure HTTP is public, bounded, no-store and sanitizes DB failures', as
     throw new Error('Unrelated service called')
   }
   const app = await createLoginHttpApp(
-    { create: unused, exchange: unused, authorize: unused, callback: unused },
+    { create: unused, exchange: unused, authorize: unused, manage: unused, browser: unused },
     undefined,
     undefined,
     undefined,

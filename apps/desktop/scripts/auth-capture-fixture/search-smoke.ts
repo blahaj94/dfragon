@@ -272,7 +272,7 @@ export async function smokeCharacterSearch(
     assert.equal(await evaluate(sandboxInspectionSource), true)
     assert.equal(await evaluate(installObservation), true)
     search.selectScenario('empty')
-    await until(() => hasText('Google로 계속하기'))
+    await until(() => hasText('패스키로 계속하기'))
     await selectSyntheticSource()
     enterStage('empty')
     await start()
@@ -478,7 +478,7 @@ export async function smokeCharacterSearch(
     const abortsBeforeLogout = search.counts.pendingAborts
     await enterHome()
     await click('이 기기 로그아웃')
-    await until(() => hasText('Google로 계속하기'))
+    await until(() => hasText('패스키로 계속하기'))
     assert.equal((await observe()).ended, false)
     assert.equal((await read()).captureId, beforeLogout.captureId)
     assert.equal(search.counts.pendingAborts, abortsBeforeLogout)

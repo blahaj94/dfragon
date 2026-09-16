@@ -8,7 +8,7 @@ const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.synthetic.test',
   returnTarget: 'ldb-synthetic://auth/return',
   environment: 'test',
-  providers: ['google'],
+  providers: ['passkey'],
   appIdentity: 'com.synthetic.ldb',
   userDataPath: '/synthetic/user-data'
 }

@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict'
-import { writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
-import { createAccessJwtVerifier } from '../dist/auth/access-jwt/index.js'
 import { createDatabaseDataSource } from '../dist/database/index.js'
 import { databaseSnapshot, withDataSource } from './database-contract.mjs'
-import { completion, isolatedGoogle, prepare } from './google-http-integration.mjs'
-import { assertBackendGone, isolatedNeople } from './character-search-fixtures.mjs'
+import { assertBackendGone } from './character-search-fixtures.mjs'
 import {
   assertStartupFailure,
   collectRuntimeExit,
@@ -103,205 +100,31 @@ export async function assertRuntimeDatabaseFailures(configuration, mark = () => 
   })
 }
 
-function httpClient(port) {
-  const base = `http://127.0.0.1:${port}`
-  return {
-    base,
-    post: (path, body) =>
-      fetch(`${base}${path}`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body)
-      })
-  }
-}
-
-async function accountRequest({ client, accessToken, nickname }) {
-  const isMutation = nickname !== undefined
-  const path = isMutation ? '/me/nickname' : '/me'
-  return fetch(`${client.base}${path}`, {
-    method: isMutation ? 'PATCH' : 'GET',
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      ...(isMutation ? { 'content-type': 'application/json' } : {})
-    },
-    ...(isMutation ? { body: JSON.stringify({ nickname }) } : {})
-  })
-}
-
-async function search(client, accessToken) {
-  return fetch(`${client.base}/characters?characterName=ab`, {
-    headers: { authorization: `Bearer ${accessToken}` }
-  })
-}
-
-async function assertSearchShutdown({ source, runtime, client, principal, neople }) {
-  const lock = source.createQueryRunner()
-  try {
-    await lock.startTransaction()
-    await lock.query('SELECT id FROM auth_sessions WHERE id=$1 FOR UPDATE', [principal.sessionId])
-    const beforeCalls = neople.calls.length
-    const response = await fetch(`${client.base}/characters?characterName=ab`)
-    assert.equal(response.status, 200)
-    assert.equal(neople.calls.length, beforeCalls + 1)
-    // 검색은 session lock에 의존하지 않으며 종료는 기존 app/DB 순서를 유지한다.
-    await terminateRuntime(source, runtime)
-    const events = runtime.events.map(({ event }) => event)
-    assert(events.indexOf('app.closed') < events.indexOf('db.destroy'))
-  } finally {
-    await stopRuntime(runtime)
-    if (lock.isTransactionActive) {
-      await lock.rollbackTransaction()
-    }
-    await lock.release()
-  }
-}
-
 export async function assertRuntimeHttpIntegration(configuration, mark = () => {}) {
-  const google = await isolatedGoogle()
-  const neople = await isolatedNeople()
-  const runtimes = []
-  try {
-    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
-      const beforeSchema = await databaseSnapshot(source)
-      await withRuntimeConfiguration(async ({ path, configuration: auth }) => {
-        const port = await unusedRuntimePort()
-        const client = httpClient(port)
-        const options = {
-          realDatabase: true,
-          upstreams: { google: google.origin, neople: neople.origin }
-        }
-        const first = startRuntime(runtimeEnvironment(path, port, configuration), options)
-        runtimes.push(first)
-        await waitForRuntime(port, first)
-        mark('default entry POST /auth/login-requests returns 201 and browser start returns 303')
-        const flow = await prepare(client, google)
-        mark('restart preserves the pending request and the deployment PKCE key')
-        await terminateRuntime(source, first)
-
-        const previous = auth.registry.registrations[0]
-        const next = {
-          ...previous,
-          version: 'test-v2',
-          returnTarget: { ...previous.returnTarget, id: 'test-return-v2' }
-        }
-        auth.registry.activeVersions.google = next.version
-        auth.registry.registrations.push(next)
-        auth.google.registrations.push({ ...auth.google.registrations[0], version: next.version })
-        // 같은 reference라도 새 version의 secret으로 이전 callback을 교환하면 fixture가 거절한다.
-        auth.google.secrets.push({
-          version: next.version,
-          reference: previous.providerSecretRef,
-          value: 'fixture-different-active-secret'
-        })
-        await writeFile(path, JSON.stringify(auth))
-        const runtime = startRuntime(runtimeEnvironment(path, port, configuration), options)
-        runtimes.push(runtime)
-        await waitForRuntime(port, runtime)
-        await writeFile(path, '{replaced-after-start')
-        mark(
-          'historical callback uses exact version/secret and the process reads configuration only once'
-        )
-        const exchange = await completion(flow, await flow.callback(), google.canaries)
-        const exchanged = await client.post('/auth/exchange', exchange)
-        assert.equal(exchanged.status, 200)
-        const tokens = await exchanged.json()
-        const verifyJwt = await createAccessJwtVerifier(auth.accessJwt)
-        const principal = await verifyJwt(tokens.accessToken, Math.floor(Date.now() / 1000))
-        assert.equal(principal.userId, tokens.user.id)
-        const [storedUser] = await source.query(
-          'SELECT provider, provider_subject FROM users WHERE id=$1',
-          [tokens.user.id]
-        )
-        assert.equal(storedUser.provider, 'google')
-        const hasMatchingProviderSubject = storedUser.provider_subject === google.subject
-        assert.equal(hasMatchingProviderSubject, true)
-        assert.equal(google.calls, 1)
-        assert.equal(google.failed, false)
-
-        mark('same app reads and updates the authenticated account, then searches through Neople')
-        const profile = await accountRequest({ client, accessToken: tokens.accessToken })
-        assert.equal(profile.status, 200)
-        assert.deepEqual(await profile.json(), { user: tokens.user })
-        const changed = await accountRequest({
-          client,
-          accessToken: tokens.accessToken,
-          nickname: '기본 실행 사용자'
-        })
-        assert.equal(changed.status, 200)
-        assert.deepEqual(await changed.json(), {
-          user: { id: tokens.user.id, nickname: '기본 실행 사용자' }
-        })
-        neople.upstream.body = {
-          rows: [
-            { characterId: 'fixture-character', characterName: 'ab', serverId: 'cain', fame: 0 }
-          ]
-        }
-        const found = await search(client, tokens.accessToken)
-        assert.equal(found.status, 200)
-        assert.deepEqual(await found.json(), {
-          rows: [
-            {
-              characterId: 'fixture-character',
-              characterName: 'ab',
-              serverId: 'cain',
-              serverName: '카인',
-              fame: 0
-            }
-          ]
-        })
-        assert.equal(neople.calls.length, 1)
-        assert.equal(neople.calls[0].hasExpectedKey, true)
-
-        mark(
-          'same app refreshes and logs out, denies both account routes but permits public search'
-        )
-        const refreshed = await client.post('/auth/refresh', { refreshToken: tokens.refreshToken })
-        assert.equal(refreshed.status, 200)
-        const rotated = await refreshed.json()
-        await verifyJwt(rotated.accessToken, Math.floor(Date.now() / 1000))
-        assert.equal(
-          (await client.post('/auth/logout', { refreshToken: rotated.refreshToken })).status,
-          204
-        )
-        assert.equal(
-          (await accountRequest({ client, accessToken: rotated.accessToken })).status,
-          401
-        )
-        assert.equal(
-          (
-            await accountRequest({
-              client,
-              accessToken: rotated.accessToken,
-              nickname: '거절될 변경'
-            })
-          ).status,
-          401
-        )
-        assert.equal((await search(client, rotated.accessToken)).status, 200)
-        assert.equal(
-          (await client.post('/auth/refresh', { refreshToken: rotated.refreshToken })).status,
-          401
-        )
-        assert.equal(neople.calls.length, 2)
-        const [session] = await source.query(
-          'SELECT revoked_reason FROM auth_sessions WHERE id=$1',
-          [principal.sessionId]
-        )
-        assert.equal(session.revoked_reason, 'logout')
-        assert.deepEqual(await databaseSnapshot(source), beforeSchema)
-
-        mark('public search bypasses a session lock, then SIGTERM closes app before database')
-        await assertSearchShutdown({ source, runtime, client, principal, neople })
-        assert.equal(neople.upstream.failure, undefined)
+  await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+    await withRuntimeConfiguration(async ({ path }) => {
+      const port = await unusedRuntimePort()
+      const runtime = startRuntime(runtimeEnvironment(path, port, configuration), {
+        realDatabase: true
       })
+      try {
+        await waitForRuntime(port, runtime)
+        mark('default entry exposes passkeys and removes OAuth callbacks')
+        for (const provider of ['google', 'discord']) {
+          assert.equal(
+            (await fetch(`http://127.0.0.1:${port}/auth/callback/${provider}`)).status,
+            404
+          )
+        }
+        const response = await fetch(`http://127.0.0.1:${port}/auth/passkeys/manage`)
+        assert.equal(response.status, 200)
+        assert.match(await response.text(), /패스키 관리/)
+        assert.match(response.headers.get('set-cookie'), /Secure; HttpOnly/)
+        await terminateRuntime(source, runtime)
+      } finally {
+        await stopRuntime(runtime)
+      }
     })
-    return 6
-  } finally {
-    for (const runtime of runtimes) {
-      await stopRuntime(runtime)
-    }
-    await google.close()
-    await neople.close()
-  }
+  })
+  return 1
 }

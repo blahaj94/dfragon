@@ -10,7 +10,7 @@ import type { AuthSnapshot } from '../../../backend/auth/types'
 
 export type AuthApi = Pick<
   AsyncIPCFunctions,
-  'getAuthState' | 'beginLogin' | 'cancelLogin' | 'retryAuth' | 'logout'
+  'getAuthState' | 'beginLogin' | 'cancelLogin' | 'retryAuth' | 'logout' | 'managePasskeys'
 > & {
   onAuthStateChanged: (listener: (snapshot: AuthSnapshot) => void) => () => void
 }

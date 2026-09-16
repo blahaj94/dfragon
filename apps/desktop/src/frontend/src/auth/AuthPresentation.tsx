@@ -22,7 +22,7 @@ const notices: Record<AuthNotice, string> = {
   LOGOUT_SERVER_UNCONFIRMED: '이 기기 정보는 지웠지만 서버 로그아웃은 확인하지 못했습니다.'
 }
 
-const providerLabels = { google: 'Google로 계속하기', discord: 'Discord로 계속하기' }
+const providerLabels = { passkey: '패스키로 계속하기' }
 
 function SignedIn({
   snapshot,
@@ -36,6 +36,13 @@ function SignedIn({
   return (
     <ExampleSection title={shouldShowWelcome ? 'LDB에 오신 것을 환영합니다' : '내 계정'}>
       <SupportingText>{snapshot.user?.nickname}</SupportingText>
+      <ActionButton
+        type="button"
+        disabled={commandPending}
+        onClick={() => onIntent({ type: 'managePasskeys' })}
+      >
+        패스키 관리
+      </ActionButton>
       {shouldShowWelcome ? (
         <>
           <SupportingText>

@@ -39,6 +39,8 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 ### Authentication contract routing
 
+패스키 전환의 현재 계약은 [패스키 인증](rules/auth-passkeys.md), 실행 설정은 [패스키 개발 안내](reference/passkey-authentication.md)를 따른다. 아래 기존 문서의 OAuth 전제와 충돌하면 패스키 계약을 우선한다.
+
 이 Rule은 #39 최종 설계에 대한 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한다. 승인된 contract는 현재 구현·검증 성공과 구분한다. 현재 요청에 포함된 구현·비운영 검증은 진행하며, 과거 설계 작업의 실행 제외를 상시 금지로 적용하지 않는다. 현재 유효한 명시적 금지와 실제 운영·credential 실행 권한은 유지한다.
 
 | 필요한 topic | Canonical Rule |

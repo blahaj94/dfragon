@@ -1,9 +1,9 @@
-import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import type { EntityManager } from 'typeorm'
 import { AuthRefreshTokenSchema } from '../database/schemas/auth-refresh-tokens.js'
 import { AuthSessionSchema } from '../database/schemas/auth-sessions.js'
 import { UserSchema } from '../database/schemas/users.js'
-import { AUTH_ERRORS, AUTH_PROVIDERS, INITIAL_NICKNAME, REFRESH_TOKEN } from '../constants/auth.js'
+import { AUTH_ERRORS, REFRESH_TOKEN } from '../constants/auth.js'
 import { IdentitySessionFailure } from '../errors/identity-session.js'
 import type { IdentitySession, IdentitySessionEntropy, VerifiedIdentity } from '../types/auth.js'
 
@@ -12,7 +12,6 @@ export type { IdentitySession, VerifiedIdentity } from '../types/auth.js'
 
 const nativeEntropy: IdentitySessionEntropy = {
   uuid: randomUUID,
-  nicknameNumber: randomInt,
   refreshBytes: randomBytes
 }
 
@@ -40,80 +39,18 @@ async function create({
     if (!isTransactionActive) {
       throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
     }
-    const isProviderSupported = Object.values(AUTH_PROVIDERS).some(
-      (provider) => provider === identity.provider
-    )
-    if (!isProviderSupported) {
+    const user = await manager
+      .getRepository(UserSchema)
+      .findOne({ where: { id: identity.userId }, lock: { mode: 'pessimistic_write' } })
+    if (user == null) {
       throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
     }
-    const isSubjectString = typeof identity.subject === 'string'
-    if (!isSubjectString) {
-      throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
-    }
-    const hasSubject = identity.subject.length !== 0
-    if (!hasSubject) {
-      throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
-    }
-    const [isolation] = (await manager.query('SHOW transaction_isolation')) as Array<{
-      transaction_isolation: string
-    }>
-    const isReadCommitted = isolation?.transaction_isolation === 'read committed'
-    if (!isReadCommitted) {
-      throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
-    }
-
-    const users = manager.getRepository(UserSchema)
-    const lookup = {
-      where: { provider: identity.provider, providerSubject: identity.subject },
-      lock: { mode: 'pessimistic_write' as const }
-    }
-    const existingUser = await users.findOne(lookup)
-    let user: NonNullable<typeof existingUser>
-    let isNewUser = false
-    const isUserMissing = existingUser == null
-    if (isUserMissing) {
-      const id = generate(() => entropy.uuid())
-      const nickname = generate(() => {
-        const digits = String(entropy.nicknameNumber(0, 10 ** INITIAL_NICKNAME.digits))
-        return `${INITIAL_NICKNAME.prefix}${digits.padStart(INITIAL_NICKNAME.digits, '0')}`
-      })
-      // 빈 overwrite 목록은 명시한 identity 충돌에만 DO NOTHING을 생성한다.
-      const inserted = await users
-        .createQueryBuilder()
-        .insert()
-        .values({
-          id,
-          provider: identity.provider,
-          providerSubject: identity.subject,
-          nickname,
-          createdAt: () => databaseTimeExpression
-        })
-        .orUpdate([], ['provider', 'provider_subject'])
-        .returning(['id'])
-        // 기존 raw INSERT처럼 hook·입력 entity 자동 갱신·추가 조회를 수행하지 않는다.
-        .callListeners(false)
-        .updateEntity(false)
-        .execute()
-      isNewUser = (inserted.raw as Array<{ id: string }>).length === 1
-      // READ COMMITTED의 다음 statement로 insert 대기 중 commit된 winner를 읽는다.
-      const insertedUser = await users.findOne(lookup)
-      const isWinnerMissing = insertedUser == null
-      if (isWinnerMissing) {
-        throw new IdentitySessionFailure(AUTH_ERRORS.UNAVAILABLE)
-      }
-      user = insertedUser
-    } else {
-      user = existingUser
-    }
+    const isNewUser = identity.isNewUser
 
     const [clock] = (await manager.query(`SELECT ${databaseTimeExpression} AS now`)) as Array<{
       now: Date
     }>
     const issuedAt = clock.now
-    if (isNewUser) {
-      // INSERT의 unique 대기가 끝난 뒤 획득한 fresh 시각으로 새 회원도 확정한다.
-      await users.update({ id: user.id }, { createdAt: issuedAt })
-    }
     const sessionId = generate(() => entropy.uuid())
     const bytes = generate(() => entropy.refreshBytes(REFRESH_TOKEN.byteLength))
     const refreshToken = bytes.toString(REFRESH_TOKEN.encoding)
@@ -149,7 +86,7 @@ async function create({
 }
 
 /**
- * 호출자의 active READ COMMITTED transaction에 합성한다. OAuth row 잠금은 호출자가 먼저 한다.
+ * 호출자의 active READ COMMITTED transaction에 합성한다. 로그인 요청 row 잠금은 호출자가 먼저 한다.
  * 오류는 transaction 밖으로 전파해 전체 rollback하며, commit 성공 후에만 반환 token을 전달한다.
  * Random 충돌도 전체 rollback 대상이다. 재시작 시 새 transaction과 새 entropy를 사용한다.
  */

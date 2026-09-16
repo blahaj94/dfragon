@@ -28,11 +28,7 @@ import type {
 const UUID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 
 function isAuthProvider(value: unknown): value is AuthProvider {
-  const isGoogle = value === 'google'
-  const isDiscord = value === 'discord'
-  const isProvider = isGoogle || isDiscord
-
-  return isProvider
+  return value === 'passkey'
 }
 
 function isCanonicalUuid(value: unknown): value is string {
@@ -1262,6 +1258,18 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     return operation
   }
 
+  async function managePasskeys(): Promise<AuthCommandResult> {
+    if (state.phase !== 'signedIn') {
+      return state.failure('AUTH_NOT_ALLOWED')
+    }
+    try {
+      await dependencies.browser.open(`${dependencies.apiOrigin}/auth/passkeys/manage`)
+      return state.success()
+    } catch {
+      return state.failure('AUTH_OPERATION_FAILED')
+    }
+  }
+
   function captureGeneration(): number | null {
     const isSignedIn = state.phase === 'signedIn'
     const capturedGeneration = isSignedIn ? generation : null
@@ -1274,6 +1282,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     subscribe: state.subscribe,
     start,
     beginLogin,
+    managePasskeys,
     cancelLogin,
     handleReturnUrl,
     retryAuth: retry,

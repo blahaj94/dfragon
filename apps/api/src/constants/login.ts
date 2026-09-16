@@ -30,10 +30,25 @@ export const LOGIN_ERRORS = {
     status: 400,
     message: '로그인이 취소됐습니다.'
   },
-  PROVIDER: {
-    code: 'AUTH_PROVIDER_ERROR',
-    status: 502,
-    message: '소셜 로그인을 완료하지 못했습니다. 다시 시도해 주세요.'
+  PASSKEY: {
+    code: 'PASSKEY_INVALID',
+    status: 400,
+    message: '패스키를 확인하지 못했습니다. 다시 시도해 주세요.'
+  },
+  LAST_PASSKEY: {
+    code: 'LAST_PASSKEY',
+    status: 400,
+    message: '마지막 패스키는 삭제할 수 없습니다. 다른 패스키를 먼저 추가해 주세요.'
+  },
+  PASSKEY_LIMIT: {
+    code: 'PASSKEY_LIMIT',
+    status: 400,
+    message: '패스키는 계정당 최대 20개까지 등록할 수 있습니다.'
+  },
+  RATE_LIMIT: {
+    code: 'AUTH_RATE_LIMIT',
+    status: 429,
+    message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
   },
   TOO_LARGE: {
     code: 'REQUEST_TOO_LARGE',
@@ -53,7 +68,6 @@ export const LOGIN = {
   method: 'S256',
   requestSeconds: 600,
   codeSeconds: 60,
-  providerDeadlineMs: 10_000,
   idleSeconds: 2_592_000,
   jsonBytes: 16_384,
   cookiePrefix: '__Host-ldb-login-',
@@ -63,16 +77,13 @@ export const LOGIN = {
 
 export const CLEARED_LOGIN_FIELDS = {
   codeChallenge: null,
-  method: null,
   launchTicketHash: null,
-  stateHash: null,
   browserBindingHash: null,
-  oidcNonceHash: null,
-  providerPkceCiphertext: null,
-  providerPkceIv: null,
-  providerPkceTag: null,
-  providerPkceKeyId: null,
-  verifiedSubject: null,
+  webauthnChallenge: null,
+  operation: null,
+  pendingUserId: null,
+  verifiedUserId: null,
+  credentialId: null,
   exchangeCodeHash: null,
   codeExpiresAt: null
 } as const

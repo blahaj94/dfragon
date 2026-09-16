@@ -19,10 +19,14 @@ export async function rejected(operation, code = 'AUTHENTICATION_REQUIRED') {
   })
 }
 
-export async function fixture(source, identity = { provider: 'google', subject: randomUUID() }) {
-  const initial = await source.transaction('READ COMMITTED', (manager) =>
-    createIdentitySession(manager, identity)
-  )
+export async function fixture(source, identity = { userId: randomUUID(), isNewUser: true }) {
+  const initial = await source.transaction('READ COMMITTED', async (manager) => {
+    await manager.query(
+      'INSERT INTO users (id,nickname,created_at) VALUES ($1,$2,clock_timestamp()) ON CONFLICT (id) DO NOTHING',
+      [identity.userId, '테스트']
+    )
+    return createIdentitySession(manager, identity)
+  })
   const keyPair = generateKeyPairSync('ec', { namedCurve: 'P-256' })
   const configuration = {
     issuer: 'https://refresh.test.invalid',

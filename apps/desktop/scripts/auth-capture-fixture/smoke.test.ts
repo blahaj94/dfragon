@@ -95,7 +95,7 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
     }
   }
   renderHome()
-  document.body.insertAdjacentHTML('afterbegin', '<button>Google로 계속하기</button>')
+  document.body.insertAdjacentHTML('afterbegin', '<button>패스키로 계속하기</button>')
   Object.assign(window, {
     captureObservation: () => ({
       requests: isActive ? 1 : 0,

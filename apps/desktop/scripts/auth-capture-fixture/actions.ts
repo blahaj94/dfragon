@@ -78,8 +78,8 @@ export function createCaptureActions({
     assert.equal(await evaluate(source, true), true)
   }
   async function enterHome(): Promise<void> {
-    await until(() => hasText('Google로 계속하기'))
-    await click('Google로 계속하기')
+    await until(() => hasText('패스키로 계속하기'))
+    await click('패스키로 계속하기')
     await until(async () => {
       const isWaitingBrowser = coordinator.getSnapshot().phase === 'waitingBrowser'
       return isWaitingBrowser

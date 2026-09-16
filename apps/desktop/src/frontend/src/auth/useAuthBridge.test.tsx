@@ -11,7 +11,7 @@ function snapshot(revision: number, runId = 'run-one'): AuthSnapshot {
     runId,
     revision,
     phase: 'signedOut',
-    providers: ['google'],
+    providers: ['passkey'],
     login: null,
     user: null,
     entry: null,
@@ -57,6 +57,7 @@ function createApi(): {
       snapshot: snapshot(2)
     })),
     retryAuth: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
+    managePasskeys: vi.fn(),
     logout: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
     onAuthStateChanged: vi.fn((listener: (value: AuthSnapshot) => void) => {
       order.push('subscribe')
@@ -184,10 +185,10 @@ it('commandPending과 exact intent를 전달하고 늦은 command snapshot도 �
   const command = deferred<AuthCommandResult>()
   fixture.api.beginLogin.mockReturnValue(command.promise)
   await act(async () => {
-    void current.onIntent({ type: 'beginLogin', provider: 'google' })
+    void current.onIntent({ type: 'beginLogin', provider: 'passkey' })
   })
   expect(current.commandPending).toBe(true)
-  expect(fixture.api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'google' })
+  expect(fixture.api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
   await act(async () => fixture.emit(snapshot(5)))
   await act(async () => command.resolve({ ok: true, snapshot: snapshot(2) }))
 
@@ -390,7 +391,7 @@ it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로�
   fixture.api.getAuthState.mockResolvedValueOnce({
     ...snapshot(3),
     phase: 'waitingBrowser',
-    login: { attemptId: 'current-attempt', provider: 'google', expiresAt: '2030-01-01T00:10:00Z' }
+    login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
   })
   await act(async () => container.querySelector('button')?.click())
   expect(container.textContent).toContain('앱으로 돌아가기')

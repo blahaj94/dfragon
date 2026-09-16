@@ -74,7 +74,7 @@ describe('CredentialSession condition boundaries', () => {
     const pending = new PendingLogin(
       {
         attemptId: '00000000-0000-4000-8000-000000000010',
-        provider: 'google',
+        provider: 'passkey',
         verifier: 'verifier',
         generation: 1,
         startedAt
@@ -135,7 +135,7 @@ describe('CredentialSession condition boundaries', () => {
     const pending = new PendingLogin(
       {
         attemptId: '00000000-0000-4000-8000-000000000011',
-        provider: 'google',
+        provider: 'passkey',
         verifier: 'verifier',
         generation: 1,
         startedAt

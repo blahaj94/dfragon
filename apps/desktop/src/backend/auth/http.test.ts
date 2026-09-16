@@ -76,7 +76,7 @@ describe('Desktop auth 고정 HTTP client', () => {
     await expect(
       client.createLoginRequest(
         {
-          provider: 'google',
+          provider: 'passkey',
           clientId: 'desktop',
           codeChallenge: Buffer.alloc(32, 4).toString('base64url'),
           codeChallengeMethod: 'S256'
@@ -94,7 +94,7 @@ describe('Desktop auth 고정 HTTP client', () => {
       credentials: 'omit'
     })
     expect(requests[0].body).toEqual({
-      provider: 'google',
+      provider: 'passkey',
       clientId: 'desktop',
       codeChallenge: Buffer.alloc(32, 4).toString('base64url'),
       codeChallengeMethod: 'S256'

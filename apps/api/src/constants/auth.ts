@@ -1,7 +1,4 @@
-export const AUTH_PROVIDERS = {
-  GOOGLE: 'google',
-  DISCORD: 'discord'
-} as const
+export const AUTH_PROVIDERS = { PASSKEY: 'passkey' } as const
 
 type AuthErrorDefinitionShape = Readonly<{
   code: string

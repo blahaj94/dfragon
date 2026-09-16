@@ -1,20 +1,15 @@
+import { assertPasskeyIntegration } from './passkey-integration.mjs'
 import { assertAdventureSearch } from './adventure-search.mjs'
 import assert from 'node:assert/strict'
 import { assertCharacterDetails } from './character-details.mjs'
 import { assertCharacterCatalog } from './character-catalog.mjs'
-import { assertIdentitySessions } from './identity-session.mjs'
 import { assertRefreshRotation } from './refresh-rotation.mjs'
 import { assertRefreshConcurrency } from './refresh-concurrency.mjs'
 import { assertRefreshFailures } from './refresh-failures.mjs'
 import { assertAuthenticationCleanup } from './cleanup-database.mjs'
-import { assertCommonLogin } from './login-database.mjs'
-import { assertLoginConcurrency } from './login-concurrency.mjs'
-import { assertLoginFailures } from './login-failures.mjs'
-import { assertLoginHttpIntegration } from './login-http-integration.mjs'
 import { assertSessionHttpIntegration } from './session-http-integration.mjs'
 import { assertAccountHttpIntegration } from './account-http-integration.mjs'
 import { assertCharacterSearchHttpIntegration } from './character-search-http-integration.mjs'
-import { assertGoogleHttpIntegration } from './google-http-integration.mjs'
 import {
   assertRuntimeDatabaseFailures,
   assertRuntimeFreshStart,
@@ -54,7 +49,6 @@ import {
   verifyApprovedImage
 } from './docker-postgres.mjs'
 
-import { assertLoginRequestStateMatrix } from './auth-login-request-contract.mjs'
 import { assertSchemaFirst } from './schema-first.mjs'
 
 const scriptPath = fileURLToPath(import.meta.url)
@@ -252,8 +246,65 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 5\n')
+    assert.equal(up.stdout, 'Database migration applied: 6\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
+
+    const guardUser = '10000000-0000-4000-8000-000000000099'
+    await withDataSource(createDatabaseDataSource, configuration, (source) =>
+      source.query('INSERT INTO users (id, nickname, created_at) VALUES ($1, $2, NOW())', [
+        guardUser,
+        '이관 검사'
+      ])
+    )
+    const deniedDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.notEqual(deniedDown.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      await assertSchema(source)
+      assert.equal(
+        (
+          await source.query('SELECT count(*)::int AS count FROM users WHERE id = $1', [guardUser])
+        )[0].count,
+        1
+      )
+      await source.query('DELETE FROM users WHERE id = $1', [guardUser])
+    })
+
+    const passkeyDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(passkeyDown.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      assert.equal(
+        (await source.query("SELECT to_regclass('public.auth_passkeys') AS relation"))[0].relation,
+        null
+      )
+      assert.equal(
+        (
+          await source.query(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'provider'"
+          )
+        ).length,
+        1
+      )
+    })
+
+    await withDataSource(createDatabaseDataSource, configuration, (source) =>
+      source.query(
+        'INSERT INTO users (id, provider, provider_subject, nickname, created_at) VALUES ($1, $2, $3, $4, NOW())',
+        [guardUser, 'google', 'isolated-migration-guard', '이관 검사']
+      )
+    )
+    const deniedUp = await runCompiledCli({ configuration, operation: 'up' })
+    assert.notEqual(deniedUp.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      assert.equal(
+        (await source.query('SELECT provider FROM users WHERE id = $1', [guardUser]))[0].provider,
+        'google'
+      )
+      assert.equal(
+        (await source.query("SELECT to_regclass('public.auth_passkeys') AS relation"))[0].relation,
+        null
+      )
+      await source.query('DELETE FROM users WHERE id = $1', [guardUser])
+    })
 
     const adventureDown = await runCompiledCli({ configuration, operation: 'down' })
     assert.equal(adventureDown.code, 0)
@@ -604,7 +655,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 5\n')
+  assert.equal(migration.stdout, 'Database migration applied: 6\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -707,7 +758,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 5\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 6\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({
@@ -772,15 +823,6 @@ async function primaryScenario() {
       resources.configuration,
       assertConstraintBehavior
     )
-    currentStage = 'AuthLoginRequest state matrix'
-    const stateMatrix = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      assertLoginRequestStateMatrix
-    )
-    process.stdout.write(
-      `AuthLoginRequest matrix: ${stateMatrix.accepted} accepted, ${stateMatrix.rejected} rejected\n`
-    )
     currentStage = 'public character search'
     const searchFlows = await withDataSource(
       createDatabaseDataSource,
@@ -804,43 +846,15 @@ async function primaryScenario() {
     process.stdout.write(
       `Account HTTP/database/JWT: ${accountFlows} scenarios; Node ${process.version}; Unicode ${process.versions.unicode}; ICU ${process.versions.icu}\n`
     )
-    const identityMatrix = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) =>
-        assertIdentitySessions(source, (part) => (currentStage = `identity session ${part}`))
+    currentStage = 'passkey browser and database'
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertPasskeyIntegration(source, (part) => {
+        currentStage = `passkey ${part}`
+      })
     )
     process.stdout.write(
-      `Identity session matrix: ${identityMatrix.scenarios} scenarios, ${identityMatrix.rollbackVariants} rollback variants\n`
+      'Passkey registration, authentication, management and replay checks passed\n'
     )
-    currentStage = 'common login flow'
-    const loginMatrix = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) => assertCommonLogin(source, (part) => (currentStage = `common login ${part}`))
-    )
-    process.stdout.write(`Common login matrix: ${loginMatrix.scenarios} scenarios\n`)
-    const concurrency = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) =>
-        assertLoginConcurrency(source, (part) => (currentStage = `login concurrency ${part}`))
-    )
-    const failures = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) => assertLoginFailures(source, (part) => (currentStage = `login failures ${part}`))
-    )
-    process.stdout.write(
-      `Login concurrency/failure matrix: ${concurrency} concurrency/TTL, ${failures} failure scenarios\n`
-    )
-    const httpFlows = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) =>
-        assertLoginHttpIntegration(source, (part) => (currentStage = `login HTTP ${part}`))
-    )
-    process.stdout.write(`Login HTTP/database/JWT: ${httpFlows} flows\n`)
     const refreshRotation = await withDataSource(
       createDatabaseDataSource,
       resources.configuration,
@@ -869,13 +883,6 @@ async function primaryScenario() {
         assertSessionHttpIntegration(source, (part) => (currentStage = `session HTTP ${part}`))
     )
     process.stdout.write(`Refresh/logout HTTP/database: ${sessionHttpFlows} scenarios\n`)
-    const googleFlows = await withDataSource(
-      createDatabaseDataSource,
-      resources.configuration,
-      (source) =>
-        assertGoogleHttpIntegration(source, (part) => (currentStage = `Google HTTP ${part}`))
-    )
-    process.stdout.write(`Google RS256/HTTP/database/JWT: ${googleFlows} scenarios\n`)
     currentStage = 'migrated Nest lifecycle'
     await assertNestLifecycle(resources.configuration)
     checkSignal()

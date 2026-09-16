@@ -30,7 +30,8 @@ const loginService = {
   authorize: async () => {
     loginCalls++
     return {
-      redirectUrl: 'https://google.test.invalid/authorize?state=test',
+      requestId: randomUUID(),
+      purpose: 'login',
       cookie: '__Host-test=x; Secure; HttpOnly; SameSite=Lax; Path=/'
     }
   },
@@ -249,7 +250,7 @@ test('adding session routes preserves login and HEAD behavior', async () => {
   const get = await fetch(`${base}/auth/login/authorize?ticket=${opaque()}`, {
     redirect: 'manual'
   })
-  assert.equal(get.status, 303)
+  assert.equal(get.status, 200)
   assert.equal(get.headers.get('cache-control'), 'no-store')
   assert.equal(sessionCalls.refresh.length, refreshBefore)
   assert.equal(sessionCalls.logout.length, logoutBefore)

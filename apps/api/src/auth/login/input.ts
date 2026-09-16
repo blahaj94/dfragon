@@ -1,10 +1,13 @@
 import { LOGIN_ERRORS } from '../../constants/login.js'
 import { LoginFailure } from '../../errors/login.js'
 import { UUID_PATTERN } from '../access-jwt/constants.js'
-import type { LoginCallbackInput, LoginCreation, LoginExchange } from '../../types/login.js'
+import type { LoginCreation, LoginExchange } from '../../types/login.js'
 import { decodeOpaque } from './crypto.js'
 
-function requireExactFields(value: unknown, fields: readonly string[]): Record<string, unknown> {
+export function requireExactFields(
+  value: unknown,
+  fields: readonly string[]
+): Record<string, unknown> {
   const isValueTruthy = Boolean(value)
   if (!isValueTruthy) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
@@ -39,7 +42,7 @@ export function parseCreation(value: unknown): LoginCreation {
     'codeChallengeMethod'
   ])
 
-  const isSupportedProvider = body.provider === 'google' || body.provider === 'discord'
+  const isSupportedProvider = body.provider === 'passkey'
   if (!isSupportedProvider) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
@@ -94,36 +97,4 @@ export function parseRefreshToken(value: unknown): string {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
   return rawToken
-}
-
-export function parseCallback(query: URLSearchParams): LoginCallbackInput {
-  try {
-    const states = query.getAll('state')
-    const codes = query.getAll('code')
-    const errors = query.getAll('error')
-
-    // OAuth의 다른 query는 허용하되 state 하나와 code/error 중 하나만 받는다.
-    const hasSingleState = states.length === 1
-    if (!hasSingleState) {
-      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
-    }
-    const hasSingleOutcome = codes.length + errors.length === 1
-    if (!hasSingleOutcome) {
-      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
-    }
-    const hasTruthyOutcome = Boolean(codes[0] ?? errors[0])
-    if (!hasTruthyOutcome) {
-      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
-    }
-
-    decodeOpaque(states[0])
-
-    const hasProviderError = errors.length === 1
-    if (hasProviderError) {
-      return { state: states[0], code: undefined, error: errors[0] }
-    }
-    return { state: states[0], code: codes[0], error: undefined }
-  } catch {
-    throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
-  }
 }

@@ -46,7 +46,7 @@ async function waitForPhase(
 async function beginWaitingLogin(
   coordinator: ReturnType<typeof createAuthCoordinator>
 ): Promise<void> {
-  await coordinator.beginLogin('google')
+  await coordinator.beginLogin('passkey')
   await waitForPhase(coordinator, 'waitingBrowser')
 }
 
@@ -58,7 +58,7 @@ describe('Desktop AuthCoordinator condition boundaries', () => {
     const coordinator = createAuthCoordinator(harness.dependencies)
     await coordinator.start()
 
-    await coordinator.beginLogin('google')
+    await coordinator.beginLogin('passkey')
     await waitForPhase(coordinator, 'signedOut')
 
     expect(observed.reads).toEqual(['code:1', 'code:2'])

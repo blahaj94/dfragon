@@ -4,7 +4,7 @@ import type { AuthIntent, AuthPresentationInput } from '../src/auth/presentation
 
 const empty: AuthPresentationInput = {
   phase: 'signedOut',
-  providers: ['google', 'discord'],
+  providers: ['passkey'],
   login: null,
   user: null,
   entry: null,
@@ -12,7 +12,7 @@ const empty: AuthPresentationInput = {
 }
 const login = {
   attemptId: 'synthetic-attempt',
-  provider: 'google' as const,
+  provider: 'passkey' as const,
   expiresAt: '2030-01-01T00:10:00Z'
 }
 const user = { nickname: '중립닉네임🙂' }

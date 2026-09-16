@@ -9,7 +9,7 @@ const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.example.test',
   returnTarget: 'ldb-test://auth/return',
   environment: 'test',
-  providers: ['google', 'discord'],
+  providers: ['passkey'],
   appIdentity: 'com.synthetic.ldb',
   userDataPath: '/synthetic/user-data'
 }
@@ -224,7 +224,7 @@ describe('desktop auth bootstrap', () => {
     }
 
     await runtime.start()
-    const started = await runtime.coordinator.beginLogin('google')
+    const started = await runtime.coordinator.beginLogin('passkey')
     await settle()
     expect(started).toMatchObject({ ok: true, snapshot: { phase: 'startingLogin' } })
     expect(runtime.coordinator.getSnapshot()).toMatchObject({ phase: 'waitingBrowser' })
@@ -253,7 +253,7 @@ describe('desktop auth bootstrap', () => {
       throw new Error('Synthetic auth runtime should be available')
     }
     await failedLogin.start()
-    await failedLogin.coordinator.beginLogin('google')
+    await failedLogin.coordinator.beginLogin('passkey')
     await settle()
     await failedLogin.coordinator.handleReturnUrl(`${config.returnTarget}?code=${CODE}`)
     expect(failedLogin.coordinator.getSnapshot()).toMatchObject({
