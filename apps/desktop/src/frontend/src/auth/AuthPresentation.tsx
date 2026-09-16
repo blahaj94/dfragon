@@ -43,7 +43,7 @@ function SignedIn({
       >
         패스키 관리
       </ActionButton>
-      {shouldShowWelcome ? (
+      {shouldShowWelcome && (
         <>
           <SupportingText>
             로그인을 완료했습니다. 화면 캡처는 로그인 여부와 관계없이 사용할 수 있습니다.
@@ -56,17 +56,14 @@ function SignedIn({
             시작하기
           </ActionButton>
         </>
-      ) : (
-        <>
-          <ActionButton
-            type="button"
-            disabled={commandPending}
-            onClick={() => onIntent({ type: 'logout' })}
-          >
-            이 기기 로그아웃
-          </ActionButton>
-        </>
       )}
+      <ActionButton
+        type="button"
+        disabled={commandPending}
+        onClick={() => onIntent({ type: 'logout' })}
+      >
+        이 기기 로그아웃
+      </ActionButton>
     </ExampleSection>
   )
 }
@@ -89,9 +86,7 @@ function PhaseContent({
     const hasProviders = snapshot.providers.length > 0
     return (
       <ExampleSection title="LDB 로그인">
-        <SupportingText>
-          같은 이메일을 사용해도 로그인 방법이 다르면 별개의 계정입니다.
-        </SupportingText>
+        <SupportingText>패스키로 가입하거나 로그인하세요.</SupportingText>
         {!hasProviders && <SupportingText>사용 가능한 로그인 방법이 없습니다.</SupportingText>}
         {snapshot.providers.map((provider) => (
           <ActionButton
