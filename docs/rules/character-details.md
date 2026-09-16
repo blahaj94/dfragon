@@ -7,23 +7,27 @@ last-reviewed: 2026-09-16
 
 # 캐릭터 상세 정보
 
-사용자가 검색 결과에서 선택한 캐릭터는 Neople 조회 → PostgreSQL 저장 → 저장값 재조회 → JSON 정제 순서로 제공한다. 이 계약과 구현은 같은 PR의 사용자 merge로 채택한다. 기존 `GET /characters` 검색의 무저장 계약은 유지한다.
+사용자가 검색 결과에서 선택한 캐릭터는 PostgreSQL의 최신 저장값을 먼저 확인한다. 최초 접근·만료·명시 갱신 때는 Neople 조회 → PostgreSQL 저장 → 저장값 재조회 → JSON 정제 순서로 제공한다. 이 계약과 구현은 같은 PR의 사용자 merge로 채택한다. 기존 `GET /characters` 검색의 무저장 계약은 유지한다.
 
 ## 조회와 응답
 
-`GET /characters/:serverId/:characterId`는 로그인 없이 제공한다. 서버는 지원하는 단일 서버 ID이며 `all`은 받지 않는다. 캐릭터 ID는 대소문자를 보존하는 1~256자의 ASCII 영숫자·`_`·`-`다. Query parameter와 HEAD는 400이다.
+`GET /characters/:serverId/:characterId`는 로그인 없이 제공한다. 서버는 지원하는 단일 서버 ID이며 `all`은 받지 않는다. 캐릭터 ID는 대소문자를 보존하는 1~256자의 ASCII 영숫자·`_`·`-`다. Query parameter와 HEAD는 400이다. `POST /characters/:serverId/:characterId/refresh`는 같은 식별자 규칙으로 로그인 없이 명시 갱신한다. 이 POST는 query와 body를 받지 않으며, 길이가 0이 아닌 Content-Length 또는 Transfer-Encoding이 있으면 400이다.
 
 조회 대상은 기본정보, 능력치, 장착장비·아바타·크리쳐·서약, 안개융화, 스킬스타일, 버프 강화 장비·아바타·크리쳐의 11개다. 타임라인·과거 이력·통계 집계와 Electron 상세 화면은 이 범위에 포함하지 않는다.
+
+GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fetch_at`부터 5분이 지나지 않았으면 저장값을 반환한다. 동일 DB snapshot에서 캐릭터의 서버와 섹션을 읽고 DB 현재 시각으로 판단하며, 가장 오래된 조회 시각이 미래이면 유효한 캐시로 취급하지 않는다. 만료 시각에 도달했거나 섹션이 빠졌으면 전체를 갱신한다. 캐시 적중은 캐릭터 행·섹션·시각을 갱신하지 않는다. 명시 갱신 POST는 이 5분 판정을 건너뛰며 공용 상세의 24시간 캐시 정책은 유지한다. 자동 주기 수집은 하지 않는다.
+
+같은 프로세스에서 동일 서버·캐릭터의 갱신이 겹치면 Neople 조회와 캐릭터 저장을 공유한다. 각 HTTP 요청의 호출 한도와 공용 상세 연결은 개별 처리한다. 대기자 하나의 연결 종료는 다른 대기자의 갱신을 취소하지 않으며, 마지막 대기자가 사라지면 공유 작업도 취소한다. 서버 종료는 모든 공유 작업을 취소하고 정리를 기다린다. 여러 인스턴스 사이의 실행 공유는 보장하지 않는다. 갱신 중에도 유효한 저장값이 있으면 일반 GET은 그 값을 반환할 수 있다.
 
 기본정보로 식별을 확인한 뒤 나머지는 최대 3개씩 병렬 조회한다. 전체 Neople 조회·body 수신·검증에 하나의 5초 제한을 적용하고 자동 재시도하지 않는다. 요청된 캐릭터·서버와 공통 이름, 섹션의 필수 envelope를 검사한다. 시즌별 중첩 옵션은 엄격한 고정 schema로 제한하지 않으며 미장착을 나타내는 null과 알 수 없는 추가 필드를 원본에 보존한다.
 
 11개가 모두 성공해야 한 transaction으로 저장한다. 하나라도 실패하면 기존 저장값을 유지하고 오류를 반환한다. 실패 때 이전 값을 성공 응답처럼 돌려주거나 부분 갱신하지 않는다. DB 저장·commit이 성공한 뒤 저장값을 정제해 응답한다. 여러 upstream 호출이 게임 서버의 같은 순간을 나타낸다고 보장하지는 않는다.
 
-응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다.
+응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
 
 ## 공용 아이템·스킬·세트 상세
 
-캐릭터 11개 섹션의 저장과 commit 후 공용 상세를 연결한다. 원본 캐릭터 JSONB에는 공용 상세를 섞지 않는다. 일반·버프 장착 장비, 아바타·엠블렘·외형 clone, 크리쳐·아티팩트·외형 clone, 서약 info·결정, 버프 아바타·엠블렘·외형 clone과 버프 크리쳐의 유효한 itemId가 있는 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `skillStyle` 객체에는 `skillDetails`를 추가하고 캐릭터 기본정보의 `jobId`와 습득·진화·강화·체인·버프 스킬 ID로 상세를 연결한다. `skillDetails`는 skillId를 key로 사용하는 객체이며 같은 상세를 여러 선택 항목에 복제하지 않는다. `itemDetail`과 `skillDetails`는 서버 응답용으로 예약한 필드다. ID가 없는 빈 슬롯, null·빈 배열, 선택 옵션과 원본 배열 순서는 유지한다. 외형 clone의 상세를 장착 효과로 합산하지 않는다.
+DB에서 읽은 캐릭터 11개 섹션에 공용 상세를 연결한다. 캐릭터 갱신 때는 저장과 commit 후 연결하며, GET 캐시 적중 때도 필요한 공용 상세를 확인한다. 원본 캐릭터 JSONB에는 공용 상세를 섞지 않는다. 일반·버프 장착 장비, 아바타·엠블렘·외형 clone, 크리쳐·아티팩트·외형 clone, 서약 info·결정, 버프 아바타·엠블렘·외형 clone과 버프 크리쳐의 유효한 itemId가 있는 각 항목에 `itemDetail: { data, fetchedAt, status }`를 추가한다. `skillStyle` 객체에는 `skillDetails`를 추가하고 캐릭터 기본정보의 `jobId`와 습득·진화·강화·체인·버프 스킬 ID로 상세를 연결한다. `skillDetails`는 skillId를 key로 사용하는 객체이며 같은 상세를 여러 선택 항목에 복제하지 않는다. `itemDetail`과 `skillDetails`는 서버 응답용으로 예약한 필드다. ID가 없는 빈 슬롯, null·빈 배열, 선택 옵션과 원본 배열 순서는 유지한다. 외형 clone의 상세를 장착 효과로 합산하지 않는다.
 
 아이템은 `item_catalog.item_id`, 스킬은 `skill_catalog(job_id, skill_id)`, 세트는 `set_item_catalog.set_item_id`를 PK로 사용한다. 상세 원본 JSONB와 `fetched_at`, `expires_at`, `request_started_at`을 저장한다. 캐릭터와의 FK나 사용률 집계·평가 테이블은 만들지 않는다.
 
@@ -43,7 +47,7 @@ last-reviewed: 2026-09-16
 
 `character_api_responses`는 `(character_id, section)`당 최신 응답 JSONB 하나만 저장한다. Section은 PostgreSQL enum이며 endpoint별 저장 단위다. JSONB에 객체 key 순서는 보존되지 않지만 필드·값과 배열 순서는 유지된다. 원본 문자열·해시·중복 응답·이력은 저장하지 않는다.
 
-PostgreSQL의 JSONB 비교에서 같으면 payload·revision·content_updated_at을 유지하고 last_successful_fetch_at만 갱신한다. 다르면 payload를 교체하고 revision을 1 올린다. 최초 revision은 1이다. 동일 데이터도 freshness 갱신을 위한 row 쓰기는 발생하며 무쓰기 캐시는 아니다.
+PostgreSQL의 JSONB 비교에서 같으면 payload·revision·content_updated_at을 유지하고 last_successful_fetch_at만 갱신한다. 다르면 payload를 교체하고 revision을 1 올린다. 최초 revision은 1이다. Neople 갱신 결과가 동일해도 freshness 갱신을 위한 row 쓰기는 발생한다. 유효한 저장값을 반환하는 GET에는 이 쓰기가 없다.
 
 조회 시작 직전에 DB 시각을 마이크로초 정밀도로 받아 request_started_at에 기록한다. 캐릭터 행 잠금과 섹션의 시각 조건으로 늦게 완료된 이전 요청이 새 값을 덮어쓰지 못하게 한다. 동일 시각은 먼저 저장한 값을 유지한다. 이 순서는 DB clock을 기준으로 하며 공급자 자체 버전이나 clock 역행을 해결하는 분산 버전은 아니다. 이전 요청도 최종 저장값을 다시 읽어 반환한다.
 
@@ -51,9 +55,9 @@ PostgreSQL의 JSONB 비교에서 같으면 payload·revision·content_updated_at
 
 ## 오류·호출 제한
 
-상세 조회의 IP당 최근 60초 10회 한도는 검색 한도와 별도로 계산한다. 캐릭터 조회는 최대 11회의 Neople 호출을 소비하며 공용 상세 캐시 미스 시 추가 호출이 발생한다. 단일 프로세스 메모리 한도이며 재시작·여러 인스턴스의 통합 제한은 제공하지 않는다. Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다.
+상세 GET과 명시 갱신 POST는 IP당 최근 60초 10회 한도를 공유하며 검색 한도와는 별도로 계산한다. GET 캐시 적중과 공유 갱신의 각 대기자도 한도를 소비한다. 캐릭터 갱신은 최대 11회의 Neople 호출을 소비하며 공용 상세 캐시 미스 시 추가 호출이 발생한다. 단일 프로세스 메모리 한도이며 재시작·여러 인스턴스의 통합 제한은 제공하지 않는다. Proxy 신뢰 경계는 [캐릭터 검색](character-search.md)을 따른다.
 
-입력·설정 확인과 DB 조회 시작 시각 확보 뒤 upstream 호출 직전에 한도를 소비한다. Upstream 실패도 한도를 돌려주지 않는다. Admission 대기는 2초, DB 풀 연결 확보는 2초로 제한한다. 저장 transaction의 statement·lock 대기는 각각 2초다. 연결 해제·종료 신호를 확인해 취소된 요청의 후속 쓰기를 중단한다.
+입력·설정 확인 뒤 DB 읽기 전에 한도를 소비한다. DB·upstream 실패도 한도를 돌려주지 않으며 잘못된 HTTP 입력은 소비하지 않는다. Admission 대기와 갱신 시작 DB 시각 확보에는 각각 취소 가능한 2초 제한을 적용하고 DB 풀 연결 확보는 2초로 제한한다. 읽기 transaction의 statement와 저장 transaction의 statement·lock 대기는 각각 2초다. 연결 해제·종료 신호를 확인해 취소된 요청의 후속 쓰기를 중단한다.
 
 오류 body는 `error.code`, `error.message`만 가진다. 입력 400 `INVALID_CHARACTER_QUERY`, 로컬 한도 429 `CHARACTER_RATE_LIMITED`와 `Retry-After`, 내부/DB 오류 500 `INTERNAL_SERVER_ERROR`, 공급자 오류 502 `NEOPLE_API_ERROR`, 이용 불가 503 `NEOPLE_UNAVAILABLE`, Neople 제한 시간 504 `NEOPLE_TIMEOUT`이다. 공급자 code 분류는 기존 검색과 같고 상세 조회용 고정 문구로 반환한다. 키·공급자 원문 오류·SQL·요청 원문을 로그나 응답에 포함하지 않는다.
 
@@ -61,4 +65,4 @@ PostgreSQL의 JSONB 비교에서 같으면 payload·revision·content_updated_at
 
 TypeORM EntitySchema를 기준으로 migration을 생성·검토하고 명시 실행한다. Runtime의 synchronize·자동 migration은 꺼 둔다. 기존 인증 테이블과 데이터를 변경하지 않으며 운영 API 계정에는 캐릭터 두 테이블의 DML과 공용 상세 세 테이블의 SELECT·INSERT·UPDATE 권한을 별도로 적용한다. `down`은 캐릭터 데이터를 삭제하므로 격리 검증용이며 운영에서 자동 실행하지 않는다.
 
-ERD는 [DBML](../reference/character-details.dbml), 작성·검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. `test:database`는 JSONB 동등성·revision·원자적 rollback·경합·이전 요청·HTTP 정제·한도·연결 대기 종료를 실제 PostgreSQL에서 확인한다. 실제 Neople·운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.
+ERD는 [DBML](../reference/character-details.dbml), 작성·검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. 5분 캐시와 명시 갱신은 기존 column을 사용하므로 별도 migration이나 권한 변경이 필요하지 않다. `test:database`는 캐시 적중·만료·명시 갱신·실패 시 보존·freshness·공유 한도와 JSONB 동등성·revision·원자적 rollback·경합·이전 요청·HTTP 정제·한도·연결 대기 종료를 실제 PostgreSQL에서 확인한다. 실제 Neople·운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.

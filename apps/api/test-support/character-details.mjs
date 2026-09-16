@@ -58,6 +58,14 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     )
     assert.equal(first.length, 11)
     assert(first.every((row) => row.revision === 1))
+    const firstRead = await store.read(identity, signal)
+    assert.equal(firstRead.rows.length, 11)
+    assert(firstRead.now instanceof Date)
+    await assert.rejects(store.read({ ...identity, serverId: 'cain' }, signal))
+    assert.deepEqual(
+      (await store.read({ ...identity, characterId: 'missing-fixture' }, signal)).rows,
+      []
+    )
     const original = await snapshot()
 
     mark('JSONB equality and unchanged content timestamps')
@@ -208,7 +216,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     })
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/characters/${identity.serverId}/${identity.characterId}`
-    const response = await fetch(url)
+    const response = await fetch(url + '/refresh', { method: 'POST' })
     assert.equal(response.status, 200)
     const body = await response.json()
     assert.equal(body.character.characterId, identity.characterId)
@@ -226,26 +234,57 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(body.creature, null)
     assert.equal(providerCalls, 11)
     assert.equal(body.equipment.characterName, undefined)
+    assert.equal(
+      Date.parse(body.freshness.expiresAt) - Date.parse(body.freshness.lastSuccessfulFetchAt),
+      300_000
+    )
+    const beforeHit = await snapshot()
+    const hit = await fetch(url)
+    assert.equal(hit.status, 200)
+    const cached = await hit.json()
+    assert.deepEqual(cached.freshness, body.freshness)
+    assert.equal(providerCalls, 11)
+    assert.deepEqual(await snapshot(), beforeHit)
+
+    mark('one expired section triggers automatic refresh without inflating revisions')
+    await source.query(
+      "UPDATE character_api_responses SET last_successful_fetch_at = clock_timestamp() - interval '5 minutes 1 second' WHERE character_id = $1 AND section = 'avatar'",
+      [identity.characterId]
+    )
+    const automatic = await fetch(url)
+    assert.equal(automatic.status, 200)
+    assert.equal((await automatic.json()).sections.equipment.revision, 4)
+    assert.equal(providerCalls, 22)
     const beforeFailure = await snapshot()
 
     mark('upstream failure preserves all stored sections')
     fail = true
-    const failure = await fetch(url)
+    const failure = await fetch(url + '/refresh', { method: 'POST' })
     assert.equal(failure.status, 503)
     assert.equal((await failure.json()).error.code, 'NEOPLE_UNAVAILABLE')
     assert.deepEqual(await snapshot(), beforeFailure)
     const callsBeforeInvalid = providerCalls
     for (const [target, options] of [
       [url + '?unknown=value', {}],
-      [url, { method: 'HEAD' }]
+      [url, { method: 'HEAD' }],
+      [url + '/refresh?force=true', { method: 'POST' }],
+      [
+        url + '/refresh',
+        { method: 'POST', body: '{}', headers: { 'Content-Type': 'application/json' } }
+      ]
     ]) {
       assert.equal((await fetch(target, options)).status, 400)
     }
     assert.equal(providerCalls, callsBeforeInvalid)
 
+    const beforeCachedFailure = providerCalls
+    assert.equal((await fetch(url)).status, 200)
+    assert.equal(providerCalls, beforeCachedFailure)
+    assert.deepEqual(await snapshot(), beforeFailure)
+
     mark('detail quota rejects before the provider')
     fail = false
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 5; i++) {
       assert.equal((await fetch(url)).status, 200)
     }
     const callsBeforeLimit = providerCalls

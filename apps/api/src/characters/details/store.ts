@@ -1,4 +1,5 @@
 import type { DataSource } from 'typeorm'
+import { CharacterSchema } from '../../database/schemas/characters.js'
 import { CharacterApiResponseSchema } from '../../database/schemas/character-api-responses.js'
 import type { CharacterApiResponse } from '../../database/schemas/character-api-responses.js'
 import { CharacterDetailFailure } from './errors.js'
@@ -6,6 +7,10 @@ import { characterDetailSections } from './sections.js'
 import type { CharacterIdentity, CharacterPayloads } from './sections.js'
 
 export interface CharacterDetailStore {
+  read(
+    identity: CharacterIdentity,
+    signal: AbortSignal
+  ): Promise<{ rows: CharacterApiResponse[]; now: Date }>
   beginFetch(): Promise<string>
   saveAndRead(
     identity: CharacterIdentity,
@@ -17,6 +22,29 @@ export interface CharacterDetailStore {
 
 export function createCharacterDetailStore(dataSource: DataSource): CharacterDetailStore {
   return {
+    async read(identity, signal) {
+      // Identity and all sections come from one database snapshot, even during a refresh.
+      return dataSource.transaction('REPEATABLE READ', async (manager) => {
+        signal.throwIfAborted()
+        await manager.query("SET LOCAL statement_timeout = '2s'")
+        const character = await manager
+          .getRepository(CharacterSchema)
+          .findOneBy({ characterId: identity.characterId })
+        if (character && character.serverId !== identity.serverId) {
+          throw new CharacterDetailFailure('api')
+        }
+        const rows = character
+          ? await manager
+              .getRepository(CharacterApiResponseSchema)
+              .findBy({ characterId: identity.characterId })
+          : []
+        const [clock] = (await manager.query('SELECT clock_timestamp() AS now')) as Array<{
+          now: Date
+        }>
+        signal.throwIfAborted()
+        return { rows, now: clock!.now }
+      })
+    },
     async beginFetch() {
       // Keep PostgreSQL microseconds as text: JS Date truncates the request ordering precision.
       const rows = (await dataSource.query(

@@ -149,6 +149,17 @@ export const apiSchemas: Record<string, SchemaObject> = {
     }
   }),
   CharacterDetails: object({
+    freshness: object({
+      lastSuccessfulFetchAt: {
+        ...timestamp,
+        description:
+          '11개 캐릭터 섹션 중 가장 오래된 성공 조회 시각. 캐시 적중 시 갱신되지 않습니다.'
+      },
+      expiresAt: {
+        ...timestamp,
+        description: '마지막 성공 조회 시각 + 5분. 공용 상세의 24시간 캐시와 별개입니다.'
+      }
+    }),
     character: object({
       characterId: text,
       serverId: text,
