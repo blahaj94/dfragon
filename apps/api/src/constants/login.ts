@@ -70,6 +70,7 @@ export const LOGIN = {
   codeSeconds: 60,
   idleSeconds: 2_592_000,
   jsonBytes: 16_384,
+  phoneCookiePrefix: '__Host-ldb-phone-',
   cookiePrefix: '__Host-ldb-login-',
   contentSecurityPolicy:
     "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
@@ -79,6 +80,9 @@ export const CLEARED_LOGIN_FIELDS = {
   codeChallenge: null,
   launchTicketHash: null,
   browserBindingHash: null,
+  qrTicketHash: null,
+  phoneBindingHash: null,
+  confirmationCode: null,
   webauthnChallenge: null,
   operation: null,
   pendingUserId: null,

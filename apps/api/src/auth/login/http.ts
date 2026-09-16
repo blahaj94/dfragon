@@ -230,6 +230,32 @@ class LoginController {
     response.status(200).type('html').send(page.html)
   }
 
+  @Get('login/phone')
+  async phone(@Req() request: Request, @Res() response: Response): Promise<void> {
+    // Express의 HEAD→GET fallback이 일회용 ticket을 소비하지 못하게 한다.
+    const isGet = request.method === 'GET'
+    if (!isGet) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+
+    const query = readOriginalQuery(request)
+    const hasSingleQueryParameter = query.size === 1
+    if (!hasSingleQueryParameter) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+    const hasSingleTicket = query.getAll('ticket').length === 1
+    if (!hasSingleTicket) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+
+    const ticket = query.get('ticket')!
+    const authorization = await this.service.authorize(ticket, 'phone')
+    response.setHeader('Set-Cookie', authorization.cookie)
+    const page = passkeyPage(authorization)
+    response.setHeader('Content-Security-Policy', page.policy)
+    response.status(200).type('html').send(page.html)
+  }
+
   @Get('passkeys/manage')
   async manage(@Req() request: Request, @Res() response: Response): Promise<void> {
     if (request.method !== 'GET') {
@@ -363,7 +389,8 @@ export async function createLoginHttpApp(
       if (
         (request.method === 'POST' &&
           (path === '/auth/login-requests' || path.startsWith('/auth/passkeys/'))) ||
-        path === '/auth/passkeys/manage'
+        path === '/auth/passkeys/manage' ||
+        path === '/auth/login/phone'
       ) {
         const now = Date.now()
         if (now >= globalWindow.until) {

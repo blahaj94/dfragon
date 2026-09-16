@@ -156,7 +156,14 @@ export interface CredentialStore {
 }
 
 export interface AuthBrowser {
-  open(url: string): Promise<void>
+  open(
+    url: string,
+    login?: Readonly<{
+      signal: AbortSignal
+      onReturn(url: string, onClaimed: () => void): Promise<void>
+      onClosed(): void
+    }>
+  ): Promise<void>
 }
 
 export type AuthCoordinatorDependencies = Readonly<{

@@ -21,7 +21,7 @@ last-reviewed: 2026-09-17
 
 예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3443`, RP ID `localhost`, 복귀 `ldb.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
-Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 시스템 브라우저에서 진행하고 앱 복귀 code를 기존 protocol ingress·S256으로 교환한다. `패스키 관리` 버튼은 같은 인증 origin의 관리 화면을 열고 패스키 재인증을 요청한다.
+Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. `패스키 관리` 버튼은 같은 인증 origin의 관리 화면을 열고 패스키 재인증을 요청한다.
 
 API build는 TypeScript 서버와 `browser/passkeys.ts`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
@@ -29,7 +29,7 @@ API build는 TypeScript 서버와 `browser/passkeys.ts`를 bundle한다. Browser
 - `pnpm --filter @ldb/api test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태·IPC·화면 회귀와 build.
 
-운영 배포와 실제 휴대폰 QR 검증은 별도다. Bluetooth 없는 기기나 지원하지 않는 브라우저에 자체 QR 우회 경로를 제공하지 않는다.
+운영 배포와 실제 휴대폰 QR 검증은 별도다. LDB QR은 휴대폰의 HTTPS 패스키 인증과 양쪽 승인을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
 
 ## Windows 실기기 확인
 
@@ -81,3 +81,11 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 정상 종료·복원과 로그아웃 성공은 사용자 화면 확인이며 운영 DB의 session/refresh 집계를
 별도로 조회한 결과가 아니다. 서버 로그아웃 실패·로컬 정리 실패를 주입하지 않았고,
 이 결과를 물리 정전 내구성이나 다른 OS·브라우저·기기의 성공으로 확대하지 않는다.
+
+## LDB QR과 전용 창
+
+`auth/login/phone.ts`는 PC·휴대폰 cookie를 분리해 QR 재발급·승인·일회용 claim을 처리한다. `browser/passkeys.ts`는 로컬 canvas QR, 5초 상태 조회와 명시 승인 화면을 제공한다. 관리 QR은 고정 관리 URL만 담으며 휴대폰에서 재인증한다. Desktop의 `auth/browser-window.ts`는 Node/preload 없는 메모리 session과 origin 제한을 적용한다.
+
+`AddPhoneQrLogin1789601588410`은 schema diff로 생성한 추가 migration이다. 기존 실사용 계정·패스키·세션을 유지하며 과거 OAuth 데이터 초기화를 다시 실행하지 않는다. 배포는 새 API의 migration 적용 → API 업데이트 → Desktop 업데이트 순서다. 이전 Desktop의 직접 패스키 경로도 유지한다.
+
+자동 검증은 별도 PC/phone 브라우저 문맥과 WebAuthn 가상 인증기를 사용한 가입·재로그인, 양쪽 승인, ticket/claim 재사용 차단, 취소·재발급·만료·삭제 키 거부 및 기존 로그인 회귀다. 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.

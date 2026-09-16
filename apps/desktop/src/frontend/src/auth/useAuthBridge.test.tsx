@@ -394,7 +394,7 @@ it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로�
     login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
   })
   await act(async () => container.querySelector('button')?.click())
-  expect(container.textContent).toContain('앱으로 돌아가기')
+  expect(container.textContent).toContain('로그인 전용 창')
   expect(container.textContent).toContain('로그인 취소')
   expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
   expect(fixture.api.cancelLogin).not.toHaveBeenCalled()

@@ -65,14 +65,16 @@ export async function markLoginRequestFailed(
 export function browserCookie({
   requestId,
   bindingValue,
-  maxAgeSeconds
+  maxAgeSeconds,
+  phone = false
 }: {
   requestId: string
   bindingValue: string
   maxAgeSeconds: number
+  phone?: boolean
 }): string {
   return [
-    `${LOGIN.cookiePrefix}${requestId}=${bindingValue}`,
+    `${phone ? LOGIN.phoneCookiePrefix : LOGIN.cookiePrefix}${requestId}=${bindingValue}`,
     `Max-Age=${maxAgeSeconds}`,
     'Secure',
     'HttpOnly',
@@ -81,9 +83,9 @@ export function browserCookie({
   ].join('; ')
 }
 
-export function cookieMatches(request: AuthLoginRequest, header: string): boolean {
+export function cookieMatches(request: AuthLoginRequest, header: string, phone = false): boolean {
   try {
-    const cookieName = `${LOGIN.cookiePrefix}${request.id}`
+    const cookieName = `${phone ? LOGIN.phoneCookiePrefix : LOGIN.cookiePrefix}${request.id}`
     const matches = header
       .split(';')
       .map((part) => part.trim())
@@ -96,7 +98,10 @@ export function cookieMatches(request: AuthLoginRequest, header: string): boolea
     }
     const value = matches[0].slice(cookieName.length + 1)
     decodeOpaque(value)
-    return equalHash(request.browserBindingHash, opaqueHash(value))
+    return equalHash(
+      phone ? request.phoneBindingHash : request.browserBindingHash,
+      opaqueHash(value)
+    )
   } catch {
     return false
   }

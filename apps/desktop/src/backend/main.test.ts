@@ -371,7 +371,10 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     returnTarget: 'ldb-synthetic://auth/return'
   })
   expect(mocks.selectIngressArguments).toHaveBeenCalledExactlyOnceWith(process.argv, false)
-  expect(mocks.createEffects.mock.calls).toEqual([[], []])
+  expect(mocks.createEffects.mock.calls).toEqual([
+    [{ activateMainWindow: expect.any(Function) }],
+    []
+  ])
   expect(mocks.createSearchClock).toHaveBeenCalledExactlyOnceWith()
   expect(mocks.bootstrapAuth).toHaveBeenCalledExactlyOnceWith({
     config: appliedConfig,

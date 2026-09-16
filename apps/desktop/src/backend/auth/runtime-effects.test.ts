@@ -18,7 +18,7 @@ describe('desktop auth runtime effects', () => {
     const harness = createAuthHarness()
     const fetch = vi.fn()
     const announceCredentialAccess = vi.fn(async () => undefined)
-    const openExternal = vi.fn(async () => undefined)
+    const openBrowser = vi.fn(async () => undefined)
     const http = vi.fn(() => harness.dependencies.http)
     const store = vi.fn(() => harness.store)
     const effects = createAuthRuntimeEffects({
@@ -30,7 +30,7 @@ describe('desktop auth runtime effects', () => {
       platform: 'darwin',
       fetch,
       showMessageBox: announceCredentialAccess,
-      openExternal,
+      openBrowser,
       createHttp: http,
       createStore: store
     })
@@ -56,7 +56,7 @@ describe('desktop auth runtime effects', () => {
     expect(dependencies.providers).toEqual(config.providers)
     const browserUrl = 'https://api.synthetic.test/auth/login/authorize?ticket=synthetic'
     await dependencies.browser.open(browserUrl)
-    expect(openExternal).toHaveBeenCalledExactlyOnceWith(browserUrl)
+    expect(openBrowser).toHaveBeenCalledExactlyOnceWith(browserUrl)
   })
 
   it('provides distinct production-size CSPRNG bytes and canonical UUIDs to the coordinator', () => {
@@ -87,7 +87,7 @@ describe('desktop auth runtime effects', () => {
 
   it('keeps the default non-macOS credential adapter blocked without native side effects', async () => {
     const fetch = vi.fn()
-    const openExternal = vi.fn(async () => undefined)
+    const openBrowser = vi.fn(async () => undefined)
     const safeStorage = {
       isEncryptionAvailable: vi.fn(() => {
         throw new Error('Synthetic safeStorage access')
@@ -104,7 +104,7 @@ describe('desktop auth runtime effects', () => {
       platform: 'linux',
       fetch,
       showMessageBox: vi.fn(async () => undefined),
-      openExternal
+      openBrowser
     })
     const runtime = await bootstrapAuthRuntime({ config, effects })
     if (runtime == null) {
@@ -121,7 +121,7 @@ describe('desktop auth runtime effects', () => {
     expect(safeStorage.encryptString).not.toHaveBeenCalled()
     expect(safeStorage.decryptString).not.toHaveBeenCalled()
     expect(fetch).not.toHaveBeenCalled()
-    expect(openExternal).not.toHaveBeenCalled()
+    expect(openBrowser).not.toHaveBeenCalled()
   })
 
   it('selects the Windows adapter and keeps the native gate closed until verified', async () => {
@@ -142,7 +142,7 @@ describe('desktop auth runtime effects', () => {
       platform: 'win32',
       fetch,
       showMessageBox: vi.fn(async () => undefined),
-      openExternal: vi.fn(async () => undefined)
+      openBrowser: vi.fn(async () => undefined)
     })
     const runtime = await bootstrapAuthRuntime({ config, effects })
     if (runtime == null) {

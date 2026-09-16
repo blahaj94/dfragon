@@ -8,7 +8,7 @@ const notices: Record<AuthNotice, string> = {
   LOGIN_RETURN_INVALID:
     '앱으로 돌아온 로그인 정보를 확인하지 못했습니다. 새 로그인은 현재 시도를 취소한 뒤 시작합니다.',
   LOGIN_RESTART_REQUIRED: '로그인을 완료하지 못했습니다. 새 로그인을 시작해 주세요.',
-  BROWSER_OPEN_FAILED: '브라우저를 열지 못했습니다. 새 로그인을 시작해 주세요.',
+  BROWSER_OPEN_FAILED: '로그인 창을 열지 못했습니다. 새 로그인을 시작해 주세요.',
   NETWORK_UNAVAILABLE: '네트워크 연결을 확인해 주세요.',
   AUTH_SERVICE_UNAVAILABLE: '인증 서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
   RESTORE_RETRY_REQUIRED: '로그인 상태 확인을 마치지 못했습니다. 다시 시도해 주세요.',
@@ -113,24 +113,20 @@ function PhaseContent({
     const expiresAt = login.expiresAt
     const hasExpiry = expiresAt != null
     return (
-      <ExampleSection title={isExchanging ? '로그인 처리 중' : '브라우저에서 로그인'}>
+      <ExampleSection title={isExchanging ? '로그인 처리 중' : '로그인 창에서 계속하기'}>
         <SupportingText>
           {isExchanging
-            ? '브라우저에서 돌아온 로그인 정보를 확인하고 있습니다. 잠시 기다려 주세요.'
-            : '브라우저에서 로그인을 마친 뒤 “앱으로 돌아가기”를 눌러 주세요. 앱 열기 확인이 나타나면 허용해 주세요.'}
+            ? '인증을 마친 로그인 정보를 확인하고 있습니다. 잠시 기다려 주세요.'
+            : '로그인 전용 창에서 휴대폰 QR 또는 이 기기의 패스키를 선택해 주세요.'}
         </SupportingText>
-        {isWaiting && (
-          <SupportingText>
-            브라우저에서 취소했거나 창을 닫았다면 아래 “로그인 취소”를 누른 뒤 다시 시작해 주세요.
-          </SupportingText>
-        )}
+        {isWaiting && <SupportingText>로그인 창을 닫으면 이번 로그인이 취소됩니다.</SupportingText>}
         {hasExpiry && (
           <SupportingText>
             로그인 대기 만료: <time dateTime={expiresAt}>{expiresAt}</time>
           </SupportingText>
         )}
         <SupportingText>
-          앱에서 취소해도 브라우저를 닫거나 서버 처리를 되돌리지는 않습니다.
+          로그인 취소를 누르면 전용 창을 닫고 이번 로그인을 중단합니다.
         </SupportingText>
         <ActionButton type="button" disabled loading>
           로그인 진행 중

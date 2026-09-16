@@ -1,3 +1,4 @@
+import { assertPhoneQrIntegration } from './phone-qr-integration.mjs'
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
@@ -59,6 +60,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     })
     await runtime.app.listen(port, '127.0.0.1')
     browser = await chromium.launch({ headless: true })
+    await assertPhoneQrIntegration({ source, browser, origin, mark })
     const context = await browser.newContext({
         ignoreHTTPSErrors: true,
         viewport: { width: 1100, height: 850 }

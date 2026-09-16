@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import type { EventEmitter } from 'node:events'
-import { dialog, safeStorage as electronSafeStorage, shell, type SafeStorage } from 'electron'
+import { dialog, safeStorage as electronSafeStorage, type SafeStorage } from 'electron'
+import { createAuthBrowser } from './browser-window'
 import { createAuthHttpClient } from './http'
 import { createMacOsCredentialStore } from './credential-store/macos-credential-store'
 import { createWindowsCredentialStore } from './credential-store/windows-credential-store'
@@ -26,7 +27,8 @@ type RuntimeEffectsOptions = Readonly<{
   platform?: NodeJS.Platform
   fetch?: typeof globalThis.fetch
   showMessageBox?: () => Promise<unknown>
-  openExternal?: (url: string) => Promise<void>
+  activateMainWindow?: () => void
+  openBrowser?: (url: string) => Promise<void>
   readWallMs?: () => number
   readMonotonicMs?: () => number
   createStore?: RuntimeStoreFactory
@@ -52,12 +54,6 @@ export function createAuthRuntimeEffects(
     options.createStore ??
     (platform === 'win32' ? createWindowsCredentialStore : createMacOsCredentialStore)
   const createHttp = options.createHttp ?? createAuthHttpClient
-  const openExternal =
-    options.openExternal ??
-    shell?.openExternal ??
-    (async () => {
-      throw new Error('External browser is unavailable.')
-    })
   const readWallMs = options.readWallMs ?? Date.now
   const readMonotonicMs = options.readMonotonicMs ?? (() => performance.now())
   const powerState: ClockPowerState = { suspended: false, revision: 0 }
@@ -118,7 +114,13 @@ export function createAuthRuntimeEffects(
         providers: config.providers,
         apiOrigin,
         returnTarget: config.returnTarget,
-        browser: { open: openExternal },
+        browser: options.openBrowser
+          ? { open: options.openBrowser }
+          : createAuthBrowser(
+              apiOrigin,
+              config.returnTarget,
+              options.activateMainWindow ?? (() => {})
+            ),
         clock,
         entropy: {
           uuid: randomUUID,
