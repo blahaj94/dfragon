@@ -38,6 +38,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Type: ESM
 - Stack: Node 24, NestJS 12, TypeScript
 - Entry: `src/main.ts` → `dist/main.js`
+- API 문서: `/docs`의 Swagger UI와 `/docs/openapi.json`. `src/swagger`의 명시적 schema·설명을 controller metadata와 합쳐 제공한다. [사용 방법](api-start-development.md#swagger-api-문서)을 참고한다.
 - 필수 runtime 설정: `PORT`, `DB_*`, `NEOPLE_API_KEY`, `AUTH_CONFIG_FILE`. `src/runtime`에서 설정을 검증하고 기존 인증·계정·검색 factory와 소유 DB를 기본 main에 연결한다. 정확한 입력·실행 순서는 [`api-start-development.md`](api-start-development.md)를 참고한다.
 - Test compile: `test`가 `dist`를 먼저 clean build한 뒤 `src`, `test`를 `.test-dist`로 compile한다. 단독 실행에서도 runtime entry와 login test가 최신 production output을 사용한다. Test module의 loopback HTTP로 runtime을 검증한다.
 - Database: `src/database/schemas`의 typed EntitySchema가 ORM mapping과 Migration 생성의 시작점이다. 작성 순서·생성 한계는 [`database-development.md`](database-development.md)를 참고한다. `src/database/data-source.ts`의 compiled ESM DataSource와 `src/database/cli.ts`의 정제된 CLI가 `src/database/migrations`의 인증 초기·캐릭터 상세 Migration을 명시 실행한다. 기본 main의 `src/runtime/application.ts`는 기존 DataSource factory로 DB 수명을 소유한다. `AppModule`은 별도 runtime 테스트용 빈 module로 유지한다.

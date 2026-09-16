@@ -6,12 +6,23 @@ last-reviewed: 2026-09-08
 
 # 기본 API 설정과 실행
 
-`pnpm --filter @ldb/api start`는 `apps/api/dist/main.js`에서 Google 로그인·refresh/logout·계정·인증 검색을 한 앱으로 시작한다. 기존 factory와 transaction을 사용하며 필수 설정을 검증한 뒤 DB를 초기화하고 마지막에 listen한다. 실제 provider 등록·credential과 운영 ingress/TLS·배포 검증은 별도로 준비해야 한다.
+`pnpm --filter @ldb/api start`는 `apps/api/dist/main.js`에서 Google 로그인·refresh/logout·계정·공개 캐릭터 검색·상세 조회를 한 앱으로 시작한다. 기존 factory와 transaction을 사용하며 필수 설정을 검증한 뒤 DB를 초기화하고 마지막에 listen한다. 실제 provider 등록·credential과 운영 ingress/TLS·배포 검증은 별도로 준비해야 한다.
 
 Ubuntu 서버에서 Docker Compose와 호스트 Caddy를 사용하는 배포 명령·권한·secret 입력은
 [단일 서버 API 배포](../../deploy/api/README.md)를 따른다.
 
 `/` 등 미등록 경로는 요청 URL이나 예외 원문을 포함하지 않는 고정 404 JSON을 반환한다. 등록된 service가 던진 예외는 기존 인증·계정·검색의 정제 오류 처리에 남으며 미등록 route의 404와 구분한다.
+
+## Swagger API 문서
+
+API 실행 후 같은 origin의 `/docs`에서 Swagger UI를 열고 `/docs/openapi.json`에서 OpenAPI JSON을 받을 수 있다. 예를 들어 로컬 HTTPS 설정의 port가 3443이면 `https://localhost:3443/docs`다. 문서는 별도 로그인 없이 열리며 현재 등록된 11개 operation의 입력·성공 응답·오류와 호출 제한을 설명한다.
+
+- 캐릭터 검색·상세 조회는 인증 없이 `Try it out`으로 호출한다. 상세 조회는 실제 Neople 요청과 DB 갱신을 수행하며 기존 호출 한도를 사용한다.
+- `/me`와 닉네임 변경은 `Authorize`에 access JWT를 입력한다. 토큰은 브라우저 저장소에 영구 보관하지 않는다.
+- 로그인은 Desktop의 S256 PKCE·시스템 브라우저·앱 복귀 흐름을 따른다. Swagger의 `Authorize`가 Google 로그인을 대신하지 않는다. Discord callback은 구현 경로를 설명하며 현재 기본 runtime은 Google만 활성화한다.
+- JSON 요청은 UTF-8·16,384바이트 제한과 기존 parser를 그대로 사용한다. UI asset은 API 자체에서 제공하고 외부 Swagger validator를 호출하지 않는다.
+
+문서 경로에만 Swagger용 CSP를 적용하며 로그인 완료 HTML의 script 금지 정책은 유지한다. API route의 설명은 `src/swagger/operations.ts`, 응답 schema는 `src/swagger/schemas.ts`, UI 설정은 `src/swagger/setup.ts`에서 관리한다. Route 등록은 controller에서 추출하므로 endpoint 변경 시 해당 설명·schema도 함께 갱신한다.
 
 ## 준비할 입력
 
