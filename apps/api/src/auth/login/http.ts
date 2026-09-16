@@ -11,6 +11,16 @@ import {
   Res
 } from '@nestjs/common'
 import type { ArgumentsHost, ExceptionFilter, INestApplication } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger'
+import { setupSwagger } from '../../swagger/setup.js'
+import {
+  ApiLoginRequest,
+  ApiLoginExchange,
+  ApiRefresh,
+  ApiLogout,
+  ApiAuthorize,
+  ApiCallback
+} from '../../swagger/operations.js'
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
@@ -146,11 +156,13 @@ class LoginHttpFilter implements ExceptionFilter {
   }
 }
 
+@ApiTags('인증')
 @Controller('auth')
 class SessionController {
   constructor(@Inject(SESSION_SERVICE) private readonly service: SessionHttpService) {}
 
   @Post('refresh')
+  @ApiRefresh()
   async refresh(@Req() request: Request, @Res() response: Response): Promise<void> {
     const rawToken = parseRefreshToken(request.body)
     const tokens = await this.service.refresh(rawToken)
@@ -158,6 +170,7 @@ class SessionController {
   }
 
   @Post('logout')
+  @ApiLogout()
   async logout(@Req() request: Request, @Res() response: Response): Promise<void> {
     const rawToken = parseRefreshToken(request.body)
     await this.service.logout(rawToken)
@@ -165,11 +178,13 @@ class SessionController {
   }
 }
 
+@ApiTags('인증')
 @Controller('auth')
 class LoginController {
   constructor(@Inject(LOGIN_SERVICE) private readonly service: LoginHttpService) {}
 
   @Post('login-requests')
+  @ApiLoginRequest()
   async create(@Req() request: Request, @Res() response: Response): Promise<void> {
     const input = parseCreation(request.body)
     const created = await this.service.create(input)
@@ -177,6 +192,7 @@ class LoginController {
   }
 
   @Post('exchange')
+  @ApiLoginExchange()
   async exchange(@Req() request: Request, @Res() response: Response): Promise<void> {
     const input = parseExchange(request.body)
     const tokens = await this.service.exchange(input)
@@ -184,6 +200,7 @@ class LoginController {
   }
 
   @Get('login/authorize')
+  @ApiAuthorize()
   async authorize(@Req() request: Request, @Res() response: Response): Promise<void> {
     // Express의 HEAD→GET fallback이 일회용 ticket을 소비하지 못하게 한다.
     const isGet = request.method === 'GET'
@@ -209,11 +226,13 @@ class LoginController {
   }
 
   @Get('callback/google')
+  @ApiCallback('Google')
   google(@Req() request: Request, @Res() response: Response): Promise<void> {
     return this.callback('google', request, response)
   }
 
   @Get('callback/discord')
+  @ApiCallback('Discord')
   discord(@Req() request: Request, @Res() response: Response): Promise<void> {
     return this.callback('discord', request, response)
   }
@@ -324,6 +343,7 @@ export async function createLoginHttpApp(
     })
     app.use(loginJsonParser)
     app.useGlobalFilters(new LoginHttpFilter())
+    setupSwagger(app)
     return app
   } catch (error) {
     await app.close().catch(() => undefined)

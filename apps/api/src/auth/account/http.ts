@@ -1,3 +1,5 @@
+import { ApiTags } from '@nestjs/swagger'
+import { ApiProfile } from '../../swagger/operations.js'
 import { Controller, Get, Inject, Patch, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { ACCOUNT_ERRORS, AccountFailure } from './errors.js'
@@ -13,11 +15,13 @@ function assertAccountGet(method: string): void {
   }
 }
 
+@ApiTags('계정')
 @Controller('me')
 export class AccountController {
   constructor(@Inject(ACCOUNT_SERVICE) private readonly service: AccountHttpService) {}
 
   @Get()
+  @ApiProfile()
   async get(@Req() request: Request, @Res() response: Response): Promise<void> {
     assertAccountGet(request.method)
     const profile = await this.service.get(request.rawHeaders)
@@ -25,6 +29,7 @@ export class AccountController {
   }
 
   @Patch('nickname')
+  @ApiProfile(true)
   async nickname(@Req() request: Request, @Res() response: Response): Promise<void> {
     const profile = await this.service.updateNickname(request.rawHeaders, request.body)
     response.status(200).json(profile)

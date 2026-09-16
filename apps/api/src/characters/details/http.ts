@@ -1,3 +1,5 @@
+import { ApiTags } from '@nestjs/swagger'
+import { ApiCharacterDetails } from '../../swagger/operations.js'
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { CharacterDetailFailure } from './errors.js'
@@ -6,11 +8,13 @@ import type { CharacterDetailService } from './service.js'
 
 export const CHARACTER_DETAIL_SERVICE = Symbol('CHARACTER_DETAIL_SERVICE')
 
+@ApiTags('캐릭터')
 @Controller('characters')
 export class CharacterDetailController {
   constructor(@Inject(CHARACTER_DETAIL_SERVICE) private readonly service: CharacterDetailService) {}
 
   @Get(':serverId/:characterId')
+  @ApiCharacterDetails()
   async detail(@Req() request: Request, @Res() response: Response): Promise<void> {
     if (request.method !== 'GET') {
       throw new CharacterDetailFailure('query')
