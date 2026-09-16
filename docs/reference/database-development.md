@@ -180,3 +180,12 @@ COMMIT;
 ```
 
 `test-support/character-catalog.mjs`는 실제 PostgreSQL에서 24시간 만료, 스킬 복합 식별, 캐시 재사용·실패, 실제 row-lock 대기와 이전 요청 덮어쓰기 방지, 무효화, JSONB 보존과 rollback을 검증한다. `test-support/character-details.mjs`는 HTTP 응답에 공용 상세가 연결되지만 캐릭터 원본에는 섞이지 않는 것을 검증한다. 단위 테스트는 아이템 다중 ID 대응·스킬 단일 조회, 호출 제한·취소·실패 시 데이터 출처, 장비 옵션과 스킬 빈 슬롯 보존을 확인한다.
+
+
+## 모험단명 검색 배포
+
+`AddCharacterAdventureName1789564164377`은 `characters.adventure_name`과 비고유 `(adventure_name, character_id)` B-tree index를 추가하고 기존 기본정보 JSONB에서 이름을 채운다. PK·FK·원본 응답은 변경하지 않는다. 기존 테이블 단위 runtime 권한으로 새 column도 읽고 쓸 수 있으므로 새 역할·권한 부여는 필요하지 않다. [캐릭터 상세 계약](../rules/character-details.md#모험단명-검색), [DBML](character-details.dbml)을 참고한다.
+
+배포는 새 이미지 build → 이전 API 중지 → migrator로 `db:migrate:up` → 새 API 시작 순서로 진행한다. 이전 API는 새 column을 동기화하지 못하므로 backfill 이후 이전 API가 쓰는 기간을 만들지 않는다. Migration의 column 추가·backfill·index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 배포 중 오류가 나면 해당 단계에서 중단하고 상태를 확인한다. 운영에서 자동 `down`은 하지 않는다. 이전 API로 복구해 다시 캐릭터를 갱신했다면 새 버전 재배포 전에 migration의 backfill SQL로 column을 재동기화해야 한다.
+
+`test-support/adventure-search.mjs`는 기존 JSONB를 가진 DB의 migration, 중복 이름·null, 서버를 가로지르는 정확 일치와 페이지 조회, 이름 변경·이전 요청·실패 시 rollback, HTTP 응답을 확인한다. 새 기능은 우리 DB에서 수집된 캐릭터만 찾으며 모험단의 전체 보유 목록 수집이나 클라이언트 화면은 포함하지 않는다.

@@ -166,7 +166,8 @@ const expectedColumns = Object.freeze({
     ['character_id', 'text', 'text', 'NO', null, null],
     ['server_id', 'text', 'text', 'NO', null, null],
     ['created_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
-    ['updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
+    ['updated_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['adventure_name', 'text', 'text', 'YES', null, null]
   ],
   character_api_responses: [
     ['character_id', 'text', 'text', 'NO', null, null],
@@ -323,6 +324,13 @@ const expectedIndexes = [
     true,
     null
   ],
+  [
+    'characters',
+    'idx_characters_adventure_name_character_id',
+    ['adventure_name', 'character_id'],
+    false,
+    null
+  ],
   ['characters', 'pk_characters', ['character_id'], true, null],
   ['item_catalog', 'pk_item_catalog', ['item_id'], true, null],
   ['set_item_catalog', 'pk_set_item_catalog', ['set_item_id'], true, null],
@@ -358,7 +366,8 @@ export async function assertSchema(
     'InitialAuthSchema1788600000000',
     'AddCharacterDetails1789547642378',
     'AddCharacterCatalog1789554193117',
-    'AddSetItemCatalog1789557135610'
+    'AddSetItemCatalog1789557135610',
+    'AddCharacterAdventureName1789564164377'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)

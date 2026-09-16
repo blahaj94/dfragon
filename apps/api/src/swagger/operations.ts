@@ -251,3 +251,38 @@ export function ApiCharacterDetails(refresh = false) {
     errors({ 400: 'INVALID_CHARACTER_QUERY', 429: 'CHARACTER_RATE_LIMITED', ...neopleFailures })
   )
 }
+
+export function ApiAdventureSearch() {
+  return applyDecorators(
+    ApiOperation({
+      summary: '모험단명으로 저장된 캐릭터 검색',
+      description:
+        '공개 API. 모험단명을 정규화·부분 일치 없이 정확히 비교하여 우리 DB에 저장된 캐릭터만 서버 구분 없이 반환합니다. Neople 호출·자동 수집·갱신은 하지 않습니다. 결과는 최근 저장된 소속이며 이름 변경이 아직 반영되지 않았을 수 있습니다. characterId 오름차순으로 페이지를 나누며 다음 페이지에는 같은 adventureName과 nextAfter를 after로 보냅니다. 페이지 사이 갱신에 대한 snapshot은 보장하지 않습니다. 독립 IP당 60초 10회 제한이며 HEAD·알 수 없는 query·중복 query는 400입니다.'
+    }),
+    ApiQuery({
+      name: 'adventureName',
+      required: true,
+      schema: { type: 'string', minLength: 1, maxLength: 100 }
+    }),
+    ApiQuery({
+      name: 'limit',
+      required: false,
+      schema: { type: 'integer', minimum: 1, maximum: 100, default: 100 }
+    }),
+    ApiQuery({
+      name: 'after',
+      required: false,
+      schema: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,256}$' }
+    }),
+    success(
+      200,
+      'AdventureCharacters',
+      '저장된 캐릭터 목록. 결과가 없으면 빈 rows, 마지막 페이지는 nextAfter null'
+    ),
+    errors({
+      400: 'INVALID_CHARACTER_QUERY',
+      429: 'CHARACTER_RATE_LIMITED',
+      500: 'INTERNAL_SERVER_ERROR'
+    })
+  )
+}

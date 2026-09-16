@@ -1,4 +1,7 @@
 import 'reflect-metadata'
+import { ADVENTURE_SEARCH_SERVICE, AdventureSearchController } from '../../adventures/http.js'
+import { createAdventureSearchService } from '../../adventures/service.js'
+import type { AdventureSearchStore } from '../../adventures/store.js'
 import {
   Catch,
   Controller,
@@ -125,7 +128,7 @@ class LoginHttpFilter implements ExceptionFilter {
     }
 
     const path = request.path.toLowerCase().replace(/\/+$/, '')
-    if (path.startsWith('/characters/')) {
+    if (path.startsWith('/characters/') || path === '/adventures/characters') {
       const failure = characterDetailFailure(error)
       if (failure.retryAfter != null) {
         response.setHeader('Retry-After', String(failure.retryAfter))
@@ -275,19 +278,29 @@ export async function createLoginHttpApp(
   accountDependencies?: AccountDependencies,
   searchDependencies?: CharacterSearchDependencies,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
-  detailDependencies?: CharacterDetailDependencies
+  detailDependencies?: CharacterDetailDependencies,
+  adventureStore?: AdventureSearchStore
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
   const hasSearchDependencies = searchDependencies != null
   const controllers = [
     LoginController,
+    ...(adventureStore ? [AdventureSearchController] : []),
     ...(hasSessionService ? [SessionController] : []),
     ...(hasAccountDependencies ? [AccountController] : []),
     ...(hasSearchDependencies ? [CharacterSearchController] : []),
     ...(detailDependencies ? [CharacterDetailController] : [])
   ]
   const providers = [
+    ...(adventureStore
+      ? [
+          {
+            provide: ADVENTURE_SEARCH_SERVICE,
+            useValue: createAdventureSearchService(adventureStore)
+          }
+        ]
+      : []),
     ...(detailDependencies
       ? [
           {

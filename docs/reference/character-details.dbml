@@ -16,8 +16,13 @@ Enum character_data_section {
 Table characters {
   character_id text [pk, not null]
   server_id text [not null]
+  adventure_name text [note: 'Latest observed adventure name; mutable and shared by characters']
   created_at timestamptz [not null]
   updated_at timestamptz [not null]
+
+  indexes {
+    (adventure_name, character_id) [name: 'idx_characters_adventure_name_character_id']
+  }
 }
 
 Table character_api_responses {

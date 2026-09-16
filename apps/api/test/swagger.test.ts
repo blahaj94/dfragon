@@ -19,7 +19,8 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
       apiKey: 'documentation-fixture',
       store: { read: unused, beginFetch: unused, saveAndRead: unused },
       fetchDetails: unused
-    }
+    },
+    { search: unused }
   )
   try {
     await app.listen(0, '127.0.0.1')
@@ -45,6 +46,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
         'get /me',
         'patch /me/nickname',
         'get /characters',
+        'get /adventures/characters',
         'get /characters/{serverId}/{characterId}',
         'post /characters/{serverId}/{characterId}/refresh'
       ].sort()

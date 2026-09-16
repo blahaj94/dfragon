@@ -148,6 +148,29 @@ export const apiSchemas: Record<string, SchemaObject> = {
       })
     }
   }),
+  AdventureCharacters: object({
+    adventureName: text,
+    scope: {
+      type: 'string',
+      enum: ['stored'],
+      description: '우리 DB에서 관측된 캐릭터만 포함하며 전체 보유 목록을 보장하지 않습니다.'
+    },
+    rows: {
+      type: 'array',
+      items: object({
+        characterId: text,
+        serverId: text,
+        serverName: { type: 'string', nullable: true },
+        characterName: { type: 'string', nullable: true },
+        level: { type: 'number', nullable: true },
+        jobName: { type: 'string', nullable: true },
+        jobGrowName: { type: 'string', nullable: true },
+        fame: { type: 'number', nullable: true },
+        lastSuccessfulFetchAt: timestamp
+      })
+    },
+    nextAfter: { type: 'string', nullable: true }
+  }),
   CharacterDetails: object({
     freshness: object({
       lastSuccessfulFetchAt: {
