@@ -39,27 +39,27 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 ### Authentication contract routing
 
-패스키 전환의 현재 계약은 [패스키 인증](rules/auth-passkeys.md), 실행 설정은 [패스키 개발 안내](reference/passkey-authentication.md)를 따른다. 아래 기존 문서의 OAuth 전제와 충돌하면 패스키 계약을 우선한다.
+패스키 전환의 현재 계약은 [패스키 인증](rules/auth-passkeys.md), 실행 설정은 [패스키 개발 안내](reference/passkey-authentication.md)를 따른다. 가입·기기 인증·예비 키 관리의 기준을 이 두 문서에서 확인한다.
 
 이 Rule은 #39 최종 설계에 대한 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한다. 승인된 contract는 현재 구현·검증 성공과 구분한다. 현재 요청에 포함된 구현·비운영 검증은 진행하며, 과거 설계 작업의 실행 제외를 상시 금지로 적용하지 않는다. 현재 유효한 명시적 금지와 실제 운영·credential 실행 권한은 유지한다.
 
 | 필요한 topic | Canonical Rule |
 | --- | --- |
 | Endpoint·parser·오류·nickname·log sink | [`rules/auth-api.md`](rules/auth-api.md) |
-| Client/provider binding·OAuth 상태·TTL·provider 검증 | [`rules/auth-oauth.md`](rules/auth-oauth.md) |
+| 패스키 가입·WebAuthn·QR·예비 키·앱 교환·TTL | [`rules/auth-passkeys.md`](rules/auth-passkeys.md) |
 | JWT/key·30일·refresh/logout 최종 경합 | [`rules/auth-session.md`](rules/auth-session.md) |
-| 핵심 4개 테이블·constraint·잠금·정리/물리 보관·삭제 경계 | [`rules/auth-database.md`](rules/auth-database.md) |
+| 핵심 5개 테이블·constraint·잠금·정리/물리 보관·삭제 경계 | [`rules/auth-database.md`](rules/auth-database.md) |
 | 검색 admission/quota·활동 commit·residual JWT·DB 장애·계정 기능 경합 | [`rules/auth-activity.md`](rules/auth-activity.md) |
 | 인증 runtime 호환성·Migration·운영/플랫폼 미결정 gate | [`rules/auth-runtime.md`](rules/auth-runtime.md) |
-| 탈퇴 재인증·삭제 상태/권한·재가입 경합·provider revoke·보관·백업 복원 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
+| 삭제 확정·보관·복원과 패스키 탈퇴 후속 설계 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
 
-탈퇴 D1–D5는 [PR #72 사용자 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)으로 확정됐다. Canonical file의 기존 path는 유지하며 active Rule로 관리한다. 정책 승인과 lifecycle/schema/API의 실제 구현·운영/복원 검증은 별개이고, 기존 login/refresh·초기 4-table 검증 AC를 소급 변경하지 않는다.
+탈퇴 D1–D5의 [기존 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)은 이력으로 보존한다. 삭제 확정·보관·복원 정책은 유지하며 패스키 탈퇴의 재인증·재가입 경합 설계와 API 구현은 후속이다. 문서 승인을 제품 구현·운영/복원 검증으로 해석하지 않는다.
 
 배치·저장·backup·복원 환경을 검토할 때는 [인증 운영 구성](architecture/auth-operations-proposal.md)과 [복원·검증 기준](architecture/auth-operations-validation-proposal.md)을 읽는다. [PR #132의 이전 승인](https://github.com/blahaj94/ldb/pull/132#issuecomment-5572391826)은 이력으로 보존한다. 현재 운영 기준은 한 운영자·단일 서버를 허용하고 공개 복원을 선택 기능으로 분리한다. D1–D5의 삭제·보관과 공개 복원 조건은 유지하며 구체 환경 확보·실행 성공을 문서 승인으로 대신하지 않는다.
 
 ### Desktop authentication contract routing
 
-다음은 Issue #55 설계에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 반영한다. Desktop 설계 선택은 승인됐으며 실제 등록값과 실행 권한을 확인한다. 광범위한 OS·장애 검증을 배포 선행 조건으로 두지 않는 기준은 platform 계약을 따른다. 설계 승인은 제품 구현·실제 OAuth/OS 등록 또는 credential 저장소 변경의 착수 지시가 아니므로 후속 작업의 범위와 실행 조건을 별도로 확인한다.
+다음은 Issue #55 설계에 대한 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 반영한다. Desktop 설계 선택은 승인됐으며 실제 등록값과 실행 권한을 확인한다. 광범위한 OS·장애 검증을 배포 선행 조건으로 두지 않는 기준은 platform 계약을 따른다. 설계 승인은 제품 구현·실제 패스키/OS 등록 또는 credential 저장소 변경의 착수 지시가 아니므로 후속 작업의 범위와 실행 조건을 별도로 확인한다.
 
 | 필요한 topic | Canonical Rule |
 | --- | --- |

@@ -30,9 +30,9 @@ review-after: 최초 session 경합 validation 또는 key 정책 변경 시
 | 발급 | `iat=T`, `exp=min(T+900,idleDeadline)`; `exp<=T`이면 발급하지 않음 |
 | 검증 | Signature, exact issuer/audience/type, allowlisted alg/kid, 모든 필수 claim type/UUID, `iat<=now<exp`, `0<exp-iat<=900` |
 
-Provider subject·nickname·email·기기 정보를 넣지 않는다. nbf를 사용하지 않고 임의 token의 nbf로 검증을 느슨하게 하지 않는다. 정수 초로 실제 처리 시각보다 1초 미만 일찍 만료될 수 있으나 상한을 초과하지 않는다. 이미 발급한 exp는 활동/refresh로 늘어나지 않는다.
+패스키 credential·nickname·기기 정보를 넣지 않는다. nbf를 사용하지 않고 임의 token의 nbf로 검증을 느슨하게 하지 않는다. 정수 초로 실제 처리 시각보다 1초 미만 일찍 만료될 수 있으나 상한을 초과하지 않는다. 이미 발급한 exp는 활동/refresh로 늘어나지 않는다.
 
-JWT verify 자체는 session revocation DB 조회를 하지 않는다. 검색 활동과 계정 API의 존재/활성 확인은 통합 계층에서 수행한다. Logout/reuse/탈퇴 뒤에도 exp까지 검색 가능한 residual 정책은 DB 장애 시 검색 성공 보장을 뜻하지 않는다. Google ID Token과 자체 JWT의 issuer/audience/type/key/algorithm은 분리한다.
+JWT verify 자체는 session revocation DB 조회를 하지 않는다. 검색 활동과 계정 API의 존재/활성 확인은 통합 계층에서 수행한다. Logout/reuse/탈퇴 뒤에도 exp까지 검색 가능한 residual 정책은 DB 장애 시 검색 성공 보장을 뜻하지 않는다. 외부 입력을 자체 JWT의 신뢰 설정이나 key로 사용하지 않는다.
 
 ## Signing key lifecycle
 
@@ -69,7 +69,7 @@ Logout은 제출한 known current/consumed refresh의 session만 잠그고 폐�
 | 활동이 경계 전 lock·판정·commit | Refresh는 갱신한 deadline으로 검증. |
 | 경계 전 요청 시작, lock 획득 시 경계 이상 | Fresh T로 401. 활동·rotation으로 부활 없음. |
 | Logout 먼저, 검색 활동 나중 | JWT가 유효하면 정상 DB에서 residual 검색, revoked_at/last_active_at 변경 없음. |
-| User 삭제와 refresh/계정 기능 | 관련 잠금으로 삭제 전에 완료하거나 삭제 후 없음/401. 삭제한 identity를 JWT로 복원하지 않음. Pending OAuth·preparing 이후 기능 차단은 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)를 따르며 orchestration 구현/경합 검증은 별도다. |
+| User 삭제와 refresh/계정 기능 | 관련 잠금으로 삭제 전에 완료하거나 삭제 후 없음/401. 삭제한 identity를 JWT로 복원하지 않음. 대기 중 인증 요청·preparing 이후 기능 차단은 [승인된 탈퇴 contract](auth-withdrawal-proposal.md)를 따르며 orchestration 구현/경합 검증은 별도다. |
 
 활성 session의 전체 발급/소비 이력은 보존하고 종료 뒤 정리는 [`auth-database.md`](auth-database.md)를 따른다. 30일 활동 기준을 absolute session lifetime으로 바꾸지 않는다.
 

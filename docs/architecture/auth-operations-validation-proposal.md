@@ -18,7 +18,7 @@ last-reviewed: 2026-09-15
 1. 공개·우회 ingress와 이전 process·writer를 중지한다. 이전 transaction 종료와 현재 writer generation을 확인하고 삭제 journal을 최종 대조한다.
 2. 나이 7일 미만의 알려진 origin·lineage 사본을 격리 DB에 복원한다. 최신 삭제 journal과 복원 범위 밖 checkpoint의 연속성·rollback 방지 근거를 확인한다.
 3. 완료 표식이 없는 확정 intent도 포함해 해당 old UUID·개인 데이터 FK를 삭제하고 재가입한 새 UUID는 보존한다. Journal 누락이나 판정 불명은 실패다.
-4. 이전 session·refresh·OAuth·receipt·fence 자격을 폐기하고 전 verifier의 옛 JWT key를 제거한다. 새 key·lineage를 적용하며 provider revoke는 재실행하지 않는다.
+4. 이전 session·refresh·인증 요청·receipt·fence 자격을 폐기하고 전 verifier의 옛 JWT key를 제거한다. 새 JWT key·lineage를 적용한다. 삭제 대상 user의 패스키도 제거한다.
 5. 삭제 데이터 부재, 옛 자격 거절, 새 요청의 정상 동작을 확인한다. 마지막 journal 대조 뒤 신규 login admission을 600초 닫고 그 사이 변경이 없음을 확인한 뒤에만 cutover한다.
 
 최신성·삭제·자격 폐기·시간을 확인하지 못하면 유지보수 상태를 유지하고 옛 snapshot으로 자동 복귀하지 않는다. 복원 기능이 미구현이면 실제 복구 가능성을 주장하지 않으며, 장애 중 임의로 이 조건을 축소해 DB를 공개하지 않는다.

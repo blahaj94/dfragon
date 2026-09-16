@@ -6,7 +6,7 @@ last-reviewed: 2026-09-16
 
 # 패스키 실행 안내
 
-동작과 제약은 [패스키 인증](../rules/auth-passkeys.md)을 따른다. 서버는 `AUTH_CONFIG_FILE`의 JSON을 시작할 때 한 번 읽는다. 기존 access JWT 설정은 유지하고 provider registry·OAuth secret·provider PKCE 암호화 key 대신 다음 public 설정을 사용한다.
+동작과 제약은 [패스키 인증](../rules/auth-passkeys.md)을 따른다. 서버는 `AUTH_CONFIG_FILE`의 JSON을 시작할 때 한 번 읽는다. Access JWT 설정과 함께 다음 public 패스키 설정을 사용한다.
 
 ```json
 {
