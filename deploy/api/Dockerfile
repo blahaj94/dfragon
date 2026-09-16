@@ -7,6 +7,8 @@ COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile --filter @ldb/api
 COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
+COPY apps/api/browser apps/api/browser
+COPY packages/ui/foundation.css packages/ui/foundation.css
 RUN pnpm --filter @ldb/api build \
     && pnpm --filter @ldb/api deploy --legacy --prod /production
 
