@@ -199,7 +199,10 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       catalog: createCatalogService(createCatalogStore(source), async (keys) =>
         keys.map((key) => ({
           key,
-          payload: { itemName: '테스트 공용 상세', tune: [{ level: 0 }] }
+          payload:
+            key.kind === 'set'
+              ? { setItemId: 'fixture-set', setItemName: '테스트 세트', setItemOption: [] }
+              : { itemName: '테스트 공용 상세', setItemId: 'fixture-set', tune: [{ level: 0 }] }
         }))
       )
     })
@@ -212,6 +215,8 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(body.character.serverName, '시로코')
     assert.equal(body.equipment.equipment[0].reinforce, 15)
     assert.equal(body.equipment.equipment[0].itemDetail.status, 'fresh')
+    assert.equal(body.setDetails['fixture-set'].status, 'fresh')
+    assert.equal(body.setDetails['fixture-set'].data.setItemName, '테스트 세트')
     assert.equal(body.equipment.equipment[0].itemDetail.data.itemName, '테스트 공용 상세')
     assert.equal(
       (await snapshot()).find((row) => row.section === 'equipment').payload.equipment[0].itemDetail,
@@ -256,6 +261,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       await new Promise((resolve) => provider.close(resolve))
     }
     await source.query('DELETE FROM characters WHERE character_id = $1', [identity.characterId])
+    await source.query('DELETE FROM set_item_catalog WHERE set_item_id = $1', ['fixture-set'])
     await source.query('DELETE FROM item_catalog WHERE item_id = $1', ['fixture-item'])
   }
 }

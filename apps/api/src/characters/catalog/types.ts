@@ -1,7 +1,9 @@
 import type { CharacterPayload } from '../details/sections.js'
 
 export type CatalogKey =
-  { kind: 'item'; itemId: string } | { kind: 'skill'; jobId: string; skillId: string }
+  | { kind: 'item'; itemId: string }
+  | { kind: 'set'; setItemId: string }
+  | { kind: 'skill'; jobId: string; skillId: string }
 
 export interface CatalogValue {
   key: CatalogKey
@@ -20,7 +22,14 @@ export interface CatalogDetail {
 }
 
 export function catalogKey(key: CatalogKey): string {
-  return key.kind === 'item' ? `item:${key.itemId}` : `skill:${key.jobId}:${key.skillId}`
+  switch (key.kind) {
+    case 'item':
+      return `item:${key.itemId}`
+    case 'set':
+      return `set:${key.setItemId}`
+    case 'skill':
+      return `skill:${key.jobId}:${key.skillId}`
+  }
 }
 
 export function isCatalogId(value: unknown): value is string {

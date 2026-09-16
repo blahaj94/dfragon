@@ -1,5 +1,6 @@
 import { isObject } from '../details/neople.js'
 import type { projectCharacterDetails } from '../details/project.js'
+import { mapCharacterItems } from './items.js'
 import type { CatalogService } from './service.js'
 import { catalogKey, isCatalogId, unavailableDetail } from './types.js'
 import type { CatalogKey } from './types.js'
@@ -10,18 +11,22 @@ export async function enrichCharacterDetails(
   details: CharacterDetails,
   catalog: CatalogService,
   signal: AbortSignal
-): Promise<CharacterDetails> {
+) {
   const references: CatalogKey[] = []
   const jobId = details.character.jobId
-  const equipment = details.equipment.equipment
-  const buffEquipment = isObject(details.buff.equipment) ? details.buff.equipment.equipment : null
-  for (const list of [equipment, buffEquipment]) {
-    if (!Array.isArray(list)) {
-      continue
+  mapCharacterItems(details, (item) => {
+    if (isCatalogId(item.itemId)) {
+      references.push({ kind: 'item', itemId: item.itemId })
     }
-    for (const item of list) {
-      if (isObject(item) && isCatalogId(item.itemId)) {
-        references.push({ kind: 'item', itemId: item.itemId })
+    if (isCatalogId(item.setItemId)) {
+      references.push({ kind: 'set', setItemId: item.setItemId })
+    }
+    return item
+  })
+  if (Array.isArray(details.equipment.setItemInfo)) {
+    for (const set of details.equipment.setItemInfo) {
+      if (isObject(set) && isCatalogId(set.setItemId)) {
+        references.push({ kind: 'set', setItemId: set.setItemId })
       }
     }
   }
@@ -61,26 +66,20 @@ export async function enrichCharacterDetails(
     }
   }
   const loaded = await catalog.load(references, signal)
-  const itemList = (list: unknown) =>
-    Array.isArray(list)
-      ? list.map((item) => {
-          if (!isObject(item)) {
-            return item
-          }
-          const itemDetail = isCatalogId(item.itemId)
-            ? (loaded.get(catalogKey({ kind: 'item', itemId: item.itemId })) ?? unavailableDetail)
-            : unavailableDetail
-          return { ...item, itemDetail }
-        })
-      : list
-  const buff = Object.fromEntries(
-    Object.entries(details.buff).map(([section, value]) => [
-      section,
-      section === 'equipment' && isObject(value) && Object.hasOwn(value, 'equipment')
-        ? { ...value, equipment: itemList(value.equipment) }
-        : value
-    ])
-  ) as CharacterDetails['buff']
+  const enriched = mapCharacterItems(details, (item) => {
+    if (!isCatalogId(item.itemId)) {
+      return item
+    }
+    return {
+      ...item,
+      itemDetail: loaded.get(catalogKey({ kind: 'item', itemId: item.itemId })) ?? unavailableDetail
+    }
+  })
+  const setDetails = Object.fromEntries(
+    [...loaded]
+      .filter(([key]) => key.startsWith('set:'))
+      .map(([key, detail]) => [key.slice(4), detail])
+  )
   // Details are indexed once, since selected evolution/enhancement/chain entries refer to the same skills.
   const skillDetails = Object.fromEntries(
     [...skills].map((skillId) => [
@@ -91,9 +90,8 @@ export async function enrichCharacterDetails(
     ])
   )
   return {
-    ...details,
-    equipment: { ...details.equipment, equipment: itemList(equipment) },
-    buff,
+    ...enriched,
+    setDetails,
     skillStyle: isObject(details.skillStyle)
       ? { ...details.skillStyle, skillDetails }
       : details.skillStyle

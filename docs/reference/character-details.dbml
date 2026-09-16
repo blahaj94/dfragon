@@ -56,3 +56,11 @@ Table skill_catalog {
     (job_id, skill_id) [pk]
   }
 }
+
+Table set_item_catalog {
+  set_item_id text [pk, not null]
+  payload jsonb [not null, note: 'Shared set definition; not the character active set state']
+  fetched_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  request_started_at timestamptz [not null]
+}

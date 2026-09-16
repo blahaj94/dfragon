@@ -9,6 +9,7 @@ export const DOMAIN_TABLES = [
   'character_api_responses',
   'characters',
   'item_catalog',
+  'set_item_catalog',
   'skill_catalog',
   'users'
 ]
@@ -146,6 +147,13 @@ const expectedColumns = Object.freeze({
     ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
     ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
   ],
+  set_item_catalog: [
+    ['set_item_id', 'text', 'text', 'NO', null, null],
+    ['payload', 'jsonb', 'jsonb', 'NO', null, null],
+    ['fetched_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['expires_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6],
+    ['request_started_at', 'timestamp with time zone', 'timestamptz', 'NO', null, 6]
+  ],
   skill_catalog: [
     ['job_id', 'text', 'text', 'NO', null, null],
     ['skill_id', 'text', 'text', 'NO', null, null],
@@ -265,6 +273,9 @@ const expectedConstraints = [
   'item_catalog:ck_item_catalog_id:CHECK',
   'item_catalog:ck_item_catalog_payload:CHECK',
   'item_catalog:pk_item_catalog:PRIMARY KEY',
+  'set_item_catalog:ck_set_item_catalog_id:CHECK',
+  'set_item_catalog:ck_set_item_catalog_payload:CHECK',
+  'set_item_catalog:pk_set_item_catalog:PRIMARY KEY',
   'skill_catalog:ck_skill_catalog_ids:CHECK',
   'skill_catalog:ck_skill_catalog_payload:CHECK',
   'skill_catalog:pk_skill_catalog:PRIMARY KEY',
@@ -314,6 +325,7 @@ const expectedIndexes = [
   ],
   ['characters', 'pk_characters', ['character_id'], true, null],
   ['item_catalog', 'pk_item_catalog', ['item_id'], true, null],
+  ['set_item_catalog', 'pk_set_item_catalog', ['set_item_id'], true, null],
   ['skill_catalog', 'pk_skill_catalog', ['job_id', 'skill_id'], true, null],
   ['users', 'pk_users', ['id'], true, null],
   ['users', 'uq_users_provider_subject', ['provider', 'provider_subject'], true, null]
@@ -345,7 +357,8 @@ export async function assertSchema(
   migrationNames = [
     'InitialAuthSchema1788600000000',
     'AddCharacterDetails1789547642378',
-    'AddCharacterCatalog1789554193117'
+    'AddCharacterCatalog1789554193117',
+    'AddSetItemCatalog1789557135610'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -447,6 +460,7 @@ export async function assertSchema(
     { table_name: 'character_api_responses', columns: ['character_id', 'section'] },
     { table_name: 'characters', columns: ['character_id'] },
     { table_name: 'item_catalog', columns: ['item_id'] },
+    { table_name: 'set_item_catalog', columns: ['set_item_id'] },
     { table_name: 'skill_catalog', columns: ['job_id', 'skill_id'] },
     { table_name: 'users', columns: ['id'] }
   ])
