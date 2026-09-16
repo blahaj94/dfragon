@@ -75,7 +75,7 @@ it('shows only enabled providers and emits their exact intent without changing a
   await render({ input: snapshot('signedOut', { providers: ['passkey'] }) })
 
   expect(labels()).toEqual(['패스키로 계속하기'])
-  expect(container.textContent).toContain('같은 이메일')
+  expect(container.textContent).toContain('패스키로 가입하거나 로그인하세요.')
   await click('패스키로 계속하기')
   expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'beginLogin', provider: 'passkey' })
   expect(container.textContent).not.toContain('화면 캡처')
@@ -226,16 +226,25 @@ it('renders nickname as text; welcome dismissal lasts only for the mounted signe
   expect(labels()).toContain('시작하기')
 })
 
-it('existing home displays account, and logout does not fabricate a snapshot', async () => {
-  await render({ input: snapshot('signedIn', { user: { nickname }, entry: 'home' }) })
+it.each(['home', 'welcome'] as const)(
+  'signed-in %s exposes device logout without dismissing the welcome or changing the snapshot',
+  async (entry) => {
+    await render({ input: snapshot('signedIn', { user: { nickname }, entry }) })
 
-  expect(container.textContent).toContain(nickname)
-  expect(container.textContent).toContain('내 계정')
-  expect(labels()).toEqual(['패스키 관리', '이 기기 로그아웃'])
-  await click('이 기기 로그아웃')
-  expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'logout' })
-  expect(container.textContent).toContain(nickname)
-})
+    expect(container.textContent).toContain(nickname)
+    expect(container.textContent).toContain(
+      entry === 'welcome' ? 'LDB에 오신 것을 환영합니다' : '내 계정'
+    )
+    expect(labels()).toEqual(
+      entry === 'welcome'
+        ? ['패스키 관리', '시작하기', '이 기기 로그아웃']
+        : ['패스키 관리', '이 기기 로그아웃']
+    )
+    await click('이 기기 로그아웃')
+    expect(onIntent).toHaveBeenCalledExactlyOnceWith({ type: 'logout' })
+    expect(container.textContent).toContain(nickname)
+  }
+)
 
 it.each([
   snapshot('signedOut'),
@@ -244,7 +253,8 @@ it.each([
   pending('exchanging'),
   snapshot('restorePaused'),
   snapshot('storageBlocked'),
-  snapshot('signedIn', { user: { nickname }, entry: 'home' })
+  snapshot('signedIn', { user: { nickname }, entry: 'home' }),
+  snapshot('signedIn', { user: { nickname }, entry: 'welcome' })
 ])('commandPending disables every action in $phase', async (input) => {
   await render({ input, commandPending: true })
 
