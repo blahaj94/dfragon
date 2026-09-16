@@ -241,7 +241,7 @@ test('migration status reads metadata without asking TypeORM to create its histo
   ])
 })
 
-test('database options register four typed schemas before migrations are generated', async () => {
+test('database options register typed auth and character schemas before migrations are generated', async () => {
   const { createDatabaseOptions } = await loadDatabaseModule()
   const options = createDatabaseOptions(configuration)
   const areEntitiesAnArray = Array.isArray(options.entities)
@@ -254,7 +254,14 @@ test('database options register four typed schemas before migrations are generat
         return schema.options.tableName
       })
       .sort(),
-    ['auth_login_requests', 'auth_refresh_tokens', 'auth_sessions', 'users']
+    [
+      'auth_login_requests',
+      'auth_refresh_tokens',
+      'auth_sessions',
+      'character_api_responses',
+      'characters',
+      'users'
+    ]
   )
 })
 

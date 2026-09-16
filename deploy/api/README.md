@@ -10,7 +10,7 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
 - DB에는 공개 port가 없고 외부 통신이 없는 Compose network에서 API·유지보수 작업만 연결한다.
 - API는 UID/GID 1000, 읽기 전용 root filesystem, 추가 Linux 권한 없음으로 실행한다.
   Docker socket이나 호스트의 개인 디렉터리를 mount하지 않는다.
-- DB도 `postgres` 사용자로 실행한다. API의 `ldb_api` 계정에는 네 인증 테이블의 DML만
+- DB도 `postgres` 사용자로 실행한다. API의 `ldb_api` 계정에는 인증·캐릭터 테이블의 DML만
   부여한다. `ldb_migrator`가 schema를 소유하며 API는 Migration history에도 접근하지 못한다.
 - CPU·메모리·process·log 크기를 제한하고 DB 데이터는 named volume에 보관한다.
   볼륨은 백업이 아니다. 백업 공개 복원은 제공하지 않는다.

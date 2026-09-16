@@ -1,0 +1,37 @@
+// Paste into dbdiagram.io. Canonical mapping: apps/api/src/database/schemas.
+Enum character_data_section {
+  basic
+  status
+  equipment
+  avatar
+  creature
+  oath
+  mist_assimilation
+  skill_style
+  buff_equipment
+  buff_avatar
+  buff_creature
+}
+
+Table characters {
+  character_id text [pk, not null]
+  server_id text [not null]
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+}
+
+Table character_api_responses {
+  character_id text [not null]
+  section character_data_section [not null]
+  payload jsonb [not null, note: 'Full response object; latest successful value only']
+  revision integer [not null, default: 1, note: 'Increases only when JSONB changes']
+  content_updated_at timestamptz [not null]
+  last_successful_fetch_at timestamptz [not null]
+  request_started_at timestamptz [not null, note: 'Rejects older refresh writes']
+
+  indexes {
+    (character_id, section) [pk]
+  }
+}
+
+Ref: character_api_responses.character_id > characters.character_id [delete: cascade]
