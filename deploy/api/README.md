@@ -73,7 +73,7 @@ docker compose up -d api
 
 DB healthcheck는 Migration 계정의 실제 TCP/password 연결로 `SELECT 1`을 실행한다.
 Migration은 기존 CLI의 단일 명시 실행이며 API 시작이나 재시작이 schema를 바꾸지 않는다.
-Migration 다음에 권한 부여가 성공해야 API를 시작한다. 초기화 실패나 기존 volume에 대해
+Migration 다음에 권한 부여가 성공해야 API를 시작한다. 기존 설치에서도 새 테이블 migration 후 `grant-api.sql`을 다시 실행한다. 이 파일은 캐릭터 테이블의 DML과 아이템·스킬·세트 캐시의 SELECT·INSERT·UPDATE 권한을 포함한다. 초기화 실패나 기존 volume에 대해
 secret 파일만 바꿔 재실행하면 역할/password가 재설정된다고 가정하지 않는다.
 운영 password 변경은 DB의 `\password`와 해당 secret 교체·소비자 재시작을 함께 진행한다.
 

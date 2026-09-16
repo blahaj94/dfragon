@@ -5,6 +5,7 @@ import { AuthLoginRequestSchema } from './auth-login-requests.js'
 import { CharacterSchema } from './characters.js'
 import { CharacterApiResponseSchema } from './character-api-responses.js'
 import { ItemCatalogSchema } from './item-catalog.js'
+import { SetItemCatalogSchema } from './set-item-catalog.js'
 import { SkillCatalogSchema } from './skill-catalog.js'
 
 export const authSchemas = [
@@ -19,5 +20,6 @@ export const databaseSchemas = [
   CharacterSchema,
   CharacterApiResponseSchema,
   ItemCatalogSchema,
+  SetItemCatalogSchema,
   SkillCatalogSchema
 ]

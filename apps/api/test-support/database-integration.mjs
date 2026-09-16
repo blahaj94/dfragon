@@ -251,9 +251,25 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 3\n')
+    assert.equal(up.stdout, 'Database migration applied: 4\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
 
+    const setDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(setDown.code, 0)
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      assert.equal(
+        (await source.query("SELECT to_regclass('public.set_item_catalog') AS relation"))[0]
+          .relation,
+        null
+      )
+      for (const table of ['item_catalog', 'skill_catalog', 'characters', 'users']) {
+        assert.notEqual(
+          (await source.query('SELECT to_regclass($1) AS relation', ['public.' + table]))[0]
+            .relation,
+          null
+        )
+      }
+    })
     const catalogDown = await runCompiledCli({ configuration, operation: 'down' })
     assert.equal(catalogDown.code, 0)
     await withDataSource(createDatabaseDataSource, configuration, async (source) => {
@@ -575,7 +591,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 3\n')
+  assert.equal(migration.stdout, 'Database migration applied: 4\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -678,7 +694,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 3\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 4\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({

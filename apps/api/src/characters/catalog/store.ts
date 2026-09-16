@@ -1,5 +1,6 @@
 import type { DataSource, EntityManager } from 'typeorm'
 import { ItemCatalogSchema } from '../../database/schemas/item-catalog.js'
+import { SetItemCatalogSchema } from '../../database/schemas/set-item-catalog.js'
 import { SkillCatalogSchema } from '../../database/schemas/skill-catalog.js'
 import type { CatalogEntry, CatalogKey, CatalogValue } from './types.js'
 
@@ -17,17 +18,25 @@ export interface CatalogStore {
 
 async function readEntries(manager: EntityManager, keys: CatalogKey[]): Promise<CatalogEntry[]> {
   const itemKeys = keys.filter((key) => key.kind === 'item').map(({ itemId }) => ({ itemId }))
+  const setKeys = keys.filter((key) => key.kind === 'set').map(({ setItemId }) => ({ setItemId }))
   const skillKeys = keys
     .filter((key) => key.kind === 'skill')
     .map(({ jobId, skillId }) => ({ jobId, skillId }))
   const items = itemKeys.length
     ? await manager.getRepository(ItemCatalogSchema).findBy(itemKeys)
     : []
+  const sets = setKeys.length
+    ? await manager.getRepository(SetItemCatalogSchema).findBy(setKeys)
+    : []
   const skills = skillKeys.length
     ? await manager.getRepository(SkillCatalogSchema).findBy(skillKeys)
     : []
   return [
     ...items.map((row): CatalogEntry => ({ ...row, key: { kind: 'item', itemId: row.itemId } })),
+    ...sets.map((row): CatalogEntry => ({
+      ...row,
+      key: { kind: 'set', setItemId: row.setItemId }
+    })),
     ...skills.map((row): CatalogEntry => ({
       ...row,
       key: { kind: 'skill', jobId: row.jobId, skillId: row.skillId }
@@ -72,6 +81,16 @@ export function createCatalogStore(source: DataSource): CatalogStore {
               fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at, request_started_at = EXCLUDED.request_started_at
               WHERE current.request_started_at < EXCLUDED.request_started_at`,
               [key.itemId, JSON.stringify(payload), requestedAt]
+            )
+          } else if (key.kind === 'set') {
+            await manager.query(
+              `INSERT INTO set_item_catalog AS current
+              (set_item_id, payload, fetched_at, expires_at, request_started_at)
+              VALUES ($1, $2::jsonb, clock_timestamp(), clock_timestamp() + interval '24 hours', $3::timestamptz)
+              ON CONFLICT (set_item_id) DO UPDATE SET payload = EXCLUDED.payload,
+              fetched_at = EXCLUDED.fetched_at, expires_at = EXCLUDED.expires_at, request_started_at = EXCLUDED.request_started_at
+              WHERE current.request_started_at < EXCLUDED.request_started_at`,
+              [key.setItemId, JSON.stringify(payload), requestedAt]
             )
           } else {
             await manager.query(

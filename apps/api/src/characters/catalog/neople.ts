@@ -14,7 +14,9 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
       keys.some((key) =>
         key.kind === 'item'
           ? !isCatalogId(key.itemId)
-          : !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
+          : key.kind === 'set'
+            ? !isCatalogId(key.setItemId)
+            : !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
       )
     ) {
       throw new Error('Invalid catalog request')
@@ -23,6 +25,9 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
     if (first.kind === 'item' && keys.every((key) => key.kind === 'item')) {
       const params = new URLSearchParams({ itemIds: keys.map((key) => key.itemId).join(',') })
       path = `/df/multi/items?${params}`
+    } else if (first.kind === 'set' && keys.every((key) => key.kind === 'set')) {
+      const params = new URLSearchParams({ setItemIds: keys.map((key) => key.setItemId).join(',') })
+      path = `/df/multi/setitems?${params}`
     } else if (first.kind === 'skill' && keys.length === 1) {
       // The skill response has no skillId. A single request retains an unambiguous identity.
       path = `/df/skills/${encodeURIComponent(first.jobId)}/${encodeURIComponent(first.skillId)}`
@@ -58,20 +63,23 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
         return [{ key: first, payload: body }]
       }
       if (!Array.isArray(body.rows)) {
-        throw new Error('Invalid item list')
+        throw new Error('Invalid catalog list')
       }
       const rows = body.rows
       return keys.flatMap((key) => {
-        if (key.kind !== 'item') {
+        if (key.kind === 'skill') {
           return []
         }
-        const matches = rows.filter((row) => isObject(row) && row.itemId === key.itemId)
+        const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
+        const nameField = key.kind === 'item' ? 'itemName' : 'setItemName'
+        const id = key.kind === 'item' ? key.itemId : key.setItemId
+        const matches = rows.filter((row) => isObject(row) && row[idField] === id)
         const row: unknown = matches[0]
         // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
         return matches.length === 1 &&
           isObject(row) &&
-          typeof row.itemName === 'string' &&
-          row.itemName.trim()
+          typeof row[nameField] === 'string' &&
+          row[nameField].trim()
           ? [{ key, payload: row }]
           : []
       })

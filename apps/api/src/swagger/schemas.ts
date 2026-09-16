@@ -72,6 +72,31 @@ const catalogEquipment: SchemaObject = {
   ]
 }
 
+const catalogItem: SchemaObject = {
+  type: 'object',
+  nullable: true,
+  additionalProperties: true,
+  description: '유효한 itemId가 있는 항목에 itemDetail을 추가합니다. 빈 슬롯은 그대로 보존합니다.',
+  properties: { itemDetail: catalogDetail }
+}
+const catalogAvatar: SchemaObject = {
+  ...catalogItem,
+  properties: {
+    itemDetail: catalogDetail,
+    clone: { ...catalogItem, description: '외형 참조. 장착 옵션과 합산하지 않습니다.' },
+    emblems: { type: 'array', nullable: true, items: catalogItem }
+  }
+}
+const catalogAvatars: SchemaObject = { type: 'array', nullable: true, items: catalogAvatar }
+const catalogCreature: SchemaObject = {
+  ...catalogItem,
+  properties: {
+    itemDetail: catalogDetail,
+    clone: { ...catalogItem, description: '외형 참조. 장착 옵션과 합산하지 않습니다.' },
+    artifact: { type: 'array', nullable: true, items: catalogItem }
+  }
+}
+
 export const apiSchemas: Record<string, SchemaObject> = {
   CatalogDetail: catalogDetail,
   ApiError: object({ error: object({ code: text, message: text }) }),
@@ -146,9 +171,27 @@ export const apiSchemas: Record<string, SchemaObject> = {
     }),
     status: object({ status: providerValue, buff: providerValue }),
     equipment: object({ equipment: catalogEquipment, setItemInfo: providerValue }),
-    avatar: providerValue,
-    creature: providerValue,
-    oath: providerValue,
+    avatar: catalogAvatars,
+    creature: catalogCreature,
+    oath: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: true,
+      properties: {
+        info: catalogItem,
+        crystal: { type: 'array', nullable: true, items: catalogItem },
+        setInfo: {
+          ...providerValue,
+          description: '현재 적용된 서약 세트 원본. 숫자 setId는 setDetails의 키가 아닙니다.'
+        }
+      }
+    },
+    setDetails: {
+      type: 'object',
+      additionalProperties: catalogDetail,
+      description:
+        '장착 응답과 공용 아이템 상세가 직접 참조하는 setItemId별 세트 상세. 외형 참조의 세트도 포함할 수 있으며 적용 여부를 뜻하지 않습니다. 세트 구성품을 재귀 조회하지 않습니다.'
+    },
     mistAssimilation: providerValue,
     skillStyle: {
       type: 'object',
@@ -171,8 +214,18 @@ export const apiSchemas: Record<string, SchemaObject> = {
         description: 'Neople skill.buff 값. 장비마다 itemDetail을 추가합니다.',
         properties: { equipment: catalogEquipment }
       },
-      avatar: { description: 'Neople skill.buff 값 또는 null' },
-      creature: { description: 'Neople skill.buff 값 또는 null' }
+      avatar: {
+        type: 'object',
+        nullable: true,
+        additionalProperties: true,
+        properties: { avatar: catalogAvatars }
+      },
+      creature: {
+        type: 'object',
+        nullable: true,
+        additionalProperties: true,
+        properties: { creature: { type: 'array', nullable: true, items: catalogCreature } }
+      }
     }),
     sections: object(
       Object.fromEntries(characterDetailSections.map((name) => [name, sectionMetadata]))
