@@ -225,12 +225,15 @@ export function ApiCharacterSearch() {
   )
 }
 
-export function ApiCharacterDetails() {
+export function ApiCharacterDetails(refresh = false) {
   return applyDecorators(
     ApiOperation({
-      summary: '캐릭터 상세 조회·갱신',
+      summary: refresh ? '캐릭터 상세 명시 갱신' : '캐릭터 상세 조회',
       description:
-        '공개 API. Neople 11개 캐릭터 섹션을 모두 조회하여 DB에 저장하고 저장값을 반환합니다. 캐릭터 조회 실패 시 부분 저장이나 이전 값 대체는 없습니다. 추가 공용 아이템·스킬·세트 상세는 24시간 캐시를 사용하며 실패 시 stale 또는 unavailable 상태를 반환합니다. 아이템 상세는 장비·아바타·엠블렘·크리쳐·아티팩트·서약·결정·버프 장착 항목에 연결하고 세트는 setDetails에 ID별로 반환합니다. 서약의 숫자 setId는 세트 상세 조회에 사용하지 않습니다. 공용 상세는 후속 세트 조회를 포함해 최대 128개 참조·동시 3호출·하나의 10초 처리 예산이며 DB 정리는 별도입니다. IP당 최근 60초 10회로 검색 한도와 별도입니다. 캐릭터 11회 외에 캐시 미스 시 추가 Neople 호출이 발생합니다. Query와 HEAD는 허용하지 않습니다.'
+        (refresh
+          ? '본문 없는 POST로 5분 캐시를 우회하여 캐릭터를 갱신합니다. '
+          : '캐릭터 11개 섹션이 모두 최근 5분 안에 조회됐다면 DB 값을 반환하고 미저장·누락·만료 시 갱신합니다. ') +
+        '공개 API. 갱신할 때 Neople 11개 캐릭터 섹션을 모두 조회하여 DB에 저장하고 저장값을 반환합니다. 캐릭터 조회 실패 시 부분 저장이나 이전 값 대체는 없습니다. 추가 공용 아이템·스킬·세트 상세는 24시간 캐시를 사용하며 실패 시 stale 또는 unavailable 상태를 반환합니다. 아이템 상세는 장비·아바타·엠블렘·크리쳐·아티팩트·서약·결정·버프 장착 항목에 연결하고 세트는 setDetails에 ID별로 반환합니다. 서약의 숫자 setId는 세트 상세 조회에 사용하지 않습니다. 공용 상세는 후속 세트 조회를 포함해 최대 128개 참조·동시 3호출·하나의 10초 처리 예산이며 DB 정리는 별도입니다. 캐시 적중을 포함해 GET·POST 합산 IP당 최근 60초 10회로 검색 한도와 별도입니다. 같은 프로세스에서 겹치는 동일 캐릭터 갱신은 공유합니다. 캐릭터 11회 외에 캐시 미스 시 추가 Neople 호출이 발생합니다. Query와 HEAD는 허용하지 않습니다.'
     }),
     ApiParam({
       name: 'serverId',
@@ -240,7 +243,11 @@ export function ApiCharacterDetails() {
       name: 'characterId',
       schema: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,256}$', minLength: 1, maxLength: 256 }
     }),
-    success(200, 'CharacterDetails', '정제된 상세 정보와 섹션별 revision·조회 시각'),
+    success(
+      200,
+      'CharacterDetails',
+      '정제된 상세 정보, 섹션별 revision·조회 시각과 freshness 만료 시각'
+    ),
     errors({ 400: 'INVALID_CHARACTER_QUERY', 429: 'CHARACTER_RATE_LIMITED', ...neopleFailures })
   )
 }

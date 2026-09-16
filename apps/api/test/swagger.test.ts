@@ -17,7 +17,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
     undefined,
     {
       apiKey: 'documentation-fixture',
-      store: { beginFetch: unused, saveAndRead: unused },
+      store: { read: unused, beginFetch: unused, saveAndRead: unused },
       fetchDetails: unused
     }
   )
@@ -45,7 +45,8 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
         'get /me',
         'patch /me/nickname',
         'get /characters',
-        'get /characters/{serverId}/{characterId}'
+        'get /characters/{serverId}/{characterId}',
+        'post /characters/{serverId}/{characterId}/refresh'
       ].sort()
     )
     assert.deepEqual(document.paths['/me'].get?.security, [{ bearer: [] }])

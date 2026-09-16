@@ -41,7 +41,7 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
 
 Migration은 build된 `database/migrations/*.js`에서 자동 발견되므로 새 class를 별도 목록에 수기 등록하지 않는다. `show`는 등록된 전체 Migration을 history와 대조하며 fresh DB에 history table을 만들지 않는다. App과 CLI 모두 `synchronize:false`, `migrationsRun:false`를 유지한다. Migration 적용은 명시적 transaction이며 Nest lifecycle은 schema를 수정하지 않는다.
 
-캐릭터 상세에는 `characters`와 `character_api_responses` EntitySchema·추가 migration이 등록되어 있다. [상세 계약](../rules/character-details.md)과 [DBML](character-details.dbml)을 참고한다. `test-support/character-details.mjs`는 최신 JSONB 저장·동등성·revision·원자성·경합과 HTTP 흐름을 검증한다. 공용 DataSource는 연결 풀 대기를 2초로 제한한다.
+캐릭터 상세에는 `characters`와 `character_api_responses` EntitySchema·추가 migration이 등록되어 있다. [상세 계약](../rules/character-details.md)과 [DBML](character-details.dbml)을 참고한다. `test-support/character-details.mjs`는 최신 JSONB 저장·동등성·revision·원자성·경합과 HTTP 흐름을 검증한다. 공용 DataSource는 연결 풀 대기를 2초로 제한한다. 상세 GET은 11개 섹션의 가장 오래된 성공 조회 시각을 기준으로 5분 동안 캐릭터 저장값을 재사용한다. 본문 없는 `POST /characters/:serverId/:characterId/refresh`로 명시 갱신할 수 있으며 응답의 `freshness`에서 조회·만료 시각을 확인한다. 이 정책은 기존 column을 사용해 추가 migration이나 권한 변경이 없다.
 
 ## ORM 사용
 
@@ -164,7 +164,7 @@ Unit mock의 기존 SQL 정규식 검사는 위 실제 DB의 전체 SQL 비교�
 
 배포 순서는 migrator로 `db:migrate:up` → runtime 계정에 공용 상세 테이블의 SELECT·INSERT·UPDATE 권한 부여 → 새 서버 배포다. `deploy/api/grant-api.sql`은 공용 상세 세 테이블의 권한을 포함하며 migration 이후 재실행할 수 있다. 별도 읽기 전용 계정은 SELECT만 부여한다. 자동 migration은 계속 비활성화한다. `down`은 공용 캐시를 삭제하므로 격리 테스트에서만 사용한다.
 
-공용 상세는 접근 시 24시간 만료를 확인한다. 시즌 패치 직후 기존 값을 유지한 채 다음 접근에서 갱신하려면 권한이 있는 운영 연결에서 아래 SQL을 실행한다. 과거 성공 조회 시각은 바꾸지 않는다. request_started_at도 올려 무효화보다 먼저 시작한 갱신이 기존 행을 다시 유효하게 만들지 못하게 한다. 두 테이블에 이미 존재하는 행이 대상이며 전체 수집·즉시 재조회 작업은 아니다.
+공용 상세는 접근 시 24시간 만료를 확인한다. 시즌 패치 직후 기존 값을 유지한 채 다음 접근에서 갱신하려면 권한이 있는 운영 연결에서 아래 SQL을 실행한다. 과거 성공 조회 시각은 바꾸지 않는다. request_started_at도 올려 무효화보다 먼저 시작한 갱신이 기존 행을 다시 유효하게 만들지 못하게 한다. 세 테이블에 이미 존재하는 행이 대상이며 전체 수집·즉시 재조회 작업은 아니다.
 
 ```sql
 BEGIN;

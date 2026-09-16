@@ -1,6 +1,6 @@
 import { ApiTags } from '@nestjs/swagger'
 import { ApiCharacterDetails } from '../../swagger/operations.js'
-import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
+import { Controller, Get, Post, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { CharacterDetailFailure } from './errors.js'
 import { parseCharacterIdentity } from './service.js'
@@ -19,6 +19,29 @@ export class CharacterDetailController {
     if (request.method !== 'GET') {
       throw new CharacterDetailFailure('query')
     }
+    await this.respond(request, response, false)
+  }
+
+  @Post(':serverId/:characterId/refresh')
+  @ApiCharacterDetails(true)
+  async refresh(@Req() request: Request, @Res() response: Response): Promise<void> {
+    // No body is accepted; refuse framed payloads before acquiring quota or touching the DB.
+    if (
+      request.headers['transfer-encoding'] != null ||
+      (request.headers['content-length'] != null && !/^0+$/.test(request.headers['content-length']))
+    ) {
+      request.pause()
+      response.setHeader('Connection', 'close')
+      throw new CharacterDetailFailure('query')
+    }
+    await this.respond(request, response, true)
+  }
+
+  private async respond(
+    request: Request,
+    response: Response,
+    forceRefresh: boolean
+  ): Promise<void> {
     const identity = parseCharacterIdentity(
       request.params.serverId,
       request.params.characterId,
@@ -32,7 +55,9 @@ export class CharacterDetailController {
     }
     response.once('close', cancel)
     try {
-      const result = await this.service.refresh(request.ip, identity, controller.signal)
+      const result = forceRefresh
+        ? await this.service.refresh(request.ip, identity, controller.signal)
+        : await this.service.get(request.ip, identity, controller.signal)
       if (!response.destroyed) {
         response.status(200).json(result)
       }

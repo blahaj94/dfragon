@@ -8,6 +8,8 @@ import { projectCharacterDetails } from './project.js'
 import type { CharacterIdentity } from './sections.js'
 import type { CharacterDetailStore } from './store.js'
 import { enrichCharacterDetails } from '../catalog/enrich.js'
+import { characterFreshness } from './freshness.js'
+import { CharacterRefreshes } from './refreshes.js'
 import type { CatalogService } from '../catalog/service.js'
 
 export interface CharacterDetailDependencies {
@@ -40,10 +42,12 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
   const shutdown = new AbortController()
   const active = new Set<Promise<unknown>>()
 
-  const refresh = async (
+  const refreshes = new CharacterRefreshes()
+  const respond = async (
     peerAddress: string | undefined,
     identity: CharacterIdentity,
-    requestSignal: AbortSignal
+    requestSignal: AbortSignal,
+    forceRefresh: boolean
   ) => {
     const signal = AbortSignal.any([requestSignal, shutdown.signal])
     const deadline = new SearchDeadline(searchClock, signal)
@@ -53,20 +57,49 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
         throw new CharacterDetailFailure('internal')
       }
       lease = await deadline.wait(admission.acquire(peerAddress, deadline.signal))
-      lease.assertCapacity()
-      const requestedAt = await deadline.wait(deps.store.beginFetch())
-      deadline.check()
       lease.reserve()
-      const upstream = adapter(identity, signal)
       lease.release()
       deadline.dispose()
-      const payloads = await upstream
+      let rows
+      if (!forceRefresh) {
+        const snapshot = await deps.store.read(identity, signal)
+        signal.throwIfAborted()
+        const freshness = characterFreshness(snapshot.rows)
+        if (
+          freshness &&
+          Date.parse(freshness.lastSuccessfulFetchAt) <= snapshot.now.getTime() &&
+          snapshot.now.getTime() < Date.parse(freshness.expiresAt)
+        ) {
+          rows = snapshot.rows
+        }
+      }
+      if (!rows) {
+        rows = await refreshes.run(identity, signal, async (refreshSignal) => {
+          refreshSignal.throwIfAborted()
+          const startDeadline = new SearchDeadline(searchClock, refreshSignal)
+          let requestedAt: string
+          try {
+            requestedAt = await startDeadline.wait(deps.store.beginFetch())
+          } finally {
+            startDeadline.dispose()
+          }
+          refreshSignal.throwIfAborted()
+          const payloads = await adapter(identity, refreshSignal)
+          refreshSignal.throwIfAborted()
+          return deps.store.saveAndRead(identity, payloads, requestedAt, refreshSignal)
+        })
+      }
       signal.throwIfAborted()
-      const rows = await deps.store.saveAndRead(identity, payloads, requestedAt, signal)
       const projected = projectCharacterDetails(identity, rows)
-      return deps.catalog
+      const freshness = characterFreshness(rows)
+      if (!freshness) {
+        throw new CharacterDetailFailure('internal')
+      }
+      const details = deps.catalog
         ? await enrichCharacterDetails(projected, deps.catalog, signal)
         : projected
+      signal.throwIfAborted()
+      return { ...details, freshness }
     } catch (error) {
       throw characterDetailFailure(error)
     } finally {
@@ -75,17 +108,29 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     }
   }
 
+  function request(
+    peerAddress: string | undefined,
+    identity: CharacterIdentity,
+    signal: AbortSignal,
+    forceRefresh: boolean
+  ) {
+    const operation = respond(peerAddress, identity, signal, forceRefresh)
+    active.add(operation)
+    void operation.finally(() => active.delete(operation)).catch(() => undefined)
+    return operation
+  }
+
   return {
+    get(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
+      return request(peerAddress, identity, signal, false)
+    },
     refresh(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
-      const operation = refresh(peerAddress, identity, signal)
-      active.add(operation)
-      void operation.finally(() => active.delete(operation)).catch(() => undefined)
-      return operation
+      return request(peerAddress, identity, signal, true)
     },
     async onModuleDestroy() {
       shutdown.abort()
       admission.close()
-      await Promise.allSettled(active)
+      await Promise.allSettled([...active, refreshes.close()])
     }
   }
 }
