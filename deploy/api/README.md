@@ -14,7 +14,7 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
   부여한다. `ldb_migrator`가 schema를 소유하며 API는 Migration history에도 접근하지 못한다.
 - CPU·메모리·process·log 크기를 제한하고 DB 데이터는 named volume에 보관한다.
   볼륨은 백업이 아니다. 백업 공개 복원은 제공하지 않는다.
-- API는 Google·Neople에 접속할 outbound network를 사용한다. 이 설정은 **집 LAN으로의
+- API는 Neople에 접속할 outbound network를 사용한다. 이 설정은 **집 LAN으로의
   outbound 접근을 차단하거나 회선 DDoS를 방어하지 않는다**. 컨테이너는 host kernel을 공유한다.
 
 Docker의 공개 port가 UFW를 우회할 수 있으므로 API의 loopback bind를 유지한다.
@@ -52,9 +52,9 @@ shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `D
 `NEOPLE_API_KEY` 입력으로 전달하고, 인증 파일은 `AUTH_CONFIG_FILE`로 읽는다.
 이미지에는 source/test·서버 설정·비밀값이 포함되지 않는다.
 
-인증 JSON의 `registry.apiOrigin`은 공개 HTTPS API origin, Google callback은 같은 origin의
-`/auth/callback/google`, Desktop return target은 배포 앱의 `ldb://auth/callback`이다.
-실제 Google 등록과 credential을 준비하고 기존 snapshot·key 교체 계약을 유지한다.
+인증 JSON의 `passkey.apiOrigin`은 공개 HTTPS API origin, `rpId`는 그 hostname,
+`returnUrl`은 배포 앱의 `ldb://auth/callback`이다. JWT key 교체 계약을 유지하고,
+[패스키 설정](../../docs/reference/passkey-authentication.md)에 따라 도메인을 확정한다.
 `LOCAL_HTTPS_*`는 설정하지 않는다. 사용자의 로그인은 직접 검색·캡처·OCR의 선행 조건이 아니다.
 
 ## 처음 실행

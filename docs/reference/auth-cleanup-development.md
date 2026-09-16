@@ -16,12 +16,12 @@ last-reviewed: 2026-09-08
 
 - Revoked 또는 `last_active_at + 2,592,000초`에 도달한 session을 삭제한다. FK cascade로 그 session의 refresh 이력 전체를 삭제하며 user는 보존한다.
 - 활성 session은 오래된 consumed hash를 포함한 모든 refresh 이력을 보존한다. Refresh 자체는 활동 시각을 연장하지 않는다.
-- OAuth 요청은 `consumed`, `failed`이거나 전체 `expires_at`에 도달했을 때 삭제한다. 유효한 `processing` 요청은 provider HTTP가 진행 중이어도 보존한다.
+- 인증 요청은 `consumed`, `failed`이거나 전체 `expires_at`에 도달했을 때 삭제한다. 유효한 관리 요청은 보존한다.
 - `exchange_ready`의 `code_expires_at`만 지난 상태는 삭제 조건이 아니다. Code TTL에 따른 교환 거절과 전체 요청의 물리 보관을 구분한다. 이후 terminal 전이 또는 전체 요청 만료가 확인되면 정리한다.
 
-후보 조회는 삭제 권한이 아니다. UUID 순서로 각 row를 별도 READ COMMITTED transaction에서 잠그고, session의 존재·소유관계와 현재 상태를 확인한다. 판정 시각은 잠금 뒤 `clock_timestamp()`의 epoch를 내린 정수 초다. 활동이 먼저 commit하면 연장된 deadline으로 판단하며, 삭제 뒤 기다리던 활동·refresh·callback·exchange는 row를 복원하지 않는다. Session 삭제 뒤에도 유효 JWT의 기존 residual 검색 의미는 유지된다.
+후보 조회는 삭제 권한이 아니다. UUID 순서로 각 row를 별도 READ COMMITTED transaction에서 잠그고, session의 존재·소유관계와 현재 상태를 확인한다. 판정 시각은 잠금 뒤 `clock_timestamp()`의 epoch를 내린 정수 초다. 활동이 먼저 commit하면 연장된 deadline으로 판단하며, 삭제 뒤 기다리던 활동·refresh·패스키 검증·exchange는 row를 복원하지 않는다. Session 삭제 뒤에도 유효 JWT의 기존 residual 검색 의미는 유지된다.
 
-정책의 원문은 [`auth-database.md`](../rules/auth-database.md), [`auth-session.md`](../rules/auth-session.md), [`auth-oauth.md`](../rules/auth-oauth.md), [`auth-activity.md`](../rules/auth-activity.md)를 따른다.
+정책의 원문은 [`auth-database.md`](../rules/auth-database.md), [`auth-session.md`](../rules/auth-session.md), [`auth-passkeys.md`](../rules/auth-passkeys.md), [`auth-activity.md`](../rules/auth-activity.md)를 따른다.
 
 ## 실행 결과와 연결 정리
 
@@ -33,7 +33,7 @@ Compiled CLI `apps/api/src/auth/cleanup/cli.ts`는 정리와 연결 종료가 �
 
 ## 검증과 남은 연결
 
-전용 unit/command test는 `apps/api/test-support/cleanup.test.mjs`, `cleanup-command.test.mjs`다. 실제 PostgreSQL 검증은 `cleanup-database.mjs`, `cleanup-session-concurrency.mjs`, `cleanup-oauth-concurrency.mjs`를 기존 `database-integration.mjs`가 호출한다. 별도 Docker harness는 없다.
+전용 unit/command test는 `apps/api/test-support/cleanup.test.mjs`, `cleanup-command.test.mjs`다. 실제 PostgreSQL 검증은 `cleanup-database.mjs`, `cleanup-session-concurrency.mjs`를 기존 `database-integration.mjs`가 호출한다. 별도 Docker harness는 없다.
 
 ```sh
 pnpm --filter @ldb/api build
@@ -41,6 +41,6 @@ pnpm --filter @ldb/api exec node --import reflect-metadata --test test-support/c
 pnpm --filter @ldb/api test:database
 ```
 
-DB 검증은 활성 이력·OAuth 상태별 보존/삭제, 실제 잠금 대기와 활동·refresh·callback·exchange의 최종 상태, 앞선 commit 이후 실패와 마지막 commit 결과 불명, compiled CLI 연결 종료를 확인한다. 전용 unit/command 25개와 cleanup DB 시나리오 14개가 통과했다. 실제 실행 환경은 Node 24.19.0, Docker 29.7.2, PostgreSQL 18.6의 `linux/arm64/v8`이며 `linux/amd64`는 미실행이다. 실행 evidence는 [Issue #136](https://github.com/blahaj94/ldb/issues/136)에 기록한다. 한 platform의 결과를 다른 platform 또는 실제 운영 검증으로 확대하지 않는다.
+DB 검증은 활성 refresh 이력과 인증 요청의 보존·삭제, session 잠금 대기와 활동·refresh 경합, 부분 commit·결과 불명과 CLI 연결 종료를 검사한다. 과거 cleanup 도입 결과는 [Issue #136](https://github.com/blahaj94/ldb/issues/136)에 보존하며 폐기한 인증 흐름의 검증을 현재 패스키 성공 근거로 사용하지 않는다. 현재 전체 결과는 패스키 전환 PR의 DB 검증을 따른다.
 
 시작 시 자동 호출은 아직 연결하지 않았다. 승인된 하루 1회 실행의 운영 연결, 실제 실행 시각과 실패 대응도 미완료다. 이 command만으로 주기 실행이나 10분·24시간 이내 물리 삭제를 보장하지 않는다. 시작 호출은 API 수명주기 작업과, 정기 실행은 운영 후속 작업과 연결해야 한다.

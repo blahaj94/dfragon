@@ -19,11 +19,11 @@ last-reviewed: 2026-09-14
 
 ## 로그인과 연결 실패 안내
 
-브라우저 로그인 대기 화면은 API 완료 페이지의 “앱으로 돌아가기” 버튼과 OS의 앱 열기 확인을 안내합니다. Provider에서 취소하거나 브라우저를 닫은 경우 앱에 즉시 전달되지 않으므로 앱의 “로그인 취소” 후 새 시도를 안내합니다. 자동 복귀나 provider 취소의 자동 감지를 약속하지 않습니다.
+브라우저 로그인 대기 화면은 API 완료 페이지의 “앱으로 돌아가기” 버튼과 OS의 앱 열기 확인을 안내합니다. 브라우저에서 취소하거나 브라우저를 닫은 경우 앱에 즉시 전달되지 않으므로 앱의 “로그인 취소” 후 새 시도를 안내합니다. 자동 복귀나 브라우저 취소의 자동 감지를 약속하지 않습니다.
 
 인증 연결 조회에 실패하면 “연결 다시 확인”으로 기존 AuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
 
-기존 Google 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한·암호화·파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, Google 경로의 사용을 Discord 지원 완료까지 막지 않습니다.
+패스키 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한·암호화·파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, 브라우저 지원과 실제 기기 인증은 별도로 확인합니다.
 
 ## 공용 표현
 
@@ -42,11 +42,11 @@ pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs light
 pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
 ```
 
-Fixture source는 `apps/desktop/src/frontend/auth-fixture/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. OAuth·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
+Fixture source는 `apps/desktop/src/frontend/auth-fixture/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
 
 macOS의 Electron application menu에서 phase·invalidReturn·welcome/home·longNickname·noProviders를 선택한다. Light/Dark와 Narrow 360(360×740 content)/Wide 1100(1100×770 content)을 전환할 수 있다. 최초 window는 1100×800 outer size다. State 선택·Reload는 React를 다시 mount한다. App menu를 사용한 Theme·viewport 변경은 현재 mount를 보존한다.
 
-Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 signedOut/LOGIN_CANCELLED, retryAuth는 restoring, logout은 signingOut을 전달한다. 이 대기는 UI 검증을 위한 fixture 지연이며 제품 timeout 정책이 아니다. 자동 OAuth 성공이나 실제 계정 권한은 없다.
+Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 signedOut/LOGIN_CANCELLED, retryAuth는 restoring, logout은 signingOut을 전달한다. 이 대기는 UI 검증을 위한 fixture 지연이며 제품 timeout 정책이 아니다. 자동 브라우저 인증 성공이나 실제 계정 권한은 없다.
 
 ## Component/interaction evidence
 
@@ -86,4 +86,6 @@ Native Quit으로 fixture를 정상 종료한 뒤 command exit 0, main PID 종�
 ## 미검증·후속
 
 - 모든 상태×모든 viewport×모든 Theme의 전체 Cartesian matrix나 pixel 동등성을 주장하지 않는다. Button의 공식 loading 표현과 disabled는 구분하며 현재 화면은 둘을 함께 사용한다. 별도 page transition/Motion preset을 추가하지 않았다.
-- 실제 OAuth·계정 API·IPC·native protocol·OS credential 저장·capture 통합, 다른 OS/runtime/font는 후속이다. Synthetic fixture 성공은 제품 인증 검증이 아니다.
+- 실제 브라우저 인증·계정 API·IPC·native protocol·OS credential 저장·capture 통합, 다른 OS/runtime/font는 후속이다. Synthetic fixture 성공은 제품 인증 검증이 아니다.
+
+로그인한 화면의 `패스키 관리`는 고정 관리 주소를 외부 브라우저로 엽니다. 웹 화면에서 관리할 계정의 패스키로 다시 인증하며 앱에 credential 목록을 전달하지 않습니다.

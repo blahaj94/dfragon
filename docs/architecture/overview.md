@@ -39,20 +39,20 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 - 선택한 인증 운영 환경의 권한·저장과 기능 검증. 공개 복원은 선택했을 때만 확인
 - Web/mobile client, 실제 Desktop 지원 OS·배포 identity·callback/protocol 등록값 및 native 저장/복귀 검증
 - 아래 Shared UI boundary 이외의 shared package 종류와 dependency direction
-- 승인된 탈퇴·삭제/재가입·백업 복원 정책의 실제 저장소·권한·provider·실행 검증 gate
+- 승인된 탈퇴·삭제/재가입·백업 복원 정책의 실제 저장소·권한·실행 검증 gate
 - 현재 요청과 MVP 운영 기준을 벗어나는 새로운 deployment boundary
 
 미정 사항을 구현해야 하면 AI는 임의로 architecture를 확정하지 않고 사용자에게 대안과 trade-off를 제시한다.
 
 ## Authentication boundary contract
 
-[PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)으로 중앙 API의 provider 교환·PostgreSQL identity/session과 Desktop public client의 외부 browser 로그인 contract가 승인됐다. HTTP/앱 boundary는 [`../rules/auth-api.md`](../rules/auth-api.md), OAuth는 [`../rules/auth-oauth.md`](../rules/auth-oauth.md), session은 [`../rules/auth-session.md`](../rules/auth-session.md), DB는 [`../rules/auth-database.md`](../rules/auth-database.md), 검색 활동은 [`../rules/auth-activity.md`](../rules/auth-activity.md), runtime 호환성·미결정 gate는 [`../rules/auth-runtime.md`](../rules/auth-runtime.md)가 canonical Rule이다.
+현재 중앙 API는 패스키로 회원을 인증하고 PostgreSQL에 회원·공개키·session을 저장한다. Desktop public client는 시스템 브라우저에서 인증하고 S256으로 보호한 앱 복귀 code를 교환한다. 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다. 이전 인증 설계 승인은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)에 보존한다.
 
 위 승인은 서버 인증/DB contract 범위다. 추가로 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)으로 Desktop main/IPC/화면, 인증 lifecycle, OS 저장·protocol 설계가 승인됐다. Canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
 
 탈퇴 D1–D5는 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 현재 [인증 운영 구성](auth-operations-proposal.md)은 한 운영자·단일 서버를 허용하고 공개 복원을 선택 기능으로 분리한다. [PR #132](https://github.com/blahaj94/ldb/pull/132)의 3대·journal/witness 설계는 이전 결정 이력이며 새 기능의 기본 착수 조건이 아니다. 공개 복원을 제공할 때는 [운영 검증 기준](auth-operations-validation-proposal.md)의 삭제 보존·최신성·옛 자격 폐기 조건을 충족한다.
 
-설계와 실제 구현·환경 검증을 구분한다. 현재 사용자 요청에 포함된 구현·비운영 검증에는 과거 설계 작업의 착수 제외를 다시 적용하지 않는다. 미사용 provider나 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential·provider 등록·운영 DB·배포 권한과 유효한 명시적 금지는 유지한다.
+설계와 실제 구현·환경 검증을 구분한다. 현재 사용자 요청에 포함된 구현·비운영 검증에는 과거 설계 작업의 착수 제외를 다시 적용하지 않는다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential·인증 도메인 설정·운영 DB·배포 권한과 유효한 명시적 금지는 유지한다.
 
 ## Shared UI boundary
 
