@@ -6,7 +6,7 @@ scope: apps/desktop secure storage protocol and validation
 last-reviewed: 2026-09-15
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
-exceptions: 실제 credential/keychain·protocol registry·OAuth app 설정과 packaged E2E는 수행하지 않는다.
+exceptions: 실제 credential/keychain·protocol registry·패스키 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장·protocol E2E 시
 ---
 
@@ -16,7 +16,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장·prot
 
 ## 확인한 사실과 근거의 한계
 
-2026-09-06 조사 범위는 repository source/config와 공식 문서, host의 OS version·architecture 읽기다. Electron 실행, DB/OAuth/provider 호출, Keychain/DPAPI/secret store 접근, protocol 등록/변경은 수행하지 않았다.
+2026-09-06 조사 범위는 repository source/config와 공식 문서, host의 OS version·architecture 읽기다. Electron 실행, DB/외부 인증 호출, Keychain/DPAPI/secret store 접근, protocol 등록/변경은 수행하지 않았다.
 
 | 분류 | 확인 내용 | 아직 증명하지 않은 것 |
 | --- | --- | --- |
@@ -124,11 +124,11 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 ## Protocol 및 browser launch 선택
 
-**권장: 서버의 HTTPS provider callback → 완료 HTML의 등록 private protocol 버튼 → main.** 이미 승인된 return target snapshot/code-only 흐름을 그대로 소비하며 새 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 server registry와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `ldb://...`를 실제 등록값으로 간주하지 않는다.
+**흐름: HTTPS 브라우저의 패스키 인증 → 완료 화면의 앱 복귀 버튼 → main.** 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `ldb://...`를 실제 등록값으로 간주하지 않는다.
 
-Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pending request + S256 verifier가 없는 앱은 자체 code를 교환할 수 없지만 가용성 방해·정품 앱 보증 문제를 모두 해결하지 않는다. Public clientId도 설치 인증이 아니다. [RFC 8252](https://www.rfc-editor.org/rfc/rfc8252.html)는 private-use scheme/claimed HTTPS/loopback을 비교하며 Linux 직접 OAuth callback에 loopback을 권고한다. 이번 선택은 중앙 HTTPS callback 이후 별도 code 복귀라는 프로젝트 trade-off이며 모든 OS의 최선이라는 주장이 아니다.
+Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pending request + S256 verifier가 없는 앱은 자체 code를 교환할 수 없지만 가용성 방해·정품 앱 보증 문제를 모두 해결하지 않는다. Public clientId도 설치 인증이 아니다. 이 선택은 브라우저 인증 이후 별도 code 복귀라는 프로젝트 선택이며 모든 OS의 최선이라는 주장이 아니다.
 
-Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopback은 listener/port/lifecycle과 현재 return registry 형태에 대한 별도 결정을 요구한다. 실제 private protocol을 안정적으로 등록할 수 없는 배포를 선택한다면 해당 대안과 서버 registry 영향부터 별도 승인받는다. 임의 loopback redirect나 manual token/code 붙여넣기를 fallback으로 추가하지 않는다.
+Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopback은 listener/port/lifecycle과 현재 복귀 설정 형태에 대한 별도 결정을 요구한다. 실제 private protocol을 안정적으로 등록할 수 없는 배포를 선택한다면 해당 대안과 서버 설정 영향부터 별도 승인받는다. 임의 loopback redirect나 manual token/code 붙여넣기를 fallback으로 추가하지 않는다.
 
 ### 로컬 개발용 등록값
 
@@ -137,20 +137,20 @@ Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopba
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
 | 환경·대상 | `development`, 사용자가 지정한 Windows 개발 컴퓨터의 현재 사용자, x64 NSIS |
-| API·provider | 같은 컴퓨터의 `https://localhost:3443`, Google |
-| Provider callback | `https://localhost:3443/auth/callback/google` |
+| API·인증 | 같은 컴퓨터의 `https://localhost:3443`, 패스키 |
+| RP ID | `localhost` |
 | 앱 복귀 | `ldb.dev://auth/callback` |
 | 개발 앱 identity·profile | `ldb.dev`, Electron `appData` 아래의 `ldb.dev` |
 
-이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `ldb.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 LDB 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 active registry의 API·provider callback·return target 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
+이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `ldb.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 LDB 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 설정의 API·RP ID·returnUrl 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
 
-빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 Google 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
+빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
 ### Windows MVP 배포 구성
 
 Windows x64 NSIS 배포 앱은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용한다. 이 선택은 배포 설정 PR의 채택 범위이며 사용자 merge 후 다른 작업에 적용한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다.
 
-배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. Google callback은 해당 origin의 `/auth/callback/google`이고 서버 registry의 복귀 주소는 `ldb://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret·credential은 설치 파일에 넣지 않는다. 실제 서버·HTTPS 연결·provider 등록의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
+배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버 설정의 복귀 주소는 `ldb://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret·credential은 설치 파일에 넣지 않는다. 실제 서버·HTTPS 연결·패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
 개발 앱의 `ldb.dev`·profile·설치 경로는 보존한다. 배포 앱은 별도 `ldb` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트·추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
@@ -169,7 +169,7 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 - Browser launch URL은 string·2,048 byte 이하이며 exact trusted API HTTPS origin, `/auth/login/authorize` path, **ticket 하나**의 canonical 32-byte base64url query만 허용한다. Username/password·fragment·추가 query·path/port alias·redirect를 허용하지 않는다. URL parser 뒤 canonical 재구성한 값과 원문이 동일해야 하며 allowlist prefix 비교로 대체하지 않는다.
 - App 복귀 후보는 bootstrap argument를 제거한 초기 user argv 또는 exact version·shape·count·UTF-8 byte 경계를 다시 확인한 lock handoff의 모든 문자열에서 검사한다. `second-instance` command line의 순서·내용을 인증 입력으로 신뢰하거나 마지막 argument라고 가정하거나 joined command line을 shell로 재해석하거나 arbitrary command를 실행하지 않는다. 한 OS event에 복귀 후보가 2개 이상이면 전체 거절한다. 제거된 executable/app path와 단독 `--` 등 일반 argument를 URL로 취급하지 않는다. `--` 또는 slash prefix option의 첫 `=`나 `:` 뒤 payload는 option 이름의 punctuation·빈 이름과 무관하게 URL-like 분류 대상으로 검사한다. Slash prefix 이름에 path separator가 있으면 POSIX path로 유지한다. 예외는 대소문자를 정규화한 option 이름이 정확히 `user-data-dir`이고 raw argument·payload에 trim/control projection이 없으며, payload가 drive letter와 colon 뒤에 slash 또는 backslash가 정확히 하나인 absolute Windows drive 형태(`C:/...`, `C:\...`)일 때뿐이다. Well-formed scheme 또는 path/query/fragment 구분자 없는 prefix 뒤의 colon과 slash/backslash로 시작하는 형태는 protocol-like이다. Direct drive-shaped user argument와 다른 option의 drive-shaped payload, control 제거 뒤에만 drive path가 되는 값처럼 one-letter URI와 구별할 수 없는 입력은 fail closed한다.
 - 복귀 URL도 2,048 byte 이하·control/공백/backslash 없음·정확한 등록 scheme/host/path여야 한다. Userinfo/port/fragment·추가 path·encoded 구분자·dot segment·unknown/duplicate query key를 거절한다. Canonical raw 값은 `<registered-return-target>?code=<canonical-code>`와 정확히 같아야 한다. 대상 target의 authority 유무까지 등록 형태를 따른다.
-- Code는 auth-oauth의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
+- Code는 auth-passkeys의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
 - URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패·잘못된 scheme은 기존 pending/session·window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 동일 code의 중복·expired handling은 lifecycle을 따른다.
 
 ### Linux package별 동작 참고
@@ -180,14 +180,14 @@ Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app
 
 ## 기능 완료와 배포 후 검증
 
-기능 완료는 선택한 배포 환경에서 사용자가 로그인 시작 → provider 인증 → 앱 복귀 → 로그인 상태 반영 → 인증 필요 기능 사용을 수행할 수 있는지로 판단한다. 취소·실패 후 재시도와 정상 종료 후 재실행은 기존 lifecycle 계약을 따른다. 가능한 환경에서 이 흐름을 직접 확인하고, 실제 credential이나 환경 권한이 없으면 구현을 먼저 완성한 뒤 미검증 경로와 필요한 다음 실행을 명시한다. Mock 성공을 실제 로그인 성공으로 바꾸지 않는다.
+기능 완료는 선택한 배포 환경에서 사용자가 로그인 시작 → 패스키 인증 → 앱 복귀 → 로그인 상태 반영 → 인증 필요 기능 사용을 수행할 수 있는지로 판단한다. 취소·실패 후 재시도와 정상 종료 후 재실행은 기존 lifecycle 계약을 따른다. 가능한 환경에서 이 흐름을 직접 확인하고, 실제 credential이나 환경 권한이 없으면 구현을 먼저 완성한 뒤 미검증 경로와 필요한 다음 실행을 명시한다. Mock 성공을 실제 로그인 성공으로 바꾸지 않는다.
 
-변경 영향에 맞는 기존 unit·통합 검증과 선택한 설치 앱의 기본 동작 확인을 수행한다. 모든 변경에 전체 Desktop test/lint/build나 모든 OS·provider·package 조합 시험을 일괄 요구하지 않는다. 실제 필요한 검사는 [Testing](testing.md)을 따른다. Credential의 main 소유, PKCE와 callback/IPC 입력 검증, 암호화, 파일 권한·실패 처리, 취소 후 늦은 응답 차단은 계속 유지한다.
+변경 영향에 맞는 기존 unit·통합 검증과 선택한 설치 앱의 기본 동작 확인을 수행한다. 모든 변경에 전체 Desktop test/lint/build나 모든 OS·인증기·package 조합 시험을 일괄 요구하지 않는다. 실제 필요한 검사는 [Testing](testing.md)을 따른다. Credential의 main 소유, PKCE와 callback/IPC 입력 검증, 암호화, 파일 권한·실패 처리, 취소 후 늦은 응답 차단은 계속 유지한다.
 
 VM 강제 종료의 지점별 반복, 물리 정전, 장기 clock drift, profile 이동·backup 복원, 다른 OS·CPU·package 및 서명/업데이트 조합의 광범위한 시험 목록은 배포 gate로 관리하지 않는다. 배포 후 사용자 피드백과 재현 사례를 바탕으로 필요한 항목만 확인하고 수정한다. 이미 발견한 중요한 결함을 숨기거나 다른 환경에서의 성공을 해당 환경의 성공으로 표시하지 않는다. 장애 주입 도구의 VM 전원·복원 등 파괴적 실행은 그때 필요한 별도 허용 범위를 따른다.
 
 ## 배포 구성과 실행 조건
 
-배포 대상과 실제 사용한 OS·architecture·package, API HTTPS origin, provider callback, 앱 return target과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 등록값이 서버와 앱에서 일치해야 하며, 다른 앱의 protocol 등록을 덮어쓰지 않는다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
+배포 대상과 실제 사용한 OS·architecture·package, API HTTPS origin, RP ID, 앱 return target과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 등록값이 서버와 앱에서 일치해야 하며, 다른 앱의 protocol 등록을 덮어쓰지 않는다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
 
-Endpoint·provider 지원은 현재 구현과 실제 연결 결과로 판단한다. Google 경로에 사용하지 않는 provider의 미완료 사항을 선행 조건으로 추가하지 않는다. 실제 credential·provider 등록·운영 DB·배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [개발 흐름](agent-workflow.md)을 따르며 사용자만 merge한다.
+패스키·QR 지원은 현재 구현과 실제 브라우저·기기 연결 결과로 판단한다. 선택하지 않은 기기의 미완료 검증을 현재 환경의 성공으로 확대하지 않는다. 실제 credential·패스키 설정·운영 DB·배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [개발 흐름](agent-workflow.md)을 따르며 사용자만 merge한다.

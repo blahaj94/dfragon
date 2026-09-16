@@ -39,7 +39,7 @@ pnpm --filter @ldb/desktop build:win
 | API | 빌드 시 지정한 HTTPS origin | `https://localhost:3443` |
 | 설치 | 사용자별 one-click NSIS, `ldb` 폴더 | 기존 one-click NSIS 경로 유지 |
 
-NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 실제 Google 로그인에는 API registry와 Google callback(`<API origin>/auth/callback/google`) 및 앱 복귀 주소의 일치가 별도로 필요합니다.
+NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin·RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
 ### 서버 준비와 설치본 확인
 

@@ -6,7 +6,7 @@ scope: apps/desktop authentication process IPC and screens
 last-reviewed: 2026-09-11
 rationale: renderer가 credential이나 인증 성공을 소유하지 않고 후속 구현자가 process 경계를 추측하지 않도록 한다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; 서버 기반 PR #48 승인, PR #53 merge"
-exceptions: 설계 승인은 제품 구현 착수·실제 OAuth 및 OS 등록·credential 저장소 변경을 포함하지 않는다.
+exceptions: 설계 승인은 제품 구현 착수·실제 인증 및 OS 등록·credential 저장소 변경을 포함하지 않는다.
 review-after: 최초 Desktop 인증 구현 및 packaged platform validation 시
 ---
 
@@ -14,9 +14,9 @@ review-after: 최초 Desktop 인증 구현 및 packaged platform validation 시
 
 이 문서와 [lifecycle](desktop-auth-lifecycle.md), [platform·저장·검증](desktop-auth-platform.md)은 [PR #60의 명시적 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)을 받은 Desktop contract다. PR #60은 2026-09-05T18:13:24Z에 사용자 squash merge됐으며 merge commit은 `97b9903`다. 설계 승인은 실제 OS/배포 검증 성공이나 후속 구현 착수 지시를 대체하지 않는다. [Architecture](../architecture/overview.md)의 실제 지원 환경·등록값·native 검증 gate는 유지한다.
 
-2026-09-15 사용자 요구에 따라 로그인은 선택 사항이다. 게임 창 선택·캡처·OCR·캐릭터 검색·결과 표시는 인증 여부와 독립적이다. 이 PR은 아래 화면·검색 계약을 함께 변경하며 사용자 merge 후 다른 작업에도 적용한다. 계정 자체의 인증·credential·저장·OAuth 계약은 유지한다.
+2026-09-15 사용자 요구에 따라 로그인은 선택 사항이다. 게임 창 선택·캡처·OCR·캐릭터 검색·결과 표시는 인증 여부와 독립적이다. 이 PR은 아래 화면·검색 계약을 함께 변경하며 사용자 merge 후 다른 작업에도 적용한다. 계정 자체의 인증·credential·저장 계약은 유지한다.
 
-서버의 [API](auth-api.md), [OAuth](auth-oauth.md), [session](auth-session.md), [활동](auth-activity.md), [runtime gate](auth-runtime.md)를 전제로 한다. Endpoint, TTL, JWT/refresh/session 정책, provider 설정과 DB를 변경하지 않는다. `clientId:"desktop"`은 public 등록 선택값이다. 실제 운영 URL·app identity·protocol 값은 platform 문서의 미확인 gate다.
+서버의 [API](auth-api.md), [패스키](auth-passkeys.md), [session](auth-session.md), [활동](auth-activity.md), [runtime gate](auth-runtime.md)를 전제로 한다. Endpoint, TTL, JWT/refresh/session 정책, 패스키 설정과 DB는 서버 계약을 따른다. `clientId:"desktop"`은 public 등록 선택값이다. 실제 운영 URL·app identity·protocol 값은 platform 문서의 미확인 gate다.
 
 ## Process 책임과 권한
 
@@ -24,8 +24,8 @@ review-after: 최초 Desktop 인증 구현 및 packaged platform validation 시
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | main               | 단일 AuthCoordinator, pending login·PKCE, token·user, session generation, HTTP/refresh single-flight, safeStorage/file, protocol event, 고정 설정 기반 browser 열기 | 아래 AuthSnapshot과 정제된 명령 결과만                                                         |
 | preload            | 허용된 feature별 IPC invoker·event wrapper, listener 수명                                                                                                           | 직렬화 가능한 snapshot DTO. Credential, HTTP, 저장·로그인 상태 판단을 소유하지 않음            |
-| renderer           | snapshot 복사본, 버튼/화면 상태, welcome 닫힘·capture UI·OCR resource                                                                                               | provider 선택·현재 attempt 취소·복구/로그아웃 의도. 로그인 성공·권한·URL·token을 제출하지 않음 |
-| 외부 browser / API | provider 화면·cookie·state·callback 및 code 발급은 기존 서버 계약                                                                                                   | 브라우저 완료는 API 검증 완료일 뿐이며 앱의 로그인 성공은 아님                                 |
+| renderer           | snapshot 복사본, 버튼/화면 상태, welcome 닫힘·capture UI·OCR resource                                                                                               | 패스키 로그인·관리·현재 attempt 취소·복구/로그아웃 의도. 로그인 성공·권한·URL·token을 제출하지 않음 |
+| 외부 browser / API | 패스키 화면·cookie·WebAuthn 검증·code 발급은 서버 계약                                                                                                   | 브라우저 완료는 API 검증 완료일 뿐이며 앱의 로그인 성공은 아님                                 |
 
 Main은 OS 사용자·app profile당 현재 계정/session 하나만 활성화한다. 계정 전환은 현재 기기 logout 후 새 로그인이다. 다른 앱 설치나 다른 기기는 별개 session이며 Desktop이 한꺼번에 폐기하지 않는다. Main memory 자체가 침해된 경우까지 credential 보호를 보장하지 않는다.
 
@@ -43,19 +43,20 @@ Main은 OS 사용자·app profile당 현재 계정/session 하나만 활성화�
 
 후속 구현의 feature 위치는 `apps/desktop/src/backend/auth/**`, `apps/desktop/src/preload/api/auth.ts`, `apps/desktop/src/preload/common/types/auth.ts`, `apps/desktop/src/frontend/src/auth/**`를 권장한다. Shared IPC contract에는 아래 명령 type을 추가하고 backend/preload는 거기서 파생한다. `main.ts`/preload `index.ts`에는 생성·등록·노출만 둔다. 새 package나 dependency, 범용 service framework는 필요하지 않다.
 
-인증 경계를 연결할 때 `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`를 명시하고 isolation-off fallback·범용 `window.electron` 노출을 제거한다. 기존 capture 전용 API는 유지한다. Renderer navigation/새 window는 차단하고 외부 browser 열기는 검증한 로그인 launch 전용 main 경로로만 허용한다. OAuth 화면을 BrowserWindow/webview에 넣거나 인증을 위해 CSP/webSecurity를 완화하지 않는다. Preload bundle·OCR worker·capture가 sandbox에서 작동하는지는 후속 회귀 검증 대상이며 검증 전 현재 기능과의 호환성을 주장하지 않는다. 이 항목은 현재 구현 설명이 아닌 승인된 변경 contract다. [Electron security 근거](https://www.electronjs.org/docs/latest/tutorial/security)
+인증 경계를 연결할 때 `contextIsolation:true`, `nodeIntegration:false`, `sandbox:true`를 명시하고 isolation-off fallback·범용 `window.electron` 노출을 제거한다. 기존 capture 전용 API는 유지한다. Renderer navigation/새 window는 차단하고 외부 browser 열기는 검증한 로그인 launch와 고정된 패스키 관리 main 경로로만 허용한다. 인증 화면을 BrowserWindow/webview에 넣거나 인증을 위해 CSP/webSecurity를 완화하지 않는다. Preload bundle·OCR worker·capture가 sandbox에서 작동하는지는 후속 회귀 검증 대상이며 검증 전 현재 기능과의 호환성을 주장하지 않는다. 이 항목은 현재 구현 설명이 아닌 승인된 변경 contract다. [Electron security 근거](https://www.electronjs.org/docs/latest/tutorial/security)
 
 ## 최소 IPC 계약
 
-기존 feature naming에 맞춘 다음 5개 invoke와 1개 event만 추가한다. `getAuthState`는 local 조회이며 HTTP·활동 갱신을 일으키지 않는다.
+기존 feature naming에 맞춘 다음 6개 invoke와 1개 event만 추가한다. `getAuthState`는 local 조회이며 HTTP·활동 갱신을 일으키지 않는다.
 
 | Channel / preload API                               | 정확한 입력                                               | 결과와 의미                                                                                                                                                                       |
 | --------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `getAuthState`                                      | 인자 0개                                                  | `AuthSnapshot`                                                                                                                                                                    |
-| `beginLogin`                                        | object 1개 `{provider:"google"\|"discord"}`               | `AuthCommandResult`. signedOut에서만 새 attempt 시작. 중복 클릭/다른 provider 입력은 `AUTH_BUSY`, 현재 attempt 유지                                                               |
+| `beginLogin`                                        | object 1개 `{provider:"passkey"}`               | `AuthCommandResult`. signedOut에서만 새 attempt 시작. 중복 클릭/다른 provider 입력은 `AUTH_BUSY`, 현재 attempt 유지                                                               |
 | `cancelLogin`                                       | object 1개 `{attemptId:string}`                           | `AuthCommandResult`. 현재 시작/대기/exchange attempt만 취소. 오래된 attempt는 `STALE_ATTEMPT`, 다른 attempt에 영향 없음                                                           |
 | `retryAuth`                                         | 인자 0개                                                  | `AuthCommandResult`. restorePaused에서는 안전한 복원 단계만 재개, storageBlocked에서는 local 저장 진단·정리 재시도. 새 browser login·불명확한 code/refresh 재전송은 수행하지 않음 |
 | `logout`                                            | 인자 0개                                                  | `AuthCommandResult`. main이 현재 credential을 선택한다. signedOut이면 no-op, 진행 중 logout이면 같은 결과 공유. 그 밖의 경합은 lifecycle을 따름                                   |
+| `managePasskeys` | 인자 0개 | signedIn에서 고정 API origin의 `/auth/passkeys/manage`를 외부 브라우저로 열고 재인증. Renderer는 URL이나 계정 ID를 전달하지 않음. |
 | `authStateChanged` / `onAuthStateChanged(listener)` | main→등록 renderer DTO. preload 함수 입력은 callback 하나 | unsubscribe 함수 반환. Electron event·sender·내부 error를 listener에 넘기지 않음                                                                                                  |
 
 `AuthCommandResult = {ok:true,snapshot:AuthSnapshot} | {ok:false,error:{code:AuthCommandError},snapshot:AuthSnapshot}`다. `AuthCommandError`는 `INVALID_AUTH_COMMAND`, `AUTH_NOT_ALLOWED`, `AUTH_BUSY`, `STALE_ATTEMPT`, `AUTH_OPERATION_FAILED`만 허용한다. 뒤의 두 실행 결과와 상세 UI 안내는 snapshot을 함께 사용한다. 허용되지 않은 sender에는 snapshot 없이 정제된 `AUTH_NOT_ALLOWED` rejection만 반환한다. Raw exception/stack/server message를 반환하지 않는다. `ok:true`는 명령이 처리됐다는 뜻이며 로그인/서버 logout 성공은 snapshot으로만 판단한다.
@@ -68,7 +69,7 @@ AuthSnapshot의 전체 allowlist는 다음과 같다. Optional 임의 field를 �
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `runId`, `revision` | main 실행마다 새 비민감 random ID, snapshot 전이마다 증가하는 nonnegative safe integer. 서버 request/session ID와 별개                              |
 | `phase`             | `signedOut`, `startingLogin`, `waitingBrowser`, `exchanging`, `restoring`, `restorePaused`, `signedIn`, `signingOut`, `storageBlocked`              |
-| `providers`         | 배포 설정에서 enable한 provider allowlist. 서버 provider gate가 미해소면 해당 버튼을 표시하지 않음; renderer가 enable할 수 없음                     |
+| `providers`         | 배포 설정에서 enable한 provider allowlist. 현재 값은 passkey 하나; renderer가 enable할 수 없음                     |
 | `login`             | 로그인 진행 중 `{attemptId,provider,expiresAt}` 또는 null. attemptId는 main의 임의 UUID로 server requestId와 별개; startingLogin의 expiresAt은 null |
 | `user`              | signedIn에서만 `{nickname:string}`, 그 밖은 null. API user ID·session ID·provider identity는 노출 불필요                                            |
 | `entry`             | signedIn에서 `welcome` 또는 `home`, 그 밖은 null. 서버 exchange의 isNewUser로 최초 진입을 정하고 복원은 home                                        |
@@ -115,7 +116,7 @@ review-after: 초기 restore·paused retry의 저장 지연·clock 회귀와 화
 
 ## 승인된 선택과 서버 별도 결정
 
-권장안은 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 등록 private protocol + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, provider embedded login은 승인된 외부 browser 경계와 다르므로 채택하지 않는다. 저장/protocol의 실질 대안 비교는 platform 문서에 둔다.
+권장안은 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 등록 private protocol + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, embedded login은 승인된 외부 browser 경계와 다르므로 채택하지 않는다. 저장/protocol의 실질 대안 비교는 platform 문서에 둔다.
 
 이 flow에 필수인 서버 정책 변경은 없다. Browser 취소를 앱에 즉시 push하는 기능, 서버 pending 취소/status endpoint, code/refresh 응답 유실의 idempotent 재전달, onboarding 완료 저장, 계정 연결은 현 API에 없다. 필요해지면 별도 서버 Rule 결정으로 제시한다. 이 로그인 설계는 polling·error URL parameter·refresh grace를 추가하지 않는다. [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 withdrawal 전용 status/resume·main-owned receipt·재시작 1회/사용자 gesture 조회는 별도로 승인된 확장이다. 기존 login pending의 memory-only/재시작 복구 없음과 혼합하지 않으며 구체적 feature IPC·UI/OS 구현과 검증은 후속 범위다.
 

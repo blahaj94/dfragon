@@ -1,111 +1,23 @@
 ---
 type: reference
-scope: apps/api common login and Google provider implementation
-last-reviewed: 2026-09-08
+scope: apps/api passkey login implementation
+last-reviewed: 2026-09-16
 ---
 
-# 공통 로그인 구현과 연결
+# 로그인 구현 안내
 
-`apps/api/src/auth/login`은 승인된 로그인 요청·browser/provider binding·callback claim·일회용 exchange를 구현한다. Canonical contract는 `docs/rules/auth-api.md`, `auth-oauth.md`, `auth-session.md`, `auth-database.md`, `auth-runtime.md`다. 이 Reference는 현재 구현 위치와 검증·연결 경계만 설명한다.
+설정·실행·검증 명령은 [패스키 실행 안내](passkey-authentication.md), 제품 계약은 [패스키 인증](../rules/auth-passkeys.md)을 따른다.
 
-## 현재 실행 경계
-
-`createLoginService`에 초기화된 DataSource, 검증된 registry와 provider PKCE key, 실제 Access JWT issuer, 서버의 provider verifier를 주입한다. `createLoginHttpApp(service)`는 기존 login service를 실제 Nest HTTP route에 연결한다. 선택적 두 번째 인자에 `createSessionHttpService({dataSource,issueAccessJwt})` 결과를 넘기면 같은 parser/filter/factory에 refresh/logout route도 연결한다. 기존 한 인자 caller와 login/Google/exchange/HEAD 동작은 유지한다. Factory는 기본 body parser를 끄고 인증 pre-parser와 정제 오류 처리를 설치하며 DataSource는 composition 호출자가 소유하고 종료한다.
-
-`apps/api/src/main.ts`는 검증된 배포 설정으로 기존 factory를 합성해 Google 로그인·refresh/logout·계정·검색을 함께 시작한다. 설정 입력·실행 순서와 기본 entry의 격리 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다. 실제 provider 등록·credential·운영 환경은 별도 검증 대상이며 제품용 test mode·환경변수 인증 우회·HTTP verified identity 입력은 없다.
-
-실제 배포 전에 다음 값을 운영 담당이 제공·검증해야 한다. 이 구현은 실제 값을 정하거나 파일·환경변수·외부 계정에 등록하지 않는다.
-
-- 초기화된 DB와 `logging:false`, `synchronize:false`, `migrationsRun:false`. 기존 `DatabaseModule.register`/DataSource 설정을 사용한다.
-- Exact registry와 provider 연결: API HTTPS origin, provider client ID·secret 설정 참조·HTTPS callback·authorization endpoint·configuration version, Google audience, 등록 protocol/host/path와 return target version. Google은 아래 factory와 서버가 신뢰하는 token/JWKS endpoint 및 historical secret resolver를 연결한다.
-- DB 밖 provider AES-256-GCM key와 retained decrypt key, 별도의 JWT key/issuer/audience. Key와 registry는 listen 전에 검증한다. JWT issuer는 기존 `createAccessJwtIssuer`의 검증·발급을 재사용한다.
-- `createLoginHttpApp`의 `bodyParser:false`, 정제 오류·무원문 logging 경계를 유지한 실제 server composition. 운영 proxy/APM/browser의 수집 차단은 별도 검증한다.
-
-## Source pointer
-
-`json-parser.ts`는 API 직접 dependency인 `raw-body@3.0.2`에 encoding 없이 최대 16,384-byte Buffer 수집과 stream listener 정리를 맡긴다. Media와 선언 길이 사전 검사, fatal UTF-8/BOM 처리, JSON 구문 검사와 정제 HTTP 오류는 기존 adapter가 소유한다. 선언 길이를 library의 `length` 옵션에 전달하지 않는다. Request error는 정제 400, aborted는 무응답이며, abort/초과 뒤의 후속 error를 소비하는 guard만 close까지 유지한다. 선택 근거는 [Issue #266의 preflight](https://github.com/blahaj94/ldb/issues/266#issuecomment-5610705389), 해당 수명과 UTF-8 회귀 검증은 `apps/api/test-support/login-json-parser.test.mjs`에서 확인한다.
-
-| File | 책임 |
+| 위치 | 책임 |
 | --- | --- |
-| `apps/api/src/constants/login.ts`, `apps/api/src/types/login.ts`, `apps/api/src/errors/login.ts` | 승인된 값·내부 입력/출력·정제 오류 |
-| `apps/api/src/auth/login/crypto.ts` | Canonical 32-byte proof/code, S256, decoded-byte hash, provider PKCE 암호화 |
-| `apps/api/src/auth/login/registry.ts` | 설정 검증·복제·불변 snapshot과 historical version 조회 |
-| `apps/api/src/auth/login/input.ts` | JSON field/domain 및 OAuth callback parameter 검증 |
-| `apps/api/src/auth/login/state.ts` | 단순 READ COMMITTED transaction 오류 정제, fresh DB clock, 명시적 실패 정리, cookie binding |
-| `apps/api/src/auth/login/start.ts` | 요청 생성·launch ticket 단일 소비·authorization redirect 준비 |
-| `apps/api/src/auth/login/callback.ts` | Callback claim·외부 검증 deadline·검증 결과와 exchange-ready commit |
-| `apps/api/src/auth/login/exchange.ts` | Proof/TTL 재검증·기존 identity-session/JWT 합성 |
-| `apps/api/src/auth/login/service.ts` | 내부 dependency 연결과 service 생성 |
-| `apps/api/src/auth/login/json-parser.ts`, `http.ts` | 실제 stream parser, Nest route, no-store·정적 HTML·오류 경계 |
-| `apps/api/src/auth/logout/index.ts`, `errors.ts` | 제출 refresh hash로 현재 session만 잠가 종료하고 DB/commit 불명을 정제 |
-| `apps/api/src/auth/google/types.ts`, `index.ts` | Server-only 설정·historical snapshot binding·Google RS256/claim 검증·최소 identity 반환 |
-| `apps/api/src/auth/google/transport.ts` | Secret 해석·code 교환·body 읽기의 공통 signal 적용과 민감 참조 정리 |
-| `apps/api/src/auth/google/jwks.ts` | Trusted public JWK cache·동시 load 공유·독립 waiter 취소·bounded unknown kid refresh; key 선택은 jose |
+| `apps/api/src/auth/login/service.ts` | 요청 생성·브라우저 binding·WebAuthn 옵션/검증·패스키 관리 |
+| `apps/api/src/auth/login/configuration.ts` | HTTPS origin·RP ID·복귀 주소 검증과 fingerprint |
+| `apps/api/src/auth/login/exchange.ts` | S256·code·키 소유 확인 뒤 session/JWT 발급과 code 소비 |
+| `apps/api/src/auth/login/http.ts`, `json-parser.ts` | Nest HTTP·요청 제한·정제 오류·strict JSON 경계 |
+| `apps/api/src/auth/login/page.ts`, `apps/api/browser/passkeys.ts` | 같은 origin에서 제공하는 브라우저 화면·SimpleWebAuthn 연결 |
+| `apps/api/src/auth/identity-session.ts` | 기존 user lock 아래 독립 session과 최초 refresh 생성 |
+| `apps/api/test-support/passkey-integration.mjs` | HTTPS·실제 가상 WebAuthn 인증기·PostgreSQL 통합 검증 |
 
-## Google adapter 연결점
+기본 entry는 초기화한 DB, 검증한 패스키 설정, 기존 JWT issuer/verifier를 factory에 전달한다. Session·account·검색 factory와 자원 수명은 유지한다. 계정 생성은 최초 등록의 WebAuthn 검증 뒤 수행하며 앱 exchange가 기존 회원을 다시 생성하지 않는다.
 
-Google adapter가 사용하는 `jose`의 선언 버전은 `apps/api/package.json`에서, 해결 버전은 `pnpm-lock.yaml`에서 확인합니다.
-
-`LoginDependencies.verifyProvider(ProviderVerificationInput)`만 서버의 검증 완료 identity를 반환한다. 입력은 저장된 `snapshot`, provider `code`, 복호화한 별도 `providerVerifier`, Google `nonceHash`, 단일 deadline의 `AbortSignal`이다. Public request의 provider/subject를 이 결과로 바꾸는 경로는 없다.
-
-`createGoogleProviderVerifier(configuration)`의 반환 함수를 `verifyProvider`에 주입한다. `configuration.registrations`는 서버가 신뢰하는 allowlist이며 각 항목은 공통 `snapshot`, `tokenEndpoint`, `jwksUri`를 가진다. Factory는 공통 registry 검증·복제·불변 snapshot을 재사용하고 URL의 exact HTTPS·userinfo/query/fragment 부재를 검사한다. 이 syntactic 검사는 arbitrary HTTPS host를 Google 소유로 인증하지 않는다. 실제 Google endpoint 선택과 registry 배포는 trusted server composition의 책임이며 public request나 token header로 설정하지 않는다.
-
-`resolveSecret({version,reference,signal})`은 저장 snapshot의 version과 secret 참조만 해석한다. Adapter factory는 resolver와 registration을 검증하고, 기본 entry는 `AUTH_CONFIG_FILE`을 한 번 읽어 모든 등록 version의 secret 연결을 listen 전에 확인한다. Callback에서 historical version을 제공할 수 없으면 정제 provider 실패이며 active secret으로 대체하지 않는다. 정확한 파일 입력은 [`auth-runtime.md`](../rules/auth-runtime.md), 현재 loader와 교체 경계는 [`api-start-development.md`](api-start-development.md)를 따른다. 실제 credential·저장소 운영 availability 점검은 별도다.
-
-Adapter는 snapshot의 client/secret 참조·callback으로 token을 한 번 교환한다. `jose`가 Google RS256 signature·issuer·필수 claim·exp를 검증하며 adapter가 scalar exact aud/azp, iat, ASCII·case-sensitive·최대 255자 sub, transaction nonce와 선택적 at_hash를 추가 확인한다. Nonce는 공통 `opaqueHash`의 canonical base64url decoded 32-byte SHA-256을 재사용하고 PKCE의 ASCII S256과 구분한다. Name/email/photo·예상치 않은 refresh token·원문 응답은 전달하지 않고 `{provider,subject}`만 반환한다. 자체 ES256 JWT의 key/issuer/audience와 공유하지 않는다.
-
-Token과 JWKS HTTP는 `redirect:error`이며 token의 `jku`/`x5u`를 해석하지 않는다. JWKS response의 public RSA field와 jose local resolver만 cache에 남긴다. `Cache-Control: max-age`와 `Age`를 적용하고 no-store/no-cache·수명 없음/만료는 재사용하지 않는다. Unknown kid는 cache 상태와 무관하게 한 번 refresh하고 여전히 없으면 실패한다. Cold/expired cache는 최초 fetch 뒤 추가 refresh 한 번으로 최대 두 번의 JWKS 요청을 수행한다. 이는 새 key 전파를 확인하는 bounded refresh이며 token 교환이나 실패한 network 요청의 자동 retry가 아니다. 동시 fetch의 늦은 이전 응답이 새 cache를 덮어쓰지 않으며 취소된 fetch의 결과를 cache에 넣지 않는다.
-
-Cold/expired cache의 동시 callback은 진행 중인 public JWKS load를 공유한다. Token 교환·identity·원래 caller signal은 공유 state에 넣지 않는다. 각 waiter는 공통 callback의 원래 signal로 독립 대기하며 한 callback의 취소/10초 deadline이 다른 waiter를 중단하지 않는다. 첫 waiter가 이탈하면 해당 generation에 새 join을 닫아 계속 들어오는 callback이 멈춘 load를 무기한 붙잡지 않게 한다. 기존 waiter는 계속 기다리고 마지막 waiter가 이탈할 때 pending shared fetch/body의 controller를 abort한다. 새 caller는 새 generation을 시작하며 이전 generation의 늦은 완료가 새 cache를 덮어쓰지 않는다. 다른 waiter가 이미 갱신한 fresh generation은 중복 unknown kid refresh 대신 재사용한다. Shared refresh가 오래된 key로 완료되어 두 번째 no-match가 발생하면 그 refresh보다 새로운 fresh cache를 한 번 더 local lookup한다. 새 cache 부재·만료 또는 no-match 이외의 오류는 기존 provider 실패이며 추가 fetch는 없다.
-
-공통 callback이 소유한 단일 10초 deadline의 signal은 secret 해석·token headers/body·각 JWKS waiter·비동기 key/signature 처리에 적용한다. Shared JWKS HTTP는 waiter 수명에 연결된 별도 controller를 쓰며 새 timer/deadline은 만들지 않는다. 이전 test의 signal object identity 대신 원래 signal의 인과적 취소·waiter 독립성·마지막 waiter의 실제 fetch/body 취소를 검증한다. 자동 retry는 없고, 취소를 무시하는 주입 transport의 늦은 응답도 수용하지 않고 body를 취소한다. Code/verifier/client secret의 form과 참조는 token headers 수신 또는 실패 시 정리하고 raw response/ID/access token 참조는 검증 종료·실패·취소의 finally에서 해제한다. Native fetch/WebCrypto 내부 처리의 즉각 종료나 JS string zeroization·GC 시점은 보장하지 않는다.
-
-Active `convention.md`에 따라 의미별 boolean·최종 합성·명시적 nullish 검사로 판단 이유를 드러내고, 해당 검사 지점에서 기존 `LoginFailure`/`LOGIN_ERRORS`를 선택한다. 분류된 Google 오류는 보존하며 secret/fetch/JSON/jose와 공통 opaque parser의 예외는 책임 있는 호출 경계에서 기존 provider/config 오류로 정제한다. 외부 구현의 오류 객체가 public 오류 분류를 선택하거나 원문 값·cause를 노출하지 않는다. 검증용 원문 입력/응답 alias는 token/JWKS 후속 대기 전에 scope를 끝낸다.
-
-Authorization URL의 Google `openid profile`, Discord `identify`, 독립 S256은 공통 등록/상태 처리에서 구성한다. Discord adapter는 완료된 #57 조사와 별도로 남은 일반 confidential OAuth PKCE gate를 해소하기 전 제품에 연결하지 않는다. 격리 fixture에서 Discord 상태를 검증해도 실제 provider enforcement evidence가 되지 않는다.
-
-## Transaction과 복구
-
-- 요청 생성은 transient row만 쓴다. Launch는 hash로 row를 잠가 한 번 소비하고 browser cookie·state·Google nonce·암호화 provider proof를 연결한다.
-- Callback은 browser/provider/TTL을 확인해 `processing`을 commit한 뒤 외부 verifier를 호출한다. Provider 처리가 멈춘 동안 별도 connection에서 해당 row의 `FOR UPDATE NOWAIT`가 성공한다. Claim commit 지연을 포함한 단일 10초 deadline으로 제한하며 늦은 결과는 무시한다.
-- Provider 검증의 `finally`에서 claim이 보유한 raw provider code와 복호화한 verifier 참조를 함께 해제한다. 성공 저장 또는 실패 정리의 후속 DB 대기 전에 수행하며 JS string의 즉각 zeroization이나 GC 시점은 보장하지 않는다.
-- 검증 완료 시각을 먼저 고정해 code TTL이 이후 row lock 대기로 연장되지 않게 한다. Exchange-ready commit에서는 더 이상 필요 없는 browser/provider proof도 정리하고 앱 proof·subject·code hash·deadline만 남긴다.
-- Exchange는 OAuth row→user→새 session→refresh 순서의 하나의 transaction을 사용한다. User/identity uniqueness 대기 및 JWT 준비 뒤에도 fresh DB 정수 초로 TTL을 재확인한다. TTL을 넘으면 준비한 회원/session 쓰기를 rollback하고 별도 짧은 transaction에서 만료 row를 정리한다.
-- `createIdentitySession`과 JWT issuer의 반환은 commit 전 임시 값이다. Authorize·callback claim/완료·exchange는 `DataSource.transaction`의 commit·release 완료 뒤 각 함수에서 명시적인 결과를 확인한다. 성공 결과만 다음 단계 또는 HTTP에 전달하고, `rejected`는 요청 정리를 commit한 뒤 오류를 던진다. Transaction 안에서 던진 오류는 DB 쓰기를 rollback한다. 요청 생성과 별도 실패 정리는 단순 transaction 오류를 정제하는 `loginTransaction`을 사용한다. Commit 결과 불명은 정제된 503이며 response/token cache, 자동 retry, 재전달 grace가 없다. 실제 commit됐다면 replay는 400이다.
-- 취소·provider 실패·유효한 만료 read는 terminal commit에서 민감 field를 null 처리한다. Crash/DB 장애 뒤 남은 row의 물리 삭제는 별도 cleanup/운영 범위다. Cleanup 미구현이 TTL 뒤 교환을 허용하지 않는다.
-
-## HTTP·노출 검증
-
-Pre-parser는 login JSON과 refresh/logout의 정확한 `{refreshToken}` body에 같은 우선순위를 적용한다. Media/encoding을 먼저 확인하고 실제 payload를 최대 16,384 byte만 buffer한다. Chunked body의 종료를 기다리지 않고 초과 시 413과 connection close를 반환한다. 전체 body가 상한 이하면 strict UTF-8·JSON·정확한 field를 검증한다. 선언된 Content-Length 초과는 조기 거절하고, 상충한 Content-Length/Transfer-Encoding 같은 HTTP framing 오류는 Node의 선행 거절로 구분한다. Framing 밖 bytes를 제품 JSON body로 재해석하지 않는다.
-
-Controller와 직접 호출 가능한 service는 각각 입력을 검증한다. Service 내부 callback은 한 번 parsing한 성공/code 또는 실패/error 입력을 claim 단계로 전달하며, claim이 성공한 결과만 provider code를 보유한 검증 입력으로 사용한다.
-
-Authorize와 Google/Discord callback handler는 GET만 service로 전달한다. Express가 GET handler로 넘기는 HEAD는 query 검증·ticket 소비·callback claim 전에 `400 LOGIN_REQUEST_INVALID`로 거절한다. HEAD의 응답 body는 비어 있고 cookie·redirect를 발급하지 않으며, 같은 ticket/state/cookie를 이후 GET에서 사용할 수 있다.
-
-모든 factory 응답은 no-store이며 browser 응답은 no-referrer와 active content/frame을 차단하는 CSP를 사용한다. 완료 HTML에는 등록 return URL의 자체 code만 둔다. Nest logger와 TypeORM raw logging을 끄고 오류 객체·URL·body·cookie·credential·identity를 출력하지 않는다. 별도 API process에서 stdout/stderr와 canary 요청을 검증한다. 실제 proxy/APM/OS history 수집 차단을 이 test로 대신하지 않는다.
-
-## Validation
-
-표준 command는 repository root에서 실행한다.
-
-```bash
-pnpm --filter @ldb/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @ldb/api test:database
-git diff --check
-```
-
-`test`는 `build`를 먼저 실행하므로 dist가 없거나 오래된 상태에서도 최신 source를 검증한다.
-
-- `apps/api/test-support/login-primitives.test.mjs`: encoding·hash 입력 차이·정확한 field·callback parameter·registry·PKCE key/AAD.
-- `login-http.test.mjs`, `session-http.test.mjs`, `login-log-probe.mjs`: 실제 HTTP stream 상한·우선순위·HTML·redirect·refresh/logout 정제 오류와 별도 API process log sink. 별도 process는 session 성공·오류·media·oversize·body canary가 stdout/stderr에 남지 않음을 확인한다.
-- `login-state.test.mjs`: commit 결과 불명 뒤 만료 processing/active read의 terminal 정리, provider 검증 성공·예외·잘못된 identity·timeout 뒤 DB 대기 전 claim의 code/verifier 참조 해제 regression. Transaction test double에서 claim 결과를 관측하고 후속 transaction을 보류하며, timeout은 test timer로 구동한다.
-- `login-database.mjs`: 실제 상태 흐름·회원 쓰기 0·잘못된 proof·replay·기존 identity와 독립 session·서명 실패 rollback.
-- `login-concurrency.mjs`, `login-test-control.mjs`: 실제 PostgreSQL blocker를 관측한 ticket/exchange/identity 경합, provider 동안 lock 해제, OAuth/user lock 뒤 fresh time, 정확 만료, code TTL cap, callback timeout. 정확한 경계 equality는 실제 SQL/row lock과 함께 test에서 clock 결과를 고정하며, 잠금 대기의 만료는 실제 DB clock으로 별도 검증한다. 두 번째 waiter가 첫 waiter의 tuple lock 뒤에 대기하는 경우도 실제 blocker로 확인한다.
-- `login-failures.mjs`: 실제 consumed UPDATE 뒤 rollback, commit 전 실패/commit 성공 뒤 응답 유실, callback claim/완료 응답 유실, snapshot/key 변경과 비자격 요청의 무변경.
-- `login-http-integration.mjs`: Nest HTTP→실제 PostgreSQL→실제 JWT issuer의 전체 흐름. Commit 확인 전 HTTP 응답 없음과 commit 불명 뒤 token 미전달, HEAD 전후 요청 row 전체·provider 호출·회원/session 무변경과 후속 GET/exchange 성공도 검증한다.
-- `google-identity.test.mjs`, `google-fixtures.mjs`: 매 run synthetic key로 실제 RS256 서명·거절, canonical nonce/at_hash, issuer·scalar aud/azp·시간·subject와 최소 반환 identity. 실제 계정이나 고정 private key를 사용하지 않는다.
-- `google-transport.test.mjs`: Historical client/secret/callback/audience·trusted endpoint binding, cache freshness/expiry·회전·unknown kid, secret/token/JWKS의 취소·늦은 응답·cache 오염 방지·정제 오류·form 참조 정리. Cold/expired JWKS의 두 번째 응답에만 있는 실제 RS256 key 수용과 unknown kid의 최대 두 fetch, refresh 중 원래 caller 취소·늦은 응답·network 오류 무재시도도 검증한다.
-- `google-jwks-concurrency.test.mjs`: 실제 RS256 동시 callback의 cold/expired 단일 load와 unknown kid 단일 refresh, 한 waiter의 독립 취소·마지막 waiter의 shared headers/body 취소, 첫 이탈 뒤 새 generation과 기존 survivor·늦은 cache 덮어쓰기 방지, 외부 오류의 public 분류 주입 거절을 검증한다. 늦은 stale refresh의 survivor가 최신 fresh cache로 복구하는 경우와 새 cache 부재·만료·ambiguous key 오류의 거절을 비교하고 추가 fetch·token 교환이 없음을 확인한다.
-- `google-http-integration.mjs`: 실제 adapter와 disposable loopback provider HTTP를 Nest→Docker PostgreSQL→실제 자체 JWT에 연결하는 9개 scenario다. 기존 8개 성공·signature/nonce/HTTP 실패, callback 중복 교환 방지·provider 동안 row lock 해제, exchange 동시 단일 소비·기존 identity와 독립 session·다른 session/refresh 원문 row 보존·JWT 실패 rollback·실제 10초 deadline/늦은 응답을 보존한다. 추가 scenario는 두 독립 HTTP callback이 JWKS를 한 번만 요청하고 첫 callback의 실제 10초 deadline 뒤에도 다른 callback이 같은 key 응답으로 성공함을 확인한다. 성공·실패·timeout 동안 API process stdout/stderr를 직접 capture하여 비노출을 확인하며 raw provider token과 응답이 DB/HTTP에 없는지 확인한다.
-
-DB helper는 기존 Docker-only disposable harness에 연결된다. 기존 Migration/catalog·constraint·schema drift·데이터 보존·exact resource teardown과 merge된 내부 [refresh core 검증](auth-refresh-development.md)을 함께 보존한다. 실제 실행은 native `linux/arm64/v8` PostgreSQL 18.6이며 `linux/amd64`, 실제 Google endpoint/credential·계정, Desktop·browser/OS protocol·저장소, 운영 배포·secret 저장소·clock 동기화·proxy/APM·cleanup은 미검증이다. 격리 통과는 실제 Google 로그인 또는 배포 완료를 뜻하지 않는다. 공통 흐름 evidence는 Issue #63, Google 연결의 최종 command 결과·AC별 evidence·후속 실제 환경 gate는 Issue #68과 연결 PR을 따른다.
+합성 브라우저/DB 검증은 가입·동일 계정 로그인·관리 재인증·예비 키·마지막 키 보호·키 삭제와 미교환 code·서명/계정/origin 오류·단일 소비·만료를 확인한다. 실제 휴대폰 QR·Bluetooth·운영 TLS·OS 앱 복귀 검증과는 구분한다.

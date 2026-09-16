@@ -7,7 +7,7 @@ last-reviewed: 2026-09-15
 
 # Desktop Auth Capture
 
-[승인된 Desktop auth 경계](../rules/desktop-auth.md)에 따라 capture·OCR·검색은 로그인 상태와 독립적으로 제공한다. 인증 로딩·실패·로그인·로그아웃은 계정 안내만 변경하며 선택한 창이나 검색 화면을 초기화하지 않는다. Main은 공개 검색 API 설정과 검색용 clock을 인증 runtime과 별도로 구성한다. 이 구현 설명은 실제 로그인·native credential 저장·OS protocol registry·API/provider 연결 완료를 뜻하지 않는다.
+[승인된 Desktop auth 경계](../rules/desktop-auth.md)에 따라 capture·OCR·검색은 로그인 상태와 독립적으로 제공한다. 인증 로딩·실패·로그인·로그아웃은 계정 안내만 변경하며 선택한 창이나 검색 화면을 초기화하지 않는다. Main은 공개 검색 API 설정과 검색용 clock을 인증 runtime과 별도로 구성한다. 이 구현 설명은 실제 로그인·native credential 저장·OS protocol registry·API/패스키 연결 완료를 뜻하지 않는다.
 
 ## 구현 위치
 
@@ -33,7 +33,7 @@ Renderer의 인증 presentation epoch와 auth runId 재연결은 계정 화면�
 
 Main은 로그인·로그아웃만으로 선택을 지우지 않으며 trusted renderer의 빈 source 선택은 인증 phase와 무관하게 허용한다. 다른 window/frame/document의 cleanup 요청은 거절한다. Stop·source 변경·track 종료·unmount·document 종료는 기존 capture 정리를 수행한다. Capture의 이전 AbortSignal이 취소되면 늦은 OCR은 새 instance의 상태를 변경하거나 안정화 통지를 보내지 않는다. IPC 발송 뒤 capture 수명이 끝나 생긴 통지 거절도 raw error log 없이 회수한다.
 
-`notifyStableNicknameDetected`는 captureId·slot·observationRevision·nickname을 받아 현재 수명의 검색으로 연결한다. Main의 HTTP/전체 응답 검증과 renderer의 네 슬롯 후보·retry 구현은 [캐릭터 검색](desktop-character-search.md)을 참고한다. Raw OCR nickname은 log에 남기지 않는다. 제품 main은 trusted profile·auth restore·capture/search composition을 연결하며, 실제 API/provider 연결과 profile의 실행 시 검사는 [Desktop auth core](desktop-auth-core.md)를 따른다.
+`notifyStableNicknameDetected`는 captureId·slot·observationRevision·nickname을 받아 현재 수명의 검색으로 연결한다. Main의 HTTP/전체 응답 검증과 renderer의 네 슬롯 후보·retry 구현은 [캐릭터 검색](desktop-character-search.md)을 참고한다. Raw OCR nickname은 log에 남기지 않는다. 제품 main은 trusted profile·auth restore·capture/search composition을 연결하며, 실제 API/패스키 연결과 profile의 실행 시 검사는 [Desktop auth core](desktop-auth-core.md)를 따른다.
 
 ## 격리 Electron fixture
 
@@ -49,7 +49,7 @@ pnpm --filter @ldb/desktop capture:fixture
 
 Build는 기존 OCR assets 준비, fixture 전용 TypeScript 검사와 Electron Vite build를 포함한다. Output은 `apps/desktop/out/auth-capture-fixture/`다. 실제 앱 window title은 **LDB Auth Capture fixture**, 입력 창은 **LDB Synthetic Capture Source**다. 후자는 기존 `PARTY_SLOTS`·mana color를 사용한 1920×1080 canvas이며 실제 개인 화면을 입력으로 사용하지 않는다.
 
-수동 실행은 source 목록의 **LDB Synthetic Capture Source**→**Start** 순서다. 로그인·로그아웃 뒤에도 선택·인식값·capture UI가 유지되는지 확인한다. 로그인 비교는 Google/Discord 버튼과 앱 메뉴의 **Complete login**을 사용한다. 앱 메뉴의 **Quit LDB Auth Capture fixture**로 child를 종료하면 Node launcher가 process group 종료와 profile 최종 삭제를 확인한다. 삭제 또는 삭제 확인에 실패하면 고정된 cleanup FAIL과 exit 1로 종료하며 raw filesystem 오류를 출력하지 않는다. 기존 다른 Electron instance를 종료하지 않는다.
+수동 실행은 source 목록의 **LDB Synthetic Capture Source**→**Start** 순서다. 로그인·로그아웃 뒤에도 선택·인식값·capture UI가 유지되는지 확인한다. 로그인 비교는 패스키 버튼과 앱 메뉴의 **Complete login**을 사용한다. 앱 메뉴의 **Quit LDB Auth Capture fixture**로 child를 종료하면 Node launcher가 process group 종료와 profile 최종 삭제를 확인한다. 삭제 또는 삭제 확인에 실패하면 고정된 cleanup FAIL과 exit 1로 종료하며 raw filesystem 오류를 출력하지 않는다. 기존 다른 Electron instance를 종료하지 않는다.
 
 통합 smoke는 실제 버튼·feature preload·main IPC·media·OCR를 검증한다. Renderer 관측 wrapper는 native `getDisplayMedia`, Worker 생성/종료·OCR 요청, video와 track stop을 그대로 호출한다. Main 관측 wrapper도 실제 제품 display/안정화 통지 handler를 그대로 호출하고 counter와 slot별 합성 기대값 일치 bitmask만 수집한다. 원문 통지 payload나 nickname은 보관하지 않는다. MediaStream이나 OCR 결과를 test double로 대체하지 않는다. 실제 video에서 제품 crop 함수를 호출해 기존 frame 크기와 네 slot mana 영역 일치를 확인하고 native track 크기는 별도로 기록한다. 성공 판정에는 실제 stream과 worker 초기화, 네 slot 각각의 정확한 synthetic 표시값과 실제 main handler 통과 뒤 기대값 통지가 모두 필요하다. 통지 접수는 `ok:true`와 응답 snapshot의 capture/slot/nickname/observationRevision이 입력과 정확히 일치하는 경우만 센다. 더 오래되거나 새로운 관측의 snapshot과 정상 resolve된 거절은 접수 증거가 아니다. 표시와 통지의 bitmask가 각각 `15`여야 하며 crop/mana 존재나 같은 slot의 중복 통지로 이를 대체하지 않는다. 로그인·로그아웃 중 capture 유지와 Stop 뒤 track/worker/video 정리를 확인한다. Raw nickname·credential·URL을 진단 출력으로 반환하지 않는다.
 
@@ -59,7 +59,7 @@ Fixture constructor는 `sandbox:true`, `contextIsolation:true`, `nodeIntegration
 
 아래는 로그인 필수 정책을 사용하던 당시의 실행 이력이다. 현재 로그인 선택 정책의 성공 근거로 사용하지 않는다.
 
-권한 예외 승인 전 통합 head `7dd3b40a`에서 fixture build 후 macOS의 1100×800 dark UI를 CUA로 확인했다. SignedOut에는 capture가 없고 Google 대기→메뉴 Complete login→welcome에서도 capture가 없었다. 시작하기 뒤 기존 capture home에서 synthetic source를 선택하면 Start가 활성화됐다. Start는 당시 명시 차단에 따라 `Permission denied`를 표시했다. Logout 뒤 capture와 해당 안내가 사라졌고, 재로그인 welcome/home에는 빈 source와 비활성 Start가 표시됐다. Quit 메뉴 뒤 command exit 0·child의 cleanup PASS·process 종료를 관측했다. 당시 cleanup PASS는 quit event 안의 검사였으며 종료 뒤 profile 부재를 증명하지 못했다. 이 관측은 실제 stream/OCR 통합 성공이 아니다.
+권한 예외 승인 전 통합 head `7dd3b40a`에서 fixture build 후 macOS의 1100×800 dark UI를 CUA로 확인했다. SignedOut에는 capture가 없고 당시 로그인 대기→메뉴 Complete login→welcome에서도 capture가 없었다. 시작하기 뒤 기존 capture home에서 synthetic source를 선택하면 Start가 활성화됐다. Start는 당시 명시 차단에 따라 `Permission denied`를 표시했다. Logout 뒤 capture와 해당 안내가 사라졌고, 재로그인 welcome/home에는 빈 source와 비활성 Start가 표시됐다. Quit 메뉴 뒤 command exit 0·child의 cleanup PASS·process 종료를 관측했다. 당시 cleanup PASS는 quit event 안의 검사였으며 종료 뒤 profile 부재를 증명하지 못했다. 이 관측은 실제 stream/OCR 통합 성공이 아니다.
 
 수정 후 runtime/build 및 parent head `cf0c564`에서 macOS dark UI를 수동으로 다시 확인했다. SignedOut와 welcome에는 capture가 없고 home의 source는 비어 있으며 Start가 비활성이었다. 고정된 **LDB Synthetic Capture Source**를 선택하고 Start를 누르자 1920×1080 준비 상태와 네 slot의 실제 OCR 합성 기대값 일치를 확인했다. Capture 중 logout 뒤 capture와 인식값이 사라졌고, 재로그인 welcome/home에서도 빈 source와 비활성 Start를 확인했다. 같은 synthetic source를 다시 선택하고 새 Start를 눌러 두 번째 1920×1080 capture와 네 slot의 실제 OCR 기대값 일치를 확인한 뒤 logout으로 제거하고 Quit 메뉴로 종료했다. 이는 아래 초기 자동 실행에서 미관측으로 남긴 재선택 후 두 번째 capture를 후속 수동 실행으로 확인한 기록이다. 메뉴 자동화의 오래된 접근성 참조는 현재 상태를 다시 조회해 해결했으며 제품 결함은 아니었다. Command exit 0과 launcher cleanup PASS, 고정된 video 누락 TypeError 및 `UnhandledPromiseRejectionWarning` 부재를 확인했다. 최종 통합 head의 전체 validation과 최종 profile 부재 검사는 별도다.
 
@@ -109,4 +109,4 @@ git diff --check
 
 Unit/hook 검증은 실제 core와 테스트용 effects 또는 stream/worker doubles를 사용한 경합 evidence다. 실제 Electron media/OCR 관측과 구분하며 실행한 commit·command·결과는 Issue #126과 PR에 기록한다. Build에는 기존 node/web typecheck가 포함된다. Issue #126의 통합 head 전체 validation과 독립 review 조건은 해당 작업 기록에 유지한다. 후속 변경의 검증 범위는 [Testing](../rules/testing.md)에 따라 실제 영향으로 판단한다.
 
-실제 native 인증의 Keychain·file durability·protocol association·provider 등록, 다른 OS/arch/package는 이 fixture로 검증되지 않는다. 남은 지원·배포 gate는 [Desktop auth platform](../rules/desktop-auth-platform.md)을 따른다. Auth-only fixture나 mocked OCR의 PASS로 실제 media/OCR 실패를 대체하지 않는다.
+실제 native 인증의 Keychain·file durability·protocol association·패스키 설정, 다른 OS/arch/package는 이 fixture로 검증되지 않는다. 남은 지원·배포 gate는 [Desktop auth platform](../rules/desktop-auth-platform.md)을 따른다. Auth-only fixture나 mocked OCR의 PASS로 실제 media/OCR 실패를 대체하지 않는다.
