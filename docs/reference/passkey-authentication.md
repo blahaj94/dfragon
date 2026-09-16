@@ -43,6 +43,39 @@ API build는 TypeScript 서버와 `browser/passkeys.ts`를 bundle한다. Browser
 - 로그인 상태에서 앱 창을 닫고 재실행한 뒤 별도 패스키 인증 없이 계정 화면으로 복원.
   서버에서 같은 활성 세션의 refresh가 교체된 것을 확인했다.
 
-운영 도메인·운영 DB 전환과 배포 패키지 업데이트는 별도다. 이 결과는 모든 브라우저·OS의
+이 개발 환경 결과는 아래 운영 도메인·운영 DB·배포 패키지 확인과 구분한다. 모든 브라우저·OS의
 QR 지원을 보장하지 않는다. 마지막 패스키 삭제 거부는 기존 자동 검증 범위이며 이 수동
 확인에는 포함하지 않았다.
+
+## Windows 운영 설치본 확인
+
+[Issue #415](https://github.com/blahaj94/ldb/issues/415)의 확인 대상은 `94e5d0fd`의
+Windows 10 x64 사용자별 NSIS 설치본이다. 공개 API origin은 `https://api.dfragon.com`,
+RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
+`ldb://auth/callback`이다. localhost 개발 패스키와 운영 패스키는 별개다.
+
+2026-09-17 운영자의 배포 완료 기록에서 기존 OAuth 테스트 계정의 명시적 삭제 승인,
+잠금 아래 대상 데이터 확인·삭제 후 빈 인증 테이블 조건을 만족한 패스키 migration,
+권한 부여, 검색·캐릭터 데이터 건수 보존과 같은 revision의 API 반영을 확인했다.
+운영 DB와 root 전용 release/image·인증 설정을 이번 작업에서 직접 재조회한 것은 아니다.
+이전 배포 스크립트를 재실행하거나 현재 패스키 계정에 빈 테이블 조건을 다시 요구하지 않는다.
+
+직접 조회로 다음 범위를 확인했다.
+
+- Windows 설치된 `app.asar`와 해당 release 빌드 산출물의 SHA-256 일치,
+  설치 파일 checksum 일치, `ldb://` handler가 운영 설치 앱을 가리킴.
+- 공개 HTTPS 패스키 관리 화면·JS·CSS의 HTTP 200, 미인증 `/me`의 401,
+  잘못된 `/characters` 검색 입력의 400.
+- Caddy의 단일 loopback API 연결과 `X-Forwarded-For` 덮어쓰기, Caddy·일일 인증 정리
+  timer의 active 상태. API의 `SEARCH_TRUST_PROXY=single-hop`은 배포 구성과 기존 적용
+  기록을 근거로 하며, 실행 컨테이너 환경을 이번에 직접 조회하지 않았다.
+
+사용자가 같은 운영 설치본에서 다음 실제 화면 동작을 확인했다.
+
+- 운영 도메인에서 새 패스키 가입·로그인 후 설치 앱 복귀.
+- 로그인 상태로 X 종료 후 재실행하면 패스키 재인증 없이 계정 화면 복원.
+- 현재 기기 로그아웃, 로그인 취소 후 다시 로그인 성공.
+
+정상 종료·복원과 로그아웃 성공은 사용자 화면 확인이며 운영 DB의 session/refresh 집계를
+별도로 조회한 결과가 아니다. 서버 로그아웃 실패·로컬 정리 실패를 주입하지 않았고,
+이 결과를 물리 정전 내구성이나 다른 OS·브라우저·기기의 성공으로 확대하지 않는다.
