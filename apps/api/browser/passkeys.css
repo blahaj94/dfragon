@@ -43,13 +43,6 @@ small {
   line-height: 1.6;
   word-break: keep-all;
 }
-[hidden],
-[data-view='desktop'] .phone-only,
-[data-view='phone'] .desktop-only,
-[data-purpose='login'] .manage-only,
-[data-purpose='manage'] .login-only {
-  display: none !important;
-}
 @media (max-width: 560px) {
   main {
     margin: 24px 16px;

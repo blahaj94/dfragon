@@ -23,7 +23,7 @@ last-reviewed: 2026-09-17
 
 Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. `패스키 관리` 버튼은 같은 인증 origin의 관리 화면을 열고 패스키 재인증을 요청한다.
 
-API build는 TypeScript 서버와 `browser/passkeys.ts`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
+API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
 - `pnpm --filter @ldb/api test`: API build, 단위·HTTP·runtime startup 검사.
 - `pnpm --filter @ldb/api test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
@@ -84,10 +84,10 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 
 ## LDB QR과 전용 창
 
-`auth/login/phone.ts`는 PC·휴대폰 cookie를 분리해 QR 재발급·승인·일회용 claim을 처리한다. `browser/passkeys.ts`는 로컬 canvas QR, 5초 상태 조회와 명시 승인 화면을 제공한다. 관리 QR은 고정 관리 URL만 담으며 휴대폰에서 재인증한다. Desktop의 `auth/browser-window.ts`는 Node/preload 없는 메모리 session과 origin 제한을 적용한다.
+`auth/login/phone.ts`는 PC·휴대폰 cookie를 분리해 QR 재발급·승인·일회용 claim을 처리한다. `browser/passkeys.tsx`는 로컬 canvas QR, 5초 상태 조회와 명시 승인 화면을 제공한다. 관리 QR은 고정 관리 URL만 담으며 휴대폰에서 재인증한다. Desktop의 `auth/browser-window.ts`는 Node/preload 없는 메모리 session과 origin 제한을 적용한다.
 
 `AddPhoneQrLogin1789601588410`은 schema diff로 생성한 추가 migration이다. 기존 실사용 계정·패스키·세션을 유지하며 과거 OAuth 데이터 초기화를 다시 실행하지 않는다. 배포는 새 API의 migration 적용 → API 업데이트 → Desktop 업데이트 순서다. 이전 Desktop의 직접 패스키 경로도 유지한다.
 
 자동 검증은 별도 PC/phone 브라우저 문맥과 WebAuthn 가상 인증기를 사용한 가입·재로그인, 양쪽 승인, ticket/claim 재사용 차단, 취소·재발급·만료·삭제 키 거부 및 기존 로그인 회귀다. 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
 
-패스키 화면의 문구·구조는 `apps/api/browser/passkeys.html`, 스타일은 같은 폴더의 `passkeys.css`에서 수정한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR 패키지의 라이선스 원문을 JS 번들에 포함한다.
+패스키 화면의 문구·구조와 화면 상태·이벤트는 React 컴포넌트인 `apps/api/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.css`에서 수정한다. 버튼은 기존 SEED recipe를 사용한다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS·CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR 패키지의 라이선스 원문을 JS 번들에 포함한다.

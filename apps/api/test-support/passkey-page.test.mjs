@@ -22,9 +22,10 @@ test('built passkey HTML escapes values and uses a fresh CSP nonce with external
   assert.match(first.html, /href="\/auth\/passkeys\/client.css"/)
 })
 
-test('browser build carries the installed QR package notices in the delivered bundle', async () => {
+test('browser build carries the installed QR and React package notices in the delivered bundle', async () => {
   const script = await readFile(new URL('../dist/browser/passkeys.js', import.meta.url), 'utf8')
   assert.ok(script.includes('Copyright (c) 2012 Ryan Day'))
   assert.ok(script.includes('Wyatt Baldwin'))
+  assert.ok(script.includes('Meta Platforms, Inc. and affiliates.'))
   assert.ok(script.includes('Permission is hereby granted'))
 })

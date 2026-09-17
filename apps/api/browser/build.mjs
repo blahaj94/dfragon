@@ -13,15 +13,25 @@ const pathLicense = await readFile(
   'utf8'
 )
 
+const reactLicense = await readFile(
+  join(dirname(require.resolve('react/package.json')), 'LICENSE'),
+  'utf8'
+)
+
 await build({
   absWorkingDir: fileURLToPath(new URL('../', import.meta.url)),
-  entryPoints: ['browser/passkeys.ts'],
+  entryPoints: ['browser/passkeys.tsx'],
   bundle: true,
+  jsx: 'automatic',
+  define: { 'process.env.NODE_ENV': '"production"' },
+  minify: true,
   format: 'iife',
   target: 'es2022',
   outfile: 'dist/browser/passkeys.js',
   // Keep upstream notices in the delivered bundle without duplicating them in application code.
-  banner: { js: `/*! qrcode\n${qrLicense}\ndijkstrajs\n${pathLicense}\n*/` }
+  banner: {
+    js: `/*! qrcode\n${qrLicense}\ndijkstrajs\n${pathLicense}\nReact, React DOM and Scheduler\n${reactLicense}\n*/`
+  }
 })
 await copyFile(
   new URL('./passkeys.html', import.meta.url),
