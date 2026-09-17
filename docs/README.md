@@ -23,6 +23,7 @@ last-reviewed: 2026-09-15
 | app·package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime·검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
 | Web·Desktop 공용 UI·SEED·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary) |
+| Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 
 이 표를 전부 읽는 체크리스트로 사용하지 않는다. 코드 없는 문서 작업은 해당 문서의 의미·상태·연결을 확인하며 무관한 코드 컨벤션·제품 실행 절차로 확장하지 않는다.
