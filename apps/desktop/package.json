@@ -36,7 +36,8 @@
     "capture:fixture:ocr": "node scripts/auth-capture-fixture.mjs --ocr",
     "capture:fixture:deny": "node scripts/auth-capture-fixture.mjs --deny-media",
     "lint:fix": "eslint . --fix",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\""
+    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
+    "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url'
 
 const mode = process.argv[2] ?? 'desktop'
 const theme = process.argv[3] ?? 'system'
-const isModeValid = ['desktop', 'example'].includes(mode)
+const isModeValid = ['desktop', 'example', 'mvp'].includes(mode)
 const isThemeValid = ['system', 'light', 'dark'].includes(theme)
 const isInputInvalid = !isModeValid || !isThemeValid
 if (isInputInvalid) {
-  throw new Error('Use desktop|example and system|light|dark')
+  throw new Error('Use desktop|example|mvp and system|light|dark')
 }
 
 const userData = mkdtempSync(join(tmpdir(), 'ldb-ui-fixture-'))
@@ -28,8 +28,8 @@ app.whenReady().then(async () => {
 
   const window = new BrowserWindow({
     title: `LDB UI fixture — ${mode} · ${theme}`,
-    width: 1100,
-    height: 800,
+    width: mode === 'mvp' ? 900 : 1100,
+    height: mode === 'mvp' ? 600 : 800,
     show: false,
     webPreferences: {
       preload: fileURLToPath(
@@ -41,7 +41,37 @@ app.whenReady().then(async () => {
     }
   })
   window.on('page-title-updated', (event) => event.preventDefault())
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    const requested = new URL(url)
+    const allowed = new URL('../out/frontend/mvp-preview.html', import.meta.url)
+    const isPreviewDetail =
+      mode === 'mvp' &&
+      requested.protocol === 'file:' &&
+      requested.pathname === allowed.pathname &&
+      requested.searchParams.get('detail') === 'sample'
+    if (!isPreviewDetail) {
+      return { action: 'deny' }
+    }
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        show: true,
+        width: 1120,
+        height: 680,
+        useContentSize: true,
+        webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false }
+      }
+    }
+  })
+  window.webContents.on('did-create-window', (child) => {
+    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    child.webContents.once('did-finish-load', () => {
+      child.webContents.on('will-navigate', (event) => event.preventDefault())
+    })
+    const closeChild = child.destroy.bind(child)
+    window.once('closed', closeChild)
+    child.once('closed', () => window.removeListener('closed', closeChild))
+  })
 
   const isolated = new Promise((resolve, reject) => {
     const deadline = setTimeout(
@@ -60,10 +90,13 @@ app.whenReady().then(async () => {
   const isExample = mode === 'example'
   const target = isExample
     ? new URL('../../../packages/ui/dist-examples/index.html', import.meta.url)
-    : new URL('../out/frontend/index.html', import.meta.url)
+    : new URL(
+        mode === 'mvp' ? '../out/frontend/mvp-preview.html' : '../out/frontend/index.html',
+        import.meta.url
+      )
 
   try {
-    await Promise.all([window.loadFile(fileURLToPath(target)), isolated])
+    await Promise.all([window.loadFile(fileURLToPath(target), { query: { theme } }), isolated])
     window.show()
     console.log(`UI fixture ready: ${mode}, ${theme}; native media disabled`)
   } catch (error) {
