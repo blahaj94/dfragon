@@ -110,11 +110,11 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
 it('describes waiting expiry and the limits of cancellation', async () => {
   await render({ input: pending('waitingBrowser') })
 
-  expect(container.textContent).toContain('앱으로 돌아가기')
-  expect(container.textContent).toContain('브라우저에서 취소했거나 창을 닫았다면')
+  expect(container.textContent).toContain('로그인 전용 창')
+  expect(container.textContent).toContain('로그인 창을 닫으면 이번 로그인이 취소됩니다.')
   expect(container.textContent).toContain('만료')
   expect(container.querySelector('time')?.dateTime).toBe('2030-01-01T00:10:00Z')
-  expect(container.textContent).toContain('브라우저를 닫거나 서버 처리를 되돌리지는 않습니다')
+  expect(container.textContent).toContain('전용 창을 닫고 이번 로그인을 중단합니다')
 })
 
 it('invalid return 새 로그인 cancels then waits for signedOut instead of beginning login', async () => {

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LDB · 패스키</title>
+    <link rel="stylesheet" href="/auth/passkeys/client.css" />
+    <script nonce="{{nonce}}" src="/auth/passkeys/client.js" defer></script>
+  </head>
+  <body>
+    <main
+      data-request-id="{{requestId}}"
+      data-purpose="{{purpose}}"
+      data-view="{{view}}"
+      data-confirmation-code="{{confirmationCode}}"
+    >
+      <noscript>패스키 인증에는 JavaScript가 필요합니다.</noscript>
+    </main>
+  </body>
+</html>

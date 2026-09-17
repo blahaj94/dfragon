@@ -155,7 +155,8 @@ export async function assertSchema(
     'AddCharacterCatalog1789554193117',
     'AddSetItemCatalog1789557135610',
     'AddCharacterAdventureName1789564164377',
-    'ReplaceOAuthWithPasskeys1789566809748'
+    'ReplaceOAuthWithPasskeys1789566809748',
+    'AddPhoneQrLogin1789601588410'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -311,6 +312,9 @@ export function loginRequest(status, id, overrides = {}) {
     code_challenge: null,
     launch_ticket_hash: null,
     browser_binding_hash: null,
+    qr_ticket_hash: null,
+    phone_binding_hash: null,
+    confirmation_code: null,
     webauthn_challenge: null,
     operation: null,
     pending_user_id: null,
@@ -450,14 +454,14 @@ export async function assertConstraintBehavior(dataSource) {
       loginRequest('exchange_ready', randomUUID(), { verified_user_id: null })
     ],
     [
-      'ck_passkey_request_terminal',
+      'ck_passkey_request_terminal_phone',
       loginRequest('consumed', randomUUID(), { code_challenge: 'retained' })
     ],
     [
       'ck_passkey_request_browser_binding_hash',
       loginRequest('browser_started', randomUUID(), { browser_binding_hash: Buffer.alloc(31) })
     ],
-    ['ck_passkey_request_status', loginRequest('processing', randomUUID())]
+    ['ck_passkey_request_status_phone', loginRequest('processing', randomUUID())]
   ]) {
     await rejectConstraint(dataSource, constraint, (runner) => insertLogin(runner, row))
   }

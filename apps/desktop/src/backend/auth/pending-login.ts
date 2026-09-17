@@ -48,6 +48,10 @@ export class PendingLogin {
   private exchangeFingerprint: string | null = null
   private exchangePromise: Promise<void> | null = null
   private controller = new AbortController()
+  private readonly lifetime = new AbortController()
+  get browserSignal(): AbortSignal {
+    return this.lifetime.signal
+  }
   private cancelExpiry: (() => void) | null = null
   private disposed = false
 
@@ -210,5 +214,6 @@ export class PendingLogin {
     this.cancelExpiry?.()
     this.cancelExpiry = null
     this.controller.abort()
+    this.lifetime.abort()
   }
 }

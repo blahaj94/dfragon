@@ -124,7 +124,7 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 ## Protocol 및 browser launch 선택
 
-**흐름: HTTPS 브라우저의 패스키 인증 → 완료 화면의 앱 복귀 버튼 → main.** 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `ldb://...`를 실제 등록값으로 간주하지 않는다.
+**흐름: 격리 HTTPS 인증 창의 직접 패스키 또는 휴대폰 QR 승인 → 완료 화면의 앱 복귀 버튼 → main.** 전용 창에서는 callback navigation을 차단하고 기존 교환 함수에 전달한다. 외부에서 도착하는 기존 OS protocol 복귀도 같은 검증을 유지한다. 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `ldb://...`를 실제 등록값으로 간주하지 않는다.
 
 Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pending request + S256 verifier가 없는 앱은 자체 code를 교환할 수 없지만 가용성 방해·정품 앱 보증 문제를 모두 해결하지 않는다. Public clientId도 설치 인증이 아니다. 이 선택은 브라우저 인증 이후 별도 code 복귀라는 프로젝트 선택이며 모든 OS의 최선이라는 주장이 아니다.
 

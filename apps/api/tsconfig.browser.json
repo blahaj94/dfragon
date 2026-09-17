@@ -7,7 +7,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": []
+    "types": [],
+    "jsx": "react-jsx"
   },
-  "include": ["browser/**/*.ts"]
+  "include": ["browser/**/*.ts", "browser/**/*.tsx"]
 }

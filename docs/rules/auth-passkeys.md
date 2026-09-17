@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: API and Desktop passkey authentication
-last-reviewed: 2026-09-16
+last-reviewed: 2026-09-17
 ---
 
 # 패스키 인증
@@ -20,17 +20,27 @@ last-reviewed: 2026-09-16
 
 ## Desktop과 브라우저 연결
 
-Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답의 URL만 시스템 브라우저에서 연다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면에서 기존 계정 로그인과 새 계정 생성을 분리한다.
+Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답의 URL만 격리된 Electron 로그인 전용 BrowserWindow에서 연다. Node·preload·제품 IPC를 제공하지 않고 메모리 session을 사용한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면에서 기존 계정 로그인과 새 계정 생성을 분리한다.
 
-요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. QR은 브라우저/OS가 제공하며 자체 QR 승인 프로토콜은 만들지 않는다. QR 경로는 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
+요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. LDB 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
 
-패스키 인증 성공 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 앱은 원래 request ID·client ID·verifier로 교환한다. 서버가 credential의 존재·소유 관계를 재확인하고 session·refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
+직접 패스키 인증 또는 아래 QR 양쪽 승인 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 앱은 원래 request ID·client ID·verifier로 교환한다. 서버가 credential의 존재·소유 관계를 재확인하고 session·refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
 
 Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번만 검증한다. 새 옵션 발급은 이전 challenge를 대체한다. 잘못된 패스키 증명은 그 브라우저의 challenge를 소비하며 다른 요청을 바꾸지 않는다. 처리 중 설정 fingerprint가 달라진 요청은 거부한다.
 
+## LDB 휴대폰 QR
+
+PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, 기존 계정과 별개의 계정이 생김을 안내한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
+
+QR 진입은 ticket을 한 번 소비하고 PC와 다른 요청별 `__Host-ldb-phone-` cookie를 발급한다. PC cookie나 verifier·token은 휴대폰으로 보내지 않는다. 휴대폰에서 패스키 인증 후 두 화면의 확인 번호를 비교하고 PC 로그인을 명시 승인한다. PC는 승인한 계정의 닉네임을 보여주고 별도 확인을 받아야 code를 발급한다. 확인 번호는 사용자 비교용이며 인증 secret이 아니다. 이 방식은 Bluetooth 근접성을 증명하지 않으므로 직접 시작한 요청만 승인하고 타인이 보낸 QR을 승인하지 않도록 안내한다.
+
+PC의 `qr`, `status`, `claim`, `direct`, `cancel`은 `{requestId}`와 PC cookie가 필요하다. 휴대폰의 `phone-options`는 `{requestId,operation}` (`authenticate` 또는 `register`), `phone-verify`는 `{requestId,response}`, `phone-approve`·`phone-cancel`은 `{requestId}`와 phone cookie가 필요하다. 모두 exact Origin을 검사한다. 휴대폰 인증은 `phone_verified`, 휴대폰 승인은 `phone_approved`로 전이한다. PC `claim`만 일회용 code를 발급하며 기존 PKCE 교환을 거쳐야 앱 session이 생긴다. 승인·claim·교환 시 해당 credential이 여전히 존재하는지 확인한다.
+
+PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. 새 QR이나 직접 인증 선택은 이전 phone cookie·challenge·승인 결과를 무효화한다. 취소는 요청을 failed로 종료하고 proof를 지운다. 창 닫힘의 서버 취소는 best-effort이며, main의 pending 폐기와 서버 TTL은 늦은 앱 로그인을 차단한다.
+
 ## 예비 패스키 관리
 
-앱의 `패스키 관리`는 고정된 `/auth/passkeys/manage`를 외부 브라우저에서 연다. 관리할 계정의 패스키로 다시 인증해야 목록·추가·삭제가 가능하다. Renderer가 임의 URL·회원 ID·credential을 main에 전달하지 않는다.
+앱의 `패스키 관리`는 고정된 `/auth/passkeys/manage`를 별도의 격리 BrowserWindow에서 연다. 휴대폰 관리 QR은 같은 origin의 고정 관리 주소만 담고, 관리 권한은 휴대폰에만 발급한다. 관리할 계정의 패스키로 다시 인증해야 목록·추가·삭제가 가능하다. Renderer가 임의 URL·회원 ID·credential을 main에 전달하지 않는다.
 
 관리 요청은 생성부터 600초 동안만 유효하며 별도의 앱 session을 발급하지 않는다. 인증한 회원과 credential ID에 묶고 모든 동작에서 해당 키의 존재를 재확인한다. 계정당 최대 20개까지 추가할 수 있다. 마지막 패스키 삭제는 거부한다. 현재 관리 인증에 사용한 키를 삭제하면 그 관리 권한도 종료한다. 다른 창에서 해당 키를 삭제한 경우 기존 관리 권한도 사용할 수 없다.
 
@@ -40,11 +50,11 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 `users`는 UUID·nickname·created_at을 저장한다. `auth_passkeys`는 credential ID·user FK·공개키·counter·transports·device type·backup flag·등록/최근 사용 시각을 저장한다. 개인키·지문·얼굴·PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
-`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료·상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원·검증 회원·credential ID, code hash와 deadline을 저장한다. 완료 상태에서는 proof·회원 연결 정보를 null 처리한다. 전체 만료·완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
+`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료·상태, 앱 proof hash, browser binding hash, QR ticket hash·phone binding hash·6자리 확인 번호, WebAuthn challenge와 목적, 등록 예정 회원·검증 회원·credential ID, code hash와 deadline을 저장한다. 완료 상태에서는 proof·회원 연결 정보를 null 처리한다. 전체 만료·완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
 잠금은 request → user → credential 순서다. 마지막 키 개수 검사와 추가/삭제는 user 잠금으로 직렬화한다. 모든 관련 잠금과 서명 검증 뒤 fresh DB 시각으로 만료를 재확인한다. 로그인 세션 발급 시 기존 user → session → refresh 순서를 이어 사용한다.
 
-요청 제한은 API process마다 분당 IP별 120회, 전체 1,200회다. 생성·관리 시작·브라우저 mutation에 적용하며 IP 제한 거절은 전체 quota를 소비하지 않는다. 기존 단일 신뢰 proxy 설정이 있으면 해당 경계의 client IP를 사용한다. 다중 instance 전체 제한·1인 1계정·대량 계정 악용 방지를 보장하지 않는다.
+요청 제한은 API process마다 분당 IP별 120회, 전체 1,200회다. 생성·관리 시작·QR 진입·브라우저 mutation 및 상태 조회에 적용하며 IP 제한 거절은 전체 quota를 소비하지 않는다. 기존 단일 신뢰 proxy 설정이 있으면 해당 경계의 client IP를 사용한다. 다중 instance 전체 제한·1인 1계정·대량 계정 악용 방지를 보장하지 않는다.
 
 ## Migration과 검증 범위
 

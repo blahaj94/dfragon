@@ -250,7 +250,9 @@ app.whenReady().then(async () => {
 
     let authRuntime: AuthRuntime | null = null
     if (runtimeConfig != null) {
-      const effects = createAuthRuntimeEffects()
+      const effects = createAuthRuntimeEffects({
+        activateMainWindow: () => activateWindowSafely(authRuntime)
+      })
       authAppLifecycle.setPowerMonitorDisposer(effects.bindPowerMonitor(powerMonitor))
       authRuntime = await authAppLifecycle.runBootstrap((isActive) =>
         bootstrapAuthRuntime({

@@ -446,7 +446,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return
     }
     try {
-      await dependencies.browser.open(created.browserUrl)
+      await dependencies.browser.open(created.browserUrl, {
+        signal: value.browserSignal,
+        onReturn: handleReturnUrl,
+        onClosed: () => {
+          void cancelLogin(value.attemptId)
+        }
+      })
     } catch {
       finishPendingFailure(value, 'BROWSER_OPEN_FAILED')
     }

@@ -34,7 +34,7 @@ function createRuntimeHarness(): RuntimeHarness {
     },
     readMonotonicMs: () => time.monotonicMs,
     createHttp: () => harness.dependencies.http,
-    openExternal: harness.browser.open,
+    openBrowser: harness.browser.open,
     createStore: () => harness.store
   })
   const dependencies = effects.createDependencies({

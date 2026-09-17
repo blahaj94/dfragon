@@ -246,9 +246,42 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 6\n')
+    assert.equal(up.stdout, 'Database migration applied: 7\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
 
+    // The additive QR migration also applies with existing authentication data.
+    await withDataSource(createDatabaseDataSource, configuration, async (source) => {
+      const migration = source.migrations.find((value) => value.name.startsWith('AddPhoneQrLogin'))
+      await source.transaction(async (manager) => {
+        await migration.down(manager.queryRunner)
+        const id = '10000000-0000-4000-8000-000000000098'
+        await manager.query('INSERT INTO users (id,nickname,created_at) VALUES ($1,$2,NOW())', [
+          id,
+          '보존 검사'
+        ])
+        await manager.query(
+          `INSERT INTO auth_passkeys (id,user_id,public_key,counter,transports,device_type,backed_up,created_at) VALUES ('preserved-key',$1,$2,0,'[]','singleDevice',false,NOW())`,
+          [id, Buffer.alloc(32, 1)]
+        )
+        await manager.query(
+          'INSERT INTO auth_sessions (id,user_id,created_at,last_active_at) VALUES ($1,$1,NOW(),NOW())',
+          [id]
+        )
+        const before = await manager.query(
+          'SELECT row_to_json(u) AS value FROM users u WHERE id=$1 UNION ALL SELECT row_to_json(k) FROM auth_passkeys k WHERE user_id=$1 UNION ALL SELECT row_to_json(s) FROM auth_sessions s WHERE user_id=$1',
+          [id]
+        )
+        await migration.up(manager.queryRunner)
+        const after = await manager.query(
+          'SELECT row_to_json(u) AS value FROM users u WHERE id=$1 UNION ALL SELECT row_to_json(k) FROM auth_passkeys k WHERE user_id=$1 UNION ALL SELECT row_to_json(s) FROM auth_sessions s WHERE user_id=$1',
+          [id]
+        )
+        assert.deepEqual(after, before)
+        await manager.query('DELETE FROM users WHERE id=$1', [id])
+      })
+    })
+    const phoneDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(phoneDown.code, 0)
     const guardUser = '10000000-0000-4000-8000-000000000099'
     await withDataSource(createDatabaseDataSource, configuration, (source) =>
       source.query('INSERT INTO users (id, nickname, created_at) VALUES ($1, $2, NOW())', [
@@ -259,7 +292,6 @@ async function assertFreshDatabaseRollback(resources) {
     const deniedDown = await runCompiledCli({ configuration, operation: 'down' })
     assert.notEqual(deniedDown.code, 0)
     await withDataSource(createDatabaseDataSource, configuration, async (source) => {
-      await assertSchema(source)
       assert.equal(
         (
           await source.query('SELECT count(*)::int AS count FROM users WHERE id = $1', [guardUser])
@@ -655,7 +687,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 6\n')
+  assert.equal(migration.stdout, 'Database migration applied: 7\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -758,7 +790,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 6\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 7\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({

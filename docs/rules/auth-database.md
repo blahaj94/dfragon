@@ -55,3 +55,7 @@ SQL CHECK와 request row lock을 함께 사용한다. CHECK만으로 단일 소�
 User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT sub/sid로 삭제 계정/session을 재생성하거나 다른 새 user에 연결하지 않는다. **User 삭제 후에도 남을 탈퇴 결과 state, pending login과 삭제의 자동 재가입 경합, 백업 복원 후 삭제 회원 방지**는 이 cascade로 해결되지 않는다. 삭제 확정·보관·복원은 [탈퇴 contract](auth-withdrawal-proposal.md)의 유지된 정책을 따른다. 패스키 탈퇴의 최소 schema·재가입 경합은 후속 설계 대상이다. 기본 table/cascade만으로 구현된 것으로 보지 않는다. 현재 요청한 탈퇴 기능에 필요한 Migration·경합을 검증하며 공개 복원 검증은 그 기능을 제공할 때 적용한다. 그 승인 범위 밖 tombstone·복구 유예·장기 개인 식별 보관을 임의 추가하지 않는다.
 
 근거는 #39가 2026-09-05에 검토한 [constraints](https://www.postgresql.org/docs/current/ddl-constraints.html), [partial index](https://www.postgresql.org/docs/current/indexes-partial.html), [INSERT/ON CONFLICT](https://www.postgresql.org/docs/current/sql-insert.html), [row lock/deadlock](https://www.postgresql.org/docs/current/explicit-locking.html)다. Schema/DB 실행 성공 evidence가 아니다.
+
+## 휴대폰 QR 요청
+
+`AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`·`phone_approved` 상태를 추가한다. QR ticket과 phone binding은 raw 값을 저장하지 않는다. 기존 users·패스키·session·refresh와 진행 중 직접 로그인은 보존한다. 완료/실패 시 QR 필드도 null 처리하고 기존 cleanup·만료 규칙을 재사용한다. 운영은 forward migration만 적용하며 disposable down은 활성 QR 요청이 있으면 거절한다.

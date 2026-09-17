@@ -26,6 +26,7 @@ import {
   loginTransaction,
   requestExpired
 } from './state.js'
+import { phoneLoginAction, clearPhone } from './phone.js'
 import { exchangeLogin } from './exchange.js'
 
 const invalid = () => new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
@@ -276,8 +277,19 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       await manager.getRepository(AuthLoginRequestSchema).save(row)
       return { managed: true }
     }
+    if (row.phoneBindingHash != null) {
+      row.status = 'phone_verified'
+      await manager.getRepository(AuthLoginRequestSchema).save(row)
+      const user = await manager.getRepository(UserSchema).findOneByOrFail({ id: userId })
+      return { phoneVerified: true, nickname: user.nickname }
+    }
+    return complete(manager, row, now)
+  }
+
+  async function complete(manager: EntityManager, row: AuthLoginRequest, now: Date) {
     const code = newOpaque()
     Object.assign(row, {
+      ...clearPhone,
       status: 'exchange_ready',
       browserBindingHash: null,
       exchangeCodeHash: opaqueHash(code),
@@ -313,31 +325,42 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         })
       }
     },
-    async authorize(ticket) {
+    async authorize(ticket, view) {
+      const phone = view === 'phone'
       decodeOpaque(ticket)
       return loginTransaction(deps.dataSource, async (manager) => {
         const repo = manager.getRepository(AuthLoginRequestSchema)
         const row = await repo.findOne({
-          where: { launchTicketHash: opaqueHash(ticket) },
+          where: phone
+            ? { qrTicketHash: opaqueHash(ticket) }
+            : { launchTicketHash: opaqueHash(ticket) },
           lock: { mode: 'pessimistic_write' }
         })
-        if (row == null || row.status !== 'created' || row.configuration !== fingerprint) {
+        if (
+          row == null ||
+          row.status !== (phone ? 'browser_started' : 'created') ||
+          row.configuration !== fingerprint
+        ) {
           throw invalid()
         }
         const now = await checkTime(manager, row)
         const secret = newOpaque()
         await repo.update(
           { id: row.id },
-          {
-            launchTicketHash: null,
-            browserBindingHash: opaqueHash(secret),
-            status: 'browser_started'
-          }
+          phone
+            ? { qrTicketHash: null, phoneBindingHash: opaqueHash(secret) }
+            : {
+                launchTicketHash: null,
+                browserBindingHash: opaqueHash(secret),
+                status: 'browser_started'
+              }
         )
         return {
           requestId: row.id,
           purpose: row.purpose,
+          ...(phone ? { view: 'phone' as const, confirmationCode: row.confirmationCode! } : {}),
           cookie: browserCookie({
+            phone,
             requestId: row.id,
             bindingValue: secret,
             maxAgeSeconds: (row.expiresAt.getTime() - now.getTime()) / 1000
@@ -349,12 +372,22 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       if (origin !== configuration.apiOrigin) {
         throw invalid()
       }
+      const phone = action.startsWith('phone-')
       const fields: Record<string, string[]> = {
         options: ['requestId', 'operation'],
         verify: ['requestId', 'response'],
         list: ['requestId'],
         remove: ['requestId', 'credentialId'],
-        end: ['requestId']
+        end: ['requestId'],
+        qr: ['requestId'],
+        status: ['requestId'],
+        claim: ['requestId'],
+        direct: ['requestId'],
+        cancel: ['requestId'],
+        'phone-options': ['requestId', 'operation'],
+        'phone-verify': ['requestId', 'response'],
+        'phone-approve': ['requestId'],
+        'phone-cancel': ['requestId']
       }
       if (!Object.hasOwn(fields, action)) {
         throw invalid()
@@ -364,7 +397,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       const result = await loginTransaction(deps.dataSource, async (manager) => {
         const repo = manager.getRepository(AuthLoginRequestSchema)
         const row = await repo.findOne({ where: { id }, lock: { mode: 'pessimistic_write' } })
-        if (row == null || row.configuration !== fingerprint || !cookieMatches(row, cookie)) {
+        if (
+          row == null ||
+          row.configuration !== fingerprint ||
+          !cookieMatches(row, cookie, phone)
+        ) {
           throw invalid()
         }
         await checkTime(manager, row)
@@ -373,10 +410,22 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           await lockCredential(manager, row.verifiedUserId!, row.credentialId!)
           await checkTime(manager, row)
         }
-        if (action === 'options') {
+        if (
+          ['qr', 'status', 'claim', 'direct', 'cancel', 'phone-approve', 'phone-cancel'].includes(
+            action
+          )
+        ) {
+          return {
+            value: await phoneLoginAction(manager, row, action, configuration.apiOrigin, complete)
+          }
+        }
+        if (phone ? row.phoneBindingHash == null : row.confirmationCode != null) {
+          throw invalid()
+        }
+        if (action === 'options' || action === 'phone-options') {
           return { value: await options(manager, row, body.operation) }
         }
-        if (action === 'verify') {
+        if (action === 'verify' || action === 'phone-verify') {
           try {
             return { value: await verify(manager, row, body.response) }
           } catch (error) {

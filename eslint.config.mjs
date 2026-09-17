@@ -10,8 +10,13 @@ import prettier from 'eslint-config-prettier/flat'
 const sourceFiles = ['**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
 const typeScriptFiles = ['**/*.{ts,mts,cts,tsx}']
 const desktopFiles = ['apps/desktop/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
-const jsxFiles = ['apps/web/**/*.{jsx,tsx}', 'packages/ui/**/*.{jsx,tsx}']
+const jsxFiles = [
+  'apps/web/**/*.{jsx,tsx}',
+  'packages/ui/**/*.{jsx,tsx}',
+  'apps/api/browser/**/*.tsx'
+]
 const browserFiles = [
+  'apps/api/browser/**/*.{js,jsx,ts,tsx}',
   'apps/desktop/src/frontend/**/*.{js,jsx,ts,tsx}',
   'apps/web/src/**/*.{js,jsx,ts,tsx}',
   'packages/ui/{src,test}/**/*.{js,jsx,ts,tsx}',
@@ -54,6 +59,11 @@ export default defineConfig(
     files: ['apps/desktop/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: { ...reactHooks.configs.recommended.rules, ...reactRefresh.configs.vite.rules }
+  },
+  {
+    files: ['apps/api/browser/**/*.tsx'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: { ...reactHooks.configs.recommended.rules }
   },
   // Web's explicit Oxlint React checks keep their existing severity.
   {
