@@ -90,4 +90,4 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 
 자동 검증은 별도 PC/phone 브라우저 문맥과 WebAuthn 가상 인증기를 사용한 가입·재로그인, 양쪽 승인, ticket/claim 재사용 차단, 취소·재발급·만료·삭제 키 거부 및 기존 로그인 회귀다. 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
 
-패스키 화면의 문구·구조와 화면 상태·이벤트는 React 컴포넌트인 `apps/api/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.css`에서 수정한다. 버튼은 기존 SEED recipe를 사용한다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS·CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR 패키지의 라이선스 원문을 JS 번들에 포함한다.
+패스키 화면의 문구·구조와 화면 상태·이벤트는 React 컴포넌트인 `apps/api/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.css`에서 수정한다. 버튼은 기존 SEED recipe를 사용한다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS·CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR·React 패키지의 라이선스 원문을 JS 번들에 포함한다.
