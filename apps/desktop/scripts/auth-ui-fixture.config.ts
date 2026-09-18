@@ -6,7 +6,7 @@ import { uiNotices } from '../../../packages/ui/build/notices'
 
 export default defineConfig({
   base: './',
-  root: fileURLToPath(new URL('../src/frontend/src/testing/fixtures/auth/', import.meta.url)),
+  root: fileURLToPath(new URL('../src/frontend/src/fixture/auth/', import.meta.url)),
   plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()],
   resolve: {
     alias: [

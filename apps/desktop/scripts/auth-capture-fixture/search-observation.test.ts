@@ -2,7 +2,7 @@
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { SearchResults } from '../../src/frontend/src/features/search/components/SearchResults'
+import { SearchResults } from '../../src/frontend/src/sections/search/SearchResults'
 import { searchSlot, searchSnapshot } from '../../src/preload/api/search-test-fixture'
 import type { SearchSnapshot } from '../../src/preload/common/types/search'
 import * as observations from './observe'

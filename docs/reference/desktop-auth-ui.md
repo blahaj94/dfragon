@@ -9,7 +9,7 @@ last-reviewed: 2026-09-14
 
 ## Source와 연결 경계
 
-`apps/desktop/src/frontend/src/features/auth/components/AuthPresentation.tsx`는 `features/auth/types/presentation.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
+`apps/desktop/src/frontend/src/sections/auth/AuthPresentation.tsx`는 `components/auth/types.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
 
 - `snapshot`이 표시할 phase·provider·계정·entry·고정 notice를 결정한다. Command callback 자체로 signedIn을 만들지 않는다.
 - `commandPending`은 AuthSection이 전달하는 버튼 대기 상태다. Invocation 결과를 기다리거나 snapshot을 재동기화하는 동안 true를 유지한다. 취소 완료 snapshot 전 새 provider 선택을 만들지 않는다.
@@ -42,7 +42,7 @@ pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs light
 pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
 ```
 
-Fixture source는 `apps/desktop/src/frontend/src/testing/fixtures/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
+Fixture source는 `apps/desktop/src/frontend/src/fixture/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
 
 macOS의 Electron application menu에서 phase·invalidReturn·welcome/home·longNickname·noProviders를 선택한다. Light/Dark와 Narrow 360(360×740 content)/Wide 1100(1100×770 content)을 전환할 수 있다. 최초 window는 1100×800 outer size다. State 선택·Reload는 React를 다시 mount한다. App menu를 사용한 Theme·viewport 변경은 현재 mount를 보존한다.
 
@@ -51,7 +51,7 @@ Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 sign
 ## Component/interaction evidence
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/features/auth/components/AuthPresentation.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/auth/AuthPresentation.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

@@ -72,7 +72,7 @@ export default defineConfig(({ mode, command }) => ({
                     type: 'asset',
                     fileName: `notices/mvp/${name}`,
                     source: readFileSync(
-                      resolve(`src/frontend/src/testing/fixtures/mvp/assets/${name}`),
+                      resolve(`src/frontend/src/fixture/mvp/assets/${name}`),
                       'utf8'
                     )
                   })
