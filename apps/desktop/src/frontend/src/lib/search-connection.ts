@@ -1,5 +1,5 @@
 import { createActor } from 'xstate'
-import type { ActorRefFrom, SnapshotFrom } from 'xstate'
+import type { SnapshotFrom } from 'xstate'
 import type {
   SearchApi,
   SearchCommandResult,
@@ -16,31 +16,37 @@ type ConnectionOptions = {
   onRunChanged: () => void
 }
 
-/** 연결별 actor로 구독·조회 수명을 격리하고, 명령의 직접 응답은 호출자에게 돌려준다. */
-export class SearchConnection {
-  private actor: ActorRefFrom<typeof searchConnectionMachine>
+export type SearchConnection = {
+  isReady: () => boolean
+  connect: () => void
+  command: (control: SearchControl) => Promise<SearchCommandResult | null>
+  invoke: (send: () => Promise<SearchCommandResult>) => Promise<SearchCommandResult | null>
+  dispose: () => void
+}
 
-  constructor(private readonly options: ConnectionOptions) {
-    this.actor = createActor(searchConnectionMachine, { input: { api: options.api } })
-  }
+/** 호출별 actor를 클로저에 격리하고 연결·명령·정리 함수를 반환한다. */
+export function createSearchConnection(options: ConnectionOptions): SearchConnection {
+  let currentActor = createActor(searchConnectionMachine, { input: { api: options.api } })
 
-  get ready(): boolean {
-    const state = this.actor.getSnapshot()
+  // 현재 actor의 동기화 상태를 호출 시점에 읽는다.
+  function isReady(): boolean {
+    const state = currentActor.getSnapshot()
     return state.status === 'active' && state.hasTag('ready')
   }
 
-  connect(): void {
-    if (this.actor.getSnapshot().status === 'stopped') {
+  // 이전 actor를 종료하고 구독·초기 조회를 새 actor에서 시작한다.
+  function connect(): void {
+    if (currentActor.getSnapshot().status === 'stopped') {
       return
     }
-    this.actor.stop()
-    const actor = createActor(searchConnectionMachine, { input: { api: this.options.api } })
-    this.actor = actor
+    currentActor.stop()
+    const actor = createActor(searchConnectionMachine, { input: { api: options.api } })
+    currentActor = actor
     let previous: SnapshotFrom<typeof searchConnectionMachine> | undefined
     actor.subscribe((state) => {
       if (state.status === 'done') {
-        this.options.onRunChanged()
-        this.connect()
+        options.onRunChanged()
+        connect()
         return
       }
       const failed = state.hasTag('failed')
@@ -55,21 +61,25 @@ export class SearchConnection {
         previous.hasTag('failed') !== failed
       previous = state
       if (changed) {
-        this.options.onSnapshot(state.context.snapshot)
+        options.onSnapshot(state.context.snapshot)
       }
       if (readFailed) {
-        this.options.onFailure()
+        options.onFailure()
       }
     })
     actor.start()
   }
 
-  async command(control: SearchControl): Promise<SearchCommandResult | null> {
-    return this.invoke(() => this.options.api.controlCharacterSearch(control))
+  // 제어 IPC의 직접 응답을 공통 검증·복구 경계로 전달한다.
+  async function command(control: SearchControl): Promise<SearchCommandResult | null> {
+    return invoke(() => options.api.controlCharacterSearch(control))
   }
 
-  async invoke(send: () => Promise<SearchCommandResult>): Promise<SearchCommandResult | null> {
-    const actor = this.actor
+  // 호출 당시 actor에만 응답을 반영하며 유실된 명령은 조회로만 확인한다.
+  async function invoke(
+    send: () => Promise<SearchCommandResult>
+  ): Promise<SearchCommandResult | null> {
+    const actor = currentActor
     try {
       const result = parseSearchResult(await send())
       if (result == null) {
@@ -83,7 +93,7 @@ export class SearchConnection {
     } catch {
       if (actor.getSnapshot().status === 'active') {
         try {
-          const snapshot = await readSearchSnapshot(this.options.api)
+          const snapshot = await readSearchSnapshot(options.api)
           if (actor.getSnapshot().status === 'active') {
             actor.send({ type: 'READ_SUCCEEDED', snapshot })
           }
@@ -98,7 +108,10 @@ export class SearchConnection {
     }
   }
 
-  dispose(): void {
-    this.actor.stop()
+  // 구독·조회 actor를 종료하되 늦은 직접 응답의 반환 경로는 유지한다.
+  function dispose(): void {
+    currentActor.stop()
   }
+
+  return { isReady, connect, command, invoke, dispose }
 }

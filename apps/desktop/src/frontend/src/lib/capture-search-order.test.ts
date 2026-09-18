@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type {
   SearchCommandResult,
   SearchSlot,
@@ -10,48 +10,37 @@ import {
   searchSlot,
   searchSnapshot
 } from '../../../preload/api/search-test-fixture'
+import { inspectCaptureStart } from './capture-search-machine'
+import type { SearchConnection } from './search-connection'
 
 const connectionState = vi.hoisted(() => ({
   responses: [] as Array<SearchCommandResult | null | Promise<SearchCommandResult | null>>,
-  onCommand: () => {}
+  onCommand: () => {},
+  onSnapshot: (() => {}) as (snapshot: SearchSnapshot | null) => void
 }))
 
 vi.mock('./search-connection', () => ({
-  SearchConnection: class {
-    readonly ready = true
-
-    connect(): void {
-      return undefined
-    }
-
-    command(): Promise<SearchCommandResult | null> {
-      connectionState.onCommand()
-      const response = connectionState.responses.shift()
-      return Promise.resolve(response ?? null)
-    }
-
-    dispose(): void {
-      return undefined
-    }
-
-    invoke(send: () => Promise<SearchCommandResult>): Promise<SearchCommandResult | null> {
-      return send()
+  createSearchConnection: (options: {
+    onSnapshot: (snapshot: SearchSnapshot | null) => void
+  }): SearchConnection => {
+    connectionState.onSnapshot = options.onSnapshot
+    return {
+      isReady: () => true,
+      connect: () => undefined,
+      command: () => {
+        connectionState.onCommand()
+        return Promise.resolve(connectionState.responses.shift() ?? null)
+      },
+      dispose: () => undefined,
+      invoke: (send) => send()
     }
   }
 }))
 
-const { CaptureSearch } = await import('./capture-search')
+const { createCaptureSearch } = await import('./capture-search')
+const searches: ReturnType<typeof createCaptureSearch>[] = []
 
-type MutableCaptureSearch = {
-  capture: {
-    active: boolean
-    captureId: string | null
-    revisions: number[]
-    cleared: boolean[]
-  } | null
-  snapshot: SearchSnapshot | null
-}
-
+/** IPC snapshot과 signal의 외부 getter 평가 순서를 관측한다. */
 function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
   const snapshot = searchSnapshot()
   return {
@@ -71,24 +60,28 @@ function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
   }
 }
 
-function createSearch(): InstanceType<typeof CaptureSearch> {
-  return new CaptureSearch({
-    api: {
-      controlCharacterSearch: vi.fn(),
-      onCharacterSearchChanged: vi.fn(() => () => {})
-    },
-    notify: vi.fn(),
-    onChange: vi.fn(),
+/** 내부 ticket을 주입하지 않고 공개 begin·observe 호출로 상태를 준비한다. */
+function createSearch(onChange = vi.fn()): ReturnType<typeof createCaptureSearch> {
+  const search = createCaptureSearch({
+    api: { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn(() => () => {}) },
+    notify: vi.fn(async (): Promise<SearchCommandResult> => ({
+      ok: true,
+      snapshot: searchSnapshot()
+    })),
+    onChange,
     onInvalidated: vi.fn()
   })
+  searches.push(search)
+  return search
 }
 
 beforeEach(() => {
   connectionState.responses = []
   connectionState.onCommand = () => {}
 })
+afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 
-it('begin은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽는다', async () => {
+it('begin 판정은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽는다', () => {
   const events: string[] = []
   const latest = observedSnapshot('latest', events)
   const completed = observedSnapshot('completed', events)
@@ -98,42 +91,23 @@ it('begin은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽는다', 
       return false
     }
   } as AbortSignal
-  const search = createSearch()
-  ;(search as unknown as MutableCaptureSearch).snapshot = latest
-  const response = Promise.withResolvers<SearchCommandResult | null>()
-  connectionState.responses.push(response.promise)
 
-  const begin = search.begin({ signal })
-  const ticket = (search as unknown as MutableCaptureSearch).capture!
-  let activeReadCount = 0
-  Object.defineProperty(ticket, 'active', {
-    get: () => {
-      activeReadCount += 1
-      const isInspectionRead = activeReadCount === 1
-      events.push(isInspectionRead ? 'current.active.inspection' : 'current.active.publish')
-      return true
-    }
+  expect(inspectCaptureStart({ ok: true, snapshot: completed }, latest, signal)).toEqual({
+    captureId: CAPTURE_ID,
+    cancelled: false
   })
-  response.resolve({ ok: true, snapshot: completed })
-  await begin
-
   expect(events).toEqual([
     'completed.captureId',
-    'current.active.inspection',
     'latest.runId',
     'completed.runId',
     'latest.revision',
     'completed.revision',
     'latest.captureId',
-    'signal.aborted',
-    'current.active.publish',
-    'current.active.publish',
-    'latest.captureId'
+    'signal.aborted'
   ])
-  expect(activeReadCount).toBe(3)
 })
 
-it('begin은 completed가 없으면 latest captureId 뒤 signal만 읽는다', async () => {
+it('begin 판정은 completed가 없으면 latest captureId 뒤 signal만 읽는다', () => {
   const events: string[] = []
   const latest = observedSnapshot('latest', events)
   const signal = {
@@ -142,16 +116,12 @@ it('begin은 completed가 없으면 latest captureId 뒤 signal만 읽는다', a
       return false
     }
   } as AbortSignal
-  const search = createSearch()
-  ;(search as unknown as MutableCaptureSearch).snapshot = latest
-  connectionState.responses.push(null)
 
-  await search.begin({ signal })
-
+  inspectCaptureStart(null, latest, signal)
   expect(events).toEqual(['latest.captureId', 'signal.aborted'])
 })
 
-it('begin은 latest와 completed가 모두 없으면 snapshot getter 없이 signal만 읽는다', async () => {
+it('begin 판정은 latest와 completed가 모두 없으면 snapshot getter 없이 signal만 읽는다', () => {
   const events: string[] = []
   const signal = {
     get aborted() {
@@ -159,87 +129,30 @@ it('begin은 latest와 completed가 모두 없으면 snapshot getter 없이 sign
       return false
     }
   } as AbortSignal
-  const search = createSearch()
-  connectionState.responses.push(null)
 
-  await search.begin({ signal })
-
+  inspectCaptureStart(null, null, signal)
   expect(events).toEqual(['signal.aborted'])
 })
 
-it('늦은 begin은 stale ticket의 active getter를 읽지 않는다', async () => {
+it('observe는 갱신된 관측을 publish한 뒤 명령을 보낸다', async () => {
   const events: string[] = []
-  const completed = observedSnapshot('completed', events)
-  const response = Promise.withResolvers<SearchCommandResult | null>()
-  const search = createSearch()
-  connectionState.responses.push(response.promise)
-
-  const begin = search.begin({ signal: new AbortController().signal })
-  const mutableSearch = search as unknown as MutableCaptureSearch
-  const staleTicket = mutableSearch.capture!
-  Object.defineProperty(staleTicket, 'active', {
-    get: () => {
-      events.push('stale.active')
-      return true
-    }
-  })
-  mutableSearch.capture = {
-    active: true,
-    captureId: null,
-    revisions: [0, 0, 0, 0],
-    cleared: [true, true, true, true]
-  }
-
-  response.resolve({ ok: true, snapshot: completed })
-  await begin
-
-  expect(events).toEqual(['completed.captureId'])
-})
-
-it('observe는 captureId, ticket active, publish와 명령의 순서를 유지한다', () => {
-  const events: string[] = []
-  const search = createSearch()
-  connectionState.onCommand = () => {
-    events.push('command')
-  }
-  const ticket = {
-    active: true,
-    captureId: CAPTURE_ID,
-    revisions: [0, 0, 0, 0],
-    cleared: [true, true, true, true]
-  }
-  Object.defineProperties(ticket, {
-    captureId: {
-      get: () => {
-        events.push('ticket.captureId')
-        return CAPTURE_ID
-      }
-    },
-    active: {
-      get: () => {
-        events.push('ticket.active')
-        return true
-      }
-    }
-  })
-  ;(search as unknown as MutableCaptureSearch).capture = ticket
+  const search = createSearch(vi.fn(() => events.push('publish')))
+  connectionState.responses.push({ ok: true, snapshot: searchSnapshot() })
+  await search.begin({ signal: new AbortController().signal })
+  events.length = 0
+  connectionState.onCommand = () => events.push('command')
 
   search.observe({ slot: 0, nickname: null })
 
-  expect(events).toEqual([
-    'ticket.captureId',
-    'ticket.active',
-    'ticket.active',
-    'ticket.captureId',
-    'ticket.active',
-    'ticket.captureId',
-    'command'
-  ])
+  expect(events).toEqual(['publish', 'command'])
 })
 
 it('retry는 rate-limit retryAfter getter를 양수 대기 검사에서 두 번 읽는다', async () => {
   const events: string[] = []
   const search = createSearch()
+  connectionState.responses.push({ ok: true, snapshot: searchSnapshot() })
+  await search.begin({ signal: new AbortController().signal })
+  search.observe({ slot: 0, nickname: '가나' })
   const error: NonNullable<SearchSlot['error']> = {
     code: 'SEARCH_RATE_LIMITED',
     get retryAfterSeconds() {
@@ -247,22 +160,14 @@ it('retry는 rate-limit retryAfter getter를 양수 대기 검사에서 두 번 
       return 2
     }
   }
-  ;(search as unknown as MutableCaptureSearch).capture = {
-    active: true,
-    captureId: CAPTURE_ID,
-    revisions: [1, 0, 0, 0],
-    cleared: [false, true, true, true]
-  }
-  ;(search as unknown as MutableCaptureSearch).snapshot = searchSnapshot({
-    slots: [
-      searchSlot({
-        state: 'failure',
-        requestId: REQUEST_ID,
-        error
-      }),
-      ...searchSnapshot().slots.slice(1)
-    ]
-  })
+  connectionState.onSnapshot(
+    searchSnapshot({
+      slots: [
+        searchSlot({ state: 'failure', requestId: REQUEST_ID, error }),
+        ...searchSnapshot().slots.slice(1)
+      ]
+    })
+  )
 
   await search.retry(0)
 

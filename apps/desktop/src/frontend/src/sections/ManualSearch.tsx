@@ -8,7 +8,7 @@ import {
   TextFieldInput
 } from '@ldb/ui'
 import { SEARCH_ERRORS, type ManualSearchApi } from '../../../preload/common/types/search'
-import { CaptureSearch } from '../lib/capture-search'
+import { createCaptureSearch, type CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 import { validManualNickname } from '../lib/manual-input'
@@ -39,7 +39,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       return
     }
     let active = true
-    const bridge = new CaptureSearch({
+    const bridge = createCaptureSearch({
       api,
       notify: api.notifyManualNickname,
       onChange: (next) => {
