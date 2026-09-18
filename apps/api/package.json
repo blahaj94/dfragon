@@ -7,7 +7,7 @@
     "node": ">=24.15.0 <25"
   },
   "scripts": {
-    "dev": "pnpm run build && node --env-file-if-exists=.env --import reflect-metadata dist/main.js",
+    "dev": "pnpm run build && dotenv --no-expand -- pnpm run start",
     "db:migrate:local": "pnpm run build && node --env-file=.env --import reflect-metadata dist/database/cli.js up",
     "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
     "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs",
@@ -51,6 +51,7 @@
     "@types/qrcode": "1.5.6",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "dotenv-cli": "11.0.0",
     "esbuild": "0.28.2",
     "tar": "7.5.22",
     "typescript": "5.9.3"

@@ -52,7 +52,7 @@ pnpm --filter @ldb/api db:migrate:local
 pnpm --filter @ldb/api dev
 ```
 
-`dev`는 API를 빌드한 뒤 Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽어 시작한다. `.env`가 없으면 기존 process 환경을 사용하며 이미 설정된 환경변수는 파일보다 우선한다. 설정 변경 후에는 명령을 종료하고 다시 실행한다. `db:migrate:local`은 `.env`를 명시적으로 읽는 개발 DB용 migration 명령이다. API 시작 자체가 migration·DB 생성·인증서 신뢰 등록을 수행하지 않는다.
+`dev`는 API를 빌드한 뒤 `dotenv-cli`로 앱 폴더의 `.env`를 읽고 기존 `pnpm run start`에 실행을 위임한다. `.env`가 없으면 기존 process 환경을 사용하며 이미 설정된 환경변수는 파일보다 우선한다. `--no-expand`로 값 안의 `$`를 변수로 치환하지 않는다. 설정 변경 후에는 명령을 종료하고 다시 실행한다. `db:migrate:local`은 Node의 `--env-file=.env`로 설정을 명시적으로 읽는 개발 DB용 migration 명령이다. API 시작 자체가 migration·DB 생성·인증서 신뢰 등록을 수행하지 않는다.
 
 운영 `start`와 기존 `db:migrate:up` 등은 환경 주입 방식 그대로이며 `.env`를 자동으로 읽지 않는다. 개발용 `.env`를 배포 입력으로 사용하지 않는다.
 
