@@ -1,12 +1,7 @@
-import { assign, setup } from 'xstate'
+import { assign, fromCallback, sendTo, setup } from 'xstate'
 import type { ClockReading } from './types'
 
 const LOGIN_REQUEST_MAX_AGE_MS = 600_000
-
-export type ExchangeDecision =
-  | Readonly<{ status: 'ignored' }>
-  | Readonly<{ status: 'joined'; promise: Promise<void> }>
-  | Readonly<{ status: 'claimed' }>
 
 type PendingLoginContext = {
   startedAt: ClockReading
@@ -17,14 +12,17 @@ type PendingLoginContext = {
   rejectedFingerprint: string | null
   exchangeFingerprint: string | null
   exchangePromise: Promise<void> | null
+  expired: boolean
 }
 
 type PendingLoginEvent =
   | { type: 'REQUEST_ACCEPTED'; requestId: string; expiresAt: string }
   | { type: 'CLOCK_ACCEPTED'; checkedAt: ClockReading }
-  | { type: 'CLAIM'; fingerprint: string; reply: (decision: ExchangeDecision) => void }
+  | { type: 'START' }
+  | { type: 'RESCHEDULE_EXPIRY' }
+  | { type: 'CLAIM'; fingerprint: string }
   | { type: 'TRACK_EXCHANGE'; promise: Promise<void> }
-  | { type: 'REJECT_CODE'; fingerprint: string }
+  | { type: 'EXCHANGE_REJECTED' }
   | { type: 'RESUME_WAITING' }
   | { type: 'EXPIRE' }
   | { type: 'DISPOSE' }
@@ -68,6 +66,9 @@ export function pendingLoginExpiryDelay(
 }
 
 export const pendingLoginMachine = setup({
+  actors: {
+    expiry: fromCallback<{ type: 'RESCHEDULE' }>(() => undefined)
+  },
   types: {
     context: {} as PendingLoginContext,
     input: {} as { startedAt: ClockReading },
@@ -83,22 +84,25 @@ export const pendingLoginMachine = setup({
     expiresAtMs: null,
     rejectedFingerprint: null,
     exchangeFingerprint: null,
-    exchangePromise: null
+    exchangePromise: null,
+    expired: false
   }),
-  initial: 'active',
+  initial: 'idle',
   states: {
+    idle: { on: { START: 'active', DISPOSE: 'disposed' } },
     active: {
+      invoke: { id: 'expiry', src: 'expiry' },
       initial: 'starting',
       on: {
         DISPOSE: '#pendingLogin.disposed',
-        EXPIRE: '#pendingLogin.disposed',
+        EXPIRE: {
+          target: '#pendingLogin.disposed',
+          actions: assign({ expired: true })
+        },
+        RESCHEDULE_EXPIRY: { actions: sendTo('expiry', { type: 'RESCHEDULE' }) },
         CLOCK_ACCEPTED: {
           actions: assign({ lastAcceptedAt: ({ event }) => event.checkedAt })
-        },
-        REJECT_CODE: {
-          actions: assign({ rejectedFingerprint: ({ event }) => event.fingerprint })
-        },
-        CLAIM: { actions: ({ event }) => event.reply({ status: 'ignored' }) }
+        }
       },
       states: {
         starting: {
@@ -119,27 +123,14 @@ export const pendingLoginMachine = setup({
               guard: ({ context, event }) =>
                 context.requestId != null && context.rejectedFingerprint !== event.fingerprint,
               target: 'exchanging',
-              actions: [
-                assign({ exchangeFingerprint: ({ event }) => event.fingerprint }),
-                ({ event }) => event.reply({ status: 'claimed' })
-              ]
+              actions: assign({ exchangeFingerprint: ({ event }) => event.fingerprint })
             }
           }
         },
         exchanging: {
           on: {
-            CLAIM: {
-              actions: ({ context, event }) => {
-                const canJoin =
-                  context.rejectedFingerprint !== event.fingerprint &&
-                  context.exchangeFingerprint === event.fingerprint &&
-                  context.exchangePromise != null
-                event.reply(
-                  canJoin && context.exchangePromise != null
-                    ? { status: 'joined', promise: context.exchangePromise }
-                    : { status: 'ignored' }
-                )
-              }
+            EXCHANGE_REJECTED: {
+              actions: assign({ rejectedFingerprint: ({ context }) => context.exchangeFingerprint })
             },
             TRACK_EXCHANGE: {
               actions: assign({ exchangePromise: ({ event }) => event.promise })

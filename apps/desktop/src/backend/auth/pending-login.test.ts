@@ -23,6 +23,7 @@ function createAttempt(clock = new FakeClock()): {
     clock,
     onExpired
   )
+  pending.start()
   const acceptRequest = (expiresIn = 300_000): void => {
     pending.acceptRequest({
       requestId: REQUEST_ID,
@@ -34,14 +35,17 @@ function createAttempt(clock = new FakeClock()): {
 }
 
 describe('pending login actor', () => {
-  it('claims synchronously once, joins only the tracked matching exchange, and retries a different code', async () => {
+  it('claims synchronously, shares the reserved completion, and rejects a code before recovery', async () => {
     const { pending, acceptRequest } = createAttempt()
     const initialSignal = pending.signal
-    expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
-    expect(pending.isBeforeExchange).toBe(true)
+    const exchange = deferred<void>()
+    const writer = { completion: exchange.promise }
+    const reserve = vi.fn(() => writer)
+    expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
+    expect(reserve).not.toHaveBeenCalled()
 
     acceptRequest()
-    const claim = pending.claim(CODE)
+    const claim = pending.claimExchange(CODE, reserve)
     expect(claim).toEqual({
       status: 'claimed',
       input: {
@@ -50,28 +54,60 @@ describe('pending login actor', () => {
         code: CODE,
         codeVerifier: 'test-verifier'
       },
-      signal: pending.signal
+      signal: pending.signal,
+      writer
     })
     expect(pending.signal).not.toBe(initialSignal)
     expect(pending.isBeforeExchange).toBe(false)
-    expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
+    expect(pending.claimExchange(CODE, reserve)).toEqual({
+      status: 'joined',
+      promise: exchange.promise
+    })
+    expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({ status: 'ignored' })
+    expect(reserve).toHaveBeenCalledTimes(1)
 
-    const exchange = deferred<void>()
-    pending.trackExchange(exchange.promise)
-    expect(pending.claim(CODE)).toEqual({ status: 'joined', promise: exchange.promise })
-    expect(pending.claim(OTHER_CODE)).toEqual({ status: 'ignored' })
-
-    pending.rejectCode(CODE)
-    expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
-    pending.resumeWaiting()
+    const cleanup = deferred<boolean>()
+    const recovery = pending.rejectExchange(() => cleanup.promise)
+    expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
+    expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({ status: 'ignored' })
+    cleanup.resolve(true)
+    expect(await recovery).toBe(true)
     expect(pending.isBeforeExchange).toBe(true)
-    expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
-    expect(pending.claim(OTHER_CODE).status).toBe('claimed')
-    // The previous exchange must not be joined before the new writer is tracked.
-    expect(pending.claim(OTHER_CODE)).toEqual({ status: 'ignored' })
+    expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
+    const nextWriter = { completion: Promise.resolve() }
+    expect(pending.claimExchange(OTHER_CODE, () => nextWriter).status).toBe('claimed')
+    expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({
+      status: 'joined',
+      promise: nextWriter.completion
+    })
     exchange.resolve()
     await exchange.promise
     pending.dispose()
+  })
+
+  it('keeps the synchronous claim closed during publication and respects cancellation before reservation', () => {
+    const { pending, acceptRequest } = createAttempt()
+    acceptRequest()
+    const secondReserve = vi.fn(() => ({ completion: Promise.resolve() }))
+    const claim = pending.claimExchange(CODE, () => {
+      expect(pending.claimExchange(CODE, secondReserve)).toEqual({ status: 'ignored' })
+      pending.dispose()
+      return null
+    })
+    expect(claim).toEqual({ status: 'ignored' })
+    expect(secondReserve).not.toHaveBeenCalled()
+  })
+
+  it('does not resume a disposed attempt after delayed rejection recovery', async () => {
+    const { pending, acceptRequest } = createAttempt()
+    acceptRequest()
+    pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))
+    const cleanup = deferred<boolean>()
+    const recovery = pending.rejectExchange(() => cleanup.promise)
+    pending.dispose()
+    cleanup.resolve(true)
+    expect(await recovery).toBe(false)
+    expect(pending.isBeforeExchange).toBe(false)
   })
 
   it.each(['starting', 'waiting', 'exchanging'] as const)(
@@ -82,26 +118,27 @@ describe('pending login actor', () => {
         acceptRequest()
       }
       if (stage === 'exchanging') {
-        pending.claim(CODE)
+        pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))
       }
       const onAbort = vi.fn()
       const onBrowserAbort = vi.fn()
       pending.signal.addEventListener('abort', onAbort)
       pending.browserSignal.addEventListener('abort', onBrowserAbort)
-      pending.scheduleExpiry()
+      pending.start()
 
       pending.dispose()
       pending.dispose()
       acceptRequest()
-      pending.resumeWaiting()
-      pending.scheduleExpiry()
+      pending.start()
       clock.advance(600_000)
 
       expect(onAbort).toHaveBeenCalledTimes(1)
       expect(onBrowserAbort).toHaveBeenCalledTimes(1)
       expect(onExpired).not.toHaveBeenCalled()
       expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
-      expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
+      expect(pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))).toEqual({
+        status: 'ignored'
+      })
       expect(pending.isBeforeExchange).toBe(false)
     }
   )
@@ -109,28 +146,25 @@ describe('pending login actor', () => {
   it('publishes disposal before abort listeners reenter scheduling or claiming', () => {
     const { pending, clock, acceptRequest } = createAttempt()
     acceptRequest()
-    pending.scheduleExpiry()
     const reentrantClaim = vi.fn()
     pending.signal.addEventListener('abort', () => {
       expect(pending.isBeforeExchange).toBe(false)
-      pending.scheduleExpiry()
-      reentrantClaim(pending.claim(CODE))
+      pending.start()
+      reentrantClaim(pending.claimExchange(CODE, () => ({ completion: Promise.resolve() })))
     })
 
     pending.dispose()
 
     expect(reentrantClaim).toHaveBeenCalledExactlyOnceWith({ status: 'ignored' })
-    expect(clock.scheduled).toHaveLength(1)
-    expect(clock.scheduled[0].cancelled).toBe(true)
+    expect(clock.scheduled).toHaveLength(2)
+    expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
   })
 
   it.each([60_000, 900_000])(
     'expires at the earliest server expiry or ten-minute limit (%i)',
     (ttl) => {
       const { pending, clock, onExpired, acceptRequest } = createAttempt()
-      pending.scheduleExpiry()
       acceptRequest(ttl)
-      pending.scheduleExpiry()
       const expectedLifetime = Math.min(ttl, 600_000)
       clock.advance(expectedLifetime - 1)
       expect(onExpired).not.toHaveBeenCalled()
@@ -138,7 +172,9 @@ describe('pending login actor', () => {
       expect(onExpired).toHaveBeenCalledExactlyOnceWith(pending)
       expect(pending.signal.aborted).toBe(true)
       expect(pending.browserSignal.aborted).toBe(true)
-      expect(pending.claim(CODE)).toEqual({ status: 'ignored' })
+      expect(pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))).toEqual({
+        status: 'ignored'
+      })
       clock.advance(600_000)
       expect(onExpired).toHaveBeenCalledTimes(1)
     }
@@ -147,7 +183,7 @@ describe('pending login actor', () => {
   it.each(['wall', 'monotonic', 'discontinuous'] as const)(
     'rejects %s clock trust loss against the most recent accepted reading',
     (kind) => {
-      const { pending, clock } = createAttempt()
+      const { pending, clock, acceptRequest } = createAttempt()
       clock.elapseWithoutTimers(100)
       expect(pending.isExpired(clock.read())).toBe(false)
       if (kind === 'wall') {
@@ -160,14 +196,13 @@ describe('pending login actor', () => {
         clock.discontinuous = true
       }
       expect(pending.isExpired(clock.read())).toBe(true)
-      pending.scheduleExpiry()
+      acceptRequest()
       expect(pending.signal.aborted).toBe(true)
     }
   )
 
   it('reschedules an early timer without extending the original deadline', () => {
     const { pending, clock, onExpired } = createAttempt()
-    pending.scheduleExpiry()
     clock.elapseWithoutTimers(100)
     clock.scheduled[0].callback()
     expect(clock.scheduled[0].cancelled).toBe(true)
@@ -197,23 +232,57 @@ describe('pending login actor', () => {
       clock,
       onExpired
     )
-    pending.scheduleExpiry()
+    pending.start()
     expect(onExpired).toHaveBeenCalledExactlyOnceWith(pending)
     expect(cancel).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('starts monitoring only after activation and cancels a timer returned after synchronous disposal', () => {
+    const startedAt: ClockReading = { wallMs: 1_000, monotonicMs: 1_000, discontinuous: false }
+    const cancel = vi.fn()
+    const schedule = vi.fn(() => {
+      pending.dispose()
+      return cancel
+    })
+    const pending = createPendingLogin(
+      { attemptId: ATTEMPT_ID, provider: 'passkey', generation: 1, verifier: 'test', startedAt },
+      { read: () => startedAt, schedule },
+      vi.fn()
+    )
+    expect(schedule).not.toHaveBeenCalled()
+    pending.start()
+    expect(cancel).toHaveBeenCalledExactlyOnceWith()
+    expect(pending.signal.aborted).toBe(true)
+  })
+
+  it('publishes terminal expiry before the expiration callback can claim or reactivate', () => {
+    const { pending, clock, onExpired, acceptRequest } = createAttempt()
+    acceptRequest()
+    const reserve = vi.fn(() => ({ completion: Promise.resolve() }))
+    onExpired.mockImplementation(() => {
+      expect(pending.isBeforeExchange).toBe(false)
+      expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
+      pending.start()
+    })
+    clock.advance(300_000)
+    expect(onExpired).toHaveBeenCalledTimes(1)
+    expect(reserve).not.toHaveBeenCalled()
+    expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
   })
 
   it('the terminal actor releases request, fingerprint and joined Promise references', () => {
     const actor = createActor(pendingLoginMachine, {
       input: { startedAt: new FakeClock().read() }
     }).start()
+    actor.send({ type: 'START' })
     actor.send({
       type: 'REQUEST_ACCEPTED',
       requestId: REQUEST_ID,
       expiresAt: '2026-09-06T12:10:00Z'
     })
-    actor.send({ type: 'CLAIM', fingerprint: 'test-fingerprint', reply: vi.fn() })
+    actor.send({ type: 'CLAIM', fingerprint: 'test-fingerprint' })
     actor.send({ type: 'TRACK_EXCHANGE', promise: Promise.resolve() })
-    actor.send({ type: 'REJECT_CODE', fingerprint: 'rejected-fingerprint' })
+    actor.send({ type: 'EXCHANGE_REJECTED' })
     actor.send({ type: 'DISPOSE' })
     expect(actor.getSnapshot().status).toBe('done')
     expect(actor.getSnapshot().context).toMatchObject({

@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto'
-import { createActor } from 'xstate'
+import { createActor, fromCallback } from 'xstate'
 import {
   isPendingLoginExpired,
   pendingLoginExpiryDelay,
-  pendingLoginMachine,
-  type ExchangeDecision
+  pendingLoginMachine
 } from './pending-login-machine'
 import type {
   AuthClock,
@@ -29,7 +28,10 @@ export type ClaimedExchange = Readonly<{
   signal: AbortSignal
 }>
 
-type ExchangeClaim = Exclude<ExchangeDecision, { status: 'claimed' }> | ClaimedExchange
+type ExchangeClaim<Writer> =
+  | Readonly<{ status: 'ignored' }>
+  | Readonly<{ status: 'joined'; promise: Promise<void> }>
+  | (ClaimedExchange & Readonly<{ writer: Writer }>)
 
 export type PendingLogin = Readonly<{
   attemptId: string
@@ -39,38 +41,77 @@ export type PendingLogin = Readonly<{
   signal: AbortSignal
   isBeforeExchange: boolean
   snapshot(): NonNullable<AuthSnapshot['login']>
+  start(): void
   acceptRequest(response: LoginRequestResponse): void
   isExpired(checkedAt: ClockReading): boolean
-  scheduleExpiry(): void
-  claim(code: string): ExchangeClaim
-  trackExchange(promise: Promise<void>): void
-  rejectCode(code: string): void
-  resumeWaiting(): void
+  claimExchange<Writer extends Readonly<{ completion: Promise<void> }>>(
+    code: string,
+    reserve: () => Writer | null
+  ): ExchangeClaim<Writer>
+  rejectExchange(recover: () => Promise<boolean>): Promise<boolean>
   dispose(): void
 }>
-
-function fingerprint(value: string): string {
-  return createHash('sha256').update(value, 'ascii').digest('base64url')
-}
 
 export function createPendingLogin(
   { attemptId, provider, generation, startedAt, verifier: initialVerifier }: PendingLoginInput,
   clock: AuthClock,
   onExpired: (attempt: PendingLogin) => void
 ): PendingLogin {
-  // Secrets and abort/timer resources stay outside actor snapshots and events.
+  // Secrets and abort resources stay outside actor snapshots and events.
   let verifier: string | null = initialVerifier
   initialVerifier = ''
   let controller = new AbortController()
   const lifetime = new AbortController()
-  let cancelExpiry: (() => void) | null = null
-  const actor = createActor(pendingLoginMachine, { input: { startedAt } })
+  const actor = createActor(
+    pendingLoginMachine.provide({
+      actors: {
+        expiry: fromCallback(({ receive, sendBack }) => {
+          let stopped = false
+          let cancel: (() => void) | undefined
+          const schedule = (): void => {
+            cancel?.()
+            cancel = undefined
+            const checkedAt = clock.read()
+            if (isExpired(checkedAt)) {
+              sendBack({ type: 'EXPIRE' })
+              return
+            }
+            const delayMs = pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
+            const scheduled = clock.schedule(delayMs, () => {
+              if (stopped) {
+                return
+              }
+              if (isExpired(clock.read())) {
+                sendBack({ type: 'EXPIRE' })
+              } else {
+                schedule()
+              }
+            })
+            // A synchronous clock callback can dispose the owner before schedule returns.
+            if (stopped) {
+              scheduled()
+            } else {
+              cancel = scheduled
+            }
+          }
+          receive(schedule)
+          schedule()
+          return () => {
+            stopped = true
+            cancel?.()
+          }
+        })
+      }
+    }),
+    { input: { startedAt } }
+  )
   actor.subscribe({
     complete: () => {
-      // Publish the terminal state before abort listeners can reenter this attempt.
+      // The terminal snapshot is visible before coordinator or abort listeners reenter.
       verifier = null
-      cancelExpiry?.()
-      cancelExpiry = null
+      if (actor.getSnapshot().context.expired) {
+        onExpired(pending)
+      }
       controller.abort()
       lifetime.abort()
     }
@@ -85,42 +126,6 @@ export function createPendingLogin(
     return expired
   }
 
-  function expire(): void {
-    onExpired(pending)
-    actor.send({ type: 'EXPIRE' })
-  }
-
-  function scheduleExpiry(): void {
-    cancelExpiry?.()
-    cancelExpiry = null
-    if (actor.getSnapshot().status === 'done') {
-      return
-    }
-    const checkedAt = clock.read()
-    if (isExpired(checkedAt)) {
-      expire()
-      return
-    }
-
-    const delayMs = pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
-    const cancel = clock.schedule(delayMs, () => {
-      if (actor.getSnapshot().status === 'done') {
-        return
-      }
-      const firedAt = clock.read()
-      if (isExpired(firedAt)) {
-        expire()
-      } else {
-        scheduleExpiry()
-      }
-    })
-    if (actor.getSnapshot().status === 'done') {
-      cancel()
-    } else {
-      cancelExpiry = cancel
-    }
-  }
-
   const pending: PendingLogin = {
     attemptId,
     provider,
@@ -133,41 +138,74 @@ export function createPendingLogin(
     },
     get isBeforeExchange() {
       const snapshot = actor.getSnapshot()
-      return snapshot.matches({ active: 'starting' }) || snapshot.matches({ active: 'waiting' })
+      return (
+        snapshot.matches('idle') ||
+        snapshot.matches({ active: 'starting' }) ||
+        snapshot.matches({ active: 'waiting' })
+      )
     },
     snapshot: () => ({ attemptId, provider, expiresAt: actor.getSnapshot().context.expiresAt }),
+    start: () => actor.send({ type: 'START' }),
     acceptRequest: ({ requestId, expiresAt }) => {
+      if (!actor.getSnapshot().matches({ active: 'starting' })) {
+        return
+      }
       actor.send({ type: 'REQUEST_ACCEPTED', requestId, expiresAt })
+      if (isExpired(clock.read())) {
+        actor.send({ type: 'EXPIRE' })
+      } else {
+        actor.send({ type: 'RESCHEDULE_EXPIRY' })
+      }
     },
     isExpired,
-    scheduleExpiry,
-    claim: (code) => {
-      const response: { decision: ExchangeDecision } = { decision: { status: 'ignored' } }
-      actor.send({
-        type: 'CLAIM',
-        fingerprint: fingerprint(code),
-        reply: (value) => {
-          response.decision = value
-        }
-      })
-      const result = response.decision
-      if (result.status !== 'claimed') {
-        return result
-      }
-      const requestId = actor.getSnapshot().context.requestId
-      if (requestId == null || verifier == null) {
+    claimExchange: (code, reserve) => {
+      const snapshot = actor.getSnapshot()
+      const fingerprint = createHash('sha256').update(code, 'ascii').digest('base64url')
+      const { requestId, rejectedFingerprint, exchangeFingerprint, exchangePromise } =
+        snapshot.context
+      if (rejectedFingerprint === fingerprint) {
         return { status: 'ignored' }
       }
-      controller = new AbortController()
-      return {
-        status: 'claimed',
-        input: { requestId, clientId: 'desktop', code, codeVerifier: verifier },
-        signal: controller.signal
+      if (snapshot.matches({ active: 'exchanging' })) {
+        return exchangeFingerprint === fingerprint && exchangePromise != null
+          ? { status: 'joined', promise: exchangePromise }
+          : { status: 'ignored' }
       }
+      const claim = { type: 'CLAIM' as const, fingerprint }
+      if (!snapshot.can(claim) || requestId == null || verifier == null) {
+        return { status: 'ignored' }
+      }
+      actor.send(claim)
+      controller = new AbortController()
+      const input = { requestId, clientId: 'desktop' as const, code, codeVerifier: verifier }
+      // Publication and its current-attempt check must precede reserving the writer.
+      const writer = reserve()
+      if (writer == null) {
+        return { status: 'ignored' }
+      }
+      actor.send({ type: 'TRACK_EXCHANGE', promise: writer.completion })
+      return { status: 'claimed', input, signal: controller.signal, writer }
     },
-    trackExchange: (promise) => actor.send({ type: 'TRACK_EXCHANGE', promise }),
-    rejectCode: (code) => actor.send({ type: 'REJECT_CODE', fingerprint: fingerprint(code) }),
-    resumeWaiting: () => actor.send({ type: 'RESUME_WAITING' }),
+    rejectExchange: async (recover) => {
+      const snapshot = actor.getSnapshot()
+      if (!snapshot.matches({ active: 'exchanging' })) {
+        return false
+      }
+      const exchangePromise = snapshot.context.exchangePromise
+      actor.send({ type: 'EXCHANGE_REJECTED' })
+      if (!(await recover())) {
+        return false
+      }
+      const recovered = actor.getSnapshot()
+      if (
+        !recovered.matches({ active: 'exchanging' }) ||
+        recovered.context.exchangePromise !== exchangePromise
+      ) {
+        return false
+      }
+      actor.send({ type: 'RESUME_WAITING' })
+      return true
+    },
     dispose: () => actor.send({ type: 'DISPOSE' })
   }
   return pending
