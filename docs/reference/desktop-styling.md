@@ -44,7 +44,7 @@ const styles = stylex.create({
 
 ## 테마 상태
 
-제품 `main.tsx`와 MVP 미리보기 `fixture/mvp/main.tsx`는 각 창의 루트에 `ColorThemeProvider`를 둡니다. Provider가 테마 상태와 전환, document의 SEED color mode 반영을 소유하고, 화면은 `useColorTheme()`로 같은 `light`·`toggleTheme`를 읽습니다. 컴포넌트 사이에서 테마 props를 전달하거나 훅마다 별도 상태를 만들지 않습니다. Provider 밖에서 훅을 호출하면 오류가 발생하므로 독립 렌더링 테스트에도 Provider를 포함합니다. React 포털 안의 소비자도 같은 context를 읽습니다.
+제품 `main.tsx`, MVP 미리보기 `fixture/mvp/main.tsx`, 인증 bridge fixture `fixture/auth-bridge/main.tsx`는 각 창의 루트에 `ColorThemeProvider`를 둡니다. Context는 `hooks/color-theme-context.ts`에 두며 Provider와 훅이 함께 참조합니다. Provider가 테마 상태와 전환, document의 SEED color mode 반영을 소유하고, 화면은 `useColorTheme()`로 같은 `light`·`toggleTheme`를 읽습니다. 컴포넌트 사이에서 테마 props를 전달하거나 훅마다 별도 상태를 만들지 않습니다. Provider 밖에서 훅을 호출하면 오류가 발생하므로 독립 렌더링 테스트에도 Provider를 포함합니다. React 포털 안의 소비자도 같은 context를 읽습니다.
 
 기본 앱은 시작 시 시스템 테마를 읽고, 미리보기는 기존 URL의 `theme=light|dark|system`을 Provider의 초기값으로 전달합니다. 수동 전환은 현재 창에서 유지하며 설정 저장이나 실행 중 OS 테마 추적을 추가하지 않습니다. StyleX 테마 적용은 화면이 소유합니다. 라이트 테마에서도 카드 면은 다크 색상을 유지합니다.
 

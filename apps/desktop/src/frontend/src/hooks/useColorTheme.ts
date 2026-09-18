@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import { ColorThemeContext } from '../lib/color-theme'
+import { ColorThemeContext } from './color-theme-context'
 
 export function useColorTheme(): {
   light: boolean

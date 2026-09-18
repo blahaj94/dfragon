@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ColorThemeContext } from '../lib/color-theme'
+import { ColorThemeContext } from '../hooks/color-theme-context'
 
 export function ColorThemeProvider({
   initialTheme = 'system',
