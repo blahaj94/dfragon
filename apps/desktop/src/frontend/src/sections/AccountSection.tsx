@@ -7,61 +7,48 @@ import {
   DialogFooter,
   DialogRoot,
   DialogTrigger,
-  SupportingText
+  ProgressCircle
 } from '@ldb/ui'
-import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
+import type { AuthApi } from '../../../preload/common/types/auth'
 import { AuthConnectionStatus } from '../components/AuthConnectionStatus'
-import { authNotices, authPhaseLabels } from '../constants/auth'
 import { useAuthBridge } from '../hooks/useAuthBridge'
 import { AuthPresentation } from './AuthPresentation'
-
-function getAccountButtonLabel({
-  connectionFailed,
-  snapshot
-}: {
-  connectionFailed: boolean
-  snapshot: AuthSnapshot | null
-}): string {
-  if (connectionFailed) {
-    return '로그인 연결 확인'
-  }
-  if (snapshot == null) {
-    return '계정 확인 중'
-  }
-  return authPhaseLabels[snapshot.phase]
-}
 
 export function AccountSection({ api }: { api: AuthApi }): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const { snapshot, presentationEpoch, commandPending, connectionFailed, onIntent, resynchronize } =
     useAuthBridge(api)
-  const label = getAccountButtonLabel({ connectionFailed, snapshot })
+  const label = snapshot?.phase === 'signedIn' ? '내 계정' : '로그인'
+  const inProgress =
+    commandPending ||
+    (snapshot == null && !connectionFailed) ||
+    snapshot?.phase === 'restoring' ||
+    snapshot?.phase === 'startingLogin' ||
+    snapshot?.phase === 'waitingBrowser' ||
+    snapshot?.phase === 'exchanging' ||
+    snapshot?.phase === 'signingOut'
   const canBeginLogin = snapshot?.phase === 'signedOut' && snapshot.providers.includes('passkey')
 
   return (
     <DialogRoot open={open && !canBeginLogin} onOpenChange={setOpen}>
       {canBeginLogin ? (
-        <>
-          <ActionButton
-            size="small"
-            variant="ghost"
-            disabled={commandPending}
-            onClick={() => {
-              setOpen(false)
-              onIntent({ type: 'beginLogin', provider: 'passkey' })
-            }}
-          >
-            {label}
-          </ActionButton>
-          {snapshot.notice != null && (
-            <div role="status">
-              <SupportingText>{authNotices[snapshot.notice]}</SupportingText>
-            </div>
-          )}
-        </>
+        <ActionButton
+          size="small"
+          variant="ghost"
+          disabled={commandPending}
+          aria-busy={inProgress}
+          onClick={() => {
+            setOpen(false)
+            onIntent({ type: 'beginLogin', provider: 'passkey' })
+          }}
+        >
+          {inProgress && <ProgressCircle size="24" aria-hidden="true" />}
+          {label}
+        </ActionButton>
       ) : (
         <DialogTrigger asChild>
-          <ActionButton size="small" variant="ghost">
+          <ActionButton size="small" variant="ghost" aria-busy={inProgress}>
+            {inProgress && <ProgressCircle size="24" aria-hidden="true" />}
             {label}
           </ActionButton>
         </DialogTrigger>

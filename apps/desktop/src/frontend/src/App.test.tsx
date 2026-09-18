@@ -113,16 +113,19 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
   await click('로그인')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
-  expect(container.querySelector('header')?.textContent).toContain('로그인 진행 중')
-  await click('로그인 진행 중')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [data-progress-state="indeterminate"]')).not.toBeNull()
+  await click('로그인')
   await click('로그인 취소')
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
-  expect(document.body.textContent).toContain('로그인을 취소했습니다')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [data-progress-state="indeterminate"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({ phase: 'signedOut', login: null, notice: 'NETWORK_UNAVAILABLE' })
   })
-  expect(document.body.textContent).toContain('네트워크 연결을 확인해 주세요')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [data-progress-state="indeterminate"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({
@@ -146,12 +149,12 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
 it('계정 창을 닫아도 구독과 진행 상태를 유지하고 다시 열어 취소할 수 있다', async () => {
   await act(async () => root.render(<App />))
   await click('로그인')
-  await click('로그인 진행 중')
+  await click('로그인')
   await click('닫기')
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   expect(listeners.size).toBe(1)
   expect(api.cancelLogin).not.toHaveBeenCalled()
-  await click('로그인 진행 중')
+  await click('로그인')
   await click('로그인 취소')
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
 })
@@ -159,7 +162,8 @@ it('계정 창을 닫아도 구독과 진행 상태를 유지하고 다시 열�
 it('재실행 조회의 복원 결과를 계정 창을 열기 전 반영하고 unmount 때 구독을 해제한다', async () => {
   snapshot = { ...snapshot, phase: 'restoring' }
   await act(async () => root.render(<App />))
-  expect(container.querySelector('header')?.textContent).toContain('계정 복원 중')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [data-progress-state="indeterminate"]')).not.toBeNull()
   await act(async () => {
     publish({ phase: 'signedIn', user: { nickname: '복원모험가' }, entry: 'home' })
   })
@@ -179,7 +183,7 @@ it('인증 연결 실패 중에도 카드·테마를 유지하고 연결 재확�
   vi.mocked(api.getAuthState).mockRejectedValueOnce(new Error('test connection unavailable'))
   await act(async () => root.render(<App />))
   const cards = [...container.querySelectorAll('article')]
-  await click('로그인 연결 확인')
+  await click('로그인')
   expect(document.body.textContent).toContain('인증 연결을 확인할 수 없습니다')
   await click('연결 다시 확인')
   expect(api.getAuthState).toHaveBeenCalledTimes(2)

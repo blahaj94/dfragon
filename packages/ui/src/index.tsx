@@ -1,6 +1,7 @@
 import type { unstable_StyleProps as SeedStyleProps } from '@seed-design/react'
 import type { ComponentPropsWithRef, ComponentType, ElementType } from 'react'
 import { ActionButton as SeedActionButton } from './seed/action-button'
+import { ProgressCircle as SeedProgressCircle } from './seed/progress-circle'
 import { TextField as SeedTextField, TextFieldInput as SeedTextFieldInput } from './seed/text-field'
 import {
   DialogRoot as SeedDialogRoot,
@@ -19,6 +20,9 @@ type PublicProps<T extends ElementType> = Omit<
 
 export type ActionButtonProps = PublicProps<typeof SeedActionButton>
 export const ActionButton: ComponentType<ActionButtonProps> = SeedActionButton
+
+export type ProgressCircleProps = PublicProps<typeof SeedProgressCircle>
+export const ProgressCircle: ComponentType<ProgressCircleProps> = SeedProgressCircle
 
 export type TextFieldProps = PublicProps<typeof SeedTextField>
 export const TextField: ComponentType<TextFieldProps> = SeedTextField
