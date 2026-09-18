@@ -3,7 +3,6 @@ import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
 import type { AuthIntent } from '../types/auth'
 
 type BridgeState = {
-  presentationEpoch: number
   snapshot: AuthSnapshot | null
   commandPending: boolean
   connectionFailed: boolean
@@ -18,10 +17,8 @@ type QueryInput = Readonly<{
 }>
 
 export function useAuthBridge(api: AuthApi): AuthBridge {
-  const presentationEpochRef = useRef(0)
   const [state, setState] = useState<BridgeState & { source: AuthApi }>({
     source: api,
-    presentationEpoch: 0,
     snapshot: null,
     commandPending: false,
     connectionFailed: false
@@ -62,22 +59,9 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
           return
         }
       }
-      let wasSignedIn: boolean | undefined
-      if (hasCurrent) {
-        wasSignedIn = previous.phase === 'signedIn'
-      }
-      const isSignedIn = snapshot.phase === 'signedIn'
-      // React가 여러 auth event를 한 render로 합쳐도 이전 home을 재사용하지 않는다.
-      if (hasCurrent) {
-        const hasLeftSignedIn = wasSignedIn === true && !isSignedIn
-        if (hasLeftSignedIn) {
-          presentationEpochRef.current += 1
-        }
-      }
       current = snapshot
       setState({
         source: api,
-        presentationEpoch: presentationEpochRef.current,
         snapshot,
         commandPending: pending,
         connectionFailed: false
@@ -109,7 +93,6 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
         current = null
         setState({
           source: api,
-          presentationEpoch: presentationEpochRef.current,
           snapshot: null,
           commandPending: pending,
           connectionFailed: true
@@ -129,7 +112,6 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
       if (isReconnect) {
         setState({
           source: api,
-          presentationEpoch: presentationEpochRef.current,
           snapshot: null,
           commandPending: false,
           connectionFailed: false
@@ -165,7 +147,6 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
       } catch {
         setState({
           source: api,
-          presentationEpoch: presentationEpochRef.current,
           snapshot: null,
           commandPending: false,
           connectionFailed: true
@@ -189,14 +170,8 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
           switch (intent.type) {
             case 'beginLogin':
               return api.beginLogin({ provider: intent.provider })
-            case 'cancelLogin':
-              return api.cancelLogin({ attemptId: intent.attemptId })
             case 'retryAuth':
               return api.retryAuth()
-            case 'managePasskeys':
-              return api.managePasskeys()
-            case 'logout':
-              return api.logout()
           }
         })()
         accept(result.snapshot, expected)
@@ -235,7 +210,6 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
     // API 객체가 다시 사용되어도 이전 연결의 계정 state를 복구하지 않는다.
     setState({
       source: api,
-      presentationEpoch: state.presentationEpoch,
       snapshot: null,
       commandPending: false,
       connectionFailed: false
@@ -244,13 +218,11 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
   const visible = hasSameSource
     ? state
     : {
-        presentationEpoch: state.presentationEpoch,
         snapshot: null,
         commandPending: false,
         connectionFailed: false
       }
   return {
-    presentationEpoch: visible.presentationEpoch,
     snapshot: visible.snapshot,
     commandPending: visible.commandPending,
     connectionFailed: visible.connectionFailed,

@@ -1,8 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import { ProgressCircle } from '@ldb/ui'
-import { styles } from './AccountButtonLabel.style'
+import { styles } from './LoginButtonLabel.style'
 
-export function AccountButtonLabel({
+export function LoginButtonLabel({
   label,
   inProgress
 }: {

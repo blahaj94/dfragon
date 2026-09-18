@@ -11,12 +11,12 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## 디자인 원본
 
-| 용도 | Penpot 원본 | 읽는 방법 |
-| --- | --- | --- |
-| 메인 화면 | [01 · 다크 · 대기][main] | 같은 페이지의 02~06에서 캡처 중·창 감지 실패와 라이트 테마를 확인한다. |
-| 반응형 배치 | [확정 A · 900px][responsive] | 같은 이름의 700px·500px·300px 보드까지 비교한다. |
-| 메인 슬롯의 면 전환 | [08 · 카드 순환 · 상태 비교][faces] | 캐릭터 → 장비 → 서약 → 투자 현황 → 캐릭터. 슬롯마다 독립적이다. |
-| 별도 상세창 | [07 · 캐릭터 상세 · 확정 A][detail] | 장비·서약·강화·마법부여·스킬트리를 각각 한 장으로 둔, 반듯하게 겹친 카드 A안이다. |
+| 용도                | Penpot 원본                         | 읽는 방법                                                                         |
+| ------------------- | ----------------------------------- | --------------------------------------------------------------------------------- |
+| 메인 화면           | [01 · 다크 · 대기][main]            | 같은 페이지의 02~06에서 캡처 중·창 감지 실패와 라이트 테마를 확인한다.            |
+| 반응형 배치         | [확정 A · 900px][responsive]        | 같은 이름의 700px·500px·300px 보드까지 비교한다.                                  |
+| 메인 슬롯의 면 전환 | [08 · 카드 순환 · 상태 비교][faces] | 캐릭터 → 장비 → 서약 → 투자 현황 → 캐릭터. 슬롯마다 독립적이다.                   |
+| 별도 상세창         | [07 · 캐릭터 상세 · 확정 A][detail] | 장비·서약·강화·마법부여·스킬트리를 각각 한 장으로 둔, 반듯하게 겹친 카드 A안이다. |
 
 `보관`으로 시작하는 보드와 09B·09C는 구현 기준에서 제외한다. Penpot의 메인 카드 일부는 시연용 상세창 링크를 가지고 있으므로, 클릭 링크를 그대로 복제하기보다 08의 면 전환과 상세 열기 액션을 구분한다. 프로토타입의 화면 이동은 실제 입력·API 호출·Electron 창 수명 구현을 대신하지 않는다.
 
@@ -24,33 +24,33 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 검색은 [캐릭터 검색 계약](../rules/character-search.md), 상세는 [캐릭터 상세 계약](../rules/character-details.md)을 따른다. 공개 검색·상세 조회를 로그인으로 막지 않는다. 상세 API의 캐시·갱신·오류 정책은 원본 계약을 참조하며 UI 문서에서 별도 정책을 만들지 않는다.
 
-| 화면 데이터 | 연결 지점 | 주의점 |
-| --- | --- | --- |
-| 검색 후보·서버·명성 | `GET /characters`의 `rows` | 응답은 식별자·이름·서버·명성의 다섯 필드뿐이다. 모험단·직업·장비 정보가 있다고 가정하지 않는다. |
+| 화면 데이터         | 연결 지점                                | 주의점                                                                                                 |
+| ------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 검색 후보·서버·명성 | `GET /characters`의 `rows`               | 응답은 식별자·이름·서버·명성의 다섯 필드뿐이다. 모험단·직업·장비 정보가 있다고 가정하지 않는다.        |
 | 기본 정보·장착 정보 | `GET /characters/:serverId/:characterId` | 선택한 캐릭터의 상세를 연결한다. `character`, `equipment`, `avatar`, `creature`, `oath` 등을 소비한다. |
-| 강화·증폭 | 캐릭터에 실제 장착된 장비 값 | 공용 `itemDetail`의 값으로 덮어쓰지 않는다. |
-| 서약 슬롯 | `oath.info`, `oath.crystal`의 `slotNo` | 장비의 부위 ID와 별도로 명시적 대응을 둔다. 아래 표는 현재 디자인의 대응이다. |
-| 마법부여 | 장착 데이터와 별도의 평가 기준 필요 | 상세 API는 종결·준종결·기타 판정 결과를 제공하는 계약이 아니다. |
-| 스킬 | `skillStyle` 및 `skillDetails` | 데이터가 있다는 이유로 미설계 스킬트리 UI를 MVP에 추가하지 않는다. |
+| 강화·증폭           | 캐릭터에 실제 장착된 장비 값             | 공용 `itemDetail`의 값으로 덮어쓰지 않는다.                                                            |
+| 서약 슬롯           | `oath.info`, `oath.crystal`의 `slotNo`   | 장비의 부위 ID와 별도로 명시적 대응을 둔다. 아래 표는 현재 디자인의 대응이다.                          |
+| 마법부여            | 장착 데이터와 별도의 평가 기준 필요      | 상세 API는 종결·준종결·기타 판정 결과를 제공하는 계약이 아니다.                                        |
+| 스킬                | `skillStyle` 및 `skillDetails`           | 데이터가 있다는 이유로 미설계 스킬트리 UI를 MVP에 추가하지 않는다.                                     |
 
-| 서약 원본 | 대응 장비 부위 | 서약 원본 | 대응 장비 부위 |
-| --- | --- | --- | --- |
-| `info` | 무기 | 결정 `slotNo: 0` | 머리어깨 |
-| 결정 `1` | 상의 | 결정 `2` | 하의 |
-| 결정 `3` | 벨트 | 결정 `4` | 신발 |
-| 결정 `5` | 보조장비 | 결정 `6` | 귀걸이 |
-| 결정 `7` | 마법석 | 결정 `8` | 팔찌 |
-| 결정 `9` | 목걸이 | 결정 `10` | 반지 |
+| 서약 원본 | 대응 장비 부위 | 서약 원본        | 대응 장비 부위 |
+| --------- | -------------- | ---------------- | -------------- |
+| `info`    | 무기           | 결정 `slotNo: 0` | 머리어깨       |
+| 결정 `1`  | 상의           | 결정 `2`         | 하의           |
+| 결정 `3`  | 벨트           | 결정 `4`         | 신발           |
+| 결정 `5`  | 보조장비       | 결정 `6`         | 귀걸이         |
+| 결정 `7`  | 마법석         | 결정 `8`         | 팔찌           |
+| 결정 `9`  | 목걸이         | 결정 `10`        | 반지           |
 
 장비 배열 순서만으로 부위를 결정하지 않는다. 12부위 식별자는 `WEAPON`, `JACKET`, `SHOULDER`, `PANTS`, `WAIST`, `SHOES`, `AMULET`, `WRIST`, `RING`, `SUPPORT`, `MAGIC_STON`, `EARRING`이다. `MAGIC_STON`은 원본 식별자를 유지한다. 누락 슬롯·누락 값·이미지 실패는 실제 0이나 다른 아이템으로 채우지 않는다.
 
-| 저장소 위치 | 이어받을 책임 |
-| --- | --- |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`, `components/CharacterCandidates.tsx` | 기존 슬롯·후보 표시를 카드 화면으로 연결할 출발점 |
-| `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts` | 이름 수정·제출·OCR 복귀·슬롯별 검색 상태 |
-| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `search-connection.ts` | capture와 요청 수명, 순서·취소·늦은 응답 처리 |
-| `apps/desktop/src/backend/search/`, `src/preload/common/types/search.ts` | main 검색 처리와 공유 IPC 계약 |
-| `apps/desktop/src/backend/main.ts`, `src/preload/index.ts` | 새 상세 기능의 등록 지점. 기능 본문은 별도 모듈로 구성 |
+| 저장소 위치                                                                                      | 이어받을 책임                                          |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`, `components/CharacterCandidates.tsx` | 기존 슬롯·후보 표시를 카드 화면으로 연결할 출발점      |
+| `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                                      | 이름 수정·제출·OCR 복귀·슬롯별 검색 상태               |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `search-connection.ts`                    | capture와 요청 수명, 순서·취소·늦은 응답 처리          |
+| `apps/desktop/src/backend/search/`, `src/preload/common/types/search.ts`                         | main 검색 처리와 공유 IPC 계약                         |
+| `apps/desktop/src/backend/main.ts`, `src/preload/index.ts`                                       | 새 상세 기능의 등록 지점. 기능 본문은 별도 모듈로 구성 |
 
 상세 조회용 Desktop 연결과 별도 상세 BrowserWindow는 새 구현 범위다. 현재 검색 IPC가 이미 상세 조회까지 제공한다고 가정하지 않는다. Renderer에 Neople API key나 임의 URL 호출을 추가하지 않고, 기존 main/preload 경계와 runtime 검증을 따른다. 같은 캐릭터의 카드 면을 바꿀 때마다 새 HTTP 요청을 만들지 않도록 조회 데이터와 표시 상태를 분리한다.
 
@@ -58,7 +58,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Renderer 미리보기
 
-`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 열고, 계정 다이얼로그는 진행/취소·복구·로그아웃을 제공하며 세션 복원 결과를 반영한다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 검색·캡처·OCR·상세 연결 전까지 입력·캡처는 비활성화한다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
+`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 연다. 진행 중에는 재클릭을 막고, 취소는 인증 창 닫기로 처리한다. 로그인 완료 시 버튼을 숨기며 계정 모달·환영·패스키 관리·로그아웃 메뉴는 제공하지 않는다. 연결 조회 실패와 복원·저장소 실패 시 로그인 버튼으로 조회 또는 복구를 재시도할 수 있다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 검색·캡처·OCR·상세 연결 전까지 입력·캡처는 비활성화한다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
 
 ```bash
 pnpm --filter @ldb/desktop dev

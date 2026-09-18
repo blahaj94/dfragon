@@ -298,7 +298,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
 
   try {
     await act(async () => root.render(<LegacyApp />))
-    await waitForText(container, '패스키로 계속하기')
+    await waitForText(container, '로그인')
 
     await waitForCondition(() => {
       const source = container.querySelector('select') as HTMLSelectElement | null
@@ -362,16 +362,14 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     })
     await waitForText(container, 'live-character')
 
-    await click(container, '패스키로 계속하기')
+    await click(container, '로그인')
     await waitForCondition(() =>
       expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
     )
     await act(async () => {
       await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     })
-    await waitForText(container, '시작하기')
-
-    await click(container, '시작하기')
+    await waitForCondition(() => expect(runtime.coordinator.getSnapshot().phase).toBe('signedIn'))
     expect(container.textContent).toContain('live-character')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()
     expect(track.stop).not.toHaveBeenCalled()
@@ -383,8 +381,10 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     await waitForText(container, 'BOB')
     await waitForText(container, '검색 중')
 
-    await click(container, '이 기기 로그아웃')
-    await waitForText(container, '패스키로 계속하기')
+    await act(async () => {
+      await authApi.logout()
+    })
+    await waitForText(container, '로그인')
     expect(runtime.coordinator.getSnapshot()).toMatchObject({ phase: 'signedOut', notice: null })
     expect(harness.http.logout).toHaveBeenCalledExactlyOnceWith(
       expect.any(String),
@@ -422,15 +422,14 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     await waitForText(container, 'late-character')
     expect(container.textContent).toContain('화면 캡처')
 
-    await click(container, '패스키로 계속하기')
+    await click(container, '로그인')
     await waitForCondition(() =>
       expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
     )
     await act(async () => {
       await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     })
-    await waitForText(container, '시작하기')
-    await click(container, '시작하기')
+    await waitForCondition(() => expect(runtime.coordinator.getSnapshot().phase).toBe('signedIn'))
     await waitForCondition(() => {
       const nextSource = container.querySelector('select') as HTMLSelectElement | null
       expect(nextSource?.options).toHaveLength(2)

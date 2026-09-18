@@ -605,7 +605,7 @@ function PasskeyPage() {
             LDB 앱으로 돌아가기
           </a>
           <p>앱 복귀 링크는 1분 이내에 사용해 주세요.</p>
-          <p>예비 패스키는 LDB 앱의 패스키 관리에서 추가할 수 있어요.</p>
+          <p>예비 패스키는 패스키 관리 화면에서 추가할 수 있어요.</p>
         </section>
       )}
       <p id="status" role="status" aria-live="polite">

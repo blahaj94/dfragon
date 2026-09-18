@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { lightTheme } from './constants/theme.stylex'
 import { useColorTheme } from './hooks/useColorTheme'
 import { PartyPage } from './pages/party/PartyPage'
-import { AccountSection } from './sections/AccountSection'
+import { LoginSection } from './sections/LoginSection'
 import { styles } from './App.style'
 
 function App(): React.JSX.Element {
@@ -14,7 +14,7 @@ function App(): React.JSX.Element {
         slots={['idle', 'idle', 'idle', 'idle']}
         light={light}
         onToggleTheme={toggleTheme}
-        account={<AccountSection api={window.auth} />}
+        account={<LoginSection api={window.auth} />}
       />
       <footer {...stylex.props(styles.footer)}>
         <span>LDB Desktop</span>
