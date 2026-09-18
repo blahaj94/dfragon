@@ -103,7 +103,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결·OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @ldb/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 로그인 버튼의 인증 창 진입·진행 표시·실패 후 재시도을 제공하며 검색·캡처·OCR·상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- 기본 앱: `pnpm --filter @ldb/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 로그인 버튼의 인증 창 진입·진행 표시·실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 선택 즉시 캡처·대상 변경·중지를 연결하고 OCR 이름을 카드에 표시한다. 검색 결과·이름 수정·상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세·캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @ldb/desktop dev`

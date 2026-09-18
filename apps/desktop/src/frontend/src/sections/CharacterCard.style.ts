@@ -68,20 +68,11 @@ export const styles = stylex.create({
     outlineOffset: 2,
     ':focus-visible': { outline: '2px solid #f57424' }
   },
-  select: {
+  serverAnchor: {
     position: 'absolute',
     top: 11,
     left: 11,
-    maxWidth: 'calc(100% - 60px)',
-    height: 22,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: '#f57424',
-    borderRadius: 4,
-    backgroundColor: '#4a3025',
-    color: '#ffad78',
-    fontFamily: 'inherit',
-    fontSize: 10
+    maxWidth: 'calc(100% - 60px)'
   },
   detail: {
     position: 'absolute',

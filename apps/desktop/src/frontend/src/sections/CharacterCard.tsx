@@ -1,5 +1,8 @@
+import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
+import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { ServerSelect } from '../components/ServerSelect'
 import { CardImage } from '../components/CardImage'
 import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
@@ -14,6 +17,7 @@ export function CharacterCard({
   slot,
   initialFace = 0,
   inputEnabled = false,
+  nickname,
   onDetail
 }: {
   character?: CardCharacter
@@ -21,6 +25,7 @@ export function CharacterCard({
   slot: number
   initialFace?: number
   inputEnabled?: boolean
+  nickname?: string
   onDetail?: () => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
@@ -29,14 +34,7 @@ export function CharacterCard({
   const editing = character != null && (name !== character.name || serverId !== character.serverId)
   const canTurn = state === 'success' && character != null && !editing
   const showCharacter = face === 0 || !canTurn
-  const status =
-    state === 'failure'
-      ? '검색 실패'
-      : state === 'empty'
-        ? '검색 결과가 없습니다'
-        : state === 'pending'
-          ? '검색 중…'
-          : ''
+  const status = getCharacterCardStatus(state)
 
   return (
     <article
@@ -83,24 +81,21 @@ export function CharacterCard({
       {showCharacter && (
         <>
           {state === 'success' && character != null && (
-            <select
-              aria-label={`${slot}번 서버`}
-              value={serverId}
-              disabled={!inputEnabled}
-              onChange={(event) => setServerId(event.target.value)}
-              {...stylex.props(styles.select)}
-            >
-              {Object.entries(serverNames).map(([id, label]) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <div {...stylex.props(styles.serverAnchor)}>
+              <ServerSelect
+                label={`${slot}번 서버`}
+                value={serverId}
+                disabled={!inputEnabled}
+                options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
+                onValueChange={setServerId}
+              />
+            </div>
           )}
           <input
             aria-label={`${slot}번 캐릭터 이름`}
-            value={name}
+            value={nickname ?? name}
             disabled={!inputEnabled}
+            readOnly={nickname != null}
             placeholder="캐릭터명 입력"
             onChange={(event) => setName(event.target.value)}
             {...stylex.props(styles.input)}
@@ -118,20 +113,7 @@ export function CharacterCard({
           onClick={onDetail}
           {...stylex.props(styles.detail)}
         >
-          <svg
-            aria-hidden="true"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M15 3h6v6m-11 5L21 3" />
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-          </svg>
+          <ExternalLinkIcon width="16" height="16" />
         </button>
       )}
       <span aria-live="polite" {...stylex.props(styles.srOnly)}>

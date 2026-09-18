@@ -1,4 +1,4 @@
-import { act } from 'react'
+import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
 import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
@@ -68,7 +68,7 @@ type RendererFixture = {
   resources: CaptureResources
   getDisplayMedia: ReturnType<typeof vi.fn>
   order: string[]
-  mount: () => Promise<void>
+  mount: (content?: ReactNode) => Promise<void>
   unmount: () => Promise<void>
   button: (label: string, within?: ParentNode) => HTMLButtonElement
   select: (source?: string) => Promise<void>
@@ -243,8 +243,8 @@ export function createRendererFixture(): RendererFixture {
     resources,
     getDisplayMedia,
     order,
-    mount: async () => {
-      await act(async () => root.render(<LegacyApp />))
+    mount: async (content = <LegacyApp />) => {
+      await act(async () => root.render(content))
     },
     unmount,
     button,

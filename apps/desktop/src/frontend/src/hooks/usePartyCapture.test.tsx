@@ -778,3 +778,98 @@ describe('usePartyCapture', () => {
     await hook.unmount()
   })
 })
+
+it('창 선택 등록이 완료되면 별도 시작 없이 캡처를 시작한다', async () => {
+  const { stream, worker } = captureResources()
+  getDisplayMedia.mockResolvedValue(stream)
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+  expect(api.selectCaptureSource).toHaveBeenCalledWith('game')
+  expect(getDisplayMedia).toHaveBeenCalledOnce()
+  expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+  await hook.unmount()
+})
+
+it('창을 연속 선택하면 늦게 등록된 이전 선택은 캡처를 시작하지 않는다', async () => {
+  const oldSelection = Promise.withResolvers<null>()
+  const { stream, worker } = captureResources()
+  getDisplayMedia.mockResolvedValue(stream)
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+  api.selectCaptureSource.mockReturnValueOnce(oldSelection.promise)
+  const hook = await renderPartyCaptureHook()
+  let oldStart!: Promise<void>
+  await act(async () => {
+    oldStart = hook.getCurrent().selectAndStartCapture('old')
+  })
+  await act(async () => hook.getCurrent().selectAndStartCapture('new'))
+  await act(async () => {
+    oldSelection.resolve(null)
+    await oldStart
+  })
+  expect(hook.getCurrent().selectedSourceId).toBe('new')
+  expect(getDisplayMedia).toHaveBeenCalledOnce()
+  await hook.unmount()
+})
+
+it.each(['stop', 'unmount', 'failure'] as const)(
+  '선택 대기 중 %s 이후에는 자동으로 시작하지 않는다',
+  async (action) => {
+    const selection = Promise.withResolvers<null>()
+    api.selectCaptureSource.mockReturnValueOnce(selection.promise)
+    const hook = await renderPartyCaptureHook()
+    let start!: Promise<void>
+    await act(async () => {
+      start = hook.getCurrent().selectAndStartCapture('game')
+    })
+    if (action === 'stop') {
+      await act(async () => hook.getCurrent().stopCapture())
+    }
+    if (action === 'unmount') {
+      await hook.unmount()
+    }
+    await act(async () => {
+      if (action === 'failure') {
+        selection.reject(new Error('Selection failed'))
+      } else {
+        selection.resolve(null)
+      }
+      await start
+    })
+    expect(getDisplayMedia).not.toHaveBeenCalled()
+    if (action !== 'unmount') {
+      await hook.unmount()
+    }
+  }
+)
+
+it('이전 창 등록 완료가 새 창의 준비 상태를 해제하지 않는다', async () => {
+  const oldSelection = Promise.withResolvers<null>()
+  const newSelection = Promise.withResolvers<null>()
+  api.selectCaptureSource
+    .mockReturnValueOnce(oldSelection.promise)
+    .mockReturnValueOnce(newSelection.promise)
+  const hook = await renderPartyCaptureHook()
+  let oldStart!: Promise<void>
+  let newStart!: Promise<void>
+  await act(async () => {
+    oldStart = hook.getCurrent().selectAndStartCapture('old')
+  })
+  await act(async () => {
+    newStart = hook.getCurrent().selectAndStartCapture('new')
+  })
+  await act(async () => {
+    oldSelection.resolve(null)
+    await oldStart
+  })
+  expect(hook.getCurrent().starting).toBe(true)
+  expect(hook.getCurrent().selectedSourceId).toBe('new')
+  await act(async () => {
+    newSelection.reject(new Error('Selection failed'))
+    await newStart
+  })
+  expect(hook.getCurrent().starting).toBe(false)
+  expect(hook.getCurrent().status).toBe('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
+  expect(getDisplayMedia).not.toHaveBeenCalled()
+  await hook.unmount()
+})

@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { lightTheme } from '../../constants/theme.stylex'
+import { CaptureControls } from '../../components/CaptureControls'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
 import { scenarios } from './scenarios'
+import { getCapturePreviewSources, getCapturePreviewStatus } from './capture-preview'
+import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
 import { previewCharacter } from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
@@ -12,20 +15,10 @@ export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
   const { light } = useColorTheme()
   const [scenario, setScenario] = useState('states')
+  const [captureState, setCaptureState] = useState('idle')
+  const [source, setSource] = useState('')
   const detail = query.get('detail') === 'sample'
-  const character =
-    scenario === 'missing'
-      ? {
-          ...previewCharacter,
-          image: 'data:image/png;base64,AA==',
-          equipment: previewCharacter.equipment.map((item) => ({
-            ...item,
-            image: 'data:image/png;base64,AA==',
-            enhancement: undefined,
-            enchantment: undefined
-          }))
-        }
-      : previewCharacter
+  const character = getCharacterPreview(scenario, previewCharacter)
   const openDetail = (): void => {
     const url = new URL(window.location.href)
     url.search = new URLSearchParams({
@@ -45,6 +38,27 @@ export function Preview(): React.JSX.Element {
       ) : (
         <>
           <PartyPage
+            capture={
+              <CaptureControls
+                sources={getCapturePreviewSources(captureState)}
+                selectedSourceId={source}
+                loading={false}
+                failed={false}
+                starting={captureState === 'starting'}
+                active={captureState === 'active'}
+                ready
+                status={getCapturePreviewStatus(captureState)}
+                onSelect={(id) => {
+                  setSource(id)
+                  setCaptureState(id ? 'active' : 'idle')
+                }}
+                onRefresh={() => {}}
+                onStop={() => {
+                  setSource('')
+                  setCaptureState('idle')
+                }}
+              />
+            }
             character={character}
             slots={scenarios[scenario]}
             resetKey={scenario}
@@ -54,6 +68,22 @@ export function Preview(): React.JSX.Element {
           />
           <footer {...stylex.props(styles.footer)}>
             <span>LDB Desktop</span>
+            <select
+              aria-label="캡처 미리보기 상태"
+              value={captureState}
+              onChange={(event) => {
+                const state = event.target.value
+                setCaptureState(state)
+                setSource(state === 'active' || state === 'starting' ? 'preview-game' : '')
+              }}
+              {...stylex.props(styles.select)}
+            >
+              <option value="idle">캡처 · 대기</option>
+              <option value="starting">캡처 · 준비 중</option>
+              <option value="active">캡처 · 캡처 중</option>
+              <option value="missing">캡처 · 창 미감지</option>
+              <option value="failure">캡처 · 실패</option>
+            </select>
             <select
               aria-label="미리보기 상태"
               value={scenario}
@@ -69,8 +99,8 @@ export function Preview(): React.JSX.Element {
           <p {...stylex.props(styles.notice)}>
             합성 데이터 미리보기 · 카드를 눌러 넘기고, 우측 상단에서 상세를 여세요.
             <br />
-            이름 입력·서버 선택은 조작 확인용이며 검색되지 않습니다. 마법부여 등급은 디자인
-            예시입니다.
+            캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력·서버 선택은
+            조작 확인용이며 검색되지 않습니다. 마법부여 등급은 디자인 예시입니다.
           </p>
         </>
       )}

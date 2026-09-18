@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
+import { searchSnapshot } from '../../preload/api/search-test-fixture'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
 
@@ -72,6 +73,18 @@ beforeEach(() => {
     managePasskeys: vi.fn<AuthApi['managePasskeys']>(async () => ({ ok: true, snapshot }))
   }
   vi.stubGlobal('auth', api)
+  vi.stubGlobal('api', {
+    listCaptureSources: vi.fn(async () => []),
+    selectCaptureSource: vi.fn(async () => null),
+    notifyStableNicknameDetected: vi.fn()
+  })
+  vi.stubGlobal('search', {
+    controlCharacterSearch: vi.fn(async () => ({
+      ok: true,
+      snapshot: searchSnapshot({ captureId: null })
+    })),
+    onCharacterSearchChanged: vi.fn(() => () => {})
+  })
 })
 
 afterEach(async () => {
@@ -103,10 +116,10 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
   expect(container.querySelector('img')).toBeNull()
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
-  expect(container.textContent).toContain('검색·캡처 기능 준비 중')
-  expect(
-    container.querySelector<HTMLButtonElement>('[aria-label="캡처 연결 예정"]')!.disabled
-  ).toBe(true)
+  expect(container.textContent).toContain('캡처 대기')
+  expect(container.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.disabled).toBe(
+    false
+  )
   const login = [...container.querySelectorAll('button')].find(
     (button) => button.textContent === '로그인'
   )!
@@ -179,7 +192,7 @@ it('로그인 진행 중 재클릭은 모달과 중복 요청을 만들지 않�
   await click('로그인')
   await click('로그인')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
-  expect(document.querySelector('[aria-haspopup="dialog"]')).toBeNull()
+  expect(container.querySelector('[aria-label="로그인"]')?.getAttribute('aria-haspopup')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledTimes(1)
   expect(api.cancelLogin).not.toHaveBeenCalled()
   expect(listeners.size).toBe(1)
