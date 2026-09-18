@@ -5,7 +5,7 @@ import { serverNames } from '../../constants/servers'
 import { detailFaces } from '../../constants/cards'
 import type { CardCharacter } from '../../types/cards'
 import { EquipmentGrid } from './EquipmentGrid'
-import { InvestmentTable } from '../../components/cards/InvestmentTable'
+import { InvestmentTable } from '../../components/InvestmentTable'
 
 export function DetailDeck({ character }: { character: CardCharacter }): React.JSX.Element {
   const [selected, setSelected] = useState(0)

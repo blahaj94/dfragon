@@ -78,7 +78,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 ## 검증 경계
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections/search src/frontend/src/components/search src/frontend/src/sections/capture scripts/auth-capture-fixture
+pnpm --filter @ldb/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections/search src/frontend/src/components src/frontend/src/sections/capture scripts/auth-capture-fixture
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

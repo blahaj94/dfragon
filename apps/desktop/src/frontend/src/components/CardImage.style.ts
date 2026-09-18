@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../../constants/theme.stylex'
+import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
   image: { width: '100%', height: '100%', objectFit: 'contain' },

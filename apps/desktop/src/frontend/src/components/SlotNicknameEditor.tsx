@@ -1,8 +1,8 @@
-import type { SlotEditing } from '../../types/search'
+import type { SlotEditing } from '../types/search'
 import { useState } from 'react'
 import { ActionButton, ContentStack, SupportingText, TextField, TextFieldInput } from '@ldb/ui'
-import { SEARCH_ERRORS, type SearchSlot } from '../../../../preload/common/types/search'
-import { validManualNickname } from '../../lib/manual-input'
+import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
+import { validManualNickname } from '../lib/manual-input'
 
 export function SlotNicknameEditor({
   slot,

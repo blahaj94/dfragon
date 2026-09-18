@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ActionButton, ExampleSection, SupportingText } from '@ldb/ui'
-import type { AuthPresentationProps } from '../../types/auth'
+import type { AuthPresentationProps } from '../types/auth'
 
 export function SignedInAccount({
   snapshot,

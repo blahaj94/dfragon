@@ -92,7 +92,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - 캐릭터 검색: main 검색 수명·HTTP와 preload/renderer·격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
   - `constants/`: 서버 목록, 카드 면·장비 배치·인증 문구·캡처 설정과 공유 StyleX 변수·테마.
-  - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`SignedInAccount`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
+  - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`SignedInAccount`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
   - `sections/`: `cards`·`auth`·`capture`·`search`의 기능 조합. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 worker·검색 수명 구현·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(기존 직접 검색·캡처 홈).
   - `fixture/`: MVP 합성 데이터·자산·화면 제어, 인증 UI·bridge·capture 실행 화면. 제품 페이지가 fixture를 import하지 않는다.

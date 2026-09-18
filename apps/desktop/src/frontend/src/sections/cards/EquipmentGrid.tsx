@@ -2,7 +2,7 @@ import { equipmentPositions } from '../../constants/equipment'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '../../constants/theme.stylex'
 import type { CardCharacter } from '../../types/cards'
-import { CardImage } from '../../components/cards/CardImage'
+import { CardImage } from '../../components/CardImage'
 import { styles } from './EquipmentGrid.style'
 
 function isExtraEquipmentSlot({ id }: { id: string }): boolean {

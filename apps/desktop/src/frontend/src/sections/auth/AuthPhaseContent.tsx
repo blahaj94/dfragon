@@ -1,7 +1,7 @@
 import { authProviderLabels } from '../../constants/auth'
 import { ActionButton, ExampleSection, SupportingText } from '@ldb/ui'
 import type { AuthPresentationProps } from '../../types/auth'
-import { SignedInAccount } from '../../components/auth/SignedInAccount'
+import { SignedInAccount } from '../../components/SignedInAccount'
 
 export function AuthPhaseContent({
   snapshot,

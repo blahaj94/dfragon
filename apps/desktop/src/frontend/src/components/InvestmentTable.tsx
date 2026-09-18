@@ -1,6 +1,6 @@
-import { investmentIds, investmentAriaLabelByKind } from '../../constants/equipment'
+import { investmentIds, investmentAriaLabelByKind } from '../constants/equipment'
 import * as stylex from '@stylexjs/stylex'
-import type { EquipmentSlot } from '../../types/cards'
+import type { EquipmentSlot } from '../types/cards'
 import { gradeStyles, styles } from './InvestmentTable.style'
 
 export function InvestmentTable({
