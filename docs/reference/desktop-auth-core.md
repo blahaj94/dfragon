@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: apps/desktop main authentication core
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-19
 ---
 
 # Desktop Auth Core
@@ -19,25 +19,25 @@ Coordinator는 새 login에서 `startTrustPeriod()`를 호출합니다. 최초 r
 
 ## Module 경계
 
-| Path                                                     | 현재 책임                                                                                                                      |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `apps/desktop/src/backend/auth/coordinator.ts`           | command 허용, generation·pending·공개 Promise, resource 무효화와 비동기 결과 적용                                              |
-| `apps/desktop/src/backend/auth/auth-state.ts`            | 의미 있는 phase 전이, allowlist snapshot·revision·동기 listener와 recovery 목적                                                |
-| `apps/desktop/src/backend/auth/recovery-plan.ts`         | 저장 상태와 실행 시점 access 사실에서 다음 recovery 단계를 선택하는 pure 판단                                                  |
-| `apps/desktop/src/backend/auth/user-verification.ts`     | `/me` controller 예약·abort·동일 작업 해제와 정제 실패 notice 분류                                                             |
-| `apps/desktop/src/backend/auth/credential-session.ts`    | private credential·known refresh, writer·HTTP 진행, refresh 공유 Promise, logout reservation·disposal 결과와 저장 effect       |
-| `apps/desktop/src/backend/auth/pending-login.ts`         | private attempt 상태, request TTL·timer, synchronous exchange claim·중복 판정과 폐기                                           |
-| `apps/desktop/src/backend/auth/cleanup-result.ts`        | local clear 결과·현재 작업 여부·logout 소유권을 받아 후속 진행 또는 storage 차단 판단                                          |
-| `apps/desktop/src/backend/auth/types.ts`                 | main 내부 effect와 snapshot·명령 결과 type                                                                                     |
-| `apps/desktop/src/backend/auth/pkce.ts`                  | 32-byte verifier와 ASCII S256 challenge 생성, canonical base64url 검사                                                         |
-| `apps/desktop/src/backend/auth/protocol.ts`              | trusted HTTPS API origin, browser launch URL, 등록 return target과 code-only 복귀 URL 검사                                     |
-| `apps/desktop/src/backend/auth/http.ts`                  | Ky 기반 고정 auth endpoint request, caller abort와 15초 전체 deadline                                                          |
-| `apps/desktop/src/backend/auth/http-response.ts`         | 16,384-byte strict UTF-8 JSON stream과 Zod strict response/error schema                                                        |
-| `apps/desktop/src/backend/auth/credential-operations.ts` | durable transition 확립, credential commit, marker 제거·재확립, local clear 결과 합성                                          |
-| `apps/desktop/src/backend/auth/runtime-config.ts`        | trusted 설정과 profile filesystem을 검증하고 Electron read-back과 일치한 적용 결과를 반환                                      |
-| `apps/desktop/src/backend/auth/runtime-effects.ts`       | config를 자체 캡처하지 않고 bootstrap이 넘긴 적용 설정으로 auth HTTP, macOS credential store, browser, consumer별 clock·entropy·안내를 구성 |
-| `apps/desktop/src/backend/auth/runtime-clock.ts`         | 고정 offset 기준, 표본 폭과 power event에 따른 clock 신뢰 구간을 관리                                                                              |
-| `apps/desktop/src/backend/auth/bootstrap.ts`             | 단일 trusted config를 effect dependency factory에 전달하고 안내 완료→coordinator runtime을 노출하며, caller가 UI/IPC 뒤 한 번 `start()`하도록 보장 |
+| Path                                                                         | 현재 책임                                                                                                                                          |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/auth/coordinator.ts`                               | command 허용, credential I/O·저장 순서와 generation에 따른 비동기 결과 적용                                                                        |
+| `apps/desktop/src/backend/auth/auth-state.ts`, `coordinator-machine.ts`      | 함수 factory와 XState가 phase·generation·pending·recovery 및 start/refresh/logout 실행 공유를 소유                                                 |
+| `apps/desktop/src/backend/auth/recovery-plan.ts`                             | 저장 상태와 실행 시점 access 사실에서 다음 recovery 단계를 선택하는 pure 판단                                                                      |
+| `apps/desktop/src/backend/auth/user-verification.ts`                         | `/me` 실패를 공개 가능한 notice로 분류하는 순수 함수                                                                                               |
+| `apps/desktop/src/backend/auth/credential-session.ts`                        | private credential·known refresh, writer·HTTP 진행, logout reservation·disposal 결과와 저장 effect                                                 |
+| `apps/desktop/src/backend/auth/pending-login.ts`, `pending-login-machine.ts` | 함수 factory와 XState가 attempt 상태·exchange claim·중복 판정·폐기를 관리하고 TTL·abort를 연결                                                     |
+| `apps/desktop/src/backend/auth/cleanup-result.ts`                            | local clear 결과·현재 작업 여부·logout 소유권을 받아 후속 진행 또는 storage 차단 판단                                                              |
+| `apps/desktop/src/backend/auth/types.ts`                                     | main 내부 effect와 snapshot·명령 결과 type                                                                                                         |
+| `apps/desktop/src/backend/auth/pkce.ts`                                      | 32-byte verifier와 ASCII S256 challenge 생성, canonical base64url 검사                                                                             |
+| `apps/desktop/src/backend/auth/protocol.ts`                                  | trusted HTTPS API origin, browser launch URL, 등록 return target과 code-only 복귀 URL 검사                                                         |
+| `apps/desktop/src/backend/auth/http.ts`                                      | Ky 기반 고정 auth endpoint request, caller abort와 15초 전체 deadline                                                                              |
+| `apps/desktop/src/backend/auth/http-response.ts`                             | 16,384-byte strict UTF-8 JSON stream과 Zod strict response/error schema                                                                            |
+| `apps/desktop/src/backend/auth/credential-operations.ts`                     | durable transition 확립, credential commit, marker 제거·재확립, local clear 결과 합성                                                              |
+| `apps/desktop/src/backend/auth/runtime-config.ts`                            | trusted 설정과 profile filesystem을 검증하고 Electron read-back과 일치한 적용 결과를 반환                                                          |
+| `apps/desktop/src/backend/auth/runtime-effects.ts`                           | config를 자체 캡처하지 않고 bootstrap이 넘긴 적용 설정으로 auth HTTP, macOS credential store, browser, consumer별 clock·entropy·안내를 구성        |
+| `apps/desktop/src/backend/auth/runtime-clock.ts`                             | 고정 offset 기준, 표본 폭과 power event에 따른 clock 신뢰 구간을 관리                                                                              |
+| `apps/desktop/src/backend/auth/bootstrap.ts`                                 | 단일 trusted config를 effect dependency factory에 전달하고 안내 완료→coordinator runtime을 노출하며, caller가 UI/IPC 뒤 한 번 `start()`하도록 보장 |
 
 Coordinator 생성 시 enabled provider, API origin, 등록 return target과 Browser·HTTP·clock·entropy·credential store effect를 주입한다. Runtime dependency는 `ky@2.1.0`, `zod@4.5.4`로 고정했다. Source와 build에는 운영 origin, owned scheme, app identity의 fixture 기본값이 없다. Composition은 process에 주입된 동일한 trusted runtime config로 고정 HTTP client, coordinator와 `environment/apiOrigin/clientId:"desktop"` store context를 만든다.
 
@@ -51,9 +51,13 @@ Coordinator 생성 시 enabled provider, API origin, 등록 return target과 Bro
 
 ## Credential 실행 소유권
 
-`CredentialSession`은 credential 채택·사용 차단·참조 해제, known refresh와 disposal evidence의 수명을 함께 소유한다. 같은 module의 `CredentialWriter`가 작업별 completion Promise와 credential HTTP 시작 여부를 소유하며, writer 종료 callback은 같은 reservation일 때만 현재 writer를 해제한다. `runWriter`와 `shareRefresh`는 해당 처리 함수 하나를 실행·공유하고 공개 상태·generation·snapshot setter를 받지 않는다.
+`CredentialSession`은 credential 채택·사용 차단·참조 해제, known refresh와 disposal evidence의 수명을 함께 소유한다. 같은 module의 `CredentialWriter`가 작업별 completion Promise와 credential HTTP 시작 여부를 소유하며, writer 종료 callback은 같은 reservation일 때만 현재 writer를 해제한다. `runWriter`는 예약한 저장 처리 함수 하나를 실행하며 공개 상태·generation·snapshot setter를 받지 않는다. Refresh 공유 Promise는 `createAuthState`의 actor가 generation별로 예약하고, 같은 작업의 완료만 해당 예약을 해제한다.
 
-Exchange는 PendingLogin의 동기 claim → `exchanging` 알림 → current 재확인 → credential writer 예약 → effect 순서다. 아직 실행하지 않은 claim을 취소한 listener는 같은 stack에서 다음 login을 시작할 수 있다. Refresh 실행 Promise는 작업을 시작하기 전에 등록한다. 공개 logout의 `AuthCommandResult` Promise는 coordinator가 알림 전에 한 번 만들고 같은 flight의 모든 호출에 반환한다.
+Exchange는 `createPendingLogin`의 동기 claim → `exchanging` 알림 → current 재확인 → credential writer 예약 → effect 순서다. 아직 실행하지 않은 claim을 취소한 listener는 같은 stack에서 다음 login을 시작할 수 있다. Refresh 실행 Promise는 작업을 시작하기 전에 등록한다. 공개 logout의 `AuthCommandResult` Promise는 auth actor에 알림 전에 예약하고 같은 flight의 모든 호출에 반환한다.
+
+`createAuthState`는 XState의 병렬 상태로 공개 phase와 start·refresh·logout 실행 수명을 관리한다. Pending identity·generation·verification controller도 같은 actor가 소유한다. Snapshot listener는 actor 전이가 끝난 뒤 동기 호출하므로 listener가 취소·로그아웃에 재진입하면 다음 I/O 전에 바뀐 generation을 관측한다. Credential writer는 무효화 뒤에도 늦은 token의 폐기와 저장 정리를 완료해야 하므로 actor 중단으로 강제 취소하지 않는다.
+
+`createPendingLogin`은 starting·waiting·exchanging·disposed 상태를 사용한다. 만료 판단은 monotonic 600초와 server expiry 중 먼저 도달한 제한을 따르며 clock 역행·불연속 검사 순서를 유지한다. Verifier와 raw code는 actor context/event에 저장하지 않는다. 종료 상태가 확정된 뒤 timer 취소와 HTTP·browser abort를 실행해 동기 abort listener가 시도를 되살리지 못하게 한다.
 
 `prepare`, `writeCredential`, `finalize`, `reestablish`, `releaseUnsentTransition`은 원래 저장 Promise를 그대로 반환한다. 저장 완료를 기다리는 위치와 예외 분류·current generation 확인은 coordinator에 남는다. 추가 Promise 변환 계층으로 인증 실패의 즉시 사용 차단을 늦추지 않으며, 성공과 실패 모두 결과 적용 직전의 generation·logout 소유권을 따른다.
 
@@ -64,7 +68,7 @@ flowchart TD
     Coordinator[AuthCoordinator] -->|의미 있는 전이| State[AuthState]
     Coordinator -->|다음 recovery 단계| Plan[recovery-plan]
     Coordinator -->|attempt 수명과 claim| Pending[PendingLogin]
-    Coordinator -->|writer와 refresh 실행| Session[CredentialSession]
+    Coordinator -->|writer와 credential 실행| Session[CredentialSession]
     Session --> Writer[CredentialWriter]
     Session -->|prepare, finalize, clear| Operations[credential-operations]
     Operations --> Store[CredentialStore]
