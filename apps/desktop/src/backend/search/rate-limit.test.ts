@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { SearchSlot } from '../../preload/common/types/search'
 import { createSearchFixture, jsonResponse } from './search-test-fixture'
+import { createCaptureSearchLifetime } from './capture-lifetime'
+import { deferred, FakeClock } from '../auth/auth-test-fixtures'
+import { SearchHttpFailure } from './http'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>
 
@@ -39,6 +42,44 @@ async function flushSearch(): Promise<void> {
 }
 
 describe('main의 429 Retry-After와 사용자 재시도', () => {
+  it('body 완료 전에 429 대기가 만료되면 timer나 자동 GET 없이 같은 실패를 활성화한다', async () => {
+    const clock = new FakeClock()
+    const response = deferred<[]>()
+    const http = vi.fn(() => response.promise)
+    const lifetime = createCaptureSearchLifetime({
+      runtime: { http, clock },
+      isCurrent: () => true,
+      publish: vi.fn()
+    })
+    const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
+      .captureId!
+    const pending = lifetime.observe({
+      captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나'
+    })
+    const receivedAt = clock.monotonicMs
+    clock.advance(3_000)
+
+    response.reject(
+      new SearchHttpFailure('SEARCH_RATE_LIMITED', {
+        retryAfterSeconds: 2,
+        retryAfterReceivedAt: receivedAt
+      })
+    )
+
+    await vi.waitFor(() =>
+      expect(lifetime.snapshot().slots[0]).toMatchObject({
+        requestId: pending.snapshot.slots[0].requestId,
+        state: 'failure',
+        error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
+      })
+    )
+    expect(http).toHaveBeenCalledTimes(1)
+    expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
+  })
+
   it('body 검증에 걸린 시간을 더하지 않고 headers 수신 시각부터 Retry-After를 지킨다', async () => {
     const fixture = await createSearchFixture()
     const pull = vi.fn()

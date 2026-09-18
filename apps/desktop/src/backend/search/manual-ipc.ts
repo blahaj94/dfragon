@@ -1,7 +1,7 @@
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
-import { CaptureSearchLifetime } from './capture-lifetime'
+import { createCaptureSearchLifetime } from './capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from './commands'
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
@@ -20,7 +20,7 @@ export function registerManualSearchIpc({
   publish: (snapshot: SearchSnapshot) => void
 }): { invalidate: () => void; dispose: () => void } {
   // The shared DTO calls its session ID captureId; this instance never grants media access.
-  const lifetime = new CaptureSearchLifetime({
+  const lifetime = createCaptureSearchLifetime({
     runtime,
     isCurrent: (binding) => isCurrentDocument(binding.windowGeneration),
     publish

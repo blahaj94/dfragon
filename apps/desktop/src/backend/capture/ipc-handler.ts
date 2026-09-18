@@ -9,7 +9,11 @@ import {
 } from 'electron'
 import { addHandler } from '../ipc'
 import type { AuthClock } from '../auth/types'
-import { CaptureSearchLifetime, type CaptureBinding } from '../search/capture-lifetime'
+import {
+  createCaptureSearchLifetime,
+  type CaptureSearchLifetime,
+  type CaptureBinding
+} from '../search/capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from '../search/commands'
 import { createSearchHttp } from '../search/http'
 import { registerManualSearchIpc } from '../search/manual-ipc'
@@ -171,7 +175,7 @@ function registerCaptureIpc(configuration?: {
     configuration == null
       ? undefined
       : { http: createSearchHttp(configuration), clock: configuration.clock }
-  const lifetime = new CaptureSearchLifetime({
+  const lifetime = createCaptureSearchLifetime({
     runtime,
     isCurrent: isCurrentSearch,
     publish: (snapshot) => {
