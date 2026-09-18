@@ -14,6 +14,7 @@ export function CharacterCard({
   slot,
   initialFace = 0,
   inputEnabled = false,
+  nickname,
   onDetail
 }: {
   character?: CardCharacter
@@ -21,6 +22,7 @@ export function CharacterCard({
   slot: number
   initialFace?: number
   inputEnabled?: boolean
+  nickname?: string
   onDetail?: () => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
@@ -99,8 +101,9 @@ export function CharacterCard({
           )}
           <input
             aria-label={`${slot}번 캐릭터 이름`}
-            value={name}
+            value={nickname ?? name}
             disabled={!inputEnabled}
+            readOnly={nickname != null}
             placeholder="캐릭터명 입력"
             onChange={(event) => setName(event.target.value)}
             {...stylex.props(styles.input)}

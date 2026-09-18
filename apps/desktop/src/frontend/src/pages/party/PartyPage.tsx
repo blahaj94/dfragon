@@ -14,6 +14,8 @@ export function PartyPage({
   light,
   onToggleTheme,
   account,
+  capture,
+  nicknames,
   onDetail
 }: {
   character?: CardCharacter
@@ -24,27 +26,31 @@ export function PartyPage({
   light: boolean
   onToggleTheme: () => void
   account?: ReactNode
+  capture?: ReactNode
+  nicknames?: readonly (string | null)[]
   onDetail?: () => void
 }): React.JSX.Element {
   return (
     <>
       <header {...stylex.props(styles.header)}>
-        <ActionButton size="small" variant="ghost" disabled aria-label="캡처 연결 예정">
-          <svg
-            aria-hidden="true"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
-            <circle cx="12" cy="13" r="3" />
-          </svg>
-        </ActionButton>
+        {capture ?? (
+          <ActionButton size="small" variant="ghost" disabled aria-label="캡처 연결 예정">
+            <svg
+              aria-hidden="true"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+          </ActionButton>
+        )}
         <div {...stylex.props(styles.actions)}>
           <ActionButton
             size="small"
@@ -68,6 +74,7 @@ export function PartyPage({
             slot={index + 1}
             character={character}
             state={state}
+            nickname={nicknames?.[index] ?? undefined}
             inputEnabled={inputEnabled}
             initialFace={compareFaces ? index : 0}
             onDetail={onDetail}

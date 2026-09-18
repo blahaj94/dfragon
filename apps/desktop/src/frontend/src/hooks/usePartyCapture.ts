@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useCaptureSourceSelection } from './useCaptureSourceSelection'
 import { usePartyCaptureSession } from './usePartyCaptureSession'
 import { usePartyRecognition } from './usePartyRecognition'
@@ -11,10 +11,13 @@ type PartyCapture = {
   sources: { id: string; name: string }[]
   selectedSourceId: string
   sourceRegistered: boolean
+  sourcesLoading: boolean
+  sourcesFailed: boolean
   intervalSeconds: number
   stableNicknames: (string | null)[]
   status: string
   selectSource: (sourceId: string) => void
+  selectAndStartCapture: (sourceId: string) => Promise<void>
   refreshSources: () => void
   setIntervalSeconds: (seconds: number) => void
   startCapture: () => Promise<void>
@@ -22,6 +25,7 @@ type PartyCapture = {
 }
 
 export function usePartyCapture(): PartyCapture {
+  const selectionRequestRef = useRef(0)
   const intervalSecondsRef = useRef(3)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)
   const [status, setStatus] = useState('캡처할 게임 창을 선택해 주세요.')
@@ -39,13 +43,34 @@ export function usePartyCapture(): PartyCapture {
     resetRecognition: recognition.resetRecognition
   })
 
+  function stopCapture(nextStatus?: string): void {
+    selectionRequestRef.current += 1
+    captureSession.stopCapture(nextStatus)
+  }
+
   useLayoutEffect(() => {
-    stopRef.current = captureSession.stopCapture
-  }, [captureSession.stopCapture])
+    stopRef.current = stopCapture
+  })
+
+  useEffect(
+    () => () => {
+      selectionRequestRef.current += 1
+    },
+    []
+  )
 
   function selectSource(sourceId: string): void {
-    captureSession.stopCapture()
-    sourceSelection.selectSource(sourceId)
+    stopCapture()
+    void sourceSelection.selectSource(sourceId)
+  }
+
+  async function selectAndStartCapture(sourceId: string): Promise<void> {
+    stopCapture()
+    const request = selectionRequestRef.current
+    const registered = await sourceSelection.selectSource(sourceId)
+    if (registered && request === selectionRequestRef.current) {
+      await captureSession.startCapture()
+    }
   }
 
   function setIntervalSeconds(seconds: number): void {
@@ -56,12 +81,14 @@ export function usePartyCapture(): PartyCapture {
   return {
     ...sourceSelection,
     selectSource,
+    selectAndStartCapture,
     search,
     retrySearch: search.retry,
     intervalSeconds,
     stableNicknames: recognition.stableNicknames,
     status,
     setIntervalSeconds,
-    ...captureSession
+    ...captureSession,
+    stopCapture
   }
 }

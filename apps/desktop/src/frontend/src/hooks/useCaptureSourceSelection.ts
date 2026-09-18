@@ -6,13 +6,17 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
   sources: CaptureSource[]
   selectedSourceId: string
   sourceRegistered: boolean
+  sourcesLoading: boolean
+  sourcesFailed: boolean
   isSelectedSourceRegistered: () => boolean
   refreshSources: () => void
-  selectSource: (sourceId: string) => void
+  selectSource: (sourceId: string) => Promise<boolean>
 } {
   const selectionGenerationRef = useRef(0)
   const selectedSourceIdRef = useRef('')
   const registeredSourceIdRef = useRef<string | null>(null)
+  const [sourcesLoading, setSourcesLoading] = useState(true)
+  const [sourcesFailed, setSourcesFailed] = useState(false)
   const [sources, setSources] = useState<CaptureSource[]>([])
   const [selectedSourceId, setSelectedSourceId] = useState('')
   const [sourceRegistered, setSourceRegistered] = useState(false)
@@ -25,10 +29,13 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
       .then((nextSources) => {
         if (!cancelled) {
           setSources(nextSources)
+          setSourcesLoading(false)
         }
       })
       .catch(() => {
         if (!cancelled) {
+          setSourcesLoading(false)
+          setSourcesFailed(true)
           setStatus(
             '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 ‘창 목록 새로고침’을 눌러 주세요.'
           )
@@ -47,10 +54,12 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
   }, [])
 
   function refreshSources(): void {
+    setSourcesLoading(true)
+    setSourcesFailed(false)
     setSourceListVersion((version) => version + 1)
   }
 
-  function selectSource(sourceId: string): void {
+  async function selectSource(sourceId: string): Promise<boolean> {
     const selectionGeneration = ++selectionGenerationRef.current
     selectedSourceIdRef.current = sourceId
     registeredSourceIdRef.current = null
@@ -59,31 +68,25 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
     setStatus(
       sourceId.length > 0 ? '게임 창 선택을 확인하고 있습니다.' : '캡처할 게임 창을 선택해 주세요.'
     )
-    void window.api
-      .selectCaptureSource(sourceId)
-      .then(() => {
-        const hasSourceId = sourceId.length > 0
-        if (!hasSourceId) {
-          return
-        }
-        const hasCurrentGeneration = selectionGeneration === selectionGenerationRef.current
-        if (!hasCurrentGeneration) {
-          return
-        }
-
-        const hasCurrentSelection = selectedSourceIdRef.current === sourceId
-        if (hasCurrentSelection) {
-          registeredSourceIdRef.current = sourceId
-          setSourceRegistered(true)
-          setStatus('게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.')
-        }
-      })
-      .catch(() => {
-        const hasCurrentGeneration = selectionGeneration === selectionGenerationRef.current
-        if (hasCurrentGeneration) {
-          setStatus('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
-        }
-      })
+    try {
+      await window.api.selectCaptureSource(sourceId)
+      if (
+        sourceId.length === 0 ||
+        selectionGeneration !== selectionGenerationRef.current ||
+        selectedSourceIdRef.current !== sourceId
+      ) {
+        return false
+      }
+      registeredSourceIdRef.current = sourceId
+      setSourceRegistered(true)
+      setStatus('게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.')
+      return true
+    } catch {
+      if (selectionGeneration === selectionGenerationRef.current) {
+        setStatus('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
+      }
+      return false
+    }
   }
 
   function isSelectedSourceRegistered(): boolean {
@@ -96,6 +99,8 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
     sources,
     selectedSourceId,
     sourceRegistered,
+    sourcesLoading,
+    sourcesFailed,
     isSelectedSourceRegistered,
     refreshSources,
     selectSource
