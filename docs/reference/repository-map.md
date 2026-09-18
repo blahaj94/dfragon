@@ -98,7 +98,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(legacy fixture의 직접 검색·캡처 홈).
   - `fixture/`: MVP 합성 데이터·자산·화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI·bridge·capture 실행 화면. 공용 글꼴은 `assets/fonts`, 배포 고지는 `src/frontend/public/notices/desktop`에 둔다. 제품 페이지가 fixture를 import하지 않는다.
   - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성·검색 연결 및 캡처 수명·OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
-  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록·인식·XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색·OCR의 기존 비UI 구현은 `lib/capture-search.ts`·`lib/ocr.ts`에서 직접 참조한다. 캡처 전이는 `lib/party-capture-machine.ts`, 미디어·worker 자원 수명은 `lib/party-capture-session.ts`가 소유한다.
+  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록·인식·XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색·OCR의 기존 비UI 구현은 `lib/capture-search.ts`·`lib/ocr.ts`에서 직접 참조한다. 인증 IPC 연결 전이는 `lib/auth-bridge-machine.ts`가 소유하며 인증 결과는 main snapshot에서 읽는다. 캡처 전이는 `lib/party-capture-machine.ts`, 미디어·worker 자원 수명은 `lib/party-capture-session.ts`가 소유한다.
   - `testing/`: 여러 테스트가 공유하는 유틸리티·mock·fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.

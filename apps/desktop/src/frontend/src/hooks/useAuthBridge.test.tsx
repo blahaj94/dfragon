@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, useEffect, type JSX } from 'react'
+import { act, StrictMode, useEffect, type JSX } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi, type Mocked } from 'vitest'
 import type { AuthSnapshot, AuthCommandResult, AuthApi } from '../../../preload/common/types/auth'
@@ -436,4 +436,148 @@ it('계정 확인·환영·로그아웃·연결 재설정 중에도 캡처를 �
   expect(container.textContent).toContain('Capture fixture')
   expect(mounted).toHaveBeenCalledOnce()
   expect(cleaned).not.toHaveBeenCalled()
+})
+
+it('구독 등록 중 동기적으로 도착한 event도 초기 조회 뒤에 적용한다', async () => {
+  const subscribe = fixture.api.onAuthStateChanged.getMockImplementation()!
+  fixture.api.onAuthStateChanged.mockImplementation((listener) => {
+    const unsubscribe = subscribe(listener)
+    listener(snapshot(7))
+    return unsubscribe
+  })
+  await mount()
+  expect(fixture.order).toEqual(['subscribe', 'query'])
+  expect(current.snapshot).toEqual(snapshot(7))
+})
+
+it('구독 실패는 조회나 명령을 시작하지 않고 수동 재연결을 기다린다', async () => {
+  fixture.api.onAuthStateChanged.mockImplementationOnce(() => {
+    throw new Error('synthetic subscription failure')
+  })
+  await mount()
+  expect(current.snapshot).toBeNull()
+  expect(current.connectionFailed).toBe(true)
+  await act(async () => current.onIntent({ type: 'beginLogin', provider: 'passkey' }))
+  expect(fixture.api.getAuthState).not.toHaveBeenCalled()
+  expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+
+  await act(async () => current.resynchronize())
+  expect(current.snapshot).toEqual(snapshot(1))
+  expect(current.connectionFailed).toBe(false)
+  expect(fixture.listeners.size).toBe(1)
+})
+
+it('첫 조회 실패 뒤 event만 도착해도 기준 없는 계정 상태를 표시하지 않는다', async () => {
+  fixture.api.getAuthState.mockRejectedValueOnce(new Error('synthetic read failure'))
+  await mount()
+  await act(async () =>
+    fixture.emit({ ...snapshot(5), phase: 'signedIn', user: { nickname: 'Synthetic' } })
+  )
+  expect(current.snapshot).toBeNull()
+  expect(current.connectionFailed).toBe(true)
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(1)
+
+  await act(async () => current.resynchronize())
+  expect(current.snapshot).toEqual(snapshot(1))
+  expect(current.connectionFailed).toBe(false)
+})
+
+it('같은 tick의 중복 명령과 응답 유실 재조회 중 명령을 모두 막는다', async () => {
+  await mount()
+  const command = deferred<AuthCommandResult>()
+  const read = deferred<AuthSnapshot>()
+  fixture.api.beginLogin.mockReturnValueOnce(command.promise)
+  fixture.api.getAuthState.mockReturnValueOnce(read.promise)
+  await act(async () => {
+    current.onIntent({ type: 'beginLogin', provider: 'passkey' })
+    current.onIntent({ type: 'beginLogin', provider: 'passkey' })
+    current.onIntent({ type: 'retryAuth' })
+  })
+  expect(fixture.api.beginLogin).toHaveBeenCalledOnce()
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+
+  await act(async () => command.reject(new Error('synthetic lost reply')))
+  expect(current.commandPending).toBe(true)
+  await act(async () => {
+    fixture.emit(snapshot(8))
+    current.onIntent({ type: 'retryAuth' })
+  })
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+  await act(async () => read.resolve(snapshot(2)))
+  expect(current.commandPending).toBe(false)
+  expect(current.snapshot).toEqual(snapshot(8))
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+})
+
+it('이전 연결의 명령 실패가 새 연결을 재조회하거나 새 명령의 busy를 지우지 않는다', async () => {
+  await mount()
+  const oldCommand = deferred<AuthCommandResult>()
+  fixture.api.retryAuth.mockReturnValueOnce(oldCommand.promise)
+  await act(async () => current.onIntent({ type: 'retryAuth' }))
+  const oldFixture = fixture
+  fixture = createApi()
+  fixture.api.getAuthState.mockResolvedValue(snapshot(1, 'new-run'))
+  await mount()
+  const nextCommand = deferred<AuthCommandResult>()
+  fixture.api.retryAuth.mockReturnValueOnce(nextCommand.promise)
+  await act(async () => current.onIntent({ type: 'retryAuth' }))
+  await act(async () => oldCommand.reject(new Error('synthetic retired command')))
+  expect(oldFixture.api.getAuthState).toHaveBeenCalledOnce()
+  expect(fixture.api.getAuthState).toHaveBeenCalledOnce()
+  expect(current.commandPending).toBe(true)
+  expect(current.snapshot).toEqual(snapshot(1, 'new-run'))
+  await act(async () => nextCommand.resolve({ ok: true, snapshot: snapshot(2, 'new-run') }))
+  expect(current.commandPending).toBe(false)
+})
+
+it('조회 응답과 보류 event의 run이 다르면 새 구독과 새 조회로 기준을 다시 세운다', async () => {
+  const initial = deferred<AuthSnapshot>()
+  const next = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(initial.promise).mockReturnValueOnce(next.promise)
+  await mount()
+  await act(async () => fixture.emit(snapshot(9, 'new-run')))
+  await act(async () => initial.resolve(snapshot(1)))
+  expect(current.snapshot).toBeNull()
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+  expect(fixture.listeners.size).toBe(1)
+  expect(fixture.retired).toHaveLength(1)
+  await act(async () => next.resolve(snapshot(10, 'new-run')))
+  expect(current.snapshot).toEqual(snapshot(10, 'new-run'))
+})
+
+it('명령 재조회 실패 뒤에도 기존 구독의 새 snapshot으로 연결 상태를 회복한다', async () => {
+  await mount()
+  fixture.api.retryAuth.mockRejectedValueOnce(new Error('synthetic lost reply'))
+  fixture.api.getAuthState.mockRejectedValueOnce(new Error('synthetic read failure'))
+  await act(async () => current.onIntent({ type: 'retryAuth' }))
+  expect(current.snapshot).toBeNull()
+  expect(current.connectionFailed).toBe(true)
+  expect(current.commandPending).toBe(false)
+  await act(async () => fixture.emit(snapshot(6)))
+  expect(current.snapshot).toEqual(snapshot(6))
+  expect(current.connectionFailed).toBe(false)
+  expect(fixture.api.onAuthStateChanged).toHaveBeenCalledOnce()
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+})
+
+it('StrictMode effect 재실행에서도 구독 하나만 유지하고 명령을 한 번만 전달한다', async () => {
+  const oldQuery = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(oldQuery.promise)
+  await act(async () =>
+    root.render(
+      <StrictMode>
+        <Probe />
+      </StrictMode>
+    )
+  )
+  expect(fixture.listeners.size).toBe(1)
+  expect(current.snapshot).toEqual(snapshot(1))
+  await act(async () => {
+    oldQuery.resolve(snapshot(99))
+    fixture.retired.forEach((listener) => listener(snapshot(100)))
+  })
+  expect(current.snapshot).toEqual(snapshot(1))
+  await act(async () => current.onIntent({ type: 'beginLogin', provider: 'passkey' }))
+  expect(fixture.api.beginLogin).toHaveBeenCalledOnce()
+  expect(current.snapshot).toEqual(snapshot(2))
 })

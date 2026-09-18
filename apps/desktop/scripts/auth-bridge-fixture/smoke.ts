@@ -148,7 +148,11 @@ export async function smoke(
   assert.equal(signedIn.phase, 'signedIn')
   assert.equal(signedIn.entry, 'welcome')
   noCanary(signedIn)
-  console.log('Auth bridge fixture step: welcome-logout')
+  await until(
+    async () =>
+      (await evaluate(`document.querySelector('button[aria-label="로그인"]') === null`)) as boolean
+  )
+  console.log('Auth bridge fixture step: signed-in-logout')
   assert.equal(await textIncludes('내 계정'), false)
   await evaluate('window.auth.logout()')
   await until(() => textIncludes('로그인'))
