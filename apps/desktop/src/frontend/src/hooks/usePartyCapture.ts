@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useCaptureSourceSelection } from './useCaptureSourceSelection'
 import { usePartyCaptureSession } from './usePartyCaptureSession'
 import { usePartyRecognition } from './usePartyRecognition'
-import { useCharacterSearch } from '../search/useCharacterSearch'
+import { useCharacterSearch } from './useCharacterSearch'
 
 type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>

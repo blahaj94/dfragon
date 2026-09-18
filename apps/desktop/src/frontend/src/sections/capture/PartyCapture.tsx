@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, ContentStack, SupportingText } from '@ldb/ui'
 import { SearchResults } from '../search/SearchResults'
-import { usePartyCapture } from './usePartyCapture'
+import { usePartyCapture } from '../../hooks/usePartyCapture'
 
 const styles = stylex.create({
   field: {

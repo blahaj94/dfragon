@@ -93,10 +93,11 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
   - `constants/`: 서버 목록, 카드 면·장비 배치·인증 문구·캡처 설정과 공유 StyleX 변수·테마.
   - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`SignedInAccount`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
-  - `sections/`: `cards`·`auth`·`capture`·`search`의 기능 조합. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 관련 hook·worker·테스트를 함께 둔다.
+  - `sections/`: `cards`·`auth`·`capture`·`search`의 기능 조합. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 worker·검색 수명 구현·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(기존 직접 검색·캡처 홈).
   - `fixture/`: MVP 합성 데이터·자산·화면 제어, 인증 UI·bridge·capture 실행 화면. 제품 페이지가 fixture를 import하지 않는다.
   - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성과 관련 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
+  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 선택·세션·인식·조합을 담당하는 커스텀 hook 6개와 hook 전용 테스트를 하위 폴더 없이 둔다. 검색·OCR의 기존 비UI 구현은 `sections/search`·`sections/capture`에서 직접 참조한다.
   - `testing/`: 여러 테스트가 공유하는 유틸리티·mock·fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.

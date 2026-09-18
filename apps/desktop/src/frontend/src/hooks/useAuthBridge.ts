@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
-import type { AuthIntent } from '../../types/auth'
+import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
+import type { AuthIntent } from '../types/auth'
 
 type BridgeState = {
   presentationEpoch: number

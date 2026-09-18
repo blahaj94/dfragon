@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { createPartyOcrWorker } from './ocr'
-import { runSerialLoop } from '../../lib/recognition'
+import { createPartyOcrWorker } from '../sections/capture/ocr'
+import { runSerialLoop } from '../lib/recognition'
 
-import { SUPPORTED_WIDTH, SUPPORTED_HEIGHT } from '../../constants/capture'
+import { SUPPORTED_WIDTH, SUPPORTED_HEIGHT } from '../constants/capture'
 
 type Worker = Awaited<ReturnType<typeof createPartyOcrWorker>>
 

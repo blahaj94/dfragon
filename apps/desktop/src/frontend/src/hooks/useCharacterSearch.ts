@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { CaptureSearch } from './capture-search'
-import { emptySearchSlots } from '../../lib/slots'
-import type { SearchView } from '../../types/search'
+import { CaptureSearch } from '../sections/search/capture-search'
+import { emptySearchSlots } from '../lib/slots'
+import type { SearchView } from '../types/search'
 
 type CharacterSearch = SearchView & {
   begin: (signal: AbortSignal) => Promise<string | null>

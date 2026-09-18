@@ -3,8 +3,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CAPTURE_ID, searchSnapshot } from '../../../../preload/api/search-test-fixture'
-import type { SearchControl } from '../../../../preload/common/types/search'
+import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
+import type { SearchControl } from '../../../preload/common/types/search'
 import { usePartyCapture } from './usePartyCapture'
 
 const moduleMocks = vi.hoisted(() => ({
@@ -13,18 +13,18 @@ const moduleMocks = vi.hoisted(() => ({
   runSerialLoop: vi.fn()
 }))
 
-vi.mock('./ocr', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('./ocr')>()),
+vi.mock('../sections/capture/ocr', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sections/capture/ocr')>()),
   createPartyOcrWorker: moduleMocks.createPartyOcrWorker
 }))
 
-vi.mock('../../lib/party', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/party')>()),
+vi.mock('../lib/party', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/party')>()),
   capturePartyNicknameCrops: moduleMocks.capturePartyNicknameCrops
 }))
 
-vi.mock('../../lib/recognition', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/recognition')>()),
+vi.mock('../lib/recognition', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/recognition')>()),
   runSerialLoop: moduleMocks.runSerialLoop
 }))
 
