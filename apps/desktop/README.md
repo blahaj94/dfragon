@@ -51,6 +51,16 @@ NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 
 
 ## 카드 화면 개발
 
+인증을 포함해 개발할 때는 `apps/desktop/.env.example`을 같은 폴더의 `.env`로 복사하고 API origin·복귀 주소·별도 개발 profile의 절대 경로를 채웁니다. 실제 `.env`는 Git에서 제외됩니다. API는 [로컬 개발 명령](../../docs/reference/api-start-development.md#로컬-개발-명령)으로 먼저 실행합니다.
+
+```sh
+# 최초 한 번 복사하고 실제 개발 설정으로 수정합니다.
+cp apps/desktop/.env.example apps/desktop/.env
+pnpm --filter @ldb/desktop dev
+```
+
+`dev`·`dev:app`은 Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 인증 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다. 배포·패키징의 인증 설정 방식은 바뀌지 않습니다.
+
 `pnpm --filter @ldb/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 검색·캡처·OCR·상세 연결은 후속입니다. 합성 데이터의 상태 비교와 상세 전환은 `pnpm --filter @ldb/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
 우측 상단 **로그인**에서 계정 창을 열고 **패스키로 계속하기**를 누르면 기존 전용 인증 창으로 이어집니다. 진행 중에는 **로그인 취소**, 실패 후에는 안내에 따른 재시도, 로그인 후 **내 계정**에서는 닉네임·패스키 관리·**이 기기 로그아웃**을 제공합니다. 계정 다이얼로그를 닫는 것은 로그인 취소가 아니며, 다시 열면 현재 진행 상태가 보입니다. 전용 인증 창을 닫거나 **로그인 취소**를 눌러 시도를 끝냅니다.

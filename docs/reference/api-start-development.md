@@ -41,6 +41,21 @@ API 실행 후 같은 origin의 `/docs`에서 Swagger UI를 열고 `/docs/openap
 
 ## 시작과 교체
 
+### 로컬 개발 명령
+
+저장소 루트에서 다음 순서로 실행한다. 최초에는 `apps/api/.env.example`을 `apps/api/.env`로 복사해 로컬 DB·API key와 인증 JSON·HTTPS 파일의 실제 절대 경로를 채운다. 실제 `.env`는 Git에서 제외하며, JWT key를 포함한 인증 JSON과 HTTPS private key는 저장소 밖에 보관한다. 파일의 내용과 준비 조건은 아래 localhost HTTPS 안내와 [패스키 실행 안내](passkey-authentication.md)를 따른다.
+
+```sh
+cp apps/api/.env.example apps/api/.env
+# .env 설정을 채우고 개발용 PostgreSQL을 실행한 뒤, 새 DB에 한 번 적용한다.
+pnpm --filter @ldb/api db:migrate:local
+pnpm --filter @ldb/api dev
+```
+
+`dev`는 API를 빌드한 뒤 `dotenv-cli`로 앱 폴더의 `.env`를 읽고 기존 `pnpm run start`에 실행을 위임한다. `.env`가 없으면 기존 process 환경을 사용하며 이미 설정된 환경변수는 파일보다 우선한다. `--no-expand`로 값 안의 `$`를 변수로 치환하지 않는다. 설정 변경 후에는 명령을 종료하고 다시 실행한다. `db:migrate:local`은 Node의 `--env-file=.env`로 설정을 명시적으로 읽는 개발 DB용 migration 명령이다. API 시작 자체가 migration·DB 생성·인증서 신뢰 등록을 수행하지 않는다.
+
+운영 `start`와 기존 `db:migrate:up` 등은 환경 주입 방식 그대로이며 `.env`를 자동으로 읽지 않는다. 개발용 `.env`를 배포 입력으로 사용하지 않는다.
+
 ### 같은 컴퓨터에서 Desktop과 API 연결
 
 API와 Desktop을 같은 Windows 컴퓨터에서 실행하면 API 주소에 `https://localhost:<PORT>`를 사용할 수 있다. `LOCAL_HTTPS_CERT_FILE`과 `LOCAL_HTTPS_KEY_FILE`을 함께 지정하면 기본 Nest 앱이 `127.0.0.1`에서 HTTPS로만 listen한다. 두 변수가 모두 없으면 기존 listener 동작을 유지한다. 로컬 HTTPS 모드는 외부 IP에 공개하는 배포 설정이 아니다.

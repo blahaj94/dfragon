@@ -48,6 +48,8 @@ node scripts/format-date.mjs
 
 ## Native validation
 
+로컬 API·Desktop은 각 앱 `package.json`의 `dev` 명령을 사용합니다. `pnpm --filter @ldb/api dev`와 `pnpm --filter @ldb/desktop dev`가 해당 앱의 `.env`를 읽으며, 개인 홈의 별도 실행 파일은 필요하지 않습니다. 최초 준비와 명시적 개발 DB migration은 [API 로컬 실행](../docs/reference/api-start-development.md#로컬-개발-명령), Desktop 설정은 [카드 화면 개발](../apps/desktop/README.md#카드-화면-개발)을 참고합니다.
+
 실제 호출부·소비자와 변경 위험에 맞는 command를 선택합니다. 아래 조합은 workspace 전반의 검사가 필요할 때의 예제이며 매 수정의 필수 목록이 아닙니다. 아래 [pnpm regex selector와 `--sequential`](https://pnpm.io/cli/run)은 선택한 script를 이름순으로 하나씩 실행하며 실패 시 non-zero로 종료합니다. 별도 validation runner나 dependency가 필요하지 않습니다.
 
 | 변경 범위 | Repository root에서 실행할 command |

@@ -38,6 +38,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Type: ESM
 - Stack: Node 24, NestJS 12, TypeScript
 - Entry: `src/main.ts` → `dist/main.js`
+- 로컬 실행: `pnpm --filter @ldb/api dev`는 build 후 앱 폴더의 `.env`를 읽고 시작한다. `db:migrate:local`은 같은 `.env`의 개발 DB에 migration을 명시 적용한다. 운영 `start`와 기존 DB 명령은 환경 주입 방식을 유지한다. [로컬 실행 안내](api-start-development.md#로컬-개발-명령)를 참고한다.
 - API 문서: `/docs`의 Swagger UI와 `/docs/openapi.json`. `src/swagger`의 명시적 schema·설명을 controller metadata와 합쳐 제공한다. [사용 방법](api-start-development.md#swagger-api-문서)을 참고한다.
 - 필수 runtime 설정: `PORT`, `DB_*`, `NEOPLE_API_KEY`, `AUTH_CONFIG_FILE`. `src/runtime`에서 설정을 검증하고 기존 인증·계정·검색 factory와 소유 DB를 기본 main에 연결한다. 정확한 입력·실행 순서는 [`api-start-development.md`](api-start-development.md)를 참고한다.
 - Test compile: `test`가 `dist`를 먼저 clean build한 뒤 `src`, `test`를 `.test-dist`로 compile한다. 단독 실행에서도 runtime entry와 login test가 최신 production output을 사용한다. Test module의 loopback HTTP로 runtime을 검증한다.

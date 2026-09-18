@@ -3,3 +3,5 @@ node_modules
 apps/desktop/src/frontend/public/ocr
 /.artifacts/workflow.png
 /deploy/api/.env
+/apps/api/.env
+/apps/desktop/.env
