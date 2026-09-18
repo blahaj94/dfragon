@@ -413,13 +413,6 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
 
     value.acceptRequest(created)
-    const checkedAt = dependencies.clock.read()
-    const isExpired = value.isExpired(checkedAt)
-    if (isExpired) {
-      expirePending(value)
-      return
-    }
-    value.scheduleExpiry()
     const isCurrentAfterScheduling = isCurrentPending(value)
     if (!isCurrentAfterScheduling) {
       return
@@ -443,7 +436,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
   }
 
-  async function recoverRejectedExchange(value: PendingLogin): Promise<void> {
+  async function recoverRejectedExchange(value: PendingLogin): Promise<boolean> {
     const cleared = await session.clearLocal()
     const isCurrentAfterClear = isCurrentPending(value)
     const logoutOwnsCleanup = runtime.logoutFlight != null
@@ -457,17 +450,16 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
     if (!cleanup.canContinue) {
-      return
+      return false
     }
     const checkedAt = dependencies.clock.read()
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {
       expirePending(value)
-      return
+      return false
     }
 
-    value.resumeWaiting()
-    state.waitingForBrowser(value.snapshot(), 'LOGIN_RETURN_INVALID')
+    return true
   }
 
   async function exchangeLogin(
@@ -510,8 +502,14 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         return
       }
       if (isRejected === true) {
-        value.rejectCode(claim.input.code)
-        await recoverRejectedExchange(value)
+        await value.rejectExchange(
+          () => recoverRejectedExchange(value),
+          () => {
+            if (isCurrentPending(value)) {
+              state.waitingForBrowser(value.snapshot(), 'LOGIN_RETURN_INVALID')
+            }
+          }
+        )
         return
       }
 
@@ -593,7 +591,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       expirePending
     )
     runtime.bindPending(value)
-    value.scheduleExpiry()
+    value.start()
     const isCurrentAfterScheduling = isCurrentPending(value)
     if (!isCurrentAfterScheduling) {
       return Promise.resolve(state.success())
@@ -647,7 +645,10 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       expirePending(value)
       return Promise.resolve()
     }
-    const claim = value.claim(parsed.code)
+    const claim = value.claimExchange(parsed.code, () => {
+      state.exchangeStarted(value.snapshot())
+      return isCurrentPending(value) ? session.reserveWriter() : null
+    })
     const isIgnored = claim.status === 'ignored'
     if (isIgnored) {
       return Promise.resolve()
@@ -657,13 +658,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return claim.promise
     }
 
-    state.exchangeStarted(value.snapshot())
-    const isCurrentAfterExchangeStart = isCurrentPending(value)
-    if (!isCurrentAfterExchangeStart) {
-      return Promise.resolve()
-    }
-    const writer = session.reserveWriter()
-    value.trackExchange(writer.completion)
+    const writer = claim.writer
     const exchange = writer.execute(() => exchangeLogin(value, claim, writer))
     try {
       const activation = onClaimed?.()

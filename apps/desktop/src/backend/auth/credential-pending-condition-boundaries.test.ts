@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CredentialSession } from './credential-session'
-import { createAuthState } from './auth-state'
+import { createAuthRuntime } from './auth-runtime'
 import { createPendingLogin } from './pending-login'
 import {
   REQUEST_ID,
@@ -12,33 +12,33 @@ import {
 } from './auth-test-fixtures'
 import type { AuthAuthorization, ClockReading } from './types'
 
-describe('AuthState refresh condition boundaries', () => {
+describe('AuthRuntime refresh condition boundaries', () => {
   it('같은 generation의 refresh flight만 기존 Promise를 공유한다', async () => {
-    const state = createAuthState('refresh-boundary-run', ['passkey'])
+    const runtime = createAuthRuntime('refresh-boundary-run', ['passkey'])
     const first = deferred<AuthAuthorization>()
     const second = deferred<AuthAuthorization>()
     const startFirst = vi.fn(() => first.promise)
     const startSecond = vi.fn(() => second.promise)
 
-    const firstFlight = state.shareRefresh(1, startFirst)
-    expect(state.currentRefresh(1)).toBe(firstFlight)
-    expect(state.currentRefresh(2)).toBeNull()
+    const firstFlight = runtime.shareRefresh(1, startFirst)
+    expect(runtime.currentRefresh(1)).toBe(firstFlight)
+    expect(runtime.currentRefresh(2)).toBeNull()
 
-    const joinedFlight = state.shareRefresh(1, startSecond)
+    const joinedFlight = runtime.shareRefresh(1, startSecond)
     expect(joinedFlight).toBe(firstFlight)
     expect(startSecond).not.toHaveBeenCalled()
 
-    const nextFlight = state.shareRefresh(2, startSecond)
+    const nextFlight = runtime.shareRefresh(2, startSecond)
     expect(nextFlight).not.toBe(firstFlight)
-    expect(state.currentRefresh(1)).toBeNull()
-    expect(state.currentRefresh(2)).toBe(nextFlight)
+    expect(runtime.currentRefresh(1)).toBeNull()
+    expect(runtime.currentRefresh(2)).toBe(nextFlight)
     expect(startFirst).toHaveBeenCalledTimes(1)
     expect(startSecond).toHaveBeenCalledTimes(1)
 
     first.resolve({ status: 'unavailable' })
     second.resolve({ status: 'unavailable' })
     await Promise.all([firstFlight, nextFlight])
-    expect(state.currentRefresh(2)).toBeNull()
+    expect(runtime.currentRefresh(2)).toBeNull()
   })
 })
 
@@ -145,12 +145,15 @@ describe('CredentialSession condition boundaries', () => {
       harness.clock,
       vi.fn()
     )
+    vi.spyOn(harness.clock, 'read').mockReturnValue(startedAt)
+    pending.start()
     pending.acceptRequest({
       requestId: REQUEST_ID,
       browserUrl: 'https://api.example.test/auth/login/authorize',
       expiresAt: '2026-09-06T12:10:00.000Z'
     })
 
+    events.length = 0
     expect(pending.isExpired(checkedAt)).toBe(true)
     expect(events).toEqual([
       'checked.wallMs',

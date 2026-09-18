@@ -1,10 +1,11 @@
 import { createHash } from 'node:crypto'
-import { createActor, fromCallback } from 'xstate'
+import { createActor } from 'xstate'
 import {
   isPendingLoginExpired,
   pendingLoginExpiryDelay,
-  pendingLoginMachine
-} from './pending-login-machine'
+  createPendingExpiry
+} from './pending-login-expiry'
+import { pendingLoginMachine } from './pending-login-machine'
 import type {
   AuthClock,
   AuthHttp,
@@ -48,7 +49,7 @@ export type PendingLogin = Readonly<{
     code: string,
     reserve: () => Writer | null
   ): ExchangeClaim<Writer>
-  rejectExchange(recover: () => Promise<boolean>): Promise<boolean>
+  rejectExchange(recover: () => Promise<boolean>, onRecovered: () => void): Promise<boolean>
   dispose(): void
 }>
 
@@ -65,42 +66,9 @@ export function createPendingLogin(
   const actor = createActor(
     pendingLoginMachine.provide({
       actors: {
-        expiry: fromCallback(({ receive, sendBack }) => {
-          let stopped = false
-          let cancel: (() => void) | undefined
-          const schedule = (): void => {
-            cancel?.()
-            cancel = undefined
-            const checkedAt = clock.read()
-            if (isExpired(checkedAt)) {
-              sendBack({ type: 'EXPIRE' })
-              return
-            }
-            const delayMs = pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
-            const scheduled = clock.schedule(delayMs, () => {
-              if (stopped) {
-                return
-              }
-              if (isExpired(clock.read())) {
-                sendBack({ type: 'EXPIRE' })
-              } else {
-                schedule()
-              }
-            })
-            // A synchronous clock callback can dispose the owner before schedule returns.
-            if (stopped) {
-              scheduled()
-            } else {
-              cancel = scheduled
-            }
-          }
-          receive(schedule)
-          schedule()
-          return () => {
-            stopped = true
-            cancel?.()
-          }
-        })
+        expiry: createPendingExpiry(clock, isExpired, (checkedAt) =>
+          pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
+        )
       }
     }),
     { input: { startedAt } }
@@ -112,11 +80,16 @@ export function createPendingLogin(
       if (actor.getSnapshot().context.expired) {
         onExpired(pending)
       }
-      controller.abort()
-      lifetime.abort()
+      releaseResources()
     }
   })
   actor.start()
+
+  function releaseResources(): void {
+    verifier = null
+    controller.abort()
+    lifetime.abort()
+  }
 
   function isExpired(checkedAt: ClockReading): boolean {
     const expired = isPendingLoginExpired(actor.getSnapshot().context, checkedAt)
@@ -186,7 +159,7 @@ export function createPendingLogin(
       actor.send({ type: 'TRACK_EXCHANGE', promise: writer.completion })
       return { status: 'claimed', input, signal: controller.signal, writer }
     },
-    rejectExchange: async (recover) => {
+    rejectExchange: async (recover, onRecovered) => {
       const snapshot = actor.getSnapshot()
       if (!snapshot.matches({ active: 'exchanging' })) {
         return false
@@ -204,9 +177,18 @@ export function createPendingLogin(
         return false
       }
       actor.send({ type: 'RESUME_WAITING' })
+      // Publish in this continuation before a new code can claim the waiting attempt.
+      onRecovered()
       return true
     },
-    dispose: () => actor.send({ type: 'DISPOSE' })
+    dispose: () => {
+      actor.send({ type: 'DISPOSE' })
+      // Expiry notifies the coordinator after terminal publication. Its disposal must
+      // still abort resources before it publishes signedOut or starts another attempt.
+      if (actor.getSnapshot().status === 'done') {
+        releaseResources()
+      }
+    }
   }
   return pending
 }

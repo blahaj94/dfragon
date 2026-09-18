@@ -35,6 +35,55 @@ function createAttempt(clock = new FakeClock()): {
 }
 
 describe('pending login actor', () => {
+  it('publishes recovery before another microtask can claim the next code', async () => {
+    const { pending, acceptRequest } = createAttempt()
+    acceptRequest()
+    pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))
+    const cleanup = deferred<boolean>()
+    let published = false
+    const recovery = pending.rejectExchange(
+      () => cleanup.promise,
+      () => {
+        published = true
+      }
+    )
+    cleanup.resolve(true)
+    await Promise.resolve()
+    const claim = pending.claimExchange(OTHER_CODE, () => {
+      expect(published).toBe(true)
+      return { completion: Promise.resolve() }
+    })
+    expect(claim.status).toBe('claimed')
+    await recovery
+    pending.dispose()
+  })
+
+  it('allows expiry disposal to abort resources before the coordinator publishes signedOut', () => {
+    const clock = new FakeClock()
+    const order: string[] = []
+    const pending = createPendingLogin(
+      {
+        attemptId: ATTEMPT_ID,
+        provider: 'passkey',
+        generation: 1,
+        verifier: 'test',
+        startedAt: clock.read()
+      },
+      clock,
+      (expired) => {
+        expect(expired.isBeforeExchange).toBe(false)
+        order.push('invalidate')
+        expired.dispose()
+        order.push('signedOut')
+      }
+    )
+    pending.signal.addEventListener('abort', () => order.push('abort'))
+    pending.browserSignal.addEventListener('abort', () => order.push('browserAbort'))
+    pending.start()
+    clock.advance(600_000)
+    expect(order).toEqual(['invalidate', 'abort', 'browserAbort', 'signedOut'])
+  })
+
   it('claims synchronously, shares the reserved completion, and rejects a code before recovery', async () => {
     const { pending, acceptRequest } = createAttempt()
     const initialSignal = pending.signal
@@ -67,7 +116,7 @@ describe('pending login actor', () => {
     expect(reserve).toHaveBeenCalledTimes(1)
 
     const cleanup = deferred<boolean>()
-    const recovery = pending.rejectExchange(() => cleanup.promise)
+    const recovery = pending.rejectExchange(() => cleanup.promise, vi.fn())
     expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
     expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({ status: 'ignored' })
     cleanup.resolve(true)
@@ -103,7 +152,7 @@ describe('pending login actor', () => {
     acceptRequest()
     pending.claimExchange(CODE, () => ({ completion: Promise.resolve() }))
     const cleanup = deferred<boolean>()
-    const recovery = pending.rejectExchange(() => cleanup.promise)
+    const recovery = pending.rejectExchange(() => cleanup.promise, vi.fn())
     pending.dispose()
     cleanup.resolve(true)
     expect(await recovery).toBe(false)

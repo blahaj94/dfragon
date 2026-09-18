@@ -1,8 +1,6 @@
 import { assign, fromCallback, sendTo, setup } from 'xstate'
 import type { ClockReading } from './types'
 
-const LOGIN_REQUEST_MAX_AGE_MS = 600_000
-
 type PendingLoginContext = {
   startedAt: ClockReading
   lastAcceptedAt: ClockReading
@@ -26,44 +24,6 @@ type PendingLoginEvent =
   | { type: 'RESUME_WAITING' }
   | { type: 'EXPIRE' }
   | { type: 'DISPOSE' }
-
-// Keep the clock reads in their original order, including the optional server comparison.
-export function isPendingLoginExpired(
-  { startedAt, lastAcceptedAt, expiresAtMs }: PendingLoginContext,
-  checkedAt: ClockReading
-): boolean {
-  const isWallClockReversed = checkedAt.wallMs < lastAcceptedAt.wallMs
-  const isMonotonicReversed = checkedAt.monotonicMs < lastAcceptedAt.monotonicMs
-  const hasReachedMonotonicLimit =
-    checkedAt.monotonicMs - startedAt.monotonicMs >= LOGIN_REQUEST_MAX_AGE_MS
-  if (expiresAtMs != null) {
-    const hasReachedServerExpiry = checkedAt.wallMs >= expiresAtMs
-    const hasExpiredClock =
-      startedAt.discontinuous ||
-      checkedAt.discontinuous ||
-      isWallClockReversed ||
-      isMonotonicReversed ||
-      hasReachedMonotonicLimit
-    return hasExpiredClock || hasReachedServerExpiry
-  }
-  return (
-    startedAt.discontinuous ||
-    checkedAt.discontinuous ||
-    isWallClockReversed ||
-    isMonotonicReversed ||
-    hasReachedMonotonicLimit
-  )
-}
-
-export function pendingLoginExpiryDelay(
-  { startedAt, expiresAtMs }: PendingLoginContext,
-  checkedAt: ClockReading
-): number {
-  const monotonicRemaining =
-    startedAt.monotonicMs + LOGIN_REQUEST_MAX_AGE_MS - checkedAt.monotonicMs
-  const wallRemaining = expiresAtMs != null ? expiresAtMs - checkedAt.wallMs : monotonicRemaining
-  return Math.max(0, Math.min(monotonicRemaining, wallRemaining))
-}
 
 export const pendingLoginMachine = setup({
   actors: {
