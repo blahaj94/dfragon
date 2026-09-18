@@ -4,6 +4,10 @@ import { challenge } from '../dist/auth/login/crypto.js'
 
 export async function assertPhoneQrIntegration({ source, browser, origin, mark }) {
   const pc = await browser.newContext({ ignoreHTTPSErrors: true })
+  // A PC without WebAuthn must still be able to start signup on a phone.
+  await pc.addInitScript(() => {
+    globalThis.PublicKeyCredential = undefined
+  })
   const phone = await browser.newContext({
     ignoreHTTPSErrors: true,
     viewport: { width: 390, height: 844 }
@@ -29,7 +33,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       headers: { Origin: requestOrigin },
       data: { requestId, ...rest }
     })
-  const begin = async () => {
+  const begin = async (signup = false) => {
     const codeVerifier = randomBytes(32).toString('base64url')
     const created = await pc.request.post(`${origin}/auth/login-requests`, {
       data: {
@@ -43,7 +47,13 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const request = await created.json()
     await pcPage.goto(request.browserUrl)
     const qrResponse = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/qr'))
-    await pcPage.locator('#qr-start').click()
+    if (signup) {
+      await pcPage.locator('#register').click()
+      assert.equal(await pcPage.locator('#signup-passkey').isDisabled(), true)
+      await pcPage.locator('#signup-phone').click()
+    } else {
+      await pcPage.locator('#qr-start').click()
+    }
     const qr = await (await qrResponse).json()
     await pcPage.locator('#qr-panel').waitFor({ state: 'visible' })
     assert.equal(await pcPage.locator('#confirmation').textContent(), qr.confirmationCode)
@@ -56,6 +66,9 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       request.confirmationCode
     )
     await phonePage.locator(`#${operation}`).click()
+    if (operation === 'register') {
+      await phonePage.locator('#signup-passkey').click()
+    }
     await phonePage.locator('#phone-consent').waitFor({ state: 'visible' })
   }
   const approve = async () => {
@@ -73,7 +86,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     })
   try {
     mark('QR signup: separate PC/phone cookies, explicit approvals, PKCE exchange')
-    const first = await begin()
+    const first = await begin(true)
     assert.equal((await post(phone, 'claim', first.requestId)).status(), 400)
     assert.equal((await post(pc, 'phone-approve', first.requestId)).status(), 400)
     assert.equal(

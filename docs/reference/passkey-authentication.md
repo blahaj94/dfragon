@@ -84,6 +84,10 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 
 ## LDB QR과 전용 창
 
+`새 계정 만들기`는 별도 회원가입 화면을 연다. PC에서는 왼쪽 `휴대폰으로 회원가입`으로 LDB QR을 열거나 오른쪽 `패스키로 회원가입`으로 현재 기기의 인증 안내를 시작한다. WebAuthn을 지원하지 않는 PC도 휴대폰 경로를 사용할 수 있다. 휴대폰에서는 새 계정 생성을 직접 선택하고 패스키를 만든 뒤 기존 양쪽 승인을 진행한다. 화면을 여는 것만으로 계정이 생성되지는 않는다.
+
+회원가입 화면에는 기존 계정과 별개의 계정이 생긴다는 안내와 패스키 분실·예비 키 안내를 표시한다. 패스키 생성을 취소하면 같은 화면에서 재시도할 수 있다. `닫기`는 인증 요청을 취소하고 전용 창을 닫으며, 일반 브라우저에서 창 닫기가 제한되면 취소 완료 안내를 남긴다. SEED의 밝은·어두운 테마를 따르고 좁은 화면에서는 가입 버튼을 세로로 배치한다.
+
 `auth/login/phone.ts`는 PC·휴대폰 cookie를 분리해 QR 재발급·승인·일회용 claim을 처리한다. `browser/passkeys.tsx`는 로컬 canvas QR, 5초 상태 조회와 명시 승인 화면을 제공한다. 관리 QR은 고정 관리 URL만 담으며 휴대폰에서 재인증한다. Desktop의 `auth/browser-window.ts`는 Node/preload 없는 메모리 session과 origin 제한을 적용한다.
 
 `AddPhoneQrLogin1789601588410`은 schema diff로 생성한 추가 migration이다. 기존 실사용 계정·패스키·세션을 유지하며 과거 OAuth 데이터 초기화를 다시 실행하지 않는다. 배포는 새 API의 migration 적용 → API 업데이트 → Desktop 업데이트 순서다. 이전 Desktop의 직접 패스키 경로도 유지한다.

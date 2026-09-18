@@ -43,9 +43,80 @@ small {
   line-height: 1.6;
   word-break: keep-all;
 }
+main:has(#signup) {
+  box-sizing: border-box;
+  max-width: 560px;
+  padding: 40px;
+}
+#signup h1 {
+  margin: 0 0 24px;
+  font-size: 32px;
+  line-height: 46px;
+}
+#signup .signup-intro {
+  margin: 0 0 28px;
+  font-size: 16px;
+  line-height: 29px;
+}
+.signup-notice {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: var(--seed-color-bg-neutral-weak);
+}
+.signup-notice h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  line-height: 24px;
+}
+.signup-notice p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+.signup-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.signup-actions button {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  margin: 0;
+}
+#signup .signup-recovery {
+  margin: 24px 0;
+  font-size: 13px;
+  line-height: 24px;
+}
+main:has(#signup) #cancel {
+  display: flex;
+  width: 96px;
+  height: 40px;
+  margin: 0 0 0 auto;
+}
+main:has(#signup) #status:empty {
+  margin: 0;
+  min-height: 0;
+}
 @media (max-width: 560px) {
   main {
     margin: 24px 16px;
     padding: 8px;
+  }
+  main:has(#signup) {
+    margin: 0 auto;
+    padding: 40px;
+  }
+}
+@media (max-width: 460px) {
+  main:has(#signup) {
+    padding: 32px 24px;
+  }
+  .signup-actions {
+    flex-direction: column;
+  }
+  .signup-actions button {
+    flex: auto;
   }
 }

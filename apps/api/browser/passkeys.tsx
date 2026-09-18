@@ -31,7 +31,8 @@ type Verification =
   { phoneVerified: true; nickname: string } | { managed: true } | { returnUrl: string }
 type Screen =
   | { kind: 'entry' }
-  | { kind: 'qr'; qr: Qr }
+  | { kind: 'signup' }
+  | { kind: 'qr'; qr: Qr; signup: boolean }
   | { kind: 'pc-consent'; nickname: string }
   | { kind: 'phone-consent'; nickname: string }
   | { kind: 'management'; keys: Passkey[] }
@@ -84,6 +85,24 @@ function PasskeyPage() {
   const busyRef = useRef(false)
   const endedRef = useRef(false)
   const qrGeneration = useRef(0)
+  const signupHeading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateTheme = () => {
+      document.documentElement.dataset.seedColorMode = 'system'
+      document.documentElement.dataset.seedUserColorScheme = preference.matches ? 'dark' : 'light'
+    }
+    updateTheme()
+    preference.addEventListener('change', updateTheme)
+    return () => preference.removeEventListener('change', updateTheme)
+  }, [])
+
+  useEffect(() => {
+    if (screen.kind === 'signup') {
+      signupHeading.current?.focus()
+    }
+  }, [screen.kind])
 
   useEffect(() => {
     if (screen.kind !== 'qr' || !screen.qr.expiresAt) {
@@ -210,7 +229,7 @@ function PasskeyPage() {
 
   async function authenticate(operation: 'register' | 'authenticate' | 'add') {
     if (!phone && !management) {
-      stopQr()
+      qrGeneration.current += 1
       await api('direct')
     }
     const action = phone ? 'phone-options' : 'options'
@@ -236,8 +255,12 @@ function PasskeyPage() {
     }
   }
 
-  async function generateQr() {
-    stopQr()
+  async function generateQr(signup = false) {
+    if (screen.kind === 'qr' || screen.kind === 'pc-consent') {
+      stopQr()
+    } else {
+      qrGeneration.current += 1
+    }
     const qr = management
       ? { phoneUrl: new URL('/auth/passkeys/manage', location.origin).href }
       : await api<Qr>('qr')
@@ -245,7 +268,7 @@ function PasskeyPage() {
     if (url.origin !== location.origin || url.protocol !== 'https:') {
       throw new Error('QR 주소를 확인하지 못했습니다.')
     }
-    setScreen({ kind: 'qr', qr })
+    setScreen({ kind: 'qr', qr, signup })
     setQrCreated(true)
     setStatus('휴대폰에서 계속해 주세요.')
   }
@@ -266,11 +289,61 @@ function PasskeyPage() {
   }
 
   const ended = screen.kind === 'ended' || screen.kind === 'complete'
-  const showQrEntry = !phone && !ended && screen.kind !== 'management'
+  const signup = screen.kind === 'signup'
+  const showQrEntry = !phone && !ended && !signup && screen.kind !== 'management'
   return (
     <>
-      <small>LDB ACCOUNT</small>
-      <h1>{management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : 'LDB 로그인'}</h1>
+      {!signup && (
+        <>
+          <small>LDB ACCOUNT</small>
+          <h1>{management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : 'LDB 로그인'}</h1>
+        </>
+      )}
+      {signup && (
+        <section id="signup" aria-labelledby="signup-heading">
+          <h1 id="signup-heading" ref={signupHeading} tabIndex={-1}>
+            회원가입
+          </h1>
+          <p className="signup-intro">
+            아이디와 비밀번호 없이 가입해요.
+            <br />
+            기기의 인증 안내에 따라 패스키를 만들어 주세요.
+          </p>
+          <div className="signup-notice">
+            <h2>이미 계정이 있나요?</h2>
+            <p>
+              기존 패스키로 로그인해 주세요.
+              <br />
+              새로 가입하면 새로운 계정이 만들어져요.
+            </p>
+          </div>
+          <div className="signup-actions">
+            {!phone && (
+              <button
+                id="signup-phone"
+                className={primaryButton}
+                disabled={busy}
+                onClick={() => void run(() => generateQr(true))}
+              >
+                휴대폰으로 회원가입
+              </button>
+            )}
+            <button
+              id="signup-passkey"
+              className={primaryButton}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('register'))}
+            >
+              패스키로 회원가입
+            </button>
+          </div>
+          <p className="signup-recovery">
+            모든 패스키를 잃으면 계정을 복구할 수 없어요.
+            <br />
+            가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
+          </p>
+        </section>
+      )}
       {phone && (
         <section>
           <p>
@@ -289,7 +362,7 @@ function PasskeyPage() {
             id="qr-start"
             className={primaryButton}
             disabled={busy}
-            onClick={() => void run(generateQr)}
+            onClick={() => void run(() => generateQr(screen.kind === 'qr' && screen.signup))}
           >
             {management
               ? qrCreated
@@ -307,6 +380,12 @@ function PasskeyPage() {
                   ? '휴대폰 카메라로 스캔하고 패스키로 인증하세요. 키 관리는 휴대폰에서 완료됩니다.'
                   : '휴대폰 카메라로 스캔한 뒤 두 화면의 확인 번호를 비교하세요.'}
               </p>
+              {screen.signup && (
+                <p>
+                  휴대폰에서 ‘새 계정 만들기’를 선택해 가입해 주세요. 기존 계정이 있다면 패스키로
+                  로그인해 주세요.
+                </p>
+              )}
               {!management && (
                 <>
                   <h2 id="confirmation" className="confirmation">
@@ -332,6 +411,9 @@ function PasskeyPage() {
               onClick={() =>
                 void run(async () => {
                   stopQr()
+                  if (screen.kind === 'qr' && screen.signup) {
+                    setScreen({ kind: 'signup' })
+                  }
                   if (!management) {
                     await api('direct')
                   }
@@ -385,8 +467,17 @@ function PasskeyPage() {
             <button
               id="register"
               className={secondaryButton}
-              disabled={busy || !supportsPasskeys}
-              onClick={() => void run(() => authenticate('register'))}
+              disabled={busy}
+              onClick={() => {
+                setStatus(
+                  supportsPasskeys
+                    ? ''
+                    : phone
+                      ? '패스키를 지원하는 Safari 또는 Chrome에서 열어 주세요.'
+                      : '휴대폰 QR을 이용해 주세요.'
+                )
+                setScreen({ kind: 'signup' })
+              }}
             >
               새 계정 만들기
             </button>
@@ -429,17 +520,20 @@ function PasskeyPage() {
       {!management && !ended && (
         <button
           id="cancel"
-          className={secondaryButton}
+          className={signup ? removeButton : secondaryButton}
           disabled={busy}
           onClick={() =>
             void run(async () => {
               qrGeneration.current += 1
               await api(phone ? 'phone-cancel' : 'cancel')
               finish('로그인을 취소했습니다. 이 창을 닫아 주세요.')
+              if (signup) {
+                window.close()
+              }
             })
           }
         >
-          로그인 취소
+          {signup ? '닫기' : '로그인 취소'}
         </button>
       )}
       {screen.kind === 'management' && (

@@ -118,7 +118,9 @@ export async function assertRuntimeHttpIntegration(configuration, mark = () => {
         }
         const response = await fetch(`http://127.0.0.1:${port}/auth/passkeys/manage`)
         assert.equal(response.status, 200)
-        assert.match(await response.text(), /패스키 관리/)
+        const html = await response.text()
+        assert.match(html, /data-purpose="manage"/)
+        assert.match(html, /src="\/auth\/passkeys\/client.js"/)
         assert.match(response.headers.get('set-cookie'), /Secure; HttpOnly/)
         await terminateRuntime(source, runtime)
       } finally {
