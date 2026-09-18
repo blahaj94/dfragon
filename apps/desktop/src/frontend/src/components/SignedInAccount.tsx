@@ -23,9 +23,7 @@ export function SignedInAccount({
       </ActionButton>
       {shouldShowWelcome && (
         <>
-          <SupportingText>
-            로그인을 완료했습니다. 화면 캡처는 로그인 여부와 관계없이 사용할 수 있습니다.
-          </SupportingText>
+          <SupportingText>로그인을 완료했습니다.</SupportingText>
           <ActionButton
             type="button"
             disabled={commandPending}

@@ -1,9 +1,10 @@
 import '@seed-design/css/base.css'
 import '@ldb/ui/foundation.css'
+import '../../assets/fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { AuthApi } from '../../../../preload/common/types/auth'
-import { LoginPage } from '../../pages/login/LoginPage'
+import App from '../../App'
 
 declare global {
   interface Window {
@@ -17,6 +18,6 @@ if (!hasRoot) {
 }
 createRoot(root).render(
   <StrictMode>
-    <LoginPage api={window.auth} />
+    <App />
   </StrictMode>
 )

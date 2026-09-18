@@ -1,4 +1,16 @@
-import type { AuthNotice } from '../types/auth'
+import type { AuthNotice, AuthPhase } from '../types/auth'
+
+export const authPhaseLabels: Record<AuthPhase, string> = {
+  signedOut: '로그인',
+  startingLogin: '로그인 진행 중',
+  waitingBrowser: '로그인 진행 중',
+  exchanging: '로그인 진행 중',
+  restoring: '계정 복원 중',
+  restorePaused: '계정 복원 확인',
+  signedIn: '내 계정',
+  signingOut: '로그아웃 중',
+  storageBlocked: '저장소 확인'
+}
 
 export const authNotices: Record<AuthNotice, string> = {
   LOGIN_CANCELLED: '로그인을 취소했습니다. 로그인 방법을 선택해 다시 시작할 수 있습니다.',

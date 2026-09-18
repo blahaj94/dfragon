@@ -65,12 +65,17 @@ export async function smoke(
   }
 
   console.log('Auth bridge fixture step: initial')
+  await until(() => textIncludes('로그인'))
+  assert.equal(await evaluate('document.querySelectorAll("article").length'), 4)
+  await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
+  await click('로그인')
   await until(() => textIncludes('패스키로 계속하기'))
   assert.deepEqual(await evaluate('Object.keys(window.auth).sort()'), [
     'beginLogin',
     'cancelLogin',
     'getAuthState',
     'logout',
+    'managePasskeys',
     'onAuthStateChanged',
     'retryAuth'
   ])
@@ -119,7 +124,10 @@ export async function smoke(
     window.webContents.once('did-finish-load', () => resolve())
     window.webContents.reload()
   })
+  await until(() => textIncludes('로그인 진행 중'))
+  await click('로그인 진행 중')
   await until(() => textIncludes('로그인 취소'))
+  await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
   assert.equal((await state()).login?.attemptId, beforeReload.login?.attemptId)
 
   console.log('Auth bridge fixture step: exchange-commit')
@@ -142,9 +150,15 @@ export async function smoke(
   noCanary(signedIn)
   console.log('Auth bridge fixture step: welcome-logout')
   await click('시작하기')
-  await until(() => textIncludes('화면 캡처'))
+  await until(() => textIncludes('내 계정'))
   await click('이 기기 로그아웃')
   await until(() => textIncludes('패스키로 계속하기'))
   assert.equal((await state()).phase, 'signedOut')
+  assert.equal(
+    await evaluate(
+      '[...document.querySelectorAll("article")].every((card, index) => card === window.fixtureCards[index])'
+    ),
+    true
+  )
   assert.deepEqual(effects.counts, { browser: 2, exchange: 1, logout: 1, commit: 1 })
 }

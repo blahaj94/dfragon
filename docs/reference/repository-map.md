@@ -93,7 +93,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
   - `constants/`: 서버 목록, 카드 면·장비 배치·인증 문구·캡처 설정과 공유 StyleX 변수·테마.
   - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`SignedInAccount`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
-  - `sections/`: 카드·인증·캡처·검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 전용 스타일·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
+  - `sections/`: 카드·인증·캡처·검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AccountSection`의 카드 화면 계정 다이얼로그와 `AuthSection`의 구버전 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 전용 스타일·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(legacy fixture의 직접 검색·캡처 홈).
   - `fixture/`: MVP 합성 데이터·자산·화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI·bridge·capture 실행 화면. 공용 글꼴은 `assets/fonts`, 배포 고지는 `src/frontend/public/notices/desktop`에 둔다. 제품 페이지가 fixture를 import하지 않는다.
   - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성·검색 연결 및 캡처 수명·OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
@@ -102,7 +102,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결·OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @ldb/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개와 테마 전환을 제공하며 검색·캡처·인증·상세 연결은 후속이다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- 기본 앱: `pnpm --filter @ldb/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 계정 다이얼로그의 로그인·복원 상태·로그아웃을 제공하며 검색·캡처·OCR·상세 연결은 후속이다. 인증 연결은 기존 `useAuthBridge`·`AuthPresentation`과 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @ldb/desktop dev`
