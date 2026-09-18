@@ -104,7 +104,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 
 `search-observation.ts`는 기존 read API와 실제 DOM의 문구·버튼·후보 field를 별도로 읽는다. Capture/request 식별자는 실행 중 전후 비교에만 사용하며 원문 DOM·nickname·source ID는 로그에 남기지 않는다. 최종 search evidence는 관측한 mask·boolean·요청/abort counter로 구성한다. Post-exit wrapper는 exact evidence, child 성공, native 거절/미처리 오류 부재, process group 종료와 profile 부재를 함께 요구한다. 실패 시 고정 단계만 전달한다.
 
-시간 제한은 새 모드에만 fixture 180초·launcher 210초·post-exit 240초를 적용한다. 네 capture 시작과 두 로그인, 동시에 진행하는 15초/5초 대기 및 cleanup의 전체 상한이며 완료 시간 보장은 아니다. 각 바깥 계층에 종료·정리 여유 30초를 둔다. 기존 모드는 90/120/150초, 제품 검색 예산은 15초를 유지한다.
+시간 제한은 새 모드에만 fixture 180초·launcher 210초·post-exit 240초를 적용한다. 네 capture 시작과 로그인·로그아웃, 동시에 진행하는 15초/5초 대기 및 cleanup의 전체 상한이며 완료 시간 보장은 아니다. 각 바깥 계층에 종료·정리 여유 30초를 둔다. 기존 모드는 90/120/150초, 제품 검색 예산은 15초를 유지한다.
 
 소유 window의 640/1100 content 폭과 app-scoped light/dark 전환은 별도 `layout evidence`의 표본 수·가로 overflow 수·theme 불일치 수로 기록한다. 이 보조 관측을 핵심 검색 PASS나 공식 시각 기준 비교의 성공으로 합치지 않는다. OS 설정은 변경하지 않는다. 실제 Tab/Shift+Tab/Return/Space와 focus/loading의 수동 관측은 별도 evidence이며 이 자동화는 native keyboard 검증을 대신하지 않는다. Reduced-motion·픽셀 비교·다른 OS는 이 모드에서 검증하지 않는다. Source/test/build 성공과 실제 native 실행 결과는 Issue/PR에서 구분해 기록한다.
 

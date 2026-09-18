@@ -87,7 +87,7 @@ const searchEvidence = {
   rateWait: true,
   rateNoAutoGet: true,
   pendingCleanup: true,
-  relogin: true,
+  restartReady: true,
   newCapture: true,
   displayRequests: 4,
   displayAllowed: 4,
@@ -177,6 +177,7 @@ it('새 검색 mode의 긴 실행을 기존 media 150초 상한으로 조기 종
 
 it.each([
   { name: 'missing evidence', evidence: null },
+  { name: 'failed restart check', evidence: { ...searchEvidence, restartReady: false } },
   { name: 'failed rate limit check', evidence: { ...searchEvidence, rateNoAutoGet: false } },
   { name: 'unexpected field', evidence: { ...searchEvidence, raw: 'synthetic-private-value' } },
   { name: 'missing native stream evidence', evidence: { ...searchEvidence, displayAllowed: 0 } }
