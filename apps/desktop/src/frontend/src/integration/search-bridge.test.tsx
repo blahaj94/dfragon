@@ -15,7 +15,7 @@ import {
   withSearchSlot,
   invalidSearchSnapshots
 } from '../../../preload/api/search-test-fixture'
-import { CaptureSearch } from '../lib/capture-search'
+import { createCaptureSearch } from '../lib/capture-search'
 import { createRendererFixture, media } from '../testing/fixtures/search-renderer-test-fixture'
 
 type Fixture = ReturnType<typeof createRendererFixture>
@@ -316,7 +316,7 @@ it.each(['pending', 'failed'] as const)(
         }
         return { ok: true, snapshot: searchSnapshot() }
       })
-    const bridge = new CaptureSearch({
+    const bridge = createCaptureSearch({
       api: { controlCharacterSearch: control, onCharacterSearchChanged: () => () => {} },
       notify: vi.fn(),
       onChange: vi.fn(),

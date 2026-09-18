@@ -45,8 +45,8 @@ vi.mock('./search-connection', () => ({
   }
 }))
 
-const { CaptureSearch } = await import('./capture-search')
-const searches: InstanceType<typeof CaptureSearch>[] = []
+const { createCaptureSearch } = await import('./capture-search')
+const searches: ReturnType<typeof createCaptureSearch>[] = []
 
 /** IPC snapshot과 signal의 외부 getter 평가 순서를 관측한다. */
 function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
@@ -69,8 +69,8 @@ function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
 }
 
 /** 내부 ticket을 주입하지 않고 공개 begin·observe 호출로 상태를 준비한다. */
-function createSearch(onChange = vi.fn()): InstanceType<typeof CaptureSearch> {
-  const search = new CaptureSearch({
+function createSearch(onChange = vi.fn()): ReturnType<typeof createCaptureSearch> {
+  const search = createCaptureSearch({
     api: { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn(() => () => {}) },
     notify: vi.fn(async (): Promise<SearchCommandResult> => ({
       ok: true,

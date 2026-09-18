@@ -6,7 +6,7 @@ import type {
 } from '../../../preload/common/types/search'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import type { SearchView } from '../types/search'
-import { CaptureSearch } from './capture-search'
+import { createCaptureSearch, type CaptureSearch } from './capture-search'
 
 const searches: CaptureSearch[] = []
 afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
@@ -29,7 +29,7 @@ async function fixture(): Promise<{
   const notify = vi.fn(async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current }))
   const changed = vi.fn<(view: SearchView) => void>()
   const invalidated = vi.fn()
-  const search = new CaptureSearch({
+  const search = createCaptureSearch({
     api: {
       controlCharacterSearch: control,
       onCharacterSearchChanged: (next) => {
@@ -136,4 +136,47 @@ it('run 변경 중 늦은 begin은 정리하고 재연결 뒤 새 begin은 사�
   })
   expect(await f.search.begin({ signal: new AbortController().signal })).toBe(nextId)
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
+})
+
+it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 종료가 격리된다', async () => {
+  const first = await fixture()
+  const second = await fixture()
+  const otherId = '00000000-0000-4000-8000-000000000099'
+  first.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  second.control.mockResolvedValueOnce({
+    ok: true,
+    snapshot: searchSnapshot({ captureId: otherId, revision: 2 })
+  })
+  const { begin, observe, dispose } = first.search
+  expect(await begin({ signal: new AbortController().signal })).toBe(CAPTURE_ID)
+  expect(await second.search.begin({ signal: new AbortController().signal })).toBe(otherId)
+  first.emit(searchSnapshot({ revision: 2 }))
+  second.emit(searchSnapshot({ captureId: otherId, revision: 2 }))
+
+  observe({ slot: 0, nickname: '가나' })
+  observe({ slot: 0, nickname: '다라' })
+  second.search.observe({ slot: 0, nickname: '마바' })
+  expect(first.notify).toHaveBeenLastCalledWith({
+    captureId: CAPTURE_ID,
+    slot: 0,
+    observationRevision: 2,
+    nickname: '다라'
+  })
+  expect(second.notify).toHaveBeenLastCalledWith({
+    captureId: otherId,
+    slot: 0,
+    observationRevision: 1,
+    nickname: '마바'
+  })
+
+  dispose()
+  expect(second.changed.mock.lastCall?.[0].captureActive).toBe(true)
+  expect(second.control).not.toHaveBeenCalledWith({ action: 'end', captureId: otherId })
+  second.search.observe({ slot: 0, nickname: '사아' })
+  expect(second.notify).toHaveBeenLastCalledWith({
+    captureId: otherId,
+    slot: 0,
+    observationRevision: 2,
+    nickname: '사아'
+  })
 })
