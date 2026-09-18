@@ -66,6 +66,8 @@ pnpm --filter @ldb/desktop dev
 pnpm --filter @ldb/desktop dev:preview
 ```
 
+캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크·라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키·문자 탐색·Enter/Space·Escape·포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치·스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다.
+
 Mac에서도 `dev:preview`의 하단 **캡처 미리보기 상태**로 대기·준비 중·캡처 중·창 미감지·실패를 확인할 수 있다. 합성 창 선택은 UI 상태만 바꾸고 실제 media·OCR·IPC를 호출하지 않는다. 제품 UI에는 OS 분기를 추가하지 않으며 실제 캡처 권한은 기존 Windows main 정책이 검사한다.
 
 빌드 결과를 확인할 때는 다음 명령을 사용한다.

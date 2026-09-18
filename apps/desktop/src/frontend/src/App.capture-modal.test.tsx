@@ -38,13 +38,14 @@ async function click(label: string): Promise<void> {
   await act(async () => button!.click())
 }
 async function select(id: string): Promise<void> {
-  const select = document.querySelector<HTMLSelectElement>(
-    'select[aria-label="캡처할 프로세스 선택"]'
-  )!
-  await act(async () => {
-    select.value = id
-    select.dispatchEvent(new Event('change', { bubbles: true }))
-  })
+  const trigger = document.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!
+  await act(async () => trigger.click())
+  const label = id === 'game' ? 'Synthetic game' : 'Next game'
+  const option = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+    (item) => item.getAttribute('aria-label') === label
+  )
+  expect(option).toBeDefined()
+  await act(async () => option!.click())
 }
 
 it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
@@ -96,7 +97,11 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
   await click('화면 캡처')
   expect(document.body.textContent).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
-  await click('새로고침')
+  await click('캡처할 프로세스 선택')
+  const refresh = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((item) =>
+    item.textContent?.includes('창 목록 새로고침')
+  )!
+  await act(async () => refresh.click())
   expect(document.body.textContent).toContain('창 미감지')
   expect(f.getDisplayMedia).not.toHaveBeenCalled()
 })

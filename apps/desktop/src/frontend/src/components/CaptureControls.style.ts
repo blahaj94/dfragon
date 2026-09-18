@@ -21,20 +21,6 @@ export const styles = stylex.create({
     fontSize: 20
   },
   state: { fontSize: 13, fontWeight: 400, color: colors.shellMuted, whiteSpace: 'nowrap' },
-  select: {
-    width: '100%',
-    height: 44,
-    paddingInline: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-    color: colors.shellText,
-    fontFamily: 'inherit',
-    fontSize: 14,
-    ':focus-visible': { outline: '2px solid #ff9f0a', outlineOffset: 2 }
-  },
   notice: {
     fontSize: 12,
     lineHeight: 1.6,
@@ -46,7 +32,7 @@ export const styles = stylex.create({
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     gap: 8,
     padding: 24
   },

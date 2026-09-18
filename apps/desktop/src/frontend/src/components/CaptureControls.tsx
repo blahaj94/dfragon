@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } from '@ldb/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
+import { CaptureSourceSelect } from './CaptureSourceSelect'
 
 export type CaptureControlsProps = {
   light: boolean
@@ -34,6 +35,7 @@ export function CaptureControls({
   onStop
 }: CaptureControlsProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const detected = sources.filter((source) =>
     /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i.test(source.name)
   )
@@ -49,8 +51,6 @@ export function CaptureControls({
           : detected.length === 0
             ? '창 미감지'
             : '대기'
-  const missingSelection =
-    selectedSourceId !== '' && !sources.some((source) => source.id === selectedSourceId)
 
   return (
     <DialogRoot
@@ -82,6 +82,7 @@ export function CaptureControls({
         </ActionButton>
       </DialogTrigger>
       <DialogContent
+        ref={dialogRef}
         {...stylex.props(styles.dialog, light && lightTheme)}
         title={
           <span {...stylex.props(styles.heading)}>
@@ -93,41 +94,18 @@ export function CaptureControls({
         }
       >
         <DialogBody>
-          <select
-            aria-label="캡처할 프로세스 선택"
+          <CaptureSourceSelect
+            portalContainer={dialogRef}
+            light={light}
+            detected={detected}
+            others={others}
             value={active || starting ? selectedSourceId : ''}
-            disabled={loading || !ready}
-            onChange={(event) => onSelect(event.target.value)}
-            {...stylex.props(styles.select)}
-          >
-            <option value="">캡처할 프로세스 선택</option>
-            {missingSelection && (
-              <option value={active || starting ? selectedSourceId : ''} disabled>
-                선택한 창 · 목록에서 사라짐
-              </option>
-            )}
-            {detected.length > 0 && (
-              <optgroup label="감지된 게임">
-                {detected.map((source) => (
-                  <option key={source.id} value={source.id}>
-                    {source.name} · 감지됨
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {others.length > 0 && (
-              <optgroup label="다른 창 직접 선택">
-                {others.map((source) => (
-                  <option key={source.id} value={source.id}>
-                    {source.name}
-                  </option>
-                ))}
-              </optgroup>
-            )}
-          </select>
-          {(failed || (!loading && sources.length === 0)) && (
-            <p {...stylex.props(styles.notice)}>게임을 실행한 뒤 창 목록을 새로고침해 주세요.</p>
-          )}
+            loading={loading}
+            failed={failed}
+            ready={ready}
+            onSelect={onSelect}
+            onRefresh={onRefresh}
+          />
           {status && (
             <p role="status" {...stylex.props(styles.notice)}>
               {status}
@@ -135,9 +113,6 @@ export function CaptureControls({
           )}
         </DialogBody>
         <div {...stylex.props(styles.footer)}>
-          <ActionButton size="small" variant="ghost" disabled={loading} onClick={onRefresh}>
-            새로고침
-          </ActionButton>
           <div {...stylex.props(styles.actions)}>
             {(active || starting) && (
               <ActionButton size="small" variant="neutralWeak" onClick={onStop}>
