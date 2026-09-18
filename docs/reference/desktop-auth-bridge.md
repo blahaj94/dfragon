@@ -17,8 +17,8 @@ last-reviewed: 2026-09-12
 | `apps/desktop/src/preload/common/types/auth.ts`       | Core의 public DTO를 type-only로 재사용하고 shared IPC contract에서 feature API를 파생                                                 |
 | `apps/desktop/src/preload/common/types/ipc.ts`        | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument·return type                                                           |
 | `apps/desktop/src/preload/api/auth.ts`                | Feature invoke, raw Electron event를 제거한 listener wrapper와 개별 unsubscribe                                                       |
-| `apps/desktop/src/frontend/src/sections/auth/useAuthBridge.ts` | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화                |
-| `apps/desktop/src/frontend/src/sections/auth/AuthSection.tsx`   | 기존 AuthPresentation에 snapshot·intent를 연결하고 초기/실패한 연결의 고정 안내 표시, capture에 현재 snapshot과 재동기화 context 제공 |
+| `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts` | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화                |
+| `apps/desktop/src/frontend/src/sections/AuthSection.tsx`   | 기존 AuthPresentation에 snapshot·intent를 연결하고 초기/실패한 연결의 고정 안내 표시, capture에 현재 snapshot과 재동기화 context 제공 |
 
 Core lifecycle은 [Desktop auth core](desktop-auth-core.md), 기존 화면은 [Desktop auth UI](desktop-auth-ui.md)를 따른다. Credential type의 runtime import나 renderer가 제출하는 로그인 성공 상태는 없다. `ok:true`는 명령 처리 결과이며 계정 표시는 main snapshot에서만 결정한다.
 
@@ -54,7 +54,7 @@ Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한�
 ## 검증 범위와 제한
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/sections/auth/useAuthBridge.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/hooks/useAuthBridge.test.tsx
 pnpm --filter @ldb/desktop exec vitest run scripts/auth-bridge-fixture/launcher.test.mjs
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check

@@ -1,4 +1,4 @@
-import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../../utils/capture/party'
+import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../../constants/capture'
 
 const canvas = document.getElementById('source')
 const isCanvas = canvas instanceof HTMLCanvasElement

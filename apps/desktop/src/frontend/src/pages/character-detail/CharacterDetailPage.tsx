@@ -1,7 +1,7 @@
 import { ActionButton } from '@ldb/ui'
 import * as stylex from '@stylexjs/stylex'
-import { DetailDeck } from '../../sections/cards/DetailDeck'
-import type { CardCharacter } from '../../components/cards/types'
+import { DetailDeck } from '../../sections/DetailDeck'
+import type { CardCharacter } from '../../types/cards'
 import { styles } from './CharacterDetailPage.style'
 
 export function CharacterDetailPage({

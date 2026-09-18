@@ -1,4 +1,4 @@
-import type { CardCharacter, EquipmentSlot } from '../../components/cards/types'
+import type { CardCharacter, EquipmentSlot } from '../../types/cards'
 import characterImage from './assets/character.png'
 
 const images = import.meta.glob<string>('./assets/item-*.png', {

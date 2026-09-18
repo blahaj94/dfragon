@@ -9,7 +9,7 @@ last-reviewed: 2026-09-14
 
 ## Source와 연결 경계
 
-`apps/desktop/src/frontend/src/sections/auth/AuthPresentation.tsx`는 `components/auth/types.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
+`apps/desktop/src/frontend/src/sections/AuthPresentation.tsx`는 `types/auth.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
 
 - `snapshot`이 표시할 phase·provider·계정·entry·고정 notice를 결정한다. Command callback 자체로 signedIn을 만들지 않는다.
 - `commandPending`은 AuthSection이 전달하는 버튼 대기 상태다. Invocation 결과를 기다리거나 snapshot을 재동기화하는 동안 true를 유지한다. 취소 완료 snapshot 전 새 provider 선택을 만들지 않는다.
@@ -51,7 +51,7 @@ Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 sign
 ## Component/interaction evidence
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/auth/AuthPresentation.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/AuthPresentation.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

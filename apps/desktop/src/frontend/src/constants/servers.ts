@@ -8,5 +8,3 @@ export const serverNames = {
   prey: '프레이',
   siroco: '시로코'
 } as const
-
-export type ServerId = keyof typeof serverNames
