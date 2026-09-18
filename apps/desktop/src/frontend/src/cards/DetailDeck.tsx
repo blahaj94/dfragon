@@ -3,7 +3,8 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from './theme.stylex'
 import { serverNames } from './servers'
 import { detailFaces, type CardCharacter } from './types'
-import { EquipmentGrid, InvestmentTable } from './CardContent'
+import { EquipmentGrid } from './CardContent'
+import { InvestmentTable } from './InvestmentTable'
 
 const styles = stylex.create({
   header: {

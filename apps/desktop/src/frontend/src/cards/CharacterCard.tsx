@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { CardImage, EquipmentGrid, InvestmentTable } from './CardContent'
+import { CardImage, EquipmentGrid } from './CardContent'
+import { InvestmentTable } from './InvestmentTable'
 import { colors } from './theme.stylex'
 import { serverNames } from './servers'
 import { cardFaces, type CardCharacter, type SlotState } from './types'
