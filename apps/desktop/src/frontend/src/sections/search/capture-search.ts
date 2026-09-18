@@ -1,3 +1,5 @@
+import type { SearchView } from '../../types/search'
+import { emptySearchSlots } from '../../lib/search/slots'
 import { SEARCH_ACTIONS } from '../../../../preload/common/types/search'
 import {
   SEARCH_ERRORS,
@@ -15,30 +17,11 @@ type CaptureTicket = {
   revisions: number[]
   cleared: boolean[]
 }
-export type SearchView = {
-  captureActive?: boolean
-  ready: boolean
-  slots: readonly SearchSlot[]
-  retryPending: readonly boolean[]
-  connectionFailed: boolean
-}
 type SearchOptions = {
   api: SearchApi
   notify: (observation: SearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
-}
-
-export function emptySearchSlots(): SearchSlot[] {
-  return Array.from({ length: 4 }, (_, slot) => ({
-    slot,
-    observationRevision: 0,
-    requestId: null,
-    nickname: null,
-    state: 'idle',
-    rows: [],
-    error: null
-  }))
 }
 
 export class CaptureSearch {

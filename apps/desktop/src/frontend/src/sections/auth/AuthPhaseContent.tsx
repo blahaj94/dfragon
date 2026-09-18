@@ -1,8 +1,7 @@
+import { authProviderLabels } from '../../constants/auth'
 import { ActionButton, ExampleSection, SupportingText } from '@ldb/ui'
-import type { AuthPresentationProps } from '../../components/auth/types'
+import type { AuthPresentationProps } from '../../types/auth'
 import { SignedInAccount } from '../../components/auth/SignedInAccount'
-
-const providerLabels = { passkey: '패스키로 계속하기' }
 
 export function AuthPhaseContent({
   snapshot,
@@ -33,7 +32,7 @@ export function AuthPhaseContent({
             disabled={commandPending}
             onClick={() => onIntent({ type: 'beginLogin', provider })}
           >
-            {providerLabels[provider]}
+            {authProviderLabels[provider]}
           </ActionButton>
         ))}
       </ExampleSection>

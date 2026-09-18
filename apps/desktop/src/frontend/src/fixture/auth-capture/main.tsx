@@ -4,7 +4,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from '../../App'
 import { runStandaloneOcr } from './standalone-ocr'
-import { capturePartyNicknameCrops } from '../../utils/capture/party'
+import { capturePartyNicknameCrops } from '../../lib/capture/party'
 
 declare global {
   interface Window {

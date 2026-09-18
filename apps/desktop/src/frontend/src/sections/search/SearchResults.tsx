@@ -1,6 +1,6 @@
 import { ContentStack, SupportingText } from '@ldb/ui'
-import { SlotNicknameEditor, type SlotEditing } from '../../components/search/SlotNicknameEditor'
-import type { SearchView } from './capture-search'
+import { SlotNicknameEditor } from '../../components/search/SlotNicknameEditor'
+import type { SearchView, SlotEditing } from '../../types/search'
 import { SlotResult } from './SlotResult'
 
 export function SearchResults({

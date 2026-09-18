@@ -1,5 +1,5 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import { decodeCtc, normalizedBgr } from '../../utils/capture/paddle-recognition'
+import { decodeCtc, normalizedBgr } from '../../lib/capture/paddle-recognition'
 
 let session: InferenceSession | null = null
 let characters: string[] = []

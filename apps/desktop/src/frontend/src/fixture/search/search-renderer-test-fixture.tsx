@@ -18,12 +18,12 @@ vi.mock('../../sections/capture/ocr', async (original) => ({
   ...(await original<typeof import('../../sections/capture/ocr')>()),
   createPartyOcrWorker: media.worker
 }))
-vi.mock('../../utils/capture/party', async (original) => ({
-  ...(await original<typeof import('../../utils/capture/party')>()),
+vi.mock('../../lib/capture/party', async (original) => ({
+  ...(await original<typeof import('../../lib/capture/party')>()),
   capturePartyNicknameCrops: media.crops
 }))
-vi.mock('../../utils/capture/recognition', async (original) => ({
-  ...(await original<typeof import('../../utils/capture/recognition')>()),
+vi.mock('../../lib/capture/recognition', async (original) => ({
+  ...(await original<typeof import('../../lib/capture/recognition')>()),
   runSerialLoop: media.loop
 }))
 

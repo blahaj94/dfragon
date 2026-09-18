@@ -1,14 +1,8 @@
+import type { SlotEditing } from '../../types/search'
 import { useState } from 'react'
 import { ActionButton, ContentStack, SupportingText, TextField, TextFieldInput } from '@ldb/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../../preload/common/types/search'
-import { validManualNickname } from '../../utils/search/manual-input'
-
-export type SlotEditing = {
-  manualSlots: readonly boolean[]
-  editSlot: (slot: number) => void
-  submitSlot: (slot: number, nickname: string) => void
-  resumeOcr: (slot: number) => void
-}
+import { validManualNickname } from '../../lib/search/manual-input'
 
 export function SlotNicknameEditor({
   slot,

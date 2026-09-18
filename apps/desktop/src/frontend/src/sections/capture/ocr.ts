@@ -1,10 +1,7 @@
-export type PartyOcrWorker = {
-  recognize: (image: HTMLCanvasElement) => Promise<{ data: { text: string; confidence: number } }>
-  terminate: () => Promise<void>
-}
+import type { PartyOcrWorker } from '../../types/capture'
+import { REQUEST_TIMEOUT_MS } from '../../constants/capture'
 
 type Reply = { ready: true } | { text: string; confidence: number }
-const REQUEST_TIMEOUT_MS = 30_000
 
 export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyOcrWorker> {
   signal?.throwIfAborted()

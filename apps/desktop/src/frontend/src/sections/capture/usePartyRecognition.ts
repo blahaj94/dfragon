@@ -1,11 +1,8 @@
 import { useRef, useState } from 'react'
-import type { PartyOcrWorker } from './ocr'
-import { capturePartyNicknameCrops, PARTY_SLOTS } from '../../utils/capture/party'
-import {
-  normalizeNickname,
-  type SlotStability,
-  updateSlotStability
-} from '../../utils/capture/recognition'
+import type { PartyOcrWorker, SlotStability } from '../../types/capture'
+import { capturePartyNicknameCrops } from '../../lib/capture/party'
+import { PARTY_SLOTS } from '../../constants/capture'
+import { normalizeNickname, updateSlotStability } from '../../lib/capture/recognition'
 
 export function usePartyRecognition(
   observe: (input: { slot: number; nickname: string | null }) => void

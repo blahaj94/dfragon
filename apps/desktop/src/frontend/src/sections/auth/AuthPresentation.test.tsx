@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { AuthPresentation } from './AuthPresentation'
-import type { AuthPhase, AuthPresentationInput } from '../../components/auth/types'
+import type { AuthPhase, AuthPresentationInput } from '../../types/auth'
 
 let container: HTMLDivElement
 let root: Root

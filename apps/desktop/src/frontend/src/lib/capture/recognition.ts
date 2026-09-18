@@ -1,10 +1,4 @@
-export type Rgb = readonly [red: number, green: number, blue: number]
-
-export type SlotStability = {
-  candidate: string | null
-  consecutiveCount: number
-  stableNickname: string | null
-}
+import type { Rgb, SlotStability } from '../../types/capture'
 
 type SerialLoopOptions = {
   signal: AbortSignal

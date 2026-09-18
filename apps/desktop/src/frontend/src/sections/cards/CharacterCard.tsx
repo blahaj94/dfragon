@@ -5,7 +5,8 @@ import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../../components/cards/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../../constants/servers'
-import { cardFaces, type CardCharacter, type SlotState } from '../../components/cards/types'
+import { cardFaces } from '../../constants/cards'
+import type { CardCharacter, SlotState } from '../../types/cards'
 
 export function CharacterCard({
   character,

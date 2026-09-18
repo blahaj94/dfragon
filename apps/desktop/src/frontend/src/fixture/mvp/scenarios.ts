@@ -1,4 +1,4 @@
-import type { SlotState } from '../../components/cards/types'
+import type { SlotState } from '../../types/cards'
 
 export const scenarios: Record<string, SlotState[]> = {
   states: ['success', 'success', 'failure', 'idle'],
