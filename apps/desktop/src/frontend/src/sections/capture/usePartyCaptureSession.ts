@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPartyOcrWorker } from './ocr'
-import { runSerialLoop } from '../../lib/capture/recognition'
+import { runSerialLoop } from '../../lib/recognition'
 
 import { SUPPORTED_WIDTH, SUPPORTED_HEIGHT } from '../../constants/capture'
 

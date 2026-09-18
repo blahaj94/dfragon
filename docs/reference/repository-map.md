@@ -95,7 +95,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `sections/`: `cards`·`auth`·`capture`·`search`의 기능 조합. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 관련 hook·worker·테스트를 함께 둔다.
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(기존 직접 검색·캡처 홈).
   - `fixture/`: MVP 합성 데이터·자산·화면 제어, 인증 UI·bridge·capture 실행 화면, 검색 테스트 도우미. 제품 페이지가 fixture를 import하지 않는다.
-  - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성과 관련 테스트.
+  - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성과 관련 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. API·OCR 등의 기능 상태를 범용 `lib`로 밀어 넣지 않는다.

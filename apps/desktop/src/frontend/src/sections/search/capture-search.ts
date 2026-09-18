@@ -1,5 +1,5 @@
 import type { SearchView } from '../../types/search'
-import { emptySearchSlots } from '../../lib/search/slots'
+import { emptySearchSlots } from '../../lib/slots'
 import { SEARCH_ACTIONS } from '../../../../preload/common/types/search'
 import {
   SEARCH_ERRORS,

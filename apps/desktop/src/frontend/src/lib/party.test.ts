@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../../constants/capture'
+import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../constants/capture'
 import { isPartySlotPresent, capturePartyNicknameCrops } from './party'
 
 describe('파티 layout', () => {

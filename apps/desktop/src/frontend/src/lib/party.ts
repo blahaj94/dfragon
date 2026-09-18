@@ -3,8 +3,9 @@ import {
   PARTY_SLOTS,
   MANA_COLOR_TOLERANCE,
   MINIMUM_MANA_PIXELS
-} from '../../constants/capture'
+} from '../constants/capture'
 
+/** MP 색상과 허용 오차 안에서 일치하는 픽셀이 기준 개수 이상이면 파티원이 있는 슬롯으로 판단한다. */
 export function isPartySlotPresent(rgba: Uint8ClampedArray): boolean {
   let matches = 0
 
@@ -31,6 +32,7 @@ export function isPartySlotPresent(rgba: Uint8ClampedArray): boolean {
   return false
 }
 
+/** 영상의 현재 프레임에서 파티원 닉네임 영역을 잘라 OCR용 반전 회색조 캔버스로 만든다. 빈 슬롯은 null로 반환한다. */
 export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
   const frame = document.createElement('canvas')
   frame.width = video.videoWidth

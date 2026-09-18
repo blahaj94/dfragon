@@ -1,5 +1,5 @@
 import { createPartyOcrWorker } from '../../sections/capture/ocr'
-import { normalizeNickname } from '../../lib/capture/recognition'
+import { normalizeNickname } from '../../lib/recognition'
 
 export async function runStandaloneOcr(): Promise<{ matched: boolean; terminated: boolean }> {
   const canvas = document.createElement('canvas')

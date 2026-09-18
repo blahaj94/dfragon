@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { CaptureSearch } from './capture-search'
-import { emptySearchSlots } from '../../lib/search/slots'
+import { emptySearchSlots } from '../../lib/slots'
 import type { SearchView } from '../../types/search'
 
 type CharacterSearch = SearchView & {

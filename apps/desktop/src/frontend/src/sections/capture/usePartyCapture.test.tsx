@@ -18,13 +18,13 @@ vi.mock('./ocr', async (importOriginal) => ({
   createPartyOcrWorker: moduleMocks.createPartyOcrWorker
 }))
 
-vi.mock('../../lib/capture/party', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/capture/party')>()),
+vi.mock('../../lib/party', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/party')>()),
   capturePartyNicknameCrops: moduleMocks.capturePartyNicknameCrops
 }))
 
-vi.mock('../../lib/capture/recognition', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../lib/capture/recognition')>()),
+vi.mock('../../lib/recognition', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/recognition')>()),
   runSerialLoop: moduleMocks.runSerialLoop
 }))
 

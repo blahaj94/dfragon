@@ -1,4 +1,4 @@
-/** PP-OCRv5 expects normalized BGR planes and zero padding on the right. */
+/** RGBA 픽셀을 PP-OCRv5용 [-1, 1] 범위의 BGR 채널 배열로 변환하고 오른쪽 여백을 0으로 채운다. */
 export function normalizedBgr(
   rgba: Uint8ClampedArray,
   width: number,
@@ -17,6 +17,7 @@ export function normalizedBgr(
   return values
 }
 
+/** CTC 출력에서 blank와 연속 중복을 제거해 문자열을 만들고, 채택한 문자 점수의 평균을 100배 한 신뢰도를 반환한다. */
 export function decodeCtc(
   data: Float32Array,
   steps: number,
