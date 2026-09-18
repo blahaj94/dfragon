@@ -1,9 +1,10 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import { decodeCtc, normalizedBgr } from '../lib/paddle-recognition'
+import { decodeCtc, normalizedBgr } from './paddle-recognition'
 
 let session: InferenceSession | null = null
 let characters: string[] = []
 
+// OCR 모델을 초기화하거나 전달받은 이미지에서 텍스트를 인식해 호출자에게 응답한다.
 onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) => {
   try {
     const { root, pixels } = event.data

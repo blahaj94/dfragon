@@ -14,6 +14,7 @@ type ConnectionOptions = {
   onRunChanged: () => void
 }
 
+/** 검색 IPC 구독과 초기 조회를 동기화하고 run·revision 순서에 맞는 상태만 전달한다. */
 export class SearchConnection {
   private active = true
   private synchronized = false

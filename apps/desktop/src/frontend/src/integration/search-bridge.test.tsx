@@ -15,7 +15,7 @@ import {
   withSearchSlot,
   invalidSearchSnapshots
 } from '../../../preload/api/search-test-fixture'
-import { CaptureSearch } from './capture-search'
+import { CaptureSearch } from '../lib/capture-search'
 import { createRendererFixture, media } from '../testing/fixtures/search-renderer-test-fixture'
 
 type Fixture = ReturnType<typeof createRendererFixture>

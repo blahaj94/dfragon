@@ -3,6 +3,7 @@ import { REQUEST_TIMEOUT_MS } from '../constants/capture'
 
 type Reply = { ready: true } | { text: string; confidence: number }
 
+/** OCR worker를 초기화하고 인식 요청·시간 초과·취소에 따른 정리를 관리한다. */
 export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyOcrWorker> {
   signal?.throwIfAborted()
   const worker = new Worker(new URL('./paddle.worker.ts', import.meta.url), { type: 'module' })

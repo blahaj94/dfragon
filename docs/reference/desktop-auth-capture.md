@@ -102,7 +102,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 `main.test.ts`는 인증 설정·provider가 없어도 공개 검색 설정을 연결하고 Windows에서는 capture 수명 검사 결과에 따라 media 요청을 처리하는지 확인한다. `App.test.tsx`는 인증 로딩·실패·로그인·로그아웃·auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron/media doubles를 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run scripts/auth-capture-fixture src/backend/capture src/backend/main.test.ts src/frontend/src/sections src/frontend/src/hooks src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx
+pnpm --filter @ldb/desktop exec vitest run scripts/auth-capture-fixture src/backend/capture src/backend/main.test.ts src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/hooks src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

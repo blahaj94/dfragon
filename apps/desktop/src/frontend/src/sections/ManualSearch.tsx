@@ -8,7 +8,7 @@ import {
   TextFieldInput
 } from '@ldb/ui'
 import { SEARCH_ERRORS, type ManualSearchApi } from '../../../preload/common/types/search'
-import { CaptureSearch } from './capture-search'
+import { CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 import { validManualNickname } from '../lib/manual-input'

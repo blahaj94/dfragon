@@ -48,7 +48,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 | --- | --- |
 | `apps/desktop/src/frontend/src/sections/SearchResults.tsx`, `components/CharacterCandidates.tsx` | 기존 슬롯·후보 표시를 카드 화면으로 연결할 출발점 |
 | `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts` | 이름 수정·제출·OCR 복귀·슬롯별 검색 상태 |
-| `apps/desktop/src/frontend/src/sections/capture-search.ts`, `connection.ts` | capture와 요청 수명, 순서·취소·늦은 응답 처리 |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `search-connection.ts` | capture와 요청 수명, 순서·취소·늦은 응답 처리 |
 | `apps/desktop/src/backend/search/`, `src/preload/common/types/search.ts` | main 검색 처리와 공유 IPC 계약 |
 | `apps/desktop/src/backend/main.ts`, `src/preload/index.ts` | 새 상세 기능의 등록 지점. 기능 본문은 별도 모듈로 구성 |
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { CaptureSearch } from '../sections/capture-search'
+import { CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 

@@ -1,5 +1,5 @@
 import type { SearchView } from '../types/search'
-import { emptySearchSlots } from '../lib/slots'
+import { emptySearchSlots } from './slots'
 import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import {
   SEARCH_ERRORS,
@@ -9,7 +9,7 @@ import {
   type SearchSlot,
   type SearchSnapshot
 } from '../../../preload/common/types/search'
-import { SearchConnection } from './connection'
+import { SearchConnection } from './search-connection'
 
 type CaptureTicket = {
   active: boolean
@@ -24,6 +24,7 @@ type SearchOptions = {
   onInvalidated: () => void
 }
 
+/** 캡처별 검색 수명과 슬롯 관측·재시도를 관리하고 화면에 전달할 검색 상태를 만든다. */
 export class CaptureSearch {
   private readonly connection: SearchConnection
   private capture: CaptureTicket | null = null

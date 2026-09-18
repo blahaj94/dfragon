@@ -1,4 +1,4 @@
-import { createPartyOcrWorker } from '../../sections/ocr'
+import { createPartyOcrWorker } from '../../lib/ocr'
 import { normalizeNickname } from '../../lib/recognition'
 
 export async function runStandaloneOcr(): Promise<{ matched: boolean; terminated: boolean }> {

@@ -16,7 +16,7 @@ const connectionState = vi.hoisted(() => ({
   onCommand: () => {}
 }))
 
-vi.mock('./connection', () => ({
+vi.mock('./search-connection', () => ({
   SearchConnection: class {
     readonly ready = true
 
