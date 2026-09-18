@@ -21,7 +21,7 @@ last-reviewed: 2026-09-17
 
 예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3443`, RP ID `localhost`, 복귀 `ldb.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
-Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. `패스키 관리` 버튼은 같은 인증 origin의 관리 화면을 열고 패스키 재인증을 요청한다.
+Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. 같은 인증 origin의 `/auth/passkeys/manage`는 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
 
 API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
@@ -84,7 +84,7 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 
 ## LDB QR과 전용 창
 
-Desktop 메인의 `로그인`은 중간 계정 모달 없이 전용 인증 창을 바로 연다. 로그인 진행 상태에서 취소하거나 로그인 후 계정을 관리하는 화면은 기존 계정 메뉴에서 제공한다. 인증 창의 로그인 화면은 왼쪽 휴대폰, 오른쪽 패스키 로그인과 아래 새 계정 만들기로 구성한다.
+Desktop 메인의 `로그인`은 중간 계정 모달 없이 전용 인증 창을 바로 연다. 로그인 진행 중에는 버튼 재클릭을 막으며, 취소는 인증 창의 닫기로 처리한다. 기존 계정 모달과 로그인 후 계정 메뉴는 제거했다. 인증 창의 로그인 화면은 왼쪽 휴대폰, 오른쪽 패스키 로그인과 아래 새 계정 만들기로 구성한다.
 
 PC QR 화면에는 확인 번호, 초 단위 남은 시간, 공유 금지 안내와 재발급·닫기를 표시한다. 표시 시간은 서버가 내려준 원래 만료 시각을 기준으로 계산하며 상태 조회는 기존 5초 간격을 유지한다. 만료 후에는 QR 화면에 만료를 표시하고 재발급을 막는다. 창을 닫고 앱에서 새 로그인 요청을 시작해야 한다. 만료 등으로 서버 취소가 거절되더라도 닫기를 사용할 수 있다.
 

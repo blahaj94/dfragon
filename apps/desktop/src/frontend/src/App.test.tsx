@@ -107,22 +107,31 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·로그아웃을 연결한다', async () => {
+it('인증 창의 취소·실패·성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
   await act(async () => root.render(<App />))
   const cards = [...container.querySelectorAll('article')]
+  const loginButton = container.querySelector('header button[aria-label="로그인"]')
   await click('로그인')
+  expect(container.querySelector('header button[aria-label="로그인"]')).toBe(loginButton)
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
-  expect(container.querySelector('header')?.textContent).toContain('로그인 진행 중')
-  await click('로그인 진행 중')
-  await click('로그인 취소')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
+  await click('로그인')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(api.beginLogin).toHaveBeenCalledTimes(1)
+  await act(async () => {
+    await api.cancelLogin({ attemptId: 'test-attempt' })
+  })
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
-  expect(document.body.textContent).toContain('로그인을 취소했습니다')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({ phase: 'signedOut', login: null, notice: 'NETWORK_UNAVAILABLE' })
   })
-  expect(document.body.textContent).toContain('네트워크 연결을 확인해 주세요')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({
@@ -133,43 +142,45 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
       entry: 'welcome'
     })
   })
-  expect(container.querySelector('header')?.textContent).toContain('내 계정')
-  await click('내 계정')
-  expect(document.body.textContent).toContain('테스트모험가')
-  await click('이 기기 로그아웃')
+  expect(container.querySelector('header button[aria-label="로그인"]')).toBeNull()
+  expect(document.body.textContent).not.toContain('내 계정')
+  expect(document.body.textContent).not.toContain('테스트모험가')
+  await act(async () => {
+    await api.logout()
+  })
   expect(api.logout).toHaveBeenCalledExactlyOnceWith()
   expect(container.querySelector('header')?.textContent).toContain('로그인')
   expect(document.body.textContent).not.toContain('테스트모험가')
   expect([...container.querySelectorAll('article')]).toEqual(cards)
 })
 
-it('계정 창을 닫아도 구독과 진행 상태를 유지하고 다시 열어 취소할 수 있다', async () => {
+it('로그인 진행 중 재클릭은 모달과 중복 요청을 만들지 않는다', async () => {
   await act(async () => root.render(<App />))
   await click('로그인')
-  await click('로그인 진행 중')
-  await click('닫기')
-  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
-  expect(listeners.size).toBe(1)
+  await click('로그인')
+  await click('로그인')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(document.querySelector('[aria-haspopup="dialog"]')).toBeNull()
+  expect(api.beginLogin).toHaveBeenCalledTimes(1)
   expect(api.cancelLogin).not.toHaveBeenCalled()
-  await click('로그인 진행 중')
-  await click('로그인 취소')
-  expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
+  expect(listeners.size).toBe(1)
 })
 
-it('재실행 조회의 복원 결과를 계정 창을 열기 전 반영하고 unmount 때 구독을 해제한다', async () => {
+it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고 unmount 때 구독을 해제한다', async () => {
   snapshot = { ...snapshot, phase: 'restoring' }
   await act(async () => root.render(<App />))
-  expect(container.querySelector('header')?.textContent).toContain('계정 복원 중')
+  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
   await act(async () => {
     publish({ phase: 'signedIn', user: { nickname: '복원모험가' }, entry: 'home' })
   })
-  expect(container.querySelector('header')?.textContent).toContain('내 계정')
+  expect(container.querySelector('header button[aria-label="로그인"]')).toBeNull()
   await act(async () => root.unmount())
   expect(listeners.size).toBe(0)
   root = createRoot(container)
   await act(async () => root.render(<App />))
-  await click('내 계정')
-  expect(document.body.textContent).toContain('복원모험가')
+  expect(document.body.textContent).not.toContain('내 계정')
+  expect(document.body.textContent).not.toContain('복원모험가')
   expect(document.body.textContent).not.toContain('시작하기')
   expect(api.getAuthState).toHaveBeenCalledTimes(2)
   expect(api.beginLogin).not.toHaveBeenCalled()
@@ -179,9 +190,8 @@ it('인증 연결 실패 중에도 카드·테마를 유지하고 연결 재확�
   vi.mocked(api.getAuthState).mockRejectedValueOnce(new Error('test connection unavailable'))
   await act(async () => root.render(<App />))
   const cards = [...container.querySelectorAll('article')]
-  await click('로그인 연결 확인')
-  expect(document.body.textContent).toContain('인증 연결을 확인할 수 없습니다')
-  await click('연결 다시 확인')
+  await click('로그인')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.getAuthState).toHaveBeenCalledTimes(2)
   expect(api.beginLogin).not.toHaveBeenCalled()
   expect(document.body.textContent).not.toContain('패스키로 계속하기')
@@ -200,9 +210,8 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
       notice: phase === 'storageBlocked' ? 'SECURE_STORAGE_UNAVAILABLE' : 'RESTORE_RETRY_REQUIRED'
     }
     await act(async () => root.render(<App />))
-    const trigger = container.querySelector<HTMLButtonElement>('[aria-haspopup="dialog"]')!
-    await act(async () => trigger.click())
-    await click('다시 시도')
+    await click('로그인')
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(api.retryAuth).toHaveBeenCalledExactlyOnceWith()
     expect(api.beginLogin).not.toHaveBeenCalled()
     expect(container.querySelectorAll('article')).toHaveLength(4)

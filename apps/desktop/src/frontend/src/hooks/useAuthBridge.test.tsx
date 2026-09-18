@@ -121,7 +121,7 @@ it('subscribe 이후 조회하고 먼저 도착한 높은 event revision을 늦�
   expect(current.snapshot).toEqual(snapshot(4))
 })
 
-it('최초 snapshot에서도 phase를 평가하고 presentation epoch를 바꾸지 않는다', async () => {
+it('최초 snapshot을 계정 화면용 변환 없이 유지한다', async () => {
   let phaseReads = 0
   const initial = {
     ...snapshot(1),
@@ -134,12 +134,12 @@ it('최초 snapshot에서도 phase를 평가하고 presentation epoch를 바꾸�
 
   await mount()
 
-  expect(phaseReads).toBe(1)
+  expect(phaseReads).toBe(0)
   expect(current.snapshot).toBe(initial)
-  expect(current.presentationEpoch).toBe(0)
+  expect(current.snapshot).not.toBeNull()
 })
 
-it('stale revision에서는 phase를 평가하지 않고 signedIn 이탈에서만 presentation epoch를 증가시킨다', async () => {
+it('stale revision을 무시하고 최신 signedOut snapshot을 적용한다', async () => {
   fixture.api.getAuthState.mockResolvedValue({
     ...snapshot(1),
     phase: 'signedIn',
@@ -158,10 +158,10 @@ it('stale revision에서는 phase를 평가하지 않고 signedIn 이탈에서�
   }
   await act(async () => fixture.emit(stale))
   expect(phaseReads).toBe(0)
-  expect(current.presentationEpoch).toBe(0)
+  expect(current.snapshot).not.toBeNull()
 
   await act(async () => fixture.emit(snapshot(2)))
-  expect(current.presentationEpoch).toBe(1)
+  expect(current.snapshot).toEqual(snapshot(2))
 })
 
 it('baseline 전 queued event는 같은 run의 오래된 revision을 버리고 run 변경 snapshot으로 덮어쓴다', async () => {
@@ -195,28 +195,20 @@ it('commandPending과 exact intent를 전달하고 늦은 command snapshot도 �
   expect(current.snapshot).toEqual(snapshot(5))
   expect(current.commandPending).toBe(false)
   await act(async () => {
-    void current.onIntent({ type: 'cancelLogin', attemptId: 'current-attempt' })
-  })
-  await act(async () => {
     void current.onIntent({ type: 'retryAuth' })
   })
-  await act(async () => {
-    void current.onIntent({ type: 'logout' })
-  })
-  expect(fixture.api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'current-attempt' })
   expect(fixture.api.retryAuth).toHaveBeenCalledExactlyOnceWith()
-  expect(fixture.api.logout).toHaveBeenCalledExactlyOnceWith()
 })
 
 it('응답 유실은 snapshot만 재조회하고 mutation을 자동 재전송하지 않는다', async () => {
   await mount()
-  fixture.api.logout.mockRejectedValue(new Error('synthetic transport failure'))
+  fixture.api.retryAuth.mockRejectedValue(new Error('synthetic transport failure'))
   fixture.api.getAuthState.mockResolvedValue(snapshot(6))
   await act(async () => {
-    void current.onIntent({ type: 'logout' })
+    void current.onIntent({ type: 'retryAuth' })
   })
 
-  expect(fixture.api.logout).toHaveBeenCalledTimes(1)
+  expect(fixture.api.retryAuth).toHaveBeenCalledTimes(1)
   expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
   expect(current.snapshot).toEqual(snapshot(6))
   expect(current.commandPending).toBe(false)
@@ -235,9 +227,9 @@ it('실패한 bridge 조회는 인증 snapshot을 만들지 않고 연결 실패
 it('runId 변경은 기존 구독을 버리고 새 조회로 기준을 세우며 이전 listener와 reply를 무시한다', async () => {
   await mount()
   const oldCommand = deferred<AuthCommandResult>()
-  fixture.api.logout.mockReturnValue(oldCommand.promise)
+  fixture.api.retryAuth.mockReturnValue(oldCommand.promise)
   await act(async () => {
-    void current.onIntent({ type: 'logout' })
+    void current.onIntent({ type: 'retryAuth' })
   })
   const query = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockReturnValue(query.promise)
@@ -311,9 +303,9 @@ it('A→B→A API 객체 재사용도 이전 연결 snapshot과 늦은 reply를 
   })
   await mount()
   const oldCommand = deferred<AuthCommandResult>()
-  apiA.api.logout.mockReturnValue(oldCommand.promise)
+  apiA.api.retryAuth.mockReturnValue(oldCommand.promise)
   await act(async () => {
-    current.onIntent({ type: 'logout' })
+    current.onIntent({ type: 'retryAuth' })
   })
 
   fixture = createApi()
@@ -355,13 +347,13 @@ it('연결 조회 실패 뒤 화면에서 다시 확인해 현재 로그인으�
   )
   expect(container.textContent).toContain('화면 캡처 기능')
   const retry = container.querySelector('button')
-  expect(retry?.textContent).toBe('연결 다시 확인')
+  expect(retry?.textContent).toBe('로그인')
 
   const query = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockReturnValueOnce(query.promise)
   await act(async () => retry?.click())
-  expect(container.textContent).toContain('인증 상태를 확인하고 있습니다')
-  expect(container.querySelector('button')).toBeNull()
+  expect(container.querySelector('button')?.getAttribute('aria-busy')).toBe('true')
+  expect(container.querySelector('button')?.disabled).toBe(true)
   expect(fixture.listeners.size).toBe(1)
   const signedIn: AuthSnapshot = {
     ...snapshot(3),
@@ -374,7 +366,8 @@ it('연결 조회 실패 뒤 화면에서 다시 확인해 현재 로그인으�
     query.resolve(snapshot(1))
   })
   expect(container.textContent).toContain('화면 캡처 기능')
-  expect(container.textContent).toContain('중립모험가')
+  expect(container.textContent).not.toContain('중립모험가')
+  expect(container.querySelector('button')).toBeNull()
   expect(fixture.api.beginLogin).not.toHaveBeenCalled()
   expect(fixture.api.retryAuth).not.toHaveBeenCalled()
   expect(fixture.api.logout).not.toHaveBeenCalled()
@@ -386,7 +379,7 @@ it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로�
   fixture.api.getAuthState.mockRejectedValueOnce(new Error('query lost'))
   await act(async () => container.querySelector('button')?.click())
   expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
-  expect(container.querySelector('button')?.textContent).toBe('연결 다시 확인')
+  expect(container.querySelector('button')?.textContent).toBe('로그인')
 
   fixture.api.getAuthState.mockResolvedValueOnce({
     ...snapshot(3),
@@ -394,8 +387,8 @@ it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로�
     login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
   })
   await act(async () => container.querySelector('button')?.click())
-  expect(container.textContent).toContain('로그인 전용 창')
-  expect(container.textContent).toContain('로그인 취소')
+  expect(container.querySelector('button')?.disabled).toBe(true)
+  expect(container.querySelector('[role="dialog"]')).toBeNull()
   expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
   expect(fixture.api.cancelLogin).not.toHaveBeenCalled()
   expect(fixture.api.retryAuth).not.toHaveBeenCalled()
@@ -406,7 +399,7 @@ it('연결 재확인도 실패하면 실패 안내와 다음 수동 재확인을
   await act(async () => root.render(<LoginPage api={fixture.api} />))
   await act(async () => container.querySelector('button')?.click())
   expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
-  expect(container.querySelector('button')?.textContent).toBe('연결 다시 확인')
+  expect(container.querySelector('button')?.textContent).toBe('로그인')
   expect(fixture.listeners.size).toBe(1)
   expect(fixture.api.beginLogin).not.toHaveBeenCalled()
 })
@@ -434,12 +427,12 @@ it('계정 확인·환영·로그아웃·연결 재설정 중에도 캡처를 �
       entry: 'welcome'
     })
   )
-  expect(container.textContent).toContain('시작하기')
+  expect(container.querySelector('button')).toBeNull()
   await act(async () => fixture.emit({ ...snapshot(3), phase: 'signingOut' }))
   await act(async () => fixture.emit(snapshot(4)))
   fixture.api.getAuthState.mockRejectedValueOnce(new Error('unavailable'))
   await act(async () => fixture.emit(snapshot(1, 'new-run')))
-  expect(container.textContent).toContain('연결 다시 확인')
+  expect(container.querySelector('button')?.disabled).toBe(false)
   expect(container.textContent).toContain('Capture fixture')
   expect(mounted).toHaveBeenCalledOnce()
   expect(cleaned).not.toHaveBeenCalled()

@@ -7,18 +7,18 @@ last-reviewed: 2026-09-12
 
 # Desktop Auth Bridge
 
-승인된 [Desktop auth contract](../rules/desktop-auth.md)의 6 invoke와 1 event를 기존 main AuthCoordinator 및 AuthPresentation에 연결한다. 제품 main은 trusted 설정이 활성화된 경우 기존 auth IPC를 local renderer window에 등록하며, 설정이 없으면 renderer의 고정 연결 실패 안내를 유지한다. 이 문서의 auth-only fixture는 media를 차단한다. 실제 API/패스키, OS protocol registry, Keychain·credential file durability 접근은 이 결과에 포함하지 않는다.
+승인된 [Desktop auth contract](../rules/desktop-auth.md)의 6 invoke와 1 event를 기존 main AuthCoordinator 및 LoginSection에 연결한다. 제품 main은 trusted 설정이 활성화된 경우 기존 auth IPC를 local renderer window에 등록하며, 설정이 없으면 로그인 버튼에서 연결 조회를 재시도할 수 있다. 이 문서의 auth-only fixture는 media를 차단한다. 실제 API/패스키, OS protocol registry, Keychain·credential file durability 접근은 이 결과에 포함하지 않는다.
 
 ## 구현 위치와 경계
 
-| File                                                  | 현재 책임                                                                                                                             |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/auth/ipc-handler.ts`        | 등록 window·main frame·exact document와 인자 검사, 정제 결과·snapshot event, async reply의 window 재검사와 dispose                    |
-| `apps/desktop/src/preload/common/types/auth.ts`       | Core의 public DTO를 type-only로 재사용하고 shared IPC contract에서 feature API를 파생                                                 |
-| `apps/desktop/src/preload/common/types/ipc.ts`        | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument·return type                                                           |
-| `apps/desktop/src/preload/api/auth.ts`                | Feature invoke, raw Electron event를 제거한 listener wrapper와 개별 unsubscribe                                                       |
-| `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts` | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화                |
-| `apps/desktop/src/frontend/src/sections/AuthSection.tsx`   | 기존 AuthPresentation에 snapshot·intent를 연결하고 초기/실패한 연결의 고정 안내 표시, capture에 현재 snapshot과 재동기화 context 제공 |
+| File                                                      | 현재 책임                                                                                                              |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/auth/ipc-handler.ts`            | 등록 window·main frame·exact document와 인자 검사, 정제 결과·snapshot event, async reply의 window 재검사와 dispose     |
+| `apps/desktop/src/preload/common/types/auth.ts`           | Core의 public DTO를 type-only로 재사용하고 shared IPC contract에서 feature API를 파생                                  |
+| `apps/desktop/src/preload/common/types/ipc.ts`            | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument·return type                             |
+| `apps/desktop/src/preload/api/auth.ts`                    | Feature invoke, raw Electron event를 제거한 listener wrapper와 개별 unsubscribe                                        |
+| `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts`    | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화 |
+| `apps/desktop/src/frontend/src/sections/LoginSection.tsx` | 로그인 버튼에 snapshot·intent를 연결하며 진행 중 재클릭을 차단하고 조회·복구를 재시도                                  |
 
 Core lifecycle은 [Desktop auth core](desktop-auth-core.md), 기존 화면은 [Desktop auth UI](desktop-auth-ui.md)를 따른다. Credential type의 runtime import나 renderer가 제출하는 로그인 성공 상태는 없다. `ok:true`는 명령 처리 결과이며 계정 표시는 main snapshot에서만 결정한다.
 
@@ -34,7 +34,7 @@ Renderer는 첫 조회가 완료되기 전 event를 보류하고 조회 결과�
 - `apps/desktop/scripts/auth-bridge-fixture/main.ts`: launcher가 전달한 profile을 검증하고 sandbox·contextIsolation 활성화, nodeIntegration 비활성화, network/media·navigation/popup 차단을 담당한다.
 - `apps/desktop/scripts/auth-bridge-fixture/effects.ts`: 실제 coordinator에 전달할 memory-only fake HTTP/Store/Browser/Clock/Entropy. Synthetic return target과 canary는 fixture 전용이며 실제 protocol/API 등록값이 아니다. 두 번째 coordinator나 별도 인증 상태 머신을 만들지 않는다.
 - `apps/desktop/scripts/auth-bridge-fixture/preload.ts`: 실제 auth feature API 6개만 contextBridge로 노출한다. Fixture 조작용 code/URL/token IPC는 없다.
-- `apps/desktop/src/frontend/src/fixture/auth-bridge/`: 기존 AuthPresentation을 실제 bridge에 연결한 전용 renderer.
+- `apps/desktop/src/frontend/src/fixture/auth-bridge/`: 기존 LoginSection을 실제 bridge에 연결한 전용 renderer.
 - `apps/desktop/scripts/auth-bridge-fixture/smoke.ts`: 실제 UI 버튼·feature preload·IPC를 통한 자동 관측. Unsubscribe 함수는 renderer에만 보관하며 실행 결과로 함수 자체를 반환하지 않는다.
 
 Repository root에서 실행한다.

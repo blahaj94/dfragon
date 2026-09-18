@@ -68,8 +68,6 @@ export async function smoke(
   await until(() => textIncludes('로그인'))
   assert.equal(await evaluate('document.querySelectorAll("article").length'), 4)
   await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
-  await click('로그인')
-  await until(() => textIncludes('패스키로 계속하기'))
   assert.deepEqual(await evaluate('Object.keys(window.auth).sort()'), [
     'beginLogin',
     'cancelLogin',
@@ -90,12 +88,12 @@ export async function smoke(
     'window.fixtureEvents = []; window.fixtureOff = window.auth.onAuthStateChanged((...args) => window.fixtureEvents.push(args)); true'
   )
   console.log('Auth bridge fixture step: begin-cancel')
-  await click('패스키로 계속하기')
+  await click('로그인')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
     return isWaitingBrowser
   })
-  await until(() => textIncludes('로그인 취소'))
+  assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null)
   const waiting = await state()
   noCanary(waiting)
   const events = (await evaluate('window.fixtureEvents')) as AuthSnapshot[][]
@@ -105,15 +103,17 @@ export async function smoke(
     assert.equal(args.length, 1)
     noCanary(args)
   }
-  await click('로그인 취소')
+  await evaluate(
+    'window.auth.getAuthState().then(state => window.auth.cancelLogin({attemptId: state.login.attemptId}))'
+  )
   await until(async () => {
     const isSignedOut = (await state()).phase === 'signedOut'
     return isSignedOut
   })
-  await until(() => textIncludes('로그인을 취소했습니다'))
+  await until(() => textIncludes('로그인'))
   await evaluate('window.fixtureOff(); window.fixtureEvents = []')
   console.log('Auth bridge fixture step: unsubscribe-reload')
-  await click('패스키로 계속하기')
+  await click('로그인')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
     return isWaitingBrowser
@@ -124,9 +124,9 @@ export async function smoke(
     window.webContents.once('did-finish-load', () => resolve())
     window.webContents.reload()
   })
-  await until(() => textIncludes('로그인 진행 중'))
-  await click('로그인 진행 중')
-  await until(() => textIncludes('로그인 취소'))
+  await until(() => textIncludes('로그인'))
+  assert.equal(await evaluate('document.querySelector("button[aria-label=로그인]").disabled'), true)
+  assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null)
   await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
   assert.equal((await state()).login?.attemptId, beforeReload.login?.attemptId)
 
@@ -143,16 +143,15 @@ export async function smoke(
   assert.equal(await textIncludes('중립모험가'), false)
   effects.releaseCommit()
   await exchange
-  await until(() => textIncludes('시작하기'))
+  await until(async () => (await state()).phase === 'signedIn')
   const signedIn = await state()
   assert.equal(signedIn.phase, 'signedIn')
   assert.equal(signedIn.entry, 'welcome')
   noCanary(signedIn)
   console.log('Auth bridge fixture step: welcome-logout')
-  await click('시작하기')
-  await until(() => textIncludes('내 계정'))
-  await click('이 기기 로그아웃')
-  await until(() => textIncludes('패스키로 계속하기'))
+  assert.equal(await textIncludes('내 계정'), false)
+  await evaluate('window.auth.logout()')
+  await until(() => textIncludes('로그인'))
   assert.equal((await state()).phase, 'signedOut')
   assert.equal(
     await evaluate(

@@ -1,11 +1,13 @@
 ---
 type: reference
-status: current
+status: historical
 scope: desktop renderer auth presentation and isolated fixture
 last-reviewed: 2026-09-14
 ---
 
 # Desktop Auth UI
+
+이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`·계정 모달·환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로·명령·화면 관측은 당시 revision에만 해당한다. 현재 UI는 `sections/LoginSection.tsx`의 로그인 버튼과 API의 전용 인증 창이며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
 
 ## Source와 연결 경계
 
@@ -64,14 +66,14 @@ Code result `bd5d5e1`에서 aggregate exit 0, 10 files/53 tests, lint, Desktop b
 
 2026-09-07 macOS 26.6.2 arm64, Electron 39.8.10 / Chromium 142.0.7444.265에서 CUA로 실제 window·AX tree·screenshot과 keyboard를 확인했다. Font는 공식 system stack의 `-apple-system`, `system-ui`, `Apple SD Gothic Neo` 등을 사용한다. Screenshot은 CUA tool image로 확인했으며 repository에 image 파일을 추가하지 않았다.
 
-| 조건 | 직접 확인한 내용 |
-| --- | --- |
-| Light, 초기 wide(1100×768 content), signedOut→waitingBrowser | provider 표시, Tab/Shift+Tab focus, Enter intent, 대기 중 disabled, 다음 snapshot의 현재 attempt 취소 focus. |
-| Dark, 360×740, startingLogin·exchanging·restoring·signingOut | 안내와 loading/disabled 표현, 보호 content 부재, exchange 취소 focus, restoring/signingOut의 activation 차단. |
-| Dark, 360×740, invalidReturn | 새 로그인 Enter→취소 대기 중 두 action disabled→signedOut 안내. 대기 중 provider가 나타나지 않는다. |
-| Dark, 360×740, restorePaused·storageBlocked | retry/logout 순서와 focus, logout 후 signingOut, storageBlocked의 retry만 노출 및 local/server 불명 안내. `RESTORE_RETRY_REQUIRED`도 같은 안전한 retry/logout action과 고정 시간 확인 안내를 사용한다. |
-| Light/Dark, 360×740, 최대 nickname welcome→home | `W` 20 grapheme가 영역 안에 표시된다. 시작하기 Enter 후 home 계정·캡처 안내·logout 표시와 focus를 확인했다. |
-| Dark, reduced-motion run | CLI flag만 사용한 실행에서 실제 DevTools `matchMedia('(prefers-reduced-motion: reduce)').matches === true`, dark true, `window.api` undefined 확인. Wide 화면에서 Tab→provider·Enter→busy→waiting→취소 focus·Enter→busy→signedOut·Tab→provider focus를 확인했다. DevTools는 read-only query에 사용했고 media emulation을 설정하지 않았다. |
+| 조건                                                         | 직접 확인한 내용                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Light, 초기 wide(1100×768 content), signedOut→waitingBrowser | provider 표시, Tab/Shift+Tab focus, Enter intent, 대기 중 disabled, 다음 snapshot의 현재 attempt 취소 focus.                                                                                                                                                                                                                              |
+| Dark, 360×740, startingLogin·exchanging·restoring·signingOut | 안내와 loading/disabled 표현, 보호 content 부재, exchange 취소 focus, restoring/signingOut의 activation 차단.                                                                                                                                                                                                                             |
+| Dark, 360×740, invalidReturn                                 | 새 로그인 Enter→취소 대기 중 두 action disabled→signedOut 안내. 대기 중 provider가 나타나지 않는다.                                                                                                                                                                                                                                       |
+| Dark, 360×740, restorePaused·storageBlocked                  | retry/logout 순서와 focus, logout 후 signingOut, storageBlocked의 retry만 노출 및 local/server 불명 안내. `RESTORE_RETRY_REQUIRED`도 같은 안전한 retry/logout action과 고정 시간 확인 안내를 사용한다.                                                                                                                                    |
+| Light/Dark, 360×740, 최대 nickname welcome→home              | `W` 20 grapheme가 영역 안에 표시된다. 시작하기 Enter 후 home 계정·캡처 안내·logout 표시와 focus를 확인했다.                                                                                                                                                                                                                               |
+| Dark, reduced-motion run                                     | CLI flag만 사용한 실행에서 실제 DevTools `matchMedia('(prefers-reduced-motion: reduce)').matches === true`, dark true, `window.api` undefined 확인. Wide 화면에서 Tab→provider·Enter→busy→waiting→취소 focus·Enter→busy→signedOut·Tab→provider focus를 확인했다. DevTools는 read-only query에 사용했고 media emulation을 설정하지 않았다. |
 
 유효 최대 nickname 기준은 서버의 1–20 grapheme contract다. 범위 밖의 매우 긴 unbroken stress text는 공용 flex 영역을 넘었지만, 정상 최대 조건과 구분했다. 이 stress만으로 공용 API를 확대하거나 renderer에서 nickname을 잘라 표시하지 않았다. HTML 형태 string은 component test에서 text 출력과 element 미생성을 검증한다.
 
