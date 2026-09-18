@@ -54,7 +54,7 @@ Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한�
 ## 검증 범위와 제한
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/sections/auth/useAuthBridge.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/testing/sections/auth/useAuthBridge.test.tsx
 pnpm --filter @ldb/desktop exec vitest run scripts/auth-bridge-fixture/launcher.test.mjs
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
@@ -66,7 +66,7 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 
 ## 제품 logout·재로그인 조합 검증
 
-`apps/desktop/src/frontend/src/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 `App` renderer를 연결하고, 합성 IPC transport·BrowserWindow/window source·media/OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
+`apps/desktop/src/frontend/src/testing/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 `App` renderer를 연결하고, 합성 IPC transport·BrowserWindow/window source·media/OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
 
 - 로그인 exchange 뒤 renderer home에서 실제 capture source 조회·선택과 search begin이 같은 auth generation을 사용한다.
 - 검색 HTTP가 pending인 동안 renderer에서 현재 기기 logout을 수행하면 auth snapshot이 `signedOut`이 되고, capture track/worker와 main source/search binding이 정리된다.
@@ -76,5 +76,5 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 이 조합 테스트는 실제 `main.ts`의 trusted runtime 설정, Electron native media/provider/API, safeStorage·credential file durability, OS protocol registry와 packaged app을 성공으로 표시하지 않는다. 서버 204와 local 삭제 결과, refresh/exchange 경합 및 notice 분류는 기존 coordinator·store 경계 테스트의 evidence로 별도 관리한다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/integration/logout-relogin.integration.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/testing/integration/logout-relogin.integration.test.tsx
 ```

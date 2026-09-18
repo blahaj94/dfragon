@@ -4,20 +4,20 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
-import { bootstrapAuthRuntime } from '../../../backend/auth/bootstrap'
-import { registerAuthIpc } from '../../../backend/auth/ipc-handler'
+import { bootstrapAuthRuntime } from '../../../../backend/auth/bootstrap'
+import { registerAuthIpc } from '../../../../backend/auth/ipc-handler'
 import {
   createAuthHarness,
   CODE,
   deferred,
   RETURN_TARGET
-} from '../../../backend/auth/auth-test-fixtures'
-import type { AuthRuntimeConfig } from '../../../backend/auth/runtime-config'
-import { registerCaptureIpc, registerCaptureWindow } from '../../../backend/capture/ipc-handler'
-import App from '../App'
-import * as authApi from '../../../preload/api/auth'
-import * as captureApi from '../../../preload/api/capture'
-import * as searchApi from '../../../preload/api/search'
+} from '../../../../backend/auth/auth-test-fixtures'
+import type { AuthRuntimeConfig } from '../../../../backend/auth/runtime-config'
+import { registerCaptureIpc, registerCaptureWindow } from '../../../../backend/capture/ipc-handler'
+import App from '../../App'
+import * as authApi from '../../../../preload/api/auth'
+import * as captureApi from '../../../../preload/api/capture'
+import * as searchApi from '../../../../preload/api/search'
 
 const electron = vi.hoisted(() => {
   type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown
@@ -87,7 +87,7 @@ const ocrWorker = vi.hoisted(() => ({
   terminate: vi.fn(async () => undefined)
 }))
 
-vi.mock('../sections/capture/ocr', () => ({
+vi.mock('../../sections/capture/ocr', () => ({
   createPartyOcrWorker: vi.fn(async () => ocrWorker)
 }))
 

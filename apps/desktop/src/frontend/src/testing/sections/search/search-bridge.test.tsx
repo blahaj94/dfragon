@@ -6,7 +6,7 @@ import type {
   SearchCommandResult,
   SearchSlot,
   SearchSnapshot
-} from '../../../../preload/common/types/search'
+} from '../../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
   searchRow,
@@ -14,9 +14,9 @@ import {
   searchSnapshot,
   withSearchSlot,
   invalidSearchSnapshots
-} from '../../../../preload/api/search-test-fixture'
-import { CaptureSearch } from './capture-search'
-import { createRendererFixture, media } from '../../fixture/search/search-renderer-test-fixture'
+} from '../../../../../preload/api/search-test-fixture'
+import { CaptureSearch } from '../../../sections/search/capture-search'
+import { createRendererFixture, media } from '../../fixtures/search-renderer-test-fixture'
 
 type Fixture = ReturnType<typeof createRendererFixture>
 function state(fixture: Fixture, slot: SearchSlot, revision?: number): SearchSnapshot {

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { hasColorMatch, normalizeNickname, runSerialLoop, updateSlotStability } from './recognition'
+import {
+  hasColorMatch,
+  normalizeNickname,
+  runSerialLoop,
+  updateSlotStability
+} from '../../lib/recognition'
 
 describe('파티 인식 helper', () => {
   afterEach(() => {

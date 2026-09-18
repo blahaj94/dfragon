@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPartyOcrWorker } from './ocr'
+import { createPartyOcrWorker } from '../../../sections/capture/ocr'
 
 class NativeWorker {
   static latest: NativeWorker

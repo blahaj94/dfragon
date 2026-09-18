@@ -6,9 +6,9 @@ import type {
   AuthSnapshot,
   AuthCommandResult,
   AuthApi
-} from '../../../../preload/common/types/auth'
-import { useAuthBridge } from './useAuthBridge'
-import { LoginPage } from '../../pages/login/LoginPage'
+} from '../../../../../preload/common/types/auth'
+import { useAuthBridge } from '../../../sections/auth/useAuthBridge'
+import { LoginPage } from '../../../pages/login/LoginPage'
 
 function snapshot(revision: number, runId = 'run-one'): AuthSnapshot {
   return {

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { validManualNickname } from './manual-input'
+import { validManualNickname } from '../../lib/manual-input'
 
 it.each(['가', '漢', '𠀀', '😀', '♥'])('validates 2–12 Unicode code points for %s', (character) => {
   expect(validManualNickname(character)).toBe(false)

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { decodeCtc, normalizedBgr } from './paddle-recognition'
+import { decodeCtc, normalizedBgr } from '../../lib/paddle-recognition'
 
 it('정규화한 BGR channel 순서와 오른쪽 zero padding을 보존한다', () => {
   const values = normalizedBgr(new Uint8ClampedArray([255, 0, 127, 255]), 1, 1, 2)
