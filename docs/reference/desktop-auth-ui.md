@@ -9,10 +9,10 @@ last-reviewed: 2026-09-14
 
 ## Source와 연결 경계
 
-`apps/desktop/src/frontend/src/auth/AuthPresentation.tsx`는 `presentation.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
+`apps/desktop/src/frontend/src/sections/auth/AuthPresentation.tsx`는 `components/auth/types.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
 
 - `snapshot`이 표시할 phase·provider·계정·entry·고정 notice를 결정한다. Command callback 자체로 signedIn을 만들지 않는다.
-- `commandPending`은 AuthBridge가 전달하는 버튼 대기 상태다. Invocation 결과를 기다리거나 snapshot을 재동기화하는 동안 true를 유지한다. 취소 완료 snapshot 전 새 provider 선택을 만들지 않는다.
+- `commandPending`은 AuthSection이 전달하는 버튼 대기 상태다. Invocation 결과를 기다리거나 snapshot을 재동기화하는 동안 true를 유지한다. 취소 완료 snapshot 전 새 provider 선택을 만들지 않는다.
 - `SignedIn`의 welcome dismissal만 React mount에 남는다. 같은 mount의 입력 갱신은 dismissal을 유지하고 signedIn 이탈·전체 unmount는 초기화한다. `시작하기`는 local navigation이며 auth intent를 보내지 않는다.
 - Home에는 계정·주입된 `home` content와 logout이 있다. Content를 주입하지 않는 presentation-only fixture에는 화면 캡처 안내가 남고, 제품 App은 기존 PartyCapture를 주입한다.
 - [AuthBridge](desktop-auth-bridge.md)가 subscribe/getAuthState·runId/revision과 IPC 결과 재동기화를 맡는다. 제품 entry·preload 및 capture 수명의 후속 연결은 [Auth Capture](desktop-auth-capture.md)를 따른다. 아래 과거 presentation-only fixture 관측을 실제 capture 검증으로 해석하지 않는다.
@@ -21,7 +21,7 @@ last-reviewed: 2026-09-14
 
 브라우저 로그인 대기 화면은 API 완료 페이지의 “앱으로 돌아가기” 버튼과 OS의 앱 열기 확인을 안내합니다. 브라우저에서 취소하거나 브라우저를 닫은 경우 앱에 즉시 전달되지 않으므로 앱의 “로그인 취소” 후 새 시도를 안내합니다. 자동 복귀나 브라우저 취소의 자동 감지를 약속하지 않습니다.
 
-인증 연결 조회에 실패하면 “연결 다시 확인”으로 기존 AuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
+인증 연결 조회에 실패하면 “연결 다시 확인”으로 AuthSection에서 사용하는 useAuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
 
 패스키 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한·암호화·파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, 브라우저 지원과 실제 기기 인증은 별도로 확인합니다.
 
@@ -42,7 +42,7 @@ pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs light
 pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
 ```
 
-Fixture source는 `apps/desktop/src/frontend/auth-fixture/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
+Fixture source는 `apps/desktop/src/frontend/src/fixture/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
 
 macOS의 Electron application menu에서 phase·invalidReturn·welcome/home·longNickname·noProviders를 선택한다. Light/Dark와 Narrow 360(360×740 content)/Wide 1100(1100×770 content)을 전환할 수 있다. 최초 window는 1100×800 outer size다. State 선택·Reload는 React를 다시 mount한다. App menu를 사용한 Theme·viewport 변경은 현재 mount를 보존한다.
 
@@ -51,7 +51,7 @@ Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 sign
 ## Component/interaction evidence
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/auth/AuthPresentation.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/auth/AuthPresentation.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

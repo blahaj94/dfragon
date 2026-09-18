@@ -36,7 +36,9 @@ const styles = stylex.create({
 <div {...stylex.props(styles.actions)}>{children}</div>
 ```
 
-스타일은 컴포넌트 파일의 module scope에서 선언하고 SEED CSS 변수를 참조합니다. 여러 스타일은 `stylex.props(base, condition && variant)`로 합성합니다. StyleX는 빌드 중 정적으로 해석하므로 일반 함수 호출이나 임의의 외부 객체를 `stylex.create` 안에 넣지 않습니다. 공유 StyleX 변수는 공식 `.stylex.ts` 모듈의 `defineVars` 방식을 사용합니다.
+스타일은 module scope에서 선언하고 SEED CSS 변수를 참조합니다. 선언이 길어지면 컴포넌트 옆의 전용 스타일 파일로 분리하고 `export const styles` 같은 named export로 가져옵니다. `InvestmentTable.tsx`와 `InvestmentTable.style.ts`가 컴포넌트·전용 스타일 분리 예시입니다. 여러 스타일은 `stylex.props(base, condition && variant)`로 합성합니다. StyleX는 빌드 중 정적으로 해석하므로 일반 함수 호출이나 임의의 외부 객체를 `stylex.create` 안에 넣지 않습니다. 공유 StyleX 변수는 공식 `.stylex.ts` 모듈의 `defineVars` 방식을 사용합니다.
+
+홀짝 행·hover·focus·disabled처럼 브라우저가 판단할 수 있는 시각 상태는 CSS pseudo-class로 표현합니다. 예를 들어 교차 행 배경은 `backgroundColor: { default: colors.card, ':nth-child(even)': colors.alternate }`로 선언하고 JSX에서는 행 인덱스를 계산하지 않습니다. 마법부여 등급처럼 유한한 UI 상태는 정적 스타일을 정의하고 상태 값으로 선택합니다. 동적 스타일 함수는 런타임 색상·그리드 좌표처럼 실제 값이 달라질 때 사용하며, 고정 테두리·크기 등은 정적 스타일에 둡니다. 데이터 선택·누락 처리·표시할 열과 같은 UI/도메인 분기는 React에 남깁니다.
 
 기존 `className`·`style`과 같은 요소에 적용할 때는 JSX spread가 해당 prop을 덮어쓰지 않도록 합성합니다. SEED의 내부 DOM selector 대신 앱이 소유한 요소나 컴포넌트의 공개 API에 적용합니다. 실제 예시는 `PartyCapture.tsx`, `CharacterCandidates.tsx`, `SearchResults.tsx`에 있습니다.
 

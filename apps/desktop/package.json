@@ -15,7 +15,7 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "start": "electron-vite preview",
-    "dev": "npm run prepare:ocr-assets && electron-vite dev",
+    "dev": "npm run ui:fixture:prepare && node scripts/mvp-dev.mjs",
     "build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
@@ -25,7 +25,7 @@
     "build:win:development": "npm run build:development && electron-builder --win --config electron-builder.development.mjs --publish never",
     "build:mac": "npm run prepare:ocr-assets && electron-vite build && electron-builder --mac",
     "build:linux": "npm run prepare:ocr-assets && electron-vite build && electron-builder --linux",
-    "ui:fixture": "tsc scripts/ui-fixture-preload.cts --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck && electron scripts/ui-fixture.mjs",
+    "ui:fixture": "npm run ui:fixture:prepare && electron scripts/ui-fixture.mjs",
     "auth:fixture:build": "tsc --noEmit -p scripts/auth-bridge-fixture/tsconfig.json --composite false && electron-vite build --config scripts/auth-bridge-fixture.config.ts",
     "auth:fixture": "node scripts/auth-bridge-fixture.mjs",
     "auth:fixture:smoke": "node scripts/auth-bridge-fixture.mjs --smoke",
@@ -36,7 +36,10 @@
     "capture:fixture:ocr": "node scripts/auth-capture-fixture.mjs --ocr",
     "capture:fixture:deny": "node scripts/auth-capture-fixture.mjs --deny-media",
     "lint:fix": "eslint . --fix",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\""
+    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
+    "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
+    "dev:app": "npm run prepare:ocr-assets && electron-vite dev",
+    "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

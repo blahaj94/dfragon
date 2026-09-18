@@ -1,11 +1,13 @@
 import { resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'electron-vite'
+import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../packages/ui/build/notices.ts'
 import { readDistributionApiOrigin } from './build/distribution-config'
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   main: {
     define: {
       __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development'),
@@ -28,7 +30,13 @@ export default defineConfig(({ mode }) => ({
     root: resolve('src/frontend'),
     build: {
       rollupOptions: {
-        input: resolve('src/frontend/index.html'),
+        input:
+          mode === 'mvp-preview'
+            ? {
+                app: resolve('src/frontend/index.html'),
+                mvpPreview: resolve('src/frontend/mvp-preview.html')
+              }
+            : resolve('src/frontend/index.html'),
         output: {
           assetFileNames: 'assets/[name][extname]'
         }
@@ -41,6 +49,38 @@ export default defineConfig(({ mode }) => ({
         { find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
       ]
     },
-    plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()]
+    plugins: [
+      ...rendererTransforms(),
+      seedDesignPlugin(),
+      uiNotices(),
+      ...(mode === 'mvp-preview'
+        ? [
+            {
+              name: 'mvp-preview-notices',
+              transformIndexHtml(html, context) {
+                if (command !== 'serve' || context.path !== '/mvp-preview.html') {
+                  return html
+                }
+                return html.replace(
+                  "script-src 'self';",
+                  "script-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:*;"
+                )
+              },
+              generateBundle() {
+                for (const name of ['FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']) {
+                  this.emitFile({
+                    type: 'asset',
+                    fileName: `notices/mvp/${name}`,
+                    source: readFileSync(
+                      resolve(`src/frontend/src/fixture/mvp/assets/${name}`),
+                      'utf8'
+                    )
+                  })
+                }
+              }
+            } satisfies Plugin
+          ]
+        : [])
+    ]
   }
 }))

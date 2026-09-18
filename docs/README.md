@@ -22,6 +22,7 @@ last-reviewed: 2026-09-15
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app·package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime·검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
+| Desktop MVP 카드·상세 A안·입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Web·Desktop 공용 UI·SEED·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |

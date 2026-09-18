@@ -47,10 +47,14 @@ NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 
 
 실제 배포 origin으로 빌드한 설치 앱에서 **비로그인 직접 검색 → 지정한 게임 창 캡처 → OCR → 결과**를 확인합니다. 닉네임 수정 유지·OCR 복귀·중지 후 정리도 같은 흐름에서 확인합니다. 빌드·unit test·합성 데이터 UI 확인은 이 실제 확인을 대신하지 않습니다. 서버가 준비되기 전에는 배포 API 연결과 실제 설치본 흐름은 미검증입니다.
 
+## 카드 화면 개발
+
+`pnpm --filter @ldb/desktop dev`는 합성 데이터로 MVP 카드 배치와 상세 전환을 보여주며 소스 수정을 즉시 반영합니다. 실제 검색·인증·캡처 연결은 포함하지 않습니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+
 ## 기존 개발 빌드
 
 ```sh
-pnpm --filter @ldb/desktop dev
+pnpm --filter @ldb/desktop dev:app
 pnpm --filter @ldb/desktop build:win:development
 ```
 
