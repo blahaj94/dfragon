@@ -110,22 +110,24 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
 it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·로그아웃을 연결한다', async () => {
   await act(async () => root.render(<App />))
   const cards = [...container.querySelectorAll('article')]
+  const loginButton = container.querySelector('header button[aria-label="로그인"]')
   await click('로그인')
+  expect(container.querySelector('header button[aria-label="로그인"]')).toBe(loginButton)
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
   expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [data-progress-state="indeterminate"]')).not.toBeNull()
+  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
   await click('로그인')
   await click('로그인 취소')
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
   expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [data-progress-state="indeterminate"]')).toBeNull()
+  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({ phase: 'signedOut', login: null, notice: 'NETWORK_UNAVAILABLE' })
   })
   expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [data-progress-state="indeterminate"]')).toBeNull()
+  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({
@@ -163,7 +165,7 @@ it('재실행 조회의 복원 결과를 계정 창을 열기 전 반영하고 u
   snapshot = { ...snapshot, phase: 'restoring' }
   await act(async () => root.render(<App />))
   expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [data-progress-state="indeterminate"]')).not.toBeNull()
+  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
   await act(async () => {
     publish({ phase: 'signedIn', user: { nickname: '복원모험가' }, entry: 'home' })
   })

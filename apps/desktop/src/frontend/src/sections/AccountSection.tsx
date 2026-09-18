@@ -6,10 +6,10 @@ import {
   DialogContent,
   DialogFooter,
   DialogRoot,
-  DialogTrigger,
-  ProgressCircle
+  DialogTrigger
 } from '@ldb/ui'
 import type { AuthApi } from '../../../preload/common/types/auth'
+import { AccountButtonLabel } from '../components/AccountButtonLabel'
 import { AuthConnectionStatus } from '../components/AuthConnectionStatus'
 import { useAuthBridge } from '../hooks/useAuthBridge'
 import { AuthPresentation } from './AuthPresentation'
@@ -30,29 +30,28 @@ export function AccountSection({ api }: { api: AuthApi }): React.JSX.Element {
   const canBeginLogin = snapshot?.phase === 'signedOut' && snapshot.providers.includes('passkey')
 
   return (
-    <DialogRoot open={open && !canBeginLogin} onOpenChange={setOpen}>
-      {canBeginLogin ? (
+    <DialogRoot
+      open={open && !canBeginLogin}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen && canBeginLogin) {
+          setOpen(false)
+          onIntent({ type: 'beginLogin', provider: 'passkey' })
+        } else {
+          setOpen(nextOpen)
+        }
+      }}
+    >
+      <DialogTrigger asChild>
         <ActionButton
           size="small"
           variant="ghost"
-          disabled={commandPending}
+          disabled={canBeginLogin && commandPending}
+          aria-label={label}
           aria-busy={inProgress}
-          onClick={() => {
-            setOpen(false)
-            onIntent({ type: 'beginLogin', provider: 'passkey' })
-          }}
         >
-          {inProgress && <ProgressCircle size="24" aria-hidden="true" />}
-          {label}
+          <AccountButtonLabel label={label} inProgress={inProgress} />
         </ActionButton>
-      ) : (
-        <DialogTrigger asChild>
-          <ActionButton size="small" variant="ghost" aria-busy={inProgress}>
-            {inProgress && <ProgressCircle size="24" aria-hidden="true" />}
-            {label}
-          </ActionButton>
-        </DialogTrigger>
-      )}
+      </DialogTrigger>
       <DialogContent title="LDB 계정">
         <DialogBody>
           <div role="status">
