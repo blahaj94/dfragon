@@ -1,4 +1,11 @@
 import { createHash } from 'node:crypto'
+import { createActor } from 'xstate'
+import {
+  isPendingLoginExpired,
+  pendingLoginExpiryDelay,
+  pendingLoginMachine,
+  type ExchangeDecision
+} from './pending-login-machine'
 import type {
   AuthClock,
   AuthHttp,
@@ -7,8 +14,6 @@ import type {
   ClockReading,
   LoginRequestResponse
 } from './types'
-
-const LOGIN_REQUEST_MAX_AGE_MS = 600_000
 
 type PendingLoginInput = Readonly<{
   attemptId: string
@@ -24,196 +29,146 @@ export type ClaimedExchange = Readonly<{
   signal: AbortSignal
 }>
 
-type ExchangeClaim =
-  | Readonly<{ status: 'ignored' }>
-  | Readonly<{ status: 'joined'; promise: Promise<void> }>
-  | ClaimedExchange
+type ExchangeClaim = Exclude<ExchangeDecision, { status: 'claimed' }> | ClaimedExchange
+
+export type PendingLogin = Readonly<{
+  attemptId: string
+  provider: AuthProvider
+  generation: number
+  browserSignal: AbortSignal
+  signal: AbortSignal
+  isBeforeExchange: boolean
+  snapshot(): NonNullable<AuthSnapshot['login']>
+  acceptRequest(response: LoginRequestResponse): void
+  isExpired(checkedAt: ClockReading): boolean
+  scheduleExpiry(): void
+  claim(code: string): ExchangeClaim
+  trackExchange(promise: Promise<void>): void
+  rejectCode(code: string): void
+  resumeWaiting(): void
+  dispose(): void
+}>
 
 function fingerprint(value: string): string {
   return createHash('sha256').update(value, 'ascii').digest('base64url')
 }
 
-export class PendingLogin {
-  readonly attemptId: string
-  readonly provider: AuthProvider
-  readonly generation: number
-  private readonly verifier: string
-  private readonly startedAt: ClockReading
-  private lastAcceptedAt: ClockReading
-  private requestId: string | null = null
-  private expiresAt: string | null = null
-  private expiresAtMs: number | null = null
-  private stage: 'starting' | 'waiting' | 'exchanging' = 'starting'
-  private rejectedFingerprint: string | null = null
-  private exchangeFingerprint: string | null = null
-  private exchangePromise: Promise<void> | null = null
-  private controller = new AbortController()
-  private readonly lifetime = new AbortController()
-  get browserSignal(): AbortSignal {
-    return this.lifetime.signal
-  }
-  private cancelExpiry: (() => void) | null = null
-  private disposed = false
-
-  constructor(
-    input: PendingLoginInput,
-    private readonly clock: AuthClock,
-    private readonly onExpired: (attempt: PendingLogin) => void
-  ) {
-    this.attemptId = input.attemptId
-    this.provider = input.provider
-    this.generation = input.generation
-    this.verifier = input.verifier
-    this.startedAt = input.startedAt
-    this.lastAcceptedAt = input.startedAt
-  }
-
-  get signal(): AbortSignal {
-    return this.controller.signal
-  }
-
-  get isBeforeExchange(): boolean {
-    const isStarting = this.stage === 'starting'
-    const isWaiting = this.stage === 'waiting'
-    const isBeforeExchange = isStarting || isWaiting
-    return isBeforeExchange
-  }
-
-  snapshot(): NonNullable<AuthSnapshot['login']> {
-    return {
-      attemptId: this.attemptId,
-      provider: this.provider,
-      expiresAt: this.expiresAt
+export function createPendingLogin(
+  { attemptId, provider, generation, startedAt, verifier: initialVerifier }: PendingLoginInput,
+  clock: AuthClock,
+  onExpired: (attempt: PendingLogin) => void
+): PendingLogin {
+  // Secrets and abort/timer resources stay outside actor snapshots and events.
+  let verifier: string | null = initialVerifier
+  initialVerifier = ''
+  let controller = new AbortController()
+  const lifetime = new AbortController()
+  let cancelExpiry: (() => void) | null = null
+  const actor = createActor(pendingLoginMachine, { input: { startedAt } })
+  actor.subscribe({
+    complete: () => {
+      // Publish the terminal state before abort listeners can reenter this attempt.
+      verifier = null
+      cancelExpiry?.()
+      cancelExpiry = null
+      controller.abort()
+      lifetime.abort()
     }
-  }
+  })
+  actor.start()
 
-  acceptRequest(response: LoginRequestResponse): void {
-    this.requestId = response.requestId
-    this.expiresAt = response.expiresAt
-    this.expiresAtMs = Date.parse(response.expiresAt)
-    this.stage = 'waiting'
-  }
-
-  isExpired(checkedAt: ClockReading): boolean {
-    const isWallClockReversed = checkedAt.wallMs < this.lastAcceptedAt.wallMs
-    const isMonotonicReversed = checkedAt.monotonicMs < this.lastAcceptedAt.monotonicMs
-    const hasReachedMonotonicLimit =
-      checkedAt.monotonicMs - this.startedAt.monotonicMs >= LOGIN_REQUEST_MAX_AGE_MS
-    const expiresAtMs = this.expiresAtMs
-    const hasServerExpiry = expiresAtMs != null
-    let isExpired: boolean
-    if (hasServerExpiry) {
-      const hasReachedServerExpiry = checkedAt.wallMs >= expiresAtMs
-      const hasExpiredClock =
-        this.startedAt.discontinuous ||
-        checkedAt.discontinuous ||
-        isWallClockReversed ||
-        isMonotonicReversed ||
-        hasReachedMonotonicLimit
-      isExpired = hasExpiredClock || hasReachedServerExpiry
-    } else {
-      isExpired =
-        this.startedAt.discontinuous ||
-        checkedAt.discontinuous ||
-        isWallClockReversed ||
-        isMonotonicReversed ||
-        hasReachedMonotonicLimit
+  function isExpired(checkedAt: ClockReading): boolean {
+    const expired = isPendingLoginExpired(actor.getSnapshot().context, checkedAt)
+    if (!expired) {
+      actor.send({ type: 'CLOCK_ACCEPTED', checkedAt })
     }
-
-    if (!isExpired) {
-      this.lastAcceptedAt = checkedAt
-    }
-    return isExpired
+    return expired
   }
 
-  scheduleExpiry(): void {
-    this.cancelExpiry?.()
-    if (this.disposed) {
+  function expire(): void {
+    onExpired(pending)
+    actor.send({ type: 'EXPIRE' })
+  }
+
+  function scheduleExpiry(): void {
+    cancelExpiry?.()
+    cancelExpiry = null
+    if (actor.getSnapshot().status === 'done') {
       return
     }
-    const checkedAt = this.clock.read()
-    const isExpiredAtCheckTime = this.isExpired(checkedAt)
-    if (isExpiredAtCheckTime) {
-      this.onExpired(this)
+    const checkedAt = clock.read()
+    if (isExpired(checkedAt)) {
+      expire()
       return
     }
 
-    const monotonicRemaining =
-      this.startedAt.monotonicMs + LOGIN_REQUEST_MAX_AGE_MS - checkedAt.monotonicMs
-    const expiresAtMs = this.expiresAtMs
-    const hasServerExpiry = expiresAtMs != null
-    const wallRemaining = hasServerExpiry ? expiresAtMs - checkedAt.wallMs : monotonicRemaining
-    const delayMs = Math.max(0, Math.min(monotonicRemaining, wallRemaining))
-    const cancel = this.clock.schedule(delayMs, () => {
-      if (this.disposed) {
+    const delayMs = pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
+    const cancel = clock.schedule(delayMs, () => {
+      if (actor.getSnapshot().status === 'done') {
         return
       }
-      const firedAt = this.clock.read()
-      const isExpiredAtCheckTime = this.isExpired(firedAt)
-      if (isExpiredAtCheckTime) {
-        this.onExpired(this)
+      const firedAt = clock.read()
+      if (isExpired(firedAt)) {
+        expire()
       } else {
-        this.scheduleExpiry()
+        scheduleExpiry()
       }
     })
-    if (this.disposed) {
+    if (actor.getSnapshot().status === 'done') {
       cancel()
     } else {
-      this.cancelExpiry = cancel
+      cancelExpiry = cancel
     }
   }
 
-  claim(code: string): ExchangeClaim {
-    const codeFingerprint = fingerprint(code)
-    const wasRejected = this.rejectedFingerprint === codeFingerprint
-    const shouldIgnore = this.disposed || wasRejected
-    if (shouldIgnore) {
-      return { status: 'ignored' }
-    }
-    const isExchangeInFlight = this.stage === 'exchanging'
-    if (isExchangeInFlight) {
-      const isSameExchange = this.exchangeFingerprint === codeFingerprint
-      const exchangePromise = this.exchangePromise
-      const hasExchangePromise = exchangePromise != null
-      const canJoin = isSameExchange && hasExchangePromise
-      return canJoin ? { status: 'joined', promise: exchangePromise } : { status: 'ignored' }
-    }
-    const requestId = this.requestId
-    const isWaiting = this.stage === 'waiting'
-    const hasRequestId = requestId != null
-    const canExchange = isWaiting && hasRequestId
-    if (!canExchange) {
-      return { status: 'ignored' }
-    }
-
-    this.stage = 'exchanging'
-    this.exchangeFingerprint = codeFingerprint
-    this.controller = new AbortController()
-    return {
-      status: 'claimed',
-      input: { requestId, clientId: 'desktop', code, codeVerifier: this.verifier },
-      signal: this.controller.signal
-    }
+  const pending: PendingLogin = {
+    attemptId,
+    provider,
+    generation,
+    get browserSignal() {
+      return lifetime.signal
+    },
+    get signal() {
+      return controller.signal
+    },
+    get isBeforeExchange() {
+      const snapshot = actor.getSnapshot()
+      return snapshot.matches({ active: 'starting' }) || snapshot.matches({ active: 'waiting' })
+    },
+    snapshot: () => ({ attemptId, provider, expiresAt: actor.getSnapshot().context.expiresAt }),
+    acceptRequest: ({ requestId, expiresAt }) => {
+      actor.send({ type: 'REQUEST_ACCEPTED', requestId, expiresAt })
+    },
+    isExpired,
+    scheduleExpiry,
+    claim: (code) => {
+      const response: { decision: ExchangeDecision } = { decision: { status: 'ignored' } }
+      actor.send({
+        type: 'CLAIM',
+        fingerprint: fingerprint(code),
+        reply: (value) => {
+          response.decision = value
+        }
+      })
+      const result = response.decision
+      if (result.status !== 'claimed') {
+        return result
+      }
+      const requestId = actor.getSnapshot().context.requestId
+      if (requestId == null || verifier == null) {
+        return { status: 'ignored' }
+      }
+      controller = new AbortController()
+      return {
+        status: 'claimed',
+        input: { requestId, clientId: 'desktop', code, codeVerifier: verifier },
+        signal: controller.signal
+      }
+    },
+    trackExchange: (promise) => actor.send({ type: 'TRACK_EXCHANGE', promise }),
+    rejectCode: (code) => actor.send({ type: 'REJECT_CODE', fingerprint: fingerprint(code) }),
+    resumeWaiting: () => actor.send({ type: 'RESUME_WAITING' }),
+    dispose: () => actor.send({ type: 'DISPOSE' })
   }
-
-  trackExchange(promise: Promise<void>): void {
-    this.exchangePromise = promise
-  }
-
-  rejectCode(code: string): void {
-    this.rejectedFingerprint = fingerprint(code)
-  }
-
-  resumeWaiting(): void {
-    this.stage = 'waiting'
-    this.exchangeFingerprint = null
-  }
-
-  dispose(): void {
-    this.disposed = true
-    this.cancelExpiry?.()
-    this.cancelExpiry = null
-    this.controller.abort()
-    this.lifetime.abort()
-  }
+  return pending
 }
