@@ -89,15 +89,14 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
 - Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending·generation·credential writer와 restore·refresh·logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
 - 캐릭터 검색: main 검색 수명·HTTP와 preload/renderer·격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
-- Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 통합 테스트는 root에 남긴다.
-  - `constants/`: 서버 목록과 공유 StyleX 변수·테마.
-  - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`SignedInAccount`처럼 독립적으로 쓸 수 있는 UI와 전용 타입·스타일·테스트. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
-  - `sections/`: `cards`·`auth`·`capture`·`search`의 기능 조합. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `AuthSection`의 인증 연결, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 관련 hook·worker·테스트를 함께 둔다.
-  - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(기존 직접 검색·캡처 홈).
-  - `fixture/`: MVP 합성 데이터·자산·화면 제어, 인증 UI·bridge·capture 실행 화면, 검색 테스트 도우미. 제품 페이지가 fixture를 import하지 않는다.
-  - `utils/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리와 관련 테스트.
-  - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
-  - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. API·OCR 등의 기능 상태를 범용 `utils`로 밀어 넣지 않는다.
+- Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 [Bulletproof React의 Project Structure](https://github.com/alan2207/bulletproof-react/blob/master/docs/project-structure.md)를 따라 역할과 기능별로 나눈다. 필요한 폴더만 만들고 재수출용 barrel 대신 파일을 직접 import한다.
+  - `app/`: `App.tsx`, 페이지와 기능 조합. `pages/`에는 PartyPage·CharacterDetailPage·LoginPage·HomePage를 둔다. `hooks/usePartyCapture.ts`와 `components/PartyCapture.tsx`가 capture·search 기능을 연결한다. Root `main.tsx`는 실행 진입점이다.
+  - `features/`: `auth`·`character`·`search`·`capture`. 각 기능의 UI는 `components`, hook은 `hooks`, 타입은 `types`, 계산·검증은 `utils`, IPC 요청 수명은 `api`, OCR worker는 `lib`에 소유 기능과 함께 둔다. feature 내부에 모든 하위 폴더를 만들 필요는 없다.
+  - `components/`: 기능에 종속되지 않는 공용 UI인 CardImage. InvestmentTable·SignedInAccount·CharacterCandidates처럼 기능 전용인 UI는 각 feature의 `components`에 둔다. 기본 Button·Input은 `@ldb/ui`를 사용한다.
+  - `config/`: 공유 StyleX 변수·테마. 던파 서버 목록은 `features/character/constants`가 소유한다.
+  - `testing/`: `fixtures/`에 MVP 합성 데이터·자산·검증 화면과 인증 UI·bridge·capture fixture, 검색 테스트 도우미를 둔다. `integration/`은 앱 조합을 검증한다. 단위 테스트는 검증 대상 파일 옆에 둔다.
+  - 제품 import 방향은 app → features → 공유 코드다. app은 공유 코드도 직접 사용할 수 있다. feature는 다른 feature·app·testing을 직접 import하지 않고, 서로 다른 feature는 app에서 props·callback으로 연결한다. 공유 코드도 features·app·testing에 의존하지 않는다. ESLint가 이 경계를 검사하며 테스트의 통합 조합은 구분한다.
+  - 전용 스타일·hook·타입·테스트는 소유 기능 안에 둔다. 이미지 실패·입력 draft 같은 자체 UI 상태는 허용하며, 단순 태그나 전달 전용 wrapper로 계층을 채우지 않는다.
 - MVP 카드 미리보기: 기본 `pnpm --filter @ldb/desktop dev`로 합성 메인·상세 카드와 HMR을 확인한다. 기존 제품 홈은 `dev:app`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:

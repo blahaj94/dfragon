@@ -17,8 +17,8 @@ last-reviewed: 2026-09-12
 | `apps/desktop/src/preload/common/types/auth.ts`       | Core의 public DTO를 type-only로 재사용하고 shared IPC contract에서 feature API를 파생                                                 |
 | `apps/desktop/src/preload/common/types/ipc.ts`        | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument·return type                                                           |
 | `apps/desktop/src/preload/api/auth.ts`                | Feature invoke, raw Electron event를 제거한 listener wrapper와 개별 unsubscribe                                                       |
-| `apps/desktop/src/frontend/src/sections/auth/useAuthBridge.ts` | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화                |
-| `apps/desktop/src/frontend/src/sections/auth/AuthSection.tsx`   | 기존 AuthPresentation에 snapshot·intent를 연결하고 초기/실패한 연결의 고정 안내 표시, capture에 현재 snapshot과 재동기화 context 제공 |
+| `apps/desktop/src/frontend/src/features/auth/hooks/useAuthBridge.ts` | 구독 후 조회, runId/revision·연결 수명에 따른 결과 적용, 명령 busy 및 응답 유실 재조회, 검색 run 변경 시 읽기 재동기화                |
+| `apps/desktop/src/frontend/src/features/auth/components/AuthSection.tsx`   | 기존 AuthPresentation에 snapshot·intent를 연결하고 초기/실패한 연결의 고정 안내 표시, capture에 현재 snapshot과 재동기화 context 제공 |
 
 Core lifecycle은 [Desktop auth core](desktop-auth-core.md), 기존 화면은 [Desktop auth UI](desktop-auth-ui.md)를 따른다. Credential type의 runtime import나 renderer가 제출하는 로그인 성공 상태는 없다. `ok:true`는 명령 처리 결과이며 계정 표시는 main snapshot에서만 결정한다.
 
@@ -34,7 +34,7 @@ Renderer는 첫 조회가 완료되기 전 event를 보류하고 조회 결과�
 - `apps/desktop/scripts/auth-bridge-fixture/main.ts`: launcher가 전달한 profile을 검증하고 sandbox·contextIsolation 활성화, nodeIntegration 비활성화, network/media·navigation/popup 차단을 담당한다.
 - `apps/desktop/scripts/auth-bridge-fixture/effects.ts`: 실제 coordinator에 전달할 memory-only fake HTTP/Store/Browser/Clock/Entropy. Synthetic return target과 canary는 fixture 전용이며 실제 protocol/API 등록값이 아니다. 두 번째 coordinator나 별도 인증 상태 머신을 만들지 않는다.
 - `apps/desktop/scripts/auth-bridge-fixture/preload.ts`: 실제 auth feature API 6개만 contextBridge로 노출한다. Fixture 조작용 code/URL/token IPC는 없다.
-- `apps/desktop/src/frontend/src/fixture/auth-bridge/`: 기존 AuthPresentation을 실제 bridge에 연결한 전용 renderer.
+- `apps/desktop/src/frontend/src/testing/fixtures/auth-bridge/`: 기존 AuthPresentation을 실제 bridge에 연결한 전용 renderer.
 - `apps/desktop/scripts/auth-bridge-fixture/smoke.ts`: 실제 UI 버튼·feature preload·IPC를 통한 자동 관측. Unsubscribe 함수는 renderer에만 보관하며 실행 결과로 함수 자체를 반환하지 않는다.
 
 Repository root에서 실행한다.
@@ -54,7 +54,7 @@ Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한�
 ## 검증 범위와 제한
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/sections/auth/useAuthBridge.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/features/auth/hooks/useAuthBridge.test.tsx
 pnpm --filter @ldb/desktop exec vitest run scripts/auth-bridge-fixture/launcher.test.mjs
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
@@ -66,7 +66,7 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 
 ## 제품 logout·재로그인 조합 검증
 
-`apps/desktop/src/frontend/src/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 `App` renderer를 연결하고, 합성 IPC transport·BrowserWindow/window source·media/OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
+`apps/desktop/src/frontend/src/testing/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 `App` renderer를 연결하고, 합성 IPC transport·BrowserWindow/window source·media/OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
 
 - 로그인 exchange 뒤 renderer home에서 실제 capture source 조회·선택과 search begin이 같은 auth generation을 사용한다.
 - 검색 HTTP가 pending인 동안 renderer에서 현재 기기 logout을 수행하면 auth snapshot이 `signedOut`이 되고, capture track/worker와 main source/search binding이 정리된다.
@@ -76,5 +76,5 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 이 조합 테스트는 실제 `main.ts`의 trusted runtime 설정, Electron native media/provider/API, safeStorage·credential file durability, OS protocol registry와 packaged app을 성공으로 표시하지 않는다. 서버 204와 local 삭제 결과, refresh/exchange 경합 및 notice 분류는 기존 coordinator·store 경계 테스트의 evidence로 별도 관리한다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/integration/logout-relogin.integration.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/testing/integration/logout-relogin.integration.test.tsx
 ```

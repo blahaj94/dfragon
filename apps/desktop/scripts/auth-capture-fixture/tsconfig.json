@@ -5,7 +5,7 @@
     "./*.ts",
     "../auth-capture-fixture.config.ts",
     "../../src/preload/index.d.ts",
-    "../../src/frontend/src/fixture/auth-capture/**/*.ts",
-    "../../src/frontend/src/fixture/auth-capture/**/*.tsx"
+    "../../src/frontend/src/testing/fixtures/auth-capture/**/*.ts",
+    "../../src/frontend/src/testing/fixtures/auth-capture/**/*.tsx"
   ]
 }

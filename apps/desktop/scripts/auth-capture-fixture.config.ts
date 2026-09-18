@@ -23,7 +23,7 @@ export default defineConfig({
   },
   renderer: {
     worker: { format: 'es' },
-    root: resolve('src/frontend/src/fixture/auth-capture'),
+    root: resolve('src/frontend/src/testing/fixtures/auth-capture'),
     publicDir: resolve('src/frontend/public'),
     plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()],
     resolve: {
@@ -33,8 +33,8 @@ export default defineConfig({
       outDir: resolve('out/auth-capture-fixture/renderer'),
       rollupOptions: {
         input: {
-          index: resolve('src/frontend/src/fixture/auth-capture/index.html'),
-          source: resolve('src/frontend/src/fixture/auth-capture/source.html')
+          index: resolve('src/frontend/src/testing/fixtures/auth-capture/index.html'),
+          source: resolve('src/frontend/src/testing/fixtures/auth-capture/source.html')
         }
       }
     }

@@ -23,6 +23,10 @@ const browserFiles = [
   'packages/ui/examples/main.tsx'
 ]
 
+const desktopFrontend = 'apps/desktop/src/frontend/src'
+const desktopFeatures = ['auth', 'character', 'search', 'capture']
+const frontendTestFiles = ['**/*.test.{ts,tsx}', '**/*.test-fixture.{ts,tsx}']
+
 export default defineConfig(
   {
     ignores: [
@@ -45,6 +49,48 @@ export default defineConfig(
   },
   { files: sourceFiles, ignores: browserFiles, languageOptions: { globals: globals.node } },
   { files: browserFiles, languageOptions: { globals: globals.browser } },
+  {
+    files: [`${desktopFrontend}/{components,config,hooks,lib,stores,types,utils}/**/*.{ts,tsx}`],
+    ignores: frontendTestFiles,
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/features/**', '**/app/**', '**/testing/**'],
+              message:
+                'Shared frontend code must not import features, app composition or testing code.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  ...desktopFeatures.map((feature) => ({
+    files: [`${desktopFrontend}/features/${feature}/**/*.{ts,tsx}`],
+    ignores: frontendTestFiles,
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/app/**',
+                '**/testing/**',
+                ...desktopFeatures
+                  .filter((other) => other !== feature)
+                  .map((other) => `**/${other}/**`)
+              ],
+              message:
+                'Compose different frontend features in app; features may use their own code and shared code.'
+            }
+          ]
+        }
+      ]
+    }
+  })),
   {
     files: desktopFiles,
     extends: [react.configs.flat.recommended, react.configs.flat['jsx-runtime']],

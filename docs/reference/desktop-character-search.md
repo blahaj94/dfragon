@@ -22,10 +22,10 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 | `apps/desktop/src/backend/search/retry-after.ts`                                            | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`              | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                 | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
-| `apps/desktop/src/frontend/src/sections/search/connection.ts`                                        | 구독 후 read, run/revision 순서, 유실된 명령의 조회만 재시도하는 연결 수명을 소유한다.                                                                               |
-| `apps/desktop/src/frontend/src/sections/search/capture-search.ts`, `useCharacterSearch.ts`           | Start별 수명, 로컬 관측 revision, 즉시 표시 제거와 슬롯별 retry 진행 상태를 연결한다.                                                                                |
-| `apps/desktop/src/frontend/src/sections/capture/usePartyCaptureSession.ts`, `usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
-| `apps/desktop/src/frontend/src/sections/search/SearchResults.tsx`                                    | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| `apps/desktop/src/frontend/src/features/search/api/connection.ts`                                        | 구독 후 read, run/revision 순서, 유실된 명령의 조회만 재시도하는 연결 수명을 소유한다.                                                                               |
+| `apps/desktop/src/frontend/src/features/search/api/capture-search.ts`, `useCharacterSearch.ts`           | Start별 수명, 로컬 관측 revision, 즉시 표시 제거와 슬롯별 retry 진행 상태를 연결한다.                                                                                |
+| `apps/desktop/src/frontend/src/features/capture/hooks/usePartyCaptureSession.ts`, `usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/features/search/components/SearchResults.tsx`                                    | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
 
@@ -78,7 +78,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 ## 검증 경계
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections/search src/frontend/src/components/search src/frontend/src/sections/capture scripts/auth-capture-fixture
+pnpm --filter @ldb/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/features/search src/frontend/src/testing/integration src/frontend/src/features/capture src/frontend/src/app/hooks scripts/auth-capture-fixture
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
