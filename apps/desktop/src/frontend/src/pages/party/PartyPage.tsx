@@ -7,19 +7,21 @@ import { styles } from './PartyPage.style'
 export function PartyPage({
   character,
   slots,
-  resetKey,
-  compareFaces,
+  resetKey = 'party',
+  compareFaces = false,
+  inputEnabled = false,
   light,
   onToggleTheme,
   onDetail
 }: {
-  character: CardCharacter
+  character?: CardCharacter
   slots: SlotState[]
-  resetKey: string
-  compareFaces: boolean
+  resetKey?: string
+  compareFaces?: boolean
+  inputEnabled?: boolean
   light: boolean
   onToggleTheme: () => void
-  onDetail: () => void
+  onDetail?: () => void
 }): React.JSX.Element {
   return (
     <>
@@ -61,6 +63,7 @@ export function PartyPage({
             slot={index + 1}
             character={character}
             state={state}
+            inputEnabled={inputEnabled}
             initialFace={compareFaces ? index : 0}
             onDetail={onDetail}
           />

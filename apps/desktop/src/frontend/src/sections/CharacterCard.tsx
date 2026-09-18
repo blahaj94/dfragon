@@ -13,19 +13,21 @@ export function CharacterCard({
   state,
   slot,
   initialFace = 0,
+  inputEnabled = false,
   onDetail
 }: {
-  character: CardCharacter
+  character?: CardCharacter
   state: SlotState
   slot: number
   initialFace?: number
-  onDetail: () => void
+  inputEnabled?: boolean
+  onDetail?: () => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
-  const [name, setName] = useState(state === 'idle' ? '' : character.name)
-  const [serverId, setServerId] = useState<string>(character.serverId)
-  const editing = name !== character.name || serverId !== character.serverId
-  const canTurn = state === 'success' && !editing
+  const [name, setName] = useState(state === 'idle' ? '' : (character?.name ?? ''))
+  const [serverId, setServerId] = useState<string>(character?.serverId ?? '')
+  const editing = character != null && (name !== character.name || serverId !== character.serverId)
+  const canTurn = state === 'success' && character != null && !editing
   const showCharacter = face === 0 || !canTurn
   const status =
     state === 'failure'
@@ -50,7 +52,7 @@ export function CharacterCard({
         />
       )}
       <div {...stylex.props(styles.content)}>
-        {state === 'success' && showCharacter && (
+        {state === 'success' && character != null && showCharacter && (
           <>
             <div {...stylex.props(styles.portrait)}>
               <CardImage src={character.image} label="캐릭터" portrait />
@@ -80,10 +82,11 @@ export function CharacterCard({
       </div>
       {showCharacter && (
         <>
-          {state === 'success' && (
+          {state === 'success' && character != null && (
             <select
               aria-label={`${slot}번 서버`}
               value={serverId}
+              disabled={!inputEnabled}
               onChange={(event) => setServerId(event.target.value)}
               {...stylex.props(styles.select)}
             >
@@ -97,6 +100,7 @@ export function CharacterCard({
           <input
             aria-label={`${slot}번 캐릭터 이름`}
             value={name}
+            disabled={!inputEnabled}
             placeholder="캐릭터명 입력"
             onChange={(event) => setName(event.target.value)}
             {...stylex.props(styles.input)}
@@ -109,7 +113,7 @@ export function CharacterCard({
       {state !== 'idle' && (
         <button
           type="button"
-          disabled={!canTurn}
+          disabled={!canTurn || onDetail == null}
           aria-label={`${slot}번 캐릭터 상세 열기`}
           onClick={onDetail}
           {...stylex.props(styles.detail)}

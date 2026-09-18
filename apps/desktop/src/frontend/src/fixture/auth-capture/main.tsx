@@ -2,7 +2,7 @@ import '@seed-design/css/base.css'
 import '@ldb/ui/foundation.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from '../../App'
+import { LegacyApp } from '../legacy/LegacyApp'
 import { runStandaloneOcr } from './standalone-ocr'
 import { capturePartyNicknameCrops } from '../../lib/party'
 
@@ -34,6 +34,6 @@ if (!hasRoot) {
 }
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <LegacyApp />
   </StrictMode>
 )

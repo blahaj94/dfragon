@@ -67,16 +67,14 @@ export default defineConfig(({ mode, command }) => ({
                 )
               },
               generateBundle() {
-                for (const name of ['FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']) {
-                  this.emitFile({
-                    type: 'asset',
-                    fileName: `notices/mvp/${name}`,
-                    source: readFileSync(
-                      resolve(`src/frontend/src/fixture/mvp/assets/${name}`),
-                      'utf8'
-                    )
-                  })
-                }
+                this.emitFile({
+                  type: 'asset',
+                  fileName: 'notices/mvp/NOTICE.md',
+                  source: readFileSync(
+                    resolve('src/frontend/src/fixture/mvp/assets/NOTICE.md'),
+                    'utf8'
+                  )
+                })
               }
             } satisfies Plugin
           ]

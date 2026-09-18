@@ -1,8 +1,8 @@
 # LDB Desktop
 
-던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색·캡처·OCR은 로그인 없이 사용할 수 있습니다.
+던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색·캡처·OCR은 로그인 없이 사용하는 기능입니다. 현재 소스의 기본 화면은 새 카드 UI로 교체하는 단계이며, 해당 기능과 인증·상세 연결은 후속입니다. 빈 슬롯 네 개와 테마 전환만 제공하고 입력·캡처·로그인은 비활성화합니다.
 
-## 설치와 사용
+## 기존 배포본 설치와 사용
 
 1. 배포받은 `LDB-<버전>-x64-setup.exe`를 실행합니다. 현재 Windows 사용자용으로 `ldb` 폴더에 설치하며 개발 앱 `LDB Development`와 별도로 사용할 수 있습니다.
 2. 시작 메뉴나 바탕화면의 **LDB**를 실행합니다. 사용자가 Node.js·DB·OCR 모델을 별도로 설치하거나 API 환경변수를 설정할 필요는 없습니다. 검색에는 인터넷과 배포 API 연결이 필요합니다.
@@ -16,6 +16,8 @@
 자동 업데이트는 제공하지 않습니다. 이후 버전은 앱을 종료하고 새 설치 파일로 설치합니다. 기본 빌드는 코드 서명이 구성되지 않았으며 Windows에서 확인되지 않은 게시자로 표시될 수 있습니다. 배포자가 전달한 파일인지 확인해야 합니다.
 
 ## Windows 배포 빌드
+
+현재 소스를 빌드하면 새 카드 화면이 포함됩니다. 아래 기존 배포본의 검색·캡처 흐름은 새 화면에 아직 연결되지 않았습니다.
 
 Node.js 24와 저장소의 pnpm을 준비한 Windows x64에서 저장소 루트 기준으로 실행합니다.
 
@@ -49,13 +51,13 @@ NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 
 
 ## 카드 화면 개발
 
-`pnpm --filter @ldb/desktop dev`는 합성 데이터로 MVP 카드 배치와 상세 전환을 보여주며 소스 수정을 즉시 반영합니다. 실제 검색·인증·캡처 연결은 포함하지 않습니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+`pnpm --filter @ldb/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 검색·캡처·인증·상세 연결은 후속입니다. 합성 데이터의 상태 비교와 상세 전환은 `pnpm --filter @ldb/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
-## 기존 개발 빌드
+## 개발 빌드
 
 ```sh
 pnpm --filter @ldb/desktop dev:app
 pnpm --filter @ldb/desktop build:win:development
 ```
 
-개발 설치본은 `dist/development`에 생성됩니다. 기존 localhost HTTPS·`ldb.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS·Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
+개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색·인증·캡처 회귀 테스트와 capture fixture에서만 사용합니다. 기존 localhost HTTPS·`ldb.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS·Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.

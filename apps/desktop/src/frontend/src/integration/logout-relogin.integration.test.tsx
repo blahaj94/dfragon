@@ -14,7 +14,7 @@ import {
 } from '../../../backend/auth/auth-test-fixtures'
 import type { AuthRuntimeConfig } from '../../../backend/auth/runtime-config'
 import { registerCaptureIpc, registerCaptureWindow } from '../../../backend/capture/ipc-handler'
-import App from '../App'
+import { LegacyApp } from '../fixture/legacy/LegacyApp'
 import * as authApi from '../../../preload/api/auth'
 import * as captureApi from '../../../preload/api/capture'
 import * as searchApi from '../../../preload/api/search'
@@ -297,7 +297,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
   Object.defineProperty(window, 'search', { configurable: true, value: searchApi })
 
   try {
-    await act(async () => root.render(<App />))
+    await act(async () => root.render(<LegacyApp />))
     await waitForText(container, '패스키로 계속하기')
 
     await waitForCondition(() => {
