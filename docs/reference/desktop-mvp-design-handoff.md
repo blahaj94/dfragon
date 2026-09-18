@@ -58,10 +58,12 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Renderer 미리보기
 
-`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 이 미리보기를 열고 소스 수정은 HMR로 반영한다. 기존 검색·인증·캡처 화면은 `pnpm --filter @ldb/desktop dev:app`으로 실행한다.
+`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 검색·캡처·인증·상세 연결 전까지 입력·캡처·로그인은 비활성화한다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
 
 ```bash
 pnpm --filter @ldb/desktop dev
+# 합성 데이터 상태·상세 비교
+pnpm --filter @ldb/desktop dev:preview
 ```
 
 빌드 결과를 확인할 때는 다음 명령을 사용한다.
@@ -71,7 +73,7 @@ pnpm --filter @ldb/desktop mvp:build
 pnpm --filter @ldb/desktop ui:fixture mvp dark
 ```
 
-창 크기를 900·700·500·300px로 바꾸고 하단에서 상태 비교·네 면 비교를 선택한다. 각 카드 본문은 독립적으로 순환하고 입력·서버·상세 버튼은 면을 넘기지 않는다. 합성 미리보기의 서버 셀렉트는 안톤·바칼·카인·카시야스·디레지에·힐더·프레이·시로코를 표시하고 API `serverId`를 선택값으로 저장한다. 이름·서버 수정은 API를 호출하지 않으며 이전 상세 열기를 막는다. 실제 검색 연결의 서버 후보는 검색 결과에 포함된 서버만 사용하는 계약을 유지한다. 실패·검색 중·0건·빈 상태를 따로 표시한다.
+합성 미리보기에서 창 크기를 900·700·500·300px로 바꾸고 하단에서 상태 비교·네 면 비교를 선택한다. 각 카드 본문은 독립적으로 순환하고 입력·서버·상세 버튼은 면을 넘기지 않는다. 합성 미리보기의 서버 셀렉트는 안톤·바칼·카인·카시야스·디레지에·힐더·프레이·시로코를 표시하고 API `serverId`를 선택값으로 저장한다. 이름·서버 수정은 API를 호출하지 않으며 이전 상세 열기를 막는다. 실제 검색 연결의 서버 후보는 검색 결과에 포함된 서버만 사용하는 계약을 유지한다. 실패·검색 중·0건·빈 상태를 따로 표시한다.
 
 우측 상단 상세 버튼은 격리 fixture의 별도 창을 연다. 같은 미리보기 대상은 이름 있는 창을 재사용하고 메인 fixture 종료 시 함께 닫는다. 이는 합성 화면 확인용 동작이며 제품 BrowserWindow 수명 정책의 결정이나 구현을 대신하지 않는다. 상세 카드는 180ms로 전환하고 모션 감소 설정에서는 이동을 생략한다. 작은 상세창에서는 가로 스크롤로 나머지 카드에 접근한다.
 

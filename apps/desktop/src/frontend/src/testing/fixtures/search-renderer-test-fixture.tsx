@@ -11,7 +11,7 @@ import {
   type SearchTestApi,
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
-import App from '../../App'
+import { LegacyApp } from '../../fixture/legacy/LegacyApp'
 
 const media = vi.hoisted(() => ({ crops: vi.fn(), worker: vi.fn(), loop: vi.fn() }))
 vi.mock('../../lib/ocr', async (original) => ({
@@ -244,7 +244,7 @@ export function createRendererFixture(): RendererFixture {
     getDisplayMedia,
     order,
     mount: async () => {
-      await act(async () => root.render(<App />))
+      await act(async () => root.render(<LegacyApp />))
     },
     unmount,
     button,

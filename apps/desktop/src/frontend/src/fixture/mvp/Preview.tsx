@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { lightTheme } from '../../constants/theme.stylex'
 import { PartyPage } from '../../pages/party/PartyPage'
@@ -6,19 +6,15 @@ import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetai
 import { scenarios } from './scenarios'
 import { styles } from './Preview.style'
 import { previewCharacter } from './fixture'
+import { useColorTheme } from '../../hooks/useColorTheme'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
-  const [light, setLight] = useState(
-    () =>
-      query.get('theme') === 'light' ||
-      (query.get('theme') === 'system' &&
-        window.matchMedia('(prefers-color-scheme: light)').matches)
+  const theme = query.get('theme')
+  const { light, toggleTheme } = useColorTheme(
+    theme === 'light' || theme === 'system' ? theme : 'dark'
   )
   const [scenario, setScenario] = useState('states')
-  useEffect(() => {
-    document.documentElement.dataset.seedColorMode = light ? 'light-only' : 'dark-only'
-  }, [light])
   const detail = query.get('detail') === 'sample'
   const character =
     scenario === 'missing'
@@ -56,8 +52,9 @@ export function Preview(): React.JSX.Element {
             slots={scenarios[scenario]}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
+            inputEnabled
             light={light}
-            onToggleTheme={() => setLight(!light)}
+            onToggleTheme={toggleTheme}
             onDetail={openDetail}
           />
           <footer {...stylex.props(styles.footer)}>
