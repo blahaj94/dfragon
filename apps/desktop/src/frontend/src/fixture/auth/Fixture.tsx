@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { AuthPresentation } from '../../components/auth/AuthPresentation'
-import type { AuthIntent, AuthPresentationInput } from '../../components/auth/presentation'
+import { AuthPresentation } from '../../sections/auth/AuthPresentation'
+import type { AuthIntent, AuthPresentationInput } from '../../components/auth/types'
 
 const empty: AuthPresentationInput = {
   phase: 'signedOut',

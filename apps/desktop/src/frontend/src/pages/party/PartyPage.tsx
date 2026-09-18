@@ -1,6 +1,6 @@
 import { ActionButton } from '@ldb/ui'
 import * as stylex from '@stylexjs/stylex'
-import { CharacterCard } from '../../components/cards/CharacterCard'
+import { CharacterCard } from '../../sections/cards/CharacterCard'
 import type { CardCharacter, SlotState } from '../../components/cards/types'
 import { styles } from './PartyPage.style'
 

@@ -1,6 +1,6 @@
 import { ExampleSection } from '@ldb/ui'
-import { ManualSearch } from '../../components/search/ManualSearch'
-import PartyCapture from '../../components/capture/PartyCapture'
+import { ManualSearch } from '../../sections/search/ManualSearch'
+import PartyCapture from '../../sections/capture/PartyCapture'
 
 export function HomePage(): React.JSX.Element {
   return (

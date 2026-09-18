@@ -1,4 +1,4 @@
-import { createPartyOcrWorker } from '../../components/capture/ocr'
+import { createPartyOcrWorker } from '../../sections/capture/ocr'
 import { normalizeNickname } from '../../utils/capture/recognition'
 
 export async function runStandaloneOcr(): Promise<{ matched: boolean; terminated: boolean }> {

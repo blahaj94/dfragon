@@ -10,7 +10,7 @@ import {
 import { SEARCH_ERRORS, type ManualSearchApi } from '../../../../preload/common/types/search'
 import { CaptureSearch, emptySearchSlots, type SearchView } from './capture-search'
 import { validManualNickname } from '../../utils/search/manual-input'
-import { SlotResult } from './SearchResults'
+import { SlotResult } from './SlotResult'
 
 type ManualSession = {
   bridge: CaptureSearch

@@ -3,7 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import PartyCapture from './components/capture/PartyCapture'
+import PartyCapture from './sections/capture/PartyCapture'
 
 const capture = vi.hoisted(() => ({
   sources: [{ id: 'example-window', name: 'Example window' }],
@@ -29,7 +29,7 @@ const capture = vi.hoisted(() => ({
 }))
 
 // Renderer 연결만 검증하며 capture hook·IPC·media/OCR는 실행하지 않는다.
-vi.mock('./components/capture/usePartyCapture', () => ({ usePartyCapture: () => capture }))
+vi.mock('./sections/capture/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 
 let container: HTMLDivElement
 let root: Root

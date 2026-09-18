@@ -1,36 +1,8 @@
-import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '../../constants/theme.stylex'
-import type { CardCharacter } from './types'
-import { styles } from './CardContent.style'
-
-export function CardImage({
-  src,
-  label,
-  portrait = false
-}: {
-  src?: string
-  label: string
-  portrait?: boolean
-}): React.JSX.Element {
-  const [failedSource, setFailedSource] = useState<string>()
-  if (src == null || failedSource === src) {
-    return (
-      <span role="img" aria-label={`${label} 이미지 없음`} {...stylex.props(styles.placeholder)}>
-        —
-      </span>
-    )
-  }
-  return (
-    <img
-      src={src}
-      alt={label}
-      draggable={false}
-      onError={() => setFailedSource(src)}
-      {...stylex.props(styles.image, portrait && styles.zoom)}
-    />
-  )
-}
+import type { CardCharacter } from '../../components/cards/types'
+import { CardImage } from '../../components/cards/CardImage'
+import { styles } from './EquipmentGrid.style'
 
 // Explicit visual positions; equipment arrays may arrive in any order.
 const positions = [
