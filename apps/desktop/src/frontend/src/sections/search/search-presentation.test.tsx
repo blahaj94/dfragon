@@ -7,16 +7,16 @@ import {
   type SearchCommandResult,
   type SearchErrorCode,
   type SearchSlot
-} from '../../../../../preload/common/types/search'
+} from '../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
   searchRow,
   searchSlot,
   withSearchSlot
-} from '../../../../../preload/api/search-test-fixture'
-import { createRendererFixture, media } from '../../fixtures/search-renderer-test-fixture'
-import { SearchResults } from '../../../sections/search/SearchResults'
+} from '../../../../preload/api/search-test-fixture'
+import { createRendererFixture, media } from '../../testing/fixtures/search-renderer-test-fixture'
+import { SearchResults } from './SearchResults'
 
 type Fixture = ReturnType<typeof createRendererFixture>
 async function recognized(): Promise<Fixture> {

@@ -51,7 +51,7 @@ Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 sign
 ## Component/interaction evidence
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/testing/sections/auth/AuthPresentation.test.tsx
+pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/auth/AuthPresentation.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

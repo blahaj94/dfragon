@@ -3,7 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import PartyCapture from '../../../sections/capture/PartyCapture'
+import PartyCapture from './PartyCapture'
 
 const capture = vi.hoisted(() => ({
   sources: [],
@@ -21,7 +21,7 @@ const capture = vi.hoisted(() => ({
   stopCapture: vi.fn()
 }))
 
-vi.mock('../../../sections/capture/usePartyCapture', () => ({ usePartyCapture: () => capture }))
+vi.mock('./usePartyCapture', () => ({ usePartyCapture: () => capture }))
 
 describe('PartyCapture', () => {
   let container: HTMLDivElement

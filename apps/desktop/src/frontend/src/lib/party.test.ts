@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../../constants/capture'
-import { isPartySlotPresent, capturePartyNicknameCrops } from '../../lib/party'
+import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../constants/capture'
+import { isPartySlotPresent, capturePartyNicknameCrops } from './party'
 
 describe('파티 layout', () => {
   it('1920×1080 기준 고정 파티 slot 네 개를 정의한다', () => {
