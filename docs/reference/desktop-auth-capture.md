@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop authentication capture integration and isolated media fixture
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-19
 ---
 
 # Desktop Auth Capture
@@ -11,19 +11,26 @@ last-reviewed: 2026-09-15
 
 ## 구현 위치
 
-| File                                                                                                                      | 현재 책임                                                                                                                                                                                                       |
-| ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/auth/coordinator.ts`, `types.ts`                                                                | 계정 인증·로그아웃과 내부 auth generation을 관리한다. Capture IPC는 coordinator나 `captureGeneration()`에 의존하지 않는다.                                                                                      |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                         | Source 열거·선택·media 완료의 window/document·선택·capture 수명을 확인한다. 선택 무효화, trusted 빈 선택 cleanup과 안정화 통지의 수명을 검사한다.                                                               |
-| `apps/desktop/src/backend/renderer-document.ts`                                                                           | 개발 URL은 HTTP(S)의 exact `localhost`, `127.0.0.1`, `[::1]`과 canonical 입력만 허용한다. Credential·공백·control·backslash·host alias를 거절하고 Electron Vite가 제공하는 slash 없는 bare origin만 정규화한다. |
-| `apps/desktop/src/backend/main.ts`                                                                                        | 검증한 renderer URL, sandbox·contextIsolation, navigation/popup 차단을 구성한다. Capture와 공개 검색을 인증 설정과 별도로 등록하고, auth runtime이 있을 때만 auth IPC를 추가한다.                               |
-| `apps/desktop/src/backend/capture/permission-policy.ts`                                                                   | Media check와 기본 request를 거절한다. Windows에서는 제품 정책에 따라 빈 media request를 현재 선택·capture 수명당 한 번 허용한다. 인증 여부는 조건이 아니다.                                                    |
-| `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                                         | auth/capture와 검색 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
-| `apps/desktop/src/frontend/src/App.tsx`, `pages/login/LoginPage.tsx`, `sections/LoginSection.tsx`                         | 기본 App은 CaptureControls 모달과 네 카드의 OCR 이름을 표시한다. LegacyApp의 직접 검색·PartyCapture는 기존 회귀 fixture에 남긴다. 인증 상태 변경은 캡처 수명을 초기화하지 않는다.                               |
-| `apps/desktop/src/frontend/src/sections/PartyCapture.tsx`                                                                 | 기존 source/interval·Start/Stop·인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
-| `apps/desktop/src/frontend/src/hooks/usePartyCaptureSession.ts`, `usePartyRecognition.ts`, `useCaptureSourceSelection.ts` | 현재 capture의 AbortSignal을 OCR에 전달하고 종료 뒤 결과·통지를 버린다. Unmount에서 stream·video·worker·loop와 main 선택을 정리한다.                                                                            |
+| File                                                                                                       | 현재 책임                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/auth/coordinator.ts`, `types.ts`                                                 | 계정 인증·로그아웃과 내부 auth generation을 관리한다. Capture IPC는 coordinator나 `captureGeneration()`에 의존하지 않는다.                                                                                      |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                          | Source 열거·선택·media 완료의 window/document·선택·capture 수명을 확인한다. 선택 무효화, trusted 빈 선택 cleanup과 안정화 통지의 수명을 검사한다.                                                               |
+| `apps/desktop/src/backend/renderer-document.ts`                                                            | 개발 URL은 HTTP(S)의 exact `localhost`, `127.0.0.1`, `[::1]`과 canonical 입력만 허용한다. Credential·공백·control·backslash·host alias를 거절하고 Electron Vite가 제공하는 slash 없는 bare origin만 정규화한다. |
+| `apps/desktop/src/backend/main.ts`                                                                         | 검증한 renderer URL, sandbox·contextIsolation, navigation/popup 차단을 구성한다. Capture와 공개 검색을 인증 설정과 별도로 등록하고, auth runtime이 있을 때만 auth IPC를 추가한다.                               |
+| `apps/desktop/src/backend/capture/permission-policy.ts`                                                    | Media check와 기본 request를 거절한다. Windows에서는 제품 정책에 따라 빈 media request를 현재 선택·capture 수명당 한 번 허용한다. 인증 여부는 조건이 아니다.                                                    |
+| `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                          | auth/capture와 검색 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
+| `apps/desktop/src/frontend/src/App.tsx`, `pages/login/LoginPage.tsx`, `sections/LoginSection.tsx`          | 기본 App은 CaptureControls 모달과 네 카드의 OCR 이름을 표시한다. LegacyApp의 직접 검색·PartyCapture는 기존 회귀 fixture에 남긴다. 인증 상태 변경은 캡처 수명을 초기화하지 않는다.                               |
+| `apps/desktop/src/frontend/src/sections/PartyCapture.tsx`                                                  | 기존 source/interval·Start/Stop·인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`                   | XState가 창 등록·검색 준비·미디어 준비·OCR 준비·실행·중지·실패 전이를 소유한다. 세션 actor 종료는 AbortSignal과 stream·video·worker·loop를 정리하며, 취소 뒤 도착한 자원도 해당 세션에서 정리한다.              |
+| `apps/desktop/src/frontend/src/hooks/usePartyCapture.ts`, `useCaptureSources.ts`, `usePartyRecognition.ts` | React와 machine을 연결하고, 창 목록 조회·OCR 이름 안정화를 각각 유지한다. UI는 캡처 phase를 읽는다. Unmount에서는 main의 창 선택도 해제한다.                                                                    |
 
 인증 generation은 capture 권한 근거가 아니다. Renderer의 revision이나 인증 snapshot도 권한 근거로 사용하지 않는다. 기존 [auth bridge](desktop-auth-bridge.md)의 구독 순서·snapshot allowlist·credential 비노출을 유지한다. Auth API 오류는 기존 고정 UI로 처리하며 명령을 자동 재전송하지 않는다.
+
+## Renderer 캡처 상태
+
+캡처 수명에는 XState 5와 `@xstate/react`를 사용한다. `selecting`에서 창 등록 actor가 완료되면 자동 시작 또는 수동 시작 대기로 전이한다. `capturing`은 검색 준비 → 미디어 준비 → OCR 준비 → 실행 단계를 포함하며, 중지·재선택·실패로 빠져나갈 때 세션 actor를 정리한다. 이전 창 등록의 늦은 결과는 종료된 actor에서 무시된다. 이미 요청한 미디어·worker는 취소가 즉시 완료되지 않을 수 있어 세션별 AbortSignal과 자원 정리를 유지한다.
+
+창 목록 새로고침은 캡처 수명과 독립적이다. 목록 조회 실패만으로 실행 중인 캡처를 중지하지 않는다. 검색 snapshot·수동 검색 상태는 기존 `CaptureSearch`, OCR 안정화는 `usePartyRecognition`이 계속 관리한다. 로그인 수명과 Windows 제품 캡처 권한 정책은 바꾸지 않는다.
 
 ## 권한과 수명
 
@@ -37,7 +44,7 @@ Main은 로그인·로그아웃만으로 선택을 지우지 않으며 trusted r
 
 ## 격리 Electron fixture
 
-`apps/desktop/scripts/auth-capture-fixture.config.ts`는 production과 별도 output을 사용하면서 실제 제품 `src/preload/index.ts`와 `App`을 build한다. Main은 기존 AuthCoordinator·auth/capture 등록 module 및 auth-only fixture의 memory-only effects를 재사용한다. `auth:fixture`의 media 차단 환경과 별개다.
+`apps/desktop/scripts/auth-capture-fixture.config.ts`는 production과 별도 output을 사용하면서 실제 제품 `src/preload/index.ts`와 `ColorThemeProvider`로 감싼 현재 카드 `App`을 build한다. 기본 실행과 `--smoke`는 카메라 모달·커스텀 창 선택·선택 즉시 시작 경로를 사용한다. `--search-smoke`만 검색 protocol 회귀용 `legacy-search.html`을 사용하며, 현재 카드 화면의 검색 결과 UI 검증으로 취급하지 않는다. Main은 기존 AuthCoordinator·auth/capture 등록 module 및 auth-only fixture의 memory-only effects를 재사용한다. `auth:fixture`의 media 차단 환경과 별개다.
 
 ```sh
 pnpm --filter @ldb/desktop capture:fixture:build
@@ -49,9 +56,9 @@ pnpm --filter @ldb/desktop capture:fixture
 
 Build는 기존 OCR assets 준비, fixture 전용 TypeScript 검사와 Electron Vite build를 포함한다. Output은 `apps/desktop/out/auth-capture-fixture/`다. 실제 앱 window title은 **LDB Auth Capture fixture**, 입력 창은 **LDB Synthetic Capture Source**다. 후자는 기존 `PARTY_SLOTS`·mana color를 사용한 1920×1080 canvas이며 실제 개인 화면을 입력으로 사용하지 않는다.
 
-수동 실행은 source 목록의 **LDB Synthetic Capture Source**→**Start** 순서다. 로그인·로그아웃 뒤에도 선택·인식값·capture UI가 유지되는지 확인한다. 로그인 비교는 패스키 버튼과 앱 메뉴의 **Complete login**을 사용한다. 앱 메뉴의 **Quit LDB Auth Capture fixture**로 child를 종료하면 Node launcher가 process group 종료와 profile 최종 삭제를 확인한다. 삭제 또는 삭제 확인에 실패하면 고정된 cleanup FAIL과 exit 1로 종료하며 raw filesystem 오류를 출력하지 않는다. 기존 다른 Electron instance를 종료하지 않는다.
+수동 실행은 카메라 버튼 → **캡처할 프로세스 선택** → **LDB Synthetic Capture Source** 순서다. 선택 즉시 캡처가 시작되고 카드 네 개의 이름에 OCR 결과가 표시된다. 모달 닫기·다시 열기는 캡처를 유지하며, **캡처 중지** 뒤 같은 창을 다시 선택하면 새 캡처를 시작한다. 로그인 비교는 상단 **로그인**과 앱 메뉴의 **Complete login**을 사용한다. 계정 메뉴가 제거되어 자동 smoke의 로그아웃은 fixture coordinator 명령으로 주입한다. 이는 실제 로그아웃 UI 검증이 아니다. 앱 메뉴의 **Quit LDB Auth Capture fixture**로 child를 종료하면 Node launcher가 process group 종료와 profile 최종 삭제를 확인한다. 삭제 또는 삭제 확인에 실패하면 고정된 cleanup FAIL과 exit 1로 종료하며 raw filesystem 오류를 출력하지 않는다. 기존 다른 Electron instance를 종료하지 않는다.
 
-통합 smoke는 실제 버튼·feature preload·main IPC·media·OCR를 검증한다. Renderer 관측 wrapper는 native `getDisplayMedia`, Worker 생성/종료·OCR 요청, video와 track stop을 그대로 호출한다. Main 관측 wrapper도 실제 제품 display/안정화 통지 handler를 그대로 호출하고 counter와 slot별 합성 기대값 일치 bitmask만 수집한다. 원문 통지 payload나 nickname은 보관하지 않는다. MediaStream이나 OCR 결과를 test double로 대체하지 않는다. 실제 video에서 제품 crop 함수를 호출해 기존 frame 크기와 네 slot mana 영역 일치를 확인하고 native track 크기는 별도로 기록한다. 성공 판정에는 실제 stream과 worker 초기화, 네 slot 각각의 정확한 synthetic 표시값과 실제 main handler 통과 뒤 기대값 통지가 모두 필요하다. 통지 접수는 `ok:true`와 응답 snapshot의 capture/slot/nickname/observationRevision이 입력과 정확히 일치하는 경우만 센다. 더 오래되거나 새로운 관측의 snapshot과 정상 resolve된 거절은 접수 증거가 아니다. 표시와 통지의 bitmask가 각각 `15`여야 하며 crop/mana 존재나 같은 slot의 중복 통지로 이를 대체하지 않는다. 로그인·로그아웃 중 capture 유지와 Stop 뒤 track/worker/video 정리를 확인한다. Raw nickname·credential·URL을 진단 출력으로 반환하지 않는다.
+통합 smoke는 실제 버튼·feature preload·main IPC·media·OCR를 검증한다. Renderer 관측 wrapper는 native `getDisplayMedia`, Worker 생성/종료·OCR 요청, video와 track stop을 그대로 호출한다. Main 관측 wrapper도 실제 제품 display/안정화 통지 handler를 그대로 호출하고 counter와 slot별 합성 기대값 일치 bitmask만 수집한다. 원문 통지 payload나 nickname은 보관하지 않는다. MediaStream이나 OCR 결과를 test double로 대체하지 않는다. 합성 원본은 기존 1920×1080 좌표와 91×14 이름 영역을 유지하며 14px sans-serif로 그린다. 실제 video에서 제품 crop 함수를 호출해 기존 frame 크기와 네 slot mana 영역 일치를 확인하고 native track 크기는 별도로 기록한다. 성공 판정에는 실제 stream과 worker 초기화, 네 slot 각각의 정확한 synthetic 표시값과 실제 main handler 통과 뒤 기대값 통지가 모두 필요하다. 통지 접수는 `ok:true`와 응답 snapshot의 capture/slot/nickname/observationRevision이 입력과 정확히 일치하는 경우만 센다. 더 오래되거나 새로운 관측의 snapshot과 정상 resolve된 거절은 접수 증거가 아니다. 표시와 통지의 bitmask가 각각 `15`여야 하며 crop/mana 존재나 같은 slot의 중복 통지로 이를 대체하지 않는다. 카드 입력 네 개의 정확한 인식값, 모달 닫기·재열기와 로그인·fixture 로그아웃 중 capture 유지, 중지 뒤 track/worker/video 정리·OCR/IPC 정지, 재선택 후 두 번째 캡처와 정리를 확인한다. Raw nickname·credential·URL을 진단 출력으로 반환하지 않는다.
 
 Fixture constructor는 `sandbox:true`, `contextIsolation:true`, `nodeIntegration:false`를 고정한다. Product와 fixture의 preload는 동일 source의 CJS bundle이며 byte 동등성을 비교할 수 있다. Fixture의 `.cjs` 이름은 output 격리용이며 sandbox에서 다른 구현을 사용하는 우회가 아니다. CSP는 제품 entry와 같은 경계를 사용하고 webSecurity를 끄지 않는다. 실제 network·native credential·provider·OS protocol은 사용하지 않는다. 검색도 main에 주입한 고정 합성 transport만 사용하며 응답별 수동 확인 방법은 [검색 fixture 절차](desktop-character-search.md#격리-미디어와-화면-검증)를 따른다.
 

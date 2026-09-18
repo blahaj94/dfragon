@@ -80,22 +80,17 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
     nicknameAccepted: 4,
     nicknameMatchedSlots
   }
-  function renderHome(): void {
-    document.body.innerHTML = `<select><option value="">Select a window</option><option value="synthetic">LDB Synthetic Capture Source</option></select><button disabled>캡처 시작</button><pre></pre>`
-    const select = document.querySelector('select')!
-    const start = document.querySelector('button')!
-    select.onchange = () => {
-      start.disabled = false
-    }
-    start.onclick = () => {
-      isActive = true
-      document.querySelector('pre')!.textContent = ['캡처 중 · 1920×1080', ...displayLines].join(
-        '\n'
-      )
-    }
+  document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="LDB Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
+  document.querySelector<HTMLElement>('[role="menuitemradio"]')!.onclick = () => {
+    isActive = true
+    document.querySelector('[role="status"]')!.textContent = '캡처 중 · 1920×1080'
+    displayLines.forEach((line, index) => {
+      const input = document.createElement('input')
+      input.setAttribute('aria-label', `${index + 1}번 캐릭터 이름`)
+      input.value = line.split(': ')[1]
+      document.body.append(input)
+    })
   }
-  renderHome()
-  document.body.insertAdjacentHTML('afterbegin', '<button>패스키로 계속하기</button>')
   Object.assign(window, {
     captureObservation: () => ({
       requests: isActive ? 1 : 0,

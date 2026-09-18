@@ -29,8 +29,7 @@ function App(): React.JSX.Element {
             selectedSourceId={capture.selectedSourceId}
             loading={capture.sourcesLoading}
             failed={capture.sourcesFailed}
-            starting={capture.starting}
-            active={capture.search.captureActive === true}
+            phase={capture.phase}
             ready={capture.search.ready}
             status={captureNotice}
             onSelect={(id) => {

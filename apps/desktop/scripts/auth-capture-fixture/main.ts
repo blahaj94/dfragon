@@ -64,7 +64,10 @@ if (canStart) {
           nodeIntegration: false
         }
       })
-      const entry = resolve(__dirname, '../renderer/index.html')
+      const entry = resolve(
+        __dirname,
+        isSearchSmoke ? '../renderer/legacy-search.html' : '../renderer/index.html'
+      )
       const documentUrl = pathToFileURL(entry).href
       if (isDenyMedia) {
         session.defaultSession.setPermissionCheckHandler(() => false)

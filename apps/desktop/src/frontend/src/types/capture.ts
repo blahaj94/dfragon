@@ -22,3 +22,5 @@ export type PartyOcrWorker = {
   recognize: (image: HTMLCanvasElement) => Promise<{ data: { text: string; confidence: number } }>
   terminate: () => Promise<void>
 }
+
+export type CapturePhase = 'idle' | 'selecting' | 'selected' | 'starting' | 'active' | 'failed'

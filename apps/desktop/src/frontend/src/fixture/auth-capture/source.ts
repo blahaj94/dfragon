@@ -14,7 +14,8 @@ context.fillStyle = 'black'
 context.fillRect(0, 0, canvas.width, canvas.height)
 for (const slot of PARTY_SLOTS) {
   context.fillStyle = 'white'
-  context.font = '14px monospace'
+  // 실제 91×14 crop에서도 기대 문자열이 구분되는 합성 글꼴을 사용한다.
+  context.font = '14px sans-serif'
   context.textBaseline = 'top'
   context.fillText('ALICE', slot.nickname.x + 2, slot.nickname.y + 1)
   context.fillStyle = `rgb(${PARTY_MANA_COLOR.join(',')})`

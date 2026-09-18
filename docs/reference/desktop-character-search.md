@@ -13,19 +13,19 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 
 ## 구현 위치
 
-| 위치                                                                                        | 책임                                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                           | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
-| `apps/desktop/src/backend/search/capture-lifetime.ts`                                       | 네 슬롯의 최신 관측·requestId·상태, clear/retry와 429 버튼 대기를 소유한다.                                                                                          |
-| `apps/desktop/src/backend/search/request.ts`                                                | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
-| `apps/desktop/src/backend/search/http.ts`                                                   | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
-| `apps/desktop/src/backend/search/retry-after.ts`                                            | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
-| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`              | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
-| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                 | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
-| `apps/desktop/src/frontend/src/lib/search-connection.ts`                                        | 구독 후 read, run/revision 순서, 유실된 명령의 조회만 재시도하는 연결 수명을 소유한다.                                                                               |
-| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`           | Start별 수명, 로컬 관측 revision, 즉시 표시 제거와 슬롯별 retry 진행 상태를 연결한다.                                                                                |
-| `apps/desktop/src/frontend/src/hooks/usePartyCaptureSession.ts`, `usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                    | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| 위치                                                                                                                                                   | 책임                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                      | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
+| `apps/desktop/src/backend/search/capture-lifetime.ts`                                                                                                  | 네 슬롯의 최신 관측·requestId·상태, clear/retry와 429 버튼 대기를 소유한다.                                                                                          |
+| `apps/desktop/src/backend/search/request.ts`                                                                                                           | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
+| `apps/desktop/src/backend/search/http.ts`                                                                                                              | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
+| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                       | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
+| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                         | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
+| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                            | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
+| `apps/desktop/src/frontend/src/lib/search-connection.ts`                                                                                               | 구독 후 read, run/revision 순서, 유실된 명령의 조회만 재시도하는 연결 수명을 소유한다.                                                                               |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                                     | Start별 수명, 로컬 관측 revision, 즉시 표시 제거와 슬롯별 retry 진행 상태를 연결한다.                                                                                |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                             | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
 
@@ -52,6 +52,8 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 Keyboard·focus·좁은 화면·theme·reduced-motion의 실제 Electron 관측은 최종 실행 head의 Issue/PR evidence에 기록한다. 공용 spinner의 기존 motion 동작을 변경하지 않으며 unit 성공을 native UI 검증으로 대신하지 않는다.
 
 ## 격리 미디어와 화면 검증
+
+아래 검색 결과 조작은 LegacyApp 기반 protocol 회귀 절차다. 현재 카드 App의 UI 검증은 `capture:fixture:smoke`가 담당한다.
 
 기존 [auth capture fixture](desktop-auth-capture.md)를 사용한다. `scripts/auth-capture-fixture/search-effects.ts`의 transport는 고정 합성 origin·endpoint·query와 credential 부재만 받아 메모리에서 Response를 만든다. 전역 fetch나 실제 API·provider를 호출하지 않는다. `session.webRequest` 차단을 main Node HTTP 차단의 근거로 사용하지 않는다.
 
@@ -94,7 +96,7 @@ pnpm --filter @ldb/desktop capture:fixture:build
 node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 ```
 
-직접 launcher 경로는 `pnpm --filter @ldb/desktop capture:fixture:search`다. 기존 media/OCR/deny 모드와 기준은 유지한다. 새 모드는 실제 App·preload·main, 고정 synthetic source의 native stream과 실제 OCR를 사용한다. HTTP는 기존 memory-only 합성 transport이며 실제 API/provider에 접근하지 않는다.
+직접 launcher 경로는 `pnpm --filter @ldb/desktop capture:fixture:search`다. 기존 media/OCR/deny 모드와 기준은 유지한다. 이 모드는 `legacy-search.html`의 검색 protocol 회귀용 LegacyApp·실제 preload·main, 고정 synthetic source의 native stream과 실제 OCR를 사용한다. HTTP는 기존 memory-only 합성 transport이며 실제 API/provider에 접근하지 않는다.
 
 `search-smoke.ts`는 0건 표시, 두 실패·pending·429의 동시 상태, 슬롯별 수동 retry 독립성, 15초 timeout, 429 양의 대기 중 disabled와 같은 실패의 만료 후 버튼 활성화, 자동 GET 부재, pending 중 로그인 상태 변경의 capture 유지와 Stop 정리를 관측한다. 네 합성 응답의 HTTP 도착 순서는 슬롯 번호 계약으로 취급하지 않고 실제 상태에서 대상 슬롯을 찾는다. 기존 로그인·source 선택·resource 관측 helper는 `actions.ts`에서 공유한다.
 
