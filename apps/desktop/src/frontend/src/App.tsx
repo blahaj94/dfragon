@@ -6,14 +6,12 @@ import { LoginSection } from './sections/LoginSection'
 import { styles } from './App.style'
 
 function App(): React.JSX.Element {
-  const { light, toggleTheme } = useColorTheme()
+  const { light } = useColorTheme()
 
   return (
     <main {...stylex.props(styles.app, light && lightTheme)}>
       <PartyPage
         slots={['idle', 'idle', 'idle', 'idle']}
-        light={light}
-        onToggleTheme={toggleTheme}
         account={<LoginSection api={window.auth} />}
       />
       <footer {...stylex.props(styles.footer)}>

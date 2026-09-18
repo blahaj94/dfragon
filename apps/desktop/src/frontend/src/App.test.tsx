@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
+import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
 
 let root: Root
@@ -81,7 +82,13 @@ afterEach(async () => {
 })
 
 it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로 시작한다', async () => {
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
 
   const slots = container.querySelectorAll('article')
   expect(slots).toHaveLength(4)
@@ -108,7 +115,13 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
 })
 
 it('인증 창의 취소·실패·성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   const cards = [...container.querySelectorAll('article')]
   const loginButton = container.querySelector('header button[aria-label="로그인"]')
   await click('로그인')
@@ -155,7 +168,13 @@ it('인증 창의 취소·실패·성공과 외부 로그아웃 이후에도 카
 })
 
 it('로그인 진행 중 재클릭은 모달과 중복 요청을 만들지 않는다', async () => {
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   await click('로그인')
   await click('로그인')
   await click('로그인')
@@ -168,7 +187,13 @@ it('로그인 진행 중 재클릭은 모달과 중복 요청을 만들지 않�
 
 it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고 unmount 때 구독을 해제한다', async () => {
   snapshot = { ...snapshot, phase: 'restoring' }
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   expect(container.querySelector('header')?.textContent).toContain('로그인')
   expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
   await act(async () => {
@@ -178,7 +203,13 @@ it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고
   await act(async () => root.unmount())
   expect(listeners.size).toBe(0)
   root = createRoot(container)
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   expect(document.body.textContent).not.toContain('내 계정')
   expect(document.body.textContent).not.toContain('복원모험가')
   expect(document.body.textContent).not.toContain('시작하기')
@@ -188,7 +219,13 @@ it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고
 
 it('인증 연결 실패 중에도 카드·테마를 유지하고 연결 재확인은 로그인 명령을 보내지 않는다', async () => {
   vi.mocked(api.getAuthState).mockRejectedValueOnce(new Error('test connection unavailable'))
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   const cards = [...container.querySelectorAll('article')]
   await click('로그인')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
@@ -209,7 +246,13 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
       phase,
       notice: phase === 'storageBlocked' ? 'SECURE_STORAGE_UNAVAILABLE' : 'RESTORE_RETRY_REQUIRED'
     }
-    await act(async () => root.render(<App />))
+    await act(async () =>
+      root.render(
+        <ColorThemeProvider>
+          <App />
+        </ColorThemeProvider>
+      )
+    )
     await click('로그인')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(api.retryAuth).toHaveBeenCalledExactlyOnceWith()
@@ -219,7 +262,13 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
 )
 
 it('새 기본 화면에서 다크·라이트 테마를 전환한다', async () => {
-  await act(async () => root.render(<App />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
   expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
 
   await act(async () =>

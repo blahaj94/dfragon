@@ -10,10 +10,7 @@ import { useColorTheme } from '../../hooks/useColorTheme'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
-  const theme = query.get('theme')
-  const { light, toggleTheme } = useColorTheme(
-    theme === 'light' || theme === 'system' ? theme : 'dark'
-  )
+  const { light } = useColorTheme()
   const [scenario, setScenario] = useState('states')
   const detail = query.get('detail') === 'sample'
   const character =
@@ -53,8 +50,6 @@ export function Preview(): React.JSX.Element {
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
-            light={light}
-            onToggleTheme={toggleTheme}
             onDetail={openDetail}
           />
           <footer {...stylex.props(styles.footer)}>
