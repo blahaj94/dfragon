@@ -58,7 +58,13 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Renderer 미리보기
 
-`src/frontend/src/cards/`의 메인 카드와 상세 A안을 실제 renderer 빌드에서 실행한다. `src/frontend/src/mvp-preview/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 제품 홈의 검색·인증·캡처는 기존 구현을 유지한다.
+`src/frontend/src/cards/`의 메인 카드와 상세 A안을 실제 renderer 빌드에서 실행한다. `src/frontend/src/mvp-preview/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 이 미리보기를 열고 소스 수정은 HMR로 반영한다. 기존 검색·인증·캡처 화면은 `pnpm --filter @ldb/desktop dev:app`으로 실행한다.
+
+```bash
+pnpm --filter @ldb/desktop dev
+```
+
+빌드 결과를 확인할 때는 다음 명령을 사용한다.
 
 ```bash
 pnpm --filter @ldb/desktop mvp:build

@@ -13,6 +13,16 @@ if (isInputInvalid) {
   throw new Error('Use desktop|example|mvp and system|light|dark')
 }
 
+const previewDocument = new URL('../out/frontend/mvp-preview.html', import.meta.url)
+const devRendererUrl = process.env['LDB_MVP_RENDERER_URL']
+if (mode === 'mvp' && devRendererUrl != null) {
+  const url = new URL(devRendererUrl)
+  if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.username || url.password) {
+    throw new Error('MVP development renderer must use a loopback HTTP server')
+  }
+  previewDocument.href = new URL('/mvp-preview.html', url).href
+}
+
 const userData = mkdtempSync(join(tmpdir(), 'ldb-ui-fixture-'))
 app.setPath('userData', userData)
 app.setName('LDB UI fixture')
@@ -43,10 +53,11 @@ app.whenReady().then(async () => {
   window.on('page-title-updated', (event) => event.preventDefault())
   window.webContents.setWindowOpenHandler(({ url }) => {
     const requested = new URL(url)
-    const allowed = new URL('../out/frontend/mvp-preview.html', import.meta.url)
+    const allowed = previewDocument
     const isPreviewDetail =
       mode === 'mvp' &&
-      requested.protocol === 'file:' &&
+      requested.protocol === allowed.protocol &&
+      requested.host === allowed.host &&
       requested.pathname === allowed.pathname &&
       requested.searchParams.get('detail') === 'sample'
     if (!isPreviewDetail) {
@@ -96,7 +107,11 @@ app.whenReady().then(async () => {
       )
 
   try {
-    await Promise.all([window.loadFile(fileURLToPath(target), { query: { theme } }), isolated])
+    const load =
+      mode === 'mvp' && devRendererUrl != null
+        ? window.loadURL(`${previewDocument.href}?theme=${theme}`)
+        : window.loadFile(fileURLToPath(target), { query: { theme } })
+    await Promise.all([load, isolated])
     window.show()
     console.log(`UI fixture ready: ${mode}, ${theme}; native media disabled`)
   } catch (error) {

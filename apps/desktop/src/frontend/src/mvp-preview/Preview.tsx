@@ -81,7 +81,12 @@ const scenarios: Record<string, SlotState[]> = {
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
-  const [light, setLight] = useState(query.get('theme') === 'light')
+  const [light, setLight] = useState(
+    () =>
+      query.get('theme') === 'light' ||
+      (query.get('theme') === 'system' &&
+        window.matchMedia('(prefers-color-scheme: light)').matches)
+  )
   const [scenario, setScenario] = useState('states')
   useEffect(() => {
     document.documentElement.dataset.seedColorMode = light ? 'light-only' : 'dark-only'

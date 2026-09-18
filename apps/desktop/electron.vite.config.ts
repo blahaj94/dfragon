@@ -7,7 +7,7 @@ import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '../../packages/ui/build/notices.ts'
 import { readDistributionApiOrigin } from './build/distribution-config'
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   main: {
     define: {
       __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development'),
@@ -57,6 +57,15 @@ export default defineConfig(({ mode }) => ({
         ? [
             {
               name: 'mvp-preview-notices',
+              transformIndexHtml(html, context) {
+                if (command !== 'serve' || context.path !== '/mvp-preview.html') {
+                  return html
+                }
+                return html.replace(
+                  "script-src 'self';",
+                  "script-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:*;"
+                )
+              },
               generateBundle() {
                 for (const name of ['FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']) {
                   this.emitFile({

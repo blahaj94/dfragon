@@ -56,7 +56,14 @@ const styles = stylex.create({
   value: { textAlign: 'right', whiteSpace: 'nowrap' },
   enhancement: { color: '#ff75f5' },
   grade: (grade: string | undefined) => ({
-    color: grade === '종결' ? '#50e3c2' : grade === '준종결' ? '#ffb400' : colors.muted
+    color:
+      grade === '종결'
+        ? '#50e3c2'
+        : grade === '준종결'
+          ? '#ffb400'
+          : grade === '기타'
+            ? '#ffffff'
+            : colors.muted
   }),
   note: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 12 }
 })
