@@ -58,7 +58,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Renderer 미리보기
 
-`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 연다. 진행 중에는 재클릭을 막고, 취소는 인증 창 닫기로 처리한다. 로그인 완료 시 버튼을 숨기며 계정 모달·환영·패스키 관리·로그아웃 메뉴는 제공하지 않는다. 연결 조회 실패와 복원·저장소 실패 시 로그인 버튼으로 조회 또는 복구를 재시도할 수 있다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 검색·캡처·OCR·상세 연결 전까지 입력·캡처는 비활성화한다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
+`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 연다. 숨겨진 로딩 아이콘은 레이아웃 너비를 차지하지 않으며, 진행 시 글자는 오른쪽으로 사라지고 아이콘은 오른쪽에서 들어온다. 버튼은 최소 너비를 유지하면서 내용 너비 전환에 맞춰 줄어들고 취소·실패 후 복귀한다. 진행 중에는 재클릭을 막고, 취소는 인증 창 닫기로 처리한다. 로그인 완료 시 버튼을 숨기며 계정 모달·환영·패스키 관리·로그아웃 메뉴는 제공하지 않는다. 연결 조회 실패와 복원·저장소 실패 시 로그인 버튼으로 조회 또는 복구를 재시도할 수 있다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 검색·캡처·OCR·상세 연결 전까지 입력·캡처는 비활성화한다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
 
 ```bash
 pnpm --filter @ldb/desktop dev

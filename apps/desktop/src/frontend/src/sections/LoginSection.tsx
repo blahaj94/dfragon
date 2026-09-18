@@ -1,7 +1,9 @@
+import * as stylex from '@stylexjs/stylex'
 import { ActionButton } from '@ldb/ui'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
 import { useAuthBridge } from '../hooks/useAuthBridge'
+import { styles } from './LoginSection.style'
 
 export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | null {
   const { snapshot, commandPending, connectionFailed, onIntent, resynchronize } = useAuthBridge(api)
@@ -22,6 +24,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
 
   return (
     <ActionButton
+      {...stylex.props(styles.button)}
       size="small"
       variant="ghost"
       aria-label="로그인"
