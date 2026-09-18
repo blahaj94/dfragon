@@ -7,7 +7,8 @@
     "src/preload/*.d.ts"
   ],
   "compilerOptions": {
-    "composite": true,
+    "composite": false,
+    "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
       "@ldb/ui": ["../../packages/ui/src/index.tsx"],
