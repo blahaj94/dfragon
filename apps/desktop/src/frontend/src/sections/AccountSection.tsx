@@ -6,11 +6,12 @@ import {
   DialogContent,
   DialogFooter,
   DialogRoot,
-  DialogTrigger
+  DialogTrigger,
+  SupportingText
 } from '@ldb/ui'
 import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
 import { AuthConnectionStatus } from '../components/AuthConnectionStatus'
-import { authPhaseLabels } from '../constants/auth'
+import { authNotices, authPhaseLabels } from '../constants/auth'
 import { useAuthBridge } from '../hooks/useAuthBridge'
 import { AuthPresentation } from './AuthPresentation'
 
@@ -35,14 +36,36 @@ export function AccountSection({ api }: { api: AuthApi }): React.JSX.Element {
   const { snapshot, presentationEpoch, commandPending, connectionFailed, onIntent, resynchronize } =
     useAuthBridge(api)
   const label = getAccountButtonLabel({ connectionFailed, snapshot })
+  const canBeginLogin = snapshot?.phase === 'signedOut' && snapshot.providers.includes('passkey')
 
   return (
-    <DialogRoot open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <ActionButton size="small" variant="ghost">
-          {label}
-        </ActionButton>
-      </DialogTrigger>
+    <DialogRoot open={open && !canBeginLogin} onOpenChange={setOpen}>
+      {canBeginLogin ? (
+        <>
+          <ActionButton
+            size="small"
+            variant="ghost"
+            disabled={commandPending}
+            onClick={() => {
+              setOpen(false)
+              onIntent({ type: 'beginLogin', provider: 'passkey' })
+            }}
+          >
+            {label}
+          </ActionButton>
+          {snapshot.notice != null && (
+            <div role="status">
+              <SupportingText>{authNotices[snapshot.notice]}</SupportingText>
+            </div>
+          )}
+        </>
+      ) : (
+        <DialogTrigger asChild>
+          <ActionButton size="small" variant="ghost">
+            {label}
+          </ActionButton>
+        </DialogTrigger>
+      )}
       <DialogContent title="LDB 계정">
         <DialogBody>
           <div role="status">

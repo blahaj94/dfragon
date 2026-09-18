@@ -43,11 +43,13 @@ small {
   line-height: 1.6;
   word-break: keep-all;
 }
+main:has(.auth-screen),
 main:has(#signup) {
   box-sizing: border-box;
   max-width: 560px;
   padding: 40px;
 }
+.auth-screen h1,
 #signup h1 {
   margin: 0 0 24px;
   font-size: 32px;
@@ -89,12 +91,14 @@ main:has(#signup) {
   font-size: 13px;
   line-height: 24px;
 }
+main:has(.auth-screen) #cancel,
 main:has(#signup) #cancel {
   display: flex;
   width: 96px;
   height: 40px;
   margin: 0 0 0 auto;
 }
+main:has(.auth-screen) #status:empty,
 main:has(#signup) #status:empty {
   margin: 0;
   min-height: 0;
@@ -104,12 +108,14 @@ main:has(#signup) #status:empty {
     margin: 24px 16px;
     padding: 8px;
   }
+  main:has(.auth-screen),
   main:has(#signup) {
     margin: 0 auto;
     padding: 40px;
   }
 }
 @media (max-width: 460px) {
+  main:has(.auth-screen),
   main:has(#signup) {
     padding: 32px 24px;
   }
@@ -117,6 +123,68 @@ main:has(#signup) #status:empty {
     flex-direction: column;
   }
   .signup-actions button {
+    flex: auto;
+  }
+}
+
+.auth-screen[data-screen='entry'] #entry > p {
+  margin: 0 0 24px;
+  font-size: 16px;
+  line-height: 29px;
+}
+.login-actions {
+  display: flex;
+  gap: 12px;
+}
+.login-actions button {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  margin: 0;
+}
+.auth-screen #register {
+  height: 52px;
+  margin: 12px 0 32px;
+}
+.auth-screen[data-screen='qr'] h1 {
+  margin-bottom: 24px;
+}
+.auth-screen #qr-panel .confirmation {
+  margin: 22px 0 0;
+  font-size: 24px;
+  line-height: 40px;
+  text-align: center;
+}
+.auth-screen #qr-expiry {
+  margin: 0;
+  color: var(--seed-color-fg-informative);
+  font-size: 16px;
+  line-height: 28px;
+  text-align: center;
+}
+.auth-screen #qr-expiry.expired {
+  color: var(--seed-color-fg-critical);
+}
+.auth-screen .qr-warning {
+  margin: 0;
+  font-size: 10px;
+  line-height: 24px;
+  text-align: center;
+}
+.auth-screen .qr-signup-help {
+  margin: 8px 0 0;
+  font-size: 13px;
+  text-align: center;
+}
+.auth-screen #qr-panel #qr-start {
+  height: 52px;
+  margin: 32px 0 24px;
+}
+@media (max-width: 460px) {
+  .login-actions {
+    flex-direction: column;
+  }
+  .login-actions button {
     flex: auto;
   }
 }
