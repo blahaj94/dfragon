@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { ServerSelect } from '../components/ServerSelect'
 import { CardImage } from '../components/CardImage'
 import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
@@ -85,19 +86,15 @@ export function CharacterCard({
       {showCharacter && (
         <>
           {state === 'success' && character != null && (
-            <select
-              aria-label={`${slot}번 서버`}
-              value={serverId}
-              disabled={!inputEnabled}
-              onChange={(event) => setServerId(event.target.value)}
-              {...stylex.props(styles.select)}
-            >
-              {Object.entries(serverNames).map(([id, label]) => (
-                <option key={id} value={id}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <div {...stylex.props(styles.serverAnchor)}>
+              <ServerSelect
+                label={`${slot}번 서버`}
+                value={serverId}
+                disabled={!inputEnabled}
+                options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
+                onValueChange={setServerId}
+              />
+            </div>
           )}
           <input
             aria-label={`${slot}번 캐릭터 이름`}

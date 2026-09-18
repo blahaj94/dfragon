@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
-import { captureSelectColors as palette } from '../constants/capture-select.stylex'
+import { selectColors as palette } from '../constants/select.stylex'
 
 export const styles = stylex.create({
   trigger: {

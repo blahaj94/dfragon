@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 
-export const captureSelectColors = stylex.defineVars({
+export const selectColors = stylex.defineVars({
   input: '#1c1f24',
   border: '#454a52',
   hover: '#343941',
@@ -11,7 +11,7 @@ export const captureSelectColors = stylex.defineVars({
   shadow: 'rgba(0, 0, 0, 0.35)'
 })
 
-export const captureSelectLightTheme = stylex.createTheme(captureSelectColors, {
+export const selectLightTheme = stylex.createTheme(selectColors, {
   input: '#f7f8fa',
   border: '#d1d5db',
   hover: '#f0f2f5',
