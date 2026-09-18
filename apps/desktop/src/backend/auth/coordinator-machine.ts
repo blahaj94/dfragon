@@ -5,8 +5,7 @@ import type { AuthAuthorization, AuthCommandResult, AuthNotice, AuthSnapshot } f
 
 export type VerificationOperation = Readonly<{ controller: AbortController }>
 
-export type AuthFlight<T> = Readonly<{ promise: Promise<T> }>
-type RefreshFlight = AuthFlight<AuthAuthorization> & Readonly<{ generation: number }>
+type RefreshFlight = Readonly<{ promise: Promise<AuthAuthorization>; generation: number }>
 type StorageNotice = 'SECURE_STORAGE_UNAVAILABLE' | 'LOCAL_CLEAR_UNCONFIRMED' | 'TOKEN_SAVE_FAILED'
 type PausedNotice = 'NETWORK_UNAVAILABLE' | 'AUTH_SERVICE_UNAVAILABLE' | 'RESTORE_RETRY_REQUIRED'
 
@@ -21,9 +20,9 @@ type CoordinatorContext = {
   entry: AuthSnapshot['entry']
   notice: AuthNotice | null
   recoveryPurpose: RecoveryPurpose | null
-  start: AuthFlight<AuthSnapshot> | null
+  start: Promise<AuthSnapshot> | null
   refresh: RefreshFlight | null
-  logout: AuthFlight<AuthCommandResult> | null
+  logout: Promise<AuthCommandResult> | null
 }
 
 export type CoordinatorEvent =
@@ -31,7 +30,6 @@ export type CoordinatorEvent =
   | { type: 'REFRESH_STARTED' }
   | { type: 'VERIFY'; operation: VerificationOperation }
   | { type: 'VERIFIED'; operation: VerificationOperation }
-  | { type: 'ABORT_VERIFICATION' }
   | { type: 'BIND_PENDING'; pending: PendingLogin }
   | { type: 'RELEASE_PENDING'; pending: PendingLogin }
   | { type: 'LOGIN_STARTED'; login: NonNullable<AuthSnapshot['login']> }
@@ -47,12 +45,12 @@ export type CoordinatorEvent =
   | { type: 'RESTORE_PAUSED'; notice: PausedNotice }
   | { type: 'SIGNING_OUT' }
   | { type: 'STORAGE_BLOCKED'; notice: StorageNotice; purpose: StorageRecoveryPurpose }
-  | { type: 'START'; flight: AuthFlight<AuthSnapshot> }
-  | { type: 'START_SETTLED'; flight: AuthFlight<AuthSnapshot> }
+  | { type: 'START'; flight: Promise<AuthSnapshot> }
+  | { type: 'START_SETTLED'; flight: Promise<AuthSnapshot> }
   | { type: 'REFRESH'; flight: RefreshFlight }
-  | { type: 'REFRESH_SETTLED'; flight: RefreshFlight }
-  | { type: 'LOGOUT'; flight: AuthFlight<AuthCommandResult> }
-  | { type: 'LOGOUT_SETTLED'; flight: AuthFlight<AuthCommandResult> }
+  | { type: 'REFRESH_SETTLED'; promise: Promise<AuthAuthorization> }
+  | { type: 'LOGOUT'; flight: Promise<AuthCommandResult> }
+  | { type: 'LOGOUT_SETTLED'; flight: Promise<AuthCommandResult> }
 
 // Public phase, generation ownership and operation reservations change synchronously.
 // Credential I/O is deliberately allowed to finish after invalidation: its writer must
@@ -135,7 +133,6 @@ export const authCoordinatorMachine = setup({
       guard: ({ context, event }) => context.verification === event.operation,
       actions: assign({ verification: null })
     },
-    ABORT_VERIFICATION: { actions: ({ context }) => context.verification?.controller.abort() },
     INVALIDATE: { actions: assign({ generation: ({ context }) => context.generation + 1 }) },
     BIND_PENDING: { actions: assign({ pending: ({ event }) => event.pending }) },
     RELEASE_PENDING: {
@@ -219,7 +216,7 @@ export const authCoordinatorMachine = setup({
             },
             REFRESH_SETTLED: {
               target: 'idle',
-              guard: ({ context, event }) => context.refresh === event.flight,
+              guard: ({ context, event }) => context.refresh?.promise === event.promise,
               actions: assign({ refresh: null })
             }
           }
