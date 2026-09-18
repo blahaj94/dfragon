@@ -4,6 +4,8 @@ import { ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } fr
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
+import { CameraIcon } from './CameraIcon'
+import { getCaptureControlState } from '../lib/capture-presentation'
 
 export type CaptureControlsProps = {
   light: boolean
@@ -40,17 +42,13 @@ export function CaptureControls({
     /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i.test(source.name)
   )
   const others = sources.filter((source) => !detected.includes(source))
-  const state = starting
-    ? '준비 중'
-    : active
-      ? '캡처 중'
-      : loading
-        ? '창 확인 중'
-        : failed
-          ? '조회 실패'
-          : detected.length === 0
-            ? '창 미감지'
-            : '대기'
+  const state = getCaptureControlState({
+    starting,
+    active,
+    loading,
+    failed,
+    hasDetectedSource: detected.length > 0
+  })
 
   return (
     <DialogRoot
@@ -64,21 +62,11 @@ export function CaptureControls({
     >
       <DialogTrigger asChild>
         <ActionButton size="small" variant="ghost" aria-label="화면 캡처" aria-haspopup="dialog">
-          <svg
-            aria-hidden="true"
+          <CameraIcon
             width="20"
             height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
             {...stylex.props(styles.camera, (active || starting) && styles.active)}
-          >
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
-            <circle cx="12" cy="13" r="3" />
-          </svg>
+          />
         </ActionButton>
       </DialogTrigger>
       <DialogContent

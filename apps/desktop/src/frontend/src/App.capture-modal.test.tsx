@@ -105,3 +105,23 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
   expect(document.body.textContent).toContain('창 미감지')
   expect(f.getDisplayMedia).not.toHaveBeenCalled()
 })
+
+it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상태를 덮어쓰지 않는다', async () => {
+  const f = createRendererFixture()
+  const selection = Promise.withResolvers<{ id: string; name: string }>()
+  f.capture.selectCaptureSource.mockReturnValueOnce(selection.promise)
+  await f.mount(<App />)
+  await click('화면 캡처')
+  await select('game')
+  expect(document.body.textContent).toContain('준비 중')
+  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
+    'Synthetic game'
+  )
+  await click('캡처 중지')
+  expect(document.body.textContent).toContain('캡처를 중지했습니다.')
+  expect(document.body.textContent).not.toContain('준비 중')
+  await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
+  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(document.body.textContent).toContain('캡처를 중지했습니다.')
+  expect(document.body.textContent).not.toContain('캡처 시작을 눌러 주세요.')
+})

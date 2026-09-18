@@ -1,3 +1,5 @@
+import { ChevronDownIcon } from './ChevronDownIcon'
+import { CheckIcon } from './CheckIcon'
 import { Select } from '@seed-design/react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './ServerSelect.style'
@@ -33,21 +35,7 @@ export function ServerSelect({
       <Select.Trigger aria-label={label} {...stylex.props(styles.trigger)}>
         <Select.Value {...stylex.props(styles.value)} />
         <Select.Placeholder {...stylex.props(styles.value)}>서버 선택</Select.Placeholder>
-        <Select.SuffixIcon
-          svg={
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          }
-          {...stylex.props(styles.chevron)}
-        />
+        <Select.SuffixIcon svg={<ChevronDownIcon />} {...stylex.props(styles.chevron)} />
       </Select.Trigger>
       <Select.Positioner {...stylex.props(styles.positioner)}>
         <Select.Content aria-label={label} {...stylex.props(styles.content)}>
@@ -62,21 +50,7 @@ export function ServerSelect({
                   {...stylex.props(styles.option, option.id === value && styles.selected)}
                 >
                   <Select.ItemLabel {...stylex.props(styles.itemLabel)} />
-                  <Select.ItemIndicator
-                    selected={
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="m5 12 4 4L19 6" />
-                      </svg>
-                    }
-                    {...stylex.props(styles.check)}
-                  />
+                  <Select.ItemIndicator selected={<CheckIcon />} {...stylex.props(styles.check)} />
                 </Select.Item>
               ))}
             </Select.Group>

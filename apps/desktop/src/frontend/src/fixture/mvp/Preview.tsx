@@ -5,6 +5,8 @@ import { CaptureControls } from '../../components/CaptureControls'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
 import { scenarios } from './scenarios'
+import { getCapturePreviewSources, getCapturePreviewStatus } from './capture-preview'
+import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
 import { previewCharacter } from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
@@ -19,19 +21,7 @@ export function Preview(): React.JSX.Element {
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
   const detail = query.get('detail') === 'sample'
-  const character =
-    scenario === 'missing'
-      ? {
-          ...previewCharacter,
-          image: 'data:image/png;base64,AA==',
-          equipment: previewCharacter.equipment.map((item) => ({
-            ...item,
-            image: 'data:image/png;base64,AA==',
-            enhancement: undefined,
-            enchantment: undefined
-          }))
-        }
-      : previewCharacter
+  const character = getCharacterPreview(scenario, previewCharacter)
   const openDetail = (): void => {
     const url = new URL(window.location.href)
     url.search = new URLSearchParams({
@@ -54,25 +44,14 @@ export function Preview(): React.JSX.Element {
             capture={
               <CaptureControls
                 light={light}
-                sources={
-                  captureState === 'missing'
-                    ? []
-                    : [
-                        { id: 'preview-game', name: '던전앤파이터' },
-                        { id: 'preview-window', name: '테스트 창' }
-                      ]
-                }
+                sources={getCapturePreviewSources(captureState)}
                 selectedSourceId={source}
                 loading={false}
                 failed={false}
                 starting={captureState === 'starting'}
                 active={captureState === 'active'}
                 ready
-                status={
-                  captureState === 'failure'
-                    ? '선택한 창에서 영상을 받지 못했습니다. 창을 다시 선택해 주세요.'
-                    : ''
-                }
+                status={getCapturePreviewStatus(captureState)}
                 onSelect={(id) => {
                   setSource(id)
                   setCaptureState(id ? 'active' : 'idle')

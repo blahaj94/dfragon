@@ -1,3 +1,4 @@
+import { CameraIcon } from '../../components/CameraIcon'
 import { ActionButton } from '@ldb/ui'
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
@@ -35,20 +36,7 @@ export function PartyPage({
       <header {...stylex.props(styles.header)}>
         {capture ?? (
           <ActionButton size="small" variant="ghost" disabled aria-label="캡처 연결 예정">
-            <svg
-              aria-hidden="true"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z" />
-              <circle cx="12" cy="13" r="3" />
-            </svg>
+            <CameraIcon width="20" height="20" />
           </ActionButton>
         )}
         <div {...stylex.props(styles.actions)}>

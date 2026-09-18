@@ -1,3 +1,8 @@
+import { getCaptureSourceNotice } from '../lib/capture-presentation'
+import { RefreshIcon } from './RefreshIcon'
+import { CheckIcon } from './CheckIcon'
+import { ChevronDownIcon } from './ChevronDownIcon'
+import { MonitorIcon } from './MonitorIcon'
 import { useState, type RefObject } from 'react'
 import { Menu } from '@seed-design/react'
 import * as stylex from '@stylexjs/stylex'
@@ -20,22 +25,6 @@ type CaptureSourceSelectProps = {
   onRefresh: () => void
 }
 
-const monitorIcon = (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.8"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...stylex.props(styles.icon)}
-  >
-    <rect x="3" y="4" width="18" height="13" rx="2" />
-    <path d="M8 21h8m-4-4v4" />
-  </svg>
-)
-
 export function CaptureSourceSelect({
   portalContainer,
   light,
@@ -51,6 +40,8 @@ export function CaptureSourceSelect({
   const [open, setOpen] = useState(false)
   const selected = [...detected, ...others].find((source) => source.id === value)
   const label = value ? (selected?.name ?? '선택한 창 · 목록에서 사라짐') : '캡처할 프로세스 선택'
+
+  const notice = getCaptureSourceNotice({ failed, hasOtherSources: others.length > 0 })
 
   // 창 선택과 새로고침 명령이 함께 있으므로 radio menu 항목으로 선택 상태를 알린다.
   return (
@@ -72,22 +63,11 @@ export function CaptureSourceSelect({
           light && selectLightTheme
         )}
       >
-        {monitorIcon}
+        <MonitorIcon {...stylex.props(styles.icon)} />
         <span {...stylex.props(styles.value)} title={label}>
           {loading ? '창 목록 확인 중…' : label}
         </span>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          {...stylex.props(styles.chevron, open && styles.rotated)}
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <ChevronDownIcon {...stylex.props(styles.chevron, open && styles.rotated)} />
       </Menu.Trigger>
       {open && (
         <Menu.Positioner
@@ -98,14 +78,8 @@ export function CaptureSourceSelect({
             <Menu.ScrollArea {...stylex.props(styles.scroll)}>
               {(failed || detected.length === 0) && (
                 <div role="status" {...stylex.props(styles.notice)}>
-                  <p {...stylex.props(styles.noticeTitle)}>
-                    {failed ? '창 목록을 불러오지 못했어요' : '던파 창을 찾지 못했어요'}
-                  </p>
-                  {failed
-                    ? '잠시 후 창 목록을 새로고침해 주세요.'
-                    : others.length
-                      ? '게임 실행 후 새로고침하거나 다른 창을 선택하세요.'
-                      : '게임을 실행한 뒤 창 목록을 새로고침해 주세요.'}
+                  <p {...stylex.props(styles.noticeTitle)}>{notice.title}</p>
+                  {notice.description}
                 </div>
               )}
               {[
@@ -135,7 +109,7 @@ export function CaptureSourceSelect({
                               source.id === value && styles.selectedTile
                             )}
                           >
-                            {monitorIcon}
+                            <MonitorIcon {...stylex.props(styles.icon)} />
                           </span>
                           <Menu.ItemBody {...stylex.props(styles.itemBody)}>
                             <Menu.ItemLabel title={source.name} {...stylex.props(styles.itemLabel)}>
@@ -145,20 +119,7 @@ export function CaptureSourceSelect({
                               {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
                             </Menu.ItemDescription>
                           </Menu.ItemBody>
-                          {source.id === value && (
-                            <svg
-                              aria-hidden="true"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              {...stylex.props(styles.check)}
-                            >
-                              <path d="m5 12 4 4L19 6" />
-                            </svg>
-                          )}
+                          {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}
                         </Menu.Item>
                       ))}
                     </Menu.Group>
@@ -170,20 +131,7 @@ export function CaptureSourceSelect({
                 onClick={onRefresh}
                 {...stylex.props(styles.option, styles.refresh)}
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  {...stylex.props(styles.icon)}
-                >
-                  <path d="M20 7v5h-5M4 17v-5h5" />
-                  <path d="M6 7a7 7 0 0 1 11.6-2L20 8M4 16l2.4 3A7 7 0 0 0 18 17" />
-                </svg>
-                창 목록 새로고침
+                <RefreshIcon {...stylex.props(styles.icon)} />창 목록 새로고침
               </Menu.Item>
             </Menu.ScrollArea>
           </Menu.Content>

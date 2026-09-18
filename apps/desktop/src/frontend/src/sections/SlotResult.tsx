@@ -1,3 +1,4 @@
+import { getSearchResultStatus } from '../lib/search-presentation'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
@@ -20,7 +21,6 @@ export function SlotResult({
 }): React.JSX.Element {
   const isPending = slot.state === 'pending'
   const isSuccess = slot.state === 'success'
-  const isEmpty = slot.state === 'empty'
   const error = slot.error
   const isFailure = slot.state === 'failure'
   const hasError = error != null
@@ -49,7 +49,7 @@ export function SlotResult({
   const isBusy = isPending || retryPending
   const isRetryDisabled = isWaiting || retryPending
   const hasNickname = slot.nickname != null
-  const status = isPending ? '검색 중' : isEmpty ? '검색 결과가 없습니다.' : '인식 대기'
+  const status = getSearchResultStatus(slot)
 
   return (
     <section aria-label={title ?? `슬롯 ${slot.slot + 1} 검색`} aria-busy={isBusy}>
@@ -59,13 +59,7 @@ export function SlotResult({
           {hasNickname && <SupportingText>{slot.nickname}</SupportingText>}
           <div {...stylex.props(styles.candidates)}>
             <div role="status">
-              {isSuccess ? (
-                <SupportingText>검색 결과 {slot.rows.length}명</SupportingText>
-              ) : shouldShowError ? (
-                <SupportingText>{SEARCH_ERRORS[error.code].message}</SupportingText>
-              ) : (
-                <SupportingText>{status}</SupportingText>
-              )}
+              <SupportingText>{status}</SupportingText>
             </div>
             {isSuccess && <CharacterCandidates rows={slot.rows} />}
           </div>

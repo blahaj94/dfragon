@@ -9,6 +9,7 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
   sourcesLoading: boolean
   sourcesFailed: boolean
   isSelectedSourceRegistered: () => boolean
+  cancelPendingSelection: () => void
   refreshSources: () => void
   selectSource: (sourceId: string) => Promise<boolean>
 } {
@@ -52,6 +53,10 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
       void window.api.selectCaptureSource('').catch(() => undefined)
     }
   }, [])
+
+  function cancelPendingSelection(): void {
+    selectionGenerationRef.current += 1
+  }
 
   function refreshSources(): void {
     setSourcesLoading(true)
@@ -102,6 +107,7 @@ export function useCaptureSourceSelection(setStatus: (status: string) => void): 
     sourcesLoading,
     sourcesFailed,
     isSelectedSourceRegistered,
+    cancelPendingSelection,
     refreshSources,
     selectSource
   }

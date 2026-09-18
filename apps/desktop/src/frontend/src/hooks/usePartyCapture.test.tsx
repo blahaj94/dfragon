@@ -842,3 +842,34 @@ it.each(['stop', 'unmount', 'failure'] as const)(
     }
   }
 )
+
+it('이전 창 등록 완료가 새 창의 준비 상태를 해제하지 않는다', async () => {
+  const oldSelection = Promise.withResolvers<null>()
+  const newSelection = Promise.withResolvers<null>()
+  api.selectCaptureSource
+    .mockReturnValueOnce(oldSelection.promise)
+    .mockReturnValueOnce(newSelection.promise)
+  const hook = await renderPartyCaptureHook()
+  let oldStart!: Promise<void>
+  let newStart!: Promise<void>
+  await act(async () => {
+    oldStart = hook.getCurrent().selectAndStartCapture('old')
+  })
+  await act(async () => {
+    newStart = hook.getCurrent().selectAndStartCapture('new')
+  })
+  await act(async () => {
+    oldSelection.resolve(null)
+    await oldStart
+  })
+  expect(hook.getCurrent().starting).toBe(true)
+  expect(hook.getCurrent().selectedSourceId).toBe('new')
+  await act(async () => {
+    newSelection.reject(new Error('Selection failed'))
+    await newStart
+  })
+  expect(hook.getCurrent().starting).toBe(false)
+  expect(hook.getCurrent().status).toBe('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
+  expect(getDisplayMedia).not.toHaveBeenCalled()
+  await hook.unmount()
+})
