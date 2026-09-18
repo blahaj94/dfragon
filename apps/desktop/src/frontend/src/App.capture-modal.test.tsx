@@ -7,6 +7,7 @@ import {
   media
 } from './testing/fixtures/search-renderer-test-fixture'
 import App from './App'
+import { ColorThemeProvider } from './components/ColorThemeProvider'
 
 beforeEach(() => {
   vi.stubGlobal(
@@ -51,7 +52,11 @@ async function select(id: string): Promise<void> {
 it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
   const f = createRendererFixture()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await f.mount(<App />)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
   const cards = [...f.container.querySelectorAll('article')]
   await click('화면 캡처')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
@@ -81,7 +86,11 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
 
 it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대상으로 시작한다', async () => {
   const f = createRendererFixture()
-  await f.mount(<App />)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
   await click('화면 캡처')
   await select('game')
   await select('next')
@@ -93,7 +102,11 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
 it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockRejectedValue(new Error('List failed'))
-  await f.mount(<App />)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
   await click('화면 캡처')
   expect(document.body.textContent).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
@@ -110,7 +123,11 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
   const f = createRendererFixture()
   const selection = Promise.withResolvers<{ id: string; name: string }>()
   f.capture.selectCaptureSource.mockReturnValueOnce(selection.promise)
-  await f.mount(<App />)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
   await click('화면 캡처')
   await select('game')
   expect(document.body.textContent).toContain('준비 중')

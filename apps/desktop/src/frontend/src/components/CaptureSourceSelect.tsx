@@ -1,3 +1,4 @@
+import { useColorTheme } from '../hooks/useColorTheme'
 import { getCaptureSourceNotice } from '../lib/capture-presentation'
 import { RefreshIcon } from './RefreshIcon'
 import { CheckIcon } from './CheckIcon'
@@ -14,7 +15,6 @@ type Source = { id: string; name: string }
 
 type CaptureSourceSelectProps = {
   portalContainer: RefObject<HTMLElement | null>
-  light: boolean
   detected: Source[]
   others: Source[]
   value: string
@@ -27,7 +27,6 @@ type CaptureSourceSelectProps = {
 
 export function CaptureSourceSelect({
   portalContainer,
-  light,
   detected,
   others,
   value,
@@ -37,6 +36,7 @@ export function CaptureSourceSelect({
   onSelect,
   onRefresh
 }: CaptureSourceSelectProps): React.JSX.Element {
+  const { light } = useColorTheme()
   const [open, setOpen] = useState(false)
   const selected = [...detected, ...others].find((source) => source.id === value)
   const label = value ? (selected?.name ?? '선택한 창 · 목록에서 사라짐') : '캡처할 프로세스 선택'

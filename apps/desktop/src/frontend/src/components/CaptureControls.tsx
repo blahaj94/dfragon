@@ -1,3 +1,4 @@
+import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } from '@ldb/ui'
@@ -8,7 +9,6 @@ import { CameraIcon } from './CameraIcon'
 import { getCaptureControlState } from '../lib/capture-presentation'
 
 export type CaptureControlsProps = {
-  light: boolean
   sources: { id: string; name: string }[]
   selectedSourceId: string
   loading: boolean
@@ -23,7 +23,6 @@ export type CaptureControlsProps = {
 }
 
 export function CaptureControls({
-  light,
   sources,
   selectedSourceId,
   loading,
@@ -36,6 +35,7 @@ export function CaptureControls({
   onRefresh,
   onStop
 }: CaptureControlsProps): React.JSX.Element {
+  const { light } = useColorTheme()
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const detected = sources.filter((source) =>
@@ -84,7 +84,6 @@ export function CaptureControls({
         <DialogBody>
           <CaptureSourceSelect
             portalContainer={dialogRef}
-            light={light}
             detected={detected}
             others={others}
             value={active || starting ? selectedSourceId : ''}

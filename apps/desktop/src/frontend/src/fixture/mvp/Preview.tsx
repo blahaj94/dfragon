@@ -13,10 +13,7 @@ import { useColorTheme } from '../../hooks/useColorTheme'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
-  const theme = query.get('theme')
-  const { light, toggleTheme } = useColorTheme(
-    theme === 'light' || theme === 'system' ? theme : 'dark'
-  )
+  const { light } = useColorTheme()
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
@@ -43,7 +40,6 @@ export function Preview(): React.JSX.Element {
           <PartyPage
             capture={
               <CaptureControls
-                light={light}
                 sources={getCapturePreviewSources(captureState)}
                 selectedSourceId={source}
                 loading={false}
@@ -68,8 +64,6 @@ export function Preview(): React.JSX.Element {
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
-            light={light}
-            onToggleTheme={toggleTheme}
             onDetail={openDetail}
           />
           <footer {...stylex.props(styles.footer)}>

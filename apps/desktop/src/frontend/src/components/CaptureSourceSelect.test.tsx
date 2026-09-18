@@ -2,6 +2,7 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { ColorThemeProvider } from './ColorThemeProvider'
 import { CaptureControls, type CaptureControlsProps } from './CaptureControls'
 
 let root: ReturnType<typeof createRoot>
@@ -17,7 +18,6 @@ beforeEach(() => {
   document.body.append(container)
   root = createRoot(container)
   props = {
-    light: false,
     sources: [
       { id: 'other', name: '테스트 창' },
       { id: 'game', name: '던전앤파이터' }
@@ -42,7 +42,13 @@ afterEach(async () => {
 })
 
 async function render(): Promise<void> {
-  await act(async () => root.render(<CaptureControls {...props} />))
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <CaptureControls {...props} />
+      </ColorThemeProvider>
+    )
+  )
 }
 
 async function click(element: HTMLElement): Promise<void> {

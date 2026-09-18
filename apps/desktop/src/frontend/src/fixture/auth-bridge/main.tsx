@@ -5,6 +5,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { AuthApi } from '../../../../preload/common/types/auth'
 import App from '../../App'
+import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 
 declare global {
   interface Window {
@@ -18,6 +19,8 @@ if (!hasRoot) {
 }
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
   </StrictMode>
 )
