@@ -43,7 +43,7 @@ export const previewCharacter: CardCharacter = {
   name: '미리보기검사',
   adventure: '샘플모험단',
   job: '眞 웨펀마스터',
-  server: '시로코',
+  serverId: 'siroco',
   fame: 125850,
   equipmentScore: 414806,
   image: characterImage,

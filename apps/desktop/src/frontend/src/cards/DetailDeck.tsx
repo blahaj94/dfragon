@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from './theme.stylex'
+import { serverNames } from './servers'
 import { detailFaces, type CardCharacter } from './types'
 import { EquipmentGrid, InvestmentTable } from './CardContent'
 
@@ -105,7 +106,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
         <div>
           <h1 {...stylex.props(styles.name)}>
             {character.name}
-            <span {...stylex.props(styles.server)}>{character.server}</span>
+            <span {...stylex.props(styles.server)}>{serverNames[character.serverId]}</span>
           </h1>
           <p {...stylex.props(styles.subtitle)}>
             {character.adventure} · Lv.115 · {character.job}

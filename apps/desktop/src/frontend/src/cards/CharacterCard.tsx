@@ -2,6 +2,7 @@ import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage, EquipmentGrid, InvestmentTable } from './CardContent'
 import { colors } from './theme.stylex'
+import { serverNames } from './servers'
 import { cardFaces, type CardCharacter, type SlotState } from './types'
 
 const styles = stylex.create({
@@ -147,8 +148,8 @@ export function CharacterCard({
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
   const [name, setName] = useState(state === 'idle' ? '' : character.name)
-  const [server, setServer] = useState(character.server)
-  const editing = name !== character.name || server !== character.server
+  const [serverId, setServerId] = useState<string>(character.serverId)
+  const editing = name !== character.name || serverId !== character.serverId
   const canTurn = state === 'success' && !editing
   const showCharacter = face === 0 || !canTurn
   const status =
@@ -207,11 +208,15 @@ export function CharacterCard({
           {state === 'success' && (
             <select
               aria-label={`${slot}번 서버`}
-              value={server}
-              onChange={(event) => setServer(event.target.value)}
+              value={serverId}
+              onChange={(event) => setServerId(event.target.value)}
               {...stylex.props(styles.select)}
             >
-              <option>{character.server}</option>
+              {Object.entries(serverNames).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
             </select>
           )}
           <input
@@ -224,7 +229,7 @@ export function CharacterCard({
         </>
       )}
       {editing && state === 'success' && (
-        <span {...stylex.props(styles.editing)}>이름 수정 중 · 조회 연결 예정</span>
+        <span {...stylex.props(styles.editing)}>이름·서버 수정 중 · 조회 연결 예정</span>
       )}
       {state !== 'idle' && (
         <button
