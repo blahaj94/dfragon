@@ -4,6 +4,7 @@ import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './PartyPage.style'
+import { useColorTheme } from '../../hooks/useColorTheme'
 
 export function PartyPage({
   character,
@@ -11,8 +12,6 @@ export function PartyPage({
   resetKey = 'party',
   compareFaces = false,
   inputEnabled = false,
-  light,
-  onToggleTheme,
   account,
   onDetail
 }: {
@@ -21,11 +20,11 @@ export function PartyPage({
   resetKey?: string
   compareFaces?: boolean
   inputEnabled?: boolean
-  light: boolean
-  onToggleTheme: () => void
   account?: ReactNode
   onDetail?: () => void
 }): React.JSX.Element {
+  const { light, toggleTheme } = useColorTheme()
+
   return (
     <>
       <header {...stylex.props(styles.header)}>
@@ -50,7 +49,7 @@ export function PartyPage({
             size="small"
             variant="ghost"
             aria-label={light ? '다크 테마' : '라이트 테마'}
-            onClick={() => onToggleTheme()}
+            onClick={toggleTheme}
           >
             <span {...stylex.props(styles.themeIcon)}>{light ? '☾' : '☀'}</span>
           </ActionButton>

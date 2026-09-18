@@ -1,18 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useContext } from 'react'
+import { ColorThemeContext } from './color-theme-context'
 
-export function useColorTheme(initialTheme: 'system' | 'light' | 'dark' = 'system'): {
+export function useColorTheme(): {
   light: boolean
   toggleTheme: () => void
 } {
-  const [light, setLight] = useState(
-    () =>
-      initialTheme === 'light' ||
-      (initialTheme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)
-  )
-
-  useEffect(() => {
-    document.documentElement.dataset.seedColorMode = light ? 'light-only' : 'dark-only'
-  }, [light])
-
-  return { light, toggleTheme: () => setLight((current) => !current) }
+  const theme = useContext(ColorThemeContext)
+  if (theme == null) {
+    throw new Error('useColorTheme must be used within ColorThemeProvider')
+  }
+  return theme
 }
