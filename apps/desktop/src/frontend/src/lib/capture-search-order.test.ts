@@ -11,6 +11,7 @@ import {
   searchSnapshot
 } from '../../../preload/api/search-test-fixture'
 import { inspectCaptureStart } from './capture-search-machine'
+import type { SearchConnection } from './search-connection'
 
 const connectionState = vi.hoisted(() => ({
   responses: [] as Array<SearchCommandResult | null | Promise<SearchCommandResult | null>>,
@@ -19,28 +20,19 @@ const connectionState = vi.hoisted(() => ({
 }))
 
 vi.mock('./search-connection', () => ({
-  SearchConnection: class {
-    readonly ready = true
-
-    constructor(options: { onSnapshot: (snapshot: SearchSnapshot | null) => void }) {
-      connectionState.onSnapshot = options.onSnapshot
-    }
-
-    connect(): void {
-      return undefined
-    }
-
-    command(): Promise<SearchCommandResult | null> {
-      connectionState.onCommand()
-      return Promise.resolve(connectionState.responses.shift() ?? null)
-    }
-
-    dispose(): void {
-      return undefined
-    }
-
-    invoke(send: () => Promise<SearchCommandResult>): Promise<SearchCommandResult> {
-      return send()
+  createSearchConnection: (options: {
+    onSnapshot: (snapshot: SearchSnapshot | null) => void
+  }): SearchConnection => {
+    connectionState.onSnapshot = options.onSnapshot
+    return {
+      isReady: () => true,
+      connect: () => undefined,
+      command: () => {
+        connectionState.onCommand()
+        return Promise.resolve(connectionState.responses.shift() ?? null)
+      },
+      dispose: () => undefined,
+      invoke: (send) => send()
     }
   }
 }))

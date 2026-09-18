@@ -10,7 +10,7 @@ import {
   type SearchSlot,
   type SearchSnapshot
 } from '../../../preload/common/types/search'
-import { SearchConnection } from './search-connection'
+import { createSearchConnection } from './search-connection'
 import { captureSearchMachine } from './capture-search-machine'
 
 type SearchOptions = {
@@ -37,7 +37,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   const pending = new Map<number, string>()
   let failed = false
 
-  const connection = new SearchConnection({
+  const connection = createSearchConnection({
     api: options.api,
     onSnapshot: (snapshot) => accept(snapshot),
     onFailure: () => {
@@ -71,7 +71,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
 
   // 연결이 준비된 경우 시작 actor에 요청하고 해당 요청의 결과를 반환한다.
   async function begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
-    if (!connection.ready || lifetime.getSnapshot().status !== 'active') {
+    if (!connection.isReady() || lifetime.getSnapshot().status !== 'active') {
       return null
     }
     const { promise, resolve, reject } = Promise.withResolvers<string | null>()
@@ -187,7 +187,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   // 현재 연결·actor·관측 상태로 화면용 값을 만들어 전달한다.
   function publish(): void {
     options.onChange({
-      ready: connection.ready,
+      ready: connection.isReady(),
       captureActive: lifetime.getSnapshot().matches('active'),
       slots: getVisibleSearchSlots({
         captureId: lifetime.getSnapshot().context.captureId,
