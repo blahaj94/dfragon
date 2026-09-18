@@ -209,7 +209,7 @@ it('renders nickname as text; welcome dismissal lasts only for the mounted signe
 
   expect(container.textContent).toContain(nickname)
   expect(container.querySelector('img')).toBeNull()
-  expect(container.textContent).toContain('로그인 여부와 관계없이')
+  expect(container.textContent).toContain('로그인을 완료했습니다.')
   await click('시작하기')
   expect(container.textContent).toContain('내 계정')
   expect(onIntent).not.toHaveBeenCalled()

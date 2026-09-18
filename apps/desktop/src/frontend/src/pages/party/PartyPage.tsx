@@ -1,4 +1,5 @@
 import { ActionButton } from '@ldb/ui'
+import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
 import type { CardCharacter, SlotState } from '../../types/cards'
@@ -12,6 +13,7 @@ export function PartyPage({
   inputEnabled = false,
   light,
   onToggleTheme,
+  account,
   onDetail
 }: {
   character?: CardCharacter
@@ -21,6 +23,7 @@ export function PartyPage({
   inputEnabled?: boolean
   light: boolean
   onToggleTheme: () => void
+  account?: ReactNode
   onDetail?: () => void
 }): React.JSX.Element {
   return (
@@ -51,9 +54,11 @@ export function PartyPage({
           >
             <span {...stylex.props(styles.themeIcon)}>{light ? '☾' : '☀'}</span>
           </ActionButton>
-          <ActionButton size="small" variant="ghost" disabled>
-            로그인
-          </ActionButton>
+          {account ?? (
+            <ActionButton size="small" variant="ghost" disabled>
+              로그인
+            </ActionButton>
+          )}
         </div>
       </header>
       <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
