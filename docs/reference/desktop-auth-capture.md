@@ -19,9 +19,9 @@ last-reviewed: 2026-09-15
 | `apps/desktop/src/backend/main.ts`                                                                                          | 검증한 renderer URL, sandbox·contextIsolation, navigation/popup 차단을 구성한다. Capture와 공개 검색을 인증 설정과 별도로 등록하고, auth runtime이 있을 때만 auth IPC를 추가한다.                               |
 | `apps/desktop/src/backend/capture/permission-policy.ts`                                                                     | Media check와 기본 request를 거절한다. Windows에서는 제품 정책에 따라 빈 media request를 현재 선택·capture 수명당 한 번 허용한다. 인증 여부는 조건이 아니다.                                                    |
 | `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                                           | auth/capture와 검색 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
-| `apps/desktop/src/frontend/src/App.tsx`, `auth/AuthBridge.tsx`, `auth/AuthPresentation.tsx`                                 | 계정 안내와 별개로 직접 검색·PartyCapture를 표시한다. Welcome·인증 로딩·실패·계정 전환 때도 이 content를 유지한다.                                                                                              |
-| `apps/desktop/src/frontend/src/capture/PartyCapture.tsx`                                                                    | 기존 source/interval·Start/Stop·인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
-| `apps/desktop/src/frontend/src/capture/usePartyCaptureSession.ts`, `usePartyRecognition.ts`, `useCaptureSourceSelection.ts` | 현재 capture의 AbortSignal을 OCR에 전달하고 종료 뒤 결과·통지를 버린다. Unmount에서 stream·video·worker·loop와 main 선택을 정리한다.                                                                            |
+| `apps/desktop/src/frontend/src/App.tsx`, `pages/login/LoginPage.tsx`, `components/auth/AuthPresentation.tsx`                                 | 계정 안내와 별개로 직접 검색·PartyCapture를 표시한다. Welcome·인증 로딩·실패·계정 전환 때도 이 content를 유지한다.                                                                                              |
+| `apps/desktop/src/frontend/src/components/capture/PartyCapture.tsx`                                                                    | 기존 source/interval·Start/Stop·인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
+| `apps/desktop/src/frontend/src/components/capture/usePartyCaptureSession.ts`, `usePartyRecognition.ts`, `useCaptureSourceSelection.ts` | 현재 capture의 AbortSignal을 OCR에 전달하고 종료 뒤 결과·통지를 버린다. Unmount에서 stream·video·worker·loop와 main 선택을 정리한다.                                                                            |
 
 인증 generation은 capture 권한 근거가 아니다. Renderer의 revision이나 인증 snapshot도 권한 근거로 사용하지 않는다. 기존 [auth bridge](desktop-auth-bridge.md)의 구독 순서·snapshot allowlist·credential 비노출을 유지한다. Auth API 오류는 기존 고정 UI로 처리하며 명령을 자동 재전송하지 않는다.
 
@@ -102,7 +102,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 `main.test.ts`는 인증 설정·provider가 없어도 공개 검색 설정을 연결하고 Windows에서는 capture 수명 검사 결과에 따라 media 요청을 처리하는지 확인한다. `App.test.tsx`는 인증 로딩·실패·로그인·로그아웃·auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron/media doubles를 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run scripts/auth-capture-fixture src/backend/capture src/backend/main.test.ts src/frontend/src/auth src/frontend/src/capture src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx
+pnpm --filter @ldb/desktop exec vitest run scripts/auth-capture-fixture src/backend/capture src/backend/main.test.ts src/frontend/src/components/auth src/frontend/src/components/capture src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx
 pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```

@@ -89,7 +89,13 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
 - Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending·generation·credential writer와 restore·refresh·logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
 - 캐릭터 검색: main 검색 수명·HTTP와 preload/renderer·격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
-- Renderer source root: `src/frontend` → `out/frontend`
+- Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 통합 테스트는 root에 남긴다.
+  - `constants/`: 서버 목록과 공유 StyleX 변수·테마.
+  - `components/`: `cards`·`auth`·`capture`·`search`의 기능 컴포넌트와 전용 hook·타입·스타일·테스트.
+  - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증 상태와 연결), `home/HomePage`(기존 직접 검색·캡처 홈).
+  - `fixture/`: MVP 합성 데이터·자산·화면 제어, 인증 UI·bridge·capture 실행 화면, 검색 테스트 도우미. 제품 페이지가 fixture를 import하지 않는다.
+  - `utils/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리와 관련 테스트.
+  - 스타일은 해당 컴포넌트·페이지 옆에 둔다. 화면별 기능 모듈을 모두 `utils`로 옮기거나 각 폴더에 재수출용 index를 만들지 않는다.
 - MVP 카드 미리보기: 기본 `pnpm --filter @ldb/desktop dev`로 합성 메인·상세 카드와 HMR을 확인한다. 기존 제품 홈은 `dev:app`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
 - Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:

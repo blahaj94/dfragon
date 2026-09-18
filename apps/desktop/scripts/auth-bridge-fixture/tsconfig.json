@@ -6,6 +6,6 @@
   "include": [
     "./*.ts",
     "../auth-bridge-fixture.config.ts",
-    "../../src/frontend/auth-bridge-fixture/**/*.tsx"
+    "../../src/frontend/src/fixture/auth-bridge/**/*.tsx"
   ]
 }

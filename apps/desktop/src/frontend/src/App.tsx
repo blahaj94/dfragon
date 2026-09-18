@@ -1,22 +1,8 @@
-import { ExampleSection } from '@ldb/ui'
-import { ManualSearch } from './search/ManualSearch'
-import { AuthBridge } from './auth/AuthBridge'
-import PartyCapture from './capture/PartyCapture'
+import { LoginPage } from './pages/login/LoginPage'
+import { HomePage } from './pages/home/HomePage'
 
 function App(): React.JSX.Element {
-  return (
-    <AuthBridge
-      api={window.auth}
-      home={
-        <>
-          <ManualSearch api={window.manualSearch} />
-          <ExampleSection title="화면 캡처">
-            <PartyCapture />
-          </ExampleSection>
-        </>
-      }
-    />
-  )
+  return <LoginPage api={window.auth} home={<HomePage />} />
 }
 
 export default App

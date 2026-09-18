@@ -46,9 +46,9 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 | 저장소 위치 | 이어받을 책임 |
 | --- | --- |
-| `apps/desktop/src/frontend/src/search/SearchResults.tsx`, `CharacterCandidates.tsx` | 기존 슬롯·후보 표시를 카드 화면으로 연결할 출발점 |
-| `apps/desktop/src/frontend/src/search/useCharacterSearch.ts` | 이름 수정·제출·OCR 복귀·슬롯별 검색 상태 |
-| `apps/desktop/src/frontend/src/search/capture-search.ts`, `connection.ts` | capture와 요청 수명, 순서·취소·늦은 응답 처리 |
+| `apps/desktop/src/frontend/src/components/search/SearchResults.tsx`, `CharacterCandidates.tsx` | 기존 슬롯·후보 표시를 카드 화면으로 연결할 출발점 |
+| `apps/desktop/src/frontend/src/components/search/useCharacterSearch.ts` | 이름 수정·제출·OCR 복귀·슬롯별 검색 상태 |
+| `apps/desktop/src/frontend/src/components/search/capture-search.ts`, `connection.ts` | capture와 요청 수명, 순서·취소·늦은 응답 처리 |
 | `apps/desktop/src/backend/search/`, `src/preload/common/types/search.ts` | main 검색 처리와 공유 IPC 계약 |
 | `apps/desktop/src/backend/main.ts`, `src/preload/index.ts` | 새 상세 기능의 등록 지점. 기능 본문은 별도 모듈로 구성 |
 
@@ -58,7 +58,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Renderer 미리보기
 
-`src/frontend/src/cards/`의 메인 카드와 상세 A안을 실제 renderer 빌드에서 실행한다. `src/frontend/src/mvp-preview/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 이 미리보기를 열고 소스 수정은 HMR로 반영한다. 기존 검색·인증·캡처 화면은 `pnpm --filter @ldb/desktop dev:app`으로 실행한다.
+`src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `components/cards/`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`는 이 미리보기를 열고 소스 수정은 HMR로 반영한다. 기존 검색·인증·캡처 화면은 `pnpm --filter @ldb/desktop dev:app`으로 실행한다.
 
 ```bash
 pnpm --filter @ldb/desktop dev

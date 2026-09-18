@@ -20,14 +20,14 @@ export default defineConfig({
     }
   },
   renderer: {
-    root: resolve('src/frontend/auth-bridge-fixture'),
+    root: resolve('src/frontend/src/fixture/auth-bridge'),
     plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()],
     resolve: {
       alias: [{ find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
     },
     build: {
       outDir: resolve('out/auth-bridge-fixture/renderer'),
-      rollupOptions: { input: resolve('src/frontend/auth-bridge-fixture/index.html') }
+      rollupOptions: { input: resolve('src/frontend/src/fixture/auth-bridge/index.html') }
     }
   }
 })
