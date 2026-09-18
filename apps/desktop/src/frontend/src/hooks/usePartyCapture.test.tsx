@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act } from 'react'
+import { act, StrictMode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
@@ -51,7 +51,7 @@ function HookHarness({ onRender }: { onRender: (value: HookValue) => void }): nu
   return null
 }
 
-async function renderPartyCaptureHook(): Promise<{
+async function renderPartyCaptureHook(strict = false): Promise<{
   getCurrent: () => HookValue
   unmount: () => Promise<void>
 }> {
@@ -60,7 +60,8 @@ async function renderPartyCaptureHook(): Promise<{
   let current: HookValue | undefined
 
   await act(async () => {
-    root.render(<HookHarness onRender={(value) => (current = value)} />)
+    const harness = <HookHarness onRender={(value) => (current = value)} />
+    root.render(strict ? <StrictMode>{harness}</StrictMode> : harness)
   })
 
   return {
@@ -871,5 +872,82 @@ it('이전 창 등록 완료가 새 창의 준비 상태를 해제하지 않는�
   expect(hook.getCurrent().starting).toBe(false)
   expect(hook.getCurrent().status).toBe('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
   expect(getDisplayMedia).not.toHaveBeenCalled()
+  await hook.unmount()
+})
+
+it('StrictMode 재마운트 뒤 선택·시작과 종료 정리를 정상 수행한다', async () => {
+  const resources = captureResources()
+  getDisplayMedia.mockResolvedValue(resources.stream)
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
+  const hook = await renderPartyCaptureHook(true)
+  api.selectCaptureSource.mockClear()
+
+  await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+  expect(hook.getCurrent().phase).toBe('active')
+  expect(api.selectCaptureSource).toHaveBeenCalledExactlyOnceWith('game')
+  expect(getDisplayMedia).toHaveBeenCalledOnce()
+  expect(resources.track.stop).not.toHaveBeenCalled()
+
+  await hook.unmount()
+  expect(resources.track.stop).toHaveBeenCalledOnce()
+  expect(resources.worker.terminate).toHaveBeenCalledOnce()
+  expect(api.selectCaptureSource).toHaveBeenLastCalledWith('')
+})
+
+it('캡처 중 목록 새로고침이 실패해도 실행 중인 자원과 단계를 유지한다', async () => {
+  const resources = captureResources()
+  getDisplayMedia.mockResolvedValue(resources.stream)
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+  const list = Promise.withResolvers<{ id: string; name: string }[]>()
+  api.listCaptureSources.mockReturnValueOnce(list.promise)
+
+  await act(async () => hook.getCurrent().refreshSources())
+  expect(hook.getCurrent().sourcesLoading).toBe(true)
+  expect(hook.getCurrent().phase).toBe('active')
+  await act(async () => list.reject(new Error('synthetic list failure')))
+  expect(hook.getCurrent().sourcesFailed).toBe(true)
+  expect(hook.getCurrent().phase).toBe('active')
+  expect(resources.track.stop).not.toHaveBeenCalled()
+  expect(resources.worker.terminate).not.toHaveBeenCalled()
+  expect(getDisplayMedia).toHaveBeenCalledOnce()
+  await hook.unmount()
+})
+
+it('검색 시작 응답 대기 중 반복 시작은 동일한 캡처를 유지한다', async () => {
+  const resources = captureResources()
+  getDisplayMedia.mockResolvedValue(resources.stream)
+  moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
+  const hook = await renderPartyCaptureHook()
+  await act(async () => hook.getCurrent().selectSource('game'))
+  const begin =
+    Promise.withResolvers<Awaited<ReturnType<typeof window.search.controlCharacterSearch>>>()
+  search.controlCharacterSearch.mockImplementation((control: SearchControl) => {
+    if (control.action === 'begin') {
+      return begin.promise
+    }
+    return Promise.resolve({ ok: true, snapshot: currentSearch })
+  })
+  search.controlCharacterSearch.mockClear()
+  let start!: Promise<void>
+  await act(async () => {
+    start = hook.getCurrent().startCapture()
+  })
+  expect(hook.getCurrent().phase).toBe('starting')
+  await act(async () => hook.getCurrent().startCapture())
+  expect(
+    search.controlCharacterSearch.mock.calls.filter(([control]) => control.action === 'begin')
+  ).toHaveLength(1)
+  expect(getDisplayMedia).not.toHaveBeenCalled()
+  await act(async () => {
+    begin.resolve({
+      ok: true,
+      snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: currentSearch.revision + 1 })
+    })
+    await start
+  })
+  expect(hook.getCurrent().phase).toBe('active')
+  expect(getDisplayMedia).toHaveBeenCalledOnce()
   await hook.unmount()
 })

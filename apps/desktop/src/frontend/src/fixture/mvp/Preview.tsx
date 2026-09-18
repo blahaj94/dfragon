@@ -5,7 +5,11 @@ import { CaptureControls } from '../../components/CaptureControls'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
 import { scenarios } from './scenarios'
-import { getCapturePreviewSources, getCapturePreviewStatus } from './capture-preview'
+import {
+  getCapturePreviewSources,
+  getCapturePreviewStatus,
+  getCapturePreviewPhase
+} from './capture-preview'
 import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
 import { previewCharacter } from './fixture'
@@ -44,8 +48,7 @@ export function Preview(): React.JSX.Element {
                 selectedSourceId={source}
                 loading={false}
                 failed={false}
-                starting={captureState === 'starting'}
-                active={captureState === 'active'}
+                phase={getCapturePreviewPhase(captureState)}
                 ready
                 status={getCapturePreviewStatus(captureState)}
                 onSelect={(id) => {

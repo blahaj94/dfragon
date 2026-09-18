@@ -165,7 +165,7 @@ export async function smokeCharacterSearch(
   search: ReturnType<typeof createFixtureSearch>
 ): Promise<void> {
   const actions = createCaptureActions({ window, coordinator, completeLogin })
-  const { evaluate, click, observe, hasText, enterHome, selectSyntheticSource } = actions
+  const { evaluate, click, observe, hasText, login, selectSyntheticSource } = actions
   const read = (): Promise<SearchUiObservation> =>
     evaluate(inspectSearch) as Promise<SearchUiObservation>
   let previousCapture: string | null = null
@@ -272,7 +272,7 @@ export async function smokeCharacterSearch(
     assert.equal(await evaluate(sandboxInspectionSource), true)
     assert.equal(await evaluate(installObservation), true)
     search.selectScenario('empty')
-    await until(() => hasText('패스키로 계속하기'))
+    await until(() => hasText('로그인'))
     await selectSyntheticSource()
     enterStage('empty')
     await start()
@@ -476,9 +476,9 @@ export async function smokeCharacterSearch(
     await start()
     const beforeLogout = await waitFor((view) => hasState(view, 'pending'))
     const abortsBeforeLogout = search.counts.pendingAborts
-    await enterHome()
-    await click('이 기기 로그아웃')
-    await until(() => hasText('패스키로 계속하기'))
+    await login()
+    assert.equal((await coordinator.logout()).ok, true)
+    await until(() => hasText('로그인'))
     assert.equal((await observe()).ended, false)
     assert.equal((await read()).captureId, beforeLogout.captureId)
     assert.equal(search.counts.pendingAborts, abortsBeforeLogout)

@@ -64,7 +64,7 @@ export function createCaptureActions({
   hasText: (text: string) => Promise<boolean>
   observe: () => Promise<Observation>
   click: (label: string) => Promise<void>
-  enterHome: () => Promise<void>
+  login: () => Promise<void>
   selectSyntheticSource: () => Promise<void>
 } {
   const evaluate = (source: string, userGesture = false): Promise<unknown> =>
@@ -77,18 +77,26 @@ export function createCaptureActions({
     const source = createClickSource(label)
     assert.equal(await evaluate(source, true), true)
   }
-  async function enterHome(): Promise<void> {
-    await until(() => hasText('패스키로 계속하기'))
-    await click('패스키로 계속하기')
+  async function login(): Promise<void> {
+    await until(
+      async () =>
+        (await evaluate(
+          `document.querySelector('button[aria-label="로그인"]')?.disabled === false`
+        )) as boolean
+    )
+    await click('로그인')
     await until(async () => {
       const isWaitingBrowser = coordinator.getSnapshot().phase === 'waitingBrowser'
       return isWaitingBrowser
     })
     await completeLogin()
-    await until(() => hasText('시작하기'))
-    assert.equal(await evaluate('document.querySelector("select") !== null'), true)
-    await click('시작하기')
-    await until(() => hasText('Select a window'))
+    await until(async () => coordinator.getSnapshot().phase === 'signedIn')
+    await until(
+      async () =>
+        (await evaluate(
+          `document.querySelector('button[aria-label="로그인"]') === null`
+        )) as boolean
+    )
   }
 
   async function selectSyntheticSource(): Promise<void> {
@@ -125,5 +133,5 @@ export function createCaptureActions({
     })()`
     await until(async () => (await evaluate(startButtonCheck)) as boolean)
   }
-  return { evaluate, hasText, observe, click, enterHome, selectSyntheticSource }
+  return { evaluate, hasText, observe, click, login, selectSyntheticSource }
 }

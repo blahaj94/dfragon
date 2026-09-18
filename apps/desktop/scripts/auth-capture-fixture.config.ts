@@ -34,6 +34,7 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve('src/frontend/src/fixture/auth-capture/index.html'),
+          legacySearch: resolve('src/frontend/src/fixture/auth-capture/legacy-search.html'),
           source: resolve('src/frontend/src/fixture/auth-capture/source.html')
         }
       }

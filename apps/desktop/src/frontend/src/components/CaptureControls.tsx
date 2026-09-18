@@ -6,6 +6,7 @@ import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
+import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState } from '../lib/capture-presentation'
 
 export type CaptureControlsProps = {
@@ -13,8 +14,7 @@ export type CaptureControlsProps = {
   selectedSourceId: string
   loading: boolean
   failed: boolean
-  starting: boolean
-  active: boolean
+  phase: CapturePhase
   ready: boolean
   status: string
   onSelect: (id: string) => void
@@ -27,8 +27,7 @@ export function CaptureControls({
   selectedSourceId,
   loading,
   failed,
-  starting,
-  active,
+  phase,
   ready,
   status,
   onSelect,
@@ -36,6 +35,8 @@ export function CaptureControls({
   onStop
 }: CaptureControlsProps): React.JSX.Element {
   const { light } = useColorTheme()
+  const starting = phase === 'selecting' || phase === 'starting'
+  const active = phase === 'active'
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const detected = sources.filter((source) =>
@@ -43,8 +44,7 @@ export function CaptureControls({
   )
   const others = sources.filter((source) => !detected.includes(source))
   const state = getCaptureControlState({
-    starting,
-    active,
+    phase,
     loading,
     failed,
     hasDetectedSource: detected.length > 0

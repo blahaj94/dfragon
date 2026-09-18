@@ -1,12 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useCaptureSourceSelection } from './useCaptureSourceSelection'
-import { usePartyCaptureSession } from './usePartyCaptureSession'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useMachine } from '@xstate/react'
+import { waitFor } from 'xstate'
+import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
+import type { CapturePhase } from '../types/capture'
+import { useCaptureSources } from './useCaptureSources'
 import { usePartyRecognition } from './usePartyRecognition'
 import { useCharacterSearch } from './useCharacterSearch'
 
 type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>
   retrySearch: (slot: number) => void
+  phase: CapturePhase
   starting: boolean
   sources: { id: string; name: string }[]
   selectedSourceId: string
@@ -25,63 +29,49 @@ type PartyCapture = {
 }
 
 export function usePartyCapture(): PartyCapture {
-  const selectionRequestRef = useRef(0)
-  const [selectionPending, setSelectionPending] = useState(false)
   const intervalSecondsRef = useRef(3)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)
-  const [status, setStatus] = useState('캡처할 게임 창을 선택해 주세요.')
-  const { isSelectedSourceRegistered, cancelPendingSelection, ...sourceSelection } =
-    useCaptureSourceSelection(setStatus)
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
   const recognition = usePartyRecognition(search.observe)
-  const captureSession = usePartyCaptureSession({
-    isSelectedSourceRegistered,
-    beginSearch: search.begin,
-    endSearch: search.end,
-    intervalSecondsRef,
-    setStatus,
-    recognizePartyNicknames: recognition.recognizePartyNicknames,
-    resetRecognition: recognition.resetRecognition
+
+  // actor 자체가 멈추기 전에 대기 중인 공개 명령의 완료도 알린다.
+  useEffect(() => () => stopRef.current(), [])
+  const [snapshot, send, actor] = useMachine(partyCaptureMachine, {
+    input: {
+      selectSource: (sourceId) => window.api.selectCaptureSource(sourceId),
+      beginSearch: search.begin,
+      endSearch: search.end,
+      resetRecognition: recognition.resetRecognition,
+      getIntervalMs: () => intervalSecondsRef.current * 1000,
+      recognizePartyNicknames: recognition.recognizePartyNicknames
+    }
   })
+  const setStatus = useCallback((status: string) => send({ type: 'NOTICE', status }), [send])
+  const sources = useCaptureSources(setStatus)
+  const phase = getCapturePhase(snapshot)
 
-  function stopCapture(nextStatus?: string): void {
-    selectionRequestRef.current += 1
-    cancelPendingSelection()
-    setSelectionPending(false)
-    captureSession.stopCapture(nextStatus)
+  function stopCapture(status?: string): void {
+    send({ type: 'STOP', status })
   }
-
   useLayoutEffect(() => {
     stopRef.current = stopCapture
   })
 
-  useEffect(
-    () => () => {
-      selectionRequestRef.current += 1
-    },
-    []
-  )
-
   function selectSource(sourceId: string): void {
-    stopCapture()
-    void sourceSelection.selectSource(sourceId)
+    send({ type: 'SELECT', sourceId, autoStart: false, request: {} })
   }
 
   async function selectAndStartCapture(sourceId: string): Promise<void> {
-    stopCapture()
-    const request = selectionRequestRef.current
-    setSelectionPending(sourceId.length > 0)
-    try {
-      const registered = await sourceSelection.selectSource(sourceId)
-      if (registered && request === selectionRequestRef.current) {
-        await captureSession.startCapture()
-      }
-    } finally {
-      if (request === selectionRequestRef.current) {
-        setSelectionPending(false)
-      }
-    }
+    const request = {}
+    send({ type: 'SELECT', sourceId, autoStart: true, request })
+    await waitFor(actor, (state) => state.context.request !== request || !state.hasTag('busy'))
+  }
+
+  async function startCapture(): Promise<void> {
+    const request = {}
+    send({ type: 'START', request })
+    await waitFor(actor, (state) => state.context.request !== request || !state.hasTag('busy'))
   }
 
   function setIntervalSeconds(seconds: number): void {
@@ -90,17 +80,22 @@ export function usePartyCapture(): PartyCapture {
   }
 
   return {
-    ...sourceSelection,
+    ...sources,
+    phase,
+    starting: phase === 'starting' || (phase === 'selecting' && snapshot.context.autoStart),
+    selectedSourceId: snapshot.context.selectedSourceId,
+    sourceRegistered:
+      snapshot.context.selectedSourceId.length > 0 &&
+      snapshot.context.selectedSourceId === snapshot.context.registeredSourceId,
     selectSource,
     selectAndStartCapture,
     search,
     retrySearch: search.retry,
     intervalSeconds,
     stableNicknames: recognition.stableNicknames,
-    status,
+    status: snapshot.context.status,
     setIntervalSeconds,
-    ...captureSession,
-    starting: selectionPending || captureSession.starting,
+    startCapture,
     stopCapture
   }
 }

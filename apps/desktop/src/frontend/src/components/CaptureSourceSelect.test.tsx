@@ -23,8 +23,7 @@ beforeEach(() => {
       { id: 'game', name: '던전앤파이터' }
     ],
     selectedSourceId: 'game',
-    active: true,
-    starting: false,
+    phase: 'active',
     loading: false,
     failed: false,
     ready: true,

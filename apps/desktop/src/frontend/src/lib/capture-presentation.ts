@@ -1,6 +1,7 @@
+import type { CapturePhase } from '../types/capture'
+
 type CaptureControlState = {
-  starting: boolean
-  active: boolean
+  phase: CapturePhase
   loading: boolean
   failed: boolean
   hasDetectedSource: boolean
@@ -8,16 +9,15 @@ type CaptureControlState = {
 
 // 캡처 진행 상태를 우선하여 모달에 표시할 상태 이름을 결정한다.
 export function getCaptureControlState({
-  starting,
-  active,
+  phase,
   loading,
   failed,
   hasDetectedSource
 }: CaptureControlState): string {
-  if (starting) {
+  if (phase === 'selecting' || phase === 'starting') {
     return '준비 중'
   }
-  if (active) {
+  if (phase === 'active') {
     return '캡처 중'
   }
   if (loading) {
