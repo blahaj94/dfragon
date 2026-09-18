@@ -39,7 +39,7 @@
     "lint:fix": "eslint . --fix",
     "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
     "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
-    "dev:app": "npm run prepare:ocr-assets && electron-vite dev",
+    "dev:app": "npm run prepare:ocr-assets && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
     "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
