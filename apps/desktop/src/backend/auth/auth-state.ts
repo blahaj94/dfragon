@@ -1,3 +1,5 @@
+import type { ActorRefFrom } from 'xstate'
+import type { authCoordinatorMachine, CoordinatorEvent } from './coordinator-machine'
 import type { RecoveryPurpose, StorageRecoveryPurpose } from './recovery-plan'
 import type {
   AuthCommandError,
@@ -8,155 +10,124 @@ import type {
   AuthSnapshot
 } from './types'
 
-type SnapshotState = Readonly<{
+type LoginSnapshot = NonNullable<AuthSnapshot['login']>
+type StorageNotice = 'SECURE_STORAGE_UNAVAILABLE' | 'LOCAL_CLEAR_UNCONFIRMED' | 'TOKEN_SAVE_FAILED'
+type PausedNotice = 'NETWORK_UNAVAILABLE' | 'AUTH_SERVICE_UNAVAILABLE' | 'RESTORE_RETRY_REQUIRED'
+
+export type AuthState = Readonly<{
   phase: AuthPhase
-  login: AuthSnapshot['login']
-  user: AuthSnapshot['user']
-  entry: AuthSnapshot['entry']
-  notice: AuthNotice | null
+  recoveryPurpose: RecoveryPurpose | null
+  getSnapshot(): AuthSnapshot
+  subscribe(listener: (snapshot: AuthSnapshot) => void): () => void
+  success(current?: AuthSnapshot): AuthCommandResult
+  failure(code: AuthCommandError): AuthCommandResult
+  loginStarted(login: LoginSnapshot): AuthSnapshot
+  waitingForBrowser(login: LoginSnapshot, notice?: 'LOGIN_RETURN_INVALID' | null): AuthSnapshot
+  exchangeStarted(login: LoginSnapshot): AuthSnapshot
+  signedIn(nickname: string, entry: 'welcome' | 'home'): AuthSnapshot
+  signedOut(notice?: AuthNotice | null): AuthSnapshot
+  restoring(): AuthSnapshot
+  restorePaused(notice: PausedNotice): AuthSnapshot
+  signingOut(): AuthSnapshot
+  storageBlocked(notice: StorageNotice, purpose: StorageRecoveryPurpose): AuthSnapshot
 }>
 
-type LoginPhase = 'startingLogin' | 'waitingBrowser' | 'exchanging'
-type InactivePhase = Exclude<AuthPhase, LoginPhase | 'signedIn'>
-type StorageNotice = 'SECURE_STORAGE_UNAVAILABLE' | 'LOCAL_CLEAR_UNCONFIRMED' | 'TOKEN_SAVE_FAILED'
+export function createAuthState(
+  actor: ActorRefFrom<typeof authCoordinatorMachine>,
+  runId: string,
+  providers: readonly AuthProvider[]
+): AuthState {
+  const listeners = new Set<(snapshot: AuthSnapshot) => void>()
 
-export class AuthState {
-  private revision = 0
-  private recovery: RecoveryPurpose | null = null
-  private current: SnapshotState = {
-    phase: 'restoring',
-    login: null,
-    user: null,
-    entry: null,
-    notice: null
-  }
-  private readonly listeners = new Set<(snapshot: AuthSnapshot) => void>()
-
-  constructor(
-    private readonly runId: string,
-    private readonly providers: readonly AuthProvider[]
-  ) {}
-
-  get recoveryPurpose(): RecoveryPurpose | null {
-    return this.recovery
-  }
-
-  get phase(): AuthPhase {
-    return this.current.phase
-  }
-
-  readonly getSnapshot = (): AuthSnapshot => {
-    const login = this.current.login
-    const user = this.current.user
-    const hasLogin = login != null
-    const hasUser = user != null
+  function getSnapshot(): AuthSnapshot {
+    const { context, value } = actor.getSnapshot()
+    const login = context.login
+    const user = context.user
     return {
-      runId: this.runId,
-      revision: this.revision,
-      phase: this.current.phase,
-      providers: [...this.providers],
-      login: hasLogin
+      runId,
+      revision: context.revision,
+      phase: value.phase as AuthPhase,
+      providers: [...providers],
+      login: login
         ? { attemptId: login.attemptId, provider: login.provider, expiresAt: login.expiresAt }
         : null,
-      user: hasUser ? { nickname: user.nickname } : null,
-      entry: this.current.entry,
-      notice: this.current.notice
+      user: user ? { nickname: user.nickname } : null,
+      entry: context.entry,
+      notice: context.notice
     }
   }
 
-  readonly subscribe = (listener: (snapshot: AuthSnapshot) => void): (() => void) => {
-    this.listeners.add(listener)
-    return () => this.listeners.delete(listener)
-  }
-
-  success(current = this.getSnapshot()): AuthCommandResult {
-    return { ok: true, snapshot: current }
-  }
-
-  failure(code: AuthCommandError): AuthCommandResult {
-    return { ok: false, error: { code }, snapshot: this.getSnapshot() }
-  }
-
-  loginStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
-    return this.publishLogin('startingLogin', login, null)
-  }
-
-  waitingForBrowser(
-    login: NonNullable<AuthSnapshot['login']>,
-    notice: 'LOGIN_RETURN_INVALID' | null = null
-  ): AuthSnapshot {
-    return this.publishLogin('waitingBrowser', login, notice)
-  }
-
-  exchangeStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
-    return this.publishLogin('exchanging', login, null)
-  }
-
-  signedIn(nickname: string, entry: 'welcome' | 'home'): AuthSnapshot {
-    this.recovery = null
-    return this.publish({
-      phase: 'signedIn',
-      login: null,
-      user: { nickname },
-      entry,
-      notice: null
-    })
-  }
-
-  signedOut(notice: AuthNotice | null = null): AuthSnapshot {
-    this.recovery = null
-    return this.publishInactive('signedOut', notice)
-  }
-
-  restoring(): AuthSnapshot {
-    return this.publishInactive('restoring', null)
-  }
-
-  restorePaused(
-    notice: 'NETWORK_UNAVAILABLE' | 'AUTH_SERVICE_UNAVAILABLE' | 'RESTORE_RETRY_REQUIRED'
-  ): AuthSnapshot {
-    this.recovery = 'resume-credential'
-    return this.publishInactive('restorePaused', notice)
-  }
-
-  signingOut(): AuthSnapshot {
-    this.recovery = null
-    return this.publishInactive('signingOut', null)
-  }
-
-  storageBlocked(notice: StorageNotice, purpose: StorageRecoveryPurpose): AuthSnapshot {
-    this.recovery = purpose
-    return this.publishInactive('storageBlocked', notice)
-  }
-
-  private publishLogin(
-    phase: LoginPhase,
-    login: NonNullable<AuthSnapshot['login']>,
-    notice: AuthNotice | null
-  ): AuthSnapshot {
-    this.recovery = null
-    return this.publish({ phase, login, user: null, entry: null, notice })
-  }
-
-  private publishInactive(phase: InactivePhase, notice: AuthNotice | null): AuthSnapshot {
-    return this.publish({ phase, login: null, user: null, entry: null, notice })
-  }
-
-  private publish(next: SnapshotState): AuthSnapshot {
-    const canIncrement = this.revision < Number.MAX_SAFE_INTEGER
-    if (!canIncrement) {
-      throw new Error('Auth snapshot revision is exhausted.')
+  function publish(event: CoordinatorEvent): AuthSnapshot {
+    const previousRevision = actor.getSnapshot().context.revision
+    actor.send(event)
+    const published = getSnapshot()
+    if (published.revision === previousRevision) {
+      return published
     }
-    this.revision += 1
-    this.current = next
-    const published = this.getSnapshot()
-    for (const listener of this.listeners) {
+    // Emit outside the actor mailbox: a consumer may synchronously cancel/logout,
+    // and the caller must observe that new generation before starting its next effect.
+    for (const listener of listeners) {
       try {
         listener(published)
       } catch {
-        // Snapshot consumer 실패가 main의 credential state 전이를 되돌리지 않게 한다.
+        // Consumer failure cannot roll back committed main-process state.
       }
     }
     return published
+  }
+
+  return {
+    getSnapshot,
+    subscribe(listener: (snapshot: AuthSnapshot) => void): () => void {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    get phase(): AuthPhase {
+      return actor.getSnapshot().value.phase as AuthPhase
+    },
+    get recoveryPurpose() {
+      return actor.getSnapshot().context.recoveryPurpose
+    },
+    success(current = getSnapshot()): AuthCommandResult {
+      return { ok: true, snapshot: current }
+    },
+    failure(code: AuthCommandError): AuthCommandResult {
+      return { ok: false, error: { code }, snapshot: getSnapshot() }
+    },
+    loginStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
+      return publish({ type: 'LOGIN_STARTED', login })
+    },
+    waitingForBrowser(
+      login: NonNullable<AuthSnapshot['login']>,
+      notice: 'LOGIN_RETURN_INVALID' | null = null
+    ): AuthSnapshot {
+      return publish({ type: 'BROWSER_READY', login, notice })
+    },
+    exchangeStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
+      return publish({ type: 'EXCHANGE_STARTED', login })
+    },
+    signedIn(nickname: string, entry: 'welcome' | 'home'): AuthSnapshot {
+      return publish({ type: 'SIGNED_IN', nickname, entry })
+    },
+    signedOut(notice: AuthNotice | null = null): AuthSnapshot {
+      return publish({ type: 'SIGNED_OUT', notice })
+    },
+    restoring(): AuthSnapshot {
+      return publish({ type: 'RESTORING' })
+    },
+    restorePaused(
+      notice: 'NETWORK_UNAVAILABLE' | 'AUTH_SERVICE_UNAVAILABLE' | 'RESTORE_RETRY_REQUIRED'
+    ): AuthSnapshot {
+      return publish({ type: 'RESTORE_PAUSED', notice })
+    },
+    signingOut(): AuthSnapshot {
+      return publish({ type: 'SIGNING_OUT' })
+    },
+    storageBlocked(
+      notice: 'SECURE_STORAGE_UNAVAILABLE' | 'LOCAL_CLEAR_UNCONFIRMED' | 'TOKEN_SAVE_FAILED',
+      purpose: StorageRecoveryPurpose
+    ): AuthSnapshot {
+      return publish({ type: 'STORAGE_BLOCKED', notice, purpose })
+    }
   }
 }

@@ -6,7 +6,6 @@ import {
 } from './credential-operations'
 import type { CredentialCommit, TransitionPreparation } from './credential-operations'
 import type {
-  AuthAuthorization,
   AuthHttp,
   AuthTokens,
   CredentialStore,
@@ -84,10 +83,6 @@ export class CredentialSession {
   private disposalFlight: Readonly<{ refreshToken: string; promise: Promise<boolean> }> | null =
     null
   private activeWriter: CredentialWriter | null = null
-  private refreshFlight: Readonly<{
-    generation: number
-    promise: Promise<AuthAuthorization>
-  }> | null = null
   private logoutOperation: LogoutOperation | null = null
 
   constructor(
@@ -116,51 +111,6 @@ export class CredentialSession {
   runWriter(operation: (writer: CredentialWriter) => Promise<void>): Promise<void> {
     const writer = this.reserveWriter()
     return writer.execute(() => operation(writer))
-  }
-
-  shareRefresh(
-    generation: number,
-    operation: () => Promise<AuthAuthorization>
-  ): Promise<AuthAuthorization> {
-    const existing = this.refreshFlight
-    const hasExisting = existing != null
-    if (hasExisting) {
-      const hasSameGeneration = existing.generation === generation
-      if (hasSameGeneration) {
-        return existing.promise
-      }
-    }
-    let resolve!: (result: AuthAuthorization) => void
-    let reject!: (reason: unknown) => void
-    const promise = new Promise<AuthAuthorization>((resolveResult, rejectResult) => {
-      resolve = resolveResult
-      reject = rejectResult
-    })
-    this.refreshFlight = { generation, promise }
-    const clearRefresh = (): void => {
-      const isCurrentRefresh = this.refreshFlight?.promise === promise
-      if (isCurrentRefresh) {
-        this.refreshFlight = null
-      }
-    }
-    void promise.then(clearRefresh, clearRefresh)
-    try {
-      void operation().then(resolve, reject)
-    } catch (error) {
-      reject(error)
-    }
-    return promise
-  }
-
-  currentRefresh(generation: number): Promise<AuthAuthorization> | null {
-    const flight = this.refreshFlight
-    const hasFlight = flight != null
-    if (!hasFlight) {
-      return null
-    }
-
-    const hasSameGeneration = flight.generation === generation
-    return hasSameGeneration ? flight.promise : null
   }
 
   prepare(kind: CredentialTransitionKind): Promise<TransitionPreparation> {

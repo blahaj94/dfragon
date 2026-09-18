@@ -1,6 +1,6 @@
-import { AuthState } from './auth-state'
+import { createAuthRuntime } from './auth-runtime'
 import { waitForAuthorization } from './authorization-waiter'
-import { UserVerification, verificationFailureNotice } from './user-verification'
+import { verificationFailureNotice } from './user-verification'
 import { selectCredentialRecoveryStep, selectStoreRecoveryStep } from './recovery-plan'
 import type { StorageRecoveryPurpose } from './recovery-plan'
 import { decideLocalCleanup } from './cleanup-result'
@@ -8,8 +8,8 @@ import { CredentialSession } from './credential-session'
 import type { CredentialWriter, SessionCredential } from './credential-session'
 import { AuthHttpFailure } from './http'
 import { createPkce } from './pkce'
-import { PendingLogin } from './pending-login'
-import type { ClaimedExchange } from './pending-login'
+import { createPendingLogin } from './pending-login'
+import type { ClaimedExchange, PendingLogin } from './pending-login'
 import { parseReturnUrl, validateApiOrigin, validateReturnTarget } from './protocol'
 import type {
   AuthAuthorization,
@@ -57,18 +57,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     throw new Error('Auth coordinator configuration is invalid.')
   }
 
-  let generation = 0
-  const state = new AuthState(runId, providers)
-  let pending: PendingLogin | null = null
+  const runtime = createAuthRuntime(runId, providers)
+  const state = runtime.state
   const session = new CredentialSession(dependencies.http, dependencies.store)
-  let startPromise: Promise<AuthSnapshot> | null = null
-  let hasStartedRefresh = false
-  let logoutFlight: Promise<AuthCommandResult> | null = null
-  const verification = new UserVerification(dependencies.http)
 
   function isCurrentPending(value: PendingLogin): boolean {
-    const hasSamePending = pending === value
-    const hasSameGeneration = generation === value.generation
+    const hasSamePending = runtime.pending === value
+    const hasSameGeneration = runtime.generation === value.generation
     const isCurrent = hasSamePending && hasSameGeneration
 
     return isCurrent
@@ -88,21 +83,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     return true
   }
 
-  function clearPendingReference(value: PendingLogin): void {
-    value.dispose()
-    const isReferencedPending = pending === value
-    if (isReferencedPending) {
-      pending = null
-    }
-  }
-
   function expirePending(value: PendingLogin): void {
     const isCurrent = isCurrentPending(value)
     if (!isCurrent) {
       return
     }
-    generation += 1
-    clearPendingReference(value)
+    runtime.cancelPending(value)
     state.signedOut('LOGIN_EXPIRED')
   }
 
@@ -111,10 +97,10 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     purpose: StorageRecoveryPurpose
   ): void {
     session.discard()
-    const pendingLogin = pending
+    const pendingLogin = runtime.pending
     const hasPendingLogin = pendingLogin != null
     if (hasPendingLogin) {
-      clearPendingReference(pendingLogin)
+      runtime.releasePending(pendingLogin)
     }
     state.storageBlocked(notice, purpose)
   }
@@ -124,8 +110,8 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     cleanupGeneration: number
   ): Promise<void> {
     const cleared = await session.clearLocal()
-    const isCurrentCleanup = generation === cleanupGeneration
-    const logoutOwnsCleanup = logoutFlight != null
+    const isCurrentCleanup = runtime.generation === cleanupGeneration
+    const logoutOwnsCleanup = runtime.logoutFlight != null
     const cleanup = decideLocalCleanup({
       cleared,
       isCurrent: isCurrentCleanup,
@@ -146,12 +132,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (hasRefreshToken) {
       await session.dispose(refreshToken)
     }
-    const isLogoutCleaning = logoutFlight != null
+    const isLogoutCleaning = runtime.logoutFlight != null
     if (isLogoutCleaning) {
       return
     }
     const cleared = await session.clearLocal()
-    const logoutOwnsCleanup = logoutFlight != null
+    const logoutOwnsCleanup = runtime.logoutFlight != null
     const cleanup = decideLocalCleanup({
       cleared,
       // 이전 token의 정리를 소유한 writer는 명시 logout에만 결과 처리를 인계한다.
@@ -176,14 +162,14 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     } catch {
       prepared = 'unconfirmed'
     }
-    const isCurrentGeneration = generation === operationGeneration
+    const isCurrentGeneration = runtime.generation === operationGeneration
     if (!isCurrentGeneration) {
       const wasEstablished = prepared === 'established'
       if (wasEstablished) {
         await handleStaleTransition()
       }
       const isUnconfirmed = prepared === 'unconfirmed'
-      const isLogoutCleaning = logoutFlight != null
+      const isLogoutCleaning = runtime.logoutFlight != null
       const shouldBlockStorage = isUnconfirmed && !isLogoutCleaning
       if (shouldBlockStorage) {
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
@@ -195,7 +181,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return true
     }
 
-    generation += 1
+    runtime.invalidate()
     const didPreparationFail = prepared === 'failed'
     const notice = didPreparationFail ? 'SECURE_STORAGE_UNAVAILABLE' : 'LOCAL_CLEAR_UNCONFIRMED'
     const recoveryPurpose = didPreparationFail ? 'inspect-store' : 'clear-store'
@@ -207,7 +193,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     tokens: AuthTokens,
     kind: CredentialTransitionKind,
     operationGeneration: number,
-    isOperationFresh: () => boolean = () => generation === operationGeneration,
+    isOperationFresh: () => boolean = () => runtime.generation === operationGeneration,
     shouldTrackAccessTrust = false
   ): Promise<boolean> {
     let credentialCommit: Awaited<ReturnType<typeof session.writeCredential>>
@@ -219,7 +205,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isFreshAfterCommit = isOperationFresh()
     if (!isFreshAfterCommit) {
       const isRefresh = kind === 'refresh'
-      const hasLogoutFlight = logoutFlight != null
+      const hasLogoutFlight = runtime.logoutFlight != null
       const logoutOwnsRefreshCleanup = isRefresh && hasLogoutFlight
       await handleStaleTransition(logoutOwnsRefreshCleanup ? undefined : tokens.refreshToken)
       return false
@@ -227,12 +213,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isCredentialCommitted = credentialCommit === 'confirmed'
     if (!isCredentialCommitted) {
       await session.dispose(tokens.refreshToken)
-      const isCurrentAfterDisposal = generation === operationGeneration
+      const isCurrentAfterDisposal = runtime.generation === operationGeneration
       if (!isCurrentAfterDisposal) {
         await handleStaleTransition()
         return false
       }
-      generation += 1
+      runtime.invalidate()
       storageBlocked('TOKEN_SAVE_FAILED', 'clear-store')
       return false
     }
@@ -250,7 +236,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isFreshAfterFinalize = isOperationFresh()
     if (!isFreshAfterFinalize) {
       const isRefresh = kind === 'refresh'
-      const hasLogoutFlight = logoutFlight != null
+      const hasLogoutFlight = runtime.logoutFlight != null
       const logoutOwnsRefreshCleanup = isRefresh && hasLogoutFlight
       let hasDurableMarker = finalized === 'save-failed'
       const wasCommitted = finalized === 'committed'
@@ -263,7 +249,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         }
       }
       if (!hasDurableMarker) {
-        const isExplicitLogout = logoutFlight != null
+        const isExplicitLogout = runtime.logoutFlight != null
         if (!isExplicitLogout) {
           storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
         }
@@ -287,12 +273,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
 
     await session.dispose(tokens.refreshToken)
-    const isCurrentAfterDisposal = generation === operationGeneration
+    const isCurrentAfterDisposal = runtime.generation === operationGeneration
     if (!isCurrentAfterDisposal) {
       await handleStaleTransition()
       return false
     }
-    generation += 1
+    runtime.invalidate()
     const didSaveFail = finalized === 'save-failed'
     const notice = didSaveFail ? 'TOKEN_SAVE_FAILED' : 'LOCAL_CLEAR_UNCONFIRMED'
     storageBlocked(notice, 'clear-store')
@@ -312,7 +298,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     credential: SessionCredential,
     operationGeneration: number
   ): boolean {
-    const isCurrentGeneration = generation === operationGeneration
+    const isCurrentGeneration = runtime.generation === operationGeneration
     const hasSameCredential = session.current === credential
     const canCheckAccess = isCurrentGeneration && hasSameCredential
     if (!canCheckAccess) {
@@ -336,8 +322,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isCurrent) {
       return
     }
-    generation += 1
-    clearPendingReference(value)
+    runtime.cancelPending(value)
     state.signedOut(notice)
   }
 
@@ -383,20 +368,20 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         cleared = await session.clearLocal()
       })
       const isCurrentAfterClear = isCurrentPending(value)
-      const logoutOwnsCleanup = logoutFlight != null
+      const logoutOwnsCleanup = runtime.logoutFlight != null
       const cleanup = decideLocalCleanup({
         cleared,
         isCurrent: isCurrentAfterClear,
         logoutOwnsCleanup
       })
       if (cleanup.shouldBlockStorage) {
-        generation += 1
+        runtime.invalidate()
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
       return cleanup.canContinue
     }
 
-    generation += 1
+    runtime.invalidate()
     storageBlocked('SECURE_STORAGE_UNAVAILABLE', 'inspect-store')
     return false
   }
@@ -428,13 +413,6 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
 
     value.acceptRequest(created)
-    const checkedAt = dependencies.clock.read()
-    const isExpired = value.isExpired(checkedAt)
-    if (isExpired) {
-      expirePending(value)
-      return
-    }
-    value.scheduleExpiry()
     const isCurrentAfterScheduling = isCurrentPending(value)
     if (!isCurrentAfterScheduling) {
       return
@@ -458,31 +436,30 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
   }
 
-  async function recoverRejectedExchange(value: PendingLogin): Promise<void> {
+  async function recoverRejectedExchange(value: PendingLogin): Promise<boolean> {
     const cleared = await session.clearLocal()
     const isCurrentAfterClear = isCurrentPending(value)
-    const logoutOwnsCleanup = logoutFlight != null
+    const logoutOwnsCleanup = runtime.logoutFlight != null
     const cleanup = decideLocalCleanup({
       cleared,
       isCurrent: isCurrentAfterClear,
       logoutOwnsCleanup
     })
     if (cleanup.shouldBlockStorage) {
-      generation += 1
+      runtime.invalidate()
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
     if (!cleanup.canContinue) {
-      return
+      return false
     }
     const checkedAt = dependencies.clock.read()
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {
       expirePending(value)
-      return
+      return false
     }
 
-    value.resumeWaiting()
-    state.waitingForBrowser(value.snapshot(), 'LOGIN_RETURN_INVALID')
+    return true
   }
 
   async function exchangeLogin(
@@ -525,21 +502,27 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         return
       }
       if (isRejected === true) {
-        value.rejectCode(claim.input.code)
-        await recoverRejectedExchange(value)
+        await value.rejectExchange(
+          () => recoverRejectedExchange(value),
+          () => {
+            if (isCurrentPending(value)) {
+              state.waitingForBrowser(value.snapshot(), 'LOGIN_RETURN_INVALID')
+            }
+          }
+        )
         return
       }
 
       const cleared = await session.clearLocal()
       const isCurrentAfterClear = isCurrentPending(value)
-      const logoutOwnsCleanup = logoutFlight != null
+      const logoutOwnsCleanup = runtime.logoutFlight != null
       const cleanup = decideLocalCleanup({
         cleared,
         isCurrent: isCurrentAfterClear,
         logoutOwnsCleanup
       })
       if (cleanup.shouldBlockStorage) {
-        generation += 1
+        runtime.invalidate()
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
       if (cleanup.canContinue) {
@@ -564,7 +547,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return
     }
 
-    clearPendingReference(value)
+    runtime.releasePending(value)
 
     const entry = exchanged.isNewUser ? 'welcome' : 'home'
     state.signedIn(exchanged.user.nickname, entry)
@@ -580,7 +563,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return Promise.resolve(state.failure('AUTH_NOT_ALLOWED'))
     }
     const hasWriter = session.hasWriter
-    const hasLogoutFlight = logoutFlight != null
+    const hasLogoutFlight = runtime.logoutFlight != null
     const hasActiveOperation = hasWriter || hasLogoutFlight
     const isSignedOut = state.phase === 'signedOut'
     const canBeginLogin = !hasActiveOperation && isSignedOut
@@ -588,7 +571,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return Promise.resolve(state.failure('AUTH_BUSY'))
     }
 
-    generation += 1
+    runtime.invalidate()
     const attemptId = dependencies.entropy.uuid()
     const isValidAttemptId = isCanonicalUuid(attemptId)
     if (!isValidAttemptId) {
@@ -602,13 +585,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
     dependencies.clock.startTrustPeriod?.()
     const startedAt = dependencies.clock.read()
-    const value = new PendingLogin(
-      { attemptId, provider, verifier: pkce.verifier, generation, startedAt },
+    const value = createPendingLogin(
+      { attemptId, provider, verifier: pkce.verifier, generation: runtime.generation, startedAt },
       dependencies.clock,
       expirePending
     )
-    pending = value
-    value.scheduleExpiry()
+    runtime.bindPending(value)
+    value.start()
     const isCurrentAfterScheduling = isCurrentPending(value)
     if (!isCurrentAfterScheduling) {
       return Promise.resolve(state.success())
@@ -624,7 +607,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isValidAttemptId) {
       return Promise.resolve(state.failure('INVALID_AUTH_COMMAND'))
     }
-    const value = pending
+    const value = runtime.pending
     const hasCurrentPending = value != null
     if (!hasCurrentPending) {
       return Promise.resolve(state.failure('STALE_ATTEMPT'))
@@ -634,8 +617,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return Promise.resolve(state.failure('STALE_ATTEMPT'))
     }
 
-    generation += 1
-    clearPendingReference(value)
+    runtime.cancelPending(value)
     const cancelled = state.signedOut('LOGIN_CANCELLED')
     return Promise.resolve(state.success(cancelled))
   }
@@ -648,7 +630,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return Promise.resolve()
     }
 
-    const value = pending
+    const value = runtime.pending
     const hasPendingLogin = value != null
     if (!hasPendingLogin) {
       const needsNewLogin = state.phase === 'signedOut'
@@ -663,7 +645,10 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       expirePending(value)
       return Promise.resolve()
     }
-    const claim = value.claim(parsed.code)
+    const claim = value.claimExchange(parsed.code, () => {
+      state.exchangeStarted(value.snapshot())
+      return isCurrentPending(value) ? session.reserveWriter() : null
+    })
     const isIgnored = claim.status === 'ignored'
     if (isIgnored) {
       return Promise.resolve()
@@ -673,13 +658,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return claim.promise
     }
 
-    state.exchangeStarted(value.snapshot())
-    const isCurrentAfterExchangeStart = isCurrentPending(value)
-    if (!isCurrentAfterExchangeStart) {
-      return Promise.resolve()
-    }
-    const writer = session.reserveWriter()
-    value.trackExchange(writer.completion)
+    const writer = claim.writer
     const exchange = writer.execute(() => exchangeLogin(value, claim, writer))
     try {
       const activation = onClaimed?.()
@@ -708,17 +687,17 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
     // Initial restore keeps the dependency creation baseline. Later requests
     // can recover trust, but may never make a previous access usable again.
-    const needsFreshPeriod = hasStartedRefresh || hasPreviousCredential
+    const needsFreshPeriod = runtime.hasStartedRefresh || hasPreviousCredential
     if (needsFreshPeriod) {
       dependencies.clock.startTrustPeriod?.()
     }
-    hasStartedRefresh = true
+    runtime.markRefreshStarted()
 
     let tokens: AuthTokens
     try {
       tokens = await session.sendRefresh(writer, refreshToken)
     } catch (error) {
-      const isCurrent = generation === operationGeneration
+      const isCurrent = runtime.generation === operationGeneration
       if (!isCurrent) {
         return null
       }
@@ -736,7 +715,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
             } catch {
               removed = false
             }
-            const isCurrentAfterRemoval = generation === operationGeneration
+            const isCurrentAfterRemoval = runtime.generation === operationGeneration
             if (!isCurrentAfterRemoval) {
               await handleStaleTransition()
               return null
@@ -750,19 +729,18 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         }
       }
 
-      generation += 1
-      const cleanupGeneration = generation
+      const cleanupGeneration = runtime.invalidate()
       session.blockAccess()
       state.signingOut()
       await session.dispose(refreshToken)
-      const canClear = generation === cleanupGeneration
+      const canClear = runtime.generation === cleanupGeneration
       if (canClear) {
         await cleanupAfterInvalidation('REAUTH_REQUIRED', cleanupGeneration)
       }
       return null
     }
 
-    const isCurrent = generation === operationGeneration
+    const isCurrent = runtime.generation === operationGeneration
     if (!isCurrent) {
       return null
     }
@@ -780,7 +758,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
   async function verifyRestoredUser(operationGeneration: number): Promise<void> {
     const currentCredential = session.current
-    const isCurrent = generation === operationGeneration
+    const isCurrent = runtime.generation === operationGeneration
     const hasCurrentCredential = currentCredential != null
     if (!isCurrent) {
       return
@@ -796,10 +774,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return
     }
 
-    const operation = verification.reserve()
+    const operation = runtime.reserveVerification()
     try {
-      const response = await verification.send(operation, currentCredential.accessToken)
-      const isCurrentAfterVerification = generation === operationGeneration
+      const response = await dependencies.http.me(
+        currentCredential.accessToken,
+        operation.controller.signal
+      )
+      const isCurrentAfterVerification = runtime.generation === operationGeneration
       if (!isCurrentAfterVerification) {
         return
       }
@@ -818,18 +799,17 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
       state.signedIn(response.user.nickname, 'home')
     } catch (error) {
-      const isStillCurrent = generation === operationGeneration
+      const isStillCurrent = runtime.generation === operationGeneration
       if (!isStillCurrent) {
         return
       }
       const notice = verificationFailureNotice(error)
       const needsAuthentication = notice === 'REAUTH_REQUIRED'
       if (needsAuthentication) {
-        generation += 1
-        const cleanupGeneration = generation
+        const cleanupGeneration = runtime.invalidate()
         await session.runWriter(async () => {
           await session.dispose(currentCredential.refreshToken)
-          const canClear = generation === cleanupGeneration
+          const canClear = runtime.generation === cleanupGeneration
           if (canClear) {
             await cleanupAfterInvalidation('REAUTH_REQUIRED', cleanupGeneration)
           }
@@ -838,7 +818,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       }
       state.restorePaused(notice)
     } finally {
-      verification.complete(operation)
+      runtime.completeVerification(operation)
     }
   }
 
@@ -846,7 +826,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     refreshToken: string,
     operationGeneration: number
   ): Promise<void> {
-    const isCurrent = generation === operationGeneration
+    const isCurrent = runtime.generation === operationGeneration
     if (!isCurrent) {
       return
     }
@@ -854,7 +834,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     await session.runWriter(async (writer) => {
       await rotateCredential(refreshToken, operationGeneration, writer, true)
     })
-    const isCurrentAfterRotation = generation === operationGeneration
+    const isCurrentAfterRotation = runtime.generation === operationGeneration
     if (!isCurrentAfterRotation) {
       return
     }
@@ -877,7 +857,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     } catch {
       inspection = { status: 'unavailable' as const }
     }
-    const isCurrent = generation === operationGeneration
+    const isCurrent = runtime.generation === operationGeneration
     if (!isCurrent) {
       return state.getSnapshot()
     }
@@ -899,8 +879,8 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       await session.runWriter(async () => {
         cleared = await session.clearLocal()
       })
-      const isCurrentAfterClear = generation === operationGeneration
-      const logoutOwnsCleanup = logoutFlight != null
+      const isCurrentAfterClear = runtime.generation === operationGeneration
+      const logoutOwnsCleanup = runtime.logoutFlight != null
       const cleanup = decideLocalCleanup({
         cleared,
         isCurrent: isCurrentAfterClear,
@@ -923,15 +903,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
   }
 
   function start(): Promise<AuthSnapshot> {
-    const existingStart = startPromise
-    const hasStartPromise = existingStart != null
-    if (hasStartPromise) {
-      return existingStart
-    }
-    const started = restoreFromStore(generation)
-    startPromise = started
-
-    return started
+    return runtime.start(() => restoreFromStore(runtime.generation))
   }
 
   function refreshAuthorization(): Promise<AuthAuthorization> {
@@ -944,13 +916,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isSignedIn) {
       return Promise.resolve({ status: 'unavailable' })
     }
-    const operationGeneration = generation
-    return session.shareRefresh(operationGeneration, async () => {
+    const operationGeneration = runtime.generation
+    return runtime.shareRefresh(operationGeneration, async () => {
       await session.runWriter(async (writer) => {
         await rotateCredential(currentCredential.refreshToken, operationGeneration, writer)
       })
       const refreshedCredential = session.current
-      const isCurrentGeneration = generation === operationGeneration
+      const isCurrentGeneration = runtime.generation === operationGeneration
       if (!isCurrentGeneration) {
         return { status: 'unavailable' }
       }
@@ -1006,7 +978,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return {
         status: 'available',
         accessToken: currentCredential.accessToken,
-        generation,
+        generation: runtime.generation,
         accessGeneration: currentCredential.accessGeneration
       }
     }
@@ -1019,7 +991,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (!isSignedIn) {
         return Promise.resolve({ status: 'unavailable' })
       }
-      const refreshing = session.currentRefresh(generation)
+      const refreshing = runtime.currentRefresh(runtime.generation)
       const hasRefresh = refreshing != null
       if (hasRefresh) {
         return refreshing
@@ -1040,14 +1012,14 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       const credential = session.current
       const hasCredential = credential != null
       const isSignedIn = state.phase === 'signedIn'
-      const hasSameGeneration = rejected.generation === generation
+      const hasSameGeneration = rejected.generation === runtime.generation
       const canRecover = hasCredential && isSignedIn && hasSameGeneration
       if (!canRecover) {
         return Promise.resolve({ status: 'unavailable' })
       }
       const hasNewerAccess = credential.accessGeneration > rejected.accessGeneration
       if (hasNewerAccess) {
-        const refreshing = session.currentRefresh(generation)
+        const refreshing = runtime.currentRefresh(runtime.generation)
         const hasRefresh = refreshing != null
         const authorization = hasRefresh ? refreshing : Promise.resolve(currentAuthorization())
 
@@ -1073,13 +1045,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return state.failure('AUTH_NOT_ALLOWED')
     }
     const hasWriter = session.hasWriter
-    const hasLogoutFlight = logoutFlight != null
+    const hasLogoutFlight = runtime.logoutFlight != null
     const hasActiveOperation = hasWriter || hasLogoutFlight
     if (hasActiveOperation) {
       return state.failure('AUTH_BUSY')
     }
 
-    const operationGeneration = generation
+    const operationGeneration = runtime.generation
     const recoveryPurpose = state.recoveryPurpose
     const resumesCredential = recoveryPurpose === 'resume-credential'
     if (resumesCredential) {
@@ -1092,7 +1064,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           return state.failure('AUTH_OPERATION_FAILED')
         }
         state.restoring()
-        const canRestore = generation === operationGeneration
+        const canRestore = runtime.generation === operationGeneration
         if (!canRestore) {
           return state.success()
         }
@@ -1100,7 +1072,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         return state.success()
       }
       state.restoring()
-      const canResume = generation === operationGeneration
+      const canResume = runtime.generation === operationGeneration
       if (!canResume) {
         return state.success()
       }
@@ -1127,7 +1099,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           )
         })
       }
-      const isCurrentAfterRecovery = generation === operationGeneration
+      const isCurrentAfterRecovery = runtime.generation === operationGeneration
       if (!isCurrentAfterRecovery) {
         return state.success()
       }
@@ -1144,7 +1116,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
 
     state.restoring()
-    const isCurrentBeforeRetry = generation === operationGeneration
+    const isCurrentBeforeRetry = runtime.generation === operationGeneration
     if (!isCurrentBeforeRetry) {
       return state.success()
     }
@@ -1156,7 +1128,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       } catch {
         inspection = { status: 'unavailable' as const }
       }
-      const isCurrent = generation === operationGeneration
+      const isCurrent = runtime.generation === operationGeneration
       if (!isCurrent) {
         return state.success()
       }
@@ -1172,8 +1144,8 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         await session.runWriter(async () => {
           cleared = await session.clearLocal()
         })
-        const isCurrentAfterClear = generation === operationGeneration
-        const logoutOwnsCleanup = logoutFlight != null
+        const isCurrentAfterClear = runtime.generation === operationGeneration
+        const logoutOwnsCleanup = runtime.logoutFlight != null
         const cleanup = decideLocalCleanup({
           cleared,
           isCurrent: isCurrentAfterClear,
@@ -1196,20 +1168,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
   }
 
   async function performLogout(notice: AuthNotice | null): Promise<AuthCommandResult> {
-    const value = pending
-    generation += 1
-    const logoutGeneration = generation
-    const hasPendingLogin = value != null
-    if (hasPendingLogin) {
-      clearPendingReference(value)
-    }
-    verification.abort()
+    const logoutGeneration = runtime.invalidateForLogout()
     const reservation = session.beginLogout()
     state.signingOut()
 
     const { localConfirmed, serverConfirmed } = await session.finishLogout(reservation)
 
-    const isCurrentLogout = generation === logoutGeneration
+    const isCurrentLogout = runtime.generation === logoutGeneration
     if (!isCurrentLogout) {
       return state.success()
     }
@@ -1225,12 +1190,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
   }
 
   function logout(notice: AuthNotice | null = null): Promise<AuthCommandResult> {
-    const activeLogout = logoutFlight
+    const activeLogout = runtime.logoutFlight
     const hasLogoutFlight = activeLogout != null
     if (hasLogoutFlight) {
       return activeLogout
     }
-    const pendingLogin = pending
+    const pendingLogin = runtime.pending
     const hasPendingLogin = pendingLogin != null
     if (hasPendingLogin) {
       const hasPendingBeforeExchange = pendingLogin.isBeforeExchange
@@ -1246,22 +1211,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       }
     }
 
-    let resolveLogout!: (result: AuthCommandResult) => void
-    let rejectLogout!: (reason: unknown) => void
-    const operation = new Promise<AuthCommandResult>((resolve, reject) => {
-      resolveLogout = resolve
-      rejectLogout = reject
-    })
-    logoutFlight = operation
-    const clearLogout = (): void => {
-      const ownsLogoutFlight = logoutFlight === operation
-      if (ownsLogoutFlight) {
-        logoutFlight = null
-      }
-    }
-    void operation.then(clearLogout, clearLogout)
-    void performLogout(notice).then(resolveLogout, rejectLogout)
-    return operation
+    return runtime.shareLogout(() => performLogout(notice))
   }
 
   async function managePasskeys(): Promise<AuthCommandResult> {
@@ -1278,7 +1228,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
   function captureGeneration(): number | null {
     const isSignedIn = state.phase === 'signedIn'
-    const capturedGeneration = isSignedIn ? generation : null
+    const capturedGeneration = isSignedIn ? runtime.generation : null
 
     return capturedGeneration
   }

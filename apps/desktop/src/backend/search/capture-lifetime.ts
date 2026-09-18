@@ -1,7 +1,14 @@
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
-import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
-import { remainingRetryAfter, waitForRetryAfter, type RetryAfter } from './retry-after'
+import { createActor } from 'xstate'
+import type { SearchOutcome, SearchRuntime } from './request'
+import {
+  slotLifetimeMachine,
+  type SearchRequest,
+  type RequestIdentity,
+  type RateWait
+} from './slot-lifetime-machine'
+import { remainingRetryAfter, type RetryAfter } from './retry-after'
 import { SEARCH_ERRORS } from '../../preload/common/types/search'
 import type {
   SearchCommandError,
@@ -17,18 +24,6 @@ export type CaptureBinding = Readonly<{
   windowGeneration: number
   sourceGeneration: number
 }>
-
-type SearchRequest = {
-  captureId: string
-  slot: number
-  requestId: string
-  observationRevision: number
-  nickname: string
-  controller: AbortController
-  startedAt: number
-}
-type RequestIdentity = Pick<SearchRequest, 'slot' | 'captureId' | 'requestId'>
-type RateWait = RequestIdentity & RetryAfter & { cancel: () => void }
 
 type Options = {
   publish: (snapshot: SearchSnapshot) => void
@@ -63,26 +58,61 @@ function validNickname(nickname: string): boolean {
   return isValid
 }
 
-export class CaptureSearchLifetime {
-  private readonly runId = randomUUID()
-  private revision = 0
-  private binding: CaptureBinding | null = null
-  private slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
-  private readonly requests: Array<SearchRequest | null> = [null, null, null, null]
-  private readonly rateWaits: Array<RateWait | null> = [null, null, null, null]
-
-  constructor(private readonly options: Options) {}
-
-  get current(): CaptureBinding | null {
-    return this.binding
+function retryAfterForFailure(
+  result: Extract<SearchOutcome, { kind: 'failure' }>
+): Pick<RetryAfter, 'seconds' | 'receivedAt'> | null {
+  const seconds = result.error.retryAfterSeconds
+  const receivedAt = result.retryAfterReceivedAt
+  const isRateLimited = result.error.code === 'SEARCH_RATE_LIMITED'
+  const hasRetryAfter = seconds != null
+  const hasReceivedAt = receivedAt != null
+  let retryAfter: { seconds: number; receivedAt: number } | null = null
+  if (hasRetryAfter) {
+    const hasPositiveRetryAfter = seconds > 0
+    const hasWait = hasPositiveRetryAfter && hasReceivedAt
+    if (hasWait) {
+      retryAfter = { seconds, receivedAt }
+    }
   }
+  if (!isRateLimited) {
+    return null
+  }
+  return retryAfter
+}
 
-  snapshot(): SearchSnapshot {
+export type CaptureSearchLifetime = {
+  readonly current: CaptureBinding | null
+  snapshot: () => SearchSnapshot
+  result: (code?: SearchCommandError) => SearchCommandResult
+  begin: (binding: Omit<CaptureBinding, 'captureId'>) => SearchCommandResult
+  end: (captureId: string) => SearchCommandResult
+  invalidate: () => void
+  observe: (input: SearchObservation) => SearchCommandResult
+  clear: (
+    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
+  ) => SearchCommandResult
+  retry: (
+    input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
+  ) => SearchCommandResult
+}
+
+export function createCaptureSearchLifetime(options: Options): CaptureSearchLifetime {
+  const runId = randomUUID()
+  let revision = 0
+  let binding: CaptureBinding | null = null
+  let slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
+  const actors = [0, 1, 2, 3].map(() =>
+    createActor(slotLifetimeMachine, {
+      input: { canComplete, complete, ready: finishRateWait }
+    }).start()
+  )
+
+  function snapshot(): SearchSnapshot {
     return {
-      runId: this.runId,
-      revision: this.revision,
-      captureId: this.binding?.captureId ?? null,
-      slots: this.slots.map((slot) => {
+      runId,
+      revision,
+      captureId: binding?.captureId ?? null,
+      slots: slots.map((slot) => {
         const error = slot.error
         const hasError = error != null
         return {
@@ -94,65 +124,67 @@ export class CaptureSearchLifetime {
     }
   }
 
-  result(code?: SearchCommandError): SearchCommandResult {
-    const snapshot = this.snapshot()
+  function result(code?: SearchCommandError): SearchCommandResult {
+    const currentSnapshot = snapshot()
     const hasError = code != null
-    return hasError ? { ok: false, error: { code }, snapshot } : { ok: true, snapshot }
+    return hasError
+      ? { ok: false, error: { code }, snapshot: currentSnapshot }
+      : { ok: true, snapshot: currentSnapshot }
   }
 
-  begin(binding: Omit<CaptureBinding, 'captureId'>): SearchCommandResult {
-    this.binding = { ...binding, captureId: randomUUID() }
-    this.emit()
-    return this.result()
+  function begin(nextBinding: Omit<CaptureBinding, 'captureId'>): SearchCommandResult {
+    binding = { ...nextBinding, captureId: randomUUID() }
+    emit()
+    return result()
   }
 
-  end(captureId: string): SearchCommandResult {
-    const isCurrentCapture = this.binding?.captureId === captureId
+  function end(captureId: string): SearchCommandResult {
+    const isCurrentCapture = binding?.captureId === captureId
     if (isCurrentCapture) {
-      this.invalidate()
+      invalidate()
     }
-    return this.result()
+    return result()
   }
 
-  invalidate(): void {
-    const hasCapture = this.binding != null
+  function invalidate(): void {
+    const hasCapture = binding != null
     if (!hasCapture) {
       return
     }
-    this.binding = null
+    binding = null
     for (const slot of [0, 1, 2, 3]) {
-      this.cancelSlot(slot)
+      cancelSlot(slot)
     }
-    this.slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
-    this.emit()
+    slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
+    emit()
   }
 
-  observe(input: SearchObservation): SearchCommandResult {
-    const isCurrentCapture = this.binding?.captureId === input.captureId
+  function observe(input: SearchObservation): SearchCommandResult {
+    const isCurrentCapture = binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
-    const previous = this.slots[input.slot]
+    const previous = slots[input.slot]
     const isNewerObservation = input.observationRevision > previous.observationRevision
     if (!isNewerObservation) {
-      return this.result()
+      return result()
     }
     const hasSameNickname = input.nickname === previous.nickname
     if (hasSameNickname) {
-      this.slots[input.slot] = { ...previous, observationRevision: input.observationRevision }
-      const pending = this.requests[input.slot]
-      const hasPending = pending != null
-      if (hasPending) {
-        pending.observationRevision = input.observationRevision
+      slots[input.slot] = { ...previous, observationRevision: input.observationRevision }
+      const actor = actors[input.slot]
+      const pending = actor.getSnapshot().context.request
+      if (pending != null) {
+        actor.send({ type: 'PROMOTE', observationRevision: input.observationRevision })
       }
-      this.emit()
-      return this.result()
+      emit()
+      return result()
     }
 
-    const runtime = this.options.runtime
+    const runtime = options.runtime
     if (runtime == null) {
-      this.cancelSlot(input.slot)
-      this.slots[input.slot] = {
+      cancelSlot(input.slot)
+      slots[input.slot] = {
         slot: input.slot,
         observationRevision: input.observationRevision,
         requestId: randomUUID(),
@@ -164,50 +196,50 @@ export class CaptureSearchLifetime {
           retryAfterSeconds: null
         }
       }
-      this.emit()
-      return this.result()
+      emit()
+      return result()
     }
-    return this.startRequest({ input, runtime })
+    return startRequest({ input, runtime })
   }
 
-  clear(
+  function clear(
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
   ): SearchCommandResult {
-    const isCurrentCapture = this.binding?.captureId === input.captureId
+    const isCurrentCapture = binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
-    const isNewer = input.observationRevision > this.slots[input.slot].observationRevision
+    const isNewer = input.observationRevision > slots[input.slot].observationRevision
     if (isNewer) {
-      this.cancelSlot(input.slot)
-      this.slots[input.slot] = idleSlot(input)
-      this.emit()
+      cancelSlot(input.slot)
+      slots[input.slot] = idleSlot(input)
+      emit()
     }
-    return this.result()
+    return result()
   }
 
-  retry(
+  function retry(
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.RETRY }>
   ): SearchCommandResult {
-    const slot = this.slots[input.slot]
-    const isCurrent = this.isCurrentSlot(input)
+    const slot = slots[input.slot]
+    const isCurrent = isCurrentSlot(input)
     if (!isCurrent) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const error = slot.error
     const isFailure = slot.state === 'failure'
     const hasError = error != null
     if (!isFailure) {
-      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     if (!hasError) {
-      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const isRetryable = SEARCH_ERRORS[error.code].retryable
     if (!isRetryable) {
-      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
-    const wait = this.rateWaits[input.slot]
+    const wait = actors[input.slot].getSnapshot().context.wait
     const hasWait = wait != null
     let isWaiting = false
     if (hasWait) {
@@ -215,17 +247,17 @@ export class CaptureSearchLifetime {
       isWaiting = remaining > 0
     }
     if (isWaiting) {
-      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
-    const runtime = this.options.runtime
+    const runtime = options.runtime
     const nickname = slot.nickname
     const hasRuntime = runtime != null
     const hasNickname = nickname != null
     const canStart = hasRuntime && hasNickname
     if (!canStart) {
-      return this.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
+      return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
-    return this.startRequest({
+    return startRequest({
       input: {
         captureId: input.captureId,
         slot: input.slot,
@@ -236,7 +268,7 @@ export class CaptureSearchLifetime {
     })
   }
 
-  private startRequest({
+  function startRequest({
     input,
     runtime
   }: {
@@ -244,23 +276,23 @@ export class CaptureSearchLifetime {
     runtime: SearchRuntime
   }): SearchCommandResult {
     const startedAt = runtime.clock.read().monotonicMs
-    this.cancelSlot(input.slot)
-    const binding = this.binding
-    const hasBinding = binding != null
+    cancelSlot(input.slot)
+    const currentBinding = binding
+    const hasBinding = currentBinding != null
     if (!hasBinding) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
-    const hasSameCapture = binding.captureId === input.captureId
+    const hasSameCapture = currentBinding.captureId === input.captureId
     if (!hasSameCapture) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
-    const hasPermission = this.options.isCurrent(binding)
+    const hasPermission = options.isCurrent(currentBinding)
     if (!hasPermission) {
-      return this.result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const requestId = randomUUID()
     const isValidInput = validNickname(input.nickname)
-    this.slots[input.slot] = {
+    slots[input.slot] = {
       slot: input.slot,
       observationRevision: input.observationRevision,
       requestId,
@@ -272,72 +304,51 @@ export class CaptureSearchLifetime {
     const request = {
       ...input,
       requestId,
-      controller: new AbortController(),
-      startedAt
+      startedAt,
+      runtime
     }
     if (isValidInput) {
-      this.requests[input.slot] = request
+      actors[input.slot].send({ type: 'PREPARE', request })
     }
-    this.emit()
+    emit()
     if (isValidInput) {
-      void this.execute(request, runtime)
+      actors[input.slot].send({ type: 'EXECUTE', request })
     }
-    return this.result()
+    return result()
   }
 
-  private cancelSlot(slot: number): void {
-    const request = this.requests[slot]
-    const wait = this.rateWaits[slot]
-    this.requests[slot] = null
-    this.rateWaits[slot] = null
-    wait?.cancel()
-    request?.controller.abort()
+  function cancelSlot(slot: number): void {
+    actors[slot].send({ type: 'CANCEL' })
   }
 
-  private isCurrentSlot(request: RequestIdentity): boolean {
-    const binding = this.binding
-    const hasBinding = binding != null
+  function isCurrentSlot(request: RequestIdentity): boolean {
+    const currentBinding = binding
+    const hasBinding = currentBinding != null
     let hasPermission = false
     if (hasBinding) {
-      hasPermission = this.options.isCurrent(binding)
+      hasPermission = options.isCurrent(currentBinding)
     }
     let hasSameCapture = false
     if (hasBinding) {
-      hasSameCapture = binding.captureId === request.captureId
+      hasSameCapture = currentBinding.captureId === request.captureId
     }
-    const hasSameRequestId = this.slots[request.slot].requestId === request.requestId
+    const hasSameRequestId = slots[request.slot].requestId === request.requestId
     const isCurrent = hasPermission && hasSameCapture && hasSameRequestId
     return isCurrent
   }
 
-  private canComplete(request: SearchRequest): boolean {
-    const isCurrentSlot = this.isCurrentSlot(request)
-    const hasSameRequest = this.requests[request.slot] === request
+  function canComplete(request: SearchRequest): boolean {
+    const currentSlotMatches = isCurrentSlot(request)
+    const hasSameRequest = actors[request.slot].getSnapshot().context.request === request
     const hasSameObservation =
-      this.slots[request.slot].observationRevision === request.observationRevision
-    const canComplete = isCurrentSlot && hasSameRequest && hasSameObservation
+      slots[request.slot].observationRevision === request.observationRevision
+    const canComplete = currentSlotMatches && hasSameRequest && hasSameObservation
     return canComplete
   }
 
-  private async execute(request: SearchRequest, runtime: SearchRuntime): Promise<void> {
-    let outcome: SearchOutcome
-    try {
-      outcome = await runSearchRequest({
-        runtime,
-        nickname: request.nickname,
-        startedAt: request.startedAt,
-        signal: request.controller.signal,
-        isCurrent: () => this.canComplete(request)
-      })
-    } catch {
-      outcome = {
-        kind: 'failure',
-        error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null },
-        retryAfterReceivedAt: null
-      }
-    }
+  function complete(request: SearchRequest, outcome: SearchOutcome): void {
     const result = outcome
-    const isCurrentRequest = this.canComplete(request)
+    const isCurrentRequest = canComplete(request)
     const hasOutcome = result != null
     const canPublish = isCurrentRequest && hasOutcome
     if (!canPublish) {
@@ -346,89 +357,85 @@ export class CaptureSearchLifetime {
     const isSuccess = result.kind === 'success'
     if (isSuccess) {
       const hasRows = result.rows.length > 0
-      this.slots[request.slot] = {
-        ...this.slots[request.slot],
+      slots[request.slot] = {
+        ...slots[request.slot],
         state: hasRows ? 'success' : 'empty',
         rows: result.rows,
         error: null
       }
     } else {
-      this.slots[request.slot] = {
-        ...this.slots[request.slot],
+      slots[request.slot] = {
+        ...slots[request.slot],
         state: 'failure',
         rows: [],
         error: result.error
       }
     }
-    this.requests[request.slot] = null
-    this.emit()
+    actors[request.slot].send({ type: 'FINISH', request })
+    emit()
     if (!isSuccess) {
-      const seconds = result.error.retryAfterSeconds
-      const receivedAt = result.retryAfterReceivedAt
-      const isRateLimited = result.error.code === 'SEARCH_RATE_LIMITED'
-      const hasRetryAfter = seconds != null
-      const hasReceivedAt = receivedAt != null
-      let retryAfter: { seconds: number; receivedAt: number } | null = null
-      if (hasRetryAfter) {
-        const hasPositiveRetryAfter = seconds > 0
-        const hasWait = hasPositiveRetryAfter && hasReceivedAt
-        if (hasWait) {
-          retryAfter = { seconds, receivedAt }
-        }
-      }
-      if (!isRateLimited) {
-        return
-      }
+      const retryAfter = retryAfterForFailure(result)
       if (retryAfter == null) {
         return
       }
-      const isCurrentSlot = this.isCurrentSlot(request)
-      if (!isCurrentSlot) {
+      const currentSlotMatches = isCurrentSlot(request)
+      if (!currentSlotMatches) {
         return
       }
-      this.startRateWait(request, { clock: runtime.clock, ...retryAfter })
+      startRateWait(request, { clock: request.runtime.clock, ...retryAfter })
     }
   }
 
-  private startRateWait(request: RequestIdentity, retryAfter: RetryAfter): void {
+  function startRateWait(request: RequestIdentity, retryAfter: RetryAfter): void {
     const wait: RateWait = {
       slot: request.slot,
       captureId: request.captureId,
       requestId: request.requestId,
-      ...retryAfter,
-      cancel: () => undefined
+      ...retryAfter
     }
-    this.rateWaits[request.slot] = wait
-    wait.cancel = waitForRetryAfter({
-      ...retryAfter,
-      onReady: () => {
-        const isCurrentWait = this.rateWaits[wait.slot] === wait
-        const canPublish = isCurrentWait && this.isCurrentSlot(wait)
-        if (!canPublish) {
-          return
-        }
-        this.rateWaits[wait.slot] = null
-        this.slots[wait.slot] = {
-          ...this.slots[wait.slot],
-          error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
-        }
-        this.emit()
-      }
-    })
+    actors[request.slot].send({ type: 'WAIT', wait })
   }
 
-  private emit(): void {
-    const binding = this.binding
-    const hasBinding = binding != null
+  function finishRateWait(wait: RateWait): void {
+    const isCurrentWait = actors[wait.slot].getSnapshot().context.wait === wait
+    const canPublish = isCurrentWait && isCurrentSlot(wait)
+    if (!canPublish) {
+      return
+    }
+    actors[wait.slot].send({ type: 'FINISH_WAIT', wait })
+    slots[wait.slot] = {
+      ...slots[wait.slot],
+      error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
+    }
+    emit()
+  }
+
+  function emit(): void {
+    const currentBinding = binding
+    const hasBinding = currentBinding != null
     if (hasBinding) {
-      const hasPermission = this.options.isCurrent(binding)
+      const hasPermission = options.isCurrent(currentBinding)
       const isInvalidated = !hasPermission
       if (isInvalidated) {
-        this.invalidate()
+        invalidate()
         return
       }
     }
-    this.revision += 1
-    this.options.publish(this.snapshot())
+    revision += 1
+    options.publish(snapshot())
+  }
+
+  return {
+    get current(): CaptureBinding | null {
+      return binding
+    },
+    snapshot,
+    result,
+    begin,
+    end,
+    invalidate,
+    observe,
+    clear,
+    retry
   }
 }
