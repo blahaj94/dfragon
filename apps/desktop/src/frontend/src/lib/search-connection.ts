@@ -1,11 +1,13 @@
-import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
+import { createActor } from 'xstate'
+import type { ActorRefFrom, SnapshotFrom } from 'xstate'
 import type {
   SearchApi,
   SearchCommandResult,
   SearchControl,
   SearchSnapshot
 } from '../../../preload/common/types/search'
-import { parseSearchResult, parseSearchSnapshot } from '../../../preload/common/search/snapshot'
+import { parseSearchResult } from '../../../preload/common/search/snapshot'
+import { readSearchSnapshot, searchConnectionMachine } from './search-connection-machine'
 
 type ConnectionOptions = {
   api: SearchApi
@@ -14,81 +16,52 @@ type ConnectionOptions = {
   onRunChanged: () => void
 }
 
-/** 검색 IPC 구독과 초기 조회를 동기화하고 run·revision 순서에 맞는 상태만 전달한다. */
+/** 연결별 actor로 구독·조회 수명을 격리하고, 명령의 직접 응답은 호출자에게 돌려준다. */
 export class SearchConnection {
-  private active = true
-  private synchronized = false
-  private epoch = 0
-  private current: SearchSnapshot | null = null
-  private unsubscribe: () => void = () => {}
+  private actor: ActorRefFrom<typeof searchConnectionMachine>
 
-  constructor(private readonly options: ConnectionOptions) {}
+  constructor(private readonly options: ConnectionOptions) {
+    this.actor = createActor(searchConnectionMachine, { input: { api: options.api } })
+  }
 
   get ready(): boolean {
-    return this.synchronized
+    const state = this.actor.getSnapshot()
+    return state.status === 'active' && state.hasTag('ready')
   }
 
   connect(): void {
-    this.synchronized = false
-    this.unsubscribe()
-    this.epoch += 1
-    const expected = this.epoch
-    this.current = null
-    this.options.onSnapshot(null)
-    let ready = false
-    let queued: SearchSnapshot | null = null
-    try {
-      this.unsubscribe = this.options.api.onCharacterSearchChanged((value) => {
-        const isCurrent = this.isCurrent(expected)
-        if (!isCurrent) {
-          return
-        }
-        const snapshot = parseSearchSnapshot(value)
-        const isValid = snapshot != null
-        if (!isValid) {
-          return
-        }
-        if (ready) {
-          this.accept(snapshot, expected)
-          return
-        }
-        const previousQueued = queued
-        const hasQueued = previousQueued != null
-        if (!hasQueued) {
-          queued = snapshot
-          return
-        }
-        const hasSameRun = previousQueued.runId === snapshot.runId
-        if (!hasSameRun) {
-          queued = snapshot
-          return
-        }
-        const isOlder = snapshot.revision <= previousQueued.revision
-        if (!isOlder) {
-          queued = snapshot
-        }
-      })
-      void this.read(expected).then((synchronized) => {
-        const isCurrent = this.isCurrent(expected)
-        if (!isCurrent) {
-          queued = null
-          return
-        }
-        if (!synchronized) {
-          queued = null
-          return
-        }
-        ready = true
-        const buffered = queued
-        queued = null
-        const hasBuffered = buffered != null
-        if (hasBuffered) {
-          this.accept(buffered, expected)
-        }
-      })
-    } catch {
-      this.options.onFailure()
+    if (this.actor.getSnapshot().status === 'stopped') {
+      return
     }
+    this.actor.stop()
+    const actor = createActor(searchConnectionMachine, { input: { api: this.options.api } })
+    this.actor = actor
+    let previous: SnapshotFrom<typeof searchConnectionMachine> | undefined
+    actor.subscribe((state) => {
+      if (state.status === 'done') {
+        this.options.onRunChanged()
+        this.connect()
+        return
+      }
+      const failed = state.hasTag('failed')
+      // 실패 뒤 event가 표시를 회복했어도 다음 조회 실패는 다시 알려야 한다.
+      const readFailed =
+        failed && state.context.snapshot == null && previous?.context !== state.context
+      const changed =
+        readFailed ||
+        previous == null ||
+        previous.context.snapshot !== state.context.snapshot ||
+        previous.hasTag('ready') !== state.hasTag('ready') ||
+        previous.hasTag('failed') !== failed
+      previous = state
+      if (changed) {
+        this.options.onSnapshot(state.context.snapshot)
+      }
+      if (readFailed) {
+        this.options.onFailure()
+      }
+    })
+    actor.start()
   }
 
   async command(control: SearchControl): Promise<SearchCommandResult | null> {
@@ -96,92 +69,36 @@ export class SearchConnection {
   }
 
   async invoke(send: () => Promise<SearchCommandResult>): Promise<SearchCommandResult | null> {
-    const expected = this.epoch
+    const actor = this.actor
     try {
       const result = parseSearchResult(await send())
-      const isValid = result != null
-      if (!isValid) {
+      if (result == null) {
         throw new Error('Invalid search bridge response')
       }
-      this.accept(result.snapshot, expected)
+      if (actor.getSnapshot().status === 'active') {
+        actor.send({ type: 'RESULT', snapshot: result.snapshot })
+      }
+      // 종료된 연결의 늦은 begin도 직접 받은 ID로 main capture를 정리해야 한다.
       return result
     } catch {
-      const isCurrent = this.isCurrent(expected)
-      if (isCurrent) {
-        await this.read(expected)
+      if (actor.getSnapshot().status === 'active') {
+        try {
+          const snapshot = await readSearchSnapshot(this.options.api)
+          if (actor.getSnapshot().status === 'active') {
+            actor.send({ type: 'READ_SUCCEEDED', snapshot })
+          }
+        } catch {
+          if (actor.getSnapshot().status === 'active') {
+            actor.send({ type: 'READ_FAILED' })
+          }
+        }
       }
-      // 응답이 유실된 mutation은 재전송하거나 성공한 명령으로 합성하지 않는다.
+      // 슬롯별 명령은 병렬로 유지하며 유실된 mutation을 재전송하거나 성공으로 합성하지 않는다.
       return null
     }
   }
 
   dispose(): void {
-    this.synchronized = false
-    this.active = false
-    this.epoch += 1
-    this.unsubscribe()
-  }
-
-  private isCurrent(expected: number): boolean {
-    const hasSameEpoch = expected === this.epoch
-    const isActive = this.active
-    const isCurrent = isActive && hasSameEpoch
-    return isCurrent
-  }
-
-  private async read(expected: number): Promise<boolean> {
-    try {
-      const result = parseSearchResult(
-        await this.options.api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ })
-      )
-      const isValid = result != null
-      if (!isValid) {
-        throw new Error('Invalid search bridge response')
-      }
-      const isCurrent = this.isCurrent(expected)
-      if (!isCurrent) {
-        return false
-      }
-      this.synchronized = true
-      this.accept(result.snapshot, expected)
-      const isCurrentAfterAccept = this.isCurrent(expected)
-      if (!isCurrentAfterAccept) {
-        return false
-      }
-      const isSynchronized = this.synchronized
-      return isSynchronized
-    } catch {
-      const isCurrent = this.isCurrent(expected)
-      if (isCurrent) {
-        this.synchronized = false
-        this.current = null
-        this.options.onSnapshot(null)
-        this.options.onFailure()
-      }
-      return false
-    }
-  }
-
-  private accept(snapshot: SearchSnapshot, expected: number): void {
-    const isCurrent = this.isCurrent(expected)
-    if (!isCurrent) {
-      return
-    }
-    const previous = this.current
-    const hasPrevious = previous != null
-    if (hasPrevious) {
-      const hasChangedRun = previous.runId !== snapshot.runId
-      if (hasChangedRun) {
-        this.options.onRunChanged()
-        this.connect()
-        return
-      }
-      const isNewer = snapshot.revision > previous.revision
-      if (!isNewer) {
-        return
-      }
-    }
-    this.current = snapshot
-    this.options.onSnapshot(snapshot)
+    this.actor.stop()
   }
 }

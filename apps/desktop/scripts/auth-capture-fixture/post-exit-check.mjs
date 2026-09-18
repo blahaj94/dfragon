@@ -30,7 +30,7 @@ const expectedSearchEvidence = {
   rateWait: true,
   rateNoAutoGet: true,
   pendingCleanup: true,
-  relogin: true,
+  restartReady: true,
   newCapture: true,
   displayRequests: 4,
   displayAllowed: 4,
@@ -244,8 +244,8 @@ function reportSearchStages(output, { reportDiagnostic }) {
       'mixed',
       'rate-wait',
       'timeout',
-      'pending-logout',
-      'relogin',
+      'pending-login-logout-stop',
+      'restart',
       'layout',
       'final-cleanup'
     ].includes(stage)

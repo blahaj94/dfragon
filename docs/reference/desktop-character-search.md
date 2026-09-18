@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop OCR character search implementation and isolated verification
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-19
 ---
 
 # Desktop 캐릭터 검색
@@ -22,12 +22,14 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 | `apps/desktop/src/backend/search/retry-after.ts`                                                                                                       | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                         | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                            | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
-| `apps/desktop/src/frontend/src/lib/search-connection.ts`                                                                                               | 구독 후 read, run/revision 순서, 유실된 명령의 조회만 재시도하는 연결 수명을 소유한다.                                                                               |
+| `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                               | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                                     | Start별 수명, 로컬 관측 revision, 즉시 표시 제거와 슬롯별 retry 진행 상태를 연결한다.                                                                                |
 | `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
 | `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                             | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
 
 Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. 응답이 유실되면 read로 상태를 확인하지만 그 결과의 ID를 늦은 Start의 소유로 추정해 end하지 않는다. 해당 시작은 창을 다시 선택하도록 안내하며 같은 begin을 자동 재전송하지 않는다. 새 source 선택은 기존 main 선택/capture 무효화 경로를 사용한다.
+
+검색 연결마다 별도 XState actor를 사용한다. 구독의 초기 기준과 마지막 조회의 성공 여부를 병렬 상태로 표현한다. 이미 초기 기준을 세운 연결은 복구 조회에 실패해도 후속 event를 표시할 수 있지만, 다시 조회에 성공하기 전까지 새 begin은 차단한다. 초기 조회 성공 전 event는 최신 revision만 보류하며, 재연결·dispose는 이전 actor와 구독을 종료한다. 슬롯별 명령은 직렬화하지 않고 직접 응답을 각각 돌려준다. 종료된 actor에는 명령·복구 조회 결과를 반영하지 않지만, 늦은 begin의 직접 응답과 그 ID의 end 전송은 캡처 정리를 위해 유지한다.
 
 검색 run이 바뀌면 이전 구독·표시·capture resource를 버리고 새 검색 조회를 시작한다. 초기 read가 성공하기 전에는 Start와 직접 begin 호출을 차단하며, 조회 실패 시 기존 앱 화면 다시 열기 안내를 유지하고 event만으로 회복하거나 자동 재시도하지 않는다. 로컬 관측·clear·Stop·source 변경은 main 응답을 기다리지 않고 이전 표시를 가린다. Renderer와 preload는 같은 DTO 검증기를 각각의 경계에서 사용한다.
 
@@ -102,7 +104,7 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 
 `search-observation.ts`는 기존 read API와 실제 DOM의 문구·버튼·후보 field를 별도로 읽는다. Capture/request 식별자는 실행 중 전후 비교에만 사용하며 원문 DOM·nickname·source ID는 로그에 남기지 않는다. 최종 search evidence는 관측한 mask·boolean·요청/abort counter로 구성한다. Post-exit wrapper는 exact evidence, child 성공, native 거절/미처리 오류 부재, process group 종료와 profile 부재를 함께 요구한다. 실패 시 고정 단계만 전달한다.
 
-시간 제한은 새 모드에만 fixture 180초·launcher 210초·post-exit 240초를 적용한다. 네 capture 시작과 두 로그인, 동시에 진행하는 15초/5초 대기 및 cleanup의 전체 상한이며 완료 시간 보장은 아니다. 각 바깥 계층에 종료·정리 여유 30초를 둔다. 기존 모드는 90/120/150초, 제품 검색 예산은 15초를 유지한다.
+시간 제한은 새 모드에만 fixture 180초·launcher 210초·post-exit 240초를 적용한다. 네 capture 시작과 로그인·로그아웃, 동시에 진행하는 15초/5초 대기 및 cleanup의 전체 상한이며 완료 시간 보장은 아니다. 각 바깥 계층에 종료·정리 여유 30초를 둔다. 기존 모드는 90/120/150초, 제품 검색 예산은 15초를 유지한다.
 
 소유 window의 640/1100 content 폭과 app-scoped light/dark 전환은 별도 `layout evidence`의 표본 수·가로 overflow 수·theme 불일치 수로 기록한다. 이 보조 관측을 핵심 검색 PASS나 공식 시각 기준 비교의 성공으로 합치지 않는다. OS 설정은 변경하지 않는다. 실제 Tab/Shift+Tab/Return/Space와 focus/loading의 수동 관측은 별도 evidence이며 이 자동화는 native keyboard 검증을 대신하지 않는다. Reduced-motion·픽셀 비교·다른 OS는 이 모드에서 검증하지 않는다. Source/test/build 성공과 실제 native 실행 결과는 Issue/PR에서 구분해 기록한다.
 
