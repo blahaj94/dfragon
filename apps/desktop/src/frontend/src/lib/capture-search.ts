@@ -1,3 +1,4 @@
+import { createActor, type ActorRefFrom } from 'xstate'
 import type { SearchView } from '../types/search'
 import { emptySearchSlots } from './slots'
 import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
@@ -10,13 +11,8 @@ import {
   type SearchSnapshot
 } from '../../../preload/common/types/search'
 import { SearchConnection } from './search-connection'
+import { captureSearchMachine } from './capture-search-machine'
 
-type CaptureTicket = {
-  active: boolean
-  captureId: string | null
-  revisions: number[]
-  cleared: boolean[]
-}
 type SearchOptions = {
   api: SearchApi
   notify: (observation: SearchObservation) => Promise<SearchCommandResult>
@@ -27,7 +23,9 @@ type SearchOptions = {
 /** 캡처별 검색 수명과 슬롯 관측·재시도를 관리하고 화면에 전달할 검색 상태를 만든다. */
 export class CaptureSearch {
   private readonly connection: SearchConnection
-  private capture: CaptureTicket | null = null
+  private readonly lifetime: ActorRefFrom<typeof captureSearchMachine>
+  private revisions = [0, 0, 0, 0]
+  private cleared = [true, true, true, true]
   private snapshot: SearchSnapshot | null = null
   private pending = new Map<number, string>()
   private failed = false
@@ -40,7 +38,24 @@ export class CaptureSearch {
         this.failed = true
         this.publish()
       },
-      onRunChanged: () => this.invalidate()
+      onRunChanged: () => this.lifetime.send({ type: 'INVALIDATE' })
+    })
+    this.lifetime = createActor(captureSearchMachine, {
+      input: {
+        command: (control) => this.connection.command(control),
+        readSnapshot: () => this.snapshot,
+        resetObservations: () => {
+          this.revisions = [0, 0, 0, 0]
+          this.cleared = [true, true, true, true]
+          this.pending.clear()
+        }
+      }
+    }).start()
+    this.lifetime.subscribe((state) => {
+      if (state.matches('invalidated')) {
+        this.options.onInvalidated()
+      }
+      this.publish()
     })
   }
 
@@ -49,108 +64,30 @@ export class CaptureSearch {
   }
 
   async begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
-    if (!this.connection.ready) {
+    if (!this.connection.ready || this.lifetime.getSnapshot().status !== 'active') {
       return null
     }
-    this.end()
-    const ticket: CaptureTicket = {
-      active: true,
-      captureId: null,
-      revisions: [0, 0, 0, 0],
-      cleared: [true, true, true, true]
-    }
-    this.capture = ticket
-    this.publish()
-    const result = await this.connection.command({
-      action: SEARCH_ACTIONS.BEGIN
-    })
-    const isBeginSuccessful = result?.ok === true
-    const captureId = isBeginSuccessful ? result.snapshot.captureId : null
-    const hasCaptureId = captureId != null
-    const hasCurrentTicket = this.capture === ticket
-    let isCurrentTicket = false
-    if (hasCurrentTicket) {
-      const isTicketActive = ticket.active
-      isCurrentTicket = isTicketActive
-    }
-    const latest = this.snapshot
-    const completed = result?.snapshot
-    const hasLatestSnapshot = latest != null
-    const hasCompletedSnapshot = completed != null
-    let isSuperseded = false
-    if (hasLatestSnapshot) {
-      if (hasCompletedSnapshot) {
-        const hasChangedRun = latest.runId !== completed.runId
-        const hasNewerSnapshot = latest.revision > completed.revision
-        const hasDifferentCapture = latest.captureId !== captureId
-        const hasNewerDifferentCapture = hasNewerSnapshot && hasDifferentCapture
-        isSuperseded = hasChangedRun || hasNewerDifferentCapture
-      } else {
-        const hasDifferentCapture = latest.captureId !== captureId
-        isSuperseded = hasDifferentCapture && hasCompletedSnapshot
-      }
-    }
-    const isSignalAborted = signal.aborted
-    const isCancelled = isSignalAborted || !isCurrentTicket || isSuperseded
-    if (isCancelled) {
-      if (isCurrentTicket) {
-        ticket.active = false
-        this.capture = null
-        this.publish()
-      }
-      // begin 자체의 성공 응답만 이 Start의 소유 ID를 증명한다. read의 ID는 사용하지 않는다.
-      if (hasCaptureId) {
-        void this.connection.command({ action: SEARCH_ACTIONS.END, captureId })
-      }
-      return null
-    }
-    if (!hasCaptureId) {
-      this.capture = null
-      ticket.active = false
-      this.publish()
-      return null
-    }
-    ticket.captureId = captureId
-    this.publish()
-    return captureId
+    const { promise, resolve, reject } = Promise.withResolvers<string | null>()
+    this.lifetime.send({ type: 'BEGIN', signal, resolve, reject })
+    return promise
   }
 
   end(): void {
-    const ticket = this.capture
-    this.capture = null
-    this.pending.clear()
-    const hasTicket = ticket != null
-    if (hasTicket) {
-      ticket.active = false
-      const captureId = ticket.captureId
-      const hasId = captureId != null
-      if (hasId) {
-        void this.connection.command({ action: SEARCH_ACTIONS.END, captureId })
-      }
+    if (this.lifetime.getSnapshot().status === 'active') {
+      this.lifetime.send({ type: 'END' })
     }
-    this.publish()
   }
 
   observe({ slot, nickname }: { slot: number; nickname: string | null }): void {
-    const ticket = this.capture
-    const captureId = ticket?.captureId
-    const hasTicket = ticket != null
-    if (!hasTicket) {
+    const captureId = this.lifetime.getSnapshot().context.captureId
+    if (captureId == null) {
       return
     }
-    const isTicketActive = ticket.active
-    const hasCaptureId = captureId != null
-    if (!isTicketActive) {
-      return
-    }
-    if (!hasCaptureId) {
-      return
-    }
-    ticket.revisions[slot] += 1
+    this.revisions[slot] += 1
     const isClear = nickname === null
-    ticket.cleared[slot] = isClear
+    this.cleared[slot] = isClear
     this.pending.delete(slot)
-    const observationRevision = ticket.revisions[slot]
+    const observationRevision = this.revisions[slot]
     this.publish()
     if (isClear) {
       void this.connection.command({
@@ -167,7 +104,7 @@ export class CaptureSearch {
   }
 
   async retry(slotIndex: number): Promise<void> {
-    const captureId = this.capture?.captureId
+    const captureId = this.lifetime.getSnapshot().context.captureId
     const slot = this.visibleSlots()[slotIndex]
     const error = slot.error
     const isFailureState = slot.state === 'failure'
@@ -212,7 +149,9 @@ export class CaptureSearch {
   }
 
   dispose(): void {
-    this.end()
+    if (this.lifetime.getSnapshot().status === 'active') {
+      this.lifetime.send({ type: 'DISPOSE' })
+    }
     this.connection.dispose()
   }
 
@@ -222,59 +161,38 @@ export class CaptureSearch {
     if (hasSnapshot) {
       this.failed = false
     }
-    const hasActiveId = this.capture?.captureId != null
+    const hasActiveId = this.lifetime.getSnapshot().context.captureId != null
     if (hasSnapshot) {
       const hasEnded = snapshot.captureId === null
       const isInvalidated = hasActiveId && hasEnded
       if (isInvalidated) {
-        this.invalidate()
+        this.lifetime.send({ type: 'INVALIDATE' })
       }
     }
     this.publish()
   }
 
-  private invalidate(): void {
-    const ticket = this.capture
-    this.capture = null
-    this.pending.clear()
-    const hasTicket = ticket != null
-    if (hasTicket) {
-      ticket.active = false
-    }
-    this.options.onInvalidated()
-    this.publish()
-  }
-
   private visibleSlots(): readonly SearchSlot[] {
-    const ticket = this.capture
+    const captureId = this.lifetime.getSnapshot().context.captureId
     const snapshot = this.snapshot
-    const hasTicket = ticket != null
-    if (!hasTicket) {
-      return emptySearchSlots()
-    }
-    const isTicketActive = ticket.active
-    if (!isTicketActive) {
-      return emptySearchSlots()
-    }
-    const hasCaptureId = ticket.captureId != null
-    if (!hasCaptureId) {
+    if (captureId == null) {
       return emptySearchSlots()
     }
     const hasSnapshot = snapshot != null
     if (!hasSnapshot) {
       return emptySearchSlots()
     }
-    const hasSameCapture = ticket.captureId === snapshot.captureId
+    const hasSameCapture = captureId === snapshot.captureId
     if (!hasSameCapture) {
       return emptySearchSlots()
     }
     const empty = emptySearchSlots()
     return snapshot.slots.map((slot) => {
-      const observedRevision = ticket.revisions[slot.slot]
+      const observedRevision = this.revisions[slot.slot]
       const hasObserved = observedRevision > 0
       const isCurrent = slot.observationRevision >= observedRevision
       const isIdle = slot.state === 'idle'
-      const isCleared = ticket.cleared[slot.slot]
+      const isCleared = this.cleared[slot.slot]
       const canShow = isCurrent && (isIdle || (hasObserved && !isCleared))
       return canShow ? slot : empty[slot.slot]
     })
@@ -283,7 +201,7 @@ export class CaptureSearch {
   private publish(): void {
     this.options.onChange({
       ready: this.connection.ready,
-      captureActive: this.capture?.active === true && this.capture.captureId != null,
+      captureActive: this.lifetime.getSnapshot().matches('active'),
       slots: this.visibleSlots(),
       retryPending: Array.from({ length: 4 }, (_, slot) => {
         const isPending = this.pending.has(slot)
