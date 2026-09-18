@@ -87,7 +87,7 @@ const ocrWorker = vi.hoisted(() => ({
   terminate: vi.fn(async () => undefined)
 }))
 
-vi.mock('../sections/capture/ocr', () => ({
+vi.mock('../sections/ocr', () => ({
   createPartyOcrWorker: vi.fn(async () => ocrWorker)
 }))
 

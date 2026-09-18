@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './DetailDeck.style'
-import { serverNames } from '../../constants/servers'
-import { detailFaces } from '../../constants/cards'
-import type { CardCharacter } from '../../types/cards'
+import { serverNames } from '../constants/servers'
+import { detailFaces } from '../constants/cards'
+import type { CardCharacter } from '../types/cards'
 import { EquipmentGrid } from './EquipmentGrid'
-import { InvestmentTable } from '../../components/InvestmentTable'
+import { InvestmentTable } from '../components/InvestmentTable'
 
 export function DetailDeck({ character }: { character: CardCharacter }): React.JSX.Element {
   const [selected, setSelected] = useState(0)

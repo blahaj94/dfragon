@@ -1,8 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
-import { SEARCH_ERRORS, type SearchSlot } from '../../../../preload/common/types/search'
-import { CharacterCandidates } from '../../components/CharacterCandidates'
+import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
+import { CharacterCandidates } from '../components/CharacterCandidates'
 import { styles } from './SlotResult.style'
 
 export function SlotResult({

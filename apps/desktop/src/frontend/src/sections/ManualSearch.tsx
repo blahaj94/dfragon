@@ -7,11 +7,11 @@ import {
   TextField,
   TextFieldInput
 } from '@ldb/ui'
-import { SEARCH_ERRORS, type ManualSearchApi } from '../../../../preload/common/types/search'
+import { SEARCH_ERRORS, type ManualSearchApi } from '../../../preload/common/types/search'
 import { CaptureSearch } from './capture-search'
-import { emptySearchSlots } from '../../lib/slots'
-import type { SearchView } from '../../types/search'
-import { validManualNickname } from '../../lib/manual-input'
+import { emptySearchSlots } from '../lib/slots'
+import type { SearchView } from '../types/search'
+import { validManualNickname } from '../lib/manual-input'
 import { SlotResult } from './SlotResult'
 
 type ManualSession = {

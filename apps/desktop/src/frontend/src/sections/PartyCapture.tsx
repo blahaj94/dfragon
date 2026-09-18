@@ -1,26 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, ContentStack, SupportingText } from '@ldb/ui'
-import { SearchResults } from '../search/SearchResults'
-import { usePartyCapture } from '../../hooks/usePartyCapture'
-
-const styles = stylex.create({
-  field: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 'var(--seed-dimension-x2)'
-  },
-  actions: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 'var(--seed-dimension-x3)'
-  },
-  status: {
-    whiteSpace: 'pre-wrap',
-    overflowWrap: 'anywhere',
-    fontFamily: 'inherit',
-    margin: 0
-  }
-})
+import { SearchResults } from './SearchResults'
+import { styles } from './PartyCapture.style'
+import { usePartyCapture } from '../hooks/usePartyCapture'
 
 function PartyCapture(): React.JSX.Element {
   const {

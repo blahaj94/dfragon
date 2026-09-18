@@ -1,6 +1,6 @@
-import type { SearchView } from '../../types/search'
-import { emptySearchSlots } from '../../lib/slots'
-import { SEARCH_ACTIONS } from '../../../../preload/common/types/search'
+import type { SearchView } from '../types/search'
+import { emptySearchSlots } from '../lib/slots'
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import {
   SEARCH_ERRORS,
   type SearchApi,
@@ -8,7 +8,7 @@ import {
   type SearchCommandResult,
   type SearchSlot,
   type SearchSnapshot
-} from '../../../../preload/common/types/search'
+} from '../../../preload/common/types/search'
 import { SearchConnection } from './connection'
 
 type CaptureTicket = {

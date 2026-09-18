@@ -14,8 +14,8 @@ import {
 import App from '../../App'
 
 const media = vi.hoisted(() => ({ crops: vi.fn(), worker: vi.fn(), loop: vi.fn() }))
-vi.mock('../../sections/capture/ocr', async (original) => ({
-  ...(await original<typeof import('../../sections/capture/ocr')>()),
+vi.mock('../../sections/ocr', async (original) => ({
+  ...(await original<typeof import('../../sections/ocr')>()),
   createPartyOcrWorker: media.worker
 }))
 vi.mock('../../lib/party', async (original) => ({

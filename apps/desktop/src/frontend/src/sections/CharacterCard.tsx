@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { CardImage } from '../../components/CardImage'
+import { CardImage } from '../components/CardImage'
 import { EquipmentGrid } from './EquipmentGrid'
-import { InvestmentTable } from '../../components/InvestmentTable'
+import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
-import { serverNames } from '../../constants/servers'
-import { cardFaces } from '../../constants/cards'
-import type { CardCharacter, SlotState } from '../../types/cards'
+import { serverNames } from '../constants/servers'
+import { cardFaces } from '../constants/cards'
+import type { CardCharacter, SlotState } from '../types/cards'
 
 export function CharacterCard({
   character,

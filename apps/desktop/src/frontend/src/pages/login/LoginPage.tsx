@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { ContentStack, LayoutBlock } from '@ldb/ui'
 import type { AuthApi } from '../../../../preload/common/types/auth'
-import { AuthSection } from '../../sections/auth/AuthSection'
+import { AuthSection } from '../../sections/AuthSection'
 
 export function LoginPage({ api, home }: { api: AuthApi; home?: ReactNode }): React.JSX.Element {
   return (

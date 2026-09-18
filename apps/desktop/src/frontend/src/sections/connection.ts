@@ -1,11 +1,11 @@
-import { SEARCH_ACTIONS } from '../../../../preload/common/types/search'
+import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
 import type {
   SearchApi,
   SearchCommandResult,
   SearchControl,
   SearchSnapshot
-} from '../../../../preload/common/types/search'
-import { parseSearchResult, parseSearchSnapshot } from '../../../../preload/common/search/snapshot'
+} from '../../../preload/common/types/search'
+import { parseSearchResult, parseSearchSnapshot } from '../../../preload/common/search/snapshot'
 
 type ConnectionOptions = {
   api: SearchApi

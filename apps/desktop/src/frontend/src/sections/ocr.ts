@@ -1,5 +1,5 @@
-import type { PartyOcrWorker } from '../../types/capture'
-import { REQUEST_TIMEOUT_MS } from '../../constants/capture'
+import type { PartyOcrWorker } from '../types/capture'
+import { REQUEST_TIMEOUT_MS } from '../constants/capture'
 
 type Reply = { ready: true } | { text: string; confidence: number }
 

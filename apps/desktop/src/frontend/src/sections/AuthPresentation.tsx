@@ -1,6 +1,6 @@
-import { authNotices } from '../../constants/auth'
+import { authNotices } from '../constants/auth'
 import { SupportingText } from '@ldb/ui'
-import type { AuthPresentationProps } from '../../types/auth'
+import type { AuthPresentationProps } from '../types/auth'
 import { AuthPhaseContent } from './AuthPhaseContent'
 
 export function AuthPresentation(props: AuthPresentationProps): React.JSX.Element {

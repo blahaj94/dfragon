@@ -21,7 +21,7 @@ const capture = vi.hoisted(() => ({
   stopCapture: vi.fn()
 }))
 
-vi.mock('../../hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
+vi.mock('../hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 
 describe('PartyCapture', () => {
   let container: HTMLDivElement

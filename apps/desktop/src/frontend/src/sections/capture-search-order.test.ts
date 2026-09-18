@@ -3,13 +3,13 @@ import type {
   SearchCommandResult,
   SearchSlot,
   SearchSnapshot
-} from '../../../../preload/common/types/search'
+} from '../../../preload/common/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
   searchSlot,
   searchSnapshot
-} from '../../../../preload/api/search-test-fixture'
+} from '../../../preload/api/search-test-fixture'
 
 const connectionState = vi.hoisted(() => ({
   responses: [] as Array<SearchCommandResult | null | Promise<SearchCommandResult | null>>,

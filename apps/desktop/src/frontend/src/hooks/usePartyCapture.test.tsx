@@ -13,8 +13,8 @@ const moduleMocks = vi.hoisted(() => ({
   runSerialLoop: vi.fn()
 }))
 
-vi.mock('../sections/capture/ocr', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../sections/capture/ocr')>()),
+vi.mock('../sections/ocr', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../sections/ocr')>()),
   createPartyOcrWorker: moduleMocks.createPartyOcrWorker
 }))
 

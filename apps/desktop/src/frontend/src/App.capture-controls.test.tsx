@@ -3,7 +3,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import PartyCapture from './sections/capture/PartyCapture'
+import PartyCapture from './sections/PartyCapture'
 
 const capture = vi.hoisted(() => ({
   sources: [{ id: 'example-window', name: 'Example window' }],

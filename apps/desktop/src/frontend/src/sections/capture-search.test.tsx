@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { expect, it } from 'vitest'
-import type { SearchCommandResult } from '../../../../preload/common/types/search'
-import { CAPTURE_ID, searchSnapshot } from '../../../../preload/api/search-test-fixture'
+import type { SearchCommandResult } from '../../../preload/common/types/search'
+import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import {
   authSnapshot,
   captureResources,
   createRendererFixture,
   media
-} from '../../testing/fixtures/search-renderer-test-fixture'
+} from '../testing/fixtures/search-renderer-test-fixture'
 
 it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 media와 OCR를 시작한다', async () => {
   const fixture = createRendererFixture()
