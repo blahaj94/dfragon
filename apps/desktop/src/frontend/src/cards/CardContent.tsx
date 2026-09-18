@@ -2,71 +2,7 @@ import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { colors } from './theme.stylex'
 import type { CardCharacter, EquipmentSlot } from './types'
-
-const styles = stylex.create({
-  image: { width: '100%', height: '100%', objectFit: 'contain' },
-  zoom: { transform: 'scale(1.7)' },
-  placeholder: {
-    display: 'grid',
-    placeItems: 'center',
-    width: '100%',
-    height: '100%',
-    color: colors.muted,
-    fontSize: 12
-  },
-  equipment: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-    gap: 8,
-    width: '100%',
-    maxWidth: 176,
-    marginInline: 'auto'
-  },
-  largeEquipment: {
-    maxWidth: 480,
-    columnGap: 8,
-    rowGap: 12,
-    gridTemplateColumns: '64px 64px minmax(80px, 1fr) 64px 64px',
-    position: 'relative'
-  },
-  slot: (color: string) => ({
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderColor: color,
-    borderRadius: 4,
-    aspectRatio: '1',
-    overflow: 'hidden',
-    minWidth: 0,
-    backgroundColor: '#16181c'
-  }),
-  position: (column: number, row: number) => ({ gridColumn: column, gridRow: row }),
-  portrait: { position: 'absolute', left: '29%', top: 0, width: '42%', height: '100%' },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: 10,
-    fontWeight: 400,
-    lineHeight: '18px',
-    color: colors.text
-  },
-  largeTable: { fontSize: 14, lineHeight: '28px', maxWidth: 560, marginInline: 'auto' },
-  row: { backgroundColor: colors.card },
-  alternate: { backgroundColor: colors.alternate },
-  cell: { paddingInline: 6, paddingBlock: 0, textAlign: 'left', fontWeight: 400 },
-  value: { textAlign: 'right', whiteSpace: 'nowrap' },
-  enhancement: { color: '#ff75f5' },
-  grade: (grade: string | undefined) => ({
-    color:
-      grade === '종결'
-        ? '#50e3c2'
-        : grade === '준종결'
-          ? '#ffb400'
-          : grade === '기타'
-            ? '#ffffff'
-            : colors.muted
-  }),
-  note: { color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: 12 }
-})
+import { gradeStyles, styles } from './CardContent.style'
 
 export function CardImage({
   src,
@@ -115,6 +51,22 @@ const positions = [
   ['MAGIC_STON', 4, 4]
 ] as const
 
+function isExtraEquipmentSlot({ id }: { id: string }): boolean {
+  return ['AURA', 'CREATURE', 'TITLE'].includes(id)
+}
+
+function shouldHideSlot({
+  id,
+  oath,
+  large
+}: {
+  id: string
+  oath: boolean
+  large: boolean
+}): boolean {
+  return oath && !large && isExtraEquipmentSlot({ id })
+}
+
 export function EquipmentGrid({
   character,
   oath = false,
@@ -128,18 +80,19 @@ export function EquipmentGrid({
   return (
     <div {...stylex.props(styles.equipment, large && styles.largeEquipment)}>
       {positions.map(([id, column, row]) => {
-        const isExtra = ['AURA', 'CREATURE', 'TITLE'].includes(id)
-        if (oath && !large && isExtra) {
+        if (shouldHideSlot({ id, large, oath })) {
           return null
         }
-        const source = oath && large && isExtra ? character.equipment : slots
+        const source = oath && large && isExtraEquipmentSlot({ id }) ? character.equipment : slots
         const slot = source.find((item) => item.id === id)
+
         return (
           <div
             key={id}
             title={slot?.label ?? id}
             {...stylex.props(
-              styles.slot(slot?.rarityColor ?? colors.border),
+              styles.slot,
+              styles.rarity(slot?.rarityColor ?? colors.border),
               styles.position(large && column > 2 ? column + 1 : column, row)
             )}
           >
@@ -171,6 +124,12 @@ const investmentIds = [
   'EARRING'
 ]
 
+const ariaLabelByKind = {
+  enhancement: '강화 수치',
+  enchantment: '마법부여 등급',
+  both: '투자 현황'
+} as const
+
 export function InvestmentTable({
   equipment,
   kind = 'both',
@@ -182,31 +141,31 @@ export function InvestmentTable({
 }): React.JSX.Element {
   return (
     <table
-      aria-label={
-        kind === 'enhancement'
-          ? '강화 수치'
-          : kind === 'enchantment'
-            ? '마법부여 등급'
-            : '투자 현황'
-      }
+      aria-label={ariaLabelByKind[kind]}
       {...stylex.props(styles.table, large && styles.largeTable)}
     >
       <tbody>
-        {investmentIds.map((id, index) => {
+        {investmentIds.map((id) => {
           const item = equipment.find((slot) => slot.id === id)
           return (
-            <tr key={id} {...stylex.props(styles.row, index % 2 === 1 && styles.alternate)}>
+            <tr key={id} {...stylex.props(styles.row)}>
               <th scope="row" {...stylex.props(styles.cell)}>
                 {item?.label ?? id}
               </th>
               {kind !== 'enchantment' && (
                 <td {...stylex.props(styles.cell, styles.value, styles.enhancement)}>
-                  {item?.enhancement ?? '—'}
+                  {item?.enhancement ?? '-'}
                 </td>
               )}
               {kind !== 'enhancement' && (
-                <td {...stylex.props(styles.cell, styles.value, styles.grade(item?.enchantment))}>
-                  {item?.enchantment ?? '미평가'}
+                <td
+                  {...stylex.props(
+                    styles.cell,
+                    styles.value,
+                    gradeStyles[item?.enchantment ?? '미평가']
+                  )}
+                >
+                  {item?.enchantment ?? '-'}
                 </td>
               )}
             </tr>
