@@ -132,13 +132,36 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       })
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
+    const usersBeforeSignup = await source.query('SELECT count(*)::int AS n FROM users')
+    await page.locator('#register').click()
+    await page.locator('#signup-heading').waitFor({ state: 'visible' })
+    assert.equal(
+      await page
+        .locator('#signup-heading')
+        .evaluate((el) => el === globalThis.document.activeElement),
+      true
+    )
+    assert.deepEqual(await source.query('SELECT count(*)::int AS n FROM users'), usersBeforeSignup)
+    await page.evaluate(() => {
+      const create = navigator.credentials.create.bind(navigator.credentials)
+      navigator.credentials.create = () => {
+        navigator.credentials.create = create
+        return Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
+      }
+    })
+    await page.locator('#signup-passkey').click()
+    await page
+      .getByText('인증이 취소되었거나 시간이 지났습니다. 다시 시도해 주세요.', { exact: true })
+      .waitFor()
+    assert.equal(await page.locator('#signup').isVisible(), true)
+    assert.deepEqual(await source.query('SELECT count(*)::int AS n FROM users'), usersBeforeSignup)
     if (process.env.LDB_PASSKEY_ARTIFACTS) {
       await page.screenshot({
-        path: join(process.env.LDB_PASSKEY_ARTIFACTS, 'passkey-login.png'),
+        path: join(process.env.LDB_PASSKEY_ARTIFACTS, 'passkey-signup.png'),
         fullPage: true
       })
     }
-    const registered = await complete(first, 'register')
+    const registered = await complete(first, 'signup-passkey')
     const exchanges = await Promise.all([
       post('/auth/exchange', registered),
       post('/auth/exchange', registered)

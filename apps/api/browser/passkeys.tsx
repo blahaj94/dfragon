@@ -31,7 +31,8 @@ type Verification =
   { phoneVerified: true; nickname: string } | { managed: true } | { returnUrl: string }
 type Screen =
   | { kind: 'entry' }
-  | { kind: 'qr'; qr: Qr }
+  | { kind: 'signup' }
+  | { kind: 'qr'; qr: Qr; signup: boolean }
   | { kind: 'pc-consent'; nickname: string }
   | { kind: 'phone-consent'; nickname: string }
   | { kind: 'management'; keys: Passkey[] }
@@ -79,11 +80,38 @@ function PasskeyPage() {
         : '휴대폰 QR을 이용해 주세요.'
   )
   const [busy, setBusy] = useState(false)
+  const [now, setNow] = useState(Date.now)
   const [qrCreated, setQrCreated] = useState(false)
   // Refs guard events and in-flight responses before React commits the next render.
   const busyRef = useRef(false)
   const endedRef = useRef(false)
   const qrGeneration = useRef(0)
+  const signupHeading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    const preference = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateTheme = () => {
+      document.documentElement.dataset.seedColorMode = 'system'
+      document.documentElement.dataset.seedUserColorScheme = preference.matches ? 'dark' : 'light'
+    }
+    updateTheme()
+    preference.addEventListener('change', updateTheme)
+    return () => preference.removeEventListener('change', updateTheme)
+  }, [])
+
+  useEffect(() => {
+    if (screen.kind === 'signup') {
+      signupHeading.current?.focus()
+    }
+  }, [screen.kind])
+
+  useEffect(() => {
+    if (screen.kind !== 'qr' || management) {
+      return
+    }
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [screen])
 
   useEffect(() => {
     if (screen.kind !== 'qr' || !screen.qr.expiresAt) {
@@ -99,8 +127,8 @@ function PasskeyPage() {
         return
       }
       if (Date.now() >= expiresAt) {
-        setScreen({ kind: 'entry' })
-        setStatus('로그인 시간이 지났습니다. LDB 앱에서 다시 로그인해 주세요.')
+        setNow(Date.now())
+        setStatus('인증 시간이 만료됐어요. 창을 닫고 LDB 앱에서 다시 로그인해 주세요.')
         return
       }
       try {
@@ -210,7 +238,7 @@ function PasskeyPage() {
 
   async function authenticate(operation: 'register' | 'authenticate' | 'add') {
     if (!phone && !management) {
-      stopQr()
+      qrGeneration.current += 1
       await api('direct')
     }
     const action = phone ? 'phone-options' : 'options'
@@ -236,8 +264,12 @@ function PasskeyPage() {
     }
   }
 
-  async function generateQr() {
-    stopQr()
+  async function generateQr(signup = false) {
+    if (screen.kind === 'qr' || screen.kind === 'pc-consent') {
+      stopQr()
+    } else {
+      qrGeneration.current += 1
+    }
     const qr = management
       ? { phoneUrl: new URL('/auth/passkeys/manage', location.origin).href }
       : await api<Qr>('qr')
@@ -245,9 +277,10 @@ function PasskeyPage() {
     if (url.origin !== location.origin || url.protocol !== 'https:') {
       throw new Error('QR 주소를 확인하지 못했습니다.')
     }
-    setScreen({ kind: 'qr', qr })
+    setNow(Date.now())
+    setScreen({ kind: 'qr', qr, signup })
     setQrCreated(true)
-    setStatus('휴대폰에서 계속해 주세요.')
+    setStatus('')
   }
 
   async function removeKey(key: Passkey) {
@@ -266,11 +299,67 @@ function PasskeyPage() {
   }
 
   const ended = screen.kind === 'ended' || screen.kind === 'complete'
-  const showQrEntry = !phone && !ended && screen.kind !== 'management'
+  const signup = screen.kind === 'signup'
+  const desktop = !phone && !management
+  const showQrEntry = management && !ended && screen.kind !== 'management'
+  const remaining =
+    screen.kind === 'qr' && screen.qr.expiresAt
+      ? Math.max(0, Math.ceil((Date.parse(screen.qr.expiresAt) - now) / 1000))
+      : null
+  const expired = remaining === 0
   return (
-    <>
-      <small>LDB ACCOUNT</small>
-      <h1>{management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : 'LDB 로그인'}</h1>
+    <div className={desktop ? 'auth-screen' : undefined} data-screen={screen.kind}>
+      {!signup && (
+        <>
+          {!desktop && <small>LDB ACCOUNT</small>}
+          <h1>{management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : '로그인'}</h1>
+        </>
+      )}
+      {signup && (
+        <section id="signup" aria-labelledby="signup-heading">
+          <h1 id="signup-heading" ref={signupHeading} tabIndex={-1}>
+            회원가입
+          </h1>
+          <p className="signup-intro">
+            아이디와 비밀번호 없이 가입해요.
+            <br />
+            기기의 인증 안내에 따라 패스키를 만들어 주세요.
+          </p>
+          <div className="signup-notice">
+            <h2>이미 계정이 있나요?</h2>
+            <p>
+              기존 패스키로 로그인해 주세요.
+              <br />
+              새로 가입하면 새로운 계정이 만들어져요.
+            </p>
+          </div>
+          <div className="signup-actions">
+            {!phone && (
+              <button
+                id="signup-phone"
+                className={primaryButton}
+                disabled={busy}
+                onClick={() => void run(() => generateQr(true))}
+              >
+                휴대폰으로 회원가입
+              </button>
+            )}
+            <button
+              id="signup-passkey"
+              className={primaryButton}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('register'))}
+            >
+              패스키로 회원가입
+            </button>
+          </div>
+          <p className="signup-recovery">
+            모든 패스키를 잃으면 계정을 복구할 수 없어요.
+            <br />
+            가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
+          </p>
+        </section>
+      )}
       {phone && (
         <section>
           <p>
@@ -283,82 +372,76 @@ function PasskeyPage() {
           </h2>
         </section>
       )}
+      {desktop && screen.kind === 'qr' && (
+        <section id="qr-panel" aria-label="휴대폰으로 인증">
+          <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
+          <h2 id="confirmation" className="confirmation">
+            {screen.qr.confirmationCode}
+          </h2>
+          <p id="qr-expiry" className={expired ? 'expired' : undefined} role="timer">
+            {expired
+              ? '0분 0초 · 인증 시간이 만료됐어요'
+              : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증 가능해요`}
+          </p>
+          <p className="qr-warning">이 QR코드를 절대 공유하지 마세요.</p>
+          {screen.signup && (
+            <p className="qr-signup-help">휴대폰에서 ‘새 계정 만들기’를 선택해 가입해 주세요.</p>
+          )}
+          <button
+            id="qr-start"
+            className={primaryButton}
+            disabled={busy || expired}
+            onClick={() => void run(() => generateQr(screen.signup))}
+          >
+            새 QR 코드 만들기
+          </button>
+        </section>
+      )}
+      {desktop && screen.kind === 'pc-consent' && (
+        <section id="pc-consent">
+          <p id="account">휴대폰에서 승인한 계정: {screen.nickname}. 본인 계정인지 확인하세요.</p>
+          <button
+            id="claim"
+            className={primaryButton}
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                const result = await api<{ returnUrl: string }>('claim')
+                showReturn(result.returnUrl)
+              })
+            }
+          >
+            이 계정으로 PC 로그인
+          </button>
+        </section>
+      )}
       {showQrEntry && (
         <section id="qr-entry">
           <button
             id="qr-start"
             className={primaryButton}
             disabled={busy}
-            onClick={() => void run(generateQr)}
+            onClick={() => void run(() => generateQr())}
           >
-            {management
-              ? qrCreated
-                ? '관리 QR 다시 표시'
-                : '휴대폰으로 패스키 관리'
-              : qrCreated
-                ? '새 QR 코드 만들기'
-                : '휴대폰으로 로그인'}
+            {qrCreated ? '관리 QR 다시 표시' : '휴대폰으로 패스키 관리'}
           </button>
           {screen.kind === 'qr' && (
             <div id="qr-panel">
               <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
               <p id="qr-help">
-                {management
-                  ? '휴대폰 카메라로 스캔하고 패스키로 인증하세요. 키 관리는 휴대폰에서 완료됩니다.'
-                  : '휴대폰 카메라로 스캔한 뒤 두 화면의 확인 번호를 비교하세요.'}
+                휴대폰 카메라로 스캔하고 패스키로 인증하세요. 키 관리는 휴대폰에서 완료됩니다.
               </p>
-              {!management && (
-                <>
-                  <h2 id="confirmation" className="confirmation">
-                    {screen.qr.confirmationCode}
-                  </h2>
-                  <p id="qr-expiry">
-                    {new Date(screen.qr.expiresAt!).toLocaleTimeString()}까지 유효 · 새 QR을 만들면
-                    이전 QR은 취소됩니다.
-                  </p>
-                </>
-              )}
-              <small>
-                QR을 공유하지 마세요. 이 방식은 기기 간 거리를 확인하지 않습니다. QR 승인 전에 두
-                화면의 확인 번호를 비교하세요.
-              </small>
-            </div>
-          )}
-          {(screen.kind === 'qr' || screen.kind === 'pc-consent') && (
-            <button
-              id="direct"
-              className={secondaryButton}
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  stopQr()
-                  if (!management) {
-                    await api('direct')
-                  }
-                  setStatus('이 기기의 패스키 또는 보안 키로 인증해 주세요.')
-                })
-              }
-            >
-              이 기기의 패스키 사용
-            </button>
-          )}
-          {screen.kind === 'pc-consent' && (
-            <div id="pc-consent">
-              <p id="account">
-                휴대폰에서 승인한 계정: {screen.nickname}. 본인 계정인지 확인하세요.
-              </p>
+              <small>QR을 공유하지 마세요.</small>
               <button
-                id="claim"
-                className={primaryButton}
+                id="direct"
+                className={secondaryButton}
                 disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    const result = await api<{ returnUrl: string }>('claim')
-                    showReturn(result.returnUrl)
-                  })
-                }
+                onClick={() => {
+                  stopQr()
+                  setStatus('이 기기의 패스키 또는 보안 키로 인증해 주세요.')
+                }}
               >
-                이 계정으로 PC 로그인
+                이 기기의 패스키 사용
               </button>
             </div>
           )}
@@ -367,41 +450,56 @@ function PasskeyPage() {
       {screen.kind === 'entry' && (
         <section id="entry">
           <p>
-            {management
-              ? '관리할 계정의 패스키로 다시 인증해 주세요.'
-              : phone
-                ? '휴대폰의 패스키로 본인 계정을 확인하세요.'
-                : '아이디와 비밀번호 없이 로그인하세요. 패스키가 없는 기기에서는 휴대폰을 사용할 수 있어요.'}
+            {management ? (
+              '관리할 계정의 패스키로 다시 인증해 주세요.'
+            ) : phone ? (
+              '휴대폰의 패스키로 본인 계정을 확인하세요.'
+            ) : (
+              <>
+                아이디와 비밀번호 없이 로그인해요.
+                <br />
+                패스키가 없으면 휴대폰을 사용할 수 있어요.
+              </>
+            )}
           </p>
-          <button
-            id="authenticate"
-            className={primaryButton}
-            disabled={busy || !supportsPasskeys}
-            onClick={() => void run(() => authenticate('authenticate'))}
-          >
-            {management ? '패스키로 인증하기' : '패스키로 로그인'}
-          </button>
+          <div className={desktop ? 'login-actions' : undefined}>
+            {desktop && (
+              <button
+                id="qr-start"
+                className={primaryButton}
+                disabled={busy}
+                onClick={() => void run(() => generateQr())}
+              >
+                휴대폰으로 로그인
+              </button>
+            )}
+            <button
+              id="authenticate"
+              className={primaryButton}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('authenticate'))}
+            >
+              {management ? '패스키로 인증하기' : '패스키로 로그인'}
+            </button>
+          </div>
           {!management && (
             <button
               id="register"
               className={secondaryButton}
-              disabled={busy || !supportsPasskeys}
-              onClick={() => void run(() => authenticate('register'))}
+              disabled={busy}
+              onClick={() => {
+                setStatus(
+                  supportsPasskeys
+                    ? ''
+                    : phone
+                      ? '패스키를 지원하는 Safari 또는 Chrome에서 열어 주세요.'
+                      : '휴대폰 QR을 이용해 주세요.'
+                )
+                setScreen({ kind: 'signup' })
+              }}
             >
               새 계정 만들기
             </button>
-          )}
-          {!phone && (
-            <p>
-              이 기기의 패스키나 보안 키로도 로그인할 수 있어요. 인증 창에서 기본 QR을 지원한다면
-              가까운 휴대폰과 Bluetooth를 이용할 수도 있어요.
-            </p>
-          )}
-          {!management && (
-            <small>
-              새 계정을 만들면 기존 계정과 별개의 계정이 생깁니다. 기존 패스키가 있다면 로그인해
-              주세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.
-            </small>
           )}
         </section>
       )}
@@ -429,17 +527,24 @@ function PasskeyPage() {
       {!management && !ended && (
         <button
           id="cancel"
-          className={secondaryButton}
+          className={desktop || signup ? removeButton : secondaryButton}
           disabled={busy}
           onClick={() =>
             void run(async () => {
               qrGeneration.current += 1
-              await api(phone ? 'phone-cancel' : 'cancel')
-              finish('로그인을 취소했습니다. 이 창을 닫아 주세요.')
+              try {
+                await api(phone ? 'phone-cancel' : 'cancel')
+                finish('로그인을 취소했습니다. 이 창을 닫아 주세요.')
+              } catch {
+                finish('인증을 중단했습니다. 이 창을 닫아 주세요.')
+              }
+              if (desktop || signup) {
+                window.close()
+              }
             })
           }
         >
-          로그인 취소
+          {desktop || signup ? '닫기' : '로그인 취소'}
         </button>
       )}
       {screen.kind === 'management' && (
@@ -506,7 +611,7 @@ function PasskeyPage() {
       <p id="status" role="status" aria-live="polite">
         {status}
       </p>
-    </>
+    </div>
   )
 }
 

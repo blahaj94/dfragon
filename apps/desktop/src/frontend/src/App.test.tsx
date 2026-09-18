@@ -111,19 +111,19 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
   await act(async () => root.render(<App />))
   const cards = [...container.querySelectorAll('article')]
   await click('로그인')
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('패스키로 계속하기')
-  await click('패스키로 계속하기')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
   expect(container.querySelector('header')?.textContent).toContain('로그인 진행 중')
+  await click('로그인 진행 중')
   await click('로그인 취소')
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
   expect(document.body.textContent).toContain('로그인을 취소했습니다')
-  await click('패스키로 계속하기')
+  await click('로그인')
   await act(async () => {
     publish({ phase: 'signedOut', login: null, notice: 'NETWORK_UNAVAILABLE' })
   })
   expect(document.body.textContent).toContain('네트워크 연결을 확인해 주세요')
-  await click('패스키로 계속하기')
+  await click('로그인')
   await act(async () => {
     publish({
       phase: 'signedIn',
@@ -134,6 +134,7 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
     })
   })
   expect(container.querySelector('header')?.textContent).toContain('내 계정')
+  await click('내 계정')
   expect(document.body.textContent).toContain('테스트모험가')
   await click('이 기기 로그아웃')
   expect(api.logout).toHaveBeenCalledExactlyOnceWith()
@@ -145,7 +146,7 @@ it('카드 화면에서 로그인 시작·취소·실패 후 재시도·성공·
 it('계정 창을 닫아도 구독과 진행 상태를 유지하고 다시 열어 취소할 수 있다', async () => {
   await act(async () => root.render(<App />))
   await click('로그인')
-  await click('패스키로 계속하기')
+  await click('로그인 진행 중')
   await click('닫기')
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   expect(listeners.size).toBe(1)
@@ -183,8 +184,7 @@ it('인증 연결 실패 중에도 카드·테마를 유지하고 연결 재확�
   await click('연결 다시 확인')
   expect(api.getAuthState).toHaveBeenCalledTimes(2)
   expect(api.beginLogin).not.toHaveBeenCalled()
-  expect(document.body.textContent).toContain('패스키로 계속하기')
-  await click('닫기')
+  expect(document.body.textContent).not.toContain('패스키로 계속하기')
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await click('라이트 테마')
   expect(document.documentElement.dataset.seedColorMode).toBe('light-only')

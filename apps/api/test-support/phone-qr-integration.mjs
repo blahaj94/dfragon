@@ -4,12 +4,17 @@ import { challenge } from '../dist/auth/login/crypto.js'
 
 export async function assertPhoneQrIntegration({ source, browser, origin, mark }) {
   const pc = await browser.newContext({ ignoreHTTPSErrors: true })
+  // A PC without WebAuthn must still be able to start signup on a phone.
+  await pc.addInitScript(() => {
+    globalThis.PublicKeyCredential = undefined
+  })
   const phone = await browser.newContext({
     ignoreHTTPSErrors: true,
     viewport: { width: 390, height: 844 }
   })
   const pcPage = await pc.newPage(),
     phonePage = await phone.newPage()
+  await pcPage.clock.install()
   let userId
   const cdp = await phone.newCDPSession(phonePage)
   await cdp.send('WebAuthn.enable')
@@ -29,7 +34,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       headers: { Origin: requestOrigin },
       data: { requestId, ...rest }
     })
-  const begin = async () => {
+  const begin = async (signup = false) => {
     const codeVerifier = randomBytes(32).toString('base64url')
     const created = await pc.request.post(`${origin}/auth/login-requests`, {
       data: {
@@ -43,10 +48,18 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const request = await created.json()
     await pcPage.goto(request.browserUrl)
     const qrResponse = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/qr'))
-    await pcPage.locator('#qr-start').click()
+    if (signup) {
+      await pcPage.locator('#register').click()
+      assert.equal(await pcPage.locator('#signup-passkey').isDisabled(), true)
+      await pcPage.locator('#signup-phone').click()
+    } else {
+      await pcPage.locator('#qr-start').click()
+    }
     const qr = await (await qrResponse).json()
     await pcPage.locator('#qr-panel').waitFor({ state: 'visible' })
     assert.equal(await pcPage.locator('#confirmation').textContent(), qr.confirmationCode)
+    assert.match(await pcPage.locator('#qr-expiry').textContent(), /분 \d+초까지 인증 가능해요/)
+    assert.equal(await pcPage.locator('#direct').count(), 0)
     return { ...request, ...qr, codeVerifier }
   }
   const phoneVerify = async (request, operation = 'authenticate') => {
@@ -56,6 +69,9 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       request.confirmationCode
     )
     await phonePage.locator(`#${operation}`).click()
+    if (operation === 'register') {
+      await phonePage.locator('#signup-passkey').click()
+    }
     await phonePage.locator('#phone-consent').waitFor({ state: 'visible' })
   }
   const approve = async () => {
@@ -73,7 +89,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     })
   try {
     mark('QR signup: separate PC/phone cookies, explicit approvals, PKCE exchange')
-    const first = await begin()
+    const first = await begin(true)
     assert.equal((await post(phone, 'claim', first.requestId)).status(), 400)
     assert.equal((await post(pc, 'phone-approve', first.requestId)).status(), 400)
     assert.equal(
@@ -128,7 +144,10 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     mark('QR reissue and cancellation invalidate previous phone authorization')
     const replaced = await begin()
     await phoneVerify(replaced)
-    const newQr = await (await post(pc, 'qr', replaced.requestId)).json()
+    const reissued = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/qr'))
+    await pcPage.locator('#qr-start').click()
+    const newQr = await (await reissued).json()
+    assert.equal(newQr.expiresAt, replaced.expiresAt)
     assert.equal((await post(phone, 'phone-approve', replaced.requestId)).status(), 400)
     assert.equal((await phone.request.get(replaced.phoneUrl)).status(), 400)
     await phoneVerify({ ...replaced, ...newQr })
@@ -143,6 +162,25 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       [expired.requestId]
     )
     assert.equal((await phone.request.get(expired.phoneUrl)).status(), 400)
+    mark('QR expiry countdown remains visible and disables reissue')
+    await pcPage.clock.setSystemTime(new Date(Date.parse(expired.expiresAt) + 1000))
+    await pcPage.clock.runFor(5000)
+    assert.equal(
+      await pcPage.locator('#qr-expiry').textContent(),
+      '0분 0초 · 인증 시간이 만료됐어요'
+    )
+    assert.equal(await pcPage.locator('#qr-start').isDisabled(), true)
+    mark('expired QR close cancels locally even if server rejects cancellation')
+    await pcPage.evaluate(() => {
+      globalThis.window.close = () => {
+        globalThis.closeRequested = true
+      }
+    })
+    await pcPage.locator('#cancel').click()
+    await pcPage.getByText('인증을 중단했습니다. 이 창을 닫아 주세요.', { exact: true }).waitFor()
+    assert.equal(await pcPage.evaluate(() => globalThis.closeRequested), true)
+    await pcPage.clock.setSystemTime(new Date())
+    mark('removed passkey cannot issue app login code')
     const removed = await begin()
     await phoneVerify(removed)
     await approve()
