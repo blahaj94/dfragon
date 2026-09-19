@@ -48,7 +48,8 @@ jobs:
           cache-dependency-path: |
             apps/desktop/scripts/ocr-pipeline/requirements-tooling.txt
             apps/desktop/scripts/ocr-pipeline/pyproject.toml
-      # These scripts use Node built-ins, not Electron or workspace dependencies.
+      # Prevent pnpm run from auto-installing dependencies with native postinstall scripts.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter @ldb/desktop ocr:setup --python python
       - run: pnpm --filter @ldb/desktop ocr:check
       - run: pnpm --filter @ldb/desktop ocr:test

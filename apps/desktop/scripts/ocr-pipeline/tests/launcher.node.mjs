@@ -212,9 +212,7 @@ test('termination waits for the owned command', { timeout: 15000 }, async (t) =>
   const root = fixture(t)
   const wrapper = join(root, 'wrapper.mjs')
   const marker = join(root, 'must-not-run')
-  writeFileSync(
-    wrapper,
-    `
+  const source = `
     import { executeCommands } from ${JSON.stringify(pathToFileURL(launcher).href)}
     process.once('message', () => process.emit('SIGTERM'))
     const code = await executeCommands([
@@ -224,7 +222,7 @@ test('termination waits for the owned command', { timeout: 15000 }, async (t) =>
     process.exitCode = code
     if (process.connected) process.disconnect()
   `
-  )
+  writeFileSync(wrapper, source)
   const child = spawn(process.execPath, [wrapper], { stdio: ['ignore', 'pipe', 'pipe', 'ipc'] })
   t.after(() => {
     if (child.exitCode == null) {

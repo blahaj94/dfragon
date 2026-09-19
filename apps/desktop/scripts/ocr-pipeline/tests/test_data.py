@@ -11,7 +11,7 @@ def test_full_alphabet_and_exact_unicode_survive(inputs):
     root = inputs["args"]["output"]
     assert result["added_characters"] == 3
     assert read_dictionary(root / "dict.txt") == ["가", "A", "1", "※", "ね", "月"]
-    assert "가Aね月※1A" in (root / "test.txt").read_text()
+    assert "가Aね月※1A" in (root / "test.txt").read_text(encoding="utf-8")
     assert verify_seal(root)["fingerprint"] == result["fingerprint"]
 
 
