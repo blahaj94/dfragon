@@ -1,3 +1,34 @@
+/**
+ * 오픈소스 고지 수집 흐름 (의사코드)
+ *
+ * 초기화:
+ *   중앙 notices 경로와 버전별 보완 원문 목록(overrides.json)을 읽는다.
+ *
+ * 패키지 위치 찾기:
+ *   모듈 경로의 query를 제거하고, name이 있는 package.json까지 상위로 이동한다.
+ *   의존성 이름은 package.json 경로로 해석하고, 불가능하면 진입 파일에서 역추적한다.
+ *   소유 패키지를 찾지 못하면 오류를 낸다.
+ *
+ * collectPackages(번들 모듈, 선택적 runtimeRoot):
+ *   가상 모듈을 제외한 node_modules 입력에서 소유 패키지를 찾아 중복을 제거한다.
+ *   runtimeRoot가 있으면 dependencies와 optionalDependencies를 재귀 탐색한다.
+ *     실제 경로별 방문 기록으로 순환을 막고 devDependencies는 탐색하지 않는다.
+ *     해석되지 않는 optional 의존성은 건너뛰고, 필수 의존성 오류는 전파한다.
+ *   패키지마다 아래 packageNotice를 실행하고 이름@버전 순서로 결과를 반환한다.
+ *
+ * packageNotice(패키지 경로):
+ *   루트의 LICENSE / NOTICE / COPYING / COPYRIGHT / ThirdPartyNotices 계열을 읽는다.
+ *     해당 이름의 디렉터리는 내부 파일도 읽되 일반 소스 디렉터리는 순회하지 않는다.
+ *     문서 이름은 패키지 상대 경로로 기록하고 정렬한다.
+ *   이름@버전에 등록된 중앙 보완 원문을 SHA-256 확인 후 추가한다.
+ *     Koffi 플랫폼 패키지는 같은 버전의 부모 Koffi 보완 원문을 사용한다.
+ *     보완 원문의 해시가 다르면 오류를 낸다.
+ *   guid-typescript@1.0.9에 원문이 없으면 원문 확보 필요 문서를 넣는다.
+ *     이 버전의 결과에는 원문 확인 필요 표시도 붙인다.
+ *   그 외 원문이 없는 패키지는 오류를 낸다.
+ *   패키지 이름, 버전, 선언 라이선스와 수집한 원문을 반환한다.
+ */
+
 import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
