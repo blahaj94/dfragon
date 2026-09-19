@@ -10,6 +10,40 @@ SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`은 peer이며 소비 �
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
 
+## Typo
+
+`Typo`는 외부 UI 라이브러리에 의존하지 않는 React 컴포넌트다. `Typo`·`typographyVariants`와 `TypoProps`·`TypoTag`·`TypoVariant` 타입을 public entry에서 제공한다. TypeScript 5.4 이상의 `NoInfer`로 HTML 속성이 `as`의 태그 추론을 넓히지 않도록 한다.
+
+```tsx
+import { Typo } from '@ldb/ui'
+
+<Typo.h1>Heading 1</Typo.h1>
+<Typo.h2>Heading 2</Typo.h2>
+<Typo.h3>Heading 3</Typo.h3>
+<Typo.h4>Heading 4</Typo.h4>
+<Typo.h5>Heading 5</Typo.h5>
+<Typo.h6>Heading 6</Typo.h6>
+<Typo.txtL>Large body text</Typo.txtL>
+<Typo.txtM>Default body text</Typo.txtM>
+<Typo.txtS>Small body text</Typo.txtS>
+<Typo.caption>Caption text</Typo.caption>
+
+<Typo.h1 as="div">Heading appearance</Typo.h1>
+<Typo.h1 as="a" href="/about">About</Typo.h1>
+<Typo.h2 color="#111" align="center" weight={500}>Title</Typo.h2>
+<Typo.txtM id="description" aria-label="description" className="description">
+  Description
+</Typo.txtM>
+<Typo.txtM as="button" type="button" onClick={handleClick}>
+  Open details
+</Typo.txtM>
+<Typo.caption style={{ marginTop: 8, display: 'block' }}>Additional text</Typo.caption>
+```
+
+`h1`–`h6`는 같은 이름의 heading 태그, `txtL`·`txtM`·`txtS`는 `p`, `caption`은 `span`으로 렌더링된다. 크기·행간·굵기는 `typographyVariants` 한 곳에서 관리하며 `TypoBase`가 공통 style과 HTML attribute·event를 전달한다. `typographyVariants`의 행간은 `"56px"`처럼 단위를 포함하므로 `style={typographyVariants.h1}`로 직접 사용해도 px로 적용된다. 기본 margin은 0이다. 글꼴과 지정하지 않은 색은 상속된다.
+
+스타일 우선순위는 variant → `color`·`align`·`weight` → `style`이다. `className`은 전달되지만 일반 CSS 선언은 inline style보다 우선하지 않는다. `as`는 HTML 태그를 바꾸면서 시각 variant를 유지한다. Heading 단계는 문서 구조에 맞춰 선택하고, 상호작용에는 `as="button"`·`as="a"`와 해당 native 속성을 사용한다. 임의 role·tabIndex는 추가하지 않는다. 이 API는 `ref`를 제공하지 않는다.
+
 ## Command
 
 - `pnpm --filter @ldb/ui build`: ESM bundle과 portable declaration 생성.
