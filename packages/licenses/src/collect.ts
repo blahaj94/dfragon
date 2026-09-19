@@ -112,8 +112,10 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
 export function collectPackages(moduleIds: Iterable<string>, runtimeRoot?: string): NoticeEntry[] {
   const roots = new Set<string>()
   for (const id of moduleIds) {
-    if (id.includes('/node_modules/') && !id.startsWith('\0')) {
-      roots.add(findPackageRoot(id))
+    // Native Windows paths and Vite module IDs use different separators.
+    const modulePath = id.replaceAll('\\', '/')
+    if (modulePath.includes('/node_modules/') && !modulePath.startsWith('\0')) {
+      roots.add(findPackageRoot(modulePath))
     }
   }
   const visited = new Set<string>()

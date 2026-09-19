@@ -55,6 +55,23 @@ test('collects bundled and transitive production dependencies, ignores developme
   }
 })
 
+test('Windows-separated peer inputs retain notices and deduplicate mixed separators', () => {
+  const { root, pkg } = fixture()
+  try {
+    const directory = pkg('@example/peer')
+    const moduleId = join(directory, 'package.json')
+    const windowsId = moduleId.replaceAll('/', '\\')
+    const entries = collectPackages([windowsId])
+    assert.deepEqual(entries, [packageNotice(directory)])
+    assert.deepEqual(
+      collectPackages([windowsId, moduleId.replaceAll('\\', '/'), `\0${windowsId}`]),
+      entries
+    )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('nested ESM package metadata does not hide the owner; nested notices are retained', () => {
   const { root, pkg } = fixture()
   try {
