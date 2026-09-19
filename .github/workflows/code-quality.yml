@@ -25,12 +25,6 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm lint
       - run: pnpm format:check
-        id: formatting
-      - name: Show OCR formatting diff
-        if: failure() && steps.formatting.outcome == 'failure'
-        run: |
-          pnpm exec prettier --config ./.prettierrc.json --write apps/desktop/scripts/ocr-pipeline/tests/launcher.node.mjs
-          git diff -- apps/desktop/scripts/ocr-pipeline/tests/launcher.node.mjs
       - run: pnpm lint:oxlint
 
   ocr-tooling:

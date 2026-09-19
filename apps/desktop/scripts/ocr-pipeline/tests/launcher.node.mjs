@@ -96,7 +96,10 @@ test('existing environments can reinstall dependencies without recreating Python
   fakeEnvironment(root, process.platform)
   const commands = planCommands(['setup'], { root })
   assert.equal(commands.length, 4)
-  assert.equal(commands.some((command) => command.args.includes('venv')), false)
+  assert.equal(
+    commands.some((command) => command.args.includes('venv')),
+    false
+  )
   assert.throws(() => planCommands(['setup', '--python', 'different-python'], { root }), /exists/)
 })
 
