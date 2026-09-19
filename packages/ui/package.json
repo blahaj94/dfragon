@@ -46,11 +46,11 @@
     "typescript": "6.0.2",
     "vite": "8.2.0",
     "vitest": "4.1.11",
-    "@types/node": "24.13.3"
+    "@types/node": "24.13.3",
+    "@ldb/licenses": "workspace:*"
   },
   "files": [
     "dist",
-    "notices",
     "seed-provenance.json",
     "README.md",
     "foundation.css"

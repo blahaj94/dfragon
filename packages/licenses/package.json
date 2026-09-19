@@ -1,0 +1,27 @@
+{
+  "name": "@ldb/licenses",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./vite": "./src/vite.ts",
+    "./packaging": "./src/packaging.mjs"
+  },
+  "bin": {
+    "ldb-copy-notices": "./src/copy-notices.mjs"
+  },
+  "files": [
+    "src",
+    "notices",
+    "README.md",
+    "overrides.json"
+  ],
+  "scripts": {
+    "test": "tsc --noEmit && node --test test/*.test.ts",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "typescript": "6.0.2",
+    "@types/node": "24.13.3"
+  }
+}

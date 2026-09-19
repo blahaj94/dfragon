@@ -294,3 +294,28 @@ it('새 기본 화면에서 다크·라이트 테마를 전환한다', async () 
   )
   expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
 })
+
+it('로그인 없이 라이선스 탭을 열고 돌아와도 파티 화면과 구독을 유지한다', async () => {
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  const slot = container.querySelector('article')
+  const subscriptions = listeners.size
+  expect(container.querySelector('iframe')).toBeNull()
+  await click('오픈소스 라이선스')
+  const frame = container.querySelector('iframe')!
+  expect(frame.getAttribute('src')).toBe(new URL('./notices/index.html', window.location.href).href)
+  expect(frame.getAttribute('sandbox')).toBe('allow-same-origin')
+  expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe(
+    '오픈소스 라이선스'
+  )
+  expect(listeners.size).toBe(subscriptions)
+  expect(api.beginLogin).not.toHaveBeenCalled()
+  await click('파티')
+  expect(container.querySelector('article')).toBe(slot)
+  expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('파티')
+})

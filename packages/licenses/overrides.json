@@ -1,0 +1,113 @@
+{
+  "@stylexjs/stylex@0.19.0": [
+    {
+      "file": "upstream/stylex-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/facebook/stylex/5f51b24444abced04b213726977b9d67339bb26d/LICENSE",
+      "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
+    }
+  ],
+  "@radix-ui/react-use-layout-effect@1.1.1": [
+    {
+      "file": "upstream/radix-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+      "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+    }
+  ],
+  "@radix-ui/react-compose-refs@1.1.2": [
+    {
+      "file": "upstream/radix-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/radix-ui/primitives/fcef0668a5c827e5a4baac405474d75680f9a4eb/LICENSE",
+      "sha256": "0e80a2d229d2fd4fc7e8636142ec5d0ff0bc031f14c15b682e2ac01dfd5b5138"
+    }
+  ],
+  "@seed-design/react-date-picker@1.2.0": [
+    {
+      "file": "upstream/seed-picker-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/daangn/seed-design/5be31ff16199a028d88c982fc7decfeae8a0282c/LICENSE",
+      "sha256": "44b8c61c1d0f4fad76c7755a21e44067893ab23f5bcc2a0d7fbfdf1794e8d160"
+    }
+  ],
+  "@seed-design/react-wheel-picker@1.1.0": [
+    {
+      "file": "upstream/seed-picker-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/daangn/seed-design/5be31ff16199a028d88c982fc7decfeae8a0282c/LICENSE",
+      "sha256": "44b8c61c1d0f4fad76c7755a21e44067893ab23f5bcc2a0d7fbfdf1794e8d160"
+    }
+  ],
+  "@seed-design/react-time-picker@1.0.0": [
+    {
+      "file": "upstream/seed-time-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/daangn/seed-design/6c32fa75002bb093e555dd3f769950548bf275e6/LICENSE",
+      "sha256": "44b8c61c1d0f4fad76c7755a21e44067893ab23f5bcc2a0d7fbfdf1794e8d160"
+    }
+  ],
+  "onnxruntime-web@1.24.3": [
+    {
+      "file": "upstream/onnx-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/LICENSE",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "file": "upstream/onnx-third-party-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/ThirdPartyNotices.txt",
+      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+    }
+  ],
+  "onnxruntime-common@1.24.3": [
+    {
+      "file": "upstream/onnx-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/LICENSE",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "file": "upstream/onnx-third-party-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/ThirdPartyNotices.txt",
+      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+    }
+  ],
+  "koffi@3.2.1": [
+    {
+      "file": "upstream/koffi-LICENSE.txt",
+      "source": "npm:koffi@3.2.1/LICENSE.txt",
+      "sha256": "22bcbbbacd739b026a8dc484f62a31484ce4c4e31f3408b60b29b4e41d62b290"
+    },
+    {
+      "file": "upstream/node-api-headers-LICENSE.txt",
+      "source": "npm:koffi@3.2.1/vendor/node-api-headers/LICENSE",
+      "sha256": "a553508f516031c91f3af1148d44970cb81bbae6c4f091be6835d39cc252238c"
+    },
+    {
+      "file": "upstream/node-addon-api-LICENSE.txt",
+      "source": "npm:koffi@3.2.1/vendor/node-addon-api/LICENSE.md",
+      "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
+    }
+  ],
+  "embla-carousel@8.6.0": [
+    {
+      "file": "upstream/embla-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/davidjerleke/embla-carousel/0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54/LICENSE",
+      "sha256": "992490064b90ec94c302fe5f29dcc14cb44145857064e46f9ffe6c8f511c1093"
+    }
+  ],
+  "embla-carousel-auto-height@8.6.0": [
+    {
+      "file": "upstream/embla-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/davidjerleke/embla-carousel/0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54/LICENSE",
+      "sha256": "992490064b90ec94c302fe5f29dcc14cb44145857064e46f9ffe6c8f511c1093"
+    }
+  ],
+  "embla-carousel-react@8.6.0": [
+    {
+      "file": "upstream/embla-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/davidjerleke/embla-carousel/0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54/LICENSE",
+      "sha256": "992490064b90ec94c302fe5f29dcc14cb44145857064e46f9ffe6c8f511c1093"
+    }
+  ],
+  "embla-carousel-reactive-utils@8.6.0": [
+    {
+      "file": "upstream/embla-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/davidjerleke/embla-carousel/0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54/LICENSE",
+      "sha256": "992490064b90ec94c302fe5f29dcc14cb44145857064e46f9ffe6c8f511c1093"
+    }
+  ]
+}

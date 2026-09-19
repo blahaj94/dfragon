@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { uiNotices } from './build/notices.ts'
+import { uiNotices } from '@ldb/licenses/vite'
 
 function isExternal(id: string) {
   const isSeed = id.startsWith('@seed-design/')
@@ -12,7 +13,7 @@ function isExternal(id: string) {
 }
 
 export default defineConfig({
-  plugins: [react(), uiNotices()],
+  plugins: [react(), uiNotices({ uiRoot: fileURLToPath(new URL('./', import.meta.url)) })],
   build: {
     lib: { entry: 'src/index.tsx', formats: ['es'], fileName: 'index' },
     rolldownOptions: { external: isExternal }

@@ -4,7 +4,7 @@ import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices } from '../../packages/ui/build/notices.ts'
+import { uiNotices, desktopNotices } from '@ldb/licenses/vite'
 import { readDistributionApiOrigin } from './build/distribution-config'
 
 export default defineConfig(({ mode, command }) => ({
@@ -52,7 +52,8 @@ export default defineConfig(({ mode, command }) => ({
     plugins: [
       ...rendererTransforms(),
       seedDesignPlugin(),
-      uiNotices(),
+      uiNotices({ uiRoot: resolve('../../packages/ui') }),
+      desktopNotices({ desktopRoot: resolve('.'), uiRoot: resolve('../../packages/ui') }),
       ...(mode === 'mvp-preview'
         ? [
             {
