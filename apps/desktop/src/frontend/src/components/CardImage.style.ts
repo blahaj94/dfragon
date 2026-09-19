@@ -9,7 +9,6 @@ export const styles = stylex.create({
     placeItems: 'center',
     width: '100%',
     height: '100%',
-    color: colors.muted,
-    fontSize: 12
+    color: colors.muted
   }
 })

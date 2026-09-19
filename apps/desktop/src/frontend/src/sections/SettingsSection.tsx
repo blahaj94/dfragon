@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@ldb/ui'
+import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@ldb/ui'
 import type { NoticeEntry } from '@ldb/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
@@ -51,38 +51,49 @@ export function SettingsSection(): React.JSX.Element {
           </svg>
         </ActionButton>
       </DialogTrigger>
-      <DialogContent title="설정" {...stylex.props(styles.dialog, light && lightTheme)}>
+      <DialogContent
+        title={<Typo.h5 as="span">설정</Typo.h5>}
+        {...stylex.props(styles.dialog, light && lightTheme)}
+      >
         {open && (
           <div {...stylex.props(styles.body)}>
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">
-              <span {...stylex.props(styles.group)}>앱 정보</span>
-              <span
+              <Typo.caption {...stylex.props(styles.group)}>앱 정보</Typo.caption>
+              <Typo.txtS
+                as="span"
+                weight={700}
                 aria-current="page"
                 {...stylex.props(styles.selected, light && styles.selectedLight)}
               >
                 라이선스 사용고지
-              </span>
-              <span {...stylex.props(styles.appName)}>LDB Desktop</span>
+              </Typo.txtS>
+              <div {...stylex.props(styles.appName)}>
+                <Typo.caption>LDB Desktop</Typo.caption>
+              </div>
             </aside>
             <div {...stylex.props(styles.content)}>
               {entries ? (
                 <OpenSourceNotices entries={entries} />
               ) : (
                 <>
-                  <h2 {...stylex.props(styles.heading)}>라이선스 사용고지</h2>
+                  <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
+                    라이선스 사용고지
+                  </Typo.h4>
                   {failed ? (
                     <div role="alert">
-                      <p>라이선스 정보를 불러오지 못했습니다.</p>
+                      <Typo.txtM>라이선스 정보를 불러오지 못했습니다.</Typo.txtM>
                       <ActionButton
                         size="small"
                         variant="neutralWeak"
                         onClick={() => void loadNotices()}
                       >
-                        다시 시도
+                        <Typo.txtS as="span" weight={700}>
+                          다시 시도
+                        </Typo.txtS>
                       </ActionButton>
                     </div>
                   ) : (
-                    <p role="status">라이선스 정보를 불러오는 중입니다.</p>
+                    <Typo.txtM role="status">라이선스 정보를 불러오는 중입니다.</Typo.txtM>
                   )}
                 </>
               )}

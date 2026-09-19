@@ -15,7 +15,11 @@ function isExternal(id: string) {
 export default defineConfig({
   plugins: [react(), uiNotices({ uiRoot: fileURLToPath(new URL('./', import.meta.url)) })],
   build: {
-    lib: { entry: 'src/index.tsx', formats: ['es'], fileName: 'index' },
+    lib: {
+      entry: { index: 'src/index.tsx', typo: 'src/typo.tsx' },
+      formats: ['es'],
+      fileName: (_format, entryName) => `${entryName}.js`
+    },
     rolldownOptions: { external: isExternal }
   }
 })

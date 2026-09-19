@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui'
 import { investmentIds, investmentAriaLabelByKind } from '../constants/equipment'
 import * as stylex from '@stylexjs/stylex'
 import type { EquipmentSlot } from '../types/cards'
@@ -12,6 +13,7 @@ export function InvestmentTable({
   kind?: 'both' | 'enhancement' | 'enchantment'
   large?: boolean
 }): React.JSX.Element {
+  const Cell = large ? Typo.txtS : Typo.caption
   return (
     <table
       aria-label={investmentAriaLabelByKind[kind]}
@@ -22,24 +24,34 @@ export function InvestmentTable({
           const item = equipment.find((slot) => slot.id === id)
           return (
             <tr key={id} {...stylex.props(styles.row)}>
-              <th scope="row" {...stylex.props(styles.cell)}>
+              <Cell as="th" scope="row" {...stylex.props(styles.cell, large && styles.largeCell)}>
                 {item?.label ?? id}
-              </th>
+              </Cell>
               {kind !== 'enchantment' && (
-                <td {...stylex.props(styles.cell, styles.value, styles.enhancement)}>
-                  {item?.enhancement ?? '-'}
-                </td>
-              )}
-              {kind !== 'enhancement' && (
-                <td
+                <Cell
+                  as="td"
                   {...stylex.props(
                     styles.cell,
+                    large && styles.largeCell,
+                    styles.value,
+                    styles.enhancement
+                  )}
+                >
+                  {item?.enhancement ?? '-'}
+                </Cell>
+              )}
+              {kind !== 'enhancement' && (
+                <Cell
+                  as="td"
+                  {...stylex.props(
+                    styles.cell,
+                    large && styles.largeCell,
                     styles.value,
                     gradeStyles[item?.enchantment ?? '미평가']
                   )}
                 >
                   {item?.enchantment ?? '-'}
-                </td>
+                </Cell>
               )}
             </tr>
           )

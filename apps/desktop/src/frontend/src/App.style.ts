@@ -20,7 +20,6 @@ export const styles = stylex.create({
     backgroundColor: colors.surface,
     borderRadius: 8,
     marginTop: 16,
-    fontSize: 12,
     color: colors.shellMuted
   }
 })

@@ -1,3 +1,4 @@
+import { Typo, typographyVariants } from '@ldb/ui'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'
@@ -56,9 +57,11 @@ export function CharacterCard({
               <CardImage src={character.image} label="캐릭터" portrait />
             </div>
             <div {...stylex.props(styles.identity)}>
-              <span {...stylex.props(styles.adventure)}>{character.adventure}</span>
-              <span {...stylex.props(styles.muted)}>{character.job}</span>
-              <span {...stylex.props(styles.fame)}>♙ {character.fame.toLocaleString('ko-KR')}</span>
+              <Typo.caption {...stylex.props(styles.adventure)}>{character.adventure}</Typo.caption>
+              <Typo.caption {...stylex.props(styles.muted)}>{character.job}</Typo.caption>
+              <Typo.caption {...stylex.props(styles.fame)}>
+                ♙ {character.fame.toLocaleString('ko-KR')}
+              </Typo.caption>
             </div>
           </>
         )}
@@ -73,9 +76,13 @@ export function CharacterCard({
           </div>
         )}
         {status && (
-          <span role="status" {...stylex.props(styles.status, state === 'failure' && styles.error)}>
+          <Typo.txtS
+            as="span"
+            role="status"
+            {...stylex.props(styles.status, state === 'failure' && styles.error)}
+          >
             {status}
-          </span>
+          </Typo.txtS>
         )}
       </div>
       {showCharacter && (
@@ -91,19 +98,24 @@ export function CharacterCard({
               />
             </div>
           )}
-          <input
+          <Typo.txtM
+            as="input"
+            weight={700}
             aria-label={`${slot}번 캐릭터 이름`}
             value={nickname ?? name}
             disabled={!inputEnabled}
             readOnly={nickname != null}
             placeholder="캐릭터명 입력"
+            style={(nickname ?? name) ? undefined : typographyVariants.txtS}
             onChange={(event) => setName(event.target.value)}
             {...stylex.props(styles.input)}
           />
         </>
       )}
       {editing && state === 'success' && (
-        <span {...stylex.props(styles.editing)}>이름·서버 수정 중 · 조회 연결 예정</span>
+        <Typo.caption {...stylex.props(styles.editing)}>
+          이름·서버 수정 중 · 조회 연결 예정
+        </Typo.caption>
       )}
       {state !== 'idle' && (
         <button

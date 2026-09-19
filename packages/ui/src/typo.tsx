@@ -1,6 +1,6 @@
 import {
   createElement,
-  type ComponentPropsWithoutRef,
+  type ComponentPropsWithRef,
   type CSSProperties,
   type JSX,
   type ReactNode
@@ -33,7 +33,7 @@ type TypoOwnProps<Tag extends TypoTag> = {
 }
 
 export type TypoProps<Tag extends TypoTag = 'p'> = TypoOwnProps<Tag> &
-  Omit<ComponentPropsWithoutRef<NoInfer<Tag>>, keyof TypoOwnProps<Tag>>
+  Omit<ComponentPropsWithRef<NoInfer<Tag>>, keyof TypoOwnProps<Tag>>
 
 type TypoBaseProps<Tag extends TypoTag> = TypoProps<Tag> & {
   variant: TypoVariant

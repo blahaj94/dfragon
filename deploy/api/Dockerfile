@@ -4,11 +4,14 @@ WORKDIR /workspace
 RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
-RUN pnpm install --frozen-lockfile --filter @ldb/api
+COPY packages/ui/package.json packages/ui/package.json
+COPY packages/licenses/package.json packages/licenses/package.json
+RUN pnpm install --frozen-lockfile --filter @ldb/api...
 COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
 COPY apps/api/browser apps/api/browser
 COPY packages/ui/foundation.css packages/ui/foundation.css
+COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
 RUN pnpm --filter @ldb/api build \
     && pnpm --filter @ldb/api deploy --legacy --prod /production
 

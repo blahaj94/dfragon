@@ -54,6 +54,7 @@
     "dotenv-cli": "11.0.0",
     "esbuild": "0.28.2",
     "tar": "7.5.22",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@ldb/ui": "workspace:*"
   }
 }

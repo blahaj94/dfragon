@@ -1,4 +1,4 @@
-import { ActionButton } from '@ldb/ui'
+import { Typo, ActionButton } from '@ldb/ui'
 import * as stylex from '@stylexjs/stylex'
 import { DetailDeck } from '../../sections/DetailDeck'
 import type { CardCharacter } from '../../types/cards'
@@ -14,7 +14,7 @@ export function CharacterDetailPage({
   return (
     <>
       <div {...stylex.props(styles.title)}>
-        <span>캐릭터 상세 · 합성 데이터 미리보기</span>
+        <Typo.caption>캐릭터 상세 · 합성 데이터 미리보기</Typo.caption>
         <ActionButton size="xsmall" variant="ghost" aria-label="상세 닫기" onClick={onClose}>
           ×
         </ActionButton>

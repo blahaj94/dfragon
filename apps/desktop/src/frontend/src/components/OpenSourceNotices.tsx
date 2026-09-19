@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, TextField, TextFieldInput } from '@ldb/ui'
+import { Typo, ActionButton, TextField, TextFieldInput } from '@ldb/ui'
 import type { NoticeEntry } from '@ldb/licenses/types'
 import { styles } from './OpenSourceNotices.style'
 
@@ -29,41 +29,58 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
   return selected ? (
     <>
       <ActionButton ref={backButton} size="small" variant="ghost" onClick={() => setSelected(null)}>
-        ‹ 라이선스 목록
+        <Typo.txtS as="span" weight={700}>
+          ‹ 라이선스 목록
+        </Typo.txtS>
       </ActionButton>
-      <h2 ref={heading} tabIndex={-1} {...stylex.props(styles.heading)}>
+      <Typo.h4 as="h2" ref={heading} tabIndex={-1} {...stylex.props(styles.heading)}>
         {selected.name}
-      </h2>
-      <p {...stylex.props(styles.description)}>
+      </Typo.h4>
+      <Typo.txtS {...stylex.props(styles.description)}>
         {[selected.version, selected.license].filter(Boolean).join(' · ')}
-      </p>
+      </Typo.txtS>
       {selected.documents.map((document, index) => (
         <section
           key={`${document.name}-${index}`}
           {...stylex.props(styles.document)}
           aria-label={document.name}
         >
-          <h3 {...stylex.props(styles.documentTitle)}>{document.name}</h3>
-          <pre {...stylex.props(styles.original)}>{document.text}</pre>
+          <Typo.txtM as="h3" weight={700} {...stylex.props(styles.documentTitle)}>
+            {document.name}
+          </Typo.txtM>
+          <Typo.txtS as="pre" {...stylex.props(styles.original)}>
+            {document.text}
+          </Typo.txtS>
         </section>
       ))}
     </>
   ) : (
     <>
-      <h2 {...stylex.props(styles.heading)}>라이선스 사용고지</h2>
-      <p {...stylex.props(styles.description)}>
+      <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
+        라이선스 사용고지
+      </Typo.h4>
+      <Typo.txtS {...stylex.props(styles.description)}>
         LDB에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
-      </p>
-      <TextField label="구성 요소 검색">
+      </Typo.txtS>
+      <TextField
+        label={
+          <Typo.txtS as="span" weight={700}>
+            구성 요소 검색
+          </Typo.txtS>
+        }
+      >
         <TextFieldInput
+          asChild
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="이름 또는 라이선스"
-        />
+        >
+          <Typo.txtS as="input" />
+        </TextFieldInput>
       </TextField>
-      <p role="status" {...stylex.props(styles.count)}>
+      <Typo.caption as="p" role="status" {...stylex.props(styles.count)}>
         {filtered.length}개 구성 요소
-      </p>
+      </Typo.caption>
       <ul {...stylex.props(styles.list)}>
         {filtered.map((entry) => (
           <li key={`${entry.name}@${entry.version}`}>
@@ -81,20 +98,26 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
               }}
               {...stylex.props(styles.row)}
             >
-              <span {...stylex.props(styles.name)}>
+              <Typo.txtM as="span" weight={700} {...stylex.props(styles.name)}>
                 {entry.name}
-                {entry.version && <span {...stylex.props(styles.version)}>{entry.version}</span>}
+                {entry.version && (
+                  <Typo.caption {...stylex.props(styles.version)}>{entry.version}</Typo.caption>
+                )}
+              </Typo.txtM>
+              <Typo.txtS as="span" {...stylex.props(styles.license)}>
+                {entry.license}
+              </Typo.txtS>
+              <span aria-hidden="true" {...stylex.props(styles.rowChevron)}>
+                ›
               </span>
-              <span {...stylex.props(styles.license)}>{entry.license}</span>
-              <span aria-hidden="true">›</span>
             </ActionButton>
           </li>
         ))}
       </ul>
       {filtered.length === 0 && (
-        <p {...stylex.props(styles.description)}>
+        <Typo.txtS {...stylex.props(styles.description)}>
           검색 결과가 없습니다. 다른 검색어를 입력해 주세요.
-        </p>
+        </Typo.txtS>
       )}
     </>
   )

@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui/typo'
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import QRCode from 'qrcode'
@@ -311,27 +312,31 @@ function PasskeyPage() {
     <div className={desktop ? 'auth-screen' : undefined} data-screen={screen.kind}>
       {!signup && (
         <>
-          {!desktop && <small>LDB ACCOUNT</small>}
-          <h1>{management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : '로그인'}</h1>
+          {!desktop && <Typo.caption as="small">LDB ACCOUNT</Typo.caption>}
+          <Typo.h3 as="h1">
+            {management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : '로그인'}
+          </Typo.h3>
         </>
       )}
       {signup && (
         <section id="signup" aria-labelledby="signup-heading">
-          <h1 id="signup-heading" ref={signupHeading} tabIndex={-1}>
+          <Typo.h3 as="h1" id="signup-heading" ref={signupHeading} tabIndex={-1}>
             회원가입
-          </h1>
-          <p className="signup-intro">
+          </Typo.h3>
+          <Typo.txtM className="signup-intro">
             아이디와 비밀번호 없이 가입해요.
             <br />
             기기의 인증 안내에 따라 패스키를 만들어 주세요.
-          </p>
+          </Typo.txtM>
           <div className="signup-notice">
-            <h2>이미 계정이 있나요?</h2>
-            <p>
+            <Typo.txtM as="h2" weight={700}>
+              이미 계정이 있나요?
+            </Typo.txtM>
+            <Typo.txtS>
               기존 패스키로 로그인해 주세요.
               <br />
               새로 가입하면 새로운 계정이 만들어져요.
-            </p>
+            </Typo.txtS>
           </div>
           <div className="signup-actions">
             {!phone && (
@@ -341,7 +346,9 @@ function PasskeyPage() {
                 disabled={busy}
                 onClick={() => void run(() => generateQr(true))}
               >
-                휴대폰으로 회원가입
+                <Typo.txtM as="span" weight={700}>
+                  휴대폰으로 회원가입
+                </Typo.txtM>
               </button>
             )}
             <button
@@ -350,42 +357,46 @@ function PasskeyPage() {
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('register'))}
             >
-              패스키로 회원가입
+              <Typo.txtM as="span" weight={700}>
+                패스키로 회원가입
+              </Typo.txtM>
             </button>
           </div>
-          <p className="signup-recovery">
+          <Typo.txtS className="signup-recovery">
             모든 패스키를 잃으면 계정을 복구할 수 없어요.
             <br />
             가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
-          </p>
+          </Typo.txtS>
         </section>
       )}
       {phone && (
         <section>
-          <p>
+          <Typo.txtM>
             직접 시작한 PC 로그인만 진행하세요. 메시지로 받은 QR이나 다른 사람이 보낸 QR은 승인하지
             마세요.
-          </p>
-          <p>PC와 같은 확인 번호인지 확인하세요.</p>
-          <h2 id="phone-confirmation" className="confirmation">
+          </Typo.txtM>
+          <Typo.txtM>PC와 같은 확인 번호인지 확인하세요.</Typo.txtM>
+          <Typo.h4 as="h2" id="phone-confirmation" className="confirmation">
             {confirmationCode}
-          </h2>
+          </Typo.h4>
         </section>
       )}
       {desktop && screen.kind === 'qr' && (
         <section id="qr-panel" aria-label="휴대폰으로 인증">
           <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
-          <h2 id="confirmation" className="confirmation">
+          <Typo.h4 as="h2" id="confirmation" className="confirmation">
             {screen.qr.confirmationCode}
-          </h2>
-          <p id="qr-expiry" className={expired ? 'expired' : undefined} role="timer">
+          </Typo.h4>
+          <Typo.txtM id="qr-expiry" className={expired ? 'expired' : undefined} role="timer">
             {expired
               ? '0분 0초 · 인증 시간이 만료됐어요'
               : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증 가능해요`}
-          </p>
-          <p className="qr-warning">이 QR코드를 절대 공유하지 마세요.</p>
+          </Typo.txtM>
+          <Typo.txtS className="qr-warning">이 QR코드를 절대 공유하지 마세요.</Typo.txtS>
           {screen.signup && (
-            <p className="qr-signup-help">휴대폰에서 ‘새 계정 만들기’를 선택해 가입해 주세요.</p>
+            <Typo.txtS className="qr-signup-help">
+              휴대폰에서 ‘새 계정 만들기’를 선택해 가입해 주세요.
+            </Typo.txtS>
           )}
           <button
             id="qr-start"
@@ -393,13 +404,17 @@ function PasskeyPage() {
             disabled={busy || expired}
             onClick={() => void run(() => generateQr(screen.signup))}
           >
-            새 QR 코드 만들기
+            <Typo.txtM as="span" weight={700}>
+              새 QR 코드 만들기
+            </Typo.txtM>
           </button>
         </section>
       )}
       {desktop && screen.kind === 'pc-consent' && (
         <section id="pc-consent">
-          <p id="account">휴대폰에서 승인한 계정: {screen.nickname}. 본인 계정인지 확인하세요.</p>
+          <Typo.txtM id="account">
+            휴대폰에서 승인한 계정: {screen.nickname}. 본인 계정인지 확인하세요.
+          </Typo.txtM>
           <button
             id="claim"
             className={primaryButton}
@@ -411,7 +426,9 @@ function PasskeyPage() {
               })
             }
           >
-            이 계정으로 PC 로그인
+            <Typo.txtM as="span" weight={700}>
+              이 계정으로 PC 로그인
+            </Typo.txtM>
           </button>
         </section>
       )}
@@ -423,15 +440,17 @@ function PasskeyPage() {
             disabled={busy}
             onClick={() => void run(() => generateQr())}
           >
-            {qrCreated ? '관리 QR 다시 표시' : '휴대폰으로 패스키 관리'}
+            <Typo.txtM as="span" weight={700}>
+              {qrCreated ? '관리 QR 다시 표시' : '휴대폰으로 패스키 관리'}
+            </Typo.txtM>
           </button>
           {screen.kind === 'qr' && (
             <div id="qr-panel">
               <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
-              <p id="qr-help">
+              <Typo.txtM id="qr-help">
                 휴대폰 카메라로 스캔하고 패스키로 인증하세요. 키 관리는 휴대폰에서 완료됩니다.
-              </p>
-              <small>QR을 공유하지 마세요.</small>
+              </Typo.txtM>
+              <Typo.caption as="small">QR을 공유하지 마세요.</Typo.caption>
               <button
                 id="direct"
                 className={secondaryButton}
@@ -441,7 +460,9 @@ function PasskeyPage() {
                   setStatus('이 기기의 패스키 또는 보안 키로 인증해 주세요.')
                 }}
               >
-                이 기기의 패스키 사용
+                <Typo.txtM as="span" weight={700}>
+                  이 기기의 패스키 사용
+                </Typo.txtM>
               </button>
             </div>
           )}
@@ -449,7 +470,7 @@ function PasskeyPage() {
       )}
       {screen.kind === 'entry' && (
         <section id="entry">
-          <p>
+          <Typo.txtM>
             {management ? (
               '관리할 계정의 패스키로 다시 인증해 주세요.'
             ) : phone ? (
@@ -461,7 +482,7 @@ function PasskeyPage() {
                 패스키가 없으면 휴대폰을 사용할 수 있어요.
               </>
             )}
-          </p>
+          </Typo.txtM>
           <div className={desktop ? 'login-actions' : undefined}>
             {desktop && (
               <button
@@ -470,7 +491,9 @@ function PasskeyPage() {
                 disabled={busy}
                 onClick={() => void run(() => generateQr())}
               >
-                휴대폰으로 로그인
+                <Typo.txtM as="span" weight={700}>
+                  휴대폰으로 로그인
+                </Typo.txtM>
               </button>
             )}
             <button
@@ -479,7 +502,9 @@ function PasskeyPage() {
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('authenticate'))}
             >
-              {management ? '패스키로 인증하기' : '패스키로 로그인'}
+              <Typo.txtM as="span" weight={700}>
+                {management ? '패스키로 인증하기' : '패스키로 로그인'}
+              </Typo.txtM>
             </button>
           </div>
           {!management && (
@@ -498,15 +523,17 @@ function PasskeyPage() {
                 setScreen({ kind: 'signup' })
               }}
             >
-              새 계정 만들기
+              <Typo.txtM as="span" weight={700}>
+                새 계정 만들기
+              </Typo.txtM>
             </button>
           )}
         </section>
       )}
       {screen.kind === 'phone-consent' && (
         <section id="phone-consent">
-          <p>확인 번호가 같은 PC의 LDB 로그인을 승인할까요?</p>
-          <p id="phone-account">로그인할 계정: {screen.nickname}</p>
+          <Typo.txtM>확인 번호가 같은 PC의 LDB 로그인을 승인할까요?</Typo.txtM>
+          <Typo.txtM id="phone-account">로그인할 계정: {screen.nickname}</Typo.txtM>
           <button
             id="approve"
             className={primaryButton}
@@ -520,7 +547,9 @@ function PasskeyPage() {
               })
             }
           >
-            PC 로그인 승인
+            <Typo.txtM as="span" weight={700}>
+              PC 로그인 승인
+            </Typo.txtM>
           </button>
         </section>
       )}
@@ -544,29 +573,35 @@ function PasskeyPage() {
             })
           }
         >
-          {desktop || signup ? '닫기' : '로그인 취소'}
+          <Typo.txtS as="span" weight={700}>
+            {desktop || signup ? '닫기' : '로그인 취소'}
+          </Typo.txtS>
         </button>
       )}
       {screen.kind === 'management' && (
         <section id="management">
-          <p>예비 패스키를 추가해 두세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.</p>
+          <Typo.txtM>
+            예비 패스키를 추가해 두세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.
+          </Typo.txtM>
           <ul id="keys">
             {screen.keys.map((key, index) => (
               <li key={key.id}>
-                <strong>
+                <Typo.txtM as="strong" weight={700}>
                   패스키 {index + 1}
                   {key.current ? ' · 지금 사용 중' : ''}
-                </strong>
-                <p>
+                </Typo.txtM>
+                <Typo.txtM>
                   등록: {new Date(key.createdAt).toLocaleString()} · 최근 사용:{' '}
                   {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '아직 없음'}
-                </p>
+                </Typo.txtM>
                 <button
                   className={removeButton}
                   disabled={busy || screen.keys.length === 1}
                   onClick={() => void run(() => removeKey(key))}
                 >
-                  {screen.keys.length === 1 ? '마지막 패스키는 삭제할 수 없습니다' : '삭제'}
+                  <Typo.txtM as="span" weight={700}>
+                    {screen.keys.length === 1 ? '마지막 패스키는 삭제할 수 없습니다' : '삭제'}
+                  </Typo.txtM>
                 </button>
               </li>
             ))}
@@ -577,12 +612,14 @@ function PasskeyPage() {
             disabled={busy || !supportsPasskeys}
             onClick={() => void run(() => authenticate('add'))}
           >
-            예비 패스키 추가
+            <Typo.txtM as="span" weight={700}>
+              예비 패스키 추가
+            </Typo.txtM>
           </button>
-          <p>
+          <Typo.txtM>
             여기서 삭제해도 이미 로그인한 기기는 로그아웃되지 않으며, 기기의 패스키 저장소에서도
             별도로 삭제해야 합니다.
-          </p>
+          </Typo.txtM>
           <button
             id="end"
             className={secondaryButton}
@@ -594,23 +631,27 @@ function PasskeyPage() {
               })
             }
           >
-            관리 마치기
+            <Typo.txtM as="span" weight={700}>
+              관리 마치기
+            </Typo.txtM>
           </button>
         </section>
       )}
       {screen.kind === 'complete' && (
         <section id="complete">
-          <h2>인증을 완료했습니다</h2>
+          <Typo.h6 as="h2">인증을 완료했습니다</Typo.h6>
           <a id="return" className={`action ${primaryButton}`} href={screen.returnUrl}>
-            LDB 앱으로 돌아가기
+            <Typo.txtM as="span" weight={700}>
+              LDB 앱으로 돌아가기
+            </Typo.txtM>
           </a>
-          <p>앱 복귀 링크는 1분 이내에 사용해 주세요.</p>
-          <p>예비 패스키는 패스키 관리 화면에서 추가할 수 있어요.</p>
+          <Typo.txtM>앱 복귀 링크는 1분 이내에 사용해 주세요.</Typo.txtM>
+          <Typo.txtM>예비 패스키는 패스키 관리 화면에서 추가할 수 있어요.</Typo.txtM>
         </section>
       )}
-      <p id="status" role="status" aria-live="polite">
+      <Typo.txtM id="status" role="status" aria-live="polite">
         {status}
-      </p>
+      </Typo.txtM>
     </div>
   )
 }

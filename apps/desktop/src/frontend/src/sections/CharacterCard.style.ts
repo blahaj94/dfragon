@@ -31,16 +31,15 @@ export const styles = stylex.create({
   portrait: { position: 'absolute', inset: '10px 12px 50px', opacity: 1 },
   identity: {
     position: 'absolute',
-    bottom: 12,
+    bottom: 8,
     left: 12,
     right: 12,
     textAlign: 'center',
     display: 'grid',
-    gap: 4,
-    fontSize: 11
+    gap: 2
   },
-  adventure: { color: colors.adventure, marginBottom: 27 },
-  fame: { color: colors.accent, fontSize: 12 },
+  adventure: { color: colors.adventure, paddingBottom: 28 },
+  fame: { color: colors.accent },
   muted: { color: colors.muted },
   equipment: {
     position: 'absolute',
@@ -51,11 +50,12 @@ export const styles = stylex.create({
   investment: { position: 'absolute', inset: '42px 5px 6px' },
   input: {
     position: 'absolute',
-    bottom: 44,
+    bottom: 48,
     left: 11,
     width: 'calc(100% - 22px)',
     boxSizing: 'border-box',
-    height: 22,
+    height: 26,
+    padding: 0,
     textAlign: 'center',
     borderWidth: 1,
     borderStyle: 'solid',
@@ -64,7 +64,6 @@ export const styles = stylex.create({
     backgroundColor: colors.input,
     color: colors.text,
     fontFamily: 'inherit',
-    fontSize: 13,
     outlineOffset: 2,
     ':focus-visible': { outline: '2px solid #f57424' }
   },
@@ -96,7 +95,6 @@ export const styles = stylex.create({
     left: 10,
     right: 10,
     textAlign: 'center',
-    fontSize: 12,
     color: colors.muted
   },
   error: { color: '#ff8888' },
@@ -106,7 +104,6 @@ export const styles = stylex.create({
     left: 12,
     right: 12,
     color: colors.muted,
-    fontSize: 11,
     textAlign: 'center'
   },
   srOnly: {

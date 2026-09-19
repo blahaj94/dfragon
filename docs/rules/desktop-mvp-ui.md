@@ -64,7 +64,7 @@ last-reviewed: 2026-09-17
 ## 표현과 이미지
 
 - 라이트 메인 보드도 캐릭터 카드 면은 다크 색상을 유지하며 바깥 배경·헤더·본문 패널·하단 바를 밝게 바꾼다.
-- 글꼴은 나눔스퀘어 네오다. 작은 투자 현황 목록은 10px 일반 두께, 상세 목록은 14px 일반 두께가 기준이다. 테이블의 교차 행 배경은 `#22262C` / `#2B3037`이다.
+- 글꼴은 나눔스퀘어 네오다. 2026-09-19 Typo 적용 요청에 따라 작은 투자 현황 목록은 `Typo.caption`(12px/18px), 상세 목록은 `Typo.txtS`(14px/20px) 일반 두께로 맞춘다. 상세 행은 위아래 4px padding으로 기존 행 높이를 유지한다. 테이블의 교차 행 배경은 `#22262C` / `#2B3037`이다.
 - 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 sun·moon·camera·x·chevron-down·user·external-link를 기준으로 구현 자산과 출처를 맞춘다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 - 아이템 이미지: `https://img-api.neople.co.kr/df/items/<itemId>`.

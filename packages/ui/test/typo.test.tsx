@@ -1,4 +1,4 @@
-import { act, type MouseEvent } from 'react'
+import { act, createRef, type MouseEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, expectTypeOf, it, vi } from 'vitest'
@@ -174,5 +174,49 @@ it('infers attributes and event targets from as and rejects mismatched attribute
     </>
   )
 
+  expect(examples).toBeDefined()
+})
+
+it('forwards native refs for focus and clears them on unmount', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const container = document.createElement('div')
+  document.body.append(container)
+  const root = createRoot(container)
+  const heading = createRef<HTMLHeadingElement>()
+  const input = createRef<HTMLInputElement>()
+  try {
+    await act(async () => {
+      root.render(
+        <>
+          <Typo.h4 as="h2" ref={heading} tabIndex={-1}>
+            License
+          </Typo.h4>
+          <Typo.txtM as="input" ref={input} />
+        </>
+      )
+    })
+    heading.current?.focus()
+    expect(document.activeElement).toBe(container.querySelector('h2'))
+    input.current?.focus()
+    expect(document.activeElement).toBe(container.querySelector('input'))
+  } finally {
+    await act(async () => root.unmount())
+    container.remove()
+  }
+  expect(heading.current).toBeNull()
+  expect(input.current).toBeNull()
+})
+
+it('infers ref targets from as', () => {
+  const input = createRef<HTMLInputElement>()
+  const examples = (
+    <>
+      <Typo.txtM as="input" ref={input} />
+      {/* @ts-expect-error An input ref cannot target an anchor. */}
+      <Typo.txtM as="a" ref={input}>
+        Invalid
+      </Typo.txtM>
+    </>
+  )
   expect(examples).toBeDefined()
 })

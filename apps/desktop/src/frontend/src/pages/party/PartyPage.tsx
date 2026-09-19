@@ -1,5 +1,5 @@
 import { CameraIcon } from '../../components/CameraIcon'
-import { ActionButton } from '@ldb/ui'
+import { Typo, ActionButton } from '@ldb/ui'
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
@@ -50,7 +50,9 @@ export function PartyPage({
           </ActionButton>
           {account ?? (
             <ActionButton size="small" variant="ghost" disabled>
-              로그인
+              <Typo.txtS as="span" weight={700}>
+                로그인
+              </Typo.txtS>
             </ActionButton>
           )}
           <SettingsSection />

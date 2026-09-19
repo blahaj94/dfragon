@@ -1,7 +1,7 @@
 import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } from '@ldb/ui'
+import { Typo, ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } from '@ldb/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
@@ -73,12 +73,17 @@ export function CaptureControls({
         ref={dialogRef}
         {...stylex.props(styles.dialog, light && lightTheme)}
         title={
-          <span {...stylex.props(styles.heading)}>
+          <Typo.h5 as="span" {...stylex.props(styles.heading)}>
             화면 캡처
-            <span role="status" {...stylex.props(styles.state, active && styles.active)}>
+            <Typo.txtS
+              as="span"
+              weight={700}
+              role="status"
+              {...stylex.props(styles.state, active && styles.active)}
+            >
               {state}
-            </span>
-          </span>
+            </Typo.txtS>
+          </Typo.h5>
         }
       >
         <DialogBody>
@@ -94,20 +99,24 @@ export function CaptureControls({
             onRefresh={onRefresh}
           />
           {status && (
-            <p role="status" {...stylex.props(styles.notice)}>
+            <Typo.caption as="p" role="status" {...stylex.props(styles.notice)}>
               {status}
-            </p>
+            </Typo.caption>
           )}
         </DialogBody>
         <div {...stylex.props(styles.footer)}>
           <div {...stylex.props(styles.actions)}>
             {(active || starting) && (
               <ActionButton size="small" variant="neutralWeak" onClick={onStop}>
-                캡처 중지
+                <Typo.txtS as="span" weight={700}>
+                  캡처 중지
+                </Typo.txtS>
               </ActionButton>
             )}
             <ActionButton size="small" variant="neutralWeak" onClick={() => setOpen(false)}>
-              닫기
+              <Typo.txtS as="span" weight={700}>
+                닫기
+              </Typo.txtS>
             </ActionButton>
           </div>
         </div>

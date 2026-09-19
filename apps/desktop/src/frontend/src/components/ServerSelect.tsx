@@ -1,3 +1,4 @@
+import { typographyVariants } from '@ldb/ui'
 import { ChevronDownIcon } from './ChevronDownIcon'
 import { CheckIcon } from './CheckIcon'
 import { Select } from '@seed-design/react'
@@ -33,15 +34,22 @@ export function ServerSelect({
       gutter={6}
     >
       <Select.Trigger aria-label={label} {...stylex.props(styles.trigger)}>
-        <Select.Value {...stylex.props(styles.value)} />
-        <Select.Placeholder {...stylex.props(styles.value)}>서버 선택</Select.Placeholder>
+        <Select.Value style={typographyVariants.caption} {...stylex.props(styles.value)} />
+        <Select.Placeholder style={typographyVariants.caption} {...stylex.props(styles.value)}>
+          서버 선택
+        </Select.Placeholder>
         <Select.SuffixIcon svg={<ChevronDownIcon />} {...stylex.props(styles.chevron)} />
       </Select.Trigger>
       <Select.Positioner {...stylex.props(styles.positioner)}>
         <Select.Content aria-label={label} {...stylex.props(styles.content)}>
           <Select.ScrollArea {...stylex.props(styles.scroll)}>
             <Select.Group>
-              <Select.GroupLabel {...stylex.props(styles.groupLabel)}>서버 선택</Select.GroupLabel>
+              <Select.GroupLabel
+                style={typographyVariants.caption}
+                {...stylex.props(styles.groupLabel)}
+              >
+                서버 선택
+              </Select.GroupLabel>
               {options.map((option) => (
                 <Select.Item
                   key={option.id}
@@ -49,7 +57,10 @@ export function ServerSelect({
                   label={option.label}
                   {...stylex.props(styles.option, option.id === value && styles.selected)}
                 >
-                  <Select.ItemLabel {...stylex.props(styles.itemLabel)} />
+                  <Select.ItemLabel
+                    style={typographyVariants.caption}
+                    {...stylex.props(styles.itemLabel)}
+                  />
                   <Select.ItemIndicator selected={<CheckIcon />} {...stylex.props(styles.check)} />
                 </Select.Item>
               ))}

@@ -20,7 +20,6 @@ export const styles = stylex.create({
     backgroundColor: '#4a3025',
     color: '#ffad78',
     fontFamily: 'inherit',
-    fontSize: 11,
     cursor: 'pointer',
     ':hover:not(:disabled)': { backgroundColor: '#60402d' },
     ':is([data-open])': { borderColor: '#ff9f0a', boxShadow: '0 0 0 2px rgba(255,159,10,0.2)' },
@@ -32,8 +31,6 @@ export const styles = stylex.create({
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    fontSize: 11,
-    lineHeight: '16px',
     color: 'inherit'
   },
   chevron: {
@@ -61,10 +58,7 @@ export const styles = stylex.create({
   scroll: { padding: 6, maxHeight: 'min(320px, var(--seed-select-available-height, 320px))' },
   groupLabel: {
     padding: '6px 10px 8px',
-    color: colors.muted,
-    fontSize: 11,
-    lineHeight: '16px',
-    fontWeight: 400
+    color: colors.muted
   },
   option: {
     display: 'flex',
@@ -88,6 +82,6 @@ export const styles = stylex.create({
     backgroundColor: selectColors.selected,
     ':is([data-highlighted])': { backgroundColor: selectColors.selected }
   },
-  itemLabel: { fontSize: 12, lineHeight: '20px', fontWeight: 400, color: colors.text },
+  itemLabel: { color: colors.text },
   check: { width: 16, height: 16, color: selectColors.accent, flexShrink: 0 }
 })

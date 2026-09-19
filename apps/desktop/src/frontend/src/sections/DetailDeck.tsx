@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './DetailDeck.style'
@@ -17,26 +18,32 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
     <>
       <header {...stylex.props(styles.header)}>
         <div>
-          <h1 {...stylex.props(styles.name)}>
+          <Typo.h3 as="h1" {...stylex.props(styles.name)}>
             {character.name}
-            <span {...stylex.props(styles.server)}>{serverNames[character.serverId]}</span>
-          </h1>
-          <p {...stylex.props(styles.subtitle)}>
+            <Typo.caption {...stylex.props(styles.server)}>
+              {serverNames[character.serverId]}
+            </Typo.caption>
+          </Typo.h3>
+          <Typo.txtS {...stylex.props(styles.subtitle)}>
             {character.adventure} · Lv.115 · {character.job}
-          </p>
+          </Typo.txtS>
         </div>
         <dl {...stylex.props(styles.scores)}>
           <div>
-            <dt {...stylex.props(styles.label)}>장비 점수</dt>
-            <dd {...stylex.props(styles.score)}>
+            <Typo.caption as="dt" {...stylex.props(styles.label)}>
+              장비 점수
+            </Typo.caption>
+            <Typo.h4 as="dd" {...stylex.props(styles.score)}>
               {character.equipmentScore?.toLocaleString('ko-KR') ?? '—'}
-            </dd>
+            </Typo.h4>
           </div>
           <div>
-            <dt {...stylex.props(styles.label)}>명성</dt>
-            <dd {...stylex.props(styles.score, styles.fame)}>
+            <Typo.caption as="dt" {...stylex.props(styles.label)}>
+              명성
+            </Typo.caption>
+            <Typo.h4 as="dd" {...stylex.props(styles.score, styles.fame)}>
               {character.fame.toLocaleString('ko-KR')}
-            </dd>
+            </Typo.h4>
           </div>
         </dl>
       </header>
@@ -59,24 +66,34 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                 >
                   {!active && (
                     <>
-                      <span {...stylex.props(styles.tabLabel)}>{face}</span>
-                      <span {...stylex.props(styles.number)}>
+                      <Typo.txtS as="span" weight={700} {...stylex.props(styles.tabLabel)}>
+                        {face}
+                      </Typo.txtS>
+                      <Typo.caption {...stylex.props(styles.number)}>
                         {String(index + 1).padStart(2, '0')}
-                      </span>
+                      </Typo.caption>
                     </>
                   )}
                 </button>
                 {active && (
                   <>
-                    <h2 {...stylex.props(styles.title)}>{face}</h2>
+                    <Typo.h5 as="h2" {...stylex.props(styles.title)}>
+                      {face}
+                    </Typo.h5>
                     <div {...stylex.props(styles.content)}>
                       {(face === '장비' || face === '서약') && (
                         <>
                           <EquipmentGrid character={character} large oath={face === '서약'} />
                           <div {...stylex.props(styles.identity)}>
-                            <span {...stylex.props(styles.adventure)}>{character.adventure}</span>
-                            <p {...stylex.props(styles.characterName)}>{character.name}</p>
-                            <span {...stylex.props(styles.subtitle)}>{character.job}</span>
+                            <Typo.caption {...stylex.props(styles.adventure)}>
+                              {character.adventure}
+                            </Typo.caption>
+                            <Typo.h5 as="p" {...stylex.props(styles.characterName)}>
+                              {character.name}
+                            </Typo.h5>
+                            <Typo.txtS as="span" {...stylex.props(styles.subtitle)}>
+                              {character.job}
+                            </Typo.txtS>
                           </div>
                         </>
                       )}
@@ -88,16 +105,16 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                             kind={face === '강화' ? 'enhancement' : 'enchantment'}
                           />
                           {face === '마법부여' && (
-                            <p {...stylex.props(styles.note)}>
+                            <Typo.caption as="p" {...stylex.props(styles.note)}>
                               등급은 디자인 예시입니다. 실제 자동 평가는 연결하지 않았습니다.
-                            </p>
+                            </Typo.caption>
                           )}
                         </>
                       )}
                       {face === '스킬트리' && (
                         <div {...stylex.props(styles.pending)}>
-                          <strong>스킬트리</strong>
-                          <span>구성 예정</span>
+                          <Typo.h6 as="strong">스킬트리</Typo.h6>
+                          <Typo.txtS as="span">구성 예정</Typo.txtS>
                         </div>
                       )}
                     </div>

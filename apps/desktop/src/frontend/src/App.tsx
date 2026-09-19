@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui'
 import * as stylex from '@stylexjs/stylex'
 import { lightTheme } from './constants/theme.stylex'
 import { useColorTheme } from './hooks/useColorTheme'
@@ -42,8 +43,8 @@ function App(): React.JSX.Element {
         account={<LoginSection api={window.auth} />}
       />
       <footer {...stylex.props(styles.footer)}>
-        <span>LDB Desktop</span>
-        <span role="status">{footerStatus}</span>
+        <Typo.caption>LDB Desktop</Typo.caption>
+        <Typo.caption role="status">{footerStatus}</Typo.caption>
       </footer>
     </main>
   )
