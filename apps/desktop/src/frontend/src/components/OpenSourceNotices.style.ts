@@ -2,15 +2,13 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
-  heading: { fontSize: 22, lineHeight: 1.4, margin: '12px 0', overflowWrap: 'anywhere' },
+  heading: { paddingBlock: 12, overflowWrap: 'anywhere' },
   description: {
-    fontSize: 13,
     color: colors.shellMuted,
-    lineHeight: 1.6,
-    margin: '0 0 20px',
+    paddingBottom: 20,
     overflowWrap: 'anywhere'
   },
-  count: { fontSize: 11, color: colors.shellMuted, margin: '20px 0 12px' },
+  count: { color: colors.shellMuted, paddingTop: 20, paddingBottom: 12 },
   list: {
     listStyle: 'none',
     padding: 0,
@@ -19,7 +17,9 @@ export const styles = stylex.create({
     borderRadius: 8
   },
   row: {
-    display: 'flex',
+    display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    alignItems: 'center',
     width: '100%',
     minHeight: 60,
     height: 'auto',
@@ -36,23 +36,21 @@ export const styles = stylex.create({
     gap: 4,
     flex: 1,
     minWidth: 0,
-    fontSize: 13,
     overflowWrap: 'anywhere'
   },
-  version: { fontSize: 10, fontWeight: 400, color: colors.shellMuted },
+  version: { color: colors.shellMuted },
   license: {
-    maxWidth: '40%',
-    fontSize: 11,
-    fontWeight: 400,
+    maxWidth: { default: '40%', '@media (max-width: 600px)': '100%' },
+    gridColumn: 1,
+    gridRow: 2,
     color: colors.shellMuted,
     overflowWrap: 'anywhere'
   },
+  rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
   document: { backgroundColor: colors.surface, borderRadius: 8, padding: 20, marginTop: 16 },
-  documentTitle: { margin: '0 0 16px', fontSize: 13, overflowWrap: 'anywhere' },
+  documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'NanumSquareNeo, sans-serif',
-    fontSize: 12,
-    lineHeight: 1.7,
     whiteSpace: 'pre-wrap',
     overflowWrap: 'anywhere',
     margin: 0

@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './CardImage.style'
@@ -14,9 +15,13 @@ export function CardImage({
   const [failedSource, setFailedSource] = useState<string>()
   if (src == null || failedSource === src) {
     return (
-      <span role="img" aria-label={`${label} 이미지 없음`} {...stylex.props(styles.placeholder)}>
+      <Typo.caption
+        role="img"
+        aria-label={`${label} 이미지 없음`}
+        {...stylex.props(styles.placeholder)}
+      >
         —
-      </span>
+      </Typo.caption>
     )
   }
   return (

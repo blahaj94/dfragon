@@ -62,11 +62,12 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 
 [Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)과 현재 `packages/ui` 구성을 바탕으로 아래 UI 경계를 채택한다. 이 절은 이번 PR의 사용자 merge 후 active 계약으로 적용하며, 과거 proposed 문구가 새 화면 구현의 재승인 조건이 되지 않게 한다. UI 내부 배치·스타일·Example 범위는 [Design System](../rules/design-system.md)을 따른다.
 
-| 대상 | 책임과 dependency direction |
-| --- | --- |
-| `packages/ui`의 `@ldb/ui` | Browser React shared package 하나로 공식 SEED styled Component·Snippet과 실제로 공유하는 Layout·composition을 제공한다. `@ldb/ui` → SEED/React·필요한 공식 icon 방향으로 연결하며 app source·API client·backend·Electron main/preload·IPC·인증·domain을 import하지 않는다. |
-| `apps/web`·`apps/desktop` renderer | `@ldb/ui`를 소비하고 제품 data·event·behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다. |
-| 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@ldb/ui` public API와 합성 content로 확인한다. 새 화면마다 Component·Pattern·Template 예제를 갖출 의무는 없다. |
+| 대상                               | 책임과 dependency direction                                                                                                                                                                                                                                                |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/ui`의 `@ldb/ui`          | Browser React shared package 하나로 공식 SEED styled Component·Snippet과 실제로 공유하는 Layout·composition을 제공한다. `@ldb/ui` → SEED/React·필요한 공식 icon 방향으로 연결하며 app source·API client·backend·Electron main/preload·IPC·인증·domain을 import하지 않는다. |
+| `apps/web`·`apps/desktop` renderer | `@ldb/ui`를 소비하고 제품 data·event·behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다.                                                                                                      |
+| `apps/api/browser`                 | 인증 React 화면에서 `@ldb/ui/typo`만 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다.                                                                                                                           |
+| 독립 Vite Example entry            | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@ldb/ui` public API와 합성 content로 확인한다. 새 화면마다 Component·Pattern·Template 예제를 갖출 의무는 없다.                                                                                                        |
 
 공식 요소를 불필요하게 재명명·wrapper로 감싸지 않고 SEED 이름과 semantic API를 유지한다. 화면별 스타일 허용 범위와 필요한 Example·version·Snippet source·영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
 

@@ -1,3 +1,4 @@
+import { Typo } from '@ldb/ui'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { getCaptureSourceNotice } from '../lib/capture-presentation'
 import { RefreshIcon } from './RefreshIcon'
@@ -64,9 +65,9 @@ export function CaptureSourceSelect({
         )}
       >
         <MonitorIcon {...stylex.props(styles.icon)} />
-        <span {...stylex.props(styles.value)} title={label}>
+        <Typo.txtS as="span" {...stylex.props(styles.value)} title={label}>
           {loading ? '창 목록 확인 중…' : label}
-        </span>
+        </Typo.txtS>
         <ChevronDownIcon {...stylex.props(styles.chevron, open && styles.rotated)} />
       </Menu.Trigger>
       {open && (
@@ -78,8 +79,10 @@ export function CaptureSourceSelect({
             <Menu.ScrollArea {...stylex.props(styles.scroll)}>
               {(failed || detected.length === 0) && (
                 <div role="status" {...stylex.props(styles.notice)}>
-                  <p {...stylex.props(styles.noticeTitle)}>{notice.title}</p>
-                  {notice.description}
+                  <Typo.txtS weight={700} {...stylex.props(styles.noticeTitle)}>
+                    {notice.title}
+                  </Typo.txtS>
+                  <Typo.caption as="p">{notice.description}</Typo.caption>
                 </div>
               )}
               {[
@@ -90,7 +93,7 @@ export function CaptureSourceSelect({
                   group.sources.length > 0 && (
                     <Menu.Group key={group.label} {...stylex.props(styles.group)}>
                       <Menu.GroupLabel {...stylex.props(styles.groupLabel)}>
-                        {group.label}
+                        <Typo.caption>{group.label}</Typo.caption>
                       </Menu.GroupLabel>
                       {group.sources.map((source) => (
                         <Menu.Item
@@ -113,10 +116,14 @@ export function CaptureSourceSelect({
                           </span>
                           <Menu.ItemBody {...stylex.props(styles.itemBody)}>
                             <Menu.ItemLabel title={source.name} {...stylex.props(styles.itemLabel)}>
-                              {source.name}
+                              <Typo.txtS as="span" weight={700}>
+                                {source.name}
+                              </Typo.txtS>
                             </Menu.ItemLabel>
                             <Menu.ItemDescription {...stylex.props(styles.description)}>
-                              {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
+                              <Typo.caption>
+                                {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
+                              </Typo.caption>
                             </Menu.ItemDescription>
                           </Menu.ItemBody>
                           {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}
@@ -131,7 +138,8 @@ export function CaptureSourceSelect({
                 onClick={onRefresh}
                 {...stylex.props(styles.option, styles.refresh)}
               >
-                <RefreshIcon {...stylex.props(styles.icon)} />창 목록 새로고침
+                <RefreshIcon {...stylex.props(styles.icon)} />
+                <Typo.caption>창 목록 새로고침</Typo.caption>
               </Menu.Item>
             </Menu.ScrollArea>
           </Menu.Content>

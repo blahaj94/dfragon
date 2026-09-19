@@ -10,19 +10,17 @@ export const styles = stylex.create({
     color: colors.shellText,
     flexWrap: 'wrap'
   },
-  name: { fontSize: 28, margin: '0 0 12px', fontWeight: 700 },
+  name: { paddingBottom: 12, display: 'flex', alignItems: 'center', gap: 24 },
   server: {
-    fontSize: 12,
     padding: '5px 12px',
     backgroundColor: colors.control,
     borderRadius: 6,
-    marginLeft: 24,
     verticalAlign: 'middle'
   },
-  subtitle: { fontSize: 13, color: colors.muted, margin: 0 },
+  subtitle: { color: colors.muted, margin: 0 },
   scores: { display: 'flex', gap: 48, margin: 0, alignItems: 'center', paddingRight: 24 },
-  label: { fontSize: 12, color: colors.muted, marginBottom: 8 },
-  score: { fontSize: 28, fontWeight: 700, margin: 0 },
+  label: { color: colors.muted, paddingBottom: 8 },
+  score: { margin: 0 },
   fame: { color: colors.accent },
   scroll: { overflowX: 'auto', paddingBottom: 0 },
   deck: { position: 'relative', minWidth: 1072, height: 512, marginTop: 4 },
@@ -61,8 +59,7 @@ export const styles = stylex.create({
     top: 24,
     right: 0,
     width: 84,
-    textAlign: 'center',
-    fontSize: 13
+    textAlign: 'center'
   },
   number: {
     position: 'absolute',
@@ -70,22 +67,20 @@ export const styles = stylex.create({
     right: 0,
     width: 84,
     textAlign: 'center',
-    fontSize: 13,
     color: colors.muted
   },
-  title: { margin: 0, fontSize: 18, fontWeight: 700, position: 'absolute', top: 20, left: 20 },
+  title: { margin: 0, position: 'absolute', top: 20, left: 20 },
   content: { position: 'absolute', inset: '68px 20px 20px', pointerEvents: 'none' },
   identity: { textAlign: 'center', marginTop: 12 },
-  adventure: { fontSize: 12, color: colors.adventure },
-  characterName: { margin: '8px 0', fontSize: 20, fontWeight: 700 },
+  adventure: { color: colors.adventure },
+  characterName: { paddingBlock: 8 },
   pending: {
     display: 'grid',
     placeContent: 'center',
     height: '100%',
     textAlign: 'center',
     gap: 12,
-    color: colors.muted,
-    fontSize: 14
+    color: colors.muted
   },
-  note: { margin: '12px 0 0', color: colors.muted, fontSize: 12, textAlign: 'center' }
+  note: { paddingTop: 12, color: colors.muted, textAlign: 'center' }
 })

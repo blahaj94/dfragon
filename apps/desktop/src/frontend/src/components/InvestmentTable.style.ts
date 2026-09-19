@@ -5,19 +5,17 @@ export const styles = stylex.create({
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: 10,
-    fontWeight: 400,
-    lineHeight: '18px',
     color: colors.text
   },
-  largeTable: { fontSize: 14, lineHeight: '28px', maxWidth: 560, marginInline: 'auto' },
+  largeTable: { maxWidth: 560, marginInline: 'auto' },
+  largeCell: { paddingBlock: 4 },
   row: {
     backgroundColor: {
       default: colors.card,
       ':nth-child(even)': colors.alternate
     }
   },
-  cell: { paddingInline: 6, paddingBlock: 0, textAlign: 'left', fontWeight: 400 },
+  cell: { paddingInline: 6, paddingBlock: 0, textAlign: 'left' },
   value: { textAlign: 'right', whiteSpace: 'nowrap' },
   enhancement: { color: '#ff75f5' }
 })

@@ -27,14 +27,11 @@ export const styles = stylex.create({
     padding: { default: '24px 12px', '@media (max-width: 600px)': '8px 12px' }
   },
   group: {
-    fontSize: 11,
     color: colors.shellMuted,
     paddingInline: 12,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
   selected: {
-    fontSize: 13,
-    fontWeight: 700,
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#45382f',
@@ -44,7 +41,6 @@ export const styles = stylex.create({
   appName: {
     marginTop: 'auto',
     paddingInline: 12,
-    fontSize: 11,
     color: colors.shellMuted,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
@@ -56,5 +52,5 @@ export const styles = stylex.create({
     padding: { default: 28, '@media (max-width: 600px)': 16 },
     backgroundColor: colors.background
   },
-  heading: { fontSize: 22, margin: '0 0 16px' }
+  heading: { paddingBottom: 16 }
 })

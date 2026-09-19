@@ -56,6 +56,24 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 레이아웃은 기존 React·TypeScript·StyleX와 `@ldb/ui`·SEED를 사용한다. [Desktop 스타일 작성](desktop-styling.md), [Design System](../rules/design-system.md), [검색 구현 안내](desktop-character-search.md)의 공용 자산·접근성·캡처 수명을 유지한다. 화면 전용 조합은 Desktop 내부에서 시작하며 별도 디자인 시스템 구축을 선행하지 않는다.
 
+## Typo 적용
+
+[Typo 가이드 보드](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=4481fd50-c2f6-80a2-8008-a96a89ac7899)의 10개 텍스트 자산과 React `typographyVariants`를 같은 규격으로 사용한다. 화면 크기와 문서 heading 단계는 분리하며, 예를 들어 화면 제목은 `Typo.h3 as="h1"`로 작성한다.
+
+| 역할                           | variant                       |
+| ------------------------------ | ----------------------------- |
+| 로그인·회원가입·상세 화면 제목 | h3                            |
+| 설정 본문 제목·상세 지표       | h4                            |
+| 모달·카드 구역 제목            | h5                            |
+| 작은 구역 제목                 | h6                            |
+| 설명·닉네임·주요 버튼          | txtM (닉네임·버튼 weight=700) |
+| 목록·고지 원문·작은 버튼       | txtS (버튼 weight=700)        |
+| 서버·직업·버전·작은 투자 표    | caption                       |
+
+화면에서는 직접 fontSize·lineHeight를 반복하지 않는다. 작은 카드 이름은 24px 행간과 26px input 외곽 높이를 사용하고, 빈 입력은 txtS로 표시한다. 닉네임과 보조 정보 사이의 공간을 함께 조정해 280px 카드 높이를 유지한다. h4–h6의 계약은 weight=600이며 현재 Desktop의 나눔스퀘어 네오 자산은 CSS font matching으로 700 파일을 사용한다. 인증 browser의 기존 글꼴 상속은 유지한다.
+
+현재 적용은 제품 App이 사용하는 화면과 같은 컴포넌트를 쓰는 상세 미리보기까지다. `fixture/legacy`와 연결되지 않은 예전 화면의 일괄 교체는 포함하지 않는다. 실제 인증 UI는 Desktop의 예전 LoginPage가 아닌 `apps/api/browser/passkeys.tsx`이며, 이 entry에서도 같은 Typo를 소비한다.
+
 ## Renderer 미리보기
 
 `src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 연다. 숨겨진 로딩 아이콘은 레이아웃 너비를 차지하지 않으며, 진행 시 글자는 오른쪽으로 사라지고 아이콘은 오른쪽에서 들어온다. 버튼은 최소 너비를 유지하면서 내용 너비 전환에 맞춰 줄어들고 취소·실패 후 복귀한다. 진행 중에는 재클릭을 막고, 취소는 인증 창 닫기로 처리한다. 로그인 완료 시 버튼을 숨기며 계정 모달·환영·패스키 관리·로그아웃 메뉴는 제공하지 않는다. 연결 조회 실패와 복원·저장소 실패 시 로그인 버튼으로 조회 또는 복구를 재시도할 수 있다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 카메라 버튼은 `CaptureControls` 모달을 열고, 선택한 창은 기존 `usePartyCapture`를 통해 즉시 캡처한다. 대상 변경 시 이전 stream·OCR를 정리하고 새 창으로 전환한다. 모달 닫기는 캡처를 중지하지 않으며 로그인 상태와도 독립적이다. 안정화된 OCR 이름을 네 카드에 표시한다. 검색 결과·이름 수정·상세 카드의 실데이터 조합은 후속이며 이 단계의 이름 입력은 읽기 전용이다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.

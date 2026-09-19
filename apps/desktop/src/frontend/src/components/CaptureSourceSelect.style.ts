@@ -18,7 +18,6 @@ export const styles = stylex.create({
     backgroundColor: palette.input,
     color: colors.shellText,
     fontFamily: 'inherit',
-    fontSize: 14,
     textAlign: 'left',
     cursor: 'pointer',
     transition: 'background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
@@ -63,9 +62,6 @@ export const styles = stylex.create({
   group: { '::before': { display: 'none' } },
   groupLabel: {
     padding: '0 8px 8px',
-    fontSize: 11,
-    lineHeight: '16px',
-    fontWeight: 400,
     color: colors.shellMuted
   },
   option: {
@@ -104,18 +100,15 @@ export const styles = stylex.create({
   selectedTile: { backgroundColor: palette.selectedIcon, color: palette.accent },
   itemBody: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 },
   itemLabel: {
-    fontSize: 14,
-    lineHeight: '21px',
-    fontWeight: 700,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
     color: colors.shellText
   },
-  description: { fontSize: 11, lineHeight: '16px', color: colors.shellMuted },
+  description: { color: colors.shellMuted },
   check: { width: 20, height: 20, flexShrink: 0, color: palette.accent },
-  notice: { padding: '4px 8px 12px', fontSize: 12, lineHeight: 1.6, color: colors.shellMuted },
-  noticeTitle: { margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: colors.shellText },
+  notice: { padding: '4px 8px 12px', color: colors.shellMuted },
+  noticeTitle: { paddingBottom: 6, color: colors.shellText },
   divider: { height: 1, margin: '2px 8px', backgroundColor: palette.divider, flexShrink: 0 },
-  refresh: { minHeight: 36, fontSize: 12, fontWeight: 400, color: colors.shellMuted }
+  refresh: { minHeight: 36, color: colors.shellMuted }
 })

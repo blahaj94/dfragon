@@ -17,15 +17,12 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
-    paddingRight: 24,
-    fontSize: 20
+    paddingRight: 24
   },
-  state: { fontSize: 13, fontWeight: 400, color: colors.shellMuted, whiteSpace: 'nowrap' },
+  state: { color: colors.shellMuted, whiteSpace: 'nowrap' },
   notice: {
-    fontSize: 12,
-    lineHeight: 1.6,
     color: colors.shellMuted,
-    margin: '12px 0 0',
+    paddingTop: 12,
     overflowWrap: 'anywhere'
   },
   footer: {
