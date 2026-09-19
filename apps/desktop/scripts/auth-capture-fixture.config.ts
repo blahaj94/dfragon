@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import { rendererTransforms } from '../build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices } from '@ldb/licenses/vite'
+import { uiNotices, desktopLicenseCatalog } from '@ldb/licenses/vite'
 
 export default defineConfig({
   main: {
@@ -28,7 +28,12 @@ export default defineConfig({
     plugins: [
       ...rendererTransforms(),
       seedDesignPlugin(),
-      uiNotices({ uiRoot: resolve('../../packages/ui') })
+      uiNotices({ uiRoot: resolve('../../packages/ui') }),
+      desktopLicenseCatalog({
+        runtimeRoot: resolve('.'),
+        uiRoot: resolve('../../packages/ui'),
+        ocrRoot: resolve('assets/ocr')
+      })
     ],
     resolve: {
       alias: [{ find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]

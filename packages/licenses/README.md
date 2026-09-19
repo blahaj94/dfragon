@@ -34,3 +34,9 @@ pnpm --filter @ldb/desktop build
 ```
 
 `ldb-copy-notices lib dist/notices`는 정적 고지 복사용 bin입니다. 배포 시 `src`·`notices`·`overrides.json`을 함께 유지합니다. 수집기 테스트는 전이·순환 의존성, dev 제외, nested LICENSE, 버전 고정 보완, 누락 감지를 확인합니다.
+
+## Desktop 설정 화면
+
+`desktopLicenseCatalog({ runtimeRoot, uiRoot, ocrRoot })`는 `virtual:ldb-desktop-licenses`에 목록과 원문 데이터를 제공합니다. Desktop의 production 의존성, UI 의존성·peer와 전이 의존성, 중앙 SEED·아이콘·글꼴 및 OCR 원문을 포함합니다. UI의 peer는 Desktop manifest에서 개발 의존성으로 설치되지만 제품 UI에 사용되므로 포함하며, 그 밖의 개발 도구는 제외합니다. 번들 입력만 수집하는 기존 배포 고지보다 일부 미사용 전이 패키지가 더 포함될 수 있습니다.
+
+설정을 처음 열 때 별도 번들에서 데이터를 읽어 네트워크·Node API·파일 IPC 없이 원문을 표시합니다. `@ldb/licenses/types`는 이 데이터의 타입만 제공합니다. 기존 `THIRD-PARTY.txt`와 정적 고지 배포는 유지합니다. 원문 공백 표시는 설정 화면에서도 보존합니다.

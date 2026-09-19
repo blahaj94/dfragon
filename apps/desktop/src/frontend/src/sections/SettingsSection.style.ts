@@ -1,0 +1,60 @@
+import * as stylex from '@stylexjs/stylex'
+import { colors } from '../constants/theme.stylex'
+
+export const styles = stylex.create({
+  dialog: {
+    width: 900,
+    maxWidth: 'calc(100vw - 24px)',
+    maxHeight: 'calc(100dvh - 24px)',
+    backgroundColor: colors.surface,
+    color: colors.shellText,
+    fontFamily: 'NanumSquareNeo, sans-serif',
+    borderRadius: 12,
+    overflow: 'hidden'
+  },
+  body: {
+    display: 'flex',
+    flexDirection: { default: 'row', '@media (max-width: 600px)': 'column' },
+    minHeight: 0,
+    height: 'min(540px, calc(100dvh - 110px))'
+  },
+  sidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+    flexShrink: 0,
+    width: { default: 196, '@media (max-width: 600px)': 'auto' },
+    padding: { default: '24px 12px', '@media (max-width: 600px)': '8px 12px' }
+  },
+  group: {
+    fontSize: 11,
+    color: colors.shellMuted,
+    paddingInline: 12,
+    display: { default: 'block', '@media (max-width: 600px)': 'none' }
+  },
+  selected: {
+    fontSize: 13,
+    fontWeight: 700,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#45382f',
+    color: '#ffad78'
+  },
+  selectedLight: { backgroundColor: '#fff0e5', color: '#ab4d0c' },
+  appName: {
+    marginTop: 'auto',
+    paddingInline: 12,
+    fontSize: 11,
+    color: colors.shellMuted,
+    display: { default: 'block', '@media (max-width: 600px)': 'none' }
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: { default: 28, '@media (max-width: 600px)': 16 },
+    backgroundColor: colors.background
+  },
+  heading: { fontSize: 22, margin: '0 0 16px' }
+})
