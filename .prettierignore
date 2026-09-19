@@ -18,7 +18,7 @@ packages/licenses/notices/**
 # Keep the Desktop formatter's existing tsconfig boundary.
 apps/desktop/tsconfig.json
 apps/desktop/tsconfig.*.json
-# Keep handwritten tooling and UI out of the broad LICENSE* exclusion.
+# Keep handwritten tooling out of the broad LICENSE* exclusion.
 !packages/licenses/
 !packages/licenses/src/
 !packages/licenses/test/
@@ -27,8 +27,3 @@ apps/desktop/tsconfig.*.json
 !packages/licenses/package.json
 !packages/licenses/tsconfig.json
 !packages/licenses/overrides.json
-!apps/desktop/src/frontend/src/sections/LicensesSection.style.ts
-!apps/desktop/src/frontend/src/sections/LicensesSection.tsx
-!apps/desktop/build/license-notices.mjs
-!apps/desktop/src/frontend/src/lib/license-document.ts
-!apps/desktop/src/frontend/src/lib/license-document.test.ts

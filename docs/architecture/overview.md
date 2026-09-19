@@ -88,7 +88,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Ele
 
 ## License tooling boundary
 
-`@ldb/licenses`는 UI·Web·Desktop·공용 library의 **빌드 도구 의존성**으로 고지 원문·수집·산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. Desktop의 오프라인 라이선스 탭과 target별 고지 배포를 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
+`@ldb/licenses`는 UI·Web·Desktop·공용 library의 **빌드 도구 의존성**으로 고지 원문·수집·산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 고지 원문의 중앙 관리와 빌드 수집 도구 이전을 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
 
 ## Architecture change
 

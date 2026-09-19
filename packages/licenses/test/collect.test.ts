@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
 import { collectPackages, findPackageRoot, packageNotice } from '../src/collect.ts'
-import { renderNotices } from '../src/viewer.ts'
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'ldb-notices-test-'))
@@ -99,23 +98,4 @@ test('version-specific upstream originals fill gaps, while the known missing ori
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
-})
-
-test('viewer displays literal license text without injecting markup or executable scripts', () => {
-  const html = renderNotices(
-    [
-      {
-        name: '<script>bad()</script>',
-        version: '1',
-        license: 'MIT',
-        documents: [{ name: 'LICENSE', text: 'Copyright <owner> & "terms"' }]
-      }
-    ],
-    true
-  )
-  assert.ok(html.includes('&lt;script&gt;bad()&lt;/script&gt;'))
-  assert.ok(html.includes('Copyright &lt;owner&gt; &amp; &quot;terms&quot;'))
-  assert.equal(html.includes('<script>'), false)
-  assert.ok(html.includes('LICENSES.chromium.html'))
-  assert.ok(html.includes('default-src'))
 })

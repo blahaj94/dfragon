@@ -39,8 +39,8 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 ## License tooling
 
 - Package: `@ldb/licenses`, 위치: `packages/licenses`. 빌드용 수집기·정적 원문·버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
-- Desktop의 오픈소스 라이선스 탭은 로그인·네트워크 없이 생성 HTML을 표시한다. 설치 패키지의 `resources/licenses`에는 실제 target Electron 고지를 포함한다.
-- `pnpm --filter @ldb/licenses test`: typecheck와 수집·표시·packaging 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
+- 기존 UI·Web·Desktop·lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
+- `pnpm --filter @ldb/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
 
 ## Applications
 

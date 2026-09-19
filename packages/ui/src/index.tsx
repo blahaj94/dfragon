@@ -45,5 +45,3 @@ export const DialogAction: ComponentType<DialogActionProps> = SeedDialogAction
 export { default as LayoutBlock } from './seed/layout-01'
 export type { LayoutBlockProps } from './seed/layout-01'
 export { ContentStack, ExampleSection, SupportingText } from './composition'
-
-export { Tabs } from '@seed-design/react'

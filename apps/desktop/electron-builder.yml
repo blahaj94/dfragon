@@ -9,8 +9,6 @@ files:
   - resources/**
   - package.json
   - '!**/{.env,.env.*,.npmrc,*.pem,*.key,*.pfx,*.p12}'
-afterExtract: ./build/extract-license-notices.mjs
-afterPack: ./build/license-notices.mjs
 asarUnpack:
   - resources/**
 win:

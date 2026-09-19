@@ -77,8 +77,3 @@ pnpm --filter @ldb/desktop build:win:development
 ```
 
 개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색·인증·캡처 회귀 테스트와 capture fixture에서만 사용합니다. 기존 localhost HTTPS·`ldb.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS·Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
-
-
-## 오픈소스 라이선스
-
-메인 화면의 **오픈소스 라이선스** 탭에서 로그인·인터넷 연결 없이 포함된 코드·자산의 고지를 열람합니다. 탭을 바꿔도 캡처 상태는 유지됩니다. 원문과 수집 코드는 [`@ldb/licenses`](../../packages/licenses/README.md)에서 관리하며, 일반 build는 `out/frontend/notices`, 설치 패키지는 `resources/licenses`에 고지를 제공합니다. Packaging hook은 실제 대상 Electron의 원문을 포함합니다. 원문 미확보 항목은 숨기지 않고 **원문 확인 필요**로 표시합니다.

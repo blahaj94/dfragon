@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./vite": "./src/vite.ts",
-    "./packaging": "./src/packaging.mjs"
+    "./vite": "./src/vite.ts"
   },
   "bin": {
     "ldb-copy-notices": "./src/copy-notices.mjs"
