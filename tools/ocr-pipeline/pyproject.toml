@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ldb-ocr-pipeline"
+version = "0.1.0"
+description = "Local, full-alphabet OCR dataset, training, export and regression-evaluation tools"
+requires-python = ">=3.10,<3.14"
+dependencies = ["numpy>=1.26,<3", "Pillow>=10,<13", "PyYAML>=6,<7"]
+
+[project.optional-dependencies]
+evaluation = ["onnxruntime>=1.18,<2"]
+test = ["pytest>=8,<10"]
+
+[tool.setuptools.packages.find]
+include = ["ldb_ocr*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,10 @@
+{
+  "min_samples_per_group": 100,
+  "minimum_exact_match": 0.99,
+  "maximum_cer": 0.005,
+  "maximum_exact_match_regression": 0.0,
+  "maximum_p95_cpu_ms": 250,
+  "min_real_test_samples": 100,
+  "min_test_examples_per_character_per_profile": 1,
+  "required_scripts": ["hangul", "latin", "digit", "han", "kana", "symbol"]
+}

@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+build/
+data/
+runs/
+candidates/
+reports/
+*.pdparams
+*.pdopt
+*.pdstates
+*.onnx
+*.ttf
+*.ttc
+*.otf
