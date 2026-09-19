@@ -33,6 +33,8 @@ export function planCommands(argv, { root = toolRoot, platform = process.platfor
   const executableName = platform === 'win32' ? 'python.exe' : 'python'
   const python = join(venv, binaryDirectory, executableName)
   const cwd = resolve(root, '../..')
+  /** @param {string[]} values @returns {{ executable: string, args: string[], cwd: string, venv: string }} */
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   const step = (values) => ({ executable: python, args: values, cwd, venv })
 
   if (action === 'setup') {
@@ -107,6 +109,8 @@ export function planCommands(argv, { root = toolRoot, platform = process.platfor
 export async function executeCommands(commands) {
   let active = null
   let interrupted = null
+  /** @param {NodeJS.Signals} signal @returns {void} */
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   const stop = (signal) => {
     if (interrupted != null) {
       return
@@ -123,8 +127,8 @@ export async function executeCommands(commands) {
       active.kill('SIGINT')
     }
   }
-  const onInterrupt = () => stop('SIGINT')
-  const onTerminate = () => stop('SIGTERM')
+  const onInterrupt = stop.bind(null, 'SIGINT')
+  const onTerminate = stop.bind(null, 'SIGTERM')
   process.on('SIGINT', onInterrupt)
   process.on('SIGTERM', onTerminate)
   try {
