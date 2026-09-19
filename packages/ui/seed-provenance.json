@@ -97,15 +97,15 @@
   },
   "notices": {
     "seed": [
-      "notices/SEED-LICENSE",
-      "notices/SEED-NOTICE"
+      "../licenses/notices/ui/SEED-LICENSE",
+      "../licenses/notices/ui/SEED-NOTICE"
     ],
     "icons": {
       "package": "@karrotmarket/react-monochrome-icon@1.26.0",
       "repository": "https://github.com/daangn/seed-icon-v3",
       "files": [
-        "notices/ICONS-LICENSE",
-        "notices/ICONS-NOTICE"
+        "../licenses/notices/ui/ICONS-LICENSE",
+        "../licenses/notices/ui/ICONS-NOTICE"
       ]
     }
   },
