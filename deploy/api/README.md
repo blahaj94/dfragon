@@ -59,6 +59,12 @@ shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `D
 
 ## 처음 실행
 
+이미지 build 단계는 API와 공용 UI의 workspace manifest를 먼저 복사해 의존성을 설치한다.
+인증 browser bundle에는 `packages/ui/src/typo.tsx`와 `foundation.css`를 사용하며,
+Dockerfile의 복사 목록과 `Dockerfile.dockerignore`의 허용 목록을 함께 유지한다.
+UI의 개발 의존성인 licenses package는 workspace 해석을 위해 manifest만 포함한다.
+최종 runtime 단계에는 기존처럼 API 산출물과 production 의존성만 복사한다.
+
 아래 명령은 서버에서 Docker를 관리할 수 있는 운영자가 `deploy/api`에서 실행한다.
 빈 DB volume에서만 cluster와 두 역할을 초기화한다. App table은 init script가 만들지 않는다.
 

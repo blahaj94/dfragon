@@ -13,7 +13,12 @@
 !apps/api/browser/**
 !packages/
 !packages/ui/
+!packages/ui/package.json
 !packages/ui/foundation.css
+!packages/ui/src/
+!packages/ui/src/typo.tsx
+!packages/licenses/
+!packages/licenses/package.json
 !deploy/
 !deploy/api/
 !deploy/api/Dockerfile
