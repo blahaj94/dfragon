@@ -45,5 +45,5 @@ export const DialogAction: ComponentType<DialogActionProps> = SeedDialogAction
 export { default as LayoutBlock } from './seed/layout-01'
 export type { LayoutBlockProps } from './seed/layout-01'
 export { ContentStack, ExampleSection, SupportingText } from './composition'
-export { Typography, typographyVariants } from './typography'
-export type { TypographyProps, TypographyTag, TypographyVariant } from './typography'
+export { Typo, typographyVariants } from './typo'
+export type { TypoProps, TypoTag, TypoVariant } from './typo'

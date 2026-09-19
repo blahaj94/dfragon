@@ -18,9 +18,9 @@ SEED의 기존 Component·Token과 `@ldb/ui`를 우선 사용해 필요한 화�
 - 공식 Snippet은 필요한 의존 Snippet과 함께 사용한다. 출처와 라이선스를 보존하며 LDB에서 추가한 표현을 공식 SEED 보장으로 설명하지 않는다.
 - SEED의 상표·로고·제품 예시 content를 LDB 정체성이나 제품 데이터로 복제하지 않는다. Package·CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 
-## Typography의 명시적 예외
+## Typo의 명시적 예외
 
-이번 Typography 요청은 `@ldb/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typography.h1`–`h6`, `txtL`·`txtM`·`txtS`·`caption`을 추가하는 범위로 채택한다. 지정한 크기·행간·굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute·event와 `className`·`style`·`color`·`align`·`weight`를 지원한다. 이 예외는 해당 PR의 사용자 merge 후 적용하며 기존 SEED 컴포넌트나 제품 화면의 typography를 일괄 교체하지 않는다.
+이번 Typo 요청은 `@ldb/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`·`txtM`·`txtS`·`caption`을 추가하는 범위로 채택한다. 지정한 크기·행간·굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute·event와 `className`·`style`·`color`·`align`·`weight`를 지원한다. 이 예외는 해당 PR의 사용자 merge 후 적용하며 기존 SEED 컴포넌트나 제품 화면의 typography를 일괄 교체하지 않는다.
 
 ## Version과 Source
 

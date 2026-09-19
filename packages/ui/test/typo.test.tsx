@@ -2,7 +2,17 @@ import { act, type MouseEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, expectTypeOf, it, vi } from 'vitest'
-import { Typography } from '../src/index'
+import { Typo, typographyVariants } from '../src/index'
+
+it('exports variants that can be used directly as React styles with pixel line heights', () => {
+  const container = document.createElement('div')
+  container.innerHTML = renderToStaticMarkup(<h1 style={typographyVariants.h1}>Heading</h1>)
+  const heading = container.querySelector('h1')!
+
+  expect(heading.style.fontSize).toBe('48px')
+  expect(heading.style.lineHeight).toBe('56px')
+  expect(heading.style.fontWeight).toBe('700')
+})
 
 it('uses semantic defaults and pixel dimensions for each variant', () => {
   const cases = [
@@ -19,7 +29,7 @@ it('uses semantic defaults and pixel dimensions for each variant', () => {
   ] as const
 
   for (const [variant, tag, fontSize, lineHeight, fontWeight] of cases) {
-    const Component = Typography[variant]
+    const Component = Typo[variant]
     const container = document.createElement('div')
     container.innerHTML = renderToStaticMarkup(<Component>Text</Component>)
     const element = container.firstElementChild as HTMLElement
@@ -36,7 +46,7 @@ it('uses semantic defaults and pixel dimensions for each variant', () => {
 it('changes only the tag with as and forwards attributes and appearance overrides', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(
-    <Typography.h2
+    <Typo.h2
       as="a"
       href="/about"
       id="about"
@@ -47,7 +57,7 @@ it('changes only the tag with as and forwards attributes and appearance override
       weight={500}
     >
       About
-    </Typography.h2>
+    </Typo.h2>
   )
   const link = container.querySelector('a')!
 
@@ -68,14 +78,14 @@ it('changes only the tag with as and forwards attributes and appearance override
 it('lets style take precedence over variants and convenience props', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(
-    <Typography.txtM
+    <Typo.txtM
       color="red"
       align="center"
       weight={500}
       style={{ color: 'blue', textAlign: 'right', fontWeight: 600, fontSize: 20, margin: 8 }}
     >
       Styled text
-    </Typography.txtM>
+    </Typo.txtM>
   )
   const paragraph = container.querySelector('p')!
 
@@ -95,9 +105,9 @@ it('forwards native button events and disabled behavior', async () => {
   try {
     await act(async () => {
       root.render(
-        <Typography.txtM as="button" onClick={onClick}>
+        <Typo.txtM as="button" onClick={onClick}>
           Run
-        </Typography.txtM>
+        </Typo.txtM>
       )
     })
     const button = container.querySelector('button')!
@@ -106,9 +116,9 @@ it('forwards native button events and disabled behavior', async () => {
 
     await act(async () => {
       root.render(
-        <Typography.txtM as="button" disabled onClick={onClick}>
+        <Typo.txtM as="button" disabled onClick={onClick}>
           Run
-        </Typography.txtM>
+        </Typo.txtM>
       )
     })
     await act(async () => button.click())
@@ -121,7 +131,7 @@ it('forwards native button events and disabled behavior', async () => {
 it('infers attributes and event targets from as and rejects mismatched attributes', () => {
   const examples = (
     <>
-      <Typography.h1
+      <Typo.h1
         as="a"
         href="/about"
         onClick={(event) => {
@@ -129,8 +139,8 @@ it('infers attributes and event targets from as and rejects mismatched attribute
         }}
       >
         About
-      </Typography.h1>
-      <Typography.txtM
+      </Typo.h1>
+      <Typo.txtM
         as="button"
         disabled
         onClick={(event) => {
@@ -138,29 +148,29 @@ it('infers attributes and event targets from as and rejects mismatched attribute
         }}
       >
         Run
-      </Typography.txtM>
-      <Typography.h1
+      </Typo.txtM>
+      <Typo.h1
         onClick={(event) => {
           expectTypeOf(event).toEqualTypeOf<MouseEvent<HTMLHeadingElement>>()
         }}
       >
         Heading
-      </Typography.h1>
-      <Typography.txtM as="label" htmlFor="name">
+      </Typo.h1>
+      <Typo.txtM as="label" htmlFor="name">
         Name
-      </Typography.txtM>
+      </Typo.txtM>
       {/* @ts-expect-error Default heading does not accept href. */}
-      <Typography.h1 href="/about">Invalid</Typography.h1>
+      <Typo.h1 href="/about">Invalid</Typo.h1>
       {/* @ts-expect-error A button does not accept href. */}
-      <Typography.txtM as="button" href="/about">
+      <Typo.txtM as="button" href="/about">
         Invalid
-      </Typography.txtM>
+      </Typo.txtM>
       {/* @ts-expect-error An anchor does not accept disabled. */}
-      <Typography.h1 as="a" disabled>
+      <Typo.h1 as="a" disabled>
         Invalid
-      </Typography.h1>
+      </Typo.h1>
       {/* @ts-expect-error as must be an HTML tag. */}
-      <Typography.h1 as="invalid-tag">Invalid</Typography.h1>
+      <Typo.h1 as="invalid-tag">Invalid</Typo.h1>
     </>
   )
 
