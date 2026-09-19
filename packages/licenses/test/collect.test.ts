@@ -3,7 +3,12 @@ import { realpathSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { collectPackages, findPackageRoot, packageNotice } from '../src/collect.ts'
+import {
+  collectPackages,
+  findPackageRoot,
+  packageNotice,
+  resolvePackageRoot
+} from '../src/collect.ts'
 
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'ldb-notices-test-'))
@@ -64,6 +69,16 @@ test('nested ESM package metadata does not hide the owner; nested notices are re
         (document) => document.text === 'Additional attribution'
       )
     )
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('wildcard exports resolving package.json into a missing file use the entry point owner', () => {
+  const { root, pkg } = fixture()
+  try {
+    const directory = pkg('wildcard', { exports: { '.': './index.js', './*': './lib/*' } })
+    assert.equal(resolvePackageRoot('wildcard', root), realpathSync(directory))
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

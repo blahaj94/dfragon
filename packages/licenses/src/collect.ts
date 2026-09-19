@@ -35,18 +35,13 @@ import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { dirname, join, relative } from 'node:path'
+import type { NoticeEntry } from './types.ts'
+export type { NoticeEntry } from './types.ts'
 
 const noticeRoot = fileURLToPath(new URL('../notices/', import.meta.url))
 const overrides: Record<string, { file: string; source: string; sha256: string }[]> = JSON.parse(
   readFileSync(new URL('../overrides.json', import.meta.url), 'utf8')
 )
-
-export interface NoticeEntry {
-  name: string
-  version: string
-  license: string
-  documents: { name: string; text: string }[]
-}
 
 export function findPackageRoot(file: string): string {
   let directory = dirname(file.split('?')[0])
@@ -66,7 +61,12 @@ export function findPackageRoot(file: string): string {
 export function resolvePackageRoot(name: string, from: string): string {
   const require = createRequire(join(from, 'package.json'))
   try {
-    return dirname(require.resolve(`${name}/package.json`))
+    const manifest = require.resolve(`${name}/package.json`)
+    // Wildcard exports can resolve to a nonexistent package.json below the real root.
+    if (existsSync(manifest)) {
+      return findPackageRoot(manifest)
+    }
+    return findPackageRoot(require.resolve(name))
   } catch {
     return findPackageRoot(require.resolve(name))
   }

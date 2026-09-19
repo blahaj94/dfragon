@@ -6,6 +6,7 @@ import { CharacterCard } from '../../sections/CharacterCard'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './PartyPage.style'
 import { useColorTheme } from '../../hooks/useColorTheme'
+import { SettingsSection } from '../../sections/SettingsSection'
 
 export function PartyPage({
   character,
@@ -52,6 +53,7 @@ export function PartyPage({
               로그인
             </ActionButton>
           )}
+          <SettingsSection />
         </div>
       </header>
       <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
