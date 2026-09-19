@@ -1,0 +1,28 @@
+{
+  "name": "@ldb/lib",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "notices",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm build && node --test test/*.test.mjs",
+    "generate:cp949": "node scripts/generate-cp949.mjs",
+    "lint": "eslint .",
+    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{ts,mjs,json}\""
+  },
+  "devDependencies": {
+    "iconv-lite": "0.7.3",
+    "typescript": "6.0.2"
+  }
+}

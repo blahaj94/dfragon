@@ -19,6 +19,7 @@ apps/
   desktop/
 packages/
   ui/
+  lib/
 scripts/
 ```
 
@@ -26,6 +27,7 @@ scripts/
 - `apps/web`: React, TypeScript, Vite 기반 web application.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@ldb/ui`. 실제 구현·명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
+- `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@ldb/lib`. 아래 Shared library boundary를 따른다.
 - `scripts`: repository 생성·관리 script.
 
 상세한 file과 command 현황은 [`../reference/repository-map.md`](../reference/repository-map.md)를 따른다.
@@ -38,7 +40,7 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 
 - 선택한 인증 운영 환경의 권한·저장과 기능 검증. 공개 복원은 선택했을 때만 확인
 - Web/mobile client, 실제 Desktop 지원 OS·배포 identity·callback/protocol 등록값 및 native 저장/복귀 검증
-- 아래 Shared UI boundary 이외의 shared package 종류와 dependency direction
+- 아래 Shared UI·Shared library boundary 이외의 shared package 종류와 dependency direction
 - 승인된 탈퇴·삭제/재가입·백업 복원 정책의 실제 저장소·권한·실행 검증 gate
 - 현재 요청과 MVP 운영 기준을 벗어나는 새로운 deployment boundary
 
@@ -77,6 +79,10 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 - 공식 icon package는 필요한 Snippet의 runtime dependency로, CLI는 authoring 도구로 구분한다. CLI를 제품 runtime에 포함하지 않는다. Dependency·역할 변경은 개발 흐름의 실제 영향과 권한 기준을 따른다.
 
 Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Electron 호환성, CSS 중복 없음, accessibility·시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example·사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
+
+## Shared library boundary
+
+이번 공용 함수 요청으로 `packages/lib`의 `@ldb/lib`를 추가한다. 사용자 merge 후 앱 → `@ldb/lib` 방향을 채택한다. 패키지는 API·Web·Desktop에서 같은 계약을 소비할 수 있는 순수 함수를 제공하며 앱 source·UI·Node/Electron 전용 runtime·네트워크·저장소에 의존하지 않는다. 이번 적용 범위는 CP949 기반 던파 캐릭터명 형식 검사와 공개 타입·빌드·검증이다. 기존 검색·계정 닉네임·OCR 정책이나 호출부를 바꾸지 않는다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
 
 ## Architecture change
 
