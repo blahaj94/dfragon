@@ -11,7 +11,7 @@ LDB의 빌드 도구용 오픈소스 고지 패키지입니다. 공용 원문·�
 - OCR 원문은 모델·사전과 검증 hash를 함께 관리하는 `apps/desktop/assets/ocr`에 보존하고 원래 OCR 배포 경로도 유지합니다.
 - npm 고지는 번들 입력 graph와 설치된 production dependency의 전이 의존성에서 수집합니다. 입력 graph는 tree-shaking 이전 입력도 포함하므로 일부 미사용 입력의 고지가 포함될 수 있습니다. `devDependencies` 전체를 일괄 배포하지 않습니다.
 
-`uiNotices({ uiRoot })`는 기존 UI·Web·Desktop의 고지와 SEED 변경 banner·provenance·bundle 목록을 유지합니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴·아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다.
+`uiNotices({ uiRoot, runtimeRoot? })`는 기존 UI·Web·Desktop의 고지와 SEED 변경 banner·provenance·bundle 목록을 유지합니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴·아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다.
 
 ## 알려진 원문 공백
 

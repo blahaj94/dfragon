@@ -2,15 +2,16 @@
  * 오픈소스 고지 수집 흐름 (의사코드)
  *
  * 초기화:
- *   중앙 notices 경로와 버전별 보완 원문 목록(overrides.json)을 읽는다.
+ *   라이선스 파일을 모아 둔 notices 폴더의 위치를 구한다.
+ *   패키지에 빠진 라이선스 파일을 어디서 가져올지 overrides.json에서 읽는다.
  *
  * 패키지 위치 찾기:
  *   모듈 경로의 query를 제거하고, name이 있는 package.json까지 상위로 이동한다.
  *   의존성 이름은 package.json 경로로 해석하고, 불가능하면 진입 파일에서 역추적한다.
- *   소유 패키지를 찾지 못하면 오류를 낸다.
+ *   파일이 속한 패키지를 찾지 못하면 오류를 낸다.
  *
  * collectPackages(번들 모듈, 선택적 runtimeRoot):
- *   가상 모듈을 제외한 node_modules 입력에서 소유 패키지를 찾아 중복을 제거한다.
+ *   가상 모듈을 제외한 node_modules 입력에서 파일이 속한 패키지를 찾아 중복을 제거한다.
  *   runtimeRoot가 있으면 dependencies와 optionalDependencies를 재귀 탐색한다.
  *     실제 경로별 방문 기록으로 순환을 막고 devDependencies는 탐색하지 않는다.
  *     해석되지 않는 optional 의존성은 건너뛰고, 필수 의존성 오류는 전파한다.

@@ -52,7 +52,7 @@ export default defineConfig(({ mode, command }) => ({
     plugins: [
       ...rendererTransforms(),
       seedDesignPlugin(),
-      uiNotices({ uiRoot: resolve('../../packages/ui') }),
+      uiNotices({ uiRoot: resolve('../../packages/ui'), runtimeRoot: resolve('.') }),
       desktopNotices(),
       ...(mode === 'mvp-preview'
         ? [

@@ -1,4 +1,4 @@
-import { packageNotice, findPackageRoot } from './collect.ts'
+import { collectPackages, findPackageRoot } from './collect.ts'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,7 +13,7 @@ type BundleContext = {
 // 각 build 입력 graph의 dependency 고지와 module provenance를 보존한다.
 // Tree-shaking 전 입력도 포함해 고지와 중복 사본 검사를 보수적으로 수행한다.
 // Vite 7(Electron)과 Vite 8에서 공통으로 제공하는 Rollup hook만 사용한다.
-export function uiNotices({ uiRoot }: { uiRoot: string }) {
+export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot?: string }) {
   return {
     name: 'ldb-ui-notices',
     generateBundle(
@@ -92,9 +92,9 @@ export function uiNotices({ uiRoot }: { uiRoot: string }) {
       }
 
       const thirdParty: string[] = []
-      for (const [directory, metadata] of packages) {
+      for (const metadata of collectPackages(this.getModuleIds(), runtimeRoot)) {
         thirdParty.push(`${metadata.name}@${metadata.version} (${metadata.license})`)
-        for (const document of packageNotice(directory).documents) {
+        for (const document of metadata.documents) {
           thirdParty.push(`${document.name}\n${document.text}`)
         }
       }
