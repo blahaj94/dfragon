@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import { rendererTransforms } from '../build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices } from '../../../packages/ui/build/notices'
+import { uiNotices } from '@ldb/licenses/vite'
 
 export default defineConfig({
   main: {
@@ -25,7 +25,11 @@ export default defineConfig({
     worker: { format: 'es' },
     root: resolve('src/frontend/src/fixture/auth-capture'),
     publicDir: resolve('src/frontend/public'),
-    plugins: [...rendererTransforms(), seedDesignPlugin(), uiNotices()],
+    plugins: [
+      ...rendererTransforms(),
+      seedDesignPlugin(),
+      uiNotices({ uiRoot: resolve('../../packages/ui') })
+    ],
     resolve: {
       alias: [{ find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
     },

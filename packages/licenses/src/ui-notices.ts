@@ -1,8 +1,9 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { basename, dirname, join, relative } from 'node:path'
+import { collectPackages, findPackageRoot } from './collect.ts'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const uiRoot = fileURLToPath(new URL('../', import.meta.url))
+const noticeRoot = fileURLToPath(new URL('../notices/ui/', import.meta.url))
 
 type BundleContext = {
   getModuleIds(): IterableIterator<string>
@@ -12,7 +13,7 @@ type BundleContext = {
 // 각 build 입력 graph의 dependency 고지와 module provenance를 보존한다.
 // Tree-shaking 전 입력도 포함해 고지와 중복 사본 검사를 보수적으로 수행한다.
 // Vite 7(Electron)과 Vite 8에서 공통으로 제공하는 Rollup hook만 사용한다.
-export function uiNotices() {
+export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot?: string }) {
   return {
     name: 'ldb-ui-notices',
     generateBundle(
@@ -52,11 +53,11 @@ export function uiNotices() {
         fileName: 'notices/bundle-files.json',
         source: JSON.stringify(generatedJavaScriptFiles, null, 2)
       })
-      for (const name of readdirSync(join(uiRoot, 'notices'))) {
+      for (const name of readdirSync(noticeRoot)) {
         this.emitFile({
           type: 'asset',
           fileName: `notices/${name}`,
-          source: readFileSync(join(uiRoot, 'notices', name), 'utf8')
+          source: readFileSync(join(noticeRoot, name), 'utf8')
         })
       }
 
@@ -71,22 +72,12 @@ export function uiNotices() {
         { name: string; version: string; license: string; modules: string[] }
       >()
       for (const moduleId of this.getModuleIds()) {
-        const isDependency = moduleId.includes('/node_modules/')
+        const isDependency = moduleId.includes('/node_modules/') && !moduleId.startsWith('\0')
         if (!isDependency) {
           continue
         }
         const sourcePath = moduleId.split('?')[0]
-        let directory = dirname(sourcePath)
-        let hasManifest = existsSync(join(directory, 'package.json'))
-        while (!hasManifest) {
-          const parent = dirname(directory)
-          const isFilesystemRoot = parent === directory
-          if (isFilesystemRoot) {
-            throw new Error('Bundled dependency has no package manifest')
-          }
-          directory = parent
-          hasManifest = existsSync(join(directory, 'package.json'))
-        }
+        const directory = findPackageRoot(sourcePath)
         const manifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'))
         const isFirstModule = !packages.has(directory)
         if (isFirstModule) {
@@ -101,14 +92,10 @@ export function uiNotices() {
       }
 
       const thirdParty: string[] = []
-      for (const [directory, metadata] of packages) {
-        const noticeNames = readdirSync(directory).filter((name) => {
-          const isNotice = /^(licen[cs]e|notice|copying)(\.|$)/i.test(name)
-          return isNotice
-        })
+      for (const metadata of collectPackages(this.getModuleIds(), runtimeRoot)) {
         thirdParty.push(`${metadata.name}@${metadata.version} (${metadata.license})`)
-        for (const name of noticeNames) {
-          thirdParty.push(`${basename(name)}\n${readFileSync(join(directory, name), 'utf8')}`)
+        for (const document of metadata.documents) {
+          thirdParty.push(`${document.name}\n${document.text}`)
         }
       }
       this.emitFile({

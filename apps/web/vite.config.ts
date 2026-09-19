@@ -2,10 +2,14 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices } from '../../packages/ui/build/notices.ts'
+import { uiNotices } from '@ldb/licenses/vite'
 
 export default defineConfig({
-  plugins: [react(), seedDesignPlugin(), uiNotices()],
+  plugins: [
+    react(),
+    seedDesignPlugin(),
+    uiNotices({ uiRoot: fileURLToPath(new URL('../../packages/ui/', import.meta.url)) })
+  ],
   resolve: {
     alias: [
       {

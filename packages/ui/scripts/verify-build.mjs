@@ -33,10 +33,10 @@ const cssFiles = files.filter((file) => {
   return isStylesheet
 })
 
-for (const name of await readdir(resolve(uiRoot, 'notices'))) {
+for (const name of await readdir(resolve(uiRoot, '../licenses/notices/ui'))) {
   assert.equal(
     await readFile(resolve(output, 'notices', name), 'utf8'),
-    await readFile(resolve(uiRoot, 'notices', name), 'utf8'),
+    await readFile(resolve(uiRoot, '../licenses/notices/ui', name), 'utf8'),
     `Preserved notice: ${name}`
   )
 }

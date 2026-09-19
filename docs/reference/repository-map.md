@@ -26,9 +26,21 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - 각 workspace에서도 `pnpm --filter @ldb/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
 - `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @ldb/web lint:oxlint`, `pnpm --filter @ldb/ui lint:oxlint`다. ESLint와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
 
-각 leaf의 formatter 명령은 root config와 ignore 경로를 명시한다. 생성물·OCR·고정 SEED source·foundation/provenance·lockfile·license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/ui/build/notices.ts`는 검사·정렬 대상이다. 세부 범위는 실행되는 config와 ignore를 따른다.
+각 leaf의 formatter 명령은 root config와 ignore 경로를 명시한다. 생성물·OCR·고정 SEED source·foundation/provenance·lockfile·license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사·정렬 대상이다. 세부 범위는 실행되는 config와 ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 root ESLint·Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+`.github/workflows/code-quality.yml`은 read-only 권한으로 `@ldb/licenses` test와 `@ldb/lib` build·test, root ESLint·Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+
+## Shared library
+
+- Package: `@ldb/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
+- `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
+- `pnpm --filter @ldb/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
+
+## License tooling
+
+- Package: `@ldb/licenses`, 위치: `packages/licenses`. 빌드용 수집기·정적 원문·버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
+- 기존 UI·Web·Desktop·lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
+- `pnpm --filter @ldb/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
 
 ## Applications
 
@@ -96,7 +108,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`LoginButtonLabel`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
   - `sections/`: 카드·인증·캡처·검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `LoginSection`의 전용 인증 창 진입과 진행 표시, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 전용 스타일·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
   - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(legacy fixture의 직접 검색·캡처 홈).
-  - `fixture/`: MVP 합성 데이터·자산·화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI·bridge·capture 실행 화면. 공용 글꼴은 `assets/fonts`, 배포 고지는 `src/frontend/public/notices/desktop`에 둔다. 제품 페이지가 fixture를 import하지 않는다.
+  - `fixture/`: MVP 합성 데이터·자산·화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI·bridge·capture 실행 화면. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
   - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성·검색 연결 및 캡처 수명·OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
   - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록·인식·XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색·OCR의 기존 비UI 구현은 `lib/capture-search.ts`·`lib/ocr.ts`에서 직접 참조한다. 인증 IPC 연결 전이는 `lib/auth-bridge-machine.ts`가 소유하며 인증 결과는 main snapshot에서 읽는다. 캡처 전이는 `lib/party-capture-machine.ts`, 미디어·worker 자원 수명은 `lib/party-capture-session.ts`가 소유한다.
   - `testing/`: 여러 테스트가 공유하는 유틸리티·mock·fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.

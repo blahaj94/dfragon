@@ -3,8 +3,7 @@
   "include": [
     "electron.vite.config.*",
     "src/backend/**/*",
-    "src/preload/**/*",
-    "../../packages/ui/build/notices.ts"
+    "src/preload/**/*"
   ],
   "compilerOptions": {
     "composite": false,
