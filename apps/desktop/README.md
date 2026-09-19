@@ -77,3 +77,18 @@ pnpm --filter @ldb/desktop build:win:development
 ```
 
 개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색·인증·캡처 회귀 테스트와 capture fixture에서만 사용합니다. 기존 localhost HTTPS·`ldb.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS·Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
+
+## OCR 모델 제작 도구
+
+모델 제작용 개발 도구는 `scripts/ocr-pipeline/`에 두며, 실행 진입점은 이 앱의 pnpm script입니다. 저장소 루트에서 다음을 실행합니다.
+
+```sh
+pnpm --filter @ldb/desktop ocr:setup --python python
+pnpm --filter @ldb/desktop ocr:check
+pnpm --filter @ldb/desktop ocr:test
+pnpm --filter @ldb/desktop ocr --help
+```
+
+Node.js·pnpm은 위 앱 개발 환경을 그대로 사용하고, Python 3.11–3.13은 OCR 도구를 사용하는 개발자만 별도로 준비합니다. `ocr:setup`은 해당 도구의 `.venv`에만 Python 의존성을 설치합니다. 일반 `pnpm install`, 앱 `dev`·`build`·패키징에서는 실행하지 않습니다. 데이터 인자의 상대 경로 기준은 항상 `apps/desktop`입니다.
+
+[OCR 도구 실행 안내](scripts/ocr-pipeline/README.md)에 환경 준비, `prepare`·`train`·`export`·`evaluate` 명령과 미검증 범위를 정리했습니다. 실제 학습·게임 정확도·Electron 검증은 아직 남아 있으며, 이 도구의 테스트 통과가 모델 배포 승인을 뜻하지 않습니다. 기존 `prepare:ocr-assets`는 이미 선택한 배포 모델을 검증·복사하는 명령으로 역할을 유지합니다.

@@ -20,3 +20,10 @@ packages/ui/notices/**
 # Keep the Desktop formatter's existing tsconfig boundary.
 apps/desktop/tsconfig.json
 apps/desktop/tsconfig.*.json
+# OCR model tooling: dependencies and private generated data are not source.
+apps/desktop/scripts/ocr-pipeline/.venv/**
+apps/desktop/scripts/ocr-pipeline/build/**
+apps/desktop/scripts/ocr-pipeline/data/**
+apps/desktop/scripts/ocr-pipeline/runs/**
+apps/desktop/scripts/ocr-pipeline/candidates/**
+apps/desktop/scripts/ocr-pipeline/reports/**

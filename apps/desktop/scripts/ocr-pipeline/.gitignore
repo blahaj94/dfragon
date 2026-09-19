@@ -14,3 +14,12 @@ reports/
 *.ttf
 *.ttc
 *.otf
+dist/
+*.pdmodel
+*.pdiparams
+*.pdiparams.info
+*.log
+*.jsonl
+*.png
+*.jpg
+*.jpeg

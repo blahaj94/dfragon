@@ -1,0 +1,12 @@
+# CPU development/test dependency set for Python 3.11-3.13.
+# Not a CUDA/PaddleOCR training lock. Update together with pyproject.toml and CI.
+setuptools==82.0.1
+numpy==2.3.5
+Pillow==12.3.0
+PyYAML==6.0.3
+pytest==9.0.2
+iniconfig==2.3.0
+packaging==25.0
+pluggy==1.6.0
+Pygments==2.20.0
+colorama==0.4.6; sys_platform == "win32"

@@ -10,7 +10,7 @@ from .evaluation import evaluate
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(prog="python -m ldb_ocr")
+    parser = argparse.ArgumentParser(prog="pnpm --filter @ldb/desktop ocr")
     commands = parser.add_subparsers(dest="command", required=True)
     command = commands.add_parser("prepare", help="Validate all declared target characters and seal a dataset")
     for name in ("source", "manifest", "base-dictionary", "allowed-characters", "output"):

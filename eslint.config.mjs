@@ -34,6 +34,7 @@ export default defineConfig(
       '**/.test-dist/**',
       '**/coverage/**',
       'apps/desktop/src/frontend/public/ocr/**',
+      'apps/desktop/scripts/ocr-pipeline/{.venv,build,data,runs,candidates,reports}/**',
       'packages/ui/src/seed/**'
     ]
   },

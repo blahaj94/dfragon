@@ -26,3 +26,30 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm lint:oxlint
+
+  ocr-tooling:
+    name: OCR tooling (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            apps/desktop/scripts/ocr-pipeline/requirements-tooling.txt
+            apps/desktop/scripts/ocr-pipeline/pyproject.toml
+      # These scripts use Node built-ins, not Electron or workspace dependencies.
+      - run: pnpm --filter @ldb/desktop ocr:setup --python python
+      - run: pnpm --filter @ldb/desktop ocr:check
+      - run: pnpm --filter @ldb/desktop ocr:test
+      - run: pnpm --filter @ldb/desktop ocr --help
