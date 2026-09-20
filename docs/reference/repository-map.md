@@ -33,6 +33,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 ## Shared library
 
 - Package: `@ldb/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
+- `estimateDNFUIScale`은 UI 0% 대비 배율을 추정하는 순수함수다. 다섯 PNG 관측 단계에 근거한 후보식이며 공식 게임 산식이 아니다. [입력 범위와 한계](../../packages/lib/README.md#dnf-ui-배율-추정)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @ldb/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 

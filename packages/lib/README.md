@@ -48,3 +48,25 @@ pnpm --filter @ldb/lib format:check
 `test`는 먼저 TypeScript build를 수행하고 Node 기본 test runner로 공개 package export와 경계값을 검증합니다. `src/cp949-characters.ts`는 `iconv-lite@0.7.3`의 CP949 encode/decode 왕복 결과에서 생성했습니다. 한글 완성형 전체는 연속 범위로 처리합니다. `iconv-lite`는 개발 의존성이며 앱 bundle에는 포함되지 않습니다. 생성 데이터의 라이선스는 [`@ldb/licenses`의 원문](../licenses/notices/lib/iconv-lite-LICENSE)과 build 산출물 `dist/notices/iconv-lite-LICENSE`에 보존합니다.
 
 문자 표를 갱신할 때는 `pnpm --filter @ldb/lib generate:cp949` 후 root에서 `pnpm exec prettier --write packages/lib/src/cp949-characters.ts`를 실행합니다. 테스트는 BMP 전체에 대해 원본 codec과 표의 일치를 검증합니다.
+
+## DNF UI 배율 추정
+
+```ts
+import { estimateDNFUIScale } from '@ldb/lib'
+
+const scale = estimateDNFUIScale(50) // 1.2857142857142858
+```
+
+`estimateDNFUIScale(uiPercent: number): number`는 UI 0% 대비 래스터 배율을 `225 / (225 - uiPercent)`로 추정하는 순수함수입니다. 입력은 0~100의 유한한 수이며, 범위 밖·NaN·Infinity는 `RangeError`로 거절합니다. 값을 보정하거나 배율을 반올림하지 않습니다. 소수 입력도 계산하지만 이는 모델 보간이며 실제 게임 설정 검증을 뜻하지 않습니다.
+
+| UI % | 추정 배율 |
+| --- | --- |
+| 0 | 1 |
+| 25 | 1.125 |
+| 50 | 약 1.285714 |
+| 75 | 1.5 |
+| 100 | 1.8 |
+
+제공된 PNG 비교 보고서에서 0·25·50·75·100%의 다섯 관측 단계와 일관된 후보식이며 게임 내부의 공식 산식은 아닙니다. 상수 225는 25·75% 검증 전에 정한 값을 유지합니다. 미측정 96개 정수 단계, 다른 해상도·DPI·캡처 조건, 픽셀 반올림과 단계별 불연속은 확인하지 않았습니다. 보고서 원본 PNG를 이 패키지 테스트에서 재분석하지 않으며 위 테스트는 산식의 동작을 검증합니다. 배율의 상대 오차를 이미지 일치율이나 식별 확률로 해석하지 않습니다.
+
+사용 예는 기준 크기 11px로 먼저 만든 래스터를 이 배율로 등방 확대하는 것입니다. `11 * scale` 크기로 글자를 새로 렌더링하는 방식과 다릅니다. 폰트·크기·자간·보간·DPR·이미지 좌표 및 정수 출력 크기의 처리는 호출자가 결정하며 함수는 DOM·Canvas에 의존하지 않습니다. 기존 OCR/capture 호출부는 변경하지 않습니다.

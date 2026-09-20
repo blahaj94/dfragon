@@ -61,3 +61,5 @@ export function validateDFNickname(
   }
   return { isValid: true }
 }
+
+export { estimateDNFUIScale } from './dnf-ui-scale.js'
