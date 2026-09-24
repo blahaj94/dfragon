@@ -6,10 +6,10 @@ import type { AuthRuntimeConfig } from './runtime-config'
 
 const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.synthetic.test',
-  returnTarget: 'ldb-synthetic://auth/return',
+  returnTarget: 'dfragon-synthetic://auth/return',
   environment: 'test',
   providers: ['passkey'],
-  appIdentity: 'com.synthetic.ldb',
+  appIdentity: 'com.synthetic.dfragon',
   userDataPath: '/synthetic/user-data'
 }
 

@@ -33,7 +33,7 @@ export function createFixtureEffects(): Effects {
   const dependencies: AuthCoordinatorDependencies = {
     providers: ['passkey'],
     apiOrigin: 'https://api.example.test',
-    returnTarget: 'ldb-fixture://auth/return',
+    returnTarget: 'dfragon-fixture://auth/return',
     clock: {
       read: () => ({
         wallMs: wallNow(),

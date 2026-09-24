@@ -1,5 +1,5 @@
 import { CameraIcon } from '../../components/CameraIcon'
-import { Typo, ActionButton } from '@ldb/ui'
+import { Typo, ActionButton } from '@dfragon/ui'
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'

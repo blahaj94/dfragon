@@ -21,7 +21,7 @@ const observationSchema = z.object({
   detail: z.unknown().optional()
 })
 const holdSchema = z.object({
-  kind: z.literal('ldb-synthetic-windows-hold-v1'),
+  kind: z.literal('dfragon-synthetic-windows-hold-v1'),
   invocationOwner: z.string().min(1),
   rawRecords: z.array(z.string()).min(1).max(10000),
   selection: observationSchema,
@@ -92,13 +92,13 @@ export function validateHold(input: unknown): HoldEvidence {
   }
   const first = hold.observations[0]
   const manifestSchema = z.object({
-    kind: z.literal('ldb-synthetic-windows-crash-v1'),
+    kind: z.literal('dfragon-synthetic-windows-crash-v1'),
     runId: z.string(),
     caseId: z.literal('normal-control'),
     mode: z.literal('normal'),
     rootName: z
       .string()
-      .regex(/^ldb-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      .regex(/^dfragon-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
     invocationOwner: z.string()
   })
   const manifest = manifestSchema.safeParse(first.detail)

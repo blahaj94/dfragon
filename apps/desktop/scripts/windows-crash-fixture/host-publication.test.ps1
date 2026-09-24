@@ -15,7 +15,7 @@ if (($body.Split(@($flush), [StringSplitOptions]::None)).Count -ne 2) { throw 'U
 $probe = 'if (Test-Path -LiteralPath (Join-Path $HostEvidence $Name)) { throw "Final artifact became visible before flush/close." }; $stream.Flush($true)'
 $instrumented = $body.Replace($flush, $probe)
 $publish = [scriptblock]::Create($instrumented.Substring(1, $instrumented.Length - 2))
-$HostEvidence = Join-Path $env:TEMP ('ldb-host-publication-' + [guid]::NewGuid().ToString())
+$HostEvidence = Join-Path $env:TEMP ('dfragon-host-publication-' + [guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $HostEvidence | Out-Null
 & $publish 'held.json' @{ status = 'complete'; sequence = 1 }
 $final = Join-Path $HostEvidence 'held.json'

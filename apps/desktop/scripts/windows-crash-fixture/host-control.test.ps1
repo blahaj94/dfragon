@@ -19,32 +19,32 @@ function New-ProcessStub {
   $process | Add-Member ScriptMethod Dispose { $this.disposals += 1 }
   return $process
 }
-$script:LdbCrashRun = 'same-run'
-$script:LdbCrashOwner = 'previous-invocation'
-$script:LdbCrashProcess = New-ProcessStub
-$previous = $script:LdbCrashProcess
+$script:DfragonCrashRun = 'same-run'
+$script:DfragonCrashOwner = 'previous-invocation'
+$script:DfragonCrashProcess = New-ProcessStub
+$previous = $script:DfragonCrashProcess
 $rejected = $false
 try { & $start '' '' '' '' 'same-run' 'new-invocation' } catch { $rejected = $_.Exception.Message -eq 'This session already owns a crash fixture process.' }
 if (-not $rejected) { throw 'Existing run was not rejected before startup.' }
 & $cleanup 'same-run' 'new-invocation'
-if ($previous.kills -ne 0 -or $previous.disposals -ne 0 -or $script:LdbCrashProcess -ne $previous) { throw 'Rejected rerun modified the preceding process.' }
+if ($previous.kills -ne 0 -or $previous.disposals -ne 0 -or $script:DfragonCrashProcess -ne $previous) { throw 'Rejected rerun modified the preceding process.' }
 
-$script:LdbCrashRun = 'foreign-run'
-$script:LdbCrashOwner = 'current-invocation'
+$script:DfragonCrashRun = 'foreign-run'
+$script:DfragonCrashOwner = 'current-invocation'
 $rejected = $false
 try { & $cleanup 'same-run' 'current-invocation' } catch { $rejected = $_.Exception.Message -eq 'Refusing to stop a different run.' }
 if (-not $rejected -or $previous.kills -ne 0) { throw 'Foreign run was not preserved.' }
 
-$script:LdbCrashRun = 'same-run'
-$script:LdbCrashOwner = 'current-invocation'
+$script:DfragonCrashRun = 'same-run'
+$script:DfragonCrashOwner = 'current-invocation'
 & $cleanup 'same-run' 'current-invocation'
-if ($previous.kills -ne 1 -or $previous.waits -ne 1 -or $previous.disposals -ne 1 -or $null -ne $script:LdbCrashProcess) { throw 'Owned live process was not terminated and released exactly once.' }
+if ($previous.kills -ne 1 -or $previous.waits -ne 1 -or $previous.disposals -ne 1 -or $null -ne $script:DfragonCrashProcess) { throw 'Owned live process was not terminated and released exactly once.' }
 
-$script:LdbCrashRun = 'same-run'
-$script:LdbCrashOwner = 'current-invocation'
-$script:LdbCrashProcess = New-ProcessStub
-$script:LdbCrashProcess.HasExited = $true
-$exited = $script:LdbCrashProcess
+$script:DfragonCrashRun = 'same-run'
+$script:DfragonCrashOwner = 'current-invocation'
+$script:DfragonCrashProcess = New-ProcessStub
+$script:DfragonCrashProcess.HasExited = $true
+$exited = $script:DfragonCrashProcess
 & $cleanup 'same-run' 'current-invocation'
 if ($exited.kills -ne 0 -or $exited.disposals -ne 1) { throw 'Exited process was killed or not released.' }
 '4 process ownership regressions passed'
@@ -57,20 +57,20 @@ $remoteBlocks = @($hostAst.FindAll({
 }, $true))
 if ($remoteBlocks.Count -ne 1) { throw 'Update early-exit regression for changed observer boundaries.' }
 $observe = $remoteBlocks[0].ScriptBlock.GetScriptBlock()
-$script:LdbCrashRun = 'same-run'
-$script:LdbCrashOwner = 'current-invocation'
-$script:LdbCrashProcess = New-ProcessStub
-$script:LdbCrashProcess.HasExited = $true
-$exited = $script:LdbCrashProcess
+$script:DfragonCrashRun = 'same-run'
+$script:DfragonCrashOwner = 'current-invocation'
+$script:DfragonCrashProcess = New-ProcessStub
+$script:DfragonCrashProcess.HasExited = $true
+$exited = $script:DfragonCrashProcess
 $rejected = $false
 try { & $observe '' 'read' '000001' @() 'same-run' 'current-invocation' } catch { $rejected = $_.Exception.Message -eq 'Guest fixture process exited before terminal ACK.' }
 if (-not $rejected -or $exited.kills -ne 0 -or $exited.disposals -ne 0) { throw 'Exited guest was not rejected before request polling or was modified.' }
 $rejected = $false
 try { & $observe '' 'read' '000001' @() 'same-run' 'other-invocation' } catch { $rejected = $_.Exception.Message -eq 'Guest observer process ownership mismatch.' }
 if (-not $rejected -or $exited.kills -ne 0) { throw 'Observer accepted an unrelated invocation.' }
-$script:LdbCrashProcess = $null
-$script:LdbCrashRun = $null
-$script:LdbCrashOwner = $null
+$script:DfragonCrashProcess = $null
+$script:DfragonCrashRun = $null
+$script:DfragonCrashOwner = $null
 '2 observer process regressions passed'
 
 # The real terminal action must reject null/string/nonzero exits even with a passed result.
@@ -78,11 +78,11 @@ $terminalAction = $actions[1].CommandElements[1].ScriptBlock.GetScriptBlock()
 function Get-Content { param($LiteralPath, [switch] $Raw); return $script:terminalResult }
 function Test-Path { param($LiteralPath); return $false }
 foreach ($code in @($null, '0', 7, 0)) {
-  $script:LdbCrashRun = 'same-run'
-  $script:LdbCrashOwner = 'current-invocation'
-  $script:LdbCrashProcess = New-ProcessStub
-  $script:LdbCrashProcess.HasExited = $true
-  $script:LdbCrashProcess | Add-Member NoteProperty ExitCode $code
+  $script:DfragonCrashRun = 'same-run'
+  $script:DfragonCrashOwner = 'current-invocation'
+  $script:DfragonCrashProcess = New-ProcessStub
+  $script:DfragonCrashProcess.HasExited = $true
+  $script:DfragonCrashProcess | Add-Member NoteProperty ExitCode $code
   $script:terminalResult = '{"runId":"same-run","caseId":"normal-control","status":"passed"}'
   $accepted = $false
   try {
@@ -95,7 +95,7 @@ foreach ($code in @($null, '0', 7, 0)) {
 $script:terminalResult = '{"runId":"same-run","caseId":"recovery","status":"observed-consistent","verdict":{"namespaceDurability":"unverified"}}'
 $result = & $terminalAction 'same-run' 'C:\evidence' 'current-invocation' 'recovery' 'recover'
 if ($result.result -cne 'observed-consistent') { throw 'Recovery result was not retained separately.' }
-$script:LdbCrashProcess = $null
-$script:LdbCrashRun = $null
-$script:LdbCrashOwner = $null
+$script:DfragonCrashProcess = $null
+$script:DfragonCrashRun = $null
+$script:DfragonCrashOwner = $null
 '5 terminal result regressions passed'

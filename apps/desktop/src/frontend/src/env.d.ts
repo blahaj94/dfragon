@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-declare module 'virtual:ldb-desktop-licenses' {
-  const entries: import('@ldb/licenses/types').NoticeEntry[]
+declare module 'virtual:dfragon-desktop-licenses' {
+  const entries: import('@dfragon/licenses/types').NoticeEntry[]
   export default entries
 }

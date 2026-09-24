@@ -1276,7 +1276,7 @@ describe('Desktop AuthCoordinator login', () => {
     await coordinator.start()
     await beginWaitingLogin(coordinator)
 
-    await coordinator.handleReturnUrl(`ldb-test://auth/wrong?code=${CODE}`)
+    await coordinator.handleReturnUrl(`dfragon-test://auth/wrong?code=${CODE}`)
     expect(harness.http.exchange).not.toHaveBeenCalled()
 
     const first = coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
@@ -1314,7 +1314,7 @@ describe('Desktop AuthCoordinator login', () => {
     await coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`, pendinglessHook)
     expect(pendinglessHook).not.toHaveBeenCalled()
     await beginWaitingLogin(coordinator)
-    await coordinator.handleReturnUrl(`ldb-test://auth/wrong?code=${CODE}`, invalidHook)
+    await coordinator.handleReturnUrl(`dfragon-test://auth/wrong?code=${CODE}`, invalidHook)
     expect(invalidHook).not.toHaveBeenCalled()
 
     const first = coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`, claimedHook)

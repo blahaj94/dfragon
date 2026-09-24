@@ -1,6 +1,6 @@
 {
-  "returnTarget": "ldb://auth/callback",
+  "returnTarget": "dfragon://auth/callback",
   "environment": "production",
   "providers": ["passkey"],
-  "appIdentity": "ldb"
+  "appIdentity": "dfragon"
 }

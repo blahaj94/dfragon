@@ -1,4 +1,4 @@
-import { typographyVariants } from '@ldb/ui'
+import { typographyVariants } from '@dfragon/ui'
 import { ChevronDownIcon } from './ChevronDownIcon'
 import { CheckIcon } from './CheckIcon'
 import { Select } from '@seed-design/react'

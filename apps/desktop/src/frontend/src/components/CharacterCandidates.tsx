@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { SupportingText } from '@ldb/ui'
+import { SupportingText } from '@dfragon/ui'
 import { styles } from './CharacterCandidates.style'
 import type { CharacterSearchRow } from '../../../preload/common/types/search'
 

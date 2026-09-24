@@ -25,7 +25,7 @@ const runtimeConfig: AuthRuntimeConfig = {
   returnTarget: RETURN_TARGET,
   environment: 'test',
   providers: ['passkey'],
-  appIdentity: 'com.synthetic.ldb',
+  appIdentity: 'com.synthetic.dfragon',
   userDataPath: '/synthetic/user-data'
 }
 
@@ -474,7 +474,7 @@ describe('Desktop auth protocol ingress', () => {
       RETURN_TARGET
     )
     const wrongScheme = isOrdinarySecondInstanceInvocation(
-      ['electron', 'ldb-wrong://auth/return'],
+      ['electron', 'dfragon-wrong://auth/return'],
       RETURN_TARGET
     )
     const webUrl = isOrdinarySecondInstanceInvocation(
@@ -482,7 +482,7 @@ describe('Desktop auth protocol ingress', () => {
       RETURN_TARGET
     )
     const paddedWrongScheme = isOrdinarySecondInstanceInvocation(
-      ['electron', ' \tldb-wrong://auth/return'],
+      ['electron', ' \tdfragon-wrong://auth/return'],
       RETURN_TARGET
     )
     const malformedScheme = isOrdinarySecondInstanceInvocation(
@@ -560,7 +560,7 @@ describe('Desktop auth protocol ingress', () => {
 
   it('packaged와 Electron defaultApp bootstrap argv를 user handoff에서 제거한다', () => {
     const executable = 'C:\\Program Files\\Electron\\electron.exe'
-    const appPath = 'C:\\workspace\\ldb'
+    const appPath = 'C:\\workspace\\dfragon'
     const callback = returnUrl()
 
     expect(selectProtocolIngressArguments([executable, callback], false)).toEqual([callback])
@@ -616,7 +616,7 @@ describe('Desktop auth protocol ingress', () => {
     const dispatch = vi.fn()
     const activate = vi.fn()
     const ingress = createProtocolIngress({ app, argv: [], returnTarget: RETURN_TARGET })
-    const uppercaseScheme = returnUrl().replace('ldb-test:', 'LDB-TEST:')
+    const uppercaseScheme = returnUrl().replace('dfragon-test:', 'DFRAGON-TEST:')
     ingress.attach(dispatch, activate)
 
     emitSecondInstance(app, [returnUrl(), uppercaseScheme])
@@ -633,9 +633,9 @@ describe('Desktop auth protocol ingress', () => {
     const ingress = createProtocolIngress({ app, argv: [], returnTarget: RETURN_TARGET })
     ingress.attach(dispatch, activate)
 
-    emitSecondInstance(app, ['--', '/Applications/ldb.app'])
+    emitSecondInstance(app, ['--', '/Applications/dfragon.app'])
     emitSecondInstance(app, ['https://example.test'])
-    emitSecondInstance(app, ['ldb-wrong://auth/return'])
+    emitSecondInstance(app, ['dfragon-wrong://auth/return'])
     emitSecondInstance(app, [`${RETURN_TARGET}?code=short`])
     emitSecondInstance(app, [`${RETURN_TARGET}?code=${CODE}&state=extra`])
 
@@ -672,7 +672,7 @@ describe('Desktop auth protocol ingress', () => {
   })
 
   it('정확히 2,048-byte인 복귀는 전달하고 2,049-byte인 복귀는 전달하지 않는다', () => {
-    const targetPrefix = 'ldb-test://auth/'
+    const targetPrefix = 'dfragon-test://auth/'
     const exactTarget = `${targetPrefix}${'a'.repeat(1_999 - targetPrefix.length)}`
     const oversizedTarget = `${targetPrefix}${'a'.repeat(2_000 - targetPrefix.length)}`
     const exactRaw = returnUrl(CODE, exactTarget)

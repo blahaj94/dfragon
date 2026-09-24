@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton } from '@ldb/ui'
+import { ActionButton } from '@dfragon/ui'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
 import { useAuthBridge } from '../hooks/useAuthBridge'

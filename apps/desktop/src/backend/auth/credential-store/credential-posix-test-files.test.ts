@@ -15,7 +15,7 @@ describe('credential POSIX 테스트 filesystem 경계', () => {
   const uid = 12345
 
   beforeEach(async () => {
-    root = await fs.mkdtemp(join(tmpdir(), 'ldb-posix-test-'))
+    root = await fs.mkdtemp(join(tmpdir(), 'dfragon-posix-test-'))
     files = createPosixTestFiles({ root, uid })
   })
 

@@ -7,10 +7,10 @@ import type { AuthClock } from './types'
 
 const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.example.test',
-  returnTarget: 'ldb-test://auth/return',
+  returnTarget: 'dfragon-test://auth/return',
   environment: 'test',
   providers: ['passkey'],
-  appIdentity: 'com.synthetic.ldb',
+  appIdentity: 'com.synthetic.dfragon',
   userDataPath: '/synthetic/user-data'
 }
 

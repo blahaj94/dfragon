@@ -283,7 +283,7 @@ try {
     throw new Error('Native credential validation was interrupted.')
   }
   if (!prepareOnly) {
-    appName = `LDB-Credential-Test-${randomUUID()}`
+    appName = `DFRAGON-Credential-Test-${randomUUID()}`
     keychain = await defaultKeychain()
     const existsInSearchList = await itemExists(appName)
     const existsInDefault = await itemExists(appName, keychain)
@@ -291,7 +291,7 @@ try {
     if (identityAlreadyExists) {
       throw new Error('Test identity already exists; nothing was changed.')
     }
-    profileRoot = await mkdtemp(join(tmpdir(), 'ldb-credential-native-127-'))
+    profileRoot = await mkdtemp(join(tmpdir(), 'dfragon-credential-native-127-'))
     await writeFile(join(profileRoot, 'owner.json'), JSON.stringify({ appName, keychain }), {
       mode: 0o600
     })
@@ -310,9 +310,9 @@ try {
       mayOwnItem = true
       const childEnvironment = {
         ...process.env,
-        LDB_CREDENTIAL_NATIVE_NAME: appName,
-        LDB_CREDENTIAL_NATIVE_PROFILE: profile,
-        LDB_CREDENTIAL_NATIVE_PHASE: phase
+        DFRAGON_CREDENTIAL_NATIVE_NAME: appName,
+        DFRAGON_CREDENTIAL_NATIVE_PROFILE: profile,
+        DFRAGON_CREDENTIAL_NATIVE_PHASE: phase
       }
       delete childEnvironment.ELECTRON_RUN_AS_NODE
       const result = await execute(

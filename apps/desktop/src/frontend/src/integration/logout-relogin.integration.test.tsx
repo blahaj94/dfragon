@@ -100,7 +100,7 @@ const config: AuthRuntimeConfig = {
   returnTarget: RETURN_TARGET,
   environment: 'test',
   providers: ['passkey'],
-  appIdentity: 'com.synthetic.ldb',
+  appIdentity: 'com.synthetic.dfragon',
   userDataPath: '/synthetic/user-data'
 }
 

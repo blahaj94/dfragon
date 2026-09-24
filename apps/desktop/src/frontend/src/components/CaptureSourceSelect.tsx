@@ -1,4 +1,4 @@
-import { Typo } from '@ldb/ui'
+import { Typo } from '@dfragon/ui'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { getCaptureSourceNotice } from '../lib/capture-presentation'
 import { RefreshIcon } from './RefreshIcon'

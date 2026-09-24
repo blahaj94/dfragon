@@ -1,6 +1,6 @@
 import type { SlotEditing } from '../types/search'
 import { useState } from 'react'
-import { ActionButton, ContentStack, SupportingText, TextField, TextFieldInput } from '@ldb/ui'
+import { ActionButton, ContentStack, SupportingText, TextField, TextFieldInput } from '@dfragon/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { validManualNickname } from '../lib/manual-input'
 

@@ -80,7 +80,7 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
     nicknameAccepted: 4,
     nicknameMatchedSlots
   }
-  document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="LDB Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
+  document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="DFRAGON Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
   document.querySelector<HTMLElement>('[role="menuitemradio"]')!.onclick = () => {
     isActive = true
     document.querySelector('[role="status"]')!.textContent = '캡처 중 · 1920×1080'

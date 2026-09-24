@@ -28,8 +28,8 @@ type WindowsFixture = {
   setInspection(path: string, inspection: WindowsPathInspection): void
 }
 
-const USER_DATA_PATH = String.raw`C:\Users\Alice\LdbProfile`
-const DIRECTORY = String.raw`C:\Users\Alice\LdbProfile\auth\test`
+const USER_DATA_PATH = String.raw`C:\Users\Alice\DfragonProfile`
+const DIRECTORY = String.raw`C:\Users\Alice\DfragonProfile\auth\test`
 
 function createHandle(
   path: string,

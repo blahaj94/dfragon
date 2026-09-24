@@ -8,58 +8,58 @@ afterEach(() => {
 })
 
 it('public search reads its trusted endpoint without login or credential configuration', () => {
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', false)
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.example.test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', '')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', '')
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', false)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.example.test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', '')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', '')
   expect(readAppApiOrigin()).toBe('https://api.example.test')
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.example.test/path')
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.example.test/path')
   expect(readAppApiOrigin()).toBeNull()
 })
 
 it('an installed distribution uses its built endpoint after a cold launch without shell settings', () => {
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', false)
-  vi.stubGlobal('__LDB_DISTRIBUTION_API_ORIGIN__', 'https://api.example.test')
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://localhost:3443')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', '')
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', false)
+  vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', 'https://api.example.test')
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3443')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', '')
   expect(readAppApiOrigin()).toBe('https://api.example.test')
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', undefined)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', undefined)
   expect(readAppApiOrigin()).toBe('https://api.example.test')
 })
 
 it('keeps the existing development API independent of distribution configuration', () => {
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
-  vi.stubGlobal('__LDB_DISTRIBUTION_API_ORIGIN__', null)
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.example.test')
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
+  vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', null)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.example.test')
   expect(readAppApiOrigin()).toBe('https://localhost:3443')
 })
 
 it('uses the distribution login origin, protocol and private profile without inheriting development settings', () => {
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', false)
-  vi.stubGlobal('__LDB_DISTRIBUTION_API_ORIGIN__', 'https://api.example.test')
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://localhost:3443')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb.dev://auth/callback')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'development')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'ldb.dev')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', resolve('synthetic-development-profile'))
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', false)
+  vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', 'https://api.example.test')
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3443')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'dfragon.dev')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', resolve('synthetic-development-profile'))
   const appData = resolve('synthetic-app-data')
 
   expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
     apiOrigin: 'https://api.example.test',
-    returnTarget: 'ldb://auth/callback',
+    returnTarget: 'dfragon://auth/callback',
     environment: 'production',
     providers: ['passkey'],
-    appIdentity: 'ldb',
-    userDataPath: join(appData, 'ldb')
+    appIdentity: 'dfragon',
+    userDataPath: join(appData, 'dfragon')
   })
 
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
-  vi.stubGlobal('__LDB_DISTRIBUTION_API_ORIGIN__', null)
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
+  vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', null)
   expect(readAppAuthConfig({ getPath: () => appData })).toMatchObject({
     apiOrigin: 'https://localhost:3443',
-    returnTarget: 'ldb.dev://auth/callback',
+    returnTarget: 'dfragon.dev://auth/callback',
     environment: 'development',
-    appIdentity: 'ldb.dev',
-    userDataPath: join(appData, 'ldb.dev')
+    appIdentity: 'dfragon.dev',
+    userDataPath: join(appData, 'dfragon.dev')
   })
 })

@@ -43,7 +43,7 @@ describe('Desktop API system networking', () => {
     expect(me.user.nickname).toBe('모험가000001')
     expect(rows).toEqual([])
     expect(nodeFetch).not.toHaveBeenCalled()
-    expect(session.fromPartition).toHaveBeenCalledWith('ldb-api', { cache: false })
+    expect(session.fromPartition).toHaveBeenCalledWith('dfragon-api', { cache: false })
     expect(requests).toHaveLength(2)
     for (const request of requests) {
       expect(request.credentials).toBe('omit')

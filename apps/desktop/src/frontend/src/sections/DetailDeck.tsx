@@ -1,4 +1,4 @@
-import { Typo } from '@ldb/ui'
+import { Typo } from '@dfragon/ui'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './DetailDeck.style'

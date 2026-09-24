@@ -1,7 +1,7 @@
 {
   "apiOrigin": "https://localhost:3443",
-  "returnTarget": "ldb.dev://auth/callback",
+  "returnTarget": "dfragon.dev://auth/callback",
   "environment": "development",
   "providers": ["passkey"],
-  "appIdentity": "ldb.dev"
+  "appIdentity": "dfragon.dev"
 }

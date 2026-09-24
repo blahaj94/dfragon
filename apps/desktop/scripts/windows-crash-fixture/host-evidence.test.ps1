@@ -7,7 +7,7 @@ if (-not $isImplemented) {
 }
 . $implementation
 
-$testRoot = Join-Path $env:TEMP ('ldb-host-evidence-' + [guid]::NewGuid().ToString())
+$testRoot = Join-Path $env:TEMP ('dfragon-host-evidence-' + [guid]::NewGuid().ToString())
 $null = New-Item -ItemType Directory -Path $testRoot
 function Write-SyntheticJson($Path, $Value) {
   $text = $Value | ConvertTo-Json -Depth 20 -Compress
@@ -17,14 +17,14 @@ function New-EvidenceFixture([string] $Variant) {
   $directory = Join-Path $testRoot $Variant
   $hostDirectory = Join-Path $directory 'host'
   $collection = Join-Path $directory 'collection'
-  $rootName = 'ldb-crash-11111111-1111-4111-8111-111111111111'
+  $rootName = 'dfragon-crash-11111111-1111-4111-8111-111111111111'
   $relative = 'native-lab\' + $rootName + '-run-evidence'
   $guest = Join-Path $collection $relative
   if ($Variant -ceq 'case-variant-future-request') {
     $guest = Join-Path $collection ($relative.Replace('native-lab', 'Native-lab'))
   }
   $null = New-Item -ItemType Directory -Path $hostDirectory, $guest
-  $manifest = @{kind='ldb-synthetic-windows-crash-v1';runId='run';caseId='normal-control';mode='normal';rootName=$rootName;invocationOwner='owner'}
+  $manifest = @{kind='dfragon-synthetic-windows-crash-v1';runId='run';caseId='normal-control';mode='normal';rootName=$rootName;invocationOwner='owner'}
   $events = @(
     @{runId='run';caseId='normal-control';sequence=1;cutpoint='run-manifest';phase='initial';outcome='recorded';detail=$manifest},
     @{runId='run';caseId='normal-control';sequence=2;cutpoint='store.prepare';phase='protocol-start';outcome='called'},
@@ -59,7 +59,7 @@ function New-EvidenceFixture([string] $Variant) {
     }
   }
   Write-SyntheticJson (Join-Path $guest 'manifest.json') $manifest
-  $hold = @{kind='ldb-synthetic-windows-hold-v1';invocationOwner='owner';selection=$events[2];observations=$events;rawRecords=$raw}
+  $hold = @{kind='dfragon-synthetic-windows-hold-v1';invocationOwner='owner';selection=$events[2];observations=$events;rawRecords=$raw}
   if ($Variant -ceq 'host-observation-conflict') {
     $hold.observations[1].outcome = 'different'
   }

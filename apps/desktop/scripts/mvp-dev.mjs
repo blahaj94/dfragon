@@ -24,7 +24,7 @@ try {
   const child = spawn(
     electron,
     [fileURLToPath(new URL('./ui-fixture.mjs', import.meta.url)), 'mvp', 'system'],
-    { stdio: 'inherit', env: { ...process.env, LDB_MVP_RENDERER_URL: rendererUrl } }
+    { stdio: 'inherit', env: { ...process.env, DFRAGON_MVP_RENDERER_URL: rendererUrl } }
   )
   process.once('SIGINT', () => child.kill('SIGINT'))
   process.once('SIGTERM', () => child.kill('SIGTERM'))

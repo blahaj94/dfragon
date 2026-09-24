@@ -1,4 +1,4 @@
-const resultPrefix = 'LDB_CREDENTIAL_NATIVE:'
+const resultPrefix = 'DFRAGON_CREDENTIAL_NATIVE:'
 const phaseResultError = 'Native credential phase failed; raw diagnostics were withheld.'
 
 /**

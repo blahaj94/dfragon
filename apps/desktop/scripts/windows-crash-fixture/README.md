@@ -12,7 +12,7 @@ Issue #432의 생성, marker 확립, R0→R1 교체, clear와 재시작 복구�
 
 ```powershell
 node node_modules/typescript/bin/tsc --noEmit -p scripts/windows-crash-fixture/tsconfig.json
-$env:LDB_CRASH_CONFIG = 'C:\approved-lab\normal-config.json'
+$env:DFRAGON_CRASH_CONFIG = 'C:\approved-lab\normal-config.json'
 node node_modules/vitest/vitest.mjs run --config scripts/windows-crash-fixture/vitest.config.ts
 ```
 
@@ -23,8 +23,8 @@ Config는 아래 형태의 UTF-8 JSON입니다. 실제 경로는 승인된 실�
   "runId": "normal-01",
   "caseId": "normal-control",
   "mode": "normal",
-  "root": "C:\\approved-lab\\ldb-crash-11111111-1111-4111-8111-111111111111",
-  "evidence": "C:\\approved-lab\\ldb-crash-11111111-1111-4111-8111-111111111111-normal-01-evidence"
+  "root": "C:\\approved-lab\\dfragon-crash-11111111-1111-4111-8111-111111111111",
+  "evidence": "C:\\approved-lab\\dfragon-crash-11111111-1111-4111-8111-111111111111-normal-01-evidence"
 }
 ```
 
@@ -70,7 +70,7 @@ Runner는 기존 스킬의 승인된 source/dependency 준비 및 일반 사용�
 
 ```powershell
 $runId = 'normal-' + [guid]::NewGuid().ToString()
-$root = Join-Path $guestLab ('ldb-crash-' + [guid]::NewGuid().ToString())
+$root = Join-Path $guestLab ('dfragon-crash-' + [guid]::NewGuid().ToString())
 $evidence = $root + '-' + $runId + '-evidence'
 $config = $root + '-' + $runId + '.config.json'
 $hostEvidence = Join-Path $hostLab $runId
@@ -89,7 +89,7 @@ Invoke-Command -Session $session -ScriptBlock {
   -GuestConfig $config -GuestEvidence $evidence -HostEvidence $hostEvidence -RunId $runId
 ```
 
-`run-normal-control.ps1`은 시작 전에 host의 PowerShell script와 회귀 검증 파일를 parser로 검사하고 `host-control.test.ps1`의 실제 start/cleanup AST 기반 6개 stub 회귀 검증을 실행합니다. Stub 검증은 실제 session/process/VM/file을 변경하지 않으며 통과 전에는 guest process를 시작하지 않습니다. Guest의 전용 harness typecheck는 위 명령으로 별도 통과시킨 뒤 실행합니다. Guest cwd는 `$guestDesktop`, executable은 `$guestNode`, args는 `node_modules/vitest/vitest.mjs run --config scripts/windows-crash-fixture/vitest.config.ts --pool=threads --maxWorkers=1`, environment 추가는 자식 process의 `LDB_CRASH_CONFIG=$config`입니다. 부모 session 환경은 즉시 복원합니다.
+`run-normal-control.ps1`은 시작 전에 host의 PowerShell script와 회귀 검증 파일를 parser로 검사하고 `host-control.test.ps1`의 실제 start/cleanup AST 기반 6개 stub 회귀 검증을 실행합니다. Stub 검증은 실제 session/process/VM/file을 변경하지 않으며 통과 전에는 guest process를 시작하지 않습니다. Guest의 전용 harness typecheck는 위 명령으로 별도 통과시킨 뒤 실행합니다. Guest cwd는 `$guestDesktop`, executable은 `$guestNode`, args는 `node_modules/vitest/vitest.mjs run --config scripts/windows-crash-fixture/vitest.config.ts --pool=threads --maxWorkers=1`, environment 추가는 자식 process의 `DFRAGON_CRASH_CONFIG=$config`입니다. 부모 session 환경은 즉시 복원합니다.
 
 Guest process는 `Start-Process -PassThru`의 정확한 Process 객체를 invocation마다 새로 만든 owner nonce 및 runId와 함께 session에 보관합니다. 같은 runId로 거절된 재실행의 finally는 이전 nonce의 process를 종료하지 않습니다. 단일 worker thread를 사용해 Vitest 자식 worker process를 만들지 않습니다. Host observer 완료 후 20초 내 guest 종료, exit 0, 같은 run/case의 result passed 및 failure 부재를 확인해야만 성공 JSON을 반환합니다. 시작/terminal/종료 제어 remoting은 각각 최대 30초, 관측은 최대 900초입니다. 모든 종료 경로에서 자신의 run Process만 종료/WaitForExit/Dispose하며 VM이나 다른 process를 종료하지 않습니다. Session이 끊겨 종료를 확인할 수 없으면 실패 상태로 보존하고 기존 Runner의 재연결/소유 process 확인 절차로 넘깁니다. 종료를 추정하거나 자동 재실행하지 않습니다.
 
@@ -255,4 +255,4 @@ $point = @($inventory | Where-Object { $_.scenario -ceq 'recovery.clear' -and $_
 if ($null -eq $point) { throw 'Final clear demonstration boundary is absent.' }
 ```
 
-일반 검증 command는 root의 `pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'`, `pnpm --filter @ldb/desktop format:check`, 전용 fixture typecheck입니다. PowerShell 검증은 `host-control.test.ps1`, `host-selection.test.ps1`, `host-publication.test.ps1`입니다. Publication test만 새 UUID host temp directory에 실제 파일을 쓰며 기존 run은 정리하지 않습니다. 모든 native 검증과 실제 interruption evidence는 별도로 보존합니다.
+일반 검증 command는 root의 `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`, `pnpm --filter @dfragon/desktop format:check`, 전용 fixture typecheck입니다. PowerShell 검증은 `host-control.test.ps1`, `host-selection.test.ps1`, `host-publication.test.ps1`입니다. Publication test만 새 UUID host temp directory에 실제 파일을 쓰며 기존 run은 정리하지 않습니다. 모든 native 검증과 실제 interruption evidence는 별도로 보존합니다.

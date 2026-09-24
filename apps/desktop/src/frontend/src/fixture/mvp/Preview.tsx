@@ -29,7 +29,7 @@ export function Preview(): React.JSX.Element {
       detail: 'sample',
       theme: light ? 'light' : 'dark'
     }).toString()
-    window.open(url.href, 'ldb-mvp-detail')
+    window.open(url.href, 'dfragon-mvp-detail')
   }
 
   return (
@@ -70,7 +70,7 @@ export function Preview(): React.JSX.Element {
             onDetail={openDetail}
           />
           <footer {...stylex.props(styles.footer)}>
-            <span>LDB Desktop</span>
+            <span>DFRAGON Desktop</span>
             <select
               aria-label="캡처 미리보기 상태"
               value={captureState}

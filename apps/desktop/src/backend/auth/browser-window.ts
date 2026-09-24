@@ -29,7 +29,7 @@ export function createAuthBrowser(
         managementWindow.focus()
         return
       }
-      const isolatedSession = session.fromPartition(`ldb-auth-${randomUUID()}`, { cache: false })
+      const isolatedSession = session.fromPartition(`dfragon-auth-${randomUUID()}`, { cache: false })
       isolatedSession.setPermissionRequestHandler((_contents, _permission, callback) =>
         callback(false)
       )
@@ -45,7 +45,7 @@ export function createAuthBrowser(
         minHeight: 520,
         show: false,
         autoHideMenuBar: true,
-        title: `LDB · ${new URL(apiOrigin).host}`,
+        title: `DFRAGON · ${new URL(apiOrigin).host}`,
         webPreferences: {
           session: isolatedSession,
           nodeIntegration: false,

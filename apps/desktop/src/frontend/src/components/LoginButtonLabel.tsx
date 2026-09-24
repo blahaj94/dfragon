@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { Typo, ProgressCircle } from '@ldb/ui'
+import { Typo, ProgressCircle } from '@dfragon/ui'
 import { styles } from './LoginButtonLabel.style'
 
 export function LoginButtonLabel({

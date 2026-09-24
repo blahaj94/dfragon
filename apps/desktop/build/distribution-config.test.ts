@@ -4,8 +4,8 @@ import { readDistributionApiOrigin } from './distribution-config'
 it('selects only the explicit public distribution origin', () => {
   expect(
     readDistributionApiOrigin({
-      LDB_DISTRIBUTION_API_ORIGIN: 'https://api.example.test',
-      LDB_AUTH_API_ORIGIN: 'https://localhost:3443',
+      DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.example.test',
+      DFRAGON_AUTH_API_ORIGIN: 'https://localhost:3443',
       AUTH_CONFIG_FILE: 'server-only.json'
     })
   ).toBe('https://api.example.test')
@@ -28,8 +28,8 @@ it.each([
   'https://[::ffff:7f00:1]:3443',
   'https://[::ffff:7fff:ffff]:3443'
 ])('rejects a missing, invalid or loopback distribution origin without exposing it', (origin) => {
-  expect(() => readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toThrow(
-    /^Set LDB_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/
+  expect(() => readDistributionApiOrigin({ DFRAGON_DISTRIBUTION_API_ORIGIN: origin })).toThrow(
+    /^Set DFRAGON_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/
   )
 })
 
@@ -39,5 +39,5 @@ it.each([
   'https://[::ffff:7eff:ffff]',
   'https://[::ffff:8000:0]'
 ])('preserves canonical non-loopback origins', (origin) => {
-  expect(readDistributionApiOrigin({ LDB_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
+  expect(readDistributionApiOrigin({ DFRAGON_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
 })

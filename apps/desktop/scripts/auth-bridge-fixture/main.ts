@@ -7,18 +7,18 @@ import { registerAuthIpc } from '../../src/backend/auth/ipc-handler'
 import { canaries, createFixtureEffects, syntheticCode } from './effects'
 import { smoke } from './smoke'
 
-const profile = process.env.LDB_AUTH_BRIDGE_PROFILE
-const launcherPid = process.env.LDB_AUTH_BRIDGE_LAUNCHER_PID
+const profile = process.env.DFRAGON_AUTH_BRIDGE_PROFILE
+const launcherPid = process.env.DFRAGON_AUTH_BRIDGE_LAUNCHER_PID
 const hasProfile = profile != null
 const hasExpectedDirectory = hasProfile && dirname(profile) === tmpdir()
 const hasOwnedName =
-  hasProfile && /^ldb-auth-bridge-fixture-[A-Za-z0-9]{6}$/.test(basename(profile))
+  hasProfile && /^dfragon-auth-bridge-fixture-[A-Za-z0-9]{6}$/.test(basename(profile))
 const isLauncherChild = launcherPid === String(process.ppid)
 const canStart = hasProfile && hasExpectedDirectory && hasOwnedName && isLauncherChild
 const isAuto = process.argv.includes('--smoke')
 if (canStart) {
   app.setPath('userData', profile)
-  app.setName('LDB Auth Bridge fixture')
+  app.setName('DFRAGON Auth Bridge fixture')
   let failed = false
   app.on('window-all-closed', () => app.quit())
 
@@ -38,7 +38,7 @@ if (canStart) {
       const coordinator = createAuthCoordinator(effects.dependencies)
       await coordinator.start()
       const window = new BrowserWindow({
-        title: 'LDB Auth Bridge fixture',
+        title: 'DFRAGON Auth Bridge fixture',
         width: 1100,
         height: 800,
         webPreferences: {

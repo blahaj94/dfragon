@@ -28,10 +28,10 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
   if (!isWindows) {
     throw new Error('Windows crash fixture requires Windows.')
   }
-  const configuration = process.env.LDB_CRASH_CONFIG
+  const configuration = process.env.DFRAGON_CRASH_CONFIG
   const hasConfiguration = configuration != null
   if (!hasConfiguration) {
-    throw new Error('LDB_CRASH_CONFIG is required.')
+    throw new Error('DFRAGON_CRASH_CONFIG is required.')
   }
   const contents = await readFile(configuration, 'utf8')
   diagnostic.enter('config-parse')
@@ -58,7 +58,7 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
   settings.ackTimeoutMs = ackTimeoutMs
   diagnostic.enter('isolation')
   const hasOwnedName =
-    /^ldb-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+    /^dfragon-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
       basename(settings.root)
     )
   const isEvidenceSibling = dirname(settings.evidence) === dirname(settings.root)
@@ -126,7 +126,7 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
       basename(dirname(settings.originManifest!)) ===
       `${manifest.rootName}-${manifest.runId}-evidence`
     const hasManifestName = basename(settings.originManifest!) === 'manifest.json'
-    const isSynthetic = manifest.kind === 'ldb-synthetic-windows-crash-v1'
+    const isSynthetic = manifest.kind === 'dfragon-synthetic-windows-crash-v1'
     const isOriginal = manifest.mode === 'normal'
     if (
       !hasMatchingRoot ||
@@ -146,8 +146,8 @@ async function runFixture(diagnostic: StageDiagnostic): Promise<void> {
   const settings = await readSettings(diagnostic)
   diagnostic.enter('manifest-publication')
   const manifest = {
-    kind: 'ldb-synthetic-windows-crash-v1',
-    invocationOwner: process.env.LDB_CRASH_OWNER ?? 'standalone',
+    kind: 'dfragon-synthetic-windows-crash-v1',
+    invocationOwner: process.env.DFRAGON_CRASH_OWNER ?? 'standalone',
     runId: settings.runId,
     caseId: settings.caseId,
     mode: settings.mode,

@@ -9,7 +9,7 @@ vi.mock('electron', () => ({
   session: { fromPartition: electron.fromPartition }
 }))
 const origin = 'https://api.synthetic.test'
-const target = 'ldb.dev://auth/callback'
+const target = 'dfragon.dev://auth/callback'
 const url = `${origin}/auth/login/authorize?ticket=synthetic`
 class TestWindow extends EventEmitter {
   destroyed = false
@@ -75,7 +75,7 @@ describe('isolated authentication window', () => {
       webviewTag: false,
       devTools: false
     })
-    expect(electron.fromPartition.mock.calls[0][0]).toMatch(/^ldb-auth-/)
+    expect(electron.fromPartition.mock.calls[0][0]).toMatch(/^dfragon-auth-/)
     expect(f.session.setPermissionCheckHandler.mock.calls[0][0]()).toBe(false)
     const request = f.session.webRequest.onBeforeRequest.mock.calls[0][0]
     const verdict = vi.fn()

@@ -100,7 +100,7 @@ function Get-CrashEvidenceReport {
   $guestPrefix = [string] $Expected.GuestEvidenceRelativePath + '\'
   $expectedDirectory = 'native-lab\' + $Expected.RootName + '-' + $Expected.RunId + '-evidence\'
   $isGuestPath = $guestPrefix -ceq $expectedDirectory
-  $isRootName = $Expected.RootName -cmatch '^ldb-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+  $isRootName = $Expected.RootName -cmatch '^dfragon-crash-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
   $isRunName = $Expected.RunId -cmatch '^[a-z0-9-]{1,80}$'
   $hasOwner = -not [string]::IsNullOrWhiteSpace($Expected.InvocationOwner)
   if (-not $isGuestPath -or -not $isRootName -or -not $isRunName -or -not $hasOwner) {
@@ -122,7 +122,7 @@ function Get-CrashEvidenceReport {
     throw 'Original host hold hash mismatch.'
   }
   $held = [Text.Encoding]::UTF8.GetString($heldFile[0].Bytes) | ConvertFrom-Json
-  $isKind = $held.kind -ceq 'ldb-synthetic-windows-hold-v1'
+  $isKind = $held.kind -ceq 'dfragon-synthetic-windows-hold-v1'
   $isOwner = $held.invocationOwner -ceq $Expected.InvocationOwner
   $isCase = $Expected.CaseId -ceq 'normal-control'
   $isSequenceNumber = $Expected.Sequence -is [int] -or $Expected.Sequence -is [long]
@@ -224,7 +224,7 @@ function Get-CrashEvidenceReport {
   }
   $first = $held.observations[0]
   $isManifestEvent = $first.cutpoint -ceq 'run-manifest' -and $first.phase -ceq 'initial' -and $first.outcome -ceq 'recorded'
-  $isManifestKind = $manifest.kind -ceq 'ldb-synthetic-windows-crash-v1' -and $manifest.mode -ceq 'normal'
+  $isManifestKind = $manifest.kind -ceq 'dfragon-synthetic-windows-crash-v1' -and $manifest.mode -ceq 'normal'
   $isHostManifestKind = $first.detail.kind -ceq $manifest.kind -and $first.detail.mode -ceq $manifest.mode
   if (-not $isManifestEvent -or -not $isManifestKind -or -not $isHostManifestKind) {
     throw 'Original manifest event is invalid.'

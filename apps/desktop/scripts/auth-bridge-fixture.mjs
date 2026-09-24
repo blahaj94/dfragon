@@ -115,14 +115,14 @@ export async function runAuthBridgeFixture(args = []) {
   process.on('SIGINT', interrupt)
   process.on('SIGTERM', interrupt)
   try {
-    profile = await mkdtemp(join(tmpdir(), 'ldb-auth-bridge-fixture-'))
+    profile = await mkdtemp(join(tmpdir(), 'dfragon-auth-bridge-fixture-'))
     if (interrupted) {
       return 1
     }
     const environment = {
       ...process.env,
-      LDB_AUTH_BRIDGE_PROFILE: profile,
-      LDB_AUTH_BRIDGE_LAUNCHER_PID: String(process.pid)
+      DFRAGON_AUTH_BRIDGE_PROFILE: profile,
+      DFRAGON_AUTH_BRIDGE_LAUNCHER_PID: String(process.pid)
     }
     delete environment.ELECTRON_RUN_AS_NODE
     child = spawn(require('electron'), [entry, ...args], {

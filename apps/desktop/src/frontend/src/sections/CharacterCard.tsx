@@ -1,4 +1,4 @@
-import { Typo, typographyVariants } from '@ldb/ui'
+import { Typo, typographyVariants } from '@dfragon/ui'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'

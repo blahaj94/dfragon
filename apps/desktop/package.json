@@ -1,9 +1,9 @@
 {
-  "name": "@ldb/desktop",
+  "name": "@dfragon/desktop",
   "version": "1.0.0",
-  "description": "던전앤파이터 캐릭터 검색과 게임 화면 OCR을 제공하는 LDB 데스크톱 앱",
+  "description": "던전앤파이터 캐릭터 검색과 게임 화면 OCR을 제공하는 DFRAGON 데스크톱 앱",
   "main": "./out/backend/main.js",
-  "author": "LDB contributors",
+  "author": "DFRAGON contributors",
   "homepage": "https://github.com/blahaj94/ldb",
   "scripts": {
     "format": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
@@ -20,9 +20,9 @@
     "build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:distribution": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode ldb-distribution",
+    "build:distribution": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode dfragon-distribution",
     "build:win": "npm run build:distribution && electron-builder --win --publish never",
-    "build:development": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode ldb-development",
+    "build:development": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode dfragon-development",
     "build:win:development": "npm run build:development && electron-builder --win --config electron-builder.development.mjs --publish never",
     "build:mac": "npm run prepare:ocr-assets && electron-vite build && electron-builder --mac",
     "build:linux": "npm run prepare:ocr-assets && electron-vite build && electron-builder --linux",
@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
-    "@ldb/ui": "workspace:*",
+    "@dfragon/ui": "workspace:*",
     "@seed-design/css": "2.7.0",
     "@seed-design/react": "2.4.1",
     "@seed-design/vite-plugin": "2.1.0",
@@ -73,7 +73,7 @@
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
     "vitest": "^4.1.11",
-    "@ldb/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

@@ -1,4 +1,4 @@
-import { ExampleSection } from '@ldb/ui'
+import { ExampleSection } from '@dfragon/ui'
 import { ManualSearch } from '../../sections/ManualSearch'
 import PartyCapture from '../../sections/PartyCapture'
 

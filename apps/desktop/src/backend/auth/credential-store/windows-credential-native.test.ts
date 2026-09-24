@@ -13,8 +13,8 @@ describe('Windows credential native enumeration connection', () => {
     >)
     const native = createWindowsCredentialNative()
 
-    await expect(native.list(String.raw`C:\LdbProfile\auth\test`)).resolves.toEqual(names)
-    expect(list).toHaveBeenCalledWith(String.raw`C:\LdbProfile\auth\test`)
+    await expect(native.list(String.raw`C:\DfragonProfile\auth\test`)).resolves.toEqual(names)
+    expect(list).toHaveBeenCalledWith(String.raw`C:\DfragonProfile\auth\test`)
   })
 
   it('propagates native enumeration failure without turning it into an empty list', async () => {
