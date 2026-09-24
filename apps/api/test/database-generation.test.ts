@@ -15,7 +15,7 @@ async function generator() {
 
 test('Schema First generation writes executable ESM-safe SQL and reverses rollback order without applying it', async () => {
   const { generateMigration } = await generator()
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-generation-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-generation-'))
   const sql = "COMMENT ON TABLE users IS '` ${globalThis.unexpected = true} \\\\ sample'"
   const calls: string[] = []
   const source = {
@@ -82,7 +82,7 @@ test('Schema First generation writes executable ESM-safe SQL and reverses rollba
 
 test('generation rejects unsafe names, reports no changes and sanitizes connection failures', async () => {
   const { generateMigration } = await generator()
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-generation-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-generation-'))
   const source = {
     isInitialized: false,
     initialize: async () => {

@@ -38,7 +38,7 @@ const loginService = {
   callback: async () => {
     loginCalls++
     return {
-      returnUrl: 'ldb-test://login/complete?code=exchange-only',
+      returnUrl: 'dfragon-test://login/complete?code=exchange-only',
       cookie: '__Host-test=; Max-Age=0; Secure; HttpOnly; SameSite=Lax; Path=/'
     }
   }

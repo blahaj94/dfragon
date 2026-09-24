@@ -29,8 +29,8 @@ export function authenticationConfiguration() {
     passkey: {
       apiOrigin: 'https://api.test.invalid',
       rpId: 'api.test.invalid',
-      rpName: 'LDB test',
-      returnUrl: 'ldb.dev://auth/callback'
+      rpName: 'DFRAGON test',
+      returnUrl: 'dfragon.dev://auth/callback'
     }
   }
 }
@@ -39,7 +39,7 @@ export async function withRuntimeConfiguration(
   operation,
   configuration = authenticationConfiguration()
 ) {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-runtime-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-runtime-'))
   const path = join(directory, 'auth.json')
   try {
     await writeFile(path, JSON.stringify(configuration), { mode: 0o600 })
@@ -75,9 +75,9 @@ export function startRuntime(
   const env = {
     PATH: process.env.PATH,
     ...environment,
-    LDB_TEST_RUNTIME_FAULT: fault,
-    LDB_TEST_RUNTIME_DATABASE: realDatabase ? 'real' : 'fake',
-    LDB_TEST_NEOPLE_ORIGIN: upstreams.neople ?? ''
+    DFRAGON_TEST_RUNTIME_FAULT: fault,
+    DFRAGON_TEST_RUNTIME_DATABASE: realDatabase ? 'real' : 'fake',
+    DFRAGON_TEST_NEOPLE_ORIGIN: upstreams.neople ?? ''
   }
   const child = spawn(
     process.execPath,

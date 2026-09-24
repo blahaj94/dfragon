@@ -70,8 +70,8 @@ export const LOGIN = {
   codeSeconds: 60,
   idleSeconds: 2_592_000,
   jsonBytes: 16_384,
-  phoneCookiePrefix: '__Host-ldb-phone-',
-  cookiePrefix: '__Host-ldb-login-',
+  phoneCookiePrefix: '__Host-dfragon-phone-',
+  cookiePrefix: '__Host-dfragon-login-',
   contentSecurityPolicy:
     "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 } as const

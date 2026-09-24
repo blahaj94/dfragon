@@ -7,8 +7,8 @@ import { NestFactory } from '@nestjs/core'
 import { Module } from '@nestjs/common'
 
 // Test child의 --import에만 지정하며 제품 entry는 이 module을 import하지 않는다.
-const fault = process.env.LDB_TEST_RUNTIME_FAULT
-const useRealDatabase = process.env.LDB_TEST_RUNTIME_DATABASE === 'real'
+const fault = process.env.DFRAGON_TEST_RUNTIME_FAULT
+const useRealDatabase = process.env.DFRAGON_TEST_RUNTIME_DATABASE === 'real'
 const observe = (event, detail) => process.send?.({ event, detail })
 const initialize = DataSource.prototype.initialize
 const destroy = DataSource.prototype.destroy
@@ -155,5 +155,5 @@ globalThis.fetch = (input, options) => {
     'https://api.neople.co.kr',
     'unexpected outbound request in runtime test'
   )
-  return nativeFetch(`${process.env.LDB_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`, options)
+  return nativeFetch(`${process.env.DFRAGON_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`, options)
 }

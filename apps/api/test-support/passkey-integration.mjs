@@ -13,7 +13,7 @@ import { authenticationConfiguration, unusedRuntimePort } from './runtime-fixtur
 import { command } from './docker-postgres.mjs'
 
 export async function assertPasskeyIntegration(source, mark = () => {}) {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-passkey-browser-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-passkey-browser-'))
   let runtime, browser
   try {
     const keyFile = join(directory, 'key.pem'),
@@ -43,8 +43,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     const configuration = {
       apiOrigin: origin,
       rpId: 'localhost',
-      rpName: 'LDB',
-      returnUrl: 'ldb.dev://auth/callback'
+      rpName: 'DFRAGON',
+      returnUrl: 'dfragon.dev://auth/callback'
     }
     const jwt = authenticationConfiguration().accessJwt
     const issueAccessJwt = await createAccessJwtIssuer(jwt),
@@ -155,9 +155,9 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       .waitFor()
     assert.equal(await page.locator('#signup').isVisible(), true)
     assert.deepEqual(await source.query('SELECT count(*)::int AS n FROM users'), usersBeforeSignup)
-    if (process.env.LDB_PASSKEY_ARTIFACTS) {
+    if (process.env.DFRAGON_PASSKEY_ARTIFACTS) {
       await page.screenshot({
-        path: join(process.env.LDB_PASSKEY_ARTIFACTS, 'passkey-signup.png'),
+        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'passkey-signup.png'),
         fullPage: true
       })
     }
@@ -262,9 +262,9 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       )[0].count,
       1
     )
-    if (process.env.LDB_PASSKEY_ARTIFACTS) {
+    if (process.env.DFRAGON_PASSKEY_ARTIFACTS) {
       await page.screenshot({
-        path: join(process.env.LDB_PASSKEY_ARTIFACTS, 'passkey-management.png'),
+        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'passkey-management.png'),
         fullPage: true
       })
     }

@@ -37,16 +37,22 @@ test('RP origin and fixed app return configuration reject trust-boundary changes
   const config = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'LDB',
-    returnUrl: 'ldb://auth/callback'
+    rpName: 'DFRAGON',
+    returnUrl: 'dfragon://auth/callback'
   }
   assert.deepEqual(validatePasskeyConfiguration(config), config)
+  assert.deepEqual(
+    validatePasskeyConfiguration({ ...config, returnUrl: 'dfragon.dev://auth/callback' }),
+    { ...config, returnUrl: 'dfragon.dev://auth/callback' }
+  )
   for (const change of [
     { rpId: 'example.test' },
     { apiOrigin: 'http://auth.example.test' },
     { apiOrigin: 'https://auth.example.test/path' },
     { returnUrl: 'https://attacker.invalid' },
-    { returnUrl: 'ldb://auth/callback?code=preselected' },
+    { returnUrl: 'ldb://auth/callback' },
+    { returnUrl: 'ldb.dev://auth/callback' },
+    { returnUrl: 'dfragon://auth/callback?code=preselected' },
     { rpName: '' }
   ]) {
     assert.throws(() => validatePasskeyConfiguration({ ...config, ...change }))

@@ -134,8 +134,8 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       rpName: configuration.rpName,
       rpID: configuration.rpId,
       userID: new Uint8Array(Buffer.from(userId)),
-      userName: `LDB ${userId.slice(0, 8)}`,
-      userDisplayName: 'LDB 계정',
+      userName: `DFRAGON ${userId.slice(0, 8)}`,
+      userDisplayName: 'DFRAGON 계정',
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
       excludeCredentials: keys.map((key) => ({ id: key.id, transports: key.transports }))

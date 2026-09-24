@@ -2,32 +2,33 @@
 set -euo pipefail
 
 # Focused deployment check. Only this invocation's synthetic DB/volume is removed.
-ldb_checkout=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
-ldb_test_dir=$(mktemp -d)
-ldb_test_project="ldb-check-$(date +%s)-$$"
-export LDB_IMAGE_TAG="$ldb_test_project"
-export LDB_SECRETS_DIR="$ldb_test_dir/secrets"
-export LDB_API_PORT=0
-mkdir -m 700 "$LDB_SECRETS_DIR"
-ldb_compose=(docker compose --project-name "$ldb_test_project" -f "$ldb_checkout/deploy/api/compose.yaml")
+dfragon_checkout=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
+dfragon_test_dir=$(mktemp -d)
+dfragon_test_project="dfragon-check-$(date +%s)-$$"
+export DFRAGON_IMAGE_TAG="$dfragon_test_project"
+export DFRAGON_DATABASE_VOLUME_NAME="${dfragon_test_project}-database"
+export DFRAGON_SECRETS_DIR="$dfragon_test_dir/secrets"
+export DFRAGON_API_PORT=0
+mkdir -m 700 "$DFRAGON_SECRETS_DIR"
+dfragon_compose=(docker compose --project-name "$dfragon_test_project" -f "$dfragon_checkout/deploy/api/compose.yaml")
 cleanup() {
-    ldb_result=$?
+    dfragon_result=$?
     trap - EXIT
-    "${ldb_compose[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || ldb_result=1
-    rm -rf -- "$ldb_test_dir"
-    exit "$ldb_result"
+    "${dfragon_compose[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || dfragon_result=1
+    rm -rf -- "$dfragon_test_dir"
+    exit "$dfragon_result"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-"${ldb_compose[@]}" config --quiet
-"${ldb_compose[@]}" build api
+"${dfragon_compose[@]}" config --quiet
+"${dfragon_compose[@]}" build api
 docker run --rm --network none --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges \
     --entrypoint node -i \
-    --mount "type=bind,src=$LDB_SECRETS_DIR,dst=/fixtures" \
-    --mount "type=bind,src=$ldb_checkout/apps/api/test-support,dst=/app/test-support,readonly" \
-    "ldb-api:$LDB_IMAGE_TAG" --input-type=module <<'JS'
+    --mount "type=bind,src=$DFRAGON_SECRETS_DIR,dst=/fixtures" \
+    --mount "type=bind,src=$dfragon_checkout/apps/api/test-support,dst=/app/test-support,readonly" \
+    "dfragon-api:$DFRAGON_IMAGE_TAG" --input-type=module <<'JS'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { authenticationConfiguration } from './test-support/runtime-fixtures.mjs'
@@ -37,15 +38,15 @@ for (const name of ['postgres_password', 'ldb_migrator_password', 'ldb_api_passw
 writeFileSync('/fixtures/auth_config.json', JSON.stringify(authenticationConfiguration()), { mode: 0o444 })
 JS
 
-"${ldb_compose[@]}" up -d --wait --wait-timeout 120 database
-"${ldb_compose[@]}" run --rm migrate
-"${ldb_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d ldb -f /opt/ldb/grant-api.sql
-"${ldb_compose[@]}" run --rm migrate
-"${ldb_compose[@]}" up -d api
-ldb_api_container=$("${ldb_compose[@]}" ps -q api)
-ldb_database_container=$("${ldb_compose[@]}" ps -q database)
+"${dfragon_compose[@]}" up -d --wait --wait-timeout 120 database
+"${dfragon_compose[@]}" run --rm migrate
+"${dfragon_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d ldb -f /opt/dfragon/grant-api.sql
+"${dfragon_compose[@]}" run --rm migrate
+"${dfragon_compose[@]}" up -d api
+dfragon_api_container=$("${dfragon_compose[@]}" ps -q api)
+dfragon_database_container=$("${dfragon_compose[@]}" ps -q database)
 
-docker inspect "$ldb_api_container" "$ldb_database_container" | python3 -c '
+docker inspect "$dfragon_api_container" "$dfragon_database_container" | python3 -c '
 import json,sys
 api,db=json.load(sys.stdin)
 assert api["Config"]["User"] == "1000:1000"
@@ -58,7 +59,7 @@ assert db["Config"]["User"] == "postgres"
 assert len(db["NetworkSettings"]["Networks"]) == 1
 '
 
-"${ldb_compose[@]}" exec -T api node --input-type=module <<'JS'
+"${dfragon_compose[@]}" exec -T api node --input-type=module <<'JS'
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { setTimeout } from 'node:timers/promises'
@@ -97,10 +98,10 @@ assert.equal((await fetch('http://127.0.0.1:3000/me')).status, 401)
 console.log('PASS: compiled API, non-root/read-only runtime, mounted secrets and database privileges')
 JS
 
-"${ldb_compose[@]}" run --rm cleanup
-"${ldb_compose[@]}" stop api
-test "$(docker inspect --format '{{.State.ExitCode}}' "$ldb_api_container")" = 0
-"${ldb_compose[@]}" up -d --wait --wait-timeout 120 --force-recreate database
-"${ldb_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d ldb -Atqc \
+"${dfragon_compose[@]}" run --rm cleanup
+"${dfragon_compose[@]}" stop api
+test "$(docker inspect --format '{{.State.ExitCode}}' "$dfragon_api_container")" = 0
+"${dfragon_compose[@]}" up -d --wait --wait-timeout 120 --force-recreate database
+"${dfragon_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d ldb -Atqc \
     'SELECT count(*) FROM typeorm_migrations' | python3 -c 'import sys; assert int(sys.stdin.read()) > 0'
 printf 'PASS: explicit migration/re-run, cleanup, graceful stop and database persistence\n'

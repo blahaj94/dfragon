@@ -1,5 +1,5 @@
 [Unit]
-Description=Run LDB authentication cleanup daily
+Description=Run DFRAGON authentication cleanup daily
 
 [Timer]
 OnCalendar=daily

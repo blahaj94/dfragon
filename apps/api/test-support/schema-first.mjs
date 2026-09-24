@@ -102,8 +102,8 @@ async function assertOrmRoundTrip(dataSource) {
 }
 
 export async function assertSchemaFirst(configuration, mark) {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-schema-first-'))
-  const generatedConfiguration = { ...configuration, database: 'ldb_schema_first_test' }
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-schema-first-'))
+  const generatedConfiguration = { ...configuration, database: 'dfragon_schema_first_test' }
   let created = false
   try {
     const originalDefinitions = await withDataSource(
@@ -113,7 +113,7 @@ export async function assertSchemaFirst(configuration, mark) {
         mark('existing migration drift')
         assert.deepEqual((await source.driver.createSchemaBuilder().log()).upQueries, [])
         await assertOrmRoundTrip(source)
-        await source.query('CREATE DATABASE ldb_schema_first_test')
+        await source.query('CREATE DATABASE dfragon_schema_first_test')
         created = true
         return await constraintDefinitions(source)
       }
@@ -192,7 +192,7 @@ export async function assertSchemaFirst(configuration, mark) {
     try {
       if (created) {
         await withDataSource(createDatabaseDataSource, configuration, (source) =>
-          source.query('DROP DATABASE ldb_schema_first_test')
+          source.query('DROP DATABASE dfragon_schema_first_test')
         )
       }
     } finally {
