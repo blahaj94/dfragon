@@ -2,20 +2,22 @@ import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
 import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
-import {
-  DeveloperPartySlotNumber,
-  getDeveloperCollectionErrorMessage
-} from '../lib/developer-party'
+import type { DeveloperPartySlotNumber } from '../lib/developer-party'
+import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import { styles } from './DeveloperPartyCollectionSection.style'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 
 export function DeveloperPartyCollectionSection({
-  onSaved
+  onSaved,
+  slots,
+  onSlotsChange
 }: {
   onSaved: () => void
+  slots: DeveloperPartySlotNumber[]
+  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
 }): React.JSX.Element {
-  const collection = useDeveloperPartyCollection()
+  const collection = useDeveloperPartyCollection(slots, onSlotsChange)
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame

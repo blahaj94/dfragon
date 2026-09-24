@@ -210,13 +210,13 @@ it('arms only on the collection tab, previews four raw crops, and disarms on tab
   expect(container.textContent).toContain('게임 화면 연결됨')
   expect(container.textContent).not.toContain('최근 저장')
 
-  const fourthCheckbox = container.querySelector<HTMLInputElement>(
-    'input[aria-label="4번 크롭 저장"]'
+  const secondCheckbox = container.querySelector<HTMLInputElement>(
+    'input[aria-label="2번 크롭 저장"]'
   )!
   await act(async () => {
-    fourthCheckbox.click()
+    secondCheckbox.click()
   })
-  expect(api.setPartyCollectionSlots).toHaveBeenCalledWith([1, 2, 3])
+  expect(api.setPartyCollectionSlots).toHaveBeenCalledWith([1, 3, 4])
 
   await click('정답 입력')
   expect(api.setPartyCollectionSlots).toHaveBeenCalledWith(null)
@@ -224,7 +224,7 @@ it('arms only on the collection tab, previews four raw crops, and disarms on tab
   expect(evaluation.evaluate).not.toHaveBeenCalled()
 
   await click('이미지 수집')
-  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4])
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 3, 4])
   await act(async () => root.unmount())
   mounted = false
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)

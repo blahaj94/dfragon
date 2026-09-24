@@ -7,13 +7,14 @@ import type {
 } from '../lib/developer-party'
 import { developerPartySlotDataUrl } from '../lib/developer-party'
 
-const allPartySlots: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
-
 type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots'> & {
   slots: DeveloperPartyPreviewSlotWithDataUrl[]
 }
 
-export function useDeveloperPartyCollection(): {
+export function useDeveloperPartyCollection(
+  slots: DeveloperPartySlotNumber[],
+  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
+): {
   frame: PreviewFrame | null
   slots: DeveloperPartySlotNumber[]
   collection: DeveloperPartyCollectionStatus | null
@@ -22,7 +23,6 @@ export function useDeveloperPartyCollection(): {
   setSlotIncluded: (slot: DeveloperPartySlotNumber, included: boolean) => void
 } {
   const [frame, setFrame] = useState<PreviewFrame | null>(null)
-  const [slots, setSlots] = useState(allPartySlots)
   const [collection, setCollection] = useState<DeveloperPartyCollectionStatus | null>(null)
   const [previewError, setPreviewError] = useState('')
   const [commandError, setCommandError] = useState('')
@@ -32,6 +32,10 @@ export function useDeveloperPartyCollection(): {
     polling: boolean
     commandRevision: number
   } | null>(null)
+
+  useEffect(() => {
+    slotsRef.current = slots
+  }, [slots])
 
   useEffect(() => {
     const session = { active: true, polling: false, commandRevision: 0 }
@@ -82,7 +86,6 @@ export function useDeveloperPartyCollection(): {
         setPreviewError(response.previewError ?? '')
         if (commandRevision === session.commandRevision) {
           setCollection(response.collection)
-          setCommandError('')
         }
       } catch {
         if (session.active) {
@@ -113,7 +116,7 @@ export function useDeveloperPartyCollection(): {
       ? [...slotsRef.current, slot].sort((left, right) => left - right)
       : slotsRef.current.filter((selected) => selected !== slot)
     slotsRef.current = nextSlots
-    setSlots(nextSlots)
+    onSlotsChange(nextSlots)
 
     const session = sessionRef.current
     if (session?.active) {

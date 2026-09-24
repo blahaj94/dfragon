@@ -7,7 +7,7 @@ import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
 import { summarizeDeveloperEvaluation } from '../lib/developer-evaluation'
 import { normalizeNickname } from '../lib/recognition'
-import type { DeveloperWorkbenchSample } from '../lib/developer-party'
+import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/developer-party'
 import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
 import { styles } from './DeveloperWorkbench.style'
 
@@ -20,6 +20,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [filter, setFilter] = useState<DeveloperLabelFilter>('unlabeled')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [collectionSlots, setCollectionSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
   const [confirmClose, setConfirmClose] = useState(false)
   const [notice, setNotice] = useState('')
   const samples = sortDeveloperWorkbenchSamples(dataset.samples as DeveloperWorkbenchSample[])
@@ -194,7 +195,11 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
       <div {...stylex.props(styles.tabPanel)}>
         {activeTab === 'collection' ? (
-          <DeveloperPartyCollectionSection onSaved={() => void dataset.refresh()} />
+          <DeveloperPartyCollectionSection
+            onSaved={() => void dataset.refresh()}
+            slots={collectionSlots}
+            onSlotsChange={setCollectionSlots}
+          />
         ) : (
           <>
             <DeveloperLabelingSection
