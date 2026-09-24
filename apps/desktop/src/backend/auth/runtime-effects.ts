@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import type { EventEmitter } from 'node:events'
-import { dialog, safeStorage as electronSafeStorage, type SafeStorage } from 'electron'
+import { safeStorage as electronSafeStorage, type SafeStorage } from 'electron'
 import { createAuthBrowser } from './browser-window'
 import { createAuthHttpClient } from './http'
 import { createMacOsCredentialStore } from './credential-store/macos-credential-store'
@@ -26,7 +26,6 @@ type RuntimeEffectsOptions = Readonly<{
   safeStorage?: Pick<SafeStorage, 'isEncryptionAvailable' | 'encryptString' | 'decryptString'>
   platform?: NodeJS.Platform
   fetch?: typeof globalThis.fetch
-  showMessageBox?: () => Promise<unknown>
   activateMainWindow?: () => void
   openBrowser?: (url: string) => Promise<void>
   readWallMs?: () => number
@@ -36,7 +35,6 @@ type RuntimeEffectsOptions = Readonly<{
 }>
 
 export type AuthRuntimeEffects = Readonly<{
-  announceCredentialAccess(): Promise<void>
   createDependencies(config: AuthRuntimeConfig): AuthCoordinatorDependencies
   createSearchClock(): AuthClock
 }>
@@ -57,16 +55,6 @@ export function createAuthRuntimeEffects(
   const readWallMs = options.readWallMs ?? Date.now
   const readMonotonicMs = options.readMonotonicMs ?? (() => performance.now())
   const powerState: ClockPowerState = { suspended: false, revision: 0 }
-  const showMessageBox =
-    options.showMessageBox ??
-    (() =>
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'DFRAGON',
-        message: '로그인 상태를 확인하기 전에 이 기기의 안전한 저장소에 접근합니다.',
-        buttons: ['확인']
-      }))
-
   return {
     bindPowerMonitor(powerMonitor): () => void {
       const suspend = (): void => {
@@ -89,10 +77,6 @@ export function createAuthRuntimeEffects(
         throw error
       }
       return dispose
-    },
-
-    async announceCredentialAccess(): Promise<void> {
-      await showMessageBox()
     },
 
     createDependencies(config: AuthRuntimeConfig): AuthCoordinatorDependencies {

@@ -265,7 +265,6 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
   const runtime = await bootstrapAuthRuntime({
     config,
     effects: {
-      announceCredentialAccess: vi.fn(async () => undefined),
       createDependencies: () => harness.dependencies,
       createSearchClock: () => harness.clock
     }

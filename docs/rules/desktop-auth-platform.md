@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-25
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
 exceptions: 실제 credential/keychain·protocol registry·패스키 설정과 packaged E2E는 수행하지 않는다.
@@ -48,7 +48,7 @@ Node `performance.now()`는 process 기준의 monotonic 값이고 서버 시간�
 
 `setUsePlainTextEncryption(true)` 및 평문/renderer storage/access-only fallback은 금지한다. 안전한 backend가 없으면 로그인과 로그인 유지가 불가능하다는 명시적 선택이다. Capture·브라우저 권한 변경으로 저장 문제를 우회하지 않는다.
 
-Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. Credential 접근 전 안내를 표시하고 완료/거절 뒤 상태를 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
+Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 있다. OS 사용자 승인/취소가 필요할 수 있고 JavaScript timer로 prompt를 취소하거나 일정 시간 내 UI 응답을 보장하지 않는다. 앱은 저장소 접근 전 별도 확인/안내 창을 열지 않고 startup에서 저장소 검사를 진행한다. OS prompt와 안전한 저장소 backend 검사는 유지하며, 실패하거나 사용자가 거절하면 기존 fail-closed 상태로 반영한다. JS HTTP deadline은 이 OS prompt의 강제 종료 예산이 아니다.
 
 | 대안 | 비교·판단 |
 | --- | --- |

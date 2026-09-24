@@ -17,7 +17,6 @@ describe('desktop auth runtime effects', () => {
   it('binds HTTP, browser and store to the same trusted runtime tuple', async () => {
     const harness = createAuthHarness()
     const fetch = vi.fn()
-    const announceCredentialAccess = vi.fn(async () => undefined)
     const openBrowser = vi.fn(async () => undefined)
     const http = vi.fn(() => harness.dependencies.http)
     const store = vi.fn(() => harness.store)
@@ -29,16 +28,13 @@ describe('desktop auth runtime effects', () => {
       },
       platform: 'darwin',
       fetch,
-      showMessageBox: announceCredentialAccess,
       openBrowser,
       createHttp: http,
       createStore: store
     })
 
-    await effects.announceCredentialAccess()
     const dependencies = effects.createDependencies(config)
 
-    expect(announceCredentialAccess).toHaveBeenCalledOnce()
     expect(http).toHaveBeenCalledWith({ apiOrigin: config.apiOrigin, fetch })
     expect(store).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -103,7 +99,6 @@ describe('desktop auth runtime effects', () => {
       safeStorage,
       platform: 'linux',
       fetch,
-      showMessageBox: vi.fn(async () => undefined),
       openBrowser
     })
     const runtime = await bootstrapAuthRuntime({ config, effects })
@@ -141,7 +136,6 @@ describe('desktop auth runtime effects', () => {
       safeStorage,
       platform: 'win32',
       fetch,
-      showMessageBox: vi.fn(async () => undefined),
       openBrowser: vi.fn(async () => undefined)
     })
     const runtime = await bootstrapAuthRuntime({ config, effects })
@@ -268,7 +262,6 @@ describe('desktop auth runtime effects', () => {
     const runtime = await bootstrapAuthRuntime({
       config,
       effects: {
-        announceCredentialAccess: vi.fn(async () => undefined),
         createDependencies: effects.createDependencies,
         createSearchClock: effects.createSearchClock
       }
@@ -313,7 +306,6 @@ describe('desktop auth runtime effects', () => {
     const runtime = await bootstrapAuthRuntime({
       config,
       effects: {
-        announceCredentialAccess: vi.fn(async () => undefined),
         createDependencies: effects.createDependencies,
         createSearchClock: effects.createSearchClock
       }

@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: apps/desktop protocol ingress and single-instance bootstrap
-last-reviewed: 2026-09-12
+last-reviewed: 2026-09-25
 ---
 
 # Desktop Auth Protocol Ingress
@@ -35,7 +35,7 @@ last-reviewed: 2026-09-12
 
 ## Composition 인계 예시
 
-제품 `main.ts`는 다음 순서를 유지한다. 완전한 trusted identity/profile tuple을 ready 이전에 적용하고 그 다음 ingress를 만든다. Owner 확인 뒤 ready에서 저장소 접근 안내와 coordinator dependency를 구성하며, window·IPC·activate를 연결한 다음 restore `start()`를 호출한다. Buffered return은 start가 성공한 뒤에만 dispatch한다.
+제품 `main.ts`는 다음 순서를 유지한다. 완전한 trusted identity/profile tuple을 ready 이전에 적용하고 그 다음 ingress를 만든다. Owner 확인 뒤 ready에서 coordinator dependency를 구성하며, window·IPC·activate를 연결한 다음 restore `start()`를 호출한다. 앱 자체 저장소 접근 확인 창은 표시하지 않으며, 저장소 조회는 `start()`부터 진행한다. Buffered return은 start가 성공한 뒤에만 dispatch한다.
 
 ```ts
 const appliedConfig = applyAuthRuntimeProfile(app, config)
@@ -71,7 +71,7 @@ detachProtocol?.()
 ingress.dispose()
 ```
 
-실제 composition에서는 `returnTarget`, coordinator의 시작과 window 초기화 사이의 입력 보관을 유지해야 한다. 안내 실패로 runtime이 만들어지지 않으면 ingress를 폐기하지만 적용된 profile owner와 비인증 window는 유지한다. 이 fallback은 같은 validated handoff classifier로 URL 없는 일반 `second-instance`만 활성화하고 protocol-like argv를 무시한다. 예상 밖 dependency·clock·coordinator·owned composition 예외와 active `start()` rejection은 ingress 폐기 뒤 nonzero 종료한다. `before-quit`과 `will-quit` 동안에는 activation과 뒤늦은 구성을 중단하지만 ingress는 유지한다. 그동안 bootstrap/start가 끝나거나 protocol callback/activation을 받으면 quit 결과까지 보류하고, event·window close·renderer beforeunload가 종료를 취소할 때 한 번 재개한다. `quit`이 실제 종료를 확정하면 보류 결과를 폐기하고 ingress를 닫는다. Quit이 notice를 기다리는 중 시작되면 dependency·IPC·window·restore를 뒤늦게 만들지 않는다. Window는 모든 동기 wiring과 load 시작 뒤에만 publish한다. 구성 실패는 미공개 window·부분 auth IPC를 rollback하고, current owned document load rejection은 fatal이다. Cancelable `close` 시도와 겹친 rejection은 결과가 정해질 때까지 보류한다. `closed`가 오면 정상 종료로 폐기하고, 동기 event 또는 renderer `beforeunload`가 close를 취소하면 같은 rejection을 다시 fatal 경계에서 처리한다. 이미 교체됐거나 확정된 정상 quit 뒤에 도착한 늦은 rejection은 현재 owner를 건드리지 않는다. Lock loser 경로에서 store/network/window를 만들지 않고, cold input을 pending login의 증거로 승격하지 않으며, warm 또는 창 없는 복귀를 임의 navigation으로 바꾸지 않는다. 단일 `second-instance` listener는 URL 없는 일반 실행만 최소화된 기존 local window의 복원·표시·focus로 보내고 malformed·복수·wrong-scheme return과 다른 URL 입력은 UI와 auth 모두에 전달하지 않는다. Exact valid return도 coordinator가 새 pending을 claim한 경우에만 exchange 시작 뒤 window를 활성화한다. Window 활성화가 실패해도 이미 시작한 callback 처리를 버리지 않는다. `app.whenReady()`를 기다리기 전 listener 등록은 macOS `open-url` 유실을 줄이지만 packaged cold/warm·다중 instance·실제 OS association 성공을 증명하지 않는다. 기존 parser가 허용하는 one-letter private scheme 문법은 이 PR에서 임의로 축소하지 않았으며, Windows drive namespace와 충돌하지 않는 실제 owned scheme 선택은 배포 gate다.
+실제 composition에서는 `returnTarget`, coordinator의 시작과 window 초기화 사이의 입력 보관을 유지해야 한다. Bootstrap이 runtime을 만들지 않으면 ingress를 폐기하지만 적용된 profile owner와 비인증 window는 유지한다. 이 fallback은 같은 validated handoff classifier로 URL 없는 일반 `second-instance`만 활성화하고 protocol-like argv를 무시한다. 예상 밖 dependency·clock·coordinator·owned composition 예외와 active `start()` rejection은 ingress 폐기 뒤 nonzero 종료한다. `before-quit`과 `will-quit` 동안에는 activation과 뒤늦은 구성을 중단하지만 ingress는 유지한다. 그동안 bootstrap/start가 끝나거나 protocol callback/activation을 받으면 quit 결과까지 보류하고, event·window close·renderer beforeunload가 종료를 취소할 때 한 번 재개한다. `quit`이 실제 종료를 확정하면 보류 결과를 폐기하고 ingress를 닫는다. Bootstrap 대기 중 quit이 시작되면 IPC·window·restore를 뒤늦게 만들지 않는다. Window는 모든 동기 wiring과 load 시작 뒤에만 publish한다. 구성 실패는 미공개 window·부분 auth IPC를 rollback하고, current owned document load rejection은 fatal이다. Cancelable `close` 시도와 겹친 rejection은 결과가 정해질 때까지 보류한다. `closed`가 오면 정상 종료로 폐기하고, 동기 event 또는 renderer `beforeunload`가 close를 취소하면 같은 rejection을 다시 fatal 경계에서 처리한다. 이미 교체됐거나 확정된 정상 quit 뒤에 도착한 늦은 rejection은 현재 owner를 건드리지 않는다. Lock loser 경로에서 store/network/window를 만들지 않고, cold input을 pending login의 증거로 승격하지 않으며, warm 또는 창 없는 복귀를 임의 navigation으로 바꾸지 않는다. 단일 `second-instance` listener는 URL 없는 일반 실행만 최소화된 기존 local window의 복원·표시·focus로 보내고 malformed·복수·wrong-scheme return과 다른 URL 입력은 UI와 auth 모두에 전달하지 않는다. Exact valid return도 coordinator가 새 pending을 claim한 경우에만 exchange 시작 뒤 window를 활성화한다. Window 활성화가 실패해도 이미 시작한 callback 처리를 버리지 않는다. `app.whenReady()`를 기다리기 전 listener 등록은 macOS `open-url` 유실을 줄이지만 packaged cold/warm·다중 instance·실제 OS association 성공을 증명하지 않는다. 기존 parser가 허용하는 one-letter private scheme 문법은 이 PR에서 임의로 축소하지 않았으며, Windows drive namespace와 충돌하지 않는 실제 owned scheme 선택은 배포 gate다.
 
 ## 검증 범위
 
