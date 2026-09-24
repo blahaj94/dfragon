@@ -13,6 +13,8 @@ import type {
 import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
 import { createDeveloperStore, DeveloperStoreError } from './persistence'
 import { createDeveloperCollectionSession, previewFrame } from './collection-session'
+import { createPrintScreenShortcut } from './print-screen-shortcut'
+import { assertDnfShortcutAccess, isDnfForeground } from './win32-party-capture'
 
 const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_NOT_ALLOWED',
@@ -22,6 +24,7 @@ const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_SAMPLE_NOT_FOUND',
   'DEVELOPER_CAPTURE_UNAVAILABLE',
   'DEVELOPER_HOTKEY_UNAVAILABLE',
+  'DEVELOPER_ADMIN_REQUIRED',
   'DEVELOPER_GAME_NOT_FOREGROUND',
   'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
   'DEVELOPER_OPERATION_FAILED'
@@ -252,13 +255,21 @@ export function registerDeveloperWindow(
     }
   }
 
+  const printScreenShortcut = createPrintScreenShortcut({
+    globalShortcut,
+    isGameForeground: () => isTrustedMainDocument() && isDnfForeground()
+  })
+
   const collectionSession = createDeveloperCollectionSession({
     store,
     capturePartyFrame: async () => (await getPartyCaptureModule()).capturePartyFrame(),
     isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),
     isTrustedContext: isTrustedMainDocument,
-    registerPrintScreen: (listener) => globalShortcut.register('PrintScreen', listener),
-    unregisterPrintScreen: () => globalShortcut.unregister('PrintScreen'),
+    registerPrintScreen: (listener) => {
+      assertDnfShortcutAccess()
+      return printScreenShortcut.register(listener)
+    },
+    unregisterPrintScreen: printScreenShortcut.unregister,
     encodePng: (rgba, width, height) =>
       nativeImage
         .createFromBitmap(rgbaToWindowsBitmap(rgba, width, height), { width, height })

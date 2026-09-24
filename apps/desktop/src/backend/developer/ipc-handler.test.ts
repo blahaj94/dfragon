@@ -13,7 +13,11 @@ const electron = vi.hoisted(() => ({
   register: vi.fn(),
   unregister: vi.fn()
 }))
-const partyCapture = vi.hoisted(() => ({ capturePartyFrame: vi.fn(), isDnfForeground: vi.fn() }))
+const partyCapture = vi.hoisted(() => ({
+  capturePartyFrame: vi.fn(),
+  isDnfForeground: vi.fn(),
+  assertDnfShortcutAccess: vi.fn()
+}))
 vi.mock('electron', () => ({
   ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler },
   globalShortcut: { register: electron.register, unregister: electron.unregister },
@@ -373,4 +377,18 @@ it('keeps collection status readable when a fresh preview capture fails', async 
     previewError: 'DEVELOPER_CAPTURE_UNAVAILABLE',
     collection: { armed: true, slots: [1] }
   })
+})
+
+it('rejects collection with an actionable error when the game is elevated above the app', async () => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  partyCapture.assertDnfShortcutAccess.mockImplementationOnce(() => {
+    throw new Error('DEVELOPER_ADMIN_REQUIRED')
+  })
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])).toMatchObject({
+    armed: false,
+    error: 'DEVELOPER_ADMIN_REQUIRED'
+  })
+  expect(electron.register).not.toHaveBeenCalled()
+  fixture.dispose()
 })

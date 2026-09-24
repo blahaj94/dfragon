@@ -24,6 +24,9 @@ export type DeveloperWorkbenchSample = DeveloperSample
 
 // Turns safe IPC error codes into collection-specific recovery guidance.
 export function getDeveloperCollectionErrorMessage(errorCode: string): string {
+  if (errorCode === 'DEVELOPER_ADMIN_REQUIRED') {
+    return '던파가 관리자 권한으로 실행 중입니다. DFRAGON을 종료한 뒤 관리자 권한으로 다시 실행해 주세요.'
+  }
   if (errorCode === 'DEVELOPER_HOTKEY_UNAVAILABLE') {
     return 'Print Screen 단축키를 등록하지 못했습니다. 같은 단축키를 사용하는 앱을 확인한 뒤 수집 탭을 다시 열어주세요.'
   }
