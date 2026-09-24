@@ -21,6 +21,14 @@ export type PartyFrameCapture = {
 
 type Rect = { left: number; top: number; right: number; bottom: number }
 type ScreenRect = { x: number; y: number; width: number; height: number }
+type DetectedPartySlot = {
+  slot: 1 | 2 | 3 | 4
+  x: number
+  y: number
+  width: number
+  height: number
+  coverage: { x: number; y: number; width: number; height: number }
+}
 type GameWindow = {
   hwnd: bigint
   pid: number
@@ -380,9 +388,82 @@ function rectsIntersect(left: Rect, right: Rect): boolean {
   )
 }
 
+/** Validates detector output without filling gaps between independently detected frames. */
+export function hasValidDetectedPartySlots(
+  value: unknown,
+  frameWidth: number,
+  frameHeight: number
+): value is DetectedPartySlot[] {
+  if (
+    !Number.isSafeInteger(frameWidth) ||
+    !Number.isSafeInteger(frameHeight) ||
+    frameWidth <= 0 ||
+    frameHeight <= 0 ||
+    !Array.isArray(value) ||
+    value.length < 1 ||
+    value.length > 4
+  ) {
+    return false
+  }
+
+  const seenSlots = new Set<number>()
+  return value.every((candidate) => {
+    if (candidate == null || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      return false
+    }
+    const slot = candidate as Record<string, unknown>
+    const coverage = slot.coverage
+    const slotNumber = slot.slot
+    const cropX = slot.x
+    const cropY = slot.y
+    const cropWidth = slot.width
+    const cropHeight = slot.height
+    if (
+      (slotNumber !== 1 && slotNumber !== 2 && slotNumber !== 3 && slotNumber !== 4) ||
+      seenSlots.has(slotNumber) ||
+      !Number.isSafeInteger(cropX) ||
+      !Number.isSafeInteger(cropY) ||
+      !Number.isSafeInteger(cropWidth) ||
+      !Number.isSafeInteger(cropHeight) ||
+      (cropX as number) < 0 ||
+      (cropY as number) < 0 ||
+      (cropWidth as number) <= 0 ||
+      (cropHeight as number) <= 0 ||
+      (cropX as number) + (cropWidth as number) > frameWidth ||
+      (cropY as number) + (cropHeight as number) > frameHeight ||
+      coverage == null ||
+      typeof coverage !== 'object' ||
+      Array.isArray(coverage)
+    ) {
+      return false
+    }
+    const visibleRegion = coverage as Record<string, unknown>
+    const x = visibleRegion.x
+    const y = visibleRegion.y
+    const width = visibleRegion.width
+    const height = visibleRegion.height
+    if (
+      !Number.isSafeInteger(x) ||
+      !Number.isSafeInteger(y) ||
+      !Number.isSafeInteger(width) ||
+      !Number.isSafeInteger(height) ||
+      (x as number) < 0 ||
+      (y as number) < 0 ||
+      (width as number) <= 0 ||
+      (height as number) <= 0 ||
+      (x as number) + (width as number) > frameWidth ||
+      (y as number) + (height as number) > frameHeight
+    ) {
+      return false
+    }
+    seenSlots.add(slotNumber)
+    return true
+  })
+}
+
 function isPartyRegionCovered(
   client: ScreenRect,
-  slots: Array<{ coverage: { x: number; y: number; width: number; height: number } }>,
+  slots: DetectedPartySlot[],
   windowsAbove: ObscuringWindow[]
 ): boolean {
   const slotRects = slots.map((slot) => {
@@ -571,32 +652,10 @@ function capturePartyFrameWithApi(api: Win32PartyApi): PartyFrameCapture {
     if (
       !Number.isFinite(scale) ||
       scale <= 0 ||
-      slots.length !== 4 ||
-      new Set(slots.map(({ slot }) => slot)).size !== 4 ||
-      slots.some(
-        ({ slot, x, y, width, height, coverage }) =>
-          ![1, 2, 3, 4].includes(slot) ||
-          !Number.isSafeInteger(x) ||
-          !Number.isSafeInteger(y) ||
-          !Number.isSafeInteger(width) ||
-          !Number.isSafeInteger(height) ||
-          x < 0 ||
-          y < 0 ||
-          width <= 0 ||
-          height <= 0 ||
-          x + width > gameWindowAfter.client.width ||
-          y + height > gameWindowAfter.client.height ||
-          !coverage ||
-          !Number.isSafeInteger(coverage.x) ||
-          !Number.isSafeInteger(coverage.y) ||
-          !Number.isSafeInteger(coverage.width) ||
-          !Number.isSafeInteger(coverage.height) ||
-          coverage.x < 0 ||
-          coverage.y < 0 ||
-          coverage.width <= 0 ||
-          coverage.height <= 0 ||
-          coverage.x + coverage.width > gameWindowAfter.client.width ||
-          coverage.y + coverage.height > gameWindowAfter.client.height
+      !hasValidDetectedPartySlots(
+        slots,
+        gameWindowAfter.client.width,
+        gameWindowAfter.client.height
       )
     ) {
       throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND')
