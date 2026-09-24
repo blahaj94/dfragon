@@ -17,8 +17,10 @@ type SamplesContext = {
   api: DeveloperSamplesApi
   samples: DeveloperSample[]
   error: string
-  loadRequest: object | null
-  lastRefresh: object | null
+  loadRequests: object[]
+  queuedRefreshes: object[]
+  lastRefreshRequests: object[]
+  preserveSaveError: boolean
   activeSave: ActiveSave | null
   lastSave: { request: object; sample: DeveloperSample | null } | null
 }
@@ -60,20 +62,39 @@ export const developerSamplesMachine = setup({
     )
   },
   guards: {
-    hasRefreshRequest: ({ context }) => context.loadRequest != null
+    hasRefreshRequest: ({ context }) =>
+      context.loadRequests.length > 0 || context.queuedRefreshes.length > 0,
+    hasQueuedRefresh: ({ context }) => context.queuedRefreshes.length > 0
   },
   actions: {
     startRefresh: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.REFRESH ? { loadRequest: event.request, error: '' } : {}
+      event.type === DEVELOPER_EVENTS.REFRESH
+        ? {
+            loadRequests: [event.request],
+            queuedRefreshes: [],
+            error: '',
+            preserveSaveError: false
+          }
+        : {}
     ),
+    queueRefresh: assign(({ context, event }) =>
+      event.type === DEVELOPER_EVENTS.REFRESH
+        ? { queuedRefreshes: [...context.queuedRefreshes, event.request] }
+        : {}
+    ),
+    startQueuedRefresh: assign(({ context }) => ({
+      loadRequests: context.queuedRefreshes,
+      queuedRefreshes: []
+    })),
     failRefresh: assign(({ context }) => ({
-      error: DEVELOPER_ERRORS.LOAD_SAMPLES,
-      lastRefresh: context.loadRequest,
-      loadRequest: null
+      error: context.preserveSaveError ? context.error : DEVELOPER_ERRORS.LOAD_SAMPLES,
+      lastRefreshRequests: context.loadRequests,
+      loadRequests: []
     })),
     cancelRefresh: assign(({ context }) => ({
-      lastRefresh: context.loadRequest,
-      loadRequest: null
+      lastRefreshRequests: [...context.loadRequests, ...context.queuedRefreshes],
+      loadRequests: [],
+      queuedRefreshes: []
     })),
     startSaveLabel: assign(({ event }) =>
       event.type === DEVELOPER_EVENTS.SAVE_LABEL
@@ -82,7 +103,8 @@ export const developerSamplesMachine = setup({
               request: event.request,
               intent: { type: DEVELOPER_EVENTS.SAVE_LABEL, id: event.id, text: event.text }
             },
-            error: ''
+            error: '',
+            preserveSaveError: false
           }
         : {}
     ),
@@ -97,12 +119,14 @@ export const developerSamplesMachine = setup({
                 excluded: event.excluded
               }
             },
-            error: ''
+            error: '',
+            preserveSaveError: false
           }
         : {}
     ),
     failSave: assign(({ context }) => ({
       error: DEVELOPER_ERRORS.SAVE_SAMPLE,
+      preserveSaveError: true,
       lastSave:
         context.activeSave == null
           ? context.lastSave
@@ -110,6 +134,9 @@ export const developerSamplesMachine = setup({
       activeSave: null
     })),
     cancelSave: assign(({ context }) => ({
+      lastRefreshRequests: [...context.loadRequests, ...context.queuedRefreshes],
+      loadRequests: [],
+      queuedRefreshes: [],
       lastSave:
         context.activeSave == null
           ? context.lastSave
@@ -124,8 +151,10 @@ export const developerSamplesMachine = setup({
     api: input.api,
     samples: [],
     error: '',
-    loadRequest: null,
-    lastRefresh: null,
+    loadRequests: [],
+    queuedRefreshes: [],
+    lastRefreshRequests: [],
+    preserveSaveError: false,
     activeSave: null,
     lastSave: null
   }),
@@ -138,14 +167,15 @@ export const developerSamplesMachine = setup({
           target: '#developerSamples.idle.ready',
           actions: assign(({ context, event }) => ({
             samples: event.output,
-            error: '',
-            lastRefresh: context.loadRequest,
-            loadRequest: null
+            error: context.preserveSaveError ? context.error : '',
+            lastRefreshRequests: context.loadRequests,
+            loadRequests: []
           }))
         },
         onError: { target: '#developerSamples.idle.loadError', actions: 'failRefresh' }
       },
       on: {
+        [DEVELOPER_EVENTS.REFRESH]: { actions: 'queueRefresh' },
         [DEVELOPER_EVENTS.CANCEL]: {
           guard: 'hasRefreshRequest',
           target: '#developerSamples.idle.ready',
@@ -155,6 +185,11 @@ export const developerSamplesMachine = setup({
     },
     idle: {
       initial: 'ready',
+      always: {
+        guard: 'hasQueuedRefresh',
+        target: '#developerSamples.loading',
+        actions: 'startQueuedRefresh'
+      },
       on: {
         [DEVELOPER_EVENTS.REFRESH]: {
           target: '#developerSamples.loading',
@@ -192,6 +227,7 @@ export const developerSamplesMachine = setup({
                 ? context.samples.map((row) => (row.id === sample.id ? sample : row))
                 : [...context.samples, sample],
               error: '',
+              preserveSaveError: false,
               lastSave: { request: context.activeSave.request, sample },
               activeSave: null
             }
@@ -200,7 +236,8 @@ export const developerSamplesMachine = setup({
         onError: { target: '#developerSamples.idle.saveError', actions: 'failSave' }
       },
       on: {
-        // Saving is exclusive. Ignore a concurrent refresh or save command.
+        // Keep reads behind the write and coalesce them into one trailing load.
+        [DEVELOPER_EVENTS.REFRESH]: { actions: 'queueRefresh' },
         [DEVELOPER_EVENTS.CANCEL]: { target: '#developerSamples.idle.ready', actions: 'cancelSave' }
       }
     }

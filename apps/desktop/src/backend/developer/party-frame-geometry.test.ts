@@ -100,10 +100,10 @@ it('detects a single full frame at the measured 1067×600 base geometry', () => 
     {
       slot: 1,
       x: 42,
-      y: 12,
+      y: 10,
       width: 73,
-      height: 12,
-      coverage: { x: 41, y: 12, width: 101, height: 25 }
+      height: 16,
+      coverage: { x: 41, y: 10, width: 101, height: 27 }
     }
   ])
 })
@@ -126,10 +126,10 @@ it('detects FHD UI 50-style bars and crops relative to each observed anchor', ()
   for (const [index, anchorX] of anchors.entries()) {
     expect(geometry.slots[index]).toMatchObject({
       x: anchorX,
-      y: 15,
+      y: 13,
       width: 94,
-      height: 16,
-      coverage: { x: anchorX - 1, y: 15 }
+      height: 20,
+      coverage: { x: anchorX - 1, y: 13 }
     })
   }
 })
@@ -177,7 +177,7 @@ it('searches the upper measured scale endpoint without using bar width as scale'
   const geometry = detect({ width: 1920, height: 1080, rgba })
 
   expect(geometry.scale).toBe(1.8)
-  expect(geometry.slots[0]).toMatchObject({ x: 76, y: 21, width: 131, height: 22 })
+  expect(geometry.slots[0]).toMatchObject({ x: 76, y: 19, width: 131, height: 26 })
 })
 
 it('does not treat partially filled bars as a complete party frame', () => {

@@ -102,33 +102,107 @@ it('keeps the list error and retries successfully on refresh', async () => {
   expect(current.error).toBe('')
 })
 
-it('ignores refresh and saves while the initial list is pending', async () => {
+it('reruns a refresh queued during the initial list so later samples are included', async () => {
   const pendingList = deferred<DeveloperSample[]>()
-  const rows = [sample('one')]
-  const saved = sample('one', '저장한 정답')
+  const pendingRefresh = deferred<DeveloperSample[]>()
+  const rows = [sample('newly collected')]
   const api: SamplesApi = {
-    listSamples: vi.fn().mockReturnValue(pendingList.promise),
-    saveLabel: vi.fn().mockResolvedValue(saved),
+    listSamples: vi
+      .fn()
+      .mockReturnValueOnce(pendingList.promise)
+      .mockReturnValueOnce(pendingRefresh.promise),
+    saveLabel: vi.fn(),
     setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
 
   expect(current.loading).toBe(true)
-  await act(async () => current.refresh())
-  await expect(current.saveLabel('one', '저장한 정답')).resolves.toBeNull()
+  let refreshes!: Promise<void>[]
+  await act(async () => {
+    refreshes = [current.refresh(), current.refresh()]
+    await Promise.resolve()
+  })
+  await expect(current.saveLabel('newly collected', '정답')).resolves.toBeNull()
   expect(api.listSamples).toHaveBeenCalledOnce()
   expect(api.saveLabel).not.toHaveBeenCalled()
 
-  await act(async () => pendingList.resolve(rows))
-  expect(current.loading).toBe(false)
-  expect(current.samples).toEqual(rows)
+  const refreshSettled = [false, false]
+  refreshes.forEach((refresh, index) => {
+    void refresh.then(() => {
+      refreshSettled[index] = true
+    })
+  })
+  await act(async () => {
+    pendingList.resolve([])
+    await pendingList.promise
+    await Promise.resolve()
+  })
+  expect(api.listSamples).toHaveBeenCalledTimes(2)
+  expect(refreshSettled).toEqual([false, false])
 
   await act(async () => {
-    await expect(current.saveLabel('one', '저장한 정답')).resolves.toEqual(saved)
+    pendingRefresh.resolve(rows)
+    await Promise.all(refreshes)
   })
-  expect(api.saveLabel).toHaveBeenCalledExactlyOnceWith('one', '저장한 정답')
-  expect(current.samples).toEqual([saved])
+  expect(current.loading).toBe(false)
+  expect(current.samples).toEqual(rows)
+  expect(refreshSettled).toEqual([true, true])
+  expect(api.saveLabel).not.toHaveBeenCalled()
+})
+
+it('queues refresh behind a failed save without overlapping operations and keeps its error', async () => {
+  const original = sample('one', 'known label')
+  const pendingSave = deferred<DeveloperSample>()
+  const pendingRefresh = deferred<DeveloperSample[]>()
+  const api: SamplesApi = {
+    listSamples: vi
+      .fn()
+      .mockResolvedValueOnce([original])
+      .mockReturnValueOnce(pendingRefresh.promise),
+    saveLabel: vi.fn().mockReturnValue(pendingSave.promise),
+    setSampleExcluded: vi.fn()
+  }
+  installApi(api)
+  await renderHook()
+
+  let saving!: Promise<DeveloperSample | null>
+  await act(async () => {
+    saving = current.saveLabel('one', 'draft label')
+  })
+  let refreshing!: Promise<void>
+  await act(async () => {
+    refreshing = current.refresh()
+    await Promise.resolve()
+  })
+
+  expect(current.saving).toBe(true)
+  expect(api.listSamples).toHaveBeenCalledOnce()
+  expect(pendingRefresh.promise).toBeDefined()
+
+  await act(async () => {
+    pendingSave.reject(new Error('write failed'))
+    await Promise.resolve()
+  })
+  await expect(saving).resolves.toBeNull()
+  expect(api.listSamples).toHaveBeenCalledTimes(2)
+  expect(api.saveLabel).toHaveBeenCalledExactlyOnceWith('one', 'draft label')
+  expect(current.loading).toBe(true)
+  expect(current.samples).toEqual([original])
+
+  let refreshSettled = false
+  void refreshing.then(() => {
+    refreshSettled = true
+  })
+  const refreshedRows = [original, sample('newly collected')]
+  await act(async () => {
+    pendingRefresh.resolve(refreshedRows)
+    await refreshing
+  })
+
+  expect(refreshSettled).toBe(true)
+  expect(current.samples).toEqual(refreshedRows)
+  expect(current.error).toBe('저장하지 못했습니다. 입력은 유지됩니다. 다시 시도해 주세요.')
 })
 
 it('returns null for a duplicate save while the first save is pending', async () => {
@@ -158,12 +232,16 @@ it('returns null for a duplicate save while the first save is pending', async ()
   expect(current.saving).toBe(false)
 })
 
-it('ignores refresh during a save so stale list data cannot replace saved metadata', async () => {
+it('queues refresh behind a save so stale list data cannot replace saved metadata', async () => {
   const original = sample('one', 'old label')
   const updated = sample('one', 'new label')
   const pendingSave = deferred<DeveloperSample>()
+  const pendingRefresh = deferred<DeveloperSample[]>()
   const api: SamplesApi = {
-    listSamples: vi.fn().mockResolvedValue([original]),
+    listSamples: vi
+      .fn()
+      .mockResolvedValueOnce([original])
+      .mockReturnValueOnce(pendingRefresh.promise),
     saveLabel: vi.fn().mockReturnValue(pendingSave.promise),
     setSampleExcluded: vi.fn()
   }
@@ -174,11 +252,25 @@ it('ignores refresh during a save so stale list data cannot replace saved metada
   await act(async () => {
     saving = current.saveLabel(original.id, updated.text)
   })
-  await act(async () => current.refresh())
+  let refreshing!: Promise<void>
+  await act(async () => {
+    refreshing = current.refresh()
+    await Promise.resolve()
+  })
   expect(api.listSamples).toHaveBeenCalledOnce()
 
   pendingSave.resolve(updated)
-  await act(async () => expect(saving).resolves.toEqual(updated))
+  await act(async () => {
+    await expect(saving).resolves.toEqual(updated)
+    await Promise.resolve()
+  })
+  expect(api.listSamples).toHaveBeenCalledTimes(2)
+  expect(current.samples).toEqual([updated])
+
+  await act(async () => {
+    pendingRefresh.resolve([updated])
+    await refreshing
+  })
   expect(current.samples).toEqual([updated])
 })
 
@@ -217,6 +309,11 @@ it('resolves a pending save as null on unmount and ignores its late result', asy
   await act(async () => {
     saving = current.saveLabel('one', '늦은 정답')
   })
+  let refreshing!: Promise<void>
+  await act(async () => {
+    refreshing = current.refresh()
+    await Promise.resolve()
+  })
   const rendersBeforeUnmount = renderCount
 
   await act(async () => {
@@ -224,8 +321,10 @@ it('resolves a pending save as null on unmount and ignores its late result', asy
     mounted = false
   })
   await expect(saving).resolves.toBeNull()
+  await expect(refreshing).resolves.toBeUndefined()
 
   pendingSave.resolve(sample('one', '늦은 정답'))
   await act(async () => Promise.resolve())
   expect(renderCount).toBe(rendersBeforeUnmount)
+  expect(api.listSamples).toHaveBeenCalledOnce()
 })

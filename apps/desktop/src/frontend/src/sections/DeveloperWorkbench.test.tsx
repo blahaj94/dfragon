@@ -198,6 +198,7 @@ afterEach(async () => {
   Reflect.deleteProperty(window, 'developer')
   container.remove()
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 it('arms only on the collection tab, previews four raw crops, and disarms on tab switch and unmount', async () => {
@@ -220,10 +221,15 @@ it('arms only on the collection tab, previews four raw crops, and disarms on tab
 
   await click('정답 입력')
   expect(api.setPartyCollectionSlots).toHaveBeenCalledWith(null)
+  expect(container.querySelector('#developer-collection-panel')).toBeNull()
+  expect(container.querySelectorAll('[role="tabpanel"]')).toHaveLength(1)
   expect(container.textContent).toContain('저장된 크롭')
   expect(evaluation.evaluate).not.toHaveBeenCalled()
 
   await click('이미지 수집')
+  expect(container.querySelector('#developer-labeling-panel')).toBeNull()
+  expect(container.querySelector('#developer-collection-panel')).not.toBeNull()
+  expect(container.querySelectorAll('[role="tabpanel"]')).toHaveLength(1)
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 3, 4])
   await act(async () => root.unmount())
   mounted = false
@@ -270,6 +276,33 @@ it('refreshes samples after collection disarm settles before the next preview po
   expect(api.listSamples).toHaveBeenCalledTimes(2)
   expect(api.readImage).toHaveBeenCalledWith('captured-before-preview')
   expect(container.textContent).toContain('정답 미입력')
+})
+
+it('refreshes a Print Screen sample revision and displays its crop when labeling opens', async () => {
+  vi.useFakeTimers()
+  const { api, samples, status } = installApi()
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  expect(api.listSamples).toHaveBeenCalledTimes(1)
+
+  samples.push(
+    sample('new-print-screen-crop', '2026-09-24T00:00:01.000Z', null, {
+      slot: 1,
+      frameWidth: 1067,
+      frameHeight: 600,
+      scale: 1
+    })
+  )
+  status.revision = 1
+  await act(async () => vi.advanceTimersByTimeAsync(1000))
+  expect(api.listSamples).toHaveBeenCalledTimes(2)
+
+  await click('정답 입력')
+  expect(container.querySelector('#developer-collection-panel')).toBeNull()
+  expect(container.querySelector('img[alt="선택한 저장 크롭"]')?.getAttribute('src')).toBe(
+    'data:image/svg+xml,new-print-screen-crop'
+  )
+  expect(container.textContent).toContain('정답 미입력')
+  expect(api.readImage).toHaveBeenCalledWith('new-print-screen-crop')
 })
 
 it('sends disarm immediately when the initial arm response is still pending', async () => {

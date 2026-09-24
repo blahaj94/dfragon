@@ -20,7 +20,7 @@ export function DeveloperPartyCollectionSection({
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
   active: boolean
   onDisarmed: () => void
-}): React.JSX.Element {
+}): React.JSX.Element | null {
   const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed)
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
@@ -54,13 +54,16 @@ export function DeveloperPartyCollectionSection({
     }
   }, [collection.collection?.revision])
 
+  if (!active) {
+    return null
+  }
+
   return (
     <section
       role="tabpanel"
       id="developer-collection-panel"
       aria-labelledby="developer-collection-tab"
       aria-label="이미지 수집"
-      hidden={!active}
       {...stylex.props(styles.section)}
     >
       <div aria-live="polite" {...stylex.props(styles.connection)}>

@@ -206,11 +206,35 @@ it('surfaces a later crop write failure while keeping earlier saved data discove
   })
 })
 
-it('does not write any selected sample when the fresh frame is missing one selected slot', async () => {
-  const fixture = setup({
-    capture: async () => frame([{ slot: 1, width: 2, height: 1, rgba: Buffer.alloc(8, 1) }])
-  })
-  await fixture.session.setSlots([1, 2])
+it.each([[1], [2, 4]])(
+  'saves detected slots %j even when empty positions are also selected',
+  async (...detectedSlots) => {
+    const detected = frame().slots.filter(({ slot }) => detectedSlots.includes(slot))
+    const fixture = setup({ capture: async () => frame(detected) })
+    await fixture.session.setSlots([1, 2, 3, 4])
+
+    fixture.pressPrintScreen()
+    await settleCapture()
+
+    expect(fixture.store.addCollectedSample).toHaveBeenCalledTimes(detected.length)
+    expect(
+      fixture.store.addCollectedSample.mock.calls.map(([sample]) => sample.source.slot)
+    ).toEqual(detectedSlots)
+    expect(fixture.encodePng.mock.calls.map(([rgba]) => rgba)).toEqual(
+      detected.map(({ rgba }) => rgba)
+    )
+    expect(fixture.session.getStatus()).toMatchObject({
+      armed: true,
+      revision: detected.length,
+      lastSavedAt: capturedAt,
+      error: null
+    })
+  }
+)
+
+it('does not save unselected frames when none of the selected slots is detected', async () => {
+  const fixture = setup({ capture: async () => frame([frame().slots[0]]) })
+  await fixture.session.setSlots([2, 3, 4])
 
   fixture.pressPrintScreen()
   await settleCapture()
