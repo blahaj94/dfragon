@@ -154,6 +154,8 @@ Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopba
 
 개발 앱의 `dfragon.dev`·profile·설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트·추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
+Windows x64 포터블 exe도 같은 배포 identity·API·사용자 profile을 사용한다. 설치·관리자 권한 없이 실행하며 바로가기와 OS protocol은 등록하지 않고 앱 내부 인증 창의 복귀 처리를 사용한다. 설정·인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
+
 ### 공통 진입점
 
 | 진입점 | 등록·처리 계약 | 실제 사용에서 확인할 사항 |

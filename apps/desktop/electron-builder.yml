@@ -26,6 +26,9 @@ nsis:
   runAfterFinish: false
   # NSIS registers the protocol through this include, not the top-level protocols option.
   include: build/distribution-installer.nsh
+portable:
+  artifactName: ${productName}-${version}-${arch}-portable.${ext}
+  requestExecutionLevel: user
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
