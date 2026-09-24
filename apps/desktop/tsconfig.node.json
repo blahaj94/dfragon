@@ -11,6 +11,11 @@
     "types": [
       "electron-vite/node"
     ],
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@dfragon/lib": [
+        "../../packages/lib/src/index.ts"
+      ]
+    }
   }
 }

@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import type { DeveloperPartySlotNumber } from '../lib/developer-party'
 import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
+import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
+import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
 import { styles } from './DeveloperPartyCollectionSection.style'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
@@ -13,15 +15,19 @@ export function DeveloperPartyCollectionSection({
   slots,
   onSlotsChange,
   active,
-  onDisarmed
+  onDisarmed,
+  kind = 'hud',
+  onLabeling
 }: {
   onSaved: () => void
   slots: DeveloperPartySlotNumber[]
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
   active: boolean
   onDisarmed: () => void
+  kind?: DeveloperCollectionKind
+  onLabeling?: () => void
 }): React.JSX.Element | null {
-  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed)
+  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed, kind)
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame
@@ -56,6 +62,10 @@ export function DeveloperPartyCollectionSection({
 
   if (!active) {
     return null
+  }
+
+  if (kind === 'participants') {
+    return <DeveloperParticipantCollectionSection collection={collection} onLabeling={onLabeling} />
   }
 
   return (

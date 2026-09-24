@@ -1,4 +1,6 @@
 import type {
+  DeveloperCollectionKind,
+  DeveloperParticipantWindow,
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot
@@ -18,6 +20,7 @@ export type CapturedPartyFrame = {
   scale: number
   capturedAt: string
   slots: CapturedPartySlot[]
+  participantWindow?: DeveloperParticipantWindow
 }
 
 type CollectionSampleInput = {
@@ -41,7 +44,7 @@ type CollectionStore = {
 
 type CollectionSessionOptions = {
   store: CollectionStore
-  capturePartyFrame: () => Promise<CapturedPartyFrame>
+  capturePartyFrame: (kind: DeveloperCollectionKind) => Promise<CapturedPartyFrame>
   isDnfForeground: () => boolean | Promise<boolean>
   isTrustedContext: () => boolean
   registerPrintScreen: (listener: () => void) => boolean
@@ -50,7 +53,10 @@ type CollectionSessionOptions = {
 }
 
 type CollectionSession = {
-  setSlots: (slots: DeveloperPartySlot[] | null) => Promise<DeveloperPartyCollectionStatus>
+  setSlots: (
+    slots: DeveloperPartySlot[] | null,
+    kind?: DeveloperCollectionKind
+  ) => Promise<DeveloperPartyCollectionStatus>
   beginDisable: () => Promise<void>
   setArmingEnabled: (enabled: boolean) => void
   stop: () => Promise<void>
@@ -115,6 +121,14 @@ export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFr
     height: frame.height,
     scale: frame.scale,
     capturedAt: frame.capturedAt,
+    ...(frame.participantWindow
+      ? {
+          participantWindow: {
+            ...frame.participantWindow,
+            rgba: Uint8Array.from(frame.participantWindow.rgba)
+          }
+        }
+      : {}),
     slots: frame.slots.map(({ slot, width, height, rgba }) => ({
       slot,
       width,
@@ -131,7 +145,10 @@ const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_HOTKEY_UNAVAILABLE',
   'DEVELOPER_ADMIN_REQUIRED',
   'DEVELOPER_GAME_NOT_FOREGROUND',
-  'DEVELOPER_PARTY_SLOTS_NOT_FOUND'
+  'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
+  'DEVELOPER_GAME_NOT_FOUND',
+  'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND',
+  'DEVELOPER_PARTICIPANT_WINDOW_UNCERTAIN'
 ])
 
 function publicErrorCode(error: unknown): string {
@@ -152,6 +169,8 @@ export function createDeveloperCollectionSession({
   let armingEnabled = true
   let armed = false
   let slots: DeveloperPartySlot[] = []
+  let kind: DeveloperCollectionKind = 'hud'
+  let lastSavedCount = 0
   let generation = 0
   let printScreenRegistered = false
   let pendingCapture: Promise<void> | null = null
@@ -161,7 +180,7 @@ export function createDeveloperCollectionSession({
   let lastSavedAt: string | null = null
 
   function getStatus(): DeveloperPartyCollectionStatus {
-    return { armed, slots: [...slots], revision, lastSavedAt, error }
+    return { armed, slots: [...slots], revision, lastSavedAt, lastSavedCount, error }
   }
 
   function isTrusted(): boolean {
@@ -197,7 +216,8 @@ export function createDeveloperCollectionSession({
 
   async function collect(
     captureGeneration: number,
-    selectedSlots: DeveloperPartySlot[]
+    selectedSlots: DeveloperPartySlot[],
+    captureKind: DeveloperCollectionKind
   ): Promise<void> {
     try {
       const settings = await store.getSettings()
@@ -211,7 +231,7 @@ export function createDeveloperCollectionSession({
         throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
       }
 
-      const frameValue = await capturePartyFrame()
+      const frameValue = await capturePartyFrame(captureKind)
       if (!isCurrentCapture(captureGeneration)) {
         return
       }
@@ -243,6 +263,9 @@ export function createDeveloperCollectionSession({
           },
           () => isCurrentCapture(captureGeneration)
         )
+        if (isCurrentCapture(captureGeneration)) {
+          lastSavedCount += 1
+        }
         lastSavedAt = frameValue.capturedAt
         revision += 1
         if (!isCurrentCapture(captureGeneration)) {
@@ -265,7 +288,8 @@ export function createDeveloperCollectionSession({
     }
     const captureGeneration = generation
     const selectedSlots = [...slots]
-    const capture = collect(captureGeneration, selectedSlots)
+    lastSavedCount = 0
+    const capture = collect(captureGeneration, selectedSlots, kind)
     pendingCapture = capture
     void capture.finally(() => {
       if (pendingCapture === capture) {
@@ -282,7 +306,8 @@ export function createDeveloperCollectionSession({
   }
 
   async function setSlots(
-    selectedSlots: DeveloperPartySlot[] | null
+    selectedSlots: DeveloperPartySlot[] | null,
+    captureKind: DeveloperCollectionKind = 'hud'
   ): Promise<DeveloperPartyCollectionStatus> {
     if (disposed) {
       return getStatus()
@@ -292,6 +317,8 @@ export function createDeveloperCollectionSession({
     const token = requestToken
     invalidate()
     error = null
+    lastSavedCount = 0
+    kind = captureKind
     if (selectedSlots == null) {
       await waitForCapture()
       return getStatus()

@@ -1,3 +1,4 @@
+import type { DeveloperParticipantWindow } from '../src/preload/common/types/developer'
 import { contextBridge, ipcRenderer } from 'electron'
 
 // 제품 preload·IPC를 로드하지 않는다. Media API는 synthetic 거절 함수만 제공한다.
@@ -83,6 +84,81 @@ if (developerFixture != null) {
       return { slot, width: 24, height: 8, rgba }
     })
   }
+  // Synthetic UI pixels only; this fixture never reads a game window or private screenshots.
+  const participantWindow: DeveloperParticipantWindow = contextBridge.executeInMainWorld({
+    func: (sparse: boolean) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = 394
+      canvas.height = 210
+      const context = canvas.getContext('2d')!
+      context.fillStyle = '#131619'
+      context.fillRect(0, 0, 394, 210)
+      context.fillStyle = '#363e52'
+      context.fillRect(0, 0, 394, 20)
+      context.fillStyle = '#eee'
+      context.font = '11px sans-serif'
+      context.fillText('파티참가인원 — 개발 테스트', 110, 14)
+      context.fillStyle = '#d4c59a'
+      context.font = 'bold 14px sans-serif'
+      context.fillText('테스트 던전 · 테스트 파티', 32, 49)
+      context.fillStyle = '#27251b'
+      context.fillRect(14, 67, 368, 17)
+      context.fillStyle = '#b5a67a'
+      context.font = '10px sans-serif'
+      for (const [label, x] of [
+        ['레벨', 44],
+        ['장비 점수', 95],
+        ['캐릭터 이름', 180],
+        ['직업명', 304]
+      ] as const) {
+        context.fillText(label, x, 79)
+      }
+      const names = ['테스트검신', '테스트뮤즈', '테스트레인저', '테스트아처']
+      const rows = names.map((name, index) => {
+        const y = 87 + index * 22
+        const occupied = !sparse || index === 2
+        context.strokeStyle = '#3e4140'
+        context.strokeRect(14, y - 3, 368, 21)
+        context.fillStyle = '#d4c59a'
+        context.font = '11px sans-serif'
+        if (occupied) {
+          context.fillText('115', 65, y + 12)
+          context.fillText('123,456', 96, y + 12)
+          context.fillText(name, 180, y + 12)
+          context.fillText('테스트 직업', 270, y + 12)
+          context.fillStyle = '#6c718d'
+          context.fillRect(47, y + 1, 14, 14)
+        } else {
+          context.fillText('◇', 194, y + 12)
+        }
+        return { slot: (index + 1) as 1 | 2 | 3 | 4, occupied, x: 168, y, width: 84, height: 15 }
+      })
+      return {
+        width: 394,
+        height: 210,
+        rgba: new Uint8Array(context.getImageData(0, 0, 394, 210).data),
+        rows
+      }
+    },
+    args: [scenario === 'participants-sparse']
+  })
+  const participantFrame = {
+    width: 1067,
+    height: 600,
+    scale: 1,
+    capturedAt: frame.capturedAt,
+    participantWindow,
+    slots: participantWindow.rows
+      .filter((row) => row.occupied)
+      .map((row) => {
+        const rgba = new Uint8Array(row.width * row.height * 4)
+        for (let y = 0; y < row.height; y += 1) {
+          const start = ((row.y + y) * participantWindow.width + row.x) * 4
+          rgba.set(participantWindow.rgba.subarray(start, start + row.width * 4), y * row.width * 4)
+        }
+        return { slot: row.slot, width: row.width, height: row.height, rgba }
+      })
+  }
   const developer = {
     getSettings: async () => ({ enabled: true }),
     setEnabled: async (enabled: boolean) => ({ enabled }),
@@ -114,8 +190,9 @@ if (developerFixture != null) {
       return { ...row }
     },
     captureFrame: async () => ({ pngDataUrl: '', width: 1920, height: 1080 }),
-    previewParty: async () => ({
-      frame: scenario === 'capture-error' ? null : frame,
+    previewParty: async (kind = 'hud') => ({
+      frame:
+        scenario === 'capture-error' ? null : kind === 'participants' ? participantFrame : frame,
       previewError: scenario === 'capture-error' ? 'DEVELOPER_GAME_NOT_FOREGROUND' : null,
       collection: { ...status }
     }),

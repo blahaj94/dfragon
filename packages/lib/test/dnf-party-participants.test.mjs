@@ -232,3 +232,26 @@ test('rejects invalid dimensions, byte layouts, and invalid heading templates', 
     assert.throws(() => detectDNFPartyParticipantWindow(image, invalid), RangeError)
   }
 })
+
+test('finds a dialog among unrelated red decorations on a bright game background', () => {
+  const image = frame(1920, 1080)
+  paint(image, 0, 0, image.width, image.height, [140, 160, 130, 255])
+  popup(image, { x: 200, y: 100, occupied: [3] })
+  for (let index = 0; index < 100; index += 1) {
+    paint(
+      image,
+      900 + (index % 16) * 45,
+      250 + Math.floor(index / 16) * 80,
+      21,
+      21,
+      [235, 20, 25, 255]
+    )
+  }
+  const result = cropDNFPartyParticipantNicknames(image, heading)
+  assert.equal(result.status, 'found')
+  assert.deepEqual(
+    result.rows.filter((row) => row.occupied).map((row) => row.slot),
+    [3]
+  )
+  assert.deepEqual(result.window, { x: 186, y: 33, width: 394, height: 210 })
+})

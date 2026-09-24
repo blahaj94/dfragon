@@ -13,7 +13,11 @@ export const colors = stylex.defineVars({
   input: '#16181c',
   control: '#343b45',
   shellText: '#f3f4f6',
-  shellMuted: '#aeb5bf'
+  shellMuted: '#aeb5bf',
+  collectionAccentText: '#ffad78',
+  collectionAccentSurface: '#45382f',
+  collectionBorder: '#48515e',
+  collectionSurface: '#20242b'
 })
 
 // The approved light board keeps the character cards dark.
@@ -21,5 +25,9 @@ export const lightTheme = stylex.createTheme(colors, {
   background: '#f3f4f6',
   surface: '#ffffff',
   shellText: '#20242b',
-  shellMuted: '#626a76'
+  shellMuted: '#626a76',
+  collectionAccentText: '#ab4d0c',
+  collectionAccentSurface: '#fff0e5',
+  collectionBorder: '#d4d9e0',
+  collectionSurface: '#e4e7eb'
 })

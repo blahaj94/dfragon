@@ -1,5 +1,6 @@
 import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import type {
+  DeveloperCollectionKind,
   DeveloperFrame,
   DeveloperSettings,
   DeveloperPartySlot,
@@ -22,6 +23,9 @@ const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_ADMIN_REQUIRED',
   'DEVELOPER_GAME_NOT_FOREGROUND',
   'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
+  'DEVELOPER_GAME_NOT_FOUND',
+  'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND',
+  'DEVELOPER_PARTICIPANT_WINDOW_UNCERTAIN',
   'DEVELOPER_OPERATION_FAILED'
 ])
 
@@ -67,6 +71,13 @@ function exactExcluded(value: unknown): boolean {
     throw invalidCommand()
   }
   return value
+}
+
+function exactCollectionKind(value: unknown): DeveloperCollectionKind {
+  if (value === 'hud' || value === 'participants') {
+    return value
+  }
+  throw invalidCommand()
 }
 
 function exactPartySlots(value: unknown): DeveloperPartySlot[] | null {
@@ -256,7 +267,7 @@ export function registerDeveloperWindow(
 
   const collectionSession = createDeveloperCollectionSession({
     store,
-    capturePartyFrame: async () => (await getPartyCaptureModule()).capturePartyFrame(),
+    capturePartyFrame: async (kind) => (await getPartyCaptureModule()).capturePartyFrame(kind),
     isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),
     isTrustedContext: isTrustedMainDocument,
     registerPrintScreen: (listener) => {
@@ -421,13 +432,16 @@ export function registerDeveloperWindow(
     )
     register(DEVELOPER_CHANNELS.previewParty, (event, args) =>
       invoke(event, async (): Promise<DeveloperPartyPreviewResponse> => {
-        requireNoArguments(args)
+        if (args.length > 1) {
+          throw invalidCommand()
+        }
+        const kind = args.length === 0 ? 'hud' : exactCollectionKind(args[0])
         try {
           const settings = await store.getSettings()
           if (!settings.enabled) {
             throw new DeveloperStoreError('DEVELOPER_DISABLED')
           }
-          const frame = await (await getPartyCaptureModule()).capturePartyFrame()
+          const frame = await (await getPartyCaptureModule()).capturePartyFrame(kind)
           return {
             frame: previewFrame(frame),
             previewError: null,
@@ -435,9 +449,8 @@ export function registerDeveloperWindow(
           }
         } catch (error) {
           const safeCode =
-            error instanceof DeveloperStoreError &&
-            ['DEVELOPER_DISABLED', 'DEVELOPER_STORAGE_UNAVAILABLE'].includes(error.code)
-              ? error.code
+            error instanceof Error && PUBLIC_ERROR_CODES.has(error.message)
+              ? error.message
               : 'DEVELOPER_CAPTURE_UNAVAILABLE'
           return {
             frame: null,
@@ -449,12 +462,16 @@ export function registerDeveloperWindow(
     )
     register(DEVELOPER_CHANNELS.setPartyCollectionSlots, (event, args) =>
       invoke(event, async () => {
-        const slots = exactPartySlots(requireSingleArgument(args))
+        if (args.length < 1 || args.length > 2) {
+          throw invalidCommand()
+        }
+        const slots = exactPartySlots(args[0])
+        const kind = args.length === 1 ? 'hud' : exactCollectionKind(args[1])
         if (slots == null) {
           await collectionSession.stop()
           return collectionSession.getStatus()
         }
-        return collectionSession.setSlots(slots)
+        return collectionSession.setSlots(slots, kind)
       })
     )
 

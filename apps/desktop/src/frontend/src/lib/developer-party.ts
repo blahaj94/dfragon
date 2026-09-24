@@ -24,6 +24,9 @@ export type DeveloperWorkbenchSample = DeveloperSample
 
 // Turns safe IPC error codes into collection-specific recovery guidance.
 export function getDeveloperCollectionErrorMessage(errorCode: string): string {
+  if (errorCode === 'DEVELOPER_GAME_NOT_FOUND') {
+    return '던전앤파이터를 실행하고 게임 창을 보여주세요.'
+  }
   if (errorCode === 'DEVELOPER_ADMIN_REQUIRED') {
     return '던파가 관리자 권한으로 실행 중입니다. DFRAGON을 종료한 뒤 관리자 권한으로 다시 실행해 주세요.'
   }
@@ -46,7 +49,9 @@ export function getDeveloperCollectionErrorMessage(errorCode: string): string {
 }
 
 // Encodes a raw RGBA crop without resizing or changing its pixels.
-export function developerPartySlotDataUrl(slot: DeveloperPartyPreviewSlot): string {
+export function developerPartySlotDataUrl(
+  slot: Pick<DeveloperPartyPreviewSlot, 'width' | 'height' | 'rgba'>
+): string {
   if (slot.width < 1 || slot.height < 1 || slot.rgba.length !== slot.width * slot.height * 4) {
     throw new Error('Invalid developer party crop')
   }

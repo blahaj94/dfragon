@@ -365,15 +365,18 @@ importers:
         specifier: 4.5.4
         version: 4.5.4
     devDependencies:
-      '@electron-toolkit/tsconfig':
-        specifier: ^2.0.0
-        version: 2.0.0(@types/node@22.20.1)
+      '@dfragon/lib':
+        specifier: workspace:*
+        version: link:../../packages/lib
       '@dfragon/licenses':
         specifier: workspace:*
         version: link:../../packages/licenses
       '@dfragon/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@electron-toolkit/tsconfig':
+        specifier: ^2.0.0
+        version: 2.0.0(@types/node@22.20.1)
       '@seed-design/css':
         specifier: 2.7.0
         version: 2.7.0

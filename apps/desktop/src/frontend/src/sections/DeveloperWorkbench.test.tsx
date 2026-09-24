@@ -399,3 +399,126 @@ it('moves to the next unlabeled image only after a successful save', async () =>
   )
   expect(evaluation.evaluate).not.toHaveBeenCalled()
 })
+
+it('keeps four participant rows and restores saved inclusion after a row becomes occupied again', async () => {
+  vi.useFakeTimers()
+  const { api } = installApi()
+  const popup = {
+    width: 20,
+    height: 10,
+    rgba: new Uint8Array(20 * 10 * 4),
+    rows: ([1, 2, 3, 4] as const).map((slot) => ({
+      slot,
+      occupied: true,
+      x: 5,
+      y: slot * 2,
+      width: 4,
+      height: 1
+    }))
+  }
+  let nextFrame = { ...partyFrame(), participantWindow: popup }
+  api.previewParty.mockImplementation(async () => ({
+    frame: nextFrame,
+    previewError: null,
+    collection: { armed: true, slots: [1, 2, 3, 4], revision: 0, lastSavedAt: null, error: null }
+  }))
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('파티원창 크롭')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4], 'participants')
+  expect(api.previewParty).toHaveBeenLastCalledWith('participants')
+  const third = (): HTMLInputElement =>
+    container.querySelector<HTMLInputElement>('input[aria-label="3번 파티원 닉네임 저장"]')!
+  await act(async () => third().click())
+  expect(third().checked).toBe(false)
+
+  nextFrame = {
+    ...nextFrame,
+    slots: [],
+    participantWindow: { ...popup, rows: popup.rows.map((row) => ({ ...row, occupied: false })) }
+  }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(container.querySelectorAll('input:disabled')).toHaveLength(4)
+  expect(third().checked).toBe(false)
+  expect(container.textContent).toContain('현재 저장 대상 0개')
+
+  nextFrame = {
+    ...nextFrame,
+    slots: [partyFrame().slots[2]],
+    participantWindow: {
+      ...popup,
+      rows: popup.rows.map((row) => ({ ...row, occupied: row.slot === 3 }))
+    }
+  }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(container.querySelectorAll('input:disabled')).toHaveLength(3)
+  expect(third().disabled).toBe(false)
+  expect(third().checked).toBe(false)
+  expect(container.querySelector('img[alt="3번 닉네임 원본 크롭"]')).not.toBeNull()
+  await act(async () => third().click())
+  expect(container.textContent).toContain('현재 저장 대상 1개')
+  await click('정답 입력')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)
+  expect(container.querySelector('#developer-participants-panel')).toBeNull()
+})
+
+it('rejects a late HUD preview after switching to participant collection', async () => {
+  const { api, status } = installApi()
+  const old = deferred<Awaited<ReturnType<DeveloperApi['previewParty']>>>()
+  api.previewParty.mockReturnValueOnce(old.promise).mockResolvedValue({
+    frame: null,
+    previewError: 'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND',
+    collection: status
+  })
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('파티원창 크롭')
+  await act(async () =>
+    old.resolve({ frame: partyFrame(), previewError: null, collection: status })
+  )
+  expect(container.querySelectorAll('img')).toHaveLength(0)
+  expect(container.textContent).toContain('파티참가인원 창을 열어주세요.')
+  expect(container.querySelectorAll('[role="tab"]')).toHaveLength(3)
+})
+
+it('rearms participant collection when the game appears after the initial access check failed', async () => {
+  vi.useFakeTimers()
+  const { api, status } = installApi()
+  let gameVisible = false
+  let attempts = 0
+  api.setPartyCollectionSlots.mockImplementation(async (slots, kind) => {
+    status.armed = slots != null
+    status.slots = slots ?? []
+    if (kind === 'participants' && ++attempts === 1) {
+      status.armed = false
+      status.error = 'DEVELOPER_CAPTURE_UNAVAILABLE'
+    } else {
+      status.error = null
+    }
+    return { ...status }
+  })
+  api.previewParty.mockImplementation(async (kind) => ({
+    frame:
+      kind !== 'participants' || !gameVisible
+        ? null
+        : {
+            ...partyFrame(),
+            participantWindow: { width: 1, height: 1, rgba: new Uint8Array(4), rows: [] }
+          },
+    previewError: gameVisible ? null : 'DEVELOPER_GAME_NOT_FOUND',
+    collection: { ...status }
+  }))
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('파티원창 크롭')
+  expect(attempts).toBe(1)
+  expect(container.textContent).toContain('던전앤파이터를 실행해주세요.')
+  gameVisible = true
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(attempts).toBe(2)
+  expect(status.armed).toBe(true)
+  expect(container.textContent).not.toContain('파티원창이 잘 보이게 해주세요.')
+})

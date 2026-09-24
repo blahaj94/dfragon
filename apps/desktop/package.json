@@ -41,7 +41,7 @@
     "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
     "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
     "dev:app": "npm run prepare:ocr-assets && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
-    "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
+    "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -74,7 +74,8 @@
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
     "vitest": "^4.1.11",
-    "@dfragon/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*",
+    "@dfragon/lib": "workspace:*"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

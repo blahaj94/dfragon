@@ -76,28 +76,45 @@ function rectangle(
   }
 }
 
-/** Confirms the four fixed row separators, including separators around empty slots. */
-function hasParticipantRows(frame: ParticipantGrayFrame, heading: ParticipantHeading): boolean {
-  for (let slot = 0; slot < 4; slot += 1) {
-    const top = roundPixel(heading.y + (17 + 22 * slot) * heading.scale)
-    const left = roundPixel(heading.x + 4 * heading.scale)
-    const right = roundPixel(heading.x + 364 * heading.scale)
-    const radius = roundPixel(2 * heading.scale)
-    let best = 0
-    for (let y = top - radius; y <= top + radius; y += 1) {
-      let dark = 0
-      for (let x = left; x < right; x += 1) {
-        if (frame.pixels[y * frame.width + x] < 40) {
-          dark += 1
-        }
-      }
-      best = Math.max(best, dark / (right - left))
-    }
-    if (best < 0.85) {
-      return false
+/** Precomputes dark row counts to reject impossible dialogs before template comparisons. */
+function createParticipantRowValidator(frame: ParticipantGrayFrame) {
+  const stride = frame.width + 1
+  const darkCounts = new Uint16Array(stride * frame.height)
+  for (let y = 0; y < frame.height; y += 1) {
+    for (let x = 0; x < frame.width; x += 1) {
+      darkCounts[y * stride + x + 1] =
+        darkCounts[y * stride + x] + Number(frame.pixels[y * frame.width + x] < 40)
     }
   }
-  return true
+  return (x: number, y: number, scale: number): boolean => {
+    // Same full-window and four-separator requirements as the final detection, including holes.
+    if (
+      roundPixel(x - 14 * scale) < 0 ||
+      roundPixel(y - 67 * scale) < 0 ||
+      roundPixel(x + 380 * scale) > frame.width ||
+      roundPixel(y + 143 * scale) > frame.height
+    ) {
+      return false
+    }
+    const left = roundPixel(x + 4 * scale)
+    const right = roundPixel(x + 364 * scale)
+    const radius = roundPixel(2 * scale)
+    for (let slot = 0; slot < 4; slot += 1) {
+      const top = roundPixel(y + (17 + 22 * slot) * scale)
+      let found = false
+      for (let row = top - radius; row <= top + radius; row += 1) {
+        const count = darkCounts[row * stride + right] - darkCounts[row * stride + left]
+        if (count / (right - left) >= 0.85) {
+          found = true
+          break
+        }
+      }
+      if (!found) {
+        return false
+      }
+    }
+    return true
+  }
 }
 
 /** Measures evidence outside the name column so a gold padlock is not treated as a name. */
@@ -143,7 +160,8 @@ export function detectDNFPartyParticipantWindow(
     height: frame.height,
     pixels: participantGrayscale(frame.rgba)
   }
-  const matchHeading = createParticipantHeadingMatcher(gray, heading)
+  const hasRows = createParticipantRowValidator(gray)
+  const matchHeading = createParticipantHeadingMatcher(gray, heading, hasRows)
   const candidates: { heading: ParticipantHeading; window: DNFRectangle }[] = []
   for (const anchor of anchors) {
     const matched = matchHeading(anchor)
@@ -159,7 +177,7 @@ export function detectDNFPartyParticipantWindow(
       window.y < 0 ||
       window.x + window.width > frame.width ||
       window.y + window.height > frame.height ||
-      !hasParticipantRows(gray, matched)
+      !hasRows(matched.x, matched.y, matched.scale)
     ) {
       continue
     }

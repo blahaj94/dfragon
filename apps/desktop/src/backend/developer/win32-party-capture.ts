@@ -1,3 +1,8 @@
+import type {
+  DeveloperCollectionKind,
+  DeveloperParticipantWindow
+} from '../../preload/common/types/developer'
+import { captureParticipantWindow } from './participant-window'
 import { win32 as win32Path } from 'node:path'
 import { createRequire } from 'node:module'
 import { detectPartyFrameGeometry, PartyFrameGeometryError } from './party-frame-geometry'
@@ -17,6 +22,7 @@ export type PartyFrameCapture = {
   scale: number
   capturedAt: string
   slots: PartyFrameSlot[]
+  participantWindow?: DeveloperParticipantWindow
 }
 
 type Rect = { left: number; top: number; right: number; bottom: number }
@@ -355,6 +361,9 @@ function findDnfGameWindow(api: Win32PartyApi): GameWindow {
       matches.push({ hwnd, pid: owner.pid, client })
     }
   }
+  if (matches.length === 0) {
+    throw new Error('DEVELOPER_GAME_NOT_FOUND')
+  }
   if (matches.length !== 1) {
     throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
   }
@@ -482,7 +491,7 @@ export function hasValidDetectedPartySlots(
 
 function isPartyRegionCovered(
   client: ScreenRect,
-  slots: DetectedPartySlot[],
+  slots: { coverage: ScreenRect }[],
   windowsAbove: ObscuringWindow[]
 ): boolean {
   const slotRects = slots.map((slot) => {
@@ -652,7 +661,10 @@ function cropSlot(
   return { slot: slot.slot, width: slot.width, height: slot.height, rgba: output }
 }
 
-function capturePartyFrameWithApi(api: Win32PartyApi): PartyFrameCapture {
+function capturePartyFrameWithApi(
+  api: Win32PartyApi,
+  kind: DeveloperCollectionKind
+): PartyFrameCapture {
   return withPerMonitorV2(api, () => {
     const gameWindowBefore = findDnfGameWindow(api)
     assertClientInsideVirtualScreen(api, gameWindowBefore.client)
@@ -663,6 +675,24 @@ function capturePartyFrameWithApi(api: Win32PartyApi): PartyFrameCapture {
       throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
     }
     const windowsAboveAfter = getWindowsAbove(api, gameWindowAfter.hwnd)
+    if (kind === 'participants') {
+      const detected = captureParticipantWindow(
+        {
+          width: gameWindowAfter.client.width,
+          height: gameWindowAfter.client.height,
+          rgba
+        },
+        capturedAt
+      )
+      const regions = [{ coverage: detected.coverage }]
+      if (
+        isPartyRegionCovered(gameWindowBefore.client, regions, windowsAboveBefore) ||
+        isPartyRegionCovered(gameWindowAfter.client, regions, windowsAboveAfter)
+      ) {
+        throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      }
+      return detected.frame
+    }
     const { scale, slots } = detectPartyFrameGeometry({
       width: gameWindowAfter.client.width,
       height: gameWindowAfter.client.height,
@@ -703,12 +733,12 @@ function capturePartyFrameWithApi(api: Win32PartyApi): PartyFrameCapture {
 }
 
 /** Captures one fresh DNF client frame synchronously, returning only detected raw slot crops. */
-export function capturePartyFrame(): PartyFrameCapture {
+export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyFrameCapture {
   if (process.platform !== 'win32') {
     throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
   }
   try {
-    return capturePartyFrameWithApi(getApi())
+    return capturePartyFrameWithApi(getApi(), kind)
   } catch (error) {
     if (error instanceof PartyFrameGeometryError) {
       throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND', { cause: error })

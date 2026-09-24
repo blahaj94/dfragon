@@ -303,3 +303,47 @@ it('publishes a completed sample revision even if its save promise settles durin
     lastSavedAt: capturedAt
   })
 })
+
+it('switches capture kind without saving a pending crop from the previous tab', async () => {
+  const pending = deferred<CapturedPartyFrame>()
+  const fixture = setup()
+  fixture.capturePartyFrame.mockReturnValueOnce(pending.promise)
+  await fixture.session.setSlots([1, 2, 3, 4], 'hud')
+  fixture.pressPrintScreen()
+  await settleCapture()
+  expect(fixture.capturePartyFrame).toHaveBeenLastCalledWith('hud')
+
+  await fixture.session.setSlots([1, 2, 3, 4], 'participants')
+  pending.resolve(frame())
+  await settleCapture()
+  expect(fixture.store.addCollectedSample).not.toHaveBeenCalled()
+
+  const sparse = frame([
+    { slot: 3, width: 2, height: 1, rgba: Buffer.from([1, 2, 3, 255, 5, 6, 7, 255]) }
+  ])
+  fixture.capturePartyFrame.mockResolvedValue(sparse)
+  fixture.pressPrintScreen()
+  await settleCapture()
+  expect(fixture.capturePartyFrame).toHaveBeenLastCalledWith('participants')
+  expect(fixture.store.addCollectedSample).toHaveBeenCalledTimes(1)
+  expect(fixture.store.addCollectedSample.mock.calls[0][0]).toMatchObject({
+    source: { slot: 3 },
+    png: sparse.slots[0].rgba
+  })
+  expect(fixture.session.getStatus()).toMatchObject({ lastSavedCount: 1, error: null })
+})
+
+it('reports a partial save without claiming the remaining nicknames succeeded', async () => {
+  const fixture = setup()
+  fixture.store.addCollectedSample
+    .mockResolvedValueOnce({ id: 'saved' })
+    .mockRejectedValueOnce(new Error('DEVELOPER_STORAGE_UNAVAILABLE'))
+  await fixture.session.setSlots([1, 2, 3, 4], 'participants')
+  fixture.pressPrintScreen()
+  await settleCapture()
+  expect(fixture.session.getStatus()).toMatchObject({
+    lastSavedCount: 1,
+    error: 'DEVELOPER_STORAGE_UNAVAILABLE'
+  })
+  expect(fixture.store.addCollectedSample).toHaveBeenCalledTimes(2)
+})

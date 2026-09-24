@@ -15,6 +15,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@dfragon\/lib$/,
+        replacement: fileURLToPath(new URL('../../packages/lib/src/index.ts', import.meta.url))
+      },
+      {
         find: /^@dfragon\/ui$/,
         replacement: fileURLToPath(new URL('../../packages/ui/src/index.tsx', import.meta.url))
       }

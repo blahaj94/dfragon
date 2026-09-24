@@ -18,11 +18,16 @@ const isDeveloper = mode === DEVELOPER_MODE
 const isModeValid = ['desktop', 'example', MVP_MODE, DEVELOPER_MODE].includes(mode)
 const isThemeValid = ['system', 'light', 'dark'].includes(theme)
 const scenario = fixtureArguments[2] ?? 'default'
-const isScenarioValid = ['default', 'hotkey-error', 'capture-error'].includes(scenario)
+const isScenarioValid = [
+  'default',
+  'hotkey-error',
+  'capture-error',
+  'participants-sparse'
+].includes(scenario)
 const isInputInvalid = !isModeValid || !isThemeValid || !isScenarioValid
 if (isInputInvalid) {
   throw new Error(
-    `Use desktop|example|${MVP_MODE}|${DEVELOPER_MODE} and system|light|dark and default|hotkey-error|capture-error`
+    `Use desktop|example|${MVP_MODE}|${DEVELOPER_MODE} and system|light|dark and default|hotkey-error|capture-error|participants-sparse`
   )
 }
 
@@ -56,7 +61,7 @@ app.whenReady().then(async () => {
     show: false,
     webPreferences: {
       preload: fileURLToPath(
-        new URL('../node_modules/.tmp/ui-fixture/ui-fixture-preload.cjs', import.meta.url)
+        new URL('../node_modules/.tmp/ui-fixture/scripts/ui-fixture-preload.cjs', import.meta.url)
       ),
       contextIsolation: true,
       sandbox: true,

@@ -44,3 +44,14 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     ['developer:setPartyCollectionSlots', [1, 4]]
   ])
 })
+
+it('forwards the participant mode explicitly while keeping stop on the shared channel', async () => {
+  await developer.previewParty('participants')
+  await developer.setPartyCollectionSlots([3], 'participants')
+  await developer.setPartyCollectionSlots(null)
+  expect(renderer.invoke.mock.calls).toEqual([
+    ['developer:previewParty', 'participants'],
+    ['developer:setPartyCollectionSlots', [3], 'participants'],
+    ['developer:setPartyCollectionSlots', null]
+  ])
+})
