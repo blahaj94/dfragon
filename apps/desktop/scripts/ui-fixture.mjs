@@ -1,14 +1,19 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, session } from 'electron'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const mode = process.argv[2] ?? 'desktop'
-const theme = process.argv[3] ?? 'system'
+// Debug launchers such as Playwright insert Electron flags before the entry script.
+const entryIndex = process.argv.findIndex(
+  (argument) => resolve(argument) === fileURLToPath(import.meta.url)
+)
+const fixtureArguments = process.argv.slice(entryIndex + 1)
+const mode = fixtureArguments[0] ?? 'desktop'
+const theme = fixtureArguments[1] ?? 'system'
 const isModeValid = ['desktop', 'example', 'mvp', 'developer'].includes(mode)
 const isThemeValid = ['system', 'light', 'dark'].includes(theme)
-const scenario = process.argv[4] ?? 'default'
+const scenario = fixtureArguments[2] ?? 'default'
 const isScenarioValid = ['default', 'hotkey-error', 'capture-error'].includes(scenario)
 const isInputInvalid = !isModeValid || !isThemeValid || !isScenarioValid
 if (isInputInvalid) {
