@@ -54,4 +54,3 @@ electronFuses:
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
 publish: null
-afterAllArtifactBuild: ./scripts/set-portable-exe-language.mjs
