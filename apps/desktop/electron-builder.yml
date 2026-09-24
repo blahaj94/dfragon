@@ -4,7 +4,6 @@ extraMetadata:
   name: dfragon
 directories:
   buildResources: build
-afterSign: ./scripts/clear-win-file-description.mjs
 files:
   - out/**
   - resources/**
