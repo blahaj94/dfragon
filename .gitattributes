@@ -1,2 +1,4 @@
 # Keep checksum-pinned OCR vendor assets byte-identical on every platform.
 /apps/desktop/assets/ocr/** -text
+# Preserve the exact upstream bytes used by license checksum validation on Windows.
+packages/licenses/notices/upstream/** -text

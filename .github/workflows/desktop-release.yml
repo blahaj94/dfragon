@@ -3,6 +3,7 @@ name: Windows Portable
 on:
   pull_request:
     paths:
+      - '.gitattributes'
       - '.github/workflows/desktop-release.yml'
       - 'apps/desktop/**'
       - 'packages/**'
