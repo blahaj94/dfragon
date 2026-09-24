@@ -10,6 +10,7 @@ export const styles = stylex.create({
     padding: '16px 24px',
     fontFamily: 'NanumSquareNeo, sans-serif'
   },
+  workbench: { minHeight: 'calc(100dvh - 32px)' },
   footer: {
     display: 'flex',
     flexWrap: 'wrap',

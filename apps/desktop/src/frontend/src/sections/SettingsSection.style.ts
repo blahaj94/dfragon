@@ -31,13 +31,17 @@ export const styles = stylex.create({
     paddingInline: 12,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
-  selected: {
+  menu: {
+    display: 'flex',
+    width: '100%',
+    justifyContent: 'flex-start',
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#45382f',
-    color: '#ffad78'
+    color: colors.shellText,
+    textAlign: 'left'
   },
-  selectedLight: { backgroundColor: '#fff0e5', color: '#ab4d0c' },
+  menuSelected: { backgroundColor: '#45382f', color: '#ffad78' },
+  menuSelectedLight: { backgroundColor: '#fff0e5', color: '#ab4d0c' },
   appName: {
     marginTop: 'auto',
     paddingInline: 12,
@@ -52,5 +56,8 @@ export const styles = stylex.create({
     padding: { default: 28, '@media (max-width: 600px)': 16 },
     backgroundColor: colors.background
   },
-  heading: { paddingBottom: 16 }
+  heading: { paddingBottom: 16 },
+  developerDescription: { paddingBottom: 20, color: colors.shellMuted },
+  developerActions: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
+  developerStatus: { paddingTop: 12, color: colors.shellMuted }
 })

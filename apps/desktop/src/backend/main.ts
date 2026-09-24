@@ -25,6 +25,7 @@ import {
   AuthRuntimeProfileApplicationFailure
 } from './auth/runtime-config'
 import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
+import { registerDeveloperWindow } from './developer/ipc-handler'
 
 const parsedRuntimeConfig = readAppAuthConfig(app)
 type RuntimeProfileState =
@@ -94,12 +95,14 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     }
   })
   let nextDisposeAuthIpc: (() => void) | undefined
+  let disposeDeveloper: (() => void) | undefined
   try {
     registerCapturePermissions(
       session.defaultSession,
       process.platform === 'win32' ? consumeCaptureMediaPermission : undefined
     )
     registerCaptureWindow(window, rendererDocumentUrl)
+    disposeDeveloper = registerDeveloperWindow(window, rendererDocumentUrl, app.getPath('userData'))
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
@@ -118,6 +121,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
     observeLoad(load)
   } catch (error) {
+    disposeDeveloper?.()
     try {
       nextDisposeAuthIpc?.()
     } catch {

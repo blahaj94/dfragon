@@ -16,6 +16,7 @@ export function PartyPage({
   inputEnabled = false,
   account,
   capture,
+  settings = <SettingsSection />,
   nicknames,
   onDetail
 }: {
@@ -26,6 +27,7 @@ export function PartyPage({
   inputEnabled?: boolean
   account?: ReactNode
   capture?: ReactNode
+  settings?: ReactNode
   nicknames?: readonly (string | null)[]
   onDetail?: () => void
 }): React.JSX.Element {
@@ -55,7 +57,7 @@ export function PartyPage({
               </Typo.txtS>
             </ActionButton>
           )}
-          <SettingsSection />
+          {settings}
         </div>
       </header>
       <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../components/ColorThemeProvider'
 import { SettingsSection } from './SettingsSection'
+import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 
 vi.mock('virtual:dfragon-desktop-licenses', () => ({
   default: [
@@ -94,4 +95,57 @@ it('검색 결과 없음과 Escape 닫기를 제공한다', async () => {
     )
   })
   expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+
+it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정할 수 있다', async () => {
+  const setEnabled = vi.fn()
+  const openDeveloperWorkbench = vi.fn()
+  const mode: DeveloperModeState = {
+    status: 'ready',
+    enabled: false,
+    updating: false,
+    retry: vi.fn(),
+    setEnabled
+  }
+
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider initialTheme="dark">
+        <SettingsSection developerMode={mode} onOpenDeveloperWorkbench={openDeveloperWorkbench} />
+      </ColorThemeProvider>
+    )
+  )
+  await click('설정')
+  expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('라이선스')
+  await click('개발자 모드')
+  expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('개발자 모드')
+  expect(document.body.textContent).toContain('개발자 모드가 꺼져 있습니다.')
+  await click('개발자 모드 켜기')
+  expect(setEnabled).toHaveBeenCalledExactlyOnceWith(true)
+  expect(openDeveloperWorkbench).not.toHaveBeenCalled()
+
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider initialTheme="dark">
+        <SettingsSection
+          developerMode={{ ...mode, enabled: true }}
+          onOpenDeveloperWorkbench={openDeveloperWorkbench}
+        />
+      </ColorThemeProvider>
+    )
+  )
+  await click('설정')
+  await click('개발자 모드')
+  await click('개발 도구 열기')
+  expect(openDeveloperWorkbench).toHaveBeenCalledExactlyOnceWith()
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+
+it('shows the mode as unavailable when preload APIs are absent', async () => {
+  await click('설정')
+  await click('개발자 모드')
+  expect(document.body.textContent).toContain(
+    '이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'
+  )
+  expect(document.body.textContent).not.toContain('개발자 모드 켜기')
 })

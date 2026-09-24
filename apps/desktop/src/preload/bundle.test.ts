@@ -47,7 +47,8 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       'api',
       'auth',
       'search',
-      'manualSearch'
+      'manualSearch',
+      'developer'
     ])
   }
 )

@@ -1,0 +1,37 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+import * as developer from './developer'
+
+const renderer = vi.hoisted(() => ({ invoke: vi.fn() }))
+vi.mock('electron', () => ({ ipcRenderer: renderer }))
+
+beforeEach(() => vi.clearAllMocks())
+
+it('exposes only typed developer operations through namespaced IPC channels', async () => {
+  expect(Object.keys(developer).sort()).toEqual([
+    'addSample',
+    'captureFrame',
+    'getSettings',
+    'listSamples',
+    'readImage',
+    'saveLabel',
+    'setEnabled'
+  ])
+
+  await developer.getSettings()
+  await developer.setEnabled(true)
+  await developer.listSamples()
+  await developer.readImage('00000000-0000-4000-8000-000000000001')
+  await developer.addSample('data:image/png;base64,AA==')
+  await developer.saveLabel('00000000-0000-4000-8000-000000000001', '')
+  await developer.captureFrame()
+
+  expect(renderer.invoke.mock.calls).toEqual([
+    ['developer:getSettings'],
+    ['developer:setEnabled', true],
+    ['developer:listSamples'],
+    ['developer:readImage', '00000000-0000-4000-8000-000000000001'],
+    ['developer:addSample', 'data:image/png;base64,AA=='],
+    ['developer:saveLabel', '00000000-0000-4000-8000-000000000001', ''],
+    ['developer:captureFrame']
+  ])
+})

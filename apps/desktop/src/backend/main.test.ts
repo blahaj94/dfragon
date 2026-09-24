@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   loadURL: vi.fn(),
   loadFile: vi.fn(),
   registerWindow: vi.fn(),
+  registerDeveloperWindow: vi.fn(() => vi.fn()),
   consumeCaptureMediaPermission: vi.fn(() => false),
   permissionCheck: vi.fn(),
   permissionRequest: vi.fn(),
@@ -122,6 +123,9 @@ vi.mock('@electron-toolkit/utils', () => ({
   electronApp: { setAppUserModelId: vi.fn() },
   optimizer: { watchWindowShortcuts: vi.fn() },
   is: { dev: true }
+}))
+vi.mock('./developer/ipc-handler', () => ({
+  registerDeveloperWindow: mocks.registerDeveloperWindow
 }))
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
