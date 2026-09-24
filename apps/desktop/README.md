@@ -38,6 +38,22 @@ pnpm --filter @dfragon/desktop build:win
 
 설치 파일은 `apps/desktop/dist/DFRAGON-<버전>-x64-setup.exe`에 생성됩니다. 명령은 node/web typecheck, OCR 자산 검증·복사, main/preload/renderer 빌드, NSIS 패키징을 포함합니다. API 주소가 없거나 HTTP·localhost·경로/쿼리가 포함된 값이면 실패합니다. 예시 주소로 패키징에 성공해도 실제 배포·검색 검증이 된 것이 아닙니다.
 
+### 포터블 exe와 GitHub Releases
+
+같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFRAGON-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js·별도 설치 프로그램·관리자 권한은 필요하지 않습니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
+
+포터블은 설치 없이 실행하는 배포 형식입니다. 설정과 로그인 정보는 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`에 저장되며 설치형과 공유합니다. 다른 PC로 exe를 복사해도 로그인 정보는 이동하지 않습니다. 바로가기와 OS 로그인 복귀 protocol은 등록하지 않으며 앱 내부 인증 창을 사용합니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
+
+[Windows Portable workflow](../../.github/workflows/desktop-release.yml)는 Release를 게시하면 해당 태그의 소스로 빌드하여 포터블 exe를 Release의 Assets에 첨부합니다.
+
+1. 저장소 **Settings → Secrets and variables → Actions → Variables**에 `DFRAGON_DISTRIBUTION_API_ORIGIN`을 실제 배포 API의 HTTPS origin으로 설정합니다. 공개 연결 주소만 입력하며 서버 credential은 넣지 않습니다.
+2. `apps/desktop/package.json`의 버전을 정하고 변경을 merge합니다. 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 버전 `1.0.0`이면 태그는 `v1.0.0`입니다.
+3. workflow가 성공하면 **Releases → Assets → `DFRAGON-<버전>-x64-portable.exe`**를 내려받습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
+
+기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 저장소 변수 대신 사용할 공개 API 주소이며 비우면 변수를 사용합니다. 같은 이름의 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 태그·앱 버전 불일치도 빌드를 중단합니다.
+
+관련 PR에서도 Windows 포터블 패키징을 확인하고 Actions artifact를 7일간 보관합니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. 패키징 성공과 실제 Windows에서의 앱 실행·API·패스키 동작 확인은 구분합니다.
+
 설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity·복귀 주소·환경·provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential·Neople API key·DB 암호·인증 key·개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다.
 
 | 항목 | 배포 앱 | 기존 개발 앱 |
