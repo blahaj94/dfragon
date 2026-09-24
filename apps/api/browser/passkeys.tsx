@@ -1,4 +1,4 @@
-import { Typo } from '@ldb/ui/typo'
+import { Typo } from '@dfragon/ui/typo'
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import QRCode from 'qrcode'
@@ -129,7 +129,7 @@ function PasskeyPage() {
       }
       if (Date.now() >= expiresAt) {
         setNow(Date.now())
-        setStatus('인증 시간이 만료됐어요. 창을 닫고 LDB 앱에서 다시 로그인해 주세요.')
+        setStatus('인증 시간이 만료됐어요. 창을 닫고 DFRAGON 앱에서 다시 로그인해 주세요.')
         return
       }
       try {
@@ -225,7 +225,7 @@ function PasskeyPage() {
   function showReturn(returnUrl: string) {
     const url = new URL(returnUrl)
     if (
-      !['ldb:', 'ldb.dev:'].includes(url.protocol) ||
+      !['dfragon:', 'dfragon.dev:'].includes(url.protocol) ||
       url.host !== 'auth' ||
       url.pathname !== '/callback'
     ) {
@@ -312,9 +312,9 @@ function PasskeyPage() {
     <div className={desktop ? 'auth-screen' : undefined} data-screen={screen.kind}>
       {!signup && (
         <>
-          {!desktop && <Typo.caption as="small">LDB ACCOUNT</Typo.caption>}
+          {!desktop && <Typo.caption as="small">DFRAGON ACCOUNT</Typo.caption>}
           <Typo.h3 as="h1">
-            {management ? '패스키 관리' : phone ? 'PC의 LDB에 로그인' : '로그인'}
+            {management ? '패스키 관리' : phone ? 'PC의 DFRAGON에 로그인' : '로그인'}
           </Typo.h3>
         </>
       )}
@@ -532,7 +532,7 @@ function PasskeyPage() {
       )}
       {screen.kind === 'phone-consent' && (
         <section id="phone-consent">
-          <Typo.txtM>확인 번호가 같은 PC의 LDB 로그인을 승인할까요?</Typo.txtM>
+          <Typo.txtM>확인 번호가 같은 PC의 DFRAGON 로그인을 승인할까요?</Typo.txtM>
           <Typo.txtM id="phone-account">로그인할 계정: {screen.nickname}</Typo.txtM>
           <button
             id="approve"
@@ -542,7 +542,7 @@ function PasskeyPage() {
               void run(async () => {
                 await api('phone-approve')
                 finish(
-                  '승인했습니다. PC의 LDB 창에서 계정을 확인하고 로그인을 완료하세요. 이 창은 닫아도 됩니다.'
+                  '승인했습니다. PC의 DFRAGON 창에서 계정을 확인하고 로그인을 완료하세요. 이 창은 닫아도 됩니다.'
                 )
               })
             }
@@ -642,7 +642,7 @@ function PasskeyPage() {
           <Typo.h6 as="h2">인증을 완료했습니다</Typo.h6>
           <a id="return" className={`action ${primaryButton}`} href={screen.returnUrl}>
             <Typo.txtM as="span" weight={700}>
-              LDB 앱으로 돌아가기
+              DFRAGON 앱으로 돌아가기
             </Typo.txtM>
           </a>
           <Typo.txtM>앱 복귀 링크는 1분 이내에 사용해 주세요.</Typo.txtM>

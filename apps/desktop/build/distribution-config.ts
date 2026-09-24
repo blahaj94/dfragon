@@ -4,7 +4,7 @@ import { validateApiOrigin } from '../src/backend/auth/protocol'
 export function readDistributionApiOrigin(
   environment: Readonly<Record<string, string | undefined>> = process.env
 ): string {
-  const origin = environment['LDB_DISTRIBUTION_API_ORIGIN']
+  const origin = environment['DFRAGON_DISTRIBUTION_API_ORIGIN']
   try {
     if (origin == null) {
       throw new Error()
@@ -25,6 +25,6 @@ export function readDistributionApiOrigin(
     return origin
   } catch {
     // Never echo an invalid value: it may accidentally contain credentials.
-    throw new Error('Set LDB_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin.')
+    throw new Error('Set DFRAGON_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin.')
   }
 }

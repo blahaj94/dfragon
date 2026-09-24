@@ -11,7 +11,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@ldb/ui": ["../../packages/ui/src/index.tsx"],
+      "@dfragon/ui": ["../../packages/ui/src/index.tsx"],
       "@frontend/*": [
         "./src/frontend/src/*"
       ]

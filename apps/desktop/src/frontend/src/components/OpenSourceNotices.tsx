@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Typo, ActionButton, TextField, TextFieldInput } from '@ldb/ui'
-import type { NoticeEntry } from '@ldb/licenses/types'
+import { Typo, ActionButton, TextField, TextFieldInput } from '@dfragon/ui'
+import type { NoticeEntry } from '@dfragon/licenses/types'
 import { styles } from './OpenSourceNotices.style'
 
 export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): React.JSX.Element {
@@ -60,7 +60,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
         라이선스 사용고지
       </Typo.h4>
       <Typo.txtS {...stylex.props(styles.description)}>
-        LDB에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
+        DFRAGON에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
       </Typo.txtS>
       <TextField
         label={

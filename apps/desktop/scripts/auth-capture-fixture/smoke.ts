@@ -65,7 +65,7 @@ export async function smoke(
   }
   async function selectSyntheticSource(): Promise<void> {
     await clickSelector('[role="dialog"] button[aria-haspopup="menu"]')
-    await clickSelector('[role="menuitemradio"][aria-label="LDB Synthetic Capture Source"]')
+    await clickSelector('[role="menuitemradio"][aria-label="DFRAGON Synthetic Capture Source"]')
   }
 
   console.log('Capture fixture step: current-app-and-sandbox')

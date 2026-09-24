@@ -1,4 +1,4 @@
-import { Typo, ActionButton } from '@ldb/ui'
+import { Typo, ActionButton } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { DetailDeck } from '../../sections/DetailDeck'
 import type { CardCharacter } from '../../types/cards'

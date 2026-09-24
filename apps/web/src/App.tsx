@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActionButton } from '@ldb/ui'
+import { ActionButton } from '@dfragon/ui'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'

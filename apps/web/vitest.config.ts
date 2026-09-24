@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@ldb\/ui$/,
+        find: /^@dfragon\/ui$/,
         replacement: fileURLToPath(new URL('../../packages/ui/src/index.tsx', import.meta.url))
       }
     ]

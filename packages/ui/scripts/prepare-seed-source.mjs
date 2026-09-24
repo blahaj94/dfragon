@@ -60,7 +60,7 @@ for (const file of provenance.files) {
       localSource = localSource.replace(change.before, change.after)
       file.localChanges.push({
         reason:
-          'LDB composition: 공식 Layout 구조·Token·반응형 조건을 유지하며 중립 content slot만 연결한다.',
+          'DFRAGON composition: 공식 Layout 구조·Token·반응형 조건을 유지하며 중립 content slot만 연결한다.',
         ...change
       })
     }
@@ -71,7 +71,7 @@ for (const file of provenance.files) {
     const summary = isDialog
       ? 'DialogTrigger의 동일 public type을 명시했습니다. Runtime 변경 없음.'
       : '공식 Layout 구조와 시각 값을 유지하며 header/footer/children content slot을 연결했습니다.'
-    const notice = `/*! LDB 수정: ${summary} 상세: packages/ui/seed-provenance.json. */`
+    const notice = `/*! DFRAGON 수정: ${summary} 상세: packages/ui/seed-provenance.json. */`
     const firstExport = localSource.indexOf('export ')
     const isExportMissing = firstExport < 0
     if (isExportMissing) {

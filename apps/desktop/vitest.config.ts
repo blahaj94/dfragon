@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { rendererTransforms } from './build/renderer-transforms'
 import { defineConfig } from 'vitest/config'
-import { desktopLicenseCatalog } from '@ldb/licenses/vite'
+import { desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 export default defineConfig({
   plugins: [
@@ -15,7 +15,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@ldb\/ui$/,
+        find: /^@dfragon\/ui$/,
         replacement: fileURLToPath(new URL('../../packages/ui/src/index.tsx', import.meta.url))
       }
     ]

@@ -233,7 +233,7 @@ describe('Windows file rename', () => {
     'terminates the UTF-16 destination for %s without counting the terminator as filename bytes',
     (name) => {
       const fixture = createSecurityFixture()
-      const destination = 'C:\\LdbProfile\\' + name
+      const destination = 'C:\\DfragonProfile\\' + name
       const filename = Buffer.from(destination, 'utf16le')
       const setFileInformationByHandle = vi.fn<WindowsSecurityApi['setFileInformationByHandle']>(
         (_handle, informationClass, information, size) => {
@@ -265,7 +265,7 @@ describe('Windows directory enumeration', () => {
       directoryBatch(['transition.v1'])
     ])
 
-    expect(fixture.native.list(String.raw`C:\LdbProfile\auth\test`)).toEqual([
+    expect(fixture.native.list(String.raw`C:\DfragonProfile\auth\test`)).toEqual([
       'credential.v1',
       '한글.txt',
       'transition.v1'
@@ -273,7 +273,7 @@ describe('Windows directory enumeration', () => {
     expect(fixture.query.mock.calls.map((call) => call[1])).toEqual([15, 14, 14])
     expect(fixture.query.mock.calls.map((call) => call[0])).toEqual([103n, 103n, 103n])
     expect(fixture.createFile).toHaveBeenCalledWith(
-      String.raw`C:\LdbProfile\auth\test`,
+      String.raw`C:\DfragonProfile\auth\test`,
       0x20081,
       7,
       null,
@@ -797,15 +797,15 @@ describe('Windows security native boundary', () => {
     expect(typeof invalidHandle).toBe('bigint')
     const native = createWindowsSecurityNative({ api })
 
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('trusted')
-    const readHandle = native.openRead(String.raw`C:\Users\Alice\LdbProfile\credential.v1`)
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('trusted')
+    const readHandle = native.openRead(String.raw`C:\Users\Alice\DfragonProfile\credential.v1`)
     native.readFile(readHandle, Buffer.alloc(1), 1)
     native.writeFile(readHandle, Buffer.from([1]))
     native.flushFileBuffers(readHandle)
-    native.renameFile(readHandle, String.raw`C:\Users\Alice\LdbProfile\credential.v1`)
+    native.renameFile(readHandle, String.raw`C:\Users\Alice\DfragonProfile\credential.v1`)
     expect(native.closeHandle(readHandle)).toBe(true)
     const exclusiveHandle = native.createExclusive(
-      String.raw`C:\Users\Alice\LdbProfile\.credential.v1.test.tmp`
+      String.raw`C:\Users\Alice\DfragonProfile\.credential.v1.test.tmp`
     )
     expect(native.closeHandle(exclusiveHandle)).toBe(true)
 
@@ -826,13 +826,15 @@ describe('Windows security native boundary', () => {
 
     const getLengthSidCallsBeforeOutOfRange = getLengthSidArguments.length
     returnOutOfRangeTokenSid = true
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('unavailable')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe(
+      'unavailable'
+    )
     expect(getLengthSidArguments.length).toBe(getLengthSidCallsBeforeOutOfRange)
     returnOutOfRangeTokenSid = false
 
     handleMode = 'null'
     lastError = 2
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile\missing`, 'directory')).toBe(
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile\missing`, 'directory')).toBe(
       'missing'
     )
 
@@ -842,7 +844,7 @@ describe('Windows security native boundary', () => {
     const closeCallsBeforeInvalidHandle = closeCount
     handleMode = 'invalid'
     lastError = 5
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile\denied`, 'directory')).toBe(
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile\denied`, 'directory')).toBe(
       'untrusted'
     )
     expect(arities.get('GetFileInformationByHandleEx')?.length ?? 0).toBe(
@@ -853,7 +855,7 @@ describe('Windows security native boundary', () => {
     const fileInfoCallsBeforeInvalidOpen = arities.get('GetFileInformationByHandleEx')?.length ?? 0
     const securityInfoCallsBeforeInvalidOpen = arities.get('GetSecurityInfo')?.length ?? 0
     const closeCallsBeforeInvalidOpen = closeCount
-    expect(() => native.openRead(String.raw`C:\Users\Alice\LdbProfile\invalid`)).toThrow()
+    expect(() => native.openRead(String.raw`C:\Users\Alice\DfragonProfile\invalid`)).toThrow()
     expect(arities.get('GetFileInformationByHandleEx')?.length ?? 0).toBe(
       fileInfoCallsBeforeInvalidOpen
     )
@@ -865,7 +867,7 @@ describe('Windows security native boundary', () => {
     const createdHandleCloseCallsBeforeLocalFreeFailure = createdHandleCloseCount
     failLocalFree = true
     expect(() =>
-      native.createExclusive(String.raw`C:\Users\Alice\LdbProfile\cleanup.tmp`)
+      native.createExclusive(String.raw`C:\Users\Alice\DfragonProfile\cleanup.tmp`)
     ).toThrow()
     expect(closeCount).toBe(closeCallsBeforeLocalFreeFailure + 3)
     expect(createdHandleCloseCount).toBe(createdHandleCloseCallsBeforeLocalFreeFailure + 1)
@@ -884,23 +886,23 @@ describe('Windows security native boundary', () => {
     fixture.set(options)
     const native = createWindowsSecurityNative({ api: fixture.api })
 
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('untrusted')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('untrusted')
   })
 
   it('accepts only a current-SID full-control ACL on a non-reparse directory', () => {
     const fixture = createSecurityFixture()
     const native = createWindowsSecurityNative({ api: fixture.api })
 
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('trusted')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('trusted')
 
     fixture.set({ attributes: FILE_ATTRIBUTE_REPARSE_POINT })
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('reparse')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('reparse')
 
     fixture.set({ attributes: 0 })
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory')).toBe('untrusted')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('untrusted')
 
     fixture.set({ attributes: FILE_ATTRIBUTE_DIRECTORY })
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'file')).toBe('untrusted')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'file')).toBe('untrusted')
   })
 
   it('does not trust an ancestor ACL owned by a foreign SID', () => {
@@ -908,7 +910,7 @@ describe('Windows security native boundary', () => {
     fixture.set({ ownerIsCurrent: false })
     const native = createWindowsSecurityNative({ api: fixture.api })
 
-    expect(native.inspect(String.raw`C:\Users\Alice\LdbProfile`, 'directory', 'ancestor')).toBe(
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory', 'ancestor')).toBe(
       'untrusted'
     )
   })

@@ -46,7 +46,7 @@ try {
   Invoke-Control {
     param($Desktop, $Node, $Config, $Evidence, $Run, $Owner, $ExpectedMode, $ExpectedCase, $NeedsLongAck)
     $ErrorActionPreference = 'Stop'
-    if ($null -ne $script:LdbCrashProcess) { throw 'This session already owns a crash fixture process.' }
+    if ($null -ne $script:DfragonCrashProcess) { throw 'This session already owns a crash fixture process.' }
     foreach ($path in @($Desktop, $Node, $Config, $Evidence)) {
       if ($path -notmatch '^[A-Za-z]:\\' -or [IO.Path]::GetFullPath($path) -cne $path) { throw 'Expected canonical local absolute path.' }
     }
@@ -56,27 +56,27 @@ try {
     $stdout = $Evidence + '.stdout.log'
     $stderr = $Evidence + '.stderr.log'
     if ((Test-Path -LiteralPath $stdout) -or (Test-Path -LiteralPath $stderr)) { throw 'Process output must be new.' }
-    $previousConfig = $env:LDB_CRASH_CONFIG
-    $previousOwner = $env:LDB_CRASH_OWNER
+    $previousConfig = $env:DFRAGON_CRASH_CONFIG
+    $previousOwner = $env:DFRAGON_CRASH_OWNER
     try {
-      $env:LDB_CRASH_CONFIG = $Config
-      $env:LDB_CRASH_OWNER = $Owner
+      $env:DFRAGON_CRASH_CONFIG = $Config
+      $env:DFRAGON_CRASH_OWNER = $Owner
       # One native test in a worker thread, so process termination has no forked Vitest workers.
-      $script:LdbCrashOwner = $Owner
-      $script:LdbCrashRun = $Run
-      $script:LdbCrashProcess = Start-Process -FilePath $Node -WorkingDirectory $Desktop -ArgumentList @('node_modules/vitest/vitest.mjs', 'run', '--config', 'scripts/windows-crash-fixture/vitest.config.ts', '--pool=threads', '--maxWorkers=1') -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+      $script:DfragonCrashOwner = $Owner
+      $script:DfragonCrashRun = $Run
+      $script:DfragonCrashProcess = Start-Process -FilePath $Node -WorkingDirectory $Desktop -ArgumentList @('node_modules/vitest/vitest.mjs', 'run', '--config', 'scripts/windows-crash-fixture/vitest.config.ts', '--pool=threads', '--maxWorkers=1') -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
       # Windows PowerShell 5.1 redirect startup needs its process handle cached for later ExitCode.
       # The Process owns this handle until Dispose; acquisition failure remains a failed run.
-      $null = $script:LdbCrashProcess.get_Handle()
-    } finally { $env:LDB_CRASH_CONFIG = $previousConfig; $env:LDB_CRASH_OWNER = $previousOwner }
-    return @{ started = $true; pid = $script:LdbCrashProcess.Id }
+      $null = $script:DfragonCrashProcess.get_Handle()
+    } finally { $env:DFRAGON_CRASH_CONFIG = $previousConfig; $env:DFRAGON_CRASH_OWNER = $previousOwner }
+    return @{ started = $true; pid = $script:DfragonCrashProcess.Id }
   } @($GuestDesktop, $GuestNode, $GuestConfig, $GuestEvidence, $RunId, $invocationOwner, $Mode, $caseId, $hasSelection) | Out-Null
   & (Join-Path $PSScriptRoot 'host-observer.ps1') -Session $Session -GuestEvidence $GuestEvidence -HostEvidence $HostEvidence -RunId $RunId -CaseId $caseId -InvocationOwner $invocationOwner -DeadlineSeconds 900 -SelectionFile $SelectionFile -HoldSeconds $HoldSeconds -DemonstrateHoldMilliseconds $DemonstrateHoldMilliseconds | Out-Null
 
   $terminal = Invoke-Control {
     param($Run, $Evidence, $Owner, $ExpectedCase, $ExpectedMode)
-    $process = $script:LdbCrashProcess
-    if ($null -eq $process -or $script:LdbCrashRun -cne $Run -or $script:LdbCrashOwner -cne $Owner) { throw 'Guest process ownership mismatch.' }
+    $process = $script:DfragonCrashProcess
+    if ($null -eq $process -or $script:DfragonCrashRun -cne $Run -or $script:DfragonCrashOwner -cne $Owner) { throw 'Guest process ownership mismatch.' }
     if (-not $process.WaitForExit(20000)) { throw 'Guest process did not terminate after terminal ACK.' }
     $result = Get-Content -LiteralPath (Join-Path $Evidence 'result.json') -Raw | ConvertFrom-Json
     $failed = Test-Path -LiteralPath (Join-Path $Evidence 'failure.json')
@@ -98,17 +98,17 @@ try {
   # Also covers a Start-Process response lost after the process was created.
   Invoke-Control {
     param($Run, $Owner)
-    if ($script:LdbCrashOwner -cne $Owner) { return }
-    $process = $script:LdbCrashProcess
+    if ($script:DfragonCrashOwner -cne $Owner) { return }
+    $process = $script:DfragonCrashProcess
     if ($null -eq $process) { return }
-    if ($script:LdbCrashRun -cne $Run) { throw 'Refusing to stop a different run.' }
+    if ($script:DfragonCrashRun -cne $Run) { throw 'Refusing to stop a different run.' }
     if (-not $process.HasExited) {
       $process.Kill()
       if (-not $process.WaitForExit(20000)) { throw 'Owned guest process termination is unconfirmed.' }
     }
     $process.Dispose()
-    $script:LdbCrashProcess = $null
-    $script:LdbCrashRun = $null
-    $script:LdbCrashOwner = $null
+    $script:DfragonCrashProcess = $null
+    $script:DfragonCrashRun = $null
+    $script:DfragonCrashOwner = $null
   } @($RunId, $invocationOwner)
 }

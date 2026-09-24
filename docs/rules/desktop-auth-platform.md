@@ -21,12 +21,12 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장·prot
 | 분류 | 확인 내용 | 아직 증명하지 않은 것 |
 | --- | --- | --- |
 | Source/config | `apps/desktop/package.json` 범위는 Electron `^39.2.6`, `pnpm-lock.yaml` 해결 version은 **39.8.10**, electron-builder **26.15.3** | 설치 runtime 실행·지원 최신성·배포 안전성 |
-| Packaging 선언 | `apps/desktop/electron-builder.yml`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | LDB의 실제 지원 OS/arch 약속, package 생성/설치·인증 성공 |
+| Packaging 선언 | `apps/desktop/electron-builder.yml`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFRAGON의 실제 지원 OS/arch 약속, package 생성/설치·인증 성공 |
 | Placeholder/미구현 | appId `com.electron.app`, productName `apps-desktop`, Windows model ID `com.electron`, `notarize:false`; protocol 선언·handler·single-instance·safeStorage 없음 | 실제 배포 identity·서명·공증·scheme/host/path가 확정됐다는 근거가 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
-| Electron 공식 범위 | Pinned README는 macOS 12+ Intel/Apple Silicon, Windows 10+ x86/x64/arm64, Linux Ubuntu 18.04+/Fedora 32+/Debian 10+ 검증 목록을 명시 | Electron 지원 설명은 LDB 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
+| Electron 공식 범위 | Pinned README는 macOS 12+ Intel/Apple Silicon, Windows 10+ x86/x64/arm64, Linux Ubuntu 18.04+/Fedora 32+/Debian 10+ 검증 목록을 명시 | Electron 지원 설명은 DFRAGON 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 
-근거: [Electron 39.8.10 README](https://raw.githubusercontent.com/electron/electron/v39.8.10/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/tutorial/launch-app-from-url-in-another-app.md). 문서 확인을 실제 LDB E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
+근거: [Electron 39.8.10 README](https://raw.githubusercontent.com/electron/electron/v39.8.10/README.md), [safeStorage](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/api/safe-storage.md), [app lifecycle/path](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/api/app.md), [pinned Deep Links guide](https://raw.githubusercontent.com/electron/electron/v39.8.10/docs/tutorial/launch-app-from-url-in-another-app.md). 문서 확인을 실제 DFRAGON E2E 결과로 표시하지 않는다. 출시 전 Electron/OS 지원 상태도 다시 확인하며 version 교체는 별도 변경 범위다.
 
 ## Clock과 절전 관측
 
@@ -124,7 +124,7 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 ## Protocol 및 browser launch 선택
 
-**흐름: 격리 HTTPS 인증 창의 직접 패스키 또는 휴대폰 QR 승인 → 완료 화면의 앱 복귀 버튼 → main.** 전용 창에서는 callback navigation을 차단하고 기존 교환 함수에 전달한다. 외부에서 도착하는 기존 OS protocol 복귀도 같은 검증을 유지한다. 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `ldb://...`를 실제 등록값으로 간주하지 않는다.
+**흐름: 격리 HTTPS 인증 창의 직접 패스키 또는 휴대폰 QR 승인 → 완료 화면의 앱 복귀 버튼 → main.** 전용 창에서는 callback navigation을 차단하고 기존 교환 함수에 전달한다. 외부에서 도착하는 기존 OS protocol 복귀도 같은 검증을 유지한다. 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `dfragon://...`를 실제 등록값으로 간주하지 않는다.
 
 Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pending request + S256 verifier가 없는 앱은 자체 code를 교환할 수 없지만 가용성 방해·정품 앱 보증 문제를 모두 해결하지 않는다. Public clientId도 설치 인증이 아니다. 이 선택은 브라우저 인증 이후 별도 code 복귀라는 프로젝트 선택이며 모든 OS의 최선이라는 주장이 아니다.
 
@@ -132,27 +132,27 @@ Claimed HTTPS는 domain association·OS별 배포 검증을 추가하고, loopba
 
 ### 로컬 개발용 등록값
 
-사용자가 선택한 `ldb.dev://auth/callback`은 로컬 개발용 복귀 주소이며 placeholder가 아니다. [PR #455](https://github.com/blahaj94/ldb/pull/455)는 이 선택에 맞춘 아래 개발 tuple과 적용 범위를 채택 대상으로 포함한다. 사용자 merge 후 활성화하며 운영 배포의 namespace·identity·서명 선택이나 다른 작업의 미결정 gate를 대신하지 않는다.
+이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다.
 
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
 | 환경·대상 | `development`, 사용자가 지정한 Windows 개발 컴퓨터의 현재 사용자, x64 NSIS |
 | API·인증 | 같은 컴퓨터의 `https://localhost:3443`, 패스키 |
 | RP ID | `localhost` |
-| 앱 복귀 | `ldb.dev://auth/callback` |
-| 개발 앱 identity·profile | `ldb.dev`, Electron `appData` 아래의 `ldb.dev` |
+| 앱 복귀 | `dfragon.dev://auth/callback` |
+| 개발 앱 identity·profile | `dfragon.dev`, Electron `appData` 아래의 `dfragon.dev` |
 
-이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `ldb.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 LDB 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 설정의 API·RP ID·returnUrl 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
+이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 DFRAGON 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치·등록은 실행 허용 범위 안에서 서버 설정의 API·RP ID·returnUrl 일치와 기존 사용자·컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치·업데이트의 근거로 대신하지 않는다.
 
 빌드·NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler·cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
 ### Windows MVP 배포 구성
 
-Windows x64 NSIS 배포 앱은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용한다. 이 선택은 배포 설정 PR의 채택 범위이며 사용자 merge 후 다른 작업에 적용한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다.
+기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFRAGON`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다.
 
-배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버 설정의 복귀 주소는 `ldb://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret·credential은 설치 파일에 넣지 않는다. 실제 서버·HTTPS 연결·패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
+배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버 설정의 복귀 주소는 `dfragon://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret·credential은 설치 파일에 넣지 않는다. 실제 서버·HTTPS 연결·패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
-개발 앱의 `ldb.dev`·profile·설치 경로는 보존한다. 배포 앱은 별도 `ldb` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트·추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
+개발 앱의 `dfragon.dev`·profile·설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트·추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
 ### 공통 진입점
 

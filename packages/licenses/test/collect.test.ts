@@ -11,7 +11,7 @@ import {
 } from '../src/collect.ts'
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'ldb-notices-test-'))
+  const root = mkdtempSync(join(tmpdir(), 'dfragon-notices-test-'))
   function pkg(name: string, manifest: object = {}, license = 'License text') {
     const path = join(root, 'node_modules', name)
     mkdirSync(path, { recursive: true })

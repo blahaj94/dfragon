@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@ldb/ui'
-import type { NoticeEntry } from '@ldb/licenses/types'
+import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
+import type { NoticeEntry } from '@dfragon/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
@@ -16,7 +16,7 @@ export function SettingsSection(): React.JSX.Element {
   async function loadNotices(): Promise<void> {
     setFailed(false)
     try {
-      const catalog = await import('virtual:ldb-desktop-licenses')
+      const catalog = await import('virtual:dfragon-desktop-licenses')
       setEntries(catalog.default)
     } catch {
       setFailed(true)
@@ -68,7 +68,7 @@ export function SettingsSection(): React.JSX.Element {
                 라이선스 사용고지
               </Typo.txtS>
               <div {...stylex.props(styles.appName)}>
-                <Typo.caption>LDB Desktop</Typo.caption>
+                <Typo.caption>DFRAGON Desktop</Typo.caption>
               </div>
             </aside>
             <div {...stylex.props(styles.content)}>

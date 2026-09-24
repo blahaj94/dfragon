@@ -32,12 +32,12 @@ type WindowsRuntimeFilesystemDouble = {
 }
 
 const validEnvironment = {
-  LDB_AUTH_API_ORIGIN: 'https://api.synthetic.test',
-  LDB_AUTH_RETURN_TARGET: 'ldb-synthetic://auth/return',
-  LDB_AUTH_ENVIRONMENT: 'test',
-  LDB_AUTH_PROVIDERS: 'passkey',
-  LDB_AUTH_APP_IDENTITY: 'com.synthetic.ldb',
-  LDB_AUTH_USER_DATA_PATH: '/synthetic/ldb-test-profile'
+  DFRAGON_AUTH_API_ORIGIN: 'https://api.synthetic.test',
+  DFRAGON_AUTH_RETURN_TARGET: 'dfragon-synthetic://auth/return',
+  DFRAGON_AUTH_ENVIRONMENT: 'test',
+  DFRAGON_AUTH_PROVIDERS: 'passkey',
+  DFRAGON_AUTH_APP_IDENTITY: 'com.synthetic.dfragon',
+  DFRAGON_AUTH_USER_DATA_PATH: '/synthetic/dfragon-test-profile'
 }
 
 const hasWindowsSeparators = sep === '\\'
@@ -85,7 +85,7 @@ function applyPosixRuntimeProfile(
 }
 
 function createRuntimeProfileRoot(): string {
-  const root = fs.realpathSync(fs.mkdtempSync(join(homedir(), '.ldb-runtime-profile-')))
+  const root = fs.realpathSync(fs.mkdtempSync(join(homedir(), '.dfragon-runtime-profile-')))
   profileFilesystem.registerRoot(root)
   profileFilesystem.chmodSync(root, 0o700)
   return root
@@ -136,38 +136,38 @@ describe('desktop auth runtime config', () => {
   it('validates a complete trusted tuple without supplying defaults', () => {
     expect(readAuthRuntimeConfig(validEnvironment, posix)).toEqual({
       apiOrigin: 'https://api.synthetic.test',
-      returnTarget: 'ldb-synthetic://auth/return',
+      returnTarget: 'dfragon-synthetic://auth/return',
       environment: 'test',
       providers: ['passkey'],
-      appIdentity: 'com.synthetic.ldb',
-      userDataPath: '/synthetic/ldb-test-profile'
+      appIdentity: 'com.synthetic.dfragon',
+      userDataPath: '/synthetic/dfragon-test-profile'
     })
   })
 
   it.each([
     {},
-    { ...validEnvironment, LDB_AUTH_API_ORIGIN: '' },
-    { ...validEnvironment, LDB_AUTH_RETURN_TARGET: 'https://wrong.test/return' },
-    { ...validEnvironment, LDB_AUTH_ENVIRONMENT: 'Test' },
-    { ...validEnvironment, LDB_AUTH_PROVIDERS: 'google,google' },
-    { ...validEnvironment, LDB_AUTH_PROVIDERS: 'discord' },
-    { ...validEnvironment, LDB_AUTH_PROVIDERS: 'google,discord' },
-    { ...validEnvironment, LDB_AUTH_PROVIDERS: 'twitter' },
-    { ...validEnvironment, LDB_AUTH_APP_IDENTITY: '' },
-    { ...validEnvironment, LDB_AUTH_APP_IDENTITY: '1.invalid' },
-    { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: 'relative/profile' },
-    { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: '/' }
+    { ...validEnvironment, DFRAGON_AUTH_API_ORIGIN: '' },
+    { ...validEnvironment, DFRAGON_AUTH_RETURN_TARGET: 'https://wrong.test/return' },
+    { ...validEnvironment, DFRAGON_AUTH_ENVIRONMENT: 'Test' },
+    { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'google,google' },
+    { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'discord' },
+    { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'google,discord' },
+    { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'twitter' },
+    { ...validEnvironment, DFRAGON_AUTH_APP_IDENTITY: '' },
+    { ...validEnvironment, DFRAGON_AUTH_APP_IDENTITY: '1.invalid' },
+    { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: 'relative/profile' },
+    { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: '/' }
   ])('rejects incomplete or invalid values without a production fallback: %j', (environment) => {
     expect(readAuthRuntimeConfig(environment, posix)).toBeNull()
   })
 
   it.each([
-    'LDB_AUTH_API_ORIGIN',
-    'LDB_AUTH_RETURN_TARGET',
-    'LDB_AUTH_ENVIRONMENT',
-    'LDB_AUTH_PROVIDERS',
-    'LDB_AUTH_APP_IDENTITY',
-    'LDB_AUTH_USER_DATA_PATH'
+    'DFRAGON_AUTH_API_ORIGIN',
+    'DFRAGON_AUTH_RETURN_TARGET',
+    'DFRAGON_AUTH_ENVIRONMENT',
+    'DFRAGON_AUTH_PROVIDERS',
+    'DFRAGON_AUTH_APP_IDENTITY',
+    'DFRAGON_AUTH_USER_DATA_PATH'
   ] as const)('rejects a trusted tuple missing required key %s', (missingKey) => {
     const environment: Record<string, string | undefined> = { ...validEnvironment }
     delete environment[missingKey]
@@ -180,20 +180,20 @@ describe('desktop auth runtime config', () => {
       environment: Record<string, string | undefined>,
       pathSemantics: typeof win32
     ) => AuthRuntimeConfig | null
-    const nativePath = String.raw`C:\Users\Alice\LdbProfile`
+    const nativePath = String.raw`C:\Users\Alice\DfragonProfile`
     const separatorAliases = [
-      'C:/Users/Alice/LdbProfile',
-      String.raw`C:/Users\Alice\LdbProfile`,
-      String.raw`C:\Users/Alice\LdbProfile`
+      'C:/Users/Alice/DfragonProfile',
+      String.raw`C:/Users\Alice\DfragonProfile`,
+      String.raw`C:\Users/Alice\DfragonProfile`
     ]
 
     expect(
-      readWithPathSemantics({ ...validEnvironment, LDB_AUTH_USER_DATA_PATH: nativePath }, win32)
+      readWithPathSemantics({ ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: nativePath }, win32)
     ).toMatchObject({ userDataPath: nativePath })
     for (const separatorAlias of separatorAliases) {
       expect(
         readWithPathSemantics(
-          { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: separatorAlias },
+          { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: separatorAlias },
           win32
         )
       ).toBeNull()
@@ -205,21 +205,24 @@ describe('desktop auth runtime config', () => {
       environment: Record<string, string | undefined>,
       pathSemantics: typeof win32
     ) => AuthRuntimeConfig | null
-    const nativePath = String.raw`\\server\share\LdbProfile`
-    const separatorAlias = String.raw`\\server\\share\LdbProfile`
+    const nativePath = String.raw`\\server\share\DfragonProfile`
+    const separatorAlias = String.raw`\\server\\share\DfragonProfile`
 
     expect(
-      readWithPathSemantics({ ...validEnvironment, LDB_AUTH_USER_DATA_PATH: nativePath }, win32)
+      readWithPathSemantics({ ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: nativePath }, win32)
     ).toMatchObject({ userDataPath: nativePath })
     expect(
-      readWithPathSemantics({ ...validEnvironment, LDB_AUTH_USER_DATA_PATH: separatorAlias }, win32)
+      readWithPathSemantics(
+        { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: separatorAlias },
+        win32
+      )
     ).toBeNull()
   })
 
   it.each([
-    ['separator', 'C:/Users/Alice/LdbProfile'],
-    ['trailing-dot', String.raw`C:\Users\Alice\LdbProfile.`],
-    ['trailing-space', String.raw`C:\Users\Alice\LdbProfile `]
+    ['separator', 'C:/Users/Alice/DfragonProfile'],
+    ['trailing-dot', String.raw`C:\Users\Alice\DfragonProfile.`],
+    ['trailing-space', String.raw`C:\Users\Alice\DfragonProfile `]
   ] as const)(
     'rejects a Windows %s alias before touching the profile filesystem',
     (_kind, path) => {
@@ -247,11 +250,11 @@ describe('desktop auth runtime config', () => {
         closeSync: (fd) => rejectFilesystemAccess('close', fd)
       }
       const config: AuthRuntimeConfig = {
-        apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
-        environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
+        apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
+        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
+        environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
-        appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
+        appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,
         userDataPath: path
       }
 
@@ -268,10 +271,10 @@ describe('desktop auth runtime config', () => {
   )
 
   it.each([
-    String.raw`C:\Users\Alice\LdbProfile.`,
-    String.raw`C:\Users\Alice\LdbProfile `,
-    String.raw`C:\Users.\Alice\LdbProfile`,
-    String.raw`\\server\share\LdbProfile.`
+    String.raw`C:\Users\Alice\DfragonProfile.`,
+    String.raw`C:\Users\Alice\DfragonProfile `,
+    String.raw`C:\Users.\Alice\DfragonProfile`,
+    String.raw`\\server\share\DfragonProfile.`
   ])('rejects a Windows path with a Win32-normalized segment before apply: %s', (path) => {
     const readWithPathSemantics = readAuthRuntimeConfig as unknown as (
       environment: Record<string, string | undefined>,
@@ -279,7 +282,7 @@ describe('desktop auth runtime config', () => {
     ) => AuthRuntimeConfig | null
 
     expect(
-      readWithPathSemantics({ ...validEnvironment, LDB_AUTH_USER_DATA_PATH: path }, win32)
+      readWithPathSemantics({ ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: path }, win32)
     ).toBeNull()
   })
 
@@ -296,7 +299,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -308,8 +311,8 @@ describe('desktop auth runtime config', () => {
       expect(() => applyPosixRuntimeProfile(application, config)).not.toThrow()
       expect(calls).toEqual([
         `path:userData:${userDataPath}`,
-        'name:com.synthetic.ldb',
-        'identity:com.synthetic.ldb'
+        'name:com.synthetic.dfragon',
+        'identity:com.synthetic.dfragon'
       ])
       expect(profileFilesystem.lstatSync(userDataPath).mode & 0o7777).toBe(0o700)
     } finally {
@@ -342,7 +345,7 @@ describe('desktop auth runtime config', () => {
       }
       const config = readAuthRuntimeConfig({
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       })
 
       try {
@@ -356,11 +359,11 @@ describe('desktop auth runtime config', () => {
         )
         const expectedCalls =
           failurePoint === 'setName'
-            ? [`path:userData:${userDataPath}`, 'name:com.synthetic.ldb']
+            ? [`path:userData:${userDataPath}`, 'name:com.synthetic.dfragon']
             : [
                 `path:userData:${userDataPath}`,
-                'name:com.synthetic.ldb',
-                'identity:com.synthetic.ldb'
+                'name:com.synthetic.dfragon',
+                'identity:com.synthetic.dfragon'
               ]
         expect(calls).toEqual(expectedCalls)
       } finally {
@@ -386,7 +389,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -419,7 +422,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -475,7 +478,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -492,8 +495,8 @@ describe('desktop auth runtime config', () => {
       expect(() => applyWithFilesystem(application, config, filesystem)).not.toThrow()
       expect(calls).toEqual([
         `path:userData:${userDataPath}`,
-        'name:com.synthetic.ldb',
-        'identity:com.synthetic.ldb'
+        'name:com.synthetic.dfragon',
+        'identity:com.synthetic.dfragon'
       ])
       expect(openedPathsAtSetPath).toEqual(
         expect.arrayContaining([userDataPath, root, dirname(root)])
@@ -534,7 +537,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -556,7 +559,7 @@ describe('desktop auth runtime config', () => {
     }
   })
 
-  it.each([String.raw`C:\Users\Alice\LdbProfile`, String.raw`C:\LdbProfile`])(
+  it.each([String.raw`C:\Users\Alice\DfragonProfile`, String.raw`C:\DfragonProfile`])(
     'uses the Windows profile security boundary before applying %s',
     (path) => {
       const calls: string[] = []
@@ -598,11 +601,11 @@ describe('desktop auth runtime config', () => {
         setAppUserModelId: (value: string) => calls.push(`identity:${value}`)
       }
       const config: AuthRuntimeConfig = {
-        apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
-        environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
+        apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
+        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
+        environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
-        appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
+        appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,
         userDataPath: path
       }
       const applyWithWindows = applyAuthRuntimeProfile as unknown as (
@@ -615,8 +618,8 @@ describe('desktop auth runtime config', () => {
 
       expect(() => applyWithWindows(application, config, filesystem, win32, 'win32')).not.toThrow()
       expect(calls.at(-3)).toBe(`path:userData:${path}`)
-      expect(calls.at(-2)).toBe('name:com.synthetic.ldb')
-      expect(calls.at(-1)).toBe('identity:com.synthetic.ldb')
+      expect(calls.at(-2)).toBe('name:com.synthetic.dfragon')
+      expect(calls.at(-1)).toBe('identity:com.synthetic.dfragon')
       expect(calls.filter((call) => call.startsWith('inspect:'))).not.toHaveLength(0)
       expect(calls.filter((call) => call.startsWith('sync:'))).toHaveLength(2)
       const parentPath = win32.dirname(path)
@@ -629,7 +632,7 @@ describe('desktop auth runtime config', () => {
   it.each(['untrusted', 'reparse', 'unavailable'] as const)(
     'rejects Windows profile preparation when native inspection is %s',
     (inspection) => {
-      const path = String.raw`C:\Users\Alice\LdbProfile`
+      const path = String.raw`C:\Users\Alice\DfragonProfile`
       const calls: string[] = []
       const security: WindowsProfileSecurity = {
         inspectDirectory: () => {
@@ -646,11 +649,11 @@ describe('desktop auth runtime config', () => {
         setAppUserModelId: () => calls.push('identity')
       }
       const config: AuthRuntimeConfig = {
-        apiOrigin: validEnvironment.LDB_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.LDB_AUTH_RETURN_TARGET,
-        environment: validEnvironment.LDB_AUTH_ENVIRONMENT,
+        apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
+        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
+        environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
-        appIdentity: validEnvironment.LDB_AUTH_APP_IDENTITY,
+        appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,
         userDataPath: path
       }
       const filesystem: WindowsRuntimeFilesystemDouble = {
@@ -742,7 +745,7 @@ describe('desktop auth runtime config', () => {
       }
       const config = readAuthRuntimeConfig({
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       })
       const originalGetUid = Object.getOwnPropertyDescriptor(process, 'getuid')
       Object.defineProperty(process, 'getuid', { configurable: true, value: () => currentUid })
@@ -796,7 +799,7 @@ describe('desktop auth runtime config', () => {
       }
       const config = readAuthRuntimeConfig({
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       })
 
       try {
@@ -843,7 +846,7 @@ describe('desktop auth runtime config', () => {
       setAppUserModelId: (value: string) => calls.push(`identity:${value}`)
     }
     const config = readAuthRuntimeConfig(
-      { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: userDataPath },
+      { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: userDataPath },
       posix
     )
     const originalGetUid = Object.getOwnPropertyDescriptor(process, 'getuid')
@@ -891,7 +894,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -938,7 +941,7 @@ describe('desktop auth runtime config', () => {
       setAppUserModelId: (value: string) => calls.push(`identity:${value}`)
     }
     const config = readAuthRuntimeConfig(
-      { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: userDataPath },
+      { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: userDataPath },
       posix
     )
     const originalGetUid = Object.getOwnPropertyDescriptor(process, 'getuid')
@@ -1009,7 +1012,7 @@ describe('desktop auth runtime config', () => {
       setAppUserModelId: (value: string) => calls.push(`identity:${value}`)
     }
     const config = readAuthRuntimeConfig(
-      { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: userDataPath },
+      { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: userDataPath },
       posix
     )
     const originalGetUid = Object.getOwnPropertyDescriptor(process, 'getuid')
@@ -1085,7 +1088,7 @@ describe('desktop auth runtime config', () => {
       setAppUserModelId: (value: string) => calls.push(`identity:${value}`)
     }
     const config = readAuthRuntimeConfig(
-      { ...validEnvironment, LDB_AUTH_USER_DATA_PATH: userDataPath },
+      { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: userDataPath },
       posix
     )
     const originalGetUid = Object.getOwnPropertyDescriptor(process, 'getuid')
@@ -1138,7 +1141,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1180,7 +1183,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1225,7 +1228,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1266,7 +1269,7 @@ describe('desktop auth runtime config', () => {
       }
       const parsed = readAuthRuntimeConfig({
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       })
 
       try {
@@ -1302,7 +1305,7 @@ describe('desktop auth runtime config', () => {
     }
     const parsed = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: join(root, 'valid-profile')
+      DFRAGON_AUTH_USER_DATA_PATH: join(root, 'valid-profile')
     })
 
     try {
@@ -1314,7 +1317,7 @@ describe('desktop auth runtime config', () => {
       expect(
         readAuthRuntimeConfig({
           ...validEnvironment,
-          LDB_AUTH_USER_DATA_PATH: aliasedPath
+          DFRAGON_AUTH_USER_DATA_PATH: aliasedPath
         })
       ).toBeNull()
       const config: AuthRuntimeConfig = { ...parsed, userDataPath: aliasedPath }
@@ -1369,7 +1372,7 @@ describe('desktop auth runtime config', () => {
     const config = readAuthRuntimeConfig(
       {
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       },
       posix
     )
@@ -1429,7 +1432,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1490,7 +1493,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1545,7 +1548,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {
@@ -1603,7 +1606,7 @@ describe('desktop auth runtime config', () => {
       }
       const config = readAuthRuntimeConfig({
         ...validEnvironment,
-        LDB_AUTH_USER_DATA_PATH: userDataPath
+        DFRAGON_AUTH_USER_DATA_PATH: userDataPath
       })
 
       try {
@@ -1641,7 +1644,7 @@ describe('desktop auth runtime config', () => {
     }
     const config = readAuthRuntimeConfig({
       ...validEnvironment,
-      LDB_AUTH_USER_DATA_PATH: userDataPath
+      DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
 
     try {

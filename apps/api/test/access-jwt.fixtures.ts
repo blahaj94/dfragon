@@ -18,8 +18,8 @@ export const userId = randomUUID()
 export const sessionId = randomUUID()
 export const tokenId = randomUUID()
 export const configuration = () => ({
-  issuer: 'urn:ldb:test:issuer',
-  audience: 'urn:ldb:test:api',
+  issuer: 'urn:dfragon:test:issuer',
+  audience: 'urn:dfragon:test:api',
   signingKey: { kid: active.kid, privateKeyPem: active.privateKeyPem },
   verificationKeys: [active, previous].map(({ kid, publicKeyPem }) => ({ kid, publicKeyPem }))
 })

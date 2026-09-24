@@ -23,7 +23,7 @@ await build({
   entryPoints: ['browser/passkeys.tsx'],
   bundle: true,
   alias: {
-    '@ldb/ui/typo': fileURLToPath(new URL('../../../packages/ui/src/typo.tsx', import.meta.url))
+    '@dfragon/ui/typo': fileURLToPath(new URL('../../../packages/ui/src/typo.tsx', import.meta.url))
   },
   jsx: 'automatic',
   define: { 'process.env.NODE_ENV': '"production"' },

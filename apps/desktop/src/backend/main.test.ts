@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const syntheticProfilePath = join(process.cwd(), 'synthetic', 'ldb-test-profile')
+const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
 
 const mocks = vi.hoisted(() => ({
   constructWindow: vi.fn(),
@@ -179,7 +179,7 @@ beforeEach(() => {
     bindPowerMonitor: mocks.bindPowerMonitor,
     createSearchClock: mocks.createSearchClock
   })
-  mocks.getPath.mockImplementation(() => process.env['LDB_AUTH_USER_DATA_PATH'] ?? '')
+  mocks.getPath.mockImplementation(() => process.env['DFRAGON_AUTH_USER_DATA_PATH'] ?? '')
   mocks.bootstrapAuth.mockResolvedValue(mocks.runtime)
   mocks.registerAuth.mockReturnValue(vi.fn())
 })
@@ -191,7 +191,7 @@ afterEach(() => {
 it.each([false, true])(
   '개발 빌드는 셸 설정 유무(%s)와 무관하게 고정 프로필과 복귀 주소를 사용한다',
   async (hasShellConfiguration) => {
-    vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
+    vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
     if (hasShellConfiguration) {
       stubTrustedRuntimeEnvironment()
     }
@@ -203,14 +203,14 @@ it.each([false, true])(
 
     expect(mocks.applyProfile).toHaveBeenCalledWith(expect.anything(), {
       apiOrigin: 'https://localhost:3443',
-      returnTarget: 'ldb.dev://auth/callback',
+      returnTarget: 'dfragon.dev://auth/callback',
       environment: 'development',
       providers: ['passkey'],
-      appIdentity: 'ldb.dev',
-      userDataPath: join(appData, 'ldb.dev')
+      appIdentity: 'dfragon.dev',
+      userDataPath: join(appData, 'dfragon.dev')
     })
     expect(mocks.createIngress).toHaveBeenCalledWith(
-      expect.objectContaining({ returnTarget: 'ldb.dev://auth/callback' })
+      expect.objectContaining({ returnTarget: 'dfragon.dev://auth/callback' })
     )
     expect(mocks.bootstrapAuth).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -221,7 +221,7 @@ it.each([false, true])(
 )
 
 it('개발 빌드도 Windows profile 준비 실패를 우회하지 않는다', async () => {
-  vi.stubGlobal('__LDB_DEVELOPMENT_AUTH__', true)
+  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
   mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
   mocks.applyProfile.mockImplementationOnce(() => {
     throw new Error('Windows profile security is unavailable.')
@@ -267,12 +267,12 @@ it('detaches clock power listeners when auth bootstrap does not create a runtime
 })
 
 function stubTrustedRuntimeEnvironment(): void {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
 }
 
 function deferred<Value>(): {
@@ -334,19 +334,19 @@ it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명
 })
 
 it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제품에 연결한다', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
   vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
   const appliedConfig = Object.freeze({
     apiOrigin: 'https://api.synthetic.test',
-    returnTarget: 'ldb-synthetic://auth/return',
+    returnTarget: 'dfragon-synthetic://auth/return',
     environment: 'test',
     providers: ['passkey'] as const,
-    appIdentity: 'com.synthetic.ldb',
+    appIdentity: 'com.synthetic.dfragon',
     userDataPath: syntheticProfilePath
   })
   const effects = Object.freeze({
@@ -368,7 +368,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   expect(mocks.createIngress).toHaveBeenCalledExactlyOnceWith({
     app: expect.anything(),
     argv: process.argv.slice(1),
-    returnTarget: 'ldb-synthetic://auth/return'
+    returnTarget: 'dfragon-synthetic://auth/return'
   })
   expect(mocks.selectIngressArguments).toHaveBeenCalledExactlyOnceWith(process.argv, false)
   expect(mocks.createEffects.mock.calls).toEqual([
@@ -386,8 +386,8 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   expect(bootstrapInput.effects).toBe(effects)
   expect(bootstrapInput.isActive()).toBe(true)
   expect(mocks.setPath).toHaveBeenCalledExactlyOnceWith('userData', syntheticProfilePath)
-  expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.ldb')
-  expect(mocks.setAppUserModelId).toHaveBeenCalledExactlyOnceWith('com.synthetic.ldb')
+  expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.dfragon')
+  expect(mocks.setAppUserModelId).toHaveBeenCalledExactlyOnceWith('com.synthetic.dfragon')
   expect(mocks.registerAuth).toHaveBeenCalledExactlyOnceWith({
     coordinator: mocks.coordinator,
     getWindow: expect.any(Function),
@@ -483,7 +483,11 @@ it('Electron defaultApp은 executable과 app path를 제외한 user argv만 lock
   stubTrustedRuntimeEnvironment()
   const originalArgv = process.argv
   const originalDefaultApp = Object.getOwnPropertyDescriptor(process, 'defaultApp')
-  const argv = ['C:\\Program Files\\Electron\\electron.exe', 'C:\\workspace\\ldb', '--new-window']
+  const argv = [
+    'C:\\Program Files\\Electron\\electron.exe',
+    'C:\\workspace\\dfragon',
+    '--new-window'
+  ]
   process.argv = argv
   Object.defineProperty(process, 'defaultApp', { configurable: true, value: true })
 
@@ -495,7 +499,7 @@ it('Electron defaultApp은 executable과 app path를 제외한 user argv만 lock
     expect(mocks.createIngress).toHaveBeenCalledWith({
       app: expect.anything(),
       argv: ['--new-window'],
-      returnTarget: 'ldb-synthetic://auth/return'
+      returnTarget: 'dfragon-synthetic://auth/return'
     })
   } finally {
     process.argv = originalArgv
@@ -951,12 +955,12 @@ it('profile owner의 activate 재구성 예외는 event 밖으로 던지지 않�
 })
 
 it('does not activate product auth for the unsupported OAuth provider', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'discord')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'discord')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
 
   await import('./main')
   await mocks.bootstrap
@@ -974,16 +978,16 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
 })
 
 it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 시작하지 않는다', async () => {
-  const root = fs.realpathSync(fs.mkdtempSync(join(homedir(), '.ldb-main-profile-')))
+  const root = fs.realpathSync(fs.mkdtempSync(join(homedir(), '.dfragon-main-profile-')))
   fs.chmodSync(root, 0o700)
   const userDataPath = join(root, 'profile')
   fs.mkdirSync(userDataPath, { mode: 0o700 })
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', userDataPath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', userDataPath)
   const runtimeConfigModule = await import('./auth/runtime-config')
   const actual =
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
@@ -1013,7 +1017,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     await mocks.bootstrap
 
     expect(mocks.setPath).toHaveBeenCalledExactlyOnceWith('userData', userDataPath)
-    expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.ldb')
+    expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.dfragon')
     expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
     expect(mocks.createIngress).not.toHaveBeenCalled()
     expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
@@ -1040,12 +1044,12 @@ it('profile 준비 실패는 Electron 전역값과 lock을 건드리지 않고 �
 })
 
 it('single-instance loser는 auth/store/window 초기화 없이 종료한다', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
   mocks.createIngress.mockReturnValue({
     ownsInstance: false,
     attach: mocks.attachIngress,
@@ -1102,11 +1106,11 @@ it('notice 실패 fallback은 일반 second-instance만 활성화하고 protocol
   mocks.isOrdinarySecondInstance.mockReturnValueOnce(false)
   const malformedHandoff = {
     version: 1,
-    argv: ['ldb-synthetic://auth/return?code=short']
+    argv: ['dfragon-synthetic://auth/return?code=short']
   }
   secondInstance(
     {},
-    ['electron', 'ldb-synthetic://auth/return?code=short'],
+    ['electron', 'dfragon-synthetic://auth/return?code=short'],
     '/tmp',
     malformedHandoff
   )
@@ -1114,7 +1118,7 @@ it('notice 실패 fallback은 일반 second-instance만 활성화하고 protocol
   expect(window.focus).toHaveBeenCalledOnce()
   expect(mocks.isOrdinarySecondInstance).toHaveBeenLastCalledWith(
     malformedHandoff,
-    'ldb-synthetic://auth/return'
+    'dfragon-synthetic://auth/return'
   )
 })
 
@@ -1246,7 +1250,7 @@ it('start 성공과 protocol callback이 quit 시도 중 겹쳐도 취소 뒤 �
 
   expect(mocks.attachIngress).toHaveBeenCalledOnce()
   const dispatch = mocks.attachIngress.mock.calls[0][0] as (raw: string) => Promise<void>
-  const dispatchResult = dispatch('ldb-synthetic://auth/return?code=synthetic')
+  const dispatchResult = dispatch('dfragon-synthetic://auth/return?code=synthetic')
   await Promise.resolve()
 
   expect(mocks.coordinator.handleReturnUrl).not.toHaveBeenCalled()
@@ -1256,7 +1260,7 @@ it('start 성공과 protocol callback이 quit 시도 중 겹쳐도 취소 뒤 �
   await dispatchResult
 
   expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledExactlyOnceWith(
-    'ldb-synthetic://auth/return?code=synthetic',
+    'dfragon-synthetic://auth/return?code=synthetic',
     expect.any(Function)
   )
   expect(window.show).toHaveBeenCalledOnce()
@@ -1313,12 +1317,12 @@ it('profile owner의 post-bootstrap composition 예외는 ingress를 닫고 nonz
 })
 
 it('URL 없는 second-instance는 기존 창을 표시하고 focus한다', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
 
   await import('./main')
   await mocks.bootstrap
@@ -1403,7 +1407,7 @@ it('actual ingress 하나가 valid callback을 한 번 시작하고 window 예�
     throw new Error('Synthetic persistent window activation failure')
   })
   const code = Buffer.alloc(32, 7).toString('base64url')
-  const rawReturnUrl = `ldb-synthetic://auth/return?code=${code}`
+  const rawReturnUrl = `dfragon-synthetic://auth/return?code=${code}`
   const commandLine = ['--original-process-start-time=changed', 'https://chromium.invalid']
   const handoff = { version: 1, argv: [rawReturnUrl] }
 
@@ -1445,7 +1449,7 @@ it('actual ingress는 malformed, 복수, pending 없는 callback에 window side 
   const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
   const code = Buffer.alloc(32, 7).toString('base64url')
   const otherCode = Buffer.alloc(32, 8).toString('base64url')
-  const returnUrl = `ldb-synthetic://auth/return?code=${code}`
+  const returnUrl = `dfragon-synthetic://auth/return?code=${code}`
   const emit = (argv: readonly string[]): void => {
     secondInstance(
       {},
@@ -1455,11 +1459,11 @@ it('actual ingress는 malformed, 복수, pending 없는 callback에 window side 
     )
   }
 
-  emit(['ldb-synthetic://auth/return?code=short'])
-  emit([returnUrl, `ldb-synthetic://auth/return?code=${otherCode}`])
-  emit(['ldb-wrong://auth/return'])
+  emit(['dfragon-synthetic://auth/return?code=short'])
+  emit([returnUrl, `dfragon-synthetic://auth/return?code=${otherCode}`])
+  emit(['dfragon-wrong://auth/return'])
   emit(['https://example.test/auth/return'])
-  emit([' \tldb-wrong://auth/return'])
+  emit([' \tdfragon-wrong://auth/return'])
   emit(['1bad://auth/return'])
   emit(['x://auth/return'])
   emit(['\u0001mailto:user@example.test'])
@@ -1482,12 +1486,12 @@ it('actual ingress는 malformed, 복수, pending 없는 callback에 window side 
 })
 
 it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runtime으로 재생성한다', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
   vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
 
   await import('./main')
@@ -1499,32 +1503,32 @@ it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runti
     isDestroyed: ReturnType<typeof vi.fn>
   }
 
-  await dispatch('ldb-synthetic://auth/return?code=synthetic')
+  await dispatch('dfragon-synthetic://auth/return?code=synthetic')
   expect(firstWindow.show).toHaveBeenCalledOnce()
   expect(firstWindow.focus).toHaveBeenCalledOnce()
   expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledWith(
-    'ldb-synthetic://auth/return?code=synthetic',
+    'dfragon-synthetic://auth/return?code=synthetic',
     expect.any(Function)
   )
 
   firstWindow.isDestroyed = vi.fn(() => true)
-  await dispatch('ldb-synthetic://auth/return?code=synthetic-2')
+  await dispatch('dfragon-synthetic://auth/return?code=synthetic-2')
   expect(mocks.constructWindow).toHaveBeenCalledTimes(2)
   expect(mocks.registerAuth).toHaveBeenCalledTimes(2)
   expect(mocks.registerWindow).toHaveBeenCalledTimes(2)
   expect(mocks.coordinator.handleReturnUrl).toHaveBeenLastCalledWith(
-    'ldb-synthetic://auth/return?code=synthetic-2',
+    'dfragon-synthetic://auth/return?code=synthetic-2',
     expect.any(Function)
   )
 })
 
 it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리한다', async () => {
-  vi.stubEnv('LDB_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('LDB_AUTH_RETURN_TARGET', 'ldb-synthetic://auth/return')
-  vi.stubEnv('LDB_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('LDB_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('LDB_AUTH_APP_IDENTITY', 'com.synthetic.ldb')
-  vi.stubEnv('LDB_AUTH_USER_DATA_PATH', syntheticProfilePath)
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
 
   await import('./main')
   await mocks.bootstrap
@@ -1533,7 +1537,7 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
   window.show.mockImplementationOnce(() => {
     throw new Error('Synthetic window activation failure')
   })
-  const rawReturnUrl = 'ldb-synthetic://auth/return?code=synthetic'
+  const rawReturnUrl = 'dfragon-synthetic://auth/return?code=synthetic'
 
   await expect(dispatch(rawReturnUrl)).resolves.toBeUndefined()
 

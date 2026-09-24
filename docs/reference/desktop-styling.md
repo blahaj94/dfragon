@@ -6,7 +6,7 @@ scope: desktop-renderer
 
 # Desktop 스타일 작성
 
-Desktop renderer의 화면별 스타일은 StyleX로 작성합니다. SEED Component·Token과 `@ldb/ui`의 공용 UI 책임은 [Design System](../rules/design-system.md)을 따릅니다.
+Desktop renderer의 화면별 스타일은 StyleX로 작성합니다. SEED Component·Token과 `@dfragon/ui`의 공용 UI 책임은 [Design System](../rules/design-system.md)을 따릅니다.
 
 ## 빌드 연결
 
@@ -14,7 +14,7 @@ Desktop renderer의 화면별 스타일은 StyleX로 작성합니다. SEED Compo
 
 - StyleX를 React보다 먼저 실행해 Fast Refresh를 유지합니다.
 - `runtimeInjection: false`로 빌드 시 CSS를 추출합니다. 기존 SEED CSS와 같은 cascade에서 사용하도록 `useCSSLayers: false`를 명시합니다.
-- 각 browser entry의 SEED `base.css`와 `@ldb/ui/foundation.css` import를 유지합니다. Production에서는 생성된 StyleX CSS가 기존 CSS asset에 합쳐지고 HTML의 링크가 갱신됩니다.
+- 각 browser entry의 SEED `base.css`와 `@dfragon/ui/foundation.css` import를 유지합니다. Production에서는 생성된 StyleX CSS가 기존 CSS asset에 합쳐지고 HTML의 링크가 갱신됩니다.
 - HTML entry를 사용하는 개발 서버에는 plugin이 CSS와 HMR runtime을 연결합니다. 수동 CSS 생성이나 별도의 StyleX CLI 실행은 필요하지 않습니다.
 
 통합 방식은 [공식 Vite 안내](https://stylexjs.com/docs/learn/installation/vite/)와 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)을 참고합니다. 설치 버전은 Desktop manifest와 workspace lockfile에서 관리합니다.
@@ -50,6 +50,6 @@ const styles = stylex.create({
 
 ## 검증
 
-`pnpm --filter @ldb/desktop build`는 typecheck와 production CSS 추출을 포함합니다. `pnpm --filter @ldb/desktop test`는 동일한 StyleX 변환으로 기존 UI 동작을 확인합니다. 스타일 이름·생성 class hash에 의존하는 assertion 대신 접근 가능한 이름과 표시 내용을 검사합니다.
+`pnpm --filter @dfragon/desktop build`는 typecheck와 production CSS 추출을 포함합니다. `pnpm --filter @dfragon/desktop test`는 동일한 StyleX 변환으로 기존 UI 동작을 확인합니다. 스타일 이름·생성 class hash에 의존하는 assertion 대신 접근 가능한 이름과 표시 내용을 검사합니다.
 
 스타일 변경은 실제 renderer에서 좁은/넓은 화면과 변경한 focus·theme 상태를 확인합니다. jsdom 테스트 성공만으로 CSS 적용이나 Electron 실행 성공을 판단하지 않습니다.

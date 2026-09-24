@@ -99,4 +99,4 @@ last-reviewed: 2026-09-17
 - 이름·서버 변경 또는 capture 종료 후 늦은 응답이 이전 캐릭터를 복원하지 않는다. 장비와 서약의 부위·색상·칭호·오라·크리쳐가 각 원본 보드와 일치한다.
 - 상세 A안의 카드 선택·모션 감소, 창 열기·닫기와 재열기를 실제 Electron에서 확인한다. 실데이터에 예시 마법부여 등급을 표시하지 않는다.
 
-검증 명령은 [scripts 안내](../../scripts/README.md#native-validation)를 따른다. Desktop 변경 시 `pnpm --filter @ldb/desktop test`, `lint`, `build`를 영향 범위에 맞게 실행한다. `build`는 typecheck를 포함한다. 합성 fixture의 시각 확인과 Windows 제품의 캡처·검색·별도 창 성공을 구분해 PR에 기록한다. 이 이관 문서만 변경할 때는 문서 연결·내용·diff를 확인하고 앱 빌드를 반복하지 않는다.
+검증 명령은 [scripts 안내](../../scripts/README.md#native-validation)를 따른다. Desktop 변경 시 `pnpm --filter @dfragon/desktop test`, `lint`, `build`를 영향 범위에 맞게 실행한다. `build`는 typecheck를 포함한다. 합성 fixture의 시각 확인과 Windows 제품의 캡처·검색·별도 창 성공을 구분해 PR에 기록한다. 이 이관 문서만 변경할 때는 문서 연결·내용·diff를 확인하고 앱 빌드를 반복하지 않는다.

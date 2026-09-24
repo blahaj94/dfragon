@@ -20,7 +20,7 @@ Source·public API·재현 command·fixture 경계는 `packages/ui/README.md`, u
 - 실제 Electron: `39.8.10`, Chromium `142.0.7444.265`, Node `22.22.1`. Build shell Node와 Electron 내장 Node를 구분한다.
 - Font: 공식 system font stack. Chrome의 computed body font는 `-apple-system`, `system-ui`, `Apple SD Gothic Neo` 등의 해당 stack이며 root rem 기준은 `16px`였다. Electron의 실제 Styles panel에서도 같은 body stack을 확인했다. 개별 glyph의 최종 fallback face까지 식별한 것은 아니다.
 - ActionButton: `brandSolid`, `neutralSolid`, `neutralWeak`, `criticalSolid`, `neutralOutline`, `ghost`; size `medium`, layout `withText`. TextField는 `outline`/`large`, Dialog는 기본 `medium`이다.
-- 공용 Component는 고정 Snippet·recipe와 동일한 semantic prop을 사용한다. Layout은 `layout-01`의 구조·Token·breakpoint를 유지한 content-slot LDB composition이다. 화면별 외형 override나 다른 OS 간 pixel 동일을 주장하지 않는다.
+- 공용 Component는 고정 Snippet·recipe와 동일한 semantic prop을 사용한다. Layout은 `layout-01`의 구조·Token·breakpoint를 유지한 content-slot DFRAGON composition이다. 화면별 외형 override나 다른 OS 간 pixel 동일을 주장하지 않는다.
 
 ## 자동 검증
 
@@ -29,16 +29,16 @@ Source·public API·재현 command·fixture 경계는 `packages/ui/README.md`, u
 | 대상 | 실행과 결과 |
 | --- | --- |
 | 설치 | `pnpm install --frozen-lockfile` 통과 |
-| 공용 package | `pnpm --filter @ldb/ui test`: 13개 통과. `typecheck`, `lint`, `build`, `build:examples` 통과 |
-| Web | `pnpm --filter @ldb/web test`: 1개 통과. `typecheck`, `lint`, `build` 통과 |
-| Desktop | `pnpm --filter @ldb/desktop test`: 29개 통과. `typecheck`, `lint`, `build` 통과 |
+| 공용 package | `pnpm --filter @dfragon/ui test`: 13개 통과. `typecheck`, `lint`, `build`, `build:examples` 통과 |
+| Web | `pnpm --filter @dfragon/web test`: 1개 통과. `typecheck`, `lint`, `build` 통과 |
+| Desktop | `pnpm --filter @dfragon/desktop test`: 29개 통과. `typecheck`, `lint`, `build` 통과 |
 | Library artifact | `node packages/ui/scripts/verify-build.mjs library packages/ui/dist` 통과 |
 | Consumer artifact | 같은 verifier의 `consumer` mode로 `packages/ui/dist-examples`, `apps/web/dist`, `apps/desktop/out/frontend` 모두 통과 |
 | Diff | `git diff --check` 통과 |
 
 Library JS bundle의 runtime dependency 입력은 0이며 React/JSX runtime·SEED·icon을 external import로 유지한다. Library build의 CSS 출력은 0이다. 별도 public `foundation.css` asset은 각 browser entry에서 직접 소비한다. 세 consumer의 build 입력 graph에서 React/React DOM/SEED React/CSS는 각각 한 사본이며 base.css와 foundation font stack은 한 번, stylesheet 산출물은 한 개다. Graph는 tree-shaking 전 입력도 포함하는 보수적인 검사다.
 
-원본 LICENSE/NOTICE, modified source와 declaration의 changed-file notice, 생성 JS banner, `notices/LDB-MODIFICATIONS.txt`와 provenance를 확인했다. 생성 bundle 목록만 changed-file 검사의 대상으로 삼으며, 수정하지 않은 기존 OCR public worker에 LDB 변경 고지를 붙이지 않는다.
+원본 LICENSE/NOTICE, modified source와 declaration의 changed-file notice, 생성 JS banner, `notices/DFRAGON-MODIFICATIONS.txt`와 provenance를 확인했다. 생성 bundle 목록만 changed-file 검사의 대상으로 삼으며, 수정하지 않은 기존 OCR public worker에 DFRAGON 변경 고지를 붙이지 않는다.
 
 최초 Red는 `544438972ea0bf3598f995a147989d7526a750f1`의 9개 interaction assertion 실패와 2개 native 기준점 통과다. Import/render 실패를 Red로 계산하지 않았다. 공식 loading-only와 callback 횟수에 대한 두 test 가정의 정정 근거는 `packages/ui/test/contract-corrections.md`에 있다.
 

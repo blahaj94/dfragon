@@ -1,4 +1,4 @@
-import { ContentStack, SupportingText } from '@ldb/ui'
+import { ContentStack, SupportingText } from '@dfragon/ui'
 import { SlotNicknameEditor } from '../components/SlotNicknameEditor'
 import type { SearchView, SlotEditing } from '../types/search'
 import { SlotResult } from './SlotResult'

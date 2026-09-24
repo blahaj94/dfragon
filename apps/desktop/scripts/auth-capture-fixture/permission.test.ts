@@ -94,8 +94,8 @@ beforeEach(async () => {
   vi.clearAllMocks()
   fixture.windows = []
   fixture.generation = 0
-  vi.stubEnv('LDB_AUTH_CAPTURE_PROFILE', join(tmpdir(), 'ldb-auth-capture-fixture-unit01'))
-  vi.stubEnv('LDB_AUTH_CAPTURE_LAUNCHER_PID', String(process.ppid))
+  vi.stubEnv('DFRAGON_AUTH_CAPTURE_PROFILE', join(tmpdir(), 'dfragon-auth-capture-fixture-unit01'))
+  vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', String(process.ppid))
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   await import('./main')
   await fixture.ready

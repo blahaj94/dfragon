@@ -4,15 +4,15 @@ import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@ldb/licenses/vite'
+import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 import { readDistributionApiOrigin } from './build/distribution-config'
 
 export default defineConfig(({ mode, command }) => ({
   main: {
     define: {
-      __LDB_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'ldb-development'),
-      __LDB_DISTRIBUTION_API_ORIGIN__: JSON.stringify(
-        mode === 'ldb-distribution' ? readDistributionApiOrigin() : null
+      __DFRAGON_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'dfragon-development'),
+      __DFRAGON_DISTRIBUTION_API_ORIGIN__: JSON.stringify(
+        mode === 'dfragon-distribution' ? readDistributionApiOrigin() : null
       )
     },
     build: {
@@ -46,7 +46,7 @@ export default defineConfig(({ mode, command }) => ({
     resolve: {
       alias: [
         { find: '@frontend', replacement: resolve('src/frontend/src') },
-        { find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
+        { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
       ]
     },
     plugins: [

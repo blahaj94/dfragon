@@ -1,5 +1,5 @@
 {
-  "name": "@ldb/licenses",
+  "name": "@dfragon/licenses",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "./vite": "./src/vite.ts"
   },
   "bin": {
-    "ldb-copy-notices": "./src/copy-notices.mjs"
+    "dfragon-copy-notices": "./src/copy-notices.mjs"
   },
   "files": [
     "src",

@@ -20,7 +20,7 @@ describe('Desktop auth PKCE와 URL 경계', () => {
     },
     {
       name: 'return target',
-      validate: () => validateReturnTarget('test-ldb://auth/return'),
+      validate: () => validateReturnTarget('test-dfragon://auth/return'),
       laterGetter: 'port'
     }
   ])(
@@ -30,7 +30,7 @@ describe('Desktop auth PKCE와 URL 경계', () => {
       class ObservedUrl {
         protocol: string
         constructor(raw: string) {
-          this.protocol = raw.startsWith('test-ldb:') ? 'test-ldb:' : 'https:'
+          this.protocol = raw.startsWith('test-dfragon:') ? 'test-dfragon:' : 'https:'
         }
         username = 'user'
         get password(): string {
@@ -49,7 +49,7 @@ describe('Desktop auth PKCE와 URL 경계', () => {
         hash = ''
         origin = 'https://example.test'
         toString(): string {
-          return 'test-ldb://auth/return'
+          return 'test-dfragon://auth/return'
         }
       }
       vi.stubGlobal('URL', ObservedUrl)
@@ -171,7 +171,7 @@ describe('Desktop auth PKCE와 URL 경계', () => {
     }
   )
 
-  it.each([RETURN_TARGET, 'test-ldb:/auth/return', 'test-ldb://auth/return%3F%23'])(
+  it.each([RETURN_TARGET, 'test-dfragon:/auth/return', 'test-dfragon://auth/return%3F%23'])(
     '정상 return target %s와 code query 복귀를 그대로 허용한다',
     (returnTarget) => {
       expect(validateReturnTarget(returnTarget)).toBe(returnTarget)

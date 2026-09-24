@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import { rendererTransforms } from '../build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
-import { uiNotices, desktopLicenseCatalog } from '@ldb/licenses/vite'
+import { uiNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 export default defineConfig({
   main: {
@@ -32,7 +32,7 @@ export default defineConfig({
       })
     ],
     resolve: {
-      alias: [{ find: /^@ldb\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
+      alias: [{ find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
     },
     build: {
       outDir: resolve('out/auth-bridge-fixture/renderer'),

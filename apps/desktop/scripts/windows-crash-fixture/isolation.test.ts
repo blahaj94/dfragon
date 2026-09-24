@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest'
 import { assertFixtureAncestors, assertPrivateRoot } from './isolation'
 import type { ReadOnlySecurity } from './native'
 
-const root = String.raw`C:\synthetic-lab\ldb-crash-root`
+const root = String.raw`C:\synthetic-lab\dfragon-crash-root`
 type DirectoryType = { isDirectory(): boolean; isSymbolicLink(): boolean }
 const plainDirectory = async (): Promise<DirectoryType> => ({
   isDirectory: () => true,

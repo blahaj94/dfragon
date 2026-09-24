@@ -6,7 +6,7 @@ import { createRuntimeProfileTestFilesystem } from './runtime-profile-test-files
 
 describe('POSIX profile filesystem test model', () => {
   it('tracks creation and chmod without leaking metadata into another fixture', () => {
-    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'ldb-profile-model-')))
+    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'dfragon-profile-model-')))
     const directory = join(root, 'profile')
     const fixture = createRuntimeProfileTestFilesystem(true)
     fixture.registerRoot(root)
@@ -44,7 +44,7 @@ describe('POSIX profile filesystem test model', () => {
   })
 
   it('preserves actual file and directory link types while rejecting directory handles', () => {
-    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'ldb-profile-model-')))
+    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'dfragon-profile-model-')))
     const fixture = createRuntimeProfileTestFilesystem(true)
     fixture.registerRoot(root)
     const target = join(root, 'target')
@@ -66,7 +66,7 @@ describe('POSIX profile filesystem test model', () => {
   })
 
   it('rejects closed or foreign directory descriptors', () => {
-    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'ldb-profile-model-')))
+    const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'dfragon-profile-model-')))
     const fixture = createRuntimeProfileTestFilesystem(true)
     fixture.registerRoot(root)
     try {

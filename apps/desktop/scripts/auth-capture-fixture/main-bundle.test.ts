@@ -15,7 +15,7 @@ it.each([
   const resolved = await resolveConfig(
     { configFile: 'electron.vite.config.ts', logLevel: 'silent' },
     'build',
-    'ldb-development'
+    'dfragon-development'
   )
   const main = resolved.config!.main!
   const output = await build({
@@ -137,8 +137,8 @@ function mainEnvironment(): {
       platform: process.platform,
       argv: ['electron', 'synthetic-main.cjs'],
       env: {
-        LDB_AUTH_CAPTURE_PROFILE: join(tmpdir(), 'ldb-auth-capture-fixture-unit01'),
-        LDB_AUTH_CAPTURE_LAUNCHER_PID: '424242'
+        DFRAGON_AUTH_CAPTURE_PROFILE: join(tmpdir(), 'dfragon-auth-capture-fixture-unit01'),
+        DFRAGON_AUTH_CAPTURE_LAUNCHER_PID: '424242'
       }
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
@@ -149,7 +149,7 @@ function mainEnvironment(): {
 it.each([
   ['electron.vite.config.ts', 'production'],
   ['scripts/auth-capture-fixture.config.ts', 'production'],
-  ['electron.vite.config.ts', 'ldb-development']
+  ['electron.vite.config.ts', 'dfragon-development']
 ])('%s의 %s main bundle은 기존 composition을 초기화할 수 있다', async (configFile, mode) => {
   const resolved = await resolveConfig({ configFile, logLevel: 'silent' }, 'build', mode)
   const main = resolved.config?.main
@@ -176,7 +176,7 @@ it.each([
   }
   expect(chunks).toHaveLength(1)
   const environment = mainEnvironment()
-  if (mode === 'ldb-development') {
+  if (mode === 'dfragon-development') {
     // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
     // This isolated bundle has no Win32 module; native loading must fail before profile IO.
     environment.context.process.platform = 'win32'
@@ -193,7 +193,7 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
-  if (mode === 'ldb-development') {
+  if (mode === 'dfragon-development') {
     expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('appData')
   } else {
     expect(environment.getPath).not.toHaveBeenCalled()

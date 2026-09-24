@@ -8,10 +8,10 @@ import { applyAuthRuntimeProfile } from '../../src/backend/auth/runtime-config'
 import { clearCredential } from '../../src/backend/auth/credential-operations'
 import type { CredentialTransitionKind } from '../../src/backend/auth/types'
 
-const appName = process.env.LDB_CREDENTIAL_NATIVE_NAME ?? ''
-const profile = process.env.LDB_CREDENTIAL_NATIVE_PROFILE ?? ''
-const phase = process.env.LDB_CREDENTIAL_NATIVE_PHASE ?? ''
-const hasTestName = /^LDB-Credential-Test-[0-9a-f-]{36}$/.test(appName)
+const appName = process.env.DFRAGON_CREDENTIAL_NATIVE_NAME ?? ''
+const profile = process.env.DFRAGON_CREDENTIAL_NATIVE_PROFILE ?? ''
+const phase = process.env.DFRAGON_CREDENTIAL_NATIVE_PHASE ?? ''
+const hasTestName = /^DFRAGON-Credential-Test-[0-9a-f-]{36}$/.test(appName)
 const hasAbsoluteProfile = isAbsolute(profile)
 const hasValidInput = hasTestName && hasAbsoluteProfile
 if (!hasValidInput) {
@@ -36,7 +36,7 @@ async function run(): Promise<void> {
     assert.equal(basename(profile), appName)
     applyAuthRuntimeProfile(app, {
       ...context,
-      returnTarget: 'ldb-credential-test://auth/callback',
+      returnTarget: 'dfragon-credential-test://auth/callback',
       providers: ['passkey'],
       appIdentity: appName,
       userDataPath: profile
@@ -117,12 +117,12 @@ void run().then(
     const result = { phase, ok: true, decryptCalls, encryptionAvailabilityCalls }
     // Let Electron finish startup and persist Local State before the next process.
     // An immediate app.exit() during early startup can bypass that shutdown work.
-    process.stdout.write(`LDB_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.quit())
+    process.stdout.write(`DFRAGON_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.quit())
   },
   () => {
     // Native/OS 오류 원문·plaintext·ciphertext·profile은 출력하지 않는다.
     process.stdout.write(
-      `LDB_CREDENTIAL_NATIVE:${JSON.stringify({ phase, ok: false, stage, decryptCalls, encryptionAvailabilityCalls })}\n`,
+      `DFRAGON_CREDENTIAL_NATIVE:${JSON.stringify({ phase, ok: false, stage, decryptCalls, encryptionAvailabilityCalls })}\n`,
       () => app.exit(1)
     )
   }

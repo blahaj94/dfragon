@@ -62,7 +62,7 @@ function Wait-SelectedRelease {
   if ([string]::IsNullOrEmpty($owner)) {
     $owner = 'standalone'
   }
-  $hold = [ordered]@{ kind = 'ldb-synthetic-windows-hold-v1'; invocationOwner = $owner; selection = $Event; observations = @($Events); rawRecords = @($RawRecords) }
+  $hold = [ordered]@{ kind = 'dfragon-synthetic-windows-hold-v1'; invocationOwner = $owner; selection = $Event; observations = @($Events); rawRecords = @($RawRecords) }
   # The request bytes have already been flushed; flush the complete host prefix before withholding ACK.
   Write-HostArtifact 'held.json' $hold
   $holdDeadline = [DateTime]::UtcNow.AddSeconds($HoldSeconds)
@@ -104,8 +104,8 @@ function Assert-PlainDirectory([string] $Path) {
 $remote = {
   param($Evidence, $Action, $Name, $Bytes, $ExpectedRun, $ExpectedOwner)
   if (-not [string]::IsNullOrEmpty($ExpectedOwner)) {
-    $process = $script:LdbCrashProcess
-    if ($null -eq $process -or $script:LdbCrashRun -cne $ExpectedRun -or $script:LdbCrashOwner -cne $ExpectedOwner) { throw 'Guest observer process ownership mismatch.' }
+    $process = $script:DfragonCrashProcess
+    if ($null -eq $process -or $script:DfragonCrashRun -cne $ExpectedRun -or $script:DfragonCrashOwner -cne $ExpectedOwner) { throw 'Guest observer process ownership mismatch.' }
     if ($process.HasExited) { throw 'Guest fixture process exited before terminal ACK.' }
   }
   $ErrorActionPreference = 'Stop'

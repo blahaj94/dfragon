@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 
 // 일반 Vitest와 분리한 실제 child 종료 뒤 정리 검증이다. 기본 모드는 명시적 media 거절이다.
 const appDirectory = fileURLToPath(new URL('../..', import.meta.url))
-const testRoot = await mkdtemp(join(tmpdir(), 'ldb-capture-exit-check-'))
+const testRoot = await mkdtemp(join(tmpdir(), 'dfragon-capture-exit-check-'))
 const isOcr = process.argv.includes('--ocr')
 const isSearch = process.argv.includes('--search')
 const isMedia = process.argv.includes('--media')
@@ -401,7 +401,7 @@ try {
     console.log('Capture fixture native denial warnings: 0')
   }
   const remaining = (await readdir(testRoot)).filter((name) => {
-    const isCaptureProfile = name.startsWith('ldb-auth-capture-fixture-')
+    const isCaptureProfile = name.startsWith('dfragon-auth-capture-fixture-')
     return isCaptureProfile
   })
   console.log(`Capture fixture profiles after child exit: ${remaining.length}`)

@@ -58,16 +58,16 @@ describe('desktop package fuse configuration', () => {
       expect(config.appId).toBe(auth.appIdentity)
       const installer = await readFile(join(desktopProjectDir, config.nsis.include), 'utf8')
       expect(installer).toContain(
-        `!define LDB_PROTOCOL_SCHEME "${new URL(auth.returnTarget).protocol.slice(0, -1)}"`
+        `!define DFRAGON_PROTOCOL_SCHEME "${new URL(auth.returnTarget).protocol.slice(0, -1)}"`
       )
       expect(config.publish).toBeNull()
       expect(config.win.target).toEqual([{ target: 'nsis', arch: ['x64'] }])
     }
     expect(productionConfig.nsis.oneClick).toBe(true)
-    expect(productionConfig.extraMetadata.name).toBe('ldb')
-    expect(developmentConfig.extraMetadata.name).toBe('@ldb/desktop')
+    expect(productionConfig.extraMetadata.name).toBe('dfragon')
+    expect(developmentConfig.extraMetadata.name).toBe('@dfragon/desktop')
     expect(developmentConfig.protocols).toEqual([
-      { name: 'LDB development login', schemes: ['ldb.dev'] }
+      { name: 'DFRAGON development login', schemes: ['dfragon.dev'] }
     ])
     expect(developmentConfig.nsis.oneClick).toBe(true)
     expect(productionConfig.nsis.include).toBe('build/distribution-installer.nsh')

@@ -1,7 +1,7 @@
 import { getSearchResultStatus } from '../lib/search-presentation'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
-import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@ldb/ui'
+import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@dfragon/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { CharacterCandidates } from '../components/CharacterCandidates'
 import { styles } from './SlotResult.style'

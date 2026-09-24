@@ -80,7 +80,7 @@ function paxRecord({ key, value }) {
 }
 
 async function withArchive({ t, bytes, check }) {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-tar-test-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-tar-test-'))
   const archivePath = join(directory, 'image.tar')
   const handles = []
   const originalOpen = fsPromises.open

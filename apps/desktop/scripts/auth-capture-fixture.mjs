@@ -118,7 +118,7 @@ export async function runCaptureFixture(args = []) {
   process.on('SIGINT', interrupt)
   process.on('SIGTERM', interrupt)
   try {
-    profile = await mkdtemp(join(tmpdir(), 'ldb-auth-capture-fixture-'))
+    profile = await mkdtemp(join(tmpdir(), 'dfragon-auth-capture-fixture-'))
     if (interrupted) {
       return 1
     }
@@ -132,8 +132,8 @@ export async function runCaptureFixture(args = []) {
     }
     const environment = {
       ...process.env,
-      LDB_AUTH_CAPTURE_PROFILE: profile,
-      LDB_AUTH_CAPTURE_LAUNCHER_PID: String(process.pid)
+      DFRAGON_AUTH_CAPTURE_PROFILE: profile,
+      DFRAGON_AUTH_CAPTURE_LAUNCHER_PID: String(process.pid)
     }
     delete environment.ELECTRON_RUN_AS_NODE
     child = spawn(require('electron'), [entry, ...args], {

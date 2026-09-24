@@ -14,7 +14,7 @@ if (isInputInvalid) {
 }
 
 const previewDocument = new URL('../out/frontend/mvp-preview.html', import.meta.url)
-const devRendererUrl = process.env['LDB_MVP_RENDERER_URL']
+const devRendererUrl = process.env['DFRAGON_MVP_RENDERER_URL']
 if (mode === 'mvp' && devRendererUrl != null) {
   const url = new URL(devRendererUrl)
   if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.username || url.password) {
@@ -23,9 +23,9 @@ if (mode === 'mvp' && devRendererUrl != null) {
   previewDocument.href = new URL('/mvp-preview.html', url).href
 }
 
-const userData = mkdtempSync(join(tmpdir(), 'ldb-ui-fixture-'))
+const userData = mkdtempSync(join(tmpdir(), 'dfragon-ui-fixture-'))
 app.setPath('userData', userData)
-app.setName('LDB UI fixture')
+app.setName('DFRAGON UI fixture')
 nativeTheme.themeSource = theme
 app.on('window-all-closed', () => app.quit())
 app.on('quit', () => rmSync(userData, { recursive: true, force: true }))
@@ -37,7 +37,7 @@ app.whenReady().then(async () => {
   )
 
   const window = new BrowserWindow({
-    title: `LDB UI fixture — ${mode} · ${theme}`,
+    title: `DFRAGON UI fixture — ${mode} · ${theme}`,
     width: mode === 'mvp' ? 900 : 1100,
     height: mode === 'mvp' ? 600 : 800,
     show: false,

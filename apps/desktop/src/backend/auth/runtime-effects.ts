@@ -62,7 +62,7 @@ export function createAuthRuntimeEffects(
     (() =>
       dialog.showMessageBox({
         type: 'info',
-        title: 'LDB',
+        title: 'DFRAGON',
         message: '로그인 상태를 확인하기 전에 이 기기의 안전한 저장소에 접근합니다.',
         buttons: ['확인']
       }))

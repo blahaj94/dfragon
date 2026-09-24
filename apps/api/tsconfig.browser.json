@@ -10,7 +10,7 @@
     "types": [],
     "jsx": "react-jsx",
     "paths": {
-      "@ldb/ui/typo": ["../../packages/ui/src/typo.tsx"]
+      "@dfragon/ui/typo": ["../../packages/ui/src/typo.tsx"]
     }
   },
   "include": ["browser/**/*.ts", "browser/**/*.tsx"]

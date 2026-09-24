@@ -80,7 +80,7 @@ function readRequiredText(environment: RuntimeEnvironment, key: string): string 
 }
 
 function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[] | null {
-  const rawProviders = readRequiredText(environment, 'LDB_AUTH_PROVIDERS')
+  const rawProviders = readRequiredText(environment, 'DFRAGON_AUTH_PROVIDERS')
   if (rawProviders == null) {
     return null
   }
@@ -313,12 +313,12 @@ export function readAuthRuntimeConfig(
   environment: RuntimeEnvironment = process.env,
   pathSemantics: RuntimePathSemantics = nativeRuntimePathSemantics
 ): AuthRuntimeConfig | null {
-  const apiOrigin = readRequiredText(environment, 'LDB_AUTH_API_ORIGIN')
-  const returnTarget = readRequiredText(environment, 'LDB_AUTH_RETURN_TARGET')
-  const profile = readRequiredText(environment, 'LDB_AUTH_ENVIRONMENT')
+  const apiOrigin = readRequiredText(environment, 'DFRAGON_AUTH_API_ORIGIN')
+  const returnTarget = readRequiredText(environment, 'DFRAGON_AUTH_RETURN_TARGET')
+  const profile = readRequiredText(environment, 'DFRAGON_AUTH_ENVIRONMENT')
   const providers = readProviders(environment)
-  const appIdentity = readRequiredText(environment, 'LDB_AUTH_APP_IDENTITY')
-  const userDataPath = readRequiredText(environment, 'LDB_AUTH_USER_DATA_PATH')
+  const appIdentity = readRequiredText(environment, 'DFRAGON_AUTH_APP_IDENTITY')
+  const userDataPath = readRequiredText(environment, 'DFRAGON_AUTH_USER_DATA_PATH')
   const hasRequiredValues =
     apiOrigin != null &&
     returnTarget != null &&

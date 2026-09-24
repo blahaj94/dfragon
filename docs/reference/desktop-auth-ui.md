@@ -29,9 +29,9 @@ last-reviewed: 2026-09-14
 
 ## 공용 표현
 
-`@ldb/ui`의 `LayoutBlock`, `ContentStack`, `ExampleSection`, `SupportingText`, `ActionButton`을 그대로 소비한다. SEED Theme 초기화와 system font는 fixture entry의 `@seed-design/css/base.css`, `@ldb/ui/foundation.css` 및 공식 Vite plugin을 따른다. 화면 CSS·style·className override와 추가 framework는 없다.
+`@dfragon/ui`의 `LayoutBlock`, `ContentStack`, `ExampleSection`, `SupportingText`, `ActionButton`을 그대로 소비한다. SEED Theme 초기화와 system font는 fixture entry의 `@seed-design/css/base.css`, `@dfragon/ui/foundation.css` 및 공식 Vite plugin을 따른다. 화면 CSS·style·className override와 추가 framework는 없다.
 
-고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton·Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 LDB composition의 제품 content 조합이다. 기존 공용 appearance·Motion을 변경하지 않았다.
+고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton·Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 DFRAGON composition의 제품 content 조합이다. 기존 공용 appearance·Motion을 변경하지 않았다.
 
 ## 격리 fixture 실행
 
@@ -39,9 +39,9 @@ Repository root에서 기존 lockfile dependency를 설치한 뒤 실행한다.
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm --filter @ldb/desktop exec vite build --config scripts/auth-ui-fixture.config.ts
-pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs light
-pnpm --filter @ldb/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
+pnpm --filter @dfragon/desktop exec vite build --config scripts/auth-ui-fixture.config.ts
+pnpm --filter @dfragon/desktop exec electron scripts/auth-ui-fixture.mjs light
+pnpm --filter @dfragon/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
 ```
 
 Fixture source는 `apps/desktop/src/frontend/src/fixture/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
@@ -53,8 +53,8 @@ Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 sign
 ## Component/interaction evidence
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/sections/AuthPresentation.test.tsx
-pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
+pnpm --filter @dfragon/desktop exec vitest run src/frontend/src/sections/AuthPresentation.test.tsx
+pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 

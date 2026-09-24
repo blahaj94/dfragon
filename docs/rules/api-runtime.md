@@ -65,12 +65,12 @@ App 생성은 port를 열지 않는 factory로 분리하고, `main.ts`만 설정
 
 | Root에서 실행할 command | 구현할 동작 / 통과 기준 |
 | --- | --- |
-| `pnpm --filter @ldb/api typecheck` | `tsc --noEmit -p tsconfig.test.json`; source·test type 오류 없음 |
-| `pnpm --filter @ldb/api lint` | `eslint .`; source·test·config 검사, 생성 output 제외 |
-| `pnpm --filter @ldb/api build` | `dist` 정리 후 `tsc -p tsconfig.build.json`; ESM `dist/main.js` 생성 |
-| `pnpm --filter @ldb/api test` | `.test-dist` 정리 후 `tsc -p tsconfig.test.json`, `node --import reflect-metadata --test ".test-dist/test/**/*.test.js"`; 정상·실패·경계 test 수행 |
-| `pnpm --filter @ldb/api start` | `node --import reflect-metadata dist/main.js`; build 후 실행 |
-| `pnpm --filter @ldb/api dev` | `pnpm run build` 후 `pnpm run start`; 초기 범위에 watch orchestration을 추가하지 않음 |
+| `pnpm --filter @dfragon/api typecheck` | `tsc --noEmit -p tsconfig.test.json`; source·test type 오류 없음 |
+| `pnpm --filter @dfragon/api lint` | `eslint .`; source·test·config 검사, 생성 output 제외 |
+| `pnpm --filter @dfragon/api build` | `dist` 정리 후 `tsc -p tsconfig.build.json`; ESM `dist/main.js` 생성 |
+| `pnpm --filter @dfragon/api test` | `.test-dist` 정리 후 `tsc -p tsconfig.test.json`, `node --import reflect-metadata --test ".test-dist/test/**/*.test.js"`; 정상·실패·경계 test 수행 |
+| `pnpm --filter @dfragon/api start` | `node --import reflect-metadata dist/main.js`; build 후 실행 |
+| `pnpm --filter @dfragon/api dev` | `pnpm run build` 후 `pnpm run start`; 초기 범위에 watch orchestration을 추가하지 않음 |
 
 Runtime acceptance에는 test HTTP 응답, metadata가 필요한 constructor DI, app 시작·종료 후 열린 handle 없음, child process의 build entry 실행과 종료, `PORT` 누락·빈 값·잘못된 값에서 nonzero exit·미listen을 포함한다. 검색 module 연결 후에는 해당 필수 설정 누락도 검증한다. Test의 child process는 허용한 fake environment만 받아 실제 credential을 상속하지 않는다. Build entry 검증에는 위 `build`가 선행해야 한다.
 

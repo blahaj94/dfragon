@@ -6,14 +6,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY packages/licenses/package.json packages/licenses/package.json
-RUN pnpm install --frozen-lockfile --filter @ldb/api...
+RUN pnpm install --frozen-lockfile --filter @dfragon/api...
 COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
 COPY apps/api/browser apps/api/browser
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
-RUN pnpm --filter @ldb/api build \
-    && pnpm --filter @ldb/api deploy --legacy --prod /production
+RUN pnpm --filter @dfragon/api build \
+    && pnpm --filter @dfragon/api deploy --legacy --prod /production
 
 FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
@@ -21,8 +21,8 @@ WORKDIR /app
 COPY --from=build /production/package.json ./package.json
 COPY --from=build /production/node_modules ./node_modules
 COPY --from=build /workspace/apps/api/dist ./dist
-COPY --chmod=755 deploy/api/entrypoint.sh /usr/local/bin/ldb-api-entrypoint
+COPY --chmod=755 deploy/api/entrypoint.sh /usr/local/bin/dfragon-api-entrypoint
 USER node
 EXPOSE 3000
-ENTRYPOINT ["ldb-api-entrypoint"]
+ENTRYPOINT ["dfragon-api-entrypoint"]
 CMD ["node", "--import", "reflect-metadata", "dist/main.js"]

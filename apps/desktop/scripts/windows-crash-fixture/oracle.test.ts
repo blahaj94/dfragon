@@ -39,10 +39,10 @@ function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>)
     phase: 'initial',
     outcome: 'recorded',
     detail: {
-      kind: 'ldb-synthetic-windows-crash-v1',
+      kind: 'dfragon-synthetic-windows-crash-v1',
       ...identity,
       mode: 'normal',
-      rootName: 'ldb-crash-11111111-1111-4111-8111-111111111111',
+      rootName: 'dfragon-crash-11111111-1111-4111-8111-111111111111',
       invocationOwner: 'synthetic-owner'
     }
   }
@@ -52,7 +52,7 @@ function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>)
     ...point
   }))
   return {
-    kind: 'ldb-synthetic-windows-hold-v1',
+    kind: 'dfragon-synthetic-windows-hold-v1',
     invocationOwner: 'synthetic-owner',
     rawRecords: observations.map((record) =>
       Buffer.from(JSON.stringify(record)).toString('base64')

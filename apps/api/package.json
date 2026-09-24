@@ -1,5 +1,5 @@
 {
-  "name": "@ldb/api",
+  "name": "@dfragon/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -55,6 +55,6 @@
     "esbuild": "0.28.2",
     "tar": "7.5.22",
     "typescript": "5.9.3",
-    "@ldb/ui": "workspace:*"
+    "@dfragon/ui": "workspace:*"
   }
 }

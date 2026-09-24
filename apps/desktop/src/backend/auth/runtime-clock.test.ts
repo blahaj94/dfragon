@@ -42,7 +42,7 @@ function createRuntimeHarness(): RuntimeHarness {
     returnTarget: harness.dependencies.returnTarget,
     environment: 'test',
     providers: ['passkey'],
-    appIdentity: 'com.synthetic.ldb',
+    appIdentity: 'com.synthetic.dfragon',
     userDataPath: '/synthetic/user-data'
   })
   const coordinator = createAuthCoordinator(dependencies)

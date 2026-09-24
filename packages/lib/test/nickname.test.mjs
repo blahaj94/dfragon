@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import iconv from 'iconv-lite'
-import { validateDFNickname } from '@ldb/lib'
+import { validateDFNickname } from '@dfragon/lib'
 import { cp949Characters } from '../dist/cp949-characters.js'
 
 test('ASCII, Hangul, Japanese and legacy symbols count as CP949 bytes', () => {

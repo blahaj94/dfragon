@@ -32,7 +32,7 @@ Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 sig
 
 ## Windows synthetic native fixture
 
-일반 권한의 Windows에서 `corepack pnpm@11.23.0 --filter @ldb/desktop test:windows-native`를 실행합니다. `scripts/windows-security-fixture/native.fixture.ts`는 기존 Koffi와 public native 경계로 synthetic byte 파일만 만들고, fixture 전용 typecheck 후 실제 Win32 관측을 JSON 한 줄로 출력합니다. 기본 Desktop test에는 격리 helper의 테스트만 포함하며, native 실행은 이 명시적인 command로 분리합니다. Electron, safeStorage, DPAPI, 실제 credential과 계정 이름 조회는 사용하지 않습니다.
+일반 권한의 Windows에서 `corepack pnpm@11.23.0 --filter @dfragon/desktop test:windows-native`를 실행합니다. `scripts/windows-security-fixture/native.fixture.ts`는 기존 Koffi와 public native 경계로 synthetic byte 파일만 만들고, fixture 전용 typecheck 후 실제 Win32 관측을 JSON 한 줄로 출력합니다. 기본 Desktop test에는 격리 helper의 테스트만 포함하며, native 실행은 이 명시적인 command로 분리합니다. Electron, safeStorage, DPAPI, 실제 credential과 계정 이름 조회는 사용하지 않습니다.
 
 표준 임시 directory 아래 무작위 root와 별도 manifest를 exclusive 생성합니다. 절대경로 containment와 ancestor의 reparse 여부를 검사하며, 작업 소유 자식만 생성합니다. HANDLE과 LocalFree 대상은 finally에서 해제하고 실제 반환값을 계수합니다. Cleanup은 manifest의 nonce와 root를 재확인하고 junction 자체만 제거합니다. 모르는 reparse는 순회하지 않으며, 자원 해제나 cleanup이 불명확하면 manifest를 보존하고 실패합니다. 비정상 종료 후 manifest를 근거로 자동 재귀 삭제하는 기능은 없습니다. 같은 계정의 악의적인 동시 경로 교체나 crash 내구성을 보장하는 도구가 아닙니다.
 
@@ -78,12 +78,12 @@ Flush, 동일 HANDLE rename, disposition과 close의 성공 관측은 namespace 
 Repository root에서 실행한다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/auth/credential-store/windows-credential-native.test.ts src/backend/auth/credential-store/windows-credential-store.test.ts src/backend/auth/windows-security-native.test.ts src/backend/auth/credential-store/macos-credential-store.test.ts src/backend/auth/credential-store/macos-credential-lifecycle.test.ts
-pnpm --filter @ldb/desktop exec tsc --noEmit -p scripts/credential-store-native/tsconfig.json --composite false
+pnpm --filter @dfragon/desktop exec vitest run src/backend/auth/credential-store/windows-credential-native.test.ts src/backend/auth/credential-store/windows-credential-store.test.ts src/backend/auth/windows-security-native.test.ts src/backend/auth/credential-store/macos-credential-store.test.ts src/backend/auth/credential-store/macos-credential-lifecycle.test.ts
+pnpm --filter @dfragon/desktop exec tsc --noEmit -p scripts/credential-store-native/tsconfig.json --composite false
 node apps/desktop/scripts/credential-store-native.mjs --prepare-only
 node apps/desktop/scripts/credential-store-native.mjs
 node apps/desktop/scripts/credential-store-native.mjs --fail-after-write
-pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
+pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 ```
 
 전용 Vitest는 소유한 `mkdtemp` 아래 실제 Node IO에 실패·지연만 주입하고 safeStorage는 합성 double을 사용한다. 파일/handle 정리, marker·교체·삭제 실패, marker 재확립 실패와 정상 재시작, 저장 중 취소·늦은 응답·새 writer 차단을 관찰한다. 초기 Red는 module 부재로 collection에 실패했으며 실제 assertion 통과는 Green evidence다. Marker 재확립 회귀는 별도 assertion 실패를 재현한 뒤 수정했다.
@@ -94,7 +94,7 @@ Native runner의 `--prepare-only`는 bundle 생성·정리만 하며 Electron/Ke
 
 종료 후 이번 실행의 exact service/account만 기록한 Keychain에서 삭제하고 default·search list의 부재를 확인한다. 기본 Keychain·search list·ACL은 변경하지 않는다. Child process group과 profile/bundle의 종료·부재를 확인하며 정리가 불명확하면 실패하고 local owner manifest를 남긴다. 비밀번호 조회 flag와 raw child/OS 오류 출력은 사용하지 않는다. 실제 실행 결과와 미실행 항목은 해당 PR의 evidence를 따른다.
 
-공통 entry인 `scripts/credential-store-native/main.ts`는 Windows에서도 실제 Electron safeStorage와 Windows credential adapter를 사용한다. 승인된 격리 Windows 실행에서는 이 entry를 CJS로 bundle하고 `electron`, `koffi`, Node built-in을 external로 유지한다. 새 `LDB-Credential-Test-<UUID>` 이름과 같은 basename의 새 절대 profile을 각각 `LDB_CREDENTIAL_NATIVE_NAME`, `LDB_CREDENTIAL_NATIVE_PROFILE`로 지정한다. 동일한 identity/profile에서 `LDB_CREDENTIAL_NATIVE_PHASE`를 `write` → `restart` → `mark` → `recover`로 바꿔 별도 Electron process를 순서대로 실행한다. 각 process의 숫자 exit 0과 해당 phase의 성공 결과를 모두 확인하며, 실패한 profile을 재사용하거나 원본 실패를 덮어쓰지 않는다. Token·암호문·OS 오류 원문은 출력하지 않는다.
+공통 entry인 `scripts/credential-store-native/main.ts`는 Windows에서도 실제 Electron safeStorage와 Windows credential adapter를 사용한다. 승인된 격리 Windows 실행에서는 이 entry를 CJS로 bundle하고 `electron`, `koffi`, Node built-in을 external로 유지한다. 새 `DFRAGON-Credential-Test-<UUID>` 이름과 같은 basename의 새 절대 profile을 각각 `DFRAGON_CREDENTIAL_NATIVE_NAME`, `DFRAGON_CREDENTIAL_NATIVE_PROFILE`로 지정한다. 동일한 identity/profile에서 `DFRAGON_CREDENTIAL_NATIVE_PHASE`를 `write` → `restart` → `mark` → `recover`로 바꿔 별도 Electron process를 순서대로 실행한다. 각 process의 숫자 exit 0과 해당 phase의 성공 결과를 모두 확인하며, 실패한 profile을 재사용하거나 원본 실패를 덮어쓰지 않는다. Token·암호문·OS 오류 원문은 출력하지 않는다.
 
 Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용하고 ready 이후 `sessionData`가 같은 profile인지 확인한다. 제품과 같은 기본 profile/store adapter를 사용하며 검증 완료 flag를 주입하지 않는다. 실제 암호화 대상은 고정 합성 token이며 실제 계정 credential을 사용하지 않는다. `recover`는 marker가 있을 때 암호화 availability 조회와 복호화가 모두 0회이고 기존 clear 후 credential directory가 비었는지 확인한다. Windows 실행 담당은 main과 소유 보조 process의 종료를 확인한 뒤에만 자신의 새 profile/bundle을 정리하며, 종료나 정리가 불명확하면 실패 자료를 보존한다.
 

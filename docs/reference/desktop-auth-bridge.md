@@ -45,12 +45,12 @@ Renderer의 연결 machine은 구독 완료 → 초기 조회 → 준비 상태�
 Repository root에서 실행한다.
 
 ```sh
-pnpm --filter @ldb/desktop auth:fixture:build
-pnpm --filter @ldb/desktop auth:fixture:smoke
-pnpm --filter @ldb/desktop auth:fixture
+pnpm --filter @dfragon/desktop auth:fixture:build
+pnpm --filter @dfragon/desktop auth:fixture:smoke
+pnpm --filter @dfragon/desktop auth:fixture
 ```
 
-Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한다. 실행 entry는 `apps/desktop/out/auth-bridge-fixture/main/main.cjs`다. 고정 window title은 **LDB Auth Bridge fixture**다.
+Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한다. 실행 entry는 `apps/desktop/out/auth-bridge-fixture/main/main.cjs`다. 고정 window title은 **DFRAGON Auth Bridge fixture**다.
 
 수동 실행에서는 현재 카드 화면의 **로그인** 버튼으로 로그인 대기에 들어가며 자동으로 완료하지 않는다. 앱 메뉴의 **Complete login**으로 main 내부 synthetic return을 전달하면 로그인 버튼이 사라지고 네 카드는 유지된다. 계정 메뉴·환영 화면·화면 내 취소 버튼은 없다. 종료 메뉴나 창 닫기로 앱을 종료하면 launcher가 임시 profile을 삭제하고 부재를 확인한다.
 
@@ -59,9 +59,9 @@ Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한�
 ## 검증 범위와 제한
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/hooks/useAuthBridge.test.tsx
-pnpm --filter @ldb/desktop exec vitest run scripts/auth-bridge-fixture/launcher.test.mjs
-pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
+pnpm --filter @dfragon/desktop exec vitest run src/backend/auth/ipc-handler.test.ts src/preload/api/auth.test.ts src/frontend/src/hooks/useAuthBridge.test.tsx
+pnpm --filter @dfragon/desktop exec vitest run scripts/auth-bridge-fixture/launcher.test.mjs
+pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
@@ -82,5 +82,5 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 이 조합 테스트는 실제 `main.ts`의 trusted runtime 설정, Electron native media/provider/API, safeStorage·credential file durability, OS protocol registry와 packaged app을 성공으로 표시하지 않는다. 서버 204와 local 삭제 결과, refresh/exchange 경합 및 notice 분류는 기존 coordinator·store 경계 테스트의 evidence로 별도 관리한다.
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/frontend/src/integration/logout-relogin.integration.test.tsx
+pnpm --filter @dfragon/desktop exec vitest run src/frontend/src/integration/logout-relogin.integration.test.tsx
 ```

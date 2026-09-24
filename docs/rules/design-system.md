@@ -9,18 +9,18 @@ last-reviewed: 2026-09-15
 
 ## 적용 상태와 범위
 
-SEED의 기존 Component·Token과 `@ldb/ui`를 우선 사용해 필요한 화면을 완성한다. 공용화와 예제 구축을 제품 화면의 선행 작업으로 만들지 않는다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며, 현재 책임과 검증 범위는 아래 기준을 따른다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
+SEED의 기존 Component·Token과 `@dfragon/ui`를 우선 사용해 필요한 화면을 완성한다. 공용화와 예제 구축을 제품 화면의 선행 작업으로 만들지 않는다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며, 현재 책임과 검증 범위는 아래 기준을 따른다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 
 ## SEED 재사용 기준
 
 - 기존 styled Component·recipe·Token·Variant·State와 기본값을 우선 사용한다. 같은 역할을 별도 markup·CSS로 다시 구현하거나 화면 작업 때문에 디자인 시스템을 교체하지 않는다.
 - Typography·Theme·공식 interaction과 접근성 처리를 유지한다. 화면의 요구를 충족하는 기존 layout이 있으면 사용하고, 대응물이 없으면 앱 안에서 필요한 조합을 작성한다. 모든 조합을 명명한 공용 Pattern으로 등록하거나 출처 비교 문서를 작성할 의무는 없다.
-- 공식 Snippet은 필요한 의존 Snippet과 함께 사용한다. 출처와 라이선스를 보존하며 LDB에서 추가한 표현을 공식 SEED 보장으로 설명하지 않는다.
-- SEED의 상표·로고·제품 예시 content를 LDB 정체성이나 제품 데이터로 복제하지 않는다. Package·CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
+- 공식 Snippet은 필요한 의존 Snippet과 함께 사용한다. 출처와 라이선스를 보존하며 DFRAGON에서 추가한 표현을 공식 SEED 보장으로 설명하지 않는다.
+- SEED의 상표·로고·제품 예시 content를 DFRAGON 정체성이나 제품 데이터로 복제하지 않는다. Package·CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 
 ## Typo의 명시적 예외
 
-이번 Typo 요청은 `@ldb/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`·`txtM`·`txtS`·`caption`을 추가하는 범위로 채택한다. 지정한 크기·행간·굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute·event와 `className`·`style`·`color`·`align`·`weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드·상세 미리보기·설정·캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 SEED interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 공식 `asChild`에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
+이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`·`txtM`·`txtS`·`caption`을 추가하는 범위로 채택한다. 지정한 크기·행간·굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute·event와 `className`·`style`·`color`·`align`·`weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드·상세 미리보기·설정·캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 SEED interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 공식 `asChild`에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
 
 ## Version과 Source
 
@@ -36,7 +36,7 @@ Snippet을 새로 가져오거나 수정할 때 해당 출처·local 변경과 �
 
 ## 화면별 스타일 조정
 
-화면의 간격·정렬·너비·영역 padding·반응형 배치는 앱 내부 CSS로 표현할 수 있다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@ldb/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+화면의 간격·정렬·너비·영역 padding·반응형 배치는 앱 내부 CSS로 표현할 수 있다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시·disabled/loading 차단·접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작·접근성 결함을 숨기지 않는다.
 

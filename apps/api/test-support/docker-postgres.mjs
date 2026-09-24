@@ -23,7 +23,7 @@ export const POSTGRES_DATA = Object.freeze({
   volumeTarget: '/var/lib/postgresql'
 })
 
-const ownershipLabel = 'com.ldb.database-test.run'
+const ownershipLabel = 'com.dfragon.database-test.run'
 const maxOutputBytes = 1024 * 1024
 
 function safeDockerEnvironment() {
@@ -245,7 +245,7 @@ export async function verifyApprovedImage() {
 }
 
 async function savedImageConfigDigest() {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-db-image-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-db-image-'))
   const archivePath = join(directory, 'image.tar')
   try {
     await docker(['image', 'save', '--output', archivePath, POSTGRES_IMAGE], { timeoutMs: 120_000 })
@@ -343,11 +343,11 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
   const { platform } = verifiedImage
   validateRunId(runId)
   const suffix = runId.slice(0, 48)
-  const containerName = `ldb-db-${suffix}`
-  const volumeName = `ldb-db-${suffix}`
-  const username = `ldb_${randomBytes(10).toString('hex')}`
+  const containerName = `dfragon-db-${suffix}`
+  const volumeName = `dfragon-db-${suffix}`
+  const username = `dfragon_${randomBytes(10).toString('hex')}`
   const password = randomBytes(32).toString('base64url')
-  const database = 'ldb_auth_test'
+  const database = 'dfragon_auth_test'
   const label = `${ownershipLabel}=${runId}`
 
   const hasExistingContainer =
@@ -517,6 +517,9 @@ export async function teardownPostgres(resources) {
 export async function assertResourcesAbsent(runId) {
   validateRunId(runId)
   const suffix = runId.slice(0, 48)
-  assert.equal(await inspectOwnership({ kind: 'container', name: `ldb-db-${suffix}` }), undefined)
-  assert.equal(await inspectOwnership({ kind: 'volume', name: `ldb-db-${suffix}` }), undefined)
+  assert.equal(
+    await inspectOwnership({ kind: 'container', name: `dfragon-db-${suffix}` }),
+    undefined
+  )
+  assert.equal(await inspectOwnership({ kind: 'volume', name: `dfragon-db-${suffix}` }), undefined)
 }

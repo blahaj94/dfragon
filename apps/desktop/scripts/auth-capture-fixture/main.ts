@@ -10,14 +10,14 @@ import { smoke, smokeStandaloneOcr, smokeCharacterSearch } from './smoke'
 import { registerFixtureMediaPermissions } from './permissions'
 import { createFixtureSearch, searchScenarios, type SearchScenario } from './search-effects'
 
-const profile = process.env.LDB_AUTH_CAPTURE_PROFILE
-const launcherPid = process.env.LDB_AUTH_CAPTURE_LAUNCHER_PID
+const profile = process.env.DFRAGON_AUTH_CAPTURE_PROFILE
+const launcherPid = process.env.DFRAGON_AUTH_CAPTURE_LAUNCHER_PID
 const hasProfile = profile != null
 let hasExpectedDirectory: boolean | undefined
 let hasOwnedName: boolean | undefined
 if (hasProfile) {
   hasExpectedDirectory = dirname(profile) === tmpdir()
-  hasOwnedName = /^ldb-auth-capture-fixture-[A-Za-z0-9]{6}$/.test(basename(profile))
+  hasOwnedName = /^dfragon-auth-capture-fixture-[A-Za-z0-9]{6}$/.test(basename(profile))
 }
 const isLauncherChild = launcherPid === String(process.ppid)
 const canStart =
@@ -28,7 +28,7 @@ const isOcr = process.argv.includes('--ocr')
 const isDenyMedia = process.argv.includes('--deny-media')
 if (canStart) {
   app.setPath('userData', profile)
-  app.setName('LDB Auth Capture fixture')
+  app.setName('DFRAGON Auth Capture fixture')
   app.on('window-all-closed', () => app.quit())
 
   app
@@ -39,7 +39,7 @@ if (canStart) {
       const search = createFixtureSearch(effects.dependencies)
       await coordinator.start()
       const window = new BrowserWindow({
-        title: 'LDB Auth Capture fixture',
+        title: 'DFRAGON Auth Capture fixture',
         width: 1100,
         height: 800,
         webPreferences: {
@@ -51,7 +51,7 @@ if (canStart) {
         }
       })
       const source = new BrowserWindow({
-        title: 'LDB Synthetic Capture Source',
+        title: 'DFRAGON Synthetic Capture Source',
         width: 1920,
         height: 1080,
         useContentSize: true,
@@ -127,7 +127,7 @@ if (canStart) {
               })),
               { label: 'Show capture app', click: () => window.show() },
               { label: 'Show synthetic source', click: () => source.show() },
-              { label: 'Quit LDB Auth Capture fixture', click: () => app.quit() }
+              { label: 'Quit DFRAGON Auth Capture fixture', click: () => app.quit() }
             ]
           }
         ])

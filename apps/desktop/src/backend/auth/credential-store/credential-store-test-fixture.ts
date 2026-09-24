@@ -56,7 +56,7 @@ export function deferred(): Readonly<{ promise: Promise<void>; resolve: () => vo
 export async function createStoreFixture({
   modelPosix = process.platform === 'win32'
 }: Readonly<{ modelPosix?: boolean }> = {}): Promise<StoreFixture> {
-  const userDataPath = await fs.mkdtemp(join(tmpdir(), 'ldb-credential-127-'))
+  const userDataPath = await fs.mkdtemp(join(tmpdir(), 'dfragon-credential-127-'))
   const uidDescriptor = Object.getOwnPropertyDescriptor(process, 'getuid')
   const uid = 12345
   if (modelPosix) {

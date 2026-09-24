@@ -53,7 +53,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 캡처 화면은 게임 창·인식 간격·캡처 시작/중지를 한국어로 표시한다. 1920×1080 테두리 없는 창 모드·UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 대기나 오인식 때 닉네임 수정·직접 검색으로 이어진다. 창 선택·캡처 준비·OCR 준비·실행·종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 영상·OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도·배율과 검색·캡처 수명은 바꾸지 않는다.
 
-기존 `@ldb/ui`의 ActionButton, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 LDB composition이며 공용 자산의 외형을 덮어쓰는 CSS·style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
+기존 `@dfragon/ui`의 ActionButton, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFRAGON composition이며 공용 자산의 외형을 덮어쓰는 CSS·style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
 
 Keyboard·focus·좁은 화면·theme·reduced-motion의 실제 Electron 관측은 최종 실행 head의 Issue/PR evidence에 기록한다. 공용 spinner의 기존 motion 동작을 변경하지 않으며 unit 성공을 native UI 검증으로 대신하지 않는다.
 
@@ -76,8 +76,8 @@ Keyboard·focus·좁은 화면·theme·reduced-motion의 실제 Electron 관측�
 Main 접수 계측은 결과의 `ok:true`와 capture/slot/nickname/observationRevision의 정확한 일치를 확인한다. 더 높은 snapshot 관측 revision은 오래된 입력의 접수 증거가 아니다. 원문 payload를 저장하지 않고 counter·합성 일치 mask만 기록한다.
 
 ```sh
-pnpm --filter @ldb/desktop capture:fixture:build
-pnpm --filter @ldb/desktop capture:fixture
+pnpm --filter @dfragon/desktop capture:fixture:build
+pnpm --filter @dfragon/desktop capture:fixture
 node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 ```
 
@@ -86,8 +86,8 @@ node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
 ## 검증 경계
 
 ```sh
-pnpm --filter @ldb/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/components scripts/auth-capture-fixture
-pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
+pnpm --filter @dfragon/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/components scripts/auth-capture-fixture
+pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
@@ -98,11 +98,11 @@ git diff --check
 기존 media smoke와 별도로 아래 command를 사용한다. 준비 build 뒤 Parent가 한 번 실행하며 같은 fixture의 수동 실행과 병렬로 사용하지 않는다.
 
 ```sh
-pnpm --filter @ldb/desktop capture:fixture:build
+pnpm --filter @dfragon/desktop capture:fixture:build
 node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
 ```
 
-직접 launcher 경로는 `pnpm --filter @ldb/desktop capture:fixture:search`다. 기존 media/OCR/deny 모드와 기준은 유지한다. 이 모드는 `legacy-search.html`의 검색 protocol 회귀용 LegacyApp·실제 preload·main, 고정 synthetic source의 native stream과 실제 OCR를 사용한다. HTTP는 기존 memory-only 합성 transport이며 실제 API/provider에 접근하지 않는다.
+직접 launcher 경로는 `pnpm --filter @dfragon/desktop capture:fixture:search`다. 기존 media/OCR/deny 모드와 기준은 유지한다. 이 모드는 `legacy-search.html`의 검색 protocol 회귀용 LegacyApp·실제 preload·main, 고정 synthetic source의 native stream과 실제 OCR를 사용한다. HTTP는 기존 memory-only 합성 transport이며 실제 API/provider에 접근하지 않는다.
 
 `search-smoke.ts`는 0건 표시, 두 실패·pending·429의 동시 상태, 슬롯별 수동 retry 독립성, 15초 timeout, 429 양의 대기 중 disabled와 같은 실패의 만료 후 버튼 활성화, 자동 GET 부재, pending 중 로그인 상태 변경의 capture 유지와 Stop 정리를 관측한다. 네 합성 응답의 HTTP 도착 순서는 슬롯 번호 계약으로 취급하지 않고 실제 상태에서 대상 슬롯을 찾는다. 기존 로그인·source 선택·resource 관측 helper는 `actions.ts`에서 공유한다.
 

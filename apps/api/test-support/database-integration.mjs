@@ -56,7 +56,7 @@ const apiDirectory = fileURLToPath(new URL('..', import.meta.url))
 let currentStage = 'startup'
 
 function resourceNames(runId) {
-  const name = `ldb-db-${runId.slice(0, 48)}`
+  const name = `dfragon-db-${runId.slice(0, 48)}`
   return { containerName: name, volumeName: name }
 }
 
@@ -232,7 +232,7 @@ export async function assertServerAndContainer(
 }
 
 async function assertFreshDatabaseRollback(resources) {
-  const database = `ldb_rollback_${resources.runId.slice(-16)}`
+  const database = `dfragon_rollback_${resources.runId.slice(-16)}`
   assert.match(database, /^[a-z0-9_]+$/)
   const quotedDatabase = `"${database}"`
   await withDataSource(createDatabaseDataSource, resources.configuration, (dataSource) =>
@@ -420,10 +420,10 @@ async function runFailureScenario({ scenario, image }) {
   const result = await command(process.execPath, [scriptPath], {
     cwd: apiDirectory,
     env: nodeEnvironment({
-      LDB_DB_SCENARIO: scenario,
-      LDB_DB_RUN_ID: runId,
-      LDB_DB_PLATFORM: image.platform,
-      LDB_DB_IMAGE_ID: image.imageId
+      DFRAGON_DB_SCENARIO: scenario,
+      DFRAGON_DB_RUN_ID: runId,
+      DFRAGON_DB_PLATFORM: image.platform,
+      DFRAGON_DB_IMAGE_ID: image.imageId
     }),
     timeoutMs: 30_000
   })
@@ -441,11 +441,11 @@ async function runSignalScenario({ signal, stage, image }) {
   const child = spawn(process.execPath, [scriptPath], {
     cwd: apiDirectory,
     env: nodeEnvironment({
-      LDB_DB_SCENARIO: 'signal',
-      LDB_DB_RUN_ID: runId,
-      LDB_DB_PLATFORM: image.platform,
-      LDB_DB_IMAGE_ID: image.imageId,
-      LDB_DB_SIGNAL_STAGE: stage
+      DFRAGON_DB_SCENARIO: 'signal',
+      DFRAGON_DB_RUN_ID: runId,
+      DFRAGON_DB_PLATFORM: image.platform,
+      DFRAGON_DB_IMAGE_ID: image.imageId,
+      DFRAGON_DB_SIGNAL_STAGE: stage
     }),
     stdio: ['ignore', 'pipe', 'pipe']
   })
@@ -535,20 +535,20 @@ async function assertOwnershipProtection() {
   const protectedRunId = newRunId('protected')
   const claimedRunId = newRunId('claimed')
   const suffix = claimedRunId.slice(0, 48)
-  const volumeName = `ldb-db-${suffix}`
+  const volumeName = `dfragon-db-${suffix}`
   announceRecovery({ runId: protectedRunId, names: { containerName: 'none', volumeName } })
   await docker([
     'volume',
     'create',
     '--label',
-    `com.ldb.database-test.run=${protectedRunId}`,
+    `com.dfragon.database-test.run=${protectedRunId}`,
     '--label',
-    `com.ldb.database-test.fixture-owner=${claimedRunId}`,
+    `com.dfragon.database-test.fixture-owner=${claimedRunId}`,
     volumeName
   ])
   try {
     await assert.rejects(
-      teardownPostgres({ runId: claimedRunId, containerName: `ldb-db-${suffix}`, volumeName }),
+      teardownPostgres({ runId: claimedRunId, containerName: `dfragon-db-${suffix}`, volumeName }),
       /Database test teardown failed/
     )
     const present = await docker([
@@ -566,11 +566,11 @@ async function assertOwnershipProtection() {
 }
 
 async function childScenario() {
-  const scenario = process.env.LDB_DB_SCENARIO
-  const runId = process.env.LDB_DB_RUN_ID
-  const platform = process.env.LDB_DB_PLATFORM
-  const signalStage = process.env.LDB_DB_SIGNAL_STAGE
-  const imageId = process.env.LDB_DB_IMAGE_ID
+  const scenario = process.env.DFRAGON_DB_SCENARIO
+  const runId = process.env.DFRAGON_DB_RUN_ID
+  const platform = process.env.DFRAGON_DB_PLATFORM
+  const signalStage = process.env.DFRAGON_DB_SIGNAL_STAGE
+  const imageId = process.env.DFRAGON_DB_IMAGE_ID
   assertChildScenarioConfiguration({ runId, platform, imageId })
   announceRecovery({ runId })
   let receivedSignal
@@ -1024,7 +1024,7 @@ if (hasScriptArgument) {
   const isDirectExecution = pathToFileURL(process.argv[1]).href === import.meta.url
   if (isDirectExecution) {
     try {
-      const hasChildScenario = Boolean(process.env.LDB_DB_SCENARIO)
+      const hasChildScenario = Boolean(process.env.DFRAGON_DB_SCENARIO)
       if (hasChildScenario) {
         await childScenario()
       } else {

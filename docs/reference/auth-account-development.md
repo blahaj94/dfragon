@@ -45,8 +45,8 @@ PATCH는 기존 `apps/api/src/auth/login/json-parser.ts`의 media/encoding 검�
 정확 equality의 clock 응답 고정과 실제 lock 대기 만료는 별개 검증이다. Read/write와 commit acknowledgement 오류는 QueryRunner fault injection이며 물리 network 단절 실험이 아니다. Log canary는 같은 process의 stdout/stderr 관측으로, 운영 proxy/APM 전체의 검증을 뜻하지 않는다.
 
 ```bash
-pnpm --filter @ldb/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @ldb/api test:database
+pnpm --filter @dfragon/api run --sequential '/^(lint|test|typecheck)$/'
+pnpm --filter @dfragon/api test:database
 git diff --check
 ```
 

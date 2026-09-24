@@ -67,7 +67,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const record = await files.read('credential.v1')
       const isEmpty = record == null
       if (isEmpty) {
-        const probe = 'ldb-credential-store-probe-v1'
+        const probe = 'dfragon-credential-store-probe-v1'
         const decrypted = safeStorage.decryptString(safeStorage.encryptString(probe))
         const isRoundTripSuccessful = decrypted === probe
         return { status: isRoundTripSuccessful ? 'empty' : 'unavailable' }

@@ -1,7 +1,7 @@
-name: ldb
+name: dfragon
 
 x-api-runtime: &api-runtime
-  image: ldb-api:${LDB_IMAGE_TAG:?Set an immutable release tag}
+  image: dfragon-api:${DFRAGON_IMAGE_TAG:?Set an immutable release tag}
   build:
     context: ../..
     dockerfile: deploy/api/Dockerfile
@@ -48,8 +48,8 @@ services:
     secrets: [postgres_password, ldb_migrator_password, ldb_api_password]
     volumes:
       - database:/var/lib/postgresql
-      - ./init-database.sh:/docker-entrypoint-initdb.d/10-ldb.sh:ro
-      - ./grant-api.sql:/opt/ldb/grant-api.sql:ro
+      - ./init-database.sh:/docker-entrypoint-initdb.d/10-dfragon.sh:ro
+      - ./grant-api.sql:/opt/dfragon/grant-api.sql:ro
     networks: [database]
     healthcheck:
       test:
@@ -82,7 +82,7 @@ services:
         target: db_password
       - neople_api_key
       - auth_config
-    ports: ['127.0.0.1:${LDB_API_PORT:-3000}:3000']
+    ports: ['127.0.0.1:${DFRAGON_API_PORT:-3000}:3000']
     networks: [database, outbound]
     depends_on:
       database:
@@ -124,16 +124,18 @@ networks:
   outbound: {}
 
 volumes:
-  database: {}
+  database:
+    # Keep the existing deployment volume when the Compose project changes from ldb to dfragon.
+    name: ${DFRAGON_DATABASE_VOLUME_NAME:-ldb_database}
 
 secrets:
   postgres_password:
-    file: ${LDB_SECRETS_DIR:?Set an absolute directory outside the checkout}/postgres_password
+    file: ${DFRAGON_SECRETS_DIR:?Set an absolute directory outside the checkout}/postgres_password
   ldb_migrator_password:
-    file: ${LDB_SECRETS_DIR}/ldb_migrator_password
+    file: ${DFRAGON_SECRETS_DIR}/ldb_migrator_password
   ldb_api_password:
-    file: ${LDB_SECRETS_DIR}/ldb_api_password
+    file: ${DFRAGON_SECRETS_DIR}/ldb_api_password
   neople_api_key:
-    file: ${LDB_SECRETS_DIR}/neople_api_key
+    file: ${DFRAGON_SECRETS_DIR}/neople_api_key
   auth_config:
-    file: ${LDB_SECRETS_DIR}/auth_config.json
+    file: ${DFRAGON_SECRETS_DIR}/auth_config.json

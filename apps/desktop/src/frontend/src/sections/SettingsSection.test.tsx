@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../components/ColorThemeProvider'
 import { SettingsSection } from './SettingsSection'
 
-vi.mock('virtual:ldb-desktop-licenses', () => ({
+vi.mock('virtual:dfragon-desktop-licenses', () => ({
   default: [
     {
       name: 'Example',

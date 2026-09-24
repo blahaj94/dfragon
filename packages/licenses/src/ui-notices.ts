@@ -15,7 +15,7 @@ type BundleContext = {
 // Vite 7(Electron)과 Vite 8에서 공통으로 제공하는 Rollup hook만 사용한다.
 export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot?: string }) {
   return {
-    name: 'ldb-ui-notices',
+    name: 'dfragon-ui-notices',
     generateBundle(
       this: BundleContext,
       _options: unknown,
@@ -32,7 +32,7 @@ export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot
       }
       this.emitFile({
         type: 'asset',
-        fileName: 'notices/LDB-MODIFICATIONS.txt',
+        fileName: 'notices/DFRAGON-MODIFICATIONS.txt',
         source: changes.join('\n\n')
       })
       const generatedJavaScriptFiles: string[] = []
@@ -45,7 +45,7 @@ export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot
         }
         generatedJavaScriptFiles.push(fileName)
         chunk.code =
-          '/*! LDB modified SEED source: see notices/LDB-MODIFICATIONS.txt and notices/seed-provenance.json. */\n' +
+          '/*! DFRAGON modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n' +
           chunk.code
       }
       this.emitFile({

@@ -13,23 +13,23 @@ last-reviewed: 2026-09-17
   "passkey": {
     "apiOrigin": "https://auth.example.com",
     "rpId": "auth.example.com",
-    "rpName": "LDB",
-    "returnUrl": "ldb://auth/callback"
+    "rpName": "DFRAGON",
+    "returnUrl": "dfragon://auth/callback"
   }
 }
 ```
 
-예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3443`, RP ID `localhost`, 복귀 `ldb.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
+예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3443`, RP ID `localhost`, 복귀 `dfragon.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
 Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. 같은 인증 origin의 `/auth/passkeys/manage`는 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
 
 API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
-- `pnpm --filter @ldb/api test`: API build, 단위·HTTP·runtime startup 검사.
-- `pnpm --filter @ldb/api test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
-- `pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태·IPC·화면 회귀와 build.
+- `pnpm --filter @dfragon/api test`: API build, 단위·HTTP·runtime startup 검사.
+- `pnpm --filter @dfragon/api test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
+- `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태·IPC·화면 회귀와 build.
 
-운영 배포와 실제 휴대폰 QR 검증은 별도다. LDB QR은 휴대폰의 HTTPS 패스키 인증과 양쪽 승인을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
+운영 배포와 실제 휴대폰 QR 검증은 별도다. DFRAGON QR은 휴대폰의 HTTPS 패스키 인증과 양쪽 승인을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
 
 ## Windows 실기기 확인
 
@@ -51,8 +51,8 @@ QR 지원을 보장하지 않는다. 마지막 패스키 삭제 거부는 기존
 
 [Issue #415](https://github.com/blahaj94/ldb/issues/415)의 확인 대상은 `94e5d0fd`의
 Windows 10 x64 사용자별 NSIS 설치본이다. 공개 API origin은 `https://api.dfragon.com`,
-RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
-`ldb://auth/callback`이다. localhost 개발 패스키와 운영 패스키는 별개다.
+RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소는
+`ldb://auth/callback`이었다. localhost 개발 패스키와 운영 패스키는 별개다.
 
 2026-09-17 운영자의 배포 완료 기록에서 기존 OAuth 테스트 계정의 명시적 삭제 승인,
 잠금 아래 대상 데이터 확인·삭제 후 빈 인증 테이블 조건을 만족한 패스키 migration,
@@ -63,7 +63,7 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 직접 조회로 다음 범위를 확인했다.
 
 - Windows 설치된 `app.asar`와 해당 release 빌드 산출물의 SHA-256 일치,
-  설치 파일 checksum 일치, `ldb://` handler가 운영 설치 앱을 가리킴.
+  설치 파일 checksum 일치, 당시 `ldb://` handler가 운영 설치 앱을 가리킴.
 - 공개 HTTPS 패스키 관리 화면·JS·CSS의 HTTP 200, 미인증 `/me`의 401,
   잘못된 `/characters` 검색 입력의 400.
 - Caddy의 단일 loopback API 연결과 `X-Forwarded-For` 덮어쓰기, Caddy·일일 인증 정리
@@ -82,13 +82,13 @@ RP ID는 `api.dfragon.com`, 앱 identity/profile은 `ldb`, 복귀 주소는
 별도로 조회한 결과가 아니다. 서버 로그아웃 실패·로컬 정리 실패를 주입하지 않았고,
 이 결과를 물리 정전 내구성이나 다른 OS·브라우저·기기의 성공으로 확대하지 않는다.
 
-## LDB QR과 전용 창
+## DFRAGON QR과 전용 창
 
 Desktop 메인의 `로그인`은 중간 계정 모달 없이 전용 인증 창을 바로 연다. 로그인 진행 중에는 버튼 재클릭을 막으며, 취소는 인증 창의 닫기로 처리한다. 기존 계정 모달과 로그인 후 계정 메뉴는 제거했다. 인증 창의 로그인 화면은 왼쪽 휴대폰, 오른쪽 패스키 로그인과 아래 새 계정 만들기로 구성한다.
 
 PC QR 화면에는 확인 번호, 초 단위 남은 시간, 공유 금지 안내와 재발급·닫기를 표시한다. 표시 시간은 서버가 내려준 원래 만료 시각을 기준으로 계산하며 상태 조회는 기존 5초 간격을 유지한다. 만료 후에는 QR 화면에 만료를 표시하고 재발급을 막는다. 창을 닫고 앱에서 새 로그인 요청을 시작해야 한다. 만료 등으로 서버 취소가 거절되더라도 닫기를 사용할 수 있다.
 
-`새 계정 만들기`는 별도 회원가입 화면을 연다. PC에서는 왼쪽 `휴대폰으로 회원가입`으로 LDB QR을 열거나 오른쪽 `패스키로 회원가입`으로 현재 기기의 인증 안내를 시작한다. WebAuthn을 지원하지 않는 PC도 휴대폰 경로를 사용할 수 있다. 휴대폰에서는 새 계정 생성을 직접 선택하고 패스키를 만든 뒤 기존 양쪽 승인을 진행한다. 화면을 여는 것만으로 계정이 생성되지는 않는다.
+`새 계정 만들기`는 별도 회원가입 화면을 연다. PC에서는 왼쪽 `휴대폰으로 회원가입`으로 DFRAGON QR을 열거나 오른쪽 `패스키로 회원가입`으로 현재 기기의 인증 안내를 시작한다. WebAuthn을 지원하지 않는 PC도 휴대폰 경로를 사용할 수 있다. 휴대폰에서는 새 계정 생성을 직접 선택하고 패스키를 만든 뒤 기존 양쪽 승인을 진행한다. 화면을 여는 것만으로 계정이 생성되지는 않는다.
 
 회원가입 화면에는 기존 계정과 별개의 계정이 생긴다는 안내와 패스키 분실·예비 키 안내를 표시한다. 패스키 생성을 취소하면 같은 화면에서 재시도할 수 있다. `닫기`는 인증 요청을 취소하고 전용 창을 닫으며, 일반 브라우저에서 창 닫기가 제한되면 취소 완료 안내를 남긴다. SEED의 밝은·어두운 테마를 따르고 좁은 화면에서는 가입 버튼을 세로로 배치한다.
 

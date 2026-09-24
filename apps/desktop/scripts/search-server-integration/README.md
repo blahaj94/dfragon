@@ -5,10 +5,10 @@ Desktop `createSearchHttp`가 실제 `apps/api/dist/main.js`와 연결되는지 
 Repository root에서 실행한다. Docker가 실행 중이어야 하며 설치된 workspace dependency를 사용한다.
 
 ```bash
-pnpm --filter @ldb/api build
-pnpm --filter @ldb/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
-pnpm --filter @ldb/desktop exec eslint scripts/search-server-integration
-pnpm --filter @ldb/desktop exec tsc --noEmit --allowJs --strict --skipLibCheck --esModuleInterop --moduleResolution bundler --module esnext --target es2023 scripts/search-server-integration/search.integration.ts scripts/search-server-integration/vitest.config.ts
+pnpm --filter @dfragon/api build
+pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
+pnpm --filter @dfragon/desktop exec eslint scripts/search-server-integration
+pnpm --filter @dfragon/desktop exec tsc --noEmit --allowJs --strict --skipLibCheck --esModuleInterop --moduleResolution bundler --module esnext --target es2023 scripts/search-server-integration/search.integration.ts scripts/search-server-integration/vitest.config.ts
 node --check apps/desktop/scripts/search-server-integration/runtime.mjs
 ```
 

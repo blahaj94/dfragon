@@ -25,15 +25,15 @@ beforeEach(() => {
 })
 
 for (const [workspace, command] of [
-  ['@ldb/web', 'test'],
-  ['@ldb/web', 'typecheck'],
-  ['@ldb/web', 'build'],
-  ['@ldb/desktop', 'test'],
-  ['@ldb/desktop', 'typecheck'],
-  ['@ldb/desktop', 'build'],
-  ['@ldb/ui', 'test'],
-  ['@ldb/ui', 'typecheck'],
-  ['@ldb/ui', 'build:examples']
+  ['@dfragon/web', 'test'],
+  ['@dfragon/web', 'typecheck'],
+  ['@dfragon/web', 'build'],
+  ['@dfragon/desktop', 'test'],
+  ['@dfragon/desktop', 'typecheck'],
+  ['@dfragon/desktop', 'build'],
+  ['@dfragon/ui', 'test'],
+  ['@dfragon/ui', 'typecheck'],
+  ['@dfragon/ui', 'build:examples']
 ]) {
   test(`cold pnpm --filter ${workspace} ${command}`, () => {
     const result = spawnSync('pnpm', ['--filter', workspace, command], {
@@ -50,16 +50,16 @@ for (const [workspace, command] of [
 
 for (const { name, executable, args, cwd, entries } of [
   {
-    name: 'pnpm --filter @ldb/web dev',
+    name: 'pnpm --filter @dfragon/web dev',
     executable: 'pnpm',
-    args: ['--filter', '@ldb/web', 'dev', '--host', '127.0.0.1', '--port', '0'],
+    args: ['--filter', '@dfragon/web', 'dev', '--host', '127.0.0.1', '--port', '0'],
     cwd: root,
     entries: ['/src/main.tsx', '/src/App.tsx']
   },
   {
-    name: 'pnpm --filter @ldb/ui dev:examples',
+    name: 'pnpm --filter @dfragon/ui dev:examples',
     executable: 'pnpm',
-    args: ['--filter', '@ldb/ui', 'dev:examples', '--host', '127.0.0.1', '--port', '0'],
+    args: ['--filter', '@dfragon/ui', 'dev:examples', '--host', '127.0.0.1', '--port', '0'],
     cwd: root,
     entries: ['/main.tsx']
   },

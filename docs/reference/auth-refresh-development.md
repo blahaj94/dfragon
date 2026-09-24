@@ -51,8 +51,8 @@ Transaction의 commit·release 완료 뒤에만 body 없는 204를 보낸다. DB
 기존 DB matrix는 rotation/history 2개, concurrency/TTL 12개, failure 10개 scenario group이다. 기존 core matrix를 그대로 실행한 뒤 `session-http-integration.mjs`의 HTTP→PostgreSQL 12개 scenario를 같은 disposable harness에서 실행한다. 정상 refresh, current/consumed·반복·unknown·물리 삭제 logout, 다른 기기와 이력·활동 보존을 확인한다. 양방향 경합은 첫 실제 HTTP transaction이 commit 전 row lock을 보유한 동안 반대 HTTP transaction을 시작하고 `pg_blocking_pids()`로 waiter를 관측한 뒤 lock을 해제한다. Refresh-first는 commit 이후 응답도 별도로 지연해 logout 완료 뒤 늦은 200과 그 token의 최종 무효를 확인한다. 양 endpoint의 commit 전 응답 금지와 실제 commit/rollback 뒤 acknowledgement 오류, transport/shape no-write도 검증한다. Commit 결과 불명은 QueryRunner fault injection이며 물리 network 단절 실험과 구분한다. 별도 process `login-log-probe.mjs`는 refresh/logout 성공·오류·media·oversize·body canary의 stdout/stderr 비노출을 검증하고, database integration의 canary capture는 같은 process 안의 관측으로 구분한다.
 
 ```bash
-pnpm --filter @ldb/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @ldb/api test:database
+pnpm --filter @dfragon/api run --sequential '/^(lint|test|typecheck)$/'
+pnpm --filter @dfragon/api test:database
 git diff --check
 ```
 

@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { uiNotices } from '@ldb/licenses/vite'
+import { uiNotices } from '@dfragon/licenses/vite'
 
 function isExternal(id: string) {
   const isSeed = id.startsWith('@seed-design/')

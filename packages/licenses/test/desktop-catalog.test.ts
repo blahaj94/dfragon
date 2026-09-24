@@ -6,7 +6,7 @@ import test from 'node:test'
 import { collectDesktopCatalog, desktopLicenseCatalog } from '../src/desktop-catalog.ts'
 
 test('offline catalog preserves originals, UI peers and production dependencies, excluding development tools', () => {
-  const root = mkdtempSync(join(tmpdir(), 'ldb-catalog-'))
+  const root = mkdtempSync(join(tmpdir(), 'dfragon-catalog-'))
   try {
     const uiRoot = join(root, 'ui')
     const ocrRoot = join(root, 'ocr')
@@ -47,7 +47,7 @@ test('offline catalog preserves originals, UI peers and production dependencies,
     )
     assert.equal(entries.find((entry) => entry.name === 'ONNX Runtime')?.documents.length, 2)
     const plugin = desktopLicenseCatalog(options)
-    const id = plugin.resolveId('virtual:ldb-desktop-licenses')!
+    const id = plugin.resolveId('virtual:dfragon-desktop-licenses')!
     const source = plugin.load(id)!
     assert.deepEqual(JSON.parse(source.slice('export default '.length, -1)), entries)
     assert.equal(plugin.load('unrelated'), null)

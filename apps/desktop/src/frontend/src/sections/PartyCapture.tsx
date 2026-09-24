@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, ContentStack, SupportingText } from '@ldb/ui'
+import { ActionButton, ContentStack, SupportingText } from '@dfragon/ui'
 import { SearchResults } from './SearchResults'
 import { styles } from './PartyCapture.style'
 import { usePartyCapture } from '../hooks/usePartyCapture'

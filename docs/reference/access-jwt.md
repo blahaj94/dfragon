@@ -81,7 +81,7 @@ Compact JWS/JSON parsing·서명은 `jose`에 위임한다. Local key map만 사
 `apps/api/test/access-jwt.fixtures.ts`는 test 실행 중에만 EC key를 생성한다. 실제 credential이나 PEM fixture file을 사용하지 않는다. `apps/api/test/access-jwt.test.ts`와 `apps/api/test/access-jwt-keys.test.ts`는 정상 발급·외부 jose 검증, 변조·만료·claim/header 조건, 복수 key/제거, 초기화 실패·오류 정제와 설정 복사 경계를 검증한다.
 
 ```bash
-pnpm --filter @ldb/api run --sequential '/^(build|lint|test|typecheck)$/'
+pnpm --filter @dfragon/api run --sequential '/^(build|lint|test|typecheck)$/'
 ```
 
 Node 24의 compiled ESM·WebCrypto ES256 경로를 실제 실행한다. DB/HTTP/실제 패스키, remote JWKS cache, 실제 운영 key 공급·교체는 이 모듈의 검증 범위가 아니다.

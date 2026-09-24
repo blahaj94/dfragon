@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { estimateDNFUIScale } from '@ldb/lib'
+import { estimateDNFUIScale } from '@dfragon/lib'
 
 test('predicts the five supplied capture settings relative to UI 0%', () => {
   for (const [percent, expected] of [

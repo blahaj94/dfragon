@@ -1,9 +1,9 @@
 ---
-name: ldb-workflow
-description: LDB 개발 요청의 관련 제품 계약과 작업·검증 명령을 찾는다.
+name: dfragon-workflow
+description: DFRAGON 개발 요청의 관련 제품 계약과 작업·검증 명령을 찾는다.
 ---
 
-# LDB Workflow
+# DFRAGON Workflow
 
 [개발 흐름](../../../docs/rules/agent-workflow.md)을 기준으로 요청에서 구현·검증·PR까지 진행한다. 필요한 제품 계약은 [문서 안내](../../../docs/README.md), 실제 명령은 [scripts 안내](../../../scripts/README.md#native-validation)와 [Repository Map](../../../docs/reference/repository-map.md)에서 찾는다.
 

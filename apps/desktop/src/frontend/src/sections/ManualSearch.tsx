@@ -6,7 +6,7 @@ import {
   SupportingText,
   TextField,
   TextFieldInput
-} from '@ldb/ui'
+} from '@dfragon/ui'
 import { SEARCH_ERRORS, type ManualSearchApi } from '../../../preload/common/types/search'
 import { createCaptureSearch, type CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'

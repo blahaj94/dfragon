@@ -11,12 +11,12 @@ const { values } = parseArgs({
   }
 })
 
-const packageNamePattern = /^@ldb\/([a-z0-9]+(?:-[a-z0-9]+)*)$/
+const packageNamePattern = /^@dfragon\/([a-z0-9]+(?:-[a-z0-9]+)*)$/
 const packageNameMatch = packageNamePattern.exec(values.name ?? '')
 
 const hasPackageNameMatch = packageNameMatch != null
 if (!hasPackageNameMatch) {
-  console.error('사용법: pnpm create-app --name @ldb/api')
+  console.error('사용법: pnpm create-app --name @dfragon/api')
   process.exit(1)
 }
 

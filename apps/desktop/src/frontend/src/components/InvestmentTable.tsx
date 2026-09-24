@@ -1,4 +1,4 @@
-import { Typo } from '@ldb/ui'
+import { Typo } from '@dfragon/ui'
 import { investmentIds, investmentAriaLabelByKind } from '../constants/equipment'
 import * as stylex from '@stylexjs/stylex'
 import type { EquipmentSlot } from '../types/cards'
