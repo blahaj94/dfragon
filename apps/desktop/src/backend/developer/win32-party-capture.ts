@@ -651,10 +651,7 @@ export function isDnfForeground(): boolean {
       if (!hwnd || !api.IsWindowVisible(hwnd) || api.IsIconic(hwnd)) {
         return false
       }
-      if (!clientRectOnScreen(api, hwnd)) {
-        return false
-      }
-      return isDnfProcessWindow(api, hwnd) !== null
+      return findDnfGameWindow(api).hwnd === hwnd
     })
   } catch {
     return false
