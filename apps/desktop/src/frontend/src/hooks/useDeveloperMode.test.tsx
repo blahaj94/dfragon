@@ -43,6 +43,20 @@ function installDeveloperApi(api: unknown): void {
   })
 }
 
+function deferred<T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason: unknown) => void
+} {
+  let resolve!: (value: T) => void
+  let reject!: (reason: unknown) => void
+  const promise = new Promise<T>((accept, fail) => {
+    resolve = accept
+    reject = fail
+  })
+  return { promise, resolve, reject }
+}
+
 function state(): string {
   return container.querySelector('[data-testid="state"]')!.textContent!
 }
@@ -101,4 +115,61 @@ it('keeps mode off after a failed write and can retry the stored setting', async
   api.getSettings.mockResolvedValue({ enabled: true })
   await click('retry')
   expect(state()).toBe('ready:true:false')
+})
+
+it('fails closed when the settings response does not have a boolean enabled value', async () => {
+  installDeveloperApi({
+    getSettings: vi.fn(async () => ({ enabled: 'true' })),
+    setEnabled: vi.fn()
+  })
+
+  await act(async () => root.render(<Harness />))
+
+  expect(state()).toBe('error:false:false')
+})
+
+it('ignores duplicate reads and writes while each operation is pending', async () => {
+  const read = deferred<{ enabled: boolean }>()
+  const write = deferred<{ enabled: boolean }>()
+  const api = {
+    getSettings: vi.fn(() => read.promise),
+    setEnabled: vi.fn(() => write.promise)
+  }
+  installDeveloperApi(api)
+
+  await act(async () => root.render(<Harness />))
+  expect(api.getSettings).toHaveBeenCalledOnce()
+
+  await click('retry')
+  expect(api.getSettings).toHaveBeenCalledOnce()
+
+  await act(async () => read.resolve({ enabled: false }))
+  expect(state()).toBe('ready:false:false')
+
+  await click('enable')
+  expect(state()).toBe('ready:false:true')
+  await click('enable')
+  await click('disable')
+  expect(api.setEnabled).toHaveBeenCalledExactlyOnceWith(true)
+  expect(state()).toBe('ready:false:true')
+
+  await act(async () => write.resolve({ enabled: true }))
+  expect(state()).toBe('ready:true:false')
+})
+
+it('turns developer mode off immediately and keeps it off after a failed disable', async () => {
+  const write = deferred<{ enabled: boolean }>()
+  installDeveloperApi({
+    getSettings: vi.fn(async () => ({ enabled: true })),
+    setEnabled: vi.fn(() => write.promise)
+  })
+
+  await act(async () => root.render(<Harness />))
+  expect(state()).toBe('ready:true:false')
+
+  await click('disable')
+  expect(state()).toBe('ready:false:true')
+
+  await act(async () => write.reject(new Error('storage failure')))
+  expect(state()).toBe('error:false:false')
 })

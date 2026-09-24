@@ -111,3 +111,69 @@ it('전처리 변경 시 이전 점수와 진행 상태를 비운다', async () 
   expect(evaluation.results).toEqual({})
   expect(evaluation.progress).toEqual({ done: 0, total: 0 })
 })
+
+it('모델 초기화 실패 후 새 평가로 복구한다', async () => {
+  mocks.create.mockRejectedValueOnce(new Error('initialization failed'))
+  await act(async () => evaluation.evaluate(samples))
+  expect(evaluation.error).not.toBe('')
+  expect(evaluation.running).toBe(false)
+  await act(async () => evaluation.evaluate(samples))
+  expect(evaluation.error).toBe('')
+  expect(evaluation.progress).toEqual({ done: 2, total: 2 })
+})
+
+it('취소 후 재시작한 평가에 이전 worker의 늦은 결과를 섞지 않는다', async () => {
+  let finish!: (value: { data: { text: string; confidence: number } }) => void
+  mocks.recognize.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  let first!: Promise<void>
+  await act(async () => {
+    first = evaluation.evaluate(samples)
+  })
+  const firstSignal = mocks.create.mock.calls[0][0] as AbortSignal
+  await act(async () => {
+    evaluation.cancel()
+    await first
+    await evaluation.evaluate(samples)
+  })
+  expect(firstSignal.aborted).toBe(true)
+  await act(async () => {
+    finish({ data: { text: 'late', confidence: 90 } })
+  })
+  expect(evaluation.results.one).toMatchObject({ text: '가' })
+  expect(evaluation.progress).toEqual({ done: 2, total: 2 })
+  expect(evaluation.canceled).toBe(false)
+  expect(mocks.terminate).toHaveBeenCalledTimes(2)
+})
+
+it('화면을 닫으면 초기화 중인 평가를 취소하고 호출자를 해제한다', async () => {
+  let finish!: (value: {
+    recognize: typeof mocks.recognize
+    terminate: typeof mocks.terminate
+  }) => void
+  mocks.create.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve
+      })
+  )
+  let running!: Promise<void>
+  await act(async () => {
+    running = evaluation.evaluate(samples)
+  })
+  const signal = mocks.create.mock.calls[0][0] as AbortSignal
+  await act(async () => {
+    root.unmount()
+    await running
+  })
+  expect(signal.aborted).toBe(true)
+  await act(async () => {
+    finish({ recognize: mocks.recognize, terminate: mocks.terminate })
+  })
+  expect(mocks.recognize).not.toHaveBeenCalled()
+  expect(mocks.terminate).toHaveBeenCalledTimes(1)
+})

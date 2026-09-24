@@ -1,5 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect } from 'react'
+import { useMachine } from '@xstate/react'
+import { waitFor } from 'xstate'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
+import { developerSamplesMachine } from '../lib/developer-samples-machine'
 
 export function useDeveloperSamples(): {
   samples: DeveloperSample[]
@@ -10,76 +13,53 @@ export function useDeveloperSamples(): {
   addSample: (pngDataUrl: string) => Promise<DeveloperSample | null>
   saveLabel: (id: string, text: string | null) => Promise<DeveloperSample | null>
 } {
-  const alive = useRef(true)
-  const operation = useRef(false)
-  const [samples, setSamples] = useState<DeveloperSample[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  useEffect(() => {
-    alive.current = true
-    void refresh()
-    return () => {
-      alive.current = false
-    }
-  }, [])
+  const [snapshot, send, actor] = useMachine(developerSamplesMachine, {
+    input: { api: window.developer }
+  })
 
-  async function refresh(): Promise<void> {
-    setLoading(true)
-    setError('')
-    try {
-      const rows = await window.developer.listSamples()
-      if (alive.current) {
-        setSamples(rows)
-      }
-    } catch {
-      if (alive.current) {
-        setError('테스트 이미지를 불러오지 못했습니다. 다시 불러와 주세요.')
-      }
-    } finally {
-      if (alive.current) {
-        setLoading(false)
-      }
+  // Resolve public command promises before @xstate/react tears down the actor on unmount.
+  useLayoutEffect(() => () => send({ type: 'CANCEL' }), [send])
+
+  function refresh(): Promise<void> {
+    const current = actor.getSnapshot()
+    const event = { type: 'REFRESH', request: {} } as const
+    if (!current.can(event)) {
+      return Promise.resolve()
     }
+
+    const completed = waitFor(actor, (state) => state.context.lastRefresh === event.request)
+    send(event)
+    return completed.then(
+      () => undefined,
+      () => undefined
+    )
   }
 
-  async function save(action: () => Promise<DeveloperSample>): Promise<DeveloperSample | null> {
-    if (operation.current) {
-      return null
+  function save(
+    command:
+      | { type: 'ADD_SAMPLE'; pngDataUrl: string }
+      | { type: 'SAVE_LABEL'; id: string; text: string | null }
+  ): Promise<DeveloperSample | null> {
+    const current = actor.getSnapshot()
+    const event = { ...command, request: {} } as const
+    if (!current.can(event)) {
+      return Promise.resolve(null)
     }
-    operation.current = true
-    setSaving(true)
-    setError('')
-    try {
-      const sample = await action()
-      if (!alive.current) {
-        return null
-      }
-      setSamples((previous) =>
-        previous.some((row) => row.id === sample.id)
-          ? previous.map((row) => (row.id === sample.id ? sample : row))
-          : [...previous, sample]
-      )
-      return sample
-    } catch {
-      if (alive.current) {
-        setError('저장하지 못했습니다. 입력은 유지됩니다. 다시 시도해 주세요.')
-      }
-      return null
-    } finally {
-      operation.current = false
-      if (alive.current) {
-        setSaving(false)
-      }
-    }
+
+    const completed = waitFor(actor, (state) => state.context.lastSave?.request === event.request)
+      .then((state) => state.context.lastSave?.sample ?? null)
+      .catch(() => null)
+    send(event)
+    return completed
   }
+
   return {
-    samples,
-    loading,
-    saving,
-    error,
+    samples: snapshot.context.samples,
+    loading: snapshot.matches('loading'),
+    saving: snapshot.matches('saving'),
+    error: snapshot.context.error,
     refresh,
-    addSample: (pngDataUrl: string) => save(() => window.developer.addSample(pngDataUrl)),
-    saveLabel: (id: string, text: string | null) => save(() => window.developer.saveLabel(id, text))
+    addSample: (pngDataUrl) => save({ type: 'ADD_SAMPLE', pngDataUrl }),
+    saveLabel: (id, text) => save({ type: 'SAVE_LABEL', id, text })
   }
 }

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { DeveloperApi } from '../../../preload/common/types/developer'
-
-type DeveloperSettingsApi = Pick<DeveloperApi, 'getSettings' | 'setEnabled'>
+import { useCallback } from 'react'
+import { useMachine } from '@xstate/react'
+import { developerModeMachine, type DeveloperSettingsApi } from '../lib/developer-mode-machine'
 
 export type DeveloperModeState = {
   status: 'loading' | 'ready' | 'unavailable' | 'error'
@@ -9,12 +8,6 @@ export type DeveloperModeState = {
   updating: boolean
   retry: () => void
   setEnabled: (enabled: boolean) => void
-}
-
-const initialState: Omit<DeveloperModeState, 'retry' | 'setEnabled'> = {
-  status: 'loading',
-  enabled: false,
-  updating: false
 }
 
 function isDeveloperSettingsApi(value: unknown): value is DeveloperSettingsApi {
@@ -39,122 +32,35 @@ function getDeveloperSettingsApi(): DeveloperSettingsApi | null {
   return isDeveloperSettingsApi(candidate) ? candidate : null
 }
 
-function readEnabled(settings: unknown): boolean {
-  if (
-    settings == null ||
-    typeof settings !== 'object' ||
-    !('enabled' in settings) ||
-    typeof settings.enabled !== 'boolean'
-  ) {
-    throw new TypeError('Invalid developer settings response')
-  }
-
-  return settings.enabled
-}
-
 export function useDeveloperMode(): DeveloperModeState {
-  const [view, setView] = useState(initialState)
-  const viewRef = useRef(view)
-  const operationRef = useRef(0)
-  const inFlightRef = useRef(false)
-  const mountedRef = useRef(false)
-
-  const updateView = useCallback((next: typeof initialState) => {
-    viewRef.current = next
-    if (mountedRef.current) {
-      setView(next)
-    }
-  }, [])
+  const [state, send] = useMachine(developerModeMachine, {
+    input: { api: getDeveloperSettingsApi() }
+  })
 
   const retry = useCallback(() => {
-    if (inFlightRef.current) {
-      return
-    }
-
-    const operation = ++operationRef.current
-    inFlightRef.current = true
-    updateView({ status: 'loading', enabled: false, updating: false })
-
-    const api = getDeveloperSettingsApi()
-    if (api == null) {
-      inFlightRef.current = false
-      updateView({ status: 'unavailable', enabled: false, updating: false })
-      return
-    }
-
-    void Promise.resolve()
-      .then(() => api.getSettings())
-      .then((settings) => {
-        const enabled = readEnabled(settings)
-        if (operation === operationRef.current) {
-          updateView({ status: 'ready', enabled, updating: false })
-        }
-      })
-      .catch(() => {
-        if (operation === operationRef.current) {
-          updateView({ status: 'error', enabled: false, updating: false })
-        }
-      })
-      .finally(() => {
-        if (operation === operationRef.current) {
-          inFlightRef.current = false
-        }
-      })
-  }, [updateView])
+    send({ type: 'RETRY', api: getDeveloperSettingsApi() })
+  }, [send])
 
   const setEnabled = useCallback(
     (enabled: boolean) => {
-      const current = viewRef.current
-      if (current.status !== 'ready' || current.updating || inFlightRef.current) {
-        return
-      }
-
-      const api = getDeveloperSettingsApi()
-      if (api == null) {
-        updateView({ status: 'unavailable', enabled: false, updating: false })
-        return
-      }
-
-      const operation = ++operationRef.current
-      inFlightRef.current = true
-      updateView({ status: 'ready', enabled: enabled ? current.enabled : false, updating: true })
-
-      void Promise.resolve()
-        .then(() => api.setEnabled(enabled))
-        .then((settings) => {
-          const persistedEnabled = readEnabled(settings)
-          if (operation === operationRef.current) {
-            if (persistedEnabled !== enabled) {
-              updateView({ status: 'error', enabled: false, updating: false })
-            } else {
-              updateView({ status: 'ready', enabled: persistedEnabled, updating: false })
-            }
-          }
-        })
-        .catch(() => {
-          if (operation === operationRef.current) {
-            updateView({ status: 'error', enabled: false, updating: false })
-          }
-        })
-        .finally(() => {
-          if (operation === operationRef.current) {
-            inFlightRef.current = false
-          }
-        })
+      send({ type: 'SET_ENABLED', api: getDeveloperSettingsApi(), enabled })
     },
-    [updateView]
+    [send]
   )
 
-  useEffect(() => {
-    mountedRef.current = true
-    retry()
+  const status = state.matches('loading')
+    ? 'loading'
+    : state.matches('ready') || state.matches('updating')
+      ? 'ready'
+      : state.matches('unavailable')
+        ? 'unavailable'
+        : 'error'
 
-    return () => {
-      mountedRef.current = false
-      operationRef.current += 1
-      inFlightRef.current = false
-    }
-  }, [retry])
-
-  return { ...view, retry, setEnabled }
+  return {
+    status,
+    enabled: state.context.enabled,
+    updating: state.matches('updating'),
+    retry,
+    setEnabled
+  }
 }
