@@ -220,12 +220,10 @@ export function createDeveloperCollectionSession({
         throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
       }
 
-      const slotsByNumber = new Map(frameValue.slots.map((slot) => [slot.slot, slot]))
-      const missingSlots = selectedSlots.filter((slot) => !slotsByNumber.has(slot))
-      if (missingSlots.length > 0) {
+      const selected = frameValue.slots.filter(({ slot }) => selectedSlots.includes(slot))
+      if (selected.length === 0) {
         throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND')
       }
-      const selected = selectedSlots.map((slot) => slotsByNumber.get(slot)!)
 
       for (const slot of selected) {
         if (!isCurrentCapture(captureGeneration)) {

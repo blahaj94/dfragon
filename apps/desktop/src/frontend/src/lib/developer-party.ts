@@ -31,7 +31,7 @@ export function getDeveloperCollectionErrorMessage(errorCode: string): string {
     return 'Print Screen 단축키를 등록하지 못했습니다. 같은 단축키를 사용하는 앱을 확인한 뒤 수집 탭을 다시 열어주세요.'
   }
   if (errorCode === 'DEVELOPER_PARTY_SLOTS_NOT_FOUND') {
-    return '선택한 위치의 HP·MP가 가득 찬 파티 프레임을 보여주세요. 빈 위치는 선택을 해제해 주세요.'
+    return '선택한 위치에서 저장할 크롭을 찾지 못했습니다. HP·MP가 가득 찬 파티 프레임을 보여주세요.'
   }
   if (errorCode === 'DEVELOPER_GAME_NOT_FOREGROUND') {
     return '던파를 맨 앞으로 두고 다시 Print Screen을 눌러주세요.'

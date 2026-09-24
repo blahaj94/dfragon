@@ -28,7 +28,9 @@ export function useDeveloperSamples(): {
       return Promise.resolve()
     }
 
-    const completed = waitFor(actor, (state) => state.context.lastRefresh === event.request)
+    const completed = waitFor(actor, (state) =>
+      state.context.lastRefreshRequests.includes(event.request)
+    )
     send(event)
     return completed.then(
       () => undefined,
