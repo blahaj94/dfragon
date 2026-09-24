@@ -1,12 +1,7 @@
-import {
-  globalShortcut,
-  ipcMain,
-  nativeImage,
-  type BrowserWindow,
-  type IpcMainInvokeEvent
-} from 'electron'
+import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import type {
   DeveloperFrame,
+  DeveloperSettings,
   DeveloperPartySlot,
   DeveloperPartyPreviewResponse
 } from '../../preload/common/types/developer'
@@ -256,7 +251,6 @@ export function registerDeveloperWindow(
   }
 
   const printScreenShortcut = createPrintScreenShortcut({
-    globalShortcut,
     isGameForeground: () => isTrustedMainDocument() && isDnfForeground()
   })
 
@@ -275,6 +269,56 @@ export function registerDeveloperWindow(
         .createFromBitmap(rgbaToWindowsBitmap(rgba, width, height), { width, height })
         .toPNG()
   })
+
+  async function restoreCollectionAfterFailedDisable(mutation: number): Promise<void> {
+    if (mutation !== settingsMutationRevision) {
+      return
+    }
+    try {
+      const persistedSettings = await store.getSettings()
+      const isCurrentMutation = mutation === settingsMutationRevision
+      if (isCurrentMutation && persistedSettings.enabled) {
+        collectionSession.setArmingEnabled(true)
+      }
+    } catch {
+      // Keep collection fail-closed when the persisted mode cannot be read.
+    }
+  }
+
+  function disableDeveloperMode(mutation: number): Promise<DeveloperSettings> {
+    // Stop accepting captures immediately, before waiting for earlier settings writes.
+    const pendingStop = collectionSession.beginDisable()
+    return serializeSettingsMutation(async () => {
+      try {
+        await pendingStop
+        const settings = await store.setEnabled(false)
+        if (mutation === settingsMutationRevision) {
+          collectionSession.setArmingEnabled(false)
+        }
+        return settings
+      } catch (error) {
+        await restoreCollectionAfterFailedDisable(mutation)
+        throw error
+      }
+    })
+  }
+
+  function enableDeveloperMode(mutation: number): Promise<DeveloperSettings> {
+    return serializeSettingsMutation(async () => {
+      const settings = await store.setEnabled(true)
+      const isCurrentMutation = mutation === settingsMutationRevision
+      if (isCurrentMutation && settings.enabled) {
+        collectionSession.setArmingEnabled(true)
+      }
+      return settings
+    })
+  }
+
+  function setDeveloperEnabled(enabled: boolean): Promise<DeveloperSettings> {
+    settingsMutationRevision += 1
+    const mutation = settingsMutationRevision
+    return enabled ? enableDeveloperMode(mutation) : disableDeveloperMode(mutation)
+  }
 
   async function invoke<T>(event: IpcMainInvokeEvent, operation: () => Promise<T>): Promise<T> {
     try {
@@ -330,40 +374,7 @@ export function registerDeveloperWindow(
         if (typeof enabled !== 'boolean') {
           throw invalidCommand()
         }
-        if (!enabled) {
-          const mutation = ++settingsMutationRevision
-          const pendingStop = collectionSession.beginDisable()
-          return serializeSettingsMutation(async () => {
-            try {
-              await pendingStop
-              const settings = await store.setEnabled(false)
-              if (mutation === settingsMutationRevision) {
-                collectionSession.setArmingEnabled(false)
-              }
-              return settings
-            } catch (error) {
-              if (mutation === settingsMutationRevision) {
-                try {
-                  const persistedSettings = await store.getSettings()
-                  if (mutation === settingsMutationRevision && persistedSettings.enabled) {
-                    collectionSession.setArmingEnabled(true)
-                  }
-                } catch {
-                  // Keep collection fail-closed when the persisted mode cannot be read.
-                }
-              }
-              throw error
-            }
-          })
-        }
-        const mutation = ++settingsMutationRevision
-        return serializeSettingsMutation(async () => {
-          const settings = await store.setEnabled(true)
-          if (mutation === settingsMutationRevision && settings.enabled) {
-            collectionSession.setArmingEnabled(true)
-          }
-          return settings
-        })
+        return setDeveloperEnabled(enabled)
       })
     )
     register(DEVELOPER_CHANNELS.listSamples, (event, args) =>

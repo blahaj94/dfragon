@@ -13,16 +13,11 @@ export type PrintScreenNativeApi = {
 }
 
 type PrintScreenShortcutOptions = {
-  globalShortcut: {
-    register: (accelerator: string, listener: () => void) => boolean
-    unregister: (accelerator: string) => void
-  }
   isGameForeground: () => boolean
   platform?: NodeJS.Platform
   loadNativeApi?: () => PrintScreenNativeApi
 }
 
-const PRINT_SCREEN = 'PrintScreen'
 const VK_SNAPSHOT = 0x2c
 const WM_KEYDOWN = 0x100
 const WM_KEYUP = 0x101
@@ -66,9 +61,8 @@ function loadWin32Api(): PrintScreenNativeApi {
   return nativeApi
 }
 
-/** Registers the collection shortcut; the Windows fallback runs on Electron's main message loop. */
+/** Hooks Print Screen on Windows without reserving the key in other foreground applications. */
 export function createPrintScreenShortcut({
-  globalShortcut,
   isGameForeground,
   platform = process.platform,
   loadNativeApi = loadWin32Api
@@ -78,7 +72,6 @@ export function createPrintScreenShortcut({
 } {
   let listener: (() => void) | null = null
   let generation = 0
-  let electronRegistered = false
   let nativeRegistration:
     { api: PrintScreenNativeApi; callback: bigint; hook: bigint | null | undefined } | undefined
   let keyDown = false
@@ -147,10 +140,6 @@ export function createPrintScreenShortcut({
     generation += 1
     keyDown = false
     handledPress = false
-    if (electronRegistered) {
-      globalShortcut.unregister(PRINT_SCREEN)
-      electronRegistered = false
-    }
     if (nativeRegistration) {
       const registration = nativeRegistration
       if (registration.hook === undefined) {
@@ -175,18 +164,6 @@ export function createPrintScreenShortcut({
       return false
     }
     listener = nextListener
-    try {
-      electronRegistered = globalShortcut.register(PRINT_SCREEN, () => {
-        if (listener && isForeground()) {
-          notifyLater()
-        }
-      })
-    } catch {
-      electronRegistered = false
-    }
-    if (electronRegistered) {
-      return true
-    }
     if (platform !== 'win32') {
       listener = null
       return false

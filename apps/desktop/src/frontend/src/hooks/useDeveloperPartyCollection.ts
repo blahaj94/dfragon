@@ -77,7 +77,8 @@ export function useDeveloperPartyCollection(
   )
 
   useEffect(() => {
-    const lifecycleRevision = ++lifecycleRevisionRef.current
+    lifecycleRevisionRef.current += 1
+    const lifecycleRevision = lifecycleRevisionRef.current
     if (!active) {
       const pendingDisarm = disarmPromiseRef.current
       if (pendingDisarm != null) {
@@ -101,7 +102,8 @@ export function useDeveloperPartyCollection(
     sessionRef.current = session
 
     const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
-      const commandRevision = ++session.commandRevision
+      session.commandRevision += 1
+      const commandRevision = session.commandRevision
       void window.developer
         .setPartyCollectionSlots(nextSlots)
         .then((status) => {
@@ -176,7 +178,8 @@ export function useDeveloperPartyCollection(
 
     const session = sessionRef.current
     if (session?.active) {
-      const commandRevision = ++session.commandRevision
+      session.commandRevision += 1
+      const commandRevision = session.commandRevision
       void window.developer
         .setPartyCollectionSlots(nextSlots)
         .then((status) => {

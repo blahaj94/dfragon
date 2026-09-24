@@ -1,5 +1,9 @@
 import { expect, it, vi } from 'vitest'
-import { createDeveloperCollectionSession, type CapturedPartyFrame } from './collection-session'
+import {
+  createDeveloperCollectionSession,
+  validatePartyFrame,
+  type CapturedPartyFrame
+} from './collection-session'
 
 const capturedAt = '2026-09-25T12:30:00.000Z'
 
@@ -13,6 +17,18 @@ function frame(
 ): CapturedPartyFrame {
   return { width: 1920, height: 1080, scale: 1.285714, capturedAt, slots }
 }
+
+it('stops frame validation after invalid dimensions without reading scale', () => {
+  const invalidFrame = {
+    width: 0,
+    height: 1080,
+    get scale() {
+      throw new Error('scale was read before dimensions passed')
+    }
+  }
+
+  expect(() => validatePartyFrame(invalidFrame)).toThrowError('DEVELOPER_CAPTURE_UNAVAILABLE')
+})
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   let resolve!: (value: T) => void

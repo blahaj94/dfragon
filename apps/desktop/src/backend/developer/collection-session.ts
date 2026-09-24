@@ -3,7 +3,7 @@ import type {
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot
 } from '../../preload/common/types/developer'
-import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'
+import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 export type CapturedPartySlot = {
   slot: DeveloperPartySlot
@@ -64,26 +64,8 @@ function isPartySlot(value: unknown): value is DeveloperPartySlot {
   return value === 1 || value === 2 || value === 3 || value === 4
 }
 
-function isValidDimensions(width: unknown, height: unknown): width is number {
-  return (
-    typeof width === 'number' &&
-    Number.isSafeInteger(width) &&
-    typeof height === 'number' &&
-    Number.isSafeInteger(height) &&
-    width > 0 &&
-    height > 0 &&
-    width <= MAX_IMAGE_DIMENSION &&
-    height <= MAX_IMAGE_DIMENSION &&
-    width * height <= MAX_IMAGE_PIXELS
-  )
-}
-
-function isCanonicalTimestamp(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    Number.isFinite(Date.parse(value)) &&
-    new Date(value).toISOString() === value
-  )
+function isValidScale(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
 export function validatePartyFrame(value: unknown): asserts value is CapturedPartyFrame {
@@ -91,15 +73,16 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
     throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
   }
   const frame = value as Record<string, unknown>
-  if (
-    !isValidDimensions(frame.width, frame.height) ||
-    typeof frame.scale !== 'number' ||
-    !Number.isFinite(frame.scale) ||
-    frame.scale <= 0 ||
-    !isCanonicalTimestamp(frame.capturedAt) ||
-    !Array.isArray(frame.slots) ||
-    frame.slots.length > 4
-  ) {
+  if (!isValidImageDimensions(frame.width, frame.height)) {
+    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+  }
+  if (!isValidScale(frame.scale)) {
+    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+  }
+  if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
+    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+  }
+  if (!Array.isArray(frame.slots) || frame.slots.length > 4) {
     throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
   }
 
@@ -115,7 +98,7 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
     if (
       !isPartySlot(slot.slot) ||
       seenSlots.has(slot.slot) ||
-      !isValidDimensions(width, height) ||
+      !isValidImageDimensions(width, height) ||
       !Buffer.isBuffer(rgba) ||
       rgba.length !== width * height * 4
     ) {
@@ -141,19 +124,19 @@ export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFr
   }
 }
 
+const PUBLIC_ERROR_CODES = new Set([
+  'DEVELOPER_DISABLED',
+  'DEVELOPER_STORAGE_UNAVAILABLE',
+  'DEVELOPER_CAPTURE_UNAVAILABLE',
+  'DEVELOPER_HOTKEY_UNAVAILABLE',
+  'DEVELOPER_ADMIN_REQUIRED',
+  'DEVELOPER_GAME_NOT_FOREGROUND',
+  'DEVELOPER_PARTY_SLOTS_NOT_FOUND'
+])
+
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
-  return new Set([
-    'DEVELOPER_DISABLED',
-    'DEVELOPER_STORAGE_UNAVAILABLE',
-    'DEVELOPER_CAPTURE_UNAVAILABLE',
-    'DEVELOPER_HOTKEY_UNAVAILABLE',
-    'DEVELOPER_ADMIN_REQUIRED',
-    'DEVELOPER_GAME_NOT_FOREGROUND',
-    'DEVELOPER_PARTY_SLOTS_NOT_FOUND'
-  ]).has(message)
-    ? message
-    : 'DEVELOPER_OPERATION_FAILED'
+  return PUBLIC_ERROR_CODES.has(message) ? message : 'DEVELOPER_OPERATION_FAILED'
 }
 
 export function createDeveloperCollectionSession({
@@ -307,7 +290,8 @@ export function createDeveloperCollectionSession({
       return getStatus()
     }
 
-    const token = ++requestToken
+    requestToken += 1
+    const token = requestToken
     invalidate()
     error = null
     if (selectedSlots == null) {

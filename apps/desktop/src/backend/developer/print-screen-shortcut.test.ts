@@ -7,7 +7,6 @@ const SNAPSHOT = 0x2c
 
 type ShortcutTestContext = {
   api: PrintScreenNativeApi
-  globalShortcut: { register: Mock<() => boolean>; unregister: Mock<() => void> }
   isGameForeground: Mock<() => boolean>
   loadNativeApi: Mock<() => PrintScreenNativeApi>
   shortcut: ReturnType<typeof createPrintScreenShortcut>
@@ -29,11 +28,9 @@ function setup(platform: NodeJS.Platform = 'win32'): ShortcutTestContext {
     callNext: vi.fn(() => 77n),
     readVirtualKey: vi.fn(() => virtualKey)
   }
-  const globalShortcut = { register: vi.fn(() => false), unregister: vi.fn() }
   const isGameForeground = vi.fn(() => true)
   const loadNativeApi = vi.fn(() => api)
   const shortcut = createPrintScreenShortcut({
-    globalShortcut,
     isGameForeground,
     platform,
     loadNativeApi
@@ -43,28 +40,37 @@ function setup(platform: NodeJS.Platform = 'win32'): ShortcutTestContext {
     virtualKey = keyCode
     return hookCallback!(code, message, 30n)
   }
-  return { api, globalShortcut, isGameForeground, loadNativeApi, shortcut, listener, key }
+  return { api, isGameForeground, loadNativeApi, shortcut, listener, key }
 }
 
 afterEach(() => {
   vi.useRealTimers()
 })
 
-it('prefers Electron and does not load Windows libraries after success or on another OS', () => {
+it('uses the native hook on Windows and does not load Windows libraries on another OS', () => {
   const supported = setup()
-  supported.globalShortcut.register.mockReturnValue(true)
   expect(supported.shortcut.register(supported.listener)).toBe(true)
-  expect(supported.globalShortcut.register).toHaveBeenCalledWith(
-    'PrintScreen',
-    expect.any(Function)
-  )
-  expect(supported.loadNativeApi).not.toHaveBeenCalled()
+  expect(supported.api.installHook).toHaveBeenCalledTimes(1)
   supported.shortcut.unregister()
-  expect(supported.globalShortcut.unregister).toHaveBeenCalledWith('PrintScreen')
+  expect(supported.api.removeHook).toHaveBeenCalledWith(20n)
 
   const unsupported = setup('darwin')
   expect(unsupported.shortcut.register(unsupported.listener)).toBe(false)
   expect(unsupported.loadNativeApi).not.toHaveBeenCalled()
+})
+
+it('passes an entire Print Screen press to the foreground app outside DNF', () => {
+  vi.useFakeTimers()
+  const { shortcut, listener, key, api, isGameForeground } = setup()
+  isGameForeground.mockReturnValue(false)
+  shortcut.register(listener)
+  expect(key(KEY_DOWN)).toBe(77n)
+  expect(key(KEY_UP)).toBe(77n)
+  vi.runAllTimers()
+  expect(api.callNext).toHaveBeenNthCalledWith(1, 0, KEY_DOWN, 30n)
+  expect(api.callNext).toHaveBeenNthCalledWith(2, 0, KEY_UP, 30n)
+  expect(listener).not.toHaveBeenCalled()
+  shortcut.unregister()
 })
 
 it('swallows one foreground Print Screen sequence, defers capture, and ignores repeats', () => {

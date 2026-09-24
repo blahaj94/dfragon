@@ -8,13 +8,13 @@ import type {
   DeveloperSampleSource,
   DeveloperSettings
 } from '../../preload/common/types/developer'
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './image-limits'
+import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 const MAX_PNG_BYTES = 16 * 1024 * 1024
 const MAX_SETTINGS_BYTES = 1024
 const MAX_METADATA_BYTES = 4096
-const MAX_IMAGE_DIMENSION = 8192
-const MAX_IMAGE_PIXELS = 33_000_000
 const MAX_LABEL_LENGTH = 500
 const SAMPLE_ID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 
@@ -70,18 +70,6 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): 
   return actualKeys.length === keys.length && keys.every((key) => actualKeys.includes(key))
 }
 
-function isValidDimensions(width: number, height: number): boolean {
-  return (
-    Number.isSafeInteger(width) &&
-    Number.isSafeInteger(height) &&
-    width > 0 &&
-    height > 0 &&
-    width <= MAX_IMAGE_DIMENSION &&
-    height <= MAX_IMAGE_DIMENSION &&
-    width * height <= MAX_IMAGE_PIXELS
-  )
-}
-
 function inspectPng(png: Buffer, decodePng: (png: Buffer) => PngDimensions | null): PngDimensions {
   const hasValidSize = png.length > 0 && png.length <= MAX_PNG_BYTES
   const hasSignature = png.length >= 33 && png.subarray(0, 8).equals(PNG_SIGNATURE)
@@ -93,7 +81,7 @@ function inspectPng(png: Buffer, decodePng: (png: Buffer) => PngDimensions | nul
 
   const width = png.readUInt32BE(16)
   const height = png.readUInt32BE(20)
-  if (!isValidDimensions(width, height)) {
+  if (!isValidImageDimensions(width, height)) {
     throw invalidCommand()
   }
 
@@ -156,7 +144,7 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
     !isPartySlot(value.slot) ||
     typeof value.frameWidth !== 'number' ||
     typeof value.frameHeight !== 'number' ||
-    !isValidDimensions(value.frameWidth, value.frameHeight) ||
+    !isValidImageDimensions(value.frameWidth, value.frameHeight) ||
     typeof value.scale !== 'number' ||
     !Number.isFinite(value.scale) ||
     value.scale <= 0
@@ -181,15 +169,12 @@ function parseMetadata(value: unknown, expectedId: string): DeveloperMetadata | 
   const excluded = 'excluded' in value ? value.excluded : false
   const source = 'source' in value ? parseSampleSource(value.source) : null
   const isValidId = typeof id === 'string' && id === expectedId && SAMPLE_ID.test(id)
-  const isValidTimestamp =
-    typeof createdAt === 'string' &&
-    Number.isFinite(Date.parse(createdAt)) &&
-    new Date(createdAt).toISOString() === createdAt
+  const isValidTimestamp = isCanonicalIsoTimestamp(createdAt)
   const isValidLabel =
     text === null || (typeof text === 'string' && text.length <= MAX_LABEL_LENGTH)
   const isValidExcluded = typeof excluded === 'boolean'
   const areValidDimensions =
-    typeof width === 'number' && typeof height === 'number' && isValidDimensions(width, height)
+    typeof width === 'number' && typeof height === 'number' && isValidImageDimensions(width, height)
   if (
     !isValidId ||
     !isValidTimestamp ||
@@ -497,10 +482,7 @@ export function createDeveloperStore({
 
   const addCollectedSample = inQueue(
     async (sample: CollectedSampleInput, shouldCommit: () => boolean): Promise<DeveloperSample> => {
-      const isValidCapturedAt =
-        typeof sample?.capturedAt === 'string' &&
-        Number.isFinite(Date.parse(sample.capturedAt)) &&
-        new Date(sample.capturedAt).toISOString() === sample.capturedAt
+      const isValidCapturedAt = isCanonicalIsoTimestamp(sample?.capturedAt)
       const source = parseSampleSource(sample?.source)
       if (
         !isObject(sample) ||

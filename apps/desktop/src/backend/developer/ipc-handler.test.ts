@@ -9,10 +9,9 @@ import { registerDeveloperWindow } from './ipc-handler'
 
 const electron = vi.hoisted(() => ({
   handle: vi.fn(),
-  removeHandler: vi.fn(),
-  register: vi.fn(),
-  unregister: vi.fn()
+  removeHandler: vi.fn()
 }))
+const shortcut = vi.hoisted(() => ({ register: vi.fn(), unregister: vi.fn() }))
 const partyCapture = vi.hoisted(() => ({
   capturePartyFrame: vi.fn(),
   isDnfForeground: vi.fn(),
@@ -20,7 +19,6 @@ const partyCapture = vi.hoisted(() => ({
 }))
 vi.mock('electron', () => ({
   ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler },
-  globalShortcut: { register: electron.register, unregister: electron.unregister },
   nativeImage: {
     createFromBuffer: vi.fn(() => ({
       isEmpty: () => false,
@@ -30,6 +28,7 @@ vi.mock('electron', () => ({
   }
 }))
 vi.mock('./win32-party-capture', () => partyCapture)
+vi.mock('./print-screen-shortcut', () => ({ createPrintScreenShortcut: () => shortcut }))
 
 const rendererUrl = 'file:///developer-fixture/index.html'
 const directories: string[] = []
@@ -84,7 +83,7 @@ async function setup(): Promise<{
 
 beforeEach(() => {
   vi.clearAllMocks()
-  electron.register.mockReturnValue(true)
+  shortcut.register.mockReturnValue(true)
 })
 afterEach(async () => {
   await Promise.all(
@@ -172,14 +171,14 @@ it('arms PrintScreen only for an enabled trusted collection session and unregist
     armed: true,
     slots: []
   })
-  expect(electron.register).toHaveBeenCalledTimes(1)
-  expect(electron.register).toHaveBeenCalledWith('PrintScreen', expect.any(Function))
+  expect(shortcut.register).toHaveBeenCalledTimes(1)
+  expect(shortcut.register).toHaveBeenCalledWith(expect.any(Function))
 
   expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, null)).toMatchObject({
     armed: false,
     slots: []
   })
-  expect(electron.unregister).toHaveBeenCalledTimes(1)
+  expect(shortcut.unregister).toHaveBeenCalledTimes(1)
 })
 
 it('blocks a delayed collection arm while developer mode is being disabled', async () => {
@@ -192,7 +191,7 @@ it('blocks a delayed collection arm while developer mode is being disabled', asy
 
   expect(settings).toEqual({ enabled: false })
   expect(collection).toMatchObject({ armed: false, error: 'DEVELOPER_DISABLED' })
-  expect(electron.register).not.toHaveBeenCalled()
+  expect(shortcut.register).not.toHaveBeenCalled()
 })
 
 it('restores collection arm eligibility after a failed disable without rearming automatically', async () => {
@@ -210,14 +209,14 @@ it('restores collection arm eligibility after a failed disable without rearming 
   }
 
   expect(await fixture.invoke(DEVELOPER_CHANNELS.getSettings)).toEqual({ enabled: true })
-  expect(electron.unregister).toHaveBeenCalledTimes(1)
-  expect(electron.register).toHaveBeenCalledTimes(1)
+  expect(shortcut.unregister).toHaveBeenCalledTimes(1)
+  expect(shortcut.register).toHaveBeenCalledTimes(1)
 
   expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [2])).toMatchObject({
     armed: true,
     slots: [2]
   })
-  expect(electron.register).toHaveBeenCalledTimes(2)
+  expect(shortcut.register).toHaveBeenCalledTimes(2)
 })
 
 it('does not restore arm eligibility when a later disable starts during recovery', async () => {
@@ -295,8 +294,8 @@ it('does not restore arm eligibility when a later disable starts during recovery
 
     releaseSecondWrite()
     await expect(laterDisable).resolves.toEqual({ enabled: false })
-    expect(electron.register).toHaveBeenCalledTimes(1)
-    expect(electron.unregister).toHaveBeenCalledTimes(1)
+    expect(shortcut.register).toHaveBeenCalledTimes(1)
+    expect(shortcut.unregister).toHaveBeenCalledTimes(1)
   } finally {
     releaseRecoveryRead()
     releaseSecondWrite()
@@ -325,7 +324,7 @@ it('allows collection after the initial document load and a trusted reload', asy
   })
 
   started({}, rendererUrl, false, true)
-  expect(electron.unregister).toHaveBeenCalledTimes(1)
+  expect(shortcut.unregister).toHaveBeenCalledTimes(1)
   expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])).toMatchObject({
     armed: false
   })
@@ -348,12 +347,12 @@ it('unregisters the collection hotkey as soon as the registered main frame navig
   expect(listener).toBeTypeOf('function')
   listener?.({}, 'file:///next-document.html', false, true)
 
-  expect(electron.unregister).toHaveBeenCalledTimes(1)
+  expect(shortcut.unregister).toHaveBeenCalledTimes(1)
   expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [])).toMatchObject({
     armed: false,
     slots: []
   })
-  expect(electron.register).toHaveBeenCalledTimes(1)
+  expect(shortcut.register).toHaveBeenCalledTimes(1)
   fixture.frame.url = 'file:///next-document.html'
   const navigated = navigationHandler.mock.calls.find(
     ([eventName]) => eventName === 'did-navigate'
@@ -389,6 +388,6 @@ it('rejects collection with an actionable error when the game is elevated above 
     armed: false,
     error: 'DEVELOPER_ADMIN_REQUIRED'
   })
-  expect(electron.register).not.toHaveBeenCalled()
+  expect(shortcut.register).not.toHaveBeenCalled()
   fixture.dispose()
 })
