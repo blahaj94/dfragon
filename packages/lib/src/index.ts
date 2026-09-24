@@ -63,3 +63,5 @@ export function validateDFNickname(
 }
 
 export { estimateDNFUIScale } from './dnf-ui-scale.js'
+export { estimateDNFPartyScale, projectDNFPartyRegions } from './dnf-party-geometry.js'
+export type { DNFRectangle, DNFPartyRegionOptions } from './dnf-party-geometry.js'
