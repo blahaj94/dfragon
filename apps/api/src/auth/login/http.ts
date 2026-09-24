@@ -280,6 +280,12 @@ class LoginController {
     response.status(200).type('text/css').send(css)
   }
 
+  @Get('passkeys/icon.png')
+  async icon(@Res() response: Response): Promise<void> {
+    const icon = await readFile(new URL('../../browser/icon.png', import.meta.url))
+    response.status(200).type('image/png').send(icon)
+  }
+
   @Post('passkeys/:action')
   async browser(
     @Param('action') action: string,

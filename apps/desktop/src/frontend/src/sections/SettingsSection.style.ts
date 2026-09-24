@@ -46,7 +46,9 @@ export const styles = stylex.create({
     marginTop: 'auto',
     paddingInline: 12,
     color: colors.shellMuted,
-    display: { default: 'block', '@media (max-width: 600px)': 'none' }
+    display: { default: 'flex', '@media (max-width: 600px)': 'none' },
+    alignItems: 'center',
+    gap: 8
   },
   content: {
     flex: 1,

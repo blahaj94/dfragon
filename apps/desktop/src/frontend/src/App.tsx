@@ -11,6 +11,7 @@ import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
 import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { styles } from './App.style'
+import brandIcon from '../../../resources/brand.png'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
@@ -73,7 +74,10 @@ function App(): React.JSX.Element {
         </div>
       )}
       <footer {...stylex.props(styles.footer)}>
-        <Typo.caption>DFRAGON Desktop</Typo.caption>
+        <div {...stylex.props(styles.brand)}>
+          <img src={brandIcon} width={28} height={28} alt="" />
+          <Typo.caption>DFRAGON Desktop</Typo.caption>
+        </div>
         <Typo.caption role="status">
           {showDeveloperWorkbench ? '개발자 모드' : footerStatus}
         </Typo.caption>
