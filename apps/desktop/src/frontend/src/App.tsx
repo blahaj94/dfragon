@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
+import { Typo } from '@dfragon/ui'
 import { lightTheme } from './constants/theme.stylex'
 import { useColorTheme } from './hooks/useColorTheme'
 import { usePartyCapture } from './hooks/usePartyCapture'
@@ -72,12 +72,12 @@ function App(): React.JSX.Element {
           <DeveloperWorkbench onClose={() => setWorkbenchOpen(false)} />
         </div>
       )}
-      <footer {...stylex.props(styles.footer)}>
-        <Typo.caption>DFRAGON Desktop</Typo.caption>
-        <Typo.caption role="status">
-          {showDeveloperWorkbench ? '개발자 모드' : footerStatus}
-        </Typo.caption>
-      </footer>
+      {!showDeveloperWorkbench && (
+        <footer {...stylex.props(styles.footer)}>
+          <Typo.caption>DFRAGON Desktop</Typo.caption>
+          <Typo.caption role="status">{footerStatus}</Typo.caption>
+        </footer>
+      )}
     </main>
   )
 }

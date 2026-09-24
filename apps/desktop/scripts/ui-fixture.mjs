@@ -6,11 +6,15 @@ import { fileURLToPath } from 'node:url'
 
 const mode = process.argv[2] ?? 'desktop'
 const theme = process.argv[3] ?? 'system'
-const isModeValid = ['desktop', 'example', 'mvp'].includes(mode)
+const isModeValid = ['desktop', 'example', 'mvp', 'developer'].includes(mode)
 const isThemeValid = ['system', 'light', 'dark'].includes(theme)
-const isInputInvalid = !isModeValid || !isThemeValid
+const scenario = process.argv[4] ?? 'default'
+const isScenarioValid = ['default', 'hotkey-error', 'capture-error'].includes(scenario)
+const isInputInvalid = !isModeValid || !isThemeValid || !isScenarioValid
 if (isInputInvalid) {
-  throw new Error('Use desktop|example|mvp and system|light|dark')
+  throw new Error(
+    'Use desktop|example|mvp|developer and system|light|dark and default|hotkey-error|capture-error'
+  )
 }
 
 const previewDocument = new URL('../out/frontend/mvp-preview.html', import.meta.url)
@@ -38,8 +42,8 @@ app.whenReady().then(async () => {
 
   const window = new BrowserWindow({
     title: `DFRAGON UI fixture — ${mode} · ${theme}`,
-    width: mode === 'mvp' ? 900 : 1100,
-    height: mode === 'mvp' ? 600 : 800,
+    width: mode === 'mvp' || mode === 'developer' ? 900 : 1100,
+    height: mode === 'mvp' ? 600 : mode === 'developer' ? 980 : 800,
     show: false,
     webPreferences: {
       preload: fileURLToPath(
@@ -47,7 +51,8 @@ app.whenReady().then(async () => {
       ),
       contextIsolation: true,
       sandbox: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      additionalArguments: mode === 'developer' ? [`--developer-fixture=${scenario}`] : []
     }
   })
   window.on('page-title-updated', (event) => event.preventDefault())
@@ -113,7 +118,7 @@ app.whenReady().then(async () => {
         : window.loadFile(fileURLToPath(target), { query: { theme } })
     await Promise.all([load, isolated])
     window.show()
-    console.log(`UI fixture ready: ${mode}, ${theme}; native media disabled`)
+    console.log(`UI fixture ready: ${mode}, ${theme}, ${scenario}; native media disabled`)
   } catch (error) {
     window.destroy()
     app.quit()

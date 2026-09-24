@@ -1,0 +1,138 @@
+import { useEffect, useRef, useState } from 'react'
+import type {
+  DeveloperPartyCollectionStatus,
+  DeveloperPartyPreviewFrame,
+  DeveloperPartySlotNumber,
+  DeveloperPartyPreviewSlotWithDataUrl
+} from '../lib/developer-party'
+import { developerPartySlotDataUrl } from '../lib/developer-party'
+
+const allPartySlots: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
+
+type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots'> & {
+  slots: DeveloperPartyPreviewSlotWithDataUrl[]
+}
+
+export function useDeveloperPartyCollection(): {
+  frame: PreviewFrame | null
+  slots: DeveloperPartySlotNumber[]
+  collection: DeveloperPartyCollectionStatus | null
+  previewError: string
+  commandError: string
+  setSlotIncluded: (slot: DeveloperPartySlotNumber, included: boolean) => void
+} {
+  const [frame, setFrame] = useState<PreviewFrame | null>(null)
+  const [slots, setSlots] = useState(allPartySlots)
+  const [collection, setCollection] = useState<DeveloperPartyCollectionStatus | null>(null)
+  const [previewError, setPreviewError] = useState('')
+  const [commandError, setCommandError] = useState('')
+  const slotsRef = useRef(slots)
+  const sessionRef = useRef<{
+    active: boolean
+    polling: boolean
+    commandRevision: number
+  } | null>(null)
+
+  useEffect(() => {
+    const session = { active: true, polling: false, commandRevision: 0 }
+    sessionRef.current = session
+
+    const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
+      const commandRevision = ++session.commandRevision
+      void window.developer
+        .setPartyCollectionSlots(nextSlots)
+        .then((status) => {
+          if (session.active && commandRevision === session.commandRevision) {
+            setCollection(status)
+            setCommandError('')
+          }
+        })
+        .catch(() => {
+          if (session.active && commandRevision === session.commandRevision) {
+            setCommandError('수집 설정을 저장하지 못했습니다.')
+          }
+        })
+    }
+
+    applySlots(slotsRef.current)
+
+    async function refreshPreview(): Promise<void> {
+      if (!session.active || session.polling) {
+        return
+      }
+
+      session.polling = true
+      const commandRevision = session.commandRevision
+      try {
+        const response = await window.developer.previewParty()
+        if (!session.active) {
+          return
+        }
+
+        const nextFrame = response.frame
+          ? {
+              ...response.frame,
+              slots: response.frame.slots.map((slot) => ({
+                ...slot,
+                dataUrl: developerPartySlotDataUrl(slot)
+              }))
+            }
+          : null
+        setFrame(nextFrame)
+        setPreviewError(response.previewError ?? '')
+        if (commandRevision === session.commandRevision) {
+          setCollection(response.collection)
+          setCommandError('')
+        }
+      } catch {
+        if (session.active) {
+          setFrame(null)
+          setPreviewError('preview-failed')
+        }
+      } finally {
+        session.polling = false
+      }
+    }
+
+    void refreshPreview()
+    const interval = window.setInterval(() => void refreshPreview(), 1000)
+
+    return () => {
+      session.active = false
+      session.commandRevision += 1
+      window.clearInterval(interval)
+      if (sessionRef.current === session) {
+        sessionRef.current = null
+      }
+      void window.developer.setPartyCollectionSlots(null).catch(() => undefined)
+    }
+  }, [])
+
+  function setSlotIncluded(slot: DeveloperPartySlotNumber, included: boolean): void {
+    const nextSlots = included
+      ? [...slotsRef.current, slot].sort((left, right) => left - right)
+      : slotsRef.current.filter((selected) => selected !== slot)
+    slotsRef.current = nextSlots
+    setSlots(nextSlots)
+
+    const session = sessionRef.current
+    if (session?.active) {
+      const commandRevision = ++session.commandRevision
+      void window.developer
+        .setPartyCollectionSlots(nextSlots)
+        .then((status) => {
+          if (session.active && commandRevision === session.commandRevision) {
+            setCollection(status)
+            setCommandError('')
+          }
+        })
+        .catch(() => {
+          if (session.active && commandRevision === session.commandRevision) {
+            setCommandError('수집 설정을 저장하지 못했습니다.')
+          }
+        })
+    }
+  }
+
+  return { frame, slots, collection, previewError, commandError, setSlotIncluded }
+}

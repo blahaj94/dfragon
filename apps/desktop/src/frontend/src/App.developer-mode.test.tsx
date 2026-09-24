@@ -22,13 +22,6 @@ const capture = vi.hoisted(() => ({
 vi.mock('./hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 vi.mock('./components/CaptureControls', () => ({ CaptureControls: () => null }))
 vi.mock('./sections/LoginSection', () => ({ LoginSection: () => null }))
-vi.mock('./sections/DeveloperWorkbench', () => ({
-  DeveloperWorkbench: ({ onClose }: { onClose: () => void }) => (
-    <section aria-label="개발자 작업 공간">
-      <button onClick={onClose}>일반 화면으로 돌아가기</button>
-    </section>
-  )
-}))
 
 let container: HTMLDivElement
 let root: Root
@@ -66,7 +59,30 @@ async function click(label: string): Promise<void> {
 it('stops normal capture and preserves the party page while the workbench is open', async () => {
   const developer = {
     getSettings: vi.fn(async () => ({ enabled: false })),
-    setEnabled: vi.fn(async (enabled: boolean) => ({ enabled }))
+    setEnabled: vi.fn(async (enabled: boolean) => ({ enabled })),
+    listSamples: vi.fn(async () => []),
+    readImage: vi.fn(async () => 'data:image/png;base64,AA=='),
+    addSample: vi.fn(),
+    saveLabel: vi.fn(),
+    setSampleExcluded: vi.fn(),
+    previewParty: vi.fn(async () => ({
+      frame: null,
+      previewError: 'game-window-unavailable',
+      collection: {
+        armed: true,
+        slots: [1, 2, 3, 4],
+        revision: 0,
+        lastSavedAt: null,
+        error: null
+      }
+    })),
+    setPartyCollectionSlots: vi.fn(async (slots: number[] | null) => ({
+      armed: slots != null,
+      slots: slots ?? [],
+      revision: 0,
+      lastSavedAt: null,
+      error: null
+    }))
   }
   Object.defineProperty(window, 'developer', { configurable: true, value: developer })
 
@@ -89,6 +105,14 @@ it('stops normal capture and preserves the party page while the workbench is ope
   )
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).not.toBeNull()
   expect(container.querySelector('[aria-label="파티 캐릭터"]')?.closest('[hidden]')).not.toBeNull()
+  expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toContain(
+    '이미지 수집'
+  )
+
+  await click('정답 입력')
+  expect(container.querySelector('[aria-label="정답 입력"]')).not.toBeNull()
+  await click('이미지 수집')
+  expect(developer.setPartyCollectionSlots).toHaveBeenCalledWith(null)
 
   await click('일반 화면으로 돌아가기')
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).toBeNull()

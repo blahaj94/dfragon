@@ -11,8 +11,8 @@ export function useDeveloperSamples(): {
   saving: boolean
   error: string
   refresh: () => Promise<void>
-  addSample: (pngDataUrl: string) => Promise<DeveloperSample | null>
   saveLabel: (id: string, text: string | null) => Promise<DeveloperSample | null>
+  setSampleExcluded: (id: string, excluded: boolean) => Promise<DeveloperSample | null>
 } {
   const [snapshot, send, actor] = useMachine(developerSamplesMachine, {
     input: { api: window.developer }
@@ -38,8 +38,8 @@ export function useDeveloperSamples(): {
 
   function save(
     command:
-      | { type: typeof DEVELOPER_EVENTS.ADD_SAMPLE; pngDataUrl: string }
       | { type: typeof DEVELOPER_EVENTS.SAVE_LABEL; id: string; text: string | null }
+      | { type: typeof DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED; id: string; excluded: boolean }
   ): Promise<DeveloperSample | null> {
     const current = actor.getSnapshot()
     const event = { ...command, request: {} } as const
@@ -60,7 +60,8 @@ export function useDeveloperSamples(): {
     saving: snapshot.matches('saving'),
     error: snapshot.context.error,
     refresh,
-    addSample: (pngDataUrl) => save({ type: DEVELOPER_EVENTS.ADD_SAMPLE, pngDataUrl }),
-    saveLabel: (id, text) => save({ type: DEVELOPER_EVENTS.SAVE_LABEL, id, text })
+    saveLabel: (id, text) => save({ type: DEVELOPER_EVENTS.SAVE_LABEL, id, text }),
+    setSampleExcluded: (id, excluded) =>
+      save({ type: DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED, id, excluded })
   }
 }

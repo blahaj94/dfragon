@@ -3,11 +3,12 @@
 import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { DeveloperApi, DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSamplesApi } from '../lib/developer-samples-machine'
 import { useDeveloperSamples } from './useDeveloperSamples'
 
 type HookValue = ReturnType<typeof useDeveloperSamples>
-type SamplesApi = Pick<DeveloperApi, 'listSamples' | 'addSample' | 'saveLabel'>
+type SamplesApi = DeveloperSamplesApi
 
 function deferred<T>(): {
   promise: Promise<T>
@@ -24,7 +25,15 @@ function deferred<T>(): {
 }
 
 function sample(id: string, text: string | null = null): DeveloperSample {
-  return { id, createdAt: '2026-09-24T00:00:00.000Z', width: 120, height: 40, text }
+  return {
+    id,
+    createdAt: '2026-09-24T00:00:00.000Z',
+    width: 120,
+    height: 40,
+    text,
+    excluded: false,
+    source: null
+  } as DeveloperSample
 }
 
 let container: HTMLDivElement
@@ -76,8 +85,8 @@ it('keeps the list error and retries successfully on refresh', async () => {
       .fn()
       .mockRejectedValueOnce(new Error('read failed'))
       .mockResolvedValueOnce(rows),
-    addSample: vi.fn(),
-    saveLabel: vi.fn()
+    saveLabel: vi.fn(),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
@@ -96,52 +105,53 @@ it('keeps the list error and retries successfully on refresh', async () => {
 it('ignores refresh and saves while the initial list is pending', async () => {
   const pendingList = deferred<DeveloperSample[]>()
   const rows = [sample('one')]
-  const saved = sample('two')
+  const saved = sample('one', '저장한 정답')
   const api: SamplesApi = {
     listSamples: vi.fn().mockReturnValue(pendingList.promise),
-    addSample: vi.fn().mockResolvedValue(saved),
-    saveLabel: vi.fn()
+    saveLabel: vi.fn().mockResolvedValue(saved),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
 
   expect(current.loading).toBe(true)
   await act(async () => current.refresh())
-  await expect(current.addSample('data:image/png;base64,AA==')).resolves.toBeNull()
+  await expect(current.saveLabel('one', '저장한 정답')).resolves.toBeNull()
   expect(api.listSamples).toHaveBeenCalledOnce()
-  expect(api.addSample).not.toHaveBeenCalled()
+  expect(api.saveLabel).not.toHaveBeenCalled()
 
   await act(async () => pendingList.resolve(rows))
   expect(current.loading).toBe(false)
   expect(current.samples).toEqual(rows)
 
   await act(async () => {
-    await expect(current.addSample('data:image/png;base64,AA==')).resolves.toEqual(saved)
+    await expect(current.saveLabel('one', '저장한 정답')).resolves.toEqual(saved)
   })
-  expect(api.addSample).toHaveBeenCalledOnce()
-  expect(current.samples).toEqual([...rows, saved])
+  expect(api.saveLabel).toHaveBeenCalledExactlyOnceWith('one', '저장한 정답')
+  expect(current.samples).toEqual([saved])
 })
 
 it('returns null for a duplicate save while the first save is pending', async () => {
+  const original = sample('one', '기존 정답')
   const pendingSave = deferred<DeveloperSample>()
   const api: SamplesApi = {
-    listSamples: vi.fn().mockResolvedValue([]),
-    addSample: vi.fn().mockReturnValue(pendingSave.promise),
-    saveLabel: vi.fn()
+    listSamples: vi.fn().mockResolvedValue([original]),
+    saveLabel: vi.fn().mockReturnValue(pendingSave.promise),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
 
   let firstSave!: Promise<DeveloperSample | null>
   await act(async () => {
-    firstSave = current.addSample('data:image/png;base64,AA==')
+    firstSave = current.saveLabel('one', '첫 변경')
   })
   expect(current.saving).toBe(true)
 
-  await expect(current.addSample('data:image/png;base64,BB==')).resolves.toBeNull()
-  expect(api.addSample).toHaveBeenCalledExactlyOnceWith('data:image/png;base64,AA==')
+  await expect(current.saveLabel('one', '중복 변경')).resolves.toBeNull()
+  expect(api.saveLabel).toHaveBeenCalledExactlyOnceWith('one', '첫 변경')
 
-  const saved = sample('new')
+  const saved = sample('one', '첫 변경')
   pendingSave.resolve(saved)
   await act(async () => expect(firstSave).resolves.toEqual(saved))
   expect(current.samples).toEqual([saved])
@@ -154,8 +164,8 @@ it('ignores refresh during a save so stale list data cannot replace saved metada
   const pendingSave = deferred<DeveloperSample>()
   const api: SamplesApi = {
     listSamples: vi.fn().mockResolvedValue([original]),
-    addSample: vi.fn(),
-    saveLabel: vi.fn().mockReturnValue(pendingSave.promise)
+    saveLabel: vi.fn().mockReturnValue(pendingSave.promise),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
@@ -176,8 +186,8 @@ it('preserves existing samples and reports the original save error message', asy
   const original = sample('one', 'known label')
   const api: SamplesApi = {
     listSamples: vi.fn().mockResolvedValue([original]),
-    addSample: vi.fn(),
-    saveLabel: vi.fn().mockRejectedValue(new Error('write failed'))
+    saveLabel: vi.fn().mockRejectedValue(new Error('write failed')),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
@@ -193,18 +203,19 @@ it('preserves existing samples and reports the original save error message', asy
 })
 
 it('resolves a pending save as null on unmount and ignores its late result', async () => {
+  const original = sample('one')
   const pendingSave = deferred<DeveloperSample>()
   const api: SamplesApi = {
-    listSamples: vi.fn().mockResolvedValue([]),
-    addSample: vi.fn().mockReturnValue(pendingSave.promise),
-    saveLabel: vi.fn()
+    listSamples: vi.fn().mockResolvedValue([original]),
+    saveLabel: vi.fn().mockReturnValue(pendingSave.promise),
+    setSampleExcluded: vi.fn()
   }
   installApi(api)
   await renderHook()
 
   let saving!: Promise<DeveloperSample | null>
   await act(async () => {
-    saving = current.addSample('data:image/png;base64,AA==')
+    saving = current.saveLabel('one', '늦은 정답')
   })
   const rendersBeforeUnmount = renderCount
 
@@ -214,7 +225,7 @@ it('resolves a pending save as null on unmount and ignores its late result', asy
   })
   await expect(saving).resolves.toBeNull()
 
-  pendingSave.resolve(sample('late'))
+  pendingSave.resolve(sample('one', '늦은 정답'))
   await act(async () => Promise.resolve())
   expect(renderCount).toBe(rendersBeforeUnmount)
 })

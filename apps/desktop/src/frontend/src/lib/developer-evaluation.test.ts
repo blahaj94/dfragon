@@ -4,7 +4,6 @@ import {
   summarizeDeveloperEvaluation,
   type DeveloperEvaluation
 } from './developer-evaluation'
-import { developerDragRegion, validDeveloperCrop } from './developer-images'
 import { invertNicknamePixels } from './nickname-pixels'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 
@@ -13,7 +12,9 @@ const sample = (id: string, text: string | null): DeveloperSample => ({
   text,
   createdAt: '2026-09-24T00:00:00.000Z',
   width: 100,
-  height: 20
+  height: 20,
+  excluded: false,
+  source: null
 })
 const success = (text: string): Extract<DeveloperEvaluation, { status: 'success' }> => ({
   status: 'success' as const,
@@ -64,25 +65,7 @@ describe('개발자 모델 채점', () => {
   })
 })
 
-describe('크롭 좌표와 제품 전처리', () => {
-  it('역방향 드래그를 원본 좌표로 만들고 경계 밖·소수·빈 영역은 저장하지 않는다', () => {
-    expect(developerDragRegion({ x: 40, y: 30 }, { x: 10, y: 5 })).toEqual({
-      x: 10,
-      y: 5,
-      width: 30,
-      height: 25
-    })
-    expect(validDeveloperCrop({ x: 0, y: 0, width: 100, height: 100 }, 100, 100)).toBe(true)
-    for (const region of [
-      { x: -1, y: 0, width: 1, height: 1 },
-      { x: 99, y: 0, width: 2, height: 1 },
-      { x: 0, y: 0, width: 0, height: 1 },
-      { x: 0.5, y: 0, width: 1, height: 1 },
-      { x: NaN, y: 0, width: 1, height: 1 }
-    ]) {
-      expect(validDeveloperCrop(region, 100, 100)).toBe(false)
-    }
-  })
+describe('제품 전처리', () => {
   it('제품과 평가가 같은 반전 회색조 변환을 사용한다', () => {
     const data = new Uint8ClampedArray([255, 255, 255, 128, 0, 0, 0, 255, 100, 150, 200, 255])
     invertNicknamePixels(data)
