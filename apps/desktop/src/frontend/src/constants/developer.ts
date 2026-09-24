@@ -11,6 +11,7 @@ export const DEVELOPER_EVENTS = {
 } as const
 
 export const DEVELOPER_ERRORS = {
+  PREVIEW_FAILED: 'preview-failed',
   INVALID_SETTINGS: 'Invalid developer settings response',
   SETTINGS_API_UNAVAILABLE: 'Developer settings API unavailable',
   SAVE_REQUEST_MISSING: 'Developer sample save request missing',

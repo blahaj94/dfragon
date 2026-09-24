@@ -391,3 +391,28 @@ it('rejects collection with an actionable error when the game is elevated above 
   expect(shortcut.register).not.toHaveBeenCalled()
   fixture.dispose()
 })
+
+it('validates collection kind and reports popup detection failures without old pixels', async () => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  for (const kind of [null, {}, 'other', 1]) {
+    await expect(fixture.invoke(DEVELOPER_CHANNELS.previewParty, kind)).rejects.toThrow(
+      'DEVELOPER_INVALID_COMMAND'
+    )
+    await expect(
+      fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [3], kind)
+    ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  }
+  partyCapture.capturePartyFrame.mockImplementation(() => {
+    throw new Error('DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND')
+  })
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.previewParty, 'participants')).toMatchObject({
+    frame: null,
+    previewError: 'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND'
+  })
+  expect(partyCapture.capturePartyFrame).toHaveBeenLastCalledWith('participants')
+  expect(
+    await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [3], 'participants')
+  ).toMatchObject({ armed: true, slots: [3] })
+  fixture.dispose()
+})

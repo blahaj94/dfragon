@@ -1,9 +1,12 @@
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
 import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import type { DeveloperPartySlotNumber } from '../lib/developer-party'
 import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
+import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
+import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
 import { styles } from './DeveloperPartyCollectionSection.style'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
@@ -13,22 +16,26 @@ export function DeveloperPartyCollectionSection({
   slots,
   onSlotsChange,
   active,
-  onDisarmed
+  onDisarmed,
+  kind = 'hud',
+  onLabeling
 }: {
   onSaved: () => void
   slots: DeveloperPartySlotNumber[]
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
   active: boolean
   onDisarmed: () => void
+  kind?: DeveloperCollectionKind
+  onLabeling?: () => void
 }): React.JSX.Element | null {
-  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed)
+  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed, kind)
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame
   const rasterScale = frame && Number.isFinite(frame.scale) ? `${frame.scale.toFixed(2)}×` : null
   const errorCode =
     collection.collection?.error ??
-    (collection.commandError ? 'DEVELOPER_OPERATION_FAILED' : collection.previewError)
+    (collection.commandError ? DEVELOPER_ERROR_CODES.OPERATION_FAILED : collection.previewError)
 
   useEffect(() => {
     onSavedRef.current = onSaved
@@ -56,6 +63,10 @@ export function DeveloperPartyCollectionSection({
 
   if (!active) {
     return null
+  }
+
+  if (kind === 'participants') {
+    return <DeveloperParticipantCollectionSection collection={collection} onLabeling={onLabeling} />
   }
 
   return (

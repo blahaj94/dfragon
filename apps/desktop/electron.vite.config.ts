@@ -9,6 +9,7 @@ import { readDistributionApiOrigin } from './build/distribution-config'
 
 export default defineConfig(({ mode, command }) => ({
   main: {
+    resolve: { alias: { '@dfragon/lib': resolve('../../packages/lib/src/index.ts') } },
     define: {
       __DFRAGON_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'dfragon-development'),
       __DFRAGON_DISTRIBUTION_API_ORIGIN__: JSON.stringify(
@@ -17,7 +18,7 @@ export default defineConfig(({ mode, command }) => ({
     },
     build: {
       // Ky is ESM-only; bundle its default export into the CommonJS main process.
-      externalizeDeps: { exclude: ['ky'] },
+      externalizeDeps: { exclude: ['ky', '@dfragon/lib'] },
       lib: {
         entry: resolve('src/backend/main.ts')
       },

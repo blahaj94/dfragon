@@ -1,5 +1,7 @@
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import type {
+  DeveloperCollectionKind,
   DeveloperFrame,
   DeveloperSettings,
   DeveloperPartySlot,
@@ -11,22 +13,25 @@ import { createDeveloperCollectionSession, previewFrame } from './collection-ses
 import { createPrintScreenShortcut } from './print-screen-shortcut'
 import { assertDnfShortcutAccess, isDnfForeground } from './win32-party-capture'
 
-const PUBLIC_ERROR_CODES = new Set([
-  'DEVELOPER_NOT_ALLOWED',
-  'DEVELOPER_INVALID_COMMAND',
-  'DEVELOPER_DISABLED',
-  'DEVELOPER_STORAGE_UNAVAILABLE',
-  'DEVELOPER_SAMPLE_NOT_FOUND',
-  'DEVELOPER_CAPTURE_UNAVAILABLE',
-  'DEVELOPER_HOTKEY_UNAVAILABLE',
-  'DEVELOPER_ADMIN_REQUIRED',
-  'DEVELOPER_GAME_NOT_FOREGROUND',
-  'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
-  'DEVELOPER_OPERATION_FAILED'
+const PUBLIC_ERROR_CODES = new Set<string>([
+  DEVELOPER_ERROR_CODES.NOT_ALLOWED,
+  DEVELOPER_ERROR_CODES.INVALID_COMMAND,
+  DEVELOPER_ERROR_CODES.DISABLED,
+  DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.SAMPLE_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.ADMIN_REQUIRED,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND,
+  DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN,
+  DEVELOPER_ERROR_CODES.OPERATION_FAILED
 ])
 
 function invalidCommand(): Error {
-  return new Error('DEVELOPER_INVALID_COMMAND')
+  return new Error(DEVELOPER_ERROR_CODES.INVALID_COMMAND)
 }
 
 function requireNoArguments(args: unknown[]): void {
@@ -45,7 +50,7 @@ function requireSingleArgument(args: unknown[]): unknown {
 function sanitizedError(error: unknown): Error {
   const message = error instanceof Error ? error.message : ''
   const isPublicCode = PUBLIC_ERROR_CODES.has(message)
-  return new Error(isPublicCode ? message : 'DEVELOPER_OPERATION_FAILED')
+  return new Error(isPublicCode ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED)
 }
 
 function exactSampleId(value: unknown): string {
@@ -67,6 +72,13 @@ function exactExcluded(value: unknown): boolean {
     throw invalidCommand()
   }
   return value
+}
+
+function exactCollectionKind(value: unknown): DeveloperCollectionKind {
+  if (value === 'hud' || value === 'participants') {
+    return value
+  }
+  throw invalidCommand()
 }
 
 function exactPartySlots(value: unknown): DeveloperPartySlot[] | null {
@@ -99,13 +111,13 @@ function assertTrustedSender(
   const hasExactDocument = isFrameAttached && frame.url === documentUrl
   const isExpectedSender = isContentsAlive && event.sender === window.webContents
   if (!hasExactDocument || !isExpectedSender) {
-    throw new DeveloperStoreError('DEVELOPER_NOT_ALLOWED')
+    throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.NOT_ALLOWED)
   }
 }
 
 function rgbaToWindowsBitmap(rgba: Buffer, width: number, height: number): Buffer {
   if (rgba.length !== width * height * 4) {
-    throw new DeveloperStoreError('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   const bgra = Buffer.allocUnsafe(rgba.length)
   for (let offset = 0; offset < rgba.length; offset += 4) {
@@ -142,12 +154,14 @@ async function capturePrimaryPng(
     const bitmap = rgbaToWindowsBitmap(frame.rgba, frame.width, frame.height)
     png = nativeImage.createFromBitmap(bitmap, { width: frame.width, height: frame.height }).toPNG()
     if (png.length === 0) {
-      throw new DeveloperStoreError('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
   } catch (error) {
     const wasAccessDenied =
-      error instanceof DeveloperStoreError && error.code === 'DEVELOPER_NOT_ALLOWED'
-    failureCode = wasAccessDenied ? 'DEVELOPER_NOT_ALLOWED' : 'DEVELOPER_CAPTURE_UNAVAILABLE'
+      error instanceof DeveloperStoreError && error.code === DEVELOPER_ERROR_CODES.NOT_ALLOWED
+    failureCode = wasAccessDenied
+      ? DEVELOPER_ERROR_CODES.NOT_ALLOWED
+      : DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
   }
 
   if (hidWindow) {
@@ -157,7 +171,7 @@ async function capturePrimaryPng(
         window.showInactive()
       }
     } catch {
-      failureCode = 'DEVELOPER_CAPTURE_UNAVAILABLE'
+      failureCode = DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
     }
   }
 
@@ -165,7 +179,7 @@ async function capturePrimaryPng(
     throw new DeveloperStoreError(failureCode)
   }
   if (png == null) {
-    throw new DeveloperStoreError('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   return png
 }
@@ -256,7 +270,7 @@ export function registerDeveloperWindow(
 
   const collectionSession = createDeveloperCollectionSession({
     store,
-    capturePartyFrame: async () => (await getPartyCaptureModule()).capturePartyFrame(),
+    capturePartyFrame: async (kind) => (await getPartyCaptureModule()).capturePartyFrame(kind),
     isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),
     isTrustedContext: isTrustedMainDocument,
     registerPrintScreen: (listener) => {
@@ -421,13 +435,16 @@ export function registerDeveloperWindow(
     )
     register(DEVELOPER_CHANNELS.previewParty, (event, args) =>
       invoke(event, async (): Promise<DeveloperPartyPreviewResponse> => {
-        requireNoArguments(args)
+        if (args.length > 1) {
+          throw invalidCommand()
+        }
+        const kind = args.length === 0 ? 'hud' : exactCollectionKind(args[0])
         try {
           const settings = await store.getSettings()
           if (!settings.enabled) {
-            throw new DeveloperStoreError('DEVELOPER_DISABLED')
+            throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
           }
-          const frame = await (await getPartyCaptureModule()).capturePartyFrame()
+          const frame = await (await getPartyCaptureModule()).capturePartyFrame(kind)
           return {
             frame: previewFrame(frame),
             previewError: null,
@@ -435,10 +452,9 @@ export function registerDeveloperWindow(
           }
         } catch (error) {
           const safeCode =
-            error instanceof DeveloperStoreError &&
-            ['DEVELOPER_DISABLED', 'DEVELOPER_STORAGE_UNAVAILABLE'].includes(error.code)
-              ? error.code
-              : 'DEVELOPER_CAPTURE_UNAVAILABLE'
+            error instanceof Error && PUBLIC_ERROR_CODES.has(error.message)
+              ? error.message
+              : DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
           return {
             frame: null,
             previewError: safeCode,
@@ -449,12 +465,16 @@ export function registerDeveloperWindow(
     )
     register(DEVELOPER_CHANNELS.setPartyCollectionSlots, (event, args) =>
       invoke(event, async () => {
-        const slots = exactPartySlots(requireSingleArgument(args))
+        if (args.length < 1 || args.length > 2) {
+          throw invalidCommand()
+        }
+        const slots = exactPartySlots(args[0])
+        const kind = args.length === 1 ? 'hud' : exactCollectionKind(args[1])
         if (slots == null) {
           await collectionSession.stop()
           return collectionSession.getStatus()
         }
-        return collectionSession.setSlots(slots)
+        return collectionSession.setSlots(slots, kind)
       })
     )
 

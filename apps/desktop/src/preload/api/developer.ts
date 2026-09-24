@@ -26,8 +26,12 @@ export const setSampleExcluded: DeveloperApi['setSampleExcluded'] = (id, exclude
 export const captureFrame: DeveloperApi['captureFrame'] = () =>
   ipcRenderer.invoke(DEVELOPER_CHANNELS.captureFrame)
 
-export const previewParty: DeveloperApi['previewParty'] = () =>
-  ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty)
+export const previewParty: DeveloperApi['previewParty'] = (kind) =>
+  kind == null
+    ? ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty)
+    : ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty, kind)
 
-export const setPartyCollectionSlots: DeveloperApi['setPartyCollectionSlots'] = (slots) =>
-  ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots)
+export const setPartyCollectionSlots: DeveloperApi['setPartyCollectionSlots'] = (slots, kind) =>
+  kind == null
+    ? ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots)
+    : ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots, kind)

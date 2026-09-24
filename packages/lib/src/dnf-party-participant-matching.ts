@@ -147,7 +147,11 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
 }
 
 /** Keeps all template/pattern state local to one frame, without a process-global cache. */
-export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, heading: Uint8Array) {
+export function createParticipantHeadingMatcher(
+  frame: ParticipantGrayFrame,
+  heading: Uint8Array,
+  hasRows?: (x: number, y: number, scale: number) => boolean
+) {
   const patterns = new Map<string, Pattern>()
   // Shared by every anchor and both search passes; never return a partial candidate set.
   let remainingSamples = 64_000_000
@@ -187,6 +191,9 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
       let peak: ParticipantHeading | null = null
       for (let y = top; y <= bottom; y += 1) {
         for (let x = left; x <= right; x += 1) {
+          if (hasRows && !hasRows(x, y, scale)) {
+            continue
+          }
           const score = boundedScore(pattern, x, y)
           if (score == null) {
             return 'search-limit'
@@ -205,6 +212,9 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
         peak = null
         for (let y = Math.max(top, center.y - 2); y <= Math.min(bottom, center.y + 2); y += 1) {
           for (let x = Math.max(left, center.x - 2); x <= Math.min(right, center.x + 2); x += 1) {
+            if (hasRows && !hasRows(x, y, scale)) {
+              continue
+            }
             const score = boundedScore(full, x, y)
             if (score == null) {
               return 'search-limit'

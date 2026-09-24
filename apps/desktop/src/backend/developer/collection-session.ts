@@ -1,4 +1,7 @@
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import type {
+  DeveloperCollectionKind,
+  DeveloperParticipantWindow,
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot
@@ -18,6 +21,7 @@ export type CapturedPartyFrame = {
   scale: number
   capturedAt: string
   slots: CapturedPartySlot[]
+  participantWindow?: DeveloperParticipantWindow
 }
 
 type CollectionSampleInput = {
@@ -41,7 +45,7 @@ type CollectionStore = {
 
 type CollectionSessionOptions = {
   store: CollectionStore
-  capturePartyFrame: () => Promise<CapturedPartyFrame>
+  capturePartyFrame: (kind: DeveloperCollectionKind) => Promise<CapturedPartyFrame>
   isDnfForeground: () => boolean | Promise<boolean>
   isTrustedContext: () => boolean
   registerPrintScreen: (listener: () => void) => boolean
@@ -50,7 +54,10 @@ type CollectionSessionOptions = {
 }
 
 type CollectionSession = {
-  setSlots: (slots: DeveloperPartySlot[] | null) => Promise<DeveloperPartyCollectionStatus>
+  setSlots: (
+    slots: DeveloperPartySlot[] | null,
+    kind?: DeveloperCollectionKind
+  ) => Promise<DeveloperPartyCollectionStatus>
   beginDisable: () => Promise<void>
   setArmingEnabled: (enabled: boolean) => void
   stop: () => Promise<void>
@@ -70,26 +77,26 @@ function isValidScale(value: unknown): value is number {
 
 export function validatePartyFrame(value: unknown): asserts value is CapturedPartyFrame {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   const frame = value as Record<string, unknown>
   if (!isValidImageDimensions(frame.width, frame.height)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!isValidScale(frame.scale)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!Array.isArray(frame.slots) || frame.slots.length > 4) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
 
   const seenSlots = new Set<number>()
   for (const value of frame.slots) {
     if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     const slot = value as Record<string, unknown>
     const width = typeof slot.width === 'number' ? slot.width : Number.NaN
@@ -102,7 +109,7 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
       !Buffer.isBuffer(rgba) ||
       rgba.length !== width * height * 4
     ) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     seenSlots.add(slot.slot)
   }
@@ -115,6 +122,14 @@ export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFr
     height: frame.height,
     scale: frame.scale,
     capturedAt: frame.capturedAt,
+    ...(frame.participantWindow
+      ? {
+          participantWindow: {
+            ...frame.participantWindow,
+            rgba: Uint8Array.from(frame.participantWindow.rgba)
+          }
+        }
+      : {}),
     slots: frame.slots.map(({ slot, width, height, rgba }) => ({
       slot,
       width,
@@ -124,19 +139,22 @@ export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFr
   }
 }
 
-const PUBLIC_ERROR_CODES = new Set([
-  'DEVELOPER_DISABLED',
-  'DEVELOPER_STORAGE_UNAVAILABLE',
-  'DEVELOPER_CAPTURE_UNAVAILABLE',
-  'DEVELOPER_HOTKEY_UNAVAILABLE',
-  'DEVELOPER_ADMIN_REQUIRED',
-  'DEVELOPER_GAME_NOT_FOREGROUND',
-  'DEVELOPER_PARTY_SLOTS_NOT_FOUND'
+const PUBLIC_ERROR_CODES = new Set<string>([
+  DEVELOPER_ERROR_CODES.DISABLED,
+  DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.ADMIN_REQUIRED,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND,
+  DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN
 ])
 
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
-  return PUBLIC_ERROR_CODES.has(message) ? message : 'DEVELOPER_OPERATION_FAILED'
+  return PUBLIC_ERROR_CODES.has(message) ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED
 }
 
 export function createDeveloperCollectionSession({
@@ -152,6 +170,8 @@ export function createDeveloperCollectionSession({
   let armingEnabled = true
   let armed = false
   let slots: DeveloperPartySlot[] = []
+  let kind: DeveloperCollectionKind = 'hud'
+  let lastSavedCount = 0
   let generation = 0
   let printScreenRegistered = false
   let pendingCapture: Promise<void> | null = null
@@ -161,7 +181,7 @@ export function createDeveloperCollectionSession({
   let lastSavedAt: string | null = null
 
   function getStatus(): DeveloperPartyCollectionStatus {
-    return { armed, slots: [...slots], revision, lastSavedAt, error }
+    return { armed, slots: [...slots], revision, lastSavedAt, lastSavedCount, error }
   }
 
   function isTrusted(): boolean {
@@ -197,7 +217,8 @@ export function createDeveloperCollectionSession({
 
   async function collect(
     captureGeneration: number,
-    selectedSlots: DeveloperPartySlot[]
+    selectedSlots: DeveloperPartySlot[],
+    captureKind: DeveloperCollectionKind
   ): Promise<void> {
     try {
       const settings = await store.getSettings()
@@ -205,24 +226,24 @@ export function createDeveloperCollectionSession({
         return
       }
       if (!settings.enabled) {
-        throw new Error('DEVELOPER_DISABLED')
+        throw new Error(DEVELOPER_ERROR_CODES.DISABLED)
       }
       if (!(await isDnfForeground())) {
-        throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
+        throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
 
-      const frameValue = await capturePartyFrame()
+      const frameValue = await capturePartyFrame(captureKind)
       if (!isCurrentCapture(captureGeneration)) {
         return
       }
       validatePartyFrame(frameValue)
       if (!(await isDnfForeground())) {
-        throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
+        throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
 
       const selected = frameValue.slots.filter(({ slot }) => selectedSlots.includes(slot))
       if (selected.length === 0) {
-        throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND')
+        throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND)
       }
 
       for (const slot of selected) {
@@ -243,6 +264,9 @@ export function createDeveloperCollectionSession({
           },
           () => isCurrentCapture(captureGeneration)
         )
+        if (isCurrentCapture(captureGeneration)) {
+          lastSavedCount += 1
+        }
         lastSavedAt = frameValue.capturedAt
         revision += 1
         if (!isCurrentCapture(captureGeneration)) {
@@ -265,7 +289,8 @@ export function createDeveloperCollectionSession({
     }
     const captureGeneration = generation
     const selectedSlots = [...slots]
-    const capture = collect(captureGeneration, selectedSlots)
+    lastSavedCount = 0
+    const capture = collect(captureGeneration, selectedSlots, kind)
     pendingCapture = capture
     void capture.finally(() => {
       if (pendingCapture === capture) {
@@ -282,7 +307,8 @@ export function createDeveloperCollectionSession({
   }
 
   async function setSlots(
-    selectedSlots: DeveloperPartySlot[] | null
+    selectedSlots: DeveloperPartySlot[] | null,
+    captureKind: DeveloperCollectionKind = 'hud'
   ): Promise<DeveloperPartyCollectionStatus> {
     if (disposed) {
       return getStatus()
@@ -292,13 +318,15 @@ export function createDeveloperCollectionSession({
     const token = requestToken
     invalidate()
     error = null
+    lastSavedCount = 0
+    kind = captureKind
     if (selectedSlots == null) {
       await waitForCapture()
       return getStatus()
     }
 
     if (!armingEnabled) {
-      error = 'DEVELOPER_DISABLED'
+      error = DEVELOPER_ERROR_CODES.DISABLED
       revision += 1
       return getStatus()
     }
@@ -307,7 +335,7 @@ export function createDeveloperCollectionSession({
       new Set(selectedSlots).size !== selectedSlots.length ||
       selectedSlots.some((slot) => !PARTY_SLOTS.has(slot))
     ) {
-      error = 'DEVELOPER_INVALID_COMMAND'
+      error = DEVELOPER_ERROR_CODES.INVALID_COMMAND
       revision += 1
       return getStatus()
     }
@@ -323,14 +351,14 @@ export function createDeveloperCollectionSession({
         return getStatus()
       }
       if (!settings.enabled) {
-        error = 'DEVELOPER_DISABLED'
+        error = DEVELOPER_ERROR_CODES.DISABLED
         revision += 1
         return getStatus()
       }
 
       const registered = registerPrintScreen(onPrintScreen)
       if (!registered) {
-        error = 'DEVELOPER_HOTKEY_UNAVAILABLE'
+        error = DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE
         revision += 1
         return getStatus()
       }

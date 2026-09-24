@@ -8,7 +8,7 @@ export const styles = stylex.create({
     gap: 0,
     boxSizing: 'border-box',
     minWidth: 0,
-    padding: '12px 8px 0',
+    padding: { default: '12px 8px 0', '@media (max-width: 600px)': '12px 0 0' },
     color: colors.shellText
   },
   header: {
@@ -21,9 +21,10 @@ export const styles = stylex.create({
   },
   heading: { display: 'flex', flexDirection: 'column', gap: 4 },
   muted: { color: colors.shellMuted },
-  tabs: { display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 40 },
+  tabs: { display: 'flex', gap: 8, minHeight: 40 },
   tab: {
-    minWidth: 120,
+    minWidth: 0,
+    width: { default: 186, '@media (max-width: 600px)': 'calc((100% - 16px) / 3)' },
     height: 40,
     borderRadius: 0,
     borderBottomWidth: 2,
@@ -31,7 +32,7 @@ export const styles = stylex.create({
     borderBottomColor: 'transparent',
     color: colors.shellMuted
   },
-  tabSelected: { borderBottomColor: colors.accent, color: colors.shellText },
+  tabSelected: { borderBottomColor: '#f56c00', color: colors.shellText },
   separator: { width: '100%', height: 1, backgroundColor: colors.border, marginTop: 16 },
   tabPanel: { marginTop: 20, minWidth: 0 },
   panel: {

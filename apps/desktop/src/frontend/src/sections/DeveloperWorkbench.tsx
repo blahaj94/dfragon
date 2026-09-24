@@ -11,7 +11,8 @@ import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/
 import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
 import { styles } from './DeveloperWorkbench.style'
 
-type WorkbenchTab = 'collection' | 'labeling'
+const workbenchTabs = ['collection', 'participants', 'labeling'] as const
+type WorkbenchTab = (typeof workbenchTabs)[number]
 
 export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.JSX.Element {
   const dataset = useDeveloperSamples()
@@ -21,6 +22,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [collectionSlots, setCollectionSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
+  const [participantSlots, setParticipantSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
   const [confirmClose, setConfirmClose] = useState(false)
   const [notice, setNotice] = useState('')
   const samples = sortDeveloperWorkbenchSamples(dataset.samples as DeveloperWorkbenchSample[])
@@ -115,12 +117,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       return
     }
     event.preventDefault()
-    const nextTab: WorkbenchTab =
-      event.key === 'Home' || (event.key === 'ArrowLeft' && activeTab === 'labeling')
-        ? 'collection'
-        : event.key === 'End' || (event.key === 'ArrowRight' && activeTab === 'collection')
-          ? 'labeling'
-          : activeTab
+    const index = workbenchTabs.indexOf(activeTab)
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? 2
+          : (index + (event.key === 'ArrowRight' ? 1 : -1) + workbenchTabs.length) %
+            workbenchTabs.length
+    const nextTab = workbenchTabs[nextIndex]
     setActiveTab(nextTab)
     requestAnimationFrame(() => document.getElementById(`developer-${nextTab}-tab`)?.focus())
   }
@@ -131,7 +136,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         <div {...stylex.props(styles.heading)}>
           <Typo.h3 as="h1">개발자 작업 공간</Typo.h3>
           <Typo.txtS {...stylex.props(styles.muted)}>
-            게임 화면 크롭을 모으고 정답을 입력합니다.
+            게임 중에는 수집하고, 정답은 나중에 입력하세요.
           </Typo.txtS>
         </div>
         <ActionButton
@@ -174,6 +179,20 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           이미지 수집
         </ActionButton>
         <ActionButton
+          id="developer-participants-tab"
+          role="tab"
+          aria-selected={activeTab === 'participants'}
+          aria-controls="developer-participants-panel"
+          tabIndex={activeTab === 'participants' ? 0 : -1}
+          size="small"
+          variant="ghost"
+          {...stylex.props(styles.tab, activeTab === 'participants' && styles.tabSelected)}
+          onKeyDown={handleTabKeyDown}
+          onClick={() => setActiveTab('participants')}
+        >
+          파티원창 크롭
+        </ActionButton>
+        <ActionButton
           id="developer-labeling-tab"
           role="tab"
           aria-selected={activeTab === 'labeling'}
@@ -195,11 +214,13 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
       <div {...stylex.props(styles.tabPanel)}>
         <DeveloperPartyCollectionSection
-          active={activeTab === 'collection'}
+          active={activeTab !== 'labeling'}
+          kind={activeTab === 'participants' ? 'participants' : 'hud'}
+          onLabeling={() => setActiveTab('labeling')}
           onSaved={() => void dataset.refresh()}
           onDisarmed={() => void dataset.refresh()}
-          slots={collectionSlots}
-          onSlotsChange={setCollectionSlots}
+          slots={activeTab === 'participants' ? participantSlots : collectionSlots}
+          onSlotsChange={activeTab === 'participants' ? setParticipantSlots : setCollectionSlots}
         />
         {activeTab === 'labeling' && (
           <>

@@ -1,6 +1,22 @@
 export type DeveloperSettings = { enabled: boolean }
 
 export type DeveloperPartySlot = 1 | 2 | 3 | 4
+export type DeveloperCollectionKind = 'hud' | 'participants'
+
+export type DeveloperParticipantWindow = {
+  width: number
+  height: number
+  rgba: Uint8Array
+  // Nickname rectangles relative to the detected window, in original pixels.
+  rows: {
+    slot: DeveloperPartySlot
+    occupied: boolean
+    x: number
+    y: number
+    width: number
+    height: number
+  }[]
+}
 
 export type DeveloperSampleSource = {
   slot: DeveloperPartySlot
@@ -34,6 +50,7 @@ export type DeveloperPartyPreviewFrame = {
   scale: number
   capturedAt: string
   slots: DeveloperPartyPreviewSlot[]
+  participantWindow?: DeveloperParticipantWindow
 }
 
 export type DeveloperPartyCollectionStatus = {
@@ -41,6 +58,7 @@ export type DeveloperPartyCollectionStatus = {
   slots: DeveloperPartySlot[]
   revision: number
   lastSavedAt: string | null
+  lastSavedCount?: number
   error: string | null
 }
 
@@ -59,8 +77,9 @@ export type DeveloperApi = {
   saveLabel: (id: string, text: string | null) => Promise<DeveloperSample>
   setSampleExcluded: (id: string, excluded: boolean) => Promise<DeveloperSample>
   captureFrame: () => Promise<DeveloperFrame>
-  previewParty: () => Promise<DeveloperPartyPreviewResponse>
+  previewParty: (kind?: DeveloperCollectionKind) => Promise<DeveloperPartyPreviewResponse>
   setPartyCollectionSlots: (
-    slots: DeveloperPartySlot[] | null
+    slots: DeveloperPartySlot[] | null,
+    kind?: DeveloperCollectionKind
   ) => Promise<DeveloperPartyCollectionStatus>
 }

@@ -1,4 +1,7 @@
+import { DEVELOPER_ERRORS } from '../constants/developer'
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import { useEffect, useRef, useState } from 'react'
+import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import type {
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
@@ -7,7 +10,11 @@ import type {
 } from '../lib/developer-party'
 import { developerPartySlotDataUrl } from '../lib/developer-party'
 
-type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots'> & {
+type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots' | 'participantWindow'> & {
+  kind: DeveloperCollectionKind
+  participantWindow?: NonNullable<DeveloperPartyPreviewFrame['participantWindow']> & {
+    dataUrl: string
+  }
   slots: DeveloperPartyPreviewSlotWithDataUrl[]
 }
 
@@ -42,7 +49,8 @@ export function useDeveloperPartyCollection(
   slots: DeveloperPartySlotNumber[],
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void,
   active: boolean,
-  onDisarmed: () => void
+  onDisarmed: () => void,
+  kind: DeveloperCollectionKind = 'hud'
 ): {
   frame: PreviewFrame | null
   slots: DeveloperPartySlotNumber[]
@@ -55,6 +63,15 @@ export function useDeveloperPartyCollection(
   const [collection, setCollection] = useState<DeveloperPartyCollectionStatus | null>(null)
   const [previewError, setPreviewError] = useState('')
   const [commandError, setCommandError] = useState('')
+  const [context, setContext] = useState({ active, kind })
+  // Reset in the render for changed inputs so an old mode never paints before an effect.
+  if (context.active !== active || context.kind !== kind) {
+    setContext({ active, kind })
+    setFrame(null)
+    setCollection(null)
+    setPreviewError('')
+    setCommandError('')
+  }
   const slotsRef = useRef(slots)
   const sessionRef = useRef<CollectionSession | null>(null)
   const disarmPromiseRef = useRef<Promise<void> | null>(null)
@@ -104,8 +121,11 @@ export function useDeveloperPartyCollection(
     const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
       session.commandRevision += 1
       const commandRevision = session.commandRevision
-      void window.developer
-        .setPartyCollectionSlots(nextSlots)
+      const request =
+        kind === 'hud'
+          ? window.developer.setPartyCollectionSlots(nextSlots)
+          : window.developer.setPartyCollectionSlots(nextSlots, kind)
+      void request
         .then((status) => {
           if (session.active && commandRevision === session.commandRevision) {
             setCollection(status)
@@ -129,7 +149,9 @@ export function useDeveloperPartyCollection(
       session.polling = true
       const commandRevision = session.commandRevision
       try {
-        const response = await window.developer.previewParty()
+        const response = await (kind === 'hud'
+          ? window.developer.previewParty()
+          : window.developer.previewParty(kind))
         if (!session.active) {
           return
         }
@@ -137,6 +159,13 @@ export function useDeveloperPartyCollection(
         const nextFrame = response.frame
           ? {
               ...response.frame,
+              kind,
+              participantWindow: response.frame.participantWindow
+                ? {
+                    ...response.frame.participantWindow,
+                    dataUrl: developerPartySlotDataUrl(response.frame.participantWindow)
+                  }
+                : undefined,
               slots: response.frame.slots.map((slot) => ({
                 ...slot,
                 dataUrl: developerPartySlotDataUrl(slot)
@@ -145,13 +174,24 @@ export function useDeveloperPartyCollection(
           : null
         setFrame(nextFrame)
         setPreviewError(response.previewError ?? '')
+        // The game may start after the tab opened. Retry only a recoverable capture/access check,
+        // and reuse the normal command generation so leaving the tab still cancels this arm.
+        if (
+          kind === 'participants' &&
+          response.frame?.participantWindow &&
+          !response.collection.armed &&
+          response.collection.error === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE &&
+          commandRevision === session.commandRevision
+        ) {
+          applySlots(slotsRef.current)
+        }
         if (commandRevision === session.commandRevision) {
           setCollection(response.collection)
         }
       } catch {
         if (session.active) {
           setFrame(null)
-          setPreviewError('preview-failed')
+          setPreviewError(DEVELOPER_ERRORS.PREVIEW_FAILED)
         }
       } finally {
         session.polling = false
@@ -167,7 +207,7 @@ export function useDeveloperPartyCollection(
         sessionRef.current = null
       }
     }
-  }, [active])
+  }, [active, kind])
 
   function setSlotIncluded(slot: DeveloperPartySlotNumber, included: boolean): void {
     const nextSlots = included
@@ -180,8 +220,11 @@ export function useDeveloperPartyCollection(
     if (session?.active) {
       session.commandRevision += 1
       const commandRevision = session.commandRevision
-      void window.developer
-        .setPartyCollectionSlots(nextSlots)
+      const request =
+        kind === 'hud'
+          ? window.developer.setPartyCollectionSlots(nextSlots)
+          : window.developer.setPartyCollectionSlots(nextSlots, kind)
+      void request
         .then((status) => {
           if (session.active && commandRevision === session.commandRevision) {
             setCollection(status)
@@ -196,5 +239,12 @@ export function useDeveloperPartyCollection(
     }
   }
 
-  return { frame, slots, collection, previewError, commandError, setSlotIncluded }
+  return {
+    frame: frame?.kind === kind ? frame : null,
+    slots,
+    collection,
+    previewError,
+    commandError,
+    setSlotIncluded
+  }
 }
