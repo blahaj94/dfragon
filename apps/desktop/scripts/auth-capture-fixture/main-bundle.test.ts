@@ -267,8 +267,13 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
-  if (mode === 'dfragon-development') {
-    expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('appData')
+  if (configFile === 'electron.vite.config.ts' && mode === 'dfragon-development') {
+    expect(environment.getPath).toHaveBeenCalledTimes(2)
+    expect(environment.getPath).toHaveBeenNthCalledWith(1, 'appData')
+    expect(environment.getPath).toHaveBeenNthCalledWith(2, 'userData')
+  } else if (configFile === 'electron.vite.config.ts') {
+    expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('userData')
+    expect(environment.getPath).not.toHaveBeenCalledWith('appData')
   } else {
     expect(environment.getPath).not.toHaveBeenCalled()
   }
