@@ -41,6 +41,15 @@ ul {
 small {
   word-break: keep-all;
 }
+.account-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-brand img {
+  flex: none;
+  object-fit: contain;
+}
 main:has(.auth-screen),
 main:has(#signup) {
   box-sizing: border-box;

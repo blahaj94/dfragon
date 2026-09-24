@@ -11,6 +11,7 @@ export const styles = stylex.create({
     fontFamily: 'NanumSquareNeo, sans-serif'
   },
   workbench: { minHeight: 'calc(100dvh - 32px)' },
+  brand: { display: 'flex', alignItems: 'center', gap: 8 },
   footer: {
     display: 'flex',
     flexWrap: 'wrap',

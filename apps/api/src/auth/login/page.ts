@@ -27,7 +27,7 @@ export async function passkeyPage(authorization: LoginAuthorization) {
     return values[key].replace(/[&<>"']/g, (character) => htmlEntities[character]!)
   })
   return {
-    policy: `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+    policy: `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     html
   }
 }

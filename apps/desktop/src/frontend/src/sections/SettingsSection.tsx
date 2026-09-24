@@ -1,3 +1,4 @@
+import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
@@ -105,6 +106,7 @@ export function SettingsSection({
                 </Typo.txtS>
               </ActionButton>
               <div {...stylex.props(styles.appName)}>
+                <img src={brandIcon} width={32} height={32} alt="" />
                 <Typo.caption>DFRAGON Desktop</Typo.caption>
               </div>
             </aside>

@@ -312,7 +312,12 @@ function PasskeyPage() {
     <div className={desktop ? 'auth-screen' : undefined} data-screen={screen.kind}>
       {!signup && (
         <>
-          {!desktop && <Typo.caption as="small">DFRAGON ACCOUNT</Typo.caption>}
+          {!desktop && (
+            <div className="account-brand">
+              <img src="/auth/passkeys/icon.png" width="20" height="20" alt="" />
+              <Typo.caption as="small">DFRAGON ACCOUNT</Typo.caption>
+            </div>
+          )}
           <Typo.h3 as="h1">
             {management ? '패스키 관리' : phone ? 'PC의 DFRAGON에 로그인' : '로그인'}
           </Typo.h3>
