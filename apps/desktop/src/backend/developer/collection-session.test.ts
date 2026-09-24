@@ -190,6 +190,25 @@ it('surfaces a later crop write failure while keeping earlier saved data discove
   })
 })
 
+it('does not write any selected sample when the fresh frame is missing one selected slot', async () => {
+  const fixture = setup({
+    capture: async () => frame([{ slot: 1, width: 2, height: 1, rgba: Buffer.alloc(8, 1) }])
+  })
+  await fixture.session.setSlots([1, 2])
+
+  fixture.pressPrintScreen()
+  await settleCapture()
+
+  expect(fixture.encodePng).not.toHaveBeenCalled()
+  expect(fixture.store.addCollectedSample).not.toHaveBeenCalled()
+  expect(fixture.session.getStatus()).toMatchObject({
+    armed: true,
+    revision: 1,
+    lastSavedAt: null,
+    error: 'DEVELOPER_PARTY_SLOTS_NOT_FOUND'
+  })
+})
+
 it('invalidates an arm request when a newer disarm arrives during the settings check', async () => {
   const settings = deferred<{ enabled: boolean }>()
   const fixture = setup({ enabled: true })
