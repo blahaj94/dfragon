@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
-import { createContext, runInContext } from 'node:vm'
+import { dirname, join, posix, resolve } from 'node:path'
+import { createContext, runInContext, Script } from 'node:vm'
 import { resolveConfig } from 'electron-vite'
 import { build } from 'vite'
 import { expect, it, vi } from 'vitest'
@@ -44,6 +44,7 @@ function mainEnvironment(): {
   bootstrap: () => Promise<void> | undefined
   error: ReturnType<typeof vi.fn>
   getPath: ReturnType<typeof vi.fn>
+  requireModule: (name: string) => unknown
 } {
   let bootstrap: Promise<void> | undefined
   const error = vi.fn()
@@ -143,7 +144,65 @@ function mainEnvironment(): {
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
-  return { context, bootstrap: () => bootstrap, error, getPath }
+  return { context, bootstrap: () => bootstrap, error, getPath, requireModule }
+}
+
+type EmittedMainChunk = {
+  fileName: string
+  code: string
+  isEntry: boolean
+  dynamicImports: string[]
+}
+
+function executeMainEntry(
+  entry: EmittedMainChunk,
+  chunks: ReadonlyMap<string, EmittedMainChunk>,
+  outDir: string,
+  environment: ReturnType<typeof mainEnvironment>
+): void {
+  const modules = new Map<string, { exports: Record<string, unknown> }>()
+  const requireFromChunk = (requester: string, specifier: string): unknown => {
+    if (specifier.startsWith('.')) {
+      return loadChunk(posix.join(posix.dirname(requester), specifier))
+    }
+    return environment.requireModule(specifier)
+  }
+  const loadChunk = (fileName: string): Record<string, unknown> => {
+    const normalized = posix.normalize(fileName)
+    const emitted = chunks.get(normalized)
+    if (!emitted) {
+      throw new Error(`Main bundle is missing emitted chunk "${normalized}".`)
+    }
+    const cached = modules.get(normalized)
+    if (cached) {
+      return cached.exports
+    }
+
+    const module = { exports: {} as Record<string, unknown> }
+    modules.set(normalized, module)
+    const filename = resolve(outDir, ...normalized.split('/'))
+    const requireChunk = (specifier: string): unknown => requireFromChunk(normalized, specifier)
+    const wrapper = new Script(
+      `(function (exports, require, module, __filename, __dirname) {\n${emitted.code}\n})`,
+      { filename }
+    ).runInContext(environment.context) as (
+      exports: Record<string, unknown>,
+      require: (name: string) => unknown,
+      module: { exports: Record<string, unknown> },
+      filename: string,
+      dirname: string
+    ) => void
+    wrapper(module.exports, requireChunk, module, filename, dirname(filename))
+    // CJS output expresses dynamic imports as deferred relative require calls. Load them here
+    // after executing the entry so the harness resolves every emitted chunk through that path.
+    for (const importedChunk of emitted.dynamicImports) {
+      const specifier = importedChunk.startsWith('.') ? importedChunk : `./${importedChunk}`
+      requireFromChunk(normalized, specifier)
+    }
+    return module.exports
+  }
+
+  loadChunk(entry.fileName)
 }
 
 it.each([
@@ -161,7 +220,7 @@ it.each([
   })
   const isOutputArray = Array.isArray(output)
   const bundles = isOutputArray ? output : [output]
-  const chunks: string[] = []
+  const chunks: EmittedMainChunk[] = []
   for (const bundle of bundles) {
     const hasOutput = 'output' in bundle
     if (!hasOutput) {
@@ -170,11 +229,21 @@ it.each([
     for (const item of bundle.output) {
       const isChunk = item.type === 'chunk'
       if (isChunk) {
-        chunks.push(item.code)
+        chunks.push({
+          fileName: item.fileName,
+          code: item.code,
+          isEntry: item.isEntry,
+          dynamicImports: item.dynamicImports
+        })
       }
     }
   }
-  expect(chunks).toHaveLength(1)
+  const entries = chunks.filter((chunk) => chunk.isEntry)
+  expect(entries).toHaveLength(1)
+  const entry = entries[0]
+  if (!entry) {
+    throw new Error('Expected one emitted main entry chunk')
+  }
   const environment = mainEnvironment()
   if (mode === 'dfragon-development') {
     // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
@@ -182,8 +251,13 @@ it.each([
     environment.context.process.platform = 'win32'
     environment.context.process.env = {}
   }
-  environment.context.__dirname = dirname(resolve(main!.build!.outDir!, 'main.cjs'))
-  runInContext(chunks[0], environment.context)
+  environment.context.__dirname = dirname(resolve(main!.build!.outDir!, entry.fileName))
+  executeMainEntry(
+    entry,
+    new Map(chunks.map((chunk) => [chunk.fileName, chunk])),
+    main!.build!.outDir!,
+    environment
+  )
   let failure: string | null = null
   try {
     await environment.bootstrap()
