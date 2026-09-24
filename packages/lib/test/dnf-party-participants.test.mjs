@@ -182,6 +182,37 @@ test('reports the search limit without silently ignoring excess red candidates',
   assert.deepEqual(cropDNFPartyParticipantNicknames(image, heading), { status: 'search-limit' })
 })
 
+test('bounds matching work for 128 large red candidates on a full-HD frame', () => {
+  const image = frame(1920, 1080)
+  for (let index = 0; index < 128; index += 1) {
+    paint(
+      image,
+      900 + (index % 16) * 45,
+      150 + Math.floor(index / 16) * 80,
+      21,
+      21,
+      [235, 20, 25, 255]
+    )
+  }
+  assert.deepEqual(detectDNFPartyParticipantWindow(image, heading), { status: 'search-limit' })
+})
+
+test('does not return a partial match when later candidates exhaust the matching budget', () => {
+  const image = frame(1920, 1080)
+  popup(image, { x: 200, y: 100 })
+  for (let index = 0; index < 100; index += 1) {
+    paint(
+      image,
+      900 + (index % 16) * 45,
+      250 + Math.floor(index / 16) * 80,
+      21,
+      21,
+      [235, 20, 25, 255]
+    )
+  }
+  assert.equal(cropDNFPartyParticipantNicknames(image, heading).status, 'search-limit')
+})
+
 test('rejects invalid dimensions, byte layouts, and invalid heading templates', () => {
   const image = frame()
   for (const invalid of [

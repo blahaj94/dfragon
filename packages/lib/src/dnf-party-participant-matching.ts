@@ -2,6 +2,7 @@
 export type ParticipantGrayFrame = { width: number; height: number; pixels: Uint8Array }
 export type ParticipantAnchor = { x: number; y: number; scale: number }
 export type ParticipantHeading = { x: number; y: number; scale: number; score: number }
+type HeadingMatch = ParticipantHeading | 'search-limit' | null
 
 type Pattern = {
   width: number
@@ -14,7 +15,11 @@ type Pattern = {
 /** Uses the experiment's ties-to-even rounding for raster boundaries. */
 export function roundParticipantPixel(value: number): number {
   const floor = Math.floor(value)
-  return value - floor === 0.5 ? floor + Math.abs(floor % 2) : Math.round(value)
+  // Scale refinement and projection can move a mathematical half by a few float ulps.
+  const tolerance = 4 * Number.EPSILON * Math.max(1, Math.abs(value))
+  return Math.abs(value - floor - 0.5) <= tolerance
+    ? floor + Math.abs(floor % 2)
+    : Math.round(value)
 }
 
 /** Builds a grayscale copy; raw RGBA is kept intact for the eventual crops. */
@@ -144,6 +149,17 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
 /** Keeps all template/pattern state local to one frame, without a process-global cache. */
 export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, heading: Uint8Array) {
   const patterns = new Map<string, Pattern>()
+  // Shared by every anchor and both search passes; never return a partial candidate set.
+  let remainingSamples = 64_000_000
+
+  function boundedScore(pattern: Pattern, x: number, y: number): number | null {
+    if (pattern.offsets.length > remainingSamples) {
+      return null
+    }
+    remainingSamples -= pattern.offsets.length
+    return headingScore(frame, pattern, x, y)
+  }
+
   function patternFor(scale: number, sparse: boolean): Pattern {
     const width = roundParticipantPixel(368 * scale)
     const height = roundParticipantPixel(17 * scale)
@@ -156,11 +172,7 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
     return pattern
   }
 
-  function search(
-    anchor: ParticipantAnchor,
-    scales: number[],
-    dense: boolean
-  ): ParticipantHeading | null {
+  function search(anchor: ParticipantAnchor, scales: number[], dense: boolean): HeadingMatch {
     let best: ParticipantHeading | null = null
     for (const scale of scales) {
       const pattern = patternFor(scale, true)
@@ -175,7 +187,10 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
       let peak: ParticipantHeading | null = null
       for (let y = top; y <= bottom; y += 1) {
         for (let x = left; x <= right; x += 1) {
-          const score = headingScore(frame, pattern, x, y)
+          const score = boundedScore(pattern, x, y)
+          if (score == null) {
+            return 'search-limit'
+          }
           if (peak == null || score > peak.score) {
             peak = { x, y, scale, score }
           }
@@ -190,7 +205,10 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
         peak = null
         for (let y = Math.max(top, center.y - 2); y <= Math.min(bottom, center.y + 2); y += 1) {
           for (let x = Math.max(left, center.x - 2); x <= Math.min(right, center.x + 2); x += 1) {
-            const score = headingScore(frame, full, x, y)
+            const score = boundedScore(full, x, y)
+            if (score == null) {
+              return 'search-limit'
+            }
             if (peak == null || score > peak.score) {
               peak = { x, y, scale, score }
             }
@@ -204,7 +222,7 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
     return best
   }
 
-  return (anchor: ParticipantAnchor): ParticipantHeading | null => {
+  return (anchor: ParticipantAnchor): HeadingMatch => {
     const scales = new Set<number>([1, 1.8])
     const start = Math.max(0.64, anchor.scale * 0.78)
     const end = Math.min(2.4, anchor.scale * 1.24) + 0.01
@@ -216,6 +234,9 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
       [...scales].sort((a, b) => a - b),
       false
     )
+    if (coarse === 'search-limit') {
+      return coarse
+    }
     if (coarse == null || coarse.score < 0.6) {
       return null
     }
@@ -224,6 +245,9 @@ export function createParticipantHeadingMatcher(frame: ParticipantGrayFrame, hea
       Array.from({ length: 21 }, (_, index) => coarse.scale + (index - 10) * 0.0025),
       true
     )
+    if (refined === 'search-limit') {
+      return refined
+    }
     return refined != null && refined.score >= 0.68 ? refined : null
   }
 }

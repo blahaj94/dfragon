@@ -147,6 +147,9 @@ export function detectDNFPartyParticipantWindow(
   const candidates: { heading: ParticipantHeading; window: DNFRectangle }[] = []
   for (const anchor of anchors) {
     const matched = matchHeading(anchor)
+    if (matched === 'search-limit') {
+      return { status: 'search-limit' }
+    }
     if (matched == null) {
       continue
     }
