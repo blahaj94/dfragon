@@ -17,6 +17,7 @@ win:
     - target: nsis
       arch: [x64]
 nsis:
+  language: '1042'
   oneClick: true
   artifactName: ${productName}-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
@@ -53,3 +54,4 @@ electronFuses:
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
 publish: null
+afterAllArtifactBuild: ./scripts/set-portable-exe-language.mjs

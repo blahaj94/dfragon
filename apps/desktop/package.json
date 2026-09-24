@@ -73,6 +73,7 @@
     "jsdom": "^30.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "resedit": "1.7.2",
     "typescript": "^5.9.3",
     "vite": "^7.2.6",
     "vitest": "^4.1.11",
