@@ -77,3 +77,4 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 - [`reference/repository-map.md`](reference/repository-map.md): workspace, app, command 현황
 - [`reference/desktop-party-geometry.md`](reference/desktop-party-geometry.md): Desktop party frame의 관측값, 후보 geometry 함수와 남은 검증
+- [`reference/desktop-party-participants.md`](reference/desktop-party-participants.md): 이동 가능한 파티참가인원 팝업의 검출·빈 행 판정·닉네임 크롭과 검증 범위
