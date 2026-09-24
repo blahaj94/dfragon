@@ -127,7 +127,11 @@ export function createPrintScreenShortcut({
           }
           handled = handledPress && foreground
         } else if (event === WM_KEYUP || event === WM_SYSKEYUP) {
-          handled = handledPress && foreground
+          // Accept a release-only Print Screen, but never recapture a known down/up sequence.
+          if (!keyDown && foreground) {
+            notifyLater()
+          }
+          handled = (handledPress || !keyDown) && foreground
           keyDown = false
           handledPress = false
         }

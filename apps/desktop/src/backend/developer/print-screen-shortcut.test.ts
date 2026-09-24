@@ -86,17 +86,46 @@ it('swallows one foreground Print Screen sequence, defers capture, and ignores r
   shortcut.unregister()
 })
 
-it('chains other keys, negative hook codes and an unmatched key release without capturing', () => {
+it('chains other keys and negative hook codes without capturing', () => {
   const { shortcut, listener, key, api, isGameForeground } = setup()
   shortcut.register(listener)
   expect(key(KEY_DOWN, -1)).toBe(77n)
   expect(api.readVirtualKey).not.toHaveBeenCalled()
   expect(key(KEY_DOWN, 0, 0x41)).toBe(77n)
   expect(isGameForeground).not.toHaveBeenCalled()
-  expect(key(KEY_UP)).toBe(77n)
   expect(listener).not.toHaveBeenCalled()
   expect(api.callNext).toHaveBeenNthCalledWith(1, -1, KEY_DOWN, 30n)
   shortcut.unregister()
+})
+
+it('captures release-only Print Screen in the game without requiring a preceding keydown', () => {
+  vi.useFakeTimers()
+  const { shortcut, listener, key, api } = setup()
+  shortcut.register(listener)
+  expect(key(KEY_UP)).toBe(1)
+  expect(listener).not.toHaveBeenCalled()
+  vi.runAllTimers()
+  expect(listener).toHaveBeenCalledTimes(1)
+  expect(key(0x105)).toBe(1)
+  vi.runAllTimers()
+  expect(listener).toHaveBeenCalledTimes(2)
+  expect(api.callNext).not.toHaveBeenCalled()
+  shortcut.unregister()
+})
+
+it('passes release-only Print Screen outside the game and cancels it when unregistered', () => {
+  vi.useFakeTimers()
+  const { shortcut, listener, key, isGameForeground } = setup()
+  shortcut.register(listener)
+  isGameForeground.mockReturnValue(false)
+  expect(key(KEY_UP)).toBe(77n)
+  vi.runAllTimers()
+  expect(listener).not.toHaveBeenCalled()
+  isGameForeground.mockReturnValue(true)
+  expect(key(KEY_UP)).toBe(1)
+  shortcut.unregister()
+  vi.runAllTimers()
+  expect(listener).not.toHaveBeenCalled()
 })
 
 it('does not capture a press started outside the game when focus changes during repeats', () => {
