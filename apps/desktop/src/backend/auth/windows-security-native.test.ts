@@ -826,7 +826,9 @@ describe('Windows security native boundary', () => {
 
     const getLengthSidCallsBeforeOutOfRange = getLengthSidArguments.length
     returnOutOfRangeTokenSid = true
-    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe('unavailable')
+    expect(native.inspect(String.raw`C:\Users\Alice\DfragonProfile`, 'directory')).toBe(
+      'unavailable'
+    )
     expect(getLengthSidArguments.length).toBe(getLengthSidCallsBeforeOutOfRange)
     returnOutOfRangeTokenSid = false
 

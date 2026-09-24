@@ -1,7 +1,14 @@
 import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Typo, ActionButton, DialogRoot, DialogTrigger, DialogContent, DialogBody } from '@dfragon/ui'
+import {
+  Typo,
+  ActionButton,
+  DialogRoot,
+  DialogTrigger,
+  DialogContent,
+  DialogBody
+} from '@dfragon/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'

@@ -483,7 +483,11 @@ it('Electron defaultApp은 executable과 app path를 제외한 user argv만 lock
   stubTrustedRuntimeEnvironment()
   const originalArgv = process.argv
   const originalDefaultApp = Object.getOwnPropertyDescriptor(process, 'defaultApp')
-  const argv = ['C:\\Program Files\\Electron\\electron.exe', 'C:\\workspace\\dfragon', '--new-window']
+  const argv = [
+    'C:\\Program Files\\Electron\\electron.exe',
+    'C:\\workspace\\dfragon',
+    '--new-window'
+  ]
   process.argv = argv
   Object.defineProperty(process, 'defaultApp', { configurable: true, value: true })
 

@@ -29,7 +29,9 @@ export function createAuthBrowser(
         managementWindow.focus()
         return
       }
-      const isolatedSession = session.fromPartition(`dfragon-auth-${randomUUID()}`, { cache: false })
+      const isolatedSession = session.fromPartition(`dfragon-auth-${randomUUID()}`, {
+        cache: false
+      })
       isolatedSession.setPermissionRequestHandler((_contents, _permission, callback) =>
         callback(false)
       )

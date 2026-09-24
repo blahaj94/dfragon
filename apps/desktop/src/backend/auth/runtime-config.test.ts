@@ -212,7 +212,10 @@ describe('desktop auth runtime config', () => {
       readWithPathSemantics({ ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: nativePath }, win32)
     ).toMatchObject({ userDataPath: nativePath })
     expect(
-      readWithPathSemantics({ ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: separatorAlias }, win32)
+      readWithPathSemantics(
+        { ...validEnvironment, DFRAGON_AUTH_USER_DATA_PATH: separatorAlias },
+        win32
+      )
     ).toBeNull()
   })
 

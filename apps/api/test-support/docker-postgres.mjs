@@ -517,6 +517,9 @@ export async function teardownPostgres(resources) {
 export async function assertResourcesAbsent(runId) {
   validateRunId(runId)
   const suffix = runId.slice(0, 48)
-  assert.equal(await inspectOwnership({ kind: 'container', name: `dfragon-db-${suffix}` }), undefined)
+  assert.equal(
+    await inspectOwnership({ kind: 'container', name: `dfragon-db-${suffix}` }),
+    undefined
+  )
   assert.equal(await inspectOwnership({ kind: 'volume', name: `dfragon-db-${suffix}` }), undefined)
 }

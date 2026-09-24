@@ -155,5 +155,8 @@ globalThis.fetch = (input, options) => {
     'https://api.neople.co.kr',
     'unexpected outbound request in runtime test'
   )
-  return nativeFetch(`${process.env.DFRAGON_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`, options)
+  return nativeFetch(
+    `${process.env.DFRAGON_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`,
+    options
+  )
 }

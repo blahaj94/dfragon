@@ -13,7 +13,9 @@ export function readAppAuthConfig(application: {
   const isDevelopmentBuild =
     typeof __DFRAGON_DEVELOPMENT_AUTH__ !== 'undefined' && __DFRAGON_DEVELOPMENT_AUTH__
   const distributionOrigin =
-    typeof __DFRAGON_DISTRIBUTION_API_ORIGIN__ !== 'undefined' ? __DFRAGON_DISTRIBUTION_API_ORIGIN__ : null
+    typeof __DFRAGON_DISTRIBUTION_API_ORIGIN__ !== 'undefined'
+      ? __DFRAGON_DISTRIBUTION_API_ORIGIN__
+      : null
   if (!isDevelopmentBuild && distributionOrigin == null) {
     return readAuthRuntimeConfig()
   }
@@ -36,7 +38,9 @@ export function readAppApiOrigin(): string | null {
   const isDevelopmentBuild =
     typeof __DFRAGON_DEVELOPMENT_AUTH__ !== 'undefined' && __DFRAGON_DEVELOPMENT_AUTH__
   const distributionOrigin =
-    typeof __DFRAGON_DISTRIBUTION_API_ORIGIN__ !== 'undefined' ? __DFRAGON_DISTRIBUTION_API_ORIGIN__ : null
+    typeof __DFRAGON_DISTRIBUTION_API_ORIGIN__ !== 'undefined'
+      ? __DFRAGON_DISTRIBUTION_API_ORIGIN__
+      : null
   const origin = isDevelopmentBuild
     ? development.apiOrigin
     : (distributionOrigin ?? process.env['DFRAGON_AUTH_API_ORIGIN'])

@@ -31,7 +31,10 @@ it.each(['missing owner', 'wrong parent', 'outside temp directory'])(
     const hasWrongParent = mode === 'wrong parent'
     const hasWrongDirectory = mode === 'outside temp directory'
     if (hasWrongParent) {
-      vi.stubEnv('DFRAGON_AUTH_CAPTURE_PROFILE', join(tmpdir(), 'dfragon-auth-capture-fixture-unit01'))
+      vi.stubEnv(
+        'DFRAGON_AUTH_CAPTURE_PROFILE',
+        join(tmpdir(), 'dfragon-auth-capture-fixture-unit01')
+      )
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', '0')
     }
     if (hasWrongDirectory) {
