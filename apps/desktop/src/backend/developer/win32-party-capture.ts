@@ -1,6 +1,6 @@
 import { win32 as win32Path } from 'node:path'
 import { createRequire } from 'node:module'
-import { detectPartyFrameGeometry } from './party-frame-geometry'
+import { detectPartyFrameGeometry, PartyFrameGeometryError } from './party-frame-geometry'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'
 import { bgrxToRgba } from './win32-capture'
 
@@ -691,6 +691,9 @@ export function capturePartyFrame(): PartyFrameCapture {
   try {
     return capturePartyFrameWithApi(getApi())
   } catch (error) {
+    if (error instanceof PartyFrameGeometryError) {
+      throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND', { cause: error })
+    }
     if (error instanceof Error && error.message.startsWith('DEVELOPER_')) {
       throw error
     }
