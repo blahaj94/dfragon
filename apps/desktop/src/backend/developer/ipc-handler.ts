@@ -1,7 +1,18 @@
-import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
-import type { DeveloperFrame } from '../../preload/common/types/developer'
+import {
+  globalShortcut,
+  ipcMain,
+  nativeImage,
+  type BrowserWindow,
+  type IpcMainInvokeEvent
+} from 'electron'
+import type {
+  DeveloperFrame,
+  DeveloperPartySlot,
+  DeveloperPartyPreviewResponse
+} from '../../preload/common/types/developer'
 import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
 import { createDeveloperStore, DeveloperStoreError } from './persistence'
+import { createDeveloperCollectionSession, previewFrame } from './collection-session'
 
 const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_NOT_ALLOWED',
@@ -10,6 +21,9 @@ const PUBLIC_ERROR_CODES = new Set([
   'DEVELOPER_STORAGE_UNAVAILABLE',
   'DEVELOPER_SAMPLE_NOT_FOUND',
   'DEVELOPER_CAPTURE_UNAVAILABLE',
+  'DEVELOPER_HOTKEY_UNAVAILABLE',
+  'DEVELOPER_GAME_NOT_FOREGROUND',
+  'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
   'DEVELOPER_OPERATION_FAILED'
 ])
 
@@ -48,6 +62,28 @@ function exactLabel(value: unknown): string | null {
     throw invalidCommand()
   }
   return value
+}
+
+function exactExcluded(value: unknown): boolean {
+  if (typeof value !== 'boolean') {
+    throw invalidCommand()
+  }
+  return value
+}
+
+function exactPartySlots(value: unknown): DeveloperPartySlot[] | null {
+  if (value === null) {
+    return null
+  }
+  if (!Array.isArray(value)) {
+    throw invalidCommand()
+  }
+  const isPartySlot = (slot: unknown): slot is DeveloperPartySlot =>
+    slot === 1 || slot === 2 || slot === 3 || slot === 4
+  if (value.some((slot) => !isPartySlot(slot)) || new Set(value).size !== value.length) {
+    throw invalidCommand()
+  }
+  return [...value]
 }
 
 function assertTrustedSender(
@@ -154,6 +190,56 @@ export function registerDeveloperWindow(
   })
   let disposed = false
   const registeredChannels: string[] = []
+  let partyCaptureModule: Promise<typeof import('./win32-party-capture')> | null = null
+  let settingsMutationTail: Promise<void> = Promise.resolve()
+  let settingsMutationRevision = 0
+
+  function serializeSettingsMutation<T>(operation: () => Promise<T>): Promise<T> {
+    const result = settingsMutationTail.then(operation, operation)
+    settingsMutationTail = result.then(
+      () => undefined,
+      () => undefined
+    )
+    return result
+  }
+
+  function getPartyCaptureModule(): Promise<typeof import('./win32-party-capture')> {
+    partyCaptureModule ??= import('./win32-party-capture')
+    return partyCaptureModule
+  }
+
+  function isTrustedMainDocument(): boolean {
+    const isWindowAlive = !disposed && !window.isDestroyed()
+    const isContentsAlive = isWindowAlive && !window.webContents.isDestroyed()
+    const frame = isContentsAlive ? window.webContents.mainFrame : null
+    return (
+      frame != null && !frame.isDestroyed() && !frame.detached && frame.url === rendererDocumentUrl
+    )
+  }
+
+  function onMainFrameNavigation(
+    _event: Electron.Event,
+    _navigationUrl: string,
+    _isInPlace: boolean,
+    isMainFrame: boolean
+  ): void {
+    if (isMainFrame) {
+      void collectionSession.dispose()
+    }
+  }
+
+  const collectionSession = createDeveloperCollectionSession({
+    store,
+    capturePartyFrame: async () => (await getPartyCaptureModule()).capturePartyFrame(),
+    isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),
+    isTrustedContext: isTrustedMainDocument,
+    registerPrintScreen: (listener) => globalShortcut.register('PrintScreen', listener),
+    unregisterPrintScreen: () => globalShortcut.unregister('PrintScreen'),
+    encodePng: (rgba, width, height) =>
+      nativeImage
+        .createFromBitmap(rgbaToWindowsBitmap(rgba, width, height), { width, height })
+        .toPNG()
+  })
 
   async function invoke<T>(event: IpcMainInvokeEvent, operation: () => Promise<T>): Promise<T> {
     try {
@@ -189,6 +275,8 @@ export function registerDeveloperWindow(
     registeredChannels.length = 0
     window.removeListener('closed', dispose)
     window.webContents.removeListener('destroyed', dispose)
+    window.webContents.removeListener('did-start-navigation', onMainFrameNavigation)
+    void collectionSession.dispose()
   }
 
   try {
@@ -204,7 +292,26 @@ export function registerDeveloperWindow(
         if (typeof enabled !== 'boolean') {
           throw invalidCommand()
         }
-        return store.setEnabled(enabled)
+        if (!enabled) {
+          const mutation = ++settingsMutationRevision
+          const pendingStop = collectionSession.beginDisable()
+          return serializeSettingsMutation(async () => {
+            await pendingStop
+            const settings = await store.setEnabled(false)
+            if (mutation === settingsMutationRevision) {
+              collectionSession.setArmingEnabled(false)
+            }
+            return settings
+          })
+        }
+        const mutation = ++settingsMutationRevision
+        return serializeSettingsMutation(async () => {
+          const settings = await store.setEnabled(true)
+          if (mutation === settingsMutationRevision && settings.enabled) {
+            collectionSession.setArmingEnabled(true)
+          }
+          return settings
+        })
       })
     )
     register(DEVELOPER_CHANNELS.listSamples, (event, args) =>
@@ -233,6 +340,14 @@ export function registerDeveloperWindow(
         return store.saveLabel(exactSampleId(args[0]), exactLabel(args[1]))
       })
     )
+    register(DEVELOPER_CHANNELS.setSampleExcluded, (event, args) =>
+      invoke(event, async () => {
+        if (args.length !== 2) {
+          throw invalidCommand()
+        }
+        return store.setSampleExcluded(exactSampleId(args[0]), exactExcluded(args[1]))
+      })
+    )
     register(DEVELOPER_CHANNELS.captureFrame, (event, args) =>
       invoke(event, async (): Promise<DeveloperFrame> => {
         requireNoArguments(args)
@@ -241,9 +356,48 @@ export function registerDeveloperWindow(
         )
       })
     )
+    register(DEVELOPER_CHANNELS.previewParty, (event, args) =>
+      invoke(event, async (): Promise<DeveloperPartyPreviewResponse> => {
+        requireNoArguments(args)
+        try {
+          const settings = await store.getSettings()
+          if (!settings.enabled) {
+            throw new DeveloperStoreError('DEVELOPER_DISABLED')
+          }
+          const frame = await (await getPartyCaptureModule()).capturePartyFrame()
+          return {
+            frame: previewFrame(frame),
+            previewError: null,
+            collection: collectionSession.getStatus()
+          }
+        } catch (error) {
+          const safeCode =
+            error instanceof DeveloperStoreError &&
+            ['DEVELOPER_DISABLED', 'DEVELOPER_STORAGE_UNAVAILABLE'].includes(error.code)
+              ? error.code
+              : 'DEVELOPER_CAPTURE_UNAVAILABLE'
+          return {
+            frame: null,
+            previewError: safeCode,
+            collection: collectionSession.getStatus()
+          }
+        }
+      })
+    )
+    register(DEVELOPER_CHANNELS.setPartyCollectionSlots, (event, args) =>
+      invoke(event, async () => {
+        const slots = exactPartySlots(requireSingleArgument(args))
+        if (slots == null) {
+          await collectionSession.stop()
+          return collectionSession.getStatus()
+        }
+        return collectionSession.setSlots(slots)
+      })
+    )
 
     window.on('closed', dispose)
     window.webContents.on('destroyed', dispose)
+    window.webContents.on('did-start-navigation', onMainFrameNavigation)
   } catch (error) {
     dispose()
     throw sanitizedError(error)

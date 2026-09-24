@@ -12,9 +12,12 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     'captureFrame',
     'getSettings',
     'listSamples',
+    'previewParty',
     'readImage',
     'saveLabel',
-    'setEnabled'
+    'setEnabled',
+    'setPartyCollectionSlots',
+    'setSampleExcluded'
   ])
 
   await developer.getSettings()
@@ -23,7 +26,10 @@ it('exposes only typed developer operations through namespaced IPC channels', as
   await developer.readImage('00000000-0000-4000-8000-000000000001')
   await developer.addSample('data:image/png;base64,AA==')
   await developer.saveLabel('00000000-0000-4000-8000-000000000001', '')
+  await developer.setSampleExcluded('00000000-0000-4000-8000-000000000001', true)
   await developer.captureFrame()
+  await developer.previewParty()
+  await developer.setPartyCollectionSlots([1, 4])
 
   expect(renderer.invoke.mock.calls).toEqual([
     ['developer:getSettings'],
@@ -32,6 +38,9 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     ['developer:readImage', '00000000-0000-4000-8000-000000000001'],
     ['developer:addSample', 'data:image/png;base64,AA=='],
     ['developer:saveLabel', '00000000-0000-4000-8000-000000000001', ''],
-    ['developer:captureFrame']
+    ['developer:setSampleExcluded', '00000000-0000-4000-8000-000000000001', true],
+    ['developer:captureFrame'],
+    ['developer:previewParty'],
+    ['developer:setPartyCollectionSlots', [1, 4]]
   ])
 })

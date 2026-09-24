@@ -80,6 +80,68 @@ it('stores original PNG bytes and distinguishes unlabeled, empty, and nonempty l
   expect((await store.saveLabel(sample.id, null)).text).toBeNull()
 })
 
+it('persists exclusion independently from the label and restores legacy sample metadata', async () => {
+  const { rootDir, store } = await createStore()
+  await store.setEnabled(true)
+  const sample = await store.addSample(`data:image/png;base64,${png().toString('base64')}`)
+  const metadataPath = join(rootDir, 'developer-mode', 'samples', `${sample.id}.json`)
+
+  await writeFile(
+    metadataPath,
+    JSON.stringify({
+      id: sample.id,
+      createdAt: sample.createdAt,
+      width: sample.width,
+      height: sample.height,
+      text: 'kept label'
+    })
+  )
+
+  const restored = (await store.listSamples())[0]
+  expect(restored).toMatchObject({ excluded: false, source: null, text: 'kept label' })
+  const excluded = await store.setSampleExcluded(sample.id, true)
+  expect(excluded).toMatchObject({ excluded: true, source: null, text: 'kept label' })
+  expect(JSON.parse((await readFile(metadataPath)).toString('utf8'))).toMatchObject({
+    excluded: true,
+    source: null,
+    text: 'kept label'
+  })
+
+  const reopened = createDeveloperStore({
+    rootDir,
+    decodePng: (value) => ({ width: value.readUInt32BE(16), height: value.readUInt32BE(20) })
+  })
+  expect((await reopened.listSamples())[0]).toMatchObject({
+    id: sample.id,
+    excluded: true,
+    source: null,
+    text: 'kept label'
+  })
+})
+
+it('stores collected source geometry and cancels before committing a sample', async () => {
+  const { rootDir, store } = await createStore()
+  await store.setEnabled(true)
+  const capturedAt = '2026-09-25T12:30:00.000Z'
+  const source = { slot: 2 as const, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
+  const sample = await store.addCollectedSample({ png: png(), capturedAt, source }, () => true)
+
+  expect(sample).toMatchObject({
+    createdAt: capturedAt,
+    width: 2,
+    height: 1,
+    excluded: false,
+    source
+  })
+  expect(await store.listSamples()).toEqual([sample])
+
+  await expect(
+    store.addCollectedSample({ png: png(), capturedAt, source }, () => false)
+  ).rejects.toThrow('DEVELOPER_COLLECTION_CANCELLED')
+  expect(await store.listSamples()).toEqual([sample])
+  expect(await readdir(join(rootDir, 'developer-mode', 'samples'))).toHaveLength(2)
+})
+
 it('serializes concurrent label updates and leaves the last submitted value', async () => {
   const { store } = await createStore()
   await store.setEnabled(true)

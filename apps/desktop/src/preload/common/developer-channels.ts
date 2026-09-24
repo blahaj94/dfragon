@@ -7,5 +7,8 @@ export const DEVELOPER_CHANNELS = {
   readImage: 'developer:readImage',
   addSample: 'developer:addSample',
   saveLabel: 'developer:saveLabel',
-  captureFrame: 'developer:captureFrame'
+  setSampleExcluded: 'developer:setSampleExcluded',
+  captureFrame: 'developer:captureFrame',
+  previewParty: 'developer:previewParty',
+  setPartyCollectionSlots: 'developer:setPartyCollectionSlots'
 } as const satisfies Record<keyof DeveloperApi, string>
