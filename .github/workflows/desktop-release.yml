@@ -38,14 +38,14 @@ jobs:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
       DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://api.example.test' || inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
       - name: Check release configuration
         id: release
         shell: bash
@@ -72,7 +72,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-x64-portable
           path: apps/desktop/dist/DFRAGON-*-x64-portable.exe
@@ -87,7 +87,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: windows-x64-portable
           path: release
