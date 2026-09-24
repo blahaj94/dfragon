@@ -1070,7 +1070,7 @@ it('single-instance loser는 auth/store/window 초기화 없이 종료한다', a
   expect(mocks.constructWindow).not.toHaveBeenCalled()
 })
 
-it('profile owner의 notice 실패는 ingress를 닫고 같은 owner의 비인증 window로 전환한다', async () => {
+it('profile owner의 auth bootstrap이 runtime을 만들지 않으면 비인증 window로 전환한다', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.bootstrapAuth.mockResolvedValueOnce(null)
 
@@ -1083,7 +1083,7 @@ it('profile owner의 notice 실패는 ingress를 닫고 같은 owner의 비인�
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
 })
 
-it('notice 실패 fallback은 일반 second-instance만 활성화하고 protocol-like argv는 무시한다', async () => {
+it('auth bootstrap fallback은 일반 second-instance만 활성화하고 protocol-like argv는 무시한다', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.bootstrapAuth.mockResolvedValueOnce(null)
 
@@ -1157,7 +1157,7 @@ it.each([
   }
 )
 
-it('notice 대기 중 quit은 dependency, IPC, window와 restore를 뒤늦게 시작하지 않는다', async () => {
+it('auth bootstrap 대기 중 quit은 IPC, window와 restore를 뒤늦게 시작하지 않는다', async () => {
   stubTrustedRuntimeEnvironment()
   const pendingBootstrap = deferred<typeof mocks.runtime>()
   mocks.bootstrapAuth.mockReturnValueOnce(pendingBootstrap.promise)
@@ -1181,7 +1181,7 @@ it('notice 대기 중 quit은 dependency, IPC, window와 restore를 뒤늦게 �
   expect(mocks.runtime?.start).not.toHaveBeenCalled()
 })
 
-it('notice 대기 중 quit이 취소되면 bootstrap 이후 composition을 다시 진행한다', async () => {
+it('auth bootstrap 대기 중 quit이 취소되면 composition을 다시 진행한다', async () => {
   stubTrustedRuntimeEnvironment()
   const pendingBootstrap = deferred<typeof mocks.runtime>()
   mocks.bootstrapAuth.mockReturnValueOnce(pendingBootstrap.promise)

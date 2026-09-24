@@ -732,7 +732,6 @@ describe('Desktop auth protocol ingress', () => {
     const runtime = await bootstrapAuthRuntime({
       config: runtimeConfig,
       effects: {
-        announceCredentialAccess: vi.fn(async () => undefined),
         createDependencies: () => harness.dependencies,
         createSearchClock: () => harness.clock
       }
@@ -832,7 +831,6 @@ describe('Desktop auth protocol ingress', () => {
     const runtime = await bootstrapAuthRuntime({
       config: runtimeConfig,
       effects: {
-        announceCredentialAccess: vi.fn(async () => undefined),
         createDependencies: () => harness.dependencies,
         createSearchClock: () => harness.clock
       }

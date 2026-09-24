@@ -25,15 +25,6 @@ export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<A
     return null
   }
 
-  try {
-    await input.effects.announceCredentialAccess()
-  } catch {
-    return null
-  }
-  if (input.isActive?.() === false) {
-    return null
-  }
-
   const dependencies = input.effects.createDependencies(config)
   const searchClock = input.effects.createSearchClock()
   const coordinator = createAuthCoordinator(dependencies)
