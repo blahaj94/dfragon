@@ -11,13 +11,17 @@ const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 export function DeveloperPartyCollectionSection({
   onSaved,
   slots,
-  onSlotsChange
+  onSlotsChange,
+  active,
+  onDisarmed
 }: {
   onSaved: () => void
   slots: DeveloperPartySlotNumber[]
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
+  active: boolean
+  onDisarmed: () => void
 }): React.JSX.Element {
-  const collection = useDeveloperPartyCollection(slots, onSlotsChange)
+  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed)
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame
@@ -56,6 +60,7 @@ export function DeveloperPartyCollectionSection({
       id="developer-collection-panel"
       aria-labelledby="developer-collection-tab"
       aria-label="이미지 수집"
+      hidden={!active}
       {...stylex.props(styles.section)}
     >
       <div aria-live="polite" {...stylex.props(styles.connection)}>

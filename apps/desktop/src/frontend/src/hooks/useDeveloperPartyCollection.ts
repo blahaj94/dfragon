@@ -11,9 +11,38 @@ type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots'> & {
   slots: DeveloperPartyPreviewSlotWithDataUrl[]
 }
 
+type CollectionSession = {
+  active: boolean
+  polling: boolean
+  commandRevision: number
+  interval: number | null
+  disarmPromise: Promise<void> | null
+}
+
+function disarmCollectionSession(session: CollectionSession): Promise<void> {
+  if (session.disarmPromise != null) {
+    return session.disarmPromise
+  }
+
+  session.active = false
+  session.commandRevision += 1
+  if (session.interval != null) {
+    window.clearInterval(session.interval)
+    session.interval = null
+  }
+
+  session.disarmPromise = window.developer.setPartyCollectionSlots(null).then(
+    () => undefined,
+    () => undefined
+  )
+  return session.disarmPromise
+}
+
 export function useDeveloperPartyCollection(
   slots: DeveloperPartySlotNumber[],
-  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
+  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void,
+  active: boolean,
+  onDisarmed: () => void
 ): {
   frame: PreviewFrame | null
   slots: DeveloperPartySlotNumber[]
@@ -27,18 +56,48 @@ export function useDeveloperPartyCollection(
   const [previewError, setPreviewError] = useState('')
   const [commandError, setCommandError] = useState('')
   const slotsRef = useRef(slots)
-  const sessionRef = useRef<{
-    active: boolean
-    polling: boolean
-    commandRevision: number
-  } | null>(null)
+  const sessionRef = useRef<CollectionSession | null>(null)
+  const disarmPromiseRef = useRef<Promise<void> | null>(null)
+  const lifecycleRevisionRef = useRef(0)
+  const onDisarmedRef = useRef(onDisarmed)
 
   useEffect(() => {
     slotsRef.current = slots
   }, [slots])
 
   useEffect(() => {
-    const session = { active: true, polling: false, commandRevision: 0 }
+    onDisarmedRef.current = onDisarmed
+  }, [onDisarmed])
+
+  useEffect(
+    () => () => {
+      lifecycleRevisionRef.current += 1
+    },
+    []
+  )
+
+  useEffect(() => {
+    const lifecycleRevision = ++lifecycleRevisionRef.current
+    if (!active) {
+      const pendingDisarm = disarmPromiseRef.current
+      if (pendingDisarm != null) {
+        void pendingDisarm.then(() => {
+          if (lifecycleRevision === lifecycleRevisionRef.current) {
+            onDisarmedRef.current()
+          }
+        })
+      }
+      return
+    }
+
+    disarmPromiseRef.current = null
+    const session: CollectionSession = {
+      active: true,
+      polling: false,
+      commandRevision: 0,
+      interval: null,
+      disarmPromise: null
+    }
     sessionRef.current = session
 
     const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
@@ -98,18 +157,15 @@ export function useDeveloperPartyCollection(
     }
 
     void refreshPreview()
-    const interval = window.setInterval(() => void refreshPreview(), 1000)
+    session.interval = window.setInterval(() => void refreshPreview(), 1000)
 
     return () => {
-      session.active = false
-      session.commandRevision += 1
-      window.clearInterval(interval)
+      disarmPromiseRef.current = disarmCollectionSession(session)
       if (sessionRef.current === session) {
         sessionRef.current = null
       }
-      void window.developer.setPartyCollectionSlots(null).catch(() => undefined)
     }
-  }, [])
+  }, [active])
 
   function setSlotIncluded(slot: DeveloperPartySlotNumber, included: boolean): void {
     const nextSlots = included

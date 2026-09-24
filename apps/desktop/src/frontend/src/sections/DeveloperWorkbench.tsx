@@ -194,13 +194,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       <div aria-hidden="true" {...stylex.props(styles.separator)} />
 
       <div {...stylex.props(styles.tabPanel)}>
-        {activeTab === 'collection' ? (
-          <DeveloperPartyCollectionSection
-            onSaved={() => void dataset.refresh()}
-            slots={collectionSlots}
-            onSlotsChange={setCollectionSlots}
-          />
-        ) : (
+        <DeveloperPartyCollectionSection
+          active={activeTab === 'collection'}
+          onSaved={() => void dataset.refresh()}
+          onDisarmed={() => void dataset.refresh()}
+          slots={collectionSlots}
+          onSlotsChange={setCollectionSlots}
+        />
+        {activeTab === 'labeling' && (
           <>
             <DeveloperLabelingSection
               samples={visibleSamples}

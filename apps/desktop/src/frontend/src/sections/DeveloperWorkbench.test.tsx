@@ -230,6 +230,48 @@ it('arms only on the collection tab, previews four raw crops, and disarms on tab
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)
 })
 
+it('refreshes samples after collection disarm settles before the next preview poll', async () => {
+  const { api, samples, status } = installApi()
+  const pendingDisarm = deferred<DeveloperPartyCollectionStatus>()
+  api.setPartyCollectionSlots.mockImplementation((slots) => {
+    if (slots == null) {
+      return pendingDisarm.promise
+    }
+    status.armed = true
+    status.slots = slots
+    return Promise.resolve({ ...status, slots: [...slots] })
+  })
+
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  expect(api.previewParty).toHaveBeenCalledTimes(1)
+  expect(api.listSamples).toHaveBeenCalledTimes(1)
+
+  samples.push(
+    sample('captured-before-preview', '2026-09-24T00:00:01.000Z', null, {
+      slot: 2,
+      frameWidth: 1920,
+      frameHeight: 1080,
+      scale: 1
+    })
+  )
+  status.revision = 1
+
+  await click('정답 입력')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)
+  expect(api.listSamples).toHaveBeenCalledTimes(1)
+  expect(api.previewParty).toHaveBeenCalledTimes(1)
+
+  await act(async () => {
+    pendingDisarm.resolve({ ...status, armed: false, slots: [] })
+    await pendingDisarm.promise
+    await new Promise<void>((resolve) => setTimeout(resolve, 0))
+  })
+
+  expect(api.listSamples).toHaveBeenCalledTimes(2)
+  expect(api.readImage).toHaveBeenCalledWith('captured-before-preview')
+  expect(container.textContent).toContain('정답 미입력')
+})
+
 it('sends disarm immediately when the initial arm response is still pending', async () => {
   const pendingArm = deferred<DeveloperPartyCollectionStatus>()
   const { api } = installApi()

@@ -33,7 +33,7 @@ function deferred<T>(): {
 
 function Harness(): null {
   const [slots, setSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
-  const value = useDeveloperPartyCollection(slots, setSlots)
+  const value = useDeveloperPartyCollection(slots, setSlots, true, vi.fn())
   useEffect(() => {
     current = value
   }, [value])
