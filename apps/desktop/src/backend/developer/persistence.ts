@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -54,11 +55,11 @@ export class DeveloperStoreError extends Error {
 }
 
 function invalidCommand(): DeveloperStoreError {
-  return new DeveloperStoreError('DEVELOPER_INVALID_COMMAND')
+  return new DeveloperStoreError(DEVELOPER_ERROR_CODES.INVALID_COMMAND)
 }
 
 function storageUnavailable(): DeveloperStoreError {
-  return new DeveloperStoreError('DEVELOPER_STORAGE_UNAVAILABLE')
+  return new DeveloperStoreError(DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE)
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -319,7 +320,7 @@ export function createDeveloperStore({
   async function requireEnabled(): Promise<void> {
     const { settings } = await readSettings()
     if (!settings.enabled) {
-      throw new DeveloperStoreError('DEVELOPER_DISABLED')
+      throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
     }
   }
 
@@ -330,7 +331,7 @@ export function createDeveloperStore({
     } catch (error) {
       const isMissing = isObject(error) && error.code === 'ENOENT'
       if (isMissing) {
-        throw new DeveloperStoreError('DEVELOPER_SAMPLE_NOT_FOUND')
+        throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.SAMPLE_NOT_FOUND)
       }
       throw storageUnavailable()
     }
@@ -557,7 +558,7 @@ export function createDeveloperStore({
       try {
         dimensions = inspectPng(png, decodePng)
       } catch {
-        throw new DeveloperStoreError('DEVELOPER_CAPTURE_UNAVAILABLE')
+        throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
       }
       const { width, height } = dimensions
       return { pngDataUrl: `data:image/png;base64,${png.toString('base64')}`, width, height }

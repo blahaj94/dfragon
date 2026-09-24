@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
 import { useEffect, useRef } from 'react'
@@ -34,7 +35,7 @@ export function DeveloperPartyCollectionSection({
   const rasterScale = frame && Number.isFinite(frame.scale) ? `${frame.scale.toFixed(2)}×` : null
   const errorCode =
     collection.collection?.error ??
-    (collection.commandError ? 'DEVELOPER_OPERATION_FAILED' : collection.previewError)
+    (collection.commandError ? DEVELOPER_ERROR_CODES.OPERATION_FAILED : collection.previewError)
 
   useEffect(() => {
     onSavedRef.current = onSaved

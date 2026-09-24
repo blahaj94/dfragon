@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import type {
   DeveloperCollectionKind,
   DeveloperParticipantWindow
@@ -362,10 +363,10 @@ function findDnfGameWindow(api: Win32PartyApi): GameWindow {
     }
   }
   if (matches.length === 0) {
-    throw new Error('DEVELOPER_GAME_NOT_FOUND')
+    throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOUND)
   }
   if (matches.length !== 1) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   return matches[0]
 }
@@ -387,7 +388,7 @@ function getWindowsAbove(api: Win32PartyApi, hwnd: bigint): ObscuringWindow[] {
   let current = api.GetWindow(hwnd, GW_HWNDPREV)
   for (let count = 0; current && count < MAX_Z_ORDER_STEPS; count += 1) {
     if (seen.has(current)) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     seen.add(current)
     if (api.IsWindowVisible(current) && !api.IsIconic(current) && !isWindowCloaked(api, current)) {
@@ -396,7 +397,7 @@ function getWindowsAbove(api: Win32PartyApi, hwnd: bigint): ObscuringWindow[] {
     current = api.GetWindow(current, GW_HWNDPREV)
   }
   if (current) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   return windows
 }
@@ -517,7 +518,7 @@ function assertClientInsideVirtualScreen(api: Win32PartyApi, client: ScreenRect)
     client.x + client.width > right ||
     client.y + client.height > bottom
   ) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
 }
 
@@ -636,7 +637,7 @@ function copyVisibleClient(
     throw captureError ?? new Error('Windows party capture returned no pixels.')
   }
   if (capturedAt === undefined) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   return { rgba: pixels, capturedAt }
 }
@@ -672,7 +673,7 @@ function capturePartyFrameWithApi(
     const { rgba, capturedAt } = copyVisibleClient(api, gameWindowBefore.client)
     const gameWindowAfter = findDnfGameWindow(api)
     if (!sameGameWindow(gameWindowBefore, gameWindowAfter)) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     const windowsAboveAfter = getWindowsAbove(api, gameWindowAfter.hwnd)
     if (kind === 'participants') {
@@ -689,7 +690,7 @@ function capturePartyFrameWithApi(
         isPartyRegionCovered(gameWindowBefore.client, regions, windowsAboveBefore) ||
         isPartyRegionCovered(gameWindowAfter.client, regions, windowsAboveAfter)
       ) {
-        throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+        throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
       }
       return detected.frame
     }
@@ -707,20 +708,20 @@ function capturePartyFrameWithApi(
         gameWindowAfter.client.height
       )
     ) {
-      throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND')
+      throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND)
     }
     if (
       isPartyRegionCovered(gameWindowBefore.client, slots, windowsAboveBefore) ||
       isPartyRegionCovered(gameWindowAfter.client, slots, windowsAboveAfter)
     ) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     if (
       gameWindowAfter.client.width > MAX_IMAGE_DIMENSION ||
       gameWindowAfter.client.height > MAX_IMAGE_DIMENSION ||
       gameWindowAfter.client.width * gameWindowAfter.client.height > MAX_IMAGE_PIXELS
     ) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     return {
       width: gameWindowAfter.client.width,
@@ -735,18 +736,18 @@ function capturePartyFrameWithApi(
 /** Captures one fresh DNF client frame synchronously, returning only detected raw slot crops. */
 export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyFrameCapture {
   if (process.platform !== 'win32') {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   try {
     return capturePartyFrameWithApi(getApi(), kind)
   } catch (error) {
     if (error instanceof PartyFrameGeometryError) {
-      throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND', { cause: error })
+      throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND, { cause: error })
     }
     if (error instanceof Error && error.message.startsWith('DEVELOPER_')) {
       throw error
     }
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE', { cause: error })
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE, { cause: error })
   }
 }
 
@@ -760,7 +761,7 @@ function readProcessElevation(api: ShortcutAccessApi, processHandle: bigint): bo
   let elevated: boolean | undefined
   try {
     if (!api.OpenProcessToken(processHandle, TOKEN_QUERY, token) || !token[0]) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     const elevation = Buffer.alloc(4)
     const returnLength = [0]
@@ -774,17 +775,17 @@ function readProcessElevation(api: ShortcutAccessApi, processHandle: bigint): bo
       ) ||
       returnLength[0] !== elevation.length
     ) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     elevated = elevation.readUInt32LE(0) !== 0
   } catch {
     // Close any acquired token before reporting a failed or throwing native query.
   }
   if (token[0] && !api.CloseHandle(token[0])) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (elevated === undefined) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   return elevated
 }
@@ -798,12 +799,12 @@ export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessI
   try {
     gameProcess = api.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, gameProcessId)
     if (!gameProcess) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     gameElevated = readProcessElevation(api, gameProcess)
     const currentProcess = api.GetCurrentProcess()
     if (!currentProcess) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     // GetCurrentProcess returns a pseudo-handle, which is not owned and must not be closed.
     appElevated = readProcessElevation(api, currentProcess)
@@ -821,17 +822,17 @@ export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessI
     }
   }
   if (queryFailed) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (gameElevated && !appElevated) {
-    throw new Error('DEVELOPER_ADMIN_REQUIRED')
+    throw new Error(DEVELOPER_ERROR_CODES.ADMIN_REQUIRED)
   }
 }
 
 /** Rejects a known elevation mismatch before arming the DNF-only Print Screen shortcut. */
 export function assertDnfShortcutAccess(): void {
   if (process.platform !== 'win32') {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   try {
     const api = getApi()
@@ -840,10 +841,10 @@ export function assertDnfShortcutAccess(): void {
       assertShortcutProcessAccess(api, gameWindow.pid)
     })
   } catch (error) {
-    if (error instanceof Error && error.message === 'DEVELOPER_ADMIN_REQUIRED') {
+    if (error instanceof Error && error.message === DEVELOPER_ERROR_CODES.ADMIN_REQUIRED) {
       throw error
     }
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
 }
 

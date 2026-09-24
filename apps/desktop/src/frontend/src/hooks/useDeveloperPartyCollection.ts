@@ -1,3 +1,5 @@
+import { DEVELOPER_ERRORS } from '../constants/developer'
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import { useEffect, useRef, useState } from 'react'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import type {
@@ -178,7 +180,7 @@ export function useDeveloperPartyCollection(
           kind === 'participants' &&
           response.frame?.participantWindow &&
           !response.collection.armed &&
-          response.collection.error === 'DEVELOPER_CAPTURE_UNAVAILABLE' &&
+          response.collection.error === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE &&
           commandRevision === session.commandRevision
         ) {
           applySlots(slotsRef.current)
@@ -189,7 +191,7 @@ export function useDeveloperPartyCollection(
       } catch {
         if (session.active) {
           setFrame(null)
-          setPreviewError('preview-failed')
+          setPreviewError(DEVELOPER_ERRORS.PREVIEW_FAILED)
         }
       } finally {
         session.polling = false

@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import type {
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
@@ -24,25 +25,25 @@ export type DeveloperWorkbenchSample = DeveloperSample
 
 // Turns safe IPC error codes into collection-specific recovery guidance.
 export function getDeveloperCollectionErrorMessage(errorCode: string): string {
-  if (errorCode === 'DEVELOPER_GAME_NOT_FOUND') {
+  if (errorCode === DEVELOPER_ERROR_CODES.GAME_NOT_FOUND) {
     return '던전앤파이터를 실행하고 게임 창을 보여주세요.'
   }
-  if (errorCode === 'DEVELOPER_ADMIN_REQUIRED') {
+  if (errorCode === DEVELOPER_ERROR_CODES.ADMIN_REQUIRED) {
     return '던파가 관리자 권한으로 실행 중입니다. DFRAGON을 종료한 뒤 관리자 권한으로 다시 실행해 주세요.'
   }
-  if (errorCode === 'DEVELOPER_HOTKEY_UNAVAILABLE') {
+  if (errorCode === DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE) {
     return 'Print Screen 단축키를 등록하지 못했습니다. 같은 단축키를 사용하는 앱을 확인한 뒤 수집 탭을 다시 열어주세요.'
   }
-  if (errorCode === 'DEVELOPER_PARTY_SLOTS_NOT_FOUND') {
+  if (errorCode === DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND) {
     return '선택한 위치에서 저장할 크롭을 찾지 못했습니다. HP·MP가 가득 찬 파티 프레임을 보여주세요.'
   }
-  if (errorCode === 'DEVELOPER_GAME_NOT_FOREGROUND') {
+  if (errorCode === DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND) {
     return '던파를 맨 앞으로 두고 다시 Print Screen을 눌러주세요.'
   }
-  if (errorCode === 'DEVELOPER_CAPTURE_UNAVAILABLE') {
+  if (errorCode === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE) {
     return '던파의 파티 프레임이 가리지 않고 보이도록 해주세요.'
   }
-  if (errorCode === 'DEVELOPER_STORAGE_UNAVAILABLE') {
+  if (errorCode === DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE) {
     return '앱 저장소를 확인해 주세요.'
   }
   return '수집 설정을 저장하지 못했습니다. 다시 시도해 주세요.'

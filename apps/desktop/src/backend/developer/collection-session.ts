@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import type {
   DeveloperCollectionKind,
   DeveloperParticipantWindow,
@@ -76,26 +77,26 @@ function isValidScale(value: unknown): value is number {
 
 export function validatePartyFrame(value: unknown): asserts value is CapturedPartyFrame {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   const frame = value as Record<string, unknown>
   if (!isValidImageDimensions(frame.width, frame.height)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!isValidScale(frame.scale)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   if (!Array.isArray(frame.slots) || frame.slots.length > 4) {
-    throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
 
   const seenSlots = new Set<number>()
   for (const value of frame.slots) {
     if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     const slot = value as Record<string, unknown>
     const width = typeof slot.width === 'number' ? slot.width : Number.NaN
@@ -108,7 +109,7 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
       !Buffer.isBuffer(rgba) ||
       rgba.length !== width * height * 4
     ) {
-      throw new Error('DEVELOPER_CAPTURE_UNAVAILABLE')
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     seenSlots.add(slot.slot)
   }
@@ -138,22 +139,22 @@ export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFr
   }
 }
 
-const PUBLIC_ERROR_CODES = new Set([
-  'DEVELOPER_DISABLED',
-  'DEVELOPER_STORAGE_UNAVAILABLE',
-  'DEVELOPER_CAPTURE_UNAVAILABLE',
-  'DEVELOPER_HOTKEY_UNAVAILABLE',
-  'DEVELOPER_ADMIN_REQUIRED',
-  'DEVELOPER_GAME_NOT_FOREGROUND',
-  'DEVELOPER_PARTY_SLOTS_NOT_FOUND',
-  'DEVELOPER_GAME_NOT_FOUND',
-  'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND',
-  'DEVELOPER_PARTICIPANT_WINDOW_UNCERTAIN'
+const PUBLIC_ERROR_CODES = new Set<string>([
+  DEVELOPER_ERROR_CODES.DISABLED,
+  DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE,
+  DEVELOPER_ERROR_CODES.ADMIN_REQUIRED,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND,
+  DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.GAME_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN
 ])
 
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
-  return PUBLIC_ERROR_CODES.has(message) ? message : 'DEVELOPER_OPERATION_FAILED'
+  return PUBLIC_ERROR_CODES.has(message) ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED
 }
 
 export function createDeveloperCollectionSession({
@@ -225,10 +226,10 @@ export function createDeveloperCollectionSession({
         return
       }
       if (!settings.enabled) {
-        throw new Error('DEVELOPER_DISABLED')
+        throw new Error(DEVELOPER_ERROR_CODES.DISABLED)
       }
       if (!(await isDnfForeground())) {
-        throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
+        throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
 
       const frameValue = await capturePartyFrame(captureKind)
@@ -237,12 +238,12 @@ export function createDeveloperCollectionSession({
       }
       validatePartyFrame(frameValue)
       if (!(await isDnfForeground())) {
-        throw new Error('DEVELOPER_GAME_NOT_FOREGROUND')
+        throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
 
       const selected = frameValue.slots.filter(({ slot }) => selectedSlots.includes(slot))
       if (selected.length === 0) {
-        throw new Error('DEVELOPER_PARTY_SLOTS_NOT_FOUND')
+        throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND)
       }
 
       for (const slot of selected) {
@@ -325,7 +326,7 @@ export function createDeveloperCollectionSession({
     }
 
     if (!armingEnabled) {
-      error = 'DEVELOPER_DISABLED'
+      error = DEVELOPER_ERROR_CODES.DISABLED
       revision += 1
       return getStatus()
     }
@@ -334,7 +335,7 @@ export function createDeveloperCollectionSession({
       new Set(selectedSlots).size !== selectedSlots.length ||
       selectedSlots.some((slot) => !PARTY_SLOTS.has(slot))
     ) {
-      error = 'DEVELOPER_INVALID_COMMAND'
+      error = DEVELOPER_ERROR_CODES.INVALID_COMMAND
       revision += 1
       return getStatus()
     }
@@ -350,14 +351,14 @@ export function createDeveloperCollectionSession({
         return getStatus()
       }
       if (!settings.enabled) {
-        error = 'DEVELOPER_DISABLED'
+        error = DEVELOPER_ERROR_CODES.DISABLED
         revision += 1
         return getStatus()
       }
 
       const registered = registerPrintScreen(onPrintScreen)
       if (!registered) {
-        error = 'DEVELOPER_HOTKEY_UNAVAILABLE'
+        error = DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE
         revision += 1
         return getStatus()
       }

@@ -1,13 +1,19 @@
-import { inflateSync } from 'node:zlib'
+import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { readFileSync } from 'node:fs'
+import { PNG } from 'pngjs'
 import { cropDNFPartyParticipantNicknames, type DNFParticipantFrame } from '@dfragon/lib'
 import type { CapturedPartyFrame } from './collection-session'
-import referenceHeading from './participant-heading.json'
+import referenceHeadingPath from './participant-heading.png?asset'
 
-// Lossless UI-0% column headings only; see the developer-mode asset provenance note.
-const heading: DNFParticipantFrame = {
-  width: referenceHeading.width,
-  height: referenceHeading.height,
-  rgba: inflateSync(Buffer.from(referenceHeading.rgbaDeflateBase64, 'base64'))
+let heading: DNFParticipantFrame | undefined
+
+// Decode the bundled, lossless UI-0% column headings once, without gamma/alpha conversion.
+function getParticipantHeading(): DNFParticipantFrame {
+  if (heading == null) {
+    const { width, height, data } = PNG.sync.read(readFileSync(referenceHeadingPath))
+    heading = { width, height, rgba: data }
+  }
+  return heading
 }
 
 /** Copies a detected dialog and occupied nicknames from the very same client frame. */
@@ -18,12 +24,12 @@ export function captureParticipantWindow(
   frame: CapturedPartyFrame
   coverage: { x: number; y: number; width: number; height: number }
 } {
-  const result = cropDNFPartyParticipantNicknames(frame, heading)
+  const result = cropDNFPartyParticipantNicknames(frame, getParticipantHeading())
   if (result.status !== 'found') {
     throw new Error(
       result.status === 'not-found'
-        ? 'DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND'
-        : 'DEVELOPER_PARTICIPANT_WINDOW_UNCERTAIN'
+        ? DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND
+        : DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN
     )
   }
   const window = result.window

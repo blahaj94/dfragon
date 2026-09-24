@@ -67,7 +67,11 @@ UI 0% 기준 헤더는 `368 × 17`픽셀이다. 팝업 좌상단으로부터 `(1
 
 `participant-window.ts`는 공통 크롭 함수 결과에서 팝업 전체의 미리보기 픽셀과 팝업 기준 닉네임 사각형을 구성한다. 검출과 크롭은 같은 RGBA 프레임을 사용한다. 기존 Win32 캡처 경로의 client 일관성·화면 경계·캡처 전후 외부 창 가림 검사를 팝업 전체에 적용한다. 탐지는 현재 main process에서 동기로 수행하며, 1초 미리보기 polling은 이전 응답이 끝나기 전 중복 요청하지 않는다. 저장은 미리보기 캐시를 사용하지 않고 새 캡처를 읽는다.
 
-`participant-heading.json`은 사용자 제공 최소 UI 이미지의 368×17px 정적 열 헤더를 RGBA → zlib/Deflate → Base64 순서로 무손실 보관한다. 이름·파티 제목·초상화는 들어 있지 않다. 게임 자산의 권리는 [Desktop 고지](../../packages/licenses/notices/desktop/NOTICE.md)를 따른다. 공통 라이브러리에 게임 자산을 추가하지 않는다. Desktop은 `@dfragon/lib`를 빌드 의존성으로 선언하고 TypeScript/Vite/Vitest에서 해당 workspace source를 해석해 Electron main에 번들한다. 별도 dist 생성이나 설치본의 workspace 경로에 의존하지 않는다.
+[`participant-heading.png`](../../apps/desktop/src/backend/developer/participant-heading.png)는 사용자 제공 최소 UI 이미지의 368×17px 정적 열 헤더를 무손실 보관한다. 이름·파티 제목·초상화는 들어 있지 않다. 게임 자산의 권리는 [Desktop 고지](../../packages/licenses/notices/desktop/NOTICE.md)를 따른다. 공통 라이브러리에 게임 자산을 추가하지 않는다.
+
+PNG는 에디터와 PR에서 바로 확인·교체할 수 있고, 현재 파일은 8,354바이트로 기존 Deflate/Base64 JSON의 13,294바이트보다 작다. 기존 방식은 Node 내장 zlib만으로 RGBA를 복원할 수 있지만 이미지 확인·교체에 변환 과정이 필요하다. PNG 방식은 디코더와 배포 자산 경로를 관리하는 비용을 감수하고 원본의 가독성을 택한다. Desktop의 `pngjs`로 첫 참가자 검출 때 한 번만 디코딩하고 캐시하며, 감마 보정·리사이즈·알파 사전 곱셈 없이 RGBA를 읽는다. 플랫폼별 native bitmap 채널 순서에 의존하지 않는다. Electron Vite의 `?asset` import가 PNG를 main 출력에 포함하므로 개발·설치본 모두 같은 파일을 읽는다.
+
+Desktop은 `@dfragon/lib`를 빌드 의존성으로 선언하고 TypeScript/Vite/Vitest에서 해당 workspace source를 해석해 Electron main에 번들한다. 별도 dist 생성이나 설치본의 workspace 경로에 의존하지 않는다. 검출·수집·IPC·복구 UI의 오류 코드는 `src/preload/common/developer-errors.ts`에서 공유하며 각 경계의 오류 허용 목록은 유지한다.
 
 연결 테스트는 배포 헤더를 사용한 합성 팝업에서 3번만 남은 경우와 창/닉네임 원본 픽셀 보존을 확인한다. 수집 session·IPC·작업 공간 테스트는 모드 선택, 이전 요청 무효화, 빈 행의 선택 복원, 일부 저장 실패를 확인한다. `ui:fixture`의 developer 모드에서 기본 네 행과 `participants-sparse` 시나리오를 제공하며 게임 캡처 없이 합성 픽셀로 실제 renderer를 실행한다.
 

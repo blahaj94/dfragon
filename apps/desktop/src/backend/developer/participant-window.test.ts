@@ -1,13 +1,23 @@
-import { inflateSync } from 'node:zlib'
-import { expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { PNG } from 'pngjs'
+import { expect, it, vi } from 'vitest'
 import { captureParticipantWindow } from './participant-window'
-import reference from './participant-heading.json'
+
+// Electron Vite emits this asset beside the main bundle; Vitest reads the source PNG.
+vi.mock('./participant-heading.png?asset', () => ({
+  default: fileURLToPath(new URL('./participant-heading.png', import.meta.url))
+}))
 
 it('uses the shipped heading and preserves slot 3, popup-relative bounds and raw bytes', () => {
   const width = 1067
   const height = 600
   const rgba = new Uint8Array(width * height * 4)
-  const heading = inflateSync(Buffer.from(reference.rgbaDeflateBase64, 'base64'))
+  const reference = PNG.sync.read(
+    readFileSync(new URL('./participant-heading.png', import.meta.url))
+  )
+  expect([reference.width, reference.height]).toEqual([368, 17])
+  const heading = reference.data
   const x = 300
   const y = 160
   const paint = (left: number, top: number, w: number, h: number, color: number[]): void => {

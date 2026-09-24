@@ -1,3 +1,4 @@
+import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
@@ -16,19 +17,18 @@ export function DeveloperParticipantCollectionSection({
   const count = frame?.slots.filter(({ slot }) => collection.slots.includes(slot)).length ?? 0
   const collectionError = collection.collection?.error
   const error = collection.commandError
-    ? 'DEVELOPER_OPERATION_FAILED'
-    : collectionError === 'DEVELOPER_CAPTURE_UNAVAILABLE'
+    ? DEVELOPER_ERROR_CODES.OPERATION_FAILED
+    : collectionError === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
       ? collection.previewError || collectionError
       : collectionError || collection.previewError
   const message = getParticipantPreviewMessage(
-    error || (popup && count === 0 ? 'DEVELOPER_PARTY_SLOTS_NOT_FOUND' : '')
+    error || (popup && count === 0 ? DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND : '')
   )
   const saved = collection.collection?.lastSavedCount ?? 0
   const connected =
     popup != null ||
-    ['DEVELOPER_PARTICIPANT_WINDOW_NOT_FOUND', 'DEVELOPER_PARTICIPANT_WINDOW_UNCERTAIN'].includes(
-      collection.previewError
-    )
+    collection.previewError === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND ||
+    collection.previewError === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN
 
   return (
     <section
