@@ -1,9 +1,11 @@
 import { useCallback } from 'react'
 import { useMachine } from '@xstate/react'
+import { DEVELOPER_EVENTS } from '../constants/developer'
 import { developerModeMachine, type DeveloperSettingsApi } from '../lib/developer-mode-machine'
+import { getDeveloperModeStatus } from '../lib/developer-mode-state'
 
 export type DeveloperModeState = {
-  status: 'loading' | 'ready' | 'unavailable' | 'error'
+  status: ReturnType<typeof getDeveloperModeStatus>
   enabled: boolean
   updating: boolean
   retry: () => void
@@ -38,26 +40,18 @@ export function useDeveloperMode(): DeveloperModeState {
   })
 
   const retry = useCallback(() => {
-    send({ type: 'RETRY', api: getDeveloperSettingsApi() })
+    send({ type: DEVELOPER_EVENTS.RETRY, api: getDeveloperSettingsApi() })
   }, [send])
 
   const setEnabled = useCallback(
     (enabled: boolean) => {
-      send({ type: 'SET_ENABLED', api: getDeveloperSettingsApi(), enabled })
+      send({ type: DEVELOPER_EVENTS.SET_ENABLED, api: getDeveloperSettingsApi(), enabled })
     },
     [send]
   )
 
-  const status = state.matches('loading')
-    ? 'loading'
-    : state.matches('ready') || state.matches('updating')
-      ? 'ready'
-      : state.matches('unavailable')
-        ? 'unavailable'
-        : 'error'
-
   return {
-    status,
+    status: getDeveloperModeStatus(state.value),
     enabled: state.context.enabled,
     updating: state.matches('updating'),
     retry,

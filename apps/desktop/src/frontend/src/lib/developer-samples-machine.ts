@@ -1,11 +1,12 @@
 import { assign, fromPromise, setup } from 'xstate'
+import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperApi, DeveloperSample } from '../../../preload/common/types/developer'
 
 type SamplesApi = Pick<DeveloperApi, 'listSamples' | 'addSample' | 'saveLabel'>
 
 type SaveIntent =
-  | { type: 'ADD_SAMPLE'; pngDataUrl: string }
-  | { type: 'SAVE_LABEL'; id: string; text: string | null }
+  | { type: typeof DEVELOPER_EVENTS.ADD_SAMPLE; pngDataUrl: string }
+  | { type: typeof DEVELOPER_EVENTS.SAVE_LABEL; id: string; text: string | null }
 
 type ActiveSave = { request: object; intent: SaveIntent }
 
@@ -20,10 +21,10 @@ type SamplesContext = {
 }
 
 type SamplesEvent =
-  | { type: 'REFRESH'; request: object }
-  | { type: 'ADD_SAMPLE'; request: object; pngDataUrl: string }
-  | { type: 'SAVE_LABEL'; request: object; id: string; text: string | null }
-  | { type: 'CANCEL' }
+  | { type: typeof DEVELOPER_EVENTS.REFRESH; request: object }
+  | { type: typeof DEVELOPER_EVENTS.ADD_SAMPLE; request: object; pngDataUrl: string }
+  | { type: typeof DEVELOPER_EVENTS.SAVE_LABEL; request: object; id: string; text: string | null }
+  | { type: typeof DEVELOPER_EVENTS.CANCEL }
 
 // 목록 조회와 저장은 같은 시점에 완료되지 않도록 직렬화해 저장된 메타데이터를 보존한다.
 export const developerSamplesMachine = setup({
@@ -37,11 +38,11 @@ export const developerSamplesMachine = setup({
     saveSample: fromPromise<DeveloperSample, { api: SamplesApi; save: ActiveSave | null }>(
       async ({ input }: { input: { api: SamplesApi; save: ActiveSave | null } }) => {
         if (input.save == null) {
-          throw new Error('Developer sample save request missing')
+          throw new Error(DEVELOPER_ERRORS.SAVE_REQUEST_MISSING)
         }
 
         const { intent } = input.save
-        return intent.type === 'ADD_SAMPLE'
+        return intent.type === DEVELOPER_EVENTS.ADD_SAMPLE
           ? input.api.addSample(intent.pngDataUrl)
           : input.api.saveLabel(intent.id, intent.text)
       }
@@ -52,10 +53,10 @@ export const developerSamplesMachine = setup({
   },
   actions: {
     startRefresh: assign(({ event }) =>
-      event.type === 'REFRESH' ? { loadRequest: event.request, error: '' } : {}
+      event.type === DEVELOPER_EVENTS.REFRESH ? { loadRequest: event.request, error: '' } : {}
     ),
     failRefresh: assign(({ context }) => ({
-      error: '테스트 이미지를 불러오지 못했습니다. 다시 불러와 주세요.',
+      error: DEVELOPER_ERRORS.LOAD_SAMPLES,
       lastRefresh: context.loadRequest,
       loadRequest: null
     })),
@@ -64,29 +65,29 @@ export const developerSamplesMachine = setup({
       loadRequest: null
     })),
     startAddSample: assign(({ event }) =>
-      event.type === 'ADD_SAMPLE'
+      event.type === DEVELOPER_EVENTS.ADD_SAMPLE
         ? {
             activeSave: {
               request: event.request,
-              intent: { type: 'ADD_SAMPLE', pngDataUrl: event.pngDataUrl }
+              intent: { type: DEVELOPER_EVENTS.ADD_SAMPLE, pngDataUrl: event.pngDataUrl }
             },
             error: ''
           }
         : {}
     ),
     startSaveLabel: assign(({ event }) =>
-      event.type === 'SAVE_LABEL'
+      event.type === DEVELOPER_EVENTS.SAVE_LABEL
         ? {
             activeSave: {
               request: event.request,
-              intent: { type: 'SAVE_LABEL', id: event.id, text: event.text }
+              intent: { type: DEVELOPER_EVENTS.SAVE_LABEL, id: event.id, text: event.text }
             },
             error: ''
           }
         : {}
     ),
     failSave: assign(({ context }) => ({
-      error: '저장하지 못했습니다. 입력은 유지됩니다. 다시 시도해 주세요.',
+      error: DEVELOPER_ERRORS.SAVE_SAMPLE,
       lastSave:
         context.activeSave == null
           ? context.lastSave
@@ -130,7 +131,7 @@ export const developerSamplesMachine = setup({
         onError: { target: '#developerSamples.idle.loadError', actions: 'failRefresh' }
       },
       on: {
-        CANCEL: {
+        [DEVELOPER_EVENTS.CANCEL]: {
           guard: 'hasRefreshRequest',
           target: '#developerSamples.idle.ready',
           actions: 'cancelRefresh'
@@ -140,9 +141,18 @@ export const developerSamplesMachine = setup({
     idle: {
       initial: 'ready',
       on: {
-        REFRESH: { target: '#developerSamples.loading', actions: 'startRefresh' },
-        ADD_SAMPLE: { target: '#developerSamples.saving', actions: 'startAddSample' },
-        SAVE_LABEL: { target: '#developerSamples.saving', actions: 'startSaveLabel' }
+        [DEVELOPER_EVENTS.REFRESH]: {
+          target: '#developerSamples.loading',
+          actions: 'startRefresh'
+        },
+        [DEVELOPER_EVENTS.ADD_SAMPLE]: {
+          target: '#developerSamples.saving',
+          actions: 'startAddSample'
+        },
+        [DEVELOPER_EVENTS.SAVE_LABEL]: {
+          target: '#developerSamples.saving',
+          actions: 'startSaveLabel'
+        }
       },
       states: {
         ready: {},
@@ -176,7 +186,7 @@ export const developerSamplesMachine = setup({
       },
       on: {
         // Saving is exclusive. Ignore a concurrent refresh or save command.
-        CANCEL: { target: '#developerSamples.idle.ready', actions: 'cancelSave' }
+        [DEVELOPER_EVENTS.CANCEL]: { target: '#developerSamples.idle.ready', actions: 'cancelSave' }
       }
     }
   }

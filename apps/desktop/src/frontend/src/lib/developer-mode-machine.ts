@@ -1,4 +1,5 @@
 import { assign, fromPromise, setup } from 'xstate'
+import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperApi } from '../../../preload/common/types/developer'
 
 export type DeveloperSettingsApi = Pick<DeveloperApi, 'getSettings' | 'setEnabled'>
@@ -10,8 +11,12 @@ type DeveloperModeContext = {
 }
 
 type DeveloperModeEvent =
-  | { type: 'RETRY'; api: DeveloperSettingsApi | null }
-  | { type: 'SET_ENABLED'; api: DeveloperSettingsApi | null; enabled: boolean }
+  | { type: typeof DEVELOPER_EVENTS.RETRY; api: DeveloperSettingsApi | null }
+  | {
+      type: typeof DEVELOPER_EVENTS.SET_ENABLED
+      api: DeveloperSettingsApi | null
+      enabled: boolean
+    }
 
 function readEnabled(settings: unknown): boolean {
   if (
@@ -20,7 +25,7 @@ function readEnabled(settings: unknown): boolean {
     !('enabled' in settings) ||
     typeof settings.enabled !== 'boolean'
   ) {
-    throw new TypeError('Invalid developer settings response')
+    throw new TypeError(DEVELOPER_ERRORS.INVALID_SETTINGS)
   }
 
   return settings.enabled
@@ -46,7 +51,7 @@ export const developerModeMachine = setup({
     persistSetting: fromPromise(
       async ({ input }: { input: { api: DeveloperSettingsApi | null; enabled: boolean } }) => {
         if (input.api == null) {
-          throw new TypeError('Developer settings API unavailable')
+          throw new TypeError(DEVELOPER_ERRORS.SETTINGS_API_UNAVAILABLE)
         }
 
         return readEnabled(await input.api.setEnabled(input.enabled))
@@ -59,7 +64,7 @@ export const developerModeMachine = setup({
   actions: {
     failClosed: assign({ enabled: false }),
     acceptRequest: assign(({ context, event }) => {
-      if (event.type !== 'SET_ENABLED') {
+      if (event.type !== DEVELOPER_EVENTS.SET_ENABLED) {
         return {}
       }
 
@@ -70,7 +75,9 @@ export const developerModeMachine = setup({
       }
     }),
     failClosedForRetry: assign(({ event }) =>
-      event.type === 'RETRY' ? { api: event.api, enabled: false } : { enabled: false }
+      event.type === DEVELOPER_EVENTS.RETRY
+        ? { api: event.api, enabled: false }
+        : { enabled: false }
     )
   }
 }).createMachine({
@@ -78,7 +85,7 @@ export const developerModeMachine = setup({
   initial: 'loading',
   context: ({ input }) => ({ api: input.api, enabled: false, requestedEnabled: false }),
   on: {
-    RETRY: [
+    [DEVELOPER_EVENTS.RETRY]: [
       { guard: 'hasApi', target: '.loading', actions: 'failClosedForRetry' },
       { target: '.unavailable', actions: 'failClosedForRetry' }
     ]
@@ -99,13 +106,13 @@ export const developerModeMachine = setup({
         onError: { target: 'error', actions: 'failClosed' }
       },
       on: {
-        RETRY: {},
-        SET_ENABLED: {}
+        [DEVELOPER_EVENTS.RETRY]: {},
+        [DEVELOPER_EVENTS.SET_ENABLED]: {}
       }
     },
     ready: {
       on: {
-        SET_ENABLED: [
+        [DEVELOPER_EVENTS.SET_ENABLED]: [
           { guard: 'hasApi', target: 'updating', actions: 'acceptRequest' },
           { target: 'unavailable', actions: 'failClosed' }
         ]
@@ -126,8 +133,8 @@ export const developerModeMachine = setup({
         onError: { target: 'error', actions: 'failClosed' }
       },
       on: {
-        RETRY: {},
-        SET_ENABLED: {}
+        [DEVELOPER_EVENTS.RETRY]: {},
+        [DEVELOPER_EVENTS.SET_ENABLED]: {}
       }
     },
     unavailable: {},

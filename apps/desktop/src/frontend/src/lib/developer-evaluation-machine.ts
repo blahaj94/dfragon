@@ -1,4 +1,5 @@
 import { assign, fromPromise, setup } from 'xstate'
+import { DEVELOPER_EVENTS } from '../constants/developer'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from './developer-evaluation'
 import { runDeveloperEvaluation, type DeveloperEvaluationRun } from './developer-evaluation-run'
@@ -11,10 +12,10 @@ type EvaluationContext = {
   progress: { done: number; total: number }
 }
 type EvaluationEvent =
-  | { type: 'EVALUATE'; samples: readonly DeveloperSample[]; request: object }
-  | { type: 'PREPROCESSING_CHANGED'; value: EvaluationPreprocessing }
-  | { type: 'CANCEL' }
-  | { type: 'IMAGE_EVALUATED'; id: string; result: DeveloperEvaluation }
+  | { type: typeof DEVELOPER_EVENTS.EVALUATE; samples: readonly DeveloperSample[]; request: object }
+  | { type: typeof DEVELOPER_EVENTS.PREPROCESSING_CHANGED; value: EvaluationPreprocessing }
+  | { type: typeof DEVELOPER_EVENTS.CANCEL }
+  | { type: typeof DEVELOPER_EVENTS.IMAGE_EVALUATED; id: string; result: DeveloperEvaluation }
 
 export const developerEvaluationMachine = setup({
   types: { context: {} as EvaluationContext, events: {} as EvaluationEvent },
@@ -23,10 +24,12 @@ export const developerEvaluationMachine = setup({
       runDeveloperEvaluation(input, signal)
     )
   },
-  guards: { hasSamples: ({ event }) => event.type === 'EVALUATE' && event.samples.length > 0 },
+  guards: {
+    hasSamples: ({ event }) => event.type === DEVELOPER_EVENTS.EVALUATE && event.samples.length > 0
+  },
   actions: {
     beginRun: assign(({ context, event }) => {
-      if (event.type !== 'EVALUATE') {
+      if (event.type !== DEVELOPER_EVENTS.EVALUATE) {
         return {}
       }
       // 이번 평가 대상의 이전 결과만 지워 다른 이미지의 점수는 유지한다.
@@ -39,7 +42,7 @@ export const developerEvaluationMachine = setup({
       }
     }),
     recordResult: assign(({ context, event }) =>
-      event.type === 'IMAGE_EVALUATED'
+      event.type === DEVELOPER_EVENTS.IMAGE_EVALUATED
         ? {
             results: { ...context.results, [event.id]: event.result },
             progress: { ...context.progress, done: context.progress.done + 1 }
@@ -47,7 +50,7 @@ export const developerEvaluationMachine = setup({
         : {}
     ),
     changePreprocessing: assign(({ event }) =>
-      event.type === 'PREPROCESSING_CHANGED'
+      event.type === DEVELOPER_EVENTS.PREPROCESSING_CHANGED
         ? {
             preprocessing: event.value,
             results: {},
@@ -69,23 +72,23 @@ export const developerEvaluationMachine = setup({
     progress: { done: 0, total: 0 }
   },
   on: {
-    EVALUATE: { guard: 'hasSamples', target: '.running', actions: 'beginRun' },
-    PREPROCESSING_CHANGED: { target: '.idle', actions: 'changePreprocessing' }
+    [DEVELOPER_EVENTS.EVALUATE]: { guard: 'hasSamples', target: '.running', actions: 'beginRun' },
+    [DEVELOPER_EVENTS.PREPROCESSING_CHANGED]: { target: '.idle', actions: 'changePreprocessing' }
   },
   states: {
     idle: {},
     running: {
       on: {
-        EVALUATE: {},
-        CANCEL: 'canceled',
-        IMAGE_EVALUATED: { actions: 'recordResult' }
+        [DEVELOPER_EVENTS.EVALUATE]: {},
+        [DEVELOPER_EVENTS.CANCEL]: 'canceled',
+        [DEVELOPER_EVENTS.IMAGE_EVALUATED]: { actions: 'recordResult' }
       },
       invoke: {
         src: 'evaluate',
         input: ({ context, self }) => ({
           samples: context.samples,
           preprocessing: context.preprocessing,
-          report: (id, result) => self.send({ type: 'IMAGE_EVALUATED', id, result })
+          report: (id, result) => self.send({ type: DEVELOPER_EVENTS.IMAGE_EVALUATED, id, result })
         }),
         onDone: 'completed',
         onError: 'failed'

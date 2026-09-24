@@ -1,3 +1,4 @@
+import { DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 import { createPartyOcrWorker } from './ocr'
 import { readDeveloperImage } from './developer-images'
@@ -28,7 +29,7 @@ export async function runDeveloperEvaluation(
         signal.throwIfAborted()
         // 한 줄 인식 모델에 비정상적으로 큰 텐서가 입력되지 않게 제한한다.
         if ((48 * canvas.width) / canvas.height > 4096) {
-          throw new Error('Image aspect ratio too wide.')
+          throw new Error(DEVELOPER_ERRORS.IMAGE_TOO_WIDE)
         }
         const context = canvas.getContext('2d')!
         if (preprocessing === 'party') {

@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
+import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from '../lib/developer-evaluation'
 import { developerEvaluationMachine } from '../lib/developer-evaluation-machine'
@@ -20,14 +21,14 @@ export function useDeveloperEvaluation(): {
   // React가 actor 구독을 정리하기 전에 실행을 종료하여 기다리는 호출도 완료한다.
   useLayoutEffect(
     () => () => {
-      send({ type: 'CANCEL' })
+      send({ type: DEVELOPER_EVENTS.CANCEL })
     },
     [send]
   )
 
   async function evaluate(samples: readonly DeveloperSample[]): Promise<void> {
     const request = {}
-    send({ type: 'EVALUATE', samples, request })
+    send({ type: DEVELOPER_EVENTS.EVALUATE, samples, request })
     await waitFor(
       actor,
       (state) =>
@@ -41,9 +42,9 @@ export function useDeveloperEvaluation(): {
     canceled: snapshot.matches('canceled'),
     preprocessing: snapshot.context.preprocessing,
     progress: snapshot.context.progress,
-    error: snapshot.matches('failed') ? '모델을 준비하지 못했습니다. 다시 평가해 주세요.' : '',
-    setPreprocessing: (value) => send({ type: 'PREPROCESSING_CHANGED', value }),
+    error: snapshot.matches('failed') ? DEVELOPER_ERRORS.PREPARE_MODEL : '',
+    setPreprocessing: (value) => send({ type: DEVELOPER_EVENTS.PREPROCESSING_CHANGED, value }),
     evaluate,
-    cancel: () => send({ type: 'CANCEL' })
+    cancel: () => send({ type: DEVELOPER_EVENTS.CANCEL })
   }
 }
