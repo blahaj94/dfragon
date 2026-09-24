@@ -3,16 +3,18 @@ import { promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type {
   DeveloperFrame,
+  DeveloperPartySlot,
   DeveloperSample,
+  DeveloperSampleSource,
   DeveloperSettings
 } from '../../preload/common/types/developer'
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './image-limits'
+import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
 const MAX_PNG_BYTES = 16 * 1024 * 1024
 const MAX_SETTINGS_BYTES = 1024
 const MAX_METADATA_BYTES = 4096
-const MAX_IMAGE_DIMENSION = 8192
-const MAX_IMAGE_PIXELS = 33_000_000
 const MAX_LABEL_LENGTH = 500
 const SAMPLE_ID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 
@@ -24,6 +26,11 @@ type DeveloperStoreOptions = {
 type DeveloperMetadata = DeveloperSample
 type SettingsRead = { settings: DeveloperSettings; isCorrupt: boolean }
 type CapturePng = () => Promise<Buffer>
+type CollectedSampleInput = {
+  png: Buffer
+  capturedAt: string
+  source: DeveloperSampleSource
+}
 type DeveloperStore = {
   getSettings: () => Promise<DeveloperSettings>
   setEnabled: (enabled: boolean) => Promise<DeveloperSettings>
@@ -31,6 +38,11 @@ type DeveloperStore = {
   readImage: (id: string) => Promise<string>
   addSample: (pngDataUrl: string) => Promise<DeveloperSample>
   saveLabel: (id: string, text: string | null) => Promise<DeveloperSample>
+  setSampleExcluded: (id: string, excluded: boolean) => Promise<DeveloperSample>
+  addCollectedSample: (
+    sample: CollectedSampleInput,
+    shouldCommit: () => boolean
+  ) => Promise<DeveloperSample>
   captureFrame: (capturePng: CapturePng) => Promise<DeveloperFrame>
 }
 
@@ -58,18 +70,6 @@ function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): 
   return actualKeys.length === keys.length && keys.every((key) => actualKeys.includes(key))
 }
 
-function isValidDimensions(width: number, height: number): boolean {
-  return (
-    Number.isSafeInteger(width) &&
-    Number.isSafeInteger(height) &&
-    width > 0 &&
-    height > 0 &&
-    width <= MAX_IMAGE_DIMENSION &&
-    height <= MAX_IMAGE_DIMENSION &&
-    width * height <= MAX_IMAGE_PIXELS
-  )
-}
-
 function inspectPng(png: Buffer, decodePng: (png: Buffer) => PngDimensions | null): PngDimensions {
   const hasValidSize = png.length > 0 && png.length <= MAX_PNG_BYTES
   const hasSignature = png.length >= 33 && png.subarray(0, 8).equals(PNG_SIGNATURE)
@@ -81,7 +81,7 @@ function inspectPng(png: Buffer, decodePng: (png: Buffer) => PngDimensions | nul
 
   const width = png.readUInt32BE(16)
   const height = png.readUInt32BE(20)
-  if (!isValidDimensions(width, height)) {
+  if (!isValidImageDimensions(width, height)) {
     throw invalidCommand()
   }
 
@@ -130,24 +130,62 @@ function parseSettings(value: unknown): DeveloperSettings | null {
   return { enabled: value.enabled }
 }
 
+function isPartySlot(value: unknown): value is DeveloperPartySlot {
+  return value === 1 || value === 2 || value === 3 || value === 4
+}
+
+function parseSampleSource(value: unknown): DeveloperSampleSource | null | undefined {
+  if (value === null) {
+    return null
+  }
+  if (
+    !isObject(value) ||
+    !hasExactKeys(value, ['slot', 'frameWidth', 'frameHeight', 'scale']) ||
+    !isPartySlot(value.slot) ||
+    typeof value.frameWidth !== 'number' ||
+    typeof value.frameHeight !== 'number' ||
+    !isValidImageDimensions(value.frameWidth, value.frameHeight) ||
+    typeof value.scale !== 'number' ||
+    !Number.isFinite(value.scale) ||
+    value.scale <= 0
+  ) {
+    return undefined
+  }
+  return {
+    slot: value.slot,
+    frameWidth: value.frameWidth,
+    frameHeight: value.frameHeight,
+    scale: value.scale
+  }
+}
+
 function parseMetadata(value: unknown, expectedId: string): DeveloperMetadata | null {
-  if (!isObject(value) || !hasExactKeys(value, ['id', 'createdAt', 'width', 'height', 'text'])) {
+  const legacyKeys = ['id', 'createdAt', 'width', 'height', 'text']
+  const currentKeys = [...legacyKeys, 'excluded', 'source']
+  if (!isObject(value) || (!hasExactKeys(value, legacyKeys) && !hasExactKeys(value, currentKeys))) {
     return null
   }
   const { id, createdAt, width, height, text } = value
+  const excluded = 'excluded' in value ? value.excluded : false
+  const source = 'source' in value ? parseSampleSource(value.source) : null
   const isValidId = typeof id === 'string' && id === expectedId && SAMPLE_ID.test(id)
-  const isValidTimestamp =
-    typeof createdAt === 'string' &&
-    Number.isFinite(Date.parse(createdAt)) &&
-    new Date(createdAt).toISOString() === createdAt
+  const isValidTimestamp = isCanonicalIsoTimestamp(createdAt)
   const isValidLabel =
     text === null || (typeof text === 'string' && text.length <= MAX_LABEL_LENGTH)
+  const isValidExcluded = typeof excluded === 'boolean'
   const areValidDimensions =
-    typeof width === 'number' && typeof height === 'number' && isValidDimensions(width, height)
-  if (!isValidId || !isValidTimestamp || !isValidLabel || !areValidDimensions) {
+    typeof width === 'number' && typeof height === 'number' && isValidImageDimensions(width, height)
+  if (
+    !isValidId ||
+    !isValidTimestamp ||
+    !isValidLabel ||
+    !isValidExcluded ||
+    source === undefined ||
+    !areValidDimensions
+  ) {
     return null
   }
-  return { id, createdAt, width, height, text } as DeveloperMetadata
+  return { id, createdAt, width, height, text, excluded, source }
 }
 
 function createSerialQueue() {
@@ -191,8 +229,22 @@ async function ensureDirectory(directory: string): Promise<void> {
   await fs.mkdir(directory, { recursive: true, mode: 0o700 })
 }
 
-async function atomicWrite(filePath: string, contents: string | Buffer): Promise<void> {
+function collectionWriteCancelled(): DeveloperStoreError {
+  return new DeveloperStoreError('DEVELOPER_COLLECTION_CANCELLED')
+}
+
+async function atomicWrite(
+  filePath: string,
+  contents: string | Buffer,
+  shouldCommit?: () => boolean
+): Promise<void> {
+  if (shouldCommit != null && !shouldCommit()) {
+    throw collectionWriteCancelled()
+  }
   await ensureDirectory(dirname(filePath))
+  if (shouldCommit != null && !shouldCommit()) {
+    throw collectionWriteCancelled()
+  }
   const temporaryPath = `${filePath}.tmp-${randomUUID()}`
   try {
     await fs.writeFile(temporaryPath, contents, { flag: 'wx', mode: 0o600 })
@@ -202,7 +254,14 @@ async function atomicWrite(filePath: string, contents: string | Buffer): Promise
     } finally {
       await file.close()
     }
+    if (shouldCommit != null && !shouldCommit()) {
+      throw collectionWriteCancelled()
+    }
     await fs.rename(temporaryPath, filePath)
+    if (shouldCommit != null && !shouldCommit()) {
+      await fs.rm(filePath, { force: true })
+      throw collectionWriteCancelled()
+    }
   } catch (error) {
     try {
       await fs.rm(temporaryPath, { force: true })
@@ -380,35 +439,73 @@ export function createDeveloperStore({
     }
   })
 
+  async function writeSample(
+    png: Buffer,
+    createdAt: string,
+    source: DeveloperSampleSource | null,
+    shouldCommit?: () => boolean
+  ): Promise<DeveloperSample> {
+    const { width, height } = inspectPng(png, decodePng)
+    const sample: DeveloperSample = {
+      id: randomUUID(),
+      createdAt,
+      width,
+      height,
+      text: null,
+      excluded: false,
+      source
+    }
+    await atomicWrite(paths.image(sample.id), png, shouldCommit)
+    try {
+      await atomicWrite(paths.metadata(sample.id), JSON.stringify(sample), shouldCommit)
+    } catch (error) {
+      try {
+        await fs.rm(paths.image(sample.id), { force: true })
+      } catch {
+        // Preserve the metadata persistence failure.
+      }
+      throw error
+    }
+    return sample
+  }
+
   const addSample = inQueue(async (pngDataUrl: string): Promise<DeveloperSample> => {
     try {
       await requireEnabled()
       const png = parsePngDataUrl(pngDataUrl)
-      const { width, height } = inspectPng(png, decodePng)
       await ensureDirectory(paths.samplesDirectory)
-      const sample: DeveloperSample = {
-        id: randomUUID(),
-        createdAt: new Date().toISOString(),
-        width,
-        height,
-        text: null
-      }
-      await atomicWrite(paths.image(sample.id), png)
-      try {
-        await atomicWrite(paths.metadata(sample.id), JSON.stringify(sample))
-      } catch (error) {
-        try {
-          await fs.rm(paths.image(sample.id), { force: true })
-        } catch {
-          // Preserve the metadata persistence failure.
-        }
-        throw error
-      }
-      return sample
+      return await writeSample(png, new Date().toISOString(), null)
     } catch (error) {
       throw asStorageError(error)
     }
   })
+
+  const addCollectedSample = inQueue(
+    async (sample: CollectedSampleInput, shouldCommit: () => boolean): Promise<DeveloperSample> => {
+      const isValidCapturedAt = isCanonicalIsoTimestamp(sample?.capturedAt)
+      const source = parseSampleSource(sample?.source)
+      if (
+        !isObject(sample) ||
+        !hasExactKeys(sample, ['png', 'capturedAt', 'source']) ||
+        !Buffer.isBuffer(sample.png) ||
+        !isValidCapturedAt ||
+        source == null ||
+        typeof shouldCommit !== 'function'
+      ) {
+        throw invalidCommand()
+      }
+      try {
+        await requireEnabled()
+        if (!shouldCommit()) {
+          throw collectionWriteCancelled()
+        }
+        const createdSample = await writeSample(sample.png, sample.capturedAt, source, shouldCommit)
+        return createdSample
+      } catch (error) {
+        throw asStorageError(error)
+      }
+    }
+  )
 
   const saveLabel = inQueue(async (id: string, text: string | null): Promise<DeveloperSample> => {
     if (typeof id !== 'string' || !SAMPLE_ID.test(id)) {
@@ -431,6 +528,24 @@ export function createDeveloperStore({
     }
   })
 
+  const setSampleExcluded = inQueue(
+    async (id: string, excluded: boolean): Promise<DeveloperSample> => {
+      if (typeof id !== 'string' || !SAMPLE_ID.test(id) || typeof excluded !== 'boolean') {
+        throw invalidCommand()
+      }
+      try {
+        await requireEnabled()
+        const sample = await readMetadata(id)
+        await readSampleImage(sample)
+        const updated: DeveloperSample = { ...sample, excluded }
+        await atomicWrite(paths.metadata(id), JSON.stringify(updated))
+        return updated
+      } catch (error) {
+        throw asStorageError(error)
+      }
+    }
+  )
+
   const captureFrame = inQueue(async (capturePng: CapturePng): Promise<DeveloperFrame> => {
     if (typeof capturePng !== 'function') {
       throw invalidCommand()
@@ -451,7 +566,17 @@ export function createDeveloperStore({
     }
   })
 
-  return { getSettings, setEnabled, listSamples, readImage, addSample, saveLabel, captureFrame }
+  return {
+    getSettings,
+    setEnabled,
+    listSamples,
+    readImage,
+    addSample,
+    saveLabel,
+    setSampleExcluded,
+    addCollectedSample,
+    captureFrame
+  }
 }
 
 export { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS, MAX_LABEL_LENGTH, MAX_PNG_BYTES }

@@ -1,31 +1,39 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
+
 export const styles = stylex.create({
   workbench: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
-    color: colors.shellText,
-    padding: 16,
-    minWidth: 0
+    gap: 0,
+    boxSizing: 'border-box',
+    minWidth: 0,
+    padding: '12px 8px 0',
+    color: colors.shellText
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 12,
+    marginBottom: 24
   },
-  actions: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
-  columns: {
-    display: 'grid',
-    gridTemplateColumns: {
-      default: 'minmax(0, 1fr) minmax(0, 1fr)',
-      '@media (max-width: 700px)': 'minmax(0, 1fr)'
-    },
-    gap: 16,
-    alignItems: 'start'
+  heading: { display: 'flex', flexDirection: 'column', gap: 4 },
+  muted: { color: colors.shellMuted },
+  tabs: { display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 40 },
+  tab: {
+    minWidth: 120,
+    height: 40,
+    borderRadius: 0,
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
+    color: colors.shellMuted
   },
+  tabSelected: { borderBottomColor: colors.accent, color: colors.shellText },
+  separator: { width: '100%', height: 1, backgroundColor: colors.border, marginTop: 16 },
+  tabPanel: { marginTop: 20, minWidth: 0 },
   panel: {
     display: 'flex',
     flexDirection: 'column',
@@ -35,17 +43,19 @@ export const styles = stylex.create({
     backgroundColor: colors.surface,
     minWidth: 0
   },
-  list: {
-    display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
-    maxHeight: 144,
-    overflowY: 'auto',
-    margin: 0,
-    padding: 2,
-    listStyle: 'none'
+  actions: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
+  error: { color: '#d34d4d' },
+  evaluation: {
+    marginTop: 16,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.border,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    color: colors.shellText
   },
-  summary: { display: 'flex', flexWrap: 'wrap', gap: 16 },
-  muted: { color: colors.shellMuted },
-  error: { color: '#ed786e' }
+  evaluationSummary: { cursor: 'pointer', padding: '14px 16px', fontWeight: 700 },
+  evaluationBody: { display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px 16px' },
+  evaluationSummaryGrid: { display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
+  evaluationResult: { display: 'flex', flexDirection: 'column', gap: 8, overflowWrap: 'anywhere' }
 })

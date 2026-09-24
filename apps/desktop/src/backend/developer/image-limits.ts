@@ -1,0 +1,2 @@
+export const MAX_IMAGE_DIMENSION = 8192
+export const MAX_IMAGE_PIXELS = 33_000_000

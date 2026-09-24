@@ -2,16 +2,19 @@ import { assign, fromPromise, setup } from 'xstate'
 import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperApi, DeveloperSample } from '../../../preload/common/types/developer'
 
-type SamplesApi = Pick<DeveloperApi, 'listSamples' | 'addSample' | 'saveLabel'>
+export type DeveloperSamplesApi = Pick<
+  DeveloperApi,
+  'listSamples' | 'saveLabel' | 'setSampleExcluded'
+>
 
 type SaveIntent =
-  | { type: typeof DEVELOPER_EVENTS.ADD_SAMPLE; pngDataUrl: string }
   | { type: typeof DEVELOPER_EVENTS.SAVE_LABEL; id: string; text: string | null }
+  | { type: typeof DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED; id: string; excluded: boolean }
 
 type ActiveSave = { request: object; intent: SaveIntent }
 
 type SamplesContext = {
-  api: SamplesApi
+  api: DeveloperSamplesApi
   samples: DeveloperSample[]
   error: string
   loadRequest: object | null
@@ -22,29 +25,37 @@ type SamplesContext = {
 
 type SamplesEvent =
   | { type: typeof DEVELOPER_EVENTS.REFRESH; request: object }
-  | { type: typeof DEVELOPER_EVENTS.ADD_SAMPLE; request: object; pngDataUrl: string }
   | { type: typeof DEVELOPER_EVENTS.SAVE_LABEL; request: object; id: string; text: string | null }
+  | {
+      type: typeof DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED
+      request: object
+      id: string
+      excluded: boolean
+    }
   | { type: typeof DEVELOPER_EVENTS.CANCEL }
 
 // 목록 조회와 저장은 같은 시점에 완료되지 않도록 직렬화해 저장된 메타데이터를 보존한다.
 export const developerSamplesMachine = setup({
   types: {
     context: {} as SamplesContext,
-    input: {} as { api: SamplesApi },
+    input: {} as { api: DeveloperSamplesApi },
     events: {} as SamplesEvent
   },
   actors: {
-    listSamples: fromPromise<DeveloperSample[], SamplesApi>(({ input: api }) => api.listSamples()),
-    saveSample: fromPromise<DeveloperSample, { api: SamplesApi; save: ActiveSave | null }>(
-      async ({ input }: { input: { api: SamplesApi; save: ActiveSave | null } }) => {
+    listSamples: fromPromise<DeveloperSample[], DeveloperSamplesApi>(({ input: api }) =>
+      api.listSamples()
+    ),
+    saveSample: fromPromise<DeveloperSample, { api: DeveloperSamplesApi; save: ActiveSave | null }>(
+      async ({ input }: { input: { api: DeveloperSamplesApi; save: ActiveSave | null } }) => {
         if (input.save == null) {
           throw new Error(DEVELOPER_ERRORS.SAVE_REQUEST_MISSING)
         }
 
         const { intent } = input.save
-        return intent.type === DEVELOPER_EVENTS.ADD_SAMPLE
-          ? input.api.addSample(intent.pngDataUrl)
-          : input.api.saveLabel(intent.id, intent.text)
+        if (intent.type === DEVELOPER_EVENTS.SAVE_LABEL) {
+          return input.api.saveLabel(intent.id, intent.text)
+        }
+        return input.api.setSampleExcluded(intent.id, intent.excluded)
       }
     )
   },
@@ -64,23 +75,27 @@ export const developerSamplesMachine = setup({
       lastRefresh: context.loadRequest,
       loadRequest: null
     })),
-    startAddSample: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.ADD_SAMPLE
-        ? {
-            activeSave: {
-              request: event.request,
-              intent: { type: DEVELOPER_EVENTS.ADD_SAMPLE, pngDataUrl: event.pngDataUrl }
-            },
-            error: ''
-          }
-        : {}
-    ),
     startSaveLabel: assign(({ event }) =>
       event.type === DEVELOPER_EVENTS.SAVE_LABEL
         ? {
             activeSave: {
               request: event.request,
               intent: { type: DEVELOPER_EVENTS.SAVE_LABEL, id: event.id, text: event.text }
+            },
+            error: ''
+          }
+        : {}
+    ),
+    startSetSampleExcluded: assign(({ event }) =>
+      event.type === DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED
+        ? {
+            activeSave: {
+              request: event.request,
+              intent: {
+                type: DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED,
+                id: event.id,
+                excluded: event.excluded
+              }
             },
             error: ''
           }
@@ -145,13 +160,13 @@ export const developerSamplesMachine = setup({
           target: '#developerSamples.loading',
           actions: 'startRefresh'
         },
-        [DEVELOPER_EVENTS.ADD_SAMPLE]: {
-          target: '#developerSamples.saving',
-          actions: 'startAddSample'
-        },
         [DEVELOPER_EVENTS.SAVE_LABEL]: {
           target: '#developerSamples.saving',
           actions: 'startSaveLabel'
+        },
+        [DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED]: {
+          target: '#developerSamples.saving',
+          actions: 'startSetSampleExcluded'
         }
       },
       states: {

@@ -16,8 +16,24 @@ vi.mock('../lib/developer-images', () => ({ readDeveloperImage: mocks.read }))
 let root: ReturnType<typeof createRoot>
 let evaluation: ReturnType<typeof useDeveloperEvaluation>
 const samples: DeveloperSample[] = [
-  { id: 'one', createdAt: '2026-09-24T00:00:00.000Z', width: 10, height: 10, text: '가' },
-  { id: 'two', createdAt: '2026-09-24T00:00:00.000Z', width: 10, height: 10, text: '나' }
+  {
+    id: 'one',
+    createdAt: '2026-09-24T00:00:00.000Z',
+    width: 10,
+    height: 10,
+    text: '가',
+    excluded: false,
+    source: null
+  },
+  {
+    id: 'two',
+    createdAt: '2026-09-24T00:00:00.000Z',
+    width: 10,
+    height: 10,
+    text: '나',
+    excluded: false,
+    source: null
+  }
 ]
 function Harness(): null {
   const value = useDeveloperEvaluation()
