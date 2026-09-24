@@ -45,7 +45,7 @@ type Win32Api = {
   GetLastError: () => number
 }
 
-function bgrxToRgba(bgrx: Uint8Array): Buffer {
+export function bgrxToRgba(bgrx: Uint8Array): Buffer {
   if (bgrx.length % 4 !== 0) {
     throw new Error('BGRX data must contain whole 32-bit pixels.')
   }
