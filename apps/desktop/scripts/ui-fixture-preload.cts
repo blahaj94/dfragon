@@ -99,13 +99,17 @@ if (developerFixture != null) {
     },
     saveLabel: async (id: string, text: string | null) => {
       const row = rows.find((candidate) => candidate.id === id)
-      if (!row) throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
+      if (!row) {
+        throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
+      }
       row.text = text
       return { ...row }
     },
     setSampleExcluded: async (id: string, excluded: boolean) => {
       const row = rows.find((candidate) => candidate.id === id)
-      if (!row) throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
+      if (!row) {
+        throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
+      }
       row.excluded = excluded
       return { ...row }
     },

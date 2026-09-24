@@ -26,7 +26,9 @@ export const styles = stylex.create({
     minWidth: 120,
     height: 40,
     borderRadius: 0,
-    borderBottom: '2px solid transparent',
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     color: colors.shellMuted
   },
   tabSelected: { borderBottomColor: colors.accent, color: colors.shellText },
