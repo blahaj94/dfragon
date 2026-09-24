@@ -40,3 +40,7 @@ await copyFile(
   new URL('./passkeys.html', import.meta.url),
   new URL('../dist/browser/passkeys.html', import.meta.url)
 )
+await copyFile(
+  new URL('./icon.png', import.meta.url),
+  new URL('../dist/browser/icon.png', import.meta.url)
+)

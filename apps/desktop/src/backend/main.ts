@@ -79,13 +79,12 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     throw new Error('Main window already exists.')
   }
   authAppLifecycle.prepareWindow()
-  const isLinux = process.platform === 'linux'
   const window = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
     autoHideMenuBar: true,
-    ...(isLinux ? { icon } : {}),
+    icon,
     webPreferences: {
       backgroundThrottling: false,
       preload: join(__dirname, '../preload/index.js'),
@@ -170,6 +169,10 @@ app.whenReady().then(async () => {
   const hasOwnedInstance = protocolIngress == null || protocolIngress.ownsInstance
   if (!hasOwnedInstance) {
     return
+  }
+
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(icon)
   }
 
   authAppLifecycle.registerAppHandlers()
