@@ -190,6 +190,32 @@ it('blocks a delayed collection arm while developer mode is being disabled', asy
   expect(electron.register).not.toHaveBeenCalled()
 })
 
+it('allows collection after the initial document load and a trusted reload', async () => {
+  const fixture = await setup()
+  const on = fixture.webContents.on as ReturnType<typeof vi.fn>
+  const started = on.mock.calls.find(([eventName]) => eventName === 'did-start-navigation')?.[1]
+  const navigated = on.mock.calls.find(([eventName]) => eventName === 'did-navigate')?.[1]
+
+  // main registers developer IPC before loading the first renderer document.
+  started({}, rendererUrl, false, true)
+  navigated({}, rendererUrl)
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])).toMatchObject({
+    armed: true
+  })
+
+  started({}, rendererUrl, false, true)
+  expect(electron.unregister).toHaveBeenCalledTimes(1)
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])).toMatchObject({
+    armed: false
+  })
+  navigated({}, rendererUrl)
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [2])).toMatchObject({
+    armed: true,
+    slots: [2]
+  })
+})
+
 it('unregisters the collection hotkey as soon as the registered main frame navigates', async () => {
   const fixture = await setup()
   await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
@@ -208,6 +234,14 @@ it('unregisters the collection hotkey as soon as the registered main frame navig
     slots: []
   })
   expect(electron.register).toHaveBeenCalledTimes(1)
+  fixture.frame.url = 'file:///next-document.html'
+  const navigated = navigationHandler.mock.calls.find(
+    ([eventName]) => eventName === 'did-navigate'
+  )?.[1]
+  navigated?.({}, fixture.frame.url)
+  await expect(fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])).rejects.toThrow(
+    'DEVELOPER_NOT_ALLOWED'
+  )
 })
 
 it('keeps collection status readable when a fresh preview capture fails', async () => {

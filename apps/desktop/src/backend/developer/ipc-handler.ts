@@ -189,6 +189,7 @@ export function registerDeveloperWindow(
     }
   })
   let disposed = false
+  let mainFrameNavigating = false
   const registeredChannels: string[] = []
   let partyCaptureModule: Promise<typeof import('./win32-party-capture')> | null = null
   let settingsMutationTail: Promise<void> = Promise.resolve()
@@ -209,7 +210,7 @@ export function registerDeveloperWindow(
   }
 
   function isTrustedMainDocument(): boolean {
-    const isWindowAlive = !disposed && !window.isDestroyed()
+    const isWindowAlive = !disposed && !mainFrameNavigating && !window.isDestroyed()
     const isContentsAlive = isWindowAlive && !window.webContents.isDestroyed()
     const frame = isContentsAlive ? window.webContents.mainFrame : null
     return (
@@ -220,11 +221,34 @@ export function registerDeveloperWindow(
   function onMainFrameNavigation(
     _event: Electron.Event,
     _navigationUrl: string,
-    _isInPlace: boolean,
+    isInPlace: boolean,
     isMainFrame: boolean
   ): void {
     if (isMainFrame) {
-      void collectionSession.dispose()
+      mainFrameNavigating = !isInPlace
+      void collectionSession.stop()
+    }
+  }
+
+  function onMainFrameNavigated(): void {
+    mainFrameNavigating = false
+    void collectionSession.stop()
+  }
+
+  function onRendererGone(): void {
+    mainFrameNavigating = true
+    void collectionSession.stop()
+  }
+
+  function onLoadFailed(
+    _event: Electron.Event,
+    _code: number,
+    _description: string,
+    _url: string,
+    isMainFrame: boolean
+  ): void {
+    if (isMainFrame) {
+      onMainFrameNavigated()
     }
   }
 
@@ -276,6 +300,9 @@ export function registerDeveloperWindow(
     window.removeListener('closed', dispose)
     window.webContents.removeListener('destroyed', dispose)
     window.webContents.removeListener('did-start-navigation', onMainFrameNavigation)
+    window.webContents.removeListener('did-navigate', onMainFrameNavigated)
+    window.webContents.removeListener('did-fail-load', onLoadFailed)
+    window.webContents.removeListener('render-process-gone', onRendererGone)
     void collectionSession.dispose()
   }
 
@@ -398,6 +425,9 @@ export function registerDeveloperWindow(
     window.on('closed', dispose)
     window.webContents.on('destroyed', dispose)
     window.webContents.on('did-start-navigation', onMainFrameNavigation)
+    window.webContents.on('did-navigate', onMainFrameNavigated)
+    window.webContents.on('did-fail-load', onLoadFailed)
+    window.webContents.on('render-process-gone', onRendererGone)
   } catch (error) {
     dispose()
     throw sanitizedError(error)
