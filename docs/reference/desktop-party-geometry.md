@@ -2,12 +2,12 @@
 type: reference
 status: active
 scope: Desktop party-frame geometry measurements and shared projections
-last-reviewed: 2026-09-24
+last-reviewed: 2026-09-25
 ---
 
 # Desktop 파티 geometry 조사
 
-Windows에서 측정한 게임 client 크기와 파티 frame 간격을 바탕으로 공용 geometry 계산을 준비했다. [`@dfragon/lib` 안내](../../packages/lib/README.md)는 UI 배율 후보 추정, 관측한 frame 간격을 이용한 배율 추정, 기준 crop을 슬롯 후보 좌표로 투영하는 순수 함수를 설명한다. 이 계산은 Desktop의 실시간 캡처나 개발자 수집 화면에 아직 연결되지 않았다.
+Windows에서 측정한 게임 client 크기와 파티 frame 간격을 바탕으로 공용 geometry 계산을 준비했다. [`@dfragon/lib` 안내](../../packages/lib/README.md)는 UI 배율 후보 추정, 관측한 frame 간격을 이용한 배율 추정, 기준 crop을 슬롯 후보 좌표로 투영하는 순수 함수를 설명한다. Desktop 개발자 작업 공간은 실제 client 영역과 프레임 구조에서 얻은 배율로 네 위치의 닉네임 크롭을 미리 보여주고, Print Screen으로 선택한 원본만 저장한다. 사용 흐름은 [Desktop 안내](../../apps/desktop/README.md#개발자-모드)를 따른다.
 
 ## 관측과 추정
 
@@ -49,7 +49,9 @@ Windows에서 측정한 게임 client 크기와 파티 frame 간격을 바탕으
 
 이 함수들은 frame이나 닉네임 위치를 자동 검출하거나, 파티원의 존재를 판정하거나, 화면을 캡처하지 않는다. 투영할 기준 crop은 호출자가 보정해야 하며 범위를 벗어나는 영역은 오류로 처리한다.
 
-실시간 OCR과 개발자 원본 수집을 연결할 때에는 client 기준점을 공통으로 쓰고, OCR 전처리와 원본 저장 처리는 분리한다. 다음 단계는 실제 frame edge와 HP·MP track을 찾는 detector, 창 client 크기·원점 연결, 공용 투영 함수 연결이다. 사용자가 Print Screen을 눌렀을 때만 최대 네 개의 원본 crop을 저장하고, 이후 이미지를 하나씩 라벨하거나 제외하는 흐름을 검토한다. 주기 수집과 일괄 라벨링은 이 범위에 포함하지 않는다.
+Desktop 수집은 client 기준점을 사용하며 OCR 전처리와 원본 저장 처리를 분리한다. 1초 간격 미리보기는 저장하지 않고, Print Screen을 눌렀을 때 새 프레임에서 선택한 최대 네 개의 원본 crop을 저장한다. 게임 뒤 정답 입력 탭에서 이미지를 하나씩 라벨하거나 제외·복원한다. 주기적인 파일 저장과 일괄 라벨링은 하지 않는다.
+
+화면에서 구한 raster 배율과 게임 설정의 UI 퍼센트는 구분한다. 특히 client 높이가 600px이면 위 식은 모든 UI 설정에서 배율 1이므로 UI 퍼센트를 역산할 수 없다. 개발자 화면은 관측한 배율을 표시하며 UI 설정값을 읽었다고 주장하지 않는다.
 
 ## 남은 확인
 
