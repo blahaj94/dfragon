@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
+import brandIcon from '../../../resources/brand.png'
 import { searchSnapshot } from '../../preload/api/search-test-fixture'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
@@ -111,9 +112,12 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
     expect(input.value).toBe('')
     expect(input.disabled).toBe(true)
     expect(slot.querySelector('button')).toBeNull()
+    expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  expect(container.querySelector('img')).toBeNull()
+  const brandImage = container.querySelector('footer img')
+  expect(brandImage?.getAttribute('src')).toBe(brandIcon)
+  expect([...container.querySelectorAll('img')]).toEqual([brandImage])
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
   expect(container.textContent).toContain('캡처 대기')
