@@ -65,3 +65,14 @@ export function validateDFNickname(
 export { estimateDNFUIScale } from './dnf-ui-scale.js'
 export { estimateDNFPartyScale, projectDNFPartyRegions } from './dnf-party-geometry.js'
 export type { DNFRectangle, DNFPartyRegionOptions } from './dnf-party-geometry.js'
+export {
+  detectDNFPartyParticipantWindow,
+  cropDNFPartyParticipantNicknames
+} from './dnf-party-participants.js'
+export type {
+  DNFParticipantFrame,
+  DNFParticipantSlot,
+  DNFParticipantRow,
+  DNFParticipantDetection,
+  DNFParticipantCropResult
+} from './dnf-party-participants.js'
