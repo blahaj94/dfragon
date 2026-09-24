@@ -31,6 +31,7 @@ const MAX_CLIENT_HEIGHT = 1080
 const MIN_SCALE = 1
 const MAX_SCALE = 1.8
 const SCALE_SEARCH_STEP = 0.01
+const NAME_VERTICAL_PADDING_PX = 2
 
 // Measured from full HP/MP bars at 1067×600 and scaled client captures.
 const HP_REFERENCE_CENTER_Y = 28
@@ -491,13 +492,13 @@ function projectObservedSlot({
   scale: number
 }): PartyFrameRegion {
   const { anchorX, hp, mp } = candidate
-  // A measured base-scale glyph starts at anchor+1 and reaches y=22. Keep one
-  // pixel of left/bottom padding; the earlier anchor+2 crop clipped its first column.
+  // A measured base-scale glyph starts at anchor+1 and reaches y=22. Keep the
+  // observed left anchor and add two captured pixels above/below the scaled name line.
   // The name target excludes the right-side status icon. Maximum name width is unverified.
   const x = anchorX
-  const y = Math.floor(12 * scale)
+  const y = Math.floor(12 * scale) - NAME_VERTICAL_PADDING_PX
   const width = Math.ceil(72.5 * scale)
-  const height = Math.ceil(12 * scale)
+  const height = Math.ceil(12 * scale) + 2 * NAME_VERTICAL_PADDING_PX
 
   const trackMargin = Math.max(1, Math.round(scale))
   const trackWidth = Math.round(Math.min(hp.medianWidth, mp.medianWidth))
