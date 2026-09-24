@@ -8,7 +8,7 @@ last-reviewed: 2026-09-08
 
 # 인증 데이터의 명시적 정리
 
-`pnpm --filter @ldb/api auth:cleanup`은 production ESM build 후 인증 데이터를 한 번 정리하고 종료한다. 기존 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설정과 `createDatabaseDataSource`를 사용한다. Migration을 자동 적용하지 않으므로 승인된 Migration이 적용된 DB가 필요하다.
+`pnpm --filter @dfragon/api auth:cleanup`은 production ESM build 후 인증 데이터를 한 번 정리하고 종료한다. 기존 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설정과 `createDatabaseDataSource`를 사용한다. Migration을 자동 적용하지 않으므로 승인된 Migration이 적용된 DB가 필요하다.
 
 ## 삭제와 보존
 
@@ -36,9 +36,9 @@ Compiled CLI `apps/api/src/auth/cleanup/cli.ts`는 정리와 연결 종료가 �
 전용 unit/command test는 `apps/api/test-support/cleanup.test.mjs`, `cleanup-command.test.mjs`다. 실제 PostgreSQL 검증은 `cleanup-database.mjs`, `cleanup-session-concurrency.mjs`를 기존 `database-integration.mjs`가 호출한다. 별도 Docker harness는 없다.
 
 ```sh
-pnpm --filter @ldb/api build
-pnpm --filter @ldb/api exec node --import reflect-metadata --test test-support/cleanup.test.mjs test-support/cleanup-command.test.mjs
-pnpm --filter @ldb/api test:database
+pnpm --filter @dfragon/api build
+pnpm --filter @dfragon/api exec node --import reflect-metadata --test test-support/cleanup.test.mjs test-support/cleanup-command.test.mjs
+pnpm --filter @dfragon/api test:database
 ```
 
 DB 검증은 활성 refresh 이력과 인증 요청의 보존·삭제, session 잠금 대기와 활동·refresh 경합, 부분 commit·결과 불명과 CLI 연결 종료를 검사한다. 과거 cleanup 도입 결과는 [Issue #136](https://github.com/blahaj94/ldb/issues/136)에 보존하며 폐기한 인증 흐름의 검증을 현재 패스키 성공 근거로 사용하지 않는다. 현재 전체 결과는 패스키 전환 PR의 DB 검증을 따른다.

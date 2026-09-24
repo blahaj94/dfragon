@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { collectPackages, resolvePackageRoot, type NoticeEntry } from './collect.ts'
 
 const noticeRoot = fileURLToPath(new URL('../notices/', import.meta.url))
-const moduleId = 'virtual:ldb-desktop-licenses'
+const moduleId = 'virtual:dfragon-desktop-licenses'
 
 /** Build an offline catalog from the same originals used in distribution notices. */
 export function collectDesktopCatalog({
@@ -87,7 +87,7 @@ export function collectDesktopCatalog({
 /** Supply plain license data to the renderer without Node APIs or runtime filesystem access. */
 export function desktopLicenseCatalog(options: Parameters<typeof collectDesktopCatalog>[0]) {
   return {
-    name: 'ldb-desktop-license-catalog',
+    name: 'dfragon-desktop-license-catalog',
     resolveId(id: string) {
       return id === moduleId ? `\0${moduleId}` : null
     },

@@ -14,7 +14,7 @@ last-reviewed: 2026-09-12
 
 - Package manager: `pnpm@11.23.0`
 - Workspace pattern: `apps/*`, `packages/*`
-- Root package: `@ldb`
+- Root package: `@dfragon`
 - Root type: ESM
 
 ## 공통 정적 검사와 정렬
@@ -23,35 +23,35 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 - `pnpm lint`, `pnpm lint:fix`: root 설정·scripts·API·Desktop·Web·UI의 ESLint 비수정 검사와 자동수정.
 - `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS·JSON/JSONC·YAML·CSS/SCSS/LESS·HTML을 Prettier로 정렬하거나 비수정 검사한다. Markdown은 자동 정렬 대상에 포함하지 않는다.
-- 각 workspace에서도 `pnpm --filter @ldb/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
-- `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @ldb/web lint:oxlint`, `pnpm --filter @ldb/ui lint:oxlint`다. ESLint와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
+- 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
+- `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @dfragon/web lint:oxlint`, `pnpm --filter @dfragon/ui lint:oxlint`다. ESLint와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
 
 각 leaf의 formatter 명령은 root config와 ignore 경로를 명시한다. 생성물·OCR·고정 SEED source·foundation/provenance·lockfile·license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사·정렬 대상이다. 세부 범위는 실행되는 config와 ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 `@ldb/licenses` test와 `@ldb/lib` build·test, root ESLint·Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+`.github/workflows/code-quality.yml`은 read-only 권한으로 `@dfragon/licenses` test와 `@dfragon/lib` build·test, root ESLint·Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
 ## Shared library
 
-- Package: `@ldb/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
+- Package: `@dfragon/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
 - `estimateDNFUIScale`은 UI 0% 대비 배율을 추정하는 순수함수다. 다섯 PNG 관측 단계에 근거한 후보식이며 공식 게임 산식이 아니다. [입력 범위와 한계](../../packages/lib/README.md#dnf-ui-배율-추정)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
-- `pnpm --filter @ldb/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
+- `pnpm --filter @dfragon/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 
 ## License tooling
 
-- Package: `@ldb/licenses`, 위치: `packages/licenses`. 빌드용 수집기·정적 원문·버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
+- Package: `@dfragon/licenses`, 위치: `packages/licenses`. 빌드용 수집기·정적 원문·버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
 - 기존 UI·Web·Desktop·lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
-- `pnpm --filter @ldb/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
+- `pnpm --filter @dfragon/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
 
 ## Applications
 
 ### `apps/api`
 
-- Package: `@ldb/api`
+- Package: `@dfragon/api`
 - Type: ESM
 - Stack: Node 24, NestJS 12, TypeScript
 - Entry: `src/main.ts` → `dist/main.js`
-- 로컬 실행: `pnpm --filter @ldb/api dev`는 build 후 앱 폴더의 `.env`를 읽고 시작한다. `db:migrate:local`은 같은 `.env`의 개발 DB에 migration을 명시 적용한다. 운영 `start`와 기존 DB 명령은 환경 주입 방식을 유지한다. [로컬 실행 안내](api-start-development.md#로컬-개발-명령)를 참고한다.
+- 로컬 실행: `pnpm --filter @dfragon/api dev`는 build 후 앱 폴더의 `.env`를 읽고 시작한다. `db:migrate:local`은 같은 `.env`의 개발 DB에 migration을 명시 적용한다. 운영 `start`와 기존 DB 명령은 환경 주입 방식을 유지한다. [로컬 실행 안내](api-start-development.md#로컬-개발-명령)를 참고한다.
 - API 문서: `/docs`의 Swagger UI와 `/docs/openapi.json`. `src/swagger`의 명시적 schema·설명을 controller metadata와 합쳐 제공한다. [사용 방법](api-start-development.md#swagger-api-문서)을 참고한다.
 - 필수 runtime 설정: `PORT`, `DB_*`, `NEOPLE_API_KEY`, `AUTH_CONFIG_FILE`. `src/runtime`에서 설정을 검증하고 기존 인증·계정·검색 factory와 소유 DB를 기본 main에 연결한다. 정확한 입력·실행 순서는 [`api-start-development.md`](api-start-development.md)를 참고한다.
 - Test compile: `test`가 `dist`를 먼저 clean build한 뒤 `src`, `test`를 `.test-dist`로 compile한다. 단독 실행에서도 runtime entry와 login test가 최신 production output을 사용한다. Test module의 loopback HTTP로 runtime을 검증한다.
@@ -69,35 +69,35 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Migration 설정: `synchronize:false`, `migrationsRun:false`, `migrationsTransactionMode:'all'`. TypeORM은 최초 up에서 내부 history table을 먼저 준비하고, auth DDL과 해당 history row는 Migration의 active transaction 안에서 적용한다. `db:migrate:show`는 fresh DB에 history table을 만들지 않는 read-only 조회다.
 - Docker integration: `test-support/database-integration.mjs`가 고정 PostgreSQL image를 native platform의 isolated container·named volume·loopback dynamic port에서 검증하고 run ownership이 일치하는 exact resource만 정리한다.
 - Command:
-  - `pnpm --filter @ldb/api dev`
-  - `pnpm --filter @ldb/api start`
-  - `pnpm --filter @ldb/api test`
-  - `pnpm --filter @ldb/api typecheck`
-  - `pnpm --filter @ldb/api lint`
-  - `pnpm --filter @ldb/api build`
-  - `pnpm --filter @ldb/api test:database`
-  - `pnpm --filter @ldb/api auth:cleanup`
-  - `pnpm --filter @ldb/api db:migrate:generate AddUserField` (EntitySchema와 개발 DB 차이로 Migration file 생성)
-  - `pnpm --filter @ldb/api db:migrate:up`
-  - `pnpm --filter @ldb/api db:migrate:show`
-  - `pnpm --filter @ldb/api db:migrate:down` (빈 disposable DB rollback 검증 전용; 운영 자동 실행 아님)
+  - `pnpm --filter @dfragon/api dev`
+  - `pnpm --filter @dfragon/api start`
+  - `pnpm --filter @dfragon/api test`
+  - `pnpm --filter @dfragon/api typecheck`
+  - `pnpm --filter @dfragon/api lint`
+  - `pnpm --filter @dfragon/api build`
+  - `pnpm --filter @dfragon/api test:database`
+  - `pnpm --filter @dfragon/api auth:cleanup`
+  - `pnpm --filter @dfragon/api db:migrate:generate AddUserField` (EntitySchema와 개발 DB 차이로 Migration file 생성)
+  - `pnpm --filter @dfragon/api db:migrate:up`
+  - `pnpm --filter @dfragon/api db:migrate:show`
+  - `pnpm --filter @dfragon/api db:migrate:down` (빈 disposable DB rollback 검증 전용; 운영 자동 실행 아님)
 
 ### `apps/web`
 
-- Package: `@ldb/web`
+- Package: `@dfragon/web`
 - Stack: React, TypeScript, Vite
 - Command:
-  - `pnpm --filter @ldb/web dev`
-  - `pnpm --filter @ldb/web test`
-  - `pnpm --filter @ldb/web typecheck`
-  - `pnpm --filter @ldb/web build`
-  - `pnpm --filter @ldb/web lint`
-  - `pnpm --filter @ldb/web preview`
+  - `pnpm --filter @dfragon/web dev`
+  - `pnpm --filter @dfragon/web test`
+  - `pnpm --filter @dfragon/web typecheck`
+  - `pnpm --filter @dfragon/web build`
+  - `pnpm --filter @dfragon/web lint`
+  - `pnpm --filter @dfragon/web preview`
 
 ### `apps/desktop`
 
-- Package: `@ldb/desktop`
-- Windows MVP 배포: 이름 `LDB`, x64 NSIS, `ldb` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `ldb.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
+- Package: `@dfragon/desktop`
+- Windows MVP 배포: 이름 `DFRAGON`, x64 NSIS, `dfragon` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
 - Stack: Electron, React, TypeScript, electron-vite
 - Process boundary: `main`, `preload`, `renderer`
 - TypeScript: `tsconfig.node.json`·`tsconfig.web.json`에 `composite: false`, `noEmit: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.
@@ -116,26 +116,26 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결·OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @ldb/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 로그인 버튼의 인증 창 진입·진행 표시·실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 선택 즉시 캡처·대상 변경·중지를 연결하고 OCR 이름을 카드에 표시한다. 검색 결과·이름 수정·상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세·캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
-- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@ldb/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 로그인 버튼의 인증 창 진입·진행 표시·실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 선택 즉시 캡처·대상 변경·중지를 연결하고 OCR 이름을 카드에 표시한다. 검색 결과·이름 수정·상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세·캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@dfragon/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
-  - `pnpm --filter @ldb/desktop dev`
-  - `pnpm --filter @ldb/desktop test`
-  - `pnpm --filter @ldb/desktop typecheck`
-  - `pnpm --filter @ldb/desktop lint`
-  - `pnpm --filter @ldb/desktop build`
+  - `pnpm --filter @dfragon/desktop dev`
+  - `pnpm --filter @dfragon/desktop test`
+  - `pnpm --filter @dfragon/desktop typecheck`
+  - `pnpm --filter @dfragon/desktop lint`
+  - `pnpm --filter @dfragon/desktop build`
 
 ## Shared UI
 
 - 실제 검증 환경·결과·upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
-- `packages/ui`: `@ldb/ui`, 공식 SEED Snippet·Layout과 중립 Example. Package/peer/CSS 소유·고정 source·고지·명령은 `packages/ui/README.md`를 따른다.
-- Library: `pnpm --filter @ldb/ui test`, `typecheck`, `lint`, `build`.
-- 독립 Example: `pnpm --filter @ldb/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
+- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet·Layout과 중립 Example. Package/peer/CSS 소유·고정 source·고지·명령은 `packages/ui/README.md`를 따른다.
+- Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
+- 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
 - Web/Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
 - 각 consumer는 SEED base.css와 별도 공용 foundation.css를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 SEED/React/JSX runtime을 external 처리한다.
 - Source 재생성·hash/local diff: `packages/ui/scripts/prepare-seed-source.mjs`, `packages/ui/seed-provenance.json`.
 - 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example·Web·Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
-- Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @ldb/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
+- Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
 
 ## Repository tooling
 
@@ -163,6 +163,8 @@ Signal workflow는 same-repository의 non-draft Pull Request에 `@ldb-review` la
 
 Trusted workflow는 signal workflow가 완료된 뒤 `workflow_run`으로 실행된다. Default branch code만 checkout하고 source workflow result, linked Pull Request, label, draft, fork, current head SHA를 GitHub API로 다시 확인한다. 단일 trigger job이 요청 검증과 provider 댓글 게시를 수행하며 PAT는 해당 step에만 전달한다. Workflow token은 contents read 권한만 가진다.
 
+`@ldb-review` label, `LDB_REVIEW_TRIGGER_TOKEN` Secret key, `ldb-ai-review` comment marker는 기존 GitHub 설정과 deduplication 기록을 유지하기 위해 기존 이름을 보존한다.
+
 현재 provider adapter는 `codex`다. Provider-neutral label을 Codex GitHub integration의 `@codex review` comment로 변환한다. 지정된 trigger 작성자의 comment 중 같은 head SHA의 `ldb-ai-review:codex` marker가 있으면 요청을 생략한다. 별도로 실행되는 Codex 기본 리뷰나 수동 요청은 이 검사에 포함되지 않으므로 라벨 요청 전에 해당 head의 기존 리뷰 상태를 확인한다. Trigger identity는 repository Secret `LDB_REVIEW_TRIGGER_TOKEN`을 사용한다. 이 값은 `ldb` repository만 선택한 expiring fine-grained PAT이며 `Pull requests: Read and write` 이외의 추가 repository permission을 부여하지 않는다.
 
 Repository Secret `LDB_REVIEW_TRIGGER_TOKEN`은 2026-08-29에 등록했다. 같은 날 controlled pilot PR #5에서 signal, trusted Policy job, 사용자 identity provider trigger, Codex review, P1 inline finding, same-head deduplication E2E가 모두 통과했다. Pilot PR은 merge하지 않고 닫았다.
@@ -171,7 +173,7 @@ Repository Secret `LDB_REVIEW_TRIGGER_TOKEN`은 2026-08-29에 등록했다. 같�
 
 현재 결과 정규화 schema와 validator는 없습니다. Provider-neutral review 목표는 유지하며, 향후 직접 provider 응답을 소비하는 실행 계약이 정해지면 실제 입력과 소비자를 기준으로 결과 계약을 다시 설계합니다.
 
-Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory summary 게시 경로는 없다. `@ldb-review`는 선택적 요청이며 PR마다 자동으로 붙이지 않는다. 라벨이 유지된 후속 head는 기존 signal event를 통해 요청한다. 요청 게시와 실제 리뷰 완료는 구분한다.
+Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory summary 게시 경로는 없다. `@ldb-review`는 DFRAGON 이름 변경 전부터 쓰던 선택적 요청 label이며 PR마다 자동으로 붙이지 않는다. 라벨이 유지된 후속 head는 기존 signal event를 통해 요청한다. 요청 게시와 실제 리뷰 완료는 구분한다.
 
 ## Generated and dependency output
 

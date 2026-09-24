@@ -11,7 +11,7 @@
     /* Bundler mode */
     "moduleResolution": "bundler",
     "paths": {
-      "@ldb/ui": ["../../packages/ui/src/index.tsx"]
+      "@dfragon/ui": ["../../packages/ui/src/index.tsx"]
     },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

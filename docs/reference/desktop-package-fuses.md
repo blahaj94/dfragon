@@ -33,14 +33,14 @@ configuration과 두 fuse field를 수용하는지 확인한 뒤 두 값을 모�
 Focused test:
 
 ```bash
-pnpm --filter @ldb/desktop exec vitest run scripts/desktop-package-fuses.test.mjs
+pnpm --filter @dfragon/desktop exec vitest run scripts/desktop-package-fuses.test.mjs
 ```
 
 Desktop source/config 검증과 aggregate build의 기본 경로는 다음과 같다.
 
 ```bash
-pnpm --filter @ldb/desktop run --sequential '/^(test|lint|build)$/'
-pnpm --filter @ldb/desktop run format:check
+pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
+pnpm --filter @dfragon/desktop run format:check
 git diff --check
 ```
 

@@ -22,17 +22,17 @@ last-reviewed: 2026-09-17
 
 Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답의 URL만 격리된 Electron 로그인 전용 BrowserWindow에서 연다. Node·preload·제품 IPC를 제공하지 않고 메모리 session을 사용한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면에서 기존 계정 로그인과 새 계정 생성을 분리한다.
 
-요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. LDB 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
+요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. DFRAGON 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
 
 직접 패스키 인증 또는 아래 QR 양쪽 승인 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 앱은 원래 request ID·client ID·verifier로 교환한다. 서버가 credential의 존재·소유 관계를 재확인하고 session·refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
 
 Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번만 검증한다. 새 옵션 발급은 이전 challenge를 대체한다. 잘못된 패스키 증명은 그 브라우저의 challenge를 소비하며 다른 요청을 바꾸지 않는다. 처리 중 설정 fingerprint가 달라진 요청은 거부한다.
 
-## LDB 휴대폰 QR
+## DFRAGON 휴대폰 QR
 
 PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, 기존 계정과 별개의 계정이 생김을 안내한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
 
-QR 진입은 ticket을 한 번 소비하고 PC와 다른 요청별 `__Host-ldb-phone-` cookie를 발급한다. PC cookie나 verifier·token은 휴대폰으로 보내지 않는다. 휴대폰에서 패스키 인증 후 두 화면의 확인 번호를 비교하고 PC 로그인을 명시 승인한다. PC는 승인한 계정의 닉네임을 보여주고 별도 확인을 받아야 code를 발급한다. 확인 번호는 사용자 비교용이며 인증 secret이 아니다. 이 방식은 Bluetooth 근접성을 증명하지 않으므로 직접 시작한 요청만 승인하고 타인이 보낸 QR을 승인하지 않도록 안내한다.
+QR 진입은 ticket을 한 번 소비하고 PC와 다른 요청별 `__Host-dfragon-phone-` cookie를 발급한다. PC cookie나 verifier·token은 휴대폰으로 보내지 않는다. 휴대폰에서 패스키 인증 후 두 화면의 확인 번호를 비교하고 PC 로그인을 명시 승인한다. PC는 승인한 계정의 닉네임을 보여주고 별도 확인을 받아야 code를 발급한다. 확인 번호는 사용자 비교용이며 인증 secret이 아니다. 이 방식은 Bluetooth 근접성을 증명하지 않으므로 직접 시작한 요청만 승인하고 타인이 보낸 QR을 승인하지 않도록 안내한다.
 
 PC의 `qr`, `status`, `claim`, `direct`, `cancel`은 `{requestId}`와 PC cookie가 필요하다. 휴대폰의 `phone-options`는 `{requestId,operation}` (`authenticate` 또는 `register`), `phone-verify`는 `{requestId,response}`, `phone-approve`·`phone-cancel`은 `{requestId}`와 phone cookie가 필요하다. 모두 exact Origin을 검사한다. 휴대폰 인증은 `phone_verified`, 휴대폰 승인은 `phone_approved`로 전이한다. PC `claim`만 일회용 code를 발급하며 기존 PKCE 교환을 거쳐야 앱 session이 생긴다. 승인·claim·교환 시 해당 credential이 여전히 존재하는지 확인한다.
 

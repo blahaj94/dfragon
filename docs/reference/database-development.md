@@ -17,14 +17,14 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
 1. Local 개발 DB에 기존 Migration을 적용해 비교 기준을 준비한다.
 
    ```bash
-   pnpm --filter @ldb/api db:migrate:up
+   pnpm --filter @dfragon/api db:migrate:up
    ```
 
 2. `apps/api/src/database/schemas`의 해당 EntitySchema와 TypeScript interface를 수정한다. 예를 들어 `users.ts`에서 property와 column mapping을 먼저 작성한다. Schema 의미를 바꾸는 작업의 승인 절차는 `docs/rules/change-control.md`를 따른다.
 3. 의미를 설명하는 PascalCase 이름으로 Migration을 생성한다.
 
    ```bash
-   pnpm --filter @ldb/api db:migrate:generate AddUserField
+   pnpm --filter @dfragon/api db:migrate:generate AddUserField
    ```
 
    이 command는 tsc build 후 compiled ESM generator를 실행하고 `apps/api/src/database/migrations/<timestamp>-AddUserField.ts`를 새로 쓴다. DB schema와 history를 변경하지 않는다. 차이가 없으면 `Database schema is current`를 출력하고 file을 만들지 않는다. 기존 file은 덮어쓰지 않는다.
@@ -33,11 +33,11 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
 5. 승인·검토한 Migration을 명시적으로 적용하고 상태를 확인한다.
 
    ```bash
-   pnpm --filter @ldb/api db:migrate:up
-   pnpm --filter @ldb/api db:migrate:show
+   pnpm --filter @dfragon/api db:migrate:up
+   pnpm --filter @dfragon/api db:migrate:show
    ```
 
-6. API build·lint·test·typecheck와 `pnpm --filter @ldb/api test:database`를 실행한다. `db:migrate:down`은 빈 disposable DB의 rollback 검증용이며 운영에서 자동 실행하지 않는다.
+6. API build·lint·test·typecheck와 `pnpm --filter @dfragon/api test:database`를 실행한다. `db:migrate:down`은 빈 disposable DB의 rollback 검증용이며 운영에서 자동 실행하지 않는다.
 
 Migration은 build된 `database/migrations/*.js`에서 자동 발견되므로 새 class를 별도 목록에 수기 등록하지 않는다. `show`는 등록된 전체 Migration을 history와 대조하며 fresh DB에 history table을 만들지 않는다. App과 CLI 모두 `synchronize:false`, `migrationsRun:false`를 유지한다. Migration 적용은 명시적 transaction이며 Nest lifecycle은 schema를 수정하지 않는다.
 

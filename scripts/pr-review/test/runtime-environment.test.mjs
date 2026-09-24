@@ -59,7 +59,7 @@ test('rejects missing and empty required environment values in the trigger entry
 })
 
 test('failed source workflow skips the trigger before token or API access', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'ldb-pr-review-runtime-'))
+  const directory = await mkdtemp(join(tmpdir(), 'dfragon-pr-review-runtime-'))
   try {
     const eventPath = join(directory, 'event.json')
     await writeFile(eventPath, JSON.stringify({ workflow_run: { conclusion: 'failure' } }), 'utf8')

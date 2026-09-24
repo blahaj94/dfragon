@@ -1,5 +1,5 @@
 {
-  "name": "@ldb/web",
+  "name": "@dfragon/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -18,7 +18,7 @@
   "dependencies": {
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "@ldb/ui": "workspace:*",
+    "@dfragon/ui": "workspace:*",
     "@seed-design/react": "2.4.1",
     "@seed-design/css": "2.7.0"
   },
@@ -33,6 +33,6 @@
     "vitest": "4.1.11",
     "jsdom": "30.0.1",
     "@seed-design/vite-plugin": "2.1.0",
-    "@ldb/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*"
   }
 }

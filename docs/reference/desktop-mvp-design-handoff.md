@@ -54,7 +54,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 상세 조회용 Desktop 연결과 별도 상세 BrowserWindow는 새 구현 범위다. 현재 검색 IPC가 이미 상세 조회까지 제공한다고 가정하지 않는다. Renderer에 Neople API key나 임의 URL 호출을 추가하지 않고, 기존 main/preload 경계와 runtime 검증을 따른다. 같은 캐릭터의 카드 면을 바꿀 때마다 새 HTTP 요청을 만들지 않도록 조회 데이터와 표시 상태를 분리한다.
 
-레이아웃은 기존 React·TypeScript·StyleX와 `@ldb/ui`·SEED를 사용한다. [Desktop 스타일 작성](desktop-styling.md), [Design System](../rules/design-system.md), [검색 구현 안내](desktop-character-search.md)의 공용 자산·접근성·캡처 수명을 유지한다. 화면 전용 조합은 Desktop 내부에서 시작하며 별도 디자인 시스템 구축을 선행하지 않는다.
+레이아웃은 기존 React·TypeScript·StyleX와 `@dfragon/ui`·SEED를 사용한다. [Desktop 스타일 작성](desktop-styling.md), [Design System](../rules/design-system.md), [검색 구현 안내](desktop-character-search.md)의 공용 자산·접근성·캡처 수명을 유지한다. 화면 전용 조합은 Desktop 내부에서 시작하며 별도 디자인 시스템 구축을 선행하지 않는다.
 
 ## Typo 적용
 
@@ -79,9 +79,9 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 `src/frontend/src/pages/party/PartyPage.tsx`와 `pages/character-detail/CharacterDetailPage.tsx`가 `sections/CharacterCard.tsx`·`sections/DetailDeck.tsx`를 조합해 메인 카드와 상세 A안을 실제 renderer에서 실행한다. `src/frontend/src/fixture/mvp/`는 합성 데이터와 로컬 디자인 자산을 제공하는 별도 HTML 진입점이다. 기본 `dev`와 `dev:app`은 `App.tsx`의 새 카드 화면을 열고 소스 수정은 HMR로 반영한다. 기본 앱은 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 테마 전환을 제공한다. 상단 로그인 버튼은 전용 인증 창을 바로 연다. 숨겨진 로딩 아이콘은 레이아웃 너비를 차지하지 않으며, 진행 시 글자는 오른쪽으로 사라지고 아이콘은 오른쪽에서 들어온다. 버튼은 최소 너비를 유지하면서 내용 너비 전환에 맞춰 줄어들고 취소·실패 후 복귀한다. 진행 중에는 재클릭을 막고, 취소는 인증 창 닫기로 처리한다. 로그인 완료 시 버튼을 숨기며 계정 모달·환영·패스키 관리·로그아웃 메뉴는 제공하지 않는다. 연결 조회 실패와 복원·저장소 실패 시 로그인 버튼으로 조회 또는 복구를 재시도할 수 있다. 인증 여부나 연결 실패가 카드 화면을 제거하지 않는다. 카메라 버튼은 `CaptureControls` 모달을 열고, 선택한 창은 기존 `usePartyCapture`를 통해 즉시 캡처한다. 대상 변경 시 이전 stream·OCR를 정리하고 새 창으로 전환한다. 모달 닫기는 캡처를 중지하지 않으며 로그인 상태와도 독립적이다. 안정화된 OCR 이름을 네 카드에 표시한다. 검색 결과·이름 수정·상세 카드의 실데이터 조합은 후속이며 이 단계의 이름 입력은 읽기 전용이다. 합성 미리보기는 `dev:preview`로 분리한다. 구버전 조합은 `fixture/legacy/LegacyApp.tsx`에 남겨 기존 기능 회귀 테스트와 capture fixture에서만 사용한다.
 
 ```bash
-pnpm --filter @ldb/desktop dev
+pnpm --filter @dfragon/desktop dev
 # 합성 데이터 상태·상세·캡처 모달 비교
-pnpm --filter @ldb/desktop dev:preview
+pnpm --filter @dfragon/desktop dev:preview
 ```
 
 캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크·라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키·문자 탐색·Enter/Space·Escape·포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치·스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다.
@@ -93,8 +93,8 @@ Mac에서도 `dev:preview`의 하단 **캡처 미리보기 상태**로 대기·�
 빌드 결과를 확인할 때는 다음 명령을 사용한다.
 
 ```bash
-pnpm --filter @ldb/desktop mvp:build
-pnpm --filter @ldb/desktop ui:fixture mvp dark
+pnpm --filter @dfragon/desktop mvp:build
+pnpm --filter @dfragon/desktop ui:fixture mvp dark
 ```
 
 합성 미리보기에서 창 크기를 900·700·500·300px로 바꾸고 하단에서 상태 비교·네 면 비교를 선택한다. 각 카드 본문은 독립적으로 순환하고 입력·서버·상세 버튼은 면을 넘기지 않는다. 합성 미리보기의 서버 셀렉트는 안톤·바칼·카인·카시야스·디레지에·힐더·프레이·시로코를 표시하고 API `serverId`를 선택값으로 저장한다. 이름·서버 수정은 API를 호출하지 않으며 이전 상세 열기를 막는다. 실제 검색 연결의 서버 후보는 검색 결과에 포함된 서버만 사용하는 계약을 유지한다. 실패·검색 중·0건·빈 상태를 따로 표시한다.

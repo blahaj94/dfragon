@@ -1,5 +1,5 @@
 {
-  "name": "@ldb/lib",
+  "name": "@dfragon/lib",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -14,7 +14,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && ldb-copy-notices lib dist/notices",
+    "build": "tsc -p tsconfig.json && dfragon-copy-notices lib dist/notices",
     "test": "pnpm build && node --test test/*.test.mjs",
     "generate:cp949": "node scripts/generate-cp949.mjs",
     "lint": "eslint .",
@@ -23,6 +23,6 @@
   "devDependencies": {
     "iconv-lite": "0.7.3",
     "typescript": "6.0.2",
-    "@ldb/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*"
   }
 }

@@ -10,7 +10,7 @@ last-reviewed: 2026-09-15
 
 ## Repository topology
 
-LDB는 pnpm workspace monorepo다.
+DFRAGON은 pnpm workspace monorepo다.
 
 ```text
 apps/
@@ -27,9 +27,9 @@ scripts/
 - `apps/api`: NestJS API workspace. 승인된 ESM runtime·dependency·build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/web`: React, TypeScript, Vite 기반 web application.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
-- `packages/ui`: 현재 tracked shared UI package `@ldb/ui`. 실제 구현·명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
-- `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@ldb/lib`. 아래 Shared library boundary를 따른다.
-- `packages/licenses`: 빌드 시 고지 원문·수집·배포 자료를 관리하는 `@ldb/licenses`. 제품 runtime에서 import하지 않는다.
+- `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현·명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
+- `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
+- `packages/licenses`: 빌드 시 고지 원문·수집·배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
 - `scripts`: repository 생성·관리 script.
 
 상세한 file과 command 현황은 [`../reference/repository-map.md`](../reference/repository-map.md)를 따른다.
@@ -64,10 +64,10 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 
 | 대상                               | 책임과 dependency direction                                                                                                                                                                                                                                                |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/ui`의 `@ldb/ui`          | Browser React shared package 하나로 공식 SEED styled Component·Snippet과 실제로 공유하는 Layout·composition을 제공한다. `@ldb/ui` → SEED/React·필요한 공식 icon 방향으로 연결하며 app source·API client·backend·Electron main/preload·IPC·인증·domain을 import하지 않는다. |
-| `apps/web`·`apps/desktop` renderer | `@ldb/ui`를 소비하고 제품 data·event·behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다.                                                                                                      |
-| `apps/api/browser`                 | 인증 React 화면에서 `@ldb/ui/typo`만 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다.                                                                                                                           |
-| 독립 Vite Example entry            | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@ldb/ui` public API와 합성 content로 확인한다. 새 화면마다 Component·Pattern·Template 예제를 갖출 의무는 없다.                                                                                                        |
+| `packages/ui`의 `@dfragon/ui`          | Browser React shared package 하나로 공식 SEED styled Component·Snippet과 실제로 공유하는 Layout·composition을 제공한다. `@dfragon/ui` → SEED/React·필요한 공식 icon 방향으로 연결하며 app source·API client·backend·Electron main/preload·IPC·인증·domain을 import하지 않는다. |
+| `apps/web`·`apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data·event·behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다.                                                                                                      |
+| `apps/api/browser`                 | 인증 React 화면에서 `@dfragon/ui/typo`만 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다.                                                                                                                           |
+| 독립 Vite Example entry            | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component·Pattern·Template 예제를 갖출 의무는 없다.                                                                                                        |
 
 공식 요소를 불필요하게 재명명·wrapper로 감싸지 않고 SEED 이름과 semantic API를 유지한다. 화면별 스타일 허용 범위와 필요한 Example·version·Snippet source·영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
 
@@ -75,7 +75,7 @@ PostgreSQL의 최초 선택 이력과 현재 갱신·검증 기준은 [`auth-run
 
 [공식 Library Authors 가이드](https://seed-design.io/react/getting-started/library-authors)를 따른다.
 
-- `@ldb/ui`는 `@seed-design/react`, `@seed-design/css`, React·React DOM을 peer dependency로 선언한다. 개발·test에 필요한 사본은 dev dependency로 둔다. SEED React와 CSS의 peer 범위를 각각 명시하고, 소비 app·Example은 manifest·lockfile에 기록된 호환 SEED 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
+- `@dfragon/ui`는 `@seed-design/react`, `@seed-design/css`, React·React DOM을 peer dependency로 선언한다. 개발·test에 필요한 사본은 dev dependency로 둔다. SEED React와 CSS의 peer 범위를 각각 명시하고, 소비 app·Example은 manifest·lockfile에 기록된 호환 SEED 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
 - Library를 bundle하면 `@seed-design/*`와 React·React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 SEED runtime·CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다.
 - Library source에서 `@seed-design/css/*.css`를 직접 import하지 않는다. 선택한 공식 Vite 통합은 `base.css`와 Component recipe CSS를 사용하는 경로다. 이 경로에서 각 소비 app·Example의 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 Theme 초기화 책임을 가진다. SEED recipe가 연결하는 Component CSS를 library의 별도 CSS 사본으로 vendor하지 않는다.
 - Web·Desktop renderer·Example은 공식 `@seed-design/vite-plugin` 통합을 사용한다. Desktop의 electron-vite renderer 설정과 실제 Electron 실행 호환성은 후속 검증 대상이다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
@@ -85,11 +85,11 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Ele
 
 ## Shared library boundary
 
-이번 공용 함수 요청으로 `packages/lib`의 `@ldb/lib`를 추가한다. 사용자 merge 후 앱 → `@ldb/lib` 방향을 채택한다. 패키지는 API·Web·Desktop에서 같은 계약을 소비할 수 있는 순수 함수를 제공하며 앱 source·UI·Node/Electron 전용 runtime·네트워크·저장소에 의존하지 않는다. 이번 적용 범위는 CP949 기반 던파 캐릭터명 형식 검사와 공개 타입·빌드·검증이다. 기존 검색·계정 닉네임·OCR 정책이나 호출부를 바꾸지 않는다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
+이번 공용 함수 요청으로 `packages/lib`의 `@dfragon/lib`를 추가한다. 사용자 merge 후 앱 → `@dfragon/lib` 방향을 채택한다. 패키지는 API·Web·Desktop에서 같은 계약을 소비할 수 있는 순수 함수를 제공하며 앱 source·UI·Node/Electron 전용 runtime·네트워크·저장소에 의존하지 않는다. 이번 적용 범위는 CP949 기반 던파 캐릭터명 형식 검사와 공개 타입·빌드·검증이다. 기존 검색·계정 닉네임·OCR 정책이나 호출부를 바꾸지 않는다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
 
 ## License tooling boundary
 
-`@ldb/licenses`는 UI·Web·Desktop·공용 library의 **빌드 도구 의존성**으로 고지 원문·수집·산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 고지 원문의 중앙 관리와 빌드 수집 도구 이전을 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
+`@dfragon/licenses`는 UI·Web·Desktop·공용 library의 **빌드 도구 의존성**으로 고지 원문·수집·산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 고지 원문의 중앙 관리와 빌드 수집 도구 이전을 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
 
 ## Architecture change
 

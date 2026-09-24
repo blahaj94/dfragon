@@ -1,4 +1,4 @@
-# LDB Agent Instructions
+# DFRAGON Agent Instructions
 
 사용자가 실제로 쓸 기능을 빠르게 제공하고 배포 후 반응을 확인하는 것을 우선한다. 명확한 사용자 요청에서 시작해 탐색, 구현, 관련 테스트와 문서, PR까지 완성한다. 기본 흐름은 **요청 확인 → 구현 → 영향 범위 검증 → 결과/PR 전달 → 사용자 merge**다. 출시를 늦추는 선행 작업과 검증의 범위는 [개발 흐름](docs/rules/agent-workflow.md#출시-우선순위)을 따른다.
 

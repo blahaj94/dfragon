@@ -9,7 +9,7 @@ import test from 'node:test'
 import { startTask } from '../start-task.mjs'
 
 function fixture(t) {
-  const directory = mkdtempSync(join(tmpdir(), 'ldb-start-task-'))
+  const directory = mkdtempSync(join(tmpdir(), 'dfragon-start-task-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
   const repository = join(directory, 'repository')
   const origin = join(directory, 'origin.git')
@@ -106,7 +106,7 @@ test('rejects invalid arguments without external commands', () => {
     ['api', '9007199254740992', 'fix-search', 'target'],
     ['api', '30', 'fix-search', ' '],
     ['api', '30', 'fix-search', 'target', 'extra'],
-    ['ldb', '30', 'fix-search', 'target'],
+    ['dfragon', '30', 'fix-search', 'target'],
     ['API', '30', 'fix-search', 'target'],
     ['api', '30', '', 'target'],
     ['api', '30', 'Fix-search', 'target'],

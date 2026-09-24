@@ -6,7 +6,7 @@ import test from 'node:test'
 import { uiNotices } from '../src/ui-notices.ts'
 
 test('build output includes main-only production notices without listing them as renderer modules', () => {
-  const root = mkdtempSync(join(tmpdir(), 'ldb-notices-build-'))
+  const root = mkdtempSync(join(tmpdir(), 'dfragon-notices-build-'))
   try {
     writeFileSync(join(root, 'seed-provenance.json'), JSON.stringify({ files: [] }))
     writeFileSync(

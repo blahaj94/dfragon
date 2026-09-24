@@ -5,7 +5,7 @@ scope: repository
 last-reviewed: 2026-09-15
 ---
 
-# LDB Document Guide
+# DFRAGON Document Guide
 
 ## 읽기 안내
 

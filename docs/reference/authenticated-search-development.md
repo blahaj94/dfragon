@@ -14,4 +14,4 @@ last-reviewed: 2026-09-15
 - `neople-character-search.ts`: 기존 upstream 입력·응답·오류 projection과 5초 deadline, 자동 retry 없음 정책을 유지한다.
 - 검색에는 JWT 검증·session 조회·활동 갱신·별도 DB 연결이 없다. 검색을 해도 로그인 session의 활동 기간이 연장되지 않는다. `/me` 등 계정 endpoint는 기존 인증을 유지한다.
 
-`pnpm --filter @ldb/api test`는 public HTTP·query·quota·adapter 및 계정 인증 회귀를 검사한다. 이번 변경에서 486개가 통과했다. Native DB 통합 검증은 실행하지 않았으며, 해당 테스트의 검색 기대값은 session lock·활동 DB와 독립적인 동작으로 변경했다. 이 결과를 실제 Neople·배포 API 검증으로 표시하지 않는다.
+`pnpm --filter @dfragon/api test`는 public HTTP·query·quota·adapter 및 계정 인증 회귀를 검사한다. 이번 변경에서 486개가 통과했다. Native DB 통합 검증은 실행하지 않았으며, 해당 테스트의 검색 기대값은 session lock·활동 DB와 독립적인 동작으로 변경했다. 이 결과를 실제 Neople·배포 API 검증으로 표시하지 않는다.

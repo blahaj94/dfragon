@@ -1,7 +1,7 @@
 import { Text, VStack } from '@seed-design/react'
 import type { PropsWithChildren } from 'react'
 
-// LDB composition: layout-01의 content 간격을 같은 역할의 모든 예제 영역에 적용한다.
+// DFRAGON composition: layout-01의 content 간격을 같은 역할의 모든 예제 영역에 적용한다.
 export function ContentStack({ children }: PropsWithChildren) {
   return <VStack gap="x6">{children}</VStack>
 }

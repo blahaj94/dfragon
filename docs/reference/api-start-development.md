@@ -6,7 +6,7 @@ last-reviewed: 2026-09-08
 
 # 기본 API 설정과 실행
 
-`pnpm --filter @ldb/api start`는 `apps/api/dist/main.js`에서 패스키 로그인·refresh/logout·계정·공개 캐릭터 검색·상세 조회를 한 앱으로 시작한다. 기존 factory와 transaction을 사용하며 필수 설정을 검증한 뒤 DB를 초기화하고 마지막에 listen한다. 실제 인증 도메인·패스키와 운영 ingress/TLS·배포 검증은 별도로 준비해야 한다.
+`pnpm --filter @dfragon/api start`는 `apps/api/dist/main.js`에서 패스키 로그인·refresh/logout·계정·공개 캐릭터 검색·상세 조회를 한 앱으로 시작한다. 기존 factory와 transaction을 사용하며 필수 설정을 검증한 뒤 DB를 초기화하고 마지막에 listen한다. 실제 인증 도메인·패스키와 운영 ingress/TLS·배포 검증은 별도로 준비해야 한다.
 
 Ubuntu 서버에서 Docker Compose와 호스트 Caddy를 사용하는 배포 명령·권한·secret 입력은
 [단일 서버 API 배포](../../deploy/api/README.md)를 따른다.
@@ -48,8 +48,8 @@ API 실행 후 같은 origin의 `/docs`에서 Swagger UI를 열고 `/docs/openap
 ```sh
 cp apps/api/.env.example apps/api/.env
 # .env 설정을 채우고 개발용 PostgreSQL을 실행한 뒤, 새 DB에 한 번 적용한다.
-pnpm --filter @ldb/api db:migrate:local
-pnpm --filter @ldb/api dev
+pnpm --filter @dfragon/api db:migrate:local
+pnpm --filter @dfragon/api dev
 ```
 
 `dev`는 API를 빌드한 뒤 `dotenv-cli`로 앱 폴더의 `.env`를 읽고 기존 `pnpm run start`에 실행을 위임한다. `.env`가 없으면 기존 process 환경을 사용하며 이미 설정된 환경변수는 파일보다 우선한다. `--no-expand`로 값 안의 `$`를 변수로 치환하지 않는다. 설정 변경 후에는 명령을 종료하고 다시 실행한다. `db:migrate:local`은 Node의 `--env-file=.env`로 설정을 명시적으로 읽는 개발 DB용 migration 명령이다. API 시작 자체가 migration·DB 생성·인증서 신뢰 등록을 수행하지 않는다.
@@ -74,7 +74,7 @@ $env:LOCAL_HTTPS_CERT_FILE = 'C:\path\outside-repository\localhost.pem'
 $env:LOCAL_HTTPS_KEY_FILE = 'C:\path\outside-repository\localhost-key.pem'
 ```
 
-`AUTH_CONFIG_FILE`의 `passkey.apiOrigin`과 Desktop의 API origin은 같아야 한다. 개발은 `https://localhost:3443`, RP ID는 `localhost`, returnUrl은 `ldb.dev://auth/callback`을 사용한다. 운영 RP 도메인을 바꾸면 기존 패스키를 사용할 수 없으므로 배포 전에 확정한다.
+`AUTH_CONFIG_FILE`의 `passkey.apiOrigin`과 Desktop의 API origin은 같아야 한다. 개발은 `https://localhost:3443`, RP ID는 `localhost`, returnUrl은 `dfragon.dev://auth/callback`을 사용한다. 운영 RP 도메인을 바꾸면 기존 패스키를 사용할 수 없으므로 배포 전에 확정한다.
 
 Desktop의 로그인·인증 검색은 Electron의 Chromium network stack을 사용한다. 실행 OS에서 개발 CA를 신뢰하도록 설치한 뒤 실제 앱의 HTTPS 연결을 확인한다. API 전용 메모리 session은 renderer의 cookie/cache와 분리되며 인증서 오류를 무시하는 handler는 추가하지 않는다.
 
@@ -82,17 +82,17 @@ Desktop의 로그인·인증 검색은 Electron의 Chromium network stack을 사
 
 TLS 파일 누락·잘못된 PEM·key 불일치와 local origin/port 불일치는 DB 초기화 전에 고정 실패 메시지로 끝난다. Certificate의 유효기간·hostname·신뢰 체인은 실제 client의 TLS 검증으로 확인한다. API의 설정 검증이나 `/`의 404 응답만으로 패스키 로그인과 Desktop 복귀 성공을 판단하지 않는다.
 
-개발용 Windows 설치 파일은 [Desktop localhost 개발 패키지](desktop-auth-core.md#windows-localhost-개발-패키지)에서 빌드한다. 서버와 앱을 같은 컴퓨터에서 실행하고 Desktop return target을 `ldb.dev://auth/callback`으로 맞춘다. 설치 패키지에는 이 API origin이 포함되므로 브라우저 복귀를 위해 시스템 환경변수를 추가할 필요는 없다. Windows 저장소는 실제 native 권한·IO 검사 결과에 따라 동작하며, 광범위한 사전 검증을 로그인 차단 조건으로 두지 않는다.
+개발용 Windows 설치 파일은 [Desktop localhost 개발 패키지](desktop-auth-core.md#windows-localhost-개발-패키지)에서 빌드한다. 서버와 앱을 같은 컴퓨터에서 실행하고 Desktop return target을 `dfragon.dev://auth/callback`으로 맞춘다. 설치 패키지에는 이 API origin이 포함되므로 브라우저 복귀를 위해 시스템 환경변수를 추가할 필요는 없다. Windows 저장소는 실제 native 권한·IO 검사 결과에 따라 동작하며, 광범위한 사전 검증을 로그인 차단 조건으로 두지 않는다.
 
 ### 실행과 종료
 
-검토한 배포 입력을 process 환경에 주입하고 이미 승인된 Migration이 적용된 DB를 준비한다. 새 DB나 pending Migration에는 배포 담당이 `pnpm --filter @ldb/api db:migrate:up`을 한 번 명시 실행한다. API 시작은 Migration을 실행하거나 schema를 자동 변경하지 않는다.
+검토한 배포 입력을 process 환경에 주입하고 이미 승인된 Migration이 적용된 DB를 준비한다. 새 DB나 pending Migration에는 배포 담당이 `pnpm --filter @dfragon/api db:migrate:up`을 한 번 명시 실행한다. API 시작은 Migration을 실행하거나 schema를 자동 변경하지 않는다.
 
 Repository root에서 실행한다.
 
 ```bash
-pnpm --filter @ldb/api build
-pnpm --filter @ldb/api start
+pnpm --filter @dfragon/api build
+pnpm --filter @dfragon/api start
 ```
 
 설정 누락·잘못된 JSON·JWT key·패스키 설정 오류는 DB 연결과 listen 전에 실패한다. 초기화·listen 실패도 exit code 1이며 `API failed to start`만 출력한다. 오류의 원문·stack·파일 경로·설정값은 출력하지 않는다. 이 검증은 실제 패스키/Neople credential의 유효성을 외부 서비스에서 확인하는 절차가 아니다.
@@ -120,11 +120,11 @@ pnpm --filter @ldb/api start
 `runtime-preload.mjs`는 test child에서만 Neople loopback transport와 초기화 실패를 주입한다. 실제 패스키 브라우저 검증은 `passkey-integration.mjs`가 별도 HTTPS·가상 인증기로 수행한다. 제품 source에는 test mode가 없고 실제 credential·NODE_OPTIONS를 child에 상속하지 않는다.
 
 ```bash
-pnpm --filter @ldb/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @ldb/api test:database
+pnpm --filter @dfragon/api run --sequential '/^(lint|test|typecheck)$/'
+pnpm --filter @dfragon/api test:database
 ```
 
-기본 entry만 반복 확인할 때는 `pnpm --filter @ldb/api test:database --runtime-only`를 사용한다. 기존 Docker 생성·image 검증·readiness·명시 Migration·정리를 그대로 사용하며 전체 DB matrix를 대체하지 않는다.
+기본 entry만 반복 확인할 때는 `pnpm --filter @dfragon/api test:database --runtime-only`를 사용한다. 기존 Docker 생성·image 검증·readiness·명시 Migration·정리를 그대로 사용하며 전체 DB matrix를 대체하지 않는다.
 
 Startup suite는 설정 실패·signal·자원 cleanup을, Docker suite는 기본 entry의 schema 불변·관리 화면·폐기한 경로 거절을 검사한다. 패스키 가입·로그인·관리와 실제 JWT/refresh/account 연결은 같은 Docker harness의 브라우저 suite가 검사한다. 과거 기본 entry 연결 이력은 [PR #128](https://github.com/blahaj94/ldb/pull/128)에 남아 있다.
 

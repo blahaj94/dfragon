@@ -13,7 +13,7 @@ node --test packages/ui/scripts/test-consumer-resolution.mjs
 
 Test는 기존 Node test runner·child process·fetch를 사용한다. 범용 command runner나 새 dependency 없이 실제 package script의 exit code와 dev server의 실제 source entry HTTP 응답을 검사한다. 단순 dist 존재 검사는 성공 기준이 아니다. POSIX process group 종료를 사용하며 현재 검증 환경은 macOS다.
 
-Web·Desktop은 각각 `test`, `typecheck`, `build` script를 실행한다. Example의 typecheck와 test는 기존 `@ldb/ui typecheck`와 `test` 범위에 속하며 별도 Example 전용 script는 없다. Example `dev:examples`와 `build:examples`도 실행한다. Production preview는 consumer production build가 필요한 별도 경로다.
+Web·Desktop은 각각 `test`, `typecheck`, `build` script를 실행한다. Example의 typecheck와 test는 기존 `@dfragon/ui typecheck`와 `test` 범위에 속하며 별도 Example 전용 script는 없다. Example `dev:examples`와 `build:examples`도 실행한다. Production preview는 consumer production build가 필요한 별도 경로다.
 
 Desktop 제품 `dev`는 Electron bootstrap을 실행하므로 이 regression에서 직접 호출하지 않는다. 설치된 electron-vite 5의 `--rendererOnly`도 이전 main/preload를 실행한다. 대신 `apps/desktop/scripts/ui-renderer-resolution.mjs`가 공개 `resolveConfig` API로 실제 `electron.vite.config.ts`의 renderer 설정을 읽고 같은 Vite server로 실제 renderer entry를 해석한다. 부모 test가 HTTP 결과를 검증하고 자신이 시작한 child process group을 종료한다. 실패한 import 이후 Vite 7의 `server.close()` await가 원래 assertion을 가렸던 접근은 사용하지 않는다. 제품 main/preload·capture/OCR는 실행하지 않는다. 이 결과를 제품 native bootstrap 검증으로 주장하지 않는다.
 
