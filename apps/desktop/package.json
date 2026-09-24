@@ -1,7 +1,7 @@
 {
   "name": "@dfragon/desktop",
   "version": "1.0.0",
-  "description": "던전앤파이터 캐릭터 검색과 게임 화면 OCR을 제공하는 DFRAGON 데스크톱 앱",
+  "description": "",
   "main": "./out/backend/main.js",
   "author": "DFRAGON contributors",
   "homepage": "https://github.com/blahaj94/ldb",
