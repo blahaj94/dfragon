@@ -76,3 +76,4 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 ### Reference
 
 - [`reference/repository-map.md`](reference/repository-map.md): workspace, app, command 현황
+- [`reference/desktop-party-geometry.md`](reference/desktop-party-geometry.md): Desktop party frame의 관측값, 후보 geometry 함수와 남은 검증
