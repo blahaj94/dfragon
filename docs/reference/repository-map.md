@@ -192,3 +192,7 @@ Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory 
 - Runtime 또는 주요 framework 변경
 - 표준 command 변경
 - Process boundary 또는 source root 변경
+
+## Desktop 개발 도구
+
+설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 주 모니터 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 크롭·라벨·기존 OCR 모델 평가를 조합한다. 모델 실행은 제품의 `lib/ocr.ts`, 반전 회색조는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.

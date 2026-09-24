@@ -1,3 +1,4 @@
+import { invertNicknamePixels } from './nickname-pixels'
 import {
   PARTY_MANA_COLOR,
   PARTY_SLOTS,
@@ -63,18 +64,7 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
       slot.nickname.width,
       slot.nickname.height
     )
-    // Turn the game's light text into dark text without thresholding away thin strokes.
-    for (let index = 0; index < pixels.data.length; index += 4) {
-      const luminance =
-        0.2126 * pixels.data[index] +
-        0.7152 * pixels.data[index + 1] +
-        0.0722 * pixels.data[index + 2]
-      const value = 255 - luminance
-      pixels.data[index] = value
-      pixels.data[index + 1] = value
-      pixels.data[index + 2] = value
-      pixels.data[index + 3] = 255
-    }
+    invertNicknamePixels(pixels.data)
 
     const nickname = document.createElement('canvas')
     nickname.width = slot.nickname.width
