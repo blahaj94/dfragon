@@ -323,12 +323,26 @@ export function registerDeveloperWindow(
           const mutation = ++settingsMutationRevision
           const pendingStop = collectionSession.beginDisable()
           return serializeSettingsMutation(async () => {
-            await pendingStop
-            const settings = await store.setEnabled(false)
-            if (mutation === settingsMutationRevision) {
-              collectionSession.setArmingEnabled(false)
+            try {
+              await pendingStop
+              const settings = await store.setEnabled(false)
+              if (mutation === settingsMutationRevision) {
+                collectionSession.setArmingEnabled(false)
+              }
+              return settings
+            } catch (error) {
+              if (mutation === settingsMutationRevision) {
+                try {
+                  const persistedSettings = await store.getSettings()
+                  if (mutation === settingsMutationRevision && persistedSettings.enabled) {
+                    collectionSession.setArmingEnabled(true)
+                  }
+                } catch {
+                  // Keep collection fail-closed when the persisted mode cannot be read.
+                }
+              }
+              throw error
             }
-            return settings
           })
         }
         const mutation = ++settingsMutationRevision
