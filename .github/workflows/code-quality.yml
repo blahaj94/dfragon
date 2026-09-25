@@ -25,6 +25,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
+      - run: pnpm --filter @dfragon/ocr test
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm lint:oxlint
