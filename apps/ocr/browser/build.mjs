@@ -2,7 +2,7 @@ import { build } from 'esbuild'
 import stylex from '@stylexjs/unplugin/esbuild'
 import { collectPackages } from '@dfragon/licenses/collect'
 import { resolve } from 'node:path'
-import { mkdir, copyFile, writeFile } from 'node:fs/promises'
+import { mkdir, copyFile, writeFile, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 await mkdir(new URL('../dist/browser/', import.meta.url), { recursive: true })
 const result = await build({
@@ -15,6 +15,8 @@ const result = await build({
   format: 'esm',
   target: 'es2022',
   outfile: 'dist/browser/app.js',
+  loader: { '.woff2': 'file' },
+  assetNames: 'assets/[name]-[hash]',
   alias: {
     '@dfragon/ui/typo': fileURLToPath(new URL('../../../packages/ui/src/typo.tsx', import.meta.url))
   },
@@ -37,5 +39,10 @@ await writeFile(
       (entry) =>
         `${entry.name}@${entry.version}\n${entry.documents.map((document) => `${document.name}\n${document.text}`).join('\n\n')}`
     )
-    .join('\n\n--------------------\n\n')
+    .join('\n\n--------------------\n\n') +
+    '\n\nNanumSquare Neo\n' +
+    (await readFile(
+      new URL('../../../packages/licenses/notices/desktop/FONT-LICENSE', import.meta.url),
+      'utf8'
+    ))
 )
