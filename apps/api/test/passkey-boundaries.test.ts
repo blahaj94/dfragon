@@ -54,8 +54,7 @@ test('RP origin and fixed app return configuration reject trust-boundary changes
     { apiOrigin: 'http://auth.example.test' },
     { apiOrigin: 'https://auth.example.test/path' },
     { returnUrl: 'https://attacker.invalid' },
-    { returnUrl: 'ldb://auth/callback' },
-    { returnUrl: 'ldb.dev://auth/callback' },
+    { returnUrl: 'other://auth/callback' },
     { returnUrl: 'dfragon://auth/callback?code=preselected' },
     { rpName: '' }
   ]) {
