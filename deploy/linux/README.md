@@ -4,6 +4,8 @@
 
 서버는 고정 저장소의 현재 main과 해당 commit의 성공한 Code Quality push 실행을 다시 확인합니다. 실행 중인 API·OCR release와 빌드 입력을 각각 비교하고 바뀐 서비스만 빌드합니다. 공용 UI·lockfile 변경은 두 서비스에 영향을 줄 수 있습니다. 빌드를 모두 마친 뒤 `compose up --no-build --no-deps`로 API와 OCR만 교체하고 HTTP readiness를 확인합니다. API 교체 시 cleanup timer를 잠시 멈추고 실행 중인 cleanup 종료를 기다립니다.
 
+API 이미지는 빌드 단계에서 기존 `pnpm --filter @dfragon/api test`를 통과해야 생성됩니다. 이 명령은 production build와 API 회귀 테스트를 포함하며 운영 DB 통합 테스트를 실행하지 않습니다. API 빌드 입력이 같으면 서버가 빌드 자체를 생략하므로 OCR만 변경했을 때 API 테스트를 반복하지 않습니다.
+
 OCR 교체는 메모리 로그인 세션을 종료하므로 브라우저에서 다시 로그인해야 합니다. 업로드 중인 요청에는 잠시 실패가 발생할 수 있습니다. API·OCR 데이터 경로, 인증 설정·패스키, DB container·volume, Caddy 설정은 보존합니다. 일반적인 기동 실패에는 이전 이미지를 확인한 뒤 현재 데이터를 그대로 연결해 복귀합니다. DB snapshot을 자동 복원하지 않습니다.
 
 ## 처음 설치
@@ -34,10 +36,12 @@ Tailscale은 연결 경로로만 사용하고 서버의 **Tailscale SSH는 끕�
 | 설정                        | 값                                                                    |
 | --------------------------- | --------------------------------------------------------------------- |
 | Issuer                      | `https://token.actions.githubusercontent.com`                         |
-| Subject                     | `repo:blahaj94/dfragon:ref:refs/heads/main`                           |
+| Subject                     | 아래에서 조회한 subject prefix + `:ref:refs/heads/main`               |
 | Custom claim `workflow_ref` | `blahaj94/dfragon/.github/workflows/deploy-linux.yml@refs/heads/main` |
 | Scope                       | `auth_keys` write, `tag:dfragon-ci`로 제한                            |
 | Audience                    | Tailscale이 생성한 값                                                 |
+
+Subject prefix는 `gh api repos/blahaj94/dfragon/actions/oidc/customization/sub --jq .sub_claim_prefix`로 조회합니다. GitHub의 [immutable subject](https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims) 설정과 저장소 rename에 따라 owner·repository ID가 포함될 수 있으므로 저장소 이름만으로 추측하지 않습니다. Token 원문을 로그에 출력할 필요는 없습니다.
 
 OIDC는 Tailscale 장기 client secret 없이 CI 임시 장치를 등록합니다. [공식 GitHub Action](https://tailscale.com/docs/integrations/github/github-action)은 job 종료 때 임시 장치를 정리합니다. SSH 배포 키는 별도로 보호해야 합니다.
 
