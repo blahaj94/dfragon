@@ -2,6 +2,8 @@
 
 원본 PNG·메타데이터는 별도 Linux 서버의 `/data/ocr.sqlite`에 보관합니다. 기존 DFRAGON API의 계정·패스키를 재사용하며 OCR 서버에 인증 DB나 서명 키를 복제하지 않습니다. 운영 배포·DNS 변경·실제 계정 선택은 별도 실행 단계입니다.
 
+초기 배포 후 main의 CI 성공을 자동 반영하는 구성은 [Linux 자동배포](../linux/README.md)를 따릅니다.
+
 ## 기존 인증 API 연결
 
 기존 API를 이 변경이 포함된 버전으로 배포하고 `AUTH_CONFIG_FILE`의 `passkey` 객체에 아래 **공개 설정 한 항목**을 추가합니다. 기존 RP ID·apiOrigin·앱 returnUrl·키는 유지합니다.
