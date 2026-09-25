@@ -315,3 +315,87 @@ test('concurrent protected requests share one refresh of the existing authentica
     await f.close()
   }
 })
+
+test('Desktop dataset exposes owner labels, exclusions, splits and exact crops without write access', async () => {
+  const f = await fixture()
+  const headers = { Authorization: 'Bearer synthetic.desktop.token' }
+  try {
+    const data = upload()
+    await fetch(`${f.base}/api/desktop/captures`, {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+    const id = `${data.id}-1`
+    f.store.updateSample(id, { text: '평가용', excluded: false, confirmSplitChange: false })
+    f.store.assign('평가용', 'test')
+    f.store.updateSample(`${data.id}-3`, { text: null, excluded: true, confirmSplitChange: false })
+    const response = await fetch(`${f.base}/api/desktop/dataset`, { headers })
+    assert.equal(response.status, 200)
+    assert.equal(response.headers.get('set-cookie'), null)
+    const dataset = await response.json()
+    assert.equal(dataset.samples.length, 2)
+    assert.equal(dataset.samples[0].text, '평가용')
+    assert.equal(dataset.samples[0].split, 'test')
+    assert.equal(dataset.samples[1].excluded, true)
+    assert.equal(dataset.samples[1].text, null)
+    const image = await fetch(`${f.base}/api/desktop/samples/${id}/image`, { headers })
+    assert.equal(image.status, 200)
+    const { cookie } = await f.login()
+    const browserImage = await fetch(`${f.base}/api/samples/${id}/image`, {
+      headers: { Cookie: cookie! }
+    })
+    assert.deepEqual(
+      Buffer.from(await image.arrayBuffer()),
+      Buffer.from(await browserImage.arrayBuffer())
+    )
+    for (const path of ['/api/desktop/dataset', `/api/desktop/samples/${id}/image`]) {
+      assert.equal((await fetch(`${f.base}${path}`)).status, 401)
+      assert.equal((await fetch(`${f.base}${path}`, { headers: { Cookie: cookie! } })).status, 401)
+      assert.equal(
+        (await fetch(`${f.base}${path}`, { headers: { ...headers, Origin: origin } })).status,
+        403
+      )
+      for (const suffix of ['/', '?extra=1']) {
+        assert.equal((await fetch(`${f.base}${path}${suffix}`, { headers })).status, 401)
+      }
+      assert.equal((await fetch(`${f.base}${path}`, { method: 'HEAD', headers })).status, 401)
+    }
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/samples/${id}`, {
+          method: 'PATCH',
+          headers: { ...headers, Origin: origin, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: '변경', excluded: false })
+        })
+      ).status,
+      401
+    )
+    assert.equal(f.store.sample(id).text, '평가용')
+  } finally {
+    await f.close()
+  }
+})
+
+test('Desktop reads reject non-owner and revoked sessions before returning data', async () => {
+  for (const [identity, revoked, status] of [
+    [randomUUID(), false, 403],
+    [ownerId, true, 401]
+  ] as const) {
+    const f = await fixture(identity, false, revoked)
+    try {
+      for (const path of ['/api/desktop/dataset', `/api/desktop/samples/${randomUUID()}-1/image`]) {
+        assert.equal(
+          (
+            await fetch(`${f.base}${path}`, {
+              headers: { Authorization: 'Bearer synthetic.desktop.token' }
+            })
+          ).status,
+          status
+        )
+      }
+    } finally {
+      await f.close()
+    }
+  }
+})

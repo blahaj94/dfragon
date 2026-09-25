@@ -35,3 +35,9 @@ export const setPartyCollectionSlots: DeveloperApi['setPartyCollectionSlots'] = 
   kind == null
     ? ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots)
     : ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots, kind)
+
+export const listOcrSamples: DeveloperApi['listOcrSamples'] = () =>
+  ipcRenderer.invoke(DEVELOPER_CHANNELS.listOcrSamples)
+
+export const closeOcrSamples: DeveloperApi['closeOcrSamples'] = () =>
+  ipcRenderer.invoke(DEVELOPER_CHANNELS.closeOcrSamples)

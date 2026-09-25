@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection, type DeveloperLabelFilter } from './DeveloperLabelingSection'
+import { useOcrSamples } from '../hooks/useOcrSamples'
 import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
 import { summarizeDeveloperEvaluation } from '../lib/developer-evaluation'
@@ -16,8 +17,13 @@ type WorkbenchTab = (typeof workbenchTabs)[number]
 
 export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.JSX.Element {
   const dataset = useDeveloperSamples()
-  const evaluation = useDeveloperEvaluation()
+  const [source, setSource] = useState<'local' | 'ocr'>('local')
+  const [split, setSplit] = useState('all')
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('collection')
+  const remote = useOcrSamples(source === 'ocr' && activeTab === 'labeling')
+  const readingRemote = source === 'ocr'
+  const displayedDataset = readingRemote ? remote : dataset
+  const evaluation = useDeveloperEvaluation()
   const [filter, setFilter] = useState<DeveloperLabelFilter>('unlabeled')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -25,7 +31,13 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [participantSlots, setParticipantSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
   const [confirmClose, setConfirmClose] = useState(false)
   const [notice, setNotice] = useState('')
-  const samples = sortDeveloperWorkbenchSamples(dataset.samples as DeveloperWorkbenchSample[])
+  const stopEvaluation = useEffectEvent(() => evaluation.cancel())
+  useEffect(() => {
+    stopEvaluation()
+  }, [remote.revision, source, activeTab])
+  const samples = sortDeveloperWorkbenchSamples(
+    displayedDataset.samples as DeveloperWorkbenchSample[]
+  ).filter((sample) => !readingRemote || split === 'all' || sample.remote?.split === split)
   const visibleSamples = samples.filter((sample) => {
     if (filter === 'excluded') {
       return sample.excluded === true
@@ -39,10 +51,12 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     visibleSamples.find((sample) => sample.id === selectedId) ?? visibleSamples[0] ?? null
   const selectedResult = selected ? evaluation.results[selected.id] : undefined
   const draft = selected ? (drafts[selected.id] ?? selected.text ?? '') : ''
-  const evaluationSamples = samples.filter((sample) => sample.excluded !== true)
+  const evaluationSamples = samples.filter(
+    (sample) => sample.excluded !== true && (!readingRemote || sample.text != null)
+  )
   const summary = summarizeDeveloperEvaluation(evaluationSamples, evaluation.results)
   const dirty = Object.entries(drafts).some(([id, value]) => {
-    const sample = samples.find((row) => row.id === id)
+    const sample = dataset.samples.find((row) => row.id === id)
     return sample != null && (sample.text == null ? value !== '' : value !== sample.text)
   })
 
@@ -60,7 +74,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   }
 
   async function saveAndNext(): Promise<void> {
-    if (!selected || dataset.saving || draft.length === 0) {
+    if (readingRemote || !selected || dataset.saving || draft.length === 0) {
       return
     }
 
@@ -89,7 +103,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   }
 
   async function setSelectedExcluded(excluded: boolean): Promise<void> {
-    if (!selected || dataset.saving) {
+    if (readingRemote || !selected || dataset.saving) {
       return
     }
 
@@ -224,6 +238,62 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         />
         {activeTab === 'labeling' && (
           <>
+            <div role="group" aria-label="자료 위치" {...stylex.props(styles.actions)}>
+              {(['local', 'ocr'] as const).map((value) => (
+                <ActionButton
+                  key={value}
+                  size="small"
+                  variant={source === value ? 'neutralSolid' : 'ghost'}
+                  aria-pressed={source === value}
+                  disabled={dataset.saving}
+                  onClick={() => {
+                    setSource(value)
+                    setFilter(value === 'ocr' ? 'complete' : 'unlabeled')
+                    setSelectedId(null)
+                    setNotice('')
+                    evaluation.setPreprocessing(evaluation.preprocessing)
+                  }}
+                >
+                  {value === 'local' ? '로컬 자료' : 'OCR 자료실'}
+                </ActionButton>
+              ))}
+              {readingRemote && (
+                <>
+                  <ActionButton
+                    size="small"
+                    variant="neutralWeak"
+                    disabled={remote.loading || evaluation.running}
+                    onClick={() => void remote.refresh()}
+                  >
+                    자료실 다시 불러오기
+                  </ActionButton>
+                  <label>
+                    평가 분할{' '}
+                    <select
+                      aria-label="평가 분할"
+                      value={split}
+                      disabled={evaluation.running}
+                      onChange={(event) => {
+                        setSplit(event.target.value)
+                        setSelectedId(null)
+                      }}
+                    >
+                      <option value="all">전체 분할</option>
+                      <option value="test">test</option>
+                      <option value="val">val</option>
+                      <option value="train">train</option>
+                      <option value="unassigned">미배정</option>
+                    </select>
+                  </label>
+                </>
+              )}
+            </div>
+            {readingRemote && (
+              <Typo.txtS>
+                ocr.dfragon.com의 정답·이미지를 읽어 평가합니다. 정답과 제외 여부는 자료실에서
+                수정한 뒤 다시 불러오세요.
+              </Typo.txtS>
+            )}
             <DeveloperLabelingSection
               samples={visibleSamples}
               selected={selected}
@@ -232,9 +302,9 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               }
               filter={filter}
               draft={draft}
-              loading={dataset.loading}
+              loading={displayedDataset.loading}
               saving={dataset.saving}
-              error={dataset.error}
+              error={displayedDataset.error}
               notice={notice}
               onFilterChange={(nextFilter) => {
                 setFilter(nextFilter)
@@ -281,11 +351,13 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   <ActionButton
                     size="small"
                     disabled={
-                      evaluation.running || dataset.loading || evaluationSamples.length === 0
+                      evaluation.running ||
+                      displayedDataset.loading ||
+                      evaluationSamples.length === 0
                     }
                     onClick={() => void evaluation.evaluate(evaluationSamples)}
                   >
-                    전체 평가
+                    {readingRemote ? '정답 완료 자료 평가' : '전체 평가'}
                   </ActionButton>
                   {evaluation.running && (
                     <ActionButton size="small" variant="neutralWeak" onClick={evaluation.cancel}>
@@ -365,7 +437,9 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      disabled={selected.excluded === true || evaluation.running || dataset.loading}
+                      disabled={
+                        selected.excluded === true || evaluation.running || displayedDataset.loading
+                      }
                       onClick={() => void evaluation.evaluate([selected])}
                     >
                       선택 이미지 평가

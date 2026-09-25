@@ -32,6 +32,7 @@ export type DeveloperSample = {
   height: number
   text: string | null
   excluded: boolean
+  remote?: { kind: DeveloperCollectionKind; split: 'unassigned' | 'train' | 'val' | 'test' }
   source: DeveloperSampleSource | null
 }
 
@@ -76,6 +77,8 @@ export type DeveloperApi = {
   getSettings: () => Promise<DeveloperSettings>
   setEnabled: (enabled: boolean) => Promise<DeveloperSettings>
   listSamples: () => Promise<DeveloperSample[]>
+  listOcrSamples: () => Promise<DeveloperSample[]>
+  closeOcrSamples: () => Promise<void>
   readImage: (id: string) => Promise<string>
   addSample: (pngDataUrl: string) => Promise<DeveloperSample>
   saveLabel: (id: string, text: string | null) => Promise<DeveloperSample>

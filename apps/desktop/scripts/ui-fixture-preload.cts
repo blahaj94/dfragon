@@ -163,6 +163,9 @@ if (developerFixture != null) {
     getSettings: async () => ({ enabled: true }),
     setEnabled: async (enabled: boolean) => ({ enabled }),
     listSamples: async () => rows.map((row) => ({ ...row })),
+    listOcrSamples: async () =>
+      rows.map((row) => ({ ...row, remote: { kind: 'hud', split: 'test' } })),
+    closeOcrSamples: async () => undefined,
     readImage: async (id: string) => {
       const row = rows.find((candidate) => candidate.id === id)
       const color = row?.excluded ? '#7e667f' : row?.text ? '#44785f' : '#4569a0'

@@ -53,6 +53,7 @@ export function DeveloperSampleEditor({
   const image = isCurrentImageResult && imageResult.status === 'loaded' ? imageResult.dataUrl : ''
   const failed = isCurrentImageResult && imageResult.status === 'failed'
 
+  const readOnly = sample.remote != null
   const source = sample.source
   const capturedAt = new Date(sample.createdAt)
   const capturedAtText = Number.isNaN(capturedAt.valueOf())
@@ -97,7 +98,7 @@ export function DeveloperSampleEditor({
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          if (!saving && draft.length > 0) {
+          if (!readOnly && !saving && draft.length > 0) {
             onSaveAndNext()
           }
         }}
@@ -113,6 +114,7 @@ export function DeveloperSampleEditor({
             value={draft}
             maxLength={500}
             disabled={saving}
+            readOnly={readOnly}
             onChange={(event) => onDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && event.nativeEvent.isComposing) {
@@ -123,39 +125,43 @@ export function DeveloperSampleEditor({
           />
         </TextField>
         <Typo.caption as="p" {...stylex.props(styles.muted)}>
-          정답을 직접 입력합니다. 빈 입력은 저장할 수 없습니다.
+          {readOnly
+            ? `자료실 정답 · ${sample.remote!.kind === 'hud' ? 'HUD' : '파티원창'} · ${sample.remote!.split}`
+            : '정답을 직접 입력합니다. 빈 입력은 저장할 수 없습니다.'}
         </Typo.caption>
-        <div {...stylex.props(styles.actions)}>
-          <ActionButton
-            type="submit"
-            size="small"
-            disabled={saving || draft.length === 0}
-            loading={saving}
-            {...stylex.props(styles.primaryAction)}
-          >
-            저장하고 다음
-          </ActionButton>
-          <div {...stylex.props(styles.secondaryActions)}>
+        {!readOnly && (
+          <div {...stylex.props(styles.actions)}>
             <ActionButton
-              type="button"
+              type="submit"
               size="small"
-              variant="neutralWeak"
-              disabled={saving}
-              onClick={onSkip}
+              disabled={saving || draft.length === 0}
+              loading={saving}
+              {...stylex.props(styles.primaryAction)}
             >
-              건너뛰기
+              저장하고 다음
             </ActionButton>
-            <ActionButton
-              type="button"
-              size="small"
-              variant="ghost"
-              disabled={saving}
-              onClick={() => onSetExcluded(!sample.excluded)}
-            >
-              {sample.excluded ? '포함으로 복원' : '학습에서 제외'}
-            </ActionButton>
+            <div {...stylex.props(styles.secondaryActions)}>
+              <ActionButton
+                type="button"
+                size="small"
+                variant="neutralWeak"
+                disabled={saving}
+                onClick={onSkip}
+              >
+                건너뛰기
+              </ActionButton>
+              <ActionButton
+                type="button"
+                size="small"
+                variant="ghost"
+                disabled={saving}
+                onClick={() => onSetExcluded(!sample.excluded)}
+              >
+                {sample.excluded ? '포함으로 복원' : '학습에서 제외'}
+              </ActionButton>
+            </div>
           </div>
-        </div>
+        )}
       </form>
     </div>
   )

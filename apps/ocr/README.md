@@ -30,7 +30,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 ## HTTP API
 
-자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`만 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정인지 확인합니다. Desktop 토큰으로 자료 열람·정답 수정·다운로드 권한을 발급하지 않습니다.
+자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`와 아래 Desktop 조회 GET 경로만 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
 
 | Method / path | 동작 |
 | --- | --- |
@@ -47,6 +47,8 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
 | `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
+| `GET /api/desktop/dataset` | 앱 평가용 정답·제외·분할 메타데이터 스냅샷 |
+| `GET /api/desktop/samples/:id/image` | 앱 평가용 원본 크롭 PNG |
 | `GET /api/export/manifest` | 현재 메타데이터·정답·분할 JSON |
 | `GET /api/export` | 현재 전체 자료 TAR. 원본·크롭·manifest 포함 |
 | `GET /health` | 데이터 없는 readiness 응답 |
