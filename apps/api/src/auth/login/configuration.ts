@@ -17,7 +17,7 @@ export function validatePasskeyConfiguration(
       throw new Error()
     }
     if (
-      !['dfragon:', 'dfragon.dev:'].includes(target.protocol) ||
+      !['dfragon:', 'dfragon.dev:', 'ldb:'].includes(target.protocol) ||
       target.host !== 'auth' ||
       target.pathname !== '/callback' ||
       target.search ||
