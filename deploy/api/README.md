@@ -4,6 +4,8 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
 현재 대상은 Ubuntu 24.04의 `linux/amd64`다. Node 24와 PostgreSQL 18의 image digest를
 고정하고 기존 pnpm lockfile·compiled ESM build·명시 Migration·cleanup을 사용한다.
 
+초기 배포 후 main의 CI 성공을 자동 반영하는 구성은 [Linux 자동배포](../linux/README.md)를 따른다.
+
 ## 연결과 권한
 
 - Caddy → `127.0.0.1:3000` → API. 공유기에는 Caddy의 TCP 80·443만 DFRAGON용으로 전달한다.
