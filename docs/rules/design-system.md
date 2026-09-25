@@ -1,7 +1,7 @@
 ---
 type: rule
 status: active
-scope: web-desktop-ui
+scope: application-browser-ui
 last-reviewed: 2026-09-15
 ---
 
@@ -36,7 +36,7 @@ Snippet을 새로 가져오거나 수정할 때 해당 출처·local 변경과 �
 
 ## 화면별 스타일 조정
 
-화면의 간격·정렬·너비·영역 padding·반응형 배치는 앱 내부 CSS로 표현할 수 있다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+Desktop·API 패스키·OCR·Web의 화면별 간격·정렬·너비·영역 padding·반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. SEED·vendor 스타일, font-face·reset·공용 foundation 같은 전역 기반 CSS는 유지한다. 이 공통화는 사용자 요청 범위로 해당 PR에서 구현·검증하며 사용자 merge 후 적용한다. 연결 위치와 작성법은 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시·disabled/loading 차단·접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작·접근성 결함을 숨기지 않는다.
 

@@ -20,7 +20,8 @@
     "react-dom": "19.2.8",
     "@dfragon/ui": "workspace:*",
     "@seed-design/react": "2.4.1",
-    "@seed-design/css": "2.7.0"
+    "@seed-design/css": "2.7.0",
+    "@stylexjs/stylex": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
@@ -33,6 +34,7 @@
     "vitest": "4.1.11",
     "jsdom": "30.0.1",
     "@seed-design/vite-plugin": "2.1.0",
-    "@dfragon/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*",
+    "@stylexjs/unplugin": "catalog:"
   }
 }

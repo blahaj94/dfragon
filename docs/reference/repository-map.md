@@ -136,6 +136,8 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 ## Shared UI
 
+- Desktop·API 패스키·OCR·Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치·작성·검증 범위를 정리한다.
+
 - 실제 검증 환경·결과·upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
 - `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet·Layout과 중립 Example. Package/peer/CSS 소유·고정 source·고지·명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.

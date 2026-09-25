@@ -15,10 +15,14 @@
 !packages/ui/
 !packages/ui/package.json
 !packages/ui/foundation.css
+!packages/ui/stylex.config.ts
 !packages/ui/src/
 !packages/ui/src/typo.tsx
 !packages/licenses/
 !packages/licenses/package.json
+!packages/licenses/notices/
+!packages/licenses/notices/upstream/
+!packages/licenses/notices/upstream/stylex-LICENSE.txt
 !deploy/
 !deploy/api/
 !deploy/api/Dockerfile

@@ -4,7 +4,8 @@ import { createRoot } from 'react-dom/client'
 import QRCode from 'qrcode'
 import '@seed-design/css/base.css'
 import '../../../packages/ui/foundation.css'
-import './passkeys.css'
+import * as stylex from '@stylexjs/stylex'
+import { styles } from './passkeys.style'
 import { actionButton } from '@seed-design/css/recipes/action-button'
 import {
   startAuthentication,
@@ -33,9 +34,10 @@ type Verification =
 type Screen =
   | { kind: 'entry' }
   | { kind: 'signup' }
-  | { kind: 'qr'; qr: Qr; signup: boolean }
-  | { kind: 'pc-consent'; nickname: string }
+  | { kind: 'qr'; qr: Qr }
   | { kind: 'phone-consent'; nickname: string }
+  | { kind: 'phone-approved' }
+  | { kind: 'phone-canceled' }
   | { kind: 'management'; keys: Passkey[] }
   | { kind: 'complete'; returnUrl: string }
   | { kind: 'ended' }
@@ -68,7 +70,14 @@ function QrCode({ url, onError }: { url: string; onError: (message: string) => v
       active = false
     }
   }, [url, onError])
-  return <canvas id="qr" ref={canvas} aria-label="휴대폰 카메라로 스캔할 QR 코드" />
+  return (
+    <canvas
+      {...stylex.props(styles.qr)}
+      id="qr"
+      ref={canvas}
+      aria-label="휴대폰 카메라로 스캔할 QR 코드"
+    />
+  )
 }
 
 function PasskeyPage() {
@@ -141,8 +150,19 @@ function PasskeyPage() {
             return
           }
           if (result.approved) {
-            setScreen({ kind: 'pc-consent', nickname: result.nickname })
-            setStatus('이 계정으로 PC에 로그인할까요?')
+            // Lock QR reissue/close while consuming the approval with the PC cookie.
+            busyRef.current = true
+            setBusy(true)
+            setStatus('로그인을 완료하고 있습니다.')
+            try {
+              const claimed = await api<{ returnUrl: string }>('claim')
+              if (isCurrent()) {
+                showReturn(claimed.returnUrl)
+              }
+            } finally {
+              busyRef.current = false
+              setBusy(false)
+            }
             return
           }
         }
@@ -252,7 +272,7 @@ function PasskeyPage() {
     endedRef.current = true
     qrGeneration.current += 1
     setScreen({ kind: 'complete', returnUrl: url.href })
-    setStatus('앱으로 돌아가 로그인을 완료해 주세요.')
+    setStatus('')
   }
 
   async function authenticate(operation: 'register' | 'authenticate' | 'add') {
@@ -261,18 +281,32 @@ function PasskeyPage() {
       await api('direct')
     }
     const action = phone ? 'phone-options' : 'options'
-    const response =
-      operation === 'authenticate'
-        ? await startAuthentication({
-            optionsJSON: await api<PublicKeyCredentialRequestOptionsJSON>(action, { operation })
-          })
-        : await startRegistration({
-            optionsJSON: await api<PublicKeyCredentialCreationOptionsJSON>(action, { operation })
-          })
+    let response
+    try {
+      response =
+        operation === 'authenticate'
+          ? await startAuthentication({
+              optionsJSON: await api<PublicKeyCredentialRequestOptionsJSON>(action, { operation })
+            })
+          : await startRegistration({
+              optionsJSON: await api<PublicKeyCredentialCreationOptionsJSON>(action, { operation })
+            })
+    } catch (error) {
+      const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error
+      if (!phone || !(cause instanceof Error) || cause.name !== 'NotAllowedError') {
+        throw error
+      }
+      // The phone cannot approve after cancellation, even if cleanup must wait for server expiry.
+      endedRef.current = true
+      await api('phone-cancel').catch(() => {})
+      setScreen({ kind: 'phone-canceled' })
+      setStatus('')
+      return
+    }
     const result = await api<Verification>(phone ? 'phone-verify' : 'verify', { response })
     if ('phoneVerified' in result) {
       setScreen({ kind: 'phone-consent', nickname: result.nickname })
-      setStatus('아직 PC에 로그인되지 않았습니다. 직접 시작한 요청인지 확인하고 승인하세요.')
+      setStatus('')
     } else if ('managed' in result) {
       await showKeys()
       setStatus(
@@ -283,8 +317,8 @@ function PasskeyPage() {
     }
   }
 
-  async function generateQr(signup = false) {
-    if (screen.kind === 'qr' || screen.kind === 'pc-consent') {
+  async function generateQr() {
+    if (screen.kind === 'qr') {
       stopQr()
     } else {
       qrGeneration.current += 1
@@ -297,7 +331,7 @@ function PasskeyPage() {
       throw new Error('QR 주소를 확인하지 못했습니다.')
     }
     setNow(Date.now())
-    setScreen({ kind: 'qr', qr, signup })
+    setScreen({ kind: 'qr', qr })
     setQrCreated(true)
     setStatus('')
   }
@@ -317,7 +351,8 @@ function PasskeyPage() {
     }
   }
 
-  const ended = screen.kind === 'ended' || screen.kind === 'complete'
+  const phoneResult = screen.kind === 'phone-approved' || screen.kind === 'phone-canceled'
+  const ended = screen.kind === 'ended' || screen.kind === 'complete' || phoneResult
   const signup = screen.kind === 'signup'
   const desktop = !phone && !management
   const showQrEntry = management && !ended && screen.kind !== 'management'
@@ -327,47 +362,71 @@ function PasskeyPage() {
       : null
   const expired = remaining === 0
   return (
-    <div className={desktop ? 'auth-screen' : undefined} data-screen={screen.kind}>
-      {!signup && (
+    <div
+      {...stylex.props(styles.page, !management && styles.authPage, phone && styles.phonePage)}
+      data-screen={screen.kind}
+    >
+      {!signup && !phoneResult && (
         <>
-          {!desktop && (
-            <div className="account-brand">
-              <img src="/auth/passkeys/icon.png" width="20" height="20" alt="" />
-              <Typo.caption as="small">DFRAGON ACCOUNT</Typo.caption>
+          {management && (
+            <div {...stylex.props(styles.brand)}>
+              <img
+                {...stylex.props(styles.icon)}
+                src="/auth/passkeys/icon.png"
+                width="20"
+                height="20"
+                alt=""
+              />
+              <Typo.caption as="small" {...stylex.props(styles.keepWords)}>
+                DFRAGON ACCOUNT
+              </Typo.caption>
             </div>
           )}
-          <Typo.h3 as="h1">
-            {management ? '패스키 관리' : phone ? 'PC의 DFRAGON에 로그인' : '로그인'}
+          <Typo.h3
+            as="h1"
+            {...stylex.props(
+              styles.heading,
+              !management && styles.authHeading,
+              phone && styles.phoneHeading
+            )}
+          >
+            {management ? '패스키 관리' : '로그인'}
           </Typo.h3>
         </>
       )}
       {signup && (
         <section id="signup" aria-labelledby="signup-heading">
-          <Typo.h3 as="h1" id="signup-heading" ref={signupHeading} tabIndex={-1}>
+          <Typo.h3
+            as="h1"
+            id="signup-heading"
+            {...stylex.props(styles.authHeading)}
+            ref={signupHeading}
+            tabIndex={-1}
+          >
             회원가입
           </Typo.h3>
-          <Typo.txtM className="signup-intro">
+          <Typo.txtM {...stylex.props(styles.paragraph, styles.signupIntro)}>
             아이디와 비밀번호 없이 가입해요.
             <br />
             기기의 인증 안내에 따라 패스키를 만들어 주세요.
           </Typo.txtM>
-          <div className="signup-notice">
-            <Typo.txtM as="h2" weight={700}>
+          <div {...stylex.props(styles.signupNotice)}>
+            <Typo.txtM as="h2" weight={700} {...stylex.props(styles.noticeHeading)}>
               이미 계정이 있나요?
             </Typo.txtM>
-            <Typo.txtS>
+            <Typo.txtS {...stylex.props(styles.paragraph, styles.noPadding)}>
               기존 패스키로 로그인해 주세요.
               <br />
               새로 가입하면 새로운 계정이 만들어져요.
             </Typo.txtS>
           </div>
-          <div className="signup-actions">
+          <div {...stylex.props(styles.actions, styles.signupActions)}>
             {!phone && (
               <button
                 id="signup-phone"
-                className={primaryButton}
+                className={`${primaryButton} ${stylex.props(styles.button, styles.action).className}`}
                 disabled={busy}
-                onClick={() => void run(() => generateQr(true))}
+                onClick={() => void run(() => generateQr())}
               >
                 <Typo.txtM as="span" weight={700}>
                   휴대폰으로 회원가입
@@ -376,7 +435,7 @@ function PasskeyPage() {
             )}
             <button
               id="signup-passkey"
-              className={primaryButton}
+              className={`${primaryButton} ${stylex.props(styles.button, styles.action).className}`}
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('register'))}
             >
@@ -385,21 +444,20 @@ function PasskeyPage() {
               </Typo.txtM>
             </button>
           </div>
-          <Typo.txtS className="signup-recovery">
+          <Typo.txtS {...stylex.props(styles.paragraph, styles.signupRecovery)}>
             모든 패스키를 잃으면 계정을 복구할 수 없어요.
             <br />
             가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
           </Typo.txtS>
         </section>
       )}
-      {phone && (
-        <section>
-          <Typo.txtM>
-            직접 시작한 PC 로그인만 진행하세요. 메시지로 받은 QR이나 다른 사람이 보낸 QR은 승인하지
-            마세요.
-          </Typo.txtM>
-          <Typo.txtM>PC와 같은 확인 번호인지 확인하세요.</Typo.txtM>
-          <Typo.h4 as="h2" id="phone-confirmation" className="confirmation">
+      {phone && !ended && (
+        <section {...stylex.props(styles.phoneConfirmation)} aria-label="PC와 비교할 확인 번호">
+          <Typo.h4
+            as="h2"
+            id="phone-confirmation"
+            {...stylex.props(styles.confirmation, styles.phoneCode)}
+          >
             {confirmationCode}
           </Typo.h4>
         </section>
@@ -407,50 +465,29 @@ function PasskeyPage() {
       {desktop && screen.kind === 'qr' && (
         <section id="qr-panel" aria-label="휴대폰으로 인증">
           <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
-          <Typo.h4 as="h2" id="confirmation" className="confirmation">
+          <Typo.h4 as="h2" id="confirmation" {...stylex.props(styles.confirmation, styles.qrCode)}>
             {screen.qr.confirmationCode}
           </Typo.h4>
-          <Typo.txtM id="qr-expiry" className={expired ? 'expired' : undefined} role="timer">
+          <Typo.txtM
+            id="qr-expiry"
+            {...stylex.props(styles.paragraph, styles.expiry, expired && styles.expired)}
+            role="timer"
+          >
             {expired
               ? '0분 0초 · 인증 시간이 만료됐어요'
               : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증 가능해요`}
           </Typo.txtM>
-          <Typo.txtS className="qr-warning">이 QR코드를 절대 공유하지 마세요.</Typo.txtS>
-          {screen.signup && (
-            <Typo.txtS className="qr-signup-help">
-              휴대폰에서 ‘새 계정 만들기’를 선택해 가입해 주세요.
-            </Typo.txtS>
-          )}
+          <Typo.txtS {...stylex.props(styles.paragraph, styles.qrWarning)}>
+            이 QR코드를 절대 공유하지 마세요.
+          </Typo.txtS>
           <button
             id="qr-start"
-            className={primaryButton}
+            className={`${primaryButton} ${stylex.props(styles.button, styles.reissue).className}`}
             disabled={busy || expired}
-            onClick={() => void run(() => generateQr(screen.signup))}
+            onClick={() => void run(() => generateQr())}
           >
             <Typo.txtM as="span" weight={700}>
               새 QR 코드 만들기
-            </Typo.txtM>
-          </button>
-        </section>
-      )}
-      {desktop && screen.kind === 'pc-consent' && (
-        <section id="pc-consent">
-          <Typo.txtM id="account">
-            휴대폰에서 승인한 계정: {screen.nickname}. 본인 계정인지 확인하세요.
-          </Typo.txtM>
-          <button
-            id="claim"
-            className={primaryButton}
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                const result = await api<{ returnUrl: string }>('claim')
-                showReturn(result.returnUrl)
-              })
-            }
-          >
-            <Typo.txtM as="span" weight={700}>
-              이 계정으로 PC 로그인
             </Typo.txtM>
           </button>
         </section>
@@ -459,7 +496,7 @@ function PasskeyPage() {
         <section id="qr-entry">
           <button
             id="qr-start"
-            className={primaryButton}
+            className={`${primaryButton} ${stylex.props(styles.button).className}`}
             disabled={busy}
             onClick={() => void run(() => generateQr())}
           >
@@ -470,13 +507,15 @@ function PasskeyPage() {
           {screen.kind === 'qr' && (
             <div id="qr-panel">
               <QrCode url={screen.qr.phoneUrl} onError={setStatus} />
-              <Typo.txtM id="qr-help">
+              <Typo.txtM id="qr-help" {...stylex.props(styles.paragraph)}>
                 휴대폰 카메라로 스캔하고 패스키로 인증하세요. 키 관리는 휴대폰에서 완료됩니다.
               </Typo.txtM>
-              <Typo.caption as="small">QR을 공유하지 마세요.</Typo.caption>
+              <Typo.caption as="small" {...stylex.props(styles.keepWords)}>
+                QR을 공유하지 마세요.
+              </Typo.caption>
               <button
                 id="direct"
-                className={secondaryButton}
+                className={`${secondaryButton} ${stylex.props(styles.button).className}`}
                 disabled={busy}
                 onClick={() => {
                   stopQr()
@@ -493,7 +532,13 @@ function PasskeyPage() {
       )}
       {screen.kind === 'entry' && (
         <section id="entry">
-          <Typo.txtM>
+          <Typo.txtM
+            {...stylex.props(
+              styles.paragraph,
+              !management && styles.entryDescription,
+              phone && styles.phoneDescription
+            )}
+          >
             {management ? (
               '관리할 계정의 패스키로 다시 인증해 주세요.'
             ) : phone ? (
@@ -506,11 +551,11 @@ function PasskeyPage() {
               </>
             )}
           </Typo.txtM>
-          <div className={desktop ? 'login-actions' : undefined}>
+          <div {...stylex.props(desktop && styles.actions)}>
             {desktop && (
               <button
                 id="qr-start"
-                className={primaryButton}
+                className={`${primaryButton} ${stylex.props(styles.button, styles.action).className}`}
                 disabled={busy}
                 onClick={() => void run(() => generateQr())}
               >
@@ -521,7 +566,7 @@ function PasskeyPage() {
             )}
             <button
               id="authenticate"
-              className={primaryButton}
+              className={`${primaryButton} ${stylex.props(styles.button, desktop && styles.action, phone && styles.phoneButton).className}`}
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('authenticate'))}
             >
@@ -533,16 +578,14 @@ function PasskeyPage() {
           {!management && (
             <button
               id="register"
-              className={secondaryButton}
-              disabled={busy}
+              className={`${secondaryButton} ${stylex.props(styles.button, styles.register, phone && styles.phoneRegister).className}`}
+              disabled={busy || (phone && !supportsPasskeys)}
               onClick={() => {
-                setStatus(
-                  supportsPasskeys
-                    ? ''
-                    : phone
-                      ? '패스키를 지원하는 Safari 또는 Chrome에서 열어 주세요.'
-                      : '휴대폰 QR을 이용해 주세요.'
-                )
+                if (phone) {
+                  void run(() => authenticate('register'))
+                  return
+                }
+                setStatus(supportsPasskeys ? '' : '휴대폰 QR을 이용해 주세요.')
                 setScreen({ kind: 'signup' })
               }}
             >
@@ -555,70 +598,86 @@ function PasskeyPage() {
       )}
       {screen.kind === 'phone-consent' && (
         <section id="phone-consent">
-          <Typo.txtM>확인 번호가 같은 PC의 DFRAGON 로그인을 승인할까요?</Typo.txtM>
-          <Typo.txtM id="phone-account">로그인할 계정: {screen.nickname}</Typo.txtM>
+          <Typo.txtM
+            id="phone-account"
+            {...stylex.props(styles.paragraph, styles.phoneDescription)}
+          >
+            {screen.nickname} 님이 맞으신가요?
+          </Typo.txtM>
           <button
             id="approve"
-            className={primaryButton}
+            className={`${primaryButton} ${stylex.props(styles.button, styles.phoneButton).className}`}
             disabled={busy}
             onClick={() =>
               void run(async () => {
                 await api('phone-approve')
-                finish(
-                  '승인했습니다. PC의 DFRAGON 창에서 계정을 확인하고 로그인을 완료하세요. 이 창은 닫아도 됩니다.'
-                )
+                endedRef.current = true
+                setScreen({ kind: 'phone-approved' })
+                setStatus('')
               })
             }
           >
             <Typo.txtM as="span" weight={700}>
-              PC 로그인 승인
+              로그인
             </Typo.txtM>
           </button>
         </section>
       )}
-      {!management && !ended && (
+      {phoneResult && (
+        <section id={screen.kind} {...stylex.props(styles.phoneResult)} role="status">
+          <img
+            {...stylex.props(styles.icon)}
+            src="/auth/passkeys/icon.png"
+            width="128"
+            height="128"
+            alt=""
+          />
+          <Typo.h4 as="h1" weight={700} {...stylex.props(styles.phoneHeading)}>
+            {screen.kind === 'phone-approved' ? '로그인 성공!' : '로그인 취소'}
+          </Typo.h4>
+        </section>
+      )}
+      {desktop && !ended && (
         <button
           id="cancel"
-          className={desktop || signup ? removeButton : secondaryButton}
+          className={`${removeButton} ${stylex.props(styles.button, styles.cancel).className}`}
           disabled={busy}
           onClick={() =>
             void run(async () => {
               qrGeneration.current += 1
               try {
-                await api(phone ? 'phone-cancel' : 'cancel')
+                await api('cancel')
                 finish('로그인을 취소했습니다. 이 창을 닫아 주세요.')
               } catch {
                 finish('인증을 중단했습니다. 이 창을 닫아 주세요.')
               }
-              if (desktop || signup) {
-                window.close()
-              }
+              window.close()
             })
           }
         >
           <Typo.txtS as="span" weight={700}>
-            {desktop || signup ? '닫기' : '로그인 취소'}
+            닫기
           </Typo.txtS>
         </button>
       )}
       {screen.kind === 'management' && (
         <section id="management">
-          <Typo.txtM>
+          <Typo.txtM {...stylex.props(styles.paragraph)}>
             예비 패스키를 추가해 두세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.
           </Typo.txtM>
-          <ul id="keys">
+          <ul id="keys" {...stylex.props(styles.keys)}>
             {screen.keys.map((key, index) => (
-              <li key={key.id}>
+              <li key={key.id} {...stylex.props(styles.key)}>
                 <Typo.txtM as="strong" weight={700}>
                   패스키 {index + 1}
                   {key.current ? ' · 지금 사용 중' : ''}
                 </Typo.txtM>
-                <Typo.txtM>
+                <Typo.txtM {...stylex.props(styles.paragraph)}>
                   등록: {new Date(key.createdAt).toLocaleString()} · 최근 사용:{' '}
                   {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '아직 없음'}
                 </Typo.txtM>
                 <button
-                  className={removeButton}
+                  className={`${removeButton} ${stylex.props(styles.button).className}`}
                   disabled={busy || screen.keys.length === 1}
                   onClick={() => void run(() => removeKey(key))}
                 >
@@ -631,7 +690,7 @@ function PasskeyPage() {
           </ul>
           <button
             id="add"
-            className={primaryButton}
+            className={`${primaryButton} ${stylex.props(styles.button).className}`}
             disabled={busy || !supportsPasskeys}
             onClick={() => void run(() => authenticate('add'))}
           >
@@ -639,13 +698,13 @@ function PasskeyPage() {
               예비 패스키 추가
             </Typo.txtM>
           </button>
-          <Typo.txtM>
+          <Typo.txtM {...stylex.props(styles.paragraph)}>
             여기서 삭제해도 이미 로그인한 기기는 로그아웃되지 않으며, 기기의 패스키 저장소에서도
             별도로 삭제해야 합니다.
           </Typo.txtM>
           <button
             id="end"
-            className={secondaryButton}
+            className={`${secondaryButton} ${stylex.props(styles.button).className}`}
             disabled={busy}
             onClick={() =>
               void run(async () => {
@@ -662,17 +721,30 @@ function PasskeyPage() {
       )}
       {screen.kind === 'complete' && (
         <section id="complete">
-          <Typo.h6 as="h2">인증을 완료했습니다</Typo.h6>
-          <a id="return" className={`action ${primaryButton}`} href={screen.returnUrl}>
+          <Typo.h6 as="h2" {...stylex.props(styles.completeHeading)}>
+            인증을 완료했습니다
+          </Typo.h6>
+          <a
+            id="return"
+            className={`${primaryButton} ${stylex.props(styles.button, styles.phoneButton).className}`}
+            href={screen.returnUrl}
+          >
             <Typo.txtM as="span" weight={700}>
-              DFRAGON 앱으로 돌아가기
+              돌아가기
             </Typo.txtM>
           </a>
-          <Typo.txtM>앱 복귀 링크는 1분 이내에 사용해 주세요.</Typo.txtM>
-          <Typo.txtM>예비 패스키는 패스키 관리 화면에서 추가할 수 있어요.</Typo.txtM>
         </section>
       )}
-      <Typo.txtM id="status" role="status" aria-live="polite">
+      <Typo.txtM
+        id="status"
+        role="status"
+        aria-live="polite"
+        {...stylex.props(
+          styles.paragraph,
+          styles.status,
+          !management && status === '' && styles.emptyStatus
+        )}
+      >
         {status}
       </Typo.txtM>
     </div>
