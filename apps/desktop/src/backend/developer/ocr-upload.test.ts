@@ -149,6 +149,77 @@ it('does not send when cancelled during credential preparation', async () => {
   expect(f.request).not.toHaveBeenCalled()
 })
 
+it('does not prepare credentials for an already cancelled capture', async () => {
+  const f = setup()
+  const controller = new AbortController()
+  controller.abort()
+
+  expect(await f.prepare()!(frame, [3], 'hud', controller.signal)).toBe('signedOut')
+  expect(f.auth.authorization).not.toHaveBeenCalled()
+  expect(f.request).not.toHaveBeenCalled()
+  expect(f.unsubscribe).toHaveBeenCalledOnce()
+})
+
+it('cancels an in-flight upload when collection stops without retrying', async () => {
+  const f = setup()
+  const controller = new AbortController()
+  let requestSignal: AbortSignal | undefined
+  f.request.mockImplementationOnce(
+    async (_url, init) =>
+      new Promise((_resolve, reject) => {
+        requestSignal = init?.signal as AbortSignal
+        requestSignal.addEventListener('abort', () => reject(new Error('capture stopped')), {
+          once: true
+        })
+      })
+  )
+  const sent = f.prepare()!(frame, [3], 'hud', controller.signal)
+  await vi.waitFor(() => expect(f.request).toHaveBeenCalledOnce())
+  controller.abort()
+
+  expect(await sent).toBe('failed')
+  expect(requestSignal?.aborted).toBe(true)
+  expect(f.request).toHaveBeenCalledOnce()
+  expect(f.unsubscribe).toHaveBeenCalledOnce()
+})
+
+it.each(['uploaded', 'failed'] as const)(
+  'releases the capture listener and deadline after an upload is %s',
+  async (status) => {
+    vi.useFakeTimers()
+    try {
+      const f = setup()
+      const controller = new AbortController()
+      const removeListener = vi.spyOn(controller.signal, 'removeEventListener')
+      if (status === 'failed') {
+        f.request.mockRejectedValueOnce(new Error('transport failure'))
+      }
+
+      expect(await f.prepare()!(frame, [3], 'hud', controller.signal)).toBe(status)
+      expect(removeListener).toHaveBeenCalledWith('abort', expect.any(Function))
+      expect(f.unsubscribe).toHaveBeenCalledOnce()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  }
+)
+
+it('does not send a frame without complete original pixels or selected crops', async () => {
+  for (const original of [
+    undefined,
+    { ...frame.original!, rgba: Buffer.alloc(1) },
+    { ...frame.original!, crops: [] }
+  ]) {
+    const f = setup()
+    expect(
+      await f.prepare()!({ ...frame, original }, [3], 'hud', new AbortController().signal)
+    ).toBe('failed')
+    expect(f.request).not.toHaveBeenCalled()
+    expect(f.unsubscribe).toHaveBeenCalledOnce()
+  }
+})
+
 it('bounds a stalled upload and releases its auth subscription without retrying', async () => {
   vi.useFakeTimers()
   try {

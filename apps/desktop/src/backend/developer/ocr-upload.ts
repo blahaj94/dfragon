@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-import { PNG } from 'pngjs'
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import { readJson } from '../auth/http-response'
@@ -10,9 +8,11 @@ import type {
   DeveloperUploadStatus
 } from '../../preload/common/types/developer'
 import type { CapturedPartyFrame } from './collection-session'
-import { validatePartyFrame } from './collection-session'
+import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
+import { createOcrUploadPayload } from './ocr-upload-payload'
 
-const UPLOAD_URL = 'https://ocr.dfragon.com/api/desktop/captures'
+const OCR_API_ORIGIN = 'https://ocr.dfragon.com'
+const UPLOAD_URL = `${OCR_API_ORIGIN}/api/desktop/captures`
 const receiptSchema = z.strictObject({ id: z.uuid(), duplicate: z.boolean() })
 
 /** Uses main-owned credentials and pixels; no URL, token or image upload IPC is exposed. */
@@ -35,58 +35,27 @@ export function createOcrUploader(
       kind: DeveloperCollectionKind,
       captureSignal: AbortSignal
     ): Promise<DeveloperUploadStatus> {
-      const controller = new AbortController()
-      const abort = (): void => controller.abort()
-      const current = (): boolean =>
-        auth.captureGeneration() === generation && !controller.signal.aborted
-      const unsubscribe = auth.subscribe(() => {
-        if (auth.captureGeneration() !== generation) {
-          abort()
-        }
-      })
-      captureSignal.addEventListener('abort', abort, { once: true })
-      const deadline = setTimeout(abort, 15_000)
+      const lifecycle = createOcrUploadLifecycle({ auth, generation, captureSignal })
       try {
-        if (captureSignal.aborted || !current()) {
+        if (!lifecycle.isCurrent()) {
           return 'signedOut'
         }
-        let authorization = await auth.authorization(controller.signal)
+        let authorization = await auth.authorization(lifecycle.signal)
         if (
-          !current() ||
+          !lifecycle.isCurrent() ||
           authorization.status !== 'available' ||
           authorization.generation !== generation
         ) {
           return 'signedOut'
         }
-        validatePartyFrame(frame)
-        const original = frame.original
-        if (!original || original.rgba.length !== frame.width * frame.height * 4) {
+        const payload = createOcrUploadPayload(frame, selected, kind)
+        if (payload === null) {
           return 'failed'
         }
-        const crops = original.crops.filter(({ slot }) => selected.includes(slot))
-        if (crops.length === 0) {
-          return 'failed'
-        }
-        const image = new PNG({ width: frame.width, height: frame.height })
-        image.data = original.rgba
-        const png = PNG.sync.write(image)
-        if (png.length > 16 * 1024 * 1024) {
-          return 'failed'
-        }
-        const id = randomUUID()
-        const body = JSON.stringify({
-          id,
-          capturedAt: frame.capturedAt,
-          kind,
-          originalPng: png.toString('base64'),
-          uiScale: frame.scale,
-          uiScaleSource: 'estimated',
-          crops
-        })
         // Only a rejected credential may be refreshed once. Network failures are never retried.
         for (let attempt = 0; attempt < 2; attempt += 1) {
           if (
-            !current() ||
+            !lifecycle.isCurrent() ||
             authorization.status !== 'available' ||
             authorization.generation !== generation
           ) {
@@ -99,11 +68,11 @@ export function createOcrUploader(
               'Content-Type': 'application/json',
               Accept: 'application/json'
             },
-            body,
+            body: payload.body,
             credentials: 'omit',
             cache: 'no-store',
             redirect: 'error',
-            signal: controller.signal
+            signal: lifecycle.signal
           })
           if (response.status === 401) {
             await response.body?.cancel()
@@ -113,11 +82,11 @@ export function createOcrUploader(
                 accessGeneration: authorization.accessGeneration,
                 finalRejection: attempt === 1
               },
-              controller.signal
+              lifecycle.signal
             )
             continue
           }
-          if (!current()) {
+          if (!lifecycle.isCurrent()) {
             await response.body?.cancel()
             return 'signedOut'
           }
@@ -129,16 +98,16 @@ export function createOcrUploader(
                 ? 'storageFull'
                 : 'failed'
           }
-          const receipt = receiptSchema.safeParse(await readJson(response, controller.signal))
-          return current() && receipt.success && receipt.data.id === id ? 'uploaded' : 'failed'
+          const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
+          return lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
+            ? 'uploaded'
+            : 'failed'
         }
         return 'signedOut'
       } catch {
         return auth.captureGeneration() === generation ? 'failed' : 'signedOut'
       } finally {
-        clearTimeout(deadline)
-        captureSignal.removeEventListener('abort', abort)
-        unsubscribe()
+        lifecycle.cleanup()
       }
     }
   }
