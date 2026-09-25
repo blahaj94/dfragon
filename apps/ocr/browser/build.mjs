@@ -1,4 +1,5 @@
 import { build } from 'esbuild'
+import stylex from '@stylexjs/unplugin/esbuild'
 import { collectPackages } from '@dfragon/licenses/collect'
 import { resolve } from 'node:path'
 import { mkdir, copyFile, writeFile } from 'node:fs/promises'
@@ -6,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 await mkdir(new URL('../dist/browser/', import.meta.url), { recursive: true })
 const result = await build({
   metafile: true,
+  plugins: [stylex({ runtimeInjection: false, useCSSLayers: false })],
   entryPoints: ['browser/main.tsx'],
   bundle: true,
   jsx: 'automatic',

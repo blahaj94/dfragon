@@ -1,76 +1,29 @@
-import { useState } from 'react'
+import * as stylex from '@stylexjs/stylex'
+import { styles } from './styles.js'
+import { useSampleEditor } from './hooks/use-sample-editor.js'
+import { OCR_SAMPLES } from '../src/constants.js'
 import { Typo } from '@dfragon/ui/typo'
 import { primary, secondary } from './buttons.js'
-import { requestOcr, OcrApiError } from './client.js'
-import type { Sample, Split } from '../src/model.js'
+import type { Sample } from '../src/model.js'
 import { parseSplit } from '../src/input.js'
 
-export function SampleEditor({ sample, onSaved }: { sample: Sample; onSaved: () => void }) {
-  const [text, setText] = useState(sample.text ?? '')
-  const [message, setMessage] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  async function saveSample(excluded: boolean) {
-    setBusy(true)
-    setMessage('')
-    const body = { text: text === '' ? null : text, excluded }
-    try {
-      try {
-        await requestOcr(`/api/samples/${sample.id}`, 'PATCH', body)
-      } catch (error) {
-        if (
-          error instanceof OcrApiError &&
-          error.code === 'LABEL_SPLIT_CHANGE' &&
-          window.confirm(
-            '정답을 바꾸면 새 닉네임의 분할을 따릅니다. 배정이 없으면 미배정으로 바뀝니다. 저장할까요?'
-          )
-        ) {
-          await requestOcr(`/api/samples/${sample.id}`, 'PATCH', {
-            ...body,
-            confirmSplitChange: true
-          })
-        } else {
-          throw error
-        }
-      }
-      onSaved()
-      setMessage('저장했습니다.')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : '저장하지 못했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function assignNicknameSplit(split: Split) {
-    if (sample.text === null || sample.text.length === 0) {
-      return
-    }
-    if (!window.confirm(`같은 정답의 모든 이미지를 ${split}에 배정합니다. 계속할까요?`)) {
-      return
-    }
-    setBusy(true)
-    try {
-      await requestOcr('/api/splits', 'PUT', { text: sample.text, split })
-      onSaved()
-      setMessage('같은 닉네임의 분할을 변경했습니다.')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : '분할하지 못했습니다.')
-    } finally {
-      setBusy(false)
-    }
-  }
+export function SampleEditor({ sample }: { sample: Sample }) {
+  const { text, setText, message, busy, saveSample, assignNicknameSplit } = useSampleEditor(sample)
 
   return (
-    <section className="editor" aria-label="정답 편집">
-      <div className="editor-heading">
-        <Typo.h5>정답 입력</Typo.h5>
-        <span className="badge">
+    <section {...stylex.props(styles.editor)} aria-label="정답 편집">
+      <div {...stylex.props(styles.editorHeading)}>
+        <Typo.h5 {...stylex.props(styles.heading)}>정답 입력</Typo.h5>
+        <span {...stylex.props(styles.badge)}>
           {sample.kind === 'hud' ? 'HUD' : '파티원창'} · 위치 {sample.slot}
         </span>
       </div>
-      <div className="large-preview">
-        <img src={`/api/samples/${sample.id}/image`} alt="정답을 입력할 닉네임 크롭" />
+      <div {...stylex.props(styles.largePreview)}>
+        <img
+          {...stylex.props(styles.previewImage)}
+          src={`/api/samples/${sample.id}/image`}
+          alt="정답을 입력할 닉네임 크롭"
+        />
       </div>
       <form
         onSubmit={(e) => {
@@ -78,18 +31,18 @@ export function SampleEditor({ sample, onSaved }: { sample: Sample; onSaved: () 
           void saveSample(sample.excluded)
         }}
       >
-        <label>
+        <label {...stylex.props(styles.label)}>
           닉네임 정답
           <input
-            className="label-input"
+            {...stylex.props(styles.control, styles.labelInput)}
             autoComplete="off"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            maxLength={100}
+            maxLength={OCR_SAMPLES.maximumLabelLength}
             placeholder="이미지에 보이는 그대로 입력"
           />
         </label>
-        <div className="actions">
+        <div {...stylex.props(styles.actions, styles.editorActions)}>
           <button className={primary} disabled={busy}>
             정답 저장
           </button>
@@ -103,9 +56,10 @@ export function SampleEditor({ sample, onSaved }: { sample: Sample; onSaved: () 
           </button>
         </div>
       </form>
-      <label>
+      <label {...stylex.props(styles.label)}>
         닉네임 단위 분할
         <select
+          {...stylex.props(styles.control)}
           value={sample.split}
           disabled={
             busy || sample.text === null || sample.text.length === 0 || text !== sample.text
@@ -118,29 +72,40 @@ export function SampleEditor({ sample, onSaved }: { sample: Sample; onSaved: () 
           <option>test</option>
         </select>
       </label>
-      <p className="muted">같은 정답 닉네임의 모든 이미지에 적용됩니다.</p>
-      <dl>
-        <dt>원본 해상도</dt>
-        <dd>
+      <p {...stylex.props(styles.paragraph, styles.muted)}>
+        같은 정답 닉네임의 모든 이미지에 적용됩니다.
+      </p>
+      <dl {...stylex.props(styles.metadata)}>
+        <dt {...stylex.props(styles.metadataLabel)}>원본 해상도</dt>
+        <dd {...stylex.props(styles.metadataValue)}>
           {sample.frameWidth} × {sample.frameHeight}
         </dd>
-        <dt>UI 크기</dt>
-        <dd>
+        <dt {...stylex.props(styles.metadataLabel)}>UI 크기</dt>
+        <dd {...stylex.props(styles.metadataValue)}>
           {sample.uiScale === null
             ? '미상'
             : `${Math.round(sample.uiScale * 100)}% · ${sample.uiScaleSource === 'game' ? '게임 설정' : '추정'}`}
         </dd>
-        <dt>수집 시각</dt>
-        <dd>{new Date(sample.capturedAt).toLocaleString('ko-KR')}</dd>
-        <dt>크롭 영역</dt>
-        <dd>
+        <dt {...stylex.props(styles.metadataLabel)}>수집 시각</dt>
+        <dd {...stylex.props(styles.metadataValue)}>
+          {new Date(sample.capturedAt).toLocaleString('ko-KR')}
+        </dd>
+        <dt {...stylex.props(styles.metadataLabel)}>크롭 영역</dt>
+        <dd {...stylex.props(styles.metadataValue)}>
           ({sample.x}, {sample.y}) · {sample.width} × {sample.height}
         </dd>
       </dl>
-      <a href={`/api/captures/${sample.captureId}/image`} target="_blank" rel="noreferrer">
+      <a
+        {...stylex.props(styles.originalLink)}
+        href={`/api/captures/${sample.captureId}/image`}
+        target="_blank"
+        rel="noreferrer"
+      >
         원본 화면 열기 ↗
       </a>
-      <p role="status">{message}</p>
+      <p {...stylex.props(styles.paragraph, styles.editorStatus)} role="status">
+        {message}
+      </p>
     </section>
   )
 }

@@ -85,6 +85,12 @@ try {
     }),
     page = await context.newPage()
   const errors = []
+  const sampleRequests = []
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/samples') {
+      sampleRequests.push(request.url())
+    }
+  })
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(origin)
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
@@ -128,18 +134,25 @@ try {
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
   await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
   await page.getByRole('button', { name: '정답 저장', exact: true }).click()
-  await page.locator('.sample strong').filter({ hasText: '샘플고래' }).waitFor()
+  await page.getByRole('button', { name: /샘플고래/ }).waitFor()
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('combobox', { name: /닉네임 단위 분할/ }).selectOption('train')
-  await page.waitForFunction(() =>
-    globalThis.document.querySelector('.sample span')?.textContent?.includes('train')
-  )
+  await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
   assert.equal(store.exportManifest().samples[0].split, 'train')
   await page.getByRole('button', { name: '학습에서 제외', exact: true }).click()
   await page.getByRole('button', { name: '제외 복원', exact: true }).waitFor()
   await page.getByRole('button', { name: '제외 복원', exact: true }).click()
   await page.getByRole('button', { name: '학습에서 제외', exact: true }).waitFor()
   await page.getByText('원본 이미지 업로드', { exact: true }).click()
+  const kindFilter = page
+    .getByRole('group', { name: '자료 필터' })
+    .getByRole('combobox', { name: '수집 종류' })
+  await kindFilter.selectOption('hud')
+  await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
+  const beforeCachedFilter = sampleRequests.length
+  await kindFilter.selectOption('')
+  await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
+  assert.equal(sampleRequests.length, beforeCachedFilter)
   const artifacts = process.env.OCR_UI_ARTIFACTS
   if (artifacts) {
     await mkdir(resolve(artifacts), { recursive: true })
@@ -156,6 +169,12 @@ try {
   }
   await page.getByRole('button', { name: '로그아웃', exact: true }).click()
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).waitFor()
+  await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
+  await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
+  assert(
+    sampleRequests.length > beforeCachedFilter,
+    'login after logout refetches the cleared dataset cache'
+  )
   assert.deepEqual(errors, [])
   process.stdout.write(
     'OCR browser upload, labels, split, exclusion, responsive layout and logout passed\n'
