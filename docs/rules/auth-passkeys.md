@@ -28,6 +28,10 @@ Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답�
 
 Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번만 검증한다. 새 옵션 발급은 이전 challenge를 대체한다. 잘못된 패스키 증명은 그 브라우저의 challenge를 소비하며 다른 요청을 바꾸지 않는다. 처리 중 설정 fingerprint가 달라진 요청은 거부한다.
 
+## OCR 관리 웹 연결
+
+이번 OCR 요청은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 추가한다. 기존 RP와 패스키를 유지하고 고정 HTTPS callback·PKCE·client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl·fingerprint·기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
+
 ## DFRAGON 휴대폰 QR
 
 PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, 기존 계정과 별개의 계정이 생김을 안내한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.

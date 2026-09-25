@@ -17,7 +17,11 @@ import { PasskeySchema } from '../../database/schemas/passkeys.js'
 import { UUID_PATTERN } from '../access-jwt/constants.js'
 import type { LoginDependencies, LoginHttpService } from '../../types/login.js'
 import { decodeOpaque, newOpaque, opaqueHash } from './crypto.js'
-import { configurationFingerprint, validatePasskeyConfiguration } from './configuration.js'
+import {
+  configurationFingerprint,
+  configuredLoginClient,
+  validatePasskeyConfiguration
+} from './configuration.js'
 import { parseCreation, requireExactFields } from './input.js'
 import {
   browserCookie,
@@ -76,16 +80,19 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
   }
   const configuration = validatePasskeyConfiguration(dependencies.configuration)
   const deps = Object.freeze({ ...dependencies, configuration })
-  const fingerprint = configurationFingerprint(configuration)
 
-  async function newRequest(purpose: 'login' | 'manage', codeChallenge: string | null) {
+  async function newRequest(
+    purpose: 'login' | 'manage',
+    codeChallenge: string | null,
+    clientId: 'desktop' | 'ocr' = 'desktop'
+  ) {
     return loginTransaction(deps.dataSource, async (manager) => {
       const now = await freshTime(manager)
       const row: AuthLoginRequest = {
         ...CLEARED_LOGIN_FIELDS,
         id: randomUUID(),
         purpose,
-        configuration: fingerprint,
+        configuration: configurationFingerprint(configuration, clientId),
         createdAt: now,
         expiresAt: new Date(now.getTime() + LOGIN.requestSeconds * 1000),
         status: purpose === 'login' ? 'created' : 'browser_started',
@@ -298,7 +305,12 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       )
     })
     await manager.getRepository(AuthLoginRequestSchema).save(row)
-    const url = new URL(configuration.returnUrl)
+    const clientId = configuredLoginClient(configuration, row.configuration)
+    const returnUrl = clientId === 'ocr' ? configuration.ocrReturnUrl : configuration.returnUrl
+    if (returnUrl === undefined) {
+      throw invalid()
+    }
+    const url = new URL(returnUrl)
     url.searchParams.set('code', code)
     return { returnUrl: url.href }
   }
@@ -306,7 +318,10 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
   return {
     async create(input) {
       const body = parseCreation(input)
-      const { row, secret } = await newRequest('login', body.codeChallenge)
+      if (body.clientId === 'ocr' && configuration.ocrReturnUrl === undefined) {
+        throw invalid()
+      }
+      const { row, secret } = await newRequest('login', body.codeChallenge, body.clientId)
       return {
         requestId: row.id,
         browserUrl: `${configuration.apiOrigin}/auth/login/authorize?ticket=${secret}`,
@@ -339,7 +354,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         if (
           row == null ||
           row.status !== (phone ? 'browser_started' : 'created') ||
-          row.configuration !== fingerprint
+          configuredLoginClient(configuration, row.configuration) === null
         ) {
           throw invalid()
         }
@@ -358,6 +373,10 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         return {
           requestId: row.id,
           purpose: row.purpose,
+          webReturnUrl:
+            configuredLoginClient(configuration, row.configuration) === 'ocr'
+              ? configuration.ocrReturnUrl
+              : undefined,
           ...(phone ? { view: 'phone' as const, confirmationCode: row.confirmationCode! } : {}),
           cookie: browserCookie({
             phone,
@@ -399,7 +418,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         const row = await repo.findOne({ where: { id }, lock: { mode: 'pessimistic_write' } })
         if (
           row == null ||
-          row.configuration !== fingerprint ||
+          configuredLoginClient(configuration, row.configuration) === null ||
           !cookieMatches(row, cookie, phone)
         ) {
           throw invalid()

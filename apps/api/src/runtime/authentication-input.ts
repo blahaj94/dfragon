@@ -50,17 +50,28 @@ function accessJwt(value: unknown): AccessJwtIssuerConfiguration {
   }
 }
 
-/** Runtime config accepts no OAuth provider, secret or callback settings. */
+/** Runtime config accepts only access JWT and fixed passkey client settings. */
 export function parseAuthenticationInput(value: unknown) {
   const input = record(value, ['accessJwt', 'passkey'])
-  const passkey = record(input.passkey, ['apiOrigin', 'rpId', 'rpName', 'returnUrl'])
+  const hasOcr =
+    typeof input.passkey === 'object' &&
+    input.passkey !== null &&
+    Object.hasOwn(input.passkey, 'ocrReturnUrl')
+  const passkey = record(input.passkey, [
+    'apiOrigin',
+    'rpId',
+    'rpName',
+    'returnUrl',
+    ...(hasOcr ? ['ocrReturnUrl'] : [])
+  ])
   return {
     accessJwt: accessJwt(input.accessJwt),
     passkey: {
       apiOrigin: text(passkey.apiOrigin),
       rpId: text(passkey.rpId),
       rpName: text(passkey.rpName),
-      returnUrl: text(passkey.returnUrl)
+      returnUrl: text(passkey.returnUrl),
+      ...(hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {})
     }
   }
 }

@@ -224,6 +224,24 @@ function PasskeyPage() {
 
   function showReturn(returnUrl: string) {
     const url = new URL(returnUrl)
+    const webTarget = root.dataset.webReturnUrl
+    if (webTarget !== undefined && webTarget.length > 0) {
+      const target = new URL(webTarget)
+      if (
+        url.protocol !== 'https:' ||
+        url.origin !== target.origin ||
+        url.pathname !== target.pathname ||
+        url.username ||
+        url.password ||
+        url.hash ||
+        url.searchParams.size !== 1 ||
+        !url.searchParams.has('code')
+      ) {
+        throw new Error('웹 복귀 주소를 확인하지 못했습니다.')
+      }
+      location.assign(url.href)
+      return
+    }
     if (
       !['dfragon:', 'dfragon.dev:'].includes(url.protocol) ||
       url.host !== 'auth' ||

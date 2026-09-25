@@ -6,7 +6,7 @@ import { LoginFailure } from '../../errors/login.js'
 import type { LoginDependencies, LoginTokens } from '../../types/login.js'
 import { createIdentitySession } from '../identity-session.js'
 import { challenge, equalHash, opaqueHash } from './crypto.js'
-import { configurationFingerprint } from './configuration.js'
+import { configuredLoginClient } from './configuration.js'
 import { parseExchange } from './input.js'
 import { exchangeExpired, freshTime, loginTransaction } from './state.js'
 
@@ -23,8 +23,7 @@ export async function exchangeLogin(deps: LoginDependencies, input: unknown): Pr
       row == null ||
       row.purpose !== 'login' ||
       row.status !== 'exchange_ready' ||
-      body.clientId !== LOGIN.clientId ||
-      row.configuration !== configurationFingerprint(deps.configuration)
+      body.clientId !== configuredLoginClient(deps.configuration, row.configuration)
     ) {
       throw invalid()
     }

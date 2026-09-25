@@ -6,7 +6,7 @@ import type { RefreshTokens } from '../auth/refresh/types.js'
 export type LoginErrorDefinition = (typeof LOGIN_ERRORS)[keyof typeof LOGIN_ERRORS]
 export interface LoginCreation {
   provider: 'passkey'
-  clientId: 'desktop'
+  clientId: 'desktop' | 'ocr'
   codeChallenge: string
   codeChallengeMethod: 'S256'
 }
@@ -21,6 +21,7 @@ export interface PasskeyConfiguration {
   rpId: string
   rpName: string
   returnUrl: string
+  ocrReturnUrl?: string
 }
 export interface LoginDependencies {
   dataSource: DataSource
@@ -44,6 +45,7 @@ export interface CreatedLoginRequest {
 export interface LoginAuthorization {
   requestId: string
   purpose: 'login' | 'manage'
+  webReturnUrl?: string
   cookie: string
   view?: 'phone'
   confirmationCode?: string

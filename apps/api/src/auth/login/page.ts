@@ -18,7 +18,8 @@ export async function passkeyPage(authorization: LoginAuthorization) {
     requestId: authorization.requestId,
     purpose: authorization.purpose,
     view: authorization.view === 'phone' ? 'phone' : 'desktop',
-    confirmationCode: authorization.confirmationCode ?? ''
+    confirmationCode: authorization.confirmationCode ?? '',
+    webReturnUrl: authorization.webReturnUrl ?? ''
   }
   const html = template.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
     if (!Object.hasOwn(values, key)) {
