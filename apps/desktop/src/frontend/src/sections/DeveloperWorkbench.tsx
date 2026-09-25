@@ -12,6 +12,7 @@ import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/
 import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
 import { styles } from './DeveloperWorkbench.style'
 
+const REMOTE_PAGE_SIZE = 50
 const workbenchTabs = ['collection', 'participants', 'labeling'] as const
 type WorkbenchTab = (typeof workbenchTabs)[number]
 
@@ -19,6 +20,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const dataset = useDeveloperSamples()
   const [source, setSource] = useState<'local' | 'ocr'>('local')
   const [split, setSplit] = useState('all')
+  const [remotePage, setRemotePage] = useState(0)
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('collection')
   const remote = useOcrSamples(source === 'ocr' && activeTab === 'labeling')
   const readingRemote = source === 'ocr'
@@ -47,8 +49,18 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     }
     return filter === 'unlabeled' ? sample.text == null : sample.text != null
   })
-  const selected =
-    visibleSamples.find((sample) => sample.id === selectedId) ?? visibleSamples[0] ?? null
+  const pageCount = Math.max(1, Math.ceil(visibleSamples.length / REMOTE_PAGE_SIZE))
+  const currentPage = Math.min(remotePage, pageCount - 1)
+  const pageSamples = readingRemote
+    ? visibleSamples.slice(currentPage * REMOTE_PAGE_SIZE, (currentPage + 1) * REMOTE_PAGE_SIZE)
+    : visibleSamples
+  const selected = pageSamples.find((sample) => sample.id === selectedId) ?? pageSamples[0] ?? null
+  const canEvaluateSelected =
+    selected != null &&
+    !selected.excluded &&
+    (!readingRemote || selected.text != null) &&
+    !evaluation.running &&
+    !displayedDataset.loading
   const selectedResult = selected ? evaluation.results[selected.id] : undefined
   const draft = selected ? (drafts[selected.id] ?? selected.text ?? '') : ''
   const evaluationSamples = samples.filter(
@@ -248,6 +260,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   disabled={dataset.saving}
                   onClick={() => {
                     setSource(value)
+                    setRemotePage(0)
                     setFilter(value === 'ocr' ? 'complete' : 'unlabeled')
                     setSelectedId(null)
                     setNotice('')
@@ -263,7 +276,11 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     size="small"
                     variant="neutralWeak"
                     disabled={remote.loading || evaluation.running}
-                    onClick={() => void remote.refresh()}
+                    onClick={() => {
+                      setRemotePage(0)
+                      setSelectedId(null)
+                      remote.refresh()
+                    }}
                   >
                     자료실 다시 불러오기
                   </ActionButton>
@@ -275,6 +292,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       disabled={evaluation.running}
                       onChange={(event) => {
                         setSplit(event.target.value)
+                        setRemotePage(0)
                         setSelectedId(null)
                       }}
                     >
@@ -295,7 +313,20 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               </Typo.txtS>
             )}
             <DeveloperLabelingSection
-              samples={visibleSamples}
+              samples={pageSamples}
+              pagination={
+                readingRemote && visibleSamples.length > 0
+                  ? {
+                      page: currentPage,
+                      pageCount,
+                      total: visibleSamples.length,
+                      onPageChange: (page) => {
+                        setRemotePage(page)
+                        setSelectedId(null)
+                      }
+                    }
+                  : undefined
+              }
               selected={selected}
               selectedNumber={
                 selected == null ? 0 : samples.findIndex((sample) => sample.id === selected.id) + 1
@@ -308,6 +339,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               notice={notice}
               onFilterChange={(nextFilter) => {
                 setFilter(nextFilter)
+                setRemotePage(0)
                 setSelectedId(null)
                 setNotice('')
               }}
@@ -410,6 +442,8 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     </Typo.txtM>
                     {selected.excluded ? (
                       <Typo.txtS>제외한 이미지는 평가에 포함하지 않습니다.</Typo.txtS>
+                    ) : readingRemote && selected.text == null ? (
+                      <Typo.txtS>자료실에서 정답을 입력한 뒤 다시 불러오세요.</Typo.txtS>
                     ) : selectedResult?.status === 'success' ? (
                       <>
                         <Typo.txtM>원문: {selectedResult.text || '(빈 문자열)'}</Typo.txtM>
@@ -437,10 +471,12 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      disabled={
-                        selected.excluded === true || evaluation.running || displayedDataset.loading
-                      }
-                      onClick={() => void evaluation.evaluate([selected])}
+                      disabled={!canEvaluateSelected}
+                      onClick={() => {
+                        if (canEvaluateSelected) {
+                          void evaluation.evaluate([selected])
+                        }
+                      }}
                     >
                       선택 이미지 평가
                     </ActionButton>
