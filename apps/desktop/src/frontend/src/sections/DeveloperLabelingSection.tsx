@@ -15,6 +15,7 @@ const filters: { id: DeveloperLabelFilter; label: string }[] = [
 
 export function DeveloperLabelingSection({
   samples,
+  pagination,
   selected,
   selectedNumber,
   filter,
@@ -31,6 +32,12 @@ export function DeveloperLabelingSection({
   onSetExcluded
 }: {
   samples: DeveloperWorkbenchSample[]
+  pagination?: {
+    page: number
+    pageCount: number
+    total: number
+    onPageChange: (page: number) => void
+  }
   selected: DeveloperWorkbenchSample | null
   selectedNumber: number
   filter: DeveloperLabelFilter
@@ -68,6 +75,29 @@ export function DeveloperLabelingSection({
           </ActionButton>
         ))}
       </div>
+      {pagination && (
+        <nav aria-label="자료실 페이지" {...stylex.props(styles.filters)}>
+          <ActionButton
+            size="small"
+            variant="neutralWeak"
+            disabled={pagination.page === 0}
+            onClick={() => pagination.onPageChange(pagination.page - 1)}
+          >
+            이전 페이지
+          </ActionButton>
+          <Typo.txtS role="status">
+            {pagination.page + 1} / {pagination.pageCount} 페이지 · {pagination.total}개
+          </Typo.txtS>
+          <ActionButton
+            size="small"
+            variant="neutralWeak"
+            disabled={pagination.page + 1 >= pagination.pageCount}
+            onClick={() => pagination.onPageChange(pagination.page + 1)}
+          >
+            다음 페이지
+          </ActionButton>
+        </nav>
+      )}
       {error && (
         <Typo.txtS role="alert" {...stylex.props(styles.error)}>
           {error}

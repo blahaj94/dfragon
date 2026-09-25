@@ -616,3 +616,68 @@ it('discards a late server listing after leaving the source and offers a retry a
   await click('자료실 다시 불러오기')
   expect(container.textContent).not.toContain('OCR 자료실 소유자 계정만 조회할 수 있습니다.')
 })
+
+it('blocks individual evaluation of unlabeled remote images while keeping local preview evaluation', async () => {
+  const local = sample('local', '2026-09-25T00:00:00.000Z', null)
+  const { api } = installApi([local])
+  api.listOcrSamples.mockResolvedValue([
+    {
+      ...sample('ocr:pending', local.createdAt, null),
+      remote: { kind: 'hud', split: 'unassigned' }
+    }
+  ])
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  await click('선택 이미지 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith([local])
+  evaluation.evaluate.mockClear()
+  await click('OCR 자료실')
+  await click('미입력')
+  expect(button('선택 이미지 평가').disabled).toBe(true)
+  await click('선택 이미지 평가')
+  expect(evaluation.evaluate).not.toHaveBeenCalled()
+  expect(container.textContent).toContain('자료실에서 정답을 입력한 뒤 다시 불러오세요.')
+})
+
+it('pages a large remote dataset without limiting the evaluation set and resets pages when filtering', async () => {
+  const { api } = installApi()
+  const rows: DeveloperSample[] = Array.from({ length: 10_000 }, (_, index) => ({
+    ...sample(`ocr:${String(index).padStart(5, '0')}`, '2026-09-25T00:00:00.000Z', `정답 ${index}`),
+    remote: { kind: 'hud', split: index < 100 ? 'test' : 'train' }
+  }))
+  api.listOcrSamples.mockResolvedValue(rows)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  await click('OCR 자료실')
+  const list = (): NodeListOf<Element> =>
+    container.querySelectorAll('ul[aria-label="저장된 테스트 이미지"] > li')
+  expect(list()).toHaveLength(50)
+  expect(input().value).toBe('정답 0')
+  expect(button('이전 페이지').disabled).toBe(true)
+  await click('다음 페이지')
+  expect(list()).toHaveLength(50)
+  expect(input().value).toBe('정답 50')
+  expect(container.textContent).toContain('2 / 200 페이지')
+  await click('정답 완료 자료 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith(rows)
+  const split = container.querySelector<HTMLSelectElement>('select[aria-label="평가 분할"]')!
+  await act(async () => {
+    split.value = 'test'
+    split.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  expect(input().value).toBe('정답 0')
+  expect(container.textContent).toContain('1 / 2 페이지')
+  await click('다음 페이지')
+  expect(button('다음 페이지').disabled).toBe(true)
+  await click('미입력')
+  expect(list()).toHaveLength(0)
+  expect(container.querySelector('[aria-label="자료실 페이지"]')).toBeNull()
+  await click('완료')
+  expect(input().value).toBe('정답 0')
+  await click('다음 페이지')
+  api.listOcrSamples.mockResolvedValue(rows.slice(0, 1))
+  await click('자료실 다시 불러오기')
+  expect(list()).toHaveLength(1)
+  expect(input().value).toBe('정답 0')
+  expect(container.textContent).toContain('1 / 1 페이지')
+})
