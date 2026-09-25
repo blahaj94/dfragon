@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./types": "./src/types.ts",
-    "./vite": "./src/vite.ts"
+    "./vite": "./src/vite.ts",
+    "./collect": "./src/collect.ts"
   },
   "bin": {
     "dfragon-copy-notices": "./src/copy-notices.mjs"

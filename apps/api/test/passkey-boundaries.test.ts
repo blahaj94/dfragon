@@ -3,7 +3,11 @@ import test from 'node:test'
 import { randomBytes } from 'node:crypto'
 import { parseCreation, parseExchange } from '../src/auth/login/input.js'
 import { challenge, decodeOpaque, opaqueHash } from '../src/auth/login/crypto.js'
-import { validatePasskeyConfiguration } from '../src/auth/login/configuration.js'
+import {
+  validatePasskeyConfiguration,
+  configurationFingerprint,
+  configuredLoginClient
+} from '../src/auth/login/configuration.js'
 import { createLoginHttpApp } from '../src/auth/login/http.js'
 
 const opaque = () => randomBytes(32).toString('base64url')
@@ -104,5 +108,40 @@ test('an IP already rate-limited cannot consume the global authentication allowa
     await other.arrayBuffer()
   } finally {
     await app.close()
+  }
+})
+
+test('OCR callback is fixed HTTPS configuration and cannot change desktop request bindings', () => {
+  const base = {
+    apiOrigin: 'https://auth.example.test',
+    rpId: 'auth.example.test',
+    rpName: 'DFRAGON',
+    returnUrl: 'dfragon://auth/callback'
+  }
+  const config = validatePasskeyConfiguration({
+    ...base,
+    ocrReturnUrl: 'https://ocr.example.test/auth/callback'
+  })
+  const desktop = configurationFingerprint(base)
+  assert.equal(configurationFingerprint(config), desktop)
+  const ocr = configurationFingerprint(config, 'ocr')
+  assert.notEqual(ocr, desktop)
+  assert.equal(configuredLoginClient(config, ocr), 'ocr')
+  assert.equal(configuredLoginClient(base, ocr), null)
+  assert.equal(
+    configuredLoginClient(
+      { ...config, ocrReturnUrl: 'https://other.example.test/auth/callback' },
+      ocr
+    ),
+    null
+  )
+  for (const ocrReturnUrl of [
+    'http://ocr.example.test/auth/callback',
+    'https://ocr.example.test/elsewhere',
+    'https://ocr.example.test/auth/callback?x=1',
+    'https://user@ocr.example.test/auth/callback',
+    'https://ocr.example.test/auth/callback#x'
+  ]) {
+    assert.throws(() => validatePasskeyConfiguration({ ...base, ocrReturnUrl }))
   }
 })

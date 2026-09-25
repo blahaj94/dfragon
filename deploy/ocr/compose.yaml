@@ -1,0 +1,27 @@
+name: dfragon-ocr
+services:
+  ocr:
+    image: dfragon-ocr:${DFRAGON_IMAGE_TAG:?Set a release tag}
+    build:
+      context: ../..
+      dockerfile: deploy/ocr/Dockerfile
+    restart: unless-stopped
+    init: true
+    user: '1000:1000'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 2
+    stop_grace_period: 30s
+    environment:
+      OCR_ORIGIN: ${OCR_ORIGIN:?Set the public HTTPS origin}
+      OCR_AUTH_ORIGIN: ${OCR_AUTH_ORIGIN:?Set the existing passkey API HTTPS origin}
+      OCR_OWNER_ID: ${OCR_OWNER_ID:?Set the allowed account UUID}
+      OCR_MAX_BYTES: ${OCR_MAX_BYTES:-1073741824}
+    ports: ['127.0.0.1:${OCR_PORT:-3100}:3100']
+    volumes: ['${OCR_DATA_DIRECTORY:?Set a persistent directory}:/data']
+    logging:
+      driver: local
+      options: { max-size: 10m, max-file: '3' }

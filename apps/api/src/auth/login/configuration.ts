@@ -28,14 +28,53 @@ export function validatePasskeyConfiguration(
     ) {
       throw new Error()
     }
+    if (value.ocrReturnUrl !== undefined) {
+      const web = new URL(value.ocrReturnUrl)
+      if (
+        web.protocol !== 'https:' ||
+        web.pathname !== '/auth/callback' ||
+        web.username ||
+        web.password ||
+        web.search ||
+        web.hash ||
+        web.href !== value.ocrReturnUrl
+      ) {
+        throw new Error()
+      }
+    }
     return Object.freeze({ ...value })
   } catch {
     throw new Error('Invalid passkey configuration')
   }
 }
 
-export function configurationFingerprint(config: PasskeyConfiguration): string {
-  return createHash('sha256')
-    .update(JSON.stringify([config.apiOrigin, config.rpId, config.rpName, config.returnUrl]))
-    .digest('hex')
+/** Each client binds its fixed return address into the existing request fingerprint. */
+export function configurationFingerprint(
+  config: PasskeyConfiguration,
+  clientId: 'desktop' | 'ocr' = 'desktop'
+): string {
+  const values = [config.apiOrigin, config.rpId, config.rpName, config.returnUrl]
+  if (clientId === 'ocr') {
+    if (config.ocrReturnUrl === undefined) {
+      throw new Error('OCR login is not configured')
+    }
+    values.push('ocr', config.ocrReturnUrl)
+  }
+  return createHash('sha256').update(JSON.stringify(values)).digest('hex')
+}
+
+export function configuredLoginClient(
+  config: PasskeyConfiguration,
+  fingerprint: string
+): 'desktop' | 'ocr' | null {
+  if (fingerprint === configurationFingerprint(config)) {
+    return 'desktop'
+  }
+  if (
+    config.ocrReturnUrl !== undefined &&
+    fingerprint === configurationFingerprint(config, 'ocr')
+  ) {
+    return 'ocr'
+  }
+  return null
 }

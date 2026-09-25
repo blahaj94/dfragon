@@ -44,7 +44,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       apiOrigin: origin,
       rpId: 'localhost',
       rpName: 'DFRAGON',
-      returnUrl: 'dfragon.dev://auth/callback'
+      returnUrl: 'dfragon.dev://auth/callback',
+      ocrReturnUrl: 'https://ocr.example.test/auth/callback'
     }
     const jwt = authenticationConfiguration().accessJwt
     const issueAccessJwt = await createAccessJwtIssuer(jwt),
@@ -85,18 +86,18 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     let authenticator = await newAuthenticator()
     const post = (path, body, headers = {}) =>
       context.request.post(`${origin}${path}`, { data: body, headers })
-    const begin = async () => {
+    const begin = async (clientId = 'desktop') => {
       const codeVerifier = randomBytes(32).toString('base64url')
       const response = await post('/auth/login-requests', {
         provider: 'passkey',
-        clientId: 'desktop',
+        clientId,
         codeChallenge: challenge(codeVerifier),
         codeChallengeMethod: 'S256'
       })
       assert.equal(response.status(), 201)
       const request = await response.json()
       await page.goto(request.browserUrl)
-      return { requestId: request.requestId, clientId: 'desktop', codeVerifier }
+      return { requestId: request.requestId, clientId, codeVerifier }
     }
     const complete = async (input, button = 'authenticate') => {
       await page.locator(`#${button}`).click()
@@ -204,6 +205,25 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       ).status(),
       400
     )
+    mark('OCR browser return uses the existing passkey and binds the exchange to its client')
+    await context.route('https://ocr.example.test/auth/callback?*', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/html', body: '<p>OCR callback</p>' })
+    )
+    const ocrRequest = await begin('ocr')
+    await page.locator('#authenticate').click()
+    await page.waitForURL('https://ocr.example.test/auth/callback?*')
+    const ocrExchange = { ...ocrRequest, code: new URL(page.url()).searchParams.get('code') }
+    assert.equal(
+      (await post('/auth/exchange', { ...ocrExchange, clientId: 'desktop' })).status(),
+      400
+    )
+    const ocrTokens = await post('/auth/exchange', ocrExchange)
+    assert.equal(ocrTokens.status(), 200)
+    const ocrIdentity = await ocrTokens.json()
+    assert.equal(ocrIdentity.user.id, userId)
+    assert.equal((await post('/auth/exchange', ocrExchange)).status(), 400)
+    await post('/auth/logout', { refreshToken: ocrIdentity.refreshToken })
+    await context.unroute('https://ocr.example.test/auth/callback?*')
     mark('wrong origin, handle, signature and replay refused')
     await begin()
     for (const tamper of [

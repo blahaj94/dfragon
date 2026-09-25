@@ -106,7 +106,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
       enum: ['passkey'],
       description: '패스키만 지원합니다.'
     },
-    clientId: { type: 'string', enum: ['desktop'] },
+    clientId: { type: 'string', enum: ['desktop', 'ocr'] },
     codeChallenge: opaque,
     codeChallengeMethod: { type: 'string', enum: ['S256'] }
   }),
@@ -121,7 +121,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
   }),
   LoginExchange: object({
     requestId: { type: 'string', format: 'uuid' },
-    clientId: { type: 'string', description: '로그인 요청의 clientId (desktop)' },
+    clientId: { type: 'string', description: '로그인 요청의 clientId (desktop 또는 설정된 ocr)' },
     code: opaque,
     codeVerifier: opaque
   }),

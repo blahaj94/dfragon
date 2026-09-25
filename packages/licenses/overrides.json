@@ -109,5 +109,19 @@
       "source": "https://raw.githubusercontent.com/davidjerleke/embla-carousel/0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54/LICENSE",
       "sha256": "992490064b90ec94c302fe5f29dcc14cb44145857064e46f9ffe6c8f511c1093"
     }
+  ],
+  "@tokenizer/token@0.3.0": [
+    {
+      "file": "upstream/tokenizer-token-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/Borewit/tokenizer-token/e068a455370090f44c757946b8571bb3fb1f117e/README.md",
+      "sha256": "c018dadefcede67def1ace6e40d5f8596f245b9f5d7108ed44ac07ed5b8b1530"
+    }
+  ],
+  "cookie-signature@1.0.6": [
+    {
+      "file": "upstream/cookie-signature-1.0.6-LICENSE.txt",
+      "source": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.6.tgz",
+      "sha256": "4072f7ac49dd39f61e83af60c0bbea0350d3a40b93217a97829acb6d872881d8"
+    }
   ]
 }

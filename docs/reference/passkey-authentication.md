@@ -31,6 +31,10 @@ API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browse
 
 운영 배포와 실제 휴대폰 QR 검증은 별도다. DFRAGON QR은 휴대폰의 HTTPS 패스키 인증과 양쪽 승인을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
 
+## OCR 관리 웹의 선택 연결
+
+기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 기존 RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 API는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [OCR 배포 안내](../../deploy/ocr/README.md)를 따른다.
+
 ## Windows 실기기 확인
 
 2026-09-17, 패스키 전환이 반영된 `1c97fc36`의 Windows 10 x64 개발 패키지와 신뢰한

@@ -5,3 +5,7 @@ apps/desktop/src/frontend/public/ocr
 /deploy/api/.env
 /apps/api/.env
 /apps/desktop/.env
+
+/apps/ocr/.env
+/deploy/ocr/.env
+/.artifacts/ocr/

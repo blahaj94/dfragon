@@ -47,8 +47,8 @@ export function parseCreation(value: unknown): LoginCreation {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
 
-  const isDesktopClient = body.clientId === 'desktop'
-  if (!isDesktopClient) {
+  const isSupportedClient = body.clientId === 'desktop' || body.clientId === 'ocr'
+  if (!isSupportedClient) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
 

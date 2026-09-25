@@ -126,6 +126,14 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
   - `pnpm --filter @dfragon/desktop lint`
   - `pnpm --filter @dfragon/desktop build`
 
+### `apps/ocr`
+
+- Package: `@dfragon/ocr`, Node 24·NestJS·React/TanStack Query/StyleX·esbuild·SQLite.
+- `src`: 서버·기존 패스키 API 연결·원본/정답 저장·PNG 크롭·TAR 다운로드. `browser`: 관리 SPA.
+- 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
+- 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.
+- 실행/API: [OCR 안내](../../apps/ocr/README.md), Linux Compose·proxy: [배포 안내](../../deploy/ocr/README.md).
+
 ## Shared UI
 
 - 실제 검증 환경·결과·upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
