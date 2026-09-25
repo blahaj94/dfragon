@@ -14,8 +14,12 @@ import { createPrintScreenShortcut } from './print-screen-shortcut'
 import { assertDnfShortcutAccess, isDnfForeground } from './win32-party-capture'
 import type { AuthCoordinator } from '../auth/types'
 import { createOcrUploader } from './ocr-upload'
+import { createOcrDataset } from './ocr-dataset'
 
 const PUBLIC_ERROR_CODES = new Set<string>([
+  DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED,
+  DEVELOPER_ERROR_CODES.OCR_OWNER_REQUIRED,
+  DEVELOPER_ERROR_CODES.OCR_UNAVAILABLE,
   DEVELOPER_ERROR_CODES.NOT_ALLOWED,
   DEVELOPER_ERROR_CODES.INVALID_COMMAND,
   DEVELOPER_ERROR_CODES.DISABLED,
@@ -203,6 +207,33 @@ export function registerDeveloperWindow(
       }
     }
   })
+  const remoteDataset = auth ? createOcrDataset(auth) : null
+  let remoteRevision = 0
+  let remoteAllowed = true
+  function closeRemoteDataset(): void {
+    remoteRevision++
+    remoteDataset?.close()
+  }
+  async function invokeRemote<T>(
+    operation: (dataset: NonNullable<typeof remoteDataset>) => Promise<T>
+  ): Promise<T> {
+    const revision = remoteRevision
+    const settings = await store.getSettings()
+    if (!settings.enabled || !remoteAllowed) {
+      throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
+    }
+    if (revision !== remoteRevision || !isTrustedMainDocument()) {
+      throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.NOT_ALLOWED)
+    }
+    if (!remoteDataset) {
+      throw new Error(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)
+    }
+    const result = await operation(remoteDataset)
+    if (revision !== remoteRevision || !remoteAllowed || !isTrustedMainDocument()) {
+      throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.NOT_ALLOWED)
+    }
+    return result
+  }
   let disposed = false
   let mainFrameNavigating = false
   const registeredChannels: string[] = []
@@ -240,6 +271,7 @@ export function registerDeveloperWindow(
     isMainFrame: boolean
   ): void {
     if (isMainFrame) {
+      closeRemoteDataset()
       mainFrameNavigating = !isInPlace
       void collectionSession.stop()
     }
@@ -251,6 +283,7 @@ export function registerDeveloperWindow(
   }
 
   function onRendererGone(): void {
+    closeRemoteDataset()
     mainFrameNavigating = true
     void collectionSession.stop()
   }
@@ -296,6 +329,7 @@ export function registerDeveloperWindow(
       const persistedSettings = await store.getSettings()
       const isCurrentMutation = mutation === settingsMutationRevision
       if (isCurrentMutation && persistedSettings.enabled) {
+        remoteAllowed = true
         collectionSession.setArmingEnabled(true)
       }
     } catch {
@@ -304,7 +338,9 @@ export function registerDeveloperWindow(
   }
 
   function disableDeveloperMode(mutation: number): Promise<DeveloperSettings> {
+    remoteAllowed = false
     // Stop accepting captures immediately, before waiting for earlier settings writes.
+    closeRemoteDataset()
     const pendingStop = collectionSession.beginDisable()
     return serializeSettingsMutation(async () => {
       try {
@@ -326,6 +362,7 @@ export function registerDeveloperWindow(
       const settings = await store.setEnabled(true)
       const isCurrentMutation = mutation === settingsMutationRevision
       if (isCurrentMutation && settings.enabled) {
+        remoteAllowed = true
         collectionSession.setArmingEnabled(true)
       }
       return settings
@@ -361,6 +398,7 @@ export function registerDeveloperWindow(
     if (disposed) {
       return
     }
+    closeRemoteDataset()
     disposed = true
     for (const channel of registeredChannels) {
       try {
@@ -401,8 +439,26 @@ export function registerDeveloperWindow(
         return store.listSamples()
       })
     )
+    register(DEVELOPER_CHANNELS.listOcrSamples, (event, args) =>
+      invoke(event, async () => {
+        requireNoArguments(args)
+        return invokeRemote((dataset) => dataset.list())
+      })
+    )
+    register(DEVELOPER_CHANNELS.closeOcrSamples, (event, args) =>
+      invoke(event, async () => {
+        requireNoArguments(args)
+        closeRemoteDataset()
+      })
+    )
     register(DEVELOPER_CHANNELS.readImage, (event, args) =>
-      invoke(event, async () => store.readImage(exactSampleId(requireSingleArgument(args))))
+      invoke(event, async () => {
+        const id = exactSampleId(requireSingleArgument(args))
+        if (!id.startsWith('ocr:')) {
+          return store.readImage(id)
+        }
+        return invokeRemote((dataset) => dataset.readImage(id))
+      })
     )
     register(DEVELOPER_CHANNELS.addSample, (event, args) =>
       invoke(event, async () => {

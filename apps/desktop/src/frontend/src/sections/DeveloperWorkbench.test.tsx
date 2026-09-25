@@ -88,6 +88,8 @@ function installApi(rows: DeveloperWorkbenchSample[] = []): {
     getSettings: vi.fn(async () => ({ enabled: true })),
     setEnabled: vi.fn(async (enabled: boolean) => ({ enabled })),
     listSamples: vi.fn(async () => samples.map((row) => ({ ...row })) as DeveloperSample[]),
+    listOcrSamples: vi.fn(async () => [] as DeveloperSample[]),
+    closeOcrSamples: vi.fn(async () => undefined),
     readImage: vi.fn(async (id: string) => `data:image/svg+xml,${id}`),
     addSample: vi.fn(async () => {
       throw new Error('not used in this test')
@@ -544,4 +546,73 @@ it('rearms participant collection when the game appears after the initial access
   expect(attempts).toBe(2)
   expect(status.armed).toBe(true)
   expect(container.textContent).not.toContain('파티원창이 잘 보이게 해주세요.')
+})
+
+it('evaluates server answers read-only, respects splits and exclusions, and preserves local drafts', async () => {
+  const { api } = installApi([sample('local', '2026-09-25T00:00:00.000Z', null)])
+  const rows = [
+    {
+      ...sample('ocr:1:test', '2026-09-25T00:00:00.000Z', '서버 정답'),
+      remote: { kind: 'hud', split: 'test' }
+    },
+    {
+      ...sample('ocr:1:train', '2026-09-25T00:00:00.000Z', '학습 정답'),
+      remote: { kind: 'participants', split: 'train' }
+    },
+    {
+      ...sample('ocr:1:pending', '2026-09-25T00:00:00.000Z', null),
+      remote: { kind: 'hud', split: 'unassigned' }
+    },
+    {
+      ...sample('ocr:1:excluded', '2026-09-25T00:00:00.000Z', '제외', null, true),
+      remote: { kind: 'hud', split: 'test' }
+    }
+  ] as DeveloperSample[]
+  api.listOcrSamples.mockResolvedValue(rows)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  await typeLabel('로컬 초안')
+  await click('OCR 자료실')
+  expect(api.listOcrSamples).toHaveBeenCalledOnce()
+  expect(input().readOnly).toBe(true)
+  expect(container.textContent).not.toContain('저장하고 다음')
+  await click('정답 완료 자료 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith(rows.slice(0, 2))
+  const split = container.querySelector<HTMLSelectElement>('select[aria-label="평가 분할"]')!
+  await act(async () => {
+    split.value = 'test'
+    split.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await click('정답 완료 자료 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith([rows[0]])
+  expect(api.saveLabel).not.toHaveBeenCalled()
+  expect(api.setSampleExcluded).not.toHaveBeenCalled()
+  await click('로컬 자료')
+  expect(api.closeOcrSamples).toHaveBeenCalled()
+  expect(input().value).toBe('로컬 초안')
+  expect(input().readOnly).toBe(false)
+})
+
+it('discards a late server listing after leaving the source and offers a retry after failure', async () => {
+  const { api } = installApi()
+  const pending = deferred<DeveloperSample[]>()
+  api.listOcrSamples.mockReturnValueOnce(pending.promise)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  await click('OCR 자료실')
+  await click('로컬 자료')
+  await act(async () =>
+    pending.resolve([
+      {
+        ...sample('ocr:old', '2026-09-25T00:00:00.000Z', '늦은 서버 정답'),
+        remote: { kind: 'hud', split: 'test' }
+      }
+    ])
+  )
+  expect(container.textContent).not.toContain('늦은 서버 정답')
+  api.listOcrSamples.mockRejectedValueOnce(new Error('DEVELOPER_OCR_OWNER_REQUIRED'))
+  await click('OCR 자료실')
+  expect(container.textContent).toContain('OCR 자료실 소유자 계정만 조회할 수 있습니다.')
+  await click('자료실 다시 불러오기')
+  expect(container.textContent).not.toContain('OCR 자료실 소유자 계정만 조회할 수 있습니다.')
 })

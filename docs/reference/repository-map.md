@@ -206,6 +206,6 @@ Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory 
 
 ## Desktop 개발 도구
 
-설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 주 모니터 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 크롭·라벨·기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본·선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰·원본 전송 IPC나 재시도 큐는 노출하지 않는다. 모델 실행은 제품의 `lib/ocr.ts`, 반전 회색조는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
+설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 주 모니터 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 크롭·라벨·기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본·선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰·원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치·조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, 반전 회색조는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
 
 `lib/developer-mode-machine.ts`, `lib/developer-samples-machine.ts`, `lib/developer-evaluation-machine.ts`가 각각 설정 전환, 샘플 조회·저장, 평가 실행·취소의 상태를 소유한다. 대응하는 `hooks/useDeveloper*.ts`는 machine 상태를 화면 API로 연결하고, `lib/developer-evaluation-run.ts`는 actor의 취소 신호에 따라 OCR 자원을 정리한다. 선택한 이미지와 라벨 초안 등 화면 입력은 컴포넌트에 둔다.

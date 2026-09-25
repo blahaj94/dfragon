@@ -199,7 +199,7 @@ export class OcrAuth {
     response.redirect(303, '/')
   }
 
-  async requireDesktopUpload(request: Request) {
+  async requireDesktopOwner(request: Request) {
     const authorization = request.headers.authorization
     if (
       typeof authorization !== 'string' ||

@@ -100,6 +100,12 @@ it('keeps settings accessible while disabled and gates collection commands in ma
   await expect(fixture.invoke(DEVELOPER_CHANNELS.captureFrame)).rejects.toThrow(
     'DEVELOPER_DISABLED'
   )
+  await expect(fixture.invoke(DEVELOPER_CHANNELS.listOcrSamples)).rejects.toThrow(
+    'DEVELOPER_DISABLED'
+  )
+  await expect(fixture.invoke(DEVELOPER_CHANNELS.readImage, 'ocr:1:sample')).rejects.toThrow(
+    'DEVELOPER_DISABLED'
+  )
   expect(fixture.window.hide).not.toHaveBeenCalled()
 
   expect(await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)).toEqual({ enabled: true })
@@ -160,7 +166,7 @@ it('rejects malformed IPC arguments and does not expose storage paths in errors'
 
   fixture.dispose()
   expect(fixture.handlers.size).toBe(0)
-  expect(electron.removeHandler).toHaveBeenCalledTimes(10)
+  expect(electron.removeHandler).toHaveBeenCalledTimes(Object.keys(DEVELOPER_CHANNELS).length)
 })
 
 it('arms PrintScreen only for an enabled trusted collection session and unregisters on disarm', async () => {
@@ -415,4 +421,44 @@ it('validates collection kind and reports popup detection failures without old p
     await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [3], 'participants')
   ).toMatchObject({ armed: true, slots: [3] })
   fixture.dispose()
+})
+
+it('does not reopen remote reads after close or disable while settings are being read', async () => {
+  for (const command of [DEVELOPER_CHANNELS.closeOcrSamples, DEVELOPER_CHANNELS.setEnabled]) {
+    const fixture = await setup()
+    await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+    let release!: () => void
+    let started!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const reading = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    const originalReadFile = fs.readFile.bind(fs)
+    const read = vi.spyOn(fs, 'readFile').mockImplementationOnce(async (path) => {
+      const contents = await originalReadFile(path)
+      started()
+      await gate
+      return contents
+    })
+    try {
+      const pending = fixture.invoke(DEVELOPER_CHANNELS.listOcrSamples)
+      await reading
+      const closing = fixture.invoke(
+        command,
+        ...(command === DEVELOPER_CHANNELS.setEnabled ? [false] : [])
+      )
+      await new Promise<void>((resolve) => setImmediate(resolve))
+      release()
+      await expect(pending).rejects.toThrow(
+        command === DEVELOPER_CHANNELS.setEnabled ? 'DEVELOPER_DISABLED' : 'DEVELOPER_NOT_ALLOWED'
+      )
+      await closing
+    } finally {
+      release()
+      read.mockRestore()
+      fixture.dispose()
+    }
+  }
 })

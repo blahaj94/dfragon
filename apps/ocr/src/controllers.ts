@@ -111,7 +111,7 @@ export class OcrDataController {
     response.type('png').send(this.store.capture(id).png)
   }
 
-  @Get('samples/:id/image')
+  @Get(['samples/:id/image', 'desktop/samples/:id/image'])
   cropped(@Param('id') id: string, @Res() response: Response) {
     const sample = this.store.sample(id)
     response.type('png').send(cropPng(decodePng(this.store.capture(sample.captureId).png), sample))
@@ -142,6 +142,12 @@ export class OcrDataController {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
     return this.store.assign(text, parseSplit(body.split))
+  }
+
+  @Get('desktop/dataset')
+  desktopDataset() {
+    const { exportedAt, samples } = this.store.exportManifest()
+    return { exportedAt, samples }
   }
 
   @Get('export/manifest')

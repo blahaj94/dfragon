@@ -10,7 +10,9 @@ it('exposes only typed developer operations through namespaced IPC channels', as
   expect(Object.keys(developer).sort()).toEqual([
     'addSample',
     'captureFrame',
+    'closeOcrSamples',
     'getSettings',
+    'listOcrSamples',
     'listSamples',
     'previewParty',
     'readImage',
@@ -23,6 +25,8 @@ it('exposes only typed developer operations through namespaced IPC channels', as
   await developer.getSettings()
   await developer.setEnabled(true)
   await developer.listSamples()
+  await developer.listOcrSamples()
+  await developer.closeOcrSamples()
   await developer.readImage('00000000-0000-4000-8000-000000000001')
   await developer.addSample('data:image/png;base64,AA==')
   await developer.saveLabel('00000000-0000-4000-8000-000000000001', '')
@@ -35,6 +39,8 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     ['developer:getSettings'],
     ['developer:setEnabled', true],
     ['developer:listSamples'],
+    ['developer:listOcrSamples'],
+    ['developer:closeOcrSamples'],
     ['developer:readImage', '00000000-0000-4000-8000-000000000001'],
     ['developer:addSample', 'data:image/png;base64,AA=='],
     ['developer:saveLabel', '00000000-0000-4000-8000-000000000001', ''],
