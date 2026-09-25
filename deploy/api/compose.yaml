@@ -24,7 +24,7 @@ x-api-runtime: &api-runtime
 x-database-environment: &database-environment
   DB_HOST: database
   DB_PORT: '5432'
-  DB_NAME: ldb
+  DB_NAME: dfragon
 
 services:
   database:
@@ -39,13 +39,13 @@ services:
     shm_size: 128m
     stop_grace_period: 60s
     environment:
-      POSTGRES_DB: ldb
+      POSTGRES_DB: dfragon
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
       PGDATA: /var/lib/postgresql/18/docker
-    secrets: [postgres_password, ldb_migrator_password, ldb_api_password]
+    secrets: [postgres_password, dfragon_migrator_password, dfragon_api_password]
     volumes:
       - database:/var/lib/postgresql
       - ./init-database.sh:/docker-entrypoint-initdb.d/10-dfragon.sh:ro
@@ -55,9 +55,9 @@ services:
       test:
         - CMD-SHELL
         - >-
-          PGPASSWORD="$$(cat /run/secrets/ldb_migrator_password)"
-          psql --no-psqlrc --no-password --host=127.0.0.1 --username=ldb_migrator
-          --dbname=ldb --tuples-only --no-align --command='SELECT 1' >/dev/null
+          PGPASSWORD="$$(cat /run/secrets/dfragon_migrator_password)"
+          psql --no-psqlrc --no-password --host=127.0.0.1 --username=dfragon_migrator
+          --dbname=dfragon --tuples-only --no-align --command='SELECT 1' >/dev/null
       interval: 10s
       timeout: 5s
       retries: 6
@@ -73,12 +73,12 @@ services:
     restart: unless-stopped
     environment:
       <<: *database-environment
-      DB_USERNAME: ldb_api
+      DB_USERNAME: dfragon_api
       PORT: '3000'
       SEARCH_TRUST_PROXY: single-hop
       AUTH_CONFIG_FILE: /run/secrets/auth_config
     secrets:
-      - source: ldb_api_password
+      - source: dfragon_api_password
         target: db_password
       - neople_api_key
       - auth_config
@@ -94,9 +94,9 @@ services:
     command: [node, --import, reflect-metadata, dist/database/cli.js, up]
     environment:
       <<: *database-environment
-      DB_USERNAME: ldb_migrator
+      DB_USERNAME: dfragon_migrator
     secrets:
-      - source: ldb_migrator_password
+      - source: dfragon_migrator_password
         target: db_password
     networks: [database]
     depends_on:
@@ -109,9 +109,9 @@ services:
     command: [node, --import, reflect-metadata, dist/auth/cleanup/cli.js]
     environment:
       <<: *database-environment
-      DB_USERNAME: ldb_api
+      DB_USERNAME: dfragon_api
     secrets:
-      - source: ldb_api_password
+      - source: dfragon_api_password
         target: db_password
     networks: [database]
     depends_on:
@@ -125,16 +125,15 @@ networks:
 
 volumes:
   database:
-    # Keep the existing deployment volume when the Compose project changes from ldb to dfragon.
-    name: ${DFRAGON_DATABASE_VOLUME_NAME:-ldb_database}
+    name: ${DFRAGON_DATABASE_VOLUME_NAME:-dfragon_database}
 
 secrets:
   postgres_password:
     file: ${DFRAGON_SECRETS_DIR:?Set an absolute directory outside the checkout}/postgres_password
-  ldb_migrator_password:
-    file: ${DFRAGON_SECRETS_DIR}/ldb_migrator_password
-  ldb_api_password:
-    file: ${DFRAGON_SECRETS_DIR}/ldb_api_password
+  dfragon_migrator_password:
+    file: ${DFRAGON_SECRETS_DIR}/dfragon_migrator_password
+  dfragon_api_password:
+    file: ${DFRAGON_SECRETS_DIR}/dfragon_api_password
   neople_api_key:
     file: ${DFRAGON_SECRETS_DIR}/neople_api_key
   auth_config:
