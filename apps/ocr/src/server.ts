@@ -37,6 +37,10 @@ class OcrHttpFilter implements ExceptionFilter {
   }
 }
 
+function isDesktopUpload(request: Request): boolean {
+  return request.method === 'POST' && request.originalUrl === '/api/desktop/captures'
+}
+
 export async function createOcrApp(
   config: AuthConfiguration,
   store: OcrStore,
@@ -67,10 +71,8 @@ export async function createOcrApp(
       'Content-Security-Policy':
         "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
-    const desktopUpload =
-      request.method === 'POST' && request.originalUrl === '/api/desktop/captures'
     if (
-      desktopUpload
+      isDesktopUpload(request)
         ? request.headers.origin !== undefined
         : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
     ) {
@@ -82,12 +84,9 @@ export async function createOcrApp(
 
   // 큰 본문을 읽기 전에 인증한다. Nest guard는 body parser 이후 실행되므로 여기서는 middleware를 사용한다.
   app.use('/api', (request: Request, _response: Response, next: NextFunction) => {
-    const desktopUpload =
-      request.method === 'POST' && request.originalUrl === '/api/desktop/captures'
-    void (desktopUpload ? auth.requireDesktopUpload(request) : auth.require(request)).then(
-      () => next(),
-      next
-    )
+    void (
+      isDesktopUpload(request) ? auth.requireDesktopUpload(request) : auth.require(request)
+    ).then(() => next(), next)
   })
   let activeUploads = 0
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })

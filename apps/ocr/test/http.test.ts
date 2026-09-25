@@ -133,6 +133,45 @@ test('Desktop upload requires a live owner bearer and grants no browser or manag
   }
 })
 
+test('Desktop upload policy rejects aliases and invalid credentials before parsing JSON', async () => {
+  const f = await fixture()
+  try {
+    for (const authorization of ['', 'Basic synthetic', 'Bearer malformed']) {
+      const response = await fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers: { Authorization: authorization, 'Content-Type': 'application/json' },
+        body: '{'
+      })
+      assert.equal(response.status, 401)
+    }
+    for (const [method, path] of [
+      ['POST', '/api/desktop/captures?extra=1'],
+      ['POST', '/api/desktop/captures/'],
+      ['PUT', '/api/desktop/captures']
+    ]) {
+      for (const [headers, expected] of [
+        [{}, 403],
+        [{ Origin: origin }, 401]
+      ] as const) {
+        const response = await fetch(`${f.base}${path}`, {
+          method,
+          headers: {
+            ...headers,
+            Authorization: 'Bearer synthetic.desktop.token',
+            'Content-Type': 'application/json'
+          },
+          body: '{'
+        })
+        assert.equal(response.status, expected)
+      }
+    }
+    assert.deepEqual(f.calls, [])
+    assert.equal(f.store.exportManifest().captures.length, 0)
+  } finally {
+    await f.close()
+  }
+})
+
 test('Desktop upload rejects another account and revoked authentication without writing', async () => {
   for (const [identity, revoked, expected] of [
     [randomUUID(), false, 403],
