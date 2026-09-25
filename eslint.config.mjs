@@ -13,10 +13,12 @@ const desktopFiles = ['apps/desktop/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
 const jsxFiles = [
   'apps/web/**/*.{jsx,tsx}',
   'packages/ui/**/*.{jsx,tsx}',
-  'apps/api/browser/**/*.tsx'
+  'apps/api/browser/**/*.tsx',
+  'apps/ocr/browser/**/*.tsx'
 ]
 const browserFiles = [
   'apps/api/browser/**/*.{js,jsx,ts,tsx}',
+  'apps/ocr/browser/**/*.{js,ts,jsx,tsx}',
   'apps/desktop/src/frontend/**/*.{js,jsx,ts,tsx}',
   'apps/web/src/**/*.{js,jsx,ts,tsx}',
   'packages/ui/{src,test}/**/*.{js,jsx,ts,tsx}',
