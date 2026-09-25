@@ -57,8 +57,7 @@ shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `D
 이미지에는 source/test·서버 설정·비밀값이 포함되지 않는다.
 
 인증 JSON의 `passkey.apiOrigin`은 공개 HTTPS API origin, `rpId`는 그 hostname,
-`returnUrl`은 배포 앱의 `dfragon://auth/callback`이다. 기존 LDB 설치본을 사용하는 운영 환경은
-`ldb://auth/callback`을 유지할 수 있으며 API만 업데이트할 때 임의로 바꾸지 않는다. JWT key 교체 계약을 유지하고,
+`returnUrl`은 배포 앱의 `dfragon://auth/callback`이다. JWT key 교체 계약을 유지하고,
 [패스키 설정](../../docs/reference/passkey-authentication.md)에 따라 도메인을 확정한다.
 `LOCAL_HTTPS_*`는 설정하지 않는다. 사용자의 로그인은 직접 검색·캡처·OCR의 선행 조건이 아니다.
 
@@ -80,7 +79,7 @@ docker compose stop
 
 기존 checkout을 유지한 채 새 release를 `/opt/dfragon`에 준비하고, 새 `.env`의 `LDB_*` 항목을
 `DFRAGON_*` 이름으로 옮긴다. `DFRAGON_SECRETS_DIR`는 같은 기존 secret 디렉터리를 가리킬 수 있다.
-새 DFRAGON 설치본으로 전환할 때 `auth_config.json`의 `passkey.returnUrl`을 `dfragon://auth/callback`으로 바꾼다. 기존 LDB 설치본을 유지한다면 `ldb://auth/callback`도 유지한다. 실제
+`auth_config.json`의 `passkey.returnUrl`은 `dfragon://auth/callback`으로 바꾸고, 실제
 `apiOrigin`과 `rpId`는 기존 운영 domain 그대로 둔다. 이름 변경만을 위해 PostgreSQL database·role·
 volume을 다시 만들거나 비우지 않는다.
 
