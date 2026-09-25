@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
+import { join } from 'node:path'
 import { challenge } from '../dist/auth/login/crypto.js'
 
 export async function assertPhoneQrIntegration({ source, browser, origin, mark }) {
@@ -15,6 +16,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
   const pcPage = await pc.newPage(),
     phonePage = await phone.newPage()
   await pcPage.clock.install()
+  await pcPage.clock.pauseAt(new Date())
   let userId
   const cdp = await phone.newCDPSession(phonePage)
   await cdp.send('WebAuthn.enable')
@@ -35,6 +37,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       data: { requestId, ...rest }
     })
   const begin = async (signup = false) => {
+    await pcPage.clock.setSystemTime(new Date())
     const codeVerifier = randomBytes(32).toString('base64url')
     const created = await pc.request.post(`${origin}/auth/login-requests`, {
       data: {
@@ -68,15 +71,18 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       await phonePage.locator('#phone-confirmation').textContent(),
       request.confirmationCode
     )
+    assert.equal(await phonePage.locator('#cancel').count(), 0)
     await phonePage.locator(`#${operation}`).click()
-    if (operation === 'register') {
-      await phonePage.locator('#signup-passkey').click()
-    }
     await phonePage.locator('#phone-consent').waitFor({ state: 'visible' })
+    assert.equal(await phonePage.locator('#signup').count(), 0)
+    assert.equal(await phonePage.locator('#cancel').count(), 0)
+    assert.match(await phonePage.locator('#phone-account').textContent(), / 님이 맞으신가요\?$/)
   }
   const approve = async () => {
     await phonePage.locator('#approve').click()
-    await phonePage.getByText('승인했습니다.', { exact: false }).waitFor()
+    await phonePage.locator('#phone-approved').waitFor()
+    assert.equal(await phonePage.locator('#phone-approved h1').textContent(), '로그인 성공!')
+    assert.equal(await phonePage.locator('#phone-confirmation').count(), 0)
   }
   const exchange = (request, code) =>
     pc.request.post(`${origin}/auth/exchange`, {
@@ -88,7 +94,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       }
     })
   try {
-    mark('QR signup: separate PC/phone cookies, explicit approvals, PKCE exchange')
+    mark('QR signup: phone approval, automatic PC claim, separate cookies and PKCE exchange')
     const first = await begin(true)
     assert.equal((await post(phone, 'claim', first.requestId)).status(), 400)
     assert.equal((await post(pc, 'phone-approve', first.requestId)).status(), 400)
@@ -115,10 +121,29 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       )[0].n,
       0
     )
+    await pcPage.clock.runFor(5000)
+    assert.equal(await pcPage.locator('#complete').count(), 0)
+    if (process.env.DFRAGON_PASSKEY_ARTIFACTS) {
+      for (const colorScheme of ['light', 'dark']) {
+        await phonePage.emulateMedia({ colorScheme })
+        await phonePage.screenshot({
+          path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, `phone-consent-${colorScheme}.png`)
+        })
+      }
+    }
     await approve()
-    await pcPage.locator('#pc-consent').waitFor({ state: 'visible', timeout: 12000 })
-    await pcPage.locator('#claim').click()
+    await pcPage.clock.runFor(5000)
     await pcPage.locator('#complete').waitFor({ state: 'visible' })
+    assert.equal(await pcPage.locator('#claim').count(), 0)
+    assert.equal((await pcPage.locator('#return').textContent()).trim(), '돌아가기')
+    if (process.env.DFRAGON_PASSKEY_ARTIFACTS) {
+      await phonePage.screenshot({
+        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'phone-approved.png')
+      })
+      await pcPage.screenshot({
+        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'phone-pc-return.png')
+      })
+    }
     const code = new URL(await pcPage.locator('#return').getAttribute('href')).searchParams.get(
       'code'
     )
@@ -127,7 +152,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal((await results.find((r) => r.status() === 200).json()).user.id, userId)
     assert.equal((await post(pc, 'claim', first.requestId)).status(), 400)
 
-    mark('QR login: same account, PC approval single use')
+    mark('QR login: same account, PC claim single use')
     const again = await begin()
     await phoneVerify(again)
     await approve()
@@ -141,6 +166,47 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal(signedIn.status(), 200)
     assert.equal((await signedIn.json()).user.id, userId)
 
+    mark('stale approved status cannot claim after QR reissue')
+    const stale = await begin()
+    await phoneVerify(stale)
+    await approve()
+    const intercepted = Promise.withResolvers()
+    const release = Promise.withResolvers()
+    let claimCount = 0
+    const countClaim = (request) => {
+      if (request.url().endsWith('/auth/passkeys/claim')) {
+        claimCount += 1
+      }
+    }
+    pcPage.on('request', countClaim)
+    await pcPage.route(
+      '**/auth/passkeys/status',
+      async (route) => {
+        const response = await route.fetch()
+        intercepted.resolve()
+        await release.promise
+        await route.fulfill({ response })
+      },
+      { times: 1 }
+    )
+    await pcPage.clock.runFor(5000)
+    await intercepted.promise
+    const replacementResponse = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/qr'))
+    await pcPage.locator('#qr-start').click()
+    const replacement = await (await replacementResponse).json()
+    const staleStatus = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/status'))
+    release.resolve()
+    await staleStatus
+    await pcPage.clock.runFor(5000)
+    assert.equal(claimCount, 0)
+    assert.equal(await pcPage.locator('#complete').count(), 0)
+    await phoneVerify({ ...stale, ...replacement })
+    await approve()
+    await pcPage.clock.runFor(5000)
+    await pcPage.locator('#complete').waitFor()
+    assert.equal(claimCount, 1)
+    pcPage.off('request', countClaim)
+
     mark('QR reissue and cancellation invalidate previous phone authorization')
     const replaced = await begin()
     await phoneVerify(replaced)
@@ -148,12 +214,54 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     await pcPage.locator('#qr-start').click()
     const newQr = await (await reissued).json()
     assert.equal(newQr.expiresAt, replaced.expiresAt)
-    assert.equal((await post(phone, 'phone-approve', replaced.requestId)).status(), 400)
+    const failedApproval = phonePage.waitForResponse((r) =>
+      r.url().endsWith('/auth/passkeys/phone-approve')
+    )
+    await phonePage.locator('#approve').click()
+    assert.equal((await failedApproval).status(), 400)
+    assert.equal(await phonePage.locator('#phone-approved').count(), 0)
+    assert.equal(
+      await phonePage.locator('#phone-confirmation').textContent(),
+      replaced.confirmationCode
+    )
     assert.equal((await phone.request.get(replaced.phoneUrl)).status(), 400)
     await phoneVerify({ ...replaced, ...newQr })
     assert.equal((await post(pc, 'cancel', replaced.requestId)).status(), 200)
     assert.equal((await post(phone, 'phone-approve', replaced.requestId)).status(), 400)
     assert.equal((await post(pc, 'claim', replaced.requestId)).status(), 400)
+
+    mark('phone ceremony cancellation ends both login and signup requests')
+    for (const operation of ['authenticate', 'register']) {
+      const canceled = await begin()
+      await phonePage.goto(canceled.phoneUrl)
+      await phonePage.evaluate(
+        (method) => {
+          navigator.credentials[method] = async () => {
+            throw new DOMException('User canceled', 'NotAllowedError')
+          }
+        },
+        operation === 'register' ? 'create' : 'get'
+      )
+      await phonePage.locator(`#${operation}`).click()
+      await phonePage.locator('#phone-canceled').waitFor()
+      assert.equal(await phonePage.locator('#phone-canceled h1').textContent(), '로그인 취소')
+      assert.equal(await phonePage.locator('#phone-confirmation').count(), 0)
+      assert.equal((await post(pc, 'claim', canceled.requestId)).status(), 400)
+      assert.equal((await post(phone, 'phone-approve', canceled.requestId)).status(), 400)
+      assert.equal(
+        (
+          await source.query('SELECT status FROM auth_login_requests WHERE id=$1', [
+            canceled.requestId
+          ])
+        )[0].status,
+        'failed'
+      )
+      if (process.env.DFRAGON_PASSKEY_ARTIFACTS && operation === 'authenticate') {
+        await phonePage.screenshot({
+          path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'phone-canceled.png')
+        })
+      }
+    }
 
     mark('QR expiry and removed passkey cannot issue app login code')
     const expired = await begin()
@@ -185,7 +293,11 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     await phoneVerify(removed)
     await approve()
     await source.query('DELETE FROM auth_passkeys WHERE user_id=$1', [userId])
-    assert.equal((await post(pc, 'claim', removed.requestId)).status(), 400)
+    const rejectedClaim = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/claim'))
+    await pcPage.clock.runFor(5000)
+    assert.equal((await rejectedClaim).status(), 400)
+    await pcPage.locator('#entry').waitFor()
+    assert.equal(await pcPage.locator('#complete').count(), 0)
     const terminal = await source.query(
       'SELECT qr_ticket_hash, phone_binding_hash, confirmation_code FROM auth_login_requests WHERE id=ANY($1::uuid[])',
       [[first.requestId, replaced.requestId]]

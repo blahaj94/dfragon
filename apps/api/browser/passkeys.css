@@ -114,7 +114,7 @@ main:has(#signup) #status:empty {
 @media (max-width: 460px) {
   main:has(.auth-screen),
   main:has(#signup) {
-    padding: 32px 24px;
+    padding: 40px;
   }
   .signup-actions {
     flex-direction: column;
@@ -146,23 +146,19 @@ main:has(#signup) #status:empty {
 }
 .auth-screen #qr-panel .confirmation {
   padding: 22px 0 0;
-  text-align: center;
+  text-align: left;
 }
 .auth-screen #qr-expiry {
   padding: 0;
   color: var(--seed-color-fg-informative);
-  text-align: center;
+  text-align: left;
 }
 .auth-screen #qr-expiry.expired {
   color: var(--seed-color-fg-critical);
 }
 .auth-screen .qr-warning {
   padding: 0;
-  text-align: center;
-}
-.auth-screen .qr-signup-help {
-  padding: 8px 0 0;
-  text-align: center;
+  text-align: left;
 }
 .auth-screen #qr-panel #qr-start {
   height: 52px;
@@ -175,4 +171,49 @@ main:has(#signup) #status:empty {
   .login-actions button {
     flex: auto;
   }
+}
+
+main:has(.phone-screen) {
+  max-width: 390px;
+  margin: 0 auto;
+}
+.phone-screen h1 {
+  padding: 0;
+}
+.phone-confirmation {
+  padding: 80px 0 48px;
+}
+.phone-screen .confirmation {
+  letter-spacing: 0;
+}
+.phone-screen[data-screen='entry'] #entry > p,
+.phone-screen #phone-account {
+  padding: 0 0 48px;
+}
+.phone-screen #authenticate,
+.phone-screen #approve {
+  height: 52px;
+  margin: 0;
+}
+.phone-screen #register {
+  margin: 16px 0 0;
+}
+.phone-result {
+  min-height: calc(100svh - 80px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+.phone-result img {
+  object-fit: contain;
+}
+.auth-screen #complete h2 {
+  padding: 8px 0 32px;
+}
+.auth-screen #return {
+  height: 52px;
+  margin: 0;
 }

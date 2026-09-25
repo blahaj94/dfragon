@@ -50,7 +50,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     const jwt = authenticationConfiguration().accessJwt
     const issueAccessJwt = await createAccessJwtIssuer(jwt),
       verifyAccessJwt = await createAccessJwtVerifier(jwt)
-    runtime = await createApiRuntime({
+    const runtimeConfiguration = {
       database: source.options,
       port,
       configuration,
@@ -58,10 +58,15 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       verifyAccessJwt,
       apiKey: 'isolated-unused-key',
       localHttps: { key: await readFile(keyFile), cert: await readFile(certFile) }
-    })
+    }
+    runtime = await createApiRuntime(runtimeConfiguration)
     await runtime.app.listen(port, '127.0.0.1')
     browser = await chromium.launch({ headless: true })
     await assertPhoneQrIntegration({ source, browser, origin, mark })
+    // Independent suites must not spend each other's per-IP abuse budget.
+    await runtime.close()
+    runtime = await createApiRuntime(runtimeConfiguration)
+    await runtime.app.listen(port, '127.0.0.1')
     const context = await browser.newContext({
         ignoreHTTPSErrors: true,
         viewport: { width: 1100, height: 850 }
@@ -256,7 +261,9 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     await page.locator('#authenticate').click()
     await page.locator('#management').waitFor({ state: 'visible' })
-    const firstKey = (await (await browserPost('list', { requestId: managementId })).json()).keys[0]
+    const firstKeysResponse = await browserPost('list', { requestId: managementId })
+    assert.equal(firstKeysResponse.status(), 200)
+    const firstKey = (await firstKeysResponse.json()).keys[0]
     assert.equal(
       (
         await browserPost('remove', { requestId: managementId, credentialId: firstKey.id })
