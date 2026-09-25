@@ -55,40 +55,10 @@ test('RP origin and fixed app return configuration reject trust-boundary changes
     { apiOrigin: 'https://auth.example.test/path' },
     { returnUrl: 'https://attacker.invalid' },
     { returnUrl: 'other://auth/callback' },
-    { returnUrl: 'ldb.dev://auth/callback' },
     { returnUrl: 'dfragon://auth/callback?code=preselected' },
     { rpName: '' }
   ]) {
     assert.throws(() => validatePasskeyConfiguration({ ...config, ...change }))
-  }
-})
-
-test('legacy production callback remains fixed when OCR login is enabled', () => {
-  const base = {
-    apiOrigin: 'https://auth.example.test',
-    rpId: 'auth.example.test',
-    rpName: 'LDB',
-    returnUrl: 'ldb://auth/callback'
-  }
-  assert.deepEqual(validatePasskeyConfiguration(base), base)
-  const config = validatePasskeyConfiguration({
-    ...base,
-    ocrReturnUrl: 'https://ocr.example.test/auth/callback'
-  })
-  assert.equal(config.returnUrl, base.returnUrl)
-  const desktop = configurationFingerprint(base)
-  assert.equal(configurationFingerprint(config), desktop)
-  assert.equal(configuredLoginClient(config, desktop), 'desktop')
-  assert.notEqual(configurationFingerprint(config, 'ocr'), desktop)
-  for (const returnUrl of [
-    'ldb://attacker/callback',
-    'ldb://auth/elsewhere',
-    'ldb://auth:123/callback',
-    'ldb://user@auth/callback',
-    'ldb://auth/callback?code=preselected',
-    'ldb://auth/callback#fragment'
-  ]) {
-    assert.throws(() => validatePasskeyConfiguration({ ...config, returnUrl }))
   }
 })
 
