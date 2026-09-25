@@ -1,3 +1,5 @@
+import { unplugin as stylex } from '@stylexjs/unplugin'
+import { stylexOptions } from '@dfragon/ui/stylex-config'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -6,6 +8,7 @@ import { uiNotices } from '@dfragon/licenses/vite'
 
 export default defineConfig({
   plugins: [
+    stylex.vite(stylexOptions),
     react(),
     seedDesignPlugin(),
     uiNotices({ uiRoot: fileURLToPath(new URL('../../packages/ui/', import.meta.url)) })

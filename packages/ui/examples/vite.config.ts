@@ -1,3 +1,5 @@
+import stylex from '@stylexjs/unplugin'
+import { stylexOptions } from '../stylex.config.ts'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -8,6 +10,7 @@ export default defineConfig({
   base: './',
   root: fileURLToPath(new URL('./', import.meta.url)),
   plugins: [
+    stylex.vite(stylexOptions),
     react(),
     seedDesignPlugin(),
     uiNotices({ uiRoot: fileURLToPath(new URL('../', import.meta.url)) })

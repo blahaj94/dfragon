@@ -46,7 +46,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@stylexjs/stylex": "0.19.0",
+    "@stylexjs/stylex": "catalog:",
     "@xstate/react": "6.1.0",
     "koffi": "3.2.1",
     "ky": "2.1.0",
@@ -61,7 +61,7 @@
     "@seed-design/css": "2.7.0",
     "@seed-design/react": "2.4.1",
     "@seed-design/vite-plugin": "2.1.0",
-    "@stylexjs/unplugin": "0.19.0",
+    "@stylexjs/unplugin": "catalog:",
     "@types/node": "^22.19.1",
     "@types/pngjs": "6.0.5",
     "@types/react": "^19.2.7",

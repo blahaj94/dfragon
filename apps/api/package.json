@@ -41,7 +41,8 @@
     "react-dom": "19.2.8",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "typeorm": "1.1.1"
+    "typeorm": "1.1.1",
+    "@stylexjs/stylex": "catalog:"
   },
   "devDependencies": {
     "@nestjs/testing": "12.0.1",
@@ -55,6 +56,7 @@
     "esbuild": "0.28.2",
     "tar": "7.5.22",
     "typescript": "5.9.3",
-    "@dfragon/ui": "workspace:*"
+    "@dfragon/ui": "workspace:*",
+    "@stylexjs/unplugin": "catalog:"
   }
 }

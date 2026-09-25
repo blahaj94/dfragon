@@ -25,7 +25,7 @@ last-reviewed: 2026-09-15
 | Desktop MVP 카드·상세 A안·입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 개발자 모드·크롭·라벨·모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
 | OCR 이미지 업로드·정답·train/val/test·패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
-| Web·Desktop 공용 UI·SEED·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary) |
+| 앱 공용 UI·SEED·StyleX·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 

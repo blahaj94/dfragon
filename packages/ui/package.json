@@ -12,7 +12,8 @@
     "./typo": {
       "types": "./dist/typo.d.ts",
       "import": "./dist/typo.js"
-    }
+    },
+    "./stylex-config": "./stylex.config.ts"
   },
   "scripts": {
     "test": "vitest run",
@@ -51,12 +52,14 @@
     "vite": "8.2.0",
     "vitest": "4.1.11",
     "@types/node": "24.13.3",
-    "@dfragon/licenses": "workspace:*"
+    "@dfragon/licenses": "workspace:*",
+    "@stylexjs/unplugin": "catalog:"
   },
   "files": [
     "dist",
     "seed-provenance.json",
     "README.md",
-    "foundation.css"
+    "foundation.css",
+    "stylex.config.ts"
   ]
 }

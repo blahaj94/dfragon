@@ -46,6 +46,10 @@ import { Typo } from '@dfragon/ui'
 
 `@dfragon/ui/typo`는 동일한 Typo API만 내보내는 React 전용 entry다. API의 인증 browser entry는 이 경로를 사용하며 SEED React를 번들에 포함하지 않는다. 해당 browser build와 TypeScript paths는 public source entry를 해석하므로 library 선행 build가 필요 없다.
 
+## 공통 StyleX 설정
+
+`@dfragon/ui/stylex-config`는 모든 앱과 Example·test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
+
 ## Command
 
 - `pnpm --filter @dfragon/ui build`: ESM bundle과 portable declaration 생성.
