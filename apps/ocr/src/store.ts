@@ -1,6 +1,7 @@
+import { OCR_SAMPLES } from './constants.js'
 import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
-import { OcrError } from './errors.js'
+import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Capture, Sample, Split } from './model.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
@@ -37,7 +38,7 @@ export class OcrStore {
         .get(capture.id)
       if (existing !== undefined) {
         if (existing.fingerprint !== fingerprint) {
-          throw new OcrError('CAPTURE_ID_CONFLICT')
+          throw new OcrError(OCR_ERROR_CODE.CAPTURE_ID_CONFLICT)
         }
         this.db.exec('COMMIT')
         return { id: capture.id, duplicate: true }
@@ -47,7 +48,7 @@ export class OcrStore {
         .prepare('SELECT COALESCE(SUM(length(png)),0) AS bytes FROM captures')
         .get()!
       if (Number(used.bytes) + png.length > this.maximumBytes) {
-        throw new OcrError('STORAGE_LIMIT')
+        throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
       }
 
       this.db
@@ -70,7 +71,7 @@ export class OcrStore {
     const row = this.db.prepare('SELECT metadata,png FROM captures WHERE id=?').get(id) as
       CaptureRow | undefined
     if (row === undefined) {
-      throw new OcrError('NOT_FOUND')
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
 
     return { capture: JSON.parse(row.metadata) as Capture, png: Buffer.from(row.png) }
@@ -81,7 +82,7 @@ export class OcrStore {
     // 원본 메타데이터와 sample 행은 같은 transaction에서 저장한다.
     const crop = capture.crops.find((crop) => crop.slot === row.slot)
     if (crop === undefined) {
-      throw new OcrError('UNAVAILABLE')
+      throw new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
     }
 
     return {
@@ -103,7 +104,7 @@ export class OcrStore {
   sample(id: string): Sample {
     const row = this.db.prepare(`${sampleQuery} WHERE s.id=?`).get(id)
     if (row === undefined) {
-      throw new OcrError('NOT_FOUND')
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
     return this.sampleRow(row)
   }
@@ -135,12 +136,14 @@ export class OcrStore {
 
     const where = clauses.length > 0 ? ` WHERE ${clauses.join(' AND ')}` : ''
     const rows = this.db
-      .prepare(`${sampleQuery}${where} ORDER BY c.rowid DESC,s.slot LIMIT 101 OFFSET ?`)
+      .prepare(
+        `${sampleQuery}${where} ORDER BY c.rowid DESC,s.slot LIMIT ${OCR_SAMPLES.pageSize + 1} OFFSET ?`
+      )
       .all(...args, options.offset)
 
     return {
-      samples: rows.slice(0, 100).map((row) => this.sampleRow(row)),
-      nextOffset: rows.length > 100 ? options.offset + 100 : null
+      samples: rows.slice(0, OCR_SAMPLES.pageSize).map((row) => this.sampleRow(row)),
+      nextOffset: rows.length > OCR_SAMPLES.pageSize ? options.offset + OCR_SAMPLES.pageSize : null
     }
   }
 
@@ -164,7 +167,7 @@ export class OcrStore {
       previousSample.split !== nextSplit &&
       !confirmSplitChange
     ) {
-      throw new OcrError('LABEL_SPLIT_CHANGE')
+      throw new OcrError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE)
     }
 
     this.db
@@ -176,7 +179,7 @@ export class OcrStore {
   assign(text: string, split: Split) {
     const count = this.db.prepare('SELECT COUNT(*) AS count FROM samples WHERE text=?').get(text)!
     if (Number(count.count) === 0) {
-      throw new OcrError('NOT_FOUND')
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
     if (split === 'unassigned') {
       this.db.prepare('DELETE FROM label_splits WHERE text=?').run(text)

@@ -76,8 +76,8 @@ try {
   )
   const config = { origin, authOrigin: origin, ownerId }
   store = new OcrStore(':memory:', 1024 * 1024 * 32)
-  runtime = createOcrApp(config, store, new OcrAuth(config, authFetch))
-  outer.use(runtime.app)
+  runtime = await createOcrApp(config, store, new OcrAuth(config, authFetch))
+  outer.use(runtime.app.getHttpAdapter().getInstance())
   browser = await chromium.launch({ headless: true })
   const context = await browser.newContext({
       ignoreHTTPSErrors: true,

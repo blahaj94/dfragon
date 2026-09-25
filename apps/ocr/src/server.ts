@@ -1,23 +1,65 @@
-import express from 'express'
-import type { ErrorRequestHandler } from 'express'
+import 'reflect-metadata'
+import { BadRequestException, Catch, Module, NotFoundException } from '@nestjs/common'
+import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common'
+import { NestFactory } from '@nestjs/core'
+import type { NestExpressApplication } from '@nestjs/platform-express'
+import { json } from 'express'
+import type { Request, Response, NextFunction } from 'express'
+import cookieParser from 'cookie-parser'
 import { fileURLToPath } from 'node:url'
 import { OcrAuth } from './auth.js'
 import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
-import { cropPng, decodePng, parseUpload } from './images.js'
-import { OcrError, httpFailure } from './errors.js'
-import { parseLabel, parseSplit, parseInputRecord } from './input.js'
-import { downloadDataset } from './export.js'
+import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
+import { OCR_UPLOAD } from './constants.js'
+import {
+  OCR_CONFIG,
+  OcrAuthController,
+  OcrDataController,
+  OcrHealthController
+} from './controllers.js'
 
-export function createOcrApp(
+@Catch()
+class OcrHttpFilter implements ExceptionFilter {
+  catch(error: unknown, host: ArgumentsHost) {
+    const response = host.switchToHttp().getResponse<Response>()
+    if (response.headersSent) {
+      response.destroy()
+      return
+    }
+    const failure =
+      error instanceof NotFoundException
+        ? new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+        : error instanceof BadRequestException
+          ? new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+          : httpFailure(error)
+    response.status(failure.status).json({ error: failure.code })
+  }
+}
+
+export async function createOcrApp(
   config: AuthConfiguration,
   store: OcrStore,
-  auth: OcrAuth = new OcrAuth(config)
+  auth = new OcrAuth(config)
 ) {
-  const app = express()
-  app.disable('x-powered-by')
+  @Module({
+    controllers: [OcrAuthController, OcrDataController, OcrHealthController],
+    providers: [
+      { provide: OCR_CONFIG, useValue: config },
+      { provide: OcrAuth, useValue: auth },
+      { provide: OcrStore, useValue: store }
+    ]
+  })
+  class OcrModule {}
 
-  app.use((_request, response, next) => {
+  const app = await NestFactory.create<NestExpressApplication>(OcrModule, {
+    logger: false,
+    bodyParser: false
+  })
+  app.disable('x-powered-by')
+  app.useGlobalFilters(new OcrHttpFilter())
+  app.use(cookieParser())
+  app.use((request: Request, response: Response, next: NextFunction) => {
     response.set({
       'Cache-Control': 'no-store',
       'Referrer-Policy': 'no-referrer',
@@ -25,158 +67,48 @@ export function createOcrApp(
       'Content-Security-Policy':
         "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
-    next()
-  })
-
-  app.use((request, _response, next) => {
     if (!['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin) {
-      next(new OcrError('ORIGIN_REQUIRED'))
+      next(new OcrError(OCR_ERROR_CODE.ORIGIN_REQUIRED))
       return
     }
     next()
   })
 
-  app.post('/auth/login', (request, response) => auth.begin(request, response))
-
-  app.get('/auth/callback', (request, response) => {
-    if (request.method !== 'GET') {
-      throw new OcrError('METHOD_NOT_ALLOWED')
-    }
-    return auth.callback(request, response)
+  // 큰 본문을 읽기 전에 인증한다. Nest guard는 body parser 이후 실행되므로 여기서는 middleware를 사용한다.
+  app.use('/api', (request: Request, _response: Response, next: NextFunction) => {
+    void auth.require(request).then(() => next(), next)
   })
-
-  app.post('/auth/logout', (request, response) => auth.logout(request, response))
-
-  app.use('/api', async (request, _response, next) => {
-    await auth.require(request)
-    next()
-  })
-
-  app.get('/api/session', (_request, response) => response.json({ authenticated: true }))
-
-  app.get('/api/stats', (_request, response) => response.json(store.stats()))
-
   let activeUploads = 0
-
-  app.post(
-    '/api/captures',
-    (request, response, next) => {
-      if (activeUploads >= 2) {
-        next(new OcrError('UPLOAD_BUSY'))
-        return
-      }
-      activeUploads++
-      response.once('close', () => {
-        activeUploads--
-      })
+  const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
+  app.use('/api/captures', (request: Request, response: Response, next: NextFunction) => {
+    if (request.method !== 'POST' || request.path !== '/') {
       next()
-    },
-    express.json({ limit: '23mb', strict: true, inflate: false }),
-    (request, response) => {
-      const { capture, png } = parseUpload(request.body)
-      const result = store.add(capture, png)
-      response.status(result.duplicate ? 200 : 201).json(result)
-    }
-  )
-
-  app.get('/api/samples', (request, response) => {
-    const query = new URL(request.originalUrl, config.origin).searchParams
-    for (const key of query.keys()) {
-      if (
-        !['offset', 'state', 'split', 'kind', 'text'].includes(key) ||
-        query.getAll(key).length !== 1
-      ) {
-        throw new OcrError('INVALID_INPUT')
-      }
-    }
-    const offset = Number(query.get('offset') ?? '0')
-    const state = query.get('state') ?? undefined
-    const split = query.get('split') ?? undefined
-    const kind = query.get('kind') ?? undefined
-    if (
-      !Number.isSafeInteger(offset) ||
-      offset < 0 ||
-      (state !== undefined &&
-        state.length > 0 &&
-        !['pending', 'labeled', 'excluded'].includes(state)) ||
-      (kind !== undefined && kind.length > 0 && !['hud', 'participants'].includes(kind))
-    ) {
-      throw new OcrError('INVALID_INPUT')
-    }
-    if (split !== undefined && split.length > 0) {
-      parseSplit(split)
-    }
-    response.json(store.list({ offset, state, split, kind, text: query.get('text') ?? undefined }))
-  })
-
-  app.get('/api/captures/:id', (request, response) =>
-    response.json(store.capture(request.params.id).capture)
-  )
-
-  app.get('/api/captures/:id/image', (request, response) =>
-    response.type('png').send(store.capture(request.params.id).png)
-  )
-
-  app.get('/api/samples/:id/image', (request, response) => {
-    const sample = store.sample(request.params.id)
-    response.type('png').send(cropPng(decodePng(store.capture(sample.captureId).png), sample))
-  })
-
-  app.use('/api', express.json({ limit: '16kb', strict: true, inflate: false }))
-
-  app.patch('/api/samples/:id', (request, response) => {
-    const body = parseInputRecord(request.body)
-    const text = parseLabel(body.text)
-    if (
-      typeof body.excluded !== 'boolean' ||
-      (body.confirmSplitChange !== undefined && typeof body.confirmSplitChange !== 'boolean')
-    ) {
-      throw new OcrError('INVALID_INPUT')
-    }
-    response.json(
-      store.updateSample(request.params.id, {
-        text,
-        excluded: body.excluded,
-        confirmSplitChange: body.confirmSplitChange === true
-      })
-    )
-  })
-
-  app.put('/api/splits', (request, response) => {
-    const body = parseInputRecord(request.body)
-    const text = parseLabel(body.text)
-    if (text === null) {
-      throw new OcrError('INVALID_INPUT')
-    }
-    response.json(store.assign(text, parseSplit(body.split)))
-  })
-
-  app.get('/api/export/manifest', (_request, response) => response.json(store.exportManifest()))
-
-  app.get('/api/export', (_request, response) => downloadDataset(store, response))
-
-  app.get('/health', (_request, response) => response.json({ ok: true }))
-
-  app.use(
-    express.static(fileURLToPath(new URL('../browser/', import.meta.url)), {
-      index: 'index.html',
-      etag: false,
-      maxAge: 0
-    })
-  )
-
-  app.use((_request, response) => response.status(404).json({ error: 'NOT_FOUND' }))
-
-  const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
-    void _next
-    if (response.headersSent) {
-      response.destroy()
       return
     }
-    const failure = httpFailure(error)
-    response.status(failure.status).json({ error: failure.code })
-  }
+    if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
+      next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
+      return
+    }
+    activeUploads++
+    response.once('close', () => {
+      activeUploads--
+    })
+    parseUploadBody(request, response, next)
+  })
+  // Nest의 전역 parser보다 먼저 업로드 경로에만 큰 한도를 적용한다.
+  app.useBodyParser('json', { limit: OCR_UPLOAD.ordinaryBodyLimit, strict: true, inflate: false })
+  app.useStaticAssets(fileURLToPath(new URL('../browser/', import.meta.url)), {
+    index: 'index.html',
+    etag: false,
+    maxAge: 0
+  })
 
-  app.use(errorHandler)
-  return { app, close: () => auth.close() }
+  await app.init()
+  return {
+    app,
+    close: async () => {
+      await app.close()
+      await auth.close()
+    }
+  }
 }

@@ -1,3 +1,21 @@
+export const OCR_ERROR_CODE = {
+  INVALID_INPUT: 'INVALID_INPUT',
+  LOGIN_INVALID: 'LOGIN_INVALID',
+  LOGIN_REQUIRED: 'LOGIN_REQUIRED',
+  OWNER_REQUIRED: 'OWNER_REQUIRED',
+  ORIGIN_REQUIRED: 'ORIGIN_REQUIRED',
+  NOT_FOUND: 'NOT_FOUND',
+  METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
+  CAPTURE_ID_CONFLICT: 'CAPTURE_ID_CONFLICT',
+  LABEL_SPLIT_CHANGE: 'LABEL_SPLIT_CHANGE',
+  UPLOAD_TOO_LARGE: 'UPLOAD_TOO_LARGE',
+  UPLOAD_BUSY: 'UPLOAD_BUSY',
+  LOGIN_LIMIT: 'LOGIN_LIMIT',
+  UNAVAILABLE: 'UNAVAILABLE',
+  AUTH_UNAVAILABLE: 'AUTH_UNAVAILABLE',
+  STORAGE_LIMIT: 'STORAGE_LIMIT'
+} as const
+
 export const OCR_ERRORS = {
   INVALID_INPUT: { status: 400, message: '입력 값을 확인해 주세요.' },
   LOGIN_INVALID: { status: 400, message: '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.' },
@@ -19,7 +37,7 @@ export const OCR_ERRORS = {
   STORAGE_LIMIT: { status: 507, message: '설정된 저장 용량 한도에 도달했습니다.' }
 } as const
 
-export type OcrErrorCode = keyof typeof OCR_ERRORS
+export type OcrErrorCode = (typeof OCR_ERROR_CODE)[keyof typeof OCR_ERROR_CODE]
 
 export class OcrError extends Error {
   readonly status: number
@@ -41,12 +59,12 @@ export function httpFailure(error: unknown): OcrError {
   }
   if (typeof error === 'object' && error !== null && 'type' in error) {
     if (error.type === 'entity.too.large') {
-      return new OcrError('UPLOAD_TOO_LARGE')
+      return new OcrError(OCR_ERROR_CODE.UPLOAD_TOO_LARGE)
     }
     if (error.type === 'entity.parse.failed') {
-      return new OcrError('INVALID_INPUT')
+      return new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
   }
   // 처리 과정의 버그를 사용자 입력 오류로 바꾸거나 원문을 응답에 노출하지 않는다.
-  return new OcrError('UNAVAILABLE')
+  return new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
 }

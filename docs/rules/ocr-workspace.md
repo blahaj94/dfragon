@@ -29,6 +29,6 @@ OCR 세션은 메모리에서 최대 8시간 유지하고 process 재시작 시 
 
 ## 구현과 검증
 
-독립 Node 24·Express process가 API·React SPA를 같은 origin으로 제공하고 SQLite에 원본 BLOB·메타데이터·분할을 저장한다. 기존 API와 HTTP로 통신하며 app source 사이를 직접 import하지 않는다. 배포는 기존 HTTPS reverse proxy와 별도 영속 디렉터리를 사용한다. 명령·입력·한계는 [앱 안내](../../apps/ocr/README.md), 실행은 [배포 안내](../../deploy/ocr/README.md)를 따른다.
+독립 Node 24·NestJS process가 API·React SPA를 같은 origin으로 제공하고 SQLite에 원본 BLOB·메타데이터·분할을 저장한다. 기존 API와 HTTP로 통신하며 app source 사이를 직접 import하지 않는다. 배포는 기존 HTTPS reverse proxy와 별도 영속 디렉터리를 사용한다. 명령·입력·한계는 [앱 안내](../../apps/ocr/README.md), 실행은 [배포 안내](../../deploy/ocr/README.md)를 따른다.
 
 인증 client 혼동·비허용 계정·요청 cookie/Origin, 업로드 원자성·재시도·잘못된 PNG·좌표·용량, 정답 수정·분할과 export 내용을 검증한다. UI의 합성 인증 fixture 성공과 실제 패스키/운영 HTTPS 성공은 구분한다. 기존 API의 DB·가상 WebAuthn 검증에는 OCR HTTPS 복귀와 client binding을 포함한다.

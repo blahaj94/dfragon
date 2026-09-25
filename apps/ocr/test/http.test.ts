@@ -53,9 +53,9 @@ async function fixture(identity = ownerId, expired = false) {
   }
   const config = { origin, authOrigin, ownerId },
     store = new OcrStore(':memory:', 1024 * 1024)
-  const runtime = createOcrApp(config, store, new OcrAuth(config, request))
-  const server = runtime.app.listen(0, '127.0.0.1')
-  await once(server, 'listening')
+  const runtime = await createOcrApp(config, store, new OcrAuth(config, request))
+  await runtime.app.listen(0, '127.0.0.1')
+  const server = runtime.app.getHttpServer()
   const address = server.address()
   assert(address && typeof address === 'object')
   const base = `http://127.0.0.1:${address.port}`
@@ -83,7 +83,6 @@ async function fixture(identity = ownerId, expired = false) {
     calls,
     login,
     close: async () => {
-      await new Promise<void>((resolve) => server.close(() => resolve()))
       await runtime.close()
       store.close()
     }
@@ -101,9 +100,20 @@ test('owner passkey handoff, CSRF boundary, authenticated images and complete ta
     assert(
       response.headers
         .getSetCookie()
-        .some((value) => value.includes('Secure; HttpOnly; SameSite=Lax'))
+        .some((value) =>
+          ['Secure', 'HttpOnly', 'SameSite=Lax'].every((attribute) => value.includes(attribute))
+        )
     )
     const headers = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }
+    const malformed = await fetch(`${f.base}/api/captures`, { method: 'POST', headers, body: '{' })
+    assert.equal(malformed.status, 400)
+    assert.deepEqual(await malformed.json(), { error: 'INVALID_INPUT' })
+    const ordinaryLimit = await fetch(`${f.base}/api/captures`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ text: 'a'.repeat(17 * 1024) })
+    })
+    assert.equal(ordinaryLimit.status, 413)
     const body = upload()
     const send = () =>
       fetch(`${f.base}/api/captures`, { method: 'POST', headers, body: JSON.stringify(body) })

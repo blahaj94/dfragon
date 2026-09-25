@@ -27,7 +27,7 @@ scripts/
 
 - `apps/api`: NestJS API workspace. 승인된 ESM runtime·dependency·build/test 계약은 [`../rules/api-runtime.md`](../rules/api-runtime.md)를 따른다. 구현 현황은 Reference에서 확인한다.
 - `apps/web`: React, TypeScript, Vite 기반 web application.
-- `apps/ocr`: 개인 OCR 자료의 Node 24·Express 서버와 React 관리 SPA. 원본·좌표·정답은 서버의 SQLite에 보관하고 기존 API의 패스키로 인증한다. 이 요청의 신규 app·저장·배포 경계는 [OCR 계약](../rules/ocr-workspace.md)을 따른다.
+- `apps/ocr`: 개인 OCR 자료의 Node 24·NestJS 서버와 React 관리 SPA. 원본·좌표·정답은 서버의 SQLite에 보관하고 기존 API의 패스키로 인증한다. 이 요청의 신규 app·저장·배포 경계는 [OCR 계약](../rules/ocr-workspace.md)을 따른다.
 - `apps/desktop`: Electron, React, TypeScript, electron-vite 기반 desktop application.
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현·명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.

@@ -39,10 +39,10 @@ try {
   const store = new OcrStore(path, maximumBytes)
   await chmod(path, 0o600)
 
-  const runtime = createOcrApp(config, store)
-  const server = runtime.app.listen(port, process.env.OCR_HOST ?? '127.0.0.1', () =>
-    process.stdout.write('OCR server ready\n')
-  )
+  const runtime = await createOcrApp(config, store)
+  await runtime.app.listen(port, process.env.OCR_HOST ?? '127.0.0.1')
+  const server = runtime.app.getHttpServer()
+  process.stdout.write('OCR server ready\n')
   server.requestTimeout = 30_000
   server.headersTimeout = 15_000
 
