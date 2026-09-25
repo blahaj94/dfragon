@@ -63,7 +63,7 @@ export class OcrDataController {
     return this.store.stats()
   }
 
-  @Post('captures')
+  @Post(['captures', 'desktop/captures'])
   upload(@Body() body: unknown, @Res() response: Response) {
     const { capture, png } = parseUpload(body)
     const result = this.store.add(capture, png)

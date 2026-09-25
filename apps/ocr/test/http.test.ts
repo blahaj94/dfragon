@@ -11,7 +11,7 @@ import { upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
   authOrigin = 'https://auth.example.test'
-async function fixture(identity = ownerId, expired = false) {
+async function fixture(identity = ownerId, expired = false, revoked = false) {
   const calls: string[] = []
   const request: typeof fetch = async (input, init) => {
     const path = new URL(String(input)).pathname
@@ -44,6 +44,9 @@ async function fixture(identity = ownerId, expired = false) {
       })
     }
     if (path === '/me') {
+      if (revoked) {
+        return new Response(null, { status: 401 })
+      }
       return Response.json({ user: { id: identity, nickname: '테스트' } })
     }
     if (path === '/auth/logout') {
@@ -88,6 +91,71 @@ async function fixture(identity = ownerId, expired = false) {
     }
   }
 }
+test('Desktop upload requires a live owner bearer and grants no browser or management session', async () => {
+  const f = await fixture()
+  const headers = {
+    Authorization: 'Bearer synthetic.desktop.token',
+    'Content-Type': 'application/json'
+  }
+  try {
+    const body = JSON.stringify(upload())
+    const send = (extra: Record<string, string>) =>
+      fetch(`${f.base}/api/desktop/captures`, { method: 'POST', headers: extra, body })
+    assert.equal((await send({ 'Content-Type': 'application/json' })).status, 401)
+    assert.equal((await send({ ...headers, Origin: origin })).status, 403)
+    const { cookie } = await f.login()
+    assert(cookie)
+    assert.equal((await send({ Cookie: cookie, 'Content-Type': 'application/json' })).status, 401)
+    const response = await send(headers)
+    assert.equal(response.status, 201)
+    assert.equal(response.headers.get('set-cookie'), null)
+    assert.equal((await send(headers)).status, 200)
+    assert.equal(f.store.exportManifest().samples[0].text, null)
+    assert.equal((await fetch(`${f.base}/api/export`, { headers })).status, 401)
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/splits`, {
+          method: 'PUT',
+          headers: { ...headers, Origin: origin },
+          body: '{}'
+        })
+      ).status,
+      401
+    )
+    const anonymousLargeBody = await fetch(`${f.base}/api/desktop/captures`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'x'.repeat(20_000)
+    })
+    assert.equal(anonymousLargeBody.status, 401)
+  } finally {
+    await f.close()
+  }
+})
+
+test('Desktop upload rejects another account and revoked authentication without writing', async () => {
+  for (const [identity, revoked, expected] of [
+    [randomUUID(), false, 403],
+    [ownerId, true, 401]
+  ] as const) {
+    const f = await fixture(identity, false, revoked)
+    try {
+      const response = await fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer synthetic.desktop.token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(upload())
+      })
+      assert.equal(response.status, expected)
+      assert.equal(f.store.exportManifest().captures.length, 0)
+    } finally {
+      await f.close()
+    }
+  }
+})
+
 test('owner passkey handoff, CSRF boundary, authenticated images and complete tar export', async () => {
   const f = await fixture()
   try {

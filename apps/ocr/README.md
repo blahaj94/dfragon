@@ -78,4 +78,8 @@ PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 
 
 제외·미작성 데이터도 포함하여 전체 자료를 내려받습니다. 로컬 학습 스크립트에서 `excluded=false`, `text!=null`, 필요한 `split`을 선택합니다. 같은 닉네임 배정을 보존해야 하며 로컬에서 파일을 임의 재분할한 결과까지 서버가 보장하지 않습니다. 서버는 영구 데이터셋 버전을 만들지 않고 다운로드 시작 때 메타데이터를 함께 읽습니다. 원본은 수정하지 않으므로 다운로드 도중 정답 변경이 그 TAR에 섞이지 않습니다.
 
-이전 Desktop에 저장된 크롭만으로 원본 화면·좌표를 복원하지 않습니다. 기존 자료 자동 이관과 Desktop 연결은 후속 범위입니다.
+이전 Desktop에 저장된 크롭만으로 원본 화면·좌표를 복원하지 않습니다. 기존 로컬 자료의 자동 이관은 후속 범위입니다. 새 Desktop 수집 연결은 아래를 따릅니다.
+
+## Desktop 수집 연결
+
+로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration·환경 변수·별도 역할은 없습니다. 이 endpoint가 포함된 OCR 서버와 Desktop을 함께 배포해야 합니다.

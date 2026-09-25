@@ -197,6 +197,24 @@ export class OcrAuth {
     response.redirect(303, '/')
   }
 
+  async requireDesktopUpload(request: Request) {
+    const authorization = request.headers.authorization
+    if (
+      typeof authorization !== 'string' ||
+      authorization.length > 8199 ||
+      !/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(authorization)
+    ) {
+      throw new OcrError(OCR_ERROR_CODE.LOGIN_REQUIRED)
+    }
+    // The existing API checks the JWT and live session. Desktop tokens never mint OCR cookies.
+    const response = await this.requestAuthentication('/me', {
+      accessToken: authorization.slice(7)
+    })
+    if (parseAuthenticatedUser(response).id !== this.config.ownerId) {
+      throw new OcrError(OCR_ERROR_CODE.OWNER_REQUIRED)
+    }
+  }
+
   async require(request: Request) {
     this.removeExpiredEntries()
     const id = readCookie(request, OCR_AUTH.sessionCookie)
