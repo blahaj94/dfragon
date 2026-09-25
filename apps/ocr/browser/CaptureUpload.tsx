@@ -3,8 +3,10 @@ import { styles } from './styles.js'
 import { useCaptureUpload } from './hooks/use-capture-upload.js'
 import { OCR_UPLOAD } from '../src/constants.js'
 import { primary, secondary } from './buttons.js'
+import { Typo } from '@dfragon/ui/typo'
+import { OcrIcon } from './OcrIcon.js'
 
-export function CaptureUpload() {
+export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): void }) {
   const {
     file,
     setFile,
@@ -24,11 +26,27 @@ export function CaptureUpload() {
   } = useCaptureUpload()
 
   return (
-    <details {...stylex.props(styles.upload)}>
-      <summary {...stylex.props(styles.uploadSummary)}>원본 이미지 업로드</summary>
+    <section
+      id="capture-upload"
+      hidden={!open}
+      aria-labelledby="capture-upload-title"
+      {...stylex.props(styles.upload)}
+    >
+      <div {...stylex.props(styles.uploadHeader)}>
+        <div {...stylex.props(styles.uploadHeading)}>
+          <span {...stylex.props(styles.accent)}>
+            <OcrIcon name="upload" size={22} />
+          </span>
+          <Typo.h5 as="h2" id="capture-upload-title">
+            원본 이미지 업로드
+          </Typo.h5>
+        </div>
+        <button type="button" className={secondary} onClick={onClose}>
+          접기
+        </button>
+      </div>
       <p {...stylex.props(styles.paragraph, styles.uploadParagraph)}>
-        원본 PNG와 원본 기준 크롭 영역을 등록합니다. 수집 앱 연동 전 수동으로 자료를 추가할 수
-        있습니다.
+        원본 PNG와 원본 픽셀 기준 크롭 영역을 등록합니다.
       </p>
       <div {...stylex.props(styles.fields)}>
         <label {...stylex.props(styles.label)}>
@@ -79,72 +97,84 @@ export function CaptureUpload() {
           </select>
         </label>
       </div>
-      <p {...stylex.props(styles.paragraph, styles.uploadParagraph)}>
-        좌표와 크기는 원본 픽셀 기준입니다.
-      </p>
-      {crops.map((crop, index) => (
-        <div {...stylex.props(styles.cropFields)} key={crop.slot}>
-          <strong {...stylex.props(styles.cropHeading)}>위치 {crop.slot}</strong>
-          {(['x', 'y', 'width', 'height'] as const).map((key) => (
-            <label {...stylex.props(styles.label)} key={key}>
-              {{ x: '왼쪽 X', y: '위쪽 Y', width: '너비', height: '높이' }[key]}
-              <input
-                {...stylex.props(styles.control)}
-                type="number"
-                min={key === 'x' || key === 'y' ? 0 : 1}
-                value={crop[key]}
-                onChange={(e) =>
-                  setCrops((current) =>
-                    current.map((item, i) =>
-                      i === index ? { ...item, [key]: Number(e.target.value) } : item
+      <div {...stylex.props(styles.cropSection)}>
+        <Typo.h6 as="h3">크롭 영역</Typo.h6>
+        <p {...stylex.props(styles.paragraph, styles.cropDescription)}>
+          좌표와 크기는 원본 픽셀 기준 · 최대 4개
+        </p>
+        {crops.map((crop, index) => (
+          <div {...stylex.props(styles.cropFields)} key={crop.slot}>
+            <strong {...stylex.props(styles.cropHeading)}>위치 {crop.slot}</strong>
+            {(['x', 'y', 'width', 'height'] as const).map((key) => (
+              <label {...stylex.props(styles.label)} key={key}>
+                {{ x: '왼쪽 X', y: '위쪽 Y', width: '너비', height: '높이' }[key]}
+                <input
+                  {...stylex.props(styles.control)}
+                  type="number"
+                  min={key === 'x' || key === 'y' ? 0 : 1}
+                  value={crop[key]}
+                  onChange={(e) =>
+                    setCrops((current) =>
+                      current.map((item, i) =>
+                        i === index ? { ...item, [key]: Number(e.target.value) } : item
+                      )
                     )
-                  )
-                }
-              />
-            </label>
-          ))}
-        </div>
-      ))}
-      <div {...stylex.props(styles.actions)}>
-        <button
-          className={secondary}
-          disabled={busy || crops.length === OCR_UPLOAD.maximumCrops}
-          onClick={() =>
-            setCrops((current) => [
-              ...current,
-              { slot: current.length + 1, x: 0, y: 0, width: 1, height: 1 }
-            ])
-          }
-        >
-          크롭 추가
-        </button>
-        <button
-          className={secondary}
-          disabled={busy || crops.length === 1}
-          onClick={() => setCrops((current) => current.slice(0, -1))}
-        >
-          마지막 크롭 제거
-        </button>
-        <button
-          className={primary}
-          disabled={busy || file === null}
-          onClick={() => void uploadCapture({ retry: false })}
-        >
-          업로드
-        </button>
-        {pending !== null && (
+                  }
+                />
+              </label>
+            ))}
+          </div>
+        ))}
+        <div {...stylex.props(styles.actions)}>
           <button
             className={secondary}
-            disabled={busy}
-            onClick={() => void uploadCapture({ retry: true })}
+            disabled={busy || crops.length === OCR_UPLOAD.maximumCrops}
+            onClick={() =>
+              setCrops((current) => [
+                ...current,
+                { slot: current.length + 1, x: 0, y: 0, width: 1, height: 1 }
+              ])
+            }
           >
-            실패한 업로드 재시도
+            <OcrIcon name="plus" />
+            크롭 추가
           </button>
-        )}
+          <button
+            className={secondary}
+            disabled={busy || crops.length === 1}
+            onClick={() => setCrops((current) => current.slice(0, -1))}
+          >
+            마지막 크롭 제거
+          </button>
+        </div>
       </div>
-      <p {...stylex.props(styles.paragraph, styles.uploadParagraph)} role="status">
+      <div {...stylex.props(styles.uploadFooter)}>
+        <span {...stylex.props(styles.muted)}>
+          크롭을 등록한 뒤 자료실에서 닉네임 정답을 입력하세요.
+        </span>
+        <div {...stylex.props(styles.actions)}>
+          {pending !== null && (
+            <button
+              className={secondary}
+              disabled={busy}
+              onClick={() => void uploadCapture({ retry: true })}
+            >
+              실패한 업로드 재시도
+            </button>
+          )}
+          <button
+            className={primary}
+            disabled={busy || file === null}
+            onClick={() => void uploadCapture({ retry: false })}
+          >
+            <OcrIcon name="upload" />
+            {busy ? '업로드 중' : '업로드'}
+          </button>
+        </div>
+      </div>
+      <p {...stylex.props(styles.paragraph, message !== '' && styles.uploadStatus)} role="status">
         {message}
       </p>
-    </details>
+    </section>
   )
 }

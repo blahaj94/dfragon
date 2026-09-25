@@ -69,7 +69,7 @@ export async function createOcrApp(
       'Referrer-Policy': 'no-referrer',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy':
-        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
     if (
       isDesktopUpload(request)
