@@ -60,7 +60,11 @@ export type DeveloperPartyCollectionStatus = {
   lastSavedAt: string | null
   lastSavedCount?: number
   error: string | null
+  upload?: DeveloperUploadStatus
 }
+
+export type DeveloperUploadStatus =
+  'signedOut' | 'uploading' | 'uploaded' | 'failed' | 'ownerRequired' | 'storageFull'
 
 export type DeveloperPartyPreviewResponse = {
   frame: DeveloperPartyPreviewFrame | null

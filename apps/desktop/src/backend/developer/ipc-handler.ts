@@ -12,6 +12,8 @@ import { createDeveloperStore, DeveloperStoreError } from './persistence'
 import { createDeveloperCollectionSession, previewFrame } from './collection-session'
 import { createPrintScreenShortcut } from './print-screen-shortcut'
 import { assertDnfShortcutAccess, isDnfForeground } from './win32-party-capture'
+import type { AuthCoordinator } from '../auth/types'
+import { createOcrUploader } from './ocr-upload'
 
 const PUBLIC_ERROR_CODES = new Set<string>([
   DEVELOPER_ERROR_CODES.NOT_ALLOWED,
@@ -187,7 +189,8 @@ async function capturePrimaryPng(
 export function registerDeveloperWindow(
   window: BrowserWindow,
   rendererDocumentUrl: string,
-  rootDir: string
+  rootDir: string,
+  auth?: AuthCoordinator
 ): () => void {
   const store = createDeveloperStore({
     rootDir,
@@ -270,6 +273,7 @@ export function registerDeveloperWindow(
 
   const collectionSession = createDeveloperCollectionSession({
     store,
+    prepareUpload: auth ? createOcrUploader(auth) : () => null,
     capturePartyFrame: async (kind) => (await getPartyCaptureModule()).capturePartyFrame(kind),
     isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),
     isTrustedContext: isTrustedMainDocument,

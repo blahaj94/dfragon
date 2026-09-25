@@ -4,7 +4,8 @@ import type {
   DeveloperParticipantWindow,
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
-  DeveloperPartySlot
+  DeveloperPartySlot,
+  DeveloperUploadStatus
 } from '../../preload/common/types/developer'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
@@ -22,6 +23,11 @@ export type CapturedPartyFrame = {
   capturedAt: string
   slots: CapturedPartySlot[]
   participantWindow?: DeveloperParticipantWindow
+  // Kept in main only. Preview IPC intentionally omits the source pixels and coordinates.
+  original?: {
+    rgba: Buffer
+    crops: { slot: DeveloperPartySlot; x: number; y: number; width: number; height: number }[]
+  }
 }
 
 type CollectionSampleInput = {
@@ -51,6 +57,14 @@ type CollectionSessionOptions = {
   registerPrintScreen: (listener: () => void) => boolean
   unregisterPrintScreen: () => void
   encodePng: (rgba: Buffer, width: number, height: number) => Buffer
+  prepareUpload?: () =>
+    | ((
+        frame: CapturedPartyFrame,
+        slots: DeveloperPartySlot[],
+        kind: DeveloperCollectionKind,
+        signal: AbortSignal
+      ) => Promise<DeveloperUploadStatus>)
+    | null
 }
 
 type CollectionSession = {
@@ -164,7 +178,8 @@ export function createDeveloperCollectionSession({
   isTrustedContext,
   registerPrintScreen,
   unregisterPrintScreen,
-  encodePng
+  encodePng,
+  prepareUpload
 }: CollectionSessionOptions): CollectionSession {
   let disposed = false
   let armingEnabled = true
@@ -179,9 +194,19 @@ export function createDeveloperCollectionSession({
   let error: string | null = null
   let revision = 0
   let lastSavedAt: string | null = null
+  let upload: DeveloperUploadStatus | undefined
+  let uploadController: AbortController | null = null
 
   function getStatus(): DeveloperPartyCollectionStatus {
-    return { armed, slots: [...slots], revision, lastSavedAt, lastSavedCount, error }
+    return {
+      armed,
+      slots: [...slots],
+      revision,
+      lastSavedAt,
+      lastSavedCount,
+      error,
+      ...(upload ? { upload } : {})
+    }
   }
 
   function isTrusted(): boolean {
@@ -209,6 +234,8 @@ export function createDeveloperCollectionSession({
   }
 
   function invalidate(): void {
+    uploadController?.abort()
+    upload = undefined
     generation += 1
     armed = false
     slots = []
@@ -220,6 +247,8 @@ export function createDeveloperCollectionSession({
     selectedSlots: DeveloperPartySlot[],
     captureKind: DeveloperCollectionKind
   ): Promise<void> {
+    // Capture authorization when the user presses the key, never after a later login.
+    const sendUpload = prepareUpload?.()
     try {
       const settings = await store.getSettings()
       if (!isCurrentCapture(captureGeneration)) {
@@ -274,6 +303,30 @@ export function createDeveloperCollectionSession({
         }
       }
       error = null
+      if (prepareUpload) {
+        if (sendUpload == null) {
+          upload = 'signedOut'
+        } else {
+          upload = 'uploading'
+          const controller = new AbortController()
+          uploadController = controller
+          try {
+            const result = await sendUpload(
+              frameValue,
+              selectedSlots,
+              captureKind,
+              controller.signal
+            )
+            if (isCurrentCapture(captureGeneration)) {
+              upload = result
+            }
+          } finally {
+            if (uploadController === controller) {
+              uploadController = null
+            }
+          }
+        }
+      }
     } catch (caughtError) {
       if (!isCurrentCapture(captureGeneration)) {
         return
@@ -290,6 +343,7 @@ export function createDeveloperCollectionSession({
     const captureGeneration = generation
     const selectedSlots = [...slots]
     lastSavedCount = 0
+    upload = undefined
     const capture = collect(captureGeneration, selectedSlots, kind)
     pendingCapture = capture
     void capture.finally(() => {

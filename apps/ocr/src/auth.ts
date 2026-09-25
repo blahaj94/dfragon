@@ -10,6 +10,8 @@ import {
 import { OCR_AUTH } from './constants.js'
 import type { LoginTokens } from './auth-responses.js'
 
+const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+
 export type AuthConfiguration = { origin: string; authOrigin: string; ownerId: string }
 type Session = { tokens: LoginTokens; expires: number; active: boolean; refresh?: Promise<void> }
 type PendingLogin = { requestId: string; verifier: string; expires: number }
@@ -195,6 +197,24 @@ export class OcrAuth {
       maxAge: OCR_AUTH.sessionLifetimeMs
     })
     response.redirect(303, '/')
+  }
+
+  async requireDesktopUpload(request: Request) {
+    const authorization = request.headers.authorization
+    if (
+      typeof authorization !== 'string' ||
+      authorization.length > 8199 ||
+      !BEARER_JWT_PATTERN.test(authorization)
+    ) {
+      throw new OcrError(OCR_ERROR_CODE.LOGIN_REQUIRED)
+    }
+    // The existing API checks the JWT and live session. Desktop tokens never mint OCR cookies.
+    const response = await this.requestAuthentication('/me', {
+      accessToken: authorization.slice(7)
+    })
+    if (parseAuthenticatedUser(response).id !== this.config.ownerId) {
+      throw new OcrError(OCR_ERROR_CODE.OWNER_REQUIRED)
+    }
   }
 
   async require(request: Request) {

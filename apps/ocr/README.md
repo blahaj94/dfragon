@@ -1,6 +1,6 @@
 # OCR 자료실
 
-원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 기존 패스키로 인증한 지정 계정만 사용할 수 있습니다. Desktop 수집 변경, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리와 자동 분할은 포함하지 않습니다.
+원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 기존 패스키로 인증한 지정 계정만 사용할 수 있습니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리와 자동 분할은 포함하지 않습니다.
 
 ```sh
 pnpm --filter @dfragon/ocr test
@@ -22,11 +22,13 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 서버는 기존 API와 같은 NestJS 12 버전의 controller·DI·exception filter를 사용합니다. 큰 본문을 읽기 전 인증과 업로드 동시 제한을 적용하며 경로별 크기 제한만 Express 어댑터의 JSON parser를 사용합니다. 쿠키 파싱은 `cookie-parser`, 발급·삭제는 응답 기본 API를 사용합니다. 로그인 요청 한도는 완료된 대기 요청과 인증 API 호출 중인 요청의 합계입니다. `__Host-ocr-login`은 로그인 시작 브라우저와 callback을 연결하는 임시 쿠키, `__Host-ocr-session`은 인증 후 서버 세션을 찾는 쿠키입니다. 두 쿠키의 값은 Node `crypto.randomBytes`로 생성한 난수이고 기존 API token을 담지 않습니다.
 
+인증은 `OcrAuth`가 담당하고 JSON parser보다 먼저 등록한 middleware에서 호출합니다. [NestJS 요청 순서](https://docs.nestjs.com/faq/request-lifecycle)에 따라 Guard는 middleware 이후 실행되므로, 현재 body parser 구성에서 인증을 Guard로 옮기면 인증 전 큰 본문을 파싱하게 됩니다. Desktop 업로드의 정확한 method·URL 판정은 `isDesktopUpload`에서 정의하며 Origin 검사와 인증 방식 선택이 같은 판정을 사용합니다.
+
 SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30초 동안 fresh 상태를 유지하고 사용하지 않는 캐시는 5분 후 제거합니다. 업로드·정답·분할 mutation 성공 시 모든 목록과 통계를 invalidate하고, 로그아웃·인증 만료 시 캐시를 비웁니다. Mutation 자동 재시도는 끄고 실패한 업로드만 사용자가 같은 ID로 재시도합니다. Query parameter 생성은 순수 utility, 필터·페이지 상태는 전용 hook이 담당합니다. 스타일은 StyleX로 컴파일하며 전역 CSS에는 reset만 둡니다.
 
 ## HTTP API
 
-모든 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 관리자와 수집자는 같은 권한을 사용합니다. 변경 요청은 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 향후 Desktop 연동은 이 로그인·쿠키 계약을 연결해야 하며 현재 Desktop 토큰을 이 서버에 바로 보낼 수 있는 API는 아닙니다.
+자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`만 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정인지 확인합니다. Desktop 토큰으로 자료 열람·정답 수정·다운로드 권한을 발급하지 않습니다.
 
 | Method / path | 동작 |
 | --- | --- |
@@ -36,6 +38,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/session` | 로그인 여부 확인 |
 | `GET /api/stats` | 원본·샘플·미작성·제외 개수, 원본 저장 bytes |
 | `POST /api/captures` | 아래 원본+좌표 JSON 저장. 최초 201, 같은 요청 재시도 200 |
+| `POST /api/desktop/captures` | Desktop의 활성 owner Bearer로 같은 원본+좌표 JSON 저장 |
 | `GET /api/captures/:id` | 캡처 메타데이터 |
 | `GET /api/captures/:id/image` | 원본 PNG |
 | `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants`, `split`, 정확한 `text` 필터 |
@@ -78,4 +81,8 @@ PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 
 
 제외·미작성 데이터도 포함하여 전체 자료를 내려받습니다. 로컬 학습 스크립트에서 `excluded=false`, `text!=null`, 필요한 `split`을 선택합니다. 같은 닉네임 배정을 보존해야 하며 로컬에서 파일을 임의 재분할한 결과까지 서버가 보장하지 않습니다. 서버는 영구 데이터셋 버전을 만들지 않고 다운로드 시작 때 메타데이터를 함께 읽습니다. 원본은 수정하지 않으므로 다운로드 도중 정답 변경이 그 TAR에 섞이지 않습니다.
 
-이전 Desktop에 저장된 크롭만으로 원본 화면·좌표를 복원하지 않습니다. 기존 자료 자동 이관과 Desktop 연결은 후속 범위입니다.
+이전 Desktop에 저장된 크롭만으로 원본 화면·좌표를 복원하지 않습니다. 기존 로컬 자료의 자동 이관은 후속 범위입니다. 새 Desktop 수집 연결은 아래를 따릅니다.
+
+## Desktop 수집 연결
+
+로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration·환경 변수·별도 역할은 없습니다. 이 endpoint가 포함된 OCR 서버와 Desktop을 함께 배포해야 합니다.

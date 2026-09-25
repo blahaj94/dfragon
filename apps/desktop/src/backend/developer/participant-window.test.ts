@@ -45,6 +45,10 @@ it('uses the shipped heading and preserves slot 3, popup-relative bounds and raw
   const result = captureParticipantWindow({ width, height, rgba }, '2026-09-25T00:00:00.000Z')
   expect(result.coverage).toEqual({ x, y, width: 394, height: 210 })
   expect(result.frame.slots.map(({ slot }) => slot)).toEqual([3])
+  expect(result.frame.original?.rgba.equals(Buffer.from(original))).toBe(true)
+  expect(result.frame.original?.crops).toEqual([
+    { slot: 3, x: x + 168, y: y + 131, width: 84, height: 15 }
+  ])
   const popup = result.frame.participantWindow!
   expect(popup.rows.map(({ occupied }) => occupied)).toEqual([false, false, true, false])
   expect(popup.rows[2]).toEqual({ slot: 3, occupied: true, x: 168, y: 131, width: 84, height: 15 })

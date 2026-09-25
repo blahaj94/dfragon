@@ -37,6 +37,10 @@ class OcrHttpFilter implements ExceptionFilter {
   }
 }
 
+function isDesktopUpload(request: Request): boolean {
+  return request.method === 'POST' && request.originalUrl === '/api/desktop/captures'
+}
+
 export async function createOcrApp(
   config: AuthConfiguration,
   store: OcrStore,
@@ -67,7 +71,11 @@ export async function createOcrApp(
       'Content-Security-Policy':
         "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
-    if (!['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin) {
+    if (
+      isDesktopUpload(request)
+        ? request.headers.origin !== undefined
+        : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
+    ) {
       next(new OcrError(OCR_ERROR_CODE.ORIGIN_REQUIRED))
       return
     }
@@ -76,25 +84,30 @@ export async function createOcrApp(
 
   // 큰 본문을 읽기 전에 인증한다. Nest guard는 body parser 이후 실행되므로 여기서는 middleware를 사용한다.
   app.use('/api', (request: Request, _response: Response, next: NextFunction) => {
-    void auth.require(request).then(() => next(), next)
+    void (
+      isDesktopUpload(request) ? auth.requireDesktopUpload(request) : auth.require(request)
+    ).then(() => next(), next)
   })
   let activeUploads = 0
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
-  app.use('/api/captures', (request: Request, response: Response, next: NextFunction) => {
-    if (request.method !== 'POST' || request.path !== '/') {
-      next()
-      return
+  app.use(
+    ['/api/captures', '/api/desktop/captures'],
+    (request: Request, response: Response, next: NextFunction) => {
+      if (request.method !== 'POST' || request.path !== '/') {
+        next()
+        return
+      }
+      if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
+        next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
+        return
+      }
+      activeUploads++
+      response.once('close', () => {
+        activeUploads--
+      })
+      parseUploadBody(request, response, next)
     }
-    if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
-      next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
-      return
-    }
-    activeUploads++
-    response.once('close', () => {
-      activeUploads--
-    })
-    parseUploadBody(request, response, next)
-  })
+  )
   // Nest의 전역 parser보다 먼저 업로드 경로에만 큰 한도를 적용한다.
   app.useBodyParser('json', { limit: OCR_UPLOAD.ordinaryBodyLimit, strict: true, inflate: false })
   app.useStaticAssets(fileURLToPath(new URL('../browser/', import.meta.url)), {

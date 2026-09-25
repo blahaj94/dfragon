@@ -45,6 +45,9 @@ function setup(
     foreground?: () => boolean
     capture?: () => Promise<CapturedPartyFrame>
     save?: (sample: unknown, shouldCommit: () => boolean) => Promise<unknown>
+    prepareUpload?: NonNullable<
+      Parameters<typeof createDeveloperCollectionSession>[0]['prepareUpload']
+    >
   } = {}
 ): {
   session: ReturnType<typeof createDeveloperCollectionSession>
@@ -79,7 +82,8 @@ function setup(
     isTrustedContext: options.trusted ?? (() => true),
     registerPrintScreen,
     unregisterPrintScreen,
-    encodePng
+    encodePng,
+    prepareUpload: options.prepareUpload
   })
 
   return {
@@ -96,6 +100,54 @@ function setup(
 async function settleCapture(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
+
+it('uploads one saved capture, keeps local crops on failure and aborts on leaving collection', async () => {
+  const pending = deferred<import('../../preload/common/types/developer').DeveloperUploadStatus>()
+  const send = vi.fn(
+    async (_frame: CapturedPartyFrame, _slots: number[], _kind: string, signal: AbortSignal) => {
+      signal.addEventListener('abort', () => pending.resolve('failed'), { once: true })
+      return pending.promise
+    }
+  )
+  const fixture = setup({ prepareUpload: () => send })
+  await fixture.session.setSlots([3], 'participants')
+  fixture.pressPrintScreen()
+  await settleCapture()
+  expect(fixture.store.addCollectedSample).toHaveBeenCalledOnce()
+  expect(send).toHaveBeenCalledWith(
+    expect.any(Object),
+    [3],
+    'participants',
+    expect.any(AbortSignal)
+  )
+  expect(fixture.session.getStatus()).toMatchObject({ lastSavedCount: 1, upload: 'uploading' })
+  fixture.pressPrintScreen()
+  expect(send).toHaveBeenCalledOnce()
+  await fixture.session.stop()
+  expect(send.mock.calls[0][3].aborted).toBe(true)
+  expect(fixture.session.getStatus()).not.toHaveProperty('upload')
+  expect(fixture.store.addCollectedSample).toHaveBeenCalledOnce()
+})
+
+it('does not upload a capture made before login or after a local save failure', async () => {
+  const pending = deferred<CapturedPartyFrame>()
+  const send = vi.fn(async () => 'uploaded' as const)
+  const prepare = vi.fn<
+    NonNullable<Parameters<typeof createDeveloperCollectionSession>[0]['prepareUpload']>
+  >(() => null)
+  const fixture = setup({ capture: () => pending.promise, prepareUpload: prepare })
+  await fixture.session.setSlots([3])
+  fixture.pressPrintScreen()
+  prepare.mockReturnValue(send)
+  pending.resolve(frame())
+  await settleCapture()
+  expect(send).not.toHaveBeenCalled()
+  expect(fixture.session.getStatus()).toMatchObject({ lastSavedCount: 1, upload: 'signedOut' })
+  fixture.store.addCollectedSample.mockRejectedValueOnce(new Error('DEVELOPER_STORAGE_UNAVAILABLE'))
+  fixture.pressPrintScreen()
+  await settleCapture()
+  expect(send).not.toHaveBeenCalled()
+})
 
 it('captures fresh raw crops and saves only the selected party slots', async () => {
   const fixture = setup()

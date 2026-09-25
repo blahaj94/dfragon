@@ -201,6 +201,29 @@ afterEach(async () => {
   vi.useRealTimers()
 })
 
+it('reports upload outcome independently of local saving on both collection tabs', async () => {
+  vi.useFakeTimers()
+  const { status } = installApi()
+  status.lastSavedCount = 1
+  status.upload = 'failed'
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  expect(container.textContent).toContain(
+    '로컬 크롭은 저장했습니다. 서버 저장 여부를 확인하지 못했습니다.'
+  )
+  await click('파티원창 크롭')
+  expect(container.textContent).toContain(
+    '로컬 크롭은 저장했습니다. 서버 저장 여부를 확인하지 못했습니다.'
+  )
+  status.upload = 'uploaded'
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(container.textContent).toContain(
+    '원본 이미지와 선택한 크롭을 OCR 자료실에 업로드했습니다.'
+  )
+  expect(container.textContent).not.toContain('서버 저장 여부를 확인하지 못했습니다.')
+})
+
 it('arms only on the collection tab, previews four raw crops, and disarms on tab switch and unmount', async () => {
   const { api } = installApi()
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
