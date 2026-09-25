@@ -1,198 +1,179 @@
 import * as stylex from '@stylexjs/stylex'
+import { colors } from './theme.stylex.js'
 
 export const styles = stylex.create({
   root: {
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-    color: '#232824',
-    backgroundColor: '#f5f6f3',
+    fontFamily: 'NanumSquareNeo, system-ui, sans-serif',
+    fontSize: 14,
     fontSynthesis: 'none',
+    color: colors.text,
+    backgroundColor: colors.background,
+    colorScheme: 'light',
     minHeight: '100vh'
   },
+  dark: { colorScheme: 'dark' },
   main: {
-    maxWidth: '1440px',
+    maxWidth: 1440,
     margin: 'auto',
-    padding: {
-      default: '44px 48px',
-      '@media (max-width: 760px)': '24px 16px'
-    }
+    padding: { default: '30px 48px 48px', '@media (max-width: 760px)': '24px' }
   },
   header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: {
-      default: 'center',
-      '@media (max-width: 760px)': 'flex-start'
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'minmax(0, 1fr) auto auto',
+      '@media (max-width: 760px)': 'minmax(0, 1fr) auto'
     },
-    gap: '24px',
-    borderBottomWidth: '1px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: '#dce0d9',
-    paddingBottom: '24px',
-    flexDirection: {
-      default: null,
-      '@media (max-width: 760px)': 'column'
-    }
+    gridTemplateRows: '24px 48px',
+    alignItems: 'center',
+    columnGap: 12,
+    rowGap: { default: 10, '@media (max-width: 760px)': 14 },
+    marginBottom: { default: 26, '@media (max-width: 760px)': 24 }
   },
-  eyebrow: {
-    fontSize: '11px',
-    fontWeight: '750',
-    letterSpacing: '0.16em',
-    color: '#537b42',
-    marginBottom: '10px'
-  },
-  heading: {
-    marginTop: '0'
-  },
-  paragraph: {
-    lineHeight: '1.65',
-    marginTop: 0
-  },
-  muted: {
-    color: '#6b736c',
-    fontSize: '14px',
-    margin: '8px 0 0'
-  },
-  actions: {
+  brand: { gridColumn: '1 / -1' },
+  eyebrow: { fontSize: 12, lineHeight: '24px', color: colors.accent },
+  heading: { margin: 0 },
+  title: { gridColumn: 1, gridRow: 2 },
+  fileActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'wrap'
+    gap: { default: 12, '@media (max-width: 760px)': 16, '@media (max-width: 420px)': 8 },
+    gridColumn: { default: 2, '@media (max-width: 760px)': '1 / -1' },
+    gridRow: { default: 2, '@media (max-width: 760px)': 3 },
+    marginTop: { default: 0, '@media (max-width: 760px)': 10 }
   },
-  actionLink: {
-    textDecoration: 'none'
+  accountActions: {
+    display: 'flex',
+    gap: 12,
+    gridColumn: { default: 3, '@media (max-width: 760px)': 2 },
+    gridRow: 2
   },
-  error: {
-    color: '#b13232',
-    minHeight: '20px',
-    margin: '12px 0'
-  },
+  headerButton: { flexGrow: { default: 0, '@media (max-width: 760px)': 1 } },
+  themeButton: { width: 44, padding: 0, flexShrink: 0 },
+  paragraph: { lineHeight: 1.5, margin: 0 },
+  muted: { color: colors.muted, fontSize: 12, margin: '4px 0 0' },
+  actions: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
+  error: { color: colors.error, margin: '12px 0 24px', overflowWrap: 'anywhere' },
   label: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '7px',
-    fontSize: '13px',
-    fontWeight: '600'
+    gap: 8,
+    fontSize: 12,
+    fontWeight: 400,
+    lineHeight: '20px',
+    color: colors.muted,
+    minWidth: 0
   },
   control: {
     fontFamily: 'inherit',
-    fontSize: 'inherit',
-    fontWeight: 'inherit',
-    lineHeight: 'inherit',
-    padding: '10px 12px',
-    borderWidth: '1px',
+    fontSize: 14,
+    fontWeight: 400,
+    lineHeight: '20px',
+    padding: '11px 14px',
+    borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#d6dcd3',
-    borderRadius: '8px',
-    backgroundColor: 'white',
-    minWidth: '0',
-    color: 'inherit',
-    outline: {
-      default: null,
-      ':focus': '2px solid #638b50'
-    },
-    outlineOffset: {
-      default: null,
-      ':focus': '2px'
-    }
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.inset,
+    minWidth: 0,
+    width: '100%',
+    minHeight: 44,
+    color: colors.text,
+    outline: { default: null, ':focus-visible': `2px solid ${colors.accent}` },
+    outlineOffset: { default: null, ':focus-visible': 2 },
+    opacity: { default: 1, ':disabled': 0.5 }
   },
   stats: {
     display: 'grid',
     gridTemplateColumns: {
-      default: 'repeat(4, 1fr)',
-      '@media (max-width: 760px)': '1fr 1fr'
+      default: 'repeat(4, minmax(0, 1fr))',
+      '@media (max-width: 760px)': 'repeat(2, minmax(0, 1fr))'
     },
-    gap: {
-      default: '16px',
-      '@media (max-width: 760px)': '8px'
-    },
-    marginBottom: '24px'
+    gap: 16,
+    marginBottom: 28
   },
   statCard: {
-    padding: {
-      default: '20px 24px',
-      '@media (max-width: 760px)': '16px'
-    },
-    backgroundColor: 'white',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#e0e5db',
-    borderRadius: '12px'
+    padding: { default: '12px 20px', '@media (max-width: 760px)': '10px 16px' },
+    backgroundColor: colors.panel,
+    borderRadius: 12,
+    minHeight: { default: 88, '@media (max-width: 760px)': 80 }
   },
-  statLabel: {
-    fontSize: '13px',
-    color: '#687465'
-  },
-  statValue: {
-    display: 'block',
-    marginTop: '8px',
-    fontSize: '28px',
-    fontWeight: '650'
-  },
+  statLabel: { fontSize: 12, lineHeight: '20px', color: colors.muted },
+  statValue: { display: 'block', marginTop: 4, fontSize: 24, lineHeight: '34px', fontWeight: 600 },
+  accent: { color: colors.accent },
   upload: {
-    backgroundColor: '#eef2e9',
-    borderWidth: '1px',
+    backgroundColor: colors.panel,
+    borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#dce4d4',
-    borderRadius: '10px',
-    padding: '16px 20px',
-    marginBottom: '26px'
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 28
   },
-  uploadSummary: {
-    fontSize: '14px',
-    fontWeight: '650',
-    cursor: 'pointer'
-  },
-  uploadParagraph: {
-    fontSize: '13px',
-    color: '#576451',
-    margin: '14px 0'
-  },
+  uploadHeading: { display: 'flex', alignItems: 'center', gap: 12 },
+  uploadHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  uploadParagraph: { fontSize: 14, color: colors.muted, margin: '16px 0 28px' },
   fields: {
     display: 'grid',
     gridTemplateColumns: {
-      default: '2fr 1fr 1fr 1fr',
-      '@media (max-width: 1100px)': '1fr 1fr',
-      '@media (max-width: 760px)': '1fr'
+      default: '1.7fr 1fr .85fr 1.25fr',
+      '@media (max-width: 1100px)': 'repeat(2, minmax(0, 1fr))',
+      '@media (max-width: 760px)': 'minmax(0, 1fr)'
     },
-    gap: '14px'
+    gap: 16
   },
+  cropSection: { marginTop: 32 },
+  cropDescription: { fontSize: 12, color: colors.muted, margin: '8px 0 20px' },
   cropFields: {
     display: 'grid',
     gridTemplateColumns: {
-      default: '70px repeat(4, 1fr)',
-      '@media (max-width: 760px)': 'repeat(2, 1fr)'
+      default: '136px repeat(4, minmax(0, 1fr))',
+      '@media (max-width: 760px)': 'repeat(2, minmax(0, 1fr))'
     },
-    gap: '12px',
-    alignItems: 'center',
-    marginBottom: '16px'
+    gap: { default: 24, '@media (max-width: 760px)': 12 },
+    alignItems: 'end',
+    marginBottom: 16
   },
-  filters: {
+  cropHeading: {
+    gridColumn: { default: null, '@media (max-width: 760px)': '1 / -1' },
+    lineHeight: '44px',
+    fontWeight: 400
+  },
+  uploadFooter: {
     display: 'flex',
-    gap: '12px',
-    marginBottom: '20px',
-    flexWrap: {
-      default: null,
-      '@media (max-width: 760px)': 'wrap'
-    }
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 20,
+    marginTop: 28,
+    paddingTop: 28,
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
+    borderTopColor: colors.border
   },
-  filterLabel: {
-    minWidth: {
-      default: '150px',
-      '@media (max-width: 760px)': '120px'
-    },
-    flex: {
-      default: null,
-      '@media (max-width: 760px)': '1'
-    }
+  uploadStatus: { marginTop: 12, color: colors.accent },
+  filterBar: { display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28 },
+  collectionHeading: {
+    flexBasis: 246,
+    flexShrink: 0,
+    display: { default: 'block', '@media (max-width: 760px)': 'none' }
+  },
+  sampleCount: { display: 'block', marginTop: 8, color: colors.muted, fontSize: 12 },
+  filters: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+    gap: { default: 16, '@media (max-width: 420px)': 8 },
+    width: { default: 548, '@media (max-width: 760px)': '100%' },
+    minWidth: 0
   },
   workspace: {
     display: 'grid',
     gridTemplateColumns: {
-      default: 'minmax(0, 1fr) 380px',
-      '@media (max-width: 1100px)': 'minmax(0, 1fr) 340px',
-      '@media (max-width: 760px)': '1fr'
+      default: 'minmax(0, 6fr) minmax(0, 5fr)',
+      '@media (max-width: 760px)': 'minmax(0, 1fr)'
     },
-    gap: '24px',
+    gridTemplateRows: { default: 'min-content 1fr', '@media (max-width: 760px)': 'none' },
+    columnGap: 24,
+    rowGap: 32,
     alignItems: 'start'
   },
   gallery: {
@@ -201,177 +182,167 @@ export const styles = stylex.create({
       default: 'repeat(3, minmax(0, 1fr))',
       '@media (max-width: 1100px)': 'repeat(2, minmax(0, 1fr))'
     },
-    gap: '12px'
+    gap: 16,
+    gridColumn: 1,
+    gridRow: 1
   },
   sample: {
     textAlign: 'left',
-    borderWidth: '1px',
+    font: 'inherit',
+    borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#dce1d7',
-    borderRadius: '10px',
-    padding: '12px',
-    backgroundColor: 'white',
+    borderColor: 'transparent',
+    borderRadius: 10,
+    padding: 11,
+    minHeight: 164,
+    backgroundColor: colors.panel,
     cursor: 'pointer',
-    color: 'inherit',
-    overflow: 'hidden'
+    color: colors.text,
+    overflow: 'hidden',
+    outline: { default: null, ':focus-visible': `2px solid ${colors.accent}` },
+    outlineOffset: 2
   },
   selectedSample: {
-    borderWidth: '2px',
-    borderStyle: 'solid',
-    borderColor: '#65844e',
-    padding: '11px',
-    backgroundColor: '#fafff5'
+    borderColor: colors.accent,
+    backgroundColor: colors.selected,
+    color: colors.accent
   },
+  excludedSample: { opacity: 0.65 },
   sampleTitle: {
     display: 'block',
-    fontSize: '14px',
-    margin: '12px 0 6px',
+    fontSize: 14,
+    fontWeight: 400,
+    lineHeight: '24px',
+    margin: '10px 4px 4px',
     overflowWrap: 'anywhere'
   },
   sampleMeta: {
-    fontSize: '11px',
-    color: '#70786b'
+    display: 'block',
+    fontSize: 12,
+    lineHeight: '18px',
+    color: colors.muted,
+    margin: '0 4px'
   },
+  sampleSplit: {
+    display: 'block',
+    fontSize: 12,
+    lineHeight: '18px',
+    color: colors.accent,
+    margin: '4px 4px 0'
+  },
+  unassigned: { color: colors.muted },
   thumb: {
-    height: '74px',
+    height: 62,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e6e9e1',
-    borderRadius: '5px',
+    backgroundColor: '#161a20',
+    borderRadius: 6,
     overflow: 'hidden'
   },
   thumbnailImage: {
     maxWidth: '100%',
-    maxHeight: '64px',
-    imageRendering: 'pixelated'
+    maxHeight: 48,
+    imageRendering: 'pixelated',
+    objectFit: 'contain'
   },
   editor: {
-    padding: '24px',
-    backgroundColor: 'white',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#dce1d7',
-    borderRadius: '12px',
-    position: {
-      default: 'sticky',
-      '@media (max-width: 760px)': 'static'
-    },
-    top: '20px',
-    gridRow: {
-      default: null,
-      '@media (max-width: 760px)': '1'
-    }
+    padding: 24,
+    backgroundColor: colors.panel,
+    borderRadius: 12,
+    minWidth: 0,
+    gridColumn: { default: 2, '@media (max-width: 760px)': 1 },
+    gridRow: { default: '1 / 3', '@media (max-width: 760px)': 2 },
+    position: { default: 'sticky', '@media (max-width: 760px)': 'static' },
+    top: 24
   },
   editorHeading: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '20px'
+    gap: 8,
+    marginBottom: 16
   },
   badge: {
-    fontSize: '11px',
-    color: '#647659',
-    backgroundColor: '#edf3e6',
-    borderRadius: '20px',
-    padding: '6px 10px'
+    fontSize: 14,
+    color: colors.accent,
+    backgroundColor: colors.selected,
+    borderRadius: 8,
+    padding: '6px 14px',
+    whiteSpace: 'nowrap'
   },
   largePreview: {
-    backgroundColor: '#e6e9e1',
-    minHeight: '130px',
-    padding: '20px 12px',
+    backgroundColor: '#161a20',
+    height: 104,
+    padding: '12px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: '8px',
-    marginBottom: '24px',
+    borderRadius: 6,
+    marginBottom: 18,
     overflow: 'hidden'
   },
-  previewImage: {
-    width: '100%',
-    imageRendering: 'pixelated'
-  },
-  editorActions: {
-    margin: '14px 0 24px'
-  },
-  labelInput: {
-    fontSize: '18px'
-  },
+  previewImage: { maxWidth: '100%', height: 64, objectFit: 'contain', imageRendering: 'pixelated' },
+  editorActions: { margin: '16px 0 24px' },
   metadata: {
     display: 'grid',
-    gridTemplateColumns: '100px 1fr',
-    gap: '12px',
-    fontSize: '12px',
-    borderTopWidth: '1px',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: '8px 16px',
+    borderTopWidth: 1,
     borderTopStyle: 'solid',
-    borderTopColor: '#e5e8e0',
-    paddingTop: '20px',
-    marginTop: '22px'
+    borderTopColor: colors.border,
+    paddingTop: 16,
+    margin: '24px 0 8px'
   },
-  metadataLabel: {
-    color: '#77816f'
-  },
-  metadataValue: {
-    margin: '0',
-    overflowWrap: 'anywhere'
-  },
-  originalLink: {
-    fontSize: '13px',
-    color: '#496c35'
-  },
-  editorStatus: {
-    fontSize: '13px',
-    margin: '16px 0 0'
-  },
+  metadataLabel: { fontSize: 12, lineHeight: '18px', color: colors.muted },
+  metadataValue: { fontSize: 14, lineHeight: '22px', margin: 0, overflowWrap: 'anywhere' },
+  originalLink: { fontSize: 14, lineHeight: '22px', color: colors.accent, textDecoration: 'none' },
+  editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.accent },
   pagination: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '18px',
-    marginTop: '32px',
-    fontSize: '13px'
+    gap: 20,
+    fontSize: 12,
+    color: colors.muted,
+    gridColumn: 1,
+    gridRow: { default: 2, '@media (max-width: 760px)': 3 }
   },
+  paginationButton: { minHeight: 36, height: 36, padding: '0 24px' },
   empty: {
-    gridColumn: '1/-1',
-    backgroundColor: 'white',
-    borderWidth: '1px',
-    borderStyle: 'dashed',
-    borderColor: '#c8d3bd',
-    borderRadius: '12px',
+    gridColumn: '1 / -1',
+    backgroundColor: colors.panel,
+    borderRadius: 12,
     padding: '70px 24px',
     textAlign: 'center',
-    color: '#65735a'
+    color: colors.muted
   },
-  emptyParagraph: {
-    fontSize: '14px',
-    margin: '12px 0'
-  },
+  emptyParagraph: { fontSize: 14, margin: '12px 0' },
   login: {
-    margin: {
-      default: '70px auto',
-      '@media (max-width: 760px)': '36px auto'
-    },
-    maxWidth: '480px',
-    backgroundColor: 'white',
-    borderWidth: '1px',
-    borderStyle: 'solid',
-    borderColor: '#dce1d7',
-    borderRadius: '16px',
-    padding: {
-      default: '42px',
-      '@media (max-width: 760px)': '28px'
-    }
+    margin: { default: '84px auto 0', '@media (max-width: 760px)': '60px auto 0' },
+    maxWidth: 540,
+    backgroundColor: colors.panel,
+    borderRadius: 12,
+    padding: { default: '32px 64px 48px', '@media (max-width: 760px)': '32px 24px 48px' },
+    textAlign: 'center'
   },
-  loginParagraph: {
-    fontSize: '14px',
-    color: '#6b736c',
-    margin: '18px 0 28px'
+  loginIcon: {
+    width: 64,
+    height: 64,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 20px',
+    backgroundColor: colors.selected,
+    color: colors.accent,
+    borderRadius: 16
   },
-  cropHeading: {
-    gridColumn: {
-      default: null,
-      '@media (max-width: 760px)': '1/-1'
-    }
+  loginButton: { width: '100%', marginTop: 32, minHeight: 48 },
+  serviceAddress: {
+    display: 'block',
+    textAlign: 'center',
+    marginTop: 32,
+    color: colors.muted,
+    fontSize: 12
   }
 })

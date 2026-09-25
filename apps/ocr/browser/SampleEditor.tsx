@@ -6,6 +6,7 @@ import { Typo } from '@dfragon/ui/typo'
 import { primary, secondary } from './buttons.js'
 import type { Sample } from '../src/model.js'
 import { parseSplit } from '../src/input.js'
+import { OcrIcon } from './OcrIcon.js'
 
 export function SampleEditor({ sample }: { sample: Sample }) {
   const { text, setText, message, busy, saveSample, assignNicknameSplit } = useSampleEditor(sample)
@@ -13,7 +14,9 @@ export function SampleEditor({ sample }: { sample: Sample }) {
   return (
     <section {...stylex.props(styles.editor)} aria-label="정답 편집">
       <div {...stylex.props(styles.editorHeading)}>
-        <Typo.h5 {...stylex.props(styles.heading)}>정답 입력</Typo.h5>
+        <Typo.h5 as="h2" {...stylex.props(styles.heading)}>
+          정답 입력
+        </Typo.h5>
         <span {...stylex.props(styles.badge)}>
           {sample.kind === 'hud' ? 'HUD' : '파티원창'} · 위치 {sample.slot}
         </span>
@@ -34,7 +37,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
         <label {...stylex.props(styles.label)}>
           닉네임 정답
           <input
-            {...stylex.props(styles.control, styles.labelInput)}
+            {...stylex.props(styles.control)}
             autoComplete="off"
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -44,6 +47,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
         </label>
         <div {...stylex.props(styles.actions, styles.editorActions)}>
           <button className={primary} disabled={busy}>
+            <OcrIcon name="check" />
             정답 저장
           </button>
           <button
@@ -76,24 +80,32 @@ export function SampleEditor({ sample }: { sample: Sample }) {
         같은 정답 닉네임의 모든 이미지에 적용됩니다.
       </p>
       <dl {...stylex.props(styles.metadata)}>
-        <dt {...stylex.props(styles.metadataLabel)}>원본 해상도</dt>
-        <dd {...stylex.props(styles.metadataValue)}>
-          {sample.frameWidth} × {sample.frameHeight}
-        </dd>
-        <dt {...stylex.props(styles.metadataLabel)}>UI 크기</dt>
-        <dd {...stylex.props(styles.metadataValue)}>
-          {sample.uiScale === null
-            ? '미상'
-            : `${Math.round(sample.uiScale * 100)}% · ${sample.uiScaleSource === 'game' ? '게임 설정' : '추정'}`}
-        </dd>
-        <dt {...stylex.props(styles.metadataLabel)}>수집 시각</dt>
-        <dd {...stylex.props(styles.metadataValue)}>
-          {new Date(sample.capturedAt).toLocaleString('ko-KR')}
-        </dd>
-        <dt {...stylex.props(styles.metadataLabel)}>크롭 영역</dt>
-        <dd {...stylex.props(styles.metadataValue)}>
-          ({sample.x}, {sample.y}) · {sample.width} × {sample.height}
-        </dd>
+        <div>
+          <dt {...stylex.props(styles.metadataLabel)}>원본 해상도</dt>
+          <dd {...stylex.props(styles.metadataValue)}>
+            {sample.frameWidth} × {sample.frameHeight}
+          </dd>
+        </div>
+        <div>
+          <dt {...stylex.props(styles.metadataLabel)}>UI 크기</dt>
+          <dd {...stylex.props(styles.metadataValue)}>
+            {sample.uiScale === null
+              ? '미상'
+              : `${Math.round(sample.uiScale * 100)}% · ${sample.uiScaleSource === 'game' ? '게임 설정' : '추정'}`}
+          </dd>
+        </div>
+        <div>
+          <dt {...stylex.props(styles.metadataLabel)}>수집 시각</dt>
+          <dd {...stylex.props(styles.metadataValue)}>
+            {new Date(sample.capturedAt).toLocaleString('ko-KR')}
+          </dd>
+        </div>
+        <div>
+          <dt {...stylex.props(styles.metadataLabel)}>크롭 영역</dt>
+          <dd {...stylex.props(styles.metadataValue)}>
+            ({sample.x}, {sample.y}) · {sample.width} × {sample.height}
+          </dd>
+        </div>
       </dl>
       <a
         {...stylex.props(styles.originalLink)}
@@ -103,7 +115,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       >
         원본 화면 열기 ↗
       </a>
-      <p {...stylex.props(styles.paragraph, styles.editorStatus)} role="status">
+      <p {...stylex.props(styles.paragraph, message !== '' && styles.editorStatus)} role="status">
         {message}
       </p>
     </section>

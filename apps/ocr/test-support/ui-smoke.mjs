@@ -92,7 +92,25 @@ try {
     }
   })
   page.on('pageerror', (error) => errors.push(error.message))
+  const artifacts = process.env.OCR_UI_ARTIFACTS
+  async function screenshot(name) {
+    await page.evaluate(async () => {
+      await globalThis.document.fonts.ready
+      await Promise.all([...globalThis.document.images].map((image) => image.decode()))
+    })
+    if (artifacts) {
+      await mkdir(resolve(artifacts), { recursive: true })
+      await page.screenshot({
+        path: join(resolve(artifacts), `${name}.png`),
+        fullPage: true,
+        animations: 'disabled'
+      })
+    }
+  }
   await page.goto(origin)
+  await page.getByRole('button', { name: '패스키 로그인', exact: true }).waitFor()
+  await screenshot('login')
+  assert(await page.evaluate(() => globalThis.document.fonts.check('14px NanumSquareNeo')))
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
   await page.getByRole('link', { name: '전체 다운로드' }).waitFor()
   const original = await page.evaluate(() => {
@@ -115,7 +133,9 @@ try {
     ctx.fillRect(80, 125, 180, 10)
     return canvas.toDataURL('image/png').split(',')[1]
   })
-  await page.getByText('원본 이미지 업로드', { exact: true }).click()
+  const uploadToggle = page.getByRole('button', { name: '이미지 업로드', exact: true })
+  assert.equal(await uploadToggle.getAttribute('aria-expanded'), 'false')
+  await uploadToggle.click()
   await page.getByLabel('원본 PNG', { exact: true }).setInputFiles({
     name: 'synthetic.png',
     mimeType: 'image/png',
@@ -130,6 +150,16 @@ try {
   ]) {
     await page.getByLabel(name, { exact: true }).fill(value)
   }
+  await screenshot('upload')
+  await page.getByRole('button', { name: '접기', exact: true }).click()
+  assert.equal(await uploadToggle.getAttribute('aria-expanded'), 'false')
+  assert(await uploadToggle.evaluate((button) => button === globalThis.document.activeElement))
+  await uploadToggle.press('Enter')
+  assert.equal(await page.getByLabel('너비', { exact: true }).inputValue(), '120')
+  assert.equal(
+    await page.getByLabel('원본 PNG', { exact: true }).evaluate((input) => input.files.length),
+    1
+  )
   await page.getByRole('button', { name: '업로드', exact: true }).click()
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
   await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
@@ -143,7 +173,13 @@ try {
   await page.getByRole('button', { name: '제외 복원', exact: true }).waitFor()
   await page.getByRole('button', { name: '제외 복원', exact: true }).click()
   await page.getByRole('button', { name: '학습에서 제외', exact: true }).waitFor()
-  await page.getByText('원본 이미지 업로드', { exact: true }).click()
+  const downloadReady = page.waitForEvent('download')
+  await page.getByRole('link', { name: '전체 다운로드' }).click()
+  const download = await downloadReady
+  assert.equal(download.suggestedFilename(), 'ocr-data.tar')
+  assert.equal(await download.failure(), null)
+  assert((await readFile(await download.path())).length > 0)
+  await uploadToggle.click()
   const kindFilter = page
     .getByRole('group', { name: '자료 필터' })
     .getByRole('combobox', { name: '수집 종류' })
@@ -153,20 +189,6 @@ try {
   await kindFilter.selectOption('')
   await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
   assert.equal(sampleRequests.length, beforeCachedFilter)
-  const artifacts = process.env.OCR_UI_ARTIFACTS
-  if (artifacts) {
-    await mkdir(resolve(artifacts), { recursive: true })
-    await page.screenshot({ path: join(resolve(artifacts), 'desktop.png'), fullPage: true })
-  }
-  await page.setViewportSize({ width: 390, height: 844 })
-  assert(
-    await page.evaluate(
-      () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth
-    )
-  )
-  if (artifacts) {
-    await page.screenshot({ path: join(resolve(artifacts), 'mobile.png'), fullPage: true })
-  }
   await page.getByRole('button', { name: '로그아웃', exact: true }).click()
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).waitFor()
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
@@ -175,9 +197,58 @@ try {
     sampleRequests.length > beforeCachedFilter,
     'login after logout refetches the cleared dataset cache'
   )
+
+  // Fill the gallery with synthetic captures to inspect the desktop and mobile grids.
+  const capture = store.exportManifest().captures[0]
+  for (let index = 0; index < 8; index += 1) {
+    const id = randomUUID()
+    store.add(
+      { ...capture, id, kind: index % 2 === 0 ? 'hud' : 'participants' },
+      Buffer.from(original, 'base64')
+    )
+    if (index % 3 !== 0) {
+      store.updateSample(`${id}-1`, {
+        text: '샘플고래',
+        excluded: index === 2,
+        confirmSplitChange: false
+      })
+    }
+  }
+  await page.reload()
+  await page
+    .getByRole('region', { name: '수집 이미지', exact: true })
+    .getByRole('button')
+    .nth(8)
+    .waitFor()
+  await screenshot('desktop')
+  await page.getByRole('button', { name: '다크 테마로 전환', exact: true }).click()
+  await page.reload()
+  await page.getByRole('button', { name: '라이트 테마로 전환', exact: true }).waitFor()
+  await page
+    .getByRole('region', { name: '수집 이미지', exact: true })
+    .getByRole('button')
+    .nth(8)
+    .waitFor()
+  assert.equal(await page.locator('html').getAttribute('data-seed-color-mode'), 'dark-only')
+  await screenshot('desktop-dark')
+  await page.getByRole('button', { name: '라이트 테마로 전환', exact: true }).click()
+  for (const width of [500, 390]) {
+    await page.setViewportSize({ width, height: 844 })
+    assert(
+      await page.evaluate(
+        () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth
+      )
+    )
+    const gallery = await page
+      .getByRole('region', { name: '수집 이미지', exact: true })
+      .boundingBox()
+    const editor = await page.getByRole('region', { name: '정답 편집', exact: true }).boundingBox()
+    assert(editor.y >= gallery.y + gallery.height)
+    await screenshot(`mobile-${width}`)
+  }
   assert.deepEqual(errors, [])
   process.stdout.write(
-    'OCR browser upload, labels, split, exclusion, responsive layout and logout passed\n'
+    'OCR browser upload, labels, split, exclusion, download, themes, responsive layout and logout passed\n'
   )
 } finally {
   await browser?.close()
