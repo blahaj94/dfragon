@@ -10,6 +10,8 @@ import {
 import { OCR_AUTH } from './constants.js'
 import type { LoginTokens } from './auth-responses.js'
 
+const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+
 export type AuthConfiguration = { origin: string; authOrigin: string; ownerId: string }
 type Session = { tokens: LoginTokens; expires: number; active: boolean; refresh?: Promise<void> }
 type PendingLogin = { requestId: string; verifier: string; expires: number }
@@ -202,7 +204,7 @@ export class OcrAuth {
     if (
       typeof authorization !== 'string' ||
       authorization.length > 8199 ||
-      !/^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(authorization)
+      !BEARER_JWT_PATTERN.test(authorization)
     ) {
       throw new OcrError(OCR_ERROR_CODE.LOGIN_REQUIRED)
     }
