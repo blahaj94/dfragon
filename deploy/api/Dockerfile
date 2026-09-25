@@ -10,9 +10,11 @@ RUN pnpm install --frozen-lockfile --filter @dfragon/api...
 COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
 COPY apps/api/browser apps/api/browser
+COPY apps/api/test apps/api/test
+COPY apps/api/test-support apps/api/test-support
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
-RUN pnpm --filter @dfragon/api build \
+RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
 
 FROM ${NODE_IMAGE} AS runtime
