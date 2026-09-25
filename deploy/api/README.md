@@ -10,11 +10,11 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
 - DB에는 공개 port가 없고 외부 통신이 없는 Compose network에서 API·유지보수 작업만 연결한다.
 - API는 UID/GID 1000, 읽기 전용 root filesystem, 추가 Linux 권한 없음으로 실행한다.
   Docker socket이나 호스트의 개인 디렉터리를 mount하지 않는다.
-- DB도 `postgres` 사용자로 실행한다. API의 `ldb_api` 계정에는 인증·캐릭터 테이블의 DML만
-  부여한다. `ldb_migrator`가 schema를 소유하며 API는 Migration history에도 접근하지 못한다.
-- `ldb` 데이터베이스, `ldb_api`·`ldb_migrator` 역할, 기존 password secret 파일과
-  `ldb_database` named volume은 설치된 DB의 호환성 이름으로 유지한다. 앱·Compose project의
-  이름 변경은 이 저장 데이터나 자격의 migration을 수행하지 않는다.
+- DB도 `postgres` 사용자로 실행한다. API의 `dfragon_api` 계정에는 인증·캐릭터 테이블의 DML만
+  부여한다. `dfragon_migrator`가 schema를 소유하며 API는 Migration history에도 접근하지 못한다.
+- 데이터베이스는 `dfragon`, 역할은 `dfragon_api`·`dfragon_migrator`, 기본 named volume은
+  `dfragon_database`다. 이전 이름으로 설치한 서버는 아래의 명시적 이전을 마친 뒤 시작한다.
+  설정 이름만 바꿔 새 빈 DB를 운영 데이터로 사용하지 않는다.
 - CPU·메모리·process·log 크기를 제한하고 DB 데이터는 named volume에 보관한다.
   볼륨은 백업이 아니다. 백업 공개 복원은 제공하지 않는다.
 - API는 Neople에 접속할 outbound network를 사용한다. 이 설정은 **집 LAN으로의
@@ -33,7 +33,7 @@ Host Docker 관리 권한은 사실상 root 권한이므로 컨테이너나 외�
 
 ```dotenv
 DFRAGON_IMAGE_TAG=<release-commit>
-DFRAGON_SECRETS_DIR=/etc/ldb/secrets
+DFRAGON_SECRETS_DIR=/etc/dfragon/secrets
 DFRAGON_API_PORT=3000
 ```
 
@@ -41,13 +41,13 @@ DFRAGON_API_PORT=3000
 보호하고, 아래 파일은 `0444`로 준비한다. Compose의 file secret은 bind mount이므로 YAML의
 `uid/gid/mode`에 의존하지 않는다. 이 조합은 호스트의 일반 사용자에게 디렉터리 접근을 막으면서
 선택된 컨테이너의 UID 999/1000이 각자 mount된 파일을 읽게 한다. Docker 관리자도 secret을 읽을 수 있다.
-기존 설치의 secret 파일 이름과 `/etc/ldb/secrets` 위치는 그대로 쓸 수 있다.
+기존 설치는 아래 이전 절차에서 비밀값을 바꾸지 않고 새 파일 이름·경로로 옮긴다.
 
 | 파일                    | 내용과 소비자                                                                           |
 | ----------------------- | --------------------------------------------------------------------------------------- |
 | `postgres_password`     | DB 관리자용으로 생성한 독립 password. DB에만 mount                                      |
-| `ldb_migrator_password` | Migration용으로 생성한 독립 password. DB 초기화와 migrate에만 mount                     |
-| `ldb_api_password`      | API용으로 생성한 독립 password. DB 초기화·API·cleanup에 mount                           |
+| `dfragon_migrator_password` | Migration용으로 생성한 독립 password. DB 초기화와 migrate에만 mount                     |
+| `dfragon_api_password`      | API용으로 생성한 독립 password. DB 초기화·API·cleanup에 mount                           |
 | `neople_api_key`        | 실제 Neople API key. API에만 mount                                                      |
 | `auth_config.json`      | 기존 [인증 JSON 계약](../../docs/rules/auth-runtime.md)에 맞는 서버 설정. API에만 mount |
 
@@ -61,37 +61,35 @@ shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `D
 [패스키 설정](../../docs/reference/passkey-authentication.md)에 따라 도메인을 확정한다.
 `LOCAL_HTTPS_*`는 설정하지 않는다. 사용자의 로그인은 직접 검색·캡처·OCR의 선행 조건이 아니다.
 
-## 기존 설치 이름 변경
+## 기존 설치의 DB·역할·볼륨 이전
 
-기존 LDB 배포를 옮길 때는 새 Compose project가 시작되기 전에 이전 프로젝트와 cleanup timer를
-멈춘다. 새 Compose 설정도 `ldb_database` volume을 사용하므로 두 PostgreSQL container가 동시에
-같은 volume을 열면 안 된다. 기존 checkout에서 이전 timer를 멈추고 기존 Compose 서비스를 중지한다.
+이 절차는 기존 운영 이름을 DFRAGON으로 이전하는 명시적 관리 작업이다. 일반 API 시작이나
+TypeORM app migration에 포함하지 않는다. 기존 schema·계정·패스키·세션·캐릭터 데이터는 유지한다.
 
-```sh
-sudo systemctl disable --now ldb-auth-cleanup.timer
-sudo systemctl stop ldb-auth-cleanup.service
-cd /opt/ldb/deploy/api
-docker compose stop
-```
+1. 현재 release·image·Compose project·실제 DB volume·secret 경로를 확인하고 새 이미지를 먼저 빌드한다.
+   `/opt/dfragon`과 `/etc/dfragon/secrets`를 준비한다. 기존 API·migration 비밀번호는 값 변경 없이
+   `dfragon_api_password`·`dfragon_migrator_password` 파일로 옮긴다. RP ID·apiOrigin·JWT key도 유지한다.
+   Desktop 복귀 주소는 `dfragon://auth/callback`으로 전환한다.
+2. 공개 API ingress와 이전 cleanup timer를 중지한다. 실행 중인 cleanup 완료를 기다리고 이전 API·DB를
+   정상 중지한다. 이전 writer가 남거나 비표준 tablespace가 있으면 자동 이전하지 않는다.
+3. 새 `dfragon_database` volume을 만들고, 중지한 원본 volume을 읽기 전용으로 mount해 PostgreSQL
+   cluster 전체를 복사한다. 같은 고정 PostgreSQL 18 image·PGDATA 경로·숫자 UID/GID·권한을 유지하고
+   복사 내용과 원본의 일치를 확인한다. 빈 새 volume에서 init script를 실행해 데이터를 새로 만들지 않는다.
+4. 새 volume만 연결한 격리 PostgreSQL을 외부 network·공개 port 없이 실행한다. `postgres` DB에
+   관리자로 연결해 [migrate-legacy.sql](migrate-legacy.sql)을 한 번 실행한다. 이 SQL은 DB·필수 역할과
+   존재하는 읽기 전용 viewer 역할의 이름을 transaction으로 바꾸며 역할 OID·소유권·ACL을 보존한다.
+   새 이름 충돌·접속 중인 원본 DB·알 수 없는 이전 역할·MD5/null login password는 거절한다.
+   SCRAM 비밀번호는 재발급하지 않는다. [PostgreSQL ALTER ROLE](https://www.postgresql.org/docs/18/sql-alterrole.html)
+5. 격리 DB를 정상 종료하고 새 Compose로 DB·API를 시작한다. 데이터·권한·기존 계정과 패스키,
+   실제 password 연결을 확인한 뒤에만 HTTPS를 다시 연다. 운영 `.env`는 `DFRAGON_*` 이름을 쓰며
+   `DFRAGON_DATABASE_VOLUME_NAME`을 지정한다면 이전이 완료된 새 volume을 가리켜야 한다.
+6. 이전 Compose container·network와 이전 timer를 정리한다. 원본 volume은 이전 검증이 끝날 때까지
+   유지하고, 전환 후에는 오래된 인증 snapshot으로 보관·재공개하지 않는다. 새 데이터에 쓰기가 시작되면
+   이전 사본을 사용한 자동 복귀는 금지한다. 이전용 임시 사본은 소유권을 확인하고 정리한다.
 
-위 Compose 명령은 기존 기본 project 이름 `ldb`를 사용한 설치에 해당한다. 이전 실행에
-`--project-name` 또는 `COMPOSE_PROJECT_NAME`을 사용했다면 같은 이전 project 이름을 지정해 stop한다.
-
-기존 checkout을 유지한 채 새 release를 `/opt/dfragon`에 준비하고, 새 `.env`의 `LDB_*` 항목을
-`DFRAGON_*` 이름으로 옮긴다. `DFRAGON_SECRETS_DIR`는 같은 기존 secret 디렉터리를 가리킬 수 있다.
-`auth_config.json`의 `passkey.returnUrl`은 `dfragon://auth/callback`으로 바꾸고, 실제
-`apiOrigin`과 `rpId`는 기존 운영 domain 그대로 둔다. 이름 변경만을 위해 PostgreSQL database·role·
-volume을 다시 만들거나 비우지 않는다.
-
-Compose volume 기본값 `ldb_database`는 override 없이 `name: ldb`로 실행한 기존 설치를 위한 값이다.
-이전에 `--project-name` 또는 `COMPOSE_PROJECT_NAME`을 사용했다면 먼저 실제 기존 volume 이름을
-확인하고, 그 값을 새 `.env`의 `DFRAGON_DATABASE_VOLUME_NAME`으로 지정한다. 이름을 추측해 새 빈
-volume을 사용하는 상태로 시작하지 않는다.
-
-이전 Compose project가 중지된 것을 확인한 뒤에만 새 checkout에서 아래의 첫 실행 절차를 진행한다.
-새 Compose 설정은 project 이름을 `dfragon`으로 바꾸지만 기존 `ldb_database` volume에 연결한다.
-이전 project와 새 project를 병행 실행하지 않는다. 새 cleanup timer를 설치하기 전에 이전 timer가
-비활성인지 확인한다.
+이전 작업 자체는 app schema migration을 추가하지 않는다. 이름 변경 후 DBeaver 등 관리 클라이언트는
+새 DB 이름 `dfragon`과 해당 역할 이름으로 연결해야 한다. 비밀번호를 표시하거나 일괄 재설정하지 않는다.
+새 cleanup timer를 활성화하기 전에 이전 timer가 비활성인지 확인한다.
 
 ## 처음 실행
 
@@ -109,7 +107,7 @@ docker compose config --quiet
 docker compose build api
 docker compose up -d --wait --wait-timeout 120 database
 docker compose --profile maintenance run --rm migrate
-docker compose exec -T database psql --no-psqlrc -U postgres -d ldb -f /opt/dfragon/grant-api.sql
+docker compose exec -T database psql --no-psqlrc -U postgres -d dfragon -f /opt/dfragon/grant-api.sql
 docker compose up -d api
 ```
 
@@ -164,13 +162,16 @@ sudo systemctl enable --now dfragon-auth-cleanup.timer
 해당 Migration의 데이터 영향·호환성을 먼저 확인하고 위 명시 Migration과 권한 부여를 실행한다.
 `docker compose up -d api`가 API를 교체한다. Secret 변경도 재시작 후 반영된다.
 
-이름 변경 전 release로 돌아가려면 먼저 새 Compose project와 새 cleanup timer를 중지한다. 이전
-release는 `dfragon://` callback을 허용하지 않으므로 이전 API와 함께 이전 `ldb://` callback 설정,
-`LDB_*` Compose 환경 이름 및 timer를 복구해야 한다. 같은 `ldb_database` volume에 두 프로젝트를
-동시에 연결하지 않는다.
+이름 변경 전 API image로 되돌릴 때도 현재 DFRAGON DB를 유지한다. 해당 image가 환경변수의
+새 DB·역할과 같은 schema를 지원하는지 확인하고, 현재 Compose에 이전 API image를 지정한다.
+인증 설정은 그 image와 설치 앱이 지원하는 복귀 주소로 맞춘다. OCR callback을 지원하지 않는 이전
+API로 복귀한다면 OCR을 중지하고 해당 proxy route를 제거한다. 이미 쓰기가 시작된 운영 DB를 이전
+volume 사본으로 교체하지 않는다. DB 자체를 이전 이름으로 되돌리는 작업은 현재 데이터를 대상으로
+별도 유지보수 절차가 필요하며 자동 snapshot 복원을 제공하지 않는다.
 
 `docker compose stop`은 데이터를 유지하며 종료한다. `docker compose down`도 named volume을
-남긴다. **운영에서 `down --volumes`, volume 삭제, global prune을 실행하지 않는다.** 이전 API
+남긴다. **운영에서 `down --volumes`, 임의 volume 삭제, global prune을 실행하지 않는다.** 위 명시적
+이전에서 대체 데이터 검증이 완료된 원본 volume만 소유권을 확인해 정리한다. 이전 API
 image로 되돌리는 것은 새 schema와 호환될 때만 가능하고 자동 DB rollback은 제공하지 않는다.
 
 ## 배포 설정 검증
@@ -182,6 +183,9 @@ bash apps/api/test-support/container-deployment.sh
 Repository root 기준이다. Docker·Bash·Python 3가 필요하다. 기존 runtime fixture를 재사용하며
 실제 credential을 사용하지 않는다. 매번 고유 Compose project와 임시 secret·DB volume을 만들고
 명시 Migration·DML/DDL 경계·읽기 전용 API·HTTP·cleanup·종료·DB 재생성 후 데이터 유지를 확인한다.
+이전 이름을 가진 DB·역할에서 관리 SQL을 실행해 OID·SCRAM password·데이터·소유권·제한된 ACL
+보존과 중복 실행 거절도 확인한다. 초기화 shell script는 실행 권한을 명시해 mount 환경에 따른
+source/exec 판정 차이를 피한다.
 종료 시 이 실행의 container/network/volume과 임시 secret만 정리한다. 생성한 image는 build 재사용을
 위해 남는다. 강제 host 종료 뒤의 정리는 보장하지 않는다. 이 검증은 실제 provider·Windows 게임
 흐름이나 집 LAN 격리 검증을 대신하지 않는다.
