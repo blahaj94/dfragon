@@ -4,6 +4,7 @@ import { ActionButton, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { styles } from './DeveloperParticipantCollectionSection.style'
+import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
 
 export function DeveloperParticipantCollectionSection({
   collection,
@@ -67,6 +68,8 @@ export function DeveloperParticipantCollectionSection({
           </Typo.txtS>
         </div>
       </div>
+
+      <DeveloperUploadNotice status={collection.collection?.upload} />
 
       {(error || (popup && count === 0) || saved > 0) && (
         <div role="status" {...stylex.props(styles.notice)}>

@@ -101,7 +101,12 @@ function createWindow(authRuntime: AuthRuntime | null): void {
       process.platform === 'win32' ? consumeCaptureMediaPermission : undefined
     )
     registerCaptureWindow(window, rendererDocumentUrl)
-    disposeDeveloper = registerDeveloperWindow(window, rendererDocumentUrl, app.getPath('userData'))
+    disposeDeveloper = registerDeveloperWindow(
+      window,
+      rendererDocumentUrl,
+      app.getPath('userData'),
+      authRuntime?.coordinator
+    )
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,

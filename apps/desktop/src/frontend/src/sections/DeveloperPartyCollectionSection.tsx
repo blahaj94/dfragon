@@ -8,6 +8,7 @@ import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
 import { styles } from './DeveloperPartyCollectionSection.style'
+import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 
@@ -78,6 +79,7 @@ export function DeveloperPartyCollectionSection({
       {...stylex.props(styles.section)}
     >
       <div aria-live="polite" {...stylex.props(styles.connection)}>
+        <DeveloperUploadNotice status={collection.collection?.upload} />
         <Typo.txtM as="p" weight={700}>
           {frame ? '게임 화면 연결됨' : '게임 화면 연결 확인 필요'}
         </Typo.txtM>

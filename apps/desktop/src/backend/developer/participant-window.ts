@@ -45,6 +45,12 @@ export function captureParticipantWindow(
       height: frame.height,
       scale: result.scale,
       capturedAt,
+      original: {
+        rgba: Buffer.from(frame.rgba),
+        crops: result.rows.flatMap(({ slot, crop, nickname }) =>
+          crop == null ? [] : [{ slot, ...nickname }]
+        )
+      },
       slots: result.rows.flatMap(({ slot, crop }) =>
         crop == null
           ? []

@@ -9,6 +9,7 @@ import { createRequire } from 'node:module'
 import { detectPartyFrameGeometry, PartyFrameGeometryError } from './party-frame-geometry'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'
 import { bgrxToRgba } from './win32-capture'
+import type { CapturedPartyFrame } from './collection-session'
 
 export type PartyFrameSlot = {
   slot: 1 | 2 | 3 | 4
@@ -24,6 +25,7 @@ export type PartyFrameCapture = {
   capturedAt: string
   slots: PartyFrameSlot[]
   participantWindow?: DeveloperParticipantWindow
+  original?: CapturedPartyFrame['original']
 }
 
 type Rect = { left: number; top: number; right: number; bottom: number }
@@ -728,12 +730,16 @@ function capturePartyFrameWithApi(
       height: gameWindowAfter.client.height,
       scale,
       capturedAt,
+      original: {
+        rgba,
+        crops: slots.map(({ slot, x, y, width, height }) => ({ slot, x, y, width, height }))
+      },
       slots: slots.map((slot) => cropSlot(rgba, gameWindowAfter.client.width, slot))
     }
   })
 }
 
-/** Captures one fresh DNF client frame synchronously, returning only detected raw slot crops. */
+/** Captures one fresh client frame and keeps its original pixels with the detected raw crops. */
 export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyFrameCapture {
   if (process.platform !== 'win32') {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
