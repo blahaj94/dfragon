@@ -1,10 +1,12 @@
+import type { OCR_UPLOAD } from './constants.js'
+
 export const splits = ['unassigned', 'train', 'val', 'test'] as const
 export type Split = (typeof splits)[number]
 export type Crop = { slot: number; x: number; y: number; width: number; height: number }
 export type Capture = {
   id: string
   capturedAt: string
-  kind: 'hud' | 'participants'
+  kind: keyof typeof OCR_UPLOAD.maximumCropsByKind
   width: number
   height: number
   uiScale: number | null

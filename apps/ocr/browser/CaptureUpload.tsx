@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { styles } from './styles.js'
 import { useCaptureUpload } from './hooks/use-capture-upload.js'
 import { OCR_UPLOAD } from '../src/constants.js'
+import { parseCaptureKind } from '../src/input.js'
 import { primary, secondary } from './buttons.js'
 import { Typo } from '@dfragon/ui/typo'
 import { OcrIcon } from './OcrIcon.js'
@@ -24,6 +25,8 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
     busy,
     uploadCapture
   } = useCaptureUpload()
+  const maximumCrops = OCR_UPLOAD.maximumCropsByKind[kind]
+  const slots = Array.from({ length: maximumCrops }, (_, index) => index + 1)
 
   return (
     <section
@@ -67,10 +70,12 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
           <select
             {...stylex.props(styles.control)}
             value={kind}
-            onChange={(e) => setKind(e.target.value)}
+            disabled={busy}
+            onChange={(e) => setKind(parseCaptureKind(e.target.value))}
           >
             <option value="hud">HUD</option>
             <option value="participants">파티원창</option>
+            <option value="raid">공대원창</option>
           </select>
         </label>
         <label {...stylex.props(styles.label)}>
@@ -100,11 +105,35 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
       <div {...stylex.props(styles.cropSection)}>
         <Typo.h6 as="h3">크롭 영역</Typo.h6>
         <p {...stylex.props(styles.paragraph, styles.cropDescription)}>
-          좌표와 크기는 원본 픽셀 기준 · 최대 4개
+          좌표와 크기는 원본 픽셀 기준 · 최대 {maximumCrops}개
         </p>
         {crops.map((crop, index) => (
           <div {...stylex.props(styles.cropFields)} key={crop.slot}>
-            <strong {...stylex.props(styles.cropHeading)}>위치 {crop.slot}</strong>
+            <label {...stylex.props(styles.label, styles.cropPosition)}>
+              위치
+              <select
+                {...stylex.props(styles.control)}
+                aria-label={`크롭 ${index + 1} 위치`}
+                value={crop.slot}
+                disabled={busy}
+                onChange={(e) => {
+                  const slot = Number(e.target.value)
+                  setCrops((current) =>
+                    current.map((item, i) => (i === index ? { ...item, slot } : item))
+                  )
+                }}
+              >
+                {slots.map((slot) => (
+                  <option
+                    key={slot}
+                    value={slot}
+                    disabled={crops.some((item, i) => i !== index && item.slot === slot)}
+                  >
+                    {slot}
+                  </option>
+                ))}
+              </select>
+            </label>
             {(['x', 'y', 'width', 'height'] as const).map((key) => (
               <label {...stylex.props(styles.label)} key={key}>
                 {{ x: '왼쪽 X', y: '위쪽 Y', width: '너비', height: '높이' }[key]}
@@ -128,12 +157,14 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <div {...stylex.props(styles.actions)}>
           <button
             className={secondary}
-            disabled={busy || crops.length === OCR_UPLOAD.maximumCrops}
+            disabled={busy || crops.length >= maximumCrops}
             onClick={() =>
-              setCrops((current) => [
-                ...current,
-                { slot: current.length + 1, x: 0, y: 0, width: 1, height: 1 }
-              ])
+              setCrops((current) => {
+                const slot = slots.find((slot) => !current.some((crop) => crop.slot === slot))
+                return slot === undefined
+                  ? current
+                  : [...current, { slot, x: 0, y: 0, width: 1, height: 1 }]
+              })
             }
           >
             <OcrIcon name="plus" />

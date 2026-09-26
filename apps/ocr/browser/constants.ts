@@ -1,3 +1,5 @@
+import type { Capture } from '../src/model.js'
+
 export const OCR_MESSAGES = {
   uploaded: '업로드했습니다. 정답을 입력할 수 있습니다.',
   saved: '저장했습니다.',
@@ -11,3 +13,9 @@ export const OCR_MESSAGES = {
 } as const
 
 export const OCR_CACHE = { staleTimeMs: 30_000, gcTimeMs: 5 * 60_000 } as const
+
+export const OCR_CAPTURE_LABELS = {
+  hud: 'HUD',
+  participants: '파티원창',
+  raid: '공대원창'
+} as const satisfies Record<Capture['kind'], string>

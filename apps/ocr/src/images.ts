@@ -1,7 +1,7 @@
 import { PNG } from 'pngjs'
 import { OCR_UPLOAD } from './constants.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
-import { parseInputRecord } from './input.js'
+import { parseCaptureKind, parseInputRecord } from './input.js'
 import type { Capture, Crop } from './model.js'
 
 export const MAX_PNG_BYTES = OCR_UPLOAD.maximumPngBytes
@@ -83,7 +83,7 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
   const decoded = decodePng(png)
-  const { id, capturedAt, kind, uiScale, uiScaleSource } = body
+  const { id, capturedAt, uiScale, uiScaleSource } = body
   if (
     typeof id !== 'string' ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
@@ -99,8 +99,8 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
 
+  const kind = parseCaptureKind(body.kind)
   if (
-    (kind !== 'hud' && kind !== 'participants') ||
     (uiScale !== null &&
       (typeof uiScale !== 'number' ||
         !Number.isFinite(uiScale) ||
@@ -113,11 +113,8 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
 
-  if (
-    !Array.isArray(body.crops) ||
-    body.crops.length < 1 ||
-    body.crops.length > OCR_UPLOAD.maximumCrops
-  ) {
+  const maximumCrops = OCR_UPLOAD.maximumCropsByKind[kind]
+  if (!Array.isArray(body.crops) || body.crops.length < 1 || body.crops.length > maximumCrops) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
   const slots = new Set<number>()
@@ -131,7 +128,7 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
       const height = parseCoordinate(crop.height)
       if (
         slot < 1 ||
-        slot > OCR_UPLOAD.maximumCrops ||
+        slot > maximumCrops ||
         slots.has(slot) ||
         x < 0 ||
         y < 0 ||

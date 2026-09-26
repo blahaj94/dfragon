@@ -12,6 +12,7 @@ import { primary, secondary } from './buttons.js'
 import { CaptureUpload } from './CaptureUpload.js'
 import { SampleEditor } from './SampleEditor.js'
 import { OcrIcon } from './OcrIcon.js'
+import { OCR_CAPTURE_LABELS } from './constants.js'
 
 export function App() {
   const { mode, toggle } = useColorMode()
@@ -164,6 +165,7 @@ export function App() {
                     <option value="">전체 종류</option>
                     <option value="hud">HUD</option>
                     <option value="participants">파티원창</option>
+                    <option value="raid">공대원창</option>
                   </select>
                 </label>
                 <label {...stylex.props(styles.label)}>
@@ -217,7 +219,7 @@ export function App() {
                         {item.text ?? '정답 미작성'}
                       </strong>
                       <span {...stylex.props(styles.sampleMeta)}>
-                        {item.kind === 'hud' ? 'HUD' : '파티원창'} · 위치 {item.slot}
+                        {OCR_CAPTURE_LABELS[item.kind]} · 위치 {item.slot}
                       </span>
                       <span
                         {...stylex.props(
