@@ -162,6 +162,17 @@ try {
   )
   await page.getByRole('button', { name: '업로드', exact: true }).click()
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
+  const splitGroup = page.getByRole('group', { name: '닉네임 단위 분할', exact: true })
+  assert.deepEqual(await splitGroup.getByRole('button').allTextContents(), [
+    '미배정',
+    'train',
+    'val',
+    'test'
+  ])
+  for (const button of await splitGroup.getByRole('button').all()) {
+    assert(await button.isDisabled(), 'unlabeled samples cannot be assigned a split')
+  }
+  assert.equal(await splitGroup.getByRole('button', { pressed: true }).textContent(), '미배정')
   await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: /샘플고래/ }).waitFor()
@@ -171,8 +182,32 @@ try {
       .evaluate((input) => input === globalThis.document.activeElement),
     'saving an answer without a filter keeps focus in the answer input'
   )
-  page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('combobox', { name: /닉네임 단위 분할/ }).selectOption('train')
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('수정중')
+  for (const button of await splitGroup.getByRole('button').all()) {
+    assert(await button.isDisabled(), 'unsaved answers cannot change the stored nickname split')
+  }
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
+  for (const split of ['train', 'val', 'test', 'unassigned', 'train']) {
+    const label = split === 'unassigned' ? '미배정' : split
+    page.once('dialog', (dialog) => dialog.accept())
+    await splitGroup.getByRole('button', { name: label, exact: true }).press('Enter')
+    await splitGroup.getByRole('button', { name: label, exact: true, pressed: true }).waitFor()
+    assert.equal(await splitGroup.getByRole('button', { pressed: true }).count(), 1)
+    assert.equal(store.exportManifest().samples[0].split, split)
+  }
+  let repeatedSelectionDialogs = 0
+  const dismissRepeatedSelection = (dialog) => {
+    repeatedSelectionDialogs += 1
+    return dialog.dismiss()
+  }
+  page.on('dialog', dismissRepeatedSelection)
+  await splitGroup.getByRole('button', { name: 'train', exact: true }).click()
+  assert.equal(repeatedSelectionDialogs, 0, 'selecting the current split does not prompt again')
+  page.off('dialog', dismissRepeatedSelection)
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await splitGroup.getByRole('button', { name: 'val', exact: true }).click()
+  assert.equal(await splitGroup.getByRole('button', { pressed: true }).textContent(), 'train')
+  assert.equal(store.exportManifest().samples[0].split, 'train')
   await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
   assert.equal(store.exportManifest().samples[0].split, 'train')
   await page.getByRole('button', { name: '학습에서 제외', exact: true }).click()
@@ -280,7 +315,7 @@ try {
   await page.getByRole('button', { name: '정답 저장', exact: true }).click()
   await galleryRegion.getByRole('button', { name: /공대열두번째.*공대원창.*위치 12/ }).waitFor()
   page.once('dialog', (dialog) => dialog.accept())
-  await page.getByRole('combobox', { name: /닉네임 단위 분할/ }).selectOption('test')
+  await splitGroup.getByRole('button', { name: 'test', exact: true }).click()
   await galleryRegion.getByRole('button', { name: /공대열두번째.*test/ }).waitFor()
   assert.equal(store.sample(`${raidCapture.id}-12`).split, 'test')
   await screenshot('raid')
@@ -338,6 +373,10 @@ try {
     .getByRole('button')
     .nth(8)
     .waitFor()
+  await galleryRegion
+    .getByRole('button', { name: /샘플고래.*train/ })
+    .first()
+    .click()
   await screenshot('desktop')
   await page.getByRole('button', { name: '다크 테마로 전환', exact: true }).click()
   await page.reload()
@@ -347,6 +386,10 @@ try {
     .getByRole('button')
     .nth(8)
     .waitFor()
+  await galleryRegion
+    .getByRole('button', { name: /샘플고래.*train/ })
+    .first()
+    .click()
   assert.equal(await page.locator('html').getAttribute('data-seed-color-mode'), 'dark-only')
   await screenshot('desktop-dark')
   await page.getByRole('button', { name: '라이트 테마로 전환', exact: true }).click()

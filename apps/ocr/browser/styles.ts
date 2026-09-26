@@ -63,6 +63,11 @@ export const styles = stylex.create({
     color: colors.muted,
     minWidth: 0
   },
+  splitButtons: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    gap: 8
+  },
   control: {
     fontFamily: 'inherit',
     fontSize: 14,
