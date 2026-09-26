@@ -219,7 +219,8 @@ try {
     await uploadPanel
       .getByRole('combobox', { name: '크롭 1 위치', exact: true })
       .getByRole('option', { name: '1', exact: true })
-      .isDisabled()
+      // Read the option itself; isDisabled retargets to the label's select.
+      .evaluate((option) => option.disabled)
   )
   for (let index = 0; index < 12; index += 1) {
     for (const [name, value] of [
