@@ -8,6 +8,10 @@ import type {
   DeveloperPartyPreviewResponse
 } from '../../preload/common/types/developer'
 import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
+import {
+  isDeveloperCollectionKind,
+  isDeveloperPartySlot
+} from '../../preload/common/developer-collection'
 import { createDeveloperStore, DeveloperStoreError } from './persistence'
 import { createDeveloperCollectionSession, previewFrame } from './collection-session'
 import { createPrintScreenShortcut } from './print-screen-shortcut'
@@ -33,6 +37,8 @@ const PUBLIC_ERROR_CODES = new Set<string>([
   DEVELOPER_ERROR_CODES.GAME_NOT_FOUND,
   DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND,
   DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN,
+  DEVELOPER_ERROR_CODES.RAID_WINDOW_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.RAID_WINDOW_UNCERTAIN,
   DEVELOPER_ERROR_CODES.OPERATION_FAILED
 ])
 
@@ -81,22 +87,26 @@ function exactExcluded(value: unknown): boolean {
 }
 
 function exactCollectionKind(value: unknown): DeveloperCollectionKind {
-  if (value === 'hud' || value === 'participants') {
+  if (isDeveloperCollectionKind(value)) {
     return value
   }
   throw invalidCommand()
 }
 
-function exactPartySlots(value: unknown): DeveloperPartySlot[] | null {
+function exactPartySlots(
+  value: unknown,
+  kind: DeveloperCollectionKind
+): DeveloperPartySlot[] | null {
   if (value === null) {
     return null
   }
   if (!Array.isArray(value)) {
     throw invalidCommand()
   }
-  const isPartySlot = (slot: unknown): slot is DeveloperPartySlot =>
-    slot === 1 || slot === 2 || slot === 3 || slot === 4
-  if (value.some((slot) => !isPartySlot(slot)) || new Set(value).size !== value.length) {
+  if (
+    [...value].some((slot) => !isDeveloperPartySlot(slot, kind)) ||
+    new Set(value).size !== value.length
+  ) {
     throw invalidCommand()
   }
   return [...value]
@@ -506,7 +516,7 @@ export function registerDeveloperWindow(
           }
           const frame = await (await getPartyCaptureModule()).capturePartyFrame(kind)
           return {
-            frame: previewFrame(frame),
+            frame: previewFrame(frame, kind),
             previewError: null,
             collection: collectionSession.getStatus()
           }
@@ -528,8 +538,8 @@ export function registerDeveloperWindow(
         if (args.length < 1 || args.length > 2) {
           throw invalidCommand()
         }
-        const slots = exactPartySlots(args[0])
         const kind = args.length === 1 ? 'hud' : exactCollectionKind(args[1])
+        const slots = exactPartySlots(args[0], kind)
         if (slots == null) {
           await collectionSession.stop()
           return collectionSession.getStatus()

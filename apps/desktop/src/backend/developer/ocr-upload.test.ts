@@ -88,6 +88,43 @@ it('sends main-owned original pixels and selected coordinates with a credential 
   expect(f.unsubscribe).toHaveBeenCalledOnce()
 })
 
+it('uploads selected raid rows 10..12 while preserving original pixels and rejecting non-raid slots', async () => {
+  const f = setup()
+  const raid: CapturedPartyFrame = {
+    ...frame,
+    slots: [
+      { slot: 10, width: 1, height: 1, rgba: Buffer.from([1, 2, 3, 255]) },
+      { slot: 11, width: 1, height: 1, rgba: Buffer.from([4, 5, 6, 255]) },
+      { slot: 12, width: 1, height: 1, rgba: Buffer.from([11, 22, 33, 255]) }
+    ],
+    original: {
+      rgba: frame.original!.rgba,
+      crops: [
+        { slot: 10, x: 0, y: 0, width: 1, height: 1 },
+        { slot: 11, x: 1, y: 0, width: 1, height: 1 },
+        { slot: 12, x: 1, y: 1, width: 1, height: 1 }
+      ]
+    }
+  }
+  expect(await f.prepare()!(raid, [10, 12], 'raid', new AbortController().signal)).toBe('uploaded')
+  const body = JSON.parse(String(f.request.mock.calls[0][1]?.body))
+  expect(body.kind).toBe('raid')
+  expect(body.crops).toEqual([raid.original!.crops[0], raid.original!.crops[2]])
+  expect(PNG.sync.read(Buffer.from(body.originalPng, 'base64')).data).toEqual(raid.original!.rgba)
+  expect(body).not.toHaveProperty('party')
+  expect(body).not.toHaveProperty('equipmentScoreText')
+  for (const kind of ['hud', 'participants'] as const) {
+    expect(await f.prepare()!(raid, [12], kind, new AbortController().signal)).toBe('failed')
+  }
+  expect(f.request).toHaveBeenCalledOnce()
+  const mismatched = {
+    ...raid,
+    original: { ...raid.original!, crops: [...raid.original!.crops, raid.original!.crops[0]] }
+  }
+  expect(await f.prepare()!(mismatched, [12], 'raid', new AbortController().signal)).toBe('failed')
+  expect(f.request).toHaveBeenCalledOnce()
+})
+
 it('never queues signed-out captures or sends under an account that logged in later', async () => {
   const f = setup()
   f.changeAccount(null)

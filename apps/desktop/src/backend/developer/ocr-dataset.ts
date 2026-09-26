@@ -1,26 +1,32 @@
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import type { AuthCoordinator } from '../auth/types'
-import type { DeveloperSample } from '../../preload/common/types/developer'
+import type { DeveloperPartySlot, DeveloperSample } from '../../preload/common/types/developer'
+import { isDeveloperPartySlot } from '../../preload/common/developer-collection'
 import { DEVELOPER_ERROR_CODES as errors } from '../../preload/common/developer-errors'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 
 const origin = 'https://ocr.dfragon.com'
 const dimension = z.number().int().min(1).max(8192)
-const sampleSchema = z.object({
-  id: z.string().regex(/^[0-9a-f-]{36}-[1-4]$/),
-  capturedAt: z.iso.datetime(),
-  width: dimension,
-  height: dimension,
-  text: z.string().max(100).nullable(),
-  excluded: z.boolean(),
-  slot: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
-  frameWidth: dimension,
-  frameHeight: dimension,
-  uiScale: z.number().positive().max(10).nullable(),
-  kind: z.enum(['hud', 'participants']),
-  split: z.enum(['unassigned', 'train', 'val', 'test'])
-})
+const sampleSchema = z
+  .object({
+    id: z.string().regex(/^[0-9a-f-]{36}-(?:[1-9]|1[0-2])$/),
+    capturedAt: z.iso.datetime(),
+    width: dimension,
+    height: dimension,
+    text: z.string().max(100).nullable(),
+    excluded: z.boolean(),
+    slot: z.custom<DeveloperPartySlot>((value) => isDeveloperPartySlot(value, 'raid')),
+    frameWidth: dimension,
+    frameHeight: dimension,
+    uiScale: z.number().positive().max(10).nullable(),
+    kind: z.enum(['hud', 'participants', 'raid']),
+    split: z.enum(['unassigned', 'train', 'val', 'test'])
+  })
+  .refine(
+    (sample) =>
+      isDeveloperPartySlot(sample.slot, sample.kind) && sample.id.endsWith(`-${sample.slot}`)
+  )
 const datasetSchema = z.object({
   exportedAt: z.iso.datetime(),
   samples: z.array(sampleSchema).max(10_000)
@@ -185,6 +191,7 @@ export function createOcrDataset(
             sample.uiScale === null
               ? null
               : {
+                  kind: sample.kind,
                   slot: sample.slot,
                   frameWidth: sample.frameWidth,
                   frameHeight: sample.frameHeight,

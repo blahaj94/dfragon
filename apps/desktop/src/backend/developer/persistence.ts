@@ -4,11 +4,14 @@ import { promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type {
   DeveloperFrame,
-  DeveloperPartySlot,
   DeveloperSample,
   DeveloperSampleSource,
   DeveloperSettings
 } from '../../preload/common/types/developer'
+import {
+  isDeveloperCollectionKind,
+  isDeveloperPartySlot
+} from '../../preload/common/developer-collection'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './image-limits'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
@@ -131,18 +134,18 @@ function parseSettings(value: unknown): DeveloperSettings | null {
   return { enabled: value.enabled }
 }
 
-function isPartySlot(value: unknown): value is DeveloperPartySlot {
-  return value === 1 || value === 2 || value === 3 || value === 4
-}
-
 function parseSampleSource(value: unknown): DeveloperSampleSource | null | undefined {
   if (value === null) {
     return null
   }
   if (
     !isObject(value) ||
-    !hasExactKeys(value, ['slot', 'frameWidth', 'frameHeight', 'scale']) ||
-    !isPartySlot(value.slot) ||
+    !(
+      hasExactKeys(value, ['slot', 'frameWidth', 'frameHeight', 'scale']) ||
+      hasExactKeys(value, ['kind', 'slot', 'frameWidth', 'frameHeight', 'scale'])
+    ) ||
+    ('kind' in value && !isDeveloperCollectionKind(value.kind)) ||
+    !isDeveloperPartySlot(value.slot, isDeveloperCollectionKind(value.kind) ? value.kind : 'hud') ||
     typeof value.frameWidth !== 'number' ||
     typeof value.frameHeight !== 'number' ||
     !isValidImageDimensions(value.frameWidth, value.frameHeight) ||
@@ -153,6 +156,7 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
     return undefined
   }
   return {
+    ...(isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}),
     slot: value.slot,
     frameWidth: value.frameWidth,
     frameHeight: value.frameHeight,
