@@ -34,7 +34,8 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
 - `estimateDNFUIScale`은 UI 퍼센트와 선택적 게임 영역 높이로 기준 래스터 배율을 추정한다. `estimateDNFPartyScale`은 인접 프레임의 실측 간격으로 배율을 구하고, `projectDNFPartyRegions`는 호출자가 보정한 기준 영역을 네 슬롯 후보에 투영한다. 공식 게임 산식이나 자동 검출기가 아니며 Desktop 호출부에는 아직 연결하지 않았다. [입력 범위와 한계](../../packages/lib/README.md#dnf-ui-배율-추정), [파티 프레임 실측 조사](desktop-party-geometry.md)를 참고한다.
-- `detectDNFPartyParticipantWindow`·`cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행·자물쇠 행의 슬롯 번호를 유지하며 Desktop 개발자 탭 연결은 아직 없다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
+- `detectDNFPartyParticipantWindow`·`cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행·자물쇠 행의 슬롯 번호를 유지하며 Desktop의 파티원창 크롭 탭에서 사용한다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
+- `detectDNFRaidParticipantWindow`·`cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭에서 사용한다. `readDNFRaidParticipantMetadata`의 파티·점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 
@@ -206,6 +207,6 @@ Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory 
 
 ## Desktop 개발 도구
 
-설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 주 모니터 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 크롭·라벨·기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본·선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰·원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치·조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, 반전 회색조는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
+설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 게임 client 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 HUD·파티원창의 네 위치와 공대원창의 12행 수집, 라벨·기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본·선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰·원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치·조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, 반전 회색조는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
 
 `lib/developer-mode-machine.ts`, `lib/developer-samples-machine.ts`, `lib/developer-evaluation-machine.ts`가 각각 설정 전환, 샘플 조회·저장, 평가 실행·취소의 상태를 소유한다. 대응하는 `hooks/useDeveloper*.ts`는 machine 상태를 화면 API로 연결하고, `lib/developer-evaluation-run.ts`는 actor의 취소 신호에 따라 OCR 자원을 정리한다. 선택한 이미지와 라벨 초안 등 화면 입력은 컴포넌트에 둔다.
