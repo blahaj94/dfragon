@@ -1,7 +1,7 @@
 export type DeveloperSettings = { enabled: boolean }
 
-export type DeveloperPartySlot = 1 | 2 | 3 | 4
-export type DeveloperCollectionKind = 'hud' | 'participants'
+export type DeveloperPartySlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12
+export type DeveloperCollectionKind = 'hud' | 'participants' | 'raid'
 
 export type DeveloperParticipantWindow = {
   width: number
@@ -19,6 +19,8 @@ export type DeveloperParticipantWindow = {
 }
 
 export type DeveloperSampleSource = {
+  /** Missing on older local samples, which support positions 1..4 only. */
+  kind?: DeveloperCollectionKind
   slot: DeveloperPartySlot
   frameWidth: number
   frameHeight: number
