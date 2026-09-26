@@ -423,6 +423,47 @@ it('validates collection kind and reports popup detection failures without old p
   fixture.dispose()
 })
 
+it('permits raid rows 10..12 through trusted IPC without widening the other modes', async () => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  for (const kind of ['hud', 'participants']) {
+    await expect(
+      fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [12], kind)
+    ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  }
+  for (const slots of [[13], [10, 10], ['12']]) {
+    await expect(
+      fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots, 'raid')
+    ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  }
+  expect(
+    await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [10, 11, 12], 'raid')
+  ).toMatchObject({ armed: true, slots: [10, 11, 12] })
+  for (const code of ['DEVELOPER_RAID_WINDOW_NOT_FOUND', 'DEVELOPER_RAID_WINDOW_UNCERTAIN']) {
+    partyCapture.capturePartyFrame.mockRejectedValueOnce(new Error(code))
+    expect(await fixture.invoke(DEVELOPER_CHANNELS.previewParty, 'raid')).toMatchObject({
+      frame: null,
+      previewError: code
+    })
+  }
+  partyCapture.capturePartyFrame.mockResolvedValue({
+    width: 1067,
+    height: 600,
+    scale: 1,
+    capturedAt: '2026-09-26T00:00:00.000Z',
+    slots: [{ slot: 12, width: 2, height: 1, rgba: Buffer.alloc(8) }]
+  })
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.previewParty, 'raid')).toMatchObject({
+    frame: { slots: [{ slot: 12 }] },
+    previewError: null
+  })
+  expect(await fixture.invoke(DEVELOPER_CHANNELS.previewParty, 'participants')).toMatchObject({
+    frame: null,
+    previewError: 'DEVELOPER_CAPTURE_UNAVAILABLE'
+  })
+  fixture.dispose()
+})
+
 it('does not reopen remote reads after close or disable while settings are being read', async () => {
   for (const command of [DEVELOPER_CHANNELS.closeOcrSamples, DEVELOPER_CHANNELS.setEnabled]) {
     const fixture = await setup()

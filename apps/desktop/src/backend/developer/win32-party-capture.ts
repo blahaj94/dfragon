@@ -1,7 +1,8 @@
 import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import type {
   DeveloperCollectionKind,
-  DeveloperParticipantWindow
+  DeveloperParticipantWindow,
+  DeveloperPartySlot
 } from '../../preload/common/types/developer'
 import { captureParticipantWindow } from './participant-window'
 import { win32 as win32Path } from 'node:path'
@@ -12,7 +13,7 @@ import { bgrxToRgba } from './win32-capture'
 import type { CapturedPartyFrame } from './collection-session'
 
 export type PartyFrameSlot = {
-  slot: 1 | 2 | 3 | 4
+  slot: DeveloperPartySlot
   width: number
   height: number
   rgba: Buffer
@@ -678,14 +679,15 @@ function capturePartyFrameWithApi(
       throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
     const windowsAboveAfter = getWindowsAbove(api, gameWindowAfter.hwnd)
-    if (kind === 'participants') {
+    if (kind === 'participants' || kind === 'raid') {
       const detected = captureParticipantWindow(
         {
           width: gameWindowAfter.client.width,
           height: gameWindowAfter.client.height,
           rgba
         },
-        capturedAt
+        capturedAt,
+        kind
       )
       const regions = [{ coverage: detected.coverage }]
       if (

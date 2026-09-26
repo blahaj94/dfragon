@@ -7,6 +7,7 @@ import { primary, secondary } from './buttons.js'
 import type { Sample } from '../src/model.js'
 import { parseSplit } from '../src/input.js'
 import { OcrIcon } from './OcrIcon.js'
+import { OCR_CAPTURE_LABELS } from './constants.js'
 
 export function SampleEditor({ sample }: { sample: Sample }) {
   const { text, setText, message, busy, saveSample, assignNicknameSplit } = useSampleEditor(sample)
@@ -18,7 +19,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
           정답 입력
         </Typo.h5>
         <span {...stylex.props(styles.badge)}>
-          {sample.kind === 'hud' ? 'HUD' : '파티원창'} · 위치 {sample.slot}
+          {OCR_CAPTURE_LABELS[sample.kind]} · 위치 {sample.slot}
         </span>
       </div>
       <div {...stylex.props(styles.largePreview)}>

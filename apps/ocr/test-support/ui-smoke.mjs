@@ -198,6 +198,91 @@ try {
     'login after logout refetches the cleared dataset cache'
   )
 
+  // Exercise raid-only row limits and keep each collection mode's coordinate draft.
+  await uploadToggle.click()
+  const uploadPanel = page.getByRole('region', { name: '원본 이미지 업로드', exact: true })
+  const uploadKind = uploadPanel.getByRole('combobox', { name: '수집 종류', exact: true })
+  await uploadKind.selectOption('raid')
+  await uploadPanel.getByLabel('원본 PNG', { exact: true }).setInputFiles({
+    name: 'synthetic-raid.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from(original, 'base64')
+  })
+  await uploadPanel.getByRole('combobox', { name: '크롭 1 위치', exact: true }).selectOption('12')
+  const addCrop = uploadPanel.getByRole('button', { name: '크롭 추가', exact: true })
+  for (let index = 1; index < 12; index += 1) {
+    await addCrop.click()
+  }
+  assert(await addCrop.isDisabled())
+  assert.equal(await uploadPanel.getByLabel('너비', { exact: true }).count(), 12)
+  assert(
+    await uploadPanel
+      .getByRole('combobox', { name: '크롭 1 위치', exact: true })
+      .getByRole('option', { name: '1', exact: true })
+      // Read the option itself; isDisabled retargets to the label's select.
+      .evaluate((option) => option.disabled)
+  )
+  for (let index = 0; index < 12; index += 1) {
+    for (const [name, value] of [
+      ['왼쪽 X', '75'],
+      ['위쪽 Y', '67'],
+      ['너비', '120'],
+      ['높이', '30']
+    ]) {
+      await uploadPanel.getByLabel(name, { exact: true }).nth(index).fill(value)
+    }
+  }
+  await uploadKind.selectOption('hud')
+  assert.equal(await uploadPanel.getByLabel('너비', { exact: true }).count(), 1)
+  await uploadPanel.getByLabel('너비', { exact: true }).fill('60')
+  for (let index = 1; index < 4; index += 1) {
+    await addCrop.click()
+  }
+  assert(await addCrop.isDisabled())
+  assert.equal(
+    await uploadPanel
+      .getByRole('combobox', { name: '크롭 1 위치', exact: true })
+      .locator('option')
+      .count(),
+    4
+  )
+  await uploadKind.selectOption('raid')
+  assert.equal(await uploadPanel.getByLabel('너비', { exact: true }).count(), 12)
+  assert.equal(await uploadPanel.getByLabel('너비', { exact: true }).first().inputValue(), '120')
+  assert.equal(
+    await uploadPanel.getByRole('combobox', { name: '크롭 1 위치', exact: true }).inputValue(),
+    '12'
+  )
+  await uploadPanel.getByRole('button', { name: '업로드', exact: true }).click()
+  await uploadPanel
+    .getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true })
+    .waitFor()
+  const raidCapture = store.exportManifest().captures.find((capture) => capture.kind === 'raid')
+  assert(raidCapture)
+  assert.deepEqual(
+    raidCapture.crops.map(({ slot }) => slot),
+    Array.from({ length: 12 }, (_, i) => i + 1)
+  )
+  await uploadPanel.getByRole('button', { name: '접기', exact: true }).click()
+  await kindFilter.selectOption('raid')
+  const galleryRegion = page.getByRole('region', { name: '수집 이미지', exact: true })
+  const twelfth = galleryRegion.getByRole('button', { name: /공대원창.*위치 12/ })
+  await twelfth.waitFor()
+  assert.equal(await galleryRegion.getByRole('button').count(), 12)
+  await twelfth.click()
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('공대열두번째')
+  await page.getByRole('button', { name: '정답 저장', exact: true }).click()
+  await galleryRegion.getByRole('button', { name: /공대열두번째.*공대원창.*위치 12/ }).waitFor()
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('combobox', { name: /닉네임 단위 분할/ }).selectOption('test')
+  await galleryRegion.getByRole('button', { name: /공대열두번째.*test/ }).waitFor()
+  assert.equal(store.sample(`${raidCapture.id}-12`).split, 'test')
+  await screenshot('raid')
+  await kindFilter.selectOption('hud')
+  await galleryRegion.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
+  assert.equal(await galleryRegion.getByRole('button').count(), 1)
+  await kindFilter.selectOption('')
+
   // Fill the gallery with synthetic captures to inspect the desktop and mobile grids.
   const capture = store.exportManifest().captures[0]
   for (let index = 0; index < 8; index += 1) {
@@ -248,7 +333,7 @@ try {
   }
   assert.deepEqual(errors, [])
   process.stdout.write(
-    'OCR browser upload, labels, split, exclusion, download, themes, responsive layout and logout passed\n'
+    'OCR browser HUD/raid upload limits, draft preservation, labels, split, exclusion, download, themes, responsive layout and logout passed\n'
   )
 } finally {
   await browser?.close()

@@ -5,8 +5,14 @@ import type {
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot,
+  DeveloperSampleSource,
   DeveloperUploadStatus
 } from '../../preload/common/types/developer'
+import {
+  DEVELOPER_COLLECTION_SLOTS,
+  isDeveloperCollectionKind,
+  isDeveloperPartySlot
+} from '../../preload/common/developer-collection'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 export type CapturedPartySlot = {
@@ -33,12 +39,7 @@ export type CapturedPartyFrame = {
 type CollectionSampleInput = {
   png: Buffer
   capturedAt: string
-  source: {
-    slot: DeveloperPartySlot
-    frameWidth: number
-    frameHeight: number
-    scale: number
-  }
+  source: DeveloperSampleSource
 }
 
 type CollectionStore = {
@@ -79,17 +80,17 @@ type CollectionSession = {
   getStatus: () => DeveloperPartyCollectionStatus
 }
 
-const PARTY_SLOTS = new Set<DeveloperPartySlot>([1, 2, 3, 4])
-
-function isPartySlot(value: unknown): value is DeveloperPartySlot {
-  return value === 1 || value === 2 || value === 3 || value === 4
-}
-
 function isValidScale(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
-export function validatePartyFrame(value: unknown): asserts value is CapturedPartyFrame {
+export function validatePartyFrame(
+  value: unknown,
+  kind: DeveloperCollectionKind = 'hud'
+): asserts value is CapturedPartyFrame {
+  if (!isDeveloperCollectionKind(kind)) {
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
+  }
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -103,7 +104,7 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
   if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
-  if (!Array.isArray(frame.slots) || frame.slots.length > 4) {
+  if (!Array.isArray(frame.slots) || frame.slots.length > DEVELOPER_COLLECTION_SLOTS[kind].length) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
 
@@ -117,7 +118,7 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
     const height = typeof slot.height === 'number' ? slot.height : Number.NaN
     const rgba = slot.rgba
     if (
-      !isPartySlot(slot.slot) ||
+      !isDeveloperPartySlot(slot.slot, kind) ||
       seenSlots.has(slot.slot) ||
       !isValidImageDimensions(width, height) ||
       !Buffer.isBuffer(rgba) ||
@@ -127,10 +128,63 @@ export function validatePartyFrame(value: unknown): asserts value is CapturedPar
     }
     seenSlots.add(slot.slot)
   }
+
+  if (frame.participantWindow != null) {
+    validateParticipantPreview(frame.participantWindow, kind, seenSlots)
+  }
 }
 
-export function previewFrame(frame: CapturedPartyFrame): DeveloperPartyPreviewFrame {
-  validatePartyFrame(frame)
+function validateParticipantPreview(
+  value: unknown,
+  kind: DeveloperCollectionKind,
+  occupiedSlots: ReadonlySet<number>
+): void {
+  if (kind === 'hud' || value == null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
+  }
+  const popup = value as Record<string, unknown>
+  const width = typeof popup.width === 'number' ? popup.width : Number.NaN
+  const height = typeof popup.height === 'number' ? popup.height : Number.NaN
+  if (
+    !isValidImageDimensions(width, height) ||
+    !(popup.rgba instanceof Uint8Array) ||
+    popup.rgba.length !== width * height * 4 ||
+    !Array.isArray(popup.rows) ||
+    popup.rows.length !== DEVELOPER_COLLECTION_SLOTS[kind].length
+  ) {
+    throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
+  }
+  for (const [index, value] of popup.rows.entries()) {
+    if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
+    }
+    const row = value as Record<string, unknown>
+    const x = typeof row.x === 'number' ? row.x : Number.NaN
+    const y = typeof row.y === 'number' ? row.y : Number.NaN
+    const rowWidth = typeof row.width === 'number' ? row.width : Number.NaN
+    const rowHeight = typeof row.height === 'number' ? row.height : Number.NaN
+    if (
+      row.slot !== index + 1 ||
+      typeof row.occupied !== 'boolean' ||
+      row.occupied !== occupiedSlots.has(index + 1) ||
+      !Number.isSafeInteger(x) ||
+      !Number.isSafeInteger(y) ||
+      x < 0 ||
+      y < 0 ||
+      !isValidImageDimensions(rowWidth, rowHeight) ||
+      x + rowWidth > width ||
+      y + rowHeight > height
+    ) {
+      throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
+    }
+  }
+}
+
+export function previewFrame(
+  frame: CapturedPartyFrame,
+  kind: DeveloperCollectionKind = 'hud'
+): DeveloperPartyPreviewFrame {
+  validatePartyFrame(frame, kind)
   return {
     width: frame.width,
     height: frame.height,
@@ -163,7 +217,9 @@ const PUBLIC_ERROR_CODES = new Set<string>([
   DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND,
   DEVELOPER_ERROR_CODES.GAME_NOT_FOUND,
   DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND,
-  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN
+  DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN,
+  DEVELOPER_ERROR_CODES.RAID_WINDOW_NOT_FOUND,
+  DEVELOPER_ERROR_CODES.RAID_WINDOW_UNCERTAIN
 ])
 
 function publicErrorCode(error: unknown): string {
@@ -265,7 +321,7 @@ export function createDeveloperCollectionSession({
       if (!isCurrentCapture(captureGeneration)) {
         return
       }
-      validatePartyFrame(frameValue)
+      validatePartyFrame(frameValue, captureKind)
       if (!(await isDnfForeground())) {
         throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
@@ -285,6 +341,7 @@ export function createDeveloperCollectionSession({
             png,
             capturedAt: frameValue.capturedAt,
             source: {
+              kind: captureKind,
               slot: slot.slot,
               frameWidth: frameValue.width,
               frameHeight: frameValue.height,
@@ -386,8 +443,11 @@ export function createDeveloperCollectionSession({
     }
 
     if (
+      !isDeveloperCollectionKind(captureKind) ||
+      !Array.isArray(selectedSlots) ||
+      selectedSlots.length > DEVELOPER_COLLECTION_SLOTS[captureKind].length ||
       new Set(selectedSlots).size !== selectedSlots.length ||
-      selectedSlots.some((slot) => !PARTY_SLOTS.has(slot))
+      [...selectedSlots].some((slot) => !isDeveloperPartySlot(slot, captureKind))
     ) {
       error = DEVELOPER_ERROR_CODES.INVALID_COMMAND
       revision += 1

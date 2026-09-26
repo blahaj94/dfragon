@@ -21,10 +21,13 @@ export const styles = stylex.create({
   },
   heading: { display: 'flex', flexDirection: 'column', gap: 4 },
   muted: { color: colors.shellMuted },
-  tabs: { display: 'flex', gap: 8, minHeight: 40 },
+  tabs: { display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 40 },
   tab: {
     minWidth: 0,
-    width: { default: 186, '@media (max-width: 600px)': 'calc((100% - 16px) / 3)' },
+    width: {
+      default: 'min(186px, calc((100% - 24px) / 4))',
+      '@media (max-width: 600px)': 'calc((100% - 8px) / 2)'
+    },
     height: 40,
     borderRadius: 0,
     borderBottomWidth: 2,

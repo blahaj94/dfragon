@@ -1,12 +1,19 @@
 import { OCR_SAMPLES } from './constants.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
-import type { Split } from './model.js'
+import type { Capture, Split } from './model.js'
 
 export function parseInputRecord(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
   return value as Record<string, unknown>
+}
+
+export function parseCaptureKind(value: unknown): Capture['kind'] {
+  if (value !== 'hud' && value !== 'participants' && value !== 'raid') {
+    throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+  }
+  return value
 }
 
 export function parseLabel(value: unknown): string | null {

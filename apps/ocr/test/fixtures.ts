@@ -18,3 +18,17 @@ export function upload(id = randomUUID()) {
     ]
   }
 }
+
+export function raidUpload(id = randomUUID()) {
+  return {
+    ...upload(id),
+    kind: 'raid',
+    crops: Array.from({ length: 12 }, (_, index) => ({
+      slot: index + 1,
+      x: index % 8,
+      y: Math.floor(index / 8),
+      width: 1,
+      height: 1
+    }))
+  }
+}

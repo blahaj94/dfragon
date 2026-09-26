@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import {
   createDeveloperCollectionSession,
+  previewFrame,
   validatePartyFrame,
   type CapturedPartyFrame
 } from './collection-session'
@@ -166,12 +167,12 @@ it('captures fresh raw crops and saves only the selected party slots', async () 
     {
       png: Buffer.alloc(8, 2),
       capturedAt,
-      source: { slot: 2, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
+      source: { kind: 'hud', slot: 2, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
     },
     {
       png: Buffer.alloc(8, 4),
       capturedAt,
-      source: { slot: 4, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
+      source: { kind: 'hud', slot: 4, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
     }
   ])
   expect(fixture.session.getStatus()).toMatchObject({
@@ -398,4 +399,70 @@ it('reports a partial save without claiming the remaining nicknames succeeded', 
     error: 'DEVELOPER_STORAGE_UNAVAILABLE'
   })
   expect(fixture.store.addCollectedSample).toHaveBeenCalledTimes(2)
+})
+
+it('saves only detected selected raid rows and uploads the same fresh frame with raid provenance', async () => {
+  const current = frame([
+    { slot: 1, width: 2, height: 1, rgba: Buffer.alloc(8, 1) },
+    { slot: 10, width: 2, height: 1, rgba: Buffer.alloc(8, 10) },
+    { slot: 12, width: 2, height: 1, rgba: Buffer.alloc(8, 12) }
+  ])
+  const send = vi.fn(async () => 'uploaded' as const)
+  const fixture = setup({ capture: async () => current, prepareUpload: () => send })
+  await fixture.session.setSlots([10, 11, 12], 'raid')
+  fixture.pressPrintScreen()
+  await settleCapture()
+
+  expect(fixture.capturePartyFrame).toHaveBeenCalledExactlyOnceWith('raid')
+  expect(fixture.store.addCollectedSample.mock.calls.map(([sample]) => sample.source)).toEqual([
+    { kind: 'raid', slot: 10, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 },
+    { kind: 'raid', slot: 12, frameWidth: 1920, frameHeight: 1080, scale: 1.285714 }
+  ])
+  expect(send).toHaveBeenCalledExactlyOnceWith(
+    current,
+    [10, 11, 12],
+    'raid',
+    expect.any(AbortSignal)
+  )
+  expect(fixture.session.getStatus()).toMatchObject({
+    lastSavedCount: 2,
+    upload: 'uploaded',
+    error: null
+  })
+})
+
+it('keeps selection and preview limits specific to each collection mode', async () => {
+  const raid = frame([{ slot: 12, width: 2, height: 1, rgba: Buffer.alloc(8, 12) }])
+  expect(previewFrame(raid, 'raid').slots[0].slot).toBe(12)
+  for (const kind of ['hud', 'participants'] as const) {
+    const fixture = setup()
+    expect(await fixture.session.setSlots([12], kind)).toMatchObject({
+      armed: false,
+      error: 'DEVELOPER_INVALID_COMMAND'
+    })
+    expect(fixture.registerPrintScreen).not.toHaveBeenCalled()
+    expect(() => previewFrame(raid, kind)).toThrow('DEVELOPER_CAPTURE_UNAVAILABLE')
+  }
+  const fixture = setup()
+  expect(await fixture.session.setSlots([12, 12], 'raid')).toMatchObject({
+    armed: false,
+    error: 'DEVELOPER_INVALID_COMMAND'
+  })
+})
+
+it('invalidates a pending raid capture when switching back to the four-row participant mode', async () => {
+  const pending = deferred<CapturedPartyFrame>()
+  const fixture = setup()
+  fixture.capturePartyFrame.mockReturnValueOnce(pending.promise)
+  await fixture.session.setSlots([10, 11, 12], 'raid')
+  fixture.pressPrintScreen()
+  await settleCapture()
+  await fixture.session.setSlots([1, 2, 3, 4], 'participants')
+  pending.resolve(frame([{ slot: 12, width: 2, height: 1, rgba: Buffer.alloc(8, 12) }]))
+  await settleCapture()
+
+  expect(fixture.store.addCollectedSample).not.toHaveBeenCalled()
+  expect(fixture.unregisterPrintScreen).toHaveBeenCalledOnce()
+  expect(fixture.registerPrintScreen).toHaveBeenCalledTimes(2)
+  expect(fixture.session.getStatus()).toMatchObject({ armed: true, slots: [1, 2, 3, 4] })
 })

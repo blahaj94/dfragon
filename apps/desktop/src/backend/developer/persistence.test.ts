@@ -142,6 +142,49 @@ it('stores collected source geometry and cancels before committing a sample', as
   expect(await readdir(join(rootDir, 'developer-mode', 'samples'))).toHaveLength(2)
 })
 
+it('reopens raid rows 10..12 with labels while keeping legacy and non-raid sources limited to four', async () => {
+  const { rootDir, store } = await createStore()
+  await store.setEnabled(true)
+  const capturedAt = '2026-09-26T00:00:00.000Z'
+  const raidSource = {
+    kind: 'raid' as const,
+    slot: 12 as const,
+    frameWidth: 1067,
+    frameHeight: 600,
+    scale: 1
+  }
+  const saved: Awaited<ReturnType<typeof store.listSamples>> = []
+  for (const slot of [10, 11, 12] as const) {
+    const sample = await store.addCollectedSample(
+      { png: png(), capturedAt, source: { ...raidSource, slot } },
+      () => true
+    )
+    saved.push(await store.saveLabel(sample.id, '합성정답'))
+  }
+  const reopened = createDeveloperStore({ rootDir, decodePng: () => ({ width: 2, height: 1 }) })
+  expect(await reopened.listSamples()).toEqual(expect.arrayContaining(saved))
+  for (const sample of saved) {
+    expect(await reopened.readImage(sample.id)).toBe(
+      `data:image/png;base64,${png().toString('base64')}`
+    )
+  }
+  for (const source of [
+    { slot: 12 as const, frameWidth: 1067, frameHeight: 600, scale: 1 },
+    { ...raidSource, kind: 'hud' as const },
+    { ...raidSource, kind: 'participants' as const }
+  ]) {
+    await expect(
+      store.addCollectedSample({ png: png(), capturedAt, source }, () => true)
+    ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  }
+  const legacy = { slot: 4 as const, frameWidth: 1067, frameHeight: 600, scale: 1 }
+  const sample = await store.addCollectedSample(
+    { png: png(), capturedAt, source: legacy },
+    () => true
+  )
+  expect((await reopened.listSamples()).find((row) => row.id === sample.id)?.source).toEqual(legacy)
+})
+
 it('serializes concurrent label updates and leaves the last submitted value', async () => {
   const { store } = await createStore()
   await store.setEnabled(true)

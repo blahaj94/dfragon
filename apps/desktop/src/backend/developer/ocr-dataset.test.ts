@@ -88,6 +88,41 @@ it('reads a server snapshot and original crop with fixed, credential-free render
   )
 })
 
+it('reads raid sample IDs ending in 10..12 and rejects incompatible kind or ID suffixes', async () => {
+  const f = setup()
+  const samples = [10, 11, 12].map((slot) => ({
+    ...remoteSample,
+    slot,
+    kind: 'raid',
+    uiScale: 1,
+    id: `00000000-0000-4000-8000-000000000001-${slot}`
+  }))
+  f.request.mockResolvedValueOnce(
+    Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples })
+  )
+  const listed = await f.dataset.list()
+  expect(listed.map((sample) => sample.source)).toEqual(
+    [10, 11, 12].map((slot) => ({ kind: 'raid', slot, frameWidth: 8, frameHeight: 4, scale: 1 }))
+  )
+  expect(await f.dataset.readImage(listed[2].id)).toBe(
+    `data:image/png;base64,${f.png.toString('base64')}`
+  )
+  expect(f.request.mock.calls.at(-1)?.[0]).toBe(
+    'https://ocr.dfragon.com/api/desktop/samples/00000000-0000-4000-8000-000000000001-12/image'
+  )
+  for (const invalid of [
+    { ...samples[0], kind: 'hud' },
+    { ...samples[0], kind: 'participants' },
+    { ...samples[0], slot: 13 },
+    { ...samples[0], slot: 11 }
+  ]) {
+    f.request.mockResolvedValueOnce(
+      Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [invalid] })
+    )
+    await expect(f.dataset.list()).rejects.toThrow()
+  }
+})
+
 it('refreshes only on 401 once and distinguishes a non-owner account', async () => {
   const f = setup()
   f.request.mockResolvedValueOnce(new Response(null, { status: 401 }))

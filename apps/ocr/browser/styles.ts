@@ -133,10 +133,8 @@ export const styles = stylex.create({
     alignItems: 'end',
     marginBottom: 16
   },
-  cropHeading: {
-    gridColumn: { default: null, '@media (max-width: 760px)': '1 / -1' },
-    lineHeight: '44px',
-    fontWeight: 400
+  cropPosition: {
+    gridColumn: { default: null, '@media (max-width: 760px)': '1 / -1' }
   },
   uploadFooter: {
     display: 'flex',

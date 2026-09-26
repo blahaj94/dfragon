@@ -44,7 +44,7 @@ function isDesktopRequest(request: Request): boolean {
   return (
     request.method === 'GET' &&
     (request.originalUrl === '/api/desktop/dataset' ||
-      /^\/api\/desktop\/samples\/[0-9a-f-]{36}-[1-4]\/image$/.test(request.originalUrl))
+      /^\/api\/desktop\/samples\/[0-9a-f-]{36}-(?:[1-9]|1[0-2])\/image$/.test(request.originalUrl))
   )
 }
 

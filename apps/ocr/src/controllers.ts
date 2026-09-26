@@ -17,7 +17,7 @@ import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import { cropPng, decodePng, parseUpload } from './images.js'
-import { parseInputRecord, parseLabel, parseSplit } from './input.js'
+import { parseCaptureKind, parseInputRecord, parseLabel, parseSplit } from './input.js'
 import { downloadDataset } from './export.js'
 
 export const OCR_CONFIG = Symbol('OCR_CONFIG')
@@ -90,10 +90,12 @@ export class OcrDataController {
       offset < 0 ||
       (state !== undefined &&
         state.length > 0 &&
-        !['pending', 'labeled', 'excluded'].includes(state)) ||
-      (kind !== undefined && kind.length > 0 && !['hud', 'participants'].includes(kind))
+        !['pending', 'labeled', 'excluded'].includes(state))
     ) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+    }
+    if (kind !== undefined && kind.length > 0) {
+      parseCaptureKind(kind)
     }
     if (split !== undefined && split.length > 0) {
       parseSplit(split)

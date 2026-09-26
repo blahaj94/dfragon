@@ -1,3 +1,9 @@
+export const DEVELOPER_COLLECTION_LABELS = {
+  hud: 'HUD',
+  participants: '파티원창',
+  raid: '공대원창'
+} as const
+
 export const DEVELOPER_EVENTS = {
   RETRY: 'RETRY',
   SET_ENABLED: 'SET_ENABLED',

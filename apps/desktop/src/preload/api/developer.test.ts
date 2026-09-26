@@ -61,3 +61,12 @@ it('forwards the participant mode explicitly while keeping stop on the shared ch
     ['developer:setPartyCollectionSlots', null]
   ])
 })
+
+it('uses the same typed channels for twelve-position raid collection', async () => {
+  await developer.previewParty('raid')
+  await developer.setPartyCollectionSlots([1, 10, 11, 12], 'raid')
+  expect(renderer.invoke.mock.calls).toEqual([
+    ['developer:previewParty', 'raid'],
+    ['developer:setPartyCollectionSlots', [1, 10, 11, 12], 'raid']
+  ])
+})

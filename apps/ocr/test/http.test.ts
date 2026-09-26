@@ -7,7 +7,7 @@ import { Readable } from 'node:stream'
 import { OcrAuth } from '../src/auth.js'
 import { createOcrApp } from '../src/server.js'
 import { OcrStore } from '../src/store.js'
-import { upload } from './fixtures.js'
+import { raidUpload, upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
   authOrigin = 'https://auth.example.test'
@@ -384,7 +384,10 @@ test('Desktop reads reject non-owner and revoked sessions before returning data'
   ] as const) {
     const f = await fixture(identity, false, revoked)
     try {
-      for (const path of ['/api/desktop/dataset', `/api/desktop/samples/${randomUUID()}-1/image`]) {
+      for (const path of [
+        '/api/desktop/dataset',
+        ...[1, 10, 11, 12].map((slot) => `/api/desktop/samples/${randomUUID()}-${slot}/image`)
+      ]) {
         assert.equal(
           (
             await fetch(`${f.base}${path}`, {
@@ -397,5 +400,153 @@ test('Desktop reads reject non-owner and revoked sessions before returning data'
     } finally {
       await f.close()
     }
+  }
+})
+
+test('raid uploads reject out-of-range and duplicate slots without partial captures', async () => {
+  const f = await fixture()
+  const headers = {
+    Authorization: 'Bearer synthetic.desktop.token',
+    'Content-Type': 'application/json'
+  }
+  try {
+    const data = raidUpload()
+    for (const invalid of [
+      { ...data, crops: [...data.crops, { ...data.crops[0], slot: 13 }] },
+      { ...data, crops: [{ ...data.crops[0], slot: 13 }] },
+      { ...data, crops: [data.crops[11], data.crops[11]] },
+      { ...data, kind: 'hud', crops: data.crops.slice(0, 5) },
+      { ...data, kind: 'participants', crops: [data.crops[4]] }
+    ]) {
+      const response = await fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(invalid)
+      })
+      assert.equal(response.status, 400)
+      assert.deepEqual(await response.json(), { error: 'INVALID_INPUT' })
+      assert.equal(f.store.stats()?.captures, 0)
+      assert.equal(f.store.stats()?.samples, 0)
+    }
+    const send = () =>
+      fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data)
+      })
+    assert.equal((await send()).status, 201)
+    assert.equal((await send()).status, 200)
+    assert.equal(f.store.stats()?.captures, 1)
+    assert.equal(f.store.stats()?.samples, 12)
+  } finally {
+    await f.close()
+  }
+})
+
+test('raid rows 10 through 12 use the protected dataset, browser labeling, filters and full export', async () => {
+  const f = await fixture()
+  const desktopHeaders = { Authorization: 'Bearer synthetic.desktop.token' }
+  try {
+    const data = raidUpload()
+    const { cookie } = await f.login()
+    assert(cookie)
+    const browserHeaders = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }
+    const uploaded = await fetch(`${f.base}/api/captures`, {
+      method: 'POST',
+      headers: browserHeaders,
+      body: JSON.stringify(data)
+    })
+    assert.equal(uploaded.status, 201)
+    const lastId = `${data.id}-12`
+    const labeled = await fetch(`${f.base}/api/samples/${lastId}`, {
+      method: 'PATCH',
+      headers: browserHeaders,
+      body: JSON.stringify({ text: '열두번째샘플', excluded: false })
+    })
+    assert.equal(labeled.status, 200)
+    const filtered = await fetch(`${f.base}/api/samples?kind=raid`, { headers: browserHeaders })
+    assert.equal(filtered.status, 200)
+    assert.deepEqual(
+      (await filtered.json()).samples.map((sample: { slot: number }) => sample.slot),
+      Array.from({ length: 12 }, (_, i) => i + 1)
+    )
+    assert.equal(
+      (await fetch(`${f.base}/api/samples?kind=raid-other`, { headers: browserHeaders })).status,
+      400
+    )
+    const previousKind = await fetch(`${f.base}/api/samples?kind=participants`, {
+      headers: browserHeaders
+    })
+    assert.deepEqual((await previousKind.json()).samples, [])
+
+    const response = await fetch(`${f.base}/api/desktop/dataset`, { headers: desktopHeaders })
+    assert.equal(response.status, 200)
+    const dataset = await response.json()
+    assert.equal(dataset.samples.length, 12)
+    assert(dataset.samples.every((sample: { kind: string }) => sample.kind === 'raid'))
+    assert.equal(dataset.samples[11].id, lastId)
+    assert.equal(dataset.samples[11].text, '열두번째샘플')
+    for (const slot of [10, 11, 12]) {
+      const path = `/api/desktop/samples/${data.id}-${slot}/image`
+      const image = await fetch(`${f.base}${path}`, { headers: desktopHeaders })
+      assert.equal(image.status, 200)
+      assert.equal(image.headers.get('set-cookie'), null)
+      const browserImage = await fetch(`${f.base}/api/samples/${data.id}-${slot}/image`, {
+        headers: browserHeaders
+      })
+      assert.deepEqual(
+        Buffer.from(await image.arrayBuffer()),
+        Buffer.from(await browserImage.arrayBuffer())
+      )
+      assert.equal((await fetch(`${f.base}${path}`)).status, 401)
+      assert.equal((await fetch(`${f.base}${path}`, { headers: { Cookie: cookie } })).status, 401)
+      assert.equal(
+        (await fetch(`${f.base}${path}`, { headers: { ...desktopHeaders, Origin: origin } }))
+          .status,
+        403
+      )
+      for (const suffix of ['/', '?extra=1']) {
+        assert.equal(
+          (await fetch(`${f.base}${path}${suffix}`, { headers: desktopHeaders })).status,
+          401
+        )
+      }
+      assert.equal(
+        (await fetch(`${f.base}${path}`, { method: 'HEAD', headers: desktopHeaders })).status,
+        401
+      )
+    }
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/desktop/samples/${data.id}-13/image`, {
+          headers: desktopHeaders
+        })
+      ).status,
+      401
+    )
+    assert.equal((await fetch(`${f.base}/api/export`, { headers: desktopHeaders })).status, 401)
+
+    const archive = await fetch(`${f.base}/api/export`, { headers: browserHeaders })
+    const entries = new Map<string, Buffer>()
+    const extract = tar.extract()
+    extract.on('entry', (header, stream, next) => {
+      const chunks: Buffer[] = []
+      stream.on('data', (chunk) => chunks.push(chunk))
+      stream.on('end', () => {
+        entries.set(header.name, Buffer.concat(chunks))
+        next()
+      })
+    })
+    Readable.from(Buffer.from(await archive.arrayBuffer())).pipe(extract)
+    await once(extract, 'finish')
+    assert.equal(entries.size, 14)
+    for (const slot of [10, 11, 12]) {
+      assert(entries.has(`crops/${data.id}-${slot}.png`))
+    }
+    const manifest = JSON.parse(entries.get('manifest.json')!.toString())
+    assert.equal(manifest.captures[0].kind, 'raid')
+    assert.equal(manifest.samples[11].text, '열두번째샘플')
+  } finally {
+    await f.close()
   }
 })

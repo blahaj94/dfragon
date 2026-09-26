@@ -22,12 +22,14 @@ const isScenarioValid = [
   'default',
   'hotkey-error',
   'capture-error',
-  'participants-sparse'
+  'participants-sparse',
+  'raid',
+  'raid-sparse'
 ].includes(scenario)
 const isInputInvalid = !isModeValid || !isThemeValid || !isScenarioValid
 if (isInputInvalid) {
   throw new Error(
-    `Use desktop|example|${MVP_MODE}|${DEVELOPER_MODE} and system|light|dark and default|hotkey-error|capture-error|participants-sparse`
+    `Use desktop|example|${MVP_MODE}|${DEVELOPER_MODE} and system|light|dark and default|hotkey-error|capture-error|participants-sparse|raid|raid-sparse`
   )
 }
 

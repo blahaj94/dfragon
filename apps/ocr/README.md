@@ -14,9 +14,9 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 ## 관리 화면
 
-패스키 로그인 후 원본 PNG와 크롭 좌표를 수동 등록하거나 수집 클라이언트가 API로 올린 자료를 조회합니다. 미작성·완료·제외, HUD·파티원창, 분할 필터를 제공합니다. 선택한 크롭의 정답·제외 여부를 저장하고 원본을 열 수 있습니다. UI 크기는 %로 표시하고 미상과 추정값을 구분합니다.
+패스키 로그인 후 원본 PNG와 크롭 좌표를 수동 등록하거나 수집 클라이언트가 API로 올린 자료를 조회합니다. 미작성·완료·제외, HUD·파티원창·공대원창, 분할 필터를 제공합니다. 선택한 크롭의 정답·제외 여부를 저장하고 원본을 열 수 있습니다. UI 크기는 %로 표시하고 미상과 추정값을 구분합니다.
 
-[Penpot OCR 자료실 시안](https://design.penpot.app/#/workspace?team-id=d8ac01df-6646-81d2-8008-a69ecfb5e821&file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&board-id=e2d75c67-3d48-8021-8008-b16f9bafcdf5)을 기준으로 구현합니다. 상단 `이미지 업로드`로 등록 폼을 펼치며 접어도 작성 중인 파일·좌표를 유지합니다. 테마 버튼으로 밝은 화면과 어두운 화면을 전환하고 브라우저에 선택을 저장합니다. 좁은 화면에서는 이미지 목록 아래에서 정답을 편집합니다.
+[Penpot OCR 자료실 시안](https://design.penpot.app/#/workspace?team-id=d8ac01df-6646-81d2-8008-a69ecfb5e821&file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&board-id=e2d75c67-3d48-8021-8008-b16f9bafcdf5)을 기준으로 구현합니다. 상단 `이미지 업로드`로 등록 폼을 펼치며 접어도 작성 중인 파일·좌표를 유지합니다. 수집 종류를 바꾸면 종류별 크롭 좌표 초안을 보존하고, HUD·파티원창은 위치 1~4, 공대원창은 위치 1~12 중 실제 저장 대상을 선택할 수 있습니다. 테마 버튼으로 밝은 화면과 어두운 화면을 전환하고 브라우저에 선택을 저장합니다. 좁은 화면에서는 이미지 목록 아래에서 정답을 편집합니다.
 
 분할은 NFC 정규화한 닉네임 정답에 저장합니다. 같은 닉네임의 모든 샘플은 같은 분할을 따르고 새 샘플도 정답이 저장되면 기존 배정을 따릅니다. 정답이 없으면 미배정입니다. 대소문자·공백은 임의로 제거하지 않습니다. 분할된 샘플의 정답 수정으로 분할이 달라지면 명시 확인이 필요합니다. 선별·비율 결정은 로컬 스크립트의 책임입니다.
 
@@ -43,7 +43,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `POST /api/desktop/captures` | Desktop의 활성 owner Bearer로 같은 원본+좌표 JSON 저장 |
 | `GET /api/captures/:id` | 캡처 메타데이터 |
 | `GET /api/captures/:id/image` | 원본 PNG |
-| `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants`, `split`, 정확한 `text` 필터 |
+| `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid`, `split`, 정확한 `text` 필터 |
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
 | `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
@@ -69,9 +69,9 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 }
 ```
 
-`uiScale`은 비율(0.75 = 75%), `uiScaleSource`는 `game` 또는 `estimated`입니다. 모르면 `null`과 `unknown`을 함께 보냅니다. 원본 너비·높이는 서버가 PNG에서 읽습니다. 크롭은 원본 기준 정수 좌표이며 슬롯 1~4의 실제 저장 대상만 보냅니다. 샘플 ID는 `{captureId}-{slot}`입니다. 원본이 있어도 선택되지 않은 영역의 detection 라벨까지 완성된 것은 아닙니다.
+`uiScale`은 비율(0.75 = 75%), `uiScaleSource`는 `game` 또는 `estimated`입니다. 모르면 `null`과 `unknown`을 함께 보냅니다. 원본 너비·높이는 서버가 PNG에서 읽습니다. 크롭은 원본 기준 정수 좌표이며 `hud`·`participants`는 슬롯 1~4, `raid`는 슬롯 1~12 중 실제 저장 대상만 보냅니다. 샘플 ID는 `{captureId}-{slot}`입니다. 원본이 있어도 선택되지 않은 영역의 detection 라벨까지 완성된 것은 아닙니다.
 
-PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 형식입니다. HTTP JSON body는 23 MiB, 동시에 받는 업로드는 2개입니다. 크롭은 1~4개이며 중복 슬롯·경계 밖 좌표·손상된 PNG는 거절합니다. 원본과 모든 좌표 저장이 끝난 경우만 성공합니다. 업로드 실패의 자동 재시도·앱 재시작 복구는 제공하지 않습니다.
+PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 형식입니다. HTTP JSON body는 23 MiB, 동시에 받는 업로드는 2개입니다. `hud`·`participants` 크롭은 1~4개, `raid`는 1~12개이며 중복 슬롯·경계 밖 좌표·손상된 PNG는 거절합니다. 원본과 모든 좌표 저장이 끝난 경우만 성공합니다. 업로드 실패의 자동 재시도·앱 재시작 복구는 제공하지 않습니다.
 
 주요 실패는 400 입력 오류, 401 로그인 필요, 403 다른 계정/Origin, 409 캡처 ID 충돌 또는 분할 변경 확인 필요, 413 크기 초과, 429 일시 제한, 502 인증 서버 연결 실패, 507 저장 상한입니다. 원문 오류·토큰·계정 ID는 오류 응답에 넣지 않습니다.
 
@@ -89,4 +89,4 @@ PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 
 
 ## Desktop 수집 연결
 
-로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration·환경 변수·별도 역할은 없습니다. 이 endpoint가 포함된 OCR 서버와 Desktop을 함께 배포해야 합니다.
+로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration·환경 변수·별도 역할은 없습니다. `raid`를 받는 OCR 서버를 먼저 배포한 뒤 공대원창 수집이 포함된 Desktop을 배포합니다. 공대원창은 닉네임 크롭을 같은 정답·제외·분할·평가 흐름으로 제공합니다. 공대원 행 번호는 해당 캡처의 화면 위치이므로, 공대원이 나가 목록이 위로 당겨지면 같은 번호가 다른 사람을 가리킬 수 있습니다.
