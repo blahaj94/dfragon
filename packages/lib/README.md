@@ -106,7 +106,7 @@ const regions = projectDNFPartyRegions({
 
 ## 파티참가인원 닉네임 검출·크롭
 
-이동 가능한 **파티참가인원 팝업**의 `캐릭터 이름` 열을 처리합니다. 위의 가로 파티 HUD 좌표 함수와 다른 대상입니다. 개발자 작업 공간의 후속 수집 기능을 위한 공통 함수이며, 아직 Desktop 탭이나 캡처 경로에 연결하지 않았습니다.
+이동 가능한 **파티참가인원 팝업**의 `캐릭터 이름` 열을 처리합니다. 위의 가로 파티 HUD 좌표 함수와 다른 대상입니다. Desktop 개발자 작업 공간의 파티원창 크롭 탭에서 미리보기와 수집에 사용합니다.
 
 ```ts
 import {
@@ -148,3 +148,30 @@ if (result.status === 'found') {
 `window`와 각 행의 `nickname`은 입력 게임 client 기준의 정수 `{ x, y, width, height }`입니다. `rows`는 항상 위에서부터 네 개이며 각 행은 `{ slot, occupied, nickname }`입니다. 빈 행·자물쇠 행도 남고, 네 행 모두 비어 있어도 창이 검출되면 `found`입니다. 크롭 함수는 각 행에 `crop`을 추가합니다. 참가자가 있으면 독립 RGBA 복사본, 없으면 `null`이며 입력 버퍼를 변경하거나 공유하지 않습니다. 크기 변경·선명화·OCR는 하지 않습니다.
 
 `scale`은 헤더로 추정한 래스터 배율이며 게임 UI 설정 퍼센트가 아닙니다. `matchScore`는 평균을 뺀 정규화 상관 점수로, 식별 성공 확률이나 닉네임 판독 신뢰도가 아닙니다. 동기 CPU 계산이므로 반복 캡처에 연결할 때 실행 위치와 주기는 호출자가 정합니다. [탐지 순서·측정값·검증 범위](../../docs/reference/desktop-party-participants.md)를 참고합니다.
+
+## 12인 공대창 검출·크롭
+
+`detectDNFRaidParticipantWindow(frame, headingTemplate)`은 공대창의 위치·배율과 12행의 참가 여부·닉네임·파티 표식·장비 점수 영역을 반환합니다. `cropDNFRaidParticipantNicknames(frame, headingTemplate)`은 같은 프레임에서 참가 행의 닉네임 원본 RGBA도 복사합니다. 닉네임 OCR이나 Desktop 수집·웹 업로드를 실행하지 않습니다.
+
+공대원이 나가면 아래 행이 위로 당겨집니다. 결과의 `row`는 해당 프레임의 화면 위치(1~12)이며 이전 프레임의 같은 행과 같은 캐릭터라는 뜻이 아닙니다. 결과는 항상 12행이며 빈 행은 `occupied: false`, `nicknameCrop: null`입니다. 별도 8인 레이드 레이아웃은 지원 범위 밖입니다.
+
+```ts
+import { cropDNFRaidParticipantNicknames, type DNFParticipantFrame } from '@dfragon/lib'
+
+// 호출자가 원본 game client와 공대창 기준 헤더를 RGBA로 준비합니다.
+declare const frame: DNFParticipantFrame
+declare const raidHeadingTemplate: DNFParticipantFrame
+
+const result = cropDNFRaidParticipantNicknames(frame, raidHeadingTemplate)
+if (result.status === 'found') {
+  for (const row of result.rows) {
+    if (row.nicknameCrop === null) continue
+    // row.nickname은 client 기준 좌표, nicknameCrop은 독립된 원본 픽셀입니다.
+    console.log(row.row, row.nickname, row.nicknameCrop.width, row.nicknameCrop.height)
+  }
+}
+```
+
+파티 구분과 장비 점수 판독은 `readDNFRaidParticipantMetadata(frame, rows, templates)`로 별도 실행합니다. 호출자가 준비한 표식·글자 기준 이미지와 행별 픽셀에서 `party`, `equipmentScoreText`를 반환하며 판독할 수 없는 필드는 `null`입니다. R/Y/G·싱글을 행 번호로 추정하지 않고, 점수는 `1000.4K` 같은 표시 문자열을 유지합니다. 숫자 환산·정답 저장·화면 연결은 하지 않습니다.
+
+공대창 실측과 공개 API의 입력·검증 범위는 [공대원창 검출 안내](../../docs/reference/desktop-raid-participants.md)를 참고합니다.

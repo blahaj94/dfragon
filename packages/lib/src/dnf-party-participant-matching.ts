@@ -2,7 +2,20 @@
 export type ParticipantGrayFrame = { width: number; height: number; pixels: Uint8Array }
 export type ParticipantAnchor = { x: number; y: number; scale: number }
 export type ParticipantHeading = { x: number; y: number; scale: number; score: number }
+export type ParticipantHeadingLayout = {
+  width: number
+  height: number
+  anchorX: number
+  anchorY: number
+}
 type HeadingMatch = ParticipantHeading | 'search-limit' | null
+
+const partyHeadingLayout: ParticipantHeadingLayout = {
+  width: 368,
+  height: 17,
+  anchorX: 360,
+  anchorY: -15
+}
 
 type Pattern = {
   width: number
@@ -99,6 +112,7 @@ export function findParticipantAnchors(
 /** Resizes the small heading with half-pixel bilinear sampling and centers its intensities. */
 function headingPattern(
   heading: Uint8Array,
+  layout: ParticipantHeadingLayout,
   width: number,
   height: number,
   frameWidth: number,
@@ -108,15 +122,19 @@ function headingPattern(
   const values: number[] = []
   const offsets: number[] = []
   for (let y = 0; y < height; y += step) {
-    const sy = Math.max(0, Math.min(16, ((y + 0.5) * 17) / height - 0.5))
+    const sy = Math.max(0, Math.min(layout.height - 1, ((y + 0.5) * layout.height) / height - 0.5))
     const y0 = Math.floor(sy)
-    const y1 = Math.min(16, y0 + 1)
+    const y1 = Math.min(layout.height - 1, y0 + 1)
     for (let x = 0; x < width; x += step) {
-      const sx = Math.max(0, Math.min(367, ((x + 0.5) * 368) / width - 0.5))
+      const sx = Math.max(0, Math.min(layout.width - 1, ((x + 0.5) * layout.width) / width - 0.5))
       const x0 = Math.floor(sx)
-      const x1 = Math.min(367, x0 + 1)
-      const upper = heading[y0 * 368 + x0] * (1 - (sx - x0)) + heading[y0 * 368 + x1] * (sx - x0)
-      const lower = heading[y1 * 368 + x0] * (1 - (sx - x0)) + heading[y1 * 368 + x1] * (sx - x0)
+      const x1 = Math.min(layout.width - 1, x0 + 1)
+      const upper =
+        heading[y0 * layout.width + x0] * (1 - (sx - x0)) +
+        heading[y0 * layout.width + x1] * (sx - x0)
+      const lower =
+        heading[y1 * layout.width + x0] * (1 - (sx - x0)) +
+        heading[y1 * layout.width + x1] * (sx - x0)
       values.push(Math.round(upper * (1 - (sy - y0)) + lower * (sy - y0)))
       offsets.push(y * frameWidth + x)
     }
@@ -150,7 +168,8 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
 export function createParticipantHeadingMatcher(
   frame: ParticipantGrayFrame,
   heading: Uint8Array,
-  hasRows?: (x: number, y: number, scale: number) => boolean
+  hasRows?: (x: number, y: number, scale: number) => boolean,
+  layout: ParticipantHeadingLayout = partyHeadingLayout
 ) {
   const patterns = new Map<string, Pattern>()
   // Shared by every anchor and both search passes; never return a partial candidate set.
@@ -165,12 +184,12 @@ export function createParticipantHeadingMatcher(
   }
 
   function patternFor(scale: number, sparse: boolean): Pattern {
-    const width = roundParticipantPixel(368 * scale)
-    const height = roundParticipantPixel(17 * scale)
+    const width = roundParticipantPixel(layout.width * scale)
+    const height = roundParticipantPixel(layout.height * scale)
     const key = `${width}:${height}:${sparse}`
     let pattern = patterns.get(key)
     if (pattern == null) {
-      pattern = headingPattern(heading, width, height, frame.width, sparse)
+      pattern = headingPattern(heading, layout, width, height, frame.width, sparse)
       patterns.set(key, pattern)
     }
     return pattern
@@ -180,8 +199,8 @@ export function createParticipantHeadingMatcher(
     let best: ParticipantHeading | null = null
     for (const scale of scales) {
       const pattern = patternFor(scale, true)
-      const px = Math.trunc(anchor.x - 360 * scale)
-      const py = Math.trunc(anchor.y + 15 * scale)
+      const px = Math.trunc(anchor.x - layout.anchorX * scale)
+      const py = Math.trunc(anchor.y - layout.anchorY * scale)
       const dx = Math.trunc(5 * scale) + 3
       const dy = Math.trunc(4 * scale) + 3
       const left = Math.max(0, px - dx)
