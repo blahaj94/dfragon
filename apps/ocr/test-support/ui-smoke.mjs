@@ -163,8 +163,14 @@ try {
   await page.getByRole('button', { name: '업로드', exact: true }).click()
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
   await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
-  await page.getByRole('button', { name: '정답 저장', exact: true }).click()
+  await page.keyboard.press('Enter')
   await page.getByRole('button', { name: /샘플고래/ }).waitFor()
+  assert(
+    await page
+      .getByLabel('닉네임 정답', { exact: true })
+      .evaluate((input) => input === globalThis.document.activeElement),
+    'saving an answer without a filter keeps focus in the answer input'
+  )
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('combobox', { name: /닉네임 단위 분할/ }).selectOption('train')
   await page.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
@@ -278,6 +284,33 @@ try {
   await galleryRegion.getByRole('button', { name: /공대열두번째.*test/ }).waitFor()
   assert.equal(store.sample(`${raidCapture.id}-12`).split, 'test')
   await screenshot('raid')
+
+  // Enter saves must keep keyboard entry in the next pending sample's editor.
+  const stateFilter = page.getByRole('combobox', { name: '작성 상태', exact: true })
+  const answerInput = page.getByLabel('닉네임 정답', { exact: true })
+  await stateFilter.selectOption('pending')
+  await galleryRegion.getByRole('button', { name: /공대열두번째/ }).waitFor({ state: 'hidden' })
+  await answerInput.focus()
+  for (let remaining = 11; remaining > 0; remaining -= 1) {
+    assert.equal(await answerInput.inputValue(), '')
+    const image = page.getByRole('img', { name: '정답을 입력할 닉네임 크롭', exact: true })
+    const imagePath = await image.getAttribute('src')
+    const sampleId = imagePath.split('/')[3]
+    const answer = `연속입력${remaining}`
+    await page.keyboard.insertText(answer)
+    await page.keyboard.press('Enter')
+    await image.and(page.locator(`img[src="${imagePath}"]`)).waitFor({ state: 'hidden' })
+    assert.equal(store.sample(sampleId).text, answer)
+    assert.equal(await galleryRegion.getByRole('button').count(), remaining - 1)
+    if (remaining > 1) {
+      assert(
+        await answerInput.evaluate((input) => input === globalThis.document.activeElement),
+        'saving a pending answer keeps focus in the next answer input'
+      )
+    }
+  }
+  assert.equal(await answerInput.count(), 0)
+  await stateFilter.selectOption('')
   await kindFilter.selectOption('hud')
   await galleryRegion.getByRole('button', { name: /샘플고래.*train/ }).waitFor()
   assert.equal(await galleryRegion.getByRole('button').count(), 1)
@@ -333,7 +366,7 @@ try {
   }
   assert.deepEqual(errors, [])
   process.stdout.write(
-    'OCR browser HUD/raid upload limits, draft preservation, labels, split, exclusion, download, themes, responsive layout and logout passed\n'
+    'OCR browser HUD/raid upload limits, draft preservation, labels, answer focus, split, exclusion, download, themes, responsive layout and logout passed\n'
   )
 } finally {
   await browser?.close()

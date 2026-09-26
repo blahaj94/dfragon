@@ -40,6 +40,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
           <input
             {...stylex.props(styles.control)}
             autoComplete="off"
+            autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={OCR_SAMPLES.maximumLabelLength}
