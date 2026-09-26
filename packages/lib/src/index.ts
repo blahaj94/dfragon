@@ -76,3 +76,20 @@ export type {
   DNFParticipantDetection,
   DNFParticipantCropResult
 } from './dnf-party-participants.js'
+export {
+  detectDNFRaidParticipantWindow,
+  cropDNFRaidParticipantNicknames
+} from './dnf-raid-participants.js'
+export type {
+  DNFRaidParticipantPosition,
+  DNFRaidParticipantRow,
+  DNFRaidParticipantDetection,
+  DNFRaidParticipantCropResult
+} from './dnf-raid-participants.js'
+export { readDNFRaidParticipantMetadata } from './dnf-raid-metadata.js'
+export type {
+  DNFRaidParty,
+  DNFRaidScoreGlyph,
+  DNFRaidMetadataTemplates,
+  DNFRaidParticipantMetadata
+} from './dnf-raid-metadata.js'
