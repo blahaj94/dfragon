@@ -5,7 +5,6 @@ import { OCR_SAMPLES } from '../src/constants.js'
 import { Typo } from '@dfragon/ui/typo'
 import { primary, secondary } from './buttons.js'
 import type { Sample } from '../src/model.js'
-import { parseSplit } from '../src/input.js'
 import { OcrIcon } from './OcrIcon.js'
 import { OCR_CAPTURE_LABELS } from './constants.js'
 
@@ -62,22 +61,25 @@ export function SampleEditor({ sample }: { sample: Sample }) {
           </button>
         </div>
       </form>
-      <label {...stylex.props(styles.label)}>
-        닉네임 단위 분할
-        <select
-          {...stylex.props(styles.control)}
-          value={sample.split}
-          disabled={
-            busy || sample.text === null || sample.text.length === 0 || text !== sample.text
-          }
-          onChange={(e) => void assignNicknameSplit(parseSplit(e.target.value))}
-        >
-          <option value="unassigned">미배정</option>
-          <option>train</option>
-          <option>val</option>
-          <option>test</option>
-        </select>
-      </label>
+      <div {...stylex.props(styles.label)} role="group" aria-label="닉네임 단위 분할">
+        <span>닉네임 단위 분할</span>
+        <div {...stylex.props(styles.splitButtons)}>
+          {(['unassigned', 'train', 'val', 'test'] as const).map((split) => (
+            <button
+              key={split}
+              type="button"
+              className={sample.split === split ? primary : secondary}
+              aria-pressed={sample.split === split}
+              disabled={
+                busy || sample.text === null || sample.text.length === 0 || text !== sample.text
+              }
+              onClick={() => assignNicknameSplit(split)}
+            >
+              {split === 'unassigned' ? '미배정' : split}
+            </button>
+          ))}
+        </div>
+      </div>
       <p {...stylex.props(styles.paragraph, styles.muted)}>
         같은 정답 닉네임의 모든 이미지에 적용됩니다.
       </p>
