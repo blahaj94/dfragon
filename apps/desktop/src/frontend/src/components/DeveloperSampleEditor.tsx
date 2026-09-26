@@ -3,6 +3,7 @@ import * as stylex from '@stylexjs/stylex'
 import { ActionButton, TextField, TextFieldInput, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { styles } from './DeveloperSampleEditor.style'
+import { DEVELOPER_COLLECTION_LABELS } from '../constants/developer'
 
 export function DeveloperSampleEditor({
   sample,
@@ -64,7 +65,11 @@ export function DeveloperSampleEditor({
     <div {...stylex.props(styles.editor)}>
       <Typo.h4 as="h2">
         이미지 {number}
-        {source ? ` · ${source.slot}번 크롭` : ' · 기존 이미지'}
+        {source
+          ? source.kind === 'raid'
+            ? ` · 공대원창 ${source.slot}행 크롭`
+            : ` · ${source.slot}번 크롭`
+          : ' · 기존 이미지'}
       </Typo.h4>
       <Typo.caption {...stylex.props(styles.muted)}>
         {[capturedAtText, `${sample.width} × ${sample.height}px`].filter(Boolean).join(' · ')}
@@ -126,7 +131,7 @@ export function DeveloperSampleEditor({
         </TextField>
         <Typo.caption as="p" {...stylex.props(styles.muted)}>
           {readOnly
-            ? `자료실 정답 · ${sample.remote!.kind === 'hud' ? 'HUD' : '파티원창'} · ${sample.remote!.split}`
+            ? `자료실 정답 · ${DEVELOPER_COLLECTION_LABELS[sample.remote!.kind]} · ${sample.remote!.split}`
             : '정답을 직접 입력합니다. 빈 입력은 저장할 수 없습니다.'}
         </Typo.caption>
         {!readOnly && (

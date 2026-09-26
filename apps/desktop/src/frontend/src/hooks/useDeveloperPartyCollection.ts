@@ -177,7 +177,7 @@ export function useDeveloperPartyCollection(
         // The game may start after the tab opened. Retry only a recoverable capture/access check,
         // and reuse the normal command generation so leaving the tab still cancels this arm.
         if (
-          kind === 'participants' &&
+          kind !== 'hud' &&
           response.frame?.participantWindow &&
           !response.collection.armed &&
           response.collection.error === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE &&

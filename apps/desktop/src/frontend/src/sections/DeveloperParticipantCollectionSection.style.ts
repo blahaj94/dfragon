@@ -87,6 +87,13 @@ export const styles = stylex.create({
     flex: 1,
     minWidth: 0
   },
+  windowHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap'
+  },
   windowImage: { position: 'relative', width: '100%', maxWidth: 640 },
   dialog: { display: 'block', width: '100%', height: 'auto', imageRendering: 'pixelated' },
   outline: {
@@ -115,6 +122,14 @@ export const styles = stylex.create({
     borderColor: '#f56c00'
   },
   rows: { display: 'flex', flexDirection: 'column', gap: 12 },
+  raidRows: {
+    display: 'grid',
+    gridTemplateColumns: {
+      default: 'repeat(2, minmax(0, 1fr))',
+      '@media (max-width: 380px)': 'minmax(0, 1fr)'
+    },
+    gap: '10px 12px'
+  },
   row: {
     display: 'flex',
     flexDirection: 'column',
@@ -136,6 +151,8 @@ export const styles = stylex.create({
     gap: 12,
     minHeight: 20
   },
+  raidRow: { height: 90, padding: '12px 10px' },
+  raidRowHeader: { gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 6 },
   rowLabel: { color: colors.shellMuted, textAlign: 'right' },
   checkbox: { margin: 0, width: 18, height: 18, accentColor: '#f56c00', flexShrink: 0 },
   cropArea: {

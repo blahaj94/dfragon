@@ -11,9 +11,11 @@ import { normalizeNickname } from '../lib/recognition'
 import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/developer-party'
 import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
 import { styles } from './DeveloperWorkbench.style'
+import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
+import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
 const REMOTE_PAGE_SIZE = 50
-const workbenchTabs = ['collection', 'participants', 'labeling'] as const
+const workbenchTabs = ['collection', 'participants', 'raid', 'labeling'] as const
 type WorkbenchTab = (typeof workbenchTabs)[number]
 
 export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.JSX.Element {
@@ -29,8 +31,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [filter, setFilter] = useState<DeveloperLabelFilter>('unlabeled')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [collectionSlots, setCollectionSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
-  const [participantSlots, setParticipantSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
+  const [slotsByKind, setSlotsByKind] = useState<
+    Record<DeveloperCollectionKind, DeveloperPartySlotNumber[]>
+  >({
+    hud: [...DEVELOPER_COLLECTION_SLOTS.hud],
+    participants: [...DEVELOPER_COLLECTION_SLOTS.participants],
+    raid: [...DEVELOPER_COLLECTION_SLOTS.raid]
+  })
+  const collectionKind = activeTab === 'participants' || activeTab === 'raid' ? activeTab : 'hud'
   const [confirmClose, setConfirmClose] = useState(false)
   const [notice, setNotice] = useState('')
   const stopEvaluation = useEffectEvent(() => evaluation.cancel())
@@ -148,7 +156,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       event.key === 'Home'
         ? 0
         : event.key === 'End'
-          ? 2
+          ? workbenchTabs.length - 1
           : (index + (event.key === 'ArrowRight' ? 1 : -1) + workbenchTabs.length) %
             workbenchTabs.length
     const nextTab = workbenchTabs[nextIndex]
@@ -219,6 +227,20 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           파티원창 크롭
         </ActionButton>
         <ActionButton
+          id="developer-raid-tab"
+          role="tab"
+          aria-selected={activeTab === 'raid'}
+          aria-controls="developer-raid-panel"
+          tabIndex={activeTab === 'raid' ? 0 : -1}
+          size="small"
+          variant="ghost"
+          {...stylex.props(styles.tab, activeTab === 'raid' && styles.tabSelected)}
+          onKeyDown={handleTabKeyDown}
+          onClick={() => setActiveTab('raid')}
+        >
+          공대원창 크롭
+        </ActionButton>
+        <ActionButton
           id="developer-labeling-tab"
           role="tab"
           aria-selected={activeTab === 'labeling'}
@@ -241,12 +263,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       <div {...stylex.props(styles.tabPanel)}>
         <DeveloperPartyCollectionSection
           active={activeTab !== 'labeling'}
-          kind={activeTab === 'participants' ? 'participants' : 'hud'}
+          kind={collectionKind}
           onLabeling={() => setActiveTab('labeling')}
           onSaved={() => void dataset.refresh()}
           onDisarmed={() => void dataset.refresh()}
-          slots={activeTab === 'participants' ? participantSlots : collectionSlots}
-          onSlotsChange={activeTab === 'participants' ? setParticipantSlots : setCollectionSlots}
+          slots={slotsByKind[collectionKind]}
+          onSlotsChange={(slots) =>
+            setSlotsByKind((previous) => ({ ...previous, [collectionKind]: slots }))
+          }
         />
         {activeTab === 'labeling' && (
           <>

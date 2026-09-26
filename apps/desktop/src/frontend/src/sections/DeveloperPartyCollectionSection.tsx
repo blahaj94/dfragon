@@ -66,8 +66,14 @@ export function DeveloperPartyCollectionSection({
     return null
   }
 
-  if (kind === 'participants') {
-    return <DeveloperParticipantCollectionSection collection={collection} onLabeling={onLabeling} />
+  if (kind !== 'hud') {
+    return (
+      <DeveloperParticipantCollectionSection
+        collection={collection}
+        kind={kind}
+        onLabeling={onLabeling}
+      />
+    )
   }
 
   return (

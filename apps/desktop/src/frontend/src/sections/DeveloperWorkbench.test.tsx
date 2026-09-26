@@ -71,6 +71,32 @@ function partyFrame(): DeveloperPartyPreviewFrame {
   }
 }
 
+function raidFrame(occupiedCount = 12): DeveloperPartyPreviewFrame {
+  const rows = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const).map((slot) => ({
+    slot,
+    occupied: slot <= occupiedCount,
+    x: 202,
+    y: 101 + (slot - 1) * 21,
+    width: 86,
+    height: 17
+  }))
+  return {
+    width: 1067,
+    height: 600,
+    scale: 1,
+    capturedAt: '2026-09-26T00:00:00.000Z',
+    participantWindow: { width: 465, height: 392, rgba: new Uint8Array(465 * 392 * 4), rows },
+    slots: rows
+      .filter((row) => row.occupied)
+      .map(({ slot, width, height }) => ({
+        slot,
+        width,
+        height,
+        rgba: new Uint8Array(width * height * 4).fill(slot * 20)
+      }))
+  }
+}
+
 function installApi(rows: DeveloperWorkbenchSample[] = []): {
   api: Mocked<DeveloperApi>
   samples: DeveloperWorkbenchSample[]
@@ -505,47 +531,239 @@ it('rejects a late HUD preview after switching to participant collection', async
   )
   expect(container.querySelectorAll('img')).toHaveLength(0)
   expect(container.textContent).toContain('파티참가인원 창을 열어주세요.')
-  expect(container.querySelectorAll('[role="tab"]')).toHaveLength(3)
+  expect(container.querySelectorAll('[role="tab"]')).toHaveLength(4)
 })
 
-it('rearms participant collection when the game appears after the initial access check failed', async () => {
+it.each([
+  ['participants', '파티원창 크롭'],
+  ['raid', '공대원창 크롭']
+] as const)(
+  'rearms %s collection when the game appears after the initial access check failed',
+  async (collectionKind, tab) => {
+    vi.useFakeTimers()
+    const { api, status } = installApi()
+    let gameVisible = false
+    let attempts = 0
+    api.setPartyCollectionSlots.mockImplementation(async (slots, kind) => {
+      status.armed = slots != null
+      status.slots = slots ?? []
+      if (kind === collectionKind && ++attempts === 1) {
+        status.armed = false
+        status.error = 'DEVELOPER_CAPTURE_UNAVAILABLE'
+      } else {
+        status.error = null
+      }
+      return { ...status }
+    })
+    api.previewParty.mockImplementation(async (kind) => ({
+      frame:
+        kind !== collectionKind || !gameVisible
+          ? null
+          : {
+              ...partyFrame(),
+              participantWindow: { width: 1, height: 1, rgba: new Uint8Array(4), rows: [] }
+            },
+      previewError: gameVisible ? null : 'DEVELOPER_GAME_NOT_FOUND',
+      collection: { ...status }
+    }))
+    await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+    await click(tab)
+    expect(attempts).toBe(1)
+    expect(container.textContent).toContain('던전앤파이터를 실행해주세요.')
+    gameVisible = true
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(attempts).toBe(2)
+    expect(status.armed).toBe(true)
+    expect(container.textContent).not.toContain('파티원창이 잘 보이게 해주세요.')
+    expect(container.textContent).not.toContain('공대원창이 잘 보이게 해주세요.')
+  }
+)
+
+it('keeps all twelve raid row positions, skips three empty rows, and preserves each mode selection independently', async () => {
   vi.useFakeTimers()
   const { api, status } = installApi()
-  let gameVisible = false
-  let attempts = 0
-  api.setPartyCollectionSlots.mockImplementation(async (slots, kind) => {
-    status.armed = slots != null
-    status.slots = slots ?? []
-    if (kind === 'participants' && ++attempts === 1) {
-      status.armed = false
-      status.error = 'DEVELOPER_CAPTURE_UNAVAILABLE'
-    } else {
-      status.error = null
-    }
-    return { ...status }
-  })
+  let nextRaidFrame = raidFrame()
   api.previewParty.mockImplementation(async (kind) => ({
-    frame:
-      kind !== 'participants' || !gameVisible
-        ? null
-        : {
-            ...partyFrame(),
-            participantWindow: { width: 1, height: 1, rgba: new Uint8Array(4), rows: [] }
-          },
-    previewError: gameVisible ? null : 'DEVELOPER_GAME_NOT_FOUND',
+    frame: kind === 'raid' ? nextRaidFrame : partyFrame(),
+    previewError: null,
     collection: { ...status }
   }))
+  const checkbox = (label: string): HTMLInputElement =>
+    container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
-  await click('파티원창 크롭')
-  expect(attempts).toBe(1)
-  expect(container.textContent).toContain('던전앤파이터를 실행해주세요.')
-  gameVisible = true
+  await act(async () => checkbox('1번 크롭 저장').click())
+  await click('공대원창 크롭')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    'raid'
+  )
+  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(12)
+  expect(container.querySelectorAll('input:checked')).toHaveLength(12)
+  expect(container.textContent).toContain('현재 저장 대상 12개')
+  expect(container.textContent).toContain('12 / 12명')
+  expect(container.textContent).toContain('현재 화면의 행 위치')
+  expect(container.querySelectorAll('img[alt$="닉네임 원본 크롭"]')).toHaveLength(12)
+  await act(async () => checkbox('12행 공대원 닉네임 저장').click())
+  expect(container.textContent).toContain('현재 저장 대상 11개')
+
+  nextRaidFrame = raidFrame(9)
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(attempts).toBe(2)
-  expect(status.armed).toBe(true)
-  expect(container.textContent).not.toContain('파티원창이 잘 보이게 해주세요.')
+  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(12)
+  expect(container.querySelectorAll('input:disabled')).toHaveLength(3)
+  expect(container.querySelectorAll('input:disabled:checked')).toHaveLength(0)
+  expect(container.textContent).toContain('9 / 12명')
+  expect(container.textContent).toContain('현재 저장 대상 9개')
+  expect(container.querySelector('img[alt="9행 닉네임 원본 크롭"]')).not.toBeNull()
+  expect(container.querySelector('img[alt="10행 닉네임 원본 크롭"]')).toBeNull()
+
+  await click('파티원창 크롭')
+  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(4)
+  await act(async () => checkbox('2번 파티원 닉네임 저장').click())
+  await click('이미지 수집')
+  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(4)
+  expect(checkbox('1번 크롭 저장').checked).toBe(false)
+  expect(checkbox('2번 크롭 저장').checked).toBe(true)
+  await click('파티원창 크롭')
+  expect(checkbox('1번 파티원 닉네임 저장').checked).toBe(true)
+  expect(checkbox('2번 파티원 닉네임 저장').checked).toBe(false)
+
+  nextRaidFrame = raidFrame()
+  await click('공대원창 크롭')
+  expect(checkbox('10행 공대원 닉네임 저장').checked).toBe(true)
+  expect(checkbox('11행 공대원 닉네임 저장').checked).toBe(true)
+  expect(checkbox('12행 공대원 닉네임 저장').checked).toBe(false)
+  expect(container.textContent).toContain('현재 저장 대상 11개')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+    'raid'
+  )
+})
+
+it.each([
+  ['DEVELOPER_RAID_WINDOW_NOT_FOUND', '공대 상세 창을 열어주세요.'],
+  ['DEVELOPER_RAID_WINDOW_UNCERTAIN', '공대원창이 잘 보이게 해주세요.']
+])(
+  'clears stale raid crops on %s and restores selected rows after recovery',
+  async (code, message) => {
+    vi.useFakeTimers()
+    const { api, status } = installApi()
+    let failed = false
+    api.previewParty.mockImplementation(async (kind) => ({
+      frame: kind === 'raid' ? (failed ? null : raidFrame()) : partyFrame(),
+      previewError: failed ? code : null,
+      collection: { ...status }
+    }))
+    await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+    await click('공대원창 크롭')
+    const third = (): HTMLInputElement =>
+      container.querySelector<HTMLInputElement>('input[aria-label="3행 공대원 닉네임 저장"]')!
+    await act(async () => third().click())
+    failed = true
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(container.querySelectorAll('img')).toHaveLength(0)
+    expect(container.querySelectorAll('input:disabled')).toHaveLength(12)
+    expect(container.textContent).toContain(message)
+    expect(container.textContent).toContain('현재 저장 대상 0개')
+    failed = false
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000)
+    })
+    expect(container.querySelectorAll('input:disabled')).toHaveLength(0)
+    expect(third().checked).toBe(false)
+    expect(container.textContent).toContain('현재 저장 대상 11개')
+    expect(container.textContent).not.toContain(message)
+  }
+)
+
+it('disarms raid collection and ignores a pending preview after leaving for labeling', async () => {
+  vi.useFakeTimers()
+  const { api, status } = installApi()
+  const pending = deferred<Awaited<ReturnType<DeveloperApi['previewParty']>>>()
+  api.previewParty.mockImplementation((kind) =>
+    kind === 'raid'
+      ? pending.promise
+      : Promise.resolve({ frame: partyFrame(), previewError: null, collection: { ...status } })
+  )
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('공대원창 크롭')
+  await click('정답 입력')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)
+  const previewCalls = api.previewParty.mock.calls.length
+  await act(async () => {
+    pending.resolve({
+      frame: raidFrame(),
+      previewError: null,
+      collection: { ...status, armed: true }
+    })
+    await vi.advanceTimersByTimeAsync(3000)
+  })
+  expect(api.previewParty).toHaveBeenCalledTimes(previewCalls)
+  expect(container.querySelector('#developer-raid-panel')).toBeNull()
+  expect(container.querySelector('img[alt="검출된 공대 상세 창 원본"]')).toBeNull()
+})
+
+it('navigates all four tabs with the keyboard and focuses the activated raid tab', async () => {
+  installApi()
+  const callbacks: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    callbacks.push(callback)
+    return callbacks.length
+  })
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  async function key(value: string): Promise<void> {
+    const tab = container.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]')!
+    await act(async () => {
+      tab.dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true }))
+    })
+    await act(async () => {
+      callbacks.splice(0).forEach((callback) => callback(0))
+    })
+  }
+  await key('End')
+  expect(document.activeElement?.id).toBe('developer-labeling-tab')
+  await key('ArrowLeft')
+  expect(document.activeElement?.id).toBe('developer-raid-tab')
+  expect(container.querySelectorAll('[role="tab"][tabindex="0"]')).toHaveLength(1)
+  await key('Home')
+  expect(document.activeElement?.id).toBe('developer-collection-tab')
+})
+
+it('saves and evaluates a twelfth raid crop through the existing labeling flow and identifies remote raid answers', async () => {
+  const local = sample('raid-12', '2026-09-26T00:00:00.000Z', null, {
+    kind: 'raid',
+    slot: 12,
+    frameWidth: 1067,
+    frameHeight: 600,
+    scale: 1
+  })
+  const { api, samples } = installApi([local])
+  const remote = {
+    ...local,
+    id: 'ocr:raid-12',
+    text: '테스트공대12',
+    remote: { kind: 'raid', split: 'test' }
+  } as DeveloperSample
+  api.listOcrSamples.mockResolvedValue([remote])
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  expect(container.textContent).toContain('공대원창 12행 크롭')
+  await typeLabel('테스트공대12')
+  await click('저장하고 다음')
+  expect(api.saveLabel).toHaveBeenLastCalledWith('raid-12', '테스트공대12')
+  await click('완료')
+  await click('선택 이미지 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith([samples[0]])
+  await click('OCR 자료실')
+  expect(container.textContent).toContain('자료실 정답 · 공대원창 · test')
+  expect(input().readOnly).toBe(true)
+  await click('정답 완료 자료 평가')
+  expect(evaluation.evaluate).toHaveBeenLastCalledWith([remote])
 })
 
 it('evaluates server answers read-only, respects splits and exclusions, and preserves local drafts', async () => {
