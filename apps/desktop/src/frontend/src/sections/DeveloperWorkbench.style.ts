@@ -38,6 +38,24 @@ export const styles = stylex.create({
   tabSelected: { borderBottomColor: '#f56c00', color: colors.shellText },
   separator: { width: '100%', height: 1, backgroundColor: colors.border, marginTop: 16 },
   tabPanel: { marginTop: 20, minWidth: 0 },
+  captureInterval: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16
+  },
+  captureIntervalInput: {
+    minHeight: 32,
+    padding: '4px 8px',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.border,
+    borderRadius: 6,
+    backgroundColor: colors.surface,
+    color: colors.shellText,
+    font: 'inherit'
+  },
   panel: {
     display: 'flex',
     flexDirection: 'column',

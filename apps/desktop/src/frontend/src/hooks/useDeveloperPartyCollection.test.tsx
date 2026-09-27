@@ -31,9 +31,9 @@ function deferred<T>(): {
   return { promise, resolve, reject }
 }
 
-function Harness(): null {
+function Harness({ intervalMs = 500 }: { intervalMs?: number }): null {
   const [slots, setSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
-  const value = useDeveloperPartyCollection(slots, setSlots, true, vi.fn())
+  const value = useDeveloperPartyCollection(slots, setSlots, true, vi.fn(), 'hud', intervalMs)
   useEffect(() => {
     current = value
   }, [value])
@@ -66,12 +66,13 @@ it('clears the previous frame when a later preview request rejects', async () =>
     previewError: null,
     collection
   }
+  const pendingPreview = deferred<typeof response>()
   const developer = {
     setPartyCollectionSlots: vi.fn(async () => collection),
     previewParty: vi
       .fn()
       .mockResolvedValueOnce(response)
-      .mockRejectedValueOnce(new Error('offline'))
+      .mockReturnValueOnce(pendingPreview.promise)
   }
   Object.defineProperty(window, 'developer', { configurable: true, value: developer })
 
@@ -79,9 +80,15 @@ it('clears the previous frame when a later preview request rejects', async () =>
   expect(current.frame).toMatchObject({ width: 1920, height: 1080 })
 
   await act(async () => {
-    await vi.advanceTimersByTimeAsync(1000)
+    await vi.advanceTimersByTimeAsync(500)
   })
+  expect(developer.previewParty).toHaveBeenCalledTimes(2)
 
+  await act(async () => root.render(<Harness intervalMs={250} />))
+  await act(async () => vi.advanceTimersByTimeAsync(1000))
+  expect(developer.previewParty).toHaveBeenCalledTimes(2)
+  expect(developer.setPartyCollectionSlots).toHaveBeenCalledTimes(1)
+  await act(async () => pendingPreview.reject(new Error('offline')))
   expect(current.frame).toBeNull()
   expect(current.previewError).toBe('preview-failed')
   expect(current.collection).toEqual(collection)

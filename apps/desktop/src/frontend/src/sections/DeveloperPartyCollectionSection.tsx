@@ -19,6 +19,7 @@ export function DeveloperPartyCollectionSection({
   active,
   onDisarmed,
   kind = 'hud',
+  previewIntervalMs,
   onLabeling
 }: {
   onSaved: () => void
@@ -27,9 +28,17 @@ export function DeveloperPartyCollectionSection({
   active: boolean
   onDisarmed: () => void
   kind?: DeveloperCollectionKind
+  previewIntervalMs: number
   onLabeling?: () => void
 }): React.JSX.Element | null {
-  const collection = useDeveloperPartyCollection(slots, onSlotsChange, active, onDisarmed, kind)
+  const collection = useDeveloperPartyCollection(
+    slots,
+    onSlotsChange,
+    active,
+    onDisarmed,
+    kind,
+    previewIntervalMs
+  )
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame

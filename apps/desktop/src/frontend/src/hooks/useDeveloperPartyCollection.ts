@@ -1,4 +1,4 @@
-import { DEVELOPER_ERRORS } from '../constants/developer'
+import { DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS, DEVELOPER_ERRORS } from '../constants/developer'
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import { useEffect, useRef, useState } from 'react'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
@@ -23,6 +23,7 @@ type CollectionSession = {
   polling: boolean
   commandRevision: number
   interval: number | null
+  refreshPreview: () => Promise<void>
   disarmPromise: Promise<void> | null
 }
 
@@ -50,7 +51,8 @@ export function useDeveloperPartyCollection(
   onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void,
   active: boolean,
   onDisarmed: () => void,
-  kind: DeveloperCollectionKind = 'hud'
+  kind: DeveloperCollectionKind = 'hud',
+  previewIntervalMs = DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS
 ): {
   frame: PreviewFrame | null
   slots: DeveloperPartySlotNumber[]
@@ -114,6 +116,7 @@ export function useDeveloperPartyCollection(
       polling: false,
       commandRevision: 0,
       interval: null,
+      refreshPreview,
       disarmPromise: null
     }
     sessionRef.current = session
@@ -199,7 +202,6 @@ export function useDeveloperPartyCollection(
     }
 
     void refreshPreview()
-    session.interval = window.setInterval(() => void refreshPreview(), 1000)
 
     return () => {
       disarmPromiseRef.current = disarmCollectionSession(session)
@@ -208,6 +210,18 @@ export function useDeveloperPartyCollection(
       }
     }
   }, [active, kind])
+
+  useEffect(() => {
+    const session = sessionRef.current
+    if (!session?.active) {
+      return
+    }
+
+    // Changing the cadence must preserve in-flight capture and Print Screen registration.
+    const interval = window.setInterval(() => void session.refreshPreview(), previewIntervalMs)
+    session.interval = interval
+    return () => window.clearInterval(interval)
+  }, [active, kind, previewIntervalMs])
 
   function setSlotIncluded(slot: DeveloperPartySlotNumber, included: boolean): void {
     const nextSlots = included

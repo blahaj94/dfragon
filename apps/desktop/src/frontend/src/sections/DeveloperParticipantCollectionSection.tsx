@@ -209,7 +209,7 @@ export function DeveloperParticipantCollectionSection({
       </div>
       <div {...stylex.props(styles.footnotes)}>
         <Typo.caption>
-          미리보기는 1초마다 갱신돼요. 저장 이미지는 원본 크기를 유지합니다.
+          미리보기는 선택한 캡처 주기로 갱신돼요. 저장 이미지는 원본 크기를 유지합니다.
         </Typo.caption>
         <Typo.caption>
           {raid
