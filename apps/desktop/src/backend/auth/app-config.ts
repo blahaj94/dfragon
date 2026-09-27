@@ -5,6 +5,7 @@ import { validateApiOrigin } from './protocol'
 import { readAuthRuntimeConfig, type AuthRuntimeConfig } from './runtime-config'
 
 declare const __DFRAGON_DEVELOPMENT_AUTH__: boolean
+declare const __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__: string | null
 declare const __DFRAGON_DISTRIBUTION_API_ORIGIN__: string | null
 
 export function readAppAuthConfig(application: {
@@ -20,11 +21,18 @@ export function readAppAuthConfig(application: {
     return readAuthRuntimeConfig()
   }
 
+  const accountsOrigin =
+    typeof __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__ !== 'undefined'
+      ? __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__
+      : null
   // OS protocol launches do not inherit the shell that built or first ran the app.
   // Keep the public tuple in the main bundle, including on cold starts.
   const config = isDevelopmentBuild ? development : distribution
   return readAuthRuntimeConfig({
-    DFRAGON_AUTH_API_ORIGIN: isDevelopmentBuild ? development.apiOrigin : distributionOrigin!,
+    DFRAGON_AUTH_API_ORIGIN: isDevelopmentBuild
+      ? development.accountsOrigin
+      : (accountsOrigin ?? 'https://accounts.dfragon.com'),
+    ...(!isDevelopmentBuild ? { DFRAGON_AUTH_LEGACY_ORIGIN: distributionOrigin! } : {}),
     DFRAGON_AUTH_RETURN_TARGET: config.returnTarget,
     DFRAGON_AUTH_ENVIRONMENT: config.environment,
     DFRAGON_AUTH_PROVIDERS: config.providers.join(','),
@@ -43,7 +51,7 @@ export function readAppApiOrigin(): string | null {
       : null
   const origin = isDevelopmentBuild
     ? development.apiOrigin
-    : (distributionOrigin ?? process.env['DFRAGON_AUTH_API_ORIGIN'])
+    : (distributionOrigin ?? process.env['DFRAGON_API_ORIGIN'])
   if (origin == null) {
     return null
   }

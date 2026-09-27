@@ -206,7 +206,7 @@ it.each([false, true])(
     await mocks.bootstrap
 
     expect(mocks.applyProfile).toHaveBeenCalledWith(expect.anything(), {
-      apiOrigin: 'https://localhost:3443',
+      apiOrigin: 'https://localhost:3444',
       returnTarget: 'dfragon.dev://auth/callback',
       environment: 'development',
       providers: ['passkey'],
@@ -218,7 +218,7 @@ it.each([false, true])(
     )
     expect(mocks.bootstrapAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        config: expect.objectContaining({ apiOrigin: 'https://localhost:3443' })
+        config: expect.objectContaining({ apiOrigin: 'https://localhost:3444' })
       })
     )
   }
@@ -272,6 +272,7 @@ it('detaches clock power listeners when auth bootstrap does not create a runtime
 
 function stubTrustedRuntimeEnvironment(): void {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -339,6 +340,7 @@ it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명
 
 it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제품에 연결한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -960,6 +962,7 @@ it('profile owner의 activate 재구성 예외는 event 밖으로 던지지 않�
 
 it('does not activate product auth for the unsupported OAuth provider', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'discord')
@@ -987,6 +990,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
   const userDataPath = join(root, 'profile')
   fs.mkdirSync(userDataPath, { mode: 0o700 })
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -1049,6 +1053,7 @@ it('profile 준비 실패는 Electron 전역값과 lock을 건드리지 않고 �
 
 it('single-instance loser는 auth/store/window 초기화 없이 종료한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -1322,6 +1327,7 @@ it('profile owner의 post-bootstrap composition 예외는 ingress를 닫고 nonz
 
 it('URL 없는 second-instance는 기존 창을 표시하고 focus한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -1491,6 +1497,7 @@ it('actual ingress는 malformed, 복수, pending 없는 callback에 window side 
 
 it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runtime으로 재생성한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
@@ -1528,6 +1535,7 @@ it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runti
 
 it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')

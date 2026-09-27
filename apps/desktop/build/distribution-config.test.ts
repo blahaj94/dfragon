@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { readDistributionApiOrigin } from './distribution-config'
+import { readDistributionApiOrigin, readDistributionAccountsOrigin } from './distribution-config'
 
 it('selects only the explicit public distribution origin', () => {
   expect(
@@ -40,4 +40,22 @@ it.each([
   'https://[::ffff:8000:0]'
 ])('preserves canonical non-loopback origins', (origin) => {
   expect(readDistributionApiOrigin({ DFRAGON_DISTRIBUTION_API_ORIGIN: origin })).toBe(origin)
+})
+
+it('bakes authentication separately from the search origin', () => {
+  expect(
+    readDistributionAccountsOrigin({
+      DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://search.example.test'
+    })
+  ).toBe('https://accounts.dfragon.com')
+  expect(
+    readDistributionAccountsOrigin({
+      DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: 'https://accounts.example.test'
+    })
+  ).toBe('https://accounts.example.test')
+  expect(() =>
+    readDistributionAccountsOrigin({
+      DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: 'http://accounts.example.test'
+    })
+  ).toThrow()
 })

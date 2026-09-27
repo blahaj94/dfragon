@@ -3,5 +3,6 @@
   "returnTarget": "dfragon.dev://auth/callback",
   "environment": "development",
   "providers": ["passkey"],
-  "appIdentity": "dfragon.dev"
+  "appIdentity": "dfragon.dev",
+  "accountsOrigin": "https://localhost:3444"
 }
