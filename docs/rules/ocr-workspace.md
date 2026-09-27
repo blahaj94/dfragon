@@ -47,11 +47,13 @@ Main이 고정 HTTPS 주소와 credential을 소유하고 renderer에는 검증�
 
 ## 미니PC 모델 보관과 Windows 학습
 
-후속 사용자 요청으로 실제 모델 파일의 미니PC 보관, REST 조회·다운로드·수동 등록과 별도 Windows 평가 앱의 GPU 학습 연결을 채택한다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 다른 작업에도 적용한다. 앞 절의 학습·로컬 복제 제외는 기존 DFRAGON Desktop 자료 조회 기능에 유지하며, 새 평가 앱은 다운로드 시점의 입력을 로컬 실험으로 고정한다. 서버에 영구 데이터셋 버전을 만들거나 학습을 실행하지 않는다.
+후속 사용자 요청으로 실제 모델 파일의 미니PC 보관, REST 조회·다운로드·수동 등록과 별도 Windows 평가 앱의 GPU 학습 연결을 채택했다. 서버 API·보관 화면은 [서버 PR #539](https://github.com/blahaj94/dfragon/pull/539), Windows 로그인·데이터 고정·GPU 학습·평가·수동 등록은 별도 [dfragon-ocr-eval-tool](https://github.com/blahaj94/dfragon-ocr-eval-tool)의 [PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 구현했다. 앞 절의 학습·로컬 복제 제외는 기존 DFRAGON Desktop 자료 조회 기능에 유지하며, 새 평가 앱은 다운로드 시점의 입력을 로컬 실험으로 고정한다. 서버에 영구 데이터셋 버전을 만들거나 학습을 실행하지 않는다.
 
 자료실의 정답·제외·닉네임 단위 train/val/test 배정이 원천이다. 앱은 정답 완료·미제외·배정된 자료와 선택 모델을 내려받아 해시와 함께 고정하며 서버 배정을 재분할하지 않는다. Windows GPU에서 train으로 학습하고 val로 선택한 모델을 test로 평가한다. 사용자가 등록 버튼을 누르면 새 가중치·사전·평가 요약을 새 모델 ID로 보관한다. 자동 결과 업로드·임의 GitHub 저장소/실행 명령 등록은 제공하지 않는다.
 
 모델의 이름·preset·kind·parentId·등록 시각과 파일 SHA-256을 보관하고 동일 ID 재시도가 기존 bytes를 바꾸지 못하게 한다. 파일과 메타데이터는 원자적으로 저장한다. 파인튜닝은 기존 parent와 같은 preset·문자 사전 순서를 유지한다. 원본과 모델 파일에 합산 저장 상한을 적용하며 자동 삭제하지 않는다. 웹 로그인은 기존 owner cookie·Origin 경계를 사용한다. 모델 목록·파일·등록용 Desktop REST는 정확한 허용 경로에서 Origin 없는 활성 owner Bearer만 허용한다.
+
+별도 Windows 평가 앱은 main process가 소유한 웹 로그인 세션으로 `/api/models`, `/api/export/manifest`, `/api/samples/:id/image`를 사용한다. Origin 없는 Bearer를 사용하는 기존 DFRAGON Desktop과 인증 방식·저장소를 구분한다.
 
 첫 지원 모델은 공식 한국어 PP-OCRv5 recognition 학습 가중치이며 웹의 기본 모델 추가로 등록한다. 새로운 패스키·owner·역할을 만들지 않는다. 서버 배포·운영 로그인·프록시 제한 적용과 실제 데이터 학습 성공을 로컬 합성 테스트로 대신하지 않는다.
 
