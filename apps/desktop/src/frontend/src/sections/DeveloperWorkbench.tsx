@@ -12,6 +12,10 @@ import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/
 import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
 import { styles } from './DeveloperWorkbench.style'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
+import {
+  DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS,
+  DEVELOPER_PREVIEW_INTERVALS_MS
+} from '../constants/developer'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
 const REMOTE_PAGE_SIZE = 50
@@ -24,6 +28,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [split, setSplit] = useState('all')
   const [remotePage, setRemotePage] = useState(0)
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('collection')
+  const [previewIntervalMs, setPreviewIntervalMs] = useState(DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS)
   const remote = useOcrSamples(source === 'ocr' && activeTab === 'labeling')
   const readingRemote = source === 'ocr'
   const displayedDataset = readingRemote ? remote : dataset
@@ -261,9 +266,30 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       <div aria-hidden="true" {...stylex.props(styles.separator)} />
 
       <div {...stylex.props(styles.tabPanel)}>
+        {activeTab !== 'labeling' && (
+          <div {...stylex.props(styles.captureInterval)}>
+            <Typo.txtS as="label" htmlFor="developer-capture-interval">
+              캡처 주기
+            </Typo.txtS>
+            <select
+              id="developer-capture-interval"
+              aria-label="캡처 주기"
+              {...stylex.props(styles.captureIntervalInput)}
+              value={previewIntervalMs}
+              onChange={(event) => setPreviewIntervalMs(Number(event.target.value))}
+            >
+              {DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => (
+                <option key={intervalMs} value={intervalMs}>
+                  {intervalMs / 1000}초
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <DeveloperPartyCollectionSection
           active={activeTab !== 'labeling'}
           kind={collectionKind}
+          previewIntervalMs={previewIntervalMs}
           onLabeling={() => setActiveTab('labeling')}
           onSaved={() => void dataset.refresh()}
           onDisarmed={() => void dataset.refresh()}

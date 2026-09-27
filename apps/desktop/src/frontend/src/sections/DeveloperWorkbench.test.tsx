@@ -253,10 +253,44 @@ it('reports upload outcome independently of local saving on both collection tabs
 })
 
 it('arms only on the collection tab, previews four raw crops, and disarms on tab switch and unmount', async () => {
+  vi.useFakeTimers()
   const { api } = installApi()
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
 
   expect(api.setPartyCollectionSlots).toHaveBeenCalledWith([1, 2, 3, 4])
+  const intervalSelect = container.querySelector<HTMLSelectElement>(
+    'select[aria-label="캡처 주기"]'
+  )!
+  expect(intervalSelect?.value).toBe('500')
+  expect([...intervalSelect.options].map((option) => option.text)).toEqual([
+    '0.25초',
+    '0.5초',
+    '0.75초',
+    '1초'
+  ])
+  await act(async () => vi.advanceTimersByTimeAsync(499))
+  expect(api.previewParty).toHaveBeenCalledTimes(1)
+  await act(async () => vi.advanceTimersByTimeAsync(1))
+  expect(api.previewParty).toHaveBeenCalledTimes(2)
+
+  for (const intervalMs of [250, 500, 750, 1000]) {
+    await act(async () => {
+      intervalSelect.value = String(intervalMs)
+      intervalSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    const calls = api.previewParty.mock.calls.length
+    await act(async () => vi.advanceTimersByTimeAsync(intervalMs - 1))
+    expect(api.previewParty).toHaveBeenCalledTimes(calls)
+    await act(async () => vi.advanceTimersByTimeAsync(1))
+    expect(api.previewParty).toHaveBeenCalledTimes(calls + 1)
+    expect(api.setPartyCollectionSlots).toHaveBeenCalledTimes(1)
+  }
+
+  await click('파티원창 크롭')
+  expect(intervalSelect.value).toBe('1000')
+  await click('공대원창 크롭')
+  expect(intervalSelect.value).toBe('1000')
+  await click('이미지 수집')
   expect(container.querySelectorAll('img[alt$="번 크롭 원본 미리보기"]')).toHaveLength(4)
   expect(container.querySelector('[aria-label="저장 포함"]')).toBeNull()
   expect(container.textContent).toContain('게임 화면 연결됨')

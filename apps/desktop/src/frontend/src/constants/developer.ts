@@ -1,3 +1,6 @@
+export const DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS = 500
+export const DEVELOPER_PREVIEW_INTERVALS_MS = [250, 500, 750, 1000] as const
+
 export const DEVELOPER_COLLECTION_LABELS = {
   hud: 'HUD',
   participants: '파티원창',
