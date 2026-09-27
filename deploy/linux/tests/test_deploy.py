@@ -64,6 +64,33 @@ class DeploymentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 deployment.revision(bad)
 
+    def test_readiness_uses_the_actual_published_accounts_port(self):
+        for port in ('3200', '43210'):
+            with self.subTest(port=port):
+                url = f'http://127.0.0.1:{port}/me'
+                running = {'NetworkSettings': {'Ports': {
+                    '3000/tcp': [{'HostIp': '127.0.0.1', 'HostPort': port}]
+                }}}
+                unauthorized = deployment.urllib.error.HTTPError(url, 401, 'Unauthorized', None, None)
+                with patch.object(deployment, 'container', return_value=running) as container, \
+                     patch.object(deployment.urllib.request, 'urlopen', side_effect=unauthorized) as request:
+                    deployment.ready('accounts')
+                container.assert_called_once_with('accounts')
+                request.assert_called_once_with(url, timeout=2)
+
+    def test_readiness_rejects_missing_or_ambiguous_loopback_bindings(self):
+        for bindings in (None, [],
+                         [{'HostIp': '0.0.0.0', 'HostPort': '3200'}],
+                         [{'HostIp': '127.0.0.1', 'HostPort': '70000'}],
+                         [{'HostIp': '127.0.0.1', 'HostPort': '3200'}] * 2):
+            with self.subTest(bindings=bindings):
+                running = {'NetworkSettings': {'Ports': {'3000/tcp': bindings}}}
+                with patch.object(deployment, 'container', return_value=running), \
+                     patch.object(deployment.urllib.request, 'urlopen') as request:
+                    with self.assertRaises(RuntimeError):
+                        deployment.ready('accounts')
+                request.assert_not_called()
+
     def test_ci_and_branch_must_match_before_archive(self):
         class Response:
             runs = []

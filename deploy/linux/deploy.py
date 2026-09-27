@@ -117,9 +117,17 @@ def container(service):
 
 
 def ready(service):
-    url, expected = {'api': ('http://127.0.0.1:3000/health', 200),
-                     'accounts': ('http://127.0.0.1:3200/me', 401),
-                     'ocr': ('http://127.0.0.1:3100/health', 200)}[service]
+    port, path, expected = {'api': ('3000/tcp', '/health', 200),
+                            'accounts': ('3000/tcp', '/me', 401),
+                            'ocr': ('3100/tcp', '/health', 200)}[service]
+    # Compose resolves the preserved environment; inspect its actual published port.
+    bindings = container(service)['NetworkSettings']['Ports'].get(port) or []
+    if len(bindings) != 1 or bindings[0].get('HostIp') != '127.0.0.1':
+        raise RuntimeError('expected one loopback service port')
+    host_port = bindings[0].get('HostPort', '')
+    if re.fullmatch(r'[0-9]{1,5}', host_port) is None or not 1 <= int(host_port) <= 65535:
+        raise RuntimeError('invalid published service port')
+    url = f'http://127.0.0.1:{host_port}{path}'
     for _ in range(60):
         try:
             with urllib.request.urlopen(url, timeout=2) as response:
