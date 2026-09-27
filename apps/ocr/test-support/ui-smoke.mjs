@@ -76,6 +76,19 @@ try {
   )
   const config = { origin, authOrigin: origin, ownerId }
   store = new OcrStore(':memory:', 1024 * 1024 * 32)
+  store.addModel(
+    {
+      id: randomUUID(),
+      name: '합성 검증 모델',
+      preset: 'korean-ppocrv5',
+      kind: 'pretrained',
+      parentId: null
+    },
+    new Map([
+      ['weights.pdparams', Buffer.from('synthetic weights; never executed')],
+      ['characters.txt', Buffer.from('가\n나\n')]
+    ])
+  )
   runtime = await createOcrApp(config, store, new OcrAuth(config, authFetch))
   outer.use(runtime.app.getHttpAdapter().getInstance())
   browser = await chromium.launch({ headless: true })
@@ -113,6 +126,18 @@ try {
   assert(await page.evaluate(() => globalThis.document.fonts.check('14px NanumSquareNeo')))
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
   await page.getByRole('link', { name: '전체 다운로드' }).waitFor()
+  await page.getByText('학습 모델 · 1개', { exact: true }).click()
+  await page.getByText('합성 검증 모델', { exact: true }).waitFor()
+  assert.equal(
+    await page.getByRole('button', { name: '기본 한국어 PP-OCRv5 모델 추가' }).count(),
+    1
+  )
+  assert.match(
+    await page.getByRole('link', { name: 'weights.pdparams', exact: true }).getAttribute('href'),
+    /^\/api\/models\/[0-9a-f-]+\/files\/weights.pdparams$/
+  )
+  await screenshot('model-library')
+  await page.getByText('학습 모델 · 1개', { exact: true }).click()
   const original = await page.evaluate(() => {
     const canvas = globalThis.document.createElement('canvas')
     canvas.width = 960

@@ -2,7 +2,8 @@ import { OCR_SAMPLES } from './constants.js'
 import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
-import type { Capture, Sample, Split } from './model.js'
+import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.js'
+import { inspectModelFiles } from './model-library.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -20,11 +21,94 @@ export class OcrStore {
       CREATE TABLE IF NOT EXISTS captures(id TEXT PRIMARY KEY, metadata TEXT NOT NULL, fingerprint TEXT NOT NULL, png BLOB NOT NULL);
       CREATE TABLE IF NOT EXISTS samples(id TEXT PRIMARY KEY, capture_id TEXT NOT NULL REFERENCES captures(id), slot INTEGER NOT NULL, text TEXT, excluded INTEGER NOT NULL DEFAULT 0, UNIQUE(capture_id,slot));
       CREATE TABLE IF NOT EXISTS label_splits(text TEXT PRIMARY KEY, split TEXT NOT NULL CHECK(split IN ('train','val','test')));
-      CREATE INDEX IF NOT EXISTS samples_text ON samples(text);`)
+      CREATE INDEX IF NOT EXISTS samples_text ON samples(text);
+      CREATE TABLE IF NOT EXISTS models(id TEXT PRIMARY KEY, metadata TEXT NOT NULL, fingerprint TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS model_files(model_id TEXT NOT NULL REFERENCES models(id), name TEXT NOT NULL, data BLOB NOT NULL, PRIMARY KEY(model_id,name));`)
   }
 
   close() {
     this.db.close()
+  }
+
+  models(): ModelSummary[] {
+    return this.db
+      .prepare('SELECT metadata FROM models ORDER BY rowid DESC')
+      .all()
+      .map((row) => JSON.parse(row.metadata as string) as ModelSummary)
+  }
+
+  model(id: string): ModelSummary {
+    const row = this.db.prepare('SELECT metadata FROM models WHERE id=?').get(id)
+    if (row === undefined) {
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    }
+    return JSON.parse(row.metadata as string) as ModelSummary
+  }
+
+  modelFile(id: string, name: string): Buffer {
+    const row = this.db
+      .prepare('SELECT data FROM model_files WHERE model_id=? AND name=?')
+      .get(id, name)
+    if (row === undefined) {
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    }
+    return Buffer.from(row.data as Uint8Array)
+  }
+
+  addModel(
+    input: ModelUpload,
+    content: Map<string, Buffer>
+  ): { model: ModelSummary; duplicate: boolean } {
+    const files = inspectModelFiles(content)
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify({ ...input, files }))
+      .digest('hex')
+    this.db.exec('BEGIN IMMEDIATE')
+    try {
+      const existing = this.db.prepare('SELECT fingerprint FROM models WHERE id=?').get(input.id)
+      if (existing !== undefined) {
+        if (existing.fingerprint !== fingerprint) {
+          throw new OcrError(OCR_ERROR_CODE.MODEL_ID_CONFLICT)
+        }
+        const model = this.model(input.id)
+        this.db.exec('COMMIT')
+        return { model, duplicate: true }
+      }
+      if (input.parentId !== null) {
+        const parent = this.model(input.parentId)
+        if (
+          parent.preset !== input.preset ||
+          parent.files.find((file) => file.name === 'characters.txt')?.sha256 !==
+            files.find((file) => file.name === 'characters.txt')?.sha256
+        ) {
+          throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+        }
+      }
+      const used = this.db
+        .prepare(
+          'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
+        )
+        .get()!
+      if (
+        Number(used.bytes) + files.reduce((sum, file) => sum + file.bytes, 0) >
+        this.maximumBytes
+      ) {
+        throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
+      }
+      const model: ModelSummary = { ...input, registeredAt: new Date().toISOString(), files }
+      this.db
+        .prepare('INSERT INTO models VALUES(?,?,?)')
+        .run(input.id, JSON.stringify(model), fingerprint)
+      const insert = this.db.prepare('INSERT INTO model_files VALUES(?,?,?)')
+      for (const [name, bytes] of content) {
+        insert.run(input.id, name, bytes)
+      }
+      this.db.exec('COMMIT')
+      return { model, duplicate: false }
+    } catch (error) {
+      this.db.exec('ROLLBACK')
+      throw error
+    }
   }
 
   add(capture: Capture, png: Buffer) {
@@ -45,7 +129,9 @@ export class OcrStore {
       }
 
       const used = this.db
-        .prepare('SELECT COALESCE(SUM(length(png)),0) AS bytes FROM captures')
+        .prepare(
+          'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
+        )
         .get()!
       if (Number(used.bytes) + png.length > this.maximumBytes) {
         throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
