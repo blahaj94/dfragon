@@ -80,7 +80,7 @@ test('an IP already rate-limited cannot consume the global authentication allowa
     },
     undefined,
     undefined,
-    { apiKey: 'synthetic', trustedProxyHops: 1 }
+    { trustedProxyHops: 1 }
   )
   try {
     await app.listen(0, '127.0.0.1')

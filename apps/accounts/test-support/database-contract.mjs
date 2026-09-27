@@ -9,11 +9,6 @@ export const DOMAIN_TABLES = [
   'auth_passkeys',
   'auth_refresh_tokens',
   'auth_sessions',
-  'character_api_responses',
-  'characters',
-  'item_catalog',
-  'set_item_catalog',
-  'skill_catalog',
   'users'
 ]
 export const MIGRATIONS_TABLE = 'typeorm_migrations'
@@ -151,10 +146,6 @@ export async function assertSchema(
   mark = () => undefined,
   migrationNames = [
     'InitialAuthSchema1788600000000',
-    'AddCharacterDetails1789547642378',
-    'AddCharacterCatalog1789554193117',
-    'AddSetItemCatalog1789557135610',
-    'AddCharacterAdventureName1789564164377',
     'ReplaceOAuthWithPasskeys1789566809748',
     'AddPhoneQrLogin1789601588410'
   ]
@@ -257,11 +248,6 @@ export async function assertSchema(
     { table_name: 'auth_passkeys', columns: ['id'] },
     { table_name: 'auth_refresh_tokens', columns: ['token_hash'] },
     { table_name: 'auth_sessions', columns: ['id'] },
-    { table_name: 'character_api_responses', columns: ['character_id', 'section'] },
-    { table_name: 'characters', columns: ['character_id'] },
-    { table_name: 'item_catalog', columns: ['item_id'] },
-    { table_name: 'set_item_catalog', columns: ['set_item_id'] },
-    { table_name: 'skill_catalog', columns: ['job_id', 'skill_id'] },
     { table_name: 'users', columns: ['id'] }
   ])
 

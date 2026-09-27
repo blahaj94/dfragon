@@ -2,16 +2,8 @@ import assert from 'node:assert/strict'
 import { request } from 'node:http'
 import { Buffer } from 'node:buffer'
 import { test } from 'node:test'
-import { createLoginHttpApp } from '../dist/auth/login/http.js'
+import { createApiHttpApp } from '../dist/http.js'
 
-const unusedLogin = Object.fromEntries(
-  ['create', 'authorize', 'callback', 'exchange'].map((name) => [
-    name,
-    async () => {
-      throw new Error('unrelated login route called')
-    }
-  ])
-)
 const principal = {
   userId: '00000000-0000-4000-8000-000000000001',
   sessionId: '00000000-0000-4000-8000-000000000002',
@@ -44,7 +36,7 @@ async function withSearchBoundary(
       throw new Error('unexpected upstream call')
     }
   }
-  const app = await createLoginHttpApp(unusedLogin, undefined, undefined, deps)
+  const app = await createApiHttpApp(deps)
   await app.listen(0, '127.0.0.1')
   try {
     await operation(await app.getUrl(), calls)
@@ -201,7 +193,7 @@ test('search HEAD fallback cannot verify, record activity or consume quota', asy
 
 test('public HTTP search succeeds without credentials and ignores spoofed forwarded IPs for quota', async () => {
   let upstreamCalls = 0
-  const app = await createLoginHttpApp(unusedLogin, undefined, undefined, {
+  const app = await createApiHttpApp({
     apiKey: 'synthetic-search-key',
     async searchCharacters() {
       upstreamCalls++
@@ -237,7 +229,7 @@ test('public HTTP search succeeds without credentials and ignores spoofed forwar
 
 test('single-proxy mode isolates client quotas and ignores spoofed addresses to the left', async () => {
   let upstreamCalls = 0
-  const app = await createLoginHttpApp(unusedLogin, undefined, undefined, {
+  const app = await createApiHttpApp({
     apiKey: 'synthetic-search-key',
     trustedProxyHops: 1,
     async searchCharacters() {

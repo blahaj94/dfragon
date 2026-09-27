@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createAdventureSearchStore } from '../dist/adventures/store.js'
 import { createCharacterDetailStore } from '../dist/characters/details/store.js'
 import { characterDetailSections } from '../dist/characters/details/sections.js'
-import { createLoginHttpApp } from '../dist/auth/login/http.js'
+import { createApiHttpApp } from '../dist/http.js'
 
 export async function assertAdventureSearch(source, mark = () => undefined) {
   const ids = Array.from({ length: 7 }, (_, i) => `fixture-adventure-${i}`)
@@ -118,18 +118,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     assert.equal((await search.search(input('새모험단'), signal)).rows.length, 0)
 
     mark('HTTP database read returns pages without provider calls')
-    const unused = async () => {
-      throw new Error('Unexpected unrelated service')
-    }
-    app = await createLoginHttpApp(
-      { create: unused, exchange: unused, authorize: unused, callback: unused },
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      search
-    )
+    app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, search)
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/adventures/characters?adventureName=${encodeURIComponent(name)}`
     const response = await fetch(url)

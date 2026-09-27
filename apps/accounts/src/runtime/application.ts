@@ -1,17 +1,13 @@
-import { createAdventureSearchStore } from '../adventures/store.js'
 import type { INestApplication } from '@nestjs/common'
-import { createCharacterDetailStore } from '../characters/details/store.js'
-import { createCatalogStore } from '../characters/catalog/store.js'
-import { createCatalogService } from '../characters/catalog/service.js'
-import { createNeopleCatalog } from '../characters/catalog/neople.js'
-import { createApiHttpApp } from '../http.js'
+import { createLoginHttpApp, createSessionHttpService } from '../auth/login/http.js'
+import { createLoginService } from '../auth/login/service.js'
 import { createDatabaseDataSource } from '../database/index.js'
 import type { readRuntimeConfiguration } from './configuration.js'
 
 type RuntimeConfiguration = Awaited<ReturnType<typeof readRuntimeConfiguration>>
 
 /** 이번 실행이 소유한 앱과 DataSource의 종료 책임을 함께 관리한다. */
-export async function createApiRuntime(configuration: RuntimeConfiguration) {
+export async function createAccountsRuntime(configuration: RuntimeConfiguration) {
   const dataSource = createDatabaseDataSource(configuration.database)
   let app: INestApplication | undefined
   let closing: Promise<void> | undefined
@@ -45,7 +41,7 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
         failed = true
       }
       if (failed) {
-        throw new Error('API runtime cleanup failed')
+        throw new Error('Accounts runtime cleanup failed')
       }
     })()
     return closing
@@ -53,17 +49,21 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
 
   try {
     await dataSource.initialize()
-    app = await createApiHttpApp(
-      { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
-      {
-        apiKey: configuration.apiKey,
-        store: createCharacterDetailStore(dataSource),
-        catalog: createCatalogService(
-          createCatalogStore(dataSource),
-          createNeopleCatalog(configuration.apiKey)
-        )
-      },
-      createAdventureSearchStore(dataSource),
+    const login = createLoginService({
+      dataSource,
+      configuration: configuration.configuration,
+      issueAccessJwt: configuration.issueAccessJwt
+    })
+    const session = createSessionHttpService({
+      dataSource,
+      issueAccessJwt: configuration.issueAccessJwt
+    })
+    const account = { dataSource, verifyAccessJwt: configuration.verifyAccessJwt }
+    app = await createLoginHttpApp(
+      login,
+      session,
+      account,
+      { trustedProxyHops: configuration.trustedProxyHops },
       configuration.localHttps
     )
     return { app, close }

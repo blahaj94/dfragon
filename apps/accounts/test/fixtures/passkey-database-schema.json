@@ -48,44 +48,6 @@
       ["revoked_reason", "text", "text", "YES", null, null],
       ["user_id", "uuid", "uuid", "NO", null, null]
     ],
-    "character_api_responses": [
-      ["character_id", "text", "text", "NO", null, null],
-      ["content_updated_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["last_successful_fetch_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["payload", "jsonb", "jsonb", "NO", null, null],
-      ["request_started_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["revision", "integer", "int4", "NO", null, null],
-      ["section", "USER-DEFINED", "character_data_section", "NO", null, null]
-    ],
-    "characters": [
-      ["adventure_name", "text", "text", "YES", null, null],
-      ["character_id", "text", "text", "NO", null, null],
-      ["created_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["server_id", "text", "text", "NO", null, null],
-      ["updated_at", "timestamp with time zone", "timestamptz", "NO", null, 6]
-    ],
-    "item_catalog": [
-      ["expires_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["fetched_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["item_id", "text", "text", "NO", null, null],
-      ["payload", "jsonb", "jsonb", "NO", null, null],
-      ["request_started_at", "timestamp with time zone", "timestamptz", "NO", null, 6]
-    ],
-    "set_item_catalog": [
-      ["expires_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["fetched_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["payload", "jsonb", "jsonb", "NO", null, null],
-      ["request_started_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["set_item_id", "text", "text", "NO", null, null]
-    ],
-    "skill_catalog": [
-      ["expires_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["fetched_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["job_id", "text", "text", "NO", null, null],
-      ["payload", "jsonb", "jsonb", "NO", null, null],
-      ["request_started_at", "timestamp with time zone", "timestamptz", "NO", null, 6],
-      ["skill_id", "text", "text", "NO", null, null]
-    ],
     "users": [
       ["created_at", "timestamp with time zone", "timestamptz", "NO", null, 0],
       ["id", "uuid", "uuid", "NO", null, null],
@@ -133,22 +95,6 @@
     "auth_sessions:ck_auth_sessions_revoked_time:CHECK",
     "auth_sessions:fk_auth_sessions_user:FOREIGN KEY",
     "auth_sessions:pk_auth_sessions:PRIMARY KEY",
-    "character_api_responses:ck_character_api_responses_payload:CHECK",
-    "character_api_responses:ck_character_api_responses_revision:CHECK",
-    "character_api_responses:fk_character_api_responses_character:FOREIGN KEY",
-    "character_api_responses:pk_character_api_responses:PRIMARY KEY",
-    "characters:ck_characters_id:CHECK",
-    "characters:ck_characters_server:CHECK",
-    "characters:pk_characters:PRIMARY KEY",
-    "item_catalog:ck_item_catalog_id:CHECK",
-    "item_catalog:ck_item_catalog_payload:CHECK",
-    "item_catalog:pk_item_catalog:PRIMARY KEY",
-    "set_item_catalog:ck_set_item_catalog_id:CHECK",
-    "set_item_catalog:ck_set_item_catalog_payload:CHECK",
-    "set_item_catalog:pk_set_item_catalog:PRIMARY KEY",
-    "skill_catalog:ck_skill_catalog_ids:CHECK",
-    "skill_catalog:ck_skill_catalog_payload:CHECK",
-    "skill_catalog:pk_skill_catalog:PRIMARY KEY",
     "users:ck_users_nickname_nonempty:CHECK",
     "users:pk_users:PRIMARY KEY"
   ],
@@ -190,24 +136,6 @@
     ["auth_sessions", "idx_auth_sessions_last_active_at", ["last_active_at"], false, null],
     ["auth_sessions", "idx_auth_sessions_user_id", ["user_id"], false, null],
     ["auth_sessions", "pk_auth_sessions", ["id"], true, null],
-    [
-      "character_api_responses",
-      "pk_character_api_responses",
-      ["character_id", "section"],
-      true,
-      null
-    ],
-    [
-      "characters",
-      "idx_characters_adventure_name_character_id",
-      ["adventure_name", "character_id"],
-      false,
-      null
-    ],
-    ["characters", "pk_characters", ["character_id"], true, null],
-    ["item_catalog", "pk_item_catalog", ["item_id"], true, null],
-    ["set_item_catalog", "pk_set_item_catalog", ["set_item_id"], true, null],
-    ["skill_catalog", "pk_skill_catalog", ["job_id", "skill_id"], true, null],
     ["users", "pk_users", ["id"], true, null]
   ],
   "expectedForeignKeys": [
@@ -220,14 +148,6 @@
       ["id"],
       "c"
     ],
-    ["auth_sessions", "fk_auth_sessions_user", ["user_id"], "users", ["id"], "c"],
-    [
-      "character_api_responses",
-      "fk_character_api_responses_character",
-      ["character_id"],
-      "characters",
-      ["character_id"],
-      "c"
-    ]
+    ["auth_sessions", "fk_auth_sessions_user", ["user_id"], "users", ["id"], "c"]
   ]
 }

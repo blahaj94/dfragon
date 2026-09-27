@@ -1,9 +1,5 @@
 import { readFile } from 'node:fs/promises'
 import { passkeyPage } from './page.js'
-import 'reflect-metadata'
-import { ADVENTURE_SEARCH_SERVICE, AdventureSearchController } from '../../adventures/http.js'
-import { createAdventureSearchService } from '../../adventures/service.js'
-import type { AdventureSearchStore } from '../../adventures/store.js'
 import {
   Catch,
   Controller,
@@ -30,17 +26,6 @@ import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
 import { LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
-import { createCharacterSearchService } from '../../characters/search-service.js'
-import { CHARACTER_SEARCH_SERVICE, CharacterSearchController } from '../../characters/http.js'
-import type { CharacterSearchDependencies } from '../../characters/types.js'
-import {
-  CHARACTER_DETAIL_SERVICE,
-  CharacterDetailController
-} from '../../characters/details/http.js'
-import { createCharacterDetailService } from '../../characters/details/service.js'
-import type { CharacterDetailDependencies } from '../../characters/details/service.js'
-import { characterDetailFailure } from '../../characters/details/errors.js'
-import { NeopleSearchFailure, neopleSearchFailure } from '../../errors/neople-search.js'
 import { LoginFailure, loginFailure } from '../../errors/login.js'
 import type { LoginHttpService, SessionHttpService } from '../../types/login.js'
 import { AccountFailure } from '../account/errors.js'
@@ -129,25 +114,6 @@ class LoginHttpFilter implements ExceptionFilter {
     }
 
     const path = request.path.toLowerCase().replace(/\/+$/, '')
-    if (path.startsWith('/characters/') || path === '/adventures/characters') {
-      const failure = characterDetailFailure(error)
-      if (failure.retryAfter != null) {
-        response.setHeader('Retry-After', String(failure.retryAfter))
-      }
-      response.status(failure.status).json(failure.body)
-      return
-    }
-    const isSearchPath = path === '/characters'
-    if (isSearchPath) {
-      const isSearchFailure = error instanceof NeopleSearchFailure
-      const failure = isSearchFailure ? error : neopleSearchFailure('internal')
-      const hasRetryAfter = failure.retryAfter != null
-      if (hasRetryAfter) {
-        response.setHeader('Retry-After', String(failure.retryAfter))
-      }
-      response.status(failure.status).json(failure.body)
-      return
-    }
     const failure = authHttpFailure(error)
     const isAccountPath = path === '/me' || path === '/me/nickname'
     const isGet = request.method === 'GET'
@@ -320,56 +286,21 @@ export async function createLoginHttpApp(
   service: LoginHttpService,
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
-  searchDependencies?: CharacterSearchDependencies,
-  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
-  detailDependencies?: CharacterDetailDependencies,
-  adventureStore?: AdventureSearchStore
+  httpOptions?: Readonly<{ trustedProxyHops?: 1 }>,
+  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
-  const hasSearchDependencies = searchDependencies != null
   const controllers = [
     LoginController,
-    ...(adventureStore ? [AdventureSearchController] : []),
     ...(hasSessionService ? [SessionController] : []),
-    ...(hasAccountDependencies ? [AccountController] : []),
-    ...(hasSearchDependencies ? [CharacterSearchController] : []),
-    ...(detailDependencies ? [CharacterDetailController] : [])
+    ...(hasAccountDependencies ? [AccountController] : [])
   ]
   const providers = [
-    ...(adventureStore
-      ? [
-          {
-            provide: ADVENTURE_SEARCH_SERVICE,
-            useValue: createAdventureSearchService(adventureStore)
-          }
-        ]
-      : []),
-    ...(detailDependencies
-      ? [
-          {
-            provide: CHARACTER_DETAIL_SERVICE,
-            useValue: createCharacterDetailService(detailDependencies)
-          }
-        ]
-      : []),
     { provide: LOGIN_SERVICE, useValue: service },
     ...(hasSessionService ? [{ provide: SESSION_SERVICE, useValue: sessionService }] : []),
     ...(hasAccountDependencies
-      ? [
-          {
-            provide: ACCOUNT_SERVICE,
-            useValue: createAccountService(accountDependencies)
-          }
-        ]
-      : []),
-    ...(hasSearchDependencies
-      ? [
-          {
-            provide: CHARACTER_SEARCH_SERVICE,
-            useValue: createCharacterSearchService(searchDependencies)
-          }
-        ]
+      ? [{ provide: ACCOUNT_SERVICE, useValue: createAccountService(accountDependencies) }]
       : [])
   ]
 
@@ -387,7 +318,7 @@ export async function createLoginHttpApp(
   })
   try {
     // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
-    app.set('trust proxy', searchDependencies?.trustedProxyHops ?? false)
+    app.set('trust proxy', httpOptions?.trustedProxyHops ?? false)
     const windows = new Map<string, { until: number; count: number }>()
     let globalWindow = { until: 0, count: 0 }
     app.use((request: Request, response: Response, next: () => void) => {

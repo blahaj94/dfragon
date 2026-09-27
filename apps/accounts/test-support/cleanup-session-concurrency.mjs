@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import { blockedBy, bounded, databaseNow, settled } from './login-test-control.mjs'
 import { fixture, stored, setDeadline, withLock } from './refresh-fixtures.mjs'
-import { searchFixture, withSearchApp, searchRequest } from './character-search-fixtures.mjs'
 import { cleanupWaitingOn, withCleanupDeletionHeld } from './cleanup-database-control.mjs'
 
 async function cleanupFirst(source, cleanup) {
-  const f = await searchFixture(source)
+  const f = await fixture(source)
   await setDeadline(source, f.initial.session.id, await databaseNow(source))
   const userBefore = await source.query('SELECT * FROM users WHERE id=$1', [f.initial.user.id])
   let signingCalls = 0
@@ -14,30 +13,23 @@ async function cleanupFirst(source, cleanup) {
     signingCalls++
     return signer(input)
   }
-  await withSearchApp(f, async ({ base, calls }) => {
-    await withCleanupDeletionHeld({
-      source,
-      cleanup,
-      table: 'auth_sessions',
-      id: f.initial.session.id,
-      operation: async ({ pid, waiter, release }) => {
-        const search = settled(searchRequest(base, f))
-        const refresh = settled(f.rotate(f.initial.refreshToken))
-        try {
-          const refreshPid = await bounded(waiter)
-          await blockedBy(source, refreshPid, [pid])
-          const result = await bounded(search)
-          assert.equal(result.error, undefined)
-          assert.equal(result.value.status, 200)
-          assert.equal(calls.length, 1)
-          release()
-          assert.equal((await refresh).error?.code, 'AUTHENTICATION_REQUIRED')
-        } finally {
-          release()
-          await Promise.all([search, refresh])
-        }
+  await withCleanupDeletionHeld({
+    source,
+    cleanup,
+    table: 'auth_sessions',
+    id: f.initial.session.id,
+    operation: async ({ pid, waiter, release }) => {
+      const refresh = settled(f.rotate(f.initial.refreshToken))
+      try {
+        const refreshPid = await bounded(waiter)
+        await blockedBy(source, refreshPid, [pid])
+        release()
+        assert.equal((await refresh).error?.code, 'AUTHENTICATION_REQUIRED')
+      } finally {
+        release()
+        await refresh
       }
-    })
+    }
   })
   assert.equal(signingCalls, 0)
   assert.deepEqual(await stored(source, f.initial.session.id), { session: undefined, tokens: [] })
@@ -91,10 +83,7 @@ async function staleSessionHint(source, cleanup, change) {
 
 export async function assertCleanupSessionConcurrency(source, cleanup, mark) {
   const cases = [
-    [
-      'cleanup blocks refresh while public search remains independent',
-      () => cleanupFirst(source, cleanup)
-    ],
+    ['cleanup blocks refresh without issuing a token', () => cleanupFirst(source, cleanup)],
     ['session disappears after cleanup hint', () => staleSessionHint(source, cleanup, 'deleted')],
     [
       'session ownership changes after cleanup hint',

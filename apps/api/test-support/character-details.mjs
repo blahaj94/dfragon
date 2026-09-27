@@ -11,7 +11,7 @@ import {
   CHARACTER_DETAIL_SECTIONS,
   characterDetailSections
 } from '../dist/characters/details/sections.js'
-import { createLoginHttpApp } from '../dist/auth/login/http.js'
+import { createApiHttpApp } from '../dist/http.js'
 
 function fixture(identity, reinforce = 12) {
   const common = { ...identity, characterName: '테스트', level: 115, fame: 120000 }
@@ -200,20 +200,23 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     const adapter = createNeopleCharacterDetailsForTest('fixture-neople-key', {
       origin: `http://127.0.0.1:${provider.address().port}`
     })
-    app = await createLoginHttpApp({}, undefined, undefined, undefined, undefined, {
-      apiKey: 'fixture-neople-key',
-      store,
-      fetchDetails: adapter,
-      catalog: createCatalogService(createCatalogStore(source), async (keys) =>
-        keys.map((key) => ({
-          key,
-          payload:
-            key.kind === 'set'
-              ? { setItemId: 'fixture-set', setItemName: '테스트 세트', setItemOption: [] }
-              : { itemName: '테스트 공용 상세', setItemId: 'fixture-set', tune: [{ level: 0 }] }
-        }))
-      )
-    })
+    app = await createApiHttpApp(
+      { apiKey: 'synthetic' },
+      {
+        apiKey: 'fixture-neople-key',
+        store,
+        fetchDetails: adapter,
+        catalog: createCatalogService(createCatalogStore(source), async (keys) =>
+          keys.map((key) => ({
+            key,
+            payload:
+              key.kind === 'set'
+                ? { setItemId: 'fixture-set', setItemName: '테스트 세트', setItemOption: [] }
+                : { itemName: '테스트 공용 상세', setItemId: 'fixture-set', tune: [{ level: 0 }] }
+          }))
+        )
+      }
+    )
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/characters/${identity.serverId}/${identity.characterId}`
     const response = await fetch(url + '/refresh', { method: 'POST' })

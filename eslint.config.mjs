@@ -13,11 +13,11 @@ const desktopFiles = ['apps/desktop/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}']
 const jsxFiles = [
   'apps/web/**/*.{jsx,tsx}',
   'packages/ui/**/*.{jsx,tsx}',
-  'apps/api/browser/**/*.tsx',
+  'apps/accounts/browser/**/*.tsx',
   'apps/ocr/browser/**/*.tsx'
 ]
 const browserFiles = [
-  'apps/api/browser/**/*.{js,jsx,ts,tsx}',
+  'apps/accounts/browser/**/*.{js,jsx,ts,tsx}',
   'apps/ocr/browser/**/*.{js,ts,jsx,tsx}',
   'apps/desktop/src/frontend/**/*.{js,jsx,ts,tsx}',
   'apps/web/src/**/*.{js,jsx,ts,tsx}',
@@ -42,7 +42,7 @@ export default defineConfig(
   { files: sourceFiles, extends: [eslint.configs.recommended] },
   { files: typeScriptFiles, extends: [tseslint.configs.recommended] },
   {
-    files: ['apps/api/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
+    files: ['apps/{api,accounts}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
     extends: [tseslint.configs.recommended]
   },
   { files: sourceFiles, ignores: browserFiles, languageOptions: { globals: globals.node } },
@@ -63,7 +63,7 @@ export default defineConfig(
     rules: { ...reactHooks.configs.recommended.rules, ...reactRefresh.configs.vite.rules }
   },
   {
-    files: ['apps/api/browser/**/*.tsx'],
+    files: ['apps/accounts/browser/**/*.tsx'],
     plugins: { 'react-hooks': reactHooks },
     rules: { ...reactHooks.configs.recommended.rules }
   },
@@ -111,7 +111,7 @@ export default defineConfig(
   { ...prettier, rules: { ...prettier.rules, curly: ['error', 'all'] } },
   // Keep the API's existing ASI check after Prettier's conflict defaults.
   {
-    files: ['apps/api/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
+    files: ['apps/{api,accounts}/**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}'],
     rules: { 'no-unexpected-multiline': 'error' }
   }
 )

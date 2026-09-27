@@ -2,7 +2,19 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:net'
 import { createDatabaseDataSource } from '../dist/database/index.js'
 import { databaseSnapshot, withDataSource } from './database-contract.mjs'
-import { assertBackendGone } from './character-search-fixtures.mjs'
+import { setTimeout as delay } from 'node:timers/promises'
+async function assertBackendGone(source, pid) {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (
+      (await source.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE pid=$1', [pid]))[0]
+        .n === 0
+    ) {
+      return
+    }
+    await delay(20)
+  }
+  assert.fail('accounts backend remained after shutdown')
+}
 import {
   assertStartupFailure,
   collectRuntimeExit,

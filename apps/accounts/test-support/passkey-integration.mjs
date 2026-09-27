@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
-import { createApiRuntime } from '../dist/runtime/application.js'
+import { createAccountsRuntime } from '../dist/runtime/application.js'
 import { createAccessJwtIssuer, createAccessJwtVerifier } from '../dist/auth/access-jwt/index.js'
 import { createLoginService } from '../dist/auth/login/service.js'
 import { challenge } from '../dist/auth/login/crypto.js'
@@ -59,13 +59,13 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       apiKey: 'isolated-unused-key',
       localHttps: { key: await readFile(keyFile), cert: await readFile(certFile) }
     }
-    runtime = await createApiRuntime(runtimeConfiguration)
+    runtime = await createAccountsRuntime(runtimeConfiguration)
     await runtime.app.listen(port, '127.0.0.1')
     browser = await chromium.launch({ headless: true })
     await assertPhoneQrIntegration({ source, browser, origin, mark })
     // Independent suites must not spend each other's per-IP abuse budget.
     await runtime.close()
-    runtime = await createApiRuntime(runtimeConfiguration)
+    runtime = await createAccountsRuntime(runtimeConfiguration)
     await runtime.app.listen(port, '127.0.0.1')
     const context = await browser.newContext({
         ignoreHTTPSErrors: true,

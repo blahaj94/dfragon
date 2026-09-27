@@ -6,11 +6,14 @@ import type { TypeOrmModuleOptions } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'
 import type { DataSourceOptions } from 'typeorm'
 import type { DatabaseConfiguration } from './configuration.js'
+import { InitialAuthSchema1788600000000 } from './migrations/1788600000000-initial-auth-schema.js'
 
 import { databaseSchemas } from './schemas/index.js'
 
 export { readDatabaseConfiguration } from './configuration.js'
 export type { DatabaseConfiguration } from './configuration.js'
+
+export const initialAuthSchema = InitialAuthSchema1788600000000
 
 export function createDatabaseOptions(configuration: DatabaseConfiguration): DataSourceOptions {
   return {

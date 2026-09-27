@@ -33,7 +33,7 @@ test('local HTTPS rejects incomplete, empty, relative, unreadable and invalid TL
       await t.test(`invalid TLS input ${index + 1}`, async () => {
         await assert.rejects(
           readRuntimeConfiguration({ ...runtimeEnvironment(path, 3443), ...tls }),
-          new Error('Invalid API runtime configuration')
+          new Error('Invalid accounts runtime configuration')
         )
       })
     }

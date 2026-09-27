@@ -169,8 +169,7 @@ export function runtimeEnvironment(path, port, database) {
   return {
     ...databaseEnvironment(database),
     AUTH_CONFIG_FILE: path,
-    PORT: String(port),
-    NEOPLE_API_KEY: 'synthetic-search-key'
+    PORT: String(port)
   }
 }
 
@@ -178,5 +177,5 @@ export function assertStartupFailure(result) {
   assert.equal(result.code, 1)
   assert.equal(result.signal, null)
   assert.equal(result.stdout, '')
-  assert.equal(result.stderr, 'API failed to start\n')
+  assert.equal(result.stderr, 'Accounts failed to start\n')
 }

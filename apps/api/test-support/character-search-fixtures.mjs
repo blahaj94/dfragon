@@ -2,20 +2,16 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { URL } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
-import { createLoginHttpApp, createSessionHttpService } from '../dist/auth/login/http.js'
+import { createApiHttpApp } from '../dist/http.js'
 import { createNeopleCharacterSearchForTest } from '../dist/characters/neople-character-search.js'
-import { accountFixture, snapshot } from './account-http-fixtures.mjs'
-
-export { accountFixture as searchFixture, snapshot }
-
-const unusedLogin = Object.fromEntries(
-  ['create', 'authorize', 'callback', 'exchange'].map((name) => [
-    name,
-    async () => {
-      throw new Error('unrelated login route called')
-    }
-  ])
-)
+export async function searchFixture() {
+  return {}
+}
+export async function snapshot(source) {
+  return source.query(
+    'SELECT server_id, character_id, adventure_name FROM characters ORDER BY server_id, character_id'
+  )
+}
 
 export async function isolatedNeople() {
   const calls = []
@@ -89,12 +85,7 @@ export async function withSearchApp(f, operation, overrides = {}) {
     searchCharacters,
     ...overrides
   }
-  const app = await createLoginHttpApp(
-    unusedLogin,
-    createSessionHttpService(f.deps),
-    undefined,
-    deps
-  )
+  const app = await createApiHttpApp(deps)
   try {
     await app.listen(0, '127.0.0.1')
     const result = await operation({ base: await app.getUrl(), calls, upstream, deps, app })
@@ -108,7 +99,7 @@ export async function withSearchApp(f, operation, overrides = {}) {
 
 export function searchRequest(base, f, query = 'characterName=ab', options = {}) {
   return fetch(`${base}/characters?${query}`, {
-    headers: { authorization: `Bearer ${f.token.accessToken}` },
+    headers: { authorization: `Bearer ${f.token?.accessToken ?? 'synthetic-unused-token'}` },
     ...options
   })
 }
