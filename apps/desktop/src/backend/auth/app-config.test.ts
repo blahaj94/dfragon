@@ -9,11 +9,11 @@ afterEach(() => {
 
 it('public search reads its trusted endpoint without login or credential configuration', () => {
   vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', false)
-  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.example.test')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.example.test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', '')
   vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', '')
   expect(readAppApiOrigin()).toBe('https://api.example.test')
-  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.example.test/path')
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.example.test/path')
   expect(readAppApiOrigin()).toBeNull()
 })
 
@@ -37,6 +37,7 @@ it('keeps the existing development API independent of distribution configuration
 it('uses the distribution login origin, protocol and private profile without inheriting development settings', () => {
   vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', false)
   vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', 'https://api.example.test')
+  vi.stubGlobal('__DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__', 'https://accounts.example.test')
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3443')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
@@ -45,7 +46,8 @@ it('uses the distribution login origin, protocol and private profile without inh
   const appData = resolve('synthetic-app-data')
 
   expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
-    apiOrigin: 'https://api.example.test',
+    apiOrigin: 'https://accounts.example.test',
+    legacyOrigin: 'https://api.example.test',
     returnTarget: 'dfragon://auth/callback',
     environment: 'production',
     providers: ['passkey'],
@@ -56,7 +58,7 @@ it('uses the distribution login origin, protocol and private profile without inh
   vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
   vi.stubGlobal('__DFRAGON_DISTRIBUTION_API_ORIGIN__', null)
   expect(readAppAuthConfig({ getPath: () => appData })).toMatchObject({
-    apiOrigin: 'https://localhost:3443',
+    apiOrigin: 'https://localhost:3444',
     returnTarget: 'dfragon.dev://auth/callback',
     environment: 'development',
     appIdentity: 'dfragon.dev',

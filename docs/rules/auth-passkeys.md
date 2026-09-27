@@ -1,19 +1,19 @@
 ---
 type: rule
 status: active
-scope: API and Desktop passkey authentication
+scope: accounts and Desktop passkey authentication
 last-reviewed: 2026-09-26
 ---
 
 # 패스키 인증
 
-가입·로그인은 패스키 전용이다. 기존 실사용 계정 이관은 없으며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 규칙이 인증·회원 식별·설정·재인증의 기준이다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 관련 문서도 이 계약에 맞춘 패스키 경계를 따른다.
+가입·로그인은 패스키 전용이다. 기존 API의 계정·패스키는 accounts DB로 보존 이전하며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 규칙이 인증·회원 식별·설정·재인증의 기준이다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 관련 문서도 이 계약에 맞춘 패스키 경계를 따른다.
 
 ## 가입과 로그인
 
 - 내부 random UUID로 회원을 식별한다. 사용자는 로그인용 아이디를 입력하지 않는다. 닉네임 초기 생성과 수정 규칙은 유지한다.
 - WebAuthn discoverable credential을 등록한다. `residentKey: required`, `userVerification: required`, attestation `none`을 사용하고 서버 검증에서도 UV를 요구한다. 기기 종류를 platform으로 제한하지 않아 브라우저의 휴대폰 hybrid QR·보안 키를 사용할 수 있다.
-- HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. RP 도메인 변경은 기존 패스키 호환성을 깨므로 배포 전 실제 도메인을 확정한다.
+- HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 새 인증 origin/RP는 accounts.dfragon.com이다. 기존 api.dfragon.com 키는 아래 단계적 이전 경로로 인증한다.
 - 등록 옵션·서명 검증·브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 브라우저 origin·RP ID·challenge·서명·UV와 저장 credential ID·회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일·실명을 넣지 않는다.
 - 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 창을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
 - 패스키 credential ID는 전역 PK다. 기존 키를 다른 계정에 연결하는 upsert를 하지 않는다. 동기화된 동일 패스키는 동일 계정에 접근한다.
@@ -54,7 +54,7 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 
 ## 저장·잠금·정리
 
-`users`는 UUID·nickname·created_at을 저장한다. `auth_passkeys`는 credential ID·user FK·공개키·counter·transports·device type·backup flag·등록/최근 사용 시각을 저장한다. 개인키·지문·얼굴·PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
+`users`는 UUID·nickname·created_at을 저장한다. `auth_passkeys`는 credential ID·RP ID·user FK·공개키·counter·transports·device type·backup flag·등록/최근 사용 시각을 저장한다. 개인키·지문·얼굴·PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
 `auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료·상태, 앱 proof hash, browser binding hash, QR ticket hash·phone binding hash·6자리 확인 번호, WebAuthn challenge와 목적, 등록 예정 회원·검증 회원·credential ID, code hash와 deadline을 저장한다. 완료 상태에서는 proof·회원 연결 정보를 null 처리한다. 전체 만료·완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
@@ -67,3 +67,26 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 이전 외부 인증 field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users·로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제·자동 이관하지 않는다. 운영 DB에는 이 작업에서 migration을 실행하지 않는다.
 
 실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비·만료·잘못된 서명/계정·삭제된 키·예비 키·세션 회귀를 검사한다. 가상 인증기 성공을 실제 휴대폰 QR·Bluetooth·운영 HTTPS·packaged Desktop OS 복귀 검증으로 확대하지 않는다.
+
+## accounts 분리와 RP ID 이전
+
+2026-09-28 사용자 결정에 따라 인증 HTTP·UI·회원·session의 소유자는 `apps/accounts`다.
+API의 domain PostgreSQL과 별도 컨테이너·볼륨·접근 계정을 사용한다. API는 인증 DB와 JWT 개인키를 받지 않는다.
+기존 회원 UUID·credential·session·소비된 refresh 이력을 포함한 전체 인증 이력을 보존 복사한다.
+짧은 인증 쓰기 중지와 Desktop 업데이트는 허용하며 진행 중 인증 요청은 새로 시작한다.
+
+설정의 `apiOrigin`은 accounts origin이다. 선택 `legacyOrigin`은 기존 RP의 canonical HTTPS origin이며
+새 RP와 hostname이 달라야 한다. 등록은 항상 accounts RP에만 수행하고 각 credential에 RP ID를 저장한다.
+기존 키를 새 RP로 수정하거나 RP 검증을 생략하지 않는다. 사용자는 기존 주소에서 인증한 뒤 같은 UUID에
+accounts용 키를 추가하거나 이전을 미루고 기존 키로 로그인할 수 있다. legacy 경로 종료일은 정하지 않는다.
+
+원래 accounts 요청의 PC 또는 phone cookie로 handoff를 시작한다. 32-byte 일회용 ticket은 hash로만 저장하고
+60초 및 원래 600초 TTL 안에서만 소비한다. legacy origin은 별도의 host-only cookie로 기존 RP의 서명·UV·
+user handle을 확인한다. 반환 ticket만으로는 권한을 주지 않고 최초 accounts cookie를 다시 확인한다.
+기존 user·credential 잠금 후 소유·존재와 요청/ticket 만료를 재검사한다. 새 키 등록은 같은 user lock 아래에서
+이루어지며 최대 20개 규칙을 유지한다. QR 재발급·직접 인증 전환·취소는 진행 중 handoff도 무효화한다.
+휴대폰은 이전을 마쳐도 기존 확인 번호 비교·명시 승인·PC claim·PKCE가 필요하다. 휴대폰의 기존 키 인증과
+새 키 등록 취소도 요청을 종료한다. 새 계정 생성과 기존 계정의 키 추가를 합치지 않는다.
+
+검토한 구현·검증에는 이 계약을 적용하며 다른 작업과 운영 적용은 사용자 merge 및 명시 운영 이전 후다.
+실행·rollback 경계는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.

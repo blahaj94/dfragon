@@ -4,8 +4,7 @@ import { createCharacterDetailStore } from '../characters/details/store.js'
 import { createCatalogStore } from '../characters/catalog/store.js'
 import { createCatalogService } from '../characters/catalog/service.js'
 import { createNeopleCatalog } from '../characters/catalog/neople.js'
-import { createLoginHttpApp, createSessionHttpService } from '../auth/login/http.js'
-import { createLoginService } from '../auth/login/service.js'
+import { createApiHttpApp } from '../http.js'
 import { createDatabaseDataSource } from '../database/index.js'
 import type { readRuntimeConfiguration } from './configuration.js'
 
@@ -54,22 +53,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
 
   try {
     await dataSource.initialize()
-    const login = createLoginService({
-      dataSource,
-      configuration: configuration.configuration,
-      issueAccessJwt: configuration.issueAccessJwt
-    })
-    const session = createSessionHttpService({
-      dataSource,
-      issueAccessJwt: configuration.issueAccessJwt
-    })
-    const account = { dataSource, verifyAccessJwt: configuration.verifyAccessJwt }
-    app = await createLoginHttpApp(
-      login,
-      session,
-      account,
+    app = await createApiHttpApp(
       { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
-      configuration.localHttps,
       {
         apiKey: configuration.apiKey,
         store: createCharacterDetailStore(dataSource),
@@ -78,7 +63,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
           createNeopleCatalog(configuration.apiKey)
         )
       },
-      createAdventureSearchStore(dataSource)
+      createAdventureSearchStore(dataSource),
+      configuration.localHttps
     )
     return { app, close }
   } catch (error) {

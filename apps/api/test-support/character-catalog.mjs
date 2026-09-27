@@ -182,10 +182,10 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     await runner.connect()
     await runner.startTransaction()
     try {
-      await runner.query('CREATE ROLE ldb_migrator NOLOGIN')
-      await runner.query('CREATE ROLE ldb_api NOLOGIN')
+      await runner.query('CREATE ROLE dfragon_migrator NOLOGIN')
+      await runner.query('CREATE ROLE dfragon_api NOLOGIN')
       await runner.query(
-        'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO ldb_migrator WITH GRANT OPTION'
+        'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO dfragon_migrator WITH GRANT OPTION'
       )
       const grantFile = await readFile(
         new URL('../../../deploy/api/grant-api.sql', import.meta.url),
@@ -201,18 +201,18 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       for (const table of ['item_catalog', 'skill_catalog', 'set_item_catalog']) {
         for (const privilege of ['SELECT', 'INSERT', 'UPDATE']) {
           const [row] = await runner.query(
-            "SELECT has_table_privilege('ldb_api', $1, $2) AS allowed",
+            "SELECT has_table_privilege('dfragon_api', $1, $2) AS allowed",
             [table, privilege]
           )
           assert.equal(row.allowed, true)
         }
         const [row] = await runner.query(
-          "SELECT has_table_privilege('ldb_api', $1, 'DELETE') AS allowed",
+          "SELECT has_table_privilege('dfragon_api', $1, 'DELETE') AS allowed",
           [table]
         )
         assert.equal(row.allowed, false)
       }
-      await runner.query('SET LOCAL ROLE ldb_api')
+      await runner.query('SET LOCAL ROLE dfragon_api')
       await runner.query(
         "INSERT INTO set_item_catalog VALUES ('runtime-set','{}',clock_timestamp(),clock_timestamp(),clock_timestamp())"
       )

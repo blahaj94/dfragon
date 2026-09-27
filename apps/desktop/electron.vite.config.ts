@@ -5,13 +5,19 @@ import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
-import { readDistributionApiOrigin } from './build/distribution-config'
+import {
+  readDistributionApiOrigin,
+  readDistributionAccountsOrigin
+} from './build/distribution-config'
 
 export default defineConfig(({ mode, command }) => ({
   main: {
     resolve: { alias: { '@dfragon/lib': resolve('../../packages/lib/src/index.ts') } },
     define: {
       __DFRAGON_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'dfragon-development'),
+      __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__: JSON.stringify(
+        mode === 'dfragon-distribution' ? readDistributionAccountsOrigin() : null
+      ),
       __DFRAGON_DISTRIBUTION_API_ORIGIN__: JSON.stringify(
         mode === 'dfragon-distribution' ? readDistributionApiOrigin() : null
       )

@@ -1,12 +1,12 @@
 ---
 type: reference
-scope: apps/api refresh/logout HTTP and transaction core
+scope: apps/accounts refresh/logout HTTP and transaction core
 last-reviewed: 2026-09-08
 ---
 
 # Refresh HTTP와 현재 session logout 개발
 
-`apps/api/src/auth/refresh/index.ts`의 `rotateRefresh({ dataSource, issueAccessJwt }, rawToken)`은 이미 발급된 refresh로 rotation하는 내부 진입점이다. `rawToken`만 credential 입력으로 받고 user/session ID를 받지 않는다. 기존 `createAccessJwtIssuer`가 만든 issuer와 기존 DataSource를 주입한다. `apps/api/src/auth/login/http.ts`의 `createSessionHttpService`와 기존 `createLoginHttpApp`의 선택적 두 번째 인자가 이 core를 `POST /auth/refresh`와 `POST /auth/logout`에 연결한다. 기본 main도 이 factory를 사용하며 설정·실행과 후속 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
+`apps/accounts/src/auth/refresh/index.ts`의 `rotateRefresh({ dataSource, issueAccessJwt }, rawToken)`은 이미 발급된 refresh로 rotation하는 내부 진입점이다. `rawToken`만 credential 입력으로 받고 user/session ID를 받지 않는다. 기존 `createAccessJwtIssuer`가 만든 issuer와 기존 DataSource를 주입한다. `apps/accounts/src/auth/login/http.ts`의 `createSessionHttpService`와 기존 `createLoginHttpApp`의 선택적 두 번째 인자가 이 core를 `POST /auth/refresh`와 `POST /auth/logout`에 연결한다. 기본 main도 이 factory를 사용하며 설정·실행과 후속 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
 
 Contract는 `docs/rules/auth-session.md`, `docs/rules/auth-database.md`, `docs/rules/auth-api.md`를 따른다. 기존 schema·Migration·dependency·JWT interface를 변경하지 않았다. 공통 `REFRESH_TOKEN`, `AUTH_ERRORS`, `LOGIN.idleSeconds`와 기존 요청 구조 오류 정의를 읽기 재사용한다.
 
@@ -26,7 +26,7 @@ HTTP 경계는 승인된 JSON pre-parser와 정확한 `{refreshToken}` shape를 
 
 ## Logout transaction
 
-`apps/api/src/auth/logout/index.ts`의 `logoutSession(dataSource, rawToken)`은 refresh core의 canonical 32-byte decode·re-encode·hash 검증을 재사용한다. 형식이 잘못된 credential은 DB 접근 전 `400 INVALID_AUTH_REQUEST`, canonical이지만 미발급인 hash는 `204`다.
+`apps/accounts/src/auth/logout/index.ts`의 `logoutSession(dataSource, rawToken)`은 refresh core의 canonical 32-byte decode·re-encode·hash 검증을 재사용한다. 형식이 잘못된 credential은 DB 접근 전 `400 INVALID_AUTH_REQUEST`, canonical이지만 미발급인 hash는 `204`다.
 
 Logout은 하나의 READ COMMITTED transaction에서 잠금 없는 token/session hint를 읽고 user→session→refresh 순서로 잠근다. 잠금 뒤 존재·소유·hash를 다시 확인하며 이미 revoked, 정확한 idle deadline 이상, 삭제·unknown이면 추가 상태 변경 없이 완료한다. Current/consumed token의 활성 session만 fresh DB 정수 초로 `revoked_at`과 `logout` reason을 저장한다. `last_active_at`, refresh 발급·소비 이력과 다른 session은 쓰지 않는다.
 
@@ -34,9 +34,9 @@ Transaction의 commit·release 완료 뒤에만 body 없는 204를 보낸다. DB
 
 ## 검증 근거
 
-`apps/api/test/refresh.test.ts`의 7개 unit group은 canonical/decoded hash, 잠금과 fresh time 순서, commit 전 결과 미반환, 폐기 commit 뒤 거절, stale hint·소유 불일치, 정확 idle 경계·JWT cap, 정제 실패와 단일 시도를 검증한다. Test fixture는 `apps/api/test/refresh.fixtures.ts`에 분리했다. Red에서는 새 module 부재로 이 7개만 실패했고 기존 161개는 통과했다. Green에서는 API 전체 168개가 통과했다.
+`apps/accounts/test/refresh.test.ts`의 7개 unit group은 canonical/decoded hash, 잠금과 fresh time 순서, commit 전 결과 미반환, 폐기 commit 뒤 거절, stale hint·소유 불일치, 정확 idle 경계·JWT cap, 정제 실패와 단일 시도를 검증한다. Test fixture는 `apps/accounts/test/refresh.fixtures.ts`에 분리했다. Red에서는 새 module 부재로 이 7개만 실패했고 기존 161개는 통과했다. Green에서는 API 전체 168개가 통과했다.
 
-실제 DB 검증은 `apps/api/test-support/database-integration.mjs`의 기존 Docker 수명주기·Migration·fixture 기반에 아래 전용 helper를 연결한다. 별도 Docker harness는 만들지 않았다. 기존 `login-test-control.mjs`의 QueryRunner instrumentation·DB clock·bounded barrier를 읽기 재사용한다.
+실제 DB 검증은 `apps/accounts/test-support/database-integration.mjs`의 기존 Docker 수명주기·Migration·fixture 기반에 아래 전용 helper를 연결한다. 별도 Docker harness는 만들지 않았다. 기존 `login-test-control.mjs`의 QueryRunner instrumentation·DB clock·bounded barrier를 읽기 재사용한다.
 
 | #70 AC | 실행 evidence |
 | --- | --- |
@@ -51,8 +51,8 @@ Transaction의 commit·release 완료 뒤에만 body 없는 204를 보낸다. DB
 기존 DB matrix는 rotation/history 2개, concurrency/TTL 12개, failure 10개 scenario group이다. 기존 core matrix를 그대로 실행한 뒤 `session-http-integration.mjs`의 HTTP→PostgreSQL 12개 scenario를 같은 disposable harness에서 실행한다. 정상 refresh, current/consumed·반복·unknown·물리 삭제 logout, 다른 기기와 이력·활동 보존을 확인한다. 양방향 경합은 첫 실제 HTTP transaction이 commit 전 row lock을 보유한 동안 반대 HTTP transaction을 시작하고 `pg_blocking_pids()`로 waiter를 관측한 뒤 lock을 해제한다. Refresh-first는 commit 이후 응답도 별도로 지연해 logout 완료 뒤 늦은 200과 그 token의 최종 무효를 확인한다. 양 endpoint의 commit 전 응답 금지와 실제 commit/rollback 뒤 acknowledgement 오류, transport/shape no-write도 검증한다. Commit 결과 불명은 QueryRunner fault injection이며 물리 network 단절 실험과 구분한다. 별도 process `login-log-probe.mjs`는 refresh/logout 성공·오류·media·oversize·body canary의 stdout/stderr 비노출을 검증하고, database integration의 canary capture는 같은 process 안의 관측으로 구분한다.
 
 ```bash
-pnpm --filter @dfragon/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @dfragon/api test:database
+pnpm --filter @dfragon/accounts run --sequential '/^(lint|test|typecheck)$/'
+pnpm --filter @dfragon/accounts test:database
 git diff --check
 ```
 

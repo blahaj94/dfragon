@@ -1,26 +1,26 @@
 ---
 type: reference
-scope: apps/api account profile HTTP and activity transactions
+scope: apps/accounts account profile HTTP and activity transactions
 last-reviewed: 2026-09-08
 ---
 
 # 계정 프로필 조회와 nickname 변경 개발
 
-`apps/api/src/auth/login/http.ts`의 `createLoginHttpApp`은 선택적 세 번째 인자 `{ dataSource, verifyAccessJwt }`로 `GET /me`와 `PATCH /me/nickname`을 연결한다. 기존 DataSource와 `createAccessJwtVerifier`의 verifier를 명시적으로 주입한다. 두 번째 session service 인자의 refresh/logout 연결은 유지한다. 기본 main도 이 factory에 계정 dependency를 연결한다. 설정·실행과 기본 entry의 후속 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
+`apps/accounts/src/auth/login/http.ts`의 `createLoginHttpApp`은 선택적 세 번째 인자 `{ dataSource, verifyAccessJwt }`로 `GET /me`와 `PATCH /me/nickname`을 연결한다. 기존 DataSource와 `createAccessJwtVerifier`의 verifier를 명시적으로 주입한다. 두 번째 session service 인자의 refresh/logout 연결은 유지한다. 기본 main도 이 factory에 계정 dependency를 연결한다. 설정·실행과 기본 entry의 후속 통합 검증은 [`api-start-development.md`](api-start-development.md)를 참고한다.
 
 Contract는 `docs/rules/auth-api.md`, `docs/rules/auth-activity.md`, `docs/rules/auth-session.md`, `docs/rules/auth-database.md`가 정의한다. 기존 schema·Migration·dependency와 JWT issuer/verifier는 변경하지 않았다. 인증 검색과 탈퇴 lifecycle·control store 통합은 이 module의 구현 범위가 아니다.
 
 ## 입력과 응답 경계
 
-`apps/api/src/auth/account/http.ts`의 controller는 원본 `rawHeaders`를 account service에 전달한다. Service는 정확히 하나의 Authorization Bearer 값을 기존 verifier에 전달한다. Body/query의 token·user/session ID는 자격으로 사용하지 않는다. 같은 파일의 private `assertAccountGet(method): void`가 Express의 HEAD→GET fallback을 service 호출 전에 차단해 `HEAD /me`의 활동 기록을 막는다. 검사와 기존 `AccountFailure(INVALID_REQUEST)` throw를 묶으며 로그인 오류 정책과 합치지 않는다.
+`apps/accounts/src/auth/account/http.ts`의 controller는 원본 `rawHeaders`를 account service에 전달한다. Service는 정확히 하나의 Authorization Bearer 값을 기존 verifier에 전달한다. Body/query의 token·user/session ID는 자격으로 사용하지 않는다. 같은 파일의 private `assertAccountGet(method): void`가 Express의 HEAD→GET fallback을 service 호출 전에 차단해 `HEAD /me`의 활동 기록을 막는다. 검사와 기존 `AccountFailure(INVALID_REQUEST)` throw를 묶으며 로그인 오류 정책과 합치지 않는다.
 
-PATCH는 기존 `apps/api/src/auth/login/json-parser.ts`의 media/encoding 검사, 실제 stream 16,384-byte 상한, strict UTF-8와 JSON parser를 먼저 거친다. 이후 JWT를 검증하고 정확한 `{ nickname }` object와 domain을 확인한다. 구조 오류는 `INVALID_AUTH_REQUEST`, nickname 값 오류는 `INVALID_NICKNAME`이다. 두 endpoint의 성공 응답은 `{ user: { id, nickname } }`만 포함하며 모든 성공·오류는 no-store JSON이다. Filter는 `/me`의 GET 오류를 browser login HTML과 구분한다.
+PATCH는 기존 `apps/accounts/src/auth/login/json-parser.ts`의 media/encoding 검사, 실제 stream 16,384-byte 상한, strict UTF-8와 JSON parser를 먼저 거친다. 이후 JWT를 검증하고 정확한 `{ nickname }` object와 domain을 확인한다. 구조 오류는 `INVALID_AUTH_REQUEST`, nickname 값 오류는 `INVALID_NICKNAME`이다. 두 endpoint의 성공 응답은 `{ user: { id, nickname } }`만 포함하며 모든 성공·오류는 no-store JSON이다. Filter는 `/me`의 GET 오류를 browser login HTML과 구분한다.
 
-`apps/api/src/auth/account/nickname.ts`는 원문 string, lone surrogate, raw Unicode Cc·U+2028·U+2029를 순서대로 검사한 뒤 ECMAScript trim과 `Intl.Segmenter('und', { granularity: 'grapheme' })`를 적용한다. 1–20 grapheme을 허용하며 Unicode normalization이나 내부 공백 변환을 하지 않는다. 중복·즉시 반복 변경을 허용한다.
+`apps/accounts/src/auth/account/nickname.ts`는 원문 string, lone surrogate, raw Unicode Cc·U+2028·U+2029를 순서대로 검사한 뒤 ECMAScript trim과 `Intl.Segmenter('und', { granularity: 'grapheme' })`를 적용한다. 1–20 grapheme을 허용하며 Unicode normalization이나 내부 공백 변환을 하지 않는다. 중복·즉시 반복 변경을 허용한다.
 
 ## 활동과 기능의 transaction 경계
 
-`apps/api/src/auth/account/index.ts`의 service가 서로 다른 READ COMMITTED transaction 두 개를 순서대로 소유한다. Caller가 외부 transaction manager를 합성하거나 미commit 결과를 받는 형태가 아니다.
+`apps/accounts/src/auth/account/index.ts`의 service가 서로 다른 READ COMMITTED transaction 두 개를 순서대로 소유한다. Caller가 외부 transaction manager를 합성하거나 미commit 결과를 받는 형태가 아니다.
 
 1. JWT와 입력 검증 뒤 user→해당 user 소유 session을 잠근다. 모든 lock 대기 뒤 DB `clock_timestamp()`를 floor한 정수 초로 session의 revoked·idle과 JWT iat/exp를 확인한다. `last_active_at`은 이전 값보다 뒤로 가지 않게 갱신하고 activity commit·release를 기다린다.
 2. 기능 transaction에서 user→session을 다시 잠그고 fresh DB 시각으로 존재·소유·revoked·idle을 재확인한다. JWT는 admission에서 판정했으므로 기능 단계의 시간 경과만으로 JWT를 재판정하지 않는다. GET은 잠근 user의 id/nickname을 반환하고 PATCH는 nickname을 갱신한다. Function commit·release 확인 후에만 HTTP 결과를 전달한다.
@@ -29,7 +29,7 @@ PATCH는 기존 `apps/api/src/auth/login/json-parser.ts`의 media/encoding 검�
 
 ## 검증 근거와 실행 경계
 
-`apps/api/test-support/account-nickname.test.mjs`는 raw controls·lone surrogate·빈 값·grapheme 경계와 emoji·결합문자·내부 공백 보존을 검증한다. `account-http.test.mjs`는 HEAD의 verifier·DB 호출 차단, JWT 이전 transport 거절, field 이전 JWT 거절, GET JSON 오류, 종료 chunk 이전 즉시 overflow 응답을 검증한다. Content-Length와 Transfer-Encoding 충돌은 Node HTTP framing 거절로 따로 검사하며 제품 JSON 오류로 해석하지 않는다.
+`apps/accounts/test-support/account-nickname.test.mjs`는 raw controls·lone surrogate·빈 값·grapheme 경계와 emoji·결합문자·내부 공백 보존을 검증한다. `account-http.test.mjs`는 HEAD의 verifier·DB 호출 차단, JWT 이전 transport 거절, field 이전 JWT 거절, GET JSON 오류, 종료 chunk 이전 즉시 overflow 응답을 검증한다. Content-Length와 Transfer-Encoding 충돌은 Node HTTP framing 거절로 따로 검사하며 제품 JSON 오류로 해석하지 않는다.
 
 `account-http-fixtures.mjs`는 기존 identity/session fixture와 실제 JWT issuer/verifier를 재사용한다. `account-http-integration.mjs`의 50개 scenario가 기존 `database-integration.mjs`의 Docker-only disposable 수명주기와 Migration에 연결된다. HEAD characterization은 assertion 추출 전 기존 구현에서 먼저 통과를 확인했다.
 
@@ -45,8 +45,8 @@ PATCH는 기존 `apps/api/src/auth/login/json-parser.ts`의 media/encoding 검�
 정확 equality의 clock 응답 고정과 실제 lock 대기 만료는 별개 검증이다. Read/write와 commit acknowledgement 오류는 QueryRunner fault injection이며 물리 network 단절 실험이 아니다. Log canary는 같은 process의 stdout/stderr 관측으로, 운영 proxy/APM 전체의 검증을 뜻하지 않는다.
 
 ```bash
-pnpm --filter @dfragon/api run --sequential '/^(lint|test|typecheck)$/'
-pnpm --filter @dfragon/api test:database
+pnpm --filter @dfragon/accounts run --sequential '/^(lint|test|typecheck)$/'
+pnpm --filter @dfragon/accounts test:database
 git diff --check
 ```
 

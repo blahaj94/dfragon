@@ -1,11 +1,8 @@
 import { readFile } from 'node:fs/promises'
 import { isAbsolute } from 'node:path'
 import { createSecureContext } from 'node:tls'
-import { createAccessJwtIssuer, createAccessJwtVerifier } from '../auth/access-jwt/index.js'
-import { validatePasskeyConfiguration } from '../auth/login/configuration.js'
 import { readDatabaseConfiguration } from '../database/configuration.js'
 import { parsePort } from '../port.js'
-import { parseAuthenticationInput } from './authentication-input.js'
 
 const invalidConfiguration = 'Invalid API runtime configuration'
 
@@ -57,35 +54,13 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     if (!hasApiKeyContent) {
       throw new Error(invalidConfiguration)
     }
-    const path = environment.AUTH_CONFIG_FILE
-    const isPathDefined = path !== undefined
-    if (!isPathDefined) {
-      throw new Error(invalidConfiguration)
-    }
-    const hasPathContent = path.length > 0
-    if (!hasPathContent) {
-      throw new Error(invalidConfiguration)
-    }
-    const hasAbsolutePath = isAbsolute(path)
-    if (!hasAbsolutePath) {
-      throw new Error(invalidConfiguration)
-    }
-    const bytes = await readFile(path)
-    const json = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
-    const input = parseAuthenticationInput(JSON.parse(json) as unknown)
-    const configuration = validatePasskeyConfiguration(input.passkey)
-    const localHttps = await readLocalHttps(environment, port, configuration.apiOrigin)
-    const issueAccessJwt = await createAccessJwtIssuer(input.accessJwt)
-    const verifyAccessJwt = await createAccessJwtVerifier(input.accessJwt)
+    const localHttps = await readLocalHttps(environment, port, environment.API_ORIGIN ?? '')
     return {
       port,
       trustedProxyHops,
       localHttps,
       database,
-      apiKey,
-      configuration,
-      issueAccessJwt,
-      verifyAccessJwt
+      apiKey
     }
   } catch {
     // FS/JSON/crypto의 error와 cause는 파일 경로나 값을 포함할 수 있다.

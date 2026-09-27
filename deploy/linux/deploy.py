@@ -65,8 +65,10 @@ def fingerprint(source, paths):
 
 
 def changed_services(previous, source):
+    if set(previous) != {'api', 'accounts', 'ocr'}:
+        raise RuntimeError('accounts split requires operator migration before automatic deployment')
     changed = []
-    for service in ('api', 'ocr'):
+    for service in ('api', 'accounts', 'ocr'):
         inputs = (*SHARED_INPUTS, f'apps/{service}', f'deploy/{service}')
         if fingerprint(Path(previous[service]['source']), inputs) != fingerprint(source, inputs):
             changed.append(service)
@@ -79,8 +81,11 @@ def require_compatible(previous, source, services):
         paths = [f'deploy/{service}/compose.yaml']
         if service == 'api':
             paths += ['apps/api/src/database', 'deploy/api/init-database.sh',
-                      'deploy/api/grant-api.sql', 'deploy/api/migrate-legacy.sql',
-                      'deploy/api/dfragon-auth-cleanup.service', 'deploy/api/dfragon-auth-cleanup.timer']
+                      'deploy/api/grant-api.sql', 'deploy/api/migrate-legacy.sql']
+        elif service == 'accounts':
+            paths += ['apps/accounts/src/database', 'deploy/accounts/init-database.sh',
+                      'deploy/accounts/grant-accounts.sql', 'deploy/accounts/import.compose.yaml',
+                      'deploy/accounts/dfragon-auth-cleanup.service', 'deploy/accounts/dfragon-auth-cleanup.timer']
         else:
             paths += ['apps/ocr/src/store.ts']
         if fingerprint(Path(previous[service]['source']), paths) != fingerprint(source, paths):
@@ -98,12 +103,12 @@ def tagged_environment(text, commit):
 
 
 def compose(service, source, *args):
-    return run('docker', 'compose', '--project-name', 'dfragon' if service == 'api' else 'dfragon-ocr',
+    return run('docker', 'compose', '--project-name', 'dfragon' if service == 'api' else 'dfragon-' + service,
                '--env-file', str(environment_file(service)), '-f', str(source / f'deploy/{service}/compose.yaml'), *args)
 
 
 def container(service):
-    project = 'dfragon' if service == 'api' else 'dfragon-ocr'
+    project = 'dfragon' if service == 'api' else 'dfragon-' + service
     ids = run('docker', 'ps', '-q', '--filter', 'label=com.docker.compose.project=' + project,
               '--filter', 'label=com.docker.compose.service=' + service).split()
     if len(ids) != 1:
@@ -112,7 +117,17 @@ def container(service):
 
 
 def ready(service):
-    url, expected = ('http://127.0.0.1:3000/me', 401) if service == 'api' else ('http://127.0.0.1:3100/health', 200)
+    port, path, expected = {'api': ('3000/tcp', '/health', 200),
+                            'accounts': ('3000/tcp', '/me', 401),
+                            'ocr': ('3100/tcp', '/health', 200)}[service]
+    # Compose resolves the preserved environment; inspect its actual published port.
+    bindings = container(service)['NetworkSettings']['Ports'].get(port) or []
+    if len(bindings) != 1 or bindings[0].get('HostIp') != '127.0.0.1':
+        raise RuntimeError('expected one loopback service port')
+    host_port = bindings[0].get('HostPort', '')
+    if re.fullmatch(r'[0-9]{1,5}', host_port) is None or not 1 <= int(host_port) <= 65535:
+        raise RuntimeError('invalid published service port')
+    url = f'http://127.0.0.1:{host_port}{path}'
     for _ in range(60):
         try:
             with urllib.request.urlopen(url, timeout=2) as response:
@@ -164,8 +179,8 @@ def fetch_source(commit):
     return source
 
 
-def point_api_source(source):
-    link = Path('/opt/dfragon-api-current')
+def point_accounts_source(source):
+    link = Path('/opt/dfragon-accounts-current')
     temporary = link.with_suffix('.tmp')
     if temporary.is_symlink():
         temporary.unlink()
@@ -211,7 +226,7 @@ def deploy_release(commit):
         # An older build must not replace a newer merged commit while CI is queued.
         if run('git', 'ls-remote', REPOSITORY, 'refs/heads/main').split()[0] != commit:
             raise RuntimeError('main advanced during build; run latest successful CI')
-        if 'api' in changed:
+        if 'accounts' in changed:
             phase = 'wait-cleanup'
             save(STATE / 'status.json', {**status, 'phase': phase})
             cleanup_was_active = subprocess.run(['systemctl', 'is-active', '--quiet', 'dfragon-auth-cleanup.timer']).returncode == 0
@@ -235,8 +250,8 @@ def deploy_release(commit):
             if container(service)['Config']['Image'] != 'dfragon-' + service + ':' + commit:
                 raise RuntimeError('deployed image differs')
             result[service] = {'revision': commit, 'source': str(source)}
-        if 'api' in changed:
-            point_api_source(source)
+        if 'accounts' in changed:
+            point_accounts_source(source)
         if changed:
             save(STATE / 'previous.json', previous)
         save(STATE / 'state.json', result)
@@ -257,9 +272,9 @@ def deploy_release(commit):
                 ready(service)
             except Exception:
                 restored = False
-        if 'api' in activated:
+        if 'accounts' in activated:
             try:
-                point_api_source(Path(previous['api']['source']))
+                point_accounts_source(Path(previous['accounts']['source']))
             except Exception:
                 restored = False
         if restored:
@@ -283,7 +298,7 @@ def main():
     elif len(args) == 1 and args[0] == 'status':
         state = json.loads((STATE / 'state.json').read_text())
         status = json.loads((STATE / 'status.json').read_text()) if (STATE / 'status.json').exists() else {}
-        print(json.dumps({'services': {s: state[s]['revision'] for s in ('api','ocr')}, 'deployment': status}))
+        print(json.dumps({'services': {s: state[s]['revision'] for s in ('api','accounts','ocr')}, 'deployment': status}))
     elif len(args) == 1 and re.fullmatch(r'deploy [0-9a-f]{40}', args[0]):
         commit = args[0].split()[1]
         run('systemd-run', '--quiet', '--wait', '--collect', '--unit=dfragon-deploy',

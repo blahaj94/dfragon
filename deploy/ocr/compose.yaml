@@ -17,7 +17,7 @@ services:
     stop_grace_period: 30s
     environment:
       OCR_ORIGIN: ${OCR_ORIGIN:?Set the public HTTPS origin}
-      OCR_AUTH_ORIGIN: ${OCR_AUTH_ORIGIN:?Set the existing passkey API HTTPS origin}
+      OCR_AUTH_ORIGIN: ${OCR_AUTH_ORIGIN:?Set the accounts HTTPS origin}
       OCR_OWNER_ID: ${OCR_OWNER_ID:?Set the allowed account UUID}
       OCR_MAX_BYTES: ${OCR_MAX_BYTES:-1073741824}
     ports: ['127.0.0.1:${OCR_PORT:-3100}:3100']

@@ -85,7 +85,7 @@ async function initialRejections(source) {
 export async function assertCharacterSearchHttpIntegration(source, mark) {
   const cases = [
     [
-      'public search reaches loopback upstream without changing account or session state',
+      'public search reaches loopback upstream without authentication tables',
       () => publicSearch(source)
     ],
     [

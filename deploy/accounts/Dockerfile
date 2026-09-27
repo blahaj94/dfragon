@@ -1,0 +1,32 @@
+ARG NODE_IMAGE=docker.io/library/node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
+FROM ${NODE_IMAGE} AS build
+WORKDIR /workspace
+RUN npm install --global pnpm@11.23.0
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/accounts/package.json apps/accounts/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY packages/licenses/package.json packages/licenses/package.json
+RUN pnpm install --frozen-lockfile --filter @dfragon/accounts...
+COPY apps/accounts/tsconfig*.json apps/accounts/
+COPY apps/accounts/src apps/accounts/src
+COPY apps/accounts/browser apps/accounts/browser
+COPY apps/accounts/test apps/accounts/test
+COPY apps/accounts/test-support apps/accounts/test-support
+COPY packages/ui/foundation.css packages/ui/foundation.css
+COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
+COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
+COPY packages/licenses/notices/upstream/stylex-LICENSE.txt packages/licenses/notices/upstream/stylex-LICENSE.txt
+RUN pnpm --filter @dfragon/accounts test \
+    && pnpm --filter @dfragon/accounts deploy --legacy --prod /production
+
+FROM ${NODE_IMAGE} AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=build /production/package.json ./package.json
+COPY --from=build /production/node_modules ./node_modules
+COPY --from=build /workspace/apps/accounts/dist ./dist
+COPY --chmod=755 deploy/accounts/entrypoint.sh /usr/local/bin/dfragon-accounts-entrypoint
+USER node
+EXPOSE 3000
+ENTRYPOINT ["dfragon-accounts-entrypoint"]
+CMD ["node", "--import", "reflect-metadata", "dist/main.js"]

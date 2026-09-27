@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DFRAGON · 패스키</title>
+    <link rel="icon" type="image/png" href="/auth/passkeys/icon.png" />
+    <link rel="stylesheet" href="/auth/passkeys/client.css" />
+    <script nonce="{{nonce}}" src="/auth/passkeys/client.js" defer></script>
+  </head>
+  <body>
+    <main
+      data-handoff-origin="{{handoffOrigin}}"
+      data-legacy="{{legacy}}"
+      data-migration="{{migration}}"
+      data-legacy-origin="{{legacyOrigin}}"
+      data-request-id="{{requestId}}"
+      data-purpose="{{purpose}}"
+      data-web-return-url="{{webReturnUrl}}"
+      data-view="{{view}}"
+      data-confirmation-code="{{confirmationCode}}"
+    >
+      <noscript>패스키 인증에는 JavaScript가 필요합니다.</noscript>
+    </main>
+  </body>
+</html>

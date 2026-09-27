@@ -28,3 +28,13 @@ export function readDistributionApiOrigin(
     throw new Error('Set DFRAGON_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin.')
   }
 }
+
+/** Accounts is independently configured; the game API origin remains the search destination. */
+export function readDistributionAccountsOrigin(
+  environment: Readonly<Record<string, string | undefined>> = process.env
+): string {
+  return readDistributionApiOrigin({
+    DFRAGON_DISTRIBUTION_API_ORIGIN:
+      environment['DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN'] ?? 'https://accounts.dfragon.com'
+  })
+}

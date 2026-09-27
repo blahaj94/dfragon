@@ -8,11 +8,11 @@ last-reviewed: 2026-09-06
 
 # Access JWT 개발과 연동
 
-`apps/api/src/auth/access-jwt/index.ts`는 DB·Nest·HTTP에 의존하지 않는 내부 factory를 제공한다. Behavior와 key lifecycle의 canonical Rule은 [`auth-session.md`](../rules/auth-session.md), 사용 패키지와 버전은 `apps/api/package.json`과 `pnpm-lock.yaml`에서 확인한다. 기본 `AppModule`에는 아직 연결하지 않는다.
+`apps/accounts/src/auth/access-jwt/index.ts`는 DB·Nest·HTTP에 의존하지 않는 내부 factory를 제공한다. Behavior와 key lifecycle의 canonical Rule은 [`auth-session.md`](../rules/auth-session.md), 사용 패키지와 버전은 `apps/accounts/package.json`과 `pnpm-lock.yaml`에서 확인한다. 기본 `AppModule`에는 아직 연결하지 않는다.
 
 ## 공개 함수
 
-`createAccessJwtIssuer(configuration)`는 초기화된 `IssueAccessJwt` 함수를, `createAccessJwtVerifier(configuration)`는 `VerifyAccessJwt` 함수를 비동기로 반환한다. 전용 타입은 `apps/api/src/auth/access-jwt/types.ts`, 오류는 `apps/api/src/auth/access-jwt/errors.ts`에 있다.
+`createAccessJwtIssuer(configuration)`는 초기화된 `IssueAccessJwt` 함수를, `createAccessJwtVerifier(configuration)`는 `VerifyAccessJwt` 함수를 비동기로 반환한다. 전용 타입은 `apps/accounts/src/auth/access-jwt/types.ts`, 오류는 `apps/accounts/src/auth/access-jwt/errors.ts`에 있다.
 
 ```ts
 import { createAccessJwtIssuer, createAccessJwtVerifier } from './auth/access-jwt/index.js'
@@ -81,7 +81,7 @@ Compact JWS/JSON parsing·서명은 `jose`에 위임한다. Local key map만 사
 `apps/api/test/access-jwt.fixtures.ts`는 test 실행 중에만 EC key를 생성한다. 실제 credential이나 PEM fixture file을 사용하지 않는다. `apps/api/test/access-jwt.test.ts`와 `apps/api/test/access-jwt-keys.test.ts`는 정상 발급·외부 jose 검증, 변조·만료·claim/header 조건, 복수 key/제거, 초기화 실패·오류 정제와 설정 복사 경계를 검증한다.
 
 ```bash
-pnpm --filter @dfragon/api run --sequential '/^(build|lint|test|typecheck)$/'
+pnpm --filter @dfragon/accounts run --sequential '/^(build|lint|test|typecheck)$/'
 ```
 
 Node 24의 compiled ESM·WebCrypto ES256 경로를 실제 실행한다. DB/HTTP/실제 패스키, remote JWKS cache, 실제 운영 key 공급·교체는 이 모듈의 검증 범위가 아니다.

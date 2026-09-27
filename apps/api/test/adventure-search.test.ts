@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createLoginHttpApp } from '../src/auth/login/http.js'
+import { createApiHttpApp } from '../src/http.js'
 import { parseAdventureSearchQuery } from '../src/adventures/query.js'
 import { createAdventureSearchService } from '../src/adventures/service.js'
 
@@ -45,27 +45,16 @@ test('adventure query preserves exact names and validates pagination and raw dup
 test('adventure HTTP is public, bounded, no-store and sanitizes DB failures', async () => {
   let calls = 0,
     failing = false
-  const unused = async (): Promise<never> => {
-    throw new Error('Unrelated service called')
-  }
-  const app = await createLoginHttpApp(
-    { create: unused, exchange: unused, authorize: unused, manage: unused, browser: unused },
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    {
-      search: async (input) => {
-        calls++
-        assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })
-        if (failing) {
-          throw new Error('private SQL and connection details')
-        }
-        return empty
+  const app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, {
+    search: async (input) => {
+      calls++
+      assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })
+      if (failing) {
+        throw new Error('private SQL and connection details')
       }
+      return empty
     }
-  )
+  })
   try {
     await app.listen(0, '127.0.0.1')
     const origin = await app.getUrl()

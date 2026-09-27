@@ -253,7 +253,7 @@ importers:
         specifier: 8.69.0
         version: 8.69.0(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.2)
 
-  apps/api:
+  apps/accounts:
     dependencies:
       '@nestjs/common':
         specifier: 12.0.1
@@ -343,6 +343,58 @@ importers:
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
+      tar:
+        specifier: 7.5.22
+        version: 7.5.22
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
+  apps/api:
+    dependencies:
+      '@nestjs/common':
+        specifier: 12.0.1
+        version: 12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0)
+      '@nestjs/core':
+        specifier: 12.0.1
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/platform-express@12.0.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: 12.0.1
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.1)(supports-color@7.2.0)
+      '@nestjs/swagger':
+        specifier: 12.0.1
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.1)(reflect-metadata@0.2.2)
+      '@nestjs/typeorm':
+        specifier: 12.0.1
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@1.1.1(pg@8.23.0)(supports-color@7.2.0))
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+      reflect-metadata:
+        specifier: 0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: 7.8.2
+        version: 7.8.2
+      typeorm:
+        specifier: 1.1.1
+        version: 1.1.1(pg@8.23.0)(supports-color@7.2.0)
+    devDependencies:
+      '@nestjs/testing':
+        specifier: 12.0.1
+        version: 12.0.1(@nestjs/common@12.0.1(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.0.1)(@nestjs/platform-express@12.0.1)
+      '@types/express':
+        specifier: 5.0.6
+        version: 5.0.6
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      dotenv-cli:
+        specifier: 11.0.0
+        version: 11.0.0
       tar:
         specifier: 7.5.22
         version: 7.5.22

@@ -6,14 +6,9 @@ import { apiSchemas } from './schemas.js'
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle('DFRAGON API')
-    .setDescription(
-      '캐릭터 검색·상세 조회, Desktop 로그인과 계정 API입니다. 검색·상세는 공개 API이며 계정 API는 Bearer access JWT가 필요합니다. JSON 요청은 UTF-8 application/json, 최대 16,384바이트이며 정의되지 않은 필드를 허용하지 않습니다. 패스키 가입·로그인은 시스템 브라우저에서 진행하고 Desktop의 S256 검증으로 앱 세션을 발급합니다.'
-    )
+    .setDescription('캐릭터 검색·상세와 모험단 조회를 제공하는 공개 API입니다.')
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')
-    .addTag('인증', 'Desktop 로그인 요청·교환·세션 관리')
-    .addTag('계정', '로그인한 사용자의 프로필과 닉네임')
-    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build()
 
   // 로그인 완료 화면의 script 금지 CSP는 유지하고 문서 경로만 자체 asset을 허용합니다.

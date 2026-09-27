@@ -9,13 +9,13 @@ last-reviewed: 2026-09-15
 
 ## 적용 범위와 이전 결정
 
-MVP는 한 운영자가 관리하는 단일 API와 auth PostgreSQL 구성으로 시작할 수 있다. 장비 3대, 별도 관리 인원, 전용 witness 서비스와 전체 장애 시험을 로그인·일반 기능 배포의 선행 조건으로 요구하지 않는다. [PR #132의 이전 운영 설계](https://github.com/blahaj94/ldb/pull/132)와 [D1–D5 승인 이력](https://github.com/blahaj94/ldb/pull/72)은 보존하며, 장비·역할·검증의 현재 기준은 이 문서를 따른다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
+MVP는 한 운영자가 관리하는 분리된 API/accounts와 각각의 PostgreSQL 구성으로 시작할 수 있다. 장비 3대, 별도 관리 인원, 전용 witness 서비스와 전체 장애 시험을 로그인·일반 기능 배포의 선행 조건으로 요구하지 않는다. [PR #132의 이전 운영 설계](https://github.com/blahaj94/ldb/pull/132)와 [D1–D5 승인 이력](https://github.com/blahaj94/ldb/pull/72)은 보존하며, 장비·역할·검증의 현재 기준은 이 문서를 따른다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 
 탈퇴의 확정·재인증·삭제·보관 의미는 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 유지한다. 이 문서는 구현 완료나 실제 운영 실행 허가를 뜻하지 않는다. 현재 구현·환경에 없는 기능을 동작한다고 표시하지 않는다.
 
 ## MVP 구성과 책임
 
-- 단일 API process와 DB를 같은 서버에서 운영할 수 있다. 장비 수와 서비스 수는 실제 부하·복구 요구에 맞춰 늘린다. 같은 host의 volume 분리를 물리 장애 격리로 설명하지 않는다.
+- API와 accounts process 및 각각의 PostgreSQL을 같은 서버에서 운영할 수 있다. 인증 DB의 container·volume·역할은 domain DB와 분리한다. 장비 수와 서비스 수는 실제 부하·복구 요구에 맞춰 늘린다. 같은 host의 volume 분리를 물리 장애 격리로 설명하지 않는다.
 - 탈퇴를 구현하면 D1의 취소 불가 확정점인 durable 삭제 journal과 이전 writer 차단을 유지한다. Journal·현재 checkpoint·inventory는 auth DB의 복원 대상과 구분된 저장·권한 경계를 가진다. 같은 host의 별도 DB·volume도 가능하며, host 전체 손실이나 공동 rollback 뒤 복구를 보장하지 않는다.
 - 별도 witness와 분산 control 조정 process는 기본 필수 구성이 아니다. 검증된 백업 공개 복원을 제공할 때 필요한 최신성·rollback 방지 수단을 선택한다. 단순 checksum이나 같은 snapshot 안의 journal/checkpoint로 최신성을 증명할 수 있다고 가정하지 않는다.
 - 운영자 한 명이 배포·Migration·backup·복구·secret 관리를 겸할 수 있다. 실행 자격은 목적별 최소 권한으로 나누고 API에 DDL·host 관리자·backup 복호화 권한을 부여하지 않는다. 같은 사람의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다.

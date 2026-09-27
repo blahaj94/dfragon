@@ -30,7 +30,7 @@ class TestSession extends EventEmitter {
   clearStorageData = vi.fn(async () => undefined)
 }
 type Login = NonNullable<Parameters<AuthBrowser['open']>[1]>
-function fixture(): {
+function fixture(legacyOrigin?: string): {
   window: TestWindow
   session: TestSession
   controller: AbortController
@@ -57,7 +57,7 @@ function fixture(): {
     controller,
     activate,
     login,
-    browser: createAuthBrowser(origin, target, activate)
+    browser: createAuthBrowser(origin, target, activate, legacyOrigin)
   }
 }
 beforeEach(() => vi.clearAllMocks())
@@ -88,6 +88,31 @@ describe('isolated authentication window', () => {
     f.window.webContents.emit('will-navigate', event, 'file:///etc/passwd')
     expect(event.preventDefault).toHaveBeenCalledOnce()
     expect(f.login.onReturn).not.toHaveBeenCalled()
+  })
+  it('allows only the configured old auth origin during migration', async () => {
+    const legacy = 'https://legacy.synthetic.test'
+    const f = fixture(legacy)
+    await f.browser.open(url, f.login)
+    const request = f.session.webRequest.onBeforeRequest.mock.calls[0][0]
+    const verdict = vi.fn()
+    for (const allowed of [
+      `${legacy}/auth/login/legacy?ticket=synthetic`,
+      `${origin}/auth/login/migrate?ticket=synthetic`
+    ]) {
+      request({ url: allowed }, verdict)
+      expect(verdict).toHaveBeenLastCalledWith({ cancel: false })
+      const event = { preventDefault: vi.fn() }
+      f.window.webContents.emit('will-navigate', event, allowed)
+      expect(event.preventDefault).not.toHaveBeenCalled()
+    }
+    for (const denied of [
+      `${legacy}/characters`,
+      'https://other.synthetic.test/auth/login/legacy',
+      'http://legacy.synthetic.test/auth/login/legacy'
+    ]) {
+      request({ url: denied }, verdict)
+      expect(verdict).toHaveBeenLastCalledWith({ cancel: true })
+    }
   })
   it('activates the main window before closing on a claimed callback without cancelling the exchange', async () => {
     const f = fixture()

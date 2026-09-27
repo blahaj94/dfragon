@@ -49,40 +49,23 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 ### `apps/api`
 
-- Package: `@dfragon/api`
-- Type: ESM
-- Stack: Node 24, NestJS 12, TypeScript
-- Entry: `src/main.ts` → `dist/main.js`
-- 로컬 실행: `pnpm --filter @dfragon/api dev`는 build 후 앱 폴더의 `.env`를 읽고 시작한다. `db:migrate:local`은 같은 `.env`의 개발 DB에 migration을 명시 적용한다. 운영 `start`와 기존 DB 명령은 환경 주입 방식을 유지한다. [로컬 실행 안내](api-start-development.md#로컬-개발-명령)를 참고한다.
-- API 문서: `/docs`의 Swagger UI와 `/docs/openapi.json`. `src/swagger`의 명시적 schema·설명을 controller metadata와 합쳐 제공한다. [사용 방법](api-start-development.md#swagger-api-문서)을 참고한다.
-- 필수 runtime 설정: `PORT`, `DB_*`, `NEOPLE_API_KEY`, `AUTH_CONFIG_FILE`. `src/runtime`에서 설정을 검증하고 기존 인증·계정·검색 factory와 소유 DB를 기본 main에 연결한다. 정확한 입력·실행 순서는 [`api-start-development.md`](api-start-development.md)를 참고한다.
-- Test compile: `test`가 `dist`를 먼저 clean build한 뒤 `src`, `test`를 `.test-dist`로 compile한다. 단독 실행에서도 runtime entry와 login test가 최신 production output을 사용한다. Test module의 loopback HTTP로 runtime을 검증한다.
-- Database: `src/database/schemas`의 typed EntitySchema가 ORM mapping과 Migration 생성의 시작점이다. 작성 순서·생성 한계는 [`database-development.md`](database-development.md)를 참고한다. `src/database/data-source.ts`의 compiled ESM DataSource와 `src/database/cli.ts`의 정제된 CLI가 `src/database/migrations`의 인증 초기·캐릭터 상세 Migration을 명시 실행한다. 기본 main의 `src/runtime/application.ts`는 기존 DataSource factory로 DB 수명을 소유한다. `AppModule`은 별도 runtime 테스트용 빈 module로 유지한다.
-- Auth 정의: `src/constants/auth.ts`의 provider·오류·nickname·refresh 값에서 `src/types/auth.ts`의 공통 타입을 파생한다. Identity session 오류는 `src/errors/identity-session.ts`가 관리한다.
-- Identity session: `src/auth/identity-session.ts`가 검증된 기존 user를 잠그고 독립 session·최초 refresh를 만든다. 회원 생성은 패스키 등록 service가 담당한다. 같은 transaction의 code 소비가 commit된 뒤에만 token을 응답한다. [DB 개발 안내](database-development.md#identity-session)를 참고한다.
-- 패스키 로그인: `src/auth/login/service.ts`가 가입·WebAuthn 검증·예비 키 관리를, `exchange.ts`가 일회용 앱 교환을 담당한다. `browser/passkeys.ts`를 같은 origin에서 제공하며 기본 main에 연결한다. 설정과 실제 기기 검증 경계는 [패스키 실행](passkey-authentication.md)을 참고한다.
-- Refresh/logout HTTP: 기존 Nest factory의 선택적 session service가 `POST /auth/refresh`, `POST /auth/logout`을 같은 16,384-byte strict JSON parser와 정제 filter에 연결한다. `src/auth/refresh`의 기존 transaction ownership을 유지하고 `src/auth/logout`이 제출 token의 해당 session만 종료한다. 기본 main도 같은 session service를 연결한다. Source·격리 검증 범위는 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다.
-- 인증 데이터 정리: `src/auth/cleanup`의 명시 command가 종료 session·연결 refresh 전체와 terminal·만료 인증 요청을 잠금 뒤 재판정해 삭제한다. 기존 DB 설정·DataSource를 재사용하며 시작 자동 호출과 하루 1회 운영 연결은 미완료다. 삭제·보존과 실패 결과의 의미는 [`auth-cleanup-development.md`](auth-cleanup-development.md)를 참고한다.
-- Account HTTP: 기존 Nest factory의 선택적 account dependency가 `GET /me`, `PATCH /me/nickname`을 연결한다. `src/auth/account`가 기존 JWT verifier와 user→session 잠금을 재사용해 활동 commit 후 기능 transaction을 재확인하고 nickname을 native Unicode grapheme 기준으로 검증한다. 연결점과 HTTP/DB 경합 evidence는 [`auth-account-development.md`](auth-account-development.md)를 참고한다.
-- Public search HTTP: `GET /characters`는 로그인 없이 strict raw query·직접 socket peer별 memory quota·Neople adapter에 연결한다. 검색은 JWT·session DB·활동 기록에 의존하지 않으며 계정 endpoint의 인증은 유지한다. [`검색 개발`](authenticated-search-development.md)을 참고한다.
-- Character detail HTTP: `GET /characters/:serverId/:characterId`는 5분 동안 DB 값을 재사용하고 최초·만료 시 Neople 11개 응답을 최신 JSONB로 저장한 뒤 정제한다. 본문 없는 `POST /characters/:serverId/:characterId/refresh`는 명시 갱신한다. `src/characters/details`와 [캐릭터 상세 계약](../rules/character-details.md), [DBML](character-details.dbml)을 참고한다.
-- Adventure search HTTP: `GET /adventures/characters?adventureName=...`는 `characters.adventure_name` index로 수집된 캐릭터를 정확 일치·서버 통합·페이지 조회한다. Neople 호출이나 전체 보유 캐릭터 발견은 하지 않는다. 구현은 `src/adventures`, 계약은 [모험단명 검색](../rules/character-details.md#모험단명-검색)을 따른다.
-- Database CLI 설정: `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`. 이 값은 DB command와 DB를 연결하는 기본 API start에 필요하다.
-- Migration 설정: `synchronize:false`, `migrationsRun:false`, `migrationsTransactionMode:'all'`. TypeORM은 최초 up에서 내부 history table을 먼저 준비하고, auth DDL과 해당 history row는 Migration의 active transaction 안에서 적용한다. `db:migrate:show`는 fresh DB에 history table을 만들지 않는 read-only 조회다.
-- Docker integration: `test-support/database-integration.mjs`가 고정 PostgreSQL image를 native platform의 isolated container·named volume·loopback dynamic port에서 검증하고 run ownership이 일치하는 exact resource만 정리한다.
-- Command:
-  - `pnpm --filter @dfragon/api dev`
-  - `pnpm --filter @dfragon/api start`
-  - `pnpm --filter @dfragon/api test`
-  - `pnpm --filter @dfragon/api typecheck`
-  - `pnpm --filter @dfragon/api lint`
-  - `pnpm --filter @dfragon/api build`
-  - `pnpm --filter @dfragon/api test:database`
-  - `pnpm --filter @dfragon/api auth:cleanup`
-  - `pnpm --filter @dfragon/api db:migrate:generate AddUserField` (EntitySchema와 개발 DB 차이로 Migration file 생성)
-  - `pnpm --filter @dfragon/api db:migrate:up`
-  - `pnpm --filter @dfragon/api db:migrate:show`
-  - `pnpm --filter @dfragon/api db:migrate:down` (빈 disposable DB rollback 검증 전용; 운영 자동 실행 아님)
+- Package: `@dfragon/api`, Node 24·NestJS·TypeORM ESM. `src/http.ts`는 캐릭터·모험단 HTTP와 `/health`를 합성한다.
+- Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
+- 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정·JWT·계정 DB를 사용하지 않는다.
+- `test`는 build·타입·단위·HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration·검색·캐시를 검증한다.
+- 개발·배포: [API 개발](api-start-development.md), [API 배포](../../deploy/api/README.md).
+
+### `apps/accounts`
+
+- Package: `@dfragon/accounts`, 인증 NestJS 서비스. `/auth/**`, `/me`, `/me/nickname`, 패스키 browser bundle을 소유한다.
+- `src/auth`: passkey·동일 계정 RP 이전·JWT·refresh/logout·nickname·cleanup. Desktop/OCR은 이 서비스에 인증한다.
+- 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container·volume·역할을 사용한다.
+- `src/database/schemas`가 Schema First 원본이다. 기존 auth migration 세 개와 RP/handoff migration 한 개를 빈 target에 적용한다.
+- `src/database/import`는 중지된 이전 DB에서 같은 UUID·키·세션·전체 refresh history를 빈 target으로 한 번 복사한다.
+- 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
+- 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
+- 운영/기존 계정 이전/rollback은 [accounts 배포](../../deploy/accounts/README.md), 개발 설정은 [패스키 안내](passkey-authentication.md).
+- 양쪽 runtime은 시작할 때 schema migration을 자동 실행하지 않는다. `/docs`와 `/docs/openapi.json`도 각각 자기 서비스의 HTTP 계약만 제공한다.
 
 ### `apps/web`
 

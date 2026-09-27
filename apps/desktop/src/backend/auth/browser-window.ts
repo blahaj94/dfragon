@@ -6,14 +6,17 @@ import type { AuthBrowser } from './types'
 export function createAuthBrowser(
   apiOrigin: string,
   returnTarget: string,
-  activateMainWindow: () => void
+  activateMainWindow: () => void,
+  legacyOrigin?: string
 ): AuthBrowser {
   let managementWindow: BrowserWindow | null = null
   const allowed = (raw: string): boolean => {
     try {
       const url = new URL(raw)
       return (
-        url.protocol === 'https:' && url.origin === apiOrigin && url.pathname.startsWith('/auth/')
+        url.protocol === 'https:' &&
+        (url.origin === apiOrigin || url.origin === legacyOrigin) &&
+        url.pathname.startsWith('/auth/')
       )
     } catch {
       return false

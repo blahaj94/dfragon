@@ -76,12 +76,10 @@ services:
       DB_USERNAME: dfragon_api
       PORT: '3000'
       SEARCH_TRUST_PROXY: single-hop
-      AUTH_CONFIG_FILE: /run/secrets/auth_config
     secrets:
       - source: dfragon_api_password
         target: db_password
       - neople_api_key
-      - auth_config
     ports: ['127.0.0.1:${DFRAGON_API_PORT:-3000}:3000']
     networks: [database, outbound]
     depends_on:
@@ -97,21 +95,6 @@ services:
       DB_USERNAME: dfragon_migrator
     secrets:
       - source: dfragon_migrator_password
-        target: db_password
-    networks: [database]
-    depends_on:
-      database:
-        condition: service_healthy
-
-  cleanup:
-    <<: *api-runtime
-    profiles: [maintenance]
-    command: [node, --import, reflect-metadata, dist/auth/cleanup/cli.js]
-    environment:
-      <<: *database-environment
-      DB_USERNAME: dfragon_api
-    secrets:
-      - source: dfragon_api_password
         target: db_password
     networks: [database]
     depends_on:
@@ -136,5 +119,3 @@ secrets:
     file: ${DFRAGON_SECRETS_DIR}/dfragon_api_password
   neople_api_key:
     file: ${DFRAGON_SECRETS_DIR}/neople_api_key
-  auth_config:
-    file: ${DFRAGON_SECRETS_DIR}/auth_config.json

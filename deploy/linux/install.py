@@ -23,7 +23,7 @@ def main():
     public_key = Path(sys.argv[1]).read_text().strip()
     if re.fullmatch(r'ssh-ed25519 [A-Za-z0-9+/]+={0,3}(?: [^\r\n]+)?', public_key) is None:
         raise RuntimeError('expected an Ed25519 public key')
-    for path in (deployment.STATE, Path('/etc/dfragon/api.env'), Path('/opt/dfragon-api-current'),
+    for path in (deployment.STATE, Path('/etc/dfragon/api.env'), Path('/opt/dfragon-accounts-current'),
                  Path('/var/lib/dfragon-deploy-user'), Path(deployment.EXECUTABLE),
                  Path('/usr/local/libexec/dfragon-deploy-ssh'), Path('/etc/sudoers.d/dfragon-deploy'),
                  Path('/etc/systemd/system/dfragon-auth-cleanup.service.d/deployment.conf')):
@@ -40,7 +40,7 @@ def main():
     if preferences.get('RunSSH') or status.get('BackendState') != 'Running':
         raise RuntimeError('connected Tailscale with OpenSSH is required')
     sources = {}
-    for service in ('api', 'ocr'):
+    for service in ('api', 'accounts', 'ocr'):
         info = deployment.container(service)
         image = info['Config']['Image']
         match = re.fullmatch('dfragon-' + service + r':([0-9a-f]{40})', image)
@@ -52,7 +52,7 @@ def main():
             raise RuntimeError('unexpected compose source')
         sources[service] = {'source': str(source), 'revision': match[1]}
     api_env = Path(sources['api']['source']) / 'deploy/api/.env'
-    for service, path in [('api', api_env), ('ocr', deployment.environment_file('ocr'))]:
+    for service, path in [('api', api_env), ('accounts', deployment.environment_file('accounts')), ('ocr', deployment.environment_file('ocr'))]:
         text = path.read_text()
         if deployment.tagged_environment(text, sources[service]['revision']) != text:
             raise RuntimeError('running service and environment revision differ')
@@ -83,14 +83,14 @@ def main():
     deployment.save(deployment.STATE / 'state.json', sources)
     shutil.copyfile(api_env, '/etc/dfragon/api.env')
     Path('/etc/dfragon/api.env').chmod(0o600)
-    deployment.point_api_source(Path(sources['api']['source']))
+    deployment.point_accounts_source(Path(sources['accounts']['source']))
     drop_in = Path('/etc/systemd/system/dfragon-auth-cleanup.service.d')
     drop_in.mkdir(mode=0o755, exist_ok=True)
     target = drop_in / 'deployment.conf'
-    target.write_text('[Service]\nWorkingDirectory=/opt/dfragon-api-current/deploy/api\nExecStart=\nExecStart=/usr/bin/docker compose --project-name dfragon --env-file /etc/dfragon/api.env -f /opt/dfragon-api-current/deploy/api/compose.yaml --profile maintenance run --rm --no-deps cleanup\n')
+    target.write_text('[Service]\nWorkingDirectory=/opt/dfragon-accounts-current/deploy/accounts\nExecStart=\nExecStart=/usr/bin/docker compose --project-name dfragon-accounts --env-file /etc/dfragon/accounts.env -f /opt/dfragon-accounts-current/deploy/accounts/compose.yaml --profile maintenance run --rm --no-deps cleanup\n')
     target.chmod(0o644)
     deployment.run('systemctl', 'daemon-reload')
-    print('Deployment SSH helper installed; API and OCR containers were not restarted')
+    print('Deployment SSH helper installed; API, accounts and OCR containers were not restarted')
     print(json.dumps({'services': {service: data['revision'] for service, data in sources.items()}}))
 
 
