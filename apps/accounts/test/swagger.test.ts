@@ -34,6 +34,8 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
         'post /auth/logout',
         'get /auth/login/authorize',
         'get /auth/login/phone',
+        'get /auth/login/legacy',
+        'get /auth/login/migrate',
         'get /auth/passkeys/manage',
         'get /auth/passkeys/client.css',
         'get /auth/passkeys/client.js',

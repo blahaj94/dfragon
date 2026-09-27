@@ -13,6 +13,7 @@ import { LoginFailure } from '../../errors/login.js'
 import { AuthLoginRequestSchema } from '../../database/schemas/auth-login-requests.js'
 import type { AuthLoginRequest } from '../../database/schemas/auth-login-requests.js'
 import { UserSchema } from '../../database/schemas/users.js'
+import { PasskeyMigrationSchema } from '../../database/schemas/passkey-migrations.js'
 import { PasskeySchema } from '../../database/schemas/passkeys.js'
 import { UUID_PATTERN } from '../access-jwt/constants.js'
 import type { LoginDependencies, LoginHttpService } from '../../types/login.js'
@@ -32,6 +33,7 @@ import {
 } from './state.js'
 import { phoneLoginAction, clearPhone } from './phone.js'
 import { exchangeLogin } from './exchange.js'
+import { createPasskeyMigration } from './migration.js'
 
 const invalid = () => new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
 const badPasskey = () => new LoginFailure(LOGIN_ERRORS.PASSKEY)
@@ -145,7 +147,9 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       userDisplayName: 'DFRAGON 계정',
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      excludeCredentials: keys.map((key) => ({ id: key.id, transports: key.transports }))
+      excludeCredentials: keys
+        .filter((key) => key.rpId === configuration.rpId)
+        .map((key) => ({ id: key.id, transports: key.transports }))
     })
     Object.assign(row, { webauthnChallenge: value.challenge, operation, pendingUserId: userId })
     await checkTime(manager, row)
@@ -176,7 +180,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         throw badPasskey()
       }
       const hint = await manager.getRepository(PasskeySchema).findOneBy({ id: credential.id })
-      if (hint == null) {
+      if (hint == null || hint.rpId !== configuration.rpId) {
         throw badPasskey()
       }
       const user = await lockUser(manager, hint.userId)
@@ -259,6 +263,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       await manager.getRepository(PasskeySchema).insert({
         id: credentialId,
         userId,
+        rpId: configuration.rpId,
         publicKey: Buffer.from(info.credential.publicKey),
         counter: info.credential.counter,
         transports: info.credential.transports ?? [],
@@ -273,12 +278,18 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         return { managed: true }
       }
     }
+    return verified(manager, row, userId, credentialId, operation === 'register')
+  }
+
+  async function verified(
+    manager: EntityManager,
+    row: AuthLoginRequest,
+    userId: string,
+    credentialId: string,
+    isNewUser = false
+  ) {
     const now = await checkTime(manager, row)
-    Object.assign(row, clearChallenge, {
-      verifiedUserId: userId,
-      credentialId,
-      isNewUser: operation === 'register'
-    })
+    Object.assign(row, clearChallenge, { verifiedUserId: userId, credentialId, isNewUser })
     if (row.purpose === 'manage') {
       row.status = 'managing'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
@@ -315,7 +326,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     return { returnUrl: url.href }
   }
 
+  const migration = createPasskeyMigration(deps, verified)
+
   return {
+    legacyAuthorize: migration.authorizeLegacy,
+    migrationAuthorize: migration.authorizeAccounts,
     async create(input) {
       const body = parseCreation(input)
       if (body.clientId === 'ocr' && configuration.ocrReturnUrl === undefined) {
@@ -333,6 +348,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       return {
         requestId: row.id,
         purpose: 'manage',
+        legacyOrigin: configuration.legacyOrigin,
         cookie: browserCookie({
           requestId: row.id,
           bindingValue: secret,
@@ -373,6 +389,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         return {
           requestId: row.id,
           purpose: row.purpose,
+          legacyOrigin: configuration.legacyOrigin,
           webReturnUrl:
             configuredLoginClient(configuration, row.configuration) === 'ocr'
               ? configuration.ocrReturnUrl
@@ -388,6 +405,9 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       })
     },
     async browser(action, input, cookie, origin) {
+      if (migration.actions.includes(action)) {
+        return migration.browser(action, input, cookie, origin)
+      }
       if (origin !== configuration.apiOrigin) {
         throw invalid()
       }
@@ -424,6 +444,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           throw invalid()
         }
         await checkTime(manager, row)
+        if (
+          ['options', 'phone-options', 'qr', 'direct', 'cancel', 'phone-cancel'].includes(action)
+        ) {
+          await manager.getRepository(PasskeyMigrationSchema).delete({ requestId: id })
+        }
         if (row.status === 'managing') {
           await lockUser(manager, row.verifiedUserId!)
           await lockCredential(manager, row.verifiedUserId!, row.credentialId!)
@@ -467,6 +492,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
             value: {
               keys: keys.map((key) => ({
                 id: key.id,
+                rpId: key.rpId,
                 createdAt: key.createdAt.toISOString(),
                 lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
                 current: key.id === row.credentialId

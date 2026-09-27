@@ -3,6 +3,7 @@ import type { AuthenticatorTransportFuture } from '@simplewebauthn/server'
 
 export interface Passkey {
   id: string
+  rpId: string
   userId: string
   publicKey: Buffer
   counter: number
@@ -18,6 +19,7 @@ export const PasskeySchema = new EntitySchema<Passkey>({
   tableName: 'auth_passkeys',
   columns: {
     id: { type: 'text', primary: true, primaryKeyConstraintName: 'pk_auth_passkeys' },
+    rpId: { name: 'rp_id', type: 'text' },
     userId: { name: 'user_id', type: 'uuid' },
     publicKey: { name: 'public_key', type: 'bytea' },
     counter: {
@@ -41,6 +43,7 @@ export const PasskeySchema = new EntitySchema<Passkey>({
   ],
   indices: [{ name: 'idx_auth_passkeys_user', columns: ['userId'] }],
   checks: [
+    { name: 'ck_auth_passkeys_rp', expression: 'char_length("rp_id") BETWEEN 1 AND 253' },
     { name: 'ck_auth_passkeys_id', expression: 'char_length("id") BETWEEN 1 AND 2048' },
     { name: 'ck_auth_passkeys_key', expression: 'octet_length("public_key") > 0' },
     { name: 'ck_auth_passkeys_counter', expression: '"counter" BETWEEN 0 AND 4294967295' },

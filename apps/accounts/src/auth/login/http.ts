@@ -222,6 +222,40 @@ class LoginController {
     response.status(200).type('html').send(page.html)
   }
 
+  @Get('login/legacy')
+  async legacy(@Req() request: Request, @Res() response: Response): Promise<void> {
+    await this.handoff(request, response, true)
+  }
+
+  @Get('login/migrate')
+  async migrate(@Req() request: Request, @Res() response: Response): Promise<void> {
+    await this.handoff(request, response, false)
+  }
+
+  private async handoff(request: Request, response: Response, legacy: boolean): Promise<void> {
+    const query = readOriginalQuery(request)
+    if (request.method !== 'GET' || query.size !== 1 || !query.has('ticket')) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+    const ticket = query.get('ticket')!
+    const authorization = legacy
+      ? await this.service.legacyAuthorize?.(ticket, request.headers.host)
+      : await this.service.migrationAuthorize?.(
+          ticket,
+          request.headers.cookie ?? '',
+          request.headers.host
+        )
+    if (authorization === undefined) {
+      throw new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
+    }
+    if (authorization.cookie.length > 0) {
+      response.setHeader('Set-Cookie', authorization.cookie)
+    }
+    const page = await passkeyPage(authorization)
+    response.setHeader('Content-Security-Policy', page.policy)
+    response.status(200).type('html').send(page.html)
+  }
+
   @Get('passkeys/manage')
   async manage(@Req() request: Request, @Res() response: Response): Promise<void> {
     if (request.method !== 'GET') {
@@ -327,7 +361,7 @@ export async function createLoginHttpApp(
         (request.method === 'POST' &&
           (path === '/auth/login-requests' || path.startsWith('/auth/passkeys/'))) ||
         path === '/auth/passkeys/manage' ||
-        path === '/auth/login/phone'
+        ['/auth/login/phone', '/auth/login/legacy', '/auth/login/migrate'].includes(path)
       ) {
         const now = Date.now()
         if (now >= globalWindow.until) {
