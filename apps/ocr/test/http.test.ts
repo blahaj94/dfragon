@@ -11,6 +11,113 @@ import { raidUpload, upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
   authOrigin = 'https://auth.example.test'
+
+test('model REST API authenticates before multipart parsing and preserves uploaded files', async () => {
+  const f = await fixture()
+  const id = randomUUID()
+  const makeBody = () => {
+    const body = new FormData()
+    body.set(
+      'metadata',
+      JSON.stringify({
+        id,
+        name: '합성 모델',
+        preset: 'korean-ppocrv5',
+        kind: 'pretrained',
+        parentId: null
+      })
+    )
+    body.append('files', new Blob(['synthetic weights']), 'weights.pdparams')
+    body.append('files', new Blob(['가\n나\n']), 'characters.txt')
+    return body
+  }
+  try {
+    assert.equal((await fetch(`${f.base}/api/desktop/models`)).status, 401)
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/models`, {
+          method: 'POST',
+          headers: { Origin: origin },
+          body: makeBody()
+        })
+      ).status,
+      401
+    )
+    const { cookie } = await f.login()
+    assert(cookie)
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/models`, {
+          method: 'POST',
+          headers: { Cookie: cookie },
+          body: makeBody()
+        })
+      ).status,
+      403
+    )
+    const uploaded = await fetch(`${f.base}/api/models`, {
+      method: 'POST',
+      headers: { Cookie: cookie, Origin: origin },
+      body: makeBody()
+    })
+    assert.equal(uploaded.status, 201)
+    assert.equal((await uploaded.json()).model.id, id)
+    const headers = { Authorization: 'Bearer synthetic.desktop.token' }
+    const listed = await fetch(`${f.base}/api/desktop/models`, { headers })
+    assert.equal(listed.status, 200)
+    assert.equal((await listed.json()).models[0].id, id)
+    const file = await fetch(`${f.base}/api/desktop/models/${id}/files/weights.pdparams`, {
+      headers
+    })
+    assert.equal(await file.text(), 'synthetic weights')
+    assert.equal(
+      (await fetch(`${f.base}/api/desktop/models`, { headers: { ...headers, Origin: origin } }))
+        .status,
+      403
+    )
+    const retry = await fetch(`${f.base}/api/desktop/models`, {
+      method: 'POST',
+      headers,
+      body: makeBody()
+    })
+    assert.equal((await retry.json()).duplicate, true)
+    const childId = randomUUID()
+    const child = makeBody()
+    child.set(
+      'metadata',
+      JSON.stringify({
+        id: childId,
+        name: '학습 결과',
+        preset: 'korean-ppocrv5',
+        kind: 'finetuned',
+        parentId: id
+      })
+    )
+    child.append(
+      'files',
+      new Blob(['{"schemaVersion":1,"summary":{"cer":0.1}}']),
+      'evaluation.json'
+    )
+    const trained = await fetch(`${f.base}/api/models`, {
+      method: 'POST',
+      headers: { Cookie: cookie, Origin: origin },
+      body: child
+    })
+    assert.equal(trained.status, 201)
+    assert.equal((await trained.json()).model.parentId, id)
+    const evaluation = await fetch(
+      `${f.base}/api/desktop/models/${childId}/files/evaluation.json`,
+      { headers }
+    )
+    assert.deepEqual(await evaluation.json(), { schemaVersion: 1, summary: { cer: 0.1 } })
+    assert.equal(
+      (await fetch(`${f.base}/api/models/${id}/files/weights.pdparams`, { headers })).status,
+      401
+    )
+  } finally {
+    await f.close()
+  }
+})
 async function fixture(identity = ownerId, expired = false, revoked = false) {
   const calls: string[] = []
   const request: typeof fetch = async (input, init) => {

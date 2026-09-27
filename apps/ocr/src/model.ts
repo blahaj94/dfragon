@@ -1,5 +1,20 @@
 import type { OCR_UPLOAD } from './constants.js'
 
+export type ModelSummary = {
+  id: string
+  name: string
+  preset: 'korean-ppocrv5'
+  kind: 'pretrained' | 'finetuned'
+  parentId: string | null
+  registeredAt: string
+  files: {
+    name: 'weights.pdparams' | 'characters.txt' | 'evaluation.json'
+    bytes: number
+    sha256: string
+  }[]
+}
+export type ModelUpload = Pick<ModelSummary, 'id' | 'name' | 'preset' | 'kind' | 'parentId'>
+
 export const splits = ['unassigned', 'train', 'val', 'test'] as const
 export type Split = (typeof splits)[number]
 export type Crop = { slot: number; x: number; y: number; width: number; height: number }

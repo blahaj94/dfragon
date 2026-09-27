@@ -13,6 +13,7 @@ import { CaptureUpload } from './CaptureUpload.js'
 import { SampleEditor } from './SampleEditor.js'
 import { OcrIcon } from './OcrIcon.js'
 import { OCR_CAPTURE_LABELS } from './constants.js'
+import { ModelLibrary } from './ModelLibrary.js'
 
 export function App() {
   const { mode, toggle } = useColorMode()
@@ -129,6 +130,7 @@ export function App() {
                 </div>
               ))}
             </section>
+            <ModelLibrary />
             <CaptureUpload
               open={uploadOpen}
               onClose={() => {

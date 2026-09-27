@@ -12,6 +12,8 @@ import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
+import { OcrModelController } from './model-controller.js'
+import { MODEL_MAXIMUM_BYTES } from './model-library.js'
 import {
   OCR_CONFIG,
   OcrAuthController,
@@ -41,9 +43,15 @@ function isDesktopRequest(request: Request): boolean {
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
     return true
   }
+  if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
+    return true
+  }
   return (
     request.method === 'GET' &&
     (request.originalUrl === '/api/desktop/dataset' ||
+      /^\/api\/desktop\/models(?:\/[0-9a-f-]{36}(?:\/files\/(?:weights\.pdparams|characters\.txt|evaluation\.json))?)?$/.test(
+        request.originalUrl
+      ) ||
       /^\/api\/desktop\/samples\/[0-9a-f-]{36}-(?:[1-9]|1[0-2])\/image$/.test(request.originalUrl))
   )
 }
@@ -54,7 +62,7 @@ export async function createOcrApp(
   auth = new OcrAuth(config)
 ) {
   @Module({
-    controllers: [OcrAuthController, OcrDataController, OcrHealthController],
+    controllers: [OcrAuthController, OcrDataController, OcrHealthController, OcrModelController],
     providers: [
       { provide: OCR_CONFIG, useValue: config },
       { provide: OcrAuth, useValue: auth },
@@ -96,6 +104,32 @@ export async function createOcrApp(
     ).then(() => next(), next)
   })
   let activeUploads = 0
+  let modelUploadActive = false
+  app.use(
+    ['/api/models', '/api/desktop/models'],
+    (request: Request, response: Response, next: NextFunction) => {
+      if (request.method !== 'POST') {
+        next()
+        return
+      }
+      if (modelUploadActive) {
+        next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
+        return
+      }
+      modelUploadActive = true
+      response.once('close', () => {
+        modelUploadActive = false
+      })
+      let size = 0
+      request.on('data', (chunk: Buffer) => {
+        size += chunk.length
+        if (size > MODEL_MAXIMUM_BYTES + 64 * 1024) {
+          request.destroy()
+        }
+      })
+      next()
+    }
+  )
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
   app.use(
     ['/api/captures', '/api/desktop/captures'],

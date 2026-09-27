@@ -32,7 +32,29 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 ## HTTP API
 
-자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`와 아래 Desktop 조회 GET 경로만 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
+### 학습 모델 보관
+
+웹의 **학습 모델**에서 공식 `korean_PP-OCRv5_mobile_rec` 기본 가중치와 문자 사전을 미니PC에 등록하고, 등록된 모델의 이름·종류·등록 시각·크기·파일을 확인합니다. 기본 모델 다운로드는 약 106 MiB이며 같은 모델은 한 번만 저장합니다. 서버에서 학습을 실행하지 않습니다.
+
+별도 Windows 평가 앱이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습·평가합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치·사전·평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 시작 모델의 사전 순서와 SHA-256을 유지하며 기존 모델을 덮어쓰지 않습니다.
+
+| Method / path | 동작 |
+| --- | --- |
+| `GET /api/models` | `{schemaVersion: 1, models: [...]}` 목록 |
+| `GET /api/models/:id` | ID·이름·preset·kind·parentId·등록 시각·파일별 bytes/SHA-256 |
+| `GET /api/models/:id/files/:name` | 보관된 파일 bytes |
+| `POST /api/models` | `metadata` JSON 필드와 `files` multipart 파일로 새 모델 등록 |
+| `POST /api/models/base/korean-v5` | 공식 기본 한국어 모델을 고정 ID로 등록 |
+
+목록·상세·파일·multipart 등록은 `/api/desktop/models`에도 동일한 계약으로 제공하며 Origin 없는 활성 owner Bearer가 필요합니다. 브라우저 경로는 owner cookie를 사용하고 POST는 정확한 OCR Origin이 필요합니다. 토큰으로 정답·분할 변경이나 브라우저 세션 발급은 할 수 없습니다.
+
+`metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. 파인튜닝 모델의 사전 해시는 시작 모델과 같아야 합니다. 서버는 가중치를 실행하지 않습니다.
+
+파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [프록시 크기 제한과 배포 순서](../../deploy/ocr/README.md#모델-보관-기능-배포)를 함께 적용해야 합니다.
+
+### 데이터와 로그인
+
+자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`, Desktop 조회 GET 경로와 위 모델 API는 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
 
 | Method / path | 동작 |
 | --- | --- |
