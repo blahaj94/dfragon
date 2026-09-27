@@ -20,13 +20,14 @@ class DeploymentTests(unittest.TestCase):
         self.old = self.root / 'old'
         self.new = self.root / 'new'
         for source in (self.old, self.new):
-            for name in ('apps/api/src/main.ts', 'apps/ocr/src/main.ts', 'apps/ocr/src/store.ts',
+            for name in ('apps/accounts/src/main.ts', 'apps/accounts/src/database/migrations/initial.ts',
+                         'deploy/accounts/compose.yaml', 'apps/api/src/main.ts', 'apps/ocr/src/main.ts', 'apps/ocr/src/store.ts',
                          'apps/api/src/database/migrations/initial.ts', 'deploy/api/compose.yaml',
                          'deploy/ocr/compose.yaml', 'packages/ui/src/typo.tsx', 'pnpm-lock.yaml'):
                 path = source / name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text('unchanged')
-        self.previous = {service: {'source': str(self.old), 'revision': OLD} for service in ('api', 'ocr')}
+        self.previous = {service: {'source': str(self.old), 'revision': OLD} for service in ('api', 'accounts', 'ocr')}
 
     def test_input_scope_and_existing_environment(self):
         (self.old / 'deploy/api/.env').write_text('private existing settings')
@@ -35,17 +36,24 @@ class DeploymentTests(unittest.TestCase):
         (self.new / 'apps/ocr/src/main.ts').write_text('new OCR')
         self.assertEqual(deployment.changed_services(self.previous, self.new), ['ocr'])
         (self.new / 'packages/ui/src/typo.tsx').write_text('shared UI')
-        self.assertEqual(deployment.changed_services(self.previous, self.new), ['api', 'ocr'])
+        self.assertEqual(deployment.changed_services(self.previous, self.new), ['api', 'accounts', 'ocr'])
 
     def test_schema_and_topology_changes_require_operator(self):
         for name, service in [('apps/ocr/src/store.ts', 'ocr'),
                               ('apps/api/src/database/migrations/initial.ts', 'api'),
-                              ('deploy/api/compose.yaml', 'api')]:
+                              ('deploy/api/compose.yaml', 'api'),
+                              ('apps/accounts/src/database/migrations/initial.ts', 'accounts'),
+                              ('deploy/accounts/compose.yaml', 'accounts')]:
             path = self.new / name
             path.write_text('incompatible')
             with self.assertRaises(RuntimeError):
                 deployment.require_compatible(self.previous, self.new, [service])
             path.write_text('unchanged')
+
+    def test_unsplit_deployment_requires_operator(self):
+        del self.previous['accounts']
+        with self.assertRaisesRegex(RuntimeError, 'operator migration'):
+            deployment.changed_services(self.previous, self.new)
 
     def test_preserve_configuration_when_changing_tag(self):
         original = f'DFRAGON_IMAGE_TAG={OLD}\nOCR_OWNER_ID=synthetic\nOCR_DATA_DIRECTORY=/persistent\n'

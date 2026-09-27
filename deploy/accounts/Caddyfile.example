@@ -1,0 +1,15 @@
+accounts.dfragon.com {
+    reverse_proxy 127.0.0.1:3200
+}
+
+api.dfragon.com {
+    # Keep the old origin for existing credentials. Preserve Host and X-Forwarded-Proto.
+    # Only the legacy browser ceremony uses this bridge; API routes stay in the API service.
+    @legacy path /auth/login/legacy /auth/passkeys/legacy-options /auth/passkeys/legacy-verify /auth/passkeys/legacy-cancel /auth/passkeys/client.js /auth/passkeys/client.css /auth/passkeys/icon.png
+    handle @legacy {
+        reverse_proxy 127.0.0.1:3200
+    }
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}

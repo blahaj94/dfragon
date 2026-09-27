@@ -1,10 +1,10 @@
-name: dfragon
+name: dfragon-accounts
 
-x-api-runtime: &api-runtime
-  image: dfragon-api:${DFRAGON_IMAGE_TAG:?Set an immutable release tag}
+x-accounts-runtime: &accounts-runtime
+  image: dfragon-accounts:${DFRAGON_IMAGE_TAG:?Set an immutable release tag}
   build:
     context: ../..
-    dockerfile: deploy/api/Dockerfile
+    dockerfile: deploy/accounts/Dockerfile
   user: '1000:1000'
   read_only: true
   cap_drop: [ALL]
@@ -22,12 +22,12 @@ x-api-runtime: &api-runtime
       max-file: '3'
 
 x-database-environment: &database-environment
-  DB_HOST: database
+  DB_HOST: accounts-database
   DB_PORT: '5432'
-  DB_NAME: dfragon
+  DB_NAME: dfragon_accounts
 
 services:
-  database:
+  accounts-database:
     image: docker.io/library/postgres:18.6-trixie@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
     user: postgres
     restart: unless-stopped
@@ -39,25 +39,25 @@ services:
     shm_size: 128m
     stop_grace_period: 60s
     environment:
-      POSTGRES_DB: dfragon
+      POSTGRES_DB: dfragon_accounts
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
       PGDATA: /var/lib/postgresql/18/docker
-    secrets: [postgres_password, dfragon_migrator_password, dfragon_api_password]
+    secrets: [postgres_password, dfragon_accounts_migrator_password, dfragon_accounts_password]
     volumes:
       - database:/var/lib/postgresql
       - ./init-database.sh:/docker-entrypoint-initdb.d/10-dfragon.sh:ro
-      - ./grant-api.sql:/opt/dfragon/grant-api.sql:ro
+      - ./grant-accounts.sql:/opt/dfragon/grant-accounts.sql:ro
     networks: [database]
     healthcheck:
       test:
         - CMD-SHELL
         - >-
-          PGPASSWORD="$$(cat /run/secrets/dfragon_migrator_password)"
-          psql --no-psqlrc --no-password --host=127.0.0.1 --username=dfragon_migrator
-          --dbname=dfragon --tuples-only --no-align --command='SELECT 1' >/dev/null
+          PGPASSWORD="$$(cat /run/secrets/dfragon_accounts_migrator_password)"
+          psql --no-psqlrc --no-password --host=127.0.0.1 --username=dfragon_accounts_migrator
+          --dbname=dfragon_accounts --tuples-only --no-align --command='SELECT 1' >/dev/null
       interval: 10s
       timeout: 5s
       retries: 6
@@ -68,37 +68,53 @@ services:
         max-size: 10m
         max-file: '3'
 
-  api:
-    <<: *api-runtime
+  accounts:
+    <<: *accounts-runtime
     restart: unless-stopped
     environment:
       <<: *database-environment
-      DB_USERNAME: dfragon_api
+      DB_USERNAME: dfragon_accounts
       PORT: '3000'
-      SEARCH_TRUST_PROXY: single-hop
+      AUTH_TRUST_PROXY: single-hop
+      AUTH_CONFIG_FILE: /run/secrets/auth_config
     secrets:
-      - source: dfragon_api_password
+      - source: dfragon_accounts_password
         target: db_password
-      - neople_api_key
-    ports: ['127.0.0.1:${DFRAGON_API_PORT:-3000}:3000']
+      - auth_config
+    ports: ['127.0.0.1:${DFRAGON_ACCOUNTS_PORT:-3200}:3000']
     networks: [database, outbound]
     depends_on:
-      database:
+      accounts-database:
         condition: service_healthy
 
   migrate:
-    <<: *api-runtime
+    <<: *accounts-runtime
     profiles: [maintenance]
     command: [node, --import, reflect-metadata, dist/database/cli.js, up]
     environment:
       <<: *database-environment
-      DB_USERNAME: dfragon_migrator
+      DB_USERNAME: dfragon_accounts_migrator
     secrets:
-      - source: dfragon_migrator_password
+      - source: dfragon_accounts_migrator_password
         target: db_password
     networks: [database]
     depends_on:
-      database:
+      accounts-database:
+        condition: service_healthy
+
+  cleanup:
+    <<: *accounts-runtime
+    profiles: [maintenance]
+    command: [node, --import, reflect-metadata, dist/auth/cleanup/cli.js]
+    environment:
+      <<: *database-environment
+      DB_USERNAME: dfragon_accounts
+    secrets:
+      - source: dfragon_accounts_password
+        target: db_password
+    networks: [database]
+    depends_on:
+      accounts-database:
         condition: service_healthy
 
 networks:
@@ -108,14 +124,14 @@ networks:
 
 volumes:
   database:
-    name: ${DFRAGON_DATABASE_VOLUME_NAME:-dfragon_database}
+    name: ${DFRAGON_ACCOUNTS_DATABASE_VOLUME_NAME:-dfragon_accounts_database}
 
 secrets:
   postgres_password:
     file: ${DFRAGON_SECRETS_DIR:?Set an absolute directory outside the checkout}/postgres_password
-  dfragon_migrator_password:
-    file: ${DFRAGON_SECRETS_DIR}/dfragon_migrator_password
-  dfragon_api_password:
-    file: ${DFRAGON_SECRETS_DIR}/dfragon_api_password
-  neople_api_key:
-    file: ${DFRAGON_SECRETS_DIR}/neople_api_key
+  dfragon_accounts_migrator_password:
+    file: ${DFRAGON_SECRETS_DIR}/dfragon_accounts_migrator_password
+  dfragon_accounts_password:
+    file: ${DFRAGON_SECRETS_DIR}/dfragon_accounts_password
+  auth_config:
+    file: ${DFRAGON_SECRETS_DIR}/auth_config.json

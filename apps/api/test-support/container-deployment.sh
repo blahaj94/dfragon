@@ -31,11 +31,9 @@ docker run --rm --network none --user "$(id -u):$(id -g)" --cap-drop ALL --secur
     "dfragon-api:$DFRAGON_IMAGE_TAG" --input-type=module <<'JS'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
-import { authenticationConfiguration } from './test-support/runtime-fixtures.mjs'
 for (const name of ['postgres_password', 'dfragon_migrator_password', 'dfragon_api_password', 'neople_api_key']) {
   writeFileSync(`/fixtures/${name}`, randomBytes(32).toString('base64url'), { mode: 0o444 })
 }
-writeFileSync('/fixtures/auth_config.json', JSON.stringify(authenticationConfiguration()), { mode: 0o444 })
 JS
 
 "${dfragon_compose[@]}" up -d --wait --wait-timeout 120 database
@@ -123,7 +121,7 @@ for (const path of ['/app/src', '/app/test-support', '/run/secrets/postgres_pass
 const db = new pg.Client({ host: 'database', database: 'dfragon', user: 'dfragon_api', password: readFileSync('/run/secrets/db_password', 'utf8') })
 try {
   await db.connect()
-  for (const table of ['users', 'auth_sessions', 'auth_refresh_tokens', 'auth_login_requests', 'characters', 'character_api_responses']) {
+  for (const table of ['characters', 'character_api_responses']) {
     await db.query(`SELECT count(*) FROM ${table}`)
     for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
       assert.equal((await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [table, privilege])).rows[0].allowed, true, `${table}: ${privilege}`)
@@ -145,14 +143,15 @@ for (let attempt = 0; attempt < 30; attempt++) {
   }
 }
 assert.equal(response?.status, 404)
-assert.equal((await fetch('http://127.0.0.1:3000/me')).status, 401)
+assert.equal((await fetch('http://127.0.0.1:3000/health')).status, 200)
+assert.equal((await fetch('http://127.0.0.1:3000/me')).status, 404)
+assert.equal(existsSync('/run/secrets/auth_config'), false)
 console.log('PASS: compiled API, non-root/read-only runtime, mounted secrets and database privileges')
 JS
 
-"${dfragon_compose[@]}" run --rm cleanup
 "${dfragon_compose[@]}" stop api
 test "$(docker inspect --format '{{.State.ExitCode}}' "$dfragon_api_container")" = 0
 "${dfragon_compose[@]}" up -d --wait --wait-timeout 120 --force-recreate database
 "${dfragon_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d dfragon -Atqc \
     'SELECT count(*) FROM typeorm_migrations' | python3 -c 'import sys; assert int(sys.stdin.read()) > 0'
-printf 'PASS: explicit migration/re-run, cleanup, graceful stop and database persistence\n'
+printf 'PASS: explicit migration/re-run, graceful stop and database persistence\n'

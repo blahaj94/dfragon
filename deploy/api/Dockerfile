@@ -4,18 +4,11 @@ WORKDIR /workspace
 RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
-COPY packages/ui/package.json packages/ui/package.json
-COPY packages/licenses/package.json packages/licenses/package.json
 RUN pnpm install --frozen-lockfile --filter @dfragon/api...
 COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
-COPY apps/api/browser apps/api/browser
 COPY apps/api/test apps/api/test
 COPY apps/api/test-support apps/api/test-support
-COPY packages/ui/foundation.css packages/ui/foundation.css
-COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
-COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
-COPY packages/licenses/notices/upstream/stylex-LICENSE.txt packages/licenses/notices/upstream/stylex-LICENSE.txt
 RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
 

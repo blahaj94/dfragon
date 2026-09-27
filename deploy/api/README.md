@@ -2,7 +2,7 @@
 
 Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy가 HTTPS를 처리한다.
 현재 대상은 Ubuntu 24.04의 `linux/amd64`다. Node 24와 PostgreSQL 18의 image digest를
-고정하고 기존 pnpm lockfile·compiled ESM build·명시 Migration·cleanup을 사용한다.
+고정하고 기존 pnpm lockfile·compiled ESM build·명시 Migration을 사용한다.
 
 초기 배포 후 main의 CI 성공을 자동 반영하는 구성은 [Linux 자동배포](../linux/README.md)를 따른다.
 
@@ -12,7 +12,7 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
 - DB에는 공개 port가 없고 외부 통신이 없는 Compose network에서 API·유지보수 작업만 연결한다.
 - API는 UID/GID 1000, 읽기 전용 root filesystem, 추가 Linux 권한 없음으로 실행한다.
   Docker socket이나 호스트의 개인 디렉터리를 mount하지 않는다.
-- DB도 `postgres` 사용자로 실행한다. API의 `dfragon_api` 계정에는 인증·캐릭터 테이블의 DML만
+- DB도 `postgres` 사용자로 실행한다. API의 `dfragon_api` 계정에는 캐릭터 테이블의 DML만
   부여한다. `dfragon_migrator`가 schema를 소유하며 API는 Migration history에도 접근하지 못한다.
 - 데이터베이스는 `dfragon`, 역할은 `dfragon_api`·`dfragon_migrator`, 기본 named volume은
   `dfragon_database`다. 이전 이름으로 설치한 서버는 아래의 명시적 이전을 마친 뒤 시작한다.
@@ -49,21 +49,21 @@ DFRAGON_API_PORT=3000
 | ----------------------- | --------------------------------------------------------------------------------------- |
 | `postgres_password`     | DB 관리자용으로 생성한 독립 password. DB에만 mount                                      |
 | `dfragon_migrator_password` | Migration용으로 생성한 독립 password. DB 초기화와 migrate에만 mount                     |
-| `dfragon_api_password`      | API용으로 생성한 독립 password. DB 초기화·API·cleanup에 mount                           |
+| `dfragon_api_password`      | API용으로 생성한 독립 password. DB 초기화·API에 mount                           |
 | `neople_api_key`        | 실제 Neople API key. API에만 mount                                                      |
-| `auth_config.json`      | 기존 [인증 JSON 계약](../../docs/rules/auth-runtime.md)에 맞는 서버 설정. API에만 mount |
 
 Password/key 파일은 한 줄이며 끝의 줄바꿈은 entrypoint에서 제거한다. 비밀값을 명령 인자·
 shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `DB_PASSWORD`,
-`NEOPLE_API_KEY` 입력으로 전달하고, 인증 파일은 `AUTH_CONFIG_FILE`로 읽는다.
+`NEOPLE_API_KEY` 입력으로 전달한다. 인증 secret은 accounts에만 제공한다.
 이미지에는 source/test·서버 설정·비밀값이 포함되지 않는다.
 
-인증 JSON의 `passkey.apiOrigin`은 공개 HTTPS API origin, `rpId`는 그 hostname,
-`returnUrl`은 배포 앱의 `dfragon://auth/callback`이다. JWT key 교체 계약을 유지하고,
-[패스키 설정](../../docs/reference/passkey-authentication.md)에 따라 도메인을 확정한다.
-`LOCAL_HTTPS_*`는 설정하지 않는다. 사용자의 로그인은 직접 검색·캡처·OCR의 선행 조건이 아니다.
+인증 HTTP·패스키 UI·DB·cleanup은 [accounts 서비스](../accounts/README.md)로 분리한다.
+기존 api.dfragon.com 패스키를 위한 제한 proxy 경로는 accounts의 [Caddy 예제](../accounts/Caddyfile.example)를 따른다.
+`LOCAL_HTTPS_*`는 운영에서 설정하지 않는다. 공개 검색은 인증과 독립적이다.
 
-## 기존 설치의 DB·역할·볼륨 이전
+## 이전 LDB 이름으로 설치한 서버의 DB·역할·볼륨 이전
+
+아래는 기존 이름 변경용 절차다. 현재 DFRAGON 인증 분리는 accounts 이전 절차를 사용하며 RP를 그대로 두라는 아래 지시는 이 이름 변경 단계에만 해당한다.
 
 이 절차는 기존 운영 이름을 DFRAGON으로 이전하는 명시적 관리 작업이다. 일반 API 시작이나
 TypeORM app migration에 포함하지 않는다. 기존 schema·계정·패스키·세션·캐릭터 데이터는 유지한다.
@@ -95,11 +95,8 @@ TypeORM app migration에 포함하지 않는다. 기존 schema·계정·패스�
 
 ## 처음 실행
 
-이미지 build 단계는 API와 공용 UI의 workspace manifest를 먼저 복사해 의존성을 설치한다.
-인증 browser bundle에는 `packages/ui/src/typo.tsx`, `foundation.css`, 공통 `stylex.config.ts`와 StyleX 라이선스를 사용하며,
-Dockerfile의 복사 목록과 `Dockerfile.dockerignore`의 허용 목록을 함께 유지한다.
-UI의 개발 의존성인 licenses package는 workspace 해석을 위해 manifest만 포함한다.
-최종 runtime 단계에는 기존처럼 API 산출물과 production 의존성만 복사한다.
+이미지는 API workspace의 서버와 domain 테스트를 빌드한다. 인증 browser bundle은 accounts 이미지에만 포함한다.
+최종 runtime에는 compiled API와 production 의존성만 복사한다.
 
 아래 명령은 서버에서 Docker를 관리할 수 있는 운영자가 `deploy/api`에서 실행한다.
 빈 DB volume에서만 cluster와 두 역할을 초기화한다. App table은 init script가 만들지 않는다.
@@ -145,18 +142,7 @@ Compose의 `SEARCH_TRUST_PROXY=single-hop`은 Express가 Caddy가 전달한 가�
 별도 proxy/APM log에 기록하지 않는다. `/`의 고정 404는 listener 확인일 뿐 검색 성공이 아니다.
 공개 HTTPS API를 연결한 Windows 설치 앱의 비로그인 검색·게임 캡처·OCR·결과는 별도로 확인한다.
 
-기존 [인증 데이터 정리](../../docs/reference/auth-cleanup-development.md)를 하루 한 번 실행한다.
-먼저 수동 cleanup 성공을 확인한 뒤, 실제 checkout 위치에 맞는 service/timer를 설치한다.
-
-```sh
-docker compose --profile maintenance run --rm cleanup
-sudo install -m 644 dfragon-auth-cleanup.service dfragon-auth-cleanup.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now dfragon-auth-cleanup.timer
-```
-
-실패는 service 상태로 확인하고 원인을 해결한 뒤 기존 cleanup을 다시 실행한다. Timer 설치만으로
-실제 정리 성공이나 백업·물리 삭제·복원을 검증했다고 표시하지 않는다.
+인증 cleanup timer는 [accounts 배포](../accounts/README.md#cleanup과-자동배포-전환)에서 설정한다.
 
 ## 업데이트와 종료
 
@@ -184,7 +170,7 @@ bash apps/api/test-support/container-deployment.sh
 
 Repository root 기준이다. Docker·Bash·Python 3가 필요하다. 기존 runtime fixture를 재사용하며
 실제 credential을 사용하지 않는다. 매번 고유 Compose project와 임시 secret·DB volume을 만들고
-명시 Migration·DML/DDL 경계·읽기 전용 API·HTTP·cleanup·종료·DB 재생성 후 데이터 유지를 확인한다.
+명시 Migration·DML/DDL 경계·읽기 전용 API·HTTP·종료·DB 재생성 후 데이터 유지를 확인한다.
 이전 이름을 가진 DB·역할에서 관리 SQL을 실행해 OID·SCRAM password·데이터·소유권·제한된 ACL
 보존과 중복 실행 거절도 확인한다. 초기화 shell script는 실행 권한을 명시해 mount 환경에 따른
 source/exec 판정 차이를 피한다.

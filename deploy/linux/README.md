@@ -87,3 +87,10 @@ sh -n deploy/linux/ssh-command.sh
 ```
 
 비밀 설정 보존, 변경 서비스 판정, CI 없는 요청 거절, schema·Compose 변경 차단, readiness 실패 시 해당 service만 복귀하는 경계를 검증합니다. 실제 Tailscale OIDC·SSH·systemd·운영 교체 성공은 별도의 배포 실행으로 확인합니다.
+
+## accounts 최초 분리
+
+서비스 목록은 api/accounts/ocr다. API readiness는 `/health` 200, accounts는 `/me` 401을 사용한다.
+accounts가 없는 기존 state 또는 schema/topology 변경은 자동 배포를 거절한다. 최초 DB 복사·proxy·OCR 전환·
+cleanup source와 root helper/state 갱신은 [accounts 이전 절차](../accounts/README.md)에서 운영자가 수행한다.
+이미 target에서 쓰기가 시작된 뒤 분리 전 source로 자동 복귀하지 않는다. 이후 cleanup timer는 accounts release를 따른다.
