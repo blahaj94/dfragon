@@ -64,6 +64,16 @@ export type DeveloperPartyCollectionStatus = {
   lastSavedCount?: number
   error: string | null
   upload?: DeveloperUploadStatus
+  capture?: {
+    attempt: number
+    startedAt: string
+    phase: 'capturing' | 'saving' | 'uploading' | 'finished'
+  }
+}
+
+export type DeveloperPartyCollectionUpdate = {
+  kind: DeveloperCollectionKind
+  status: DeveloperPartyCollectionStatus
 }
 
 export type DeveloperUploadStatus =
@@ -76,6 +86,9 @@ export type DeveloperPartyPreviewResponse = {
 }
 
 export type DeveloperApi = {
+  onPartyCollectionStatus: (
+    listener: (update: DeveloperPartyCollectionUpdate) => void
+  ) => () => void
   getSettings: () => Promise<DeveloperSettings>
   setEnabled: (enabled: boolean) => Promise<DeveloperSettings>
   listSamples: () => Promise<DeveloperSample[]>

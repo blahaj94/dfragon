@@ -1,6 +1,7 @@
 import type { DeveloperApi } from './types/developer'
 
 export const DEVELOPER_CHANNELS = {
+  onPartyCollectionStatus: 'developer:partyCollectionStatus',
   getSettings: 'developer:getSettings',
   setEnabled: 'developer:setEnabled',
   listSamples: 'developer:listSamples',

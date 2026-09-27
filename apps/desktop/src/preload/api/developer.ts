@@ -1,6 +1,15 @@
 import { ipcRenderer } from 'electron'
-import type { DeveloperApi } from '../common/types/developer'
+import type { DeveloperApi, DeveloperPartyCollectionUpdate } from '../common/types/developer'
 import { DEVELOPER_CHANNELS } from '../common/developer-channels'
+
+export const onPartyCollectionStatus: DeveloperApi['onPartyCollectionStatus'] = (listener) => {
+  const wrapper = (
+    _event: Electron.IpcRendererEvent,
+    update: DeveloperPartyCollectionUpdate
+  ): void => listener(update)
+  ipcRenderer.on(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
+  return () => ipcRenderer.removeListener(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
+}
 
 export const getSettings: DeveloperApi['getSettings'] = () =>
   ipcRenderer.invoke(DEVELOPER_CHANNELS.getSettings)

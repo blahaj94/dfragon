@@ -253,6 +253,7 @@ if (developerFixture != null) {
   const participantFrame = popupFrame(participantWindow)
   const raidFrame = popupFrame(raidWindow)
   const developer = {
+    onPartyCollectionStatus: () => () => undefined,
     getSettings: async () => ({ enabled: true }),
     setEnabled: async (enabled: boolean) => ({ enabled }),
     listSamples: async () => rows.map((row) => ({ ...row })),

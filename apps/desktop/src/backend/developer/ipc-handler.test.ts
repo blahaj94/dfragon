@@ -38,7 +38,12 @@ async function setup(): Promise<{
   handlers: Map<string, Handler>
   rootDir: string
   event: IpcMainInvokeEvent
-  frame: { url: string; detached: boolean; isDestroyed: () => boolean }
+  frame: {
+    url: string
+    detached: boolean
+    isDestroyed: () => boolean
+    send: ReturnType<typeof vi.fn>
+  }
   webContents: Record<string, unknown>
   window: Record<string, unknown>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
@@ -52,7 +57,7 @@ async function setup(): Promise<{
   })
   electron.removeHandler.mockImplementation((channel: string) => handlers.delete(channel))
 
-  const frame = { url: rendererUrl, detached: false, isDestroyed: () => false }
+  const frame = { url: rendererUrl, detached: false, isDestroyed: () => false, send: vi.fn() }
   const webContents = {
     mainFrame: frame,
     isDestroyed: () => false,
@@ -166,7 +171,11 @@ it('rejects malformed IPC arguments and does not expose storage paths in errors'
 
   fixture.dispose()
   expect(fixture.handlers.size).toBe(0)
-  expect(electron.removeHandler).toHaveBeenCalledTimes(Object.keys(DEVELOPER_CHANNELS).length)
+  expect(electron.removeHandler.mock.calls.map(([channel]) => channel).sort()).toEqual(
+    Object.values(DEVELOPER_CHANNELS)
+      .filter((channel) => channel !== DEVELOPER_CHANNELS.onPartyCollectionStatus)
+      .sort()
+  )
 })
 
 it('arms PrintScreen only for an enabled trusted collection session and unregisters on disarm', async () => {
@@ -187,6 +196,26 @@ it('arms PrintScreen only for an enabled trusted collection session and unregist
   expect(shortcut.unregister).toHaveBeenCalledTimes(1)
 })
 
+it('pushes collection progress only to the trusted main document', async () => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [1])
+  const press = shortcut.register.mock.lastCall![0] as () => void
+  fixture.frame.url = 'about:blank'
+  press()
+  expect(fixture.frame.send).not.toHaveBeenCalled()
+  fixture.frame.url = rendererUrl
+  press()
+  expect(fixture.frame.send).toHaveBeenCalledWith(
+    DEVELOPER_CHANNELS.onPartyCollectionStatus,
+    expect.objectContaining({
+      kind: 'hud',
+      status: expect.objectContaining({ capture: expect.objectContaining({ phase: 'capturing' }) })
+    })
+  )
+  await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, null)
+  fixture.dispose()
+})
 it('blocks a delayed collection arm while developer mode is being disabled', async () => {
   const fixture = await setup()
   await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)

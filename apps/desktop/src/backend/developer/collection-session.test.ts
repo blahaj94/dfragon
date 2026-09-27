@@ -49,6 +49,7 @@ function setup(
     prepareUpload?: NonNullable<
       Parameters<typeof createDeveloperCollectionSession>[0]['prepareUpload']
     >
+    onStatusChange?: Parameters<typeof createDeveloperCollectionSession>[0]['onStatusChange']
   } = {}
 ): {
   session: ReturnType<typeof createDeveloperCollectionSession>
@@ -84,7 +85,8 @@ function setup(
     registerPrintScreen,
     unregisterPrintScreen,
     encodePng,
-    prepareUpload: options.prepareUpload
+    prepareUpload: options.prepareUpload,
+    onStatusChange: options.onStatusChange
   })
 
   return {
@@ -101,6 +103,55 @@ function setup(
 async function settleCapture(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0))
 }
+
+it('publishes each capture phase immediately and only confirms success after the server receipt', async () => {
+  const pendingFrame = deferred<CapturedPartyFrame>()
+  const pendingSave = deferred<unknown>()
+  const pendingUpload = deferred<'uploaded'>()
+  const onStatusChange = vi.fn()
+  const fixture = setup({
+    capture: () => pendingFrame.promise,
+    save: () => pendingSave.promise,
+    prepareUpload: () => () => pendingUpload.promise,
+    onStatusChange
+  })
+  await fixture.session.setSlots([1])
+  fixture.pressPrintScreen()
+  expect(onStatusChange).toHaveBeenLastCalledWith({
+    kind: 'hud',
+    status: expect.objectContaining({
+      capture: { attempt: 1, phase: 'capturing', startedAt: expect.any(String) },
+      lastSavedCount: 0
+    })
+  })
+  pendingFrame.resolve(frame())
+  await settleCapture()
+  expect(onStatusChange.mock.lastCall?.[0].status.capture.phase).toBe('saving')
+  pendingSave.resolve({})
+  await settleCapture()
+  expect(onStatusChange.mock.lastCall?.[0].status).toMatchObject({
+    capture: { phase: 'uploading' },
+    upload: 'uploading',
+    lastSavedCount: 1
+  })
+  fixture.pressPrintScreen()
+  expect(onStatusChange.mock.lastCall?.[0].status.capture.attempt).toBe(1)
+  pendingUpload.resolve('uploaded')
+  await settleCapture()
+  expect(onStatusChange.mock.lastCall?.[0].status).toMatchObject({
+    capture: { phase: 'finished' },
+    upload: 'uploaded'
+  })
+  fixture.pressPrintScreen()
+  expect(onStatusChange.mock.lastCall?.[0].status).toMatchObject({
+    capture: { attempt: 2, phase: 'capturing' },
+    lastSavedCount: 0,
+    error: null
+  })
+  expect(onStatusChange.mock.lastCall?.[0].status.upload).toBeUndefined()
+  await fixture.session.stop()
+  expect(fixture.session.getStatus().capture).toBeUndefined()
+})
 
 it('uploads one saved capture, keeps local crops on failure and aborts on leaving collection', async () => {
   const pending = deferred<import('../../preload/common/types/developer').DeveloperUploadStatus>()

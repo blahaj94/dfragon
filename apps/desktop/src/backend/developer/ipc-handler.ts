@@ -316,6 +316,11 @@ export function registerDeveloperWindow(
 
   const collectionSession = createDeveloperCollectionSession({
     store,
+    onStatusChange: (update) => {
+      if (isTrustedMainDocument()) {
+        window.webContents.mainFrame.send(DEVELOPER_CHANNELS.onPartyCollectionStatus, update)
+      }
+    },
     prepareUpload: auth ? createOcrUploader(auth) : () => null,
     capturePartyFrame: async (kind) => (await getPartyCaptureModule()).capturePartyFrame(kind),
     isDnfForeground: async () => (await getPartyCaptureModule()).isDnfForeground(),

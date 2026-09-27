@@ -22,6 +22,7 @@ type CollectionSession = {
   active: boolean
   polling: boolean
   commandRevision: number
+  statusEventRevision: number
   interval: number | null
   refreshPreview: () => Promise<void>
   disarmPromise: Promise<void> | null
@@ -115,15 +116,23 @@ export function useDeveloperPartyCollection(
       active: true,
       polling: false,
       commandRevision: 0,
+      statusEventRevision: 0,
       interval: null,
       refreshPreview,
       disarmPromise: null
     }
     sessionRef.current = session
+    const unsubscribe = window.developer.onPartyCollectionStatus((update) => {
+      if (session.active && update.kind === kind) {
+        session.statusEventRevision += 1
+        setCollection(update.status)
+      }
+    })
 
     const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
       session.commandRevision += 1
       const commandRevision = session.commandRevision
+      const statusEventRevision = session.statusEventRevision
       const request =
         kind === 'hud'
           ? window.developer.setPartyCollectionSlots(nextSlots)
@@ -131,7 +140,9 @@ export function useDeveloperPartyCollection(
       void request
         .then((status) => {
           if (session.active && commandRevision === session.commandRevision) {
-            setCollection(status)
+            if (statusEventRevision === session.statusEventRevision) {
+              setCollection(status)
+            }
             setCommandError('')
           }
         })
@@ -151,6 +162,7 @@ export function useDeveloperPartyCollection(
 
       session.polling = true
       const commandRevision = session.commandRevision
+      const statusEventRevision = session.statusEventRevision
       try {
         const response = await (kind === 'hud'
           ? window.developer.previewParty()
@@ -184,11 +196,15 @@ export function useDeveloperPartyCollection(
           response.frame?.participantWindow &&
           !response.collection.armed &&
           response.collection.error === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE &&
-          commandRevision === session.commandRevision
+          commandRevision === session.commandRevision &&
+          statusEventRevision === session.statusEventRevision
         ) {
           applySlots(slotsRef.current)
         }
-        if (commandRevision === session.commandRevision) {
+        if (
+          commandRevision === session.commandRevision &&
+          statusEventRevision === session.statusEventRevision
+        ) {
           setCollection(response.collection)
         }
       } catch {
@@ -204,6 +220,7 @@ export function useDeveloperPartyCollection(
     void refreshPreview()
 
     return () => {
+      unsubscribe()
       disarmPromiseRef.current = disarmCollectionSession(session)
       if (sessionRef.current === session) {
         sessionRef.current = null
@@ -234,6 +251,7 @@ export function useDeveloperPartyCollection(
     if (session?.active) {
       session.commandRevision += 1
       const commandRevision = session.commandRevision
+      const statusEventRevision = session.statusEventRevision
       const request =
         kind === 'hud'
           ? window.developer.setPartyCollectionSlots(nextSlots)
@@ -241,7 +259,9 @@ export function useDeveloperPartyCollection(
       void request
         .then((status) => {
           if (session.active && commandRevision === session.commandRevision) {
-            setCollection(status)
+            if (statusEventRevision === session.statusEventRevision) {
+              setCollection(status)
+            }
             setCommandError('')
           }
         })

@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import * as developer from './developer'
 
-const renderer = vi.hoisted(() => ({ invoke: vi.fn() }))
+const renderer = vi.hoisted(() => ({ invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn() }))
 vi.mock('electron', () => ({ ipcRenderer: renderer }))
 
 beforeEach(() => vi.clearAllMocks())
@@ -14,6 +14,7 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     'getSettings',
     'listOcrSamples',
     'listSamples',
+    'onPartyCollectionStatus',
     'previewParty',
     'readImage',
     'saveLabel',
@@ -49,6 +50,18 @@ it('exposes only typed developer operations through namespaced IPC channels', as
     ['developer:previewParty'],
     ['developer:setPartyCollectionSlots', [1, 4]]
   ])
+})
+
+it('forwards collection status without exposing the IPC event and removes its listener', () => {
+  const listener = vi.fn()
+  const unsubscribe = developer.onPartyCollectionStatus(listener)
+  const [channel, wrapper] = renderer.on.mock.calls[0]
+  expect(channel).toBe('developer:partyCollectionStatus')
+  const update = { kind: 'hud', status: { upload: 'uploading' } }
+  wrapper({ sender: 'private' }, update)
+  expect(listener).toHaveBeenCalledExactlyOnceWith(update)
+  unsubscribe()
+  expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, wrapper)
 })
 
 it('forwards the participant mode explicitly while keeping stop on the shared channel', async () => {

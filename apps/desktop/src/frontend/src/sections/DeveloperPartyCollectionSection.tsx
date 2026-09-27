@@ -77,11 +77,14 @@ export function DeveloperPartyCollectionSection({
 
   if (kind !== 'hud') {
     return (
-      <DeveloperParticipantCollectionSection
-        collection={collection}
-        kind={kind}
-        onLabeling={onLabeling}
-      />
+      <div {...stylex.props(styles.section)}>
+        <DeveloperUploadNotice collection={collection.collection} />
+        <DeveloperParticipantCollectionSection
+          collection={collection}
+          kind={kind}
+          onLabeling={onLabeling}
+        />
+      </div>
     )
   }
 
@@ -93,8 +96,8 @@ export function DeveloperPartyCollectionSection({
       aria-label="이미지 수집"
       {...stylex.props(styles.section)}
     >
+      <DeveloperUploadNotice collection={collection.collection} />
       <div aria-live="polite" {...stylex.props(styles.connection)}>
-        <DeveloperUploadNotice status={collection.collection?.upload} />
         <Typo.txtM as="p" weight={700}>
           {frame ? '게임 화면 연결됨' : '게임 화면 연결 확인 필요'}
         </Typo.txtM>
