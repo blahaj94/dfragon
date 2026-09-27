@@ -1,3 +1,4 @@
+import { assertAccountsImport } from './accounts-import-integration.mjs'
 import { assertPasskeyMigration } from './passkey-migration-integration.mjs'
 import { assertPasskeyIntegration } from './passkey-integration.mjs'
 import assert from 'node:assert/strict'
@@ -791,6 +792,12 @@ async function primaryScenario() {
     )
     process.stdout.write(
       `Account HTTP/database/JWT: ${accountFlows} scenarios; Node ${process.version}; Unicode ${process.versions.unicode}; ICU ${process.versions.icu}\n`
+    )
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertAccountsImport(source, (part) => {
+        currentStage = `accounts import ${part}`
+        process.stdout.write(currentStage + '\n')
+      })
     )
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
       assertPasskeyMigration(source, (part) => {
