@@ -58,6 +58,7 @@ async function click(label: string): Promise<void> {
 
 it('stops normal capture and preserves the party page while the workbench is open', async () => {
   const developer = {
+    onPartyCollectionStatus: vi.fn(() => vi.fn()),
     getSettings: vi.fn(async () => ({ enabled: false })),
     setEnabled: vi.fn(async (enabled: boolean) => ({ enabled })),
     listSamples: vi.fn(async () => []),
