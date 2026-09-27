@@ -158,6 +158,10 @@ export async function createOcrApp(
   })
 
   await app.init()
+  const server = app.getHttpServer()
+  // Model uploads can exceed 100 MiB; allow the same receive budget as the Windows client.
+  server.requestTimeout = 180_000
+  server.headersTimeout = 15_000
   return {
     app,
     close: async () => {

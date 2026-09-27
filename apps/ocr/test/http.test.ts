@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { once } from 'node:events'
 import { randomUUID } from 'node:crypto'
+import { request as httpRequest } from 'node:http'
 import tar from 'tar-stream'
 import { Readable } from 'node:stream'
 import { OcrAuth } from '../src/auth.js'
@@ -55,13 +56,39 @@ test('model REST API authenticates before multipart parsing and preserves upload
       ).status,
       403
     )
-    const uploaded = await fetch(`${f.base}/api/models`, {
-      method: 'POST',
-      headers: { Cookie: cookie, Origin: origin },
-      body: makeBody()
-    })
+    const encoded = new Request(`${f.base}/api/models`, { method: 'POST', body: makeBody() })
+    const bytes = Buffer.from(await encoded.arrayBuffer())
+    // Keep the multipart body incomplete beyond the old 30-second request deadline.
+    const uploaded = await new Promise<{ status: number | undefined; body: Buffer }>(
+      (resolve, reject) => {
+        const request = httpRequest(
+          encoded.url,
+          {
+            method: 'POST',
+            headers: {
+              Cookie: cookie,
+              Origin: origin,
+              'Content-Type': encoded.headers.get('content-type')!,
+              'Content-Length': bytes.length
+            }
+          },
+          (response) => {
+            const chunks: Buffer[] = []
+            response.on('data', (chunk: Buffer) => chunks.push(chunk))
+            response.on('error', reject)
+            response.on('end', () =>
+              resolve({ status: response.statusCode, body: Buffer.concat(chunks) })
+            )
+          }
+        )
+        request.on('error', reject)
+        request.write(bytes.subarray(0, -1))
+        const finish = setTimeout(() => request.end(bytes.subarray(-1)), 31_000)
+        request.once('close', () => clearTimeout(finish))
+      }
+    )
     assert.equal(uploaded.status, 201)
-    assert.equal((await uploaded.json()).model.id, id)
+    assert.equal(JSON.parse(uploaded.body.toString()).model.id, id)
     const headers = { Authorization: 'Bearer synthetic.desktop.token' }
     const listed = await fetch(`${f.base}/api/desktop/models`, { headers })
     assert.equal(listed.status, 200)
@@ -164,6 +191,8 @@ async function fixture(identity = ownerId, expired = false, revoked = false) {
   const config = { origin, authOrigin, ownerId },
     store = new OcrStore(':memory:', 1024 * 1024)
   const runtime = await createOcrApp(config, store, new OcrAuth(config, request))
+  // Check deadlines promptly so the slow multipart case catches the old 30-second cutoff.
+  Object.assign(runtime.app.getHttpServer(), { connectionsCheckingInterval: 100 })
   await runtime.app.listen(0, '127.0.0.1')
   const server = runtime.app.getHttpServer()
   const address = server.address()
