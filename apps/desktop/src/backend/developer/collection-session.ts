@@ -3,6 +3,7 @@ import type {
   DeveloperCollectionKind,
   DeveloperParticipantWindow,
   DeveloperPartyCollectionStatus,
+  DeveloperPartyCollectionUpdate,
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot,
   DeveloperSampleSource,
@@ -51,6 +52,7 @@ type CollectionStore = {
 }
 
 type CollectionSessionOptions = {
+  onStatusChange?: (update: DeveloperPartyCollectionUpdate) => void
   store: CollectionStore
   capturePartyFrame: (kind: DeveloperCollectionKind) => Promise<CapturedPartyFrame>
   isDnfForeground: () => boolean | Promise<boolean>
@@ -235,7 +237,8 @@ export function createDeveloperCollectionSession({
   registerPrintScreen,
   unregisterPrintScreen,
   encodePng,
-  prepareUpload
+  prepareUpload,
+  onStatusChange
 }: CollectionSessionOptions): CollectionSession {
   let disposed = false
   let armingEnabled = true
@@ -252,6 +255,8 @@ export function createDeveloperCollectionSession({
   let lastSavedAt: string | null = null
   let upload: DeveloperUploadStatus | undefined
   let uploadController: AbortController | null = null
+  let captureAttempt = 0
+  let captureProgress: DeveloperPartyCollectionStatus['capture']
 
   function getStatus(): DeveloperPartyCollectionStatus {
     return {
@@ -261,7 +266,19 @@ export function createDeveloperCollectionSession({
       lastSavedAt,
       lastSavedCount,
       error,
+      ...(captureProgress ? { capture: { ...captureProgress } } : {}),
       ...(upload ? { upload } : {})
+    }
+  }
+
+  function publishStatus(): void {
+    if (!isTrusted()) {
+      return
+    }
+    try {
+      onStatusChange?.({ kind, status: getStatus() })
+    } catch {
+      // A closed renderer must not interrupt local saving or server upload.
     }
   }
 
@@ -292,6 +309,7 @@ export function createDeveloperCollectionSession({
   function invalidate(): void {
     uploadController?.abort()
     upload = undefined
+    captureProgress = undefined
     generation += 1
     armed = false
     slots = []
@@ -304,8 +322,8 @@ export function createDeveloperCollectionSession({
     captureKind: DeveloperCollectionKind
   ): Promise<void> {
     // Capture authorization when the user presses the key, never after a later login.
-    const sendUpload = prepareUpload?.()
     try {
+      const sendUpload = prepareUpload?.()
       const settings = await store.getSettings()
       if (!isCurrentCapture(captureGeneration)) {
         return
@@ -331,6 +349,10 @@ export function createDeveloperCollectionSession({
         throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND)
       }
 
+      if (captureProgress) {
+        captureProgress.phase = 'saving'
+        publishStatus()
+      }
       for (const slot of selected) {
         if (!isCurrentCapture(captureGeneration)) {
           return
@@ -365,6 +387,10 @@ export function createDeveloperCollectionSession({
           upload = 'signedOut'
         } else {
           upload = 'uploading'
+          if (captureProgress) {
+            captureProgress.phase = 'uploading'
+          }
+          publishStatus()
           const controller = new AbortController()
           uploadController = controller
           try {
@@ -389,7 +415,15 @@ export function createDeveloperCollectionSession({
         return
       }
       error = publicErrorCode(caughtError)
+      if (upload === 'uploading') {
+        upload = 'failed'
+      }
       revision += 1
+    } finally {
+      if (isCurrentCapture(captureGeneration) && captureProgress) {
+        captureProgress.phase = 'finished'
+        publishStatus()
+      }
     }
   }
 
@@ -401,6 +435,13 @@ export function createDeveloperCollectionSession({
     const selectedSlots = [...slots]
     lastSavedCount = 0
     upload = undefined
+    error = null
+    captureProgress = {
+      attempt: ++captureAttempt,
+      startedAt: new Date().toISOString(),
+      phase: 'capturing'
+    }
+    publishStatus()
     const capture = collect(captureGeneration, selectedSlots, kind)
     pendingCapture = capture
     void capture.finally(() => {

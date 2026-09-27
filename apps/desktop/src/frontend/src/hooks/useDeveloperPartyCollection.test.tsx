@@ -68,6 +68,7 @@ it('clears the previous frame when a later preview request rejects', async () =>
   }
   const pendingPreview = deferred<typeof response>()
   const developer = {
+    onPartyCollectionStatus: vi.fn(() => vi.fn()),
     setPartyCollectionSlots: vi.fn(async () => collection),
     previewParty: vi
       .fn()
@@ -109,6 +110,7 @@ it('keeps a failed collection command visible until a later command succeeds', a
   const failedCommand = deferred<typeof collection>()
   let shouldFail = true
   const developer = {
+    onPartyCollectionStatus: vi.fn(() => vi.fn()),
     setPartyCollectionSlots: vi.fn((slots: number[] | null) => {
       if (slots == null) {
         return Promise.resolve(collection)

@@ -111,6 +111,7 @@ function installApi(rows: DeveloperWorkbenchSample[] = []): {
     error: null as string | null
   }
   const api: Mocked<DeveloperApi> = {
+    onPartyCollectionStatus: vi.fn(() => vi.fn()),
     getSettings: vi.fn(async () => ({ enabled: true })),
     setEnabled: vi.fn(async (enabled: boolean) => ({ enabled })),
     listSamples: vi.fn(async () => samples.map((row) => ({ ...row })) as DeveloperSample[]),
@@ -250,6 +251,71 @@ it('reports upload outcome independently of local saving on both collection tabs
     '원본 이미지와 선택한 크롭을 OCR 자료실에 업로드했습니다.'
   )
   expect(container.textContent).not.toContain('서버 저장 여부를 확인하지 못했습니다.')
+})
+
+it('shows immediate upload progress while preview is pending and ignores stale replies and retired listeners', async () => {
+  vi.useFakeTimers()
+  const { api, status } = installApi()
+  const pendingPreview = deferred<Awaited<ReturnType<DeveloperApi['previewParty']>>>()
+  api.previewParty.mockReturnValue(pendingPreview.promise)
+  const unsubscribe = vi.fn()
+  api.onPartyCollectionStatus.mockReturnValue(unsubscribe)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  const notify = api.onPartyCollectionStatus.mock.calls[0][0]
+  const capture = { attempt: 1, startedAt: new Date().toISOString(), phase: 'capturing' as const }
+  const notice = (): string =>
+    container.querySelector('[aria-label="캡처 및 업로드 상태"]')?.textContent ?? ''
+
+  await act(async () => notify({ kind: 'hud', status: { ...status, capture } }))
+  expect(notice()).toContain('Print Screen 입력 확인 · 캡처 중')
+  expect(notice()).not.toContain('서버 업로드 완료')
+  const uploading = {
+    ...status,
+    capture: { ...capture, phase: 'uploading' as const },
+    upload: 'uploading' as const,
+    lastSavedCount: 2
+  }
+  await act(async () => notify({ kind: 'hud', status: uploading }))
+  expect(notice()).toContain('서버 업로드 중')
+  await act(async () => vi.advanceTimersByTimeAsync(5000))
+  expect(notice()).toContain('5초 경과')
+  expect(notice()).toContain('처리가 오래 걸리고 있습니다')
+  await act(async () =>
+    notify({
+      kind: 'hud',
+      status: { ...uploading, capture: { ...capture, phase: 'finished' }, upload: 'failed' }
+    })
+  )
+  expect(notice()).toContain('서버 업로드 확인 실패')
+  expect(notice()).toContain('로컬 크롭 2개 저장')
+  expect(notice()).not.toContain('초 경과')
+
+  const nextCapture = { ...capture, attempt: 2, startedAt: new Date().toISOString() }
+  await act(async () => notify({ kind: 'hud', status: { ...status, capture: nextCapture } }))
+  expect(notice()).toContain('캡처 #2')
+  expect(notice()).not.toContain('서버 업로드 확인 실패')
+  await act(async () =>
+    notify({
+      kind: 'hud',
+      status: {
+        ...status,
+        capture: { ...nextCapture, phase: 'finished' },
+        upload: 'uploaded',
+        lastSavedCount: 1
+      }
+    })
+  )
+  expect(notice()).toContain('서버 업로드 완료')
+  await act(async () =>
+    pendingPreview.resolve({ frame: null, previewError: null, collection: status })
+  )
+  expect(notice()).toContain('서버 업로드 완료')
+
+  await click('정답 입력')
+  expect(unsubscribe).toHaveBeenCalledOnce()
+  await click('파티원창 크롭')
+  await act(async () => notify({ kind: 'hud', status: uploading }))
+  expect(notice()).not.toContain('서버 업로드 중')
 })
 
 it('arms only on the collection tab, previews four raw crops, and disarms on tab switch and unmount', async () => {
