@@ -1,7 +1,7 @@
 ---
 type: rule
 status: active
-scope: apps/api core authentication database
+scope: apps/accounts core authentication database
 last-reviewed: 2026-09-16
 ---
 
@@ -16,7 +16,7 @@ UUID는 API의 CSPRNG로 생성한다. 시간은 서버 UTC whole-second다. 원
 | Table | 저장·제약 |
 | --- | --- |
 | `users` | `id uuid PK`, nonempty `nickname`, `created_at`. 로그인용 아이디와 외부 계정 식별자 없음. |
-| `auth_passkeys` | `id text PK` credential ID, `user_id` FK cascade, `public_key bytea`, `counter`, `transports`, `device_type`, `backed_up`, 등록·최근 사용 시각. 동일 credential을 다른 회원에 재연결하지 않음. |
+| `auth_passkeys` | `id text PK` credential ID, `rp_id text NOT NULL`, `user_id` FK cascade, `public_key bytea`, `counter`, `transports`, `device_type`, `backed_up`, 등록·최근 사용 시각. 동일 credential을 다른 회원에 재연결하지 않음. |
 | `auth_sessions` | UUID PK, user FK cascade, 생성·최종 활동·폐기 시각과 폐기 이유. Revoked pair null 일치·시각 순서, user/활동 index. Absolute expiry·하드웨어 fingerprint 없음. |
 | `auth_refresh_tokens` | 32-byte token hash PK, session FK cascade, 발급·소비 시각. `consumed_at IS NULL` partial unique로 session당 미소비 하나, session index. |
 | `auth_login_requests` | UUID PK, login/manage 목적, 설정 fingerprint, 상태·생성·만료 시각, 아래 일회용 증명. 회원 생성 전에도 존재하므로 user FK를 강제하지 않음. |
@@ -59,3 +59,17 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 ## 휴대폰 QR 요청
 
 `AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`·`phone_approved` 상태를 추가한다. QR ticket과 phone binding은 raw 값을 저장하지 않는다. 기존 users·패스키·session·refresh와 진행 중 직접 로그인은 보존한다. 완료/실패 시 QR 필드도 null 처리하고 기존 cleanup·만료 규칙을 재사용한다. 운영은 forward migration만 적용하며 disposable down은 활성 QR 요청이 있으면 거절한다.
+
+## 별도 accounts DB와 이전 증명
+
+인증 DB는 캐릭터·모험단 DB와 별도 PostgreSQL container·volume·역할로 실행한다. 서비스 간 FK는 없다.
+빈 target에 auth migration 네 개를 적용한 뒤, 중지·권한 회수한 source의 user·passkey·session·refresh 전체를
+한 target transaction으로 복사한다. Transient 요청과 source migration history는 복사하지 않는다.
+새 `rp_id`는 운영에서 확인한 이전 RP ID로 채운다. 기존 데이터가 있는 target은 거절하고 source는 수정하지 않는다.
+
+`auth_passkey_migrations`는 request UUID PK/FK cascade, 최초 cookie hash, phone 구분, 단계,
+일회용 ticket hash/deadline, legacy cookie hash, challenge와 검증 user/credential을 저장한다.
+잠금은 request → migration → user → credential 순서다. Ticket·cookie는 raw로 저장하지 않는다.
+상태는 departing·legacy·returning·enrolling이며 각 단계의 증명/identity 조합을 CHECK로 제한한다.
+성공·취소·QR 교체 시 이전 row를 제거한다. 만료는 매 요청에서 거절하며 parent cleanup이 cascade 삭제한다.
+새 migration down은 패스키/이전 row가 있으면 거절한다. 운영에서 schema down이나 오래된 source 복원으로 되돌리지 않는다.

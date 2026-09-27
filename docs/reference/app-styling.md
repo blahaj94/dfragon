@@ -25,7 +25,7 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 | 소비자 | 연결 위치 |
 | --- | --- |
 | Desktop 제품·test·fixture | `apps/desktop/build/renderer-transforms.ts` |
-| API 패스키 | `apps/api/browser/build.mjs` |
+| API 패스키 | `apps/accounts/browser/build.mjs` |
 | OCR 관리 SPA | `apps/ocr/browser/build.mjs` |
 | Web | `apps/web/vite.config.ts`, `vitest.config.ts` |
 | 공용 UI Example·test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |
@@ -38,7 +38,7 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 
 공용 색·간격은 SEED CSS 변수를 우선 사용한다. StyleX 변수·테마가 필요하면 `.stylex.ts`의 `defineVars`·`createTheme`를 사용한다. 앱 고유의 배치는 앱에 두고, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. StyleX API를 다시 감싼 별도 runtime wrapper는 만들지 않는다.
 
-`apps/api/browser/passkeys.style.ts`는 SEED recipe·Typo와의 조합, `apps/web/src/App.style.ts`와 `theme.stylex.ts`는 반응형 배치·시스템 색상 테마의 예다. Desktop 테마 상태와 컴포넌트 작성 세부사항은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+`apps/accounts/browser/passkeys.style.ts`는 SEED recipe·Typo와의 조합, `apps/web/src/App.style.ts`와 `theme.stylex.ts`는 반응형 배치·시스템 색상 테마의 예다. Desktop 테마 상태와 컴포넌트 작성 세부사항은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 
 ## 검증
 

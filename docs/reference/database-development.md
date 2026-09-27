@@ -1,12 +1,12 @@
 ---
 type: reference
-scope: apps/api database development
+scope: apps/api and apps/accounts database development
 last-reviewed: 2026-09-06
 ---
 
 # Schema First database 개발
 
-API는 TypeORM `EntitySchema`를 먼저 수정하고 PostgreSQL과의 차이로 Migration을 생성한다. `apps/api/src/database/schemas`가 현재 ORM mapping이며, `apps/api/src/database/migrations`는 검토한 변경 이력이다. Schema file은 TypeScript interface와 column·PK·FK·unique·CHECK·index를 함께 정의한다. 새 dependency 없이 기존 TypeORM 1.1.1을 사용한다.
+각 서비스는 TypeORM `EntitySchema`를 먼저 수정하고 PostgreSQL과의 차이로 Migration을 생성한다. 아래 user/auth 예제는 `apps/accounts/src/database/schemas`와 `apps/accounts/src/database/migrations`를 기준으로 한다. 캐릭터·카탈로그·모험단은 별도 `apps/api`의 schema·migration·test-support와 명령을 사용한다. Schema file은 TypeScript interface와 column·PK·FK·unique·CHECK·index를 함께 정의한다. 새 dependency 없이 기존 TypeORM 1.1.1을 사용한다.
 
 [Nest database 가이드](https://docs.nestjs.com/techniques/database)의 EntitySchema와 Migration 구성을 따른다. EF Core의 model → migration → database update와 유사하지만, TypeORM은 EF의 ModelSnapshot 대신 **접속한 DB catalog와 현재 EntitySchema**를 비교한다. 따라서 생성에 사용할 개발 DB는 먼저 기존 Migration이 모두 적용된 상태여야 한다.
 
@@ -17,27 +17,27 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
 1. Local 개발 DB에 기존 Migration을 적용해 비교 기준을 준비한다.
 
    ```bash
-   pnpm --filter @dfragon/api db:migrate:up
+   pnpm --filter @dfragon/accounts db:migrate:up
    ```
 
-2. `apps/api/src/database/schemas`의 해당 EntitySchema와 TypeScript interface를 수정한다. 예를 들어 `users.ts`에서 property와 column mapping을 먼저 작성한다. Schema 의미를 바꾸는 작업의 승인 절차는 `docs/rules/change-control.md`를 따른다.
+2. `apps/accounts/src/database/schemas`의 해당 EntitySchema와 TypeScript interface를 수정한다. 예를 들어 `users.ts`에서 property와 column mapping을 먼저 작성한다. Schema 의미를 바꾸는 작업의 승인 절차는 `docs/rules/change-control.md`를 따른다.
 3. 의미를 설명하는 PascalCase 이름으로 Migration을 생성한다.
 
    ```bash
-   pnpm --filter @dfragon/api db:migrate:generate AddUserField
+   pnpm --filter @dfragon/accounts db:migrate:generate AddUserField
    ```
 
-   이 command는 tsc build 후 compiled ESM generator를 실행하고 `apps/api/src/database/migrations/<timestamp>-AddUserField.ts`를 새로 쓴다. DB schema와 history를 변경하지 않는다. 차이가 없으면 `Database schema is current`를 출력하고 file을 만들지 않는다. 기존 file은 덮어쓰지 않는다.
+   이 command는 tsc build 후 compiled ESM generator를 실행하고 `apps/accounts/src/database/migrations/<timestamp>-AddUserField.ts`를 새로 쓴다. DB schema와 history를 변경하지 않는다. 차이가 없으면 `Database schema is current`를 출력하고 file을 만들지 않는다. 기존 file은 덮어쓰지 않는다.
 
 4. 생성된 `up`과 `down`을 검토하고 관련 test를 추가한다. Column rename을 drop/add로 해석하는 경우와 data 변환·기존 row의 NOT NULL 전환 등은 생성 SQL의 data 보존 여부도 검토한다. Generator가 domain 의도나 data 변환을 결정하지 않는다.
 5. 승인·검토한 Migration을 명시적으로 적용하고 상태를 확인한다.
 
    ```bash
-   pnpm --filter @dfragon/api db:migrate:up
-   pnpm --filter @dfragon/api db:migrate:show
+   pnpm --filter @dfragon/accounts db:migrate:up
+   pnpm --filter @dfragon/accounts db:migrate:show
    ```
 
-6. API build·lint·test·typecheck와 `pnpm --filter @dfragon/api test:database`를 실행한다. `db:migrate:down`은 빈 disposable DB의 rollback 검증용이며 운영에서 자동 실행하지 않는다.
+6. API build·lint·test·typecheck와 `pnpm --filter @dfragon/accounts test:database`를 실행한다. `db:migrate:down`은 빈 disposable DB의 rollback 검증용이며 운영에서 자동 실행하지 않는다.
 
 Migration은 build된 `database/migrations/*.js`에서 자동 발견되므로 새 class를 별도 목록에 수기 등록하지 않는다. `show`는 등록된 전체 Migration을 history와 대조하며 fresh DB에 history table을 만들지 않는다. App과 CLI 모두 `synchronize:false`, `migrationsRun:false`를 유지한다. Migration 적용은 명시적 transaction이며 Nest lifecycle은 schema를 수정하지 않는다.
 
@@ -65,7 +65,7 @@ const user = await users.findOneBy({ id: userId })
 
 ## 현재 검증 범위
 
-`apps/api/test-support/schema-first.mjs`는 별도 disposable DB에 EntitySchema에서 생성한 초기 Migration을 적용하고 등록된 Migration 전체와 PostgreSQL constraint definition을 대조한다. 인증 schema의 ORM 저장/조회·FK cascade, 적용 뒤 diff 없음, 임시 nullable column의 후속 Migration 생성·적용·rollback을 검증한다. 생성 file은 임시 directory에서 compile하며 test가 끝나면 삭제한다.
+`apps/accounts/test-support/schema-first.mjs`는 별도 disposable DB에 EntitySchema에서 생성한 초기 Migration을 적용하고 등록된 Migration 전체와 PostgreSQL constraint definition을 대조한다. 인증 schema의 ORM 저장/조회·FK cascade, 적용 뒤 diff 없음, 임시 nullable column의 후속 Migration 생성·적용·rollback을 검증한다. 생성 file은 임시 directory에서 compile하며 test가 끝나면 삭제한다.
 
 Docker image는 고정 index·native child·config를 검증한 뒤 같은 local image inspect의 ID를 container `.Image`와 비교한다. Classic store의 config ID와 containerd store의 index ID 차이를 허용하면서 검증한 image와의 정확한 일치를 요구한다. 실제 Docker 검증은 native `linux/arm64/v8`에서 수행했으며 `linux/amd64`와 classic store 실기 검증은 별도다.
 
@@ -87,7 +87,7 @@ Docker image는 고정 index·native child·config를 검증한 뒤 같은 local
 
 ## Refresh transaction core
 
-`apps/api/src/auth/refresh/index.ts`에 refresh rotation·확인된 재사용 session 폐기를 commit까지 소유하는 내부 core가 구현됐다. 전용 unit·실제 PostgreSQL 검증과 후속 HTTP 연결 경계는 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다. 이 검증은 `/auth/refresh` HTTP 또는 logout·cleanup·운영 연결 완료를 뜻하지 않는다.
+`apps/accounts/src/auth/refresh/index.ts`에 refresh rotation·확인된 재사용 session 폐기를 commit까지 소유하는 내부 core가 구현됐다. 전용 unit·실제 PostgreSQL 검증과 후속 HTTP 연결 경계는 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다. 이 검증은 `/auth/refresh` HTTP 또는 logout·cleanup·운영 연결 완료를 뜻하지 않는다.
 
 ## 공용 상세 캐시 운영
 
@@ -111,7 +111,6 @@ COMMIT;
 ```
 
 `test-support/character-catalog.mjs`는 실제 PostgreSQL에서 24시간 만료, 스킬 복합 식별, 캐시 재사용·실패, 실제 row-lock 대기와 이전 요청 덮어쓰기 방지, 무효화, JSONB 보존과 rollback을 검증한다. `test-support/character-details.mjs`는 HTTP 응답에 공용 상세가 연결되지만 캐릭터 원본에는 섞이지 않는 것을 검증한다. 단위 테스트는 아이템 다중 ID 대응·스킬 단일 조회, 호출 제한·취소·실패 시 데이터 출처, 장비 옵션과 스킬 빈 슬롯 보존을 확인한다.
-
 
 ## 모험단명 검색 배포
 

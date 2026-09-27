@@ -1,6 +1,6 @@
 ---
 type: reference
-scope: API and Desktop passkey runtime
+scope: accounts and Desktop passkey runtime
 last-reviewed: 2026-09-26
 ---
 
@@ -11,22 +11,22 @@ last-reviewed: 2026-09-26
 ```json
 {
   "passkey": {
-    "apiOrigin": "https://auth.example.com",
-    "rpId": "auth.example.com",
+    "apiOrigin": "https://accounts.dfragon.com",
+    "rpId": "accounts.dfragon.com",
     "rpName": "DFRAGON",
     "returnUrl": "dfragon://auth/callback"
   }
 }
 ```
 
-예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3443`, RP ID `localhost`, 복귀 `dfragon.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
+예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 복귀 `dfragon.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
 Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. 같은 인증 origin의 `/auth/passkeys/manage`는 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
 
-API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
+accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
-- `pnpm --filter @dfragon/api test`: API build, 단위·HTTP·runtime startup 검사.
-- `pnpm --filter @dfragon/api test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
+- `pnpm --filter @dfragon/accounts test`: API build, 단위·HTTP·runtime startup 검사.
+- `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태·IPC·화면 회귀와 build.
 
 운영 배포와 실제 휴대폰 QR 검증은 별도다. DFRAGON QR은 휴대폰의 HTTPS 패스키 인증·명시 승인과 PC 자동 claim을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
@@ -34,6 +34,12 @@ API build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browse
 ## OCR 관리 웹의 선택 연결
 
 기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 기존 RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 API는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [OCR 배포 안내](../../deploy/ocr/README.md)를 따른다.
+
+## accounts 분리
+
+현재 코드의 인증 서비스는 `apps/accounts`이며 검색은 `apps/api`에 남는다. 운영 적용 절차와
+기존 RP 유지·새 RP 추가·동일 UUID·Desktop 재로그인·OCR origin 전환은 [accounts 배포](../../deploy/accounts/README.md)를 따른다.
+아래 Windows 기록은 이전 revision의 확인 이력이며 이번 두 RP 이전이나 별도 DB 운영 검증을 뜻하지 않는다.
 
 ## Windows 실기기 확인
 
@@ -104,4 +110,4 @@ PC 회원가입 화면에는 기존 계정과 별개의 계정이 생긴다는 �
 
 자동 검증은 별도 PC/phone 브라우저 문맥과 WebAuthn 가상 인증기를 사용한 가입·재로그인, 휴대폰 승인 전 claim 차단·승인 후 PC 자동 claim, 늦은 승인 응답의 재발급 경합, ticket/claim 재사용 차단, 인증창 취소·재발급·만료·삭제 키 거부 및 기존 로그인 회귀다. 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
 
-패스키 화면의 문구·구조와 화면 상태·이벤트는 React 컴포넌트인 `apps/api/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.style.ts`의 StyleX 정의에서 수정한다. Compiler는 [앱 공통 StyleX](app-styling.md) 설정을 사용한다. 버튼은 기존 SEED recipe를 사용한다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS·CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR·React·StyleX 패키지의 라이선스 원문을 JS 번들에 포함한다.
+패스키 화면의 문구·구조와 화면 상태·이벤트는 React 컴포넌트인 `apps/accounts/browser/passkeys.tsx`, 배치 스타일은 같은 폴더의 `passkeys.style.ts`의 StyleX 정의에서 수정한다. Compiler는 [앱 공통 StyleX](app-styling.md) 설정을 사용한다. 버튼은 기존 SEED recipe를 사용한다. `passkeys.html`은 React mount 지점과 요청별 data attribute만 담는 실행용 틀이다. 별도 프런트엔드 서버 없이 기존 API가 빌드된 JS·CSS를 제공한다. 서버 `page.ts`는 요청별 값의 HTML escape와 CSP nonce 주입만 담당한다. `browser/build.mjs`가 HTML을 배포 디렉터리로 복사하고 설치된 QR·React·StyleX 패키지의 라이선스 원문을 JS 번들에 포함한다.
