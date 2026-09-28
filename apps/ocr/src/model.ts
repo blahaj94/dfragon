@@ -15,8 +15,21 @@ export type ModelSummary = {
 }
 export type ModelUpload = Pick<ModelSummary, 'id' | 'name' | 'preset' | 'kind' | 'parentId'>
 
-export const splits = ['unassigned', 'train', 'val', 'test'] as const
+export const assignedSplits = ['train', 'val', 'test'] as const
+export const splits = ['unassigned', ...assignedSplits] as const
 export type Split = (typeof splits)[number]
+export type AssignedSplit = (typeof assignedSplits)[number]
+export const characterGroups = [
+  'hangul',
+  'special',
+  'hiragana',
+  'katakana',
+  'hanja',
+  'latin',
+  'digit',
+  'other'
+] as const
+export type CharacterGroup = (typeof characterGroups)[number]
 export type Crop = { slot: number; x: number; y: number; width: number; height: number }
 export type Capture = {
   id: string

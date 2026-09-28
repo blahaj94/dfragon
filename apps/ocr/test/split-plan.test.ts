@@ -153,3 +153,45 @@ test('preview is read-only; stale apply is atomic; initialization survives resta
     await rm(directory, { recursive: true, force: true })
   }
 })
+
+test('automatic split preserves manual unassignment through preview, apply and restart', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'ocr-protected-split-'))
+  const database = join(directory, 'data.sqlite')
+  let store = new OcrStore(database, 1024 * 1024)
+  const add = (text: string) => {
+    const input = parseUpload(upload())
+    store.add(input.capture, input.png)
+    return store.updateSample(`${input.capture.id}-1`, {
+      text,
+      excluded: false,
+      confirmSplitChange: false
+    })
+  }
+  try {
+    const held = add('가')
+    add('가')
+    add('나')
+    store.assign('가', 'unassigned')
+
+    for (const replaceExisting of [false, true]) {
+      const settings = { ...options, replaceExisting }
+      const preview = store.previewSplit(settings)
+      assert.equal(
+        preview.assignments.some((row) => row.text === '가'),
+        false
+      )
+      assert.equal(preview.after.splits.unassigned.images, 2)
+      store.applySplit(settings, preview.fingerprint)
+      assert.equal(store.sample(held.id).split, 'unassigned')
+    }
+
+    store.close()
+    store = new OcrStore(database, 1024 * 1024)
+    assert.equal(add('가').split, 'unassigned')
+    store.assign('가', 'val')
+    assert.equal(add('가').split, 'val')
+  } finally {
+    store.close()
+    await rm(directory, { recursive: true, force: true })
+  }
+})

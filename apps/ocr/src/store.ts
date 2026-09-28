@@ -331,7 +331,11 @@ export class OcrStore {
   previewSplit(options: SplitOptions) {
     const state = this.splitState()
     return {
-      ...planSplits(state.rows, options),
+      ...planSplits(
+        state.rows,
+        options,
+        state.unassigned.map((row) => row.text as string)
+      ),
       initialized: state.initialized,
       fingerprint: createHash('sha256')
         .update(JSON.stringify({ ...state, options }))

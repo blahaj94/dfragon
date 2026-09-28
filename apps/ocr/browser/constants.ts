@@ -1,4 +1,4 @@
-import type { Capture } from '../src/model.js'
+import type { Capture, CharacterGroup } from '../src/model.js'
 
 export const OCR_MESSAGES = {
   uploaded: '업로드했습니다. 정답을 입력할 수 있습니다.',
@@ -19,3 +19,14 @@ export const OCR_CAPTURE_LABELS = {
   participants: '파티원창',
   raid: '공대원창'
 } as const satisfies Record<Capture['kind'], string>
+
+export const OCR_CHARACTER_GROUP_LABELS = {
+  hangul: '한글',
+  special: '특수문자',
+  hiragana: '히라가나',
+  katakana: '가타카나',
+  hanja: '한자',
+  latin: '영문·라틴',
+  digit: '숫자',
+  other: '기타'
+} as const satisfies Record<CharacterGroup, string>

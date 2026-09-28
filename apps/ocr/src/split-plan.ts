@@ -1,22 +1,17 @@
 import { OcrError, OCR_ERROR_CODE } from './errors.js'
 import { parseInputRecord } from './input.js'
-import type { Split } from './model.js'
+import {
+  assignedSplits,
+  characterGroups,
+  type AssignedSplit,
+  type CharacterGroup,
+  type Split
+} from './model.js'
 
-export const assignedSplits = ['train', 'val', 'test'] as const
-export const characterGroups = [
-  'hangul',
-  'special',
-  'hiragana',
-  'katakana',
-  'hanja',
-  'latin',
-  'digit',
-  'other'
-] as const
-export type CharacterGroup = (typeof characterGroups)[number]
-type AssignedSplit = (typeof assignedSplits)[number]
 export type SplitOptions = { ratios: Record<AssignedSplit, number>; replaceExisting: boolean }
 export type SplitRow = { id: string; text: string | null; excluded: boolean; split: Split }
+type LabeledRow = SplitRow & { text: string }
+type NicknameGroup = { text: string; split: Split; features: Map<string, number> }
 
 export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
@@ -63,14 +58,14 @@ export function parseSplitOptions(value: unknown): SplitOptions {
   return { ratios: ratios as SplitOptions['ratios'], replaceExisting: body.replaceExisting }
 }
 
-function distribution(rows: SplitRow[]) {
+function distribution(rows: LabeledRow[]) {
   const groups = Object.fromEntries(characterGroups.map((group) => [group, 0])) as Record<
     CharacterGroup,
     number
   >
   const counts = new Map<string, number>()
   for (const row of rows) {
-    for (const char of row.text!) {
+    for (const char of row.text) {
       groups[characterGroup(char)]++
       counts.set(char, (counts.get(char) ?? 0) + 1)
     }
@@ -91,28 +86,36 @@ function compareText(a: string, b: string) {
 }
 
 export function splitStatistics(rows: SplitRow[]) {
-  const eligible = rows.filter((row) => row.text !== null && !row.excluded)
+  const eligible = rows.filter((row): row is LabeledRow => row.text !== null && !row.excluded)
+  const forSplit = (split: Split) => distribution(eligible.filter((row) => row.split === split))
   return {
     total: distribution(eligible),
-    splits: Object.fromEntries(
-      [...assignedSplits, 'unassigned' as const].map((split) => [
-        split,
-        distribution(eligible.filter((row) => row.split === split))
-      ])
-    ),
+    splits: {
+      train: forSplit('train'),
+      val: forSplit('val'),
+      test: forSplit('test'),
+      unassigned: forSplit('unassigned')
+    },
     skipped: rows.length - eligible.length
   }
 }
 
 /** Greedy stratification with bounded local improvement; rare characters are soft objectives. */
-export function planSplits(rows: SplitRow[], options: SplitOptions) {
-  const eligible = rows.filter((row) => row.text !== null && !row.excluded)
+export function planSplits(
+  rows: SplitRow[],
+  options: SplitOptions,
+  manuallyUnassignedNicknames: readonly string[] = []
+) {
+  const eligible = rows.filter((row): row is LabeledRow => row.text !== null && !row.excluded)
   if (eligible.length === 0) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
-  const groups = new Map<string, { text: string; split: Split; features: Map<string, number> }>()
+  const protectedNicknames = new Set(
+    manuallyUnassignedNicknames.map((text) => text.normalize('NFC'))
+  )
+  const groups = new Map<string, NicknameGroup>()
   for (const row of eligible) {
-    const text = row.text!.normalize('NFC')
+    const text = row.text.normalize('NFC')
     let group = groups.get(text)
     if (!group) {
       group = { text, split: row.split, features: new Map([['nicknames', 1]]) }
@@ -135,11 +138,7 @@ export function planSplits(rows: SplitRow[], options: SplitOptions) {
     assignedSplits.map((split) => [split, new Map<string, number>()])
   ) as Record<AssignedSplit, Map<string, number>>
   const assignment = new Map<string, AssignedSplit>()
-  const update = (
-    group: typeof groups extends Map<string, infer G> ? G : never,
-    split: AssignedSplit,
-    direction: number
-  ) => {
+  const update = (group: NicknameGroup, split: AssignedSplit, direction: number) => {
     for (const [key, value] of group.features) {
       counts[split].set(key, (counts[split].get(key) ?? 0) + direction * value)
     }
@@ -148,11 +147,7 @@ export function planSplits(rows: SplitRow[], options: SplitOptions) {
     group: characterGroups.length,
     char: Math.max(1, [...totals.keys()].filter((key) => key.startsWith('char:')).length)
   }
-  const costChange = (
-    group: typeof groups extends Map<string, infer G> ? G : never,
-    split: AssignedSplit,
-    direction: number
-  ) => {
+  const costChange = (group: NicknameGroup, split: AssignedSplit, direction: number) => {
     let result = 0
     for (const [key, value] of group.features) {
       const total = totals.get(key)!
@@ -174,7 +169,9 @@ export function planSplits(rows: SplitRow[], options: SplitOptions) {
     return result
   }
   const movable = [...groups.values()].filter(
-    (group) => options.replaceExisting || group.split === 'unassigned'
+    (group) =>
+      !protectedNicknames.has(group.text) &&
+      (options.replaceExisting || group.split === 'unassigned')
   )
   for (const group of groups.values()) {
     if (!options.replaceExisting && group.split !== 'unassigned') {
@@ -182,7 +179,7 @@ export function planSplits(rows: SplitRow[], options: SplitOptions) {
       update(group, group.split, 1)
     }
   }
-  const rarity = (group: (typeof movable)[number]) =>
+  const rarity = (group: NicknameGroup) =>
     [...group.features]
       .filter(([key]) => key.startsWith('char:'))
       .reduce((sum, [key, value]) => sum + value / totals.get(key)!, 0)
@@ -231,6 +228,9 @@ export function planSplits(rows: SplitRow[], options: SplitOptions) {
     before: splitStatistics(rows),
     after: splitStatistics(proposed),
     assignments,
+    preservedUnassignedNicknames: [...groups.values()].filter((group) =>
+      protectedNicknames.has(group.text)
+    ).length,
     changedNicknames: assignments.filter(({ text, split }) => groups.get(text)!.split !== split)
       .length,
     reassignedNicknames: assignments.filter(
