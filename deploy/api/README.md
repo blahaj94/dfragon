@@ -58,7 +58,7 @@ shell history·로그에 적지 않는다. API entrypoint는 secret을 기존 `D
 이미지에는 source/test·서버 설정·비밀값이 포함되지 않는다.
 
 인증 HTTP·패스키 UI·DB·cleanup은 [accounts 서비스](../accounts/README.md)로 분리한다.
-기존 api.dfragon.com 패스키를 위한 제한 proxy 경로는 accounts의 [Caddy 예제](../accounts/Caddyfile.example)를 따른다.
+API domain에 인증 경로를 proxy하지 않는다. Domain별 분리는 [Caddy 예제](../accounts/Caddyfile.example)를 따른다.
 `LOCAL_HTTPS_*`는 운영에서 설정하지 않는다. 공개 검색은 인증과 독립적이다.
 
 ## 이전 LDB 이름으로 설치한 서버의 DB·역할·볼륨 이전

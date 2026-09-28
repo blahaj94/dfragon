@@ -1,18 +1,18 @@
 # OCR 서버 배포
 
-원본 PNG·메타데이터는 별도 Linux 서버의 `/data/ocr.sqlite`에 보관합니다. 기존 DFRAGON API의 계정·패스키를 재사용하며 OCR 서버에 인증 DB나 서명 키를 복제하지 않습니다. 운영 배포·DNS 변경·실제 계정 선택은 별도 실행 단계입니다.
+원본 PNG·메타데이터는 별도 Linux 서버의 `/data/ocr.sqlite`에 보관합니다. DFRAGON accounts의 계정·패스키를 재사용하며 OCR 서버에 인증 DB나 서명 키를 복제하지 않습니다. 운영 배포·DNS 변경·실제 계정 선택은 별도 실행 단계입니다.
 
 초기 배포 후 main의 CI 성공을 자동 반영하는 구성은 [Linux 자동배포](../linux/README.md)를 따릅니다.
 
-## 기존 인증 API 연결
+## accounts 인증 연결
 
-기존 API를 이 변경이 포함된 버전으로 배포하고 `AUTH_CONFIG_FILE`의 `passkey` 객체에 아래 **공개 설정 한 항목**을 추가합니다. 기존 RP ID·apiOrigin·앱 returnUrl·키는 유지합니다.
+accounts를 배포하고 `AUTH_CONFIG_FILE`의 `passkey` 객체에 아래 **공개 설정 한 항목**을 추가합니다. 기존 RP ID·apiOrigin·앱 returnUrl·키는 유지합니다.
 
 ```json
 "ocrReturnUrl": "https://ocr.dfragon.com/auth/callback"
 ```
 
-설정을 읽기 위해 기존 API를 재시작합니다. 새 DB migration은 없습니다. 등록된 기존 패스키로 인증하며 `ocr` 요청만 위 고정 HTTPS 주소로 돌아옵니다. 설정이 없으면 OCR 로그인은 거절하고 기존 Desktop 로그인은 유지합니다.
+설정을 읽기 위해 accounts를 재시작합니다. 새 DB migration은 없습니다. 등록된 기존 패스키로 인증하며 `ocr` 요청만 위 고정 HTTPS 주소로 돌아옵니다. 설정이 없으면 OCR 로그인은 거절하고 기존 Desktop 로그인은 유지합니다.
 
 `OCR_OWNER_ID`에는 관리할 **기존 계정 UUID**를 지정합니다. 닉네임이 아니며, 첫 로그인 사용자를 자동 관리자로 삼지 않습니다. 이 값은 기존 계정 조회 결과에서 운영자가 확인하여 배포 환경에만 넣습니다. 공개 문서·PR·로그에 실제 값을 기록하지 않습니다.
 
@@ -24,7 +24,7 @@
 | --- | --- |
 | `DFRAGON_IMAGE_TAG` | 빌드한 commit/release 태그 |
 | `OCR_ORIGIN` | `https://ocr.dfragon.com` |
-| `OCR_AUTH_ORIGIN` | 기존 패스키 API origin, 예: `https://api.dfragon.com` |
+| `OCR_AUTH_ORIGIN` | `https://accounts.dfragon.com` |
 | `OCR_OWNER_ID` | 허용할 기존 계정 UUID |
 | `OCR_DATA_DIRECTORY` | 체크아웃 밖의 절대 영속 디렉터리 |
 | `OCR_MAX_BYTES` | 원본 PNG와 모델 파일의 합계 상한. 기본 1 GiB |
@@ -59,4 +59,4 @@ Node 서버는 모델 업로드를 위해 전체 HTTP 요청 수신 제한을 18
 
 로그인 세션은 OCR process 메모리에만 있고 최대 8시간이며 프로세스 재시작 시 다시 로그인합니다. 패스키·기존 계정은 유지됩니다. 토큰은 브라우저 localStorage에 저장하지 않습니다. 정상 로그아웃·종료는 기존 인증 API의 해당 세션 종료를 요청하고, 인증 API에 연결할 수 없으면 OCR 접근부터 제거합니다. 피시방에서는 사용 후 로그아웃합니다. 배포 후 실제 휴대폰 패스키·HTTPS 복귀·로그아웃과 영속 볼륨 재시작을 확인해야 합니다.
 
-인증 서비스 분리 시 `OCR_AUTH_ORIGIN`은 accounts로 전환하고 `OCR_OWNER_ID`는 보존된 같은 UUID를 유지한다. [이전 절차](../accounts/README.md)를 따른다.
+`OCR_AUTH_ORIGIN`은 accounts를 사용하고 `OCR_OWNER_ID`는 같은 UUID를 유지한다. [accounts 배포](../accounts/README.md)를 따른다.
