@@ -8,7 +8,7 @@ vi.mock('electron', () => ({
   BrowserWindow: electron.BrowserWindow,
   session: { fromPartition: electron.fromPartition }
 }))
-const origin = 'https://api.synthetic.test'
+const origin = 'https://accounts.synthetic.test'
 const target = 'dfragon.dev://auth/callback'
 const url = `${origin}/auth/login/authorize?ticket=synthetic`
 class TestWindow extends EventEmitter {
@@ -30,7 +30,7 @@ class TestSession extends EventEmitter {
   clearStorageData = vi.fn(async () => undefined)
 }
 type Login = NonNullable<Parameters<AuthBrowser['open']>[1]>
-function fixture(legacyOrigin?: string): {
+function fixture(): {
   window: TestWindow
   session: TestSession
   controller: AbortController
@@ -57,7 +57,7 @@ function fixture(legacyOrigin?: string): {
     controller,
     activate,
     login,
-    browser: createAuthBrowser(origin, target, activate, legacyOrigin)
+    browser: createAuthBrowser(origin, target, activate)
   }
 }
 beforeEach(() => vi.clearAllMocks())
@@ -89,29 +89,23 @@ describe('isolated authentication window', () => {
     expect(event.preventDefault).toHaveBeenCalledOnce()
     expect(f.login.onReturn).not.toHaveBeenCalled()
   })
-  it('allows only the configured old auth origin during migration', async () => {
-    const legacy = 'https://legacy.synthetic.test'
-    const f = fixture(legacy)
+  it('rejects former API-origin authentication navigation and requests', async () => {
+    const f = fixture()
     await f.browser.open(url, f.login)
     const request = f.session.webRequest.onBeforeRequest.mock.calls[0][0]
-    const verdict = vi.fn()
-    for (const allowed of [
-      `${legacy}/auth/login/legacy?ticket=synthetic`,
-      `${origin}/auth/login/migrate?ticket=synthetic`
-    ]) {
-      request({ url: allowed }, verdict)
-      expect(verdict).toHaveBeenLastCalledWith({ cancel: false })
-      const event = { preventDefault: vi.fn() }
-      f.window.webContents.emit('will-navigate', event, allowed)
-      expect(event.preventDefault).not.toHaveBeenCalled()
-    }
     for (const denied of [
-      `${legacy}/characters`,
-      'https://other.synthetic.test/auth/login/legacy',
-      'http://legacy.synthetic.test/auth/login/legacy'
+      'https://api.synthetic.test/auth/login/legacy?ticket=synthetic',
+      'https://api.synthetic.test/auth/passkeys/client.js'
     ]) {
+      await expect(f.browser.open(denied, f.login)).rejects.toThrow(
+        'Authentication window unavailable'
+      )
+      const verdict = vi.fn()
       request({ url: denied }, verdict)
-      expect(verdict).toHaveBeenLastCalledWith({ cancel: true })
+      expect(verdict).toHaveBeenCalledWith({ cancel: true })
+      const event = { preventDefault: vi.fn() }
+      f.window.webContents.emit('will-navigate', event, denied)
+      expect(event.preventDefault).toHaveBeenCalledOnce()
     }
   })
   it('activates the main window before closing on a claimed callback without cancelling the exchange', async () => {
@@ -148,7 +142,9 @@ describe('isolated authentication window', () => {
   })
   it('does not open an untrusted or already-cancelled request', async () => {
     const f = fixture()
-    await expect(f.browser.open('http://api.synthetic.test/auth/login', f.login)).rejects.toThrow()
+    await expect(
+      f.browser.open('http://accounts.synthetic.test/auth/login', f.login)
+    ).rejects.toThrow()
     f.controller.abort()
     await expect(f.browser.open(url, f.login)).rejects.toThrow()
     expect(electron.BrowserWindow).not.toHaveBeenCalled()

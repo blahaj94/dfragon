@@ -32,7 +32,6 @@ export function readAppAuthConfig(application: {
     DFRAGON_AUTH_API_ORIGIN: isDevelopmentBuild
       ? development.accountsOrigin
       : (accountsOrigin ?? 'https://accounts.dfragon.com'),
-    ...(!isDevelopmentBuild ? { DFRAGON_AUTH_LEGACY_ORIGIN: distributionOrigin! } : {}),
     DFRAGON_AUTH_RETURN_TARGET: config.returnTarget,
     DFRAGON_AUTH_ENVIRONMENT: config.environment,
     DFRAGON_AUTH_PROVIDERS: config.providers.join(','),
