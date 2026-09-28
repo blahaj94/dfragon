@@ -36,7 +36,7 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 ### 구현 구조와 조회 캐시
 
-자동 분할 화면은 `SplitPlanner.tsx`, 요청·확인·미리보기 수명과 캐시 무효화는 기존 `browser/hooks` 아래 `use-split-planner.ts`, 전용 StyleX는 `SplitPlanner.style.ts`가 소유합니다. 분할·문자군 식별자는 `src/model.ts`에서 공유하고 표시 문구는 `browser/constants.ts`의 기존 상수 패턴을 따릅니다. `split-plan.ts`의 계산과 `store.ts`의 transaction 경계는 구분합니다.
+자동 분할 화면과 적용 확인 창은 `SplitPlanner.tsx`, 요청·미리보기 수명과 캐시 무효화는 기존 `browser/hooks` 아래 `use-split-planner.ts`, 전용 StyleX는 `SplitPlanner.style.ts`가 소유합니다. 확인을 취소하면 요청하지 않으며 승인한 미리보기만 hook에 전달합니다. 분할·문자군 식별자는 `src/model.ts`에서 공유하고 표시 문구는 `browser/constants.ts`의 기존 상수 패턴을 따릅니다. `split-plan.ts`의 계산과 `store.ts`의 transaction 경계는 구분합니다.
 
 서버는 기존 API와 같은 NestJS 12 버전의 controller·DI·exception filter를 사용합니다. 큰 본문을 읽기 전 인증과 업로드 동시 제한을 적용하며 경로별 크기 제한만 Express 어댑터의 JSON parser를 사용합니다. 쿠키 파싱은 `cookie-parser`, 발급·삭제는 응답 기본 API를 사용합니다. 로그인 요청 한도는 완료된 대기 요청과 인증 API 호출 중인 요청의 합계입니다. `__Host-ocr-login`은 로그인 시작 브라우저와 callback을 연결하는 임시 쿠키, `__Host-ocr-session`은 인증 후 서버 세션을 찾는 쿠키입니다. 두 쿠키의 값은 Node `crypto.randomBytes`로 생성한 난수이고 기존 API token을 담지 않습니다.
 

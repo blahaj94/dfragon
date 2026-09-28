@@ -24,6 +24,19 @@ export function SplitPlanner() {
     applySplit
   } = useSplitPlanner()
   const shown = preview?.after ?? stats
+
+  function handleApplySplit() {
+    if (preview === null) {
+      return
+    }
+    const confirmed = window.confirm(
+      `미리보기대로 ${preview.changedNicknames}개 닉네임을 배정합니다. 기존 분할 이동은 ${preview.reassignedNicknames}개입니다. 적용할까요?`
+    )
+    if (confirmed) {
+      applySplit(preview)
+    }
+  }
+
   return (
     <details {...stylex.props(styles.upload)}>
       <summary>자동 분할 · 실제 자료 분포</summary>
@@ -173,7 +186,7 @@ export function SplitPlanner() {
           {splits.some((split) => preview.after.splits[split].images === 0) && (
             <p>빈 분할이 있습니다. Windows 학습에는 train/val/test가 모두 필요합니다.</p>
           )}
-          <button className={primary} disabled={busy} onClick={applySplit}>
+          <button className={primary} disabled={busy} onClick={handleApplySplit}>
             미리보기 분할 적용
           </button>
         </>
