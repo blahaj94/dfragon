@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/accounts core authentication database
-last-reviewed: 2026-09-16
+last-reviewed: 2026-09-28
 ---
 
 # Authentication Database Contract
@@ -60,16 +60,18 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 
 `AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`·`phone_approved` 상태를 추가한다. QR ticket과 phone binding은 raw 값을 저장하지 않는다. 기존 users·패스키·session·refresh와 진행 중 직접 로그인은 보존한다. 완료/실패 시 QR 필드도 null 처리하고 기존 cleanup·만료 규칙을 재사용한다. 운영은 forward migration만 적용하며 disposable down은 활성 QR 요청이 있으면 거절한다.
 
-## 별도 accounts DB와 이전 증명
+## 별도 accounts DB와 이전 종료
 
 인증 DB는 캐릭터·모험단 DB와 별도 PostgreSQL container·volume·역할로 실행한다. 서비스 간 FK는 없다.
-빈 target에 auth migration 네 개를 적용한 뒤, 중지·권한 회수한 source의 user·passkey·session·refresh 전체를
-한 target transaction으로 복사한다. Transient 요청과 source migration history는 복사하지 않는다.
-새 `rp_id`는 운영에서 확인한 이전 RP ID로 채운다. 기존 데이터가 있는 target은 거절하고 source는 수정하지 않는다.
+현재 인증 table은 위의 다섯 개이며 `rp_id`로 현재 RP의 credential만 인증·관리·앱 code 교환에 사용한다.
+회원별 키 수와 마지막 키 삭제 보호에도 현재 RP만 포함한다.
 
-`auth_passkey_migrations`는 request UUID PK/FK cascade, 최초 cookie hash, phone 구분, 단계,
-일회용 ticket hash/deadline, legacy cookie hash, challenge와 검증 user/credential을 저장한다.
-잠금은 request → migration → user → credential 순서다. Ticket·cookie는 raw로 저장하지 않는다.
-상태는 departing·legacy·returning·enrolling이며 각 단계의 증명/identity 조합을 CHECK로 제한한다.
-성공·취소·QR 교체 시 이전 row를 제거한다. 만료는 매 요청에서 거절하며 parent cleanup이 cascade 삭제한다.
-새 migration down은 패스키/이전 row가 있으면 거절한다. 운영에서 schema down이나 오래된 source 복원으로 되돌리지 않는다.
+기존 적용 migration을 수정하지 않는다. `RetirePasskeyHandoffs`는 임시 이전 table을 제거하는
+명시적 forward migration이며 회원·패스키·session·refresh table을 변경하지 않는다.
+Disposable down은 빈 임시 table 구조만 복원하며 삭제된 이전 요청을 복구하지 않는다.
+
+이전 RP 키의 삭제는 schema migration과 별도 운영 SQL로 수행한다. 모든 회원이 현재 RP 키를
+보유하는지 같은 transaction의 쓰기 잠금 아래 확인하며, 한 명이라도 부족하면 전체 삭제를 거절한다.
+중지된 API DB의 오래된 인증 사본은 모든 source UUID와 accounts의 현재 RP 키를 대조한 뒤에만
+제거한다. DB 이름·source schema·runtime 권한을 확인하고 예상 밖 FK가 있으면 CASCADE 없이 중단한다.
+운영 schema down이나 오래된 source 복원으로 되돌리지 않는다. 실행 순서는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.

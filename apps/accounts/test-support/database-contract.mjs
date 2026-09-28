@@ -6,7 +6,6 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 export const DOMAIN_TABLES = [
   'auth_login_requests',
-  'auth_passkey_migrations',
   'auth_passkeys',
   'auth_refresh_tokens',
   'auth_sessions',
@@ -149,7 +148,8 @@ export async function assertSchema(
     'InitialAuthSchema1788600000000',
     'ReplaceOAuthWithPasskeys1789566809748',
     'AddPhoneQrLogin1789601588410',
-    'AddAccountsPasskeyMigration1790548862756'
+    'AddAccountsPasskeyMigration1790548862756',
+    'RetirePasskeyHandoffs1790556264995'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -247,7 +247,6 @@ export async function assertSchema(
   const primaryKeys = await dataSource.query(primaryKeysSql, [DOMAIN_TABLES])
   assert.deepEqual(primaryKeys, [
     { table_name: 'auth_login_requests', columns: ['id'] },
-    { table_name: 'auth_passkey_migrations', columns: ['request_id'] },
     { table_name: 'auth_passkeys', columns: ['id'] },
     { table_name: 'auth_refresh_tokens', columns: ['token_hash'] },
     { table_name: 'auth_sessions', columns: ['id'] },

@@ -84,7 +84,7 @@ def require_compatible(previous, source, services):
                       'deploy/api/grant-api.sql', 'deploy/api/migrate-legacy.sql']
         elif service == 'accounts':
             paths += ['apps/accounts/src/database', 'deploy/accounts/init-database.sh',
-                      'deploy/accounts/grant-accounts.sql', 'deploy/accounts/import.compose.yaml',
+                      'deploy/accounts/grant-accounts.sql',
                       'deploy/accounts/dfragon-auth-cleanup.service', 'deploy/accounts/dfragon-auth-cleanup.timer']
         else:
             paths += ['apps/ocr/src/store.ts']

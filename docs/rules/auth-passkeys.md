@@ -2,18 +2,18 @@
 type: rule
 status: active
 scope: accounts and Desktop passkey authentication
-last-reviewed: 2026-09-26
+last-reviewed: 2026-09-28
 ---
 
 # 패스키 인증
 
-가입·로그인은 패스키 전용이다. 기존 API의 계정·패스키는 accounts DB로 보존 이전하며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 규칙이 인증·회원 식별·설정·재인증의 기준이다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 관련 문서도 이 계약에 맞춘 패스키 경계를 따른다.
+가입·로그인은 패스키 전용이다. 인증은 accounts 서비스와 독립 PostgreSQL이 담당하며 이메일·비밀번호·전화번호·별도 계정 복구를 제공하지 않는다. 이 PR의 구현·검증에 적용하고 사용자 merge 후 활성화한다. 아래 규칙이 인증·회원 식별·설정·재인증의 기준이다. 세션·refresh·JWT·검색 활동 정책은 기존 계약을 유지한다. 관련 문서도 이 계약에 맞춘 패스키 경계를 따른다.
 
 ## 가입과 로그인
 
 - 내부 random UUID로 회원을 식별한다. 사용자는 로그인용 아이디를 입력하지 않는다. 닉네임 초기 생성과 수정 규칙은 유지한다.
 - WebAuthn discoverable credential을 등록한다. `residentKey: required`, `userVerification: required`, attestation `none`을 사용하고 서버 검증에서도 UV를 요구한다. 기기 종류를 platform으로 제한하지 않아 브라우저의 휴대폰 hybrid QR·보안 키를 사용할 수 있다.
-- HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 새 인증 origin/RP는 accounts.dfragon.com이다. 기존 api.dfragon.com 키는 아래 단계적 이전 경로로 인증한다.
+- HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 운영 인증 origin/RP는 accounts.dfragon.com 하나다. 이전 API 주소의 패스키 로그인과 RP 이전 경로는 제공하지 않는다.
 - 등록 옵션·서명 검증·브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 브라우저 origin·RP ID·challenge·서명·UV와 저장 credential ID·회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일·실명을 넣지 않는다.
 - 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 창을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
 - 패스키 credential ID는 전역 PK다. 기존 키를 다른 계정에 연결하는 upsert를 하지 않는다. 동기화된 동일 패스키는 동일 계정에 접근한다.
@@ -30,7 +30,7 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 ## OCR 관리 웹 연결
 
-이번 OCR 요청은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 추가한다. 기존 RP와 패스키를 유지하고 고정 HTTPS callback·PKCE·client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl·fingerprint·기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
+OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback·PKCE·client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl·fingerprint·기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
 
 ## DFRAGON 휴대폰 QR
 
@@ -48,7 +48,7 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 
 패스키 관리의 고정 경로는 `/auth/passkeys/manage`다. 2026-09-18 사용자 요청으로 Desktop 계정 메뉴를 제거하며 메인 UI에는 관리 진입 버튼을 두지 않는다. 기존 별도 인증 창과 관리 API의 경계는 유지한다. 휴대폰 관리 QR은 같은 origin의 고정 관리 주소만 담고, 관리 권한은 휴대폰에만 발급한다. 관리할 계정의 패스키로 다시 인증해야 목록·추가·삭제가 가능하다. Renderer가 임의 URL·회원 ID·credential을 main에 전달하지 않는다.
 
-관리 요청은 생성부터 600초 동안만 유효하며 별도의 앱 session을 발급하지 않는다. 인증한 회원과 credential ID에 묶고 모든 동작에서 해당 키의 존재를 재확인한다. 계정당 최대 20개까지 추가할 수 있다. 마지막 패스키 삭제는 거부한다. 현재 관리 인증에 사용한 키를 삭제하면 그 관리 권한도 종료한다. 다른 창에서 해당 키를 삭제한 경우 기존 관리 권한도 사용할 수 없다.
+관리 요청은 생성부터 600초 동안만 유효하며 별도의 앱 session을 발급하지 않는다. 인증한 회원과 credential ID에 묶고 모든 동작에서 해당 키의 존재를 재확인한다. 현재 RP의 키만 표시하고 계정당 현재 RP의 키를 최대 20개까지 추가할 수 있다. 마지막 현재 RP 패스키 삭제는 거부하며, 다른 RP의 키는 예비 키로 세지 않는다. 현재 관리 인증에 사용한 키를 삭제하면 그 관리 권한도 종료한다. 다른 창에서 해당 키를 삭제한 경우 기존 관리 권한도 사용할 수 없다.
 
 패스키 삭제는 이미 발급된 Desktop session을 종료하지 않고, 기기·패스키 제공자에 저장된 credential도 원격 삭제하지 않는다. 화면에서 이를 안내한다. 분실 대응의 전체 기기 session 폐기는 이 변경의 기능이 아니다. 모든 패스키를 잃으면 계정을 복구할 수 있음을 암시하지 않는다.
 
@@ -68,25 +68,23 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 
 실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비·만료·잘못된 서명/계정·삭제된 키·예비 키·세션 회귀를 검사한다. 가상 인증기 성공을 실제 휴대폰 QR·Bluetooth·운영 HTTPS·packaged Desktop OS 복귀 검증으로 확대하지 않는다.
 
-## accounts 분리와 RP ID 이전
+## accounts 단일 인증 origin과 이전 종료
 
-2026-09-28 사용자 결정에 따라 인증 HTTP·UI·회원·session의 소유자는 `apps/accounts`다.
-API의 domain PostgreSQL과 별도 컨테이너·볼륨·접근 계정을 사용한다. API는 인증 DB와 JWT 개인키를 받지 않는다.
-기존 회원 UUID·credential·session·소비된 refresh 이력을 포함한 전체 인증 이력을 보존 복사한다.
-짧은 인증 쓰기 중지와 Desktop 업데이트는 허용하며 진행 중 인증 요청은 새로 시작한다.
+인증 HTTP·UI·회원·session의 소유자는 `apps/accounts`다. API의 domain PostgreSQL과 별도
+컨테이너·볼륨·접근 계정을 사용한다. API는 인증 DB와 JWT 개인키를 받지 않는다.
+설정의 `apiOrigin`은 accounts origin이며 등록·로그인·휴대폰 QR·예비 키 관리는 같은 RP만 사용한다.
+Desktop 인증 창도 설정된 accounts origin의 요청과 이동만 허용한다.
 
-설정의 `apiOrigin`은 accounts origin이다. 선택 `legacyOrigin`은 기존 RP의 canonical HTTPS origin이며
-새 RP와 hostname이 달라야 한다. 등록은 항상 accounts RP에만 수행하고 각 credential에 RP ID를 저장한다.
-기존 키를 새 RP로 수정하거나 RP 검증을 생략하지 않는다. 사용자는 기존 주소에서 인증한 뒤 같은 UUID에
-accounts용 키를 추가하거나 이전을 미루고 기존 키로 로그인할 수 있다. legacy 경로 종료일은 정하지 않는다.
+2026-09-28 사용자의 전체 계정 이전 완료 확인과 종료 요청을 이 PR에서 채택한다.
+이전 API origin의 인증 UI·handoff·일회용 이전 ticket·이전 설정과 proxy 경로를 제거한다.
+이미 적용한 migration은 이력으로 남기고 forward migration으로 임시 이전 table을 제거한다.
+기존 키의 RP ID를 바꾸어 새 키로 취급하지 않는다.
 
-원래 accounts 요청의 PC 또는 phone cookie로 handoff를 시작한다. 32-byte 일회용 ticket은 hash로만 저장하고
-60초 및 원래 600초 TTL 안에서만 소비한다. legacy origin은 별도의 host-only cookie로 기존 RP의 서명·UV·
-user handle을 확인한다. 반환 ticket만으로는 권한을 주지 않고 최초 accounts cookie를 다시 확인한다.
-기존 user·credential 잠금 후 소유·존재와 요청/ticket 만료를 재검사한다. 새 키 등록은 같은 user lock 아래에서
-이루어지며 최대 20개 규칙을 유지한다. QR 재발급·직접 인증 전환·취소는 진행 중 handoff도 무효화한다.
-휴대폰은 이전을 마쳐도 기존 확인 번호 비교·명시 승인·PC claim·PKCE가 필요하다. 휴대폰의 기존 키 인증과
-새 키 등록 취소도 요청을 종료한다. 새 계정 생성과 기존 계정의 키 추가를 합치지 않는다.
+운영 정리는 인증 쓰기를 멈춘 뒤 모든 계정에 accounts RP 키가 있는지 확인해야 한다.
+accounts의 이전 RP 키만 삭제하며 회원 UUID·현재 RP 키·session·refresh는 보존한다.
+중지된 source의 모든 회원이 accounts에 존재하고 현재 RP 키를 보유한 것을 확인한 뒤에만
+source의 인증 table을 제거한다. Domain data와 migration history는 삭제하지 않는다.
+기기·패스키 제공자에 저장된 이전 키는 서버가 원격 삭제할 수 없다.
 
-검토한 구현·검증에는 이 계약을 적용하며 다른 작업과 운영 적용은 사용자 merge 및 명시 운영 이전 후다.
-실행·rollback 경계는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.
+검토한 구현·검증에는 이 계약을 적용하며 다른 작업과 운영 적용은 사용자 merge 후다.
+실행·복구 경계는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.

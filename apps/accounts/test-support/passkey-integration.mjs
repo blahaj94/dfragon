@@ -62,6 +62,35 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     runtime = await createAccountsRuntime(runtimeConfiguration)
     await runtime.app.listen(port, '127.0.0.1')
     browser = await chromium.launch({ headless: true })
+    mark('retired login pages and browser actions are unavailable')
+    const retiredContext = await browser.newContext({ ignoreHTTPSErrors: true })
+    try {
+      for (const path of ['/auth/login/legacy', '/auth/login/migrate']) {
+        const response = await retiredContext.request.get(`${origin}${path}?ticket=retired`)
+        assert.equal(response.status(), 404)
+      }
+      for (const action of [
+        'legacy-start',
+        'phone-legacy-start',
+        'legacy-options',
+        'legacy-verify',
+        'legacy-cancel',
+        'migration-options',
+        'migration-verify',
+        'migration-skip'
+      ]) {
+        const response = await retiredContext.request.post(`${origin}/auth/passkeys/${action}`, {
+          headers: { Origin: origin },
+          data: { requestId: '10000000-0000-4000-8000-000000000099' }
+        })
+        assert.equal(response.status(), 400)
+      }
+    } finally {
+      await retiredContext.close()
+    }
+    await runtime.close()
+    runtime = await createAccountsRuntime(runtimeConfiguration)
+    await runtime.app.listen(port, '127.0.0.1')
     await assertPhoneQrIntegration({ source, browser, origin, mark })
     // Independent suites must not spend each other's per-IP abuse budget.
     await runtime.close()
@@ -261,15 +290,22 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     await page.locator('#authenticate').click()
     await page.locator('#management').waitFor({ state: 'visible' })
+    await source.query(
+      "INSERT INTO auth_passkeys(id,user_id,rp_id,public_key,counter,transports,device_type,backed_up,created_at) VALUES('retired-fixture',$1,'api.example.test',$2,0,'[]','singleDevice',false,NOW())",
+      [userId, Buffer.alloc(32, 1)]
+    )
     const firstKeysResponse = await browserPost('list', { requestId: managementId })
     assert.equal(firstKeysResponse.status(), 200)
-    const firstKey = (await firstKeysResponse.json()).keys[0]
+    const firstKeys = (await firstKeysResponse.json()).keys
+    assert.equal(firstKeys.length, 1)
+    const firstKey = firstKeys[0]
     assert.equal(
       (
         await browserPost('remove', { requestId: managementId, credentialId: firstKey.id })
       ).status(),
       400
     )
+    await source.query("DELETE FROM auth_passkeys WHERE id='retired-fixture'")
     const credentials = (
       await cdp.send('WebAuthn.getCredentials', { authenticatorId: authenticator })
     ).credentials

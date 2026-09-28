@@ -22,7 +22,6 @@ export interface PasskeyConfiguration {
   rpName: string
   returnUrl: string
   ocrReturnUrl?: string
-  legacyOrigin?: string
 }
 export interface LoginDependencies {
   dataSource: DataSource
@@ -49,10 +48,6 @@ export interface LoginAuthorization {
   webReturnUrl?: string
   cookie: string
   view?: 'phone'
-  handoffOrigin?: string
-  migration?: boolean
-  legacy?: boolean
-  legacyOrigin?: string
   confirmationCode?: string
 }
 export interface CompletedLoginCallback {
@@ -63,12 +58,6 @@ export interface LoginHttpService {
   create(input: unknown): Promise<CreatedLoginRequest>
   authorize(ticket: string, view?: 'phone'): Promise<LoginAuthorization>
   manage(): Promise<LoginAuthorization>
-  legacyAuthorize?(ticket: string, host: string | undefined): Promise<LoginAuthorization>
-  migrationAuthorize?(
-    ticket: string,
-    cookie: string,
-    host: string | undefined
-  ): Promise<LoginAuthorization>
   browser(
     action: string,
     input: unknown,

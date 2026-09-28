@@ -42,16 +42,6 @@ export function validatePasskeyConfiguration(
         throw new Error()
       }
     }
-    if (value.legacyOrigin !== undefined) {
-      const legacy = new URL(value.legacyOrigin)
-      if (
-        legacy.protocol !== 'https:' ||
-        legacy.origin !== value.legacyOrigin ||
-        legacy.hostname === value.rpId
-      ) {
-        throw new Error()
-      }
-    }
     return Object.freeze({ ...value })
   } catch {
     throw new Error('Invalid passkey configuration')
@@ -64,9 +54,6 @@ export function configurationFingerprint(
   clientId: 'desktop' | 'ocr' = 'desktop'
 ): string {
   const values = [config.apiOrigin, config.rpId, config.rpName, config.returnUrl]
-  if (config.legacyOrigin !== undefined) {
-    values.push('legacy', config.legacyOrigin)
-  }
   if (clientId === 'ocr') {
     if (config.ocrReturnUrl === undefined) {
       throw new Error('OCR login is not configured')

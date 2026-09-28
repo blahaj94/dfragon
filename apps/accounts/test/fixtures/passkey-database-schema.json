@@ -23,18 +23,6 @@
       ["verified_user_id", "uuid", "uuid", "YES", null, null],
       ["webauthn_challenge", "text", "text", "YES", null, null]
     ],
-    "auth_passkey_migrations": [
-      ["challenge", "text", "text", "YES", null, null],
-      ["credential_id", "text", "text", "YES", null, null],
-      ["legacy_binding_hash", "bytea", "bytea", "YES", null, null],
-      ["phone", "boolean", "bool", "NO", null, null],
-      ["request_id", "uuid", "uuid", "NO", null, null],
-      ["source_binding_hash", "bytea", "bytea", "NO", null, null],
-      ["state", "text", "text", "NO", null, null],
-      ["ticket_expires_at", "timestamp with time zone", "timestamptz", "YES", null, 0],
-      ["ticket_hash", "bytea", "bytea", "YES", null, null],
-      ["user_id", "uuid", "uuid", "YES", null, null]
-    ],
     "auth_passkeys": [
       ["backed_up", "boolean", "bool", "NO", null, null],
       ["counter", "bigint", "int8", "NO", null, null],
@@ -91,14 +79,6 @@
     "auth_login_requests:uq_auth_login_requests_exchange_code_hash:UNIQUE",
     "auth_login_requests:uq_auth_login_requests_launch_ticket_hash:UNIQUE",
     "auth_login_requests:uq_auth_login_requests_qr_ticket_hash:UNIQUE",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_binding:CHECK",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_flow:CHECK",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_identity:CHECK",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_source:CHECK",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_state:CHECK",
-    "auth_passkey_migrations:ck_auth_passkey_migrations_ticket:CHECK",
-    "auth_passkey_migrations:fk_auth_passkey_migrations_request:FOREIGN KEY",
-    "auth_passkey_migrations:pk_auth_passkey_migrations:PRIMARY KEY",
     "auth_passkeys:ck_auth_passkeys_counter:CHECK",
     "auth_passkeys:ck_auth_passkeys_id:CHECK",
     "auth_passkeys:ck_auth_passkeys_key:CHECK",
@@ -144,14 +124,6 @@
       true,
       null
     ],
-    ["auth_passkey_migrations", "pk_auth_passkey_migrations", ["request_id"], true, null],
-    [
-      "auth_passkey_migrations",
-      "uq_auth_passkey_migrations_ticket",
-      ["ticket_hash"],
-      true,
-      "(ticket_hash IS NOT NULL)"
-    ],
     ["auth_passkeys", "idx_auth_passkeys_user", ["user_id"], false, null],
     ["auth_passkeys", "pk_auth_passkeys", ["id"], true, null],
     ["auth_refresh_tokens", "idx_auth_refresh_tokens_session_id", ["session_id"], false, null],
@@ -169,14 +141,6 @@
     ["users", "pk_users", ["id"], true, null]
   ],
   "expectedForeignKeys": [
-    [
-      "auth_passkey_migrations",
-      "fk_auth_passkey_migrations_request",
-      ["request_id"],
-      "auth_login_requests",
-      ["id"],
-      "c"
-    ],
     ["auth_passkeys", "fk_auth_passkeys_user", ["user_id"], "users", ["id"], "c"],
     [
       "auth_refresh_tokens",
