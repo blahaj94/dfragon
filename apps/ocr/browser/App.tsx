@@ -13,6 +13,7 @@ import { CaptureUpload } from './CaptureUpload.js'
 import { SampleEditor } from './SampleEditor.js'
 import { OcrIcon } from './OcrIcon.js'
 import { OCR_CAPTURE_LABELS } from './constants.js'
+import { SplitPlanner } from './SplitPlanner.js'
 import { ModelLibrary } from './ModelLibrary.js'
 
 export function App() {
@@ -130,6 +131,7 @@ export function App() {
                 </div>
               ))}
             </section>
+            <SplitPlanner />
             <ModelLibrary />
             <CaptureUpload
               open={uploadOpen}

@@ -88,3 +88,43 @@ test('dictionary order is retained and duplicate, space, multi-character and ext
     code: 'INVALID_INPUT'
   })
 })
+
+test('explicit expanded models append characters while preserving every parent character in order', () => {
+  const store = new OcrStore(':memory:', 1024 * 1024)
+  try {
+    const base = metadata()
+    store.addModel(base, files())
+    const expanded = parseModelUpload({
+      ...base,
+      id: randomUUID(),
+      kind: 'expanded',
+      parentId: base.id
+    })
+    const extendedFiles = files().set('characters.txt', Buffer.from('가\n나\nA\n★\n龍\nあ\nア\n'))
+    store.addModel(expanded, extendedFiles)
+    assert.equal(store.model(expanded.id).kind, 'expanded')
+    assert.deepEqual(store.modelFile(base.id, 'characters.txt'), files().get('characters.txt'))
+    for (const dictionary of ['가\n나\nA\n', '나\n가\nA\n★\n', '가\nA\n★\n', '가\n나\nA\n가\n']) {
+      assert.throws(
+        () =>
+          store.addModel(
+            { ...expanded, id: randomUUID() },
+            files().set('characters.txt', Buffer.from(dictionary))
+          ),
+        { code: 'INVALID_INPUT' }
+      )
+    }
+    assert.throws(
+      () => store.addModel({ ...expanded, id: randomUUID(), kind: 'finetuned' }, extendedFiles),
+      { code: 'INVALID_INPUT' }
+    )
+    store.addModel(
+      { ...expanded, id: randomUUID(), kind: 'finetuned', parentId: expanded.id },
+      extendedFiles
+    )
+    assert.equal(store.models().length, 3)
+    assert.throws(() => parseModelUpload({ ...expanded, parentId: null }))
+  } finally {
+    store.close()
+  }
+})

@@ -19,7 +19,7 @@ export function parseModelUpload(value: unknown): ModelUpload {
     body.name.length > 100 ||
     /[\p{Control}\p{Surrogate}]/u.test(body.name) ||
     body.preset !== 'korean-ppocrv5' ||
-    (body.kind !== 'pretrained' && body.kind !== 'finetuned') ||
+    (body.kind !== 'pretrained' && body.kind !== 'finetuned' && body.kind !== 'expanded') ||
     (body.parentId !== null &&
       (typeof body.parentId !== 'string' || !MODEL_ID.test(body.parentId))) ||
     (body.kind === 'pretrained' ? body.parentId !== null : body.parentId === null) ||

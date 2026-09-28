@@ -432,6 +432,34 @@ try {
     assert(editor.y >= gallery.y + gallery.height)
     await screenshot(`mobile-${width}`)
   }
+  await page.setViewportSize({ width: 1440, height: 1050 })
+  await page.getByText('자동 분할 · 실제 자료 분포', { exact: true }).click()
+  for (const [split, value] of [
+    ['train', '70'],
+    ['val', '15'],
+    ['test', '15']
+  ]) {
+    await page.getByLabel(`${split} 목표 (%)`, { exact: true }).fill(value)
+  }
+  const beforeSplit = JSON.stringify(store.exportManifest().samples)
+  await page.getByRole('button', { name: '분할 미리보기', exact: true }).click()
+  await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).waitFor()
+  assert.equal(JSON.stringify(store.exportManifest().samples), beforeSplit)
+  await screenshot('split-preview')
+  page.once('dialog', (dialog) => dialog.dismiss())
+  await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).click()
+  assert.equal(store.splitStats().initialized, false)
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).click()
+  await page.getByText('분할을 적용했습니다. 이후 새 닉네임은 train에 배정됩니다.').waitFor()
+  assert.equal(store.splitStats().initialized, true)
+  await page.setViewportSize({ width: 390, height: 844 })
+  assert(
+    await page.evaluate(
+      () => globalThis.document.documentElement.scrollWidth <= globalThis.innerWidth
+    )
+  )
+  await screenshot('split-mobile')
   assert.deepEqual(errors, [])
   process.stdout.write(
     'OCR browser HUD/raid upload limits, draft preservation, labels, answer focus, split, exclusion, download, themes, responsive layout and logout passed\n'

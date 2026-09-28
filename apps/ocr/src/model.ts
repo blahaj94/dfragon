@@ -4,7 +4,7 @@ export type ModelSummary = {
   id: string
   name: string
   preset: 'korean-ppocrv5'
-  kind: 'pretrained' | 'finetuned'
+  kind: 'pretrained' | 'finetuned' | 'expanded'
   parentId: string | null
   registeredAt: string
   files: {

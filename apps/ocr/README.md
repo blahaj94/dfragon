@@ -1,6 +1,6 @@
 # OCR 자료실
 
-원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 기존 패스키로 인증한 지정 계정만 사용할 수 있습니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리와 자동 분할은 포함하지 않습니다.
+원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 기존 패스키로 인증한 지정 계정만 사용할 수 있습니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리는 포함하지 않습니다. 최초 자동 분할은 미리보기 후 사용자가 명시 적용합니다.
 
 ```sh
 pnpm --filter @dfragon/ocr test
@@ -20,7 +20,17 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 닉네임 단위 분할은 `미배정 / train / val / test` 버튼으로 선택하며 현재 값은 강조색으로 표시합니다. 다른 값을 누르면 기존 확인 창을 거쳐 적용하고 현재 값을 다시 누르면 요청하지 않습니다. 정답 미작성·수정 중·저장 중에는 분할 버튼을 비활성화합니다.
 
-분할은 NFC 정규화한 닉네임 정답에 저장합니다. 같은 닉네임의 모든 샘플은 같은 분할을 따르고 새 샘플도 정답이 저장되면 기존 배정을 따릅니다. 정답이 없으면 미배정입니다. 대소문자·공백은 임의로 제거하지 않습니다. 분할된 샘플의 정답 수정으로 분할이 달라지면 명시 확인이 필요합니다. 선별·비율 결정은 로컬 스크립트의 책임입니다.
+분할은 NFC 정규화한 닉네임 정답에 저장합니다. 같은 닉네임의 모든 샘플은 같은 분할을 따르고 새 샘플도 정답이 저장되면 기존 배정을 따릅니다. 정답이 없으면 미배정입니다. 대소문자·공백은 임의로 제거하지 않습니다. 분할된 샘플의 정답 수정으로 분할이 달라지면 명시 확인이 필요합니다. 자동 분할의 비율은 사용자가 직접 정합니다.
+
+### 자동 분할
+
+**자동 분할 · 실제 자료 분포**를 펼치면 정답 완료·미제외 이미지와 고유 닉네임 수, 문자군·개별 문자 빈도를 확인할 수 있습니다. 이미지 기준 목표 비율을 합계 100%로 입력해 미리보기합니다. 기본 비율은 지정하지 않습니다. 기본은 기존 배정 유지이며, 최초 전체 분할 등 기존 배정도 바꿔야 할 때만 재배정 항목을 선택합니다.
+
+미리보기는 규모·문자 분포와 목표 차이, 기존 분할에서 이동할 닉네임 수를 표시합니다. **미리보기 분할 적용**의 확인 창을 승인할 때만 저장합니다. 닉네임 묶음과 희귀 문자 때문에 비율을 정확히 맞추지 못할 수 있습니다. 그 사이 자료가 바뀌면 409로 거절하므로 다시 미리보기합니다. 빈 분할은 경고하며 Windows 학습에는 세 분할이 모두 필요합니다.
+
+첫 적용 이후 새 미제외 닉네임은 정답 저장 시 train으로 들어갑니다. 기존 닉네임의 새 캡처는 기존 배정을 따릅니다. 주간 자료를 학습에 반영하려면 Windows 앱에서 새 실험으로 다시 가져오세요. 서버의 val/test에 이미지가 추가되어도 과거 로컬 실험 입력은 바뀌지 않습니다.
+
+알고리즘은 닉네임 그룹의 이미지 수·문자군·개별 문자 빈도를 사용한 결정적 greedy 배정과 제한된 개선을 수행합니다. 흔한 문자와 이미지 규모를 우선하고 희귀 문자에는 약한 목적함수를 적용합니다. 최적해나 희귀 문자의 모든 분할 출현을 보장하지 않습니다.
 
 ### 구현 구조와 조회 캐시
 
@@ -36,7 +46,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 웹의 **학습 모델**에서 공식 `korean_PP-OCRv5_mobile_rec` 기본 가중치와 문자 사전을 미니PC에 등록하고, 등록된 모델의 이름·종류·등록 시각·크기·파일을 확인합니다. 기본 모델 다운로드는 약 106 MiB이며 같은 모델은 한 번만 저장합니다. 서버에서 학습을 실행하지 않습니다.
 
-별도 [Windows 평가 앱](https://github.com/blahaj94/dfragon-ocr-eval-tool)이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습·평가합니다. 앱 구현과 검증은 [앱 PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 확인할 수 있습니다. 앱은 main process의 웹 로그인 세션으로 브라우저 경로를 호출합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치·사전·평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 시작 모델의 사전 순서와 SHA-256을 유지하며 기존 모델을 덮어쓰지 않습니다.
+별도 [Windows 평가 앱](https://github.com/blahaj94/dfragon-ocr-eval-tool)이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습·평가합니다. 앱 구현과 검증은 [앱 PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 확인할 수 있습니다. 앱은 main process의 웹 로그인 세션으로 브라우저 경로를 호출합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치·사전·평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 일반 파인튜닝은 시작 모델 사전의 SHA-256을 유지합니다. 문자 확장 모델은 기존 문자 순서를 보존하고 명시 선택한 문자만 뒤에 추가하며, 새 모델 ID로 보관합니다.
 
 | Method / path | 동작 |
 | --- | --- |
@@ -48,7 +58,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 목록·상세·파일·multipart 등록은 `/api/desktop/models`에도 동일한 계약으로 제공하며 Origin 없는 활성 owner Bearer가 필요합니다. 브라우저 경로는 owner cookie를 사용하고 POST는 정확한 OCR Origin이 필요합니다. 토큰으로 정답·분할 변경이나 브라우저 세션 발급은 할 수 없습니다.
 
-`metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. 파인튜닝 모델의 사전 해시는 시작 모델과 같아야 합니다. 서버는 가중치를 실행하지 않습니다.
+`metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned" | "expanded", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned·expanded는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. finetuned의 사전 해시는 시작 모델과 같아야 합니다. expanded는 부모 사전의 모든 문자가 같은 순서로 앞부분에 남고 새 문자가 뒤에 추가된 경우만 허용합니다. 서버는 가중치를 실행하지 않습니다.
 
 파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [프록시 크기 제한과 배포 순서](../../deploy/ocr/README.md#모델-보관-기능-배포)를 함께 적용해야 합니다.
 
@@ -71,6 +81,9 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
 | `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
+| `GET /api/splits/statistics` | 대상 규모·문자 빈도·현재 분할 및 자동 추가 활성화 여부 |
+| `POST /api/splits/preview` | `{ratios: {train, val, test}, replaceExisting: boolean}`. 각 값은 %, 합계 100. 읽기 전용 미리보기·fingerprint |
+| `POST /api/splits/apply` | 같은 설정과 미리보기 `fingerprint`. 재검사 후 일괄 배정·추가 규칙 활성화, 변경 시 409 |
 | `GET /api/desktop/dataset` | 앱 평가용 정답·제외·분할 메타데이터 스냅샷 |
 | `GET /api/desktop/samples/:id/image` | 앱 평가용 원본 크롭 PNG |
 | `GET /api/export/manifest` | 현재 메타데이터·정답·분할 JSON |

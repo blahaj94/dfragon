@@ -18,6 +18,7 @@ import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import { cropPng, decodePng, parseUpload } from './images.js'
 import { parseCaptureKind, parseInputRecord, parseLabel, parseSplit } from './input.js'
+import { parseSplitOptions } from './split-plan.js'
 import { downloadDataset } from './export.js'
 
 export const OCR_CONFIG = Symbol('OCR_CONFIG')
@@ -144,6 +145,27 @@ export class OcrDataController {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
     return this.store.assign(text, parseSplit(body.split))
+  }
+
+  @Get('splits/statistics')
+  splitStatistics() {
+    return this.store.splitStats()
+  }
+
+  @Post('splits/preview')
+  @HttpCode(200)
+  previewSplit(@Body() value: unknown) {
+    return this.store.previewSplit(parseSplitOptions(value))
+  }
+
+  @Post('splits/apply')
+  @HttpCode(200)
+  applySplit(@Body() value: unknown) {
+    const body = parseInputRecord(value)
+    if (typeof body.fingerprint !== 'string' || !/^[0-9a-f]{64}$/.test(body.fingerprint)) {
+      throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+    }
+    return this.store.applySplit(parseSplitOptions(body), body.fingerprint)
   }
 
   @Get('desktop/dataset')

@@ -40,9 +40,13 @@ export function ModelLibrary() {
         <article key={model.id} {...stylex.props(styles.statCard)}>
           <strong>{model.name}</strong>
           <p {...stylex.props(styles.muted)}>
-            {model.kind === 'pretrained' ? '기본 모델' : '파인튜닝 모델'} ·{' '}
-            {(model.files.reduce((sum, file) => sum + file.bytes, 0) / 1024 / 1024).toFixed(1)} MiB
-            · {new Date(model.registeredAt).toLocaleString()}
+            {model.kind === 'pretrained'
+              ? '기본 모델'
+              : model.kind === 'expanded'
+                ? '문자 확장 모델'
+                : '파인튜닝 모델'}{' '}
+            · {(model.files.reduce((sum, file) => sum + file.bytes, 0) / 1024 / 1024).toFixed(1)}{' '}
+            MiB · {new Date(model.registeredAt).toLocaleString()}
           </p>
           <div {...stylex.props(styles.actions)}>
             {model.files.map((file) => (
