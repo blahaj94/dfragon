@@ -103,8 +103,7 @@ export function createAuthRuntimeEffects(
           : createAuthBrowser(
               apiOrigin,
               config.returnTarget,
-              options.activateMainWindow ?? (() => {}),
-              config.legacyOrigin
+              options.activateMainWindow ?? (() => {})
             ),
         clock,
         entropy: {

@@ -47,7 +47,6 @@ it('uses the distribution login origin, protocol and private profile without inh
 
   expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
     apiOrigin: 'https://accounts.example.test',
-    legacyOrigin: 'https://api.example.test',
     returnTarget: 'dfragon://auth/callback',
     environment: 'production',
     providers: ['passkey'],

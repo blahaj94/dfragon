@@ -13,7 +13,6 @@ import { LoginFailure } from '../../errors/login.js'
 import { AuthLoginRequestSchema } from '../../database/schemas/auth-login-requests.js'
 import type { AuthLoginRequest } from '../../database/schemas/auth-login-requests.js'
 import { UserSchema } from '../../database/schemas/users.js'
-import { PasskeyMigrationSchema } from '../../database/schemas/passkey-migrations.js'
 import { PasskeySchema } from '../../database/schemas/passkeys.js'
 import { UUID_PATTERN } from '../access-jwt/constants.js'
 import type { LoginDependencies, LoginHttpService } from '../../types/login.js'
@@ -33,7 +32,6 @@ import {
 } from './state.js'
 import { phoneLoginAction, clearPhone } from './phone.js'
 import { exchangeLogin } from './exchange.js'
-import { createPasskeyMigration } from './migration.js'
 
 const invalid = () => new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
 const badPasskey = () => new LoginFailure(LOGIN_ERRORS.PASSKEY)
@@ -57,10 +55,10 @@ async function lockUser(manager: EntityManager, id: string) {
   return user
 }
 
-async function lockCredential(manager: EntityManager, userId: string, id: string) {
+async function lockCredential(manager: EntityManager, userId: string, id: string, rpId: string) {
   const key = await manager
     .getRepository(PasskeySchema)
-    .findOne({ where: { id, userId }, lock: { mode: 'pessimistic_write' } })
+    .findOne({ where: { id, userId, rpId }, lock: { mode: 'pessimistic_write' } })
   if (key == null) {
     throw badPasskey()
   }
@@ -135,7 +133,9 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       return value
     }
     const userId = managing ? row.verifiedUserId! : randomUUID()
-    const keys = managing ? await manager.getRepository(PasskeySchema).findBy({ userId }) : []
+    const keys = managing
+      ? await manager.getRepository(PasskeySchema).findBy({ userId, rpId: configuration.rpId })
+      : []
     if (keys.length >= 20) {
       throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
     }
@@ -147,9 +147,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       userDisplayName: 'DFRAGON 계정',
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
-      excludeCredentials: keys
-        .filter((key) => key.rpId === configuration.rpId)
-        .map((key) => ({ id: key.id, transports: key.transports }))
+      excludeCredentials: keys.map((key) => ({ id: key.id, transports: key.transports }))
     })
     Object.assign(row, { webauthnChallenge: value.challenge, operation, pendingUserId: userId })
     await checkTime(manager, row)
@@ -184,7 +182,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         throw badPasskey()
       }
       const user = await lockUser(manager, hint.userId)
-      const key = await lockCredential(manager, user.id, credential.id)
+      const key = await lockCredential(manager, user.id, credential.id, configuration.rpId)
       await checkTime(manager, row)
       if (credential.response?.userHandle !== userHandle(user.id)) {
         throw badPasskey()
@@ -234,7 +232,12 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         throw invalid()
       }
       userId = row.pendingUserId
-      if (adding && (await manager.getRepository(PasskeySchema).countBy({ userId })) >= 20) {
+      if (
+        adding &&
+        (await manager
+          .getRepository(PasskeySchema)
+          .countBy({ userId, rpId: configuration.rpId })) >= 20
+      ) {
         throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
       }
       let result
@@ -326,11 +329,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     return { returnUrl: url.href }
   }
 
-  const migration = createPasskeyMigration(deps, verified)
-
   return {
-    legacyAuthorize: migration.authorizeLegacy,
-    migrationAuthorize: migration.authorizeAccounts,
     async create(input) {
       const body = parseCreation(input)
       if (body.clientId === 'ocr' && configuration.ocrReturnUrl === undefined) {
@@ -348,7 +347,6 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       return {
         requestId: row.id,
         purpose: 'manage',
-        legacyOrigin: configuration.legacyOrigin,
         cookie: browserCookie({
           requestId: row.id,
           bindingValue: secret,
@@ -389,7 +387,6 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         return {
           requestId: row.id,
           purpose: row.purpose,
-          legacyOrigin: configuration.legacyOrigin,
           webReturnUrl:
             configuredLoginClient(configuration, row.configuration) === 'ocr'
               ? configuration.ocrReturnUrl
@@ -405,9 +402,6 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       })
     },
     async browser(action, input, cookie, origin) {
-      if (migration.actions.includes(action)) {
-        return migration.browser(action, input, cookie, origin)
-      }
       if (origin !== configuration.apiOrigin) {
         throw invalid()
       }
@@ -444,14 +438,9 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           throw invalid()
         }
         await checkTime(manager, row)
-        if (
-          ['options', 'phone-options', 'qr', 'direct', 'cancel', 'phone-cancel'].includes(action)
-        ) {
-          await manager.getRepository(PasskeyMigrationSchema).delete({ requestId: id })
-        }
         if (row.status === 'managing') {
           await lockUser(manager, row.verifiedUserId!)
-          await lockCredential(manager, row.verifiedUserId!, row.credentialId!)
+          await lockCredential(manager, row.verifiedUserId!, row.credentialId!, configuration.rpId)
           await checkTime(manager, row)
         }
         if (
@@ -485,7 +474,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         }
         if (action === 'list') {
           const keys = await manager.getRepository(PasskeySchema).find({
-            where: { userId: row.verifiedUserId! },
+            where: { userId: row.verifiedUserId!, rpId: configuration.rpId },
             order: { createdAt: 'ASC', id: 'ASC' }
           })
           return {
@@ -505,8 +494,10 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
             throw invalid()
           }
           const keys = manager.getRepository(PasskeySchema)
-          await lockCredential(manager, row.verifiedUserId!, body.credentialId)
-          if ((await keys.countBy({ userId: row.verifiedUserId! })) <= 1) {
+          await lockCredential(manager, row.verifiedUserId!, body.credentialId, configuration.rpId)
+          if (
+            (await keys.countBy({ userId: row.verifiedUserId!, rpId: configuration.rpId })) <= 1
+          ) {
             throw new LoginFailure(LOGIN_ERRORS.LAST_PASSKEY)
           }
           await checkTime(manager, row)

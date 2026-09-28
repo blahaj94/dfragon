@@ -20,9 +20,6 @@ import type {
 const root = document.querySelector<HTMLElement>('main')!
 const requestId = root.dataset.requestId!
 const phone = root.dataset.view === 'phone'
-const legacy = root.dataset.legacy === 'true'
-const migration = root.dataset.migration === 'true'
-const legacyOrigin = root.dataset.legacyOrigin
 const management = root.dataset.purpose === 'manage'
 const confirmationCode = root.dataset.confirmationCode
 const supportsPasskeys = browserSupportsWebAuthn()
@@ -42,8 +39,6 @@ type Verification =
   { phoneVerified: true; nickname: string } | { managed: true } | { returnUrl: string }
 type Screen =
   | { kind: 'entry' }
-  | { kind: 'migration' }
-  | { kind: 'legacy' }
   | { kind: 'signup' }
   | { kind: 'qr'; qr: Qr }
   | { kind: 'phone-consent'; nickname: string }
@@ -93,7 +88,7 @@ function QrCode({ url, onError }: { url: string; onError: (message: string) => v
 
 function PasskeyPage() {
   const [screen, setScreen] = useState<Screen>({
-    kind: legacy ? 'legacy' : migration ? 'migration' : 'entry'
+    kind: 'entry'
   })
   const [status, setStatus] = useState(
     supportsPasskeys
@@ -289,16 +284,13 @@ function PasskeyPage() {
     setStatus('')
   }
 
-  async function cancelPhoneAuthentication(
-    error: unknown,
-    action: 'phone-cancel' | 'legacy-cancel'
-  ) {
+  async function cancelPhoneAuthentication(error: unknown) {
     const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error
     if (!phone || !(cause instanceof Error) || cause.name !== 'NotAllowedError') {
       throw error
     }
     endedRef.current = true
-    await api(action).catch(() => {})
+    await api('phone-cancel').catch(() => {})
     setScreen({ kind: 'phone-canceled' })
     setStatus('')
   }
@@ -320,7 +312,7 @@ function PasskeyPage() {
               optionsJSON: await api<PublicKeyCredentialCreationOptionsJSON>(action, { operation })
             })
     } catch (error) {
-      await cancelPhoneAuthentication(error, 'phone-cancel')
+      await cancelPhoneAuthentication(error)
       return
     }
     const result = await api<Verification>(phone ? 'phone-verify' : 'verify', { response })
@@ -332,73 +324,6 @@ function PasskeyPage() {
       setStatus(
         operation === 'add' ? '예비 패스키를 추가했습니다.' : '관리할 패스키를 선택해 주세요.'
       )
-    } else {
-      showReturn(result.returnUrl)
-    }
-  }
-
-  function navigateHandoff(value: { navigateUrl: string }) {
-    const target = new URL(value.navigateUrl)
-    if (
-      target.origin !== root.dataset.handoffOrigin ||
-      target.protocol !== 'https:' ||
-      !['/auth/login/legacy', '/auth/login/migrate'].includes(target.pathname) ||
-      target.searchParams.size !== 1 ||
-      !target.searchParams.has('ticket') ||
-      target.username ||
-      target.password ||
-      target.hash
-    ) {
-      throw new Error('패스키 이전 주소를 확인하지 못했습니다.')
-    }
-    endedRef.current = true
-    location.assign(target.href)
-  }
-
-  async function beginLegacy() {
-    if (!phone && !management) {
-      await api('direct')
-    }
-    navigateHandoff(
-      await api<{ navigateUrl: string }>(phone ? 'phone-legacy-start' : 'legacy-start')
-    )
-  }
-
-  async function verifyLegacy() {
-    let response
-    try {
-      response = await startAuthentication({
-        optionsJSON: await api<PublicKeyCredentialRequestOptionsJSON>('legacy-options')
-      })
-    } catch (error) {
-      await cancelPhoneAuthentication(error, 'legacy-cancel')
-      return
-    }
-    navigateHandoff(await api<{ navigateUrl: string }>('legacy-verify', { response }))
-  }
-
-  async function finishMigration(add: boolean) {
-    let result: Verification
-    if (add) {
-      let response
-      try {
-        response = await startRegistration({
-          optionsJSON: await api<PublicKeyCredentialCreationOptionsJSON>('migration-options')
-        })
-      } catch (error) {
-        await cancelPhoneAuthentication(error, 'phone-cancel')
-        return
-      }
-      result = await api<Verification>('migration-verify', { response })
-    } else {
-      result = await api<Verification>('migration-skip')
-    }
-    if ('phoneVerified' in result) {
-      setScreen({ kind: 'phone-consent', nickname: result.nickname })
-      setStatus('')
-    } else if ('managed' in result) {
-      await showKeys()
-      setStatus('같은 계정의 패스키를 관리할 수 있습니다.')
     } else {
       showReturn(result.returnUrl)
     }
@@ -480,45 +405,6 @@ function PasskeyPage() {
             {management ? '패스키 관리' : '로그인'}
           </Typo.h3>
         </>
-      )}
-      {screen.kind === 'legacy' && (
-        <section>
-          <Typo.txtM>기존 api.dfragon.com 패스키로 본인 확인을 해 주세요.</Typo.txtM>
-          <button
-            className={primaryButton}
-            disabled={busy || !supportsPasskeys}
-            onClick={() => void run(verifyLegacy)}
-          >
-            기존 패스키로 인증
-          </button>
-        </section>
-      )}
-      {screen.kind === 'migration' && (
-        <section>
-          <Typo.txtM>
-            기존 계정을 확인했습니다. 이 계정에 새 로그인 주소의 패스키를 추가해 주세요. 기존
-            패스키도 유지됩니다.
-          </Typo.txtM>
-          <button
-            className={primaryButton}
-            disabled={busy || !supportsPasskeys}
-            onClick={() => void run(() => finishMigration(true))}
-          >
-            새 주소의 패스키 추가
-          </button>
-          <button
-            className={secondaryButton}
-            disabled={busy}
-            onClick={() => void run(() => finishMigration(false))}
-          >
-            지금은 기존 패스키로 계속
-          </button>
-        </section>
-      )}
-      {screen.kind === 'entry' && legacyOrigin && (
-        <button className={secondaryButton} disabled={busy} onClick={() => void run(beginLegacy)}>
-          이전 주소에서 만든 패스키로 로그인
-        </button>
       )}
       {signup && (
         <section id="signup" aria-labelledby="signup-heading">

@@ -72,7 +72,7 @@ for (const path of ['/app/src', '/app/test-support', '/run/secrets/postgres_pass
 const db = new pg.Client({ host: 'accounts-database', database: 'dfragon_accounts', user: 'dfragon_accounts', password: readFileSync('/run/secrets/db_password', 'utf8') })
 try {
   await db.connect()
-  for (const table of ['users','auth_passkeys','auth_sessions','auth_refresh_tokens','auth_login_requests','auth_passkey_migrations']) {
+  for (const table of ['users','auth_passkeys','auth_sessions','auth_refresh_tokens','auth_login_requests']) {
     await db.query(`SELECT count(*) FROM ${table}`)
     for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
       assert.equal((await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [table, privilege])).rows[0].allowed, true, `${table}: ${privilege}`)

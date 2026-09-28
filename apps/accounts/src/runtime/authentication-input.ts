@@ -57,17 +57,12 @@ export function parseAuthenticationInput(value: unknown) {
     typeof input.passkey === 'object' &&
     input.passkey !== null &&
     Object.hasOwn(input.passkey, 'ocrReturnUrl')
-  const hasLegacy =
-    typeof input.passkey === 'object' &&
-    input.passkey !== null &&
-    Object.hasOwn(input.passkey, 'legacyOrigin')
   const passkey = record(input.passkey, [
     'apiOrigin',
     'rpId',
     'rpName',
     'returnUrl',
-    ...(hasOcr ? ['ocrReturnUrl'] : []),
-    ...(hasLegacy ? ['legacyOrigin'] : [])
+    ...(hasOcr ? ['ocrReturnUrl'] : [])
   ])
   return {
     accessJwt: accessJwt(input.accessJwt),
@@ -76,8 +71,7 @@ export function parseAuthenticationInput(value: unknown) {
       rpId: text(passkey.rpId),
       rpName: text(passkey.rpName),
       returnUrl: text(passkey.returnUrl),
-      ...(hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {}),
-      ...(hasLegacy ? { legacyOrigin: text(passkey.legacyOrigin) } : {})
+      ...(hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {})
     }
   }
 }

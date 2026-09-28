@@ -74,7 +74,7 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 
 - `synchronize:false`, `migrationsRun:false`로 앱 시작이 schema를 자동 변경하지 않는다.
 - TypeORM compiled JavaScript DataSource/Migration CLI로 승인된 tsc→Node ESM 실행을 유지한다. ts-node/Nest CLI나 새 runner를 추가하지 않는다.
-- 현재 schema는 [인증 DB](auth-database.md)의 6개 table을 사용한다. 과거 migration을 수정하지 않고 패스키 전환 migration을 이어 적용한다. 전환 up/down은 대상 table 쓰기를 잠근 뒤 users·auth_login_requests가 비었을 때만 허용한다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 후속 검증한다.
+- 현재 schema는 [인증 DB](auth-database.md)의 5개 table을 사용한다. 과거 migration을 수정하지 않고 패스키 전환 migration을 이어 적용한다. 전환 up/down은 대상 table 쓰기를 잠근 뒤 users·auth_login_requests가 비었을 때만 허용한다. 새 DB apply, 재실행 no-op, 직접 constraint 위반 거절, Migration 목록/schema를 후속 검증한다.
 - 배포 담당의 단일 명시 실행으로 transaction 적용하며 동시 자동 실행을 금지한다. 운영 destructive down을 자동 실행하지 않는다. Rollback 검증은 빈 disposable test DB에 한정한다.
 - 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential·key/패스키 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
 
@@ -85,7 +85,7 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 단일 secret JSON 파일을 시작 때 한 번 읽는 경계는 [PR #128](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)의 승인 이력을 유지한다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
 
 - `accessJwt`: issuer·audience·signingKey(kid/privateKeyPem)·verificationKeys(kid/publicKeyPem 배열). 기존 issuer/verifier를 사용하고 정상 key 교체·복원 예외는 [세션](auth-session.md)을 따른다.
-- `passkey`: apiOrigin·rpId·rpName·returnUrl과 선택 ocrReturnUrl·legacyOrigin. HTTPS exact origin, 같은 hostname의 RP ID와 허용된 앱 복귀 주소를 검증한다. 설정 fingerprint가 바뀌면 기존 transient 요청을 거절한다. 새 RP와 선택 legacy origin의 인증은 [단계적 이전](auth-passkeys.md#accounts-분리와-rp-id-이전)을 따른다.
+- `passkey`: apiOrigin·rpId·rpName·returnUrl과 선택 ocrReturnUrl. HTTPS exact origin, 같은 hostname의 RP ID와 허용된 앱 복귀 주소를 검증한다. 설정 fingerprint가 바뀌면 기존 transient 요청을 거절한다. 인증은 [accounts 단일 origin](auth-passkeys.md#accounts-단일-인증-origin과-이전-종료)만 사용하며 이전 origin 설정은 허용하지 않는다.
 - `AUTH_CONFIG_FILE`은 절대 경로다. UTF-8 JSON의 field/type을 엄격히 검사하고 unknown field·coercion·fallback·자동 key 생성을 허용하지 않는다. PEM 줄바꿈은 JSON escape로 전달한다.
 - accounts는 DB·PORT를 환경변수로 받으며 AUTH_TRUST_PROXY로 proxy 단계를 지정한다. Neople key는 API만 받는다. 파일은 배포가 실행 주체만 읽도록 저장소·image·log 밖에 준비한다. API는 파일 생성·권한 변경·secret manager 호출을 하지 않는다. 설정 교체는 새 파일 준비 후 process 재시작으로 적용한다.
 - `LOCAL_HTTPS_CERT_FILE`·`LOCAL_HTTPS_KEY_FILE`은 함께 지정하는 선택적 개발 PEM 입력이다. 절대 경로·읽기·PEM/key 일치·localhost origin/PORT를 검증하고 `127.0.0.1`에서 HTTPS로만 listen한다. 실행 담당이 인증서 발급·신뢰를 준비하며 TLS 검증을 끄지 않는다. 제품 패스키 개발 주소는 `https://localhost:<PORT>`다.
@@ -107,4 +107,4 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 
 탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.
 
-인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 기존 데이터의 단일 복사 절차는 [accounts 배포](../../deploy/accounts/README.md)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.
+인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [accounts 배포](../../deploy/accounts/README.md)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.

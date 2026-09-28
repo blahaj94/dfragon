@@ -16,10 +16,6 @@ export async function passkeyPage(authorization: LoginAuthorization) {
   const values: Record<string, string> = {
     nonce,
     requestId: authorization.requestId,
-    handoffOrigin: authorization.handoffOrigin ?? authorization.legacyOrigin ?? '',
-    legacy: authorization.legacy ? 'true' : '',
-    migration: authorization.migration ? 'true' : '',
-    legacyOrigin: authorization.legacyOrigin ?? '',
     purpose: authorization.purpose,
     view: authorization.view === 'phone' ? 'phone' : 'desktop',
     confirmationCode: authorization.confirmationCode ?? '',

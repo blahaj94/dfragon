@@ -8,7 +8,6 @@ import type { WindowsProfileSecurity } from './windows-profile-native'
 
 export type AuthRuntimeConfig = Readonly<{
   apiOrigin: string
-  legacyOrigin?: string
   returnTarget: string
   environment: string
   providers: readonly AuthProvider[]
@@ -315,7 +314,6 @@ export function readAuthRuntimeConfig(
   pathSemantics: RuntimePathSemantics = nativeRuntimePathSemantics
 ): AuthRuntimeConfig | null {
   const apiOrigin = readRequiredText(environment, 'DFRAGON_AUTH_API_ORIGIN')
-  const legacyOrigin = readRequiredText(environment, 'DFRAGON_AUTH_LEGACY_ORIGIN')
   const returnTarget = readRequiredText(environment, 'DFRAGON_AUTH_RETURN_TARGET')
   const profile = readRequiredText(environment, 'DFRAGON_AUTH_ENVIRONMENT')
   const providers = readProviders(environment)
@@ -351,9 +349,6 @@ export function readAuthRuntimeConfig(
 
   try {
     validateApiOrigin(apiOrigin)
-    if (legacyOrigin !== null) {
-      validateApiOrigin(legacyOrigin)
-    }
     validateReturnTarget(returnTarget)
   } catch {
     return null
@@ -365,8 +360,7 @@ export function readAuthRuntimeConfig(
     environment: profile,
     providers,
     appIdentity,
-    userDataPath,
-    ...(legacyOrigin !== null ? { legacyOrigin } : {})
+    userDataPath
   }
 }
 

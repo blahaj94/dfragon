@@ -43,7 +43,7 @@ export async function exchangeLogin(deps: LoginDependencies, input: unknown): Pr
       throw invalid()
     }
     const key = await manager.getRepository(PasskeySchema).findOne({
-      where: { id: row.credentialId!, userId: user.id },
+      where: { id: row.credentialId!, userId: user.id, rpId: deps.configuration.rpId },
       lock: { mode: 'pessimistic_write' }
     })
     if (key == null || exchangeExpired(row, await freshTime(manager))) {

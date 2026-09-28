@@ -50,7 +50,7 @@ TLS 파일의 key 일치·localhost/port 입력을 listen 전에 확인하며 cl
 
 Desktop 개발 build에는 두 주소가 각각 포함된다. 설치형 배포는 `DFRAGON_DISTRIBUTION_API_ORIGIN`과
 별도 `DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN`을 사용한다. Shell 기반 구성의 검색은 `DFRAGON_API_ORIGIN`,
-인증은 기존 이름인 `DFRAGON_AUTH_API_ORIGIN`으로 구분하며 legacy 이동 허용은 `DFRAGON_AUTH_LEGACY_ORIGIN`이다.
+인증은 기존 이름인 `DFRAGON_AUTH_API_ORIGIN`으로 구분한다. 인증 창은 해당 origin만 허용한다.
 별도 Node client의 개발 CA는 실행 전 `NODE_EXTRA_CA_CERTS`에 공개 CA certificate를 지정한다.
 Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 않는다.
 
@@ -61,6 +61,6 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 정상 종료와 부분 초기화 실패에서 앱과 소유 DB를 정리하며 SIGKILL·host 장애는 즉시 cleanup을 보장하지 않는다.
 
 `pnpm --filter @dfragon/api test`는 domain HTTP·설정과 build를, `test:database`는 domain schema·cache·검색을 검증한다.
-accounts의 같은 명령은 인증 HTTP·key·session·설정과 build, 별도 PostgreSQL·migration·복사·두 RP 브라우저·QR을 검증한다.
+accounts의 같은 명령은 인증 HTTP·key·session·설정과 build, 별도 PostgreSQL·migration·이전 RP 정리·현재 RP 브라우저·QR을 검증한다.
 DB suite에는 Docker와 Playwright Chromium이 필요하다. 운영 실행은 [API 배포](../../deploy/api/README.md)와
 [accounts/기존 인증 이전](../../deploy/accounts/README.md)을 따른다. 로컬 성공은 실제 DNS/TLS·기기 패스키 검증을 대신하지 않는다.

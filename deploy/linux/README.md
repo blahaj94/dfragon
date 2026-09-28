@@ -10,7 +10,7 @@ OCR 교체는 메모리 로그인 세션을 종료하므로 브라우저에서 �
 
 ## 처음 설치
 
-Ubuntu 24.04, Python 3.12, Docker Compose, Git, OpenSSH와 연결된 Tailscale이 필요합니다. 기존 서비스가 `dfragon-api:<40자 SHA>`, `dfragon-accounts:<40자 SHA>`, `dfragon-ocr:<40자 SHA>`로 실행되고 있어야 합니다. 기존 API의 `deploy/api/.env` 및 `/etc/dfragon/accounts.env`, `/etc/dfragon/ocr.env`를 보존하며 API 환경 파일만 `/etc/dfragon/api.env`로 복사합니다. 아직 accounts를 분리하지 않았다면 먼저 아래의 최초 분리 절차를 따릅니다.
+Ubuntu 24.04, Python 3.12, Docker Compose, Git, OpenSSH와 연결된 Tailscale이 필요합니다. 기존 서비스가 `dfragon-api:<40자 SHA>`, `dfragon-accounts:<40자 SHA>`, `dfragon-ocr:<40자 SHA>`로 실행되고 있어야 합니다. 기존 API의 `deploy/api/.env` 및 `/etc/dfragon/accounts.env`, `/etc/dfragon/ocr.env`를 보존하며 API 환경 파일만 `/etc/dfragon/api.env`로 복사합니다. 인증 DB는 별도 accounts PostgreSQL로 준비되어 있어야 합니다.
 
 검토한 checkout에서 **배포용으로 새로 만든 Ed25519 공개 키**로 설치합니다. 개인 관리용 SSH 키를 CI에 재사용하지 않습니다.
 
@@ -67,7 +67,7 @@ Host key는 기존 신뢰한 관리자 SSH 연결에서 확인합니다. CI에�
 
 - API·accounts의 database 코드·migration·grant·DB 초기화 및 API 이름 이전 SQL
 - OCR의 SQLite store 구현
-- Compose 구성과 accounts import 구성·cleanup unit
+- Compose 구성과 cleanup unit
 
 이 경우 `verify-compatibility`에서 멈춥니다. 운영자가 데이터 영향과 새 구성을 검토하고 해당 서비스의 명시적 migration·배포·검증을 마친 뒤 기준 상태를 실제 실행 버전으로 갱신해야 합니다. 임의로 비교만 통과시키거나 새 빈 volume을 기존 데이터 대신 사용하지 않습니다.
 
@@ -88,9 +88,9 @@ sh -n deploy/linux/ssh-command.sh
 
 비밀 설정 보존, 변경 서비스 판정, CI 없는 요청 거절, schema·Compose 변경 차단, readiness 실패 시 해당 service만 복귀하는 경계를 검증합니다. 실제 Tailscale OIDC·SSH·systemd·운영 교체 성공은 별도의 배포 실행으로 확인합니다.
 
-## accounts 최초 분리
+## accounts schema 변경
 
 서비스 목록은 api/accounts/ocr다. API readiness는 `/health` 200, accounts는 `/me` 401을 사용한다.
-accounts가 없는 기존 state 또는 schema/topology 변경은 자동 배포를 거절한다. 최초 DB 복사·proxy·OCR 전환·
-cleanup source와 root helper/state 갱신은 [accounts 이전 절차](../accounts/README.md)에서 운영자가 수행한다.
-이미 target에서 쓰기가 시작된 뒤 분리 전 source로 자동 복귀하지 않는다. 이후 cleanup timer는 accounts release를 따른다.
+accounts가 없는 state 또는 schema/topology 변경은 자동 배포를 거절한다. 이전 패스키 경로 종료의
+명시적 migration·secret 설정·proxy·root helper/state 갱신은 [accounts 배포](../accounts/README.md)에서
+운영자가 수행한다. 일반 image rollback으로 삭제된 인증 데이터를 복원하지 않는다.

@@ -33,13 +33,13 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 
 ## OCR 관리 웹의 선택 연결
 
-기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 기존 RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 API는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [OCR 배포 안내](../../deploy/ocr/README.md)를 따른다.
+기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 accounts RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 accounts는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [OCR 배포 안내](../../deploy/ocr/README.md)를 따른다.
 
 ## accounts 분리
 
 현재 코드의 인증 서비스는 `apps/accounts`이며 검색은 `apps/api`에 남는다. 운영 적용 절차와
-기존 RP 유지·새 RP 추가·동일 UUID·Desktop 재로그인·OCR origin 전환은 [accounts 배포](../../deploy/accounts/README.md)를 따른다.
-아래 Windows 기록은 이전 revision의 확인 이력이며 이번 두 RP 이전이나 별도 DB 운영 검증을 뜻하지 않는다.
+accounts 단일 RP·이전 로그인 경로 종료와 DB 정리는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.
+아래 Windows 기록은 이전 revision의 확인 이력이며 현재 accounts 배포나 이전 경로 종료 검증을 뜻하지 않는다.
 
 ## Windows 실기기 확인
 

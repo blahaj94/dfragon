@@ -254,6 +254,12 @@ test('build entry rejects malformed authentication JSON and exact binding violat
         }
       ],
       [
+        'retired legacy origin config',
+        (c) => {
+          c.passkey.legacyOrigin = 'https://api.example.test'
+        }
+      ],
+      [
         'unknown passkey config',
         (c) => {
           c.passkey.secret = 'forbidden'
