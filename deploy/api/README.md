@@ -6,6 +6,33 @@ Docker Engine과 Compose로 API·PostgreSQL을 실행하고, 호스트의 Caddy�
 
 초기 배포 후 main의 CI 성공을 자동 반영하는 구성은 [Linux 자동배포](../linux/README.md)를 따른다.
 
+## 이미지 실행 계약
+
+[제품 CI 이미지](../../README.md#서버-이미지)는 기존 `deploy/api/Dockerfile`로 만들며
+UID/GID `1000:1000`의 `node` 사용자로 실행한다. 아래는 이미지 자체의 입력이다.
+
+- `PORT`(현재 3000), `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_NAME`을 반드시 지정한다.
+  `EXPOSE 3000`은 `PORT`의 기본값을 설정하지 않는다.
+- `/run/secrets/db_password`를 읽을 수 있게 mount한다. 기존 entrypoint가 이를
+  `DB_PASSWORD`로 전달하므로 환경변수만 제공해서는 실행되지 않는다.
+- `NEOPLE_API_KEY` 또는 `/run/secrets/neople_api_key`가 필수다. 파일이 있으면 그 값이 우선한다.
+  `SEARCH_TRUST_PROXY`는 생략하거나 기존 단일 proxy 구성에서만 `single-hop`을 사용한다.
+- `GET /health`의 200·`{"status":"ok"}`는 HTTP 시작 확인이다. 요청마다 DB·Neople 연결을
+  재검사하는 readiness는 아니며, 검색 성공 검증과 구분한다.
+
+이미지의 기본 CMD는 `node --import reflect-metadata dist/main.js`다. 시작 시 migration을
+자동 실행하지 않는다. Migration은 같은 이미지의 CMD를 다음으로 바꿔 명시 실행한다.
+기존 entrypoint와 DB 설정·DB secret mount를 유지하고 해당 DB의 migrator 역할을 제공한다.
+CLI에는 `PORT`·Neople key가 필요하지 않으며 runtime 이미지 안에서 pnpm build를 실행하지 않는다.
+
+```sh
+node --import reflect-metadata dist/database/cli.js up
+node --import reflect-metadata dist/database/cli.js show
+```
+
+`down`도 CLI가 지원하지만 자동 rollback 명령으로 사용하지 않는다. API에는 cleanup CLI가 없다.
+이미지 빌드에는 운영 설정·secret·실데이터를 제공하지 않는다.
+
 ## 연결과 권한
 
 - Caddy → `127.0.0.1:3000` → API. 공유기에는 Caddy의 TCP 80·443만 DFRAGON용으로 전달한다.

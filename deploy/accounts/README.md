@@ -10,6 +10,36 @@ API runtime에는 accounts DB 네트워크·비밀번호·JWT 개인키를 제�
 전체 계정의 accounts RP 이전 완료에 따라 이전 API 주소의 로그인·RP 이전 UI·handoff·proxy를 제거한다.
 이 문서는 사용자 merge 후 운영자가 실행할 절차다. 코드 검증과 실제 운영 적용은 구분한다.
 
+## 이미지 실행 계약
+
+[제품 CI 이미지](../../README.md#서버-이미지)는 기존 `deploy/accounts/Dockerfile`로 만들며
+UID/GID `1000:1000`의 `node` 사용자로 실행한다.
+
+- `PORT`(컨테이너 내부 3000), `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_NAME`이 필수다.
+  `EXPOSE 3000`은 `PORT` 기본값이 아니다. 기존 host port 3200과 구분한다.
+- `/run/secrets/db_password`를 읽을 수 있게 mount한다. 기존 entrypoint가 `DB_PASSWORD`로
+  전달하므로 환경변수만 제공해서는 실행되지 않는다.
+- `AUTH_CONFIG_FILE`은 mount한 인증 JSON의 절대 경로다. `accessJwt`·`passkey`와 기존
+  issuer/audience/key set·RP 설정을 제공하며 OCR 로그인에는 `passkey.ocrReturnUrl`이 필요하다.
+  형식은 [패스키 실행 안내](../../docs/reference/passkey-authentication.md)를 따른다.
+  `AUTH_TRUST_PROXY`는 생략하거나 기존 단일 proxy 구성에서만 `single-hop`을 사용한다.
+- 인증 헤더 없는 `GET /me`의 401은 기존 배포에서 사용하는 HTTP 시작 확인이다.
+  DB·인증 연동을 매번 확인하는 전용 readiness endpoint는 아니다.
+
+기본 CMD는 `node --import reflect-metadata dist/main.js`이며 시작 시 migration을 자동 실행하지
+않는다. 다음 명령은 같은 이미지의 CMD를 대체하며 entrypoint와 DB 입력·secret mount를 유지한다.
+Migration에는 accounts DB의 migrator 역할, cleanup에는 기존 accounts runtime 역할을 제공한다.
+CLI에는 `PORT`·인증 JSON이 필요하지 않으며 runtime 이미지에서 pnpm build를 실행하지 않는다.
+
+```sh
+node --import reflect-metadata dist/database/cli.js up
+node --import reflect-metadata dist/database/cli.js show
+node --import reflect-metadata dist/auth/cleanup/cli.js
+```
+
+Migration `down`은 지원하지만 자동 rollback으로 사용하지 않는다. Cleanup은 기존 보관·삭제
+정책을 실행하므로 스케줄과 실행 선택은 인프라가 담당한다. 운영 secret·실데이터는 빌드 입력이 아니다.
+
 ## 설정
 
 `/etc/dfragon/accounts.env`에는 다음 비밀이 아닌 선택을 둔다. API/OCR 환경 파일은 각각 유지한다.
