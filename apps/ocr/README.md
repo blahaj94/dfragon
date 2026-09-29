@@ -14,7 +14,7 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 ## 이미지 실행 계약
 
-입력·포트·readiness·저장 조건은 [제품 이미지 실행 계약](../../README.md#ocr)을 따릅니다.
+입력·포트·readiness·저장 조건은 [제품 이미지 실행 계약](../../docs/reference/api-start-development.md#ocr)을 따릅니다.
 
 ## 관리 화면
 
