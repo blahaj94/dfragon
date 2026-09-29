@@ -9,6 +9,7 @@ export const OCR_ERROR_CODE = {
   CAPTURE_ID_CONFLICT: 'CAPTURE_ID_CONFLICT',
   MODEL_ID_CONFLICT: 'MODEL_ID_CONFLICT',
   LABEL_SPLIT_CHANGE: 'LABEL_SPLIT_CHANGE',
+  SPLIT_PREVIEW_STALE: 'SPLIT_PREVIEW_STALE',
   UPLOAD_TOO_LARGE: 'UPLOAD_TOO_LARGE',
   UPLOAD_BUSY: 'UPLOAD_BUSY',
   LOGIN_LIMIT: 'LOGIN_LIMIT',
@@ -27,6 +28,10 @@ export const OCR_ERRORS = {
   METHOD_NOT_ALLOWED: { status: 405, message: '지원하지 않는 요청입니다.' },
   CAPTURE_ID_CONFLICT: { status: 409, message: '같은 캡처 ID로 다른 자료가 저장되어 있습니다.' },
   MODEL_ID_CONFLICT: { status: 409, message: '같은 모델 ID로 다른 파일이 등록되어 있습니다.' },
+  SPLIT_PREVIEW_STALE: {
+    status: 409,
+    message: '미리보기 이후 자료나 설정이 바뀌었습니다. 다시 미리보기해 주세요.'
+  },
   LABEL_SPLIT_CHANGE: { status: 409, message: '정답을 바꾸면 이 이미지의 분할이 변경됩니다.' },
   UPLOAD_TOO_LARGE: { status: 413, message: '이미지 파일이 너무 큽니다.' },
   UPLOAD_BUSY: { status: 429, message: '다른 업로드가 진행 중입니다. 잠시 후 재시도해 주세요.' },

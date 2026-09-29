@@ -686,3 +686,77 @@ test('raid rows 10 through 12 use the protected dataset, browser labeling, filte
     await f.close()
   }
 })
+
+test('automatic split preview and apply require owner cookie and Origin; stale previews cannot mutate assignments', async () => {
+  const f = await fixture()
+  try {
+    const { cookie } = await f.login()
+    const headers = { Cookie: cookie!, Origin: origin, 'Content-Type': 'application/json' }
+    const data = upload()
+    await fetch(`${f.base}/api/captures`, { method: 'POST', headers, body: JSON.stringify(data) })
+    const save = (text: string) =>
+      fetch(`${f.base}/api/samples/${data.id}-1`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ text, excluded: false })
+      })
+    await save('검사★龍')
+    const body = { ratios: { train: 70, val: 15, test: 15 }, replaceExisting: false }
+    for (const path of ['preview', 'apply']) {
+      assert.equal(
+        (
+          await fetch(`${f.base}/api/splits/${path}`, {
+            method: 'POST',
+            headers: {
+              Origin: origin,
+              'Content-Type': 'application/json',
+              Authorization: 'Bearer synthetic.desktop.token'
+            },
+            body: JSON.stringify(body)
+          })
+        ).status,
+        401
+      )
+      assert.equal(
+        (
+          await fetch(`${f.base}/api/splits/${path}`, {
+            method: 'POST',
+            headers: { Cookie: cookie!, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
+        ).status,
+        403
+      )
+    }
+    const previewResponse = await fetch(`${f.base}/api/splits/preview`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body)
+    })
+    assert.equal(previewResponse.status, 200)
+    const preview = await previewResponse.json()
+    assert.equal(preview.before.total.characters, 4)
+    const apply = (fingerprint: string) =>
+      fetch(`${f.base}/api/splits/apply`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ ...body, fingerprint })
+      })
+    await save('다른★龍')
+    assert.equal((await apply(preview.fingerprint)).status, 409)
+    const fresh = await (
+      await fetch(`${f.base}/api/splits/preview`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      })
+    ).json()
+    assert.equal((await apply(fresh.fingerprint)).status, 200)
+    assert.equal(
+      (await (await fetch(`${f.base}/api/splits/statistics`, { headers })).json()).initialized,
+      true
+    )
+  } finally {
+    await f.close()
+  }
+})

@@ -8,7 +8,8 @@ export const ocrKeys = {
   session: ['ocr', 'session'] as const,
   dataset: ['ocr', 'dataset'] as const,
   samples: (filters: SampleFilters) => ['ocr', 'dataset', 'samples', filters] as const,
-  stats: ['ocr', 'dataset', 'stats'] as const
+  stats: ['ocr', 'dataset', 'stats'] as const,
+  splitStats: ['ocr', 'dataset', 'split-statistics'] as const
 }
 
 export function createOcrQueryClient() {
