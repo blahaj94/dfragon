@@ -87,4 +87,4 @@ source의 인증 table을 제거한다. Domain data와 migration history는 삭�
 기기·패스키 제공자에 저장된 이전 키는 서버가 원격 삭제할 수 없다.
 
 제품의 삭제 전제는 [인증 DB 계약](auth-database.md#별도-accounts-db와-이전-종료)을 유지한다.
-실행·복구 절차는 [인프라 책임](../../README.md#서버-이미지)이며 제품 변경 승인이 운영 실행을 대신하지 않는다.
+실행·복구 절차는 [인프라 책임](../reference/api-start-development.md#서버-이미지)이며 제품 변경 승인이 운영 실행을 대신하지 않는다.

@@ -19,7 +19,7 @@ last-reviewed: 2026-09-28
 | 기존 구현·표준 API·패키지 선택 | [코드 재사용](rules/code-reuse.md) |
 | formatter/linter 설정과 생성물 경계 | [도구 적용](rules/convention-tooling.md) |
 | 설명과 GitHub 글 | [작성 기준](rules/writing.md) |
-| 제품 이미지 실행·인프라 운영 원본 | [서버 이미지 안내](../README.md#서버-이미지) |
+| 제품 이미지 실행·인프라 운영 원본 | [서버 이미지 안내](reference/api-start-development.md#서버-이미지) |
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app·package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime·검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
@@ -64,7 +64,7 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 탈퇴 D1–D5의 [기존 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)은 이력으로 보존한다. 삭제 확정·보관·복원 정책은 유지하며 패스키 탈퇴의 재인증·재가입 경합 설계와 API 구현은 후속이다. 문서 승인을 제품 구현·운영/복원 검증으로 해석하지 않는다.
 
 삭제·보관과 공개 복원의 제품 안전조건은 [탈퇴·삭제·복원 계약](rules/auth-withdrawal-proposal.md)을 따른다.
-배치·서버 권한·backup·복구 실행 절차는 [인프라 책임](../README.md#서버-이미지)이며 제품 개발의 필수 읽기로 요구하지 않는다.
+배치·서버 권한·backup·복구 실행 절차는 [인프라 책임](reference/api-start-development.md#서버-이미지)이며 제품 개발의 필수 읽기로 요구하지 않는다.
 과거 운영 설계의 승인은 실제 환경 확보·실행 성공을 대신하지 않는다.
 
 ### Desktop authentication contract routing

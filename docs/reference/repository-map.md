@@ -53,7 +53,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
 - 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정·JWT·계정 DB를 사용하지 않는다.
 - `test`는 build·타입·단위·HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration·검색·캐시를 검증한다.
-- 개발: [API 개발](api-start-development.md). 이미지 실행·운영 책임: [제품 안내](../../README.md#서버-이미지).
+- 개발: [API 개발](api-start-development.md). 이미지 실행·운영 책임: [제품 안내](api-start-development.md#서버-이미지).
 
 ### `apps/accounts`
 
@@ -64,7 +64,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - `database/retire-api-*.sql`은 이전 인증 사본·RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
 - 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
 - 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
-- 이미지 실행·운영 책임은 [제품 안내](../../README.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
+- 이미지 실행·운영 책임은 [제품 안내](api-start-development.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
 - 양쪽 runtime은 시작할 때 schema migration을 자동 실행하지 않는다. `/docs`와 `/docs/openapi.json`도 각각 자기 서비스의 HTTP 계약만 제공한다.
 
 ### `apps/web`
@@ -116,7 +116,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - `src`: 서버·기존 패스키 API 연결·원본/정답 저장·PNG 크롭·TAR 다운로드. `browser`: 관리 SPA.
 - 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
 - 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.
-- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행·운영 책임: [제품 안내](../../README.md#서버-이미지).
+- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행·운영 책임: [제품 안내](api-start-development.md#서버-이미지).
 
 ## Shared UI
 

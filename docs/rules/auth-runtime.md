@@ -82,12 +82,12 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 
 ## accounts의 배포 설정 입력
 
-단일 secret JSON 파일을 시작 때 한 번 읽는 경계는 [PR #128](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)의 승인 이력을 유지한다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
+인증 JSON을 시작 때 한 번 읽는 경계는 [PR #128](https://github.com/blahaj94/ldb/pull/128#issuecomment-5572382154)의 승인 이력을 유지한다. 현재 파일은 `accessJwt`와 `passkey` 두 object만 받는다. JWT 개인키는 기존 JSON 또는 외부 비밀값 입력 중 하나로 제공한다. 설정 예제는 [패스키 실행 안내](../reference/passkey-authentication.md)를 따른다.
 
-- `accessJwt`: issuer·audience·signingKey(kid/privateKeyPem)·verificationKeys(kid/publicKeyPem 배열). 기존 issuer/verifier를 사용하고 정상 key 교체·복원 예외는 [세션](auth-session.md)을 따른다.
+- `accessJwt`: issuer·audience·signingKey(kid/privateKeyPem)·verificationKeys(kid/publicKeyPem 배열). `AUTH_JWT_PRIVATE_KEY` 또는 `AUTH_JWT_PRIVATE_KEY_FILE`을 쓰면 signingKey에는 kid만 두며 JSON의 privateKeyPem과 함께 제공하면 거절한다. 기존 issuer/verifier와 키 일치 검증을 사용하고 정상 key 교체·복원 예외는 [세션](auth-session.md)을 따른다.
 - `passkey`: apiOrigin·rpId·rpName·returnUrl과 선택 ocrReturnUrl. HTTPS exact origin, 같은 hostname의 RP ID와 허용된 앱 복귀 주소를 검증한다. 설정 fingerprint가 바뀌면 기존 transient 요청을 거절한다. 인증은 [accounts 단일 origin](auth-passkeys.md#accounts-단일-인증-origin과-이전-종료)만 사용하며 이전 origin 설정은 허용하지 않는다.
 - `AUTH_CONFIG_FILE`은 절대 경로다. UTF-8 JSON의 field/type을 엄격히 검사하고 unknown field·coercion·fallback·자동 key 생성을 허용하지 않는다. PEM 줄바꿈은 JSON escape로 전달한다.
-- accounts는 DB·PORT를 환경변수로 받으며 AUTH_TRUST_PROXY로 proxy 단계를 지정한다. Neople key는 API만 받는다. 파일은 배포가 실행 주체만 읽도록 저장소·image·log 밖에 준비한다. API는 파일 생성·권한 변경·secret manager 호출을 하지 않는다. 설정 교체는 새 파일 준비 후 process 재시작으로 적용한다.
+- accounts는 DB·PORT를 환경변수로 받으며 AUTH_TRUST_PROXY로 proxy 단계를 지정한다. DB 비밀번호는 `DB_PASSWORD` 또는 절대 경로의 `DB_PASSWORD_FILE`로 받는다. JWT 개인키도 직접 입력 또는 절대 경로 파일 중 하나를 사용하며, 같은 값의 두 입력이 함께 있거나 비어 있으면 거절한다. Neople key는 API만 받는다. 파일은 배포가 실행 주체만 읽도록 저장소·image·log 밖에 준비한다. 앱은 파일 생성·권한 변경·secret manager 호출을 하지 않는다. 설정 교체는 process 재시작으로 적용하며 DB 역할의 비밀번호 변경을 대신하지 않는다.
 - `LOCAL_HTTPS_CERT_FILE`·`LOCAL_HTTPS_KEY_FILE`은 함께 지정하는 선택적 개발 PEM 입력이다. 절대 경로·읽기·PEM/key 일치·localhost origin/PORT를 검증하고 `127.0.0.1`에서 HTTPS로만 listen한다. 실행 담당이 인증서 발급·신뢰를 준비하며 TLS 검증을 끄지 않는다. 제품 패스키 개발 주소는 `https://localhost:<PORT>`다.
 - 모든 설정과 key를 DB 초기화·listen 전에 검증한다. 오류 원문·값·경로·stack 대신 고정 실패 메시지와 nonzero exit만 남긴다. 시작 시 migration이나 외부 인증을 자동 실행하지 않는다.
 - 정상 종료·signal·부분 초기화·listen 실패에서 이번 앱·검색 취소를 먼저 시도한 뒤 DB 연결을 정리한다. 앱 종료 실패가 DB 정리를 생략하게 하지 않는다. 강제 종료·host 장애의 즉시 정리는 보장하지 않는다.
@@ -98,7 +98,7 @@ HTTP 합성과 기존 계정·검색 deadline은 유지한다. 제품의 인증 
 
 API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body/deadline 정책은 승인됐다. PostgreSQL server·image·local validation 선택의 상태와 evidence는 위 canonical 구간만 따른다. 선택 승인 여부와 별개로 다음 미정이 필요한 구현은 별도 결정/검증을 완료해야 한다.
 
-- 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 실행 절차는 [인프라 책임](../../README.md#서버-이미지), 삭제·복원 조건은 [제품 계약](auth-withdrawal-proposal.md)을 따름
+- 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 실행 절차는 [인프라 책임](../reference/api-start-development.md#서버-이미지), 삭제·복원 조건은 [제품 계약](auth-withdrawal-proposal.md)을 따름
 - 실제 선택한 dependency 조합의 compiled ESM/TypeScript/runtime compatibility
 - 실제 인증 HTTPS origin·RP ID·앱 protocol과 Electron OS 저장/IPC·browser/OS 검증. Desktop의 남은 platform 조건은 [Desktop contract](desktop-auth.md)를 따름
 
@@ -107,4 +107,4 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 
 탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.
 
-인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.
+인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [인프라 운영 절차](../reference/api-start-development.md#서버-이미지)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.

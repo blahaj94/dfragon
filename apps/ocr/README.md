@@ -10,7 +10,7 @@ pnpm --filter @dfragon/ocr build
 pnpm --filter @dfragon/ocr start
 ```
 
-Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [제품 이미지·인프라 책임 안내](../../README.md#서버-이미지)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
+Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [제품 이미지·인프라 책임 안내](../../docs/reference/api-start-development.md#서버-이미지)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
 
 ## 이미지 실행 계약
 
@@ -68,7 +68,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 `metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned" | "expanded", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned·expanded는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. finetuned의 사전 해시는 시작 모델과 같아야 합니다. expanded는 부모 사전의 모든 문자가 같은 순서로 앞부분에 남고 새 문자가 뒤에 추가된 경우만 허용합니다. 서버는 가중치를 실행하지 않습니다.
 
-파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../README.md#서버-이미지)를 함께 적용해야 합니다.
+파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../docs/reference/api-start-development.md#서버-이미지)를 함께 적용해야 합니다.
 
 ### 데이터와 로그인
 

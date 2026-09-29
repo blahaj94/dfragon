@@ -74,4 +74,4 @@ Disposable down은 빈 임시 table 구조만 복원하며 삭제된 이전 요�
 보유하는지 같은 transaction의 쓰기 잠금 아래 확인하며, 한 명이라도 부족하면 전체 삭제를 거절한다.
 중지된 API DB의 오래된 인증 사본은 모든 source UUID와 accounts의 현재 RP 키를 대조한 뒤에만
 제거한다. DB 이름·source schema·runtime 권한을 확인하고 예상 밖 FK가 있으면 CASCADE 없이 중단한다.
-운영 schema down이나 오래된 source 복원으로 되돌리지 않는다. 구현은 `apps/accounts/database/retire-api-*.sql`에 보존하고 실행 순서는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다.
+운영 schema down이나 오래된 source 복원으로 되돌리지 않는다. 구현은 `apps/accounts/database/retire-api-*.sql`에 보존하고 실행 순서는 [인프라 운영 절차](../reference/api-start-development.md#서버-이미지)를 따른다.
