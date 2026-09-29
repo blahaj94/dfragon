@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-29
 ---
 
 # Architecture Overview
@@ -57,7 +57,7 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 위 승인은 서버 인증/DB contract 범위다. 추가로 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)으로 Desktop main/IPC/화면, 인증 lifecycle, OS 저장·protocol 설계가 승인됐다. Canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
 
-탈퇴 D1–D5는 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 현재 [인증 운영 구성](auth-operations-proposal.md)은 한 운영자·단일 서버를 허용하고 공개 복원을 선택 기능으로 분리한다. [PR #132](https://github.com/blahaj94/ldb/pull/132)의 3대·journal/witness 설계는 이전 결정 이력이며 새 기능의 기본 착수 조건이 아니다. 공개 복원을 제공할 때는 [운영 검증 기준](auth-operations-validation-proposal.md)의 삭제 보존·최신성·옛 자격 폐기 조건을 충족한다.
+탈퇴 D1–D5와 공개 복원의 삭제 보존·최신성·옛 자격 폐기 조건은 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 한 운영자·단일 서버를 허용하고 공개 복원은 선택 기능으로 유지한다. API/accounts와 각각의 PostgreSQL·volume·역할 분리는 유지하며 같은 host의 분리를 물리 장애 격리로, 같은 운영자의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다. 서버 배치·배포·백업·복구 실행은 [저장소 책임 경계](../../README.md#서버-이미지)의 인프라 담당 범위다. [PR #132](https://github.com/blahaj94/ldb/pull/132)의 3대·journal/witness 설계는 이전 결정 이력이며 새 기능의 기본 착수 조건이 아니다.
 
 설계와 실제 구현·환경 검증을 구분한다. 현재 사용자 요청에 포함된 구현·비운영 검증에는 과거 설계 작업의 착수 제외를 다시 적용하지 않는다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential·인증 도메인 설정·운영 DB·배포 권한과 유효한 명시적 금지는 유지한다.
 

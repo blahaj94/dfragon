@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: account deletion retention and recovery; passkey withdrawal integration pending
-last-reviewed: 2026-09-16
+last-reviewed: 2026-09-29
 ---
 
 # 탈퇴·삭제·복원 Contract
@@ -19,11 +19,15 @@ last-reviewed: 2026-09-16
 
 패스키 탈퇴를 구현할 때 withdrawal 전용 purpose의 새 challenge·UV·동일 user 확인, 현재 session·credential 삭제 경합, 상태/receipt API와 마지막 키 상실 시 접근 불가를 함께 설계한다. 로그인 또는 관리 인증을 탈퇴 동의로 재사용하지 않는다. 이번 문서 정리는 그 endpoint나 schema를 채택하거나 구현하지 않는다.
 
-MVP에서는 [인증 운영 구성](../architecture/auth-operations-proposal.md)에 따라 한 운영자·단일 서버와 선택적 공개 복원을 허용한다. D1의 durable intent·이전 writer 차단, D4의 보관·삭제, D5의 사본 기한은 유지한다. 공개 복원을 제공하지 않아도 만든 사본의 보관·폐기 조건은 적용한다. 검증할 수 없는 auth 사본을 복원해 공개하지 않는다.
+백업 생성과 백업에서 복원한 auth DB의 공개는 별개이며 공개 복원은 선택 기능이다. D1의 durable intent·이전 writer 차단, D4의 보관·삭제, D5의 사본 기한은 유지한다. 공개 복원을 제공하지 않아도 만든 사본의 보관·폐기 조건은 적용한다. 검증할 수 없는 auth 사본을 복원해 공개하거나 복구 가능성·RPO/RTO를 약속하지 않는다. 복원 기능 미제공에 따른 데이터 손실·서비스 중단 가능성도 실제 제공 범위와 함께 알린다.
+
+서버 배치·운영 권한·백업·복구 실행은 [저장소 책임 경계](../../README.md#서버-이미지)의 인프라 담당 범위다. [PR #132의 이전 운영 설계](https://github.com/blahaj94/ldb/pull/132)는 이력으로 보존하며 장비·운영 인원·전체 장애 matrix를 제품 기능의 기본 착수 조건으로 요구하지 않는다.
 
 ## 확정·권한·시간 경계
 
 `T`는 잠금 뒤 fresh UTC whole-second이며 모든 TTL은 `T >= expires_at`에 거절한다. 재인증 자격은 생성부터 600초다. 그 안에 준비한 journal 결과는 만료 이후에도 판정하되 새 인증 권한을 연장하지 않는다.
+
+실제 시각이 불명확하면 영향받는 만료·삭제·복원 판정을 보류한다. 실행 자격은 목적별 최소 권한으로 나누며 API runtime에 DDL·호스트 관리자·백업 복호화 권한을 제공하지 않는다. DB 연결의 외부 공개를 제한하고 선택 환경의 신원·암호화·접근 제어를 적용한다. Secret은 source·image·dump·일반 log에 포함하지 않는다. 설정 입력과 명시 Migration은 [인증 runtime](auth-runtime.md)을 따른다.
 
 탈퇴 생성은 유효 JWT와 존재·소유·활성·idle 미만료 user/session을 요구한다. 대상 UUID와 session은 서버가 결정한다. 닉네임이나 client가 제출한 계정 ID는 삭제 대상 증명이 아니다. 한 user의 미완결 요청은 최대 하나다. Preparing 진입 직전에도 원 session의 존재·소유·활성·idle 미만료를 관련 잠금 뒤 fresh T로 다시 확인한다. 그 전에 logout이 완료됐다면 준비와 삭제를 거절한다. Preparing 뒤 logout은 이미 검증된 준비의 journal 판정과 확정된 삭제 obligation을 취소하지 않는다.
 
@@ -33,11 +37,15 @@ MVP에서는 [인증 운영 구성](../architecture/auth-operations-proposal.md)
 
 Intent는 `(deletionId, oldUserId, preparedAt)`과 순서를 가진다. ACK 유실은 같은 ID 조회로 판정하고 intent가 authority다. SQL DELETE·필요한 개인 데이터 cascade·결과 commit을 확인한 뒤만 completed를 표시한다. Receipt가 없어도 확정된 삭제 obligation은 완료하며 old UUID 외의 새 계정을 삭제하지 않는다. DB 장애·commit 불명·앱 종료는 성공이나 취소의 근거가 아니다.
 
+Durable 성공은 저장소의 transaction commit·flush 계약과 오류 처리로 판단한다. 메모리 ACK나 비동기 미확정 write를 탈퇴 확정으로 사용하지 않는다. 단일 writer·잠금·멱등성과 재시작 판정을 유지하며 검증하지 않은 물리 내구성이나 공동 손실 복구를 보장하지 않는다.
+
 패스키 전용 request → user → credential과 기존 user → session → refresh 잠금에 탈퇴를 합성하는 실제 순서는 후속 경합 설계·독립 검토로 확정한다. 기존 외부 identity lock을 이름만 바꿔 재사용하지 않는다. Preparing 뒤 계정 기능·refresh는 차단하며 공개 검색의 비회원 동작은 유지한다.
 
 ## 보관과 삭제
 
 아래 기한은 용도 종료/정리 eligibility와 운영 목표다. 장애 중 물리 삭제 성공을 시간 경과만으로 주장하지 않는다. TTL 연장·조사 목적 보존·manual hold를 정상 경로에 두지 않는다. 신뢰할 cleanup/관측/폐기 evidence가 없는 환경은 이 보관 정책의 운영 준비 완료가 아니다.
+
+삭제는 선택 저장소에서 확인 가능한 삭제·compaction 또는 해당 데이터와 모든 복구키 사본의 암호학적 폐기 등으로 충족한다. 특정 매체 교체 방식은 강제하지 않으며 단순 unlink·SQL DELETE를 WAL·snapshot·복제본까지 제거했다는 증거로 확대하지 않는다. 확인하지 못하면 완료로 표시하지 않고 아래 D4의 최소 격리·지연 안내·복구 후 우선 삭제를 적용한다. 상시 충족할 수 없는 보관 방식을 장애 예외로 정당화하지 않는다. 임시 사본의 소유·정리 책임을 유지하고 다른 유효 사본까지 파괴하는 공유 key 삭제나 광역 prune은 하지 않는다.
 
 | 정보 | 목적·최소 보유 | 기한과 삭제 조건 |
 | --- | --- | --- |
@@ -55,7 +63,7 @@ Intent는 `(deletionId, oldUserId, preparedAt)`과 순서를 가진다. ACK 유�
 
 ## 삭제를 보존하는 복원 기준과 순서
 
-복원할 사본의 신뢰할 snapshot 시각·lineage, 현재까지 누락 없는 별도 삭제 journal, 외부 checkpoint의 rollback 불가 확인이 필요하다. Journal·최신 checkpoint·inventory는 auth DB restore 범위 밖에 있어야 한다. 단순 checksum이나 같은 dump의 tombstone만으로 최신성을 증명하지 않는다.
+복원할 사본의 신뢰할 origin·snapshot 시각·lineage, 현재까지 누락 없는 별도 삭제 journal, 외부 checkpoint의 rollback 불가 확인이 필요하다. Journal·최신 checkpoint·inventory는 auth DB restore 범위 밖에 있어야 한다. 단순 checksum이나 같은 dump의 tombstone만으로 최신성을 증명하지 않는다.
 
 1. API ingress·background executor·인증/계정 쓰기와 기존 process를 멈춘다. Writer generation을 바꿔 이전 append를 fence한 뒤 journal을 최종 대조한다. Primary에만 preparing이 있고 intent가 없으면 확정된 탈퇴로 표시하지 않는다.
 2. 별도 DB에 나이 7일 미만의 승인 snapshot만 복원한다. Checkpoint 연속성·pending intent·backup lineage를 확인한다. 누락·미등록 사본·clock 불명·journal 손실은 fail closed다.
@@ -70,4 +78,4 @@ Intent는 `(deletionId, oldUserId, preparedAt)`과 순서를 가진다. ACK 유�
 
 패스키 로그인·예비 키 관리가 탈퇴 구현을 포함하지 않는다. 탈퇴 API·schema·Desktop receipt/조회는 후속이며, 공개 복원 검증은 그 기능을 제공할 때 적용한다. 과거 승인·실패 기록은 [PR #72](https://github.com/blahaj94/ldb/pull/72)에 남기고 현재 동작의 성공 evidence로 재사용하지 않는다.
 
-후속 검증은 같은 계정의 새 재인증·잘못된 purpose/account/proof·TTL과 실제 lock 대기·동시 exchange/키 삭제/refresh·journal ACK 유실·writer fencing·DELETE rollback/commit 불명·receipt 만료·사본과 journal 삭제를 확인한다. Runtime·DB·운영 복원 성공을 문서 검사나 mock으로 대체하지 않는다. 실제 삭제·복원·credential 실행은 맡은 운영 권한 범위에서만 수행한다.
+후속 검증은 같은 계정의 새 재인증·잘못된 purpose/account/proof·TTL과 실제 lock 대기·동시 exchange/키 삭제/refresh·journal ACK 유실·writer fencing·DELETE rollback/commit 불명·receipt 만료·사본과 journal 삭제를 확인한다. 공개 복원 최초 제공이나 의미 변경에는 기존 검증과 격리 복원으로 삭제 회원 부활·옛 자격 사용이 없고 새 요청은 정상 동작하며 근거 누락 시 공개를 거절하는지 확인한다. 검증은 제공 기능과 변경 위험에 맞춰 선택하며 미제공 복원이나 모든 물리 장애 시험을 일반 기능의 선행 조건으로 붙이지 않는다. Runtime·DB·운영 복원 성공을 문서 검사나 mock으로 대체하지 않는다. 실제 삭제·복원·credential 실행은 맡은 운영 권한 범위에서만 수행한다.
