@@ -28,6 +28,7 @@ test('Swagger serves every runtime route and preserves the login CSP and parser'
     assert.deepEqual(
       operations.sort(),
       [
+        'get /version',
         'post /auth/login-requests',
         'post /auth/exchange',
         'post /auth/refresh',

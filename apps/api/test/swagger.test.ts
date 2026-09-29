@@ -31,6 +31,7 @@ test('Swagger exposes only public game routes and the health endpoint', async ()
       operations.sort(),
       [
         'get /health',
+        'get /version',
         'get /characters',
         'get /adventures/characters',
         'get /characters/{serverId}/{characterId}',
