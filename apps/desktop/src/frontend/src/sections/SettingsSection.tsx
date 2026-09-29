@@ -8,6 +8,7 @@ import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 import { styles } from './SettingsSection.style'
+import { BuildVersionsSection } from './BuildVersionsSection'
 
 export function SettingsSection({
   developerMode,
@@ -18,7 +19,9 @@ export function SettingsSection({
 }): React.JSX.Element {
   const { light } = useColorTheme()
   const [open, setOpen] = useState(false)
-  const [selectedSection, setSelectedSection] = useState<'licenses' | 'developer'>('licenses')
+  const [selectedSection, setSelectedSection] = useState<'licenses' | 'developer' | 'versions'>(
+    'licenses'
+  )
   const [entries, setEntries] = useState<NoticeEntry[] | null>(null)
   const [failed, setFailed] = useState(false)
   const mode = developerMode ?? {
@@ -78,6 +81,21 @@ export function SettingsSection({
               <ActionButton
                 size="small"
                 variant="ghost"
+                aria-current={selectedSection === 'versions' ? 'page' : undefined}
+                {...stylex.props(
+                  styles.menu,
+                  selectedSection === 'versions' && styles.menuSelected,
+                  selectedSection === 'versions' && light && styles.menuSelectedLight
+                )}
+                onClick={() => setSelectedSection('versions')}
+              >
+                <Typo.txtS as="span" weight={700}>
+                  버전 정보
+                </Typo.txtS>
+              </ActionButton>
+              <ActionButton
+                size="small"
+                variant="ghost"
                 aria-current={selectedSection === 'licenses' ? 'page' : undefined}
                 {...stylex.props(
                   styles.menu,
@@ -111,7 +129,9 @@ export function SettingsSection({
               </div>
             </aside>
             <div {...stylex.props(styles.content)}>
-              {selectedSection === 'licenses' ? (
+              {selectedSection === 'versions' ? (
+                <BuildVersionsSection />
+              ) : selectedSection === 'licenses' ? (
                 entries ? (
                   <OpenSourceNotices entries={entries} />
                 ) : (

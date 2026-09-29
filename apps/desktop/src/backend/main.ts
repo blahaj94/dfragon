@@ -26,6 +26,8 @@ import {
 } from './auth/runtime-config'
 import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
 import { registerDeveloperWindow } from './developer/ipc-handler'
+import { registerVersionsWindow } from './versions/ipc-handler'
+import { readDesktopBuildInfo } from './versions/desktop-info'
 
 const parsedRuntimeConfig = readAppAuthConfig(app)
 type RuntimeProfileState =
@@ -95,6 +97,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   })
   let nextDisposeAuthIpc: (() => void) | undefined
   let disposeDeveloper: (() => void) | undefined
+  let disposeVersions: (() => void) | undefined
   try {
     registerCapturePermissions(
       session.defaultSession,
@@ -107,6 +110,17 @@ function createWindow(authRuntime: AuthRuntime | null): void {
       app.getPath('userData'),
       authRuntime?.coordinator
     )
+    try {
+      disposeVersions = registerVersionsWindow({
+        window,
+        documentUrl: rendererDocumentUrl,
+        desktop: () => readDesktopBuildInfo(app.getVersion()),
+        apiOrigin: readAppApiOrigin(),
+        accountsOrigin: runtimeConfig?.apiOrigin ?? null
+      })
+    } catch {
+      // Metadata availability does not control capture or authentication startup.
+    }
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
@@ -125,6 +139,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
     observeLoad(load)
   } catch (error) {
+    disposeVersions?.()
     disposeDeveloper?.()
     try {
       nextDisposeAuthIpc?.()
