@@ -7,18 +7,27 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./utils/ip-quota-key": {
+      "types": "./dist/utils/ip-quota-key.d.ts",
+      "import": "./dist/utils/ip-quota-key.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
+    "LICENSES",
     "README.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json && dfragon-copy-notices lib dist/notices",
+    "build": "tsc -p tsconfig.json && dfragon-copy-notices lib dist/notices && dfragon-copy-notices lib LICENSES",
     "test": "pnpm build && node --test test/*.test.mjs",
     "generate:cp949": "node scripts/generate-cp949.mjs",
     "lint": "eslint .",
     "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{ts,mjs,json}\""
+  },
+  "dependencies": {
+    "ipaddr.js": "2.5.0"
   },
   "devDependencies": {
     "iconv-lite": "0.7.3",

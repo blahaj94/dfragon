@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import ipaddr from 'ipaddr.js'
+import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 import { LOGIN_ERRORS } from '../../constants/login.js'
 import { LoginFailure } from '../../errors/login.js'
 import { jsonError } from './json-parser.js'
@@ -56,15 +56,7 @@ export function createAuthRateLimit() {
     }
     let client = 'unknown'
     if (!accountRead) {
-      try {
-        const address = ipaddr.process(request.ip ?? request.socket.remoteAddress ?? '')
-        client =
-          address.kind() === 'ipv6'
-            ? `ipv6:${address.toByteArray().slice(0, 8).join('.')}`
-            : address.toString()
-      } catch {
-        // Invalid forwarded addresses cannot create unbounded quota keys.
-      }
+      client = getIpQuotaKey(request.ip ?? request.socket.remoteAddress ?? '')
     }
     const count = clients.get(client) ?? 0
     if (

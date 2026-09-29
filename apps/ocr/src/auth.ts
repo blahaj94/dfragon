@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { Request, Response } from 'express'
-import ipaddr from 'ipaddr.js'
+import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import {
   parseAuthenticatedUser,
@@ -110,16 +110,7 @@ export class OcrAuth {
     if (this.closed) {
       throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
     }
-    let client = 'unknown'
-    try {
-      const address = ipaddr.process(request.ip ?? request.socket?.remoteAddress ?? '')
-      client =
-        address.kind() === 'ipv6'
-          ? `ipv6:${address.toByteArray().slice(0, 8).join('.')}`
-          : address.toString()
-    } catch {
-      // Invalid forwarded addresses share one allowance rather than creating arbitrary keys.
-    }
+    const client = getIpQuotaKey(request.ip ?? request.socket?.remoteAddress ?? '')
     const now = Date.now()
     if (now >= this.attemptWindow.until) {
       this.attemptWindow = { until: now + OCR_AUTH.loginWindowMs, count: 0 }

@@ -13,6 +13,11 @@
 !apps/ocr/browser/
 !apps/ocr/browser/**
 !packages/
+!packages/lib/
+!packages/lib/package.json
+!packages/lib/tsconfig.json
+!packages/lib/src/
+!packages/lib/src/**
 !packages/ui/
 !packages/ui/package.json
 !packages/ui/foundation.css

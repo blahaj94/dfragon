@@ -5,9 +5,14 @@ RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches patches
 COPY apps/accounts/package.json apps/accounts/package.json
+COPY packages/lib/package.json packages/lib/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY packages/licenses/package.json packages/licenses/package.json
 RUN pnpm install --frozen-lockfile --filter @dfragon/accounts...
+COPY packages/lib/tsconfig.json packages/lib/tsconfig.json
+COPY packages/lib/src packages/lib/src
+COPY packages/licenses/src/copy-notices.mjs packages/licenses/src/copy-notices.mjs
+COPY packages/licenses/notices/lib packages/licenses/notices/lib
 COPY apps/accounts/tsconfig*.json apps/accounts/
 COPY apps/accounts/src apps/accounts/src
 COPY apps/accounts/browser apps/accounts/browser

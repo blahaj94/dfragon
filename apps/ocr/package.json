@@ -7,15 +7,16 @@
     "node": ">=24.15.0 <25"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
+    "build": "pnpm --filter @dfragon/lib build && tsc -p tsconfig.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
     "start": "node dist/src/main.js",
     "dev": "pnpm build && node --env-file=.env dist/src/main.js",
     "test": "pnpm build && node --test dist/test/*.test.js",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.browser.json",
+    "typecheck": "pnpm --filter @dfragon/lib build && tsc --noEmit && tsc -p tsconfig.browser.json",
     "test:ui": "pnpm build && node test-support/ui-smoke.mjs"
   },
   "dependencies": {
+    "@dfragon/lib": "workspace:*",
     "@nestjs/common": "12.0.1",
     "@nestjs/core": "12.0.1",
     "@nestjs/platform-express": "12.0.1",
@@ -24,7 +25,6 @@
     "@tanstack/react-query": "5.103.2",
     "cookie-parser": "1.4.7",
     "express": "5.2.1",
-    "ipaddr.js": "2.5.0",
     "pngjs": "7.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
