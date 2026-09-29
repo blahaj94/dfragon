@@ -1,5 +1,6 @@
 import { neopleSearchFailure } from '../errors/neople-search.js'
 import type { SearchClock } from './types.js'
+import ipaddr from 'ipaddr.js'
 
 const windowMs = 60_000
 const capacity = 10
@@ -40,6 +41,15 @@ export class SearchAdmission {
   }
 
   acquire(peerAddress: string, signal: AbortSignal): Promise<Lease> {
+    try {
+      const address = ipaddr.process(peerAddress)
+      peerAddress =
+        address.kind() === 'ipv6'
+          ? `ipv6:${address.toByteArray().slice(0, 8).join('.')}`
+          : address.toString()
+    } catch {
+      peerAddress = 'unknown'
+    }
     const cannotAcquire = signal.aborted || this.closed
     if (cannotAcquire) {
       return Promise.reject(neopleSearchFailure('internal'))

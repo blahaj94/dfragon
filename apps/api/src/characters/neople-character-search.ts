@@ -17,6 +17,7 @@ import type {
   SearchCharacters,
   SearchDependencies
 } from '../types/neople-character-search.js'
+import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
 const nativeDependencies: SearchDependencies = {
   fetch: (request, init) => fetch(request, init),
@@ -131,7 +132,11 @@ function buildUrl(input: NeopleCharacterSearchInput, origin: string): URL {
   return url
 }
 
-function makeSearch(apiKey: string, dependencies: SearchDependencies): SearchCharacters {
+function makeSearch(
+  apiKey: string,
+  dependencies: SearchDependencies,
+  budget: NeopleBudget
+): SearchCharacters {
   return async (input) => {
     const url = buildUrl(input, dependencies.origin)
     const controller = new AbortController()
@@ -232,20 +237,24 @@ function makeSearch(apiKey: string, dependencies: SearchDependencies): SearchCha
     }
 
     try {
-      return await Promise.race([request(), timeout])
+      return await Promise.race([budget.run(request), timeout])
     } finally {
       dependencies.clearTimer(timer)
     }
   }
 }
 
-export function createNeopleCharacterSearch(apiKey: string): SearchCharacters {
-  return makeSearch(apiKey, nativeDependencies)
+export function createNeopleCharacterSearch(
+  apiKey: string,
+  budget = neopleBudget
+): SearchCharacters {
+  return makeSearch(apiKey, nativeDependencies, budget)
 }
 
 export function createNeopleCharacterSearchForTest(
   apiKey: string,
-  overrides: NeopleCharacterSearchTestDependencies
+  overrides: NeopleCharacterSearchTestDependencies,
+  budget = new NeopleBudget()
 ): SearchCharacters {
-  return makeSearch(apiKey, { ...nativeDependencies, ...overrides })
+  return makeSearch(apiKey, { ...nativeDependencies, ...overrides }, budget)
 }

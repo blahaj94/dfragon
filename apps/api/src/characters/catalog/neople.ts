@@ -2,10 +2,15 @@ import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import { isObject } from '../details/neople.js'
 import { isCatalogId } from './types.js'
 import type { CatalogKey, CatalogValue } from './types.js'
+import { neopleBudget } from '../provider-budget.js'
 
 export type FetchCatalog = (keys: CatalogKey[], signal: AbortSignal) => Promise<CatalogValue[]>
 
-export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch): FetchCatalog {
+export function createNeopleCatalog(
+  apiKey: string,
+  fetchImpl = globalThis.fetch,
+  budget = neopleBudget
+): FetchCatalog {
   return async (keys, requestSignal) => {
     const first = keys[0]
     if (
@@ -34,57 +39,59 @@ export function createNeopleCatalog(apiKey: string, fetchImpl = globalThis.fetch
     } else {
       throw new Error('Invalid catalog batch')
     }
-    try {
-      const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(5000)])
-      signal.throwIfAborted()
-      const response = await fetchImpl(new URL(path, NEOPLE_ORIGIN), {
-        headers: { apikey: apiKey },
-        redirect: 'error',
-        signal
-      })
-      if (!response.ok) {
-        await response.body?.cancel()
-        throw new Error('Catalog upstream failed')
-      }
-      const body: unknown = await response.json()
-      signal.throwIfAborted()
-      if (!isObject(body)) {
-        throw new Error('Invalid catalog body')
-      }
-      if (first.kind === 'skill') {
-        if (
-          body.jobId !== first.jobId ||
-          typeof body.name !== 'string' ||
-          !body.name.trim() ||
-          (Object.hasOwn(body, 'skillId') && body.skillId !== first.skillId)
-        ) {
-          throw new Error('Invalid skill identity')
+    return budget.run(async () => {
+      try {
+        const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(5000)])
+        signal.throwIfAborted()
+        const response = await fetchImpl(new URL(path, NEOPLE_ORIGIN), {
+          headers: { apikey: apiKey },
+          redirect: 'error',
+          signal
+        })
+        if (!response.ok) {
+          await response.body?.cancel()
+          throw new Error('Catalog upstream failed')
         }
-        return [{ key: first, payload: body }]
-      }
-      if (!Array.isArray(body.rows)) {
-        throw new Error('Invalid catalog list')
-      }
-      const rows = body.rows
-      return keys.flatMap((key) => {
-        if (key.kind === 'skill') {
-          return []
+        const body: unknown = await response.json()
+        signal.throwIfAborted()
+        if (!isObject(body)) {
+          throw new Error('Invalid catalog body')
         }
-        const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
-        const nameField = key.kind === 'item' ? 'itemName' : 'setItemName'
-        const id = key.kind === 'item' ? key.itemId : key.setItemId
-        const matches = rows.filter((row) => isObject(row) && row[idField] === id)
-        const row: unknown = matches[0]
-        // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
-        return matches.length === 1 &&
-          isObject(row) &&
-          typeof row[nameField] === 'string' &&
-          row[nameField].trim()
-          ? [{ key, payload: row }]
-          : []
-      })
-    } catch {
-      throw new Error('Catalog lookup failed')
-    }
+        if (first.kind === 'skill') {
+          if (
+            body.jobId !== first.jobId ||
+            typeof body.name !== 'string' ||
+            !body.name.trim() ||
+            (Object.hasOwn(body, 'skillId') && body.skillId !== first.skillId)
+          ) {
+            throw new Error('Invalid skill identity')
+          }
+          return [{ key: first, payload: body }]
+        }
+        if (!Array.isArray(body.rows)) {
+          throw new Error('Invalid catalog list')
+        }
+        const rows = body.rows
+        return keys.flatMap((key) => {
+          if (key.kind === 'skill') {
+            return []
+          }
+          const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
+          const nameField = key.kind === 'item' ? 'itemName' : 'setItemName'
+          const id = key.kind === 'item' ? key.itemId : key.setItemId
+          const matches = rows.filter((row) => isObject(row) && row[idField] === id)
+          const row: unknown = matches[0]
+          // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
+          return matches.length === 1 &&
+            isObject(row) &&
+            typeof row[nameField] === 'string' &&
+            row[nameField].trim()
+            ? [{ key, payload: row }]
+            : []
+        })
+      } catch {
+        throw new Error('Catalog lookup failed')
+      }
+    })
   }
 }

@@ -8,7 +8,7 @@ import { projectCharacterDetails } from './project.js'
 import type { CharacterIdentity } from './sections.js'
 import type { CharacterDetailStore } from './store.js'
 import { enrichCharacterDetails } from '../catalog/enrich.js'
-import { characterFreshness } from './freshness.js'
+import { characterFreshness, CHARACTER_REFRESH_COOLDOWN_MS } from './freshness.js'
 import { CharacterRefreshes } from './refreshes.js'
 import type { CatalogService } from '../catalog/service.js'
 
@@ -79,6 +79,15 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
           const startDeadline = new SearchDeadline(searchClock, refreshSignal)
           let requestedAt: string
           try {
+            if (forceRefresh) {
+              const snapshot = await startDeadline.wait(deps.store.read(identity, refreshSignal))
+              const freshness = characterFreshness(snapshot.rows)
+              const fetchedAt = freshness ? Date.parse(freshness.lastSuccessfulFetchAt) : NaN
+              const remaining = fetchedAt + CHARACTER_REFRESH_COOLDOWN_MS - snapshot.now.getTime()
+              if (fetchedAt <= snapshot.now.getTime() && remaining > 0) {
+                throw new CharacterDetailFailure('limited', Math.ceil(remaining / 1000))
+              }
+            }
             requestedAt = await startDeadline.wait(deps.store.beginFetch())
           } finally {
             startDeadline.dispose()

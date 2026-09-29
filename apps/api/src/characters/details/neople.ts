@@ -15,6 +15,7 @@ import type {
   CharacterPayload,
   CharacterPayloads
 } from './sections.js'
+import { NeopleBudget, neopleBudget } from '../provider-budget.js'
 
 export function isObject(value: unknown): value is CharacterPayload {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -66,6 +67,7 @@ interface TransportDependencies {
   fetch: typeof globalThis.fetch
   origin: string
   timeoutMs: number
+  budget: NeopleBudget
 }
 
 function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacterDetails {
@@ -75,26 +77,27 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
     const signal = AbortSignal.any([requestSignal, timeout, failureController.signal])
     const startedAt = performance.now()
     const results = {} as CharacterPayloads
-    const load = async (section: CharacterDetailSection): Promise<void> => {
-      signal.throwIfAborted()
-      const path = `/df/servers/${encodeURIComponent(identity.serverId)}/characters/${encodeURIComponent(identity.characterId)}${CHARACTER_DETAIL_SECTIONS[section]}`
-      const response = await deps.fetch(new URL(path, deps.origin), {
-        headers: { apikey: apiKey },
-        redirect: 'error',
-        signal
+    const load = (section: CharacterDetailSection): Promise<void> =>
+      deps.budget.run(async () => {
+        signal.throwIfAborted()
+        const path = `/df/servers/${encodeURIComponent(identity.serverId)}/characters/${encodeURIComponent(identity.characterId)}${CHARACTER_DETAIL_SECTIONS[section]}`
+        const response = await deps.fetch(new URL(path, deps.origin), {
+          headers: { apikey: apiKey },
+          redirect: 'error',
+          signal
+        })
+        let body: unknown
+        try {
+          body = await response.json()
+        } catch {
+          throw neopleStatusFailure(response.status)
+        }
+        const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
+        if (failure) {
+          throw failure
+        }
+        results[section] = validateCharacterPayload(body, identity, section)
       })
-      let body: unknown
-      try {
-        body = await response.json()
-      } catch {
-        throw neopleStatusFailure(response.status)
-      }
-      const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
-      if (failure) {
-        throw failure
-      }
-      results[section] = validateCharacterPayload(body, identity, section)
-    }
     try {
       // Confirm identity before spending the other ten provider requests.
       await load('basic')
@@ -125,11 +128,15 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
   }
 }
 
-export function createNeopleCharacterDetails(apiKey: string): FetchCharacterDetails {
+export function createNeopleCharacterDetails(
+  apiKey: string,
+  budget = neopleBudget
+): FetchCharacterDetails {
   return makeAdapter(apiKey, {
     fetch: globalThis.fetch,
     origin: NEOPLE_ORIGIN,
-    timeoutMs: NEOPLE_SEARCH_DEADLINE_MS
+    timeoutMs: NEOPLE_SEARCH_DEADLINE_MS,
+    budget
   })
 }
 
@@ -141,6 +148,7 @@ export function createNeopleCharacterDetailsForTest(
     fetch: globalThis.fetch,
     origin: NEOPLE_ORIGIN,
     timeoutMs: NEOPLE_SEARCH_DEADLINE_MS,
+    budget: new NeopleBudget(),
     ...deps
   })
 }
