@@ -10,6 +10,7 @@
     "workflow": "node scripts/workflow.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:security-dependencies": "node --test scripts/security/test/*.test.mjs",
+    "test:product-images": "node --test scripts/test/product-image-plan.test.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",

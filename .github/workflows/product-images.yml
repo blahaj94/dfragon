@@ -15,8 +15,8 @@ env:
   SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
-  build:
-    name: Build image (${{ matrix.service }})
+  select:
+    name: Select changed images
     if: >-
       github.event_name == 'pull_request' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -24,13 +24,88 @@ jobs:
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+    steps:
+      - name: Checkout the tested commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.SOURCE_COMMIT }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24'
+      - name: Select images changed by the PR
+        if: github.event_name == 'pull_request'
+        run: node scripts/product-image-plan.mjs select "$RUNNER_TEMP/product-image-plan.json"
+      # Read only the successful main Code Quality run that triggered this workflow.
+      # Its plan includes every commit in that push, not just head_sha's last commit.
+      - name: Download the tested main image plan
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: product-image-plan
+          path: ${{ runner.temp }}
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+      - name: Find the last successful publication
+        if: github.event_name == 'workflow_run'
+        id: baseline
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/product-image-plan.mjs baseline
+      - name: Download the previous successful image plan
+        if: github.event_name == 'workflow_run' && steps.baseline.outputs.run_id != ''
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: product-image-plan
+          path: ${{ runner.temp }}/image-baseline
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.baseline.outputs.run_id }}
+      - name: Include changes not yet published
+        if: github.event_name == 'workflow_run'
+        env:
+          BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "$BASELINE_RUN_ID" ]]; then
+            node scripts/product-image-plan.mjs catch-up "$RUNNER_TEMP/product-image-plan.json" "$RUNNER_TEMP/image-baseline/product-image-plan.json"
+          else
+            node scripts/product-image-plan.mjs catch-up "$RUNNER_TEMP/product-image-plan.json"
+          fi
+      - name: Validate the plan and expose the build matrix
+        id: plan
+        run: node scripts/product-image-plan.mjs output "$RUNNER_TEMP/product-image-plan.json"
+      # Only a fully successful build/publication run becomes the next baseline.
+      - name: Save the publication plan for the next main run
+        if: github.event_name == 'workflow_run'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: product-image-plan
+          path: ${{ runner.temp }}/product-image-plan.json
+          retention-days: 90
+          overwrite: true
+          if-no-files-found: error
+
+  build:
+    name: Build image (${{ matrix.service }})
+    needs: select
+    if: needs.select.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       DOCKER_BUILD_RECORD_UPLOAD: 'false'
     strategy:
       fail-fast: false
-      matrix:
-        service: [api, ocr, accounts]
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
     steps:
       - name: Checkout the tested commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -71,8 +146,9 @@ jobs:
 
   publish:
     name: Publish image (${{ matrix.service }})
-    needs: build
+    needs: [select, build]
     if: >-
+      needs.select.outputs.has_changes == 'true' &&
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
@@ -84,8 +160,7 @@ jobs:
       packages: write
     strategy:
       fail-fast: false
-      matrix:
-        service: [api, ocr, accounts]
+      matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
     env:
       SERVICE: ${{ matrix.service }}
       IMAGE: ghcr.io/${{ github.repository }}/${{ matrix.service }}

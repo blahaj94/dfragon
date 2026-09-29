@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: server runtime configuration and product images
-last-reviewed: 2026-09-29
+last-reviewed: 2026-09-30
 ---
 
 # 서버 실행과 이미지
@@ -84,21 +84,35 @@ DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력�
 
 ## 서버 이미지
 
-[Product Images](../../.github/workflows/product-images.yml)는 PR에서 `api`, `ocr`, `accounts`의
-이미지를 빌드만 합니다. 기존 Code Quality는 앱 테스트·정적 검사를 담당하며,
-main push의 Code Quality가 성공하면 그 실행의 `head_sha`를 그대로 빌드·발행합니다.
-후속 실행 때의 최신 main을 다시 선택하지 않습니다.
+[Product Images](../../.github/workflows/product-images.yml)는 변경된 서비스의 이미지만 선택합니다.
+`apps/api/**`, `apps/ocr/**`, `apps/accounts/**`만 바뀌면 각각 해당 이미지만 빌드하며,
+여러 서비스가 바뀌면 그 서비스들을 함께 빌드합니다. `packages/ui/**`는 accounts·OCR,
+`packages/lib/**`·`packages/licenses/**`·`patches/**`와 root package·lockfile·workspace 설정은
+세 이미지에 영향을 줍니다. 이미지 workflow·선택 도구 변경도 세 이미지를 검사합니다.
+서버 이미지 입력이 없는 문서·Desktop·Web 전용 변경은 이미지 빌드·발행을 건너뜁니다.
+
+PR은 base와 빌드할 merge commit을 비교해 선택한 이미지를 빌드만 합니다.
+기존 Code Quality는 앱 테스트·정적 검사를 계속 담당하며, main push 전체의 `before`부터
+`head_sha`까지 비교한 선택 목록을 `product-image-plan` artifact로 전달합니다.
+Product Images는 성공한 해당 실행의 목록과 source commit을 확인해 같은 `head_sha`로
+빌드·발행합니다. 후속 실행 때의 최신 main을 다시 선택하지 않습니다.
+main에서는 마지막으로 Product Images 전체가 성공한 실행의 source commit 이후 변경도
+포함합니다. 앞선 CI·빌드·발행의 취소나 실패로 발행되지 않은 변경은 다음 성공 실행에서
+반영합니다. 이전 성공 목록이 없거나 90일 보관 기한이 지났으면 세 이미지를 모두 빌드합니다.
+선택 목록이 없거나 source commit이 다르면 실패하며 임의로 빌드를 생략하지 않습니다.
 
 이미지는 `ghcr.io/blahaj94/dfragon/{api,ocr,accounts}:<40자리 commit SHA>`로 발행하고
 OCI `source`·`revision` label에 저장소와 commit을 기록합니다. 대상 플랫폼은 `linux/amd64` 하나입니다.
 테스트 실패는 Code Quality, 이미지 빌드 실패는 `Build image`, 인증·발행·digest 확인
 실패는 각각 `Authenticate to GHCR`·`Publish the built image`·`Verify the registry digest`에서 확인합니다.
-세 이미지 빌드가 모두 성공해야 발행 job이 시작됩니다.
+선택한 이미지 빌드가 모두 성공해야 같은 목록의 발행 job이 시작됩니다.
 
 인프라에서는 성공한 발행 실행의 summary 또는 `image-handoff-api`, `image-handoff-ocr`,
 `image-handoff-accounts` artifact 안의 JSON을 사용합니다. 각 파일은 다음 형식이며
-`image`는 registry에서 조회·확인한 digest reference입니다. 세 파일의 `sourceCommit`이
-같은 실행을 선택합니다. Tag는 조회 편의용이고 배포 입력은 `image@sha256:digest`입니다.
+`image`는 registry에서 조회·확인한 digest reference입니다. 해당 실행에서 선택된 서비스만
+handoff를 생성하며 그 파일들은 같은 `sourceCommit`을 가집니다. 변경되지 않은 서비스는
+이전 성공한 발행의 digest reference를 유지하므로 서비스별 source commit이 다를 수 있습니다.
+Tag는 조회 편의용이고 배포 입력은 `image@sha256:digest`입니다.
 
 ```json
 {
@@ -108,6 +122,7 @@ OCI `source`·`revision` label에 저장소와 commit을 기록합니다. 대상
 }
 ```
 
+선택 job은 `contents: read`와 원본·이전 성공 실행의 목록을 읽기 위한 `actions: read`,
 빌드 job은 `contents: read`, 발행 job은 `packages: write`만 사용합니다.
 발행 job은 같은 실행의 이미지 archive를 받아 source·플랫폼을 확인하고 push하며,
 앱 코드를 checkout하거나 실행하지 않습니다. 운영 secret·SSH·Tailscale 접근은 없습니다.
