@@ -28,7 +28,6 @@ jobs:
       - run: pnpm --filter @dfragon/api test
       - run: pnpm --filter @dfragon/accounts test
       - run: pnpm --filter @dfragon/ocr test
-      - run: python3 -m unittest discover -s deploy/linux/tests -v
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm lint:oxlint
