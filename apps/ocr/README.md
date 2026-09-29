@@ -12,6 +12,8 @@ pnpm --filter @dfragon/ocr start
 
 Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [제품 이미지·인프라 책임 안내](../../docs/reference/api-start-development.md#서버-이미지)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
 
+기본 로그인 제한은 직접 연결한 IP를 사용하며 IPv6는 /64 대역을 공유합니다. 같은 60초 창에서 클라이언트별 10회·전체 60회 시작, 대기와 인증 API 호출 중 요청은 클라이언트별 3개·전체 100개까지 허용합니다. 실패와 교체도 시작 횟수를 소비합니다. reverse proxy를 사용할 때만 선택적으로 `OCR_TRUST_PROXY=single-hop`을 지정합니다. 프록시는 외부의 `X-Forwarded-For`를 직접 연결한 주소로 덮어쓰고 OCR 서버는 프록시 외부의 직접 접근을 차단해야 합니다. 다른 값은 시작 오류입니다.
+
 ## 이미지 실행 계약
 
 입력·포트·readiness·저장 조건은 [제품 이미지 실행 계약](../../docs/reference/api-start-development.md#ocr)을 따릅니다.
