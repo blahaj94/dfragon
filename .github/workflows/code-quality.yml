@@ -27,6 +27,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm test:security-dependencies
       - run: pnpm test:product-images
+      - run: node --test scripts/test/server-build-info.test.mjs
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
       - run: pnpm --filter @dfragon/api test
