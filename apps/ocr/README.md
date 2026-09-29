@@ -12,6 +12,23 @@ pnpm --filter @dfragon/ocr start
 
 Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [배포 안내](../../deploy/ocr/README.md)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
 
+## 이미지 실행 계약
+
+[제품 CI 이미지](../../README.md#서버-이미지)는 `deploy/ocr/Dockerfile`로 만듭니다.
+기본 CMD는 `node dist/src/main.js`, 실행 사용자는 `node`(UID/GID `1000:1000`)이며,
+이미지 기본값은 `OCR_HOST=0.0.0.0`, `PORT=3100`, `OCR_DATA_DIR=/data`입니다.
+
+- `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`에는 정확한 HTTPS origin, `OCR_OWNER_ID`에는 기존 지정 계정의
+  UUID가 필요합니다. 인증 서버의 `passkey.ocrReturnUrl`도 OCR callback과 일치해야 합니다.
+- `/data`에는 실행 사용자가 쓸 수 있는 영속 저장소를 mount합니다. `OCR_DATA_DIR`을 바꿀 때는
+  절대 경로를 사용합니다. `ocr.sqlite`에 원본·메타데이터·모델 파일을 저장하며 기존 SQLite 구성을 유지합니다.
+- `OCR_MAX_BYTES` 기본은 1 GiB, 최소는 16 MiB입니다. 저장 상한에 도달해도 기존 자료를 자동 삭제하지 않습니다.
+- `GET /health`의 200·`{"ok":true}`는 HTTP 시작 확인이며 인증 서버 연결이나 DB 상태를 매번 검사하지 않습니다.
+- 별도 migration/cleanup CLI는 없습니다. 시작 시 기존 `OcrStore`가 `CREATE TABLE IF NOT EXISTS`로
+  테이블을 준비합니다. 기존 자료의 변환·복구·보관은 운영 담당자가 선택하며 앱 시작이 이를 대신하지 않습니다.
+
+이미지 빌드에는 운영 설정·인증정보·실데이터를 전달하지 않습니다.
+
 ## 관리 화면
 
 패스키 로그인 후 원본 PNG와 크롭 좌표를 수동 등록하거나 수집 클라이언트가 API로 올린 자료를 조회합니다. 미작성·완료·제외, HUD·파티원창·공대원창, 분할 필터를 제공합니다. 선택한 크롭의 정답·제외 여부를 저장하고 원본을 열 수 있습니다. UI 크기는 %로 표시하고 미상과 추정값을 구분합니다.
