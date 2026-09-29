@@ -8,6 +8,7 @@ COPY apps/ocr/package.json apps/ocr/package.json
 COPY packages/lib/package.json packages/lib/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY packages/licenses/package.json packages/licenses/package.json
+COPY packages/licenses/src/copy-notices.mjs packages/licenses/src/copy-notices.mjs
 RUN pnpm install --frozen-lockfile --filter @dfragon/ocr...
 COPY packages/lib/tsconfig.json packages/lib/tsconfig.json
 COPY packages/lib/src packages/lib/src
