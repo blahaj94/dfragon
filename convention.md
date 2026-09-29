@@ -56,4 +56,6 @@ Renderer·외부 입력은 해당 신뢰 경계에서 runtime 검증한다. Type
 
 표기는 기존 formatter/linter에 맡기고 이름·책임·평가·오류·cleanup은 담당자가 판단한다. [도구 적용 기준](docs/rules/convention-tooling.md)의 설정·생성물 경계를 따른다. 주석은 코드 번역보다 잠금 뒤 재검사, commit 이후 반환 등 필요한 이유와 보존 조건을 설명한다.
 
+JavaScript/TypeScript 실행 코드는 기존 formatter/linter가 검사하는 독립 source 파일에 작성한다. `.sh`의 문자열·here-document나 `--eval` 안에 코드를 넣어 검사를 우회하지 않는다. 실행을 연결하는 shell은 해당 source 파일을 호출하며, 검사에서 제외하거나 규칙을 비활성화해 통과시키지 않는다.
+
 자체 검토에서는 변경의 실제 동작과 계약, 이해하기 어려운 책임, 오류·상태·cleanup의 손실을 확인한다. 표현 취향만으로 반복 교정을 요구하지 않는다. 테스트 assertion과 경합 관측을 약화하지 않는다. [코드 재사용](docs/rules/code-reuse.md)의 기존 구현·표준 API·적합한 패키지를 우선한다.
