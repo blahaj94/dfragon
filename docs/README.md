@@ -19,6 +19,7 @@ last-reviewed: 2026-09-28
 | 기존 구현·표준 API·패키지 선택 | [코드 재사용](rules/code-reuse.md) |
 | formatter/linter 설정과 생성물 경계 | [도구 적용](rules/convention-tooling.md) |
 | 설명과 GitHub 글 | [작성 기준](rules/writing.md) |
+| 제품 이미지 실행·인프라 운영 원본 | [서버 이미지 안내](../README.md#서버-이미지) |
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app·package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime·검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
@@ -28,7 +29,7 @@ last-reviewed: 2026-09-28
 | 앱 공용 UI·SEED·StyleX·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
 | React 화면·hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [앱 지침](../apps/AGENTS.md), [OCR 지침](../apps/ocr/AGENTS.md), [Desktop 지침](../apps/desktop/AGENTS.md) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
-| 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |
+| 인증·session·DB·삭제·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 
 이 표를 전부 읽는 체크리스트로 사용하지 않는다. 코드 없는 문서 작업은 해당 문서의 의미·상태·연결을 확인하며 무관한 코드 컨벤션·제품 실행 절차로 확장하지 않는다.
 
@@ -62,7 +63,9 @@ Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현
 
 탈퇴 D1–D5의 [기존 승인](https://github.com/blahaj94/ldb/pull/72#issuecomment-5557976162)은 이력으로 보존한다. 삭제 확정·보관·복원 정책은 유지하며 패스키 탈퇴의 재인증·재가입 경합 설계와 API 구현은 후속이다. 문서 승인을 제품 구현·운영/복원 검증으로 해석하지 않는다.
 
-배치·저장·backup·복원 환경을 검토할 때는 [인증 운영 구성](architecture/auth-operations-proposal.md)과 [복원·검증 기준](architecture/auth-operations-validation-proposal.md)을 읽는다. [PR #132의 이전 승인](https://github.com/blahaj94/ldb/pull/132#issuecomment-5572391826)은 이력으로 보존한다. 현재 운영 기준은 한 운영자·단일 서버를 허용하고 공개 복원을 선택 기능으로 분리한다. D1–D5의 삭제·보관과 공개 복원 조건은 유지하며 구체 환경 확보·실행 성공을 문서 승인으로 대신하지 않는다.
+삭제·보관과 공개 복원의 제품 안전조건은 [탈퇴·삭제·복원 계약](rules/auth-withdrawal-proposal.md)을 따른다.
+배치·서버 권한·backup·복구 실행 절차는 [인프라 책임](../README.md#서버-이미지)이며 제품 개발의 필수 읽기로 요구하지 않는다.
+과거 운영 설계의 승인은 실제 환경 확보·실행 성공을 대신하지 않는다.
 
 ### Desktop authentication contract routing
 

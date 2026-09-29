@@ -62,5 +62,4 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 
 `pnpm --filter @dfragon/api test`는 domain HTTP·설정과 build를, `test:database`는 domain schema·cache·검색을 검증한다.
 accounts의 같은 명령은 인증 HTTP·key·session·설정과 build, 별도 PostgreSQL·migration·이전 RP 정리·현재 RP 브라우저·QR을 검증한다.
-DB suite에는 Docker와 Playwright Chromium이 필요하다. 운영 실행은 [API 배포](../../deploy/api/README.md)와
-[accounts/기존 인증 이전](../../deploy/accounts/README.md)을 따른다. 로컬 성공은 실제 DNS/TLS·기기 패스키 검증을 대신하지 않는다.
+DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력과 운영 책임은 [제품 안내](../../README.md#서버-이미지)를 따른다. 로컬 성공은 실제 DNS/TLS·기기 패스키 검증을 대신하지 않는다.

@@ -2,6 +2,8 @@
 
 저장소에서 반복적으로 사용하는 local 도구입니다. 새 dependency 없이 Node.js와 기존 Git·GitHub CLI·pnpm command를 사용합니다.
 
+서버 이미지 빌드·실행 입력은 [제품 이미지 안내](../README.md#서버-이미지)를 따릅니다. 서버 배포·SSH·timer·백업·복구 도구는 그 안내에서 연결한 인프라 저장소가 담당합니다.
+
 ## 작업 시작
 
 명확한 요청은 안전한 작업 브랜치에서 바로 진행할 수 있습니다. 현재 checkout·base·미commit 변경과 진행 작업을 확인한 뒤, 사용할 기준에서 `git switch -c fix-character-search`처럼 목적이 드러나는 이름을 정합니다. 격리가 필요하면 `git worktree add -b fix-character-search ../dfragon-search <확인한-base>`를 사용합니다. 기존 작업을 덮어쓰거나 main에 직접 commit·push하지 않습니다.

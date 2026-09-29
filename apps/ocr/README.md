@@ -10,24 +10,11 @@ pnpm --filter @dfragon/ocr build
 pnpm --filter @dfragon/ocr start
 ```
 
-Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [배포 안내](../../deploy/ocr/README.md)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
+Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [제품 이미지·인프라 책임 안내](../../README.md#서버-이미지)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
 
 ## 이미지 실행 계약
 
-[제품 CI 이미지](../../README.md#서버-이미지)는 `deploy/ocr/Dockerfile`로 만듭니다.
-기본 CMD는 `node dist/src/main.js`, 실행 사용자는 `node`(UID/GID `1000:1000`)이며,
-이미지 기본값은 `OCR_HOST=0.0.0.0`, `PORT=3100`, `OCR_DATA_DIR=/data`입니다.
-
-- `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`에는 정확한 HTTPS origin, `OCR_OWNER_ID`에는 기존 지정 계정의
-  UUID가 필요합니다. 인증 서버의 `passkey.ocrReturnUrl`도 OCR callback과 일치해야 합니다.
-- `/data`에는 실행 사용자가 쓸 수 있는 영속 저장소를 mount합니다. `OCR_DATA_DIR`을 바꿀 때는
-  절대 경로를 사용합니다. `ocr.sqlite`에 원본·메타데이터·모델 파일을 저장하며 기존 SQLite 구성을 유지합니다.
-- `OCR_MAX_BYTES` 기본은 1 GiB, 최소는 16 MiB입니다. 저장 상한에 도달해도 기존 자료를 자동 삭제하지 않습니다.
-- `GET /health`의 200·`{"ok":true}`는 HTTP 시작 확인이며 인증 서버 연결이나 DB 상태를 매번 검사하지 않습니다.
-- 별도 migration/cleanup CLI는 없습니다. 시작 시 기존 `OcrStore`가 `CREATE TABLE IF NOT EXISTS`로
-  테이블을 준비합니다. 기존 자료의 변환·복구·보관은 운영 담당자가 선택하며 앱 시작이 이를 대신하지 않습니다.
-
-이미지 빌드에는 운영 설정·인증정보·실데이터를 전달하지 않습니다.
+입력·포트·readiness·저장 조건은 [제품 이미지 실행 계약](../../README.md#ocr)을 따릅니다.
 
 ## 관리 화면
 
@@ -81,7 +68,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 `metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned" | "expanded", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned·expanded는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. finetuned의 사전 해시는 시작 모델과 같아야 합니다. expanded는 부모 사전의 모든 문자가 같은 순서로 앞부분에 남고 새 문자가 뒤에 추가된 경우만 허용합니다. 서버는 가중치를 실행하지 않습니다.
 
-파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [프록시 크기 제한과 배포 순서](../../deploy/ocr/README.md#모델-보관-기능-배포)를 함께 적용해야 합니다.
+파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../README.md#서버-이미지)를 함께 적용해야 합니다.
 
 ### 데이터와 로그인
 
