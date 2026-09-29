@@ -143,32 +143,9 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
 
-### AI PR review
+### PR review
 
-- Unprivileged signal workflow: `.github/workflows/ai-pr-review.yml`
-- Trusted provider workflow: `.github/workflows/ai-pr-review-trusted.yml`
 - Review 기준 안내: [review.md](../../.github/ai-review/prompts/review.md)
-- Provider 요청 runtime: `scripts/pr-review/src`
-- Test: `scripts/pr-review/test`
-- Command:
-  - `pnpm test:pr-review`
-  - `pnpm typecheck:pr-review`
-
-Signal workflow는 same-repository의 non-draft Pull Request에 `@ldb-review` label이 있을 때만 실행한다. `labeled`, `synchronize`, `ready_for_review`, `reopened` event를 처리하며 fork Pull Request는 제외한다. PR code를 checkout하지 않고 write permission과 Secret을 받지 않는다.
-
-Trusted workflow는 signal workflow가 완료된 뒤 `workflow_run`으로 실행된다. Default branch code만 checkout하고 source workflow result, linked Pull Request, label, draft, fork, current head SHA를 GitHub API로 다시 확인한다. 단일 trigger job이 요청 검증과 provider 댓글 게시를 수행하며 PAT는 해당 step에만 전달한다. Workflow token은 contents read 권한만 가진다.
-
-`@ldb-review` label, `LDB_REVIEW_TRIGGER_TOKEN` Secret key, `ldb-ai-review` comment marker는 기존 GitHub 설정과 deduplication 기록을 유지하기 위해 기존 이름을 보존한다.
-
-현재 provider adapter는 `codex`다. Provider-neutral label을 Codex GitHub integration의 `@codex review` comment로 변환한다. 지정된 trigger 작성자의 comment 중 같은 head SHA의 `ldb-ai-review:codex` marker가 있으면 요청을 생략한다. 별도로 실행되는 Codex 기본 리뷰나 수동 요청은 이 검사에 포함되지 않으므로 라벨 요청 전에 해당 head의 기존 리뷰 상태를 확인한다. Trigger identity는 repository Secret `LDB_REVIEW_TRIGGER_TOKEN`을 사용한다. 이 값은 `ldb` repository만 선택한 expiring fine-grained PAT이며 `Pull requests: Read and write` 이외의 추가 repository permission을 부여하지 않는다.
-
-Repository Secret `LDB_REVIEW_TRIGGER_TOKEN`은 2026-08-29에 등록했다. 같은 날 controlled pilot PR #5에서 signal, trusted Policy job, 사용자 identity provider trigger, Codex review, P1 inline finding, same-head deduplication E2E가 모두 통과했다. Pilot PR은 merge하지 않고 닫았다.
-
-현재 adapter는 요청 comment를 게시하며 `.github/ai-review/prompts/review.md`를 provider prompt로 전달하지 않는다. 실제 결과의 형식·보고 심각도는 provider의 지원 범위와 설정을 따르며 저장소가 별도 summary를 게시하지 않는다.
-
-현재 결과 정규화 schema와 validator는 없습니다. Provider-neutral review 목표는 유지하며, 향후 직접 provider 응답을 소비하는 실행 계약이 정해지면 실제 입력과 소비자를 기준으로 결과 계약을 다시 설계합니다.
-
-Issue 연결·커밋 제목/순서·변경 줄 수의 행정 검사와 advisory summary 게시 경로는 없다. `@ldb-review`는 DFRAGON 이름 변경 전부터 쓰던 선택적 요청 label이며 PR마다 자동으로 붙이지 않는다. 라벨이 유지된 후속 head는 기존 signal event를 통해 요청한다. 요청 게시와 실제 리뷰 완료는 구분한다.
 
 ## Generated and dependency output
 

@@ -61,7 +61,6 @@ node scripts/format-date.mjs
 | API domain database | 위 API command와 `pnpm --filter @dfragon/api test:database` |
 | Desktop | `pnpm --filter @dfragon/desktop run --sequential '/^(test\|lint\|build)$/'` |
 | Web | `pnpm --filter @dfragon/web run --sequential '/^(test\|lint\|build)$/'` |
-| PR review tooling | `pnpm run --sequential '/^(test\|typecheck):pr-review$/'` |
 | Task 준비 tooling | 위 `node --test`와 `node --check` command |
 
 API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 24, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함)·Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회·pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
