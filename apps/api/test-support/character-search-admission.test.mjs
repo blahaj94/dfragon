@@ -91,7 +91,7 @@ test('search peers serialize only admission and reserve using the final clock', 
     waiterAcquired = true
     return lease
   })
-  await reserve(admission, 'other-peerAddress')
+  await reserve(admission, '192.0.2.2')
   assert.equal(waiterAcquired, false)
   time.advance(1000)
   owner.reserve()
