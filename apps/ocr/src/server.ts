@@ -76,6 +76,7 @@ export async function createOcrApp(
     bodyParser: false
   })
   app.disable('x-powered-by')
+  app.set('trust proxy', config.trustedProxyHops ?? false)
   app.useGlobalFilters(new OcrHttpFilter())
   app.use(cookieParser())
   app.use((request: Request, response: Response, next: NextFunction) => {

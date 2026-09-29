@@ -39,6 +39,7 @@ import { rotateRefresh } from '../refresh/index.js'
 import type { RefreshDependencies } from '../refresh/types.js'
 import { parseCreation, parseExchange, parseRefreshToken } from './input.js'
 import { jsonError, loginJsonParser } from './json-parser.js'
+import { AuthCapacity, createAuthRateLimit } from './admission.js'
 
 const LOGIN_SERVICE = Symbol('LOGIN_SERVICE')
 const SESSION_SERVICE = Symbol('SESSION_SERVICE')
@@ -115,6 +116,9 @@ class LoginHttpFilter implements ExceptionFilter {
 
     const path = request.path.toLowerCase().replace(/\/+$/, '')
     const failure = authHttpFailure(error)
+    if (failure.status === 429) {
+      response.setHeader('Retry-After', '1')
+    }
     const isAccountPath = path === '/me' || path === '/me/nickname'
     const isGet = request.method === 'GET'
     const shouldRenderHtml = isGet && !isAccountPath
@@ -291,16 +295,45 @@ export async function createLoginHttpApp(
 ): Promise<INestApplication> {
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
+  const capacity = new AuthCapacity()
+  const limitedLogin: LoginHttpService = {
+    create: (input) => capacity.run(() => service.create(input)),
+    authorize: (ticket, view) => capacity.run(() => service.authorize(ticket, view)),
+    manage: () => capacity.run(() => service.manage()),
+    browser: (action, input, cookie, origin) =>
+      capacity.run(() => service.browser(action, input, cookie, origin)),
+    exchange: (input) => capacity.run(() => service.exchange(input))
+  }
+  const accountService = accountDependencies ? createAccountService(accountDependencies) : undefined
   const controllers = [
     LoginController,
     ...(hasSessionService ? [SessionController] : []),
     ...(hasAccountDependencies ? [AccountController] : [])
   ]
   const providers = [
-    { provide: LOGIN_SERVICE, useValue: service },
-    ...(hasSessionService ? [{ provide: SESSION_SERVICE, useValue: sessionService }] : []),
-    ...(hasAccountDependencies
-      ? [{ provide: ACCOUNT_SERVICE, useValue: createAccountService(accountDependencies) }]
+    { provide: LOGIN_SERVICE, useValue: limitedLogin },
+    ...(sessionService
+      ? [
+          {
+            provide: SESSION_SERVICE,
+            useValue: {
+              refresh: (token: string) => capacity.run(() => sessionService.refresh(token)),
+              logout: (token: string) => capacity.run(() => sessionService.logout(token))
+            }
+          }
+        ]
+      : []),
+    ...(accountService
+      ? [
+          {
+            provide: ACCOUNT_SERVICE,
+            useValue: {
+              get: (headers: readonly string[]) => capacity.run(() => accountService.get(headers)),
+              updateNickname: (headers: readonly string[], body: unknown) =>
+                capacity.run(() => accountService.updateNickname(headers, body))
+            }
+          }
+        ]
       : [])
   ]
 
@@ -319,35 +352,7 @@ export async function createLoginHttpApp(
   try {
     // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
     app.set('trust proxy', httpOptions?.trustedProxyHops ?? false)
-    const windows = new Map<string, { until: number; count: number }>()
-    let globalWindow = { until: 0, count: 0 }
-    app.use((request: Request, response: Response, next: () => void) => {
-      const path = request.path.toLowerCase().replace(/\/+$/, '')
-      if (
-        (request.method === 'POST' &&
-          (path === '/auth/login-requests' || path.startsWith('/auth/passkeys/'))) ||
-        path === '/auth/passkeys/manage' ||
-        path === '/auth/login/phone'
-      ) {
-        const now = Date.now()
-        if (now >= globalWindow.until) {
-          globalWindow = { until: now + 60_000, count: 0 }
-          windows.clear()
-        }
-        const address = request.ip ?? request.socket.remoteAddress ?? 'unknown'
-        const window = windows.get(address) ?? { until: globalWindow.until, count: 0 }
-        if (window.count >= 120 || globalWindow.count >= 1200) {
-          response.setHeader('Retry-After', '60')
-          response.setHeader('Cache-Control', 'no-store')
-          jsonError(response, LOGIN_ERRORS.RATE_LIMIT)
-          return
-        }
-        window.count += 1
-        globalWindow.count += 1
-        windows.set(address, window)
-      }
-      next()
-    })
+    app.use(createAuthRateLimit())
     app.use((request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')
       response.removeHeader('X-Powered-By')

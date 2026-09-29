@@ -9,6 +9,7 @@
     "start-task": "node scripts/start-task.mjs",
     "workflow": "node scripts/workflow.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:security-dependencies": "node --test scripts/security/test/*.test.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
@@ -35,10 +36,12 @@
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-react-refresh": "0.4.26",
+    "extract-zip": "2.0.1",
     "globals": "16.5.0",
     "playwright": "1.62.1",
     "prettier": "3.9.6",
     "typescript": "6.0.2",
-    "typescript-eslint": "8.69.0"
+    "typescript-eslint": "8.69.0",
+    "yazl": "3.3.1"
   }
 }

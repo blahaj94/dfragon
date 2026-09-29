@@ -12,6 +12,8 @@ pnpm --filter @dfragon/ocr start
 
 Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저장은 [제품 이미지·인프라 책임 안내](../../docs/reference/api-start-development.md#서버-이미지)를 따릅니다. 직접 실행 시 `OCR_DATA_DIR`에 절대 경로를 주고, `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`, `OCR_OWNER_ID`를 지정합니다. 기본 listen은 `127.0.0.1:3100`입니다. HTTP 개발 우회 로그인은 제공하지 않습니다.
 
+기본 로그인 제한은 직접 연결한 IP를 사용하며 IPv6는 /64 대역을 공유합니다. 같은 60초 창에서 클라이언트별 10회·전체 60회 시작, 대기와 인증 API 호출 중 요청은 클라이언트별 3개·전체 100개까지 허용합니다. 실패와 교체도 시작 횟수를 소비합니다. reverse proxy를 사용할 때만 선택적으로 `OCR_TRUST_PROXY=single-hop`을 지정합니다. 프록시는 외부의 `X-Forwarded-For`를 직접 연결한 주소로 덮어쓰고 OCR 서버는 프록시 외부의 직접 접근을 차단해야 합니다. 다른 값은 시작 오류입니다.
+
 ## 이미지 실행 계약
 
 입력·포트·readiness·저장 조건은 [제품 이미지 실행 계약](../../docs/reference/api-start-development.md#ocr)을 따릅니다.
@@ -53,6 +55,8 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 ### 학습 모델 보관
 
 웹의 **학습 모델**에서 공식 `korean_PP-OCRv5_mobile_rec` 기본 가중치와 문자 사전을 미니PC에 등록하고, 등록된 모델의 이름·종류·등록 시각·크기·파일을 확인합니다. 기본 모델 다운로드는 약 106 MiB이며 같은 모델은 한 번만 저장합니다. 서버에서 학습을 실행하지 않습니다.
+
+기본 파일은 [코드에 고정한 출처와 SHA-256](src/base-model.ts)에 일치해야 저장됩니다. 2026-09-30 공식 HTTPS URL에서 확인한 가중치 110,996,478 bytes의 SHA-256은 `8975dede5e0c2f47e0a7712b3d79ffdc766972f872fd0441ebcccd9d77cd52a3`입니다. PaddleOCR commit `b03f46425e8ff4442b268ce449e3eef758146cd4`의 사전 47,451 bytes는 `a88071c68c01707489baa79ebe0405b7beb5cca229f4fc94cc3ef992328802d7`입니다. 이 값은 저장소가 검토해 고정한 기준이며 공급자가 별도 서명한 배포 manifest를 뜻하지 않습니다. 이후 원격 파일이 바뀌면 자동으로 신뢰하지 않습니다. 기존 기본 모델이 불일치해도 자동 삭제·덮어쓰기를 하지 않으므로 파일과 출처를 확인한 뒤 별도 복구를 판단해야 합니다.
 
 별도 [Windows 평가 앱](https://github.com/blahaj94/dfragon-ocr-eval-tool)이 웹 로그인 후 모델과 train/val/test 데이터를 REST로 내려받아 로컬 입력을 고정하고 GPU로 학습·평가합니다. 앱 구현과 검증은 [앱 PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 확인할 수 있습니다. 앱은 main process의 웹 로그인 세션으로 브라우저 경로를 호출합니다. 사용자가 **미니PC에 올리기**를 누르면 학습된 가중치·사전·평가 요약을 새로운 모델로 등록합니다. 자동 결과 업로드는 없습니다. 일반 파인튜닝은 시작 모델 사전의 SHA-256을 유지합니다. 문자 확장 모델은 기존 문자 순서를 보존하고 명시 선택한 문자만 뒤에 추가하며, 새 모델 ID로 보관합니다.
 

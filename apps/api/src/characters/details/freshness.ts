@@ -2,6 +2,7 @@ import type { CharacterApiResponse } from '../../database/schemas/character-api-
 import { characterDetailSections } from './sections.js'
 
 export const CHARACTER_FRESHNESS_MS = 5 * 60_000
+export const CHARACTER_REFRESH_COOLDOWN_MS = 30_000
 
 export function characterFreshness(rows: CharacterApiResponse[]) {
   const sections = new Set(rows.map((row) => row.section))

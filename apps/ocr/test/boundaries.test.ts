@@ -32,7 +32,7 @@ test('HTTP boundary preserves classified errors and distinguishes invalid JSON f
   assert.equal(httpFailure(new SyntaxError('internal detail')).code, 'UNAVAILABLE')
 })
 
-test('in-flight logins reserve capacity and failures release their reservations', async () => {
+test('in-flight logins reserve global capacity and failures release their reservations', async (t) => {
   const { OcrAuth } = await import('../src/auth.js')
   const { OCR_AUTH } = await import('../src/constants.js')
   let release = () => {}
@@ -60,20 +60,26 @@ test('in-flight logins reserve capacity and failures release their reservations'
     },
     upstream
   )
-  const request = { cookies: {} } as import('express').Request
+  let now = Date.now()
+  t.mock.method(Date, 'now', () => now)
   const response = { cookie() {}, json() {} } as unknown as import('express').Response
-  const requests = Array.from({ length: OCR_AUTH.maximumPendingLogins }, () =>
-    auth.begin(request, response)
-  )
+  const request = (index: number) =>
+    ({ ip: `192.0.2.${index + 1}`, cookies: {} }) as import('express').Request
+  const requests = Array.from({ length: OCR_AUTH.maximumPendingLogins }, (_, index) => {
+    if (index === OCR_AUTH.maximumLoginAttempts) {
+      now += OCR_AUTH.loginWindowMs
+    }
+    return auth.begin(request(index), response)
+  })
 
-  await assert.rejects(auth.begin(request, response), { code: 'LOGIN_LIMIT' })
+  await assert.rejects(auth.begin(request(101), response), { code: 'LOGIN_LIMIT' })
   assert.equal(calls, OCR_AUTH.maximumPendingLogins)
   release()
   const results = await Promise.allSettled(requests)
   assert(results.every((result) => result.status === 'rejected'))
 
   fail = false
-  await auth.begin(request, response)
+  await auth.begin(request(101), response)
   assert.equal(calls, OCR_AUTH.maximumPendingLogins + 1)
   await auth.close()
 })

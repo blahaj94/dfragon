@@ -9,10 +9,10 @@
   "scripts": {
     "dev": "pnpm run build && dotenv --no-expand -- pnpm run start",
     "db:migrate:local": "pnpm run build && node --env-file=.env --import reflect-metadata dist/database/cli.js up",
-    "build": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
+    "build": "pnpm --filter @dfragon/lib build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc -p tsconfig.build.json && tsc -p tsconfig.browser.json && node browser/build.mjs",
     "test": "pnpm run build && node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\" && tsc -p tsconfig.test.json && node --import reflect-metadata --test \".test-dist/test/**/*.test.js\" test-support/*.test.mjs",
     "test:database": "pnpm run build && node --import reflect-metadata test-support/database-integration.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "pnpm --filter @dfragon/lib build && tsc --noEmit -p tsconfig.test.json",
     "start": "node --import reflect-metadata dist/main.js",
     "lint": "eslint .",
     "db:migrate:up": "pnpm run build && node --import reflect-metadata dist/database/cli.js up",
@@ -25,6 +25,7 @@
     "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\""
   },
   "dependencies": {
+    "@dfragon/lib": "workspace:*",
     "@nestjs/common": "12.0.1",
     "@nestjs/core": "12.0.1",
     "@nestjs/platform-express": "12.0.1",
@@ -33,6 +34,7 @@
     "@seed-design/css": "2.7.0",
     "@simplewebauthn/browser": "13.3.0",
     "@simplewebauthn/server": "13.3.3",
+    "@stylexjs/stylex": "catalog:",
     "jose": "6.2.12",
     "pg": "8.23.0",
     "qrcode": "1.5.4",
@@ -41,11 +43,12 @@
     "react-dom": "19.2.8",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "typeorm": "1.1.1",
-    "@stylexjs/stylex": "catalog:"
+    "typeorm": "1.1.1"
   },
   "devDependencies": {
+    "@dfragon/ui": "workspace:*",
     "@nestjs/testing": "12.0.1",
+    "@stylexjs/unplugin": "catalog:",
     "@types/express": "5.0.6",
     "@types/node": "24.13.3",
     "@types/pg": "8.23.1",
@@ -55,8 +58,6 @@
     "dotenv-cli": "11.0.0",
     "esbuild": "0.28.2",
     "tar": "7.5.22",
-    "typescript": "5.9.3",
-    "@dfragon/ui": "workspace:*",
-    "@stylexjs/unplugin": "catalog:"
+    "typescript": "5.9.3"
   }
 }

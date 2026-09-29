@@ -1,4 +1,5 @@
 node_modules
+/packages/lib/LICENSES/
 .codex/
 apps/desktop/src/frontend/public/ocr
 /.artifacts/workflow.png

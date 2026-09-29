@@ -1,8 +1,33 @@
 # @dfragon/lib
 
-API·Web·Desktop에서 입력 규칙과 DNF UI 좌표·픽셀 계산을 재사용하는 공용 TypeScript 패키지입니다. 앱 source, React, Electron, Node 전용 runtime에 의존하지 않는 ESM과 선언 파일을 제공합니다.
+API·Web·Desktop에서 입력 규칙, 요청 제한용 IP 키, DNF UI 좌표·픽셀 계산을 재사용하는 공용 TypeScript 패키지입니다. 앱 source, React, Electron, Node 전용 runtime에 의존하지 않는 ESM과 선언 파일을 제공합니다.
 
-소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. 이번 변경은 공용 함수 제공까지이며 기존 계정·검색·OCR 호출부는 교체하지 않습니다.
+소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. API·accounts·OCR의 build와 typecheck는 공용 패키지를 먼저 빌드합니다. 요청 제한용 IP 키는 세 서버 앱에서 이 패키지를 사용하며, 캐릭터명 검사와 DNF 계산 함수의 적용 범위는 아래 안내를 따릅니다.
+
+## 요청 제한용 IP 키
+
+요청 제한은 같은 접속자의 요청 횟수를 같은 키 아래에 기록해야 합니다. 같은 IP라도 표기가 다르면 별도 접속자로 집계될 수 있습니다. `getIpQuotaKey(peerAddress: string): string`은 이때 사용할 키를 만듭니다. 주소를 해석하는 `ipaddr.js` 의존성과 변환 규칙은 이 함수에서 관리합니다.
+
+```ts
+import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
+
+getIpQuotaKey('192.0.2.1') // '192.0.2.1'
+getIpQuotaKey('::ffff:192.0.2.1') // 같은 IPv4 주소이므로 '192.0.2.1'
+getIpQuotaKey('2001:db8:1234:5678::1') // 'ipv6:32.1.13.184.18.52.86.120'
+getIpQuotaKey('2001:db8:1234:5678::2') // 같은 /64이므로 같은 키
+getIpQuotaKey('invalid-address') // 'unknown'
+```
+
+- IPv4는 표기를 통일합니다. IPv4를 IPv6 모양으로 표현한 주소도 원래 IPv4와 같은 키를 사용합니다.
+- IPv6는 앞 64비트(`/64`, 전체 128비트의 절반)가 같은 주소를 묶습니다. 뒤쪽 주소만 바꿔 새 요청 한도를 얻는 것을 막는 기존 정책입니다. 같은 네트워크의 여러 접속자는 한도를 공유할 수 있습니다.
+- 비어 있거나 해석할 수 없는 주소는 모두 `unknown`을 사용합니다. 잘못된 문자열마다 새 한도를 만들지 않습니다.
+- 반환값은 요청 횟수 기록을 위한 내부 키입니다. IP 주소로 다시 해석하거나 이 함수에 재입력하지 않습니다.
+
+앱은 신뢰할 수 있는 접속 IP를 선택한 뒤 이 함수를 한 번 호출합니다. 프록시 신뢰 설정, HTTP 헤더 해석, 제한 횟수·시간, 카운터 저장은 각 앱이 담당합니다. 이 함수는 주소 문자열만 받아 키를 반환하며 요청이나 전역 상태에 접근하지 않습니다. 기존 요청 한도와 accounts의 `GET /me` 예외는 유지합니다.
+
+`./package.json`도 export하므로 빌드의 라이선스 수집기가 패키지 위치와 runtime 의존성을 찾을 수 있습니다. 기존 CP949 원문은 `dist/notices`에 유지하고 패키지 루트 `LICENSES`에도 복사해 배포합니다. `ipaddr.js` 원문은 설치된 의존성에서 수집합니다.
+
+## 던파 캐릭터명 검사
 
 ```ts
 import { validateDFNickname, type NicknameValidationResult } from '@dfragon/lib'

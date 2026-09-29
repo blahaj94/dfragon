@@ -3,6 +3,8 @@
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
+!patches/
+!patches/*.patch
 !apps/
 !apps/accounts/
 !apps/accounts/package.json
@@ -16,6 +18,11 @@
 !apps/accounts/browser/
 !apps/accounts/browser/**
 !packages/
+!packages/lib/
+!packages/lib/package.json
+!packages/lib/tsconfig.json
+!packages/lib/src/
+!packages/lib/src/**
 !packages/ui/
 !packages/ui/package.json
 !packages/ui/foundation.css
@@ -24,7 +31,11 @@
 !packages/ui/src/typo.tsx
 !packages/licenses/
 !packages/licenses/package.json
+!packages/licenses/src/
+!packages/licenses/src/copy-notices.mjs
 !packages/licenses/notices/
+!packages/licenses/notices/lib/
+!packages/licenses/notices/lib/**
 !packages/licenses/notices/upstream/
 !packages/licenses/notices/upstream/stylex-LICENSE.txt
 !apps/accounts/Dockerfile

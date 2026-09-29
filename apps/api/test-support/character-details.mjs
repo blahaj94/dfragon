@@ -46,6 +46,11 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     source.query('SELECT * FROM character_api_responses WHERE character_id = $1 ORDER BY section', [
       identity.characterId
     ])
+  const ageSuccessfulFetch = () =>
+    source.query(
+      "UPDATE character_api_responses SET last_successful_fetch_at = clock_timestamp() - interval '30 seconds' WHERE character_id = $1",
+      [identity.characterId]
+    )
   await source.query('DELETE FROM characters WHERE character_id = $1', [identity.characterId])
   let app, provider
   try {
@@ -120,6 +125,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal((await snapshot()).length, 11)
 
     mark('exhausted pool bounds shutdown and does not write after cancellation')
+    await ageSuccessfulFetch()
     const boundedSource = new DataSource({ ...source.options, poolSize: 1 })
     await boundedSource.initialize()
     let held, detailService
@@ -176,6 +182,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     }
 
     mark('real HTTP, provider, persistence and projection')
+    await ageSuccessfulFetch()
     let providerCalls = 0,
       fail = false
     provider = createServer((request, response) => {
@@ -249,6 +256,15 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(providerCalls, 11)
     assert.deepEqual(await snapshot(), beforeHit)
 
+    mark('forced refresh cooldown uses committed DB fetch time without spending provider calls')
+    const cooldown = await fetch(url + '/refresh', { method: 'POST' })
+    assert.equal(cooldown.status, 429)
+    assert(Number(cooldown.headers.get('Retry-After')) > 0)
+    assert(Number(cooldown.headers.get('Retry-After')) <= 30)
+    assert.equal((await cooldown.json()).error.code, 'CHARACTER_RATE_LIMITED')
+    assert.equal(providerCalls, 11)
+    assert.deepEqual(await snapshot(), beforeHit)
+
     mark('one expired section triggers automatic refresh without inflating revisions')
     await source.query(
       "UPDATE character_api_responses SET last_successful_fetch_at = clock_timestamp() - interval '5 minutes 1 second' WHERE character_id = $1 AND section = 'avatar'",
@@ -258,6 +274,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(automatic.status, 200)
     assert.equal((await automatic.json()).sections.equipment.revision, 4)
     assert.equal(providerCalls, 22)
+    await ageSuccessfulFetch()
     const beforeFailure = await snapshot()
 
     mark('upstream failure preserves all stored sections')
@@ -287,7 +304,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
 
     mark('detail quota rejects before the provider')
     fail = false
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       assert.equal((await fetch(url)).status, 200)
     }
     const callsBeforeLimit = providerCalls

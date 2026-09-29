@@ -1,0 +1,97 @@
+diff --git a/index.js b/index.js
+index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679f44d086f 100644
+--- a/index.js
++++ b/index.js
+@@ -1,6 +1,6 @@
+ const debug = require('debug')('extract-zip')
+ // eslint-disable-next-line node/no-unsupported-features/node-builtins
+-const { createWriteStream, promises: fs } = require('fs')
++const { createWriteStream, constants, promises: fs } = require('fs')
+ const getStream = require('get-stream')
+ const path = require('path')
+ const { promisify } = require('util')
+@@ -53,14 +53,7 @@ class Extractor {
+         const destDir = path.dirname(path.join(this.opts.dir, entry.fileName))
+ 
+         try {
+-          await fs.mkdir(destDir, { recursive: true })
+-
+-          const canonicalDestDir = await fs.realpath(destDir)
+-          const relativeDestDir = path.relative(this.opts.dir, canonicalDestDir)
+-
+-          if (relativeDestDir.split(path.sep).includes('..')) {
+-            throw new Error(`Out of bound path "${canonicalDestDir}" found while processing file ${entry.fileName}`)
+-          }
++          await this.ensureDirectory(destDir)
+ 
+           await this.extractEntry(entry)
+           debug('finished processing', entry.fileName)
+@@ -74,6 +67,30 @@ class Extractor {
+     })
+   }
+ 
++  assertContained (target) {
++    const relative = path.relative(this.opts.dir, target)
++    if (path.isAbsolute(relative) || relative.split(path.sep).includes('..')) {
++      throw new Error('Archive path escapes the extraction directory')
++    }
++  }
++
++  async ensureDirectory (directory, mode) {
++    this.assertContained(directory)
++    const parts = path.relative(this.opts.dir, directory).split(path.sep).filter(Boolean)
++    let current = this.opts.dir
++    for (const part of parts) {
++      current = path.join(current, part)
++      try {
++        await fs.mkdir(current, { mode })
++      } catch (error) {
++        if (error.code !== 'EEXIST') throw error
++      }
++      // Check each ancestor before creating its children, including pre-existing links.
++      current = await fs.realpath(current)
++      this.assertContained(current)
++    }
++  }
++
+   async extractEntry (entry) {
+     /* istanbul ignore if */
+     if (this.canceled) {
+@@ -113,23 +130,29 @@ class Extractor {
+     // always ensure folders are created
+     const destDir = isDir ? dest : path.dirname(dest)
+ 
+-    const mkdirOptions = { recursive: true }
+-    if (isDir) {
+-      mkdirOptions.mode = procMode
+-    }
+-    debug('mkdir', { dir: destDir, ...mkdirOptions })
+-    await fs.mkdir(destDir, mkdirOptions)
++    await this.ensureDirectory(destDir, isDir ? procMode : undefined)
+     if (isDir) return
+ 
++    if (!symlink) {
++      try {
++        const existing = await fs.lstat(dest)
++        if (existing.isSymbolicLink()) throw new Error('Cannot overwrite a symbolic link')
++      } catch (error) {
++        if (error.code !== 'ENOENT') throw error
++      }
++    }
++
+     debug('opening read stream', dest)
+     const readStream = await promisify(this.zipfile.openReadStream.bind(this.zipfile))(entry)
+ 
+     if (symlink) {
+-      const link = await getStream(readStream)
++      const link = await getStream(readStream, { maxBuffer: 4096 })
++      this.assertContained(path.resolve(path.dirname(dest), link))
+       debug('creating symlink', link, dest)
+       await fs.symlink(link, dest)
+     } else {
+-      await pipeline(readStream, createWriteStream(dest, { mode: procMode }))
++      const flags = constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | (constants.O_NOFOLLOW || 0)
++      await pipeline(readStream, createWriteStream(dest, { mode: procMode, flags }))
+     }
+   }
+ 

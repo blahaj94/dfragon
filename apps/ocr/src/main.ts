@@ -17,6 +17,7 @@ try {
   const ownerId = process.env.OCR_OWNER_ID ?? ''
   const maximumBytes = Number(process.env.OCR_MAX_BYTES ?? 1073741824)
   const port = Number(process.env.PORT ?? 3100)
+  const proxy = process.env.OCR_TRUST_PROXY
   if (
     !isAbsolute(directory) ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(ownerId) ||
@@ -24,14 +25,16 @@ try {
     maximumBytes < 16 * 1024 * 1024 ||
     !Number.isInteger(port) ||
     port < 1 ||
-    port > 65535
+    port > 65535 ||
+    (proxy !== undefined && proxy !== 'single-hop')
   ) {
     throw new Error('Invalid OCR configuration')
   }
   const config = {
     origin: parseHttpsOrigin(process.env.OCR_ORIGIN),
     authOrigin: parseHttpsOrigin(process.env.OCR_AUTH_ORIGIN),
-    ownerId
+    ownerId,
+    trustedProxyHops: proxy === 'single-hop' ? (1 as const) : undefined
   }
 
   await mkdir(directory, { recursive: true, mode: 0o700 })

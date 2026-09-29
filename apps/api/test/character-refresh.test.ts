@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setImmediate as nextTurn } from 'node:timers/promises'
 import { createCharacterDetailService } from '../src/characters/details/service.js'
-import { characterFreshness, CHARACTER_FRESHNESS_MS } from '../src/characters/details/freshness.js'
+import {
+  characterFreshness,
+  CHARACTER_FRESHNESS_MS,
+  CHARACTER_REFRESH_COOLDOWN_MS
+} from '../src/characters/details/freshness.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import { characterDetailSections } from '../src/characters/details/sections.js'
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
@@ -97,9 +101,10 @@ test('five-minute GET cache uses the oldest successful section fetch, not conten
   assert.equal(calls, 1)
   assert.equal(state.writes, 1)
   assert.equal(renewed.freshness.lastSuccessfulFetchAt, new Date(state.now).toISOString())
+  state.now += CHARACTER_REFRESH_COOLDOWN_MS
   await service.refresh('peer', identity, signal)
   assert.equal(calls, 2)
-  assert.equal(state.reads, 2)
+  assert.equal(state.reads, 3)
   assert.equal(characterFreshness(rowsAt(initialTime).slice(1)), null)
   const mixed = rowsAt(initialTime + 1000)
   mixed[0]!.lastSuccessfulFetchAt = new Date(initialTime)
@@ -138,6 +143,7 @@ test('missing or incomplete snapshots refresh; read failures do not fall through
 
 test('failed auto or manual refresh preserves stored data and never returns stale success', async (t) => {
   const { state, store } = memory(rowsAt(initialTime))
+  state.now += CHARACTER_REFRESH_COOLDOWN_MS
   let failing = true
   const service = createCharacterDetailService({
     apiKey: 'fixture',
@@ -178,6 +184,7 @@ test('GET hits and forced refresh share the per-IP ten-request quota', async (t)
   for (let i = 0; i < 9; i++) {
     await service.get('peer', identity, signal)
   }
+  state.now += CHARACTER_REFRESH_COOLDOWN_MS
   await service.refresh('peer', identity, signal)
   await assert.rejects(
     service.get('peer', identity, signal),
@@ -185,9 +192,40 @@ test('GET hits and forced refresh share the per-IP ten-request quota', async (t)
       e instanceof CharacterDetailFailure && e.status === 429 && (e.retryAfter ?? 0) > 0
   )
   assert.equal(calls, 1)
-  assert.equal(state.reads, 9)
-  await service.get('other-peer', identity, signal)
+  assert.equal(state.reads, 10)
+  await service.get('192.0.2.2', identity, signal)
   assert.equal(calls, 1)
+})
+
+test('sequential forced refresh from different clients respects the per-character cooldown', async (t) => {
+  const { state, store } = memory()
+  let calls = 0
+  const service = createCharacterDetailService({
+    apiKey: 'fixture',
+    store,
+    fetchDetails: async () => {
+      calls++
+      return payloads
+    }
+  })
+  t.after(() => service.onModuleDestroy())
+  await service.refresh('192.0.2.1', identity, signal)
+  await assert.rejects(service.refresh('192.0.2.2', identity, signal), {
+    status: 429,
+    retryAfter: 30
+  })
+  assert((await service.get('192.0.2.2', identity, signal)).freshness)
+  state.now += CHARACTER_REFRESH_COOLDOWN_MS - 1
+  await assert.rejects(service.refresh('192.0.2.3', identity, signal), {
+    status: 429,
+    retryAfter: 1
+  })
+  assert.equal(calls, 1)
+  assert.equal(state.writes, 1)
+  state.now++
+  await service.refresh('192.0.2.3', identity, signal)
+  assert.equal(calls, 2)
+  assert.equal(state.writes, 2)
 })
 
 test('concurrent GET and POST share refresh; one disconnect cannot cancel the surviving waiter', async (t) => {

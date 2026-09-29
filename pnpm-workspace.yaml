@@ -15,3 +15,11 @@ allowBuilds:
   protobufjs: false
 
 disallowWorkspaceCycles: true
+
+overrides:
+  multer@2.2.0: 2.4.0
+  undici@6.28.0: 6.28.1
+  undici@8.10.1: 8.10.2
+
+patchedDependencies:
+  extract-zip@2.0.1: patches/extract-zip@2.0.1.patch

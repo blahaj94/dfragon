@@ -1,5 +1,6 @@
 import { neopleSearchFailure } from '../errors/neople-search.js'
 import type { SearchClock } from './types.js'
+import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 
 const windowMs = 60_000
 const capacity = 10
@@ -40,6 +41,7 @@ export class SearchAdmission {
   }
 
   acquire(peerAddress: string, signal: AbortSignal): Promise<Lease> {
+    peerAddress = getIpQuotaKey(peerAddress)
     const cannotAcquire = signal.aborted || this.closed
     if (cannotAcquire) {
       return Promise.reject(neopleSearchFailure('internal'))
