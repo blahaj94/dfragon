@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { EntitySchema } from 'typeorm'
 import type { DataSource, DataSourceOptions, MigrationInterface } from 'typeorm'
 
@@ -280,4 +283,46 @@ test('migration status reports a newly registered migration as pending', async (
     await runMigrationCommand('show', () => source as unknown as DataSource),
     'Database migrations pending'
   )
+})
+
+test('database password files preserve synchronous input and sanitize failures', async () => {
+  const { readDatabaseConfiguration } = await loadDatabaseModule()
+  const environment = {
+    DB_HOST: 'localhost',
+    DB_PORT: '5432',
+    DB_USERNAME: 'fixture',
+    DB_NAME: 'fixture'
+  }
+  const directory = await mkdtemp(join(tmpdir(), 'accounts-secret-input-'))
+  try {
+    const file = join(directory, 'secret')
+    await writeFile(file, 'synthetic-file-secret\n')
+    assert.equal(
+      readDatabaseConfiguration({ ...environment, DB_PASSWORD_FILE: file }).password,
+      'synthetic-file-secret'
+    )
+    for (const candidate of [
+      { DB_PASSWORD: 'synthetic-secret', DB_PASSWORD_FILE: file },
+      { DB_PASSWORD: '', DB_PASSWORD_FILE: file },
+      { DB_PASSWORD: '' },
+      { DB_PASSWORD_FILE: '' },
+      { DB_PASSWORD_FILE: 'relative-secret-path' },
+      { DB_PASSWORD_FILE: `${file}.missing` },
+      { DB_PASSWORD_FILE: directory }
+    ]) {
+      assert.throws(
+        () => readDatabaseConfiguration({ ...environment, ...candidate }),
+        new Error('Invalid database configuration')
+      )
+    }
+    for (const contents of ['', ' \n', Buffer.from([0xff])]) {
+      await writeFile(file, contents)
+      assert.throws(
+        () => readDatabaseConfiguration({ ...environment, DB_PASSWORD_FILE: file }),
+        new Error('Invalid database configuration')
+      )
+    }
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
 })

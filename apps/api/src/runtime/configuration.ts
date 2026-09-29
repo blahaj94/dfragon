@@ -3,6 +3,7 @@ import { isAbsolute } from 'node:path'
 import { createSecureContext } from 'node:tls'
 import { readDatabaseConfiguration } from '../database/configuration.js'
 import { parsePort } from '../port.js'
+import { readSecretInput } from '../secret-input.js'
 
 const invalidConfiguration = 'Invalid API runtime configuration'
 
@@ -45,7 +46,7 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     }
     const trustedProxyHops = proxyMode === 'single-hop' ? (1 as const) : undefined
     const database = readDatabaseConfiguration(environment)
-    const apiKey = environment.NEOPLE_API_KEY
+    const apiKey = readSecretInput(environment.NEOPLE_API_KEY, environment.NEOPLE_API_KEY_FILE)
     const isApiKeyDefined = apiKey !== undefined
     if (!isApiKeyDefined) {
       throw new Error(invalidConfiguration)

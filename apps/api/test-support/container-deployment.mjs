@@ -110,7 +110,8 @@ try {
   const runtimePassword = randomBytes(32).toString('base64url')
   await writeFile(join(directory, 'migrator_password'), migratorPassword, { mode: 0o444 })
   await writeFile(join(directory, 'runtime_password'), runtimePassword, { mode: 0o444 })
-  await writeFile(join(directory, 'neople_api_key'), randomBytes(32).toString('base64url'), {
+  const neopleKey = randomBytes(32).toString('base64url')
+  await writeFile(join(directory, 'neople_api_key'), neopleKey, {
     mode: 0o444
   })
   // Only this disposable database receives fixture roles; production grants live in infrastructure.
@@ -152,7 +153,21 @@ try {
     '--env',
     `DB_NAME=${resources.configuration.database}`
   ]
-  const migrate = [
+  // Exercise the image entrypoint's legacy fallback and both explicit input modes.
+  const modes = ['legacy', 'file', 'environment']
+  const databaseInput = (mode, kind) => {
+    const password = kind === 'migrator' ? migratorPassword : runtimePassword
+    if (mode === 'environment') {
+      return ['--env', `DB_PASSWORD=${password}`]
+    }
+    const target = mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'
+    return [
+      ...(mode === 'file' ? ['--env', `DB_PASSWORD_FILE=${target}`] : []),
+      '--mount',
+      `type=bind,source=${join(directory, `${kind}_password`)},target=${target},readonly`
+    ]
+  }
+  const migrate = (mode) => [
     'run',
     '--rm',
     '--name',
@@ -160,8 +175,7 @@ try {
     ...runtimeOptions,
     '--env',
     'DB_USERNAME=dfragon_migrator',
-    '--mount',
-    `type=bind,source=${join(directory, 'migrator_password')},target=/run/secrets/db_password,readonly`,
+    ...databaseInput(mode, 'migrator'),
     imageId,
     'node',
     '--import',
@@ -170,7 +184,7 @@ try {
     'up'
   ]
   stage = 'public migration and repeat'
-  await run(migrate)
+  await run(migrate('legacy'))
   const migrations = (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows
   assert(migrations.length > 0)
   const grantSql = (await readFile(new URL('./grant-api.sql', import.meta.url), 'utf8'))
@@ -179,56 +193,136 @@ try {
     .join('\n')
   await admin.query(grantSql)
   await admin.query('RESET ROLE')
-  await run(migrate)
-  assert.deepEqual(
-    (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows,
-    migrations
-  )
-  stage = 'compiled product startup'
-  await run([
-    'run',
-    '--detach',
-    '--name',
-    runtimeName,
-    ...runtimeOptions,
-    '--publish',
-    '127.0.0.1::3000',
-    '--env',
-    'PORT=3000',
-    '--env',
-    'DB_USERNAME=dfragon_api',
-    '--env',
-    'SEARCH_TRUST_PROXY=single-hop',
-    '--mount',
-    `type=bind,source=${join(directory, 'runtime_password')},target=/run/secrets/db_password,readonly`,
-    '--mount',
-    `type=bind,source=${join(directory, 'neople_api_key')},target=/run/secrets/neople_api_key,readonly`,
-    '--mount',
-    `type=bind,source=${runtimeCheckPath},target=/app/container-runtime-check.mjs,readonly`,
-    imageId
-  ])
-  const [runtime] = JSON.parse((await run(['container', 'inspect', runtimeName])).stdout)
-  assert.equal(runtime.Config.User, 'node')
-  assert(runtime.HostConfig.ReadonlyRootfs)
-  assert(runtime.HostConfig.CapDrop.includes('ALL'))
-  assert(runtime.HostConfig.SecurityOpt.some((value) => value.startsWith('no-new-privileges')))
-  assert.equal(runtime.HostConfig.PortBindings['3000/tcp'][0].HostIp, '127.0.0.1')
-  const runtimeMounts = runtime.Mounts.filter((mount) => mount.Type === 'bind')
-  assert.deepEqual(runtimeMounts.map((mount) => mount.Destination).sort(), [
-    '/app/container-runtime-check.mjs',
-    '/run/secrets/db_password',
-    '/run/secrets/neople_api_key'
-  ])
-  assert(runtimeMounts.every((mount) => mount.RW === false))
-  stage = 'UID, read-only filesystem, secrets, database privileges and HTTP'
-  await run(['exec', runtimeName, 'node', '/app/container-runtime-check.mjs'])
+  for (const mode of modes) {
+    await run(migrate(mode))
+    assert.deepEqual(
+      (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows,
+      migrations
+    )
+  }
+  for (const mode of modes) {
+    const expectedMounts = ['/app/container-runtime-check.mjs']
+    if (mode !== 'environment') {
+      expectedMounts.push(
+        mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'
+      )
+    }
+    const serviceInput = []
+    if (mode === 'environment') {
+      serviceInput.push('--env', `NEOPLE_API_KEY=${neopleKey}`)
+    } else {
+      const target =
+        mode === 'legacy' ? '/run/secrets/neople_api_key' : '/run/fixture/neople_api_key'
+      expectedMounts.push(target)
+      serviceInput.push(
+        '--mount',
+        `type=bind,source=${join(directory, 'neople_api_key')},target=${target},readonly`
+      )
+      if (mode === 'file') {
+        serviceInput.push('--env', `NEOPLE_API_KEY_FILE=${target}`)
+      }
+    }
+    stage = 'compiled product startup'
+    await run([
+      'run',
+      '--detach',
+      '--name',
+      runtimeName,
+      ...runtimeOptions,
+      '--publish',
+      '127.0.0.1::3000',
+      '--env',
+      'PORT=3000',
+      '--env',
+      'DB_USERNAME=dfragon_api',
+      '--env',
+      'SEARCH_TRUST_PROXY=single-hop',
+      ...databaseInput(mode, 'runtime'),
+      ...serviceInput,
+      '--mount',
+      `type=bind,source=${runtimeCheckPath},target=/app/container-runtime-check.mjs,readonly`,
+      imageId
+    ])
+    const [runtime] = JSON.parse((await run(['container', 'inspect', runtimeName])).stdout)
+    assert.equal(runtime.Config.User, 'node')
+    assert(runtime.HostConfig.ReadonlyRootfs)
+    assert(runtime.HostConfig.CapDrop.includes('ALL'))
+    assert(runtime.HostConfig.SecurityOpt.some((value) => value.startsWith('no-new-privileges')))
+    assert.equal(runtime.HostConfig.PortBindings['3000/tcp'][0].HostIp, '127.0.0.1')
+    const runtimeMounts = runtime.Mounts.filter((mount) => mount.Type === 'bind')
+    assert.deepEqual(runtimeMounts.map((mount) => mount.Destination).sort(), expectedMounts.sort())
+    assert(runtimeMounts.every((mount) => mount.RW === false))
+    stage = 'UID, read-only filesystem, secrets, database privileges and HTTP'
+    await run(['exec', runtimeName, 'node', '/app/container-runtime-check.mjs'])
 
-  stage = 'graceful stop'
-  await run(['stop', '--time', '15', runtimeName])
-  assert.equal(
-    (await run(['inspect', '--format', '{{.State.ExitCode}}', runtimeName])).stdout.trim(),
-    '0'
+    stage = 'graceful stop'
+    await run(['stop', '--time', '15', runtimeName])
+    assert.equal(
+      (await run(['inspect', '--format', '{{.State.ExitCode}}', runtimeName])).stdout.trim(),
+      '0'
+    )
+    await removeOwned('container', runtimeName)
+  }
+  stage = 'invalid secret inputs fail closed'
+  for (const invalid of [
+    ['--env', 'DB_PASSWORD=', '--env', 'DB_PASSWORD_FILE=/run/missing-secret'],
+    ['--env', 'DB_PASSWORD='],
+    ['--env', 'DB_PASSWORD_FILE=/run/missing-secret']
+  ]) {
+    for (const [command, message] of [
+      [[], 'API failed to start\n'],
+      [
+        ['node', '--import', 'reflect-metadata', 'dist/database/cli.js', 'up'],
+        'Database migration failed\n'
+      ]
+    ]) {
+      const result = await run(
+        [
+          'run',
+          '--rm',
+          '--name',
+          maintenanceName,
+          ...runtimeOptions,
+          '--env',
+          'PORT=3000',
+          '--env',
+          'DB_USERNAME=fixture',
+          ...invalid,
+          imageId,
+          ...command
+        ],
+        { allowFailure: true }
+      )
+      assert.equal(result.code, 1)
+      assert.equal(result.signal, null)
+      assert.equal(result.stdout, '')
+      assert.equal(result.stderr, message)
+    }
+  }
+  const invalidServiceInput = await run(
+    [
+      'run',
+      '--rm',
+      '--name',
+      maintenanceName,
+      ...runtimeOptions,
+      '--env',
+      'PORT=3000',
+      '--env',
+      'DB_USERNAME=fixture',
+      ...databaseInput('environment', 'runtime'),
+      '--env',
+      'NEOPLE_API_KEY=synthetic',
+      '--env',
+      'NEOPLE_API_KEY_FILE=/run/missing-secret',
+      imageId
+    ],
+    { allowFailure: true }
   )
+  assert.equal(invalidServiceInput.code, 1)
+  assert.equal(invalidServiceInput.signal, null)
+  assert.equal(invalidServiceInput.stdout, '')
+  assert.equal(invalidServiceInput.stderr, 'API failed to start\n')
 } catch {
   process.stderr.write(`api image verification failed at ${stage}\n`)
   process.exitCode = signalCode ?? 1
@@ -267,5 +361,7 @@ try {
   }
 }
 if (process.exitCode === undefined) {
-  process.stdout.write('PASS: api image migration/repeat, runtime contract and graceful stop\n')
+  process.stdout.write(
+    'PASS: api image migration/repeat, ENV/FILE/legacy runtime contract and graceful stop\n'
+  )
 }

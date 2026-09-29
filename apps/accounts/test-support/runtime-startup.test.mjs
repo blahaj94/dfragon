@@ -161,6 +161,59 @@ test('build entry validates required environment before acquiring resources', as
   })
 })
 
+test('external JWT keys preserve startup and reject ambiguous inputs before DB', async (t) => {
+  await withRuntimeConfiguration(async ({ path, configuration }) => {
+    const privateKey = configuration.accessJwt.signingKey.privateKeyPem
+    const keyFile = `${path}.key`
+    await writeFile(keyFile, privateKey, { mode: 0o600 })
+    const publicConfiguration = structuredClone(configuration)
+    delete publicConfiguration.accessJwt.signingKey.privateKeyPem
+    const valid = runtimeEnvironment(path, await unusedRuntimePort())
+    for (const inline of [privateKey, '']) {
+      const candidate = structuredClone(configuration)
+      candidate.accessJwt.signingKey.privateKeyPem = inline
+      await writeFile(path, JSON.stringify(candidate))
+      await rejectedBeforeInitialization({ ...valid, AUTH_JWT_PRIVATE_KEY: privateKey })
+    }
+    await writeFile(path, JSON.stringify(publicConfiguration))
+    for (const [name, input] of [
+      ['environment', { AUTH_JWT_PRIVATE_KEY: privateKey }],
+      ['file', { AUTH_JWT_PRIVATE_KEY_FILE: keyFile }]
+    ]) {
+      await t.test(name, async () => {
+        const port = await unusedRuntimePort()
+        const runtime = startRuntime({ ...runtimeEnvironment(path, port), ...input })
+        try {
+          await waitForRuntime(port, runtime)
+          runtime.child.kill('SIGTERM')
+          assert.deepEqual(await collectRuntimeExit(runtime), {
+            code: 0,
+            signal: null,
+            stdout: '',
+            stderr: ''
+          })
+        } finally {
+          await stopRuntime(runtime)
+        }
+      })
+    }
+    for (const input of [
+      {},
+      { AUTH_JWT_PRIVATE_KEY: '' },
+      { AUTH_JWT_PRIVATE_KEY: privateKey, AUTH_JWT_PRIVATE_KEY_FILE: keyFile },
+      { AUTH_JWT_PRIVATE_KEY: '', AUTH_JWT_PRIVATE_KEY_FILE: keyFile },
+      { AUTH_JWT_PRIVATE_KEY_FILE: '' },
+      { AUTH_JWT_PRIVATE_KEY_FILE: 'relative-key-path' },
+      { AUTH_JWT_PRIVATE_KEY_FILE: `${keyFile}.missing` },
+      { AUTH_JWT_PRIVATE_KEY_FILE: path.slice(0, path.lastIndexOf('/')) }
+    ]) {
+      await rejectedBeforeInitialization({ ...valid, ...input })
+    }
+    await writeFile(keyFile, '')
+    await rejectedBeforeInitialization({ ...valid, AUTH_JWT_PRIVATE_KEY_FILE: keyFile })
+  })
+})
+
 test('build entry rejects malformed authentication JSON and exact binding violations before DB', async (t) => {
   await withRuntimeConfiguration(async ({ path, configuration }) => {
     const env = runtimeEnvironment(path, await unusedRuntimePort())
