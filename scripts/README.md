@@ -2,6 +2,8 @@
 
 저장소에서 반복적으로 사용하는 local 도구입니다. 새 dependency 없이 Node.js와 기존 Git·GitHub CLI·pnpm command를 사용합니다.
 
+서버 이미지 빌드·실행 입력은 [제품 이미지 안내](../README.md#서버-이미지)를 따릅니다. 서버 배포·SSH·timer·백업·복구 도구는 그 안내에서 연결한 인프라 저장소가 담당합니다.
+
 ## 작업 시작
 
 명확한 요청은 안전한 작업 브랜치에서 바로 진행할 수 있습니다. 현재 checkout·base·미commit 변경과 진행 작업을 확인한 뒤, 사용할 기준에서 `git switch -c fix-character-search`처럼 목적이 드러나는 이름을 정합니다. 격리가 필요하면 `git worktree add -b fix-character-search ../dfragon-search <확인한-base>`를 사용합니다. 기존 작업을 덮어쓰거나 main에 직접 commit·push하지 않습니다.
@@ -61,6 +63,15 @@ node scripts/format-date.mjs
 | Web | `pnpm --filter @dfragon/web run --sequential '/^(test\|lint\|build)$/'` |
 | PR review tooling | `pnpm run --sequential '/^(test\|typecheck):pr-review$/'` |
 | Task 준비 tooling | 위 `node --test`와 `node --check` command |
+
+API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 24, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함)·Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회·pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../README.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
+
+```bash
+node apps/api/test-support/container-deployment.mjs dfragon-api:local
+node apps/accounts/test-support/container-deployment.mjs dfragon-accounts:local
+```
+
+이 검사는 이미지를 빌드하지 않고 폐기 가능한 PostgreSQL·합성 credential·격리 자원을 만들어 migration 반복, accounts cleanup, entrypoint·secret mount·실행 사용자·DB 권한·HTTP 기동·정상 종료를 확인하고 자체 자원 정리를 시도합니다. 강제 종료·Docker 장애 시 자원이 남을 수 있습니다. 기존 `test:database`의 고정 PostgreSQL 이미지와 native platform 검증을 재사용하며 준비되지 않으면 실패합니다. 운영 DB나 credential은 입력하지 않습니다.
 
 Desktop `build`는 `typecheck`를 포함하므로 위 조합에서 별도로 반복하지 않습니다. Web `build`도 `tsc -b`를 포함합니다. 빠른 feedback이 필요할 때는 기존 개별 `test`, `lint`, `typecheck` command를 먼저 실행할 수 있습니다. 여러 범위에 실제 영향을 주면 필요한 검사를 조합합니다.
 

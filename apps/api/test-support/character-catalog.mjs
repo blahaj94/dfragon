@@ -177,7 +177,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     aborted.abort()
     await assert.rejects(store.saveAndRead(values, newer, aborted.signal))
 
-    mark('deployment grant gives runtime all three catalog permissions without DELETE')
+    mark('runtime test grant gives all three catalog permissions without DELETE')
     const runner = source.createQueryRunner()
     await runner.connect()
     await runner.startTransaction()
@@ -187,10 +187,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       await runner.query(
         'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO dfragon_migrator WITH GRANT OPTION'
       )
-      const grantFile = await readFile(
-        new URL('../../../deploy/api/grant-api.sql', import.meta.url),
-        'utf8'
-      )
+      const grantFile = await readFile(new URL('./grant-api.sql', import.meta.url), 'utf8')
       const grantSql = grantFile
         .split('\n')
         .filter((line) => !line.startsWith('\\'))

@@ -70,8 +70,8 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 명시적 forward migration이며 회원·패스키·session·refresh table을 변경하지 않는다.
 Disposable down은 빈 임시 table 구조만 복원하며 삭제된 이전 요청을 복구하지 않는다.
 
-이전 RP 키의 삭제는 schema migration과 별도 운영 SQL로 수행한다. 모든 회원이 현재 RP 키를
+이전 RP 키의 삭제는 schema migration과 별도 제품 SQL로 수행한다. 모든 회원이 현재 RP 키를
 보유하는지 같은 transaction의 쓰기 잠금 아래 확인하며, 한 명이라도 부족하면 전체 삭제를 거절한다.
 중지된 API DB의 오래된 인증 사본은 모든 source UUID와 accounts의 현재 RP 키를 대조한 뒤에만
 제거한다. DB 이름·source schema·runtime 권한을 확인하고 예상 밖 FK가 있으면 CASCADE 없이 중단한다.
-운영 schema down이나 오래된 source 복원으로 되돌리지 않는다. 실행 순서는 [accounts 배포](../../deploy/accounts/README.md)를 따른다.
+운영 schema down이나 오래된 source 복원으로 되돌리지 않는다. 구현은 `apps/accounts/database/retire-api-*.sql`에 보존하고 실행 순서는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다.

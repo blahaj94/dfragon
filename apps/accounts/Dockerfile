@@ -25,7 +25,7 @@ WORKDIR /app
 COPY --from=build /production/package.json ./package.json
 COPY --from=build /production/node_modules ./node_modules
 COPY --from=build /workspace/apps/accounts/dist ./dist
-COPY --chmod=755 deploy/accounts/entrypoint.sh /usr/local/bin/dfragon-accounts-entrypoint
+COPY --chmod=755 apps/accounts/docker-entrypoint.sh /usr/local/bin/dfragon-accounts-entrypoint
 USER node
 EXPOSE 3000
 ENTRYPOINT ["dfragon-accounts-entrypoint"]

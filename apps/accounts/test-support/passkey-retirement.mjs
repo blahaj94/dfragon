@@ -16,7 +16,7 @@ export async function assertPasskeyRetirement(admin, mark = () => {}) {
     return client
   }
   const sql = async (name) =>
-    (await readFile(new URL(`../../../deploy/accounts/${name}`, import.meta.url), 'utf8')).replace(
+    (await readFile(new URL(`../database/${name}`, import.meta.url), 'utf8')).replace(
       /^\\set.*$/gm,
       ''
     )

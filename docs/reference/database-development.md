@@ -89,13 +89,13 @@ Docker image는 고정 index·native child·config를 검증한 뒤 같은 local
 
 `apps/accounts/src/auth/refresh/index.ts`에 refresh rotation·확인된 재사용 session 폐기를 commit까지 소유하는 내부 core가 구현됐다. 전용 unit·실제 PostgreSQL 검증과 후속 HTTP 연결 경계는 [`auth-refresh-development.md`](auth-refresh-development.md)를 참고한다. 이 검증은 `/auth/refresh` HTTP 또는 logout·cleanup·운영 연결 완료를 뜻하지 않는다.
 
-## 공용 상세 캐시 운영
+## 공용 상세 캐시
 
 `AddCharacterCatalog1789554193117`은 `item_catalog`와 `skill_catalog` 두 테이블만 추가한다. 기존 캐릭터 JSONB·인증 데이터는 변경하지 않는다. 후속 `AddSetItemCatalog1789557135610`은 같은 캐시 정책의 `set_item_catalog`만 추가한다. 아바타·엠블렘·크리쳐·아티팩트·서약·결정·버프 장착 상세는 기존 `item_catalog`를 재사용한다. [캐릭터 상세 계약](../rules/character-details.md#공용-아이템·스킬·세트-상세)과 [DBML](character-details.dbml)을 함께 참고한다.
 
-배포 순서는 migrator로 `db:migrate:up` → runtime 계정에 공용 상세 테이블의 SELECT·INSERT·UPDATE 권한 부여 → 새 서버 배포다. `deploy/api/grant-api.sql`은 공용 상세 세 테이블의 권한을 포함하며 migration 이후 재실행할 수 있다. 별도 읽기 전용 계정은 SELECT만 부여한다. 자동 migration은 계속 비활성화한다. `down`은 공용 캐시를 삭제하므로 격리 테스트에서만 사용한다.
+Runtime에는 공용 상세 세 테이블의 SELECT·INSERT·UPDATE 권한이 필요하며 별도 읽기 전용 계정은 SELECT만 가진다. 제품 DB 검증은 `apps/api/test-support/grant-api.sql` fixture로 이 최소 권한을 확인한다. 실제 역할·권한 부여와 실행 순서는 [인프라 책임](../../README.md#서버-이미지)이다. 자동 migration은 계속 비활성화하며 `down`은 공용 캐시를 삭제하므로 격리 테스트에서만 사용한다.
 
-공용 상세는 접근 시 24시간 만료를 확인한다. 시즌 패치 직후 기존 값을 유지한 채 다음 접근에서 갱신하려면 권한이 있는 운영 연결에서 아래 SQL을 실행한다. 과거 성공 조회 시각은 바꾸지 않는다. request_started_at도 올려 무효화보다 먼저 시작한 갱신이 기존 행을 다시 유효하게 만들지 못하게 한다. 세 테이블에 이미 존재하는 행이 대상이며 전체 수집·즉시 재조회 작업은 아니다.
+공용 상세는 접근 시 24시간 만료를 확인한다. 기존 값을 유지한 채 다음 접근에서 갱신하도록 무효화하는 제품 상태 전이는 아래 SQL과 같다. 개발·테스트 DB에서 동작을 확인하며 운영 실행은 인프라 절차를 따른다. 과거 성공 조회 시각은 바꾸지 않는다. request_started_at도 올려 무효화보다 먼저 시작한 갱신이 기존 행을 다시 유효하게 만들지 못하게 한다. 세 테이블에 이미 존재하는 행이 대상이며 전체 수집·즉시 재조회 작업은 아니다.
 
 ```sql
 BEGIN;
@@ -112,10 +112,10 @@ COMMIT;
 
 `test-support/character-catalog.mjs`는 실제 PostgreSQL에서 24시간 만료, 스킬 복합 식별, 캐시 재사용·실패, 실제 row-lock 대기와 이전 요청 덮어쓰기 방지, 무효화, JSONB 보존과 rollback을 검증한다. `test-support/character-details.mjs`는 HTTP 응답에 공용 상세가 연결되지만 캐릭터 원본에는 섞이지 않는 것을 검증한다. 단위 테스트는 아이템 다중 ID 대응·스킬 단일 조회, 호출 제한·취소·실패 시 데이터 출처, 장비 옵션과 스킬 빈 슬롯 보존을 확인한다.
 
-## 모험단명 검색 배포
+## 모험단명 검색 migration 호환성
 
 `AddCharacterAdventureName1789564164377`은 `characters.adventure_name`과 비고유 `(adventure_name, character_id)` B-tree index를 추가하고 기존 기본정보 JSONB에서 이름을 채운다. PK·FK·원본 응답은 변경하지 않는다. 기존 테이블 단위 runtime 권한으로 새 column도 읽고 쓸 수 있으므로 새 역할·권한 부여는 필요하지 않다. [캐릭터 상세 계약](../rules/character-details.md#모험단명-검색), [DBML](character-details.dbml)을 참고한다.
 
-배포는 새 이미지 build → 이전 API 중지 → migrator로 `db:migrate:up` → 새 API 시작 순서로 진행한다. 이전 API는 새 column을 동기화하지 못하므로 backfill 이후 이전 API가 쓰는 기간을 만들지 않는다. Migration의 column 추가·backfill·index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 배포 중 오류가 나면 해당 단계에서 중단하고 상태를 확인한다. 운영에서 자동 `down`은 하지 않는다. 이전 API로 복구해 다시 캐릭터를 갱신했다면 새 버전 재배포 전에 migration의 backfill SQL로 column을 재동기화해야 한다.
+이전 API는 새 column을 동기화하지 못하므로 backfill 이후 이전 API의 쓰기를 허용하지 않는다. 배포 실행 순서는 [인프라 책임](../../README.md#서버-이미지)이며 이 migration의 호환성 조건을 유지해야 한다. Migration의 column 추가·backfill·index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 배포 중 오류가 나면 해당 단계에서 중단하고 상태를 확인한다. 운영에서 자동 `down`은 하지 않는다. 이전 API로 복구해 다시 캐릭터를 갱신했다면 새 버전 재배포 전에 migration의 backfill SQL로 column을 재동기화해야 한다.
 
 `test-support/adventure-search.mjs`는 기존 JSONB를 가진 DB의 migration, 중복 이름·null, 서버를 가로지르는 정확 일치와 페이지 조회, 이름 변경·이전 요청·실패 시 rollback, HTTP 응답을 확인한다. 새 기능은 우리 DB에서 수집된 캐릭터만 찾으며 모험단의 전체 보유 목록 수집이나 클라이언트 화면은 포함하지 않는다.

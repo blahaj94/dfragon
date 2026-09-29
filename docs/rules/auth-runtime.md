@@ -98,7 +98,7 @@ HTTP 합성과 기존 계정·검색 deadline은 유지한다. 제품의 인증 
 
 API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body/deadline 정책은 승인됐다. PostgreSQL server·image·local validation 선택의 상태와 evidence는 위 canonical 구간만 따른다. 선택 승인 여부와 별개로 다음 미정이 필요한 구현은 별도 결정/검증을 완료해야 한다.
 
-- 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 장비·역할과 복원 선택은 [인증 운영 구성](../architecture/auth-operations-proposal.md)을 따름
+- 선택한 운영 환경의 single process 조건, clock·cleanup·key 운영 절차. 실행 절차는 [인프라 책임](../../README.md#서버-이미지), 삭제·복원 조건은 [제품 계약](auth-withdrawal-proposal.md)을 따름
 - 실제 선택한 dependency 조합의 compiled ESM/TypeScript/runtime compatibility
 - 실제 인증 HTTPS origin·RP ID·앱 protocol과 Electron OS 저장/IPC·browser/OS 검증. Desktop의 남은 platform 조건은 [Desktop contract](desktop-auth.md)를 따름
 
@@ -107,4 +107,4 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 
 탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.
 
-인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [accounts 배포](../../deploy/accounts/README.md)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.
+인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.

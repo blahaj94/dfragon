@@ -53,7 +53,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
 - 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정·JWT·계정 DB를 사용하지 않는다.
 - `test`는 build·타입·단위·HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration·검색·캐시를 검증한다.
-- 개발·배포: [API 개발](api-start-development.md), [API 배포](../../deploy/api/README.md).
+- 개발: [API 개발](api-start-development.md). 이미지 실행·운영 책임: [제품 안내](../../README.md#서버-이미지).
 
 ### `apps/accounts`
 
@@ -61,10 +61,10 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - `src/auth`: passkey·동일 계정 RP 이전·JWT·refresh/logout·nickname·cleanup. Desktop/OCR은 이 서비스에 인증한다.
 - 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container·volume·역할을 사용한다.
 - `src/database/schemas`가 Schema First 원본이다. 기존 auth migration 세 개와 RP/handoff migration 한 개를 빈 target에 적용한다.
-- `src/database/import`는 중지된 이전 DB에서 같은 UUID·키·세션·전체 refresh history를 빈 target으로 한 번 복사한다.
+- `database/retire-api-*.sql`은 이전 인증 사본·RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
 - 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
 - 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
-- 운영/기존 계정 이전/rollback은 [accounts 배포](../../deploy/accounts/README.md), 개발 설정은 [패스키 안내](passkey-authentication.md).
+- 이미지 실행·운영 책임은 [제품 안내](../../README.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
 - 양쪽 runtime은 시작할 때 schema migration을 자동 실행하지 않는다. `/docs`와 `/docs/openapi.json`도 각각 자기 서비스의 HTTP 계약만 제공한다.
 
 ### `apps/web`
@@ -116,7 +116,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - `src`: 서버·기존 패스키 API 연결·원본/정답 저장·PNG 크롭·TAR 다운로드. `browser`: 관리 SPA.
 - 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
 - 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.
-- 실행/API: [OCR 안내](../../apps/ocr/README.md), Linux Compose·proxy: [배포 안내](../../deploy/ocr/README.md).
+- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행·운영 책임: [제품 안내](../../README.md#서버-이미지).
 
 ## Shared UI
 
