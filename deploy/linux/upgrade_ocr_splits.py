@@ -120,6 +120,8 @@ def initialize_split_tables(image, database):
 
 def upgrade(commit):
     previous = json.loads((deployment.STATE / 'state.json').read_text())
+    rollback_path = deployment.STATE / 'previous.json'
+    rollback_baseline = rollback_path.read_text() if rollback_path.exists() else None
     old = previous['ocr']
     phase = 'prepare-ocr-splits'
     stopped = False
@@ -177,7 +179,7 @@ def upgrade(commit):
         if deployed['Config']['Image'] != 'dfragon-ocr:' + commit or deployed['Image'] != image:
             raise RuntimeError('deployed OCR image differs')
         result = {**previous, 'ocr': {'revision': commit, 'source': str(source)}}
-        deployment.save(deployment.STATE / 'previous.json', previous)
+        deployment.save(rollback_path, previous)
         deployment.save(deployment.STATE / 'state.json', result)
         deployment.save(deployment.STATE / 'status.json', {
             **status, 'status': 'succeeded', 'phase': 'complete', 'changed': ['ocr'], 'backup': True})
@@ -192,6 +194,10 @@ def upgrade(commit):
                 deployment.compose('ocr', Path(old['source']), 'up', '-d', '--no-build', '--no-deps', 'ocr')
                 deployment.ready('ocr')
                 deployment.save(deployment.STATE / 'state.json', previous)
+                if rollback_baseline is None:
+                    rollback_path.unlink(missing_ok=True)
+                else:
+                    deployment.write_text(rollback_path, rollback_baseline)
                 restored = True
             except Exception:
                 restored = False

@@ -204,6 +204,35 @@ class OcrSplitRolloutTests(unittest.TestCase):
         with closing(sqlite3.connect(backup)) as database:
             self.assertEqual(database.execute('SELECT COUNT(*) FROM label_splits').fetchone()[0], 1)
 
+    def assert_metadata_failure_restores_records(self, failed_record):
+        save = deployment.save
+        failed = False
+        def save_with_failure(path, value):
+            nonlocal failed
+            is_new_state = path.name == 'state.json' and value['ocr']['revision'] == NEW
+            is_success = path.name == 'status.json' and value['status'] == 'succeeded'
+            if path.name == failed_record and (is_new_state or is_success) and not failed:
+                failed = True
+                raise OSError('metadata save failed')
+            save(path, value)
+        with patch.object(rollout, 'initialize_split_tables', side_effect=self.add_tables), \
+             patch.object(deployment, 'ready'), patch.object(deployment, 'save', side_effect=save_with_failure):
+            with self.assertRaisesRegex(OSError, 'metadata save failed'):
+                rollout.upgrade(NEW)
+        self.assertTrue(failed)
+        self.assertTrue(self.status()['restored'])
+        self.assertEqual(json.loads((self.state / 'state.json').read_text()), self.previous)
+        self.assertEqual(self.environment.read_text(), self.original_environment)
+
+    def test_state_save_failure_preserves_existing_rollback_record(self):
+        self.assert_metadata_failure_restores_records('state.json')
+        self.assertEqual((self.state / 'previous.json').read_text(), 'previous rollback baseline')
+
+    def test_success_status_save_failure_restores_absent_rollback_record(self):
+        (self.state / 'previous.json').unlink()
+        self.assert_metadata_failure_restores_records('status.json')
+        self.assertFalse((self.state / 'previous.json').exists())
+
     def test_started_or_malformed_split_tables_are_not_silently_accepted(self):
         self.add_tables('unused', self.database)
         with closing(sqlite3.connect(self.database)) as database:
