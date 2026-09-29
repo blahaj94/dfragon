@@ -141,6 +141,8 @@ try {
   await run(['network', 'create', '--label', label, networkName])
   await run(['network', 'connect', '--alias', 'database', networkName, resources.containerName])
   const runtimeOptions = [
+    '--platform',
+    `${metadata.Os}/${metadata.Architecture}${metadata.Variant ? `/${metadata.Variant}` : ''}`,
     '--label',
     label,
     '--network',
