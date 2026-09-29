@@ -14,6 +14,7 @@ import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
 import { OcrModelController } from './model-controller.js'
 import { MODEL_MAXIMUM_BYTES } from './model-library.js'
+import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
 import {
   OCR_CONFIG,
   OcrAuthController,
@@ -59,11 +60,20 @@ function isDesktopRequest(request: Request): boolean {
 export async function createOcrApp(
   config: AuthConfiguration,
   store: OcrStore,
-  auth = new OcrAuth(config)
+  auth = new OcrAuth(config),
+  buildInfoPath = '/app/build-info.json'
 ) {
+  const buildInfo = await readOcrBuildInfo(buildInfoPath)
   @Module({
-    controllers: [OcrAuthController, OcrDataController, OcrHealthController, OcrModelController],
+    controllers: [
+      OcrAuthController,
+      OcrDataController,
+      OcrHealthController,
+      OcrModelController,
+      OcrVersionController
+    ],
     providers: [
+      { provide: OCR_BUILD_INFO, useValue: buildInfo },
       { provide: OCR_CONFIG, useValue: config },
       { provide: OcrAuth, useValue: auth },
       { provide: OcrStore, useValue: store }

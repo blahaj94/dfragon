@@ -1,8 +1,10 @@
 import type { AuthSnapshot, AuthCommandResult, AuthProvider } from './auth'
 import type { CaptureSource, StableNicknameDetection } from './capture'
 import type { SearchControl, SearchCommandResult, SearchObservation } from './search'
+import type { BuildVersions } from './build-versions'
 
 interface AsyncIPCFunctions {
+  getBuildVersions: () => Promise<BuildVersions>
   getAuthState: () => Promise<AuthSnapshot>
   beginLogin: (input: { provider: AuthProvider }) => Promise<AuthCommandResult>
   cancelLogin: (input: { attemptId: string }) => Promise<AuthCommandResult>

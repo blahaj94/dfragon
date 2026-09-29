@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
@@ -9,11 +10,15 @@ import {
   readDistributionApiOrigin,
   readDistributionAccountsOrigin
 } from './build/distribution-config'
+import { readDesktopSourceInfo } from './build/build-info'
 
 export default defineConfig(({ mode, command }) => ({
   main: {
     resolve: { alias: { '@dfragon/lib': resolve('../../packages/lib/src/index.ts') } },
     define: {
+      __DFRAGON_DESKTOP_BUILD__: JSON.stringify(
+        readDesktopSourceInfo(fileURLToPath(new URL('.', import.meta.url)))
+      ),
       __DFRAGON_DEVELOPMENT_AUTH__: JSON.stringify(mode === 'dfragon-development'),
       __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__: JSON.stringify(
         mode === 'dfragon-distribution' ? readDistributionAccountsOrigin() : null

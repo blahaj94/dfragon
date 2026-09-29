@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   loadFile: vi.fn(),
   registerWindow: vi.fn(),
   registerDeveloperWindow: vi.fn(() => vi.fn()),
+  registerVersionsWindow: vi.fn(() => vi.fn()),
   consumeCaptureMediaPermission: vi.fn(() => false),
   permissionCheck: vi.fn(),
   permissionRequest: vi.fn(),
@@ -52,6 +53,7 @@ const mocks = vi.hoisted(() => ({
   registerAuth: vi.fn(),
   setPath: vi.fn(),
   getPath: vi.fn(),
+  getVersion: vi.fn(() => '6.7.8'),
   setName: vi.fn(),
   setAppUserModelId: vi.fn(),
   exit: vi.fn(),
@@ -90,6 +92,7 @@ vi.mock('electron', () => ({
     requestSingleInstanceLock: vi.fn(() => true),
     setPath: mocks.setPath,
     getPath: mocks.getPath,
+    getVersion: mocks.getVersion,
     setName: mocks.setName,
     setAppUserModelId: mocks.setAppUserModelId,
     exit: mocks.exit,
@@ -126,6 +129,9 @@ vi.mock('@electron-toolkit/utils', () => ({
 }))
 vi.mock('./developer/ipc-handler', () => ({
   registerDeveloperWindow: mocks.registerDeveloperWindow
+}))
+vi.mock('./versions/ipc-handler', () => ({
+  registerVersionsWindow: mocks.registerVersionsWindow
 }))
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
@@ -336,6 +342,37 @@ it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명
   const callback = vi.fn()
   request({}, 'media', callback, { mediaTypes: [], isMainFrame: true })
   expect(callback).toHaveBeenCalledExactlyOnceWith(false)
+})
+
+it('version metadata uses separate product and account origins and does not depend on login state', async () => {
+  stubTrustedRuntimeEnvironment()
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://game.synthetic.test')
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerVersionsWindow).toHaveBeenCalledWith({
+    window: mocks.windows[0],
+    documentUrl: expect.stringContaining('/frontend/index.html'),
+    desktop: expect.any(Function),
+    apiOrigin: 'https://game.synthetic.test',
+    accountsOrigin: 'https://api.synthetic.test'
+  })
+  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop as () => unknown
+  expect(desktop()).toEqual({ version: '6.7.8', commit: null, dirty: null })
+})
+
+it('capture and authentication still start when version metadata registration fails', async () => {
+  stubTrustedRuntimeEnvironment()
+  mocks.registerVersionsWindow.mockImplementationOnce(() => {
+    throw new Error('synthetic metadata registration failure')
+  })
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerCapture).toHaveBeenCalledOnce()
+  expect(mocks.registerAuth).toHaveBeenCalledOnce()
+  expect(mocks.loadFile).toHaveBeenCalledOnce()
+  expect(mocks.runtime?.start).toHaveBeenCalledOnce()
 })
 
 it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제품에 연결한다', async () => {

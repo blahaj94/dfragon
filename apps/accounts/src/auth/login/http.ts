@@ -40,6 +40,11 @@ import type { RefreshDependencies } from '../refresh/types.js'
 import { parseCreation, parseExchange, parseRefreshToken } from './input.js'
 import { jsonError, loginJsonParser } from './json-parser.js'
 import { AuthCapacity, createAuthRateLimit } from './admission.js'
+import {
+  ACCOUNTS_BUILD_INFO,
+  AccountsVersionController,
+  readAccountsBuildInfo
+} from '../../build-info.js'
 
 const LOGIN_SERVICE = Symbol('LOGIN_SERVICE')
 const SESSION_SERVICE = Symbol('SESSION_SERVICE')
@@ -291,8 +296,10 @@ export async function createLoginHttpApp(
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
   httpOptions?: Readonly<{ trustedProxyHops?: 1 }>,
-  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
+  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
+  buildInfoPath = '/app/build-info.json'
 ): Promise<INestApplication> {
+  const buildInfo = await readAccountsBuildInfo(buildInfoPath)
   const hasSessionService = sessionService != null
   const hasAccountDependencies = accountDependencies != null
   const capacity = new AuthCapacity()
@@ -307,10 +314,12 @@ export async function createLoginHttpApp(
   const accountService = accountDependencies ? createAccountService(accountDependencies) : undefined
   const controllers = [
     LoginController,
+    AccountsVersionController,
     ...(hasSessionService ? [SessionController] : []),
     ...(hasAccountDependencies ? [AccountController] : [])
   ]
   const providers = [
+    { provide: ACCOUNTS_BUILD_INFO, useValue: buildInfo },
     { provide: LOGIN_SERVICE, useValue: limitedLogin },
     ...(sessionService
       ? [

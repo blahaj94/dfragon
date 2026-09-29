@@ -71,7 +71,8 @@ test('shared build inputs select all consumers with conservative package scopes'
     '.npmrc',
     '.github/workflows/product-images.yml',
     '.github/workflows/code-quality.yml',
-    'scripts/product-image-plan.mjs'
+    'scripts/product-image-plan.mjs',
+    'scripts/server-build-info.mjs'
   ]) {
     assert.deepEqual(selectServices([path]), allServices, path)
   }

@@ -88,7 +88,8 @@ DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력�
 `apps/api/**`, `apps/ocr/**`, `apps/accounts/**`만 바뀌면 각각 해당 이미지만 빌드하며,
 여러 서비스가 바뀌면 그 서비스들을 함께 빌드합니다. `packages/ui/**`는 accounts·OCR,
 `packages/lib/**`·`packages/licenses/**`·`patches/**`와 root package·lockfile·workspace 설정은
-세 이미지에 영향을 줍니다. 이미지 workflow·선택 도구 변경도 세 이미지를 검사합니다.
+세 이미지에 영향을 줍니다. 이미지 workflow·선택 도구·커밋 정보 생성기
+(`scripts/server-build-info.mjs`) 변경도 세 이미지를 검사합니다.
 서버 이미지 입력이 없는 문서·Desktop·Web 전용 변경은 이미지 빌드·발행을 건너뜁니다.
 
 PR은 base와 빌드할 merge commit을 비교해 선택한 이미지를 빌드만 합니다.
@@ -103,6 +104,9 @@ main에서는 마지막으로 Product Images 전체가 성공한 실행의 sourc
 
 이미지는 `ghcr.io/blahaj94/dfragon/{api,ocr,accounts}:<40자리 commit SHA>`로 발행하고
 OCI `source`·`revision` label에 저장소와 commit을 기록합니다. 대상 플랫폼은 `linux/amd64` 하나입니다.
+같은 제품 commit을 `SOURCE_COMMIT` 빌드 인자로 전달해 이미지 내부 `/app/build-info.json`에도
+고정합니다. 빌드와 발행 전에 컨테이너를 시작하지 않고 파일을 추출해 서비스명과 commit을
+대조합니다. 이미지의 label, 내부 버전 정보와 인계 artifact가 같은 소스를 가리켜야 합니다.
 테스트 실패는 Code Quality, 이미지 빌드 실패는 `Build image`, 인증·발행·digest 확인
 실패는 각각 `Authenticate to GHCR`·`Publish the built image`·`Verify the registry digest`에서 확인합니다.
 선택한 이미지 빌드가 모두 성공해야 같은 목록의 발행 job이 시작됩니다.
@@ -138,10 +142,31 @@ Dockerfile과 전용 ignore 파일은 `apps/<service>/`에 있습니다. 빌드 
 API/accounts의 `docker-entrypoint.sh`도 해당 앱 옆에서 관리합니다. 로컬 빌드는 다음과 같습니다.
 
 ```sh
-docker build --platform linux/amd64 -f apps/api/Dockerfile -t dfragon-api:local .
-docker build --platform linux/amd64 -f apps/accounts/Dockerfile -t dfragon-accounts:local .
-docker build --platform linux/amd64 -f apps/ocr/Dockerfile -t dfragon-ocr:local .
+docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/api/Dockerfile -t dfragon-api:local .
+docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/accounts/Dockerfile -t dfragon-accounts:local .
+docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/ocr/Dockerfile -t dfragon-ocr:local .
 ```
+
+커밋 정보는 커밋한 checkout을 기준으로 넣습니다. 빌드 인자를 생략한 로컬 이미지는 `commit: null`로
+정보 없음을 명시합니다. 잘못된 SHA는 빌드에 실패하며, GitHub가 발행하는 이미지는 정확한 SHA가
+없으면 검증을 통과하지 못합니다. 비밀값은 빌드 인자로 전달하지 않습니다.
+
+### 실행 중인 서버의 버전 조회
+
+API·accounts·OCR는 로그인 없이 `GET /version`으로 다음 정보를 제공합니다.
+
+```json
+{
+  "service": "api",
+  "commit": "<40-character-commit-sha>"
+}
+```
+
+응답에는 서비스명과 이미지에 고정된 제품 commit만 포함하며 `Cache-Control: no-store`를 사용합니다.
+시작 시 런타임 환경변수나 최신 GitHub main에서 commit을 덮어쓰지 않습니다. 이전 이미지로
+복귀하면 그 이미지에 내장된 commit이 반환됩니다. 파일이 없는 로컬 실행이나 손상된 정보는
+`commit: null`로 표시하고, 이 기능이 없는 이전 서버는 `/version`을 제공하지 않을 수 있습니다.
+기존 health·인증 응답 형식은 유지합니다.
 
 ## 이미지 실행 계약
 

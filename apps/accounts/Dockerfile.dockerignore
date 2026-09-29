@@ -3,6 +3,8 @@
 !package.json
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
+!scripts/
+!scripts/server-build-info.mjs
 !patches/
 !patches/*.patch
 !apps/
