@@ -64,6 +64,20 @@ main에서는 `baseline`으로 마지막 성공 발행 실행을 찾고 `catch-u
 
 검증: `pnpm test:product-images`, `node --check scripts/product-image-plan.mjs`.
 
+## `server-build-info`
+
+Docker 빌드에서 제품 commit과 서비스명을 고정 JSON 파일로 기록합니다. 커밋 정보는 CLI 인자로만
+받으며 런타임 환경변수나 GitHub의 최신 main을 읽지 않습니다. 허용 서비스는 `api`, `accounts`,
+`ocr`이고 SHA는 소문자 40자리입니다. 로컬 빌드에서 빈 SHA를 전달하면 `commit: null`을 기록합니다.
+
+```sh
+node scripts/server-build-info.mjs api "$(git rev-parse HEAD)" build-info.json
+node --test scripts/test/server-build-info.test.mjs
+```
+
+GitHub 이미지 빌드·발행은 내장 정보와 선택한 정확한 commit을 추가로 대조합니다.
+실행 중인 서버 조회는 [제품 이미지 안내](../docs/reference/api-start-development.md#실행-중인-서버의-버전-조회)를 참고합니다.
+
 ## Native validation
 
 로컬 API·accounts·Desktop은 각 앱 `package.json`의 `dev` 명령을 사용합니다. `pnpm --filter @dfragon/api dev`, `pnpm --filter @dfragon/accounts dev`, `pnpm --filter @dfragon/desktop dev`가 해당 앱의 `.env`를 읽으며, 개인 홈의 별도 실행 파일은 필요하지 않습니다. 최초 준비와 명시적 개발 DB migration은 [API 로컬 실행](../docs/reference/api-start-development.md#로컬-개발-명령), Desktop 설정은 [카드 화면 개발](../apps/desktop/README.md#카드-화면-개발)을 참고합니다.
