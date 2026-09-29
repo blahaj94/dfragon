@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: repository handwritten source, tests, scripts and tooling
-last-reviewed: 2026-09-14
+last-reviewed: 2026-09-28
 ---
 
 # Project Convention
@@ -48,7 +48,7 @@ function hasNonEmptyText(value: string | null | undefined): boolean {
 
 이미 분류된 오류는 보존하고 외부 library·DB·provider·IPC 오류는 소유 경계에서 기존 정책으로 정제한다. 예상한 외부 실패와 내부 버그를 임의로 합치지 않는다. Error return/throw나 선택 인자에 commit·rollback 정책을 숨기지 않는다. 여러 검사에서 같은 오류를 쓸 수 있으며 검사마다 새 Error class를 만들 필요는 없다.
 
-정적 오류 catalog는 runtime 정의 한 곳에서 TypeScript의 구체 타입을 파생한다. `as const`·`satisfies`는 compile-time 검사이며 runtime validation·객체 동결을 대신하지 않는다. Catalog key의 중복·덮어쓰기와 `stack`·`cause`의 기존 정제 계약을 보존한다.
+정적 식별자·표시 문구·오류 catalog는 runtime 정의 한 곳에서 TypeScript의 구체 타입을 파생한다. 고정 값의 리터럴 타입이 필요하면 `as const`로 보존하고, 키 집합·값 구조도 검사할 때는 넓은 타입 주석 대신 `satisfies`를 조합한다. 이는 compile-time 검사이며 runtime validation·객체 동결을 대신하지 않는다. Catalog key의 중복·덮어쓰기와 `stack`·`cause`의 기존 정제 계약을 보존한다.
 
 Renderer·외부 입력은 해당 신뢰 경계에서 runtime 검증한다. TypeScript 타입이나 mock 통과로 이를 대체하지 않는다. 오류 가독성을 이유로 원문 error·token·credential·URL·identity를 응답이나 log에 추가 노출하지 않는다.
 

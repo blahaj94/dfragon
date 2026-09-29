@@ -32,14 +32,12 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 
 공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. 공용 UI library의 기존 SEED 배포/CSS 소유 경계는 유지한다.
 
-## 작성
+## 작성 예시
 
-컴포넌트 옆 `{name}.style.ts`에 module scope의 `stylex.create`와 named export를 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. 다른 요소의 DOM 구조를 추측하는 전역 selector 대신 해당 요소에 직접 적용한다. SEED recipe의 `className`과 함께 쓸 때는 한쪽을 덮어쓰지 않도록 className을 합친다.
-
-공용 색·간격은 SEED CSS 변수를 우선 사용한다. StyleX 변수·테마가 필요하면 `.stylex.ts`의 `defineVars`·`createTheme`를 사용한다. 앱 고유의 배치는 앱에 두고, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. StyleX API를 다시 감싼 별도 runtime wrapper는 만들지 않는다.
+파일 배치·named export·테마·스타일 합성의 기준은 [화면별 스타일 계약](../rules/design-system.md#화면별-스타일-조정)을 따른다. 이 문서는 compiler 연결과 현재 구현 예시를 설명한다.
 
 `apps/accounts/browser/passkeys.style.ts`는 SEED recipe·Typo와의 조합, `apps/web/src/App.style.ts`와 `theme.stylex.ts`는 반응형 배치·시스템 색상 테마의 예다. Desktop 테마 상태와 컴포넌트 작성 세부사항은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 
 ## 검증
 
-소비 앱의 build와 기존 UI 테스트로 compiler·CSS 추출을 확인한다. 실제 브라우저에서 변경한 화면의 넓은/좁은 배치와 밝은/어두운 테마를 확인한다. StyleX의 class hash를 테스트 계약으로 사용하지 않는다.
+검증 범위는 [Design System의 영향 범위 검증](../rules/design-system.md#영향-범위-검증)을 따른다. 소비 앱의 build·기존 UI 테스트에서 compiler와 CSS 추출을 확인할 수 있다. StyleX class hash는 생성 결과이므로 안정적인 테스트 계약이 아니다.

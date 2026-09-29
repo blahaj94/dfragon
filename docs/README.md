@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: repository
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-28
 ---
 
 # DFRAGON Document Guide
@@ -26,6 +26,7 @@ last-reviewed: 2026-09-15
 | Desktop 개발자 모드·크롭·라벨·모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
 | OCR 이미지 업로드·정답·train/val/test·패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
 | 앱 공용 UI·SEED·StyleX·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
+| React 화면·hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [앱 지침](../apps/AGENTS.md), [OCR 지침](../apps/ocr/AGENTS.md), [Desktop 지침](../apps/desktop/AGENTS.md) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 인증·session·DB·삭제·운영·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 
@@ -36,6 +37,8 @@ last-reviewed: 2026-09-15
 Rule은 동작과 제약을 정의하고, Reference는 현재 code·config·command를 설명한다. `AGENTS.md`, `convention.md`, `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 이동 안내처럼 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue·PR에서 관리한다.
 
 Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경은 채택 범위·status를 PR에 명시해 구현·검증하고, 다른 작업에는 사용자 merge 후 적용한다. Proposed 제품 계약의 링크·절차 정리만으로 그 내용을 채택하지 않는다.
+
+필수 작성 방식·책임 경계는 Rule에 두고, Reference와 앱 안내는 해당 Rule 및 현재 대표 구현을 연결한다. 예제나 기존 코드의 우연한 형태를 다른 앱의 필수 구조로 확대하지 않는다.
 
 같은 원문을 여러 문서에 복제하지 않는다. 지침은 짧은 진입점과 필요한 주제별 계약으로 유지하고, 문서·줄 수 할당량이나 과거 운영 문서의 필수 읽기를 만들지 않는다. 비밀정보와 개인 경로·내부 대화·실행 ID·raw log를 남기지 않는다.
 

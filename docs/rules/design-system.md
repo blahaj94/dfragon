@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: application-browser-ui
-last-reviewed: 2026-09-15
+last-reviewed: 2026-09-28
 ---
 
 # Design System Contract
@@ -34,9 +34,24 @@ Snippet을 새로 가져오거나 수정할 때 해당 출처·local 변경과 �
 
 공용 Component는 반복되는 외형·상태·interaction을 소유하고, 화면은 data·event와 화면 고유의 배치·조합을 소유한다. 이미 공용 자산으로 충분하면 재사용한다. 한 화면에 필요한 조합은 앱 안에서 시작하며 실제로 같은 책임을 공유할 때 공용화한다. 이름만 다른 Variant나 전달뿐인 wrapper를 만들지 않는다.
 
+## React UI 책임
+
+이 기준은 저장소의 Desktop renderer·Accounts 패스키·OCR·Web React 화면에 공통으로 적용한다. 앱별 폴더 구조와 process 경계는 하위 `AGENTS.md`와 해당 제품 계약을 따른다. 기존 전체 화면을 한 번에 재구성하지 않고 현재 변경에 적용한다.
+
+- 수정 전에 실제 앱 진입점과 호출 경로를 확인해 제품 화면·구버전·미리보기를 구분한다. 테스트에서 쓰이는 파일이라는 이유만으로 제품 진입점으로 판단하지 않는다.
+- 컴포넌트는 표시·DOM 이벤트·확인 문구와 대화상자를 소유한다. 입력 draft·포커스 같은 자체 UI 상태는 컴포넌트에 남겨도 된다. 사용자 확인을 취소하면 실행하지 않고, 승인한 요청을 hook이나 실행 경계에 전달한다. 요청 hook이 사용하는 화면의 확인 창까지 직접 띄우지 않는다.
+- Hook은 하나의 응집된 React 상태·구독·요청 수명을 소유한다. 같은 화면에서 쓰인다는 이유로 독립적인 책임을 묶거나 컴포넌트 로직을 통째로 옮기는 것으로 분리를 대신하지 않는다. 하나의 책임에 필요한 여러 state·effect는 함께 둘 수 있으며 변수마다 hook을 만들지 않는다.
+- React 상태·수명이 필요 없는 검증과 정책 계산은 순수 함수로 둔다. 단순 파생 값은 표현식으로 충분하면 그대로 사용한다. 다른 hook이나 기존 비UI 구현을 직접 사용하며 계산용 hook·전달 전용 wrapper를 만들지 않는다.
+- 중복 요청·호출 제한 같은 실행 정책은 요청을 수행하는 쪽이 소유하고 실행 시에도 검사한다. UI는 그 결과로 비활성·로딩 상태를 표시하며 버튼 비활성화만으로 실행 조건을 보장하지 않는다. 서버·IPC의 runtime 검증도 유지한다.
+- 분리 전후의 실제 책임 소유자와 의존 방향을 확인하고 동작·평가 순서·오류·cleanup을 보존한다. 파일 이동이나 함수 길이 감소만으로 책임 분리가 완료됐다고 판단하지 않는다.
+
 ## 화면별 스타일 조정
 
-Desktop·API 패스키·OCR·Web의 화면별 간격·정렬·너비·영역 padding·반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. SEED·vendor 스타일, font-face·reset·공용 foundation 같은 전역 기반 CSS는 유지한다. 이 공통화는 사용자 요청 범위로 해당 PR에서 구현·검증하며 사용자 merge 후 적용한다. 연결 위치와 작성법은 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+Desktop·API 패스키·OCR·Web의 화면별 간격·정렬·너비·영역 padding·반응형 배치는 StyleX로 작성한다. 모든 앱은 공통 compiler 설정과 workspace catalog의 버전을 사용한다. SEED·vendor 스타일, font-face·reset·공용 foundation 같은 전역 기반 CSS는 유지한다. 이 공통화는 사용자 요청 범위로 해당 PR에서 구현·검증하며 사용자 merge 후 적용한다. 연결 위치와 구현 예시는 [앱 공통 StyleX](../reference/app-styling.md)를 따른다. 가능한 기존 Token과 공개된 Component 옵션을 사용한다. 기존 옵션으로 부족한 작은 표현은 공개된 style·className·CSS 변수 API에서 화면 범위로 조정할 수 있으며, 그 이유는 필요한 경우 PR에 짧게 남긴다. 현재 `@dfragon/ui`의 타입이 필요한 prop을 제외한다면 해당 기능 변경에서 upstream 지원을 확인하고 타입과 사용처를 함께 확장할 수 있다. 규칙의 허용을 현재 모든 Component의 prop 지원으로 표시하지 않는다. 이 선택에 공용 Variant 추가나 별도 승인을 요구하지 않는다.
+
+컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. SEED recipe의 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
+
+공용 색·간격은 SEED CSS 변수와 기존 테마를 우선 사용한다. StyleX 변수·테마 정의가 필요하면 `.stylex.ts`의 `defineVars`·`createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시·disabled/loading 차단·접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작·접근성 결함을 숨기지 않는다.
 
