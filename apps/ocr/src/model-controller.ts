@@ -13,36 +13,8 @@ import { FilesInterceptor } from '@nestjs/platform-express'
 import type { Response } from 'express'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
-import { MODEL_MAXIMUM_BYTES, PADDLEOCR_REVISION, parseModelUpload } from './model-library.js'
-
-const baseId = '8fd75251-91be-4a6b-993f-2d91294a2756'
-
-async function download(url: string, maximumBytes: number): Promise<Buffer> {
-  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(120_000) })
-  if (!response.ok || response.body === null) {
-    await response.body?.cancel()
-    throw new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
-  }
-  const reader = response.body.getReader()
-  const chunks: Uint8Array[] = []
-  let size = 0
-  try {
-    for (;;) {
-      const { done, value } = await reader.read()
-      if (done) {
-        break
-      }
-      size += value.length
-      if (size > maximumBytes) {
-        throw new OcrError(OCR_ERROR_CODE.UPLOAD_TOO_LARGE)
-      }
-      chunks.push(value)
-    }
-    return Buffer.concat(chunks)
-  } finally {
-    await reader.cancel().catch(() => undefined)
-  }
-}
+import { MODEL_MAXIMUM_BYTES, parseModelUpload } from './model-library.js'
+import { registerBaseModel } from './base-model.js'
 
 @Controller('api')
 export class OcrModelController {
@@ -114,39 +86,11 @@ export class OcrModelController {
     if (this.baseRegistration !== null) {
       return this.baseRegistration
     }
-    this.baseRegistration = this.registerBase()
+    this.baseRegistration = registerBaseModel(this.store)
     try {
       return await this.baseRegistration
     } finally {
       this.baseRegistration = null
     }
-  }
-
-  private async registerBase() {
-    const existing = this.store.models().find((model) => model.id === baseId)
-    if (existing !== undefined) {
-      return { model: existing, duplicate: true }
-    }
-    const weights = await download(
-      'https://paddle-model-ecology.bj.bcebos.com/paddlex/official_pretrained_model/korean_PP-OCRv5_mobile_rec_pretrained.pdparams',
-      MODEL_MAXIMUM_BYTES
-    )
-    const dictionary = await download(
-      `https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/${PADDLEOCR_REVISION}/ppocr/utils/dict/ppocrv5_korean_dict.txt`,
-      1024 * 1024
-    )
-    return this.store.addModel(
-      {
-        id: baseId,
-        name: '한국어 PP-OCRv5 · 기본 모델',
-        preset: 'korean-ppocrv5',
-        kind: 'pretrained',
-        parentId: null
-      },
-      new Map([
-        ['weights.pdparams', weights],
-        ['characters.txt', dictionary]
-      ])
-    )
   }
 }
