@@ -145,7 +145,7 @@ test('model REST API authenticates before multipart parsing and preserves upload
     await f.close()
   }
 })
-async function fixture(identity = ownerId, expired = false, revoked = false) {
+async function fixture(identity = ownerId, expired = false, revoked = false, trustedProxyHops?: 1) {
   const calls: string[] = []
   const request: typeof fetch = async (input, init) => {
     const path = new URL(String(input)).pathname
@@ -188,7 +188,7 @@ async function fixture(identity = ownerId, expired = false, revoked = false) {
     }
     throw new Error('Unexpected auth request')
   }
-  const config = { origin, authOrigin, ownerId },
+  const config = { origin, authOrigin, ownerId, trustedProxyHops },
     store = new OcrStore(':memory:', 1024 * 1024)
   const runtime = await createOcrApp(config, store, new OcrAuth(config, request))
   // Check deadlines promptly so the slow multipart case catches the old 30-second cutoff.
@@ -227,6 +227,26 @@ async function fixture(identity = ownerId, expired = false, revoked = false) {
     }
   }
 }
+
+test('OCR login ignores spoofed forwarded IPs by default and isolates clients only with explicit proxy trust', async () => {
+  for (const trustedProxyHops of [undefined, 1] as const) {
+    const f = await fixture(ownerId, false, false, trustedProxyHops)
+    try {
+      for (let index = 0; index < 4; index++) {
+        const response = await fetch(`${f.base}/auth/login`, {
+          method: 'POST',
+          headers: { Origin: origin, 'X-Forwarded-For': `192.0.2.${index + 1}` }
+        })
+        assert.equal(response.status, index < 3 || trustedProxyHops === 1 ? 200 : 429)
+        await response.arrayBuffer()
+      }
+      assert.equal(f.calls.length, trustedProxyHops === 1 ? 4 : 3)
+    } finally {
+      await f.close()
+    }
+  }
+})
+
 test('Desktop upload requires a live owner bearer and grants no browser or management session', async () => {
   const f = await fixture()
   const headers = {
