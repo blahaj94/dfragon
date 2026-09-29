@@ -93,3 +93,5 @@ export type {
   DNFRaidMetadataTemplates,
   DNFRaidParticipantMetadata
 } from './dnf-raid-metadata.js'
+export { parseServerBuildInfo } from './server-build-info.js'
+export type { ServerBuildInfo, ServerService } from './server-build-info.js'

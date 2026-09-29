@@ -16,6 +16,7 @@ import type { CharacterDetailDependencies } from './characters/details/service.j
 import { characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
+import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
 
 @Catch()
 class ApiHttpFilter implements ExceptionFilter {
@@ -58,16 +59,20 @@ export async function createApiHttpApp(
   search: CharacterSearchDependencies,
   details?: CharacterDetailDependencies,
   adventures?: AdventureSearchStore,
-  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>
+  httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
+  buildInfoPath = '/app/build-info.json'
 ): Promise<INestApplication> {
+  const buildInfo = await readApiBuildInfo(buildInfoPath)
   @Module({
     controllers: [
       HealthController,
+      ApiVersionController,
       CharacterSearchController,
       ...(details ? [CharacterDetailController] : []),
       ...(adventures ? [AdventureSearchController] : [])
     ],
     providers: [
+      { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
       ...(details
         ? [{ provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }]
