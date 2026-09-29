@@ -17,7 +17,9 @@ const db = new pg.Client({
   host: 'database',
   database: process.env.DB_NAME,
   user: 'dfragon_accounts',
-  password: readFileSync('/run/secrets/db_password', 'utf8')
+  password:
+    process.env.DB_PASSWORD ??
+    readFileSync(process.env.DB_PASSWORD_FILE ?? '/run/secrets/db_password', 'utf8')
 })
 try {
   await db.connect()

@@ -5,6 +5,7 @@ import { createAccessJwtIssuer, createAccessJwtVerifier } from '../auth/access-j
 import { validatePasskeyConfiguration } from '../auth/login/configuration.js'
 import { readDatabaseConfiguration } from '../database/configuration.js'
 import { parsePort } from '../port.js'
+import { readSecretInput } from '../secret-input.js'
 import { parseAuthenticationInput } from './authentication-input.js'
 
 const invalidConfiguration = 'Invalid accounts runtime configuration'
@@ -63,7 +64,11 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     }
     const bytes = await readFile(path)
     const json = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
-    const input = parseAuthenticationInput(JSON.parse(json) as unknown)
+    const privateKey = readSecretInput(
+      environment.AUTH_JWT_PRIVATE_KEY,
+      environment.AUTH_JWT_PRIVATE_KEY_FILE
+    )
+    const input = parseAuthenticationInput(JSON.parse(json) as unknown, privateKey)
     const configuration = validatePasskeyConfiguration(input.passkey)
     const localHttps = await readLocalHttps(environment, port, configuration.apiOrigin)
     const issueAccessJwt = await createAccessJwtIssuer(input.accessJwt)

@@ -36,13 +36,22 @@ function array(value: unknown): unknown[] {
   return value
 }
 
-function accessJwt(value: unknown): AccessJwtIssuerConfiguration {
+function accessJwt(
+  value: unknown,
+  externalPrivateKey: string | undefined
+): AccessJwtIssuerConfiguration {
   const input = record(value, ['issuer', 'audience', 'signingKey', 'verificationKeys'])
-  const signing = record(input.signingKey, ['kid', 'privateKeyPem'])
+  const signing = record(
+    input.signingKey,
+    externalPrivateKey === undefined ? ['kid', 'privateKeyPem'] : ['kid']
+  )
   return {
     issuer: text(input.issuer),
     audience: text(input.audience),
-    signingKey: { kid: text(signing.kid), privateKeyPem: text(signing.privateKeyPem) },
+    signingKey: {
+      kid: text(signing.kid),
+      privateKeyPem: externalPrivateKey ?? text(signing.privateKeyPem)
+    },
     verificationKeys: array(input.verificationKeys).map((value) => {
       const key = record(value, ['kid', 'publicKeyPem'])
       return { kid: text(key.kid), publicKeyPem: text(key.publicKeyPem) }
@@ -51,7 +60,7 @@ function accessJwt(value: unknown): AccessJwtIssuerConfiguration {
 }
 
 /** Runtime config accepts only access JWT and fixed passkey client settings. */
-export function parseAuthenticationInput(value: unknown) {
+export function parseAuthenticationInput(value: unknown, externalPrivateKey?: string) {
   const input = record(value, ['accessJwt', 'passkey'])
   const hasOcr =
     typeof input.passkey === 'object' &&
@@ -65,7 +74,7 @@ export function parseAuthenticationInput(value: unknown) {
     ...(hasOcr ? ['ocrReturnUrl'] : [])
   ])
   return {
-    accessJwt: accessJwt(input.accessJwt),
+    accessJwt: accessJwt(input.accessJwt, externalPrivateKey),
     passkey: {
       apiOrigin: text(passkey.apiOrigin),
       rpId: text(passkey.rpId),

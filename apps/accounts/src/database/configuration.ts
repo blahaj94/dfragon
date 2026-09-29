@@ -1,3 +1,5 @@
+import { readSecretInput } from '../secret-input.js'
+
 export interface DatabaseConfiguration {
   host: string
   port: number
@@ -23,25 +25,29 @@ function required(value: string | undefined): string {
 }
 
 export function readDatabaseConfiguration(env: NodeJS.ProcessEnv): DatabaseConfiguration {
-  const portText = required(env.DB_PORT)
-  const isPortDecimal = /^[0-9]+$/.test(portText)
-  if (!isPortDecimal) {
-    throw new Error(configurationError)
-  }
-  const port = Number(portText)
-  const isPortSafeInteger = Number.isSafeInteger(port)
-  const isPortBelowMinimum = port < 1
-  const isPortAboveMaximum = port > 65_535
-  const isPortInvalid = !isPortSafeInteger || isPortBelowMinimum || isPortAboveMaximum
-  if (isPortInvalid) {
-    throw new Error(configurationError)
-  }
+  try {
+    const portText = required(env.DB_PORT)
+    const isPortDecimal = /^[0-9]+$/.test(portText)
+    if (!isPortDecimal) {
+      throw new Error(configurationError)
+    }
+    const port = Number(portText)
+    const isPortSafeInteger = Number.isSafeInteger(port)
+    const isPortBelowMinimum = port < 1
+    const isPortAboveMaximum = port > 65_535
+    const isPortInvalid = !isPortSafeInteger || isPortBelowMinimum || isPortAboveMaximum
+    if (isPortInvalid) {
+      throw new Error(configurationError)
+    }
 
-  return {
-    host: required(env.DB_HOST),
-    port,
-    username: required(env.DB_USERNAME),
-    password: required(env.DB_PASSWORD),
-    database: required(env.DB_NAME)
+    return {
+      host: required(env.DB_HOST),
+      port,
+      username: required(env.DB_USERNAME),
+      password: required(readSecretInput(env.DB_PASSWORD, env.DB_PASSWORD_FILE)),
+      database: required(env.DB_NAME)
+    }
+  } catch {
+    throw new Error(configurationError)
   }
 }

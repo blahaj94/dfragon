@@ -1,8 +1,9 @@
 #!/bin/sh
 set -eu
-if ! DB_PASSWORD=$(cat /run/secrets/db_password); then
-    echo 'Accounts database secret could not be read' >&2
-    exit 1
+
+# Defaults only: TypeScript validates and reads explicit ENV or FILE inputs.
+if [ "${DB_PASSWORD+x}" != x ] && [ "${DB_PASSWORD_FILE+x}" != x ]; then
+    export DB_PASSWORD_FILE=/run/secrets/db_password
 fi
-export DB_PASSWORD
+
 exec "$@"

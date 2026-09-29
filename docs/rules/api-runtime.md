@@ -82,4 +82,4 @@ Runtime acceptance에는 test HTTP 응답, metadata가 필요한 constructor DI,
 
 인증·DB의 호환성 검증과 Migration은 [PR #48 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 [`auth-runtime.md`](auth-runtime.md), HTTP/parser 경계는 [`auth-api.md`](auth-api.md)를 따른다. 의존성 목록 정리가 compatibility 검증이나 운영 gate를 해소하지 않는다. 승인된 Node/Nest/ESM/tsc→Node 계약은 유지한다. 현재 사용자 요청에 포함된 구현과 비운영 검증은 진행하며 과거 설계 작업의 실행 제외를 상시 금지로 취급하지 않는다. 실제 운영 DB·credential·배포 실행은 해당 권한 범위를 확인한다.
 
-인증 분리 PR은 같은 Node/Nest/ESM/tsc→Node 실행 계약을 `apps/accounts`에도 적용한다. `apps/api`는 domain API·DB, accounts는 인증 API·DB를 소유하며 각 workspace manifest가 직접 의존성을 정의한다. 실제 운영 분리는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다.
+인증 분리 PR은 같은 Node/Nest/ESM/tsc→Node 실행 계약을 `apps/accounts`에도 적용한다. `apps/api`는 domain API·DB, accounts는 인증 API·DB를 소유하며 각 workspace manifest가 직접 의존성을 정의한다. 실제 운영 분리는 [인프라 운영 절차](../reference/api-start-development.md#서버-이미지)를 따른다.

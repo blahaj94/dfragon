@@ -21,6 +21,12 @@ last-reviewed: 2026-09-26
 
 예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 복귀 `dfragon.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
+JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PRIVATE_KEY`·
+`AUTH_JWT_PRIVATE_KEY_FILE` 중 하나로 제공한다. 외부 입력을 쓰면 JSON의 signingKey에는 `kid`만
+남긴다. 두 외부 입력이나 JSON 개인키를 중복 지정하면 시작 전에 거절한다. 나머지 issuer·audience·
+verificationKeys·passkey 설정과 키 일치 검증은 유지한다. 입력·재시작 조건은
+[서버 실행 안내](api-start-development.md#준비할-입력) 한 곳에서 확인한다.
+
 Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator·S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. 같은 인증 origin의 `/auth/passkeys/manage`는 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
 
 accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버·브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
@@ -33,13 +39,13 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 
 ## OCR 관리 웹의 선택 연결
 
-기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 accounts RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 accounts는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [인프라 운영 절차](../../README.md#서버-이미지)를 따른다.
+기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 accounts RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 accounts는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [인프라 운영 절차](api-start-development.md#서버-이미지)를 따른다.
 
 ## accounts 분리
 
 현재 코드의 인증 서비스는 `apps/accounts`이며 검색은 `apps/api`에 남는다.
 accounts 단일 RP·이전 인증 데이터 삭제 전제는 [인증 DB 계약](../rules/auth-database.md#별도-accounts-db와-이전-종료),
-실행 입력과 운영 책임은 [제품 안내](../../README.md#서버-이미지)를 따른다.
+실행 입력과 운영 책임은 [제품 안내](api-start-development.md#서버-이미지)를 따른다.
 아래 Windows 기록은 이전 revision의 확인 이력이며 현재 accounts 배포나 이전 경로 종료 검증을 뜻하지 않는다.
 
 ## Windows 실기기 확인
