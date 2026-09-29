@@ -1,130 +1,163 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Focused deployment check. Only this invocation's synthetic DB/volume is removed.
-dfragon_checkout=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)
-dfragon_test_dir=$(mktemp -d)
-dfragon_test_project="dfragon-check-$(date +%s)-$$"
-export DFRAGON_IMAGE_TAG="$dfragon_test_project"
-export DFRAGON_DATABASE_VOLUME_NAME="${dfragon_test_project}-database"
-export DFRAGON_SECRETS_DIR="$dfragon_test_dir/secrets"
-export DFRAGON_API_PORT=0
-mkdir -m 700 "$DFRAGON_SECRETS_DIR"
-dfragon_compose=(docker compose --project-name "$dfragon_test_project" -f "$dfragon_checkout/deploy/api/compose.yaml")
-cleanup() {
-    dfragon_result=$?
-    trap - EXIT
-    "${dfragon_compose[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || dfragon_result=1
-    rm -rf -- "$dfragon_test_dir"
-    exit "$dfragon_result"
-}
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-"${dfragon_compose[@]}" config --quiet
-"${dfragon_compose[@]}" build api
-docker run --rm --network none --user "$(id -u):$(id -g)" --cap-drop ALL --security-opt no-new-privileges \
-    --entrypoint node -i \
-    --mount "type=bind,src=$DFRAGON_SECRETS_DIR,dst=/fixtures" \
-    --mount "type=bind,src=$dfragon_checkout/apps/api/test-support,dst=/app/test-support,readonly" \
-    "dfragon-api:$DFRAGON_IMAGE_TAG" --input-type=module <<'JS'
-import { randomBytes } from 'node:crypto'
-import { writeFileSync } from 'node:fs'
-for (const name of ['postgres_password', 'dfragon_migrator_password', 'dfragon_api_password', 'neople_api_key']) {
-  writeFileSync(`/fixtures/${name}`, randomBytes(32).toString('base64url'), { mode: 0o444 })
-}
-JS
-
-"${dfragon_compose[@]}" up -d --wait --wait-timeout 120 database
-"${dfragon_compose[@]}" run --rm migrate
-"${dfragon_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d dfragon -f /opt/dfragon/grant-api.sql
-"${dfragon_compose[@]}" run --rm migrate
-"${dfragon_compose[@]}" exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d dfragon <<'SQL'
-CREATE ROLE dfragon_viewer NOLOGIN;
-SET ROLE dfragon_migrator;
-CREATE TABLE public.rename_probe (id integer PRIMARY KEY, value text NOT NULL);
-INSERT INTO public.rename_probe VALUES (1, 'synthetic retained data');
-GRANT SELECT ON public.rename_probe TO dfragon_api, dfragon_viewer;
-SQL
-
-# Reproduce an existing deployment, then exercise the exact operator rename SQL.
-{
-    cat <<'SQL'
-CREATE TEMP TABLE roles_before AS
-    SELECT oid, rolpassword FROM pg_authid
-    WHERE rolname IN ('dfragon_api', 'dfragon_migrator', 'dfragon_viewer');
-CREATE TEMP TABLE database_before AS SELECT oid FROM pg_database WHERE datname = 'dfragon';
-ALTER DATABASE dfragon RENAME TO ldb;
-ALTER ROLE dfragon_api RENAME TO ldb_api;
-ALTER ROLE dfragon_migrator RENAME TO ldb_migrator;
-ALTER ROLE dfragon_viewer RENAME TO ldb_viewer;
-SQL
-    cat "$dfragon_checkout/deploy/api/migrate-legacy.sql"
-    cat <<'SQL'
-DO $$
-BEGIN
-    IF (SELECT count(*) FROM roles_before b JOIN pg_authid a USING (oid)
-        WHERE b.rolpassword IS NOT DISTINCT FROM a.rolpassword) <> 3
-       OR (SELECT oid FROM pg_database WHERE datname = 'dfragon') <> (SELECT oid FROM database_before)
-       OR EXISTS (SELECT FROM pg_roles WHERE rolname IN ('ldb_api', 'ldb_migrator', 'ldb_viewer')) THEN
-        RAISE EXCEPTION 'Role identity, password or database identity was not preserved';
-    END IF;
-END
-$$;
-SQL
-} | "${dfragon_compose[@]}" exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres
-if "${dfragon_compose[@]}" exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres \
-    < "$dfragon_checkout/deploy/api/migrate-legacy.sql" >/dev/null 2>&1; then
-    printf 'FAIL: rename rerun must be rejected\n' >&2
-    exit 1
+# Pass an already-built product image; the test never builds or deploys it.
+if [[ $# -ne 1 || "$1" == -* ]]; then
+    printf 'Usage: container-deployment.sh IMAGE_REFERENCE\n' >&2
+    exit 2
 fi
-"${dfragon_compose[@]}" exec -T database psql -X -v ON_ERROR_STOP=1 -U postgres -d dfragon <<'SQL'
-DO $$
-BEGIN
-    IF (SELECT value FROM public.rename_probe WHERE id = 1) <> 'synthetic retained data'
-       OR (SELECT tableowner FROM pg_tables WHERE schemaname = 'public' AND tablename = 'rename_probe') <> 'dfragon_migrator'
-       OR NOT has_table_privilege('dfragon_viewer', 'public.rename_probe', 'SELECT')
-       OR has_table_privilege('dfragon_api', 'public.rename_probe', 'UPDATE') THEN
-        RAISE EXCEPTION 'Data, owner or restricted privileges were not preserved';
-    END IF;
-END
-$$;
-SQL
-"${dfragon_compose[@]}" up -d api
-dfragon_api_container=$("${dfragon_compose[@]}" ps -q api)
-dfragon_database_container=$("${dfragon_compose[@]}" ps -q database)
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
+exec node --input-type=module - "$1" <<'JS'
+import assert from 'node:assert/strict'
+import { randomBytes } from 'node:crypto'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
+import pg from 'pg'
+import {
+  verifyApprovedImage, newRunId, createPostgres, teardownPostgres, assertResourcesAbsent, docker
+} from './test-support/docker-postgres.mjs'
 
-docker inspect "$dfragon_api_container" "$dfragon_database_container" | python3 -c '
-import json,sys
-api,db=json.load(sys.stdin)
-assert api["Config"]["User"] == "1000:1000"
-assert api["HostConfig"]["ReadonlyRootfs"]
-assert "ALL" in api["HostConfig"]["CapDrop"]
-assert any(x.startswith("no-new-privileges") for x in api["HostConfig"]["SecurityOpt"])
-assert api["HostConfig"]["PortBindings"]["3000/tcp"][0]["HostIp"] == "127.0.0.1"
-assert not db["HostConfig"].get("PortBindings")
-assert db["Config"]["User"] == "postgres"
-assert len(db["NetworkSettings"]["Networks"]) == 1
-'
+const runId = newRunId('apiimage')
+const runtimeName = `dfragon-image-${runId}`
+const maintenanceName = `${runtimeName}-command`
+const networkName = `${runtimeName}-network`
+const labelKey = 'com.dfragon.image-test.run'
+const label = `${labelKey}=${runId}`
+let stage = 'image verification'
+let resources, admin, directory
+let signalCode
+process.once('SIGINT', () => { signalCode = 130 })
+process.once('SIGTERM', () => { signalCode = 143 })
+function checkSignal() {
+  if (signalCode !== undefined) throw new Error('Image test interrupted')
+}
+async function run(args, options) {
+  checkSignal()
+  const result = await docker(args, options)
+  checkSignal()
+  return result
+}
+async function removeOwned(kind, name) {
+  const list = kind === 'container' ? ['container', 'ls', '--all'] : ['network', 'ls']
+  const filter = kind === 'container' ? `name=^/${name}$` : `name=^${name}$`
+  const format = kind === 'container' ? '{{.Names}}' : '{{.Name}}'
+  const names = await docker([...list, '--filter', filter, '--format', format])
+  if (names.stdout.trim() === '') return
+  assert.equal(names.stdout.trim(), name)
+  const labelPath = kind === 'container' ? '.Config.Labels' : '.Labels'
+  const owner = await docker([kind, 'inspect', name, '--format', `{{ index ${labelPath} "${labelKey}" }}`])
+  assert.equal(owner.stdout.trim(), runId)
+  await docker(kind === 'container' ? ['rm', '--force', name] : ['network', 'rm', name])
+  assert.equal((await docker([...list, '--filter', filter, '--format', format])).stdout.trim(), '')
+}
 
-"${dfragon_compose[@]}" exec -T api node --input-type=module <<'JS'
+try {
+  const [metadata] = JSON.parse((await run(['image', 'inspect', process.argv[2]])).stdout)
+  assert.equal(metadata.Config.User, 'node')
+  assert.equal(metadata.Os, 'linux')
+  const imageId = metadata.Id
+  const postgres = await verifyApprovedImage()
+  checkSignal()
+  process.stdout.write(`Disposable api image recovery: ${runId}\n`)
+  resources = await createPostgres(runId, postgres, {
+    afterVolumeCreated: checkSignal, afterContainerCreated: checkSignal
+  })
+  stage = 'authenticated database readiness'
+  for (let attempt = 0; attempt < 100; attempt++) {
+    checkSignal()
+    admin = new pg.Client({
+      ...resources.configuration, user: resources.configuration.username,
+      connectionTimeoutMillis: 1000, query_timeout: 2000
+    })
+    try {
+      await admin.connect()
+      await admin.query('SELECT 1')
+      break
+    } catch {
+      await admin.end().catch(() => {})
+      admin = undefined
+      await delay(150)
+    }
+  }
+  assert(admin, 'database readiness timed out')
+  stage = 'isolated runtime credentials'
+  directory = await mkdtemp(join(tmpdir(), 'dfragon-image-'))
+  const migratorPassword = randomBytes(32).toString('base64url')
+  const runtimePassword = randomBytes(32).toString('base64url')
+  await writeFile(join(directory, 'migrator_password'), migratorPassword, { mode: 0o444 })
+  await writeFile(join(directory, 'runtime_password'), runtimePassword, { mode: 0o444 })
+  await writeFile(join(directory, 'neople_api_key'), randomBytes(32).toString('base64url'), { mode: 0o444 })
+  // Only this disposable database receives fixture roles; production grants live in infrastructure.
+  assert.equal(resources.configuration.database, 'dfragon_auth_test')
+  await admin.query(`
+    CREATE ROLE dfragon_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '${migratorPassword}';
+    CREATE ROLE dfragon_api LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD '${runtimePassword}';
+    REVOKE ALL ON DATABASE dfragon_auth_test FROM PUBLIC;
+    GRANT CONNECT ON DATABASE dfragon_auth_test TO dfragon_migrator, dfragon_api;
+    REVOKE ALL ON SCHEMA public FROM PUBLIC;
+    ALTER SCHEMA public OWNER TO dfragon_migrator;
+    GRANT USAGE ON SCHEMA public TO dfragon_api;
+  `)
+  assert.equal((await run(['network', 'ls', '--filter', `name=^${networkName}$`, '--format', '{{.Name}}'])).stdout.trim(), '')
+  await run(['network', 'create', '--label', label, networkName])
+  await run(['network', 'connect', '--alias', 'database', networkName, resources.containerName])
+  const runtimeOptions = [
+    '--label', label, '--network', networkName, '--read-only', '--cap-drop', 'ALL',
+    '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:size=16m,mode=1777', '--init',
+    '--env', 'DB_HOST=database', '--env', 'DB_PORT=5432',
+    '--env', `DB_NAME=${resources.configuration.database}`
+  ]
+  const migrate = ['run', '--rm', '--name', maintenanceName, ...runtimeOptions,
+    '--env', 'DB_USERNAME=dfragon_migrator',
+    '--mount', `type=bind,source=${join(directory, 'migrator_password')},target=/run/secrets/db_password,readonly`,
+    imageId, 'node', '--import', 'reflect-metadata', 'dist/database/cli.js', 'up']
+  stage = 'public migration and repeat'
+  await run(migrate)
+  const migrations = (await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows
+  assert(migrations.length > 0)
+  const grantSql = (await readFile('./test-support/grant-api.sql', 'utf8'))
+    .split('\n').filter((line) => !line.startsWith('\\')).join('\n')
+  await admin.query(grantSql)
+  await admin.query('RESET ROLE')
+  await run(migrate)
+  assert.deepEqual((await admin.query('SELECT * FROM typeorm_migrations ORDER BY id')).rows, migrations)
+  stage = 'compiled product startup'
+  await run(['run', '--detach', '--name', runtimeName, ...runtimeOptions,
+    '--publish', '127.0.0.1::3000', '--env', 'PORT=3000', '--env', 'DB_USERNAME=dfragon_api',
+    '--env', 'SEARCH_TRUST_PROXY=single-hop',
+    '--mount', `type=bind,source=${join(directory, 'runtime_password')},target=/run/secrets/db_password,readonly`,
+    '--mount', `type=bind,source=${join(directory, 'neople_api_key')},target=/run/secrets/neople_api_key,readonly`,
+    imageId])
+  const [runtime] = JSON.parse((await run(['container', 'inspect', runtimeName])).stdout)
+  assert.equal(runtime.Config.User, 'node')
+  assert(runtime.HostConfig.ReadonlyRootfs)
+  assert(runtime.HostConfig.CapDrop.includes('ALL'))
+  assert(runtime.HostConfig.SecurityOpt.some((value) => value.startsWith('no-new-privileges')))
+  assert.equal(runtime.HostConfig.PortBindings['3000/tcp'][0].HostIp, '127.0.0.1')
+  const secretMounts = runtime.Mounts.filter((mount) => mount.Type === 'bind')
+  assert.deepEqual(secretMounts.map((mount) => mount.Destination).sort(), ['/run/secrets/db_password', '/run/secrets/neople_api_key'])
+  assert(secretMounts.every((mount) => mount.RW === false))
+  stage = 'UID, read-only filesystem, secrets, database privileges and HTTP'
+  await run(['exec', runtimeName, 'node', '--input-type=module', '--eval', `
 import assert from 'node:assert/strict'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { setTimeout } from 'node:timers/promises'
 import pg from 'pg'
 assert.equal(process.getuid(), 1000)
+assert.equal(process.getgid(), 1000)
 assert.throws(() => writeFileSync('/app/write-probe', ''), { code: 'EROFS' })
 for (const path of ['/app/src', '/app/test-support', '/run/secrets/postgres_password', '/run/secrets/dfragon_migrator_password']) {
   assert.equal(existsSync(path), false)
 }
-const db = new pg.Client({ host: 'database', database: 'dfragon', user: 'dfragon_api', password: readFileSync('/run/secrets/db_password', 'utf8') })
+const db = new pg.Client({ host: 'database', database: process.env.DB_NAME, user: 'dfragon_api', password: readFileSync('/run/secrets/db_password', 'utf8') })
 try {
   await db.connect()
   for (const table of ['characters', 'character_api_responses']) {
-    await db.query(`SELECT count(*) FROM ${table}`)
+    await db.query(\`SELECT count(*) FROM \${table}\`)
     for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
-      assert.equal((await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [table, privilege])).rows[0].allowed, true, `${table}: ${privilege}`)
+      assert.equal((await db.query('SELECT has_table_privilege(current_user, $1, $2) AS allowed', [table, privilege])).rows[0].allowed, true, \`\${table}: \${privilege}\`)
     }
   }
   await assert.rejects(db.query('CREATE TABLE denied_probe (id integer)'), { code: '42501' })
@@ -143,15 +176,37 @@ for (let attempt = 0; attempt < 30; attempt++) {
   }
 }
 assert.equal(response?.status, 404)
-assert.equal((await fetch('http://127.0.0.1:3000/health')).status, 200)
-assert.equal((await fetch('http://127.0.0.1:3000/me')).status, 404)
+assert.equal((await fetch('http://127.0.0.1:3000/health', { signal: AbortSignal.timeout(1000) })).status, 200)
+assert.equal((await fetch('http://127.0.0.1:3000/me', { signal: AbortSignal.timeout(1000) })).status, 404)
 assert.equal(existsSync('/run/secrets/auth_config'), false)
-console.log('PASS: compiled API, non-root/read-only runtime, mounted secrets and database privileges')
-JS
 
-"${dfragon_compose[@]}" stop api
-test "$(docker inspect --format '{{.State.ExitCode}}' "$dfragon_api_container")" = 0
-"${dfragon_compose[@]}" up -d --wait --wait-timeout 120 --force-recreate database
-"${dfragon_compose[@]}" exec -T database psql --no-psqlrc -U postgres -d dfragon -Atqc \
-    'SELECT count(*) FROM typeorm_migrations' | python3 -c 'import sys; assert int(sys.stdin.read()) > 0'
-printf 'PASS: explicit migration/re-run, graceful stop and database persistence\n'
+  `])
+
+  stage = 'graceful stop'
+  await run(['stop', '--time', '15', runtimeName])
+  assert.equal((await run(['inspect', '--format', '{{.State.ExitCode}}', runtimeName])).stdout.trim(), '0')
+} catch {
+  process.stderr.write(`api image verification failed at ${stage}\n`)
+  process.exitCode = signalCode ?? 1
+} finally {
+  const cleanup = [
+    () => removeOwned('container', runtimeName),
+    () => removeOwned('container', maintenanceName),
+    async () => { if (admin) await admin.end() },
+    async () => { if (resources) await teardownPostgres(resources) },
+    () => assertResourcesAbsent(runId),
+    () => removeOwned('network', networkName),
+    async () => { if (directory) await rm(directory, { recursive: true, force: true }) }
+  ]
+  for (const operation of cleanup) {
+    try { await operation() } catch {
+      process.stderr.write('api image test resource cleanup failed\n')
+      process.exitCode = 1
+    }
+  }
+  if (signalCode !== undefined && process.exitCode === undefined) process.exitCode = signalCode
+}
+if (process.exitCode === undefined) {
+  process.stdout.write('PASS: api image migration/repeat, runtime contract and graceful stop\n')
+}
+JS
