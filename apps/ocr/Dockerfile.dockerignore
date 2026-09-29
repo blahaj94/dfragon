@@ -24,9 +24,7 @@
 !packages/licenses/notices/
 !packages/licenses/notices/**
 !packages/licenses/overrides.json
-!deploy/
-!deploy/ocr/
-!deploy/ocr/Dockerfile
+!apps/ocr/Dockerfile
 **/*.pem
 **/*.key
 **/.env*

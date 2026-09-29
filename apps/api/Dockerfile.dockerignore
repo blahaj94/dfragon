@@ -13,10 +13,8 @@
 !apps/api/test/**
 !apps/api/test-support/
 !apps/api/test-support/**
-!deploy/
-!deploy/api/
-!deploy/api/Dockerfile
-!deploy/api/entrypoint.sh
+!apps/api/Dockerfile
+!apps/api/docker-entrypoint.sh
 **/*.pem
 **/*.key
 **/.env*

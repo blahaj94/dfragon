@@ -27,10 +27,8 @@
 !packages/licenses/notices/
 !packages/licenses/notices/upstream/
 !packages/licenses/notices/upstream/stylex-LICENSE.txt
-!deploy/
-!deploy/accounts/
-!deploy/accounts/Dockerfile
-!deploy/accounts/entrypoint.sh
+!apps/accounts/Dockerfile
+!apps/accounts/docker-entrypoint.sh
 **/*.pem
 **/*.key
 **/.env*
