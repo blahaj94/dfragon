@@ -23,6 +23,7 @@ jobs:
           node-version: '24'
       - uses: pnpm/action-setup@v6
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm test:security-dependencies
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
       - run: pnpm --filter @dfragon/api test

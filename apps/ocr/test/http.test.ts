@@ -247,6 +247,31 @@ test('OCR login ignores spoofed forwarded IPs by default and isolates clients on
   }
 })
 
+test('malicious sparse multipart fields are rejected without stopping the OCR server or storing a model', async () => {
+  const f = await fixture()
+  try {
+    for (const names of [
+      ['field[4294967294]', 'field[]'],
+      ['field[4294967295]', 'field[x]']
+    ]) {
+      const body = new FormData()
+      for (const name of names) {
+        body.append(name, 'synthetic')
+      }
+      const response = await fetch(`${f.base}/api/desktop/models`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer synthetic.desktop.token' },
+        body
+      })
+      assert.equal(response.status, 400)
+      await response.arrayBuffer()
+      assert.equal((await fetch(`${f.base}/health`)).status, 200)
+      assert.equal(f.store.models().length, 0)
+    }
+  } finally {
+    await f.close()
+  }
+})
 test('Desktop upload requires a live owner bearer and grants no browser or management session', async () => {
   const f = await fixture()
   const headers = {
