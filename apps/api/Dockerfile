@@ -3,6 +3,7 @@ FROM ${NODE_IMAGE} AS build
 WORKDIR /workspace
 RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
 COPY apps/api/package.json apps/api/package.json
 RUN pnpm install --frozen-lockfile --filter @dfragon/api...
 COPY apps/api/tsconfig*.json apps/api/

@@ -3,6 +3,7 @@ FROM ${NODE_IMAGE} AS build
 WORKDIR /workspace
 RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches patches
 COPY apps/accounts/package.json apps/accounts/package.json
 COPY packages/ui/package.json packages/ui/package.json
 COPY packages/licenses/package.json packages/licenses/package.json
