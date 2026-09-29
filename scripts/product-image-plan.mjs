@@ -11,7 +11,8 @@ const commonFiles = new Set([
   '.npmrc',
   '.github/workflows/product-images.yml',
   '.github/workflows/code-quality.yml',
-  'scripts/product-image-plan.mjs'
+  'scripts/product-image-plan.mjs',
+  'scripts/server-build-info.mjs'
 ])
 const commonDirectories = ['packages/lib/', 'packages/licenses/', 'patches/']
 

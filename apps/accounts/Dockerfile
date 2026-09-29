@@ -26,8 +26,12 @@ RUN pnpm --filter @dfragon/accounts test \
     && pnpm --filter @dfragon/accounts deploy --legacy --prod /production
 
 FROM ${NODE_IMAGE} AS runtime
+ARG SOURCE_COMMIT=""
 ENV NODE_ENV=production
 WORKDIR /app
+COPY scripts/server-build-info.mjs /tmp/dfragon-server-build-info.mjs
+RUN node /tmp/dfragon-server-build-info.mjs accounts "$SOURCE_COMMIT" /app/build-info.json \
+    && rm /tmp/dfragon-server-build-info.mjs
 COPY --from=build /production/package.json ./package.json
 COPY --from=build /production/node_modules ./node_modules
 COPY --from=build /workspace/apps/accounts/dist ./dist
