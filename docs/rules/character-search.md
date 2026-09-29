@@ -103,13 +103,15 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → URL 구성·transport 1회·전체 응답 검증/projection 또는 정제된 오류**만 담당한다. 인증 guard, user/session, DB, 활동 기록과 rate-limit 저장소를 import하지 않는다. Transport·clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding·status·body·취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → 공급자 예산 확인·URL 구성·transport 1회·전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색·상세·공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport·clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding·status·body·취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
 2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무·유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT·session DB 조회·활동 갱신·refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현·검증과 같은 PR의 사용자 merge로 적용한다.
 
-호출 제한은 **클라이언트 IP당 최근 60초 10회**다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query·Authorization·X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log·DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 새 공유 limiter는 추가하지 않는다.
+호출 제한은 **클라이언트별 최근 60초 10회**다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query·Authorization·X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log·DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 다중 process 공유 저장소는 추가하지 않는다.
+
+프로세스가 사용하는 Neople API key의 호출은 모든 검색·캐릭터 섹션·공용 상세를 합쳐 최근 60초 600회, 동시에 12회까지 허용한다. 이는 서비스의 보호 상한이며 공급자의 공식 할당량을 뜻하지 않는다. 실제 transport 시작을 기록하고 실패해도 환불하지 않는다. 동시 슬롯은 body 수신·검증 완료까지 유지하고 완료·실패 때 반환한다. 초과는 기존 정제 429와 `Retry-After`로 거절하며 queue·자동 재시도는 없다. 공용 상세 실패는 기존 unavailable 표현을 유지한다. 이 보안 수정 요청의 구현·검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
 단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의
 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한
@@ -118,7 +120,7 @@ Caddy라는 배포 경계에 의존하며 호스트·동일 Docker network의 �
 설정은 아니다. 다중 proxy·외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
 구현·검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다.
 
-- Raw query와 호출 설정을 먼저 검증한다. 실패·429는 upstream과 예약이 없다.
+- Raw query와 호출 설정을 먼저 검증한다. 입력 실패·클라이언트 한도 초과는 upstream과 예약이 없다. 공급자 예산 초과는 이미 소비한 클라이언트 한도를 환불하지 않으며 upstream을 시작하지 않는다.
 - Upstream 직전에 단조 clock의 `(t - 60,000ms, t]` 예약을 prune/count하고 10개 미만이면 원자적으로 예약한 뒤 즉시 호출한다. 성공·0건·upstream 실패·timeout은 환불하지 않는다.
 - 10개면 `Retry-After = max(1, ceil((oldest + 60,000 - t) / 1,000))`와 429다. 거절은 제한 창을 연장하지 않는다. 같은 peer의 동시 11개는 최대 10개만 통과하고 다른 peer는 독립적이다.
 - 만료 entry를 정리하고 재시작 시 이력은 사라진다. Quota가 풀리기를 기다리는 queue·자동 retry는 없다.
