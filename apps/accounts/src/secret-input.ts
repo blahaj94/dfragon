@@ -15,7 +15,7 @@ export function readSecretInput(
         throw new Error()
       }
       // Match the existing mounted-secret entrypoint's trailing LF handling.
-      value = new TextDecoder('utf-8', { fatal: true })
+      value = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
         .decode(readFileSync(file))
         .replace(/\n+$/, '')
     }

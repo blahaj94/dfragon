@@ -296,10 +296,10 @@ test('database password files preserve synchronous input and sanitize failures',
   const directory = await mkdtemp(join(tmpdir(), 'accounts-secret-input-'))
   try {
     const file = join(directory, 'secret')
-    await writeFile(file, 'synthetic-file-secret\n')
+    await writeFile(file, '\uFEFFsynthetic-file-secret \r\n\n')
     assert.equal(
       readDatabaseConfiguration({ ...environment, DB_PASSWORD_FILE: file }).password,
-      'synthetic-file-secret'
+      '\uFEFFsynthetic-file-secret \r'
     )
     for (const candidate of [
       { DB_PASSWORD: 'synthetic-secret', DB_PASSWORD_FILE: file },

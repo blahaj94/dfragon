@@ -33,7 +33,7 @@ test('runtime secrets accept explicit files and reject ambiguous or unreadable i
   const directory = await mkdtemp(join(tmpdir(), 'api-secret-input-'))
   try {
     const file = join(directory, 'secret')
-    await writeFile(file, 'synthetic-file-secret\n')
+    await writeFile(file, '\uFEFFsynthetic-file-secret \r\n\n')
     for (const name of ['DB_PASSWORD', 'NEOPLE_API_KEY']) {
       const fileName = `${name}_FILE`
       const configuration = await readRuntimeConfiguration({
@@ -43,7 +43,7 @@ test('runtime secrets accept explicit files and reject ambiguous or unreadable i
       })
       assert.equal(
         name === 'DB_PASSWORD' ? configuration.database.password : configuration.apiKey,
-        'synthetic-file-secret'
+        '\uFEFFsynthetic-file-secret \r'
       )
       for (const candidate of [
         { [name]: 'synthetic-secret', [fileName]: file },
