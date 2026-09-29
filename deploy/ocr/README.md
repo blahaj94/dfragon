@@ -45,6 +45,29 @@ DNS가 서버를 가리키도록 설정한 뒤 기존 HTTPS reverse proxy에 [Ca
 
 용량 상한은 **원본 PNG와 모델 파일 bytes 합계**이며 DB 메타데이터·journal·다운로드 bytes를 포함하지 않습니다. 디스크에는 추가 여유 공간이 필요합니다. 상한 초과는 507, 제외는 공간 회수가 아닌 학습 제외 표시입니다. 자동 삭제·보존 기한·물리 삭제 API는 없습니다.
 
+## 자동 분할 테이블 전환
+
+[PR #546](https://github.com/blahaj94/dfragon/pull/546)은 `label_unassigned`, `settings` 테이블을 추가합니다. Linux 자동 배포는 SQLite store 변경을 `verify-compatibility`에서 차단하므로 이 변경에는 한 번의 명시적인 운영 전환이 필요합니다. 앱 시작이나 이 전환으로 기존 자료를 배정하거나 자동 추가 규칙을 활성화하지 않습니다. 최초 분할은 관리 화면의 미리보기·명시 적용으로 시작합니다.
+
+사용자 merge와 현재 main의 Code Quality 성공 후, 검토한 checkout의 [`upgrade_ocr_splits.py`](../linux/upgrade_ocr_splits.py)를 운영자가 실행합니다. 기존 자동 배포 helper·SSH 키·sudo 권한은 바꾸지 않습니다. 이 도구는 검토한 변경 전후 `store.ts`의 SHA-256과 동일한 Compose 구성을 확인하며 다른 저장소 변경을 허용하는 우회 옵션은 없습니다. 이미 전환됐거나 이후 store가 바뀌었다면 다시 실행하지 말고 상태를 확인합니다.
+
+```sh
+# 현재 main의 성공한 Code Quality에 대응하는 전체 SHA로 바꿉니다.
+release_commit=MERGED_MAIN_COMMIT_40_HEX
+sudo systemd-run --unit=dfragon-ocr-splits --wait --collect \
+  --property=RuntimeMaxSec=35min --property=TimeoutStopSec=120s \
+  /usr/bin/python3 -I /path/to/reviewed-checkout/deploy/linux/upgrade_ocr_splits.py "$release_commit"
+sudo /usr/local/sbin/dfragon-deploy status
+```
+
+실행은 자동 배포와 같은 서버 잠금을 사용합니다. 현재 main·성공한 CI·기록된 이미지와 환경 설정을 확인하고 OCR 이미지만 미리 빌드합니다. 기존 `/data` bind mount와 배포 설정의 경로가 같은지 확인하며 없는 SQLite 파일을 새로 만들지 않습니다. OCR을 정상 중지한 후 `/var/lib/dfragon-deploy/backups/ocr-splits-*/ocr.sqlite`에 root 전용 백업을 남깁니다. 빌드 공간에 5 GiB, 백업 공간에 DB 크기와 추가 5 GiB가 필요합니다.
+
+HTTP를 열지 않는 임시 컨테이너에서 새 이미지의 실제 `OcrStore` 생성자로 두 테이블을 추가합니다. 원래 테이블·인덱스 정의와 모든 행의 해시, SQLite 무결성·외래 키, 추가 테이블의 구조와 빈 상태를 검증합니다. 이후 OCR을 시작해 readiness와 실행 이미지까지 확인한 뒤에만 `state.json`의 OCR 기준을 갱신합니다. API·accounts 기준과 환경 설정·DB·이미지는 유지합니다. 로그인 세션은 재시작으로 종료되므로 다시 로그인합니다.
+
+성공 상태와 OCR revision을 확인한 뒤 **현재 main**의 Deploy Linux 실행을 재시도하면 나머지 변경 서비스의 일반 배포가 진행됩니다. 과거 commit의 실패한 실행을 재시도하지 않습니다. 이 PR의 merge만으로 운영 전환이 실행되거나 기존 Actions 실패가 해소되지는 않습니다.
+
+백업 단계 실패 또는 검증 완료 뒤 기동 실패에는 이전 OCR 이미지로 복귀를 시도하고 현재 DB를 유지합니다. 테이블 초기화·기존 데이터 보존 검사 실패에는 OCR을 중지한 상태로 두며, `restored: false`를 기록합니다. 운영자가 임시 컨테이너의 종료·실행 상태와 보호된 백업을 확인하기 전에는 재시도하거나 DB를 덮어쓰지 않습니다. 백업 자동 복원·삭제는 하지 않으며, 프로세스 강제 종료나 호스트 장애의 자동 복구까지 보장하지 않습니다. 기존 [저장·종료·백업](#저장종료백업)과 Linux의 [실패·조회·재실행](../linux/README.md#실패조회재실행) 절차를 함께 따릅니다.
+
 ## 모델 보관 기능 배포
 
 시작 시 같은 OCR SQLite에 `models`, `model_files` 테이블을 추가합니다. 기존 원본·정답·분할을 변경하지 않습니다. 배포 전 정상 중지와 SQLite 백업을 수행하고, 모델 파일도 같은 백업에 포함합니다. 인증 API의 DB 변경이나 GPU 설치는 필요하지 않습니다. 학습은 별도 Windows PC에서 실행합니다.

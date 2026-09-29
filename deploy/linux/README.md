@@ -71,6 +71,8 @@ Host key는 기존 신뢰한 관리자 SSH 연결에서 확인합니다. CI에�
 
 이 경우 `verify-compatibility`에서 멈춥니다. 운영자가 데이터 영향과 새 구성을 검토하고 해당 서비스의 명시적 migration·배포·검증을 마친 뒤 기준 상태를 실제 실행 버전으로 갱신해야 합니다. 임의로 비교만 통과시키거나 새 빈 volume을 기존 데이터 대신 사용하지 않습니다.
 
+PR #546의 OCR 자동 분할용 두 테이블 추가는 [OCR 테이블 전환](../ocr/README.md#자동-분할-테이블-전환)의 전용 운영 도구로 처리합니다. 기존 자동 배포의 보호 검사를 유지하며, 전환 도구가 백업·기존 데이터 보존·기동을 확인한 후 OCR 기준만 갱신합니다. 저장소 merge나 Actions 재실행만으로 이 전환 또는 설치된 helper의 갱신이 수행되지는 않습니다.
+
 프로세스 강제 종료·호스트 장애까지 자동 복구한다고 보장하지 않습니다. 상태와 실제 container가 다르면 자동 재시도는 거절하며 운영자가 환경 파일·실행 이미지·cleanup 경로를 확인해야 합니다. 이전 image·release는 자동 삭제하지 않습니다. 디스크 여유가 5 GiB보다 작으면 빌드를 시작하지 않습니다.
 
 ## 수동 롤백과 데이터 백업
@@ -87,6 +89,8 @@ sh -n deploy/linux/ssh-command.sh
 ```
 
 비밀 설정 보존, 변경 서비스 판정, CI 없는 요청 거절, schema·Compose 변경 차단, readiness 실패 시 해당 service만 복귀하는 경계를 검증합니다. 실제 Tailscale OIDC·SSH·systemd·운영 교체 성공은 별도의 배포 실행으로 확인합니다.
+
+OCR 분할 전환 도구의 테스트도 같은 Python 명령에 포함됩니다. 합성 SQLite로 백업·데이터 보존·기동 실패 시 이미지 복귀·초기화 컨테이너 종료를 검사하며 Docker 경계는 mock입니다. `pnpm --filter @dfragon/ocr test`는 실제 Node SQLite와 `OcrStore`로 이전 schema에 두 테이블을 추가하고 재시작해도 원본·정답·분할·모델 bytes가 유지되는지 확인합니다.
 
 ## accounts schema 변경
 
