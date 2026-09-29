@@ -34,6 +34,18 @@ contextBridge.exposeInMainWorld('api', {
   }
 })
 
+// Public synthetic metadata only; the UI fixture never contacts real services.
+contextBridge.exposeInMainWorld('versions', {
+  getBuildVersions: async () => ({
+    desktop: { version: '1.0.0', commit: 'a'.repeat(40), dirty: false },
+    servers: {
+      api: { status: 'available', commit: 'b'.repeat(40) },
+      accounts: { status: 'available', commit: 'c'.repeat(40) },
+      ocr: { status: 'unsupported' }
+    }
+  })
+})
+
 const developerFixture = process.argv.find((argument) =>
   argument.startsWith('--developer-fixture=')
 )

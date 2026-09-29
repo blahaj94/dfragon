@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../components/ColorThemeProvider'
 import { SettingsSection } from './SettingsSection'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
+import type { BuildVersions } from '../../../preload/common/types/build-versions'
 
 vi.mock('virtual:dfragon-desktop-licenses', () => ({
   default: [
@@ -49,6 +50,7 @@ afterEach(async () => {
   await act(async () => root.unmount())
   document.body.replaceChildren()
   vi.unstubAllGlobals()
+  Reflect.deleteProperty(window, 'versions')
 })
 
 function button(label: string): HTMLButtonElement {
@@ -148,4 +150,65 @@ it('shows the mode as unavailable when preload APIs are absent', async () => {
     '이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'
   )
   expect(document.body.textContent).not.toContain('개발자 모드 켜기')
+})
+
+it('shows full app and service commits with partial failures and refreshes the deployed versions', async () => {
+  const initial: BuildVersions = {
+    desktop: { version: '2.3.4', commit: 'a'.repeat(40), dirty: true },
+    servers: {
+      api: { status: 'available', commit: 'b'.repeat(40) },
+      accounts: { status: 'unsupported' },
+      ocr: { status: 'unavailable' }
+    }
+  }
+  const getBuildVersions = vi
+    .fn()
+    .mockResolvedValueOnce(initial)
+    .mockResolvedValueOnce({
+      ...initial,
+      servers: { ...initial.servers, accounts: { status: 'available', commit: null } }
+    })
+  Object.defineProperty(window, 'versions', { configurable: true, value: { getBuildVersions } })
+  await click('설정')
+  expect(getBuildVersions).not.toHaveBeenCalled()
+  await click('버전 정보')
+  expect(document.body.textContent).toContain('버전 2.3.4')
+  expect(document.body.textContent).toContain('a'.repeat(40))
+  expect(document.body.textContent).toContain('b'.repeat(40))
+  expect(document.body.textContent).toContain('로컬 변경 포함')
+  expect(document.body.textContent).toContain('계정 서버 (accounts)버전 조회 미지원')
+  expect(document.body.textContent).toContain('OCR 서버연결 확인 필요')
+  await click('새로고침')
+  expect(getBuildVersions).toHaveBeenCalledTimes(2)
+  expect(document.body.textContent).toContain('커밋 정보 없음 (개발 빌드)')
+  expect(document.body.textContent).not.toContain('버전 조회 미지원')
+})
+
+it('keeps existing settings usable when the version bridge is absent', async () => {
+  await click('설정')
+  await click('버전 정보')
+  expect(document.body.textContent).toContain('이 실행 환경에서는 버전 정보를 조회할 수 없습니다.')
+  await click('라이선스 사용고지')
+  expect(document.body.textContent).toContain('2개 구성 요소')
+})
+
+it('retains the previous snapshot with a clear warning when refresh fails', async () => {
+  const getBuildVersions = vi
+    .fn()
+    .mockResolvedValueOnce({
+      desktop: { version: '1.2.3', commit: null, dirty: null },
+      servers: {
+        api: { status: 'unsupported' },
+        accounts: { status: 'unsupported' },
+        ocr: { status: 'unsupported' }
+      }
+    })
+    .mockRejectedValueOnce(new Error('private transport detail'))
+  Object.defineProperty(window, 'versions', { configurable: true, value: { getBuildVersions } })
+  await click('설정')
+  await click('버전 정보')
+  await click('새로고침')
+  expect(document.body.textContent).toContain('아래 정보는 이전 조회 결과입니다.')
+  expect(document.body.textContent).toContain('버전 1.2.3')
+  expect(document.body.textContent).not.toContain('private transport detail')
 })
