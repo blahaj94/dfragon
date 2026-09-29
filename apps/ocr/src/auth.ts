@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { Request, Response } from 'express'
+import ipaddr from 'ipaddr.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import {
   parseAuthenticatedUser,
@@ -12,9 +13,14 @@ import type { LoginTokens } from './auth-responses.js'
 
 const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 
-export type AuthConfiguration = { origin: string; authOrigin: string; ownerId: string }
+export type AuthConfiguration = {
+  origin: string
+  authOrigin: string
+  ownerId: string
+  trustedProxyHops?: 1
+}
 type Session = { tokens: LoginTokens; expires: number; active: boolean; refresh?: Promise<void> }
-type PendingLogin = { requestId: string; verifier: string; expires: number }
+type PendingLogin = { requestId: string; verifier: string; expires: number; client: string }
 type AuthRequestOptions = { body?: unknown; accessToken?: string }
 
 function createOpaqueToken(): string {
@@ -27,7 +33,10 @@ function readCookie(request: Request, name: string): string | undefined {
 }
 
 export class OcrAuth {
-  private inFlightLogins = 0
+  private closed = false
+  private readonly inFlightLogins = new Map<string, number>()
+  private readonly attempts = new Map<string, number>()
+  private attemptWindow = { until: 0, count: 0 }
   private readonly pending = new Map<string, PendingLogin>()
   private readonly sessions = new Map<string, Session>()
 
@@ -98,17 +107,54 @@ export class OcrAuth {
 
   async begin(request: Request, response: Response) {
     this.removeExpiredEntries()
-    if (this.pending.size + this.inFlightLogins >= OCR_AUTH.maximumPendingLogins) {
+    if (this.closed) {
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
+    }
+    let client = 'unknown'
+    try {
+      const address = ipaddr.process(request.ip ?? request.socket?.remoteAddress ?? '')
+      client =
+        address.kind() === 'ipv6'
+          ? `ipv6:${address.toByteArray().slice(0, 8).join('.')}`
+          : address.toString()
+    } catch {
+      // Invalid forwarded addresses share one allowance rather than creating arbitrary keys.
+    }
+    const now = Date.now()
+    if (now >= this.attemptWindow.until) {
+      this.attemptWindow = { until: now + OCR_AUTH.loginWindowMs, count: 0 }
+      this.attempts.clear()
+    }
+    const attempts = this.attempts.get(client) ?? 0
+    if (
+      attempts >= OCR_AUTH.maximumLoginAttemptsPerClient ||
+      this.attemptWindow.count >= OCR_AUTH.maximumLoginAttempts
+    ) {
       throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
+    }
+    const previousBinding = readCookie(request, OCR_AUTH.pendingCookie)
+    const previous = previousBinding === undefined ? undefined : this.pending.get(previousBinding)
+    const inFlight = this.inFlightLogins.get(client) ?? 0
+    const clientPending = [...this.pending.values()].filter(
+      (login) => login.client === client
+    ).length
+    const replacesClientPending = previous?.client === client ? 1 : 0
+    const totalInFlight = [...this.inFlightLogins.values()].reduce((sum, count) => sum + count, 0)
+    if (
+      clientPending + inFlight - replacesClientPending >= OCR_AUTH.maximumPendingLoginsPerClient ||
+      this.pending.size + totalInFlight - (previous ? 1 : 0) >= OCR_AUTH.maximumPendingLogins
+    ) {
+      throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
+    }
+    this.attempts.set(client, attempts + 1)
+    this.attemptWindow.count++
+    if (previousBinding !== undefined) {
+      this.pending.delete(previousBinding)
     }
 
     // 인증 API를 기다리는 요청도 한도에 포함하고 실패 시 즉시 반환한다.
-    this.inFlightLogins++
+    this.inFlightLogins.set(client, inFlight + 1)
     try {
-      const previousBinding = readCookie(request, OCR_AUTH.pendingCookie)
-      if (previousBinding !== undefined) {
-        this.pending.delete(previousBinding)
-      }
       const verifier = createOpaqueToken()
       const loginResponse = await this.requestAuthentication('/auth/login-requests', {
         body: {
@@ -119,6 +165,9 @@ export class OcrAuth {
         }
       })
       const login = parseCreatedLogin(loginResponse)
+      if (this.closed) {
+        throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
+      }
       const target = new URL(login.browserUrl)
       if (target.origin !== this.config.authOrigin || target.pathname !== '/auth/login/authorize') {
         throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
@@ -128,6 +177,7 @@ export class OcrAuth {
       this.pending.set(binding, {
         requestId: login.requestId,
         verifier,
+        client,
         expires: Math.min(Date.now() + OCR_AUTH.pendingLifetimeMs, Date.parse(login.expiresAt))
       })
       response.cookie(OCR_AUTH.pendingCookie, binding, {
@@ -136,7 +186,12 @@ export class OcrAuth {
       })
       response.json({ url: target.href })
     } finally {
-      this.inFlightLogins--
+      const remaining = this.inFlightLogins.get(client)! - 1
+      if (remaining === 0) {
+        this.inFlightLogins.delete(client)
+      } else {
+        this.inFlightLogins.set(client, remaining)
+      }
     }
   }
 
@@ -275,9 +330,11 @@ export class OcrAuth {
   }
 
   async close() {
+    this.closed = true
     const sessions = [...this.sessions.values()]
     this.sessions.clear()
     this.pending.clear()
+    this.attempts.clear()
     for (const session of sessions) {
       session.active = false
     }
