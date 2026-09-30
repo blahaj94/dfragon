@@ -87,9 +87,11 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/stats` | 원본·샘플·미작성·제외 개수, 원본 저장 bytes |
 | `POST /api/captures` | 아래 원본+좌표 JSON 저장. 최초 201, 같은 요청 재시도 200 |
 | `POST /api/desktop/captures` | Desktop의 활성 owner Bearer로 같은 원본+좌표 JSON 저장 |
+| `POST /api/synthetic-samples` | owner cookie·Origin으로 합성 PNG·생성 정답·렌더링 정보를 한 번에 저장 |
+| `POST /api/desktop/synthetic-samples` | 활성 owner Bearer·Origin 없는 합성 업로드. 최초 201, 동일 재전송 200 |
 | `GET /api/captures/:id` | 캡처 메타데이터 |
 | `GET /api/captures/:id/image` | 원본 PNG |
-| `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid`, `split`, 정확한 `text` 필터 |
+| `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid/synthetic`, `split`, 정확한 `text` 필터 |
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
 | `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
@@ -123,6 +125,64 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 형식입니다. HTTP JSON body는 23 MiB, 동시에 받는 업로드는 2개입니다. `hud`·`participants` 크롭은 1~4개, `raid`는 1~12개이며 중복 슬롯·경계 밖 좌표·손상된 PNG는 거절합니다. 원본과 모든 좌표 저장이 끝난 경우만 성공합니다. 업로드 실패의 자동 재시도·앱 재시작 복구는 제공하지 않습니다.
 
 주요 실패는 400 입력 오류, 401 로그인 필요, 403 다른 계정/Origin, 409 캡처 ID 충돌 또는 분할 변경 확인 필요, 413 크기 초과, 429 일시 제한, 502 인증 서버 연결 실패, 507 저장 상한입니다. 원문 오류·토큰·계정 ID는 오류 응답에 넣지 않습니다.
+
+## 합성 이미지와 정답 등록
+
+`dnf-ocr-synth`로 만든 이미지는 `POST /api/desktop/synthetic-samples`에 JSON으로 등록합니다. 기존 인증 API에서 발급받은 활성 owner access token을 `Authorization: Bearer ...` 헤더로 보내며 Origin·cookie를 보내지 않습니다. 자료실 웹 세션을 사용하는 클라이언트는 `/api/synthetic-samples`에 기존 HttpOnly cookie와 정확한 OCR Origin으로 요청합니다. 별도 업로드 키·로그인 우회는 없습니다.
+
+```json
+{
+  "id": "00000000-0000-4000-8000-000000000002",
+  "generatedAt": "2026-09-30T00:00:00.000Z",
+  "png": "BASE64_ENCODED_OPAQUE_PNG",
+  "text": "합성고래",
+  "rendering": {
+    "rendererVersion": "0.1.2",
+    "profile": "dotum",
+    "scale": 1.8,
+    "foregroundRgb": [75, 209, 255],
+    "backgroundRgb": [40, 50, 59]
+  }
+}
+```
+
+한 요청은 이미지 한 장을 등록합니다. 생성 시각은 밀리초가 있는 ISO UTC, ID는 소문자 UUID입니다. 성공 응답은 `{id, duplicate}`이며 재전송 시 ID·시각·이미지·정답·렌더링 정보를 그대로 유지합니다. 같은 ID로 다른 자료를 보내면 409 `CAPTURE_ID_CONFLICT`입니다. 여러 이미지는 클라이언트가 순차 전송하며 기존 2개 동시 업로드·23 MiB 본문·16 MiB PNG·저장 한도를 공유합니다.
+
+렌더러의 RGBA를 배경에 합성한 불투명 RGB/RGBA PNG로 준비합니다. 알파 채널을 단순히 버린 결과나 투명 픽셀이 남은 PNG를 보내지 않습니다. 단색 배경을 사용하는 Python 예시는 다음과 같습니다. `sample`은 렌더러가 반환한 결과이며 `payload`를 기존 인증 클라이언트로 전송합니다. 대량 생성 시 이 payload의 ID·시각도 함께 저장해 재전송에 사용합니다.
+
+```python
+import base64
+import io
+from datetime import datetime, timezone
+from uuid import uuid4
+from PIL import Image
+
+background_rgb = (40, 50, 59)
+background = Image.new("RGBA", sample.image.size, (*background_rgb, 255))
+image = Image.alpha_composite(background, sample.image).convert("RGB")
+output = io.BytesIO()
+image.save(output, format="PNG")
+metadata = sample.metadata
+payload = {
+    "id": str(uuid4()),
+    "generatedAt": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+    "png": base64.b64encode(output.getvalue()).decode("ascii"),
+    "text": metadata["text"],
+    "rendering": {
+        "rendererVersion": metadata["renderer_version"],
+        "profile": metadata["profile"],
+        "scale": metadata["scale"],
+        "foregroundRgb": metadata["foreground_rgb"],
+        "backgroundRgb": list(background_rgb),
+    },
+}
+```
+
+렌더러 버전은 숫자 `major.minor.patch`, 프로필은 `dotum/nanum-neo`, 배율은 0 초과 16 이하, 두 색상은 0~255 정수 세 개입니다. 이 계약은 단색 배경 합성을 지원합니다. 서버는 정답의 NFC 정규화·빈 값·공백·제어문자를 검사하며, CP949·12바이트·폰트 지원 검사는 생성자가 `dnf-ocr-synth`로 수행합니다. 파일 경로·폰트 파일·임의 추가 JSON 필드는 받지 않습니다.
+
+저장과 동시에 전체 이미지 영역을 `kind: synthetic`, 슬롯 1, 정답 완료·미제외·train으로 등록합니다. 생성 배율은 `synthetic.rendering.scale`에 보관하며 게임 UI 배율로 추정하지 않습니다. 생성 정답과 원본은 수정할 수 없고 제외·복원만 가능합니다. 기존 미배정·val/test 닉네임과 충돌하거나 합성 닉네임을 train 밖으로 이동하려는 요청은 409 `SYNTHETIC_TRAIN_ONLY`입니다. 합성 이미지는 실제 자료 자동 분할 통계에서 제외하고, 같은 닉네임의 실제 자료는 재배정 때도 train을 유지합니다.
+
+자료실의 합성 필터·전체 manifest·TAR에서 확인하고 내려받을 수 있습니다. 기존 DFRAGON Desktop의 `/api/desktop/dataset`은 실제 캡처만 반환합니다. 서버는 생성 정보와 이미지의 실제 일치나 학습 효과를 인증하지 않습니다. 이 API는 서버 배포 후 사용할 수 있으며 기존 운영 데이터의 재배정은 하지 않습니다.
 
 ## 다운로드와 로컬 선별
 
