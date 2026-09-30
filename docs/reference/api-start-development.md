@@ -243,6 +243,10 @@ Migration `down`은 지원하지만 자동 rollback으로 사용하지 않는다
 
 - `OCR_ORIGIN`, `OCR_AUTH_ORIGIN`에는 정확한 HTTPS origin, `OCR_OWNER_ID`에는 기존 지정 계정의
   UUID가 필요합니다. 인증 서버의 `passkey.ocrReturnUrl`도 OCR callback과 일치해야 합니다.
+- 선택적인 `OCR_SYNTHETIC_UPLOAD_TOKEN_SHA256`에는 합성 등록 전용 opaque 토큰의 SHA-256을
+  64자리 소문자 hex로 설정합니다. 미설정이면 합성 업로드를 비활성화하고 형식이 잘못되면 시작 오류입니다.
+  원본 토큰은 서버에 전달하지 않습니다. 해시 교체·제거 후 재시작으로 기존 토큰을 폐기합니다.
+  등록 경로·헤더와 토큰 생성 예시는 [OCR 앱 안내](../../apps/ocr/README.md#합성-이미지와-정답-등록)를 따릅니다.
 - `/data`에는 실행 사용자가 쓸 수 있는 영속 저장소를 mount합니다. `OCR_DATA_DIR`을 바꿀 때는
   절대 경로를 사용합니다. `ocr.sqlite`에 원본·메타데이터·모델 파일을 저장하며 기존 SQLite 구성을 유지합니다.
 - `OCR_MAX_BYTES` 기본은 1 GiB, 최소는 16 MiB입니다. 저장 상한에 도달해도 기존 자료를 자동 삭제하지 않습니다.

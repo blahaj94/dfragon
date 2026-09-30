@@ -1,6 +1,6 @@
 # OCR 자료실
 
-원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 기존 패스키로 인증한 지정 계정만 사용할 수 있습니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리는 포함하지 않습니다. 최초 자동 분할은 미리보기 후 사용자가 명시 적용합니다.
+원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 관리는 기존 패스키로 인증한 지정 계정만 사용할 수 있으며 합성 자료 등록은 별도 전용 토큰을 사용합니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리는 포함하지 않습니다. 최초 자동 분할은 미리보기 후 사용자가 명시 적용합니다.
 
 ```sh
 pnpm --filter @dfragon/ocr test
@@ -46,7 +46,7 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 서버는 기존 API와 같은 NestJS 12 버전의 controller·DI·exception filter를 사용합니다. 큰 본문을 읽기 전 인증과 업로드 동시 제한을 적용하며 경로별 크기 제한만 Express 어댑터의 JSON parser를 사용합니다. 쿠키 파싱은 `cookie-parser`, 발급·삭제는 응답 기본 API를 사용합니다. 로그인 요청 한도는 완료된 대기 요청과 인증 API 호출 중인 요청의 합계입니다. `__Host-ocr-login`은 로그인 시작 브라우저와 callback을 연결하는 임시 쿠키, `__Host-ocr-session`은 인증 후 서버 세션을 찾는 쿠키입니다. 두 쿠키의 값은 Node `crypto.randomBytes`로 생성한 난수이고 기존 API token을 담지 않습니다.
 
-인증은 `OcrAuth`가 담당하고 JSON parser보다 먼저 등록한 middleware에서 호출합니다. [NestJS 요청 순서](https://docs.nestjs.com/faq/request-lifecycle)에 따라 Guard는 middleware 이후 실행되므로, 현재 body parser 구성에서 인증을 Guard로 옮기면 인증 전 큰 본문을 파싱하게 됩니다. Desktop 업로드의 정확한 method·URL 판정은 `isDesktopUpload`에서 정의하며 Origin 검사와 인증 방식 선택이 같은 판정을 사용합니다.
+인증은 `OcrAuth`가 담당하고 JSON parser보다 먼저 등록한 middleware에서 호출합니다. [NestJS 요청 순서](https://docs.nestjs.com/faq/request-lifecycle)에 따라 Guard는 middleware 이후 실행되므로, 현재 body parser 구성에서 인증을 Guard로 옮기면 인증 전 큰 본문을 파싱하게 됩니다. Desktop 요청의 정확한 method·URL 판정은 `isDesktopRequest`, 합성 업로드는 `isSyntheticUploadRequest`에서 정의하며 Origin 검사와 인증 방식 선택이 같은 판정을 사용합니다.
 
 SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30초 동안 fresh 상태를 유지하고 사용하지 않는 캐시는 5분 후 제거합니다. 업로드·정답·분할 mutation 성공 시 모든 목록과 통계를 invalidate하고, 로그아웃·인증 만료 시 캐시를 비웁니다. Mutation 자동 재시도는 끄고 실패한 업로드만 사용자가 같은 ID로 재시도합니다. Query parameter 생성은 순수 utility, 필터·페이지 상태는 전용 hook이 담당합니다. 스타일·테마는 StyleX로 컴파일하며 전역 CSS에는 reset과 NanumSquare Neo font-face를 둡니다. 폰트는 같은 서버에서 제공하고 원문 라이선스를 browser 산출물 `THIRD-PARTY.txt`에 포함합니다.
 
@@ -76,7 +76,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 ### 데이터와 로그인
 
-자료실의 `/api/*` 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`, Desktop 조회 GET 경로와 위 모델 API는 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
+자료실의 관리·조회 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`, Desktop 조회 GET 경로와 위 모델 API는 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
 
 | Method / path | 동작 |
 | --- | --- |
@@ -87,8 +87,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/stats` | 원본·샘플·미작성·제외 개수, 원본 저장 bytes |
 | `POST /api/captures` | 아래 원본+좌표 JSON 저장. 최초 201, 같은 요청 재시도 200 |
 | `POST /api/desktop/captures` | Desktop의 활성 owner Bearer로 같은 원본+좌표 JSON 저장 |
-| `POST /api/synthetic-samples` | owner cookie·Origin으로 합성 PNG·생성 정답·렌더링 정보를 한 번에 저장 |
-| `POST /api/desktop/synthetic-samples` | 활성 owner Bearer·Origin 없는 합성 업로드. 최초 201, 동일 재전송 200 |
+| `POST /api/synthetic-samples` | 전용 업로드 토큰·Origin 없는 요청으로 합성 PNG·생성 정답·렌더링 정보 저장. 최초 201, 동일 재전송 200 |
 | `GET /api/captures/:id` | 캡처 메타데이터 |
 | `GET /api/captures/:id/image` | 원본 PNG |
 | `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid/synthetic`, `split`, 정확한 `text` 필터 |
@@ -128,7 +127,19 @@ PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 
 
 ## 합성 이미지와 정답 등록
 
-`dnf-ocr-synth`로 만든 이미지는 `POST /api/desktop/synthetic-samples`에 JSON으로 등록합니다. 기존 인증 API에서 발급받은 활성 owner access token을 `Authorization: Bearer ...` 헤더로 보내며 Origin·cookie를 보내지 않습니다. 자료실 웹 세션을 사용하는 클라이언트는 `/api/synthetic-samples`에 기존 HttpOnly cookie와 정확한 OCR Origin으로 요청합니다. 별도 업로드 키·로그인 우회는 없습니다.
+Python/Node.js 스크립트는 `dnf-ocr-synth`로 만든 이미지와 생성 정답을 `POST https://ocr.dfragon.com/api/synthetic-samples`에 JSON으로 전송합니다. 아래 서버 API를 제공하며 업로더 프로그램은 사용자가 작성합니다.
+
+운영자가 32바이트 이상의 난수 토큰을 생성해 스크립트에 전달하고, 토큰의 SHA-256만 서버의 `OCR_SYNTHETIC_UPLOAD_TOKEN_SHA256`에 설정합니다. 토큰은 43~128자의 영문·숫자·`_`·`-`로 구성합니다. 예를 들어 서버 실행과 별개로 다음 명령으로 64자의 hex 토큰 파일과 해시를 준비할 수 있습니다.
+
+```sh
+umask 077
+openssl rand -hex 32 > synthetic-upload-token.txt
+tr -d '\n' < synthetic-upload-token.txt | openssl dgst -sha256
+```
+
+마지막 명령 결과의 64자리 소문자 hex digest만 환경 변수에 넣습니다. 원본 토큰 파일과 운영 설정은 저장소에 추가하지 않습니다. 미설정이면 합성 업로드가 비활성화되고, 값이 잘못되면 서버가 시작하지 않습니다. 해시를 교체·제거하고 서버를 재시작하면 이전 토큰이 폐기됩니다. 배포·운영 토큰 설정은 별도 운영 작업입니다.
+
+스크립트가 파일의 끝 개행을 제거한 토큰을 `Authorization: Bearer <전용 토큰>`으로 보내고 `Content-Type: application/json`을 지정합니다. Origin과 cookie는 보내지 않습니다. 정확한 경로만 허용하며 query·끝 slash를 붙이지 않습니다. 기존 owner cookie·로그인 access token으로는 합성 업로드를 할 수 없습니다. 전용 토큰은 합성 등록만 허용하고 데이터 조회·다운로드·정답/분할 수정·실제 캡처/모델 등록 권한은 없습니다. 토큰 오류·미설정은 401 `UPLOAD_TOKEN_REQUIRED`, Origin이 있는 요청은 403입니다.
 
 ```json
 {
@@ -148,7 +159,7 @@ PNG는 최대 16 MiB, 축별 최대 8192, 총 16,777,216 pixels, non-interlaced 
 
 한 요청은 이미지 한 장을 등록합니다. 생성 시각은 밀리초가 있는 ISO UTC, ID는 소문자 UUID입니다. 성공 응답은 `{id, duplicate}`이며 재전송 시 ID·시각·이미지·정답·렌더링 정보를 그대로 유지합니다. 같은 ID로 다른 자료를 보내면 409 `CAPTURE_ID_CONFLICT`입니다. 여러 이미지는 클라이언트가 순차 전송하며 기존 2개 동시 업로드·23 MiB 본문·16 MiB PNG·저장 한도를 공유합니다.
 
-렌더러의 RGBA를 배경에 합성한 불투명 RGB/RGBA PNG로 준비합니다. 알파 채널을 단순히 버린 결과나 투명 픽셀이 남은 PNG를 보내지 않습니다. 단색 배경을 사용하는 Python 예시는 다음과 같습니다. `sample`은 렌더러가 반환한 결과이며 `payload`를 기존 인증 클라이언트로 전송합니다. 대량 생성 시 이 payload의 ID·시각도 함께 저장해 재전송에 사용합니다.
+렌더러의 RGBA를 배경에 합성한 불투명 RGB/RGBA PNG로 준비합니다. 알파 채널을 단순히 버린 결과나 투명 픽셀이 남은 PNG를 보내지 않습니다. 단색 배경을 사용하는 Python 예시는 다음과 같습니다. `sample`은 렌더러가 반환한 결과이며 `payload`를 위 전용 토큰 헤더로 전송합니다. 대량 생성 시 이 payload의 ID·시각도 함께 저장해 재전송에 사용합니다.
 
 ```python
 import base64

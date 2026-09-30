@@ -33,7 +33,7 @@ SQLite 한 transaction으로 원본과 모든 샘플을 저장하며 부분 저�
 
 기존 인증 API의 RP ID·등록 패스키·계정을 유지한다. 선택 설정 `passkey.ocrReturnUrl`이 있을 때만 `clientId: ocr`를 받는다. 복귀는 서버 설정의 정확한 HTTPS `/auth/callback`이며 요청 입력으로 임의 URL을 받지 않는다. 기존 configuration fingerprint에 OCR client와 해당 주소를 추가로 묶어 Desktop/OCR 교환을 구분한다. Desktop fingerprint는 유지하며 같은 DB schema를 사용한다. 기존 challenge·cookie·QR·PKCE·일회용 code 검증은 그대로 적용한다.
 
-OCR 서버가 verifier·기존 API token을 소유하고 HTTPS callback에서 요청별 쿠키와 PKCE로 code를 교환한다. 배포 설정의 계정 UUID와 일치한 계정만 OCR 세션을 발급한다. 첫 로그인 자동 관리자는 없다. 브라우저에는 HttpOnly·Secure·SameSite=Lax cookie만 제공하고 토큰을 localStorage에 저장하지 않는다. 변경 요청은 정확한 OCR Origin을 검사한다. 관리·업로드 권한은 동일하며 별도 역할·임시 업로드 키는 만들지 않는다.
+OCR 서버가 verifier·기존 API token을 소유하고 HTTPS callback에서 요청별 쿠키와 PKCE로 code를 교환한다. 배포 설정의 계정 UUID와 일치한 계정만 OCR 세션을 발급한다. 첫 로그인 자동 관리자는 없다. 브라우저에는 HttpOnly·Secure·SameSite=Lax cookie만 제공하고 토큰을 localStorage에 저장하지 않는다. 변경 요청은 정확한 OCR Origin을 검사한다. 관리·실제 캡처·모델 업로드는 같은 지정 계정의 권한을 사용한다. 합성 자료에 한해 아래의 전용 업로드 토큰을 허용하며 새 계정·역할은 만들지 않는다.
 
 OCR 세션은 메모리에서 최대 8시간 유지하고 process 재시작 시 사라진다. 인증 API에서 기존 세션의 활성 상태를 확인하며 만료된 access token은 단일 refresh로 갱신한다. 로그아웃은 OCR 접근을 먼저 제거한 뒤 기존 세션 종료를 요청한다. 공유 PC 자체의 침해나 강제 종료 때 upstream 세션이 즉시 폐기되는 것까지 보장하지 않는다.
 
@@ -83,7 +83,7 @@ Windows 앱이 내려받은 실제 train을 모두 유지하고, 정답 문자 �
 
 후속 사용자 요청으로 `dnf-ocr-synth`의 합성 닉네임 PNG·생성 정답·렌더링 정보 등록을 채택한다. 이번 PR의 구현·검증에 적용하며 사용자 merge 후 활성화한다. 기존 Windows 앱의 실행별 로컬 합성 보충은 유지한다. 서버는 합성·폰트 렌더링·학습을 실행하지 않는다.
 
-`POST /api/synthetic-samples`는 기존 owner cookie·정확한 Origin을, `POST /api/desktop/synthetic-samples`는 Origin 없는 활성 owner Bearer를 사용한다. 새 계정·역할·업로드 키는 만들지 않는다. 큰 JSON을 읽기 전에 인증하며 기존 PNG·본문·동시 업로드·합산 저장 한도를 재사용한다.
+사용자가 직접 작성하는 Python/Node.js 업로더는 정확한 `POST /api/synthetic-samples`에 전용 opaque 토큰을 Bearer 헤더로 보내며 Origin을 보내지 않는다. 기존 owner cookie·access token으로 합성 업로드를 허용하지 않는다. 서버에는 원본 토큰 대신 SHA-256을 `OCR_SYNTHETIC_UPLOAD_TOKEN_SHA256`으로 설정한다. 미설정이면 합성 업로드를 비활성화하고, 해시를 교체·제거한 뒤 서버를 재시작하면 기존 토큰을 폐기한다. 전용 토큰은 합성 이미지·정답 등록에만 사용하며 조회·다운로드·정답/분할 수정·실제 캡처/모델 등록·로그인 권한을 부여하지 않는다. 큰 JSON을 읽기 전에 인증하며 기존 PNG·본문·동시 업로드·합산 저장 한도를 재사용한다. 업로더 프로그램과 운영 토큰 설정·배포는 이번 서버 API 변경의 범위에 포함하지 않는다.
 
 한 요청은 배경에 합성된 불투명 PNG 한 장과 NFC 정답, 생성 시각, 렌더러 버전·프로필·배율·글자색·배경색을 받는다. 원본 PNG 전체를 한 recognition 샘플로 취급하고 `kind: synthetic`으로 실제 캡처와 구분한다. 이미지·정답·train 배정을 한 transaction으로 저장하며 같은 ID·같은 내용은 중복 저장하지 않는다. 같은 ID의 다른 내용은 충돌이다. 저장 후 정답·원본은 바꾸지 않고 제외·복원만 허용한다. 서버는 입력 정답의 CP949·폰트·실제 글자 일치를 인증하지 않으며 생성자가 렌더러의 검사를 수행한다.
 
