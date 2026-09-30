@@ -32,3 +32,21 @@ export function raidUpload(id = randomUUID()) {
     }))
   }
 }
+
+export function syntheticUpload(id = randomUUID(), text = '합성고래') {
+  const image = new PNG({ width: 8, height: 4 })
+  image.data.fill(255)
+  return {
+    id,
+    generatedAt: '2026-09-30T00:00:00.000Z',
+    png: PNG.sync.write(image).toString('base64'),
+    text,
+    rendering: {
+      rendererVersion: '0.1.2',
+      profile: 'dotum',
+      scale: 1.8,
+      foregroundRgb: [75, 209, 255],
+      backgroundRgb: [255, 255, 255]
+    }
+  }
+}

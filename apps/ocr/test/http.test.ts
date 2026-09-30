@@ -8,10 +8,137 @@ import { Readable } from 'node:stream'
 import { OcrAuth } from '../src/auth.js'
 import { createOcrApp } from '../src/server.js'
 import { OcrStore } from '../src/store.js'
-import { raidUpload, upload } from './fixtures.js'
+import { raidUpload, syntheticUpload, upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
   authOrigin = 'https://auth.example.test'
+
+test('synthetic upload uses the owner boundaries and exports the stored label and image', async () => {
+  const f = await fixture()
+  const input = syntheticUpload()
+  const path = `${f.base}/api/desktop/synthetic-samples`
+  const bearer = {
+    Authorization: 'Bearer synthetic.desktop.token',
+    'Content-Type': 'application/json'
+  }
+  try {
+    // Authentication must run before JSON decoding.
+    assert.equal(
+      (
+        await fetch(path, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{'
+        })
+      ).status,
+      401
+    )
+    assert.equal(
+      (
+        await fetch(path, {
+          method: 'POST',
+          headers: { ...bearer, Origin: origin },
+          body: JSON.stringify(input)
+        })
+      ).status,
+      403
+    )
+    const { cookie } = await f.login()
+    assert(cookie)
+    assert.equal(
+      (
+        await fetch(path, {
+          method: 'POST',
+          headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+          body: JSON.stringify(input)
+        })
+      ).status,
+      401
+    )
+    assert.equal(
+      (
+        await fetch(`${f.base}/api/synthetic-samples`, {
+          method: 'POST',
+          headers: bearer,
+          body: JSON.stringify(input)
+        })
+      ).status,
+      403
+    )
+    const uploaded = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify(input)
+    })
+    assert.equal(uploaded.status, 201)
+    assert.deepEqual(await uploaded.json(), { id: input.id, duplicate: false })
+    const retry = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify(input)
+    })
+    assert.equal(retry.status, 200)
+    assert.equal((await retry.json()).duplicate, true)
+    const changed = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify({ ...input, text: '다른고래' })
+    })
+    assert.equal(changed.status, 409)
+    const headers = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }
+    const listed = await fetch(`${f.base}/api/samples?kind=synthetic`, { headers })
+    const sample = (await listed.json()).samples[0]
+    assert.equal(sample.text, input.text)
+    assert.equal(sample.split, 'train')
+    assert.equal(sample.kind, 'synthetic')
+    const relabeled = await fetch(`${f.base}/api/samples/${sample.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ text: '변경', excluded: false, confirmSplitChange: true })
+    })
+    assert.equal(relabeled.status, 409)
+    const repartitioned = await fetch(`${f.base}/api/splits`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ text: input.text, split: 'test' })
+    })
+    assert.equal(repartitioned.status, 409)
+    const image = await fetch(`${f.base}/api/samples/${sample.id}/image`, { headers })
+    assert.deepEqual(Buffer.from(await image.arrayBuffer()), Buffer.from(input.png, 'base64'))
+    const exported = await fetch(`${f.base}/api/export/manifest`, { headers })
+    const manifest = await exported.json()
+    assert.deepEqual(manifest.captures[0].synthetic, {
+      text: input.text,
+      rendering: input.rendering
+    })
+    assert.equal(manifest.samples[0].text, input.text)
+    const desktop = await fetch(`${f.base}/api/desktop/dataset`, { headers: bearer })
+    assert.deepEqual((await desktop.json()).samples, [])
+    const browserUpload = await fetch(`${f.base}/api/synthetic-samples`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(syntheticUpload())
+    })
+    assert.equal(browserUpload.status, 201)
+  } finally {
+    await f.close()
+  }
+  for (const [f, expectedStatus] of [
+    [await fixture(randomUUID()), 403],
+    [await fixture(ownerId, false, true), 401]
+  ] as const) {
+    try {
+      const response = await fetch(`${f.base}/api/desktop/synthetic-samples`, {
+        method: 'POST',
+        headers: bearer,
+        body: '{'
+      })
+      assert.equal(response.status, expectedStatus)
+    } finally {
+      await f.close()
+    }
+  }
+})
 
 test('model REST API authenticates before multipart parsing and preserves uploaded files', async () => {
   const f = await fixture()
