@@ -151,12 +151,29 @@ export class OcrStore {
         throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
       }
 
+      const text = capture.synthetic?.text ?? null
+      if (text !== null) {
+        const assignment = this.db.prepare('SELECT split FROM label_splits WHERE text=?').get(text)
+        const existingLabel = this.db
+          .prepare('SELECT 1 FROM samples WHERE text=? LIMIT 1')
+          .get(text)
+        const unassigned = this.db.prepare('SELECT 1 FROM label_unassigned WHERE text=?').get(text)
+        if (
+          (assignment !== undefined && assignment.split !== 'train') ||
+          (assignment === undefined && existingLabel !== undefined) ||
+          unassigned !== undefined
+        ) {
+          throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_TRAIN_ONLY)
+        }
+        this.db.prepare("INSERT OR IGNORE INTO label_splits VALUES(?,'train')").run(text)
+      }
+
       this.db
         .prepare('INSERT INTO captures VALUES(?,?,?,?)')
         .run(capture.id, metadata, fingerprint, png)
-      const insert = this.db.prepare('INSERT INTO samples(id,capture_id,slot) VALUES(?,?,?)')
+      const insert = this.db.prepare('INSERT INTO samples(id,capture_id,slot,text) VALUES(?,?,?,?)')
       for (const crop of capture.crops) {
-        insert.run(`${capture.id}-${crop.slot}`, capture.id, crop.slot)
+        insert.run(`${capture.id}-${crop.slot}`, capture.id, crop.slot, text)
       }
 
       this.db.exec('COMMIT')
@@ -259,6 +276,9 @@ export class OcrStore {
     this.db.exec('BEGIN IMMEDIATE')
     try {
       const previousSample = this.sample(id)
+      if (previousSample.kind === 'synthetic' && text !== previousSample.text) {
+        throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_LABEL_IMMUTABLE)
+      }
       const target =
         text === null
           ? undefined
@@ -309,7 +329,9 @@ export class OcrStore {
     const rows = this.db
       .prepare(
         `SELECT s.id,s.text,s.excluded,COALESCE(g.split,'unassigned') AS split
-      FROM samples s LEFT JOIN label_splits g ON g.text=s.text ORDER BY s.id`
+      FROM samples s JOIN captures c ON c.id=s.capture_id
+      LEFT JOIN label_splits g ON g.text=s.text
+      WHERE json_extract(c.metadata,'$.kind')!='synthetic' ORDER BY s.id`
       )
       .all()
       .map((row) => ({
@@ -320,7 +342,22 @@ export class OcrStore {
       }))
     const assignments = this.db.prepare('SELECT text,split FROM label_splits ORDER BY text').all()
     const unassigned = this.db.prepare('SELECT text FROM label_unassigned ORDER BY text').all()
-    return { rows, assignments, unassigned, initialized: this.splitInitialized() }
+    const syntheticRows = this.db
+      .prepare(
+        `SELECT s.id,s.text,s.excluded FROM samples s
+      JOIN captures c ON c.id=s.capture_id WHERE json_extract(c.metadata,'$.kind')='synthetic'
+      ORDER BY s.id`
+      )
+      .all()
+    const syntheticNicknames = [...new Set(syntheticRows.map((row) => row.text as string))].sort()
+    return {
+      rows,
+      assignments,
+      unassigned,
+      syntheticRows,
+      syntheticNicknames,
+      initialized: this.splitInitialized()
+    }
   }
 
   splitStats() {
@@ -334,7 +371,8 @@ export class OcrStore {
       ...planSplits(
         state.rows,
         options,
-        state.unassigned.map((row) => row.text as string)
+        state.unassigned.map((row) => row.text as string),
+        state.syntheticNicknames
       ),
       initialized: state.initialized,
       fingerprint: createHash('sha256')
@@ -373,6 +411,18 @@ export class OcrStore {
     }
     this.db.exec('BEGIN IMMEDIATE')
     try {
+      if (
+        split !== 'train' &&
+        this.db
+          .prepare(
+            `SELECT 1 FROM samples s
+        JOIN captures c ON c.id=s.capture_id WHERE s.text=? AND json_extract(c.metadata,'$.kind')='synthetic'
+        LIMIT 1`
+          )
+          .get(text) !== undefined
+      ) {
+        throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_TRAIN_ONLY)
+      }
       if (split === 'unassigned') {
         this.db.prepare('DELETE FROM label_splits WHERE text=?').run(text)
         this.db.prepare('INSERT OR IGNORE INTO label_unassigned VALUES(?)').run(text)

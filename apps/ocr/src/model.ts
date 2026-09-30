@@ -31,15 +31,24 @@ export const characterGroups = [
 ] as const
 export type CharacterGroup = (typeof characterGroups)[number]
 export type Crop = { slot: number; x: number; y: number; width: number; height: number }
+export type CaptureKind = keyof typeof OCR_UPLOAD.maximumCropsByKind
+export type SyntheticRendering = {
+  rendererVersion: string
+  profile: 'dotum' | 'nanum-neo'
+  scale: number
+  foregroundRgb: number[]
+  backgroundRgb: number[]
+}
 export type Capture = {
   id: string
   capturedAt: string
-  kind: keyof typeof OCR_UPLOAD.maximumCropsByKind
+  kind: CaptureKind | 'synthetic'
   width: number
   height: number
   uiScale: number | null
   uiScaleSource: 'game' | 'estimated' | 'unknown'
   crops: Crop[]
+  synthetic?: { text: string; rendering: SyntheticRendering }
 }
 export type Sample = Crop & {
   id: string

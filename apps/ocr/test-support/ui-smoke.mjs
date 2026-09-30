@@ -11,6 +11,7 @@ import { chromium } from 'playwright'
 import { OcrAuth } from '../dist/src/auth.js'
 import { OcrStore } from '../dist/src/store.js'
 import { createOcrApp } from '../dist/src/server.js'
+import { parseSyntheticUpload } from '../dist/src/synthetic-upload.js'
 const directory = await mkdtemp(join(tmpdir(), 'ocr-ui-'))
 let browser, server, runtime, store
 try {
@@ -460,6 +461,38 @@ try {
     )
   )
   await screenshot('split-mobile')
+
+  const generated = parseSyntheticUpload({
+    id: randomUUID(),
+    generatedAt: '2026-09-30T00:00:00.000Z',
+    png: original,
+    text: '합성닉네임',
+    rendering: {
+      rendererVersion: '0.1.2',
+      profile: 'dotum',
+      scale: 1.8,
+      foregroundRgb: [75, 209, 255],
+      backgroundRgb: [40, 50, 59]
+    }
+  })
+  store.add(generated.capture, generated.png)
+  await page.reload()
+  await kindFilter.selectOption('synthetic')
+  await galleryRegion.getByRole('button', { name: /합성닉네임.*합성.*train/ }).waitFor()
+  assert.equal(await galleryRegion.getByRole('button').count(), 1)
+  assert.equal(await answerInput.inputValue(), '합성닉네임')
+  assert(await answerInput.evaluate((input) => input.readOnly))
+  assert(await page.getByRole('button', { name: '정답 저장', exact: true }).isDisabled())
+  for (const button of await splitGroup.getByRole('button').all()) {
+    assert(await button.isDisabled())
+  }
+  await page.getByRole('button', { name: '학습에서 제외', exact: true }).click()
+  await page.getByRole('button', { name: '제외 복원', exact: true }).waitFor()
+  assert.equal(store.sample(`${generated.capture.id}-1`).excluded, true)
+  await page.getByRole('button', { name: '제외 복원', exact: true }).click()
+  await page.getByRole('button', { name: '학습에서 제외', exact: true }).waitFor()
+  assert.equal(store.sample(`${generated.capture.id}-1`).excluded, false)
+  await screenshot('synthetic-mobile')
   assert.deepEqual(errors, [])
   process.stdout.write(
     'OCR browser HUD/raid upload limits, draft preservation, labels, answer focus, split, exclusion, download, themes, responsive layout and logout passed\n'

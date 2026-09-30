@@ -1,17 +1,233 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { once } from 'node:events'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomFillSync, randomUUID } from 'node:crypto'
+import { PNG } from 'pngjs'
 import { request as httpRequest } from 'node:http'
 import tar from 'tar-stream'
 import { Readable } from 'node:stream'
 import { OcrAuth } from '../src/auth.js'
 import { createOcrApp } from '../src/server.js'
 import { OcrStore } from '../src/store.js'
-import { raidUpload, upload } from './fixtures.js'
+import { raidUpload, syntheticUpload, upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
   authOrigin = 'https://auth.example.test'
+
+const syntheticToken = 'synthetic-upload-token-for-tests-'.repeat(2)
+const syntheticTokenSha256 = createHash('sha256').update(syntheticToken).digest('hex')
+
+test('synthetic upload uses only its dedicated token and exports the stored label and image', async () => {
+  const f = await fixture(ownerId, false, false, undefined, syntheticTokenSha256)
+  const input = syntheticUpload()
+  const path = `${f.base}/api/synthetic-samples`
+  const bearer = {
+    Authorization: `Bearer ${syntheticToken}`,
+    'Content-Type': 'application/json'
+  }
+  try {
+    // Missing, incorrect and owner JWT credentials fail before JSON decoding.
+    for (const authorization of [
+      undefined,
+      'Bearer short',
+      `Bearer ${'A'.repeat(64)}`,
+      'Bearer synthetic.desktop.token'
+    ]) {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authorization ? { Authorization: authorization } : {})
+        },
+        body: '{'
+      })
+      assert.equal(response.status, 401)
+      assert.deepEqual(await response.json(), { error: 'UPLOAD_TOKEN_REQUIRED' })
+    }
+    assert.equal(
+      (await fetch(path, { method: 'POST', headers: { ...bearer, Origin: origin }, body: '{' }))
+        .status,
+      403
+    )
+    const uploaded = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify(input)
+    })
+    assert.equal(uploaded.status, 201)
+    assert.equal(uploaded.headers.get('set-cookie'), null)
+    assert.deepEqual(await uploaded.json(), { id: input.id, duplicate: false })
+    const retry = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify(input)
+    })
+    assert.equal(retry.status, 200)
+    assert.equal((await retry.json()).duplicate, true)
+    const changed = await fetch(path, {
+      method: 'POST',
+      headers: bearer,
+      body: JSON.stringify({ ...input, text: '다른고래' })
+    })
+    assert.equal(changed.status, 409)
+    assert.deepEqual(f.calls, [])
+
+    // An upload token cannot read data, edit labels/splits or register captures/models.
+    for (const path of [
+      '/api/session',
+      '/api/stats',
+      '/api/samples',
+      '/api/export',
+      '/api/export/manifest',
+      '/api/desktop/dataset',
+      '/api/desktop/models',
+      `/api/desktop/samples/${input.id}-1/image`
+    ]) {
+      assert.equal((await fetch(`${f.base}${path}`, { headers: bearer })).status, 401)
+    }
+    for (const [method, path] of [
+      ['POST', '/api/captures'],
+      ['POST', '/api/models'],
+      ['PATCH', `/api/samples/${input.id}-1`],
+      ['PUT', '/api/splits']
+    ]) {
+      assert.equal(
+        (
+          await fetch(`${f.base}${path}`, {
+            method,
+            headers: { ...bearer, Origin: origin },
+            body: '{'
+          })
+        ).status,
+        401
+      )
+    }
+    for (const path of ['/api/desktop/captures', '/api/desktop/models']) {
+      assert.equal(
+        (await fetch(`${f.base}${path}`, { method: 'POST', headers: bearer, body: '{' })).status,
+        401
+      )
+    }
+    assert.deepEqual(f.calls, [])
+    assert.equal(f.store.stats()?.captures, 1)
+
+    const { cookie } = await f.login()
+    assert(cookie)
+    const headers = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }
+    const cookieUpload = await fetch(path, {
+      method: 'POST',
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+      body: '{'
+    })
+    assert.equal(cookieUpload.status, 401)
+    assert.equal(
+      (await fetch(path, { method: 'POST', headers, body: JSON.stringify(input) })).status,
+      403
+    )
+    // Express route aliases must never fall back to the owner cookie.
+    for (const path of [
+      '/api/synthetic-samples/',
+      '/api/SYNTHETIC-SAMPLES',
+      '/API/synthetic-samples',
+      '/api/synthetic-samples?extra=1',
+      '/api/desktop/synthetic-samples'
+    ]) {
+      assert.equal(
+        (
+          await fetch(`${f.base}${path}`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(syntheticUpload())
+          })
+        ).status,
+        404
+      )
+    }
+    assert.equal(f.store.stats()?.captures, 1)
+
+    const listed = await fetch(`${f.base}/api/samples?kind=synthetic`, { headers })
+    const sample = (await listed.json()).samples[0]
+    assert.equal(sample.text, input.text)
+    assert.equal(sample.split, 'train')
+    assert.equal(sample.kind, 'synthetic')
+    const relabeled = await fetch(`${f.base}/api/samples/${sample.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ text: '변경', excluded: false, confirmSplitChange: true })
+    })
+    assert.equal(relabeled.status, 409)
+    const repartitioned = await fetch(`${f.base}/api/splits`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ text: input.text, split: 'test' })
+    })
+    assert.equal(repartitioned.status, 409)
+    const image = await fetch(`${f.base}/api/samples/${sample.id}/image`, { headers })
+    assert.deepEqual(Buffer.from(await image.arrayBuffer()), Buffer.from(input.png, 'base64'))
+    const exported = await fetch(`${f.base}/api/export/manifest`, { headers })
+    const manifest = await exported.json()
+    assert.deepEqual(manifest.captures[0].synthetic, {
+      text: input.text,
+      rendering: input.rendering
+    })
+    assert.equal(manifest.samples[0].text, input.text)
+    const desktop = await fetch(`${f.base}/api/desktop/dataset`, {
+      headers: { Authorization: 'Bearer synthetic.desktop.token' }
+    })
+    assert.deepEqual((await desktop.json()).samples, [])
+  } finally {
+    await f.close()
+  }
+})
+
+test('synthetic upload is disabled without configuration and rotates independently of owner sessions', async () => {
+  const rotatedToken = 'rotated-upload-token-for-tests-'.repeat(2)
+  const rotatedSha256 = createHash('sha256').update(rotatedToken).digest('hex')
+  for (const [digest, token, expected] of [
+    [undefined, syntheticToken, 401],
+    [rotatedSha256, syntheticToken, 401],
+    [rotatedSha256, rotatedToken, 201]
+  ] as const) {
+    // The upstream owner session is revoked; dedicated upload authentication does not use it.
+    const f = await fixture(ownerId, false, true, undefined, digest)
+    try {
+      const response = await fetch(`${f.base}/api/synthetic-samples`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: expected === 201 ? JSON.stringify(syntheticUpload()) : '{'
+      })
+      assert.equal(response.status, expected)
+      assert.deepEqual(f.calls, [])
+      assert.equal(f.store.stats()?.captures, expected === 201 ? 1 : 0)
+    } finally {
+      await f.close()
+    }
+  }
+})
+
+test('authenticated synthetic PNG uploads share the large JSON parser', async () => {
+  const f = await fixture(ownerId, false, false, undefined, syntheticTokenSha256)
+  try {
+    const image = new PNG({ width: 128, height: 128 })
+    randomFillSync(image.data)
+    for (let i = 3; i < image.data.length; i += 4) {
+      image.data[i] = 255
+    }
+    const input = { ...syntheticUpload(), png: PNG.sync.write(image).toString('base64') }
+    const body = JSON.stringify(input)
+    assert(body.length > 16 * 1024)
+    const response = await fetch(`${f.base}/api/synthetic-samples`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${syntheticToken}`, 'Content-Type': 'application/json' },
+      body
+    })
+    assert.equal(response.status, 201)
+    assert.equal(f.store.stats()?.captures, 1)
+    assert.deepEqual(f.calls, [])
+  } finally {
+    await f.close()
+  }
+})
 
 test('model REST API authenticates before multipart parsing and preserves uploaded files', async () => {
   const f = await fixture()
@@ -145,7 +361,13 @@ test('model REST API authenticates before multipart parsing and preserves upload
     await f.close()
   }
 })
-async function fixture(identity = ownerId, expired = false, revoked = false, trustedProxyHops?: 1) {
+async function fixture(
+  identity = ownerId,
+  expired = false,
+  revoked = false,
+  trustedProxyHops?: 1,
+  syntheticUploadTokenSha256?: string
+) {
   const calls: string[] = []
   const request: typeof fetch = async (input, init) => {
     const path = new URL(String(input)).pathname
@@ -188,7 +410,7 @@ async function fixture(identity = ownerId, expired = false, revoked = false, tru
     }
     throw new Error('Unexpected auth request')
   }
-  const config = { origin, authOrigin, ownerId, trustedProxyHops },
+  const config = { origin, authOrigin, ownerId, trustedProxyHops, syntheticUploadTokenSha256 },
     store = new OcrStore(':memory:', 1024 * 1024)
   const runtime = await createOcrApp(config, store, new OcrAuth(config, request))
   // Check deadlines promptly so the slow multipart case catches the old 30-second cutoff.

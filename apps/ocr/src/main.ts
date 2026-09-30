@@ -2,6 +2,7 @@ import { mkdir, chmod } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import { createOcrApp } from './server.js'
 import { OcrStore } from './store.js'
+import { parseSyntheticUploadTokenSha256 } from './auth.js'
 
 function parseHttpsOrigin(value: string | undefined): string {
   const url = new URL(value ?? '')
@@ -34,7 +35,10 @@ try {
     origin: parseHttpsOrigin(process.env.OCR_ORIGIN),
     authOrigin: parseHttpsOrigin(process.env.OCR_AUTH_ORIGIN),
     ownerId,
-    trustedProxyHops: proxy === 'single-hop' ? (1 as const) : undefined
+    trustedProxyHops: proxy === 'single-hop' ? (1 as const) : undefined,
+    syntheticUploadTokenSha256: parseSyntheticUploadTokenSha256(
+      process.env.OCR_SYNTHETIC_UPLOAD_TOKEN_SHA256
+    )
   }
 
   await mkdir(directory, { recursive: true, mode: 0o700 })

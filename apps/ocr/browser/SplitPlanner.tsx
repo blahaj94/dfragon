@@ -83,7 +83,8 @@ export function SplitPlanner() {
       </label>
       <p {...stylex.props(styles.muted)}>
         합계 100%. 닉네임 묶음과 기존 배정 때문에 목표와 차이가 생길 수 있습니다. 희귀 문자를 모든
-        분할에 강제로 넣지 않습니다. 수동으로 미배정한 닉네임은 자동 분할에서 유지합니다.
+        분할에 강제로 넣지 않습니다. 수동으로 미배정한 닉네임은 자동 분할에서 유지합니다. 합성
+        이미지는 실제 자료 분포에서 제외하며, 합성과 같은 닉네임의 실제 자료는 train을 유지합니다.
       </p>
       <button className={secondary} disabled={busy || !canPreview} onClick={previewSplit}>
         분할 미리보기

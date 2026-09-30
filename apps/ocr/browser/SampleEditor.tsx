@@ -40,6 +40,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
             {...stylex.props(styles.control)}
             autoComplete="off"
             autoFocus
+            readOnly={sample.kind === 'synthetic'}
             value={text}
             onChange={(e) => setText(e.target.value)}
             maxLength={OCR_SAMPLES.maximumLabelLength}
@@ -47,7 +48,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
           />
         </label>
         <div {...stylex.props(styles.actions, styles.editorActions)}>
-          <button className={primary} disabled={busy}>
+          <button className={primary} disabled={busy || sample.kind === 'synthetic'}>
             <OcrIcon name="check" />
             정답 저장
           </button>
@@ -71,7 +72,11 @@ export function SampleEditor({ sample }: { sample: Sample }) {
               className={sample.split === split ? primary : secondary}
               aria-pressed={sample.split === split}
               disabled={
-                busy || sample.text === null || sample.text.length === 0 || text !== sample.text
+                busy ||
+                sample.kind === 'synthetic' ||
+                sample.text === null ||
+                sample.text.length === 0 ||
+                text !== sample.text
               }
               onClick={() => assignNicknameSplit(split)}
             >
@@ -81,7 +86,9 @@ export function SampleEditor({ sample }: { sample: Sample }) {
         </div>
       </div>
       <p {...stylex.props(styles.paragraph, styles.muted)}>
-        같은 정답 닉네임의 모든 이미지에 적용됩니다.
+        {sample.kind === 'synthetic'
+          ? '합성 자료는 생성 정답을 유지하며 train에만 사용합니다. 잘못된 자료는 제외해 주세요.'
+          : '같은 정답 닉네임의 모든 이미지에 적용됩니다.'}
       </p>
       <dl {...stylex.props(styles.metadata)}>
         <div>

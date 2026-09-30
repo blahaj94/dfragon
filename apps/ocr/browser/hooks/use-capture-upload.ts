@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { SetStateAction } from 'react'
-import type { Capture, Crop } from '../../src/model.js'
+import type { CaptureKind, Crop } from '../../src/model.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { requestOcr, errorMessage } from '../client.js'
 import { OCR_MESSAGES } from '../constants.js'
@@ -10,10 +10,10 @@ import { invalidateDataset } from '../query.js'
 export function useCaptureUpload() {
   const client = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
-  const [kind, setKind] = useState<Capture['kind']>('hud')
+  const [kind, setKind] = useState<CaptureKind>('hud')
   const [scale, setScale] = useState('')
   const [source, setSource] = useState('game')
-  const [cropsByKind, setCropsByKind] = useState<Record<Capture['kind'], Crop[]>>({
+  const [cropsByKind, setCropsByKind] = useState<Record<CaptureKind, Crop[]>>({
     hud: [{ slot: 1, x: 0, y: 0, width: 1, height: 1 }],
     participants: [{ slot: 1, x: 0, y: 0, width: 1, height: 1 }],
     raid: [{ slot: 1, x: 0, y: 0, width: 1, height: 1 }]

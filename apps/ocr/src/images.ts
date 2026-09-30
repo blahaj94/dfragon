@@ -70,20 +70,18 @@ function parseCoordinate(value: unknown): number {
   return value
 }
 
-export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
-  const body = parseInputRecord(value)
-  if (
-    typeof body.originalPng !== 'string' ||
-    body.originalPng.length > Math.ceil(MAX_PNG_BYTES / 3) * 4
-  ) {
+export function decodeUploadedPng(value: unknown) {
+  if (typeof value !== 'string' || value.length > Math.ceil(MAX_PNG_BYTES / 3) * 4) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
-  const png = Buffer.from(body.originalPng, 'base64')
-  if (png.toString('base64') !== body.originalPng) {
+  const png = Buffer.from(value, 'base64')
+  if (png.toString('base64') !== value) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
-  const decoded = decodePng(png)
-  const { id, capturedAt, uiScale, uiScaleSource } = body
+  return { png, decoded: decodePng(png) }
+}
+
+export function parseImageIdentity(id: unknown, capturedAt: unknown) {
   if (
     typeof id !== 'string' ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
@@ -98,6 +96,15 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
+  return { id, capturedAt }
+}
+
+export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
+  const body = parseInputRecord(value)
+  const { png, decoded } = decodeUploadedPng(body.originalPng)
+  const { id, capturedAt } = parseImageIdentity(body.id, body.capturedAt)
+  const { uiScale, uiScaleSource } = body
 
   const kind = parseCaptureKind(body.kind)
   if (
