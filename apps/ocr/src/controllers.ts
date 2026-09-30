@@ -12,7 +12,7 @@ import {
   Res
 } from '@nestjs/common'
 import type { Request, Response } from 'express'
-import { OcrAuth } from './auth.js'
+import { isSyntheticUploadRequest, OcrAuth } from './auth.js'
 import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
@@ -72,8 +72,12 @@ export class OcrDataController {
     response.status(result.duplicate ? 200 : 201).json(result)
   }
 
-  @Post(['synthetic-samples', 'desktop/synthetic-samples'])
-  uploadSynthetic(@Body() body: unknown, @Res() response: Response) {
+  @Post('synthetic-samples')
+  uploadSynthetic(@Req() request: Request, @Body() body: unknown, @Res() response: Response) {
+    // Express also matches case changes and trailing slashes; keep token admission exact.
+    if (!isSyntheticUploadRequest(request)) {
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    }
     const { capture, png } = parseSyntheticUpload(body)
     const result = this.store.add(capture, png)
     response.status(result.duplicate ? 200 : 201).json(result)

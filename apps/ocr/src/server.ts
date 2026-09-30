@@ -7,7 +7,7 @@ import { json } from 'express'
 import type { Request, Response, NextFunction } from 'express'
 import cookieParser from 'cookie-parser'
 import { fileURLToPath } from 'node:url'
-import { OcrAuth } from './auth.js'
+import { isSyntheticUploadRequest, OcrAuth } from './auth.js'
 import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
@@ -41,10 +41,7 @@ class OcrHttpFilter implements ExceptionFilter {
 }
 
 function isDesktopRequest(request: Request): boolean {
-  if (
-    request.method === 'POST' &&
-    ['/api/desktop/captures', '/api/desktop/synthetic-samples'].includes(request.originalUrl)
-  ) {
+  if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
     return true
   }
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
@@ -101,7 +98,7 @@ export async function createOcrApp(
         "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
     if (
-      isDesktopRequest(request)
+      isDesktopRequest(request) || isSyntheticUploadRequest(request)
         ? request.headers.origin !== undefined
         : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
     ) {
@@ -113,9 +110,16 @@ export async function createOcrApp(
 
   // 큰 본문을 읽기 전에 인증한다. Nest guard는 body parser 이후 실행되므로 여기서는 middleware를 사용한다.
   app.use('/api', (request: Request, _response: Response, next: NextFunction) => {
-    void (
-      isDesktopRequest(request) ? auth.requireDesktopOwner(request) : auth.require(request)
-    ).then(() => next(), next)
+    void Promise.resolve()
+      .then(async () => {
+        if (isSyntheticUploadRequest(request)) {
+          return auth.requireSyntheticUpload(request)
+        }
+        await (isDesktopRequest(request)
+          ? auth.requireDesktopOwner(request)
+          : auth.require(request))
+      })
+      .then(() => next(), next)
   })
   let activeUploads = 0
   let modelUploadActive = false
@@ -146,12 +150,7 @@ export async function createOcrApp(
   )
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
   app.use(
-    [
-      '/api/captures',
-      '/api/desktop/captures',
-      '/api/synthetic-samples',
-      '/api/desktop/synthetic-samples'
-    ],
+    ['/api/captures', '/api/desktop/captures', '/api/synthetic-samples'],
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST' || request.path !== '/') {
         next()

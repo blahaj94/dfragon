@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { Request, Response } from 'express'
 import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
@@ -12,12 +12,25 @@ import { OCR_AUTH } from './constants.js'
 import type { LoginTokens } from './auth-responses.js'
 
 const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+const SYNTHETIC_UPLOAD_TOKEN_PATTERN = /^Bearer [A-Za-z0-9_-]{43,128}$/
+
+export function parseSyntheticUploadTokenSha256(value: string | undefined): string | undefined {
+  if (value !== undefined && (value.length !== 64 || !/^[0-9a-f]{64}$/.test(value))) {
+    throw new Error('Invalid OCR configuration')
+  }
+  return value
+}
+
+export function isSyntheticUploadRequest(request: Request): boolean {
+  return request.method === 'POST' && request.originalUrl === '/api/synthetic-samples'
+}
 
 export type AuthConfiguration = {
   origin: string
   authOrigin: string
   ownerId: string
   trustedProxyHops?: 1
+  syntheticUploadTokenSha256?: string
 }
 type Session = { tokens: LoginTokens; expires: number; active: boolean; refresh?: Promise<void> }
 type PendingLogin = { requestId: string; verifier: string; expires: number; client: string }
@@ -39,11 +52,30 @@ export class OcrAuth {
   private attemptWindow = { until: 0, count: 0 }
   private readonly pending = new Map<string, PendingLogin>()
   private readonly sessions = new Map<string, Session>()
+  private readonly syntheticUploadTokenDigest: Buffer | undefined
 
   constructor(
     private readonly config: AuthConfiguration,
     private readonly request: typeof fetch = fetch
-  ) {}
+  ) {
+    const digest = parseSyntheticUploadTokenSha256(config.syntheticUploadTokenSha256)
+    this.syntheticUploadTokenDigest = digest === undefined ? undefined : Buffer.from(digest, 'hex')
+  }
+
+  requireSyntheticUpload(request: Request) {
+    const authorization = request.headers.authorization
+    if (
+      this.syntheticUploadTokenDigest === undefined ||
+      typeof authorization !== 'string' ||
+      !SYNTHETIC_UPLOAD_TOKEN_PATTERN.test(authorization) ||
+      !timingSafeEqual(
+        createHash('sha256').update(authorization.slice(7)).digest(),
+        this.syntheticUploadTokenDigest
+      )
+    ) {
+      throw new OcrError(OCR_ERROR_CODE.UPLOAD_TOKEN_REQUIRED)
+    }
+  }
 
   private async requestAuthentication(
     path: string,
