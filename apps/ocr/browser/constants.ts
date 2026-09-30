@@ -17,7 +17,8 @@ export const OCR_CACHE = { staleTimeMs: 30_000, gcTimeMs: 5 * 60_000 } as const
 export const OCR_CAPTURE_LABELS = {
   hud: 'HUD',
   participants: '파티원창',
-  raid: '공대원창'
+  raid: '공대원창',
+  synthetic: '합성'
 } as const satisfies Record<Capture['kind'], string>
 
 export const OCR_CHARACTER_GROUP_LABELS = {

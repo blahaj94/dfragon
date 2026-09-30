@@ -20,6 +20,7 @@ import { cropPng, decodePng, parseUpload } from './images.js'
 import { parseCaptureKind, parseInputRecord, parseLabel, parseSplit } from './input.js'
 import { parseSplitOptions } from './split-plan.js'
 import { downloadDataset } from './export.js'
+import { parseSyntheticUpload } from './synthetic-upload.js'
 
 export const OCR_CONFIG = Symbol('OCR_CONFIG')
 
@@ -71,6 +72,13 @@ export class OcrDataController {
     response.status(result.duplicate ? 200 : 201).json(result)
   }
 
+  @Post(['synthetic-samples', 'desktop/synthetic-samples'])
+  uploadSynthetic(@Body() body: unknown, @Res() response: Response) {
+    const { capture, png } = parseSyntheticUpload(body)
+    const result = this.store.add(capture, png)
+    response.status(result.duplicate ? 200 : 201).json(result)
+  }
+
   @Get('samples')
   samples(@Req() request: Request) {
     const query = new URL(request.originalUrl, this.config.origin).searchParams
@@ -96,7 +104,9 @@ export class OcrDataController {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
     if (kind !== undefined && kind.length > 0) {
-      parseCaptureKind(kind)
+      if (kind !== 'synthetic') {
+        parseCaptureKind(kind)
+      }
     }
     if (split !== undefined && split.length > 0) {
       parseSplit(split)
@@ -171,7 +181,8 @@ export class OcrDataController {
   @Get('desktop/dataset')
   desktopDataset() {
     const { exportedAt, samples } = this.store.exportManifest()
-    return { exportedAt, samples }
+    // The existing Desktop evaluator supports game captures only.
+    return { exportedAt, samples: samples.filter((sample) => sample.kind !== 'synthetic') }
   }
 
   @Get('export/manifest')

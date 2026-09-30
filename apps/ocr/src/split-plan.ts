@@ -104,7 +104,8 @@ export function splitStatistics(rows: SplitRow[]) {
 export function planSplits(
   rows: SplitRow[],
   options: SplitOptions,
-  manuallyUnassignedNicknames: readonly string[] = []
+  manuallyUnassignedNicknames: readonly string[] = [],
+  trainOnlyNicknames: readonly string[] = []
 ) {
   const eligible = rows.filter((row): row is LabeledRow => row.text !== null && !row.excluded)
   if (eligible.length === 0) {
@@ -113,6 +114,7 @@ export function planSplits(
   const protectedNicknames = new Set(
     manuallyUnassignedNicknames.map((text) => text.normalize('NFC'))
   )
+  const trainOnly = new Set(trainOnlyNicknames.map((text) => text.normalize('NFC')))
   const groups = new Map<string, NicknameGroup>()
   for (const row of eligible) {
     const text = row.text.normalize('NFC')
@@ -171,10 +173,14 @@ export function planSplits(
   const movable = [...groups.values()].filter(
     (group) =>
       !protectedNicknames.has(group.text) &&
+      !trainOnly.has(group.text) &&
       (options.replaceExisting || group.split === 'unassigned')
   )
   for (const group of groups.values()) {
-    if (!options.replaceExisting && group.split !== 'unassigned') {
+    if (trainOnly.has(group.text)) {
+      assignment.set(group.text, 'train')
+      update(group, 'train', 1)
+    } else if (!options.replaceExisting && group.split !== 'unassigned') {
       assignment.set(group.text, group.split)
       update(group, group.split, 1)
     }

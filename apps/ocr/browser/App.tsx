@@ -170,6 +170,7 @@ export function App() {
                     <option value="hud">HUD</option>
                     <option value="participants">파티원창</option>
                     <option value="raid">공대원창</option>
+                    <option value="synthetic">합성</option>
                   </select>
                 </label>
                 <label {...stylex.props(styles.label)}>

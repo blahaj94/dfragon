@@ -41,7 +41,10 @@ class OcrHttpFilter implements ExceptionFilter {
 }
 
 function isDesktopRequest(request: Request): boolean {
-  if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
+  if (
+    request.method === 'POST' &&
+    ['/api/desktop/captures', '/api/desktop/synthetic-samples'].includes(request.originalUrl)
+  ) {
     return true
   }
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
@@ -143,7 +146,12 @@ export async function createOcrApp(
   )
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
   app.use(
-    ['/api/captures', '/api/desktop/captures'],
+    [
+      '/api/captures',
+      '/api/desktop/captures',
+      '/api/synthetic-samples',
+      '/api/desktop/synthetic-samples'
+    ],
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST' || request.path !== '/') {
         next()
