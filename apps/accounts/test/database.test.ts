@@ -141,7 +141,6 @@ test('migration command uses one all-migrations transaction and always destroys 
   let initialized = false
   const fakeDataSource = {
     get isInitialized() {
-
       return initialized
     },
     initialize: async () => {
@@ -175,7 +174,6 @@ test('migration command destroys its connection after a database failure', async
   let initialized = false
   const fakeDataSource = {
     get isInitialized() {
-
       return initialized
     },
     initialize: async () => {
@@ -282,10 +280,12 @@ test('migration status reports a newly registered migration as pending', async (
     },
     query: async (sql: string) => {
       const isHistoryTableExistenceQuery = sql.includes('to_regclass')
+      if (isHistoryTableExistenceQuery) {
+        return [{ exists: true }]
+      }
+      const migrationName = new initialAuthSchema().name
 
-      return isHistoryTableExistenceQuery
-        ? [{ exists: true }]
-        : [{ name: new initialAuthSchema().name }]
+      return [{ name: migrationName }]
     },
     destroy: async () => {
       source.isInitialized = false
