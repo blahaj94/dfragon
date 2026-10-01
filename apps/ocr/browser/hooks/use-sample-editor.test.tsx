@@ -3,7 +3,9 @@ import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { Sample } from '../../src/model.js'
-import { requestOcr } from '../client.js'
+import { requestOcr, OcrApiError } from '../client.js'
+import { OCR_ERROR_CODE } from '../../src/errors.js'
+import { SampleEditor } from '../SampleEditor.js'
 import { useSampleEditor } from './use-sample-editor.js'
 
 vi.mock('../client.js', async (importOriginal) => {
@@ -31,6 +33,7 @@ const sample: Sample = {
   split: 'unassigned'
 }
 let root: Root
+let container: HTMLDivElement
 let client: QueryClient
 let editor: ReturnType<typeof useSampleEditor>
 
@@ -56,15 +59,71 @@ beforeEach(() => {
   client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
   })
-  root = createRoot(document.createElement('div'))
+  container = document.createElement('div')
+  root = createRoot(container)
   vi.mocked(requestOcr).mockResolvedValue(sample)
 })
 afterEach(async () => {
   await act(async () => root.unmount())
   client.clear()
   vi.resetAllMocks()
+  vi.restoreAllMocks()
   vi.unstubAllGlobals()
 })
+
+async function renderEditor(value = sample) {
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={client}>
+        <SampleEditor key={value.id} sample={value} />
+      </QueryClientProvider>
+    )
+  )
+}
+async function submitEditor() {
+  await act(async () => {
+    container
+      .querySelector('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+  })
+}
+
+it('does not show or resend a retired sample confirmation over the next editor', async () => {
+  let reject!: (error: Error) => void
+  vi.mocked(requestOcr).mockReturnValueOnce(
+    new Promise((_, fail) => {
+      reject = fail
+    })
+  )
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  await renderEditor()
+  await submitEditor()
+  await renderEditor({ ...sample, id: 'two', text: '두번째정답' })
+  await act(async () => reject(new OcrApiError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE)))
+  expect(confirm).not.toHaveBeenCalled()
+  expect(requestOcr).toHaveBeenCalledTimes(1)
+  expect(container.querySelector('input')?.value).toBe('두번째정답')
+  expect(container.textContent).not.toContain('정답 변경을 확인')
+})
+
+it.each([true, false])(
+  'keeps the current sample confirmation in the UI (accepted=%s)',
+  async (accepted) => {
+    vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(accepted)
+    await renderEditor()
+    await submitEditor()
+    expect(confirm).toHaveBeenCalledOnce()
+    expect(requestOcr).toHaveBeenCalledTimes(accepted ? 2 : 1)
+    if (accepted) {
+      expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', {
+        text: sample.text,
+        excluded: false,
+        confirmSplitChange: true
+      })
+    }
+  }
+)
 
 it('follows refreshed answers while pristine but preserves a dirty draft', async () => {
   await render()
