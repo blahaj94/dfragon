@@ -20,6 +20,9 @@ export function verificationFailureNotice(error: unknown): VerificationFailureNo
   }
 
   const isNetwork = error.code === 'network'
+  if (isNetwork) {
+    return 'NETWORK_UNAVAILABLE'
+  }
 
-  return isNetwork ? 'NETWORK_UNAVAILABLE' : 'AUTH_SERVICE_UNAVAILABLE'
+  return 'AUTH_SERVICE_UNAVAILABLE'
 }
