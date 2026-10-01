@@ -164,8 +164,12 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
 
       return 'confirmed'
     } catch {
+      if (deletionAttempted) {
 
-      return deletionAttempted ? 'unknown' : 'failed'
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
