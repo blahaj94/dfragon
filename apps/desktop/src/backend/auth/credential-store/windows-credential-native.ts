@@ -16,9 +16,11 @@ function mapInspection(
     case 'reparse':
 
       return { status: 'reparse' }
-    case 'trusted':
+    case 'trusted': {
+      const status = kind === 'directory' ? 'trusted-directory' : 'trusted-file'
 
-      return { status: kind === 'directory' ? 'trusted-directory' : 'trusted-file' }
+      return { status }
+    }
     case 'untrusted':
 
       return { status: 'untrusted' }
