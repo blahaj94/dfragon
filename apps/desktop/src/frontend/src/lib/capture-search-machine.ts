@@ -52,8 +52,9 @@ export function inspectCaptureStart(
     }
   }
   const aborted = signal.aborted
+  const cancelled = aborted || superseded
 
-  return { captureId, cancelled: aborted || superseded }
+  return { captureId, cancelled }
 }
 
 // 초기 요청 actor는 종료돼도 직접 응답을 기다려 자신이 만든 늦은 capture만 정리한다.
@@ -113,7 +114,6 @@ export const captureSearchMachine = setup({
     },
     rejectStart: ({ context, event }) => {
       if (event.type !== 'STARTED') {
-
         return
       }
       if (event.result.captureId != null) {
