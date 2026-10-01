@@ -115,9 +115,10 @@ function mainEnvironment(): {
       }
     }
     if (name === 'koffi') {
+      const dependency = requireDependency(name)
 
       return {
-        ...requireDependency(name),
+        ...dependency,
         load: (): never => {
           throw new Error('Synthetic native module unavailable')
         }
