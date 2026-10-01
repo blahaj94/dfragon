@@ -12,6 +12,17 @@ const filters: { id: DeveloperLabelFilter; label: string }[] = [
   { id: 'excluded', label: '제외' }
 ]
 
+function getEmptySampleMessage(filter: DeveloperLabelFilter): string {
+  if (filter === 'unlabeled') {
+    return '입력할 이미지가 없습니다.'
+  }
+  if (filter === 'complete') {
+    return '완료된 이미지가 없습니다.'
+  }
+
+  return '제외한 이미지가 없습니다.'
+}
+
 export function DeveloperLabelingSection({
   samples,
   pagination,
@@ -52,6 +63,53 @@ export function DeveloperLabelingSection({
   onSkip: () => void
   onSetExcluded: (excluded: boolean) => void
 }): React.JSX.Element {
+  function renderSamples(): React.JSX.Element {
+    if (loading && samples.length === 0) {
+      return <Typo.txtS role="status">이미지를 불러오는 중입니다.</Typo.txtS>
+    }
+    if (samples.length === 0) {
+      return (
+        <Typo.txtS {...stylex.props(styles.listEmpty)}>{getEmptySampleMessage(filter)}</Typo.txtS>
+      )
+    }
+
+    return (
+      <ul aria-label="저장된 테스트 이미지" {...stylex.props(styles.list)}>
+        {samples.map((sample) => (
+          <DeveloperSampleThumbnail
+            key={sample.id}
+            sample={sample}
+            selected={selected?.id === sample.id}
+            onSelect={() => onSelect(sample.id)}
+          />
+        ))}
+      </ul>
+    )
+  }
+
+  function renderSelectedSample(): React.JSX.Element {
+    if (selected) {
+      return (
+        <DeveloperSampleEditor
+          key={selected.id}
+          sample={selected}
+          number={selectedNumber}
+          draft={draft}
+          saving={saving}
+          onDraft={onDraft}
+          onSaveAndNext={onSaveAndNext}
+          onSkip={onSkip}
+          onSetExcluded={onSetExcluded}
+        />
+      )
+    }
+
+    return (
+      <Typo.txtS role="status">
+        {loading ? '이미지를 불러오는 중입니다.' : '정답을 입력할 이미지를 선택하세요.'}
+      </Typo.txtS>
+    )
+  }
 
   return (
     <section
@@ -106,47 +164,10 @@ export function DeveloperLabelingSection({
       {notice && <Typo.txtS role="status">{notice}</Typo.txtS>}
       <div {...stylex.props(styles.layout)}>
         <section aria-label="저장 이미지 목록" {...stylex.props(styles.panel)}>
-          {loading && samples.length === 0 ? (
-            <Typo.txtS role="status">이미지를 불러오는 중입니다.</Typo.txtS>
-          ) : samples.length === 0 ? (
-            <Typo.txtS {...stylex.props(styles.listEmpty)}>
-              {filter === 'unlabeled'
-                ? '입력할 이미지가 없습니다.'
-                : filter === 'complete'
-                  ? '완료된 이미지가 없습니다.'
-                  : '제외한 이미지가 없습니다.'}
-            </Typo.txtS>
-          ) : (
-            <ul aria-label="저장된 테스트 이미지" {...stylex.props(styles.list)}>
-              {samples.map((sample) => (
-                <DeveloperSampleThumbnail
-                  key={sample.id}
-                  sample={sample}
-                  selected={selected?.id === sample.id}
-                  onSelect={() => onSelect(sample.id)}
-                />
-              ))}
-            </ul>
-          )}
+          {renderSamples()}
         </section>
         <section aria-label="선택한 이미지 정답" {...stylex.props(styles.panel)}>
-          {selected ? (
-            <DeveloperSampleEditor
-              key={selected.id}
-              sample={selected}
-              number={selectedNumber}
-              draft={draft}
-              saving={saving}
-              onDraft={onDraft}
-              onSaveAndNext={onSaveAndNext}
-              onSkip={onSkip}
-              onSetExcluded={onSetExcluded}
-            />
-          ) : (
-            <Typo.txtS role="status">
-              {loading ? '이미지를 불러오는 중입니다.' : '정답을 입력할 이미지를 선택하세요.'}
-            </Typo.txtS>
-          )}
+          {renderSelectedSample()}
         </section>
       </div>
       <Typo.caption {...stylex.props(styles.muted)}>
