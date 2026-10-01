@@ -6,8 +6,13 @@ const STORAGE_KEY = 'ocr-color-mode'
 export function useColorMode() {
   const [mode, setMode] = useState<ColorMode>(() => {
     try {
+      const storedMode = localStorage.getItem(STORAGE_KEY)
+      if (storedMode === 'dark') {
 
-      return localStorage.getItem(STORAGE_KEY) === 'dark' ? 'dark' : 'light'
+        return 'dark'
+      }
+
+      return 'light'
     } catch {
 
       return 'light'
@@ -22,5 +27,16 @@ export function useColorMode() {
     }
   }, [mode])
 
-  return { mode, toggle: () => setMode((current) => (current === 'light' ? 'dark' : 'light')) }
+  return {
+    mode,
+    toggle: () =>
+      setMode((current) => {
+        if (current === 'light') {
+
+          return 'dark'
+        }
+
+        return 'light'
+      })
+  }
 }
