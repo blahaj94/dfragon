@@ -38,7 +38,6 @@ function idleSlot({
   slot: number
   observationRevision?: number
 }): SearchSlot {
-
   return {
     slot,
     observationRevision,
@@ -77,7 +76,6 @@ function retryAfterForFailure(
     }
   }
   if (!isRateLimited) {
-
     return null
   }
 
@@ -112,31 +110,35 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   )
 
   function snapshot(): SearchSnapshot {
+    const snapshotRevision = revision
+    const captureId = binding?.captureId ?? null
+    const snapshotSlots = slots.map((slot) => {
+      const error = slot.error
+      const hasError = error != null
+      const copiedSlot = { ...slot }
+      const rows = slot.rows.map((row) => ({ ...row }))
+      copiedSlot.rows = rows
+      let copiedError: SearchSlot['error'] = null
+      if (hasError) {
+        copiedError = { ...error }
+      }
+      copiedSlot.error = copiedError
 
-    return {
-      runId,
-      revision,
-      captureId: binding?.captureId ?? null,
-      slots: slots.map((slot) => {
-        const error = slot.error
-        const hasError = error != null
+      return copiedSlot
+    })
 
-        return {
-          ...slot,
-          rows: slot.rows.map((row) => ({ ...row })),
-          error: hasError ? { ...error } : null
-        }
-      })
-    }
+    return { runId, revision: snapshotRevision, captureId, slots: snapshotSlots }
   }
 
   function result(code?: SearchCommandError): SearchCommandResult {
     const currentSnapshot = snapshot()
     const hasError = code != null
 
-    return hasError
-      ? { ok: false, error: { code }, snapshot: currentSnapshot }
-      : { ok: true, snapshot: currentSnapshot }
+    if (hasError) {
+      return { ok: false, error: { code }, snapshot: currentSnapshot }
+    }
+
+    return { ok: true, snapshot: currentSnapshot }
   }
 
   function begin(nextBinding: Omit<CaptureBinding, 'captureId'>): SearchCommandResult {
@@ -158,7 +160,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   function invalidate(): void {
     const hasCapture = binding != null
     if (!hasCapture) {
-
       return
     }
     binding = null
@@ -172,13 +173,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   function observe(input: SearchObservation): SearchCommandResult {
     const isCurrentCapture = binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const previous = slots[input.slot]
     const isNewerObservation = input.observationRevision > previous.observationRevision
     if (!isNewerObservation) {
-
       return result()
     }
     const hasSameNickname = input.nickname === previous.nickname
@@ -222,7 +221,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   ): SearchCommandResult {
     const isCurrentCapture = binding?.captureId === input.captureId
     if (!isCurrentCapture) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const isNewer = input.observationRevision > slots[input.slot].observationRevision
@@ -241,23 +239,19 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const slot = slots[input.slot]
     const isCurrent = isCurrentSlot(input)
     if (!isCurrent) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const error = slot.error
     const isFailure = slot.state === 'failure'
     const hasError = error != null
     if (!isFailure) {
-
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     if (!hasError) {
-
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const isRetryable = SEARCH_ERRORS[error.code].retryable
     if (!isRetryable) {
-
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const wait = actors[input.slot].getSnapshot().context.wait
@@ -268,7 +262,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       isWaiting = remaining > 0
     }
     if (isWaiting) {
-
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
     const runtime = options.runtime
@@ -277,7 +270,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const hasNickname = nickname != null
     const canStart = hasRuntime && hasNickname
     if (!canStart) {
-
       return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
 
@@ -304,17 +296,14 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const currentBinding = binding
     const hasBinding = currentBinding != null
     if (!hasBinding) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const hasSameCapture = currentBinding.captureId === input.captureId
     if (!hasSameCapture) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const hasPermission = options.isCurrent(currentBinding)
     if (!hasPermission) {
-
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const requestId = randomUUID()
@@ -382,7 +371,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const hasOutcome = result != null
     const canPublish = isCurrentRequest && hasOutcome
     if (!canPublish) {
-
       return
     }
     const isSuccess = result.kind === 'success'
@@ -407,12 +395,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!isSuccess) {
       const retryAfter = retryAfterForFailure(result)
       if (retryAfter == null) {
-
         return
       }
       const currentSlotMatches = isCurrentSlot(request)
       if (!currentSlotMatches) {
-
         return
       }
       startRateWait(request, { clock: request.runtime.clock, ...retryAfter })
@@ -433,7 +419,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const isCurrentWait = actors[wait.slot].getSnapshot().context.wait === wait
     const canPublish = isCurrentWait && isCurrentSlot(wait)
     if (!canPublish) {
-
       return
     }
     actors[wait.slot].send({ type: 'FINISH_WAIT', wait })
@@ -462,7 +447,6 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   return {
     get current(): CaptureBinding | null {
-
       return binding
     },
     snapshot,
