@@ -38,6 +38,7 @@ const NAME_VERTICAL_PADDING_PX = 2
 // Measured from full HP/MP bars at 1067×600 and scaled client captures.
 const HP_REFERENCE_CENTER_Y = 28
 const MP_REFERENCE_CENTER_Y = 34
+const TRACK_REFERENCE_CENTER_GAP = MP_REFERENCE_CENTER_Y - HP_REFERENCE_CENTER_Y
 const TRACK_REFERENCE_WIDTH = 99
 const FIRST_TRACK_REFERENCE_X = 42
 const REFERENCE_SLOT_SPACING = 141
@@ -56,6 +57,43 @@ const MAX_COLOR_RUN_WIDTH = 240
 const MAX_ROW_GAP_TO_MERGE = 2
 const MAX_RUN_START_DRIFT = 6
 const DARK_CHANNEL_LIMIT = 110
+
+const trackColorPolicy = {
+  hp: { minRed: 110, minRedGreenDifference: 75, minRedBlueDifference: 55 },
+  mp: { minBlue: 130, minBlueRedDifference: 65, minBlueGreenDifference: 32, minGreen: 55 }
+}
+const bandPolicy = { minDistinctRows: 2, maxHeightPx: 8, minOverlapRatio: 0.55, maxColorGapPx: 2 }
+const pairPolicy = {
+  maxStartDifferencePx: 6,
+  minCenterSeparationPx: 3,
+  minLeftTolerancePx: 4,
+  leftToleranceReferencePx: 2.5,
+  maxCenterErrorPx: 1.25,
+  maxGapErrorPx: 1.4,
+  minWidthTolerancePx: 8,
+  widthToleranceRatio: 0.09,
+  gapErrorWeight: 0.5,
+  edgeErrorWeight: 0.15,
+  maxFittedScaleDifference: 0.04
+}
+const fullTrackPolicy = {
+  minReferenceWidthPx: 78,
+  maxReferenceWidthPx: 112,
+  extraWidthTolerancePx: 8
+}
+const edgePolicy = {
+  mpOuterTopOffsetReferencePx: 3,
+  mpInnerTopOffsetReferencePx: 2,
+  searchRadiusPx: 1,
+  minDarkRatio: 0.3,
+  minStrongRows: 2
+}
+const candidatePolicy = {
+  maxDuplicateAnchorDifferencePx: 5,
+  maxDuplicateCenterDifferencePx: 2,
+  maxClusterScaleDifference: 0.055
+}
+const nameReferenceRegion = { topPx: 12, widthPx: 72.5, heightPx: 12 }
 
 type TrackColor = 'hp' | 'mp'
 
@@ -203,8 +241,8 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
     const distinctRows = new Set(runs.map(({ y }) => y)).size
 
     return (
-      distinctRows >= 2 &&
-      bottom - top + 1 <= 8 &&
+      distinctRows >= bandPolicy.minDistinctRows &&
+      bottom - top + 1 <= bandPolicy.maxHeightPx &&
       medianWidth >= MIN_COLOR_RUN_WIDTH &&
       medianWidth <= MAX_COLOR_RUN_WIDTH
     )
@@ -236,7 +274,7 @@ function selectMatchingTrackBand({
       )
       const overlapRatio = overlap / Math.min(band.right - band.left + 1, run.right - run.left + 1)
 
-      return distance <= MAX_RUN_START_DRIFT && overlapRatio >= 0.55
+      return distance <= MAX_RUN_START_DRIFT && overlapRatio >= bandPolicy.minOverlapRatio
     }),
     sort((left, right) => left.distance - right.distance),
     first()
@@ -272,7 +310,7 @@ function findColoredRuns({
       continue
     }
 
-    if (start >= 0 && x - lastColorPixel > 2) {
+    if (start >= 0 && x - lastColorPixel > bandPolicy.maxColorGapPx) {
       if (lastColorPixel - start + 1 >= MIN_COLOR_RUN_WIDTH) {
         runs.push({ y, left: start, right: lastColorPixel })
       }
@@ -300,10 +338,19 @@ function isTrackColor(
   const green = rgba[offset + 1]
   const blue = rgba[offset + 2]
   if (color === 'hp') {
-    return red >= 110 && red - green >= 75 && red - blue >= 55
+    return (
+      red >= trackColorPolicy.hp.minRed &&
+      red - green >= trackColorPolicy.hp.minRedGreenDifference &&
+      red - blue >= trackColorPolicy.hp.minRedBlueDifference
+    )
   }
 
-  return blue >= 130 && blue - red >= 65 && blue - green >= 32 && green >= 55
+  return (
+    blue >= trackColorPolicy.mp.minBlue &&
+    blue - red >= trackColorPolicy.mp.minBlueRedDifference &&
+    blue - green >= trackColorPolicy.mp.minBlueGreenDifference &&
+    green >= trackColorPolicy.mp.minGreen
+  )
 }
 
 function findTrackPairCandidates({
@@ -318,7 +365,10 @@ function findTrackPairCandidates({
 
   for (const hp of hpBands) {
     for (const mp of mpBands) {
-      if (Math.abs(hp.left - mp.left) > 6 || Math.abs(hp.centerY - mp.centerY) < 3) {
+      if (
+        Math.abs(hp.left - mp.left) > pairPolicy.maxStartDifferencePx ||
+        Math.abs(hp.centerY - mp.centerY) < pairPolicy.minCenterSeparationPx
+      ) {
         continue
       }
 
@@ -359,7 +409,10 @@ function findScaleMatch({
   pairScale: number
 }): { scale: number; edgeSupport: number } | undefined {
   let best: { scale: number; score: number; edgeSupport: number } | undefined
-  const leftTolerance = Math.max(4, Math.round(2.5 * MAX_SCALE))
+  const leftTolerance = Math.max(
+    pairPolicy.minLeftTolerancePx,
+    Math.round(pairPolicy.leftToleranceReferencePx * MAX_SCALE)
+  )
 
   if (Math.abs(hp.left - mp.left) > leftTolerance) {
     return undefined
@@ -369,8 +422,12 @@ function findScaleMatch({
     const scale = MIN_SCALE + step * SCALE_SEARCH_STEP
     const hpError = Math.abs(hp.centerY - HP_REFERENCE_CENTER_Y * scale)
     const mpError = Math.abs(mp.centerY - MP_REFERENCE_CENTER_Y * scale)
-    const gapError = Math.abs(mp.centerY - hp.centerY - 6 * scale)
-    if (hpError > 1.25 || mpError > 1.25 || gapError > 1.4) {
+    const gapError = Math.abs(mp.centerY - hp.centerY - TRACK_REFERENCE_CENTER_GAP * scale)
+    if (
+      hpError > pairPolicy.maxCenterErrorPx ||
+      mpError > pairPolicy.maxCenterErrorPx ||
+      gapError > pairPolicy.maxGapErrorPx
+    ) {
       continue
     }
 
@@ -379,22 +436,30 @@ function findScaleMatch({
     }
 
     if (
-      Math.abs(hp.medianWidth - mp.medianWidth) > Math.max(8, 0.09 * TRACK_REFERENCE_WIDTH * scale)
+      Math.abs(hp.medianWidth - mp.medianWidth) >
+      Math.max(
+        pairPolicy.minWidthTolerancePx,
+        pairPolicy.widthToleranceRatio * TRACK_REFERENCE_WIDTH * scale
+      )
     ) {
       continue
     }
 
     const edgeSupport = scoreLocalEdgeTemplate({ width, height, rgba, hp, mp, anchorX, scale })
-    if (edgeSupport.strongRows < 2) {
+    if (edgeSupport.strongRows < edgePolicy.minStrongRows) {
       continue
     }
-    const score = hpError + mpError + gapError * 0.5 + (1 - edgeSupport.mean) * 0.15
+    const score =
+      hpError +
+      mpError +
+      gapError * pairPolicy.gapErrorWeight +
+      (1 - edgeSupport.mean) * pairPolicy.edgeErrorWeight
     if (!best || score < best.score) {
       best = { scale, score, edgeSupport: edgeSupport.mean }
     }
   }
 
-  if (!best || Math.abs(best.scale - pairScale) > 0.04) {
+  if (!best || Math.abs(best.scale - pairScale) > pairPolicy.maxFittedScaleDifference) {
     return undefined
   }
 
@@ -402,7 +467,10 @@ function findScaleMatch({
 }
 
 function isFullTrackWidth(width: number, scale: number): boolean {
-  return width >= 78 * scale && width <= 112 * scale + 8
+  return (
+    width >= fullTrackPolicy.minReferenceWidthPx * scale &&
+    width <= fullTrackPolicy.maxReferenceWidthPx * scale + fullTrackPolicy.extraWidthTolerancePx
+  )
 }
 
 function scoreLocalEdgeTemplate({
@@ -424,13 +492,17 @@ function scoreLocalEdgeTemplate({
   const edgeLeft = anchorX - Math.max(1, Math.round(scale))
   const rowTargets = [
     hp.top - Math.round(scale),
-    mp.top - Math.round(3 * scale),
-    mp.top - Math.round(2 * scale),
+    mp.top - Math.round(edgePolicy.mpOuterTopOffsetReferencePx * scale),
+    mp.top - Math.round(edgePolicy.mpInnerTopOffsetReferencePx * scale),
     mp.bottom + Math.round(scale)
   ]
   const supports = rowTargets.map((targetY) => {
     let bestSupport = 0
-    for (let y = targetY - 1; y <= targetY + 1; y += 1) {
+    for (
+      let y = targetY - edgePolicy.searchRadiusPx;
+      y <= targetY + edgePolicy.searchRadiusPx;
+      y += 1
+    ) {
       if (y < 0 || y >= height || edgeLeft < 0 || edgeLeft + edgeWidth > width) {
         continue
       }
@@ -451,7 +523,7 @@ function scoreLocalEdgeTemplate({
     return bestSupport
   })
   const averageSupport = mean(supports)
-  const strongRows = supports.filter((support) => support >= 0.3).length
+  const strongRows = supports.filter((support) => support >= edgePolicy.minDarkRatio).length
 
   return { mean: averageSupport, strongRows }
 }
@@ -461,9 +533,12 @@ function deduplicateCandidates(candidates: TrackPairCandidate[]): TrackPairCandi
   for (const candidate of candidates.sort((left, right) => left.anchorX - right.anchorX)) {
     const duplicate = unique.find(
       (existing) =>
-        Math.abs(existing.anchorX - candidate.anchorX) <= 5 &&
-        Math.abs(existing.hp.centerY - candidate.hp.centerY) <= 2 &&
-        Math.abs(existing.mp.centerY - candidate.mp.centerY) <= 2
+        Math.abs(existing.anchorX - candidate.anchorX) <=
+          candidatePolicy.maxDuplicateAnchorDifferencePx &&
+        Math.abs(existing.hp.centerY - candidate.hp.centerY) <=
+          candidatePolicy.maxDuplicateCenterDifferencePx &&
+        Math.abs(existing.mp.centerY - candidate.mp.centerY) <=
+          candidatePolicy.maxDuplicateCenterDifferencePx
     )
     if (!duplicate) {
       unique.push(candidate)
@@ -482,7 +557,9 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
   const clusters: TrackPairCandidate[][] = []
   for (const candidate of [...candidates].sort((left, right) => left.scale - right.scale)) {
     const cluster = clusters.find(
-      (members) => Math.abs(medianCandidateScale(members) - candidate.scale) <= 0.055
+      (members) =>
+        Math.abs(medianCandidateScale(members) - candidate.scale) <=
+        candidatePolicy.maxClusterScaleDifference
     )
     if (cluster) {
       cluster.push(candidate)
@@ -567,9 +644,9 @@ function projectObservedSlot({
   // observed left anchor and add two captured pixels above/below the scaled name line.
   // The name target excludes the right-side status icon. Maximum name width is unverified.
   const x = anchorX
-  const y = Math.floor(12 * scale) - NAME_VERTICAL_PADDING_PX
-  const width = Math.ceil(72.5 * scale)
-  const height = Math.ceil(12 * scale) + 2 * NAME_VERTICAL_PADDING_PX
+  const y = Math.floor(nameReferenceRegion.topPx * scale) - NAME_VERTICAL_PADDING_PX
+  const width = Math.ceil(nameReferenceRegion.widthPx * scale)
+  const height = Math.ceil(nameReferenceRegion.heightPx * scale) + 2 * NAME_VERTICAL_PADDING_PX
 
   const trackMargin = Math.max(1, Math.round(scale))
   const trackWidth = Math.round(Math.min(hp.medianWidth, mp.medianWidth))
