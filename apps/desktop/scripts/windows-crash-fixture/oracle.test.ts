@@ -12,8 +12,11 @@ const context = {
 } as const
 const identity = { runId: 'original-run', caseId: 'normal-control' } as const
 const held = { cutpoint: 'adapter.flush', phase: 'before', outcome: 'not-called' }
-const token = (generation: 'R0' | 'R1'): string =>
-  Buffer.alloc(32, generation === 'R0' ? 31 : 32).toString('base64url')
+const token = (generation: 'R0' | 'R1'): string => {
+  const fill = generation === 'R0' ? 31 : 32
+
+  return Buffer.alloc(32, fill).toString('base64url')
+}
 const event = (
   cutpoint: string,
   outcome: string,
@@ -46,19 +49,21 @@ function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>)
       invocationOwner: 'synthetic-owner'
     }
   }
-  const observations = [manifest, ...points, held].map((point, index) => ({
-    ...identity,
-    sequence: index + 1,
-    ...point
-  }))
+  const observations = [manifest, ...points, held].map((point, index) => {
+    const sequence = index + 1
+
+    return { ...identity, sequence, ...point }
+  })
+  const rawRecords = observations.map((record) =>
+    Buffer.from(JSON.stringify(record)).toString('base64')
+  )
+  const selectionSequence = observations.length
 
   return {
     kind: 'dfragon-synthetic-windows-hold-v1',
     invocationOwner: 'synthetic-owner',
-    rawRecords: observations.map((record) =>
-      Buffer.from(JSON.stringify(record)).toString('base64')
-    ),
-    selection: { ...identity, sequence: observations.length, ...held },
+    rawRecords,
+    selection: { ...identity, sequence: selectionSequence, ...held },
     observations
   }
 }
