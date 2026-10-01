@@ -12,7 +12,7 @@ import {
   isDeveloperCollectionKind,
   isDeveloperPartySlot
 } from '../../preload/common/developer-collection'
-import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './image-limits'
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from '../../preload/common/developer-image-limits'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
