@@ -31,11 +31,11 @@ export function queryDeveloperWorkbenchSamples({
 
 /** Evaluate the chosen split regardless of the displayed label filter or page; OCR requires answers. */
 export function selectDeveloperEvaluationSamples(
-  splitSamples: readonly DeveloperWorkbenchSample[],
+  samples: readonly DeveloperWorkbenchSample[],
   source: 'local' | 'ocr'
 ): DeveloperWorkbenchSample[] {
   return filter(
-    splitSamples,
+    samples,
     (sample) => sample.excluded !== true && (source !== 'ocr' || sample.text != null)
   )
 }
@@ -83,19 +83,16 @@ export function selectDeveloperWorkbenchSample({
 
 /** Find the next visible image before saving; wrap around without selecting the current image. */
 export function nextDeveloperWorkbenchSampleId(
-  visibleSamples: readonly DeveloperWorkbenchSample[],
+  samples: readonly DeveloperWorkbenchSample[],
   currentId: string
 ): string | null {
-  const otherSamples = filter(visibleSamples, (sample) => sample.id !== currentId)
-  if (otherSamples.length === 0) {
+  const others = filter(samples, (sample) => sample.id !== currentId)
+  if (others.length === 0) {
     return null
   }
 
-  const currentIndex = visibleSamples.findIndex((sample) => sample.id === currentId)
-  return (
-    visibleSamples.slice(currentIndex + 1).find((sample) => sample.id !== currentId)?.id ??
-    otherSamples[0].id
-  )
+  const index = samples.findIndex((sample) => sample.id === currentId)
+  return samples.slice(index + 1).find((sample) => sample.id !== currentId)?.id ?? others[0].id
 }
 
 /** Preserve chronological order and compare party slots only when both samples have a source. */
