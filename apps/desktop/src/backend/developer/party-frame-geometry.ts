@@ -1,3 +1,5 @@
+import { filter, first, map, pipe, sort, sum } from 'remeda'
+
 export type PartyFrameSlot = 1 | 2 | 3 | 4
 
 export type PartyFrameRegion = {
@@ -126,14 +128,7 @@ export function detectPartyFrameGeometry({
     throw new PartyFrameGeometryError('no-anchor')
   }
 
-  const scaleClusters = clusterCandidatesByScale(candidates)
-  const largestClusterSize = Math.max(...scaleClusters.map((cluster) => cluster.length))
-  const bestClusters = scaleClusters.filter((cluster) => cluster.length === largestClusterSize)
-  if (bestClusters.length !== 1) {
-    throw new PartyFrameGeometryError('ambiguous-scale')
-  }
-
-  const chosen = bestClusters[0]
+  const chosen = selectScaleCluster(candidates)
   const bySlot = new Map<PartyFrameSlot, TrackPairCandidate>()
   for (const candidate of chosen) {
     const slot = identifySlot(candidate.anchorX, candidate.scale)
@@ -149,10 +144,8 @@ export function detectPartyFrameGeometry({
     throw new PartyFrameGeometryError('no-anchor')
   }
 
-  const scale = median([...bySlot.values()].map(({ scale: candidateScale }) => candidateScale))
-  const slots = [...bySlot.entries()]
-    .map(([slot, candidate]) => projectObservedSlot({ slot, candidate, scale }))
-    .sort((left, right) => left.slot - right.slot)
+  const scale = medianCandidateScale([...bySlot.values()])
+  const slots = projectObservedSlots({ bySlot, scale })
 
   if (
     slots.some(
@@ -181,19 +174,7 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
       const used = new Set<TrackBand>()
 
       for (const run of runs) {
-        const matchingBand = active
-          .filter((band) => !used.has(band))
-          .map((band) => ({ band, distance: runDistance(band, run) }))
-          .filter(({ band, distance }) => {
-            const overlap = Math.max(
-              0,
-              Math.min(band.right, run.right) - Math.max(band.left, run.left) + 1
-            )
-            const overlapRatio =
-              overlap / Math.min(band.right - band.left + 1, run.right - run.left + 1)
-            return distance <= MAX_RUN_START_DRIFT && overlapRatio >= 0.55
-          })
-          .sort((left, right) => left.distance - right.distance)[0]?.band
+        const matchingBand = selectMatchingTrackBand({ active, run, used })
 
         if (matchingBand) {
           matchingBand.runs.push(run)
@@ -226,6 +207,40 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
       medianWidth <= MAX_COLOR_RUN_WIDTH
     )
   })
+}
+
+/** Select the closest unused band, retaining the first active band when distances tie. */
+function selectMatchingTrackBand({
+  active,
+  run,
+  used
+}: {
+  active: TrackBand[]
+  run: PixelRun
+  used: ReadonlySet<TrackBand>
+}): TrackBand | undefined {
+  const matching = pipe(
+    active,
+    filter((band) => !used.has(band)),
+    map((band) => {
+      const distance = runDistance(band, run)
+
+      return { band, distance }
+    }),
+    filter(({ band, distance }) => {
+      const overlap = Math.max(
+        0,
+        Math.min(band.right, run.right) - Math.max(band.left, run.left) + 1
+      )
+      const overlapRatio = overlap / Math.min(band.right - band.left + 1, run.right - run.left + 1)
+
+      return distance <= MAX_RUN_START_DRIFT && overlapRatio >= 0.55
+    }),
+    sort((left, right) => left.distance - right.distance),
+    first()
+  )
+
+  return matching?.band
 }
 
 function findColoredRuns({
@@ -456,7 +471,7 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
   const clusters: TrackPairCandidate[][] = []
   for (const candidate of [...candidates].sort((left, right) => left.scale - right.scale)) {
     const cluster = clusters.find(
-      (members) => Math.abs(median(members.map(({ scale }) => scale)) - candidate.scale) <= 0.055
+      (members) => Math.abs(medianCandidateScale(members) - candidate.scale) <= 0.055
     )
     if (cluster) {
       cluster.push(candidate)
@@ -465,6 +480,29 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
     }
   }
   return clusters
+}
+
+/** Keep all largest clusters long enough to reject an equally plausible scale. */
+function selectScaleCluster(candidates: TrackPairCandidate[]): TrackPairCandidate[] {
+  const clusters = clusterCandidatesByScale(candidates)
+  const largestClusterSize = Math.max(...clusters.map((cluster) => cluster.length))
+  const bestClusters = filter(clusters, (cluster) => cluster.length === largestClusterSize)
+  if (bestClusters.length !== 1) {
+    throw new PartyFrameGeometryError('ambiguous-scale')
+  }
+
+  return bestClusters[0]
+}
+
+/** Aggregate scale values without changing the candidate objects or their order. */
+function medianCandidateScale(candidates: TrackPairCandidate[]): number {
+  const scale = pipe(
+    candidates,
+    map(({ scale }) => scale),
+    median
+  )
+
+  return scale
 }
 
 function identifySlot(anchorX: number, scale: number): PartyFrameSlot | undefined {
@@ -480,6 +518,23 @@ function identifySlot(anchorX: number, scale: number): PartyFrameSlot | undefine
     }
   }
   return matches.length === 1 ? matches[0] : undefined
+}
+
+/** Project only identified observations and return them in slot-number order. */
+function projectObservedSlots({
+  bySlot,
+  scale
+}: {
+  bySlot: ReadonlyMap<PartyFrameSlot, TrackPairCandidate>
+  scale: number
+}): PartyFrameRegion[] {
+  const slots = pipe(
+    [...bySlot.entries()],
+    map(([slot, candidate]) => projectObservedSlot({ slot, candidate, scale })),
+    sort((left, right) => left.slot - right.slot)
+  )
+
+  return slots
 }
 
 function projectObservedSlot({
@@ -554,11 +609,16 @@ function runDistance(band: TrackBand, run: PixelRun): number {
 }
 
 function median(values: number[]): number {
-  const sorted = [...values].sort((left, right) => left - right)
+  const sorted = sort(values, (left, right) => left - right)
   const middle = Math.floor(sorted.length / 2)
-  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+  const result =
+    sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+
+  return result
 }
 
 function mean(values: number[]): number {
-  return values.reduce((sum, value) => sum + value, 0) / values.length
+  const result = sum(values) / values.length
+
+  return result
 }
