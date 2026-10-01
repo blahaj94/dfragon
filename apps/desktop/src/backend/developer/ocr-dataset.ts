@@ -184,25 +184,25 @@ export function createOcrDataset(
         }
         samples.set(id, sample)
 
-        return {
-          id,
-          createdAt: sample.capturedAt,
-          width: sample.width,
-          height: sample.height,
-          text: sample.text,
-          excluded: sample.excluded,
-          remote: { kind: sample.kind, split: sample.split },
-          source:
-            sample.uiScale === null
-              ? null
-              : {
-                  kind: sample.kind,
-                  slot: sample.slot,
-                  frameWidth: sample.frameWidth,
-                  frameHeight: sample.frameHeight,
-                  scale: sample.uiScale
-                }
+        const createdAt = sample.capturedAt
+        const width = sample.width
+        const height = sample.height
+        const text = sample.text
+        const excluded = sample.excluded
+        const kind = sample.kind
+        const split = sample.split
+        const remote = { kind, split }
+        let source: DeveloperSample['source'] = null
+        if (sample.uiScale !== null) {
+          const sourceKind = sample.kind
+          const slot = sample.slot
+          const frameWidth = sample.frameWidth
+          const frameHeight = sample.frameHeight
+          const scale = sample.uiScale
+          source = { kind: sourceKind, slot, frameWidth, frameHeight, scale }
         }
+
+        return { id, createdAt, width, height, text, excluded, remote, source }
       })
     },
     async readImage(id: string): Promise<string> {
