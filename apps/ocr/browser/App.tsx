@@ -187,12 +187,7 @@ export function App() {
               ))
             )}
           </section>
-          {sample !== undefined && (
-            <SampleEditor
-              key={`${sample.id}:${sample.text}:${sample.excluded}:${sample.split}`}
-              sample={sample}
-            />
-          )}
+          {sample !== undefined && <SampleEditor key={sample.id} sample={sample} />}
           <nav {...stylex.props(styles.pagination)} aria-label="페이지">
             <button
               className={`${secondary} ${stylex.props(styles.paginationButton).className}`}

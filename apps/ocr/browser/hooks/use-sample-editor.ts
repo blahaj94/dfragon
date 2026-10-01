@@ -8,7 +8,15 @@ import { invalidateDataset } from '../query.js'
 
 export function useSampleEditor(sample: Sample) {
   const client = useQueryClient()
-  const [text, setText] = useState(sample.text ?? '')
+  const [draft, setDraft] = useState({ saved: sample.text, text: sample.text ?? '' })
+  if (draft.saved !== sample.text) {
+    const text = draft.text === (draft.saved ?? '') ? (sample.text ?? '') : draft.text
+    setDraft({ saved: sample.text, text })
+  }
+  const text = draft.text
+  function setText(value: string) {
+    setDraft((current) => ({ ...current, text: value }))
+  }
   const [message, setMessage] = useState('')
   const save = useMutation({
     mutationFn: async (excluded: boolean) => {
