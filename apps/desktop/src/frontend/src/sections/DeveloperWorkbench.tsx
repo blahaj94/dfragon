@@ -7,9 +7,9 @@ import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
 import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
-import { summarizeDeveloperEvaluation } from '../lib/developer-evaluation'
+import { summarizeDeveloperEvaluation, type DeveloperEvaluation } from '../lib/developer-evaluation'
 import { normalizeNickname } from '../lib/recognition'
-import type { DeveloperPartySlotNumber } from '../lib/developer-party'
+import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/developer-party'
 import {
   queryDeveloperWorkbenchSamples,
   selectDeveloperEvaluationSamples,
@@ -85,12 +85,18 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const dirty = Object.entries(drafts).some(([id, value]) => {
     const sample = dataset.samples.find((row) => row.id === id)
 
-    return sample != null && (sample.text == null ? value !== '' : value !== sample.text)
+    if (sample == null) {
+      return false
+    }
+    if (sample.text == null) {
+      return value !== ''
+    }
+
+    return value !== sample.text
   })
 
   async function saveAndNext(): Promise<void> {
     if (readingRemote || !selected || dataset.saving || draft.length === 0) {
-
       return
     }
 
@@ -98,7 +104,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const saved = await dataset.saveLabel(id, draft)
     if (!saved) {
-
       return
     }
 
@@ -114,7 +119,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   function skipSelected(): void {
     if (!selected) {
-
       return
     }
     setSelectedId(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
@@ -123,7 +127,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   async function setSelectedExcluded(excluded: boolean): Promise<void> {
     if (readingRemote || !selected || dataset.saving) {
-
       return
     }
 
@@ -131,7 +134,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const updated = await dataset.setSampleExcluded(id, excluded)
     if (!updated) {
-
       return
     }
 
@@ -150,21 +152,76 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>): void {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-
       return
     }
     event.preventDefault()
     const index = workbenchTabs.indexOf(activeTab)
-    const nextIndex =
-      event.key === 'Home'
-        ? 0
-        : event.key === 'End'
-          ? workbenchTabs.length - 1
-          : (index + (event.key === 'ArrowRight' ? 1 : -1) + workbenchTabs.length) %
-            workbenchTabs.length
+    let nextIndex: number
+    if (event.key === 'Home') {
+      nextIndex = 0
+    } else if (event.key === 'End') {
+      nextIndex = workbenchTabs.length - 1
+    } else {
+      const direction = event.key === 'ArrowRight' ? 1 : -1
+      nextIndex = (index + direction + workbenchTabs.length) % workbenchTabs.length
+    }
     const nextTab = workbenchTabs[nextIndex]
     setActiveTab(nextTab)
     requestAnimationFrame(() => document.getElementById(`developer-${nextTab}-tab`)?.focus())
+  }
+
+  function getEvaluationProgress(): string {
+    if (evaluation.canceled) {
+      return '평가 중지'
+    }
+    if (evaluation.running) {
+      return '평가 진행'
+    }
+
+    return '최근 실행'
+  }
+
+  function getLabelComparison(
+    sample: DeveloperWorkbenchSample,
+    result: Extract<DeveloperEvaluation, { status: 'success' }>
+  ): string {
+    if (sample.text == null) {
+      return '정답을 저장하면 일치 여부를 확인할 수 있습니다.'
+    }
+    if (result.text === sample.text) {
+      return '저장된 정답과 원문 일치'
+    }
+
+    return '저장된 정답과 원문 불일치'
+  }
+
+  function renderSelectedResult(sample: DeveloperWorkbenchSample): React.JSX.Element {
+    if (sample.excluded) {
+      return <Typo.txtS>제외한 이미지는 평가에 포함하지 않습니다.</Typo.txtS>
+    }
+    if (readingRemote && sample.text == null) {
+      return <Typo.txtS>자료실에서 정답을 입력한 뒤 다시 불러오세요.</Typo.txtS>
+    }
+    if (selectedResult?.status === 'success') {
+      return (
+        <>
+          <Typo.txtM>원문: {selectedResult.text || '(빈 문자열)'}</Typo.txtM>
+          <Typo.txtS>
+            제품 닉네임 정리 후: {normalizeNickname(selectedResult.text) || '(빈 문자열)'}
+          </Typo.txtS>
+          <Typo.caption>
+            신뢰도 {selectedResult.confidence.toFixed(1)} · 추론{' '}
+            {selectedResult.milliseconds.toFixed(0)}ms
+          </Typo.caption>
+          <Typo.txtS>{getLabelComparison(sample, selectedResult)}</Typo.txtS>
+        </>
+      )
+    }
+    if (selectedResult?.status === 'failed') {
+      return <Typo.txtS>인식 실패. 이미지가 닉네임 한 줄인지 확인해 주세요.</Typo.txtS>
+    }
+
+    return <Typo.txtS>아직 평가하지 않은 이미지입니다.</Typo.txtS>
   }
 
   return (
@@ -470,12 +527,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                 )}
                 {evaluation.progress.total > 0 && (
                   <Typo.txtS role="status">
-                    {evaluation.canceled
-                      ? '평가 중지'
-                      : evaluation.running
-                        ? '평가 진행'
-                        : '최근 실행'}{' '}
-                    {evaluation.progress.done}/{evaluation.progress.total}
+                    {getEvaluationProgress()} {evaluation.progress.done}/{evaluation.progress.total}
                   </Typo.txtS>
                 )}
                 {selected && (
@@ -486,34 +538,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <Typo.txtM as="h3" weight={700}>
                       선택 이미지 평가
                     </Typo.txtM>
-                    {selected.excluded ? (
-                      <Typo.txtS>제외한 이미지는 평가에 포함하지 않습니다.</Typo.txtS>
-                    ) : readingRemote && selected.text == null ? (
-                      <Typo.txtS>자료실에서 정답을 입력한 뒤 다시 불러오세요.</Typo.txtS>
-                    ) : selectedResult?.status === 'success' ? (
-                      <>
-                        <Typo.txtM>원문: {selectedResult.text || '(빈 문자열)'}</Typo.txtM>
-                        <Typo.txtS>
-                          제품 닉네임 정리 후:{' '}
-                          {normalizeNickname(selectedResult.text) || '(빈 문자열)'}
-                        </Typo.txtS>
-                        <Typo.caption>
-                          신뢰도 {selectedResult.confidence.toFixed(1)} · 추론{' '}
-                          {selectedResult.milliseconds.toFixed(0)}ms
-                        </Typo.caption>
-                        <Typo.txtS>
-                          {selected.text == null
-                            ? '정답을 저장하면 일치 여부를 확인할 수 있습니다.'
-                            : selectedResult.text === selected.text
-                              ? '저장된 정답과 원문 일치'
-                              : '저장된 정답과 원문 불일치'}
-                        </Typo.txtS>
-                      </>
-                    ) : selectedResult?.status === 'failed' ? (
-                      <Typo.txtS>인식 실패. 이미지가 닉네임 한 줄인지 확인해 주세요.</Typo.txtS>
-                    ) : (
-                      <Typo.txtS>아직 평가하지 않은 이미지입니다.</Typo.txtS>
-                    )}
+                    {renderSelectedResult(selected)}
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
