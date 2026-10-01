@@ -4,12 +4,10 @@ import type { DataSource } from 'typeorm'
 export const checkedAt = new Date('2026-09-06T00:00:00.000Z')
 
 export function rawRefreshToken(): string {
-
   return randomBytes(32).toString('base64url')
 }
 
 export function refreshTokenHash(rawToken: string): Buffer {
-
   return createHash('sha256').update(Buffer.from(rawToken, 'base64url')).digest()
 }
 
@@ -55,7 +53,11 @@ export function logoutFixture() {
       events.push('user-lock')
       const isUserMissing = state.userMissing
 
-      return isUserMissing ? null : user
+      if (isUserMissing) {
+        return null
+      }
+
+      return user
     }
   }
   const sessions = {
@@ -63,13 +65,21 @@ export function logoutFixture() {
       events.push('session-hint')
       const isSessionHintMissing = state.sessionHintMissing
 
-      return isSessionHintMissing ? null : session
+      if (isSessionHintMissing) {
+        return null
+      }
+
+      return session
     },
     findOne: async () => {
       events.push('session-lock')
       const isSessionMissing = state.sessionMissing
 
-      return isSessionMissing ? null : session
+      if (isSessionMissing) {
+        return null
+      }
+
+      return session
     },
     update: async (_criteria: unknown, update: { revokedAt: Date; revokedReason: 'logout' }) => {
       events.push('revoke')
@@ -82,25 +92,31 @@ export function logoutFixture() {
       events.push('refresh-hint')
       const isTokenHintMissing = state.tokenHintMissing
 
-      return isTokenHintMissing ? null : token
+      if (isTokenHintMissing) {
+        return null
+      }
+
+      return token
     },
     findOne: async () => {
       events.push('refresh-lock')
       const isTokenMissing = state.tokenMissing
 
-      return isTokenMissing ? null : token
+      if (isTokenMissing) {
+        return null
+      }
+
+      return token
     }
   }
   const manager = {
     getRepository: (schema: { options: { name: string } }) => {
       const isUserSchema = schema.options.name === 'User'
       if (isUserSchema) {
-
         return users
       }
       const isSessionSchema = schema.options.name === 'AuthSession'
       if (isSessionSchema) {
-
         return sessions
       }
 
