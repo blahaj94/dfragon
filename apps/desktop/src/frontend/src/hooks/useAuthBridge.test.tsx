@@ -7,7 +7,6 @@ import { useAuthBridge } from './useAuthBridge'
 import { LoginPage } from '../pages/login/LoginPage'
 
 function snapshot(revision: number, runId = 'run-one'): AuthSnapshot {
-
   return {
     runId,
     revision,
@@ -51,17 +50,27 @@ function createApi(): {
 
       return snapshot(1)
     }),
-    beginLogin: vi.fn<AuthApi['beginLogin']>(async (): Promise<AuthCommandResult> => ({
-      ok: true,
-      snapshot: snapshot(2)
-    })),
-    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async (): Promise<AuthCommandResult> => ({
-      ok: true,
-      snapshot: snapshot(2)
-    })),
-    retryAuth: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
+    beginLogin: vi.fn<AuthApi['beginLogin']>(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
+    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
+    retryAuth: vi.fn(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
     managePasskeys: vi.fn(),
-    logout: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
+    logout: vi.fn(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
     onAuthStateChanged: vi.fn((listener: (value: AuthSnapshot) => void) => {
       order.push('subscribe')
       listeners.add(listener)
@@ -92,8 +101,9 @@ function Probe(): JSX.Element {
   useEffect(() => {
     current = bridge
   }, [bridge])
+  const revision = bridge.snapshot?.revision ?? 'disconnected'
 
-  return <span>{bridge.snapshot?.revision ?? 'disconnected'}</span>
+  return <span>{revision}</span>
 }
 async function mount(): Promise<void> {
   await act(async () => root.render(<Probe />))
