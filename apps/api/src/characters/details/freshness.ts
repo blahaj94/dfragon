@@ -19,9 +19,8 @@ export function characterFreshness(rows: CharacterApiResponse[]) {
 
     return null
   }
+  const lastSuccessfulFetchAt = new Date(oldest).toISOString()
+  const expiresAt = new Date(oldest + CHARACTER_FRESHNESS_MS).toISOString()
 
-  return {
-    lastSuccessfulFetchAt: new Date(oldest).toISOString(),
-    expiresAt: new Date(oldest + CHARACTER_FRESHNESS_MS).toISOString()
-  }
+  return { lastSuccessfulFetchAt, expiresAt }
 }
