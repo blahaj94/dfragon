@@ -68,33 +68,49 @@ function loadWin32(): Win32Api {
   const kernel32 = koffi.load('kernel32.dll')
   koffi.struct('DFC_CAPTURE_POINT', { x: 'int32_t', y: 'int32_t' })
 
+  const SetThreadDpiAwarenessContext = user32.func(
+    'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
+  )
+  const MonitorFromPoint = user32.func(
+    'void * __stdcall MonitorFromPoint(DFC_CAPTURE_POINT point, uint32_t flags)'
+  )
+  const GetMonitorInfo = user32.func(
+    'int __stdcall GetMonitorInfoW(void *monitor, _Inout_ void *info)'
+  )
+  const EnumDisplaySettings = user32.func(
+    'int __stdcall EnumDisplaySettingsW(str16 device, uint32_t mode, _Inout_ void *settings)'
+  )
+  const CreateDC = gdi32.func(
+    'void * __stdcall CreateDCW(str16 driver, str16 device, str16 port, const void *mode)'
+  )
+  const CreateCompatibleDC = gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)')
+  const CreateDIBSection = gdi32.func(
+    'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
+  )
+  const SelectObject = gdi32.func('void * __stdcall SelectObject(void *dc, void *object)')
+  const BitBlt = gdi32.func(
+    'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
+  )
+  const GdiFlush = gdi32.func('int __stdcall GdiFlush()')
+  const DeleteObject = gdi32.func('int __stdcall DeleteObject(void *object)')
+  const DeleteDC = gdi32.func('int __stdcall DeleteDC(void *dc)')
+  const GetLastError = kernel32.func('uint32_t __stdcall GetLastError()')
+
   return {
     koffi,
-    SetThreadDpiAwarenessContext: user32.func(
-      'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
-    ),
-    MonitorFromPoint: user32.func(
-      'void * __stdcall MonitorFromPoint(DFC_CAPTURE_POINT point, uint32_t flags)'
-    ),
-    GetMonitorInfo: user32.func('int __stdcall GetMonitorInfoW(void *monitor, _Inout_ void *info)'),
-    EnumDisplaySettings: user32.func(
-      'int __stdcall EnumDisplaySettingsW(str16 device, uint32_t mode, _Inout_ void *settings)'
-    ),
-    CreateDC: gdi32.func(
-      'void * __stdcall CreateDCW(str16 driver, str16 device, str16 port, const void *mode)'
-    ),
-    CreateCompatibleDC: gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)'),
-    CreateDIBSection: gdi32.func(
-      'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
-    ),
-    SelectObject: gdi32.func('void * __stdcall SelectObject(void *dc, void *object)'),
-    BitBlt: gdi32.func(
-      'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
-    ),
-    GdiFlush: gdi32.func('int __stdcall GdiFlush()'),
-    DeleteObject: gdi32.func('int __stdcall DeleteObject(void *object)'),
-    DeleteDC: gdi32.func('int __stdcall DeleteDC(void *dc)'),
-    GetLastError: kernel32.func('uint32_t __stdcall GetLastError()')
+    SetThreadDpiAwarenessContext,
+    MonitorFromPoint,
+    GetMonitorInfo,
+    EnumDisplaySettings,
+    CreateDC,
+    CreateCompatibleDC,
+    CreateDIBSection,
+    SelectObject,
+    BitBlt,
+    GdiFlush,
+    DeleteObject,
+    DeleteDC,
+    GetLastError
   } as Win32Api
 }
 
@@ -212,7 +228,8 @@ export function capturePrimaryFrame(): PixelFrame {
     }
     // decode copies into JS-owned memory. koffi.view is forbidden by Electron's V8 cage.
     const bgrx = api.koffi.decode(bits[0], 'uint8_t', width * height * 4) as Uint8Array
-    frame = { width, height, rgba: bgrxToRgba(bgrx), capturedAt, backend: 'win32-gdi', deviceName }
+    const rgba = bgrxToRgba(bgrx)
+    frame = { width, height, rgba, capturedAt, backend: 'win32-gdi', deviceName }
   } catch (error) {
     captureError = error
   } finally {
