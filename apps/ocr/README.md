@@ -44,6 +44,8 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 자동 분할 화면과 적용 확인 창은 `SplitPlanner.tsx`, 요청·미리보기 수명과 캐시 무효화는 기존 `browser/hooks` 아래 `use-split-planner.ts`, 전용 StyleX는 `SplitPlanner.style.ts`가 소유합니다. 확인을 취소하면 요청하지 않으며 승인한 미리보기만 hook에 전달합니다. 분할·문자군 식별자는 `src/model.ts`에서 공유하고 표시 문구는 `browser/constants.ts`의 기존 상수 패턴을 따릅니다. `split-plan.ts`의 계산과 `store.ts`의 transaction 경계는 구분합니다.
 
+표본 정답 수정의 다음 분할·신규 train 배정·분할 변경 확인은 `src/sample-update.ts`의 순수 계획 함수가 판단합니다. 저장소는 transaction 안에서 현재 표본·닉네임 배정을 읽고 계획이 승인된 뒤에만 분할과 표본을 씁니다. 확인하지 않은 분할 변경은 정답·제외·배정 모두를 그대로 유지합니다.
+
 서버는 기존 API와 같은 NestJS 12 버전의 controller·DI·exception filter를 사용합니다. 큰 본문을 읽기 전 인증과 업로드 동시 제한을 적용하며 경로별 크기 제한만 Express 어댑터의 JSON parser를 사용합니다. 쿠키 파싱은 `cookie-parser`, 발급·삭제는 응답 기본 API를 사용합니다. 로그인 요청 한도는 완료된 대기 요청과 인증 API 호출 중인 요청의 합계입니다. `__Host-ocr-login`은 로그인 시작 브라우저와 callback을 연결하는 임시 쿠키, `__Host-ocr-session`은 인증 후 서버 세션을 찾는 쿠키입니다. 두 쿠키의 값은 Node `crypto.randomBytes`로 생성한 난수이고 기존 API token을 담지 않습니다.
 
 인증은 `OcrAuth`가 담당하고 JSON parser보다 먼저 등록한 middleware에서 호출합니다. [NestJS 요청 순서](https://docs.nestjs.com/faq/request-lifecycle)에 따라 Guard는 middleware 이후 실행되므로, 현재 body parser 구성에서 인증을 Guard로 옮기면 인증 전 큰 본문을 파싱하게 됩니다. Desktop 요청의 정확한 method·URL 판정은 `isDesktopRequest`, 합성 업로드는 `isSyntheticUploadRequest`에서 정의하며 Origin 검사와 인증 방식 선택이 같은 판정을 사용합니다.
