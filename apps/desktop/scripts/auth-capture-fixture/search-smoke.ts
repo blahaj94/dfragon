@@ -308,7 +308,12 @@ export async function smokeCharacterSearch(
       }
       const hasMatchingStatus = slot.statusMatched
 
-      return hasMatchingStatus ? mask | (1 << index) : mask
+      if (hasMatchingStatus) {
+
+        return mask | (1 << index)
+      }
+
+      return mask
     }, 0)
     assert.equal(emptyMask, 15)
 
@@ -353,9 +358,14 @@ export async function smokeCharacterSearch(
       return ready
     })
     // HTTP 도착 순서를 slot 번호로 가정하지 않고 실제 수용한 상태에서 역할을 찾는다.
-    const failures = mixed.slots.flatMap((slot, index) =>
-      slot.code === 'INTERNAL_SERVER_ERROR' ? [index] : []
-    )
+    const failures = mixed.slots.flatMap((slot, index) => {
+      if (slot.code === 'INTERNAL_SERVER_ERROR') {
+
+        return [index]
+      }
+
+      return []
+    })
     const pendingSlot = mixed.slots.findIndex((slot) => slot.state === 'pending')
     const limitedSlot = mixed.slots.findIndex((slot) => slot.code === 'SEARCH_RATE_LIMITED')
     const limitedBefore = mixed.slots[limitedSlot]
