@@ -242,6 +242,23 @@ test('bounds input dimensions and validates raw bytes and the raid-specific head
   }
 })
 
+test('does not return an earlier raid match when later anchors exhaust the shared frame budget', () => {
+  const image = frame(1920, 1080)
+  popup(image, { x: 200, y: 100 })
+  for (let index = 0; index < 100; index += 1) {
+    paint(
+      image,
+      900 + (index % 16) * 45,
+      250 + Math.floor(index / 16) * 80,
+      21,
+      21,
+      [235, 20, 25, 255]
+    )
+  }
+
+  assert.equal(cropDNFRaidParticipantNicknames(image, heading).status, 'search-limit')
+})
+
 test('accepts a dialog exactly touching the right and bottom frame edges', () => {
   const exact = frame()
   popup(exact, { x: 617, y: 276 })

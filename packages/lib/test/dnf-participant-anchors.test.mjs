@@ -83,3 +83,22 @@ test('preserves the 45 percent fill boundary and the 9px reference-scale interpr
   assert.equal(anchors(component(6, 6))[0].scale, 2 / 3)
   assert.equal(anchors(component(30, 30))[0].scale, 10 / 3)
 })
+
+test('accepts exactly 128 anchors and refuses a partial list when the next anchor exceeds the limit', () => {
+  const width = 400
+  const height = 220
+  const rgba = new Uint8Array(width * height * 4)
+  for (let index = 0; index < 129; index += 1) {
+    const left = 10 + (index % 16) * 20
+    const top = 10 + Math.floor(index / 16) * 20
+    for (let y = top; y < top + 9; y += 1) {
+      for (let x = left; x < left + 9; x += 1) {
+        rgba.set([235, 20, 25, 255], (y * width + x) * 4)
+      }
+    }
+    if (index === 127) {
+      assert.equal(findParticipantAnchors(width, height, rgba).length, 128)
+    }
+  }
+  assert.equal(findParticipantAnchors(width, height, rgba), null)
+})
