@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [stylex.rollup(stylexOptions)],
   resolve: {
     alias: {
-      '@dfragon/ui/typo': fileURLToPath(new URL('../../packages/ui/src/typo.tsx', import.meta.url))
+      '@dfragon/ui/typo': fileURLToPath(new URL('../../packages/ui/src/typo.tsx', import.meta.url)),
+      '@dfragon/lib/ocr-contract': fileURLToPath(
+        new URL('../../packages/lib/src/ocr-contract.ts', import.meta.url)
+      )
     }
   },
   test: {

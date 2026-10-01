@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { requestOcr } from '../client.js'
 import { readPngBase64 } from '../upload-input.js'
 import { useCaptureUpload } from './use-capture-upload.js'
+import { CaptureUpload } from '../CaptureUpload.js'
 
 vi.mock('../client.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../client.js')>()
@@ -17,6 +18,7 @@ vi.mock('../upload-input.js', async (importOriginal) => {
   return { ...actual, readPngBase64: vi.fn() }
 })
 let root: Root
+let container: HTMLDivElement
 let client: QueryClient
 let upload: ReturnType<typeof useCaptureUpload>
 function Harness() {
@@ -34,7 +36,8 @@ beforeEach(async () => {
   })
   vi.mocked(requestOcr).mockResolvedValue(undefined)
   vi.mocked(readPngBase64).mockResolvedValue('original-png-bytes')
-  root = createRoot(document.createElement('div'))
+  container = document.createElement('div')
+  root = createRoot(container)
   await act(async () =>
     root.render(
       <QueryClientProvider client={client}>
@@ -42,6 +45,29 @@ beforeEach(async () => {
       </QueryClientProvider>
     )
   )
+})
+
+it('displays the shared maximum as 1000 percent and submits it as scale 10', async () => {
+  await act(async () => {
+    upload.setFile(new File(['png'], 'maximum-scale.png'))
+    upload.setScale('1000')
+  })
+  await act(async () => upload.uploadNew())
+  expect(requestOcr).toHaveBeenLastCalledWith(
+    '/api/captures',
+    'POST',
+    expect.objectContaining({ uiScale: 10 })
+  )
+  await act(async () =>
+    root.render(
+      <QueryClientProvider client={client}>
+        <CaptureUpload open onClose={vi.fn()} />
+      </QueryClientProvider>
+    )
+  )
+  expect(
+    container.querySelector<HTMLInputElement>('input[placeholder="모르면 비워두기"]')?.max
+  ).toBe('1000')
 })
 afterEach(async () => {
   await act(async () => root.unmount())
