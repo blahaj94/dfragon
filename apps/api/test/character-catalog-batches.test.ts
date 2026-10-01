@@ -5,14 +5,16 @@ import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { CatalogKey } from '../src/characters/catalog/types.js'
 
 test('refreshes mixed references in item, set and single-skill groups with the last duplicate object', async () => {
-  const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => ({
-    kind: 'item',
-    itemId: 'item-' + index
-  }))
-  const sets: CatalogKey[] = Array.from({ length: 16 }, (_, index) => ({
-    kind: 'set',
-    setItemId: 'set-' + index
-  }))
+  const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => {
+    const itemId = 'item-' + index
+
+    return { kind: 'item', itemId }
+  })
+  const sets: CatalogKey[] = Array.from({ length: 16 }, (_, index) => {
+    const setItemId = 'set-' + index
+
+    return { kind: 'set', setItemId }
+  })
   const skills: CatalogKey[] = [
     { kind: 'skill', jobId: 'job', skillId: 'skill-a' },
     { kind: 'skill', jobId: 'job', skillId: 'skill-b' }
