@@ -24,6 +24,9 @@ export function useSampleWorkspace(authenticated: boolean | null) {
   })
   const samples = authenticated === true ? (page.data?.samples ?? []) : []
   const sample = samples.find((item) => item.id === selected) ?? samples[0]
+  const next = page.data?.nextOffset ?? null
+  const captureStats = stats.data
+  const error = page.error ?? stats.error
 
   return {
     filters,
@@ -32,8 +35,8 @@ export function useSampleWorkspace(authenticated: boolean | null) {
     setSelected,
     sample,
     samples,
-    next: page.data?.nextOffset ?? null,
-    stats: stats.data,
-    error: page.error ?? stats.error
+    next,
+    stats: captureStats,
+    error
   }
 }
