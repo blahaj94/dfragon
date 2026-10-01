@@ -73,10 +73,12 @@ export function createRuntimeClock(options: RuntimeClockOptions): AuthClock {
     }
     discontinuous ||= hasPowerEvent || options.powerState.suspended
     previous = current ?? previous
+    const wallMs = current?.wallMs ?? previous?.wallMs ?? 0
+    const monotonicMs = current?.monotonicMs ?? previous?.monotonicMs ?? 0
 
     return {
-      wallMs: current?.wallMs ?? previous?.wallMs ?? 0,
-      monotonicMs: current?.monotonicMs ?? previous?.monotonicMs ?? 0,
+      wallMs,
+      monotonicMs,
       discontinuous
     }
   }
