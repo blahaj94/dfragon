@@ -31,6 +31,22 @@ type MetadataRow = Pick<
 >
 type GlyphPattern = { width: number; pixels: Uint8Array; count: number }
 
+// UI-0% field copies and templates share the measured 17px vertical baseline.
+const metadataLayout = {
+  baselineHeightPx: 17,
+  partyWidthPx: 42,
+  scoreWidthPx: 75,
+  maxScoreGlyphWidthPx: 16,
+  scoreExcludedBottomRows: 2
+}
+const partyPolicy = { minCorrelation: 0.8, minCandidateGap: 0.06 }
+const scorePolicy = {
+  minLocalContrast: 55,
+  minGlyphOverlap: 0.8,
+  minCandidateGap: 0.08,
+  maxGlyphs: 16
+}
+
 function validateImage(image: DNFParticipantFrame, maxWidth: number, maxHeight: number): void {
   if (
     image == null ||
@@ -132,7 +148,11 @@ function readParty(
   }
   const ranked = [...scores].sort((left, right) => right[1] - left[1])
   const best = ranked[0]
-  if (best != null && best[1] >= 0.8 && best[1] - (ranked[1]?.[1] ?? -1) >= 0.06) {
+  if (
+    best != null &&
+    best[1] >= partyPolicy.minCorrelation &&
+    best[1] - (ranked[1]?.[1] ?? -1) >= partyPolicy.minCandidateGap
+  ) {
     return best[0]
   }
 
@@ -147,7 +167,11 @@ function scoreMask(rgba: Uint8Array | Uint8ClampedArray, width: number): Uint8Ar
   const gray = participantGrayscale(rgba)
   const mask = new Uint8Array(gray.length)
   // Bottom two rows are the row separator/highlight edge, not score text.
-  for (let y = 1; y < 15; y += 1) {
+  for (
+    let y = 1;
+    y < metadataLayout.baselineHeightPx - metadataLayout.scoreExcludedBottomRows;
+    y += 1
+  ) {
     for (let x = 0; x < width; x += 1) {
       let minimum = gray[y * width + x]
       for (let ny = y - 1; ny <= y + 1; ny += 1) {
@@ -155,7 +179,7 @@ function scoreMask(rgba: Uint8Array | Uint8ClampedArray, width: number): Uint8Ar
           minimum = Math.min(minimum, gray[ny * width + nx])
         }
       }
-      mask[y * width + x] = Number(gray[y * width + x] - minimum >= 55)
+      mask[y * width + x] = Number(gray[y * width + x] - minimum >= scorePolicy.minLocalContrast)
     }
   }
 
@@ -164,7 +188,7 @@ function scoreMask(rgba: Uint8Array | Uint8ClampedArray, width: number): Uint8Ar
 
 function scoreGlyphs(mask: Uint8Array, width: number): GlyphPattern[] {
   const columns = new Uint8Array(width)
-  for (let y = 0; y < 17; y += 1) {
+  for (let y = 0; y < metadataLayout.baselineHeightPx; y += 1) {
     for (let x = 0; x < width; x += 1) {
       columns[x] += mask[y * width + x]
     }
@@ -183,8 +207,8 @@ function scoreGlyphs(mask: Uint8Array, width: number): GlyphPattern[] {
       x += 1
     }
     const glyphWidth = x - left
-    const pixels = new Uint8Array(glyphWidth * 17)
-    for (let y = 0; y < 17; y += 1) {
+    const pixels = new Uint8Array(glyphWidth * metadataLayout.baselineHeightPx)
+    for (let y = 0; y < metadataLayout.baselineHeightPx; y += 1) {
       pixels.set(mask.subarray(y * width + left, y * width + x), y * glyphWidth)
     }
     result.push({ width: glyphWidth, pixels, count })
@@ -197,8 +221,9 @@ function readEquipmentScore(
   rgba: Uint8Array,
   templates: readonly { character: DNFRaidScoreGlyph; pattern: GlyphPattern }[]
 ): string | null {
-  const glyphs = scoreGlyphs(scoreMask(rgba, 75), 75)
-  if (glyphs.length === 0 || glyphs.length > 16) {
+  const width = metadataLayout.scoreWidthPx
+  const glyphs = scoreGlyphs(scoreMask(rgba, width), width)
+  if (glyphs.length === 0 || glyphs.length > scorePolicy.maxGlyphs) {
     return null
   }
   let text = ''
@@ -217,7 +242,11 @@ function readEquipmentScore(
     }
     const ranked = [...scores].sort((left, right) => right[1] - left[1])
     const best = ranked[0]
-    if (best == null || best[1] < 0.8 || best[1] - (ranked[1]?.[1] ?? -1) < 0.08) {
+    if (
+      best == null ||
+      best[1] < scorePolicy.minGlyphOverlap ||
+      best[1] - (ranked[1]?.[1] ?? -1) < scorePolicy.minCandidateGap
+    ) {
       return null
     }
     text += best[0]
@@ -276,8 +305,11 @@ export function readDNFRaidParticipantMetadata(
     if (template == null || !['R', 'Y', 'G', '싱글'].includes(template.party)) {
       throw new RangeError('DNF raid metadata party references must identify a supported badge.')
     }
-    validateImage(template.image, 42, 17)
-    if (template.image.width !== 42 || template.image.height !== 17) {
+    validateImage(template.image, metadataLayout.partyWidthPx, metadataLayout.baselineHeightPx)
+    if (
+      template.image.width !== metadataLayout.partyWidthPx ||
+      template.image.height !== metadataLayout.baselineHeightPx
+    ) {
       throw new RangeError('DNF raid metadata party references must be 42x17.')
     }
     const pixels = partyPattern(template.image.rgba)
@@ -295,8 +327,12 @@ export function readDNFRaidParticipantMetadata(
     ) {
       throw new RangeError('DNF raid metadata score references must identify one supported glyph.')
     }
-    validateImage(template.image, 16, 17)
-    if (template.image.height !== 17) {
+    validateImage(
+      template.image,
+      metadataLayout.maxScoreGlyphWidthPx,
+      metadataLayout.baselineHeightPx
+    )
+    if (template.image.height !== metadataLayout.baselineHeightPx) {
       throw new RangeError('DNF raid metadata score references must preserve the 17px baseline.')
     }
     const patterns = scoreGlyphs(
@@ -315,9 +351,22 @@ export function readDNFRaidParticipantMetadata(
       return { row: row.row, party: null, equipmentScoreText: null }
     }
     const position = row.row
-    const party = readParty(normalizedRegion(frame, row.partyRegion, 42, 17), parties)
+    const party = readParty(
+      normalizedRegion(
+        frame,
+        row.partyRegion,
+        metadataLayout.partyWidthPx,
+        metadataLayout.baselineHeightPx
+      ),
+      parties
+    )
     const equipmentScoreText = readEquipmentScore(
-      normalizedRegion(frame, row.equipmentScoreRegion, 75, 17),
+      normalizedRegion(
+        frame,
+        row.equipmentScoreRegion,
+        metadataLayout.scoreWidthPx,
+        metadataLayout.baselineHeightPx
+      ),
       equipmentScoreGlyphs
     )
 
