@@ -5,9 +5,11 @@ import { expect, it, vi } from 'vitest'
 import { captureParticipantWindow } from './participant-window'
 
 // Electron Vite emits this asset beside the main bundle; Vitest reads the source PNG.
-vi.mock('./participant-heading.png?asset', () => ({
-  default: fileURLToPath(new URL('./participant-heading.png', import.meta.url))
-}))
+vi.mock('./participant-heading.png?asset', () => {
+  const headingPath = fileURLToPath(new URL('./participant-heading.png', import.meta.url))
+
+  return { default: headingPath }
+})
 
 it('uses the shipped heading and preserves slot 3, popup-relative bounds and raw bytes', () => {
   const width = 1067
