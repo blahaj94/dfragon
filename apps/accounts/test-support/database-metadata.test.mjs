@@ -42,8 +42,9 @@ function environment({ image, overrides = {} }) {
       ])
       const imageIdJson = JSON.stringify(overrides.imageId ?? image.imageId)
       const platformJson = JSON.stringify(overrides.platform ?? 'linux')
+      const stdout = `${imageIdJson} ${platformJson}\n`
 
-      return { stdout: `${imageIdJson} ${platformJson}\n` }
+      return { stdout }
     }
     assert.deepEqual(args, ['exec', resources.containerName, 'uname', '-m'])
     let architecture = overrides.architecture
@@ -52,8 +53,9 @@ function environment({ image, overrides = {} }) {
       const isArm64Platform = image.platform.includes('arm64')
       architecture = isArm64Platform ? 'aarch64' : 'x86_64'
     }
+    const stdout = `${architecture}\n`
 
-    return { stdout: `${architecture}\n` }
+    return { stdout }
   }
 
   return { calls, dataSource, dependencies: { createDataSource: () => dataSource, runDocker } }
