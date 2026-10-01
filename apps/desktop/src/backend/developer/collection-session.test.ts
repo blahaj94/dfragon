@@ -318,6 +318,36 @@ it('surfaces a later crop write failure while keeping earlier saved data discove
   })
 })
 
+it.each(['command', 'internal'] as const)(
+  '%s stop preserves the last capture result and error',
+  async (path) => {
+    const save = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 'first' })
+      .mockRejectedValueOnce(new Error('disk full'))
+    const fixture = setup({ save })
+    await fixture.session.setSlots([1, 2])
+    fixture.pressPrintScreen()
+    await settleCapture()
+    const before = fixture.session.getStatus()
+
+    if (path === 'command') {
+      await fixture.session.setSlots(null)
+    } else {
+      await fixture.session.stop()
+    }
+
+    expect(fixture.session.getStatus()).toMatchObject({
+      armed: false,
+      slots: [],
+      lastSavedAt: before.lastSavedAt,
+      lastSavedCount: before.lastSavedCount,
+      error: before.error
+    })
+    expect(before).toMatchObject({ lastSavedCount: 1, error: 'DEVELOPER_OPERATION_FAILED' })
+  }
+)
+
 it.each([[1], [2, 4]])(
   'saves detected slots %j even when empty positions are also selected',
   async (...detectedSlots) => {
