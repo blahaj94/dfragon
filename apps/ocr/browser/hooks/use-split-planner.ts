@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { assignedSplits, type AssignedSplit } from '../../src/model.js'
 import type { SplitOptions, SplitPreview, SplitStatistics } from '../../src/split-plan.js'
@@ -11,6 +11,12 @@ export function useSplitPlanner() {
   const [replaceExisting, setReplaceExisting] = useState(false)
   const [preview, setPreview] = useState<SplitPreview | null>(null)
   const [applied, setApplied] = useState(false)
+  const [revision, setRevision] = useState(0)
+  const command = useRef<{ pending: boolean; revision: number; preview: SplitPreview | null }>({
+    pending: false,
+    revision: 0,
+    preview: null
+  })
   const stats = useQuery({
     queryKey: ocrKeys.splitStats,
     queryFn: ({ signal }) =>
@@ -25,39 +31,80 @@ export function useSplitPlanner() {
     mutationFn: (options: SplitOptions) =>
       requestOcr<SplitPreview>('/api/splits/preview', 'POST', options),
     onSuccess: (result) => {
+      command.current.preview = result
       setPreview(result)
       setApplied(false)
+    },
+    onSettled: () => {
+      command.current.pending = false
     }
   })
   const apply = useMutation({
     mutationFn: (value: SplitPreview) =>
       requestOcr('/api/splits/apply', 'POST', { ...value.options, fingerprint: value.fingerprint }),
     onSuccess: async () => {
+      command.current.preview = null
       setPreview(null)
       setApplied(true)
       await invalidateDataset(client)
     },
-    onError: () => setPreview(null)
+    onError: () => {
+      command.current.preview = null
+      setPreview(null)
+    },
+    onSettled: () => {
+      command.current.pending = false
+    }
   })
 
-  function changeRatio(split: AssignedSplit, value: string) {
-    setRatios((current) => ({ ...current, [split]: value }))
+  function invalidatePreview() {
+    command.current.revision += 1
+    command.current.preview = null
+    setRevision(command.current.revision)
     setPreview(null)
+  }
+  function changeRatio(split: AssignedSplit, value: string) {
+    if (command.current.pending) {
+      return
+    }
+    setRatios((current) => ({ ...current, [split]: value }))
+    invalidatePreview()
   }
   function changeReplacement(value: boolean) {
+    if (command.current.pending) {
+      return
+    }
     setReplaceExisting(value)
-    setPreview(null)
+    invalidatePreview()
   }
   function previewSplit() {
+    if (command.current.pending || !canPreview || revision !== command.current.revision) {
+      return
+    }
+    command.current.pending = true
+    command.current.preview = null
     setPreview(null)
     generate.mutate({
       ratios: { train: Number(ratios.train), val: Number(ratios.val), test: Number(ratios.test) },
       replaceExisting
     })
   }
+  function applySplit(value: SplitPreview) {
+    if (
+      command.current.pending ||
+      value !== command.current.preview ||
+      revision !== command.current.revision ||
+      !valid
+    ) {
+      return
+    }
+    command.current.pending = true
+    apply.mutate(value)
+  }
   const valid =
     assignedSplits.every(
-      (split) => ratios[split] !== '' && Number(ratios[split]) >= 0 && Number(ratios[split]) <= 100
+      (split) =>
+        ratios[split].trim() !== '' && Number(ratios[split]) >= 0 && Number(ratios[split]) <= 100
     ) &&
     Math.abs(assignedSplits.reduce((sum, split) => sum + Number(ratios[split]), 0) - 100) < 1e-6
   const error = stats.error ?? generate.error ?? apply.error
@@ -78,6 +125,6 @@ export function useSplitPlanner() {
     changeRatio,
     changeReplacement,
     previewSplit,
-    applySplit: apply.mutate
+    applySplit
   }
 }
