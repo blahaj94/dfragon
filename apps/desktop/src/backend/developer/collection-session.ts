@@ -188,27 +188,23 @@ export function previewFrame(
   kind: DeveloperCollectionKind = 'hud'
 ): DeveloperPartyPreviewFrame {
   validatePartyFrame(frame, kind)
-
-  return {
-    width: frame.width,
-    height: frame.height,
-    scale: frame.scale,
-    capturedAt: frame.capturedAt,
-    ...(frame.participantWindow
-      ? {
-          participantWindow: {
-            ...frame.participantWindow,
-            rgba: Uint8Array.from(frame.participantWindow.rgba)
-          }
-        }
-      : {}),
-    slots: frame.slots.map(({ slot, width, height, rgba }) => ({
-      slot,
-      width,
-      height,
-      rgba: Uint8Array.from(rgba)
-    }))
+  const width = frame.width
+  const height = frame.height
+  const scale = frame.scale
+  const capturedAt = frame.capturedAt
+  let participantFields: Pick<DeveloperPartyPreviewFrame, 'participantWindow'> = {}
+  if (frame.participantWindow) {
+    const participantMetadata = { ...frame.participantWindow }
+    const rgba = Uint8Array.from(frame.participantWindow.rgba)
+    participantFields = { participantWindow: { ...participantMetadata, rgba } }
   }
+  const slots = frame.slots.map(({ slot, width, height, rgba }) => {
+    const pixels = Uint8Array.from(rgba)
+
+    return { slot, width, height, rgba: pixels }
+  })
+
+  return { width, height, scale, capturedAt, ...participantFields, slots }
 }
 
 const PUBLIC_ERROR_CODES = new Set<string>([
@@ -228,8 +224,11 @@ const PUBLIC_ERROR_CODES = new Set<string>([
 
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
+  if (PUBLIC_ERROR_CODES.has(message)) {
+    return message
+  }
 
-  return PUBLIC_ERROR_CODES.has(message) ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED
+  return DEVELOPER_ERROR_CODES.OPERATION_FAILED
 }
 
 export function createDeveloperCollectionSession({
@@ -262,17 +261,20 @@ export function createDeveloperCollectionSession({
   let captureProgress: DeveloperPartyCollectionStatus['capture']
 
   function getStatus(): DeveloperPartyCollectionStatus {
-
-    return {
-      armed,
-      slots: [...slots],
+    const statusArmed = armed
+    const selectedSlots = [...slots]
+    const status = {
+      armed: statusArmed,
+      slots: selectedSlots,
       revision,
       lastSavedAt,
       lastSavedCount,
-      error,
-      ...(captureProgress ? { capture: { ...captureProgress } } : {}),
-      ...(upload ? { upload } : {})
+      error
     }
+    const captureFields = captureProgress ? { capture: { ...captureProgress } } : {}
+    const uploadFields = upload ? { upload } : {}
+
+    return { ...status, ...captureFields, ...uploadFields }
   }
 
   function publishStatus(): void {
