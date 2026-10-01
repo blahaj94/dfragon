@@ -89,7 +89,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 `metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned" | "expanded", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned·expanded는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. finetuned의 사전 해시는 시작 모델과 같아야 합니다. expanded는 부모 사전의 모든 문자가 같은 순서로 앞부분에 남고 새 문자가 뒤에 추가된 경우만 허용합니다. 서버는 가중치를 실행하지 않습니다.
 
-업로드의 두 파일 개수 한도는 허용 목록 `MODEL_FILES.length`에서 파생합니다. `src/model-library.ts`는 파일 본문 합계 128 MiB, 보조 파일별 1 MiB, 메타데이터 parser 한도 8192 bytes, 전체 요청의 multipart 부가 예산 64 KiB, parser parts 한도 5를 각각 구분합니다. 서로 다른 예산을 합치거나 확장하지 않습니다. 현행 parser는 메타데이터가 정확히 8192 bytes여도 400으로 거절하며, 필수 두 파일·메타데이터와 선택 평가 파일의 네 part는 허용하고 다섯 번째 part는 거절합니다. 파일 본문 합계와 보조 파일 검사는 정확한 상한을 허용하며, 전체 요청은 128 MiB + 64 KiB를 넘을 때 연결을 끊습니다.
+업로드의 두 파일 개수 한도는 허용 목록 `MODEL_FILES.length`에서 파생합니다. `src/model-library.ts`는 파일 본문 합계 128 MiB, 보조 파일별 1 MiB, 메타데이터 parser 한도 8192 bytes, 전체 요청의 multipart 부가 예산 64 KiB, parser parts 한도 5를 각각 구분합니다. 서로 다른 예산을 합치거나 확장하지 않습니다. 현행 parser는 메타데이터가 정확히 8192 bytes여도 400으로 거절합니다. 필수 두 파일·메타데이터와 선택 평가 파일의 네 part를 허용하며, 파일 3개·필드 1개의 별도 한도도 적용합니다. `Content-Disposition` 없는 무시된 part도 세므로 정확히 다섯 part는 허용하고 여섯 번째는 거절합니다. 파일 본문 합계와 보조 파일 검사는 정확한 상한을 허용하며, 전체 요청은 128 MiB + 64 KiB를 넘을 때 연결을 끊습니다.
 
 파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../docs/reference/api-start-development.md#서버-이미지)를 함께 적용해야 합니다.
 
