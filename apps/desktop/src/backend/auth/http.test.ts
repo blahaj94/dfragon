@@ -31,14 +31,20 @@ async function inspectRequest(
   const request = new Request(input, init)
   const hasBody = request.body != null
   const body: unknown = hasBody ? await request.json() : null
+  const url = request.url
+  const method = request.method
+  const redirect = request.redirect
+  const cache = request.cache
+  const credentials = request.credentials
+  const headers = Object.fromEntries(request.headers)
 
   return {
-    url: request.url,
-    method: request.method,
-    redirect: request.redirect,
-    cache: request.cache,
-    credentials: request.credentials,
-    headers: Object.fromEntries(request.headers),
+    url,
+    method,
+    redirect,
+    cache,
+    credentials,
+    headers,
     signal: request.signal,
     body
   }
