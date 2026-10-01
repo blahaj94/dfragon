@@ -68,13 +68,10 @@ function rectangle(
 ): DNFRectangle {
   const x = roundPixel(heading.x + left * heading.scale)
   const y = roundPixel(heading.y + top * heading.scale)
+  const width = roundPixel(heading.x + right * heading.scale) - x
+  const height = roundPixel(heading.y + bottom * heading.scale) - y
 
-  return {
-    x,
-    y,
-    width: roundPixel(heading.x + right * heading.scale) - x,
-    height: roundPixel(heading.y + bottom * heading.scale) - y
-  }
+  return { x, y, width, height }
 }
 
 /** Precomputes dark row counts to reject impossible dialogs before template comparisons. */
@@ -199,8 +196,9 @@ export function detectDNFPartyParticipantWindow(
     }
   }
   if (candidates.length !== 1) {
+    const status = candidates.length === 0 ? 'not-found' : 'ambiguous'
 
-    return { status: candidates.length === 0 ? 'not-found' : 'ambiguous' }
+    return { status }
   }
 
   const { heading: matched, window } = candidates[0]
@@ -209,12 +207,11 @@ export function detectDNFPartyParticipantWindow(
     const portrait = evidenceRatio(frame, rectangle(matched, 31, top + 2, 48, top + 18))
     const level = evidenceRatio(frame, rectangle(matched, 51, top + 2, 72, top + 18))
     const role = evidenceRatio(frame, rectangle(matched, 242, top + 2, 254, top + 18), true)
+    const slot = (index + 1) as DNFParticipantSlot
+    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
+    const nickname = rectangle(matched, 154, top + 3, 238, top + 18)
 
-    return {
-      slot: (index + 1) as DNFParticipantSlot,
-      occupied: Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2,
-      nickname: rectangle(matched, 154, top + 3, 238, top + 18)
-    }
+    return { slot, occupied, nickname }
   })
 
   return { status: 'found', scale: matched.scale, matchScore: matched.score, window, rows }
@@ -230,22 +227,21 @@ export function cropDNFPartyParticipantNicknames(
 
     return result
   }
+  const snapshot = { ...result }
+  const rows = result.rows.map((row) => {
+    if (!row.occupied) {
 
-  return {
-    ...result,
-    rows: result.rows.map((row) => {
-      if (!row.occupied) {
+      return { ...row, crop: null }
+    }
+    const { x, y, width, height } = row.nickname
+    const rgba = new Uint8Array(width * height * 4)
+    for (let index = 0; index < height; index += 1) {
+      const start = ((y + index) * frame.width + x) * 4
+      rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
+    }
 
-        return { ...row, crop: null }
-      }
-      const { x, y, width, height } = row.nickname
-      const rgba = new Uint8Array(width * height * 4)
-      for (let index = 0; index < height; index += 1) {
-        const start = ((y + index) * frame.width + x) * 4
-        rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
-      }
+    return { ...row, crop: { width, height, rgba } }
+  })
 
-      return { ...row, crop: { width, height, rgba } }
-    })
-  }
+  return { ...snapshot, rows }
 }
