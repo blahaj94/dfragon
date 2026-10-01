@@ -44,6 +44,7 @@ jobs:
             src/preload/api/versions.test.ts \
             src/frontend/src/sections/SettingsSection.test.tsx
       - run: pnpm lint
+      - run: pnpm test:format-policy
       - run: pnpm format:check
       - run: pnpm lint:oxlint
       - name: Select images from the complete main push
