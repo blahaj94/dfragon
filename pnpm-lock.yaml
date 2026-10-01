@@ -257,6 +257,9 @@ importers:
       prettier:
         specifier: 3.9.6
         version: 3.9.6
+      tar:
+        specifier: 7.5.22
+        version: 7.5.22
       typescript:
         specifier: 6.0.2
         version: 6.0.2
@@ -2325,6 +2328,7 @@ packages:
 
   '@seed-design/react-avatar@2.0.1':
     resolution: {integrity: sha512-raQDroT104eEEKTwRx2jcukHEB1Zw96doV0wBpfndc3UaZbGRf7JJmWyiofQAs7MDH9/ooFYKpQ5+5Cg7P96CA==}
+    deprecated: No longer maintained. Use Image from @seed-design/react-image instead.
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
