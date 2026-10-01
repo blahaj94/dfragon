@@ -98,8 +98,11 @@ const MAX_SID_SIZE = 68
 const MAX_ACL_SIZE = 64 * 1024
 
 function invalidHandleValue(): WindowsNativeHandle {
+  if (process.arch === 'ia32') {
+    return 0xffffffffn
+  }
 
-  return process.arch === 'ia32' ? 0xffffffffn : 0xffffffffffffffffn
+  return 0xffffffffffffffffn
 }
 
 const HANDLE = koffi.pointer(koffi.opaque())
@@ -415,29 +418,24 @@ function createWindowsApi(): WindowsApi {
 export function createWindowsSecurityApiForTesting(
   loadLibrary: WindowsLibraryLoader
 ): WindowsSecurityApi {
-
   return bindWindowsApi(loadLibrary)
 }
 
 export function getWindowsSecurityBindingContractForTesting(): Readonly<{
   getAceOutputTypeName: string
 }> {
-
   return { getAceOutputTypeName: GET_ACE_OUTPUT_POINTER.name }
 }
 
 function getApi(): WindowsApi {
-
   return createWindowsApi()
 }
 
 function isInvalidHandle(handle: WindowsNativeHandle | null): handle is null {
-
   return handle == null || handle === invalidHandleValue()
 }
 
 function nativeError(api: WindowsApi): Error {
-
   return new Error(`Windows native operation failed (${api.getLastError()}).`)
 }
 
@@ -447,11 +445,9 @@ function classifyPathError(errorCode: number): WindowsNativePathInspection {
     errorCode === ERROR_PATH_NOT_FOUND ||
     errorCode === ERROR_INVALID_NAME
   ) {
-
     return 'missing'
   }
   if (errorCode === ERROR_ACCESS_DENIED) {
-
     return 'untrusted'
   }
 
@@ -459,12 +455,14 @@ function classifyPathError(errorCode: number): WindowsNativePathInspection {
 }
 
 function readPointer(data: Buffer): WindowsNativeHandle {
+  if (process.arch === 'ia32') {
+    return BigInt(data.readUInt32LE(0))
+  }
 
-  return process.arch === 'ia32' ? BigInt(data.readUInt32LE(0)) : data.readBigUInt64LE(0)
+  return data.readBigUInt64LE(0)
 }
 
 function sidPointer(storage: WindowsSidStorage): ReturnType<typeof koffi.as> {
-
   return koffi.as(storage, SID) as ReturnType<typeof koffi.as>
 }
 
@@ -475,12 +473,10 @@ function getTokenSidStorage(
   const tokenDataStart = koffi.address(tokenData)
   const tokenDataEnd = tokenDataStart + BigInt(tokenData.byteLength)
   if (tokenSidAddress < tokenDataStart || tokenSidAddress >= tokenDataEnd) {
-
     return null
   }
   const offset = tokenSidAddress - tokenDataStart
   if (offset > BigInt(Number.MAX_SAFE_INTEGER)) {
-
     return null
   }
 
@@ -489,13 +485,11 @@ function getTokenSidStorage(
 
 function sidString(data: Buffer): string | null {
   if (data.length < 8 || data[0] !== 1) {
-
     return null
   }
   const subAuthorityCount = data[1]
   const expectedLength = 8 + subAuthorityCount * 4
   if (subAuthorityCount > 15 || data.length !== expectedLength) {
-
     return null
   }
   let identifierAuthority = 0n
@@ -582,14 +576,12 @@ function isSystemAuthority(
     api.isWellKnownSid(sid, WIN_LOCAL_SYSTEM_SID) ||
     api.isWellKnownSid(sid, WIN_BUILTIN_ADMINISTRATORS_SID)
   ) {
-
     return true
   }
   // TrustedInstaller is a fixed service SID, not a WELL_KNOWN_SID_TYPE enum.
   // The caller has validated the SID; never resolve account names or groups.
   const length = api.getLengthSid(sid)
   if (length !== 32) {
-
     return false
   }
   // Koffi's typed Buffer casts are call arguments, not decodable addresses.
@@ -623,12 +615,10 @@ function isSecureDacl(
   policy: WindowsSecurityPolicy
 ): boolean {
   if (owner == null || !api.isValidSid(owner)) {
-
     return false
   }
   const ownerIsCurrent = api.equalSid(owner, sidPointer(currentSid))
   if (!ownerIsCurrent && (policy === 'private' || !isSystemAuthority(api, owner))) {
-
     return false
   }
   const present = [0]
@@ -640,7 +630,6 @@ function isSecureDacl(
   // A non-present or null DACL means unrestricted access. An empty DACL is distinct,
   // but it cannot grant the current user the access needed by the profile.
   if (present[0] === 0 || dacl[0] == null) {
-
     return false
   }
   const aclInformation: Record<string, unknown> = {}
@@ -649,7 +638,6 @@ function isSecureDacl(
   }
   const aceCount = aclInformation.AceCount
   if (typeof aceCount !== 'number' || aceCount < 1 || aceCount > 4096) {
-
     return false
   }
   for (let index = 0; index < aceCount; index += 1) {
@@ -667,18 +655,15 @@ function isSecureDacl(
     const hasSupportedFlags =
       policy === 'private' ? aceFlags === 0 : (aceFlags & ~KNOWN_ACE_FLAGS) === 0
     if (!hasSupportedType || !hasSupportedFlags || aceSize < 12 || aceSize > MAX_ACL_SIZE) {
-
       return false
     }
     const aceMemory = Buffer.from(koffi.decode(ace[0], 'uint8_t', aceSize))
     const aceSid = koffi.as(aceMemory.subarray(8), SID) as ReturnType<typeof koffi.as>
     if (!api.isValidSid(aceSid)) {
-
       return false
     }
     const aceSidLength = api.getLengthSid(aceSid)
     if (aceSidLength <= 0 || aceSize !== 8 + aceSidLength) {
-
       return false
     }
     const isCurrentSid = api.equalSid(aceSid, sidPointer(currentSid))
@@ -689,7 +674,6 @@ function isSecureDacl(
         !isCurrentSid ||
         (accessMask !== FILE_ALL_ACCESS && accessMask !== GENERIC_ALL)
       ) {
-
         return false
       }
       continue
@@ -710,7 +694,6 @@ function isSecureDacl(
         policy === 'root' ? DANGEROUS_ANCESTOR_MASK & ~DELETE : DANGEROUS_ANCESTOR_MASK
       const grantsDangerousAccess = (accessMask & dangerousMask) !== 0
       if (grantsDangerousAccess) {
-
         return false
       }
     }
@@ -734,25 +717,20 @@ function inspectHandle(
       koffi.sizeof(FILE_ATTRIBUTE_TAG_INFO)
     )
   ) {
-
     return 'unavailable'
   }
   const attributes = fileInformation.FileAttributes
   if (typeof attributes !== 'number') {
-
     return 'unavailable'
   }
   if ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) !== 0) {
-
     return 'reparse'
   }
   const isDirectory = (attributes & FILE_ATTRIBUTE_DIRECTORY) !== 0
   if (isDirectory !== (kind === 'directory')) {
-
     return 'untrusted'
   }
   if (policy === 'root' && (kind !== 'directory' || !isVolumeRoot(api, handle))) {
-
     return 'untrusted'
   }
   const owner = [null] as Array<WindowsNativePointer | null>
@@ -771,7 +749,6 @@ function inspectHandle(
     descriptor
   )
   if (securityResult !== ERROR_SUCCESS || descriptor[0] == null) {
-
     return 'unavailable'
   }
   let inspection: WindowsNativePathInspection = 'unavailable'
@@ -810,7 +787,6 @@ function inspectPath(
     null
   )
   if (isInvalidHandle(handle)) {
-
     return classifyPathError(api.getLastError())
   }
   let inspection: WindowsNativePathInspection = 'unavailable'
@@ -820,7 +796,6 @@ function inspectPath(
     inspection = 'unavailable'
   }
   if (!api.closeHandle(handle)) {
-
     return 'unavailable'
   }
 
@@ -861,9 +836,11 @@ function privateSecurityAttributes(api: WindowsApi): WindowsSecurityAttributes {
     throw nativeError(api)
   }
 
+  const attributesSize = koffi.sizeof(SECURITY_ATTRIBUTES)
+
   return {
     value: {
-      nLength: koffi.sizeof(SECURITY_ATTRIBUTES),
+      nLength: attributesSize,
       lpSecurityDescriptor: descriptor[0],
       bInheritHandle: 0
     },
@@ -928,7 +905,6 @@ function readDirectoryBatch(buffer: Buffer): string[] {
       names.push(name)
     }
     if (isLastEntry) {
-
       return names
     }
     offset += nextOffset
