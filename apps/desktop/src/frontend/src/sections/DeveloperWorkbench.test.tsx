@@ -12,11 +12,13 @@ import type {
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { DeveloperWorkbench } from './DeveloperWorkbench'
 
-const evaluation = vi.hoisted(() => ({
-  evaluate: vi.fn(),
-  setPreprocessing: vi.fn(),
-  cancel: vi.fn()
-}))
+const evaluation = vi.hoisted(() => {
+  const evaluate = vi.fn()
+  const setPreprocessing = vi.fn()
+  const cancel = vi.fn()
+
+  return { evaluate, setPreprocessing, cancel }
+})
 
 vi.mock('../hooks/useDeveloperEvaluation', () => ({
   useDeveloperEvaluation: () => ({
@@ -39,7 +41,6 @@ function sample(
   source: DeveloperWorkbenchSample['source'] = null,
   excluded = false
 ): DeveloperWorkbenchSample {
-
   return { id, createdAt, width: 100, height: 36, text, source, excluded }
 }
 
@@ -59,45 +60,45 @@ function deferred<T>(): {
 }
 
 function partyFrame(): DeveloperPartyPreviewFrame {
+  const slots = ([1, 2, 3, 4] as const).map((slot) => {
+    const rgba = new Uint8Array(16).fill(slot * 20)
+
+    return { slot, width: 2, height: 2, rgba }
+  })
 
   return {
     width: 1920,
     height: 1080,
     scale: 1.25,
     capturedAt: '2026-09-24T00:00:00.000Z',
-    slots: ([1, 2, 3, 4] as const).map((slot) => ({
-      slot,
-      width: 2,
-      height: 2,
-      rgba: new Uint8Array(16).fill(slot * 20)
-    }))
+    slots
   }
 }
 
 function raidFrame(occupiedCount = 12): DeveloperPartyPreviewFrame {
-  const rows = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const).map((slot) => ({
-    slot,
-    occupied: slot <= occupiedCount,
-    x: 202,
-    y: 101 + (slot - 1) * 21,
-    width: 86,
-    height: 17
-  }))
+  const rows = ([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const).map((slot) => {
+    const occupied = slot <= occupiedCount
+    const y = 101 + (slot - 1) * 21
+
+    return { slot, occupied, x: 202, y, width: 86, height: 17 }
+  })
+  const rgba = new Uint8Array(465 * 392 * 4)
+  const participantWindow = { width: 465, height: 392, rgba, rows }
+  const slots = rows
+    .filter((row) => row.occupied)
+    .map(({ slot, width, height }) => {
+      const rgba = new Uint8Array(width * height * 4).fill(slot * 20)
+
+      return { slot, width, height, rgba }
+    })
 
   return {
     width: 1067,
     height: 600,
     scale: 1,
     capturedAt: '2026-09-26T00:00:00.000Z',
-    participantWindow: { width: 465, height: 392, rgba: new Uint8Array(465 * 392 * 4), rows },
-    slots: rows
-      .filter((row) => row.occupied)
-      .map(({ slot, width, height }) => ({
-        slot,
-        width,
-        height,
-        rgba: new Uint8Array(width * height * 4).fill(slot * 20)
-      }))
+    participantWindow,
+    slots
   }
 }
 
@@ -144,16 +145,24 @@ function installApi(rows: DeveloperWorkbenchSample[] = []): {
       width: 1,
       height: 1
     })),
-    previewParty: vi.fn(async () => ({
-      frame: partyFrame(),
-      previewError: null,
-      collection: { ...status, armed: true, slots: [1, 2, 3, 4] as DeveloperPartySlot[] }
-    })),
+    previewParty: vi.fn(async () => {
+      const frame = partyFrame()
+
+      return {
+        frame,
+        previewError: null,
+        collection: { ...status, armed: true, slots: [1, 2, 3, 4] as DeveloperPartySlot[] }
+      }
+    }),
     setPartyCollectionSlots: vi.fn(async (slots: DeveloperPartySlot[] | null) => {
       status.armed = slots != null
       status.slots = slots ?? []
 
-      return { ...status, slots: [...status.slots] }
+      const collection = { ...status }
+      const collectionSlots = [...status.slots]
+      collection.slots = collectionSlots
+
+      return collection
     })
   }
   Object.defineProperty(window, 'developer', { configurable: true, value: api })
@@ -215,7 +224,11 @@ beforeEach(() => {
   )
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     configurable: true,
-    value: () => ({ putImageData: vi.fn() })
+    value: () => {
+      const putImageData = vi.fn()
+
+      return { putImageData }
+    }
   })
   Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
     configurable: true,
@@ -273,8 +286,14 @@ it('shows immediate upload progress while preview is pending and ignores stale r
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   const notify = api.onPartyCollectionStatus.mock.calls[0][0]
   const capture = { attempt: 1, startedAt: new Date().toISOString(), phase: 'capturing' as const }
-  const notice = (): string =>
-    container.querySelector('[aria-label="캡처 및 업로드 상태"]')?.textContent ?? ''
+  const notice = (): string => {
+    const text = container.querySelector('[aria-label="캡처 및 업로드 상태"]')?.textContent
+    if (text == null) {
+      return ''
+    }
+
+    return text
+  }
 
   await act(async () => notify({ kind: 'hud', status: { ...status, capture } }))
   expect(notice()).toContain('Print Screen 입력 확인 · 캡처 중')
@@ -402,7 +421,6 @@ it('refreshes samples after collection disarm settles before the next preview po
   const pendingDisarm = deferred<DeveloperPartyCollectionStatus>()
   api.setPartyCollectionSlots.mockImplementation((slots) => {
     if (slots == null) {
-
       return pendingDisarm.promise
     }
     status.armed = true
@@ -471,11 +489,19 @@ it('refreshes a Print Screen sample revision and displays its crop when labeling
 it('sends disarm immediately when the initial arm response is still pending', async () => {
   const pendingArm = deferred<DeveloperPartyCollectionStatus>()
   const { api } = installApi()
-  api.setPartyCollectionSlots.mockImplementation((slots) =>
-    slots == null
-      ? Promise.resolve({ armed: false, slots: [], revision: 0, lastSavedAt: null, error: null })
-      : pendingArm.promise
-  )
+  api.setPartyCollectionSlots.mockImplementation((slots) => {
+    if (slots == null) {
+      return Promise.resolve({
+        armed: false,
+        slots: [],
+        revision: 0,
+        lastSavedAt: null,
+        error: null
+      })
+    }
+
+    return pendingArm.promise
+  })
 
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   expect(api.setPartyCollectionSlots).toHaveBeenCalledTimes(1)
@@ -570,14 +596,11 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
     width: 20,
     height: 10,
     rgba: new Uint8Array(20 * 10 * 4),
-    rows: ([1, 2, 3, 4] as const).map((slot) => ({
-      slot,
-      occupied: true,
-      x: 5,
-      y: slot * 2,
-      width: 4,
-      height: 1
-    }))
+    rows: ([1, 2, 3, 4] as const).map((slot) => {
+      const y = slot * 2
+
+      return { slot, occupied: true, x: 5, y, width: 4, height: 1 }
+    })
   }
   let nextFrame = { ...partyFrame(), participantWindow: popup }
   api.previewParty.mockImplementation(async () => ({
@@ -611,7 +634,13 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
     slots: [partyFrame().slots[2]],
     participantWindow: {
       ...popup,
-      rows: popup.rows.map((row) => ({ ...row, occupied: row.slot === 3 }))
+      rows: popup.rows.map((row) => {
+        const nextRow = { ...row }
+        const occupied = row.slot === 3
+        nextRow.occupied = occupied
+
+        return nextRow
+      })
     }
   }
   await act(async () => {
@@ -668,17 +697,20 @@ it.each([
 
       return { ...status }
     })
-    api.previewParty.mockImplementation(async (kind) => ({
-      frame:
-        kind !== collectionKind || !gameVisible
-          ? null
-          : {
-              ...partyFrame(),
-              participantWindow: { width: 1, height: 1, rgba: new Uint8Array(4), rows: [] }
-            },
-      previewError: gameVisible ? null : 'DEVELOPER_GAME_NOT_FOUND',
-      collection: { ...status }
-    }))
+    api.previewParty.mockImplementation(async (kind) => {
+      let frame: DeveloperPartyPreviewFrame | null
+      if (kind !== collectionKind || !gameVisible) {
+        frame = null
+      } else {
+        frame = {
+          ...partyFrame(),
+          participantWindow: { width: 1, height: 1, rgba: new Uint8Array(4), rows: [] }
+        }
+      }
+      const previewError = gameVisible ? null : 'DEVELOPER_GAME_NOT_FOUND'
+
+      return { frame, previewError, collection: { ...status } }
+    })
     await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
     await click(tab)
     expect(attempts).toBe(1)
@@ -698,11 +730,11 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
   vi.useFakeTimers()
   const { api, status } = installApi()
   let nextRaidFrame = raidFrame()
-  api.previewParty.mockImplementation(async (kind) => ({
-    frame: kind === 'raid' ? nextRaidFrame : partyFrame(),
-    previewError: null,
-    collection: { ...status }
-  }))
+  api.previewParty.mockImplementation(async (kind) => {
+    const frame = kind === 'raid' ? nextRaidFrame : partyFrame()
+
+    return { frame, previewError: null, collection: { ...status } }
+  })
   const checkbox = (label: string): HTMLInputElement =>
     container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
@@ -765,11 +797,21 @@ it.each([
     vi.useFakeTimers()
     const { api, status } = installApi()
     let failed = false
-    api.previewParty.mockImplementation(async (kind) => ({
-      frame: kind === 'raid' ? (failed ? null : raidFrame()) : partyFrame(),
-      previewError: failed ? code : null,
-      collection: { ...status }
-    }))
+    api.previewParty.mockImplementation(async (kind) => {
+      let frame: DeveloperPartyPreviewFrame | null
+      if (kind === 'raid') {
+        if (failed) {
+          frame = null
+        } else {
+          frame = raidFrame()
+        }
+      } else {
+        frame = partyFrame()
+      }
+      const previewError = failed ? code : null
+
+      return { frame, previewError, collection: { ...status } }
+    })
     await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
     await click('공대원창 크롭')
     const third = (): HTMLInputElement =>
@@ -798,11 +840,13 @@ it('disarms raid collection and ignores a pending preview after leaving for labe
   vi.useFakeTimers()
   const { api, status } = installApi()
   const pending = deferred<Awaited<ReturnType<DeveloperApi['previewParty']>>>()
-  api.previewParty.mockImplementation((kind) =>
-    kind === 'raid'
-      ? pending.promise
-      : Promise.resolve({ frame: partyFrame(), previewError: null, collection: { ...status } })
-  )
+  api.previewParty.mockImplementation((kind) => {
+    if (kind === 'raid') {
+      return pending.promise
+    }
+
+    return Promise.resolve({ frame: partyFrame(), previewError: null, collection: { ...status } })
+  })
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   await click('공대원창 크롭')
   await click('정답 입력')
@@ -985,10 +1029,19 @@ it('keeps every local sample visible without applying the remote page size', asy
 
 it('pages a large remote dataset without limiting the evaluation set and resets pages when filtering', async () => {
   const { api } = installApi()
-  const rows: DeveloperSample[] = Array.from({ length: 10_000 }, (_, index) => ({
-    ...sample(`ocr:${String(index).padStart(5, '0')}`, '2026-09-25T00:00:00.000Z', `정답 ${index}`),
-    remote: { kind: 'hud', split: index < 100 ? 'test' : 'train' }
-  }))
+  const rows: DeveloperSample[] = Array.from({ length: 10_000 }, (_, index) => {
+    const row = {
+      ...sample(
+        `ocr:${String(index).padStart(5, '0')}`,
+        '2026-09-25T00:00:00.000Z',
+        `정답 ${index}`
+      )
+    }
+    const split = index < 100 ? 'test' : 'train'
+    row.remote = { kind: 'hud', split }
+
+    return row
+  })
   api.listOcrSamples.mockResolvedValue(rows)
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   await click('정답 입력')
