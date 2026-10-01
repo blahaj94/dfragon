@@ -36,13 +36,20 @@ export function useDeveloperEvaluation(): {
     )
   }
 
+  const results = snapshot.context.results
+  const running = snapshot.matches('running')
+  const canceled = snapshot.matches('canceled')
+  const preprocessing = snapshot.context.preprocessing
+  const progress = snapshot.context.progress
+  const error = snapshot.matches('failed') ? DEVELOPER_ERRORS.PREPARE_MODEL : ''
+
   return {
-    results: snapshot.context.results,
-    running: snapshot.matches('running'),
-    canceled: snapshot.matches('canceled'),
-    preprocessing: snapshot.context.preprocessing,
-    progress: snapshot.context.progress,
-    error: snapshot.matches('failed') ? DEVELOPER_ERRORS.PREPARE_MODEL : '',
+    results,
+    running,
+    canceled,
+    preprocessing,
+    progress,
+    error,
     setPreprocessing: (value) => send({ type: DEVELOPER_EVENTS.PREPROCESSING_CHANGED, value }),
     evaluate,
     cancel: () => send({ type: DEVELOPER_EVENTS.CANCEL })
