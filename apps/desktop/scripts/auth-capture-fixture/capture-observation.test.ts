@@ -50,7 +50,11 @@ describe('capture predicate protected evaluation', () => {
     expect(reads).toEqual(['slot', 'nickname'])
   })
 })
-vi.mock('electron', () => ({ ipcMain: { handle: vi.fn() } }))
+vi.mock('electron', () => {
+  const handle = vi.fn()
+
+  return { ipcMain: { handle } }
+})
 vi.mock('../../src/backend/capture/ipc-handler', () => ({
   registerCaptureIpc: () => {
     ipcMain.handle('notifyStableNicknameDetected', () => {
