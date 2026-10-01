@@ -103,8 +103,9 @@ export function createObservedNative(
       const status = security.inspect(path, kind)
       const isTrusted = status === 'trusted'
       if (isTrusted) {
+        const trustedStatus = kind === 'directory' ? 'trusted-directory' : 'trusted-file'
 
-        return { status: kind === 'directory' ? 'trusted-directory' : 'trusted-file' }
+        return { status: trustedStatus }
       }
 
       return { status }
