@@ -31,23 +31,24 @@ class OcrHttpFilter implements ExceptionFilter {
 
       return
     }
-    const failure =
-      error instanceof NotFoundException
-        ? new OcrError(OCR_ERROR_CODE.NOT_FOUND)
-        : error instanceof BadRequestException
-          ? new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
-          : httpFailure(error)
+    let failure: OcrError
+    if (error instanceof NotFoundException) {
+      failure = new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    } else if (error instanceof BadRequestException) {
+      failure = new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+    } else {
+      failure = httpFailure(error)
+    }
+
     response.status(failure.status).json({ error: failure.code })
   }
 }
 
 function isDesktopRequest(request: Request): boolean {
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
-
     return true
   }
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
-
     return true
   }
 
@@ -118,7 +119,6 @@ export async function createOcrApp(
     void Promise.resolve()
       .then(async () => {
         if (isSyntheticUploadRequest(request)) {
-
           return auth.requireSyntheticUpload(request)
         }
         await (isDesktopRequest(request)
