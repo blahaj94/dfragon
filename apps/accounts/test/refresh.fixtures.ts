@@ -67,7 +67,11 @@ export function fixture() {
       assert.deepEqual(query, { where: { id: user.id }, lock: { mode: 'pessimistic_write' } })
       state.beforeLockedRead()
 
-      return state.userMissing ? null : { ...user }
+      if (state.userMissing) {
+        return null
+      }
+
+      return { ...user }
     }
   }
   const sessions = {
@@ -80,7 +84,11 @@ export function fixture() {
     findOne: async () => {
       events.push('session-lock')
 
-      return state.sessionMissing ? null : { ...session }
+      if (state.sessionMissing) {
+        return null
+      }
+
+      return { ...session }
     },
     update: async (where: unknown, values: Record<string, unknown>) => {
       events.push('revoke')
@@ -94,7 +102,11 @@ export function fixture() {
       events.push('refresh-hint')
       assert.deepEqual(where, { tokenHash: digest(bytes) })
 
-      return state.hintMissing ? null : { ...token }
+      if (state.hintMissing) {
+        return null
+      }
+
+      return { ...token }
     },
     findOne: async (query: unknown) => {
       events.push('refresh-lock')
@@ -103,7 +115,11 @@ export function fixture() {
         lock: { mode: 'pessimistic_write' }
       })
 
-      return state.tokenMissing ? null : { ...token }
+      if (state.tokenMissing) {
+        return null
+      }
+
+      return { ...token }
     },
     update: async (where: unknown, values: { consumedAt: Date }) => {
       events.push('consume')
@@ -169,10 +185,13 @@ export function fixture() {
         idleDeadline: session.lastActiveAt.getTime() / 1000 + idleSeconds
       })
 
+      const issuedAt = input.issuedAt
+      const expiresAt = Math.min(input.issuedAt + 900, input.idleDeadline)
+
       return {
         accessToken: 'test-access-placeholder',
-        issuedAt: input.issuedAt,
-        expiresAt: Math.min(input.issuedAt + 900, input.idleDeadline)
+        issuedAt,
+        expiresAt
       }
     }
   }
