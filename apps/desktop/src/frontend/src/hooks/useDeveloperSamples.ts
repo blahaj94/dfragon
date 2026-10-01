@@ -25,7 +25,6 @@ export function useDeveloperSamples(): {
     const current = actor.getSnapshot()
     const event = { type: DEVELOPER_EVENTS.REFRESH, request: {} } as const
     if (!current.can(event)) {
-
       return Promise.resolve()
     }
 
@@ -48,22 +47,32 @@ export function useDeveloperSamples(): {
     const current = actor.getSnapshot()
     const event = { ...command, request: {} } as const
     if (!current.can(event)) {
-
       return Promise.resolve(null)
     }
 
     const completed = waitFor(actor, (state) => state.context.lastSave?.request === event.request)
-      .then((state) => state.context.lastSave?.sample ?? null)
+      .then((state) => {
+        const sample = state.context.lastSave?.sample
+        if (sample == null) {
+          return null
+        }
+
+        return sample
+      })
       .catch(() => null)
     send(event)
 
     return completed
   }
 
+  const samples = snapshot.context.samples
+  const loading = snapshot.matches('loading')
+  const saving = snapshot.matches('saving')
+
   return {
-    samples: snapshot.context.samples,
-    loading: snapshot.matches('loading'),
-    saving: snapshot.matches('saving'),
+    samples,
+    loading,
+    saving,
     error: snapshot.context.error,
     refresh,
     saveLabel: (id, text) => save({ type: DEVELOPER_EVENTS.SAVE_LABEL, id, text }),
