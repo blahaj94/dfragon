@@ -3,7 +3,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.js'
-import { inspectModelFiles } from './model-library.js'
+import { inspectModelFiles, validateModelLineage } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
 import { planSampleSplit, type SampleUpdate } from './sample-update.js'
 
@@ -86,22 +86,7 @@ export class OcrStore {
         const parent = this.model(input.parentId)
         const parentDictionary = this.modelFile(input.parentId, 'characters.txt')
         const dictionary = content.get('characters.txt')!
-        const parentCharacters = parentDictionary
-          .toString('utf8')
-          .replace(/\r?\n$/, '')
-          .split(/\r?\n/)
-        const characters = dictionary
-          .toString('utf8')
-          .replace(/\r?\n$/, '')
-          .split(/\r?\n/)
-        const validDictionary =
-          input.kind === 'expanded'
-            ? characters.length > parentCharacters.length &&
-              parentCharacters.every((char, index) => characters[index] === char)
-            : parentDictionary.equals(dictionary)
-        if (parent.preset !== input.preset || !validDictionary) {
-          throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
-        }
+        validateModelLineage({ input, parentPreset: parent.preset, parentDictionary, dictionary })
       }
       const used = this.db
         .prepare(

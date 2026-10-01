@@ -8,6 +8,35 @@ export const MODEL_MAXIMUM_BYTES = 128 * 1024 * 1024
 export const MODEL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export const PADDLEOCR_REVISION = 'b03f46425e8ff4442b268ce449e3eef758146cd4'
 
+export function validateModelLineage({
+  input,
+  parentPreset,
+  parentDictionary,
+  dictionary
+}: {
+  input: Pick<ModelUpload, 'kind' | 'preset'>
+  parentPreset: string
+  parentDictionary: Buffer
+  dictionary: Buffer
+}) {
+  const parentCharacters = parentDictionary
+    .toString('utf8')
+    .replace(/\r?\n$/, '')
+    .split(/\r?\n/)
+  const characters = dictionary
+    .toString('utf8')
+    .replace(/\r?\n$/, '')
+    .split(/\r?\n/)
+  const validDictionary =
+    input.kind === 'expanded'
+      ? characters.length > parentCharacters.length &&
+        parentCharacters.every((char, index) => characters[index] === char)
+      : parentDictionary.equals(dictionary)
+  if (parentPreset !== input.preset || !validDictionary) {
+    throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+  }
+}
+
 export function parseModelUpload(value: unknown): ModelUpload {
   const body = parseInputRecord(value)
   if (
