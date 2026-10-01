@@ -65,7 +65,11 @@ function sanitizedError(error: unknown): Error {
   const message = error instanceof Error ? error.message : ''
   const isPublicCode = PUBLIC_ERROR_CODES.has(message)
 
-  return new Error(isPublicCode ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED)
+  if (isPublicCode) {
+    return new Error(message)
+  }
+
+  return new Error(DEVELOPER_ERROR_CODES.OPERATION_FAILED)
 }
 
 function exactSampleId(value: unknown): string {
@@ -223,7 +227,11 @@ export function registerDeveloperWindow(
       try {
         const image = nativeImage.createFromBuffer(png)
 
-        return image.isEmpty() ? null : image.getSize()
+        if (image.isEmpty()) {
+          return null
+        }
+
+        return image.getSize()
       } catch {
 
         return null
@@ -411,7 +419,11 @@ export function registerDeveloperWindow(
     settingsMutationRevision += 1
     const mutation = settingsMutationRevision
 
-    return enabled ? enableDeveloperMode(mutation) : disableDeveloperMode(mutation)
+    if (enabled) {
+      return enableDeveloperMode(mutation)
+    }
+
+    return disableDeveloperMode(mutation)
   }
 
   async function invoke<T>(event: IpcMainInvokeEvent, operation: () => Promise<T>): Promise<T> {
@@ -556,22 +568,25 @@ export function registerDeveloperWindow(
             throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
           }
           const frame = await (await getPartyCaptureModule()).capturePartyFrame(kind)
+          const preview = previewFrame(frame, kind)
+          const collection = collectionSession.getStatus()
 
           return {
-            frame: previewFrame(frame, kind),
+            frame: preview,
             previewError: null,
-            collection: collectionSession.getStatus()
+            collection
           }
         } catch (error) {
           const safeCode =
             error instanceof Error && PUBLIC_ERROR_CODES.has(error.message)
               ? error.message
               : DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
+          const collection = collectionSession.getStatus()
 
           return {
             frame: null,
             previewError: safeCode,
-            collection: collectionSession.getStatus()
+            collection
           }
         }
       })
