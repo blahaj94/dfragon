@@ -56,10 +56,18 @@ app.whenReady().then(async () => {
     callback(false)
   )
 
+  const title = `DFRAGON UI fixture — ${mode} · ${theme}`
+  const width = isMvp || isDeveloper ? 900 : 1100
+  let height = 800
+  if (isMvp) {
+    height = 600
+  } else if (isDeveloper) {
+    height = 980
+  }
   const window = new BrowserWindow({
-    title: `DFRAGON UI fixture — ${mode} · ${theme}`,
-    width: isMvp || isDeveloper ? 900 : 1100,
-    height: isMvp ? 600 : isDeveloper ? 980 : 800,
+    title,
+    width,
+    height,
     show: false,
     webPreferences: {
       preload: fileURLToPath(
@@ -123,12 +131,13 @@ app.whenReady().then(async () => {
     })
   })
   const isExample = mode === 'example'
-  const target = isExample
-    ? new URL('../../../packages/ui/dist-examples/index.html', import.meta.url)
-    : new URL(
-        isMvp ? '../out/frontend/mvp-preview.html' : '../out/frontend/index.html',
-        import.meta.url
-      )
+  let target
+  if (isExample) {
+    target = new URL('../../../packages/ui/dist-examples/index.html', import.meta.url)
+  } else {
+    const path = isMvp ? '../out/frontend/mvp-preview.html' : '../out/frontend/index.html'
+    target = new URL(path, import.meta.url)
+  }
 
   try {
     const load =
