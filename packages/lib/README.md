@@ -4,6 +4,19 @@ API·Web·Desktop에서 입력 규칙, 요청 제한용 IP 키, DNF UI 좌표·�
 
 소비 workspace의 `dependencies`에 `"@dfragon/lib": "workspace:*"`를 추가하고 `pnpm --filter @dfragon/lib build` 후 사용합니다. API·accounts·OCR의 build와 typecheck는 공용 패키지를 먼저 빌드합니다. 요청 제한용 IP 키는 세 서버 앱에서 이 패키지를 사용하며, 캐릭터명 검사와 DNF 계산 함수의 적용 범위는 아래 안내를 따릅니다.
 
+## 배열 페이지 나누기
+
+```ts
+import { paginate } from '@dfragon/lib/utils/pagination'
+
+const page = paginate(['a', 'b', 'c'], { page: 1, pageSize: 2 })
+// { items: ['c'], pageCount: 2, currentPage: 1 }
+```
+
+`page`는 0부터 시작하는 안전 정수이며, 범위를 벗어나면 첫 페이지나 마지막 페이지로 맞춥니다. 빈 배열도 `pageCount: 1`, `currentPage: 0`, `items: []`를 반환합니다. `pageSize`는 양의 안전 정수여야 하며, 두 숫자의 형식이 유효하지 않으면 `RangeError`를 던집니다.
+
+입력 배열을 변경하지 않고 선택한 항목을 새 배열로 반환하며, 순서와 항목의 참조는 유지합니다. 페이지 적용 여부와 페이지 크기는 호출자가 정합니다. Desktop 개발자 작업대는 OCR 목록에만 50개씩 적용하고 로컬 목록은 전체를 사용합니다.
+
 ## 요청 제한용 IP 키
 
 요청 제한은 같은 접속자의 요청 횟수를 같은 키 아래에 기록해야 합니다. 같은 IP라도 표기가 다르면 별도 접속자로 집계될 수 있습니다. `getIpQuotaKey(peerAddress: string): string`은 이때 사용할 키를 만듭니다. 주소를 해석하는 `ipaddr.js` 의존성과 변환 규칙은 이 함수에서 관리합니다.
