@@ -39,6 +39,7 @@ test('Desktop HTTP client consumes public API defaults and peer quota without cr
       const response = await fetch(new Request(`${base}${url.pathname}${url.search}`, request))
       statuses.push(response.status)
       assert.equal(response.headers.get('cache-control'), 'no-store')
+
       return response
     }
     const search = createSearchHttp({
@@ -110,16 +111,19 @@ test('Desktop HTTP client consumes public API defaults and peer quota without cr
       const assertionMessage = 'Desktop must consume the real peer Retry-After header'
       if (!hasSeconds) {
         assert(false, assertionMessage)
+
         return true
       }
       const isPositiveWait = seconds > 0
       if (!isPositiveWait) {
         assert(false, assertionMessage)
+
         return true
       }
       const isInServerWindow = seconds <= 60
       const hasValidWait = isSafeInteger && isInServerWindow
       assert(hasValidWait, assertionMessage)
+
       return true
     })
     assert.equal(statuses.at(-1), 429)

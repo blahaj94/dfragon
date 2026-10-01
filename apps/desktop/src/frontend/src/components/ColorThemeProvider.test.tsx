@@ -12,6 +12,7 @@ let root: Root
 
 function ThemeReader({ name }: { name: string }): React.JSX.Element {
   const { light, toggleTheme } = useColorTheme()
+
   return (
     <button aria-label={name} onClick={toggleTheme}>
       {light ? 'light' : 'dark'}

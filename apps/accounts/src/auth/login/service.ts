@@ -42,6 +42,7 @@ function requestId(input: unknown): string {
   if (typeof input !== 'string' || !UUID_PATTERN.test(input)) {
     throw invalid()
   }
+
   return input
 }
 
@@ -52,6 +53,7 @@ async function lockUser(manager: EntityManager, id: string) {
   if (user == null) {
     throw invalid()
   }
+
   return user
 }
 
@@ -62,6 +64,7 @@ async function lockCredential(manager: EntityManager, userId: string, id: string
   if (key == null) {
     throw badPasskey()
   }
+
   return key
 }
 
@@ -70,6 +73,7 @@ async function checkTime(manager: EntityManager, row: AuthLoginRequest) {
   if (requestExpired(row, now)) {
     throw invalid()
   }
+
   return now
 }
 
@@ -107,6 +111,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         row.browserBindingHash = opaqueHash(secret)
       }
       await manager.getRepository(AuthLoginRequestSchema).insert(row)
+
       return { row, secret }
     })
   }
@@ -116,12 +121,15 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     if (managing ? operation !== 'add' : operation !== 'register' && operation !== 'authenticate') {
       throw invalid()
     }
+
     if (operation === 'register' && row.purpose !== 'login') {
       throw invalid()
     }
+
     if (row.status !== 'browser_started' && !managing) {
       throw invalid()
     }
+
     if (operation === 'authenticate') {
       const value = await generateAuthenticationOptions({
         rpID: configuration.rpId,
@@ -130,6 +138,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       Object.assign(row, clearChallenge, { webauthnChallenge: value.challenge, operation })
       await checkTime(manager, row)
       await manager.getRepository(AuthLoginRequestSchema).save(row)
+
       return value
     }
     const userId = managing ? row.verifiedUserId! : randomUUID()
@@ -152,6 +161,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     Object.assign(row, { webauthnChallenge: value.challenge, operation, pendingUserId: userId })
     await checkTime(manager, row)
     await manager.getRepository(AuthLoginRequestSchema).save(row)
+
     return value
   }
 
@@ -228,6 +238,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       ) {
         throw invalid()
       }
+
       if (row.pendingUserId == null || (adding && row.pendingUserId !== row.verifiedUserId)) {
         throw invalid()
       }
@@ -278,9 +289,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       if (adding) {
         Object.assign(row, clearChallenge)
         await manager.getRepository(AuthLoginRequestSchema).save(row)
+
         return { managed: true }
       }
     }
+
     return verified(manager, row, userId, credentialId, operation === 'register')
   }
 
@@ -296,14 +309,18 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     if (row.purpose === 'manage') {
       row.status = 'managing'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
+
       return { managed: true }
     }
+
     if (row.phoneBindingHash != null) {
       row.status = 'phone_verified'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
       const user = await manager.getRepository(UserSchema).findOneByOrFail({ id: userId })
+
       return { phoneVerified: true, nickname: user.nickname }
     }
+
     return complete(manager, row, now)
   }
 
@@ -326,6 +343,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     }
     const url = new URL(returnUrl)
     url.searchParams.set('code', code)
+
     return { returnUrl: url.href }
   }
 
@@ -336,27 +354,35 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         throw invalid()
       }
       const { row, secret } = await newRequest('login', body.codeChallenge, body.clientId)
+      const requestId = row.id
+      const browserUrl = `${configuration.apiOrigin}/auth/login/authorize?ticket=${secret}`
+      const expiresAt = row.expiresAt.toISOString()
+
       return {
-        requestId: row.id,
-        browserUrl: `${configuration.apiOrigin}/auth/login/authorize?ticket=${secret}`,
-        expiresAt: row.expiresAt.toISOString()
+        requestId,
+        browserUrl,
+        expiresAt
       }
     },
     async manage() {
       const { row, secret } = await newRequest('manage', null)
-      return {
+      const requestId = row.id
+      const cookie = browserCookie({
         requestId: row.id,
+        bindingValue: secret,
+        maxAgeSeconds: LOGIN.requestSeconds
+      })
+
+      return {
+        requestId,
         purpose: 'manage',
-        cookie: browserCookie({
-          requestId: row.id,
-          bindingValue: secret,
-          maxAgeSeconds: LOGIN.requestSeconds
-        })
+        cookie
       }
     },
     async authorize(ticket, view) {
       const phone = view === 'phone'
       decodeOpaque(ticket)
+
       return loginTransaction(deps.dataSource, async (manager) => {
         const repo = manager.getRepository(AuthLoginRequestSchema)
         const row = await repo.findOne({
@@ -384,20 +410,28 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
                 status: 'browser_started'
               }
         )
-        return {
+        const requestId = row.id
+        const purpose = row.purpose
+        const webReturnUrl =
+          configuredLoginClient(configuration, row.configuration) === 'ocr'
+            ? configuration.ocrReturnUrl
+            : undefined
+        const phoneAuthorization = phone
+          ? { view: 'phone' as const, confirmationCode: row.confirmationCode! }
+          : {}
+        const cookie = browserCookie({
+          phone,
           requestId: row.id,
-          purpose: row.purpose,
-          webReturnUrl:
-            configuredLoginClient(configuration, row.configuration) === 'ocr'
-              ? configuration.ocrReturnUrl
-              : undefined,
-          ...(phone ? { view: 'phone' as const, confirmationCode: row.confirmationCode! } : {}),
-          cookie: browserCookie({
-            phone,
-            requestId: row.id,
-            bindingValue: secret,
-            maxAgeSeconds: (row.expiresAt.getTime() - now.getTime()) / 1000
-          })
+          bindingValue: secret,
+          maxAgeSeconds: (row.expiresAt.getTime() - now.getTime()) / 1000
+        })
+
+        return {
+          requestId,
+          purpose,
+          webReturnUrl,
+          ...phoneAuthorization,
+          cookie
         }
       })
     },
@@ -443,52 +477,71 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           await lockCredential(manager, row.verifiedUserId!, row.credentialId!, configuration.rpId)
           await checkTime(manager, row)
         }
+
         if (
           ['qr', 'status', 'claim', 'direct', 'cancel', 'phone-approve', 'phone-cancel'].includes(
             action
           )
         ) {
-          return {
-            value: await phoneLoginAction(manager, row, action, configuration.apiOrigin, complete)
-          }
+          const value = await phoneLoginAction(
+            manager,
+            row,
+            action,
+            configuration.apiOrigin,
+            complete
+          )
+
+          return { value }
         }
+
         if (phone ? row.phoneBindingHash == null : row.confirmationCode != null) {
           throw invalid()
         }
+
         if (action === 'options' || action === 'phone-options') {
-          return { value: await options(manager, row, body.operation) }
+          const value = await options(manager, row, body.operation)
+
+          return { value }
         }
+
         if (action === 'verify' || action === 'phone-verify') {
           try {
-            return { value: await verify(manager, row, body.response) }
+            const value = await verify(manager, row, body.response)
+
+            return { value }
           } catch (error) {
             if (!(error instanceof LoginFailure) || error.code !== LOGIN_ERRORS.PASSKEY.code) {
               throw error
             }
             await repo.update({ id }, clearChallenge)
+
             return { failure: error }
           }
         }
+
         if (row.status !== 'managing') {
           throw invalid()
         }
+
         if (action === 'list') {
           const keys = await manager.getRepository(PasskeySchema).find({
             where: { userId: row.verifiedUserId!, rpId: configuration.rpId },
             order: { createdAt: 'ASC', id: 'ASC' }
           })
-          return {
-            value: {
-              keys: keys.map((key) => ({
-                id: key.id,
-                rpId: key.rpId,
-                createdAt: key.createdAt.toISOString(),
-                lastUsedAt: key.lastUsedAt?.toISOString() ?? null,
-                current: key.id === row.credentialId
-              }))
-            }
-          }
+          const listedKeys = keys.map((key) => {
+            const id = key.id
+            const rpId = key.rpId
+            const createdAt = key.createdAt.toISOString()
+            const lastUsedAt = key.lastUsedAt?.toISOString() ?? null
+            const current = key.id === row.credentialId
+
+            return { id, rpId, createdAt, lastUsedAt, current }
+          })
+          const value = { keys: listedKeys }
+
+          return { value }
         }
+
         if (action === 'remove') {
           if (typeof body.credentialId !== 'string' || body.credentialId.length > 2048) {
             throw invalid()
@@ -510,11 +563,13 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           { id },
           { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt: await freshTime(manager) }
         )
+
         return { value: { ended: true } }
       })
       if (result.failure) {
         throw result.failure
       }
+
       return result.value
     },
     exchange: (input) => exchangeLogin(deps, input)

@@ -86,26 +86,43 @@ export function createOcrUploader(
             )
             continue
           }
+
           if (!lifecycle.isCurrent()) {
             await response.body?.cancel()
+
             return 'signedOut'
           }
+
           if (response.status !== 200 && response.status !== 201) {
             await response.body?.cancel()
-            return response.status === 403
-              ? 'ownerRequired'
-              : response.status === 507
-                ? 'storageFull'
-                : 'failed'
+            if (response.status === 403) {
+              return 'ownerRequired'
+            }
+
+            if (response.status === 507) {
+              return 'storageFull'
+            }
+
+            return 'failed'
           }
           const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
-          return lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
-            ? 'uploaded'
-            : 'failed'
+          const isUploadConfirmed =
+            lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
+          if (isUploadConfirmed) {
+            return 'uploaded'
+          }
+
+          return 'failed'
         }
+
         return 'signedOut'
       } catch {
-        return auth.captureGeneration() === generation ? 'failed' : 'signedOut'
+        const isSameGeneration = auth.captureGeneration() === generation
+        if (isSameGeneration) {
+          return 'failed'
+        }
+
+        return 'signedOut'
       } finally {
         lifecycle.cleanup()
       }

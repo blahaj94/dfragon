@@ -41,10 +41,13 @@ const runtimeProfileState: RuntimeProfileState = (() => {
   }
   try {
     const appliedConfig = applyAuthRuntimeProfile(app, parsedRuntimeConfig)
+
     return { status: 'applied', config: appliedConfig }
   } catch (error) {
     const isApplicationFailure = error instanceof AuthRuntimeProfileApplicationFailure
-    return { status: isApplicationFailure ? 'application-failed' : 'preparation-failed' }
+    const status = isApplicationFailure ? 'application-failed' : 'preparation-failed'
+
+    return { status }
   }
 })()
 const runtimeConfig = runtimeProfileState.status === 'applied' ? runtimeProfileState.config : null
@@ -124,7 +127,13 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
-        getWindow: () => (authAppLifecycle.getWindow() === window ? window : null),
+        getWindow: () => {
+          if (authAppLifecycle.getWindow() === window) {
+            return window
+          }
+
+          return null
+        },
         documentUrl: rendererDocumentUrl
       })
     }
@@ -158,6 +167,7 @@ function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
   const hasWindow = window != null && !window.isDestroyed()
   if (!hasWindow) {
     createWindow(authRuntime)
+
     return
   }
 
@@ -235,6 +245,7 @@ app.whenReady().then(async () => {
           const ownsAuthProfile = protocolIngress?.ownsInstance === true
           if (ownsAuthProfile) {
             authAppLifecycle.exitAfterOwnedAuthFailure()
+
             return
           }
           throw error
@@ -289,6 +300,7 @@ app.whenReady().then(async () => {
         })
       )
       await authAppLifecycle.runAfterQuitOutcome(() => composeAfterAuthBootstrap(authRuntime))
+
       return
     }
 
@@ -301,8 +313,10 @@ app.whenReady().then(async () => {
     const ownsAuthProfile = protocolIngress?.ownsInstance === true
     if (ownsAuthProfile) {
       authAppLifecycle.exitAfterOwnedAuthFailure()
+
       return
     }
+
     if (authAppLifecycle.isQuitting()) {
       return
     }

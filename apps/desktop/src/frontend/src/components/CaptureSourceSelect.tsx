@@ -40,11 +40,15 @@ export function CaptureSourceSelect({
   const { light } = useColorTheme()
   const [open, setOpen] = useState(false)
   const selected = [...detected, ...others].find((source) => source.id === value)
-  const label = value ? (selected?.name ?? '선택한 창 · 목록에서 사라짐') : '캡처할 프로세스 선택'
+  let label = '캡처할 프로세스 선택'
+  if (value) {
+    label = selected?.name ?? '선택한 창 · 목록에서 사라짐'
+  }
 
   const notice = getCaptureSourceNotice({ failed, hasOtherSources: others.length > 0 })
 
   // 창 선택과 새로고침 명령이 함께 있으므로 radio menu 항목으로 선택 상태를 알린다.
+
   return (
     <Menu.Root
       open={open}
@@ -88,50 +92,54 @@ export function CaptureSourceSelect({
               {[
                 { label: '감지된 게임', sources: detected, detected: true },
                 { label: '다른 창 직접 선택', sources: others, detected: false }
-              ].map(
-                (group) =>
-                  group.sources.length > 0 && (
-                    <Menu.Group key={group.label} {...stylex.props(styles.group)}>
-                      <Menu.GroupLabel {...stylex.props(styles.groupLabel)}>
-                        <Typo.caption>{group.label}</Typo.caption>
-                      </Menu.GroupLabel>
-                      {group.sources.map((source) => (
-                        <Menu.Item
-                          key={source.id}
-                          role="menuitemradio"
-                          aria-checked={source.id === value}
-                          aria-label={source.name}
-                          typeaheadLabel={source.name}
-                          disabled={loading || failed || !ready}
-                          onClick={() => onSelect(source.id)}
-                          {...stylex.props(styles.option, source.id === value && styles.selected)}
+              ].map((group) => {
+                const hasSources = group.sources.length > 0
+                if (!hasSources) {
+                  return false
+                }
+
+                return (
+                  <Menu.Group key={group.label} {...stylex.props(styles.group)}>
+                    <Menu.GroupLabel {...stylex.props(styles.groupLabel)}>
+                      <Typo.caption>{group.label}</Typo.caption>
+                    </Menu.GroupLabel>
+                    {group.sources.map((source) => (
+                      <Menu.Item
+                        key={source.id}
+                        role="menuitemradio"
+                        aria-checked={source.id === value}
+                        aria-label={source.name}
+                        typeaheadLabel={source.name}
+                        disabled={loading || failed || !ready}
+                        onClick={() => onSelect(source.id)}
+                        {...stylex.props(styles.option, source.id === value && styles.selected)}
+                      >
+                        <span
+                          {...stylex.props(
+                            styles.iconTile,
+                            source.id === value && styles.selectedTile
+                          )}
                         >
-                          <span
-                            {...stylex.props(
-                              styles.iconTile,
-                              source.id === value && styles.selectedTile
-                            )}
-                          >
-                            <MonitorIcon {...stylex.props(styles.icon)} />
-                          </span>
-                          <Menu.ItemBody {...stylex.props(styles.itemBody)}>
-                            <Menu.ItemLabel title={source.name} {...stylex.props(styles.itemLabel)}>
-                              <Typo.txtS as="span" weight={700}>
-                                {source.name}
-                              </Typo.txtS>
-                            </Menu.ItemLabel>
-                            <Menu.ItemDescription {...stylex.props(styles.description)}>
-                              <Typo.caption>
-                                {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
-                              </Typo.caption>
-                            </Menu.ItemDescription>
-                          </Menu.ItemBody>
-                          {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}
-                        </Menu.Item>
-                      ))}
-                    </Menu.Group>
-                  )
-              )}
+                          <MonitorIcon {...stylex.props(styles.icon)} />
+                        </span>
+                        <Menu.ItemBody {...stylex.props(styles.itemBody)}>
+                          <Menu.ItemLabel title={source.name} {...stylex.props(styles.itemLabel)}>
+                            <Typo.txtS as="span" weight={700}>
+                              {source.name}
+                            </Typo.txtS>
+                          </Menu.ItemLabel>
+                          <Menu.ItemDescription {...stylex.props(styles.description)}>
+                            <Typo.caption>
+                              {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
+                            </Typo.caption>
+                          </Menu.ItemDescription>
+                        </Menu.ItemBody>
+                        {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}
+                      </Menu.Item>
+                    ))}
+                  </Menu.Group>
+                )
+              })}
               <div role="separator" {...stylex.props(styles.divider)} />
               <Menu.Item
                 disabled={loading}

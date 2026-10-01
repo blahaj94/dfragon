@@ -55,6 +55,7 @@ function validNickname(nickname: string): boolean {
   const hasNoOuterWhitespace = nickname === nickname.trim()
   const isWellFormed = nickname.isWellFormed()
   const isValid = hasAllowedLength && hasNoOuterWhitespace && isWellFormed
+
   return isValid
 }
 
@@ -74,9 +75,11 @@ function retryAfterForFailure(
       retryAfter = { seconds, receivedAt }
     }
   }
+
   if (!isRateLimited) {
     return null
   }
+
   return retryAfter
 }
 
@@ -108,33 +111,41 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   )
 
   function snapshot(): SearchSnapshot {
-    return {
-      runId,
-      revision,
-      captureId: binding?.captureId ?? null,
-      slots: slots.map((slot) => {
-        const error = slot.error
-        const hasError = error != null
-        return {
-          ...slot,
-          rows: slot.rows.map((row) => ({ ...row })),
-          error: hasError ? { ...error } : null
-        }
-      })
-    }
+    const snapshotRevision = revision
+    const captureId = binding?.captureId ?? null
+    const snapshotSlots = slots.map((slot) => {
+      const error = slot.error
+      const hasError = error != null
+      const copiedSlot = { ...slot }
+      const rows = slot.rows.map((row) => ({ ...row }))
+      copiedSlot.rows = rows
+      let copiedError: SearchSlot['error'] = null
+      if (hasError) {
+        copiedError = { ...error }
+      }
+      copiedSlot.error = copiedError
+
+      return copiedSlot
+    })
+
+    return { runId, revision: snapshotRevision, captureId, slots: snapshotSlots }
   }
 
   function result(code?: SearchCommandError): SearchCommandResult {
     const currentSnapshot = snapshot()
     const hasError = code != null
-    return hasError
-      ? { ok: false, error: { code }, snapshot: currentSnapshot }
-      : { ok: true, snapshot: currentSnapshot }
+
+    if (hasError) {
+      return { ok: false, error: { code }, snapshot: currentSnapshot }
+    }
+
+    return { ok: true, snapshot: currentSnapshot }
   }
 
   function begin(nextBinding: Omit<CaptureBinding, 'captureId'>): SearchCommandResult {
     binding = { ...nextBinding, captureId: randomUUID() }
     emit()
+
     return result()
   }
 
@@ -143,6 +154,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (isCurrentCapture) {
       invalidate()
     }
+
     return result()
   }
 
@@ -178,6 +190,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
         actor.send({ type: 'PROMOTE', observationRevision: input.observationRevision })
       }
       emit()
+
       return result()
     }
 
@@ -197,8 +210,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
         }
       }
       emit()
+
       return result()
     }
+
     return startRequest({ input, runtime })
   }
 
@@ -215,6 +230,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       slots[input.slot] = idleSlot(input)
       emit()
     }
+
     return result()
   }
 
@@ -232,6 +248,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!isFailure) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
+
     if (!hasError) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
@@ -246,6 +263,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       const remaining = remainingRetryAfter(wait)
       isWaiting = remaining > 0
     }
+
     if (isWaiting) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
@@ -257,6 +275,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!canStart) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
+
     return startRequest({
       input: {
         captureId: input.captureId,
@@ -314,6 +333,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (isValidInput) {
       actors[input.slot].send({ type: 'EXECUTE', request })
     }
+
     return result()
   }
 
@@ -334,6 +354,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
     const hasSameRequestId = slots[request.slot].requestId === request.requestId
     const isCurrent = hasPermission && hasSameCapture && hasSameRequestId
+
     return isCurrent
   }
 
@@ -343,6 +364,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const hasSameObservation =
       slots[request.slot].observationRevision === request.observationRevision
     const canComplete = currentSlotMatches && hasSameRequest && hasSameObservation
+
     return canComplete
   }
 
@@ -418,6 +440,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       const isInvalidated = !hasPermission
       if (isInvalidated) {
         invalidate()
+
         return
       }
     }

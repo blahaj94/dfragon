@@ -200,6 +200,7 @@ it('stable 값이 null이 되는 전이마다 revision을 올려 clear 한 번�
   await fixture.cycle(3)
   const clears = fixture.search.controlCharacterSearch.mock.calls.filter(([command]) => {
     const isClear = command.action === 'clear'
+
     return isClear
   })
   expect(clears.map(([command]) => command)).toEqual([
@@ -242,6 +243,7 @@ it('빈 OCR 문자열은 기존 stable 값을 clear 한 번으로 무효화하�
   await fixture.cycle(3)
   const clears = fixture.search.controlCharacterSearch.mock.calls.filter(([command]) => {
     const isClear = command.action === 'clear'
+
     return isClear
   })
   expect(clears).toEqual([

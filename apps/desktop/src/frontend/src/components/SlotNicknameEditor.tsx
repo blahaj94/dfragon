@@ -37,6 +37,7 @@ export function SlotNicknameEditor({
       </ActionButton>
     )
   }
+
   return (
     <form
       aria-label={`슬롯 ${slot.slot + 1} 닉네임 수정`}

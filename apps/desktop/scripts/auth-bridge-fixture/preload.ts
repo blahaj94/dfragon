@@ -13,6 +13,10 @@ contextBridge.exposeInMainWorld('api', {
   }
 })
 contextBridge.exposeInMainWorld('search', {
-  controlCharacterSearch: async () => ({ ok: true, snapshot: searchSnapshot({ captureId: null }) }),
+  controlCharacterSearch: async () => {
+    const snapshot = searchSnapshot({ captureId: null })
+
+    return { ok: true, snapshot }
+  },
   onCharacterSearchChanged: () => () => {}
 })

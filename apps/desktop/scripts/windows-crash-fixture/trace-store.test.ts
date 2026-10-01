@@ -12,6 +12,7 @@ it('reports an actual store success separately from the adapter return before aw
     timeoutMs: 100,
     exchange: async (event) => {
       events.push(event)
+
       return event
     }
   })

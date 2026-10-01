@@ -20,10 +20,13 @@ import { createRendererFixture, media } from '../testing/fixtures/search-rendere
 
 type Fixture = ReturnType<typeof createRendererFixture>
 function state(fixture: Fixture, slot: SearchSlot, revision?: number): SearchSnapshot {
+  const snapshot = { ...withSearchSlot(slot) }
+  const nextRevision = revision ?? fixture.current().revision + 1
+
   return {
-    ...withSearchSlot(slot),
+    ...snapshot,
     captureId: CAPTURE_ID,
-    revision: revision ?? fixture.current().revision + 1
+    revision: nextRevision
   }
 }
 async function recognizedFixture(): Promise<Fixture> {
@@ -32,6 +35,7 @@ async function recognizedFixture(): Promise<Fixture> {
   await fixture.start()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await fixture.cycle(2)
+
   return fixture
 }
 
@@ -254,6 +258,7 @@ it('begin 응답 유실은 read로 확인하고 같은 Start 명령을 자동 �
   expect(
     commands.filter((action) => {
       const isBegin = action === 'begin'
+
       return isBegin
     })
   ).toHaveLength(1)
@@ -314,7 +319,9 @@ it.each(['pending', 'failed'] as const)(
         if (isRead) {
           return read.promise
         }
-        return { ok: true, snapshot: searchSnapshot() }
+        const snapshot = searchSnapshot()
+
+        return { ok: true, snapshot }
       })
     const bridge = createCaptureSearch({
       api: { controlCharacterSearch: control, onCharacterSearchChanged: () => () => {} },

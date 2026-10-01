@@ -46,6 +46,7 @@ async function waitForGroupExit(pid, milliseconds) {
       const hasExited = error.code === 'ESRCH'
       if (hasExited) {
         ownedGroups.delete(pid)
+
         return true
       }
       throw new Error('Owned process group exit could not be confirmed.')
@@ -115,8 +116,10 @@ function execute(command, args, environment = process.env) {
       if (!isWithinLimit) {
         outputExceeded = true
         stopGroup('SIGKILL')
+
         return
       }
+
       if (standardOutput) {
         stdout += chunk.toString()
       } else {
@@ -140,16 +143,19 @@ function execute(command, args, environment = process.env) {
             stopGroup('SIGTERM')
             stopped = await waitForGroupExit(child.pid, 2_000)
           }
+
           if (!stopped) {
             stopGroup('SIGKILL')
             stopped = await waitForGroupExit(child.pid, 1_000)
           }
+
           if (!stopped) {
             throw new Error('Owned process group remains active.')
           }
         }
       } catch {
         reject(new Error('Owned process group cleanup was not confirmed.'))
+
         return
       }
       if (timedOut) {
@@ -171,6 +177,7 @@ async function defaultKeychain() {
   if (!succeeded) {
     throw new Error('Default Keychain metadata unavailable.')
   }
+
   return JSON.parse(result.stdout.trim())
 }
 
@@ -190,6 +197,7 @@ async function itemExists(appName, keychain) {
   if (!isRecognizedResult) {
     throw new Error('Keychain item metadata could not be checked.')
   }
+
   return wasFound
 }
 
@@ -239,6 +247,7 @@ async function cleanupOwnedProfile() {
   if (!allGroupsStopped) {
     throw new Error('Owned process group cleanup is incomplete.')
   }
+
   if (mayOwnItem) {
     await removeOwnedItem(appName, keychain)
     const stillHasSameDefault = (await defaultKeychain()) === keychain
@@ -282,6 +291,7 @@ try {
   if (interrupted) {
     throw new Error('Native credential validation was interrupted.')
   }
+
   if (!prepareOnly) {
     appName = `DFRAGON-Credential-Test-${randomUUID()}`
     keychain = await defaultKeychain()

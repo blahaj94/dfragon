@@ -82,11 +82,13 @@ function loginPage(message: string, returnUrl?: string): string {
     returnLink,
     '</body></html>'
   ].join('')
+
   return pageHtml
 }
 
 function readOriginalQuery(request: Request): URLSearchParams {
   // Framework의 query object 대신 원본에서 읽어 중복 parameter를 보존한다.
+
   return new URL(request.originalUrl, 'https://request.invalid').searchParams
 }
 
@@ -96,7 +98,11 @@ function authHttpFailure(
   const isSessionFailure = error instanceof RefreshFailure || error instanceof LogoutFailure
   const isAccountFailure = error instanceof AccountFailure
   const isKnownAuthFailure = isSessionFailure || isAccountFailure
-  return isKnownAuthFailure ? error : loginFailure(error)
+  if (isKnownAuthFailure) {
+    return error
+  }
+
+  return loginFailure(error)
 }
 
 @Catch()
@@ -107,6 +113,7 @@ class LoginHttpFilter implements ExceptionFilter {
     const response = context.getResponse<Response>()
     if (response.headersSent) {
       response.end()
+
       return
     }
 
@@ -116,6 +123,7 @@ class LoginHttpFilter implements ExceptionFilter {
     if (isUnregisteredRoute) {
       // Nest의 원문 message에는 credential을 포함한 URL이 있을 수 있어 반사하지 않는다.
       response.status(404).json({ statusCode: 404, message: 'Not Found' })
+
       return
     }
 
@@ -375,6 +383,7 @@ export async function createLoginHttpApp(
     app.use(loginJsonParser)
     app.useGlobalFilters(new LoginHttpFilter())
     setupSwagger(app)
+
     return app
   } catch (error) {
     await app.close().catch(() => undefined)

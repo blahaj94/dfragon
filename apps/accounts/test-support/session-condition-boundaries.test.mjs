@@ -16,6 +16,7 @@ const repository = (overrides = {}) => ({
 })
 function dataSource({ users, sessions, refresh }) {
   const repositories = { User: users, AuthSession: sessions, AuthRefreshToken: refresh }
+
   return {
     transaction: async (_isolation, callback) =>
       callback({
@@ -43,10 +44,12 @@ for (const [name, session, token, expectedOwnerReads, expectedHashReads] of [
     const inspectedToken = token && {
       get sessionId() {
         tokenOwnerReads++
+
         return token.sessionId
       },
       get tokenHash() {
         hashReads++
+
         return { equals: () => true }
       }
     }
@@ -87,9 +90,11 @@ test('refresh executes the locked hash comparison for matching owners', async ()
     consumedAt: null,
     get tokenHash() {
       hashReads++
+
       return {
         equals: () => {
           equalsCalls++
+
           return false
         }
       }
@@ -160,11 +165,13 @@ for (const [name, session, token, expectedOwnerReads, expectedHashCalls] of [
     const inspectedToken = token && {
       get sessionId() {
         ownerReads++
+
         return token.sessionId
       },
       tokenHash: {
         equals() {
           hashCalls++
+
           return false
         }
       }

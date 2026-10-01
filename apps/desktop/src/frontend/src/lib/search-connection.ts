@@ -31,6 +31,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
   // 현재 actor의 동기화 상태를 호출 시점에 읽는다.
   function isReady(): boolean {
     const state = currentActor.getSnapshot()
+
     return state.status === 'active' && state.hasTag('ready')
   }
 
@@ -47,6 +48,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (state.status === 'done') {
         options.onRunChanged()
         connect()
+
         return
       }
       const failed = state.hasTag('failed')
@@ -63,6 +65,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (changed) {
         options.onSnapshot(state.context.snapshot)
       }
+
       if (readFailed) {
         options.onFailure()
       }
@@ -85,10 +88,12 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (result == null) {
         throw new Error('Invalid search bridge response')
       }
+
       if (actor.getSnapshot().status === 'active') {
         actor.send({ type: 'RESULT', snapshot: result.snapshot })
       }
       // 종료된 연결의 늦은 begin도 직접 받은 ID로 main capture를 정리해야 한다.
+
       return result
     } catch {
       if (actor.getSnapshot().status === 'active') {
@@ -104,6 +109,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
         }
       }
       // 슬롯별 명령은 병렬로 유지하며 유실된 mutation을 재전송하거나 성공으로 합성하지 않는다.
+
       return null
     }
   }

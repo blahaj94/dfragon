@@ -3,5 +3,6 @@
   "semi": false,
   "printWidth": 100,
   "trailingComma": "none",
-  "embeddedLanguageFormatting": "off"
+  "embeddedLanguageFormatting": "off",
+  "plugins": ["./scripts/prettier-return-spacing.mjs"]
 }

@@ -24,5 +24,6 @@ export async function runStandaloneOcr(): Promise<{ matched: boolean; terminated
   } finally {
     await worker.terminate()
   }
+
   return { matched, terminated: true }
 }

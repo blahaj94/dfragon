@@ -44,6 +44,7 @@ function disarmCollectionSession(session: CollectionSession): Promise<void> {
     () => undefined,
     () => undefined
   )
+
   return session.disarmPromise
 }
 
@@ -108,6 +109,7 @@ export function useDeveloperPartyCollection(
           }
         })
       }
+
       return
     }
 
@@ -171,22 +173,23 @@ export function useDeveloperPartyCollection(
           return
         }
 
-        const nextFrame = response.frame
-          ? {
-              ...response.frame,
-              kind,
-              participantWindow: response.frame.participantWindow
-                ? {
-                    ...response.frame.participantWindow,
-                    dataUrl: developerPartySlotDataUrl(response.frame.participantWindow)
-                  }
-                : undefined,
-              slots: response.frame.slots.map((slot) => ({
-                ...slot,
-                dataUrl: developerPartySlotDataUrl(slot)
-              }))
-            }
-          : null
+        let nextFrame: PreviewFrame | null = null
+        if (response.frame) {
+          const frameFields = { ...response.frame }
+          let participantWindow: PreviewFrame['participantWindow']
+          if (response.frame.participantWindow) {
+            const windowFields = { ...response.frame.participantWindow }
+            const dataUrl = developerPartySlotDataUrl(response.frame.participantWindow)
+            participantWindow = { ...windowFields, dataUrl }
+          }
+          const slots = response.frame.slots.map((slot) => {
+            const slotFields = { ...slot }
+            const dataUrl = developerPartySlotDataUrl(slot)
+
+            return { ...slotFields, dataUrl }
+          })
+          nextFrame = { ...frameFields, kind, participantWindow, slots }
+        }
         setFrame(nextFrame)
         setPreviewError(response.previewError ?? '')
         // The game may start after the tab opened. Retry only a recoverable capture/access check,
@@ -201,6 +204,7 @@ export function useDeveloperPartyCollection(
         ) {
           applySlots(slotsRef.current)
         }
+
         if (
           commandRevision === session.commandRevision &&
           statusEventRevision === session.statusEventRevision
@@ -237,6 +241,7 @@ export function useDeveloperPartyCollection(
     // Changing the cadence must preserve in-flight capture and Print Screen registration.
     const interval = window.setInterval(() => void session.refreshPreview(), previewIntervalMs)
     session.interval = interval
+
     return () => window.clearInterval(interval)
   }, [active, kind, previewIntervalMs])
 
@@ -273,8 +278,10 @@ export function useDeveloperPartyCollection(
     }
   }
 
+  const currentFrame = frame?.kind === kind ? frame : null
+
   return {
-    frame: frame?.kind === kind ? frame : null,
+    frame: currentFrame,
     slots,
     collection,
     previewError,

@@ -11,6 +11,7 @@ function parseRgb(value: unknown): number[] {
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return value
 }
 
@@ -58,6 +59,7 @@ export function parseSyntheticUpload(value: unknown): { capture: Capture; png: B
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
   }
+
   return {
     png,
     capture: {

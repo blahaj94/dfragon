@@ -62,6 +62,7 @@ export const slotLifetimeMachine = setup({
         }
       }
       void execute()
+
       return () => {
         stopped = true
         controller.abort()

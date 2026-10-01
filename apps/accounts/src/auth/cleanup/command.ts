@@ -37,5 +37,6 @@ export async function runAuthenticationCleanup(
   if (cannotConfirmSuccess) {
     throw cleanupFailure()
   }
+
   return completedResult
 }

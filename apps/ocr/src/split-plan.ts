@@ -1,3 +1,4 @@
+import { filter, groupBy, map, mapToObj, pipe, sort, sum, uniqueBy } from 'remeda'
 import { OcrError, OCR_ERROR_CODE } from './errors.js'
 import { parseInputRecord } from './input.js'
 import {
@@ -17,24 +18,31 @@ export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
     return 'hangul'
   }
+
   if (/\p{Script=Hiragana}/u.test(char)) {
     return 'hiragana'
   }
+
   if (/\p{Script=Katakana}/u.test(char)) {
     return 'katakana'
   }
+
   if (/\p{Script=Han}/u.test(char)) {
     return 'hanja'
   }
+
   if (/\p{Script=Latin}/u.test(char)) {
     return 'latin'
   }
+
   if (/\p{Number}/u.test(char)) {
     return 'digit'
   }
+
   if (/[\p{Punctuation}\p{Symbol}]/u.test(char)) {
     return 'special'
   }
+
   return 'other'
 }
 
@@ -55,14 +63,12 @@ export function parseSplitOptions(value: unknown): SplitOptions {
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return { ratios: ratios as SplitOptions['ratios'], replaceExisting: body.replaceExisting }
 }
 
 function distribution(rows: LabeledRow[]) {
-  const groups = Object.fromEntries(characterGroups.map((group) => [group, 0])) as Record<
-    CharacterGroup,
-    number
-  >
+  const groups = mapToObj(characterGroups, (group) => [group, 0])
   const counts = new Map<string, number>()
   for (const row of rows) {
     for (const char of row.text) {
@@ -70,34 +76,57 @@ function distribution(rows: LabeledRow[]) {
       counts.set(char, (counts.get(char) ?? 0) + 1)
     }
   }
-  return {
-    images: rows.length,
-    nicknames: new Set(rows.map((row) => row.text)).size,
-    characters: [...counts.values()].reduce((sum, count) => sum + count, 0),
-    groups,
-    frequencies: [...counts]
-      .sort((a, b) => b[1] - a[1] || compareText(a[0], b[0]))
-      .map(([character, count]) => ({ character, count, group: characterGroup(character) }))
-  }
+  const images = rows.length
+  const nicknames = uniqueBy(rows, (row) => row.text).length
+  const characters = sum([...counts.values()])
+  const frequencies = pipe(
+    [...counts],
+    sort((a, b) => {
+      const countDifference = b[1] - a[1]
+      if (countDifference) {
+        return countDifference
+      }
+
+      return compareText(a[0], b[0])
+    }),
+    map(([character, count]) => {
+      const group = characterGroup(character)
+
+      return { character, count, group }
+    })
+  )
+
+  return { images, nicknames, characters, groups, frequencies }
 }
 
 function compareText(a: string, b: string) {
-  return a < b ? -1 : a > b ? 1 : 0
+  if (a < b) {
+    return -1
+  }
+
+  if (a > b) {
+    return 1
+  }
+
+  return 0
 }
 
 export function splitStatistics(rows: SplitRow[]) {
-  const eligible = rows.filter((row): row is LabeledRow => row.text !== null && !row.excluded)
-  const forSplit = (split: Split) => distribution(eligible.filter((row) => row.split === split))
-  return {
-    total: distribution(eligible),
-    splits: {
-      train: forSplit('train'),
-      val: forSplit('val'),
-      test: forSplit('test'),
-      unassigned: forSplit('unassigned')
-    },
-    skipped: rows.length - eligible.length
+  const eligible = filter(rows, (row): row is LabeledRow => row.text !== null && !row.excluded)
+  const bySplit = groupBy(eligible, (row) => row.split)
+  const forSplit = (split: Split) => {
+    const splitRows = bySplit[split] ?? []
+
+    return distribution(splitRows)
   }
+  const total = distribution(eligible)
+  const train = forSplit('train')
+  const val = forSplit('val')
+  const test = forSplit('test')
+  const unassigned = forSplit('unassigned')
+  const skipped = rows.length - eligible.length
+
+  return { total, splits: { train, val, test, unassigned }, skipped }
 }
 
 /** Greedy stratification with bounded local improvement; rare characters are soft objectives. */
@@ -107,7 +136,7 @@ export function planSplits(
   manuallyUnassignedNicknames: readonly string[] = [],
   trainOnlyNicknames: readonly string[] = []
 ) {
-  const eligible = rows.filter((row): row is LabeledRow => row.text !== null && !row.excluded)
+  const eligible = filter(rows, (row): row is LabeledRow => row.text !== null && !row.excluded)
   if (eligible.length === 0) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
@@ -136,9 +165,7 @@ export function planSplits(
       totals.set(key, (totals.get(key) ?? 0) + value)
     }
   }
-  const counts = Object.fromEntries(
-    assignedSplits.map((split) => [split, new Map<string, number>()])
-  ) as Record<AssignedSplit, Map<string, number>>
+  const counts = mapToObj(assignedSplits, (split) => [split, new Map<string, number>()])
   const assignment = new Map<string, AssignedSplit>()
   const update = (group: NicknameGroup, split: AssignedSplit, direction: number) => {
     for (const [key, value] of group.features) {
@@ -155,19 +182,22 @@ export function planSplits(
       const total = totals.get(key)!
       const target = (total * options.ratios[split]) / 100
       const before = (counts[split].get(key) ?? 0) - target
-      const weight =
-        key === 'images'
-          ? 4
-          : key === 'nicknames'
-            ? 1
-            : key.startsWith('group:')
-              ? 2 / kinds.group
-              : 1 / kinds.char
+      let weight: number
+      if (key === 'images') {
+        weight = 4
+      } else if (key === 'nicknames') {
+        weight = 1
+      } else if (key.startsWith('group:')) {
+        weight = 2 / kinds.group
+      } else {
+        weight = 1 / kinds.char
+      }
       // A character occurring once has no hard requirement to occur in each split.
       result +=
         (weight * ((before + direction * value) ** 2 - before ** 2)) /
         Math.max(key.startsWith('char:') ? 10 : 1, total) ** 2
     }
+
     return result
   }
   const movable = [...groups.values()].filter(
@@ -189,17 +219,27 @@ export function planSplits(
     [...group.features]
       .filter(([key]) => key.startsWith('char:'))
       .reduce((sum, [key, value]) => sum + value / totals.get(key)!, 0)
-  movable.sort(
-    (a, b) =>
-      rarity(b) - rarity(a) ||
-      b.features.get('images')! - a.features.get('images')! ||
-      compareText(a.text, b.text)
-  )
+  movable.sort((a, b) => {
+    const rarityDifference = rarity(b) - rarity(a)
+    if (rarityDifference) {
+      return rarityDifference
+    }
+    const imageDifference = b.features.get('images')! - a.features.get('images')!
+    if (imageDifference) {
+      return imageDifference
+    }
+
+    return compareText(a.text, b.text)
+  })
   const destinations = assignedSplits.filter((split) => options.ratios[split] > 0)
   for (const group of movable) {
-    const split = destinations.reduce((best, candidate) =>
-      costChange(group, candidate, 1) < costChange(group, best, 1) ? candidate : best
-    )
+    const split = destinations.reduce((best, candidate) => {
+      if (costChange(group, candidate, 1) < costChange(group, best, 1)) {
+        return candidate
+      }
+
+      return best
+    })
     assignment.set(group.text, split)
     update(group, split, 1)
   }
@@ -222,27 +262,42 @@ export function planSplits(
       break
     }
   }
-  const assignments = [...assignment]
-    .sort(([a], [b]) => compareText(a, b))
-    .map(([text, split]) => ({ text, split }))
-  const proposed = rows.map((row) => ({
-    ...row,
-    split: row.text === null ? row.split : (assignment.get(row.text.normalize('NFC')) ?? row.split)
-  }))
+  const assignments = pipe(
+    [...assignment],
+    sort(([a], [b]) => compareText(a, b)),
+    map(([text, split]) => ({ text, split }))
+  )
+  const proposed = map(rows, (row) => {
+    const proposedRow = { ...row }
+    if (row.text === null) {
+      proposedRow.split = row.split
+    } else {
+      proposedRow.split = assignment.get(row.text.normalize('NFC')) ?? row.split
+    }
+
+    return proposedRow
+  })
+  const before = splitStatistics(rows)
+  const after = splitStatistics(proposed)
+  const preservedUnassignedNicknames = [...groups.values()].filter((group) =>
+    protectedNicknames.has(group.text)
+  ).length
+  const changedNicknames = assignments.filter(
+    ({ text, split }) => groups.get(text)!.split !== split
+  ).length
+  const reassignedNicknames = assignments.filter(
+    ({ text, split }) =>
+      groups.get(text)!.split !== 'unassigned' && groups.get(text)!.split !== split
+  ).length
+
   return {
     options,
-    before: splitStatistics(rows),
-    after: splitStatistics(proposed),
+    before,
+    after,
     assignments,
-    preservedUnassignedNicknames: [...groups.values()].filter((group) =>
-      protectedNicknames.has(group.text)
-    ).length,
-    changedNicknames: assignments.filter(({ text, split }) => groups.get(text)!.split !== split)
-      .length,
-    reassignedNicknames: assignments.filter(
-      ({ text, split }) =>
-        groups.get(text)!.split !== 'unassigned' && groups.get(text)!.split !== split
-    ).length
+    preservedUnassignedNicknames,
+    changedNicknames,
+    reassignedNicknames
   }
 }
 

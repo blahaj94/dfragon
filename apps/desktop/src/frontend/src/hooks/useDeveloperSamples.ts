@@ -32,6 +32,7 @@ export function useDeveloperSamples(): {
       state.context.lastRefreshRequests.includes(event.request)
     )
     send(event)
+
     return completed.then(
       () => undefined,
       () => undefined
@@ -50,16 +51,28 @@ export function useDeveloperSamples(): {
     }
 
     const completed = waitFor(actor, (state) => state.context.lastSave?.request === event.request)
-      .then((state) => state.context.lastSave?.sample ?? null)
+      .then((state) => {
+        const sample = state.context.lastSave?.sample
+        if (sample == null) {
+          return null
+        }
+
+        return sample
+      })
       .catch(() => null)
     send(event)
+
     return completed
   }
 
+  const samples = snapshot.context.samples
+  const loading = snapshot.matches('loading')
+  const saving = snapshot.matches('saving')
+
   return {
-    samples: snapshot.context.samples,
-    loading: snapshot.matches('loading'),
-    saving: snapshot.matches('saving'),
+    samples,
+    loading,
+    saving,
     error: snapshot.context.error,
     refresh,
     saveLabel: (id, text) => save({ type: DEVELOPER_EVENTS.SAVE_LABEL, id, text }),

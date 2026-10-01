@@ -24,6 +24,7 @@ function sanitized(error: unknown) {
     const isSerializedErrorSanitized = !JSON.stringify(error).includes(secret)
     assert.ok(isSerializedErrorSanitized)
   }
+
   return true
 }
 

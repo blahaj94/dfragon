@@ -61,7 +61,12 @@ export function createFixtureSearch({
     const isRateLimited = currentScenario === 'rate-limit'
     const isFailure = currentScenario === 'failure'
     const isEmpty = currentScenario === 'empty'
-    const status = isRateLimited ? 429 : isFailure ? 500 : 200
+    let status = 200
+    if (isRateLimited) {
+      status = 429
+    } else if (isFailure) {
+      status = 500
+    }
     const rows = isEmpty
       ? []
       : [
@@ -73,17 +78,22 @@ export function createFixtureSearch({
             fame: 12345
           }
         ]
-    const body = isRateLimited
-      ? { error: { code: 'SEARCH_RATE_LIMITED' } }
-      : isFailure
-        ? { error: { code: 'INTERNAL_SERVER_ERROR' } }
-        : { rows }
+    let body: { error: { code: string } } | { rows: typeof rows }
+    if (isRateLimited) {
+      body = { error: { code: 'SEARCH_RATE_LIMITED' } }
+    } else if (isFailure) {
+      body = { error: { code: 'INTERNAL_SERVER_ERROR' } }
+    } else {
+      body = { rows }
+    }
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (isRateLimited) {
       headers['Retry-After'] = '5'
     }
+
     return new Response(JSON.stringify(body), { status, headers })
   }
+
   return {
     runtime: { apiOrigin, clock, fetch: transport },
     counts,

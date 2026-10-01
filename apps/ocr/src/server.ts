@@ -28,14 +28,18 @@ class OcrHttpFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>()
     if (response.headersSent) {
       response.destroy()
+
       return
     }
-    const failure =
-      error instanceof NotFoundException
-        ? new OcrError(OCR_ERROR_CODE.NOT_FOUND)
-        : error instanceof BadRequestException
-          ? new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
-          : httpFailure(error)
+    let failure: OcrError
+    if (error instanceof NotFoundException) {
+      failure = new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    } else if (error instanceof BadRequestException) {
+      failure = new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+    } else {
+      failure = httpFailure(error)
+    }
+
     response.status(failure.status).json({ error: failure.code })
   }
 }
@@ -44,9 +48,11 @@ function isDesktopRequest(request: Request): boolean {
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
     return true
   }
+
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
     return true
   }
+
   return (
     request.method === 'GET' &&
     (request.originalUrl === '/api/desktop/dataset' ||
@@ -103,6 +109,7 @@ export async function createOcrApp(
         : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
     ) {
       next(new OcrError(OCR_ERROR_CODE.ORIGIN_REQUIRED))
+
       return
     }
     next()
@@ -128,10 +135,13 @@ export async function createOcrApp(
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST') {
         next()
+
         return
       }
+
       if (modelUploadActive) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
+
         return
       }
       modelUploadActive = true
@@ -154,10 +164,13 @@ export async function createOcrApp(
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST' || request.path !== '/') {
         next()
+
         return
       }
+
       if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
+
         return
       }
       activeUploads++
@@ -180,6 +193,7 @@ export async function createOcrApp(
   // Model uploads can exceed 100 MiB; allow the same receive budget as the Windows client.
   server.requestTimeout = 180_000
   server.headersTimeout = 15_000
+
   return {
     app,
     close: async () => {

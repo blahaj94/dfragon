@@ -22,6 +22,7 @@ export type StageDiagnostic = {
 
 export function createStageDiagnostic(): StageDiagnostic {
   let stage: Stage = STAGES[0]
+
   return {
     enter: (next) => {
       stage = next

@@ -47,9 +47,11 @@ export function createServerVersionReader({
       ) {
         return { status: 'unavailable' }
       }
+
       if (response.status === 404) {
         return { status: 'unsupported' }
       }
+
       if (response.status !== 200) {
         return { status: 'unavailable' }
       }
@@ -57,6 +59,7 @@ export function createServerVersionReader({
       if (parsed == null || controller.signal.aborted) {
         return { status: 'unavailable' }
       }
+
       return { status: 'available', commit: parsed.commit }
     } catch {
       return { status: 'unavailable' }
@@ -68,6 +71,7 @@ export function createServerVersionReader({
 
   return async () => {
     const [api, accounts, ocr] = await Promise.all([read('api'), read('accounts'), read('ocr')])
+
     return { api, accounts, ocr }
   }
 }

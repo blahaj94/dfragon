@@ -16,6 +16,7 @@ async function readLocalHttps(environment: NodeJS.ProcessEnv, port: number, apiO
   if (certPath === undefined && keyPath === undefined) {
     return undefined
   }
+
   if (
     certPath === undefined ||
     keyPath === undefined ||
@@ -36,6 +37,7 @@ async function readLocalHttps(environment: NodeJS.ProcessEnv, port: number, apiO
   const key = await readFile(keyPath)
   // PEM 파싱과 certificate/key 일치를 DB 연결 전에 확인한다.
   createSecureContext({ cert, key })
+
   return { cert, key }
 }
 
@@ -73,6 +75,7 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     const localHttps = await readLocalHttps(environment, port, configuration.apiOrigin)
     const issueAccessJwt = await createAccessJwtIssuer(input.accessJwt)
     const verifyAccessJwt = await createAccessJwtVerifier(input.accessJwt)
+
     return {
       port,
       trustedProxyHops,

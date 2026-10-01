@@ -28,6 +28,7 @@ test('build output includes main-only production notices without listing them as
         getModuleIds: () => [join(root, 'node_modules/renderer/index.js')].values(),
         emitFile(asset) {
           assets.set(asset.fileName, asset.source)
+
           return asset.fileName
         }
       },

@@ -59,6 +59,7 @@ function loadWin32Api(): PrintScreenNativeApi {
     // Only vkCode is needed; no other keyboard data is retained or decoded.
     readVirtualKey: (data) => koffi.decode(data, 'uint32_t') as number
   }
+
   return nativeApi
 }
 
@@ -133,7 +134,12 @@ export function createPrintScreenShortcut({
     } catch {
       // A failed decode or foreground check must leave normal keyboard delivery intact.
     }
-    return handled ? 1 : api.callNext(code, message, data)
+
+    if (handled) {
+      return 1
+    }
+
+    return api.callNext(code, message, data)
   }
 
   function unregister(): void {
@@ -147,6 +153,7 @@ export function createPrintScreenShortcut({
         // A throwing FFI installation has no confirmed handle; never free a possibly live callback.
         throw new Error(DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE)
       }
+
       if (registration.hook != null) {
         if (!registration.api.removeHook(registration.hook)) {
           throw new Error(DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE)
@@ -167,6 +174,7 @@ export function createPrintScreenShortcut({
     listener = nextListener
     if (platform !== 'win32') {
       listener = null
+
       return false
     }
 
@@ -184,6 +192,7 @@ export function createPrintScreenShortcut({
     } catch {
       listener = null
     }
+
     return false
   }
 

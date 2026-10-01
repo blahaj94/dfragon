@@ -164,14 +164,16 @@ if (canStart) {
           } else {
             await smoke(window, coordinator, completeLogin, captureObservation.counts)
           }
+
           if (hasCanary) {
             throw new Error('Capture fixture canary detected')
           }
-          const passedMessage = isSearchSmoke
-            ? 'Capture fixture search smoke PASS'
-            : isOcr
-              ? 'Capture fixture standalone OCR PASS'
-              : 'Capture fixture smoke PASS'
+          let passedMessage = 'Capture fixture smoke PASS'
+          if (isSearchSmoke) {
+            passedMessage = 'Capture fixture search smoke PASS'
+          } else if (isOcr) {
+            passedMessage = 'Capture fixture standalone OCR PASS'
+          }
           console.log(passedMessage)
           app.quit()
         } catch {
@@ -179,13 +181,13 @@ if (canStart) {
             .executeJavaScript('window.captureObservation?.()')
             .catch(() => null)
           console.log(`Capture fixture counters: ${JSON.stringify(observation)}`)
-          console.error(
-            isSearchSmoke
-              ? 'Capture fixture search smoke FAIL'
-              : isOcr
-                ? 'Capture fixture standalone OCR FAIL'
-                : 'Capture fixture media BLOCKED / smoke FAIL'
-          )
+          let failedMessage = 'Capture fixture media BLOCKED / smoke FAIL'
+          if (isSearchSmoke) {
+            failedMessage = 'Capture fixture search smoke FAIL'
+          } else if (isOcr) {
+            failedMessage = 'Capture fixture standalone OCR FAIL'
+          }
+          console.error(failedMessage)
           app.exit(1)
         } finally {
           clearTimeout(deadline)

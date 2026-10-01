@@ -1,7 +1,25 @@
+import { chunk, filter, map } from 'remeda'
 import { catalogKey, isCatalogId, unavailableDetail } from './types.js'
 import type { CatalogDetail, CatalogKey } from './types.js'
 import type { CatalogStore } from './store.js'
 import type { FetchCatalog } from './neople.js'
+
+function createCatalogRequestGroups(keys: CatalogKey[]): CatalogKey[][] {
+  const itemBatches = chunk(
+    filter(keys, (key) => key.kind === 'item'),
+    15
+  )
+  const setBatches = chunk(
+    filter(keys, (key) => key.kind === 'set'),
+    15
+  )
+  const skillRequests = map(
+    filter(keys, (key) => key.kind === 'skill'),
+    (key) => [key]
+  )
+
+  return [...itemBatches, ...setBatches, ...skillRequests]
+}
 
 export function createCatalogService(
   store: CatalogStore,
@@ -38,14 +56,7 @@ export function createCatalogService(
             })
           }
           const pending = bounded.filter((key) => results.get(catalogKey(key))!.status !== 'fresh')
-          const groups: CatalogKey[][] = []
-          for (const kind of ['item', 'set'] as const) {
-            const batchKeys = pending.filter((key) => key.kind === kind)
-            for (let i = 0; i < batchKeys.length; i += 15) {
-              groups.push(batchKeys.slice(i, i + 15))
-            }
-          }
-          groups.push(...pending.filter((key) => key.kind === 'skill').map((key) => [key]))
+          const groups = createCatalogRequestGroups(pending)
           let next = 0
           await Promise.all(
             Array.from({ length: Math.min(3, groups.length) }, async () => {
@@ -95,6 +106,7 @@ export function createCatalogService(
       }
       await loadReferences(sets)
       requestSignal.throwIfAborted()
+
       return results
     }
   }

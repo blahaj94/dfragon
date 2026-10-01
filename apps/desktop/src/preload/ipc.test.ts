@@ -2,11 +2,11 @@ import { ipcRenderer } from 'electron'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { makeHandlerInvoker } from './ipc'
 
-vi.mock('electron', () => ({
-  ipcRenderer: {
-    invoke: vi.fn()
-  }
-}))
+vi.mock('electron', () => {
+  const ipcRenderer = { invoke: vi.fn() }
+
+  return { ipcRenderer }
+})
 
 describe('preload IPC adapter', () => {
   beforeEach(() => {

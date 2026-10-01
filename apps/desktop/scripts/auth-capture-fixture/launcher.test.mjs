@@ -4,13 +4,21 @@ import { runCaptureFixture } from '../auth-capture-fixture.mjs'
 
 const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')
 
-const fixture = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  remove: vi.fn(),
-  inspect: vi.fn(),
-  create: vi.fn(),
-  write: vi.fn()
-}))
+const fixture = vi.hoisted(() => {
+  const spawn = vi.fn()
+  const remove = vi.fn()
+  const inspect = vi.fn()
+  const create = vi.fn()
+  const write = vi.fn()
+
+  return {
+    spawn,
+    remove,
+    inspect,
+    create,
+    write
+  }
+})
 vi.mock('node:child_process', () => ({ spawn: fixture.spawn }))
 vi.mock('node:fs/promises', () => ({
   mkdtemp: fixture.create,
@@ -30,6 +38,7 @@ beforeEach(() => {
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 0))
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -77,6 +86,7 @@ it('child 실패 종료 code는 cleanup 성공 뒤에도 성공으로 바꾸지 
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 1))
+
     return child
   })
   expect(await runCaptureFixture(['--smoke'])).toBe(1)
@@ -121,6 +131,7 @@ function captureSignals() {
       }
       const isOnce = method === 'once'
       handlers.set(event, { listener, once: isOnce })
+
       return process
     })
   }
@@ -131,13 +142,16 @@ function captureSignals() {
     if (hasRegistration) {
       isRegistered = registration.listener === listener
     }
+
     if (isRegistered) {
       handlers.delete(event)
     } else {
       originalRemove(event, listener)
     }
+
     return process
   })
+
   return {
     deliver: (signal) => {
       const registration = handlers.get(signal)
@@ -145,8 +159,10 @@ function captureSignals() {
       if (isUnhandled) {
         // 실제 Vitest process를 종료하지 않고 기본 OS 종료로 빠지는 전달을 기록한다.
         unhandled += 1
+
         return
       }
+
       if (registration.once) {
         handlers.delete(signal)
       }

@@ -16,13 +16,17 @@ export function createNeopleCatalog(
     if (
       !first ||
       keys.length > 15 ||
-      keys.some((key) =>
-        key.kind === 'item'
-          ? !isCatalogId(key.itemId)
-          : key.kind === 'set'
-            ? !isCatalogId(key.setItemId)
-            : !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
-      )
+      keys.some((key) => {
+        if (key.kind === 'item') {
+          return !isCatalogId(key.itemId)
+        }
+
+        if (key.kind === 'set') {
+          return !isCatalogId(key.setItemId)
+        }
+
+        return !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
+      })
     ) {
       throw new Error('Invalid catalog request')
     }
@@ -39,6 +43,7 @@ export function createNeopleCatalog(
     } else {
       throw new Error('Invalid catalog batch')
     }
+
     return budget.run(async () => {
       try {
         const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(5000)])
@@ -57,6 +62,7 @@ export function createNeopleCatalog(
         if (!isObject(body)) {
           throw new Error('Invalid catalog body')
         }
+
         if (first.kind === 'skill') {
           if (
             body.jobId !== first.jobId ||
@@ -66,12 +72,15 @@ export function createNeopleCatalog(
           ) {
             throw new Error('Invalid skill identity')
           }
+
           return [{ key: first, payload: body }]
         }
+
         if (!Array.isArray(body.rows)) {
           throw new Error('Invalid catalog list')
         }
         const rows = body.rows
+
         return keys.flatMap((key) => {
           if (key.kind === 'skill') {
             return []
@@ -82,12 +91,17 @@ export function createNeopleCatalog(
           const matches = rows.filter((row) => isObject(row) && row[idField] === id)
           const row: unknown = matches[0]
           // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
-          return matches.length === 1 &&
+
+          if (
+            matches.length === 1 &&
             isObject(row) &&
             typeof row[nameField] === 'string' &&
             row[nameField].trim()
-            ? [{ key, payload: row }]
-            : []
+          ) {
+            return [{ key, payload: row }]
+          }
+
+          return []
         })
       } catch {
         throw new Error('Catalog lookup failed')

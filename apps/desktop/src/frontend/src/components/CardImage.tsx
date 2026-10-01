@@ -24,6 +24,7 @@ export function CardImage({
       </Typo.caption>
     )
   }
+
   return (
     <img
       src={src}

@@ -3,8 +3,14 @@ import test from 'node:test'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
-import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogEntry, CatalogKey, CatalogValue } from '../src/characters/catalog/types.js'
+import { catalogKey, unavailableDetail } from '../src/characters/catalog/types.js'
+import type {
+  CatalogDetail,
+  CatalogEntry,
+  CatalogKey,
+  CatalogValue
+} from '../src/characters/catalog/types.js'
+import type { CatalogService } from '../src/characters/catalog/service.js'
 import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
@@ -15,24 +21,36 @@ function memoryStore() {
   const rows = new Map<string, CatalogEntry>()
   const store: CatalogStore = {
     async read(keys) {
-      return {
-        entries: keys.flatMap((key) => rows.get(catalogKey(key)) ?? []),
-        now: new Date(),
-        requestedAt: new Date().toISOString()
-      }
+      const entries = keys.flatMap((key) => {
+        const entry = rows.get(catalogKey(key))
+        if (entry != null) {
+          return entry
+        }
+
+        return []
+      })
+      const now = new Date()
+      const requestedAt = new Date().toISOString()
+
+      return { entries, now, requestedAt }
     },
     async saveAndRead(values) {
-      const entries = values.map((value) => ({
-        ...value,
-        fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + 86_400_000)
-      }))
+      const entries = values.map((value) => {
+        const snapshot = { ...value }
+        const fetchedAt = new Date()
+        const expiresAt = new Date(Date.now() + 86_400_000)
+
+        return { ...snapshot, fetchedAt, expiresAt }
+      })
       for (const entry of entries) {
         rows.set(catalogKey(entry.key), entry)
       }
-      return { entries, now: new Date() }
+      const now = new Date()
+
+      return { entries, now }
     }
   }
+
   return { store, rows }
 }
 
@@ -43,6 +61,7 @@ test('set adapter matches IDs independently of order and rejects missing, duplic
     assert.equal(url.searchParams.get('setItemIds'), 'set-a,set-b,set-missing')
     assert.equal(url.searchParams.has('apikey'), false)
     assert.equal((options?.headers as Record<string, string>).apikey, 'fixture-key')
+
     return Response.json({
       rows: [
         { setItemId: 'set-b', setItemName: '중복' },
@@ -71,13 +90,15 @@ test('discovers sets only from stored item data, reuses both caches and never tr
   const calls: CatalogKey[][] = []
   const service = createCatalogService(store, async (keys) => {
     calls.push(keys)
-    return keys.map((key) => ({
-      key,
-      payload:
+
+    return keys.map((key) => {
+      const payload =
         key.kind === 'item'
           ? { setItemId: 'set-a' }
           : { setItems: [{ itemId: 'unworn-item' }], setItemId: 'set-a', setItemOption: [] }
-    }))
+
+      return { key, payload }
+    })
   })
   const loaded = await service.load([item, item], signal)
   assert.equal(loaded.get(catalogKey(set))!.status, 'fresh')
@@ -100,6 +121,7 @@ test('discovers sets only from stored item data, reuses both caches and never tr
   let attempts = 0
   const uncommitted = createCatalogService(broken, async (keys) => {
     attempts++
+
     return keys.map((key) => ({ key, payload: { setItemId: 'uncommitted-set' } }))
   })
   assert.equal((await uncommitted.load([item], signal)).has('set:uncommitted-set'), false)
@@ -113,15 +135,22 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
   const service = createCatalogService(store, async (keys, deadline) => {
     requested.push(...keys)
     signals.push(deadline)
-    return keys.map((key) => ({
-      key,
-      payload: key.kind === 'item' ? { setItemId: 'set-' + key.itemId } : {}
-    }))
+
+    return keys.map((key) => {
+      if (key.kind === 'item') {
+        const setItemId = 'set-' + key.itemId
+
+        return { key, payload: { setItemId } }
+      }
+
+      return { key, payload: {} }
+    })
   })
-  const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => ({
-    kind: 'item',
-    itemId: 'item-' + i
-  }))
+  const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => {
+    const itemId = 'item-' + i
+
+    return { kind: 'item', itemId }
+  })
   const result = await service.load(keys, signal)
   assert.equal(requested.length, 128)
   assert.equal(requested.filter((key) => key.kind === 'set').length, 1)
@@ -137,6 +166,7 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
     if (keys[0]?.kind === 'set') {
       controller.abort()
     }
+
     return keys.map((key) => ({ key, payload: { setItemId: 'set-a' } }))
   })
   await assert.rejects(stopping.load([item], controller.signal))
@@ -150,6 +180,7 @@ function fixture(): ReturnType<typeof projectCharacterDetails> {
     emblems: [{ slotNo: 1, itemId: 'emblem' }, { slotNo: 2 }],
     future: { retained: true }
   }
+
   return {
     character: { jobId: 'job' },
     status: { status: [], buff: [] },
@@ -188,13 +219,12 @@ test('all equipped attachments are enriched without changing originals, empty sl
     calls: CatalogKey[] = []
   const service = createCatalogService(memoryStore().store, async (keys) => {
     calls.push(...keys)
-    return keys.map((key): CatalogValue => ({
-      key,
-      payload: {
-        setItemId: key.kind === 'item' ? 'shared-set' : 'unused-set',
-        tune: [{ level: 0, setPoint: 165 }]
-      }
-    }))
+
+    return keys.map((key): CatalogValue => {
+      const setItemId = key.kind === 'item' ? 'shared-set' : 'unused-set'
+
+      return { key, payload: { setItemId, tune: [{ level: 0, setPoint: 165 }] } }
+    })
   })
   const result = await enrichCharacterDetails(details, service, signal)
   assert.deepEqual(details, original)
@@ -250,4 +280,212 @@ test('null and empty arrays survive optional detail failures without synthesizin
     assert.deepEqual(result.buff.creature, { creature: value })
     assert.equal(result.setDetails['equipped-set']!.status, 'unavailable')
   }
+})
+
+test('enrichment preserves reference order, item duplicates and guarded first-occurrence skill IDs', async () => {
+  const details = fixture()
+  details.equipment = {
+    equipment: [
+      { itemId: 'shared', setItemId: 'shared-set' },
+      { itemId: '', setItemId: 'bad/set' },
+      null,
+      { itemId: 'shared' }
+    ],
+    setItemInfo: [null, [], { setItemId: '' }, { setItemId: 'equipped-set' }]
+  }
+  details.avatar = null
+  details.creature = null
+  details.oath = null
+  details.skillStyle = {
+    hash: 'opaque',
+    style: {
+      active: [null, [], { skillId: '' }, { skillId: 'skill-a' }, { skillId: 'skill-a' }],
+      passive: [{ skillId: 'skill-b' }],
+      evolution: [{ skillId: 'skill-a' }],
+      enhancement: 'invalid',
+      chain: { resetTime: 0, skills: [null, 'skill-b', 'skill-c', '', 'bad/id', 5] }
+    }
+  }
+  details.buff = {
+    equipment: {
+      equipment: [{ itemId: 'buff', setItemId: 'shared-set' }],
+      skillInfo: { skillId: 'skill-c' }
+    },
+    avatar: { avatar: null, skillInfo: { skillId: 'skill-d' } },
+    creature: { creature: null, skillInfo: [] }
+  }
+  const original = structuredClone(details)
+  const requests: CatalogKey[][] = []
+  const catalog: CatalogService = {
+    async load(keys, requestSignal) {
+      assert.equal(requestSignal, signal)
+      requests.push(keys)
+
+      return new Map()
+    }
+  }
+
+  const result = await enrichCharacterDetails(details, catalog, signal)
+
+  assert.deepEqual(requests, [
+    [
+      { kind: 'item', itemId: 'buff' },
+      { kind: 'set', setItemId: 'shared-set' },
+      { kind: 'item', itemId: 'shared' },
+      { kind: 'set', setItemId: 'shared-set' },
+      { kind: 'item', itemId: 'shared' },
+      { kind: 'set', setItemId: 'equipped-set' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-a' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-b' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-c' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-d' }
+    ]
+  ])
+  const skillStyle = result.skillStyle as Record<string, unknown>
+  assert.deepEqual(Object.keys(skillStyle.skillDetails as object), [
+    'skill-a',
+    'skill-b',
+    'skill-c',
+    'skill-d'
+  ])
+  assert.equal(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  assert.deepEqual(details, original)
+})
+
+test('catalog dictionaries preserve reserved ID keys, detail identity and invalid-job fallbacks', async () => {
+  const detail: CatalogDetail = { data: { retained: true }, fetchedAt: null, status: 'stale' }
+  for (const jobId of ['job', '', null, undefined]) {
+    const details = fixture()
+    details.character.jobId = jobId
+    details.skillStyle = {
+      style: {
+        active: [{ skillId: '__proto__' }, { skillId: 'constructor' }, { skillId: 'missing' }]
+      }
+    }
+    const loaded = new Map<string, CatalogDetail>([
+      ['set:__proto__', detail],
+      ['item:equipment', detail],
+      ['set:constructor', unavailableDetail],
+      ['skill:job:__proto__', detail],
+      ['skill:job:constructor', detail],
+      ['other:ignored', detail]
+    ])
+    const reads: string[] = []
+    const get = loaded.get.bind(loaded)
+    loaded.get = (key) => {
+      reads.push(key)
+
+      return get(key)
+    }
+    let calls = 0
+    const catalog: CatalogService = {
+      async load(keys, requestSignal) {
+        calls++
+        assert.equal(requestSignal, signal)
+        const requested = keys.filter((key) => key.kind === 'skill')
+        const expected =
+          jobId === 'job'
+            ? [
+                { kind: 'skill', jobId, skillId: '__proto__' },
+                { kind: 'skill', jobId, skillId: 'constructor' },
+                { kind: 'skill', jobId, skillId: 'missing' }
+              ]
+            : []
+        assert.deepEqual(requested, expected)
+
+        return loaded
+      }
+    }
+
+    const result = await enrichCharacterDetails(details, catalog, signal)
+
+    assert.equal(calls, 1)
+    assert.deepEqual(Object.keys(result.setDetails), ['__proto__', 'constructor'])
+    assert.equal(Object.getPrototypeOf(result.setDetails), Object.prototype)
+    assert.equal(result.setDetails.__proto__, detail)
+    assert.equal(result.setDetails.constructor, unavailableDetail)
+    const skillDetails = (result.skillStyle as { skillDetails: Record<string, CatalogDetail> })
+      .skillDetails
+    assert.deepEqual(Object.keys(skillDetails), ['__proto__', 'constructor', 'missing'])
+    assert.equal(Object.getPrototypeOf(skillDetails), Object.prototype)
+    assert.equal(skillDetails.__proto__, jobId === 'job' ? detail : unavailableDetail)
+    assert.equal(skillDetails.constructor, jobId === 'job' ? detail : unavailableDetail)
+    assert.equal(skillDetails.missing, unavailableDetail)
+    const expectedReads =
+      jobId === 'job' ? ['skill:job:__proto__', 'skill:job:constructor', 'skill:job:missing'] : []
+    assert.deepEqual(
+      reads.filter((key) => key.startsWith('skill:')),
+      expectedReads
+    )
+    const equipment = result.equipment.equipment as Array<{ itemDetail: CatalogDetail }>
+    assert.equal(equipment[0]!.itemDetail, detail)
+  }
+})
+
+test('enrichment keeps live skill traversal and reads item options before catalog lookups', async () => {
+  const events: string[] = []
+  const active: Array<{ skillId: string }> = [
+    {
+      get skillId() {
+        events.push('first-skill')
+        if (active.length === 1) {
+          active.push({ skillId: 'second' })
+        }
+
+        return 'first'
+      }
+    }
+  ]
+  const details = fixture()
+  details.equipment = {
+    equipment: [
+      {
+        itemId: 'item',
+        get option() {
+          events.push('item-option')
+
+          return 'retained'
+        }
+      }
+    ],
+    setItemInfo: []
+  }
+  details.avatar = null
+  details.creature = null
+  details.oath = null
+  details.buff = { equipment: null, avatar: null, creature: null }
+  details.skillStyle = { style: { active } }
+  const loaded = new Map<string, CatalogDetail>()
+  loaded.get = (key) => {
+    events.push(`lookup:${key}`)
+
+    return undefined
+  }
+  const catalog: CatalogService = {
+    async load(keys) {
+      events.push('load')
+      assert.deepEqual(keys, [
+        { kind: 'item', itemId: 'item' },
+        { kind: 'skill', jobId: 'job', skillId: 'first' },
+        { kind: 'skill', jobId: 'job', skillId: 'second' }
+      ])
+
+      return loaded
+    }
+  }
+
+  const result = await enrichCharacterDetails(details, catalog, signal)
+
+  assert.deepEqual(events, [
+    'item-option',
+    'first-skill',
+    'first-skill',
+    'load',
+    'item-option',
+    'lookup:item:item',
+    'lookup:skill:job:first',
+    'lookup:skill:job:second'
+  ])
+  const equipment = result.equipment.equipment as Array<Record<string, unknown>>
+  assert.equal(equipment[0]!.option, 'retained')
 })

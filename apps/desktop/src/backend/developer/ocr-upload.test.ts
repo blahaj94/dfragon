@@ -4,7 +4,11 @@ import { createOcrUploader } from './ocr-upload'
 import { previewFrame, type CapturedPartyFrame } from './collection-session'
 import type { AuthAuthorization } from '../auth/types'
 
-vi.mock('../api-fetch', () => ({ fetchApi: vi.fn() }))
+vi.mock('../api-fetch', () => {
+  const fetchApi = vi.fn()
+
+  return { fetchApi }
+})
 
 const frame: CapturedPartyFrame = {
   width: 2,
@@ -45,6 +49,7 @@ function setup(): {
     recoverAuthorization: vi.fn<() => Promise<AuthAuthorization>>(async () => credential),
     subscribe: vi.fn((callback: () => void) => {
       listener = callback
+
       return unsubscribe
     })
   }
@@ -52,6 +57,7 @@ function setup(): {
     Response.json({ id: JSON.parse(String(init?.body)).id, duplicate: false }, { status: 201 })
   )
   const prepare = createOcrUploader(auth, request)
+
   return {
     prepare,
     auth,
@@ -180,6 +186,7 @@ it('does not send when cancelled during credential preparation', async () => {
   const controller = new AbortController()
   f.auth.authorization.mockImplementationOnce(async () => {
     controller.abort()
+
     return { status: 'unavailable' }
   })
   expect(await f.prepare()!(frame, [3], 'hud', controller.signal)).toBe('signedOut')

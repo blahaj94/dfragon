@@ -41,7 +41,12 @@ async function deleteEndedSession(source: DataSource, hint: SessionHint): Promis
 
     // FK cascade가 현재 연결된 refresh 전체를 제거한다. 이 transaction은 user를 뒤에 잠그지 않는다.
     const deleted = await sessions.delete({ id: session.id, userId: hint.userId })
-    return deleted.affected ?? 0
+    const affected = deleted.affected
+    if (affected != null) {
+      return affected
+    }
+
+    return 0
   })
 }
 
@@ -68,7 +73,12 @@ async function deleteEndedRequest(source: DataSource, id: string): Promise<numbe
 
     // Code TTL은 교환 자격이다. 물리 삭제는 전체 request TTL 또는 terminal 전이로 판단한다.
     const deleted = await requests.delete({ id: request.id })
-    return deleted.affected ?? 0
+    const affected = deleted.affected
+    if (affected != null) {
+      return affected
+    }
+
+    return 0
   })
 }
 

@@ -62,6 +62,7 @@ export function DeveloperPartyCollectionSection({
       if (revision > 0) {
         onSavedRef.current()
       }
+
       return
     }
 

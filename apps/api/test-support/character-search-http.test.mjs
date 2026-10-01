@@ -29,6 +29,7 @@ async function withSearchBoundary(
       if (!validJwt) {
         throw new Error('private verifier canary')
       }
+
       return principal
     },
     async searchCharacters() {
@@ -197,6 +198,7 @@ test('public HTTP search succeeds without credentials and ignores spoofed forwar
     apiKey: 'synthetic-search-key',
     async searchCharacters() {
       upstreamCalls++
+
       return { rows: [] }
     }
   })
@@ -234,6 +236,7 @@ test('single-proxy mode isolates client quotas and ignores spoofed addresses to 
     trustedProxyHops: 1,
     async searchCharacters() {
       upstreamCalls++
+
       return { rows: [] }
     }
   })

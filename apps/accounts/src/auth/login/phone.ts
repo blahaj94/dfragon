@@ -37,10 +37,13 @@ export async function phoneLoginAction(
   ) {
     throw invalid()
   }
+
   if (action === 'cancel' || action === 'phone-cancel') {
     await repo.update({ id: row.id }, { ...CLEARED_LOGIN_FIELDS, status: 'failed' })
+
     return { ended: true }
   }
+
   if (action === 'qr' || action === 'direct') {
     Object.assign(row, clearPhone, {
       status: 'browser_started',
@@ -53,6 +56,7 @@ export async function phoneLoginAction(
     })
     if (action === 'direct') {
       await repo.save(row)
+
       return { ready: true }
     }
     const ticket = newOpaque()
@@ -61,15 +65,21 @@ export async function phoneLoginAction(
       confirmationCode: String(randomInt(0, 1_000_000)).padStart(6, '0')
     })
     await repo.save(row)
+    const phoneUrl = `${origin}/auth/login/phone?ticket=${ticket}`
+    const confirmationCode = row.confirmationCode
+    const expiresAt = row.expiresAt.toISOString()
+
     return {
-      phoneUrl: `${origin}/auth/login/phone?ticket=${ticket}`,
-      confirmationCode: row.confirmationCode,
-      expiresAt: row.expiresAt.toISOString()
+      phoneUrl,
+      confirmationCode,
+      expiresAt
     }
   }
+
   if (row.confirmationCode == null) {
     throw invalid()
   }
+
   if (action === 'status') {
     if (row.status !== 'phone_approved') {
       return { approved: false }
@@ -78,8 +88,10 @@ export async function phoneLoginAction(
     if (user == null) {
       throw invalid()
     }
+
     return { approved: true, nickname: user.nickname }
   }
+
   if (
     action === 'phone-approve' ? row.status !== 'phone_verified' : row.status !== 'phone_approved'
   ) {
@@ -97,10 +109,13 @@ export async function phoneLoginAction(
   if (user == null || key == null || requestExpired(row, now)) {
     throw invalid()
   }
+
   if (action === 'phone-approve') {
     row.status = 'phone_approved'
     await repo.save(row)
+
     return { approved: true }
   }
+
   return complete(manager, row, now)
 }

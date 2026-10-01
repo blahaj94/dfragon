@@ -16,10 +16,11 @@ export function collectDesktopCatalog({
   uiRoot: string
   ocrRoot: string
 }): NoticeEntry[] {
-  const document = (root: string, name: string) => ({
-    name,
-    text: readFileSync(join(root, name), 'utf8')
-  })
+  const document = (root: string, name: string) => {
+    const text = readFileSync(join(root, name), 'utf8')
+
+    return { name, text }
+  }
   const entries: NoticeEntry[] = [
     {
       name: 'SEED Design',
@@ -76,6 +77,7 @@ export function collectDesktopCatalog({
       packages.set(`${entry.name}@${entry.version}`, entry)
     }
   }
+
   return [
     ...entries,
     ...[...packages.values()].sort((a, b) =>
@@ -89,12 +91,17 @@ export function desktopLicenseCatalog(options: Parameters<typeof collectDesktopC
   return {
     name: 'dfragon-desktop-license-catalog',
     resolveId(id: string) {
-      return id === moduleId ? `\0${moduleId}` : null
+      if (id === moduleId) {
+        return `\0${moduleId}`
+      }
+
+      return null
     },
     load(id: string) {
       if (id !== `\0${moduleId}`) {
         return null
       }
+
       return `export default ${JSON.stringify(collectDesktopCatalog(options))};`
     }
   }

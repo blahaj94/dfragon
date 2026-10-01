@@ -33,6 +33,7 @@ export function parseCharacterIdentity(
   ) {
     throw new CharacterDetailFailure('query')
   }
+
   return { serverId, characterId }
 }
 
@@ -73,6 +74,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
           rows = snapshot.rows
         }
       }
+
       if (!rows) {
         rows = await refreshes.run(identity, signal, async (refreshSignal) => {
           refreshSignal.throwIfAborted()
@@ -95,6 +97,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
           refreshSignal.throwIfAborted()
           const payloads = await adapter(identity, refreshSignal)
           refreshSignal.throwIfAborted()
+
           return deps.store.saveAndRead(identity, payloads, requestedAt, refreshSignal)
         })
       }
@@ -108,6 +111,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
         ? await enrichCharacterDetails(projected, deps.catalog, signal)
         : projected
       signal.throwIfAborted()
+
       return { ...details, freshness }
     } catch (error) {
       throw characterDetailFailure(error)
@@ -126,6 +130,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     const operation = respond(peerAddress, identity, signal, forceRefresh)
     active.add(operation)
     void operation.finally(() => active.delete(operation)).catch(() => undefined)
+
     return operation
   }
 

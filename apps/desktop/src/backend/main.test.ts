@@ -6,84 +6,118 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
 
-const mocks = vi.hoisted(() => ({
-  constructWindow: vi.fn(),
-  loadURL: vi.fn(),
-  loadFile: vi.fn(),
-  registerWindow: vi.fn(),
-  registerDeveloperWindow: vi.fn(() => vi.fn()),
-  registerVersionsWindow: vi.fn(() => vi.fn()),
-  consumeCaptureMediaPermission: vi.fn(() => false),
-  permissionCheck: vi.fn(),
-  permissionRequest: vi.fn(),
-  registerCapture: vi.fn(),
-  bootstrap: undefined as Promise<void> | undefined,
-  createIngress: vi.fn(),
-  attachIngress: vi.fn(),
-  attachAfterStart: vi.fn(),
-  isOrdinarySecondInstance: vi.fn(() => true),
-  selectIngressArguments: vi.fn((argv: readonly unknown[], isDefaultApp: boolean) =>
+const mocks = vi.hoisted(() => {
+  const constructWindow = vi.fn()
+  const loadURL = vi.fn()
+  const loadFile = vi.fn()
+  const registerWindow = vi.fn()
+  const registerDeveloperWindow = vi.fn(() => vi.fn())
+  const registerVersionsWindow = vi.fn<
+    typeof import('./versions/ipc-handler').registerVersionsWindow
+  >(() => vi.fn())
+  const consumeCaptureMediaPermission = vi.fn(() => false)
+  const permissionCheck = vi.fn()
+  const permissionRequest = vi.fn()
+  const registerCapture = vi.fn()
+  const createIngress = vi.fn()
+  const attachIngress = vi.fn()
+  const attachAfterStart = vi.fn()
+  const isOrdinarySecondInstance = vi.fn(() => true)
+  const selectIngressArguments = vi.fn((argv: readonly unknown[], isDefaultApp: boolean) =>
     argv.slice(isDefaultApp ? 2 : 1)
-  ),
-  disposeIngress: vi.fn(),
-  createEffects: vi.fn(),
-  searchClock: {},
-  createSearchClock: vi.fn(),
-  bindPowerMonitor: vi.fn(),
-  disposePowerMonitor: vi.fn(),
-  powerMonitor: { on: vi.fn(), removeListener: vi.fn() },
-  bootstrapAuth: vi.fn(),
-  applyProfile: vi.fn(
-    (
-      application: {
-        setPath(name: 'userData', path: string): void
-        getPath(name: 'userData'): string
-        setName(name: string): void
-        setAppUserModelId(id: string): void
-      },
-      config: { userDataPath: string; appIdentity: string }
-    ) => {
+  )
+  const disposeIngress = vi.fn()
+  const createEffects = vi.fn()
+  const searchClock = {}
+  const createSearchClock = vi.fn()
+  const bindPowerMonitor = vi.fn()
+  const disposePowerMonitor = vi.fn()
+  const powerMonitor = { on: vi.fn(), removeListener: vi.fn() }
+  const bootstrapAuth = vi.fn()
+  const applyProfile = vi.fn<typeof import('./auth/runtime-config').applyAuthRuntimeProfile>(
+    (application, config) => {
       application.setPath('userData', config.userDataPath)
       application.getPath('userData')
       application.setName(config.appIdentity)
       application.setAppUserModelId(config.appIdentity)
+
       return config
     }
-  ),
-  registerAuth: vi.fn(),
-  setPath: vi.fn(),
-  getPath: vi.fn(),
-  getVersion: vi.fn(() => '6.7.8'),
-  setName: vi.fn(),
-  setAppUserModelId: vi.fn(),
-  exit: vi.fn(),
-  appOn: vi.fn(),
-  appRemoveListener: vi.fn(),
-  windows: [] as unknown[],
-  coordinator: {
+  )
+  const registerAuth = vi.fn()
+  const setPath = vi.fn()
+  const getPath = vi.fn()
+  const getVersion = vi.fn(() => '6.7.8')
+  const setName = vi.fn()
+  const setAppUserModelId = vi.fn()
+  const exit = vi.fn()
+  const appOn = vi.fn()
+  const appRemoveListener = vi.fn()
+  const windows = [] as unknown[]
+  const coordinator = {
     captureGeneration: vi.fn(() => 1),
     handleReturnUrl: vi.fn()
-  },
-  runtime: undefined as
-    | {
-        coordinator: typeof mocks.coordinator
-        apiOrigin: string
-        start: ReturnType<typeof vi.fn>
-      }
-    | undefined
-}))
-vi.mock('electron', () => ({
-  powerMonitor: mocks.powerMonitor,
-  session: {
+  }
+
+  return {
+    constructWindow,
+    loadURL,
+    loadFile,
+    registerWindow,
+    registerDeveloperWindow,
+    registerVersionsWindow,
+    consumeCaptureMediaPermission,
+    permissionCheck,
+    permissionRequest,
+    registerCapture,
+    bootstrap: undefined as Promise<void> | undefined,
+    createIngress,
+    attachIngress,
+    attachAfterStart,
+    isOrdinarySecondInstance,
+    selectIngressArguments,
+    disposeIngress,
+    createEffects,
+    searchClock,
+    createSearchClock,
+    bindPowerMonitor,
+    disposePowerMonitor,
+    powerMonitor,
+    bootstrapAuth,
+    applyProfile,
+    registerAuth,
+    setPath,
+    getPath,
+    getVersion,
+    setName,
+    setAppUserModelId,
+    exit,
+    appOn,
+    appRemoveListener,
+    windows,
+    coordinator,
+    runtime: undefined as
+      | {
+          coordinator: typeof coordinator
+          apiOrigin: string
+          start: ReturnType<typeof vi.fn>
+        }
+      | undefined
+  }
+})
+vi.mock('electron', () => {
+  const powerMonitor = mocks.powerMonitor
+  const session = {
     defaultSession: {
       setPermissionCheckHandler: mocks.permissionCheck,
       setPermissionRequestHandler: mocks.permissionRequest
     }
-  },
-  app: {
+  }
+  const app = {
     whenReady: () => ({
       then: (callback: () => void | Promise<void>): Promise<void> => {
         mocks.bootstrap = Promise.resolve().then(callback)
+
         return mocks.bootstrap.catch(() => undefined)
       }
     }),
@@ -97,8 +131,8 @@ vi.mock('electron', () => ({
     setAppUserModelId: mocks.setAppUserModelId,
     exit: mocks.exit,
     quit: vi.fn()
-  },
-  BrowserWindow: class {
+  }
+  class BrowserWindow {
     static getAllWindows = vi.fn(() => mocks.windows)
 
     constructor() {
@@ -121,12 +155,15 @@ vi.mock('electron', () => ({
     focus = vi.fn()
     destroy = vi.fn()
   }
-}))
-vi.mock('@electron-toolkit/utils', () => ({
-  electronApp: { setAppUserModelId: vi.fn() },
-  optimizer: { watchWindowShortcuts: vi.fn() },
-  is: { dev: true }
-}))
+
+  return { powerMonitor, session, app, BrowserWindow }
+})
+vi.mock('@electron-toolkit/utils', () => {
+  const electronApp = { setAppUserModelId: vi.fn() }
+  const optimizer = { watchWindowShortcuts: vi.fn() }
+
+  return { electronApp, optimizer, is: { dev: true } }
+})
 vi.mock('./developer/ipc-handler', () => ({
   registerDeveloperWindow: mocks.registerDeveloperWindow
 }))
@@ -150,6 +187,7 @@ vi.mock('./auth/runtime-effects', () => ({
 vi.mock('./auth/runtime-config', async () => {
   const actual =
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
+
   return { ...actual, applyAuthRuntimeProfile: mocks.applyProfile }
 })
 vi.mock('./auth/bootstrap', () => ({
@@ -171,6 +209,7 @@ beforeEach(() => {
   })
   mocks.attachAfterStart.mockImplementation((_ingress, _start, dispatch, _isActive, activate) => {
     mocks.attachIngress(dispatch, activate)
+
     return vi.fn()
   })
   mocks.coordinator.handleReturnUrl.mockImplementation(
@@ -189,7 +228,14 @@ beforeEach(() => {
     bindPowerMonitor: mocks.bindPowerMonitor,
     createSearchClock: mocks.createSearchClock
   })
-  mocks.getPath.mockImplementation(() => process.env['DFRAGON_AUTH_USER_DATA_PATH'] ?? '')
+  mocks.getPath.mockImplementation(() => {
+    const userDataPath = process.env['DFRAGON_AUTH_USER_DATA_PATH']
+    if (userDataPath == null) {
+      return ''
+    }
+
+    return userDataPath
+  })
   mocks.bootstrapAuth.mockResolvedValue(mocks.runtime)
   mocks.registerAuth.mockReturnValue(vi.fn())
 })
@@ -297,6 +343,7 @@ function deferred<Value>(): {
     resolve = nextResolve
     reject = nextReject
   })
+
   return { promise, resolve, reject }
 }
 
@@ -357,7 +404,7 @@ it('version metadata uses separate product and account origins and does not depe
     apiOrigin: 'https://game.synthetic.test',
     accountsOrigin: 'https://api.synthetic.test'
   })
-  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop as () => unknown
+  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop
   expect(desktop()).toEqual({ version: '6.7.8', commit: null, dirty: null })
 })
 
@@ -401,6 +448,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     application.getPath('userData')
     application.setName(config.appIdentity)
     application.setAppUserModelId(config.appIdentity)
+
     return appliedConfig
   })
   mocks.createEffects.mockReturnValueOnce(effects)
@@ -500,6 +548,7 @@ it.each(['cancel', 'commit'] as const)(
               willQuit({ defaultPrevented: true })
               compositionBeforeOutcome = mocks.constructWindow.mock.calls.length
             })
+
             return
           }
 
@@ -509,6 +558,7 @@ it.each(['cancel', 'commit'] as const)(
           })
         })
       })
+
       return mocks.runtime
     })
 
@@ -596,6 +646,7 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   mocks.registerAuth.mockImplementation(() => {
     const dispose = vi.fn()
     authDisposers.push(dispose)
+
     return dispose
   })
 
@@ -652,6 +703,7 @@ it('교체된 이전 window의 늦은 load rejection은 현재 window owner를 �
   mocks.registerAuth.mockImplementation(() => {
     const dispose = vi.fn()
     authDisposers.push(dispose)
+
     return dispose
   })
   mocks.loadFile.mockReturnValueOnce(firstLoad.promise).mockResolvedValueOnce(undefined)
@@ -1038,7 +1090,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
   mocks.applyProfile.mockImplementationOnce((application, config) => {
     try {
-      actual.applyAuthRuntimeProfile(application, config, {
+      return actual.applyAuthRuntimeProfile(application, config, {
         ...fs,
         realpathSync: fs.realpathSync.native,
         windows: {

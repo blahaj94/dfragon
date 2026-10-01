@@ -1,3 +1,4 @@
+import { filter, join, map, pipe } from 'remeda'
 import type { CapturePhase } from '../types/capture'
 
 type CaptureControlState = {
@@ -17,18 +18,23 @@ export function getCaptureControlState({
   if (phase === 'selecting' || phase === 'starting') {
     return '준비 중'
   }
+
   if (phase === 'active') {
     return '캡처 중'
   }
+
   if (loading) {
     return '창 확인 중'
   }
+
   if (failed) {
     return '조회 실패'
   }
+
   if (!hasDetectedSource) {
     return '창 미감지'
   }
+
   return '대기'
 }
 
@@ -46,14 +52,40 @@ export function getCaptureSourceNotice({
       description: '잠시 후 창 목록을 새로고침해 주세요.'
     }
   }
+
   if (hasOtherSources) {
     return {
       title: '던파 창을 찾지 못했어요',
       description: '게임 실행 후 새로고침하거나 다른 창을 선택하세요.'
     }
   }
+
   return {
     title: '던파 창을 찾지 못했어요',
     description: '게임을 실행한 뒤 창 목록을 새로고침해 주세요.'
   }
+}
+
+// 상태를 첫 줄에 두고 원래 슬롯 번호와 닉네임 원문을 유지해 표시 문구를 만든다.
+export function formatPartyCaptureStatus({
+  status,
+  stableNicknames
+}: {
+  status: string
+  stableNicknames: readonly (string | null)[]
+}): string {
+  const lines = [
+    status,
+    ...map(stableNicknames, (nickname, slot) => {
+      const line = nickname != null && nickname.length > 0 ? `슬롯 ${slot + 1}: ${nickname}` : null
+
+      return line
+    })
+  ]
+
+  return pipe(
+    lines,
+    filter((line): line is string => line != null && line.length > 0),
+    join('\n')
+  )
 }

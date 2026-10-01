@@ -71,6 +71,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
     }
     sessionRef.current = session
     bridge.connect()
+
     return () => {
       active = false
       sessionRef.current = null
@@ -85,13 +86,16 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
     if (session == null || !view.ready) {
       return
     }
+
     if (!validManualNickname(nickname)) {
       session.submission += 1
       session.nickname = null
       session.bridge.observe({ slot: 0, nickname: null })
       setFeedback(SEARCH_ERRORS.INVALID_SEARCH_QUERY.message)
+
       return
     }
+
     if (session.nickname === nickname) {
       return
     }
@@ -108,14 +112,17 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       if (sessionRef.current !== session || session.starting !== starting) {
         return
       }
+
       if (id == null) {
         session.starting = null
         session.nickname = null
         setFeedback('검색을 시작하지 못했습니다. 다시 시도해 주세요.')
+
         return
       }
       session.started = true
     }
+
     if (session.submission !== submission) {
       return
     }

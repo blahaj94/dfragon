@@ -26,6 +26,7 @@ export async function readSearchSnapshot(api: SearchApi): Promise<SearchSnapshot
   if (result == null) {
     throw new Error('Invalid search bridge response')
   }
+
   return result.snapshot
 }
 
@@ -47,9 +48,11 @@ export const searchConnectionMachine = setup({
           }
         })
         sendBack({ type: 'SUBSCRIBED' })
+
         return unsubscribe
       } catch {
         sendBack({ type: 'SUBSCRIPTION_FAILED' })
+
         return undefined
       }
     }),
@@ -62,8 +65,10 @@ export const searchConnectionMachine = setup({
         if (previous != null) {
           if (previous.runId !== snapshot.runId) {
             enqueue.raise({ type: 'RUN_CHANGED' })
+
             return
           }
+
           if (snapshot.revision <= previous.revision) {
             return
           }
@@ -84,6 +89,7 @@ export const searchConnectionMachine = setup({
       ) {
         return {}
       }
+
       return { queued: snapshot }
     }),
     flushQueued: enqueueActions(({ context, enqueue }) => {

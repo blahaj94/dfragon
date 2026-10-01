@@ -42,6 +42,122 @@ export function SettingsSection({
     }
   }
 
+  function getDeveloperStatusText(): string {
+    if (mode.updating) {
+      return '개발자 모드 설정을 저장하는 중입니다.'
+    }
+
+    if (mode.enabled) {
+      return '개발자 모드가 켜져 있습니다.'
+    }
+
+    return '개발자 모드가 꺼져 있습니다.'
+  }
+
+  function renderDeveloperControls(): React.JSX.Element {
+    if (mode.status === 'loading') {
+      return <Typo.txtM role="status">개발자 모드 설정을 불러오는 중입니다.</Typo.txtM>
+    }
+
+    if (mode.status === 'unavailable') {
+      return (
+        <Typo.txtM role="status">이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.</Typo.txtM>
+      )
+    }
+
+    if (mode.status === 'error') {
+      return (
+        <div role="alert">
+          <Typo.txtM>개발자 모드 설정을 불러오거나 저장하지 못했습니다.</Typo.txtM>
+          <ActionButton size="small" variant="neutralWeak" onClick={mode.retry}>
+            <Typo.txtS as="span" weight={700}>
+              다시 시도
+            </Typo.txtS>
+          </ActionButton>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        <div {...stylex.props(styles.developerActions)}>
+          <ActionButton
+            size="small"
+            variant="neutralWeak"
+            aria-pressed={mode.enabled}
+            disabled={mode.updating}
+            onClick={() => mode.setEnabled(!mode.enabled)}
+          >
+            <Typo.txtS as="span" weight={700}>
+              {mode.enabled ? '개발자 모드 끄기' : '개발자 모드 켜기'}
+            </Typo.txtS>
+          </ActionButton>
+          {mode.enabled && onOpenDeveloperWorkbench && (
+            <ActionButton
+              size="small"
+              variant="brandSolid"
+              onClick={() => {
+                setOpen(false)
+                onOpenDeveloperWorkbench()
+              }}
+            >
+              <Typo.txtS as="span" weight={700}>
+                개발 도구 열기
+              </Typo.txtS>
+            </ActionButton>
+          )}
+        </div>
+        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
+          {getDeveloperStatusText()}
+        </Typo.txtS>
+      </>
+    )
+  }
+
+  function renderSectionContent(): React.JSX.Element {
+    if (selectedSection === 'versions') {
+      return <BuildVersionsSection />
+    }
+
+    if (selectedSection === 'licenses') {
+      if (entries) {
+        return <OpenSourceNotices entries={entries} />
+      }
+
+      return (
+        <>
+          <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
+            라이선스 사용고지
+          </Typo.h4>
+          {failed ? (
+            <div role="alert">
+              <Typo.txtM>라이선스 정보를 불러오지 못했습니다.</Typo.txtM>
+              <ActionButton size="small" variant="neutralWeak" onClick={() => void loadNotices()}>
+                <Typo.txtS as="span" weight={700}>
+                  다시 시도
+                </Typo.txtS>
+              </ActionButton>
+            </div>
+          ) : (
+            <Typo.txtM role="status">라이선스 정보를 불러오는 중입니다.</Typo.txtM>
+          )}
+        </>
+      )
+    }
+
+    return (
+      <>
+        <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
+          개발자 모드
+        </Typo.h4>
+        <Typo.txtS as="p" {...stylex.props(styles.developerDescription)}>
+          개발 도구를 사용하려면 개발자 모드를 켜세요. 설정은 이 기기에 저장됩니다.
+        </Typo.txtS>
+        {renderDeveloperControls()}
+      </>
+    )
+  }
+
   return (
     <DialogRoot
       open={open}
@@ -128,99 +244,7 @@ export function SettingsSection({
                 <Typo.caption>DFRAGON Desktop</Typo.caption>
               </div>
             </aside>
-            <div {...stylex.props(styles.content)}>
-              {selectedSection === 'versions' ? (
-                <BuildVersionsSection />
-              ) : selectedSection === 'licenses' ? (
-                entries ? (
-                  <OpenSourceNotices entries={entries} />
-                ) : (
-                  <>
-                    <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
-                      라이선스 사용고지
-                    </Typo.h4>
-                    {failed ? (
-                      <div role="alert">
-                        <Typo.txtM>라이선스 정보를 불러오지 못했습니다.</Typo.txtM>
-                        <ActionButton
-                          size="small"
-                          variant="neutralWeak"
-                          onClick={() => void loadNotices()}
-                        >
-                          <Typo.txtS as="span" weight={700}>
-                            다시 시도
-                          </Typo.txtS>
-                        </ActionButton>
-                      </div>
-                    ) : (
-                      <Typo.txtM role="status">라이선스 정보를 불러오는 중입니다.</Typo.txtM>
-                    )}
-                  </>
-                )
-              ) : (
-                <>
-                  <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
-                    개발자 모드
-                  </Typo.h4>
-                  <Typo.txtS as="p" {...stylex.props(styles.developerDescription)}>
-                    개발 도구를 사용하려면 개발자 모드를 켜세요. 설정은 이 기기에 저장됩니다.
-                  </Typo.txtS>
-                  {mode.status === 'loading' ? (
-                    <Typo.txtM role="status">개발자 모드 설정을 불러오는 중입니다.</Typo.txtM>
-                  ) : mode.status === 'unavailable' ? (
-                    <Typo.txtM role="status">
-                      이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.
-                    </Typo.txtM>
-                  ) : mode.status === 'error' ? (
-                    <div role="alert">
-                      <Typo.txtM>개발자 모드 설정을 불러오거나 저장하지 못했습니다.</Typo.txtM>
-                      <ActionButton size="small" variant="neutralWeak" onClick={mode.retry}>
-                        <Typo.txtS as="span" weight={700}>
-                          다시 시도
-                        </Typo.txtS>
-                      </ActionButton>
-                    </div>
-                  ) : (
-                    <>
-                      <div {...stylex.props(styles.developerActions)}>
-                        <ActionButton
-                          size="small"
-                          variant="neutralWeak"
-                          aria-pressed={mode.enabled}
-                          disabled={mode.updating}
-                          onClick={() => mode.setEnabled(!mode.enabled)}
-                        >
-                          <Typo.txtS as="span" weight={700}>
-                            {mode.enabled ? '개발자 모드 끄기' : '개발자 모드 켜기'}
-                          </Typo.txtS>
-                        </ActionButton>
-                        {mode.enabled && onOpenDeveloperWorkbench && (
-                          <ActionButton
-                            size="small"
-                            variant="brandSolid"
-                            onClick={() => {
-                              setOpen(false)
-                              onOpenDeveloperWorkbench()
-                            }}
-                          >
-                            <Typo.txtS as="span" weight={700}>
-                              개발 도구 열기
-                            </Typo.txtS>
-                          </ActionButton>
-                        )}
-                      </div>
-                      <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
-                        {mode.updating
-                          ? '개발자 모드 설정을 저장하는 중입니다.'
-                          : mode.enabled
-                            ? '개발자 모드가 켜져 있습니다.'
-                            : '개발자 모드가 꺼져 있습니다.'}
-                      </Typo.txtS>
-                    </>
-                  )}
-                </>
-              )}
-            </div>
+            <div {...stylex.props(styles.content)}>{renderSectionContent()}</div>
           </div>
         )}
       </DialogContent>

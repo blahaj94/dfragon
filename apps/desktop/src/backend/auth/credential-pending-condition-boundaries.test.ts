@@ -91,6 +91,7 @@ describe('CredentialSession condition boundaries', () => {
         if (wallReads > 1) {
           throw new Error('server expiry must not read wallMs without an expiry')
         }
+
         return startedAt.wallMs + 1
       },
       monotonicMs: startedAt.monotonicMs + 1,
@@ -109,28 +110,34 @@ describe('CredentialSession condition boundaries', () => {
     const startedAt: ClockReading = {
       get wallMs() {
         events.push('started.wallMs')
+
         return startedWallMs
       },
       get monotonicMs() {
         events.push('started.monotonicMs')
+
         return startedMonotonicMs
       },
       get discontinuous() {
         events.push('started.discontinuous')
+
         return false
       }
     }
     const checkedAt: ClockReading = {
       get wallMs() {
         events.push('checked.wallMs')
+
         return startedWallMs + 600_000
       },
       get monotonicMs() {
         events.push('checked.monotonicMs')
+
         return startedMonotonicMs + 1
       },
       get discontinuous() {
         events.push('checked.discontinuous')
+
         return false
       }
     }

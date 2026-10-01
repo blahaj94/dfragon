@@ -10,6 +10,7 @@ export function readSecretInput(
     if (value !== undefined && file !== undefined) {
       throw new Error()
     }
+
     if (file !== undefined) {
       if (!isAbsolute(file)) {
         throw new Error()
@@ -19,9 +20,11 @@ export function readSecretInput(
         .decode(readFileSync(file))
         .replace(/\n+$/, '')
     }
+
     if (value !== undefined && value.trim() === '') {
       throw new Error()
     }
+
     return value
   } catch {
     throw new Error('Invalid secret input')

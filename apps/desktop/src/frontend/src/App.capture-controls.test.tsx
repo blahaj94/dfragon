@@ -5,28 +5,37 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import PartyCapture from './sections/PartyCapture'
 
-const capture = vi.hoisted(() => ({
-  sources: [{ id: 'example-window', name: 'Example window' }],
-  selectedSourceId: '',
-  sourceRegistered: false,
-  starting: false,
-  search: {
-    ready: true,
-    slots: [],
-    retryPending: [],
-    connectionFailed: false,
-    captureActive: false
-  },
-  retrySearch: vi.fn(),
-  intervalSeconds: 3,
-  stableNicknames: [null, null, null, null],
-  status: 'Ready',
-  selectSource: vi.fn(),
-  refreshSources: vi.fn(),
-  setIntervalSeconds: vi.fn(),
-  startCapture: vi.fn(),
-  stopCapture: vi.fn()
-}))
+const capture = vi.hoisted(() => {
+  const retrySearch = vi.fn()
+  const selectSource = vi.fn()
+  const refreshSources = vi.fn()
+  const setIntervalSeconds = vi.fn()
+  const startCapture = vi.fn()
+  const stopCapture = vi.fn()
+
+  return {
+    sources: [{ id: 'example-window', name: 'Example window' }],
+    selectedSourceId: '',
+    sourceRegistered: false,
+    starting: false,
+    search: {
+      ready: true,
+      slots: [],
+      retryPending: [],
+      connectionFailed: false,
+      captureActive: false
+    },
+    retrySearch,
+    intervalSeconds: 3,
+    stableNicknames: [null, null, null, null],
+    status: 'Ready',
+    selectSource,
+    refreshSources,
+    setIntervalSeconds,
+    startCapture,
+    stopCapture
+  }
+})
 
 // Renderer 연결만 검증하며 capture hook·IPC·media/OCR는 실행하지 않는다.
 vi.mock('./hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
@@ -53,12 +62,14 @@ afterEach(async () => {
 function button(text: string): HTMLButtonElement {
   const result = Array.from(container.querySelectorAll('button')).find((candidate) => {
     const hasLabel = candidate.textContent === text
+
     return hasLabel
   })
   const isMissing = result == null
   if (isMissing) {
     throw new Error(`Expected renderer button: ${text}`)
   }
+
   return result
 }
 

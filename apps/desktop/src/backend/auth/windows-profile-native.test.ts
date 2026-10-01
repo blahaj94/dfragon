@@ -1,10 +1,12 @@
 import { expect, it, vi } from 'vitest'
 import { createWindowsProfileSecurity } from './windows-profile-native'
 
-const native = vi.hoisted(() => ({
-  inspect: vi.fn(() => 'trusted'),
-  syncDirectory: vi.fn()
-}))
+const native = vi.hoisted(() => {
+  const inspect = vi.fn(() => 'trusted')
+  const syncDirectory = vi.fn()
+
+  return { inspect, syncDirectory }
+})
 vi.mock('./windows-security-native', () => ({
   createWindowsSecurityNative: () => native
 }))

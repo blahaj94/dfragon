@@ -2,16 +2,22 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const fixture = vi.hoisted(() => ({ setPath: vi.fn(), ready: vi.fn(), exit: vi.fn() }))
-vi.mock('electron', () => ({
-  app: {
-    setPath: fixture.setPath,
-    setName: vi.fn(),
-    on: vi.fn(),
-    whenReady: fixture.ready,
-    exit: fixture.exit
-  }
-}))
+const fixture = vi.hoisted(() => {
+  const setPathValue = vi.fn()
+  const ready = vi.fn()
+  const exitValue = vi.fn()
+
+  return { setPath: setPathValue, ready, exit: exitValue }
+})
+vi.mock('electron', () => {
+  const setPath = fixture.setPath
+  const setName = vi.fn()
+  const on = vi.fn()
+  const whenReady = fixture.ready
+  const exit = fixture.exit
+
+  return { app: { setPath, setName, on, whenReady, exit } }
+})
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
@@ -37,6 +43,7 @@ it.each(['missing owner', 'wrong parent', 'outside temp directory'])(
       )
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', '0')
     }
+
     if (hasWrongDirectory) {
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_PROFILE', '/synthetic/outside-profile')
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', String(process.ppid))

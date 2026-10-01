@@ -18,6 +18,7 @@ function createApp(): {
     }),
     exit: vi.fn()
   }
+
   return { app, handlers }
 }
 
@@ -42,6 +43,7 @@ function createWindow(): {
       })
     }
   } as unknown as BrowserWindow
+
   return { window, handlers, webContentsHandlers, destroy }
 }
 
@@ -62,6 +64,7 @@ function createLifecycle(): {
   })
   lifecycle.setPowerMonitorDisposer(disposePowerMonitor)
   lifecycle.registerAppHandlers()
+
   return { lifecycle, handlers, disposeIngress, disposePowerMonitor, app }
 }
 
@@ -128,6 +131,7 @@ it.each(['cancel', 'commit'] as const)(
     queueMicrotask(() => {
       if (outcome === 'cancel') {
         willQuit({ defaultPrevented: true } as never)
+
         return
       }
       quit()
@@ -155,9 +159,11 @@ it('retries a null bootstrap only after a canceled quit was observed during boot
     bootstrapCalls += 1
     if (bootstrapCalls === 1) {
       expect(isActive()).toBe(false)
+
       return firstBootstrap
     }
     expect(isActive()).toBe(true)
+
     return 'runtime'
   })
   await Promise.resolve()
@@ -180,6 +186,7 @@ it('does not retry bootstrap after quit commits while bootstrap is pending', asy
   const runtime = lifecycle.runBootstrap(async (isActive) => {
     bootstrapCalls += 1
     expect(isActive()).toBe(false)
+
     return null
   })
   quit()

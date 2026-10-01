@@ -32,6 +32,7 @@ export function createRuntimeClock(options: RuntimeClockOptions): AuthClock {
       if (!isUsable) {
         return null
       }
+
       return { wallMs, monotonicBeforeMs, monotonicMs }
     } catch {
       return null
@@ -70,10 +71,12 @@ export function createRuntimeClock(options: RuntimeClockOptions): AuthClock {
     }
     discontinuous ||= hasPowerEvent || options.powerState.suspended
     previous = current ?? previous
+    const wallMs = current?.wallMs ?? previous?.wallMs ?? 0
+    const monotonicMs = current?.monotonicMs ?? previous?.monotonicMs ?? 0
 
     return {
-      wallMs: current?.wallMs ?? previous?.wallMs ?? 0,
-      monotonicMs: current?.monotonicMs ?? previous?.monotonicMs ?? 0,
+      wallMs,
+      monotonicMs,
       discontinuous
     }
   }
@@ -88,6 +91,7 @@ export function createRuntimeClock(options: RuntimeClockOptions): AuthClock {
     },
     schedule: (delayMs, callback) => {
       const timeout = setTimeout(callback, delayMs)
+
       return () => clearTimeout(timeout)
     }
   }

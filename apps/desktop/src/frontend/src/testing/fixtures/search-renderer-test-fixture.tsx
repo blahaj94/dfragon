@@ -13,19 +13,37 @@ import {
 } from '../../../../preload/api/search-test-fixture'
 import { LegacyApp } from '../../fixture/legacy/LegacyApp'
 
-const media = vi.hoisted(() => ({ crops: vi.fn(), worker: vi.fn(), loop: vi.fn() }))
-vi.mock('../../lib/ocr', async (original) => ({
-  ...(await original<typeof import('../../lib/ocr')>()),
-  createPartyOcrWorker: media.worker
-}))
-vi.mock('../../lib/party', async (original) => ({
-  ...(await original<typeof import('../../lib/party')>()),
-  capturePartyNicknameCrops: media.crops
-}))
-vi.mock('../../lib/recognition', async (original) => ({
-  ...(await original<typeof import('../../lib/recognition')>()),
-  runSerialLoop: media.loop
-}))
+const media = vi.hoisted(() => {
+  const crops = vi.fn()
+  const worker = vi.fn()
+  const loop = vi.fn()
+
+  return { crops, worker, loop }
+})
+vi.mock('../../lib/ocr', async (original) => {
+  const originalModule = await original<typeof import('../../lib/ocr')>()
+
+  return {
+    ...originalModule,
+    createPartyOcrWorker: media.worker
+  }
+})
+vi.mock('../../lib/party', async (original) => {
+  const originalModule = await original<typeof import('../../lib/party')>()
+
+  return {
+    ...originalModule,
+    capturePartyNicknameCrops: media.crops
+  }
+})
+vi.mock('../../lib/recognition', async (original) => {
+  const originalModule = await original<typeof import('../../lib/recognition')>()
+
+  return {
+    ...originalModule,
+    runSerialLoop: media.loop
+  }
+})
 
 type Loop = { signal: AbortSignal; getIntervalMs: () => number; runCycle: () => Promise<void> }
 const cleanup: Array<() => Promise<void>> = []
@@ -39,14 +57,18 @@ export function authSnapshot({
   revision = 1,
   signedIn = true
 }: AuthSnapshotInput = {}): AuthSnapshot {
+  const phase = signedIn ? 'signedIn' : 'signedOut'
+  const user = signedIn ? { nickname: '합성 계정' } : null
+  const entry = signedIn ? 'home' : null
+
   return {
     runId: SEARCH_RUN,
     revision,
-    phase: signedIn ? 'signedIn' : 'signedOut',
+    phase,
     providers: [],
     login: null,
-    user: signedIn ? { nickname: '합성 계정' } : null,
-    entry: signedIn ? 'home' : null,
+    user,
+    entry,
     notice: null
   }
 }
@@ -91,6 +113,7 @@ export function captureResources(): CaptureResources {
     recognize: vi.fn().mockResolvedValue({ data: { text: 'ALICE' } }),
     terminate: vi.fn().mockResolvedValue(undefined)
   }
+
   return { track, stream, worker }
 }
 
@@ -121,6 +144,7 @@ export function createRendererFixture(): RendererFixture {
             : `00000000-0000-4000-8000-${String(100 + sequence).padStart(12, '0')}`
           currentSearch = searchSnapshot({ captureId, revision: currentSearch.revision + 1 })
         }
+
         return { ok: true, snapshot: currentSearch }
       }),
     onCharacterSearchChanged: vi
@@ -128,6 +152,7 @@ export function createRendererFixture(): RendererFixture {
       .mockImplementation((listener) => {
         order.push('subscribe')
         searchListeners.add(listener)
+
         return () => {
           order.push('unsubscribe')
           searchListeners.delete(listener)
@@ -145,15 +170,18 @@ export function createRendererFixture(): RendererFixture {
       .mockImplementation(async (observation) => {
         const slots = currentSearch.slots.map((slot) => {
           const isObserved = slot.slot === observation.slot
-          return isObserved
-            ? searchSlot({
-                slot: observation.slot,
-                nickname: observation.nickname,
-                observationRevision: observation.observationRevision
-              })
-            : slot
+          if (isObserved) {
+            return searchSlot({
+              slot: observation.slot,
+              nickname: observation.nickname,
+              observationRevision: observation.observationRevision
+            })
+          }
+
+          return slot
         })
         currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
+
         return { ok: true, snapshot: currentSearch }
       })
   }
@@ -161,6 +189,7 @@ export function createRendererFixture(): RendererFixture {
     getAuthState: vi.fn().mockImplementation(async () => currentAuth),
     onAuthStateChanged: vi.fn().mockImplementation((listener: (snapshot: AuthSnapshot) => void) => {
       authListeners.add(listener)
+
       return () => authListeners.delete(listener)
     }),
     beginLogin: vi.fn(),
@@ -192,9 +221,11 @@ export function createRendererFixture(): RendererFixture {
   function button(label: string, within: ParentNode = container): HTMLButtonElement {
     const found = Array.from(within.querySelectorAll('button')).find((item) => {
       const hasLabel = item.textContent === label
+
       return hasLabel
     })
     expect(found, `화면 버튼 ${label}`).toBeDefined()
+
     return found as HTMLButtonElement
   }
   async function select(source = 'game'): Promise<void> {
@@ -235,6 +266,7 @@ export function createRendererFixture(): RendererFixture {
       }
     })
   }
+
   return {
     container,
     search,

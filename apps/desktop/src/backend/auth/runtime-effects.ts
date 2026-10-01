@@ -55,6 +55,7 @@ export function createAuthRuntimeEffects(
   const readWallMs = options.readWallMs ?? Date.now
   const readMonotonicMs = options.readMonotonicMs ?? (() => performance.now())
   const powerState: ClockPowerState = { suspended: false, revision: 0 }
+
   return {
     bindPowerMonitor(powerMonitor): () => void {
       const suspend = (): void => {
@@ -76,6 +77,7 @@ export function createAuthRuntimeEffects(
         dispose()
         throw error
       }
+
       return dispose
     },
 
@@ -93,18 +95,21 @@ export function createAuthRuntimeEffects(
         platform
       })
       const clock = createRuntimeClock({ readWallMs, readMonotonicMs, powerState })
+      const providers = config.providers
+      const returnTarget = config.returnTarget
+      const browser = options.openBrowser
+        ? { open: options.openBrowser }
+        : createAuthBrowser(
+            apiOrigin,
+            config.returnTarget,
+            options.activateMainWindow ?? (() => {})
+          )
 
       return {
-        providers: config.providers,
+        providers,
         apiOrigin,
-        returnTarget: config.returnTarget,
-        browser: options.openBrowser
-          ? { open: options.openBrowser }
-          : createAuthBrowser(
-              apiOrigin,
-              config.returnTarget,
-              options.activateMainWindow ?? (() => {})
-            ),
+        returnTarget,
+        browser,
         clock,
         entropy: {
           uuid: randomUUID,

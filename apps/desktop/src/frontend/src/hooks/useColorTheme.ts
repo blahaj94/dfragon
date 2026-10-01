@@ -9,5 +9,6 @@ export function useColorTheme(): {
   if (theme == null) {
     throw new Error('useColorTheme must be used within ColorThemeProvider')
   }
+
   return theme
 }

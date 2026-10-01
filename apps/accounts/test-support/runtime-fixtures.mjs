@@ -11,18 +11,21 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 export function authenticationConfiguration() {
   const keys = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+  const privateKeyPem = keys.privateKey.export({ type: 'pkcs8', format: 'pem' })
+  const publicKeyPem = keys.publicKey.export({ type: 'spki', format: 'pem' })
+
   return {
     accessJwt: {
       issuer: 'https://issuer.test.invalid',
       audience: 'runtime-test-api',
       signingKey: {
         kid: 'runtime-test-key',
-        privateKeyPem: keys.privateKey.export({ type: 'pkcs8', format: 'pem' })
+        privateKeyPem
       },
       verificationKeys: [
         {
           kid: 'runtime-test-key',
-          publicKeyPem: keys.publicKey.export({ type: 'spki', format: 'pem' })
+          publicKeyPem
         }
       ]
     },
@@ -43,6 +46,7 @@ export async function withRuntimeConfiguration(
   const path = join(directory, 'auth.json')
   try {
     await writeFile(path, JSON.stringify(configuration), { mode: 0o600 })
+
     return await operation({ path, configuration })
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -58,12 +62,18 @@ export function databaseEnvironment(
     database: 'runtime-test'
   }
 ) {
+  const host = configuration.host
+  const portText = String(configuration.port)
+  const username = configuration.username
+  const password = configuration.password
+  const database = configuration.database
+
   return {
-    DB_HOST: configuration.host,
-    DB_PORT: String(configuration.port),
-    DB_USERNAME: configuration.username,
-    DB_PASSWORD: configuration.password,
-    DB_NAME: configuration.database
+    DB_HOST: host,
+    DB_PORT: portText,
+    DB_USERNAME: username,
+    DB_PASSWORD: password,
+    DB_NAME: database
   }
 }
 
@@ -104,6 +114,7 @@ export function startRuntime(
     child.once('error', reject)
     child.once('close', (code, signal) => resolve({ code, signal, stdout, stderr }))
   })
+
   return { child, events, exited }
 }
 
@@ -149,6 +160,7 @@ export async function unusedRuntimePort() {
       }
     })
   )
+
   return port
 }
 
@@ -157,6 +169,7 @@ export async function waitForRuntime(port, runtime) {
     assert.equal(runtime.child.exitCode, null, 'API exited before listening')
     try {
       await fetch(`http://127.0.0.1:${port}/`)
+
       return
     } catch {
       await delay(20)
@@ -166,10 +179,13 @@ export async function waitForRuntime(port, runtime) {
 }
 
 export function runtimeEnvironment(path, port, database) {
+  const databaseVariables = databaseEnvironment(database)
+  const portText = String(port)
+
   return {
-    ...databaseEnvironment(database),
+    ...databaseVariables,
     AUTH_CONFIG_FILE: path,
-    PORT: String(port)
+    PORT: portText
   }
 }
 

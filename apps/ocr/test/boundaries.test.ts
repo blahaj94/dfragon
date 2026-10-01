@@ -44,13 +44,15 @@ test('in-flight logins reserve global capacity and failures release their reserv
   const upstream: typeof fetch = async () => {
     calls++
     await released
-    return fail
-      ? new Response(null, { status: 503 })
-      : Response.json({
-          requestId: 'synthetic',
-          browserUrl: 'https://auth.example.test/auth/login/authorize',
-          expiresAt: new Date(Date.now() + OCR_AUTH.pendingLifetimeMs).toISOString()
-        })
+    if (fail) {
+      return new Response(null, { status: 503 })
+    }
+
+    return Response.json({
+      requestId: 'synthetic',
+      browserUrl: 'https://auth.example.test/auth/login/authorize',
+      expiresAt: new Date(Date.now() + OCR_AUTH.pendingLifetimeMs).toISOString()
+    })
   }
   const auth = new OcrAuth(
     {
@@ -63,12 +65,16 @@ test('in-flight logins reserve global capacity and failures release their reserv
   let now = Date.now()
   t.mock.method(Date, 'now', () => now)
   const response = { cookie() {}, json() {} } as unknown as import('express').Response
-  const request = (index: number) =>
-    ({ ip: `192.0.2.${index + 1}`, cookies: {} }) as import('express').Request
+  const request = (index: number) => {
+    const ip = `192.0.2.${index + 1}`
+
+    return { ip, cookies: {} } as import('express').Request
+  }
   const requests = Array.from({ length: OCR_AUTH.maximumPendingLogins }, (_, index) => {
     if (index === OCR_AUTH.maximumLoginAttempts) {
       now += OCR_AUTH.loginWindowMs
     }
+
     return auth.begin(request(index), response)
   })
 

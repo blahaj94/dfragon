@@ -96,6 +96,7 @@ export function createPendingLogin(
     if (!expired) {
       actor.send({ type: 'CLOCK_ACCEPTED', checkedAt })
     }
+
     return expired
   }
 
@@ -111,13 +112,18 @@ export function createPendingLogin(
     },
     get isBeforeExchange() {
       const snapshot = actor.getSnapshot()
+
       return (
         snapshot.matches('idle') ||
         snapshot.matches({ active: 'starting' }) ||
         snapshot.matches({ active: 'waiting' })
       )
     },
-    snapshot: () => ({ attemptId, provider, expiresAt: actor.getSnapshot().context.expiresAt }),
+    snapshot: () => {
+      const expiresAt = actor.getSnapshot().context.expiresAt
+
+      return { attemptId, provider, expiresAt }
+    },
     start: () => actor.send({ type: 'START' }),
     acceptRequest: ({ requestId, expiresAt }) => {
       if (!actor.getSnapshot().matches({ active: 'starting' })) {
@@ -139,10 +145,13 @@ export function createPendingLogin(
       if (rejectedFingerprint === fingerprint) {
         return { status: 'ignored' }
       }
+
       if (snapshot.matches({ active: 'exchanging' })) {
-        return exchangeFingerprint === fingerprint && exchangePromise != null
-          ? { status: 'joined', promise: exchangePromise }
-          : { status: 'ignored' }
+        if (exchangeFingerprint === fingerprint && exchangePromise != null) {
+          return { status: 'joined', promise: exchangePromise }
+        }
+
+        return { status: 'ignored' }
       }
       const claim = { type: 'CLAIM' as const, fingerprint }
       if (!snapshot.can(claim) || requestId == null || verifier == null) {
@@ -157,7 +166,9 @@ export function createPendingLogin(
         return { status: 'ignored' }
       }
       actor.send({ type: 'TRACK_EXCHANGE', promise: writer.completion })
-      return { status: 'claimed', input, signal: controller.signal, writer }
+      const signal = controller.signal
+
+      return { status: 'claimed', input, signal, writer }
     },
     rejectExchange: async (recover, onRecovered) => {
       const snapshot = actor.getSnapshot()
@@ -179,6 +190,7 @@ export function createPendingLogin(
       actor.send({ type: 'RESUME_WAITING' })
       // Publish in this continuation before a new code can claim the waiting attempt.
       onRecovered()
+
       return true
     },
     dispose: () => {
@@ -190,5 +202,6 @@ export function createPendingLogin(
       }
     }
   }
+
   return pending
 }

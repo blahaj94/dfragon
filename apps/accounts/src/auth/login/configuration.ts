@@ -16,6 +16,7 @@ export function validatePasskeyConfiguration(
     ) {
       throw new Error()
     }
+
     if (
       !['dfragon:', 'dfragon.dev:'].includes(target.protocol) ||
       target.host !== 'auth' ||
@@ -28,6 +29,7 @@ export function validatePasskeyConfiguration(
     ) {
       throw new Error()
     }
+
     if (value.ocrReturnUrl !== undefined) {
       const web = new URL(value.ocrReturnUrl)
       if (
@@ -42,6 +44,7 @@ export function validatePasskeyConfiguration(
         throw new Error()
       }
     }
+
     return Object.freeze({ ...value })
   } catch {
     throw new Error('Invalid passkey configuration')
@@ -60,6 +63,7 @@ export function configurationFingerprint(
     }
     values.push('ocr', config.ocrReturnUrl)
   }
+
   return createHash('sha256').update(JSON.stringify(values)).digest('hex')
 }
 
@@ -70,11 +74,13 @@ export function configuredLoginClient(
   if (fingerprint === configurationFingerprint(config)) {
     return 'desktop'
   }
+
   if (
     config.ocrReturnUrl !== undefined &&
     fingerprint === configurationFingerprint(config, 'ocr')
   ) {
     return 'ocr'
   }
+
   return null
 }

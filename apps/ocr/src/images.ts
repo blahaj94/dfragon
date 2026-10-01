@@ -16,6 +16,7 @@ export function decodePng(bytes: Buffer): PNG {
   }
   // pngjs accepts duplicate IHDR and uses an unbounded inflater for interlaced PNGs.
   // Capture uploads use ordinary non-interlaced PNG; reject both before decoding.
+
   if (
     bytes.readUInt32BE(8) !== 13 ||
     bytes.toString('ascii', 12, 16) !== 'IHDR' ||
@@ -67,6 +68,7 @@ function parseCoordinate(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return value
 }
 
@@ -78,7 +80,10 @@ export function decodeUploadedPng(value: unknown) {
   if (png.toString('base64') !== value) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
-  return { png, decoded: decodePng(png) }
+
+  const decoded = decodePng(png)
+
+  return { png, decoded }
 }
 
 export function parseImageIdentity(id: unknown, capturedAt: unknown) {
@@ -147,26 +152,28 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
         throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
       }
       slots.add(slot)
+
       return { slot, x, y, width, height }
     })
     .sort((a, b) => a.slot - b.slot)
-  return {
-    png,
-    capture: {
-      id,
-      capturedAt,
-      kind,
-      width: decoded.width,
-      height: decoded.height,
-      uiScale,
-      uiScaleSource,
-      crops
-    }
+
+  const capture: Capture = {
+    id,
+    capturedAt,
+    kind,
+    width: decoded.width,
+    height: decoded.height,
+    uiScale,
+    uiScaleSource,
+    crops
   }
+
+  return { png, capture }
 }
 
 export function cropPng(original: PNG, crop: Crop): Buffer {
   const output = new PNG({ width: crop.width, height: crop.height })
   PNG.bitblt(original, output, crop.x, crop.y, crop.width, crop.height, 0, 0)
+
   return PNG.sync.write(output)
 }

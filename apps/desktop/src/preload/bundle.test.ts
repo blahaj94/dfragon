@@ -37,9 +37,14 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       if (!isElectron) {
         throw new Error(`Sandbox preload cannot require ${name}`)
       }
+
+      const invoke = vi.fn()
+      const on = vi.fn()
+      const removeListener = vi.fn()
+
       return {
         contextBridge: { exposeInMainWorld: expose },
-        ipcRenderer: { invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn() }
+        ipcRenderer: { invoke, on, removeListener }
       }
     }
     expect(() => runInNewContext(chunks[0], { require: requireModule, exports: {} })).not.toThrow()
@@ -48,7 +53,8 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       'auth',
       'search',
       'manualSearch',
-      'developer'
+      'developer',
+      'versions'
     ])
   }
 )

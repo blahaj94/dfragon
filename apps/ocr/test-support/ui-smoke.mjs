@@ -56,6 +56,7 @@ try {
         expiresAt: new Date(Date.now() + 600_000).toISOString()
       })
     }
+
     if (path === '/auth/exchange') {
       return Response.json({
         accessToken: 'synthetic',
@@ -64,9 +65,11 @@ try {
         user: { id: ownerId, nickname: '검증계정' }
       })
     }
+
     if (path === '/me') {
       return Response.json({ user: { id: ownerId, nickname: '검증계정' } })
     }
+
     if (path === '/auth/logout') {
       return new Response(null, { status: 204 })
     }
@@ -157,6 +160,7 @@ try {
     ctx.fillRect(80, 110, 180, 10)
     ctx.fillStyle = '#6395c0'
     ctx.fillRect(80, 125, 180, 10)
+
     return canvas.toDataURL('image/png').split(',')[1]
   })
   const uploadToggle = page.getByRole('button', { name: '이미지 업로드', exact: true })
@@ -224,6 +228,7 @@ try {
   let repeatedSelectionDialogs = 0
   const dismissRepeatedSelection = (dialog) => {
     repeatedSelectionDialogs += 1
+
     return dialog.dismiss()
   }
   page.on('dialog', dismissRepeatedSelection)

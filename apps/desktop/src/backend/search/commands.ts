@@ -58,10 +58,16 @@ function parseCommand<T extends object>({
       return false
     }
     const isExpectedKey = Object.hasOwn(parsed.data, key)
+
     return isExpectedKey
   })
   const hasExactKeys = hasExactKeyCount && hasOnlyExpectedKeys
-  return hasExactKeys ? parsed.data : null
+
+  if (!hasExactKeys) {
+    return null
+  }
+
+  return parsed.data
 }
 
 export function parseSearchControl(args: unknown[]): SearchControl | null {

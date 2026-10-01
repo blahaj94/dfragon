@@ -62,6 +62,7 @@ async function readBody(response: Response, signal: AbortSignal, limit: number):
       }
       chunks.push(chunk.value)
     }
+
     return Buffer.concat(chunks, length)
   } finally {
     signal.removeEventListener('abort', cancel)
@@ -133,6 +134,7 @@ export function createOcrDataset(
           )
           continue
         }
+
         if (response.status !== 200) {
           await response.body?.cancel()
           throw new Error(
@@ -144,6 +146,7 @@ export function createOcrDataset(
           if (!lifecycle.isCurrent()) {
             throw new Error(errors.OCR_LOGIN_REQUIRED)
           }
+
           return result
         } catch (error) {
           await response.body?.cancel().catch(() => undefined)
@@ -166,6 +169,7 @@ export function createOcrDataset(
         if (response.headers.get('content-type')?.split(';')[0] !== 'application/json') {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
+
         return datasetSchema.parse(
           JSON.parse((await readBody(response, signal, 8 * 1024 * 1024)).toString('utf8'))
         )
@@ -173,31 +177,33 @@ export function createOcrDataset(
       if (current !== revision) {
         throw new Error(errors.OCR_UNAVAILABLE)
       }
+
       return dataset.samples.map((sample) => {
         const id = `ocr:${current}:${sample.id}`
         if (samples.has(id)) {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
         samples.set(id, sample)
-        return {
-          id,
-          createdAt: sample.capturedAt,
-          width: sample.width,
-          height: sample.height,
-          text: sample.text,
-          excluded: sample.excluded,
-          remote: { kind: sample.kind, split: sample.split },
-          source:
-            sample.uiScale === null
-              ? null
-              : {
-                  kind: sample.kind,
-                  slot: sample.slot,
-                  frameWidth: sample.frameWidth,
-                  frameHeight: sample.frameHeight,
-                  scale: sample.uiScale
-                }
+
+        const createdAt = sample.capturedAt
+        const width = sample.width
+        const height = sample.height
+        const text = sample.text
+        const excluded = sample.excluded
+        const kind = sample.kind
+        const split = sample.split
+        const remote = { kind, split }
+        let source: DeveloperSample['source'] = null
+        if (sample.uiScale !== null) {
+          const sourceKind = sample.kind
+          const slot = sample.slot
+          const frameWidth = sample.frameWidth
+          const frameHeight = sample.frameHeight
+          const scale = sample.uiScale
+          source = { kind: sourceKind, slot, frameWidth, frameHeight, scale }
         }
+
+        return { id, createdAt, width, height, text, excluded, remote, source }
       })
     },
     async readImage(id: string): Promise<string> {
@@ -205,6 +211,7 @@ export function createOcrDataset(
       if (!sample) {
         throw new Error(errors.SAMPLE_NOT_FOUND)
       }
+
       return get(`/api/desktop/samples/${sample.id}/image`, async (response, signal) => {
         if (response.headers.get('content-type') !== 'image/png') {
           throw new Error(errors.OCR_UNAVAILABLE)
@@ -221,6 +228,7 @@ export function createOcrDataset(
         ) {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
+
         return `data:image/png;base64,${png.toString('base64')}`
       })
     }

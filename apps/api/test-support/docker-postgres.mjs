@@ -35,10 +35,15 @@ function safeDockerEnvironment() {
     'DOCKER_TLS_VERIFY',
     'DOCKER_CERT_PATH'
   ]
+
   return Object.fromEntries(
     names.flatMap((name) => {
       const isVariableMissing = process.env[name] === undefined
-      return isVariableMissing ? [] : [[name, process.env[name]]]
+      if (isVariableMissing) {
+        return []
+      }
+
+      return [[name, process.env[name]]]
     })
   )
 }
@@ -66,6 +71,7 @@ export function command(program, args, options = {}) {
         outputExceeded = true
         child.kill('SIGKILL')
       }
+
       return next
     }
     child.stdout
@@ -81,14 +87,19 @@ export function command(program, args, options = {}) {
       clearTimeout(timer)
       if (startFailed) {
         reject(new Error('Command failed to start'))
+
         return
       }
+
       if (outputExceeded) {
         reject(new Error('Command output limit exceeded'))
+
         return
       }
+
       if (timedOut) {
         reject(new Error('Command timed out'))
+
         return
       }
       resolve({ code, signal, stdout, stderr })
@@ -108,6 +119,7 @@ export function shouldThrowDockerFailure({ allowFailure, result }) {
   }
 
   const hasExitSignal = result.signal !== null
+
   return hasExitSignal
 }
 
@@ -117,6 +129,7 @@ export async function docker(args, options = {}) {
   if (shouldThrow) {
     throw new Error(`Docker command failed: ${args[0] ?? 'unknown'}`)
   }
+
   return result
 }
 
@@ -162,6 +175,7 @@ export function matchesImagePlatform(entry, platform) {
   }
 
   const hasArm64Variant = entry.platform?.variant === 'v8'
+
   return hasArm64Variant
 }
 
@@ -249,6 +263,7 @@ async function savedImageConfigDigest() {
   const archivePath = join(directory, 'image.tar')
   try {
     await docker(['image', 'save', '--output', archivePath, POSTGRES_IMAGE], { timeoutMs: 120_000 })
+
     return await readArchiveConfigDigest(archivePath)
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -265,16 +280,20 @@ export async function readArchiveConfigDigest(archivePath) {
     const isManifestEntry = entry.path === 'manifest.json'
     if (!isManifestEntry) {
       entry.resume()
+
       return
     }
+
     if (hasManifest) {
       parser.abort(new Error('Duplicate saved image manifest'))
+
       return
     }
     hasManifest = true
     const exceedsManifestLimit = entry.size > maxManifestBytes
     if (exceedsManifestLimit) {
       parser.abort(new Error('Saved image manifest exceeds byte limit'))
+
       return
     }
     entry.on('data', (chunk) => {
@@ -282,6 +301,7 @@ export async function readArchiveConfigDigest(archivePath) {
       const exceedsManifestLimit = manifestBytes > maxManifestBytes
       if (exceedsManifestLimit) {
         parser.abort(new Error('Saved image manifest exceeds byte limit'))
+
         return
       }
       chunks.push(chunk)
@@ -313,6 +333,7 @@ export async function readArchiveConfigDigest(archivePath) {
   if (!isConfigPathString) {
     throw new Error('Saved image config is missing')
   }
+
   return archiveConfigDigest(configPath)
 }
 
@@ -330,6 +351,7 @@ export function newRunId(prefix = 'run') {
 export function archiveConfigDigest(configPath) {
   const hash = basename(configPath).replace(/\.json$/, '')
   assert.match(hash, /^[a-f0-9]{64}$/)
+
   return `sha256:${hash}`
 }
 
@@ -418,13 +440,15 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
     if (!hasLoopbackPort) {
       throw new Error('PostgreSQL loopback port could not be determined')
     }
+    const port = Number(portMatch[1])
+
     return {
       runId,
       containerName,
       volumeName,
       configuration: {
         host: '127.0.0.1',
-        port: Number(portMatch[1]),
+        port,
         username,
         password,
         database
@@ -449,6 +473,7 @@ export function hasOwnedDataVolumeMount(mounts, volumeName) {
     }
 
     const hasMatchingDestination = mount.Destination === POSTGRES_DATA.volumeTarget
+
     return hasMatchingDestination
   })
 }
@@ -470,6 +495,7 @@ async function inspectOwnership({ kind, name }) {
     ? ['container', 'inspect', name, '--format', `{{ index .Config.Labels "${ownershipLabel}" }}`]
     : ['volume', 'inspect', name, '--format', `{{ index .Labels "${ownershipLabel}" }}`]
   const inspected = await docker(inspectArgs)
+
   return inspected.stdout.trim()
 }
 

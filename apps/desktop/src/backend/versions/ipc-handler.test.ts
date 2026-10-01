@@ -4,7 +4,13 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { registerVersionsWindow } from './ipc-handler'
 import type { BuildVersions } from '../../preload/common/types/build-versions'
 
-const mocks = vi.hoisted(() => ({ add: vi.fn(), remove: vi.fn(), read: vi.fn() }))
+const mocks = vi.hoisted(() => {
+  const add = vi.fn()
+  const remove = vi.fn()
+  const read = vi.fn()
+
+  return { add, remove, read }
+})
 vi.mock('../ipc', () => ({ addHandler: mocks.add }))
 vi.mock('electron', () => ({ ipcMain: { removeHandler: mocks.remove } }))
 vi.mock('./http', () => ({ createServerVersionReader: () => mocks.read }))
@@ -46,7 +52,11 @@ function fixture(): {
   dispose = registerVersionsWindow({
     window: window as unknown as BrowserWindow,
     documentUrl,
-    desktop: () => ({ version: '2.3.4', commit: 'b'.repeat(40), dirty: false }),
+    desktop: () => {
+      const commit = 'b'.repeat(40)
+
+      return { version: '2.3.4', commit, dirty: false }
+    },
     apiOrigin: 'https://api.example.test',
     accountsOrigin: 'https://accounts.example.test'
   })
@@ -55,6 +65,7 @@ function fixture(): {
     ...args: unknown[]
   ) => Promise<BuildVersions>
   const event = { sender: contents, senderFrame: frame } as unknown as IpcMainInvokeEvent
+
   return { window, contents, frame, event, invoke }
 }
 
@@ -84,21 +95,27 @@ it.each([
   if (kind === 'sender') {
     event.sender = {}
   }
+
   if (kind === 'subframe') {
     event.senderFrame = {}
   }
+
   if (kind === 'document') {
     f.frame.url = `${documentUrl}?other`
   }
+
   if (kind === 'detached') {
     f.frame.detached = true
   }
+
   if (kind === 'destroyedFrame') {
     f.frame.isDestroyed.mockReturnValue(true)
   }
+
   if (kind === 'destroyedWindow') {
     f.window.isDestroyed.mockReturnValue(true)
   }
+
   if (kind === 'destroyedContents') {
     f.contents.isDestroyed.mockReturnValue(true)
   }

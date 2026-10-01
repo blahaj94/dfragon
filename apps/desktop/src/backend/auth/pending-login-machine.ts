@@ -69,11 +69,13 @@ export const pendingLoginMachine = setup({
           on: {
             REQUEST_ACCEPTED: {
               target: 'waiting',
-              actions: assign(({ event }) => ({
-                requestId: event.requestId,
-                expiresAt: event.expiresAt,
-                expiresAtMs: Date.parse(event.expiresAt)
-              }))
+              actions: assign(({ event }) => {
+                const requestId = event.requestId
+                const expiresAt = event.expiresAt
+                const expiresAtMs = Date.parse(event.expiresAt)
+
+                return { requestId, expiresAt, expiresAtMs }
+              })
             }
           }
         },

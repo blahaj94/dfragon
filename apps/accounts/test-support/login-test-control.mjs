@@ -31,22 +31,30 @@ export function instrument(source, hooks) {
     const commit = runner.commitTransaction.bind(runner)
     runner.query = (sql, parameters, ...rest) => {
       const shouldUseQueryHook = Boolean(hooks.query)
-      return shouldUseQueryHook
-        ? hooks.query({
-            runner,
-            sql,
-            parameters,
-            query,
-            run: () => query(sql, parameters, ...rest)
-          })
-        : query(sql, parameters, ...rest)
+      if (shouldUseQueryHook) {
+        return hooks.query({
+          runner,
+          sql,
+          parameters,
+          query,
+          run: () => query(sql, parameters, ...rest)
+        })
+      }
+
+      return query(sql, parameters, ...rest)
     }
     runner.commitTransaction = () => {
       const shouldUseCommitHook = Boolean(hooks.commit)
-      return shouldUseCommitHook ? hooks.commit(runner, commit) : commit()
+      if (shouldUseCommitHook) {
+        return hooks.commit(runner, commit)
+      }
+
+      return commit()
     }
+
     return runner
   }
+
   return () => {
     source.createQueryRunner = create
   }
@@ -120,8 +128,10 @@ export async function atExactTime(source, time, operation) {
         sql === 'SELECT to_timestamp(floor(extract(epoch from clock_timestamp()))) AS now'
       if (isClockQuery) {
         clocks++
+
         return [{ now: time }]
       }
+
       return result
     }
   })

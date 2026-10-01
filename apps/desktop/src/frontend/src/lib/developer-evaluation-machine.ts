@@ -34,32 +34,40 @@ export const developerEvaluationMachine = setup({
       }
       // 이번 평가 대상의 이전 결과만 지워 다른 이미지의 점수는 유지한다.
       const ids = new Set(event.samples.map((sample) => sample.id))
-      return {
-        samples: event.samples,
-        request: event.request,
-        progress: { done: 0, total: event.samples.length },
-        results: Object.fromEntries(Object.entries(context.results).filter(([id]) => !ids.has(id)))
-      }
+
+      const samples = event.samples
+      const request = event.request
+      const total = event.samples.length
+      const progress = { done: 0, total }
+      const results = Object.fromEntries(
+        Object.entries(context.results).filter(([id]) => !ids.has(id))
+      )
+
+      return { samples, request, progress, results }
     }),
-    recordResult: assign(({ context, event }) =>
-      event.type === DEVELOPER_EVENTS.IMAGE_EVALUATED
-        ? {
-            results: { ...context.results, [event.id]: event.result },
-            progress: { ...context.progress, done: context.progress.done + 1 }
-          }
-        : {}
-    ),
-    changePreprocessing: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.PREPROCESSING_CHANGED
-        ? {
-            preprocessing: event.value,
-            results: {},
-            progress: { done: 0, total: 0 },
-            samples: [],
-            request: null
-          }
-        : {}
-    )
+    recordResult: assign(({ context, event }) => {
+      if (event.type !== DEVELOPER_EVENTS.IMAGE_EVALUATED) {
+        return {}
+      }
+      const results = { ...context.results, [event.id]: event.result }
+      const progress = { ...context.progress, done: context.progress.done + 1 }
+
+      return { results, progress }
+    }),
+    changePreprocessing: assign(({ event }) => {
+      if (event.type !== DEVELOPER_EVENTS.PREPROCESSING_CHANGED) {
+        return {}
+      }
+      const preprocessing = event.value
+
+      return {
+        preprocessing,
+        results: {},
+        progress: { done: 0, total: 0 },
+        samples: [],
+        request: null
+      }
+    })
   }
 }).createMachine({
   id: 'developerEvaluation',
@@ -85,11 +93,17 @@ export const developerEvaluationMachine = setup({
       },
       invoke: {
         src: 'evaluate',
-        input: ({ context, self }) => ({
-          samples: context.samples,
-          preprocessing: context.preprocessing,
-          report: (id, result) => self.send({ type: DEVELOPER_EVENTS.IMAGE_EVALUATED, id, result })
-        }),
+        input: ({ context, self }) => {
+          const samples = context.samples
+          const preprocessing = context.preprocessing
+
+          return {
+            samples,
+            preprocessing,
+            report: (id, result) =>
+              self.send({ type: DEVELOPER_EVENTS.IMAGE_EVALUATED, id, result })
+          }
+        },
         onDone: 'completed',
         onError: 'failed'
       }

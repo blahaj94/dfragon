@@ -49,6 +49,7 @@ async function run(args, options) {
   checkSignal()
   const result = await docker(args, options)
   checkSignal()
+
   return result
 }
 async function removeOwned(kind, name) {
@@ -170,6 +171,7 @@ try {
       return ['--env', `DB_PASSWORD=${password}`]
     }
     const target = mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'
+
     return [
       ...(mode === 'file' ? ['--env', `DB_PASSWORD_FILE=${target}`] : []),
       '--mount',

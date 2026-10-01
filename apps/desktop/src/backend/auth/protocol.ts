@@ -25,6 +25,7 @@ function hasForbiddenUrlCharacter(value: string): boolean {
       return true
     }
   }
+
   return false
 }
 
@@ -131,6 +132,7 @@ export function validateBrowserLaunchUrl(raw: unknown, apiOrigin: string): strin
   if (!hasExpectedLaunchUrl) {
     throw new AuthProtocolFailure()
   }
+
   return expected
 }
 

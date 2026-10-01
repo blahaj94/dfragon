@@ -16,6 +16,7 @@ function png(width = 2, height = 1): Buffer {
   result.writeUInt32BE(height, 20)
   result[24] = 8
   result[25] = 6
+
   return result
 }
 
@@ -25,13 +26,18 @@ async function createStore(): Promise<{
 }> {
   const rootDir = await mkdtemp(join(tmpdir(), 'dfragon-developer-'))
   directories.push(rootDir)
-  return {
+
+  const store = createDeveloperStore({
     rootDir,
-    store: createDeveloperStore({
-      rootDir,
-      decodePng: (value) => ({ width: value.readUInt32BE(16), height: value.readUInt32BE(20) })
-    })
-  }
+    decodePng: (value) => {
+      const width = value.readUInt32BE(16)
+      const height = value.readUInt32BE(20)
+
+      return { width, height }
+    }
+  })
+
+  return { rootDir, store }
 }
 
 afterEach(async () => {
@@ -50,7 +56,12 @@ it('defaults to disabled, persists the flag, and blocks sample operations until 
 
   const reopened = createDeveloperStore({
     rootDir,
-    decodePng: (value) => ({ width: value.readUInt32BE(16), height: value.readUInt32BE(20) })
+    decodePng: (value) => {
+      const width = value.readUInt32BE(16)
+      const height = value.readUInt32BE(20)
+
+      return { width, height }
+    }
   })
   expect(await reopened.getSettings()).toEqual({ enabled: true })
   expect(await reopened.listSamples()).toEqual([])
@@ -109,7 +120,12 @@ it('persists exclusion independently from the label and restores legacy sample m
 
   const reopened = createDeveloperStore({
     rootDir,
-    decodePng: (value) => ({ width: value.readUInt32BE(16), height: value.readUInt32BE(20) })
+    decodePng: (value) => {
+      const width = value.readUInt32BE(16)
+      const height = value.readUInt32BE(20)
+
+      return { width, height }
+    }
   })
   expect((await reopened.listSamples())[0]).toMatchObject({
     id: sample.id,

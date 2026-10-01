@@ -70,29 +70,39 @@ export const authCoordinatorMachine = setup({
       switch (event.type) {
         case 'LOGIN_STARTED':
         case 'EXCHANGE_STARTED':
-        case 'BROWSER_READY':
+        case 'BROWSER_READY': {
+          const login = event.login
+          const notice = event.type === 'BROWSER_READY' ? event.notice : null
+
           return {
             revision,
-            login: event.login,
+            login,
             user: null,
             entry: null,
-            notice: event.type === 'BROWSER_READY' ? event.notice : null,
+            notice,
             recoveryPurpose: null
           }
-        case 'SIGNED_IN':
+        }
+        case 'SIGNED_IN': {
+          const user = { nickname: event.nickname }
+
           return {
             revision,
             login: null,
-            user: { nickname: event.nickname },
+            user,
             entry: event.entry,
             notice: null,
             recoveryPurpose: null
           }
+        }
         case 'SIGNED_OUT':
+
           return { ...inactive, revision, notice: event.notice, recoveryPurpose: null }
         case 'RESTORING':
+
           return { ...inactive, revision, notice: null }
         case 'RESTORE_PAUSED':
+
           return {
             ...inactive,
             revision,
@@ -100,10 +110,13 @@ export const authCoordinatorMachine = setup({
             recoveryPurpose: 'resume-credential' as const
           }
         case 'SIGNING_OUT':
+
           return { ...inactive, revision, notice: null, recoveryPurpose: null }
         case 'STORAGE_BLOCKED':
+
           return { ...inactive, revision, notice: event.notice, recoveryPurpose: event.purpose }
         default:
+
           return {}
       }
     })

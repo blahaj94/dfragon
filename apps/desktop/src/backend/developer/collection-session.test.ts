@@ -36,6 +36,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   const promise = new Promise<T>((resolvePromise) => {
     resolve = resolvePromise
   })
+
   return { promise, resolve }
 }
 
@@ -64,12 +65,17 @@ function setup(
   pressPrintScreen: () => void
 } {
   const store = {
-    getSettings: vi.fn(async () => ({ enabled: options.enabled ?? true })),
+    getSettings: vi.fn(async () => {
+      const enabled = options.enabled ?? true
+
+      return { enabled }
+    }),
     addCollectedSample: vi.fn(options.save ?? (async () => ({ id: 'saved' })))
   }
   let printScreen: (() => void) | null = null
   const registerPrintScreen = vi.fn((listener: () => void) => {
     printScreen = listener
+
     return true
   })
   const unregisterPrintScreen = vi.fn(() => {
@@ -158,6 +164,7 @@ it('uploads one saved capture, keeps local crops on failure and aborts on leavin
   const send = vi.fn(
     async (_frame: CapturedPartyFrame, _slots: number[], _kind: string, signal: AbortSignal) => {
       signal.addEventListener('abort', () => pending.resolve('failed'), { once: true })
+
       return pending.promise
     }
   )
@@ -274,6 +281,7 @@ it('cancels a pending capture when the session is disabled before it can write',
   const fixture = setup({
     capture: () => {
       markCaptureStarted()
+
       return pendingFrame.promise
     }
   })
@@ -390,6 +398,7 @@ it('publishes a completed sample revision even if its save promise settles durin
   const fixture = setup({
     save: async () => {
       markSaveStarted()
+
       return saveResult.promise
     }
   })

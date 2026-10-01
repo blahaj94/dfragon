@@ -36,6 +36,7 @@ export function selectServices(changedPaths) {
       selected.add('accounts')
     }
   }
+
   return services.filter((service) => selected.has(service))
 }
 
@@ -43,6 +44,7 @@ function commitSha(value, name) {
   if (typeof value !== 'string' || !/^[a-f\d]{40}$/i.test(value)) {
     throw new Error(`Expected a 40-character hexadecimal ${name}`)
   }
+
   return value.toLowerCase()
 }
 
@@ -78,7 +80,9 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
     }
     base = commitSha(event.before, 'push before commit')
     if (base === '0'.repeat(40)) {
-      return { sourceCommit: source, services: [...services] }
+      const selectedServices = [...services]
+
+      return { sourceCommit: source, services: selectedServices }
     }
   } else if (eventName === 'pull_request') {
     base = commitSha(event.pull_request?.base?.sha, 'pull request base commit')
@@ -88,7 +92,9 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
 
   const diff = git(['diff', '--name-only', '--no-renames', '-z', `${base}..${source}`, '--'], cwd)
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
-  return { sourceCommit: source, services: selectServices(changedPaths) }
+  const selectedServices = selectServices(changedPaths)
+
+  return { sourceCommit: source, services: selectedServices }
 }
 
 export function validatePlan(plan, sourceCommit) {
@@ -96,6 +102,7 @@ export function validatePlan(plan, sourceCommit) {
   if (!isRecord(plan) || commitSha(plan.sourceCommit, 'plan source commit') !== source) {
     throw new Error('Plan source commit does not match the product image source commit')
   }
+
   if (
     !Array.isArray(plan.services) ||
     plan.services.some((service) => !services.includes(service)) ||
@@ -103,17 +110,21 @@ export function validatePlan(plan, sourceCommit) {
   ) {
     throw new Error('Expected a plan with unique api, ocr, or accounts services')
   }
-  return {
-    sourceCommit: source,
-    services: services.filter((service) => plan.services.includes(service))
-  }
+
+  const selectedServices = services.filter((service) => plan.services.includes(service))
+
+  return { sourceCommit: source, services: selectedServices }
 }
 
 export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cwd() }) {
   const current = validatePlan(plan, sourceCommit)
   assertSourceHead(current.sourceCommit, cwd)
   if (baselinePlan === undefined) {
-    return { ...current, services: [...services] }
+    const result = { ...current }
+    const selectedServices = [...services]
+    result.services = selectedServices
+
+    return result
   }
 
   const baseline = validatePlan(baselinePlan, baselinePlan?.sourceCommit)
@@ -132,12 +143,21 @@ export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cw
       cwd
     )
   } catch {
-    return { ...current, services: [...services] }
+    const result = { ...current }
+    const selectedServices = [...services]
+    result.services = selectedServices
+
+    return result
   }
 
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
   const selected = new Set([...current.services, ...selectServices(changedPaths)])
-  return { ...current, services: services.filter((service) => selected.has(service)) }
+
+  const result = { ...current }
+  const selectedServices = services.filter((service) => selected.has(service))
+  result.services = selectedServices
+
+  return result
 }
 
 function positiveId(value) {
@@ -176,6 +196,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
       if (!response.ok) {
         throw new Error('GitHub API request failed')
       }
+
       return await response.json()
     } catch {
       throw new Error('Could not read the successful product image baseline from GitHub')
@@ -192,6 +213,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   if (run === undefined) {
     return null
   }
+
   if (
     !isRecord(run) ||
     !positiveId(run.id) ||
@@ -216,11 +238,16 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   ) {
     throw new Error('Expected a GitHub workflow artifacts response')
   }
-  return artifacts.artifacts.some(
-    (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
-  )
-    ? run.id
-    : null
+
+  if (
+    artifacts.artifacts.some(
+      (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
+    )
+  ) {
+    return run.id
+  }
+
+  return null
 }
 
 function readJson(path, name) {
@@ -259,8 +286,10 @@ async function main() {
       token: process.env.GITHUB_TOKEN
     })
     appendOutput(`run_id=${runId ?? ''}\n`)
+
     return
   }
+
   if (
     !args[0] ||
     !(
@@ -282,8 +311,10 @@ async function main() {
       sourceCommit
     })
     writePlan(planPath, plan)
+
     return
   }
+
   if (command === 'catch-up') {
     const plan = catchUpPlan({
       plan: readJson(planPath, 'product image plan'),
@@ -291,6 +322,7 @@ async function main() {
       sourceCommit
     })
     writePlan(planPath, plan)
+
     return
   }
 

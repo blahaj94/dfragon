@@ -12,6 +12,7 @@ import { exchangeExpired, freshTime, loginTransaction } from './state.js'
 
 export async function exchangeLogin(deps: LoginDependencies, input: unknown): Promise<LoginTokens> {
   const body = parseExchange(input)
+
   return loginTransaction(deps.dataSource, async (manager) => {
     const repo = manager.getRepository(AuthLoginRequestSchema)
     const row = await repo.findOne({
@@ -27,12 +28,14 @@ export async function exchangeLogin(deps: LoginDependencies, input: unknown): Pr
     ) {
       throw invalid()
     }
+
     if (
       row.codeChallenge !== challenge(body.codeVerifier) ||
       !equalHash(row.exchangeCodeHash, opaqueHash(body.code))
     ) {
       throw invalid()
     }
+
     if (exchangeExpired(row, await freshTime(manager))) {
       throw invalid()
     }
@@ -69,12 +72,17 @@ export async function exchangeLogin(deps: LoginDependencies, input: unknown): Pr
       { id: row.id },
       { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt: now }
     )
+    const accessToken = jwt.accessToken
+    const accessTokenExpiresAt = new Date(jwt.expiresAt * 1000).toISOString()
+    const refreshToken = session.refreshToken
+    const sessionExpiresAt = new Date(idleDeadline * 1000).toISOString()
+
     return {
       tokenType: 'Bearer',
-      accessToken: jwt.accessToken,
-      accessTokenExpiresAt: new Date(jwt.expiresAt * 1000).toISOString(),
-      refreshToken: session.refreshToken,
-      sessionExpiresAt: new Date(idleDeadline * 1000).toISOString(),
+      accessToken,
+      accessTokenExpiresAt,
+      refreshToken,
+      sessionExpiresAt,
       user: session.user,
       isNewUser: row.isNewUser
     }

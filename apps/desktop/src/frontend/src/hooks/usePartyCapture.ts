@@ -79,14 +79,19 @@ export function usePartyCapture(): PartyCapture {
     setIntervalSecondsState(seconds)
   }
 
+  const sourceState = { ...sources }
+  const starting = phase === 'starting' || (phase === 'selecting' && snapshot.context.autoStart)
+  const selectedSourceId = snapshot.context.selectedSourceId
+  const sourceRegistered =
+    snapshot.context.selectedSourceId.length > 0 &&
+    snapshot.context.selectedSourceId === snapshot.context.registeredSourceId
+
   return {
-    ...sources,
+    ...sourceState,
     phase,
-    starting: phase === 'starting' || (phase === 'selecting' && snapshot.context.autoStart),
-    selectedSourceId: snapshot.context.selectedSourceId,
-    sourceRegistered:
-      snapshot.context.selectedSourceId.length > 0 &&
-      snapshot.context.selectedSourceId === snapshot.context.registeredSourceId,
+    starting,
+    selectedSourceId,
+    sourceRegistered,
     selectSource,
     selectAndStartCapture,
     search,

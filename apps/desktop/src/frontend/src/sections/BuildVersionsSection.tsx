@@ -6,6 +6,7 @@ import { styles } from './BuildVersionsSection.style'
 
 export function BuildVersionsSection(): React.JSX.Element {
   const versions = useBuildVersions()
+
   return (
     <>
       <div {...stylex.props(styles.heading)}>

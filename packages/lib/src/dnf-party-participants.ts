@@ -68,12 +68,10 @@ function rectangle(
 ): DNFRectangle {
   const x = roundPixel(heading.x + left * heading.scale)
   const y = roundPixel(heading.y + top * heading.scale)
-  return {
-    x,
-    y,
-    width: roundPixel(heading.x + right * heading.scale) - x,
-    height: roundPixel(heading.y + bottom * heading.scale) - y
-  }
+  const width = roundPixel(heading.x + right * heading.scale) - x
+  const height = roundPixel(heading.y + bottom * heading.scale) - y
+
+  return { x, y, width, height }
 }
 
 /** Precomputes dark row counts to reject impossible dialogs before template comparisons. */
@@ -86,6 +84,7 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
         darkCounts[y * stride + x] + Number(frame.pixels[y * frame.width + x] < 40)
     }
   }
+
   return (x: number, y: number, scale: number): boolean => {
     // Same full-window and four-separator requirements as the final detection, including holes.
     if (
@@ -113,6 +112,7 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
         return false
       }
     }
+
     return true
   }
 }
@@ -132,6 +132,7 @@ function evidenceRatio(frame: DNFParticipantFrame, region: DNFRectangle, colored
       }
     }
   }
+
   return count / (region.width * region.height)
 }
 
@@ -168,6 +169,7 @@ export function detectDNFPartyParticipantWindow(
     if (matched === 'search-limit') {
       return { status: 'search-limit' }
     }
+
     if (matched == null) {
       continue
     }
@@ -191,7 +193,9 @@ export function detectDNFPartyParticipantWindow(
     }
   }
   if (candidates.length !== 1) {
-    return { status: candidates.length === 0 ? 'not-found' : 'ambiguous' }
+    const status = candidates.length === 0 ? 'not-found' : 'ambiguous'
+
+    return { status }
   }
 
   const { heading: matched, window } = candidates[0]
@@ -200,12 +204,13 @@ export function detectDNFPartyParticipantWindow(
     const portrait = evidenceRatio(frame, rectangle(matched, 31, top + 2, 48, top + 18))
     const level = evidenceRatio(frame, rectangle(matched, 51, top + 2, 72, top + 18))
     const role = evidenceRatio(frame, rectangle(matched, 242, top + 2, 254, top + 18), true)
-    return {
-      slot: (index + 1) as DNFParticipantSlot,
-      occupied: Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2,
-      nickname: rectangle(matched, 154, top + 3, 238, top + 18)
-    }
+    const slot = (index + 1) as DNFParticipantSlot
+    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
+    const nickname = rectangle(matched, 154, top + 3, 238, top + 18)
+
+    return { slot, occupied, nickname }
   })
+
   return { status: 'found', scale: matched.scale, matchScore: matched.score, window, rows }
 }
 
@@ -218,19 +223,20 @@ export function cropDNFPartyParticipantNicknames(
   if (result.status !== 'found') {
     return result
   }
-  return {
-    ...result,
-    rows: result.rows.map((row) => {
-      if (!row.occupied) {
-        return { ...row, crop: null }
-      }
-      const { x, y, width, height } = row.nickname
-      const rgba = new Uint8Array(width * height * 4)
-      for (let index = 0; index < height; index += 1) {
-        const start = ((y + index) * frame.width + x) * 4
-        rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
-      }
-      return { ...row, crop: { width, height, rgba } }
-    })
-  }
+  const snapshot = { ...result }
+  const rows = result.rows.map((row) => {
+    if (!row.occupied) {
+      return { ...row, crop: null }
+    }
+    const { x, y, width, height } = row.nickname
+    const rgba = new Uint8Array(width * height * 4)
+    for (let index = 0; index < height; index += 1) {
+      const start = ((y + index) * frame.width + x) * 4
+      rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
+    }
+
+    return { ...row, crop: { width, height, rgba } }
+  })
+
+  return { ...snapshot, rows }
 }

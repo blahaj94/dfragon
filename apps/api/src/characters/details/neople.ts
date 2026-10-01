@@ -55,6 +55,7 @@ export function validateCharacterPayload(
       throw new CharacterDetailFailure('api')
     }
   }
+
   return body
 }
 
@@ -109,15 +110,18 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (performance.now() - startedAt >= deps.timeoutMs) {
         throw new CharacterDetailFailure('timeout')
       }
+
       return results
     } catch (error) {
       failureController.abort()
       if (timeout.aborted || performance.now() - startedAt >= deps.timeoutMs) {
         throw new CharacterDetailFailure('timeout')
       }
+
       if (requestSignal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
+
       if (error instanceof CharacterDetailFailure) {
         throw error
       }

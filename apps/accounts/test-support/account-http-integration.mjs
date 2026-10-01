@@ -184,9 +184,14 @@ async function boundary({ source, phase, boundaryKind, method }) {
   const before = await snapshot(source, f)
   const isIdleBoundary = boundaryKind === 'idle'
   const isAdmissionPhase = phase === 'admission'
-  const checkedAt = isIdleBoundary
-    ? new Date(f.now.getTime() + (isAdmissionPhase ? 0 : 2_592_000_000))
-    : new Date(f.token.expiresAt * 1000)
+  let checkedAt
+  if (isIdleBoundary) {
+    const currentTime = f.now.getTime()
+    const offset = isAdmissionPhase ? 0 : 2_592_000_000
+    checkedAt = new Date(currentTime + offset)
+  } else {
+    checkedAt = new Date(f.token.expiresAt * 1000)
+  }
   const shouldSetInitialDeadline = isIdleBoundary && isAdmissionPhase
   if (shouldSetInitialDeadline) {
     await setDeadline(source, f.initial.session.id, checkedAt)
@@ -205,6 +210,7 @@ async function boundary({ source, phase, boundaryKind, method }) {
       const isFunctionClock = clocks === 2
       const isTarget = atAdmission || isFunctionClock
       const time = isTarget ? checkedAt : f.now
+
       return [{ now: time }]
     }
   })
@@ -228,6 +234,7 @@ async function boundary({ source, phase, boundaryKind, method }) {
   if (isAdmission) {
     assert.deepEqual(after, admittedBefore)
   }
+
   if (!isAdmission) {
     const hasFunctionPhaseActivityAdvanced =
       after.session.last_active_at > before.session.last_active_at
@@ -260,6 +267,7 @@ async function realLockExpiry({ source, table, method, kind }) {
           if (isStart) {
             started.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
           }
+
           return result
         }
       })
@@ -308,6 +316,7 @@ async function removalBeforeAdmission({ source, kind, method }) {
             waiterStarted.resolve()
           }
         }
+
         return result
       },
       commit: async (_runner, commit) => {
@@ -442,10 +451,12 @@ async function databaseFailure({ source, phase, applied, method }) {
   const writeErr = process.stderr.write
   process.stdout.write = function (chunk) {
     stdout += String(chunk)
+
     return true
   }
   process.stderr.write = function (chunk) {
     stderr += String(chunk)
+
     return true
   }
   const restore = instrument(source, {
@@ -464,6 +475,7 @@ async function databaseFailure({ source, phase, applied, method }) {
       if (shouldFailQuery) {
         throw new Error('private SQL nickname identity credential canary')
       }
+
       return run()
     },
     commit: async (runner, commit) => {
@@ -475,6 +487,7 @@ async function databaseFailure({ source, phase, applied, method }) {
       if (!failCommit) {
         return commit()
       }
+
       if (applied) {
         await commit()
       } else {
@@ -597,5 +610,6 @@ export async function assertAccountHttpIntegration(source, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

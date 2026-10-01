@@ -40,6 +40,7 @@ for (const stage of [
         if (shouldFail) {
           fail()
         }
+
         return []
       },
       destroy: async () => {
@@ -66,6 +67,7 @@ for (const stage of [
       if (shouldFail) {
         fail()
       }
+
       return source
     })
     const isSuccess = stage === 'success'
@@ -76,6 +78,7 @@ for (const stage of [
         assert.equal(error.message, 'Authentication cleanup failed')
         assert.equal(error.stack, 'Error: Authentication cleanup failed')
         assert.equal(error.cause, undefined)
+
         return true
       })
     }
@@ -108,6 +111,7 @@ test('one-shot reports success only after owned connections finish closing', asy
   let returned = false
   const pending = runAuthenticationCleanup(() => source).then((result) => {
     returned = true
+
     return result
   })
   try {

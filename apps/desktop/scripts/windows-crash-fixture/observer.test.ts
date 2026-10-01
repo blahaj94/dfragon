@@ -23,6 +23,7 @@ it('rejects a duplicate ACK from the preceding observation', async () => {
   let previous: Observation | undefined
   const exchange = vi.fn(async (event: Observation) => {
     previous ??= event
+
     return previous
   })
   const observer = createObserver({ ...identity, exchange, timeoutMs: 100 })
@@ -37,6 +38,7 @@ it('does not permit mutations while an ACK is pending', async () => {
   let pending: Observation | undefined
   const exchange = (event: Observation): Promise<unknown> => {
     pending = event
+
     return new Promise((resolve) => {
       acknowledge = resolve
     })
@@ -77,10 +79,12 @@ it('collects original disk and receives its ACK before invoking store inspection
   const actions: string[] = []
   const inspect = vi.fn(async () => {
     actions.push('inspect-may-prepare')
+
     return { status: 'empty' }
   })
   const snapshot = vi.fn(async () => {
     actions.push('read-only-disk')
+
     return { files: [] }
   })
   const observer = createObserver({
@@ -88,6 +92,7 @@ it('collects original disk and receives its ACK before invoking store inspection
     timeoutMs: 100,
     exchange: async (event) => {
       actions.push('host-ack')
+
       return event
     }
   })

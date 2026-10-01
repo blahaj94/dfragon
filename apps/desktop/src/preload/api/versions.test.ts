@@ -1,8 +1,17 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { getBuildVersions } from './versions'
 
-const mocks = vi.hoisted(() => ({ invoke: vi.fn() }))
-vi.mock('electron', () => ({ ipcRenderer: { invoke: mocks.invoke } }))
+const mocks = vi.hoisted(() => {
+  const invoke = vi.fn()
+
+  return { invoke }
+})
+vi.mock('electron', () => {
+  const invoke = mocks.invoke
+  const ipcRenderer = { invoke }
+
+  return { ipcRenderer }
+})
 const snapshot = {
   desktop: { version: '1.2.3', commit: 'a'.repeat(40), dirty: false },
   servers: {

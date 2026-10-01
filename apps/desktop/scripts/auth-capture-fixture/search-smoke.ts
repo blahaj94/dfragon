@@ -17,6 +17,7 @@ import { inspectSearch, type SearchUiObservation } from './search-observation'
 type Slot = SearchUiObservation['slots'][number]
 function hasRetryWait(slot: Slot): slot is Slot & { retryAfterSeconds: number } {
   const hasWait = slot.retryAfterSeconds != null
+
   return hasWait
 }
 
@@ -28,6 +29,7 @@ export function sameRequest({ before, after }: { before: Slot; after: Slot }): b
   }
   const hasSameObservation = before.observationRevision === after.observationRevision
   const isSameRequest = hasRequestId && hasSameId === true && hasSameObservation
+
   return isSameRequest
 }
 function hasState(view: SearchUiObservation, state: string): boolean {
@@ -38,9 +40,11 @@ function hasState(view: SearchUiObservation, state: string): boolean {
       return false
     }
     const hasMatchingStatus = slot.statusMatched
+
     return hasMatchingStatus
   })
   const hasMatchingView = hasRegions && hasMatchingSlots
+
   return hasMatchingView
 }
 
@@ -50,6 +54,7 @@ export function inspectSandboxBoundary(window: { electron?: unknown; require?: u
     return false
   }
   const hasNoRequire = typeof window.require === 'undefined'
+
   return hasNoRequire
 }
 
@@ -81,6 +86,7 @@ export function inspectMixedReadiness(view: SearchUiObservation): {
   const hasExpectedPending = pendingCount === 1
   const hasExpectedLimited = limitedCount === 1
   const ready = statusesMatched && hasExpectedFailures && hasExpectedPending && hasExpectedLimited
+
   return { ready, regionMask, statusesMatched, failureCount, pendingCount, limitedCount }
 }
 
@@ -121,6 +127,7 @@ export function isRestartReady({
   if (!hasUnchangedWorkers) {
     return false
   }
+
   return readCurrentRequests() === expectedRequests
 }
 
@@ -154,6 +161,7 @@ function createRetryScript({
       button.click();
       return true;
     })()`
+
   return retryScript
 }
 
@@ -182,8 +190,10 @@ export async function smokeCharacterSearch(
     let view = await read()
     await until(async () => {
       view = await read()
+
       return predicate(view)
     }, milliseconds)
+
     return view
   }
   async function start(): Promise<SearchUiObservation> {
@@ -204,6 +214,7 @@ export async function smokeCharacterSearch(
         hasOcr = main.nicknameMatchedSlots === 15
       }
       const hasReadyCapture = hasNewCapture === true && hasOcr === true
+
       return hasReadyCapture
     }, 30_000)
     const active = await observe()
@@ -216,6 +227,7 @@ export async function smokeCharacterSearch(
     assert.equal(main.displayRequests, displayRequests + 1)
     assert.equal(main.displayAllowed, displayAllowed + 1)
     previousCapture = view.captureId
+
     return view
   }
   async function stop(): Promise<void> {
@@ -230,6 +242,7 @@ export async function smokeCharacterSearch(
       if (hasEnded === true) {
         hasIdleView = hasState(view, 'idle')
       }
+
       return hasIdleView === true
     })
     await until(async () => {
@@ -243,6 +256,7 @@ export async function smokeCharacterSearch(
       if (hasTerminatedWorkers === true) {
         hasClearedVideos = state.clearedVideos === state.streams
       }
+
       return hasClearedVideos === true
     })
   }
@@ -283,7 +297,12 @@ export async function smokeCharacterSearch(
         return mask
       }
       const hasMatchingStatus = slot.statusMatched
-      return hasMatchingStatus ? mask | (1 << index) : mask
+
+      if (hasMatchingStatus) {
+        return mask | (1 << index)
+      }
+
+      return mask
     }, 0)
     assert.equal(emptyMask, 15)
 
@@ -324,12 +343,17 @@ export async function smokeCharacterSearch(
           limitedCount: 1
         }
       }
+
       return ready
     })
     // HTTP 도착 순서를 slot 번호로 가정하지 않고 실제 수용한 상태에서 역할을 찾는다.
-    const failures = mixed.slots.flatMap((slot, index) =>
-      slot.code === 'INTERNAL_SERVER_ERROR' ? [index] : []
-    )
+    const failures = mixed.slots.flatMap((slot, index) => {
+      if (slot.code === 'INTERNAL_SERVER_ERROR') {
+        return [index]
+      }
+
+      return []
+    })
     const pendingSlot = mixed.slots.findIndex((slot) => slot.state === 'pending')
     const limitedSlot = mixed.slots.findIndex((slot) => slot.code === 'SEARCH_RATE_LIMITED')
     const limitedBefore = mixed.slots[limitedSlot]
@@ -379,6 +403,7 @@ export async function smokeCharacterSearch(
         },
         expected: { succeeded: true, statusMatched: true }
       }
+
       return hasMatchingStatus === true
     })
     const hasIndependentSlots = mixed.slots.every((before, index) => {
@@ -386,6 +411,7 @@ export async function smokeCharacterSearch(
       const after = firstRetry.slots[index]
       if (isRetried) {
         const hasNewRequest = before.requestId !== after.requestId
+
         return hasNewRequest
       }
       const hasSameRequest = sameRequest({ before, after })
@@ -393,6 +419,7 @@ export async function smokeCharacterSearch(
         return false
       }
       const hasUnchangedState = before.state === after.state
+
       return hasUnchangedState
     })
     const independentRetry = hasIndependentSlots && search.counts.requests === mixedRequests + 1
@@ -417,6 +444,7 @@ export async function smokeCharacterSearch(
     const expired = await waitFor((view) => {
       const hasExpiredWait = view.slots[limitedSlot].retryAfterSeconds === 0
       const isRetryEnabled = hasExpiredWait && view.slots[limitedSlot].retryDisabled === false
+
       return isRetryEnabled
     })
     const hasObservedWait = hasPositiveWait === true && isStillWaiting
@@ -448,6 +476,7 @@ export async function smokeCharacterSearch(
       if (hasTimedOut) {
         hasMatchingTimeout = view.slots[pendingSlot].statusMatched
       }
+
       return hasMatchingTimeout === true
     }, 20_000)
     const hasSameTimedOutRequest = sameRequest({
@@ -467,6 +496,7 @@ export async function smokeCharacterSearch(
       if (hasAllCandidates) {
         hasSuccessfulView = hasState(view, 'success')
       }
+
       return hasSuccessfulView === true
     })
 
@@ -494,6 +524,7 @@ export async function smokeCharacterSearch(
       if (hasTerminatedWorkers === true) {
         hasAbortedPendingRequests = search.counts.pendingAborts === abortsBeforeLogout + 4
       }
+
       return hasAbortedPendingRequests === true
     })
     const stopped = await observe()
@@ -549,6 +580,7 @@ export async function smokeCharacterSearch(
       if (hasAllCandidates) {
         hasSuccessfulView = hasState(view, 'success')
       }
+
       return hasSuccessfulView === true
     })
     assert.equal(newCapture === true, true)

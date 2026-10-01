@@ -17,6 +17,7 @@ export const onCharacterSearchChanged: ManualSearchApi['onCharacterSearchChanged
     }
   }
   ipcRenderer.on('manualSearchChanged', wrapper)
+
   return () => {
     ipcRenderer.removeListener('manualSearchChanged', wrapper)
   }

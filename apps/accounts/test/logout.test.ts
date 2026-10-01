@@ -18,6 +18,7 @@ async function expectUnavailable(operation: Promise<void>): Promise<void> {
     const hasStack = 'stack' in error
     const stack = hasStack ? error.stack : ''
     assert.doesNotMatch(String(stack), /private|credential|SQL/)
+
     return true
   })
 }
@@ -31,6 +32,7 @@ async function expectInvalidRequest(operation: Promise<void>): Promise<void> {
     const hasErrorCode = 'code' in error
     assert(hasErrorCode)
     assert.equal(error.code, 'INVALID_AUTH_REQUEST')
+
     return true
   })
 }
@@ -40,6 +42,7 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
   const promise = new Promise<void>((complete) => {
     resolve = complete
   })
+
   return { promise, resolve }
 }
 

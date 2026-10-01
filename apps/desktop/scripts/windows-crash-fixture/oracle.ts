@@ -141,6 +141,7 @@ export function validateHold(input: unknown): HoldEvidence {
   if (!isReached) {
     throw new Error('Selected boundary was not reached.')
   }
+
   return hold
 }
 
@@ -150,7 +151,12 @@ export function syntheticGeneration(refreshToken: string): 'R0' | 'R1' | 'unexpe
     return 'R0'
   }
   const isR1 = refreshToken === Buffer.alloc(32, 32).toString('base64url')
-  return isR1 ? 'R1' : 'unexpected'
+
+  if (isR1) {
+    return 'R1'
+  }
+
+  return 'unexpected'
 }
 
 export type OriginalSummary = {
@@ -267,7 +273,10 @@ function summarizeDisk(input: unknown): OriginalSummary {
   if (!hasRoot) {
     throw new Error('Original disk root observation is missing.')
   }
-  return { generation, marker, temporary, directories: [...directories] }
+
+  const observedDirectories = [...directories]
+
+  return { generation, marker, temporary, directories: observedDirectories }
 }
 
 function reportedState(events: Observation[]): ReportedState {
@@ -291,6 +300,7 @@ function reportedState(events: Observation[]): ReportedState {
     if (isStart && isStartingMarker) {
       marker = 'unknown'
     }
+
     if (isStart && isRemoving) {
       marker = 'unknown'
     }
@@ -314,6 +324,7 @@ function reportedState(events: Observation[]): ReportedState {
         replacementEstablished = true
       }
     }
+
     if (isConfirmed && isRemoving) {
       marker = 'absent'
     }
@@ -344,6 +355,7 @@ function reportedState(events: Observation[]): ReportedState {
       prepared = true
     }
   }
+
   return { marker, generation, established, replacementEstablished, prepared, supersededR0 }
 }
 
@@ -398,7 +410,12 @@ export function judgeRecovery(input: {
   }
   const needsClear = isBlockedRecord || original.generation === 'corrupt'
   const hasRecord = original.generation !== 'missing'
-  const expectedState = needsClear ? 'recovery-required' : hasRecord ? 'ready' : 'empty'
+  let expectedState = 'empty'
+  if (needsClear) {
+    expectedState = 'recovery-required'
+  } else if (hasRecord) {
+    expectedState = 'ready'
+  }
   const isExpectedState = recovery.state === expectedState
   if (!isExpectedState) {
     recoveryFindings.push('inspection-state-mismatch')
@@ -437,8 +454,10 @@ export function judgeRecovery(input: {
     recoveryFindings.push('automatic-credential-use')
   }
   const hasFindings = durabilityFindings.length > 0 || recoveryFindings.length > 0
+  const status = hasFindings ? 'findings' : 'observed-consistent'
+
   return {
-    status: hasFindings ? 'findings' : 'observed-consistent',
+    status,
     original,
     reported,
     durabilityFindings,

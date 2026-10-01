@@ -151,6 +151,7 @@ export class FakeStore implements CredentialStore {
     if (hasRefreshToken) {
       return { status: 'ready', refreshToken }
     }
+
     return { status: 'empty' }
   }
 
@@ -178,6 +179,7 @@ export class FakeStore implements CredentialStore {
 
   readonly inspect = vi.fn(async () => {
     this.operations.push('store:inspect')
+
     return this.inspection
   })
   readonly establishTransition = vi.fn(async (kind) => {
@@ -189,6 +191,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.marker = kind
     }
+
     return outcome
   })
   readonly commitCredential = vi.fn(async (refreshToken) => {
@@ -200,6 +203,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.refreshToken = refreshToken
     }
+
     return outcome
   })
   readonly clearCredential = vi.fn(async () => {
@@ -211,6 +215,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.refreshToken = null
     }
+
     return outcome
   })
   readonly removeTransition = vi.fn(async () => {
@@ -225,6 +230,7 @@ export class FakeStore implements CredentialStore {
     if (markerWasRemoved) {
       this.marker = null
     }
+
     return outcome
   })
   readonly reestablishTransition = vi.fn(async (kind) => {
@@ -234,11 +240,17 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.marker = kind
     }
+
     return outcome
   })
 
   private next(outcomes: StoreMutationOutcome[]): StoreMutationOutcome {
-    return outcomes.shift() ?? 'confirmed'
+    const outcome = outcomes.shift()
+    if (outcome != null) {
+      return outcome
+    }
+
+    return 'confirmed'
   }
 }
 
@@ -267,9 +279,17 @@ export function createAuthHarness(): AuthHarness {
   const byteValues = [Buffer.alloc(32, 1), Buffer.alloc(32, 2), Buffer.alloc(32, 3)]
 
   const entropy: AuthEntropy = {
-    uuid: vi.fn(() => uuidValues.shift() ?? '00000000-0000-4000-8000-000000000099'),
+    uuid: vi.fn(() => {
+      const uuid = uuidValues.shift()
+      if (uuid != null) {
+        return uuid
+      }
+
+      return '00000000-0000-4000-8000-000000000099'
+    }),
     bytes: vi.fn((size) => {
       const bytes = byteValues.shift() ?? Buffer.alloc(32, 99)
+
       return bytes.subarray(0, size)
     })
   }
@@ -281,22 +301,27 @@ export function createAuthHarness(): AuthHarness {
   const http: AuthHttp = {
     createLoginRequest: vi.fn(async () => {
       operations.push('http:create-login')
+      const browserUrl = `${API_ORIGIN}/auth/login/authorize?ticket=${Buffer.alloc(32, 8).toString('base64url')}`
+
       return {
         requestId: REQUEST_ID,
-        browserUrl: `${API_ORIGIN}/auth/login/authorize?ticket=${Buffer.alloc(32, 8).toString('base64url')}`,
+        browserUrl,
         expiresAt: '2026-09-06T12:10:00.000Z'
       }
     }),
     exchange: vi.fn(async () => {
       operations.push('http:exchange')
+      const tokens = tokenResponse()
+
       return {
-        ...tokenResponse(),
+        ...tokens,
         user: { id: USER_ID, nickname: '모험가000001' },
         isNewUser: true
       }
     }),
     refresh: vi.fn(async () => {
       operations.push('http:refresh')
+
       return tokenResponse()
     }),
     logout: vi.fn(async () => {
@@ -304,6 +329,7 @@ export function createAuthHarness(): AuthHarness {
     }),
     me: vi.fn(async () => {
       operations.push('http:me')
+
       return { user: { id: USER_ID, nickname: '모험가000001' } }
     })
   }
@@ -318,6 +344,14 @@ export function createAuthHarness(): AuthHarness {
     http,
     store
   }
+  const mockedHttp = {
+    value: http,
+    createLoginRequest: vi.mocked(http.createLoginRequest),
+    exchange: vi.mocked(http.exchange),
+    refresh: vi.mocked(http.refresh),
+    logout: vi.mocked(http.logout),
+    me: vi.mocked(http.me)
+  }
 
   return {
     dependencies,
@@ -325,14 +359,7 @@ export function createAuthHarness(): AuthHarness {
     clock,
     entropy,
     operations,
-    http: {
-      value: http,
-      createLoginRequest: vi.mocked(http.createLoginRequest),
-      exchange: vi.mocked(http.exchange),
-      refresh: vi.mocked(http.refresh),
-      logout: vi.mocked(http.logout),
-      me: vi.mocked(http.me)
-    },
+    http: mockedHttp,
     store
   }
 }

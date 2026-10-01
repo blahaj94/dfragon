@@ -52,19 +52,34 @@ export function logoutFixture() {
     findOne: async () => {
       events.push('user-lock')
       const isUserMissing = state.userMissing
-      return isUserMissing ? null : user
+
+      if (isUserMissing) {
+        return null
+      }
+
+      return user
     }
   }
   const sessions = {
     findOneBy: async () => {
       events.push('session-hint')
       const isSessionHintMissing = state.sessionHintMissing
-      return isSessionHintMissing ? null : session
+
+      if (isSessionHintMissing) {
+        return null
+      }
+
+      return session
     },
     findOne: async () => {
       events.push('session-lock')
       const isSessionMissing = state.sessionMissing
-      return isSessionMissing ? null : session
+
+      if (isSessionMissing) {
+        return null
+      }
+
+      return session
     },
     update: async (_criteria: unknown, update: { revokedAt: Date; revokedReason: 'logout' }) => {
       events.push('revoke')
@@ -76,12 +91,22 @@ export function logoutFixture() {
     findOneBy: async () => {
       events.push('refresh-hint')
       const isTokenHintMissing = state.tokenHintMissing
-      return isTokenHintMissing ? null : token
+
+      if (isTokenHintMissing) {
+        return null
+      }
+
+      return token
     },
     findOne: async () => {
       events.push('refresh-lock')
       const isTokenMissing = state.tokenMissing
-      return isTokenMissing ? null : token
+
+      if (isTokenMissing) {
+        return null
+      }
+
+      return token
     }
   }
   const manager = {
@@ -94,10 +119,12 @@ export function logoutFixture() {
       if (isSessionSchema) {
         return sessions
       }
+
       return refresh
     },
     query: async () => {
       events.push('fresh-time')
+
       return [{ now: checkedAt }]
     }
   }

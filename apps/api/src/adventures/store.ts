@@ -13,9 +13,20 @@ interface StoredCharacter {
   last_successful_fetch_at: Date
 }
 
-const textOrNull = (value: unknown): string | null => (typeof value === 'string' ? value : null)
-const numberOrNull = (value: unknown): number | null =>
-  typeof value === 'number' && Number.isFinite(value) ? value : null
+const textOrNull = (value: unknown): string | null => {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  return null
+}
+const numberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  return null
+}
 
 export function createAdventureSearchStore(source: DataSource) {
   return {
@@ -39,21 +50,37 @@ export function createAdventureSearchStore(source: DataSource) {
         )) as StoredCharacter[]
         signal.throwIfAborted()
         const page = rows.slice(0, input.limit)
+        const adventureName = input.adventureName
+        const resultRows = page.map((row) => {
+          const characterId = row.character_id
+          const serverId = row.server_id
+          const serverName = NEOPLE_SERVER_NAMES.get(row.server_id) ?? null
+          const characterName = textOrNull(row.character_name)
+          const level = numberOrNull(row.level)
+          const jobName = textOrNull(row.job_name)
+          const jobGrowName = textOrNull(row.job_grow_name)
+          const fame = numberOrNull(row.fame)
+          const lastSuccessfulFetchAt = row.last_successful_fetch_at.toISOString()
+
+          return {
+            characterId,
+            serverId,
+            serverName,
+            characterName,
+            level,
+            jobName,
+            jobGrowName,
+            fame,
+            lastSuccessfulFetchAt
+          }
+        })
+        const nextAfter = rows.length > input.limit ? page.at(-1)!.character_id : null
+
         return {
-          adventureName: input.adventureName,
+          adventureName,
           scope: 'stored' as const,
-          rows: page.map((row) => ({
-            characterId: row.character_id,
-            serverId: row.server_id,
-            serverName: NEOPLE_SERVER_NAMES.get(row.server_id) ?? null,
-            characterName: textOrNull(row.character_name),
-            level: numberOrNull(row.level),
-            jobName: textOrNull(row.job_name),
-            jobGrowName: textOrNull(row.job_grow_name),
-            fame: numberOrNull(row.fame),
-            lastSuccessfulFetchAt: row.last_successful_fetch_at.toISOString()
-          })),
-          nextAfter: rows.length > input.limit ? page.at(-1)!.character_id : null
+          rows: resultRows,
+          nextAfter
         }
       })
     }

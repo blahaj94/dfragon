@@ -11,6 +11,7 @@ export type WindowsProfileSecurity = Readonly<{
 
 export function createWindowsProfileSecurity(): WindowsProfileSecurity {
   const native = createWindowsSecurityNative()
+
   return {
     inspectDirectory: (path, role) =>
       native.inspect(path, 'directory', role === 'final' ? 'private' : role),

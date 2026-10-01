@@ -34,6 +34,7 @@ export function formatDate(timestamp) {
 
   const parts = koreanDate.formatToParts(date)
   const fields = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
+
   return `${fields.year}년 ${fields.month}월 ${fields.day}일 ${fields.hour}시 ${fields.minute}분`
 }
 

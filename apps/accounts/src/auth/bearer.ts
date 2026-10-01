@@ -19,5 +19,6 @@ export function readBearerToken(rawHeaders: readonly string[]): string | undefin
   }
 
   const bearer = /^Bearer ([^\s,]+)$/.exec(authorizations[0])
+
   return bearer?.[1]
 }

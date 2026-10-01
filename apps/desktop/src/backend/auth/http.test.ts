@@ -30,13 +30,20 @@ async function inspectRequest(
   const request = new Request(input, init)
   const hasBody = request.body != null
   const body: unknown = hasBody ? await request.json() : null
+  const url = request.url
+  const method = request.method
+  const redirect = request.redirect
+  const cache = request.cache
+  const credentials = request.credentials
+  const headers = Object.fromEntries(request.headers)
+
   return {
-    url: request.url,
-    method: request.method,
-    redirect: request.redirect,
-    cache: request.cache,
-    credentials: request.credentials,
-    headers: Object.fromEntries(request.headers),
+    url,
+    method,
+    redirect,
+    cache,
+    credentials,
+    headers,
     signal: request.signal,
     body
   }
@@ -62,6 +69,7 @@ describe('Desktop auth 고정 HTTP client', () => {
     const requests: RecordedRequest[] = []
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       requests.push(await inspectRequest(input, init))
+
       return jsonResponse(
         {
           requestId: REQUEST_ID,
@@ -115,6 +123,7 @@ describe('Desktop auth 고정 HTTP client', () => {
     const requests: RecordedRequest[] = []
     const fetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       requests.push(await inspectRequest(input, init))
+
       return responses.shift()!
     })
     const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
@@ -213,6 +222,7 @@ describe('Desktop auth 고정 HTTP client', () => {
     vi.useFakeTimers()
     const fetch = vi.fn<typeof globalThis.fetch>((input, init) => {
       const request = new Request(input, init)
+
       return new Promise<Response>((_resolve, reject) => {
         request.signal.addEventListener('abort', () => reject(new Error('aborted')))
       })

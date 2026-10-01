@@ -117,6 +117,7 @@ export class SearchAdmission {
   private prune(entry: PeerEntry, now: number): void {
     entry.reservations = entry.reservations.filter((reservedAt) => {
       const isRecent = reservedAt > now - windowMs
+
       return isRecent
     })
   }

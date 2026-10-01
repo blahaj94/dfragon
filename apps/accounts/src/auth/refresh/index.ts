@@ -31,6 +31,7 @@ export function refreshTokenHash(rawToken: unknown): Buffer {
   if (!hasCanonicalEncoding) {
     throw new RefreshFailure(REFRESH_ERRORS.INVALID_REQUEST)
   }
+
   return createHash(REFRESH_TOKEN.hashAlgorithm).update(bytes).digest()
 }
 
@@ -129,6 +130,7 @@ async function rotate({
             }
           )
           // 여기서 throw하면 폐기까지 rollback된다. 폐기 commit을 확인한 뒤 밖에서 거절한다.
+
           return { status: 'reuse-revoked' }
         }
 
@@ -161,16 +163,21 @@ async function rotate({
           issuedAt: checkedAt,
           consumedAt: null
         })
+        const accessToken = accessJwt.accessToken
+        const accessTokenExpiresAt = new Date(accessJwt.expiresAt * 1000).toISOString()
+        const refreshToken = bytes.toString(REFRESH_TOKEN.encoding)
+        const sessionExpiresAt = new Date(idleDeadline * 1000).toISOString()
+        const tokens: RefreshTokens = {
+          tokenType: 'Bearer',
+          accessToken,
+          accessTokenExpiresAt,
+          refreshToken,
+          sessionExpiresAt
+        }
 
         return {
           status: 'issued',
-          tokens: {
-            tokenType: 'Bearer',
-            accessToken: accessJwt.accessToken,
-            accessTokenExpiresAt: new Date(accessJwt.expiresAt * 1000).toISOString(),
-            refreshToken: bytes.toString(REFRESH_TOKEN.encoding),
-            sessionExpiresAt: new Date(idleDeadline * 1000).toISOString()
-          }
+          tokens
         }
       }
     )
@@ -180,6 +187,7 @@ async function rotate({
     if (isReuseRevoked) {
       throw new RefreshFailure(REFRESH_ERRORS.AUTHENTICATION_REQUIRED)
     }
+
     return committed.tokens
   } catch (error) {
     const isRefreshFailure = error instanceof RefreshFailure

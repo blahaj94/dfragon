@@ -11,10 +11,16 @@ vi.mock('node:fs', async (importOriginal) => {
   if (!isWindows) {
     return native
   }
-  return {
-    ...native,
-    constants: { ...native.constants, O_NOFOLLOW: 0x20000000, O_DIRECTORY: 0x40000000 }
+
+  const fixture = { ...native }
+  const fixtureConstants = {
+    ...native.constants,
+    O_NOFOLLOW: 0x20000000,
+    O_DIRECTORY: 0x40000000
   }
+  fixture.constants = fixtureConstants
+
+  return fixture
 })
 
 // 먼저 로드된 test도 이 helper와 동일한 POSIX flag를 사용한다.
@@ -32,7 +38,16 @@ export function createPosixTestFiles({
 
   function modeNumber(mode: Mode | undefined, fallback: number): number {
     const isString = typeof mode === 'string'
-    return isString ? Number.parseInt(mode, 8) : (mode ?? fallback)
+
+    if (isString) {
+      return Number.parseInt(mode, 8)
+    }
+
+    if (mode != null) {
+      return mode
+    }
+
+    return fallback
   }
 
   function withMetadata(stat: Stats, entry: Metadata | undefined): Stats {
@@ -45,9 +60,12 @@ export function createPosixTestFiles({
     const isDirectory = stat.isDirectory()
     const isRegularFile = !isLink && isFile
     const isRealDirectory = !isLink && isDirectory
+    const mode = (isLink ? constants.S_IFLNK : stat.mode & ~0o7777) | entry.mode
+    const ownerUid = entry.uid
+
     return Object.assign(stat, {
-      mode: (isLink ? constants.S_IFLNK : stat.mode & ~0o7777) | entry.mode,
-      uid: entry.uid,
+      mode,
+      uid: ownerUid,
       isSymbolicLink: () => isLink,
       isFile: () => isRegularFile,
       isDirectory: () => isRealDirectory
@@ -57,6 +75,7 @@ export function createPosixTestFiles({
   async function statPath(path: PathLike): Promise<Stats> {
     const stat = await fs.lstat(path)
     const entry = metadata.get(String(path))
+
     return withMetadata(stat, entry)
   }
 
@@ -68,6 +87,7 @@ export function createPosixTestFiles({
       const isOptionsObject = options != null && typeof options === 'object'
       const mode = isOptionsObject ? options.mode : (options ?? undefined)
       metadata.set(String(path), { mode: modeNumber(mode, 0o777), uid })
+
       return result
     }) as typeof fs.mkdir,
     chmod: async (path, mode) => {
@@ -101,6 +121,7 @@ export function createPosixTestFiles({
       if (rejectsLink) {
         throw Object.assign(new Error('Synthetic nofollow rejected a link.'), { code: 'ELOOP' })
       }
+
       if (directoryOnly) {
         const stat = await statPath(path)
         const isDirectory = stat.isDirectory()
@@ -118,9 +139,11 @@ export function createPosixTestFiles({
           }
         }
         // FileHandle의 사용 범위를 명시적으로 제한한다. 실제 Windows directory fsync를 주장하지 않는다.
+
         return {
           stat: async () => {
             assertOpen()
+
             return statPath(path)
           },
           sync: async () => {
@@ -147,6 +170,7 @@ export function createPosixTestFiles({
       const handleMetadata = metadata.get(key)
       const stat = handle.stat.bind(handle)
       handle.stat = (async () => withMetadata(await stat(), handleMetadata)) as typeof handle.stat
+
       return handle
     },
     rename: async (from, to) => {
@@ -164,5 +188,6 @@ export function createPosixTestFiles({
       metadata.delete(String(path))
     }
   }
+
   return files
 }

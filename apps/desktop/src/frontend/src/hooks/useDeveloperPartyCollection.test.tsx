@@ -28,6 +28,7 @@ function deferred<T>(): {
     resolve = accept
     reject = fail
   })
+
   return { promise, resolve, reject }
 }
 
@@ -37,6 +38,7 @@ function Harness({ intervalMs = 500 }: { intervalMs?: number }): null {
   useEffect(() => {
     current = value
   }, [value])
+
   return null
 }
 
@@ -115,7 +117,12 @@ it('keeps a failed collection command visible until a later command succeeds', a
       if (slots == null) {
         return Promise.resolve(collection)
       }
-      return shouldFail ? failedCommand.promise : Promise.resolve(collection)
+
+      if (shouldFail) {
+        return failedCommand.promise
+      }
+
+      return Promise.resolve(collection)
     }),
     previewParty: vi.fn(async () => response)
   }

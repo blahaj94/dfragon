@@ -136,6 +136,7 @@ export function startPartyCaptureSession(
     }
   }
   void start()
+
   return () => releaseSession(session)
 }
 

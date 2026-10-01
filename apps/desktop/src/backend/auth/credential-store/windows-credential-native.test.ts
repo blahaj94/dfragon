@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import { createWindowsSecurityNative } from '../windows-security-native'
 import { createWindowsCredentialNative } from './windows-credential-native'
 
-vi.mock('../windows-security-native', () => ({ createWindowsSecurityNative: vi.fn() }))
+vi.mock('../windows-security-native', () => {
+  const createWindowsSecurityNative = vi.fn()
+
+  return { createWindowsSecurityNative }
+})
 
 describe('Windows credential native enumeration connection', () => {
   it('passes the exact directory and complete names through the native boundary', async () => {

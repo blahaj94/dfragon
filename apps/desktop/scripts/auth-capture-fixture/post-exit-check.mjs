@@ -12,13 +12,16 @@ const testRoot = await mkdtemp(join(tmpdir(), 'dfragon-capture-exit-check-'))
 const isOcr = process.argv.includes('--ocr')
 const isSearch = process.argv.includes('--search')
 const isMedia = process.argv.includes('--media')
-const command = isSearch
-  ? 'capture:fixture:search'
-  : isOcr
-    ? 'capture:fixture:ocr'
-    : isMedia
-      ? 'capture:fixture:smoke'
-      : 'capture:fixture:deny'
+let command
+if (isSearch) {
+  command = 'capture:fixture:search'
+} else if (isOcr) {
+  command = 'capture:fixture:ocr'
+} else if (isMedia) {
+  command = 'capture:fixture:smoke'
+} else {
+  command = 'capture:fixture:deny'
+}
 let child
 let groupStopped = false
 
@@ -106,21 +109,27 @@ function isDiagnosticValue(value, type) {
   if (!isInteger) {
     return false
   }
+
   if (type === 'mask') {
     const isNonnegative = value >= 0
     const hasMaximum = value <= 15
+
     return isNonnegative && hasMaximum
   }
+
   if (type === 'slot-count') {
     const isNonnegative = value >= 0
     const hasMaximum = value <= 4
+
     return isNonnegative && hasMaximum
   }
+
   if (type !== 'request-delta') {
     return false
   }
   const hasMinimum = value >= -20
   const hasMaximum = value <= 20
+
   return hasMinimum && hasMaximum
 }
 
@@ -192,6 +201,7 @@ function readSearchDiagnostic(output) {
     }
     const actual = Object.fromEntries(actualKeys.map((key) => [key, value.actual[key]]))
     const expected = Object.fromEntries(expectedKeys.map((key) => [key, definition.expected[key]]))
+
     return {
       stage: 'mixed',
       check: value.check,
@@ -227,6 +237,7 @@ function readSearchEvidence(output) {
     if (!hasValidEvidence) {
       return null
     }
+
     return Object.fromEntries(keys.map((key) => [key, value[key]]))
   } catch {
     return null
@@ -269,6 +280,7 @@ function reportSearchStages(output, { reportDiagnostic }) {
         const isSafeInteger = Number.isSafeInteger(value[key])
         const isNonnegative = value[key] >= 0
         const hasMaximum = value[key] <= 4
+
         return isSafeInteger && isNonnegative && hasMaximum
       })
       const hasValidLayoutEvidence = hasExactKeys && hasCounts
@@ -298,6 +310,7 @@ function hasGroupExited() {
   }
   try {
     process.kill(-child.pid, 0)
+
     return false
   } catch (error) {
     const isAbsent = error.code === 'ESRCH'
@@ -367,13 +380,16 @@ try {
   assert.equal(groupStopped, true, 'Test child group remains active')
   const expectsSuccess = isOcr || isMedia || isSearch
   const expectedCode = expectsSuccess ? 0 : 1
-  const expectedMessage = isSearch
-    ? 'Capture fixture search smoke PASS'
-    : isOcr
-      ? 'Capture fixture standalone OCR PASS'
-      : isMedia
-        ? 'Capture fixture smoke PASS'
-        : 'Capture fixture media BLOCKED / smoke FAIL'
+  let expectedMessage
+  if (isSearch) {
+    expectedMessage = 'Capture fixture search smoke PASS'
+  } else if (isOcr) {
+    expectedMessage = 'Capture fixture standalone OCR PASS'
+  } else if (isMedia) {
+    expectedMessage = 'Capture fixture smoke PASS'
+  } else {
+    expectedMessage = 'Capture fixture media BLOCKED / smoke FAIL'
+  }
   assert.equal(code, expectedCode, 'Child result did not match the requested check')
   const hasExpectedMessage = output.includes(expectedMessage)
   assert.equal(hasExpectedMessage, true)
@@ -383,6 +399,7 @@ try {
     assert.equal(hasEvidence, true, 'Search evidence missing or incomplete')
     console.log(`Capture fixture search evidence: ${JSON.stringify(evidence)}`)
   }
+
   if (isMedia) {
     const hasAllSyntheticMatches = output.includes(
       'Capture fixture synthetic matches: {"displayMatchedSlots":15,"nicknameMatchedSlots":15}'
@@ -402,6 +419,7 @@ try {
   }
   const remaining = (await readdir(testRoot)).filter((name) => {
     const isCaptureProfile = name.startsWith('dfragon-auth-capture-fixture-')
+
     return isCaptureProfile
   })
   console.log(`Capture fixture profiles after child exit: ${remaining.length}`)
@@ -422,6 +440,7 @@ try {
     }
     groupStopped = await waitForExit()
   }
+
   if (groupStopped) {
     await rm(testRoot, { recursive: true, force: true, maxRetries: 3 })
   }

@@ -109,6 +109,7 @@ function parseResponse<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!result.success) {
     throw new AuthHttpFailure('invalid-response')
   }
+
   return result.data
 }
 
@@ -123,6 +124,7 @@ export function parseLoginRequest(value: unknown, apiOrigin: string): LoginReque
   } catch {
     throw new AuthHttpFailure('invalid-response')
   }
+
   return response
 }
 
@@ -170,6 +172,7 @@ export async function readJson(response: Response, signal?: AbortSignal): Promis
       hasOversizeDeclaration = declaredBytes > AUTH_RESPONSE_MAX_BYTES
     }
   }
+
   if (hasOversizeDeclaration === true) {
     try {
       await response.body?.cancel()
@@ -286,6 +289,7 @@ export async function requireLogoutResponse(
   if (isValidNoContentResponse) {
     return
   }
+
   if (isNoContent) {
     throw new AuthHttpFailure('invalid-response')
   }

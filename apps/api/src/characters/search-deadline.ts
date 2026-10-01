@@ -49,6 +49,7 @@ export class SearchDeadline {
   async wait<T>(operation: Promise<T>): Promise<T> {
     const result = await Promise.race([operation, this.failure])
     this.check()
+
     return result
   }
 

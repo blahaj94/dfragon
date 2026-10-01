@@ -33,6 +33,7 @@ function fixture(identity, reinforce = 12) {
     buff_avatar: { skill: { buff: { avatar: [] } } },
     buff_creature: { skill: { buff: { creature: null } } }
   }
+
   return Object.fromEntries(
     Object.entries(sections).map(([section, body]) => [section, { ...common, ...body }])
   )
@@ -142,6 +143,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
           held = boundedSource.createQueryRunner()
           await held.connect()
           announceFetch()
+
           return fixture(identity, 99)
         }
       })
@@ -214,13 +216,14 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
         store,
         fetchDetails: adapter,
         catalog: createCatalogService(createCatalogStore(source), async (keys) =>
-          keys.map((key) => ({
-            key,
-            payload:
+          keys.map((key) => {
+            const payload =
               key.kind === 'set'
                 ? { setItemId: 'fixture-set', setItemName: '테스트 세트', setItemOption: [] }
                 : { itemName: '테스트 공용 상세', setItemId: 'fixture-set', tune: [{ level: 0 }] }
-          }))
+
+            return { key, payload }
+          })
         )
       }
     )

@@ -72,6 +72,7 @@ export function usePartyRecognition(
     }
     const hasChangedNicknames = nextStableNicknames.some((nickname, slot) => {
       const hasChanged = nickname !== stableNicknamesRef.current[slot]
+
       return hasChanged
     })
     if (hasChangedNicknames) {

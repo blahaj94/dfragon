@@ -73,9 +73,11 @@ function createControlledGroup(mode) {
         return true
       }
     }
+
     if (!groupExists) {
       throw Object.assign(new Error('Owned group is absent'), { code: 'ESRCH' })
     }
+
     return true
   }
 
@@ -144,6 +146,7 @@ for (const { name, mode, status } of unitCases) {
         assert.ok(isWithinCleanupBound, 'TERM plus KILL cleanup must be bounded at 7 seconds')
         const usesFiftyMillisecondPoll = group.sleeps.every((milliseconds) => {
           const isFiftyMilliseconds = milliseconds === 50
+
           return isFiftyMilliseconds
         })
         assert.ok(usesFiftyMillisecondPoll, 'Absence polling uses the approved 50ms interval')
@@ -152,6 +155,7 @@ for (const { name, mode, status } of unitCases) {
       if (isAlreadyAbsent) {
         assert.deepEqual(group.signals, [])
       }
+
       if (hasOriginalError) {
         const isAggregate = outcome.error instanceof AggregateError
         assert.ok(isAggregate, 'Both failures must remain inspectable')
@@ -188,6 +192,7 @@ for (const { name, pid, expectedPidReads } of invalidPidCases) {
       configurable: true,
       get: () => {
         pidReads += 1
+
         return pid
       }
     })
@@ -195,14 +200,17 @@ for (const { name, pid, expectedPidReads } of invalidPidCases) {
       ...group,
       now: () => {
         nowCalls += 1
+
         return group.now()
       },
       kill: (...args) => {
         killCalls += 1
+
         return group.kill(...args)
       },
       sleep: async (milliseconds) => {
         sleepCalls += 1
+
         return group.sleep(milliseconds)
       }
     })
@@ -230,12 +238,14 @@ setTimeout(() => process.kill(-process.pid, 'SIGKILL'), 12000)
 setInterval(() => {}, 1000)
 process.send('ready')
 `
+
   return source
 }
 
 function isGroupAbsent(pid) {
   try {
     process.kill(-pid, 0)
+
     return false
   } catch (error) {
     const isAbsent = error.code === 'ESRCH'

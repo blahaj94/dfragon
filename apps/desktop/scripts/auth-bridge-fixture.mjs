@@ -31,6 +31,7 @@ async function waitForGroupExit(pid, milliseconds) {
       if (isAbsent) {
         return true
       }
+
       return false
     }
     const hasExpired = Date.now() >= deadline
@@ -54,6 +55,7 @@ async function finishGroup(pid) {
     return true
   }
   signalGroup(pid, 'SIGKILL')
+
   return waitForGroupExit(pid, 1_000)
 }
 
@@ -69,8 +71,10 @@ async function removeProfile(profile) {
     await lstat(profile)
   } catch (error) {
     const isAbsent = error.code === 'ENOENT'
+
     return isAbsent
   }
+
   return false
 }
 
@@ -84,6 +88,7 @@ export async function runAuthBridgeFixture(args = []) {
   const hasInvalidConfiguration = !hasValidMode || !hasPosixGroups
   if (hasInvalidConfiguration) {
     console.error('Auth bridge fixture launcher configuration FAIL')
+
     return 1
   }
 
@@ -160,7 +165,12 @@ export async function runAuthBridgeFixture(args = []) {
     process.removeListener('SIGINT', interrupt)
     process.removeListener('SIGTERM', interrupt)
   }
-  return interrupted ? 1 : exitCode
+
+  if (interrupted) {
+    return 1
+  }
+
+  return exitCode
 }
 
 const invokedPath = process.argv[1]

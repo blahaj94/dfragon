@@ -43,5 +43,6 @@ export function createPkce(bytes: (size: number) => Uint8Array): Pkce {
   }
 
   const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
+
   return { verifier, challenge }
 }

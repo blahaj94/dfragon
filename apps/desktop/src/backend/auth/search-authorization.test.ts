@@ -28,12 +28,14 @@ async function setup(): Promise<{
   harness.http.me.mockClear()
   harness.store.commitCredential.mockClear()
   harness.store.removeTransition.mockClear()
+
   return { auth, harness }
 }
 
 async function usedAccess(auth: AuthCoordinator): Promise<AvailableAccess> {
   const result = await auth.authorization()
   expect(result).toMatchObject({ status: 'available' })
+
   return result as AvailableAccess
 }
 
@@ -53,6 +55,7 @@ function rejectAccess({
   expect(auth.recoverAuthorization, '검색 401은 main core의 회복 경계를 사용한다').toBeTypeOf(
     'function'
   )
+
   return auth.recoverAuthorization(
     { generation: access.generation, accessGeneration: access.accessGeneration, finalRejection },
     signal
@@ -109,6 +112,7 @@ describe('검색의 main authorization 소비 경계', () => {
       } else {
         harness.http.refresh.mockResolvedValueOnce(tokens)
       }
+
       if (isCommit) {
         harness.store.commitWaits.push(storage.promise)
       }
@@ -120,14 +124,21 @@ describe('검색의 main authorization 소비 경계', () => {
       let cancelledResult: AuthAuthorization | undefined
       const cancelled = auth.authorization(controller.signal).then((result) => {
         cancelledResult = result
+
         return result
       })
       const other = auth.authorization()
-      const boundaryEffect = isRefresh
-        ? harness.http.refresh
-        : isCommit
-          ? harness.store.commitCredential
-          : harness.store.removeTransition
+      let boundaryEffect:
+        | typeof harness.http.refresh
+        | typeof harness.store.commitCredential
+        | typeof harness.store.removeTransition
+      if (isRefresh) {
+        boundaryEffect = harness.http.refresh
+      } else if (isCommit) {
+        boundaryEffect = harness.store.commitCredential
+      } else {
+        boundaryEffect = harness.store.removeTransition
+      }
 
       try {
         await vi.waitFor(() => expect(boundaryEffect).toHaveBeenCalledTimes(1))
@@ -164,6 +175,7 @@ describe('검색의 main authorization 소비 경계', () => {
     let ordinaryResult: AuthAuthorization | undefined
     const ordinary = auth.authorization().then((result) => {
       ordinaryResult = result
+
       return result
     })
     try {
@@ -255,23 +267,33 @@ describe('검색의 main authorization 소비 경계', () => {
       } else {
         harness.http.refresh.mockResolvedValueOnce(tokens)
       }
+
       if (isMarker) {
         harness.store.establishWaits.push(storage.promise)
       }
+
       if (isCommit) {
         harness.store.commitWaits.push(storage.promise)
       }
+
       if (isFinalize) {
         harness.store.removeWaits.push(storage.promise)
       }
       const refreshing = auth.authorization()
-      const blockedEffect = isMarker
-        ? harness.store.establishTransition
-        : isHttp
-          ? harness.http.refresh
-          : isCommit
-            ? harness.store.commitCredential
-            : harness.store.removeTransition
+      let blockedEffect:
+        | typeof harness.store.establishTransition
+        | typeof harness.http.refresh
+        | typeof harness.store.commitCredential
+        | typeof harness.store.removeTransition
+      if (isMarker) {
+        blockedEffect = harness.store.establishTransition
+      } else if (isHttp) {
+        blockedEffect = harness.http.refresh
+      } else if (isCommit) {
+        blockedEffect = harness.store.commitCredential
+      } else {
+        blockedEffect = harness.store.removeTransition
+      }
       const phases: string[] = []
       const unsubscribe = auth.subscribe((snapshot) => phases.push(snapshot.phase))
       let final: Promise<AuthAuthorization> | undefined

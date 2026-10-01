@@ -11,11 +11,13 @@ import {
 } from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
-const electron = vi.hoisted(() => ({
-  getSources: vi.fn(),
-  handle: vi.fn(),
-  removeHandler: vi.fn()
-}))
+const electron = vi.hoisted(() => {
+  const getSources = vi.fn()
+  const handle = vi.fn()
+  const removeHandler = vi.fn()
+
+  return { getSources, handle, removeHandler }
+})
 vi.mock('electron', () => ({
   desktopCapturer: { getSources: electron.getSources },
   ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler }
@@ -118,6 +120,7 @@ export async function createSearchFixture(
     if (!hasHandler) {
       throw new Error('Expected search IPC handler')
     }
+
     return handler(event, ...args)
   }
   const controlChannel = searchKind === 'manual' ? 'controlManualSearch' : 'controlCharacterSearch'
@@ -126,6 +129,7 @@ export async function createSearchFixture(
   const read = async (): Promise<SearchSnapshot> => {
     const result = await invoke(controlChannel, { action: 'read' })
     expect(result).toMatchObject({ ok: true, snapshot: expect.any(Object) })
+
     return (result as { snapshot: SearchSnapshot }).snapshot
   }
 
@@ -147,6 +151,7 @@ export async function createSearchFixture(
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   }
+
   return {
     auth,
     event,

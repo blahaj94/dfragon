@@ -21,6 +21,7 @@ export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<A
   if (config == null) {
     return null
   }
+
   if (input.isActive?.() === false) {
     return null
   }
@@ -36,7 +37,9 @@ export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<A
     }
     const started = coordinator.start()
     startPromise = started
+
     return started
   }
+
   return { coordinator, apiOrigin: dependencies.apiOrigin, searchClock, start }
 }

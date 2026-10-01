@@ -58,10 +58,12 @@ export function updateSlotStability(
   if (hasSameCandidate) {
     const consecutiveCount = previous.consecutiveCount + 1
     const isStable = consecutiveCount >= 2
+    const stableNickname = isStable ? nickname : null
+
     return {
       candidate: nickname,
       consecutiveCount,
-      stableNickname: isStable ? nickname : null
+      stableNickname
     }
   }
 

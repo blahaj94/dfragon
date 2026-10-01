@@ -20,10 +20,13 @@ export function useCaptureUpload() {
   })
   const crops = cropsByKind[kind]
   const setCrops = (update: SetStateAction<Crop[]>) =>
-    setCropsByKind((current) => ({
-      ...current,
-      [kind]: typeof update === 'function' ? update(current[kind]) : update
-    }))
+    setCropsByKind((current) => {
+      const nextCropsByKind = { ...current }
+      const nextCrops = typeof update === 'function' ? update(current[kind]) : update
+      nextCropsByKind[kind] = nextCrops
+
+      return nextCropsByKind
+    })
   const [pending, setPending] = useState<unknown>(null)
   const [message, setMessage] = useState('')
   const upload = useMutation({
@@ -54,6 +57,9 @@ export function useCaptureUpload() {
     onError: (error) =>
       setMessage(error instanceof UploadInputError ? error.message : errorMessage(error))
   })
+  const busy = upload.isPending
+  const uploadCapture = upload.mutate
+
   return {
     file,
     setFile,
@@ -68,7 +74,7 @@ export function useCaptureUpload() {
     pending,
     setPending,
     message,
-    busy: upload.isPending,
-    uploadCapture: upload.mutate
+    busy,
+    uploadCapture
   }
 }

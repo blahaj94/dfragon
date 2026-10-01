@@ -31,6 +31,7 @@ export function EquipmentGrid({
   large?: boolean
 }): React.JSX.Element {
   const slots = oath ? character.oath : character.equipment
+
   return (
     <div {...stylex.props(styles.equipment, large && styles.largeEquipment)}>
       {equipmentPositions.map(([id, column, row]) => {

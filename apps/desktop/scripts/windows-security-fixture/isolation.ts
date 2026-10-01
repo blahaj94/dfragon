@@ -59,6 +59,7 @@ export function fixturePath(fixture: Pick<Fixture, 'root'>, ...parts: string[]):
   if (isRoot || isOutside) {
     throw new Error('Fixture path containment failed.')
   }
+
   return destination
 }
 
@@ -83,6 +84,7 @@ export async function createFixtureRoot(
   // Keep evidence outside the root so a partial cleanup cannot delete it.
   await writeFile(manifest, body, { flag: 'wx' })
   await mkdir(root)
+
   return fixture
 }
 
@@ -151,6 +153,7 @@ export async function cleanupFixture(
       return 'cleanup-incomplete'
     }
     await unlink(fixture.manifest)
+
     return 'clean'
   } catch {
     return 'cleanup-incomplete'
@@ -188,5 +191,6 @@ export async function runFixtureLifecycle({
       cleanup = await cleanupFixture(createdFixture, { resourcesReleased })
     }
   }
+
   return { failure, cleanup }
 }

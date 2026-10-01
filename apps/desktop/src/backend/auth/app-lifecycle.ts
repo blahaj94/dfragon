@@ -73,14 +73,17 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     const hasActiveWindowCloseAttempt = closeState.activeAttempt != null
     if (hasActiveWindowCloseAttempt) {
       closeState.hasPendingLoadFailure = true
+
       return
     }
+
     if (shutdownCommitted) {
       return
     }
     const hasActiveQuitAttempt = activeQuitAttempt != null
     if (hasActiveQuitAttempt) {
       quitCancellationActions.push(() => handleDocumentLoadFailure(window, closeState))
+
       return
     }
 
@@ -227,6 +230,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       hasPendingOwnedAuthFailure = false
       exitAfterOwnedAuthFailure()
     }
+
     if (shutdownCommitted) {
       return
     }
@@ -299,11 +303,13 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       bootstrapResult = await bootstrap(() => {
         const isCancellableQuitActive = isQuitting && !shutdownCommitted
         bootstrapObservedQuitAttempt ||= isCancellableQuitActive
+
         return !isQuitting
       })
       if (shutdownCommitted) {
         return null
       }
+
       if (isQuitting) {
         const canResume = await waitForQuitOutcome()
         if (!canResume) {
@@ -313,6 +319,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       const hasBootstrapResult = bootstrapResult != null
       shouldRunBootstrap = bootstrapObservedQuitAttempt && !hasBootstrapResult
     }
+
     return bootstrapResult
   }
 
@@ -336,6 +343,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
           continue
         }
         await action()
+
         return
       }
     })()
@@ -348,6 +356,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     const hasActiveQuitAttempt = activeQuitAttempt != null
     if (hasActiveQuitAttempt) {
       hasPendingOwnedAuthFailure = true
+
       return
     }
 
@@ -383,6 +392,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     setPowerMonitorDisposer: (dispose) => {
       if (shutdownCommitted) {
         dispose()
+
         return
       }
       disposeClockPowerMonitor = dispose

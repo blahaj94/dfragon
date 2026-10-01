@@ -31,6 +31,7 @@ function isMissing(error: unknown): boolean {
   }
 
   const isNotFound = error.code === 'ENOENT'
+
   return isNotFound
 }
 
@@ -85,6 +86,7 @@ export class MacOsCredentialFiles {
   async present(name: string): Promise<boolean> {
     try {
       assertPrivate({ stat: await this.files.lstat(join(this.directory, name)), directory: false })
+
       return true
     } catch (error) {
       const wasMissing = isMissing(error)
@@ -97,9 +99,11 @@ export class MacOsCredentialFiles {
 
   async ownedTemporaries(): Promise<string[]> {
     const names = await this.files.readdir(this.directory)
+
     return names
       .filter((name) => {
         const isOwnedTemporary = OWNED_TEMP.test(name)
+
         return isOwnedTemporary
       })
       .sort()
@@ -130,6 +134,7 @@ export class MacOsCredentialFiles {
         }
         offset += bytesRead
       }
+
       return buffer.subarray(0, offset)
     } finally {
       await handle.close()
@@ -158,16 +163,23 @@ export class MacOsCredentialFiles {
       if (isMarker) {
         await this.discardMarkerTemporaries()
       }
+
       return 'confirmed'
     } catch {
       // rename 호출 이후 오류는 destination이 실제 교체됐는지 추측하지 않는다.
-      return replacementAttempted ? 'unknown' : 'failed'
+
+      if (replacementAttempted) {
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
   private async discardMarkerTemporaries(): Promise<void> {
     const names = (await this.ownedTemporaries()).filter((name) => {
       const isMarkerTemporary = name.startsWith('.transition.v1.')
+
       return isMarkerTemporary
     })
     const hasTemporaries = names.length > 0
@@ -202,9 +214,14 @@ export class MacOsCredentialFiles {
       }
       deletionAttempted = true
       await this.syncDirectory()
+
       return 'confirmed'
     } catch {
-      return deletionAttempted ? 'unknown' : 'failed'
+      if (deletionAttempted) {
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
@@ -217,9 +234,11 @@ export class MacOsCredentialFiles {
       }
       await this.files.unlink(join(this.directory, 'transition.v1'))
       await this.syncDirectory()
+
       return 'confirmed'
     } catch {
       // unlink 전 실패도 안전하게 재확립한다. 삭제 뒤 flush 실패는 특히 marker 보존 증거가 아니다.
+
       return 'unknown'
     }
   }

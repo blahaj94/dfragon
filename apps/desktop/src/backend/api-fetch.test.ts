@@ -3,7 +3,11 @@ import { session } from 'electron'
 import { createAuthHttpClient } from './auth/http'
 import { createSearchHttp } from './search/http'
 
-vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
+vi.mock('electron', () => {
+  const fromPartition = vi.fn()
+
+  return { session: { fromPartition } }
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -23,6 +27,7 @@ describe('Desktop API system networking', () => {
       const value = request.url.endsWith('/me')
         ? { user: { id: '20000000-0000-4000-8000-000000000001', nickname: '모험가000001' } }
         : { rows: [] }
+
       return new Response(JSON.stringify(value), {
         status: 200,
         headers: { 'content-type': 'application/json' }

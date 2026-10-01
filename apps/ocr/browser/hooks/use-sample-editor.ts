@@ -48,16 +48,20 @@ export function useSampleEditor(sample: Sample) {
     if (sample.text === null || sample.text.length === 0 || split === sample.split) {
       return
     }
+
     if (window.confirm(OCR_MESSAGES.confirmSplit(split))) {
       assign.mutate(split)
     }
   }
+  const busy = save.isPending || assign.isPending
+  const saveSample = save.mutate
+
   return {
     text,
     setText,
     message,
-    busy: save.isPending || assign.isPending,
-    saveSample: save.mutate,
+    busy,
+    saveSample,
     assignNicknameSplit
   }
 }

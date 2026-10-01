@@ -18,7 +18,9 @@ export function readDesktopSourceInfo(
       return { commit: null, dirty: null }
     }
     const changes = runGit(['status', '--porcelain', '--untracked-files=normal'])
-    return { commit, dirty: changes.length > 0 }
+    const dirty = changes.length > 0
+
+    return { commit, dirty }
   } catch {
     return { commit: null, dirty: null }
   }

@@ -71,6 +71,7 @@ export class CredentialWriter {
     } catch (error) {
       this.reject(error)
     }
+
     return this.completion
   }
 }
@@ -92,6 +93,7 @@ export class CredentialSession {
 
   get hasWriter(): boolean {
     const hasWriter = this.activeWriter != null
+
     return hasWriter
   }
 
@@ -105,11 +107,13 @@ export class CredentialSession {
       }
     }
     void writer.completion.then(clearWriter, clearWriter)
+
     return writer
   }
 
   runWriter(operation: (writer: CredentialWriter) => Promise<void>): Promise<void> {
     const writer = this.reserveWriter()
+
     return writer.execute(() => operation(writer))
   }
 
@@ -133,6 +137,7 @@ export class CredentialSession {
     try {
       const result = await clearCredential(this.store)
       const isCleared = result === 'cleared'
+
       return isCleared
     } catch {
       return false
@@ -149,11 +154,13 @@ export class CredentialSession {
     signal: AbortSignal
   ): ReturnType<AuthHttp['exchange']> {
     writer.markHttpStarted()
+
     return this.http.exchange(input, signal)
   }
 
   sendRefresh(writer: CredentialWriter, refreshToken: string): ReturnType<AuthHttp['refresh']> {
     writer.markHttpStarted()
+
     return this.http.refresh(refreshToken, new AbortController().signal)
   }
 
@@ -187,6 +194,7 @@ export class CredentialSession {
 
   isAccessTrusted(credential: SessionCredential): boolean {
     const isUntrusted = this.untrustedAccessGeneration === credential.accessGeneration
+
     return !isUntrusted
   }
 
@@ -221,6 +229,7 @@ export class CredentialSession {
     const promise = (async () => {
       try {
         await this.http.logout(refreshToken, new AbortController().signal)
+
         return true
       } catch {
         // Known current/consumed token이 있으면 같은 session 폐기는 그 logout 결과로 판단한다.
@@ -231,10 +240,12 @@ export class CredentialSession {
         if (needsLateDisposalConfirmation) {
           logout.lateDisposalUnconfirmed = true
         }
+
         return false
       }
     })()
     this.disposalFlight = { refreshToken, promise }
+
     return promise
   }
 
@@ -255,6 +266,7 @@ export class CredentialSession {
       result: null
     }
     this.logoutOperation = operation
+
     return operation
   }
 
@@ -277,6 +289,7 @@ export class CredentialSession {
     })
     operation.result = promise
     void this.performLogout(operation).then(resolve, reject)
+
     return promise
   }
 
@@ -284,6 +297,7 @@ export class CredentialSession {
     try {
       const prepared = await this.prepare('clear')
       const isPrepared = prepared === 'established'
+
       return isPrepared
     } catch {
       return false
@@ -294,6 +308,7 @@ export class CredentialSession {
     try {
       const cleared = await finishCredentialClear(this.store)
       const isCleared = cleared === 'cleared'
+
       return isCleared
     } catch {
       return false
@@ -330,6 +345,7 @@ export class CredentialSession {
       (hasKnownLogoutCredential || !hasWriterDisposalFailure)
     this.discard()
     this.logoutOperation = null
+
     return { localConfirmed, serverConfirmed: isServerConfirmed }
   }
 }

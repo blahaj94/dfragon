@@ -44,6 +44,7 @@ export function createCharacterSearchService(
         lease.reserve()
         const result = adapter(input)
         finishAdmission()
+
         return await result
       } catch (error) {
         const isSearchFailure = error instanceof NeopleSearchFailure

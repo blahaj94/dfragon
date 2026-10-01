@@ -30,6 +30,7 @@ function deferred<T>(): {
     resolve = accept
     reject = fail
   })
+
   return { promise, resolve, reject }
 }
 
@@ -46,22 +47,34 @@ function createApi(): {
   const api = {
     getAuthState: vi.fn(async () => {
       order.push('query')
+
       return snapshot(1)
     }),
-    beginLogin: vi.fn<AuthApi['beginLogin']>(async (): Promise<AuthCommandResult> => ({
-      ok: true,
-      snapshot: snapshot(2)
-    })),
-    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async (): Promise<AuthCommandResult> => ({
-      ok: true,
-      snapshot: snapshot(2)
-    })),
-    retryAuth: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
+    beginLogin: vi.fn<AuthApi['beginLogin']>(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
+    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
+    retryAuth: vi.fn(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
     managePasskeys: vi.fn(),
-    logout: vi.fn(async (): Promise<AuthCommandResult> => ({ ok: true, snapshot: snapshot(2) })),
+    logout: vi.fn(async (): Promise<AuthCommandResult> => {
+      const authSnapshot = snapshot(2)
+
+      return { ok: true, snapshot: authSnapshot }
+    }),
     onAuthStateChanged: vi.fn((listener: (value: AuthSnapshot) => void) => {
       order.push('subscribe')
       listeners.add(listener)
+
       return () => {
         order.push('unsubscribe')
         listeners.delete(listener)
@@ -69,6 +82,7 @@ function createApi(): {
       }
     })
   }
+
   return {
     api,
     order,
@@ -87,7 +101,9 @@ function Probe(): JSX.Element {
   useEffect(() => {
     current = bridge
   }, [bridge])
-  return <span>{bridge.snapshot?.revision ?? 'disconnected'}</span>
+  const revision = bridge.snapshot?.revision ?? 'disconnected'
+
+  return <span>{revision}</span>
 }
 async function mount(): Promise<void> {
   await act(async () => root.render(<Probe />))
@@ -109,6 +125,7 @@ it('subscribe 이후 조회하고 먼저 도착한 높은 event revision을 늦�
   const query = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockImplementation(() => {
     fixture.order.push('query')
+
     return query.promise
   })
   await mount()
@@ -127,6 +144,7 @@ it('최초 snapshot을 계정 화면용 변환 없이 유지한다', async () =>
     ...snapshot(1),
     get phase(): AuthSnapshot['phase'] {
       phaseReads += 1
+
       return 'signedOut'
     }
   }
@@ -153,6 +171,7 @@ it('stale revision을 무시하고 최신 signedOut snapshot을 적용한다', a
     ...snapshot(0),
     get phase(): AuthSnapshot['phase'] {
       phaseReads += 1
+
       return 'signedOut'
     }
   }
@@ -168,6 +187,7 @@ it('baseline 전 queued event는 같은 run의 오래된 revision을 버리고 r
   const query = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockImplementation(() => {
     fixture.order.push('query')
+
     return query.promise
   })
   await mount()
@@ -279,6 +299,7 @@ it('같은 mount에서 api 교체는 이전 계정과 구독을 버리고 새 qu
   const nextQuery = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockImplementation(() => {
     fixture.order.push('query')
+
     return nextQuery.promise
   })
 
@@ -410,8 +431,10 @@ it('계정 확인·환영·로그아웃·연결 재설정 중에도 캡처를 �
   function Capture(): JSX.Element {
     useEffect(() => {
       mounted()
+
       return cleaned
     }, [])
+
     return <span>Capture fixture</span>
   }
   const initial = deferred<AuthSnapshot>()
@@ -443,6 +466,7 @@ it('구독 등록 중 동기적으로 도착한 event도 초기 조회 뒤에 �
   fixture.api.onAuthStateChanged.mockImplementation((listener) => {
     const unsubscribe = subscribe(listener)
     listener(snapshot(7))
+
     return unsubscribe
   })
   await mount()

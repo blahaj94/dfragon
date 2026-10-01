@@ -35,6 +35,7 @@ function element<T extends HTMLElement>(selector: string): T {
   if (isMissing) {
     throw new Error(`Test setup: expected rendered element ${selector}`)
   }
+
   return result
 }
 
@@ -110,6 +111,7 @@ describe('TextField interaction and accessible connections', () => {
     const onValueChange = vi.fn()
     function ControlledField() {
       const [value, setValue] = useState('')
+
       return (
         <TextField
           label="Display name"

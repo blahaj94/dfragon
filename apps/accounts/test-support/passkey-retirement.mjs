@@ -13,6 +13,7 @@ export async function assertPasskeyRetirement(admin, mark = () => {}) {
     const client = new Client({ host, port, user, password, database })
     await client.connect()
     connections.push(client)
+
     return client
   }
   const sql = async (name) =>
@@ -34,6 +35,7 @@ export async function assertPasskeyRetirement(admin, mark = () => {}) {
         await db.query(`SELECT to_jsonb(t) AS value FROM ${table} t ORDER BY to_jsonb(t)::text`)
       ).rows
     }
+
     return result
   }
   try {

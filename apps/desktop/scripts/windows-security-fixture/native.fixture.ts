@@ -44,6 +44,7 @@ function observeApi(): {
         handles.add(handle)
         observations.opened += 1
       }
+
       return handle
     },
     openProcessToken: (...args) => {
@@ -54,6 +55,7 @@ function observeApi(): {
         handles.add(handle)
         observations.opened += 1
       }
+
       return success
     },
     closeHandle: (handle) => {
@@ -64,6 +66,7 @@ function observeApi(): {
       } else {
         releaseFailed = true
       }
+
       return success
     },
     getSecurityInfo: (...args) => {
@@ -73,6 +76,7 @@ function observeApi(): {
       if (hasDescriptor) {
         descriptors.add(descriptor)
       }
+
       return result
     },
     convertStringSecurityDescriptorToSecurityDescriptor: (sddl, ...args) => {
@@ -87,6 +91,7 @@ function observeApi(): {
       if (hasDescriptor) {
         descriptors.add(descriptor)
       }
+
       return result
     },
     localFree: (descriptor) => {
@@ -98,6 +103,7 @@ function observeApi(): {
       } else {
         releaseFailed = true
       }
+
       return result
     },
     equalSid: (...args) => {
@@ -105,6 +111,7 @@ function observeApi(): {
       if (result) {
         observations.sidMatches += 1
       }
+
       return result
     },
     getDirectoryEntries: (...args) => {
@@ -112,6 +119,7 @@ function observeApi(): {
       if (result) {
         observations.listBatches += 1
       }
+
       return result
     },
     flushFileBuffers: (handle) => {
@@ -121,6 +129,7 @@ function observeApi(): {
       } else {
         observations.flushFailed += 1
       }
+
       return result
     },
     setFileInformationByHandle: (...args) => {
@@ -130,12 +139,15 @@ function observeApi(): {
       if (renamed) {
         observations.renameSucceeded += 1
       }
+
       if (disposed) {
         observations.dispositionSucceeded += 1
       }
+
       return result
     }
   }
+
   return {
     api,
     observations,
@@ -155,6 +167,7 @@ function observeApi(): {
         api.localFree(descriptor)
       }
       const allReleased = handles.size === 0 && descriptors.size === 0 && !releaseFailed
+
       return allReleased
     },
     assertReleased: () => {
@@ -202,6 +215,7 @@ it('observes synthetic Win32 files through the native boundary', async () => {
       throw new Error('Synthetic cleanup native inspection is unavailable.')
     }
     const isReparse = inspection === 'reparse'
+
     return isReparse
   }
   let stage = 'setup'

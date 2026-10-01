@@ -39,6 +39,7 @@ export class OcrAuthController {
     if (request.method !== 'GET') {
       throw new OcrError(OCR_ERROR_CODE.METHOD_NOT_ALLOWED)
     }
+
     return this.auth.callback(request, response)
   }
 
@@ -107,14 +108,17 @@ export class OcrDataController {
     ) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     if (kind !== undefined && kind.length > 0) {
       if (kind !== 'synthetic') {
         parseCaptureKind(kind)
       }
     }
+
     if (split !== undefined && split.length > 0) {
       parseSplit(split)
     }
+
     return this.store.list({ offset, state, split, kind, text: query.get('text') ?? undefined })
   }
 
@@ -144,6 +148,7 @@ export class OcrDataController {
     ) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.updateSample(id, {
       text,
       excluded: body.excluded,
@@ -158,6 +163,7 @@ export class OcrDataController {
     if (text === null) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.assign(text, parseSplit(body.split))
   }
 
@@ -179,6 +185,7 @@ export class OcrDataController {
     if (typeof body.fingerprint !== 'string' || !/^[0-9a-f]{64}$/.test(body.fingerprint)) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.applySplit(parseSplitOptions(body), body.fingerprint)
   }
 
@@ -186,7 +193,9 @@ export class OcrDataController {
   desktopDataset() {
     const { exportedAt, samples } = this.store.exportManifest()
     // The existing Desktop evaluator supports game captures only.
-    return { exportedAt, samples: samples.filter((sample) => sample.kind !== 'synthetic') }
+    const gameSamples = samples.filter((sample) => sample.kind !== 'synthetic')
+
+    return { exportedAt, samples: gameSamples }
   }
 
   @Get('export/manifest')

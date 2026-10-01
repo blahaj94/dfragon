@@ -37,6 +37,7 @@ function fixture(): {
         listeners.push(listener)
         const unsubscribe = vi.fn()
         unsubscribes.push(unsubscribe)
+
         return unsubscribe
       }
     },
@@ -45,6 +46,7 @@ function fixture(): {
     onRunChanged
   })
   connections.push(connection)
+
   return { connection, control, listeners, unsubscribes, onSnapshot, onFailure, onRunChanged }
 }
 

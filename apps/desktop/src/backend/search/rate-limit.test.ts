@@ -25,6 +25,7 @@ async function limited(fixture: Fixture, retryAfter?: string): Promise<SearchSlo
   const slot = (await fixture.read()).slots[0]
   expect(slot).toMatchObject({ state: 'failure', rows: [], error: { code: 'SEARCH_RATE_LIMITED' } })
   expect(slot.requestId).toEqual(expect.any(String))
+
   return slot
 }
 
@@ -200,6 +201,7 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
     vi.spyOn(fixture.harness.clock, 'schedule').mockImplementation((delay, callback) => {
       const exceedsTimerRange = delay > 2_147_483_647
       const nativeDelay = exceedsTimerRange ? 1 : delay
+
       return schedule(nativeDelay, callback)
     })
     const failed = await limited(fixture, String(Number.MAX_SAFE_INTEGER))
@@ -236,6 +238,7 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
       const hasPendingTimer = fixture.harness.clock.scheduled.some((task) => {
         const isFuture = task.at > fixture.harness.clock.monotonicMs
         const isActive = !task.cancelled && isFuture
+
         return isActive
       })
       expect(hasPendingTimer).toBe(false)

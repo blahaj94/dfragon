@@ -52,6 +52,7 @@ export async function runScenarios({
       if (!isSynthetic) {
         throw new Error('Only synthetic ciphertext is accepted.')
       }
+
       return text.slice('synthetic-only:'.length)
     }
   }
@@ -69,6 +70,7 @@ export async function runScenarios({
   const original = async (): Promise<ReturnType<typeof observeDisk>> => {
     const disk = observeDisk(observed.security, root)
     observed.discardReadReturns()
+
     return disk
   }
   const check = async (
@@ -113,6 +115,7 @@ export async function runScenarios({
       observer,
       snapshot: async () => {
         originalDisk = await original()
+
         return originalDisk
       },
       inspect: store.inspect
@@ -149,6 +152,7 @@ export async function runScenarios({
           }
         })
       : undefined
+
     return { state: state.status, recoveryPerformed: needsRecovery, decryptions, verdict }
   }
 
@@ -188,5 +192,6 @@ export async function runScenarios({
   requireStatus(String(decryptions - beforeRecovery), '0')
   await check('recovery.clear', () => clearCredential(restarted), 'cleared')
   requireStatus((await inspectOriginal(createStore())).status, 'empty')
+
   return { state: 'empty', recoveryPerformed: true, decryptions, markerDecryptions: 0 }
 }

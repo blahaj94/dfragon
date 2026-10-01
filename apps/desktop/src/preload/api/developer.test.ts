@@ -1,7 +1,13 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import * as developer from './developer'
 
-const renderer = vi.hoisted(() => ({ invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn() }))
+const renderer = vi.hoisted(() => {
+  const invoke = vi.fn()
+  const on = vi.fn()
+  const removeListener = vi.fn()
+
+  return { invoke, on, removeListener }
+})
 vi.mock('electron', () => ({ ipcRenderer: renderer }))
 
 beforeEach(() => vi.clearAllMocks())

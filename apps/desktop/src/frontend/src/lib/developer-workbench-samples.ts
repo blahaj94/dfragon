@@ -24,6 +24,7 @@ export function queryDeveloperWorkbenchSamples({
     filter((sample) => source !== 'ocr' || split === 'all' || sample.remote?.split === split)
   )
   const visibleSamples = filter(splitSamples, (sample) => matchesLabelFilter(sample, labelFilter))
+
   return { splitSamples, visibleSamples }
 }
 
@@ -51,6 +52,7 @@ export function selectDeveloperWorkbenchSample({
   const selected = pageSamples.find((sample) => sample.id === selectedId) ?? pageSamples[0] ?? null
   const selectedNumber =
     selected == null ? 0 : splitSamples.findIndex((sample) => sample.id === selected.id) + 1
+
   return { selected, selectedNumber }
 }
 
@@ -69,6 +71,7 @@ export function nextDeveloperWorkbenchSampleId(
   if (nextId != null) {
     return nextId
   }
+
   return others[0].id
 }
 
@@ -97,11 +100,14 @@ function matchesLabelFilter(
   if (labelFilter === 'excluded') {
     return sample.excluded === true
   }
+
   if (sample.excluded === true) {
     return false
   }
+
   if (labelFilter === 'unlabeled') {
     return sample.text == null
   }
+
   return sample.text != null
 }

@@ -6,6 +6,7 @@ export function targets({ sql, parameters, verb, table, id }) {
   const hasTable = sql.includes(table)
   const hasId = parameters?.includes(id) === true
   const isTarget = hasVerb && hasTable && hasId
+
   return isTarget
 }
 
@@ -32,6 +33,7 @@ export async function withCleanupDeletionHeld({ source, cleanup, table, id, oper
         held.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
         await release.promise
       }
+
       return result
     }
   })
@@ -56,6 +58,7 @@ export async function cleanupWaitingOn({ source, cleanup, table, id, blocker, un
       if (isTargetLock) {
         observed.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
       }
+
       return run()
     }
   })

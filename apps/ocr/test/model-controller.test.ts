@@ -16,8 +16,10 @@ test('base model retries share a download and integrity failure permits a later 
     calls++
     if (calls === 1) {
       await gate
+
       return new Response('synthetic weights')
     }
+
     return new Response('가\n나\n')
   })
   try {
@@ -42,10 +44,13 @@ test('base model retries share a download and integrity failure permits a later 
 const weights = Buffer.from('synthetic weights')
 const dictionary = Buffer.from('가\n나\n')
 const bytes = [weights, dictionary]
-const artifacts = BASE_MODEL_ARTIFACTS.map((artifact, index) => ({
-  ...artifact,
-  sha256: createHash('sha256').update(bytes[index]!).digest('hex')
-}))
+const artifacts = BASE_MODEL_ARTIFACTS.map((artifact, index) => {
+  const testArtifact = { ...artifact }
+  const sha256 = createHash('sha256').update(bytes[index]!).digest('hex')
+  testArtifact.sha256 = sha256
+
+  return testArtifact
+})
 
 test('verified artifacts register atomically and an existing base is revalidated without downloading', async (t) => {
   const store = new OcrStore(':memory:', 1024 * 1024)
@@ -53,6 +58,7 @@ test('verified artifacts register atomically and an existing base is revalidated
   let calls = 0
   t.mock.method(globalThis, 'fetch', async (_url: string, options: RequestInit) => {
     assert.equal(options.redirect, 'error')
+
     return new Response(bytes[calls++]!)
   })
   const first = await registerBaseModel(store, artifacts)

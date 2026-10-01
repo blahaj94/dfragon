@@ -3,7 +3,11 @@ import { PNG } from 'pngjs'
 import type { AuthAuthorization, AuthCoordinator, AuthSnapshot } from '../auth/types'
 import { createOcrDataset } from './ocr-dataset'
 
-vi.mock('../api-fetch', () => ({ fetchApi: vi.fn() }))
+vi.mock('../api-fetch', () => {
+  const fetchApi = vi.fn()
+
+  return { fetchApi }
+})
 const remoteSample = {
   id: '00000000-0000-4000-8000-000000000001-1',
   capturedAt: '2026-09-25T00:00:00.000Z',
@@ -42,18 +46,22 @@ function setup(): {
     recoverAuthorization: vi.fn(async () => credential),
     subscribe: (listener: (snapshot: AuthSnapshot) => void) => {
       listeners.add(listener)
+
       return () => {
         listeners.delete(listener)
       }
     }
   }
   const png = PNG.sync.write(new PNG({ width: 2, height: 1 }))
-  const request = vi.fn<typeof fetch>(async (url) =>
-    String(url).endsWith('/image')
-      ? new Response(new Uint8Array(png), { headers: { 'Content-Type': 'image/png' } })
-      : Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [remoteSample] })
-  )
+  const request = vi.fn<typeof fetch>(async (url) => {
+    if (String(url).endsWith('/image')) {
+      return new Response(new Uint8Array(png), { headers: { 'Content-Type': 'image/png' } })
+    }
+
+    return Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [remoteSample] })
+  })
   const dataset = createOcrDataset(auth, request)
+
   return {
     dataset,
     request,
@@ -90,13 +98,13 @@ it('reads a server snapshot and original crop with fixed, credential-free render
 
 it('reads raid sample IDs ending in 10..12 and rejects incompatible kind or ID suffixes', async () => {
   const f = setup()
-  const samples = [10, 11, 12].map((slot) => ({
-    ...remoteSample,
-    slot,
-    kind: 'raid',
-    uiScale: 1,
-    id: `00000000-0000-4000-8000-000000000001-${slot}`
-  }))
+  const samples = [10, 11, 12].map((slot) => {
+    const sample = { ...remoteSample, slot, kind: 'raid', uiScale: 1 }
+    const id = `00000000-0000-4000-8000-000000000001-${slot}`
+    sample.id = id
+
+    return sample
+  })
   f.request.mockResolvedValueOnce(
     Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples })
   )

@@ -12,6 +12,7 @@ export function createAuthBrowser(
   const allowed = (raw: string): boolean => {
     try {
       const url = new URL(raw)
+
       return (
         url.protocol === 'https:' && url.origin === apiOrigin && url.pathname.startsWith('/auth/')
       )
@@ -19,14 +20,17 @@ export function createAuthBrowser(
       return false
     }
   }
+
   return {
     async open(url, login) {
       if (!allowed(url) || login?.signal.aborted) {
         throw new Error('Authentication window unavailable')
       }
+
       if (!login && managementWindow && !managementWindow.isDestroyed()) {
         managementWindow.show()
         managementWindow.focus()
+
         return
       }
       const isolatedSession = session.fromPartition(`dfragon-auth-${randomUUID()}`, {
@@ -105,6 +109,7 @@ export function createAuthBrowser(
         if (managementWindow === window) {
           managementWindow = null
         }
+
         if (login && !claimed && !loadFailed && !login.signal.aborted) {
           login.onClosed()
         }
@@ -113,6 +118,7 @@ export function createAuthBrowser(
       login?.signal.addEventListener('abort', close, { once: true })
       if (login?.signal.aborted) {
         close()
+
         return
       }
       try {

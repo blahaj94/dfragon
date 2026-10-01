@@ -12,6 +12,7 @@ function isMigrationCommand(value: string | undefined): value is 'up' | 'down' |
   const isDownCommand = value === 'down'
   const isShowCommand = value === 'show'
   const isSupportedCommand = isUpCommand || isDownCommand || isShowCommand
+
   return isSupportedCommand
 }
 

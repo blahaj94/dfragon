@@ -23,6 +23,7 @@ async function fixture(t, entries) {
   zip.end()
   await written
   await mkdir(directory)
+
   return { root, archive, directory }
 }
 

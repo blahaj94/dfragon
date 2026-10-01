@@ -30,12 +30,14 @@ DataSource.prototype.initialize = async function () {
           observe('db.backend', row.pid)
           throw new Error('fixture-sensitive-introspection-failure')
         }
+
         return runner
       }
     }
     const result = await initialize.call(this)
     const [row] = await this.query('SELECT pg_backend_pid() AS pid')
     observe('db.backend', row.pid)
+
     return result
   }
   this.driver.disconnect = async () => {
@@ -59,6 +61,7 @@ DataSource.prototype.initialize = async function () {
     }
   }
   this.isInitialized = true
+
   return this
 }
 DataSource.prototype.destroy = async function () {
@@ -123,9 +126,11 @@ NestFactory.create = async (...args) => {
       observe('app.listen-pending')
       await signalled
     }
+
     return result
   }
   // Nest의 내부 proxy는 set을 무시하므로 바깥 get proxy로 관측한다.
+
   return new Proxy(app, {
     get(target, property) {
       const isClose = property === 'close'
@@ -134,14 +139,17 @@ NestFactory.create = async (...args) => {
       if (isClose) {
         return observedClose
       }
+
       if (isListen) {
         return observedListen
       }
+
       if (isFailingUse) {
         return () => {
           throw new Error('fixture-sensitive-app-configuration')
         }
       }
+
       return Reflect.get(target, property)
     }
   })
@@ -155,6 +163,7 @@ globalThis.fetch = (input, options) => {
     'https://api.neople.co.kr',
     'unexpected outbound request in runtime test'
   )
+
   return nativeFetch(
     `${process.env.DFRAGON_TEST_NEOPLE_ORIGIN}${url.pathname}${url.search}`,
     options

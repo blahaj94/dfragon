@@ -33,6 +33,7 @@ export function createRuntimeProfileTestFilesystem(
     if (isProtectionMissing) {
       throw new Error('POSIX profile fixture metadata was not registered')
     }
+
     return Object.assign(stat, {
       uid: protection.uid,
       mode: (stat.mode & ~0o7777) | protection.mode
@@ -76,6 +77,7 @@ export function createRuntimeProfileTestFilesystem(
     if (modelPosix && isProtectionMissing) {
       throw new Error('POSIX profile fixture metadata was not registered')
     }
+
     if (protection != null) {
       metadata.set(key, { ...protection, mode })
     }
@@ -105,12 +107,14 @@ export function createRuntimeProfileTestFilesystem(
     }
     const handle = nextHandle--
     directoryHandles.add(handle)
+
     return handle
   }
 
   function fsyncSync(handle: number): void {
     if (!modelPosix) {
       fs.fsyncSync(handle)
+
       return
     }
     const isOpen = directoryHandles.has(handle)
@@ -122,6 +126,7 @@ export function createRuntimeProfileTestFilesystem(
   function closeSync(handle: number): void {
     if (!modelPosix) {
       fs.closeSync(handle)
+
       return
     }
     const wasOpen = directoryHandles.delete(handle)

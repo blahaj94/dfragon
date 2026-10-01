@@ -18,6 +18,7 @@ COPY apps/api/test apps/api/test
 COPY apps/api/test-support apps/api/test-support
 RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
+COPY packages/licenses/notices/upstream/remeda-2.50.0-LICENSE.txt apps/api/dist/notices/remeda-2.50.0-LICENSE.txt
 
 FROM ${NODE_IMAGE} AS runtime
 ARG SOURCE_COMMIT=""

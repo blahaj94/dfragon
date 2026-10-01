@@ -23,6 +23,7 @@ export type CredentialContext = z.infer<typeof contextSchema>
 export function validateCredentialContext(context: CredentialContext): CredentialContext {
   const validated = contextSchema.parse(context)
   validateApiOrigin(validated.apiOrigin)
+
   return validated
 }
 
@@ -31,6 +32,7 @@ function sameContext(actual: CredentialContext, expected: CredentialContext): bo
   const hasSameOrigin = actual.apiOrigin === expected.apiOrigin
   const hasSameClient = actual.clientId === expected.clientId
   const hasSameContext = hasSameEnvironment && hasSameOrigin && hasSameClient
+
   return hasSameContext
 }
 
@@ -56,7 +58,12 @@ export function readCiphertext(bytes: Uint8Array, context: CredentialContext): B
   const isNonempty = ciphertext.byteLength > 0
   const isCanonicalEncoding = ciphertext.toString('base64') === parsed.data.ciphertext
   const isValidRecord = hasMatchingContext && isNonempty && isCanonicalEncoding
-  return isValidRecord ? ciphertext : null
+
+  if (!isValidRecord) {
+    return null
+  }
+
+  return ciphertext
 }
 
 export function readRefreshToken(plaintext: string, context: CredentialContext): string | null {
@@ -65,7 +72,12 @@ export function readRefreshToken(plaintext: string, context: CredentialContext):
     return null
   }
   const hasMatchingContext = sameContext(parsed.data, context)
-  return hasMatchingContext ? parsed.data.refreshToken : null
+
+  if (!hasMatchingContext) {
+    return null
+  }
+
+  return parsed.data.refreshToken
 }
 
 export function encodeCredentialRecord(context: CredentialContext, ciphertext: Buffer): Buffer {

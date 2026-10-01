@@ -7,6 +7,7 @@ export function assertUploadFile(file: File | null): asserts file is File {
   if (file === null) {
     throw new UploadInputError(OCR_MESSAGES.selectPng)
   }
+
   if (file.size > OCR_UPLOAD.maximumPngBytes) {
     throw new UploadInputError(OCR_MESSAGES.pngTooLarge)
   }
@@ -18,6 +19,7 @@ export function readPngBase64(file: File): Promise<string> {
     reader.onload = () => {
       if (typeof reader.result !== 'string' || !reader.result.includes(',')) {
         reject(new UploadInputError(OCR_MESSAGES.fileReadFailed))
+
         return
       }
       resolve(reader.result.slice(reader.result.indexOf(',') + 1))

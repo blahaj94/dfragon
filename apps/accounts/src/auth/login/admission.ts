@@ -31,6 +31,7 @@ export class AuthCapacity {
 export function createAuthRateLimit() {
   const clients = new Map<string, number>()
   let window = { until: 0, count: 0 }
+
   return (request: Request, response: Response, next: () => void) => {
     const path = request.path.toLowerCase().replace(/\/+$/, '')
     const accountRead = request.method === 'GET' && path === '/me'
@@ -47,6 +48,7 @@ export function createAuthRateLimit() {
       (request.method === 'PATCH' && path === '/me/nickname')
     if (!limited) {
       next()
+
       return
     }
     const now = Date.now()
@@ -66,9 +68,11 @@ export function createAuthRateLimit() {
       response.setHeader('Retry-After', String(Math.max(1, Math.ceil((window.until - now) / 1000))))
       response.setHeader('Cache-Control', 'no-store')
       jsonError(response, LOGIN_ERRORS.RATE_LIMIT)
+
       return
     }
     // OCR verifies every image through /me from one server IP; reads retain the shared ceiling.
+
     if (!accountRead) {
       clients.set(client, count + 1)
     }

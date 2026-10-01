@@ -96,10 +96,12 @@ export const AuthLoginRequestSchema = new EntitySchema<AuthLoginRequest>({
       'exchange_code_hash',
       'qr_ticket_hash',
       'phone_binding_hash'
-    ].map((field) => ({
-      name: `ck_passkey_request_${field}`,
-      expression: `"${field}" IS NULL OR octet_length("${field}") = 32`
-    })),
+    ].map((field) => {
+      const name = `ck_passkey_request_${field}`
+      const expression = `"${field}" IS NULL OR octet_length("${field}") = 32`
+
+      return { name, expression }
+    }),
     {
       name: 'ck_passkey_request_challenge',
       expression: `("webauthn_challenge" IS NULL AND "operation" IS NULL AND "pending_user_id" IS NULL) OR ("webauthn_challenge" IS NOT NULL AND "operation" IS NOT NULL AND "operation" IN ('register','authenticate','add'))`

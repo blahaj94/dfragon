@@ -25,6 +25,7 @@ async function click(label: string): Promise<void> {
 function publish(change: Partial<AuthSnapshot>): AuthSnapshot {
   snapshot = { ...snapshot, ...change, revision: snapshot.revision + 1 }
   listeners.forEach((listener) => listener(snapshot))
+
   return snapshot
 }
 
@@ -52,25 +53,29 @@ beforeEach(() => {
     getAuthState: vi.fn(async () => snapshot),
     onAuthStateChanged: vi.fn((listener) => {
       listeners.add(listener)
+
       return () => listeners.delete(listener)
     }),
-    beginLogin: vi.fn<AuthApi['beginLogin']>(async () => ({
-      ok: true,
-      snapshot: publish({
+    beginLogin: vi.fn<AuthApi['beginLogin']>(async () => {
+      const published = publish({
         phase: 'waitingBrowser',
         notice: null,
         login: { attemptId: 'test-attempt', provider: 'passkey', expiresAt: null }
       })
-    })),
-    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async () => ({
-      ok: true,
-      snapshot: publish({ phase: 'signedOut', login: null, notice: 'LOGIN_CANCELLED' })
-    })),
+
+      return { ok: true, snapshot: published }
+    }),
+    cancelLogin: vi.fn<AuthApi['cancelLogin']>(async () => {
+      const published = publish({ phase: 'signedOut', login: null, notice: 'LOGIN_CANCELLED' })
+
+      return { ok: true, snapshot: published }
+    }),
     retryAuth: vi.fn<AuthApi['retryAuth']>(async () => ({ ok: true, snapshot })),
-    logout: vi.fn<AuthApi['logout']>(async () => ({
-      ok: true,
-      snapshot: publish({ phase: 'signedOut', user: null, entry: null })
-    })),
+    logout: vi.fn<AuthApi['logout']>(async () => {
+      const published = publish({ phase: 'signedOut', user: null, entry: null })
+
+      return { ok: true, snapshot: published }
+    }),
     managePasskeys: vi.fn<AuthApi['managePasskeys']>(async () => ({ ok: true, snapshot }))
   }
   vi.stubGlobal('auth', api)
@@ -80,10 +85,11 @@ beforeEach(() => {
     notifyStableNicknameDetected: vi.fn()
   })
   vi.stubGlobal('search', {
-    controlCharacterSearch: vi.fn(async () => ({
-      ok: true,
-      snapshot: searchSnapshot({ captureId: null })
-    })),
+    controlCharacterSearch: vi.fn(async () => {
+      const snapshot = searchSnapshot({ captureId: null })
+
+      return { ok: true, snapshot }
+    }),
     onCharacterSearchChanged: vi.fn(() => () => {})
   })
 })

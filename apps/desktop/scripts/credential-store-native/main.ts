@@ -57,11 +57,13 @@ async function run(): Promise<void> {
   const observedSafeStorage = {
     isEncryptionAvailable: () => {
       encryptionAvailabilityCalls += 1
+
       return safeStorage.isEncryptionAvailable()
     },
     encryptString: (plaintext: string) => safeStorage.encryptString(plaintext),
     decryptString: (ciphertext: Buffer) => {
       decryptCalls += 1
+
       return safeStorage.decryptString(ciphertext)
     }
   }

@@ -7,6 +7,22 @@ import { styles } from './DeveloperParticipantCollectionSection.style'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
+function getWindowImageAlt(raid: boolean): string {
+  if (raid) {
+    return '검출된 공대 상세 창 원본'
+  }
+
+  return '검출된 파티참가인원 창 원본'
+}
+
+function getRowUnit(raid: boolean): string {
+  if (raid) {
+    return '행'
+  }
+
+  return '번'
+}
+
 export function DeveloperParticipantCollectionSection({
   collection,
   kind,
@@ -23,11 +39,14 @@ export function DeveloperParticipantCollectionSection({
   const occupiedCount = frame?.slots.length ?? 0
   const count = frame?.slots.filter(({ slot }) => collection.slots.includes(slot)).length ?? 0
   const collectionError = collection.collection?.error
-  const error = collection.commandError
-    ? DEVELOPER_ERROR_CODES.OPERATION_FAILED
-    : collectionError === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
-      ? collection.previewError || collectionError
-      : collectionError || collection.previewError
+  let error: string
+  if (collection.commandError) {
+    error = DEVELOPER_ERROR_CODES.OPERATION_FAILED
+  } else if (collectionError === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE) {
+    error = collection.previewError || collectionError
+  } else {
+    error = collectionError || collection.previewError
+  }
   const message = getParticipantPreviewMessage(
     error || (popup && count === 0 ? DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND : ''),
     kind
@@ -110,7 +129,7 @@ export function DeveloperParticipantCollectionSection({
               <div {...stylex.props(styles.windowImage)}>
                 <img
                   src={popup.dataUrl}
-                  alt={raid ? '검출된 공대 상세 창 원본' : '검출된 파티참가인원 창 원본'}
+                  alt={getWindowImageAlt(raid)}
                   {...stylex.props(styles.dialog)}
                 />
                 {popup.rows
@@ -145,6 +164,23 @@ export function DeveloperParticipantCollectionSection({
           {DEVELOPER_COLLECTION_SLOTS[kind].map((slot) => {
             const crop = frame?.slots.find((row) => row.slot === slot)
             const included = collection.slots.includes(slot)
+            let rowLabel: string
+            if (crop) {
+              rowLabel = included ? '저장 포함' : '저장 안 함'
+            } else if (popup) {
+              rowLabel = raid ? '빈 행' : '빈 행 · 저장 안 함'
+            } else {
+              rowLabel = '검출 대기'
+            }
+            let emptyMessage = ''
+            if (!crop) {
+              if (raid) {
+                emptyMessage = popup ? '저장할 닉네임 없음' : '검출 대기 중'
+              } else {
+                emptyMessage = popup ? '저장할 닉네임이 없어요' : '닉네임을 기다리고 있어요'
+              }
+            }
+
             return (
               <article key={slot} {...stylex.props(styles.row, raid && styles.raidRow)}>
                 <label {...stylex.props(styles.rowHeader, raid && styles.raidRowHeader)}>
@@ -152,17 +188,7 @@ export function DeveloperParticipantCollectionSection({
                     {slot}
                     {raid ? '행' : '번'}
                   </Typo.txtS>
-                  <Typo.caption {...stylex.props(styles.rowLabel)}>
-                    {crop
-                      ? included
-                        ? '저장 포함'
-                        : '저장 안 함'
-                      : popup
-                        ? raid
-                          ? '빈 행'
-                          : '빈 행 · 저장 안 함'
-                        : '검출 대기'}
-                  </Typo.caption>
+                  <Typo.caption {...stylex.props(styles.rowLabel)}>{rowLabel}</Typo.caption>
                   <input
                     type="checkbox"
                     aria-label={
@@ -184,19 +210,11 @@ export function DeveloperParticipantCollectionSection({
                   {crop ? (
                     <img
                       src={crop.dataUrl}
-                      alt={`${slot}${raid ? '행' : '번'} 닉네임 원본 크롭`}
+                      alt={`${slot}${getRowUnit(raid)} 닉네임 원본 크롭`}
                       {...stylex.props(styles.cropImage)}
                     />
                   ) : (
-                    <Typo.caption {...stylex.props(styles.muted)}>
-                      {raid
-                        ? popup
-                          ? '저장할 닉네임 없음'
-                          : '검출 대기 중'
-                        : popup
-                          ? '저장할 닉네임이 없어요'
-                          : '닉네임을 기다리고 있어요'}
-                    </Typo.caption>
+                    <Typo.caption {...stylex.props(styles.muted)}>{emptyMessage}</Typo.caption>
                   )}
                 </div>
               </article>

@@ -5,6 +5,26 @@ import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { styles } from './DeveloperSampleEditor.style'
 import { DEVELOPER_COLLECTION_LABELS } from '../constants/developer'
 
+function getSourceTitleSuffix(source: DeveloperWorkbenchSample['source']): string {
+  if (!source) {
+    return ' · 기존 이미지'
+  }
+
+  if (source.kind === 'raid') {
+    return ` · 공대원창 ${source.slot}행 크롭`
+  }
+
+  return ` · ${source.slot}번 크롭`
+}
+
+function getImageStatusMessage(failed: boolean): string {
+  if (failed) {
+    return '이미지를 읽지 못했습니다.'
+  }
+
+  return '이미지를 불러오는 중입니다.'
+}
+
 export function DeveloperSampleEditor({
   sample,
   number,
@@ -45,6 +65,7 @@ export function DeveloperSampleEditor({
           setImageResult({ sampleId: sample.id, retry, status: 'failed' })
         }
       })
+
     return () => {
       current = false
     }
@@ -65,11 +86,7 @@ export function DeveloperSampleEditor({
     <div {...stylex.props(styles.editor)}>
       <Typo.h4 as="h2">
         이미지 {number}
-        {source
-          ? source.kind === 'raid'
-            ? ` · 공대원창 ${source.slot}행 크롭`
-            : ` · ${source.slot}번 크롭`
-          : ' · 기존 이미지'}
+        {getSourceTitleSuffix(source)}
       </Typo.h4>
       <Typo.caption {...stylex.props(styles.muted)}>
         {[capturedAtText, `${sample.width} × ${sample.height}px`].filter(Boolean).join(' · ')}
@@ -78,9 +95,7 @@ export function DeveloperSampleEditor({
         {image ? (
           <img src={image} alt="선택한 저장 크롭" {...stylex.props(styles.image)} />
         ) : (
-          <Typo.txtS>
-            {failed ? '이미지를 읽지 못했습니다.' : '이미지를 불러오는 중입니다.'}
-          </Typo.txtS>
+          <Typo.txtS>{getImageStatusMessage(failed)}</Typo.txtS>
         )}
       </div>
       {failed && (

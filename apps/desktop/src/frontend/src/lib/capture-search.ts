@@ -76,6 +76,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     }
     const { promise, resolve, reject } = Promise.withResolvers<string | null>()
     lifetime.send({ type: 'BEGIN', signal, resolve, reject })
+
     return promise
   }
 
@@ -139,6 +140,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         canRetry = isRetryable && !isWaiting
       }
     }
+
     if (!canRetry) {
       return
     }
@@ -197,6 +199,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       }),
       retryPending: Array.from({ length: 4 }, (_, slot) => {
         const isPending = pending.has(slot)
+
         return isPending
       }),
       connectionFailed: failed
@@ -230,6 +233,7 @@ function getVisibleSearchSlots({
     return emptySearchSlots()
   }
   const empty = emptySearchSlots()
+
   return snapshot.slots.map((slot) => {
     const observedRevision = revisions[slot.slot]
     const hasObserved = observedRevision > 0
@@ -237,6 +241,10 @@ function getVisibleSearchSlots({
     const isIdle = slot.state === 'idle'
     const isCleared = cleared[slot.slot]
     const canShow = isCurrent && (isIdle || (hasObserved && !isCleared))
-    return canShow ? slot : empty[slot.slot]
+    if (canShow) {
+      return slot
+    }
+
+    return empty[slot.slot]
   })
 }

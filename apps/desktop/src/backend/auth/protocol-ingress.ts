@@ -79,6 +79,7 @@ export function attachProtocolIngressAfterStart(
       const shouldDetachImmediately = !active || !isActive()
       if (shouldDetachImmediately) {
         attachedDetach()
+
         return
       }
       detach = attachedDetach
@@ -133,9 +134,11 @@ function readBoundedArguments(value: unknown): BoundedArguments {
 
 function createSecondInstanceHandoff(argv: readonly unknown[]): Record<string, unknown> {
   const bounded = readBoundedArguments(argv)
+  const handoffArguments = bounded.status === 'valid' ? [...bounded.values] : null
+
   return {
     version: SECOND_INSTANCE_HANDOFF_VERSION,
-    argv: bounded.status === 'valid' ? [...bounded.values] : null
+    argv: handoffArguments
   }
 }
 
@@ -153,6 +156,7 @@ function readSecondInstanceHandoff(value: unknown): BoundedArguments {
   if (version !== SECOND_INSTANCE_HANDOFF_VERSION) {
     return { status: 'invalid' }
   }
+
   return readBoundedArguments(argv)
 }
 
@@ -161,6 +165,7 @@ export function selectProtocolIngressArguments(
   isDefaultApp: boolean
 ): readonly unknown[] {
   const bootstrapArgumentCount = isDefaultApp ? 2 : 1
+
   return argv.slice(bootstrapArgumentCount)
 }
 
@@ -178,6 +183,7 @@ function projectUrlDetectionInput(value: string): ProjectedUrlInput {
     const codePoint = character.codePointAt(0)!
     const isWhitespace = character.trim().length === 0
     const isControl = codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f)
+
     return isWhitespace || isControl
   }
   while (first < last && isEdgeIgnored(characters[first]!)) {
@@ -200,7 +206,9 @@ function projectUrlDetectionInput(value: string): ProjectedUrlInput {
     }
   }
 
-  return { value: projected, hasInternalControl, matchesRaw: projected === value }
+  const matchesRaw = projected === value
+
+  return { value: projected, hasInternalControl, matchesRaw }
 }
 
 type StructuredOptionPayload = Readonly<{
@@ -209,7 +217,13 @@ type StructuredOptionPayload = Readonly<{
 }>
 
 function readStructuredOptionPayload(value: string): StructuredOptionPayload | undefined {
-  const prefixLength = value.startsWith('--') ? 2 : value.startsWith('/') ? 1 : 0
+  let prefixLength = 0
+  if (value.startsWith('--')) {
+    prefixLength = 2
+  } else if (value.startsWith('/')) {
+    prefixLength = 1
+  }
+
   if (prefixLength === 0) {
     return undefined
   }
@@ -227,10 +241,10 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
     return undefined
   }
 
-  return {
-    name: name.toLowerCase(),
-    value: option.slice(separatorIndex + 1)
-  }
+  const normalizedName = name.toLowerCase()
+  const payload = option.slice(separatorIndex + 1)
+
+  return { name: normalizedName, value: payload }
 }
 
 function looksLikeUrlInput(value: string): boolean {
@@ -254,6 +268,7 @@ function looksLikeUrlInput(value: string): boolean {
   const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(projected)
   const hasMalformedHierarchicalScheme = /^[^/?#]*:[\\/]+/.test(projected)
   const hasControlBeforeDelimiter = hasInternalControl && projected.includes(':')
+
   return hasScheme || hasMalformedHierarchicalScheme || hasControlBeforeDelimiter
 }
 
@@ -338,6 +353,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
   const ownsInstance = input.app.requestSingleInstanceLock(createSecondInstanceHandoff(input.argv))
   if (!ownsInstance) {
     input.app.quit()
+
     return createInactiveIngress()
   }
 
@@ -361,6 +377,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
       if (!hasBufferedReturnUrl) {
         bufferedReturnUrl = rawReturnUrl
       }
+
       return
     }
 
@@ -376,6 +393,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     const hasCurrentActivation = currentActivation != null
     if (!hasCurrentActivation) {
       bufferedActivation = true
+
       return
     }
 
@@ -409,6 +427,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     const hasValidCandidate = candidate.status === 'valid'
     if (hasValidCandidate) {
       deliver(candidate.rawReturnUrl)
+
       return
     }
 
@@ -477,6 +496,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     if (hasPendingReturnUrl) {
       deliver(pendingReturnUrl)
     }
+
     if (hasPendingActivation) {
       deliverActivation()
     }

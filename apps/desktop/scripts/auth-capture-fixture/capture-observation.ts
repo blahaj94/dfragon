@@ -37,8 +37,10 @@ export function isAcceptedParsedObservation(
       hasSameNickname &&
       hasRequestId &&
       isRequestActive
+
     return isAccepted
   }
+
   return false
 }
 
@@ -57,6 +59,7 @@ function isAcceptedObservation({
   if (!canCompare) {
     return false
   }
+
   return isAcceptedParsedObservation(observation, result)
 }
 
@@ -73,9 +76,15 @@ export function syntheticSlotMask(value: unknown): number {
     if (isSlotInteger) {
       const isSlotInRange = slot >= 0 && slot < 4
       const isExpectedSlot = isSlotInRange && isExpectedNickname
-      return isExpectedSlot ? 1 << slot : 0
+
+      if (isExpectedSlot) {
+        return 1 << slot
+      }
+
+      return 0
     }
   }
+
   return 0
 }
 
@@ -99,6 +108,7 @@ export function registerObservedCapture(
     const hasHandler = handler != null
     if (!hasHandler) {
       originalDisplay.call(session, handler, options)
+
       return
     }
     originalDisplay.call(
@@ -111,6 +121,7 @@ export function registerObservedCapture(
           if (hasStreams) {
             hasVideo = streams.video != null
           }
+
           if (hasVideo === true) {
             counts.displayAllowed += 1
           }
@@ -124,17 +135,20 @@ export function registerObservedCapture(
     const isNickname = channel === 'notifyStableNicknameDetected'
     if (!isNickname) {
       originalHandle.call(ipcMain, channel, listener)
+
       return
     }
     originalHandle.call(ipcMain, channel, (event, ...args) => {
       counts.nicknameInvokes += 1
       const result = listener(event, ...args)
+
       return Promise.resolve(result).then((response: unknown) => {
         const isAccepted = isAcceptedObservation({ value: args[0], response })
         if (isAccepted) {
           counts.nicknameAccepted += 1
           counts.nicknameMatchedSlots |= syntheticSlotMask(args[0])
         }
+
         return response
       })
     })
@@ -142,6 +156,7 @@ export function registerObservedCapture(
   try {
     const dispose = registerCaptureIpc(runtime)
     registerCaptureWindow(window, documentUrl)
+
     return { counts, dispose }
   } finally {
     session.setDisplayMediaRequestHandler = originalDisplay

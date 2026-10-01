@@ -34,6 +34,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
         if (inProgress) {
           return
         }
+
         if (connectionFailed) {
           resynchronize()
         } else if (canRetry) {

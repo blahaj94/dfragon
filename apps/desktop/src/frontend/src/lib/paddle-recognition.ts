@@ -14,6 +14,7 @@ export function normalizedBgr(
       }
     }
   }
+
   return values
 }
 
@@ -46,5 +47,7 @@ export function decodeCtc(
     }
     previous = best
   }
-  return { text, confidence: count > 0 ? (score / count) * 100 : 0 }
+  const confidence = count > 0 ? (score / count) * 100 : 0
+
+  return { text, confidence }
 }

@@ -66,6 +66,7 @@ export function resolvePackageRoot(name: string, from: string): string {
     if (existsSync(manifest)) {
       return findPackageRoot(manifest)
     }
+
     return findPackageRoot(require.resolve(name))
   } catch {
     return findPackageRoot(require.resolve(name))
@@ -105,6 +106,7 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
       documents.push({ name: entry.name, text: readFileSync(file, 'utf8') })
     }
   }
+
   return documents.sort((a, b) => a.name.localeCompare(b.name, 'en'))
 }
 
@@ -144,6 +146,7 @@ export function collectPackages(moduleIds: Iterable<string>, runtimeRoot?: strin
   if (runtimeRoot) {
     visit(runtimeRoot)
   }
+
   return [...roots]
     .map((directory) => {
       return packageNotice(directory)
@@ -171,15 +174,16 @@ export function packageNotice(directory: string): NoticeEntry {
       text: '이 패키지는 npm에서 ISC를 선언하지만 배포 패키지와 현재 공식 저장소에 라이선스 원문이 없습니다. 저작권 문구를 추정하지 않았으며 원문 확보가 필요합니다.\nhttps://www.npmjs.com/package/guid-typescript/v/1.0.9\nhttps://github.com/snico-dev/guid-typescript'
     })
   }
+
   if (!documents.length) {
     throw new Error(`Missing license text for ${manifest.name}@${manifest.version}`)
   }
-  return {
-    name: manifest.name,
-    version: manifest.version,
-    license:
-      (typeof manifest.license === 'string' ? manifest.license : 'See license text') +
-      (key === 'guid-typescript@1.0.9' ? ' · 원문 확인 필요' : ''),
-    documents
-  }
+  const name = manifest.name
+  const version = manifest.version
+  const declaredLicense =
+    typeof manifest.license === 'string' ? manifest.license : 'See license text'
+  const licenseNote = key === 'guid-typescript@1.0.9' ? ' · 원문 확인 필요' : ''
+  const license = declaredLicense + licenseNote
+
+  return { name, version, license, documents }
 }

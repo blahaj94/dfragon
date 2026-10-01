@@ -26,19 +26,23 @@ class ApiHttpFilter implements ExceptionFilter {
     const response = context.getResponse<Response>()
     if (response.headersSent) {
       response.end()
+
       return
     }
+
     if (request.route == null && error instanceof NotFoundException) {
       response.status(404).json({ statusCode: 404, message: 'Not Found' })
+
       return
     }
     const path = request.path.toLowerCase().replace(/\/+$/, '')
-    const failure =
-      path === '/characters'
-        ? error instanceof NeopleSearchFailure
-          ? error
-          : neopleSearchFailure('internal')
-        : characterDetailFailure(error)
+    let failure: NeopleSearchFailure | ReturnType<typeof characterDetailFailure>
+    if (path === '/characters') {
+      failure = error instanceof NeopleSearchFailure ? error : neopleSearchFailure('internal')
+    } else {
+      failure = characterDetailFailure(error)
+    }
+
     if (failure.retryAfter != null) {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }
@@ -103,6 +107,7 @@ export async function createApiHttpApp(
     })
     app.useGlobalFilters(new ApiHttpFilter())
     setupSwagger(app)
+
     return app
   } catch (error) {
     await app.close().catch(() => undefined)

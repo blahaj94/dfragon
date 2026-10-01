@@ -22,6 +22,7 @@ export function readDistributionApiOrigin(
     ) {
       throw new Error()
     }
+
     return origin
   } catch {
     // Never echo an invalid value: it may accidentally contain credentials.

@@ -37,10 +37,12 @@ describe('search command parser condition boundaries', () => {
       {
         get(target, property, receiver) {
           events.push(`get:${String(property)}`)
+
           return Reflect.get(target, property, receiver)
         },
         ownKeys(target) {
           events.push('ownKeys')
+
           return Reflect.ownKeys(target)
         }
       }

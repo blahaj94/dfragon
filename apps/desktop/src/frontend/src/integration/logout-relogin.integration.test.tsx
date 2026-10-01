@@ -41,6 +41,7 @@ const electron = vi.hoisted(() => {
       if (handler == null || invokeEvent == null) {
         throw new Error(`Missing IPC route: ${channel}`)
       }
+
       return handler(invokeEvent, ...args)
     }),
     on: vi.fn((channel: string, listener: Listener) => {
@@ -52,13 +53,14 @@ const electron = vi.hoisted(() => {
       listeners.get(channel)?.delete(listener)
     })
   }
+  const desktopCapturer = {
+    getSources: vi.fn(async () => [{ id: 'window:synthetic', name: 'Synthetic game window' }])
+  }
 
   return {
     ipcMain,
     ipcRenderer,
-    desktopCapturer: {
-      getSources: vi.fn(async () => [{ id: 'window:synthetic', name: 'Synthetic game window' }])
-    },
+    desktopCapturer,
     setInvokeEvent(event: IpcMainInvokeEvent): void {
       invokeEvent = event
     },
@@ -82,14 +84,18 @@ const electron = vi.hoisted(() => {
 
 vi.mock('electron', () => electron)
 
-const ocrWorker = vi.hoisted(() => ({
-  recognize: vi.fn(async () => ({ data: { text: 'ALICE' } })),
-  terminate: vi.fn(async () => undefined)
-}))
+const ocrWorker = vi.hoisted(() => {
+  const recognize = vi.fn(async () => ({ data: { text: 'ALICE' } }))
+  const terminate = vi.fn(async () => undefined)
 
-vi.mock('../lib/ocr', () => ({
-  createPartyOcrWorker: vi.fn(async () => ocrWorker)
-}))
+  return { recognize, terminate }
+})
+
+vi.mock('../lib/ocr', () => {
+  const createPartyOcrWorker = vi.fn(async () => ocrWorker)
+
+  return { createPartyOcrWorker }
+})
 
 const DOCUMENT_URL = 'file:///fixture/index.html'
 const RENDERER_SOURCE_ID = 'window:synthetic'
@@ -166,32 +172,40 @@ function installMediaBoundary(): {
   } as unknown as MediaStream
   const media = { getDisplayMedia: vi.fn(async () => stream) }
   Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: media })
+
   return { media, track }
 }
 
 function installCanvasBoundary(): void {
-  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(
-    () =>
-      ({
-        drawImage: vi.fn(),
-        putImageData: vi.fn(),
-        fillRect: vi.fn(),
-        getImageData: vi.fn((x: number, y: number, width: number, height: number) => {
-          const isFirstSlotMana = x === 42 && y === 42 && width === 105 && height === 5
-          if (!isFirstSlotMana) {
-            return { data: new Uint8ClampedArray(width * height * 4) }
-          }
-          const data = new Uint8ClampedArray(width * height * 4)
-          for (let index = 0; index < data.length; index += 4) {
-            data[index] = 55
-            data[index + 1] = 121
-            data[index + 2] = 170
-            data[index + 3] = 255
-          }
-          return { data }
-        })
-      }) as unknown as CanvasRenderingContext2D
-  )
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+    const drawImage = vi.fn()
+    const putImageData = vi.fn()
+    const fillRect = vi.fn()
+    const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
+      const isFirstSlotMana = x === 42 && y === 42 && width === 105 && height === 5
+      if (!isFirstSlotMana) {
+        const data = new Uint8ClampedArray(width * height * 4)
+
+        return { data }
+      }
+      const data = new Uint8ClampedArray(width * height * 4)
+      for (let index = 0; index < data.length; index += 4) {
+        data[index] = 55
+        data[index + 1] = 121
+        data[index + 2] = 170
+        data[index + 3] = 255
+      }
+
+      return { data }
+    })
+
+    return {
+      drawImage,
+      putImageData,
+      fillRect,
+      getImageData
+    } as unknown as CanvasRenderingContext2D
+  })
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(async function (
     this: HTMLMediaElement
   ) {
@@ -207,6 +221,7 @@ function button(container: HTMLDivElement, label: string): HTMLButtonElement {
     (candidate) => candidate.textContent === label
   )
   expect(found, `Expected button ${label}`).toBeDefined()
+
   return found as HTMLButtonElement
 }
 
@@ -254,9 +269,11 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     if (observedRequests.length === 1) {
       return liveSearch.promise
     }
+
     if (observedRequests.length === 2) {
       return lateSearch.promise.then((response) => {
         lateResponseDelivered.resolve()
+
         return response
       })
     }

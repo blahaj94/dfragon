@@ -26,11 +26,13 @@ async function recognized(): Promise<Fixture> {
   const crop = document.createElement('canvas')
   media.crops.mockReturnValue([crop, crop, crop, crop])
   await fixture.cycle(2)
+
   return fixture
 }
 function region(fixture: Fixture, slot = 0): HTMLElement {
   const view = fixture.container.querySelector(`[aria-label="슬롯 ${slot + 1} 검색"]`)
   expect(view, `슬롯 ${slot + 1} 검색의 접근 가능한 영역`).not.toBeNull()
+
   return view as HTMLElement
 }
 async function emitSlot(fixture: Fixture, slot: SearchSlot): Promise<void> {
@@ -104,13 +106,14 @@ it('검색 상태와 결과 수는 같은 status 영역에서 갱신하고 후�
     await emitSlot(fixture, slot)
     expect(region(fixture).querySelectorAll('[role="status"]')).toHaveLength(1)
     expect(region(fixture).querySelector('[role="status"]')).toBe(status)
-    expect(status?.textContent).toBe(
-      slot.state === 'success'
-        ? '검색 결과 1명'
-        : slot.state === 'pending'
-          ? '검색 중'
-          : '검색 결과가 없습니다.'
-    )
+    const statusExpectation = expect(status?.textContent)
+    let expectedStatus = '검색 결과가 없습니다.'
+    if (slot.state === 'success') {
+      expectedStatus = '검색 결과 1명'
+    } else if (slot.state === 'pending') {
+      expectedStatus = '검색 중'
+    }
+    statusExpectation.toBe(expectedStatus)
     const candidates = region(fixture).querySelector('[aria-label="캐릭터 검색 후보"]')
     if (slot.state === 'success') {
       expect(candidates).not.toBeNull()
@@ -127,11 +130,12 @@ it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별�
     fixture,
     searchSlot({
       state: 'success',
-      rows: [125850, 0, -0.25, 0.00001, null].map((fame, index) => ({
-        ...searchRow,
-        characterId: `synthetic-${index}`,
-        fame
-      }))
+      rows: [125850, 0, -0.25, 0.00001, null].map((fame, index) => {
+        const row = { ...searchRow }
+        const characterId = `synthetic-${index}`
+
+        return { ...row, characterId, fame }
+      })
     })
   )
   const values = [...region(fixture).querySelectorAll('dt')]
@@ -206,6 +210,7 @@ it('failure 조건은 오류와 retry 대기 getter를 기존 순서로 평가�
         if (property === 'code' || property === 'retryAfterSeconds') {
           reads.push(property)
         }
+
         return Reflect.get(target, property, receiver)
       }
     }
@@ -307,14 +312,15 @@ it('한 slot의 retry 응답 대기는 다른 slot의 사용자 retry를 막지 
   const slots = fixture.current().slots.map((slot) => {
     const isFailure = slot.slot < 2
     const isFirst = slot.slot === 0
-    return isFailure
-      ? searchSlot({
-          slot: slot.slot,
-          state: 'failure',
-          requestId: isFirst ? REQUEST_ID : secondId,
-          error
-        })
-      : slot
+
+    if (isFailure) {
+      const slotIndex = slot.slot
+      const requestId = isFirst ? REQUEST_ID : secondId
+
+      return searchSlot({ slot: slotIndex, state: 'failure', requestId, error })
+    }
+
+    return slot
   })
   await fixture.emit({ ...fixture.current(), captureId: CAPTURE_ID, revision: 10, slots })
   fixture.search.controlCharacterSearch.mockReturnValue(new Promise(() => undefined))

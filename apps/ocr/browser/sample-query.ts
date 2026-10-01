@@ -8,5 +8,6 @@ export function buildSampleQuery(filters: SampleFilters): string {
       query.set(key, filters[key])
     }
   }
+
   return query.toString()
 }

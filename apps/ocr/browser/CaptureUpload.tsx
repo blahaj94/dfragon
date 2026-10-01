@@ -119,7 +119,14 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
                 onChange={(e) => {
                   const slot = Number(e.target.value)
                   setCrops((current) =>
-                    current.map((item, i) => (i === index ? { ...item, slot } : item))
+                    current.map((item, i) => {
+                      if (i !== index) {
+                        return item
+                      }
+                      const updatedCrop = { ...item, slot }
+
+                      return updatedCrop
+                    })
                   )
                 }}
               >
@@ -144,9 +151,16 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
                   value={crop[key]}
                   onChange={(e) =>
                     setCrops((current) =>
-                      current.map((item, i) =>
-                        i === index ? { ...item, [key]: Number(e.target.value) } : item
-                      )
+                      current.map((item, i) => {
+                        if (i !== index) {
+                          return item
+                        }
+                        const updatedCrop = { ...item }
+                        const fieldValue = Number(e.target.value)
+                        updatedCrop[key] = fieldValue
+
+                        return updatedCrop
+                      })
                     )
                   }
                 />
@@ -161,9 +175,12 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             onClick={() =>
               setCrops((current) => {
                 const slot = slots.find((slot) => !current.some((crop) => crop.slot === slot))
-                return slot === undefined
-                  ? current
-                  : [...current, { slot, x: 0, y: 0, width: 1, height: 1 }]
+
+                if (slot === undefined) {
+                  return current
+                }
+
+                return [...current, { slot, x: 0, y: 0, width: 1, height: 1 }]
               })
             }
           >

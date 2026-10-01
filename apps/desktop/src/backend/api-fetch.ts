@@ -5,5 +5,6 @@ import { session } from 'electron'
 export const fetchApi: typeof globalThis.fetch = (input, init) => {
   const apiSession = session.fromPartition('dfragon-api', { cache: false })
   const request = input instanceof URL ? input.href : input
+
   return apiSession.fetch(request, { ...init, bypassCustomProtocolHandlers: true })
 }

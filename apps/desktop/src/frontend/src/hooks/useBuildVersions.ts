@@ -8,7 +8,12 @@ type VersionState =
 
 function readBridge(): BuildVersionsApi | null {
   const candidate = typeof window === 'undefined' ? undefined : window.versions
-  return candidate != null && typeof candidate.getBuildVersions === 'function' ? candidate : null
+
+  if (candidate != null && typeof candidate.getBuildVersions === 'function') {
+    return candidate
+  }
+
+  return null
 }
 
 /** Own metadata request lifetime without coupling it to capture or login state. */
@@ -24,11 +29,14 @@ export function useBuildVersions(): VersionState & { refresh: () => void } {
         if (request.current !== revision) {
           return null
         }
+
         if (bridge == null) {
           setState({ status: 'unavailable', snapshot: null })
+
           return null
         }
         setState((previous) => ({ status: 'loading', snapshot: previous.snapshot }))
+
         return bridge.getBuildVersions()
       })
       .then((value: unknown) => {
@@ -50,6 +58,7 @@ export function useBuildVersions(): VersionState & { refresh: () => void } {
 
   useEffect(() => {
     refresh()
+
     return () => {
       request.current += 1
     }

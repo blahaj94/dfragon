@@ -35,6 +35,17 @@ node --test scripts/test/start-task.test.mjs
 node --check scripts/start-task.mjs
 ```
 
+## `prettier-return-spacing`
+
+공통 Prettier 설정에서 사용하는 로컬 플러그인입니다. 블록의 첫 문장인 `return` 앞에는 빈 줄을 넣지 않고, 앞에 다른 문장이 있으면 기존 ESTree 프린터의 `ReturnStatement` 출력에 필요한 줄바꿈을 더해 빈 줄 한 줄을 둡니다. 같은 문장 목록에서 연속되는 블록 `if` 사이에도 빈 줄 한 줄을 둡니다. `else`·`else if` 연결과 블록 없는 `if`의 기존 배치는 유지합니다. 기존 빈 줄·주석·반환식과 ASI 처리를 재사용하며 별도 후처리 명령은 필요하지 않습니다.
+
+Root와 각 workspace의 `format`·`format:check`, 공통 설정을 읽는 에디터에서 동일하게 적용됩니다. Prettier를 갱신하거나 정책을 수정할 때 다음 회귀검사를 실행합니다.
+
+```sh
+pnpm test:format-policy
+node --check scripts/prettier-return-spacing.mjs
+```
+
 ## `format-date`
 
 UTC ISO 시각을 한국 시간(`Asia/Seoul`)의 `2026년 9월 9일 00시 35분` 형식으로 출력합니다. 인자를 생략하면 현재 시각을 사용합니다.

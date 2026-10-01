@@ -5,19 +5,25 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import App from './App'
 
-const capture = vi.hoisted(() => ({
-  search: { connectionFailed: false, ready: true },
-  selectedSourceId: '',
-  status: '캡처 대기',
-  stableNicknames: [null, null, null, null],
-  sources: [],
-  sourcesLoading: false,
-  sourcesFailed: false,
-  phase: 'idle',
-  selectAndStartCapture: vi.fn(),
-  refreshSources: vi.fn(),
-  stopCapture: vi.fn()
-}))
+const capture = vi.hoisted(() => {
+  const selectAndStartCapture = vi.fn()
+  const refreshSources = vi.fn()
+  const stopCapture = vi.fn()
+
+  return {
+    search: { connectionFailed: false, ready: true },
+    selectedSourceId: '',
+    status: '캡처 대기',
+    stableNicknames: [null, null, null, null],
+    sources: [],
+    sourcesLoading: false,
+    sourcesFailed: false,
+    phase: 'idle',
+    selectAndStartCapture,
+    refreshSources,
+    stopCapture
+  }
+})
 
 vi.mock('./hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 vi.mock('./components/CaptureControls', () => ({ CaptureControls: () => null }))
@@ -49,6 +55,7 @@ function button(label: string): HTMLButtonElement {
   if (result == null) {
     throw new Error(`Missing ${label} button`)
   }
+
   return result
 }
 
@@ -77,13 +84,18 @@ it('stops normal capture and preserves the party page while the workbench is ope
         error: null
       }
     })),
-    setPartyCollectionSlots: vi.fn(async (slots: number[] | null) => ({
-      armed: slots != null,
-      slots: slots ?? [],
-      revision: 0,
-      lastSavedAt: null,
-      error: null
-    }))
+    setPartyCollectionSlots: vi.fn(async (slots: number[] | null) => {
+      const armed = slots != null
+      const selectedSlots = slots ?? []
+
+      return {
+        armed,
+        slots: selectedSlots,
+        revision: 0,
+        lastSavedAt: null,
+        error: null
+      }
+    })
   }
   Object.defineProperty(window, 'developer', { configurable: true, value: developer })
 

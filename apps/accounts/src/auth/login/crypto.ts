@@ -22,11 +22,13 @@ export function decodeOpaque(value: unknown): Buffer {
   if (!isCanonicalEncoding) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
+
   return bytes
 }
 
 export function opaqueHash(value: string): Buffer {
   // Ticket·state·code는 인코딩된 문자열이 아닌 원래 random bytes를 hash한다.
+
   return createHash('sha256').update(decodeOpaque(value)).digest()
 }
 
@@ -41,6 +43,7 @@ export function newOpaque(): string {
 export function challenge(verifier: string): string {
   decodeOpaque(verifier)
   // PKCE S256은 opaqueHash와 달리 verifier의 ASCII 문자열을 hash한다.
+
   return createHash('sha256').update(verifier, 'ascii').digest('base64url')
 }
 
@@ -54,5 +57,6 @@ export function equalHash(storedHash: Buffer | null, candidateHash: Buffer): boo
     return false
   }
   const isHashEqual = timingSafeEqual(storedHash, candidateHash)
+
   return isHashEqual
 }

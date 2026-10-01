@@ -41,6 +41,7 @@ export function DeveloperUploadNotice({
       return
     }
     const timer = window.setInterval(() => setNow(Date.now()), 250)
+
     return () => window.clearInterval(timer)
   }, [busy, capture?.startedAt])
   const elapsed = capture
@@ -50,8 +51,13 @@ export function DeveloperUploadNotice({
   let detail = status
     ? messages[status]
     : '앱 로그인 중 Print Screen을 누르면 게임 원본 이미지와 선택한 크롭을 OCR 자료실에 바로 전송합니다.'
-  let tone: 'idle' | 'busy' | 'success' | 'warning' =
-    status === 'uploaded' ? 'success' : status ? 'warning' : 'idle'
+  let tone: 'idle' | 'busy' | 'success' | 'warning' = 'idle'
+  if (status === 'uploaded') {
+    tone = 'success'
+  } else if (status) {
+    tone = 'warning'
+  }
+
   if (busy) {
     tone = 'busy'
     if (capture?.phase === 'capturing' || capture?.phase === 'saving') {
@@ -66,18 +72,26 @@ export function DeveloperUploadNotice({
     detail = getDeveloperCollectionErrorMessage(collection.error)
   }
 
+  function renderIcon(): React.JSX.Element | string {
+    if (busy) {
+      return <ProgressCircle size="24" tone="brand" />
+    }
+
+    if (tone === 'success') {
+      return <CheckIcon width={24} height={24} />
+    }
+
+    if (tone === 'warning') {
+      return '!'
+    }
+
+    return '↑'
+  }
+
   return (
     <section aria-label="캡처 및 업로드 상태" {...stylex.props(styles.notice, styles[tone])}>
       <div aria-hidden="true" {...stylex.props(styles.icon)}>
-        {busy ? (
-          <ProgressCircle size="24" tone="brand" />
-        ) : tone === 'success' ? (
-          <CheckIcon width={24} height={24} />
-        ) : tone === 'warning' ? (
-          '!'
-        ) : (
-          '↑'
-        )}
+        {renderIcon()}
       </div>
       <div {...stylex.props(styles.content)}>
         <div role="status" aria-atomic="true">

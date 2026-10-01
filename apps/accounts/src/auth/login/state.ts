@@ -22,11 +22,13 @@ export async function freshTime(manager: EntityManager): Promise<Date> {
   const [clock] = (await manager.query(
     'SELECT to_timestamp(floor(extract(epoch from clock_timestamp()))) AS now'
   )) as Array<{ now: Date }>
+
   return clock.now
 }
 
 export function requestExpired(request: AuthLoginRequest, checkedAt: Date): boolean {
   const isPastRequestExpiry = checkedAt.getTime() >= request.expiresAt.getTime()
+
   return isPastRequestExpiry
 }
 
@@ -98,6 +100,7 @@ export function cookieMatches(request: AuthLoginRequest, header: string, phone =
     }
     const value = matches[0].slice(cookieName.length + 1)
     decodeOpaque(value)
+
     return equalHash(
       phone ? request.phoneBindingHash : request.browserBindingHash,
       opaqueHash(value)

@@ -77,14 +77,17 @@ export function httpFailure(error: unknown): OcrError {
   if (error instanceof OcrError) {
     return error
   }
+
   if (typeof error === 'object' && error !== null && 'type' in error) {
     if (error.type === 'entity.too.large') {
       return new OcrError(OCR_ERROR_CODE.UPLOAD_TOO_LARGE)
     }
+
     if (error.type === 'entity.parse.failed') {
       return new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
   }
   // 처리 과정의 버그를 사용자 입력 오류로 바꾸거나 원문을 응답에 노출하지 않는다.
+
   return new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
 }

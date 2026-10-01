@@ -22,6 +22,7 @@ function matchesAck(event: Observation, ack: unknown): boolean {
   const isSameCutpoint = actual.cutpoint === event.cutpoint
   const isSamePhase = actual.phase === event.phase
   const isSameOutcome = actual.outcome === event.outcome
+
   return isSameRun && isSameCase && isSameSequence && isSameCutpoint && isSamePhase && isSameOutcome
 }
 
@@ -69,6 +70,7 @@ export function createObserver({
       pending = false
     }
   }
+
   return { observe, assertActive }
 }
 
@@ -89,5 +91,6 @@ export async function observeBeforeRecovery<T>({
     detail: original
   })
   observer.assertActive()
+
   return inspect()
 }

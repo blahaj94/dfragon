@@ -18,6 +18,7 @@ export function parseSyntheticUploadTokenSha256(value: string | undefined): stri
   if (value !== undefined && (value.length !== 64 || !/^[0-9a-f]{64}$/.test(value))) {
     throw new Error('Invalid OCR configuration')
   }
+
   return value
 }
 
@@ -42,7 +43,11 @@ function createOpaqueToken(): string {
 
 function readCookie(request: Request, name: string): string | undefined {
   const value: unknown = request.cookies?.[name]
-  return typeof value === 'string' && value.length > 0 ? value : undefined
+  if (typeof value === 'string' && value.length > 0) {
+    return value
+  }
+
+  return undefined
 }
 
 export class OcrAuth {
@@ -102,6 +107,7 @@ export class OcrAuth {
         response.status === 401 ? OCR_ERROR_CODE.LOGIN_REQUIRED : OCR_ERROR_CODE.AUTH_UNAVAILABLE
       )
     }
+
     if (response.status === 204) {
       return null
     }
@@ -259,6 +265,7 @@ export class OcrAuth {
         await this.revokeSession(previousSession.tokens.refreshToken)
       }
     }
+
     if (this.sessions.size >= OCR_AUTH.maximumSessions) {
       await this.revokeSession(tokens.refreshToken)
       throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
@@ -334,6 +341,7 @@ export class OcrAuth {
     if (!session.active || user.id !== this.config.ownerId) {
       throw new OcrError(OCR_ERROR_CODE.OWNER_REQUIRED)
     }
+
     return user
   }
 

@@ -39,6 +39,7 @@ function nicknameFromBody(body: unknown): string {
   if (!isNicknameBody) {
     throw new AccountFailure(ACCOUNT_ERRORS.INVALID_REQUEST)
   }
+
   return validateNickname(Reflect.get(body, 'nickname'))
 }
 
@@ -75,6 +76,7 @@ async function lockActiveAccount(manager: EntityManager, principal: AccessJwtPri
   if (isInactive) {
     throw new AccountFailure(ACCOUNT_ERRORS.AUTHENTICATION_REQUIRED)
   }
+
   return { user, session, checkedAt, checkedAtSeconds }
 }
 
@@ -100,6 +102,7 @@ async function runAccountOperation(
     })
 
     // 활동 commit이 확인된 다음 기능 transaction을 연다. 기능 실패로 인정한 활동을 되돌리지 않는다.
+
     return await deps.dataSource.transaction('READ COMMITTED', async (manager) => {
       const { user } = await lockActiveAccount(manager, principal)
       // JWT는 admission에서 판정했다. 여기서는 logout·삭제·idle을 재확인하고 JWT 경과만으로 거절하지 않는다.
@@ -110,6 +113,7 @@ async function runAccountOperation(
           .update({ id: user.id }, { nickname: operation.nickname })
         user.nickname = operation.nickname
       }
+
       return { user: { id: user.id, nickname: user.nickname } }
     })
   } catch (error) {
@@ -124,14 +128,17 @@ async function runAccountOperation(
 
 export function createAccountService(dependencies: AccountDependencies): AccountHttpService {
   const deps = Object.freeze({ ...dependencies })
+
   return {
     async get(rawHeaders) {
       const principal = await authenticate(deps.verifyAccessJwt, rawHeaders)
+
       return runAccountOperation(deps, principal, { kind: 'read' })
     },
     async updateNickname(rawHeaders, body) {
       const principal = await authenticate(deps.verifyAccessJwt, rawHeaders)
       const nickname = nicknameFromBody(body)
+
       return runAccountOperation(deps, principal, { kind: 'nickname', nickname })
     }
   }

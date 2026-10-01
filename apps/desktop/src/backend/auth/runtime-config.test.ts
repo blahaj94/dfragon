@@ -67,6 +67,7 @@ function applyPosixRuntimeProfile(
     if (isUidDescriptorMissing) {
       Object.defineProperty(process, 'getuid', { configurable: true, value: () => 0 })
     }
+
     return applyAuthRuntimeProfile(
       application,
       config,
@@ -88,6 +89,7 @@ function createRuntimeProfileRoot(): string {
   const root = fs.realpathSync(fs.mkdtempSync(join(homedir(), '.dfragon-runtime-profile-')))
   profileFilesystem.registerRoot(root)
   profileFilesystem.chmodSync(root, 0o700)
+
   return root
 }
 
@@ -382,6 +384,7 @@ describe('desktop auth runtime config', () => {
       setPath: (name: 'userData', value: string) => calls.push(`path:${name}:${value}`),
       getPath: (name: 'userData') => {
         calls.push(`get-path:${name}`)
+
         return otherUserDataPath
       },
       setName: (value: string) => calls.push(`name:${value}`),
@@ -468,10 +471,12 @@ describe('desktop auth runtime config', () => {
       },
       openSync: (path: string, flags: number) => {
         openedPaths.push(path)
+
         return profileFilesystem.openSync(path, flags)
       },
       fsyncSync: (fd: number) => {
         syncedFds.push(fd)
+
         return profileFilesystem.fsyncSync(fd)
       },
       closeSync: profileFilesystem.closeSync
@@ -522,14 +527,20 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) =>
-        path === userDataPath ? canonicalUserDataPath : fs.realpathSync.native(path),
+      realpathSync: (path) => {
+        if (path === userDataPath) {
+          return canonicalUserDataPath
+        }
+
+        return fs.realpathSync.native(path)
+      },
       mkdirSync: (path, options) => {
         profileFilesystem.mkdirSync(path, options)
         throw Object.assign(new Error('Synthetic concurrent creation'), { code: 'EEXIST' })
       },
       openSync: (path, flags) => {
         openedPaths.push(path)
+
         return profileFilesystem.openSync(path, flags)
       },
       fsyncSync: profileFilesystem.fsyncSync,
@@ -566,6 +577,7 @@ describe('desktop auth runtime config', () => {
       const security: WindowsProfileSecurity = {
         inspectDirectory: (currentPath, role) => {
           calls.push(`inspect:${role}:${currentPath}`)
+
           return 'trusted'
         },
         createDirectory: () => {
@@ -637,6 +649,7 @@ describe('desktop auth runtime config', () => {
       const security: WindowsProfileSecurity = {
         inspectDirectory: () => {
           calls.push('inspect')
+
           return inspection
         },
         createDirectory: () => 'already-exists',
@@ -729,6 +742,7 @@ describe('desktop auth runtime config', () => {
           if (finalPathReads === 1) {
             throw Object.assign(new Error('Synthetic missing profile'), { code: 'ENOENT' })
           }
+
           return concurrentStat
         }) as typeof fs.lstatSync,
         statSync: fs.statSync,
@@ -827,10 +841,11 @@ describe('desktop auth runtime config', () => {
         mode: 0o700
       }) as fs.Stats
     const filesystem: RuntimeProfileFilesystemDouble = {
-      lstatSync: ((path: fs.PathLike) =>
-        directoryStat(
-          String(path) === userDataPath ? currentUid + 1 : currentUid
-        )) as typeof fs.lstatSync,
+      lstatSync: ((path: fs.PathLike) => {
+        const uid = String(path) === userDataPath ? currentUid + 1 : currentUid
+
+        return directoryStat(uid)
+      }) as typeof fs.lstatSync,
       statSync: fs.statSync,
       realpathSync: (path) => path,
       mkdirSync: () => undefined,
@@ -924,6 +939,7 @@ describe('desktop auth runtime config', () => {
       lstatSync: ((path: fs.PathLike) => {
         const resolvedPath = String(path)
         const uid = resolvedPath === '/synthetic/unsafe' ? currentUid + 1 : currentUid
+
         return directoryStat(uid)
       }) as typeof fs.lstatSync,
       statSync: fs.statSync,
@@ -990,8 +1006,13 @@ describe('desktop auth runtime config', () => {
     } as fs.Stats
     const openedPaths: string[] = []
     const filesystem: RuntimeProfileFilesystemDouble = {
-      lstatSync: ((path: fs.PathLike) =>
-        String(path) === '/' ? unsafeRootStat : safeDirectoryStat) as typeof fs.lstatSync,
+      lstatSync: ((path: fs.PathLike) => {
+        if (String(path) === '/') {
+          return unsafeRootStat
+        }
+
+        return safeDirectoryStat
+      }) as typeof fs.lstatSync,
       statSync: fs.statSync,
       realpathSync: (path) => path,
       mkdirSync: () => {
@@ -999,6 +1020,7 @@ describe('desktop auth runtime config', () => {
       },
       openSync: (path) => {
         openedPaths.push(String(path))
+
         return 1
       },
       fsyncSync: () => undefined,
@@ -1066,6 +1088,7 @@ describe('desktop auth runtime config', () => {
         if (String(path) === '/') {
           return unsafeRootStat
         }
+
         if (String(path) === '/synthetic') {
           return safeDirectoryStat
         }
@@ -1174,8 +1197,13 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) =>
-        path === userDataPath ? canonicalUserDataPath : fs.realpathSync(path),
+      realpathSync: (path) => {
+        if (path === userDataPath) {
+          return canonicalUserDataPath
+        }
+
+        return fs.realpathSync(path)
+      },
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: profileFilesystem.openSync,
       fsyncSync: profileFilesystem.fsyncSync,
@@ -1220,7 +1248,13 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) => (path === parent ? canonicalParent : fs.realpathSync(path)),
+      realpathSync: (path) => {
+        if (path === parent) {
+          return canonicalParent
+        }
+
+        return fs.realpathSync(path)
+      },
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: profileFilesystem.openSync,
       fsyncSync: profileFilesystem.fsyncSync,
@@ -1410,14 +1444,17 @@ describe('desktop auth runtime config', () => {
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: (path: string, flags: number) => {
         openedPaths.push(path)
+
         return profileFilesystem.openSync(path, flags)
       },
       fsyncSync: (fd: number) => {
         syncedFds.push(fd)
+
         return profileFilesystem.fsyncSync(fd)
       },
       closeSync: (fd: number) => {
         closedFds.push(fd)
+
         return profileFilesystem.closeSync(fd)
       }
     }
@@ -1478,6 +1515,7 @@ describe('desktop auth runtime config', () => {
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: (path, flags) => {
         openedPaths.push(path)
+
         return profileFilesystem.openSync(path, flags)
       },
       fsyncSync: profileFilesystem.fsyncSync,
@@ -1529,10 +1567,12 @@ describe('desktop auth runtime config', () => {
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: (path: string, flags: number) => {
         openedPaths.push(path)
+
         return profileFilesystem.openSync(path, flags)
       },
       fsyncSync: (fd: number) => {
         syncedFds.push(fd)
+
         return profileFilesystem.fsyncSync(fd)
       },
       closeSync: profileFilesystem.closeSync
@@ -1588,12 +1628,14 @@ describe('desktop auth runtime config', () => {
           if (failurePoint === 'open') {
             throw new Error('Synthetic directory open failure')
           }
+
           return profileFilesystem.openSync(path, flags)
         },
         fsyncSync: (fd: number) => {
           if (failurePoint === 'fsync') {
             throw new Error('Synthetic directory sync failure')
           }
+
           return profileFilesystem.fsyncSync(fd)
         },
         closeSync: profileFilesystem.closeSync

@@ -50,9 +50,11 @@ test('rotation hashes decoded bytes, locks in order and returns only after commi
   let returned = false
   const pending = rotateRefreshForTest(f.deps, f.raw, (size) => {
     assert.equal(size, 32)
+
     return bytes
   }).then((value) => {
     returned = true
+
     return value
   })
   await committing

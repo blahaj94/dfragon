@@ -73,5 +73,6 @@ export function createOcrUploadPayload(
     uiScaleSource: 'estimated',
     crops
   })
+
   return { id, body }
 }

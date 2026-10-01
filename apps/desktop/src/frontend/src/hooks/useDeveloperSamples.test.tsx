@@ -21,6 +21,7 @@ function deferred<T>(): {
     resolve = resolvePromise
     reject = rejectPromise
   })
+
   return { promise, resolve, reject }
 }
 
@@ -48,6 +49,7 @@ function Harness(): null {
     current = value
     renderCount += 1
   })
+
   return null
 }
 

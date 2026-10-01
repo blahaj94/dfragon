@@ -11,6 +11,7 @@ async function cleanupFirst(source, cleanup) {
   const signer = f.deps.issueAccessJwt
   f.deps.issueAccessJwt = async (input) => {
     signingCalls++
+
     return signer(input)
   }
   await withCleanupDeletionHeld({
@@ -94,5 +95,6 @@ export async function assertCleanupSessionConcurrency(source, cleanup, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

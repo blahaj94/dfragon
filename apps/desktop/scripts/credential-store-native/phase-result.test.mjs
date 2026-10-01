@@ -62,6 +62,7 @@ describe('credential-store-native phase result validation', () => {
           if (isCounterProperty) {
             accesses.push(property)
           }
+
           return Reflect.get(target, property, receiver)
         }
       }

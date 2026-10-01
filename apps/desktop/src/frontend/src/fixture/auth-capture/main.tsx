@@ -20,14 +20,17 @@ declare global {
 }
 
 window.runFixtureOcr = runStandaloneOcr
-window.inspectFixtureFrame = (video) => ({
-  frameWidth: video.videoWidth,
-  frameHeight: video.videoHeight,
-  allSlotsPresent: capturePartyNicknameCrops(video).every((crop) => {
+window.inspectFixtureFrame = (video) => {
+  const frameWidth = video.videoWidth
+  const frameHeight = video.videoHeight
+  const allSlotsPresent = capturePartyNicknameCrops(video).every((crop) => {
     const isPresent = crop != null
+
     return isPresent
   })
-})
+
+  return { frameWidth, frameHeight, allSlotsPresent }
+}
 
 const root = document.getElementById('root')
 const hasRoot = root != null

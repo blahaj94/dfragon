@@ -140,5 +140,6 @@ export async function assertRuntimeHttpIntegration(configuration, mark = () => {
       }
     })
   })
+
   return 1
 }

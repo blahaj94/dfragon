@@ -18,6 +18,7 @@ function createClickSource(label: string): string {
       button.click();
       return true;
     })()`
+
   return source
 }
 
@@ -91,6 +92,7 @@ export async function smoke(
   await click('로그인')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
+
     return isWaitingBrowser
   })
   assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null)
@@ -108,6 +110,7 @@ export async function smoke(
   )
   await until(async () => {
     const isSignedOut = (await state()).phase === 'signedOut'
+
     return isSignedOut
   })
   await until(() => textIncludes('로그인'))
@@ -116,6 +119,7 @@ export async function smoke(
   await click('로그인')
   await until(async () => {
     const isWaitingBrowser = (await state()).phase === 'waitingBrowser'
+
     return isWaitingBrowser
   })
   assert.deepEqual(await evaluate('window.fixtureEvents'), [])
@@ -137,6 +141,7 @@ export async function smoke(
   )
   await until(async () => {
     const hasStartedCommit = effects.counts.commit === 1
+
     return hasStartedCommit
   })
   assert.equal((await state()).phase, 'exchanging')

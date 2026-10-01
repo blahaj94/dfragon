@@ -76,11 +76,13 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
       return false
     }
     assertTrustedFile(inspection)
+
     return true
   }
 
   async ownedTemporaries(): Promise<string[]> {
     const names = await this.native.list(this.directory)
+
     return names.filter((name) => OWNED_TEMP.test(name)).sort()
   }
 
@@ -126,6 +128,7 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
         outcome = replacementAttempted ? 'unknown' : 'failed'
       }
     }
+
     return outcome
   }
 
@@ -155,9 +158,14 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
         await this.native.remove(join(this.directory, name))
       }
       await this.native.syncDirectory(this.directory)
+
       return 'confirmed'
     } catch {
-      return deletionAttempted ? 'unknown' : 'failed'
+      if (deletionAttempted) {
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
@@ -170,6 +178,7 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
       }
       await this.native.remove(join(this.directory, 'transition.v1'))
       await this.native.syncDirectory(this.directory)
+
       return 'confirmed'
     } catch {
       return 'unknown'

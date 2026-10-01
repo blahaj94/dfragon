@@ -10,7 +10,12 @@ export async function readAccountsBuildInfo(
 ): Promise<ServerBuildInfo> {
   try {
     const value: unknown = JSON.parse(await readFile(path, 'utf8'))
-    return parseServerBuildInfo(value, 'accounts') ?? { service: 'accounts', commit: null }
+    const info = parseServerBuildInfo(value, 'accounts')
+    if (info != null) {
+      return info
+    }
+
+    return { service: 'accounts', commit: null }
   } catch {
     return { service: 'accounts', commit: null }
   }

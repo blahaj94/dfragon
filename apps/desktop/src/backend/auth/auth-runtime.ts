@@ -51,6 +51,7 @@ function runFlight<T>(
   } catch (error) {
     reject(error)
   }
+
   return promise
 }
 
@@ -62,6 +63,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
 
   function invalidate(): number {
     actor.send({ type: 'INVALIDATE' })
+
     return actor.getSnapshot().context.generation
   }
 
@@ -73,7 +75,12 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
 
   function currentRefresh(generation: number): Promise<AuthAuthorization> | null {
     const flight = actor.getSnapshot().context.refresh
-    return flight?.generation === generation ? flight.promise : null
+
+    if (flight?.generation === generation) {
+      return flight.promise
+    }
+
+    return null
   }
 
   return {
@@ -100,6 +107,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
         releasePending(pending)
       }
       actor.getSnapshot().context.verification?.controller.abort()
+
       return generation
     },
     get logoutFlight(): Promise<AuthCommandResult> | null {
@@ -110,6 +118,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
       if (existing) {
         return existing
       }
+
       return runFlight(
         operation,
         (flight) => actor.send({ type: 'START', flight }),
@@ -126,6 +135,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     reserveVerification(): VerificationOperation {
       const operation = { controller: new AbortController() }
       actor.send({ type: 'VERIFY', operation })
+
       return operation
     },
     completeVerification(operation: VerificationOperation): void {
@@ -139,6 +149,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
       if (existing) {
         return existing
       }
+
       return runFlight(
         operation,
         (promise) => actor.send({ type: 'REFRESH', flight: { generation, promise } }),
@@ -150,6 +161,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
       if (existing) {
         return existing
       }
+
       return runFlight(
         operation,
         (flight) => actor.send({ type: 'LOGOUT', flight }),

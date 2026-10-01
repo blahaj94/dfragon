@@ -35,6 +35,7 @@ export function validateNativeCredentialPhaseResult({ exitCode, expectedPhase, p
   if (!succeeded) {
     throw new Error(phaseResultError)
   }
+
   return {
     phase: expectedPhase,
     ok: true,
@@ -58,5 +59,6 @@ export function parseNativeCredentialPhaseResult({ exitCode, expectedPhase, stdo
   } catch {
     throw new Error(phaseResultError)
   }
+
   return validateNativeCredentialPhaseResult({ exitCode, expectedPhase, parsed })
 }

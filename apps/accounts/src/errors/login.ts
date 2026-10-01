@@ -28,6 +28,7 @@ export function loginFailure(
   if (isIdentitySessionFailure) {
     const isUnavailable = error.code === LOGIN_ERRORS.UNAVAILABLE.code
     const definition = isUnavailable ? LOGIN_ERRORS.UNAVAILABLE : LOGIN_ERRORS.INTERNAL
+
     return new LoginFailure(definition)
   }
 

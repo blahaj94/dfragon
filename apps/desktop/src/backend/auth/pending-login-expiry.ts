@@ -26,8 +26,10 @@ export function isPendingLoginExpired(
       isWallClockReversed ||
       isMonotonicReversed ||
       hasReachedMonotonicLimit
+
     return hasExpiredClock || hasReachedServerExpiry
   }
+
   return (
     startedAt.discontinuous ||
     checkedAt.discontinuous ||
@@ -44,6 +46,7 @@ export function pendingLoginExpiryDelay(
   const monotonicRemaining =
     startedAt.monotonicMs + LOGIN_REQUEST_MAX_AGE_MS - checkedAt.monotonicMs
   const wallRemaining = expiresAtMs != null ? expiresAtMs - checkedAt.wallMs : monotonicRemaining
+
   return Math.max(0, Math.min(monotonicRemaining, wallRemaining))
 }
 
@@ -62,6 +65,7 @@ export function createPendingExpiry(
       const checkedAt = clock.read()
       if (isExpired(checkedAt)) {
         sendBack({ type: 'EXPIRE' })
+
         return
       }
       const delayMs = getDelay(checkedAt)
@@ -69,6 +73,7 @@ export function createPendingExpiry(
         if (stopped) {
           return
         }
+
         if (isExpired(clock.read())) {
           sendBack({ type: 'EXPIRE' })
         } else {
@@ -84,6 +89,7 @@ export function createPendingExpiry(
     }
     receive(schedule)
     schedule()
+
     return () => {
       stopped = true
       cancel?.()

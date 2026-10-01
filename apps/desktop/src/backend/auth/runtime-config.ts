@@ -148,6 +148,7 @@ function assertCanonicalPath(path: string, filesystem: RuntimeProfileFilesystem)
 
 function splitNativePath(path: string, pathSemantics: RuntimePathSemantics): string[] {
   const separator = pathSemantics.sep === '\\' ? /[\\/]/ : /\//
+
   return path.split(separator)
 }
 
@@ -160,6 +161,7 @@ function hasPathAlias(path: string, pathSemantics: RuntimePathSemantics): boolea
   const hasEmptySegment = segments.some((segment) => segment.length === 0)
   const hasWin32NormalizedSegment =
     pathSemantics.sep === '\\' && segments.some((segment) => /[ .]$/.test(segment))
+
   return (
     hasNonNativeSeparator ||
     hasNonCanonicalSpelling ||
@@ -173,8 +175,10 @@ function directoryChain(path: string, pathSemantics: RuntimePathSemantics): stri
   const root = pathSemantics.parse(path).root
   const segments = splitNativePath(path.slice(root.length), pathSemantics).filter(Boolean)
   let current = root
+
   return segments.map((segment) => {
     current = pathSemantics.join(current, segment)
+
     return current
   })
 }
@@ -205,6 +209,7 @@ function prepareUserDataDirectory(
 
   if (platform === 'win32') {
     prepareWindowsUserDataDirectory(path, filesystem.windows, pathSemantics)
+
     return
   }
 
@@ -337,6 +342,7 @@ export function readAuthRuntimeConfig(
   const hasValidAppIdentity = /^[a-zA-Z][a-zA-Z0-9.-]{0,127}$/.test(appIdentity)
   const hasNoControlPath = [...userDataPath].every((character) => {
     const code = character.charCodeAt(0)
+
     return code > 0x1f && code !== 0x7f
   })
   const hasNoPathAlias = !hasPathAlias(userDataPath, pathSemantics)
@@ -380,6 +386,7 @@ export function applyAuthRuntimeProfile(
     }
     application.setName(config.appIdentity)
     application.setAppUserModelId(config.appIdentity)
+
     return { ...config, userDataPath: appliedUserDataPath }
   } catch {
     throw new AuthRuntimeProfileApplicationFailure()

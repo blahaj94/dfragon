@@ -8,6 +8,7 @@ export const onPartyCollectionStatus: DeveloperApi['onPartyCollectionStatus'] = 
     update: DeveloperPartyCollectionUpdate
   ): void => listener(update)
   ipcRenderer.on(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
+
   return () => ipcRenderer.removeListener(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
 }
 
@@ -35,15 +36,21 @@ export const setSampleExcluded: DeveloperApi['setSampleExcluded'] = (id, exclude
 export const captureFrame: DeveloperApi['captureFrame'] = () =>
   ipcRenderer.invoke(DEVELOPER_CHANNELS.captureFrame)
 
-export const previewParty: DeveloperApi['previewParty'] = (kind) =>
-  kind == null
-    ? ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty)
-    : ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty, kind)
+export const previewParty: DeveloperApi['previewParty'] = (kind) => {
+  if (kind == null) {
+    return ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty)
+  }
 
-export const setPartyCollectionSlots: DeveloperApi['setPartyCollectionSlots'] = (slots, kind) =>
-  kind == null
-    ? ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots)
-    : ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots, kind)
+  return ipcRenderer.invoke(DEVELOPER_CHANNELS.previewParty, kind)
+}
+
+export const setPartyCollectionSlots: DeveloperApi['setPartyCollectionSlots'] = (slots, kind) => {
+  if (kind == null) {
+    return ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots)
+  }
+
+  return ipcRenderer.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, slots, kind)
+}
 
 export const listOcrSamples: DeveloperApi['listOcrSamples'] = () =>
   ipcRenderer.invoke(DEVELOPER_CHANNELS.listOcrSamples)

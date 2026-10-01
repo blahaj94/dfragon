@@ -25,6 +25,7 @@ export function createMacOsCredentialStore(options: StoreOptions): CredentialSto
   }
   const context = options.context
   const files = new MacOsCredentialFiles(options.userDataPath, context.environment, options.files)
+
   return createCredentialStore({
     userDataPath: options.userDataPath,
     context,

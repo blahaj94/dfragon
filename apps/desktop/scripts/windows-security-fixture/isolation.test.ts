@@ -19,6 +19,7 @@ const parents: string[] = []
 async function parentDirectory(): Promise<string> {
   const parent = await mkdtemp(join(await realpath(tmpdir()), 'dfragon-synthetic-isolation-'))
   parents.push(parent)
+
   return parent
 }
 

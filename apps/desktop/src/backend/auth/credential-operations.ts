@@ -20,7 +20,12 @@ export async function prepareCredentialTransition(
 
   const reestablishmentResult = await store.reestablishTransition(kind)
   const isReestablished = reestablishmentResult === 'confirmed'
-  return isReestablished ? 'established' : 'unconfirmed'
+
+  if (isReestablished) {
+    return 'established'
+  }
+
+  return 'unconfirmed'
 }
 
 export async function finalizeCredentialTransition(
@@ -39,7 +44,12 @@ export async function finalizeCredentialTransition(
 
   const reestablishmentResult = await store.reestablishTransition(kind)
   const isAutomaticRestoreBlocked = reestablishmentResult === 'confirmed'
-  return isAutomaticRestoreBlocked ? 'save-failed' : 'clear-unconfirmed'
+
+  if (isAutomaticRestoreBlocked) {
+    return 'save-failed'
+  }
+
+  return 'clear-unconfirmed'
 }
 
 export async function clearCredential(store: CredentialStore): Promise<CredentialClear> {
@@ -69,5 +79,6 @@ export async function finishCredentialClear(store: CredentialStore): Promise<Cre
   if (isRemovalUnknown) {
     await store.reestablishTransition('clear')
   }
+
   return 'unconfirmed'
 }

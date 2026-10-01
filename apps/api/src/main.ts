@@ -30,6 +30,7 @@ async function main(): Promise<void> {
         process.off('SIGINT', shutdown)
         process.off('SIGTERM', shutdown)
       })
+
     return closing
   }
   const shutdown = (): void => {
@@ -63,8 +64,10 @@ async function main(): Promise<void> {
     if (stopping) {
       starting = false
       await close(runtime)
+
       return
     }
+
     if (configuration.localHttps !== undefined) {
       await runtime.app.listen(configuration.port, '127.0.0.1')
     } else {

@@ -18,5 +18,6 @@ export async function invokeSearchCommand<Channel extends SearchChannel>(
   if (!isValid) {
     throw new Error('검색 연결의 응답을 확인하지 못했습니다.')
   }
+
   return result
 }

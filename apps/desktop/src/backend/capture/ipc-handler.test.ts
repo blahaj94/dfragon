@@ -14,7 +14,12 @@ import {
   consumeCaptureMediaPermission
 } from './ipc-handler'
 
-const electron = vi.hoisted(() => ({ getSources: vi.fn(), handle: vi.fn() }))
+const electron = vi.hoisted(() => {
+  const getSources = vi.fn()
+  const handle = vi.fn()
+
+  return { getSources, handle }
+})
 vi.mock('electron', () => ({
   desktopCapturer: { getSources: electron.getSources },
   ipcMain: { handle: electron.handle }
@@ -74,6 +79,7 @@ async function setup(signedIn = true): Promise<{
     if (!hasHandler) {
       throw new Error('Capture handler was not registered')
     }
+
     return Promise.resolve().then(() => handler(event, ...args))
   }
   const dispatchMedia = (
@@ -92,6 +98,7 @@ async function setup(signedIn = true): Promise<{
   const requestMedia = (
     changes: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest> = {}
   ): Promise<unknown> => new Promise((resolve) => dispatchMedia(resolve, changes))
+
   return { auth, harness, invoke, event, mainFrame, dispatchMedia, requestMedia }
 }
 
@@ -629,18 +636,23 @@ describe('product media permission capture lifetime', () => {
       if (condition === 'contents') {
         contents = {} as typeof contents
       }
+
       if (condition === 'request-document') {
         url = 'about:blank'
       }
+
       if (condition === 'document') {
         fixture.mainFrame.url = 'about:blank'
       }
+
       if (condition === 'detached') {
         fixture.mainFrame.detached = true
       }
+
       if (condition === 'destroyed') {
         fixture.mainFrame.isDestroyed = () => true
       }
+
       if (condition === 'source-clear') {
         await fixture.invoke('selectCaptureSource', '')
       }

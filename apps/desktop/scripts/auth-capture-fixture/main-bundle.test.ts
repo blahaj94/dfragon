@@ -66,6 +66,7 @@ function mainEnvironment(): {
       whenReady: () => ({
         then: (start: () => void | Promise<void>): Promise<void> => {
           bootstrap = Promise.resolve().then(start)
+
           return bootstrap
         }
       })
@@ -102,21 +103,28 @@ function mainEnvironment(): {
     }
     const isToolkit = name === '@electron-toolkit/utils'
     if (isToolkit) {
+      const setAppUserModelId = vi.fn()
+      const watchWindowShortcuts = vi.fn()
+
       return {
-        electronApp: { setAppUserModelId: vi.fn() },
-        optimizer: { watchWindowShortcuts: vi.fn() },
+        electronApp: { setAppUserModelId },
+        optimizer: { watchWindowShortcuts },
         is: { dev: false }
       }
     }
+
     if (name === 'koffi') {
+      const dependency = requireDependency(name)
+
       return {
-        ...requireDependency(name),
+        ...dependency,
         load: (): never => {
           throw new Error('Synthetic native module unavailable')
         }
       }
     }
     // Ky와 다른 Node dependency는 mock하지 않고 설치된 package를 CJS로 읽는다.
+
     return requireDependency(name)
   }
   const context = createContext({
@@ -144,6 +152,7 @@ function mainEnvironment(): {
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
+
   return { context, bootstrap: () => bootstrap, error, getPath, requireModule }
 }
 
@@ -165,6 +174,7 @@ function executeMainEntry(
     if (specifier.startsWith('.')) {
       return loadChunk(posix.join(posix.dirname(requester), specifier))
     }
+
     return environment.requireModule(specifier)
   }
   const loadChunk = (fileName: string): Record<string, unknown> => {
@@ -199,6 +209,7 @@ function executeMainEntry(
       const specifier = importedChunk.startsWith('.') ? importedChunk : `./${importedChunk}`
       requireFromChunk(normalized, specifier)
     }
+
     return module.exports
   }
 

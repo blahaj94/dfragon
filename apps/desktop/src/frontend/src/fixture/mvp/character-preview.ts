@@ -5,14 +5,18 @@ export function getCharacterPreview(scenario: string, character: CardCharacter):
   if (scenario !== 'missing') {
     return character
   }
-  return {
-    ...character,
+
+  const snapshot = { ...character }
+  const equipment = character.equipment.map((item) => ({
+    ...item,
     image: 'data:image/png;base64,AA==',
-    equipment: character.equipment.map((item) => ({
-      ...item,
-      image: 'data:image/png;base64,AA==',
-      enhancement: undefined,
-      enchantment: undefined
-    }))
+    enhancement: undefined,
+    enchantment: undefined
+  }))
+
+  return {
+    ...snapshot,
+    image: 'data:image/png;base64,AA==',
+    equipment
   }
 }

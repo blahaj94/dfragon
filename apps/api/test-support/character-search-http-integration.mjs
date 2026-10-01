@@ -97,5 +97,6 @@ export async function assertCharacterSearchHttpIntegration(source, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

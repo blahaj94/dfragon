@@ -21,14 +21,19 @@ export function useOcrSamples(enabled: boolean): {
       }
     })
     send({ type: 'OPEN' })
+
     return () => {
       unsubscribe?.()
       send({ type: 'CLOSE' })
     }
   }, [enabled, send])
+
+  const samples = enabled ? snapshot.context.samples : []
+  const loading = enabled && snapshot.matches({ open: 'loading' })
+
   return {
-    samples: enabled ? snapshot.context.samples : [],
-    loading: enabled && snapshot.matches({ open: 'loading' }),
+    samples,
+    loading,
     error: snapshot.context.error,
     revision: snapshot.context.revision,
     refresh: () => send({ type: 'REFRESH' })

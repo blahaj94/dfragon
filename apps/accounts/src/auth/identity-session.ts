@@ -69,6 +69,7 @@ async function create({
       issuedAt,
       consumedAt: null
     })
+
     return {
       user: { id: user.id, nickname: user.nickname },
       session: { id: sessionId, createdAt: issuedAt, lastActiveAt: issuedAt },

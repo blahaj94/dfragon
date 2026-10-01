@@ -71,6 +71,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
   const actualKeys = Object.keys(value)
+
   return actualKeys.length === keys.length && keys.every((key) => actualKeys.includes(key))
 }
 
@@ -124,6 +125,7 @@ function parsePngDataUrl(value: unknown): Buffer {
   if (!isCanonicalBase64) {
     throw invalidCommand()
   }
+
   return png
 }
 
@@ -131,6 +133,7 @@ function parseSettings(value: unknown): DeveloperSettings | null {
   if (!isObject(value) || !hasExactKeys(value, ['enabled']) || typeof value.enabled !== 'boolean') {
     return null
   }
+
   return { enabled: value.enabled }
 }
 
@@ -138,6 +141,7 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
   if (value === null) {
     return null
   }
+
   if (
     !isObject(value) ||
     !(
@@ -155,8 +159,10 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
   ) {
     return undefined
   }
+  const kindFields = isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}
+
   return {
-    ...(isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}),
+    ...kindFields,
     slot: value.slot,
     frameWidth: value.frameWidth,
     frameHeight: value.frameHeight,
@@ -190,17 +196,20 @@ function parseMetadata(value: unknown, expectedId: string): DeveloperMetadata | 
   ) {
     return null
   }
+
   return { id, createdAt, width, height, text, excluded, source }
 }
 
 function createSerialQueue() {
   let tail: Promise<void> = Promise.resolve()
+
   return <T>(operation: () => Promise<T>): Promise<T> => {
     const result = tail.then(operation, operation)
     tail = result.then(
       () => undefined,
       () => undefined
     )
+
     return result
   }
 }
@@ -209,6 +218,7 @@ function asStorageError(error: unknown): DeveloperStoreError {
   if (error instanceof DeveloperStoreError) {
     return error
   }
+
   return storageUnavailable()
 }
 
@@ -221,10 +231,12 @@ function createPaths(rootDir: string): {
 } {
   const directory = join(rootDir, 'developer-mode')
   const samplesDirectory = join(directory, 'samples')
+  const settings = join(directory, 'settings.json')
+
   return {
     directory,
     samplesDirectory,
-    settings: join(directory, 'settings.json'),
+    settings,
     image: (id: string) => join(samplesDirectory, `${id}.png`),
     metadata: (id: string) => join(samplesDirectory, `${id}.json`)
   }
@@ -282,6 +294,7 @@ async function readRegularFile(filePath: string, maximumBytes: number): Promise<
   if (!stat.isFile() || stat.size > maximumBytes) {
     throw storageUnavailable()
   }
+
   return fs.readFile(filePath)
 }
 
@@ -305,6 +318,7 @@ export function createDeveloperStore({
       if (isMissing) {
         return { settings: { enabled: false }, isCorrupt: false }
       }
+
       if (error instanceof DeveloperStoreError) {
         return { settings: { enabled: false }, isCorrupt: true }
       }
@@ -313,9 +327,11 @@ export function createDeveloperStore({
 
     try {
       const settings = parseSettings(JSON.parse(serializedSettings.toString('utf8')))
-      return settings == null
-        ? { settings: { enabled: false }, isCorrupt: true }
-        : { settings, isCorrupt: false }
+      if (settings == null) {
+        return { settings: { enabled: false }, isCorrupt: true }
+      }
+
+      return { settings, isCorrupt: false }
     } catch {
       return { settings: { enabled: false }, isCorrupt: true }
     }
@@ -345,6 +361,7 @@ export function createDeveloperStore({
       if (metadata == null) {
         throw storageUnavailable()
       }
+
       return metadata
     } catch (error) {
       throw asStorageError(error)
@@ -373,6 +390,7 @@ export function createDeveloperStore({
     if (!match) {
       throw storageUnavailable()
     }
+
     return png
   }
 
@@ -395,6 +413,7 @@ export function createDeveloperStore({
       }
       const settings = { enabled }
       await atomicWrite(paths.settings, JSON.stringify(settings))
+
       return settings
     } catch (error) {
       throw asStorageError(error)
@@ -424,6 +443,7 @@ export function createDeveloperStore({
       const samples = await Promise.all(
         metadataFiles.map((entry) => readMetadata(entry.name.slice(0, -'.json'.length)))
       )
+
       return samples.sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     } catch (error) {
       throw asStorageError(error)
@@ -438,6 +458,7 @@ export function createDeveloperStore({
       await requireEnabled()
       const metadata = await readMetadata(id)
       const png = await readSampleImage(metadata)
+
       return `data:image/png;base64,${png.toString('base64')}`
     } catch (error) {
       throw asStorageError(error)
@@ -471,6 +492,7 @@ export function createDeveloperStore({
       }
       throw error
     }
+
     return sample
   }
 
@@ -479,6 +501,7 @@ export function createDeveloperStore({
       await requireEnabled()
       const png = parsePngDataUrl(pngDataUrl)
       await ensureDirectory(paths.samplesDirectory)
+
       return await writeSample(png, new Date().toISOString(), null)
     } catch (error) {
       throw asStorageError(error)
@@ -505,6 +528,7 @@ export function createDeveloperStore({
           throw collectionWriteCancelled()
         }
         const createdSample = await writeSample(sample.png, sample.capturedAt, source, shouldCommit)
+
         return createdSample
       } catch (error) {
         throw asStorageError(error)
@@ -527,6 +551,7 @@ export function createDeveloperStore({
       await readSampleImage(sample)
       const updated: DeveloperSample = { ...sample, text }
       await atomicWrite(paths.metadata(id), JSON.stringify(updated))
+
       return updated
     } catch (error) {
       throw asStorageError(error)
@@ -544,6 +569,7 @@ export function createDeveloperStore({
         await readSampleImage(sample)
         const updated: DeveloperSample = { ...sample, excluded }
         await atomicWrite(paths.metadata(id), JSON.stringify(updated))
+
         return updated
       } catch (error) {
         throw asStorageError(error)
@@ -565,7 +591,9 @@ export function createDeveloperStore({
         throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
       }
       const { width, height } = dimensions
-      return { pngDataUrl: `data:image/png;base64,${png.toString('base64')}`, width, height }
+      const pngDataUrl = `data:image/png;base64,${png.toString('base64')}`
+
+      return { pngDataUrl, width, height }
     } catch (error) {
       throw asStorageError(error)
     }

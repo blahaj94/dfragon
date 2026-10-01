@@ -131,6 +131,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       assert.equal(response.status(), 201)
       const request = await response.json()
       await page.goto(request.browserUrl)
+
       return { requestId: request.requestId, clientId, codeVerifier }
     }
     const complete = async (input, button = 'authenticate') => {
@@ -140,10 +141,13 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       } catch {
         throw new Error('Passkey UI: ' + (await page.locator('#status').textContent()))
       }
-      return {
-        ...input,
-        code: new URL(await page.locator('#return').getAttribute('href')).searchParams.get('code')
-      }
+
+      const exchangeInput = { ...input }
+      const code = new URL(await page.locator('#return').getAttribute('href')).searchParams.get(
+        'code'
+      )
+
+      return { ...exchangeInput, code }
     }
     const browserPost = (action, body, overrideOrigin = origin) =>
       post(`/auth/passkeys/${action}`, body, { Origin: overrideOrigin })
@@ -163,7 +167,10 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         const key = await navigator.credentials.get({
           publicKey: globalThis.PublicKeyCredential.parseRequestOptionsFromJSON(options)
         })
-        return { requestId, response: key.toJSON() }
+
+        const response = key.toJSON()
+
+        return { requestId, response }
       })
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
@@ -181,6 +188,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       const create = navigator.credentials.create.bind(navigator.credentials)
       navigator.credentials.create = () => {
         navigator.credentials.create = create
+
         return Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
       }
     })

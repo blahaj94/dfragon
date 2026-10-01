@@ -13,5 +13,6 @@ export const onAuthStateChanged: AuthApi['onAuthStateChanged'] = (listener) => {
     listener(snapshot)
   }
   ipcRenderer.on('authStateChanged', wrapper)
+
   return () => ipcRenderer.removeListener('authStateChanged', wrapper)
 }

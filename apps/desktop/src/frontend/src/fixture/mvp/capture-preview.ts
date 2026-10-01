@@ -5,6 +5,7 @@ export function getCapturePreviewSources(state: string): { id: string; name: str
   if (state === 'missing') {
     return []
   }
+
   return [
     { id: 'preview-game', name: '던전앤파이터' },
     { id: 'preview-window', name: '테스트 창' }
@@ -16,6 +17,7 @@ export function getCapturePreviewStatus(state: string): string {
   if (state === 'failure') {
     return '선택한 창에서 영상을 받지 못했습니다. 창을 다시 선택해 주세요.'
   }
+
   return ''
 }
 
@@ -24,5 +26,10 @@ export function getCapturePreviewPhase(state: string): CapturePhase {
   if (state === 'starting' || state === 'active') {
     return state
   }
-  return state === 'failure' ? 'failed' : 'idle'
+
+  if (state === 'failure') {
+    return 'failed'
+  }
+
+  return 'idle'
 }

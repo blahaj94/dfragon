@@ -30,9 +30,11 @@ export function roundParticipantPixel(value: number): number {
   const floor = Math.floor(value)
   // Scale refinement and projection can move a mathematical half by a few float ulps.
   const tolerance = 4 * Number.EPSILON * Math.max(1, Math.abs(value))
-  return Math.abs(value - floor - 0.5) <= tolerance
-    ? floor + Math.abs(floor % 2)
-    : Math.round(value)
+  if (Math.abs(value - floor - 0.5) <= tolerance) {
+    return floor + Math.abs(floor % 2)
+  }
+
+  return Math.round(value)
 }
 
 /** Builds a grayscale copy; raw RGBA is kept intact for the eventual crops. */
@@ -44,6 +46,7 @@ export function participantGrayscale(rgba: Uint8Array | Uint8ClampedArray): Uint
       0.299 * rgba[offset] + 0.587 * rgba[offset + 1] + 0.114 * rgba[offset + 2]
     )
   }
+
   return gray
 }
 
@@ -97,6 +100,7 @@ export function findParticipantAnchors(
     if (w < 6 || w > 30 || h < 6 || h > 30 || w / h < 0.65 || w / h > 1.5) {
       continue
     }
+
     if (count / (w * h) < 0.45) {
       continue
     }
@@ -106,6 +110,7 @@ export function findParticipantAnchors(
       return null
     }
   }
+
   return anchors
 }
 
@@ -142,7 +147,9 @@ function headingPattern(
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length
   const weights = Float64Array.from(values, (value) => value - mean)
   const energy = weights.reduce((sum, value) => sum + value * value, 0)
-  return { width, height, offsets: Int32Array.from(offsets), weights, energy }
+  const patternOffsets = Int32Array.from(offsets)
+
+  return { width, height, offsets: patternOffsets, weights, energy }
 }
 
 /** Mean-centered normalized correlation, not a probability or OCR confidence. */
@@ -161,6 +168,7 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
   if (energy <= 0 || pattern.energy <= 0) {
     return -1
   }
+
   return Math.min(1, product / Math.sqrt(energy * pattern.energy))
 }
 
@@ -180,6 +188,7 @@ export function createParticipantHeadingMatcher(
       return null
     }
     remainingSamples -= pattern.offsets.length
+
     return headingScore(frame, pattern, x, y)
   }
 
@@ -192,6 +201,7 @@ export function createParticipantHeadingMatcher(
       pattern = headingPattern(heading, layout, width, height, frame.width, sparse)
       patterns.set(key, pattern)
     }
+
     return pattern
   }
 
@@ -217,6 +227,7 @@ export function createParticipantHeadingMatcher(
           if (score == null) {
             return 'search-limit'
           }
+
           if (peak == null || score > peak.score) {
             peak = { x, y, scale, score }
           }
@@ -225,6 +236,7 @@ export function createParticipantHeadingMatcher(
       if (peak == null) {
         continue
       }
+
       if (dense) {
         const full = patternFor(scale, false)
         const center = peak
@@ -238,16 +250,19 @@ export function createParticipantHeadingMatcher(
             if (score == null) {
               return 'search-limit'
             }
+
             if (peak == null || score > peak.score) {
               peak = { x, y, scale, score }
             }
           }
         }
       }
+
       if (peak != null && (best == null || peak.score > best.score)) {
         best = peak
       }
     }
+
     return best
   }
 
@@ -266,6 +281,7 @@ export function createParticipantHeadingMatcher(
     if (coarse === 'search-limit') {
       return coarse
     }
+
     if (coarse == null || coarse.score < 0.6) {
       return null
     }
@@ -277,6 +293,11 @@ export function createParticipantHeadingMatcher(
     if (refined === 'search-limit') {
       return refined
     }
-    return refined != null && refined.score >= 0.68 ? refined : null
+
+    if (refined != null && refined.score >= 0.68) {
+      return refined
+    }
+
+    return null
   }
 }

@@ -63,6 +63,7 @@ test('provider failures are sanitized, retain known-code precedence, and do not 
       fetch: async (_url, init) => {
         calls++
         assert.equal(new Headers(init?.headers).get('apikey'), 'fake-key')
+
         return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status })
       }
     })
@@ -70,6 +71,7 @@ test('provider failures are sanitized, retain known-code precedence, and do not 
       assert(error instanceof CharacterDetailFailure)
       assert.equal(error.status, expected)
       assert.equal(JSON.stringify(error.body).includes('sensitive'), false)
+
       return true
     })
     assert.equal(calls, 1)

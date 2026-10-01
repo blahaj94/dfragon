@@ -10,6 +10,7 @@ function record(value: unknown, fields: readonly string[]): Record<string, unkno
   const hasExpectedCount = Object.keys(value).length === fields.length
   const hasRequiredFields = fields.every((field) => {
     const hasField = Object.hasOwn(value, field)
+
     return hasField
   })
   const hasExactFields = hasExpectedCount && hasRequiredFields
@@ -17,6 +18,7 @@ function record(value: unknown, fields: readonly string[]): Record<string, unkno
     throw new Error(invalidConfiguration)
   }
   // JSON object와 정확한 field 집합을 확인했다. 각 값의 type은 아래 경계에서 검사한다.
+
   return value as Record<string, unknown>
 }
 
@@ -25,6 +27,7 @@ function text(value: unknown): string {
   if (!isString) {
     throw new Error(invalidConfiguration)
   }
+
   return value
 }
 
@@ -33,6 +36,7 @@ function array(value: unknown): unknown[] {
   if (!isArray) {
     throw new Error(invalidConfiguration)
   }
+
   return value
 }
 
@@ -45,17 +49,24 @@ function accessJwt(
     input.signingKey,
     externalPrivateKey === undefined ? ['kid', 'privateKeyPem'] : ['kid']
   )
+  const issuer = text(input.issuer)
+  const audience = text(input.audience)
+  const kid = text(signing.kid)
+  const privateKeyPem = externalPrivateKey ?? text(signing.privateKeyPem)
+  const signingKey = { kid, privateKeyPem }
+  const verificationKeys = array(input.verificationKeys).map((value) => {
+    const key = record(value, ['kid', 'publicKeyPem'])
+    const kid = text(key.kid)
+    const publicKeyPem = text(key.publicKeyPem)
+
+    return { kid, publicKeyPem }
+  })
+
   return {
-    issuer: text(input.issuer),
-    audience: text(input.audience),
-    signingKey: {
-      kid: text(signing.kid),
-      privateKeyPem: externalPrivateKey ?? text(signing.privateKeyPem)
-    },
-    verificationKeys: array(input.verificationKeys).map((value) => {
-      const key = record(value, ['kid', 'publicKeyPem'])
-      return { kid: text(key.kid), publicKeyPem: text(key.publicKeyPem) }
-    })
+    issuer,
+    audience,
+    signingKey,
+    verificationKeys
   }
 }
 
@@ -73,14 +84,16 @@ export function parseAuthenticationInput(value: unknown, externalPrivateKey?: st
     'returnUrl',
     ...(hasOcr ? ['ocrReturnUrl'] : [])
   ])
+  const jwt = accessJwt(input.accessJwt, externalPrivateKey)
+  const apiOrigin = text(passkey.apiOrigin)
+  const rpId = text(passkey.rpId)
+  const rpName = text(passkey.rpName)
+  const returnUrl = text(passkey.returnUrl)
+  const optionalOcr = hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {}
+  const passkeyConfiguration = { apiOrigin, rpId, rpName, returnUrl, ...optionalOcr }
+
   return {
-    accessJwt: accessJwt(input.accessJwt, externalPrivateKey),
-    passkey: {
-      apiOrigin: text(passkey.apiOrigin),
-      rpId: text(passkey.rpId),
-      rpName: text(passkey.rpName),
-      returnUrl: text(passkey.returnUrl),
-      ...(hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {})
-    }
+    accessJwt: jwt,
+    passkey: passkeyConfiguration
   }
 }

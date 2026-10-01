@@ -8,7 +8,12 @@ export const API_BUILD_INFO = Symbol('API_BUILD_INFO')
 export async function readApiBuildInfo(path = '/app/build-info.json'): Promise<ServerBuildInfo> {
   try {
     const value: unknown = JSON.parse(await readFile(path, 'utf8'))
-    return parseServerBuildInfo(value, 'api') ?? { service: 'api', commit: null }
+    const info = parseServerBuildInfo(value, 'api')
+    if (info == null) {
+      return { service: 'api', commit: null }
+    }
+
+    return info
   } catch {
     return { service: 'api', commit: null }
   }

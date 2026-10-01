@@ -623,6 +623,7 @@ describe('Desktop AuthCoordinator login', () => {
       } else {
         harness.clock.advance(600_000)
       }
+
       if (serverConfirmed) {
         disposal.resolve()
       } else {
@@ -1199,6 +1200,7 @@ describe('Desktop AuthCoordinator login', () => {
       }
 
       const isGreaterThanPrevious = value > revisions[index - 1]
+
       return isGreaterThanPrevious
     })
     expect(revisionsIncrease).toBe(true)
@@ -1381,6 +1383,7 @@ describe('Desktop AuthCoordinator login', () => {
     const activationCatch = vi.spyOn(activation, 'catch')
     const onClaimed = (): Promise<never> => {
       calls += 1
+
       return activation
     }
     await coordinator.start()
@@ -1405,6 +1408,7 @@ describe('Desktop AuthCoordinator login', () => {
         operation: (...args: Args) => Promise<Result>
       ): (...args: Args) => Promise<Result> {
         let calls = 0
+
         return (...args) => {
           const label = `${name}:${++calls}`
           effects.push(`${label}:start`)
@@ -1414,6 +1418,7 @@ describe('Desktop AuthCoordinator login', () => {
             () => effects.push(`${label}:reject`)
           )
           // 관측 callback만 붙이고 제품이 기다리는 원래 Promise는 그대로 반환한다.
+
           return promise
         }
       }
@@ -1609,6 +1614,7 @@ describe('Desktop AuthCoordinator login', () => {
         expect(
           publishedPhases.filter((phase) => {
             const isSignedIn = phase === 'signedIn'
+
             return isSignedIn
           })
         ).toHaveLength(1)

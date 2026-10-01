@@ -47,5 +47,6 @@ export function parseAdventureSearchQuery(originalUrl: string): AdventureSearchQ
   if (after != null && !/^[a-zA-Z0-9_-]{1,256}$/.test(after)) {
     throw new CharacterDetailFailure('query')
   }
+
   return { adventureName, limit, after }
 }

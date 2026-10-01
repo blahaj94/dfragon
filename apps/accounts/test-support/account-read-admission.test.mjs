@@ -35,14 +35,17 @@ async function accountApp(t) {
         return {
           async findOne() {
             counts.users++
+
             return user
           }
         }
       }
       assert.equal(schema, AuthSessionSchema)
+
       return {
         async findOne() {
           counts.sessions++
+
           return session
         },
         async update(_where, values) {
@@ -53,7 +56,9 @@ async function accountApp(t) {
     },
     async query() {
       counts.clocks++
-      return [{ now: new Date() }]
+      const now = new Date()
+
+      return [{ now }]
     }
   }
   const unused = async () => {
@@ -64,6 +69,7 @@ async function accountApp(t) {
     {
       async refresh() {
         sessionCalls.refresh++
+
         return tokens
       },
       async logout() {
@@ -74,6 +80,7 @@ async function accountApp(t) {
       dataSource: {
         async transaction(_isolation, operation) {
           counts.transactions++
+
           return operation(manager)
         }
       },
@@ -83,13 +90,19 @@ async function accountApp(t) {
           throw new Error('invalid synthetic token')
         }
         const now = Math.floor(Date.now() / 1000)
-        return { userId: user.id, sessionId: session.id, issuedAt: now - 10, expiresAt: now + 900 }
+        const userId = user.id
+        const sessionId = session.id
+        const issuedAt = now - 10
+        const expiresAt = now + 900
+
+        return { userId, sessionId, issuedAt, expiresAt }
       }
     }
   )
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
   const base = await app.getUrl()
+
   return {
     counts,
     sessionCalls,

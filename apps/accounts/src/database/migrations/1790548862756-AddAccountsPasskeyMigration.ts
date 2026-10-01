@@ -27,6 +27,7 @@ export class AddAccountsPasskeyMigration1790548862756 implements MigrationInterf
       throw new Error('Auth schema Migration requires an active transaction')
     }
     // Dropping RP metadata on populated databases would make stored credentials unusable.
+
     if (
       (await queryRunner.query('SELECT 1 FROM auth_passkeys LIMIT 1')).length > 0 ||
       (await queryRunner.query('SELECT 1 FROM auth_passkey_migrations LIMIT 1')).length > 0

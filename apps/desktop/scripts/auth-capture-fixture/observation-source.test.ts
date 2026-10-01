@@ -19,6 +19,7 @@ function installObservationSource(): {
   class NativeWorker {
     postMessage(...args: unknown[]): string {
       delegatedMessages.push(args)
+
       return 'delegated'
     }
   }

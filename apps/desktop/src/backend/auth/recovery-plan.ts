@@ -23,6 +23,7 @@ export function selectStoreRecoveryStep(
   if (shouldClear) {
     return 'clear-store'
   }
+
   return 'restore-ready'
 }
 
@@ -33,5 +34,10 @@ export function selectCredentialRecoveryStep(
   const isClockUsable = !checkedAt.discontinuous
   const isAccessCurrent = checkedAt.wallMs < accessTokenExpiresAtMs
   const canVerify = isClockUsable && isAccessCurrent
-  return canVerify ? 'verify-user' : 'refresh-credential'
+
+  if (canVerify) {
+    return 'verify-user'
+  }
+
+  return 'refresh-credential'
 }

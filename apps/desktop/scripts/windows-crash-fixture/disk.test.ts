@@ -4,21 +4,26 @@ import type { ReadOnlySecurity } from './native'
 
 const root = String.raw`C:\synthetic-root`
 function securityFixture(): ReadOnlySecurity & { createDirectory: ReturnType<typeof vi.fn> } {
-  return {
-    inspect: vi.fn((path, kind) => {
-      const isRoot = path === root
-      const isDirectory = kind === 'directory'
-      return isRoot === isDirectory ? 'trusted' : 'untrusted'
-    }),
-    list: vi.fn(() => ['credential.v1']),
-    openRead: vi.fn(() => 1n),
-    readFile: vi.fn((_handle, bytes) => {
-      bytes.write('synthetic')
-      return 9
-    }),
-    closeHandle: vi.fn(() => true),
-    createDirectory: vi.fn()
-  }
+  const inspect = vi.fn<ReadOnlySecurity['inspect']>((path, kind) => {
+    const isRoot = path === root
+    const isDirectory = kind === 'directory'
+    if (isRoot === isDirectory) {
+      return 'trusted'
+    }
+
+    return 'untrusted'
+  })
+  const list = vi.fn(() => ['credential.v1'])
+  const openRead = vi.fn(() => 1n)
+  const readFile = vi.fn<ReadOnlySecurity['readFile']>((_handle, bytes) => {
+    bytes.write('synthetic')
+
+    return 9
+  })
+  const closeHandle = vi.fn(() => true)
+  const createDirectory = vi.fn()
+
+  return { inspect, list, openRead, readFile, closeHandle, createDirectory }
 }
 
 it('captures original bytes and protection without creating or removing files', () => {

@@ -32,9 +32,11 @@ export const authBridgeMachine = setup({
           sendBack({ type: 'SNAPSHOT', snapshot })
         )
         sendBack({ type: 'SUBSCRIBED' })
+
         return unsubscribe
       } catch {
         sendBack({ type: 'SUBSCRIPTION_FAILED' })
+
         return undefined
       }
     }),
@@ -48,6 +50,7 @@ export const authBridgeMachine = setup({
         const result = await (intent.type === 'beginLogin'
           ? api.beginLogin({ provider: intent.provider })
           : api.retryAuth())
+
         return result.snapshot
       }
     )
@@ -63,8 +66,10 @@ export const authBridgeMachine = setup({
         if (previous != null) {
           if (previous.runId !== snapshot.runId) {
             enqueue.raise({ type: 'RECONNECT' })
+
             return
           }
+
           if (snapshot.revision <= previous.revision) {
             return
           }
@@ -85,6 +90,7 @@ export const authBridgeMachine = setup({
       ) {
         return {}
       }
+
       return { queued: snapshot }
     }),
     flushQueued: enqueueActions(({ context, enqueue }) => {

@@ -34,16 +34,21 @@ export function registerManualSearchIpc({
     }
     switch (control.action) {
       case SEARCH_ACTIONS.READ:
+
         return lifetime.result()
       case SEARCH_ACTIONS.END:
+
         return lifetime.end(control.captureId)
       case SEARCH_ACTIONS.CLEAR:
+
         return lifetime.clear(control)
       case SEARCH_ACTIONS.RETRY:
+
         return lifetime.retry(control)
       case SEARCH_ACTIONS.BEGIN:
         // An explicit new begin also recovers a session whose reply was lost.
         lifetime.invalidate()
+
         return lifetime.begin({ windowGeneration: windowGeneration(), sourceGeneration: 0 })
     }
   })
@@ -54,6 +59,7 @@ export function registerManualSearchIpc({
     if (observation == null) {
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
+
     return lifetime.observe(observation)
   })
 

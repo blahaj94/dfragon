@@ -17,26 +17,32 @@ let logoutFailure
 const loginService = {
   create: async () => {
     loginCalls++
+    const requestId = randomUUID()
+
     return {
-      requestId: randomUUID(),
+      requestId,
       browserUrl: 'https://api.test.invalid/auth/login/authorize?ticket=test',
       expiresAt: '2026-09-06T00:00:00.000Z'
     }
   },
   exchange: async () => {
     loginCalls++
+
     return { tokenType: 'Bearer', accessToken: 'login-access', refreshToken: 'login-refresh' }
   },
   authorize: async () => {
     loginCalls++
+    const requestId = randomUUID()
+
     return {
-      requestId: randomUUID(),
+      requestId,
       purpose: 'login',
       cookie: '__Host-test=x; Secure; HttpOnly; SameSite=Lax; Path=/'
     }
   },
   callback: async () => {
     loginCalls++
+
     return {
       returnUrl: 'dfragon-test://login/complete?code=exchange-only',
       cookie: '__Host-test=; Max-Age=0; Secure; HttpOnly; SameSite=Lax; Path=/'
@@ -51,6 +57,7 @@ const sessionService = {
     if (hasRefreshFailure) {
       throw refreshFailure
     }
+
     return {
       tokenType: 'Bearer',
       accessToken: 'session-access',

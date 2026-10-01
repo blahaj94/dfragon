@@ -28,6 +28,7 @@ export function createOcrQueryClient() {
       mutations: { retry: false }
     }
   })
+
   return client
 }
 

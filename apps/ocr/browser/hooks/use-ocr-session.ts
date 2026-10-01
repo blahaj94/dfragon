@@ -10,6 +10,7 @@ export function useOcrSession() {
     queryFn: async ({ signal }) => {
       try {
         await requestOcr('/api/session', 'GET', undefined, signal)
+
         return true
       } catch (error) {
         if (error instanceof OcrApiError && error.code === OCR_ERROR_CODE.LOGIN_REQUIRED) {
@@ -33,10 +34,9 @@ export function useOcrSession() {
       client.setQueryData(ocrKeys.session, false)
     }
   })
-  return {
-    authenticated: session.data ?? (session.isPending ? null : false),
-    login,
-    logout,
-    error: login.error ?? logout.error ?? session.error
-  }
+
+  const authenticated = session.data ?? (session.isPending ? null : false)
+  const error = login.error ?? logout.error ?? session.error
+
+  return { authenticated, login, logout, error }
 }

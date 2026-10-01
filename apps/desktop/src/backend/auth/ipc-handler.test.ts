@@ -5,7 +5,12 @@ import { registerAuthIpc } from './ipc-handler'
 import { ATTEMPT_ID, CODE, RETURN_TARGET, createAuthHarness, deferred } from './auth-test-fixtures'
 import type { AuthCommandResult, AuthSnapshot, AuthCoordinator } from './types'
 
-const electron = vi.hoisted(() => ({ handle: vi.fn(), removeHandler: vi.fn() }))
+const electron = vi.hoisted(() => {
+  const handle = vi.fn()
+  const removeHandler = vi.fn()
+
+  return { handle, removeHandler }
+})
 vi.mock('electron', () => ({ ipcMain: electron }))
 
 const DOCUMENT_URL = 'file:///fixture/index.html'
@@ -66,8 +71,10 @@ async function setup(): Promise<IpcFixture> {
     if (!hasHandler) {
       throw new Error('Expected registered auth handler')
     }
+
     return Promise.resolve().then(() => handler(sender, ...args))
   }
+
   return {
     effects,
     coordinator,

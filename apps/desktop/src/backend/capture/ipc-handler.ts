@@ -52,6 +52,7 @@ function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: str
   }
   // Start 수명당 한 번만 허용한다. API/source/gesture 증명이 되지는 않는다.
   mediaPermissionCaptureId = binding.captureId
+
   return true
 }
 
@@ -212,6 +213,7 @@ function registerCaptureIpc(configuration?: {
     if (!isCurrent) {
       throw new Error('Capture source access denied')
     }
+
     return sources.map(({ id, name }) => ({ id, name }))
   })
 
@@ -226,6 +228,7 @@ function registerCaptureIpc(configuration?: {
     const isCleanup = sourceId.length === 0
     if (isCleanup) {
       clearSource()
+
       return null
     }
     clearSource()
@@ -247,6 +250,7 @@ function registerCaptureIpc(configuration?: {
         throw new Error('Selected capture source is no longer available')
       }
       selectedSourceId = source.id
+
       return { id: source.id, name: source.name }
     } finally {
       const isLatestSelection = selectionGeneration === sourceSelectionGeneration
@@ -289,6 +293,7 @@ function registerCaptureIpc(configuration?: {
     if (!hasSource) {
       return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
+
     return lifetime.begin({
       windowGeneration,
       sourceGeneration: sourceSelectionGeneration
@@ -302,6 +307,7 @@ function registerCaptureIpc(configuration?: {
     if (!hasValidObservation) {
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
+
     return lifetime.observe(observation)
   })
 
@@ -395,6 +401,7 @@ function registerDisplayMediaHandler(window: BrowserWindow): void {
     const hasCapture = binding != null
     if (!hasCapture) {
       deliverMediaResult(callback, null)
+
       return
     }
 
@@ -404,6 +411,7 @@ function registerDisplayMediaHandler(window: BrowserWindow): void {
     const isAllowed = hasSource && isRequestAllowed && hasCurrentCapture
     if (!isAllowed) {
       deliverMediaResult(callback, null)
+
       return
     }
     const captureId = binding.captureId

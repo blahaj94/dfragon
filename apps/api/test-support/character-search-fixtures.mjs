@@ -36,6 +36,7 @@ export async function isolatedNeople() {
         upstream.failure = error
         response.destroy()
       })
+
       return
     }
     response.writeHead(upstream.status, { 'content-type': 'application/json' })
@@ -47,8 +48,10 @@ export async function isolatedNeople() {
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address()
+  const origin = `http://127.0.0.1:${port}`
+
   return {
-    origin: `http://127.0.0.1:${port}`,
+    origin,
     calls,
     upstream,
     close: async () => {
@@ -78,6 +81,7 @@ export async function withSearchApp(f, operation, overrides = {}) {
   })
   const searchCharacters = (input) => {
     upstream.start?.()
+
     return adapter(input)
   }
   const deps = {
@@ -90,6 +94,7 @@ export async function withSearchApp(f, operation, overrides = {}) {
     await app.listen(0, '127.0.0.1')
     const result = await operation({ base: await app.getUrl(), calls, upstream, deps, app })
     assert.equal(upstream.failure, undefined)
+
     return result
   } finally {
     await app.close()
@@ -112,6 +117,7 @@ export async function expectSearchError(response, status, code) {
   assert.deepEqual(Object.keys(body), ['error'])
   assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
   assert.equal(body.error.code, code)
+
   return body
 }
 
@@ -120,6 +126,7 @@ export function barrier() {
   const promise = new Promise((complete) => {
     resolve = complete
   })
+
   return { promise, resolve }
 }
 
@@ -147,6 +154,7 @@ export async function assertBackendGone(source, pid) {
       [pid]
     )
     const isBackendGone = row.count === 0
+
     return isBackendGone
   }, 'search backend remained after cancellation')
 }

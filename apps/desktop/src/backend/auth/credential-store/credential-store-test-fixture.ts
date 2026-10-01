@@ -49,6 +49,7 @@ export function deferred(): Readonly<{ promise: Promise<void>; resolve: () => vo
   const promise = new Promise<void>((complete) => {
     resolve = complete
   })
+
   return { promise, resolve }
 }
 
@@ -77,6 +78,7 @@ export async function createStoreFixture({
     encryptString: vi.fn((plaintext: string) => {
       const ciphertext = Buffer.from(`synthetic-ciphertext-${++ciphertextSequence}`)
       plaintexts.set(ciphertext.toString('base64'), plaintext)
+
       return ciphertext
     }),
     decryptString: vi.fn((ciphertext: Buffer) => {
@@ -85,6 +87,7 @@ export async function createStoreFixture({
       if (isUnknownCiphertext) {
         throw new Error('Synthetic decryption rejected.')
       }
+
       return plaintext
     })
   }
@@ -97,12 +100,15 @@ export async function createStoreFixture({
     if (isDirectory) {
       return 'directory'
     }
+
     if (isCredentialTemp) {
       return 'credential-temp'
     }
+
     if (isMarkerTemp) {
       return 'transition-temp'
     }
+
     return name
   }
 
@@ -119,6 +125,7 @@ export async function createStoreFixture({
     if (shouldFailAfter) {
       throw Object.assign(new Error('Synthetic file result lost.'), { code: 'EIO' })
     }
+
     return result
   }
 
@@ -138,6 +145,7 @@ export async function createStoreFixture({
         await close()
         openHandles.delete(handle)
       }
+
       return handle
     },
     rename: (from, to) => observe(`rename:${label(to)}`, () => baseFiles.rename(from, to)),

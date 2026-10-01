@@ -54,6 +54,7 @@ let currentStage = 'startup'
 
 function resourceNames(runId) {
   const name = `dfragon-db-${runId.slice(0, 48)}`
+
   return { containerName: name, volumeName: name }
 }
 
@@ -73,15 +74,19 @@ function nodeEnvironment(extra = {}) {
     'DOCKER_TLS_VERIFY',
     'DOCKER_CERT_PATH'
   ]
-  return {
-    ...Object.fromEntries(
-      names.flatMap((name) => {
-        const isVariableMissing = process.env[name] === undefined
-        return isVariableMissing ? [] : [[name, process.env[name]]]
-      })
-    ),
-    ...extra
-  }
+
+  const inheritedEnvironment = Object.fromEntries(
+    names.flatMap((name) => {
+      const isVariableMissing = process.env[name] === undefined
+      if (isVariableMissing) {
+        return []
+      }
+
+      return [[name, process.env[name]]]
+    })
+  )
+
+  return { ...inheritedEnvironment, ...extra }
 }
 
 function databaseEnvironment(configuration) {
@@ -144,7 +149,12 @@ async function assertBoundedReadiness() {
     await new Promise((resolve, reject) =>
       server.close((error) => {
         const hasCloseError = error != null
-        return hasCloseError ? reject(error) : resolve()
+
+        if (hasCloseError) {
+          return reject(error)
+        }
+
+        return resolve()
       })
     )
   }
@@ -156,6 +166,7 @@ async function runCompiledCli({ configuration, operation }) {
     ['--import', 'reflect-metadata', 'dist/database/cli.js', operation],
     { cwd: apiDirectory, env: databaseEnvironment(configuration), timeoutMs: 20_000 }
   )
+
   return result
 }
 
@@ -471,6 +482,7 @@ export function shouldWaitForSignalAtStage({ scenario, signalStage, expectedStag
   }
 
   const isExpectedStage = signalStage === expectedStage
+
   return isExpectedStage
 }
 
@@ -596,6 +608,7 @@ async function childScenario() {
     if (hasReceivedSignal) {
       const isInterruptSignal = receivedSignal === 'SIGINT'
       process.exitCode = isInterruptSignal ? 130 : 143
+
       return
     }
     process.stderr.write('Database integration scenario failed\n')
@@ -662,6 +675,7 @@ async function primaryScenario() {
     }
     const isInterruptSignal = receivedSignal === 'SIGINT'
     process.exitCode = isInterruptSignal ? 130 : 143
+
     return true
   }
 
@@ -684,6 +698,7 @@ async function primaryScenario() {
     await assertServerAndContainer(resources, image)
     if (runtimeOnly) {
       await assertFocusedRuntime({ configuration: resources.configuration, checkSignal })
+
       return
     }
     currentStage = 'compiled data source'
@@ -877,6 +892,7 @@ async function primaryScenario() {
     if (hasResources) {
       await teardownPostgres(resources)
     }
+
     if (runtimeOnly) {
       await assertResourcesAbsent(runId)
       process.stdout.write('Runtime database owned resources absent\n')

@@ -44,8 +44,11 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
     }
     const isExpired = runtime.clock.read().monotonicMs >= deadline
     if (isExpired) {
-      return { active: false, result: failure('SEARCH_TIMEOUT') }
+      const result = failure('SEARCH_TIMEOUT')
+
+      return { active: false, result }
     }
+
     return { active: true }
   }
 
@@ -62,6 +65,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
     if (current.active) {
       const remaining = deadline - runtime.clock.read().monotonicMs
       cancelDeadline = runtime.clock.schedule(Math.max(1, remaining), expire)
+
       return
     }
     transport.abort()
@@ -80,7 +84,11 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
         signal: transport.signal
       })
       const completed = check()
-      return completed.active ? { kind: 'success', rows } : completed.result
+      if (completed.active) {
+        return { kind: 'success', rows }
+      }
+
+      return completed.result
     } catch (error) {
       const completed = check()
       if (!completed.active) {
@@ -90,6 +98,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
       if (!isSearchFailure) {
         return failure('SEARCH_NETWORK_ERROR')
       }
+
       return {
         kind: 'failure',
         error: { code: error.code, retryAfterSeconds: error.retryAfterSeconds },

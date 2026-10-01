@@ -93,6 +93,7 @@ export function validatePartyFrame(
   if (!isDeveloperCollectionKind(kind)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -100,12 +101,15 @@ export function validatePartyFrame(
   if (!isValidImageDimensions(frame.width, frame.height)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!isValidScale(frame.scale)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!Array.isArray(frame.slots) || frame.slots.length > DEVELOPER_COLLECTION_SLOTS[kind].length) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -187,26 +191,23 @@ export function previewFrame(
   kind: DeveloperCollectionKind = 'hud'
 ): DeveloperPartyPreviewFrame {
   validatePartyFrame(frame, kind)
-  return {
-    width: frame.width,
-    height: frame.height,
-    scale: frame.scale,
-    capturedAt: frame.capturedAt,
-    ...(frame.participantWindow
-      ? {
-          participantWindow: {
-            ...frame.participantWindow,
-            rgba: Uint8Array.from(frame.participantWindow.rgba)
-          }
-        }
-      : {}),
-    slots: frame.slots.map(({ slot, width, height, rgba }) => ({
-      slot,
-      width,
-      height,
-      rgba: Uint8Array.from(rgba)
-    }))
+  const width = frame.width
+  const height = frame.height
+  const scale = frame.scale
+  const capturedAt = frame.capturedAt
+  let participantFields: Pick<DeveloperPartyPreviewFrame, 'participantWindow'> = {}
+  if (frame.participantWindow) {
+    const participantMetadata = { ...frame.participantWindow }
+    const rgba = Uint8Array.from(frame.participantWindow.rgba)
+    participantFields = { participantWindow: { ...participantMetadata, rgba } }
   }
+  const slots = frame.slots.map(({ slot, width, height, rgba }) => {
+    const pixels = Uint8Array.from(rgba)
+
+    return { slot, width, height, rgba: pixels }
+  })
+
+  return { width, height, scale, capturedAt, ...participantFields, slots }
 }
 
 const PUBLIC_ERROR_CODES = new Set<string>([
@@ -226,7 +227,11 @@ const PUBLIC_ERROR_CODES = new Set<string>([
 
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
-  return PUBLIC_ERROR_CODES.has(message) ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED
+  if (PUBLIC_ERROR_CODES.has(message)) {
+    return message
+  }
+
+  return DEVELOPER_ERROR_CODES.OPERATION_FAILED
 }
 
 export function createDeveloperCollectionSession({
@@ -259,16 +264,20 @@ export function createDeveloperCollectionSession({
   let captureProgress: DeveloperPartyCollectionStatus['capture']
 
   function getStatus(): DeveloperPartyCollectionStatus {
-    return {
-      armed,
-      slots: [...slots],
+    const statusArmed = armed
+    const selectedSlots = [...slots]
+    const status = {
+      armed: statusArmed,
+      slots: selectedSlots,
       revision,
       lastSavedAt,
       lastSavedCount,
-      error,
-      ...(captureProgress ? { capture: { ...captureProgress } } : {}),
-      ...(upload ? { upload } : {})
+      error
     }
+    const captureFields = captureProgress ? { capture: { ...captureProgress } } : {}
+    const uploadFields = upload ? { upload } : {}
+
+    return { ...status, ...captureFields, ...uploadFields }
   }
 
   function publishStatus(): void {
@@ -328,9 +337,11 @@ export function createDeveloperCollectionSession({
       if (!isCurrentCapture(captureGeneration)) {
         return
       }
+
       if (!settings.enabled) {
         throw new Error(DEVELOPER_ERROR_CODES.DISABLED)
       }
+
       if (!(await isDnfForeground())) {
         throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
@@ -474,12 +485,14 @@ export function createDeveloperCollectionSession({
     kind = captureKind
     if (selectedSlots == null) {
       await waitForCapture()
+
       return getStatus()
     }
 
     if (!armingEnabled) {
       error = DEVELOPER_ERROR_CODES.DISABLED
       revision += 1
+
       return getStatus()
     }
 
@@ -492,6 +505,7 @@ export function createDeveloperCollectionSession({
     ) {
       error = DEVELOPER_ERROR_CODES.INVALID_COMMAND
       revision += 1
+
       return getStatus()
     }
 
@@ -501,13 +515,17 @@ export function createDeveloperCollectionSession({
       if (disposed || token !== requestToken || captureGeneration !== generation) {
         return getStatus()
       }
+
       if (!isTrusted()) {
         invalidate()
+
         return getStatus()
       }
+
       if (!settings.enabled) {
         error = DEVELOPER_ERROR_CODES.DISABLED
         revision += 1
+
         return getStatus()
       }
 
@@ -515,18 +533,21 @@ export function createDeveloperCollectionSession({
       if (!registered) {
         error = DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE
         revision += 1
+
         return getStatus()
       }
       printScreenRegistered = true
       slots = [...selectedSlots]
       armed = true
       error = null
+
       return getStatus()
     } catch (caughtError) {
       if (!disposed && token === requestToken && captureGeneration === generation) {
         error = publicErrorCode(caughtError)
         revision += 1
       }
+
       return getStatus()
     }
   }

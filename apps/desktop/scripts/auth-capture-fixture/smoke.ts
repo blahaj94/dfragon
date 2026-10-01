@@ -37,6 +37,7 @@ function createDisplayInspectionSource(): string {
       }
       return matchedSlots;
     })()`
+
   return displayInspectionSource
 }
 
@@ -85,6 +86,7 @@ export async function smoke(
   await until(async () => {
     const state = await observe()
     const isMediaReady = state.streams === 1
+
     return isMediaReady
   }, 20_000)
   console.log('Capture fixture actual stream acquired')
@@ -98,6 +100,7 @@ export async function smoke(
       const hasAllDisplays = displayMatchedSlots === 0b1111
       const hasAllNotifications = mainObservation.nicknameMatchedSlots === 0b1111
       const hasAllSyntheticMatches = hasAllDisplays && hasAllNotifications
+
       return hasAllSyntheticMatches
     }, 30_000)
   } finally {
@@ -154,6 +157,7 @@ export async function smoke(
     const hasStopped = hasOneStop && hasEnded
     const hasTerminated = state.terminated === 1
     const hasCompletedCleanup = hasStopped && hasTerminated
+
     return hasCompletedCleanup
   })
   assert.equal((await observe()).clearedVideos, 1)
@@ -190,6 +194,7 @@ export async function smoke(
   await click('캡처 중지')
   await until(async () => {
     const state = await observe()
+
     return state.ended && state.stops === 2 && state.terminated === 2 && state.clearedVideos === 2
   })
 }

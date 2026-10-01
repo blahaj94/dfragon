@@ -116,6 +116,7 @@ test('later transaction failure cannot report success or erase earlier confirmed
     assert.equal(error.message, 'Authentication cleanup failed')
     assert.equal(error.stack, 'Error: Authentication cleanup failed')
     assert.equal(error.cause, undefined)
+
     return true
   })
   assert.equal(f.deleted.sessions.length, 1)

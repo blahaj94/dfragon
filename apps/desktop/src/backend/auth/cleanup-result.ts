@@ -13,8 +13,10 @@ export function decideLocalCleanup(evidence: LocalCleanupEvidence): LocalCleanup
   if (evidence.logoutOwnsCleanup) {
     return { shouldBlockStorage: false, canContinue: false }
   }
+
   if (!evidence.cleared) {
     return { shouldBlockStorage: true, canContinue: false }
   }
+
   return { shouldBlockStorage: false, canContinue: evidence.isCurrent }
 }

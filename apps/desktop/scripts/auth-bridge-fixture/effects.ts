@@ -35,13 +35,15 @@ export function createFixtureEffects(): Effects {
     apiOrigin: 'https://api.example.test',
     returnTarget: 'dfragon-fixture://auth/return',
     clock: {
-      read: () => ({
-        wallMs: wallNow(),
-        monotonicMs: performance.now() - started,
-        discontinuous: false
-      }),
+      read: () => {
+        const wallMs = wallNow()
+        const monotonicMs = performance.now() - started
+
+        return { wallMs, monotonicMs, discontinuous: false }
+      },
       schedule: (delay, callback) => {
         const timer = setTimeout(callback, delay)
+
         return () => clearTimeout(timer)
       }
     },
@@ -50,6 +52,7 @@ export function createFixtureEffects(): Effects {
       bytes: (size) => {
         const bytes = Buffer.alloc(size, ++sequence)
         canaries.push(bytes.toString('base64url'))
+
         return bytes
       }
     },
@@ -59,19 +62,26 @@ export function createFixtureEffects(): Effects {
       }
     },
     http: {
-      createLoginRequest: async () => ({
-        requestId: '10000000-0000-4000-8000-000000000001',
-        browserUrl,
-        expiresAt: new Date(wallNow() + 600_000).toISOString()
-      }),
+      createLoginRequest: async () => {
+        const expiresAt = new Date(wallNow() + 600_000).toISOString()
+
+        return {
+          requestId: '10000000-0000-4000-8000-000000000001',
+          browserUrl,
+          expiresAt
+        }
+      },
       exchange: async () => {
         counts.exchange += 1
+        const accessTokenExpiresAt = new Date(wallNow() + 900_000).toISOString()
+        const sessionExpiresAt = new Date(wallNow() + 2_592_000_000).toISOString()
+
         return {
           tokenType: 'Bearer',
           accessToken,
           refreshToken,
-          accessTokenExpiresAt: new Date(wallNow() + 900_000).toISOString(),
-          sessionExpiresAt: new Date(wallNow() + 2_592_000_000).toISOString(),
+          accessTokenExpiresAt,
+          sessionExpiresAt,
           user: { id: '20000000-0000-4000-8000-000000000001', nickname: '중립모험가' },
           isNewUser: true
         }
@@ -91,35 +101,43 @@ export function createFixtureEffects(): Effects {
         if (marked) {
           return { status: 'recovery-required' }
         }
+
         if (committed) {
           return { status: 'ready', refreshToken }
         }
+
         return { status: 'empty' }
       },
       establishTransition: async () => {
         marked = true
+
         return 'confirmed'
       },
       commitCredential: async () => {
         counts.commit += 1
         await heldCommit
         committed = true
+
         return 'confirmed'
       },
       clearCredential: async () => {
         committed = false
+
         return 'confirmed'
       },
       removeTransition: async () => {
         marked = false
+
         return 'confirmed'
       },
       reestablishTransition: async () => {
         marked = true
+
         return 'confirmed'
       }
     }
   }
+
   return {
     dependencies,
     counts,

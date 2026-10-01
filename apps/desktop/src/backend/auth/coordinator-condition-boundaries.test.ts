@@ -20,6 +20,7 @@ function observedFailure(
       codeRead += 1
       const code = codes[codeRead - 1] ?? codes[codes.length - 1]
       reads.push(`code:${codeRead}`)
+
       return code
     }
   })
@@ -27,6 +28,7 @@ function observedFailure(
     configurable: true,
     get: () => {
       reads.push('transmission')
+
       return transmission
     }
   })

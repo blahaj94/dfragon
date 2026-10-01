@@ -23,6 +23,7 @@ export async function stopOwnedProcessGroup(options) {
   function hasGroup() {
     try {
       kill(-child.pid, 0)
+
       return true
     } catch (error) {
       const isAbsent = error.code === 'ESRCH'

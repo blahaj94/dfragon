@@ -4,12 +4,14 @@ import { runAuthBridgeFixture } from '../auth-bridge-fixture.mjs'
 
 const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')
 
-const fixture = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  remove: vi.fn(),
-  inspect: vi.fn(),
-  create: vi.fn()
-}))
+const fixture = vi.hoisted(() => {
+  const spawn = vi.fn()
+  const remove = vi.fn()
+  const inspect = vi.fn()
+  const create = vi.fn()
+
+  return { spawn, remove, inspect, create }
+})
 vi.mock('node:child_process', () => ({ spawn: fixture.spawn }))
 vi.mock('node:fs/promises', () => ({
   mkdtemp: fixture.create,
@@ -28,6 +30,7 @@ beforeEach(() => {
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 0))
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -60,6 +63,7 @@ it('child 실패는 cleanup 성공 뒤에도 실패로 반환한다', async () =
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 1))
+
     return child
   })
 

@@ -81,6 +81,7 @@ try {
   if (source?.isInitialized) {
     await source.destroy()
   }
+
   if (resources) {
     await teardownPostgres(resources)
   }

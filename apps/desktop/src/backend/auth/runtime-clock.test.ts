@@ -30,6 +30,7 @@ function createRuntimeHarness(): RuntimeHarness {
       const wallMs = time.wallMs
       time.monotonicMs += time.sampleDelayMs
       time.wallMs += time.sampleDelayMs
+
       return wallMs
     },
     readMonotonicMs: () => time.monotonicMs,
@@ -46,6 +47,7 @@ function createRuntimeHarness(): RuntimeHarness {
     userDataPath: '/synthetic/user-data'
   })
   const coordinator = createAuthCoordinator(dependencies)
+
   return { ...harness, time, effects, clock: dependencies.clock, coordinator }
 }
 
@@ -191,18 +193,26 @@ describe('runtime clock and real coordinator', () => {
       if (isCommit) {
         harness.store.commitWaits.push(wait.promise)
       }
+
       if (isFinalize) {
         harness.store.removeWaits.push(wait.promise)
       }
+
       if (isMe) {
         harness.http.me.mockImplementationOnce(() => me.promise)
       }
       const start = harness.coordinator.start()
-      const boundary = isMe
-        ? harness.http.me
-        : isFinalize
-          ? harness.store.removeTransition
-          : harness.store.commitCredential
+      let boundary:
+        | typeof harness.http.me
+        | typeof harness.store.removeTransition
+        | typeof harness.store.commitCredential
+      if (isMe) {
+        boundary = harness.http.me
+      } else if (isFinalize) {
+        boundary = harness.store.removeTransition
+      } else {
+        boundary = harness.store.commitCredential
+      }
       await vi.waitFor(() => expect(boundary).toHaveBeenCalledOnce())
       harness.time.wallMs += 5_000
       harness.time.monotonicMs += 10_000

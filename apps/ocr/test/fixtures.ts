@@ -5,13 +5,16 @@ export function upload(id = randomUUID()) {
   for (let i = 0; i < image.data.length; i++) {
     image.data[i] = i % 256
   }
+
+  const originalPng = PNG.sync.write(image).toString('base64')
+
   return {
     id,
     capturedAt: '2026-09-25T00:00:00.000Z',
     kind: 'hud',
     uiScale: 0.75,
     uiScaleSource: 'game',
-    originalPng: PNG.sync.write(image).toString('base64'),
+    originalPng,
     crops: [
       { slot: 1, x: 1, y: 1, width: 3, height: 2 },
       { slot: 3, x: 4, y: 0, width: 2, height: 2 }
@@ -20,26 +23,29 @@ export function upload(id = randomUUID()) {
 }
 
 export function raidUpload(id = randomUUID()) {
-  return {
-    ...upload(id),
-    kind: 'raid',
-    crops: Array.from({ length: 12 }, (_, index) => ({
-      slot: index + 1,
-      x: index % 8,
-      y: Math.floor(index / 8),
-      width: 1,
-      height: 1
-    }))
-  }
+  const fixture = { ...upload(id), kind: 'raid' }
+  const crops = Array.from({ length: 12 }, (_, index) => {
+    const slot = index + 1
+    const x = index % 8
+    const y = Math.floor(index / 8)
+
+    return { slot, x, y, width: 1, height: 1 }
+  })
+  fixture.crops = crops
+
+  return fixture
 }
 
 export function syntheticUpload(id = randomUUID(), text = '합성고래') {
   const image = new PNG({ width: 8, height: 4 })
   image.data.fill(255)
+
+  const png = PNG.sync.write(image).toString('base64')
+
   return {
     id,
     generatedAt: '2026-09-30T00:00:00.000Z',
-    png: PNG.sync.write(image).toString('base64'),
+    png,
     text,
     rendering: {
       rendererVersion: '0.1.2',

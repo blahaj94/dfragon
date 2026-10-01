@@ -24,7 +24,9 @@ export class OcrModelController {
 
   @Get(['models', 'desktop/models'])
   list() {
-    return { schemaVersion: 1, models: this.store.models() }
+    const models = this.store.models()
+
+    return { schemaVersion: 1, models }
   }
 
   @Get(['models/:id', 'desktop/models/:id'])
@@ -78,6 +80,7 @@ export class OcrModelController {
       }
       files.set(file.originalname, file.buffer)
     }
+
     return this.store.addModel(parseModelUpload(metadata), files)
   }
 

@@ -78,8 +78,10 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {
       expirePending(value)
+
       return false
     }
+
     return true
   }
 
@@ -120,6 +122,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (cleanup.shouldBlockStorage) {
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (!cleanup.canContinue) {
       return
     }
@@ -147,6 +150,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (cleanup.shouldBlockStorage) {
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (cleanup.canContinue) {
       session.completeStaleCleanup()
     }
@@ -174,6 +178,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (shouldBlockStorage) {
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       return false
     }
     const isEstablished = prepared === 'established'
@@ -186,6 +191,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const notice = didPreparationFail ? 'SECURE_STORAGE_UNAVAILABLE' : 'LOCAL_CLEAR_UNCONFIRMED'
     const recoveryPurpose = didPreparationFail ? 'inspect-store' : 'clear-store'
     storageBlocked(notice, recoveryPurpose)
+
     return false
   }
 
@@ -208,6 +214,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       const hasLogoutFlight = runtime.logoutFlight != null
       const logoutOwnsRefreshCleanup = isRefresh && hasLogoutFlight
       await handleStaleTransition(logoutOwnsRefreshCleanup ? undefined : tokens.refreshToken)
+
       return false
     }
     const isCredentialCommitted = credentialCommit === 'confirmed'
@@ -216,10 +223,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       const isCurrentAfterDisposal = runtime.generation === operationGeneration
       if (!isCurrentAfterDisposal) {
         await handleStaleTransition()
+
         return false
       }
       runtime.invalidate()
       storageBlocked('TOKEN_SAVE_FAILED', 'clear-store')
+
       return false
     }
 
@@ -248,17 +257,21 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           hasDurableMarker = false
         }
       }
+
       if (!hasDurableMarker) {
         const isExplicitLogout = runtime.logoutFlight != null
         if (!isExplicitLogout) {
           storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
         }
+
         if (!logoutOwnsRefreshCleanup) {
           await session.dispose(tokens.refreshToken)
         }
+
         return false
       }
       await handleStaleTransition(logoutOwnsRefreshCleanup ? undefined : tokens.refreshToken)
+
       return false
     }
     const isCommitted = finalized === 'committed'
@@ -269,6 +282,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (hasUnusableAccessTime && hasCommittedCredential) {
         session.markAccessUntrusted(committedCredential)
       }
+
       return true
     }
 
@@ -276,12 +290,14 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isCurrentAfterDisposal = runtime.generation === operationGeneration
     if (!isCurrentAfterDisposal) {
       await handleStaleTransition()
+
       return false
     }
     runtime.invalidate()
     const didSaveFail = finalized === 'save-failed'
     const notice = didSaveFail ? 'TOKEN_SAVE_FAILED' : 'LOCAL_CLEAR_UNCONFIRMED'
     storageBlocked(notice, 'clear-store')
+
     return false
   }
 
@@ -311,6 +327,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!canUseAccess) {
       session.markAccessUntrusted(credential)
       state.restorePaused('RESTORE_RETRY_REQUIRED')
+
       return false
     }
 
@@ -337,12 +354,15 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (isUnavailableFailure) {
       hasUnavailableCode = error.code === 'unavailable'
     }
+
     if (hasNetworkCode === true) {
       return 'NETWORK_UNAVAILABLE'
     }
+
     if (hasUnavailableCode === true) {
       return 'AUTH_SERVICE_UNAVAILABLE'
     }
+
     return 'LOGIN_RESTART_REQUIRED'
   }
 
@@ -378,11 +398,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         runtime.invalidate()
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       return cleanup.canContinue
     }
 
     runtime.invalidate()
     storageBlocked('SECURE_STORAGE_UNAVAILABLE', 'inspect-store')
+
     return false
   }
 
@@ -405,6 +427,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       )
     } catch (error) {
       finishPendingFailure(value, loginRequestNotice(error))
+
       return
     }
     const isCurrentAfterRequest = isCurrentPending(value)
@@ -449,6 +472,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       runtime.invalidate()
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (!cleanup.canContinue) {
       return false
     }
@@ -456,6 +480,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {
       expirePending(value)
+
       return false
     }
 
@@ -475,6 +500,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isPendingFreshAfterPreparation = keepPendingFresh(value)
     if (!isPendingFreshAfterPreparation) {
       await handleStaleTransition()
+
       return
     }
 
@@ -499,8 +525,10 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       const isPendingFresh = keepPendingFresh(value)
       if (!isPendingFresh) {
         await handleStaleTransition()
+
         return
       }
+
       if (isRejected === true) {
         await value.rejectExchange(
           () => recoverRejectedExchange(value),
@@ -510,6 +538,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
             }
           }
         )
+
         return
       }
 
@@ -525,15 +554,18 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         runtime.invalidate()
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       if (cleanup.canContinue) {
         finishPendingFailure(value, 'LOGIN_RESTART_REQUIRED')
       }
+
       return
     }
 
     const isPendingFreshAfterExchange = keepPendingFresh(value)
     if (!isPendingFreshAfterExchange) {
       await handleStaleTransition(exchanged.refreshToken)
+
       return
     }
     const committed = await commitTokens(exchanged, 'exchange', operationGeneration, () =>
@@ -619,6 +651,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
     runtime.cancelPending(value)
     const cancelled = state.signedOut('LOGIN_CANCELLED')
+
     return Promise.resolve(state.success(cancelled))
   }
 
@@ -637,17 +670,23 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (needsNewLogin) {
         state.signedOut('LOGIN_RESTART_REQUIRED')
       }
+
       return Promise.resolve()
     }
     const checkedAt = dependencies.clock.read()
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {
       expirePending(value)
+
       return Promise.resolve()
     }
     const claim = value.claimExchange(parsed.code, () => {
       state.exchangeStarted(value.snapshot())
-      return isCurrentPending(value) ? session.reserveWriter() : null
+      if (isCurrentPending(value)) {
+        return session.reserveWriter()
+      }
+
+      return null
     })
     const isIgnored = claim.status === 'ignored'
     if (isIgnored) {
@@ -666,6 +705,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     } catch {
       // Window activation is best-effort and must not interrupt the claimed exchange.
     }
+
     return exchange
   }
 
@@ -718,11 +758,14 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
             const isCurrentAfterRemoval = runtime.generation === operationGeneration
             if (!isCurrentAfterRemoval) {
               await handleStaleTransition()
+
               return null
             }
+
             if (removed) {
               session.retainForRestore(refreshToken)
               state.restorePaused('NETWORK_UNAVAILABLE')
+
               return null
             }
           }
@@ -737,6 +780,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (canClear) {
         await cleanupAfterInvalidation('REAUTH_REQUIRED', cleanupGeneration)
       }
+
       return null
     }
 
@@ -763,6 +807,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isCurrent) {
       return
     }
+
     if (!hasCurrentCredential) {
       return
     }
@@ -814,6 +859,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
             await cleanupAfterInvalidation('REAUTH_REQUIRED', cleanupGeneration)
           }
         })
+
         return
       }
       state.restorePaused(notice)
@@ -866,11 +912,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     const isBlocked = step === 'storage-blocked'
     if (isBlocked) {
       storageBlocked('SECURE_STORAGE_UNAVAILABLE', 'inspect-store')
+
       return state.getSnapshot()
     }
     const isSignedOut = step === 'signed-out'
     if (isSignedOut) {
       state.signedOut()
+
       return state.getSnapshot()
     }
     const requiresCleanup = step === 'clear-store'
@@ -889,9 +937,11 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (cleanup.shouldBlockStorage) {
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       if (cleanup.canContinue) {
         state.signedOut('REAUTH_REQUIRED')
       }
+
       return state.getSnapshot()
     }
 
@@ -899,6 +949,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (hasReadyCredential) {
       await restoreReadyCredential(inspection.refreshToken, operationGeneration)
     }
+
     return state.getSnapshot()
   }
 
@@ -917,6 +968,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return Promise.resolve({ status: 'unavailable' })
     }
     const operationGeneration = runtime.generation
+
     return runtime.shareRefresh(operationGeneration, async () => {
       await session.runWriter(async (writer) => {
         await rotateCredential(currentCredential.refreshToken, operationGeneration, writer)
@@ -948,6 +1000,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (!canUseAccess) {
         return { status: 'unavailable' }
       }
+
       return {
         status: 'available',
         accessToken: refreshedCredential.accessToken,
@@ -982,6 +1035,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         accessGeneration: currentCredential.accessGeneration
       }
     }
+
     return { status: 'unavailable' }
   }
 
@@ -1029,10 +1083,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (!isCurrentAccess) {
         return Promise.resolve({ status: 'unavailable' })
       }
+
       if (rejected.finalRejection) {
         // 기존 logout reservation이 진행 writer를 기다리고 같은 session을 한 번 정리한다.
+
         return logout('REAUTH_REQUIRED').then(() => ({ status: 'unavailable' }))
       }
+
       return refreshAuthorization()
     }, signal)
   }
@@ -1069,6 +1126,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           return state.success()
         }
         await restoreReadyCredential(refreshToken, operationGeneration)
+
         return state.success()
       }
       state.restoring()
@@ -1112,6 +1170,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         return state.success()
       }
       await verifyRestoredUser(operationGeneration)
+
       return state.success()
     }
 
@@ -1136,6 +1195,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       const isBlocked = step === 'storage-blocked'
       if (isBlocked) {
         storageBlocked('SECURE_STORAGE_UNAVAILABLE', 'clear-store')
+
         return state.success()
       }
       const hasRecordsToClear = step === 'clear-store'
@@ -1154,16 +1214,19 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         if (cleanup.shouldBlockStorage) {
           storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
         }
+
         if (!cleanup.canContinue) {
           return state.success()
         }
       }
 
       state.signedOut('REAUTH_REQUIRED')
+
       return state.success()
     }
 
     await restoreFromStore(operationGeneration)
+
     return state.success()
   }
 
@@ -1178,14 +1241,17 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isCurrentLogout) {
       return state.success()
     }
+
     if (!localConfirmed) {
       state.storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
+
       return state.success()
     }
 
     const serverFailureNotice = serverConfirmed ? null : 'LOGOUT_SERVER_UNCONFIRMED'
     const logoutNotice = notice ?? serverFailureNotice
     state.signedOut(logoutNotice)
+
     return state.success()
   }
 
@@ -1220,6 +1286,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
     try {
       await dependencies.browser.open(`${dependencies.apiOrigin}/auth/passkeys/manage`)
+
       return state.success()
     } catch {
       return state.failure('AUTH_OPERATION_FAILED')

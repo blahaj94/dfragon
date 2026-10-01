@@ -30,6 +30,7 @@ type OwnedMarker = Readonly<{ version: 1; operationId: string; kind: CredentialT
 
 export function createUnavailableCredentialStore(): CredentialStore {
   const rejectMutation = async (): Promise<StoreMutationOutcome> => 'failed'
+
   return {
     inspect: async () => ({ status: 'unavailable' }),
     establishTransition: rejectMutation,
@@ -70,7 +71,9 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
         const probe = 'dfragon-credential-store-probe-v1'
         const decrypted = safeStorage.decryptString(safeStorage.encryptString(probe))
         const isRoundTripSuccessful = decrypted === probe
-        return { status: isRoundTripSuccessful ? 'empty' : 'unavailable' }
+        const status = isRoundTripSuccessful ? 'empty' : 'unavailable'
+
+        return { status }
       }
       const ciphertext = readCiphertext(record, context)
       const isInvalidRecord = ciphertext == null
@@ -80,7 +83,11 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const plaintext = safeStorage.decryptString(ciphertext)
       const refreshToken = readRefreshToken(plaintext, context)
       const isInvalidPayload = refreshToken == null
-      return isInvalidPayload ? { status: 'recovery-required' } : { status: 'ready', refreshToken }
+      if (isInvalidPayload) {
+        return { status: 'recovery-required' }
+      }
+
+      return { status: 'ready', refreshToken }
     } catch {
       return { status: 'unavailable' }
     }
@@ -101,6 +108,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const outcome = await files.replace('transition.v1', Buffer.from(JSON.stringify(marker)))
       const wasConfirmed = outcome === 'confirmed'
       ownedMarker = wasConfirmed ? marker : null
+
       return outcome
     } catch {
       return 'failed'
@@ -126,6 +134,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
     const hasSameOperation = parsed.data.operationId === marker.operationId
     const hasSameKind = parsed.data.kind === marker.kind
     const hasSameMarker = hasSameOperation && hasSameKind
+
     return hasSameMarker
   }
 
@@ -154,6 +163,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       if (!isWithinLimit) {
         return 'failed'
       }
+
       return files.replace('credential.v1', record)
     } catch {
       return 'failed'
@@ -165,7 +175,11 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const isClearMarker = ownedMarker?.kind === 'clear'
       const ownsTransition = await ownsMarker()
       const canClear = isClearMarker && ownsTransition
-      return canClear ? files.clear() : 'failed'
+      if (!canClear) {
+        return 'failed'
+      }
+
+      return files.clear()
     } catch {
       return 'failed'
     }
@@ -182,6 +196,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       if (wasConfirmed) {
         ownedMarker = null
       }
+
       return outcome
     } catch {
       return 'unknown'
@@ -192,6 +207,7 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
     inspect,
     establishTransition: (kind) => {
       const canReplaceForClear = kind === 'clear'
+
       return writeMarker(kind, canReplaceForClear)
     },
     reestablishTransition: (kind) => writeMarker(kind, true),

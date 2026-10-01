@@ -14,16 +14,19 @@ it('새 관측은 clock read, 이전 transport 취소, binding 검사의 순서�
   const clock = {
     read: vi.fn(() => {
       events.push('clock.read')
+
       return { wallMs: 0, monotonicMs: 1_000, discontinuous: false }
     }),
     schedule: vi.fn(() => () => undefined)
   }
   const isCurrent = vi.fn(() => {
     events.push('isCurrent')
+
     return true
   })
   const http: SearchRuntime['http'] = vi.fn(({ signal }) => {
     signal.addEventListener('abort', () => events.push('cancelTransport'))
+
     return response.promise
   })
   const lifetime = createCaptureSearchLifetime({
@@ -62,11 +65,13 @@ it('retry는 권한이 없어도 capture와 request ID 비교를 평가한다', 
   const requestId = lifetime.snapshot().slots[0].requestId!
   isCurrent.mockImplementation(() => {
     events.push('permission')
+
     return false
   })
   Object.defineProperty(lifetime.current, 'captureId', {
     get: () => {
       events.push('capture')
+
       return captureId
     }
   })
@@ -77,6 +82,7 @@ it('retry는 권한이 없어도 capture와 request ID 비교를 평가한다', 
     slot: 0,
     get requestId() {
       events.push('requestId')
+
       return requestId
     }
   })

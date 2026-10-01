@@ -111,13 +111,15 @@ function projectResponse(body: unknown, status: number, ok: boolean): CharacterS
         throw neopleSearchFailure('api')
       }
     }
+    const serverName = NEOPLE_SERVER_NAMES.get(serverId) ?? null
+    const fame = rawFame ?? null
 
     return {
       characterId,
       characterName,
       serverId,
-      serverName: NEOPLE_SERVER_NAMES.get(serverId) ?? null,
-      fame: rawFame ?? null
+      serverName,
+      fame
     }
   })
 
@@ -129,6 +131,7 @@ function buildUrl(input: NeopleCharacterSearchInput, origin: string): URL {
   url.searchParams.set('characterName', input.characterName)
   url.searchParams.set('limit', String(input.limit))
   url.searchParams.set('wordType', 'full')
+
   return url
 }
 
@@ -157,6 +160,7 @@ function makeSearch(
       if (!isTimerPending) {
         didTimeout = true
         controller.abort()
+
         return true
       }
 
@@ -167,6 +171,7 @@ function makeSearch(
 
       didTimeout = true
       controller.abort()
+
       return true
     }
 
@@ -224,6 +229,7 @@ function makeSearch(
         if (didReachDeadlineAfterProjection) {
           throw neopleSearchFailure('timeout')
         }
+
         return result
       } catch (error) {
         const didReachDeadline = deadlineReached()

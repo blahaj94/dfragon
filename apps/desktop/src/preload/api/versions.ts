@@ -8,5 +8,6 @@ export const getBuildVersions: AsyncIPCFunctions['getBuildVersions'] = async () 
   if (snapshot == null) {
     throw new Error('버전 정보의 응답을 확인하지 못했습니다.')
   }
+
   return snapshot
 }

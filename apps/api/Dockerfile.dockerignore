@@ -20,6 +20,8 @@
 !packages/licenses/notices/
 !packages/licenses/notices/lib/
 !packages/licenses/notices/lib/**
+!packages/licenses/notices/upstream/
+!packages/licenses/notices/upstream/remeda-2.50.0-LICENSE.txt
 !apps/
 !apps/api/
 !apps/api/package.json

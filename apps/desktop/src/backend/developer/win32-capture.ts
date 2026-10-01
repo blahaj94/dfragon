@@ -56,6 +56,7 @@ export function bgrxToRgba(bgrx: Uint8Array): Buffer {
     rgba[offset + 2] = bgrx[offset]
     rgba[offset + 3] = 255
   }
+
   return rgba
 }
 
@@ -66,33 +67,50 @@ function loadWin32(): Win32Api {
   const gdi32 = koffi.load('gdi32.dll')
   const kernel32 = koffi.load('kernel32.dll')
   koffi.struct('DFC_CAPTURE_POINT', { x: 'int32_t', y: 'int32_t' })
+
+  const SetThreadDpiAwarenessContext = user32.func(
+    'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
+  )
+  const MonitorFromPoint = user32.func(
+    'void * __stdcall MonitorFromPoint(DFC_CAPTURE_POINT point, uint32_t flags)'
+  )
+  const GetMonitorInfo = user32.func(
+    'int __stdcall GetMonitorInfoW(void *monitor, _Inout_ void *info)'
+  )
+  const EnumDisplaySettings = user32.func(
+    'int __stdcall EnumDisplaySettingsW(str16 device, uint32_t mode, _Inout_ void *settings)'
+  )
+  const CreateDC = gdi32.func(
+    'void * __stdcall CreateDCW(str16 driver, str16 device, str16 port, const void *mode)'
+  )
+  const CreateCompatibleDC = gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)')
+  const CreateDIBSection = gdi32.func(
+    'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
+  )
+  const SelectObject = gdi32.func('void * __stdcall SelectObject(void *dc, void *object)')
+  const BitBlt = gdi32.func(
+    'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
+  )
+  const GdiFlush = gdi32.func('int __stdcall GdiFlush()')
+  const DeleteObject = gdi32.func('int __stdcall DeleteObject(void *object)')
+  const DeleteDC = gdi32.func('int __stdcall DeleteDC(void *dc)')
+  const GetLastError = kernel32.func('uint32_t __stdcall GetLastError()')
+
   return {
     koffi,
-    SetThreadDpiAwarenessContext: user32.func(
-      'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
-    ),
-    MonitorFromPoint: user32.func(
-      'void * __stdcall MonitorFromPoint(DFC_CAPTURE_POINT point, uint32_t flags)'
-    ),
-    GetMonitorInfo: user32.func('int __stdcall GetMonitorInfoW(void *monitor, _Inout_ void *info)'),
-    EnumDisplaySettings: user32.func(
-      'int __stdcall EnumDisplaySettingsW(str16 device, uint32_t mode, _Inout_ void *settings)'
-    ),
-    CreateDC: gdi32.func(
-      'void * __stdcall CreateDCW(str16 driver, str16 device, str16 port, const void *mode)'
-    ),
-    CreateCompatibleDC: gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)'),
-    CreateDIBSection: gdi32.func(
-      'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
-    ),
-    SelectObject: gdi32.func('void * __stdcall SelectObject(void *dc, void *object)'),
-    BitBlt: gdi32.func(
-      'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
-    ),
-    GdiFlush: gdi32.func('int __stdcall GdiFlush()'),
-    DeleteObject: gdi32.func('int __stdcall DeleteObject(void *object)'),
-    DeleteDC: gdi32.func('int __stdcall DeleteDC(void *dc)'),
-    GetLastError: kernel32.func('uint32_t __stdcall GetLastError()')
+    SetThreadDpiAwarenessContext,
+    MonitorFromPoint,
+    GetMonitorInfo,
+    EnumDisplaySettings,
+    CreateDC,
+    CreateCompatibleDC,
+    CreateDIBSection,
+    SelectObject,
+    BitBlt,
+    GdiFlush,
+    DeleteObject,
+    DeleteDC,
+    GetLastError
   } as Win32Api
 }
 
@@ -145,6 +163,7 @@ export function capturePrimaryFrame(): PixelFrame {
     if (!primary || left !== 0 || top !== 0 || width <= 0 || height <= 0 || !deviceName) {
       throw new Error('Expected the primary monitor at physical origin (0, 0).')
     }
+
     if (
       width > MAX_IMAGE_DIMENSION ||
       height > MAX_IMAGE_DIMENSION ||
@@ -161,11 +180,13 @@ export function capturePrimaryFrame(): PixelFrame {
     if (!api.EnumDisplaySettings(deviceName, 0xffffffff, mode)) {
       throw fail('EnumDisplaySettingsW')
     }
+
     if (mode.readUInt32LE(172) !== width || mode.readUInt32LE(176) !== height) {
       throw new Error(
         'Primary monitor bounds do not match the physical display mode; capture aborted.'
       )
     }
+
     if (mode.readUInt32LE(168) !== 32) {
       throw new Error('The capture spike requires a 32-bit desktop display mode.')
     }
@@ -205,12 +226,14 @@ export function capturePrimaryFrame(): PixelFrame {
     }
     // CreateDIBSection requires GdiFlush before reading its memory after GDI draws.
     // https://learn.microsoft.com/windows/win32/api/wingdi/nf-wingdi-createdibsection
+
     if (!api.GdiFlush()) {
       throw fail('GdiFlush')
     }
     // decode copies into JS-owned memory. koffi.view is forbidden by Electron's V8 cage.
     const bgrx = api.koffi.decode(bits[0], 'uint8_t', width * height * 4) as Uint8Array
-    frame = { width, height, rgba: bgrxToRgba(bgrx), capturedAt, backend: 'win32-gdi', deviceName }
+    const rgba = bgrxToRgba(bgrx)
+    frame = { width, height, rgba, capturedAt, backend: 'win32-gdi', deviceName }
   } catch (error) {
     captureError = error
   } finally {
@@ -229,14 +252,17 @@ export function capturePrimaryFrame(): PixelFrame {
       clean('Restore selected bitmap', () => api.SelectObject(currentMemoryDC, currentBitmap))
     }
     // Delete the DC before the DIB even when restoring its selected object failed.
+
     if (memoryDC) {
       const currentMemoryDC = memoryDC
       clean('DeleteDC(memory)', () => api.DeleteDC(currentMemoryDC))
     }
+
     if (bitmap) {
       const currentBitmap = bitmap
       clean('DeleteObject(bitmap)', () => api.DeleteObject(currentBitmap))
     }
+
     if (displayDC) {
       const currentDisplayDC = displayDC
       clean('DeleteDC(display)', () => api.DeleteDC(currentDisplayDC))
@@ -249,8 +275,10 @@ export function capturePrimaryFrame(): PixelFrame {
       'Windows capture resource cleanup failed.'
     )
   }
+
   if (!frame) {
     throw captureError ?? new Error('Windows capture did not return a frame.')
   }
+
   return frame
 }

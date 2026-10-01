@@ -43,6 +43,65 @@ test('counts character occurrences including Latin, numbers and other scripts, n
   assert.equal(stats.skipped, 1)
 })
 
+test('statistics retain duplicate occurrences, UTF-16 frequency ties and empty splits', () => {
+  const rows: SplitRow[] = [
+    sample('2😀\uE000'),
+    { ...sample('2😀\uE000', 'duplicate'), split: 'train' },
+    { ...sample('Aa'), split: 'val' },
+    { ...sample('pending'), text: null },
+    { ...sample('excluded'), excluded: true }
+  ]
+  const original = structuredClone(rows)
+  const stats = splitStatistics(rows)
+
+  assert.equal(stats.total.images, 3)
+  assert.equal(stats.total.nicknames, 2)
+  assert.equal(stats.total.characters, 8)
+  assert.equal(stats.skipped, 2)
+  assert.deepEqual(stats.total.frequencies, [
+    { character: '2', count: 2, group: 'digit' },
+    { character: '😀', count: 2, group: 'special' },
+    { character: '\uE000', count: 2, group: 'other' },
+    { character: 'A', count: 1, group: 'latin' },
+    { character: 'a', count: 1, group: 'latin' }
+  ])
+  assert.equal(stats.splits.train.images, 1)
+  assert.equal(stats.splits.val.images, 1)
+  assert.equal(stats.splits.unassigned.images, 1)
+  assert.deepEqual(stats.splits.test, {
+    images: 0,
+    nicknames: 0,
+    characters: 0,
+    groups: {
+      hangul: 0,
+      special: 0,
+      hiragana: 0,
+      katakana: 0,
+      hanja: 0,
+      latin: 0,
+      digit: 0,
+      other: 0
+    },
+    frequencies: []
+  })
+  assert.deepEqual(rows, original)
+})
+
+test('assignment output uses UTF-16 text order without changing input rows', () => {
+  const rows = ['\uE000', '😀', 'a', 'A', '2', '10'].map((text) => sample(text))
+  const original = structuredClone(rows)
+  const plan = planSplits(rows, {
+    ratios: { train: 100, val: 0, test: 0 },
+    replaceExisting: false
+  })
+
+  assert.deepEqual(
+    plan.assignments,
+    ['10', '2', 'A', 'a', '😀', '\uE000'].map((text) => ({ text, split: 'train' }))
+  )
+  assert.deepEqual(rows, original)
+})
+
 test('deterministic grouped stratification retains common character distributions without requiring rare coverage', () => {
   const rows = Array.from({ length: 100 }, (_, i) =>
     sample(`검사★${String.fromCodePoint(0x4e00 + i)}`)
@@ -95,6 +154,7 @@ test('preview is read-only; stale apply is atomic; initialization survives resta
   const add = (text: string, excluded = false) => {
     const input = parseUpload(upload())
     store.add(input.capture, input.png)
+
     return store.updateSample(`${input.capture.id}-1`, {
       text,
       excluded,
@@ -161,6 +221,7 @@ test('automatic split preserves manual unassignment through preview, apply and r
   const add = (text: string) => {
     const input = parseUpload(upload())
     store.add(input.capture, input.png)
+
     return store.updateSample(`${input.capture.id}-1`, {
       text,
       excluded: false,

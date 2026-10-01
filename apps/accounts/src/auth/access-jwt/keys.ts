@@ -53,6 +53,7 @@ export async function loadVerificationKeys(config: AccessJwtVerifierConfiguratio
     requireEs256(key, 'public')
     keys.set(entry.kid, key)
   }
+
   return keys
 }
 
@@ -75,5 +76,6 @@ export async function loadSigningKey(
     .setProtectedHeader({ alg: ACCESS_JWT_ALGORITHM })
     .sign(privateKey)
   await compactVerify(probe, publicKey, { algorithms: [ACCESS_JWT_ALGORITHM] })
+
   return { kid, privateKey }
 }

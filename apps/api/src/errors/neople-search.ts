@@ -89,6 +89,7 @@ export function neopleSearchFailure(
   retryAfter?: number
 ): NeopleSearchFailure {
   const error = errors[kind]
+
   return new NeopleSearchFailure(error, retryAfter)
 }
 
@@ -109,13 +110,21 @@ export function classifyNeopleUpstreamFailure(
   const isBodyObject = isObject(body)
   if (!isBodyObject) {
     const hasHttpFailure = !ok
-    return hasHttpFailure ? neopleStatusFailure(status) : undefined
+    if (hasHttpFailure) {
+      return neopleStatusFailure(status)
+    }
+
+    return undefined
   }
 
   const hasError = Object.hasOwn(body, 'error')
   if (!hasError) {
     const hasHttpFailure = !ok
-    return hasHttpFailure ? neopleStatusFailure(status) : undefined
+    if (hasHttpFailure) {
+      return neopleStatusFailure(status)
+    }
+
+    return undefined
   }
 
   const upstreamError = body.error
@@ -129,6 +138,9 @@ export function classifyNeopleUpstreamFailure(
   const hasCode = code !== undefined
   const knownError = hasCode ? upstreamCodeErrors.get(code) : undefined
   const isKnownError = knownError !== undefined
+  if (isKnownError) {
+    return neopleSearchFailure(knownError)
+  }
 
-  return isKnownError ? neopleSearchFailure(knownError) : neopleStatusFailure(status)
+  return neopleStatusFailure(status)
 }

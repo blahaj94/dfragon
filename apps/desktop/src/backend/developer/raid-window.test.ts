@@ -5,9 +5,11 @@ import { expect, it, vi } from 'vitest'
 import { captureParticipantWindow } from './participant-window'
 import { previewFrame } from './collection-session'
 
-vi.mock('./raid-heading.png?asset', () => ({
-  default: fileURLToPath(new URL('./raid-heading.png', import.meta.url))
-}))
+vi.mock('./raid-heading.png?asset', () => {
+  const headingPath = fileURLToPath(new URL('./raid-heading.png', import.meta.url))
+
+  return { default: headingPath }
+})
 
 function raidFrame(
   count: number,
@@ -45,6 +47,7 @@ function raidFrame(
       paint(x + 207, top + 5, 60, 10, [190, 175 + index, 140, 128])
     }
   }
+
   return { width, height, rgba }
 }
 

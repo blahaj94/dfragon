@@ -118,6 +118,7 @@ test('generation rejects unsafe names, reports no changes and sanitizes connecti
         assert.equal(error.message, 'Database migration generation failed')
         const stackContainsConnectionValue = error.stack?.includes('secret connection value')
         assert.equal(stackContainsConnectionValue, false)
+
         return true
       }
     )

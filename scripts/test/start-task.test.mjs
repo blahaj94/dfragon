@@ -44,12 +44,14 @@ function fixture(t) {
     if (isIssueLookup) {
       return JSON.stringify(issue)
     }
+
     return execFileSync(command, args, {
       ...options,
       cwd: repository,
       stdio: ['ignore', 'pipe', 'pipe']
     })
   }
+
   return { repository, origin, destination, git, calls, issue, run }
 }
 

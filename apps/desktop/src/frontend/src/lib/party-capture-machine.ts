@@ -39,6 +39,7 @@ export const partyCaptureMachine = setup({
     registerSource: fromPromise(
       async ({ input }: { input: { sourceId: string; effects: CaptureInput } }) => {
         await input.effects.selectSource(input.sourceId)
+
         return input.sourceId
       }
     ),
@@ -63,21 +64,42 @@ export const partyCaptureMachine = setup({
       context.effects.resetRecognition()
     },
     setNotice: assign({
-      status: ({ event }) => ('status' in event ? (event.status ?? '캡처를 중지했습니다.') : '')
+      status: ({ event }) => {
+        if (!('status' in event)) {
+          return ''
+        }
+        const status = event.status
+        if (status == null) {
+          return '캡처를 중지했습니다.'
+        }
+
+        return status
+      }
     }),
-    recordRequest: assign(({ event }) => ('request' in event ? { request: event.request } : {})),
+    recordRequest: assign(({ event }) => {
+      if ('request' in event) {
+        return { request: event.request }
+      }
+
+      return {}
+    }),
     selectSource: assign(({ event }) => {
       if (event.type !== 'SELECT') {
         return {}
       }
+      const selectedSourceId = event.sourceId
+      const autoStart = event.autoStart
+      const request = event.request
+      const status = event.sourceId
+        ? '게임 창 선택을 확인하고 있습니다.'
+        : '캡처할 게임 창을 선택해 주세요.'
+
       return {
-        selectedSourceId: event.sourceId,
+        selectedSourceId,
         registeredSourceId: null,
-        autoStart: event.autoStart,
-        request: event.request,
-        status: event.sourceId
-          ? '게임 창 선택을 확인하고 있습니다.'
-          : '캡처할 게임 창을 선택해 주세요.'
+        autoStart,
+        request,
+        status
       }
     })
   }
@@ -99,7 +121,16 @@ export const partyCaptureMachine = setup({
       target: '.idle',
       actions: [
         'resetSearch',
-        assign({ status: ({ event }) => event.status ?? '캡처를 중지했습니다.' })
+        assign({
+          status: ({ event }) => {
+            const status = event.status
+            if (status == null) {
+              return '캡처를 중지했습니다.'
+            }
+
+            return status
+          }
+        })
       ]
     },
     START: [
@@ -181,17 +212,22 @@ export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachin
   if (snapshot.matches({ capturing: 'active' })) {
     return 'active'
   }
+
   if (snapshot.matches('capturing')) {
     return 'starting'
   }
+
   if (snapshot.matches('selecting')) {
     return 'selecting'
   }
+
   if (snapshot.matches('selected')) {
     return 'selected'
   }
+
   if (snapshot.matches('failed')) {
     return 'failed'
   }
+
   return 'idle'
 }

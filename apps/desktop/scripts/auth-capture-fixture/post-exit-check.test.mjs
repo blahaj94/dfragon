@@ -1,12 +1,14 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const fixture = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  create: vi.fn(),
-  read: vi.fn(),
-  remove: vi.fn()
-}))
+const fixture = vi.hoisted(() => {
+  const spawn = vi.fn()
+  const create = vi.fn()
+  const read = vi.fn()
+  const remove = vi.fn()
+
+  return { spawn, create, read, remove }
+})
 vi.mock('node:child_process', () => ({ spawn: fixture.spawn }))
 vi.mock('node:fs/promises', () => ({
   mkdtemp: fixture.create,
@@ -49,6 +51,7 @@ it('60초 이후 내부 실행과 정리를 마친 정상 child를 outer timeout
       hasExited = true
       child.emit('close', 0)
     }, 125_000)
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation((_pid, signal) => {
@@ -57,10 +60,12 @@ it('60초 이후 내부 실행과 정리를 마친 정상 child를 outer timeout
       if (hasExited) {
         throw Object.assign(new Error('Gone'), { code: 'ESRCH' })
       }
+
       return true
     }
     hasExited = true
     child.emit('close', 1)
+
     return true
   })
   const execution = import('./post-exit-check.mjs')
@@ -139,6 +144,7 @@ async function runSearchChild({
       stopped = true
       child.emit('close', exitCode)
     }, completionMs)
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation((_pid, signal) => {
@@ -147,10 +153,12 @@ async function runSearchChild({
       if (stopped) {
         throw Object.assign(new Error('Gone'), { code: 'ESRCH' })
       }
+
       return true
     }
     stopped = true
     child.emit('close', 1)
+
     return true
   })
   const execution = import('./post-exit-check.mjs')
@@ -264,6 +272,7 @@ it('actual 진단이 부적합해도 expected 검사를 수행한다', async () 
     enumerable: true,
     get() {
       hasExpectedRead = true
+
       return true
     }
   })
@@ -413,12 +422,14 @@ it('중복된 진단 record는 전달하지 않는다', async () => {
       stopped = true
       child.emit('close', 1)
     }, 1)
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation((_pid, signal) => {
     if (signal === 0 && stopped) {
       throw Object.assign(new Error('Gone'), { code: 'ESRCH' })
     }
+
     return true
   })
 

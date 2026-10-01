@@ -98,7 +98,11 @@ const MAX_SID_SIZE = 68
 const MAX_ACL_SIZE = 64 * 1024
 
 function invalidHandleValue(): WindowsNativeHandle {
-  return process.arch === 'ia32' ? 0xffffffffn : 0xffffffffffffffffn
+  if (process.arch === 'ia32') {
+    return 0xffffffffn
+  }
+
+  return 0xffffffffffffffffn
 }
 
 const HANDLE = koffi.pointer(koffi.opaque())
@@ -407,6 +411,7 @@ function createWindowsApi(): WindowsApi {
   if (process.platform !== 'win32') {
     throw new Error('Windows native API is unavailable on this platform.')
   }
+
   return bindWindowsApi((libraryName) => koffi.load(libraryName))
 }
 
@@ -442,14 +447,20 @@ function classifyPathError(errorCode: number): WindowsNativePathInspection {
   ) {
     return 'missing'
   }
+
   if (errorCode === ERROR_ACCESS_DENIED) {
     return 'untrusted'
   }
+
   return 'unavailable'
 }
 
 function readPointer(data: Buffer): WindowsNativeHandle {
-  return process.arch === 'ia32' ? BigInt(data.readUInt32LE(0)) : data.readBigUInt64LE(0)
+  if (process.arch === 'ia32') {
+    return BigInt(data.readUInt32LE(0))
+  }
+
+  return data.readBigUInt64LE(0)
 }
 
 function sidPointer(storage: WindowsSidStorage): ReturnType<typeof koffi.as> {
@@ -469,6 +480,7 @@ function getTokenSidStorage(
   if (offset > BigInt(Number.MAX_SAFE_INTEGER)) {
     return null
   }
+
   return tokenData.subarray(Number(offset))
 }
 
@@ -488,6 +500,7 @@ function sidString(data: Buffer): string | null {
   const subAuthorities = Array.from({ length: subAuthorityCount }, (_, index) =>
     data.readUInt32LE(8 + index * 4)
   )
+
   return [`S-${data[0]}-${identifierAuthority}`, ...subAuthorities].join('-')
 }
 
@@ -548,9 +561,11 @@ function currentUserSid(api: WindowsApi): {
   if (closeFailed) {
     throw nativeError(api)
   }
+
   if (result == null) {
     throw new Error('Current Windows token SID is unavailable.')
   }
+
   return result
 }
 
@@ -575,6 +590,7 @@ function isSystemAuthority(
   const storage =
     sidStorage ??
     (typeof sid === 'bigint' ? Buffer.from(koffi.decode(sid, 'uint8_t', length)) : null)
+
   return storage != null && sidString(storage) === TRUSTED_INSTALLER_SID
 }
 
@@ -583,6 +599,7 @@ function isVolumeRoot(api: WindowsApi, handle: WindowsNativeHandle): boolean {
   // Only the normalized GUID root of the inspected HANDLE gets root semantics.
   const buffer = Buffer.alloc(64 * 2)
   const length = api.getFinalPathNameByHandle(handle, buffer, 64, VOLUME_NAME_GUID)
+
   return (
     Number.isSafeInteger(length) &&
     length > 0 &&
@@ -614,6 +631,7 @@ function isSecureDacl(
   }
   // A non-present or null DACL means unrestricted access. An empty DACL is distinct,
   // but it cannot grant the current user the access needed by the profile.
+
   if (present[0] === 0 || dacl[0] == null) {
     return false
   }
@@ -665,9 +683,11 @@ function isSecureDacl(
     }
     // Inherit-only entries do not grant access to this directory. Each actual
     // child is inspected separately, including any effective inherited ACEs.
+
     if ((aceFlags & INHERIT_ONLY_ACE) !== 0) {
       continue
     }
+
     if (
       !isCurrentSid &&
       !isSystemAuthority(api, aceSid, aceMemory.subarray(8)) &&
@@ -683,6 +703,7 @@ function isSecureDacl(
       }
     }
   }
+
   return true
 }
 
@@ -707,6 +728,7 @@ function inspectHandle(
   if (typeof attributes !== 'number') {
     return 'unavailable'
   }
+
   if ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) !== 0) {
     return 'reparse'
   }
@@ -714,6 +736,7 @@ function inspectHandle(
   if (isDirectory !== (kind === 'directory')) {
     return 'untrusted'
   }
+
   if (policy === 'root' && (kind !== 'directory' || !isVolumeRoot(api, handle))) {
     return 'untrusted'
   }
@@ -748,6 +771,7 @@ function inspectHandle(
   if (releaseFailed) {
     throw new Error('Windows security descriptor could not be released.')
   }
+
   return inspection
 }
 
@@ -781,6 +805,7 @@ function inspectPath(
   if (!api.closeHandle(handle)) {
     return 'unavailable'
   }
+
   return inspection
 }
 
@@ -817,9 +842,12 @@ function privateSecurityAttributes(api: WindowsApi): WindowsSecurityAttributes {
   ) {
     throw nativeError(api)
   }
+
+  const attributesSize = koffi.sizeof(SECURITY_ATTRIBUTES)
+
   return {
     value: {
-      nLength: koffi.sizeof(SECURITY_ATTRIBUTES),
+      nLength: attributesSize,
       lpSecurityDescriptor: descriptor[0],
       bInheritHandle: 0
     },
@@ -838,6 +866,7 @@ function renameInfo(destination: string): Buffer {
   information.writeBigUInt64LE(0n, 8)
   information.writeUInt32LE(filename.byteLength, 16)
   filename.copy(information, 20)
+
   return information
 }
 
@@ -882,6 +911,7 @@ function readDirectoryBatch(buffer: Buffer): string[] {
       }
       names.push(name)
     }
+
     if (isLastEntry) {
       return names
     }
@@ -935,6 +965,7 @@ function listDirectory(api: WindowsApi, path: string): string[] {
   if (closeFailed) {
     throw new Error('Windows directory handle could not be closed.')
   }
+
   return names
 }
 
@@ -944,8 +975,10 @@ export function createWindowsSecurityNative(
   let api: WindowsApi | null = options.api ?? null
   const nativeApi = (): WindowsApi => {
     api ??= getApi()
+
     return api
   }
+
   return {
     inspect: (path, kind, policy = 'private') => inspectPath(nativeApi(), path, kind, policy),
     list: (path) => listDirectory(nativeApi(), path),
@@ -972,9 +1005,11 @@ export function createWindowsSecurityNative(
       if (releaseFailed) {
         throw new Error('Windows security descriptor could not be released.')
       }
+
       if (result == null) {
         throw new Error('Windows directory creation result is unavailable.')
       }
+
       return result
     },
     openRead: (path) => {
@@ -997,6 +1032,7 @@ export function createWindowsSecurityNative(
         currentApi.closeHandle(handle)
         throw error
       }
+
       return handle
     },
     createExclusive: (path) => {
@@ -1038,9 +1074,11 @@ export function createWindowsSecurityNative(
         }
         throw new Error('Windows security descriptor could not be released.')
       }
+
       if (result == null) {
         throw new Error('Windows exclusive file handle is unavailable.')
       }
+
       return result
     },
     remove: (path) => {
@@ -1112,6 +1150,7 @@ export function createWindowsSecurityNative(
       if (!currentApi.readFile(handle, buffer, maximumBytes, bytesRead, null)) {
         throw nativeError(currentApi)
       }
+
       return bytesRead[0]
     },
     writeFile: (handle, data) => {
@@ -1123,6 +1162,7 @@ export function createWindowsSecurityNative(
         if (!currentApi.writeFile(handle, remaining, remaining.byteLength, bytesWritten, null)) {
           throw nativeError(currentApi)
         }
+
         if (bytesWritten[0] <= 0 || bytesWritten[0] > remaining.byteLength) {
           throw new Error('Windows credential write was incomplete.')
         }

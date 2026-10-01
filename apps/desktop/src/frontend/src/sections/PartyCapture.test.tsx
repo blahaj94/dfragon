@@ -5,21 +5,29 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import PartyCapture from './PartyCapture'
 
-const capture = vi.hoisted(() => ({
-  sources: [],
-  selectedSourceId: '',
-  sourceRegistered: false,
-  starting: false,
-  search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
-  retrySearch: vi.fn(),
-  intervalSeconds: 3,
-  stableNicknames: [null, '', 'Alice', null],
-  status: 'Capture ready.',
-  selectSource: vi.fn(),
-  setIntervalSeconds: vi.fn(),
-  startCapture: vi.fn(),
-  stopCapture: vi.fn()
-}))
+const capture = vi.hoisted(() => {
+  const retrySearch = vi.fn()
+  const selectSource = vi.fn()
+  const setIntervalSeconds = vi.fn()
+  const startCapture = vi.fn()
+  const stopCapture = vi.fn()
+
+  return {
+    sources: [],
+    selectedSourceId: '',
+    sourceRegistered: false,
+    starting: false,
+    search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
+    retrySearch,
+    intervalSeconds: 3,
+    stableNicknames: [null, '', 'Alice', null],
+    status: 'Capture ready.',
+    selectSource,
+    setIntervalSeconds,
+    startCapture,
+    stopCapture
+  }
+})
 
 vi.mock('../hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 
