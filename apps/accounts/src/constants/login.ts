@@ -1,5 +1,7 @@
 import { AUTH_ERRORS } from './auth.js'
 
+export const MAX_PASSKEYS_PER_USER_AND_RP = 20
+
 const invalidMessage = '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.'
 
 type LoginErrorDefinitionShape = Readonly<{
@@ -43,7 +45,7 @@ export const LOGIN_ERRORS = {
   PASSKEY_LIMIT: {
     code: 'PASSKEY_LIMIT',
     status: 400,
-    message: '패스키는 계정당 최대 20개까지 등록할 수 있습니다.'
+    message: `패스키는 계정당 최대 ${MAX_PASSKEYS_PER_USER_AND_RP}개까지 등록할 수 있습니다.`
   },
   RATE_LIMIT: {
     code: 'AUTH_RATE_LIMIT',

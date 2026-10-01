@@ -7,7 +7,12 @@ import {
 } from '@simplewebauthn/server'
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server'
 import type { EntityManager } from 'typeorm'
-import { CLEARED_LOGIN_FIELDS, LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
+import {
+  CLEARED_LOGIN_FIELDS,
+  LOGIN,
+  LOGIN_ERRORS,
+  MAX_PASSKEYS_PER_USER_AND_RP
+} from '../../constants/login.js'
 import { INITIAL_NICKNAME } from '../../constants/auth.js'
 import { LoginFailure } from '../../errors/login.js'
 import { AuthLoginRequestSchema } from '../../database/schemas/auth-login-requests.js'
@@ -154,7 +159,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     const keys = managing
       ? await manager.getRepository(PasskeySchema).findBy({ userId, rpId: configuration.rpId })
       : []
-    if (keys.length >= 20) {
+    if (keys.length >= MAX_PASSKEYS_PER_USER_AND_RP) {
       throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
     }
     const value = await generateRegistrationOptions({
@@ -256,7 +261,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         adding &&
         (await manager
           .getRepository(PasskeySchema)
-          .countBy({ userId, rpId: configuration.rpId })) >= 20
+          .countBy({ userId, rpId: configuration.rpId })) >= MAX_PASSKEYS_PER_USER_AND_RP
       ) {
         throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
       }
