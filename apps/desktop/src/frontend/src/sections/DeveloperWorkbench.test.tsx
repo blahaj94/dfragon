@@ -589,6 +589,67 @@ it('moves to the next unlabeled image only after a successful save', async () =>
   expect(evaluation.evaluate).not.toHaveBeenCalled()
 })
 
+it.each(['save', 'exclude', 'restore'] as const)(
+  'preserves a newer thumbnail selection after a delayed %s',
+  async (operation) => {
+    const excluded = operation === 'restore'
+    const rows = ['first', 'second', 'third'].map((id, index) =>
+      sample(id, `2026-09-24T00:00:0${index}.000Z`, null, null, excluded)
+    )
+    const { api } = installApi(rows)
+    const pending = deferred<DeveloperSample>()
+    api.saveLabel.mockReturnValue(pending.promise)
+    api.setSampleExcluded.mockReturnValue(pending.promise)
+    await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+    await click('정답 입력')
+    if (excluded) {
+      await click('제외')
+    }
+
+    if (operation === 'save') {
+      await typeLabel('완료 라벨')
+      await click('저장하고 다음')
+    } else {
+      await click(excluded ? '포함으로 복원' : '학습에서 제외')
+    }
+    const thumbnails = container.querySelectorAll<HTMLButtonElement>(
+      'ul[aria-label="저장된 테스트 이미지"] button'
+    )
+    await act(async () => thumbnails[2].click())
+
+    pending.resolve({ ...rows[0], text: '완료 라벨', excluded: !excluded })
+    await act(async () => pending.promise)
+
+    expect(container.querySelector('img[alt="선택한 저장 크롭"]')?.getAttribute('src')).toBe(
+      'data:image/svg+xml,third'
+    )
+  }
+)
+
+it('preserves a filter change while saving a label', async () => {
+  const rows = [
+    sample('first', '2026-09-24T00:00:00.000Z', null),
+    sample('second', '2026-09-24T00:00:01.000Z', null),
+    sample('complete', '2026-09-24T00:00:02.000Z', '기존 정답')
+  ]
+  const { api } = installApi(rows)
+  const pending = deferred<DeveloperSample>()
+  api.saveLabel.mockReturnValue(pending.promise)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  await typeLabel('완료 라벨')
+  await click('저장하고 다음')
+  await click('완료')
+
+  pending.resolve({ ...rows[0], text: '완료 라벨' })
+  await act(async () => pending.promise)
+
+  expect(input().value).toBe('기존 정답')
+  expect(container.querySelector('img[alt="선택한 저장 크롭"]')?.getAttribute('src')).toBe(
+    'data:image/svg+xml,complete'
+  )
+})
+
 it('keeps four participant rows and restores saved inclusion after a row becomes occupied again', async () => {
   vi.useFakeTimers()
   const { api } = installApi()
