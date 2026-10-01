@@ -14,18 +14,21 @@ function publicSnapshot(snapshot: AuthSnapshot): AuthSnapshot {
   const { runId, revision, phase, providers, login, user, entry, notice } = snapshot
   const hasLogin = login != null
   const hasUser = user != null
+  const publicProviders = [...providers]
+  const publicLogin = hasLogin
+    ? { attemptId: login.attemptId, provider: login.provider, expiresAt: login.expiresAt }
+    : null
+  const publicUser = hasUser ? { nickname: user.nickname } : null
 
   return {
     runId,
     revision,
     phase,
-    providers: [...providers],
+    providers: publicProviders,
     entry,
     notice,
-    login: hasLogin
-      ? { attemptId: login.attemptId, provider: login.provider, expiresAt: login.expiresAt }
-      : null,
-    user: hasUser ? { nickname: user.nickname } : null
+    login: publicLogin,
+    user: publicUser
   }
 }
 
@@ -200,11 +203,12 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     const window = requireSender(event)
     const hasValidArguments = validArguments(channel, args)
     if (!hasValidArguments) {
+      const snapshot = publicSnapshot(coordinator.getSnapshot())
 
       return {
         ok: false,
         error: { code: 'INVALID_AUTH_COMMAND' },
-        snapshot: publicSnapshot(coordinator.getSnapshot())
+        snapshot
       }
     }
     let result: AuthCommandResult
@@ -228,11 +232,12 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
       }
     } catch {
       requireSender(event, window)
+      const snapshot = publicSnapshot(coordinator.getSnapshot())
 
       return {
         ok: false,
         error: { code: 'AUTH_OPERATION_FAILED' },
-        snapshot: publicSnapshot(coordinator.getSnapshot())
+        snapshot
       }
     }
     requireSender(event, window)
@@ -242,7 +247,9 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
       return { ok: true, snapshot }
     }
 
-    return { ok: false, error: { code: result.error.code }, snapshot }
+    const errorCode = result.error.code
+
+    return { ok: false, error: { code: errorCode }, snapshot }
   }
   let unsubscribe: (() => void) | undefined
   try {
