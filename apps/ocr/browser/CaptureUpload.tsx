@@ -19,11 +19,11 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
     setSource,
     crops,
     setCrops,
-    pending,
-    setPending,
+    submission,
     message,
     busy,
-    uploadCapture
+    uploadNew,
+    retryPrevious
   } = useCaptureUpload()
   const maximumCrops = OCR_UPLOAD.maximumCropsByKind[kind]
   const slots = Array.from({ length: maximumCrops }, (_, index) => index + 1)
@@ -61,7 +61,6 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             disabled={busy}
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null)
-              setPending(null)
             }}
           />
         </label>
@@ -201,20 +200,12 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
           크롭을 등록한 뒤 자료실에서 닉네임 정답을 입력하세요.
         </span>
         <div {...stylex.props(styles.actions)}>
-          {pending !== null && (
-            <button
-              className={secondary}
-              disabled={busy}
-              onClick={() => void uploadCapture({ retry: true })}
-            >
+          {submission !== null && (
+            <button className={secondary} disabled={busy} onClick={retryPrevious}>
               실패한 업로드 재시도
             </button>
           )}
-          <button
-            className={primary}
-            disabled={busy || file === null}
-            onClick={() => void uploadCapture({ retry: false })}
-          >
+          <button className={primary} disabled={busy || file === null} onClick={uploadNew}>
             <OcrIcon name="upload" />
             {busy ? '업로드 중' : '업로드'}
           </button>
