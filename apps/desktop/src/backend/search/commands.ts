@@ -43,13 +43,11 @@ function parseCommand<T extends object>({
   const isObject = value != null && typeof value === 'object' && !Array.isArray(value)
   const canParse = hasOneArgument && isObject
   if (!canParse) {
-
     return null
   }
 
   const parsed = schema.safeParse(value)
   if (!parsed.success) {
-
     return null
   }
   const keys = Reflect.ownKeys(value)
@@ -57,7 +55,6 @@ function parseCommand<T extends object>({
   const hasOnlyExpectedKeys = keys.every((key) => {
     const isStringKey = typeof key === 'string'
     if (!isStringKey) {
-
       return false
     }
     const isExpectedKey = Object.hasOwn(parsed.data, key)
@@ -66,15 +63,17 @@ function parseCommand<T extends object>({
   })
   const hasExactKeys = hasExactKeyCount && hasOnlyExpectedKeys
 
-  return hasExactKeys ? parsed.data : null
+  if (!hasExactKeys) {
+    return null
+  }
+
+  return parsed.data
 }
 
 export function parseSearchControl(args: unknown[]): SearchControl | null {
-
   return parseCommand({ args, schema: controlSchema })
 }
 
 export function parseSearchObservation(args: unknown[]): SearchObservation | null {
-
   return parseCommand({ args, schema: observationSchema })
 }
