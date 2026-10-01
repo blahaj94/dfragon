@@ -96,12 +96,16 @@ export function useSampleEditor(sample: Sample) {
   async function setSampleExcluded(excluded: boolean) {
     await performSave({ id: sample.id, body: { excluded }, session: sessionRef.current })
   }
-  async function resolveSaveConfirmation(request: SaveRequest, confirmed: boolean) {
+  function isSaveConfirmationCurrent(request: SaveRequest): boolean {
     const session = request.session
-    if (!session.active || session !== sessionRef.current || session.confirmation !== request) {
+
+    return session.active && session === sessionRef.current && session.confirmation === request
+  }
+  async function resolveSaveConfirmation(request: SaveRequest, confirmed: boolean) {
+    if (!isSaveConfirmationCurrent(request)) {
       return
     }
-    session.confirmation = null
+    request.session.confirmation = null
     if (confirmed) {
       await performSave({ ...request, body: { ...request.body, confirmSplitChange: true } })
     }
@@ -122,6 +126,7 @@ export function useSampleEditor(sample: Sample) {
     busy,
     saveSample,
     setSampleExcluded,
+    isSaveConfirmationCurrent,
     resolveSaveConfirmation,
     assignNicknameSplit
   }

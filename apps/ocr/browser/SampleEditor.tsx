@@ -16,13 +16,14 @@ export function SampleEditor({ sample }: { sample: Sample }) {
     busy,
     saveSample,
     setSampleExcluded,
+    isSaveConfirmationCurrent,
     resolveSaveConfirmation,
     assignNicknameSplit
   } = useSampleEditor(sample)
 
   async function handleSave() {
     const confirmation = await saveSample()
-    if (confirmation !== null) {
+    if (confirmation !== null && isSaveConfirmationCurrent(confirmation)) {
       const confirmed = window.confirm(OCR_MESSAGES.confirmLabelChange)
       await resolveSaveConfirmation(confirmation, confirmed)
     }
