@@ -30,10 +30,12 @@ export function roundParticipantPixel(value: number): number {
   const floor = Math.floor(value)
   // Scale refinement and projection can move a mathematical half by a few float ulps.
   const tolerance = 4 * Number.EPSILON * Math.max(1, Math.abs(value))
+  if (Math.abs(value - floor - 0.5) <= tolerance) {
 
-  return Math.abs(value - floor - 0.5) <= tolerance
-    ? floor + Math.abs(floor % 2)
-    : Math.round(value)
+    return floor + Math.abs(floor % 2)
+  }
+
+  return Math.round(value)
 }
 
 /** Builds a grayscale copy; raw RGBA is kept intact for the eventual crops. */
@@ -146,8 +148,9 @@ function headingPattern(
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length
   const weights = Float64Array.from(values, (value) => value - mean)
   const energy = weights.reduce((sum, value) => sum + value * value, 0)
+  const patternOffsets = Int32Array.from(offsets)
 
-  return { width, height, offsets: Int32Array.from(offsets), weights, energy }
+  return { width, height, offsets: patternOffsets, weights, energy }
 }
 
 /** Mean-centered normalized correlation, not a probability or OCR confidence. */
@@ -293,7 +296,11 @@ export function createParticipantHeadingMatcher(
 
       return refined
     }
+    if (refined != null && refined.score >= 0.68) {
 
-    return refined != null && refined.score >= 0.68 ? refined : null
+      return refined
+    }
+
+    return null
   }
 }
