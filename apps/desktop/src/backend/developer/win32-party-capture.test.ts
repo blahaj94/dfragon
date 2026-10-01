@@ -21,7 +21,6 @@ function detectedSlot(
   height: number
   coverage: { x: number; y: number; width: number; height: number }
 } {
-
   return {
     slot,
     x,
@@ -91,22 +90,31 @@ describe('Win32 party capture geometry guards', () => {
 })
 
 function shortcutAccessApi(gameElevated = false, appElevated = false): ShortcutAccessApi {
-
-  return {
-    OpenProcess: vi.fn(() => 10n),
-    GetCurrentProcess: vi.fn(() => -1n),
-    OpenProcessToken: vi.fn((processHandle, _access, output) => {
+  const openProcess = vi.fn<ShortcutAccessApi['OpenProcess']>(() => 10n)
+  const getCurrentProcess = vi.fn<ShortcutAccessApi['GetCurrentProcess']>(() => -1n)
+  const openProcessToken = vi.fn<ShortcutAccessApi['OpenProcessToken']>(
+    (processHandle, _access, output) => {
       output[0] = processHandle === 10n ? 20n : 30n
 
       return 1
-    }),
-    GetTokenInformation: vi.fn((token, _informationClass, output, _length, returnLength) => {
+    }
+  )
+  const getTokenInformation = vi.fn<ShortcutAccessApi['GetTokenInformation']>(
+    (token, _informationClass, output, _length, returnLength) => {
       output.writeUInt32LE(Number(token === 20n ? gameElevated : appElevated), 0)
       returnLength[0] = 4
 
       return 1
-    }),
-    CloseHandle: vi.fn(() => 1)
+    }
+  )
+  const closeHandle = vi.fn<ShortcutAccessApi['CloseHandle']>(() => 1)
+
+  return {
+    OpenProcess: openProcess,
+    GetCurrentProcess: getCurrentProcess,
+    OpenProcessToken: openProcessToken,
+    GetTokenInformation: getTokenInformation,
+    CloseHandle: closeHandle
   }
 }
 
@@ -144,7 +152,6 @@ describe('DNF shortcut elevation access', () => {
       const api = shortcutAccessApi()
       vi.mocked(api.OpenProcessToken).mockImplementation((process, _access, output) => {
         if (process === processHandle) {
-
           return 0
         }
         output[0] = 20n
@@ -168,8 +175,11 @@ describe('DNF shortcut elevation access', () => {
             throw new Error('native query details')
           }
           size[0] = failure === 'truncated' ? 0 : 4
+          if (failure === 'failed') {
+            return 0
+          }
 
-          return failure === 'failed' ? 0 : 1
+          return 1
         }
       )
       expect(() => assertShortcutProcessAccess(api, 123)).toThrow('DEVELOPER_CAPTURE_UNAVAILABLE')
@@ -181,7 +191,13 @@ describe('DNF shortcut elevation access', () => {
     'does not report success or mismatch if handle %s cleanup fails',
     (handle) => {
       const api = shortcutAccessApi(true, false)
-      vi.mocked(api.CloseHandle).mockImplementation((candidate) => (candidate === handle ? 0 : 1))
+      vi.mocked(api.CloseHandle).mockImplementation((candidate) => {
+        if (candidate === handle) {
+          return 0
+        }
+
+        return 1
+      })
       expect(() => assertShortcutProcessAccess(api, 123)).toThrow('DEVELOPER_CAPTURE_UNAVAILABLE')
       expect(api.CloseHandle).toHaveBeenCalledWith(10n)
       expect(api.CloseHandle).not.toHaveBeenCalledWith(-1n)
