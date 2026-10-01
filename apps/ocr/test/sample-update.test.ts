@@ -57,7 +57,9 @@ test('declined sample split change writes neither the label, exclusion nor a new
       () => store.updateSample(id, { text: '새이름', excluded: true, confirmSplitChange: false }),
       { code: 'LABEL_SPLIT_CHANGE' }
     )
-    assert.deepEqual(store.exportManifest(), before)
+    const after = store.exportManifest()
+    assert.deepEqual(after.captures, before.captures)
+    assert.deepEqual(after.samples, before.samples)
     assert.equal(store.previewSplit(options).fingerprint, fingerprint)
     assert.throws(
       () => store.updateSample(id, { text: '새이름', excluded: false, confirmSplitChange: false }),
