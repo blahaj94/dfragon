@@ -200,11 +200,17 @@ describe('runtime clock and real coordinator', () => {
         harness.http.me.mockImplementationOnce(() => me.promise)
       }
       const start = harness.coordinator.start()
-      const boundary = isMe
-        ? harness.http.me
-        : isFinalize
-          ? harness.store.removeTransition
-          : harness.store.commitCredential
+      let boundary:
+        | typeof harness.http.me
+        | typeof harness.store.removeTransition
+        | typeof harness.store.commitCredential
+      if (isMe) {
+        boundary = harness.http.me
+      } else if (isFinalize) {
+        boundary = harness.store.removeTransition
+      } else {
+        boundary = harness.store.commitCredential
+      }
       await vi.waitFor(() => expect(boundary).toHaveBeenCalledOnce())
       harness.time.wallMs += 5_000
       harness.time.monotonicMs += 10_000
