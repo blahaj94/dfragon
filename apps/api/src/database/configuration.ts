@@ -39,14 +39,12 @@ export function readDatabaseConfiguration(env: NodeJS.ProcessEnv): DatabaseConfi
     if (isPortInvalid) {
       throw new Error(configurationError)
     }
+    const host = required(env.DB_HOST)
+    const username = required(env.DB_USERNAME)
+    const password = required(readSecretInput(env.DB_PASSWORD, env.DB_PASSWORD_FILE))
+    const database = required(env.DB_NAME)
 
-    return {
-      host: required(env.DB_HOST),
-      port,
-      username: required(env.DB_USERNAME),
-      password: required(readSecretInput(env.DB_PASSWORD, env.DB_PASSWORD_FILE)),
-      database: required(env.DB_NAME)
-    }
+    return { host, port, username, password, database }
   } catch {
     throw new Error(configurationError)
   }
