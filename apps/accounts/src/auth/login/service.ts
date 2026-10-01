@@ -77,6 +77,15 @@ async function checkTime(manager: EntityManager, row: AuthLoginRequest) {
   return now
 }
 
+async function endManagement(manager: EntityManager, id: string) {
+  const consumedAt = await freshTime(manager)
+  await manager
+    .getRepository(AuthLoginRequestSchema)
+    .update({ id }, { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt })
+
+  return { ended: true }
+}
+
 /** Browser requests are bound to a single cookie, purpose and configured RP; no client chooses a user. */
 export function createLoginService(dependencies: LoginDependencies): LoginHttpService {
   if (!dependencies.dataSource.isInitialized || dependencies.dataSource.options.logging !== false) {
@@ -558,13 +567,18 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           if (body.credentialId !== row.credentialId) {
             return { value: { managed: true } }
           }
-        }
-        await repo.update(
-          { id },
-          { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt: await freshTime(manager) }
-        )
+          const value = await endManagement(manager, id)
 
-        return { value: { ended: true } }
+          return { value }
+        }
+
+        if (action === 'end') {
+          const value = await endManagement(manager, id)
+
+          return { value }
+        }
+
+        throw invalid()
       })
       if (result.failure) {
         throw result.failure
