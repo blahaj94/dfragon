@@ -93,25 +93,35 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
     })
   }
   Object.assign(window, {
-    captureObservation: () => ({
-      requests: isActive ? 1 : 0,
-      streams: isActive ? 1 : 0,
-      workers: 1,
-      terminated: 0,
-      ended: false,
-      width: 1920,
-      height: 1080,
-      frameWidth: 1920,
-      frameHeight: 1080,
-      allSlotsPresent: true
-    })
+    captureObservation: () => {
+      const requests = isActive ? 1 : 0
+      const streams = isActive ? 1 : 0
+
+      return {
+        requests,
+        streams,
+        workers: 1,
+        terminated: 0,
+        ended: false,
+        width: 1920,
+        height: 1080,
+        frameWidth: 1920,
+        frameHeight: 1080,
+        allSlotsPresent: true
+      }
+    }
   })
   const browserWindow = {
     webContents: {
       executeJavaScript: async (source: string): Promise<unknown> => {
         const isObservationInstall = source === installObservation
 
-        return isObservationInstall ? true : window.eval(source)
+        if (isObservationInstall) {
+
+          return true
+        }
+
+        return window.eval(source)
       }
     }
   } as unknown as BrowserWindow
