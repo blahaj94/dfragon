@@ -30,6 +30,36 @@ const anchorPolicy = {
   referenceSizePx: 9
 }
 
+const searchPolicy = {
+  maxAnchors: 128,
+  sparseHeadingTargetSamples: 512,
+  maxFrameComparisonSamples: 64_000_000,
+  minCoarseCorrelation: 0.6,
+  minFinalCorrelation: 0.68,
+  coarseScale: {
+    included: [1, 1.8],
+    min: 0.64,
+    max: 2.4,
+    minAnchorFactor: 0.78,
+    maxAnchorFactor: 1.24,
+    endPadding: 0.01,
+    step: 0.02,
+    roundingFactor: 100
+  },
+  anchorPosition: { xRadiusReferencePx: 5, yRadiusReferencePx: 4, paddingPx: 3 },
+  refinement: { scaleRadiusSteps: 10, scaleStep: 0.0025, positionRadiusPx: 2 }
+}
+
+/** The dense scale search is symmetric around the coarse match, including its center. */
+export function participantRefinementScales(center: number): number[] {
+  const { scaleRadiusSteps, scaleStep } = searchPolicy.refinement
+
+  return Array.from(
+    { length: 2 * scaleRadiusSteps + 1 },
+    (_, index) => center + (index - scaleRadiusSteps) * scaleStep
+  )
+}
+
 type Pattern = {
   width: number
   height: number
@@ -133,7 +163,7 @@ export function findParticipantAnchors(
     const scale = Math.sqrt(w * h) / anchorPolicy.referenceSizePx
     anchors.push({ x, y, scale })
     // Do not silently choose a subset on a pathological or unsupported frame.
-    if (anchors.length > 128) {
+    if (anchors.length > searchPolicy.maxAnchors) {
       return null
     }
   }
@@ -150,7 +180,9 @@ function headingPattern(
   frameWidth: number,
   sparse: boolean
 ): Pattern {
-  const step = sparse ? Math.ceil(Math.sqrt((width * height) / 512)) : 1
+  const step = sparse
+    ? Math.ceil(Math.sqrt((width * height) / searchPolicy.sparseHeadingTargetSamples))
+    : 1
   const values: number[] = []
   const offsets: number[] = []
   for (let y = 0; y < height; y += step) {
@@ -208,7 +240,7 @@ export function createParticipantHeadingMatcher(
 ) {
   const patterns = new Map<string, Pattern>()
   // Shared by every anchor and both search passes; never return a partial candidate set.
-  let remainingSamples = 64_000_000
+  let remainingSamples = searchPolicy.maxFrameComparisonSamples
 
   function boundedScore(pattern: Pattern, x: number, y: number): number | null {
     if (pattern.offsets.length > remainingSamples) {
@@ -238,8 +270,12 @@ export function createParticipantHeadingMatcher(
       const pattern = patternFor(scale, true)
       const px = Math.trunc(anchor.x - layout.anchorX * scale)
       const py = Math.trunc(anchor.y - layout.anchorY * scale)
-      const dx = Math.trunc(5 * scale) + 3
-      const dy = Math.trunc(4 * scale) + 3
+      const dx =
+        Math.trunc(searchPolicy.anchorPosition.xRadiusReferencePx * scale) +
+        searchPolicy.anchorPosition.paddingPx
+      const dy =
+        Math.trunc(searchPolicy.anchorPosition.yRadiusReferencePx * scale) +
+        searchPolicy.anchorPosition.paddingPx
       const left = Math.max(0, px - dx)
       const right = Math.min(frame.width - pattern.width, px + dx)
       const top = Math.max(0, py - dy)
@@ -268,8 +304,17 @@ export function createParticipantHeadingMatcher(
         const full = patternFor(scale, false)
         const center = peak
         peak = null
-        for (let y = Math.max(top, center.y - 2); y <= Math.min(bottom, center.y + 2); y += 1) {
-          for (let x = Math.max(left, center.x - 2); x <= Math.min(right, center.x + 2); x += 1) {
+        const radius = searchPolicy.refinement.positionRadiusPx
+        for (
+          let y = Math.max(top, center.y - radius);
+          y <= Math.min(bottom, center.y + radius);
+          y += 1
+        ) {
+          for (
+            let x = Math.max(left, center.x - radius);
+            x <= Math.min(right, center.x + radius);
+            x += 1
+          ) {
             if (hasRows && !hasRows(x, y, scale)) {
               continue
             }
@@ -294,11 +339,21 @@ export function createParticipantHeadingMatcher(
   }
 
   return (anchor: ParticipantAnchor): HeadingMatch => {
-    const scales = new Set<number>([1, 1.8])
-    const start = Math.max(0.64, anchor.scale * 0.78)
-    const end = Math.min(2.4, anchor.scale * 1.24) + 0.01
-    for (let scale = start; scale < end; scale += 0.02) {
-      scales.add(Math.round(scale * 100) / 100)
+    const scales = new Set<number>(searchPolicy.coarseScale.included)
+    const start = Math.max(
+      searchPolicy.coarseScale.min,
+      anchor.scale * searchPolicy.coarseScale.minAnchorFactor
+    )
+    const end =
+      Math.min(
+        searchPolicy.coarseScale.max,
+        anchor.scale * searchPolicy.coarseScale.maxAnchorFactor
+      ) + searchPolicy.coarseScale.endPadding
+    for (let scale = start; scale < end; scale += searchPolicy.coarseScale.step) {
+      scales.add(
+        Math.round(scale * searchPolicy.coarseScale.roundingFactor) /
+          searchPolicy.coarseScale.roundingFactor
+      )
     }
     const coarse = search(
       anchor,
@@ -309,19 +364,15 @@ export function createParticipantHeadingMatcher(
       return coarse
     }
 
-    if (coarse == null || coarse.score < 0.6) {
+    if (coarse == null || coarse.score < searchPolicy.minCoarseCorrelation) {
       return null
     }
-    const refined = search(
-      anchor,
-      Array.from({ length: 21 }, (_, index) => coarse.scale + (index - 10) * 0.0025),
-      true
-    )
+    const refined = search(anchor, participantRefinementScales(coarse.scale), true)
     if (refined === 'search-limit') {
       return refined
     }
 
-    if (refined != null && refined.score >= 0.68) {
+    if (refined != null && refined.score >= searchPolicy.minFinalCorrelation) {
       return refined
     }
 
