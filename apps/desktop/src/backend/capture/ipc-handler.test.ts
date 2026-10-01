@@ -14,7 +14,12 @@ import {
   consumeCaptureMediaPermission
 } from './ipc-handler'
 
-const electron = vi.hoisted(() => ({ getSources: vi.fn(), handle: vi.fn() }))
+const electron = vi.hoisted(() => {
+  const getSources = vi.fn()
+  const handle = vi.fn()
+
+  return { getSources, handle }
+})
 vi.mock('electron', () => ({
   desktopCapturer: { getSources: electron.getSources },
   ipcMain: { handle: electron.handle }
