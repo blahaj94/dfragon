@@ -241,3 +241,13 @@ test('bounds input dimensions and validates raw bytes and the raid-specific head
     assert.throws(() => detectDNFRaidParticipantWindow(image, invalid), RangeError)
   }
 })
+
+test('accepts a dialog exactly touching the right and bottom frame edges', () => {
+  const exact = frame()
+  popup(exact, { x: 617, y: 276 })
+  const result = cropDNFRaidParticipantNicknames(exact, heading)
+
+  assert.equal(result.status, 'found')
+  assert.equal(result.window.x + result.window.width, exact.width)
+  assert.equal(result.window.y + result.window.height, exact.height)
+})
