@@ -1,7 +1,11 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { createServerVersionReader } from './http'
 
-vi.mock('../api-fetch', () => ({ fetchApi: vi.fn() }))
+vi.mock('../api-fetch', () => {
+  const fetchApi = vi.fn()
+
+  return { fetchApi }
+})
 const origins = {
   apiOrigin: 'https://api.example.test',
   accountsOrigin: 'https://accounts.example.test'
@@ -12,11 +16,14 @@ afterEach(() => vi.useRealTimers())
 
 it('reads each configured service without cookies, authentication or redirects', async () => {
   const transport = vi.fn<typeof fetch>(async (url) => {
-    const service = String(url).includes('api.example')
-      ? 'api'
-      : String(url).includes('accounts.example')
-        ? 'accounts'
-        : 'ocr'
+    let service: 'api' | 'accounts' | 'ocr'
+    if (String(url).includes('api.example')) {
+      service = 'api'
+    } else if (String(url).includes('accounts.example')) {
+      service = 'accounts'
+    } else {
+      service = 'ocr'
+    }
 
     return Response.json({ service, commit })
   })
@@ -94,7 +101,6 @@ it('bounds a stalled fetch without hiding the other service results', async () =
   vi.useFakeTimers()
   const transport = vi.fn<typeof fetch>(async (url, init) => {
     if (!String(url).includes('api.example')) {
-
       return Response.json({
         service: String(url).includes('accounts.example') ? 'accounts' : 'ocr',
         commit
@@ -119,7 +125,6 @@ it('also bounds a stalled response body and cancels its reader', async () => {
   const cancel = vi.fn()
   const transport = vi.fn<typeof fetch>(async (url) => {
     if (String(url).includes('api.example')) {
-
       return new Response(new ReadableStream({ cancel }), {
         headers: { 'Content-Type': 'application/json' }
       })
