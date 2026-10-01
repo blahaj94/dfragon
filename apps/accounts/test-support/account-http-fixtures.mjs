@@ -94,9 +94,11 @@ export async function expectAccountError(response, status, code) {
 }
 
 export async function snapshot(source, f) {
+  const user = (await source.query('SELECT * FROM users WHERE id=$1', [f.initial.user.id]))[0]
+  const session = await stored(source, f.initial.session.id)
 
   return {
-    user: (await source.query('SELECT * FROM users WHERE id=$1', [f.initial.user.id]))[0],
-    ...(await stored(source, f.initial.session.id))
+    user,
+    ...session
   }
 }
