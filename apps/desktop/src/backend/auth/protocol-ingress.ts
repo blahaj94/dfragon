@@ -141,10 +141,11 @@ function readBoundedArguments(value: unknown): BoundedArguments {
 
 function createSecondInstanceHandoff(argv: readonly unknown[]): Record<string, unknown> {
   const bounded = readBoundedArguments(argv)
+  const handoffArguments = bounded.status === 'valid' ? [...bounded.values] : null
 
   return {
     version: SECOND_INSTANCE_HANDOFF_VERSION,
-    argv: bounded.status === 'valid' ? [...bounded.values] : null
+    argv: handoffArguments
   }
 }
 
@@ -215,7 +216,9 @@ function projectUrlDetectionInput(value: string): ProjectedUrlInput {
     }
   }
 
-  return { value: projected, hasInternalControl, matchesRaw: projected === value }
+  const matchesRaw = projected === value
+
+  return { value: projected, hasInternalControl, matchesRaw }
 }
 
 type StructuredOptionPayload = Readonly<{
@@ -224,7 +227,12 @@ type StructuredOptionPayload = Readonly<{
 }>
 
 function readStructuredOptionPayload(value: string): StructuredOptionPayload | undefined {
-  const prefixLength = value.startsWith('--') ? 2 : value.startsWith('/') ? 1 : 0
+  let prefixLength = 0
+  if (value.startsWith('--')) {
+    prefixLength = 2
+  } else if (value.startsWith('/')) {
+    prefixLength = 1
+  }
   if (prefixLength === 0) {
 
     return undefined
@@ -245,10 +253,10 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
     return undefined
   }
 
-  return {
-    name: name.toLowerCase(),
-    value: option.slice(separatorIndex + 1)
-  }
+  const normalizedName = name.toLowerCase()
+  const payload = option.slice(separatorIndex + 1)
+
+  return { name: normalizedName, value: payload }
 }
 
 function looksLikeUrlInput(value: string): boolean {
