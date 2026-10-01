@@ -216,13 +216,14 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
         store,
         fetchDetails: adapter,
         catalog: createCatalogService(createCatalogStore(source), async (keys) =>
-          keys.map((key) => ({
-            key,
-            payload:
+          keys.map((key) => {
+            const payload =
               key.kind === 'set'
                 ? { setItemId: 'fixture-set', setItemName: '테스트 세트', setItemOption: [] }
                 : { itemName: '테스트 공용 상세', setItemId: 'fixture-set', tune: [{ level: 0 }] }
-          }))
+
+            return { key, payload }
+          })
         )
       }
     )
