@@ -33,16 +33,8 @@ jobs:
       - run: pnpm --filter @dfragon/api test
       - run: pnpm --filter @dfragon/accounts test
       - run: pnpm --filter @dfragon/ocr test
-      - name: Test app and server version display
-        run: |
-          pnpm --filter @dfragon/desktop exec vitest run \
-            build/build-info.test.ts \
-            src/backend/versions/desktop-info.test.ts \
-            src/backend/versions/http.test.ts \
-            src/backend/versions/ipc-handler.test.ts \
-            src/backend/main.test.ts \
-            src/preload/api/versions.test.ts \
-            src/frontend/src/sections/SettingsSection.test.tsx
+      - name: Test Desktop core behavior
+        run: pnpm --filter @dfragon/desktop test
       - run: pnpm lint
       - run: pnpm test:format-policy
       - run: pnpm format:check
