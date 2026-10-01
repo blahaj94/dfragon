@@ -66,7 +66,11 @@ function parseRetryAfter(value: string | null): number | null {
   const isPositive = seconds > 0
   const isValid = isSafeInteger && isPositive
 
-  return isValid ? seconds : null
+  if (isValid) {
+    return seconds
+  }
+
+  return null
 }
 
 export type SearchHttp = (input: {
