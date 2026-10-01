@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Sample, Split } from '../../src/model.js'
+import type { SampleUpdate } from '../../src/sample-update.js'
 import { OCR_ERROR_CODE } from '../../src/errors.js'
 import { requestOcr, OcrApiError, errorMessage } from '../client.js'
 import { OCR_MESSAGES } from '../constants.js'
@@ -9,7 +10,7 @@ import { invalidateDataset } from '../query.js'
 type EditSession = { active: boolean; pending: boolean; confirmation: SaveRequest | null }
 type SaveRequest = {
   id: string
-  body: { text: string | null; excluded: boolean; confirmSplitChange?: boolean }
+  body: SampleUpdate
   session: EditSession
 }
 
@@ -86,11 +87,14 @@ export function useSampleEditor(sample: Sample) {
       session.pending = false
     }
   }
-  function saveSample(excluded: boolean) {
+  function saveSample() {
     const answer = text === '' ? null : text
-    const request = { id: sample.id, body: { text: answer, excluded }, session: sessionRef.current }
+    const request = { id: sample.id, body: { text: answer }, session: sessionRef.current }
 
     return performSave(request)
+  }
+  async function setSampleExcluded(excluded: boolean) {
+    await performSave({ id: sample.id, body: { excluded }, session: sessionRef.current })
   }
   async function resolveSaveConfirmation(request: SaveRequest, confirmed: boolean) {
     const session = request.session
@@ -117,6 +121,7 @@ export function useSampleEditor(sample: Sample) {
     message,
     busy,
     saveSample,
+    setSampleExcluded,
     resolveSaveConfirmation,
     assignNicknameSplit
   }

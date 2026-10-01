@@ -9,11 +9,19 @@ import { OcrIcon } from './OcrIcon.js'
 import { OCR_CAPTURE_LABELS, OCR_MESSAGES } from './constants.js'
 
 export function SampleEditor({ sample }: { sample: Sample }) {
-  const { text, setText, message, busy, saveSample, resolveSaveConfirmation, assignNicknameSplit } =
-    useSampleEditor(sample)
+  const {
+    text,
+    setText,
+    message,
+    busy,
+    saveSample,
+    setSampleExcluded,
+    resolveSaveConfirmation,
+    assignNicknameSplit
+  } = useSampleEditor(sample)
 
-  async function handleSave(excluded: boolean) {
-    const confirmation = await saveSample(excluded)
+  async function handleSave() {
+    const confirmation = await saveSample()
     if (confirmation !== null) {
       const confirmed = window.confirm(OCR_MESSAGES.confirmLabelChange)
       await resolveSaveConfirmation(confirmation, confirmed)
@@ -45,7 +53,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void handleSave(sample.excluded)
+          void handleSave()
         }}
       >
         <label {...stylex.props(styles.label)}>
@@ -70,7 +78,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
             type="button"
             className={secondary}
             disabled={busy}
-            onClick={() => void handleSave(!sample.excluded)}
+            onClick={() => void setSampleExcluded(!sample.excluded)}
           >
             {sample.excluded ? '제외 복원' : '학습에서 제외'}
           </button>
