@@ -61,16 +61,20 @@ export function useSplitPlanner() {
     ) &&
     Math.abs(assignedSplits.reduce((sum, split) => sum + Number(ratios[split]), 0) - 100) < 1e-6
   const error = stats.error ?? generate.error ?? apply.error
+  const statistics = stats.data
+  const busy = generate.isPending || apply.isPending
+  const canPreview = valid && (stats.data?.total.images ?? 0) > 0
+  const message = error === null ? null : errorMessage(error)
 
   return {
-    stats: stats.data,
+    stats: statistics,
     ratios,
     replaceExisting,
     preview,
     applied,
-    busy: generate.isPending || apply.isPending,
-    canPreview: valid && (stats.data?.total.images ?? 0) > 0,
-    error: error === null ? null : errorMessage(error),
+    busy,
+    canPreview,
+    error: message,
     changeRatio,
     changeReplacement,
     previewSplit,
