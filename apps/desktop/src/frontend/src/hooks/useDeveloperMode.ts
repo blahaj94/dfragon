@@ -14,7 +14,6 @@ export type DeveloperModeState = {
 
 function isDeveloperSettingsApi(value: unknown): value is DeveloperSettingsApi {
   if (value == null || typeof value !== 'object') {
-
     return false
   }
 
@@ -31,8 +30,11 @@ function getDeveloperSettingsApi(): DeveloperSettingsApi | null {
     typeof window === 'undefined'
       ? undefined
       : (window as Window & { developer?: unknown }).developer
+  if (isDeveloperSettingsApi(candidate)) {
+    return candidate
+  }
 
-  return isDeveloperSettingsApi(candidate) ? candidate : null
+  return null
 }
 
 export function useDeveloperMode(): DeveloperModeState {
@@ -51,10 +53,14 @@ export function useDeveloperMode(): DeveloperModeState {
     [send]
   )
 
+  const status = getDeveloperModeStatus(state.value)
+  const enabled = state.context.enabled
+  const updating = state.matches('updating')
+
   return {
-    status: getDeveloperModeStatus(state.value),
-    enabled: state.context.enabled,
-    updating: state.matches('updating'),
+    status,
+    enabled,
+    updating,
     retry,
     setEnabled
   }
