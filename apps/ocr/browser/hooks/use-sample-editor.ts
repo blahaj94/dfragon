@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Sample, Split } from '../../src/model.js'
 import { OCR_ERROR_CODE } from '../../src/errors.js'
@@ -6,8 +6,25 @@ import { requestOcr, OcrApiError, errorMessage } from '../client.js'
 import { OCR_MESSAGES } from '../constants.js'
 import { invalidateDataset } from '../query.js'
 
+type EditSession = { active: boolean; pending: boolean; confirmation: SaveRequest | null }
+type SaveRequest = {
+  id: string
+  body: { text: string | null; excluded: boolean; confirmSplitChange?: boolean }
+  session: EditSession
+}
+
 export function useSampleEditor(sample: Sample) {
   const client = useQueryClient()
+  const sessionRef = useRef<EditSession>({ active: false, pending: false, confirmation: null })
+  useLayoutEffect(() => {
+    const session: EditSession = { active: true, pending: false, confirmation: null }
+    sessionRef.current = session
+
+    return () => {
+      session.active = false
+      session.confirmation = null
+    }
+  }, [sample.id])
   const [draft, setDraft] = useState({ saved: sample.text, text: sample.text ?? '' })
   if (draft.saved !== sample.text) {
     const text = draft.text === (draft.saved ?? '') ? (sample.text ?? '') : draft.text
@@ -19,30 +36,18 @@ export function useSampleEditor(sample: Sample) {
   }
   const [message, setMessage] = useState('')
   const save = useMutation({
-    mutationFn: async (excluded: boolean) => {
-      setMessage('')
-      const body = { text: text === '' ? null : text, excluded }
-      try {
-        await requestOcr(`/api/samples/${sample.id}`, 'PATCH', body)
-      } catch (error) {
-        if (
-          !(error instanceof OcrApiError) ||
-          error.code !== OCR_ERROR_CODE.LABEL_SPLIT_CHANGE ||
-          !window.confirm(OCR_MESSAGES.confirmLabelChange)
-        ) {
-          throw error
-        }
-        await requestOcr(`/api/samples/${sample.id}`, 'PATCH', {
-          ...body,
-          confirmSplitChange: true
-        })
+    mutationFn: ({ id, body }: SaveRequest) => requestOcr(`/api/samples/${id}`, 'PATCH', body),
+    onSuccess: async (_, request) => {
+      if (request.session.active) {
+        setMessage(OCR_MESSAGES.saved)
       }
-    },
-    onSuccess: async () => {
-      setMessage(OCR_MESSAGES.saved)
       await invalidateDataset(client)
     },
-    onError: (error) => setMessage(errorMessage(error))
+    onError: (error, request) => {
+      if (request.session.active) {
+        setMessage(errorMessage(error))
+      }
+    }
   })
   const assign = useMutation({
     mutationFn: (split: Split) => requestOcr('/api/splits', 'PUT', { text: sample.text, split }),
@@ -52,17 +57,59 @@ export function useSampleEditor(sample: Sample) {
     },
     onError: (error) => setMessage(errorMessage(error))
   })
+  async function performSave(request: SaveRequest): Promise<SaveRequest | null> {
+    const session = request.session
+    if (!session.active || session !== sessionRef.current || session.pending) {
+      return null
+    }
+    session.pending = true
+    session.confirmation = null
+    setMessage('')
+    try {
+      await save.mutateAsync(request)
+
+      return null
+    } catch (error) {
+      if (
+        session.active &&
+        error instanceof OcrApiError &&
+        error.code === OCR_ERROR_CODE.LABEL_SPLIT_CHANGE &&
+        request.body.confirmSplitChange !== true
+      ) {
+        session.confirmation = request
+
+        return request
+      }
+
+      return null
+    } finally {
+      session.pending = false
+    }
+  }
+  function saveSample(excluded: boolean) {
+    const answer = text === '' ? null : text
+    const request = { id: sample.id, body: { text: answer, excluded }, session: sessionRef.current }
+
+    return performSave(request)
+  }
+  async function resolveSaveConfirmation(request: SaveRequest, confirmed: boolean) {
+    const session = request.session
+    if (!session.active || session !== sessionRef.current || session.confirmation !== request) {
+      return
+    }
+    session.confirmation = null
+    if (confirmed) {
+      await performSave({ ...request, body: { ...request.body, confirmSplitChange: true } })
+    }
+  }
   function assignNicknameSplit(split: Split) {
     if (sample.text === null || sample.text.length === 0 || split === sample.split) {
       return
     }
 
-    if (window.confirm(OCR_MESSAGES.confirmSplit(split))) {
-      assign.mutate(split)
-    }
+    assign.mutate(split)
   }
   const busy = save.isPending || assign.isPending
-  const saveSample = save.mutate
 
   return {
     text,
@@ -70,6 +117,7 @@ export function useSampleEditor(sample: Sample) {
     message,
     busy,
     saveSample,
+    resolveSaveConfirmation,
     assignNicknameSplit
   }
 }
