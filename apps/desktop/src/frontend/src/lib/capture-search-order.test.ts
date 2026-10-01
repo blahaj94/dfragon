@@ -70,10 +70,11 @@ function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
 function createSearch(onChange = vi.fn()): ReturnType<typeof createCaptureSearch> {
   const search = createCaptureSearch({
     api: { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn(() => () => {}) },
-    notify: vi.fn(async (): Promise<SearchCommandResult> => ({
-      ok: true,
-      snapshot: searchSnapshot()
-    })),
+    notify: vi.fn(async (): Promise<SearchCommandResult> => {
+      const snapshot = searchSnapshot()
+
+      return { ok: true, snapshot }
+    }),
     onChange,
     onInvalidated: vi.fn()
   })
