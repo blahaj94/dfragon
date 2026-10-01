@@ -38,5 +38,9 @@ export function selectCredentialRecoveryStep(
   const isAccessCurrent = checkedAt.wallMs < accessTokenExpiresAtMs
   const canVerify = isClockUsable && isAccessCurrent
 
-  return canVerify ? 'verify-user' : 'refresh-credential'
+  if (canVerify) {
+    return 'verify-user'
+  }
+
+  return 'refresh-credential'
 }
