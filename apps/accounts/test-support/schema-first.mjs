@@ -157,7 +157,13 @@ export async function assertSchemaFirst(configuration, mark) {
         migrationProbe: { name: 'migration_probe', type: 'text', nullable: true }
       }
     })
-    const entities = databaseSchemas.map((schema) => (schema === UserSchema ? changedUser : schema))
+    const entities = databaseSchemas.map((schema) => {
+      if (schema === UserSchema) {
+        return changedUser
+      }
+
+      return schema
+    })
     const changedFactory = () =>
       new DataSource({
         ...createDatabaseOptions(generatedConfiguration),
