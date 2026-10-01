@@ -405,14 +405,12 @@ async function fixture(
     }
     if (path === '/me') {
       if (revoked) {
-
         return new Response(null, { status: 401 })
       }
 
       return Response.json({ user: { id: identity, nickname: '테스트' } })
     }
     if (path === '/auth/logout') {
-
       return new Response(null, { status: 204 })
     }
     throw new Error('Unexpected auth request')
@@ -437,14 +435,12 @@ async function fixture(
       headers: { Cookie: binding },
       redirect: 'manual'
     })
+    const cookie = response.headers
+      .getSetCookie()
+      .find((value) => value.startsWith('__Host-ocr-session='))
+      ?.split(';')[0]
 
-    return {
-      response,
-      cookie: response.headers
-        .getSetCookie()
-        .find((value) => value.startsWith('__Host-ocr-session='))
-        ?.split(';')[0]
-    }
+    return { response, cookie }
   }
 
   return {
