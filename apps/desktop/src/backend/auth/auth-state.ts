@@ -43,16 +43,21 @@ export function createAuthState(
     const { context, value } = actor.getSnapshot()
     const login = context.login
     const user = context.user
+    const revision = context.revision
+    const phase = value.phase as AuthPhase
+    const snapshotProviders = [...providers]
+    const snapshotLogin = login
+      ? { attemptId: login.attemptId, provider: login.provider, expiresAt: login.expiresAt }
+      : null
+    const snapshotUser = user ? { nickname: user.nickname } : null
 
     return {
       runId,
-      revision: context.revision,
-      phase: value.phase as AuthPhase,
-      providers: [...providers],
-      login: login
-        ? { attemptId: login.attemptId, provider: login.provider, expiresAt: login.expiresAt }
-        : null,
-      user: user ? { nickname: user.nickname } : null,
+      revision,
+      phase,
+      providers: snapshotProviders,
+      login: snapshotLogin,
+      user: snapshotUser,
       entry: context.entry,
       notice: context.notice
     }
@@ -99,8 +104,10 @@ export function createAuthState(
       return { ok: true, snapshot: current }
     },
     failure(code: AuthCommandError): AuthCommandResult {
+      const error = { code }
+      const snapshot = getSnapshot()
 
-      return { ok: false, error: { code }, snapshot: getSnapshot() }
+      return { ok: false, error, snapshot }
     },
     loginStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
 
