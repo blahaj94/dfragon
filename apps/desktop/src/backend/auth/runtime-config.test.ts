@@ -527,8 +527,13 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) =>
-        path === userDataPath ? canonicalUserDataPath : fs.realpathSync.native(path),
+      realpathSync: (path) => {
+        if (path === userDataPath) {
+          return canonicalUserDataPath
+        }
+
+        return fs.realpathSync.native(path)
+      },
       mkdirSync: (path, options) => {
         profileFilesystem.mkdirSync(path, options)
         throw Object.assign(new Error('Synthetic concurrent creation'), { code: 'EEXIST' })
@@ -837,10 +842,11 @@ describe('desktop auth runtime config', () => {
         mode: 0o700
       }) as fs.Stats
     const filesystem: RuntimeProfileFilesystemDouble = {
-      lstatSync: ((path: fs.PathLike) =>
-        directoryStat(
-          String(path) === userDataPath ? currentUid + 1 : currentUid
-        )) as typeof fs.lstatSync,
+      lstatSync: ((path: fs.PathLike) => {
+        const uid = String(path) === userDataPath ? currentUid + 1 : currentUid
+
+        return directoryStat(uid)
+      }) as typeof fs.lstatSync,
       statSync: fs.statSync,
       realpathSync: (path) => path,
       mkdirSync: () => undefined,
@@ -1001,8 +1007,13 @@ describe('desktop auth runtime config', () => {
     } as fs.Stats
     const openedPaths: string[] = []
     const filesystem: RuntimeProfileFilesystemDouble = {
-      lstatSync: ((path: fs.PathLike) =>
-        String(path) === '/' ? unsafeRootStat : safeDirectoryStat) as typeof fs.lstatSync,
+      lstatSync: ((path: fs.PathLike) => {
+        if (String(path) === '/') {
+          return unsafeRootStat
+        }
+
+        return safeDirectoryStat
+      }) as typeof fs.lstatSync,
       statSync: fs.statSync,
       realpathSync: (path) => path,
       mkdirSync: () => {
@@ -1188,8 +1199,13 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) =>
-        path === userDataPath ? canonicalUserDataPath : fs.realpathSync(path),
+      realpathSync: (path) => {
+        if (path === userDataPath) {
+          return canonicalUserDataPath
+        }
+
+        return fs.realpathSync(path)
+      },
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: profileFilesystem.openSync,
       fsyncSync: profileFilesystem.fsyncSync,
@@ -1234,7 +1250,13 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: profileFilesystem.lstatSync,
       statSync: fs.statSync,
-      realpathSync: (path) => (path === parent ? canonicalParent : fs.realpathSync(path)),
+      realpathSync: (path) => {
+        if (path === parent) {
+          return canonicalParent
+        }
+
+        return fs.realpathSync(path)
+      },
       mkdirSync: profileFilesystem.mkdirSync,
       openSync: profileFilesystem.openSync,
       fsyncSync: profileFilesystem.fsyncSync,
