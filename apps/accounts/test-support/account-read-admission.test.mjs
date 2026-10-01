@@ -57,8 +57,9 @@ async function accountApp(t) {
     },
     async query() {
       counts.clocks++
+      const now = new Date()
 
-      return [{ now: new Date() }]
+      return [{ now }]
     }
   }
   const unused = async () => {
@@ -90,8 +91,12 @@ async function accountApp(t) {
           throw new Error('invalid synthetic token')
         }
         const now = Math.floor(Date.now() / 1000)
+        const userId = user.id
+        const sessionId = session.id
+        const issuedAt = now - 10
+        const expiresAt = now + 900
 
-        return { userId: user.id, sessionId: session.id, issuedAt: now - 10, expiresAt: now + 900 }
+        return { userId, sessionId, issuedAt, expiresAt }
       }
     }
   )
