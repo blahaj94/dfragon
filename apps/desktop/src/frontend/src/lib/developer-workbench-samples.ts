@@ -74,11 +74,9 @@ export function selectDeveloperWorkbenchSample({
   selectedId: string | null
 }): { selected: DeveloperWorkbenchSample | null; selectedNumber: number } {
   const selected = pageSamples.find((sample) => sample.id === selectedId) ?? pageSamples[0] ?? null
-  return {
-    selected,
-    selectedNumber:
-      selected == null ? 0 : splitSamples.findIndex((sample) => sample.id === selected.id) + 1
-  }
+  const selectedNumber =
+    selected == null ? 0 : splitSamples.findIndex((sample) => sample.id === selected.id) + 1
+  return { selected, selectedNumber }
 }
 
 /** Find the next visible image before saving; wrap around without selecting the current image. */
