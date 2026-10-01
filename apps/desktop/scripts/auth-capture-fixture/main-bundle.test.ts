@@ -105,10 +105,12 @@ function mainEnvironment(): {
     }
     const isToolkit = name === '@electron-toolkit/utils'
     if (isToolkit) {
+      const setAppUserModelId = vi.fn()
+      const watchWindowShortcuts = vi.fn()
 
       return {
-        electronApp: { setAppUserModelId: vi.fn() },
-        optimizer: { watchWindowShortcuts: vi.fn() },
+        electronApp: { setAppUserModelId },
+        optimizer: { watchWindowShortcuts },
         is: { dev: false }
       }
     }
