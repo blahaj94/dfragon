@@ -7,6 +7,22 @@ import { styles } from './DeveloperParticipantCollectionSection.style'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
+function getWindowImageAlt(raid: boolean): string {
+  if (raid) {
+    return '검출된 공대 상세 창 원본'
+  }
+
+  return '검출된 파티참가인원 창 원본'
+}
+
+function getRowUnit(raid: boolean): string {
+  if (raid) {
+    return '행'
+  }
+
+  return '번'
+}
+
 export function DeveloperParticipantCollectionSection({
   collection,
   kind,
@@ -113,7 +129,7 @@ export function DeveloperParticipantCollectionSection({
               <div {...stylex.props(styles.windowImage)}>
                 <img
                   src={popup.dataUrl}
-                  alt={raid ? '검출된 공대 상세 창 원본' : '검출된 파티참가인원 창 원본'}
+                  alt={getWindowImageAlt(raid)}
                   {...stylex.props(styles.dialog)}
                 />
                 {popup.rows
@@ -194,7 +210,7 @@ export function DeveloperParticipantCollectionSection({
                   {crop ? (
                     <img
                       src={crop.dataUrl}
-                      alt={`${slot}${raid ? '행' : '번'} 닉네임 원본 크롭`}
+                      alt={`${slot}${getRowUnit(raid)} 닉네임 원본 크롭`}
                       {...stylex.props(styles.cropImage)}
                     />
                   ) : (
