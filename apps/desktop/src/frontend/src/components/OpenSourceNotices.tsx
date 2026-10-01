@@ -26,35 +26,44 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
     previousSelection.current = selected
   }, [selected])
 
-  return selected ? (
-    <>
-      <ActionButton ref={backButton} size="small" variant="ghost" onClick={() => setSelected(null)}>
-        <Typo.txtS as="span" weight={700}>
-          ‹ 라이선스 목록
-        </Typo.txtS>
-      </ActionButton>
-      <Typo.h4 as="h2" ref={heading} tabIndex={-1} {...stylex.props(styles.heading)}>
-        {selected.name}
-      </Typo.h4>
-      <Typo.txtS {...stylex.props(styles.description)}>
-        {[selected.version, selected.license].filter(Boolean).join(' · ')}
-      </Typo.txtS>
-      {selected.documents.map((document, index) => (
-        <section
-          key={`${document.name}-${index}`}
-          {...stylex.props(styles.document)}
-          aria-label={document.name}
+  if (selected) {
+    return (
+      <>
+        <ActionButton
+          ref={backButton}
+          size="small"
+          variant="ghost"
+          onClick={() => setSelected(null)}
         >
-          <Typo.txtM as="h3" weight={700} {...stylex.props(styles.documentTitle)}>
-            {document.name}
-          </Typo.txtM>
-          <Typo.txtS as="pre" {...stylex.props(styles.original)}>
-            {document.text}
+          <Typo.txtS as="span" weight={700}>
+            ‹ 라이선스 목록
           </Typo.txtS>
-        </section>
-      ))}
-    </>
-  ) : (
+        </ActionButton>
+        <Typo.h4 as="h2" ref={heading} tabIndex={-1} {...stylex.props(styles.heading)}>
+          {selected.name}
+        </Typo.h4>
+        <Typo.txtS {...stylex.props(styles.description)}>
+          {[selected.version, selected.license].filter(Boolean).join(' · ')}
+        </Typo.txtS>
+        {selected.documents.map((document, index) => (
+          <section
+            key={`${document.name}-${index}`}
+            {...stylex.props(styles.document)}
+            aria-label={document.name}
+          >
+            <Typo.txtM as="h3" weight={700} {...stylex.props(styles.documentTitle)}>
+              {document.name}
+            </Typo.txtM>
+            <Typo.txtS as="pre" {...stylex.props(styles.original)}>
+              {document.text}
+            </Typo.txtS>
+          </section>
+        ))}
+      </>
+    )
+  }
+
+  return (
     <>
       <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
         라이선스 사용고지
