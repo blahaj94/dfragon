@@ -12,13 +12,16 @@ const testRoot = await mkdtemp(join(tmpdir(), 'dfragon-capture-exit-check-'))
 const isOcr = process.argv.includes('--ocr')
 const isSearch = process.argv.includes('--search')
 const isMedia = process.argv.includes('--media')
-const command = isSearch
-  ? 'capture:fixture:search'
-  : isOcr
-    ? 'capture:fixture:ocr'
-    : isMedia
-      ? 'capture:fixture:smoke'
-      : 'capture:fixture:deny'
+let command
+if (isSearch) {
+  command = 'capture:fixture:search'
+} else if (isOcr) {
+  command = 'capture:fixture:ocr'
+} else if (isMedia) {
+  command = 'capture:fixture:smoke'
+} else {
+  command = 'capture:fixture:deny'
+}
 let child
 let groupStopped = false
 
@@ -390,13 +393,16 @@ try {
   assert.equal(groupStopped, true, 'Test child group remains active')
   const expectsSuccess = isOcr || isMedia || isSearch
   const expectedCode = expectsSuccess ? 0 : 1
-  const expectedMessage = isSearch
-    ? 'Capture fixture search smoke PASS'
-    : isOcr
-      ? 'Capture fixture standalone OCR PASS'
-      : isMedia
-        ? 'Capture fixture smoke PASS'
-        : 'Capture fixture media BLOCKED / smoke FAIL'
+  let expectedMessage
+  if (isSearch) {
+    expectedMessage = 'Capture fixture search smoke PASS'
+  } else if (isOcr) {
+    expectedMessage = 'Capture fixture standalone OCR PASS'
+  } else if (isMedia) {
+    expectedMessage = 'Capture fixture smoke PASS'
+  } else {
+    expectedMessage = 'Capture fixture media BLOCKED / smoke FAIL'
+  }
   assert.equal(code, expectedCode, 'Child result did not match the requested check')
   const hasExpectedMessage = output.includes(expectedMessage)
   assert.equal(hasExpectedMessage, true)
