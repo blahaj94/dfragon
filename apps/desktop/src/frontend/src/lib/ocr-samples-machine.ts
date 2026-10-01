@@ -9,11 +9,14 @@ const loginMessage = '앱에서 자료실 소유자 계정으로 로그인한 �
 function errorMessage(cause: unknown): string {
   const message = cause instanceof Error ? cause.message : ''
 
-  return message.includes(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)
-    ? loginMessage
-    : message.includes(DEVELOPER_ERROR_CODES.OCR_OWNER_REQUIRED)
-      ? 'OCR 자료실 소유자 계정만 조회할 수 있습니다.'
-      : 'OCR 자료실을 불러오지 못했습니다. 연결과 서버 버전을 확인하고 다시 불러오세요.'
+  if (message.includes(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)) {
+    return loginMessage
+  }
+  if (message.includes(DEVELOPER_ERROR_CODES.OCR_OWNER_REQUIRED)) {
+    return 'OCR 자료실 소유자 계정만 조회할 수 있습니다.'
+  }
+
+  return 'OCR 자료실을 불러오지 못했습니다. 연결과 서버 버전을 확인하고 다시 불러오세요.'
 }
 
 export const ocrSamplesMachine = setup({
@@ -31,7 +34,11 @@ export const ocrSamplesMachine = setup({
     load: fromPromise<DeveloperSample[], OcrSamplesApi>(({ input }) => input.listOcrSamples())
   },
   actions: {
-    clear: assign(({ context }) => ({ samples: [], error: '', revision: context.revision + 1 })),
+    clear: assign(({ context }) => {
+      const revision = context.revision + 1
+
+      return { samples: [], error: '', revision }
+    }),
     close: ({ context }) => {
       void context.api.closeOcrSamples().catch(() => undefined)
     }
