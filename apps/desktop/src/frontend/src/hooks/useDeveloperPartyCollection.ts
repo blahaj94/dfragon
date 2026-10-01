@@ -30,7 +30,6 @@ type CollectionSession = {
 
 function disarmCollectionSession(session: CollectionSession): Promise<void> {
   if (session.disarmPromise != null) {
-
     return session.disarmPromise
   }
 
@@ -160,7 +159,6 @@ export function useDeveloperPartyCollection(
 
     async function refreshPreview(): Promise<void> {
       if (!session.active || session.polling) {
-
         return
       }
 
@@ -172,26 +170,26 @@ export function useDeveloperPartyCollection(
           ? window.developer.previewParty()
           : window.developer.previewParty(kind))
         if (!session.active) {
-
           return
         }
 
-        const nextFrame = response.frame
-          ? {
-              ...response.frame,
-              kind,
-              participantWindow: response.frame.participantWindow
-                ? {
-                    ...response.frame.participantWindow,
-                    dataUrl: developerPartySlotDataUrl(response.frame.participantWindow)
-                  }
-                : undefined,
-              slots: response.frame.slots.map((slot) => ({
-                ...slot,
-                dataUrl: developerPartySlotDataUrl(slot)
-              }))
-            }
-          : null
+        let nextFrame: PreviewFrame | null = null
+        if (response.frame) {
+          const frameFields = { ...response.frame }
+          let participantWindow: PreviewFrame['participantWindow']
+          if (response.frame.participantWindow) {
+            const windowFields = { ...response.frame.participantWindow }
+            const dataUrl = developerPartySlotDataUrl(response.frame.participantWindow)
+            participantWindow = { ...windowFields, dataUrl }
+          }
+          const slots = response.frame.slots.map((slot) => {
+            const slotFields = { ...slot }
+            const dataUrl = developerPartySlotDataUrl(slot)
+
+            return { ...slotFields, dataUrl }
+          })
+          nextFrame = { ...frameFields, kind, participantWindow, slots }
+        }
         setFrame(nextFrame)
         setPreviewError(response.previewError ?? '')
         // The game may start after the tab opened. Retry only a recoverable capture/access check,
@@ -236,7 +234,6 @@ export function useDeveloperPartyCollection(
   useEffect(() => {
     const session = sessionRef.current
     if (!session?.active) {
-
       return
     }
 
@@ -280,8 +277,10 @@ export function useDeveloperPartyCollection(
     }
   }
 
+  const currentFrame = frame?.kind === kind ? frame : null
+
   return {
-    frame: frame?.kind === kind ? frame : null,
+    frame: currentFrame,
     slots,
     collection,
     previewError,
