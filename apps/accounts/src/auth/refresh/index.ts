@@ -163,16 +163,21 @@ async function rotate({
           issuedAt: checkedAt,
           consumedAt: null
         })
+        const accessToken = accessJwt.accessToken
+        const accessTokenExpiresAt = new Date(accessJwt.expiresAt * 1000).toISOString()
+        const refreshToken = bytes.toString(REFRESH_TOKEN.encoding)
+        const sessionExpiresAt = new Date(idleDeadline * 1000).toISOString()
+        const tokens: RefreshTokens = {
+          tokenType: 'Bearer',
+          accessToken,
+          accessTokenExpiresAt,
+          refreshToken,
+          sessionExpiresAt
+        }
 
         return {
           status: 'issued',
-          tokens: {
-            tokenType: 'Bearer',
-            accessToken: accessJwt.accessToken,
-            accessTokenExpiresAt: new Date(accessJwt.expiresAt * 1000).toISOString(),
-            refreshToken: bytes.toString(REFRESH_TOKEN.encoding),
-            sessionExpiresAt: new Date(idleDeadline * 1000).toISOString()
-          }
+          tokens
         }
       }
     )
