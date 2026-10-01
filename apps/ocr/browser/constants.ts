@@ -1,5 +1,7 @@
 import type { Capture, CharacterGroup } from '../src/model.js'
 
+export const UI_SCALE_PERCENT = 100
+
 export const OCR_MESSAGES = {
   uploaded: '업로드했습니다. 정답을 입력할 수 있습니다.',
   saved: '저장했습니다.',

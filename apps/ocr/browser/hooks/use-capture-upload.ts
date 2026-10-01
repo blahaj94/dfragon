@@ -3,7 +3,7 @@ import type { SetStateAction } from 'react'
 import type { Capture, CaptureKind, Crop } from '../../src/model.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { requestOcr, errorMessage } from '../client.js'
-import { OCR_MESSAGES } from '../constants.js'
+import { OCR_MESSAGES, UI_SCALE_PERCENT } from '../constants.js'
 import { assertUploadFile, readPngBase64, UploadInputError } from '../upload-input.js'
 import { invalidateDataset } from '../query.js'
 
@@ -49,7 +49,7 @@ export function useCaptureUpload() {
         assertUploadFile(file)
         const selectedCrops = crops.map((crop) => ({ ...crop }))
         const originalPng = await readPngBase64(file)
-        const uiScale = scale === '' ? null : Number(scale) / 100
+        const uiScale = scale === '' ? null : Number(scale) / UI_SCALE_PERCENT
         const uiScaleSource = scale === '' ? 'unknown' : source
         body = {
           id: crypto.randomUUID(),
