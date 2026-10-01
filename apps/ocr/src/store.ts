@@ -34,7 +34,6 @@ export class OcrStore {
   }
 
   models(): ModelSummary[] {
-
     return this.db
       .prepare('SELECT metadata FROM models ORDER BY rowid DESC')
       .all()
@@ -197,8 +196,10 @@ export class OcrStore {
     if (row === undefined) {
       throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
+    const capture = JSON.parse(row.metadata) as Capture
+    const png = Buffer.from(row.png)
 
-    return { capture: JSON.parse(row.metadata) as Capture, png: Buffer.from(row.png) }
+    return { capture, png }
   }
 
   private sampleRow(row: Record<string, unknown>): Sample {
@@ -209,7 +210,7 @@ export class OcrStore {
       throw new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
     }
 
-    return {
+    const fields = {
       ...crop,
       id: row.id as string,
       captureId: capture.id,
@@ -219,10 +220,11 @@ export class OcrStore {
       frameHeight: capture.height,
       uiScale: capture.uiScale,
       uiScaleSource: capture.uiScaleSource,
-      text: row.text as string | null,
-      excluded: row.excluded === 1,
-      split: row.split as Split
+      text: row.text as string | null
     }
+    const excluded = row.excluded === 1
+
+    return { ...fields, excluded, split: row.split as Split }
   }
 
   sample(id: string): Sample {
@@ -265,11 +267,11 @@ export class OcrStore {
         `${sampleQuery}${where} ORDER BY c.rowid DESC,s.slot LIMIT ${OCR_SAMPLES.pageSize + 1} OFFSET ?`
       )
       .all(...args, options.offset)
+    const samples = rows.slice(0, OCR_SAMPLES.pageSize).map((row) => this.sampleRow(row))
+    const nextOffset =
+      rows.length > OCR_SAMPLES.pageSize ? options.offset + OCR_SAMPLES.pageSize : null
 
-    return {
-      samples: rows.slice(0, OCR_SAMPLES.pageSize).map((row) => this.sampleRow(row)),
-      nextOffset: rows.length > OCR_SAMPLES.pageSize ? options.offset + OCR_SAMPLES.pageSize : null
-    }
+    return { samples, nextOffset }
   }
 
   updateSample(
@@ -305,7 +307,10 @@ export class OcrStore {
         target === undefined &&
         known === undefined &&
         this.splitInitialized()
-      const nextSplit = (target?.split ?? (assignNew ? 'train' : 'unassigned')) as Split
+      let nextSplit = target?.split as Split | null | undefined
+      if (nextSplit == null) {
+        nextSplit = assignNew ? 'train' : 'unassigned'
+      }
       if (
         text !== previousSample.text &&
         previousSample.split !== 'unassigned' &&
@@ -331,7 +336,6 @@ export class OcrStore {
   }
 
   private splitInitialized() {
-
     return this.db.prepare("SELECT 1 FROM settings WHERE key='automatic-split'").get() !== undefined
   }
 
@@ -344,12 +348,13 @@ export class OcrStore {
       WHERE json_extract(c.metadata,'$.kind')!='synthetic' ORDER BY s.id`
       )
       .all()
-      .map((row) => ({
-        id: row.id as string,
-        text: row.text as string | null,
-        excluded: row.excluded === 1,
-        split: row.split as Split
-      }))
+      .map((row) => {
+        const id = row.id as string
+        const text = row.text as string | null
+        const excluded = row.excluded === 1
+
+        return { id, text, excluded, split: row.split as Split }
+      })
     const assignments = this.db.prepare('SELECT text,split FROM label_splits ORDER BY text').all()
     const unassigned = this.db.prepare('SELECT text FROM label_unassigned ORDER BY text').all()
     const syntheticRows = this.db
@@ -360,6 +365,7 @@ export class OcrStore {
       )
       .all()
     const syntheticNicknames = [...new Set(syntheticRows.map((row) => row.text as string))].sort()
+    const initialized = this.splitInitialized()
 
     return {
       rows,
@@ -367,31 +373,31 @@ export class OcrStore {
       unassigned,
       syntheticRows,
       syntheticNicknames,
-      initialized: this.splitInitialized()
+      initialized
     }
   }
 
   splitStats() {
     const state = this.splitState()
+    const statistics = splitStatistics(state.rows)
 
-    return { ...splitStatistics(state.rows), initialized: state.initialized }
+    return { ...statistics, initialized: state.initialized }
   }
 
   previewSplit(options: SplitOptions) {
     const state = this.splitState()
+    const plan = planSplits(
+      state.rows,
+      options,
+      state.unassigned.map((row) => row.text as string),
+      state.syntheticNicknames
+    )
+    const preview = { ...plan, initialized: state.initialized }
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify({ ...state, options }))
+      .digest('hex')
 
-    return {
-      ...planSplits(
-        state.rows,
-        options,
-        state.unassigned.map((row) => row.text as string),
-        state.syntheticNicknames
-      ),
-      initialized: state.initialized,
-      fingerprint: createHash('sha256')
-        .update(JSON.stringify({ ...state, options }))
-        .digest('hex')
-    }
+    return { ...preview, fingerprint }
   }
 
   applySplit(options: SplitOptions, fingerprint: string) {
@@ -453,12 +459,12 @@ export class OcrStore {
       this.db.exec('ROLLBACK')
       throw error
     }
+    const affected = Number(count.count)
 
-    return { text, split, affected: Number(count.count) }
+    return { text, split, affected }
   }
 
   stats() {
-
     return this.db
       .prepare(
         `SELECT (SELECT COUNT(*) FROM captures) AS captures,COUNT(*) AS samples,
@@ -478,7 +484,8 @@ export class OcrStore {
       .prepare(`${sampleQuery} ORDER BY c.rowid,s.slot`)
       .all()
       .map((row) => this.sampleRow(row))
+    const exportedAt = new Date().toISOString()
 
-    return { schemaVersion: 1, exportedAt: new Date().toISOString(), captures, samples }
+    return { schemaVersion: 1, exportedAt, captures, samples }
   }
 }
