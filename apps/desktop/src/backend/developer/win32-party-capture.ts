@@ -137,71 +137,103 @@ function loadWin32PartyApi(): Win32PartyApi {
     'void *',
     'intptr_t'
   ])
+  const SetThreadDpiAwarenessContext = user32.func(
+    'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
+  )
+  const EnumWindows = user32.func('__stdcall', 'EnumWindows', 'int32_t', [
+    koffi.pointer(enumWindowsProc),
+    'intptr_t'
+  ])
+  const IsWindowVisible = user32.func('int __stdcall IsWindowVisible(void *hwnd)')
+  const IsIconic = user32.func('int __stdcall IsIconic(void *hwnd)')
+  const GetForegroundWindow = user32.func('void * __stdcall GetForegroundWindow()')
+  const GetWindow = user32.func('void * __stdcall GetWindow(void *hwnd, uint32_t command)')
+  const GetWindowThreadProcessId = user32.func(
+    'uint32_t __stdcall GetWindowThreadProcessId(void *hwnd, _Out_ uint32_t *processId)'
+  )
+  const GetClientRect = user32.func('int __stdcall GetClientRect(void *hwnd, _Out_ void *rect)')
+  const ClientToScreen = user32.func(
+    'int __stdcall ClientToScreen(void *hwnd, _Inout_ void *point)'
+  )
+  const GetWindowRect = user32.func('int __stdcall GetWindowRect(void *hwnd, _Out_ void *rect)')
+  const GetSystemMetrics = user32.func('int __stdcall GetSystemMetrics(int index)')
+  const OpenProcess = kernel32.func(
+    'void * __stdcall OpenProcess(uint32_t desiredAccess, int inheritHandle, uint32_t processId)'
+  )
+  const GetCurrentProcess = kernel32.func('void * __stdcall GetCurrentProcess()')
+  const OpenProcessToken = advapi32.func(
+    'int __stdcall OpenProcessToken(void *process, uint32_t access, _Out_ void **token)'
+  )
+  const GetTokenInformation = advapi32.func(
+    'int __stdcall GetTokenInformation(void *token, int informationClass, _Out_ void *information, uint32_t informationLength, _Out_ uint32_t *returnLength)'
+  )
+  const QueryFullProcessImageNameW = kernel32.func(
+    'int __stdcall QueryFullProcessImageNameW(void *process, uint32_t flags, _Out_ uint16_t *imagePath, _Inout_ uint32_t *characterCount)'
+  )
+  const CloseHandle = kernel32.func('int __stdcall CloseHandle(void *handle)')
+  const GetDC = user32.func('void * __stdcall GetDC(void *hwnd)')
+  const ReleaseDC = user32.func('int __stdcall ReleaseDC(void *hwnd, void *dc)')
+  const CreateCompatibleDC = gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)')
+  const CreateDIBSection = gdi32.func(
+    'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
+  )
+  const SelectObject = gdi32.func('void * __stdcall SelectObject(void *dc, void *object)')
+  const BitBlt = gdi32.func(
+    'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
+  )
+  const GdiFlush = gdi32.func('int __stdcall GdiFlush()')
+  const DeleteObject = gdi32.func('int __stdcall DeleteObject(void *object)')
+  const DeleteDC = gdi32.func('int __stdcall DeleteDC(void *dc)')
+  const DwmGetWindowAttribute = dwmapi.func(
+    'int32_t __stdcall DwmGetWindowAttribute(void *hwnd, uint32_t attribute, _Out_ void *value, uint32_t size)'
+  )
+  const GetLastError = kernel32.func('uint32_t __stdcall GetLastError()')
 
   return {
     koffi,
     enumWindowsProc,
-    SetThreadDpiAwarenessContext: user32.func(
-      'void * __stdcall SetThreadDpiAwarenessContext(void *context)'
-    ),
-    EnumWindows: user32.func('__stdcall', 'EnumWindows', 'int32_t', [
-      koffi.pointer(enumWindowsProc),
-      'intptr_t'
-    ]),
-    IsWindowVisible: user32.func('int __stdcall IsWindowVisible(void *hwnd)'),
-    IsIconic: user32.func('int __stdcall IsIconic(void *hwnd)'),
-    GetForegroundWindow: user32.func('void * __stdcall GetForegroundWindow()'),
-    GetWindow: user32.func('void * __stdcall GetWindow(void *hwnd, uint32_t command)'),
-    GetWindowThreadProcessId: user32.func(
-      'uint32_t __stdcall GetWindowThreadProcessId(void *hwnd, _Out_ uint32_t *processId)'
-    ),
-    GetClientRect: user32.func('int __stdcall GetClientRect(void *hwnd, _Out_ void *rect)'),
-    ClientToScreen: user32.func('int __stdcall ClientToScreen(void *hwnd, _Inout_ void *point)'),
-    GetWindowRect: user32.func('int __stdcall GetWindowRect(void *hwnd, _Out_ void *rect)'),
-    GetSystemMetrics: user32.func('int __stdcall GetSystemMetrics(int index)'),
-    OpenProcess: kernel32.func(
-      'void * __stdcall OpenProcess(uint32_t desiredAccess, int inheritHandle, uint32_t processId)'
-    ),
-    GetCurrentProcess: kernel32.func('void * __stdcall GetCurrentProcess()'),
-    OpenProcessToken: advapi32.func(
-      'int __stdcall OpenProcessToken(void *process, uint32_t access, _Out_ void **token)'
-    ),
-    GetTokenInformation: advapi32.func(
-      'int __stdcall GetTokenInformation(void *token, int informationClass, _Out_ void *information, uint32_t informationLength, _Out_ uint32_t *returnLength)'
-    ),
-    QueryFullProcessImageNameW: kernel32.func(
-      'int __stdcall QueryFullProcessImageNameW(void *process, uint32_t flags, _Out_ uint16_t *imagePath, _Inout_ uint32_t *characterCount)'
-    ),
-    CloseHandle: kernel32.func('int __stdcall CloseHandle(void *handle)'),
-    GetDC: user32.func('void * __stdcall GetDC(void *hwnd)'),
-    ReleaseDC: user32.func('int __stdcall ReleaseDC(void *hwnd, void *dc)'),
-    CreateCompatibleDC: gdi32.func('void * __stdcall CreateCompatibleDC(void *dc)'),
-    CreateDIBSection: gdi32.func(
-      'void * __stdcall CreateDIBSection(void *dc, const void *info, uint32_t usage, _Out_ void **bits, void *section, uint32_t offset)'
-    ),
-    SelectObject: gdi32.func('void * __stdcall SelectObject(void *dc, void *object)'),
-    BitBlt: gdi32.func(
-      'int __stdcall BitBlt(void *target, int x, int y, int width, int height, void *source, int sourceX, int sourceY, uint32_t operation)'
-    ),
-    GdiFlush: gdi32.func('int __stdcall GdiFlush()'),
-    DeleteObject: gdi32.func('int __stdcall DeleteObject(void *object)'),
-    DeleteDC: gdi32.func('int __stdcall DeleteDC(void *dc)'),
-    DwmGetWindowAttribute: dwmapi.func(
-      'int32_t __stdcall DwmGetWindowAttribute(void *hwnd, uint32_t attribute, _Out_ void *value, uint32_t size)'
-    ),
-    GetLastError: kernel32.func('uint32_t __stdcall GetLastError()')
+    SetThreadDpiAwarenessContext,
+    EnumWindows,
+    IsWindowVisible,
+    IsIconic,
+    GetForegroundWindow,
+    GetWindow,
+    GetWindowThreadProcessId,
+    GetClientRect,
+    ClientToScreen,
+    GetWindowRect,
+    GetSystemMetrics,
+    OpenProcess,
+    GetCurrentProcess,
+    OpenProcessToken,
+    GetTokenInformation,
+    QueryFullProcessImageNameW,
+    CloseHandle,
+    GetDC,
+    ReleaseDC,
+    CreateCompatibleDC,
+    CreateDIBSection,
+    SelectObject,
+    BitBlt,
+    GdiFlush,
+    DeleteObject,
+    DeleteDC,
+    DwmGetWindowAttribute,
+    GetLastError
   } as Win32PartyApi
 }
 
 let win32PartyApi: Win32PartyApi | undefined
 
 function getApi(): Win32PartyApi {
+  if (win32PartyApi == null) {
+    win32PartyApi = loadWin32PartyApi()
+  }
 
-  return (win32PartyApi ??= loadWin32PartyApi())
+  return win32PartyApi
 }
 
 function nativeFailure(api: Win32PartyApi, operation: string): Error {
-
   return new Error(`${operation} failed (Win32 ${api.GetLastError()}).`)
 }
 
@@ -239,13 +271,12 @@ function readRect(api: Win32PartyApi, hwnd: bigint, getRect: Win32PartyApi['GetW
   if (!getRect(hwnd, buffer)) {
     throw nativeFailure(api, getRect === api.GetClientRect ? 'GetClientRect' : 'GetWindowRect')
   }
+  const left = buffer.readInt32LE(0)
+  const top = buffer.readInt32LE(4)
+  const right = buffer.readInt32LE(8)
+  const bottom = buffer.readInt32LE(12)
 
-  return {
-    left: buffer.readInt32LE(0),
-    top: buffer.readInt32LE(4),
-    right: buffer.readInt32LE(8),
-    bottom: buffer.readInt32LE(12)
-  }
+  return { left, top, right, bottom }
 }
 
 function clientScreenOrigin(api: Win32PartyApi, hwnd: bigint): { x: number; y: number } {
@@ -253,14 +284,15 @@ function clientScreenOrigin(api: Win32PartyApi, hwnd: bigint): { x: number; y: n
   if (!api.ClientToScreen(hwnd, point)) {
     throw nativeFailure(api, 'ClientToScreen')
   }
+  const x = point.readInt32LE(0)
+  const y = point.readInt32LE(4)
 
-  return { x: point.readInt32LE(0), y: point.readInt32LE(4) }
+  return { x, y }
 }
 
 function getProcessId(api: Win32PartyApi, hwnd: bigint): number | null {
   const output = [0]
   if (!api.GetWindowThreadProcessId(hwnd, output) || output[0] <= 0) {
-
     return null
   }
 
@@ -270,7 +302,6 @@ function getProcessId(api: Win32PartyApi, hwnd: bigint): number | null {
 function getProcessImagePath(api: Win32PartyApi, processId: number): string | null {
   const process = api.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, processId)
   if (!process) {
-
     return null
   }
   let imagePath: string | null = null
@@ -302,12 +333,10 @@ function getProcessImagePath(api: Win32PartyApi, processId: number): string | nu
 function isDnfProcessWindow(api: Win32PartyApi, hwnd: bigint): { pid: number } | null {
   const pid = getProcessId(api, hwnd)
   if (pid === null) {
-
     return null
   }
   const imagePath = getProcessImagePath(api, pid)
   if (!imagePath || !isDnfExecutablePath(imagePath)) {
-
     return null
   }
 
@@ -315,7 +344,6 @@ function isDnfProcessWindow(api: Win32PartyApi, hwnd: bigint): { pid: number } |
 }
 
 function isValidClientSize(width: number, height: number): boolean {
-
   return (
     width >= MIN_CLIENT_WIDTH &&
     width <= MAX_CLIENT_WIDTH &&
@@ -329,7 +357,6 @@ function clientRectOnScreen(api: Win32PartyApi, hwnd: bigint): ScreenRect | null
   const width = rect.right - rect.left
   const height = rect.bottom - rect.top
   if (rect.left !== 0 || rect.top !== 0 || !isValidClientSize(width, height)) {
-
     return null
   }
   const origin = clientScreenOrigin(api, hwnd)
@@ -395,7 +422,6 @@ function findDnfGameWindow(api: Win32PartyApi): GameWindow {
 }
 
 function sameGameWindow(first: GameWindow, second: GameWindow): boolean {
-
   return (
     first.hwnd === second.hwnd &&
     first.pid === second.pid &&
@@ -435,7 +461,6 @@ function isWindowCloaked(api: Win32PartyApi, hwnd: bigint): boolean {
 }
 
 function rectsIntersect(left: Rect, right: Rect): boolean {
-
   return (
     left.left < right.right &&
     right.left < left.right &&
@@ -459,7 +484,6 @@ export function hasValidDetectedPartySlots(
     value.length < 1 ||
     value.length > 4
   ) {
-
     return false
   }
 
@@ -467,7 +491,6 @@ export function hasValidDetectedPartySlots(
 
   return value.every((candidate) => {
     if (candidate == null || typeof candidate !== 'object' || Array.isArray(candidate)) {
-
       return false
     }
     const slot = candidate as Record<string, unknown>
@@ -494,7 +517,6 @@ export function hasValidDetectedPartySlots(
       typeof coverage !== 'object' ||
       Array.isArray(coverage)
     ) {
-
       return false
     }
     const visibleRegion = coverage as Record<string, unknown>
@@ -514,7 +536,6 @@ export function hasValidDetectedPartySlots(
       (x as number) + (width as number) > frameWidth ||
       (y as number) + (height as number) > frameHeight
     ) {
-
       return false
     }
     seenSlots.add(slotNumber)
@@ -530,13 +551,12 @@ function isPartyRegionCovered(
 ): boolean {
   const slotRects = slots.map((slot) => {
     const { coverage } = slot
+    const left = client.x + coverage.x
+    const top = client.y + coverage.y
+    const right = client.x + coverage.x + coverage.width
+    const bottom = client.y + coverage.y + coverage.height
 
-    return {
-      left: client.x + coverage.x,
-      top: client.y + coverage.y,
-      right: client.x + coverage.x + coverage.width,
-      bottom: client.y + coverage.y + coverage.height
-    }
+    return { left, top, right, bottom }
   })
 
   return windowsAbove.some(({ rect }) => slotRects.some((slot) => rectsIntersect(rect, slot)))
@@ -704,7 +724,6 @@ function capturePartyFrameWithApi(
   api: Win32PartyApi,
   kind: DeveloperCollectionKind
 ): PartyFrameCapture {
-
   return withPerMonitorV2(api, () => {
     const gameWindowBefore = findDnfGameWindow(api)
     assertClientInsideVirtualScreen(api, gameWindowBefore.client)
@@ -764,17 +783,19 @@ function capturePartyFrameWithApi(
     ) {
       throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
+    const width = gameWindowAfter.client.width
+    const height = gameWindowAfter.client.height
+    const crops = slots.map(({ slot, x, y, width, height }) => ({ slot, x, y, width, height }))
+    const original = { rgba, crops }
+    const capturedSlots = slots.map((slot) => cropSlot(rgba, gameWindowAfter.client.width, slot))
 
     return {
-      width: gameWindowAfter.client.width,
-      height: gameWindowAfter.client.height,
+      width,
+      height,
       scale,
       capturedAt,
-      original: {
-        rgba,
-        crops: slots.map(({ slot, x, y, width, height }) => ({ slot, x, y, width, height }))
-      },
-      slots: slots.map((slot) => cropSlot(rgba, gameWindowAfter.client.width, slot))
+      original,
+      slots: capturedSlots
     }
   })
 }
@@ -785,7 +806,6 @@ export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyF
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   try {
-
     return capturePartyFrameWithApi(getApi(), kind)
   } catch (error) {
     if (error instanceof PartyFrameGeometryError) {
@@ -899,7 +919,6 @@ export function assertDnfShortcutAccess(): void {
 /** True only when the foreground top-level window is owned by DNF.exe. */
 export function isDnfForeground(): boolean {
   if (process.platform !== 'win32') {
-
     return false
   }
   try {
@@ -908,14 +927,12 @@ export function isDnfForeground(): boolean {
     return withPerMonitorV2(api, () => {
       const hwnd = api.GetForegroundWindow()
       if (!hwnd || !api.IsWindowVisible(hwnd) || api.IsIconic(hwnd)) {
-
         return false
       }
 
       return findDnfGameWindow(api).hwnd === hwnd
     })
   } catch {
-
     return false
   }
 }
@@ -926,7 +943,6 @@ export function partySlotCoverageIntersectsWindow(
   coverage: { x: number; y: number; width: number; height: number },
   window: Rect
 ): boolean {
-
   return rectsIntersect(
     {
       left: client.x + coverage.x,
@@ -940,6 +956,5 @@ export function partySlotCoverageIntersectsWindow(
 
 // Keep path handling explicitly Windows-aware even when these pure utilities are exercised on macOS.
 export function isDnfExecutablePath(imagePath: string): boolean {
-
   return win32Path.basename(imagePath).toLowerCase() === DNF_EXECUTABLE
 }
