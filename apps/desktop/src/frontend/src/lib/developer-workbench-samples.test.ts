@@ -182,6 +182,12 @@ describe('sample selection', () => {
     ).toEqual({ selected: null, selectedNumber: 0 })
   })
 
+  it('keeps an empty next ID instead of falling back to an earlier sample', () => {
+    const samples = [sample('earlier'), sample('current'), sample('')]
+
+    expect(nextDeveloperWorkbenchSampleId(samples, 'current')).toBe('')
+  })
+
   it('advances within the visible list and wraps without selecting the current sample again', () => {
     const samples = [sample('first'), sample('second'), sample('third')]
 
