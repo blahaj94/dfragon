@@ -115,11 +115,14 @@ it('keeps a failed collection command visible until a later command succeeds', a
     onPartyCollectionStatus: vi.fn(() => vi.fn()),
     setPartyCollectionSlots: vi.fn((slots: number[] | null) => {
       if (slots == null) {
-
         return Promise.resolve(collection)
       }
 
-      return shouldFail ? failedCommand.promise : Promise.resolve(collection)
+      if (shouldFail) {
+        return failedCommand.promise
+      }
+
+      return Promise.resolve(collection)
     }),
     previewParty: vi.fn(async () => response)
   }
