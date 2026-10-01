@@ -113,13 +113,15 @@ function projectResponse(body: unknown, status: number, ok: boolean): CharacterS
         throw neopleSearchFailure('api')
       }
     }
+    const serverName = NEOPLE_SERVER_NAMES.get(serverId) ?? null
+    const fame = rawFame ?? null
 
     return {
       characterId,
       characterName,
       serverId,
-      serverName: NEOPLE_SERVER_NAMES.get(serverId) ?? null,
-      fame: rawFame ?? null
+      serverName,
+      fame
     }
   })
 
