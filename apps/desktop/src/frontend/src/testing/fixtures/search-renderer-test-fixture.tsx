@@ -13,19 +13,37 @@ import {
 } from '../../../../preload/api/search-test-fixture'
 import { LegacyApp } from '../../fixture/legacy/LegacyApp'
 
-const media = vi.hoisted(() => ({ crops: vi.fn(), worker: vi.fn(), loop: vi.fn() }))
-vi.mock('../../lib/ocr', async (original) => ({
-  ...(await original<typeof import('../../lib/ocr')>()),
-  createPartyOcrWorker: media.worker
-}))
-vi.mock('../../lib/party', async (original) => ({
-  ...(await original<typeof import('../../lib/party')>()),
-  capturePartyNicknameCrops: media.crops
-}))
-vi.mock('../../lib/recognition', async (original) => ({
-  ...(await original<typeof import('../../lib/recognition')>()),
-  runSerialLoop: media.loop
-}))
+const media = vi.hoisted(() => {
+  const crops = vi.fn()
+  const worker = vi.fn()
+  const loop = vi.fn()
+
+  return { crops, worker, loop }
+})
+vi.mock('../../lib/ocr', async (original) => {
+  const originalModule = await original<typeof import('../../lib/ocr')>()
+
+  return {
+    ...originalModule,
+    createPartyOcrWorker: media.worker
+  }
+})
+vi.mock('../../lib/party', async (original) => {
+  const originalModule = await original<typeof import('../../lib/party')>()
+
+  return {
+    ...originalModule,
+    capturePartyNicknameCrops: media.crops
+  }
+})
+vi.mock('../../lib/recognition', async (original) => {
+  const originalModule = await original<typeof import('../../lib/recognition')>()
+
+  return {
+    ...originalModule,
+    runSerialLoop: media.loop
+  }
+})
 
 type Loop = { signal: AbortSignal; getIntervalMs: () => number; runCycle: () => Promise<void> }
 const cleanup: Array<() => Promise<void>> = []
@@ -39,15 +57,18 @@ export function authSnapshot({
   revision = 1,
   signedIn = true
 }: AuthSnapshotInput = {}): AuthSnapshot {
+  const phase = signedIn ? 'signedIn' : 'signedOut'
+  const user = signedIn ? { nickname: '합성 계정' } : null
+  const entry = signedIn ? 'home' : null
 
   return {
     runId: SEARCH_RUN,
     revision,
-    phase: signedIn ? 'signedIn' : 'signedOut',
+    phase,
     providers: [],
     login: null,
-    user: signedIn ? { nickname: '합성 계정' } : null,
-    entry: signedIn ? 'home' : null,
+    user,
+    entry,
     notice: null
   }
 }
@@ -149,14 +170,15 @@ export function createRendererFixture(): RendererFixture {
       .mockImplementation(async (observation) => {
         const slots = currentSearch.slots.map((slot) => {
           const isObserved = slot.slot === observation.slot
+          if (isObserved) {
+            return searchSlot({
+              slot: observation.slot,
+              nickname: observation.nickname,
+              observationRevision: observation.observationRevision
+            })
+          }
 
-          return isObserved
-            ? searchSlot({
-                slot: observation.slot,
-                nickname: observation.nickname,
-                observationRevision: observation.observationRevision
-              })
-            : slot
+          return slot
         })
         currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
 
