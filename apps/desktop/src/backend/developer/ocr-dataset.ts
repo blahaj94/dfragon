@@ -5,6 +5,7 @@ import type { AuthCoordinator } from '../auth/types'
 import type { DeveloperPartySlot, DeveloperSample } from '../../preload/common/types/developer'
 import { isDeveloperPartySlot } from '../../preload/common/developer-collection'
 import { DEVELOPER_ERROR_CODES as errors } from '../../preload/common/developer-errors'
+import { requestWithOcrAuthorizationRecovery } from './ocr-authorization-recovery'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 
 export const MAX_OCR_DATASET_SAMPLES = 10_000
@@ -110,54 +111,42 @@ export function createOcrDataset(
       captureSignal: session.signal
     })
     try {
-      let authorization = await auth.authorization(lifecycle.signal)
-      for (let attempt = 0; attempt < 2; attempt++) {
-        if (
-          !lifecycle.isCurrent() ||
-          authorization.status !== 'available' ||
-          authorization.generation !== expected
-        ) {
+      const authorization = await auth.authorization(lifecycle.signal)
+      const response = await requestWithOcrAuthorizationRecovery({
+        auth,
+        generation: expected,
+        authorization,
+        lifecycle,
+        send: (accessToken, signal) =>
+          request(`${origin}${path}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            credentials: 'omit',
+            cache: 'no-store',
+            redirect: 'error',
+            signal
+          })
+      })
+      if (response == null) {
+        throw new Error(errors.OCR_LOGIN_REQUIRED)
+      }
+
+      if (response.status !== 200) {
+        await response.body?.cancel()
+        throw new Error(
+          response.status === 403 ? errors.OCR_OWNER_REQUIRED : errors.OCR_UNAVAILABLE
+        )
+      }
+      try {
+        const result = await parse(response, lifecycle.signal)
+        if (!lifecycle.isCurrent()) {
           throw new Error(errors.OCR_LOGIN_REQUIRED)
         }
-        const response = await request(`${origin}${path}`, {
-          headers: { Authorization: `Bearer ${authorization.accessToken}` },
-          credentials: 'omit',
-          cache: 'no-store',
-          redirect: 'error',
-          signal: lifecycle.signal
-        })
-        if (response.status === 401) {
-          await response.body?.cancel()
-          authorization = await auth.recoverAuthorization(
-            {
-              generation: expected,
-              accessGeneration: authorization.accessGeneration,
-              finalRejection: attempt === 1
-            },
-            lifecycle.signal
-          )
-          continue
-        }
 
-        if (response.status !== 200) {
-          await response.body?.cancel()
-          throw new Error(
-            response.status === 403 ? errors.OCR_OWNER_REQUIRED : errors.OCR_UNAVAILABLE
-          )
-        }
-        try {
-          const result = await parse(response, lifecycle.signal)
-          if (!lifecycle.isCurrent()) {
-            throw new Error(errors.OCR_LOGIN_REQUIRED)
-          }
-
-          return result
-        } catch (error) {
-          await response.body?.cancel().catch(() => undefined)
-          throw error
-        }
+        return result
+      } catch (error) {
+        await response.body?.cancel().catch(() => undefined)
+        throw error
       }
-      throw new Error(errors.OCR_LOGIN_REQUIRED)
     } finally {
       lifecycle.cleanup()
     }

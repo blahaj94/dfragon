@@ -9,6 +9,7 @@ import type {
 } from '../../preload/common/types/developer'
 import type { CapturedPartyFrame } from './collection-session'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
+import { requestWithOcrAuthorizationRecovery } from './ocr-authorization-recovery'
 import { createOcrUploadPayload } from './ocr-upload-payload'
 
 const OCR_API_ORIGIN = 'https://ocr.dfragon.com'
@@ -40,7 +41,7 @@ export function createOcrUploader(
         if (!lifecycle.isCurrent()) {
           return 'signedOut'
         }
-        let authorization = await auth.authorization(lifecycle.signal)
+        const authorization = await auth.authorization(lifecycle.signal)
         if (
           !lifecycle.isCurrent() ||
           authorization.status !== 'available' ||
@@ -52,70 +53,56 @@ export function createOcrUploader(
         if (payload === null) {
           return 'failed'
         }
-        // Only a rejected credential may be refreshed once. Network failures are never retried.
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-          if (
-            !lifecycle.isCurrent() ||
-            authorization.status !== 'available' ||
-            authorization.generation !== generation
-          ) {
-            return 'signedOut'
-          }
-          const response = await request(UPLOAD_URL, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${authorization.accessToken}`,
-              'Content-Type': 'application/json',
-              Accept: 'application/json'
-            },
-            body: payload.body,
-            credentials: 'omit',
-            cache: 'no-store',
-            redirect: 'error',
-            signal: lifecycle.signal
-          })
-          if (response.status === 401) {
-            await response.body?.cancel()
-            authorization = await auth.recoverAuthorization(
-              {
-                generation,
-                accessGeneration: authorization.accessGeneration,
-                finalRejection: attempt === 1
+        const response = await requestWithOcrAuthorizationRecovery({
+          auth,
+          generation,
+          authorization,
+          lifecycle,
+          send: (accessToken, signal) =>
+            request(UPLOAD_URL, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+                Accept: 'application/json'
               },
-              lifecycle.signal
-            )
-            continue
+              body: payload.body,
+              credentials: 'omit',
+              cache: 'no-store',
+              redirect: 'error',
+              signal
+            })
+        })
+        if (response == null) {
+          return 'signedOut'
+        }
+
+        if (!lifecycle.isCurrent()) {
+          await response.body?.cancel()
+
+          return 'signedOut'
+        }
+
+        if (response.status !== 200 && response.status !== 201) {
+          await response.body?.cancel()
+          if (response.status === 403) {
+            return 'ownerRequired'
           }
 
-          if (!lifecycle.isCurrent()) {
-            await response.body?.cancel()
-
-            return 'signedOut'
-          }
-
-          if (response.status !== 200 && response.status !== 201) {
-            await response.body?.cancel()
-            if (response.status === 403) {
-              return 'ownerRequired'
-            }
-
-            if (response.status === 507) {
-              return 'storageFull'
-            }
-
-            return 'failed'
-          }
-          const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
-          const isUploadConfirmed =
-            lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
-          if (isUploadConfirmed) {
-            return 'uploaded'
+          if (response.status === 507) {
+            return 'storageFull'
           }
 
           return 'failed'
         }
+        const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
+        const isUploadConfirmed =
+          lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
+        if (isUploadConfirmed) {
+          return 'uploaded'
+        }
 
-        return 'signedOut'
+        return 'failed'
       } catch {
         const isSameGeneration = auth.captureGeneration() === generation
         if (isSameGeneration) {
