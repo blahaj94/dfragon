@@ -66,13 +66,10 @@ function rectangle(
 ): DNFRectangle {
   const x = roundPixel(heading.x + left * heading.scale)
   const y = roundPixel(heading.y + top * heading.scale)
+  const width = roundPixel(heading.x + right * heading.scale) - x
+  const height = roundPixel(heading.y + bottom * heading.scale) - y
 
-  return {
-    x,
-    y,
-    width: roundPixel(heading.x + right * heading.scale) - x,
-    height: roundPixel(heading.y + bottom * heading.scale) - y
-  }
+  return { x, y, width, height }
 }
 
 /** Rejects unrelated red decoration before spending the shared template-matching budget. */
@@ -197,8 +194,9 @@ export function detectDNFRaidParticipantWindow(
     }
   }
   if (candidates.length !== 1) {
+    const status = candidates.length === 0 ? 'not-found' : 'ambiguous'
 
-    return { status: candidates.length === 0 ? 'not-found' : 'ambiguous' }
+    return { status }
   }
 
   const { heading: matched, window } = candidates[0]
@@ -207,14 +205,13 @@ export function detectDNFRaidParticipantWindow(
     const portrait = evidenceRatio(frame, rectangle(matched, 51, top + 2, 66, top + 18))
     const level = evidenceRatio(frame, rectangle(matched, 85, top + 2, 104, top + 18))
     const role = evidenceRatio(frame, rectangle(matched, 269, top + 2, 281, top + 18), true)
+    const row = (index + 1) as DNFRaidParticipantPosition
+    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
+    const nickname = rectangle(matched, 182, top + 3, 268, top + 20)
+    const partyRegion = rectangle(matched, 3, top + 2, 45, top + 19)
+    const equipmentScoreRegion = rectangle(matched, 106, top + 3, 181, top + 20)
 
-    return {
-      row: (index + 1) as DNFRaidParticipantPosition,
-      occupied: Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2,
-      nickname: rectangle(matched, 182, top + 3, 268, top + 20),
-      partyRegion: rectangle(matched, 3, top + 2, 45, top + 19),
-      equipmentScoreRegion: rectangle(matched, 106, top + 3, 181, top + 20)
-    }
+    return { row, occupied, nickname, partyRegion, equipmentScoreRegion }
   })
 
   return { status: 'found', scale: matched.scale, matchScore: matched.score, window, rows }
@@ -231,21 +228,22 @@ export function cropDNFRaidParticipantNicknames(
     return result
   }
 
-  return {
-    ...result,
-    rows: result.rows.map((row) => {
-      if (!row.occupied) {
+  const detection = { ...result }
+  const rows = result.rows.map((row) => {
+    if (!row.occupied) {
 
-        return { ...row, nicknameCrop: null }
-      }
-      const { x, y, width, height } = row.nickname
-      const rgba = new Uint8Array(width * height * 4)
-      for (let index = 0; index < height; index += 1) {
-        const start = ((y + index) * frame.width + x) * 4
-        rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
-      }
+      return { ...row, nicknameCrop: null }
+    }
+    const { x, y, width, height } = row.nickname
+    const rgba = new Uint8Array(width * height * 4)
+    for (let index = 0; index < height; index += 1) {
+      const start = ((y + index) * frame.width + x) * 4
+      rgba.set(frame.rgba.subarray(start, start + width * 4), index * width * 4)
+    }
+    const nicknameCrop = { width, height, rgba }
 
-      return { ...row, nicknameCrop: { width, height, rgba } }
-    })
-  }
+    return { ...row, nicknameCrop }
+  })
+
+  return { ...detection, rows }
 }
