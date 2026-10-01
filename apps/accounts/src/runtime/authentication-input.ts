@@ -49,19 +49,24 @@ function accessJwt(
     input.signingKey,
     externalPrivateKey === undefined ? ['kid', 'privateKeyPem'] : ['kid']
   )
+  const issuer = text(input.issuer)
+  const audience = text(input.audience)
+  const kid = text(signing.kid)
+  const privateKeyPem = externalPrivateKey ?? text(signing.privateKeyPem)
+  const signingKey = { kid, privateKeyPem }
+  const verificationKeys = array(input.verificationKeys).map((value) => {
+    const key = record(value, ['kid', 'publicKeyPem'])
+    const kid = text(key.kid)
+    const publicKeyPem = text(key.publicKeyPem)
+
+    return { kid, publicKeyPem }
+  })
 
   return {
-    issuer: text(input.issuer),
-    audience: text(input.audience),
-    signingKey: {
-      kid: text(signing.kid),
-      privateKeyPem: externalPrivateKey ?? text(signing.privateKeyPem)
-    },
-    verificationKeys: array(input.verificationKeys).map((value) => {
-      const key = record(value, ['kid', 'publicKeyPem'])
-
-      return { kid: text(key.kid), publicKeyPem: text(key.publicKeyPem) }
-    })
+    issuer,
+    audience,
+    signingKey,
+    verificationKeys
   }
 }
 
@@ -79,15 +84,16 @@ export function parseAuthenticationInput(value: unknown, externalPrivateKey?: st
     'returnUrl',
     ...(hasOcr ? ['ocrReturnUrl'] : [])
   ])
+  const jwt = accessJwt(input.accessJwt, externalPrivateKey)
+  const apiOrigin = text(passkey.apiOrigin)
+  const rpId = text(passkey.rpId)
+  const rpName = text(passkey.rpName)
+  const returnUrl = text(passkey.returnUrl)
+  const optionalOcr = hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {}
+  const passkeyConfiguration = { apiOrigin, rpId, rpName, returnUrl, ...optionalOcr }
 
   return {
-    accessJwt: accessJwt(input.accessJwt, externalPrivateKey),
-    passkey: {
-      apiOrigin: text(passkey.apiOrigin),
-      rpId: text(passkey.rpId),
-      rpName: text(passkey.rpName),
-      returnUrl: text(passkey.returnUrl),
-      ...(hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {})
-    }
+    accessJwt: jwt,
+    passkey: passkeyConfiguration
   }
 }
