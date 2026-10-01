@@ -60,7 +60,6 @@ const slot = z
     const hasObservation = value.observationRevision > 0
     const isActive = hasIdentity && hasObservation
     if (!isActive) {
-
       return false
     }
     const isSuccess = value.state === 'success'
@@ -119,12 +118,10 @@ const resultSchema = z.discriminatedUnion('ok', [
 function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
   const isParsedObject = parsed != null && typeof parsed === 'object'
   if (!isParsedObject) {
-
     return true
   }
   const isInputObject = input != null && typeof input === 'object'
   if (!isInputObject) {
-
     return false
   }
   const expectedKeys = Reflect.ownKeys(parsed)
@@ -132,7 +129,6 @@ function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
   const hasSameFields = expectedKeys.every((key) => {
     const hasOwnField = Object.hasOwn(input, key)
     if (!hasOwnField) {
-
       return false
     }
     const hasSameShape = hasExactOwnShape(Reflect.get(input, key), Reflect.get(parsed, key))
@@ -147,13 +143,19 @@ function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
 export function parseSearchSnapshot(value: unknown): SearchSnapshot | null {
   const parsed = snapshotSchema.safeParse(value)
   const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
+  if (isValid) {
+    return parsed.data
+  }
 
-  return isValid ? parsed.data : null
+  return null
 }
 
 export function parseSearchResult(value: unknown): SearchCommandResult | null {
   const parsed = resultSchema.safeParse(value)
   const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
+  if (isValid) {
+    return parsed.data
+  }
 
-  return isValid ? parsed.data : null
+  return null
 }
