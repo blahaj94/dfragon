@@ -164,9 +164,10 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
 
     return undefined
   }
+  const kindFields = isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}
 
   return {
-    ...(isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}),
+    ...kindFields,
     slot: value.slot,
     frameWidth: value.frameWidth,
     frameHeight: value.frameHeight,
@@ -238,11 +239,12 @@ function createPaths(rootDir: string): {
 } {
   const directory = join(rootDir, 'developer-mode')
   const samplesDirectory = join(directory, 'samples')
+  const settings = join(directory, 'settings.json')
 
   return {
     directory,
     samplesDirectory,
-    settings: join(directory, 'settings.json'),
+    settings,
     image: (id: string) => join(samplesDirectory, `${id}.png`),
     metadata: (id: string) => join(samplesDirectory, `${id}.json`)
   }
@@ -335,10 +337,11 @@ export function createDeveloperStore({
 
     try {
       const settings = parseSettings(JSON.parse(serializedSettings.toString('utf8')))
+      if (settings == null) {
+        return { settings: { enabled: false }, isCorrupt: true }
+      }
 
-      return settings == null
-        ? { settings: { enabled: false }, isCorrupt: true }
-        : { settings, isCorrupt: false }
+      return { settings, isCorrupt: false }
     } catch {
 
       return { settings: { enabled: false }, isCorrupt: true }
@@ -601,8 +604,9 @@ export function createDeveloperStore({
         throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
       }
       const { width, height } = dimensions
+      const pngDataUrl = `data:image/png;base64,${png.toString('base64')}`
 
-      return { pngDataUrl: `data:image/png;base64,${png.toString('base64')}`, width, height }
+      return { pngDataUrl, width, height }
     } catch (error) {
       throw asStorageError(error)
     }
