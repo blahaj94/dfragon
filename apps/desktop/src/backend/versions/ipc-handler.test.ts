@@ -95,21 +95,27 @@ it.each([
   if (kind === 'sender') {
     event.sender = {}
   }
+
   if (kind === 'subframe') {
     event.senderFrame = {}
   }
+
   if (kind === 'document') {
     f.frame.url = `${documentUrl}?other`
   }
+
   if (kind === 'detached') {
     f.frame.detached = true
   }
+
   if (kind === 'destroyedFrame') {
     f.frame.isDestroyed.mockReturnValue(true)
   }
+
   if (kind === 'destroyedWindow') {
     f.window.isDestroyed.mockReturnValue(true)
   }
+
   if (kind === 'destroyedContents') {
     f.contents.isDestroyed.mockReturnValue(true)
   }

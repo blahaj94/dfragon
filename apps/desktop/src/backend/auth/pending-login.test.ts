@@ -183,6 +183,7 @@ describe('pending login actor', () => {
       if (stage !== 'starting') {
         acceptRequest()
       }
+
       if (stage === 'exchanging') {
         pending.claimExchange(CODE, () => {
           const completion = Promise.resolve()
@@ -277,9 +278,11 @@ describe('pending login actor', () => {
       if (kind === 'wall') {
         clock.wallMs -= 1
       }
+
       if (kind === 'monotonic') {
         clock.monotonicMs -= 1
       }
+
       if (kind === 'discontinuous') {
         clock.discontinuous = true
       }

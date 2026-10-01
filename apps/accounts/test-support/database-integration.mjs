@@ -892,6 +892,7 @@ async function primaryScenario() {
     if (hasResources) {
       await teardownPostgres(resources)
     }
+
     if (runtimeOnly) {
       await assertResourcesAbsent(runId)
       process.stdout.write('Runtime database owned resources absent\n')

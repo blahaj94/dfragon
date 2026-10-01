@@ -320,9 +320,11 @@ export function loginRequest(status, id, overrides = {}) {
   if (status === 'created') {
     Object.assign(row, { code_challenge: 'a'.repeat(43), launch_ticket_hash: randomBytes(32) })
   }
+
   if (status === 'browser_started') {
     Object.assign(row, { code_challenge: 'a'.repeat(43), browser_binding_hash: randomBytes(32) })
   }
+
   if (status === 'exchange_ready') {
     Object.assign(row, {
       code_challenge: 'a'.repeat(43),
@@ -332,6 +334,7 @@ export function loginRequest(status, id, overrides = {}) {
       code_expires_at: later
     })
   }
+
   if (status === 'consumed') {
     row.consumed_at = later
   }

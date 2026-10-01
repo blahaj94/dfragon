@@ -42,6 +42,7 @@ export function createPosixTestFiles({
     if (isString) {
       return Number.parseInt(mode, 8)
     }
+
     if (mode != null) {
       return mode
     }
@@ -120,6 +121,7 @@ export function createPosixTestFiles({
       if (rejectsLink) {
         throw Object.assign(new Error('Synthetic nofollow rejected a link.'), { code: 'ELOOP' })
       }
+
       if (directoryOnly) {
         const stat = await statPath(path)
         const isDirectory = stat.isDirectory()

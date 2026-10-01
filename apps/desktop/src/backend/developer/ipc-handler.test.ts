@@ -308,6 +308,7 @@ it('does not restore arm eligibility when a later disable starts during recovery
     if (settingsWriteCount === 1) {
       throw new Error('simulated first disable failure')
     }
+
     if (settingsWriteCount === 2) {
       startSecondWrite()
       await secondWriteGate

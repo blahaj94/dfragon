@@ -300,6 +300,7 @@ function reportedState(events: Observation[]): ReportedState {
     if (isStart && isStartingMarker) {
       marker = 'unknown'
     }
+
     if (isStart && isRemoving) {
       marker = 'unknown'
     }
@@ -323,6 +324,7 @@ function reportedState(events: Observation[]): ReportedState {
         replacementEstablished = true
       }
     }
+
     if (isConfirmed && isRemoving) {
       marker = 'absent'
     }

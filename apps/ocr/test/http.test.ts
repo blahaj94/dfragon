@@ -383,6 +383,7 @@ async function fixture(
         expiresAt: new Date(Date.now() + 600_000).toISOString()
       })
     }
+
     if (path === '/auth/exchange') {
       assert.equal(body.clientId, 'ocr')
       assert.equal(body.codeVerifier.length, 43)
@@ -394,6 +395,7 @@ async function fixture(
         user: { id: identity, nickname: '테스트' }
       })
     }
+
     if (path === '/auth/refresh') {
       await new Promise((resolve) => setTimeout(resolve, 15))
 
@@ -403,6 +405,7 @@ async function fixture(
         accessTokenExpiresAt: new Date(Date.now() + 900_000).toISOString()
       })
     }
+
     if (path === '/me') {
       if (revoked) {
         return new Response(null, { status: 401 })
@@ -410,6 +413,7 @@ async function fixture(
 
       return Response.json({ user: { id: identity, nickname: '테스트' } })
     }
+
     if (path === '/auth/logout') {
       return new Response(null, { status: 204 })
     }

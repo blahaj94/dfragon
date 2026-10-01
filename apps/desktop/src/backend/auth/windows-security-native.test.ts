@@ -694,6 +694,7 @@ describe('Windows security native boundary', () => {
           } else if (name === 'SetFileInformationByHandle') {
             requiredArity = 4
           }
+
           if (requiredArity != null && args.length !== requiredArity) {
             throw new Error(`${name} received ${args.length} arguments`)
           }
@@ -709,6 +710,7 @@ describe('Windows security native boundary', () => {
               if (args[6] !== null) {
                 throw new Error('CreateFileW hTemplateFile must be NULL')
               }
+
               if (String(args[0]).includes('.tmp') && (Number(args[1]) & DELETE_ACCESS) === 0) {
                 throw new Error('CreateFileW rename handle must have DELETE access')
               }
@@ -719,6 +721,7 @@ describe('Windows security native boundary', () => {
               if (handleMode === 'null') {
                 return nullHandle
               }
+
               if (handleMode === 'invalid') {
                 return invalidHandle
               }
@@ -750,6 +753,7 @@ describe('Windows security native boundary', () => {
 
                 return false
               }
+
               if (returnOutOfRangeTokenSid) {
                 const outOfRangePointer = koffi.address(currentSidData)
                 if (process.arch === 'ia32') {

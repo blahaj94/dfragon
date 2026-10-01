@@ -112,6 +112,7 @@ function mainEnvironment(): {
         is: { dev: false }
       }
     }
+
     if (name === 'koffi') {
       const dependency = requireDependency(name)
 

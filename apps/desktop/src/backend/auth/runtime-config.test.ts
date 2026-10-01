@@ -1088,6 +1088,7 @@ describe('desktop auth runtime config', () => {
         if (String(path) === '/') {
           return unsafeRootStat
         }
+
         if (String(path) === '/synthetic') {
           return safeDirectoryStat
         }

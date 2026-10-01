@@ -43,6 +43,7 @@ it.each(['missing owner', 'wrong parent', 'outside temp directory'])(
       )
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', '0')
     }
+
     if (hasWrongDirectory) {
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_PROFILE', '/synthetic/outside-profile')
       vi.stubEnv('DFRAGON_AUTH_CAPTURE_LAUNCHER_PID', String(process.ppid))

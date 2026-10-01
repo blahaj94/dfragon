@@ -77,6 +77,7 @@ export function createRuntimeProfileTestFilesystem(
     if (modelPosix && isProtectionMissing) {
       throw new Error('POSIX profile fixture metadata was not registered')
     }
+
     if (protection != null) {
       metadata.set(key, { ...protection, mode })
     }

@@ -855,6 +855,7 @@ it.each(['stop', 'unmount', 'failure'] as const)(
     if (action === 'stop') {
       await act(async () => hook.getCurrent().stopCapture())
     }
+
     if (action === 'unmount') {
       await hook.unmount()
     }

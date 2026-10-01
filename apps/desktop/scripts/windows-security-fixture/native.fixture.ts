@@ -139,6 +139,7 @@ function observeApi(): {
       if (renamed) {
         observations.renameSucceeded += 1
       }
+
       if (disposed) {
         observations.dispositionSucceeded += 1
       }

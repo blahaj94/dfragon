@@ -112,6 +112,7 @@ describe('검색의 main authorization 소비 경계', () => {
       } else {
         harness.http.refresh.mockResolvedValueOnce(tokens)
       }
+
       if (isCommit) {
         harness.store.commitWaits.push(storage.promise)
       }
@@ -266,12 +267,15 @@ describe('검색의 main authorization 소비 경계', () => {
       } else {
         harness.http.refresh.mockResolvedValueOnce(tokens)
       }
+
       if (isMarker) {
         harness.store.establishWaits.push(storage.promise)
       }
+
       if (isCommit) {
         harness.store.commitWaits.push(storage.promise)
       }
+
       if (isFinalize) {
         harness.store.removeWaits.push(storage.promise)
       }

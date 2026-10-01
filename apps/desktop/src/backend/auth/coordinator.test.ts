@@ -623,6 +623,7 @@ describe('Desktop AuthCoordinator login', () => {
       } else {
         harness.clock.advance(600_000)
       }
+
       if (serverConfirmed) {
         disposal.resolve()
       } else {

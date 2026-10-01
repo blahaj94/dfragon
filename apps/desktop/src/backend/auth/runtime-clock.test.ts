@@ -193,9 +193,11 @@ describe('runtime clock and real coordinator', () => {
       if (isCommit) {
         harness.store.commitWaits.push(wait.promise)
       }
+
       if (isFinalize) {
         harness.store.removeWaits.push(wait.promise)
       }
+
       if (isMe) {
         harness.http.me.mockImplementationOnce(() => me.promise)
       }

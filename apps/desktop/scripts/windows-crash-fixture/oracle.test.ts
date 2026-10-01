@@ -99,6 +99,7 @@ function disk(
           )
     add('credential.v1', bytes)
   }
+
   if (marker) {
     add(
       'transition.v1',
@@ -111,6 +112,7 @@ function disk(
       )
     )
   }
+
   if (temporary) {
     add('.credential.v1.11111111-1111-4111-8111-111111111111.tmp', Buffer.from('incomplete'))
   }

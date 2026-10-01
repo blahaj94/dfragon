@@ -46,6 +46,7 @@ async function eligibleRows(source, cleanup) {
       if (hasCode) {
         request.code_expires_at = now
       }
+
       if (isConsumed) {
         request.consumed_at = now
       }

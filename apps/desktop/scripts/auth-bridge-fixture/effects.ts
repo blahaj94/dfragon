@@ -101,6 +101,7 @@ export function createFixtureEffects(): Effects {
         if (marked) {
           return { status: 'recovery-required' }
         }
+
         if (committed) {
           return { status: 'ready', refreshToken }
         }

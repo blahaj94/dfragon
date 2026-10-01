@@ -100,9 +100,11 @@ export async function createStoreFixture({
     if (isDirectory) {
       return 'directory'
     }
+
     if (isCredentialTemp) {
       return 'credential-temp'
     }
+
     if (isMarkerTemp) {
       return 'transition-temp'
     }

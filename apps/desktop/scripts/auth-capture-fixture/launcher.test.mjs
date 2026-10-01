@@ -142,6 +142,7 @@ function captureSignals() {
     if (hasRegistration) {
       isRegistered = registration.listener === listener
     }
+
     if (isRegistered) {
       handlers.delete(event)
     } else {
@@ -161,6 +162,7 @@ function captureSignals() {
 
         return
       }
+
       if (registration.once) {
         handlers.delete(signal)
       }

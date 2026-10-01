@@ -91,11 +91,13 @@ export function command(program, args, options = {}) {
 
         return
       }
+
       if (outputExceeded) {
         reject(new Error('Command output limit exceeded'))
 
         return
       }
+
       if (timedOut) {
         reject(new Error('Command timed out'))
 
@@ -282,6 +284,7 @@ export async function readArchiveConfigDigest(archivePath) {
 
       return
     }
+
     if (hasManifest) {
       parser.abort(new Error('Duplicate saved image manifest'))
 

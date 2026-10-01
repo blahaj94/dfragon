@@ -73,6 +73,7 @@ function createControlledGroup(mode) {
         return true
       }
     }
+
     if (!groupExists) {
       throw Object.assign(new Error('Owned group is absent'), { code: 'ESRCH' })
     }
@@ -154,6 +155,7 @@ for (const { name, mode, status } of unitCases) {
       if (isAlreadyAbsent) {
         assert.deepEqual(group.signals, [])
       }
+
       if (hasOriginalError) {
         const isAggregate = outcome.error instanceof AggregateError
         assert.ok(isAggregate, 'Both failures must remain inspectable')

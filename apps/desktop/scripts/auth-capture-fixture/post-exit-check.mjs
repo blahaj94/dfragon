@@ -109,18 +109,21 @@ function isDiagnosticValue(value, type) {
   if (!isInteger) {
     return false
   }
+
   if (type === 'mask') {
     const isNonnegative = value >= 0
     const hasMaximum = value <= 15
 
     return isNonnegative && hasMaximum
   }
+
   if (type === 'slot-count') {
     const isNonnegative = value >= 0
     const hasMaximum = value <= 4
 
     return isNonnegative && hasMaximum
   }
+
   if (type !== 'request-delta') {
     return false
   }
@@ -396,6 +399,7 @@ try {
     assert.equal(hasEvidence, true, 'Search evidence missing or incomplete')
     console.log(`Capture fixture search evidence: ${JSON.stringify(evidence)}`)
   }
+
   if (isMedia) {
     const hasAllSyntheticMatches = output.includes(
       'Capture fixture synthetic matches: {"displayMatchedSlots":15,"nicknameMatchedSlots":15}'
@@ -436,6 +440,7 @@ try {
     }
     groupStopped = await waitForExit()
   }
+
   if (groupStopped) {
     await rm(testRoot, { recursive: true, force: true, maxRetries: 3 })
   }

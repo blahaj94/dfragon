@@ -139,9 +139,11 @@ NestFactory.create = async (...args) => {
       if (isClose) {
         return observedClose
       }
+
       if (isListen) {
         return observedListen
       }
+
       if (isFailingUse) {
         return () => {
           throw new Error('fixture-sensitive-app-configuration')

@@ -84,6 +84,7 @@ function createWindowsFixture(): WindowsFixture {
       if (configured != null) {
         return configured
       }
+
       if (kind === 'directory') {
         if (directories.has(path)) {
           return { status: 'trusted-directory' }
@@ -91,6 +92,7 @@ function createWindowsFixture(): WindowsFixture {
 
         return { status: 'missing' }
       }
+
       if (stores.has(path)) {
         return { status: 'trusted-file' }
       }
@@ -293,9 +295,11 @@ describe('Windows CredentialStore native boundary', () => {
         if (isInitialFlushFailure) {
           flush.mockRejectedValueOnce(error)
         }
+
         if (isPostRenameFlushFailure) {
           flush.mockResolvedValueOnce(undefined).mockRejectedValueOnce(error)
         }
+
         if (isCloseFailure) {
           close.mockRejectedValueOnce(error)
         }

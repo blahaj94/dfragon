@@ -269,6 +269,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     if (observedRequests.length === 1) {
       return liveSearch.promise
     }
+
     if (observedRequests.length === 2) {
       return lateSearch.promise.then((response) => {
         lateResponseDelivered.resolve()

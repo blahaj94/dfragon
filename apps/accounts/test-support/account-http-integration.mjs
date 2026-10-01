@@ -234,6 +234,7 @@ async function boundary({ source, phase, boundaryKind, method }) {
   if (isAdmission) {
     assert.deepEqual(after, admittedBefore)
   }
+
   if (!isAdmission) {
     const hasFunctionPhaseActivityAdvanced =
       after.session.last_active_at > before.session.last_active_at
@@ -486,6 +487,7 @@ async function databaseFailure({ source, phase, applied, method }) {
       if (!failCommit) {
         return commit()
       }
+
       if (applied) {
         await commit()
       } else {

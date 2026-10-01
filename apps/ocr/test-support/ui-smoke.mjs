@@ -56,6 +56,7 @@ try {
         expiresAt: new Date(Date.now() + 600_000).toISOString()
       })
     }
+
     if (path === '/auth/exchange') {
       return Response.json({
         accessToken: 'synthetic',
@@ -64,9 +65,11 @@ try {
         user: { id: ownerId, nickname: '검증계정' }
       })
     }
+
     if (path === '/me') {
       return Response.json({ user: { id: ownerId, nickname: '검증계정' } })
     }
+
     if (path === '/auth/logout') {
       return new Response(null, { status: 204 })
     }

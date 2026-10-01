@@ -636,18 +636,23 @@ describe('product media permission capture lifetime', () => {
       if (condition === 'contents') {
         contents = {} as typeof contents
       }
+
       if (condition === 'request-document') {
         url = 'about:blank'
       }
+
       if (condition === 'document') {
         fixture.mainFrame.url = 'about:blank'
       }
+
       if (condition === 'detached') {
         fixture.mainFrame.detached = true
       }
+
       if (condition === 'destroyed') {
         fixture.mainFrame.isDestroyed = () => true
       }
+
       if (condition === 'source-clear') {
         await fixture.invoke('selectCaptureSource', '')
       }

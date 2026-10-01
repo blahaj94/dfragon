@@ -164,6 +164,7 @@ if (canStart) {
           } else {
             await smoke(window, coordinator, completeLogin, captureObservation.counts)
           }
+
           if (hasCanary) {
             throw new Error('Capture fixture canary detected')
           }

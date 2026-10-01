@@ -121,6 +121,7 @@ export function registerObservedCapture(
           if (hasStreams) {
             hasVideo = streams.video != null
           }
+
           if (hasVideo === true) {
             counts.displayAllowed += 1
           }
