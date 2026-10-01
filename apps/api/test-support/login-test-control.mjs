@@ -32,21 +32,27 @@ export function instrument(source, hooks) {
     const commit = runner.commitTransaction.bind(runner)
     runner.query = (sql, parameters, ...rest) => {
       const shouldUseQueryHook = Boolean(hooks.query)
+      if (shouldUseQueryHook) {
 
-      return shouldUseQueryHook
-        ? hooks.query({
-            runner,
-            sql,
-            parameters,
-            query,
-            run: () => query(sql, parameters, ...rest)
-          })
-        : query(sql, parameters, ...rest)
+        return hooks.query({
+          runner,
+          sql,
+          parameters,
+          query,
+          run: () => query(sql, parameters, ...rest)
+        })
+      }
+
+      return query(sql, parameters, ...rest)
     }
     runner.commitTransaction = () => {
       const shouldUseCommitHook = Boolean(hooks.commit)
+      if (shouldUseCommitHook) {
 
-      return shouldUseCommitHook ? hooks.commit(runner, commit) : commit()
+        return hooks.commit(runner, commit)
+      }
+
+      return commit()
     }
 
     return runner
