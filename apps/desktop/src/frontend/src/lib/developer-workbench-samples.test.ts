@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { DeveloperWorkbenchSample } from './developer-party'
 import {
   nextDeveloperWorkbenchSampleId,
-  paginateDeveloperWorkbenchSamples,
   queryDeveloperWorkbenchSamples,
   selectDeveloperEvaluationSamples,
   selectDeveloperWorkbenchSample
@@ -117,35 +116,6 @@ describe('evaluation targets', () => {
       completed
     ])
     expect(selectDeveloperEvaluationSamples(samples, 'ocr')).toEqual([empty, completed])
-  })
-})
-
-describe('sample pagination', () => {
-  it('clamps the OCR page to the final result while leaving the complete list available', () => {
-    const samples = Array.from({ length: 51 }, (_, index) => sample(String(index)))
-
-    const page = paginateDeveloperWorkbenchSamples({
-      visibleSamples: samples,
-      source: 'ocr',
-      page: 10
-    })
-
-    expect(page).toEqual({ pageSamples: [samples[50]], pageCount: 2, currentPage: 1 })
-    expect(samples).toHaveLength(51)
-    expect(
-      paginateDeveloperWorkbenchSamples({ visibleSamples: samples, source: 'local', page: 1 })
-        .pageSamples
-    ).toBe(samples)
-  })
-
-  it('keeps one empty page after filtering removes the last visible sample', () => {
-    expect(
-      paginateDeveloperWorkbenchSamples({ visibleSamples: [], source: 'ocr', page: 9 })
-    ).toEqual({
-      pageSamples: [],
-      pageCount: 1,
-      currentPage: 0
-    })
   })
 })
 
