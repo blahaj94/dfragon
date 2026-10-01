@@ -20,11 +20,13 @@ import { createRendererFixture, media } from '../testing/fixtures/search-rendere
 
 type Fixture = ReturnType<typeof createRendererFixture>
 function state(fixture: Fixture, slot: SearchSlot, revision?: number): SearchSnapshot {
+  const snapshot = { ...withSearchSlot(slot) }
+  const nextRevision = revision ?? fixture.current().revision + 1
 
   return {
-    ...withSearchSlot(slot),
+    ...snapshot,
     captureId: CAPTURE_ID,
-    revision: revision ?? fixture.current().revision + 1
+    revision: nextRevision
   }
 }
 async function recognizedFixture(): Promise<Fixture> {
@@ -315,11 +317,11 @@ it.each(['pending', 'failed'] as const)(
       .mockImplementation(async (command) => {
         const isRead = command.action === 'read'
         if (isRead) {
-
           return read.promise
         }
+        const snapshot = searchSnapshot()
 
-        return { ok: true, snapshot: searchSnapshot() }
+        return { ok: true, snapshot }
       })
     const bridge = createCaptureSearch({
       api: { controlCharacterSearch: control, onCharacterSearchChanged: () => () => {} },
