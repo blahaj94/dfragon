@@ -1,3 +1,5 @@
+import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
+
 export const OCR_AUTH = {
   sessionCookie: '__Host-ocr-session',
   pendingCookie: '__Host-ocr-login',
@@ -31,4 +33,3 @@ export const OCR_SAMPLES = {
   pageSize: 100,
   maximumLabelLength: OCR_DATA_LIMITS.maximumLabelLength
 } as const
-import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
