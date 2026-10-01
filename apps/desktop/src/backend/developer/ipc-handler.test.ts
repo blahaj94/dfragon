@@ -7,26 +7,35 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
 import { registerDeveloperWindow } from './ipc-handler'
 
-const electron = vi.hoisted(() => ({
-  handle: vi.fn(),
-  removeHandler: vi.fn()
-}))
-const shortcut = vi.hoisted(() => ({ register: vi.fn(), unregister: vi.fn() }))
-const partyCapture = vi.hoisted(() => ({
-  capturePartyFrame: vi.fn(),
-  isDnfForeground: vi.fn(),
-  assertDnfShortcutAccess: vi.fn()
-}))
-vi.mock('electron', () => ({
-  ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler },
-  nativeImage: {
-    createFromBuffer: vi.fn(() => ({
-      isEmpty: () => false,
-      getSize: () => ({ width: 2, height: 1 })
-    })),
-    createFromBitmap: vi.fn(() => ({ toPNG: () => Buffer.alloc(0) }))
-  }
-}))
+const electron = vi.hoisted(() => {
+  const handle = vi.fn()
+  const removeHandler = vi.fn()
+
+  return { handle, removeHandler }
+})
+const shortcut = vi.hoisted(() => {
+  const register = vi.fn()
+  const unregister = vi.fn()
+
+  return { register, unregister }
+})
+const partyCapture = vi.hoisted(() => {
+  const capturePartyFrame = vi.fn()
+  const isDnfForeground = vi.fn()
+  const assertDnfShortcutAccess = vi.fn()
+
+  return { capturePartyFrame, isDnfForeground, assertDnfShortcutAccess }
+})
+vi.mock('electron', () => {
+  const ipcMain = { handle: electron.handle, removeHandler: electron.removeHandler }
+  const createFromBuffer = vi.fn(() => ({
+    isEmpty: () => false,
+    getSize: () => ({ width: 2, height: 1 })
+  }))
+  const createFromBitmap = vi.fn(() => ({ toPNG: () => Buffer.alloc(0) }))
+
+  return { ipcMain, nativeImage: { createFromBuffer, createFromBitmap } }
+})
 vi.mock('./win32-party-capture', () => partyCapture)
 vi.mock('./print-screen-shortcut', () => ({ createPrintScreenShortcut: () => shortcut }))
 
