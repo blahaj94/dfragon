@@ -118,7 +118,6 @@ it.each([true, false])(
     if (accepted) {
       expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', {
         text: sample.text,
-        excluded: false,
         confirmSplitChange: true
       })
     }
@@ -147,7 +146,7 @@ it('preserves text typed after a save started and resets only when selecting ano
   await render()
   await act(async () => editor.setText('저장요청'))
   await act(async () => {
-    void editor.saveSample(false)
+    void editor.saveSample()
   })
   await act(async () => editor.setText('다음초안'))
   await act(async () => finish({ ...sample, text: '저장요청' }))
@@ -155,4 +154,21 @@ it('preserves text typed after a save started and resets only when selecting ano
   expect(editor.text).toBe('다음초안')
   await render({ ...sample, id: 'two', text: '두번째정답' })
   expect(editor.text).toBe('두번째정답')
+})
+
+it('updates exclusion independently of the draft and saves text without the old exclusion', async () => {
+  await render()
+  await act(async () => editor.setText('미저장초안'))
+  await act(async () => editor.setSampleExcluded(true))
+  expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { excluded: true })
+  expect(editor.text).toBe('미저장초안')
+  await render({ ...sample, text: '다른창의정답', excluded: true })
+  expect(editor.text).toBe('미저장초안')
+  await act(async () => editor.saveSample())
+  expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { text: '미저장초안' })
+  await act(async () => editor.setSampleExcluded(false))
+  expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { excluded: false })
+  await act(async () => editor.setText(''))
+  await act(async () => editor.saveSample())
+  expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { text: null })
 })
