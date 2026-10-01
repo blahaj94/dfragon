@@ -11,6 +11,8 @@ import { setTimeout as delay } from 'node:timers/promises'
 
 export function authenticationConfiguration() {
   const keys = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+  const privateKeyPem = keys.privateKey.export({ type: 'pkcs8', format: 'pem' })
+  const publicKeyPem = keys.publicKey.export({ type: 'spki', format: 'pem' })
 
   return {
     accessJwt: {
@@ -18,12 +20,12 @@ export function authenticationConfiguration() {
       audience: 'runtime-test-api',
       signingKey: {
         kid: 'runtime-test-key',
-        privateKeyPem: keys.privateKey.export({ type: 'pkcs8', format: 'pem' })
+        privateKeyPem
       },
       verificationKeys: [
         {
           kid: 'runtime-test-key',
-          publicKeyPem: keys.publicKey.export({ type: 'spki', format: 'pem' })
+          publicKeyPem
         }
       ]
     },
@@ -60,13 +62,18 @@ export function databaseEnvironment(
     database: 'runtime-test'
   }
 ) {
+  const host = configuration.host
+  const portText = String(configuration.port)
+  const username = configuration.username
+  const password = configuration.password
+  const database = configuration.database
 
   return {
-    DB_HOST: configuration.host,
-    DB_PORT: String(configuration.port),
-    DB_USERNAME: configuration.username,
-    DB_PASSWORD: configuration.password,
-    DB_NAME: configuration.database
+    DB_HOST: host,
+    DB_PORT: portText,
+    DB_USERNAME: username,
+    DB_PASSWORD: password,
+    DB_NAME: database
   }
 }
 
@@ -173,11 +180,13 @@ export async function waitForRuntime(port, runtime) {
 }
 
 export function runtimeEnvironment(path, port, database) {
+  const databaseVariables = databaseEnvironment(database)
+  const portText = String(port)
 
   return {
-    ...databaseEnvironment(database),
+    ...databaseVariables,
     AUTH_CONFIG_FILE: path,
-    PORT: String(port)
+    PORT: portText
   }
 }
 
