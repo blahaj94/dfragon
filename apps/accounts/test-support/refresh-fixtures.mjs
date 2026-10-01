@@ -56,14 +56,13 @@ export async function fixture(source, identity = { userId: randomUUID(), isNewUs
 }
 
 export async function stored(source, sessionId) {
+  const session = (await source.query('SELECT * FROM auth_sessions WHERE id=$1', [sessionId]))[0]
+  const tokens = await source.query(
+    'SELECT * FROM auth_refresh_tokens WHERE session_id=$1 ORDER BY token_hash',
+    [sessionId]
+  )
 
-  return {
-    session: (await source.query('SELECT * FROM auth_sessions WHERE id=$1', [sessionId]))[0],
-    tokens: await source.query(
-      'SELECT * FROM auth_refresh_tokens WHERE session_id=$1 ORDER BY token_hash',
-      [sessionId]
-    )
-  }
+  return { session, tokens }
 }
 
 export async function setDeadline(source, sessionId, deadline) {
