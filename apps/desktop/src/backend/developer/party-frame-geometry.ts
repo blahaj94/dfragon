@@ -200,6 +200,7 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
 
   return bands.filter(({ runs, top, bottom, medianWidth }) => {
     const distinctRows = new Set(runs.map(({ y }) => y)).size
+
     return (
       distinctRows >= 2 &&
       bottom - top + 1 <= 8 &&
@@ -282,6 +283,7 @@ function findColoredRuns({
   if (start >= 0 && lastColorPixel - start + 1 >= MIN_COLOR_RUN_WIDTH) {
     runs.push({ y, left: start, right: lastColorPixel })
   }
+
   return runs
 }
 
@@ -299,6 +301,7 @@ function isTrackColor(
   if (color === 'hp') {
     return red >= 110 && red - green >= 75 && red - blue >= 55
   }
+
   return blue >= 130 && blue - red >= 65 && blue - green >= 32 && green >= 55
 }
 
@@ -329,6 +332,7 @@ function findTrackPairCandidates({
       }
     }
   }
+
   return candidates
 }
 
@@ -390,6 +394,7 @@ function findScaleMatch({
   if (!best || Math.abs(best.scale - pairScale) > 0.04) {
     return undefined
   }
+
   return { scale: best.scale, edgeSupport: best.edgeSupport }
 }
 
@@ -439,12 +444,13 @@ function scoreLocalEdgeTemplate({
       }
       bestSupport = Math.max(bestSupport, darkPixels / edgeWidth)
     }
+
     return bestSupport
   })
-  return {
-    mean: mean(supports),
-    strongRows: supports.filter((support) => support >= 0.3).length
-  }
+  const averageSupport = mean(supports)
+  const strongRows = supports.filter((support) => support >= 0.3).length
+
+  return { mean: averageSupport, strongRows }
 }
 
 function deduplicateCandidates(candidates: TrackPairCandidate[]): TrackPairCandidate[] {
@@ -464,6 +470,7 @@ function deduplicateCandidates(candidates: TrackPairCandidate[]): TrackPairCandi
       Object.assign(duplicate, candidate)
     }
   }
+
   return unique
 }
 
@@ -479,6 +486,7 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
       clusters.push([candidate])
     }
   }
+
   return clusters
 }
 
@@ -517,7 +525,11 @@ function identifySlot(anchorX: number, scale: number): PartyFrameSlot | undefine
       matches.push((index + 1) as PartyFrameSlot)
     }
   }
-  return matches.length === 1 ? matches[0] : undefined
+  if (matches.length === 1) {
+    return matches[0]
+  }
+
+  return undefined
 }
 
 /** Project only identified observations and return them in slot-number order. */
@@ -560,6 +572,8 @@ function projectObservedSlot({
   const coverageLeft = Math.min(x, anchorX - trackMargin)
   const coverageRight = Math.max(x + width, anchorX + trackWidth + trackMargin)
   const coverageBottom = Math.max(y + height, mp.bottom + trackMargin + 1)
+  const coverageWidth = coverageRight - coverageLeft
+  const coverageHeight = coverageBottom - y
 
   return {
     slot,
@@ -570,8 +584,8 @@ function projectObservedSlot({
     coverage: {
       x: coverageLeft,
       y,
-      width: coverageRight - coverageLeft,
-      height: coverageBottom - y
+      width: coverageWidth,
+      height: coverageHeight
     }
   }
 }
