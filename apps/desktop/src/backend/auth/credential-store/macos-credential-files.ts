@@ -173,7 +173,12 @@ export class MacOsCredentialFiles {
     } catch {
       // rename 호출 이후 오류는 destination이 실제 교체됐는지 추측하지 않는다.
 
-      return replacementAttempted ? 'unknown' : 'failed'
+      if (replacementAttempted) {
+
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
@@ -219,8 +224,12 @@ export class MacOsCredentialFiles {
 
       return 'confirmed'
     } catch {
+      if (deletionAttempted) {
 
-      return deletionAttempted ? 'unknown' : 'failed'
+        return 'unknown'
+      }
+
+      return 'failed'
     }
   }
 
