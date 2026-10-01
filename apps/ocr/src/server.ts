@@ -13,7 +13,7 @@ import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
 import { OcrModelController } from './model-controller.js'
-import { MODEL_MAXIMUM_BYTES } from './model-library.js'
+import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
 import {
   OCR_CONFIG,
@@ -157,7 +157,7 @@ export async function createOcrApp(
       let size = 0
       request.on('data', (chunk: Buffer) => {
         size += chunk.length
-        if (size > MODEL_MAXIMUM_BYTES + 64 * 1024) {
+        if (size > MODEL_MAXIMUM_BYTES + MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES) {
           request.destroy()
         }
       })
