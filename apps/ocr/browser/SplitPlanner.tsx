@@ -6,7 +6,13 @@ import { styles } from './styles.js'
 import { layout } from './SplitPlanner.style.js'
 import { primary, secondary } from './buttons.js'
 
-const percent = (count: number, total: number) => (total ? (100 * count) / total : 0)
+const percent = (count: number, total: number) => {
+  if (total) {
+    return (100 * count) / total
+  }
+
+  return 0
+}
 
 export function SplitPlanner() {
   const {
@@ -27,7 +33,6 @@ export function SplitPlanner() {
 
   function handleApplySplit() {
     if (preview === null) {
-
       return
     }
     const confirmed = window.confirm(
