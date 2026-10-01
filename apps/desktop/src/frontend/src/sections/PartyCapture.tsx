@@ -3,6 +3,7 @@ import { ActionButton, ContentStack, SupportingText } from '@dfragon/ui'
 import { SearchResults } from './SearchResults'
 import { styles } from './PartyCapture.style'
 import { usePartyCapture } from '../hooks/usePartyCapture'
+import { formatPartyCaptureStatus } from '../lib/capture-presentation'
 
 function PartyCapture(): React.JSX.Element {
   const {
@@ -24,33 +25,7 @@ function PartyCapture(): React.JSX.Element {
   const isSourceRegistered = sourceRegistered
   const isSearchReady = search.ready
   const cannotStartCapture = !isSourceRegistered || starting || !isSearchReady
-  const displayLines = [
-    status,
-    ...stableNicknames.map((nickname, slot) => {
-      const hasNickname = nickname != null
-      if (!hasNickname) {
-        return null
-      }
-
-      const isNicknameEmpty = nickname.length === 0
-      if (isNicknameEmpty) {
-        return null
-      }
-
-      return `슬롯 ${slot + 1}: ${nickname}`
-    })
-  ]
-  const statusText = displayLines
-    .filter((line): line is string => {
-      const hasLine = line != null
-      if (!hasLine) {
-        return false
-      }
-
-      const isLineEmpty = line.length === 0
-      return !isLineEmpty
-    })
-    .join('\n')
+  const statusText = formatPartyCaptureStatus({ status, stableNicknames })
 
   return (
     <main>
