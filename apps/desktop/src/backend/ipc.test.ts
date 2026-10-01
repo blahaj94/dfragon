@@ -2,11 +2,15 @@ import { ipcMain } from 'electron'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { addHandler } from './ipc'
 
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn()
+vi.mock('electron', () => {
+  const handle = vi.fn()
+
+  return {
+    ipcMain: {
+      handle
+    }
   }
-}))
+})
 
 describe('backend IPC adapter', () => {
   beforeEach(() => {
