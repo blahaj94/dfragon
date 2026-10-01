@@ -37,13 +37,16 @@ type RuntimeProfileState =
   | Readonly<{ status: 'applied'; config: NonNullable<typeof parsedRuntimeConfig> }>
 const runtimeProfileState: RuntimeProfileState = (() => {
   if (parsedRuntimeConfig == null) {
+
     return { status: 'inactive-config' }
   }
   try {
     const appliedConfig = applyAuthRuntimeProfile(app, parsedRuntimeConfig)
+
     return { status: 'applied', config: appliedConfig }
   } catch (error) {
     const isApplicationFailure = error instanceof AuthRuntimeProfileApplicationFailure
+
     return { status: isApplicationFailure ? 'application-failed' : 'preparation-failed' }
   }
 })()
@@ -158,6 +161,7 @@ function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
   const hasWindow = window != null && !window.isDestroyed()
   if (!hasWindow) {
     createWindow(authRuntime)
+
     return
   }
 
@@ -170,12 +174,14 @@ function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
 
 function activateWindowSafely(authRuntime: AuthRuntime | null): void {
   if (authAppLifecycle.isQuitting()) {
+
     return
   }
 
   try {
     showOrCreateMainWindow(authRuntime)
   } catch {
+
     return
   }
 }
@@ -183,11 +189,13 @@ function activateWindowSafely(authRuntime: AuthRuntime | null): void {
 // This method will be called when Electron has finished initialization and is ready to create windows.
 app.whenReady().then(async () => {
   if (runtimeProfileState.status === 'application-failed') {
+
     return
   }
 
   const hasOwnedInstance = protocolIngress == null || protocolIngress.ownsInstance
   if (!hasOwnedInstance) {
+
     return
   }
 
@@ -221,6 +229,7 @@ app.whenReady().then(async () => {
 
       app.on('activate', function () {
         if (authAppLifecycle.isQuitting()) {
+
           return
         }
 
@@ -235,6 +244,7 @@ app.whenReady().then(async () => {
           const ownsAuthProfile = protocolIngress?.ownsInstance === true
           if (ownsAuthProfile) {
             authAppLifecycle.exitAfterOwnedAuthFailure()
+
             return
           }
           throw error
@@ -289,21 +299,25 @@ app.whenReady().then(async () => {
         })
       )
       await authAppLifecycle.runAfterQuitOutcome(() => composeAfterAuthBootstrap(authRuntime))
+
       return
     }
 
     composeAfterAuthBootstrap(authRuntime)
   } catch (error) {
     if (authAppLifecycle.isShutdownCommitted()) {
+
       return
     }
 
     const ownsAuthProfile = protocolIngress?.ownsInstance === true
     if (ownsAuthProfile) {
       authAppLifecycle.exitAfterOwnedAuthFailure()
+
       return
     }
     if (authAppLifecycle.isQuitting()) {
+
       return
     }
     throw error

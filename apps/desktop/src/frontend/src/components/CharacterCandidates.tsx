@@ -10,6 +10,7 @@ export function CharacterCandidates({
 }: {
   rows: readonly CharacterSearchRow[]
 }): React.JSX.Element {
+
   return (
     <ol {...stylex.props(styles.list)} role="list" aria-label="캐릭터 검색 후보">
       {rows.map((row, index) => (

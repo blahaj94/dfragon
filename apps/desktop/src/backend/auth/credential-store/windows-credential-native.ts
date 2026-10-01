@@ -11,14 +11,19 @@ function mapInspection(
 ): WindowsPathInspection {
   switch (inspection) {
     case 'missing':
+
       return { status: 'missing' }
     case 'reparse':
+
       return { status: 'reparse' }
     case 'trusted':
+
       return { status: kind === 'directory' ? 'trusted-directory' : 'trusted-file' }
     case 'untrusted':
+
       return { status: 'untrusted' }
     case 'unavailable':
+
       return { status: 'unavailable' }
   }
 }
@@ -30,6 +35,7 @@ function createHandle(
   let isClosed = false
   const close = async (): Promise<void> => {
     if (isClosed) {
+
       return
     }
     isClosed = true
@@ -37,10 +43,12 @@ function createHandle(
       throw new Error('Windows credential handle could not be closed.')
     }
   }
+
   return {
     read: async (maximumBytes) => {
       const buffer = Buffer.alloc(maximumBytes)
       const bytesRead = native.readFile(handle, buffer, maximumBytes)
+
       return buffer.subarray(0, bytesRead)
     },
     write: async (data) => {
@@ -58,6 +66,7 @@ function createHandle(
 
 export function createWindowsCredentialNative(): WindowsCredentialNative {
   const native = createWindowsSecurityNative()
+
   return {
     inspect: async (path, kind) => mapInspection(native.inspect(path, kind), kind),
     createDirectory: async (path) => native.createDirectory(path),

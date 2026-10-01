@@ -12,6 +12,7 @@ function isMigrationCommand(value: string | undefined): value is 'up' | 'down' |
   const isDownCommand = value === 'down'
   const isShowCommand = value === 'show'
   const isSupportedCommand = isUpCommand || isDownCommand || isShowCommand
+
   return isSupportedCommand
 }
 
@@ -21,6 +22,7 @@ try {
     throw new Error('Database migration failed')
   }
   const result = await runMigrationCommand(command, (): DataSource => {
+
     return createDatabaseDataSource(readDatabaseConfiguration(process.env))
   })
   process.stdout.write(`${result}\n`)

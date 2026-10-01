@@ -8,6 +8,7 @@ export const onPartyCollectionStatus: DeveloperApi['onPartyCollectionStatus'] = 
     update: DeveloperPartyCollectionUpdate
   ): void => listener(update)
   ipcRenderer.on(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
+
   return () => ipcRenderer.removeListener(DEVELOPER_CHANNELS.onPartyCollectionStatus, wrapper)
 }
 

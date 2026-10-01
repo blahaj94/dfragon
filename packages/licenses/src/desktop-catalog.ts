@@ -76,6 +76,7 @@ export function collectDesktopCatalog({
       packages.set(`${entry.name}@${entry.version}`, entry)
     }
   }
+
   return [
     ...entries,
     ...[...packages.values()].sort((a, b) =>
@@ -86,15 +87,19 @@ export function collectDesktopCatalog({
 
 /** Supply plain license data to the renderer without Node APIs or runtime filesystem access. */
 export function desktopLicenseCatalog(options: Parameters<typeof collectDesktopCatalog>[0]) {
+
   return {
     name: 'dfragon-desktop-license-catalog',
     resolveId(id: string) {
+
       return id === moduleId ? `\0${moduleId}` : null
     },
     load(id: string) {
       if (id !== `\0${moduleId}`) {
+
         return null
       }
+
       return `export default ${JSON.stringify(collectDesktopCatalog(options))};`
     }
   }

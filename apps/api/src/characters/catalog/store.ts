@@ -31,6 +31,7 @@ async function readEntries(manager: EntityManager, keys: CatalogKey[]): Promise<
   const skills = skillKeys.length
     ? await manager.getRepository(SkillCatalogSchema).findBy(skillKeys)
     : []
+
   return [
     ...items.map((row): CatalogEntry => ({ ...row, key: { kind: 'item', itemId: row.itemId } })),
     ...sets.map((row): CatalogEntry => ({
@@ -50,8 +51,10 @@ async function boundStatements(manager: EntityManager) {
 }
 
 export function createCatalogStore(source: DataSource): CatalogStore {
+
   return {
     async read(keys, signal) {
+
       return source.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await boundStatements(manager)
@@ -60,10 +63,12 @@ export function createCatalogStore(source: DataSource): CatalogStore {
         )) as Array<{ requested_at: string; now: Date }>
         const entries = await readEntries(manager, keys)
         signal.throwIfAborted()
+
         return { entries, requestedAt: clock!.requested_at, now: clock!.now }
       })
     },
     async saveAndRead(values, requestedAt, signal) {
+
       return source.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await boundStatements(manager)
@@ -113,6 +118,7 @@ export function createCatalogStore(source: DataSource): CatalogStore {
           now: Date
         }>
         signal.throwIfAborted()
+
         return { entries, now: clock!.now }
       })
     }

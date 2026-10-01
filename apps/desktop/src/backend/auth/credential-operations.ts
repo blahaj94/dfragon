@@ -11,15 +11,18 @@ export async function prepareCredentialTransition(
   const establishmentResult = await store.establishTransition(kind)
   const isEstablishmentConfirmed = establishmentResult === 'confirmed'
   if (isEstablishmentConfirmed) {
+
     return 'established'
   }
   const isEstablishmentFailed = establishmentResult === 'failed'
   if (isEstablishmentFailed) {
+
     return 'failed'
   }
 
   const reestablishmentResult = await store.reestablishTransition(kind)
   const isReestablished = reestablishmentResult === 'confirmed'
+
   return isReestablished ? 'established' : 'unconfirmed'
 }
 
@@ -30,15 +33,18 @@ export async function finalizeCredentialTransition(
   const removalResult = await store.removeTransition()
   const isRemovalConfirmed = removalResult === 'confirmed'
   if (isRemovalConfirmed) {
+
     return 'committed'
   }
   const isRemovalFailed = removalResult === 'failed'
   if (isRemovalFailed) {
+
     return 'save-failed'
   }
 
   const reestablishmentResult = await store.reestablishTransition(kind)
   const isAutomaticRestoreBlocked = reestablishmentResult === 'confirmed'
+
   return isAutomaticRestoreBlocked ? 'save-failed' : 'clear-unconfirmed'
 }
 
@@ -46,6 +52,7 @@ export async function clearCredential(store: CredentialStore): Promise<Credentia
   const prepared = await prepareCredentialTransition(store, 'clear')
   const canClear = prepared === 'established'
   if (!canClear) {
+
     return 'unconfirmed'
   }
 
@@ -56,12 +63,14 @@ export async function finishCredentialClear(store: CredentialStore): Promise<Cre
   const clearResult = await store.clearCredential()
   const isCredentialCleared = clearResult === 'confirmed'
   if (!isCredentialCleared) {
+
     return 'unconfirmed'
   }
 
   const removalResult = await store.removeTransition()
   const isClean = removalResult === 'confirmed'
   if (isClean) {
+
     return 'cleared'
   }
 
@@ -69,5 +78,6 @@ export async function finishCredentialClear(store: CredentialStore): Promise<Cre
   if (isRemovalUnknown) {
     await store.reestablishTransition('clear')
   }
+
   return 'unconfirmed'
 }

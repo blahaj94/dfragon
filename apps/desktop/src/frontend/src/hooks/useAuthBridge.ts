@@ -25,6 +25,7 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
   const resynchronize = useCallback((): void => send({ type: 'RESYNCHRONIZE', api }), [api, send])
   // 새 API의 연결 effect 전 렌더에서도 이전 계정 snapshot을 노출하지 않는다.
   const hasSameSource = state.context.api === api
+
   return {
     snapshot: hasSameSource ? state.context.snapshot : null,
     commandPending: hasSameSource && state.hasTag('commandPending'),

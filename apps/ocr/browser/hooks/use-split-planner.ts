@@ -61,6 +61,7 @@ export function useSplitPlanner() {
     ) &&
     Math.abs(assignedSplits.reduce((sum, split) => sum + Number(ratios[split]), 0) - 100) < 1e-6
   const error = stats.error ?? generate.error ?? apply.error
+
   return {
     stats: stats.data,
     ratios,

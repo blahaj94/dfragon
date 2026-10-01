@@ -11,9 +11,11 @@ function renderQueryStatements(queries: MigrationQuery[]): string {
       const hasParameters = parameters !== undefined
       const parameterArgument = hasParameters ? `, ${JSON.stringify(parameters)}` : ''
       const queryStatement = `    await queryRunner.query(${serializedQuery}${parameterArgument})`
+
       return queryStatement
     })
     .join('\n')
+
   return queryStatements
 }
 
@@ -44,6 +46,7 @@ ${downStatements}
   }
 }
 `
+
   return migrationSource
 }
 
@@ -65,6 +68,7 @@ export async function generateMigration(
     await dataSource.destroy()
     const hasNoSchemaChanges = upQueries.length === 0
     if (hasNoSchemaChanges) {
+
       return 'Database schema is current'
     }
     const timestamp = Date.now()
@@ -72,6 +76,7 @@ export async function generateMigration(
     const content = renderMigrationSource({ className, upQueries, downQueries })
     const filename = `${timestamp}-${name}.ts`
     await writeFile(join(directory, filename), content, { flag: 'wx' })
+
     return `Database migration generated: ${filename}`
   } catch {
     const dataSourceToClose = dataSource

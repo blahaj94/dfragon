@@ -6,9 +6,11 @@ export function waitForAuthorization(
 ): Promise<AuthAuthorization> {
   const hasSignal = signal != null
   if (!hasSignal) {
+
     return operation()
   }
   if (signal.aborted) {
+
     return Promise.resolve({ status: 'unavailable' })
   }
 

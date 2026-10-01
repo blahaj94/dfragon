@@ -30,10 +30,12 @@ export const developerEvaluationMachine = setup({
   actions: {
     beginRun: assign(({ context, event }) => {
       if (event.type !== DEVELOPER_EVENTS.EVALUATE) {
+
         return {}
       }
       // 이번 평가 대상의 이전 결과만 지워 다른 이미지의 점수는 유지한다.
       const ids = new Set(event.samples.map((sample) => sample.id))
+
       return {
         samples: event.samples,
         request: event.request,

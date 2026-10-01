@@ -62,6 +62,7 @@ async function readBody(response: Response, signal: AbortSignal, limit: number):
       }
       chunks.push(chunk.value)
     }
+
     return Buffer.concat(chunks, length)
   } finally {
     signal.removeEventListener('abort', cancel)
@@ -144,6 +145,7 @@ export function createOcrDataset(
           if (!lifecycle.isCurrent()) {
             throw new Error(errors.OCR_LOGIN_REQUIRED)
           }
+
           return result
         } catch (error) {
           await response.body?.cancel().catch(() => undefined)
@@ -166,6 +168,7 @@ export function createOcrDataset(
         if (response.headers.get('content-type')?.split(';')[0] !== 'application/json') {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
+
         return datasetSchema.parse(
           JSON.parse((await readBody(response, signal, 8 * 1024 * 1024)).toString('utf8'))
         )
@@ -173,12 +176,14 @@ export function createOcrDataset(
       if (current !== revision) {
         throw new Error(errors.OCR_UNAVAILABLE)
       }
+
       return dataset.samples.map((sample) => {
         const id = `ocr:${current}:${sample.id}`
         if (samples.has(id)) {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
         samples.set(id, sample)
+
         return {
           id,
           createdAt: sample.capturedAt,
@@ -205,6 +210,7 @@ export function createOcrDataset(
       if (!sample) {
         throw new Error(errors.SAMPLE_NOT_FOUND)
       }
+
       return get(`/api/desktop/samples/${sample.id}/image`, async (response, signal) => {
         if (response.headers.get('content-type') !== 'image/png') {
           throw new Error(errors.OCR_UNAVAILABLE)
@@ -221,6 +227,7 @@ export function createOcrDataset(
         ) {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
+
         return `data:image/png;base64,${png.toString('base64')}`
       })
     }

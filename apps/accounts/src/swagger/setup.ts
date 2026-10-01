@@ -32,6 +32,7 @@ export function setupSwagger(app: INestApplication): void {
         ...document.components,
         schemas: { ...document.components?.schemas, ...apiSchemas }
       }
+
       return document
     },
     {

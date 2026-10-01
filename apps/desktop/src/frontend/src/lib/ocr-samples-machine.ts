@@ -8,6 +8,7 @@ const loginMessage = '앱에서 자료실 소유자 계정으로 로그인한 �
 /** Maps sanitized IPC failures to dataset recovery guidance. */
 function errorMessage(cause: unknown): string {
   const message = cause instanceof Error ? cause.message : ''
+
   return message.includes(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)
     ? loginMessage
     : message.includes(DEVELOPER_ERROR_CODES.OCR_OWNER_REQUIRED)

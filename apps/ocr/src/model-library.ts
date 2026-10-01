@@ -27,6 +27,7 @@ export function parseModelUpload(value: unknown): ModelUpload {
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return {
     id: body.id,
     name: body.name,
@@ -90,5 +91,6 @@ export function inspectModelFiles(files: Map<string, Buffer>): ModelSummary['fil
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return result
 }

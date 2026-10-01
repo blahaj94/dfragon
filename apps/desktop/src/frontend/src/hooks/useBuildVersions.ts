@@ -8,6 +8,7 @@ type VersionState =
 
 function readBridge(): BuildVersionsApi | null {
   const candidate = typeof window === 'undefined' ? undefined : window.versions
+
   return candidate != null && typeof candidate.getBuildVersions === 'function' ? candidate : null
 }
 
@@ -22,17 +23,21 @@ export function useBuildVersions(): VersionState & { refresh: () => void } {
     void Promise.resolve()
       .then(() => {
         if (request.current !== revision) {
+
           return null
         }
         if (bridge == null) {
           setState({ status: 'unavailable', snapshot: null })
+
           return null
         }
         setState((previous) => ({ status: 'loading', snapshot: previous.snapshot }))
+
         return bridge.getBuildVersions()
       })
       .then((value: unknown) => {
         if (request.current !== revision || bridge == null) {
+
           return
         }
         const snapshot = parseBuildVersions(value)
@@ -50,6 +55,7 @@ export function useBuildVersions(): VersionState & { refresh: () => void } {
 
   useEffect(() => {
     refresh()
+
     return () => {
       request.current += 1
     }

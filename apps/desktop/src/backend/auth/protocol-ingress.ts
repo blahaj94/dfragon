@@ -48,6 +48,7 @@ export function attachProtocolIngressAfterStart(
   void start.then(
     () => {
       if (!active || !isActive()) {
+
         return
       }
       const activation = activate
@@ -55,11 +56,13 @@ export function attachProtocolIngressAfterStart(
       const guardedActivation = hasActivation
         ? () => {
             if (!active) {
+
               return
             }
 
             const ownerIsActive = isActive()
             if (!ownerIsActive) {
+
               return
             }
 
@@ -68,6 +71,7 @@ export function attachProtocolIngressAfterStart(
         : undefined
       const guardedDispatch = async (rawReturnUrl: string): Promise<void> => {
         if (!active || !isActive()) {
+
           return
         }
         await dispatch(rawReturnUrl)
@@ -79,6 +83,7 @@ export function attachProtocolIngressAfterStart(
       const shouldDetachImmediately = !active || !isActive()
       if (shouldDetachImmediately) {
         attachedDetach()
+
         return
       }
       detach = attachedDetach
@@ -109,6 +114,7 @@ const MAX_HANDOFF_TOTAL_BYTES = 16_384
 
 function readBoundedArguments(value: unknown): BoundedArguments {
   if (!Array.isArray(value) || value.length > MAX_HANDOFF_ARGUMENTS) {
+
     return { status: 'invalid' }
   }
 
@@ -116,6 +122,7 @@ function readBoundedArguments(value: unknown): BoundedArguments {
   let totalBytes = 0
   for (const argument of value) {
     if (typeof argument !== 'string') {
+
       return { status: 'invalid' }
     }
     const bytes = Buffer.byteLength(argument, 'utf8')
@@ -123,6 +130,7 @@ function readBoundedArguments(value: unknown): BoundedArguments {
     const isWithinBounds =
       bytes <= MAX_HANDOFF_ARGUMENT_BYTES && totalBytes <= MAX_HANDOFF_TOTAL_BYTES
     if (!isWithinBounds) {
+
       return { status: 'invalid' }
     }
     values.push(argument)
@@ -133,6 +141,7 @@ function readBoundedArguments(value: unknown): BoundedArguments {
 
 function createSecondInstanceHandoff(argv: readonly unknown[]): Record<string, unknown> {
   const bounded = readBoundedArguments(argv)
+
   return {
     version: SECOND_INSTANCE_HANDOFF_VERSION,
     argv: bounded.status === 'valid' ? [...bounded.values] : null
@@ -141,18 +150,22 @@ function createSecondInstanceHandoff(argv: readonly unknown[]): Record<string, u
 
 function readSecondInstanceHandoff(value: unknown): BoundedArguments {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+
     return { status: 'invalid' }
   }
   const keys = Reflect.ownKeys(value)
   const hasExactKeys = keys.length === 2 && keys.includes('version') && keys.includes('argv')
   if (!hasExactKeys) {
+
     return { status: 'invalid' }
   }
   const version = Object.getOwnPropertyDescriptor(value, 'version')?.value
   const argv = Object.getOwnPropertyDescriptor(value, 'argv')?.value
   if (version !== SECOND_INSTANCE_HANDOFF_VERSION) {
+
     return { status: 'invalid' }
   }
+
   return readBoundedArguments(argv)
 }
 
@@ -161,6 +174,7 @@ export function selectProtocolIngressArguments(
   isDefaultApp: boolean
 ): readonly unknown[] {
   const bootstrapArgumentCount = isDefaultApp ? 2 : 1
+
   return argv.slice(bootstrapArgumentCount)
 }
 
@@ -178,6 +192,7 @@ function projectUrlDetectionInput(value: string): ProjectedUrlInput {
     const codePoint = character.codePointAt(0)!
     const isWhitespace = character.trim().length === 0
     const isControl = codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f)
+
     return isWhitespace || isControl
   }
   while (first < last && isEdgeIgnored(characters[first]!)) {
@@ -211,6 +226,7 @@ type StructuredOptionPayload = Readonly<{
 function readStructuredOptionPayload(value: string): StructuredOptionPayload | undefined {
   const prefixLength = value.startsWith('--') ? 2 : value.startsWith('/') ? 1 : 0
   if (prefixLength === 0) {
+
     return undefined
   }
 
@@ -218,12 +234,14 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
   const separatorIndexes = [option.indexOf('='), option.indexOf(':')].filter((index) => index >= 0)
   const separatorIndex = Math.min(...separatorIndexes)
   if (!Number.isFinite(separatorIndex) || separatorIndex < 0) {
+
     return undefined
   }
 
   const name = option.slice(0, separatorIndex)
   const isSlashOptionWithPathName = prefixLength === 1 && /[\\/]/.test(name)
   if (isSlashOptionWithPathName) {
+
     return undefined
   }
 
@@ -248,12 +266,14 @@ function looksLikeUrlInput(value: string): boolean {
     /^[A-Za-z]:[\\/](?![\\/])/.test(projected)
 
   if (isKnownAbsoluteWindowsPathOption) {
+
     return hasInternalControl && projected.includes(':')
   }
 
   const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(projected)
   const hasMalformedHierarchicalScheme = /^[^/?#]*:[\\/]+/.test(projected)
   const hasControlBeforeDelimiter = hasInternalControl && projected.includes(':')
+
   return hasScheme || hasMalformedHierarchicalScheme || hasControlBeforeDelimiter
 }
 
@@ -285,16 +305,19 @@ function classifyReturnCandidate(
   }
 
   if (hasUnexpectedUrl) {
+
     return { status: 'invalid' }
   }
 
   const hasNoCandidate = candidateCount === 0
   if (hasNoCandidate) {
+
     return { status: 'none' }
   }
 
   const hasSingleCandidate = candidateCount === 1
   if (!hasSingleCandidate) {
+
     return { status: 'invalid' }
   }
 
@@ -302,6 +325,7 @@ function classifyReturnCandidate(
   try {
     parseReturnUrl(rawReturnUrl, returnTarget)
   } catch {
+
     return { status: 'invalid' }
   }
 
@@ -316,6 +340,7 @@ export function isOrdinarySecondInstanceInvocation(
   const returnProtocol = new URL(validatedReturnTarget).protocol
   const handoff = readSecondInstanceHandoff(additionalData)
   if (handoff.status === 'invalid') {
+
     return false
   }
   const candidate = classifyReturnCandidate(handoff.values, returnProtocol, validatedReturnTarget)
@@ -325,6 +350,7 @@ export function isOrdinarySecondInstanceInvocation(
 }
 
 function createInactiveIngress(): ProtocolIngress {
+
   return {
     ownsInstance: false,
     attach: () => () => undefined,
@@ -338,6 +364,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
   const ownsInstance = input.app.requestSingleInstanceLock(createSecondInstanceHandoff(input.argv))
   if (!ownsInstance) {
     input.app.quit()
+
     return createInactiveIngress()
   }
 
@@ -361,12 +388,14 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
       if (!hasBufferedReturnUrl) {
         bufferedReturnUrl = rawReturnUrl
       }
+
       return
     }
 
     try {
       void Promise.resolve(currentDispatch(rawReturnUrl)).catch(() => undefined)
     } catch {
+
       return
     }
   }
@@ -376,24 +405,28 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     const hasCurrentActivation = currentActivation != null
     if (!hasCurrentActivation) {
       bufferedActivation = true
+
       return
     }
 
     try {
       void Promise.resolve(currentActivation()).catch(() => undefined)
     } catch {
+
       return
     }
   }
 
   function receiveReturn(values: readonly unknown[]): void {
     if (disposed) {
+
       return
     }
 
     const candidate = classifyReturnCandidate(values, returnProtocol, returnTarget)
     const hasValidCandidate = candidate.status === 'valid'
     if (!hasValidCandidate) {
+
       return
     }
 
@@ -402,6 +435,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
 
   function receiveSecondInstance(values: readonly unknown[]): void {
     if (disposed) {
+
       return
     }
 
@@ -409,6 +443,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     const hasValidCandidate = candidate.status === 'valid'
     if (hasValidCandidate) {
       deliver(candidate.rawReturnUrl)
+
       return
     }
 
@@ -430,6 +465,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
   ) => {
     const handoff = readSecondInstanceHandoff(additionalData)
     if (handoff.status === 'invalid') {
+
       return
     }
     receiveSecondInstance(handoff.values)
@@ -443,6 +479,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     nextActivation?: ProtocolIngressActivation
   ): () => void {
     if (disposed) {
+
       return () => undefined
     }
 
@@ -463,6 +500,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     let isAttached = true
     const detach = (): void => {
       if (!isAttached) {
+
         return
       }
 
@@ -486,6 +524,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
 
   function dispose(): void {
     if (disposed) {
+
       return
     }
 

@@ -38,9 +38,11 @@ export function DeveloperUploadNotice({
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     if (!busy) {
+
       return
     }
     const timer = window.setInterval(() => setNow(Date.now()), 250)
+
     return () => window.clearInterval(timer)
   }, [busy, capture?.startedAt])
   const elapsed = capture

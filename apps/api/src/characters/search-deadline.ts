@@ -28,6 +28,7 @@ export class SearchDeadline {
   }
 
   get signal(): AbortSignal {
+
     return this.controller.signal
   }
 
@@ -40,6 +41,7 @@ export class SearchDeadline {
     const isExpired = this.clock.now() >= this.expiresAt
     const cannotContinue = isExpired || this.signal.aborted
     if (!cannotContinue) {
+
       return
     }
     this.abort()
@@ -49,6 +51,7 @@ export class SearchDeadline {
   async wait<T>(operation: Promise<T>): Promise<T> {
     const result = await Promise.race([operation, this.failure])
     this.check()
+
     return result
   }
 

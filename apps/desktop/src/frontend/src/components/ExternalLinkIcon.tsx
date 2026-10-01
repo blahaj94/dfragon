@@ -1,6 +1,7 @@
 import type { SVGProps } from 'react'
 
 export function ExternalLinkIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
+
   return (
     <svg
       aria-hidden="true"

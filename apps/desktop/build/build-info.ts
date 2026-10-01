@@ -15,11 +15,14 @@ export function readDesktopSourceInfo(
   try {
     const commit = runGit(['rev-parse', '--verify', 'HEAD^{commit}']).trim()
     if (commit.length !== 40 || !/^[0-9a-f]{40}$/.test(commit)) {
+
       return { commit: null, dirty: null }
     }
     const changes = runGit(['status', '--porcelain', '--untracked-files=normal'])
+
     return { commit, dirty: changes.length > 0 }
   } catch {
+
     return { commit: null, dirty: null }
   }
 }

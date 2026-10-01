@@ -34,6 +34,7 @@ export class OcrStore {
   }
 
   models(): ModelSummary[] {
+
     return this.db
       .prepare('SELECT metadata FROM models ORDER BY rowid DESC')
       .all()
@@ -45,6 +46,7 @@ export class OcrStore {
     if (row === undefined) {
       throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
+
     return JSON.parse(row.metadata as string) as ModelSummary
   }
 
@@ -55,6 +57,7 @@ export class OcrStore {
     if (row === undefined) {
       throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
+
     return Buffer.from(row.data as Uint8Array)
   }
 
@@ -75,6 +78,7 @@ export class OcrStore {
         }
         const model = this.model(input.id)
         this.db.exec('COMMIT')
+
         return { model, duplicate: true }
       }
       if (input.parentId !== null) {
@@ -118,6 +122,7 @@ export class OcrStore {
         insert.run(input.id, name, bytes)
       }
       this.db.exec('COMMIT')
+
       return { model, duplicate: false }
     } catch (error) {
       this.db.exec('ROLLBACK')
@@ -139,6 +144,7 @@ export class OcrStore {
           throw new OcrError(OCR_ERROR_CODE.CAPTURE_ID_CONFLICT)
         }
         this.db.exec('COMMIT')
+
         return { id: capture.id, duplicate: true }
       }
 
@@ -177,6 +183,7 @@ export class OcrStore {
       }
 
       this.db.exec('COMMIT')
+
       return { id: capture.id, duplicate: false }
     } catch (error) {
       this.db.exec('ROLLBACK')
@@ -223,6 +230,7 @@ export class OcrStore {
     if (row === undefined) {
       throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }
+
     return this.sampleRow(row)
   }
 
@@ -314,6 +322,7 @@ export class OcrStore {
         .run(text, Number(excluded), id)
       const sample = this.sample(id)
       this.db.exec('COMMIT')
+
       return sample
     } catch (error) {
       this.db.exec('ROLLBACK')
@@ -322,6 +331,7 @@ export class OcrStore {
   }
 
   private splitInitialized() {
+
     return this.db.prepare("SELECT 1 FROM settings WHERE key='automatic-split'").get() !== undefined
   }
 
@@ -350,6 +360,7 @@ export class OcrStore {
       )
       .all()
     const syntheticNicknames = [...new Set(syntheticRows.map((row) => row.text as string))].sort()
+
     return {
       rows,
       assignments,
@@ -362,11 +373,13 @@ export class OcrStore {
 
   splitStats() {
     const state = this.splitState()
+
     return { ...splitStatistics(state.rows), initialized: state.initialized }
   }
 
   previewSplit(options: SplitOptions) {
     const state = this.splitState()
+
     return {
       ...planSplits(
         state.rows,
@@ -397,6 +410,7 @@ export class OcrStore {
       }
       this.db.prepare("INSERT OR REPLACE INTO settings VALUES('automatic-split','1')").run()
       this.db.exec('COMMIT')
+
       return { changedNicknames: preview.changedNicknames, statistics: preview.after }
     } catch (error) {
       this.db.exec('ROLLBACK')
@@ -444,6 +458,7 @@ export class OcrStore {
   }
 
   stats() {
+
     return this.db
       .prepare(
         `SELECT (SELECT COUNT(*) FROM captures) AS captures,COUNT(*) AS samples,

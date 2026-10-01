@@ -8,6 +8,7 @@ import type { CharacterSearchRow, SearchErrorCode } from '../../preload/common/t
 
 const nonblank = z.string().refine((value) => {
   const hasText = value.trim().length > 0
+
   return hasText
 })
 const responseSchema = z.object({
@@ -64,6 +65,7 @@ function parseRetryAfter(value: string | null): number | null {
   const isSafeInteger = Number.isSafeInteger(seconds)
   const isPositive = seconds > 0
   const isValid = isSafeInteger && isPositive
+
   return isValid ? seconds : null
 }
 
@@ -153,6 +155,7 @@ export function createSearchHttp({
     if (!parsed.success) {
       throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
     }
+
     return parsed.data.rows
   }
 }

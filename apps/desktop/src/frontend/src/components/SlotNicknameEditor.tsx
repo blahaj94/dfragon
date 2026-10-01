@@ -23,6 +23,7 @@ export function SlotNicknameEditor({
     (slot.error.retryAfterSeconds ?? 0) > 0
   const blocked = samePending || sameRateWait
   if (!manual) {
+
     return (
       <ActionButton
         type="button"
@@ -37,6 +38,7 @@ export function SlotNicknameEditor({
       </ActionButton>
     )
   }
+
   return (
     <form
       aria-label={`슬롯 ${slot.slot + 1} 닉네임 수정`}

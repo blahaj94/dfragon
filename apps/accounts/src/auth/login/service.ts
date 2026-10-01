@@ -42,6 +42,7 @@ function requestId(input: unknown): string {
   if (typeof input !== 'string' || !UUID_PATTERN.test(input)) {
     throw invalid()
   }
+
   return input
 }
 
@@ -52,6 +53,7 @@ async function lockUser(manager: EntityManager, id: string) {
   if (user == null) {
     throw invalid()
   }
+
   return user
 }
 
@@ -62,6 +64,7 @@ async function lockCredential(manager: EntityManager, userId: string, id: string
   if (key == null) {
     throw badPasskey()
   }
+
   return key
 }
 
@@ -70,6 +73,7 @@ async function checkTime(manager: EntityManager, row: AuthLoginRequest) {
   if (requestExpired(row, now)) {
     throw invalid()
   }
+
   return now
 }
 
@@ -86,6 +90,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     codeChallenge: string | null,
     clientId: 'desktop' | 'ocr' = 'desktop'
   ) {
+
     return loginTransaction(deps.dataSource, async (manager) => {
       const now = await freshTime(manager)
       const row: AuthLoginRequest = {
@@ -107,6 +112,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         row.browserBindingHash = opaqueHash(secret)
       }
       await manager.getRepository(AuthLoginRequestSchema).insert(row)
+
       return { row, secret }
     })
   }
@@ -130,6 +136,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       Object.assign(row, clearChallenge, { webauthnChallenge: value.challenge, operation })
       await checkTime(manager, row)
       await manager.getRepository(AuthLoginRequestSchema).save(row)
+
       return value
     }
     const userId = managing ? row.verifiedUserId! : randomUUID()
@@ -152,6 +159,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     Object.assign(row, { webauthnChallenge: value.challenge, operation, pendingUserId: userId })
     await checkTime(manager, row)
     await manager.getRepository(AuthLoginRequestSchema).save(row)
+
     return value
   }
 
@@ -278,9 +286,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       if (adding) {
         Object.assign(row, clearChallenge)
         await manager.getRepository(AuthLoginRequestSchema).save(row)
+
         return { managed: true }
       }
     }
+
     return verified(manager, row, userId, credentialId, operation === 'register')
   }
 
@@ -296,14 +306,17 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     if (row.purpose === 'manage') {
       row.status = 'managing'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
+
       return { managed: true }
     }
     if (row.phoneBindingHash != null) {
       row.status = 'phone_verified'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
       const user = await manager.getRepository(UserSchema).findOneByOrFail({ id: userId })
+
       return { phoneVerified: true, nickname: user.nickname }
     }
+
     return complete(manager, row, now)
   }
 
@@ -326,6 +339,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     }
     const url = new URL(returnUrl)
     url.searchParams.set('code', code)
+
     return { returnUrl: url.href }
   }
 
@@ -336,6 +350,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         throw invalid()
       }
       const { row, secret } = await newRequest('login', body.codeChallenge, body.clientId)
+
       return {
         requestId: row.id,
         browserUrl: `${configuration.apiOrigin}/auth/login/authorize?ticket=${secret}`,
@@ -344,6 +359,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     },
     async manage() {
       const { row, secret } = await newRequest('manage', null)
+
       return {
         requestId: row.id,
         purpose: 'manage',
@@ -357,6 +373,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     async authorize(ticket, view) {
       const phone = view === 'phone'
       decodeOpaque(ticket)
+
       return loginTransaction(deps.dataSource, async (manager) => {
         const repo = manager.getRepository(AuthLoginRequestSchema)
         const row = await repo.findOne({
@@ -384,6 +401,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
                 status: 'browser_started'
               }
         )
+
         return {
           requestId: row.id,
           purpose: row.purpose,
@@ -448,6 +466,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
             action
           )
         ) {
+
           return {
             value: await phoneLoginAction(manager, row, action, configuration.apiOrigin, complete)
           }
@@ -456,16 +475,19 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           throw invalid()
         }
         if (action === 'options' || action === 'phone-options') {
+
           return { value: await options(manager, row, body.operation) }
         }
         if (action === 'verify' || action === 'phone-verify') {
           try {
+
             return { value: await verify(manager, row, body.response) }
           } catch (error) {
             if (!(error instanceof LoginFailure) || error.code !== LOGIN_ERRORS.PASSKEY.code) {
               throw error
             }
             await repo.update({ id }, clearChallenge)
+
             return { failure: error }
           }
         }
@@ -477,6 +499,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
             where: { userId: row.verifiedUserId!, rpId: configuration.rpId },
             order: { createdAt: 'ASC', id: 'ASC' }
           })
+
           return {
             value: {
               keys: keys.map((key) => ({
@@ -503,6 +526,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           await checkTime(manager, row)
           await keys.delete({ id: body.credentialId, userId: row.verifiedUserId! })
           if (body.credentialId !== row.credentialId) {
+
             return { value: { managed: true } }
           }
         }
@@ -510,11 +534,13 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           { id },
           { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt: await freshTime(manager) }
         )
+
         return { value: { ended: true } }
       })
       if (result.failure) {
         throw result.failure
       }
+
       return result.value
     },
     exchange: (input) => exchangeLogin(deps, input)

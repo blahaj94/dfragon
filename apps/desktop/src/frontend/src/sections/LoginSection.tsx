@@ -19,6 +19,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
   const canRetry = snapshot?.phase === 'restorePaused' || snapshot?.phase === 'storageBlocked'
 
   if (snapshot?.phase === 'signedIn') {
+
     return null
   }
 
@@ -32,6 +33,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
       disabled={inProgress || (!canBeginLogin && !canRetry && !connectionFailed)}
       onClick={() => {
         if (inProgress) {
+
           return
         }
         if (connectionFailed) {

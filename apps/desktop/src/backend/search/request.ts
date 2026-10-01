@@ -22,6 +22,7 @@ type RequestInput = {
 type Check = { active: true } | { active: false; result: SearchOutcome }
 
 function failure(code: SearchErrorCode): SearchOutcome {
+
   return { kind: 'failure', error: { code, retryAfterSeconds: null }, retryAfterReceivedAt: null }
 }
 
@@ -40,12 +41,15 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
     const isCurrent = input.isCurrent()
     const canContinue = !signal.aborted && isCurrent
     if (!canContinue) {
+
       return { active: false, result: null }
     }
     const isExpired = runtime.clock.read().monotonicMs >= deadline
     if (isExpired) {
+
       return { active: false, result: failure('SEARCH_TIMEOUT') }
     }
+
     return { active: true }
   }
 
@@ -56,12 +60,14 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
 
   function expire(): void {
     if (finished) {
+
       return
     }
     const current = check()
     if (current.active) {
       const remaining = deadline - runtime.clock.read().monotonicMs
       cancelDeadline = runtime.clock.schedule(Math.max(1, remaining), expire)
+
       return
     }
     transport.abort()
@@ -71,6 +77,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
   async function perform(): Promise<SearchOutcome> {
     const beforeHttp = check()
     if (!beforeHttp.active) {
+
       return beforeHttp.result
     }
 
@@ -80,16 +87,20 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
         signal: transport.signal
       })
       const completed = check()
+
       return completed.active ? { kind: 'success', rows } : completed.result
     } catch (error) {
       const completed = check()
       if (!completed.active) {
+
         return completed.result
       }
       const isSearchFailure = error instanceof SearchHttpFailure
       if (!isSearchFailure) {
+
         return failure('SEARCH_NETWORK_ERROR')
       }
+
       return {
         kind: 'failure',
         error: { code: error.code, retryAfterSeconds: error.retryAfterSeconds },
@@ -100,12 +111,14 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
 
   const initial = check()
   if (!initial.active) {
+
     return initial.result
   }
   signal.addEventListener('abort', cancel, { once: true })
   const remaining = deadline - runtime.clock.read().monotonicMs
   cancelDeadline = runtime.clock.schedule(Math.max(0, remaining), expire)
   try {
+
     return await Promise.race([perform(), interrupted])
   } finally {
     finished = true

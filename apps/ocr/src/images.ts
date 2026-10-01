@@ -57,6 +57,7 @@ export function decodePng(bytes: Buffer): PNG {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
   try {
+
     return PNG.sync.read(bytes, { checkCRC: true })
   } catch {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
@@ -67,6 +68,7 @@ function parseCoordinate(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value)) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return value
 }
 
@@ -78,6 +80,7 @@ export function decodeUploadedPng(value: unknown) {
   if (png.toString('base64') !== value) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return { png, decoded: decodePng(png) }
 }
 
@@ -147,9 +150,11 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
         throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
       }
       slots.add(slot)
+
       return { slot, x, y, width, height }
     })
     .sort((a, b) => a.slot - b.slot)
+
   return {
     png,
     capture: {
@@ -168,5 +173,6 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
 export function cropPng(original: PNG, crop: Crop): Buffer {
   const output = new PNG({ width: crop.width, height: crop.height })
   PNG.bitblt(original, output, crop.x, crop.y, crop.width, crop.height, 0, 0)
+
   return PNG.sync.write(output)
 }

@@ -11,6 +11,7 @@ export function createNeopleCatalog(
   fetchImpl = globalThis.fetch,
   budget = neopleBudget
 ): FetchCatalog {
+
   return async (keys, requestSignal) => {
     const first = keys[0]
     if (
@@ -39,6 +40,7 @@ export function createNeopleCatalog(
     } else {
       throw new Error('Invalid catalog batch')
     }
+
     return budget.run(async () => {
       try {
         const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(5000)])
@@ -66,14 +68,17 @@ export function createNeopleCatalog(
           ) {
             throw new Error('Invalid skill identity')
           }
+
           return [{ key: first, payload: body }]
         }
         if (!Array.isArray(body.rows)) {
           throw new Error('Invalid catalog list')
         }
         const rows = body.rows
+
         return keys.flatMap((key) => {
           if (key.kind === 'skill') {
+
             return []
           }
           const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
@@ -82,6 +87,7 @@ export function createNeopleCatalog(
           const matches = rows.filter((row) => isObject(row) && row[idField] === id)
           const row: unknown = matches[0]
           // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
+
           return matches.length === 1 &&
             isObject(row) &&
             typeof row[nameField] === 'string' &&

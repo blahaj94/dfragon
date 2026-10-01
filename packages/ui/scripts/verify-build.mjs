@@ -30,6 +30,7 @@ const mentionsLayoutSlots = changes.includes('header/footer/children')
 assert.ok(mentionsLayoutSlots)
 const cssFiles = files.filter((file) => {
   const isStylesheet = file.endsWith('.css')
+
   return isStylesheet
 })
 
@@ -67,6 +68,7 @@ if (isLibrary) {
   assert.equal(cssFiles.length, 0, 'Library must not emit CSS')
   const declarations = files.filter((file) => {
     const isDeclaration = file.endsWith('.d.ts')
+
     return isDeclaration
   })
   for (const declaration of declarations) {
@@ -89,6 +91,7 @@ if (isLibrary) {
   for (const [name, version] of Object.entries(expectedVersions)) {
     const copies = graph.filter((dependency) => {
       const hasExpectedName = dependency.name === name
+
       return hasExpectedName
     })
     assert.equal(copies.length, 1, `Single bundled copy: ${name}`)
@@ -96,10 +99,12 @@ if (isLibrary) {
   }
   const seedCss = graph.find((dependency) => {
     const isSeedCss = dependency.name === '@seed-design/css'
+
     return isSeedCss
   })
   const baseImports = seedCss.modules.filter((file) => {
     const isBaseEntry = file === 'base.css'
+
     return isBaseEntry
   })
   assert.equal(baseImports.length, 1, 'Consumer must import base.css once')

@@ -13,6 +13,7 @@ export function useOcrSamples(enabled: boolean): {
   const [snapshot, send] = useMachine(ocrSamplesMachine, { input: { api: window.developer } })
   useLayoutEffect(() => {
     if (!enabled) {
+
       return
     }
     const unsubscribe = window.auth?.onAuthStateChanged((state) => {
@@ -21,11 +22,13 @@ export function useOcrSamples(enabled: boolean): {
       }
     })
     send({ type: 'OPEN' })
+
     return () => {
       unsubscribe?.()
       send({ type: 'CLOSE' })
     }
   }, [enabled, send])
+
   return {
     samples: enabled ? snapshot.context.samples : [],
     loading: enabled && snapshot.matches({ open: 'loading' }),

@@ -24,6 +24,7 @@ onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) =
         logSeverityLevel: 3
       })
       postMessage({ ready: true })
+
       return
     }
     if (session == null || pixels == null) {

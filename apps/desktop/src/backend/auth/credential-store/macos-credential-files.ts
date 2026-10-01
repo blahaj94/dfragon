@@ -17,20 +17,24 @@ const OWNED_TEMP =
 function isMissing(error: unknown): boolean {
   const hasError = error != null
   if (!hasError) {
+
     return false
   }
 
   const isErrorObject = typeof error === 'object'
   if (!isErrorObject) {
+
     return false
   }
 
   const hasCode = 'code' in error
   if (!hasCode) {
+
     return false
   }
 
   const isNotFound = error.code === 'ENOENT'
+
   return isNotFound
 }
 
@@ -85,10 +89,12 @@ export class MacOsCredentialFiles {
   async present(name: string): Promise<boolean> {
     try {
       assertPrivate({ stat: await this.files.lstat(join(this.directory, name)), directory: false })
+
       return true
     } catch (error) {
       const wasMissing = isMissing(error)
       if (wasMissing) {
+
         return false
       }
       throw error
@@ -97,9 +103,11 @@ export class MacOsCredentialFiles {
 
   async ownedTemporaries(): Promise<string[]> {
     const names = await this.files.readdir(this.directory)
+
     return names
       .filter((name) => {
         const isOwnedTemporary = OWNED_TEMP.test(name)
+
         return isOwnedTemporary
       })
       .sort()
@@ -108,6 +116,7 @@ export class MacOsCredentialFiles {
   async read(name: RecordName): Promise<Buffer | null> {
     const exists = await this.present(name)
     if (!exists) {
+
       return null
     }
     const handle = await this.files.open(
@@ -130,6 +139,7 @@ export class MacOsCredentialFiles {
         }
         offset += bytesRead
       }
+
       return buffer.subarray(0, offset)
     } finally {
       await handle.close()
@@ -158,9 +168,11 @@ export class MacOsCredentialFiles {
       if (isMarker) {
         await this.discardMarkerTemporaries()
       }
+
       return 'confirmed'
     } catch {
       // rename 호출 이후 오류는 destination이 실제 교체됐는지 추측하지 않는다.
+
       return replacementAttempted ? 'unknown' : 'failed'
     }
   }
@@ -168,10 +180,12 @@ export class MacOsCredentialFiles {
   private async discardMarkerTemporaries(): Promise<void> {
     const names = (await this.ownedTemporaries()).filter((name) => {
       const isMarkerTemporary = name.startsWith('.transition.v1.')
+
       return isMarkerTemporary
     })
     const hasTemporaries = names.length > 0
     if (!hasTemporaries) {
+
       return
     }
     // 새 marker의 directory sync 이후에만 이전 시도의 temp를 지운다.
@@ -202,8 +216,10 @@ export class MacOsCredentialFiles {
       }
       deletionAttempted = true
       await this.syncDirectory()
+
       return 'confirmed'
     } catch {
+
       return deletionAttempted ? 'unknown' : 'failed'
     }
   }
@@ -213,13 +229,16 @@ export class MacOsCredentialFiles {
       await this.prepare()
       const exists = await this.present('transition.v1')
       if (!exists) {
+
         return 'unknown'
       }
       await this.files.unlink(join(this.directory, 'transition.v1'))
       await this.syncDirectory()
+
       return 'confirmed'
     } catch {
       // unlink 전 실패도 안전하게 재확립한다. 삭제 뒤 flush 실패는 특히 marker 보존 증거가 아니다.
+
       return 'unknown'
     }
   }

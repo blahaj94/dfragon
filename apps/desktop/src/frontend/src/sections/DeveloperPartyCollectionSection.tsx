@@ -54,6 +54,7 @@ export function DeveloperPartyCollectionSection({
   useEffect(() => {
     const revision = collection.collection?.revision
     if (revision == null) {
+
       return
     }
 
@@ -62,6 +63,7 @@ export function DeveloperPartyCollectionSection({
       if (revision > 0) {
         onSavedRef.current()
       }
+
       return
     }
 
@@ -72,10 +74,12 @@ export function DeveloperPartyCollectionSection({
   }, [collection.collection?.revision])
 
   if (!active) {
+
     return null
   }
 
   if (kind !== 'hud') {
+
     return (
       <div {...stylex.props(styles.section)}>
         <DeveloperUploadNotice collection={collection.collection} />

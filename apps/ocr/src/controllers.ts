@@ -31,6 +31,7 @@ export class OcrAuthController {
   @Post('login')
   @HttpCode(200)
   login(@Req() request: Request, @Res() response: Response) {
+
     return this.auth.begin(request, response)
   }
 
@@ -39,11 +40,13 @@ export class OcrAuthController {
     if (request.method !== 'GET') {
       throw new OcrError(OCR_ERROR_CODE.METHOD_NOT_ALLOWED)
     }
+
     return this.auth.callback(request, response)
   }
 
   @Post('logout')
   logout(@Req() request: Request, @Res() response: Response) {
+
     return this.auth.logout(request, response)
   }
 }
@@ -57,11 +60,13 @@ export class OcrDataController {
 
   @Get('session')
   session() {
+
     return { authenticated: true }
   }
 
   @Get('stats')
   stats() {
+
     return this.store.stats()
   }
 
@@ -115,11 +120,13 @@ export class OcrDataController {
     if (split !== undefined && split.length > 0) {
       parseSplit(split)
     }
+
     return this.store.list({ offset, state, split, kind, text: query.get('text') ?? undefined })
   }
 
   @Get('captures/:id')
   capture(@Param('id') id: string) {
+
     return this.store.capture(id).capture
   }
 
@@ -144,6 +151,7 @@ export class OcrDataController {
     ) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.updateSample(id, {
       text,
       excluded: body.excluded,
@@ -158,17 +166,20 @@ export class OcrDataController {
     if (text === null) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.assign(text, parseSplit(body.split))
   }
 
   @Get('splits/statistics')
   splitStatistics() {
+
     return this.store.splitStats()
   }
 
   @Post('splits/preview')
   @HttpCode(200)
   previewSplit(@Body() value: unknown) {
+
     return this.store.previewSplit(parseSplitOptions(value))
   }
 
@@ -179,6 +190,7 @@ export class OcrDataController {
     if (typeof body.fingerprint !== 'string' || !/^[0-9a-f]{64}$/.test(body.fingerprint)) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     return this.store.applySplit(parseSplitOptions(body), body.fingerprint)
   }
 
@@ -186,16 +198,19 @@ export class OcrDataController {
   desktopDataset() {
     const { exportedAt, samples } = this.store.exportManifest()
     // The existing Desktop evaluator supports game captures only.
+
     return { exportedAt, samples: samples.filter((sample) => sample.kind !== 'synthetic') }
   }
 
   @Get('export/manifest')
   manifest() {
+
     return this.store.exportManifest()
   }
 
   @Get('export')
   download(@Res() response: Response) {
+
     return downloadDataset(this.store, response)
   }
 }
@@ -204,6 +219,7 @@ export class OcrDataController {
 export class OcrHealthController {
   @Get('health')
   health() {
+
     return { ok: true }
   }
 }

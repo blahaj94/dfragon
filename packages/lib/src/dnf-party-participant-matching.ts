@@ -30,6 +30,7 @@ export function roundParticipantPixel(value: number): number {
   const floor = Math.floor(value)
   // Scale refinement and projection can move a mathematical half by a few float ulps.
   const tolerance = 4 * Number.EPSILON * Math.max(1, Math.abs(value))
+
   return Math.abs(value - floor - 0.5) <= tolerance
     ? floor + Math.abs(floor % 2)
     : Math.round(value)
@@ -44,6 +45,7 @@ export function participantGrayscale(rgba: Uint8Array | Uint8ClampedArray): Uint
       0.299 * rgba[offset] + 0.587 * rgba[offset + 1] + 0.114 * rgba[offset + 2]
     )
   }
+
   return gray
 }
 
@@ -103,9 +105,11 @@ export function findParticipantAnchors(
     anchors.push({ x: (left + right) / 2, y: (top + bottom) / 2, scale: Math.sqrt(w * h) / 9 })
     // Do not silently choose a subset on a pathological or unsupported frame.
     if (anchors.length > 128) {
+
       return null
     }
   }
+
   return anchors
 }
 
@@ -142,6 +146,7 @@ function headingPattern(
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length
   const weights = Float64Array.from(values, (value) => value - mean)
   const energy = weights.reduce((sum, value) => sum + value * value, 0)
+
   return { width, height, offsets: Int32Array.from(offsets), weights, energy }
 }
 
@@ -159,8 +164,10 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
   }
   const energy = squares - (sum * sum) / pattern.offsets.length
   if (energy <= 0 || pattern.energy <= 0) {
+
     return -1
   }
+
   return Math.min(1, product / Math.sqrt(energy * pattern.energy))
 }
 
@@ -177,9 +184,11 @@ export function createParticipantHeadingMatcher(
 
   function boundedScore(pattern: Pattern, x: number, y: number): number | null {
     if (pattern.offsets.length > remainingSamples) {
+
       return null
     }
     remainingSamples -= pattern.offsets.length
+
     return headingScore(frame, pattern, x, y)
   }
 
@@ -192,6 +201,7 @@ export function createParticipantHeadingMatcher(
       pattern = headingPattern(heading, layout, width, height, frame.width, sparse)
       patterns.set(key, pattern)
     }
+
     return pattern
   }
 
@@ -215,6 +225,7 @@ export function createParticipantHeadingMatcher(
           }
           const score = boundedScore(pattern, x, y)
           if (score == null) {
+
             return 'search-limit'
           }
           if (peak == null || score > peak.score) {
@@ -236,6 +247,7 @@ export function createParticipantHeadingMatcher(
             }
             const score = boundedScore(full, x, y)
             if (score == null) {
+
               return 'search-limit'
             }
             if (peak == null || score > peak.score) {
@@ -248,6 +260,7 @@ export function createParticipantHeadingMatcher(
         best = peak
       }
     }
+
     return best
   }
 
@@ -264,9 +277,11 @@ export function createParticipantHeadingMatcher(
       false
     )
     if (coarse === 'search-limit') {
+
       return coarse
     }
     if (coarse == null || coarse.score < 0.6) {
+
       return null
     }
     const refined = search(
@@ -275,8 +290,10 @@ export function createParticipantHeadingMatcher(
       true
     )
     if (refined === 'search-limit') {
+
       return refined
     }
+
     return refined != null && refined.score >= 0.68 ? refined : null
   }
 }

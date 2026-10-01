@@ -84,11 +84,13 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const summary = summarizeDeveloperEvaluation(evaluationSamples, evaluation.results)
   const dirty = Object.entries(drafts).some(([id, value]) => {
     const sample = dataset.samples.find((row) => row.id === id)
+
     return sample != null && (sample.text == null ? value !== '' : value !== sample.text)
   })
 
   async function saveAndNext(): Promise<void> {
     if (readingRemote || !selected || dataset.saving || draft.length === 0) {
+
       return
     }
 
@@ -96,12 +98,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const saved = await dataset.saveLabel(id, draft)
     if (!saved) {
+
       return
     }
 
     setDrafts((previous) => {
       const next = { ...previous }
       delete next[id]
+
       return next
     })
     setNotice('정답을 저장했습니다.')
@@ -110,6 +114,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   function skipSelected(): void {
     if (!selected) {
+
       return
     }
     setSelectedId(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
@@ -118,6 +123,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   async function setSelectedExcluded(excluded: boolean): Promise<void> {
     if (readingRemote || !selected || dataset.saving) {
+
       return
     }
 
@@ -125,6 +131,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const updated = await dataset.setSampleExcluded(id, excluded)
     if (!updated) {
+
       return
     }
 
@@ -135,6 +142,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   function requestClose(): void {
     if (dirty) {
       setConfirmClose(true)
+
       return
     }
     onClose()
@@ -142,6 +150,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
 
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>): void {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+
       return
     }
     event.preventDefault()

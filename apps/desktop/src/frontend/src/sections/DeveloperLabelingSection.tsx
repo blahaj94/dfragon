@@ -52,6 +52,7 @@ export function DeveloperLabelingSection({
   onSkip: () => void
   onSetExcluded: (excluded: boolean) => void
 }): React.JSX.Element {
+
   return (
     <section
       role="tabpanel"

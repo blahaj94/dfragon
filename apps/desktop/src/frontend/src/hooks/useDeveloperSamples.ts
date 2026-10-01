@@ -25,6 +25,7 @@ export function useDeveloperSamples(): {
     const current = actor.getSnapshot()
     const event = { type: DEVELOPER_EVENTS.REFRESH, request: {} } as const
     if (!current.can(event)) {
+
       return Promise.resolve()
     }
 
@@ -32,6 +33,7 @@ export function useDeveloperSamples(): {
       state.context.lastRefreshRequests.includes(event.request)
     )
     send(event)
+
     return completed.then(
       () => undefined,
       () => undefined
@@ -46,6 +48,7 @@ export function useDeveloperSamples(): {
     const current = actor.getSnapshot()
     const event = { ...command, request: {} } as const
     if (!current.can(event)) {
+
       return Promise.resolve(null)
     }
 
@@ -53,6 +56,7 @@ export function useDeveloperSamples(): {
       .then((state) => state.context.lastSave?.sample ?? null)
       .catch(() => null)
     send(event)
+
     return completed
   }
 

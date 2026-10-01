@@ -7,11 +7,13 @@ type DecodedQueryPair = { key: string; value: string }
 /** Raw URL 해석과 검색 조건 검증을 순서대로 수행한다. */
 export function parseCharacterSearchQuery(originalUrl: string): NeopleCharacterSearchInput {
   const pairs = decodeRawQuery(originalUrl)
+
   return validateSearchQuery(pairs)
 }
 
 function decodeQueryPart(raw: string): string {
   try {
+
     return decodeURIComponent(raw.replace(/\+/g, ' '))
   } catch {
     throw neopleSearchFailure('query')
@@ -38,6 +40,7 @@ function decodeRawQuery(originalUrl: string): DecodedQueryPair[] {
     const value = decodeQueryPart(hasEquals ? component.slice(equalsIndex + 1) : '')
     pairs.push({ key, value })
   }
+
   return pairs
 }
 

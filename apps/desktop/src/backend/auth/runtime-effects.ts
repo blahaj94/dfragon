@@ -55,6 +55,7 @@ export function createAuthRuntimeEffects(
   const readWallMs = options.readWallMs ?? Date.now
   const readMonotonicMs = options.readMonotonicMs ?? (() => performance.now())
   const powerState: ClockPowerState = { suspended: false, revision: 0 }
+
   return {
     bindPowerMonitor(powerMonitor): () => void {
       const suspend = (): void => {
@@ -76,6 +77,7 @@ export function createAuthRuntimeEffects(
         dispose()
         throw error
       }
+
       return dispose
     },
 
@@ -116,6 +118,7 @@ export function createAuthRuntimeEffects(
     },
 
     createSearchClock(): AuthClock {
+
       return createRuntimeClock({ readWallMs, readMonotonicMs, powerState })
     }
   }

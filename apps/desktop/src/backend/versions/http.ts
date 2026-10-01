@@ -24,6 +24,7 @@ export function createServerVersionReader({
   async function read(service: BuildVersionService): Promise<ServerVersion> {
     const configuredOrigin = origins[service]
     if (configuredOrigin == null) {
+
       return { status: 'unavailable' }
     }
     const controller = new AbortController()
@@ -45,20 +46,26 @@ export function createServerVersionReader({
         response.redirected ||
         (response.url && response.url !== url)
       ) {
+
         return { status: 'unavailable' }
       }
       if (response.status === 404) {
+
         return { status: 'unsupported' }
       }
       if (response.status !== 200) {
+
         return { status: 'unavailable' }
       }
       const parsed = parseServerBuildInfo(await readJson(response, controller.signal), service)
       if (parsed == null || controller.signal.aborted) {
+
         return { status: 'unavailable' }
       }
+
       return { status: 'available', commit: parsed.commit }
     } catch {
+
       return { status: 'unavailable' }
     } finally {
       clearTimeout(timeout)
@@ -68,6 +75,7 @@ export function createServerVersionReader({
 
   return async () => {
     const [api, accounts, ocr] = await Promise.all([read('api'), read('accounts'), read('ocr')])
+
     return { api, accounts, ocr }
   }
 }

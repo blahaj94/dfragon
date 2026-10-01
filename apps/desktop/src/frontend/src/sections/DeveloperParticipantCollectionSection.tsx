@@ -145,6 +145,7 @@ export function DeveloperParticipantCollectionSection({
           {DEVELOPER_COLLECTION_SLOTS[kind].map((slot) => {
             const crop = frame?.slots.find((row) => row.slot === slot)
             const included = collection.slots.includes(slot)
+
             return (
               <article key={slot} {...stylex.props(styles.row, raid && styles.raidRow)}>
                 <label {...stylex.props(styles.rowHeader, raid && styles.raidRowHeader)}>

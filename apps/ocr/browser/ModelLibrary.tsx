@@ -17,6 +17,7 @@ export function ModelLibrary() {
     onSuccess: () => client.invalidateQueries({ queryKey: ['ocr', 'models'] })
   })
   const error = models.error ?? addBase.error
+
   return (
     <details {...stylex.props(styles.upload)}>
       <summary>학습 모델 · {models.data?.models.length ?? 0}개</summary>

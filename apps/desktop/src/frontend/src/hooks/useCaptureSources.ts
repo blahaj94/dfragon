@@ -32,6 +32,7 @@ export function useCaptureSources(setStatus: (status: string) => void): {
           )
         }
       })
+
     return () => {
       cancelled = true
     }

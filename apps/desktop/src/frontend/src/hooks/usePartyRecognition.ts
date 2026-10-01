@@ -33,6 +33,7 @@ export function usePartyRecognition(
     signal: AbortSignal
   ): Promise<void> {
     if (signal.aborted) {
+
       return
     }
     const crops = capturePartyNicknameCrops(video)
@@ -41,6 +42,7 @@ export function usePartyRecognition(
       const hasCrop = crop != null
       const nickname = hasCrop ? normalizeNickname((await worker.recognize(crop)).data.text) : null
       if (signal.aborted) {
+
         return
       }
       const hasNickname = nickname != null
@@ -72,6 +74,7 @@ export function usePartyRecognition(
     }
     const hasChangedNicknames = nextStableNicknames.some((nickname, slot) => {
       const hasChanged = nickname !== stableNicknamesRef.current[slot]
+
       return hasChanged
     })
     if (hasChangedNicknames) {
@@ -84,9 +87,11 @@ export function usePartyRecognition(
 }
 
 function emptySlots(): (string | null)[] {
+
   return Array.from({ length: PARTY_SLOTS.length }, () => null)
 }
 
 function emptyStabilitySlots(): (SlotStability | null)[] {
+
   return Array.from({ length: PARTY_SLOTS.length }, () => null)
 }

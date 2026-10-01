@@ -55,8 +55,10 @@ export const developerSamplesMachine = setup({
 
         const { intent } = input.save
         if (intent.type === DEVELOPER_EVENTS.SAVE_LABEL) {
+
           return input.api.saveLabel(intent.id, intent.text)
         }
+
         return input.api.setSampleExcluded(intent.id, intent.excluded)
       }
     )
@@ -219,6 +221,7 @@ export const developerSamplesMachine = setup({
           actions: assign(({ context, event }) => {
             const sample = event.output
             if (context.activeSave == null) {
+
               return {}
             }
 

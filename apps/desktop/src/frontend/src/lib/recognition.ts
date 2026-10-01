@@ -21,6 +21,7 @@ export function hasColorMatch(pixels: Iterable<Rgb>, target: Rgb, tolerance: num
 
     const hasMatchingBlue = Math.abs(pixel[2] - target[2]) <= tolerance
     if (hasMatchingBlue) {
+
       return true
     }
   }
@@ -30,6 +31,7 @@ export function hasColorMatch(pixels: Iterable<Rgb>, target: Rgb, tolerance: num
 
 /** OCR 문자열에서 한글·영문·숫자만 남겨 닉네임 비교에 사용할 값으로 정리한다. */
 export function normalizeNickname(text: string): string {
+
   return text.replace(/[^\p{Script=Hangul}A-Za-z0-9]/gu, '')
 }
 
@@ -40,16 +42,19 @@ export function updateSlotStability(
 ): SlotStability {
   const hasNickname = nickname != null
   if (!hasNickname) {
+
     return { candidate: null, consecutiveCount: 0, stableNickname: null }
   }
 
   const isNicknameEmpty = nickname.length === 0
   if (isNicknameEmpty) {
+
     return { candidate: null, consecutiveCount: 0, stableNickname: null }
   }
 
   const hasPrevious = previous != null
   if (!hasPrevious) {
+
     return { candidate: nickname, consecutiveCount: 1, stableNickname: null }
   }
 
@@ -58,6 +63,7 @@ export function updateSlotStability(
   if (hasSameCandidate) {
     const consecutiveCount = previous.consecutiveCount + 1
     const isStable = consecutiveCount >= 2
+
     return {
       candidate: nickname,
       consecutiveCount,
@@ -77,6 +83,7 @@ export async function runSerialLoop({
   while (!signal.aborted) {
     await runCycle()
     if (signal.aborted) {
+
       return
     }
     await wait(getIntervalMs(), signal)
@@ -86,6 +93,7 @@ export async function runSerialLoop({
 /** 지정 시간이 지나거나 중단 신호를 받으면 대기를 끝낸다. 중단도 정상 완료로 처리한다. */
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
   if (signal.aborted) {
+
     return Promise.resolve()
   }
 

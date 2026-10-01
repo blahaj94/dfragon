@@ -51,6 +51,7 @@ function runFlight<T>(
   } catch (error) {
     reject(error)
   }
+
   return promise
 }
 
@@ -62,6 +63,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
 
   function invalidate(): number {
     actor.send({ type: 'INVALIDATE' })
+
     return actor.getSnapshot().context.generation
   }
 
@@ -73,16 +75,19 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
 
   function currentRefresh(generation: number): Promise<AuthAuthorization> | null {
     const flight = actor.getSnapshot().context.refresh
+
     return flight?.generation === generation ? flight.promise : null
   }
 
   return {
     state,
     get generation(): number {
+
       return actor.getSnapshot().context.generation
     },
     invalidate,
     get pending(): PendingLogin | null {
+
       return actor.getSnapshot().context.pending
     },
     bindPending(pending: PendingLogin): void {
@@ -100,16 +105,20 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
         releasePending(pending)
       }
       actor.getSnapshot().context.verification?.controller.abort()
+
       return generation
     },
     get logoutFlight(): Promise<AuthCommandResult> | null {
+
       return actor.getSnapshot().context.logout
     },
     start(operation: () => Promise<AuthSnapshot>): Promise<AuthSnapshot> {
       const existing = actor.getSnapshot().context.start
       if (existing) {
+
         return existing
       }
+
       return runFlight(
         operation,
         (flight) => actor.send({ type: 'START', flight }),
@@ -118,6 +127,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     },
     currentRefresh,
     get hasStartedRefresh(): boolean {
+
       return actor.getSnapshot().context.hasStartedRefresh
     },
     markRefreshStarted(): void {
@@ -126,6 +136,7 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     reserveVerification(): VerificationOperation {
       const operation = { controller: new AbortController() }
       actor.send({ type: 'VERIFY', operation })
+
       return operation
     },
     completeVerification(operation: VerificationOperation): void {
@@ -137,8 +148,10 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     ): Promise<AuthAuthorization> {
       const existing = currentRefresh(generation)
       if (existing) {
+
         return existing
       }
+
       return runFlight(
         operation,
         (promise) => actor.send({ type: 'REFRESH', flight: { generation, promise } }),
@@ -148,8 +161,10 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     shareLogout(operation: () => Promise<AuthCommandResult>): Promise<AuthCommandResult> {
       const existing = actor.getSnapshot().context.logout
       if (existing) {
+
         return existing
       }
+
       return runFlight(
         operation,
         (flight) => actor.send({ type: 'LOGOUT', flight }),

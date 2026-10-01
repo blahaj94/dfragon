@@ -30,6 +30,7 @@ type CollectionSession = {
 
 function disarmCollectionSession(session: CollectionSession): Promise<void> {
   if (session.disarmPromise != null) {
+
     return session.disarmPromise
   }
 
@@ -44,6 +45,7 @@ function disarmCollectionSession(session: CollectionSession): Promise<void> {
     () => undefined,
     () => undefined
   )
+
   return session.disarmPromise
 }
 
@@ -108,6 +110,7 @@ export function useDeveloperPartyCollection(
           }
         })
       }
+
       return
     }
 
@@ -157,6 +160,7 @@ export function useDeveloperPartyCollection(
 
     async function refreshPreview(): Promise<void> {
       if (!session.active || session.polling) {
+
         return
       }
 
@@ -168,6 +172,7 @@ export function useDeveloperPartyCollection(
           ? window.developer.previewParty()
           : window.developer.previewParty(kind))
         if (!session.active) {
+
           return
         }
 
@@ -231,12 +236,14 @@ export function useDeveloperPartyCollection(
   useEffect(() => {
     const session = sessionRef.current
     if (!session?.active) {
+
       return
     }
 
     // Changing the cadence must preserve in-flight capture and Print Screen registration.
     const interval = window.setInterval(() => void session.refreshPreview(), previewIntervalMs)
     session.interval = interval
+
     return () => window.clearInterval(interval)
   }, [active, kind, previewIntervalMs])
 

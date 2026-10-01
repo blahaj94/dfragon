@@ -96,6 +96,7 @@ export function createPendingLogin(
     if (!expired) {
       actor.send({ type: 'CLOCK_ACCEPTED', checkedAt })
     }
+
     return expired
   }
 
@@ -104,13 +105,16 @@ export function createPendingLogin(
     provider,
     generation,
     get browserSignal() {
+
       return lifetime.signal
     },
     get signal() {
+
       return controller.signal
     },
     get isBeforeExchange() {
       const snapshot = actor.getSnapshot()
+
       return (
         snapshot.matches('idle') ||
         snapshot.matches({ active: 'starting' }) ||
@@ -121,6 +125,7 @@ export function createPendingLogin(
     start: () => actor.send({ type: 'START' }),
     acceptRequest: ({ requestId, expiresAt }) => {
       if (!actor.getSnapshot().matches({ active: 'starting' })) {
+
         return
       }
       actor.send({ type: 'REQUEST_ACCEPTED', requestId, expiresAt })
@@ -137,15 +142,18 @@ export function createPendingLogin(
       const { requestId, rejectedFingerprint, exchangeFingerprint, exchangePromise } =
         snapshot.context
       if (rejectedFingerprint === fingerprint) {
+
         return { status: 'ignored' }
       }
       if (snapshot.matches({ active: 'exchanging' })) {
+
         return exchangeFingerprint === fingerprint && exchangePromise != null
           ? { status: 'joined', promise: exchangePromise }
           : { status: 'ignored' }
       }
       const claim = { type: 'CLAIM' as const, fingerprint }
       if (!snapshot.can(claim) || requestId == null || verifier == null) {
+
         return { status: 'ignored' }
       }
       actor.send(claim)
@@ -154,19 +162,23 @@ export function createPendingLogin(
       // Publication and its current-attempt check must precede reserving the writer.
       const writer = reserve()
       if (writer == null) {
+
         return { status: 'ignored' }
       }
       actor.send({ type: 'TRACK_EXCHANGE', promise: writer.completion })
+
       return { status: 'claimed', input, signal: controller.signal, writer }
     },
     rejectExchange: async (recover, onRecovered) => {
       const snapshot = actor.getSnapshot()
       if (!snapshot.matches({ active: 'exchanging' })) {
+
         return false
       }
       const exchangePromise = snapshot.context.exchangePromise
       actor.send({ type: 'EXCHANGE_REJECTED' })
       if (!(await recover())) {
+
         return false
       }
       const recovered = actor.getSnapshot()
@@ -174,11 +186,13 @@ export function createPendingLogin(
         !recovered.matches({ active: 'exchanging' }) ||
         recovered.context.exchangePromise !== exchangePromise
       ) {
+
         return false
       }
       actor.send({ type: 'RESUME_WAITING' })
       // Publish in this continuation before a new code can claim the waiting attempt.
       onRecovered()
+
       return true
     },
     dispose: () => {
@@ -190,5 +204,6 @@ export function createPendingLogin(
       }
     }
   }
+
   return pending
 }

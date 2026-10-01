@@ -81,8 +81,10 @@ export default defineConfig(({ mode, command }) => ({
               name: 'mvp-preview-notices',
               transformIndexHtml(html, context) {
                 if (command !== 'serve' || context.path !== '/mvp-preview.html') {
+
                   return html
                 }
+
                 return html.replace(
                   "script-src 'self';",
                   "script-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:*;"

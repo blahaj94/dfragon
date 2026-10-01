@@ -27,6 +27,7 @@ export function SplitPlanner() {
 
   function handleApplySplit() {
     if (preview === null) {
+
       return
     }
     const confirmed = window.confirm(
@@ -113,6 +114,7 @@ export function SplitPlanner() {
                 {([...splits, 'unassigned'] as const).map((split) => {
                   const data = shown.splits[split]
                   const actual = percent(data.images, shown.total.images)
+
                   return (
                     <tr key={split}>
                       <th {...stylex.props(layout.cell)}>{split}</th>
@@ -145,6 +147,7 @@ export function SplitPlanner() {
               <tbody>
                 {characterGroups.map((group) => {
                   const original = percent(shown.total.groups[group], shown.total.characters)
+
                   return (
                     <tr key={group}>
                       <th {...stylex.props(layout.cell)}>{OCR_CHARACTER_GROUP_LABELS[group]}</th>
@@ -154,6 +157,7 @@ export function SplitPlanner() {
                       {splits.map((split) => {
                         const data = shown.splits[split]
                         const actual = percent(data.groups[group], data.characters)
+
                         return (
                           <td key={split} {...stylex.props(layout.cell)}>
                             {data.groups[group]} · {actual.toFixed(2)}% (

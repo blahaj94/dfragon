@@ -18,10 +18,12 @@ export function parseSyntheticUploadTokenSha256(value: string | undefined): stri
   if (value !== undefined && (value.length !== 64 || !/^[0-9a-f]{64}$/.test(value))) {
     throw new Error('Invalid OCR configuration')
   }
+
   return value
 }
 
 export function isSyntheticUploadRequest(request: Request): boolean {
+
   return request.method === 'POST' && request.originalUrl === '/api/synthetic-samples'
 }
 
@@ -37,11 +39,13 @@ type PendingLogin = { requestId: string; verifier: string; expires: number; clie
 type AuthRequestOptions = { body?: unknown; accessToken?: string }
 
 function createOpaqueToken(): string {
+
   return randomBytes(OCR_AUTH.opaqueBytes).toString('base64url')
 }
 
 function readCookie(request: Request, name: string): string | undefined {
   const value: unknown = request.cookies?.[name]
+
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
@@ -103,10 +107,12 @@ export class OcrAuth {
       )
     }
     if (response.status === 204) {
+
       return null
     }
 
     try {
+
       return await response.json()
     } catch {
       throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
@@ -334,6 +340,7 @@ export class OcrAuth {
     if (!session.active || user.id !== this.config.ownerId) {
       throw new OcrError(OCR_ERROR_CODE.OWNER_REQUIRED)
     }
+
     return user
   }
 

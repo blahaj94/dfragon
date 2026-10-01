@@ -3,6 +3,7 @@ import { ManualSearch } from '../../sections/ManualSearch'
 import PartyCapture from '../../sections/PartyCapture'
 
 export function HomePage(): React.JSX.Element {
+
   return (
     <>
       <ManualSearch api={window.manualSearch} />

@@ -22,9 +22,11 @@ function hasForbiddenUrlCharacter(value: string): boolean {
     const isBackslash = character === '\\'
     const isForbidden = isControlOrSpace || isBackslash
     if (isForbidden) {
+
       return true
     }
   }
+
   return false
 }
 
@@ -50,6 +52,7 @@ function parseExactUrl(raw: unknown): URL {
   }
 
   try {
+
     return new URL(raw)
   } catch {
     throw new AuthProtocolFailure()
@@ -131,6 +134,7 @@ export function validateBrowserLaunchUrl(raw: unknown, apiOrigin: string): strin
   if (!hasExpectedLaunchUrl) {
     throw new AuthProtocolFailure()
   }
+
   return expected
 }
 

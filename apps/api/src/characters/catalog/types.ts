@@ -24,15 +24,19 @@ export interface CatalogDetail {
 export function catalogKey(key: CatalogKey): string {
   switch (key.kind) {
     case 'item':
+
       return `item:${key.itemId}`
     case 'set':
+
       return `set:${key.setItemId}`
     case 'skill':
+
       return `skill:${key.jobId}:${key.skillId}`
   }
 }
 
 export function isCatalogId(value: unknown): value is string {
+
   return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,256}$/.test(value)
 }
 

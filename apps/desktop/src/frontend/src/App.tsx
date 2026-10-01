@@ -30,6 +30,7 @@ function App(): React.JSX.Element {
 
   function openDeveloperWorkbench(): void {
     if (developerMode.status !== 'ready' || !developerMode.enabled) {
+
       return
     }
 

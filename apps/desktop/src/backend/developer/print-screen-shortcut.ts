@@ -29,6 +29,7 @@ let nativeApi: PrintScreenNativeApi | undefined
 
 function loadWin32Api(): PrintScreenNativeApi {
   if (nativeApi) {
+
     return nativeApi
   }
   const koffi = createRequire(__filename)('koffi') as typeof import('koffi')
@@ -59,6 +60,7 @@ function loadWin32Api(): PrintScreenNativeApi {
     // Only vkCode is needed; no other keyboard data is retained or decoded.
     readVirtualKey: (data) => koffi.decode(data, 'uint32_t') as number
   }
+
   return nativeApi
 }
 
@@ -80,8 +82,10 @@ export function createPrintScreenShortcut({
 
   function isForeground(): boolean {
     try {
+
       return isGameForeground()
     } catch {
+
       return false
     }
   }
@@ -104,6 +108,7 @@ export function createPrintScreenShortcut({
     data: bigint | null
   ): HookResult {
     if (code !== 0 || !listener || data == null) {
+
       return api.callNext(code, message, data)
     }
     let handled = false
@@ -133,6 +138,7 @@ export function createPrintScreenShortcut({
     } catch {
       // A failed decode or foreground check must leave normal keyboard delivery intact.
     }
+
     return handled ? 1 : api.callNext(code, message, data)
   }
 
@@ -162,11 +168,13 @@ export function createPrintScreenShortcut({
     try {
       unregister()
     } catch {
+
       return false
     }
     listener = nextListener
     if (platform !== 'win32') {
       listener = null
+
       return false
     }
 
@@ -178,12 +186,14 @@ export function createPrintScreenShortcut({
       nativeRegistration = { api, callback, hook: undefined }
       nativeRegistration.hook = api.installHook(callback)
       if (nativeRegistration.hook != null) {
+
         return true
       }
       unregister()
     } catch {
       listener = null
     }
+
     return false
   }
 

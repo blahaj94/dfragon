@@ -48,6 +48,7 @@ export function findPackageRoot(file: string): string {
   while (true) {
     const manifest = join(directory, 'package.json')
     if (existsSync(manifest) && JSON.parse(readFileSync(manifest, 'utf8')).name) {
+
       return realpathSync(directory)
     }
     const parent = dirname(directory)
@@ -64,10 +65,13 @@ export function resolvePackageRoot(name: string, from: string): string {
     const manifest = require.resolve(`${name}/package.json`)
     // Wildcard exports can resolve to a nonexistent package.json below the real root.
     if (existsSync(manifest)) {
+
       return findPackageRoot(manifest)
     }
+
     return findPackageRoot(require.resolve(name))
   } catch {
+
     return findPackageRoot(require.resolve(name))
   }
 }
@@ -105,6 +109,7 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
       documents.push({ name: entry.name, text: readFileSync(file, 'utf8') })
     }
   }
+
   return documents.sort((a, b) => a.name.localeCompare(b.name, 'en'))
 }
 
@@ -122,6 +127,7 @@ export function collectPackages(moduleIds: Iterable<string>, runtimeRoot?: strin
   function visit(directory: string): void {
     directory = realpathSync(directory)
     if (visited.has(directory)) {
+
       return
     }
     visited.add(directory)
@@ -144,8 +150,10 @@ export function collectPackages(moduleIds: Iterable<string>, runtimeRoot?: strin
   if (runtimeRoot) {
     visit(runtimeRoot)
   }
+
   return [...roots]
     .map((directory) => {
+
       return packageNotice(directory)
     })
     .sort((a, b) => `${a.name}@${a.version}`.localeCompare(`${b.name}@${b.version}`, 'en'))
@@ -174,6 +182,7 @@ export function packageNotice(directory: string): NoticeEntry {
   if (!documents.length) {
     throw new Error(`Missing license text for ${manifest.name}@${manifest.version}`)
   }
+
   return {
     name: manifest.name,
     version: manifest.version,

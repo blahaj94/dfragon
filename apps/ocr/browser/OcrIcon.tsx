@@ -9,6 +9,7 @@ const paths = {
 }
 
 export function OcrIcon({ name, size = 18 }: { name: keyof typeof paths; size?: number }) {
+
   return (
     <svg
       width={size}

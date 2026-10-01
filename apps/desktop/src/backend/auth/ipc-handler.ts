@@ -14,6 +14,7 @@ function publicSnapshot(snapshot: AuthSnapshot): AuthSnapshot {
   const { runId, revision, phase, providers, login, user, entry, notice } = snapshot
   const hasLogin = login != null
   const hasUser = user != null
+
   return {
     runId,
     revision,
@@ -33,28 +34,35 @@ function exactField(args: unknown[], key: string): unknown {
   const value = args[0]
   const hasValue = value != null
   if (!hasValue) {
+
     return undefined
   }
   const hasObjectType = typeof value === 'object'
   if (!hasObjectType) {
+
     return undefined
   }
   const isArray = Array.isArray(value)
   if (isArray) {
+
     return undefined
   }
   if (!hasOneArgument) {
+
     return undefined
   }
   const keys = Reflect.ownKeys(value)
   const hasOneKey = keys.length === 1
   if (!hasOneKey) {
+
     return undefined
   }
   const hasExpectedKey = keys[0] === key
   if (!hasExpectedKey) {
+
     return undefined
   }
+
   return Object.getOwnPropertyDescriptor(value, key)?.value
 }
 
@@ -62,6 +70,7 @@ function validArguments(channel: Mutation, args: unknown[]): boolean {
   const isBegin = channel === 'beginLogin'
   if (isBegin) {
     const provider = exactField(args, 'provider')
+
     return provider === 'passkey'
   }
   const isCancel = channel === 'cancelLogin'
@@ -69,14 +78,17 @@ function validArguments(channel: Mutation, args: unknown[]): boolean {
     const attemptId = exactField(args, 'attemptId')
     const isString = typeof attemptId === 'string'
     if (!isString) {
+
       return false
     }
     const hasUuidShape = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
       attemptId
     )
+
     return hasUuidShape
   }
   const hasNoArguments = args.length === 0
+
   return hasNoArguments
 }
 
@@ -113,31 +125,38 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     const isRegistered = !disposed
     const canInspectWindow = hasWindow && isRegistered
     if (!canInspectWindow) {
+
       return false
     }
     const isWindowDestroyed = window.isDestroyed()
     if (isWindowDestroyed) {
+
       return false
     }
     const contents = window.webContents
     const isContentsDestroyed = contents.isDestroyed()
     if (isContentsDestroyed) {
+
       return false
     }
     const frame = contents.mainFrame
     const hasFrame = frame != null
     if (!hasFrame) {
+
       return false
     }
     const isFrameDestroyed = frame.isDestroyed()
     if (isFrameDestroyed) {
+
       return false
     }
     const isFrameAttached = !frame.detached
     if (!isFrameAttached) {
+
       return false
     }
     const hasCurrentUrl = frame.url === documentUrl
+
     return hasCurrentUrl
   }
 
@@ -156,6 +175,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     if (!isAllowed) {
       throw new Error('AUTH_NOT_ALLOWED')
     }
+
     return expected
   }
 
@@ -168,6 +188,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     if (!hasNoArguments) {
       throw new Error('INVALID_AUTH_COMMAND')
     }
+
     return publicSnapshot(coordinator.getSnapshot())
   }
 
@@ -179,6 +200,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     const window = requireSender(event)
     const hasValidArguments = validArguments(channel, args)
     if (!hasValidArguments) {
+
       return {
         ok: false,
         error: { code: 'INVALID_AUTH_COMMAND' },
@@ -206,6 +228,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
       }
     } catch {
       requireSender(event, window)
+
       return {
         ok: false,
         error: { code: 'AUTH_OPERATION_FAILED' },
@@ -215,8 +238,10 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
     requireSender(event, window)
     const snapshot = publicSnapshot(result.snapshot)
     if (result.ok) {
+
       return { ok: true, snapshot }
     }
+
     return { ok: false, error: { code: result.error.code }, snapshot }
   }
   let unsubscribe: (() => void) | undefined
@@ -232,6 +257,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
       const window = getWindow()
       const isAllowed = allowedWindow(window)
       if (!isAllowed) {
+
         return
       }
       window.webContents.send('authStateChanged', publicSnapshot(snapshot))
@@ -249,6 +275,7 @@ export function registerAuthIpc({ coordinator, getWindow, documentUrl }: Options
 
   return () => {
     if (disposed) {
+
       return
     }
     disposed = true

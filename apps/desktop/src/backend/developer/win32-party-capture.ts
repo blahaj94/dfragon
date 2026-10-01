@@ -137,6 +137,7 @@ function loadWin32PartyApi(): Win32PartyApi {
     'void *',
     'intptr_t'
   ])
+
   return {
     koffi,
     enumWindowsProc,
@@ -195,10 +196,12 @@ function loadWin32PartyApi(): Win32PartyApi {
 let win32PartyApi: Win32PartyApi | undefined
 
 function getApi(): Win32PartyApi {
+
   return (win32PartyApi ??= loadWin32PartyApi())
 }
 
 function nativeFailure(api: Win32PartyApi, operation: string): Error {
+
   return new Error(`${operation} failed (Win32 ${api.GetLastError()}).`)
 }
 
@@ -227,6 +230,7 @@ function withPerMonitorV2<T>(api: Win32PartyApi, action: () => T): T {
   if (actionFailed) {
     throw actionError
   }
+
   return value as T
 }
 
@@ -235,6 +239,7 @@ function readRect(api: Win32PartyApi, hwnd: bigint, getRect: Win32PartyApi['GetW
   if (!getRect(hwnd, buffer)) {
     throw nativeFailure(api, getRect === api.GetClientRect ? 'GetClientRect' : 'GetWindowRect')
   }
+
   return {
     left: buffer.readInt32LE(0),
     top: buffer.readInt32LE(4),
@@ -248,20 +253,24 @@ function clientScreenOrigin(api: Win32PartyApi, hwnd: bigint): { x: number; y: n
   if (!api.ClientToScreen(hwnd, point)) {
     throw nativeFailure(api, 'ClientToScreen')
   }
+
   return { x: point.readInt32LE(0), y: point.readInt32LE(4) }
 }
 
 function getProcessId(api: Win32PartyApi, hwnd: bigint): number | null {
   const output = [0]
   if (!api.GetWindowThreadProcessId(hwnd, output) || output[0] <= 0) {
+
     return null
   }
+
   return output[0]
 }
 
 function getProcessImagePath(api: Win32PartyApi, processId: number): string | null {
   const process = api.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, processId)
   if (!process) {
+
     return null
   }
   let imagePath: string | null = null
@@ -286,22 +295,27 @@ function getProcessImagePath(api: Win32PartyApi, processId: number): string | nu
   if (queryError !== undefined) {
     throw queryError
   }
+
   return imagePath
 }
 
 function isDnfProcessWindow(api: Win32PartyApi, hwnd: bigint): { pid: number } | null {
   const pid = getProcessId(api, hwnd)
   if (pid === null) {
+
     return null
   }
   const imagePath = getProcessImagePath(api, pid)
   if (!imagePath || !isDnfExecutablePath(imagePath)) {
+
     return null
   }
+
   return { pid }
 }
 
 function isValidClientSize(width: number, height: number): boolean {
+
   return (
     width >= MIN_CLIENT_WIDTH &&
     width <= MAX_CLIENT_WIDTH &&
@@ -315,9 +329,11 @@ function clientRectOnScreen(api: Win32PartyApi, hwnd: bigint): ScreenRect | null
   const width = rect.right - rect.left
   const height = rect.bottom - rect.top
   if (rect.left !== 0 || rect.top !== 0 || !isValidClientSize(width, height)) {
+
     return null
   }
   const origin = clientScreenOrigin(api, hwnd)
+
   return { ...origin, width, height }
 }
 
@@ -329,9 +345,11 @@ function enumerateTopLevelWindows(api: Win32PartyApi): bigint[] {
       if (hwnd) {
         windows.push(hwnd)
       }
+
       return 1
     } catch (error) {
       callbackError = error
+
       return 0
     }
   }, api.koffi.pointer(api.enumWindowsProc))
@@ -347,6 +365,7 @@ function enumerateTopLevelWindows(api: Win32PartyApi): bigint[] {
   if (!enumerationResult) {
     throw nativeFailure(api, 'EnumWindows')
   }
+
   return windows
 }
 
@@ -371,10 +390,12 @@ function findDnfGameWindow(api: Win32PartyApi): GameWindow {
   if (matches.length !== 1) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   return matches[0]
 }
 
 function sameGameWindow(first: GameWindow, second: GameWindow): boolean {
+
   return (
     first.hwnd === second.hwnd &&
     first.pid === second.pid &&
@@ -402,16 +423,19 @@ function getWindowsAbove(api: Win32PartyApi, hwnd: bigint): ObscuringWindow[] {
   if (current) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   return windows
 }
 
 function isWindowCloaked(api: Win32PartyApi, hwnd: bigint): boolean {
   const value = Buffer.alloc(4)
   const result = api.DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, value, value.length)
+
   return result >= 0 && value.readUInt32LE(0) !== 0
 }
 
 function rectsIntersect(left: Rect, right: Rect): boolean {
+
   return (
     left.left < right.right &&
     right.left < left.right &&
@@ -435,12 +459,15 @@ export function hasValidDetectedPartySlots(
     value.length < 1 ||
     value.length > 4
   ) {
+
     return false
   }
 
   const seenSlots = new Set<number>()
+
   return value.every((candidate) => {
     if (candidate == null || typeof candidate !== 'object' || Array.isArray(candidate)) {
+
       return false
     }
     const slot = candidate as Record<string, unknown>
@@ -467,6 +494,7 @@ export function hasValidDetectedPartySlots(
       typeof coverage !== 'object' ||
       Array.isArray(coverage)
     ) {
+
       return false
     }
     const visibleRegion = coverage as Record<string, unknown>
@@ -486,9 +514,11 @@ export function hasValidDetectedPartySlots(
       (x as number) + (width as number) > frameWidth ||
       (y as number) + (height as number) > frameHeight
     ) {
+
       return false
     }
     seenSlots.add(slotNumber)
+
     return true
   })
 }
@@ -500,6 +530,7 @@ function isPartyRegionCovered(
 ): boolean {
   const slotRects = slots.map((slot) => {
     const { coverage } = slot
+
     return {
       left: client.x + coverage.x,
       top: client.y + coverage.y,
@@ -507,6 +538,7 @@ function isPartyRegionCovered(
       bottom: client.y + coverage.y + coverage.height
     }
   })
+
   return windowsAbove.some(({ rect }) => slotRects.some((slot) => rectsIntersect(rect, slot)))
 }
 
@@ -532,6 +564,7 @@ function createBitmapInfo(width: number, height: number): Buffer {
   bitmapInfo.writeInt32LE(-height, 8)
   bitmapInfo.writeUInt16LE(1, 12)
   bitmapInfo.writeUInt16LE(32, 14)
+
   return bitmapInfo
 }
 
@@ -642,6 +675,7 @@ function copyVisibleClient(
   if (capturedAt === undefined) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   return { rgba: pixels, capturedAt }
 }
 
@@ -662,6 +696,7 @@ function cropSlot(
     const sourceStart = ((slot.y + row) * frameWidth + slot.x) * 4
     frame.copy(output, row * rowBytes, sourceStart, sourceStart + rowBytes)
   }
+
   return { slot: slot.slot, width: slot.width, height: slot.height, rgba: output }
 }
 
@@ -669,6 +704,7 @@ function capturePartyFrameWithApi(
   api: Win32PartyApi,
   kind: DeveloperCollectionKind
 ): PartyFrameCapture {
+
   return withPerMonitorV2(api, () => {
     const gameWindowBefore = findDnfGameWindow(api)
     assertClientInsideVirtualScreen(api, gameWindowBefore.client)
@@ -696,6 +732,7 @@ function capturePartyFrameWithApi(
       ) {
         throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
       }
+
       return detected.frame
     }
     const { scale, slots } = detectPartyFrameGeometry({
@@ -727,6 +764,7 @@ function capturePartyFrameWithApi(
     ) {
       throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
+
     return {
       width: gameWindowAfter.client.width,
       height: gameWindowAfter.client.height,
@@ -747,6 +785,7 @@ export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyF
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
   try {
+
     return capturePartyFrameWithApi(getApi(), kind)
   } catch (error) {
     if (error instanceof PartyFrameGeometryError) {
@@ -795,6 +834,7 @@ function readProcessElevation(api: ShortcutAccessApi, processHandle: bigint): bo
   if (elevated === undefined) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   return elevated
 }
 
@@ -859,18 +899,23 @@ export function assertDnfShortcutAccess(): void {
 /** True only when the foreground top-level window is owned by DNF.exe. */
 export function isDnfForeground(): boolean {
   if (process.platform !== 'win32') {
+
     return false
   }
   try {
     const api = getApi()
+
     return withPerMonitorV2(api, () => {
       const hwnd = api.GetForegroundWindow()
       if (!hwnd || !api.IsWindowVisible(hwnd) || api.IsIconic(hwnd)) {
+
         return false
       }
+
       return findDnfGameWindow(api).hwnd === hwnd
     })
   } catch {
+
     return false
   }
 }
@@ -881,6 +926,7 @@ export function partySlotCoverageIntersectsWindow(
   coverage: { x: number; y: number; width: number; height: number },
   window: Rect
 ): boolean {
+
   return rectsIntersect(
     {
       left: client.x + coverage.x,
@@ -894,5 +940,6 @@ export function partySlotCoverageIntersectsWindow(
 
 // Keep path handling explicitly Windows-aware even when these pure utilities are exercised on macOS.
 export function isDnfExecutablePath(imagePath: string): boolean {
+
   return win32Path.basename(imagePath).toLowerCase() === DNF_EXECUTABLE
 }

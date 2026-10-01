@@ -19,30 +19,36 @@ import type {
 function isUuid(value: unknown): value is string {
   const isString = typeof value === 'string'
   if (!isString) {
+
     return false
   }
 
   const hasUuidFormat = UUID_PATTERN.test(value)
+
   return hasUuidFormat
 }
 
 function isTimestamp(value: unknown): value is number {
   const isNumber = typeof value === 'number'
   if (!isNumber) {
+
     return false
   }
 
   const isSafeInteger = Number.isSafeInteger(value)
   if (!isSafeInteger) {
+
     return false
   }
 
   const isRepresentableDate = Number.isFinite(new Date(value * 1000).getTime())
+
   return isRepresentableDate
 }
 
 function hasStringKeyId(header: { kid?: unknown }): header is { kid: string } {
   const isKeyIdString = typeof header.kid === 'string'
+
   return isKeyIdString
 }
 
@@ -54,6 +60,7 @@ export async function createAccessJwtIssuer(
     const keys = await loadVerificationKeys(config)
     const { kid, privateKey } = await loadSigningKey(config, keys)
     const { issuer, audience } = config
+
     return async (input) => {
       const isInputFalsy = !input
       if (isInputFalsy) {
@@ -95,6 +102,7 @@ export async function createAccessJwtIssuer(
           .setExpirationTime(expiresAt)
           .setJti(randomUUID())
           .sign(privateKey)
+
         return { accessToken, issuedAt, expiresAt }
       } catch {
         throw new AccessJwtError('ACCESS_JWT_SIGNING_FAILED')
@@ -112,6 +120,7 @@ export async function createAccessJwtVerifier(
     const config = structuredClone(configuration)
     const keys = await loadVerificationKeys(config)
     const { issuer, audience } = config
+
     return async (token, now) => {
       try {
         const isTokenString = typeof token === 'string'
@@ -142,6 +151,7 @@ export async function createAccessJwtVerifier(
             if (!hasRegisteredKey) {
               throw new AccessJwtError('INVALID_ACCESS_JWT')
             }
+
             return keys.get(header.kid)!
           },
           {
@@ -196,6 +206,7 @@ export async function createAccessJwtVerifier(
         if (!hasValidLifetime) {
           throw new AccessJwtError('INVALID_ACCESS_JWT')
         }
+
         return { userId: sub, sessionId: sid, issuedAt: iat, expiresAt: exp, tokenId: jti }
       } catch {
         // jose의 claim error에는 원문 payload가 있을 수 있으므로 cause도 전달하지 않는다.

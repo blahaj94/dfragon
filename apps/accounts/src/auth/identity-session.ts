@@ -19,6 +19,7 @@ const databaseTimeExpression = 'to_timestamp(floor(extract(epoch from clock_time
 
 function generate<T>(operation: () => T): T {
   try {
+
     return operation()
   } catch {
     throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
@@ -69,6 +70,7 @@ async function create({
       issuedAt,
       consumedAt: null
     })
+
     return {
       user: { id: user.id, nickname: user.nickname },
       session: { id: sessionId, createdAt: issuedAt, lastActiveAt: issuedAt },
@@ -94,6 +96,7 @@ export function createIdentitySession(
   manager: EntityManager,
   identity: VerifiedIdentity
 ): Promise<IdentitySession> {
+
   return create({ manager, identity, entropy: nativeEntropy })
 }
 
@@ -103,5 +106,6 @@ export function createIdentitySessionForTest(
   identity: VerifiedIdentity,
   entropy: Partial<IdentitySessionEntropy>
 ): Promise<IdentitySession> {
+
   return create({ manager, identity, entropy: { ...nativeEntropy, ...entropy } })
 }

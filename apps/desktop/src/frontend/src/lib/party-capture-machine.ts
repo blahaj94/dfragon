@@ -39,6 +39,7 @@ export const partyCaptureMachine = setup({
     registerSource: fromPromise(
       async ({ input }: { input: { sourceId: string; effects: CaptureInput } }) => {
         await input.effects.selectSource(input.sourceId)
+
         return input.sourceId
       }
     ),
@@ -68,8 +69,10 @@ export const partyCaptureMachine = setup({
     recordRequest: assign(({ event }) => ('request' in event ? { request: event.request } : {})),
     selectSource: assign(({ event }) => {
       if (event.type !== 'SELECT') {
+
         return {}
       }
+
       return {
         selectedSourceId: event.sourceId,
         registeredSourceId: null,
@@ -179,19 +182,25 @@ export const partyCaptureMachine = setup({
 // 목록 조회 상태와 독립적인 캡처 수명을 UI가 사용할 단계로 변환한다.
 export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachine>): CapturePhase {
   if (snapshot.matches({ capturing: 'active' })) {
+
     return 'active'
   }
   if (snapshot.matches('capturing')) {
+
     return 'starting'
   }
   if (snapshot.matches('selecting')) {
+
     return 'selecting'
   }
   if (snapshot.matches('selected')) {
+
     return 'selected'
   }
   if (snapshot.matches('failed')) {
+
     return 'failed'
   }
+
   return 'idle'
 }

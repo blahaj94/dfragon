@@ -24,6 +24,7 @@ export function useSampleWorkspace(authenticated: boolean | null) {
   })
   const samples = authenticated === true ? (page.data?.samples ?? []) : []
   const sample = samples.find((item) => item.id === selected) ?? samples[0]
+
   return {
     filters,
     setFilter,

@@ -31,6 +31,7 @@ export function refreshTokenHash(rawToken: unknown): Buffer {
   if (!hasCanonicalEncoding) {
     throw new RefreshFailure(REFRESH_ERRORS.INVALID_REQUEST)
   }
+
   return createHash(REFRESH_TOKEN.hashAlgorithm).update(bytes).digest()
 }
 
@@ -129,6 +130,7 @@ async function rotate({
             }
           )
           // 여기서 throw하면 폐기까지 rollback된다. 폐기 commit을 확인한 뒤 밖에서 거절한다.
+
           return { status: 'reuse-revoked' }
         }
 
@@ -180,6 +182,7 @@ async function rotate({
     if (isReuseRevoked) {
       throw new RefreshFailure(REFRESH_ERRORS.AUTHENTICATION_REQUIRED)
     }
+
     return committed.tokens
   } catch (error) {
     const isRefreshFailure = error instanceof RefreshFailure
@@ -196,6 +199,7 @@ export function rotateRefresh(
   deps: RefreshDependencies,
   rawToken: unknown
 ): Promise<RefreshTokens> {
+
   return rotate({ deps, rawToken, refreshBytes: randomBytes })
 }
 
@@ -205,5 +209,6 @@ export function rotateRefreshForTest(
   rawToken: unknown,
   refreshBytes: (size: number) => Buffer
 ): Promise<RefreshTokens> {
+
   return rotate({ deps, rawToken, refreshBytes })
 }

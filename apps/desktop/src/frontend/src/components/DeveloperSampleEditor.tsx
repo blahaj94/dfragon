@@ -45,6 +45,7 @@ export function DeveloperSampleEditor({
           setImageResult({ sampleId: sample.id, retry, status: 'failed' })
         }
       })
+
     return () => {
       current = false
     }

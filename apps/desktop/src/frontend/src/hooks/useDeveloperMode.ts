@@ -14,6 +14,7 @@ export type DeveloperModeState = {
 
 function isDeveloperSettingsApi(value: unknown): value is DeveloperSettingsApi {
   if (value == null || typeof value !== 'object') {
+
     return false
   }
 

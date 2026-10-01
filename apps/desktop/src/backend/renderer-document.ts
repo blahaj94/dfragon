@@ -5,6 +5,7 @@ export function validateDevRendererUrl(value: string): string {
     const isC0Control = code <= 31
     const isDelete = code === 127
     const isControl = isC0Control || isDelete
+
     return isControl
   })
   const hasForbiddenCharacters = hasWhitespaceOrBackslash || hasControlCharacter
@@ -40,5 +41,6 @@ export function validateDevRendererUrl(value: string): string {
   if (!isAllowed) {
     throw new Error('Invalid local renderer URL')
   }
+
   return url.href
 }

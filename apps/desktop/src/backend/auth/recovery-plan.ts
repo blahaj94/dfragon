@@ -11,18 +11,22 @@ export function selectStoreRecoveryStep(
 ): StoreRecoveryStep {
   const isUnavailable = status === 'unavailable'
   if (isUnavailable) {
+
     return 'storage-blocked'
   }
   const isEmpty = status === 'empty'
   if (isEmpty) {
+
     return 'signed-out'
   }
   const hasRecoveryRecord = status === 'recovery-required'
   const requiresCleanup = purpose === 'clear-store'
   const shouldClear = hasRecoveryRecord || requiresCleanup
   if (shouldClear) {
+
     return 'clear-store'
   }
+
   return 'restore-ready'
 }
 
@@ -33,5 +37,6 @@ export function selectCredentialRecoveryStep(
   const isClockUsable = !checkedAt.discontinuous
   const isAccessCurrent = checkedAt.wallMs < accessTokenExpiresAtMs
   const canVerify = isClockUsable && isAccessCurrent
+
   return canVerify ? 'verify-user' : 'refresh-credential'
 }

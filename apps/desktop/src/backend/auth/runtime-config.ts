@@ -73,6 +73,7 @@ function readRequiredText(environment: RuntimeEnvironment, key: string): string 
   const value = environment[key]
   const hasValue = value != null
   if (!hasValue || value.length === 0) {
+
     return null
   }
 
@@ -82,6 +83,7 @@ function readRequiredText(environment: RuntimeEnvironment, key: string): string 
 function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[] | null {
   const rawProviders = readRequiredText(environment, 'DFRAGON_AUTH_PROVIDERS')
   if (rawProviders == null) {
+
     return null
   }
 
@@ -91,6 +93,7 @@ function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[]
   const hasNoDuplicates = new Set(providers).size === providers.length
   const hasValidProviders = hasProviders && hasOnlySupportedProviders && hasNoDuplicates
   if (!hasValidProviders) {
+
     return null
   }
 
@@ -100,6 +103,7 @@ function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[]
 function isMissing(error: unknown): boolean {
   const hasError = error != null
   if (!hasError || typeof error !== 'object' || !('code' in error)) {
+
     return false
   }
 
@@ -109,6 +113,7 @@ function isMissing(error: unknown): boolean {
 function isAlreadyExists(error: unknown): boolean {
   const hasError = error != null
   if (!hasError || typeof error !== 'object' || !('code' in error)) {
+
     return false
   }
 
@@ -148,6 +153,7 @@ function assertCanonicalPath(path: string, filesystem: RuntimeProfileFilesystem)
 
 function splitNativePath(path: string, pathSemantics: RuntimePathSemantics): string[] {
   const separator = pathSemantics.sep === '\\' ? /[\\/]/ : /\//
+
   return path.split(separator)
 }
 
@@ -160,6 +166,7 @@ function hasPathAlias(path: string, pathSemantics: RuntimePathSemantics): boolea
   const hasEmptySegment = segments.some((segment) => segment.length === 0)
   const hasWin32NormalizedSegment =
     pathSemantics.sep === '\\' && segments.some((segment) => /[ .]$/.test(segment))
+
   return (
     hasNonNativeSeparator ||
     hasNonCanonicalSpelling ||
@@ -173,14 +180,17 @@ function directoryChain(path: string, pathSemantics: RuntimePathSemantics): stri
   const root = pathSemantics.parse(path).root
   const segments = splitNativePath(path.slice(root.length), pathSemantics).filter(Boolean)
   let current = root
+
   return segments.map((segment) => {
     current = pathSemantics.join(current, segment)
+
     return current
   })
 }
 
 function syncDirectory(path: string, filesystem: RuntimeProfileFilesystem): void {
   if (process.platform === 'win32') {
+
     return
   }
 
@@ -205,6 +215,7 @@ function prepareUserDataDirectory(
 
   if (platform === 'win32') {
     prepareWindowsUserDataDirectory(path, filesystem.windows, pathSemantics)
+
     return
   }
 
@@ -326,17 +337,20 @@ export function readAuthRuntimeConfig(
     appIdentity != null &&
     userDataPath != null
   if (!hasRequiredValues || providers == null) {
+
     return null
   }
 
   const isValidProfile = /^[a-z][a-z0-9-]{0,31}$/.test(profile)
   if (!isValidProfile) {
+
     return null
   }
 
   const hasValidAppIdentity = /^[a-zA-Z][a-zA-Z0-9.-]{0,127}$/.test(appIdentity)
   const hasNoControlPath = [...userDataPath].every((character) => {
     const code = character.charCodeAt(0)
+
     return code > 0x1f && code !== 0x7f
   })
   const hasNoPathAlias = !hasPathAlias(userDataPath, pathSemantics)
@@ -344,6 +358,7 @@ export function readAuthRuntimeConfig(
   const hasValidUserDataPath =
     pathSemantics.isAbsolute(userDataPath) && !isUserDataRoot && hasNoControlPath && hasNoPathAlias
   if (!hasValidAppIdentity || !hasValidUserDataPath) {
+
     return null
   }
 
@@ -351,6 +366,7 @@ export function readAuthRuntimeConfig(
     validateApiOrigin(apiOrigin)
     validateReturnTarget(returnTarget)
   } catch {
+
     return null
   }
 
@@ -380,6 +396,7 @@ export function applyAuthRuntimeProfile(
     }
     application.setName(config.appIdentity)
     application.setAppUserModelId(config.appIdentity)
+
     return { ...config, userDataPath: appliedUserDataPath }
   } catch {
     throw new AuthRuntimeProfileApplicationFailure()

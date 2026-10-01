@@ -23,6 +23,7 @@ export function selectServices(changedPaths) {
       commonFiles.has(path) ||
       commonDirectories.some((directory) => path.startsWith(directory))
     ) {
+
       return [...services]
     }
 
@@ -36,6 +37,7 @@ export function selectServices(changedPaths) {
       selected.add('accounts')
     }
   }
+
   return services.filter((service) => selected.has(service))
 }
 
@@ -43,15 +45,18 @@ function commitSha(value, name) {
   if (typeof value !== 'string' || !/^[a-f\d]{40}$/i.test(value)) {
     throw new Error(`Expected a 40-character hexadecimal ${name}`)
   }
+
   return value.toLowerCase()
 }
 
 function isRecord(value) {
+
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function git(args, cwd) {
   try {
+
     return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
   } catch {
     throw new Error('Could not inspect product image source commits')
@@ -78,6 +83,7 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
     }
     base = commitSha(event.before, 'push before commit')
     if (base === '0'.repeat(40)) {
+
       return { sourceCommit: source, services: [...services] }
     }
   } else if (eventName === 'pull_request') {
@@ -88,6 +94,7 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
 
   const diff = git(['diff', '--name-only', '--no-renames', '-z', `${base}..${source}`, '--'], cwd)
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
+
   return { sourceCommit: source, services: selectServices(changedPaths) }
 }
 
@@ -103,6 +110,7 @@ export function validatePlan(plan, sourceCommit) {
   ) {
     throw new Error('Expected a plan with unique api, ocr, or accounts services')
   }
+
   return {
     sourceCommit: source,
     services: services.filter((service) => plan.services.includes(service))
@@ -113,6 +121,7 @@ export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cw
   const current = validatePlan(plan, sourceCommit)
   assertSourceHead(current.sourceCommit, cwd)
   if (baselinePlan === undefined) {
+
     return { ...current, services: [...services] }
   }
 
@@ -132,15 +141,18 @@ export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cw
       cwd
     )
   } catch {
+
     return { ...current, services: [...services] }
   }
 
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
   const selected = new Set([...current.services, ...selectServices(changedPaths)])
+
   return { ...current, services: services.filter((service) => selected.has(service)) }
 }
 
 function positiveId(value) {
+
   return Number.isSafeInteger(value) && value > 0
 }
 
@@ -176,6 +188,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
       if (!response.ok) {
         throw new Error('GitHub API request failed')
       }
+
       return await response.json()
     } catch {
       throw new Error('Could not read the successful product image baseline from GitHub')
@@ -190,6 +203,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   }
   const run = runs.workflow_runs[0]
   if (run === undefined) {
+
     return null
   }
   if (
@@ -216,6 +230,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   ) {
     throw new Error('Expected a GitHub workflow artifacts response')
   }
+
   return artifacts.artifacts.some(
     (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
   )
@@ -225,6 +240,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
 
 function readJson(path, name) {
   try {
+
     return JSON.parse(readFileSync(path, 'utf8'))
   } catch {
     throw new Error(`Could not read ${name} JSON`)
@@ -259,6 +275,7 @@ async function main() {
       token: process.env.GITHUB_TOKEN
     })
     appendOutput(`run_id=${runId ?? ''}\n`)
+
     return
   }
   if (
@@ -282,6 +299,7 @@ async function main() {
       sourceCommit
     })
     writePlan(planPath, plan)
+
     return
   }
   if (command === 'catch-up') {
@@ -291,6 +309,7 @@ async function main() {
       sourceCommit
     })
     writePlan(planPath, plan)
+
     return
   }
 

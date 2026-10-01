@@ -23,9 +23,11 @@ export function createOcrUploader(
   >,
   request: typeof fetch = fetchApi
 ) {
+
   return function prepareUpload() {
     const generation = auth.captureGeneration()
     if (generation == null) {
+
       return null
     }
 
@@ -38,6 +40,7 @@ export function createOcrUploader(
       const lifecycle = createOcrUploadLifecycle({ auth, generation, captureSignal })
       try {
         if (!lifecycle.isCurrent()) {
+
           return 'signedOut'
         }
         let authorization = await auth.authorization(lifecycle.signal)
@@ -46,10 +49,12 @@ export function createOcrUploader(
           authorization.status !== 'available' ||
           authorization.generation !== generation
         ) {
+
           return 'signedOut'
         }
         const payload = createOcrUploadPayload(frame, selected, kind)
         if (payload === null) {
+
           return 'failed'
         }
         // Only a rejected credential may be refreshed once. Network failures are never retried.
@@ -59,6 +64,7 @@ export function createOcrUploader(
             authorization.status !== 'available' ||
             authorization.generation !== generation
           ) {
+
             return 'signedOut'
           }
           const response = await request(UPLOAD_URL, {
@@ -88,10 +94,12 @@ export function createOcrUploader(
           }
           if (!lifecycle.isCurrent()) {
             await response.body?.cancel()
+
             return 'signedOut'
           }
           if (response.status !== 200 && response.status !== 201) {
             await response.body?.cancel()
+
             return response.status === 403
               ? 'ownerRequired'
               : response.status === 507
@@ -99,12 +107,15 @@ export function createOcrUploader(
                 : 'failed'
           }
           const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
+
           return lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
             ? 'uploaded'
             : 'failed'
         }
+
         return 'signedOut'
       } catch {
+
         return auth.captureGeneration() === generation ? 'failed' : 'signedOut'
       } finally {
         lifecycle.cleanup()

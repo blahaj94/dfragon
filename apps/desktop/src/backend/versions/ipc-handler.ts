@@ -63,11 +63,13 @@ export function registerVersionsWindow({
     })
     const servers = await pendingServers
     requireSender(event, revision)
+
     return { desktop: info, servers }
   }
 
   function dispose(): void {
     if (disposed) {
+
       return
     }
     disposed = true
@@ -86,5 +88,6 @@ export function registerVersionsWindow({
     dispose()
     throw error
   }
+
   return dispose
 }

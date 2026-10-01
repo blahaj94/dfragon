@@ -25,6 +25,7 @@ export function isPartySlotPresent(rgba: Uint8ClampedArray): boolean {
       matches += 1
       const hasMinimumManaPixels = matches >= MINIMUM_MANA_PIXELS
       if (hasMinimumManaPixels) {
+
         return true
       }
     }
@@ -55,6 +56,7 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
     )
     const isSlotPresent = isPartySlotPresent(mana.data)
     if (!isSlotPresent) {
+
       return null
     }
 

@@ -38,9 +38,11 @@ export async function requestOcr<T>(
         : OCR_ERROR_CODE.UNAVAILABLE
     throw new OcrApiError(code)
   }
+
   return response.status === 204 ? (undefined as T) : response.json()
 }
 
 export function errorMessage(error: unknown): string {
+
   return error instanceof OcrApiError ? error.message : OCR_ERRORS.UNAVAILABLE.message
 }

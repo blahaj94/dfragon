@@ -61,6 +61,7 @@ async function download(artifact: BaseArtifact): Promise<Buffer> {
     }
     const bytes = Buffer.concat(chunks)
     verify(bytes, artifact)
+
     return bytes
   } finally {
     await reader.cancel().catch(() => undefined)
@@ -74,12 +75,14 @@ export async function registerBaseModel(store: OcrStore, artifacts = BASE_MODEL_
     for (const artifact of artifacts) {
       verify(store.modelFile(BASE_MODEL_ID, artifact.name), artifact)
     }
+
     return { model: existing, duplicate: true }
   }
   const files = new Map<string, Buffer>()
   for (const artifact of artifacts) {
     files.set(artifact.name, await download(artifact))
   }
+
   return store.addModel(
     {
       id: BASE_MODEL_ID,

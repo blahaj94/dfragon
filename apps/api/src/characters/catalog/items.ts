@@ -14,6 +14,7 @@ export function mapCharacterItems(
     Array.isArray(value) ? value.map(map) : value
   const item = (value: unknown): unknown => {
     if (!isObject(value)) {
+
       return value
     }
     const result = { ...mapItem(value) }
@@ -26,6 +27,7 @@ export function mapCharacterItems(
     if (Object.hasOwn(value, 'artifact')) {
       result.artifact = list(value.artifact, leaf)
     }
+
     return result
   }
   const buff = Object.fromEntries(
@@ -37,6 +39,7 @@ export function mapCharacterItems(
     ])
   ) as CharacterDetails['buff']
   const oath = details.oath
+
   return {
     ...details,
     equipment: { ...details.equipment, equipment: list(details.equipment.equipment, item) },

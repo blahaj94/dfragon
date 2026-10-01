@@ -22,6 +22,7 @@ export function DeveloperSampleThumbnail({
     let requested = false
     const readImage = (): void => {
       if (requested) {
+
         return
       }
       requested = true
@@ -49,6 +50,7 @@ export function DeveloperSampleThumbnail({
         }
       })
       observer.observe(itemRef.current)
+
       return () => {
         current = false
         observer.disconnect()

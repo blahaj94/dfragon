@@ -19,6 +19,7 @@ export function createOcrUploadPayload(
     new Set(selected).size !== selected.length ||
     [...selected].some((slot) => !isDeveloperPartySlot(slot, kind))
   ) {
+
     return null
   }
   const original = frame.original
@@ -29,6 +30,7 @@ export function createOcrUploadPayload(
     !Array.isArray(original.crops) ||
     original.crops.length !== frame.slots.length
   ) {
+
     return null
   }
   const seen = new Set<number>()
@@ -49,18 +51,21 @@ export function createOcrUploadPayload(
           slot.slot === crop.slot && slot.width === crop.width && slot.height === crop.height
       )
     ) {
+
       return null
     }
     seen.add(crop.slot)
   }
   const crops = original.crops.filter(({ slot }) => selected.includes(slot))
   if (crops.length === 0) {
+
     return null
   }
   const image = new PNG({ width: frame.width, height: frame.height })
   image.data = original.rgba
   const png = PNG.sync.write(image)
   if (png.length > 16 * 1024 * 1024) {
+
     return null
   }
   const id = randomUUID()
@@ -73,5 +78,6 @@ export function createOcrUploadPayload(
     uiScaleSource: 'estimated',
     crops
   })
+
   return { id, body }
 }

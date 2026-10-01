@@ -22,6 +22,7 @@ export function readSecretInput(
     if (value !== undefined && value.trim() === '') {
       throw new Error()
     }
+
     return value
   } catch {
     throw new Error('Invalid secret input')

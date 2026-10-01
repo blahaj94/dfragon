@@ -26,6 +26,7 @@ export class NeopleBudget {
     this.starts.push(now)
     this.active++
     try {
+
       return await work()
     } finally {
       this.active--

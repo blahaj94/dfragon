@@ -72,10 +72,12 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   // 연결이 준비된 경우 시작 actor에 요청하고 해당 요청의 결과를 반환한다.
   async function begin({ signal }: { signal: AbortSignal }): Promise<string | null> {
     if (!connection.isReady() || lifetime.getSnapshot().status !== 'active') {
+
       return null
     }
     const { promise, resolve, reject } = Promise.withResolvers<string | null>()
     lifetime.send({ type: 'BEGIN', signal, resolve, reject })
+
     return promise
   }
 
@@ -90,6 +92,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   function observe({ slot, nickname }: { slot: number; nickname: string | null }): void {
     const captureId = lifetime.getSnapshot().context.captureId
     if (captureId == null) {
+
       return
     }
     revisions[slot] += 1
@@ -126,6 +129,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     const isPending = pending.has(slotIndex)
     const canConsiderRetry = hasFailure && hasId && !isPending
     if (!canConsiderRetry) {
+
       return
     }
     const isRetryable = SEARCH_ERRORS[error.code].retryable
@@ -140,6 +144,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       }
     }
     if (!canRetry) {
+
       return
     }
     const requestId = slot.requestId
@@ -197,6 +202,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
       }),
       retryPending: Array.from({ length: 4 }, (_, slot) => {
         const isPending = pending.has(slot)
+
         return isPending
       }),
       connectionFailed: failed
@@ -219,17 +225,21 @@ function getVisibleSearchSlots({
   cleared: readonly boolean[]
 }): readonly SearchSlot[] {
   if (captureId == null) {
+
     return emptySearchSlots()
   }
   const hasSnapshot = snapshot != null
   if (!hasSnapshot) {
+
     return emptySearchSlots()
   }
   const hasSameCapture = captureId === snapshot.captureId
   if (!hasSameCapture) {
+
     return emptySearchSlots()
   }
   const empty = emptySearchSlots()
+
   return snapshot.slots.map((slot) => {
     const observedRevision = revisions[slot.slot]
     const hasObserved = observedRevision > 0
@@ -237,6 +247,7 @@ function getVisibleSearchSlots({
     const isIdle = slot.state === 'idle'
     const isCleared = cleared[slot.slot]
     const canShow = isCurrent && (isIdle || (hasObserved && !isCleared))
+
     return canShow ? slot : empty[slot.slot]
   })
 }

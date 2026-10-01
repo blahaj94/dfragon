@@ -19,6 +19,7 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
     const pendingClose = closing
     const isClosing = pendingClose !== undefined
     if (isClosing) {
+
       return pendingClose
     }
     const ownedApp = app
@@ -48,6 +49,7 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
         throw new Error('API runtime cleanup failed')
       }
     })()
+
     return closing
   }
 
@@ -66,6 +68,7 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
       createAdventureSearchStore(dataSource),
       configuration.localHttps
     )
+
     return { app, close }
   } catch (error) {
     // 초기화 실패를 보존하며 앱을 얻지 못했거나 close가 실패해도 DB 정리를 시도한다.

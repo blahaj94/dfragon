@@ -28,9 +28,11 @@ export function createOcrQueryClient() {
       mutations: { retry: false }
     }
   })
+
   return client
 }
 
 export function invalidateDataset(client: QueryClient) {
+
   return client.invalidateQueries({ queryKey: ocrKeys.dataset })
 }

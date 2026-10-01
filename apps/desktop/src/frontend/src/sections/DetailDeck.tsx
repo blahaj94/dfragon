@@ -14,6 +14,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
     selected,
     ...detailFaces.map((_, index) => index).filter((index) => index !== selected)
   ]
+
   return (
     <>
       <header {...stylex.props(styles.header)}>
@@ -51,6 +52,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
         <div aria-label="캐릭터 상세 카드" {...stylex.props(styles.deck)}>
           {detailFaces.map((face, index) => {
             const active = selected === index
+
             return (
               <section
                 key={face}

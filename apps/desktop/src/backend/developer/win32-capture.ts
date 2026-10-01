@@ -56,6 +56,7 @@ export function bgrxToRgba(bgrx: Uint8Array): Buffer {
     rgba[offset + 2] = bgrx[offset]
     rgba[offset + 3] = 255
   }
+
   return rgba
 }
 
@@ -66,6 +67,7 @@ function loadWin32(): Win32Api {
   const gdi32 = koffi.load('gdi32.dll')
   const kernel32 = koffi.load('kernel32.dll')
   koffi.struct('DFC_CAPTURE_POINT', { x: 'int32_t', y: 'int32_t' })
+
   return {
     koffi,
     SetThreadDpiAwarenessContext: user32.func(
@@ -252,5 +254,6 @@ export function capturePrimaryFrame(): PixelFrame {
   if (!frame) {
     throw captureError ?? new Error('Windows capture did not return a frame.')
   }
+
   return frame
 }

@@ -10,8 +10,10 @@ export async function readAccountsBuildInfo(
 ): Promise<ServerBuildInfo> {
   try {
     const value: unknown = JSON.parse(await readFile(path, 'utf8'))
+
     return parseServerBuildInfo(value, 'accounts') ?? { service: 'accounts', commit: null }
   } catch {
+
     return { service: 'accounts', commit: null }
   }
 }
@@ -22,6 +24,7 @@ export class AccountsVersionController {
 
   @Get()
   version(): ServerBuildInfo {
+
     return this.buildInfo
   }
 }

@@ -9,6 +9,7 @@ function isExternal(id: string) {
   const isReactDom = id === 'react-dom' || id.startsWith('react-dom/')
   const isOfficialIcon = id.startsWith('@karrotmarket/react-monochrome-icon')
   const isPeerOrIcon = isSeed || isReact || isReactDom || isOfficialIcon
+
   return isPeerOrIcon
 }
 

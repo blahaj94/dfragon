@@ -53,6 +53,7 @@ function isUtcIso(value: string): boolean {
   const match = UTC_ISO_PATTERN.exec(value)
   const hasIsoShape = match != null
   if (!hasIsoShape) {
+
     return false
   }
 
@@ -61,6 +62,7 @@ function isUtcIso(value: string): boolean {
   const timestamp = Date.parse(normalized)
   const isValidDate = Number.isFinite(timestamp)
   if (!isValidDate) {
+
     return false
   }
   const hasExactDate = new Date(timestamp).toISOString() === normalized
@@ -109,10 +111,12 @@ function parseResponse<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!result.success) {
     throw new AuthHttpFailure('invalid-response')
   }
+
   return result.data
 }
 
 export function parseTokens(value: unknown): AuthTokens {
+
   return parseResponse(tokenSchema, value)
 }
 
@@ -123,18 +127,22 @@ export function parseLoginRequest(value: unknown, apiOrigin: string): LoginReque
   } catch {
     throw new AuthHttpFailure('invalid-response')
   }
+
   return response
 }
 
 export function parseExchange(value: unknown): LoginExchangeResponse {
+
   return parseResponse(exchangeSchema, value)
 }
 
 export function parseMe(value: unknown): MeResponse {
+
   return parseResponse(meSchema, value)
 }
 
 function parseError(value: unknown): ErrorCode {
+
   return parseResponse(errorSchema, value).error.code
 }
 
@@ -229,6 +237,7 @@ export async function readJson(response: Response, signal?: AbortSignal): Promis
   }
 
   try {
+
     return JSON.parse(text) as unknown
   } catch {
     throw new AuthHttpFailure('invalid-response')
@@ -240,21 +249,25 @@ function classifyError(status: number, code: ErrorCode): AuthHttpFailure {
   const isServiceUnavailable = status === 503 && code === 'AUTH_UNAVAILABLE'
   const isUnavailable = isInternalError || isServiceUnavailable
   if (isUnavailable) {
+
     return new AuthHttpFailure('unavailable')
   }
 
   const isInvalidRequest = status === 400 && code === 'INVALID_AUTH_REQUEST'
   if (isInvalidRequest) {
+
     return new AuthHttpFailure('invalid-request')
   }
 
   const isExchangeInvalid = status === 400 && code === 'LOGIN_EXCHANGE_INVALID'
   if (isExchangeInvalid) {
+
     return new AuthHttpFailure('exchange-invalid')
   }
 
   const isAuthenticationRequired = status === 401 && code === 'AUTHENTICATION_REQUIRED'
   if (isAuthenticationRequired) {
+
     return new AuthHttpFailure('authentication-required')
   }
 
@@ -269,6 +282,7 @@ export async function requireSuccessJson(
   const value = await readJson(response, signal)
   const hasExpectedStatus = response.status === expectedStatus
   if (hasExpectedStatus) {
+
     return value
   }
 
@@ -284,6 +298,7 @@ export async function requireLogoutResponse(
   const hasNoBody = response.body == null
   const isValidNoContentResponse = isNoContent && hasNoBody
   if (isValidNoContentResponse) {
+
     return
   }
   if (isNoContent) {

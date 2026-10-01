@@ -31,12 +31,14 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
   // 현재 actor의 동기화 상태를 호출 시점에 읽는다.
   function isReady(): boolean {
     const state = currentActor.getSnapshot()
+
     return state.status === 'active' && state.hasTag('ready')
   }
 
   // 이전 actor를 종료하고 구독·초기 조회를 새 actor에서 시작한다.
   function connect(): void {
     if (currentActor.getSnapshot().status === 'stopped') {
+
       return
     }
     currentActor.stop()
@@ -47,6 +49,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (state.status === 'done') {
         options.onRunChanged()
         connect()
+
         return
       }
       const failed = state.hasTag('failed')
@@ -72,6 +75,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
 
   // 제어 IPC의 직접 응답을 공통 검증·복구 경계로 전달한다.
   async function command(control: SearchControl): Promise<SearchCommandResult | null> {
+
     return invoke(() => options.api.controlCharacterSearch(control))
   }
 
@@ -89,6 +93,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
         actor.send({ type: 'RESULT', snapshot: result.snapshot })
       }
       // 종료된 연결의 늦은 begin도 직접 받은 ID로 main capture를 정리해야 한다.
+
       return result
     } catch {
       if (actor.getSnapshot().status === 'active') {
@@ -104,6 +109,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
         }
       }
       // 슬롯별 명령은 병렬로 유지하며 유실된 mutation을 재전송하거나 성공으로 합성하지 않는다.
+
       return null
     }
   }

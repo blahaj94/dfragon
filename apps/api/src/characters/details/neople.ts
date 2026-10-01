@@ -18,6 +18,7 @@ import type {
 import { NeopleBudget, neopleBudget } from '../provider-budget.js'
 
 export function isObject(value: unknown): value is CharacterPayload {
+
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
@@ -55,6 +56,7 @@ export function validateCharacterPayload(
       throw new CharacterDetailFailure('api')
     }
   }
+
   return body
 }
 
@@ -71,6 +73,7 @@ interface TransportDependencies {
 }
 
 function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacterDetails {
+
   return async (identity, requestSignal) => {
     const timeout = AbortSignal.timeout(deps.timeoutMs)
     const failureController = new AbortController()
@@ -109,6 +112,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (performance.now() - startedAt >= deps.timeoutMs) {
         throw new CharacterDetailFailure('timeout')
       }
+
       return results
     } catch (error) {
       failureController.abort()
@@ -132,6 +136,7 @@ export function createNeopleCharacterDetails(
   apiKey: string,
   budget = neopleBudget
 ): FetchCharacterDetails {
+
   return makeAdapter(apiKey, {
     fetch: globalThis.fetch,
     origin: NEOPLE_ORIGIN,
@@ -144,6 +149,7 @@ export function createNeopleCharacterDetailsForTest(
   apiKey: string,
   deps: Partial<TransportDependencies>
 ): FetchCharacterDetails {
+
   return makeAdapter(apiKey, {
     fetch: globalThis.fetch,
     origin: NEOPLE_ORIGIN,

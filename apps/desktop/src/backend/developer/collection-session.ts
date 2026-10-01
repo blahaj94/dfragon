@@ -83,6 +83,7 @@ type CollectionSession = {
 }
 
 function isValidScale(value: unknown): value is number {
+
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
@@ -187,6 +188,7 @@ export function previewFrame(
   kind: DeveloperCollectionKind = 'hud'
 ): DeveloperPartyPreviewFrame {
   validatePartyFrame(frame, kind)
+
   return {
     width: frame.width,
     height: frame.height,
@@ -226,6 +228,7 @@ const PUBLIC_ERROR_CODES = new Set<string>([
 
 function publicErrorCode(error: unknown): string {
   const message = error instanceof Error ? error.message : ''
+
   return PUBLIC_ERROR_CODES.has(message) ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED
 }
 
@@ -259,6 +262,7 @@ export function createDeveloperCollectionSession({
   let captureProgress: DeveloperPartyCollectionStatus['capture']
 
   function getStatus(): DeveloperPartyCollectionStatus {
+
     return {
       armed,
       slots: [...slots],
@@ -273,6 +277,7 @@ export function createDeveloperCollectionSession({
 
   function publishStatus(): void {
     if (!isTrusted()) {
+
       return
     }
     try {
@@ -284,18 +289,22 @@ export function createDeveloperCollectionSession({
 
   function isTrusted(): boolean {
     try {
+
       return !disposed && isTrustedContext()
     } catch {
+
       return false
     }
   }
 
   function isCurrentCapture(captureGeneration: number): boolean {
+
     return armed && generation === captureGeneration && isTrusted()
   }
 
   function removePrintScreen(): void {
     if (!printScreenRegistered) {
+
       return
     }
     printScreenRegistered = false
@@ -326,6 +335,7 @@ export function createDeveloperCollectionSession({
       const sendUpload = prepareUpload?.()
       const settings = await store.getSettings()
       if (!isCurrentCapture(captureGeneration)) {
+
         return
       }
       if (!settings.enabled) {
@@ -337,6 +347,7 @@ export function createDeveloperCollectionSession({
 
       const frameValue = await capturePartyFrame(captureKind)
       if (!isCurrentCapture(captureGeneration)) {
+
         return
       }
       validatePartyFrame(frameValue, captureKind)
@@ -355,6 +366,7 @@ export function createDeveloperCollectionSession({
       }
       for (const slot of selected) {
         if (!isCurrentCapture(captureGeneration)) {
+
           return
         }
         const png = encodePng(slot.rgba, slot.width, slot.height)
@@ -378,6 +390,7 @@ export function createDeveloperCollectionSession({
         lastSavedAt = frameValue.capturedAt
         revision += 1
         if (!isCurrentCapture(captureGeneration)) {
+
           return
         }
       }
@@ -412,6 +425,7 @@ export function createDeveloperCollectionSession({
       }
     } catch (caughtError) {
       if (!isCurrentCapture(captureGeneration)) {
+
         return
       }
       error = publicErrorCode(caughtError)
@@ -429,6 +443,7 @@ export function createDeveloperCollectionSession({
 
   function onPrintScreen(): void {
     if (!armed || disposed || pendingCapture != null || slots.length === 0 || !isTrusted()) {
+
       return
     }
     const captureGeneration = generation
@@ -463,6 +478,7 @@ export function createDeveloperCollectionSession({
     captureKind: DeveloperCollectionKind = 'hud'
   ): Promise<DeveloperPartyCollectionStatus> {
     if (disposed) {
+
       return getStatus()
     }
 
@@ -474,12 +490,14 @@ export function createDeveloperCollectionSession({
     kind = captureKind
     if (selectedSlots == null) {
       await waitForCapture()
+
       return getStatus()
     }
 
     if (!armingEnabled) {
       error = DEVELOPER_ERROR_CODES.DISABLED
       revision += 1
+
       return getStatus()
     }
 
@@ -492,6 +510,7 @@ export function createDeveloperCollectionSession({
     ) {
       error = DEVELOPER_ERROR_CODES.INVALID_COMMAND
       revision += 1
+
       return getStatus()
     }
 
@@ -499,15 +518,18 @@ export function createDeveloperCollectionSession({
     try {
       const settings = await store.getSettings()
       if (disposed || token !== requestToken || captureGeneration !== generation) {
+
         return getStatus()
       }
       if (!isTrusted()) {
         invalidate()
+
         return getStatus()
       }
       if (!settings.enabled) {
         error = DEVELOPER_ERROR_CODES.DISABLED
         revision += 1
+
         return getStatus()
       }
 
@@ -515,18 +537,21 @@ export function createDeveloperCollectionSession({
       if (!registered) {
         error = DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE
         revision += 1
+
         return getStatus()
       }
       printScreenRegistered = true
       slots = [...selectedSlots]
       armed = true
       error = null
+
       return getStatus()
     } catch (caughtError) {
       if (!disposed && token === requestToken && captureGeneration === generation) {
         error = publicErrorCode(caughtError)
         revision += 1
       }
+
       return getStatus()
     }
   }

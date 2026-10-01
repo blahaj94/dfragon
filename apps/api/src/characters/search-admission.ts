@@ -37,6 +37,7 @@ export class SearchAdmission {
   constructor(private readonly clock: SearchClock = searchClock) {}
 
   get entryCount(): number {
+
     return this.entries.size
   }
 
@@ -44,6 +45,7 @@ export class SearchAdmission {
     peerAddress = getIpQuotaKey(peerAddress)
     const cannotAcquire = signal.aborted || this.closed
     if (cannotAcquire) {
+
       return Promise.reject(neopleSearchFailure('internal'))
     }
     const entry = this.entries.get(peerAddress) ?? { reservations: [], waiting: new Set<Waiter>() }
@@ -53,6 +55,7 @@ export class SearchAdmission {
       let released = false
       const release = (): void => {
         if (released) {
+
           return
         }
         released = true
@@ -102,11 +105,13 @@ export class SearchAdmission {
     const hasOwner = entry.owner != null
     const cannotGrant = hasOwner || this.closed
     if (cannotGrant) {
+
       return
     }
     const next = entry.waiting.values().next().value as Waiter | undefined
     const hasNext = next != null
     if (!hasNext) {
+
       return
     }
     entry.waiting.delete(next)
@@ -117,6 +122,7 @@ export class SearchAdmission {
   private prune(entry: PeerEntry, now: number): void {
     entry.reservations = entry.reservations.filter((reservedAt) => {
       const isRecent = reservedAt > now - windowMs
+
       return isRecent
     })
   }
@@ -125,6 +131,7 @@ export class SearchAdmission {
     this.prune(entry, now)
     const isFull = entry.reservations.length >= capacity
     if (!isFull) {
+
       return
     }
     const oldest = entry.reservations[0]!
@@ -149,6 +156,7 @@ export class SearchAdmission {
     }
     const needsExpiry = hasReservations && !this.closed
     if (!needsExpiry) {
+
       return
     }
     const last = entry.reservations.at(-1)!

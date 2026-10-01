@@ -21,9 +21,11 @@ export function validateDFNickname(
   options: DFNicknameValidationOptions = {}
 ): NicknameValidationResult {
   if (nickname.length === 0 || nickname.trim().length === 0) {
+
     return { isValid: false, reason: '닉네임을 입력해주세요.' }
   }
   if (whitespace.test(nickname)) {
+
     return { isValid: false, reason: '공백(띄어쓰기)은 포함할 수 없습니다.' }
   }
 
@@ -36,6 +38,7 @@ export function validateDFNickname(
       invisibleOrControl.test(character) ||
       (!isAscii && !isHangulSyllable && !cp949CharacterSet.has(character))
     ) {
+
       return {
         isValid: false,
         reason: '공백·제어문자·보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
@@ -45,6 +48,7 @@ export function validateDFNickname(
   }
 
   if (totalBytes > maxBytes) {
+
     return {
       isValid: false,
       reason: `글자수 제한을 초과했습니다. (현재 ${totalBytes}B / 최대 ${maxBytes}B)`
@@ -57,8 +61,10 @@ export function validateDFNickname(
       (word) => word.length > 0 && lowerNickname.includes(word.toLowerCase())
     )
   ) {
+
     return { isValid: false, reason: '사용할 수 없는 단어가 포함되어 있습니다.' }
   }
+
   return { isValid: true }
 }
 

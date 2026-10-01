@@ -24,14 +24,17 @@ export function jsonError(response: Response, definition: AuthJsonErrorDefinitio
 
 function readHeaderValues(request: Request, name: string): string[] {
   // 중복 header도 확인할 수 있도록 rawHeaders의 name/value pair를 읽는다.
+
   return request.rawHeaders.flatMap((value, index, headers) => {
     const isHeaderName = index % 2 === 0
     if (isHeaderName) {
       const isMatchingHeader = value.toLowerCase() === name
       if (isMatchingHeader) {
+
         return [headers[index + 1]]
       }
     }
+
     return []
   })
 }
@@ -53,6 +56,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
   const shouldParseAuthJson = isAuthPost || isNicknamePatch
   if (!shouldParseAuthJson) {
     next()
+
     return
   }
 
@@ -68,17 +72,20 @@ export function loginJsonParser(request: Request, response: Response, next: Next
   const hasSingleContentType = contentTypes.length === 1
   if (!hasSingleContentType) {
     rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
+
     return
   }
   const isContentTypeSupported =
     /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(contentTypes[0])
   if (!isContentTypeSupported) {
     rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
+
     return
   }
   const hasDuplicateEncoding = contentEncodings.length > 1
   if (hasDuplicateEncoding) {
     rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
+
     return
   }
   const hasSingleEncoding = contentEncodings.length === 1
@@ -86,6 +93,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
     const isEncodingUnsupported = !/^identity$/i.test(contentEncodings[0])
     if (isEncodingUnsupported) {
       rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
+
       return
     }
   }
@@ -99,6 +107,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
       const isDeclaredPayloadTooLarge = Number(contentLengths[0]) > LOGIN.jsonBytes
       if (isDeclaredPayloadTooLarge) {
         rejectPayloadAndClose(LOGIN_ERRORS.TOO_LARGE)
+
         return
       }
     }
@@ -120,11 +129,13 @@ export function loginJsonParser(request: Request, response: Response, next: Next
       if (!hasRequestError) {
         const isRequestAborted = request.aborted || error.type === 'request.aborted'
         if (isRequestAborted) {
+
           return
         }
         const isPayloadTooLarge = error.type === 'entity.too.large'
         if (isPayloadTooLarge) {
           rejectPayloadAndClose(LOGIN_ERRORS.TOO_LARGE)
+
           return
         }
       }
@@ -135,6 +146,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
       if (canSendError) {
         jsonError(response, LOGIN_ERRORS.INVALID_REQUEST)
       }
+
       return
     }
 

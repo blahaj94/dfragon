@@ -18,6 +18,7 @@ export function readAppAuthConfig(application: {
       ? __DFRAGON_DISTRIBUTION_API_ORIGIN__
       : null
   if (!isDevelopmentBuild && distributionOrigin == null) {
+
     return readAuthRuntimeConfig()
   }
 
@@ -28,6 +29,7 @@ export function readAppAuthConfig(application: {
   // OS protocol launches do not inherit the shell that built or first ran the app.
   // Keep the public tuple in the main bundle, including on cold starts.
   const config = isDevelopmentBuild ? development : distribution
+
   return readAuthRuntimeConfig({
     DFRAGON_AUTH_API_ORIGIN: isDevelopmentBuild
       ? development.accountsOrigin
@@ -52,12 +54,15 @@ export function readAppApiOrigin(): string | null {
     ? development.apiOrigin
     : (distributionOrigin ?? process.env['DFRAGON_API_ORIGIN'])
   if (origin == null) {
+
     return null
   }
   try {
     validateApiOrigin(origin)
+
     return origin
   } catch {
+
     return null
   }
 }

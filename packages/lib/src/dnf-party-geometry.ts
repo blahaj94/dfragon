@@ -23,6 +23,7 @@ export function estimateDNFPartyScale(slotSpacing: number): number {
   if (scale === 0) {
     throw new RangeError('DNF adjacent slot spacing is too small to represent a positive scale.')
   }
+
   return scale
 }
 
@@ -73,6 +74,7 @@ export function projectDNFPartyRegions({
     ) {
       throw new RangeError('Projected DNF party regions must fit inside the client area.')
     }
+
     return { x: left, y: top, width: right - left, height: bottom - top }
   })
 }

@@ -5,5 +5,6 @@ import type { developerModeMachine } from './developer-mode-machine'
 export function getDeveloperModeStatus(
   value: SnapshotFrom<typeof developerModeMachine>['value']
 ): 'loading' | 'ready' | 'unavailable' | 'error' {
+
   return value === 'updating' ? 'ready' : value
 }

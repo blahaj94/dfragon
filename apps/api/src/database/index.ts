@@ -13,6 +13,7 @@ export { readDatabaseConfiguration } from './configuration.js'
 export type { DatabaseConfiguration } from './configuration.js'
 
 export function createDatabaseOptions(configuration: DatabaseConfiguration): DataSourceOptions {
+
   return {
     type: 'postgres',
     ...configuration,
@@ -28,12 +29,14 @@ export function createDatabaseOptions(configuration: DatabaseConfiguration): Dat
 }
 
 export function createDatabaseDataSource(configuration: DatabaseConfiguration): DataSource {
+
   return new DataSource(createDatabaseOptions(configuration))
 }
 
 export function createNestDatabaseOptions(
   configuration: DatabaseConfiguration
 ): TypeOrmModuleOptions {
+
   return {
     ...createDatabaseOptions(configuration),
     retryAttempts: 1,
@@ -45,6 +48,7 @@ export function createNestDatabaseOptions(
 @Module({})
 export class DatabaseModule {
   static register(configuration: DatabaseConfiguration): DynamicModule {
+
     return {
       module: DatabaseModule,
       imports: [TypeOrmModule.forRoot(createNestDatabaseOptions(configuration))],
@@ -58,6 +62,7 @@ type MigrationCommand = 'up' | 'down' | 'show'
 function sanitizeMigrationError(): Error {
   const error = new Error('Database migration failed')
   error.stack = `${error.name}: ${error.message}`
+
   return error
 }
 
@@ -128,5 +133,6 @@ export async function runMigrationCommand(
   if (hasMigrationFailed) {
     throw sanitizeMigrationError()
   }
+
   return migrationResult
 }

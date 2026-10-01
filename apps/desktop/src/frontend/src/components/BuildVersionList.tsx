@@ -16,15 +16,19 @@ const serviceNames = {
 
 function serverLabel(server: ServerVersion): string {
   if (server.status === 'unsupported') {
+
     return '버전 조회 미지원'
   }
   if (server.status === 'unavailable') {
+
     return '연결 확인 필요'
   }
+
   return server.commit ?? '커밋 정보 없음 (개발 빌드)'
 }
 
 export function BuildVersionList({ snapshot }: { snapshot: BuildVersions }): React.JSX.Element {
+
   return (
     <dl {...stylex.props(styles.list)}>
       <div {...stylex.props(styles.row)}>

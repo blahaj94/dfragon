@@ -8,5 +8,6 @@ export function readDesktopBuildInfo(version: string): BuildVersions['desktop'] 
     typeof __DFRAGON_DESKTOP_BUILD__ === 'undefined'
       ? { commit: null, dirty: null }
       : __DFRAGON_DESKTOP_BUILD__
+
   return { version, ...source }
 }

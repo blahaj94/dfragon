@@ -14,6 +14,7 @@ export function findSelectedSource<T extends SourceWithId>(
   sources: readonly T[],
   sourceId: string
 ): T | null {
+
   return sources.find((source) => source.id === sourceId) ?? null
 }
 

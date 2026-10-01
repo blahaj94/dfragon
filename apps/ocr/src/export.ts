@@ -16,6 +16,7 @@ export async function downloadDataset(store: OcrStore, response: Response) {
     new Promise<void>((resolve, reject) => {
       if (archive.destroyed) {
         reject(new Error('Download closed'))
+
         return
       }
       archive.entry({ name, size: bytes.length, mode: 0o600 }, bytes, (error) =>

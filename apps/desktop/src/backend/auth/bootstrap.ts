@@ -19,9 +19,11 @@ export type AuthRuntime = Readonly<{
 export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<AuthRuntime | null> {
   const config = input.config
   if (config == null) {
+
     return null
   }
   if (input.isActive?.() === false) {
+
     return null
   }
 
@@ -32,11 +34,14 @@ export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<A
   const start = (): Promise<AuthSnapshot> => {
     const existingStart = startPromise
     if (existingStart != null) {
+
       return existingStart
     }
     const started = coordinator.start()
     startPromise = started
+
     return started
   }
+
   return { coordinator, apiOrigin: dependencies.apiOrigin, searchClock, start }
 }

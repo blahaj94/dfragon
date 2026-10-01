@@ -9,6 +9,7 @@ function parseHttpsOrigin(value: string | undefined): string {
   if (url.protocol !== 'https:' || url.origin !== value) {
     throw new Error('Invalid OCR configuration')
   }
+
   return value
 }
 
@@ -54,6 +55,7 @@ try {
   let stopping = false
   const close = () => {
     if (stopping) {
+
       return
     }
     stopping = true

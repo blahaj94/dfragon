@@ -14,6 +14,7 @@ export function InvestmentTable({
   large?: boolean
 }): React.JSX.Element {
   const Cell = large ? Typo.txtS : Typo.caption
+
   return (
     <table
       aria-label={investmentAriaLabelByKind[kind]}
@@ -22,6 +23,7 @@ export function InvestmentTable({
       <tbody>
         {investmentIds.map((id) => {
           const item = equipment.find((slot) => slot.id === id)
+
           return (
             <tr key={id} {...stylex.props(styles.row)}>
               <Cell as="th" scope="row" {...stylex.props(styles.cell, large && styles.largeCell)}>

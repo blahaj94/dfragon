@@ -39,6 +39,7 @@ export async function phoneLoginAction(
   }
   if (action === 'cancel' || action === 'phone-cancel') {
     await repo.update({ id: row.id }, { ...CLEARED_LOGIN_FIELDS, status: 'failed' })
+
     return { ended: true }
   }
   if (action === 'qr' || action === 'direct') {
@@ -53,6 +54,7 @@ export async function phoneLoginAction(
     })
     if (action === 'direct') {
       await repo.save(row)
+
       return { ready: true }
     }
     const ticket = newOpaque()
@@ -61,6 +63,7 @@ export async function phoneLoginAction(
       confirmationCode: String(randomInt(0, 1_000_000)).padStart(6, '0')
     })
     await repo.save(row)
+
     return {
       phoneUrl: `${origin}/auth/login/phone?ticket=${ticket}`,
       confirmationCode: row.confirmationCode,
@@ -72,12 +75,14 @@ export async function phoneLoginAction(
   }
   if (action === 'status') {
     if (row.status !== 'phone_approved') {
+
       return { approved: false }
     }
     const user = await manager.getRepository(UserSchema).findOneBy({ id: row.verifiedUserId! })
     if (user == null) {
       throw invalid()
     }
+
     return { approved: true, nickname: user.nickname }
   }
   if (
@@ -100,7 +105,9 @@ export async function phoneLoginAction(
   if (action === 'phone-approve') {
     row.status = 'phone_approved'
     await repo.save(row)
+
     return { approved: true }
   }
+
   return complete(manager, row, now)
 }

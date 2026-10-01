@@ -54,6 +54,7 @@ export function useCaptureUpload() {
     onError: (error) =>
       setMessage(error instanceof UploadInputError ? error.message : errorMessage(error))
   })
+
   return {
     file,
     setFile,

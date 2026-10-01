@@ -161,6 +161,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             onClick={() =>
               setCrops((current) => {
                 const slot = slots.find((slot) => !current.some((crop) => crop.slot === slot))
+
                 return slot === undefined
                   ? current
                   : [...current, { slot, x: 0, y: 0, width: 1, height: 1 }]

@@ -66,6 +66,7 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
     const deadline = setTimeout(abort, AUTH_HTTP_DEADLINE_MS)
 
     try {
+
       return await Promise.race([operation(controller.signal), aborted])
     } catch (error) {
       const isAuthHttpFailure = error instanceof AuthHttpFailure
@@ -85,8 +86,10 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
     callerSignal: AbortSignal,
     expectedStatus: number
   ): Promise<unknown> {
+
     return withDeadline(callerSignal, async (signal) => {
       const response = await client(`${apiOrigin}${path}`, { ...request, signal })
+
       return requireSuccessJson(response, expectedStatus, signal)
     })
   }
@@ -94,16 +97,19 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
   return {
     async createLoginRequest(input, signal) {
       const value = await requestJson('/auth/login-requests', { json: input }, signal, 201)
+
       return parseLoginRequest(value, apiOrigin)
     },
 
     async exchange(input, signal) {
       const value = await requestJson('/auth/exchange', { json: input }, signal, 200)
+
       return parseExchange(value)
     },
 
     async refresh(refreshToken, signal) {
       const value = await requestJson('/auth/refresh', { json: { refreshToken } }, signal, 200)
+
       return parseTokens(value)
     },
 
@@ -127,6 +133,7 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
         signal,
         200
       )
+
       return parseMe(value)
     }
   }

@@ -26,10 +26,12 @@ class ApiHttpFilter implements ExceptionFilter {
     const response = context.getResponse<Response>()
     if (response.headersSent) {
       response.end()
+
       return
     }
     if (request.route == null && error instanceof NotFoundException) {
       response.status(404).json({ statusCode: 404, message: 'Not Found' })
+
       return
     }
     const path = request.path.toLowerCase().replace(/\/+$/, '')
@@ -50,6 +52,7 @@ class ApiHttpFilter implements ExceptionFilter {
 class HealthController {
   @Get()
   health() {
+
     return { status: 'ok' }
   }
 }
@@ -103,6 +106,7 @@ export async function createApiHttpApp(
     })
     app.useGlobalFilters(new ApiHttpFilter())
     setupSwagger(app)
+
     return app
   } catch (error) {
     await app.close().catch(() => undefined)

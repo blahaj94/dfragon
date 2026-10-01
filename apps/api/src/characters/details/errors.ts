@@ -51,6 +51,7 @@ export class CharacterDetailFailure extends Error {
 
 export function characterDetailFailure(error: unknown): CharacterDetailFailure {
   if (error instanceof CharacterDetailFailure) {
+
     return error
   }
   if (error instanceof NeopleSearchFailure) {
@@ -64,7 +65,9 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
             : error.status === 502
               ? 'api'
               : 'internal'
+
     return new CharacterDetailFailure(kind, error.retryAfter)
   }
+
   return new CharacterDetailFailure('internal')
 }

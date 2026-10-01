@@ -52,6 +52,7 @@ export function inspectCaptureStart(
     }
   }
   const aborted = signal.aborted
+
   return { captureId, cancelled: aborted || superseded }
 }
 
@@ -75,6 +76,7 @@ export const captureSearchMachine = setup({
                 void effects.command({ action: SEARCH_ACTIONS.END, captureId: result.captureId })
               }
               request.resolve(null)
+
               return
             }
             sendBack({ type: 'STARTED', result })
@@ -87,6 +89,7 @@ export const captureSearchMachine = setup({
           }
         }
         void start()
+
         return () => controller.abort()
       }
     )
@@ -110,6 +113,7 @@ export const captureSearchMachine = setup({
     },
     rejectStart: ({ context, event }) => {
       if (event.type !== 'STARTED') {
+
         return
       }
       if (event.result.captureId != null) {

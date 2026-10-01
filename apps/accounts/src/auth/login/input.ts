@@ -60,6 +60,7 @@ export function parseCreation(value: unknown): LoginCreation {
   }
 
   decodeOpaque(body.codeChallenge)
+
   return body as unknown as LoginCreation
 }
 
@@ -86,6 +87,7 @@ export function parseExchange(value: unknown): LoginExchange {
 
   decodeOpaque(body.code)
   decodeOpaque(body.codeVerifier)
+
   return body as unknown as LoginExchange
 }
 
@@ -96,5 +98,6 @@ export function parseRefreshToken(value: unknown): string {
   if (!isRefreshTokenString) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
+
   return rawToken
 }

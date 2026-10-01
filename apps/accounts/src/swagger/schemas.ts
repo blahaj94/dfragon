@@ -11,6 +11,7 @@ const opaque: SchemaObject = {
 }
 
 function object(properties: Record<string, SchemaObject>): SchemaObject {
+
   return {
     type: 'object',
     required: Object.keys(properties),

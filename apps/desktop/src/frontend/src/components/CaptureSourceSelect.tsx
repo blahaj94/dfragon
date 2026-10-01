@@ -45,6 +45,7 @@ export function CaptureSourceSelect({
   const notice = getCaptureSourceNotice({ failed, hasOtherSources: others.length > 0 })
 
   // 창 선택과 새로고침 명령이 함께 있으므로 radio menu 항목으로 선택 상태를 알린다.
+
   return (
     <Menu.Root
       open={open}

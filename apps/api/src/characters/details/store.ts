@@ -21,9 +21,11 @@ export interface CharacterDetailStore {
 }
 
 export function createCharacterDetailStore(dataSource: DataSource): CharacterDetailStore {
+
   return {
     async read(identity, signal) {
       // Identity and all sections come from one database snapshot, even during a refresh.
+
       return dataSource.transaction('REPEATABLE READ', async (manager) => {
         signal.throwIfAborted()
         await manager.query("SET LOCAL statement_timeout = '2s'")
@@ -42,6 +44,7 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
           now: Date
         }>
         signal.throwIfAborted()
+
         return { rows, now: clock!.now }
       })
     },
@@ -50,9 +53,11 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
       const rows = (await dataSource.query(
         'SELECT clock_timestamp()::text AS requested_at'
       )) as Array<{ requested_at: string }>
+
       return rows[0]!.requested_at
     },
     async saveAndRead(identity, payloads, requestedAt, signal) {
+
       return dataSource.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await manager.query("SET LOCAL statement_timeout = '2s'")
@@ -104,6 +109,7 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
           .getRepository(CharacterApiResponseSchema)
           .findBy({ characterId: identity.characterId })
         signal.throwIfAborted()
+
         return stored
       })
     }

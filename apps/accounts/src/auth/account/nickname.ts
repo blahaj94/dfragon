@@ -30,5 +30,6 @@ export function validateNickname(input: unknown): string {
   if (isTooLong) {
     throw new AccountFailure(ACCOUNT_ERRORS.INVALID_NICKNAME)
   }
+
   return nickname
 }

@@ -12,10 +12,12 @@ export type Pkce = Readonly<{
 export function isCanonicalOpaque(value: unknown): value is string {
   const isString = typeof value === 'string'
   if (!isString) {
+
     return false
   }
   const hasCanonicalCharacters = CANONICAL_BASE64URL.test(value)
   if (!hasCanonicalCharacters) {
+
     return false
   }
 
@@ -43,5 +45,6 @@ export function createPkce(bytes: (size: number) => Uint8Array): Pkce {
   }
 
   const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
+
   return { verifier, challenge }
 }

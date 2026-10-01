@@ -19,6 +19,7 @@ async function main(): Promise<void> {
     const pendingClose = closing
     const isClosing = pendingClose !== undefined
     if (isClosing) {
+
       return pendingClose
     }
     closing = ownedRuntime
@@ -32,6 +33,7 @@ async function main(): Promise<void> {
         process.off('SIGINT', shutdown)
         process.off('SIGTERM', shutdown)
       })
+
     return closing
   }
   const shutdown = (): void => {
@@ -65,6 +67,7 @@ async function main(): Promise<void> {
     if (stopping) {
       starting = false
       await close(runtime)
+
       return
     }
     if (configuration.localHttps !== undefined) {

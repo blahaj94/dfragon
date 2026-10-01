@@ -22,5 +22,6 @@ export async function readDeveloperImage(dataUrl: string): Promise<HTMLCanvasEle
     throw new Error('이미지를 읽을 수 없습니다.')
   }
   context.drawImage(image, 0, 0)
+
   return canvas
 }

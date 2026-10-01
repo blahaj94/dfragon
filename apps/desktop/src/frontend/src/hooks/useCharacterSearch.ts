@@ -46,6 +46,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     })
     bridgeRef.current = bridge
     bridge.connect()
+
     return () => {
       active = false
       bridgeRef.current = null
@@ -56,8 +57,10 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current
     if (bridge == null) {
+
       return null
     }
+
     return bridge.begin({ signal })
   }, [])
   const end = useCallback((): void => {
@@ -93,5 +96,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const retry = useCallback((slot: number): void => {
     void bridgeRef.current?.retry(slot)
   }, [])
+
   return { ...view, begin, end, observe, retry, manualSlots, editSlot, submitSlot, resumeOcr }
 }

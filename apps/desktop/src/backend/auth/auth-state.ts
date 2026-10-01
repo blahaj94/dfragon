@@ -43,6 +43,7 @@ export function createAuthState(
     const { context, value } = actor.getSnapshot()
     const login = context.login
     const user = context.user
+
     return {
       runId,
       revision: context.revision,
@@ -62,6 +63,7 @@ export function createAuthState(
     actor.send(event)
     const published = getSnapshot()
     if (published.revision === previousRevision) {
+
       return published
     }
     // Emit outside the actor mailbox: a consumer may synchronously cancel/logout,
@@ -73,6 +75,7 @@ export function createAuthState(
         // Consumer failure cannot roll back committed main-process state.
       }
     }
+
     return published
   }
 
@@ -80,53 +83,67 @@ export function createAuthState(
     getSnapshot,
     subscribe(listener: (snapshot: AuthSnapshot) => void): () => void {
       listeners.add(listener)
+
       return () => listeners.delete(listener)
     },
     get phase(): AuthPhase {
+
       return actor.getSnapshot().value.phase as AuthPhase
     },
     get recoveryPurpose() {
+
       return actor.getSnapshot().context.recoveryPurpose
     },
     success(current = getSnapshot()): AuthCommandResult {
+
       return { ok: true, snapshot: current }
     },
     failure(code: AuthCommandError): AuthCommandResult {
+
       return { ok: false, error: { code }, snapshot: getSnapshot() }
     },
     loginStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
+
       return publish({ type: 'LOGIN_STARTED', login })
     },
     waitingForBrowser(
       login: NonNullable<AuthSnapshot['login']>,
       notice: 'LOGIN_RETURN_INVALID' | null = null
     ): AuthSnapshot {
+
       return publish({ type: 'BROWSER_READY', login, notice })
     },
     exchangeStarted(login: NonNullable<AuthSnapshot['login']>): AuthSnapshot {
+
       return publish({ type: 'EXCHANGE_STARTED', login })
     },
     signedIn(nickname: string, entry: 'welcome' | 'home'): AuthSnapshot {
+
       return publish({ type: 'SIGNED_IN', nickname, entry })
     },
     signedOut(notice: AuthNotice | null = null): AuthSnapshot {
+
       return publish({ type: 'SIGNED_OUT', notice })
     },
     restoring(): AuthSnapshot {
+
       return publish({ type: 'RESTORING' })
     },
     restorePaused(
       notice: 'NETWORK_UNAVAILABLE' | 'AUTH_SERVICE_UNAVAILABLE' | 'RESTORE_RETRY_REQUIRED'
     ): AuthSnapshot {
+
       return publish({ type: 'RESTORE_PAUSED', notice })
     },
     signingOut(): AuthSnapshot {
+
       return publish({ type: 'SIGNING_OUT' })
     },
     storageBlocked(
       notice: 'SECURE_STORAGE_UNAVAILABLE' | 'LOCAL_CLEAR_UNCONFIRMED' | 'TOKEN_SAVE_FAILED',
       purpose: StorageRecoveryPurpose
     ): AuthSnapshot {
+
       return publish({ type: 'STORAGE_BLOCKED', notice, purpose })
     }
   }

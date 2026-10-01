@@ -8,6 +8,7 @@ export const DEVELOPER_COLLECTION_SLOTS = {
 
 /** Recognizes the collection modes shared by the main and renderer processes. */
 export function isDeveloperCollectionKind(value: unknown): value is DeveloperCollectionKind {
+
   return value === 'hud' || value === 'participants' || value === 'raid'
 }
 
@@ -16,6 +17,7 @@ export function isDeveloperPartySlot(
   value: unknown,
   kind: DeveloperCollectionKind = 'hud'
 ): value is DeveloperPartySlot {
+
   return (
     typeof value === 'number' &&
     Number.isInteger(value) &&

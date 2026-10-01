@@ -43,6 +43,7 @@ const PUBLIC_ERROR_CODES = new Set<string>([
 ])
 
 function invalidCommand(): Error {
+
   return new Error(DEVELOPER_ERROR_CODES.INVALID_COMMAND)
 }
 
@@ -56,12 +57,14 @@ function requireSingleArgument(args: unknown[]): unknown {
   if (args.length !== 1) {
     throw invalidCommand()
   }
+
   return args[0]
 }
 
 function sanitizedError(error: unknown): Error {
   const message = error instanceof Error ? error.message : ''
   const isPublicCode = PUBLIC_ERROR_CODES.has(message)
+
   return new Error(isPublicCode ? message : DEVELOPER_ERROR_CODES.OPERATION_FAILED)
 }
 
@@ -69,6 +72,7 @@ function exactSampleId(value: unknown): string {
   if (typeof value !== 'string') {
     throw invalidCommand()
   }
+
   return value
 }
 
@@ -76,6 +80,7 @@ function exactLabel(value: unknown): string | null {
   if (value !== null && typeof value !== 'string') {
     throw invalidCommand()
   }
+
   return value
 }
 
@@ -83,11 +88,13 @@ function exactExcluded(value: unknown): boolean {
   if (typeof value !== 'boolean') {
     throw invalidCommand()
   }
+
   return value
 }
 
 function exactCollectionKind(value: unknown): DeveloperCollectionKind {
   if (isDeveloperCollectionKind(value)) {
+
     return value
   }
   throw invalidCommand()
@@ -98,6 +105,7 @@ function exactPartySlots(
   kind: DeveloperCollectionKind
 ): DeveloperPartySlot[] | null {
   if (value === null) {
+
     return null
   }
   if (!Array.isArray(value)) {
@@ -109,6 +117,7 @@ function exactPartySlots(
   ) {
     throw invalidCommand()
   }
+
   return [...value]
 }
 
@@ -142,6 +151,7 @@ function rgbaToWindowsBitmap(rgba: Buffer, width: number, height: number): Buffe
     bgra[offset + 2] = rgba[offset]
     bgra[offset + 3] = rgba[offset + 3]
   }
+
   return bgra
 }
 
@@ -197,6 +207,7 @@ async function capturePrimaryPng(
   if (png == null) {
     throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   return png
 }
 
@@ -211,8 +222,10 @@ export function registerDeveloperWindow(
     decodePng: (png) => {
       try {
         const image = nativeImage.createFromBuffer(png)
+
         return image.isEmpty() ? null : image.getSize()
       } catch {
+
         return null
       }
     }
@@ -242,6 +255,7 @@ export function registerDeveloperWindow(
     if (revision !== remoteRevision || !remoteAllowed || !isTrustedMainDocument()) {
       throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.NOT_ALLOWED)
     }
+
     return result
   }
   let disposed = false
@@ -257,11 +271,13 @@ export function registerDeveloperWindow(
       () => undefined,
       () => undefined
     )
+
     return result
   }
 
   function getPartyCaptureModule(): Promise<typeof import('./win32-party-capture')> {
     partyCaptureModule ??= import('./win32-party-capture')
+
     return partyCaptureModule
   }
 
@@ -269,6 +285,7 @@ export function registerDeveloperWindow(
     const isWindowAlive = !disposed && !mainFrameNavigating && !window.isDestroyed()
     const isContentsAlive = isWindowAlive && !window.webContents.isDestroyed()
     const frame = isContentsAlive ? window.webContents.mainFrame : null
+
     return (
       frame != null && !frame.isDestroyed() && !frame.detached && frame.url === rendererDocumentUrl
     )
@@ -327,6 +344,7 @@ export function registerDeveloperWindow(
     isTrustedContext: isTrustedMainDocument,
     registerPrintScreen: (listener) => {
       assertDnfShortcutAccess()
+
       return printScreenShortcut.register(listener)
     },
     unregisterPrintScreen: printScreenShortcut.unregister,
@@ -338,6 +356,7 @@ export function registerDeveloperWindow(
 
   async function restoreCollectionAfterFailedDisable(mutation: number): Promise<void> {
     if (mutation !== settingsMutationRevision) {
+
       return
     }
     try {
@@ -357,6 +376,7 @@ export function registerDeveloperWindow(
     // Stop accepting captures immediately, before waiting for earlier settings writes.
     closeRemoteDataset()
     const pendingStop = collectionSession.beginDisable()
+
     return serializeSettingsMutation(async () => {
       try {
         await pendingStop
@@ -364,6 +384,7 @@ export function registerDeveloperWindow(
         if (mutation === settingsMutationRevision) {
           collectionSession.setArmingEnabled(false)
         }
+
         return settings
       } catch (error) {
         await restoreCollectionAfterFailedDisable(mutation)
@@ -373,6 +394,7 @@ export function registerDeveloperWindow(
   }
 
   function enableDeveloperMode(mutation: number): Promise<DeveloperSettings> {
+
     return serializeSettingsMutation(async () => {
       const settings = await store.setEnabled(true)
       const isCurrentMutation = mutation === settingsMutationRevision
@@ -380,6 +402,7 @@ export function registerDeveloperWindow(
         remoteAllowed = true
         collectionSession.setArmingEnabled(true)
       }
+
       return settings
     })
   }
@@ -387,6 +410,7 @@ export function registerDeveloperWindow(
   function setDeveloperEnabled(enabled: boolean): Promise<DeveloperSettings> {
     settingsMutationRevision += 1
     const mutation = settingsMutationRevision
+
     return enabled ? enableDeveloperMode(mutation) : disableDeveloperMode(mutation)
   }
 
@@ -395,6 +419,7 @@ export function registerDeveloperWindow(
       assertTrustedSender(event, window, rendererDocumentUrl, () => disposed)
       const result = await operation()
       assertTrustedSender(event, window, rendererDocumentUrl, () => disposed)
+
       return result
     } catch (error) {
       throw sanitizedError(error)
@@ -411,6 +436,7 @@ export function registerDeveloperWindow(
 
   function dispose(): void {
     if (disposed) {
+
       return
     }
     closeRemoteDataset()
@@ -436,6 +462,7 @@ export function registerDeveloperWindow(
     register(DEVELOPER_CHANNELS.getSettings, (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
+
         return store.getSettings()
       })
     )
@@ -445,18 +472,21 @@ export function registerDeveloperWindow(
         if (typeof enabled !== 'boolean') {
           throw invalidCommand()
         }
+
         return setDeveloperEnabled(enabled)
       })
     )
     register(DEVELOPER_CHANNELS.listSamples, (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
+
         return store.listSamples()
       })
     )
     register(DEVELOPER_CHANNELS.listOcrSamples, (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
+
         return invokeRemote((dataset) => dataset.list())
       })
     )
@@ -470,8 +500,10 @@ export function registerDeveloperWindow(
       invoke(event, async () => {
         const id = exactSampleId(requireSingleArgument(args))
         if (!id.startsWith('ocr:')) {
+
           return store.readImage(id)
         }
+
         return invokeRemote((dataset) => dataset.readImage(id))
       })
     )
@@ -481,6 +513,7 @@ export function registerDeveloperWindow(
         if (typeof pngDataUrl !== 'string') {
           throw invalidCommand()
         }
+
         return store.addSample(pngDataUrl)
       })
     )
@@ -489,6 +522,7 @@ export function registerDeveloperWindow(
         if (args.length !== 2) {
           throw invalidCommand()
         }
+
         return store.saveLabel(exactSampleId(args[0]), exactLabel(args[1]))
       })
     )
@@ -497,12 +531,14 @@ export function registerDeveloperWindow(
         if (args.length !== 2) {
           throw invalidCommand()
         }
+
         return store.setSampleExcluded(exactSampleId(args[0]), exactExcluded(args[1]))
       })
     )
     register(DEVELOPER_CHANNELS.captureFrame, (event, args) =>
       invoke(event, async (): Promise<DeveloperFrame> => {
         requireNoArguments(args)
+
         return store.captureFrame(() =>
           capturePrimaryPng(event, window, rendererDocumentUrl, () => disposed)
         )
@@ -520,6 +556,7 @@ export function registerDeveloperWindow(
             throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
           }
           const frame = await (await getPartyCaptureModule()).capturePartyFrame(kind)
+
           return {
             frame: previewFrame(frame, kind),
             previewError: null,
@@ -530,6 +567,7 @@ export function registerDeveloperWindow(
             error instanceof Error && PUBLIC_ERROR_CODES.has(error.message)
               ? error.message
               : DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE
+
           return {
             frame: null,
             previewError: safeCode,
@@ -547,8 +585,10 @@ export function registerDeveloperWindow(
         const slots = exactPartySlots(args[0], kind)
         if (slots == null) {
           await collectionSession.stop()
+
           return collectionSession.getStatus()
         }
+
         return collectionSession.setSlots(slots, kind)
       })
     )

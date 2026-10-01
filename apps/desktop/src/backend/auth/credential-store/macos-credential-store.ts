@@ -17,6 +17,7 @@ type StoreOptions = Readonly<{
 export function createMacOsCredentialStore(options: StoreOptions): CredentialStore {
   const isMacOs = (options.platform ?? process.platform) === 'darwin'
   if (!isMacOs) {
+
     return createUnavailableCredentialStore()
   }
   const hasAbsolutePath = isAbsolute(options.userDataPath)
@@ -25,6 +26,7 @@ export function createMacOsCredentialStore(options: StoreOptions): CredentialSto
   }
   const context = options.context
   const files = new MacOsCredentialFiles(options.userDataPath, context.environment, options.files)
+
   return createCredentialStore({
     userDataPath: options.userDataPath,
     context,
