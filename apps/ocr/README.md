@@ -4,6 +4,7 @@
 
 ```sh
 pnpm --filter @dfragon/ocr test
+pnpm --filter @dfragon/ocr test:browser
 pnpm --filter @dfragon/ocr test:ui
 pnpm --filter @dfragon/ocr lint
 pnpm --filter @dfragon/ocr build
@@ -21,6 +22,8 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 ## 관리 화면
 
 패스키 로그인 후 원본 PNG와 크롭 좌표를 수동 등록하거나 수집 클라이언트가 API로 올린 자료를 조회합니다. 미작성·완료·제외, HUD·파티원창·공대원창, 분할 필터를 제공합니다. 선택한 크롭의 정답·제외 여부를 저장하고 원본을 열 수 있습니다. UI 크기는 %로 표시하고 미상과 추정값을 구분합니다.
+
+같은 표본의 서버 정답·분할·제외 상태가 갱신되어도 작성 중인 초안은 유지합니다. 저장 요청 이후 추가로 입력한 내용도 지우지 않습니다. 수정하지 않은 입력은 최신 서버 정답을 따르며, 다른 표본으로 이동하면 해당 표본의 정답으로 시작합니다. `test:browser`는 jsdom에서 React 상태·요청 경합을 검증하며, 실제 Chromium 화면·HTTPS 연결을 확인하는 `test:ui`를 대신하지 않습니다.
 
 [Penpot OCR 자료실 시안](https://design.penpot.app/#/workspace?team-id=d8ac01df-6646-81d2-8008-a69ecfb5e821&file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&board-id=e2d75c67-3d48-8021-8008-b16f9bafcdf5)을 기준으로 구현합니다. 상단 `이미지 업로드`로 등록 폼을 펼치며 접어도 작성 중인 파일·좌표를 유지합니다. 수집 종류를 바꾸면 종류별 크롭 좌표 초안을 보존하고, HUD·파티원창은 위치 1~4, 공대원창은 위치 1~12 중 실제 저장 대상을 선택할 수 있습니다. 테마 버튼으로 밝은 화면과 어두운 화면을 전환하고 브라우저에 선택을 저장합니다. 좁은 화면에서는 이미지 목록 아래에서 정답을 편집합니다.
 
