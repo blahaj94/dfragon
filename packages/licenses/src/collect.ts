@@ -182,13 +182,12 @@ export function packageNotice(directory: string): NoticeEntry {
   if (!documents.length) {
     throw new Error(`Missing license text for ${manifest.name}@${manifest.version}`)
   }
+  const name = manifest.name
+  const version = manifest.version
+  const declaredLicense =
+    typeof manifest.license === 'string' ? manifest.license : 'See license text'
+  const licenseNote = key === 'guid-typescript@1.0.9' ? ' · 원문 확인 필요' : ''
+  const license = declaredLicense + licenseNote
 
-  return {
-    name: manifest.name,
-    version: manifest.version,
-    license:
-      (typeof manifest.license === 'string' ? manifest.license : 'See license text') +
-      (key === 'guid-typescript@1.0.9' ? ' · 원문 확인 필요' : ''),
-    documents
-  }
+  return { name, version, license, documents }
 }
