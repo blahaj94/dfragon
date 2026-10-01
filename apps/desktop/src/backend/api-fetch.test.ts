@@ -3,7 +3,11 @@ import { session } from 'electron'
 import { createAuthHttpClient } from './auth/http'
 import { createSearchHttp } from './search/http'
 
-vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
+vi.mock('electron', () => {
+  const fromPartition = vi.fn()
+
+  return { session: { fromPartition } }
+})
 
 afterEach(() => {
   vi.restoreAllMocks()
