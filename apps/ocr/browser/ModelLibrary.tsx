@@ -5,6 +5,17 @@ import { requestOcr, errorMessage } from './client.js'
 import { styles } from './styles.js'
 import { primary } from './buttons.js'
 
+function getModelKindLabel(model: ModelSummary): string {
+  if (model.kind === 'pretrained') {
+    return '기본 모델'
+  }
+  if (model.kind === 'expanded') {
+    return '문자 확장 모델'
+  }
+
+  return '파인튜닝 모델'
+}
+
 export function ModelLibrary() {
   const client = useQueryClient()
   const models = useQuery({
@@ -41,11 +52,7 @@ export function ModelLibrary() {
         <article key={model.id} {...stylex.props(styles.statCard)}>
           <strong>{model.name}</strong>
           <p {...stylex.props(styles.muted)}>
-            {model.kind === 'pretrained'
-              ? '기본 모델'
-              : model.kind === 'expanded'
-                ? '문자 확장 모델'
-                : '파인튜닝 모델'}{' '}
+            {getModelKindLabel(model)}{' '}
             · {(model.files.reduce((sum, file) => sum + file.bytes, 0) / 1024 / 1024).toFixed(1)}{' '}
             MiB · {new Date(model.registeredAt).toLocaleString()}
           </p>
