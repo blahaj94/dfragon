@@ -30,7 +30,8 @@ const outputDispose = vi.fn()
 const pixels = { width: 2, height: 1 } as ImageData
 
 async function send(data: { root?: string; pixels?: ImageData }): Promise<void> {
-  await globalThis.onmessage?.(new MessageEvent('message', { data }))
+  const receive: ((event: MessageEvent) => unknown) | null = globalThis.onmessage
+  await receive?.(new MessageEvent('message', { data }))
 }
 
 beforeEach(async () => {
