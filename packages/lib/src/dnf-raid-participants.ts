@@ -1,5 +1,9 @@
 import type { DNFRectangle } from './dnf-party-geometry.js'
 import { projectParticipantRectangle } from './dnf-participant-regions.js'
+import {
+  hasParticipantEvidence,
+  participantEvidenceRatio as evidenceRatio
+} from './dnf-participant-evidence.js'
 import type { DNFParticipantFrame } from './dnf-party-participants.js'
 import {
   createParticipantHeadingMatcher,
@@ -103,25 +107,6 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
   }
 }
 
-/** Empty portrait placeholders and stray name-column marks are insufficient on their own. */
-function evidenceRatio(frame: DNFParticipantFrame, region: DNFRectangle, colored = false): number {
-  let count = 0
-  for (let y = region.y; y < region.y + region.height; y += 1) {
-    for (let x = region.x; x < region.x + region.width; x += 1) {
-      const offset = (y * frame.width + x) * 4
-      const r = frame.rgba[offset]
-      const g = frame.rgba[offset + 1]
-      const b = frame.rgba[offset + 2]
-      const maximum = Math.max(r, g, b)
-      if (colored ? maximum >= 120 && maximum - Math.min(r, g, b) >= 60 : maximum >= 100) {
-        count += 1
-      }
-    }
-  }
-
-  return count / (region.width * region.height)
-}
-
 /**
  * Finds the movable twelve-row raid detail dialog, using a caller-owned UI-0% heading.
  * The 423x18 reference includes all five column labels and the blank action-column header.
@@ -207,7 +192,7 @@ export function detectDNFRaidParticipantWindow(
       true
     )
     const row = (index + 1) as DNFRaidParticipantPosition
-    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
+    const occupied = hasParticipantEvidence({ portrait, level, role })
     const nickname = projectParticipantRectangle(matched, {
       left: 182,
       top: top + 3,

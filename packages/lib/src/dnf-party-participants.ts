@@ -1,6 +1,10 @@
 import type { DNFRectangle } from './dnf-party-geometry.js'
 import { projectParticipantRectangle } from './dnf-participant-regions.js'
 import {
+  hasParticipantEvidence,
+  participantEvidenceRatio as evidenceRatio
+} from './dnf-participant-evidence.js'
+import {
   createParticipantHeadingMatcher,
   findParticipantAnchors,
   participantGrayscale,
@@ -105,25 +109,6 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
   }
 }
 
-/** Measures evidence outside the name column so a gold padlock is not treated as a name. */
-function evidenceRatio(frame: DNFParticipantFrame, region: DNFRectangle, colored = false): number {
-  let count = 0
-  for (let y = region.y; y < region.y + region.height; y += 1) {
-    for (let x = region.x; x < region.x + region.width; x += 1) {
-      const offset = (y * frame.width + x) * 4
-      const r = frame.rgba[offset]
-      const g = frame.rgba[offset + 1]
-      const b = frame.rgba[offset + 2]
-      const maximum = Math.max(r, g, b)
-      if (colored ? maximum >= 120 && maximum - Math.min(r, g, b) >= 60 : maximum >= 100) {
-        count += 1
-      }
-    }
-  }
-
-  return count / (region.width * region.height)
-}
-
 /**
  * Finds the movable participant dialog using its red icon and caller-owned UI-0% heading.
  * No image decoding, capture, OCR, settings reads, or persistence is performed.
@@ -208,7 +193,7 @@ export function detectDNFPartyParticipantWindow(
       true
     )
     const slot = (index + 1) as DNFParticipantSlot
-    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
+    const occupied = hasParticipantEvidence({ portrait, level, role })
     const nickname = projectParticipantRectangle(matched, {
       left: 154,
       top: top + 3,
