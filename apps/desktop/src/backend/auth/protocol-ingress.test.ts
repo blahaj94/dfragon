@@ -47,7 +47,6 @@ class FakeApp extends EventEmitter {
 }
 
 function createApp(): FakeApp & ProtocolIngressApp {
-
   return new FakeApp() as FakeApp & ProtocolIngressApp
 }
 
@@ -77,17 +76,14 @@ function isOrdinarySecondInstanceInvocation(
   values: readonly unknown[],
   returnTarget: string
 ): boolean {
-
   return classifyOrdinarySecondInstanceInvocation(createHandoff(values, returnTarget), returnTarget)
 }
 
 function returnUrl(code = CODE, returnTarget = RETURN_TARGET): string {
-
   return `${returnTarget}?code=${code}`
 }
 
 function openUrlEvent(): ProtocolOpenUrlEvent & { prevented: boolean } {
-
   return {
     prevented: false,
     preventDefault() {
@@ -307,12 +303,14 @@ describe('Desktop auth protocol ingress', () => {
       const activate = vi.fn()
       const ingress = createProtocolIngress({ app, argv: [], returnTarget: RETURN_TARGET })
       ingress.attach(dispatch, activate)
-      const argv =
-        kind === 'count'
-          ? Array.from({ length: 65 }, () => 'arg')
-          : kind === 'argument'
-            ? ['a'.repeat(4_097)]
-            : [...Array.from({ length: 4 }, () => 'a'.repeat(4_096)), 'a']
+      let argv: string[]
+      if (kind === 'count') {
+        argv = Array.from({ length: 65 }, () => 'arg')
+      } else if (kind === 'argument') {
+        argv = ['a'.repeat(4_097)]
+      } else {
+        argv = [...Array.from({ length: 4 }, () => 'a'.repeat(4_096)), 'a']
+      }
 
       app.emit('second-instance', {}, ['electron', '--new-window'], '/tmp', {
         version: 1,
@@ -329,16 +327,18 @@ describe('Desktop auth protocol ingress', () => {
     (kind) => {
       const raw = returnUrl()
       const totalOverflowTailBytes = 16_385 - Buffer.byteLength(raw, 'utf8') - 3 * 4_096
-      const argv =
-        kind === 'count'
-          ? [...Array.from({ length: 64 }, () => 'arg'), raw]
-          : kind === 'argument'
-            ? [raw, 'a'.repeat(4_097)]
-            : [
-                raw,
-                ...Array.from({ length: 3 }, () => 'a'.repeat(4_096)),
-                'a'.repeat(totalOverflowTailBytes)
-              ]
+      let argv: string[]
+      if (kind === 'count') {
+        argv = [...Array.from({ length: 64 }, () => 'arg'), raw]
+      } else if (kind === 'argument') {
+        argv = [raw, 'a'.repeat(4_097)]
+      } else {
+        argv = [
+          raw,
+          ...Array.from({ length: 3 }, () => 'a'.repeat(4_096)),
+          'a'.repeat(totalOverflowTailBytes)
+        ]
+      }
       const app = createApp()
       const dispatch = vi.fn()
 
