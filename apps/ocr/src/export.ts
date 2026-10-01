@@ -19,9 +19,13 @@ export async function downloadDataset(store: OcrStore, response: Response) {
 
         return
       }
-      archive.entry({ name, size: bytes.length, mode: 0o600 }, bytes, (error) =>
-        error != null ? reject(error) : resolve()
-      )
+      archive.entry({ name, size: bytes.length, mode: 0o600 }, bytes, (error) => {
+        if (error != null) {
+          return reject(error)
+        }
+
+        return resolve()
+      })
     })
   try {
     await writeEntry('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2)))
