@@ -16,10 +16,12 @@ export type { DatabaseConfiguration } from './configuration.js'
 export const initialAuthSchema = InitialAuthSchema1788600000000
 
 export function createDatabaseOptions(configuration: DatabaseConfiguration): DataSourceOptions {
+  const connection = { ...configuration }
+  const migrations = [fileURLToPath(new URL('./migrations/*.js', import.meta.url))]
 
   return {
     type: 'postgres',
-    ...configuration,
+    ...connection,
     connectTimeoutMS: 2000,
     synchronize: false,
     migrationsRun: false,
@@ -27,7 +29,7 @@ export function createDatabaseOptions(configuration: DatabaseConfiguration): Dat
     migrationsTransactionMode: 'all',
     migrationsTableName: 'typeorm_migrations',
     entities: databaseSchemas,
-    migrations: [fileURLToPath(new URL('./migrations/*.js', import.meta.url))]
+    migrations
   }
 }
 
@@ -39,9 +41,10 @@ export function createDatabaseDataSource(configuration: DatabaseConfiguration): 
 export function createNestDatabaseOptions(
   configuration: DatabaseConfiguration
 ): TypeOrmModuleOptions {
+  const options = createDatabaseOptions(configuration)
 
   return {
-    ...createDatabaseOptions(configuration),
+    ...options,
     retryAttempts: 1,
     verboseRetryLog: false,
     toRetry: () => false
@@ -51,11 +54,13 @@ export function createNestDatabaseOptions(
 @Module({})
 export class DatabaseModule {
   static register(configuration: DatabaseConfiguration): DynamicModule {
+    const imports = [TypeOrmModule.forRoot(createNestDatabaseOptions(configuration))]
+    const exportedModules = [TypeOrmModule]
 
     return {
       module: DatabaseModule,
-      imports: [TypeOrmModule.forRoot(createNestDatabaseOptions(configuration))],
-      exports: [TypeOrmModule]
+      imports,
+      exports: exportedModules
     }
   }
 }
