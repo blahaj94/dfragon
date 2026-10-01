@@ -66,7 +66,11 @@ function setup(
   pressPrintScreen: () => void
 } {
   const store = {
-    getSettings: vi.fn(async () => ({ enabled: options.enabled ?? true })),
+    getSettings: vi.fn(async () => {
+      const enabled = options.enabled ?? true
+
+      return { enabled }
+    }),
     addCollectedSample: vi.fn(options.save ?? (async () => ({ id: 'saved' })))
   }
   let printScreen: (() => void) | null = null
