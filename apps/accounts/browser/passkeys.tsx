@@ -60,6 +60,7 @@ async function api<T>(action: string, values: Record<string, unknown> = {}): Pro
   if (!response.ok) {
     throw new Error(body.error?.message ?? '요청을 처리하지 못했습니다.')
   }
+
   return body
 }
 
@@ -72,10 +73,12 @@ function QrCode({ url, onError }: { url: string; onError: (message: string) => v
         onError('QR 코드를 표시하지 못했습니다. 다시 생성해 주세요.')
       }
     })
+
     return () => {
       active = false
     }
   }, [url, onError])
+
   return (
     <canvas
       {...stylex.props(styles.qr)}
@@ -86,17 +89,38 @@ function QrCode({ url, onError }: { url: string; onError: (message: string) => v
   )
 }
 
+function entryDescription() {
+  if (management) {
+
+    return '관리할 계정의 패스키로 다시 인증해 주세요.'
+  }
+  if (phone) {
+
+    return '휴대폰의 패스키로 본인 계정을 확인하세요.'
+  }
+
+  return (
+    <>
+      아이디와 비밀번호 없이 로그인해요.
+      <br />
+      패스키가 없으면 휴대폰을 사용할 수 있어요.
+    </>
+  )
+}
+
 function PasskeyPage() {
   const [screen, setScreen] = useState<Screen>({
     kind: 'entry'
   })
-  const [status, setStatus] = useState(
-    supportsPasskeys
-      ? ''
-      : phone
-        ? '패스키를 지원하는 Safari 또는 Chrome에서 열어 주세요.'
-        : '휴대폰 QR을 이용해 주세요.'
-  )
+  let initialStatus = ''
+  if (!supportsPasskeys) {
+    if (phone) {
+      initialStatus = '패스키를 지원하는 Safari 또는 Chrome에서 열어 주세요.'
+    } else {
+      initialStatus = '휴대폰 QR을 이용해 주세요.'
+    }
+  }
+  const [status, setStatus] = useState(initialStatus)
   const [busy, setBusy] = useState(false)
   const [now, setNow] = useState(Date.now)
   const [qrCreated, setQrCreated] = useState(false)
@@ -114,6 +138,7 @@ function PasskeyPage() {
     }
     updateTheme()
     preference.addEventListener('change', updateTheme)
+
     return () => preference.removeEventListener('change', updateTheme)
   }, [])
 
@@ -125,14 +150,17 @@ function PasskeyPage() {
 
   useEffect(() => {
     if (screen.kind !== 'qr' || management) {
+
       return
     }
     const timer = setInterval(() => setNow(Date.now()), 1000)
+
     return () => clearInterval(timer)
   }, [screen])
 
   useEffect(() => {
     if (screen.kind !== 'qr' || !screen.qr.expiresAt) {
+
       return
     }
     const expiresAt = Date.parse(screen.qr.expiresAt)
@@ -142,11 +170,13 @@ function PasskeyPage() {
     const isCurrent = () => active && generation === qrGeneration.current && !endedRef.current
     async function poll() {
       if (!isCurrent()) {
+
         return
       }
       if (Date.now() >= expiresAt) {
         setNow(Date.now())
         setStatus('인증 시간이 만료됐어요. 창을 닫고 DFRAGON 앱에서 다시 로그인해 주세요.')
+
         return
       }
       try {
@@ -155,6 +185,7 @@ function PasskeyPage() {
             'status'
           )
           if (!isCurrent()) {
+
             return
           }
           if (result.approved) {
@@ -171,12 +202,14 @@ function PasskeyPage() {
               busyRef.current = false
               setBusy(false)
             }
+
             return
           }
         }
         timer = setTimeout(() => void poll(), 5000)
       } catch (error) {
         if (!isCurrent()) {
+
           return
         }
         setScreen({ kind: 'entry' })
@@ -186,6 +219,7 @@ function PasskeyPage() {
       }
     }
     timer = setTimeout(() => void poll(), 5000)
+
     return () => {
       active = false
       clearTimeout(timer)
@@ -196,6 +230,7 @@ function PasskeyPage() {
     // Best-effort cancellation on close; expiry and the desktop verifier remain authoritative.
     function cancelOnClose() {
       if (endedRef.current || management || phone) {
+
         return
       }
       void fetch('/auth/passkeys/cancel', {
@@ -207,6 +242,7 @@ function PasskeyPage() {
       }).catch(() => {})
     }
     window.addEventListener('pagehide', cancelOnClose)
+
     return () => window.removeEventListener('pagehide', cancelOnClose)
   }, [])
 
@@ -224,6 +260,7 @@ function PasskeyPage() {
 
   async function run(operation: () => Promise<void>) {
     if (busyRef.current || endedRef.current) {
+
       return
     }
     busyRef.current = true
@@ -232,13 +269,15 @@ function PasskeyPage() {
     try {
       await operation()
     } catch (error) {
-      setStatus(
-        error instanceof Error && error.name === 'NotAllowedError'
-          ? '인증이 취소되었거나 시간이 지났습니다. 다시 시도해 주세요.'
-          : error instanceof Error
-            ? error.message
-            : '인증을 완료하지 못했습니다. 다시 시도해 주세요.'
-      )
+      let message: string
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        message = '인증이 취소되었거나 시간이 지났습니다. 다시 시도해 주세요.'
+      } else if (error instanceof Error) {
+        message = error.message
+      } else {
+        message = '인증을 완료하지 못했습니다. 다시 시도해 주세요.'
+      }
+      setStatus(message)
     } finally {
       busyRef.current = false
       setBusy(false)
@@ -269,6 +308,7 @@ function PasskeyPage() {
       }
       endedRef.current = true
       location.assign(url.href)
+
       return
     }
     if (
@@ -313,6 +353,7 @@ function PasskeyPage() {
             })
     } catch (error) {
       await cancelPhoneAuthentication(error)
+
       return
     }
     const result = await api<Verification>(phone ? 'phone-verify' : 'verify', { response })
@@ -350,6 +391,7 @@ function PasskeyPage() {
 
   async function removeKey(key: Passkey) {
     if (!window.confirm('이 패스키의 로그인 권한을 삭제할까요? 이미 로그인한 기기는 유지됩니다.')) {
+
       return
     }
     const outcome = await api<{ ended?: boolean }>('remove', { credentialId: key.id })
@@ -373,6 +415,7 @@ function PasskeyPage() {
       ? Math.max(0, Math.ceil((Date.parse(screen.qr.expiresAt) - now) / 1000))
       : null
   const expired = remaining === 0
+
   return (
     <div
       {...stylex.props(styles.page, !management && styles.authPage, phone && styles.phonePage)}
@@ -551,17 +594,7 @@ function PasskeyPage() {
               phone && styles.phoneDescription
             )}
           >
-            {management ? (
-              '관리할 계정의 패스키로 다시 인증해 주세요.'
-            ) : phone ? (
-              '휴대폰의 패스키로 본인 계정을 확인하세요.'
-            ) : (
-              <>
-                아이디와 비밀번호 없이 로그인해요.
-                <br />
-                패스키가 없으면 휴대폰을 사용할 수 있어요.
-              </>
-            )}
+            {entryDescription()}
           </Typo.txtM>
           <div {...stylex.props(desktop && styles.actions)}>
             {desktop && (
@@ -595,6 +628,7 @@ function PasskeyPage() {
               onClick={() => {
                 if (phone) {
                   void run(() => authenticate('register'))
+
                   return
                 }
                 setStatus(supportsPasskeys ? '' : '휴대폰 QR을 이용해 주세요.')
