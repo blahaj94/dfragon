@@ -246,10 +246,12 @@ export function planSplits(
   const preservedUnassignedNicknames = [...groups.values()].filter((group) =>
     protectedNicknames.has(group.text)
   ).length
-  const changedNicknames = assignments.filter(({ text, split }) => groups.get(text)!.split !== split)
-    .length
+  const changedNicknames = assignments.filter(
+    ({ text, split }) => groups.get(text)!.split !== split
+  ).length
   const reassignedNicknames = assignments.filter(
-    ({ text, split }) => groups.get(text)!.split !== 'unassigned' && groups.get(text)!.split !== split
+    ({ text, split }) =>
+      groups.get(text)!.split !== 'unassigned' && groups.get(text)!.split !== split
   ).length
 
   return {
