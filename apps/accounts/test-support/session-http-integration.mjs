@@ -48,10 +48,13 @@ function postChunks(base, path, chunks, headers = {}) {
         const body = []
         response.on('data', (part) => body.push(part))
         response.on('end', () => {
+          const status = response.statusCode
+          const responseHeaders = response.headers
+          const responseBody = Buffer.concat(body).toString('utf8')
           resolve({
-            status: response.statusCode,
-            headers: response.headers,
-            body: Buffer.concat(body).toString('utf8')
+            status,
+            headers: responseHeaders,
+            body: responseBody
           })
         })
       }
@@ -281,8 +284,9 @@ async function refreshThenLogoutWithLateResponse(source) {
           post(base, '/auth/refresh', { refreshToken: f.initial.refreshToken }).then(
             async (response) => {
               refreshDelivered = true
+              const body = await response.json()
 
-              return { response, body: await response.json() }
+              return { response, body }
             }
           )
         )
