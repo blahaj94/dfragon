@@ -160,7 +160,7 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
   assert.equal(result.get(catalogKey(keys[139]!))!.detail.status, 'unavailable')
 })
 
-test('deadline stops queued work; disconnect aborts without persisting late upstream data', async () => {
+test('deadline stops queued work and pre-aborted requests reject before refresh', async () => {
   let writes = 0,
     calls = 0
   const store = memoryStore()
@@ -291,4 +291,47 @@ test('enrichment preserves 14 slots, enchant skill options, nullable chain and o
     ]!.status,
     'fresh'
   )
+})
+
+test('disconnect ignores a late upstream success while a connected request persists it', async () => {
+  for (const disconnected of [false, true]) {
+    const controller = new AbortController()
+    let markStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
+    })
+    let finishFetch!: () => void
+    const release = new Promise<void>((resolve) => {
+      finishFetch = resolve
+    })
+    const store = memoryStore()
+    const save = store.saveAndRead
+    let writes = 0
+    store.saveAndRead = async (...args) => {
+      writes++
+
+      return save(...args)
+    }
+    const service = createCatalogService(store, async (keys, requestSignal) => {
+      markStarted()
+      await release
+      assert.equal(requestSignal.aborted, disconnected)
+
+      return keys.map((key) => ({ key, payload: { late: true } }))
+    })
+    const pending = service.load([item], controller.signal)
+    await started
+    if (disconnected) {
+      controller.abort()
+    }
+    finishFetch()
+    if (disconnected) {
+      await assert.rejects(pending, { name: 'AbortError' })
+      assert.equal(writes, 0)
+    } else {
+      const result = await pending
+      assert.equal(writes, 1)
+      assert.deepEqual(result.get(catalogKey(item))!.detail.data, { late: true })
+    }
+  }
 })
