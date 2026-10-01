@@ -73,8 +73,9 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
         const probe = 'dfragon-credential-store-probe-v1'
         const decrypted = safeStorage.decryptString(safeStorage.encryptString(probe))
         const isRoundTripSuccessful = decrypted === probe
+        const status = isRoundTripSuccessful ? 'empty' : 'unavailable'
 
-        return { status: isRoundTripSuccessful ? 'empty' : 'unavailable' }
+        return { status }
       }
       const ciphertext = readCiphertext(record, context)
       const isInvalidRecord = ciphertext == null
@@ -85,8 +86,12 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const plaintext = safeStorage.decryptString(ciphertext)
       const refreshToken = readRefreshToken(plaintext, context)
       const isInvalidPayload = refreshToken == null
+      if (isInvalidPayload) {
 
-      return isInvalidPayload ? { status: 'recovery-required' } : { status: 'ready', refreshToken }
+        return { status: 'recovery-required' }
+      }
+
+      return { status: 'ready', refreshToken }
     } catch {
 
       return { status: 'unavailable' }
@@ -185,8 +190,12 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const isClearMarker = ownedMarker?.kind === 'clear'
       const ownsTransition = await ownsMarker()
       const canClear = isClearMarker && ownsTransition
+      if (!canClear) {
 
-      return canClear ? files.clear() : 'failed'
+        return 'failed'
+      }
+
+      return files.clear()
     } catch {
 
       return 'failed'
