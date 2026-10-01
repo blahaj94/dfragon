@@ -36,9 +36,12 @@ function createHandle(
   stores: Map<string, Buffer>,
   fixture: { failAfterRename: boolean }
 ): WindowsCredentialFileHandle {
-
   return {
-    read: async (maximumBytes) => (stores.get(path) ?? Buffer.alloc(0)).subarray(0, maximumBytes),
+    read: async (maximumBytes) => {
+      const buffer = stores.get(path) ?? Buffer.alloc(0)
+
+      return buffer.subarray(0, maximumBytes)
+    },
     write: async (data) => {
       stores.set(path, Buffer.from(data))
     },
@@ -79,15 +82,20 @@ function createWindowsFixture(): WindowsFixture {
     inspect: vi.fn<WindowsCredentialNative['inspect']>(async (path, kind) => {
       const configured = inspections.get(path)
       if (configured != null) {
-
         return configured
       }
       if (kind === 'directory') {
+        if (directories.has(path)) {
+          return { status: 'trusted-directory' }
+        }
 
-        return directories.has(path) ? { status: 'trusted-directory' } : { status: 'missing' }
+        return { status: 'missing' }
+      }
+      if (stores.has(path)) {
+        return { status: 'trusted-file' }
       }
 
-      return stores.has(path) ? { status: 'trusted-file' } : { status: 'missing' }
+      return { status: 'missing' }
     }),
     createDirectory: vi.fn<WindowsCredentialNative['createDirectory']>(async (path) => {
       directories.add(path)
@@ -124,14 +132,12 @@ function createWindowsFixture(): WindowsFixture {
     directories,
     paths,
     get failAfterRename() {
-
       return state.failAfterRename
     },
     set failAfterRename(value: boolean) {
       state.failAfterRename = value
     },
     get failAfterDelete() {
-
       return state.failAfterDelete
     },
     set failAfterDelete(value: boolean) {
@@ -149,7 +155,6 @@ function createStore(
   fixture: WindowsFixture,
   overrides: Partial<WindowsCredentialStoreOptions> = {}
 ): CredentialStore {
-
   return createWindowsCredentialStore({
     userDataPath: fixture.paths.userData,
     context: CONTEXT,
@@ -295,9 +300,12 @@ describe('Windows CredentialStore native boundary', () => {
           close.mockRejectedValueOnce(error)
         }
 
+        const methods = { ...handle }
+        const write = isWriteFailure ? vi.fn().mockRejectedValue(error) : handle.write
+
         return {
-          ...handle,
-          write: isWriteFailure ? vi.fn().mockRejectedValue(error) : handle.write,
+          ...methods,
+          write,
           flush,
           rename,
           close
