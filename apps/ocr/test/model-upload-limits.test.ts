@@ -16,6 +16,9 @@ import {
 
 const boundary = 'ocr-model-limit-fixture'
 const dictionary = Buffer.from('가\n')
+const ignoredPart = Buffer.from(
+  `--${boundary}\r\nContent-Type: application/octet-stream\r\n\r\nignored\r\n`
+)
 const metadata = () =>
   JSON.stringify({
     id: randomUUID(),
@@ -112,13 +115,15 @@ test('multipart metadata, optional files, file count and the existing five-part 
   for (const extra of [
     [part('files', '{}', 'evaluation.json'), part('files', 'extra', 'extra.bin')],
     [part('extra', 'field')],
-    [part(undefined, 'ignored'), part(undefined, 'ignored')]
+    [part(undefined, 'missing field name')],
+    [ignoredPart, ignoredPart, ignoredPart]
   ]) {
     assert.equal((await send(multipart({ extra }))).status, 400)
     assert.equal(f.store.models().length, before)
   }
-  // Four valid parts are supported; a nameless extra part is rejected by the existing parser.
-  assert.equal((await send(multipart({ extra: [part(undefined, 'ignored')] }))).status, 400)
+  // Current Multer permits exactly five parts, including parts Busboy skips.
+  assert.equal((await send(multipart({ extra: [ignoredPart] }))).status, 201)
+  assert.equal((await send(multipart({ extra: [ignoredPart, ignoredPart] }))).status, 201)
   const text = metadata()
   const count = f.store.models().length
   assert.equal(
