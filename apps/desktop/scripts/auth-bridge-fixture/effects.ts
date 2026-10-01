@@ -35,11 +35,12 @@ export function createFixtureEffects(): Effects {
     apiOrigin: 'https://api.example.test',
     returnTarget: 'dfragon-fixture://auth/return',
     clock: {
-      read: () => ({
-        wallMs: wallNow(),
-        monotonicMs: performance.now() - started,
-        discontinuous: false
-      }),
+      read: () => {
+        const wallMs = wallNow()
+        const monotonicMs = performance.now() - started
+
+        return { wallMs, monotonicMs, discontinuous: false }
+      },
       schedule: (delay, callback) => {
         const timer = setTimeout(callback, delay)
 
@@ -61,20 +62,26 @@ export function createFixtureEffects(): Effects {
       }
     },
     http: {
-      createLoginRequest: async () => ({
-        requestId: '10000000-0000-4000-8000-000000000001',
-        browserUrl,
-        expiresAt: new Date(wallNow() + 600_000).toISOString()
-      }),
+      createLoginRequest: async () => {
+        const expiresAt = new Date(wallNow() + 600_000).toISOString()
+
+        return {
+          requestId: '10000000-0000-4000-8000-000000000001',
+          browserUrl,
+          expiresAt
+        }
+      },
       exchange: async () => {
         counts.exchange += 1
+        const accessTokenExpiresAt = new Date(wallNow() + 900_000).toISOString()
+        const sessionExpiresAt = new Date(wallNow() + 2_592_000_000).toISOString()
 
         return {
           tokenType: 'Bearer',
           accessToken,
           refreshToken,
-          accessTokenExpiresAt: new Date(wallNow() + 900_000).toISOString(),
-          sessionExpiresAt: new Date(wallNow() + 2_592_000_000).toISOString(),
+          accessTokenExpiresAt,
+          sessionExpiresAt,
           user: { id: '20000000-0000-4000-8000-000000000001', nickname: '중립모험가' },
           isNewUser: true
         }
