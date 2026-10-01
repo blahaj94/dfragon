@@ -78,8 +78,12 @@ function ifPrefix(path, options) {
   const rawEnd = previous.range?.[1] ?? previous.end
   const hasBlank = util.isNextLineEmpty(originalText, end)
   const hasBlankAfterSemicolon = rawEnd !== end && util.isNextLineEmpty(originalText, rawEnd)
+  const leading = node.comments?.filter((comment) => comment.leading && !comment.printed)
+  const comment = leading?.at(-1)
+  const hasBlankAfterComment =
+    comment != null && util.isNextLineEmpty(originalText, locEnd(comment))
 
-  if (hasBlank || hasBlankAfterSemicolon) {
+  if (hasBlank || hasBlankAfterSemicolon || hasBlankAfterComment) {
     return []
   }
 
