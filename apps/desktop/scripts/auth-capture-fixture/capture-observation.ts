@@ -79,7 +79,12 @@ export function syntheticSlotMask(value: unknown): number {
       const isSlotInRange = slot >= 0 && slot < 4
       const isExpectedSlot = isSlotInRange && isExpectedNickname
 
-      return isExpectedSlot ? 1 << slot : 0
+      if (isExpectedSlot) {
+
+        return 1 << slot
+      }
+
+      return 0
     }
   }
 
