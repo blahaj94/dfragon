@@ -184,9 +184,14 @@ async function boundary({ source, phase, boundaryKind, method }) {
   const before = await snapshot(source, f)
   const isIdleBoundary = boundaryKind === 'idle'
   const isAdmissionPhase = phase === 'admission'
-  const checkedAt = isIdleBoundary
-    ? new Date(f.now.getTime() + (isAdmissionPhase ? 0 : 2_592_000_000))
-    : new Date(f.token.expiresAt * 1000)
+  let checkedAt
+  if (isIdleBoundary) {
+    const currentTime = f.now.getTime()
+    const offset = isAdmissionPhase ? 0 : 2_592_000_000
+    checkedAt = new Date(currentTime + offset)
+  } else {
+    checkedAt = new Date(f.token.expiresAt * 1000)
+  }
   const shouldSetInitialDeadline = isIdleBoundary && isAdmissionPhase
   if (shouldSetInitialDeadline) {
     await setDeadline(source, f.initial.session.id, checkedAt)
