@@ -4,6 +4,17 @@ import { ActionButton, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { styles } from './DeveloperSampleThumbnail.style'
 
+function getAnswerLabel(sample: DeveloperWorkbenchSample): string | null {
+  if (sample.text == null) {
+    return '정답 미입력'
+  }
+  if (sample.text === '') {
+    return '(빈 정답)'
+  }
+
+  return sample.text
+}
+
 export function DeveloperSampleThumbnail({
   sample,
   selected,
@@ -22,7 +33,6 @@ export function DeveloperSampleThumbnail({
     let requested = false
     const readImage = (): void => {
       if (requested) {
-
         return
       }
       requested = true
@@ -62,7 +72,15 @@ export function DeveloperSampleThumbnail({
     }
   }, [sample.id])
 
-  const state = sample.excluded ? '제외' : sample.text == null ? '미입력' : '완료'
+  let state: string
+  if (sample.excluded) {
+    state = '제외'
+  } else if (sample.text == null) {
+    state = '미입력'
+  } else {
+    state = '완료'
+  }
+  const placeholder = failed ? '확인 불가' : '로딩'
 
   return (
     <li>
@@ -78,14 +96,12 @@ export function DeveloperSampleThumbnail({
             {image ? (
               <img src={image} alt="" {...stylex.props(styles.image)} />
             ) : (
-              <Typo.caption {...stylex.props(styles.placeholder)}>
-                {failed ? '확인 불가' : '로딩'}
-              </Typo.caption>
+              <Typo.caption {...stylex.props(styles.placeholder)}>{placeholder}</Typo.caption>
             )}
           </div>
           <div {...stylex.props(styles.description)}>
             <Typo.txtS as="span" weight={700} {...stylex.props(styles.overflow)}>
-              {sample.text == null ? '정답 미입력' : sample.text === '' ? '(빈 정답)' : sample.text}
+              {getAnswerLabel(sample)}
             </Typo.txtS>
             <Typo.caption {...stylex.props(styles.muted)}>{state}</Typo.caption>
           </div>
