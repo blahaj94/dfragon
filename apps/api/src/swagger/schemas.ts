@@ -4,10 +4,11 @@ import { characterDetailSections } from '../characters/details/sections.js'
 const text: SchemaObject = { type: 'string' }
 const timestamp: SchemaObject = { type: 'string', format: 'date-time' }
 function object(properties: Record<string, SchemaObject>): SchemaObject {
+  const required = Object.keys(properties)
 
   return {
     type: 'object',
-    required: Object.keys(properties),
+    required,
     additionalProperties: false,
     properties
   }
