@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useDeveloperEvaluation } from './useDeveloperEvaluation'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
+import { OcrWorkerUnavailableError } from '../lib/ocr'
 
 const mocks = vi.hoisted(() => {
   const recognize = vi.fn()
@@ -13,10 +14,11 @@ const mocks = vi.hoisted(() => {
 
   return { recognize, terminate, create, read }
 })
-vi.mock('../lib/ocr', () => {
+vi.mock('../lib/ocr', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../lib/ocr')>()
   const createPartyOcrWorker = mocks.create
 
-  return { createPartyOcrWorker }
+  return { ...actual, createPartyOcrWorker }
 })
 vi.mock('../lib/developer-images', () => {
   const readDeveloperImage = mocks.read
@@ -103,6 +105,22 @@ it('일부 이미지 실패를 표시하고 다음 이미지 평가를 계속한
   })
   expect(evaluation.results.one).toEqual({ status: 'failed' })
   expect(evaluation.results.two).toMatchObject({ status: 'success' })
+})
+
+it('worker 실행 불능은 평가를 중단하고 남은 표본을 실패로 기록하지 않는다', async () => {
+  mocks.recognize.mockRejectedValueOnce(new OcrWorkerUnavailableError('PaddleOCR timed out.'))
+  await act(async () => evaluation.evaluate(samples))
+
+  expect(evaluation.results).toEqual({})
+  expect(evaluation.progress).toEqual({ done: 0, total: 2 })
+  expect(evaluation.error).toContain('실행')
+  expect(evaluation.running).toBe(false)
+  expect(mocks.recognize).toHaveBeenCalledTimes(1)
+  expect(mocks.terminate).toHaveBeenCalledTimes(1)
+
+  await act(async () => evaluation.evaluate(samples))
+  expect(evaluation.error).toBe('')
+  expect(evaluation.progress).toEqual({ done: 2, total: 2 })
 })
 
 it('중복 시작을 차단하고 중지 뒤 늦은 결과를 반영하지 않는다', async () => {
