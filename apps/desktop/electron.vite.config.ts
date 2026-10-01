@@ -82,7 +82,15 @@ export default defineConfig(({ mode, command }) => {
 
   return {
     main: {
-      resolve: { alias: { '@dfragon/lib': libAlias } },
+      resolve: {
+        alias: [
+          { find: /^@dfragon\/lib$/, replacement: libAlias },
+          {
+            find: /^@dfragon\/lib\/ocr-contract$/,
+            replacement: resolve('../../packages/lib/src/ocr-contract.ts')
+          }
+        ]
+      },
       define: {
         __DFRAGON_DESKTOP_BUILD__: desktopBuild,
         __DFRAGON_DEVELOPMENT_AUTH__: developmentAuth,
