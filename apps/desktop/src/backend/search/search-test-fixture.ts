@@ -11,11 +11,13 @@ import {
 } from '../capture/ipc-handler'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
-const electron = vi.hoisted(() => ({
-  getSources: vi.fn(),
-  handle: vi.fn(),
-  removeHandler: vi.fn()
-}))
+const electron = vi.hoisted(() => {
+  const getSources = vi.fn()
+  const handle = vi.fn()
+  const removeHandler = vi.fn()
+
+  return { getSources, handle, removeHandler }
+})
 vi.mock('electron', () => ({
   desktopCapturer: { getSources: electron.getSources },
   ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler }
@@ -43,7 +45,6 @@ export function jsonResponse({
   status?: number
   headers?: Record<string, string>
 }): Response {
-
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...headers }
