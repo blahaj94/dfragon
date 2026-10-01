@@ -83,11 +83,16 @@ function badge(party) {
 }
 
 const templates = {
-  parties: ['R', 'Y', 'G', '싱글'].map((party) => ({ party, image: badge(party) })),
-  equipmentScoreGlyphs: Object.keys(alphabet).map((character) => ({
-    character,
-    image: glyph(character)
-  }))
+  parties: ['R', 'Y', 'G', '싱글'].map((party) => {
+    const image = badge(party)
+
+    return { party, image }
+  }),
+  equipmentScoreGlyphs: Object.keys(alphabet).map((character) => {
+    const image = glyph(character)
+
+    return { character, image }
+  })
 }
 
 function score(text, color = [205, 210, 225, 255], gold = false) {
@@ -135,8 +140,9 @@ function fixture(values, scale = 1) {
       }
       copy(badge(party), image, partyRegion.x, partyRegion.y, scale)
       copy(score(text, color, gold), image, equipmentScoreRegion.x, equipmentScoreRegion.y, scale)
+      const row = index + 1
 
-      return { row: index + 1, occupied, partyRegion, equipmentScoreRegion }
+      return { row, occupied, partyRegion, equipmentScoreRegion }
     }
   )
 
@@ -166,11 +172,13 @@ test('reads actual per-row badges and preserves visible score notation across tw
 
   assert.deepEqual(
     actual,
-    values.map((value, index) => ({
-      row: index + 1,
-      party: value.occupied === false ? null : value.party,
-      equipmentScoreText: value.occupied === false ? null : value.text
-    }))
+    values.map((value, index) => {
+      const row = index + 1
+      const party = value.occupied === false ? null : value.party
+      const equipmentScoreText = value.occupied === false ? null : value.text
+
+      return { row, party, equipmentScoreText }
+    })
   )
   assert.deepEqual(image.rgba, original)
   for (const [index, template] of templates.equipmentScoreGlyphs.entries()) {
