@@ -53,13 +53,15 @@ export function useSampleEditor(sample: Sample) {
       assign.mutate(split)
     }
   }
+  const busy = save.isPending || assign.isPending
+  const saveSample = save.mutate
 
   return {
     text,
     setText,
     message,
-    busy: save.isPending || assign.isPending,
-    saveSample: save.mutate,
+    busy,
+    saveSample,
     assignNicknameSplit
   }
 }
