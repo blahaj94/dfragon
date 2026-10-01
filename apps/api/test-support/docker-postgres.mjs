@@ -39,8 +39,12 @@ function safeDockerEnvironment() {
   return Object.fromEntries(
     names.flatMap((name) => {
       const isVariableMissing = process.env[name] === undefined
+      if (isVariableMissing) {
 
-      return isVariableMissing ? [] : [[name, process.env[name]]]
+        return []
+      }
+
+      return [[name, process.env[name]]]
     })
   )
 }
@@ -443,6 +447,7 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
     if (!hasLoopbackPort) {
       throw new Error('PostgreSQL loopback port could not be determined')
     }
+    const port = Number(portMatch[1])
 
     return {
       runId,
@@ -450,7 +455,7 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
       volumeName,
       configuration: {
         host: '127.0.0.1',
-        port: Number(portMatch[1]),
+        port,
         username,
         password,
         database
