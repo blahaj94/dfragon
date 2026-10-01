@@ -704,8 +704,11 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
     const claim = value.claimExchange(parsed.code, () => {
       state.exchangeStarted(value.snapshot())
+      if (isCurrentPending(value)) {
+        return session.reserveWriter()
+      }
 
-      return isCurrentPending(value) ? session.reserveWriter() : null
+      return null
     })
     const isIgnored = claim.status === 'ignored'
     if (isIgnored) {
