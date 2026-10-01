@@ -99,8 +99,12 @@ function authHttpFailure(
   const isSessionFailure = error instanceof RefreshFailure || error instanceof LogoutFailure
   const isAccountFailure = error instanceof AccountFailure
   const isKnownAuthFailure = isSessionFailure || isAccountFailure
+  if (isKnownAuthFailure) {
 
-  return isKnownAuthFailure ? error : loginFailure(error)
+    return error
+  }
+
+  return loginFailure(error)
 }
 
 @Catch()
