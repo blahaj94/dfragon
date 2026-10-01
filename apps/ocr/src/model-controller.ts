@@ -24,13 +24,13 @@ export class OcrModelController {
 
   @Get(['models', 'desktop/models'])
   list() {
+    const models = this.store.models()
 
-    return { schemaVersion: 1, models: this.store.models() }
+    return { schemaVersion: 1, models }
   }
 
   @Get(['models/:id', 'desktop/models/:id'])
   detail(@Param('id') id: string) {
-
     return this.store.model(id)
   }
 
@@ -87,12 +87,10 @@ export class OcrModelController {
   @Post('models/base/korean-v5')
   async addBase() {
     if (this.baseRegistration !== null) {
-
       return this.baseRegistration
     }
     this.baseRegistration = registerBaseModel(this.store)
     try {
-
       return await this.baseRegistration
     } finally {
       this.baseRegistration = null
