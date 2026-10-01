@@ -187,7 +187,12 @@ export async function runCaptureFixture(args = []) {
     process.removeListener('SIGTERM', interrupt)
   }
 
-  return interrupted ? 1 : exitCode
+  if (interrupted) {
+
+    return 1
+  }
+
+  return exitCode
 }
 
 const invokedPath = process.argv[1]
