@@ -133,8 +133,12 @@ function readParty(
   }
   const ranked = [...scores].sort((left, right) => right[1] - left[1])
   const best = ranked[0]
+  if (best != null && best[1] >= 0.8 && best[1] - (ranked[1]?.[1] ?? -1) >= 0.06) {
 
-  return best != null && best[1] >= 0.8 && best[1] - (ranked[1]?.[1] ?? -1) >= 0.06 ? best[0] : null
+    return best[0]
+  }
+
+  return null
 }
 
 /**
@@ -223,8 +227,12 @@ function readEquipmentScore(
     text += best[0]
   }
   // Reject malformed/partial readings, while preserving every accepted display character.
+  if (/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?K?$/.test(text)) {
 
-  return /^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?K?$/.test(text) ? text : null
+    return text
+  }
+
+  return null
 }
 
 /**
@@ -312,14 +320,17 @@ export function readDNFRaidParticipantMetadata(
 
       return { row: row.row, party: null, equipmentScoreText: null }
     }
+    const position = row.row
+    const party = readParty(normalizedRegion(frame, row.partyRegion, 42, 17), parties)
+    const equipmentScoreText = readEquipmentScore(
+      normalizedRegion(frame, row.equipmentScoreRegion, 75, 17),
+      equipmentScoreGlyphs
+    )
 
     return {
-      row: row.row,
-      party: readParty(normalizedRegion(frame, row.partyRegion, 42, 17), parties),
-      equipmentScoreText: readEquipmentScore(
-        normalizedRegion(frame, row.equipmentScoreRegion, 75, 17),
-        equipmentScoreGlyphs
-      )
+      row: position,
+      party,
+      equipmentScoreText
     }
   })
 }
