@@ -90,17 +90,24 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
       hasStatusMatch = hasExpectedStatus
     }
     const statusMatched = hasRegion && hasStatusMatch === true
+    const state = slot.state
+    const requestId = slot.requestId
+    const observationRevision = slot.observationRevision
+    const retryAfterSeconds = slot.error?.retryAfterSeconds ?? null
+    const retryDisabled = buttons[0]?.disabled ?? null
+    const retryCount = buttons.length
+    const pending = isPendingRegion(region)
 
     return {
-      state: slot.state,
-      requestId: slot.requestId,
-      observationRevision: slot.observationRevision,
+      state,
+      requestId,
+      observationRevision,
       code,
-      retryAfterSeconds: slot.error?.retryAfterSeconds ?? null,
-      retryDisabled: buttons[0]?.disabled ?? null,
-      retryCount: buttons.length,
+      retryAfterSeconds,
+      retryDisabled,
+      retryCount,
       statusMatched,
-      pending: isPendingRegion(region)
+      pending
     }
   })
   const lines = document.querySelector('pre')?.textContent?.split('\n') ?? []
@@ -124,18 +131,23 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
   })
   const contentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
   const horizontalOverflow = contentWidth > window.innerWidth + 1
+  const captureId = snapshot.captureId
+  const revision = snapshot.revision
+  const sourceSelected = hasSelectedSource === true
+  const startDisabled = start?.disabled ?? null
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches
 
   return {
-    captureId: snapshot.captureId,
-    revision: snapshot.revision,
+    captureId,
+    revision,
     slots,
     candidateMask,
     ocrMask,
     regionMask,
-    sourceSelected: hasSelectedSource === true,
-    startDisabled: start?.disabled ?? null,
+    sourceSelected,
+    startDisabled,
     horizontalOverflow,
-    dark: window.matchMedia('(prefers-color-scheme: dark)').matches
+    dark
   }
 }
 
