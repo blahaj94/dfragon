@@ -20,12 +20,43 @@ const fixtures = [
   {
     name: 'first return in a block',
     source: 'function f(){return 1}',
-    expected: 'function f() {\n\n  return 1\n}\n'
+    expected: 'function f() {\n  return 1\n}\n'
   },
   {
     name: 'bare return',
     source: 'function f(){return;}',
-    expected: 'function f() {\n\n  return\n}\n'
+    expected: 'function f() {\n  return\n}\n'
+  },
+  {
+    name: 'existing blank before the first return is removed',
+    source: 'function f(){\n\n\nreturn 1}',
+    expected: 'function f() {\n  return 1\n}\n'
+  },
+  {
+    name: 'empty statements do not add spacing before the first return',
+    source: 'function f(){;;;return 1}',
+    expected: 'function f() {\n  return 1\n}\n'
+  },
+  {
+    name: 'first return in an arrow block',
+    source: 'const f=()=>{return 1}',
+    expected: 'const f = () => {\n  return 1\n}\n'
+  },
+  {
+    name: 'directive before return gets a blank',
+    source: 'function f(){"use strict";return 1}',
+    expected: "function f() {\n  'use strict'\n\n  return 1\n}\n"
+  },
+  {
+    name: 'outer statements do not add spacing to the first nested return',
+    source: 'function f(x){work();if(x){return 1}return 2}',
+    expected: 'function f(x) {\n  work()\n  if (x) {\n    return 1\n  }\n\n  return 2\n}\n'
+  },
+  {
+    name: 'first returns in try catch and finally blocks',
+    source: 'function f(){try{return 1}catch{return 2}finally{return 3}}',
+    expected:
+      'function f() {\n  try {\n    return 1\n  } catch {\n    return 2\n  } finally {\n    return 3\n  }\n}\n'
   },
   {
     name: 'missing blank after a statement',
@@ -45,7 +76,7 @@ const fixtures = [
   {
     name: 'if and else blocks',
     source: 'function f(x){if(x){return 1}else{return 2}}',
-    expected: 'function f(x) {\n  if (x) {\n\n    return 1\n  } else {\n\n    return 2\n  }\n}\n'
+    expected: 'function f(x) {\n  if (x) {\n    return 1\n  } else {\n    return 2\n  }\n}\n'
   },
   {
     name: 'unbraced branches',
@@ -56,7 +87,7 @@ const fixtures = [
     name: 'switch cases and nested case block',
     source: 'function f(x){switch(x){case 1:return 1;default:{return 2}}}',
     expected:
-      'function f(x) {\n  switch (x) {\n    case 1:\n\n      return 1\n    default: {\n\n      return 2\n    }\n  }\n}\n'
+      'function f(x) {\n  switch (x) {\n    case 1:\n\n      return 1\n    default: {\n      return 2\n    }\n  }\n}\n'
   },
   {
     name: 'labeled return',
@@ -66,12 +97,12 @@ const fixtures = [
   {
     name: 'line comment before return',
     source: 'function f(){\n// reason\nreturn 1}',
-    expected: 'function f() {\n  // reason\n\n  return 1\n}\n'
+    expected: 'function f() {\n  // reason\n  return 1\n}\n'
   },
   {
     name: 'inline block comment before return',
     source: 'function f(){/* reason */ return 1}',
-    expected: 'function f() {\n  /* reason */\n\n  return 1\n}\n'
+    expected: 'function f() {\n  /* reason */ return 1\n}\n'
   },
   {
     name: 'comment with an existing blank',
@@ -86,44 +117,56 @@ const fixtures = [
   {
     name: 'return argument keeps inline comments',
     source: 'function f(){return /* value */ 1}',
-    expected: 'function f() {\n\n  return /* value */ 1\n}\n'
+    expected: 'function f() {\n  return /* value */ 1\n}\n'
   },
   {
     name: 'ASI keeps a newline after bare return',
     source: 'function f(){return\n(1)}',
-    expected: 'function f() {\n\n  return\n  1\n}\n'
+    expected: 'function f() {\n  return\n  1\n}\n'
   },
   {
     name: 'literal source text is unchanged',
     source: 'function f(){return `line\nreturn value\n\n  return other`}',
-    expected: 'function f() {\n\n  return `line\nreturn value\n\n  return other`\n}\n'
+    expected: 'function f() {\n  return `line\nreturn value\n\n  return other`\n}\n'
   }
 ]
 
 // Inspect parsed return statements, so strings and comment text are not mistaken for code.
-function assertReturnSpacing(ast, source) {
+function assertReturnSpacing(ast, source, parent) {
   if (ast == null || typeof ast !== 'object') {
-
     return
   }
 
   if (ast.type === 'ReturnStatement') {
     const start = ast.range[0]
-    const lines = source.slice(0, start).split('\n')
-    const preceding = lines.at(-2)
-    const beforeBlank = lines.at(-3)
+    const firstStatement = parent?.body?.find?.((statement) => statement.type !== 'EmptyStatement')
+    const isFirstInBlock =
+      parent?.type === 'BlockStatement' && !parent.directives?.length && firstStatement === ast
 
-    assert.equal(preceding, '', 'each return has a blank immediately before it')
-    assert.notEqual(beforeBlank, '', 'each return has exactly one preceding blank')
+    if (isFirstInBlock) {
+      const opening = source.slice(parent.range[0], start)
+      assert.doesNotMatch(
+        opening,
+        /^\{\n[ \t]*\n/u,
+        'the first block statement has no opening blank'
+      )
+    } else {
+      const lines = source.slice(0, start).split('\n')
+      const preceding = lines.at(-2)
+      const beforeBlank = lines.at(-3)
+
+      assert.equal(preceding, '', 'later returns have a blank immediately before them')
+      assert.notEqual(beforeBlank, '', 'later returns have exactly one preceding blank')
+    }
   }
 
   for (const value of Object.values(ast)) {
     if (Array.isArray(value)) {
       for (const child of value) {
-        assertReturnSpacing(child, source)
+        assertReturnSpacing(child, source, ast)
       }
     } else {
-      assertReturnSpacing(value, source)
+      assertReturnSpacing(value, source, ast)
     }
   }
 }
@@ -157,7 +200,7 @@ test('TypeScript and JSX retain the native formatting of return values', async (
 
   assert.equal(
     formatted,
-    'function View(value: string): JSX.Element {\n\n  return <div>{value}</div>\n}\n'
+    'function View(value: string): JSX.Element {\n  return <div>{value}</div>\n}\n'
   )
   assert.equal(await prettier.format(formatted, { ...config, filepath }), formatted)
   assertReturnSpacing(await parsers.typescript.parse(formatted, { filepath }), formatted)
@@ -169,7 +212,10 @@ test('ASI, return comments, evaluation order and template values preserve runtim
     'function f(){return /* split\nline */ (1)}; f()',
     'function f(){return (\n{value: 1}\n)}; JSON.stringify(f())',
     'let count=0; function next(){count++;return count} function f(){return next() + next()}; [f(), count].join() ',
-    'function f(){return `line\nreturn value\n\n  return other`}; f()'
+    'function f(){return `line\nreturn value\n\n  return other`}; f()',
+    'function f(){done:return 1}; f()',
+    'function f(x){switch(x){case 1:return ++x;default:{return x*2}}}; [f(1),f(3)].join()',
+    'function f(){try{return 1}finally{return 2}}; f()'
   ]
 
   for (const source of sources) {
