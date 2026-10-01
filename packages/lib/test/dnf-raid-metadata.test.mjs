@@ -287,3 +287,97 @@ test('requires bounded complete regions, distinct screen rows, and valid pixel r
     assert.throws(() => readDNFRaidParticipantMetadata(image, rows, invalid), RangeError)
   }
 })
+
+test('keeps the local-contrast boundary inclusive and excludes both bottom separator rows', () => {
+  for (const [brightness, expected] of [
+    [73, null],
+    [74, '8'],
+    [75, '8']
+  ]) {
+    // The fixture background rounds to grayscale 19: these strokes have contrast 54/55/56.
+    const { image, rows } = fixture([
+      { text: '8', color: [brightness, brightness, brightness, 255] }
+    ])
+    const region = rows[0].equipmentScoreRegion
+    const original = image.rgba.slice()
+
+    assert.equal(
+      readDNFRaidParticipantMetadata(image, rows, templates)[0].equipmentScoreText,
+      expected
+    )
+    assert.deepEqual(image.rgba, original)
+    paint(image, region.x, region.y + 15, region.width, 2, [255, 255, 255, 255])
+    assert.equal(
+      readDNFRaidParticipantMetadata(image, rows, templates)[0].equipmentScoreText,
+      expected
+    )
+  }
+})
+
+test('preserves the inclusive glyph overlap threshold and the independent 16-character limit', () => {
+  const reference = frame(3, 17, [0, 0, 0, 255])
+  paint(reference, 1, 3, 1, 10, [255, 255, 255, 255])
+  const narrowTemplates = {
+    ...templates,
+    equipmentScoreGlyphs: [{ character: '1', image: reference }]
+  }
+  for (const [strokeCount, expected] of [
+    [7, null],
+    [8, '1'],
+    [9, '1']
+  ]) {
+    const { image, rows } = fixture([{ text: '' }])
+    const region = rows[0].equipmentScoreRegion
+    paint(image, region.x, region.y, region.width, region.height, [0, 0, 0, 255])
+    paint(image, region.x + 3, region.y + 3, 1, strokeCount, [255, 255, 255, 255])
+
+    assert.equal(
+      readDNFRaidParticipantMetadata(image, rows, narrowTemplates)[0].equipmentScoreText,
+      expected,
+      `${strokeCount}/10 glyph overlap`
+    )
+  }
+  for (const count of [16, 17]) {
+    const { image, rows } = fixture([{ text: '' }])
+    const region = rows[0].equipmentScoreRegion
+    paint(image, region.x, region.y, region.width, region.height, [0, 0, 0, 255])
+    for (let index = 0; index < count; index += 1) {
+      paint(image, region.x + 3 + 2 * index, region.y + 3, 1, 10, [255, 255, 255, 255])
+    }
+    const expected = count === 16 ? '1'.repeat(16) : null
+
+    assert.equal(
+      readDNFRaidParticipantMetadata(image, rows, narrowTemplates)[0].equipmentScoreText,
+      expected
+    )
+  }
+})
+
+test('keeps ambiguous badge and glyph decisions independent at the shared baseline size', () => {
+  const { image, rows } = fixture([{ party: 'R', text: '8' }])
+  const ambiguousParties = [
+    { party: 'R', image: badge('R') },
+    { party: 'Y', image: badge('R') }
+  ]
+  const ambiguousGlyphs = [...templates.equipmentScoreGlyphs, { character: '0', image: glyph('8') }]
+
+  assert.deepEqual(
+    readDNFRaidParticipantMetadata(image, rows, { ...templates, parties: ambiguousParties }),
+    [{ row: 1, party: null, equipmentScoreText: '8' }]
+  )
+  assert.deepEqual(
+    readDNFRaidParticipantMetadata(image, rows, {
+      ...templates,
+      equipmentScoreGlyphs: ambiguousGlyphs
+    }),
+    [{ row: 1, party: 'R', equipmentScoreText: null }]
+  )
+  for (const invalid of [
+    { ...templates, parties: [{ party: 'R', image: frame(43, 17) }] },
+    { ...templates, parties: [{ party: 'R', image: frame(42, 18) }] },
+    { ...templates, equipmentScoreGlyphs: [{ character: '1', image: frame(17, 17) }] },
+    { ...templates, equipmentScoreGlyphs: [{ character: '1', image: frame(3, 18) }] }
+  ]) {
+    assert.throws(() => readDNFRaidParticipantMetadata(image, rows, invalid), RangeError)
+  }
+})
