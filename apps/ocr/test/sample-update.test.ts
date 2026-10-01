@@ -3,7 +3,8 @@ import test from 'node:test'
 import { planSampleSplit } from '../src/sample-update.js'
 import { OcrStore } from '../src/store.js'
 import { parseUpload } from '../src/images.js'
-import { upload } from './fixtures.js'
+import { parseSyntheticUpload } from '../src/synthetic-upload.js'
+import { syntheticUpload, upload } from './fixtures.js'
 
 const input: Parameters<typeof planSampleSplit>[0] = {
   previousSample: { text: null, split: 'unassigned' },
@@ -70,6 +71,27 @@ test('declined sample split change writes neither the label, exclusion nor a new
       store.updateSample(id, { text: '새이름', excluded: false, confirmSplitChange: true }).split,
       'train'
     )
+  } finally {
+    store.close()
+  }
+})
+
+test('partial exclusion and restoration preserve synthetic labels and their immutable train assignment', () => {
+  const store = new OcrStore(':memory:', 1024 * 1024)
+  try {
+    const image = parseSyntheticUpload(syntheticUpload())
+    store.add(image.capture, image.png)
+    const id = `${image.capture.id}-1`
+    const excluded = store.updateSample(id, { excluded: true })
+    assert.equal(excluded.text, image.capture.synthetic.text)
+    assert.equal(excluded.split, 'train')
+    assert.equal(excluded.excluded, true)
+    assert.equal(store.updateSample(id, { excluded: false }).excluded, false)
+    assert.throws(() => store.updateSample(id, { text: null }), {
+      code: 'SYNTHETIC_LABEL_IMMUTABLE'
+    })
+    assert.equal(store.sample(id).text, image.capture.synthetic.text)
+    assert.equal(store.sample(id).split, 'train')
   } finally {
     store.close()
   }
