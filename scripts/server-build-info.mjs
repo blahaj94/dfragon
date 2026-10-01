@@ -13,8 +13,9 @@ export function createServerBuildInfo(service, commit) {
   ) {
     throw new Error('Source commit must be a full lowercase Git SHA.')
   }
+  const sourceCommit = commit === '' ? null : commit
 
-  return { service, commit: commit === '' ? null : commit }
+  return { service, commit: sourceCommit }
 }
 
 function main() {
