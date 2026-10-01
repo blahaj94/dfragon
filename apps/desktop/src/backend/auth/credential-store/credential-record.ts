@@ -63,7 +63,12 @@ export function readCiphertext(bytes: Uint8Array, context: CredentialContext): B
   const isCanonicalEncoding = ciphertext.toString('base64') === parsed.data.ciphertext
   const isValidRecord = hasMatchingContext && isNonempty && isCanonicalEncoding
 
-  return isValidRecord ? ciphertext : null
+  if (!isValidRecord) {
+
+    return null
+  }
+
+  return ciphertext
 }
 
 export function readRefreshToken(plaintext: string, context: CredentialContext): string | null {
@@ -74,7 +79,12 @@ export function readRefreshToken(plaintext: string, context: CredentialContext):
   }
   const hasMatchingContext = sameContext(parsed.data, context)
 
-  return hasMatchingContext ? parsed.data.refreshToken : null
+  if (!hasMatchingContext) {
+
+    return null
+  }
+
+  return parsed.data.refreshToken
 }
 
 export function encodeCredentialRecord(context: CredentialContext, ciphertext: Buffer): Buffer {
