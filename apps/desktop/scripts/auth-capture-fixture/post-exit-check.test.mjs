@@ -1,12 +1,14 @@
 import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
-const fixture = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  create: vi.fn(),
-  read: vi.fn(),
-  remove: vi.fn()
-}))
+const fixture = vi.hoisted(() => {
+  const spawn = vi.fn()
+  const create = vi.fn()
+  const read = vi.fn()
+  const remove = vi.fn()
+
+  return { spawn, create, read, remove }
+})
 vi.mock('node:child_process', () => ({ spawn: fixture.spawn }))
 vi.mock('node:fs/promises', () => ({
   mkdtemp: fixture.create,
