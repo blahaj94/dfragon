@@ -16,26 +16,34 @@ type NicknameGroup = { text: string; split: Split; features: Map<string, number>
 
 export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
+
     return 'hangul'
   }
   if (/\p{Script=Hiragana}/u.test(char)) {
+
     return 'hiragana'
   }
   if (/\p{Script=Katakana}/u.test(char)) {
+
     return 'katakana'
   }
   if (/\p{Script=Han}/u.test(char)) {
+
     return 'hanja'
   }
   if (/\p{Script=Latin}/u.test(char)) {
+
     return 'latin'
   }
   if (/\p{Number}/u.test(char)) {
+
     return 'digit'
   }
   if (/[\p{Punctuation}\p{Symbol}]/u.test(char)) {
+
     return 'special'
   }
+
   return 'other'
 }
 
@@ -56,6 +64,7 @@ export function parseSplitOptions(value: unknown): SplitOptions {
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
+
   return { ratios: ratios as SplitOptions['ratios'], replaceExisting: body.replaceExisting }
 }
 
@@ -73,7 +82,15 @@ function distribution(rows: LabeledRow[]) {
   const characters = sum([...counts.values()])
   const frequencies = pipe(
     [...counts],
-    sort((a, b) => b[1] - a[1] || compareText(a[0], b[0])),
+    sort((a, b) => {
+      const countDifference = b[1] - a[1]
+      if (countDifference) {
+
+        return countDifference
+      }
+
+      return compareText(a[0], b[0])
+    }),
     map(([character, count]) => {
       const group = characterGroup(character)
 
@@ -85,7 +102,16 @@ function distribution(rows: LabeledRow[]) {
 }
 
 function compareText(a: string, b: string) {
-  return a < b ? -1 : a > b ? 1 : 0
+  if (a < b) {
+
+    return -1
+  }
+  if (a > b) {
+
+    return 1
+  }
+
+  return 0
 }
 
 export function splitStatistics(rows: SplitRow[]) {
@@ -159,19 +185,22 @@ export function planSplits(
       const total = totals.get(key)!
       const target = (total * options.ratios[split]) / 100
       const before = (counts[split].get(key) ?? 0) - target
-      const weight =
-        key === 'images'
-          ? 4
-          : key === 'nicknames'
-            ? 1
-            : key.startsWith('group:')
-              ? 2 / kinds.group
-              : 1 / kinds.char
+      let weight: number
+      if (key === 'images') {
+        weight = 4
+      } else if (key === 'nicknames') {
+        weight = 1
+      } else if (key.startsWith('group:')) {
+        weight = 2 / kinds.group
+      } else {
+        weight = 1 / kinds.char
+      }
       // A character occurring once has no hard requirement to occur in each split.
       result +=
         (weight * ((before + direction * value) ** 2 - before ** 2)) /
         Math.max(key.startsWith('char:') ? 10 : 1, total) ** 2
     }
+
     return result
   }
   const movable = [...groups.values()].filter(
@@ -193,17 +222,30 @@ export function planSplits(
     [...group.features]
       .filter(([key]) => key.startsWith('char:'))
       .reduce((sum, [key, value]) => sum + value / totals.get(key)!, 0)
-  movable.sort(
-    (a, b) =>
-      rarity(b) - rarity(a) ||
-      b.features.get('images')! - a.features.get('images')! ||
-      compareText(a.text, b.text)
-  )
+  movable.sort((a, b) => {
+    const rarityDifference = rarity(b) - rarity(a)
+    if (rarityDifference) {
+
+      return rarityDifference
+    }
+    const imageDifference = b.features.get('images')! - a.features.get('images')!
+    if (imageDifference) {
+
+      return imageDifference
+    }
+
+    return compareText(a.text, b.text)
+  })
   const destinations = assignedSplits.filter((split) => options.ratios[split] > 0)
   for (const group of movable) {
-    const split = destinations.reduce((best, candidate) =>
-      costChange(group, candidate, 1) < costChange(group, best, 1) ? candidate : best
-    )
+    const split = destinations.reduce((best, candidate) => {
+      if (costChange(group, candidate, 1) < costChange(group, best, 1)) {
+
+        return candidate
+      }
+
+      return best
+    })
     assignment.set(group.text, split)
     update(group, split, 1)
   }
