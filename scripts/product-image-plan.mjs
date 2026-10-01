@@ -23,7 +23,6 @@ export function selectServices(changedPaths) {
       commonFiles.has(path) ||
       commonDirectories.some((directory) => path.startsWith(directory))
     ) {
-
       return [...services]
     }
 
@@ -50,13 +49,11 @@ function commitSha(value, name) {
 }
 
 function isRecord(value) {
-
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function git(args, cwd) {
   try {
-
     return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
   } catch {
     throw new Error('Could not inspect product image source commits')
@@ -83,8 +80,9 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
     }
     base = commitSha(event.before, 'push before commit')
     if (base === '0'.repeat(40)) {
+      const selectedServices = [...services]
 
-      return { sourceCommit: source, services: [...services] }
+      return { sourceCommit: source, services: selectedServices }
     }
   } else if (eventName === 'pull_request') {
     base = commitSha(event.pull_request?.base?.sha, 'pull request base commit')
@@ -94,8 +92,9 @@ export function createPlan({ eventName, event, sourceCommit, cwd = process.cwd()
 
   const diff = git(['diff', '--name-only', '--no-renames', '-z', `${base}..${source}`, '--'], cwd)
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
+  const selectedServices = selectServices(changedPaths)
 
-  return { sourceCommit: source, services: selectServices(changedPaths) }
+  return { sourceCommit: source, services: selectedServices }
 }
 
 export function validatePlan(plan, sourceCommit) {
@@ -111,18 +110,20 @@ export function validatePlan(plan, sourceCommit) {
     throw new Error('Expected a plan with unique api, ocr, or accounts services')
   }
 
-  return {
-    sourceCommit: source,
-    services: services.filter((service) => plan.services.includes(service))
-  }
+  const selectedServices = services.filter((service) => plan.services.includes(service))
+
+  return { sourceCommit: source, services: selectedServices }
 }
 
 export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cwd() }) {
   const current = validatePlan(plan, sourceCommit)
   assertSourceHead(current.sourceCommit, cwd)
   if (baselinePlan === undefined) {
+    const result = { ...current }
+    const selectedServices = [...services]
+    result.services = selectedServices
 
-    return { ...current, services: [...services] }
+    return result
   }
 
   const baseline = validatePlan(baselinePlan, baselinePlan?.sourceCommit)
@@ -141,18 +142,24 @@ export function catchUpPlan({ plan, baselinePlan, sourceCommit, cwd = process.cw
       cwd
     )
   } catch {
+    const result = { ...current }
+    const selectedServices = [...services]
+    result.services = selectedServices
 
-    return { ...current, services: [...services] }
+    return result
   }
 
   const changedPaths = diff.split('\0').filter((path) => path.length > 0)
   const selected = new Set([...current.services, ...selectServices(changedPaths)])
 
-  return { ...current, services: services.filter((service) => selected.has(service)) }
+  const result = { ...current }
+  const selectedServices = services.filter((service) => selected.has(service))
+  result.services = selectedServices
+
+  return result
 }
 
 function positiveId(value) {
-
   return Number.isSafeInteger(value) && value > 0
 }
 
@@ -203,7 +210,6 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   }
   const run = runs.workflow_runs[0]
   if (run === undefined) {
-
     return null
   }
   if (
@@ -231,16 +237,19 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
     throw new Error('Expected a GitHub workflow artifacts response')
   }
 
-  return artifacts.artifacts.some(
-    (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
-  )
-    ? run.id
-    : null
+  if (
+    artifacts.artifacts.some(
+      (artifact) => artifact.name === 'product-image-plan' && !artifact.expired
+    )
+  ) {
+    return run.id
+  }
+
+  return null
 }
 
 function readJson(path, name) {
   try {
-
     return JSON.parse(readFileSync(path, 'utf8'))
   } catch {
     throw new Error(`Could not read ${name} JSON`)
