@@ -35,6 +35,8 @@ jobs:
       - run: pnpm --filter @dfragon/ocr test
       - name: Test Desktop core behavior
         run: pnpm --filter @dfragon/desktop test
+      - name: Test Desktop search against the public API
+        run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
       - run: pnpm lint
       - run: pnpm test:format-policy
       - run: pnpm format:check
