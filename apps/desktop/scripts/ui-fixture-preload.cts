@@ -37,14 +37,20 @@ contextBridge.exposeInMainWorld('api', {
 
 // Public synthetic metadata only; the UI fixture never contacts real services.
 contextBridge.exposeInMainWorld('versions', {
-  getBuildVersions: async () => ({
-    desktop: { version: '1.0.0', commit: 'a'.repeat(40), dirty: false },
-    servers: {
-      api: { status: 'available', commit: 'b'.repeat(40) },
-      accounts: { status: 'available', commit: 'c'.repeat(40) },
-      ocr: { status: 'unsupported' }
+  getBuildVersions: async () => {
+    const desktopCommit = 'a'.repeat(40)
+    const apiCommit = 'b'.repeat(40)
+    const accountsCommit = 'c'.repeat(40)
+
+    return {
+      desktop: { version: '1.0.0', commit: desktopCommit, dirty: false },
+      servers: {
+        api: { status: 'available', commit: apiCommit },
+        accounts: { status: 'available', commit: accountsCommit },
+        ocr: { status: 'unsupported' }
+      }
     }
-  })
+  }
 })
 
 const developerFixture = process.argv.find((argument) =>
@@ -163,15 +169,13 @@ if (developerFixture != null) {
           context.fillText('◇', 194, y + 12)
         }
 
-        return { slot: (index + 1) as 1 | 2 | 3 | 4, occupied, x: 168, y, width: 84, height: 15 }
-      })
+        const slot = (index + 1) as 1 | 2 | 3 | 4
 
-      return {
-        width: 394,
-        height: 210,
-        rgba: new Uint8Array(context.getImageData(0, 0, 394, 210).data),
-        rows
-      }
+        return { slot, occupied, x: 168, y, width: 84, height: 15 }
+      })
+      const rgba = new Uint8Array(context.getImageData(0, 0, 394, 210).data)
+
+      return { width: 394, height: 210, rgba, rows }
     },
     args: [scenario === 'participants-sparse']
   })
@@ -212,8 +216,25 @@ if (developerFixture != null) {
         context.strokeStyle = '#353b3e'
         context.strokeRect(14, y - 2, 437, 21)
         if (occupied) {
-          const party = index < 4 ? 'R' : index < 8 ? 'Y' : index < 11 ? 'G' : '싱글'
-          context.fillStyle = index < 4 ? '#d76066' : index < 8 ? '#d4bb50' : '#79ab74'
+          let party: string
+          if (index < 4) {
+            party = 'R'
+          } else if (index < 8) {
+            party = 'Y'
+          } else if (index < 11) {
+            party = 'G'
+          } else {
+            party = '싱글'
+          }
+          let partyColor: string
+          if (index < 4) {
+            partyColor = '#d76066'
+          } else if (index < 8) {
+            partyColor = '#d4bb50'
+          } else {
+            partyColor = '#79ab74'
+          }
+          context.fillStyle = partyColor
           context.font = '11px sans-serif'
           context.fillText(party, 25, y + 13)
           context.fillStyle = '#d4c59a'
@@ -223,8 +244,10 @@ if (developerFixture != null) {
           context.fillText('테스트 직업', 331, y + 13)
         }
 
+        const slot = (index + 1) as DeveloperPartySlot
+
         return {
-          slot: (index + 1) as DeveloperPartySlot,
+          slot,
           occupied,
           x: 202,
           y,
@@ -236,38 +259,36 @@ if (developerFixture != null) {
       context.font = '10px sans-serif'
       context.fillText('화면 검증용 합성 이미지', 174, 375)
 
-      return {
-        width: canvas.width,
-        height: canvas.height,
-        rgba: new Uint8Array(context.getImageData(0, 0, canvas.width, canvas.height).data),
-        rows
-      }
+      const width = canvas.width
+      const height = canvas.height
+      const rgba = new Uint8Array(context.getImageData(0, 0, canvas.width, canvas.height).data)
+
+      return { width, height, rgba, rows }
     },
     args: [scenario === 'raid-sparse' ? 9 : 12]
   })
   // Read the displayed synthetic pixels so each preview matches its outlined nickname area.
   function popupFrame(participantWindow: DeveloperParticipantWindow): DeveloperPartyPreviewFrame {
+    const capturedAt = frame.capturedAt
+    const slots = participantWindow.rows
+      .filter((row) => row.occupied)
+      .map((row) => {
+        const rgba = new Uint8Array(row.width * row.height * 4)
+        for (let y = 0; y < row.height; y += 1) {
+          const start = ((row.y + y) * participantWindow.width + row.x) * 4
+          rgba.set(participantWindow.rgba.subarray(start, start + row.width * 4), y * row.width * 4)
+        }
+
+        return { slot: row.slot, width: row.width, height: row.height, rgba }
+      })
 
     return {
       width: 1067,
       height: 600,
       scale: 1,
-      capturedAt: frame.capturedAt,
+      capturedAt,
       participantWindow,
-      slots: participantWindow.rows
-        .filter((row) => row.occupied)
-        .map((row) => {
-          const rgba = new Uint8Array(row.width * row.height * 4)
-          for (let y = 0; y < row.height; y += 1) {
-            const start = ((row.y + y) * participantWindow.width + row.x) * 4
-            rgba.set(
-              participantWindow.rgba.subarray(start, start + row.width * 4),
-              y * row.width * 4
-            )
-          }
-
-          return { slot: row.slot, width: row.width, height: row.height, rgba }
-        })
+      slots
     }
   }
   const participantFrame = popupFrame(participantWindow)
@@ -278,7 +299,12 @@ if (developerFixture != null) {
     setEnabled: async (enabled: boolean) => ({ enabled }),
     listSamples: async () => rows.map((row) => ({ ...row })),
     listOcrSamples: async () =>
-      rows.map((row) => ({ ...row, remote: { kind: row.source?.kind ?? 'hud', split: 'test' } })),
+      rows.map((row) => {
+        const sample = { ...row }
+        const kind = row.source?.kind ?? 'hud'
+
+        return { ...sample, remote: { kind, split: 'test' } }
+      }),
     closeOcrSamples: async () => undefined,
     readImage: async (id: string) => {
       const row = rows.find((candidate) => candidate.id === id)
@@ -288,7 +314,14 @@ if (developerFixture != null) {
 
         return `data:image/svg+xml,${encodeURIComponent(svg)}`
       }
-      const color = row?.excluded ? '#7e667f' : row?.text ? '#44785f' : '#4569a0'
+      let color: string
+      if (row?.excluded) {
+        color = '#7e667f'
+      } else if (row?.text) {
+        color = '#44785f'
+      } else {
+        color = '#4569a0'
+      }
       const text = row?.text ?? '미입력 크롭'
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="564" height="144" viewBox="0 0 564 144"><rect width="564" height="144" rx="12" fill="#202936"/><rect x="12" y="12" width="540" height="120" rx="8" fill="${color}"/><text x="36" y="88" fill="white" font-size="32" font-family="sans-serif">${text}</text></svg>`
 
@@ -316,23 +349,31 @@ if (developerFixture != null) {
       return { ...row }
     },
     captureFrame: async () => ({ pngDataUrl: '', width: 1920, height: 1080 }),
-    previewParty: async (kind: DeveloperCollectionKind = 'hud') => ({
-      frame:
-        scenario === 'capture-error'
-          ? null
-          : kind === 'raid'
-            ? raidFrame
-            : kind === 'participants'
-              ? participantFrame
-              : frame,
-      previewError: scenario === 'capture-error' ? 'DEVELOPER_GAME_NOT_FOREGROUND' : null,
-      collection: { ...status }
-    }),
+    previewParty: async (kind: DeveloperCollectionKind = 'hud') => {
+      let previewFrame: DeveloperPartyPreviewFrame | null
+      if (scenario === 'capture-error') {
+        previewFrame = null
+      } else if (kind === 'raid') {
+        previewFrame = raidFrame
+      } else if (kind === 'participants') {
+        previewFrame = participantFrame
+      } else {
+        previewFrame = frame
+      }
+      const previewError = scenario === 'capture-error' ? 'DEVELOPER_GAME_NOT_FOREGROUND' : null
+      const collection = { ...status }
+
+      return { frame: previewFrame, previewError, collection }
+    },
     setPartyCollectionSlots: async (slots: DeveloperPartySlot[] | null) => {
       status.armed = slots != null
       status.slots = slots ?? []
 
-      return { ...status, slots: [...status.slots] }
+      const collection = { ...status }
+      const selectedSlots = [...status.slots]
+      collection.slots = selectedSlots
+
+      return collection
     }
   }
   contextBridge.exposeInMainWorld('developer', developer)
