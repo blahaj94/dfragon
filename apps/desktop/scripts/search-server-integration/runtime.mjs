@@ -10,7 +10,7 @@ import {
   newRunId,
   teardownPostgres,
   verifyApprovedImage
-} from '../../../api/test-support/docker-postgres.mjs'
+} from '../../../../scripts/test-support/docker-postgres.mjs'
 import { waitForAuthenticatedReadiness } from '../../../accounts/test-support/database-contract.mjs'
 import { isolatedNeople } from '../../../api/test-support/character-search-fixtures.mjs'
 import {
