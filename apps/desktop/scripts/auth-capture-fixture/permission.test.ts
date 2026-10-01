@@ -10,69 +10,96 @@ type Contents = {
   setWindowOpenHandler: ReturnType<typeof vi.fn>
 }
 type WindowDouble = { webContents: Contents; isDestroyed: () => boolean }
-const fixture = vi.hoisted(() => ({
-  windows: [] as WindowDouble[],
-  generation: null as number | null,
-  documentUrl: '',
-  capture: vi.fn(() => vi.fn()),
-  searchSmoke: vi.fn(),
-  check: vi.fn(),
-  request: vi.fn(),
-  ready: undefined as Promise<void> | undefined
-}))
-vi.mock('electron', () => ({
-  ipcMain: { handle: vi.fn() },
-  app: {
-    setPath: vi.fn(),
-    setName: vi.fn(),
-    on: vi.fn(),
-    exit: vi.fn(),
-    quit: vi.fn(),
-    whenReady: (): { then: (callback: () => Promise<void>) => Promise<void> } => ({
-      then: (callback: () => Promise<void>) => {
-        fixture.ready = Promise.resolve().then(callback)
+const fixture = vi.hoisted(() => {
+  const windows: WindowDouble[] = []
+  const capture = vi.fn(() => vi.fn())
+  const searchSmoke = vi.fn()
+  const check = vi.fn()
+  const request = vi.fn()
 
-        return fixture.ready
+  return {
+    windows,
+    generation: null as number | null,
+    documentUrl: '',
+    capture,
+    searchSmoke,
+    check,
+    request,
+    ready: undefined as Promise<void> | undefined
+  }
+})
+vi.mock('electron', () => {
+  const handle = vi.fn()
+  const setPath = vi.fn()
+  const setName = vi.fn()
+  const on = vi.fn()
+  const exit = vi.fn()
+  const quit = vi.fn()
+  const check = fixture.check
+  const request = fixture.request
+  const onBeforeRequest = vi.fn()
+  const buildFromTemplate = vi.fn()
+  const setApplicationMenu = vi.fn()
+
+  return {
+    ipcMain: { handle },
+    app: {
+      setPath,
+      setName,
+      on,
+      exit,
+      quit,
+      whenReady: (): { then: (callback: () => Promise<void>) => Promise<void> } => ({
+        then: (callback: () => Promise<void>) => {
+          fixture.ready = Promise.resolve().then(callback)
+
+          return fixture.ready
+        }
+      })
+    },
+    BrowserWindow: class {
+      webContents = {
+        mainFrame: { url: '', detached: false, isDestroyed: () => false },
+        isDestroyed: () => false,
+        session: {
+          setPermissionCheckHandler: fixture.check,
+          setPermissionRequestHandler: fixture.request
+        },
+        on: vi.fn(),
+        setWindowOpenHandler: vi.fn()
       }
-    })
-  },
-  BrowserWindow: class {
-    webContents = {
-      mainFrame: { url: '', detached: false, isDestroyed: () => false },
-      isDestroyed: () => false,
-      session: {
-        setPermissionCheckHandler: fixture.check,
-        setPermissionRequestHandler: fixture.request
-      },
-      on: vi.fn(),
-      setWindowOpenHandler: vi.fn()
-    }
-    isDestroyed = (): boolean => false
-    on = vi.fn()
-    show = vi.fn()
-    destroy = vi.fn()
-    constructor() {
-      fixture.windows.push(this)
-    }
-    async loadFile(path: string): Promise<void> {
-      this.webContents.mainFrame.url = pathToFileURL(path).href
-    }
-  },
-  session: {
-    defaultSession: {
-      setPermissionCheckHandler: fixture.check,
-      setPermissionRequestHandler: fixture.request,
-      webRequest: { onBeforeRequest: vi.fn() }
-    }
-  },
-  Menu: { buildFromTemplate: vi.fn(), setApplicationMenu: vi.fn() },
-  systemPreferences: { getMediaAccessStatus: () => 'granted' }
-}))
-vi.mock('./smoke', () => ({
-  smoke: vi.fn(),
-  smokeStandaloneOcr: vi.fn(),
-  smokeCharacterSearch: fixture.searchSmoke
-}))
+      isDestroyed = (): boolean => false
+      on = vi.fn()
+      show = vi.fn()
+      destroy = vi.fn()
+      constructor() {
+        fixture.windows.push(this)
+      }
+      async loadFile(path: string): Promise<void> {
+        this.webContents.mainFrame.url = pathToFileURL(path).href
+      }
+    },
+    session: {
+      defaultSession: {
+        setPermissionCheckHandler: check,
+        setPermissionRequestHandler: request,
+        webRequest: { onBeforeRequest }
+      }
+    },
+    Menu: { buildFromTemplate, setApplicationMenu },
+    systemPreferences: { getMediaAccessStatus: () => 'granted' }
+  }
+})
+vi.mock('./smoke', () => {
+  const smoke = vi.fn()
+  const smokeStandaloneOcr = vi.fn()
+
+  return {
+    smoke,
+    smokeStandaloneOcr,
+    smokeCharacterSearch: fixture.searchSmoke
+  }
+})
 vi.mock('../../src/backend/auth/coordinator', () => ({
   createAuthCoordinator: () => ({
     start: async () => undefined,
@@ -86,10 +113,12 @@ vi.mock('../../src/backend/auth/ipc-handler', () => ({
     return vi.fn()
   }
 }))
-vi.mock('../../src/backend/capture/ipc-handler', () => ({
-  registerCaptureIpc: fixture.capture,
-  registerCaptureWindow: vi.fn()
-}))
+vi.mock('../../src/backend/capture/ipc-handler', () => {
+  const registerCaptureIpc = fixture.capture
+  const registerCaptureWindow = vi.fn()
+
+  return { registerCaptureIpc, registerCaptureWindow }
+})
 
 beforeEach(async () => {
   vi.resetModules()
