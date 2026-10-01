@@ -22,6 +22,9 @@ const versionsSchema = z.strictObject({
 /** Accept only the public metadata snapshot crossing the main/preload/renderer boundary. */
 export function parseBuildVersions(value: unknown): BuildVersions | null {
   const result = versionsSchema.safeParse(value)
+  if (!result.success) {
+    return null
+  }
 
-  return result.success ? result.data : null
+  return result.data
 }
