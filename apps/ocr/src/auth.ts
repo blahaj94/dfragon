@@ -45,8 +45,11 @@ function createOpaqueToken(): string {
 
 function readCookie(request: Request, name: string): string | undefined {
   const value: unknown = request.cookies?.[name]
+  if (typeof value === 'string' && value.length > 0) {
+    return value
+  }
 
-  return typeof value === 'string' && value.length > 0 ? value : undefined
+  return undefined
 }
 
 export class OcrAuth {
