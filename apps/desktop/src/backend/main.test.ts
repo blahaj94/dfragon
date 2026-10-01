@@ -12,7 +12,9 @@ const mocks = vi.hoisted(() => {
   const loadFile = vi.fn()
   const registerWindow = vi.fn()
   const registerDeveloperWindow = vi.fn(() => vi.fn())
-  const registerVersionsWindow = vi.fn(() => vi.fn())
+  const registerVersionsWindow = vi.fn<
+    typeof import('./versions/ipc-handler').registerVersionsWindow
+  >(() => vi.fn())
   const consumeCaptureMediaPermission = vi.fn(() => false)
   const permissionCheck = vi.fn()
   const permissionRequest = vi.fn()
@@ -32,16 +34,8 @@ const mocks = vi.hoisted(() => {
   const disposePowerMonitor = vi.fn()
   const powerMonitor = { on: vi.fn(), removeListener: vi.fn() }
   const bootstrapAuth = vi.fn()
-  const applyProfile = vi.fn(
-    (
-      application: {
-        setPath(name: 'userData', path: string): void
-        getPath(name: 'userData'): string
-        setName(name: string): void
-        setAppUserModelId(id: string): void
-      },
-      config: { userDataPath: string; appIdentity: string }
-    ) => {
+  const applyProfile = vi.fn<typeof import('./auth/runtime-config').applyAuthRuntimeProfile>(
+    (application, config) => {
       application.setPath('userData', config.userDataPath)
       application.getPath('userData')
       application.setName(config.appIdentity)
@@ -410,7 +404,7 @@ it('version metadata uses separate product and account origins and does not depe
     apiOrigin: 'https://game.synthetic.test',
     accountsOrigin: 'https://api.synthetic.test'
   })
-  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop as () => unknown
+  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop
   expect(desktop()).toEqual({ version: '6.7.8', commit: null, dirty: null })
 })
 
@@ -1096,7 +1090,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
   mocks.applyProfile.mockImplementationOnce((application, config) => {
     try {
-      actual.applyAuthRuntimeProfile(application, config, {
+      return actual.applyAuthRuntimeProfile(application, config, {
         ...fs,
         realpathSync: fs.realpathSync.native,
         windows: {
