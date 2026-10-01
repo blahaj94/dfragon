@@ -5,6 +5,7 @@ import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.js'
 import { inspectModelFiles } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
+import { planSampleSplit } from './sample-update.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -307,27 +308,24 @@ export class OcrStore {
                 'SELECT 1 FROM samples WHERE text=? AND excluded=0 UNION ALL SELECT 1 FROM label_unassigned WHERE text=? LIMIT 1'
               )
               .get(text, text)
-      const assignNew =
+      // Read initialization only for a new eligible label, preserving the existing query order.
+      const automaticSplitInitialized =
         text !== null &&
         !excluded &&
         target === undefined &&
         known === undefined &&
         this.splitInitialized()
-      let nextSplit = target?.split as Split | null | undefined
-      if (nextSplit == null) {
-        nextSplit = assignNew ? 'train' : 'unassigned'
-      }
+      const plan = planSampleSplit({
+        previousSample,
+        text,
+        excluded,
+        targetSplit: target?.split as Split | undefined,
+        knownLabel: known !== undefined,
+        automaticSplitInitialized,
+        confirmSplitChange
+      })
 
-      if (
-        text !== previousSample.text &&
-        previousSample.split !== 'unassigned' &&
-        previousSample.split !== nextSplit &&
-        !confirmSplitChange
-      ) {
-        throw new OcrError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE)
-      }
-
-      if (assignNew) {
+      if (plan.assignNew) {
         this.db.prepare("INSERT INTO label_splits VALUES(?,'train')").run(text!)
       }
       this.db
