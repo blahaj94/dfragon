@@ -197,6 +197,8 @@ payload = {
 
 내부 `Capture` 타입은 종류로 구분합니다. `synthetic` 캡처에는 생성 정답·렌더링 메타데이터가 필수이고 실제 `hud/participants/raid` 캡처에는 이 메타데이터를 넣을 수 없습니다. 각 업로드 parser는 해당 종류로 좁힌 결과를 반환하며 외부 JSON의 런타임 검증도 유지합니다.
 
+HTTP 오류의 식별자·상태·안내 문구 원본은 `src/errors.ts`의 `OCR_ERRORS`입니다. `OcrErrorCode`, 기존 `OCR_ERROR_CODE` 상수와 브라우저의 런타임 오류 식별 검사는 이 목록에서 파생하며 등록하지 않은 문자열과 상속된 객체 키는 오류 코드로 받지 않습니다.
+
 자료실의 합성 필터·전체 manifest·TAR에서 확인하고 내려받을 수 있습니다. 기존 DFRAGON Desktop의 `/api/desktop/dataset`은 실제 캡처만 반환합니다. 서버는 생성 정보와 이미지의 실제 일치나 학습 효과를 인증하지 않습니다. 이 API는 서버 배포 후 사용할 수 있으며 기존 운영 데이터의 재배정은 하지 않습니다.
 
 ## 다운로드와 로컬 선별
