@@ -253,8 +253,13 @@ export class FakeStore implements CredentialStore {
   })
 
   private next(outcomes: StoreMutationOutcome[]): StoreMutationOutcome {
+    const outcome = outcomes.shift()
+    if (outcome != null) {
 
-    return outcomes.shift() ?? 'confirmed'
+      return outcome
+    }
+
+    return 'confirmed'
   }
 }
 
@@ -283,7 +288,15 @@ export function createAuthHarness(): AuthHarness {
   const byteValues = [Buffer.alloc(32, 1), Buffer.alloc(32, 2), Buffer.alloc(32, 3)]
 
   const entropy: AuthEntropy = {
-    uuid: vi.fn(() => uuidValues.shift() ?? '00000000-0000-4000-8000-000000000099'),
+    uuid: vi.fn(() => {
+      const uuid = uuidValues.shift()
+      if (uuid != null) {
+
+        return uuid
+      }
+
+      return '00000000-0000-4000-8000-000000000099'
+    }),
     bytes: vi.fn((size) => {
       const bytes = byteValues.shift() ?? Buffer.alloc(32, 99)
 
@@ -298,18 +311,20 @@ export function createAuthHarness(): AuthHarness {
   const http: AuthHttp = {
     createLoginRequest: vi.fn(async () => {
       operations.push('http:create-login')
+      const browserUrl = `${API_ORIGIN}/auth/login/authorize?ticket=${Buffer.alloc(32, 8).toString('base64url')}`
 
       return {
         requestId: REQUEST_ID,
-        browserUrl: `${API_ORIGIN}/auth/login/authorize?ticket=${Buffer.alloc(32, 8).toString('base64url')}`,
+        browserUrl,
         expiresAt: '2026-09-06T12:10:00.000Z'
       }
     }),
     exchange: vi.fn(async () => {
       operations.push('http:exchange')
+      const tokens = tokenResponse()
 
       return {
-        ...tokenResponse(),
+        ...tokens,
         user: { id: USER_ID, nickname: '모험가000001' },
         isNewUser: true
       }
@@ -339,6 +354,14 @@ export function createAuthHarness(): AuthHarness {
     http,
     store
   }
+  const mockedHttp = {
+    value: http,
+    createLoginRequest: vi.mocked(http.createLoginRequest),
+    exchange: vi.mocked(http.exchange),
+    refresh: vi.mocked(http.refresh),
+    logout: vi.mocked(http.logout),
+    me: vi.mocked(http.me)
+  }
 
   return {
     dependencies,
@@ -346,14 +369,7 @@ export function createAuthHarness(): AuthHarness {
     clock,
     entropy,
     operations,
-    http: {
-      value: http,
-      createLoginRequest: vi.mocked(http.createLoginRequest),
-      exchange: vi.mocked(http.exchange),
-      refresh: vi.mocked(http.refresh),
-      logout: vi.mocked(http.logout),
-      me: vi.mocked(http.me)
-    },
+    http: mockedHttp,
     store
   }
 }
