@@ -42,7 +42,6 @@ export const developerModeMachine = setup({
     readSettings: fromPromise(
       async ({ input: api }: { input: DeveloperSettingsApi | null }): Promise<boolean | null> => {
         if (api == null) {
-
           return null
         }
 
@@ -66,21 +65,22 @@ export const developerModeMachine = setup({
     failClosed: assign({ enabled: false }),
     acceptRequest: assign(({ context, event }) => {
       if (event.type !== DEVELOPER_EVENTS.SET_ENABLED) {
-
         return {}
       }
 
-      return {
-        api: event.api,
-        requestedEnabled: event.enabled,
-        enabled: event.enabled ? context.enabled : false
-      }
+      const api = event.api
+      const requestedEnabled = event.enabled
+      const enabled = event.enabled ? context.enabled : false
+
+      return { api, requestedEnabled, enabled }
     }),
-    failClosedForRetry: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.RETRY
-        ? { api: event.api, enabled: false }
-        : { enabled: false }
-    )
+    failClosedForRetry: assign(({ event }) => {
+      if (event.type === DEVELOPER_EVENTS.RETRY) {
+        return { api: event.api, enabled: false }
+      }
+
+      return { enabled: false }
+    })
   }
 }).createMachine({
   id: 'developerMode',
