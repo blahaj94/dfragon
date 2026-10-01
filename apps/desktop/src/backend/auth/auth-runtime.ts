@@ -76,7 +76,12 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
   function currentRefresh(generation: number): Promise<AuthAuthorization> | null {
     const flight = actor.getSnapshot().context.refresh
 
-    return flight?.generation === generation ? flight.promise : null
+    if (flight?.generation === generation) {
+
+      return flight.promise
+    }
+
+    return null
   }
 
   return {
