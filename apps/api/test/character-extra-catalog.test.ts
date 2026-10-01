@@ -3,8 +3,14 @@ import test from 'node:test'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
-import { catalogKey } from '../src/characters/catalog/types.js'
-import type { CatalogEntry, CatalogKey, CatalogValue } from '../src/characters/catalog/types.js'
+import { catalogKey, unavailableDetail } from '../src/characters/catalog/types.js'
+import type {
+  CatalogDetail,
+  CatalogEntry,
+  CatalogKey,
+  CatalogValue
+} from '../src/characters/catalog/types.js'
+import type { CatalogService } from '../src/characters/catalog/service.js'
 import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
@@ -250,4 +256,212 @@ test('null and empty arrays survive optional detail failures without synthesizin
     assert.deepEqual(result.buff.creature, { creature: value })
     assert.equal(result.setDetails['equipped-set']!.status, 'unavailable')
   }
+})
+
+test('enrichment preserves reference order, item duplicates and guarded first-occurrence skill IDs', async () => {
+  const details = fixture()
+  details.equipment = {
+    equipment: [
+      { itemId: 'shared', setItemId: 'shared-set' },
+      { itemId: '', setItemId: 'bad/set' },
+      null,
+      { itemId: 'shared' }
+    ],
+    setItemInfo: [null, [], { setItemId: '' }, { setItemId: 'equipped-set' }]
+  }
+  details.avatar = null
+  details.creature = null
+  details.oath = null
+  details.skillStyle = {
+    hash: 'opaque',
+    style: {
+      active: [null, [], { skillId: '' }, { skillId: 'skill-a' }, { skillId: 'skill-a' }],
+      passive: [{ skillId: 'skill-b' }],
+      evolution: [{ skillId: 'skill-a' }],
+      enhancement: 'invalid',
+      chain: { resetTime: 0, skills: [null, 'skill-b', 'skill-c', '', 'bad/id', 5] }
+    }
+  }
+  details.buff = {
+    equipment: {
+      equipment: [{ itemId: 'buff', setItemId: 'shared-set' }],
+      skillInfo: { skillId: 'skill-c' }
+    },
+    avatar: { avatar: null, skillInfo: { skillId: 'skill-d' } },
+    creature: { creature: null, skillInfo: [] }
+  }
+  const original = structuredClone(details)
+  const requests: CatalogKey[][] = []
+  const catalog: CatalogService = {
+    async load(keys, requestSignal) {
+      assert.equal(requestSignal, signal)
+      requests.push(keys)
+
+      return new Map()
+    }
+  }
+
+  const result = await enrichCharacterDetails(details, catalog, signal)
+
+  assert.deepEqual(requests, [
+    [
+      { kind: 'item', itemId: 'buff' },
+      { kind: 'set', setItemId: 'shared-set' },
+      { kind: 'item', itemId: 'shared' },
+      { kind: 'set', setItemId: 'shared-set' },
+      { kind: 'item', itemId: 'shared' },
+      { kind: 'set', setItemId: 'equipped-set' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-a' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-b' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-c' },
+      { kind: 'skill', jobId: 'job', skillId: 'skill-d' }
+    ]
+  ])
+  const skillStyle = result.skillStyle as Record<string, unknown>
+  assert.deepEqual(Object.keys(skillStyle.skillDetails as object), [
+    'skill-a',
+    'skill-b',
+    'skill-c',
+    'skill-d'
+  ])
+  assert.equal(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  assert.deepEqual(details, original)
+})
+
+test('catalog dictionaries preserve reserved ID keys, detail identity and invalid-job fallbacks', async () => {
+  const detail: CatalogDetail = { data: { retained: true }, fetchedAt: null, status: 'stale' }
+  for (const jobId of ['job', '', null, undefined]) {
+    const details = fixture()
+    details.character.jobId = jobId
+    details.skillStyle = {
+      style: {
+        active: [{ skillId: '__proto__' }, { skillId: 'constructor' }, { skillId: 'missing' }]
+      }
+    }
+    const loaded = new Map<string, CatalogDetail>([
+      ['set:__proto__', detail],
+      ['item:equipment', detail],
+      ['set:constructor', unavailableDetail],
+      ['skill:job:__proto__', detail],
+      ['skill:job:constructor', detail],
+      ['other:ignored', detail]
+    ])
+    const reads: string[] = []
+    const get = loaded.get.bind(loaded)
+    loaded.get = (key) => {
+      reads.push(key)
+
+      return get(key)
+    }
+    let calls = 0
+    const catalog: CatalogService = {
+      async load(keys, requestSignal) {
+        calls++
+        assert.equal(requestSignal, signal)
+        const requested = keys.filter((key) => key.kind === 'skill')
+        const expected =
+          jobId === 'job'
+            ? [
+                { kind: 'skill', jobId, skillId: '__proto__' },
+                { kind: 'skill', jobId, skillId: 'constructor' },
+                { kind: 'skill', jobId, skillId: 'missing' }
+              ]
+            : []
+        assert.deepEqual(requested, expected)
+
+        return loaded
+      }
+    }
+
+    const result = await enrichCharacterDetails(details, catalog, signal)
+
+    assert.equal(calls, 1)
+    assert.deepEqual(Object.keys(result.setDetails), ['__proto__', 'constructor'])
+    assert.equal(Object.getPrototypeOf(result.setDetails), Object.prototype)
+    assert.equal(result.setDetails.__proto__, detail)
+    assert.equal(result.setDetails.constructor, unavailableDetail)
+    const skillDetails = (result.skillStyle as { skillDetails: Record<string, CatalogDetail> })
+      .skillDetails
+    assert.deepEqual(Object.keys(skillDetails), ['__proto__', 'constructor', 'missing'])
+    assert.equal(Object.getPrototypeOf(skillDetails), Object.prototype)
+    assert.equal(skillDetails.__proto__, jobId === 'job' ? detail : unavailableDetail)
+    assert.equal(skillDetails.constructor, jobId === 'job' ? detail : unavailableDetail)
+    assert.equal(skillDetails.missing, unavailableDetail)
+    const expectedReads =
+      jobId === 'job' ? ['skill:job:__proto__', 'skill:job:constructor', 'skill:job:missing'] : []
+    assert.deepEqual(
+      reads.filter((key) => key.startsWith('skill:')),
+      expectedReads
+    )
+    const equipment = result.equipment.equipment as Array<{ itemDetail: CatalogDetail }>
+    assert.equal(equipment[0]!.itemDetail, detail)
+  }
+})
+
+test('enrichment keeps live skill traversal and reads item options before catalog lookups', async () => {
+  const events: string[] = []
+  const active: Array<{ skillId: string }> = [
+    {
+      get skillId() {
+        events.push('first-skill')
+        if (active.length === 1) {
+          active.push({ skillId: 'second' })
+        }
+
+        return 'first'
+      }
+    }
+  ]
+  const details = fixture()
+  details.equipment = {
+    equipment: [
+      {
+        itemId: 'item',
+        get option() {
+          events.push('item-option')
+
+          return 'retained'
+        }
+      }
+    ],
+    setItemInfo: []
+  }
+  details.avatar = null
+  details.creature = null
+  details.oath = null
+  details.buff = { equipment: null, avatar: null, creature: null }
+  details.skillStyle = { style: { active } }
+  const loaded = new Map<string, CatalogDetail>()
+  loaded.get = (key) => {
+    events.push(`lookup:${key}`)
+
+    return undefined
+  }
+  const catalog: CatalogService = {
+    async load(keys) {
+      events.push('load')
+      assert.deepEqual(keys, [
+        { kind: 'item', itemId: 'item' },
+        { kind: 'skill', jobId: 'job', skillId: 'first' },
+        { kind: 'skill', jobId: 'job', skillId: 'second' }
+      ])
+
+      return loaded
+    }
+  }
+
+  const result = await enrichCharacterDetails(details, catalog, signal)
+
+  assert.deepEqual(events, [
+    'item-option',
+    'first-skill',
+    'first-skill',
+    'load',
+    'item-option',
+    'lookup:item:item',
+    'lookup:skill:job:first',
+    'lookup:skill:job:second'
+  ])
+  const equipment = result.equipment.equipment as Array<Record<string, unknown>>
+  assert.equal(equipment[0]!.option, 'retained')
 })
