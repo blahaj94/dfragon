@@ -141,19 +141,28 @@ export class OcrDataController {
   @Patch('samples/:id')
   updateSample(@Param('id') id: string, @Body() value: unknown) {
     const body = parseInputRecord(value)
-    const text = parseLabel(body.text)
-    if (
-      typeof body.excluded !== 'boolean' ||
-      (body.confirmSplitChange !== undefined && typeof body.confirmSplitChange !== 'boolean')
-    ) {
+    if (body.confirmSplitChange !== undefined && typeof body.confirmSplitChange !== 'boolean') {
+      throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+    }
+    const confirmSplitChange = body.confirmSplitChange === true
+    if (Object.hasOwn(body, 'text')) {
+      const text = parseLabel(body.text)
+      if (Object.hasOwn(body, 'excluded')) {
+        if (typeof body.excluded !== 'boolean') {
+          throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
+        }
+
+        return this.store.updateSample(id, { text, excluded: body.excluded, confirmSplitChange })
+      }
+
+      return this.store.updateSample(id, { text, confirmSplitChange })
+    }
+
+    if (typeof body.excluded !== 'boolean') {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
 
-    return this.store.updateSample(id, {
-      text,
-      excluded: body.excluded,
-      confirmSplitChange: body.confirmSplitChange === true
-    })
+    return this.store.updateSample(id, { excluded: body.excluded, confirmSplitChange })
   }
 
   @Put('splits')

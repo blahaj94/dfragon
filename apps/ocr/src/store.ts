@@ -5,7 +5,7 @@ import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.js'
 import { inspectModelFiles } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
-import { planSampleSplit } from './sample-update.js'
+import { planSampleSplit, type SampleUpdate } from './sample-update.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -281,18 +281,25 @@ export class OcrStore {
     return { samples, nextOffset }
   }
 
-  updateSample(
-    id: string,
-    {
-      text,
-      excluded,
-      confirmSplitChange
-    }: { text: string | null; excluded: boolean; confirmSplitChange: boolean }
-  ) {
-    text = text === null ? null : text.normalize('NFC')
+  updateSample(id: string, update: SampleUpdate) {
+    let text = update.text
+    let excluded = update.excluded
+    const confirmSplitChange = update.confirmSplitChange === true
+    if (text !== undefined && text !== null) {
+      text = text.normalize('NFC')
+    }
     this.db.exec('BEGIN IMMEDIATE')
     try {
       const previousSample = this.sample(id)
+      // Omitted fields inherit the current DB value under the same write transaction.
+      if (text === undefined) {
+        text = previousSample.text
+      }
+
+      if (excluded === undefined) {
+        excluded = previousSample.excluded
+      }
+
       if (previousSample.kind === 'synthetic' && text !== previousSample.text) {
         throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_LABEL_IMMUTABLE)
       }
