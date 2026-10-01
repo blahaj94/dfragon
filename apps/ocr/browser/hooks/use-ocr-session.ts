@@ -36,10 +36,8 @@ export function useOcrSession() {
     }
   })
 
-  return {
-    authenticated: session.data ?? (session.isPending ? null : false),
-    login,
-    logout,
-    error: login.error ?? logout.error ?? session.error
-  }
+  const authenticated = session.data ?? (session.isPending ? null : false)
+  const error = login.error ?? logout.error ?? session.error
+
+  return { authenticated, login, logout, error }
 }
