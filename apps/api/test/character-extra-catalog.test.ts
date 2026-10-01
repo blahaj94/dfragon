@@ -21,24 +21,37 @@ function memoryStore() {
   const rows = new Map<string, CatalogEntry>()
   const store: CatalogStore = {
     async read(keys) {
-      return {
-        entries: keys.flatMap((key) => rows.get(catalogKey(key)) ?? []),
-        now: new Date(),
-        requestedAt: new Date().toISOString()
-      }
+      const entries = keys.flatMap((key) => {
+        const entry = rows.get(catalogKey(key))
+        if (entry != null) {
+
+          return entry
+        }
+
+        return []
+      })
+      const now = new Date()
+      const requestedAt = new Date().toISOString()
+
+      return { entries, now, requestedAt }
     },
     async saveAndRead(values) {
-      const entries = values.map((value) => ({
-        ...value,
-        fetchedAt: new Date(),
-        expiresAt: new Date(Date.now() + 86_400_000)
-      }))
+      const entries = values.map((value) => {
+        const snapshot = { ...value }
+        const fetchedAt = new Date()
+        const expiresAt = new Date(Date.now() + 86_400_000)
+
+        return { ...snapshot, fetchedAt, expiresAt }
+      })
       for (const entry of entries) {
         rows.set(catalogKey(entry.key), entry)
       }
-      return { entries, now: new Date() }
+      const now = new Date()
+
+      return { entries, now }
     }
   }
+
   return { store, rows }
 }
 
@@ -49,6 +62,7 @@ test('set adapter matches IDs independently of order and rejects missing, duplic
     assert.equal(url.searchParams.get('setItemIds'), 'set-a,set-b,set-missing')
     assert.equal(url.searchParams.has('apikey'), false)
     assert.equal((options?.headers as Record<string, string>).apikey, 'fixture-key')
+
     return Response.json({
       rows: [
         { setItemId: 'set-b', setItemName: '중복' },
@@ -77,13 +91,15 @@ test('discovers sets only from stored item data, reuses both caches and never tr
   const calls: CatalogKey[][] = []
   const service = createCatalogService(store, async (keys) => {
     calls.push(keys)
-    return keys.map((key) => ({
-      key,
-      payload:
+
+    return keys.map((key) => {
+      const payload =
         key.kind === 'item'
           ? { setItemId: 'set-a' }
           : { setItems: [{ itemId: 'unworn-item' }], setItemId: 'set-a', setItemOption: [] }
-    }))
+
+      return { key, payload }
+    })
   })
   const loaded = await service.load([item, item], signal)
   assert.equal(loaded.get(catalogKey(set))!.status, 'fresh')
@@ -106,6 +122,7 @@ test('discovers sets only from stored item data, reuses both caches and never tr
   let attempts = 0
   const uncommitted = createCatalogService(broken, async (keys) => {
     attempts++
+
     return keys.map((key) => ({ key, payload: { setItemId: 'uncommitted-set' } }))
   })
   assert.equal((await uncommitted.load([item], signal)).has('set:uncommitted-set'), false)
@@ -119,15 +136,22 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
   const service = createCatalogService(store, async (keys, deadline) => {
     requested.push(...keys)
     signals.push(deadline)
-    return keys.map((key) => ({
-      key,
-      payload: key.kind === 'item' ? { setItemId: 'set-' + key.itemId } : {}
-    }))
+
+    return keys.map((key) => {
+      if (key.kind === 'item') {
+        const setItemId = 'set-' + key.itemId
+
+        return { key, payload: { setItemId } }
+      }
+
+      return { key, payload: {} }
+    })
   })
-  const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => ({
-    kind: 'item',
-    itemId: 'item-' + i
-  }))
+  const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => {
+    const itemId = 'item-' + i
+
+    return { kind: 'item', itemId }
+  })
   const result = await service.load(keys, signal)
   assert.equal(requested.length, 128)
   assert.equal(requested.filter((key) => key.kind === 'set').length, 1)
@@ -143,6 +167,7 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
     if (keys[0]?.kind === 'set') {
       controller.abort()
     }
+
     return keys.map((key) => ({ key, payload: { setItemId: 'set-a' } }))
   })
   await assert.rejects(stopping.load([item], controller.signal))
@@ -156,6 +181,7 @@ function fixture(): ReturnType<typeof projectCharacterDetails> {
     emblems: [{ slotNo: 1, itemId: 'emblem' }, { slotNo: 2 }],
     future: { retained: true }
   }
+
   return {
     character: { jobId: 'job' },
     status: { status: [], buff: [] },
@@ -194,13 +220,12 @@ test('all equipped attachments are enriched without changing originals, empty sl
     calls: CatalogKey[] = []
   const service = createCatalogService(memoryStore().store, async (keys) => {
     calls.push(...keys)
-    return keys.map((key): CatalogValue => ({
-      key,
-      payload: {
-        setItemId: key.kind === 'item' ? 'shared-set' : 'unused-set',
-        tune: [{ level: 0, setPoint: 165 }]
-      }
-    }))
+
+    return keys.map((key): CatalogValue => {
+      const setItemId = key.kind === 'item' ? 'shared-set' : 'unused-set'
+
+      return { key, payload: { setItemId, tune: [{ level: 0, setPoint: 165 }] } }
+    })
   })
   const result = await enrichCharacterDetails(details, service, signal)
   assert.deepEqual(details, original)
