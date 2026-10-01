@@ -17,6 +17,19 @@ const partyHeadingLayout: ParticipantHeadingLayout = {
   anchorY: -15
 }
 
+// Measured red-icon evidence; these thresholds select candidates, not successful dialogs.
+const anchorPolicy = {
+  minRed: 130,
+  minRedGreenDifference: 75,
+  minRedBlueDifference: 55,
+  minSizePx: 6,
+  maxSizePx: 30,
+  minAspectRatio: 0.65,
+  maxAspectRatio: 1.5,
+  minFillRatio: 0.45,
+  referenceSizePx: 9
+}
+
 type Pattern = {
   width: number
   height: number
@@ -61,7 +74,11 @@ export function findParticipantAnchors(
   for (let index = 0; index < mask.length; index += 1) {
     const offset = index * 4
     const red = rgba[offset]
-    mask[index] = Number(red >= 130 && red - rgba[offset + 1] >= 75 && red - rgba[offset + 2] >= 55)
+    mask[index] = Number(
+      red >= anchorPolicy.minRed &&
+        red - rgba[offset + 1] >= anchorPolicy.minRedGreenDifference &&
+        red - rgba[offset + 2] >= anchorPolicy.minRedBlueDifference
+    )
   }
 
   const anchors: ParticipantAnchor[] = []
@@ -97,14 +114,24 @@ export function findParticipantAnchors(
     }
     const w = right - left + 1
     const h = bottom - top + 1
-    if (w < 6 || w > 30 || h < 6 || h > 30 || w / h < 0.65 || w / h > 1.5) {
+    if (
+      w < anchorPolicy.minSizePx ||
+      w > anchorPolicy.maxSizePx ||
+      h < anchorPolicy.minSizePx ||
+      h > anchorPolicy.maxSizePx ||
+      w / h < anchorPolicy.minAspectRatio ||
+      w / h > anchorPolicy.maxAspectRatio
+    ) {
       continue
     }
 
-    if (count / (w * h) < 0.45) {
+    if (count / (w * h) < anchorPolicy.minFillRatio) {
       continue
     }
-    anchors.push({ x: (left + right) / 2, y: (top + bottom) / 2, scale: Math.sqrt(w * h) / 9 })
+    const x = (left + right) / 2
+    const y = (top + bottom) / 2
+    const scale = Math.sqrt(w * h) / anchorPolicy.referenceSizePx
+    anchors.push({ x, y, scale })
     // Do not silently choose a subset on a pathological or unsupported frame.
     if (anchors.length > 128) {
       return null
