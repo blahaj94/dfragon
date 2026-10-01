@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { MAX_IMAGE_DIMENSION } from './image-limits'
+import { MAX_IMAGE_DIMENSION } from '../../preload/common/developer-image-limits'
 import { isCanonicalIsoTimestamp, isSafeInteger, isValidImageDimensions } from './validation'
 
 it('narrows only numbers that are safe integers', () => {
