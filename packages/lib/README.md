@@ -40,6 +40,12 @@ getIpQuotaKey('invalid-address') // 'unknown'
 
 `./package.json`도 export하므로 빌드의 라이선스 수집기가 패키지 위치와 runtime 의존성을 찾을 수 있습니다. 기존 CP949 원문은 `dist/notices`에 유지하고 패키지 루트 `LICENSES`에도 복사해 배포합니다. `ipaddr.js` 원문은 설치된 의존성에서 수집합니다.
 
+## 캐릭터 검색어 정책
+
+`matchesDNFSearchNicknamePolicy(nickname)`는 검색어의 Unicode 코드 포인트 수 2~12와 앞뒤 공백 금지를 함께 검사합니다. `DNF_SEARCH_NICKNAME_LIMITS`가 두 길이 경계의 원본입니다. 문자열을 trim·정규화하지 않고 내부 공백과 분해 문자·이모지 sequence의 기존 의미를 유지합니다.
+
+API 검색 query, Desktop main 검색 관측, 수동 입력 화면이 이 함수를 공유합니다. 함수의 보장은 길이·공백 정책에 한정됩니다. API의 엄격한 URL/UTF-8 decode와 Desktop의 `isWellFormed()` 검사는 각 입력 경계에 남아 있습니다. 아래 CP949 기반 캐릭터명 생성 검사나 accounts의 계정 닉네임 검사를 대체하지 않습니다.
+
 ## 던파 캐릭터명 검사
 
 ```ts
