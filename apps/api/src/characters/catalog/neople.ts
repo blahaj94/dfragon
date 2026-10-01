@@ -17,13 +17,18 @@ export function createNeopleCatalog(
     if (
       !first ||
       keys.length > 15 ||
-      keys.some((key) =>
-        key.kind === 'item'
-          ? !isCatalogId(key.itemId)
-          : key.kind === 'set'
-            ? !isCatalogId(key.setItemId)
-            : !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
-      )
+      keys.some((key) => {
+        if (key.kind === 'item') {
+
+          return !isCatalogId(key.itemId)
+        }
+        if (key.kind === 'set') {
+
+          return !isCatalogId(key.setItemId)
+        }
+
+        return !isCatalogId(key.jobId) || !isCatalogId(key.skillId)
+      })
     ) {
       throw new Error('Invalid catalog request')
     }
@@ -88,12 +93,17 @@ export function createNeopleCatalog(
           const row: unknown = matches[0]
           // Missing/duplicate rows do not poison correctly identified neighbors in this batch.
 
-          return matches.length === 1 &&
+          if (
+            matches.length === 1 &&
             isObject(row) &&
             typeof row[nameField] === 'string' &&
             row[nameField].trim()
-            ? [{ key, payload: row }]
-            : []
+          ) {
+
+            return [{ key, payload: row }]
+          }
+
+          return []
         })
       } catch {
         throw new Error('Catalog lookup failed')
