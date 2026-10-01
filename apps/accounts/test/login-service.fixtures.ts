@@ -99,6 +99,10 @@ export function managementFixture(count = 2) {
 
       return keys.length
     },
+    async insert(key: Passkey) {
+      events.push('credential-insert')
+      keys.push(key)
+    },
     async delete(where: { id: string; userId: string }) {
       assert.equal(where.userId, userId)
       events.push('credential-delete')
@@ -164,5 +168,5 @@ export function managementFixture(count = 2) {
   const invoke = (action: string, values: Record<string, unknown> = {}) =>
     service.browser(action, { requestId: row.id, ...values }, cookie, configuration.apiOrigin)
 
-  return { invoke, row, keys, now, events }
+  return { invoke, row, keys, now, events, configuration }
 }
