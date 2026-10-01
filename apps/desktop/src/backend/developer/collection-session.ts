@@ -477,17 +477,18 @@ export function createDeveloperCollectionSession({
       return getStatus()
     }
 
+    if (selectedSlots == null) {
+      await stop()
+
+      return getStatus()
+    }
+
     requestToken += 1
     const token = requestToken
     invalidate()
     error = null
     lastSavedCount = 0
     kind = captureKind
-    if (selectedSlots == null) {
-      await waitForCapture()
-
-      return getStatus()
-    }
 
     if (!armingEnabled) {
       error = DEVELOPER_ERROR_CODES.DISABLED
