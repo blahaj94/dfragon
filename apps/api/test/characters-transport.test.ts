@@ -26,8 +26,9 @@ async function startLoopback(
   assert(!isAddressEmpty)
   const isAddressObject = typeof address !== 'string'
   assert(isAddressObject)
+  const origin = `http://127.0.0.1:${(address as { port: number }).port}`
 
-  return { origin: `http://127.0.0.1:${(address as { port: number }).port}`, server }
+  return { origin, server }
 }
 
 async function closeLoopback(server: Server): Promise<void> {
