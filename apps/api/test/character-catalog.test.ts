@@ -14,12 +14,12 @@ import type { projectCharacterDetails } from '../src/characters/details/project.
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'fixture-item' }
 const skill: CatalogKey = { kind: 'skill', jobId: 'fixture-job', skillId: 'fixture-skill' }
-const currentEntry = (key: CatalogKey, expired = false): CatalogEntry => ({
-  key,
-  payload: { retained: true },
-  fetchedAt: new Date(Date.now() - 1000),
-  expiresAt: new Date(Date.now() + (expired ? -1 : 60_000))
-})
+const currentEntry = (key: CatalogKey, expired = false): CatalogEntry => {
+  const fetchedAt = new Date(Date.now() - 1000)
+  const expiresAt = new Date(Date.now() + (expired ? -1 : 60_000))
+
+  return { key, payload: { retained: true }, fetchedAt, expiresAt }
+}
 
 test('abort during the final database clock read rejects before the transaction can commit', async () => {
   const controller = new AbortController()
@@ -28,8 +28,9 @@ test('abort during the final database clock read rejects before the transaction 
     async query(sql: string) {
       if (sql === 'SELECT clock_timestamp() AS now') {
         controller.abort()
+        const now = new Date()
 
-        return [{ now: new Date() }]
+        return [{ now }]
       }
 
       return []
@@ -60,19 +61,22 @@ function memoryStore(entries: CatalogEntry[] = []): CatalogStore {
 
   return {
     async read() {
+      const requestedAt = new Date().toISOString()
+      const now = new Date()
 
-      return { entries, requestedAt: new Date().toISOString(), now: new Date() }
+      return { entries, requestedAt, now }
     },
     async saveAndRead(values) {
+      const savedEntries = values.map((value) => {
+        const snapshot = { ...value }
+        const fetchedAt = new Date()
+        const expiresAt = new Date(Date.now() + 86_400_000)
 
-      return {
-        entries: values.map((value) => ({
-          ...value,
-          fetchedAt: new Date(),
-          expiresAt: new Date(Date.now() + 86_400_000)
-        })),
-        now: new Date()
-      }
+        return { ...snapshot, fetchedAt, expiresAt }
+      })
+      const now = new Date()
+
+      return { entries: savedEntries, now }
     }
   }
 }
@@ -105,7 +109,12 @@ test('fresh cache avoids upstream and failed refresh keeps stale data or explici
 
 test('returns reread committed values and never publishes an unsuccessful DB write', async () => {
   const store = memoryStore()
-  store.saveAndRead = async () => ({ entries: [currentEntry(item)], now: new Date() })
+  store.saveAndRead = async () => {
+    const entries = [currentEntry(item)]
+    const now = new Date()
+
+    return { entries, now }
+  }
   const service = createCatalogService(store, async () => [
     { key: item, payload: { upstream: true } }
   ])
@@ -136,10 +145,11 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
 
     return keys.map((key) => ({ key, payload: { fixture: true } }))
   })
-  const keys: CatalogKey[] = Array.from({ length: 140 }, (_, i) => ({
-    kind: 'item',
-    itemId: `item-${i}`
-  }))
+  const keys: CatalogKey[] = Array.from({ length: 140 }, (_, i) => {
+    const itemId = `item-${i}`
+
+    return { kind: 'item', itemId }
+  })
   const result = await service.load([...keys, keys[0]!], signal)
   assert.equal(count, 128)
   assert(peak <= 3)
@@ -152,15 +162,16 @@ test('deadline stops queued work; disconnect aborts without persisting late upst
   const store = memoryStore()
   store.saveAndRead = async () => {
     writes++
+    const now = new Date()
 
-    return { entries: [], now: new Date() }
+    return { entries: [], now }
   }
   const controller = new AbortController()
-  const keys: CatalogKey[] = Array.from({ length: 10 }, (_, i) => ({
-    kind: 'skill',
-    jobId: 'job',
-    skillId: `skill-${i}`
-  }))
+  const keys: CatalogKey[] = Array.from({ length: 10 }, (_, i) => {
+    const skillId = `skill-${i}`
+
+    return { kind: 'skill', jobId: 'job', skillId }
+  })
   const service = createCatalogService(
     store,
     async (group, requestSignal) => {
@@ -219,16 +230,20 @@ test('provider adapter matches item IDs, retains options, and binds skills to th
 })
 
 test('enrichment preserves 14 slots, enchant skill options, nullable chain and original JSON', async () => {
-  const items = Array.from({ length: 14 }, (_, index) => ({
-    slotId: index === 13 ? 'SUPPORT_WEAPON' : `SLOT_${index}`,
-    itemId: 'fixture-item',
-    tune: [{ level: 3 }],
-    enchant: {
-      status: [{ name: '옵션', value: '3%' }],
-      reinforceSkill: [{ jobId: 'other-job', skills: [] }]
-    },
-    customOption: { future: true }
-  }))
+  const items = Array.from({ length: 14 }, (_, index) => {
+    const slotId = index === 13 ? 'SUPPORT_WEAPON' : `SLOT_${index}`
+
+    return {
+      slotId,
+      itemId: 'fixture-item',
+      tune: [{ level: 3 }],
+      enchant: {
+        status: [{ name: '옵션', value: '3%' }],
+        reinforceSkill: [{ jobId: 'other-job', skills: [] }]
+      },
+      customOption: { future: true }
+    }
+  })
   const details: ReturnType<typeof projectCharacterDetails> = {
     character: { jobId: 'fixture-job' },
     status: { status: [], buff: [] },
