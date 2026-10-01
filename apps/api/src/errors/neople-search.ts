@@ -112,15 +112,23 @@ export function classifyNeopleUpstreamFailure(
   const isBodyObject = isObject(body)
   if (!isBodyObject) {
     const hasHttpFailure = !ok
+    if (hasHttpFailure) {
 
-    return hasHttpFailure ? neopleStatusFailure(status) : undefined
+      return neopleStatusFailure(status)
+    }
+
+    return undefined
   }
 
   const hasError = Object.hasOwn(body, 'error')
   if (!hasError) {
     const hasHttpFailure = !ok
+    if (hasHttpFailure) {
 
-    return hasHttpFailure ? neopleStatusFailure(status) : undefined
+      return neopleStatusFailure(status)
+    }
+
+    return undefined
   }
 
   const upstreamError = body.error
@@ -135,6 +143,10 @@ export function classifyNeopleUpstreamFailure(
   const hasCode = code !== undefined
   const knownError = hasCode ? upstreamCodeErrors.get(code) : undefined
   const isKnownError = knownError !== undefined
+  if (isKnownError) {
 
-  return isKnownError ? neopleSearchFailure(knownError) : neopleStatusFailure(status)
+    return neopleSearchFailure(knownError)
+  }
+
+  return neopleStatusFailure(status)
 }
