@@ -57,7 +57,6 @@ export function decodePng(bytes: Buffer): PNG {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
   try {
-
     return PNG.sync.read(bytes, { checkCRC: true })
   } catch {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
@@ -81,7 +80,9 @@ export function decodeUploadedPng(value: unknown) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
 
-  return { png, decoded: decodePng(png) }
+  const decoded = decodePng(png)
+
+  return { png, decoded }
 }
 
 export function parseImageIdentity(id: unknown, capturedAt: unknown) {
@@ -155,19 +156,18 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
     })
     .sort((a, b) => a.slot - b.slot)
 
-  return {
-    png,
-    capture: {
-      id,
-      capturedAt,
-      kind,
-      width: decoded.width,
-      height: decoded.height,
-      uiScale,
-      uiScaleSource,
-      crops
-    }
+  const capture: Capture = {
+    id,
+    capturedAt,
+    kind,
+    width: decoded.width,
+    height: decoded.height,
+    uiScale,
+    uiScaleSource,
+    crops
   }
+
+  return { png, capture }
 }
 
 export function cropPng(original: PNG, crop: Crop): Buffer {
