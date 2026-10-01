@@ -23,7 +23,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 - `pnpm lint`, `pnpm lint:fix`: root 설정·scripts·API·Desktop·Web·UI의 ESLint 비수정 검사와 자동수정.
 - `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS·JSON/JSONC·YAML·CSS/SCSS/LESS·HTML을 Prettier로 정렬하거나 비수정 검사한다. Markdown은 자동 정렬 대상에 포함하지 않는다.
-- `pnpm test:format-policy`: 로컬 ESTree 프린터 플러그인의 `return` 직전 빈 줄 정책·ASI·공통 설정과 CLI 수렴을 검사한다.
+- `pnpm test:format-policy`: 로컬 ESTree 프린터 플러그인의 블록 첫 `return` 빈 줄 제거·이후 `return` 빈 줄 유지·ASI·공통 설정과 CLI 수렴을 검사한다.
 - 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
 - `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @dfragon/web lint:oxlint`, `pnpm --filter @dfragon/ui lint:oxlint`다. ESLint와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
 
