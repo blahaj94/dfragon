@@ -47,6 +47,7 @@ export function decodeCtc(
     }
     previous = best
   }
+  const confidence = count > 0 ? (score / count) * 100 : 0
 
-  return { text, confidence: count > 0 ? (score / count) * 100 : 0 }
+  return { text, confidence }
 }
