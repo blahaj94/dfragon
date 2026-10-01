@@ -13,10 +13,12 @@ export { readDatabaseConfiguration } from './configuration.js'
 export type { DatabaseConfiguration } from './configuration.js'
 
 export function createDatabaseOptions(configuration: DatabaseConfiguration): DataSourceOptions {
+  const snapshot = { ...configuration }
+  const migrations = [fileURLToPath(new URL('./migrations/*.js', import.meta.url))]
 
   return {
     type: 'postgres',
-    ...configuration,
+    ...snapshot,
     connectTimeoutMS: 2000,
     synchronize: false,
     migrationsRun: false,
@@ -24,7 +26,7 @@ export function createDatabaseOptions(configuration: DatabaseConfiguration): Dat
     migrationsTransactionMode: 'all',
     migrationsTableName: 'typeorm_migrations',
     entities: databaseSchemas,
-    migrations: [fileURLToPath(new URL('./migrations/*.js', import.meta.url))]
+    migrations
   }
 }
 
@@ -36,9 +38,10 @@ export function createDatabaseDataSource(configuration: DatabaseConfiguration): 
 export function createNestDatabaseOptions(
   configuration: DatabaseConfiguration
 ): TypeOrmModuleOptions {
+  const options = createDatabaseOptions(configuration)
 
   return {
-    ...createDatabaseOptions(configuration),
+    ...options,
     retryAttempts: 1,
     verboseRetryLog: false,
     toRetry: () => false
@@ -48,10 +51,11 @@ export function createNestDatabaseOptions(
 @Module({})
 export class DatabaseModule {
   static register(configuration: DatabaseConfiguration): DynamicModule {
+    const imports = [TypeOrmModule.forRoot(createNestDatabaseOptions(configuration))]
 
     return {
       module: DatabaseModule,
-      imports: [TypeOrmModule.forRoot(createNestDatabaseOptions(configuration))],
+      imports,
       exports: [TypeOrmModule]
     }
   }
