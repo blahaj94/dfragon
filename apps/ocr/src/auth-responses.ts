@@ -35,24 +35,27 @@ function responseTimestamp(value: unknown): string {
 
 export function parseSessionTokens(value: unknown): SessionTokens {
   const body = responseRecord(value)
+  const accessToken = responseText(body.accessToken)
+  const accessTokenExpiresAt = responseTimestamp(body.accessTokenExpiresAt)
+  const refreshToken = responseText(body.refreshToken)
 
-  return {
-    accessToken: responseText(body.accessToken),
-    accessTokenExpiresAt: responseTimestamp(body.accessTokenExpiresAt),
-    refreshToken: responseText(body.refreshToken)
-  }
+  return { accessToken, accessTokenExpiresAt, refreshToken }
 }
 
 export function parseAuthenticatedUser(value: unknown): AuthenticatedUser {
   const body = responseRecord(value)
   const user = responseRecord(body.user)
+  const id = responseText(user.id)
+  const nickname = responseText(user.nickname)
 
-  return { id: responseText(user.id), nickname: responseText(user.nickname) }
+  return { id, nickname }
 }
 
 export function parseLoginTokens(value: unknown): LoginTokens {
+  const tokens = parseSessionTokens(value)
+  const user = parseAuthenticatedUser(value)
 
-  return { ...parseSessionTokens(value), user: parseAuthenticatedUser(value) }
+  return { ...tokens, user }
 }
 
 export function parseCreatedLogin(value: unknown) {
@@ -61,10 +64,8 @@ export function parseCreatedLogin(value: unknown) {
   if (!URL.canParse(browserUrl)) {
     throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
   }
+  const requestId = responseText(body.requestId)
+  const expiresAt = responseTimestamp(body.expiresAt)
 
-  return {
-    requestId: responseText(body.requestId),
-    browserUrl,
-    expiresAt: responseTimestamp(body.expiresAt)
-  }
+  return { requestId, browserUrl, expiresAt }
 }
