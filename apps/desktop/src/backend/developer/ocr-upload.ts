@@ -99,24 +99,33 @@ export function createOcrUploader(
           }
           if (response.status !== 200 && response.status !== 201) {
             await response.body?.cancel()
+            if (response.status === 403) {
+              return 'ownerRequired'
+            }
+            if (response.status === 507) {
+              return 'storageFull'
+            }
 
-            return response.status === 403
-              ? 'ownerRequired'
-              : response.status === 507
-                ? 'storageFull'
-                : 'failed'
+            return 'failed'
           }
           const receipt = receiptSchema.safeParse(await readJson(response, lifecycle.signal))
+          const isUploadConfirmed =
+            lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
+          if (isUploadConfirmed) {
+            return 'uploaded'
+          }
 
-          return lifecycle.isCurrent() && receipt.success && receipt.data.id === payload.id
-            ? 'uploaded'
-            : 'failed'
+          return 'failed'
         }
 
         return 'signedOut'
       } catch {
+        const isSameGeneration = auth.captureGeneration() === generation
+        if (isSameGeneration) {
+          return 'failed'
+        }
 
-        return auth.captureGeneration() === generation ? 'failed' : 'signedOut'
+        return 'signedOut'
       } finally {
         lifecycle.cleanup()
       }
