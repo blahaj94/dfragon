@@ -238,13 +238,15 @@ function createEnumerationFixture(batches: Buffer[], terminalError = 18): Enumer
     getDirectoryEntries: query
   }
 
-  return {
+  const enumerationFixture = {
     ...fixture,
     native: createWindowsSecurityNative({ api }),
     query,
     closeHandle,
     createFile
   }
+
+  return enumerationFixture
 }
 
 describe('Windows file rename', () => {
@@ -564,9 +566,13 @@ describe('Windows directory flush failure guards', () => {
         }
       })
 
-      expect(() =>
-        isDeletion ? native.remove('file') : native.syncDirectory('directory')
-      ).toThrow()
+      expect(() => {
+        if (isDeletion) {
+          return native.remove('file')
+        }
+
+        return native.syncDirectory('directory')
+      }).toThrow()
       if (isDeletion) {
         expect(disposition).toHaveBeenCalledExactlyOnceWith(103n, 4, Buffer.from([1]), 1)
       } else {
@@ -596,8 +602,14 @@ describe('Windows security native boundary', () => {
 
     createWindowsSecurityApiForTesting(loader)
 
-    const declaration = (name: string): unknown[] =>
-      declarations.find((entry) => entry.name === name)?.args ?? []
+    const declaration = (name: string): unknown[] => {
+      const args = declarations.find((entry) => entry.name === name)?.args
+      if (args != null) {
+        return args
+      }
+
+      return []
+    }
     expect(declaration('IsWellKnownSid')[3]).toHaveLength(2)
     expect(declaration('GetFinalPathNameByHandleW')[3]).toHaveLength(4)
     expect(declaration('CreateFileW')[3]).toHaveLength(7)
@@ -674,16 +686,16 @@ describe('Windows security native boundary', () => {
 
         return (...args: unknown[]): unknown => {
           record(name, args)
-          const requiredArity =
-            name === 'CreateFileW'
-              ? 7
-              : name === 'GetFileInformationByHandleEx' || name === 'GetAclInformation'
-                ? 4
-                : name === 'ReadFile' || name === 'WriteFile'
-                  ? 5
-                  : name === 'SetFileInformationByHandle'
-                    ? 4
-                    : null
+          let requiredArity: number | null = null
+          if (name === 'CreateFileW') {
+            requiredArity = 7
+          } else if (name === 'GetFileInformationByHandleEx' || name === 'GetAclInformation') {
+            requiredArity = 4
+          } else if (name === 'ReadFile' || name === 'WriteFile') {
+            requiredArity = 5
+          } else if (name === 'SetFileInformationByHandle') {
+            requiredArity = 4
+          }
           if (requiredArity != null && args.length !== requiredArity) {
             throw new Error(`${name} received ${args.length} arguments`)
           }
@@ -716,18 +728,21 @@ describe('Windows security native boundary', () => {
               }
 
               return normalHandle
-            case 'GetFileInformationByHandleEx':
+            case 'GetFileInformationByHandleEx': {
               if (typeof args[3] !== 'number' || args[3] <= 0) {
                 throw new Error('GetFileInformationByHandleEx size is required')
               }
-              ;(args[2] as Record<string, unknown>).FileAttributes =
-                String(args[0]).includes('credential.v1') || String(args[0]).includes('.tmp')
-                  ? 0
-                  : handleKind === 'directory'
-                    ? FILE_ATTRIBUTE_DIRECTORY
-                    : 0
+              const information = args[2] as Record<string, unknown>
+              if (String(args[0]).includes('credential.v1') || String(args[0]).includes('.tmp')) {
+                information.FileAttributes = 0
+              } else if (handleKind === 'directory') {
+                information.FileAttributes = FILE_ATTRIBUTE_DIRECTORY
+              } else {
+                information.FileAttributes = 0
+              }
 
               return true
+            }
             case 'GetSecurityInfo':
               ;(args[3] as Array<unknown>)[0] = currentSidPointer
               ;(args[7] as Array<unknown>)[0] = 101n
@@ -789,8 +804,11 @@ describe('Windows security native boundary', () => {
 
               return true
             case 'LocalFree':
+              if (failLocalFree && args[0] === 107n) {
+                return 106n
+              }
 
-              return failLocalFree && args[0] === 107n ? 106n : null
+              return null
             case 'ConvertStringSecurityDescriptorToSecurityDescriptorW':
               ;(args[2] as Array<unknown>)[0] = 107n
 
@@ -1003,7 +1021,13 @@ describe('Windows security native boundary', () => {
 
           return result
         },
-        getLengthSid: (value) => (value === pointer ? sid.length : fixture.api.getLengthSid(value))
+        getLengthSid: (value) => {
+          if (value === pointer) {
+            return sid.length
+          }
+
+          return fixture.api.getLengthSid(value)
+        }
       }
     })
     expect(native.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
@@ -1032,7 +1056,13 @@ describe('Windows security native boundary', () => {
 
           return true
         },
-        getLengthSid: (value) => (readingAce ? sid.length : fixture.api.getLengthSid(value))
+        getLengthSid: (value) => {
+          if (readingAce) {
+            return sid.length
+          }
+
+          return fixture.api.getLengthSid(value)
+        }
       }
     })
     expect(withServiceAce.inspect('ancestor', 'directory', 'ancestor')).toBe('trusted')
