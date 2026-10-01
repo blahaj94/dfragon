@@ -16,6 +16,14 @@ function getSourceTitleSuffix(source: DeveloperWorkbenchSample['source']): strin
   return ` · ${source.slot}번 크롭`
 }
 
+function getImageStatusMessage(failed: boolean): string {
+  if (failed) {
+    return '이미지를 읽지 못했습니다.'
+  }
+
+  return '이미지를 불러오는 중입니다.'
+}
+
 export function DeveloperSampleEditor({
   sample,
   number,
@@ -86,9 +94,7 @@ export function DeveloperSampleEditor({
         {image ? (
           <img src={image} alt="선택한 저장 크롭" {...stylex.props(styles.image)} />
         ) : (
-          <Typo.txtS>
-            {failed ? '이미지를 읽지 못했습니다.' : '이미지를 불러오는 중입니다.'}
-          </Typo.txtS>
+          <Typo.txtS>{getImageStatusMessage(failed)}</Typo.txtS>
         )}
       </div>
       {failed && (
