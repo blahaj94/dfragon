@@ -75,16 +75,19 @@ function nodeEnvironment(extra = {}) {
     'DOCKER_CERT_PATH'
   ]
 
-  return {
-    ...Object.fromEntries(
-      names.flatMap((name) => {
-        const isVariableMissing = process.env[name] === undefined
+  const inheritedEnvironment = Object.fromEntries(
+    names.flatMap((name) => {
+      const isVariableMissing = process.env[name] === undefined
+      if (isVariableMissing) {
 
-        return isVariableMissing ? [] : [[name, process.env[name]]]
-      })
-    ),
-    ...extra
-  }
+        return []
+      }
+
+      return [[name, process.env[name]]]
+    })
+  )
+
+  return { ...inheritedEnvironment, ...extra }
 }
 
 function databaseEnvironment(configuration) {
@@ -150,7 +153,12 @@ async function assertBoundedReadiness() {
       server.close((error) => {
         const hasCloseError = error != null
 
-        return hasCloseError ? reject(error) : resolve()
+        if (hasCloseError) {
+
+          return reject(error)
+        }
+
+        return resolve()
       })
     )
   }
