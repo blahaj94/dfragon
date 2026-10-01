@@ -35,12 +35,12 @@ class ApiHttpFilter implements ExceptionFilter {
       return
     }
     const path = request.path.toLowerCase().replace(/\/+$/, '')
-    const failure =
-      path === '/characters'
-        ? error instanceof NeopleSearchFailure
-          ? error
-          : neopleSearchFailure('internal')
-        : characterDetailFailure(error)
+    let failure: NeopleSearchFailure | ReturnType<typeof characterDetailFailure>
+    if (path === '/characters') {
+      failure = error instanceof NeopleSearchFailure ? error : neopleSearchFailure('internal')
+    } else {
+      failure = characterDetailFailure(error)
+    }
     if (failure.retryAfter != null) {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }
