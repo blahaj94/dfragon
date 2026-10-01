@@ -55,7 +55,6 @@ export const developerSamplesMachine = setup({
 
         const { intent } = input.save
         if (intent.type === DEVELOPER_EVENTS.SAVE_LABEL) {
-
           return input.api.saveLabel(intent.id, intent.text)
         }
 
@@ -69,82 +68,112 @@ export const developerSamplesMachine = setup({
     hasQueuedRefresh: ({ context }) => context.queuedRefreshes.length > 0
   },
   actions: {
-    startRefresh: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.REFRESH
-        ? {
-            loadRequests: [event.request],
-            queuedRefreshes: [],
-            error: '',
-            preserveSaveError: false
-          }
-        : {}
-    ),
-    queueRefresh: assign(({ context, event }) =>
-      event.type === DEVELOPER_EVENTS.REFRESH
-        ? { queuedRefreshes: [...context.queuedRefreshes, event.request] }
-        : {}
-    ),
+    startRefresh: assign(({ event }) => {
+      if (event.type !== DEVELOPER_EVENTS.REFRESH) {
+        return {}
+      }
+
+      const loadRequests = [event.request]
+
+      return {
+        loadRequests,
+        queuedRefreshes: [],
+        error: '',
+        preserveSaveError: false
+      }
+    }),
+    queueRefresh: assign(({ context, event }) => {
+      if (event.type !== DEVELOPER_EVENTS.REFRESH) {
+        return {}
+      }
+
+      const queuedRefreshes = [...context.queuedRefreshes, event.request]
+
+      return { queuedRefreshes }
+    }),
     startQueuedRefresh: assign(({ context }) => ({
       loadRequests: context.queuedRefreshes,
       queuedRefreshes: []
     })),
-    failRefresh: assign(({ context }) => ({
-      error: context.preserveSaveError ? context.error : DEVELOPER_ERRORS.LOAD_SAMPLES,
-      lastRefreshRequests: context.loadRequests,
-      loadRequests: []
-    })),
-    cancelRefresh: assign(({ context }) => ({
-      lastRefreshRequests: [...context.loadRequests, ...context.queuedRefreshes],
-      loadRequests: [],
-      queuedRefreshes: []
-    })),
-    startSaveLabel: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.SAVE_LABEL
-        ? {
-            activeSave: {
-              request: event.request,
-              intent: { type: DEVELOPER_EVENTS.SAVE_LABEL, id: event.id, text: event.text }
-            },
-            error: '',
-            preserveSaveError: false
+    failRefresh: assign(({ context }) => {
+      const error = context.preserveSaveError ? context.error : DEVELOPER_ERRORS.LOAD_SAMPLES
+
+      return {
+        error,
+        lastRefreshRequests: context.loadRequests,
+        loadRequests: []
+      }
+    }),
+    cancelRefresh: assign(({ context }) => {
+      const lastRefreshRequests = [...context.loadRequests, ...context.queuedRefreshes]
+
+      return {
+        lastRefreshRequests,
+        loadRequests: [],
+        queuedRefreshes: []
+      }
+    }),
+    startSaveLabel: assign(({ event }) => {
+      if (event.type !== DEVELOPER_EVENTS.SAVE_LABEL) {
+        return {}
+      }
+
+      return {
+        activeSave: {
+          request: event.request,
+          intent: { type: DEVELOPER_EVENTS.SAVE_LABEL, id: event.id, text: event.text }
+        },
+        error: '',
+        preserveSaveError: false
+      }
+    }),
+    startSetSampleExcluded: assign(({ event }) => {
+      if (event.type !== DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED) {
+        return {}
+      }
+
+      return {
+        activeSave: {
+          request: event.request,
+          intent: {
+            type: DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED,
+            id: event.id,
+            excluded: event.excluded
           }
-        : {}
-    ),
-    startSetSampleExcluded: assign(({ event }) =>
-      event.type === DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED
-        ? {
-            activeSave: {
-              request: event.request,
-              intent: {
-                type: DEVELOPER_EVENTS.SET_SAMPLE_EXCLUDED,
-                id: event.id,
-                excluded: event.excluded
-              }
-            },
-            error: '',
-            preserveSaveError: false
-          }
-        : {}
-    ),
-    failSave: assign(({ context }) => ({
-      error: DEVELOPER_ERRORS.SAVE_SAMPLE,
-      preserveSaveError: true,
-      lastSave:
+        },
+        error: '',
+        preserveSaveError: false
+      }
+    }),
+    failSave: assign(({ context }) => {
+      const error = DEVELOPER_ERRORS.SAVE_SAMPLE
+      const lastSave =
         context.activeSave == null
           ? context.lastSave
-          : { request: context.activeSave.request, sample: null },
-      activeSave: null
-    })),
-    cancelSave: assign(({ context }) => ({
-      lastRefreshRequests: [...context.loadRequests, ...context.queuedRefreshes],
-      loadRequests: [],
-      queuedRefreshes: [],
-      lastSave:
+          : { request: context.activeSave.request, sample: null }
+
+      return {
+        error,
+        preserveSaveError: true,
+        lastSave,
+        activeSave: null
+      }
+    }),
+    cancelSave: assign(({ context }) => {
+      const lastRefreshRequests = [...context.loadRequests, ...context.queuedRefreshes]
+      const lastSave =
         context.activeSave == null
           ? context.lastSave
-          : { request: context.activeSave.request, sample: null },
-      activeSave: null
-    }))
+          : { request: context.activeSave.request, sample: null }
+
+      return {
+        lastRefreshRequests,
+        loadRequests: [],
+        queuedRefreshes: [],
+        lastSave,
+        activeSave: null
+      }
+    })
   }
 }).createMachine({
   id: 'developerSamples',
@@ -167,12 +196,17 @@ export const developerSamplesMachine = setup({
         input: ({ context }) => context.api,
         onDone: {
           target: '#developerSamples.idle.ready',
-          actions: assign(({ context, event }) => ({
-            samples: event.output,
-            error: context.preserveSaveError ? context.error : '',
-            lastRefreshRequests: context.loadRequests,
-            loadRequests: []
-          }))
+          actions: assign(({ context, event }) => {
+            const samples = event.output
+            const error = context.preserveSaveError ? context.error : ''
+
+            return {
+              samples,
+              error,
+              lastRefreshRequests: context.loadRequests,
+              loadRequests: []
+            }
+          })
         },
         onError: { target: '#developerSamples.idle.loadError', actions: 'failRefresh' }
       },
@@ -221,14 +255,21 @@ export const developerSamplesMachine = setup({
           actions: assign(({ context, event }) => {
             const sample = event.output
             if (context.activeSave == null) {
-
               return {}
             }
 
+            const samples = context.samples.some((row) => row.id === sample.id)
+              ? context.samples.map((row) => {
+                  if (row.id === sample.id) {
+                    return sample
+                  }
+
+                  return row
+                })
+              : [...context.samples, sample]
+
             return {
-              samples: context.samples.some((row) => row.id === sample.id)
-                ? context.samples.map((row) => (row.id === sample.id ? sample : row))
-                : [...context.samples, sample],
+              samples,
               error: '',
               preserveSaveError: false,
               lastSave: { request: context.activeSave.request, sample },
