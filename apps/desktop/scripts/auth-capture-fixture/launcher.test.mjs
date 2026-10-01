@@ -4,13 +4,21 @@ import { runCaptureFixture } from '../auth-capture-fixture.mjs'
 
 const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(process, 'platform')
 
-const fixture = vi.hoisted(() => ({
-  spawn: vi.fn(),
-  remove: vi.fn(),
-  inspect: vi.fn(),
-  create: vi.fn(),
-  write: vi.fn()
-}))
+const fixture = vi.hoisted(() => {
+  const spawn = vi.fn()
+  const remove = vi.fn()
+  const inspect = vi.fn()
+  const create = vi.fn()
+  const write = vi.fn()
+
+  return {
+    spawn,
+    remove,
+    inspect,
+    create,
+    write
+  }
+})
 vi.mock('node:child_process', () => ({ spawn: fixture.spawn }))
 vi.mock('node:fs/promises', () => ({
   mkdtemp: fixture.create,
