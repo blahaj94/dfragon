@@ -37,7 +37,6 @@ type RuntimeProfileState =
   | Readonly<{ status: 'applied'; config: NonNullable<typeof parsedRuntimeConfig> }>
 const runtimeProfileState: RuntimeProfileState = (() => {
   if (parsedRuntimeConfig == null) {
-
     return { status: 'inactive-config' }
   }
   try {
@@ -46,8 +45,9 @@ const runtimeProfileState: RuntimeProfileState = (() => {
     return { status: 'applied', config: appliedConfig }
   } catch (error) {
     const isApplicationFailure = error instanceof AuthRuntimeProfileApplicationFailure
+    const status = isApplicationFailure ? 'application-failed' : 'preparation-failed'
 
-    return { status: isApplicationFailure ? 'application-failed' : 'preparation-failed' }
+    return { status }
   }
 })()
 const runtimeConfig = runtimeProfileState.status === 'applied' ? runtimeProfileState.config : null
@@ -127,7 +127,13 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
-        getWindow: () => (authAppLifecycle.getWindow() === window ? window : null),
+        getWindow: () => {
+          if (authAppLifecycle.getWindow() === window) {
+            return window
+          }
+
+          return null
+        },
         documentUrl: rendererDocumentUrl
       })
     }
@@ -174,14 +180,12 @@ function showOrCreateMainWindow(authRuntime: AuthRuntime | null): void {
 
 function activateWindowSafely(authRuntime: AuthRuntime | null): void {
   if (authAppLifecycle.isQuitting()) {
-
     return
   }
 
   try {
     showOrCreateMainWindow(authRuntime)
   } catch {
-
     return
   }
 }
@@ -189,13 +193,11 @@ function activateWindowSafely(authRuntime: AuthRuntime | null): void {
 // This method will be called when Electron has finished initialization and is ready to create windows.
 app.whenReady().then(async () => {
   if (runtimeProfileState.status === 'application-failed') {
-
     return
   }
 
   const hasOwnedInstance = protocolIngress == null || protocolIngress.ownsInstance
   if (!hasOwnedInstance) {
-
     return
   }
 
@@ -229,7 +231,6 @@ app.whenReady().then(async () => {
 
       app.on('activate', function () {
         if (authAppLifecycle.isQuitting()) {
-
           return
         }
 
@@ -306,7 +307,6 @@ app.whenReady().then(async () => {
     composeAfterAuthBootstrap(authRuntime)
   } catch (error) {
     if (authAppLifecycle.isShutdownCommitted()) {
-
       return
     }
 
@@ -317,7 +317,6 @@ app.whenReady().then(async () => {
       return
     }
     if (authAppLifecycle.isQuitting()) {
-
       return
     }
     throw error
