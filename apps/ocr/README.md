@@ -96,7 +96,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/captures/:id/image` | 원본 PNG |
 | `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid/synthetic`, `split`, 정확한 `text` 필터 |
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
-| `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
+| `PATCH /api/samples/:id` | `{text?: string 또는 null, excluded?: boolean, confirmSplitChange?: boolean}`. text·excluded 중 하나 이상 필요 |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
 | `GET /api/splits/statistics` | 대상 규모·문자 빈도·현재 분할 및 자동 추가 활성화 여부 |
 | `POST /api/splits/preview` | `{ratios: {train, val, test}, replaceExisting: boolean}`. 각 값은 %, 합계 100. 읽기 전용 미리보기·fingerprint |
@@ -106,6 +106,8 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/export/manifest` | 현재 메타데이터·정답·분할 JSON |
 | `GET /api/export` | 현재 전체 자료 TAR. 원본·크롭·manifest 포함 |
 | `GET /health` | 데이터 없는 readiness 응답 |
+
+정답 저장은 `{text}`, 제외·복원은 `{excluded}`로 요청하면 생략한 필드를 transaction 안의 최신 값으로 보존합니다. 기존 두 필드 동시 요청도 지원합니다. `text: null`은 정답 제거, `excluded: false`는 복원이며 빈 요청은 거절합니다. 분할 변경의 `confirmSplitChange` 확인은 유지하고 동일 필드 동시 수정의 revision 충돌 정책은 추가하지 않습니다.
 
 업로드 예시의 ID·시각은 수집자가 생성합니다. 재시도 때는 ID와 본문을 그대로 보냅니다. 파일명·로컬 파일 경로는 서버 저장 경로로 사용하지 않습니다.
 
