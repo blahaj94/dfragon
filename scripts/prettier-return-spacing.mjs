@@ -7,6 +7,17 @@ const { hardline } = doc.builders
 // Add only the line breaks that the native statement/comment printer does not emit.
 function returnPrefix(path, options) {
   const { node, parent } = path
+  const previous = path.siblings?.slice(0, path.index).findLast((statement) => {
+    return statement.type !== 'EmptyStatement'
+  })
+  const directive = parent?.directives?.at(-1)
+  const preceding = previous ?? directive
+  const isFirstInBlock = parent?.type === 'BlockStatement' && preceding == null
+
+  if (isFirstInBlock) {
+    return []
+  }
+
   const { originalText, locEnd } = options
   const leading = node.comments?.filter((comment) => comment.leading && !comment.printed)
   const comment = leading?.at(-1)
@@ -15,12 +26,10 @@ function returnPrefix(path, options) {
     const end = locEnd(comment)
 
     if (util.isNextLineEmpty(originalText, end)) {
-
       return []
     }
 
     if (nativePrinter.isBlockComment(comment) && !util.hasNewline(originalText, end)) {
-
       return [hardline, hardline]
     }
 
@@ -28,16 +37,8 @@ function returnPrefix(path, options) {
   }
 
   if (parent?.type === 'LabeledStatement') {
-
     return [hardline, hardline]
   }
-
-  const previous = path.siblings?.slice(0, path.index).findLast((statement) => {
-
-    return statement.type !== 'EmptyStatement'
-  })
-  const directive = parent?.directives?.at(-1)
-  const preceding = previous ?? directive
 
   if (preceding) {
     const end = locEnd(preceding)
@@ -46,7 +47,6 @@ function returnPrefix(path, options) {
     const hasBlankAfterSemicolon = rawEnd !== end && util.isNextLineEmpty(originalText, rawEnd)
 
     if (hasBlank || hasBlankAfterSemicolon) {
-
       return []
     }
   }
@@ -58,7 +58,6 @@ function print(path, options, printChild, args) {
   const printed = nativePrinter.print(path, options, printChild, args)
 
   if (path.node.type !== 'ReturnStatement') {
-
     return printed
   }
 
