@@ -1,6 +1,6 @@
 import { chunk, filter, map } from 'remeda'
 import { catalogKey, isCatalogId, unavailableDetail } from './types.js'
-import type { CatalogDetail, CatalogKey } from './types.js'
+import type { CatalogDetail, CatalogKey, CatalogResult } from './types.js'
 import type { CatalogStore } from './store.js'
 import type { FetchCatalog } from './neople.js'
 
@@ -30,9 +30,11 @@ export function createCatalogService(
     async load(
       keys: CatalogKey[],
       requestSignal: AbortSignal
-    ): Promise<Map<string, CatalogDetail>> {
+    ): Promise<Map<string, CatalogResult>> {
       const unique = [...new Map(keys.map((key) => [catalogKey(key), key])).values()]
-      const results = new Map(unique.map((key) => [catalogKey(key), unavailableDetail]))
+      const results = new Map<string, CatalogResult>(
+        unique.map((key) => [catalogKey(key), { key, detail: unavailableDetail }])
+      )
       requestSignal.throwIfAborted()
       if (unique.length === 0) {
         return results
@@ -49,13 +51,16 @@ export function createCatalogService(
         try {
           const snapshot = await store.read(bounded, signal)
           for (const entry of snapshot.entries) {
-            results.set(catalogKey(entry.key), {
+            const detail: CatalogDetail = {
               data: entry.payload,
               fetchedAt: entry.fetchedAt.toISOString(),
               status: entry.expiresAt > snapshot.now ? 'fresh' : 'stale'
-            })
+            }
+            results.set(catalogKey(entry.key), { key: entry.key, detail })
           }
-          const pending = bounded.filter((key) => results.get(catalogKey(key))!.status !== 'fresh')
+          const pending = bounded.filter(
+            (key) => results.get(catalogKey(key))!.detail.status !== 'fresh'
+          )
           const groups = createCatalogRequestGroups(pending)
           let next = 0
           await Promise.all(
@@ -70,11 +75,12 @@ export function createCatalogService(
                   }
                   const stored = await store.saveAndRead(values, snapshot.requestedAt, signal)
                   for (const entry of stored.entries) {
-                    results.set(catalogKey(entry.key), {
+                    const detail: CatalogDetail = {
                       data: entry.payload,
                       fetchedAt: entry.fetchedAt.toISOString(),
                       status: entry.expiresAt > stored.now ? 'fresh' : 'stale'
-                    })
+                    }
+                    results.set(catalogKey(entry.key), { key: entry.key, detail })
                   }
                 } catch {
                   // Only committed catalog data may be returned. An unsuccessful refresh retains its prior value.
@@ -93,14 +99,14 @@ export function createCatalogService(
         if (key.kind !== 'item') {
           continue
         }
-        const setItemId = results.get(catalogKey(key))?.data?.setItemId
+        const setItemId = results.get(catalogKey(key))?.detail.data?.setItemId
         if (!isCatalogId(setItemId)) {
           continue
         }
         const setKey: CatalogKey = { kind: 'set', setItemId }
         const id = catalogKey(setKey)
         if (!results.has(id)) {
-          results.set(id, unavailableDetail)
+          results.set(id, { key: setKey, detail: unavailableDetail })
           sets.push(setKey)
         }
       }

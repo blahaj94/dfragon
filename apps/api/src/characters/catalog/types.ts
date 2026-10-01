@@ -21,6 +21,11 @@ export interface CatalogDetail {
   status: 'fresh' | 'stale' | 'unavailable'
 }
 
+export interface CatalogResult {
+  key: CatalogKey
+  detail: CatalogDetail
+}
+
 export function catalogKey(key: CatalogKey): string {
   switch (key.kind) {
     case 'item':
