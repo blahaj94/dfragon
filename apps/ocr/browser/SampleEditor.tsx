@@ -99,11 +99,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
         </div>
         <div>
           <dt {...stylex.props(styles.metadataLabel)}>UI 크기</dt>
-          <dd {...stylex.props(styles.metadataValue)}>
-            {sample.uiScale === null
-              ? '미상'
-              : `${Math.round(sample.uiScale * 100)}% · ${sample.uiScaleSource === 'game' ? '게임 설정' : '추정'}`}
-          </dd>
+          <dd {...stylex.props(styles.metadataValue)}>{formatUiScale(sample)}</dd>
         </div>
         <div>
           <dt {...stylex.props(styles.metadataLabel)}>수집 시각</dt>
@@ -131,4 +127,14 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       </p>
     </section>
   )
+}
+
+function formatUiScale(sample: Sample): string {
+  if (sample.uiScale === null) {
+    return '미상'
+  }
+  const scale = `${Math.round(sample.uiScale * 100)}%`
+  const source = sample.uiScaleSource === 'game' ? '게임 설정' : '추정'
+
+  return `${scale} · ${source}`
 }
