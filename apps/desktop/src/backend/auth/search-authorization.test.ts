@@ -127,11 +127,17 @@ describe('검색의 main authorization 소비 경계', () => {
         return result
       })
       const other = auth.authorization()
-      const boundaryEffect = isRefresh
-        ? harness.http.refresh
-        : isCommit
-          ? harness.store.commitCredential
-          : harness.store.removeTransition
+      let boundaryEffect:
+        | typeof harness.http.refresh
+        | typeof harness.store.commitCredential
+        | typeof harness.store.removeTransition
+      if (isRefresh) {
+        boundaryEffect = harness.http.refresh
+      } else if (isCommit) {
+        boundaryEffect = harness.store.commitCredential
+      } else {
+        boundaryEffect = harness.store.removeTransition
+      }
 
       try {
         await vi.waitFor(() => expect(boundaryEffect).toHaveBeenCalledTimes(1))
@@ -270,13 +276,20 @@ describe('검색의 main authorization 소비 경계', () => {
         harness.store.removeWaits.push(storage.promise)
       }
       const refreshing = auth.authorization()
-      const blockedEffect = isMarker
-        ? harness.store.establishTransition
-        : isHttp
-          ? harness.http.refresh
-          : isCommit
-            ? harness.store.commitCredential
-            : harness.store.removeTransition
+      let blockedEffect:
+        | typeof harness.store.establishTransition
+        | typeof harness.http.refresh
+        | typeof harness.store.commitCredential
+        | typeof harness.store.removeTransition
+      if (isMarker) {
+        blockedEffect = harness.store.establishTransition
+      } else if (isHttp) {
+        blockedEffect = harness.http.refresh
+      } else if (isCommit) {
+        blockedEffect = harness.store.commitCredential
+      } else {
+        blockedEffect = harness.store.removeTransition
+      }
       const phases: string[] = []
       const unsubscribe = auth.subscribe((snapshot) => phases.push(snapshot.phase))
       let final: Promise<AuthAuthorization> | undefined
