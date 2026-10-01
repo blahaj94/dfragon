@@ -21,6 +21,7 @@ export function createWindowsCredentialStore(
   if (!isWindows) {
     return createUnavailableCredentialStore()
   }
+
   if (!isAbsolute(options.userDataPath)) {
     throw new Error('Credential storage requires a trusted absolute path.')
   }

@@ -69,6 +69,7 @@ export const authBridgeMachine = setup({
 
             return
           }
+
           if (snapshot.revision <= previous.revision) {
             return
           }

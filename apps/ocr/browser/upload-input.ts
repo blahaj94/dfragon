@@ -7,6 +7,7 @@ export function assertUploadFile(file: File | null): asserts file is File {
   if (file === null) {
     throw new UploadInputError(OCR_MESSAGES.selectPng)
   }
+
   if (file.size > OCR_UPLOAD.maximumPngBytes) {
     throw new UploadInputError(OCR_MESSAGES.pngTooLarge)
   }

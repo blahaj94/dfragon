@@ -76,6 +76,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
       return
     }
+
     if (shutdownCommitted) {
       return
     }
@@ -229,6 +230,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       hasPendingOwnedAuthFailure = false
       exitAfterOwnedAuthFailure()
     }
+
     if (shutdownCommitted) {
       return
     }
@@ -307,6 +309,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       if (shutdownCommitted) {
         return null
       }
+
       if (isQuitting) {
         const canResume = await waitForQuitOutcome()
         if (!canResume) {

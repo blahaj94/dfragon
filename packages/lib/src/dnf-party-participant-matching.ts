@@ -100,6 +100,7 @@ export function findParticipantAnchors(
     if (w < 6 || w > 30 || h < 6 || h > 30 || w / h < 0.65 || w / h > 1.5) {
       continue
     }
+
     if (count / (w * h) < 0.45) {
       continue
     }
@@ -226,6 +227,7 @@ export function createParticipantHeadingMatcher(
           if (score == null) {
             return 'search-limit'
           }
+
           if (peak == null || score > peak.score) {
             peak = { x, y, scale, score }
           }
@@ -234,6 +236,7 @@ export function createParticipantHeadingMatcher(
       if (peak == null) {
         continue
       }
+
       if (dense) {
         const full = patternFor(scale, false)
         const center = peak
@@ -247,12 +250,14 @@ export function createParticipantHeadingMatcher(
             if (score == null) {
               return 'search-limit'
             }
+
             if (peak == null || score > peak.score) {
               peak = { x, y, scale, score }
             }
           }
         }
       }
+
       if (peak != null && (best == null || peak.score > best.score)) {
         best = peak
       }
@@ -276,6 +281,7 @@ export function createParticipantHeadingMatcher(
     if (coarse === 'search-limit') {
       return coarse
     }
+
     if (coarse == null || coarse.score < 0.6) {
       return null
     }
@@ -287,6 +293,7 @@ export function createParticipantHeadingMatcher(
     if (refined === 'search-limit') {
       return refined
     }
+
     if (refined != null && refined.score >= 0.68) {
       return refined
     }

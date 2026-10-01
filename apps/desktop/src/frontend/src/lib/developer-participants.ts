@@ -15,21 +15,25 @@ export function getParticipantPreviewMessage(
       detail: '게임 창을 찾으면 미리보기를 시작해요.'
     }
   }
+
   if (code === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND) {
     return { title: '파티참가인원 창을 열어주세요.', detail: '창이 보이면 자동으로 다시 찾을게요.' }
   }
+
   if (code === DEVELOPER_ERROR_CODES.RAID_WINDOW_NOT_FOUND) {
     return {
       title: '공대 상세 창을 열어주세요.',
       detail: '12인 공대 상세 창 전체가 보이면 자동으로 다시 찾을게요.'
     }
   }
+
   if (code === DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND) {
     return {
       title: '저장할 닉네임이 없어요.',
       detail: '참가자가 있는지와 저장 선택을 확인해주세요.'
     }
   }
+
   if (
     code === DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE ||
     code === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_UNCERTAIN ||
@@ -44,6 +48,7 @@ export function getParticipantPreviewMessage(
 
     return { title, detail }
   }
+
   if (
     code === DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE ||
     code === DEVELOPER_ERROR_CODES.OPERATION_FAILED
@@ -53,6 +58,7 @@ export function getParticipantPreviewMessage(
       detail: '저장소를 확인한 뒤 게임에서 Print Screen 키로 다시 시도해주세요.'
     }
   }
+
   if (code) {
     const title = getDeveloperCollectionErrorMessage(code)
 

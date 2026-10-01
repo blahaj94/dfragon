@@ -29,6 +29,7 @@ export function useBuildVersions(): VersionState & { refresh: () => void } {
         if (request.current !== revision) {
           return null
         }
+
         if (bridge == null) {
           setState({ status: 'unavailable', snapshot: null })
 

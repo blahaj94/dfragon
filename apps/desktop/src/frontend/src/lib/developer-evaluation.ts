@@ -73,6 +73,7 @@ function collectSampleEvaluations(
       evaluations.push({ status: 'unevaluated' })
       continue
     }
+
     if (result.status === 'failed') {
       evaluations.push({ status: 'failed' })
       continue

@@ -141,6 +141,7 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
   if (value === null) {
     return null
   }
+
   if (
     !isObject(value) ||
     !(
@@ -317,6 +318,7 @@ export function createDeveloperStore({
       if (isMissing) {
         return { settings: { enabled: false }, isCorrupt: false }
       }
+
       if (error instanceof DeveloperStoreError) {
         return { settings: { enabled: false }, isCorrupt: true }
       }

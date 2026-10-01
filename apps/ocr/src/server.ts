@@ -48,6 +48,7 @@ function isDesktopRequest(request: Request): boolean {
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
     return true
   }
+
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/models') {
     return true
   }
@@ -137,6 +138,7 @@ export async function createOcrApp(
 
         return
       }
+
       if (modelUploadActive) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
 
@@ -165,6 +167,7 @@ export async function createOcrApp(
 
         return
       }
+
       if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
 

@@ -53,6 +53,7 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
   if (error instanceof CharacterDetailFailure) {
     return error
   }
+
   if (error instanceof NeopleSearchFailure) {
     let kind: keyof typeof failures = 'internal'
     if (error.status === 429) {

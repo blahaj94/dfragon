@@ -28,12 +28,14 @@ export async function exchangeLogin(deps: LoginDependencies, input: unknown): Pr
     ) {
       throw invalid()
     }
+
     if (
       row.codeChallenge !== challenge(body.codeVerifier) ||
       !equalHash(row.exchangeCodeHash, opaqueHash(body.code))
     ) {
       throw invalid()
     }
+
     if (exchangeExpired(row, await freshTime(manager))) {
       throw invalid()
     }

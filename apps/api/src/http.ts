@@ -29,6 +29,7 @@ class ApiHttpFilter implements ExceptionFilter {
 
       return
     }
+
     if (request.route == null && error instanceof NotFoundException) {
       response.status(404).json({ statusCode: 404, message: 'Not Found' })
 
@@ -41,6 +42,7 @@ class ApiHttpFilter implements ExceptionFilter {
     } else {
       failure = characterDetailFailure(error)
     }
+
     if (failure.retryAfter != null) {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }

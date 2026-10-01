@@ -9,6 +9,7 @@ function getModelKindLabel(model: ModelSummary): string {
   if (model.kind === 'pretrained') {
     return '기본 모델'
   }
+
   if (model.kind === 'expanded') {
     return '문자 확장 모델'
   }

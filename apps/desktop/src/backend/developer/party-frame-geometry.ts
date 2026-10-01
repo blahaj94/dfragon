@@ -135,6 +135,7 @@ export function detectPartyFrameGeometry({
     if (slot == null) {
       continue
     }
+
     if (bySlot.has(slot)) {
       throw new PartyFrameGeometryError('ambiguous-layout')
     }
@@ -372,9 +373,11 @@ function findScaleMatch({
     if (hpError > 1.25 || mpError > 1.25 || gapError > 1.4) {
       continue
     }
+
     if (!isFullTrackWidth(hp.medianWidth, scale) || !isFullTrackWidth(mp.medianWidth, scale)) {
       continue
     }
+
     if (
       Math.abs(hp.medianWidth - mp.medianWidth) > Math.max(8, 0.09 * TRACK_REFERENCE_WIDTH * scale)
     ) {
@@ -466,6 +469,7 @@ function deduplicateCandidates(candidates: TrackPairCandidate[]): TrackPairCandi
       unique.push(candidate)
       continue
     }
+
     if (candidate.edgeSupport > duplicate.edgeSupport) {
       Object.assign(duplicate, candidate)
     }

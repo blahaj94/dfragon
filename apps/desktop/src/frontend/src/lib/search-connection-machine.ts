@@ -68,6 +68,7 @@ export const searchConnectionMachine = setup({
 
             return
           }
+
           if (snapshot.revision <= previous.revision) {
             return
           }

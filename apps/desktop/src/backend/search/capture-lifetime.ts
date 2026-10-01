@@ -75,6 +75,7 @@ function retryAfterForFailure(
       retryAfter = { seconds, receivedAt }
     }
   }
+
   if (!isRateLimited) {
     return null
   }
@@ -247,6 +248,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!isFailure) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
+
     if (!hasError) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }
@@ -261,6 +263,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       const remaining = remainingRetryAfter(wait)
       isWaiting = remaining > 0
     }
+
     if (isWaiting) {
       return result(SEARCH_COMMAND_ERRORS.SEARCH_RETRY_NOT_READY)
     }

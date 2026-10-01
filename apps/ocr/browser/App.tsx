@@ -40,6 +40,7 @@ export function App() {
     if (authenticated === null) {
       return <p {...stylex.props(styles.paragraph)}>로그인 상태를 확인하고 있습니다.</p>
     }
+
     if (!authenticated) {
       return (
         <>
@@ -285,6 +286,7 @@ function sampleSplitLabel(sample: Sample) {
   if (sample.excluded) {
     return '제외'
   }
+
   if (sample.split === 'unassigned') {
     return '미배정'
   }

@@ -6,6 +6,7 @@ export function paginate<T>(
   if (!Number.isSafeInteger(page)) {
     throw new RangeError('page must be a safe integer')
   }
+
   if (!Number.isSafeInteger(pageSize) || pageSize < 1) {
     throw new RangeError('pageSize must be a positive safe integer')
   }

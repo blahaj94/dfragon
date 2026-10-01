@@ -47,9 +47,11 @@ export function createServerVersionReader({
       ) {
         return { status: 'unavailable' }
       }
+
       if (response.status === 404) {
         return { status: 'unsupported' }
       }
+
       if (response.status !== 200) {
         return { status: 'unavailable' }
       }

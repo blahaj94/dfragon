@@ -134,6 +134,7 @@ export function createOcrDataset(
           )
           continue
         }
+
         if (response.status !== 200) {
           await response.body?.cancel()
           throw new Error(

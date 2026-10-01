@@ -174,6 +174,7 @@ export function packageNotice(directory: string): NoticeEntry {
       text: '이 패키지는 npm에서 ISC를 선언하지만 배포 패키지와 현재 공식 저장소에 라이선스 원문이 없습니다. 저작권 문구를 추정하지 않았으며 원문 확보가 필요합니다.\nhttps://www.npmjs.com/package/guid-typescript/v/1.0.9\nhttps://github.com/snico-dev/guid-typescript'
     })
   }
+
   if (!documents.length) {
     throw new Error(`Missing license text for ${manifest.name}@${manifest.version}`)
   }

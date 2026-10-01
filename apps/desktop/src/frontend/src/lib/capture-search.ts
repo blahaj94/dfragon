@@ -140,6 +140,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         canRetry = isRetryable && !isWaiting
       }
     }
+
     if (!canRetry) {
       return
     }

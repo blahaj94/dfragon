@@ -5,9 +5,11 @@ export function getCharacterCardStatus(state: SlotState): string {
   if (state === 'failure') {
     return '검색 실패'
   }
+
   if (state === 'empty') {
     return '검색 결과가 없습니다'
   }
+
   if (state === 'pending') {
     return '검색 중…'
   }

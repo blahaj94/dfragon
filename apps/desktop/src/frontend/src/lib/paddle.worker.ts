@@ -27,6 +27,7 @@ onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) =
 
       return
     }
+
     if (session == null || pixels == null) {
       throw new Error('OCR model unavailable.')
     }

@@ -100,9 +100,11 @@ function matchesLabelFilter(
   if (labelFilter === 'excluded') {
     return sample.excluded === true
   }
+
   if (sample.excluded === true) {
     return false
   }
+
   if (labelFilter === 'unlabeled') {
     return sample.text == null
   }

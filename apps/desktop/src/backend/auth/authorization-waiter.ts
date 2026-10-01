@@ -8,6 +8,7 @@ export function waitForAuthorization(
   if (!hasSignal) {
     return operation()
   }
+
   if (signal.aborted) {
     return Promise.resolve({ status: 'unavailable' })
   }

@@ -109,9 +109,11 @@ function exactPartySlots(
   if (value === null) {
     return null
   }
+
   if (!Array.isArray(value)) {
     throw invalidCommand()
   }
+
   if (
     [...value].some((slot) => !isDeveloperPartySlot(slot, kind)) ||
     new Set(value).size !== value.length
@@ -205,6 +207,7 @@ async function capturePrimaryPng(
   if (failureCode != null) {
     throw new DeveloperStoreError(failureCode)
   }
+
   if (png == null) {
     throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -249,9 +252,11 @@ export function registerDeveloperWindow(
     if (!settings.enabled || !remoteAllowed) {
       throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.DISABLED)
     }
+
     if (revision !== remoteRevision || !isTrustedMainDocument()) {
       throw new DeveloperStoreError(DEVELOPER_ERROR_CODES.NOT_ALLOWED)
     }
+
     if (!remoteDataset) {
       throw new Error(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)
     }

@@ -46,6 +46,7 @@ export function SettingsSection({
     if (mode.updating) {
       return '개발자 모드 설정을 저장하는 중입니다.'
     }
+
     if (mode.enabled) {
       return '개발자 모드가 켜져 있습니다.'
     }
@@ -57,11 +58,13 @@ export function SettingsSection({
     if (mode.status === 'loading') {
       return <Typo.txtM role="status">개발자 모드 설정을 불러오는 중입니다.</Typo.txtM>
     }
+
     if (mode.status === 'unavailable') {
       return (
         <Typo.txtM role="status">이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.</Typo.txtM>
       )
     }
+
     if (mode.status === 'error') {
       return (
         <div role="alert">
@@ -115,6 +118,7 @@ export function SettingsSection({
     if (selectedSection === 'versions') {
       return <BuildVersionsSection />
     }
+
     if (selectedSection === 'licenses') {
       if (entries) {
         return <OpenSourceNotices entries={entries} />

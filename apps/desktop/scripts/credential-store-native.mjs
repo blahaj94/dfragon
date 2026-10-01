@@ -119,6 +119,7 @@ function execute(command, args, environment = process.env) {
 
         return
       }
+
       if (standardOutput) {
         stdout += chunk.toString()
       } else {
@@ -142,10 +143,12 @@ function execute(command, args, environment = process.env) {
             stopGroup('SIGTERM')
             stopped = await waitForGroupExit(child.pid, 2_000)
           }
+
           if (!stopped) {
             stopGroup('SIGKILL')
             stopped = await waitForGroupExit(child.pid, 1_000)
           }
+
           if (!stopped) {
             throw new Error('Owned process group remains active.')
           }
@@ -244,6 +247,7 @@ async function cleanupOwnedProfile() {
   if (!allGroupsStopped) {
     throw new Error('Owned process group cleanup is incomplete.')
   }
+
   if (mayOwnItem) {
     await removeOwnedItem(appName, keychain)
     const stillHasSameDefault = (await defaultKeychain()) === keychain
@@ -287,6 +291,7 @@ try {
   if (interrupted) {
     throw new Error('Native credential validation was interrupted.')
   }
+
   if (!prepareOnly) {
     appName = `DFRAGON-Credential-Test-${randomUUID()}`
     keychain = await defaultKeychain()

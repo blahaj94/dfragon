@@ -21,6 +21,7 @@ export async function bootstrapAuthRuntime(input: AuthBootstrapInput): Promise<A
   if (config == null) {
     return null
   }
+
   if (input.isActive?.() === false) {
     return null
   }

@@ -86,16 +86,19 @@ export function createOcrUploader(
             )
             continue
           }
+
           if (!lifecycle.isCurrent()) {
             await response.body?.cancel()
 
             return 'signedOut'
           }
+
           if (response.status !== 200 && response.status !== 201) {
             await response.body?.cancel()
             if (response.status === 403) {
               return 'ownerRequired'
             }
+
             if (response.status === 507) {
               return 'storageFull'
             }

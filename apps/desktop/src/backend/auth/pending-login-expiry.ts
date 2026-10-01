@@ -73,6 +73,7 @@ export function createPendingExpiry(
         if (stopped) {
           return
         }
+
         if (isExpired(clock.read())) {
           sendBack({ type: 'EXPIRE' })
         } else {

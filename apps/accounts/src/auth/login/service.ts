@@ -121,12 +121,15 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     if (managing ? operation !== 'add' : operation !== 'register' && operation !== 'authenticate') {
       throw invalid()
     }
+
     if (operation === 'register' && row.purpose !== 'login') {
       throw invalid()
     }
+
     if (row.status !== 'browser_started' && !managing) {
       throw invalid()
     }
+
     if (operation === 'authenticate') {
       const value = await generateAuthenticationOptions({
         rpID: configuration.rpId,
@@ -235,6 +238,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       ) {
         throw invalid()
       }
+
       if (row.pendingUserId == null || (adding && row.pendingUserId !== row.verifiedUserId)) {
         throw invalid()
       }
@@ -308,6 +312,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
 
       return { managed: true }
     }
+
     if (row.phoneBindingHash != null) {
       row.status = 'phone_verified'
       await manager.getRepository(AuthLoginRequestSchema).save(row)
@@ -472,6 +477,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           await lockCredential(manager, row.verifiedUserId!, row.credentialId!, configuration.rpId)
           await checkTime(manager, row)
         }
+
         if (
           ['qr', 'status', 'claim', 'direct', 'cancel', 'phone-approve', 'phone-cancel'].includes(
             action
@@ -487,14 +493,17 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
 
           return { value }
         }
+
         if (phone ? row.phoneBindingHash == null : row.confirmationCode != null) {
           throw invalid()
         }
+
         if (action === 'options' || action === 'phone-options') {
           const value = await options(manager, row, body.operation)
 
           return { value }
         }
+
         if (action === 'verify' || action === 'phone-verify') {
           try {
             const value = await verify(manager, row, body.response)
@@ -509,9 +518,11 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
             return { failure: error }
           }
         }
+
         if (row.status !== 'managing') {
           throw invalid()
         }
+
         if (action === 'list') {
           const keys = await manager.getRepository(PasskeySchema).find({
             where: { userId: row.verifiedUserId!, rpId: configuration.rpId },
@@ -530,6 +541,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
 
           return { value }
         }
+
         if (action === 'remove') {
           if (typeof body.credentialId !== 'string' || body.credentialId.length > 2048) {
             throw invalid()

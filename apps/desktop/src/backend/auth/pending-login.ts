@@ -145,6 +145,7 @@ export function createPendingLogin(
       if (rejectedFingerprint === fingerprint) {
         return { status: 'ignored' }
       }
+
       if (snapshot.matches({ active: 'exchanging' })) {
         if (exchangeFingerprint === fingerprint && exchangePromise != null) {
           return { status: 'joined', promise: exchangePromise }

@@ -7,6 +7,7 @@ export function createServerBuildInfo(service, commit) {
   if (!['api', 'accounts', 'ocr'].includes(service)) {
     throw new Error('Expected an API, accounts, or OCR service.')
   }
+
   if (
     typeof commit !== 'string' ||
     (commit !== '' && (commit.length !== 40 || !/^[0-9a-f]{40}$/.test(commit)))

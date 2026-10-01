@@ -26,6 +26,7 @@ export function createAuthBrowser(
       if (!allowed(url) || login?.signal.aborted) {
         throw new Error('Authentication window unavailable')
       }
+
       if (!login && managementWindow && !managementWindow.isDestroyed()) {
         managementWindow.show()
         managementWindow.focus()
@@ -108,6 +109,7 @@ export function createAuthBrowser(
         if (managementWindow === window) {
           managementWindow = null
         }
+
         if (login && !claimed && !loadFailed && !login.signal.aborted) {
           login.onClosed()
         }

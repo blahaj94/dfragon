@@ -204,6 +204,7 @@ export function useDeveloperPartyCollection(
         ) {
           applySlots(slotsRef.current)
         }
+
         if (
           commandRevision === session.commandRevision &&
           statusEventRevision === session.statusEventRevision

@@ -22,6 +22,7 @@ export function parseLabel(value: unknown): string | null {
   if (value === null) {
     return null
   }
+
   if (
     typeof value !== 'string' ||
     value.length === 0 ||

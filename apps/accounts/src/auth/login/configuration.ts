@@ -16,6 +16,7 @@ export function validatePasskeyConfiguration(
     ) {
       throw new Error()
     }
+
     if (
       !['dfragon:', 'dfragon.dev:'].includes(target.protocol) ||
       target.host !== 'auth' ||
@@ -28,6 +29,7 @@ export function validatePasskeyConfiguration(
     ) {
       throw new Error()
     }
+
     if (value.ocrReturnUrl !== undefined) {
       const web = new URL(value.ocrReturnUrl)
       if (
@@ -72,6 +74,7 @@ export function configuredLoginClient(
   if (fingerprint === configurationFingerprint(config)) {
     return 'desktop'
   }
+
   if (
     config.ocrReturnUrl !== undefined &&
     fingerprint === configurationFingerprint(config, 'ocr')

@@ -107,6 +107,7 @@ export class OcrAuth {
         response.status === 401 ? OCR_ERROR_CODE.LOGIN_REQUIRED : OCR_ERROR_CODE.AUTH_UNAVAILABLE
       )
     }
+
     if (response.status === 204) {
       return null
     }
@@ -264,6 +265,7 @@ export class OcrAuth {
         await this.revokeSession(previousSession.tokens.refreshToken)
       }
     }
+
     if (this.sessions.size >= OCR_AUTH.maximumSessions) {
       await this.revokeSession(tokens.refreshToken)
       throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)

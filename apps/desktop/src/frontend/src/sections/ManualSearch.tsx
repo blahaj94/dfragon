@@ -86,6 +86,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
     if (session == null || !view.ready) {
       return
     }
+
     if (!validManualNickname(nickname)) {
       session.submission += 1
       session.nickname = null
@@ -94,6 +95,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
 
       return
     }
+
     if (session.nickname === nickname) {
       return
     }
@@ -110,6 +112,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       if (sessionRef.current !== session || session.starting !== starting) {
         return
       }
+
       if (id == null) {
         session.starting = null
         session.nickname = null
@@ -119,6 +122,7 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       }
       session.started = true
     }
+
     if (session.submission !== submission) {
       return
     }

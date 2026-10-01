@@ -153,6 +153,7 @@ export function createPrintScreenShortcut({
         // A throwing FFI installation has no confirmed handle; never free a possibly live callback.
         throw new Error(DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE)
       }
+
       if (registration.hook != null) {
         if (!registration.api.removeHook(registration.hook)) {
           throw new Error(DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE)

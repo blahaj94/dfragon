@@ -212,15 +212,19 @@ export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachin
   if (snapshot.matches({ capturing: 'active' })) {
     return 'active'
   }
+
   if (snapshot.matches('capturing')) {
     return 'starting'
   }
+
   if (snapshot.matches('selecting')) {
     return 'selecting'
   }
+
   if (snapshot.matches('selected')) {
     return 'selected'
   }
+
   if (snapshot.matches('failed')) {
     return 'failed'
   }

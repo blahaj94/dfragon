@@ -13,6 +13,7 @@ async function readLocalHttps(environment: NodeJS.ProcessEnv, port: number, apiO
   if (certPath === undefined && keyPath === undefined) {
     return undefined
   }
+
   if (
     certPath === undefined ||
     keyPath === undefined ||

@@ -163,6 +163,7 @@ export function capturePrimaryFrame(): PixelFrame {
     if (!primary || left !== 0 || top !== 0 || width <= 0 || height <= 0 || !deviceName) {
       throw new Error('Expected the primary monitor at physical origin (0, 0).')
     }
+
     if (
       width > MAX_IMAGE_DIMENSION ||
       height > MAX_IMAGE_DIMENSION ||
@@ -179,11 +180,13 @@ export function capturePrimaryFrame(): PixelFrame {
     if (!api.EnumDisplaySettings(deviceName, 0xffffffff, mode)) {
       throw fail('EnumDisplaySettingsW')
     }
+
     if (mode.readUInt32LE(172) !== width || mode.readUInt32LE(176) !== height) {
       throw new Error(
         'Primary monitor bounds do not match the physical display mode; capture aborted.'
       )
     }
+
     if (mode.readUInt32LE(168) !== 32) {
       throw new Error('The capture spike requires a 32-bit desktop display mode.')
     }
@@ -223,6 +226,7 @@ export function capturePrimaryFrame(): PixelFrame {
     }
     // CreateDIBSection requires GdiFlush before reading its memory after GDI draws.
     // https://learn.microsoft.com/windows/win32/api/wingdi/nf-wingdi-createdibsection
+
     if (!api.GdiFlush()) {
       throw fail('GdiFlush')
     }
@@ -248,14 +252,17 @@ export function capturePrimaryFrame(): PixelFrame {
       clean('Restore selected bitmap', () => api.SelectObject(currentMemoryDC, currentBitmap))
     }
     // Delete the DC before the DIB even when restoring its selected object failed.
+
     if (memoryDC) {
       const currentMemoryDC = memoryDC
       clean('DeleteDC(memory)', () => api.DeleteDC(currentMemoryDC))
     }
+
     if (bitmap) {
       const currentBitmap = bitmap
       clean('DeleteObject(bitmap)', () => api.DeleteObject(currentBitmap))
     }
+
     if (displayDC) {
       const currentDisplayDC = displayDC
       clean('DeleteDC(display)', () => api.DeleteDC(currentDisplayDC))
@@ -268,6 +275,7 @@ export function capturePrimaryFrame(): PixelFrame {
       'Windows capture resource cleanup failed.'
     )
   }
+
   if (!frame) {
     throw captureError ?? new Error('Windows capture did not return a frame.')
   }

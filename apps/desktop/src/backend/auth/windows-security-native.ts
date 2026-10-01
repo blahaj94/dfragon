@@ -447,6 +447,7 @@ function classifyPathError(errorCode: number): WindowsNativePathInspection {
   ) {
     return 'missing'
   }
+
   if (errorCode === ERROR_ACCESS_DENIED) {
     return 'untrusted'
   }
@@ -560,6 +561,7 @@ function currentUserSid(api: WindowsApi): {
   if (closeFailed) {
     throw nativeError(api)
   }
+
   if (result == null) {
     throw new Error('Current Windows token SID is unavailable.')
   }
@@ -629,6 +631,7 @@ function isSecureDacl(
   }
   // A non-present or null DACL means unrestricted access. An empty DACL is distinct,
   // but it cannot grant the current user the access needed by the profile.
+
   if (present[0] === 0 || dacl[0] == null) {
     return false
   }
@@ -680,9 +683,11 @@ function isSecureDacl(
     }
     // Inherit-only entries do not grant access to this directory. Each actual
     // child is inspected separately, including any effective inherited ACEs.
+
     if ((aceFlags & INHERIT_ONLY_ACE) !== 0) {
       continue
     }
+
     if (
       !isCurrentSid &&
       !isSystemAuthority(api, aceSid, aceMemory.subarray(8)) &&
@@ -723,6 +728,7 @@ function inspectHandle(
   if (typeof attributes !== 'number') {
     return 'unavailable'
   }
+
   if ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) !== 0) {
     return 'reparse'
   }
@@ -730,6 +736,7 @@ function inspectHandle(
   if (isDirectory !== (kind === 'directory')) {
     return 'untrusted'
   }
+
   if (policy === 'root' && (kind !== 'directory' || !isVolumeRoot(api, handle))) {
     return 'untrusted'
   }
@@ -904,6 +911,7 @@ function readDirectoryBatch(buffer: Buffer): string[] {
       }
       names.push(name)
     }
+
     if (isLastEntry) {
       return names
     }
@@ -997,6 +1005,7 @@ export function createWindowsSecurityNative(
       if (releaseFailed) {
         throw new Error('Windows security descriptor could not be released.')
       }
+
       if (result == null) {
         throw new Error('Windows directory creation result is unavailable.')
       }
@@ -1065,6 +1074,7 @@ export function createWindowsSecurityNative(
         }
         throw new Error('Windows security descriptor could not be released.')
       }
+
       if (result == null) {
         throw new Error('Windows exclusive file handle is unavailable.')
       }
@@ -1152,6 +1162,7 @@ export function createWindowsSecurityNative(
         if (!currentApi.writeFile(handle, remaining, remaining.byteLength, bytesWritten, null)) {
           throw nativeError(currentApi)
         }
+
         if (bytesWritten[0] <= 0 || bytesWritten[0] > remaining.byteLength) {
           throw new Error('Windows credential write was incomplete.')
         }

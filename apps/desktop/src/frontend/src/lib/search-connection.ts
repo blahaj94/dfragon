@@ -65,6 +65,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (changed) {
         options.onSnapshot(state.context.snapshot)
       }
+
       if (readFailed) {
         options.onFailure()
       }
@@ -87,6 +88,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       if (result == null) {
         throw new Error('Invalid search bridge response')
       }
+
       if (actor.getSnapshot().status === 'active') {
         actor.send({ type: 'RESULT', snapshot: result.snapshot })
       }

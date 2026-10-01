@@ -102,6 +102,7 @@ export function validatePlan(plan, sourceCommit) {
   if (!isRecord(plan) || commitSha(plan.sourceCommit, 'plan source commit') !== source) {
     throw new Error('Plan source commit does not match the product image source commit')
   }
+
   if (
     !Array.isArray(plan.services) ||
     plan.services.some((service) => !services.includes(service)) ||
@@ -212,6 +213,7 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
   if (run === undefined) {
     return null
   }
+
   if (
     !isRecord(run) ||
     !positiveId(run.id) ||
@@ -287,6 +289,7 @@ async function main() {
 
     return
   }
+
   if (
     !args[0] ||
     !(
@@ -311,6 +314,7 @@ async function main() {
 
     return
   }
+
   if (command === 'catch-up') {
     const plan = catchUpPlan({
       plan: readJson(planPath, 'product image plan'),

@@ -16,6 +16,7 @@ export function decodePng(bytes: Buffer): PNG {
   }
   // pngjs accepts duplicate IHDR and uses an unbounded inflater for interlaced PNGs.
   // Capture uploads use ordinary non-interlaced PNG; reject both before decoding.
+
   if (
     bytes.readUInt32BE(8) !== 13 ||
     bytes.toString('ascii', 12, 16) !== 'IHDR' ||

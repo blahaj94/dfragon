@@ -8,6 +8,7 @@ function getAnswerLabel(sample: DeveloperWorkbenchSample): string | null {
   if (sample.text == null) {
     return '정답 미입력'
   }
+
   if (sample.text === '') {
     return '(빈 정답)'
   }

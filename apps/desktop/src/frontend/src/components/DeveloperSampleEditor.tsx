@@ -9,6 +9,7 @@ function getSourceTitleSuffix(source: DeveloperWorkbenchSample['source']): strin
   if (!source) {
     return ' · 기존 이미지'
   }
+
   if (source.kind === 'raid') {
     return ` · 공대원창 ${source.slot}행 크롭`
   }

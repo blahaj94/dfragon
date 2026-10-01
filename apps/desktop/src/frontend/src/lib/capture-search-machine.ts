@@ -116,6 +116,7 @@ export const captureSearchMachine = setup({
       if (event.type !== 'STARTED') {
         return
       }
+
       if (event.result.captureId != null) {
         void context.effects.command({
           action: SEARCH_ACTIONS.END,

@@ -31,9 +31,11 @@ export function mapCharacterItems(
     if (Object.hasOwn(value, 'clone')) {
       result.clone = leaf(value.clone)
     }
+
     if (Object.hasOwn(value, 'emblems')) {
       result.emblems = list(value.emblems, leaf)
     }
+
     if (Object.hasOwn(value, 'artifact')) {
       result.artifact = list(value.artifact, leaf)
     }

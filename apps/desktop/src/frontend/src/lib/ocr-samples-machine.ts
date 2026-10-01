@@ -12,6 +12,7 @@ function errorMessage(cause: unknown): string {
   if (message.includes(DEVELOPER_ERROR_CODES.OCR_LOGIN_REQUIRED)) {
     return loginMessage
   }
+
   if (message.includes(DEVELOPER_ERROR_CODES.OCR_OWNER_REQUIRED)) {
     return 'OCR 자료실 소유자 계정만 조회할 수 있습니다.'
   }

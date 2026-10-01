@@ -18,21 +18,27 @@ export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
     return 'hangul'
   }
+
   if (/\p{Script=Hiragana}/u.test(char)) {
     return 'hiragana'
   }
+
   if (/\p{Script=Katakana}/u.test(char)) {
     return 'katakana'
   }
+
   if (/\p{Script=Han}/u.test(char)) {
     return 'hanja'
   }
+
   if (/\p{Script=Latin}/u.test(char)) {
     return 'latin'
   }
+
   if (/\p{Number}/u.test(char)) {
     return 'digit'
   }
+
   if (/[\p{Punctuation}\p{Symbol}]/u.test(char)) {
     return 'special'
   }
@@ -97,6 +103,7 @@ function compareText(a: string, b: string) {
   if (a < b) {
     return -1
   }
+
   if (a > b) {
     return 1
   }

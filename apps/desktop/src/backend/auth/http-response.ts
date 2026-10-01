@@ -172,6 +172,7 @@ export async function readJson(response: Response, signal?: AbortSignal): Promis
       hasOversizeDeclaration = declaredBytes > AUTH_RESPONSE_MAX_BYTES
     }
   }
+
   if (hasOversizeDeclaration === true) {
     try {
       await response.body?.cancel()
@@ -288,6 +289,7 @@ export async function requireLogoutResponse(
   if (isValidNoContentResponse) {
     return
   }
+
   if (isNoContent) {
     throw new AuthHttpFailure('invalid-response')
   }

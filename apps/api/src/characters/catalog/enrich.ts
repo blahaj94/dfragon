@@ -42,6 +42,7 @@ function collectCharacterCatalogReferences(details: CharacterDetails) {
     if (isCatalogId(item.itemId)) {
       references.push({ kind: 'item', itemId: item.itemId })
     }
+
     if (isCatalogId(item.setItemId)) {
       references.push({ kind: 'set', setItemId: item.setItemId })
     }

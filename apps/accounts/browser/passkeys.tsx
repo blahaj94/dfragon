@@ -93,6 +93,7 @@ function entryDescription() {
   if (management) {
     return '관리할 계정의 패스키로 다시 인증해 주세요.'
   }
+
   if (phone) {
     return '휴대폰의 패스키로 본인 계정을 확인하세요.'
   }
@@ -168,6 +169,7 @@ function PasskeyPage() {
       if (!isCurrent()) {
         return
       }
+
       if (Date.now() >= expiresAt) {
         setNow(Date.now())
         setStatus('인증 시간이 만료됐어요. 창을 닫고 DFRAGON 앱에서 다시 로그인해 주세요.')
@@ -182,6 +184,7 @@ function PasskeyPage() {
           if (!isCurrent()) {
             return
           }
+
           if (result.approved) {
             // Lock QR reissue/close while consuming the approval with the PC cookie.
             busyRef.current = true
@@ -302,6 +305,7 @@ function PasskeyPage() {
 
       return
     }
+
     if (
       !['dfragon:', 'dfragon.dev:'].includes(url.protocol) ||
       url.host !== 'auth' ||

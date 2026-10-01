@@ -166,6 +166,7 @@ export function detectDNFRaidParticipantWindow(
     if (matched === 'search-limit') {
       return { status: 'search-limit' }
     }
+
     if (matched == null) {
       continue
     }

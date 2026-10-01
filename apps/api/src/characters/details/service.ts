@@ -74,6 +74,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
           rows = snapshot.rows
         }
       }
+
       if (!rows) {
         rows = await refreshes.run(identity, signal, async (refreshSignal) => {
           refreshSignal.throwIfAborted()

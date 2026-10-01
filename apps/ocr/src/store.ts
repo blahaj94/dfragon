@@ -80,6 +80,7 @@ export class OcrStore {
 
         return { model, duplicate: true }
       }
+
       if (input.parentId !== null) {
         const parent = this.model(input.parentId)
         const parentDictionary = this.modelFile(input.parentId, 'characters.txt')
@@ -242,20 +243,25 @@ export class OcrStore {
     if (options.state === 'excluded') {
       clauses.push('s.excluded=1')
     }
+
     if (options.state === 'pending') {
       clauses.push('s.excluded=0 AND s.text IS NULL')
     }
+
     if (options.state === 'labeled') {
       clauses.push('s.excluded=0 AND s.text IS NOT NULL')
     }
+
     if (options.split !== undefined && options.split.length > 0) {
       clauses.push("COALESCE(g.split,'unassigned')=?")
       args.push(options.split)
     }
+
     if (options.kind !== undefined && options.kind.length > 0) {
       clauses.push("json_extract(c.metadata,'$.kind')=?")
       args.push(options.kind)
     }
+
     if (options.text !== undefined && options.text.length > 0) {
       clauses.push('s.text=?')
       args.push(options.text.normalize('NFC'))
@@ -311,6 +317,7 @@ export class OcrStore {
       if (nextSplit == null) {
         nextSplit = assignNew ? 'train' : 'unassigned'
       }
+
       if (
         text !== previousSample.text &&
         previousSample.split !== 'unassigned' &&
@@ -319,6 +326,7 @@ export class OcrStore {
       ) {
         throw new OcrError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE)
       }
+
       if (assignNew) {
         this.db.prepare("INSERT INTO label_splits VALUES(?,'train')").run(text!)
       }
@@ -443,6 +451,7 @@ export class OcrStore {
       ) {
         throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_TRAIN_ONLY)
       }
+
       if (split === 'unassigned') {
         this.db.prepare('DELETE FROM label_splits WHERE text=?').run(text)
         this.db.prepare('INSERT OR IGNORE INTO label_unassigned VALUES(?)').run(text)

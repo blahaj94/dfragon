@@ -223,6 +223,7 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
   } else if (value.startsWith('/')) {
     prefixLength = 1
   }
+
   if (prefixLength === 0) {
     return undefined
   }
@@ -495,6 +496,7 @@ export function createProtocolIngress(input: ProtocolIngressInput): ProtocolIngr
     if (hasPendingReturnUrl) {
       deliver(pendingReturnUrl)
     }
+
     if (hasPendingActivation) {
       deliverActivation()
     }

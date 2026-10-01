@@ -57,6 +57,7 @@ export function DeveloperUploadNotice({
   } else if (status) {
     tone = 'warning'
   }
+
   if (busy) {
     tone = 'busy'
     if (capture?.phase === 'capturing' || capture?.phase === 'saving') {
@@ -75,9 +76,11 @@ export function DeveloperUploadNotice({
     if (busy) {
       return <ProgressCircle size="24" tone="brand" />
     }
+
     if (tone === 'success') {
       return <CheckIcon width={24} height={24} />
     }
+
     if (tone === 'warning') {
       return '!'
     }

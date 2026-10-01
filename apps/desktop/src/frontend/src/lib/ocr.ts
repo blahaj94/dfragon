@@ -65,6 +65,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
     if (stopped) {
       return Promise.reject(new DOMException('OCR stopped.', 'AbortError'))
     }
+
     if (pending != null) {
       return Promise.reject(new Error('PaddleOCR is already recognizing an image.'))
     }

@@ -117,9 +117,11 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (timeout.aborted || performance.now() - startedAt >= deps.timeoutMs) {
         throw new CharacterDetailFailure('timeout')
       }
+
       if (requestSignal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
+
       if (error instanceof CharacterDetailFailure) {
         throw error
       }

@@ -69,6 +69,7 @@ async function main(): Promise<void> {
 
       return
     }
+
     if (configuration.localHttps !== undefined) {
       await runtime.app.listen(configuration.port, '127.0.0.1')
     } else {

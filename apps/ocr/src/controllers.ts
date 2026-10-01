@@ -108,11 +108,13 @@ export class OcrDataController {
     ) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
+
     if (kind !== undefined && kind.length > 0) {
       if (kind !== 'synthetic') {
         parseCaptureKind(kind)
       }
     }
+
     if (split !== undefined && split.length > 0) {
       parseSplit(split)
     }

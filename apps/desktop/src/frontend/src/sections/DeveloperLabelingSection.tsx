@@ -16,6 +16,7 @@ function getEmptySampleMessage(filter: DeveloperLabelFilter): string {
   if (filter === 'unlabeled') {
     return '입력할 이미지가 없습니다.'
   }
+
   if (filter === 'complete') {
     return '완료된 이미지가 없습니다.'
   }
@@ -67,6 +68,7 @@ export function DeveloperLabelingSection({
     if (loading && samples.length === 0) {
       return <Typo.txtS role="status">이미지를 불러오는 중입니다.</Typo.txtS>
     }
+
     if (samples.length === 0) {
       return (
         <Typo.txtS {...stylex.props(styles.listEmpty)}>{getEmptySampleMessage(filter)}</Typo.txtS>

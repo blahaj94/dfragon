@@ -13,6 +13,7 @@ export function parseServerBuildInfo(
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return null
   }
+
   if (
     Object.keys(value).length !== 2 ||
     !Object.hasOwn(value, 'service') ||

@@ -259,6 +259,7 @@ function withPerMonitorV2<T>(api: Win32PartyApi, action: () => T): T {
       'Windows party capture DPI cleanup failed.'
     )
   }
+
   if (actionFailed) {
     throw actionError
   }
@@ -323,6 +324,7 @@ function getProcessImagePath(api: Win32PartyApi, processId: number): string | nu
       'Windows process query cleanup failed.'
     )
   }
+
   if (queryError !== undefined) {
     throw queryError
   }
@@ -389,6 +391,7 @@ function enumerateTopLevelWindows(api: Win32PartyApi): bigint[] {
   if (callbackError !== undefined) {
     throw callbackError
   }
+
   if (!enumerationResult) {
     throw nativeFailure(api, 'EnumWindows')
   }
@@ -414,6 +417,7 @@ function findDnfGameWindow(api: Win32PartyApi): GameWindow {
   if (matches.length === 0) {
     throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOUND)
   }
+
   if (matches.length !== 1) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -644,6 +648,7 @@ function copyVisibleClient(
     ) {
       throw fail('BitBlt(client)')
     }
+
     if (!api.GdiFlush()) {
       throw fail('GdiFlush')
     }
@@ -670,14 +675,17 @@ function copyVisibleClient(
       const selected = previousBitmap
       clean('Restore selected bitmap', () => api.SelectObject(dc, selected))
     }
+
     if (memoryDC) {
       const dc = memoryDC
       clean('DeleteDC(memory)', () => api.DeleteDC(dc))
     }
+
     if (bitmap) {
       const image = bitmap
       clean('DeleteObject(bitmap)', () => api.DeleteObject(image))
     }
+
     if (screenDC) {
       const dc = screenDC
       clean('ReleaseDC(desktop)', () => api.ReleaseDC(null, dc))
@@ -689,9 +697,11 @@ function copyVisibleClient(
       'Windows party capture resource cleanup failed.'
     )
   }
+
   if (!pixels) {
     throw captureError ?? new Error('Windows party capture returned no pixels.')
   }
+
   if (capturedAt === undefined) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -770,12 +780,14 @@ function capturePartyFrameWithApi(
     ) {
       throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND)
     }
+
     if (
       isPartyRegionCovered(gameWindowBefore.client, slots, windowsAboveBefore) ||
       isPartyRegionCovered(gameWindowAfter.client, slots, windowsAboveAfter)
     ) {
       throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
     }
+
     if (
       gameWindowAfter.client.width > MAX_IMAGE_DIMENSION ||
       gameWindowAfter.client.height > MAX_IMAGE_DIMENSION ||
@@ -811,6 +823,7 @@ export function capturePartyFrame(kind: DeveloperCollectionKind = 'hud'): PartyF
     if (error instanceof PartyFrameGeometryError) {
       throw new Error(DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND, { cause: error })
     }
+
     if (error instanceof Error && error.message.startsWith('DEVELOPER_')) {
       throw error
     }
@@ -851,6 +864,7 @@ function readProcessElevation(api: ShortcutAccessApi, processHandle: bigint): bo
   if (token[0] && !api.CloseHandle(token[0])) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (elevated === undefined) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -892,6 +906,7 @@ export function assertShortcutProcessAccess(api: ShortcutAccessApi, gameProcessI
   if (queryFailed) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (gameElevated && !appElevated) {
     throw new Error(DEVELOPER_ERROR_CODES.ADMIN_REQUIRED)
   }

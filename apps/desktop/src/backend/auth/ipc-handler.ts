@@ -47,6 +47,7 @@ function exactField(args: unknown[], key: string): unknown {
   if (isArray) {
     return undefined
   }
+
   if (!hasOneArgument) {
     return undefined
   }

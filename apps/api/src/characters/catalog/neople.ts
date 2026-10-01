@@ -20,6 +20,7 @@ export function createNeopleCatalog(
         if (key.kind === 'item') {
           return !isCatalogId(key.itemId)
         }
+
         if (key.kind === 'set') {
           return !isCatalogId(key.setItemId)
         }
@@ -61,6 +62,7 @@ export function createNeopleCatalog(
         if (!isObject(body)) {
           throw new Error('Invalid catalog body')
         }
+
         if (first.kind === 'skill') {
           if (
             body.jobId !== first.jobId ||
@@ -73,6 +75,7 @@ export function createNeopleCatalog(
 
           return [{ key: first, payload: body }]
         }
+
         if (!Array.isArray(body.rows)) {
           throw new Error('Invalid catalog list')
         }

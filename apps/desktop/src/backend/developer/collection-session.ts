@@ -93,6 +93,7 @@ export function validatePartyFrame(
   if (!isDeveloperCollectionKind(kind)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (value == null || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -100,12 +101,15 @@ export function validatePartyFrame(
   if (!isValidImageDimensions(frame.width, frame.height)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!isValidScale(frame.scale)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!isCanonicalIsoTimestamp(frame.capturedAt)) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
+
   if (!Array.isArray(frame.slots) || frame.slots.length > DEVELOPER_COLLECTION_SLOTS[kind].length) {
     throw new Error(DEVELOPER_ERROR_CODES.CAPTURE_UNAVAILABLE)
   }
@@ -333,9 +337,11 @@ export function createDeveloperCollectionSession({
       if (!isCurrentCapture(captureGeneration)) {
         return
       }
+
       if (!settings.enabled) {
         throw new Error(DEVELOPER_ERROR_CODES.DISABLED)
       }
+
       if (!(await isDnfForeground())) {
         throw new Error(DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND)
       }
@@ -509,11 +515,13 @@ export function createDeveloperCollectionSession({
       if (disposed || token !== requestToken || captureGeneration !== generation) {
         return getStatus()
       }
+
       if (!isTrusted()) {
         invalidate()
 
         return getStatus()
       }
+
       if (!settings.enabled) {
         error = DEVELOPER_ERROR_CODES.DISABLED
         revision += 1

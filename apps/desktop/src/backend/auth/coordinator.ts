@@ -122,6 +122,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (cleanup.shouldBlockStorage) {
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (!cleanup.canContinue) {
       return
     }
@@ -149,6 +150,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (cleanup.shouldBlockStorage) {
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (cleanup.canContinue) {
       session.completeStaleCleanup()
     }
@@ -255,11 +257,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           hasDurableMarker = false
         }
       }
+
       if (!hasDurableMarker) {
         const isExplicitLogout = runtime.logoutFlight != null
         if (!isExplicitLogout) {
           storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
         }
+
         if (!logoutOwnsRefreshCleanup) {
           await session.dispose(tokens.refreshToken)
         }
@@ -350,9 +354,11 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (isUnavailableFailure) {
       hasUnavailableCode = error.code === 'unavailable'
     }
+
     if (hasNetworkCode === true) {
       return 'NETWORK_UNAVAILABLE'
     }
+
     if (hasUnavailableCode === true) {
       return 'AUTH_SERVICE_UNAVAILABLE'
     }
@@ -466,6 +472,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       runtime.invalidate()
       storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
     }
+
     if (!cleanup.canContinue) {
       return false
     }
@@ -521,6 +528,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
         return
       }
+
       if (isRejected === true) {
         await value.rejectExchange(
           () => recoverRejectedExchange(value),
@@ -546,6 +554,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         runtime.invalidate()
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       if (cleanup.canContinue) {
         finishPendingFailure(value, 'LOGIN_RESTART_REQUIRED')
       }
@@ -752,6 +761,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
 
               return null
             }
+
             if (removed) {
               session.retainForRestore(refreshToken)
               state.restorePaused('NETWORK_UNAVAILABLE')
@@ -797,6 +807,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isCurrent) {
       return
     }
+
     if (!hasCurrentCredential) {
       return
     }
@@ -926,6 +937,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (cleanup.shouldBlockStorage) {
         storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
       }
+
       if (cleanup.canContinue) {
         state.signedOut('REAUTH_REQUIRED')
       }
@@ -1071,6 +1083,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       if (!isCurrentAccess) {
         return Promise.resolve({ status: 'unavailable' })
       }
+
       if (rejected.finalRejection) {
         // 기존 logout reservation이 진행 writer를 기다리고 같은 session을 한 번 정리한다.
 
@@ -1201,6 +1214,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         if (cleanup.shouldBlockStorage) {
           storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
         }
+
         if (!cleanup.canContinue) {
           return state.success()
         }
@@ -1227,6 +1241,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     if (!isCurrentLogout) {
       return state.success()
     }
+
     if (!localConfirmed) {
       state.storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
 

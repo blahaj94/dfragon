@@ -23,6 +23,7 @@ export function validateDFNickname(
   if (nickname.length === 0 || nickname.trim().length === 0) {
     return { isValid: false, reason: '닉네임을 입력해주세요.' }
   }
+
   if (whitespace.test(nickname)) {
     return { isValid: false, reason: '공백(띄어쓰기)은 포함할 수 없습니다.' }
   }

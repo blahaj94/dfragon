@@ -20,6 +20,7 @@ export class NeopleBudget {
         Math.max(1, Math.ceil((this.starts[0]! + NEOPLE_BUDGET.windowMs - now) / 1000))
       )
     }
+
     if (this.active >= NEOPLE_BUDGET.concurrent) {
       throw neopleSearchFailure('limited', 1)
     }

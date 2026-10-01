@@ -88,6 +88,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     if (sample == null) {
       return false
     }
+
     if (sample.text == null) {
       return value !== ''
     }
@@ -174,6 +175,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     if (evaluation.canceled) {
       return '평가 중지'
     }
+
     if (evaluation.running) {
       return '평가 진행'
     }
@@ -188,6 +190,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     if (sample.text == null) {
       return '정답을 저장하면 일치 여부를 확인할 수 있습니다.'
     }
+
     if (result.text === sample.text) {
       return '저장된 정답과 원문 일치'
     }
@@ -199,9 +202,11 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     if (sample.excluded) {
       return <Typo.txtS>제외한 이미지는 평가에 포함하지 않습니다.</Typo.txtS>
     }
+
     if (readingRemote && sample.text == null) {
       return <Typo.txtS>자료실에서 정답을 입력한 뒤 다시 불러오세요.</Typo.txtS>
     }
+
     if (selectedResult?.status === 'success') {
       return (
         <>
@@ -217,6 +222,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         </>
       )
     }
+
     if (selectedResult?.status === 'failed') {
       return <Typo.txtS>인식 실패. 이미지가 닉네임 한 줄인지 확인해 주세요.</Typo.txtS>
     }

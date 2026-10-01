@@ -316,6 +316,7 @@ app.whenReady().then(async () => {
 
       return
     }
+
     if (authAppLifecycle.isQuitting()) {
       return
     }
