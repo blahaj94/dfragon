@@ -13,12 +13,14 @@ import {
   type ObservationTestApi
 } from './search-test-fixture'
 
-const renderer = vi.hoisted(() => ({
-  invoke: vi.fn(),
-  on: vi.fn(),
-  removeListener: vi.fn(),
-  expose: vi.fn<(key: string, api: unknown) => void>()
-}))
+const renderer = vi.hoisted(() => {
+  const invoke = vi.fn()
+  const on = vi.fn()
+  const removeListener = vi.fn()
+  const expose = vi.fn<(key: string, api: unknown) => void>()
+
+  return { invoke, on, removeListener, expose }
+})
 vi.mock('electron', () => ({
   ipcRenderer: renderer,
   contextBridge: { exposeInMainWorld: renderer.expose }
@@ -38,12 +40,11 @@ async function exposedSearch(): Promise<{
   await import('../index')
   const exposed = new Map(renderer.expose.mock.calls)
   expect(exposed.get('search'), '검색 전용 preload API').toBeDefined()
+  const search = exposed.get('search') as SearchTestApi
+  const manual = exposed.get('manualSearch') as ManualSearchApi
+  const capture = exposed.get('api') as ObservationTestApi
 
-  return {
-    search: exposed.get('search') as SearchTestApi,
-    manual: exposed.get('manualSearch') as ManualSearchApi,
-    capture: exposed.get('api') as ObservationTestApi
-  }
+  return { search, manual, capture }
 }
 
 it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notify를 확장한다', async () => {
@@ -139,11 +140,9 @@ it('승인된 상태·nullable 값과 후보 순서를 보존한다', async () =
 })
 
 function searchResultWithRow(row: CharacterSearchRow): object {
+  const snapshot = withSearchSlot(searchSlot({ state: 'success', rows: [row] }))
 
-  return {
-    ok: true,
-    snapshot: withSearchSlot(searchSlot({ state: 'success', rows: [row] }))
-  }
+  return { ok: true, snapshot }
 }
 
 it('schema가 inherited 필드를 읽은 뒤 exact shape가 own 확인에서 재귀 읽기를 생략한다', () => {
