@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./ocr-contract": {
+      "types": "./dist/ocr-contract.d.ts",
+      "import": "./dist/ocr-contract.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
