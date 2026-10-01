@@ -35,19 +35,23 @@ beforeEach(() => {
       } else if (command.action === 'clear') {
         current = searchSnapshot({
           revision: current.revision + 1,
-          slots: current.slots.map((slot) =>
-            slot.slot === 0
-              ? {
-                  ...slot,
-                  observationRevision: command.observationRevision,
-                  requestId: null,
-                  nickname: null,
-                  state: 'idle',
-                  rows: [],
-                  error: null
-                }
-              : slot
-          )
+          slots: current.slots.map((slot) => {
+            if (slot.slot === 0) {
+              const clearedSlot: typeof slot = {
+                ...slot,
+                observationRevision: command.observationRevision,
+                requestId: null,
+                nickname: null,
+                state: 'idle',
+                rows: [],
+                error: null
+              }
+
+              return clearedSlot
+            }
+
+            return slot
+          })
         })
       }
 
