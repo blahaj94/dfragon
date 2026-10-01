@@ -5,14 +5,24 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useDeveloperEvaluation } from './useDeveloperEvaluation'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 
-const mocks = vi.hoisted(() => ({
-  recognize: vi.fn(),
-  terminate: vi.fn(),
-  create: vi.fn(),
-  read: vi.fn()
-}))
-vi.mock('../lib/ocr', () => ({ createPartyOcrWorker: mocks.create }))
-vi.mock('../lib/developer-images', () => ({ readDeveloperImage: mocks.read }))
+const mocks = vi.hoisted(() => {
+  const recognize = vi.fn()
+  const terminate = vi.fn()
+  const create = vi.fn()
+  const read = vi.fn()
+
+  return { recognize, terminate, create, read }
+})
+vi.mock('../lib/ocr', () => {
+  const createPartyOcrWorker = mocks.create
+
+  return { createPartyOcrWorker }
+})
+vi.mock('../lib/developer-images', () => {
+  const readDeveloperImage = mocks.read
+
+  return { readDeveloperImage }
+})
 let root: ReturnType<typeof createRoot>
 let evaluation: ReturnType<typeof useDeveloperEvaluation>
 const samples: DeveloperSample[] = [
@@ -51,10 +61,16 @@ beforeEach(async () => {
   mocks.read.mockResolvedValue({
     width: 10,
     height: 10,
-    getContext: () => ({
-      getImageData: () => ({ data: new Uint8ClampedArray(400) }),
-      putImageData: vi.fn()
-    })
+    getContext: () => {
+      const getImageData = (): { data: Uint8ClampedArray } => {
+        const data = new Uint8ClampedArray(400)
+
+        return { data }
+      }
+      const putImageData = vi.fn()
+
+      return { getImageData, putImageData }
+    }
   })
   vi.stubGlobal('developer', {
     readImage: vi.fn().mockResolvedValue('data:image/png;base64,fixture')
