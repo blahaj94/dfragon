@@ -74,7 +74,9 @@ export function projectDNFPartyRegions({
     ) {
       throw new RangeError('Projected DNF party regions must fit inside the client area.')
     }
+    const width = right - left
+    const height = bottom - top
 
-    return { x: left, y: top, width: right - left, height: bottom - top }
+    return { x: left, y: top, width, height }
   })
 }
