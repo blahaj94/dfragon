@@ -29,7 +29,9 @@ it.each([
       src = ''
       naturalWidth = width
       naturalHeight = height
-      async decode(): Promise<void> {}
+      async decode(): Promise<void> {
+        return undefined
+      }
     }
   )
 
