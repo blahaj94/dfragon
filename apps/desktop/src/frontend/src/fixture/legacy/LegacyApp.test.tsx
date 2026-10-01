@@ -28,6 +28,8 @@ const search = {
 }
 function snapshot(revision: number, phase: 'signedIn' | 'signedOut'): AuthSnapshot {
   const isSignedIn = phase === 'signedIn'
+  const user = isSignedIn ? { nickname: 'Synthetic' } : null
+  const entry = isSignedIn ? 'home' : null
 
   return {
     runId: 'fixture-run',
@@ -35,8 +37,8 @@ function snapshot(revision: number, phase: 'signedIn' | 'signedOut'): AuthSnapsh
     phase,
     providers: [],
     login: null,
-    user: isSignedIn ? { nickname: 'Synthetic' } : null,
-    entry: isSignedIn ? 'home' : null,
+    user,
+    entry,
     notice: null
   }
 }
