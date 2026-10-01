@@ -48,11 +48,9 @@ export function validateDFNickname(
   }
 
   if (totalBytes > maxBytes) {
+    const reason = `글자수 제한을 초과했습니다. (현재 ${totalBytes}B / 최대 ${maxBytes}B)`
 
-    return {
-      isValid: false,
-      reason: `글자수 제한을 초과했습니다. (현재 ${totalBytes}B / 최대 ${maxBytes}B)`
-    }
+    return { isValid: false, reason }
   }
 
   const lowerNickname = nickname.toLowerCase()
