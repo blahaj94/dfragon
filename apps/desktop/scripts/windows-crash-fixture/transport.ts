@@ -17,12 +17,14 @@ export async function publishEvidence(path: string, value: unknown): Promise<voi
 }
 
 export function fileExchange(directory: string) {
+
   return async (event: Observation, signal: AbortSignal): Promise<unknown> => {
     const name = String(event.sequence).padStart(6, '0')
     await publishEvidence(join(directory, `${name}.request.json`), event)
     const ackPath = join(directory, `${name}.ack.json`)
     while (!signal.aborted) {
       try {
+
         return JSON.parse(await readFile(ackPath, 'utf8'))
       } catch (error) {
         const isMissing = (error as NodeJS.ErrnoException).code === 'ENOENT'

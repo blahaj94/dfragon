@@ -22,6 +22,7 @@ export function cleanupFixture({
       const isCleanupQuery = isSessionQuery || isRequestQuery
       assert(isCleanupQuery)
       const rows = isSessionQuery ? sessions : requests
+
       return rows.map((row) => ({ ...row, user_id: row.userId }))
     },
     transaction: async (isolation, operation) => {
@@ -34,24 +35,28 @@ export function cleanupFixture({
           assert.match(sql, /floor\(/)
           assert.equal(locked, true, 'clock must be read after row lock')
           events.push('fresh-time')
+
           return [{ now: checkedAt }]
         },
         getRepository: (schema) => {
           const isSession = schema.options.tableName === 'auth_sessions'
           const rows = isSession ? sessions : requests
           const kind = isSession ? 'sessions' : 'requests'
+
           return {
             findOne: async (options) => {
               assert.equal(options.lock.mode, 'pessimistic_write')
               events.push('lock')
               locked = true
               await beforeLock?.(rows, options.where.id)
+
               return rows.find((row) => row.id === options.where.id) ?? null
             },
             delete: async (where) => {
               const isDirectId = typeof where === 'string'
               const id = isDirectId ? where : where.id
               pending.push([kind, id])
+
               return { affected: 1 }
             }
           }
@@ -65,13 +70,16 @@ export function cleanupFixture({
       }
       events.push('commit')
       await afterCommit?.()
+
       return result
     }
   }
+
   return { source, deleted, events }
 }
 
 export function session(patch = {}) {
+
   return {
     id: randomUUID(),
     userId: randomUUID(),
@@ -84,6 +92,7 @@ export function session(patch = {}) {
 }
 
 export function request(patch = {}) {
+
   return {
     id: randomUUID(),
     status: 'processing',

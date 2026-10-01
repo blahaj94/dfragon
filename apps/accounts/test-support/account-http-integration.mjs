@@ -198,6 +198,7 @@ async function boundary({ source, phase, boundaryKind, method }) {
       const result = await run()
       const isClock = sql.includes('clock_timestamp()')
       if (!isClock) {
+
         return result
       }
       clocks++
@@ -205,6 +206,7 @@ async function boundary({ source, phase, boundaryKind, method }) {
       const isFunctionClock = clocks === 2
       const isTarget = atAdmission || isFunctionClock
       const time = isTarget ? checkedAt : f.now
+
       return [{ now: time }]
     }
   })
@@ -260,6 +262,7 @@ async function realLockExpiry({ source, table, method, kind }) {
           if (isStart) {
             started.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
           }
+
           return result
         }
       })
@@ -308,6 +311,7 @@ async function removalBeforeAdmission({ source, kind, method }) {
             waiterStarted.resolve()
           }
         }
+
         return result
       },
       commit: async (_runner, commit) => {
@@ -442,10 +446,12 @@ async function databaseFailure({ source, phase, applied, method }) {
   const writeErr = process.stderr.write
   process.stdout.write = function (chunk) {
     stdout += String(chunk)
+
     return true
   }
   process.stderr.write = function (chunk) {
     stderr += String(chunk)
+
     return true
   }
   const restore = instrument(source, {
@@ -464,6 +470,7 @@ async function databaseFailure({ source, phase, applied, method }) {
       if (shouldFailQuery) {
         throw new Error('private SQL nickname identity credential canary')
       }
+
       return run()
     },
     commit: async (runner, commit) => {
@@ -473,6 +480,7 @@ async function databaseFailure({ source, phase, applied, method }) {
       const isCommitFailurePhase = ['admission', 'function'].includes(phase)
       const failCommit = isCommitFailurePhase && commits === target
       if (!failCommit) {
+
         return commit()
       }
       if (applied) {
@@ -597,5 +605,6 @@ export async function assertAccountHttpIntegration(source, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

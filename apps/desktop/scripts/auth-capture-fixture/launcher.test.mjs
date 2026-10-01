@@ -30,6 +30,7 @@ beforeEach(() => {
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 0))
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -77,6 +78,7 @@ it('child 실패 종료 code는 cleanup 성공 뒤에도 성공으로 바꾸지 
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 1))
+
     return child
   })
   expect(await runCaptureFixture(['--smoke'])).toBe(1)
@@ -117,10 +119,12 @@ function captureSignals() {
     vi.spyOn(process, method).mockImplementation((event, listener) => {
       const isSignal = event === 'SIGINT' || event === 'SIGTERM'
       if (!isSignal) {
+
         return original(event, listener)
       }
       const isOnce = method === 'once'
       handlers.set(event, { listener, once: isOnce })
+
       return process
     })
   }
@@ -136,8 +140,10 @@ function captureSignals() {
     } else {
       originalRemove(event, listener)
     }
+
     return process
   })
+
   return {
     deliver: (signal) => {
       const registration = handlers.get(signal)
@@ -145,6 +151,7 @@ function captureSignals() {
       if (isUnhandled) {
         // 실제 Vitest process를 종료하지 않고 기본 OS 종료로 빠지는 전달을 기록한다.
         unhandled += 1
+
         return
       }
       if (registration.once) {

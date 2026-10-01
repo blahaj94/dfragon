@@ -53,12 +53,14 @@ afterEach(async () => {
 function button(text: string): HTMLButtonElement {
   const result = Array.from(container.querySelectorAll('button')).find((candidate) => {
     const hasLabel = candidate.textContent === text
+
     return hasLabel
   })
   const isMissing = result == null
   if (isMissing) {
     throw new Error(`Expected renderer button: ${text}`)
   }
+
   return result
 }
 

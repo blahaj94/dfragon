@@ -141,15 +141,18 @@ export function validateHold(input: unknown): HoldEvidence {
   if (!isReached) {
     throw new Error('Selected boundary was not reached.')
   }
+
   return hold
 }
 
 export function syntheticGeneration(refreshToken: string): 'R0' | 'R1' | 'unexpected' {
   const isR0 = refreshToken === Buffer.alloc(32, 31).toString('base64url')
   if (isR0) {
+
     return 'R0'
   }
   const isR1 = refreshToken === Buffer.alloc(32, 32).toString('base64url')
+
   return isR1 ? 'R1' : 'unexpected'
 }
 
@@ -267,6 +270,7 @@ function summarizeDisk(input: unknown): OriginalSummary {
   if (!hasRoot) {
     throw new Error('Original disk root observation is missing.')
   }
+
   return { generation, marker, temporary, directories: [...directories] }
 }
 
@@ -344,6 +348,7 @@ function reportedState(events: Observation[]): ReportedState {
       prepared = true
     }
   }
+
   return { marker, generation, established, replacementEstablished, prepared, supersededR0 }
 }
 
@@ -437,6 +442,7 @@ export function judgeRecovery(input: {
     recoveryFindings.push('automatic-credential-use')
   }
   const hasFindings = durabilityFindings.length > 0 || recoveryFindings.length > 0
+
   return {
     status: hasFindings ? 'findings' : 'observed-consistent',
     original,

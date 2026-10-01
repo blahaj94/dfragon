@@ -42,14 +42,17 @@ function fixture(t) {
     calls.push([command, ...args])
     const isIssueLookup = command === 'gh'
     if (isIssueLookup) {
+
       return JSON.stringify(issue)
     }
+
     return execFileSync(command, args, {
       ...options,
       cwd: repository,
       stdio: ['ignore', 'pipe', 'pipe']
     })
   }
+
   return { repository, origin, destination, git, calls, issue, run }
 }
 

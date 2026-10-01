@@ -22,8 +22,10 @@ export function traceStore({
     observer.assertActive()
     const result = await operation()
     await observer.observe({ cutpoint, phase: 'protocol-return', outcome: outcome(result), detail })
+
     return result
   }
+
   return {
     inspect: () => call('inspect', store.inspect, (state) => state.status),
     establishTransition: (kind) =>

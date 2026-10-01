@@ -154,6 +154,7 @@ test('preview is read-only; stale apply is atomic; initialization survives resta
   const add = (text: string, excluded = false) => {
     const input = parseUpload(upload())
     store.add(input.capture, input.png)
+
     return store.updateSample(`${input.capture.id}-1`, {
       text,
       excluded,
@@ -220,6 +221,7 @@ test('automatic split preserves manual unassignment through preview, apply and r
   const add = (text: string) => {
     const input = parseUpload(upload())
     store.add(input.capture, input.png)
+
     return store.updateSample(`${input.capture.id}-1`, {
       text,
       excluded: false,

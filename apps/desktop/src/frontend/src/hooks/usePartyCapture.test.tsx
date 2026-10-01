@@ -48,6 +48,7 @@ const getDisplayMedia = vi.fn()
 
 function HookHarness({ onRender }: { onRender: (value: HookValue) => void }): null {
   onRender(usePartyCapture())
+
   return null
 }
 
@@ -71,6 +72,7 @@ async function renderPartyCaptureHook(strict = false): Promise<{
       if (!hasCurrent) {
         throw new Error('Hook did not render.')
       }
+
       return value
     },
     unmount: async () => {
@@ -100,6 +102,7 @@ function captureResources(): {
     recognize: vi.fn().mockResolvedValue({ data: { text: 'Alice' } }),
     terminate: vi.fn().mockResolvedValue(undefined)
   }
+
   return { track, stream, worker }
 }
 
@@ -112,6 +115,7 @@ function loadVideoMetadata(
     configurable: true,
     get: () => {
       access?.push('videoWidth')
+
       return dimensions.width ?? 1920
     }
   })
@@ -119,6 +123,7 @@ function loadVideoMetadata(
     configurable: true,
     get: () => {
       access?.push('videoHeight')
+
       return dimensions.height ?? 1080
     }
   })
@@ -145,6 +150,7 @@ beforeEach(() => {
         revision: currentSearch.revision + 1
       })
     }
+
     return { ok: true, snapshot: currentSearch }
   })
   Object.defineProperty(navigator, 'mediaDevices', {
@@ -344,6 +350,7 @@ describe('usePartyCapture', () => {
     moduleMocks.capturePartyNicknameCrops.mockReturnValue([nicknameCrop, null, null, null])
     moduleMocks.runSerialLoop.mockImplementation((options: LoopOptions) => {
       loopOptions = options
+
       return new Promise<void>(() => undefined)
     })
 
@@ -406,6 +413,7 @@ describe('usePartyCapture', () => {
       .mockResolvedValueOnce({ data: { text: '' } })
     moduleMocks.runSerialLoop.mockImplementation((options: LoopOptions) => {
       loopOptions = options
+
       return new Promise<void>(() => undefined)
     })
 
@@ -476,6 +484,7 @@ describe('usePartyCapture', () => {
       moduleMocks.capturePartyNicknameCrops.mockReturnValue([crop, null, null, null])
       moduleMocks.runSerialLoop.mockImplementation((options: LoopOptions) => {
         loopOptions = options
+
         return new Promise<void>(() => undefined)
       })
       const hook = await renderPartyCaptureHook()
@@ -578,6 +587,7 @@ describe('usePartyCapture', () => {
         this: HTMLMediaElement
       ) {
         loadVideoMetadata(this)
+
         return playback.promise
       })
       getDisplayMedia.mockResolvedValue(stream)
@@ -925,8 +935,10 @@ it('검색 시작 응답 대기 중 반복 시작은 동일한 캡처를 유지�
     Promise.withResolvers<Awaited<ReturnType<typeof window.search.controlCharacterSearch>>>()
   search.controlCharacterSearch.mockImplementation((control: SearchControl) => {
     if (control.action === 'begin') {
+
       return begin.promise
     }
+
     return Promise.resolve({ ok: true, snapshot: currentSearch })
   })
   search.controlCharacterSearch.mockClear()

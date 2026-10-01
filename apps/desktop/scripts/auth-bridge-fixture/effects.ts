@@ -42,6 +42,7 @@ export function createFixtureEffects(): Effects {
       }),
       schedule: (delay, callback) => {
         const timer = setTimeout(callback, delay)
+
         return () => clearTimeout(timer)
       }
     },
@@ -50,6 +51,7 @@ export function createFixtureEffects(): Effects {
       bytes: (size) => {
         const bytes = Buffer.alloc(size, ++sequence)
         canaries.push(bytes.toString('base64url'))
+
         return bytes
       }
     },
@@ -66,6 +68,7 @@ export function createFixtureEffects(): Effects {
       }),
       exchange: async () => {
         counts.exchange += 1
+
         return {
           tokenType: 'Bearer',
           accessToken,
@@ -89,37 +92,46 @@ export function createFixtureEffects(): Effects {
     store: {
       inspect: async () => {
         if (marked) {
+
           return { status: 'recovery-required' }
         }
         if (committed) {
+
           return { status: 'ready', refreshToken }
         }
+
         return { status: 'empty' }
       },
       establishTransition: async () => {
         marked = true
+
         return 'confirmed'
       },
       commitCredential: async () => {
         counts.commit += 1
         await heldCommit
         committed = true
+
         return 'confirmed'
       },
       clearCredential: async () => {
         committed = false
+
         return 'confirmed'
       },
       removeTransition: async () => {
         marked = false
+
         return 'confirmed'
       },
       reestablishTransition: async () => {
         marked = true
+
         return 'confirmed'
       }
     }
   }
+
   return {
     dependencies,
     counts,

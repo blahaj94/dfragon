@@ -4,16 +4,19 @@ import type { ReadOnlySecurity } from './native'
 
 const root = String.raw`C:\synthetic-root`
 function securityFixture(): ReadOnlySecurity & { createDirectory: ReturnType<typeof vi.fn> } {
+
   return {
     inspect: vi.fn((path, kind) => {
       const isRoot = path === root
       const isDirectory = kind === 'directory'
+
       return isRoot === isDirectory ? 'trusted' : 'untrusted'
     }),
     list: vi.fn(() => ['credential.v1']),
     openRead: vi.fn(() => 1n),
     readFile: vi.fn((_handle, bytes) => {
       bytes.write('synthetic')
+
       return 9
     }),
     closeHandle: vi.fn(() => true),

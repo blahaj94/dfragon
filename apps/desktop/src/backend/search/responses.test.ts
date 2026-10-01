@@ -8,6 +8,7 @@ async function completedSlot(fixture: Fixture): Promise<SearchSlot> {
   await vi.waitFor(async () => {
     expect((await fixture.read()).slots[0].state).not.toBe('pending')
   })
+
   return (await fixture.read()).slots[0]
 }
 
@@ -16,6 +17,7 @@ async function searchResponse(response: Response): Promise<SearchSlot> {
   fixture.fetchSearch.mockResolvedValueOnce(response)
   const result = await fixture.observe({ slot: 0, observationRevision: 1, nickname: '가나' })
   expect(result).toMatchObject({ ok: true })
+
   return completedSlot(fixture)
 }
 

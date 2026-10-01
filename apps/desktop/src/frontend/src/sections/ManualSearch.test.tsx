@@ -50,10 +50,12 @@ beforeEach(() => {
           )
         })
       }
+
       return { ok: true, snapshot: current }
     }),
     onCharacterSearchChanged: vi.fn((next) => {
       listener = next
+
       return vi.fn()
     }),
     notifyManualNickname: vi.fn<ManualSearchApi['notifyManualNickname']>(async (observation) => {
@@ -67,6 +69,7 @@ beforeEach(() => {
           ...current.slots.slice(1)
         ]
       })
+
       return { ok: true, snapshot: current }
     })
   }

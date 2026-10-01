@@ -54,6 +54,7 @@ let currentStage = 'startup'
 
 function resourceNames(runId) {
   const name = `dfragon-db-${runId.slice(0, 48)}`
+
   return { containerName: name, volumeName: name }
 }
 
@@ -73,10 +74,12 @@ function nodeEnvironment(extra = {}) {
     'DOCKER_TLS_VERIFY',
     'DOCKER_CERT_PATH'
   ]
+
   return {
     ...Object.fromEntries(
       names.flatMap((name) => {
         const isVariableMissing = process.env[name] === undefined
+
         return isVariableMissing ? [] : [[name, process.env[name]]]
       })
     ),
@@ -85,6 +88,7 @@ function nodeEnvironment(extra = {}) {
 }
 
 function databaseEnvironment(configuration) {
+
   return nodeEnvironment({
     DB_HOST: configuration.host,
     DB_PORT: String(configuration.port),
@@ -95,6 +99,7 @@ function databaseEnvironment(configuration) {
 }
 
 function createReadinessDataSource(configuration, timeoutMs) {
+
   return new DataSource({
     ...createDatabaseOptions(configuration),
     connectTimeoutMS: timeoutMs,
@@ -144,6 +149,7 @@ async function assertBoundedReadiness() {
     await new Promise((resolve, reject) =>
       server.close((error) => {
         const hasCloseError = error != null
+
         return hasCloseError ? reject(error) : resolve()
       })
     )
@@ -156,6 +162,7 @@ async function runCompiledCli({ configuration, operation }) {
     ['--import', 'reflect-metadata', 'dist/database/cli.js', operation],
     { cwd: apiDirectory, env: databaseEnvironment(configuration), timeoutMs: 20_000 }
   )
+
   return result
 }
 
@@ -467,10 +474,12 @@ export function assertChildScenarioConfiguration({ runId, platform, imageId }) {
 export function shouldWaitForSignalAtStage({ scenario, signalStage, expectedStage }) {
   const isSignalScenario = scenario === 'signal'
   if (!isSignalScenario) {
+
     return false
   }
 
   const isExpectedStage = signalStage === expectedStage
+
   return isExpectedStage
 }
 
@@ -596,6 +605,7 @@ async function childScenario() {
     if (hasReceivedSignal) {
       const isInterruptSignal = receivedSignal === 'SIGINT'
       process.exitCode = isInterruptSignal ? 130 : 143
+
       return
     }
     process.stderr.write('Database integration scenario failed\n')
@@ -658,10 +668,12 @@ async function primaryScenario() {
   const finishSignal = () => {
     const hasReceivedSignal = receivedSignal != null
     if (!hasReceivedSignal) {
+
       return false
     }
     const isInterruptSignal = receivedSignal === 'SIGINT'
     process.exitCode = isInterruptSignal ? 130 : 143
+
     return true
   }
 
@@ -684,6 +696,7 @@ async function primaryScenario() {
     await assertServerAndContainer(resources, image)
     if (runtimeOnly) {
       await assertFocusedRuntime({ configuration: resources.configuration, checkSignal })
+
       return
     }
     currentStage = 'compiled data source'
@@ -886,6 +899,7 @@ async function primaryScenario() {
 
   const finishedBeforeFailureScenario = finishSignal()
   if (finishedBeforeFailureScenario) {
+
     return
   }
 
@@ -893,30 +907,35 @@ async function primaryScenario() {
   await runFailureScenario({ scenario: 'failure', image })
   const finishedAfterFailureScenario = finishSignal()
   if (finishedAfterFailureScenario) {
+
     return
   }
   currentStage = 'timeout teardown'
   await runFailureScenario({ scenario: 'timeout', image })
   const finishedAfterTimeoutScenario = finishSignal()
   if (finishedAfterTimeoutScenario) {
+
     return
   }
   currentStage = 'SIGINT teardown'
   await runSignalScenario({ signal: 'SIGINT', stage: 'volume', image })
   const finishedAfterInterruptScenario = finishSignal()
   if (finishedAfterInterruptScenario) {
+
     return
   }
   currentStage = 'SIGTERM teardown'
   await runSignalScenario({ signal: 'SIGTERM', stage: 'container', image })
   const finishedAfterTerminationScenario = finishSignal()
   if (finishedAfterTerminationScenario) {
+
     return
   }
   currentStage = 'ownership protection'
   await assertOwnershipProtection()
   const finishedAfterOwnershipScenario = finishSignal()
   if (finishedAfterOwnershipScenario) {
+
     return
   }
 

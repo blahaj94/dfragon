@@ -16,6 +16,7 @@ function png(width = 2, height = 1): Buffer {
   result.writeUInt32BE(height, 20)
   result[24] = 8
   result[25] = 6
+
   return result
 }
 
@@ -25,6 +26,7 @@ async function createStore(): Promise<{
 }> {
   const rootDir = await mkdtemp(join(tmpdir(), 'dfragon-developer-'))
   directories.push(rootDir)
+
   return {
     rootDir,
     store: createDeveloperStore({

@@ -20,6 +20,7 @@ function createFixture(configured = true): Fixture {
     { setPermissionCheckHandler: check, setPermissionRequestHandler: request },
     configured ? consume : undefined
   )
+
   return { check, request, consume, contents }
 }
 
@@ -35,6 +36,7 @@ function ask(
     mediaTypes: [],
     ...changes
   })
+
   return callback
 }
 

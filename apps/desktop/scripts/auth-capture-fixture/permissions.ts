@@ -10,6 +10,7 @@ export function registerFixtureMediaPermissions(window: BrowserWindow, documentU
     const isUnavailableContents = !isRegistered || !isWindowAlive || !isContentsAlive
     if (isUnavailableContents) {
       callback(false)
+
       return
     }
     const frame = window.webContents.mainFrame

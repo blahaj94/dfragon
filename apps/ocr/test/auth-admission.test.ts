@@ -16,6 +16,7 @@ test('cookie-less and rotating IPv6 logins cannot monopolize pending capacity; r
     },
     async () => {
       calls++
+
       return Response.json({
         requestId: 'fixture',
         browserUrl: 'https://auth.example.test/auth/login/authorize',
@@ -64,8 +65,10 @@ test('repeated replacement and upstream failure still consume the per-client att
     async () => {
       calls++
       if (failing) {
+
         return new Response(null, { status: 503 })
       }
+
       return Response.json({
         requestId: 'fixture',
         browserUrl: 'https://auth.example.test/auth/login/authorize',

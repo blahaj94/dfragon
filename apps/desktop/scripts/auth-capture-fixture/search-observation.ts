@@ -27,6 +27,7 @@ export type SearchUiObservation = {
 async function readSearchUi(messages: Record<string, string>): Promise<SearchUiObservation> {
   function isPendingRegion(region: Element | null): boolean {
     const isPending = region?.getAttribute('aria-busy') === 'true'
+
     return isPending
   }
 
@@ -65,6 +66,7 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
     }
     const buttons = Array.from(region?.querySelectorAll('button') ?? []).filter((button) => {
       const isRetry = button.textContent?.trim() === '다시 시도'
+
       return isRetry
     })
     const stateLabels: Record<string, string> = {
@@ -88,6 +90,7 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
       hasStatusMatch = hasExpectedStatus
     }
     const statusMatched = hasRegion && hasStatusMatch === true
+
     return {
       state: slot.state,
       requestId: slot.requestId,
@@ -116,10 +119,12 @@ async function readSearchUi(messages: Record<string, string>): Promise<SearchUiO
   }
   const start = Array.from(document.querySelectorAll('button')).find((button) => {
     const isStart = button.textContent?.trim() === '캡처 시작'
+
     return isStart
   })
   const contentWidth = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth)
   const horizontalOverflow = contentWidth > window.innerWidth + 1
+
   return {
     captureId: snapshot.captureId,
     revision: snapshot.revision,

@@ -28,6 +28,7 @@ const search = {
 }
 function snapshot(revision: number, phase: 'signedIn' | 'signedOut'): AuthSnapshot {
   const isSignedIn = phase === 'signedIn'
+
   return {
     runId: 'fixture-run',
     revision,
@@ -58,6 +59,7 @@ beforeEach(() => {
   capture.selectCaptureSource.mockResolvedValue({ id: 'fixture', name: 'Synthetic window' })
   auth.onAuthStateChanged.mockImplementation((next) => {
     listener = next
+
     return vi.fn()
   })
   container = document.createElement('div')
@@ -71,6 +73,7 @@ function startButton(): HTMLButtonElement {
     (button) => button.textContent === '캡처 시작'
   )
   expect(start).toBeDefined()
+
   return start!
 }
 
@@ -81,6 +84,7 @@ async function selectGameWindow(): Promise<HTMLSelectElement> {
     selection.value = 'fixture'
     selection.dispatchEvent(new Event('change', { bubbles: true }))
   })
+
   return selection
 }
 

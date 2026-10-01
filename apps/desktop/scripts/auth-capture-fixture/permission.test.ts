@@ -31,6 +31,7 @@ vi.mock('electron', () => ({
     whenReady: (): { then: (callback: () => Promise<void>) => Promise<void> } => ({
       then: (callback: () => Promise<void>) => {
         fixture.ready = Promise.resolve().then(callback)
+
         return fixture.ready
       }
     })
@@ -81,6 +82,7 @@ vi.mock('../../src/backend/auth/coordinator', () => ({
 vi.mock('../../src/backend/auth/ipc-handler', () => ({
   registerAuthIpc: (options: { documentUrl: string }) => {
     fixture.documentUrl = options.documentUrl
+
     return vi.fn()
   }
 }))
@@ -119,6 +121,7 @@ function request(
     ...changes
   })
   expect(callback).toHaveBeenCalledOnce()
+
   return callback.mock.calls[0][0]
 }
 

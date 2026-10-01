@@ -54,10 +54,12 @@ function deferred<T>(): {
     resolve = accept
     reject = fail
   })
+
   return { promise, resolve, reject }
 }
 
 function state(): string {
+
   return container.querySelector('[data-testid="state"]')!.textContent!
 }
 

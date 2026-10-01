@@ -22,6 +22,7 @@ export type StageDiagnostic = {
 
 export function createStageDiagnostic(): StageDiagnostic {
   let stage: Stage = STAGES[0]
+
   return {
     enter: (next) => {
       stage = next
@@ -29,6 +30,7 @@ export function createStageDiagnostic(): StageDiagnostic {
     current: () => stage,
     run: async (operation) => {
       try {
+
         return await operation()
       } catch {
         throw new Error(`Synthetic Windows fixture failed at ${stage}; preserve evidence.`)

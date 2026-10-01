@@ -66,8 +66,10 @@ async function setup(): Promise<IpcFixture> {
     if (!hasHandler) {
       throw new Error('Expected registered auth handler')
     }
+
     return Promise.resolve().then(() => handler(sender, ...args))
   }
+
   return {
     effects,
     coordinator,

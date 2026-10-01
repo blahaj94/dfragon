@@ -18,6 +18,7 @@ const isMediaIsolated = contextBridge.executeInMainWorld({
       value: Object.freeze({ getDisplayMedia: rejectCapture })
     })
     const isStubInstalled = navigator.mediaDevices.getDisplayMedia === rejectCapture
+
     return isStubInstalled
   }
 })
@@ -110,6 +111,7 @@ if (developerFixture != null) {
         rgba[pixel + 2] = 132 + slot * 15
         rgba[pixel + 3] = 255
       }
+
       return { slot, width: 24, height: 8, rgba }
     })
   }
@@ -160,8 +162,10 @@ if (developerFixture != null) {
         } else {
           context.fillText('◇', 194, y + 12)
         }
+
         return { slot: (index + 1) as 1 | 2 | 3 | 4, occupied, x: 168, y, width: 84, height: 15 }
       })
+
       return {
         width: 394,
         height: 210,
@@ -218,6 +222,7 @@ if (developerFixture != null) {
           context.fillText(`테스트공대${String(index + 1).padStart(2, '0')}`, 205, y + 13)
           context.fillText('테스트 직업', 331, y + 13)
         }
+
         return {
           slot: (index + 1) as DeveloperPartySlot,
           occupied,
@@ -230,6 +235,7 @@ if (developerFixture != null) {
       context.fillStyle = '#959b9f'
       context.font = '10px sans-serif'
       context.fillText('화면 검증용 합성 이미지', 174, 375)
+
       return {
         width: canvas.width,
         height: canvas.height,
@@ -241,6 +247,7 @@ if (developerFixture != null) {
   })
   // Read the displayed synthetic pixels so each preview matches its outlined nickname area.
   function popupFrame(participantWindow: DeveloperParticipantWindow): DeveloperPartyPreviewFrame {
+
     return {
       width: 1067,
       height: 600,
@@ -258,6 +265,7 @@ if (developerFixture != null) {
               y * row.width * 4
             )
           }
+
           return { slot: row.slot, width: row.width, height: row.height, rgba }
         })
     }
@@ -277,11 +285,13 @@ if (developerFixture != null) {
       if (row?.source?.kind === 'raid') {
         const svg =
           '<svg xmlns="http://www.w3.org/2000/svg" width="86" height="17"><rect width="86" height="17" fill="#14191e"/><text x="3" y="13" fill="#d4c59a" font-size="11" font-family="sans-serif">테스트공대12</text></svg>'
+
         return `data:image/svg+xml,${encodeURIComponent(svg)}`
       }
       const color = row?.excluded ? '#7e667f' : row?.text ? '#44785f' : '#4569a0'
       const text = row?.text ?? '미입력 크롭'
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="564" height="144" viewBox="0 0 564 144"><rect width="564" height="144" rx="12" fill="#202936"/><rect x="12" y="12" width="540" height="120" rx="8" fill="${color}"/><text x="36" y="88" fill="white" font-size="32" font-family="sans-serif">${text}</text></svg>`
+
       return `data:image/svg+xml,${encodeURIComponent(svg)}`
     },
     addSample: async () => {
@@ -293,6 +303,7 @@ if (developerFixture != null) {
         throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
       }
       row.text = text
+
       return { ...row }
     },
     setSampleExcluded: async (id: string, excluded: boolean) => {
@@ -301,6 +312,7 @@ if (developerFixture != null) {
         throw new Error('DEVELOPER_SAMPLE_NOT_FOUND')
       }
       row.excluded = excluded
+
       return { ...row }
     },
     captureFrame: async () => ({ pngDataUrl: '', width: 1920, height: 1080 }),
@@ -319,6 +331,7 @@ if (developerFixture != null) {
     setPartyCollectionSlots: async (slots: DeveloperPartySlot[] | null) => {
       status.armed = slots != null
       status.slots = slots ?? []
+
       return { ...status, slots: [...status.slots] }
     }
   }

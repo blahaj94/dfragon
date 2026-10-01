@@ -43,6 +43,7 @@ export function jsonResponse({
   status?: number
   headers?: Record<string, string>
 }): Response {
+
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'Content-Type': 'application/json', ...headers }
@@ -118,6 +119,7 @@ export async function createSearchFixture(
     if (!hasHandler) {
       throw new Error('Expected search IPC handler')
     }
+
     return handler(event, ...args)
   }
   const controlChannel = searchKind === 'manual' ? 'controlManualSearch' : 'controlCharacterSearch'
@@ -126,6 +128,7 @@ export async function createSearchFixture(
   const read = async (): Promise<SearchSnapshot> => {
     const result = await invoke(controlChannel, { action: 'read' })
     expect(result).toMatchObject({ ok: true, snapshot: expect.any(Object) })
+
     return (result as { snapshot: SearchSnapshot }).snapshot
   }
 
@@ -147,6 +150,7 @@ export async function createSearchFixture(
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   }
+
   return {
     auth,
     event,

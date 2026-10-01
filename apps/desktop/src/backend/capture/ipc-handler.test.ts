@@ -74,6 +74,7 @@ async function setup(signedIn = true): Promise<{
     if (!hasHandler) {
       throw new Error('Capture handler was not registered')
     }
+
     return Promise.resolve().then(() => handler(event, ...args))
   }
   const dispatchMedia = (
@@ -92,6 +93,7 @@ async function setup(signedIn = true): Promise<{
   const requestMedia = (
     changes: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest> = {}
   ): Promise<unknown> => new Promise((resolve) => dispatchMedia(resolve, changes))
+
   return { auth, harness, invoke, event, mainFrame, dispatchMedia, requestMedia }
 }
 

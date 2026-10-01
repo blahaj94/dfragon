@@ -26,6 +26,7 @@ async function startLoopback(
   assert(!isAddressEmpty)
   const isAddressObject = typeof address !== 'string'
   assert(isAddressObject)
+
   return { origin: `http://127.0.0.1:${(address as { port: number }).port}`, server }
 }
 
@@ -53,6 +54,7 @@ async function expectStatus(
     const isSearchFailure = error instanceof NeopleSearchFailure
     assert(isSearchFailure)
     assert.equal(error.status, status)
+
     return error
   }
   assert.fail('expected search to fail')
@@ -105,6 +107,7 @@ test('native fetch does not follow redirects or retry upstream failures', async 
     if (isFirstRequest) {
       response.writeHead(302, { location: '/followed' })
       response.end()
+
       return
     }
     response.end(JSON.stringify({ rows: [] }))
@@ -213,6 +216,7 @@ test('deadline aborts native fetch while the loopback body is still incomplete',
           }
         }
         const response = await fetch(request, init)
+
         return {
           status: response.status,
           ok: response.ok,
@@ -222,6 +226,7 @@ test('deadline aborts native fetch while the loopback body is still incomplete',
             const hasDeadlineCallback = Boolean(deadlineCallback)
             assert(hasDeadlineCallback)
             deadlineCallback!()
+
             return body
           }
         } as Response
@@ -231,6 +236,7 @@ test('deadline aborts native fetch while the loopback body is still incomplete',
       setTimer: (callback, timeout) => {
         deadlineCallback = callback
         scheduledDelay = timeout
+
         return Symbol('timer')
       },
       clearTimer: () => undefined
@@ -283,12 +289,14 @@ test('clock deadline aborts an unfinished native body before its timer callback 
         }
         const response = await fetch(request, init)
         now = 5_000
+
         return response
       },
       origin: loopback.origin,
       now: () => now,
       setTimer: (_callback, timeout) => {
         scheduledDelay = timeout
+
         return Symbol('timer')
       },
       clearTimer: () => {

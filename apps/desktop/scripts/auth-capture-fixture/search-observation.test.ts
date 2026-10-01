@@ -36,6 +36,7 @@ const read = vi.fn()
 async function inspect(): Promise<Probe> {
   const script = Reflect.get(observations, 'inspectSearch')
   expect(typeof script, '검색 UI 관측 script').toBe('string')
+
   return window.eval(script)
 }
 
@@ -139,6 +140,7 @@ it('429 main 만료 값과 실제 disabled 상태를 별도로 관측한다', as
     revision: 2,
     slots: snapshot.slots.map((slot) => {
       const isLimited = slot.slot === 3
+
       return isLimited
         ? { ...slot, error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 } }
         : slot

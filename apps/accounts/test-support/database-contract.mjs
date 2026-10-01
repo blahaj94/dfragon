@@ -17,6 +17,7 @@ export async function withDataSource(createDataSource, configuration, operation)
   const dataSource = createDataSource(configuration)
   try {
     await dataSource.initialize()
+
     return await operation(dataSource)
   } finally {
     if (dataSource.isInitialized) {
@@ -38,12 +39,14 @@ export async function waitForAuthenticatedReadiness(
     }
     const attemptTimeoutMs = Math.max(1, Math.min(500, deadline - Date.now()))
     try {
+
       return await withDataSource(
         (candidate) => createDataSource(candidate, attemptTimeoutMs),
         configuration,
         async (dataSource) => {
           const result = await dataSource.query('SELECT 1 AS ready')
           assert.equal(result[0].ready, 1)
+
           return true
         }
       )
@@ -134,6 +137,7 @@ export async function databaseSnapshot(dataSource) {
     dataSource.query(indexesSql),
     dataSource.query(foreignKeysSql)
   ])
+
   return { relations, columns, constraints, indexes, foreignKeys }
 }
 
@@ -259,6 +263,7 @@ export async function assertSchema(
     history,
     migrationNames.map((name) => ({ name }))
   )
+
   return snapshot
 }
 
@@ -331,6 +336,7 @@ export function loginRequest(status, id, overrides = {}) {
   if (status === 'consumed') {
     row.consumed_at = later
   }
+
   return { ...row, ...overrides }
 }
 export async function insertLogin(source, row) {

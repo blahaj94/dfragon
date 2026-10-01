@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => ({
       application.getPath('userData')
       application.setName(config.appIdentity)
       application.setAppUserModelId(config.appIdentity)
+
       return config
     }
   ),
@@ -84,6 +85,7 @@ vi.mock('electron', () => ({
     whenReady: () => ({
       then: (callback: () => void | Promise<void>): Promise<void> => {
         mocks.bootstrap = Promise.resolve().then(callback)
+
         return mocks.bootstrap.catch(() => undefined)
       }
     }),
@@ -150,6 +152,7 @@ vi.mock('./auth/runtime-effects', () => ({
 vi.mock('./auth/runtime-config', async () => {
   const actual =
     await vi.importActual<typeof import('./auth/runtime-config')>('./auth/runtime-config')
+
   return { ...actual, applyAuthRuntimeProfile: mocks.applyProfile }
 })
 vi.mock('./auth/bootstrap', () => ({
@@ -171,6 +174,7 @@ beforeEach(() => {
   })
   mocks.attachAfterStart.mockImplementation((_ingress, _start, dispatch, _isActive, activate) => {
     mocks.attachIngress(dispatch, activate)
+
     return vi.fn()
   })
   mocks.coordinator.handleReturnUrl.mockImplementation(
@@ -297,6 +301,7 @@ function deferred<Value>(): {
     resolve = nextResolve
     reject = nextReject
   })
+
   return { promise, resolve, reject }
 }
 
@@ -401,6 +406,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     application.getPath('userData')
     application.setName(config.appIdentity)
     application.setAppUserModelId(config.appIdentity)
+
     return appliedConfig
   })
   mocks.createEffects.mockReturnValueOnce(effects)
@@ -500,6 +506,7 @@ it.each(['cancel', 'commit'] as const)(
               willQuit({ defaultPrevented: true })
               compositionBeforeOutcome = mocks.constructWindow.mock.calls.length
             })
+
             return
           }
 
@@ -509,6 +516,7 @@ it.each(['cancel', 'commit'] as const)(
           })
         })
       })
+
       return mocks.runtime
     })
 
@@ -596,6 +604,7 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   mocks.registerAuth.mockImplementation(() => {
     const dispose = vi.fn()
     authDisposers.push(dispose)
+
     return dispose
   })
 
@@ -652,6 +661,7 @@ it('교체된 이전 window의 늦은 load rejection은 현재 window owner를 �
   mocks.registerAuth.mockImplementation(() => {
     const dispose = vi.fn()
     authDisposers.push(dispose)
+
     return dispose
   })
   mocks.loadFile.mockReturnValueOnce(firstLoad.promise).mockResolvedValueOnce(undefined)
@@ -737,6 +747,7 @@ it.each(['close event', 'renderer beforeunload'] as const)(
       let defaultPrevented = false
       const closeEvent = {
         get defaultPrevented() {
+
           return defaultPrevented
         },
         preventDefault() {
@@ -792,6 +803,7 @@ it('will-prevent-unload override가 unload를 허용하면 closed까지 load rej
   let defaultPrevented = false
   const willPreventUnloadEvent = {
     get defaultPrevented() {
+
       return defaultPrevented
     },
     preventDefault() {
@@ -829,6 +841,7 @@ it('동기 before-quit 취소 뒤에는 ingress와 window activation을 다시 �
   let defaultPrevented = false
   const beforeQuitEvent = {
     get defaultPrevented() {
+
       return defaultPrevented
     },
     preventDefault() {
@@ -866,6 +879,7 @@ it('동기 will-quit 취소 뒤에도 ingress와 window activation을 다시 사
   let defaultPrevented = false
   const willQuitEvent = {
     get defaultPrevented() {
+
       return defaultPrevented
     },
     preventDefault() {
@@ -898,6 +912,7 @@ it('before-quit 취소 전에 보류한 restore rejection은 fatal로 다시 처
   let defaultPrevented = false
   const beforeQuitEvent = {
     get defaultPrevented() {
+
       return defaultPrevented
     },
     preventDefault() {
@@ -1247,6 +1262,7 @@ it('auth bootstrap 대기 중 quit이 취소되면 composition을 다시 진행�
   let defaultPrevented = false
   const willQuitEvent = {
     get defaultPrevented() {
+
       return defaultPrevented
     },
     preventDefault() {

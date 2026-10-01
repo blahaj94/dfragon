@@ -19,6 +19,7 @@ test('search, detail and catalog share a sliding provider budget, including fail
   let calls = 0
   const transport: typeof fetch = async () => {
     calls++
+
     return Response.json({ rows: [] })
   }
   const search = createNeopleCharacterSearchForTest('fixture', { fetch: transport }, budget)
@@ -51,6 +52,7 @@ test('provider concurrency remains occupied while response bodies are pending, t
   })
   const transport: typeof fetch = async () => {
     calls++
+
     return new Response(
       new ReadableStream({
         async start(controller) {

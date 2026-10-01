@@ -19,11 +19,13 @@ function installObservationSource(): {
   class NativeWorker {
     postMessage(...args: unknown[]): string {
       delegatedMessages.push(args)
+
       return 'delegated'
     }
   }
   class HTMLMediaElement {
     async play(): Promise<void> {
+
       return undefined
     }
   }

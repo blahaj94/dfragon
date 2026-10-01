@@ -30,6 +30,7 @@ function createRuntimeHarness(): RuntimeHarness {
       const wallMs = time.wallMs
       time.monotonicMs += time.sampleDelayMs
       time.wallMs += time.sampleDelayMs
+
       return wallMs
     },
     readMonotonicMs: () => time.monotonicMs,
@@ -46,6 +47,7 @@ function createRuntimeHarness(): RuntimeHarness {
     userDataPath: '/synthetic/user-data'
   })
   const coordinator = createAuthCoordinator(dependencies)
+
   return { ...harness, time, effects, clock: dependencies.clock, coordinator }
 }
 

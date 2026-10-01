@@ -36,6 +36,7 @@ function createHandle(
   stores: Map<string, Buffer>,
   fixture: { failAfterRename: boolean }
 ): WindowsCredentialFileHandle {
+
   return {
     read: async (maximumBytes) => (stores.get(path) ?? Buffer.alloc(0)).subarray(0, maximumBytes),
     write: async (data) => {
@@ -70,6 +71,7 @@ function createWindowsFixture(): WindowsFixture {
       if (!encoded.startsWith('ciphertext:')) {
         throw new Error('Synthetic ciphertext rejected.')
       }
+
       return encoded.slice('ciphertext:'.length)
     })
   }
@@ -77,15 +79,19 @@ function createWindowsFixture(): WindowsFixture {
     inspect: vi.fn<WindowsCredentialNative['inspect']>(async (path, kind) => {
       const configured = inspections.get(path)
       if (configured != null) {
+
         return configured
       }
       if (kind === 'directory') {
+
         return directories.has(path) ? { status: 'trusted-directory' } : { status: 'missing' }
       }
+
       return stores.has(path) ? { status: 'trusted-file' } : { status: 'missing' }
     }),
     createDirectory: vi.fn<WindowsCredentialNative['createDirectory']>(async (path) => {
       directories.add(path)
+
       return 'created'
     }),
     list: vi.fn(async () =>
@@ -99,6 +105,7 @@ function createWindowsFixture(): WindowsFixture {
         throw new Error('Synthetic exclusive creation conflict.')
       }
       stores.set(path, Buffer.alloc(0))
+
       return createHandle(path, stores, state)
     }),
     remove: vi.fn(async (path) => {
@@ -117,12 +124,14 @@ function createWindowsFixture(): WindowsFixture {
     directories,
     paths,
     get failAfterRename() {
+
       return state.failAfterRename
     },
     set failAfterRename(value: boolean) {
       state.failAfterRename = value
     },
     get failAfterDelete() {
+
       return state.failAfterDelete
     },
     set failAfterDelete(value: boolean) {
@@ -132,6 +141,7 @@ function createWindowsFixture(): WindowsFixture {
       inspections.set(path, inspection)
     }
   }
+
   return fixture
 }
 
@@ -139,6 +149,7 @@ function createStore(
   fixture: WindowsFixture,
   overrides: Partial<WindowsCredentialStoreOptions> = {}
 ): CredentialStore {
+
   return createWindowsCredentialStore({
     userDataPath: fixture.paths.userData,
     context: CONTEXT,
@@ -283,6 +294,7 @@ describe('Windows CredentialStore native boundary', () => {
         if (isCloseFailure) {
           close.mockRejectedValueOnce(error)
         }
+
         return {
           ...handle,
           write: isWriteFailure ? vi.fn().mockRejectedValue(error) : handle.write,

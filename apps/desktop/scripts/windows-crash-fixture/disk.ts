@@ -22,6 +22,7 @@ export function observeDisk(security: ReadOnlySecurity, root: string): DiskObser
     const isMissing = directory === 'missing'
     if (isMissing) {
       entries.push({ name, type: 'missing', protection: 'missing' })
+
       return
     }
     const isDirectory = directory === 'trusted'
@@ -46,6 +47,7 @@ export function observeDisk(security: ReadOnlySecurity, root: string): DiskObser
         }
         visit(join(path, child), `${name}/${child}`, depth + 1)
       }
+
       return
     }
     const file = security.inspect(path, 'file')
@@ -79,5 +81,6 @@ export function observeDisk(security: ReadOnlySecurity, root: string): DiskObser
     })
   }
   visit(root, '.', 0)
+
   return { entries, content: 'synthetic-only', observation: 'read-only-before-store-inspect' }
 }

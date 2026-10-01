@@ -52,6 +52,7 @@ test('adventure HTTP is public, bounded, no-store and sanitizes DB failures', as
       if (failing) {
         throw new Error('private SQL and connection details')
       }
+
       return empty
     }
   })
@@ -106,6 +107,7 @@ test('shutdown aborts an active adventure read, waits for cleanup, and rejects l
       readSignal = signal
       entered()
       await pending
+
       return empty
     }
   })

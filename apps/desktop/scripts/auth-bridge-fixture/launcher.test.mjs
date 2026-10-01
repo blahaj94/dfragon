@@ -28,6 +28,7 @@ beforeEach(() => {
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 0))
+
     return child
   })
   vi.spyOn(process, 'kill').mockImplementation(() => {
@@ -60,6 +61,7 @@ it('child 실패는 cleanup 성공 뒤에도 실패로 반환한다', async () =
   fixture.spawn.mockImplementation(() => {
     const child = Object.assign(new EventEmitter(), { pid: 424242 })
     queueMicrotask(() => child.emit('close', 1))
+
     return child
   })
 

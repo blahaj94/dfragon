@@ -29,12 +29,15 @@ async function waitForGroupExit(pid, milliseconds) {
     } catch (error) {
       const isAbsent = error.code === 'ESRCH'
       if (isAbsent) {
+
         return true
       }
+
       return false
     }
     const hasExpired = Date.now() >= deadline
     if (hasExpired) {
+
       return false
     }
     await delay(50)
@@ -46,14 +49,17 @@ async function waitForGroupExit(pid, milliseconds) {
 async function finishGroup(pid) {
   let stopped = await waitForGroupExit(pid, 500)
   if (stopped) {
+
     return true
   }
   signalGroup(pid, 'SIGTERM')
   stopped = await waitForGroupExit(pid, 2_000)
   if (stopped) {
+
     return true
   }
   signalGroup(pid, 'SIGKILL')
+
   return waitForGroupExit(pid, 1_000)
 }
 
@@ -63,14 +69,17 @@ async function removeProfile(profile) {
   try {
     await rm(profile, { recursive: true, force: true, maxRetries: 3 })
   } catch {
+
     return false
   }
   try {
     await lstat(profile)
   } catch (error) {
     const isAbsent = error.code === 'ENOENT'
+
     return isAbsent
   }
+
   return false
 }
 
@@ -84,6 +93,7 @@ export async function runAuthBridgeFixture(args = []) {
   const hasInvalidConfiguration = !hasValidMode || !hasPosixGroups
   if (hasInvalidConfiguration) {
     console.error('Auth bridge fixture launcher configuration FAIL')
+
     return 1
   }
 
@@ -98,14 +108,17 @@ export async function runAuthBridgeFixture(args = []) {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   function interrupt() {
     if (interrupted) {
+
       return
     }
     interrupted = true
     if (finalizing) {
+
       return
     }
     const hasPid = child?.pid != null
     if (!hasPid) {
+
       return
     }
     signalGroup(child.pid, 'SIGTERM')
@@ -117,6 +130,7 @@ export async function runAuthBridgeFixture(args = []) {
   try {
     profile = await mkdtemp(join(tmpdir(), 'dfragon-auth-bridge-fixture-'))
     if (interrupted) {
+
       return 1
     }
     const environment = {
@@ -160,6 +174,7 @@ export async function runAuthBridgeFixture(args = []) {
     process.removeListener('SIGINT', interrupt)
     process.removeListener('SIGTERM', interrupt)
   }
+
   return interrupted ? 1 : exitCode
 }
 

@@ -31,6 +31,7 @@ const payloads: CharacterPayloads = {
   buff_creature: { ...common, skill: { buff: null } }
 }
 function rowsAt(time: number): CharacterApiResponse[] {
+
   return characterDetailSections.map((section) => ({
     characterId: identity.characterId,
     section,
@@ -46,10 +47,12 @@ function memory(initial: CharacterApiResponse[] = []) {
   const store: CharacterDetailStore = {
     async read() {
       state.reads++
+
       return { rows: structuredClone(state.rows), now: new Date(state.now) }
     },
     async beginFetch() {
       state.starts++
+
       return new Date(state.now).toISOString()
     },
     async saveAndRead(_identity, incoming, _requestedAt, requestSignal) {
@@ -59,9 +62,11 @@ function memory(initial: CharacterApiResponse[] = []) {
         ...row,
         payload: structuredClone(incoming[row.section])
       }))
+
       return structuredClone(state.rows)
     }
   }
+
   return { state, store }
 }
 
@@ -70,6 +75,7 @@ function gate() {
   const promise = new Promise<void>((resolve) => {
     release = resolve
   })
+
   return { promise, release }
 }
 
@@ -81,6 +87,7 @@ test('five-minute GET cache uses the oldest successful section fetch, not conten
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })
@@ -122,6 +129,7 @@ test('missing or incomplete snapshots refresh; read failures do not fall through
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })
@@ -152,6 +160,7 @@ test('failed auto or manual refresh preserves stored data and never returns stal
       if (failing) {
         throw new CharacterDetailFailure('unavailable')
       }
+
       return payloads
     }
   })
@@ -177,6 +186,7 @@ test('GET hits and forced refresh share the per-IP ten-request quota', async (t)
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })
@@ -205,6 +215,7 @@ test('sequential forced refresh from different clients respects the per-characte
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })
@@ -242,6 +253,7 @@ test('concurrent GET and POST share refresh; one disconnect cannot cancel the su
       sharedSignal = s
       entered.release()
       await finish.promise
+
       return payloads
     }
   })
@@ -278,6 +290,7 @@ test('last waiter cancellation aborts work, prevents late persistence and allows
         entered.release()
         await late.promise
       }
+
       return payloads
     }
   })
@@ -337,6 +350,7 @@ test('shared failure is removed for retry and shutdown waits for aborted work cl
       start.release()
       s.addEventListener('abort', () => stopped.abort(), { once: true })
       await cleanup.promise
+
       return payloads
     }
   })
@@ -361,6 +375,7 @@ test('starting a refresh times out and a late DB timestamp cannot trigger upstre
   let calls = 0
   store.beginFetch = async () => {
     await late.promise
+
     return new Date(initialTime).toISOString()
   }
   const service = createCharacterDetailService({
@@ -368,6 +383,7 @@ test('starting a refresh times out and a late DB timestamp cannot trigger upstre
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })
@@ -391,6 +407,7 @@ test('shutdown cancels waiting for the DB refresh timestamp without waiting for 
   store.beginFetch = async () => {
     entered.release()
     await late.promise
+
     return new Date(initialTime).toISOString()
   }
   const service = createCharacterDetailService({
@@ -398,6 +415,7 @@ test('shutdown cancels waiting for the DB refresh timestamp without waiting for 
     store,
     fetchDetails: async () => {
       calls++
+
       return payloads
     }
   })

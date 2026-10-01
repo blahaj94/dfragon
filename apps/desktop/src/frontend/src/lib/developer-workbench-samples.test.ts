@@ -13,6 +13,7 @@ function sample(
   id: string,
   overrides: Partial<DeveloperWorkbenchSample> = {}
 ): DeveloperWorkbenchSample {
+
   return {
     id,
     createdAt: '2026-09-25T00:00:00.000Z',

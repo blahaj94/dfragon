@@ -28,11 +28,14 @@ test('abort during the final database clock read rejects before the transaction 
     async query(sql: string) {
       if (sql === 'SELECT clock_timestamp() AS now') {
         controller.abort()
+
         return [{ now: new Date() }]
       }
+
       return []
     },
     getRepository() {
+
       return { findBy: async () => [] }
     }
   } as unknown as EntityManager
@@ -40,6 +43,7 @@ test('abort during the final database clock read rejects before the transaction 
     async transaction(_isolation: string, callback: (manager: EntityManager) => Promise<unknown>) {
       const result = await callback(manager)
       committed = true
+
       return result
     }
   } as unknown as DataSource
@@ -53,11 +57,14 @@ test('abort during the final database clock read rejects before the transaction 
   assert.equal(committed, false)
 })
 function memoryStore(entries: CatalogEntry[] = []): CatalogStore {
+
   return {
     async read() {
+
       return { entries, requestedAt: new Date().toISOString(), now: new Date() }
     },
     async saveAndRead(values) {
+
       return {
         entries: values.map((value) => ({
           ...value,
@@ -126,6 +133,7 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
     count += keys.length
     await delay(2)
     active--
+
     return keys.map((key) => ({ key, payload: { fixture: true } }))
   })
   const keys: CatalogKey[] = Array.from({ length: 140 }, (_, i) => ({
@@ -144,6 +152,7 @@ test('deadline stops queued work; disconnect aborts without persisting late upst
   const store = memoryStore()
   store.saveAndRead = async () => {
     writes++
+
     return { entries: [], now: new Date() }
   }
   const controller = new AbortController()
@@ -157,6 +166,7 @@ test('deadline stops queued work; disconnect aborts without persisting late upst
     async (group, requestSignal) => {
       calls++
       await delay(30, undefined, { signal: requestSignal })
+
       return group.map((key) => ({ key, payload: {} }))
     },
     5
@@ -177,6 +187,7 @@ test('provider adapter matches item IDs, retains options, and binds skills to th
     requestPaths.push(String(url))
     assert.equal(options?.redirect, 'error')
     assert.equal((options?.headers as Record<string, string>).apikey, 'fixture-key')
+
     return Response.json({
       rows: [
         { itemId: 'other-item', itemName: '다른 장비' },
@@ -193,6 +204,7 @@ test('provider adapter matches item IDs, retains options, and binds skills to th
   assert(!requestPaths[0]!.includes('fixture-key'))
   const skillAdapter = createNeopleCatalog('fixture-key', async (url) => {
     assert(String(url).endsWith('/skills/fixture-job/fixture-skill'))
+
     return Response.json({ jobId: 'fixture-job', name: '스킬', levelInfo: { rows: [] } })
   })
   assert.deepEqual((await skillAdapter([skill], signal))[0]!.key, skill)
@@ -240,6 +252,7 @@ test('enrichment preserves 14 slots, enchant skill options, nullable chain and o
   let requested = 0
   const service = createCatalogService(memoryStore(), async (keys) => {
     requested += keys.length
+
     return keys.map((key) => ({ key, payload: { tune: [{ level: 0 }] } }))
   })
   const result = await enrichCharacterDetails(details, service, signal)

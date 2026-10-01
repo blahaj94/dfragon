@@ -6,11 +6,13 @@ function clock() {
   let now = 0
   let nextTimer = 0
   const timers = new Map()
+
   return {
     now: () => now,
     setTimer(callback, delay) {
       const timer = ++nextTimer
       timers.set(timer, { callback, at: now + delay })
+
       return timer
     },
     clearTimer: (timer) => timers.delete(timer),
@@ -26,6 +28,7 @@ function clock() {
       }
     },
     get timerCount() {
+
       return timers.size
     }
   }
@@ -49,6 +52,7 @@ function assertLimited(lease, seconds) {
       assert.equal(error.status, 429)
       assert.equal(error.body.error.code, 'SEARCH_RATE_LIMITED')
       assert.equal(error.retryAfter, seconds)
+
       return true
     }
   )
@@ -89,6 +93,7 @@ test('search peers serialize only admission and reserve using the final clock', 
   let waiterAcquired = false
   const pending = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
     waiterAcquired = true
+
     return lease
   })
   await reserve(admission, '192.0.2.2')
@@ -138,6 +143,7 @@ test('search reservation expiry cannot replace an peerAddress entry with live ad
   let nextAcquired = false
   const next = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
     nextAcquired = true
+
     return lease
   })
   await Promise.resolve()

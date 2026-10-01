@@ -139,6 +139,7 @@ async function readSettings(diagnostic: StageDiagnostic): Promise<Settings> {
       throw new Error('Recovery manifest does not own this synthetic root.')
     }
   }
+
   return settings
 }
 

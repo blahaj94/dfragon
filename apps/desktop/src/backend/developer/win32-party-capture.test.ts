@@ -21,6 +21,7 @@ function detectedSlot(
   height: number
   coverage: { x: number; y: number; width: number; height: number }
 } {
+
   return {
     slot,
     x,
@@ -90,16 +91,19 @@ describe('Win32 party capture geometry guards', () => {
 })
 
 function shortcutAccessApi(gameElevated = false, appElevated = false): ShortcutAccessApi {
+
   return {
     OpenProcess: vi.fn(() => 10n),
     GetCurrentProcess: vi.fn(() => -1n),
     OpenProcessToken: vi.fn((processHandle, _access, output) => {
       output[0] = processHandle === 10n ? 20n : 30n
+
       return 1
     }),
     GetTokenInformation: vi.fn((token, _informationClass, output, _length, returnLength) => {
       output.writeUInt32LE(Number(token === 20n ? gameElevated : appElevated), 0)
       returnLength[0] = 4
+
       return 1
     }),
     CloseHandle: vi.fn(() => 1)
@@ -140,9 +144,11 @@ describe('DNF shortcut elevation access', () => {
       const api = shortcutAccessApi()
       vi.mocked(api.OpenProcessToken).mockImplementation((process, _access, output) => {
         if (process === processHandle) {
+
           return 0
         }
         output[0] = 20n
+
         return 1
       })
       expect(() => assertShortcutProcessAccess(api, 123)).toThrow('DEVELOPER_CAPTURE_UNAVAILABLE')
@@ -162,6 +168,7 @@ describe('DNF shortcut elevation access', () => {
             throw new Error('native query details')
           }
           size[0] = failure === 'truncated' ? 0 : 4
+
           return failure === 'failed' ? 0 : 1
         }
       )

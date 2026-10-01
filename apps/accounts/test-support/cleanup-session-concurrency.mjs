@@ -11,6 +11,7 @@ async function cleanupFirst(source, cleanup) {
   const signer = f.deps.issueAccessJwt
   f.deps.issueAccessJwt = async (input) => {
     signingCalls++
+
     return signer(input)
   }
   await withCleanupDeletionHeld({
@@ -54,6 +55,7 @@ async function staleSessionHint(source, cleanup, change) {
       unlock: async () => {
         const canCommit = runner.isTransactionActive
         if (!canCommit) {
+
           return
         }
         const shouldDelete = change === 'deleted'
@@ -94,5 +96,6 @@ export async function assertCleanupSessionConcurrency(source, cleanup, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

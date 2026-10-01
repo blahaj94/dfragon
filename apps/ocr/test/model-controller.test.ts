@@ -16,8 +16,10 @@ test('base model retries share a download and integrity failure permits a later 
     calls++
     if (calls === 1) {
       await gate
+
       return new Response('synthetic weights')
     }
+
     return new Response('가\n나\n')
   })
   try {
@@ -53,6 +55,7 @@ test('verified artifacts register atomically and an existing base is revalidated
   let calls = 0
   t.mock.method(globalThis, 'fetch', async (_url: string, options: RequestInit) => {
     assert.equal(options.redirect, 'error')
+
     return new Response(bytes[calls++]!)
   })
   const first = await registerBaseModel(store, artifacts)

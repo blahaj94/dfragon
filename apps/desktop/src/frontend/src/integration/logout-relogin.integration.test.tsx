@@ -41,6 +41,7 @@ const electron = vi.hoisted(() => {
       if (handler == null || invokeEvent == null) {
         throw new Error(`Missing IPC route: ${channel}`)
       }
+
       return handler(invokeEvent, ...args)
     }),
     on: vi.fn((channel: string, listener: Listener) => {
@@ -166,6 +167,7 @@ function installMediaBoundary(): {
   } as unknown as MediaStream
   const media = { getDisplayMedia: vi.fn(async () => stream) }
   Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: media })
+
   return { media, track }
 }
 
@@ -179,6 +181,7 @@ function installCanvasBoundary(): void {
         getImageData: vi.fn((x: number, y: number, width: number, height: number) => {
           const isFirstSlotMana = x === 42 && y === 42 && width === 105 && height === 5
           if (!isFirstSlotMana) {
+
             return { data: new Uint8ClampedArray(width * height * 4) }
           }
           const data = new Uint8ClampedArray(width * height * 4)
@@ -188,6 +191,7 @@ function installCanvasBoundary(): void {
             data[index + 2] = 170
             data[index + 3] = 255
           }
+
           return { data }
         })
       }) as unknown as CanvasRenderingContext2D
@@ -207,6 +211,7 @@ function button(container: HTMLDivElement, label: string): HTMLButtonElement {
     (candidate) => candidate.textContent === label
   )
   expect(found, `Expected button ${label}`).toBeDefined()
+
   return found as HTMLButtonElement
 }
 
@@ -252,11 +257,14 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     const request = new Request(input, init)
     observedRequests.push(request)
     if (observedRequests.length === 1) {
+
       return liveSearch.promise
     }
     if (observedRequests.length === 2) {
+
       return lateSearch.promise.then((response) => {
         lateResponseDelivered.resolve()
+
         return response
       })
     }

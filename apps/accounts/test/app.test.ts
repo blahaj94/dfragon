@@ -9,6 +9,7 @@ import { createApp } from '../src/app.js'
 @Injectable()
 class GreetingService {
   message(): string {
+
     return 'hello'
   }
 }
@@ -19,6 +20,7 @@ class TestController {
 
   @Get('test')
   getMessage(): string {
+
     return this.greetingService.message()
   }
 }

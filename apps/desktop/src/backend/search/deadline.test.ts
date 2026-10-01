@@ -26,11 +26,13 @@ function pendingBody(): {
     },
     { highWaterMark: 0 }
   )
+
   return {
     response: new Response(body),
     pull,
     finish: (text) => {
       if (closed) {
+
         return
       }
       closed = true

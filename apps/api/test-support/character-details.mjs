@@ -33,6 +33,7 @@ function fixture(identity, reinforce = 12) {
     buff_avatar: { skill: { buff: { avatar: [] } } },
     buff_creature: { skill: { buff: { creature: null } } }
   }
+
   return Object.fromEntries(
     Object.entries(sections).map(([section, body]) => [section, { ...common, ...body }])
   )
@@ -142,6 +143,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
           held = boundedSource.createQueryRunner()
           await held.connect()
           announceFetch()
+
           return fixture(identity, 99)
         }
       })

@@ -8,6 +8,7 @@ function frame(width = 1067, height = 600) {
   for (let index = 0; index < rgba.length; index += 4) {
     rgba.set([12, 16, 20, 255], index)
   }
+
   return { width, height, rgba }
 }
 
@@ -31,6 +32,7 @@ function headingFixture() {
       paint(image, x, 4 + ((column + glyph) % 3) * 3, 7, 2, [190, 180, 150, 255])
     }
   }
+
   return image
 }
 

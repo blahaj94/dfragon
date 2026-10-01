@@ -30,6 +30,7 @@ function startApi(environment, upstreams) {
   try {
     // 기존 helper의 상대 entry만 API checkout에서 resolve한다. 전용 forks process에서 동기 복원한다.
     process.chdir(apiDirectory)
+
     return startRuntime(environment, { realDatabase: true, upstreams })
   } finally {
     process.chdir(originalDirectory)
@@ -37,6 +38,7 @@ function startApi(environment, upstreams) {
 }
 
 async function withApi({ source, database, neople }, operation) {
+
   return withRuntimeConfiguration(async ({ path }) => {
     const port = await unusedRuntimePort()
     const runtime = startApi(runtimeEnvironment(path, port, database), {

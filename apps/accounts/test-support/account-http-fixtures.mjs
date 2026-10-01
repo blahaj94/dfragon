@@ -28,6 +28,7 @@ export async function accountFixture(source) {
     issuedAt,
     idleDeadline: issuedAt + 900
   })
+
   return { ...f, token, now }
 }
 
@@ -38,6 +39,7 @@ export async function withAccountApp(f, operation, source = f.deps.dataSource) {
   })
   await app.listen(0, '127.0.0.1')
   try {
+
     return await operation(await app.getUrl())
   } finally {
     await app.close()
@@ -46,6 +48,7 @@ export async function withAccountApp(f, operation, source = f.deps.dataSource) {
 
 export function accountRequest(base, f, method = 'GET', body = { nickname: '변경 이름' }) {
   const isPatch = method === 'PATCH'
+
   return fetch(`${base}/me${isPatch ? '/nickname' : ''}`, {
     method,
     headers: { authorization: `Bearer ${f.token.accessToken}`, 'content-type': 'application/json' },
@@ -57,6 +60,7 @@ export function rawAccountRequest(
   base,
   { method = 'PATCH', path = '/me/nickname', headers = {}, chunks = [] }
 ) {
+
   return new Promise((resolve, reject) => {
     const pending = request(`${base}${path}`, { method, headers }, (response) => {
       const parts = []
@@ -85,10 +89,12 @@ export async function expectAccountError(response, status, code) {
   assert.deepEqual(Object.keys(body), ['error'])
   assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
   assert.equal(body.error.code, code)
+
   return body
 }
 
 export async function snapshot(source, f) {
+
   return {
     user: (await source.query('SELECT * FROM users WHERE id=$1', [f.initial.user.id]))[0],
     ...(await stored(source, f.initial.session.id))

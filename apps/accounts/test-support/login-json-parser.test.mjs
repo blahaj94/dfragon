@@ -28,6 +28,7 @@ function parserFixture(rawHeaders = ['Content-Type', 'application/json']) {
     })
   }
   loginJsonParser(request, response, (error) => nextCalls.push(error))
+
   return { request, response, responses, nextCalls, headers }
 }
 

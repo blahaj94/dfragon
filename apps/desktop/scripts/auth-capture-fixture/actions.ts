@@ -28,6 +28,7 @@ export async function until(condition: () => Promise<boolean>, deadlineMs = 10_0
     }
     const isReady = await condition()
     if (isReady) {
+
       return
     }
     await delay(50)
@@ -48,6 +49,7 @@ function createClickSource(label: string): string {
       button.click();
       return true;
     })()`
+
   return source
 }
 
@@ -87,6 +89,7 @@ export function createCaptureActions({
     await click('로그인')
     await until(async () => {
       const isWaitingBrowser = coordinator.getSnapshot().phase === 'waitingBrowser'
+
       return isWaitingBrowser
     })
     await completeLogin()
@@ -133,5 +136,6 @@ export function createCaptureActions({
     })()`
     await until(async () => (await evaluate(startButtonCheck)) as boolean)
   }
+
   return { evaluate, hasText, observe, click, login, selectSyntheticSource }
 }

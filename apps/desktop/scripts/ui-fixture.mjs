@@ -82,8 +82,10 @@ app.whenReady().then(async () => {
       requested.pathname === allowed.pathname &&
       requested.searchParams.get('detail') === 'sample'
     if (!isPreviewDetail) {
+
       return { action: 'deny' }
     }
+
     return {
       action: 'allow',
       overrideBrowserWindowOptions: {
@@ -113,6 +115,7 @@ app.whenReady().then(async () => {
     ipcMain.once('ui-fixture-ready', (event) => {
       const isExpectedRenderer = event.sender === window.webContents
       if (!isExpectedRenderer) {
+
         return
       }
       clearTimeout(deadline)

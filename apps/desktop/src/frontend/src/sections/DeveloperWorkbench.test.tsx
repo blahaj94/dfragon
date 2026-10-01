@@ -39,6 +39,7 @@ function sample(
   source: DeveloperWorkbenchSample['source'] = null,
   excluded = false
 ): DeveloperWorkbenchSample {
+
   return { id, createdAt, width: 100, height: 36, text, source, excluded }
 }
 
@@ -53,10 +54,12 @@ function deferred<T>(): {
     resolve = accept
     reject = fail
   })
+
   return { promise, resolve, reject }
 }
 
 function partyFrame(): DeveloperPartyPreviewFrame {
+
   return {
     width: 1920,
     height: 1080,
@@ -80,6 +83,7 @@ function raidFrame(occupiedCount = 12): DeveloperPartyPreviewFrame {
     width: 86,
     height: 17
   }))
+
   return {
     width: 1067,
     height: 600,
@@ -125,12 +129,14 @@ function installApi(rows: DeveloperWorkbenchSample[] = []): {
       const index = samples.findIndex((row) => row.id === id)
       const updated = { ...samples[index], text }
       samples[index] = updated
+
       return updated as DeveloperSample
     }),
     setSampleExcluded: vi.fn(async (id: string, excluded: boolean) => {
       const index = samples.findIndex((row) => row.id === id)
       const updated = { ...samples[index], excluded }
       samples[index] = updated
+
       return updated as DeveloperSample
     }),
     captureFrame: vi.fn(async () => ({
@@ -146,10 +152,12 @@ function installApi(rows: DeveloperWorkbenchSample[] = []): {
     setPartyCollectionSlots: vi.fn(async (slots: DeveloperPartySlot[] | null) => {
       status.armed = slots != null
       status.slots = slots ?? []
+
       return { ...status, slots: [...status.slots] }
     })
   }
   Object.defineProperty(window, 'developer', { configurable: true, value: api })
+
   return { api, samples, status }
 }
 
@@ -160,6 +168,7 @@ function button(label: string): HTMLButtonElement {
   if (!result) {
     throw new Error(`Missing ${label} button`)
   }
+
   return result
 }
 
@@ -172,6 +181,7 @@ function input(): HTMLInputElement {
   if (!result) {
     throw new Error('Missing label input')
   }
+
   return result
 }
 
@@ -392,10 +402,12 @@ it('refreshes samples after collection disarm settles before the next preview po
   const pendingDisarm = deferred<DeveloperPartyCollectionStatus>()
   api.setPartyCollectionSlots.mockImplementation((slots) => {
     if (slots == null) {
+
       return pendingDisarm.promise
     }
     status.armed = true
     status.slots = slots
+
     return Promise.resolve({ ...status, slots: [...slots] })
   })
 
@@ -653,6 +665,7 @@ it.each([
       } else {
         status.error = null
       }
+
       return { ...status }
     })
     api.previewParty.mockImplementation(async (kind) => ({
@@ -813,6 +826,7 @@ it('navigates all four tabs with the keyboard and focuses the activated raid tab
   const callbacks: FrameRequestCallback[] = []
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
     callbacks.push(callback)
+
     return callbacks.length
   })
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))

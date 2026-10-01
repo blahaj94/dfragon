@@ -26,6 +26,7 @@ export type ObservationTestApi = {
 }
 
 export function searchSlot(overrides: Partial<SearchSlot> = {}): SearchSlot {
+
   return {
     slot: 0,
     observationRevision: 1,
@@ -39,6 +40,7 @@ export function searchSlot(overrides: Partial<SearchSlot> = {}): SearchSlot {
 }
 
 export function searchSnapshot(overrides: Partial<SearchSnapshot> = {}): SearchSnapshot {
+
   return {
     runId: SEARCH_RUN,
     revision: 1,
@@ -58,10 +60,12 @@ export function searchSnapshot(overrides: Partial<SearchSnapshot> = {}): SearchS
 
 export function withSearchSlot(slot: SearchSlot): SearchSnapshot {
   const snapshot = searchSnapshot()
+
   return {
     ...snapshot,
     slots: snapshot.slots.map((current) => {
       const isTarget = current.slot === slot.slot
+
       return isTarget ? slot : current
     })
   }

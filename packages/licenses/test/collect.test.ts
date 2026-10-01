@@ -23,8 +23,10 @@ function fixture() {
     if (license) {
       writeFileSync(join(path, 'LICENSE'), license)
     }
+
     return path
   }
+
   return { root, pkg }
 }
 

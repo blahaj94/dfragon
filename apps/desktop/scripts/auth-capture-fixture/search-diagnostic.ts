@@ -21,6 +21,7 @@ export function createIndependentRetryDiagnostic({
 }: {
   independentRetry: boolean
 }): SearchDiagnostic {
+
   return {
     stage: 'mixed',
     check: 'independent-retry',

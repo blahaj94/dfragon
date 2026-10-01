@@ -20,6 +20,7 @@ function setup(platform: NodeJS.Platform = 'win32'): ShortcutTestContext {
   const api: PrintScreenNativeApi = {
     registerCallback: vi.fn((callback) => {
       hookCallback = callback
+
       return 10n
     }),
     releaseCallback: vi.fn(),
@@ -38,8 +39,10 @@ function setup(platform: NodeJS.Platform = 'win32'): ShortcutTestContext {
   const listener = vi.fn()
   function key(message: number, code = 0, keyCode = SNAPSHOT): number | bigint {
     virtualKey = keyCode
+
     return hookCallback!(code, message, 30n)
   }
+
   return { api, isGameForeground, loadNativeApi, shortcut, listener, key }
 }
 

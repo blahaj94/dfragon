@@ -57,6 +57,7 @@ export function tokenResponse({
   accessToken = ACCESS_1,
   accessTokenExpiresAt = '2026-09-06T12:15:00.000Z'
 }: TokenResponseInput = {}): AuthTokens {
+
   return {
     tokenType: 'Bearer',
     accessToken,
@@ -79,6 +80,7 @@ export class FakeClock implements AuthClock {
   readonly scheduled: ScheduledTask[] = []
 
   read(): ClockReading {
+
     return {
       wallMs: this.wallMs,
       monotonicMs: this.monotonicMs,
@@ -102,6 +104,7 @@ export class FakeClock implements AuthClock {
     const dueTasks = this.scheduled.filter((task) => {
       const isActive = !task.cancelled
       if (!isActive) {
+
         return false
       }
 
@@ -140,17 +143,21 @@ export class FakeStore implements CredentialStore {
 
   get inspection(): CredentialInspection {
     if (this.backendUnavailable) {
+
       return { status: 'unavailable' }
     }
     const hasTransitionMarker = this.marker != null
     if (hasTransitionMarker) {
+
       return { status: 'recovery-required' }
     }
     const refreshToken = this.refreshToken
     const hasRefreshToken = refreshToken != null
     if (hasRefreshToken) {
+
       return { status: 'ready', refreshToken }
     }
+
     return { status: 'empty' }
   }
 
@@ -169,15 +176,18 @@ export class FakeStore implements CredentialStore {
   }
 
   get storedRefreshToken(): string | null {
+
     return this.refreshToken
   }
 
   get transitionMarker(): CredentialTransitionKind | null {
+
     return this.marker
   }
 
   readonly inspect = vi.fn(async () => {
     this.operations.push('store:inspect')
+
     return this.inspection
   })
   readonly establishTransition = vi.fn(async (kind) => {
@@ -189,6 +199,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.marker = kind
     }
+
     return outcome
   })
   readonly commitCredential = vi.fn(async (refreshToken) => {
@@ -200,6 +211,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.refreshToken = refreshToken
     }
+
     return outcome
   })
   readonly clearCredential = vi.fn(async () => {
@@ -211,6 +223,7 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.refreshToken = null
     }
+
     return outcome
   })
   readonly removeTransition = vi.fn(async () => {
@@ -225,6 +238,7 @@ export class FakeStore implements CredentialStore {
     if (markerWasRemoved) {
       this.marker = null
     }
+
     return outcome
   })
   readonly reestablishTransition = vi.fn(async (kind) => {
@@ -234,10 +248,12 @@ export class FakeStore implements CredentialStore {
     if (isConfirmed) {
       this.marker = kind
     }
+
     return outcome
   })
 
   private next(outcomes: StoreMutationOutcome[]): StoreMutationOutcome {
+
     return outcomes.shift() ?? 'confirmed'
   }
 }
@@ -270,6 +286,7 @@ export function createAuthHarness(): AuthHarness {
     uuid: vi.fn(() => uuidValues.shift() ?? '00000000-0000-4000-8000-000000000099'),
     bytes: vi.fn((size) => {
       const bytes = byteValues.shift() ?? Buffer.alloc(32, 99)
+
       return bytes.subarray(0, size)
     })
   }
@@ -281,6 +298,7 @@ export function createAuthHarness(): AuthHarness {
   const http: AuthHttp = {
     createLoginRequest: vi.fn(async () => {
       operations.push('http:create-login')
+
       return {
         requestId: REQUEST_ID,
         browserUrl: `${API_ORIGIN}/auth/login/authorize?ticket=${Buffer.alloc(32, 8).toString('base64url')}`,
@@ -289,6 +307,7 @@ export function createAuthHarness(): AuthHarness {
     }),
     exchange: vi.fn(async () => {
       operations.push('http:exchange')
+
       return {
         ...tokenResponse(),
         user: { id: USER_ID, nickname: '모험가000001' },
@@ -297,6 +316,7 @@ export function createAuthHarness(): AuthHarness {
     }),
     refresh: vi.fn(async () => {
       operations.push('http:refresh')
+
       return tokenResponse()
     }),
     logout: vi.fn(async () => {
@@ -304,6 +324,7 @@ export function createAuthHarness(): AuthHarness {
     }),
     me: vi.fn(async () => {
       operations.push('http:me')
+
       return { user: { id: USER_ID, nickname: '모험가000001' } }
     })
   }

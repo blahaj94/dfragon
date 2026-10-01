@@ -55,6 +55,7 @@ async function click(element: HTMLElement): Promise<void> {
 }
 
 function trigger(): HTMLButtonElement {
+
   return document.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!
 }
 

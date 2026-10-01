@@ -40,6 +40,7 @@ function Harness(): null {
   useEffect(() => {
     evaluation = value
   }, [value])
+
   return null
 }
 beforeEach(async () => {

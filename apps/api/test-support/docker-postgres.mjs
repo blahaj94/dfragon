@@ -35,15 +35,18 @@ function safeDockerEnvironment() {
     'DOCKER_TLS_VERIFY',
     'DOCKER_CERT_PATH'
   ]
+
   return Object.fromEntries(
     names.flatMap((name) => {
       const isVariableMissing = process.env[name] === undefined
+
       return isVariableMissing ? [] : [[name, process.env[name]]]
     })
   )
 }
 
 export function command(program, args, options = {}) {
+
   return new Promise((resolve, reject) => {
     const child = spawn(program, args, {
       cwd: options.cwd,
@@ -66,6 +69,7 @@ export function command(program, args, options = {}) {
         outputExceeded = true
         child.kill('SIGKILL')
       }
+
       return next
     }
     child.stdout
@@ -81,14 +85,17 @@ export function command(program, args, options = {}) {
       clearTimeout(timer)
       if (startFailed) {
         reject(new Error('Command failed to start'))
+
         return
       }
       if (outputExceeded) {
         reject(new Error('Command output limit exceeded'))
+
         return
       }
       if (timedOut) {
         reject(new Error('Command timed out'))
+
         return
       }
       resolve({ code, signal, stdout, stderr })
@@ -99,15 +106,18 @@ export function command(program, args, options = {}) {
 export function shouldThrowDockerFailure({ allowFailure, result }) {
   const shouldRejectFailure = !allowFailure
   if (!shouldRejectFailure) {
+
     return false
   }
 
   const hasFailedExit = result.code !== 0
   if (hasFailedExit) {
+
     return true
   }
 
   const hasExitSignal = result.signal !== null
+
   return hasExitSignal
 }
 
@@ -117,6 +127,7 @@ export async function docker(args, options = {}) {
   if (shouldThrow) {
     throw new Error(`Docker command failed: ${args[0] ?? 'unknown'}`)
   }
+
   return result
 }
 
@@ -127,10 +138,12 @@ function normalizeNativePlatform({ os, architecture }) {
   }
   const isArm64Architecture = architecture === 'aarch64' || architecture === 'arm64'
   if (isArm64Architecture) {
+
     return 'linux/arm64/v8'
   }
   const isAmd64Architecture = architecture === 'x86_64' || architecture === 'amd64'
   if (isAmd64Architecture) {
+
     return 'linux/amd64'
   }
   throw new Error('Unsupported Docker architecture')
@@ -148,20 +161,24 @@ export function matchesImagePlatform(entry, platform) {
   const [expectedOs, expectedArchitecture] = platform.split('/')
   const hasMatchingOs = entry.platform?.os === expectedOs
   if (!hasMatchingOs) {
+
     return false
   }
 
   const hasMatchingArchitecture = entry.platform?.architecture === expectedArchitecture
   if (!hasMatchingArchitecture) {
+
     return false
   }
 
   const requiresArm64Variant = platform === 'linux/arm64/v8'
   if (!requiresArm64Variant) {
+
     return true
   }
 
   const hasArm64Variant = entry.platform?.variant === 'v8'
+
   return hasArm64Variant
 }
 
@@ -249,6 +266,7 @@ async function savedImageConfigDigest() {
   const archivePath = join(directory, 'image.tar')
   try {
     await docker(['image', 'save', '--output', archivePath, POSTGRES_IMAGE], { timeoutMs: 120_000 })
+
     return await readArchiveConfigDigest(archivePath)
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -265,16 +283,19 @@ export async function readArchiveConfigDigest(archivePath) {
     const isManifestEntry = entry.path === 'manifest.json'
     if (!isManifestEntry) {
       entry.resume()
+
       return
     }
     if (hasManifest) {
       parser.abort(new Error('Duplicate saved image manifest'))
+
       return
     }
     hasManifest = true
     const exceedsManifestLimit = entry.size > maxManifestBytes
     if (exceedsManifestLimit) {
       parser.abort(new Error('Saved image manifest exceeds byte limit'))
+
       return
     }
     entry.on('data', (chunk) => {
@@ -282,6 +303,7 @@ export async function readArchiveConfigDigest(archivePath) {
       const exceedsManifestLimit = manifestBytes > maxManifestBytes
       if (exceedsManifestLimit) {
         parser.abort(new Error('Saved image manifest exceeds byte limit'))
+
         return
       }
       chunks.push(chunk)
@@ -313,6 +335,7 @@ export async function readArchiveConfigDigest(archivePath) {
   if (!isConfigPathString) {
     throw new Error('Saved image config is missing')
   }
+
   return archiveConfigDigest(configPath)
 }
 
@@ -324,12 +347,14 @@ function validateRunId(runId) {
 }
 
 export function newRunId(prefix = 'run') {
+
   return `${prefix}${randomUUID().replaceAll('-', '')}`
 }
 
 export function archiveConfigDigest(configPath) {
   const hash = basename(configPath).replace(/\.json$/, '')
   assert.match(hash, /^[a-f0-9]{64}$/)
+
   return `sha256:${hash}`
 }
 
@@ -418,6 +443,7 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
     if (!hasLoopbackPort) {
       throw new Error('PostgreSQL loopback port could not be determined')
     }
+
     return {
       runId,
       containerName,
@@ -437,18 +463,22 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
 }
 
 export function hasOwnedDataVolumeMount(mounts, volumeName) {
+
   return mounts.some((mount) => {
     const isVolumeMount = mount.Type === 'volume'
     if (!isVolumeMount) {
+
       return false
     }
 
     const hasMatchingName = mount.Name === volumeName
     if (!hasMatchingName) {
+
       return false
     }
 
     const hasMatchingDestination = mount.Destination === POSTGRES_DATA.volumeTarget
+
     return hasMatchingDestination
   })
 }
@@ -461,6 +491,7 @@ async function inspectOwnership({ kind, name }) {
   const listed = await docker(listArgs)
   const isResourceAbsent = listed.stdout.trim() === ''
   if (isResourceAbsent) {
+
     return undefined
   }
   assert.equal(listed.stdout.trim(), name)
@@ -470,6 +501,7 @@ async function inspectOwnership({ kind, name }) {
     ? ['container', 'inspect', name, '--format', `{{ index .Config.Labels "${ownershipLabel}" }}`]
     : ['volume', 'inspect', name, '--format', `{{ index .Labels "${ownershipLabel}" }}`]
   const inspected = await docker(inspectArgs)
+
   return inspected.stdout.trim()
 }
 
@@ -477,6 +509,7 @@ async function removeOwnedResource({ kind, name, runId }) {
   const actualRunId = await inspectOwnership({ kind, name })
   const isResourceAbsent = actualRunId === undefined
   if (isResourceAbsent) {
+
     return
   }
   const hasOwnershipMismatch = actualRunId !== runId

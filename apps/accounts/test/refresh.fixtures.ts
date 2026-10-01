@@ -66,6 +66,7 @@ export function fixture() {
       events.push('user-lock')
       assert.deepEqual(query, { where: { id: user.id }, lock: { mode: 'pessimistic_write' } })
       state.beforeLockedRead()
+
       return state.userMissing ? null : { ...user }
     }
   }
@@ -73,10 +74,12 @@ export function fixture() {
     findOneBy: async (where: unknown) => {
       events.push('session-hint')
       assert.deepEqual(where, { id: token.sessionId })
+
       return { ...session }
     },
     findOne: async () => {
       events.push('session-lock')
+
       return state.sessionMissing ? null : { ...session }
     },
     update: async (where: unknown, values: Record<string, unknown>) => {
@@ -90,6 +93,7 @@ export function fixture() {
     findOneBy: async (where: unknown) => {
       events.push('refresh-hint')
       assert.deepEqual(where, { tokenHash: digest(bytes) })
+
       return state.hintMissing ? null : { ...token }
     },
     findOne: async (query: unknown) => {
@@ -98,6 +102,7 @@ export function fixture() {
         where: { tokenHash: digest(bytes) },
         lock: { mode: 'pessimistic_write' }
       })
+
       return state.tokenMissing ? null : { ...token }
     },
     update: async (where: unknown, values: { consumedAt: Date }) => {
@@ -115,18 +120,22 @@ export function fixture() {
     getRepository: (schema: unknown) => {
       const isUserSchema = schema === UserSchema
       if (isUserSchema) {
+
         return users
       }
       const isSessionSchema = schema === AuthSessionSchema
       if (isSessionSchema) {
+
         return sessions
       }
       assert.equal(schema, AuthRefreshTokenSchema)
+
       return refresh
     },
     query: async (sql: string) => {
       assert.equal(sql, 'SELECT to_timestamp(floor(extract(epoch from clock_timestamp()))) AS now')
       events.push('fresh-time')
+
       return [{ now: state.freshTime }]
     }
   } as unknown as EntityManager
@@ -140,6 +149,7 @@ export function fixture() {
           const result = await run(manager)
           await state.beforeCommit()
           events.push('commit')
+
           return result
         } catch (error) {
           Object.assign(token, before.token)
@@ -158,6 +168,7 @@ export function fixture() {
         issuedAt: state.freshTime.getTime() / 1000,
         idleDeadline: session.lastActiveAt.getTime() / 1000 + idleSeconds
       })
+
       return {
         accessToken: 'test-access-placeholder',
         issuedAt: input.issuedAt,
@@ -165,6 +176,7 @@ export function fixture() {
       }
     }
   }
+
   return { deps, state, user, session, token, bytes, raw, events, inserted }
 }
 
@@ -175,6 +187,7 @@ export async function failure(promise: Promise<unknown>, code: string) {
     assert.equal((error as Error & { code: string }).code, code)
     assert.equal(error.cause, undefined)
     assert.doesNotMatch(String(error.stack), /private detail/)
+
     return true
   })
 }

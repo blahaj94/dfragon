@@ -246,6 +246,7 @@ test('model REST API authenticates before multipart parsing and preserves upload
     )
     body.append('files', new Blob(['synthetic weights']), 'weights.pdparams')
     body.append('files', new Blob(['가\n나\n']), 'characters.txt')
+
     return body
   }
   try {
@@ -375,6 +376,7 @@ async function fixture(
     const body = init?.body ? JSON.parse(String(init.body)) : undefined
     if (path === '/auth/login-requests') {
       assert.equal(body.clientId, 'ocr')
+
       return Response.json({
         requestId: randomUUID(),
         browserUrl: `${authOrigin}/auth/login/authorize?ticket=synthetic`,
@@ -384,6 +386,7 @@ async function fixture(
     if (path === '/auth/exchange') {
       assert.equal(body.clientId, 'ocr')
       assert.equal(body.codeVerifier.length, 43)
+
       return Response.json({
         accessToken: 'synthetic-access',
         refreshToken: 'synthetic-refresh',
@@ -393,6 +396,7 @@ async function fixture(
     }
     if (path === '/auth/refresh') {
       await new Promise((resolve) => setTimeout(resolve, 15))
+
       return Response.json({
         accessToken: 'synthetic-refreshed',
         refreshToken: 'synthetic-rotated',
@@ -401,11 +405,14 @@ async function fixture(
     }
     if (path === '/me') {
       if (revoked) {
+
         return new Response(null, { status: 401 })
       }
+
       return Response.json({ user: { id: identity, nickname: '테스트' } })
     }
     if (path === '/auth/logout') {
+
       return new Response(null, { status: 204 })
     }
     throw new Error('Unexpected auth request')
@@ -430,6 +437,7 @@ async function fixture(
       headers: { Cookie: binding },
       redirect: 'manual'
     })
+
     return {
       response,
       cookie: response.headers
@@ -438,6 +446,7 @@ async function fixture(
         ?.split(';')[0]
     }
   }
+
   return {
     base,
     store,

@@ -41,11 +41,13 @@ function repository(t) {
       '-m',
       'Fixture changes'
     )
+
     return git('rev-parse', 'HEAD')
   }
   git('init', '--quiet')
   write('docs/README.md')
   const initial = commit()
+
   return { cwd, git, write, commit, initial }
 }
 
@@ -306,8 +308,10 @@ const apiOptions = {
 }
 
 function baselineApi(responses, requests = []) {
+
   return async (url, options) => {
     requests.push({ url, options })
+
     return { ok: true, json: async () => responses.shift() }
   }
 }

@@ -43,6 +43,7 @@ describe('desktop auth bootstrap', () => {
     const operations = harness.operations
     const createDependencies = vi.fn(() => {
       operations.push('dependencies:create')
+
       return harness.dependencies
     })
     const searchClock = {

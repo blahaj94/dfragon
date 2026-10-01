@@ -25,6 +25,7 @@ window.inspectFixtureFrame = (video) => ({
   frameHeight: video.videoHeight,
   allSlotsPresent: capturePartyNicknameCrops(video).every((crop) => {
     const isPresent = crop != null
+
     return isPresent
   })
 })

@@ -55,6 +55,7 @@ vi.mock('node:timers/promises', () => {
   const setTimeout = async (milliseconds: number): Promise<void> => {
     clock.now += milliseconds
   }
+
   return { setTimeout, default: { setTimeout } }
 })
 
@@ -109,6 +110,7 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
     webContents: {
       executeJavaScript: async (source: string): Promise<unknown> => {
         const isObservationInstall = source === installObservation
+
         return isObservationInstall ? true : window.eval(source)
       }
     }

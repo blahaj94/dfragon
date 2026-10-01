@@ -30,6 +30,7 @@ async function compileGenerated(directory) {
   })
   const path = join(directory, 'migration.mjs')
   await writeFile(path, outputText)
+
   return Object.values(await import(pathToFileURL(path).href))[0]
 }
 
@@ -41,6 +42,7 @@ async function constraintDefinitions(dataSource) {
     WHERE n.nspname = 'public' AND t.relname <> 'typeorm_migrations' AND c.contype IN ('p','u','f','c')
     ORDER BY t.relname, c.conname
   `
+
   return await dataSource.query(constraintDefinitionsSql)
 }
 
@@ -115,6 +117,7 @@ export async function assertSchemaFirst(configuration, mark) {
         await assertOrmRoundTrip(source)
         await source.query('CREATE DATABASE dfragon_schema_first_test')
         created = true
+
         return await constraintDefinitions(source)
       }
     )

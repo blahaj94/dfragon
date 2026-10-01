@@ -13,6 +13,7 @@ function fixture(overrides = {}) {
     setTimer(callback, delay) {
       const id = Symbol()
       timers.set(id, { callback, at: now + delay })
+
       return id
     },
     clearTimer: (id) => timers.delete(id)
@@ -22,10 +23,12 @@ function fixture(overrides = {}) {
     clock,
     searchCharacters: async (input) => {
       calls.push(input)
+
       return { rows: [] }
     },
     ...overrides
   })
+
   return {
     service,
     calls,
@@ -103,6 +106,7 @@ test('public search retains reservations for upstream failures and sanitizes unc
       await assert.rejects(f.service.search('127.0.0.1', originalUrl), (error) => {
         assert.equal(error.status, 500)
         assert.doesNotMatch(JSON.stringify(error), /private detail/)
+
         return true
       })
     }

@@ -26,11 +26,13 @@ async function recognized(): Promise<Fixture> {
   const crop = document.createElement('canvas')
   media.crops.mockReturnValue([crop, crop, crop, crop])
   await fixture.cycle(2)
+
   return fixture
 }
 function region(fixture: Fixture, slot = 0): HTMLElement {
   const view = fixture.container.querySelector(`[aria-label="슬롯 ${slot + 1} 검색"]`)
   expect(view, `슬롯 ${slot + 1} 검색의 접근 가능한 영역`).not.toBeNull()
+
   return view as HTMLElement
 }
 async function emitSlot(fixture: Fixture, slot: SearchSlot): Promise<void> {
@@ -206,6 +208,7 @@ it('failure 조건은 오류와 retry 대기 getter를 기존 순서로 평가�
         if (property === 'code' || property === 'retryAfterSeconds') {
           reads.push(property)
         }
+
         return Reflect.get(target, property, receiver)
       }
     }
@@ -307,6 +310,7 @@ it('한 slot의 retry 응답 대기는 다른 slot의 사용자 retry를 막지 
   const slots = fixture.current().slots.map((slot) => {
     const isFailure = slot.slot < 2
     const isFirst = slot.slot === 0
+
     return isFailure
       ? searchSlot({
           slot: slot.slot,

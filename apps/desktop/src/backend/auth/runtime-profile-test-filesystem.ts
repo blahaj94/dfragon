@@ -26,6 +26,7 @@ export function createRuntimeProfileTestFilesystem(
     const isDirectory = stat.isDirectory()
     const shouldUseNativeStat = !modelPosix || !isDirectory
     if (shouldUseNativeStat) {
+
       return stat
     }
     const protection = metadata.get(resolve(String(path)))
@@ -33,6 +34,7 @@ export function createRuntimeProfileTestFilesystem(
     if (isProtectionMissing) {
       throw new Error('POSIX profile fixture metadata was not registered')
     }
+
     return Object.assign(stat, {
       uid: protection.uid,
       mode: (stat.mode & ~0o7777) | protection.mode
@@ -41,6 +43,7 @@ export function createRuntimeProfileTestFilesystem(
 
   function registerRoot(root: string): void {
     if (!modelPosix) {
+
       return
     }
     let ancestor = root
@@ -57,6 +60,7 @@ export function createRuntimeProfileTestFilesystem(
       const parent = dirname(ancestor)
       const isFilesystemRoot = parent === ancestor
       if (isFilesystemRoot) {
+
         return
       }
       ancestor = parent
@@ -94,6 +98,7 @@ export function createRuntimeProfileTestFilesystem(
 
   function openSync(path: fs.PathLike, flags: number): number {
     if (!modelPosix) {
+
       return fs.openSync(path, flags)
     }
     const stat = lstatSync(path)
@@ -105,12 +110,14 @@ export function createRuntimeProfileTestFilesystem(
     }
     const handle = nextHandle--
     directoryHandles.add(handle)
+
     return handle
   }
 
   function fsyncSync(handle: number): void {
     if (!modelPosix) {
       fs.fsyncSync(handle)
+
       return
     }
     const isOpen = directoryHandles.has(handle)
@@ -122,6 +129,7 @@ export function createRuntimeProfileTestFilesystem(
   function closeSync(handle: number): void {
     if (!modelPosix) {
       fs.closeSync(handle)
+
       return
     }
     const wasOpen = directoryHandles.delete(handle)

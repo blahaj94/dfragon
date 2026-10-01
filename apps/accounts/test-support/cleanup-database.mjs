@@ -99,6 +99,7 @@ async function transactionFailure(source, cleanup, outcome) {
       commits++
       const isFirstCommit = commits === 1
       if (isFirstCommit) {
+
         return commit()
       }
       const shouldCommit = outcome === 'committed'
@@ -115,6 +116,7 @@ async function transactionFailure(source, cleanup, outcome) {
       assert.equal(error.message, 'Authentication cleanup failed')
       assert.equal(error.stack, 'Error: Authentication cleanup failed')
       assert.equal(error.cause, undefined)
+
       return true
     })
     assert.equal(commits, 2)
@@ -211,5 +213,6 @@ export async function assertAuthenticationCleanup(source, configuration, mark) {
     await run()
   }
   const sessions = await assertCleanupSessionConcurrency(source, cleanupAuthentication, mark)
+
   return cases.length + sessions
 }

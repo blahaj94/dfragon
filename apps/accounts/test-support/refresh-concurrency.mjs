@@ -28,6 +28,7 @@ async function observeWaitingRefresh({ source, kind, fixture: f }, controller) {
         if (isTargetTableLock) {
           observed.resolve((await query('SELECT pg_backend_pid() AS pid'))[0].pid)
         }
+
         return run()
       }
     })
@@ -62,6 +63,7 @@ async function concurrentR0(source) {
             observed.resolve()
           }
         }
+
         return run()
       }
     })
@@ -79,6 +81,7 @@ async function concurrentR0(source) {
       assert.equal(
         results.filter((result) => {
           const hasSuccessfulResult = result.value != null
+
           return hasSuccessfulResult
         }).length,
         1
@@ -86,12 +89,14 @@ async function concurrentR0(source) {
       assert.equal(
         results.filter((result) => {
           const isAuthenticationRequired = result.error?.code === 'AUTHENTICATION_REQUIRED'
+
           return isAuthenticationRequired
         }).length,
         1
       )
       const next = results.find((result) => {
         const hasSuccessfulResult = result.value != null
+
         return hasSuccessfulResult
       }).value.refreshToken
       await rejected(() => f.rotate(next))
@@ -116,6 +121,7 @@ async function r2BeforeReuse(source) {
       signing.resolve()
       await releaseSigning.promise
     }
+
     return signer(input)
   }
   const first = settled(f.rotate(f.initial.refreshToken))
@@ -127,6 +133,7 @@ async function r2BeforeReuse(source) {
     query: async ({ sql, run }) => {
       const canPauseReplay = !paused
       if (!canPauseReplay) {
+
         return run()
       }
 
@@ -138,6 +145,7 @@ async function r2BeforeReuse(source) {
         replayReady.resolve()
         await releaseReplay.promise
       }
+
       return run()
     }
   })
@@ -375,5 +383,6 @@ export async function assertRefreshConcurrency(source, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

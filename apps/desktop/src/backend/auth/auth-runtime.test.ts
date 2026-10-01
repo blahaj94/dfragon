@@ -9,6 +9,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
   const promise = new Promise<T>((resolveValue) => {
     resolve = resolveValue
   })
+
   return { promise, resolve }
 }
 
@@ -21,6 +22,7 @@ describe('Auth runtime operation ownership', () => {
     let reentrant: Promise<AuthSnapshot> | undefined
     const first = runtime.start(() => {
       reentrant = runtime.start(duplicate)
+
       return completed.promise
     })
 
@@ -60,6 +62,7 @@ describe('Auth runtime operation ownership', () => {
     let reentrant: Promise<AuthAuthorization> | undefined
     const first = runtime.shareRefresh(1, () => {
       reentrant = runtime.shareRefresh(1, duplicate)
+
       return previous.promise
     })
 

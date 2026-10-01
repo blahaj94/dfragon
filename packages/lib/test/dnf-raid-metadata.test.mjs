@@ -24,6 +24,7 @@ function frame(width, height, color = [16, 19, 23, 255]) {
   for (let index = 0; index < rgba.length; index += 4) {
     rgba.set(color, index)
   }
+
   return { width, height, rgba }
 }
 
@@ -59,6 +60,7 @@ function glyph(character, color = [205, 210, 225, 255]) {
       }
     }
   }
+
   return image
 }
 
@@ -76,6 +78,7 @@ function badge(party) {
   if (party === '싱글') {
     copy(glyph('1'), image, 23, 0)
   }
+
   return image
 }
 
@@ -109,6 +112,7 @@ function score(text, color = [205, 210, 225, 255], gold = false) {
     }
     left += imageGlyph.width
   }
+
   return image
 }
 
@@ -131,9 +135,11 @@ function fixture(values, scale = 1) {
       }
       copy(badge(party), image, partyRegion.x, partyRegion.y, scale)
       copy(score(text, color, gold), image, equipmentScoreRegion.x, equipmentScoreRegion.y, scale)
+
       return { row: index + 1, occupied, partyRegion, equipmentScoreRegion }
     }
   )
+
   return { image, rows }
 }
 

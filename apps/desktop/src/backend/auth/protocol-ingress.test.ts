@@ -37,6 +37,7 @@ class FakeApp extends EventEmitter {
   requestSingleInstanceLock(additionalData?: Record<string, unknown>): boolean {
     this.calls.push('requestSingleInstanceLock')
     this.lockData = additionalData
+
     return this.lockResult
   }
 
@@ -46,6 +47,7 @@ class FakeApp extends EventEmitter {
 }
 
 function createApp(): FakeApp & ProtocolIngressApp {
+
   return new FakeApp() as FakeApp & ProtocolIngressApp
 }
 
@@ -53,6 +55,7 @@ function createHandoff(argv: readonly unknown[], returnTarget: string = RETURN_T
   const secondary = createApp()
   secondary.lockResult = false
   createProtocolIngress({ app: secondary, argv, returnTarget })
+
   return secondary.lockData
 }
 
@@ -74,14 +77,17 @@ function isOrdinarySecondInstanceInvocation(
   values: readonly unknown[],
   returnTarget: string
 ): boolean {
+
   return classifyOrdinarySecondInstanceInvocation(createHandoff(values, returnTarget), returnTarget)
 }
 
 function returnUrl(code = CODE, returnTarget = RETURN_TARGET): string {
+
   return `${returnTarget}?code=${code}`
 }
 
 function openUrlEvent(): ProtocolOpenUrlEvent & { prevented: boolean } {
+
   return {
     prevented: false,
     preventDefault() {
@@ -275,6 +281,7 @@ describe('Desktop auth protocol ingress', () => {
       const ingress = createProtocolIngress({ app, argv: [], returnTarget: RETURN_TARGET })
       ingress.attach(vi.fn(), activate)
       emitSecondInstance(app, argv)
+
       return activate
     }
 

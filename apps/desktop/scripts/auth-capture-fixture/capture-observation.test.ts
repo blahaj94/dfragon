@@ -57,8 +57,10 @@ vi.mock('../../src/backend/capture/ipc-handler', () => ({
       if (product.rejectNickname) {
         throw new Error('Synthetic handler rejection')
       }
+
       return product.commandResult
     })
+
     return vi.fn()
   },
   registerCaptureWindow: (window: BrowserWindow) => {

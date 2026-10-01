@@ -8,6 +8,7 @@ import ts from 'typescript'
 import type { DataSource } from 'typeorm'
 
 async function generator() {
+
   return (await import(new URL('../src/database/generate.js', import.meta.url).href)) as {
     generateMigration(name: string, factory: () => DataSource, directory: string): Promise<string>
   }
@@ -118,6 +119,7 @@ test('generation rejects unsafe names, reports no changes and sanitizes connecti
         assert.equal(error.message, 'Database migration generation failed')
         const stackContainsConnectionValue = error.stack?.includes('secret connection value')
         assert.equal(stackContainsConnectionValue, false)
+
         return true
       }
     )

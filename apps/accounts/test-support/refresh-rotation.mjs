@@ -126,5 +126,6 @@ export async function assertRefreshRotation(source, mark) {
     mark(name)
     await run(source)
   }
+
   return cases.length
 }

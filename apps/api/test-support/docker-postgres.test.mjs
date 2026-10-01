@@ -53,16 +53,19 @@ function tarHeader({ name, size = 0, type = '0', prefix = '', sizeBytes }) {
   header.write(prefix, 345, 155)
   const checksum = header.reduce((sum, byte) => sum + byte, 0)
   header.write(`${checksum.toString(8).padStart(6, '0')}\0 `, 148)
+
   return header
 }
 
 function tarEntry({ name = 'manifest.json', content = manifestBytes, ...header }) {
   const bytes = Buffer.from(content)
   const padding = Buffer.alloc((512 - (bytes.length % 512)) % 512)
+
   return Buffer.concat([tarHeader({ name, size: bytes.length, ...header }), bytes, padding])
 }
 
 function tarArchive(...entries) {
+
   return Buffer.concat([...entries, Buffer.alloc(1024)])
 }
 
@@ -73,6 +76,7 @@ function paxRecord({ key, value }) {
     const nextLength = Buffer.byteLength(`${length} ${record}`)
     const isLengthStable = nextLength === length
     if (isLengthStable) {
+
       return `${length} ${record}`
     }
     length = nextLength
@@ -87,6 +91,7 @@ async function withArchive({ t, bytes, check }) {
   t.mock.method(fsPromises, 'open', async (...args) => {
     const handle = await originalOpen(...args)
     handles.push(handle)
+
     return handle
   })
   syncBuiltinESMExports()
@@ -370,6 +375,7 @@ test('removes the temporary saved archive on success, parser/JSON failure and Do
           child.stderr.end()
           child.emit('close', code, null)
         })
+
         return child
       })
       syncBuiltinESMExports()

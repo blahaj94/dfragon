@@ -25,6 +25,7 @@ async function click(label: string): Promise<void> {
 function publish(change: Partial<AuthSnapshot>): AuthSnapshot {
   snapshot = { ...snapshot, ...change, revision: snapshot.revision + 1 }
   listeners.forEach((listener) => listener(snapshot))
+
   return snapshot
 }
 
@@ -52,6 +53,7 @@ beforeEach(() => {
     getAuthState: vi.fn(async () => snapshot),
     onAuthStateChanged: vi.fn((listener) => {
       listeners.add(listener)
+
       return () => listeners.delete(listener)
     }),
     beginLogin: vi.fn<AuthApi['beginLogin']>(async () => ({

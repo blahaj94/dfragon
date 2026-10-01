@@ -32,6 +32,7 @@ interface DatabaseModuleExports {
 
 async function loadDatabaseModule(): Promise<DatabaseModuleExports> {
   const moduleUrl = new URL('../src/database/index.js', import.meta.url)
+
   return (await import(moduleUrl.href)) as DatabaseModuleExports
 }
 
@@ -115,6 +116,7 @@ test('database configuration accepts only complete discrete connection fields', 
         assert.equal(error.message, 'Invalid database configuration')
         const messageContainsSecret = error.message.includes('secret')
         assert.equal(messageContainsSecret, false)
+
         return true
       }
     )
@@ -139,15 +141,18 @@ test('migration command uses one all-migrations transaction and always destroys 
   let initialized = false
   const fakeDataSource = {
     get isInitialized() {
+
       return initialized
     },
     initialize: async () => {
       calls.push('initialize')
       initialized = true
+
       return fakeDataSource
     },
     runMigrations: async (options?: { transaction?: 'all' | 'none' | 'each' }) => {
       calls.push(`up:${options?.transaction}`)
+
       return [{ name: 'InitialAuthSchema' }]
     },
     destroy: async () => {
@@ -170,6 +175,7 @@ test('migration command destroys its connection after a database failure', async
   let initialized = false
   const fakeDataSource = {
     get isInitialized() {
+
       return initialized
     },
     initialize: async () => {
@@ -192,6 +198,7 @@ test('migration command destroys its connection after a database failure', async
       assert.equal(error.cause, undefined)
       const stackContainsRawErrorMessage = error.stack?.includes(rawError.message)
       assert.equal(stackContainsRawErrorMessage, false)
+
       return true
     }
   )
@@ -211,6 +218,7 @@ test('migration command sanitizes configuration factory failures', async () => {
       assert.equal(error.message, 'Database migration failed')
       const stackContainsConfigurationValue = error.stack?.includes('secret configuration value')
       assert.equal(stackContainsConfigurationValue, false)
+
       return true
     }
   )
@@ -223,10 +231,12 @@ test('migration status reads metadata without asking TypeORM to create its histo
     isInitialized: false,
     initialize: async () => {
       fakeDataSource.isInitialized = true
+
       return fakeDataSource
     },
     query: async (sql: string) => {
       queries.push(sql)
+
       return [{ exists: false }]
     },
     showMigrations: async () =>
@@ -254,6 +264,7 @@ test('database options register only typed authentication schemas before migrati
       .map((schema) => {
         const isEntitySchema = schema instanceof EntitySchema
         assert(isEntitySchema)
+
         return schema.options.tableName
       })
       .sort(),
@@ -271,6 +282,7 @@ test('migration status reports a newly registered migration as pending', async (
     },
     query: async (sql: string) => {
       const isHistoryTableExistenceQuery = sql.includes('to_regclass')
+
       return isHistoryTableExistenceQuery
         ? [{ exists: true }]
         : [{ name: new initialAuthSchema().name }]

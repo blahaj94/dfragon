@@ -7,6 +7,7 @@ import { NeopleSearchFailure } from '../src/errors/neople-search.js'
 const input = { characterName: '가나다', serverId: 'cain', limit: 10 }
 
 function jsonResponse(body: unknown, status = 200): Response {
+
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' }
@@ -14,6 +15,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function rawResponse(body: string, status = 200): Response {
+
   return new Response(body, { status, headers: { 'content-type': 'application/json' } })
 }
 
@@ -30,6 +32,7 @@ async function expectFailure(
     assert(isSearchFailure)
     assert.equal(error.status, status)
     assert.deepEqual(error.body, { error: { code, message } })
+
     return error
   }
   assert.fail('expected search to fail')
@@ -353,6 +356,7 @@ test('full body completion at the exact deadline is a timeout and schedules 5,00
         ok: true,
         text: async () => {
           now = 5_000
+
           return JSON.stringify({
             rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
           })
@@ -361,6 +365,7 @@ test('full body completion at the exact deadline is a timeout and schedules 5,00
     now: () => now,
     setTimer: (_callback, delay) => {
       scheduledDelay = delay
+
       return Symbol('timer')
     },
     clearTimer: () => {
@@ -388,6 +393,7 @@ test('a fully parsed and projected response at 4,999ms succeeds', async () => {
         ok: true,
         text: async () => {
           now = 4_999
+
           return JSON.stringify({
             rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
           })
@@ -396,6 +402,7 @@ test('a fully parsed and projected response at 4,999ms succeeds', async () => {
     now: () => now,
     setTimer: (_callback, delay) => {
       scheduledDelay = delay
+
       return Symbol('timer')
     },
     clearTimer: () => undefined
@@ -423,6 +430,7 @@ test('deadline reached while projection starts is rechecked after projection', a
         status: 200,
         text: async () => {
           now = 4_999
+
           return JSON.stringify({
             rows: [{ characterId: 'id', characterName: '이름', serverId: 'cain', fame: 1 }]
           })
@@ -431,9 +439,11 @@ test('deadline reached while projection starts is rechecked after projection', a
       Object.defineProperty(response, 'ok', {
         get: () => {
           now = 5_000
+
           return true
         }
       })
+
       return response as Response
     },
     now: () => now,
@@ -455,6 +465,7 @@ test('deadline aborts the request, wins over a late known code, and performs no 
   const search = createNeopleCharacterSearchForTest('fake-key', {
     fetch: async (_url, init) => {
       calls += 1
+
       return new Promise<Response>((resolve, reject) => {
         init?.signal?.addEventListener('abort', () => {
           reject(new Error('aborted'))
@@ -465,6 +476,7 @@ test('deadline aborts the request, wins over a late known code, and performs no 
     now: () => 0,
     setTimer: (handler) => {
       callback = handler
+
       return Symbol('timer')
     },
     clearTimer: () => undefined
@@ -494,10 +506,12 @@ test('concurrent searches keep controller, timer, and result state independent',
       const name = new URL(request).searchParams.get('characterName')
       const isFastSearch = name === '빠른검색'
       if (isFastSearch) {
+
         return jsonResponse({
           rows: [{ characterId: 'fast', characterName: name, serverId: 'cain', fame: 0 }]
         })
       }
+
       return new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
       })
@@ -506,6 +520,7 @@ test('concurrent searches keep controller, timer, and result state independent',
     setTimer: (callback) => {
       const timer = { callback, cleared: false }
       timers.push(timer)
+
       return timer
     },
     clearTimer: (timer) => {

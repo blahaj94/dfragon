@@ -47,6 +47,7 @@ export function createFixtureSearch({
     const currentScenario = queued.shift() ?? scenario
     const isPending = currentScenario === 'pending'
     if (isPending) {
+
       return new Promise<Response>((_resolve, reject) => {
         request.signal.addEventListener(
           'abort',
@@ -82,8 +83,10 @@ export function createFixtureSearch({
     if (isRateLimited) {
       headers['Retry-After'] = '5'
     }
+
     return new Response(JSON.stringify(body), { status, headers })
   }
+
   return {
     runtime: { apiOrigin, clock, fetch: transport },
     counts,

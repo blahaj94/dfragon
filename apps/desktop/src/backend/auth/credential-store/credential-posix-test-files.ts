@@ -9,8 +9,10 @@ vi.mock('node:fs', async (importOriginal) => {
   const native = await importOriginal<typeof import('node:fs')>()
   const isWindows = process.platform === 'win32'
   if (!isWindows) {
+
     return native
   }
+
   return {
     ...native,
     constants: { ...native.constants, O_NOFOLLOW: 0x20000000, O_DIRECTORY: 0x40000000 }
@@ -32,12 +34,14 @@ export function createPosixTestFiles({
 
   function modeNumber(mode: Mode | undefined, fallback: number): number {
     const isString = typeof mode === 'string'
+
     return isString ? Number.parseInt(mode, 8) : (mode ?? fallback)
   }
 
   function withMetadata(stat: Stats, entry: Metadata | undefined): Stats {
     const hasMetadata = entry != null
     if (!hasMetadata) {
+
       return stat
     }
     const isLink = entry.target != null
@@ -45,6 +49,7 @@ export function createPosixTestFiles({
     const isDirectory = stat.isDirectory()
     const isRegularFile = !isLink && isFile
     const isRealDirectory = !isLink && isDirectory
+
     return Object.assign(stat, {
       mode: (isLink ? constants.S_IFLNK : stat.mode & ~0o7777) | entry.mode,
       uid: entry.uid,
@@ -57,6 +62,7 @@ export function createPosixTestFiles({
   async function statPath(path: PathLike): Promise<Stats> {
     const stat = await fs.lstat(path)
     const entry = metadata.get(String(path))
+
     return withMetadata(stat, entry)
   }
 
@@ -68,6 +74,7 @@ export function createPosixTestFiles({
       const isOptionsObject = options != null && typeof options === 'object'
       const mode = isOptionsObject ? options.mode : (options ?? undefined)
       metadata.set(String(path), { mode: modeNumber(mode, 0o777), uid })
+
       return result
     }) as typeof fs.mkdir,
     chmod: async (path, mode) => {
@@ -118,9 +125,11 @@ export function createPosixTestFiles({
           }
         }
         // FileHandle의 사용 범위를 명시적으로 제한한다. 실제 Windows directory fsync를 주장하지 않는다.
+
         return {
           stat: async () => {
             assertOpen()
+
             return statPath(path)
           },
           sync: async () => {
@@ -147,6 +156,7 @@ export function createPosixTestFiles({
       const handleMetadata = metadata.get(key)
       const stat = handle.stat.bind(handle)
       handle.stat = (async () => withMetadata(await stat(), handleMetadata)) as typeof handle.stat
+
       return handle
     },
     rename: async (from, to) => {
@@ -164,5 +174,6 @@ export function createPosixTestFiles({
       metadata.delete(String(path))
     }
   }
+
   return files
 }

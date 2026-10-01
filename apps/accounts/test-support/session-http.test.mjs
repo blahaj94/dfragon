@@ -17,6 +17,7 @@ let logoutFailure
 const loginService = {
   create: async () => {
     loginCalls++
+
     return {
       requestId: randomUUID(),
       browserUrl: 'https://api.test.invalid/auth/login/authorize?ticket=test',
@@ -25,10 +26,12 @@ const loginService = {
   },
   exchange: async () => {
     loginCalls++
+
     return { tokenType: 'Bearer', accessToken: 'login-access', refreshToken: 'login-refresh' }
   },
   authorize: async () => {
     loginCalls++
+
     return {
       requestId: randomUUID(),
       purpose: 'login',
@@ -37,6 +40,7 @@ const loginService = {
   },
   callback: async () => {
     loginCalls++
+
     return {
       returnUrl: 'dfragon-test://login/complete?code=exchange-only',
       cookie: '__Host-test=; Max-Age=0; Secure; HttpOnly; SameSite=Lax; Path=/'
@@ -51,6 +55,7 @@ const sessionService = {
     if (hasRefreshFailure) {
       throw refreshFailure
     }
+
     return {
       tokenType: 'Bearer',
       accessToken: 'session-access',
@@ -79,6 +84,7 @@ after(async () => {
 })
 
 function post(path, chunks, headers = {}) {
+
   return new Promise((resolve, reject) => {
     const httpRequest = request(
       `${base}${path}`,

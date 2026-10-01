@@ -4,10 +4,12 @@ import type { DataSource } from 'typeorm'
 export const checkedAt = new Date('2026-09-06T00:00:00.000Z')
 
 export function rawRefreshToken(): string {
+
   return randomBytes(32).toString('base64url')
 }
 
 export function refreshTokenHash(rawToken: string): Buffer {
+
   return createHash('sha256').update(Buffer.from(rawToken, 'base64url')).digest()
 }
 
@@ -52,6 +54,7 @@ export function logoutFixture() {
     findOne: async () => {
       events.push('user-lock')
       const isUserMissing = state.userMissing
+
       return isUserMissing ? null : user
     }
   }
@@ -59,11 +62,13 @@ export function logoutFixture() {
     findOneBy: async () => {
       events.push('session-hint')
       const isSessionHintMissing = state.sessionHintMissing
+
       return isSessionHintMissing ? null : session
     },
     findOne: async () => {
       events.push('session-lock')
       const isSessionMissing = state.sessionMissing
+
       return isSessionMissing ? null : session
     },
     update: async (_criteria: unknown, update: { revokedAt: Date; revokedReason: 'logout' }) => {
@@ -76,11 +81,13 @@ export function logoutFixture() {
     findOneBy: async () => {
       events.push('refresh-hint')
       const isTokenHintMissing = state.tokenHintMissing
+
       return isTokenHintMissing ? null : token
     },
     findOne: async () => {
       events.push('refresh-lock')
       const isTokenMissing = state.tokenMissing
+
       return isTokenMissing ? null : token
     }
   }
@@ -88,16 +95,20 @@ export function logoutFixture() {
     getRepository: (schema: { options: { name: string } }) => {
       const isUserSchema = schema.options.name === 'User'
       if (isUserSchema) {
+
         return users
       }
       const isSessionSchema = schema.options.name === 'AuthSession'
       if (isSessionSchema) {
+
         return sessions
       }
+
       return refresh
     },
     query: async () => {
       events.push('fresh-time')
+
       return [{ now: checkedAt }]
     }
   }

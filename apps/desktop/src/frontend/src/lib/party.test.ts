@@ -50,6 +50,7 @@ describe('파티 layout', () => {
         configurable: true,
         get: () => {
           access.push(channel)
+
           return values[index]
         }
       })
@@ -73,6 +74,7 @@ describe('파티 layout', () => {
           configurable: true,
           get: () => {
             access.push(channel)
+
             return PARTY_MANA_COLOR[offset]
           }
         })
@@ -104,6 +106,7 @@ it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯
     if (x === 56 && y === 15) {
       data.set([255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255])
     }
+
     return { data }
   })
   const nicknameContext = { putImageData: vi.fn() }

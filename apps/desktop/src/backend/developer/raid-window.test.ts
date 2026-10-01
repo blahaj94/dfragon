@@ -45,6 +45,7 @@ function raidFrame(
       paint(x + 207, top + 5, 60, 10, [190, 175 + index, 140, 128])
     }
   }
+
   return { width, height, rgba }
 }
 

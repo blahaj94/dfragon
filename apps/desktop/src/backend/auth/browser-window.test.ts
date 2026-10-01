@@ -42,6 +42,7 @@ function fixture(): {
     session = new TestSession(),
     controller = new AbortController()
   electron.BrowserWindow.mockImplementation(function () {
+
     return window
   })
   electron.fromPartition.mockReturnValue(session)
@@ -51,6 +52,7 @@ function fixture(): {
     onClosed: vi.fn(),
     onReturn: vi.fn(async (_url, onClaimed) => onClaimed())
   }
+
   return {
     window,
     session,

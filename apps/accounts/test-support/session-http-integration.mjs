@@ -30,6 +30,7 @@ const loginService = {
 }
 
 function post(base, path, body) {
+
   return fetch(`${base}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -38,6 +39,7 @@ function post(base, path, body) {
 }
 
 function postChunks(base, path, chunks, headers = {}) {
+
   return new Promise((resolve, reject) => {
     const httpRequest = request(
       `${base}${path}`,
@@ -66,6 +68,7 @@ async function withSessionApp(f, operation) {
   const app = await createLoginHttpApp(loginService, createSessionHttpService(f.deps))
   await app.listen(0, '127.0.0.1')
   try {
+
     return await operation(await app.getUrl())
   } finally {
     await app.close()
@@ -193,6 +196,7 @@ async function noResponseBeforeCommit(source, route) {
         const pending = settled(
           post(base, route, { refreshToken: f.initial.refreshToken }).then((response) => {
             delivered = true
+
             return response
           })
         )
@@ -217,6 +221,7 @@ async function noResponseBeforeCommit(source, route) {
 function observeTransactionStarts() {
   const pids = []
   const secondStarted = Promise.withResolvers()
+
   return {
     pids,
     secondStarted: secondStarted.promise,
@@ -233,6 +238,7 @@ function observeTransactionStarts() {
           secondStarted.resolve()
         }
       }
+
       return result
     }
   }
@@ -255,6 +261,7 @@ async function refreshThenLogoutWithLateResponse(source) {
       const isRefreshCommit = commitCount === 1
       if (!isRefreshCommit) {
         await commit()
+
         return
       }
       firstCommitReached.resolve()
@@ -274,6 +281,7 @@ async function refreshThenLogoutWithLateResponse(source) {
           post(base, '/auth/refresh', { refreshToken: f.initial.refreshToken }).then(
             async (response) => {
               refreshDelivered = true
+
               return { response, body: await response.json() }
             }
           )
@@ -312,6 +320,7 @@ async function refreshThenLogoutWithLateResponse(source) {
         releaseRefreshResponse.resolve()
         const pendingRequests = [pendingRefresh, pendingLogout].filter((pending) => {
           const hasPendingRequest = pending != null
+
           return hasPendingRequest
         })
         await Promise.all(pendingRequests)
@@ -353,6 +362,7 @@ async function logoutThenRefresh(source) {
         pendingLogout = settled(
           post(base, '/auth/logout', { refreshToken: f.initial.refreshToken }).then((response) => {
             logoutDelivered = true
+
             return response
           })
         )
@@ -378,6 +388,7 @@ async function logoutThenRefresh(source) {
         releaseFirstCommit.resolve()
         const pendingRequests = [pendingLogout, pendingRefresh].filter((pending) => {
           const hasPendingRequest = pending != null
+
           return hasPendingRequest
         })
         await Promise.all(pendingRequests)
@@ -440,11 +451,13 @@ async function transportAndLogCanary(source) {
   process.stdout.write = function (chunk, ...args) {
     const isBufferChunk = Buffer.isBuffer(chunk)
     stdout += isBufferChunk ? chunk.toString('utf8') : String(chunk)
+
     return stdoutWrite.call(this, chunk, ...args)
   }
   process.stderr.write = function (chunk, ...args) {
     const isBufferChunk = Buffer.isBuffer(chunk)
     stderr += isBufferChunk ? chunk.toString('utf8') : String(chunk)
+
     return stderrWrite.call(this, chunk, ...args)
   }
   try {
@@ -535,5 +548,6 @@ export async function assertSessionHttpIntegration(source, mark) {
     mark(name)
     await run()
   }
+
   return cases.length
 }

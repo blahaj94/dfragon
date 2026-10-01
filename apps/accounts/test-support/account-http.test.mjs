@@ -54,6 +54,7 @@ test('GET account verifier failures are sanitized JSON without DB activity', asy
 
 function rawWire(base, wire) {
   const url = new URL(base)
+
   return new Promise((resolve, reject) => {
     let response = ''
     const socket = createConnection({ host: url.hostname, port: Number(url.port) })

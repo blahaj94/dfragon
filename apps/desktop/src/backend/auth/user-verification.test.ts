@@ -17,6 +17,7 @@ function createFailureWithCodeGetter(codes: readonly AuthHttpFailure['code'][]):
         throw new Error('Unexpected AuthHttpFailure code read.')
       }
       reads.push(code)
+
       return code
     }
   })
@@ -31,6 +32,7 @@ describe('verificationFailureNotice', () => {
     Object.defineProperty(error, 'code', {
       get: () => {
         codeReads += 1
+
         return 'network'
       }
     })

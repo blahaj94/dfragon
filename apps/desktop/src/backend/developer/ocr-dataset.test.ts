@@ -42,6 +42,7 @@ function setup(): {
     recoverAuthorization: vi.fn(async () => credential),
     subscribe: (listener: (snapshot: AuthSnapshot) => void) => {
       listeners.add(listener)
+
       return () => {
         listeners.delete(listener)
       }
@@ -54,6 +55,7 @@ function setup(): {
       : Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [remoteSample] })
   )
   const dataset = createOcrDataset(auth, request)
+
   return {
     dataset,
     request,

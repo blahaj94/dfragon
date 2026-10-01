@@ -56,6 +56,7 @@ test('nickname rejects raw controls before trim, malformed UTF-16, empty and 21 
         assert.equal(error.status, 400)
         assert.equal(error.message, '닉네임을 확인해 주세요.')
         assert.equal(error.cause, undefined)
+
         return true
       }
     )

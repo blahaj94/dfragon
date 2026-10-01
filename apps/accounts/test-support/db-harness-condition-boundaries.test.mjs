@@ -5,31 +5,38 @@ import * as databaseIntegration from './database-integration.mjs'
 import * as postgres from './docker-postgres.mjs'
 
 function resultWithReads({ code, signal, reads }) {
+
   return {
     get code() {
       reads.push('code')
+
       return code
     },
     get signal() {
       reads.push('signal')
+
       return signal
     }
   }
 }
 
 function platformEntry({ os = 'linux', architecture = 'amd64', variant = 'v8', reads }) {
+
   return {
     platform: {
       get os() {
         reads.push('os')
+
         return os
       },
       get architecture() {
         reads.push('architecture')
+
         return architecture
       },
       get variant() {
         reads.push('variant')
+
         return variant
       }
     }
@@ -113,10 +120,12 @@ test('volume ownership matching guards name and destination reads', () => {
     Type: 'bind',
     get Name() {
       nonVolumeReads.push('name')
+
       return 'owned'
     },
     get Destination() {
       nonVolumeReads.push('destination')
+
       return postgres.POSTGRES_DATA.volumeTarget
     }
   }
@@ -128,10 +137,12 @@ test('volume ownership matching guards name and destination reads', () => {
     Type: 'volume',
     get Name() {
       wrongNameReads.push('name')
+
       return 'other'
     },
     get Destination() {
       wrongNameReads.push('destination')
+
       return postgres.POSTGRES_DATA.volumeTarget
     }
   }

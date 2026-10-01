@@ -51,6 +51,7 @@ function hold(points: Array<Omit<Observation, 'runId' | 'caseId' | 'sequence'>>)
     sequence: index + 1,
     ...point
   }))
+
   return {
     kind: 'dfragon-synthetic-windows-hold-v1',
     invocationOwner: 'synthetic-owner',
@@ -108,6 +109,7 @@ function disk(
   if (temporary) {
     add('.credential.v1.11111111-1111-4111-8111-111111111111.tmp', Buffer.from('incomplete'))
   }
+
   return { entries, content: 'synthetic-only', observation: 'read-only-before-store-inspect' }
 }
 const blocked = {

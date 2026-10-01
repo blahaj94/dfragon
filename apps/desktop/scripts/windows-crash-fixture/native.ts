@@ -28,6 +28,7 @@ export function createObservedNative(
     observer.assertActive()
     const result = operation()
     returns.push({ call, outcome: String(result) })
+
     return result
   }
   const api: WindowsSecurityApi = {
@@ -41,6 +42,7 @@ export function createObservedNative(
       const call = isRename
         ? 'SetFileInformationByHandle.FileRenameInfo'
         : 'SetFileInformationByHandle.FileDispositionInfo'
+
       return record(call, () => real.setFileInformationByHandle(...args))
     },
     closeHandle: (...args) => record('CloseHandle', () => real.closeHandle(...args))
@@ -73,12 +75,14 @@ export function createObservedNative(
       outcome: 'returned',
       detail: { path: relative(root, path), nativeReturns: returns.splice(0) }
     })
+
     return result
   }
   const handle = (value: bigint, path: string): WindowsCredentialFileHandle => ({
     read: async (maximum) => {
       observer.assertActive()
       const bytes = Buffer.alloc(maximum)
+
       return bytes.subarray(0, security.readFile(value, bytes, maximum))
     },
     write: (data) => step('adapter.write', path, () => security.writeFile(value, data)),
@@ -99,12 +103,15 @@ export function createObservedNative(
       const status = security.inspect(path, kind)
       const isTrusted = status === 'trusted'
       if (isTrusted) {
+
         return { status: kind === 'directory' ? 'trusted-directory' : 'trusted-file' }
       }
+
       return { status }
     },
     list: async (path) => {
       observer.assertActive()
+
       return security.list(path)
     },
     createDirectory: (path) =>
@@ -116,12 +123,14 @@ export function createObservedNative(
       ),
     openRead: async (path) => {
       observer.assertActive()
+
       return handle(security.openRead(path), path)
     },
     remove: (path) => step('adapter.remove', path, () => security.remove(path)),
     syncDirectory: (path) =>
       step('adapter.sync-directory', path, () => security.syncDirectory(path))
   }
+
   return {
     native,
     security,

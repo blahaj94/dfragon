@@ -24,11 +24,13 @@ vi.mock('./search-connection', () => ({
     onSnapshot: (snapshot: SearchSnapshot | null) => void
   }): SearchConnection => {
     connectionState.onSnapshot = options.onSnapshot
+
     return {
       isReady: () => true,
       connect: () => undefined,
       command: () => {
         connectionState.onCommand()
+
         return Promise.resolve(connectionState.responses.shift() ?? null)
       },
       dispose: () => undefined,
@@ -43,17 +45,21 @@ const searches: ReturnType<typeof createCaptureSearch>[] = []
 /** IPC snapshot과 signal의 외부 getter 평가 순서를 관측한다. */
 function observedSnapshot(prefix: string, events: string[]): SearchSnapshot {
   const snapshot = searchSnapshot()
+
   return {
     get runId() {
       events.push(`${prefix}.runId`)
+
       return snapshot.runId
     },
     get revision() {
       events.push(`${prefix}.revision`)
+
       return snapshot.revision
     },
     get captureId() {
       events.push(`${prefix}.captureId`)
+
       return snapshot.captureId
     },
     slots: snapshot.slots
@@ -72,6 +78,7 @@ function createSearch(onChange = vi.fn()): ReturnType<typeof createCaptureSearch
     onInvalidated: vi.fn()
   })
   searches.push(search)
+
   return search
 }
 
@@ -88,6 +95,7 @@ it('begin 판정은 양쪽 snapshot 비교 뒤 signal을 정확히 한 번 읽�
   const signal = {
     get aborted() {
       events.push('signal.aborted')
+
       return false
     }
   } as AbortSignal
@@ -113,6 +121,7 @@ it('begin 판정은 completed가 없으면 latest captureId 뒤 signal만 읽는
   const signal = {
     get aborted() {
       events.push('signal.aborted')
+
       return false
     }
   } as AbortSignal
@@ -126,6 +135,7 @@ it('begin 판정은 latest와 completed가 모두 없으면 snapshot getter 없�
   const signal = {
     get aborted() {
       events.push('signal.aborted')
+
       return false
     }
   } as AbortSignal
@@ -157,6 +167,7 @@ it('retry는 rate-limit retryAfter getter를 양수 대기 검사에서 두 번 
     code: 'SEARCH_RATE_LIMITED',
     get retryAfterSeconds() {
       events.push('error.retryAfterSeconds')
+
       return 2
     }
   }

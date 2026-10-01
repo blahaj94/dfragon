@@ -23,10 +23,12 @@ export async function stopOwnedProcessGroup(options) {
   function hasGroup() {
     try {
       kill(-child.pid, 0)
+
       return true
     } catch (error) {
       const isAbsent = error.code === 'ESRCH'
       if (isAbsent) {
+
         return false
       }
       throw error
@@ -53,11 +55,13 @@ export async function stopOwnedProcessGroup(options) {
       const groupExists = hasGroup()
       const isClean = hasExited && !groupExists
       if (isClean) {
+
         return true
       }
       const remainingMs = deadline - now()
       const hasExpired = remainingMs <= 0
       if (hasExpired) {
+
         return false
       }
       await sleep(Math.min(50, remainingMs))
@@ -80,6 +84,7 @@ export async function stopOwnedProcessGroup(options) {
     }
     const isCleanAfterTerm = await waitForCleanup(termDeadline)
     if (isCleanAfterTerm) {
+
       return
     }
 

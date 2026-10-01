@@ -34,6 +34,7 @@ async function fixture(): Promise<{
       controlCharacterSearch: control,
       onCharacterSearchChanged: (next) => {
         listener = next
+
         return () => {}
       }
     },
@@ -44,6 +45,7 @@ async function fixture(): Promise<{
   searches.push(search)
   search.connect()
   await vi.waitFor(() => expect(changed.mock.lastCall?.[0].ready).toBe(true))
+
   return {
     search,
     control,

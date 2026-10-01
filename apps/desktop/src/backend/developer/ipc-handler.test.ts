@@ -81,8 +81,10 @@ async function setup(): Promise<{
     if (handler == null) {
       throw new Error(`Missing developer handler: ${channel}`)
     }
+
     return Promise.resolve().then(() => handler(event, ...args))
   }
+
   return { handlers, rootDir, event, frame, webContents, window, invoke, dispose }
 }
 
@@ -287,6 +289,7 @@ it('does not restore arm eligibility when a later disable starts during recovery
         await recoveryReadGate
       }
     }
+
     return contents
   })
   const originalRename = fs.rename.bind(fs)
@@ -318,6 +321,7 @@ it('does not restore arm eligibility when a later disable starts during recovery
     let armSettled = false
     armAttempt = fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [2]).then((status) => {
       armSettled = true
+
       return status
     })
     await new Promise<void>((resolve) => setImmediate(resolve))
@@ -510,6 +514,7 @@ it('does not reopen remote reads after close or disable while settings are being
       const contents = await originalReadFile(path)
       started()
       await gate
+
       return contents
     })
     try {

@@ -31,6 +31,7 @@ function createAttempt(clock = new FakeClock()): {
       browserUrl: 'https://api.example.test/auth/login/authorize'
     })
   }
+
   return { pending, clock, onExpired, acceptRequest }
 }
 
@@ -51,6 +52,7 @@ describe('pending login actor', () => {
     await Promise.resolve()
     const claim = pending.claimExchange(OTHER_CODE, () => {
       expect(published).toBe(true)
+
       return { completion: Promise.resolve() }
     })
     expect(claim.status).toBe('claimed')
@@ -141,6 +143,7 @@ describe('pending login actor', () => {
     const claim = pending.claimExchange(CODE, () => {
       expect(pending.claimExchange(CODE, secondReserve)).toEqual({ status: 'ignored' })
       pending.dispose()
+
       return null
     })
     expect(claim).toEqual({ status: 'ignored' })
@@ -272,6 +275,7 @@ describe('pending login actor', () => {
       read,
       schedule: (_delay, callback) => {
         callback()
+
         return cancel
       }
     }
@@ -291,6 +295,7 @@ describe('pending login actor', () => {
     const cancel = vi.fn()
     const schedule = vi.fn(() => {
       pending.dispose()
+
       return cancel
     })
     const pending = createPendingLogin(

@@ -17,9 +17,11 @@ function environment({ image, overrides = {} }) {
       calls.push(sql)
       const isServerVersionQuery = sql === 'SHOW server_version'
       if (isServerVersionQuery) {
+
         return [{ server_version: '18.6 (Debian 18.6-1.pgdg13+2)' }]
       }
       assert.equal(sql, 'SHOW data_directory')
+
       return [{ data_directory: POSTGRES_DATA.pgdata }]
     },
     destroy: async () => {
@@ -40,6 +42,7 @@ function environment({ image, overrides = {} }) {
       ])
       const imageIdJson = JSON.stringify(overrides.imageId ?? image.imageId)
       const platformJson = JSON.stringify(overrides.platform ?? 'linux')
+
       return { stdout: `${imageIdJson} ${platformJson}\n` }
     }
     assert.deepEqual(args, ['exec', resources.containerName, 'uname', '-m'])
@@ -49,8 +52,10 @@ function environment({ image, overrides = {} }) {
       const isArm64Platform = image.platform.includes('arm64')
       architecture = isArm64Platform ? 'aarch64' : 'x86_64'
     }
+
     return { stdout: `${architecture}\n` }
   }
+
   return { calls, dataSource, dependencies: { createDataSource: () => dataSource, runDocker } }
 }
 

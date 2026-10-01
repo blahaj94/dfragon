@@ -50,6 +50,7 @@ try {
   const authFetch = async (input) => {
     const path = new URL(String(input)).pathname
     if (path === '/auth/login-requests') {
+
       return Response.json({
         requestId: randomUUID(),
         browserUrl: `${origin}/auth/login/authorize`,
@@ -57,6 +58,7 @@ try {
       })
     }
     if (path === '/auth/exchange') {
+
       return Response.json({
         accessToken: 'synthetic',
         refreshToken: 'synthetic',
@@ -65,9 +67,11 @@ try {
       })
     }
     if (path === '/me') {
+
       return Response.json({ user: { id: ownerId, nickname: '검증계정' } })
     }
     if (path === '/auth/logout') {
+
       return new Response(null, { status: 204 })
     }
     throw new Error('Unexpected fixture request')
@@ -157,6 +161,7 @@ try {
     ctx.fillRect(80, 110, 180, 10)
     ctx.fillStyle = '#6395c0'
     ctx.fillRect(80, 125, 180, 10)
+
     return canvas.toDataURL('image/png').split(',')[1]
   })
   const uploadToggle = page.getByRole('button', { name: '이미지 업로드', exact: true })
@@ -224,6 +229,7 @@ try {
   let repeatedSelectionDialogs = 0
   const dismissRepeatedSelection = (dialog) => {
     repeatedSelectionDialogs += 1
+
     return dialog.dismiss()
   }
   page.on('dialog', dismissRepeatedSelection)

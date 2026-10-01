@@ -14,6 +14,7 @@ const validResult = {
 /** @returns {string} */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function outputFor(result) {
+
   return `ignored\nDFRAGON_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`
 }
 
@@ -62,6 +63,7 @@ describe('credential-store-native phase result validation', () => {
           if (isCounterProperty) {
             accesses.push(property)
           }
+
           return Reflect.get(target, property, receiver)
         }
       }

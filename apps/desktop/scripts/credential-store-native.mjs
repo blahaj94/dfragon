@@ -46,12 +46,14 @@ async function waitForGroupExit(pid, milliseconds) {
       const hasExited = error.code === 'ESRCH'
       if (hasExited) {
         ownedGroups.delete(pid)
+
         return true
       }
       throw new Error('Owned process group exit could not be confirmed.')
     }
     const hasExpired = Date.now() >= deadline
     if (hasExpired) {
+
       return false
     }
     await delay(50)
@@ -66,6 +68,7 @@ async function confirmPathAbsent(path) {
   } catch (error) {
     const isAbsent = error.code === 'ENOENT'
     if (isAbsent) {
+
       return
     }
   }
@@ -75,6 +78,7 @@ async function confirmPathAbsent(path) {
 /** @returns {Promise<{code: number | null, stdout: string, stderr: string}>} */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function execute(command, args, environment = process.env) {
+
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       env: environment,
@@ -95,6 +99,7 @@ function execute(command, args, environment = process.env) {
     function stopGroup(signal) {
       const hasPid = child.pid != null
       if (!hasPid) {
+
         return
       }
       try {
@@ -115,6 +120,7 @@ function execute(command, args, environment = process.env) {
       if (!isWithinLimit) {
         outputExceeded = true
         stopGroup('SIGKILL')
+
         return
       }
       if (standardOutput) {
@@ -150,6 +156,7 @@ function execute(command, args, environment = process.env) {
         }
       } catch {
         reject(new Error('Owned process group cleanup was not confirmed.'))
+
         return
       }
       if (timedOut) {
@@ -171,6 +178,7 @@ async function defaultKeychain() {
   if (!succeeded) {
     throw new Error('Default Keychain metadata unavailable.')
   }
+
   return JSON.parse(result.stdout.trim())
 }
 
@@ -190,6 +198,7 @@ async function itemExists(appName, keychain) {
   if (!isRecognizedResult) {
     throw new Error('Keychain item metadata could not be checked.')
   }
+
   return wasFound
 }
 

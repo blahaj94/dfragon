@@ -17,6 +17,7 @@ it('reads each configured service without cookies, authentication or redirects',
       : String(url).includes('accounts.example')
         ? 'accounts'
         : 'ocr'
+
     return Response.json({ service, commit })
   })
   const read = createServerVersionReader({ ...origins, fetch: transport })
@@ -93,11 +94,13 @@ it('bounds a stalled fetch without hiding the other service results', async () =
   vi.useFakeTimers()
   const transport = vi.fn<typeof fetch>(async (url, init) => {
     if (!String(url).includes('api.example')) {
+
       return Response.json({
         service: String(url).includes('accounts.example') ? 'accounts' : 'ocr',
         commit
       })
     }
+
     return new Promise<Response>((_resolve, reject) => {
       init?.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
     })
@@ -116,10 +119,12 @@ it('also bounds a stalled response body and cancels its reader', async () => {
   const cancel = vi.fn()
   const transport = vi.fn<typeof fetch>(async (url) => {
     if (String(url).includes('api.example')) {
+
       return new Response(new ReadableStream({ cancel }), {
         headers: { 'Content-Type': 'application/json' }
       })
     }
+
     return new Response(null, { status: 404 })
   })
   const result = createServerVersionReader({ ...origins, fetch: transport })()

@@ -39,6 +39,7 @@ export function authSnapshot({
   revision = 1,
   signedIn = true
 }: AuthSnapshotInput = {}): AuthSnapshot {
+
   return {
     runId: SEARCH_RUN,
     revision,
@@ -91,6 +92,7 @@ export function captureResources(): CaptureResources {
     recognize: vi.fn().mockResolvedValue({ data: { text: 'ALICE' } }),
     terminate: vi.fn().mockResolvedValue(undefined)
   }
+
   return { track, stream, worker }
 }
 
@@ -121,6 +123,7 @@ export function createRendererFixture(): RendererFixture {
             : `00000000-0000-4000-8000-${String(100 + sequence).padStart(12, '0')}`
           currentSearch = searchSnapshot({ captureId, revision: currentSearch.revision + 1 })
         }
+
         return { ok: true, snapshot: currentSearch }
       }),
     onCharacterSearchChanged: vi
@@ -128,6 +131,7 @@ export function createRendererFixture(): RendererFixture {
       .mockImplementation((listener) => {
         order.push('subscribe')
         searchListeners.add(listener)
+
         return () => {
           order.push('unsubscribe')
           searchListeners.delete(listener)
@@ -145,6 +149,7 @@ export function createRendererFixture(): RendererFixture {
       .mockImplementation(async (observation) => {
         const slots = currentSearch.slots.map((slot) => {
           const isObserved = slot.slot === observation.slot
+
           return isObserved
             ? searchSlot({
                 slot: observation.slot,
@@ -154,6 +159,7 @@ export function createRendererFixture(): RendererFixture {
             : slot
         })
         currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
+
         return { ok: true, snapshot: currentSearch }
       })
   }
@@ -161,6 +167,7 @@ export function createRendererFixture(): RendererFixture {
     getAuthState: vi.fn().mockImplementation(async () => currentAuth),
     onAuthStateChanged: vi.fn().mockImplementation((listener: (snapshot: AuthSnapshot) => void) => {
       authListeners.add(listener)
+
       return () => authListeners.delete(listener)
     }),
     beginLogin: vi.fn(),
@@ -192,9 +199,11 @@ export function createRendererFixture(): RendererFixture {
   function button(label: string, within: ParentNode = container): HTMLButtonElement {
     const found = Array.from(within.querySelectorAll('button')).find((item) => {
       const hasLabel = item.textContent === label
+
       return hasLabel
     })
     expect(found, `화면 버튼 ${label}`).toBeDefined()
+
     return found as HTMLButtonElement
   }
   async function select(source = 'game'): Promise<void> {
@@ -235,6 +244,7 @@ export function createRendererFixture(): RendererFixture {
       }
     })
   }
+
   return {
     container,
     search,

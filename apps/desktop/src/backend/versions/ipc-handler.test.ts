@@ -55,6 +55,7 @@ function fixture(): {
     ...args: unknown[]
   ) => Promise<BuildVersions>
   const event = { sender: contents, senderFrame: frame } as unknown as IpcMainInvokeEvent
+
   return { window, contents, frame, event, invoke }
 }
 

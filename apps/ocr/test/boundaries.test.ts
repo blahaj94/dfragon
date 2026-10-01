@@ -44,6 +44,7 @@ test('in-flight logins reserve global capacity and failures release their reserv
   const upstream: typeof fetch = async () => {
     calls++
     await released
+
     return fail
       ? new Response(null, { status: 503 })
       : Response.json({
@@ -69,6 +70,7 @@ test('in-flight logins reserve global capacity and failures release their reserv
     if (index === OCR_AUTH.maximumLoginAttempts) {
       now += OCR_AUTH.loginWindowMs
     }
+
     return auth.begin(request(index), response)
   })
 

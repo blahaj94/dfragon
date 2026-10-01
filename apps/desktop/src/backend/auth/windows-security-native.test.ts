@@ -81,11 +81,13 @@ function createSecurityFixture(): SecurityFixture {
     flushFileBuffers: () => true,
     getFileInformationByHandleEx: (_handle, _class, information) => {
       information.FileAttributes = attributes
+
       return true
     },
     getDirectoryEntries: () => false,
     getFinalPathNameByHandle: (_handle, buffer) => {
       buffer.write(finalPath, 'utf16le')
+
       return finalPath.length
     },
     getCurrentProcess: () => 104n,
@@ -94,6 +96,7 @@ function createSecurityFixture(): SecurityFixture {
     getSecurityDescriptorDacl: (_descriptor, present, daclOut) => {
       present[0] = daclPresent
       daclOut[0] = daclPresent === 0 ? null : dacl
+
       return true
     },
     getSecurityInfo: (
@@ -108,41 +111,51 @@ function createSecurityFixture(): SecurityFixture {
     ) => {
       owner[0] = ownerIsCurrent ? currentSidPointer : otherSidPointer
       descriptorOut[0] = 101n
+
       return 0
     },
     getTokenInformation: (_token, _class, data, _length, returnLength) => {
       if (data == null) {
         returnLength[0] = tokenData.length
+
         return false
       }
       writeTokenUserBuffer(data, currentSidData)
+
       return true
     },
     getAclInformation: (_dacl, information) => {
       information.AceCount = aceCount
+
       return true
     },
     getAce: (_dacl, _index, ace) => {
       ace[0] = koffi.address(aceData)
+
       return true
     },
     isValidSid: () => true,
     isWellKnownSid: (sid, sidType) => {
       if (sid === otherSidPointer) {
+
         return ownerWellKnownSid === sidType
       }
+
       return typeof sid === 'object' && sid != null && aceWellKnownSid === sidType
     },
     equalSid: (left, right) => {
       const currentSidCast = typeof right === 'object' && right != null
       if (left === currentSidPointer && currentSidCast) {
+
         return ownerIsCurrent
       }
+
       return typeof left === 'object' && left != null && currentSidCast && aceIsCurrent
     },
     localFree: () => null,
     openProcessToken: (_process, _access, token) => {
       token[0] = 105n
+
       return true
     },
     convertStringSecurityDescriptorToSecurityDescriptor: () => true,
@@ -171,6 +184,7 @@ function createSecurityFixture(): SecurityFixture {
     sidData.copy(aceData, 8)
   }
   set({})
+
   return { api, set }
 }
 
@@ -181,9 +195,11 @@ function directoryBatch(names: string[]): Buffer {
     entry.writeUInt32LE(entry.length, 0)
     entry.writeUInt32LE(filename.length, 60)
     filename.copy(entry, 68)
+
     return entry
   })
   entries.at(-1)?.writeUInt32LE(0, 0)
+
   return Buffer.concat(entries)
 }
 
@@ -205,9 +221,11 @@ function createEnumerationFixture(batches: Buffer[], terminalError = 18): Enumer
     const hasBatch = batch != null
     if (!hasBatch) {
       lastError = terminalError
+
       return false
     }
     batch.copy(buffer)
+
     return true
   })
   const closeHandle = vi.fn<WindowsSecurityApi['closeHandle']>(() => true)
@@ -219,6 +237,7 @@ function createEnumerationFixture(batches: Buffer[], terminalError = 18): Enumer
     getLastError: () => lastError,
     getDirectoryEntries: query
   }
+
   return {
     ...fixture,
     native: createWindowsSecurityNative({ api }),
@@ -244,6 +263,7 @@ describe('Windows file rename', () => {
           expect(information.subarray(20, 20 + filename.byteLength)).toEqual(filename)
           expect(size).toBe(information.byteLength)
           expect(information.subarray(20 + filename.byteLength)).toEqual(Buffer.alloc(2))
+
           return true
         }
       )
@@ -330,6 +350,7 @@ describe('Windows directory enumeration', () => {
     fixture.query.mockImplementation((_handle, _class, buffer) => {
       directoryBatch(['credential.v1']).copy(buffer)
       buffer.writeUInt32LE(buffer.byteLength - 8, 0)
+
       return true
     })
 
@@ -426,6 +447,7 @@ describe('Windows directory flush', () => {
     expect(
       closeHandle.mock.calls.filter(([handle]) => {
         const isDirectoryHandle = handle === 103n
+
         return isDirectoryHandle
       })
     ).toHaveLength(1)
@@ -481,6 +503,7 @@ describe('Windows directory flush failure guards', () => {
     expect(
       close.mock.calls.filter(([handle]) => {
         const isDirectoryHandle = handle === 103n
+
         return isDirectoryHandle
       })
     ).toHaveLength(1)
@@ -496,6 +519,7 @@ describe('Windows directory flush failure guards', () => {
         if (shouldThrow) {
           throw new Error('Synthetic flush exception.')
         }
+
         return false
       })
       const native = createWindowsSecurityNative({
@@ -511,6 +535,7 @@ describe('Windows directory flush failure guards', () => {
       expect(
         close.mock.calls.filter(([handle]) => {
           const isCreatedHandle = handle === 103n
+
           return isCreatedHandle
         })
       ).toHaveLength(1)
@@ -525,6 +550,7 @@ describe('Windows directory flush failure guards', () => {
       fixture.set({ attributes: isDeletion ? 0 : FILE_ATTRIBUTE_DIRECTORY })
       const close = vi.fn((handle) => {
         const isCreatedHandle = handle === 103n
+
         return !isCreatedHandle
       })
       const flush = vi.fn(fixture.api.flushFileBuffers)
@@ -549,6 +575,7 @@ describe('Windows directory flush failure guards', () => {
       expect(
         close.mock.calls.filter(([handle]) => {
           const isCreatedHandle = handle === 103n
+
           return isCreatedHandle
         })
       ).toHaveLength(1)
@@ -562,6 +589,7 @@ describe('Windows security native boundary', () => {
     const loader = (library: string): TestWindowsLibrary => ({
       func: (...args: unknown[]) => {
         declarations.push({ library, name: String(args[1]), args })
+
         return (() => undefined) as (...runtimeArgs: unknown[]) => unknown
       }
     })
@@ -584,6 +612,7 @@ describe('Windows security native boundary', () => {
     const directoryDeclarations = declarations.filter((entry) => {
       const hasFunction = entry.name === 'GetFileInformationByHandleEx'
       const hasDirectoryResult = entry.args[2] === 'int32_t'
+
       return hasFunction && hasDirectoryResult
     })
     expect(directoryDeclarations).toHaveLength(1)
@@ -642,6 +671,7 @@ describe('Windows security native boundary', () => {
         if (name === 'CreateFileW') {
           handleType = definition[2] as TypeObject
         }
+
         return (...args: unknown[]): unknown => {
           record(name, args)
           const requiredArity =
@@ -663,6 +693,7 @@ describe('Windows security native boundary', () => {
               if (args[0] === 103n) {
                 createdHandleCloseCount += 1
               }
+
               return true
             case 'CreateFileW':
               if (args[6] !== null) {
@@ -676,11 +707,14 @@ describe('Windows security native boundary', () => {
                   ? 'file'
                   : 'directory'
               if (handleMode === 'null') {
+
                 return nullHandle
               }
               if (handleMode === 'invalid') {
+
                 return invalidHandle
               }
+
               return normalHandle
             case 'GetFileInformationByHandleEx':
               if (typeof args[3] !== 'number' || args[3] <= 0) {
@@ -692,14 +726,17 @@ describe('Windows security native boundary', () => {
                   : handleKind === 'directory'
                     ? FILE_ATTRIBUTE_DIRECTORY
                     : 0
+
               return true
             case 'GetSecurityInfo':
               ;(args[3] as Array<unknown>)[0] = currentSidPointer
               ;(args[7] as Array<unknown>)[0] = 101n
+
               return 0
             case 'GetTokenInformation':
               if (args[2] == null) {
                 ;(args[4] as number[])[0] = tokenData.length
+
                 return false
               }
               if (returnOutOfRangeTokenSid) {
@@ -709,17 +746,22 @@ describe('Windows security native boundary', () => {
                 } else {
                   ;(args[2] as Buffer).writeBigUInt64LE(outOfRangePointer, 0)
                 }
+
                 return true
               }
               writeTokenUserBuffer(args[2] as Buffer, currentSidData)
+
               return true
             case 'GetLengthSid':
               getLengthSidArguments.push(args[0])
+
               return currentSidData.length
             case 'IsValidSid':
+
               return true
             case 'EqualSid':
               equalSidCurrentArguments.push(args[1])
+
               return (
                 (args[0] === currentSidPointer ||
                   (typeof args[0] === 'object' && args[0] != null)) &&
@@ -729,46 +771,58 @@ describe('Windows security native boundary', () => {
             case 'GetSecurityDescriptorDacl':
               ;(args[1] as number[])[0] = 1
               ;(args[2] as Array<unknown>)[0] = 102n
+
               return true
             case 'GetAclInformation':
               if (typeof args[2] !== 'number' || args[2] <= 0 || args[3] !== 2) {
                 throw new Error('GetAclInformation size/class is required')
               }
               ;(args[1] as Record<string, unknown>).AceCount = 1
+
               return true
             case 'GetAce':
               ;(args[2] as Array<unknown>)[0] = acePointer
+
               return true
             case 'OpenProcessToken':
               ;(args[2] as Array<unknown>)[0] = 105n
+
               return true
             case 'LocalFree':
+
               return failLocalFree && args[0] === 107n ? 106n : null
             case 'ConvertStringSecurityDescriptorToSecurityDescriptorW':
               ;(args[2] as Array<unknown>)[0] = 107n
+
               return true
             case 'ReadFile':
               if (args[4] !== null) {
                 throw new Error('ReadFile OVERLAPPED must be NULL')
               }
               ;(args[3] as number[])[0] = 0
+
               return true
             case 'WriteFile':
               if (args[4] !== null) {
                 throw new Error('WriteFile OVERLAPPED must be NULL')
               }
               ;(args[3] as number[])[0] = Number(args[2])
+
               return true
             case 'FlushFileBuffers':
+
               return true
             case 'SetFileInformationByHandle':
               if (!(args[2] instanceof Buffer) || args[3] !== args[2].byteLength) {
                 throw new Error('SetFileInformationByHandle buffer size is required')
               }
+
               return true
             case 'GetCurrentProcess':
+
               return 108n
             case 'GetLastError':
+
               return lastError
             default:
               throw new Error(`Unexpected Win32 function ${library}:${name}`)
@@ -946,6 +1000,7 @@ describe('Windows security native boundary', () => {
         getSecurityInfo: (...args) => {
           const result = fixture.api.getSecurityInfo(...args)
           args[3][0] = pointer
+
           return result
         },
         getLengthSid: (value) => (value === pointer ? sid.length : fixture.api.getLengthSid(value))
@@ -968,11 +1023,13 @@ describe('Windows security native boundary', () => {
         ...fixture.api,
         getSecurityInfo: (...args) => {
           readingAce = false
+
           return fixture.api.getSecurityInfo(...args)
         },
         getAce: (_acl, _index, out) => {
           readingAce = true
           out[0] = koffi.address(ace)
+
           return true
         },
         getLengthSid: (value) => (readingAce ? sid.length : fixture.api.getLengthSid(value))

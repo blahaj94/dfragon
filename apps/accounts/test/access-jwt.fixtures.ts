@@ -8,6 +8,7 @@ export function keyPair(kid: string = randomUUID(), namedCurve = 'prime256v1') {
     privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     publicKeyEncoding: { type: 'spki', format: 'pem' }
   })
+
   return { kid, privateKeyPem: pair.privateKey, publicKeyPem: pair.publicKey }
 }
 
@@ -44,6 +45,7 @@ export async function signed(
   protectedHeader = header(),
   pair = active
 ) {
+
   return new CompactSign(new TextEncoder().encode(JSON.stringify(payload)))
     .setProtectedHeader(protectedHeader)
     .sign(await importPKCS8(pair.privateKeyPem, 'ES256'))

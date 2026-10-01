@@ -49,6 +49,7 @@ function button(label: string): HTMLButtonElement {
   if (result == null) {
     throw new Error(`Missing ${label} button`)
   }
+
   return result
 }
 

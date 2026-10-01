@@ -15,6 +15,7 @@ export async function rejected(operation, code = 'AUTHENTICATION_REQUIRED') {
     assert.equal(error.code, code)
     assert.equal(error.cause, undefined)
     assert.doesNotMatch(String(error.stack), /private detail|SQL detail/)
+
     return true
   })
 }
@@ -25,6 +26,7 @@ export async function fixture(source, identity = { userId: randomUUID(), isNewUs
       'INSERT INTO users (id,nickname,created_at) VALUES ($1,$2,clock_timestamp()) ON CONFLICT (id) DO NOTHING',
       [identity.userId, '테스트']
     )
+
     return createIdentitySession(manager, identity)
   })
   const keyPair = generateKeyPairSync('ec', { namedCurve: 'P-256' })
@@ -42,6 +44,7 @@ export async function fixture(source, identity = { userId: randomUUID(), isNewUs
   const issueAccessJwt = await createAccessJwtIssuer(configuration)
   const verifyJwt = await createAccessJwtVerifier(configuration)
   const deps = { dataSource: source, issueAccessJwt }
+
   return {
     initial,
     identity,
@@ -53,6 +56,7 @@ export async function fixture(source, identity = { userId: randomUUID(), isNewUs
 }
 
 export async function stored(source, sessionId) {
+
   return {
     session: (await source.query('SELECT * FROM auth_sessions WHERE id=$1', [sessionId]))[0],
     tokens: await source.query(

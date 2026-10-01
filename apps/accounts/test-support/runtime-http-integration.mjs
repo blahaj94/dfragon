@@ -9,6 +9,7 @@ async function assertBackendGone(source, pid) {
       (await source.query('SELECT count(*)::int AS n FROM pg_stat_activity WHERE pid=$1', [pid]))[0]
         .n === 0
     ) {
+
       return
     }
     await delay(20)
@@ -27,6 +28,7 @@ import {
 } from './runtime-fixtures.mjs'
 
 function backendPids(runtime) {
+
   return runtime.events.filter(({ event }) => event === 'db.backend').map(({ detail }) => detail)
 }
 
@@ -140,5 +142,6 @@ export async function assertRuntimeHttpIntegration(configuration, mark = () => {
       }
     })
   })
+
   return 1
 }

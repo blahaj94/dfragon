@@ -37,6 +37,7 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       if (!isElectron) {
         throw new Error(`Sandbox preload cannot require ${name}`)
       }
+
       return {
         contextBridge: { exposeInMainWorld: expose },
         ipcRenderer: { invoke: vi.fn(), on: vi.fn(), removeListener: vi.fn() }

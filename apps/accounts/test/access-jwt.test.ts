@@ -27,20 +27,24 @@ import {
 const isInvalidToken = (error: unknown) => {
   const isAccessJwtError = error instanceof AccessJwtError
   if (!isAccessJwtError) {
+
     return false
   }
 
   const hasInvalidTokenCode = error.code === 'INVALID_ACCESS_JWT'
   if (!hasInvalidTokenCode) {
+
     return false
   }
 
   const hasInvalidTokenMessage = error.message === 'Invalid access JWT'
   if (!hasInvalidTokenMessage) {
+
     return false
   }
 
   const hasNoCause = !Object.hasOwn(error, 'cause')
+
   return hasNoCause
 }
 
@@ -124,10 +128,12 @@ test('발급 입력은 UUID와 UTC 정수 초를 요구하고 만료된 session�
     await assert.rejects(issue({ ...input(), ...value }), (error: unknown) => {
       const isAccessJwtError = error instanceof AccessJwtError
       if (!isAccessJwtError) {
+
         return false
       }
 
       const hasInvalidInputCode = error.code === 'INVALID_ACCESS_JWT_INPUT'
+
       return hasInvalidInputCode
     })
   }
@@ -143,12 +149,15 @@ test('issuedAt 재조회 값의 NaN 비교는 서명 실패와 coercion 순서�
       events.push(hint)
       const isDefaultHint = hint === 'default'
       if (isDefaultHint) {
+
         return now
       }
       const isNumberHint = hint === 'number'
       if (isNumberHint) {
+
         return NaN
       }
+
       return 'invalid duration'
     }
   }
@@ -157,6 +166,7 @@ test('issuedAt 재조회 값의 NaN 비교는 서명 실패와 coercion 순서�
       events.push('issuedAt')
       issuedAtReads += 1
       const isFirstRead = issuedAtReads === 1
+
       return isFirstRead ? now : subsequentIssuedAt
     }
   })

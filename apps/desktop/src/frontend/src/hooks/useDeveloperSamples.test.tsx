@@ -21,10 +21,12 @@ function deferred<T>(): {
     resolve = resolvePromise
     reject = rejectPromise
   })
+
   return { promise, resolve, reject }
 }
 
 function sample(id: string, text: string | null = null): DeveloperSample {
+
   return {
     id,
     createdAt: '2026-09-24T00:00:00.000Z',
@@ -48,6 +50,7 @@ function Harness(): null {
     current = value
     renderCount += 1
   })
+
   return null
 }
 

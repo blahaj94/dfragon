@@ -59,6 +59,7 @@ export function fixturePath(fixture: Pick<Fixture, 'root'>, ...parts: string[]):
   if (isRoot || isOutside) {
     throw new Error('Fixture path containment failed.')
   }
+
   return destination
 }
 
@@ -83,6 +84,7 @@ export async function createFixtureRoot(
   // Keep evidence outside the root so a partial cleanup cannot delete it.
   await writeFile(manifest, body, { flag: 'wx' })
   await mkdir(root)
+
   return fixture
 }
 
@@ -120,6 +122,7 @@ export async function cleanupFixture(
   { resourcesReleased = true } = {}
 ): Promise<'clean' | 'cleanup-incomplete'> {
   if (!resourcesReleased) {
+
     return 'cleanup-incomplete'
   }
   try {
@@ -129,17 +132,20 @@ export async function cleanupFixture(
     const hasExpectedPaths = fixture.root === expectedRoot && fixture.manifest === expectedManifest
     const hasOwnedName = /^windows-synthetic-[0-9a-f-]{36}$/.test(fixture.name)
     if (!hasExpectedPaths || !hasOwnedName) {
+
       return 'cleanup-incomplete'
     }
     const manifestInformation = await lstat(fixture.manifest)
     const isManifestFile = manifestInformation.isFile() && !manifestInformation.isSymbolicLink()
     if (!isManifestFile) {
+
       return 'cleanup-incomplete'
     }
     const manifest = JSON.parse(await readFile(fixture.manifest, 'utf8'))
     const isOwned =
       manifest.version === 1 && manifest.root === fixture.name && manifest.nonce === fixture.nonce
     if (!isOwned) {
+
       return 'cleanup-incomplete'
     }
     await assertPlainAncestors(fixture.root, fixture.inspectReparse)
@@ -148,11 +154,14 @@ export async function cleanupFixture(
     const remaining = await readdir(fixture.parent)
     const rootRemains = remaining.includes(fixture.name)
     if (rootRemains) {
+
       return 'cleanup-incomplete'
     }
     await unlink(fixture.manifest)
+
     return 'clean'
   } catch {
+
     return 'cleanup-incomplete'
   }
 }
@@ -188,5 +197,6 @@ export async function runFixtureLifecycle({
       cleanup = await cleanupFixture(createdFixture, { resourcesReleased })
     }
   }
+
   return { failure, cleanup }
 }

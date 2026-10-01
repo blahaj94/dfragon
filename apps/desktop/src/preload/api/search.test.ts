@@ -38,6 +38,7 @@ async function exposedSearch(): Promise<{
   await import('../index')
   const exposed = new Map(renderer.expose.mock.calls)
   expect(exposed.get('search'), '검색 전용 preload API').toBeDefined()
+
   return {
     search: exposed.get('search') as SearchTestApi,
     manual: exposed.get('manualSearch') as ManualSearchApi,
@@ -138,6 +139,7 @@ it('승인된 상태·nullable 값과 후보 순서를 보존한다', async () =
 })
 
 function searchResultWithRow(row: CharacterSearchRow): object {
+
   return {
     ok: true,
     snapshot: withSearchSlot(searchSlot({ state: 'success', rows: [row] }))
@@ -152,10 +154,12 @@ it('schema가 inherited 필드를 읽은 뒤 exact shape가 own 확인에서 재
   const row = new Proxy(inheritedRow, {
     get(target, property, receiver) {
       events.push(`get:${String(property)}`)
+
       return Reflect.get(target, property, receiver)
     },
     getOwnPropertyDescriptor(target, property) {
       events.push(`own:${String(property)}`)
+
       return Reflect.getOwnPropertyDescriptor(target, property)
     }
   })
@@ -180,6 +184,7 @@ it('schema 성공 뒤 own field의 exact-shape get 예외를 그대로 전파한
           throw sentinel
         }
       }
+
       return Reflect.get(target, property, receiver)
     }
   })

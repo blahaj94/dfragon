@@ -63,6 +63,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal(await pcPage.locator('#confirmation').textContent(), qr.confirmationCode)
     assert.match(await pcPage.locator('#qr-expiry').textContent(), /분 \d+초까지 인증 가능해요/)
     assert.equal(await pcPage.locator('#direct').count(), 0)
+
     return { ...request, ...qr, codeVerifier }
   }
   const phoneVerify = async (request, operation = 'authenticate') => {

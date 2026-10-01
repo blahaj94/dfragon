@@ -28,12 +28,14 @@ async function setup(): Promise<{
   harness.http.me.mockClear()
   harness.store.commitCredential.mockClear()
   harness.store.removeTransition.mockClear()
+
   return { auth, harness }
 }
 
 async function usedAccess(auth: AuthCoordinator): Promise<AvailableAccess> {
   const result = await auth.authorization()
   expect(result).toMatchObject({ status: 'available' })
+
   return result as AvailableAccess
 }
 
@@ -53,6 +55,7 @@ function rejectAccess({
   expect(auth.recoverAuthorization, '검색 401은 main core의 회복 경계를 사용한다').toBeTypeOf(
     'function'
   )
+
   return auth.recoverAuthorization(
     { generation: access.generation, accessGeneration: access.accessGeneration, finalRejection },
     signal
@@ -120,6 +123,7 @@ describe('검색의 main authorization 소비 경계', () => {
       let cancelledResult: AuthAuthorization | undefined
       const cancelled = auth.authorization(controller.signal).then((result) => {
         cancelledResult = result
+
         return result
       })
       const other = auth.authorization()
@@ -164,6 +168,7 @@ describe('검색의 main authorization 소비 경계', () => {
     let ordinaryResult: AuthAuthorization | undefined
     const ordinary = auth.authorization().then((result) => {
       ordinaryResult = result
+
       return result
     })
     try {

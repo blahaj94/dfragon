@@ -92,6 +92,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
       const isSync = event.startsWith('sync:')
       const isRename = event.startsWith('rename:')
       const isUnlink = event.startsWith('unlink:')
+
       return isWrite || isSync || isRename || isUnlink
     })
     expect(mutations).toEqual([

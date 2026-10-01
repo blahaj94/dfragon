@@ -26,6 +26,7 @@ async function rollbackFailure(source, scenario) {
           if (isRefreshTokenInsert) {
             // 실제 DB CHECK가 UPDATE 이후 INSERT를 거절하도록 hash parameter만 고장 주입한다.
             assert.equal(consumed, true)
+
             return await query(sql, [Buffer.alloc(31), ...parameters.slice(1)])
           }
         }
@@ -34,6 +35,7 @@ async function rollbackFailure(source, scenario) {
         if (isRefreshTokenUpdate) {
           consumed = true
         }
+
         return result
       } catch (error) {
         constraint = error.constraint ?? error.driverError?.constraint
@@ -71,6 +73,7 @@ async function rollbackFailure(source, scenario) {
         () =>
           f.rotateWithBytes(raw, () => {
             entropyCalls++
+
             return Buffer.from(collision, 'base64url')
           }),
         'AUTH_UNAVAILABLE'
@@ -118,6 +121,7 @@ async function uncertainCommit({ source, applied, reuse }) {
       if (isTransactionStart) {
         attempts++
       }
+
       return run()
     },
     commit: async (runner, commit) => {
@@ -177,5 +181,6 @@ export async function assertRefreshFailures(source, mark) {
       await uncertainCommit({ source, applied, reuse })
     }
   }
+
   return failures.length + 4
 }

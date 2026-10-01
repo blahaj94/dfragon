@@ -5,6 +5,7 @@ export function upload(id = randomUUID()) {
   for (let i = 0; i < image.data.length; i++) {
     image.data[i] = i % 256
   }
+
   return {
     id,
     capturedAt: '2026-09-25T00:00:00.000Z',
@@ -20,6 +21,7 @@ export function upload(id = randomUUID()) {
 }
 
 export function raidUpload(id = randomUUID()) {
+
   return {
     ...upload(id),
     kind: 'raid',
@@ -36,6 +38,7 @@ export function raidUpload(id = randomUUID()) {
 export function syntheticUpload(id = randomUUID(), text = '합성고래') {
   const image = new PNG({ width: 8, height: 4 })
   image.data.fill(255)
+
   return {
     id,
     generatedAt: '2026-09-30T00:00:00.000Z',

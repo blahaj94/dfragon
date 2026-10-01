@@ -66,12 +66,14 @@ function mainEnvironment(): {
       whenReady: () => ({
         then: (start: () => void | Promise<void>): Promise<void> => {
           bootstrap = Promise.resolve().then(start)
+
           return bootstrap
         }
       })
     },
     BrowserWindow: class {
       static getAllWindows(): never[] {
+
         return []
       }
       on = vi.fn()
@@ -98,10 +100,12 @@ function mainEnvironment(): {
   const requireModule = (name: string): unknown => {
     const isElectron = name === 'electron'
     if (isElectron) {
+
       return electron
     }
     const isToolkit = name === '@electron-toolkit/utils'
     if (isToolkit) {
+
       return {
         electronApp: { setAppUserModelId: vi.fn() },
         optimizer: { watchWindowShortcuts: vi.fn() },
@@ -109,6 +113,7 @@ function mainEnvironment(): {
       }
     }
     if (name === 'koffi') {
+
       return {
         ...requireDependency(name),
         load: (): never => {
@@ -117,6 +122,7 @@ function mainEnvironment(): {
       }
     }
     // Ky와 다른 Node dependency는 mock하지 않고 설치된 package를 CJS로 읽는다.
+
     return requireDependency(name)
   }
   const context = createContext({
@@ -144,6 +150,7 @@ function mainEnvironment(): {
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
+
   return { context, bootstrap: () => bootstrap, error, getPath, requireModule }
 }
 
@@ -163,8 +170,10 @@ function executeMainEntry(
   const modules = new Map<string, { exports: Record<string, unknown> }>()
   const requireFromChunk = (requester: string, specifier: string): unknown => {
     if (specifier.startsWith('.')) {
+
       return loadChunk(posix.join(posix.dirname(requester), specifier))
     }
+
     return environment.requireModule(specifier)
   }
   const loadChunk = (fileName: string): Record<string, unknown> => {
@@ -175,6 +184,7 @@ function executeMainEntry(
     }
     const cached = modules.get(normalized)
     if (cached) {
+
       return cached.exports
     }
 
@@ -199,6 +209,7 @@ function executeMainEntry(
       const specifier = importedChunk.startsWith('.') ? importedChunk : `./${importedChunk}`
       requireFromChunk(normalized, specifier)
     }
+
     return module.exports
   }
 
