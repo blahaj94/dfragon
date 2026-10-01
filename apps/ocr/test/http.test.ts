@@ -9,6 +9,7 @@ import { Readable } from 'node:stream'
 import { OcrAuth } from '../src/auth.js'
 import { createOcrApp } from '../src/server.js'
 import { OcrStore } from '../src/store.js'
+import { parseUpload } from '../src/images.js'
 import { raidUpload, syntheticUpload, upload } from './fixtures.js'
 const ownerId = randomUUID(),
   origin = 'https://ocr.example.test',
@@ -367,7 +368,8 @@ async function fixture(
   expired = false,
   revoked = false,
   trustedProxyHops?: 1,
-  syntheticUploadTokenSha256?: string
+  syntheticUploadTokenSha256?: string,
+  beforeMe?: () => Promise<void>
 ) {
   const calls: string[] = []
   const request: typeof fetch = async (input, init) => {
@@ -407,6 +409,7 @@ async function fixture(
     }
 
     if (path === '/me') {
+      await beforeMe?.()
       if (revoked) {
         return new Response(null, { status: 401 })
       }
@@ -458,6 +461,80 @@ async function fixture(
     }
   }
 }
+
+test('partial sample PATCH preserves the current complementary field across delayed requests and accepts explicit null and false', async () => {
+  const deferred = () => {
+    let resolve!: () => void
+    const promise = new Promise<void>((release) => {
+      resolve = release
+    })
+
+    return { promise, resolve }
+  }
+  let delayed:
+    { entered: ReturnType<typeof deferred>; release: ReturnType<typeof deferred> } | undefined
+  let releasePending: (() => void) | undefined
+  const f = await fixture(ownerId, false, false, undefined, undefined, async () => {
+    const current = delayed
+    delayed = undefined
+    if (current !== undefined) {
+      current.entered.resolve()
+      await current.release.promise
+    }
+  })
+  try {
+    const { cookie } = await f.login()
+    assert(cookie)
+    const image = parseUpload(upload())
+    f.store.add(image.capture, image.png)
+    const id = `${image.capture.id}-1`
+    const headers = { Cookie: cookie, Origin: origin, 'Content-Type': 'application/json' }
+    const send = (body: unknown) =>
+      fetch(`${f.base}/api/samples/${id}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(body)
+      })
+    for (const [late, early, expected] of [
+      [{ text: '변경' }, { excluded: true }, { text: '변경', excluded: true }],
+      [{ excluded: false }, { text: '최신' }, { text: '최신', excluded: false }]
+    ] as const) {
+      const pending = { entered: deferred(), release: deferred() }
+      releasePending = pending.release.resolve
+      delayed = pending
+      const later = send(late)
+      await pending.entered.promise
+      assert.equal((await send(early)).status, 200)
+      pending.release.resolve()
+      assert.equal((await later).status, 200)
+      const sample = f.store.sample(id)
+      assert.equal(sample.text, expected.text)
+      assert.equal(sample.excluded, expected.excluded)
+    }
+    assert.equal((await send({ text: null })).status, 200)
+    assert.equal(f.store.sample(id).text, null)
+    assert.equal(f.store.sample(id).excluded, false)
+    for (const body of [
+      {},
+      { confirmSplitChange: true },
+      { excluded: null },
+      { text: '' },
+      { text: null, excluded: null }
+    ]) {
+      assert.equal((await send(body)).status, 400)
+    }
+    assert.equal(
+      (await send({ text: '기존', excluded: true, confirmSplitChange: false })).status,
+      200
+    )
+    assert.equal(f.store.sample(id).text, '기존')
+    assert.equal(f.store.sample(id).excluded, true)
+  } finally {
+    releasePending?.()
+    delayed?.release.resolve()
+    await f.close()
+  }
+})
 
 test('OCR login ignores spoofed forwarded IPs by default and isolates clients only with explicit proxy trust', async () => {
   for (const trustedProxyHops of [undefined, 1] as const) {
