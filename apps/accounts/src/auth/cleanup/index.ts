@@ -13,6 +13,7 @@ export interface CleanupResult {
 type SessionHint = { id: string; userId: string }
 
 async function deleteEndedSession(source: DataSource, hint: SessionHint): Promise<number> {
+
   return source.transaction('READ COMMITTED', async (manager) => {
     const sessions = manager.getRepository(AuthSessionSchema)
     const session = await sessions.findOne({
@@ -21,11 +22,13 @@ async function deleteEndedSession(source: DataSource, hint: SessionHint): Promis
     })
     const hasSession = session != null
     if (!hasSession) {
+
       return 0
     }
 
     const hasSameOwner = session.userId === hint.userId
     if (!hasSameOwner) {
+
       return 0
     }
 
@@ -36,16 +39,24 @@ async function deleteEndedSession(source: DataSource, hint: SessionHint): Promis
     const isIdleExpired = checkedAt.getTime() >= idleDeadline
     const hasEnded = isRevoked || isIdleExpired
     if (!hasEnded) {
+
       return 0
     }
 
     // FK cascade가 현재 연결된 refresh 전체를 제거한다. 이 transaction은 user를 뒤에 잠그지 않는다.
     const deleted = await sessions.delete({ id: session.id, userId: hint.userId })
-    return deleted.affected ?? 0
+    const affected = deleted.affected
+    if (affected != null) {
+
+      return affected
+    }
+
+    return 0
   })
 }
 
 async function deleteEndedRequest(source: DataSource, id: string): Promise<number> {
+
   return source.transaction('READ COMMITTED', async (manager) => {
     const requests = manager.getRepository(AuthLoginRequestSchema)
     const request = await requests.findOne({
@@ -54,6 +65,7 @@ async function deleteEndedRequest(source: DataSource, id: string): Promise<numbe
     })
     const hasRequest = request != null
     if (!hasRequest) {
+
       return 0
     }
 
@@ -63,12 +75,19 @@ async function deleteEndedRequest(source: DataSource, id: string): Promise<numbe
     const isRequestExpired = checkedAt.getTime() >= request.expiresAt.getTime()
     const hasEnded = isConsumed || isFailed || isRequestExpired
     if (!hasEnded) {
+
       return 0
     }
 
     // Code TTL은 교환 자격이다. 물리 삭제는 전체 request TTL 또는 terminal 전이로 판단한다.
     const deleted = await requests.delete({ id: request.id })
-    return deleted.affected ?? 0
+    const affected = deleted.affected
+    if (affected != null) {
+
+      return affected
+    }
+
+    return 0
   })
 }
 
