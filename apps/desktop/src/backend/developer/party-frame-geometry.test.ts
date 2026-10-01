@@ -182,11 +182,11 @@ it('detects FHD UI 50-style bars and crops relative to each observed anchor', ()
   const rgba = partyFrame({
     width: 1920,
     height: 1080,
-    tracks: anchors.map((anchorX, index) => ({
-      slot: (index + 1) as 1 | 2 | 3 | 4,
-      anchorX,
-      scale: 1.285714
-    }))
+    tracks: anchors.map((anchorX, index) => {
+      const slot = (index + 1) as 1 | 2 | 3 | 4
+
+      return { slot, anchorX, scale: 1.285714 }
+    })
   })
   const geometry = detect({ width: 1920, height: 1080, rgba })
 
@@ -208,11 +208,11 @@ it('preserves slot identities and local crop anchors with variable decoration sp
   const rgba = partyFrame({
     width: 1920,
     height: 1080,
-    tracks: anchors.map((anchorX, index) => ({
-      slot: (index + 1) as 1 | 2 | 3 | 4,
-      anchorX,
-      scale: 1.285714
-    }))
+    tracks: anchors.map((anchorX, index) => {
+      const slot = (index + 1) as 1 | 2 | 3 | 4
+
+      return { slot, anchorX, scale: 1.285714 }
+    })
   })
   const geometry = detect({ width: 1920, height: 1080, rgba })
 
