@@ -8,6 +8,7 @@ export function useSampleFilters() {
     setFilters((current) => ({ ...current, [key]: value, offset: 0 }))
   }
   const setOffset = (offset: number) => setFilters((current) => ({ ...current, offset }))
+  const query = buildSampleQuery(filters)
 
-  return { filters, query: buildSampleQuery(filters), setFilter, setOffset }
+  return { filters, query, setFilter, setOffset }
 }
