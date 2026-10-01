@@ -25,19 +25,28 @@ const definitions = [
   ['CREATURE', '크리쳐', 14]
 ] as const
 const grades = ['종결', '준종결', '기타'] as const
-const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => ({
-  id,
-  label,
-  image: asset(index),
-  rarityColor:
-    index >= 7 && index <= 10
-      ? '#50e3c2'
-      : ['TITLE', 'AURA', 'CREATURE'].includes(id)
-        ? '#b36bff'
-        : '#ffb400',
-  enhancement: id === 'WEAPON' ? '+13' : index > 6 ? '+11' : '+10',
-  enchantment: grades[index % grades.length]
-}))
+const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
+  const image = asset(index)
+  let rarityColor: string
+  if (index >= 7 && index <= 10) {
+    rarityColor = '#50e3c2'
+  } else if (['TITLE', 'AURA', 'CREATURE'].includes(id)) {
+    rarityColor = '#b36bff'
+  } else {
+    rarityColor = '#ffb400'
+  }
+  let enhancement: string
+  if (id === 'WEAPON') {
+    enhancement = '+13'
+  } else if (index > 6) {
+    enhancement = '+11'
+  } else {
+    enhancement = '+10'
+  }
+  const enchantment = grades[index % grades.length]
+
+  return { id, label, image, rarityColor, enhancement, enchantment }
+})
 
 export const previewCharacter: CardCharacter = {
   name: '미리보기검사',
@@ -50,11 +59,21 @@ export const previewCharacter: CardCharacter = {
   equipment,
   oath: equipment
     .filter((item) => !['TITLE', 'AURA', 'CREATURE'].includes(item.id))
-    .map((item) => ({
-      ...item,
-      image: asset(
-        item.id === 'WEAPON' ? 17 : ['AMULET', 'RING', 'MAGIC_STON'].includes(item.id) ? 16 : 15
-      ),
-      rarityColor: ['AMULET', 'RING', 'MAGIC_STON'].includes(item.id) ? '#50e3c2' : '#ffb400'
-    }))
+    .map((item) => {
+      const slot = { ...item }
+      let imageIndex: number
+      if (item.id === 'WEAPON') {
+        imageIndex = 17
+      } else if (['AMULET', 'RING', 'MAGIC_STON'].includes(item.id)) {
+        imageIndex = 16
+      } else {
+        imageIndex = 15
+      }
+      const image = asset(imageIndex)
+      slot.image = image
+      const rarityColor = ['AMULET', 'RING', 'MAGIC_STON'].includes(item.id) ? '#50e3c2' : '#ffb400'
+      slot.rarityColor = rarityColor
+
+      return slot
+    })
 }
