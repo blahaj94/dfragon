@@ -3,8 +3,6 @@ import type { DeveloperWorkbenchSample } from './developer-party'
 
 export type DeveloperLabelFilter = 'unlabeled' | 'complete' | 'excluded'
 
-const REMOTE_PAGE_SIZE = 50
-
 /** Sort the source's chosen split once, then select the label states shown in the workbench. */
 export function queryDeveloperWorkbenchSamples({
   samples,
@@ -38,29 +36,6 @@ export function selectDeveloperEvaluationSamples(
     samples,
     (sample) => sample.excluded !== true && (source !== 'ocr' || sample.text != null)
   )
-}
-
-/** Bound the OCR page to the available results while keeping local samples on one visible list. */
-export function paginateDeveloperWorkbenchSamples({
-  visibleSamples,
-  source,
-  page
-}: {
-  visibleSamples: DeveloperWorkbenchSample[]
-  source: 'local' | 'ocr'
-  page: number
-}): {
-  pageSamples: DeveloperWorkbenchSample[]
-  pageCount: number
-  currentPage: number
-} {
-  const pageCount = Math.max(1, Math.ceil(visibleSamples.length / REMOTE_PAGE_SIZE))
-  const currentPage = Math.min(page, pageCount - 1)
-  const pageSamples =
-    source === 'ocr'
-      ? visibleSamples.slice(currentPage * REMOTE_PAGE_SIZE, (currentPage + 1) * REMOTE_PAGE_SIZE)
-      : visibleSamples
-  return { pageSamples, pageCount, currentPage }
 }
 
 /** Select within the current page, but retain each image's number in the full chosen split. */

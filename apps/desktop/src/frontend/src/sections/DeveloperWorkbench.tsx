@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
+import { paginate } from '@dfragon/lib/utils/pagination'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
@@ -12,7 +13,6 @@ import type { DeveloperPartySlotNumber } from '../lib/developer-party'
 import {
   queryDeveloperWorkbenchSamples,
   selectDeveloperEvaluationSamples,
-  paginateDeveloperWorkbenchSamples,
   selectDeveloperWorkbenchSample,
   nextDeveloperWorkbenchSampleId,
   type DeveloperLabelFilter
@@ -25,6 +25,7 @@ import {
 } from '../constants/developer'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
+const REMOTE_PAGE_SIZE = 50
 const workbenchTabs = ['collection', 'participants', 'raid', 'labeling'] as const
 type WorkbenchTab = (typeof workbenchTabs)[number]
 
@@ -63,11 +64,10 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     labelFilter: filter
   })
   const evaluationSamples = selectDeveloperEvaluationSamples(splitSamples, source)
-  const { pageSamples, pageCount, currentPage } = paginateDeveloperWorkbenchSamples({
-    visibleSamples,
-    source,
-    page: remotePage
-  })
+  const pagination = readingRemote
+    ? paginate(visibleSamples, { page: remotePage, pageSize: REMOTE_PAGE_SIZE })
+    : null
+  const pageSamples = pagination?.items ?? visibleSamples
   const { selected, selectedNumber } = selectDeveloperWorkbenchSample({
     splitSamples,
     pageSamples,
@@ -354,10 +354,10 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             <DeveloperLabelingSection
               samples={pageSamples}
               pagination={
-                readingRemote && visibleSamples.length > 0
+                pagination != null && visibleSamples.length > 0
                   ? {
-                      page: currentPage,
-                      pageCount,
+                      page: pagination.currentPage,
+                      pageCount: pagination.pageCount,
                       total: visibleSamples.length,
                       onPageChange: (page) => {
                         setRemotePage(page)
