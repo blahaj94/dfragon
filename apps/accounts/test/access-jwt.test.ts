@@ -166,8 +166,11 @@ test('issuedAt 재조회 값의 NaN 비교는 서명 실패와 coercion 순서�
       events.push('issuedAt')
       issuedAtReads += 1
       const isFirstRead = issuedAtReads === 1
+      if (isFirstRead) {
+        return now
+      }
 
-      return isFirstRead ? now : subsequentIssuedAt
+      return subsequentIssuedAt
     }
   })
 
