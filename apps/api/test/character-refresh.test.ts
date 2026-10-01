@@ -32,23 +32,33 @@ const payloads: CharacterPayloads = {
 }
 function rowsAt(time: number): CharacterApiResponse[] {
 
-  return characterDetailSections.map((section) => ({
-    characterId: identity.characterId,
-    section,
-    payload: structuredClone(payloads[section]),
-    revision: 1,
-    contentUpdatedAt: new Date(initialTime),
-    lastSuccessfulFetchAt: new Date(time),
-    requestStartedAt: new Date(time)
-  }))
+  return characterDetailSections.map((section) => {
+    const characterId = identity.characterId
+    const payload = structuredClone(payloads[section])
+    const contentUpdatedAt = new Date(initialTime)
+    const lastSuccessfulFetchAt = new Date(time)
+    const requestStartedAt = new Date(time)
+
+    return {
+      characterId,
+      section,
+      payload,
+      revision: 1,
+      contentUpdatedAt,
+      lastSuccessfulFetchAt,
+      requestStartedAt
+    }
+  })
 }
 function memory(initial: CharacterApiResponse[] = []) {
   const state = { rows: initial, now: initialTime, reads: 0, starts: 0, writes: 0 }
   const store: CharacterDetailStore = {
     async read() {
       state.reads++
+      const rows = structuredClone(state.rows)
+      const now = new Date(state.now)
 
-      return { rows: structuredClone(state.rows), now: new Date(state.now) }
+      return { rows, now }
     },
     async beginFetch() {
       state.starts++
@@ -58,10 +68,12 @@ function memory(initial: CharacterApiResponse[] = []) {
     async saveAndRead(_identity, incoming, _requestedAt, requestSignal) {
       requestSignal.throwIfAborted()
       state.writes++
-      state.rows = rowsAt(state.now).map((row) => ({
-        ...row,
-        payload: structuredClone(incoming[row.section])
-      }))
+      state.rows = rowsAt(state.now).map((row) => {
+        const snapshot = { ...row }
+        const payload = structuredClone(incoming[row.section])
+
+        return { ...snapshot, payload }
+      })
 
       return structuredClone(state.rows)
     }
