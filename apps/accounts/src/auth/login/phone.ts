@@ -63,11 +63,14 @@ export async function phoneLoginAction(
       confirmationCode: String(randomInt(0, 1_000_000)).padStart(6, '0')
     })
     await repo.save(row)
+    const phoneUrl = `${origin}/auth/login/phone?ticket=${ticket}`
+    const confirmationCode = row.confirmationCode
+    const expiresAt = row.expiresAt.toISOString()
 
     return {
-      phoneUrl: `${origin}/auth/login/phone?ticket=${ticket}`,
-      confirmationCode: row.confirmationCode,
-      expiresAt: row.expiresAt.toISOString()
+      phoneUrl,
+      confirmationCode,
+      expiresAt
     }
   }
   if (row.confirmationCode == null) {
