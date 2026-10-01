@@ -90,7 +90,11 @@ export function nextDeveloperWorkbenchSampleId(
   }
 
   const index = samples.findIndex((sample) => sample.id === currentId)
-  return samples.slice(index + 1).find((sample) => sample.id !== currentId)?.id ?? others[0].id
+  const nextId = samples.slice(index + 1).find((sample) => sample.id !== currentId)?.id
+  if (nextId != null) {
+    return nextId
+  }
+  return others[0].id
 }
 
 /** Preserve chronological order and compare party slots only when both samples have a source. */
@@ -121,5 +125,8 @@ function matchesLabelFilter(
   if (sample.excluded === true) {
     return false
   }
-  return labelFilter === 'unlabeled' ? sample.text == null : sample.text != null
+  if (labelFilter === 'unlabeled') {
+    return sample.text == null
+  }
+  return sample.text != null
 }
