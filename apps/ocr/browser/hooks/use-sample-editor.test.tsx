@@ -1,4 +1,5 @@
 import { act, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -7,6 +8,7 @@ import { requestOcr, OcrApiError } from '../client.js'
 import { OCR_ERROR_CODE } from '../../src/errors.js'
 import { SampleEditor } from '../SampleEditor.js'
 import { useSampleEditor } from './use-sample-editor.js'
+import * as sampleEditorHooks from './use-sample-editor.js'
 
 vi.mock('../client.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../client.js')>()
@@ -104,6 +106,35 @@ it('does not show or resend a retired sample confirmation over the next editor',
   expect(requestOcr).toHaveBeenCalledTimes(1)
   expect(container.querySelector('input')?.value).toBe('두번째정답')
   expect(container.textContent).not.toContain('정답 변경을 확인')
+})
+
+it('rechecks the session before displaying a confirmation resolved just before unmount', async () => {
+  const useEditor = sampleEditorHooks.useSampleEditor
+  let receivedConfirmation = false
+  vi.spyOn(sampleEditorHooks, 'useSampleEditor').mockImplementation((sample) => {
+    const editor = useEditor(sample)
+    function saveSample() {
+      const pending = editor.saveSample()
+      // This continuation runs after the request resolves but before the UI resumes its await.
+      void pending.then((confirmation) => {
+        receivedConfirmation = confirmation !== null
+        flushSync(() => root.render(null))
+      })
+
+      return pending
+    }
+
+    return { ...editor, saveSample }
+  })
+  vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE))
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  await renderEditor()
+  await submitEditor()
+
+  expect(receivedConfirmation).toBe(true)
+  expect(container.childElementCount).toBe(0)
+  expect(confirm).not.toHaveBeenCalled()
+  expect(requestOcr).toHaveBeenCalledTimes(1)
 })
 
 it.each([true, false])(
