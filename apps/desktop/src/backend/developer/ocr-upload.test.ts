@@ -4,7 +4,11 @@ import { createOcrUploader } from './ocr-upload'
 import { previewFrame, type CapturedPartyFrame } from './collection-session'
 import type { AuthAuthorization } from '../auth/types'
 
-vi.mock('../api-fetch', () => ({ fetchApi: vi.fn() }))
+vi.mock('../api-fetch', () => {
+  const fetchApi = vi.fn()
+
+  return { fetchApi }
+})
 
 const frame: CapturedPartyFrame = {
   width: 2,
