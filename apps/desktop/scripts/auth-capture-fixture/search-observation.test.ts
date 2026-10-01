@@ -141,9 +141,16 @@ it('429 main 만료 값과 실제 disabled 상태를 별도로 관측한다', as
     slots: snapshot.slots.map((slot) => {
       const isLimited = slot.slot === 3
 
-      return isLimited
-        ? { ...slot, error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 } }
-        : slot
+      if (isLimited) {
+        const limitedSlot: typeof slot = {
+          ...slot,
+          error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
+        }
+
+        return limitedSlot
+      }
+
+      return slot
     })
   }
   const probe = await inspect()
