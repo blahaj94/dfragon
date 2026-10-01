@@ -39,7 +39,6 @@ export async function withAccountApp(f, operation, source = f.deps.dataSource) {
   })
   await app.listen(0, '127.0.0.1')
   try {
-
     return await operation(await app.getUrl())
   } finally {
     await app.close()
@@ -60,7 +59,6 @@ export function rawAccountRequest(
   base,
   { method = 'PATCH', path = '/me/nickname', headers = {}, chunks = [] }
 ) {
-
   return new Promise((resolve, reject) => {
     const pending = request(`${base}${path}`, { method, headers }, (response) => {
       const parts = []

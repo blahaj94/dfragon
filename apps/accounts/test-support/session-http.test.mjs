@@ -86,7 +86,6 @@ after(async () => {
 })
 
 function post(path, chunks, headers = {}) {
-
   return new Promise((resolve, reject) => {
     const httpRequest = request(
       `${base}${path}`,

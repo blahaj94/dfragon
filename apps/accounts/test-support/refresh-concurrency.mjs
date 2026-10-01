@@ -133,7 +133,6 @@ async function r2BeforeReuse(source) {
     query: async ({ sql, run }) => {
       const canPauseReplay = !paused
       if (!canPauseReplay) {
-
         return run()
       }
 

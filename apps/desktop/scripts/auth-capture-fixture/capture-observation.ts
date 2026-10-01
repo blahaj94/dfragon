@@ -57,7 +57,6 @@ function isAcceptedObservation({
   const isSuccessful = result?.ok === true
   const canCompare = hasObservation && isSuccessful
   if (!canCompare) {
-
     return false
   }
 
@@ -67,7 +66,6 @@ function isAcceptedObservation({
 export function syntheticSlotMask(value: unknown): number {
   const isObject = value != null && typeof value === 'object'
   if (!isObject) {
-
     return 0
   }
   const { slot, nickname } = value as { slot?: unknown; nickname?: unknown }
@@ -80,7 +78,6 @@ export function syntheticSlotMask(value: unknown): number {
       const isExpectedSlot = isSlotInRange && isExpectedNickname
 
       if (isExpectedSlot) {
-
         return 1 << slot
       }
 

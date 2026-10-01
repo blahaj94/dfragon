@@ -67,7 +67,6 @@ DataSource.prototype.initialize = async function () {
 DataSource.prototype.destroy = async function () {
   observe('db.destroy')
   if (useRealDatabase) {
-
     return destroy.call(this)
   }
   this.isInitialized = false
@@ -138,15 +137,12 @@ NestFactory.create = async (...args) => {
       const isListen = property === 'listen'
       const isFailingUse = shouldFailConfiguration && property === 'use'
       if (isClose) {
-
         return observedClose
       }
       if (isListen) {
-
         return observedListen
       }
       if (isFailingUse) {
-
         return () => {
           throw new Error('fixture-sensitive-app-configuration')
         }

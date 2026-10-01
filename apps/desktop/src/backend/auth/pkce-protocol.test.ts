@@ -49,7 +49,6 @@ describe('Desktop auth PKCE와 URL 경계', () => {
         hash = ''
         origin = 'https://example.test'
         toString(): string {
-
           return 'test-dfragon://auth/return'
         }
       }

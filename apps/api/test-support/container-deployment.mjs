@@ -57,7 +57,6 @@ async function removeOwned(kind, name) {
   const format = kind === 'container' ? '{{.Names}}' : '{{.Name}}'
   const names = await docker([...list, '--filter', filter, '--format', format])
   if (names.stdout.trim() === '') {
-
     return
   }
   assert.equal(names.stdout.trim(), name)
@@ -162,7 +161,6 @@ try {
   const databaseInput = (mode, kind) => {
     const password = kind === 'migrator' ? migratorPassword : runtimePassword
     if (mode === 'environment') {
-
       return ['--env', `DB_PASSWORD=${password}`]
     }
     const target = mode === 'legacy' ? '/run/secrets/db_password' : '/run/fixture/db_password'

@@ -52,7 +52,6 @@ export function cleanupFixture({
 
               const row = rows.find((row) => row.id === options.where.id)
               if (row == null) {
-
                 return null
               }
 

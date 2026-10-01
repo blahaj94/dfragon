@@ -42,7 +42,6 @@ function fixture(t) {
     calls.push([command, ...args])
     const isIssueLookup = command === 'gh'
     if (isIssueLookup) {
-
       return JSON.stringify(issue)
     }
 

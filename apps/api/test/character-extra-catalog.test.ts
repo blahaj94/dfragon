@@ -24,7 +24,6 @@ function memoryStore() {
       const entries = keys.flatMap((key) => {
         const entry = rows.get(catalogKey(key))
         if (entry != null) {
-
           return entry
         }
 

@@ -54,7 +54,6 @@ afterEach(async () => {
 })
 
 function button(label: string): HTMLButtonElement {
-
   return [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (button) => button.getAttribute('aria-label') === label || button.textContent?.includes(label)
   )!

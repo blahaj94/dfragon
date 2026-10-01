@@ -12,7 +12,6 @@ async function settleWithin({ operation, deadlineMs }) {
     (error) => ({ status: 'rejected', error })
   )
   try {
-
     return await Promise.race([
       settled,
       new Promise((resolve) => {
@@ -71,7 +70,6 @@ function createControlledGroup(mode) {
       }
       const hasSuccessfulSignal = !isExitRace && shouldExit
       if (hasSuccessfulSignal) {
-
         return true
       }
     }
@@ -250,7 +248,6 @@ function isGroupAbsent(pid) {
   } catch (error) {
     const isAbsent = error.code === 'ESRCH'
     if (isAbsent) {
-
       return true
     }
     throw error

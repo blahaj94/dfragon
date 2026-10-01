@@ -32,7 +32,6 @@ async function accountApp(t) {
   const manager = {
     getRepository(schema) {
       if (schema === UserSchema) {
-
         return {
           async findOne() {
             counts.users++

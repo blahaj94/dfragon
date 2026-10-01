@@ -73,7 +73,6 @@ function mainEnvironment(): {
     },
     BrowserWindow: class {
       static getAllWindows(): never[] {
-
         return []
       }
       on = vi.fn()
@@ -100,7 +99,6 @@ function mainEnvironment(): {
   const requireModule = (name: string): unknown => {
     const isElectron = name === 'electron'
     if (isElectron) {
-
       return electron
     }
     const isToolkit = name === '@electron-toolkit/utils'
@@ -173,7 +171,6 @@ function executeMainEntry(
   const modules = new Map<string, { exports: Record<string, unknown> }>()
   const requireFromChunk = (requester: string, specifier: string): unknown => {
     if (specifier.startsWith('.')) {
-
       return loadChunk(posix.join(posix.dirname(requester), specifier))
     }
 
@@ -187,7 +184,6 @@ function executeMainEntry(
     }
     const cached = modules.get(normalized)
     if (cached) {
-
       return cached.exports
     }
 

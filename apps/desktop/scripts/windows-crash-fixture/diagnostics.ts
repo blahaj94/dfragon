@@ -30,7 +30,6 @@ export function createStageDiagnostic(): StageDiagnostic {
     current: () => stage,
     run: async (operation) => {
       try {
-
         return await operation()
       } catch {
         throw new Error(`Synthetic Windows fixture failed at ${stage}; preserve evidence.`)

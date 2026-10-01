@@ -9,7 +9,6 @@ vi.mock('node:fs', async (importOriginal) => {
   const native = await importOriginal<typeof import('node:fs')>()
   const isWindows = process.platform === 'win32'
   if (!isWindows) {
-
     return native
   }
 
@@ -41,11 +40,9 @@ export function createPosixTestFiles({
     const isString = typeof mode === 'string'
 
     if (isString) {
-
       return Number.parseInt(mode, 8)
     }
     if (mode != null) {
-
       return mode
     }
 
@@ -55,7 +52,6 @@ export function createPosixTestFiles({
   function withMetadata(stat: Stats, entry: Metadata | undefined): Stats {
     const hasMetadata = entry != null
     if (!hasMetadata) {
-
       return stat
     }
     const isLink = entry.target != null

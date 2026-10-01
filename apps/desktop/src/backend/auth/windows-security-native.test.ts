@@ -137,7 +137,6 @@ function createSecurityFixture(): SecurityFixture {
     isValidSid: () => true,
     isWellKnownSid: (sid, sidType) => {
       if (sid === otherSidPointer) {
-
         return ownerWellKnownSid === sidType
       }
 
@@ -146,7 +145,6 @@ function createSecurityFixture(): SecurityFixture {
     equalSid: (left, right) => {
       const currentSidCast = typeof right === 'object' && right != null
       if (left === currentSidPointer && currentSidCast) {
-
         return ownerIsCurrent
       }
 
@@ -719,11 +717,9 @@ describe('Windows security native boundary', () => {
                   ? 'file'
                   : 'directory'
               if (handleMode === 'null') {
-
                 return nullHandle
               }
               if (handleMode === 'invalid') {
-
                 return invalidHandle
               }
 

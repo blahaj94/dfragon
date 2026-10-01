@@ -50,7 +50,6 @@ try {
   const authFetch = async (input) => {
     const path = new URL(String(input)).pathname
     if (path === '/auth/login-requests') {
-
       return Response.json({
         requestId: randomUUID(),
         browserUrl: `${origin}/auth/login/authorize`,
@@ -58,7 +57,6 @@ try {
       })
     }
     if (path === '/auth/exchange') {
-
       return Response.json({
         accessToken: 'synthetic',
         refreshToken: 'synthetic',
@@ -67,11 +65,9 @@ try {
       })
     }
     if (path === '/me') {
-
       return Response.json({ user: { id: ownerId, nickname: '검증계정' } })
     }
     if (path === '/auth/logout') {
-
       return new Response(null, { status: 204 })
     }
     throw new Error('Unexpected fixture request')

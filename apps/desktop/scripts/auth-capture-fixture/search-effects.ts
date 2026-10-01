@@ -47,7 +47,6 @@ export function createFixtureSearch({
     const currentScenario = queued.shift() ?? scenario
     const isPending = currentScenario === 'pending'
     if (isPending) {
-
       return new Promise<Response>((_resolve, reject) => {
         request.signal.addEventListener(
           'abort',

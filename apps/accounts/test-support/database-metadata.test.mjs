@@ -17,7 +17,6 @@ function environment({ image, overrides = {} }) {
       calls.push(sql)
       const isServerVersionQuery = sql === 'SHOW server_version'
       if (isServerVersionQuery) {
-
         return [{ server_version: '18.6 (Debian 18.6-1.pgdg13+2)' }]
       }
       assert.equal(sql, 'SHOW data_directory')

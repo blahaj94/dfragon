@@ -3,14 +3,12 @@ import { createAuthHarness } from '../../src/backend/auth/auth-test-fixtures'
 import { createFixtureSearch, type SearchScenario } from './search-effects'
 
 function fixture(): ReturnType<typeof createFixtureSearch> {
-
   return createFixtureSearch({
     apiOrigin: 'https://api.example.test',
     clock: createAuthHarness().clock
   })
 }
 function request(signal?: AbortSignal): Request {
-
   return new Request('https://api.example.test/characters?characterName=ALICE', {
     signal
   })

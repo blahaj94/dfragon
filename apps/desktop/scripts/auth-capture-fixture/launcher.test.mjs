@@ -127,7 +127,6 @@ function captureSignals() {
     vi.spyOn(process, method).mockImplementation((event, listener) => {
       const isSignal = event === 'SIGINT' || event === 'SIGTERM'
       if (!isSignal) {
-
         return original(event, listener)
       }
       const isOnce = method === 'once'

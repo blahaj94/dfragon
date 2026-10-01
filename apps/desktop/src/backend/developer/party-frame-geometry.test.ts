@@ -85,7 +85,6 @@ function detect(frame: {
   height: number
   rgba: Uint8Array
 }): ReturnType<typeof detectPartyFrameGeometry> {
-
   return detectPartyFrameGeometry(frame)
 }
 

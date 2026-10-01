@@ -28,7 +28,6 @@ export async function until(condition: () => Promise<boolean>, deadlineMs = 10_0
     }
     const isReady = await condition()
     if (isReady) {
-
       return
     }
     await delay(50)

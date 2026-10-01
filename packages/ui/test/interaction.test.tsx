@@ -165,7 +165,6 @@ describe('TextField interaction and accessible connections', () => {
 })
 
 function DialogExample({ defaultOpen = false, onOpenChange = vi.fn() }) {
-
   return (
     <DialogRoot defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
       <DialogTrigger>Open details</DialogTrigger>

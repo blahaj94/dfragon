@@ -13,7 +13,6 @@ export type Observer = { observe(point: Point): Promise<void>; assertActive(): v
 function matchesAck(event: Observation, ack: unknown): boolean {
   const isObject = ack != null && typeof ack === 'object'
   if (!isObject) {
-
     return false
   }
   const actual = ack as Record<string, unknown>

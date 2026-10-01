@@ -20,7 +20,10 @@ export const sessionId = randomUUID()
 export const tokenId = randomUUID()
 export const configuration = () => {
   const signingKey = { kid: active.kid, privateKeyPem: active.privateKeyPem }
-  const verificationKeys = [active, previous].map(({ kid, publicKeyPem }) => ({ kid, publicKeyPem }))
+  const verificationKeys = [active, previous].map(({ kid, publicKeyPem }) => ({
+    kid,
+    publicKeyPem
+  }))
 
   return {
     issuer: 'urn:dfragon:test:issuer',
@@ -60,7 +63,6 @@ export async function signed(
   protectedHeader = header(),
   pair = active
 ) {
-
   return new CompactSign(new TextEncoder().encode(JSON.stringify(payload)))
     .setProtectedHeader(protectedHeader)
     .sign(await importPKCS8(pair.privateKeyPem, 'ES256'))

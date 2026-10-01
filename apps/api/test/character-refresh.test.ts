@@ -31,7 +31,6 @@ const payloads: CharacterPayloads = {
   buff_creature: { ...common, skill: { buff: null } }
 }
 function rowsAt(time: number): CharacterApiResponse[] {
-
   return characterDetailSections.map((section) => {
     const characterId = identity.characterId
     const payload = structuredClone(payloads[section])

@@ -121,7 +121,6 @@ export function startRuntime(
 export async function collectRuntimeExit(runtime, timeoutMs = 5000) {
   let timer
   try {
-
     return await Promise.race([
       runtime.exited,
       new Promise((_, reject) => {

@@ -5,11 +5,9 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { createApiHttpApp } from '../dist/http.js'
 import { createNeopleCharacterSearchForTest } from '../dist/characters/neople-character-search.js'
 export async function searchFixture() {
-
   return {}
 }
 export async function snapshot(source) {
-
   return source.query(
     'SELECT server_id, character_id, adventure_name FROM characters ORDER BY server_id, character_id'
   )
@@ -105,7 +103,6 @@ export async function withSearchApp(f, operation, overrides = {}) {
 }
 
 export function searchRequest(base, f, query = 'characterName=ab', options = {}) {
-
   return fetch(`${base}/characters?${query}`, {
     headers: { authorization: `Bearer ${f.token?.accessToken ?? 'synthetic-unused-token'}` },
     ...options
@@ -143,7 +140,6 @@ export async function waitFor(check, message = 'search observation did not arriv
 
     const ready = await check()
     if (ready) {
-
       return
     }
     await delay(10)

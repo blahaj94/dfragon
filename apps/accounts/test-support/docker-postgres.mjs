@@ -50,7 +50,6 @@ function safeDockerEnvironment() {
 }
 
 export function command(program, args, options = {}) {
-
   return new Promise((resolve, reject) => {
     const child = spawn(program, args, {
       cwd: options.cwd,
@@ -110,13 +109,11 @@ export function command(program, args, options = {}) {
 export function shouldThrowDockerFailure({ allowFailure, result }) {
   const shouldRejectFailure = !allowFailure
   if (!shouldRejectFailure) {
-
     return false
   }
 
   const hasFailedExit = result.code !== 0
   if (hasFailedExit) {
-
     return true
   }
 
@@ -142,12 +139,10 @@ function normalizeNativePlatform({ os, architecture }) {
   }
   const isArm64Architecture = architecture === 'aarch64' || architecture === 'arm64'
   if (isArm64Architecture) {
-
     return 'linux/arm64/v8'
   }
   const isAmd64Architecture = architecture === 'x86_64' || architecture === 'amd64'
   if (isAmd64Architecture) {
-
     return 'linux/amd64'
   }
   throw new Error('Unsupported Docker architecture')
@@ -165,19 +160,16 @@ export function matchesImagePlatform(entry, platform) {
   const [expectedOs, expectedArchitecture] = platform.split('/')
   const hasMatchingOs = entry.platform?.os === expectedOs
   if (!hasMatchingOs) {
-
     return false
   }
 
   const hasMatchingArchitecture = entry.platform?.architecture === expectedArchitecture
   if (!hasMatchingArchitecture) {
-
     return false
   }
 
   const requiresArm64Variant = platform === 'linux/arm64/v8'
   if (!requiresArm64Variant) {
-
     return true
   }
 
@@ -351,7 +343,6 @@ function validateRunId(runId) {
 }
 
 export function newRunId(prefix = 'run') {
-
   return `${prefix}${randomUUID().replaceAll('-', '')}`
 }
 
@@ -468,17 +459,14 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
 }
 
 export function hasOwnedDataVolumeMount(mounts, volumeName) {
-
   return mounts.some((mount) => {
     const isVolumeMount = mount.Type === 'volume'
     if (!isVolumeMount) {
-
       return false
     }
 
     const hasMatchingName = mount.Name === volumeName
     if (!hasMatchingName) {
-
       return false
     }
 
@@ -496,7 +484,6 @@ async function inspectOwnership({ kind, name }) {
   const listed = await docker(listArgs)
   const isResourceAbsent = listed.stdout.trim() === ''
   if (isResourceAbsent) {
-
     return undefined
   }
   assert.equal(listed.stdout.trim(), name)
@@ -514,7 +501,6 @@ async function removeOwnedResource({ kind, name, runId }) {
   const actualRunId = await inspectOwnership({ kind, name })
   const isResourceAbsent = actualRunId === undefined
   if (isResourceAbsent) {
-
     return
   }
   const hasOwnershipMismatch = actualRunId !== runId

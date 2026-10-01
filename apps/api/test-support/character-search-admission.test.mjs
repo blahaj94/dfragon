@@ -28,7 +28,6 @@ function clock() {
       }
     },
     get timerCount() {
-
       return timers.size
     }
   }

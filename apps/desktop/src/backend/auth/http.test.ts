@@ -14,7 +14,6 @@ import {
 const jsonHeaders = { 'Content-Type': 'application/json; charset=utf-8' }
 
 function jsonResponse(value: unknown, status = 200): Response {
-
   return new Response(JSON.stringify(value), { status, headers: jsonHeaders })
 }
 
@@ -51,7 +50,6 @@ async function inspectRequest(
 }
 
 function validTokens(): AuthTokens {
-
   return {
     tokenType: 'Bearer',
     accessToken: ACCESS_1,

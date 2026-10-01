@@ -79,7 +79,6 @@ function nodeEnvironment(extra = {}) {
     names.flatMap((name) => {
       const isVariableMissing = process.env[name] === undefined
       if (isVariableMissing) {
-
         return []
       }
 
@@ -91,7 +90,6 @@ function nodeEnvironment(extra = {}) {
 }
 
 function databaseEnvironment(configuration) {
-
   return nodeEnvironment({
     DB_HOST: configuration.host,
     DB_PORT: String(configuration.port),
@@ -102,7 +100,6 @@ function databaseEnvironment(configuration) {
 }
 
 function createReadinessDataSource(configuration, timeoutMs) {
-
   return new DataSource({
     ...createDatabaseOptions(configuration),
     connectTimeoutMS: timeoutMs,
@@ -154,7 +151,6 @@ async function assertBoundedReadiness() {
         const hasCloseError = error != null
 
         if (hasCloseError) {
-
           return reject(error)
         }
 
@@ -482,7 +478,6 @@ export function assertChildScenarioConfiguration({ runId, platform, imageId }) {
 export function shouldWaitForSignalAtStage({ scenario, signalStage, expectedStage }) {
   const isSignalScenario = scenario === 'signal'
   if (!isSignalScenario) {
-
     return false
   }
 
@@ -676,7 +671,6 @@ async function primaryScenario() {
   const finishSignal = () => {
     const hasReceivedSignal = receivedSignal != null
     if (!hasReceivedSignal) {
-
       return false
     }
     const isInterruptSignal = receivedSignal === 'SIGINT'
@@ -907,7 +901,6 @@ async function primaryScenario() {
 
   const finishedBeforeFailureScenario = finishSignal()
   if (finishedBeforeFailureScenario) {
-
     return
   }
 
@@ -915,35 +908,30 @@ async function primaryScenario() {
   await runFailureScenario({ scenario: 'failure', image })
   const finishedAfterFailureScenario = finishSignal()
   if (finishedAfterFailureScenario) {
-
     return
   }
   currentStage = 'timeout teardown'
   await runFailureScenario({ scenario: 'timeout', image })
   const finishedAfterTimeoutScenario = finishSignal()
   if (finishedAfterTimeoutScenario) {
-
     return
   }
   currentStage = 'SIGINT teardown'
   await runSignalScenario({ signal: 'SIGINT', stage: 'volume', image })
   const finishedAfterInterruptScenario = finishSignal()
   if (finishedAfterInterruptScenario) {
-
     return
   }
   currentStage = 'SIGTERM teardown'
   await runSignalScenario({ signal: 'SIGTERM', stage: 'container', image })
   const finishedAfterTerminationScenario = finishSignal()
   if (finishedAfterTerminationScenario) {
-
     return
   }
   currentStage = 'ownership protection'
   await assertOwnershipProtection()
   const finishedAfterOwnershipScenario = finishSignal()
   if (finishedAfterOwnershipScenario) {
-
     return
   }
 

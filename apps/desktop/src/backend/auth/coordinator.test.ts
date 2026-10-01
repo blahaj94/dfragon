@@ -1195,7 +1195,6 @@ describe('Desktop AuthCoordinator login', () => {
     const revisionsIncrease = revisions.every((value, index) => {
       const isFirstRevision = index === 0
       if (isFirstRevision) {
-
         return true
       }
 
@@ -2762,7 +2761,6 @@ describe('Desktop AuthCoordinator restore, refresh와 logout', () => {
       const unsubscribe = coordinator.subscribe((snapshot) => {
         const isSigningOut = snapshot.phase === 'signingOut'
         if (!isSigningOut) {
-
           return
         }
         signingOutCount += 1

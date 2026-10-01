@@ -31,7 +31,6 @@ async function until(condition: () => Promise<boolean>): Promise<void> {
     }
     const isReady = await condition()
     if (isReady) {
-
       return
     }
     await delay(20)
@@ -52,7 +51,6 @@ export async function smoke(
     assert.equal(clicked, true)
   }
   async function textIncludes(text: string): Promise<boolean> {
-
     return (await evaluate(
       `document.body.textContent.includes(${JSON.stringify(text)})`
     )) as boolean

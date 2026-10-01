@@ -98,15 +98,12 @@ export async function createStoreFixture({
     const isCredentialTemp = name.startsWith('.credential.v1.') && name.endsWith('.tmp')
     const isMarkerTemp = name.startsWith('.transition.v1.') && name.endsWith('.tmp')
     if (isDirectory) {
-
       return 'directory'
     }
     if (isCredentialTemp) {
-
       return 'credential-temp'
     }
     if (isMarkerTemp) {
-
       return 'transition-temp'
     }
 
@@ -180,7 +177,6 @@ export async function createStoreFixture({
   }
 
   async function readRecord(): Promise<Record<string, unknown>> {
-
     return JSON.parse(await fs.readFile(join(directory, 'credential.v1'), 'utf8'))
   }
 

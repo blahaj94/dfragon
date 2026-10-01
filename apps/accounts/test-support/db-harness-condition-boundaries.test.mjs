@@ -5,7 +5,6 @@ import * as databaseIntegration from './database-integration.mjs'
 import * as postgres from './docker-postgres.mjs'
 
 function resultWithReads({ code, signal, reads }) {
-
   return {
     get code() {
       reads.push('code')
@@ -21,7 +20,6 @@ function resultWithReads({ code, signal, reads }) {
 }
 
 function platformEntry({ os = 'linux', architecture = 'amd64', variant = 'v8', reads }) {
-
   return {
     platform: {
       get os() {

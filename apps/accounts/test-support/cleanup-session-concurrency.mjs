@@ -55,7 +55,6 @@ async function staleSessionHint(source, cleanup, change) {
       unlock: async () => {
         const canCommit = runner.isTransactionActive
         if (!canCommit) {
-
           return
         }
         const shouldDelete = change === 'deleted'

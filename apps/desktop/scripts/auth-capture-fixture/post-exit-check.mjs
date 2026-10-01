@@ -103,12 +103,10 @@ const searchDiagnosticDefinitions = {
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function isDiagnosticValue(value, type) {
   if (type === 'boolean') {
-
     return typeof value === 'boolean'
   }
   const isInteger = Number.isSafeInteger(value)
   if (!isInteger) {
-
     return false
   }
   if (type === 'mask') {
@@ -124,7 +122,6 @@ function isDiagnosticValue(value, type) {
     return isNonnegative && hasMaximum
   }
   if (type !== 'request-delta') {
-
     return false
   }
   const hasMinimum = value >= -20
@@ -140,14 +137,12 @@ function readSearchDiagnostic(output) {
   const lines = output.split('\n').filter((line) => line.startsWith(prefix))
   const hasOneRecord = lines.length === 1
   if (!hasOneRecord) {
-
     return null
   }
   try {
     const value = JSON.parse(lines[0].slice(prefix.length))
     const isObject = value != null && typeof value === 'object' && !Array.isArray(value)
     if (!isObject) {
-
       return null
     }
     const keys = ['stage', 'check', 'kind', 'actual', 'expected', 'generatedMessage']
@@ -161,7 +156,6 @@ function readSearchDiagnostic(output) {
       (value.kind === 'assertion' && typeof value.generatedMessage === 'boolean') ||
       (value.kind === 'deadline' && value.generatedMessage === null)
     if (!hasDefinition || !hasKnownKind || !hasAllowedKind || !hasGeneratedMessage) {
-
       return null
     }
     const actualKeys = Object.keys(definition.actual)
@@ -200,7 +194,6 @@ function readSearchDiagnostic(output) {
       hasValidActual &&
       hasValidExpected
     if (!hasValidDiagnostic) {
-
       return null
     }
     const actual = Object.fromEntries(actualKeys.map((key) => [key, value.actual[key]]))
@@ -215,7 +208,6 @@ function readSearchDiagnostic(output) {
       generatedMessage: value.generatedMessage
     }
   } catch {
-
     return null
   }
 }
@@ -227,14 +219,12 @@ function readSearchEvidence(output) {
   const lines = output.split('\n').filter((line) => line.startsWith(prefix))
   const hasOneRecord = lines.length === 1
   if (!hasOneRecord) {
-
     return null
   }
   try {
     const value = JSON.parse(lines[0].slice(prefix.length))
     const isObject = value != null && typeof value === 'object' && !Array.isArray(value)
     if (!isObject) {
-
       return null
     }
     const keys = Object.keys(expectedSearchEvidence)
@@ -242,13 +232,11 @@ function readSearchEvidence(output) {
     const hasRequiredValues = keys.every((key) => value[key] === expectedSearchEvidence[key])
     const hasValidEvidence = hasExactCount && hasRequiredValues
     if (!hasValidEvidence) {
-
       return null
     }
 
     return Object.fromEntries(keys.map((key) => [key, value[key]]))
   } catch {
-
     return null
   }
 }
@@ -315,7 +303,6 @@ function reportSearchStages(output, { reportDiagnostic }) {
 function hasGroupExited() {
   const hasChild = child?.pid != null
   if (!hasChild) {
-
     return true
   }
   try {
@@ -325,7 +312,6 @@ function hasGroupExited() {
   } catch (error) {
     const isAbsent = error.code === 'ESRCH'
     if (isAbsent) {
-
       return true
     }
     throw new Error('Test child exit could not be confirmed')
@@ -339,12 +325,10 @@ async function waitForExit() {
   while (true) {
     const hasExited = hasGroupExited()
     if (hasExited) {
-
       return true
     }
     const hasExpired = Date.now() >= deadline
     if (hasExpired) {
-
       return false
     }
     await delay(50)

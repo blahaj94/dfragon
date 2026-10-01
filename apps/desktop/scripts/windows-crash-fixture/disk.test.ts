@@ -8,7 +8,6 @@ function securityFixture(): ReadOnlySecurity & { createDirectory: ReturnType<typ
     const isRoot = path === root
     const isDirectory = kind === 'directory'
     if (isRoot === isDirectory) {
-
       return 'trusted'
     }
 

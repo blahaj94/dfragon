@@ -16,7 +16,6 @@ function frame(
     { slot: 4, width: 2, height: 1, rgba: Buffer.alloc(8, 4) }
   ]
 ): CapturedPartyFrame {
-
   return { width: 1920, height: 1080, scale: 1.285714, capturedAt, slots }
 }
 

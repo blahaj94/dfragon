@@ -736,7 +736,6 @@ describe('desktop auth runtime config', () => {
       const filesystem: RuntimeProfileFilesystemDouble = {
         lstatSync: ((path: fs.PathLike) => {
           if (String(path) !== userDataPath) {
-
             return trustedAncestorStat
           }
           finalPathReads += 1
@@ -1087,11 +1086,9 @@ describe('desktop auth runtime config', () => {
     const filesystem: RuntimeProfileFilesystemDouble = {
       lstatSync: ((path: fs.PathLike) => {
         if (String(path) === '/') {
-
           return unsafeRootStat
         }
         if (String(path) === '/synthetic') {
-
           return safeDirectoryStat
         }
         throw Object.assign(new Error('Synthetic missing path'), { code: 'ENOENT' })

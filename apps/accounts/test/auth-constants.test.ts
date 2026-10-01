@@ -13,7 +13,6 @@ interface AuthConstants {
   REFRESH_TOKEN: { byteLength: number; encoding: string; hashAlgorithm: string }
 }
 async function constants(): Promise<AuthConstants> {
-
   return import(new URL('../src/constants/auth.js', import.meta.url).href) as Promise<AuthConstants>
 }
 

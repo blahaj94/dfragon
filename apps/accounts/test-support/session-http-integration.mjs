@@ -30,7 +30,6 @@ const loginService = {
 }
 
 function post(base, path, body) {
-
   return fetch(`${base}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -39,7 +38,6 @@ function post(base, path, body) {
 }
 
 function postChunks(base, path, chunks, headers = {}) {
-
   return new Promise((resolve, reject) => {
     const httpRequest = request(
       `${base}${path}`,
@@ -71,7 +69,6 @@ async function withSessionApp(f, operation) {
   const app = await createLoginHttpApp(loginService, createSessionHttpService(f.deps))
   await app.listen(0, '127.0.0.1')
   try {
-
     return await operation(await app.getUrl())
   } finally {
     await app.close()

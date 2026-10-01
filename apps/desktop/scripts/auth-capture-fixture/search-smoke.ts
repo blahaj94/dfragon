@@ -37,7 +37,6 @@ function hasState(view: SearchUiObservation, state: string): boolean {
   const hasMatchingSlots = view.slots.every((slot) => {
     const isState = slot.state === state
     if (!isState) {
-
       return false
     }
     const hasMatchingStatus = slot.statusMatched
@@ -52,7 +51,6 @@ function hasState(view: SearchUiObservation, state: string): boolean {
 export function inspectSandboxBoundary(window: { electron?: unknown; require?: unknown }): boolean {
   const hasNoElectron = typeof window.electron === 'undefined'
   if (!hasNoElectron) {
-
     return false
   }
   const hasNoRequire = typeof window.require === 'undefined'
@@ -74,7 +72,6 @@ export function inspectMixedReadiness(view: SearchUiObservation): {
   const regionMask = view.regionMask
   const hasAllRegions = regionMask === 15
   if (!hasAllRegions) {
-
     return {
       ready: false,
       regionMask,
@@ -108,32 +105,26 @@ export function isRestartReady({
 }): boolean {
   const hasNoCapture = blank.captureId === null
   if (!hasNoCapture) {
-
     return false
   }
   const hasSelection = blank.sourceSelected
   if (!hasSelection) {
-
     return false
   }
   const hasEnabledStart = blank.startDisabled === false
   if (!hasEnabledStart) {
-
     return false
   }
   const hasIdleView = hasState(blank, 'idle')
   if (!hasIdleView) {
-
     return false
   }
   const hasUnchangedStreams = afterStop.streams === stopped.streams
   if (!hasUnchangedStreams) {
-
     return false
   }
   const hasUnchangedWorkers = afterStop.workers === stopped.workers
   if (!hasUnchangedWorkers) {
-
     return false
   }
 
@@ -303,13 +294,11 @@ export async function smokeCharacterSearch(
     const emptyMask = empty.slots.reduce((mask, slot, index) => {
       const hasEmptyState = slot.state === 'empty'
       if (!hasEmptyState) {
-
         return mask
       }
       const hasMatchingStatus = slot.statusMatched
 
       if (hasMatchingStatus) {
-
         return mask | (1 << index)
       }
 
@@ -360,7 +349,6 @@ export async function smokeCharacterSearch(
     // HTTP 도착 순서를 slot 번호로 가정하지 않고 실제 수용한 상태에서 역할을 찾는다.
     const failures = mixed.slots.flatMap((slot, index) => {
       if (slot.code === 'INTERNAL_SERVER_ERROR') {
-
         return [index]
       }
 
@@ -428,7 +416,6 @@ export async function smokeCharacterSearch(
       }
       const hasSameRequest = sameRequest({ before, after })
       if (!hasSameRequest) {
-
         return false
       }
       const hasUnchangedState = before.state === after.state

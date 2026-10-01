@@ -57,7 +57,6 @@ export function tokenResponse({
   accessToken = ACCESS_1,
   accessTokenExpiresAt = '2026-09-06T12:15:00.000Z'
 }: TokenResponseInput = {}): AuthTokens {
-
   return {
     tokenType: 'Bearer',
     accessToken,
@@ -80,7 +79,6 @@ export class FakeClock implements AuthClock {
   readonly scheduled: ScheduledTask[] = []
 
   read(): ClockReading {
-
     return {
       wallMs: this.wallMs,
       monotonicMs: this.monotonicMs,
@@ -104,7 +102,6 @@ export class FakeClock implements AuthClock {
     const dueTasks = this.scheduled.filter((task) => {
       const isActive = !task.cancelled
       if (!isActive) {
-
         return false
       }
 
@@ -143,18 +140,15 @@ export class FakeStore implements CredentialStore {
 
   get inspection(): CredentialInspection {
     if (this.backendUnavailable) {
-
       return { status: 'unavailable' }
     }
     const hasTransitionMarker = this.marker != null
     if (hasTransitionMarker) {
-
       return { status: 'recovery-required' }
     }
     const refreshToken = this.refreshToken
     const hasRefreshToken = refreshToken != null
     if (hasRefreshToken) {
-
       return { status: 'ready', refreshToken }
     }
 
@@ -176,12 +170,10 @@ export class FakeStore implements CredentialStore {
   }
 
   get storedRefreshToken(): string | null {
-
     return this.refreshToken
   }
 
   get transitionMarker(): CredentialTransitionKind | null {
-
     return this.marker
   }
 
@@ -255,7 +247,6 @@ export class FakeStore implements CredentialStore {
   private next(outcomes: StoreMutationOutcome[]): StoreMutationOutcome {
     const outcome = outcomes.shift()
     if (outcome != null) {
-
       return outcome
     }
 
@@ -291,7 +282,6 @@ export function createAuthHarness(): AuthHarness {
     uuid: vi.fn(() => {
       const uuid = uuidValues.shift()
       if (uuid != null) {
-
         return uuid
       }
 

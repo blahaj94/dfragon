@@ -11,7 +11,6 @@ export const settled = (operation) =>
 export async function bounded(promise) {
   let timer
   try {
-
     return await Promise.race([
       promise,
       new Promise((_, reject) => {
@@ -33,7 +32,6 @@ export function instrument(source, hooks) {
     runner.query = (sql, parameters, ...rest) => {
       const shouldUseQueryHook = Boolean(hooks.query)
       if (shouldUseQueryHook) {
-
         return hooks.query({
           runner,
           sql,
@@ -48,7 +46,6 @@ export function instrument(source, hooks) {
     runner.commitTransaction = () => {
       const shouldUseCommitHook = Boolean(hooks.commit)
       if (shouldUseCommitHook) {
-
         return hooks.commit(runner, commit)
       }
 
@@ -75,7 +72,6 @@ export async function blockedBy(source, waiter, blocker) {
     const [state] = await source.query('SELECT pg_blocking_pids($1::int) AS blockers', [waiter])
     const hasExpectedBlocker = expected.some((pid) => state.blockers.includes(pid))
     if (hasExpectedBlocker) {
-
       return
     }
     await delay(10)
@@ -102,7 +98,6 @@ export async function locked(source, table, id, operation) {
 }
 
 export async function databaseNow(source) {
-
   return (
     await source.query('SELECT to_timestamp(floor(extract(epoch from clock_timestamp()))) AS now')
   )[0].now
@@ -117,7 +112,6 @@ export async function waitUntil(source, time) {
     }
     const hasReachedDatabaseTime = (await databaseNow(source)) >= time
     if (hasReachedDatabaseTime) {
-
       return
     }
     await delay(20)

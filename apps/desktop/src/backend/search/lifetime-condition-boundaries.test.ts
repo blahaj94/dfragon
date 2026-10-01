@@ -5,7 +5,6 @@ import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
 function binding(): Omit<CaptureBinding, 'captureId'> {
-
   return { windowGeneration: 2, sourceGeneration: 3 }
 }
 
@@ -183,7 +182,6 @@ it.each([false, true])(
       slot: 0,
       nickname: '가나',
       get observationRevision() {
-
         return readRevision()
       }
     })

@@ -65,7 +65,6 @@ test('repeated replacement and upstream failure still consume the per-client att
     async () => {
       calls++
       if (failing) {
-
         return new Response(null, { status: 503 })
       }
 

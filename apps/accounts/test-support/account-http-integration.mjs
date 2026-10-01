@@ -203,7 +203,6 @@ async function boundary({ source, phase, boundaryKind, method }) {
       const result = await run()
       const isClock = sql.includes('clock_timestamp()')
       if (!isClock) {
-
         return result
       }
       clocks++
@@ -485,7 +484,6 @@ async function databaseFailure({ source, phase, applied, method }) {
       const isCommitFailurePhase = ['admission', 'function'].includes(phase)
       const failCommit = isCommitFailurePhase && commits === target
       if (!failCommit) {
-
         return commit()
       }
       if (applied) {

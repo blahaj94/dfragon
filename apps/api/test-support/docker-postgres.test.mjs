@@ -65,7 +65,6 @@ function tarEntry({ name = 'manifest.json', content = manifestBytes, ...header }
 }
 
 function tarArchive(...entries) {
-
   return Buffer.concat([...entries, Buffer.alloc(1024)])
 }
 
@@ -76,7 +75,6 @@ function paxRecord({ key, value }) {
     const nextLength = Buffer.byteLength(`${length} ${record}`)
     const isLengthStable = nextLength === length
     if (isLengthStable) {
-
       return `${length} ${record}`
     }
     length = nextLength

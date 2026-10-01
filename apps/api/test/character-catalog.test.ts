@@ -36,7 +36,6 @@ test('abort during the final database clock read rejects before the transaction 
       return []
     },
     getRepository() {
-
       return { findBy: async () => [] }
     }
   } as unknown as EntityManager
@@ -58,7 +57,6 @@ test('abort during the final database clock read rejects before the transaction 
   assert.equal(committed, false)
 })
 function memoryStore(entries: CatalogEntry[] = []): CatalogStore {
-
   return {
     async read() {
       const requestedAt = new Date().toISOString()

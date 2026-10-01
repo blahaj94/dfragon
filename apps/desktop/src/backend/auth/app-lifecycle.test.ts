@@ -225,7 +225,6 @@ it('load failure held by a canceled close is handled after close cancellation', 
   let defaultPrevented = false
   const closeEvent = {
     get defaultPrevented() {
-
       return defaultPrevented
     }
   } as QuitEvent

@@ -30,7 +30,6 @@ async function limited(fixture: Fixture, retryAfter?: string): Promise<SearchSlo
 }
 
 function retry(fixture: Fixture, slot: SearchSlot): Promise<unknown> {
-
   return fixture.invoke('controlCharacterSearch', {
     action: 'retry',
     captureId: fixture.captureId,
@@ -92,7 +91,6 @@ describe('main의 429 Retry-After와 사용자 재시도', () => {
         start(controller) {
           finish = () => {
             if (bodyFinished) {
-
               return
             }
             bodyFinished = true

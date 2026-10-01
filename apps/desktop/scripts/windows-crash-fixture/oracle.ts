@@ -148,13 +148,11 @@ export function validateHold(input: unknown): HoldEvidence {
 export function syntheticGeneration(refreshToken: string): 'R0' | 'R1' | 'unexpected' {
   const isR0 = refreshToken === Buffer.alloc(32, 31).toString('base64url')
   if (isR0) {
-
     return 'R0'
   }
   const isR1 = refreshToken === Buffer.alloc(32, 32).toString('base64url')
 
   if (isR1) {
-
     return 'R1'
   }
 

@@ -8,7 +8,6 @@ import ts from 'typescript'
 import type { DataSource } from 'typeorm'
 
 async function generator() {
-
   return (await import(new URL('../src/database/generate.js', import.meta.url).href)) as {
     generateMigration(name: string, factory: () => DataSource, directory: string): Promise<string>
   }

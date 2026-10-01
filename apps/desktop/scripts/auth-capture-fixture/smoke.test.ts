@@ -117,7 +117,6 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
         const isObservationInstall = source === installObservation
 
         if (isObservationInstall) {
-
           return true
         }
 

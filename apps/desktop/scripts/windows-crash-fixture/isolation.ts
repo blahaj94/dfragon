@@ -33,7 +33,6 @@ export async function assertFixtureAncestors({
     const parent = dirname(path)
     const isVolume = parent === path
     if (isVolume) {
-
       return
     }
     path = parent

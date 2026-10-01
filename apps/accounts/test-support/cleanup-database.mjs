@@ -99,7 +99,6 @@ async function transactionFailure(source, cleanup, outcome) {
       commits++
       const isFirstCommit = commits === 1
       if (isFirstCommit) {
-
         return commit()
       }
       const shouldCommit = outcome === 'committed'

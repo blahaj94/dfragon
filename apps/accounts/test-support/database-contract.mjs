@@ -39,7 +39,6 @@ export async function waitForAuthenticatedReadiness(
     }
     const attemptTimeoutMs = Math.max(1, Math.min(500, deadline - Date.now()))
     try {
-
       return await withDataSource(
         (candidate) => createDataSource(candidate, attemptTimeoutMs),
         configuration,

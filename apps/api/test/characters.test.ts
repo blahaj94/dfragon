@@ -7,7 +7,6 @@ import { NeopleSearchFailure } from '../src/errors/neople-search.js'
 const input = { characterName: '가나다', serverId: 'cain', limit: 10 }
 
 function jsonResponse(body: unknown, status = 200): Response {
-
   return new Response(JSON.stringify(body), {
     status,
     headers: { 'content-type': 'application/json' }
@@ -15,7 +14,6 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function rawResponse(body: string, status = 200): Response {
-
   return new Response(body, { status, headers: { 'content-type': 'application/json' } })
 }
 
@@ -506,7 +504,6 @@ test('concurrent searches keep controller, timer, and result state independent',
       const name = new URL(request).searchParams.get('characterName')
       const isFastSearch = name === '빠른검색'
       if (isFastSearch) {
-
         return jsonResponse({
           rows: [{ characterId: 'fast', characterName: name, serverId: 'cain', fame: 0 }]
         })

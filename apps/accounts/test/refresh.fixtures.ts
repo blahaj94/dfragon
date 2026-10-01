@@ -136,12 +136,10 @@ export function fixture() {
     getRepository: (schema: unknown) => {
       const isUserSchema = schema === UserSchema
       if (isUserSchema) {
-
         return users
       }
       const isSessionSchema = schema === AuthSessionSchema
       if (isSessionSchema) {
-
         return sessions
       }
       assert.equal(schema, AuthRefreshTokenSchema)

@@ -29,7 +29,6 @@ async function waitForGroupExit(pid, milliseconds) {
     } catch (error) {
       const isAbsent = error.code === 'ESRCH'
       if (isAbsent) {
-
         return true
       }
 
@@ -37,7 +36,6 @@ async function waitForGroupExit(pid, milliseconds) {
     }
     const hasExpired = Date.now() >= deadline
     if (hasExpired) {
-
       return false
     }
     await delay(50)
@@ -49,13 +47,11 @@ async function waitForGroupExit(pid, milliseconds) {
 async function finishGroup(pid) {
   let stopped = await waitForGroupExit(pid, 500)
   if (stopped) {
-
     return true
   }
   signalGroup(pid, 'SIGTERM')
   stopped = await waitForGroupExit(pid, 2_000)
   if (stopped) {
-
     return true
   }
   signalGroup(pid, 'SIGKILL')
@@ -69,7 +65,6 @@ async function removeProfile(profile) {
   try {
     await rm(profile, { recursive: true, force: true, maxRetries: 3 })
   } catch {
-
     return false
   }
   try {
@@ -108,17 +103,14 @@ export async function runAuthBridgeFixture(args = []) {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   function interrupt() {
     if (interrupted) {
-
       return
     }
     interrupted = true
     if (finalizing) {
-
       return
     }
     const hasPid = child?.pid != null
     if (!hasPid) {
-
       return
     }
     signalGroup(child.pid, 'SIGTERM')
@@ -130,7 +122,6 @@ export async function runAuthBridgeFixture(args = []) {
   try {
     profile = await mkdtemp(join(tmpdir(), 'dfragon-auth-bridge-fixture-'))
     if (interrupted) {
-
       return 1
     }
     const environment = {
@@ -176,7 +167,6 @@ export async function runAuthBridgeFixture(args = []) {
   }
 
   if (interrupted) {
-
     return 1
   }
 

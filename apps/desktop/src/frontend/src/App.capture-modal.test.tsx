@@ -18,15 +18,12 @@ beforeEach(() => {
     'ResizeObserver',
     class {
       observe(): void {
-
         return
       }
       unobserve(): void {
-
         return
       }
       disconnect(): void {
-
         return
       }
     }

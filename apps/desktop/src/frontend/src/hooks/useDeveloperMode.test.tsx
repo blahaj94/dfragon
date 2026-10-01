@@ -59,7 +59,6 @@ function deferred<T>(): {
 }
 
 function state(): string {
-
   return container.querySelector('[data-testid="state"]')!.textContent!
 }
 

@@ -308,7 +308,6 @@ const apiOptions = {
 }
 
 function baselineApi(responses, requests = []) {
-
   return async (url, options) => {
     requests.push({ url, options })
 

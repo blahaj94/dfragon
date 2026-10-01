@@ -8,7 +8,6 @@ async function expectUnavailable(operation: Promise<void>): Promise<void> {
   await assert.rejects(operation, (error: unknown) => {
     const isErrorObject = error != null && typeof error === 'object'
     if (!isErrorObject) {
-
       return false
     }
     const hasErrorCode = 'code' in error
@@ -28,7 +27,6 @@ async function expectInvalidRequest(operation: Promise<void>): Promise<void> {
   await assert.rejects(operation, (error: unknown) => {
     const isErrorObject = error != null && typeof error === 'object'
     if (!isErrorObject) {
-
       return false
     }
     const hasErrorCode = 'code' in error

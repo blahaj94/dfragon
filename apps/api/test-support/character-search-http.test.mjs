@@ -49,7 +49,6 @@ async function withSearchBoundary(
 }
 
 function rawGet(base, path, headers = {}) {
-
   return new Promise((resolve, reject) => {
     const pending = request(`${base}${path}`, { method: 'GET', headers }, (response) => {
       const parts = []

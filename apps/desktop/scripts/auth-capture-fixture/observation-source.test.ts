@@ -25,7 +25,6 @@ function installObservationSource(): {
   }
   class HTMLMediaElement {
     async play(): Promise<void> {
-
       return undefined
     }
   }

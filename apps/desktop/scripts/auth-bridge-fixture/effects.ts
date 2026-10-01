@@ -99,11 +99,9 @@ export function createFixtureEffects(): Effects {
     store: {
       inspect: async () => {
         if (marked) {
-
           return { status: 'recovery-required' }
         }
         if (committed) {
-
           return { status: 'ready', refreshToken }
         }
 
