@@ -142,10 +142,12 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         throw new Error('Passkey UI: ' + (await page.locator('#status').textContent()))
       }
 
-      return {
-        ...input,
-        code: new URL(await page.locator('#return').getAttribute('href')).searchParams.get('code')
-      }
+      const exchangeInput = { ...input }
+      const code = new URL(await page.locator('#return').getAttribute('href')).searchParams.get(
+        'code'
+      )
+
+      return { ...exchangeInput, code }
     }
     const browserPost = (action, body, overrideOrigin = origin) =>
       post(`/auth/passkeys/${action}`, body, { Origin: overrideOrigin })
@@ -166,7 +168,9 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
           publicKey: globalThis.PublicKeyCredential.parseRequestOptionsFromJSON(options)
         })
 
-        return { requestId, response: key.toJSON() }
+        const response = key.toJSON()
+
+        return { requestId, response }
       })
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
