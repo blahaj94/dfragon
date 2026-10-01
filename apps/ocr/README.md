@@ -78,6 +78,8 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../docs/reference/api-start-development.md#서버-이미지)를 함께 적용해야 합니다.
 
+부모 preset·사전 관계는 `src/model-library.ts`의 순수 검증 함수가 확인하고 부모 조회·중복 확인·파일 쓰기는 저장소 transaction이 소유합니다. finetuned는 줄바꿈을 포함한 사전 bytes가 같아야 하며 expanded는 기존처럼 LF/CRLF 문자 행을 비교해 동일 순서의 전체 부모 접두부와 실제 문자 추가를 요구합니다. 계보 거절은 기존 모델과 파일을 바꾸거나 일부 새 모델을 저장하지 않습니다.
+
 ### 데이터와 로그인
 
 자료실의 관리·조회 요청은 로그인 쿠키가 필요합니다. 쿠키는 HttpOnly·Secure·SameSite=Lax이며 변경 요청에는 정확한 `Origin: OCR_ORIGIN`이 필요하고 CORS는 열지 않습니다. 별도 `POST /api/desktop/captures`, Desktop 조회 GET 경로와 위 모델 API는 Origin 없는 Desktop Bearer 요청을 받으며 같은 지정 계정의 활성 세션인지 확인합니다. Desktop 토큰은 정답·분할 수정, 브라우저 로그인과 전체 다운로드 권한을 갖지 않습니다.
