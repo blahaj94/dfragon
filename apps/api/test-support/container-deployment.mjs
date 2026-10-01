@@ -13,7 +13,7 @@ import {
   teardownPostgres,
   assertResourcesAbsent,
   docker
-} from './docker-postgres.mjs'
+} from '../../../scripts/test-support/docker-postgres.mjs'
 
 // The image must already be present locally; this check never builds or deploys it.
 const imageArguments = process.argv.slice(2)

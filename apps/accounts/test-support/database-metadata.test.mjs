@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { assertServerAndContainer } from './database-integration.mjs'
-import { POSTGRES_DATA, POSTGRES_INDEX_DIGEST } from './docker-postgres.mjs'
+import { POSTGRES_DATA, POSTGRES_INDEX_DIGEST } from '../../../scripts/test-support/docker-postgres.mjs'
 
 const configDigest = `sha256:${'a'.repeat(64)}`
 const resources = { containerName: 'metadata-test-container', configuration: {} }

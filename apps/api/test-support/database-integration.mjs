@@ -7,7 +7,7 @@ import {
   createPostgres,
   teardownPostgres,
   assertResourcesAbsent
-} from './docker-postgres.mjs'
+} from '../../../scripts/test-support/docker-postgres.mjs'
 import { assertCharacterDetails } from './character-details.mjs'
 import { assertCharacterCatalog } from './character-catalog.mjs'
 import { assertAdventureSearch } from './adventure-search.mjs'
