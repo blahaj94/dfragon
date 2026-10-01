@@ -13,10 +13,15 @@ vi.mock('node:fs', async (importOriginal) => {
     return native
   }
 
-  return {
-    ...native,
-    constants: { ...native.constants, O_NOFOLLOW: 0x20000000, O_DIRECTORY: 0x40000000 }
+  const fixture = { ...native }
+  const fixtureConstants = {
+    ...native.constants,
+    O_NOFOLLOW: 0x20000000,
+    O_DIRECTORY: 0x40000000
   }
+  fixture.constants = fixtureConstants
+
+  return fixture
 })
 
 // 먼저 로드된 test도 이 helper와 동일한 POSIX flag를 사용한다.
@@ -35,7 +40,16 @@ export function createPosixTestFiles({
   function modeNumber(mode: Mode | undefined, fallback: number): number {
     const isString = typeof mode === 'string'
 
-    return isString ? Number.parseInt(mode, 8) : (mode ?? fallback)
+    if (isString) {
+
+      return Number.parseInt(mode, 8)
+    }
+    if (mode != null) {
+
+      return mode
+    }
+
+    return fallback
   }
 
   function withMetadata(stat: Stats, entry: Metadata | undefined): Stats {
@@ -49,10 +63,12 @@ export function createPosixTestFiles({
     const isDirectory = stat.isDirectory()
     const isRegularFile = !isLink && isFile
     const isRealDirectory = !isLink && isDirectory
+    const mode = (isLink ? constants.S_IFLNK : stat.mode & ~0o7777) | entry.mode
+    const ownerUid = entry.uid
 
     return Object.assign(stat, {
-      mode: (isLink ? constants.S_IFLNK : stat.mode & ~0o7777) | entry.mode,
-      uid: entry.uid,
+      mode,
+      uid: ownerUid,
       isSymbolicLink: () => isLink,
       isFile: () => isRegularFile,
       isDirectory: () => isRealDirectory
