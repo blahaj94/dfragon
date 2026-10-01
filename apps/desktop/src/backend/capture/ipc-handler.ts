@@ -32,27 +32,22 @@ let mediaPermissionCaptureId: string | null = null
 function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: string): boolean {
   const binding = search?.current
   if (binding == null || !isCurrentSearch(binding)) {
-
     return false
   }
   const frame = currentMainFrame()
   if (contents !== captureWindow?.webContents) {
-
     return false
   }
 
   if (requestingUrl !== documentUrl) {
-
     return false
   }
 
   if (frame?.detached !== false) {
-
     return false
   }
 
   if (mediaPermissionCaptureId === binding.captureId) {
-
     return false
   }
   // Start 수명당 한 번만 허용한다. API/source/gesture 증명이 되지는 않는다.
@@ -62,7 +57,6 @@ function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: str
 }
 
 async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
-
   return desktopCapturer.getSources({
     types: ['window'],
     thumbnailSize: { width: 0, height: 0 },
@@ -81,43 +75,36 @@ function clearSource(): void {
 function isTrustedFrame(window: BrowserWindow | null, frame: WebFrameMain | null): boolean {
   const hasWindow = window != null
   if (!hasWindow) {
-
     return false
   }
 
   const isRegisteredWindow = window === captureWindow
   if (!isRegisteredWindow) {
-
     return false
   }
 
   const isWindowAlive = !window.isDestroyed()
   if (!isWindowAlive) {
-
     return false
   }
 
   const isContentsAlive = !window.webContents.isDestroyed()
   if (!isContentsAlive) {
-
     return false
   }
 
   const hasFrame = frame != null
   if (!hasFrame) {
-
     return false
   }
 
   const isMainFrame = frame === window.webContents.mainFrame
   if (!isMainFrame) {
-
     return false
   }
 
   const isFrameAlive = !frame.isDestroyed()
   if (!isFrameAlive) {
-
     return false
   }
 
@@ -145,7 +132,6 @@ function requireSearchSender(event: IpcMainInvokeEvent): void {
 }
 
 function isCurrentCapture(startedWindowGeneration: number): boolean {
-
   return windowGeneration === startedWindowGeneration
 }
 
@@ -153,19 +139,16 @@ function currentMainFrame(): WebFrameMain | null {
   const window = captureWindow
   const hasWindow = window != null
   if (!hasWindow) {
-
     return null
   }
 
   const isWindowAlive = !window.isDestroyed()
   if (!isWindowAlive) {
-
     return null
   }
 
   const isContentsAlive = !window.webContents.isDestroyed()
   if (!isContentsAlive) {
-
     return null
   }
 
@@ -260,7 +243,6 @@ function registerCaptureIpc(configuration?: {
       }
       const isLatestSelection = selectionGeneration === sourceSelectionGeneration
       if (!isLatestSelection) {
-
         return null
       }
       const hasSource = source != null
@@ -283,39 +265,32 @@ function registerCaptureIpc(configuration?: {
     const control = parseSearchControl(args)
     const hasValidControl = control != null
     if (!hasValidControl) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     const isRead = control.action === SEARCH_ACTIONS.READ
     if (isRead) {
-
       return lifetime.result()
     }
     const isEnd = control.action === SEARCH_ACTIONS.END
     if (isEnd) {
-
       return lifetime.end(control.captureId)
     }
 
     const isClear = control.action === SEARCH_ACTIONS.CLEAR
     if (isClear) {
-
       return lifetime.clear(control)
     }
     const isRetry = control.action === SEARCH_ACTIONS.RETRY
     if (isRetry) {
-
       return lifetime.retry(control)
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
     if (isBusy) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_BUSY)
     }
     const hasSource = selectedSourceId != null
     if (!hasSource) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
 
@@ -330,7 +305,6 @@ function registerCaptureIpc(configuration?: {
     const observation = parseSearchObservation(args)
     const hasValidObservation = observation != null
     if (!hasValidObservation) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
 
@@ -359,7 +333,6 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     const isCurrentWindow = captureWindow === window
     const shouldInvalidate = isCurrentWindow && isMainFrame
     if (!shouldInvalidate) {
-
       return
     }
     windowGeneration += 1
@@ -369,7 +342,6 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   window.webContents.on('destroyed', () => {
     const isCurrentWindow = captureWindow === window
     if (!isCurrentWindow) {
-
       return
     }
     windowGeneration += 1
@@ -379,7 +351,6 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   window.webContents.on('render-process-gone', () => {
     const isCurrentWindow = captureWindow === window
     if (!isCurrentWindow) {
-
       return
     }
     windowGeneration += 1
@@ -389,7 +360,6 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   window.on('closed', () => {
     const isCurrentWindow = captureWindow === window
     if (!isCurrentWindow) {
-
       return
     }
     captureWindow = null

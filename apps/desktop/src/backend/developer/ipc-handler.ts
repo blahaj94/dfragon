@@ -43,7 +43,6 @@ const PUBLIC_ERROR_CODES = new Set<string>([
 ])
 
 function invalidCommand(): Error {
-
   return new Error(DEVELOPER_ERROR_CODES.INVALID_COMMAND)
 }
 
@@ -98,7 +97,6 @@ function exactExcluded(value: unknown): boolean {
 
 function exactCollectionKind(value: unknown): DeveloperCollectionKind {
   if (isDeveloperCollectionKind(value)) {
-
     return value
   }
   throw invalidCommand()
@@ -109,7 +107,6 @@ function exactPartySlots(
   kind: DeveloperCollectionKind
 ): DeveloperPartySlot[] | null {
   if (value === null) {
-
     return null
   }
   if (!Array.isArray(value)) {
@@ -233,7 +230,6 @@ export function registerDeveloperWindow(
 
         return image.getSize()
       } catch {
-
         return null
       }
     }
@@ -364,7 +360,6 @@ export function registerDeveloperWindow(
 
   async function restoreCollectionAfterFailedDisable(mutation: number): Promise<void> {
     if (mutation !== settingsMutationRevision) {
-
       return
     }
     try {
@@ -402,7 +397,6 @@ export function registerDeveloperWindow(
   }
 
   function enableDeveloperMode(mutation: number): Promise<DeveloperSettings> {
-
     return serializeSettingsMutation(async () => {
       const settings = await store.setEnabled(true)
       const isCurrentMutation = mutation === settingsMutationRevision
@@ -448,7 +442,6 @@ export function registerDeveloperWindow(
 
   function dispose(): void {
     if (disposed) {
-
       return
     }
     closeRemoteDataset()
@@ -512,7 +505,6 @@ export function registerDeveloperWindow(
       invoke(event, async () => {
         const id = exactSampleId(requireSingleArgument(args))
         if (!id.startsWith('ocr:')) {
-
           return store.readImage(id)
         }
 

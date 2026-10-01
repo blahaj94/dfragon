@@ -15,7 +15,6 @@ interface StoredCharacter {
 
 const textOrNull = (value: unknown): string | null => {
   if (typeof value === 'string') {
-
     return value
   }
 
@@ -23,7 +22,6 @@ const textOrNull = (value: unknown): string | null => {
 }
 const numberOrNull = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) {
-
     return value
   }
 
@@ -31,10 +29,8 @@ const numberOrNull = (value: unknown): number | null => {
 }
 
 export function createAdventureSearchStore(source: DataSource) {
-
   return {
     async search(input: AdventureSearchQuery, signal: AbortSignal) {
-
       return source.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await manager.query("SET LOCAL statement_timeout = '2s'")

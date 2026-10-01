@@ -11,7 +11,6 @@ export function mapCharacterItems(
 ): CharacterDetails {
   const leaf = (value: unknown): unknown => {
     if (isObject(value)) {
-
       return mapItem(value)
     }
 
@@ -19,7 +18,6 @@ export function mapCharacterItems(
   }
   const list = (value: unknown, map: (item: unknown) => unknown): unknown => {
     if (Array.isArray(value)) {
-
       return value.map(map)
     }
 
@@ -27,7 +25,6 @@ export function mapCharacterItems(
   }
   const item = (value: unknown): unknown => {
     if (!isObject(value)) {
-
       return value
     }
     const result = { ...mapItem(value) }

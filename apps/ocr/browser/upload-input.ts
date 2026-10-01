@@ -13,7 +13,6 @@ export function assertUploadFile(file: File | null): asserts file is File {
 }
 
 export function readPngBase64(file: File): Promise<string> {
-
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => {

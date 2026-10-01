@@ -121,7 +121,6 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
                   setCrops((current) =>
                     current.map((item, i) => {
                       if (i !== index) {
-
                         return item
                       }
                       const updatedCrop = { ...item, slot }
@@ -154,7 +153,6 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
                     setCrops((current) =>
                       current.map((item, i) => {
                         if (i !== index) {
-
                           return item
                         }
                         const updatedCrop = { ...item }
@@ -179,7 +177,6 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
                 const slot = slots.find((slot) => !current.some((crop) => crop.slot === slot))
 
                 if (slot === undefined) {
-
                   return current
                 }
 

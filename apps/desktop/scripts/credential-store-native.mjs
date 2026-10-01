@@ -53,7 +53,6 @@ async function waitForGroupExit(pid, milliseconds) {
     }
     const hasExpired = Date.now() >= deadline
     if (hasExpired) {
-
       return false
     }
     await delay(50)
@@ -68,7 +67,6 @@ async function confirmPathAbsent(path) {
   } catch (error) {
     const isAbsent = error.code === 'ENOENT'
     if (isAbsent) {
-
       return
     }
   }
@@ -78,7 +76,6 @@ async function confirmPathAbsent(path) {
 /** @returns {Promise<{code: number | null, stdout: string, stderr: string}>} */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function execute(command, args, environment = process.env) {
-
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       env: environment,
@@ -99,7 +96,6 @@ function execute(command, args, environment = process.env) {
     function stopGroup(signal) {
       const hasPid = child.pid != null
       if (!hasPid) {
-
         return
       }
       try {

@@ -57,7 +57,6 @@ export default defineConfig(({ mode, command }) => {
             name: 'mvp-preview-notices',
             transformIndexHtml(html, context) {
               if (command !== 'serve' || context.path !== '/mvp-preview.html') {
-
                 return html
               }
 

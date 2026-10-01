@@ -31,7 +31,6 @@ export function createDatabaseOptions(configuration: DatabaseConfiguration): Dat
 }
 
 export function createDatabaseDataSource(configuration: DatabaseConfiguration): DataSource {
-
   return new DataSource(createDatabaseOptions(configuration))
 }
 

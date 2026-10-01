@@ -70,14 +70,12 @@ export function configuredLoginClient(
   fingerprint: string
 ): 'desktop' | 'ocr' | null {
   if (fingerprint === configurationFingerprint(config)) {
-
     return 'desktop'
   }
   if (
     config.ocrReturnUrl !== undefined &&
     fingerprint === configurationFingerprint(config, 'ocr')
   ) {
-
     return 'ocr'
   }
 

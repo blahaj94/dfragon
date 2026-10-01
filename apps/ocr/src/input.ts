@@ -20,7 +20,6 @@ export function parseCaptureKind(value: unknown): CaptureKind {
 
 export function parseLabel(value: unknown): string | null {
   if (value === null) {
-
     return null
   }
   if (

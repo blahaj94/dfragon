@@ -21,7 +21,6 @@ export function loginFailure(
 ): LoginFailure {
   const isLoginFailure = error instanceof LoginFailure
   if (isLoginFailure) {
-
     return error
   }
 

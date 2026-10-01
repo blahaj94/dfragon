@@ -68,7 +68,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
   function handleDocumentLoadFailure(window: BrowserWindow, closeState: WindowCloseState): void {
     const isCurrentWindow = mainWindow === window
     if (!isCurrentWindow) {
-
       return
     }
     const hasActiveWindowCloseAttempt = closeState.activeAttempt != null
@@ -78,7 +77,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       return
     }
     if (shutdownCommitted) {
-
       return
     }
     const hasActiveQuitAttempt = activeQuitAttempt != null
@@ -109,14 +107,12 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
   ): void {
     const isDifferentWindowCloseAttempt = closeState.activeAttempt !== attempt
     if (isDifferentWindowCloseAttempt) {
-
       return
     }
 
     closeState.activeAttempt = null
     cancelActiveQuitAttempt()
     if (!closeState.hasPendingLoadFailure) {
-
       return
     }
 
@@ -162,7 +158,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       const attempt = closeState.activeAttempt
       const hasNoActiveWindowCloseAttempt = attempt == null
       if (hasNoActiveWindowCloseAttempt) {
-
         return
       }
       queueMicrotask(() => {
@@ -179,7 +174,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function disposeProtocolIngress(): void {
     if (protocolIngressDisposed) {
-
       return
     }
 
@@ -199,7 +193,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function commitShutdown(): void {
     if (shutdownCommitted) {
-
       return
     }
 
@@ -221,7 +214,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     const isDifferentQuitAttempt = activeQuitAttempt !== attempt
     const isStaleQuitAttempt = hasCommittedShutdown || isDifferentQuitAttempt
     if (isStaleQuitAttempt) {
-
       return
     }
 
@@ -238,7 +230,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       exitAfterOwnedAuthFailure()
     }
     if (shutdownCommitted) {
-
       return
     }
 
@@ -259,7 +250,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function beginQuitAttempt(event: QuitEvent): void {
     if (shutdownCommitted) {
-
       return
     }
 
@@ -277,7 +267,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     const attempt = activeQuitAttempt
     const hasNoActiveQuitAttempt = attempt == null
     if (hasNoActiveQuitAttempt) {
-
       return
     }
 
@@ -290,12 +279,10 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function waitForQuitOutcome(): Promise<boolean> {
     if (shutdownCommitted) {
-
       return Promise.resolve(false)
     }
     const hasNoActiveQuitAttempt = activeQuitAttempt == null
     if (hasNoActiveQuitAttempt) {
-
       return Promise.resolve(true)
     }
 
@@ -318,13 +305,11 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
         return !isQuitting
       })
       if (shutdownCommitted) {
-
         return null
       }
       if (isQuitting) {
         const canResume = await waitForQuitOutcome()
         if (!canResume) {
-
           return null
         }
       }
@@ -337,12 +322,10 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function runAfterQuitOutcome(action: () => Promise<void> | void): Promise<void> | void {
     if (shutdownCommitted) {
-
       return
     }
     const hasNoActiveQuitAttempt = activeQuitAttempt == null
     if (hasNoActiveQuitAttempt) {
-
       return action()
     }
 
@@ -350,7 +333,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
       while (true) {
         const canResume = await waitForQuitOutcome()
         if (!canResume || shutdownCommitted) {
-
           return
         }
         const hasActiveQuitAttempt = activeQuitAttempt != null
@@ -366,7 +348,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function exitAfterOwnedAuthFailure(): void {
     if (shutdownCommitted || ownedAuthFailureExitRequested) {
-
       return
     }
     const hasActiveQuitAttempt = activeQuitAttempt != null
@@ -383,7 +364,6 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
 
   function registerAppHandlers(): void {
     if (appHandlersRegistered) {
-
       return
     }
 

@@ -59,12 +59,10 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const hasTemporary = (await files.ownedTemporaries()).length > 0
       const requiresRecovery = hasMarker || hasTemporary
       if (requiresRecovery) {
-
         return { status: 'recovery-required' }
       }
       const isEncryptionAvailable = safeStorage.isEncryptionAvailable()
       if (!isEncryptionAvailable) {
-
         return { status: 'unavailable' }
       }
       const record = await files.read('credential.v1')
@@ -80,20 +78,17 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const ciphertext = readCiphertext(record, context)
       const isInvalidRecord = ciphertext == null
       if (isInvalidRecord) {
-
         return { status: 'recovery-required' }
       }
       const plaintext = safeStorage.decryptString(ciphertext)
       const refreshToken = readRefreshToken(plaintext, context)
       const isInvalidPayload = refreshToken == null
       if (isInvalidPayload) {
-
         return { status: 'recovery-required' }
       }
 
       return { status: 'ready', refreshToken }
     } catch {
-
       return { status: 'unavailable' }
     }
   }
@@ -107,7 +102,6 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const hasExistingMarker = await files.present('transition.v1')
       const cannotReplace = hasExistingMarker && !replaceExisting
       if (cannotReplace) {
-
         return 'failed'
       }
       const marker: OwnedMarker = { version: 1, operationId: randomUUID(), kind }
@@ -117,7 +111,6 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
 
       return outcome
     } catch {
-
       return 'failed'
     }
   }
@@ -126,19 +119,16 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
     const marker = ownedMarker
     const hasOwnership = marker != null
     if (!hasOwnership) {
-
       return false
     }
     await files.prepare()
     const bytes = await files.read('transition.v1')
     const hasRecord = bytes != null
     if (!hasRecord) {
-
       return false
     }
     const parsed = markerSchema.safeParse(parseStoredJson(bytes))
     if (!parsed.success) {
-
       return false
     }
     const hasSameOperation = parsed.data.operationId === marker.operationId
@@ -155,12 +145,10 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const ownsTransition = await ownsMarker()
       const canCommit = isCanonical && !isClearMarker && ownsTransition
       if (!canCommit) {
-
         return 'failed'
       }
       const isEncryptionAvailable = safeStorage.isEncryptionAvailable()
       if (!isEncryptionAvailable) {
-
         return 'failed'
       }
       const ciphertext = safeStorage.encryptString(
@@ -168,19 +156,16 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       )
       const hasCiphertext = ciphertext.byteLength > 0
       if (!hasCiphertext) {
-
         return 'failed'
       }
       const record = encodeCredentialRecord(context, ciphertext)
       const isWithinLimit = record.byteLength <= MAX_RECORD_BYTES
       if (!isWithinLimit) {
-
         return 'failed'
       }
 
       return files.replace('credential.v1', record)
     } catch {
-
       return 'failed'
     }
   }
@@ -191,13 +176,11 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
       const ownsTransition = await ownsMarker()
       const canClear = isClearMarker && ownsTransition
       if (!canClear) {
-
         return 'failed'
       }
 
       return files.clear()
     } catch {
-
       return 'failed'
     }
   }
@@ -206,7 +189,6 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
     try {
       const ownsTransition = await ownsMarker()
       if (!ownsTransition) {
-
         return 'unknown'
       }
       const outcome = await files.removeMarker()
@@ -217,7 +199,6 @@ export function createCredentialStore(options: CredentialStoreOptions): Credenti
 
       return outcome
     } catch {
-
       return 'unknown'
     }
   }

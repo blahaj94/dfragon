@@ -28,7 +28,6 @@ export class SearchDeadline {
   }
 
   get signal(): AbortSignal {
-
     return this.controller.signal
   }
 
@@ -41,7 +40,6 @@ export class SearchDeadline {
     const isExpired = this.clock.now() >= this.expiresAt
     const cannotContinue = isExpired || this.signal.aborted
     if (!cannotContinue) {
-
       return
     }
     this.abort()

@@ -69,7 +69,6 @@ export function registerVersionsWindow({
 
   function dispose(): void {
     if (disposed) {
-
       return
     }
     disposed = true

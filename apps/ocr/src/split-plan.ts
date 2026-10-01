@@ -16,31 +16,24 @@ type NicknameGroup = { text: string; split: Split; features: Map<string, number>
 
 export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
-
     return 'hangul'
   }
   if (/\p{Script=Hiragana}/u.test(char)) {
-
     return 'hiragana'
   }
   if (/\p{Script=Katakana}/u.test(char)) {
-
     return 'katakana'
   }
   if (/\p{Script=Han}/u.test(char)) {
-
     return 'hanja'
   }
   if (/\p{Script=Latin}/u.test(char)) {
-
     return 'latin'
   }
   if (/\p{Number}/u.test(char)) {
-
     return 'digit'
   }
   if (/[\p{Punctuation}\p{Symbol}]/u.test(char)) {
-
     return 'special'
   }
 
@@ -85,7 +78,6 @@ function distribution(rows: LabeledRow[]) {
     sort((a, b) => {
       const countDifference = b[1] - a[1]
       if (countDifference) {
-
         return countDifference
       }
 
@@ -103,11 +95,9 @@ function distribution(rows: LabeledRow[]) {
 
 function compareText(a: string, b: string) {
   if (a < b) {
-
     return -1
   }
   if (a > b) {
-
     return 1
   }
 
@@ -225,12 +215,10 @@ export function planSplits(
   movable.sort((a, b) => {
     const rarityDifference = rarity(b) - rarity(a)
     if (rarityDifference) {
-
       return rarityDifference
     }
     const imageDifference = b.features.get('images')! - a.features.get('images')!
     if (imageDifference) {
-
       return imageDifference
     }
 
@@ -240,7 +228,6 @@ export function planSplits(
   for (const group of movable) {
     const split = destinations.reduce((best, candidate) => {
       if (costChange(group, candidate, 1) < costChange(group, best, 1)) {
-
         return candidate
       }
 

@@ -14,7 +14,6 @@ export function CardImage({
 }): React.JSX.Element {
   const [failedSource, setFailedSource] = useState<string>()
   if (src == null || failedSource === src) {
-
     return (
       <Typo.caption
         role="img"

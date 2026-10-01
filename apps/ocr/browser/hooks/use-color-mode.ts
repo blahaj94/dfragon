@@ -8,13 +8,11 @@ export function useColorMode() {
     try {
       const storedMode = localStorage.getItem(STORAGE_KEY)
       if (storedMode === 'dark') {
-
         return 'dark'
       }
 
       return 'light'
     } catch {
-
       return 'light'
     }
   })
@@ -32,7 +30,6 @@ export function useColorMode() {
     toggle: () =>
       setMode((current) => {
         if (current === 'light') {
-
           return 'dark'
         }
 

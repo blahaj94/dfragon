@@ -73,7 +73,6 @@ function readRequiredText(environment: RuntimeEnvironment, key: string): string 
   const value = environment[key]
   const hasValue = value != null
   if (!hasValue || value.length === 0) {
-
     return null
   }
 
@@ -83,7 +82,6 @@ function readRequiredText(environment: RuntimeEnvironment, key: string): string 
 function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[] | null {
   const rawProviders = readRequiredText(environment, 'DFRAGON_AUTH_PROVIDERS')
   if (rawProviders == null) {
-
     return null
   }
 
@@ -93,7 +91,6 @@ function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[]
   const hasNoDuplicates = new Set(providers).size === providers.length
   const hasValidProviders = hasProviders && hasOnlySupportedProviders && hasNoDuplicates
   if (!hasValidProviders) {
-
     return null
   }
 
@@ -103,7 +100,6 @@ function readProviders(environment: RuntimeEnvironment): readonly AuthProvider[]
 function isMissing(error: unknown): boolean {
   const hasError = error != null
   if (!hasError || typeof error !== 'object' || !('code' in error)) {
-
     return false
   }
 
@@ -113,7 +109,6 @@ function isMissing(error: unknown): boolean {
 function isAlreadyExists(error: unknown): boolean {
   const hasError = error != null
   if (!hasError || typeof error !== 'object' || !('code' in error)) {
-
     return false
   }
 
@@ -190,7 +185,6 @@ function directoryChain(path: string, pathSemantics: RuntimePathSemantics): stri
 
 function syncDirectory(path: string, filesystem: RuntimeProfileFilesystem): void {
   if (process.platform === 'win32') {
-
     return
   }
 
@@ -337,13 +331,11 @@ export function readAuthRuntimeConfig(
     appIdentity != null &&
     userDataPath != null
   if (!hasRequiredValues || providers == null) {
-
     return null
   }
 
   const isValidProfile = /^[a-z][a-z0-9-]{0,31}$/.test(profile)
   if (!isValidProfile) {
-
     return null
   }
 
@@ -358,7 +350,6 @@ export function readAuthRuntimeConfig(
   const hasValidUserDataPath =
     pathSemantics.isAbsolute(userDataPath) && !isUserDataRoot && hasNoControlPath && hasNoPathAlias
   if (!hasValidAppIdentity || !hasValidUserDataPath) {
-
     return null
   }
 
@@ -366,7 +357,6 @@ export function readAuthRuntimeConfig(
     validateApiOrigin(apiOrigin)
     validateReturnTarget(returnTarget)
   } catch {
-
     return null
   }
 

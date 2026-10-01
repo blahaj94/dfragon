@@ -30,7 +30,6 @@ function readHeaderValues(request: Request, name: string): string[] {
     if (isHeaderName) {
       const isMatchingHeader = value.toLowerCase() === name
       if (isMatchingHeader) {
-
         return [headers[index + 1]]
       }
     }
@@ -129,7 +128,6 @@ export function loginJsonParser(request: Request, response: Response, next: Next
       if (!hasRequestError) {
         const isRequestAborted = request.aborted || error.type === 'request.aborted'
         if (isRequestAborted) {
-
           return
         }
         const isPayloadTooLarge = error.type === 'entity.too.large'

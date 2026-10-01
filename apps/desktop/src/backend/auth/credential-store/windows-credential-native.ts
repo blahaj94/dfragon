@@ -37,7 +37,6 @@ function createHandle(
   let isClosed = false
   const close = async (): Promise<void> => {
     if (isClosed) {
-
       return
     }
     isClosed = true

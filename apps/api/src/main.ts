@@ -17,7 +17,6 @@ async function main(): Promise<void> {
     const pendingClose = closing
     const isClosing = pendingClose !== undefined
     if (isClosing) {
-
       return pendingClose
     }
     closing = ownedRuntime

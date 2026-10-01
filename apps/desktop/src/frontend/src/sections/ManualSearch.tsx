@@ -36,7 +36,6 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
 
   useEffect(() => {
     if (api == null) {
-
       return
     }
     let active = true
@@ -85,7 +84,6 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
     event.preventDefault()
     const session = sessionRef.current
     if (session == null || !view.ready) {
-
       return
     }
     if (!validManualNickname(nickname)) {
@@ -97,7 +95,6 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       return
     }
     if (session.nickname === nickname) {
-
       return
     }
     session.submission += 1
@@ -111,7 +108,6 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       session.starting = starting
       const id = await starting
       if (sessionRef.current !== session || session.starting !== starting) {
-
         return
       }
       if (id == null) {
@@ -124,7 +120,6 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
       session.started = true
     }
     if (session.submission !== submission) {
-
       return
     }
     session.bridge.observe({ slot: 0, nickname })

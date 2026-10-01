@@ -121,7 +121,6 @@ export function createAuthRuntimeEffects(
     },
 
     createSearchClock(): AuthClock {
-
       return createRuntimeClock({ readWallMs, readMonotonicMs, powerState })
     }
   }

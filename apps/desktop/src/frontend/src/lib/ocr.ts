@@ -16,7 +16,6 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
 
   function terminate(error: Error = new DOMException('OCR stopped.', 'AbortError')): void {
     if (stopped) {
-
       return
     }
     stopped = true
@@ -40,7 +39,6 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
   worker.onmessageerror = (): void => terminate(new Error('PaddleOCR response could not be read.'))
   worker.onmessage = (event: MessageEvent<unknown>): void => {
     if (stopped || pending == null) {
-
       return
     }
     const value = event.data
@@ -65,11 +63,9 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
   }
   function request(input: { root: string } | { pixels: ImageData }): Promise<Reply> {
     if (stopped) {
-
       return Promise.reject(new DOMException('OCR stopped.', 'AbortError'))
     }
     if (pending != null) {
-
       return Promise.reject(new Error('PaddleOCR is already recognizing an image.'))
     }
 

@@ -19,7 +19,6 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
     const pendingClose = closing
     const isClosing = pendingClose !== undefined
     if (isClosing) {
-
       return pendingClose
     }
     const ownedApp = app

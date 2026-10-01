@@ -30,13 +30,11 @@ const nativeDependencies: SearchDependencies = {
 function isObject(value: unknown): value is Record<string, unknown> {
   const hasObjectType = typeof value === 'object'
   if (!hasObjectType) {
-
     return false
   }
 
   const isNotNull = value !== null
   if (!isNotNull) {
-
     return false
   }
 
@@ -142,7 +140,6 @@ function makeSearch(
   dependencies: SearchDependencies,
   budget: NeopleBudget
 ): SearchCharacters {
-
   return async (input) => {
     const url = buildUrl(input, dependencies.origin)
     const controller = new AbortController()
@@ -169,7 +166,6 @@ function makeSearch(
 
       const isBeforeDeadline = dependencies.now() < deadline
       if (isBeforeDeadline) {
-
         return false
       }
 
@@ -247,7 +243,6 @@ function makeSearch(
     }
 
     try {
-
       return await Promise.race([budget.run(request), timeout])
     } finally {
       dependencies.clearTimer(timer)
@@ -259,7 +254,6 @@ export function createNeopleCharacterSearch(
   apiKey: string,
   budget = neopleBudget
 ): SearchCharacters {
-
   return makeSearch(apiKey, nativeDependencies, budget)
 }
 
@@ -268,6 +262,5 @@ export function createNeopleCharacterSearchForTest(
   overrides: NeopleCharacterSearchTestDependencies,
   budget = new NeopleBudget()
 ): SearchCharacters {
-
   return makeSearch(apiKey, { ...nativeDependencies, ...overrides }, budget)
 }

@@ -23,14 +23,12 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
       const tokenHint = await refresh.findOneBy({ tokenHash: presentedHash })
       const hasTokenHint = tokenHint != null
       if (!hasTokenHint) {
-
         return
       }
 
       const sessionHint = await sessions.findOneBy({ id: tokenHint.sessionId })
       const hasSessionHint = sessionHint != null
       if (!hasSessionHint) {
-
         return
       }
 
@@ -40,7 +38,6 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
       })
       const hasUser = user != null
       if (!hasUser) {
-
         return
       }
 
@@ -68,13 +65,11 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
       const hasTrustedTarget =
         hasSession && hasToken && hasSameSessionOwner && hasSameTokenOwner && hasSameTokenHash
       if (!hasTrustedTarget) {
-
         return
       }
 
       const isAlreadyRevoked = session.revokedAt != null
       if (isAlreadyRevoked) {
-
         return
       }
 
@@ -87,7 +82,6 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
       const idleDeadline = session.lastActiveAt.getTime() / 1000 + LOGIN.idleSeconds
       const isIdleEnded = checkedAtSeconds >= idleDeadline
       if (isIdleEnded) {
-
         return
       }
 

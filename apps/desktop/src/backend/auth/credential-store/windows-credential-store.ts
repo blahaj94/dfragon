@@ -19,7 +19,6 @@ export function createWindowsCredentialStore(
 ): CredentialStore {
   const isWindows = (options.platform ?? process.platform) === 'win32'
   if (!isWindows) {
-
     return createUnavailableCredentialStore()
   }
   if (!isAbsolute(options.userDataPath)) {

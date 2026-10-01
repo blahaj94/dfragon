@@ -38,7 +38,6 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
   // 이전 actor를 종료하고 구독·초기 조회를 새 actor에서 시작한다.
   function connect(): void {
     if (currentActor.getSnapshot().status === 'stopped') {
-
       return
     }
     currentActor.stop()
@@ -75,7 +74,6 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
 
   // 제어 IPC의 직접 응답을 공통 검증·복구 경계로 전달한다.
   async function command(control: SearchControl): Promise<SearchCommandResult | null> {
-
     return invoke(() => options.api.controlCharacterSearch(control))
   }
 

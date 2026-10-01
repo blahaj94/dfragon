@@ -9,7 +9,6 @@ export function LoginButtonLabel({
   label: string
   inProgress: boolean
 }): React.JSX.Element {
-
   return (
     <span {...stylex.props(styles.root, inProgress && styles.compact)} aria-hidden="true">
       <Typo.txtS

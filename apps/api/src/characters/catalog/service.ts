@@ -26,7 +26,6 @@ export function createCatalogService(
   fetchCatalog: FetchCatalog,
   timeoutMs = 10_000
 ) {
-
   return {
     async load(
       keys: CatalogKey[],
@@ -36,7 +35,6 @@ export function createCatalogService(
       const results = new Map(unique.map((key) => [catalogKey(key), unavailableDetail]))
       requestSignal.throwIfAborted()
       if (unique.length === 0) {
-
         return results
       }
       // A malformed upstream character cannot turn a public request into unbounded fan-out.
@@ -46,7 +44,6 @@ export function createCatalogService(
         const bounded = references.slice(0, remaining)
         remaining -= bounded.length
         if (bounded.length === 0 || signal.aborted) {
-
           return
         }
         try {

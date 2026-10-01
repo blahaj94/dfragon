@@ -23,7 +23,6 @@ export function SlotNicknameEditor({
     (slot.error.retryAfterSeconds ?? 0) > 0
   const blocked = samePending || sameRateWait
   if (!manual) {
-
     return (
       <ActionButton
         type="button"

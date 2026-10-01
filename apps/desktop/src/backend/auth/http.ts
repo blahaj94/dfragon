@@ -66,7 +66,6 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
     const deadline = setTimeout(abort, AUTH_HTTP_DEADLINE_MS)
 
     try {
-
       return await Promise.race([operation(controller.signal), aborted])
     } catch (error) {
       const isAuthHttpFailure = error instanceof AuthHttpFailure
@@ -86,7 +85,6 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
     callerSignal: AbortSignal,
     expectedStatus: number
   ): Promise<unknown> {
-
     return withDeadline(callerSignal, async (signal) => {
       const response = await client(`${apiOrigin}${path}`, { ...request, signal })
 

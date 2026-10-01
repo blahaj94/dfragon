@@ -73,7 +73,6 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
   async present(name: string): Promise<boolean> {
     const inspection = await this.native.inspect(join(this.directory, name), 'file')
     if (inspection.status === 'missing') {
-
       return false
     }
     assertTrustedFile(inspection)
@@ -90,12 +89,10 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
   async read(name: CredentialRecordName): Promise<Buffer | null> {
     const exists = await this.present(name)
     if (!exists) {
-
       return null
     }
     const handle = await this.native.openRead(join(this.directory, name))
     try {
-
       return await handle.read(MAX_RECORD_BYTES + 1)
     } finally {
       await handle.close()
@@ -165,7 +162,6 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
       return 'confirmed'
     } catch {
       if (deletionAttempted) {
-
         return 'unknown'
       }
 
@@ -178,7 +174,6 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
       await this.prepare()
       const exists = await this.present('transition.v1')
       if (!exists) {
-
         return 'unknown'
       }
       await this.native.remove(join(this.directory, 'transition.v1'))
@@ -186,7 +181,6 @@ export class WindowsCredentialFiles implements CredentialFileOperations {
 
       return 'confirmed'
     } catch {
-
       return 'unknown'
     }
   }

@@ -14,7 +14,6 @@ export function useOcrSession() {
         return true
       } catch (error) {
         if (error instanceof OcrApiError && error.code === OCR_ERROR_CODE.LOGIN_REQUIRED) {
-
           return false
         }
         throw error

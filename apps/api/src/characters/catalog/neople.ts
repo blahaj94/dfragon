@@ -11,7 +11,6 @@ export function createNeopleCatalog(
   fetchImpl = globalThis.fetch,
   budget = neopleBudget
 ): FetchCatalog {
-
   return async (keys, requestSignal) => {
     const first = keys[0]
     if (
@@ -19,11 +18,9 @@ export function createNeopleCatalog(
       keys.length > 15 ||
       keys.some((key) => {
         if (key.kind === 'item') {
-
           return !isCatalogId(key.itemId)
         }
         if (key.kind === 'set') {
-
           return !isCatalogId(key.setItemId)
         }
 
@@ -83,7 +80,6 @@ export function createNeopleCatalog(
 
         return keys.flatMap((key) => {
           if (key.kind === 'skill') {
-
             return []
           }
           const idField = key.kind === 'item' ? 'itemId' : 'setItemId'
@@ -99,7 +95,6 @@ export function createNeopleCatalog(
             typeof row[nameField] === 'string' &&
             row[nameField].trim()
           ) {
-
             return [{ key, payload: row }]
           }
 

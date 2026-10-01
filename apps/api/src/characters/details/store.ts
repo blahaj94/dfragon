@@ -21,7 +21,6 @@ export interface CharacterDetailStore {
 }
 
 export function createCharacterDetailStore(dataSource: DataSource): CharacterDetailStore {
-
   return {
     async read(identity, signal) {
       // Identity and all sections come from one database snapshot, even during a refresh.
@@ -57,7 +56,6 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
       return rows[0]!.requested_at
     },
     async saveAndRead(identity, payloads, requestedAt, signal) {
-
       return dataSource.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await manager.query("SET LOCAL statement_timeout = '2s'")

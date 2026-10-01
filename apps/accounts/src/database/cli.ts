@@ -22,7 +22,6 @@ try {
     throw new Error('Database migration failed')
   }
   const result = await runMigrationCommand(command, (): DataSource => {
-
     return createDatabaseDataSource(readDatabaseConfiguration(process.env))
   })
   process.stdout.write(`${result}\n`)

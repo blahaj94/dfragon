@@ -22,7 +22,6 @@ function hasForbiddenUrlCharacter(value: string): boolean {
     const isBackslash = character === '\\'
     const isForbidden = isControlOrSpace || isBackslash
     if (isForbidden) {
-
       return true
     }
   }
@@ -52,7 +51,6 @@ function parseExactUrl(raw: unknown): URL {
   }
 
   try {
-
     return new URL(raw)
   } catch {
     throw new AuthProtocolFailure()

@@ -51,10 +51,8 @@ async function boundStatements(manager: EntityManager) {
 }
 
 export function createCatalogStore(source: DataSource): CatalogStore {
-
   return {
     async read(keys, signal) {
-
       return source.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await boundStatements(manager)
@@ -68,7 +66,6 @@ export function createCatalogStore(source: DataSource): CatalogStore {
       })
     },
     async saveAndRead(values, requestedAt, signal) {
-
       return source.transaction('READ COMMITTED', async (manager) => {
         signal.throwIfAborted()
         await boundStatements(manager)

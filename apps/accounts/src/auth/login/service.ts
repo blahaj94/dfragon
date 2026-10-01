@@ -90,7 +90,6 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     codeChallenge: string | null,
     clientId: 'desktop' | 'ocr' = 'desktop'
   ) {
-
     return loginTransaction(deps.dataSource, async (manager) => {
       const now = await freshTime(manager)
       const row: AuthLoginRequest = {
@@ -545,7 +544,6 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           await checkTime(manager, row)
           await keys.delete({ id: body.credentialId, userId: row.verifiedUserId! })
           if (body.credentialId !== row.credentialId) {
-
             return { value: { managed: true } }
           }
         }

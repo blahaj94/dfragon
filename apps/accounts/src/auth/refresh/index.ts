@@ -204,7 +204,6 @@ export function rotateRefresh(
   deps: RefreshDependencies,
   rawToken: unknown
 ): Promise<RefreshTokens> {
-
   return rotate({ deps, rawToken, refreshBytes: randomBytes })
 }
 
@@ -214,6 +213,5 @@ export function rotateRefreshForTest(
   rawToken: unknown,
   refreshBytes: (size: number) => Buffer
 ): Promise<RefreshTokens> {
-
   return rotate({ deps, rawToken, refreshBytes })
 }

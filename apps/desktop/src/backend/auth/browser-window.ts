@@ -17,7 +17,6 @@ export function createAuthBrowser(
         url.protocol === 'https:' && url.origin === apiOrigin && url.pathname.startsWith('/auth/')
       )
     } catch {
-
       return false
     }
   }

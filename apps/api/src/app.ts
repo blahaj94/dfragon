@@ -7,7 +7,6 @@ import { NestFactory } from '@nestjs/core'
 export class AppModule {}
 
 export function createApp(rootModule: Type = AppModule): Promise<INestApplication> {
-
   return NestFactory.create(rootModule, { logger: false })
 }
 

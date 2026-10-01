@@ -83,7 +83,6 @@ type CollectionSession = {
 }
 
 function isValidScale(value: unknown): value is number {
-
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
@@ -279,7 +278,6 @@ export function createDeveloperCollectionSession({
 
   function publishStatus(): void {
     if (!isTrusted()) {
-
       return
     }
     try {
@@ -291,22 +289,18 @@ export function createDeveloperCollectionSession({
 
   function isTrusted(): boolean {
     try {
-
       return !disposed && isTrustedContext()
     } catch {
-
       return false
     }
   }
 
   function isCurrentCapture(captureGeneration: number): boolean {
-
     return armed && generation === captureGeneration && isTrusted()
   }
 
   function removePrintScreen(): void {
     if (!printScreenRegistered) {
-
       return
     }
     printScreenRegistered = false
@@ -337,7 +331,6 @@ export function createDeveloperCollectionSession({
       const sendUpload = prepareUpload?.()
       const settings = await store.getSettings()
       if (!isCurrentCapture(captureGeneration)) {
-
         return
       }
       if (!settings.enabled) {
@@ -349,7 +342,6 @@ export function createDeveloperCollectionSession({
 
       const frameValue = await capturePartyFrame(captureKind)
       if (!isCurrentCapture(captureGeneration)) {
-
         return
       }
       validatePartyFrame(frameValue, captureKind)
@@ -368,7 +360,6 @@ export function createDeveloperCollectionSession({
       }
       for (const slot of selected) {
         if (!isCurrentCapture(captureGeneration)) {
-
           return
         }
         const png = encodePng(slot.rgba, slot.width, slot.height)
@@ -392,7 +383,6 @@ export function createDeveloperCollectionSession({
         lastSavedAt = frameValue.capturedAt
         revision += 1
         if (!isCurrentCapture(captureGeneration)) {
-
           return
         }
       }
@@ -427,7 +417,6 @@ export function createDeveloperCollectionSession({
       }
     } catch (caughtError) {
       if (!isCurrentCapture(captureGeneration)) {
-
         return
       }
       error = publicErrorCode(caughtError)
@@ -445,7 +434,6 @@ export function createDeveloperCollectionSession({
 
   function onPrintScreen(): void {
     if (!armed || disposed || pendingCapture != null || slots.length === 0 || !isTrusted()) {
-
       return
     }
     const captureGeneration = generation
@@ -480,7 +468,6 @@ export function createDeveloperCollectionSession({
     captureKind: DeveloperCollectionKind = 'hud'
   ): Promise<DeveloperPartyCollectionStatus> {
     if (disposed) {
-
       return getStatus()
     }
 
@@ -520,7 +507,6 @@ export function createDeveloperCollectionSession({
     try {
       const settings = await store.getSettings()
       if (disposed || token !== requestToken || captureGeneration !== generation) {
-
         return getStatus()
       }
       if (!isTrusted()) {

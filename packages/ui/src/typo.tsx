@@ -74,9 +74,7 @@ function TypoBase<Tag extends TypoTag>({
 }
 
 function createTypo<DefaultTag extends TypoTag>(variant: TypoVariant, defaultTag: DefaultTag) {
-
   return function TypoVariantComponent<Tag extends TypoTag = DefaultTag>(props: TypoProps<Tag>) {
-
     return <TypoBase<Tag> {...props} variant={variant} defaultTag={defaultTag} />
   }
 }

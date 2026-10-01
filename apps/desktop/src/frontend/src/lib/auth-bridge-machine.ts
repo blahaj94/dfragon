@@ -70,7 +70,6 @@ export const authBridgeMachine = setup({
             return
           }
           if (snapshot.revision <= previous.revision) {
-
             return
           }
         }
@@ -79,7 +78,6 @@ export const authBridgeMachine = setup({
     ),
     queueSnapshot: assign(({ context, event }) => {
       if (event.type !== 'SNAPSHOT') {
-
         return {}
       }
       const previous = context.queued
@@ -89,7 +87,6 @@ export const authBridgeMachine = setup({
         previous.runId === snapshot.runId &&
         snapshot.revision <= previous.revision
       ) {
-
         return {}
       }
 

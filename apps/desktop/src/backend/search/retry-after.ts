@@ -14,7 +14,6 @@ export function waitForRetryAfter(input: RetryAfter & { onReady: () => void }): 
 
   function check(): void {
     if (stopped) {
-
       return
     }
     const remaining = remainingRetryAfter(input)

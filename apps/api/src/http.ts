@@ -52,7 +52,6 @@ class ApiHttpFilter implements ExceptionFilter {
 class HealthController {
   @Get()
   health() {
-
     return { status: 'ok' }
   }
 }

@@ -34,7 +34,6 @@ export function opaqueHash(value: string): Buffer {
 
 export function newOpaque(): string {
   try {
-
     return randomBytes(32).toString('base64url')
   } catch {
     throw new LoginFailure(LOGIN_ERRORS.INTERNAL)
@@ -51,12 +50,10 @@ export function challenge(verifier: string): string {
 export function equalHash(storedHash: Buffer | null, candidateHash: Buffer): boolean {
   const hasStoredHash = storedHash !== null
   if (!hasStoredHash) {
-
     return false
   }
   const hasSameLength = storedHash.length === candidateHash.length
   if (!hasSameLength) {
-
     return false
   }
   const isHashEqual = timingSafeEqual(storedHash, candidateHash)

@@ -57,7 +57,6 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current
     if (bridge == null) {
-
       return null
     }
 

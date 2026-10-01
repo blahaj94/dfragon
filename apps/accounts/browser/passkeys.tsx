@@ -91,11 +91,9 @@ function QrCode({ url, onError }: { url: string; onError: (message: string) => v
 
 function entryDescription() {
   if (management) {
-
     return '관리할 계정의 패스키로 다시 인증해 주세요.'
   }
   if (phone) {
-
     return '휴대폰의 패스키로 본인 계정을 확인하세요.'
   }
 
@@ -150,7 +148,6 @@ function PasskeyPage() {
 
   useEffect(() => {
     if (screen.kind !== 'qr' || management) {
-
       return
     }
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -160,7 +157,6 @@ function PasskeyPage() {
 
   useEffect(() => {
     if (screen.kind !== 'qr' || !screen.qr.expiresAt) {
-
       return
     }
     const expiresAt = Date.parse(screen.qr.expiresAt)
@@ -170,7 +166,6 @@ function PasskeyPage() {
     const isCurrent = () => active && generation === qrGeneration.current && !endedRef.current
     async function poll() {
       if (!isCurrent()) {
-
         return
       }
       if (Date.now() >= expiresAt) {
@@ -185,7 +180,6 @@ function PasskeyPage() {
             'status'
           )
           if (!isCurrent()) {
-
             return
           }
           if (result.approved) {
@@ -209,7 +203,6 @@ function PasskeyPage() {
         timer = setTimeout(() => void poll(), 5000)
       } catch (error) {
         if (!isCurrent()) {
-
           return
         }
         setScreen({ kind: 'entry' })
@@ -230,7 +223,6 @@ function PasskeyPage() {
     // Best-effort cancellation on close; expiry and the desktop verifier remain authoritative.
     function cancelOnClose() {
       if (endedRef.current || management || phone) {
-
         return
       }
       void fetch('/auth/passkeys/cancel', {
@@ -260,7 +252,6 @@ function PasskeyPage() {
 
   async function run(operation: () => Promise<void>) {
     if (busyRef.current || endedRef.current) {
-
       return
     }
     busyRef.current = true
@@ -391,7 +382,6 @@ function PasskeyPage() {
 
   async function removeKey(key: Passkey) {
     if (!window.confirm('이 패스키의 로그인 권한을 삭제할까요? 이미 로그인한 기기는 유지됩니다.')) {
-
       return
     }
     const outcome = await api<{ ended?: boolean }>('remove', { credentialId: key.id })

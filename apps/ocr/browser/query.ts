@@ -33,6 +33,5 @@ export function createOcrQueryClient() {
 }
 
 export function invalidateDataset(client: QueryClient) {
-
   return client.invalidateQueries({ queryKey: ocrKeys.dataset })
 }

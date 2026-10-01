@@ -20,7 +20,6 @@ export function ServerSelect({
   disabled = false,
   onValueChange
 }: ServerSelectProps): React.JSX.Element {
-
   return (
     <Select.Root
       value={value ? [value] : []}

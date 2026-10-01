@@ -6,7 +6,6 @@ import { CardImage } from '../components/CardImage'
 import { styles } from './EquipmentGrid.style'
 
 function isExtraEquipmentSlot({ id }: { id: string }): boolean {
-
   return ['AURA', 'CREATURE', 'TITLE'].includes(id)
 }
 
@@ -19,7 +18,6 @@ function shouldHideSlot({
   oath: boolean
   large: boolean
 }): boolean {
-
   return oath && !large && isExtraEquipmentSlot({ id })
 }
 
@@ -38,7 +36,6 @@ export function EquipmentGrid({
     <div {...stylex.props(styles.equipment, large && styles.largeEquipment)}>
       {equipmentPositions.map(([id, column, row]) => {
         if (shouldHideSlot({ id, large, oath })) {
-
           return null
         }
         const source = oath && large && isExtraEquipmentSlot({ id }) ? character.equipment : slots

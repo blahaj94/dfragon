@@ -31,7 +31,6 @@ export function roundParticipantPixel(value: number): number {
   // Scale refinement and projection can move a mathematical half by a few float ulps.
   const tolerance = 4 * Number.EPSILON * Math.max(1, Math.abs(value))
   if (Math.abs(value - floor - 0.5) <= tolerance) {
-
     return floor + Math.abs(floor % 2)
   }
 
@@ -107,7 +106,6 @@ export function findParticipantAnchors(
     anchors.push({ x: (left + right) / 2, y: (top + bottom) / 2, scale: Math.sqrt(w * h) / 9 })
     // Do not silently choose a subset on a pathological or unsupported frame.
     if (anchors.length > 128) {
-
       return null
     }
   }
@@ -167,7 +165,6 @@ function headingScore(frame: ParticipantGrayFrame, pattern: Pattern, x: number, 
   }
   const energy = squares - (sum * sum) / pattern.offsets.length
   if (energy <= 0 || pattern.energy <= 0) {
-
     return -1
   }
 
@@ -187,7 +184,6 @@ export function createParticipantHeadingMatcher(
 
   function boundedScore(pattern: Pattern, x: number, y: number): number | null {
     if (pattern.offsets.length > remainingSamples) {
-
       return null
     }
     remainingSamples -= pattern.offsets.length
@@ -228,7 +224,6 @@ export function createParticipantHeadingMatcher(
           }
           const score = boundedScore(pattern, x, y)
           if (score == null) {
-
             return 'search-limit'
           }
           if (peak == null || score > peak.score) {
@@ -250,7 +245,6 @@ export function createParticipantHeadingMatcher(
             }
             const score = boundedScore(full, x, y)
             if (score == null) {
-
               return 'search-limit'
             }
             if (peak == null || score > peak.score) {
@@ -280,11 +274,9 @@ export function createParticipantHeadingMatcher(
       false
     )
     if (coarse === 'search-limit') {
-
       return coarse
     }
     if (coarse == null || coarse.score < 0.6) {
-
       return null
     }
     const refined = search(
@@ -293,11 +285,9 @@ export function createParticipantHeadingMatcher(
       true
     )
     if (refined === 'search-limit') {
-
       return refined
     }
     if (refined != null && refined.score >= 0.68) {
-
       return refined
     }
 

@@ -52,9 +52,9 @@ export function ModelLibrary() {
         <article key={model.id} {...stylex.props(styles.statCard)}>
           <strong>{model.name}</strong>
           <p {...stylex.props(styles.muted)}>
-            {getModelKindLabel(model)}{' '}
-            · {(model.files.reduce((sum, file) => sum + file.bytes, 0) / 1024 / 1024).toFixed(1)}{' '}
-            MiB · {new Date(model.registeredAt).toLocaleString()}
+            {getModelKindLabel(model)} ·{' '}
+            {(model.files.reduce((sum, file) => sum + file.bytes, 0) / 1024 / 1024).toFixed(1)} MiB
+            · {new Date(model.registeredAt).toLocaleString()}
           </p>
           <div {...stylex.props(styles.actions)}>
             {model.files.map((file) => (

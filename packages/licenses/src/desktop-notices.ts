@@ -6,7 +6,6 @@ const noticesRoot = fileURLToPath(new URL('../notices/desktop/', import.meta.url
 
 /** Preserve the existing Desktop asset notices after moving their originals. */
 export function desktopNotices() {
-
   return {
     name: 'dfragon-desktop-notices',
     generateBundle(this: {

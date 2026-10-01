@@ -23,7 +23,6 @@ export function parseSyntheticUploadTokenSha256(value: string | undefined): stri
 }
 
 export function isSyntheticUploadRequest(request: Request): boolean {
-
   return request.method === 'POST' && request.originalUrl === '/api/synthetic-samples'
 }
 
@@ -39,7 +38,6 @@ type PendingLogin = { requestId: string; verifier: string; expires: number; clie
 type AuthRequestOptions = { body?: unknown; accessToken?: string }
 
 function createOpaqueToken(): string {
-
   return randomBytes(OCR_AUTH.opaqueBytes).toString('base64url')
 }
 
@@ -110,12 +108,10 @@ export class OcrAuth {
       )
     }
     if (response.status === 204) {
-
       return null
     }
 
     try {
-
       return await response.json()
     } catch {
       throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)

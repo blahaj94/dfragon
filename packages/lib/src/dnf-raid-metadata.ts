@@ -99,7 +99,6 @@ function partyPattern(rgba: Uint8Array | Uint8ClampedArray): Float64Array {
     }
   }
   if (!hasSpatialContrast) {
-
     return new Float64Array(values.length)
   }
   const mean = sum / values.length
@@ -134,7 +133,6 @@ function readParty(
   const ranked = [...scores].sort((left, right) => right[1] - left[1])
   const best = ranked[0]
   if (best != null && best[1] >= 0.8 && best[1] - (ranked[1]?.[1] ?? -1) >= 0.06) {
-
     return best[0]
   }
 
@@ -201,7 +199,6 @@ function readEquipmentScore(
 ): string | null {
   const glyphs = scoreGlyphs(scoreMask(rgba, 75), 75)
   if (glyphs.length === 0 || glyphs.length > 16) {
-
     return null
   }
   let text = ''
@@ -221,14 +218,12 @@ function readEquipmentScore(
     const ranked = [...scores].sort((left, right) => right[1] - left[1])
     const best = ranked[0]
     if (best == null || best[1] < 0.8 || best[1] - (ranked[1]?.[1] ?? -1) < 0.08) {
-
       return null
     }
     text += best[0]
   }
   // Reject malformed/partial readings, while preserving every accepted display character.
   if (/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?K?$/.test(text)) {
-
     return text
   }
 
@@ -317,7 +312,6 @@ export function readDNFRaidParticipantMetadata(
 
   return rows.map((row) => {
     if (!row.occupied) {
-
       return { row: row.row, party: null, equipmentScoreText: null }
     }
     const position = row.row

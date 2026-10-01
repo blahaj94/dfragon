@@ -58,17 +58,14 @@ export class DeveloperStoreError extends Error {
 }
 
 function invalidCommand(): DeveloperStoreError {
-
   return new DeveloperStoreError(DEVELOPER_ERROR_CODES.INVALID_COMMAND)
 }
 
 function storageUnavailable(): DeveloperStoreError {
-
   return new DeveloperStoreError(DEVELOPER_ERROR_CODES.STORAGE_UNAVAILABLE)
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
-
   return value != null && typeof value === 'object' && !Array.isArray(value)
 }
 
@@ -134,7 +131,6 @@ function parsePngDataUrl(value: unknown): Buffer {
 
 function parseSettings(value: unknown): DeveloperSettings | null {
   if (!isObject(value) || !hasExactKeys(value, ['enabled']) || typeof value.enabled !== 'boolean') {
-
     return null
   }
 
@@ -143,7 +139,6 @@ function parseSettings(value: unknown): DeveloperSettings | null {
 
 function parseSampleSource(value: unknown): DeveloperSampleSource | null | undefined {
   if (value === null) {
-
     return null
   }
   if (
@@ -161,7 +156,6 @@ function parseSampleSource(value: unknown): DeveloperSampleSource | null | undef
     !Number.isFinite(value.scale) ||
     value.scale <= 0
   ) {
-
     return undefined
   }
   const kindFields = isDeveloperCollectionKind(value.kind) ? { kind: value.kind } : {}
@@ -179,7 +173,6 @@ function parseMetadata(value: unknown, expectedId: string): DeveloperMetadata | 
   const legacyKeys = ['id', 'createdAt', 'width', 'height', 'text']
   const currentKeys = [...legacyKeys, 'excluded', 'source']
   if (!isObject(value) || (!hasExactKeys(value, legacyKeys) && !hasExactKeys(value, currentKeys))) {
-
     return null
   }
   const { id, createdAt, width, height, text } = value
@@ -200,7 +193,6 @@ function parseMetadata(value: unknown, expectedId: string): DeveloperMetadata | 
     source === undefined ||
     !areValidDimensions
   ) {
-
     return null
   }
 
@@ -223,7 +215,6 @@ function createSerialQueue() {
 
 function asStorageError(error: unknown): DeveloperStoreError {
   if (error instanceof DeveloperStoreError) {
-
     return error
   }
 
@@ -255,7 +246,6 @@ async function ensureDirectory(directory: string): Promise<void> {
 }
 
 function collectionWriteCancelled(): DeveloperStoreError {
-
   return new DeveloperStoreError('DEVELOPER_COLLECTION_CANCELLED')
 }
 
@@ -325,11 +315,9 @@ export function createDeveloperStore({
     } catch (error) {
       const isMissing = isObject(error) && error.code === 'ENOENT'
       if (isMissing) {
-
         return { settings: { enabled: false }, isCorrupt: false }
       }
       if (error instanceof DeveloperStoreError) {
-
         return { settings: { enabled: false }, isCorrupt: true }
       }
       throw storageUnavailable()
@@ -343,7 +331,6 @@ export function createDeveloperStore({
 
       return { settings, isCorrupt: false }
     } catch {
-
       return { settings: { enabled: false }, isCorrupt: true }
     }
   }
@@ -407,7 +394,6 @@ export function createDeveloperStore({
 
   const getSettings = inQueue(async (): Promise<DeveloperSettings> => {
     try {
-
       return (await readSettings()).settings
     } catch (error) {
       throw asStorageError(error)
@@ -441,7 +427,6 @@ export function createDeveloperStore({
       } catch (error) {
         const isMissing = isObject(error) && error.code === 'ENOENT'
         if (isMissing) {
-
           return []
         }
         throw storageUnavailable()

@@ -30,13 +30,11 @@ export function createRuntimeClock(options: RuntimeClockOptions): AuthClock {
       const isBounded = widthMs <= CLOCK_OFFSET_BUDGET_MS
       const isUsable = hasFiniteTimes && isOrdered && isBounded
       if (!isUsable) {
-
         return null
       }
 
       return { wallMs, monotonicBeforeMs, monotonicMs }
     } catch {
-
       return null
     }
   }

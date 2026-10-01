@@ -17,19 +17,16 @@ const OWNED_TEMP =
 function isMissing(error: unknown): boolean {
   const hasError = error != null
   if (!hasError) {
-
     return false
   }
 
   const isErrorObject = typeof error === 'object'
   if (!isErrorObject) {
-
     return false
   }
 
   const hasCode = 'code' in error
   if (!hasCode) {
-
     return false
   }
 
@@ -94,7 +91,6 @@ export class MacOsCredentialFiles {
     } catch (error) {
       const wasMissing = isMissing(error)
       if (wasMissing) {
-
         return false
       }
       throw error
@@ -116,7 +112,6 @@ export class MacOsCredentialFiles {
   async read(name: RecordName): Promise<Buffer | null> {
     const exists = await this.present(name)
     if (!exists) {
-
       return null
     }
     const handle = await this.files.open(
@@ -174,7 +169,6 @@ export class MacOsCredentialFiles {
       // rename 호출 이후 오류는 destination이 실제 교체됐는지 추측하지 않는다.
 
       if (replacementAttempted) {
-
         return 'unknown'
       }
 
@@ -190,7 +184,6 @@ export class MacOsCredentialFiles {
     })
     const hasTemporaries = names.length > 0
     if (!hasTemporaries) {
-
       return
     }
     // 새 marker의 directory sync 이후에만 이전 시도의 temp를 지운다.
@@ -225,7 +218,6 @@ export class MacOsCredentialFiles {
       return 'confirmed'
     } catch {
       if (deletionAttempted) {
-
         return 'unknown'
       }
 
@@ -238,7 +230,6 @@ export class MacOsCredentialFiles {
       await this.prepare()
       const exists = await this.present('transition.v1')
       if (!exists) {
-
         return 'unknown'
       }
       await this.files.unlink(join(this.directory, 'transition.v1'))

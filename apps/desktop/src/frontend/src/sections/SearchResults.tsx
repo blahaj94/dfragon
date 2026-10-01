@@ -12,7 +12,6 @@ export function SearchResults({
   editing?: SlotEditing
   retry: (slot: number) => void
 }): React.JSX.Element {
-
   return (
     <ContentStack>
       {view.connectionFailed && (

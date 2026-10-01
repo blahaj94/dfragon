@@ -30,7 +30,6 @@ export function registerManualSearchIpc({
     requireSender(event)
     const control = parseSearchControl(args)
     if (control == null) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
     switch (control.action) {
@@ -58,7 +57,6 @@ export function registerManualSearchIpc({
     requireSender(event)
     const observation = parseSearchObservation(args)
     if (observation == null) {
-
       return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
     }
 

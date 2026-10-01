@@ -2,17 +2,14 @@ import { applyDecorators } from '@nestjs/common'
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger'
 
 function body(schema: string) {
-
   return ApiBody({ required: true, schema: { $ref: `#/components/schemas/${schema}` } })
 }
 
 function success(status: number, schema: string, description: string) {
-
   return ApiResponse({ status, description, schema: { $ref: `#/components/schemas/${schema}` } })
 }
 
 function errors(definitions: Record<number, string>, html = false) {
-
   return applyDecorators(
     ...Object.entries(definitions).map(([status, description]) =>
       ApiResponse({
@@ -43,7 +40,6 @@ const jsonFailures = {
 }
 
 export function ApiLoginRequest() {
-
   return applyDecorators(
     ApiOperation({
       summary: '로그인 요청 생성',
@@ -57,7 +53,6 @@ export function ApiLoginRequest() {
 }
 
 export function ApiLoginExchange() {
-
   return applyDecorators(
     ApiOperation({
       summary: '로그인 코드 교환',
@@ -75,7 +70,6 @@ export function ApiLoginExchange() {
 }
 
 export function ApiRefresh() {
-
   return applyDecorators(
     ApiOperation({
       summary: '토큰 갱신',
@@ -94,7 +88,6 @@ export function ApiRefresh() {
 }
 
 export function ApiLogout() {
-
   return applyDecorators(
     ApiOperation({
       summary: '로그아웃',
@@ -108,7 +101,6 @@ export function ApiLogout() {
 }
 
 export function ApiAuthorize() {
-
   return applyDecorators(
     ApiOperation({
       summary: '브라우저 로그인 시작',
@@ -136,7 +128,6 @@ export function ApiAuthorize() {
 }
 
 export function ApiProfile(update = false) {
-
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({

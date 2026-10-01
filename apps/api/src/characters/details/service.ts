@@ -135,11 +135,9 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
 
   return {
     get(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
-
       return request(peerAddress, identity, signal, false)
     },
     refresh(peerAddress: string | undefined, identity: CharacterIdentity, signal: AbortSignal) {
-
       return request(peerAddress, identity, signal, true)
     },
     async onModuleDestroy() {

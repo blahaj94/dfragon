@@ -11,7 +11,6 @@ export function CharacterDetailPage({
   character: CardCharacter
   onClose: () => void
 }): React.JSX.Element {
-
   return (
     <>
       <div {...stylex.props(styles.title)}>

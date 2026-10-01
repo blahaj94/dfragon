@@ -10,13 +10,11 @@ export async function readApiBuildInfo(path = '/app/build-info.json'): Promise<S
     const value: unknown = JSON.parse(await readFile(path, 'utf8'))
     const info = parseServerBuildInfo(value, 'api')
     if (info == null) {
-
       return { service: 'api', commit: null }
     }
 
     return info
   } catch {
-
     return { service: 'api', commit: null }
   }
 }
@@ -27,7 +25,6 @@ export class ApiVersionController {
 
   @Get()
   version(): ServerBuildInfo {
-
     return this.buildInfo
   }
 }

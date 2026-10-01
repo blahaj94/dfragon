@@ -71,13 +71,11 @@ export class NeopleSearchFailure extends Error {
 function isObject(value: unknown): value is Record<string, unknown> {
   const hasObjectType = typeof value === 'object'
   if (!hasObjectType) {
-
     return false
   }
 
   const isNotNull = value !== null
   if (!isNotNull) {
-
     return false
   }
 
@@ -113,7 +111,6 @@ export function classifyNeopleUpstreamFailure(
   if (!isBodyObject) {
     const hasHttpFailure = !ok
     if (hasHttpFailure) {
-
       return neopleStatusFailure(status)
     }
 
@@ -124,7 +121,6 @@ export function classifyNeopleUpstreamFailure(
   if (!hasError) {
     const hasHttpFailure = !ok
     if (hasHttpFailure) {
-
       return neopleStatusFailure(status)
     }
 
@@ -134,7 +130,6 @@ export function classifyNeopleUpstreamFailure(
   const upstreamError = body.error
   const isUpstreamErrorObject = isObject(upstreamError)
   if (!isUpstreamErrorObject) {
-
     return neopleStatusFailure(status)
   }
 
@@ -144,7 +139,6 @@ export function classifyNeopleUpstreamFailure(
   const knownError = hasCode ? upstreamCodeErrors.get(code) : undefined
   const isKnownError = knownError !== undefined
   if (isKnownError) {
-
     return neopleSearchFailure(knownError)
   }
 

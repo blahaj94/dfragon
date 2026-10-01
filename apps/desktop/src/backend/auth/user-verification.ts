@@ -9,13 +9,11 @@ type VerificationFailureNotice = Extract<
 export function verificationFailureNotice(error: unknown): VerificationFailureNotice {
   const isHttpFailure = error instanceof AuthHttpFailure
   if (!isHttpFailure) {
-
     return 'AUTH_SERVICE_UNAVAILABLE'
   }
 
   const needsAuthentication = error.code === 'authentication-required'
   if (needsAuthentication) {
-
     return 'REAUTH_REQUIRED'
   }
 

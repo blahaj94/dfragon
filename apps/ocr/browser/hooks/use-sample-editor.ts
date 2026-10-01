@@ -46,7 +46,6 @@ export function useSampleEditor(sample: Sample) {
   })
   function assignNicknameSplit(split: Split) {
     if (sample.text === null || sample.text.length === 0 || split === sample.split) {
-
       return
     }
     if (window.confirm(OCR_MESSAGES.confirmSplit(split))) {

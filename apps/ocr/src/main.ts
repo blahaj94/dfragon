@@ -55,7 +55,6 @@ try {
   let stopping = false
   const close = () => {
     if (stopping) {
-
       return
     }
     stopping = true

@@ -68,7 +68,6 @@ export async function generateMigration(
     await dataSource.destroy()
     const hasNoSchemaChanges = upQueries.length === 0
     if (hasNoSchemaChanges) {
-
       return 'Database schema is current'
     }
     const timestamp = Date.now()

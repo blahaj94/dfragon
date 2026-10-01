@@ -56,7 +56,6 @@ export function createPendingExpiry(
   isExpired: (checkedAt: ClockReading) => boolean,
   getDelay: (checkedAt: ClockReading) => number
 ): CallbackActorLogic<{ type: 'RESCHEDULE' }> {
-
   return fromCallback<{ type: 'RESCHEDULE' }>(({ receive, sendBack }) => {
     let stopped = false
     let cancel: (() => void) | undefined
@@ -72,7 +71,6 @@ export function createPendingExpiry(
       const delayMs = getDelay(checkedAt)
       const scheduled = clock.schedule(delayMs, () => {
         if (stopped) {
-
           return
         }
         if (isExpired(clock.read())) {

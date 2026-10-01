@@ -90,7 +90,6 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
       roundPixel(x + 450 * scale) > frame.width ||
       roundPixel(y + 324 * scale) > frame.height
     ) {
-
       return false
     }
     const left = roundPixel(x + 3 * scale)
@@ -107,7 +106,6 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
         }
       }
       if (!found) {
-
         return false
       }
     }
@@ -153,7 +151,6 @@ export function detectDNFRaidParticipantWindow(
   }
   const anchors = findParticipantAnchors(frame.width, frame.height, frame.rgba)
   if (anchors == null) {
-
     return { status: 'search-limit' }
   }
   const gray = {
@@ -167,7 +164,6 @@ export function detectDNFRaidParticipantWindow(
   for (const anchor of anchors) {
     const matched = matchHeading(anchor)
     if (matched === 'search-limit') {
-
       return { status: 'search-limit' }
     }
     if (matched == null) {
@@ -224,14 +220,12 @@ export function cropDNFRaidParticipantNicknames(
 ): DNFRaidParticipantCropResult {
   const result = detectDNFRaidParticipantWindow(frame, headingTemplate)
   if (result.status !== 'found') {
-
     return result
   }
 
   const detection = { ...result }
   const rows = result.rows.map((row) => {
     if (!row.occupied) {
-
       return { ...row, nicknameCrop: null }
     }
     const { x, y, width, height } = row.nickname

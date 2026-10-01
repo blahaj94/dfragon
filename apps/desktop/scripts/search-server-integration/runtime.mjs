@@ -38,7 +38,6 @@ function startApi(environment, upstreams) {
 }
 
 async function withApi({ source, database, neople }, operation) {
-
   return withRuntimeConfiguration(async ({ path }) => {
     const port = await unusedRuntimePort()
     const runtime = startApi(runtimeEnvironment(path, port, database), {

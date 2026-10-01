@@ -21,7 +21,6 @@ export class AuthCapacity {
     }
     this.active++
     try {
-
       return await work()
     } finally {
       this.active--

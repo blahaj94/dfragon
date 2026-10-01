@@ -3,12 +3,10 @@ import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 
 function success(status: number, schema: string, description: string) {
-
   return ApiResponse({ status, description, schema: { $ref: `#/components/schemas/${schema}` } })
 }
 
 function errors(definitions: Record<number, string>, html = false) {
-
   return applyDecorators(
     ...Object.entries(definitions).map(([status, description]) =>
       ApiResponse({
@@ -40,7 +38,6 @@ const neopleFailures = {
 }
 
 export function ApiCharacterSearch() {
-
   return applyDecorators(
     ApiOperation({
       summary: '캐릭터 검색',
@@ -70,7 +67,6 @@ export function ApiCharacterSearch() {
 }
 
 export function ApiCharacterDetails(refresh = false) {
-
   return applyDecorators(
     ApiOperation({
       summary: refresh ? '캐릭터 상세 명시 갱신' : '캐릭터 상세 조회',
@@ -98,7 +94,6 @@ export function ApiCharacterDetails(refresh = false) {
 }
 
 export function ApiAdventureSearch() {
-
   return applyDecorators(
     ApiOperation({
       summary: '모험단명으로 저장된 캐릭터 검색',

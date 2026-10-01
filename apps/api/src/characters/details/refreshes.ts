@@ -50,7 +50,6 @@ export class CharacterRefreshes {
     shared.waiters++
     let cancel: () => void = () => undefined
     try {
-
       return await new Promise<CharacterApiResponse[]>((resolve, reject) => {
         cancel = () => reject(new Error('Character refresh canceled'))
         signal.addEventListener('abort', cancel, { once: true })

@@ -38,11 +38,9 @@ export function App() {
 
   function renderSessionContent() {
     if (authenticated === null) {
-
       return <p {...stylex.props(styles.paragraph)}>로그인 상태를 확인하고 있습니다.</p>
     }
     if (!authenticated) {
-
       return (
         <>
           <section {...stylex.props(styles.login)} aria-label="자료실 로그인">
@@ -285,11 +283,9 @@ export function App() {
 
 function sampleSplitLabel(sample: Sample) {
   if (sample.excluded) {
-
     return '제외'
   }
   if (sample.split === 'unassigned') {
-
     return '미배정'
   }
 

@@ -19,7 +19,6 @@ import type {
 function isUuid(value: unknown): value is string {
   const isString = typeof value === 'string'
   if (!isString) {
-
     return false
   }
 
@@ -31,13 +30,11 @@ function isUuid(value: unknown): value is string {
 function isTimestamp(value: unknown): value is number {
   const isNumber = typeof value === 'number'
   if (!isNumber) {
-
     return false
   }
 
   const isSafeInteger = Number.isSafeInteger(value)
   if (!isSafeInteger) {
-
     return false
   }
 

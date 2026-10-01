@@ -77,7 +77,6 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     const flight = actor.getSnapshot().context.refresh
 
     if (flight?.generation === generation) {
-
       return flight.promise
     }
 
@@ -87,12 +86,10 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
   return {
     state,
     get generation(): number {
-
       return actor.getSnapshot().context.generation
     },
     invalidate,
     get pending(): PendingLogin | null {
-
       return actor.getSnapshot().context.pending
     },
     bindPending(pending: PendingLogin): void {
@@ -114,13 +111,11 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
       return generation
     },
     get logoutFlight(): Promise<AuthCommandResult> | null {
-
       return actor.getSnapshot().context.logout
     },
     start(operation: () => Promise<AuthSnapshot>): Promise<AuthSnapshot> {
       const existing = actor.getSnapshot().context.start
       if (existing) {
-
         return existing
       }
 
@@ -132,7 +127,6 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     },
     currentRefresh,
     get hasStartedRefresh(): boolean {
-
       return actor.getSnapshot().context.hasStartedRefresh
     },
     markRefreshStarted(): void {
@@ -153,7 +147,6 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     ): Promise<AuthAuthorization> {
       const existing = currentRefresh(generation)
       if (existing) {
-
         return existing
       }
 
@@ -166,7 +159,6 @@ export function createAuthRuntime(runId: string, providers: readonly AuthProvide
     shareLogout(operation: () => Promise<AuthCommandResult>): Promise<AuthCommandResult> {
       const existing = actor.getSnapshot().context.logout
       if (existing) {
-
         return existing
       }
 

@@ -12,13 +12,11 @@ export async function readAccountsBuildInfo(
     const value: unknown = JSON.parse(await readFile(path, 'utf8'))
     const info = parseServerBuildInfo(value, 'accounts')
     if (info != null) {
-
       return info
     }
 
     return { service: 'accounts', commit: null }
   } catch {
-
     return { service: 'accounts', commit: null }
   }
 }
@@ -29,7 +27,6 @@ export class AccountsVersionController {
 
   @Get()
   version(): ServerBuildInfo {
-
     return this.buildInfo
   }
 }

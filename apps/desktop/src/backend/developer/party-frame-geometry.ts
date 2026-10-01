@@ -299,7 +299,6 @@ function isTrackColor(
   const green = rgba[offset + 1]
   const blue = rgba[offset + 2]
   if (color === 'hp') {
-
     return red >= 110 && red - green >= 75 && red - blue >= 55
   }
 
@@ -338,7 +337,6 @@ function findTrackPairCandidates({
 }
 
 function fitScaleToTrackCenters(hp: TrackBand, mp: TrackBand): number {
-
   return (
     (hp.centerY * HP_REFERENCE_CENTER_Y + mp.centerY * MP_REFERENCE_CENTER_Y) /
     (HP_REFERENCE_CENTER_Y ** 2 + MP_REFERENCE_CENTER_Y ** 2)
@@ -363,7 +361,6 @@ function findScaleMatch({
   const leftTolerance = Math.max(4, Math.round(2.5 * MAX_SCALE))
 
   if (Math.abs(hp.left - mp.left) > leftTolerance) {
-
     return undefined
   }
 
@@ -395,7 +392,6 @@ function findScaleMatch({
   }
 
   if (!best || Math.abs(best.scale - pairScale) > 0.04) {
-
     return undefined
   }
 
@@ -403,7 +399,6 @@ function findScaleMatch({
 }
 
 function isFullTrackWidth(width: number, scale: number): boolean {
-
   return width >= 78 * scale && width <= 112 * scale + 8
 }
 
@@ -531,7 +526,6 @@ function identifySlot(anchorX: number, scale: number): PartyFrameSlot | undefine
     }
   }
   if (matches.length === 1) {
-
     return matches[0]
   }
 
@@ -601,7 +595,6 @@ function isInsideFrame(
   frameWidth: number,
   frameHeight: number
 ): boolean {
-
   return (
     Number.isSafeInteger(rect.x) &&
     Number.isSafeInteger(rect.y) &&
@@ -626,7 +619,6 @@ function updateBand(band: TrackBand): void {
 }
 
 function runDistance(band: TrackBand, run: PixelRun): number {
-
   return Math.abs(run.left - band.left) + Math.abs(run.right - band.right)
 }
 

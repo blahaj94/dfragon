@@ -13,7 +13,6 @@ export function parseCharacterSearchQuery(originalUrl: string): NeopleCharacterS
 
 function decodeQueryPart(raw: string): string {
   try {
-
     return decodeURIComponent(raw.replace(/\+/g, ' '))
   } catch {
     throw neopleSearchFailure('query')

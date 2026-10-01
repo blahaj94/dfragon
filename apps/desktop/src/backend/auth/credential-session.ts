@@ -46,12 +46,10 @@ export class CredentialWriter {
   }
 
   get httpStarted(): boolean {
-
     return this.credentialHttpStarted
   }
 
   get hasUnconfirmedExchange(): boolean {
-
     return this.tokenlessExchangeUnconfirmed
   }
 
@@ -65,7 +63,6 @@ export class CredentialWriter {
 
   execute(operation: () => Promise<void>): Promise<void> {
     if (this.started) {
-
       return this.completion
     }
     this.started = true
@@ -121,22 +118,18 @@ export class CredentialSession {
   }
 
   prepare(kind: CredentialTransitionKind): Promise<TransitionPreparation> {
-
     return prepareCredentialTransition(this.store, kind)
   }
 
   writeCredential(refreshToken: string): Promise<StoreMutationOutcome> {
-
     return this.store.commitCredential(refreshToken)
   }
 
   finalize(kind: CredentialTransitionKind): Promise<CredentialCommit> {
-
     return finalizeCredentialTransition(this.store, kind)
   }
 
   reestablish(kind: CredentialTransitionKind): Promise<StoreMutationOutcome> {
-
     return this.store.reestablishTransition(kind)
   }
 
@@ -147,13 +140,11 @@ export class CredentialSession {
 
       return isCleared
     } catch {
-
       return false
     }
   }
 
   releaseUnsentTransition(): Promise<StoreMutationOutcome> {
-
     return this.store.removeTransition()
   }
 
@@ -174,12 +165,10 @@ export class CredentialSession {
   }
 
   get current(): SessionCredential | null {
-
     return this.credential
   }
 
   get knownRefresh(): string | null {
-
     return this.knownRefreshToken
   }
 
@@ -233,7 +222,6 @@ export class CredentialSession {
     if (hasExisting) {
       const hasSameRefreshToken = existing.refreshToken === refreshToken
       if (hasSameRefreshToken) {
-
         return existing.promise
       }
     }
@@ -265,7 +253,6 @@ export class CredentialSession {
     const existing = this.logoutOperation
     const hasLogout = existing != null
     if (hasLogout) {
-
       return existing
     }
     const writer = this.activeWriter
@@ -287,13 +274,11 @@ export class CredentialSession {
     const existing = reservation.result
     const hasResult = existing != null
     if (hasResult) {
-
       return existing
     }
     const operation = this.logoutOperation
     const isOwner = operation === reservation
     if (!isOwner) {
-
       return Promise.reject(new Error('Credential logout reservation is not current.'))
     }
     let resolve!: (result: LogoutResult) => void
@@ -315,7 +300,6 @@ export class CredentialSession {
 
       return isPrepared
     } catch {
-
       return false
     }
   }
@@ -327,7 +311,6 @@ export class CredentialSession {
 
       return isCleared
     } catch {
-
       return false
     }
   }

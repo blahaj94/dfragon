@@ -33,7 +33,6 @@ export function selectDeveloperEvaluationSamples(
   samples: readonly DeveloperWorkbenchSample[],
   source: 'local' | 'ocr'
 ): DeveloperWorkbenchSample[] {
-
   return filter(
     samples,
     (sample) => sample.excluded !== true && (source !== 'ocr' || sample.text != null)
@@ -64,14 +63,12 @@ export function nextDeveloperWorkbenchSampleId(
 ): string | null {
   const others = filter(samples, (sample) => sample.id !== currentId)
   if (others.length === 0) {
-
     return null
   }
 
   const index = samples.findIndex((sample) => sample.id === currentId)
   const nextId = samples.slice(index + 1).find((sample) => sample.id !== currentId)?.id
   if (nextId != null) {
-
     return nextId
   }
 
@@ -85,12 +82,10 @@ function compareWorkbenchSamples(
 ): number {
   const timeOrder = left.createdAt.localeCompare(right.createdAt)
   if (timeOrder !== 0) {
-
     return timeOrder
   }
 
   if (left.source != null && right.source != null && left.source.slot !== right.source.slot) {
-
     return left.source.slot - right.source.slot
   }
 
@@ -103,15 +98,12 @@ function matchesLabelFilter(
   labelFilter: DeveloperLabelFilter
 ): boolean {
   if (labelFilter === 'excluded') {
-
     return sample.excluded === true
   }
   if (sample.excluded === true) {
-
     return false
   }
   if (labelFilter === 'unlabeled') {
-
     return sample.text == null
   }
 

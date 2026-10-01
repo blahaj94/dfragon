@@ -93,7 +93,6 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
       roundPixel(x + 380 * scale) > frame.width ||
       roundPixel(y + 143 * scale) > frame.height
     ) {
-
       return false
     }
     const left = roundPixel(x + 4 * scale)
@@ -110,7 +109,6 @@ function createParticipantRowValidator(frame: ParticipantGrayFrame) {
         }
       }
       if (!found) {
-
         return false
       }
     }
@@ -156,7 +154,6 @@ export function detectDNFPartyParticipantWindow(
   }
   const anchors = findParticipantAnchors(frame.width, frame.height, frame.rgba)
   if (anchors == null) {
-
     return { status: 'search-limit' }
   }
   const gray = {
@@ -170,7 +167,6 @@ export function detectDNFPartyParticipantWindow(
   for (const anchor of anchors) {
     const matched = matchHeading(anchor)
     if (matched === 'search-limit') {
-
       return { status: 'search-limit' }
     }
     if (matched == null) {
@@ -224,13 +220,11 @@ export function cropDNFPartyParticipantNicknames(
 ): DNFParticipantCropResult {
   const result = detectDNFPartyParticipantWindow(frame, headingTemplate)
   if (result.status !== 'found') {
-
     return result
   }
   const snapshot = { ...result }
   const rows = result.rows.map((row) => {
     if (!row.occupied) {
-
       return { ...row, crop: null }
     }
     const { x, y, width, height } = row.nickname

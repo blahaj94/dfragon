@@ -40,7 +40,6 @@ export async function requestOcr<T>(
   }
 
   if (response.status === 204) {
-
     return undefined as T
   }
 
@@ -49,7 +48,6 @@ export async function requestOcr<T>(
 
 export function errorMessage(error: unknown): string {
   if (error instanceof OcrApiError) {
-
     return error.message
   }
 

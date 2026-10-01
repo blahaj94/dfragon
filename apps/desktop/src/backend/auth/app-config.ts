@@ -18,7 +18,6 @@ export function readAppAuthConfig(application: {
       ? __DFRAGON_DISTRIBUTION_API_ORIGIN__
       : null
   if (!isDevelopmentBuild && distributionOrigin == null) {
-
     return readAuthRuntimeConfig()
   }
 
@@ -54,7 +53,6 @@ export function readAppApiOrigin(): string | null {
     ? development.apiOrigin
     : (distributionOrigin ?? process.env['DFRAGON_API_ORIGIN'])
   if (origin == null) {
-
     return null
   }
   try {
@@ -62,7 +60,6 @@ export function readAppApiOrigin(): string | null {
 
     return origin
   } catch {
-
     return null
   }
 }

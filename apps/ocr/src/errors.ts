@@ -70,22 +70,18 @@ export class OcrError extends Error {
 }
 
 export function isOcrErrorCode(value: unknown): value is OcrErrorCode {
-
   return typeof value === 'string' && Object.hasOwn(OCR_ERRORS, value)
 }
 
 export function httpFailure(error: unknown): OcrError {
   if (error instanceof OcrError) {
-
     return error
   }
   if (typeof error === 'object' && error !== null && 'type' in error) {
     if (error.type === 'entity.too.large') {
-
       return new OcrError(OCR_ERROR_CODE.UPLOAD_TOO_LARGE)
     }
     if (error.type === 'entity.parse.failed') {
-
       return new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
   }

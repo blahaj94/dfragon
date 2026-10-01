@@ -11,7 +11,6 @@ export function parseServerBuildInfo(
   expectedService: ServerService
 ): ServerBuildInfo | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-
     return null
   }
   if (
@@ -19,7 +18,6 @@ export function parseServerBuildInfo(
     !Object.hasOwn(value, 'service') ||
     !Object.hasOwn(value, 'commit')
   ) {
-
     return null
   }
   const info = value as Record<string, unknown>
@@ -30,7 +28,6 @@ export function parseServerBuildInfo(
         info.commit.length !== 40 ||
         !/^[0-9a-f]{40}$/.test(info.commit)))
   ) {
-
     return null
   }
 

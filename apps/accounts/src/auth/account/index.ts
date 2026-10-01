@@ -19,7 +19,6 @@ async function authenticate(
   }
 
   try {
-
     return await verify(token, Math.floor(Date.now() / 1000))
   } catch {
     throw new AccountFailure(ACCOUNT_ERRORS.AUTHENTICATION_REQUIRED)

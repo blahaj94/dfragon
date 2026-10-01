@@ -57,7 +57,6 @@ const htmlEntities: Record<string, string> = {
 }
 
 function escapeHtml(value: string): string {
-
   return value.replace(/[&<>"']/g, (character) => htmlEntities[character]!)
 }
 
@@ -100,7 +99,6 @@ function authHttpFailure(
   const isAccountFailure = error instanceof AccountFailure
   const isKnownAuthFailure = isSessionFailure || isAccountFailure
   if (isKnownAuthFailure) {
-
     return error
   }
 
@@ -295,7 +293,6 @@ class LoginController {
 
 /** 실제 server composition 또는 격리 test가 service를 주입한다. 환경변수 test mode는 없다. */
 export function createSessionHttpService(deps: RefreshDependencies): SessionHttpService {
-
   return {
     refresh: (rawToken) => rotateRefresh(deps, rawToken),
     logout: (rawToken) => logoutSession(deps.dataSource, rawToken)

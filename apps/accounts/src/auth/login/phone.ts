@@ -78,7 +78,6 @@ export async function phoneLoginAction(
   }
   if (action === 'status') {
     if (row.status !== 'phone_approved') {
-
       return { approved: false }
     }
     const user = await manager.getRepository(UserSchema).findOneBy({ id: row.verifiedUserId! })
