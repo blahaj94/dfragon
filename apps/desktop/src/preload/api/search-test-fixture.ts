@@ -26,7 +26,6 @@ export type ObservationTestApi = {
 }
 
 export function searchSlot(overrides: Partial<SearchSlot> = {}): SearchSlot {
-
   return {
     slot: 0,
     observationRevision: 1,
@@ -40,39 +39,50 @@ export function searchSlot(overrides: Partial<SearchSlot> = {}): SearchSlot {
 }
 
 export function searchSnapshot(overrides: Partial<SearchSnapshot> = {}): SearchSnapshot {
+  const slots = Array.from({ length: 4 }, (_, slot) => ({
+    slot,
+    observationRevision: 0,
+    requestId: null,
+    nickname: null,
+    state: 'idle' as const,
+    rows: [],
+    error: null
+  }))
 
   return {
     runId: SEARCH_RUN,
     revision: 1,
     captureId: CAPTURE_ID,
-    slots: Array.from({ length: 4 }, (_, slot) => ({
-      slot,
-      observationRevision: 0,
-      requestId: null,
-      nickname: null,
-      state: 'idle' as const,
-      rows: [],
-      error: null
-    })),
+    slots,
     ...overrides
   }
 }
 
 export function withSearchSlot(slot: SearchSlot): SearchSnapshot {
   const snapshot = searchSnapshot()
+  const updatedSnapshot = { ...snapshot }
+  const slots = snapshot.slots.map((current) => {
+    const isTarget = current.slot === slot.slot
+    if (isTarget) {
+      return slot
+    }
 
-  return {
-    ...snapshot,
-    slots: snapshot.slots.map((current) => {
-      const isTarget = current.slot === slot.slot
+    return current
+  })
+  updatedSnapshot.slots = slots
 
-      return isTarget ? slot : current
-    })
-  }
+  return updatedSnapshot
 }
 
 export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
-  ['unknown top-level field', () => ({ ...searchSnapshot(), token: 'synthetic-forbidden' })],
+  [
+    'unknown top-level field',
+    () => {
+      const snapshot = searchSnapshot()
+
+      return { ...snapshot, token: 'synthetic-forbidden' }
+    }
+  ],
   ['non-UUID capture', () => searchSnapshot({ captureId: 'arbitrary-capture' })],
   ['negative revision', () => searchSnapshot({ revision: -1 })],
   ['unsafe revision', () => searchSnapshot({ revision: Number.MAX_SAFE_INTEGER + 1 })],
@@ -152,5 +162,12 @@ export const invalidSearchSnapshots: Array<[string, () => unknown]> = [
         })
       )
   ],
-  ['ended capture with active slot', () => ({ ...withSearchSlot(searchSlot()), captureId: null })]
+  [
+    'ended capture with active slot',
+    () => {
+      const snapshot = withSearchSlot(searchSlot())
+
+      return { ...snapshot, captureId: null }
+    }
+  ]
 ]
