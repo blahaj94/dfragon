@@ -1,3 +1,4 @@
+import { matchesDNFSearchNicknamePolicy } from '@dfragon/lib'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 import { neopleSearchFailure } from '../errors/neople-search.js'
 import type { NeopleCharacterSearchInput } from '../types/neople-character-search.js'
@@ -60,11 +61,8 @@ function validateSearchQuery(pairs: readonly DecodedQueryPair[]): NeopleCharacte
   if (!hasCharacterName) {
     throw neopleSearchFailure('query')
   }
-  const codePointCount = [...characterName].length
-  const hasOuterWhitespace = characterName !== characterName.trim()
-  const isLengthValid = codePointCount >= 2 && codePointCount <= 12
-  const isNameInvalid = hasOuterWhitespace || !isLengthValid
-  if (isNameInvalid) {
+
+  if (!matchesDNFSearchNicknamePolicy(characterName)) {
     throw neopleSearchFailure('query')
   }
 
