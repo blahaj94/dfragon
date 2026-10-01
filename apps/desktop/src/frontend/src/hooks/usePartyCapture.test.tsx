@@ -7,26 +7,34 @@ import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fix
 import type { SearchControl } from '../../../preload/common/types/search'
 import { usePartyCapture } from './usePartyCapture'
 
-const moduleMocks = vi.hoisted(() => ({
-  capturePartyNicknameCrops: vi.fn(),
-  createPartyOcrWorker: vi.fn(),
-  runSerialLoop: vi.fn()
-}))
+const moduleMocks = vi.hoisted(() => {
+  const capturePartyNicknameCrops = vi.fn()
+  const createPartyOcrWorker = vi.fn()
+  const runSerialLoop = vi.fn()
 
-vi.mock('../lib/ocr', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../lib/ocr')>()),
-  createPartyOcrWorker: moduleMocks.createPartyOcrWorker
-}))
+  return { capturePartyNicknameCrops, createPartyOcrWorker, runSerialLoop }
+})
 
-vi.mock('../lib/party', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../lib/party')>()),
-  capturePartyNicknameCrops: moduleMocks.capturePartyNicknameCrops
-}))
+vi.mock('../lib/ocr', async (importOriginal) => {
+  const ocr = { ...(await importOriginal<typeof import('../lib/ocr')>()) }
+  ocr.createPartyOcrWorker = moduleMocks.createPartyOcrWorker
 
-vi.mock('../lib/recognition', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../lib/recognition')>()),
-  runSerialLoop: moduleMocks.runSerialLoop
-}))
+  return ocr
+})
+
+vi.mock('../lib/party', async (importOriginal) => {
+  const party = { ...(await importOriginal<typeof import('../lib/party')>()) }
+  party.capturePartyNicknameCrops = moduleMocks.capturePartyNicknameCrops
+
+  return party
+})
+
+vi.mock('../lib/recognition', async (importOriginal) => {
+  const recognition = { ...(await importOriginal<typeof import('../lib/recognition')>()) }
+  recognition.runSerialLoop = moduleMocks.runSerialLoop
+
+  return recognition
+})
 
 type HookValue = ReturnType<typeof usePartyCapture>
 
@@ -115,16 +123,24 @@ function loadVideoMetadata(
     configurable: true,
     get: () => {
       access?.push('videoWidth')
+      const width = dimensions.width
+      if (width != null) {
+        return width
+      }
 
-      return dimensions.width ?? 1920
+      return 1920
     }
   })
   Object.defineProperty(video, 'videoHeight', {
     configurable: true,
     get: () => {
       access?.push('videoHeight')
+      const height = dimensions.height
+      if (height != null) {
+        return height
+      }
 
-      return dimensions.height ?? 1080
+      return 1080
     }
   })
   video.dispatchEvent(new Event('loadedmetadata'))
@@ -308,8 +324,11 @@ describe('usePartyCapture', () => {
     const newSelection = Promise.withResolvers<null>()
     api.selectCaptureSource.mockImplementation((sourceId: string) => {
       const isOldSource = sourceId === 'old'
+      if (isOldSource) {
+        return oldSelection.promise
+      }
 
-      return isOldSource ? oldSelection.promise : newSelection.promise
+      return newSelection.promise
     })
 
     const hook = await renderPartyCaptureHook()
@@ -935,7 +954,6 @@ it('검색 시작 응답 대기 중 반복 시작은 동일한 캡처를 유지�
     Promise.withResolvers<Awaited<ReturnType<typeof window.search.controlCharacterSearch>>>()
   search.controlCharacterSearch.mockImplementation((control: SearchControl) => {
     if (control.action === 'begin') {
-
       return begin.promise
     }
 
