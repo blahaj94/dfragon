@@ -108,6 +108,73 @@ it('detects a single full frame at the measured 1067×600 base geometry', () => 
   ])
 })
 
+it('merges equally distant color runs into the first active band', () => {
+  const rgba = partyFrame({
+    width: 1067,
+    height: 600,
+    tracks: [{ slot: 1, anchorX: 43, scale: 1 }]
+  })
+  paintBand(rgba, 1067, 40, 27, 108, 3, [176, 176, 176])
+  paintBand(rgba, 1067, 42, 27, 99, 1, [194, 15, 11])
+  paintBand(rgba, 1067, 46, 28, 99, 1, [194, 15, 11])
+  paintBand(rgba, 1067, 44, 29, 99, 1, [194, 15, 11])
+
+  const geometry = detect({ width: 1067, height: 600, rgba })
+
+  expect(geometry.scale).toBe(1)
+  expect(geometry.slots).toEqual([
+    {
+      slot: 1,
+      x: 43,
+      y: 10,
+      width: 73,
+      height: 16,
+      coverage: { x: 42, y: 10, width: 101, height: 27 }
+    }
+  ])
+})
+
+it('projects slots in slot order using the median of their observed scales', () => {
+  const rgba = partyFrame({
+    width: 1067,
+    height: 600,
+    tracks: [
+      { slot: 1, anchorX: 42, scale: 1.03 },
+      { slot: 2, anchorX: 183, scale: 1 }
+    ]
+  })
+
+  const geometry = detect({ width: 1067, height: 600, rgba })
+
+  expect(geometry.scale).toBeCloseTo(1.015, 5)
+  expect(
+    geometry.slots.map(({ slot, x, y, width, height }) => ({ slot, x, y, width, height }))
+  ).toEqual([
+    { slot: 1, x: 42, y: 10, width: 74, height: 17 },
+    { slot: 2, x: 183, y: 10, width: 74, height: 17 }
+  ])
+})
+
+it('selects the largest scale cluster while leaving a smaller cluster out of the crops', () => {
+  const rgba = partyFrame({
+    width: 1920,
+    height: 1080,
+    tracks: [
+      { slot: 1, anchorX: 42, scale: 1 },
+      { slot: 2, anchorX: 183, scale: 1 },
+      { slot: 3, anchorX: 583, scale: 1.8 }
+    ]
+  })
+
+  const geometry = detect({ width: 1920, height: 1080, rgba })
+
+  expect(geometry.scale).toBe(1)
+  expect(geometry.slots.map(({ slot, x }) => ({ slot, x }))).toEqual([
+    { slot: 1, x: 42 },
+    { slot: 2, x: 183 }
+  ])
+})
+
 it('detects FHD UI 50-style bars and crops relative to each observed anchor', () => {
   const anchors = [54, 235, 417, 598]
   const rgba = partyFrame({
