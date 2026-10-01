@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAuthBrowser } from './browser-window'
 import type { AuthBrowser } from './types'
 
-const electron = vi.hoisted(() => ({ BrowserWindow: vi.fn(), fromPartition: vi.fn() }))
+const electron = vi.hoisted(() => {
+  const BrowserWindow = vi.fn()
+  const fromPartition = vi.fn()
+
+  return { BrowserWindow, fromPartition }
+})
 vi.mock('electron', () => ({
   BrowserWindow: electron.BrowserWindow,
   session: { fromPartition: electron.fromPartition }
@@ -52,6 +57,7 @@ function fixture(): {
     onClosed: vi.fn(),
     onReturn: vi.fn(async (_url, onClaimed) => onClaimed())
   }
+  const browser = createAuthBrowser(origin, target, activate)
 
   return {
     window,
@@ -59,7 +65,7 @@ function fixture(): {
     controller,
     activate,
     login,
-    browser: createAuthBrowser(origin, target, activate)
+    browser
   }
 }
 beforeEach(() => vi.clearAllMocks())
