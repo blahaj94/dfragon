@@ -31,7 +31,6 @@ export class OcrAuthController {
   @Post('login')
   @HttpCode(200)
   login(@Req() request: Request, @Res() response: Response) {
-
     return this.auth.begin(request, response)
   }
 
@@ -46,7 +45,6 @@ export class OcrAuthController {
 
   @Post('logout')
   logout(@Req() request: Request, @Res() response: Response) {
-
     return this.auth.logout(request, response)
   }
 }
@@ -60,13 +58,11 @@ export class OcrDataController {
 
   @Get('session')
   session() {
-
     return { authenticated: true }
   }
 
   @Get('stats')
   stats() {
-
     return this.store.stats()
   }
 
@@ -126,7 +122,6 @@ export class OcrDataController {
 
   @Get('captures/:id')
   capture(@Param('id') id: string) {
-
     return this.store.capture(id).capture
   }
 
@@ -172,14 +167,12 @@ export class OcrDataController {
 
   @Get('splits/statistics')
   splitStatistics() {
-
     return this.store.splitStats()
   }
 
   @Post('splits/preview')
   @HttpCode(200)
   previewSplit(@Body() value: unknown) {
-
     return this.store.previewSplit(parseSplitOptions(value))
   }
 
@@ -198,19 +191,18 @@ export class OcrDataController {
   desktopDataset() {
     const { exportedAt, samples } = this.store.exportManifest()
     // The existing Desktop evaluator supports game captures only.
+    const gameSamples = samples.filter((sample) => sample.kind !== 'synthetic')
 
-    return { exportedAt, samples: samples.filter((sample) => sample.kind !== 'synthetic') }
+    return { exportedAt, samples: gameSamples }
   }
 
   @Get('export/manifest')
   manifest() {
-
     return this.store.exportManifest()
   }
 
   @Get('export')
   download(@Res() response: Response) {
-
     return downloadDataset(this.store, response)
   }
 }
@@ -219,7 +211,6 @@ export class OcrDataController {
 export class OcrHealthController {
   @Get('health')
   health() {
-
     return { ok: true }
   }
 }
