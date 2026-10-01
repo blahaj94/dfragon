@@ -957,6 +957,18 @@ it('blocks individual evaluation of unlabeled remote images while keeping local 
   expect(container.textContent).toContain('자료실에서 정답을 입력한 뒤 다시 불러오세요.')
 })
 
+it('keeps every local sample visible without applying the remote page size', async () => {
+  const samples = Array.from({ length: 51 }, (_, index) =>
+    sample(`local:${String(index).padStart(2, '0')}`, '2026-09-25T00:00:00.000Z', null)
+  )
+  installApi(samples)
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+
+  expect(container.querySelectorAll('ul[aria-label="저장된 테스트 이미지"] > li')).toHaveLength(51)
+  expect(container.querySelector('[aria-label="자료실 페이지"]')).toBeNull()
+})
+
 it('pages a large remote dataset without limiting the evaluation set and resets pages when filtering', async () => {
   const { api } = installApi()
   const rows: DeveloperSample[] = Array.from({ length: 10_000 }, (_, index) => ({

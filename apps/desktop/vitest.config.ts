@@ -15,6 +15,12 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@dfragon\/lib\/utils\/pagination$/,
+        replacement: fileURLToPath(
+          new URL('../../packages/lib/src/utils/pagination.ts', import.meta.url)
+        )
+      },
+      {
         find: /^@dfragon\/lib$/,
         replacement: fileURLToPath(new URL('../../packages/lib/src/index.ts', import.meta.url))
       },

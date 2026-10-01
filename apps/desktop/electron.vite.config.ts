@@ -58,6 +58,10 @@ export default defineConfig(({ mode, command }) => ({
     resolve: {
       alias: [
         { find: '@frontend', replacement: resolve('src/frontend/src') },
+        {
+          find: /^@dfragon\/lib\/utils\/pagination$/,
+          replacement: resolve('../../packages/lib/src/utils/pagination.ts')
+        },
         { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
       ]
     },

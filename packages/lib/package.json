@@ -12,6 +12,10 @@
       "types": "./dist/utils/ip-quota-key.d.ts",
       "import": "./dist/utils/ip-quota-key.js"
     },
+    "./utils/pagination": {
+      "types": "./dist/utils/pagination.d.ts",
+      "import": "./dist/utils/pagination.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

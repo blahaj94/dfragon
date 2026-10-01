@@ -123,5 +123,12 @@
       "source": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.6.tgz",
       "sha256": "4072f7ac49dd39f61e83af60c0bbea0350d3a40b93217a97829acb6d872881d8"
     }
+  ],
+  "remeda@2.50.0": [
+    {
+      "file": "upstream/remeda-2.50.0-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/remeda/remeda/b9ec4b0ac5ba86f2f687bae6e92d318db02eea24/LICENSE",
+      "sha256": "acf30083045d768ce20640237313ee31a45d548d66ef76df5bb5fb0745479535"
+    }
   ]
 }

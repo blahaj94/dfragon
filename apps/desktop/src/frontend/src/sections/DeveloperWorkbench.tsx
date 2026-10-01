@@ -1,15 +1,22 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
+import { paginate } from '@dfragon/lib/utils/pagination'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
-import { DeveloperLabelingSection, type DeveloperLabelFilter } from './DeveloperLabelingSection'
+import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
 import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
 import { summarizeDeveloperEvaluation } from '../lib/developer-evaluation'
 import { normalizeNickname } from '../lib/recognition'
-import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/developer-party'
-import { sortDeveloperWorkbenchSamples } from '../lib/developer-sample-order'
+import type { DeveloperPartySlotNumber } from '../lib/developer-party'
+import {
+  queryDeveloperWorkbenchSamples,
+  selectDeveloperEvaluationSamples,
+  selectDeveloperWorkbenchSample,
+  nextDeveloperWorkbenchSampleId,
+  type DeveloperLabelFilter
+} from '../lib/developer-workbench-samples'
 import { styles } from './DeveloperWorkbench.style'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import {
@@ -50,24 +57,22 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   useEffect(() => {
     stopEvaluation()
   }, [remote.revision, source, activeTab])
-  const samples = sortDeveloperWorkbenchSamples(
-    displayedDataset.samples as DeveloperWorkbenchSample[]
-  ).filter((sample) => !readingRemote || split === 'all' || sample.remote?.split === split)
-  const visibleSamples = samples.filter((sample) => {
-    if (filter === 'excluded') {
-      return sample.excluded === true
-    }
-    if (sample.excluded === true) {
-      return false
-    }
-    return filter === 'unlabeled' ? sample.text == null : sample.text != null
+  const { splitSamples, visibleSamples } = queryDeveloperWorkbenchSamples({
+    samples: displayedDataset.samples,
+    source,
+    split,
+    labelFilter: filter
   })
-  const pageCount = Math.max(1, Math.ceil(visibleSamples.length / REMOTE_PAGE_SIZE))
-  const currentPage = Math.min(remotePage, pageCount - 1)
-  const pageSamples = readingRemote
-    ? visibleSamples.slice(currentPage * REMOTE_PAGE_SIZE, (currentPage + 1) * REMOTE_PAGE_SIZE)
-    : visibleSamples
-  const selected = pageSamples.find((sample) => sample.id === selectedId) ?? pageSamples[0] ?? null
+  const evaluationSamples = selectDeveloperEvaluationSamples(splitSamples, source)
+  const pagination = readingRemote
+    ? paginate(visibleSamples, { page: remotePage, pageSize: REMOTE_PAGE_SIZE })
+    : null
+  const pageSamples = pagination?.items ?? visibleSamples
+  const { selected, selectedNumber } = selectDeveloperWorkbenchSample({
+    splitSamples,
+    pageSamples,
+    selectedId
+  })
   const canEvaluateSelected =
     selected != null &&
     !selected.excluded &&
@@ -76,27 +81,11 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     !displayedDataset.loading
   const selectedResult = selected ? evaluation.results[selected.id] : undefined
   const draft = selected ? (drafts[selected.id] ?? selected.text ?? '') : ''
-  const evaluationSamples = samples.filter(
-    (sample) => sample.excluded !== true && (!readingRemote || sample.text != null)
-  )
   const summary = summarizeDeveloperEvaluation(evaluationSamples, evaluation.results)
   const dirty = Object.entries(drafts).some(([id, value]) => {
     const sample = dataset.samples.find((row) => row.id === id)
     return sample != null && (sample.text == null ? value !== '' : value !== sample.text)
   })
-
-  function nextVisibleId(currentId: string): string | null {
-    const otherSamples = visibleSamples.filter((sample) => sample.id !== currentId)
-    if (otherSamples.length === 0) {
-      return null
-    }
-
-    const currentIndex = visibleSamples.findIndex((sample) => sample.id === currentId)
-    return (
-      visibleSamples.slice(currentIndex + 1).find((sample) => sample.id !== currentId)?.id ??
-      otherSamples[0].id
-    )
-  }
 
   async function saveAndNext(): Promise<void> {
     if (readingRemote || !selected || dataset.saving || draft.length === 0) {
@@ -104,7 +93,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     }
 
     const id = selected.id
-    const nextId = nextVisibleId(id)
+    const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const saved = await dataset.saveLabel(id, draft)
     if (!saved) {
       return
@@ -123,7 +112,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     if (!selected) {
       return
     }
-    setSelectedId(nextVisibleId(selected.id) ?? selected.id)
+    setSelectedId(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
     setNotice('')
   }
 
@@ -133,7 +122,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     }
 
     const id = selected.id
-    const nextId = nextVisibleId(id)
+    const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const updated = await dataset.setSampleExcluded(id, excluded)
     if (!updated) {
       return
@@ -365,10 +354,10 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             <DeveloperLabelingSection
               samples={pageSamples}
               pagination={
-                readingRemote && visibleSamples.length > 0
+                pagination != null && visibleSamples.length > 0
                   ? {
-                      page: currentPage,
-                      pageCount,
+                      page: pagination.currentPage,
+                      pageCount: pagination.pageCount,
                       total: visibleSamples.length,
                       onPageChange: (page) => {
                         setRemotePage(page)
@@ -378,9 +367,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   : undefined
               }
               selected={selected}
-              selectedNumber={
-                selected == null ? 0 : samples.findIndex((sample) => sample.id === selected.id) + 1
-              }
+              selectedNumber={selectedNumber}
               filter={filter}
               draft={draft}
               loading={displayedDataset.loading}

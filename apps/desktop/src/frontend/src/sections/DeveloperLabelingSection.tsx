@@ -3,9 +3,8 @@ import { ActionButton, Typo } from '@dfragon/ui'
 import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail'
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
+import type { DeveloperLabelFilter } from '../lib/developer-workbench-samples'
 import { styles } from './DeveloperLabelingSection.style'
-
-export type DeveloperLabelFilter = 'unlabeled' | 'complete' | 'excluded'
 
 const filters: { id: DeveloperLabelFilter; label: string }[] = [
   { id: 'unlabeled', label: '미입력' },
