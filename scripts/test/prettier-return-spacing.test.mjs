@@ -128,6 +128,40 @@ const fixtures = [
     name: 'literal source text is unchanged',
     source: 'function f(){return `line\nreturn value\n\n  return other`}',
     expected: 'function f() {\n  return `line\nreturn value\n\n  return other`\n}\n'
+  },
+  {
+    name: 'adjacent block guards keep the first return tight',
+    source: 'function f(management,phone){if(management){return 1}if(phone){return 2}return 3}',
+    expected:
+      'function f(management, phone) {\n  if (management) {\n    return 1\n  }\n\n  if (phone) {\n    return 2\n  }\n\n  return 3\n}\n'
+  },
+  {
+    name: 'existing blanks between sibling block ifs converge to one',
+    source: 'function f(a,b){if(a){one()}\n\n\nif(b){two()}}',
+    expected: 'function f(a, b) {\n  if (a) {\n    one()\n  }\n\n  if (b) {\n    two()\n  }\n}\n'
+  },
+  {
+    name: 'else if chains stay joined before the next sibling if',
+    source: 'function f(a,b,c){if(a){one()}else if(b){two()}else{three()}if(c){four()}}',
+    expected:
+      'function f(a, b, c) {\n  if (a) {\n    one()\n  } else if (b) {\n    two()\n  } else {\n    three()\n  }\n\n  if (c) {\n    four()\n  }\n}\n'
+  },
+  {
+    name: 'nested block ifs separate only their own siblings',
+    source: 'function f(a,b,c){if(a){if(b){one()}if(c){two()}}if(b){three()}}',
+    expected:
+      'function f(a, b, c) {\n  if (a) {\n    if (b) {\n      one()\n    }\n\n    if (c) {\n      two()\n    }\n  }\n\n  if (b) {\n    three()\n  }\n}\n'
+  },
+  {
+    name: 'top level sibling block ifs get one blank',
+    source: 'if(first){one()}if(second){two()}',
+    expected: 'if (first) {\n  one()\n}\n\nif (second) {\n  two()\n}\n'
+  },
+  {
+    name: 'trailing if comments retain their native position',
+    source: 'function f(a,b){if(a){one()} // first\nif(b){two()}}',
+    expected:
+      'function f(a, b) {\n  if (a) {\n    one()\n  } // first\n\n  if (b) {\n    two()\n  }\n}\n'
   }
 ]
 
@@ -223,6 +257,35 @@ test('ASI, return comments, evaluation order and template values preserve runtim
 
     assert.equal(runInNewContext(formatted), runInNewContext(source))
     assert.equal(await prettier.format(formatted, { ...config, filepath: 'fixture.js' }), formatted)
+  }
+})
+
+test('unbraced if statements retain the native layout', async () => {
+  const source = 'function f(a,b){if(a)one();if(b)two()}'
+  const options = { ...config, filepath: 'fixture.js' }
+  const native = await prettier.format(source, { ...options, plugins: [] })
+
+  assert.equal(await prettier.format(source, options), native)
+})
+
+test('sibling if comments, ASI and branch evaluation preserve runtime meaning', async () => {
+  const sources = [
+    'let trace=[]; function f(a,b){if(a){trace.push("first");return 1}if(b){trace.push("second");return 2}return 3}; [f(true,true),f(false,true),f(false,false),trace.join()].join("|")',
+    'let n=0;if(false){n+=1}\n/* reason */\n\nif(true){n+=2};n',
+    'let n=0;if(false){n+=1}\n// reason\nif(true){n+=2};n',
+    'let n=0;if(true)if(false)n=1;else n=2;n',
+    'let values=[];if(true){values.push(1)}\nif(true){(values.push(2))}values.join()',
+    'function f(a,b){done:{if(a){return 1}if(b){return 2}}return 3};[f(true,true),f(false,true),f(false,false)].join()',
+    'function f(a,b){switch(1){case 1:if(a){return 1}if(b){return 2}break}return 3};[f(true,true),f(false,true),f(false,false)].join()',
+    'const text=`line\nif (value) {return value}\n\nreturn other`;let result=[];if(true){result.push(text)}if(false){result.push("other")}result.join()'
+  ]
+
+  for (const source of sources) {
+    const options = { ...config, filepath: 'fixture.js' }
+    const formatted = await prettier.format(source, options)
+
+    assert.equal(runInNewContext(formatted), runInNewContext(source))
+    assert.equal(await prettier.format(formatted, options), formatted)
   }
 })
 
