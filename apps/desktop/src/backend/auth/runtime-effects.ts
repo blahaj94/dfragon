@@ -95,18 +95,21 @@ export function createAuthRuntimeEffects(
         platform
       })
       const clock = createRuntimeClock({ readWallMs, readMonotonicMs, powerState })
+      const providers = config.providers
+      const returnTarget = config.returnTarget
+      const browser = options.openBrowser
+        ? { open: options.openBrowser }
+        : createAuthBrowser(
+            apiOrigin,
+            config.returnTarget,
+            options.activateMainWindow ?? (() => {})
+          )
 
       return {
-        providers: config.providers,
+        providers,
         apiOrigin,
-        returnTarget: config.returnTarget,
-        browser: options.openBrowser
-          ? { open: options.openBrowser }
-          : createAuthBrowser(
-              apiOrigin,
-              config.returnTarget,
-              options.activateMainWindow ?? (() => {})
-            ),
+        returnTarget,
+        browser,
         clock,
         entropy: {
           uuid: randomUUID,
