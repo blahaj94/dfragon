@@ -194,28 +194,28 @@ try {
   const captureRequests = []
   const uploadStored = Promise.withResolvers()
   const releaseUploadFailure = Promise.withResolvers()
-  const retryStored = Promise.withResolvers()
   const loseUploadResponse = async (route) => {
     captureRequests.push(route.request().postDataJSON())
-    const response = await route.fetch()
-    const result = await response.json()
+    const response = await route.fetch().catch((error) => {
+      uploadStored.reject(error)
+      throw error
+    })
     if (captureRequests.length === 1) {
-      assert.equal(response.status(), 201)
-      assert.equal(result.duplicate, false)
-      uploadStored.resolve()
+      uploadStored.resolve(response)
       await releaseUploadFailure.promise
       await route.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } })
 
       return
     }
-    assert.equal(response.status(), 200)
-    assert.equal(result.duplicate, true)
-    retryStored.resolve()
     await route.fulfill({ response })
   }
   await page.route('**/api/captures', loseUploadResponse)
+  const firstUploadStarted = page.waitForRequest('**/api/captures')
+  const firstUploadStored = Promise.all([firstUploadStarted, uploadStored.promise])
   await page.getByRole('button', { name: '업로드', exact: true }).click()
-  await uploadStored.promise
+  const [, storedUpload] = await firstUploadStored
+  assert.equal(storedUpload.status(), 201)
+  assert.equal((await storedUpload.json()).duplicate, false)
   assert(await page.getByRole('button', { name: '업로드 중', exact: true }).isDisabled())
   assert(await page.getByRole('button', { name: '실패한 업로드 재시도' }).isDisabled())
   assert.equal(store.exportManifest().captures.length, 1)
@@ -223,8 +223,11 @@ try {
   await page.getByRole('button', { name: '업로드', exact: true }).waitFor()
   await page.getByLabel('UI 크기 (%)', { exact: true }).fill('90')
   await page.getByLabel('너비', { exact: true }).fill('60')
+  const retryResponse = page.waitForResponse('**/api/captures')
   await page.getByRole('button', { name: '실패한 업로드 재시도' }).click()
-  await retryStored.promise
+  const retriedUpload = await retryResponse
+  assert.equal(retriedUpload.status(), 200)
+  assert.equal((await retriedUpload.json()).duplicate, true)
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
   assert.equal(captureRequests.length, 2)
   assert.deepEqual(captureRequests[1], captureRequests[0])
