@@ -8,13 +8,13 @@ export const settled = (operation) =>
     (error) => ({ error })
   )
 
-export async function bounded(promise) {
+export async function bounded(promise, timeoutMs = 5000) {
   let timer
   try {
     return await Promise.race([
       promise,
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error('login test barrier timed out')), 5000)
+        timer = setTimeout(() => reject(new Error('API test barrier timed out')), timeoutMs)
       })
     ])
   } finally {
