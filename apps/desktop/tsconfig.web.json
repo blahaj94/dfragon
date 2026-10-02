@@ -12,6 +12,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@dfragon/ui": ["../../packages/ui/src/index.tsx"],
+      "@dfragon/lib": ["../../packages/lib/src/index.ts"],
       "@dfragon/lib/utils/pagination": ["../../packages/lib/src/utils/pagination.ts"],
       "@frontend/*": [
         "./src/frontend/src/*"

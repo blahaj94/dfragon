@@ -35,6 +35,7 @@ export default defineConfig(({ mode, command }) => {
       : resolve('src/frontend/index.html')
   const rendererAliases = [
     { find: '@frontend', replacement: resolve('src/frontend/src') },
+    { find: /^@dfragon\/lib$/, replacement: libAlias },
     {
       find: /^@dfragon\/lib\/utils\/pagination$/,
       replacement: resolve('../../packages/lib/src/utils/pagination.ts')
