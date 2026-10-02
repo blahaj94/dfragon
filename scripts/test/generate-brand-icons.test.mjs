@@ -53,6 +53,7 @@ function fixture(t) {
   const temporary = join(root, 'temporary')
   const cwd = join(root, 'unrelated directory')
   mkdirSync(temporary)
+  writeFileSync(join(temporary, 'unrelated.txt'), '다른 작업의 임시 파일')
   mkdirSync(cwd)
   const run = (extra = {}) =>
     spawnSync(process.execPath, [join(root, 'scripts/generate-brand-icons.mjs')], {
@@ -79,7 +80,8 @@ test('변환한 형식과 크기를 각 앱 경로에 복사하고 임시 디렉
   for (const [path, expected] of outputs) {
     assert.equal(readFileSync(join(root, path), 'utf8'), expected, path)
   }
-  assert.deepEqual(readdirSync(temporary), [])
+  assert.deepEqual(readdirSync(temporary), ['unrelated.txt'])
+  assert.equal(readFileSync(join(temporary, 'unrelated.txt'), 'utf8'), '다른 작업의 임시 파일')
   assert.deepEqual(readdirSync(cwd), [])
 })
 
@@ -91,7 +93,8 @@ test('일부 형식 변환 뒤 실패하면 기존 아이콘을 보존하고 임
   for (const [path] of outputs) {
     assert.equal(readFileSync(join(root, path), 'utf8'), '기존 아이콘', path)
   }
-  assert.deepEqual(readdirSync(temporary), [])
+  assert.deepEqual(readdirSync(temporary), ['unrelated.txt'])
+  assert.equal(readFileSync(join(temporary, 'unrelated.txt'), 'utf8'), '다른 작업의 임시 파일')
 })
 
 test('대상 파일 복사 실패도 실패 코드로 전파하고 임시 변환 결과를 정리한다', (t) => {
@@ -103,5 +106,6 @@ test('대상 파일 복사 실패도 실패 코드로 전파하고 임시 변환
   assert.equal(result.status, 1)
   assert.match(result.stderr, /EISDIR/)
   assert.deepEqual(readdirSync(blockedTarget), [])
-  assert.deepEqual(readdirSync(temporary), [])
+  assert.deepEqual(readdirSync(temporary), ['unrelated.txt'])
+  assert.equal(readFileSync(join(temporary, 'unrelated.txt'), 'utf8'), '다른 작업의 임시 파일')
 })

@@ -7,6 +7,7 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  readlinkSync,
   rmSync,
   symlinkSync,
   writeFileSync
@@ -96,6 +97,7 @@ test('기존 파일과 끊어진 심볼릭 링크를 앱 경로로 덮어쓰지 
     assert.match(result.stderr, /이미 존재하는 앱/)
   }
   assert.equal(readFileSync(join(root, 'apps/file'), 'utf8'), '보존할 파일')
+  assert.equal(readlinkSync(join(root, 'apps/link')), join(root, 'missing-target'))
   assert.equal(existsSync(join(root, 'missing-target')), false)
   assert.deepEqual(readdirSync(join(root, 'apps')).sort(), ['file', 'link'])
 })
