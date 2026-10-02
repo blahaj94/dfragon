@@ -82,11 +82,17 @@ test(cases.rotation, { timeout: 5000 }, async () => {
 
     return value
   })
+  const observed = pending.then(
+    () => 'returned' as const,
+    () => 'rejected' as const
+  )
   try {
-    await committing
+    const first = await Promise.race([committing.then(() => 'committing' as const), observed])
+    assert.equal(first, 'committing', 'commit barrier 전에 요청이 완료됨')
     assert.equal(returned, false)
   } finally {
     releaseCommit()
+    await observed
   }
   const result = await pending
   assert.deepEqual(result, {
@@ -127,21 +133,32 @@ test(cases.reuse, { timeout: 5000 }, async () => {
     committing.resolve()
     await release.promise
   }
-  let rejected = false
-  const pending = failure(
-    rotateRefresh(f.deps, f.raw).catch((error: unknown) => {
-      rejected = true
-      throw error
-    }),
-    'AUTHENTICATION_REQUIRED'
+  const operation = rotateRefresh(f.deps, f.raw)
+  let completed = false
+  const observed = operation.then(
+    () => {
+      completed = true
+
+      return 'returned' as const
+    },
+    () => {
+      completed = true
+
+      return 'rejected' as const
+    }
   )
   try {
-    await committing.promise
-    assert.equal(rejected, false)
+    const first = await Promise.race([
+      committing.promise.then(() => 'committing' as const),
+      observed
+    ])
+    assert.equal(first, 'committing', 'session 폐기 commit 전에 요청이 완료됨')
+    assert.equal(completed, false)
   } finally {
     release.resolve()
+    await observed
   }
-  await pending
+  await failure(operation, 'AUTHENTICATION_REQUIRED')
   assert.equal(f.session.revokedAt, time)
   assert.equal(f.session.revokedReason, 'refresh_reuse')
   assert.equal(f.session.lastActiveAt, time)

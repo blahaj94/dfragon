@@ -99,11 +99,20 @@ test(cases.committed, { timeout: 5000 }, async () => {
     const pending = logoutSession(f.dataSource, f.rawToken).then(() => {
       resolved = true
     })
+    const observed = pending.then(
+      () => 'returned' as const,
+      () => 'rejected' as const
+    )
     try {
-      await commitStarted.promise
+      const first = await Promise.race([
+        commitStarted.promise.then(() => 'committing' as const),
+        observed
+      ])
+      assert.equal(first, 'committing', 'logout commit 전에 요청이 완료됨')
       assert.equal(resolved, false)
     } finally {
       releaseCommit.resolve()
+      await observed
     }
     await pending
 
