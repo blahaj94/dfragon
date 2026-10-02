@@ -91,6 +91,8 @@ test('migration up·down은 전체 transaction을 요청하고 성공 뒤 소유
         command === 'up' ? 'Database migration applied: 1' : 'Database migration reverted'
       assert.equal(await runMigrationCommand(command, () => source), expected)
       const operation = command === 'up' ? apply : revert
+      const opposite = command === 'up' ? revert : apply
+      assert.equal(opposite.mock.callCount(), 0)
       assert.deepEqual(
         operation.mock.calls.map(({ arguments: args }) => args),
         [[{ transaction: 'all' }]]
@@ -209,10 +211,11 @@ test('migration generator는 schema 조회 실패를 정제하고 기존 생성 
   await writeFile(path, '기존 migration 원문')
   const { source, destroy } = migrationSource(t)
   let failSchemaRead = true
+  const build = t.mock.fn(async () => {
+    assert.fail('generator는 schema를 변경하면 안 된다')
+  })
   t.mock.method(source.driver, 'createSchemaBuilder', () => ({
-    build: async () => {
-      assert.fail('generator는 schema를 변경하면 안 된다')
-    },
+    build,
     log: async () => {
       if (failSchemaRead) {
         throw new Error('synthetic-private-schema-error')
@@ -226,11 +229,13 @@ test('migration generator는 schema 조회 실패를 정제하고 기존 생성 
     (error: unknown) => assertSanitized(error, 'Database migration generation failed')
   )
   assert.equal(destroy.mock.callCount(), 1)
+  assert.equal(build.mock.callCount(), 0)
   failSchemaRead = false
   await assert.rejects(
     generateMigration('KeepExisting', () => source, directory),
     (error: unknown) => assertSanitized(error, 'Database migration generation failed')
   )
   assert.equal(destroy.mock.callCount(), 2)
+  assert.equal(build.mock.callCount(), 0)
   assert.equal(await readFile(path, 'utf8'), '기존 migration 원문')
 })
