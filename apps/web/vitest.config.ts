@@ -15,7 +15,8 @@ export default defineConfig({
     ]
   },
   test: {
-    setupFiles: ['../../packages/ui/test/setup.ts'],
+    environment: 'jsdom',
+    setupFiles: ['./test/setup.ts'],
     server: { deps: { inline: [/@seed-design\//] } }
   }
 })
