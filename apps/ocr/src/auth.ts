@@ -266,6 +266,12 @@ export class OcrAuth {
       }
     }
 
+    // close() can finish while the upstream exchange or previous logout is pending.
+    if (this.closed) {
+      await this.revokeSession(tokens.refreshToken)
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
+    }
+
     if (this.sessions.size >= OCR_AUTH.maximumSessions) {
       await this.revokeSession(tokens.refreshToken)
       throw new OcrError(OCR_ERROR_CODE.LOGIN_LIMIT)
@@ -338,7 +344,11 @@ export class OcrAuth {
       accessToken: session.tokens.accessToken
     })
     const user = parseAuthenticatedUser(profileResponse)
-    if (!session.active || user.id !== this.config.ownerId) {
+    if (!session.active) {
+      throw new OcrError(OCR_ERROR_CODE.LOGIN_REQUIRED)
+    }
+
+    if (user.id !== this.config.ownerId) {
       throw new OcrError(OCR_ERROR_CODE.OWNER_REQUIRED)
     }
 
