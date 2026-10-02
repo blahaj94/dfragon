@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { lstatSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -44,7 +44,7 @@ export function startTask(args, run = execFileSync) {
   }
 
   const destination = resolve(worktreePath)
-  const isDestinationPresent = existsSync(destination)
+  const isDestinationPresent = lstatSync(destination, { throwIfNoEntry: false }) !== undefined
   if (isDestinationPresent) {
     throw new Error(`이미 존재하는 경로입니다: ${destination}`)
   }
