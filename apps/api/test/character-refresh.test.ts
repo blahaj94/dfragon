@@ -285,12 +285,16 @@ test('GET과 명시 갱신은 작업을 공유하고 한 대기자의 연결 종
       return payloads
     }
   })
-  t.after(() => service.onModuleDestroy())
+  t.after(async () => {
+    finish.release()
+    await service.onModuleDestroy()
+  })
   const disconnected = new AbortController()
   const first = service.get('192.0.2.1', identity, disconnected.signal)
   const rejection = assert.rejects(first)
   await entered.promise
   const second = service.refresh('192.0.2.2', identity, signal)
+  void second.catch(() => undefined)
   await nextTurn()
   disconnected.abort()
   await rejection
@@ -322,7 +326,10 @@ test('마지막 대기자가 취소하면 지연 응답을 저장하지 않고 �
       return payloads
     }
   })
-  t.after(() => service.onModuleDestroy())
+  t.after(async () => {
+    late.release()
+    await service.onModuleDestroy()
+  })
   const controller = new AbortController(),
     first = service.get('192.0.2.1', identity, controller.signal),
     rejected = assert.rejects(first)
