@@ -16,10 +16,13 @@
     "./stylex-config": "./stylex.config.ts"
   },
   "scripts": {
-    "test": "vitest run",
+    "test": "pnpm typecheck && vitest run && pnpm test:tooling",
+    "test:tooling": "node --test test/build-verification.node.mjs",
+    "test:consumer-lifecycle": "node --test --test-timeout=25000 test/consumer-process-lifecycle.node.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json && pnpm verify:build",
+    "verify:build": "node scripts/verify-build.mjs library dist && tsc -p test/build-consumer/tsconfig.json && vite build --config test/build-consumer/vite.config.ts && node --test test/build-exports.node.mjs",
     "dev:examples": "vite --config examples/vite.config.ts",
     "build:examples": "vite build --config examples/vite.config.ts",
     "preview:examples": "vite preview --config examples/vite.config.ts",
