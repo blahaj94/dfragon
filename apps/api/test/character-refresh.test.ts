@@ -146,15 +146,15 @@ test('최초·누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정
     }
   })
   t.after(() => service.onModuleDestroy())
-  await service.get('peer', identity, signal)
+  await service.get('192.0.2.1', identity, signal)
   state.rows.pop()
-  await service.get('peer', identity, signal)
+  await service.get('192.0.2.1', identity, signal)
   assert.equal(calls, 2)
   assert.equal(state.rows.length, 11)
   store.read = async () => {
     throw new Error('fixture SQL failure with private database detail')
   }
-  await assert.rejects(service.get('peer', identity, signal), (error: unknown) => {
+  await assert.rejects(service.get('192.0.2.1', identity, signal), (error: unknown) => {
     assert(error instanceof CharacterDetailFailure)
     assert.equal(error.status, 500)
     assert.deepEqual(error.body, {
@@ -186,20 +186,20 @@ test('자동·명시 갱신 실패는 기존 저장값을 보존하고 만료된
   })
   t.after(() => service.onModuleDestroy())
   const before = structuredClone(state.rows)
-  await assert.rejects(service.refresh('peer', identity, signal), { status: 503 })
+  await assert.rejects(service.refresh('192.0.2.1', identity, signal), { status: 503 })
   assert.equal(state.writes, 0)
   assert.deepEqual(state.rows, before)
-  const cached = await service.get('peer', identity, signal)
+  const cached = await service.get('192.0.2.1', identity, signal)
   assert.equal(cached.character.characterName, '합성 캐릭터')
   assert.deepEqual(cached.freshness, {
     lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
     expiresAt: '2026-01-01T00:05:00.000Z'
   })
   state.now += 300_000
-  await assert.rejects(service.get('peer', identity, signal), { status: 503 })
+  await assert.rejects(service.get('192.0.2.1', identity, signal), { status: 503 })
   assert.deepEqual(state.rows, before)
   failing = false
-  await service.get('peer', identity, signal)
+  await service.get('192.0.2.1', identity, signal)
   assert.equal(state.writes, 1)
 })
 
@@ -217,12 +217,12 @@ test('GET 캐시 적중과 명시 갱신은 IP별 10회 한도를 함께 소비�
   })
   t.after(() => service.onModuleDestroy())
   for (let i = 0; i < 9; i++) {
-    await service.get('peer', identity, signal)
+    await service.get('192.0.2.1', identity, signal)
   }
   state.now += 30_000
-  await service.refresh('peer', identity, signal)
+  await service.refresh('192.0.2.1', identity, signal)
   await assert.rejects(
-    service.get('peer', identity, signal),
+    service.get('192.0.2.1', identity, signal),
     (e: unknown) =>
       e instanceof CharacterDetailFailure && e.status === 429 && (e.retryAfter ?? 0) > 0
   )
@@ -287,10 +287,10 @@ test('GET과 명시 갱신은 작업을 공유하고 한 대기자의 연결 종
   })
   t.after(() => service.onModuleDestroy())
   const disconnected = new AbortController()
-  const first = service.get('peer-a', identity, disconnected.signal)
+  const first = service.get('192.0.2.1', identity, disconnected.signal)
   const rejection = assert.rejects(first)
   await entered.promise
-  const second = service.refresh('peer-b', identity, signal)
+  const second = service.refresh('192.0.2.2', identity, signal)
   await nextTurn()
   disconnected.abort()
   await rejection
@@ -324,13 +324,13 @@ test('마지막 대기자가 취소하면 지연 응답을 저장하지 않고 �
   })
   t.after(() => service.onModuleDestroy())
   const controller = new AbortController(),
-    first = service.get('peer', identity, controller.signal),
+    first = service.get('192.0.2.1', identity, controller.signal),
     rejected = assert.rejects(first)
   await entered.promise
   controller.abort()
   await rejected
   assert.equal(abortedSignal!.aborted, true)
-  await service.get('peer', identity, signal)
+  await service.get('192.0.2.1', identity, signal)
   assert.equal(state.writes, 1)
   assert.equal(calls, 2)
   late.release()
@@ -419,7 +419,7 @@ test('갱신 시작 DB 시각 조회가 2초를 넘으면 늦은 결과로 upstr
     late.release()
     await service.onModuleDestroy()
   })
-  await assert.rejects(service.refresh('peer', identity, signal), { status: 500 })
+  await assert.rejects(service.refresh('192.0.2.1', identity, signal), { status: 500 })
   await service.onModuleDestroy()
   late.release()
   await nextTurn()
@@ -451,7 +451,7 @@ test('서버 종료는 갱신 시작 DB 시각 대기를 취소하고 늦은 결
     late.release()
     await service.onModuleDestroy()
   })
-  const rejected = assert.rejects(service.refresh('peer', identity, signal))
+  const rejected = assert.rejects(service.refresh('192.0.2.1', identity, signal))
   await entered.promise
   await service.onModuleDestroy()
   await rejected

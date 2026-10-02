@@ -71,7 +71,7 @@ test('마지막 DB 시각 조회 직후 취소되면 저장 transaction 콜백�
   } as unknown as DataSource
   await assert.rejects(
     createCatalogStore(source).saveAndRead(
-      [{ key: item, payload: {} }],
+      [{ key: item, payload: catalogPayload(item) }],
       new Date().toISOString(),
       controller.signal
     ),
