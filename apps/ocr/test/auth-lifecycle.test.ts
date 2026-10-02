@@ -142,6 +142,8 @@ test('callback은 요청 쿠키와 PKCE를 묶고 유효한 code를 한 번만 �
   for (const query of [
     '',
     'code=short',
+    `code=${'A'.repeat(43)}%0A`,
+    `code=${'A'.repeat(43)}%0D`,
     `code=${'A'.repeat(43)}&code=${'B'.repeat(43)}`,
     `code=${'A'.repeat(43)}&extra=1`
   ]) {

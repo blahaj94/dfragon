@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { OcrAuth, parseSyntheticUploadTokenSha256 } from '../src/auth.js'
 
-test('synthetic upload configuration allows omission and rejects malformed digests without echoing them', () => {
+test('합성 업로드 설정은 생략을 허용하고 잘못된 해시를 원문 노출 없이 거절한다', () => {
   assert.equal(parseSyntheticUploadTokenSha256(undefined), undefined)
   assert.equal(parseSyntheticUploadTokenSha256('a'.repeat(64)), 'a'.repeat(64))
   for (const value of [

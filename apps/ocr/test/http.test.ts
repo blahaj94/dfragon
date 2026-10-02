@@ -18,7 +18,7 @@ const ownerId = randomUUID(),
 const syntheticToken = 'synthetic-upload-token-for-tests-'.repeat(2)
 const syntheticTokenSha256 = createHash('sha256').update(syntheticToken).digest('hex')
 
-test('synthetic upload uses only its dedicated token and exports the stored label and image', async () => {
+test('합성 업로드는 전용 토큰만 사용하고 저장된 정답과 이미지를 내려받는다', async () => {
   const f = await fixture(ownerId, false, false, undefined, syntheticTokenSha256)
   const input = syntheticUpload()
   const path = `${f.base}/api/synthetic-samples`
@@ -27,7 +27,7 @@ test('synthetic upload uses only its dedicated token and exports the stored labe
     'Content-Type': 'application/json'
   }
   try {
-    // Missing, incorrect and owner JWT credentials fail before JSON decoding.
+    // 누락·오류·owner JWT 자격은 JSON 파싱 전에 거절한다.
     for (const authorization of [
       undefined,
       'Bearer short',
@@ -73,7 +73,7 @@ test('synthetic upload uses only its dedicated token and exports the stored labe
     assert.equal(changed.status, 409)
     assert.deepEqual(f.calls, [])
 
-    // An upload token cannot read data, edit labels/splits or register captures/models.
+    // 업로드 토큰으로 자료 조회·정답/분할 수정·실제 캡처/모델 등록을 할 수 없다.
     for (const path of [
       '/api/session',
       '/api/stats',
@@ -125,7 +125,7 @@ test('synthetic upload uses only its dedicated token and exports the stored labe
       (await fetch(path, { method: 'POST', headers, body: JSON.stringify(input) })).status,
       403
     )
-    // Express route aliases must never fall back to the owner cookie.
+    // Express 경로 별칭으로 owner 쿠키 인증에 우회하지 못한다.
     for (const path of [
       '/api/synthetic-samples/',
       '/api/SYNTHETIC-SAMPLES',
@@ -181,7 +181,7 @@ test('synthetic upload uses only its dedicated token and exports the stored labe
   }
 })
 
-test('synthetic upload is disabled without configuration and rotates independently of owner sessions', async () => {
+test('합성 업로드는 미설정일 때 비활성화되고 owner 세션과 별도로 토큰을 교체한다', async () => {
   const rotatedToken = 'rotated-upload-token-for-tests-'.repeat(2)
   const rotatedSha256 = createHash('sha256').update(rotatedToken).digest('hex')
   for (const [digest, token, expected] of [
@@ -189,7 +189,7 @@ test('synthetic upload is disabled without configuration and rotates independent
     [rotatedSha256, syntheticToken, 401],
     [rotatedSha256, rotatedToken, 201]
   ] as const) {
-    // The upstream owner session is revoked; dedicated upload authentication does not use it.
+    // owner의 upstream 세션이 폐기되어도 전용 업로드 인증은 이 세션을 사용하지 않는다.
     const f = await fixture(ownerId, false, true, undefined, digest)
     try {
       const response = await fetch(`${f.base}/api/synthetic-samples`, {
@@ -206,7 +206,7 @@ test('synthetic upload is disabled without configuration and rotates independent
   }
 })
 
-test('authenticated synthetic PNG uploads share the large JSON parser', async () => {
+test('인증된 합성 PNG 업로드도 큰 JSON 본문 파서를 사용한다', async () => {
   const f = await fixture(ownerId, false, false, undefined, syntheticTokenSha256)
   try {
     const image = new PNG({ width: 128, height: 128 })
@@ -230,7 +230,7 @@ test('authenticated synthetic PNG uploads share the large JSON parser', async ()
   }
 })
 
-test('model REST API authenticates before multipart parsing and preserves uploaded files', async () => {
+test('모델 REST API는 multipart 파싱 전에 인증하고 업로드한 파일을 보존한다', async () => {
   const f = await fixture()
   const id = randomUUID()
   const makeBody = () => {
@@ -276,7 +276,7 @@ test('model REST API authenticates before multipart parsing and preserves upload
     )
     const encoded = new Request(`${f.base}/api/models`, { method: 'POST', body: makeBody() })
     const bytes = Buffer.from(await encoded.arrayBuffer())
-    // Keep the multipart body incomplete beyond the old 30-second request deadline.
+    // 기존 30초 요청 제한을 넘길 때까지 multipart 본문을 미완성으로 유지한다.
     const uploaded = await new Promise<{ status: number | undefined; body: Buffer }>(
       (resolve, reject) => {
         const request = httpRequest(
@@ -425,7 +425,7 @@ async function fixture(
   const config = { origin, authOrigin, ownerId, trustedProxyHops, syntheticUploadTokenSha256 },
     store = new OcrStore(':memory:', 1024 * 1024)
   const runtime = await createOcrApp(config, store, new OcrAuth(config, request))
-  // Check deadlines promptly so the slow multipart case catches the old 30-second cutoff.
+  // 느린 multipart 사례가 기존 30초 제한을 검출하도록 제한 시각을 짧은 간격으로 확인한다.
   Object.assign(runtime.app.getHttpServer(), { connectionsCheckingInterval: 100 })
   await runtime.app.listen(0, '127.0.0.1')
   const server = runtime.app.getHttpServer()
@@ -462,7 +462,7 @@ async function fixture(
   }
 }
 
-test('partial sample PATCH preserves the current complementary field across delayed requests and accepts explicit null and false', async () => {
+test('지연된 표본 PATCH도 생략한 최신 필드를 보존하고 명시한 null과 false를 반영한다', async () => {
   const deferred = () => {
     let resolve!: () => void
     const promise = new Promise<void>((release) => {
@@ -536,7 +536,7 @@ test('partial sample PATCH preserves the current complementary field across dela
   }
 })
 
-test('OCR login ignores spoofed forwarded IPs by default and isolates clients only with explicit proxy trust', async () => {
+test('OCR 로그인은 기본으로 위조된 전달 IP를 무시하고 명시한 프록시 신뢰에서만 클라이언트를 분리한다', async () => {
   for (const trustedProxyHops of [undefined, 1] as const) {
     const f = await fixture(ownerId, false, false, trustedProxyHops)
     try {
@@ -555,7 +555,7 @@ test('OCR login ignores spoofed forwarded IPs by default and isolates clients on
   }
 })
 
-test('malicious sparse multipart fields are rejected without stopping the OCR server or storing a model', async () => {
+test('과도한 multipart 배열 인덱스를 거절하고 서버와 기존 모델 저장 상태를 유지한다', async () => {
   const f = await fixture()
   try {
     for (const names of [
@@ -580,7 +580,7 @@ test('malicious sparse multipart fields are rejected without stopping the OCR se
     await f.close()
   }
 })
-test('Desktop upload requires a live owner bearer and grants no browser or management session', async () => {
+test('Desktop 업로드는 활성 owner Bearer를 요구하고 브라우저·관리 세션을 발급하지 않는다', async () => {
   const f = await fixture()
   const headers = {
     Authorization: 'Bearer synthetic.desktop.token',
@@ -622,7 +622,7 @@ test('Desktop upload requires a live owner bearer and grants no browser or manag
   }
 })
 
-test('Desktop upload policy rejects aliases and invalid credentials before parsing JSON', async () => {
+test('Desktop 업로드는 JSON 파싱 전에 경로 별칭과 잘못된 자격을 거절한다', async () => {
   const f = await fixture()
   try {
     for (const authorization of ['', 'Basic synthetic', 'Bearer malformed']) {
@@ -661,7 +661,7 @@ test('Desktop upload policy rejects aliases and invalid credentials before parsi
   }
 })
 
-test('Desktop upload rejects another account and revoked authentication without writing', async () => {
+test('Desktop 업로드는 다른 계정과 폐기된 인증을 저장 없이 거절한다', async () => {
   for (const [identity, revoked, expected] of [
     [randomUUID(), false, 403],
     [ownerId, true, 401]
@@ -684,7 +684,7 @@ test('Desktop upload rejects another account and revoked authentication without 
   }
 })
 
-test('owner passkey handoff, CSRF boundary, authenticated images and complete tar export', async () => {
+test('합성 owner 인증 인계와 CSRF 경계를 확인하고 인증된 이미지와 전체 TAR를 내려받는다', async () => {
   const f = await fixture()
   try {
     assert.equal((await fetch(`${f.base}/api/stats`)).status, 401)
@@ -773,7 +773,7 @@ test('owner passkey handoff, CSRF boundary, authenticated images and complete ta
     await f.close()
   }
 })
-test('another valid DFRAGON account cannot obtain an OCR session', async () => {
+test('다른 유효한 DFRAGON 계정은 OCR 세션을 발급받지 못한다', async () => {
   const f = await fixture(randomUUID())
   try {
     const { response, cookie } = await f.login()
@@ -785,7 +785,7 @@ test('another valid DFRAGON account cannot obtain an OCR session', async () => {
   }
 })
 
-test('concurrent protected requests share one refresh of the existing authentication session', async () => {
+test('동시 보호 요청은 기존 인증 세션의 refresh를 한 번 공유한다', async () => {
   const f = await fixture(ownerId, true)
   try {
     const { cookie } = await f.login()
@@ -805,7 +805,7 @@ test('concurrent protected requests share one refresh of the existing authentica
   }
 })
 
-test('Desktop dataset exposes owner labels, exclusions, splits and exact crops without write access', async () => {
+test('Desktop 자료 조회는 정답·제외·분할·크롭을 제공하고 수정 권한을 주지 않는다', async () => {
   const f = await fixture()
   const headers = { Authorization: 'Bearer synthetic.desktop.token' }
   try {
@@ -866,7 +866,7 @@ test('Desktop dataset exposes owner labels, exclusions, splits and exact crops w
   }
 })
 
-test('Desktop reads reject non-owner and revoked sessions before returning data', async () => {
+test('Desktop 조회는 자료 반환 전에 다른 계정과 폐기된 세션을 거절한다', async () => {
   for (const [identity, revoked, status] of [
     [randomUUID(), false, 403],
     [ownerId, true, 401]
@@ -892,7 +892,7 @@ test('Desktop reads reject non-owner and revoked sessions before returning data'
   }
 })
 
-test('raid uploads reject out-of-range and duplicate slots without partial captures', async () => {
+test('공대 업로드는 부분 저장 없이 범위 밖·중복 슬롯을 거절한다', async () => {
   const f = await fixture()
   const headers = {
     Authorization: 'Bearer synthetic.desktop.token',
@@ -932,7 +932,7 @@ test('raid uploads reject out-of-range and duplicate slots without partial captu
   }
 })
 
-test('raid rows 10 through 12 use the protected dataset, browser labeling, filters and full export', async () => {
+test('공대 10~12행도 보호된 조회와 브라우저 정답·필터·전체 내보내기를 사용한다', async () => {
   const f = await fixture()
   const desktopHeaders = { Authorization: 'Bearer synthetic.desktop.token' }
   try {
@@ -1040,7 +1040,7 @@ test('raid rows 10 through 12 use the protected dataset, browser labeling, filte
   }
 })
 
-test('automatic split preview and apply require owner cookie and Origin; stale previews cannot mutate assignments', async () => {
+test('자동 분할 미리보기·적용은 owner 쿠키와 Origin을 요구하고 오래된 미리보기는 배정을 바꾸지 못한다', async () => {
   const f = await fixture()
   try {
     const { cookie } = await f.login()
@@ -1112,4 +1112,205 @@ test('automatic split preview and apply require owner cookie and Origin; stale p
   } finally {
     await f.close()
   }
+})
+
+test('Origin은 정확히 일치해야 하고 잘못된 Bearer는 본문 파싱과 인증 서버 호출 전에 거절한다', async (t) => {
+  const f = await fixture()
+  t.after(() => f.close())
+  const { cookie } = await f.login()
+  assert(cookie)
+  const before = f.calls.length
+  for (const [name, requestedOrigin] of [
+    ['Origin 누락', undefined],
+    ['null Origin', 'null'],
+    ['HTTP 주소', 'http://ocr.example.test'],
+    ['주소 뒤 slash', `${origin}/`],
+    ['다른 port', `${origin}:444`],
+    ['위장 하위 도메인', 'https://ocr.example.test.attacker.invalid']
+  ] as const) {
+    await t.test(name, async () => {
+      const response = await fetch(`${f.base}/api/captures`, {
+        method: 'POST',
+        headers: {
+          Cookie: cookie,
+          'Content-Type': 'application/json',
+          ...(requestedOrigin === undefined ? {} : { Origin: requestedOrigin })
+        },
+        body: '{'
+      })
+      assert.equal(response.status, 403)
+      assert.deepEqual(await response.json(), { error: 'ORIGIN_REQUIRED' })
+    })
+  }
+  for (const [name, authorization] of [
+    ['Bearer 누락', undefined],
+    ['다른 scheme', 'Basic synthetic.desktop.token'],
+    ['빈 JWT 구간', 'Bearer synthetic..token'],
+    ['중복 Bearer 헤더', 'Bearer synthetic.desktop.token, Bearer synthetic.desktop.token'],
+    ['이중 구분 공백', 'Bearer  synthetic.desktop.token'],
+    ['JWT 문자 밖 기호', 'Bearer synthetic.desktop.to+ken'],
+    ['8192 bytes보다 긴 JWT', `Bearer ${'a'.repeat(8192)}.b.c`]
+  ] as const) {
+    await t.test(name, async () => {
+      const response = await fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authorization === undefined ? {} : { Authorization: authorization })
+        },
+        body: '{'
+      })
+      assert.equal(response.status, 401)
+      assert.deepEqual(await response.json(), { error: 'LOGIN_REQUIRED' })
+      assert.equal(response.headers.get('set-cookie'), null)
+    })
+  }
+  assert.equal(f.calls.length, before)
+  assert.equal(f.store.stats()?.captures, 0)
+  assert.equal(f.store.stats()?.samples, 0)
+})
+
+test('업로드 본문 23 MiB와 일반 본문 16 KiB는 정확한 상한을 허용하고 한 byte 초과를 거절한다', async (t) => {
+  const f = await fixture(ownerId, false, false, undefined, syntheticTokenSha256)
+  t.after(() => f.close())
+  const { cookie } = await f.login()
+  assert(cookie)
+  const bodyWithBytes = (bytes: number) => {
+    const prefix = '{"padding":"'
+    const suffix = '"}'
+
+    return prefix + 'a'.repeat(bytes - prefix.length - suffix.length) + suffix
+  }
+  for (const [name, path, maximum, headers] of [
+    [
+      'Desktop 업로드',
+      '/api/desktop/captures',
+      23 * 1024 * 1024,
+      { Authorization: 'Bearer synthetic.desktop.token' }
+    ],
+    [
+      '합성 업로드',
+      '/api/synthetic-samples',
+      23 * 1024 * 1024,
+      { Authorization: `Bearer ${syntheticToken}` }
+    ],
+    ['일반 요청', '/api/splits/preview', 16 * 1024, { Cookie: cookie, Origin: origin }]
+  ] as const) {
+    await t.test(name, async () => {
+      // 크기 경계의 JSON 자체는 유효하지만 도메인 필드가 없어 parser 이후 400이어야 한다.
+      const exact = await fetch(`${f.base}${path}`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: bodyWithBytes(maximum)
+      })
+      assert.equal(exact.status, 400)
+      assert.deepEqual(await exact.json(), { error: 'INVALID_INPUT' })
+      const over = await fetch(`${f.base}${path}`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: bodyWithBytes(maximum + 1)
+      })
+      assert.equal(over.status, 413)
+      assert.deepEqual(await over.json(), { error: 'UPLOAD_TOO_LARGE' })
+      assert.equal(f.store.stats()?.captures, 0)
+      assert.equal(f.store.stats()?.samples, 0)
+    })
+  }
+})
+
+test('잘못된 두 번째 크롭은 전체 업로드를 거절하고 같은 ID의 수정 재요청을 받아들인다', async (t) => {
+  const f = await fixture()
+  t.after(() => f.close())
+  const headers = {
+    Authorization: 'Bearer synthetic.desktop.token',
+    'Content-Type': 'application/json'
+  }
+  const input = upload()
+  const send = (value: unknown) =>
+    fetch(`${f.base}/api/desktop/captures`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(value)
+    })
+  const rejected = await send({ ...input, crops: [input.crops[0], { ...input.crops[1], y: 4 }] })
+  assert.equal(rejected.status, 400)
+  assert.deepEqual(await rejected.json(), { error: 'INVALID_INPUT' })
+  assert.equal(f.store.stats()?.captures, 0)
+  assert.equal(f.store.stats()?.samples, 0)
+  const accepted = await send(input)
+  assert.equal(accepted.status, 201)
+  assert.deepEqual(await accepted.json(), { id: input.id, duplicate: false })
+  const retries = await Promise.all([send(input), send(input)])
+  for (const response of retries) {
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { id: input.id, duplicate: true })
+  }
+  assert.equal(f.store.stats()?.captures, 1)
+  assert.equal(f.store.stats()?.samples, 2)
+  assert.deepEqual(f.store.capture(input.id).png, Buffer.from(input.originalPng, 'base64'))
+  assert.deepEqual(f.store.capture(input.id).capture.crops, input.crops)
+})
+
+test('같은 ID의 서로 다른 동시 업로드는 한 묶음만 저장하고 나머지를 충돌로 거절한다', async (t) => {
+  const f = await fixture()
+  t.after(() => f.close())
+  const input = upload()
+  const changed = { ...input, crops: [{ ...input.crops[0], x: 2 }, input.crops[1]] }
+  const values = [input, changed]
+  const responses = await Promise.all(
+    values.map((value) =>
+      fetch(`${f.base}/api/desktop/captures`, {
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer synthetic.desktop.token',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(value)
+      })
+    )
+  )
+  assert.deepEqual(responses.map(({ status }) => status).sort(), [201, 409])
+  const winner = responses.findIndex(({ status }) => status === 201)
+  for (const response of responses) {
+    if (response.status === 201) {
+      assert.deepEqual(await response.json(), { id: input.id, duplicate: false })
+    } else {
+      assert.deepEqual(await response.json(), { error: 'CAPTURE_ID_CONFLICT' })
+    }
+  }
+  assert.equal(f.store.stats()?.captures, 1)
+  assert.equal(f.store.stats()?.samples, 2)
+  assert.deepEqual(f.store.capture(input.id).capture.crops, values[winner].crops)
+  assert.deepEqual(f.store.capture(input.id).png, Buffer.from(input.originalPng, 'base64'))
+})
+
+test('저장 상한 실패는 507로 분류하고 원본·샘플을 남기지 않아 같은 ID를 재사용할 수 있다', async (t) => {
+  const f = await fixture()
+  t.after(() => f.close())
+  const image = new PNG({ width: 600, height: 600 })
+  randomFillSync(image.data)
+  const largePng = PNG.sync.write(image)
+  assert(largePng.length > 1024 * 1024)
+  assert(largePng.length < 16 * 1024 * 1024)
+  const input = upload()
+  const send = (value: unknown) =>
+    fetch(`${f.base}/api/desktop/captures`, {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer synthetic.desktop.token',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(value)
+    })
+  const rejected = await send({ ...input, originalPng: largePng.toString('base64') })
+  assert.equal(rejected.status, 507)
+  assert.deepEqual(await rejected.json(), { error: 'STORAGE_LIMIT' })
+  assert.equal(f.store.stats()?.captures, 0)
+  assert.equal(f.store.stats()?.samples, 0)
+  assert.equal(f.store.stats()?.storedBytes, 0)
+  const accepted = await send(input)
+  assert.equal(accepted.status, 201)
+  assert.deepEqual(await accepted.json(), { id: input.id, duplicate: false })
+  assert.equal(f.store.stats()?.captures, 1)
+  assert.equal(f.store.stats()?.samples, 2)
 })
