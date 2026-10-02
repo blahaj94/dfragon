@@ -35,7 +35,7 @@ for (const [workspace, command] of [
   ['@dfragon/ui', 'typecheck'],
   ['@dfragon/ui', 'build:examples']
 ]) {
-  test(`cold pnpm --filter ${workspace} ${command}`, () => {
+  test(`library 선행 빌드 없이 pnpm --filter ${workspace} ${command}를 실행한다`, () => {
     const result = spawnSync('pnpm', ['--filter', workspace, command], {
       cwd: root,
       encoding: 'utf8',
@@ -64,14 +64,14 @@ for (const { name, executable, args, cwd, entries } of [
     entries: ['/main.tsx']
   },
   {
-    name: 'Desktop dev renderer config without Electron bootstrap',
+    name: 'Electron bootstrap 없는 Desktop dev renderer',
     executable: 'node',
     args: ['scripts/ui-renderer-resolution.mjs'],
     cwd: new URL('../../../apps/desktop/', import.meta.url),
     entries: ['/src/main.tsx', '/src/App.tsx']
   }
 ]) {
-  test(`cold ${name} resolves browser entries`, async () => {
+  test(`library 선행 빌드 없이 ${name}에서 browser entry를 해석한다`, async () => {
     const child = spawn(executable, args, {
       cwd,
       detached: true,
