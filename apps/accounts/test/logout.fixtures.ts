@@ -118,7 +118,7 @@ export function logoutFixture() {
 
       return { ...token }
     },
-    findOne: async (query: unknown) => {
+    findOne: async (query: { where: { tokenHash: Buffer }; lock: unknown }) => {
       assert.deepEqual(query, {
         where: { tokenHash: refreshTokenHash(rawToken) },
         lock: { mode: 'pessimistic_write' }
@@ -127,7 +127,7 @@ export function logoutFixture() {
       state.beforeLockedRead?.('refresh')
       const isTokenMissing = state.tokenMissing
 
-      if (isTokenMissing) {
+      if (isTokenMissing || !query.where.tokenHash.equals(token.tokenHash)) {
         return null
       }
 
