@@ -3,41 +3,48 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
+import { PNG } from 'pngjs'
 import { createDeveloperStore } from './persistence'
 
 const directories: string[] = []
 
-function png(width = 2, height = 1): Buffer {
-  const result = Buffer.alloc(33)
-  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(result, 0)
-  result.writeUInt32BE(13, 8)
-  result.write('IHDR', 12)
+function png(): Buffer {
+  const image = new PNG({ width: 2, height: 1 })
+  image.data = Buffer.from([11, 22, 33, 255, 44, 55, 66, 255])
+
+  return PNG.sync.write(image)
+}
+
+function pngWithDeclaredDimensions(width: number, height: number): Buffer {
+  const result = png()
+  // 거대한 이미지를 할당하지 않고 외부 PNG 헤더가 제한을 넘는 잘못된 입력을 만든다.
   result.writeUInt32BE(width, 16)
   result.writeUInt32BE(height, 20)
-  result[24] = 8
-  result[25] = 6
 
   return result
+}
+
+function decodePng(value: Buffer): { width: number; height: number } {
+  const { width, height } = PNG.sync.read(value)
+
+  return { width, height }
 }
 
 async function createStore(): Promise<{
   rootDir: string
   store: ReturnType<typeof createDeveloperStore>
+  decode: ReturnType<typeof vi.fn<typeof decodePng>>
 }> {
   const rootDir = await mkdtemp(join(tmpdir(), 'dfragon-developer-'))
   directories.push(rootDir)
 
+  const decode = vi.fn(decodePng)
   const store = createDeveloperStore({
     rootDir,
-    decodePng: (value) => {
-      const width = value.readUInt32BE(16)
-      const height = value.readUInt32BE(20)
-
-      return { width, height }
-    }
+    decodePng: decode
   })
 
-  return { rootDir, store }
+  return { rootDir, store, decode }
 }
 
 afterEach(async () => {
@@ -56,12 +63,7 @@ it('defaults to disabled, persists the flag, and blocks sample operations until 
 
   const reopened = createDeveloperStore({
     rootDir,
-    decodePng: (value) => {
-      const width = value.readUInt32BE(16)
-      const height = value.readUInt32BE(20)
-
-      return { width, height }
-    }
+    decodePng
   })
   expect(await reopened.getSettings()).toEqual({ enabled: true })
   expect(await reopened.listSamples()).toEqual([])
@@ -120,12 +122,7 @@ it('persists exclusion independently from the label and restores legacy sample m
 
   const reopened = createDeveloperStore({
     rootDir,
-    decodePng: (value) => {
-      const width = value.readUInt32BE(16)
-      const height = value.readUInt32BE(20)
-
-      return { width, height }
-    }
+    decodePng
   })
   expect((await reopened.listSamples())[0]).toMatchObject({
     id: sample.id,
@@ -177,7 +174,7 @@ it('reopens raid rows 10..12 with labels while keeping legacy and non-raid sourc
     )
     saved.push(await store.saveLabel(sample.id, '합성정답'))
   }
-  const reopened = createDeveloperStore({ rootDir, decodePng: () => ({ width: 2, height: 1 }) })
+  const reopened = createDeveloperStore({ rootDir, decodePng })
   expect(await reopened.listSamples()).toEqual(expect.arrayContaining(saved))
   for (const sample of saved) {
     expect(await reopened.readImage(sample.id)).toBe(
@@ -213,7 +210,7 @@ it('serializes concurrent label updates and leaves the last submitted value', as
   expect((await store.listSamples())[0].text).toBe('second')
 })
 
-it('keeps the previous label when the atomic metadata replacement fails', async () => {
+it('원자적 라벨 저장이 실패하면 이전 정답과 PNG를 보존하고 다음 저장으로 복구한다', async () => {
   const { store } = await createStore()
   await store.setEnabled(true)
   const sample = await store.addSample(`data:image/png;base64,${png().toString('base64')}`)
@@ -226,6 +223,8 @@ it('keeps the previous label when the atomic metadata replacement fails', async 
   rename.mockRestore()
 
   expect((await store.listSamples())[0].text).toBe('previous')
+  expect((await store.saveLabel(sample.id, '다시 저장')).text).toBe('다시 저장')
+  expect(await store.readImage(sample.id)).toBe(`data:image/png;base64,${png().toString('base64')}`)
 })
 
 it('removes a staged PNG when writing new sample metadata fails', async () => {
@@ -249,19 +248,25 @@ it('removes a staged PNG when writing new sample metadata fails', async () => {
   expect(await readdir(join(rootDir, 'developer-mode', 'samples'))).toEqual([])
 })
 
-it('rejects malformed or oversized PNGs and labels beyond the contract limit', async () => {
-  const { store } = await createStore()
+it('잘못된 PNG와 크기 초과는 디코딩 전에 차단하고 500자 초과 정답을 거절한다', async () => {
+  const { store, decode } = await createStore()
   await store.setEnabled(true)
 
   await expect(store.addSample('data:image/png;base64,not-png')).rejects.toThrow(
     'DEVELOPER_INVALID_COMMAND'
   )
   await expect(
-    store.addSample(`data:image/png;base64,${png(8193, 1).toString('base64')}`)
+    store.addSample(
+      `data:image/png;base64,${pngWithDeclaredDimensions(8193, 1).toString('base64')}`
+    )
   ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  expect(decode).not.toHaveBeenCalled()
   await expect(
-    store.addSample(`data:image/png;base64,${png(8192, 4096).toString('base64')}`)
+    store.addSample(
+      `data:image/png;base64,${pngWithDeclaredDimensions(8192, 4096).toString('base64')}`
+    )
   ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  expect(decode).not.toHaveBeenCalled()
 
   const sample = await store.addSample(`data:image/png;base64,${png().toString('base64')}`)
   await expect(store.saveLabel(sample.id, 'x'.repeat(501))).rejects.toThrow(
@@ -297,4 +302,41 @@ it('fails closed when persisted sample metadata disagrees with its image', async
     'DEVELOPER_STORAGE_UNAVAILABLE'
   )
   expect(await store.listSamples()).toEqual([{ ...sample, width: 3 }])
+})
+
+it('PNG 헤더만 있고 픽셀 본문이 없는 입력은 샘플 파일을 만들지 않고 거절한다', async () => {
+  const { rootDir, store } = await createStore()
+  await store.setEnabled(true)
+  const samplesDirectory = join(rootDir, 'developer-mode', 'samples')
+  await mkdir(samplesDirectory, { recursive: true })
+  const headerOnly = png().subarray(0, 33)
+
+  await expect(
+    store.addSample(`data:image/png;base64,${headerOnly.toString('base64')}`)
+  ).rejects.toThrow('DEVELOPER_INVALID_COMMAND')
+  expect(await store.listSamples()).toEqual([])
+  expect(await readdir(samplesDirectory)).toEqual([])
+})
+
+it.each([
+  { name: '제외', previous: false, next: true },
+  { name: '복원', previous: true, next: false }
+])('$name 저장이 실패하면 정답·제외 상태·원본 PNG를 함께 보존한다', async ({ previous, next }) => {
+  const { store } = await createStore()
+  await store.setEnabled(true)
+  const dataUrl = `data:image/png;base64,${png().toString('base64')}`
+  const sample = await store.addSample(dataUrl)
+  await store.saveLabel(sample.id, '저장한 정답')
+  await store.setSampleExcluded(sample.id, previous)
+  const rename = vi.spyOn(fs, 'rename').mockRejectedValueOnce(new Error('simulated disk failure'))
+
+  await expect(store.setSampleExcluded(sample.id, next)).rejects.toThrow(
+    'DEVELOPER_STORAGE_UNAVAILABLE'
+  )
+  rename.mockRestore()
+
+  expect(await store.listSamples()).toEqual([
+    { ...sample, text: '저장한 정답', excluded: previous }
+  ])
+  expect(await store.readImage(sample.id)).toBe(dataUrl)
 })

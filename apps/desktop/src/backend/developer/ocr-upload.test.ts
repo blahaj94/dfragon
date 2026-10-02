@@ -46,7 +46,11 @@ function setup(): {
   const auth = {
     captureGeneration: () => generation,
     authorization: vi.fn<() => Promise<AuthAuthorization>>(async () => credential),
-    recoverAuthorization: vi.fn<() => Promise<AuthAuthorization>>(async () => credential),
+    recoverAuthorization: vi.fn<() => Promise<AuthAuthorization>>(async () => ({
+      ...credential,
+      accessGeneration: 2,
+      accessToken: 'synthetic.refreshed.token'
+    })),
     subscribe: vi.fn((callback: () => void) => {
       listener = callback
 
@@ -166,7 +170,7 @@ it('cancels a request on logout and does not retry network failures', async () =
   expect(other.request).toHaveBeenCalledOnce()
 })
 
-it('uses the same capture on one credential refresh, and rejects a mismatched receipt', async () => {
+it('401 재인증은 새 토큰으로 같은 캡처를 한 번 보내며 다른 캡처의 수신증을 거절한다', async () => {
   const f = setup()
   f.request.mockResolvedValueOnce(new Response(null, { status: 401 }))
   expect(await f.prepare()!(frame, [3], 'hud', new AbortController().signal)).toBe('uploaded')
@@ -174,6 +178,14 @@ it('uses the same capture on one credential refresh, and rejects a mismatched re
     { generation: 1, accessGeneration: 1, finalRejection: false },
     expect.any(AbortSignal)
   )
+  expect(f.request).toHaveBeenCalledTimes(2)
+  expect(f.auth.recoverAuthorization).toHaveBeenCalledOnce()
+  expect(f.request.mock.calls[0][1]?.headers).toMatchObject({
+    Authorization: 'Bearer synthetic.desktop.token'
+  })
+  expect(f.request.mock.calls[1][1]?.headers).toMatchObject({
+    Authorization: 'Bearer synthetic.refreshed.token'
+  })
   expect(f.request.mock.calls[0][1]?.body).toBe(f.request.mock.calls[1][1]?.body)
   f.request.mockResolvedValueOnce(
     Response.json({ id: '00000000-0000-4000-8000-000000000000', duplicate: false })
@@ -281,6 +293,151 @@ it('bounds a stalled upload and releases its auth subscription without retrying'
     expect(await sent).toBe('failed')
     expect(f.request).toHaveBeenCalledOnce()
     expect(f.unsubscribe).toHaveBeenCalledOnce()
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+it.each([
+  { name: '소유자 권한 없음', status: 403, outcome: 'ownerRequired' },
+  { name: '서버 저장 공간 부족', status: 507, outcome: 'storageFull' },
+  { name: '요청 제한', status: 429, outcome: 'failed' },
+  { name: '서버 장애', status: 503, outcome: 'failed' }
+] as const)(
+  '$name 응답은 로컬 저장과 구분하며 재인증하거나 자동 재전송하지 않는다',
+  async ({ status, outcome }) => {
+    const f = setup()
+    const response = new Response('server rejection', { status })
+    const cancel = vi.spyOn(response.body!, 'cancel')
+    f.request.mockResolvedValueOnce(response)
+
+    expect(await f.prepare()!(frame, [3], 'hud', new AbortController().signal)).toBe(outcome)
+    expect(f.request).toHaveBeenCalledOnce()
+    expect(f.auth.recoverAuthorization).not.toHaveBeenCalled()
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(f.unsubscribe).toHaveBeenCalledOnce()
+  }
+)
+
+it('새 토큰도 401이면 인증 실패를 전달하고 세 번째 업로드를 시작하지 않는다', async () => {
+  const f = setup()
+  f.request.mockImplementation(async () => new Response(null, { status: 401 }))
+  f.auth.recoverAuthorization.mockResolvedValueOnce({
+    status: 'available',
+    generation: 1,
+    accessGeneration: 2,
+    accessToken: 'synthetic.refreshed.token'
+  })
+  f.auth.recoverAuthorization.mockResolvedValueOnce({ status: 'unavailable' })
+
+  expect(await f.prepare()!(frame, [3], 'hud', new AbortController().signal)).toBe('signedOut')
+  expect(f.request).toHaveBeenCalledTimes(2)
+  expect(f.auth.recoverAuthorization.mock.calls).toEqual([
+    [{ generation: 1, accessGeneration: 1, finalRejection: false }, expect.any(AbortSignal)],
+    [{ generation: 1, accessGeneration: 2, finalRejection: true }, expect.any(AbortSignal)]
+  ])
+  expect(f.request.mock.calls[1][1]?.body).toBe(f.request.mock.calls[0][1]?.body)
+  expect(f.unsubscribe).toHaveBeenCalledOnce()
+})
+
+it.each([
+  { name: '문자열 duplicate', receipt: { duplicate: 'false' } },
+  { name: '누락된 duplicate', receipt: {} },
+  { name: '추가 필드', receipt: { duplicate: false, unexpected: 'metadata' } }
+])('$name 수신증은 HTTP 성공만으로 업로드 완료를 표시하지 않는다', async ({ receipt }) => {
+  const f = setup()
+  f.request.mockImplementationOnce(async (_url, init) => {
+    const id = JSON.parse(String(init?.body)).id
+
+    return Response.json({ id, ...receipt }, { status: 201 })
+  })
+
+  expect(await f.prepare()!(frame, [3], 'hud', new AbortController().signal)).toBe('failed')
+  expect(f.request).toHaveBeenCalledOnce()
+  expect(f.auth.recoverAuthorization).not.toHaveBeenCalled()
+})
+
+it('수집 중지 뒤 도착한 정상 수신증을 업로드 성공으로 반영하지 않는다', async () => {
+  const f = setup()
+  const controller = new AbortController()
+  let complete!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        complete = resolve
+      })
+  )
+  const sent = f.prepare()!(frame, [3], 'hud', controller.signal)
+  await vi.waitFor(() => expect(f.request).toHaveBeenCalledOnce())
+  const id = JSON.parse(String(f.request.mock.calls[0][1]?.body)).id
+  const response = Response.json({ id, duplicate: false }, { status: 201 })
+  const cancel = vi.spyOn(response.body!, 'cancel')
+
+  controller.abort()
+  complete(response)
+
+  expect(await sent).toBe('signedOut')
+  expect(f.request.mock.calls[0][1]?.signal?.aborted).toBe(true)
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(f.auth.recoverAuthorization).not.toHaveBeenCalled()
+  expect(f.unsubscribe).toHaveBeenCalledOnce()
+})
+
+it('인증 준비와 401 복구도 최초 업로드의 15초 예산을 함께 사용한다', async () => {
+  vi.useFakeTimers()
+  try {
+    const f = setup()
+    let completeAuthorization!: (value: AuthAuthorization) => void
+    let completeRecovery!: (value: AuthAuthorization) => void
+    f.auth.authorization.mockImplementationOnce(
+      () =>
+        new Promise<AuthAuthorization>((resolve) => {
+          completeAuthorization = resolve
+        })
+    )
+    f.auth.recoverAuthorization.mockImplementationOnce(
+      () =>
+        new Promise<AuthAuthorization>((resolve) => {
+          completeRecovery = resolve
+        })
+    )
+    f.request.mockResolvedValueOnce(new Response(null, { status: 401 }))
+    f.request.mockImplementationOnce(
+      (_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new Error('request deadline')), {
+            once: true
+          })
+        })
+    )
+    const sent = f.prepare()!(frame, [3], 'hud', new AbortController().signal)
+
+    await vi.advanceTimersByTimeAsync(10_000)
+    completeAuthorization({
+      status: 'available',
+      generation: 1,
+      accessGeneration: 1,
+      accessToken: 'synthetic.desktop.token'
+    })
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(f.auth.recoverAuthorization).toHaveBeenCalledOnce()
+    completeRecovery({
+      status: 'available',
+      generation: 1,
+      accessGeneration: 2,
+      accessToken: 'synthetic.refreshed.token'
+    })
+    await vi.advanceTimersByTimeAsync(999)
+    expect(f.request).toHaveBeenCalledTimes(2)
+    expect(f.request.mock.calls[1][1]?.signal?.aborted).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(await sent).toBe('failed')
+    expect(f.request.mock.calls[1][1]?.signal?.aborted).toBe(true)
+    expect(f.request).toHaveBeenCalledTimes(2)
+    expect(f.unsubscribe).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
   } finally {
     vi.useRealTimers()
   }

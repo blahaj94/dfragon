@@ -20,9 +20,10 @@ const shortcut = vi.hoisted(() => {
   return { register, unregister }
 })
 const partyCapture = vi.hoisted(() => {
-  const capturePartyFrame = vi.fn()
-  const isDnfForeground = vi.fn()
-  const assertDnfShortcutAccess = vi.fn()
+  const capturePartyFrame = vi.fn<typeof import('./win32-party-capture').capturePartyFrame>()
+  const isDnfForeground = vi.fn<typeof import('./win32-party-capture').isDnfForeground>()
+  const assertDnfShortcutAccess =
+    vi.fn<typeof import('./win32-party-capture').assertDnfShortcutAccess>()
 
   return { capturePartyFrame, isDnfForeground, assertDnfShortcutAccess }
 })
@@ -98,7 +99,7 @@ async function setup(): Promise<{
 }
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
   shortcut.register.mockReturnValue(true)
 })
 afterEach(async () => {
@@ -483,13 +484,15 @@ it('permits raid rows 10..12 through trusted IPC without widening the other mode
     await fixture.invoke(DEVELOPER_CHANNELS.setPartyCollectionSlots, [10, 11, 12], 'raid')
   ).toMatchObject({ armed: true, slots: [10, 11, 12] })
   for (const code of ['DEVELOPER_RAID_WINDOW_NOT_FOUND', 'DEVELOPER_RAID_WINDOW_UNCERTAIN']) {
-    partyCapture.capturePartyFrame.mockRejectedValueOnce(new Error(code))
+    partyCapture.capturePartyFrame.mockImplementationOnce(() => {
+      throw new Error(code)
+    })
     expect(await fixture.invoke(DEVELOPER_CHANNELS.previewParty, 'raid')).toMatchObject({
       frame: null,
       previewError: code
     })
   }
-  partyCapture.capturePartyFrame.mockResolvedValue({
+  partyCapture.capturePartyFrame.mockReturnValue({
     width: 1067,
     height: 600,
     scale: 1,
@@ -545,5 +548,107 @@ it('does not reopen remote reads after close or disable while settings are being
       read.mockRestore()
       fixture.dispose()
     }
+  }
+})
+
+it.each([
+  { name: '분리된 main frame', invalid: 'detached' },
+  { name: '종료된 main frame', invalid: 'frame' },
+  { name: '종료된 webContents', invalid: 'contents' },
+  { name: '종료된 창', invalid: 'window' }
+])('$name의 읽기·변경 요청은 파일 접근과 단축키 등록 전에 거절한다', async ({ invalid }) => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  if (invalid === 'detached') {
+    fixture.frame.detached = true
+  }
+
+  if (invalid === 'frame') {
+    fixture.frame.isDestroyed = () => true
+  }
+
+  if (invalid === 'contents') {
+    fixture.webContents.isDestroyed = () => true
+  }
+
+  if (invalid === 'window') {
+    fixture.window.isDestroyed = () => true
+  }
+  const read = vi.spyOn(fs, 'readFile')
+  const rename = vi.spyOn(fs, 'rename')
+  const sampleId = '00000000-0000-4000-8000-000000000001'
+  try {
+    for (const [channel, args] of [
+      [DEVELOPER_CHANNELS.getSettings, []],
+      [DEVELOPER_CHANNELS.setEnabled, [false]],
+      [DEVELOPER_CHANNELS.readImage, [sampleId]],
+      [DEVELOPER_CHANNELS.saveLabel, [sampleId, '허용되지 않은 정답']],
+      [DEVELOPER_CHANNELS.setPartyCollectionSlots, [[1]]]
+    ] as const) {
+      await expect(fixture.invoke(channel, ...args)).rejects.toThrow('DEVELOPER_NOT_ALLOWED')
+    }
+    expect(read).not.toHaveBeenCalled()
+    expect(rename).not.toHaveBeenCalled()
+    expect(shortcut.register).not.toHaveBeenCalled()
+    expect(partyCapture.capturePartyFrame).not.toHaveBeenCalled()
+  } finally {
+    read.mockRestore()
+    rename.mockRestore()
+    fixture.dispose()
+  }
+})
+
+it.each([
+  { name: '다른 문서로 이동', invalid: 'navigation' },
+  { name: 'main frame 분리', invalid: 'detached' },
+  { name: 'IPC 등록 해제', invalid: 'disposed' }
+])('미리보기 설정을 읽는 동안 $name하면 늦은 원본 픽셀을 반환하지 않는다', async ({ invalid }) => {
+  const fixture = await setup()
+  await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
+  partyCapture.capturePartyFrame.mockReturnValueOnce({
+    width: 1067,
+    height: 600,
+    scale: 1,
+    capturedAt: '2026-09-26T00:00:00.000Z',
+    slots: [{ slot: 3, width: 2, height: 1, rgba: Buffer.alloc(8) }]
+  })
+  let complete!: () => void
+  let startRead!: () => void
+  const reading = new Promise<void>((resolve) => {
+    startRead = resolve
+  })
+  const gate = new Promise<void>((resolve) => {
+    complete = resolve
+  })
+  const originalReadFile = fs.readFile.bind(fs)
+  const read = vi.spyOn(fs, 'readFile').mockImplementationOnce(async (path) => {
+    const contents = await originalReadFile(path)
+    startRead()
+    await gate
+
+    return contents
+  })
+  try {
+    const preview = fixture.invoke(DEVELOPER_CHANNELS.previewParty)
+    await reading
+
+    if (invalid === 'navigation') {
+      fixture.frame.url = 'file:///retired-document/index.html'
+    }
+
+    if (invalid === 'detached') {
+      fixture.frame.detached = true
+    }
+
+    if (invalid === 'disposed') {
+      fixture.dispose()
+    }
+    complete()
+
+    await expect(preview).rejects.toThrow('DEVELOPER_NOT_ALLOWED')
+  } finally {
+    complete()
+    read.mockRestore()
+    fixture.dispose()
   }
 })

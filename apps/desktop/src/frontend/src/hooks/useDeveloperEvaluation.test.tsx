@@ -154,13 +154,46 @@ it('중복 시작을 차단하고 중지 뒤 늦은 결과를 반영하지 않�
   expect(mocks.recognize).toHaveBeenCalledTimes(2)
 })
 
-it('전처리 변경 시 이전 점수와 진행 상태를 비운다', async () => {
+it('평가 중 전처리를 바꾸면 이전 점수를 비우고 늦은 결과를 섞지 않은 채 새 평가를 시작한다', async () => {
+  let complete!: (value: { data: { text: string; confidence: number } }) => void
+  mocks.recognize
+    .mockResolvedValueOnce({ data: { text: '가', confidence: 80 } })
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve
+        })
+    )
+  let running!: Promise<void>
   await act(async () => {
-    await evaluation.evaluate(samples)
+    running = evaluation.evaluate(samples)
   })
-  await act(async () => evaluation.setPreprocessing('raw'))
+  expect(evaluation.progress).toEqual({ done: 1, total: 2 })
+  expect(evaluation.results.one).toMatchObject({ status: 'success', text: '가' })
+  const signal = mocks.create.mock.calls[0][0] as AbortSignal
+
+  await act(async () => {
+    evaluation.setPreprocessing('raw')
+    await running
+  })
+  expect(signal.aborted).toBe(true)
   expect(evaluation.results).toEqual({})
   expect(evaluation.progress).toEqual({ done: 0, total: 0 })
+  expect(evaluation.preprocessing).toBe('raw')
+  expect(evaluation.running).toBe(false)
+
+  await act(async () => {
+    complete({ data: { text: '이전 전처리의 결과', confidence: 99 } })
+  })
+  expect(evaluation.results).toEqual({})
+  expect(evaluation.progress).toEqual({ done: 0, total: 0 })
+  expect(mocks.terminate).toHaveBeenCalledOnce()
+
+  await act(async () => evaluation.evaluate(samples))
+  expect(mocks.create).toHaveBeenCalledTimes(2)
+  expect(evaluation.results.one).toMatchObject({ status: 'success', text: '가' })
+  expect(evaluation.results.two).toMatchObject({ status: 'success', text: '가' })
+  expect(evaluation.progress).toEqual({ done: 2, total: 2 })
 })
 
 it('모델 초기화 실패 후 새 평가로 복구한다', async () => {
@@ -228,3 +261,57 @@ it('화면을 닫으면 초기화 중인 평가를 취소하고 호출자를 해
   expect(mocks.recognize).not.toHaveBeenCalled()
   expect(mocks.terminate).toHaveBeenCalledTimes(1)
 })
+
+it.each([
+  { name: 'IPC 이미지 읽기', stage: 'ipc', decoded: 0 },
+  { name: '이미지 디코딩', stage: 'decode', decoded: 1 }
+])(
+  '$name 중 중지하면 늦은 이미지로 OCR을 실행하거나 다음 표본을 읽지 않는다',
+  async ({ stage, decoded }) => {
+    let completeRead!: (value: string) => void
+    let completeDecode!: (value: HTMLCanvasElement) => void
+    if (stage === 'ipc') {
+      vi.mocked(window.developer.readImage).mockReturnValueOnce(
+        new Promise<string>((resolve) => {
+          completeRead = resolve
+        })
+      )
+    } else {
+      mocks.read.mockReturnValueOnce(
+        new Promise<HTMLCanvasElement>((resolve) => {
+          completeDecode = resolve
+        })
+      )
+    }
+    let running!: Promise<void>
+    await act(async () => {
+      running = evaluation.evaluate(samples)
+    })
+    expect(window.developer.readImage).toHaveBeenCalledExactlyOnceWith('one')
+    expect(mocks.read).toHaveBeenCalledTimes(decoded)
+    const signal = mocks.create.mock.calls[0][0] as AbortSignal
+
+    await act(async () => {
+      evaluation.cancel()
+      await running
+    })
+    expect(signal.aborted).toBe(true)
+    expect(evaluation.canceled).toBe(true)
+    expect(evaluation.running).toBe(false)
+
+    await act(async () => {
+      if (stage === 'ipc') {
+        completeRead('data:image/png;base64,late-image')
+      } else {
+        completeDecode(document.createElement('canvas'))
+      }
+    })
+
+    expect(evaluation.results).toEqual({})
+    expect(evaluation.progress).toEqual({ done: 0, total: 2 })
+    expect(window.developer.readImage).toHaveBeenCalledOnce()
+    expect(mocks.read).toHaveBeenCalledTimes(decoded)
+    expect(mocks.recognize).not.toHaveBeenCalled()
+    expect(mocks.terminate).toHaveBeenCalledOnce()
+  }
+)
