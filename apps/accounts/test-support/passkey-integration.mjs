@@ -11,6 +11,7 @@ import { createLoginService } from '../dist/auth/login/service.js'
 import { challenge } from '../dist/auth/login/crypto.js'
 import { authenticationConfiguration, unusedRuntimePort } from './runtime-fixtures.mjs'
 import { command } from '../../../scripts/test-support/docker-postgres.mjs'
+import { assertTerminalLoginRequest } from './database-contract.mjs'
 
 export async function assertPasskeyIntegration(source, mark = () => {}) {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-passkey-browser-'))
@@ -213,6 +214,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     const tokens = await exchanges.find((r) => r.status() === 200).json(),
       userId = tokens.user.id
     assert.equal(tokens.isNewUser, true)
+    await assertTerminalLoginRequest(source, first.requestId, 'consumed')
     assert.equal(
       (await verifyAccessJwt(tokens.accessToken, Math.floor(Date.now() / 1000))).userId,
       userId
@@ -235,6 +237,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       existing = await post('/auth/exchange', second)
     assert.equal(existing.status(), 200)
     assert.equal((await existing.json()).user.id, userId)
+    await assertTerminalLoginRequest(source, second.requestId, 'consumed')
     assert.equal((await context.request.get(`${origin}/auth/callback/google`)).status(), 404)
     assert.equal(
       (
@@ -263,6 +266,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal(ocrTokens.status(), 200)
     const ocrIdentity = await ocrTokens.json()
     assert.equal(ocrIdentity.user.id, userId)
+    await assertTerminalLoginRequest(source, ocrRequest.requestId, 'consumed')
     assert.equal((await post('/auth/exchange', ocrExchange)).status(), 400)
     await post('/auth/logout', { refreshToken: ocrIdentity.refreshToken })
     await context.unroute('https://ocr.example.test/auth/callback?*')
@@ -368,7 +372,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     )
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     assert.equal((await browserPost('list', { requestId: otherId })).status(), 400)
-    mark('expired code and wrong app verifier refused; terminal proofs cleared')
+    await assertTerminalLoginRequest(source, otherId, 'consumed')
+    mark('만료 code와 잘못된 앱 verifier를 거절하고 교환·관리 종료 proof를 정리한다')
     const pending = await complete(await begin())
     assert.equal(
       (
@@ -384,10 +389,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       [pending.requestId]
     )
     assert.equal((await post('/auth/exchange', pending)).status(), 400)
-    const rows = await source.query(
-      "SELECT code_challenge,browser_binding_hash,credential_id,webauthn_challenge,exchange_code_hash FROM auth_login_requests WHERE status='consumed'"
-    )
-    assert(rows.every((row) => Object.values(row).every((value) => value === null)))
+
     const service = createLoginService({ dataSource: source, configuration, issueAccessJwt })
     const request = await service.create({
       provider: 'passkey',

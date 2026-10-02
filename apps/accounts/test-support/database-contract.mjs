@@ -349,6 +349,37 @@ export async function insertLogin(source, row) {
   )
 }
 
+// 제품의 정리 상수와 독립적으로 모든 proof·회원 연결의 terminal 보존 계약을 확인한다.
+export async function assertTerminalLoginRequest(source, id, status) {
+  const rows = await source.query('SELECT * FROM auth_login_requests WHERE id=$1', [id])
+  assert.equal(rows.length, 1, '종료 요청이 정확히 하나 존재해야 한다')
+  const [row] = rows
+  assert.equal(row.status, status)
+  for (const field of [
+    'code_challenge',
+    'launch_ticket_hash',
+    'browser_binding_hash',
+    'qr_ticket_hash',
+    'phone_binding_hash',
+    'confirmation_code',
+    'webauthn_challenge',
+    'operation',
+    'pending_user_id',
+    'verified_user_id',
+    'credential_id',
+    'exchange_code_hash',
+    'code_expires_at'
+  ]) {
+    assert.equal(row[field], null, `종료 요청의 ${field}는 즉시 지워야 한다`)
+  }
+  if (status === 'consumed') {
+    assert(row.consumed_at instanceof Date)
+    assert.equal(row.consumed_at.getUTCMilliseconds(), 0)
+  } else {
+    assert.equal(row.consumed_at, null)
+  }
+}
+
 export async function assertConstraintBehavior(dataSource) {
   await dataSource.query('INSERT INTO "users" (id, nickname, created_at) VALUES ($1, $2, $3)', [
     userId,
