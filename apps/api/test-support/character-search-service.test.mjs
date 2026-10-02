@@ -38,36 +38,46 @@ function fixture(overrides = {}) {
   }
 }
 
-test('public search validates query and configuration before upstream, with no identity dependency', async () => {
-  let lengthReads = 0
-  const f = fixture({
-    apiKey: Object.defineProperty({}, 'length', {
-      get() {
-        lengthReads++
-        throw new Error('must not inspect invalid API key')
-      }
-    })
-  })
+test('검색은 query를 먼저 검증하고 설정 실패 때 공급자를 호출하지 않는다', async () => {
+  const f = fixture({ apiKey: '' })
   try {
     await assert.rejects(f.service.search('127.0.0.1', '/characters?characterName='), {
-      status: 400
+      status: 400,
+      body: { error: { code: 'INVALID_SEARCH_QUERY', message: '검색 조건을 확인해 주세요.' } }
     })
-    await assert.rejects(f.service.search('127.0.0.1', originalUrl), { status: 500 })
-    assert.equal(lengthReads, 0)
+    await assert.rejects(f.service.search('127.0.0.1', originalUrl), {
+      status: 500,
+      body: {
+        error: { code: 'INTERNAL_SERVER_ERROR', message: '서버 오류로 검색을 처리하지 못했습니다.' }
+      }
+    })
     assert.equal(f.calls.length, 0)
   } finally {
     await f.service.onModuleDestroy()
   }
 })
 
-test('public search shares peer quota across concurrent requests, isolates other peers and expires reservations', async () => {
+test('동시 검색 열한 건 중 열 건만 호출하고 다른 IP와 만료 시각의 요청은 허용한다', async () => {
   const f = fixture()
   try {
     const results = await Promise.allSettled(
       Array.from({ length: 11 }, () => f.service.search('127.0.0.1', originalUrl))
     )
-    assert.equal(results.filter((result) => result.status === 'fulfilled').length, 10)
-    assert.equal(results.find((result) => result.status === 'rejected').reason.status, 429)
+    const successes = results.filter((result) => result.status === 'fulfilled')
+    const failures = results.filter((result) => result.status === 'rejected')
+    assert.equal(successes.length, 10)
+    for (const success of successes) {
+      assert.deepEqual(success.value, { rows: [] })
+    }
+    assert.equal(failures.length, 1)
+    assert.equal(failures[0].reason.status, 429)
+    assert.equal(failures[0].reason.retryAfter, 60)
+    assert.deepEqual(failures[0].reason.body, {
+      error: {
+        code: 'SEARCH_RATE_LIMITED',
+        message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+      }
+    })
     assert.equal(f.calls.length, 10)
     assert.deepEqual(await f.service.search('127.0.0.2', originalUrl), { rows: [] })
     f.advance(59_999)
@@ -80,7 +90,7 @@ test('public search shares peer quota across concurrent requests, isolates other
   }
 })
 
-test('public search rejects missing peer, aborted requests and shutdown without upstream', async () => {
+test('IP 누락·이미 취소된 요청·종료 후 검색은 공급자를 호출하지 않는다', async () => {
   const f = fixture()
   const controller = new AbortController()
   controller.abort()
@@ -93,7 +103,7 @@ test('public search rejects missing peer, aborted requests and shutdown without 
   assert.equal(f.calls.length, 0)
 })
 
-test('public search retains reservations for upstream failures and sanitizes unclassified errors', async () => {
+test('공급자 실패도 예약을 소비하고 미분류 내부 오류를 정제한다', async () => {
   let calls = 0
   const f = fixture({
     searchCharacters: async () => {
@@ -105,7 +115,12 @@ test('public search retains reservations for upstream failures and sanitizes unc
     for (let index = 0; index < 10; index++) {
       await assert.rejects(f.service.search('127.0.0.1', originalUrl), (error) => {
         assert.equal(error.status, 500)
-        assert.doesNotMatch(JSON.stringify(error), /private detail/)
+        assert.deepEqual(error.body, {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: '서버 오류로 검색을 처리하지 못했습니다.'
+          }
+        })
 
         return true
       })
