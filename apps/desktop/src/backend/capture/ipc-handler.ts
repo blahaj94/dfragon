@@ -203,10 +203,14 @@ function registerCaptureIpc(configuration?: {
   manualSearch = manual
   search = lifetime
   clearSource()
-  addHandler('listCaptureSources', async (event) => {
+  addHandler('listCaptureSources', async (event, ...args) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
     requireSender(event, window)
+    const hasNoArguments = args.length === 0
+    if (!hasNoArguments) {
+      throw new Error('Capture source access denied')
+    }
     const sources = await getWindowSources()
     requireSender(event, window)
     const isCurrent = isCurrentCapture(startedWindowGeneration)
@@ -217,12 +221,15 @@ function registerCaptureIpc(configuration?: {
     return sources.map(({ id, name }) => ({ id, name }))
   })
 
-  addHandler('selectCaptureSource', async (event, sourceId) => {
+  addHandler('selectCaptureSource', async (event, ...args) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
     requireSender(event, window)
+    const sourceId = args[0]
+    const hasOneArgument = args.length === 1
     const isSourceIdString = typeof sourceId === 'string'
-    if (!isSourceIdString) {
+    const hasValidArgument = hasOneArgument && isSourceIdString
+    if (!hasValidArgument) {
       throw new Error('Capture source selection denied')
     }
     const isCleanup = sourceId.length === 0
