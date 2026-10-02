@@ -44,6 +44,11 @@ export function createNeopleCatalog(
       throw new Error('Invalid catalog batch')
     }
 
+    // The public catalog request can be canceled before entering provider capacity.
+    if (requestSignal.aborted) {
+      throw new Error('Catalog lookup failed')
+    }
+
     return budget.run(async () => {
       try {
         const signal = AbortSignal.any([requestSignal, AbortSignal.timeout(5000)])
