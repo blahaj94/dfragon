@@ -11,7 +11,7 @@ DFRAGON의 빌드 도구용 오픈소스 고지 패키지입니다. 공용 원�
 - OCR 원문은 모델·사전과 검증 hash를 함께 관리하는 `apps/desktop/assets/ocr`에 보존하고 원래 OCR 배포 경로도 유지합니다.
 - npm 고지는 번들 입력 graph와 설치된 production dependency의 전이 의존성에서 수집합니다. 입력 graph는 tree-shaking 이전 입력도 포함하므로 일부 미사용 입력의 고지가 포함될 수 있습니다. `devDependencies` 전체를 일괄 배포하지 않습니다.
 
-`uiNotices({ uiRoot, runtimeRoot? })`는 기존 UI·Web·Desktop의 고지와 SEED 변경 banner·provenance·bundle 목록을 유지합니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴·아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다.
+`uiNotices({ uiRoot, runtimeRoot? })`는 기존 UI·Web·Desktop의 고지와 SEED 변경 banner·provenance·bundle 목록을 유지합니다. `desktopNotices()`는 중앙으로 옮긴 기존 Desktop 글꼴·아이콘 고지를 같은 `notices/desktop` 경로에 배포합니다. Desktop 제품 빌드는 `runtimeRoot`에 앱 경로를 전달해 main/preload에서 사용하는 production 의존성도 `THIRD-PARTY.txt`에 포함합니다. `bundle-modules.json`에는 기존처럼 번들 입력만 기록합니다. 실제 파일을 찾지 못한 새 npm 고지는 빌드를 실패시킵니다. 빈 파일과 공백뿐인 파일도 원문 누락으로 처리하며, 유효한 원문의 개행·공백은 그대로 보존합니다. 버전 고정 보완과 아래의 알려진 원문 공백 표시는 이 경우에도 적용합니다.
 
 ## 알려진 원문 공백
 
@@ -29,11 +29,14 @@ import { uiNotices, desktopNotices } from '@dfragon/licenses/vite'
 
 ```bash
 pnpm --filter @dfragon/licenses test
-pnpm --filter @dfragon/lib test
-pnpm --filter @dfragon/desktop build
+pnpm --filter @dfragon/licenses lint
 ```
 
-`dfragon-copy-notices lib dist/notices`는 정적 고지 복사용 bin입니다. 배포 시 `src`·`notices`·`overrides.json`을 함께 유지합니다. 수집기 테스트는 전이·순환 의존성, dev 제외, nested LICENSE, 버전 고정 보완, 누락 감지를 확인합니다.
+`dfragon-copy-notices lib dist/notices`는 정적 고지 복사용 bin입니다. 배포 시 `src`·`notices`·`overrides.json`을 함께 유지합니다.
+
+테스트는 임시 디렉터리에 작은 의존성 graph와 명시적인 합성 원문을 만들어 실제 파일 수집을 검증합니다. 전이·순환·중복 버전·실제 소비 peer·dev 제외·nested LICENSE, 버전 고정 보완과 checksum 불일치, 누락 실패와 알려진 원문 공백 표시를 확인합니다. 앱별 고지·Desktop catalog·정적 복사는 합성 기대값과 저장된 원문을 기준으로 검증합니다. collector의 현재 전체 출력을 정답으로 복사하거나 테스트 중 upstream에서 원문을 가져오지 않습니다.
+
+수집·배포 동작을 바꾸면 영향받는 소비 빌드를 추가 확인합니다. 테스트 통과는 수집 계약의 회귀 검증이며, 실제 배포 구성요소의 완전한 식별·원문 출처의 재검증·법적 준수 완료를 뜻하지 않습니다. UI provenance와 각 앱의 빌드 연결 검증은 해당 소유 패키지·앱의 책임입니다.
 
 ## esbuild 소비
 

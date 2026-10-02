@@ -20,7 +20,8 @@
  * packageNotice(패키지 경로):
  *   루트의 LICENSE / NOTICE / COPYING / COPYRIGHT / ThirdPartyNotices 계열을 읽는다.
  *     해당 이름의 디렉터리는 내부 파일도 읽되 일반 소스 디렉터리는 순회하지 않는다.
- *     문서 이름은 패키지 상대 경로로 기록하고 정렬한다.
+ *     빈 파일과 공백뿐인 파일은 원문으로 인정하지 않는다.
+ *     유효한 원문의 개행·공백을 보존하고 문서 이름은 패키지 상대 경로로 기록해 정렬한다.
  *   이름@버전에 등록된 중앙 보완 원문을 SHA-256 확인 후 추가한다.
  *     Koffi 플랫폼 패키지는 같은 버전의 부모 Koffi 보완 원문을 사용한다.
  *     보완 원문의 해시가 다르면 오류를 낸다.
@@ -76,6 +77,14 @@ export function resolvePackageRoot(name: string, from: string): string {
 // Include conventional root notices and nested license directories, without crawling source.
 export function readNotices(directory: string): NoticeEntry['documents'] {
   const documents: NoticeEntry['documents'] = []
+  function addDocument(file: string): void {
+    const text = readFileSync(file, 'utf8')
+    if (!text.trim()) {
+      return
+    }
+    const name = relative(directory, file).replaceAll('\\', '/')
+    documents.push({ name, text })
+  }
   function visit(folder: string): void {
     for (const entry of readdirSync(folder, { withFileTypes: true }).sort((a, b) =>
       a.name.localeCompare(b.name, 'en')
@@ -84,10 +93,7 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
       if (entry.isDirectory()) {
         visit(file)
       } else if (entry.isFile()) {
-        documents.push({
-          name: relative(directory, file).replaceAll('\\', '/'),
-          text: readFileSync(file, 'utf8')
-        })
+        addDocument(file)
       }
     }
   }
@@ -103,7 +109,7 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
     if (entry.isDirectory()) {
       visit(file)
     } else if (entry.isFile()) {
-      documents.push({ name: entry.name, text: readFileSync(file, 'utf8') })
+      addDocument(file)
     }
   }
 
