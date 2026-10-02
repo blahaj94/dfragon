@@ -190,8 +190,51 @@ try {
     await page.getByLabel('원본 PNG', { exact: true }).evaluate((input) => input.files.length),
     1
   )
+  // 서버 저장 뒤 응답 전달이 실패해도 재시도는 최초 요청을 보존하고 중복 저장하지 않는다.
+  const captureRequests = []
+  const uploadStored = Promise.withResolvers()
+  const releaseUploadFailure = Promise.withResolvers()
+  const retryStored = Promise.withResolvers()
+  const loseUploadResponse = async (route) => {
+    captureRequests.push(route.request().postDataJSON())
+    const response = await route.fetch()
+    const result = await response.json()
+    if (captureRequests.length === 1) {
+      assert.equal(response.status(), 201)
+      assert.equal(result.duplicate, false)
+      uploadStored.resolve()
+      await releaseUploadFailure.promise
+      await route.fulfill({ status: 503, json: { error: 'UNAVAILABLE' } })
+
+      return
+    }
+    assert.equal(response.status(), 200)
+    assert.equal(result.duplicate, true)
+    retryStored.resolve()
+    await route.fulfill({ response })
+  }
+  await page.route('**/api/captures', loseUploadResponse)
   await page.getByRole('button', { name: '업로드', exact: true }).click()
+  await uploadStored.promise
+  assert(await page.getByRole('button', { name: '업로드 중', exact: true }).isDisabled())
+  assert(await page.getByRole('button', { name: '실패한 업로드 재시도' }).isDisabled())
+  assert.equal(store.exportManifest().captures.length, 1)
+  releaseUploadFailure.resolve()
+  await page.getByRole('button', { name: '업로드', exact: true }).waitFor()
+  await page.getByLabel('UI 크기 (%)', { exact: true }).fill('90')
+  await page.getByLabel('너비', { exact: true }).fill('60')
+  await page.getByRole('button', { name: '실패한 업로드 재시도' }).click()
+  await retryStored.promise
   await page.getByText('업로드했습니다. 정답을 입력할 수 있습니다.', { exact: true }).waitFor()
+  assert.equal(captureRequests.length, 2)
+  assert.deepEqual(captureRequests[1], captureRequests[0])
+  assert.equal(captureRequests[0].uiScale, 0.75)
+  assert.deepEqual(captureRequests[0].crops, [{ slot: 1, x: 75, y: 67, width: 120, height: 30 }])
+  assert.equal(store.exportManifest().captures.length, 1)
+  assert.equal(store.exportManifest().samples.length, 1)
+  assert.equal(await page.getByLabel('UI 크기 (%)', { exact: true }).inputValue(), '90')
+  assert.equal(await page.getByLabel('너비', { exact: true }).inputValue(), '60')
+  await page.unroute('**/api/captures', loseUploadResponse)
   const splitGroup = page.getByRole('group', { name: '닉네임 단위 분할', exact: true })
   assert.deepEqual(await splitGroup.getByRole('button').allTextContents(), [
     '미배정',
@@ -487,6 +530,29 @@ try {
   page.once('dialog', (dialog) => dialog.dismiss())
   await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).click()
   assert.equal(store.splitStats().initialized, false)
+  // 미리보기 뒤 다른 창에서 자료를 변경하면 거절하고 새 미리보기로 복구한다.
+  const changedSample = store.exportManifest().samples.find((sample) => sample.text !== null)
+  store.updateSample(changedSample.id, { excluded: !changedSample.excluded })
+  const beforeStaleApply = store.exportManifest().samples
+  const staleResponse = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === '/api/splits/apply'
+  )
+  page.once('dialog', (dialog) => dialog.accept())
+  await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).click()
+  const rejectedPreview = await staleResponse
+  assert.equal(rejectedPreview.status(), 409)
+  assert.deepEqual(await rejectedPreview.json(), { error: 'SPLIT_PREVIEW_STALE' })
+  await page
+    .getByText('미리보기 이후 자료나 설정이 바뀌었습니다. 다시 미리보기해 주세요.', { exact: true })
+    .waitFor()
+  assert.equal(store.splitStats().initialized, false)
+  assert.deepEqual(store.exportManifest().samples, beforeStaleApply)
+  assert.equal(
+    await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).count(),
+    0
+  )
+  await page.getByRole('button', { name: '분할 미리보기', exact: true }).click()
+  await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).waitFor()
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: '미리보기 분할 적용', exact: true }).click()
   await page.getByText('분할을 적용했습니다. 이후 새 닉네임은 train에 배정됩니다.').waitFor()
@@ -532,7 +598,7 @@ try {
   await screenshot('synthetic-mobile')
   assert.deepEqual(errors, [])
   process.stdout.write(
-    'OCR browser HUD/raid upload limits, draft preservation, labels, answer focus, split, exclusion, download, themes, responsive layout and logout passed\n'
+    'OCR 브라우저 HUD·공대원 업로드 한도, 응답 유실 후 동일 본문 재시도, 초안 보존, 정답·포커스, 오래된 분할 거부·재미리보기, 제외·다운로드, 테마·반응형·로그아웃 검증 통과\n'
   )
 } finally {
   await browser?.close()
