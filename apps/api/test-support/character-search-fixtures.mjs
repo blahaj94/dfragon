@@ -114,9 +114,17 @@ export async function expectSearchError(response, status, code) {
   assert.equal(response.headers.get('cache-control'), 'no-store')
   assert.match(response.headers.get('content-type'), /^application\/json/)
   const body = await response.json()
-  assert.deepEqual(Object.keys(body), ['error'])
-  assert.deepEqual(Object.keys(body.error).sort(), ['code', 'message'])
-  assert.equal(body.error.code, code)
+  const messages = {
+    INVALID_SEARCH_QUERY: '검색 조건을 확인해 주세요.',
+    SEARCH_RATE_LIMITED: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+    INTERNAL_SERVER_ERROR: '서버 오류로 검색을 처리하지 못했습니다.',
+    NEOPLE_API_ERROR: '캐릭터 검색 중 오류가 발생했습니다.',
+    NEOPLE_UNAVAILABLE: '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    NEOPLE_TIMEOUT: '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.'
+  }
+  const message = messages[code]
+  assert.equal(typeof message, 'string')
+  assert.deepEqual(body, { error: { code, message } })
 
   return body
 }
