@@ -218,7 +218,7 @@ overrides:
   undici@8.10.1: 8.10.2
 
 patchedDependencies:
-  extract-zip@2.0.1: 042759d97cb5981770609882c265c33cc7d1db65470e65612641e8f996eb64e4
+  extract-zip@2.0.1: 3c3604759253960090f1135189e6e606ed721c1f97cf315201a8ebc7115cd7cc
 
 importers:
 
@@ -244,7 +244,7 @@ importers:
         version: 0.4.26(eslint@9.39.5(jiti@2.7.0)(supports-color@7.2.0))
       extract-zip:
         specifier: 2.0.1
-        version: 2.0.1(patch_hash=042759d97cb5981770609882c265c33cc7d1db65470e65612641e8f996eb64e4)(supports-color@7.2.0)
+        version: 2.0.1(patch_hash=3c3604759253960090f1135189e6e606ed721c1f97cf315201a8ebc7115cd7cc)(supports-color@7.2.0)
       globals:
         specifier: 16.5.0
         version: 16.5.0
@@ -8360,7 +8360,7 @@ snapshots:
     dependencies:
       '@electron/get': 2.0.3(supports-color@7.2.0)
       '@types/node': 22.20.1
-      extract-zip: 2.0.1(patch_hash=042759d97cb5981770609882c265c33cc7d1db65470e65612641e8f996eb64e4)(supports-color@7.2.0)
+      extract-zip: 2.0.1(patch_hash=3c3604759253960090f1135189e6e606ed721c1f97cf315201a8ebc7115cd7cc)(supports-color@7.2.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -8738,7 +8738,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  extract-zip@2.0.1(patch_hash=042759d97cb5981770609882c265c33cc7d1db65470e65612641e8f996eb64e4)(supports-color@7.2.0):
+  extract-zip@2.0.1(patch_hash=3c3604759253960090f1135189e6e606ed721c1f97cf315201a8ebc7115cd7cc)(supports-color@7.2.0):
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
       get-stream: 5.2.0
