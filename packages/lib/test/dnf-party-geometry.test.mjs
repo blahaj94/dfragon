@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { estimateDNFPartyScale, estimateDNFUIScale, projectDNFPartyRegions } from '@dfragon/lib'
 
-// Synthetic caller calibration; these are not verified nickname bounds.
+// 호출자 보정용 합성 좌표이며 검증된 닉네임 경계가 아니다.
 const baseRegion = Object.freeze({ x: 40, y: 10, width: 80, height: 14 })
 const clientSize = Object.freeze({ width: 1067, height: 600 })
 const options = Object.freeze({ baseRegion, clientSize, scale: 1 })
@@ -10,7 +10,7 @@ const options = Object.freeze({ baseRegion, clientSize, scale: 1 })
 test('인접 앵커의 관측 간격에서 UI 설정 없이 배율을 추정한다', () => {
   assert.equal(estimateDNFPartyScale(141), 1)
   const scale = estimateDNFPartyScale(181)
-  // Two-person measured spacing has integer quantization, not exact model equality.
+  // 두 사람의 관측 간격은 정수 픽셀 측정값이므로 UI 모델 배율과 정확히 같지 않다.
   assert.equal(scale, 1.2836879432624113)
   assert.ok(Math.abs(scale - 1.2857142857142858) < 0.003)
   assert.equal(estimateDNFPartyScale(282), 2)
@@ -53,7 +53,7 @@ test('실측 기준 영역을 확대하면 관측한 두 HP 색 띠를 포함한
     baseRegion: { x: 42, y: 27, width: 99, height: 3 },
     scale: estimateDNFPartyScale(181)
   })
-  // Independent numeric observations, not image fixtures or nickname calibration.
+  // 독립적으로 관측한 숫자이며 이미지 fixture나 닉네임 보정값이 아니다.
   for (const [index, x] of [55, 236].entries()) {
     const region = regions[index]
     assert.ok(region.x <= x && region.x + region.width >= x + 126)

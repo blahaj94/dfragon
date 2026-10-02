@@ -6,7 +6,7 @@ function component(width, height, color = [235, 20, 25, 128], count = width * he
   const frameWidth = 40
   const frameHeight = 40
   const rgba = new Uint8Array(frameWidth * frameHeight * 4)
-  // A connected L first keeps both dimensions fixed even in sparse fill-ratio fixtures.
+  // 연결된 L을 먼저 그려 채움 비율이 낮은 fixture도 같은 가로·세로 크기를 유지한다.
   const pixels = new Set()
   for (let x = 0; x < width; x += 1) {
     pixels.add(x)

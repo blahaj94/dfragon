@@ -2,7 +2,25 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { cropDNFRaidParticipantNicknames, detectDNFRaidParticipantWindow } from '@dfragon/lib'
 
-// Artificial pixels only; game assets and participant information stay outside the repository.
+const testTitles = {
+  rawCrops: '12개 화면 행을 찾아 닉네임 원본 RGBA를 독립 크롭으로 복사한다',
+  shrinkingRaid: '공대 인원이 줄어도 12행을 유지하며 이전 프레임 상태를 재사용하지 않는다',
+  emptyDialog: '빈 창도 검출하며 닉네임 열 밖의 근거로 참가 여부를 판단한다',
+  scaledDialog: 'UI 설정 없이 이동·확대한 12행 래스터를 찾는다',
+  requiredRows: '헤더가 없는 빨간 표식과 12개 구분선이 없는 창을 제외한다',
+  ambiguous: '완전한 공대창이 두 개면 임의 선택 없이 ambiguous를 반환한다',
+  clippedEdges: '화면 경계의 완전한 창은 허용하고 잘리거나 아래 행이 없는 창은 제외한다',
+  anchorLimit: '후보 한도를 넘으면 앞선 유효한 창도 성공으로 반환하지 않는다',
+  brightDecorations: '밝은 배경의 무관한 빨간 장식을 제외한다',
+  validation: '각 공대 검출 진입점에서 정수 client 크기·RGBA 길이·공대 헤더를 검사한다',
+  comparisonLimit: '뒤의 앵커가 공통 비교 예산을 소진하면 앞선 공대 일치도 반환하지 않는다',
+  rightBottomEdges: '오른쪽·아래쪽 화면 경계에 정확히 닿는 공대창을 허용한다',
+  clientLimits: '공대 검출의 최소·최대 client 크기는 빈 화면의 미검출을 허용한다',
+  evidencePairs: '공대 고유 열에서 참가 근거 세 쌍을 읽고 닉네임 픽셀만 있는 행은 제외한다',
+  rgbaViews: '공대의 투명한 RGBA view에서 네 모서리 원본 픽셀과 독립 크롭을 보존한다'
+}
+
+// 합성 픽셀만 사용하며 게임 자산·참가자 정보는 포함하지 않는다.
 function frame(width = 1067, height = 600) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {
@@ -56,7 +74,7 @@ function popup(image, { x = 200, y = 150, scale = 1, count = 12 } = {}) {
     paint(source, 284, row + 3, 10, 13, [25, 150, 220, 255])
     paint(source, 207, row + 5, 60, 10, [190, 175 + position, 140, 128])
   }
-  // Nearest-neighbor rasterization differs from the detector's bilinear comparison.
+  // 합성 fixture는 검출기의 bilinear 비교와 다른 최근접 보간으로 그린다.
   const left = Math.round(x - 15 * scale)
   const top = Math.round(y - 68 * scale)
   const width = Math.round(465 * scale)
@@ -71,7 +89,7 @@ function popup(image, { x = 200, y = 150, scale = 1, count = 12 } = {}) {
   }
 }
 
-test('finds twelve screen positions and copies independent, unmodified nickname RGBA', () => {
+test(testTitles.rawCrops, () => {
   const image = frame()
   popup(image)
   const original = image.rgba.slice()
@@ -87,11 +105,21 @@ test('finds twelve screen positions and copies independent, unmodified nickname 
   )
   for (const [index, row] of result.rows.entries()) {
     assert.equal(row.occupied, true)
-    assert.deepEqual(row.nickname, { x: 382, y: 171 + index * 21, width: 86, height: 17 })
-    assert.deepEqual(row.partyRegion, { x: 203, y: 170 + index * 21, width: 42, height: 17 })
+    assert.deepEqual(row.nickname, {
+      x: 382,
+      y: [171, 192, 213, 234, 255, 276, 297, 318, 339, 360, 381, 402][index],
+      width: 86,
+      height: 17
+    })
+    assert.deepEqual(row.partyRegion, {
+      x: 203,
+      y: [170, 191, 212, 233, 254, 275, 296, 317, 338, 359, 380, 401][index],
+      width: 42,
+      height: 17
+    })
     assert.deepEqual(row.equipmentScoreRegion, {
       x: 306,
-      y: 171 + index * 21,
+      y: [171, 192, 213, 234, 255, 276, 297, 318, 339, 360, 381, 402][index],
       width: 75,
       height: 17
     })
@@ -113,7 +141,7 @@ test('finds twelve screen positions and copies independent, unmodified nickname 
   assert.deepEqual(result.rows[1].nicknameCrop.rgba, second)
 })
 
-test('keeps twelve positions when the raid shrinks and does not retain prior frame state', () => {
+test(testTitles.shrinkingRaid, () => {
   const image = frame()
   popup(image, { count: 12 })
   assert.equal(
@@ -132,7 +160,7 @@ test('keeps twelve positions when the raid shrinks and does not retain prior fra
   assert.ok(result.rows.slice(7).every((row) => !row.occupied && row.nicknameCrop === null))
 })
 
-test('finds an empty dialog and requires occupancy evidence outside the nickname column', () => {
+test(testTitles.emptyDialog, () => {
   const image = frame()
   popup(image, { count: 0 })
   paint(image, 390, 173, 70, 11, [220, 190, 110, 255])
@@ -143,44 +171,65 @@ test('finds an empty dialog and requires occupancy evidence outside the nickname
   assert.ok(result.rows.every((row) => !row.occupied && row.nicknameCrop === null))
 })
 
-for (const scale of [1.35, 1.8]) {
-  test(`finds a translated ${scale}x twelve-row raster without receiving a UI setting`, () => {
+// desktop-raid-participants.md의 기준 열·12행을 손으로 확대·이동한 연속 좌표다.
+// 합성 최근접 보간과 검출기 보간의 차이에 대한 기존 2px 허용 범위는 유지한다.
+const scaledNicknameCases = [
+  {
+    scale: 1.35,
+    x: 895.7,
+    width: 116.1,
+    height: 22.95,
+    tops: [278.35, 306.7, 335.05, 363.4, 391.75, 420.1, 448.45, 476.8, 505.15, 533.5, 561.85, 590.2]
+  },
+  {
+    scale: 1.8,
+    x: 977.6,
+    width: 154.8,
+    height: 30.6,
+    tops: [287.8, 325.6, 363.4, 401.2, 439, 476.8, 514.6, 552.4, 590.2, 628, 665.8, 703.6]
+  }
+]
+for (const expected of scaledNicknameCases) {
+  test(`${testTitles.scaledDialog} (${expected.scale}배)`, () => {
     const image = frame(1920, 1080)
-    popup(image, { x: 650, y: 250, scale, count: 10 })
+    popup(image, { x: 650, y: 250, scale: expected.scale, count: 10 })
     const result = cropDNFRaidParticipantNicknames(image, heading)
 
     assert.equal(result.status, 'found')
-    assert.ok(Math.abs(result.scale - scale) < 0.01)
-    assert.equal(result.rows.filter((row) => row.occupied).length, 10)
+    assert.ok(Math.abs(result.scale - expected.scale) < 0.01)
+    assert.deepEqual(
+      result.rows.filter((row) => row.occupied).map((row) => row.row),
+      [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    )
     assert.equal(result.rows.length, 12)
     for (const [index, row] of result.rows.entries()) {
-      assert.ok(Math.abs(row.nickname.x - (650 + 182 * scale)) <= 2)
-      assert.ok(Math.abs(row.nickname.y - (250 + (21 + 21 * index) * scale)) <= 2)
-      assert.ok(Math.abs(row.nickname.width - 86 * scale) <= 2)
-      assert.ok(Math.abs(row.nickname.height - 17 * scale) <= 2)
+      assert.ok(Math.abs(row.nickname.x - expected.x) <= 2, `${row.row}행의 x`)
+      assert.ok(Math.abs(row.nickname.y - expected.tops[index]) <= 2, `${row.row}행의 y`)
+      assert.ok(Math.abs(row.nickname.width - expected.width) <= 2, `${row.row}행의 폭`)
+      assert.ok(Math.abs(row.nickname.height - expected.height) <= 2, `${row.row}행의 높이`)
     }
   })
 }
 
-test('rejects a red marker without heading evidence and a heading without all twelve separators', () => {
+test(testTitles.requiredRows, () => {
   const image = frame()
   paint(image, 601, 136, 9, 9, [235, 20, 25, 255])
   assert.deepEqual(detectDNFRaidParticipantWindow(image, heading), { status: 'not-found' })
   popup(image)
   assert.equal(detectDNFRaidParticipantWindow(image, heading).status, 'found')
-  // Erase a lower separator so validating only the first four rows would incorrectly pass.
+  // 아래 구분선을 지워 앞의 네 행만 검사하는 잘못된 검출을 구별한다.
   paint(image, 200, 354, 423, 7, [230, 230, 230, 255])
   assert.deepEqual(detectDNFRaidParticipantWindow(image, heading), { status: 'not-found' })
 })
 
-test('returns ambiguous instead of choosing between two complete raid dialogs', () => {
+test(testTitles.ambiguous, () => {
   const image = frame()
   popup(image, { x: 40, y: 100 })
   popup(image, { x: 580, y: 200 })
   assert.deepEqual(cropDNFRaidParticipantNicknames(image, heading), { status: 'ambiguous' })
 })
 
-test('accepts a full dialog at frame edges and rejects clipped or missing bottom rows', () => {
+test(testTitles.clippedEdges, () => {
   const exact = frame()
   popup(exact, { x: 15, y: 68 })
   assert.equal(detectDNFRaidParticipantWindow(exact, heading).status, 'found')
@@ -194,7 +243,7 @@ test('accepts a full dialog at frame edges and rejects clipped or missing bottom
   }
 })
 
-test('reports the candidate limit without returning an earlier valid dialog', () => {
+test(testTitles.anchorLimit, () => {
   const image = frame(1920, 1080)
   popup(image)
   for (let index = 0; index < 129; index += 1) {
@@ -203,7 +252,7 @@ test('reports the candidate limit without returning an earlier valid dialog', ()
   assert.deepEqual(cropDNFRaidParticipantNicknames(image, heading), { status: 'search-limit' })
 })
 
-test('ignores unrelated red decoration on a bright background', () => {
+test(testTitles.brightDecorations, () => {
   const image = frame(1920, 1080)
   paint(image, 0, 0, image.width, image.height, [140, 160, 130, 255])
   popup(image, { x: 100, y: 100, count: 8 })
@@ -222,27 +271,66 @@ test('ignores unrelated red decoration on a bright background', () => {
   assert.equal(result.rows.filter((row) => row.occupied).length, 8)
 })
 
-test('bounds input dimensions and validates raw bytes and the raid-specific heading size', () => {
+test(testTitles.validation, () => {
   const image = frame()
-  for (const invalid of [
+  const invalidFrames = [
     null,
-    { ...image, width: 1066 },
-    { ...image, width: 1921 },
-    { ...image, height: 599 },
-    { ...image, height: 1081 },
-    { ...image, width: 1067.5 },
-    { ...image, height: NaN },
+    undefined,
+    // 크기 경계와 정수 검사를 잘못된 바이트 길이만으로 통과시키지 않는다.
+    ...[
+      [1066, 600],
+      [1921, 600],
+      [1067, 599],
+      [1067, 1081],
+      [1067.5, 600],
+      [1067, 600.5]
+    ].map(([width, height]) => {
+      const rgba = new Uint8Array(width * height * 4)
+
+      return { width, height, rgba }
+    }),
+    { ...image, width: NaN },
+    { ...image, width: Infinity },
+    { ...image, height: -Infinity },
+    { ...image, width: Number.MAX_SAFE_INTEGER + 1 },
+    { ...image, width: '1067' },
+    { ...image, height: null },
     { ...image, rgba: image.rgba.subarray(4) },
-    { ...image, rgba: new Uint16Array(image.rgba.length) }
-  ]) {
-    assert.throws(() => detectDNFRaidParticipantWindow(invalid, heading), RangeError)
+    { ...image, rgba: new Uint8Array(image.rgba.length + 4) },
+    { ...image, rgba: new Uint16Array(image.rgba.length) },
+    { ...image, rgba: new Int8Array(image.rgba.length) },
+    { ...image, rgba: Array(image.rgba.length) }
+  ]
+  const flatHeading = frame(423, 18)
+  for (let index = 3; index < flatHeading.rgba.length; index += 4) {
+    flatHeading.rgba[index] = index % 256
   }
-  for (const invalid of [null, frame(368, 17), frame(422, 18), frame(423, 17), frame(423, 18)]) {
-    assert.throws(() => detectDNFRaidParticipantWindow(image, invalid), RangeError)
+  const invalidHeadings = [
+    null,
+    undefined,
+    frame(368, 17),
+    frame(422, 18),
+    frame(424, 18),
+    frame(423, 17),
+    frame(423, 19),
+    flatHeading,
+    { ...heading, width: '423' },
+    { ...heading, rgba: heading.rgba.subarray(4) },
+    { ...heading, rgba: new Uint8Array(heading.rgba.length + 4) },
+    { ...heading, rgba: new Uint16Array(heading.rgba.length) },
+    { ...heading, rgba: Array(heading.rgba.length) }
+  ]
+  for (const detectOrCrop of [detectDNFRaidParticipantWindow, cropDNFRaidParticipantNicknames]) {
+    for (const invalid of invalidFrames) {
+      assert.throws(() => detectOrCrop(invalid, heading), RangeError, detectOrCrop.name)
+    }
+    for (const invalid of invalidHeadings) {
+      assert.throws(() => detectOrCrop(image, invalid), RangeError, detectOrCrop.name)
+    }
   }
 })
 
-test('does not return an earlier raid match when later anchors exhaust the shared frame budget', () => {
+test(testTitles.comparisonLimit, () => {
   const image = frame(1920, 1080)
   popup(image, { x: 200, y: 100 })
   for (let index = 0; index < 100; index += 1) {
@@ -259,7 +347,7 @@ test('does not return an earlier raid match when later anchors exhaust the share
   assert.equal(cropDNFRaidParticipantNicknames(image, heading).status, 'search-limit')
 })
 
-test('accepts a dialog exactly touching the right and bottom frame edges', () => {
+test(testTitles.rightBottomEdges, () => {
   const exact = frame()
   popup(exact, { x: 617, y: 276 })
   const result = cropDNFRaidParticipantNicknames(exact, heading)
@@ -267,4 +355,107 @@ test('accepts a dialog exactly touching the right and bottom frame edges', () =>
   assert.equal(result.status, 'found')
   assert.equal(result.window.x + result.window.width, exact.width)
   assert.equal(result.window.y + result.window.height, exact.height)
+})
+
+test(testTitles.clientLimits, () => {
+  for (const [width, height] of [
+    [1067, 600],
+    [1920, 1080]
+  ]) {
+    const image = { width, height, rgba: new Uint8Array(width * height * 4) }
+    assert.deepEqual(detectDNFRaidParticipantWindow(image, heading), { status: 'not-found' })
+    assert.deepEqual(cropDNFRaidParticipantNicknames(image, heading), { status: 'not-found' })
+  }
+})
+
+test(testTitles.evidencePairs, () => {
+  const image = frame()
+  popup(image, { count: 0 })
+  paint(image, 251, 170, 15, 16, [160, 160, 160, 0])
+  paint(image, 285, 170, 19, 16, [160, 160, 160, 0])
+  paint(image, 251, 191, 15, 16, [160, 160, 160, 0])
+  paint(image, 469, 191, 12, 16, [20, 180, 80, 0])
+  paint(image, 285, 212, 19, 16, [160, 160, 160, 0])
+  paint(image, 469, 212, 12, 16, [20, 180, 80, 0])
+  paint(image, 382, 234, 86, 17, [255, 255, 255, 0])
+  const result = cropDNFRaidParticipantNicknames(image, heading)
+
+  assert.equal(result.status, 'found')
+  assert.deepEqual(
+    result.rows.filter(({ occupied }) => occupied).map(({ row }) => row),
+    [1, 2, 3]
+  )
+  assert.deepEqual(
+    result.rows.filter(({ nicknameCrop }) => nicknameCrop !== null).map(({ row }) => row),
+    [1, 2, 3]
+  )
+  assert.deepEqual(
+    result.rows.map(({ row }) => row),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+  )
+})
+
+test(testTitles.rgbaViews, () => {
+  const corners = [
+    [17, 33, 65, 0],
+    [19, 35, 67, 17],
+    [21, 37, 69, 128],
+    [23, 39, 71, 255]
+  ]
+  for (const ArrayType of [Uint8Array, Uint8ClampedArray]) {
+    const image = frame()
+    popup(image, { count: 2 })
+    const storage = new ArrayType(image.rgba.length + 8).fill(211)
+    storage.set(image.rgba, 4)
+    const rgba = storage.subarray(4, storage.length - 4)
+    for (let index = 3; index < rgba.length; index += 4) {
+      rgba[index] = 0
+    }
+    const view = Object.freeze({ width: image.width, height: image.height, rgba })
+    const headingStorage = new ArrayType(heading.rgba.length + 8).fill(73)
+    headingStorage.set(heading.rgba, 4)
+    const headingRgba = headingStorage.subarray(4, headingStorage.length - 4)
+    for (let index = 3; index < headingRgba.length; index += 4) {
+      headingRgba[index] = 0
+    }
+    const reference = Object.freeze({ width: 423, height: 18, rgba: headingRgba })
+    for (const [index, [x, y]] of [
+      [382, 171],
+      [467, 171],
+      [382, 187],
+      [467, 187]
+    ].entries()) {
+      paint(view, x, y, 1, 1, corners[index])
+    }
+    const original = storage.slice()
+    const originalHeading = headingStorage.slice()
+    const result = cropDNFRaidParticipantNicknames(view, reference)
+
+    assert.equal(result.status, 'found')
+    assert.equal(result.scale, 1)
+    assert.deepEqual(result.window, { x: 185, y: 82, width: 465, height: 392 })
+    assert.deepEqual(
+      result.rows.filter(({ occupied }) => occupied).map(({ row }) => row),
+      [1, 2]
+    )
+    assert.ok(result.rows.slice(2).every(({ nicknameCrop }) => nicknameCrop === null))
+    assert.deepEqual(result.rows[0].nickname, { x: 382, y: 171, width: 86, height: 17 })
+    const crop = result.rows[0].nicknameCrop
+    assert.equal(crop.width, 86)
+    assert.equal(crop.height, 17)
+    assert.equal(crop.rgba.length, 5848)
+    for (const [index, offset] of [0, 340, 5504, 5844].entries()) {
+      assert.deepEqual([...crop.rgba.subarray(offset, offset + 4)], corners[index])
+    }
+    assert.notEqual(crop.rgba.buffer, storage.buffer)
+    assert.notEqual(crop.rgba.buffer, result.rows[1].nicknameCrop.rgba.buffer)
+    assert.deepEqual(storage, original)
+    assert.deepEqual(headingStorage, originalHeading)
+    const secondCrop = result.rows[1].nicknameCrop.rgba.slice()
+    rgba.fill(0)
+    assert.deepEqual(result.rows[1].nicknameCrop.rgba, secondCrop)
+    for (const [index, offset] of [0, 340, 5504, 5844].entries()) {
+      assert.deepEqual([...crop.rgba.subarray(offset, offset + 4)], corners[index])
+    }
+  }
 })
