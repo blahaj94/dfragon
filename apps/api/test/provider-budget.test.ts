@@ -89,23 +89,41 @@ test('동시 슬롯 12개는 응답 body가 완료될 때까지 유지되고 완
   const gate = new Promise<void>((resolve) => {
     release = resolve
   })
+  let bodyReads = 0
+  let markAllBodiesReading!: () => void
+  const allBodiesReading = new Promise<void>((resolve) => {
+    markAllBodiesReading = resolve
+  })
   const transport: typeof fetch = async () => {
     calls++
+    if (calls > 12) {
+      return Response.json({ rows: [] })
+    }
 
     return new Response(
-      new ReadableStream({
-        async start(controller) {
-          await gate
-          controller.enqueue(new TextEncoder().encode('{"rows":[]}'))
-          controller.close()
-        }
-      })
+      new ReadableStream(
+        {
+          async pull(controller) {
+            bodyReads++
+            if (bodyReads === 12) {
+              markAllBodiesReading()
+            }
+            await gate
+            controller.enqueue(new TextEncoder().encode('{"rows":[]}'))
+            controller.close()
+          }
+        },
+        // 선행 buffering 없이 adapter가 headers 이후 body를 실제로 읽을 때 관측한다.
+        { highWaterMark: 0 }
+      )
     )
   }
   const search = createNeopleCharacterSearchForTest('fixture', { fetch: transport }, budget)
   const input = { characterName: '합성', serverId: 'siroco', limit: 10 }
   const pending = Array.from({ length: 12 }, () => search(input))
   try {
+    await allBodiesReading
+    assert.equal(bodyReads, 12)
     await assert.rejects(search(input), { status: 429, retryAfter: 1 })
     assert.equal(calls, 12)
   } finally {
