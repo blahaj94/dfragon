@@ -5,7 +5,6 @@ import { createLoginService } from '../src/auth/login/service.js'
 import { configurationFingerprint } from '../src/auth/login/configuration.js'
 import { newOpaque, opaqueHash } from '../src/auth/login/crypto.js'
 import { browserCookie } from '../src/auth/login/state.js'
-import { CLEARED_LOGIN_FIELDS } from '../src/constants/login.js'
 import {
   AuthLoginRequestSchema,
   type AuthLoginRequest
@@ -40,7 +39,16 @@ export function managementFixture(count = 2) {
     }
   })
   const row: AuthLoginRequest = {
-    ...CLEARED_LOGIN_FIELDS,
+    codeChallenge: null,
+    launchTicketHash: null,
+    qrTicketHash: null,
+    phoneBindingHash: null,
+    confirmationCode: null,
+    webauthnChallenge: null,
+    operation: null,
+    pendingUserId: null,
+    exchangeCodeHash: null,
+    codeExpiresAt: null,
     id: randomUUID(),
     purpose: 'manage',
     status: 'managing',
@@ -54,10 +62,21 @@ export function managementFixture(count = 2) {
     consumedAt: null
   }
   const events: string[] = []
+  let clockReads = 0
+  const state: {
+    onClock: (read: number) => Date
+    beforeLockedRead: (kind: 'request' | 'user' | 'credential') => void
+  } = {
+    onClock: () => now,
+    beforeLockedRead: () => {}
+  }
+  const currentKeys = () =>
+    keys.filter((key) => key.userId === userId && key.rpId === configuration.rpId)
   const requests = {
     async findOne(query: unknown) {
       assert.deepEqual(query, { where: { id: row.id }, lock: { mode: 'pessimistic_write' } })
       events.push('request-lock')
+      state.beforeLockedRead('request')
 
       return row
     },
@@ -79,7 +98,8 @@ export function managementFixture(count = 2) {
       assert.equal(query.where.userId, userId)
       assert.equal(query.where.rpId, configuration.rpId)
       events.push('credential-lock')
-      const key = keys.find((key) => key.id === query.where.id)
+      state.beforeLockedRead('credential')
+      const key = currentKeys().find((key) => key.id === query.where.id)
 
       if (key === undefined) {
         return null
@@ -87,17 +107,42 @@ export function managementFixture(count = 2) {
 
       return key
     },
+    async find(query: unknown) {
+      assert.deepEqual(query, {
+        where: { userId, rpId: configuration.rpId },
+        order: { createdAt: 'ASC', id: 'ASC' }
+      })
+      events.push('credential-list')
+      const sorted = currentKeys().toSorted((left, right) => {
+        const byCreation = left.createdAt.getTime() - right.createdAt.getTime()
+        if (byCreation !== 0) {
+          return byCreation
+        }
+
+        if (left.id < right.id) {
+          return -1
+        }
+
+        if (left.id > right.id) {
+          return 1
+        }
+
+        return 0
+      })
+
+      return sorted
+    },
     async findBy(where: unknown) {
       assert.deepEqual(where, { userId, rpId: configuration.rpId })
       events.push('credential-list')
 
-      return [...keys]
+      return currentKeys()
     },
     async countBy(where: unknown) {
       assert.deepEqual(where, { userId, rpId: configuration.rpId })
       events.push('credential-count')
 
-      return keys.length
+      return currentKeys().length
     },
     async insert(key: Passkey) {
       events.push('credential-insert')
@@ -112,7 +157,7 @@ export function managementFixture(count = 2) {
       )
     }
   }
-  // This service fixture models only used repositories; real lock/rollback behavior stays in DB tests.
+  // 조회와 상태 변경만 모델링하며 실제 PostgreSQL 경합은 DB 통합 테스트에서 확인한다.
   const manager = {
     getRepository(schema: unknown) {
       if (schema === AuthLoginRequestSchema) {
@@ -128,6 +173,7 @@ export function managementFixture(count = 2) {
         async findOne(query: unknown) {
           assert.deepEqual(query, { where: { id: userId }, lock: { mode: 'pessimistic_write' } })
           events.push('user-lock')
+          state.beforeLockedRead('user')
 
           return { id: userId }
         }
@@ -137,7 +183,10 @@ export function managementFixture(count = 2) {
       assert.equal(sql, 'SELECT to_timestamp(floor(extract(epoch from clock_timestamp()))) AS now')
       events.push('time')
 
-      return [{ now }]
+      clockReads += 1
+      const checkedAt = state.onClock(clockReads)
+
+      return [{ now: checkedAt }]
     }
   } as unknown as EntityManager
   const dataSource = {
@@ -165,8 +214,16 @@ export function managementFixture(count = 2) {
     }
   })
   const cookie = browserCookie({ requestId: row.id, bindingValue: secret, maxAgeSeconds: 600 })
-  const invoke = (action: string, values: Record<string, unknown> = {}) =>
-    service.browser(action, { requestId: row.id, ...values }, cookie, configuration.apiOrigin)
+  const invoke = (
+    action: string,
+    values: Record<string, unknown> = {},
+    boundary: { cookie?: string; origin?: string } = {}
+  ) => {
+    const requestCookie = boundary.cookie ?? cookie
+    const origin = boundary.origin ?? configuration.apiOrigin
 
-  return { invoke, row, keys, now, events, configuration }
+    return service.browser(action, { requestId: row.id, ...values }, requestCookie, origin)
+  }
+
+  return { invoke, service, cookie, row, keys, now, events, configuration, state }
 }

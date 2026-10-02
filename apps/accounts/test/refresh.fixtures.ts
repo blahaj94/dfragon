@@ -43,6 +43,8 @@ export function fixture() {
     revokedAt: null as Date | null,
     revokedReason: null as string | null
   }
+  const otherUser = { id: randomUUID() }
+  const otherSession = { ...session, id: randomUUID(), userId: otherUser.id }
   const token = {
     tokenHash: digest(bytes),
     sessionId: session.id,
@@ -54,6 +56,7 @@ export function fixture() {
   const state = {
     userMissing: false,
     sessionMissing: false,
+    sessionHintMissing: false,
     tokenMissing: false,
     hintMissing: false,
     freshTime: time,
@@ -78,11 +81,15 @@ export function fixture() {
     findOneBy: async (where: unknown) => {
       events.push('session-hint')
       assert.deepEqual(where, { id: token.sessionId })
+      if (state.sessionHintMissing) {
+        return null
+      }
 
       return { ...session }
     },
-    findOne: async () => {
+    findOne: async (query: unknown) => {
       events.push('session-lock')
+      assert.deepEqual(query, { where: { id: session.id }, lock: { mode: 'pessimistic_write' } })
 
       if (state.sessionMissing) {
         return null
@@ -194,7 +201,19 @@ export function fixture() {
     }
   }
 
-  return { deps, state, user, session, token, bytes, raw, events, inserted }
+  return {
+    deps,
+    state,
+    user,
+    session,
+    token,
+    bytes,
+    raw,
+    events,
+    inserted,
+    otherUser,
+    otherSession
+  }
 }
 
 export async function failure(promise: Promise<unknown>, code: string) {
