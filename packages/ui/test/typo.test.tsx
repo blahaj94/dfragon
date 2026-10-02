@@ -1,70 +1,76 @@
 import { act, createRef, type MouseEvent } from 'react'
 import { createRoot } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, expectTypeOf, it, vi } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { Typo, typographyVariants } from '../src/index'
 
-it('exports variants that can be used directly as React styles with pixel line heights', () => {
-  const container = document.createElement('div')
-  container.innerHTML = renderToStaticMarkup(<h1 style={typographyVariants.h1}>Heading</h1>)
-  const heading = container.querySelector('h1')!
+const typographyCases = [
+  { variant: 'h1', tag: 'h1', fontSize: 48, lineHeight: 56, fontWeight: 700 },
+  { variant: 'h2', tag: 'h2', fontSize: 40, lineHeight: 48, fontWeight: 700 },
+  { variant: 'h3', tag: 'h3', fontSize: 32, lineHeight: 40, fontWeight: 700 },
+  { variant: 'h4', tag: 'h4', fontSize: 24, lineHeight: 32, fontWeight: 600 },
+  { variant: 'h5', tag: 'h5', fontSize: 20, lineHeight: 28, fontWeight: 600 },
+  { variant: 'h6', tag: 'h6', fontSize: 18, lineHeight: 26, fontWeight: 600 },
+  { variant: 'txtL', tag: 'p', fontSize: 18, lineHeight: 28, fontWeight: 400 },
+  { variant: 'txtM', tag: 'p', fontSize: 16, lineHeight: 24, fontWeight: 400 },
+  { variant: 'txtS', tag: 'p', fontSize: 14, lineHeight: 20, fontWeight: 400 },
+  { variant: 'caption', tag: 'span', fontSize: 12, lineHeight: 18, fontWeight: 400 }
+] as const
 
-  expect(heading.style.fontSize).toBe('48px')
-  expect(heading.style.lineHeight).toBe('56px')
-  expect(heading.style.fontWeight).toBe('700')
-})
-
-it('uses semantic defaults and pixel dimensions for each variant', () => {
-  const cases = [
-    ['h1', 'h1', 48, 56, 700],
-    ['h2', 'h2', 40, 48, 700],
-    ['h3', 'h3', 32, 40, 700],
-    ['h4', 'h4', 24, 32, 600],
-    ['h5', 'h5', 20, 28, 600],
-    ['h6', 'h6', 18, 26, 600],
-    ['txtL', 'p', 18, 28, 400],
-    ['txtM', 'p', 16, 24, 400],
-    ['txtS', 'p', 14, 20, 400],
-    ['caption', 'span', 12, 18, 400]
-  ] as const
-
-  for (const [variant, tag, fontSize, lineHeight, fontWeight] of cases) {
+it.each(typographyCases)(
+  '$variant는 기본 $tag 태그를 쓰고 공개 style과 같은 픽셀 규격을 적용한다',
+  ({ variant, tag, fontSize, lineHeight, fontWeight }) => {
     const Component = Typo[variant]
     const container = document.createElement('div')
-    container.innerHTML = renderToStaticMarkup(<Component>Text</Component>)
+    container.innerHTML = renderToStaticMarkup(
+      <>
+        <Component>본문</Component>
+        <span style={typographyVariants[variant]}>직접 적용한 규격</span>
+      </>
+    )
     const element = container.firstElementChild as HTMLElement
+    const directStyle = container.lastElementChild as HTMLElement
 
     expect(element.localName).toBe(tag)
-    expect(element.textContent).toBe('Text')
-    expect(element.style.fontSize).toBe(`${fontSize}px`)
-    expect(element.style.lineHeight).toBe(`${lineHeight}px`)
-    expect(element.style.fontWeight).toBe(String(fontWeight))
+    expect(element.textContent).toBe('본문')
+    for (const target of [element, directStyle]) {
+      expect(target.style.fontSize).toBe(`${fontSize}px`)
+      expect(target.style.lineHeight).toBe(`${lineHeight}px`)
+      expect(target.style.fontWeight).toBe(String(fontWeight))
+    }
     expect(element.style.margin).toBe('0px')
+    expect(['', 'inherit']).toContain(element.style.fontFamily)
+    expect(['', 'inherit']).toContain(element.style.color)
+    expect(element.hasAttribute('role')).toBe(false)
+    expect(element.hasAttribute('tabindex')).toBe(false)
   }
-})
+)
 
-it('changes only the tag with as and forwards attributes and appearance overrides', () => {
+it('as로 링크 태그를 선택해도 variant를 유지하고 HTML 속성과 표현 옵션을 전달한다', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(
     <Typo.h2
       as="a"
       href="/about"
       id="about"
-      aria-label="About page"
+      aria-label="소개 페이지"
+      data-purpose="title"
       className="title"
       color="#111"
       align="center"
       weight={500}
     >
-      About
+      소개
     </Typo.h2>
   )
   const link = container.querySelector('a')!
 
   expect(link.getAttribute('href')).toBe('/about')
   expect(link.id).toBe('about')
-  expect(link.getAttribute('aria-label')).toBe('About page')
+  expect(link.getAttribute('aria-label')).toBe('소개 페이지')
+  expect(link.getAttribute('data-purpose')).toBe('title')
   expect(link.className).toBe('title')
+  expect(link.textContent).toBe('소개')
   expect(link.style.fontSize).toBe('40px')
   expect(link.style.lineHeight).toBe('48px')
   expect(link.style.fontWeight).toBe('500')
@@ -75,16 +81,25 @@ it('changes only the tag with as and forwards attributes and appearance override
   }
 })
 
-it('lets style take precedence over variants and convenience props', () => {
+it('style은 variant와 color·align·weight보다 우선하며 추가 CSS 속성도 전달한다', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(
     <Typo.txtM
       color="red"
       align="center"
       weight={500}
-      style={{ color: 'blue', textAlign: 'right', fontWeight: 600, fontSize: 20, margin: 8 }}
+      style={{
+        color: 'blue',
+        textAlign: 'right',
+        fontWeight: 600,
+        fontSize: 20,
+        lineHeight: 1.5,
+        fontFamily: 'serif',
+        margin: 8,
+        padding: 4
+      }}
     >
-      Styled text
+      직접 꾸민 본문
     </Typo.txtM>
   )
   const paragraph = container.querySelector('p')!
@@ -93,91 +108,53 @@ it('lets style take precedence over variants and convenience props', () => {
   expect(paragraph.style.textAlign).toBe('right')
   expect(paragraph.style.fontWeight).toBe('600')
   expect(paragraph.style.fontSize).toBe('20px')
+  expect(paragraph.style.lineHeight).toBe('1.5')
+  expect(paragraph.style.fontFamily).toBe('serif')
   expect(paragraph.style.margin).toBe('8px')
+  expect(paragraph.style.padding).toBe('4px')
 })
 
-it('forwards native button events and disabled behavior', async () => {
+it('활성 button은 실제 태그의 click을 전달하고 disabled로 바뀌면 클릭을 차단한다', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const container = document.createElement('div')
   const root = createRoot(container)
-  const onClick = vi.fn()
+  const targets: HTMLButtonElement[] = []
+  const onClick = vi.fn((event: MouseEvent<HTMLButtonElement>) => {
+    targets.push(event.currentTarget)
+  })
 
   try {
     await act(async () => {
       root.render(
-        <Typo.txtM as="button" onClick={onClick}>
-          Run
+        <Typo.txtM as="button" type="button" onClick={onClick}>
+          실행
         </Typo.txtM>
       )
     })
     const button = container.querySelector('button')!
+    expect(button.type).toBe('button')
+    expect(button.disabled).toBe(false)
     await act(async () => button.click())
     expect(onClick).toHaveBeenCalledOnce()
+    expect(targets).toEqual([button])
 
     await act(async () => {
       root.render(
-        <Typo.txtM as="button" disabled onClick={onClick}>
-          Run
+        <Typo.txtM as="button" type="button" disabled onClick={onClick}>
+          실행
         </Typo.txtM>
       )
     })
+    expect(button.disabled).toBe(true)
     await act(async () => button.click())
     expect(onClick).toHaveBeenCalledOnce()
+    expect(targets).toEqual([button])
   } finally {
     await act(async () => root.unmount())
   }
 })
 
-it('infers attributes and event targets from as and rejects mismatched attributes', () => {
-  const examples = (
-    <>
-      <Typo.h1
-        as="a"
-        href="/about"
-        onClick={(event) => {
-          expectTypeOf(event).toEqualTypeOf<MouseEvent<HTMLAnchorElement>>()
-        }}
-      >
-        About
-      </Typo.h1>
-      <Typo.txtM
-        as="button"
-        disabled
-        onClick={(event) => {
-          expectTypeOf(event).toEqualTypeOf<MouseEvent<HTMLButtonElement>>()
-        }}
-      >
-        Run
-      </Typo.txtM>
-      <Typo.h1
-        onClick={(event) => {
-          expectTypeOf(event).toEqualTypeOf<MouseEvent<HTMLHeadingElement>>()
-        }}
-      >
-        Heading
-      </Typo.h1>
-      <Typo.txtM as="label" htmlFor="name">
-        Name
-      </Typo.txtM>
-      {/* @ts-expect-error Default heading does not accept href. */}
-      <Typo.h1 href="/about">Invalid</Typo.h1>
-      {/* @ts-expect-error A button does not accept href. */}
-      <Typo.txtM as="button" href="/about">
-        Invalid
-      </Typo.txtM>
-      {/* @ts-expect-error An anchor does not accept disabled. */}
-      <Typo.h1 as="a" disabled>
-        Invalid
-      </Typo.h1>
-      {/* @ts-expect-error as must be an HTML tag. */}
-      <Typo.h1 as="invalid-tag">Invalid</Typo.h1>
-    </>
-  )
-
-  expect(examples).toBeDefined()
-})
-
-it('forwards native refs for focus and clears them on unmount', async () => {
+it('기본 heading과 as로 고른 input의 ref로 focus하고 unmount에서 ref를 해제한다', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const container = document.createElement('div')
   document.body.append(container)
@@ -188,17 +165,19 @@ it('forwards native refs for focus and clears them on unmount', async () => {
     await act(async () => {
       root.render(
         <>
-          <Typo.h4 as="h2" ref={heading} tabIndex={-1}>
-            License
+          <Typo.h4 ref={heading} tabIndex={-1}>
+            라이선스
           </Typo.h4>
-          <Typo.txtM as="input" ref={input} />
+          <Typo.txtM as="input" ref={input} aria-label="이름" />
         </>
       )
     })
+    expect(heading.current).toBe(container.querySelector('h4'))
+    expect(input.current).toBe(container.querySelector('input'))
     heading.current?.focus()
-    expect(document.activeElement).toBe(container.querySelector('h2'))
+    expect(document.activeElement).toBe(heading.current)
     input.current?.focus()
-    expect(document.activeElement).toBe(container.querySelector('input'))
+    expect(document.activeElement).toBe(input.current)
   } finally {
     await act(async () => root.unmount())
     container.remove()
@@ -207,16 +186,40 @@ it('forwards native refs for focus and clears them on unmount', async () => {
   expect(input.current).toBeNull()
 })
 
-it('infers ref targets from as', () => {
-  const input = createRef<HTMLInputElement>()
-  const examples = (
-    <>
-      <Typo.txtM as="input" ref={input} />
-      {/* @ts-expect-error An input ref cannot target an anchor. */}
-      <Typo.txtM as="a" ref={input}>
-        Invalid
-      </Typo.txtM>
-    </>
-  )
-  expect(examples).toBeDefined()
+it('as를 button에서 링크로 바꾸면 기존 ref를 해제하고 새 태그와 ref에 variant를 유지한다', async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  const button = createRef<HTMLButtonElement>()
+  const anchor = createRef<HTMLAnchorElement>()
+  try {
+    await act(async () => {
+      root.render(
+        <Typo.txtS as="button" ref={button} disabled>
+          다음
+        </Typo.txtS>
+      )
+    })
+    expect(button.current).toBe(container.querySelector('button'))
+    expect(button.current?.disabled).toBe(true)
+
+    await act(async () => {
+      root.render(
+        <Typo.txtS as="a" ref={anchor} href="/next">
+          다음
+        </Typo.txtS>
+      )
+    })
+    expect(container.querySelector('button')).toBeNull()
+    expect(button.current).toBeNull()
+    expect(anchor.current).toBe(container.querySelector('a'))
+    expect(anchor.current?.getAttribute('href')).toBe('/next')
+    expect(anchor.current?.hasAttribute('disabled')).toBe(false)
+    expect(anchor.current?.style.fontSize).toBe('14px')
+    expect(anchor.current?.style.lineHeight).toBe('20px')
+    expect(anchor.current?.style.fontWeight).toBe('400')
+  } finally {
+    await act(async () => root.unmount())
+  }
+  expect(anchor.current).toBeNull()
 })
