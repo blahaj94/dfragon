@@ -1,4 +1,5 @@
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
+import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAuthCoordinator } from '../auth/coordinator'
 import {
@@ -17,16 +18,18 @@ import {
 const electron = vi.hoisted(() => {
   const getSources = vi.fn()
   const handle = vi.fn()
+  const removeHandler = vi.fn()
 
-  return { getSources, handle }
+  return { getSources, handle, removeHandler }
 })
 vi.mock('electron', () => ({
   desktopCapturer: { getSources: electron.getSources },
-  ipcMain: { handle: electron.handle }
+  ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler }
 }))
 
 const rendererUrl = 'file:///fixture/index.html'
 const sources = [{ id: 'window:fixture', name: 'Synthetic capture window' }]
+const disposeFixtures = new Set<() => void>()
 type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown
 type MediaHandler = (
   request: Electron.DisplayMediaRequestHandlerHandlerRequest,
@@ -38,6 +41,9 @@ async function setup(signedIn = true): Promise<{
   harness: ReturnType<typeof createAuthHarness>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
   event: IpcMainInvokeEvent
+  documentEvents: EventEmitter
+  published: ReturnType<typeof vi.fn>
+  dispose: () => void
   mainFrame: { url: string; detached: boolean; isDestroyed: () => boolean }
   dispatchMedia: (callback: (result: unknown) => void) => void
   requestMedia: (
@@ -52,11 +58,14 @@ async function setup(signedIn = true): Promise<{
   await auth.start()
   harness.http.refresh.mockClear()
   let mediaHandler: MediaHandler | undefined
+  const documentEvents = new EventEmitter()
+  const windowEvents = new EventEmitter()
+  const published = vi.fn()
   const mainFrame = { url: rendererUrl, detached: false, isDestroyed: () => false }
   const webContents = {
     mainFrame,
-    on: vi.fn(),
-    send: vi.fn(),
+    on: documentEvents.on.bind(documentEvents),
+    send: published,
     isDestroyed: () => false,
     session: {
       setDisplayMediaRequestHandler: (handler: MediaHandler) => {
@@ -64,8 +73,9 @@ async function setup(signedIn = true): Promise<{
       }
     }
   }
-  const window = { webContents, isDestroyed: () => false, on: vi.fn() }
-  registerCaptureIpc()
+  const window = { webContents, isDestroyed: () => false, on: windowEvents.on.bind(windowEvents) }
+  const disposeIpc = registerCaptureIpc()
+  disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
@@ -99,7 +109,23 @@ async function setup(signedIn = true): Promise<{
     changes: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest> = {}
   ): Promise<unknown> => new Promise((resolve) => dispatchMedia(resolve, changes))
 
-  return { auth, harness, invoke, event, mainFrame, dispatchMedia, requestMedia }
+  const dispose = (): void => {
+    disposeFixtures.delete(disposeIpc)
+    disposeIpc()
+  }
+
+  return {
+    auth,
+    harness,
+    invoke,
+    event,
+    mainFrame,
+    dispatchMedia,
+    requestMedia,
+    documentEvents,
+    published,
+    dispose
+  }
 }
 
 async function beginCapture(fixture: Awaited<ReturnType<typeof setup>>): Promise<void> {
@@ -114,9 +140,117 @@ beforeEach(() => {
   vi.clearAllMocks()
   electron.getSources.mockResolvedValue(sources)
 })
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  for (const dispose of disposeFixtures) {
+    dispose()
+  }
+  disposeFixtures.clear()
+  vi.restoreAllMocks()
+})
 
 describe('capture main document and source boundary', () => {
+  it.each([
+    ['목록의 추가 인자', 'listCaptureSources', [true], 'Capture source access denied'],
+    [
+      '선택의 추가 인자',
+      'selectCaptureSource',
+      [sources[0].id, null],
+      'Capture source selection denied'
+    ],
+    ['중지의 추가 인자', 'selectCaptureSource', ['', true], 'Capture source selection denied']
+  ] as const)(
+    '%s는 열거하거나 기존 캡처를 끝내기 전에 거절한다',
+    async (_name, channel, args, message) => {
+      const fixture = await setup(false)
+      await fixture.invoke('selectCaptureSource', sources[0].id)
+      await beginCapture(fixture)
+      const before = await fixture.invoke('controlCharacterSearch', { action: 'read' })
+      electron.getSources.mockClear()
+      fixture.published.mockClear()
+
+      await expect(fixture.invoke(channel, ...args)).rejects.toThrow(message)
+
+      expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(before)
+      expect(electron.getSources).not.toHaveBeenCalled()
+      expect(fixture.published).not.toHaveBeenCalled()
+      expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(true)
+    }
+  )
+
+  it('나중에 끝난 이전 source 선택은 새 선택과 시작한 캡처를 덮지 않는다', async () => {
+    const fixture = await setup(false)
+    const nextSource = { id: 'window:second-fixture', name: 'Second synthetic capture window' }
+    const pending = deferred<typeof sources>()
+    electron.getSources
+      .mockReturnValueOnce(pending.promise)
+      .mockResolvedValue([sources[0], nextSource])
+    const firstSelection = fixture.invoke('selectCaptureSource', sources[0].id)
+    await vi.waitFor(() => expect(electron.getSources).toHaveBeenCalledTimes(1))
+    expect(await fixture.invoke('selectCaptureSource', nextSource.id)).toEqual(nextSource)
+    await beginCapture(fixture)
+    const current = await fixture.invoke('controlCharacterSearch', { action: 'read' })
+
+    pending.resolve(sources)
+
+    expect(await firstSelection).toBeNull()
+    expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(current)
+    expect(await fixture.requestMedia()).toEqual({ video: nextSource })
+  })
+
+  it('subframe navigation은 캡처를 유지하고 main document navigation은 수명을 끝낸다', async () => {
+    const fixture = await setup(false)
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    await beginCapture(fixture)
+    const before = await fixture.invoke('controlCharacterSearch', { action: 'read' })
+
+    fixture.documentEvents.emit(
+      'did-start-navigation',
+      {},
+      'file:///embedded/index.html',
+      false,
+      false
+    )
+
+    expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(before)
+    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
+    fixture.documentEvents.emit('did-start-navigation', {}, rendererUrl, false, true)
+    expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
+      ok: true,
+      snapshot: { captureId: null }
+    })
+    expect(await fixture.requestMedia()).toBeNull()
+    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
+  })
+
+  it('IPC 해제는 캡처·직접 검색을 정리하고 모든 전용 handler와 media 허용을 제거한다', async () => {
+    const fixture = await setup(false)
+    await fixture.invoke('selectCaptureSource', sources[0].id)
+    await beginCapture(fixture)
+    await fixture.invoke('controlManualSearch', { action: 'begin' })
+    fixture.published.mockClear()
+
+    fixture.dispose()
+
+    expect(electron.removeHandler.mock.calls.map(([channel]) => channel).sort()).toEqual([
+      'controlCharacterSearch',
+      'controlManualSearch',
+      'listCaptureSources',
+      'notifyManualNickname',
+      'notifyStableNicknameDetected',
+      'selectCaptureSource'
+    ])
+    expect(
+      fixture.published.mock.calls
+        .map(([channel, snapshot]) => [channel, snapshot.captureId])
+        .sort()
+    ).toEqual([
+      ['characterSearchChanged', null],
+      ['manualSearchChanged', null]
+    ])
+    expect(await fixture.requestMedia()).toBeNull()
+    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
+  })
+
   it('검색 read는 capture를 시작하거나 인증 HTTP를 실행하지 않는다', async () => {
     const fixture = await setup()
 

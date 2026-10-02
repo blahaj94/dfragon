@@ -51,4 +51,20 @@ describe('캡처 정책', () => {
       })
     ).toBe(false)
   })
+
+  it.each([
+    ['video가 없는', { videoRequested: false }],
+    ['사용자 동작이 없는', { userGesture: false }]
+  ] as const)('%s 요청은 선택 source와 main frame이 있어도 거절한다', (_name, changes) => {
+    expect(
+      isCaptureRequestAllowed({
+        hasSelectedSource: true,
+        isMainFrame: true,
+        videoRequested: true,
+        audioRequested: false,
+        userGesture: true,
+        ...changes
+      })
+    ).toBe(false)
+  })
 })
