@@ -87,6 +87,14 @@ function ifPrefix(path, options) {
     return []
   }
 
+  if (
+    comment &&
+    nativePrinter.isBlockComment(comment) &&
+    !util.hasNewline(originalText, locEnd(comment))
+  ) {
+    return [hardline, hardline]
+  }
+
   return [hardline]
 }
 
