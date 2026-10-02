@@ -15,7 +15,7 @@ const config = {
   ownerId: '00000000-0000-4000-8000-000000000001'
 }
 
-test('OCR reads only valid image metadata and reports missing or malformed metadata as unknown', async () => {
+test('OCR은 유효한 이미지 버전 메타데이터만 읽고 누락·잘못된 값은 미상으로 처리한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-ocr-version-'))
   const path = join(directory, 'build-info.json')
   try {
@@ -36,7 +36,7 @@ test('OCR reads only valid image metadata and reports missing or malformed metad
   }
 })
 
-test('OCR version is public and uncached while data authentication and Origin boundaries remain', async () => {
+test('공개 버전 조회는 캐시하지 않으며 자료 인증과 Origin 경계를 유지한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-ocr-version-http-'))
   const path = join(directory, 'build-info.json')
   await writeFile(path, JSON.stringify({ service: 'ocr', commit }))
@@ -64,7 +64,7 @@ test('OCR version is public and uncached while data authentication and Origin bo
   }
 })
 
-test('OCR version endpoint identifies the service when an older image has no metadata', async () => {
+test('이전 이미지에 버전 메타데이터가 없어도 OCR 서비스를 식별한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-ocr-version-old-'))
   const store = new OcrStore(':memory:', 1024 * 1024)
   const runtime = await createOcrApp(config, store, undefined, join(directory, 'missing.json'))
