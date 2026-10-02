@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { OcrStore } from '../src/store.js'
 import { parseUpload, cropPng, decodePng } from '../src/images.js'
 import { parseLabel } from '../src/input.js'
-test('one original per capture; retry is idempotent; crop pixels and metadata survive reopening', async () => {
+test('캡처 원본을 한 번 저장하고 동일 재시도와 재시작 뒤 크롭 픽셀·메타데이터를 보존한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ocr-store-'))
   let store = new OcrStore(join(directory, 'data.sqlite'), 1024 * 1024)
   try {
@@ -35,7 +35,7 @@ test('one original per capture; retry is idempotent; crop pixels and metadata su
     await rm(directory, { recursive: true, force: true })
   }
 })
-test('nickname split applies across captures; label corrections need acknowledgement when leaving a split', () => {
+test('같은 닉네임의 분할을 캡처 간 공유하고 다른 분할로 정답을 바꾸려면 확인을 요구한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const first = parseUpload(upload()),
@@ -78,7 +78,7 @@ test('nickname split applies across captures; label corrections need acknowledge
     store.close()
   }
 })
-test('invalid images, oversized geometry and quota failure leave no partial capture', () => {
+test('잘못된 이미지·좌표와 저장 한도 거절은 캡처를 부분 저장하지 않는다', () => {
   const body = upload()
   for (const change of [
     { originalPng: 'invalid' },
@@ -100,7 +100,7 @@ test('invalid images, oversized geometry and quota failure leave no partial capt
   }
 })
 
-test('duplicate IHDR, interlaced PNG and non-string UI scale source are rejected', () => {
+test('중복 IHDR·인터레이스 PNG와 문자열이 아닌 UI 배율 출처를 거절한다', () => {
   const body = upload(),
     png = Buffer.from(body.originalPng, 'base64')
   const repeated = Buffer.concat([png.subarray(0, 33), png.subarray(8)])
@@ -116,7 +116,7 @@ test('duplicate IHDR, interlaced PNG and non-string UI scale source are rejected
   assert.throws(() => parseUpload({ ...body, uiScaleSource: ['game'] }))
 })
 
-test('raid accepts twelve or selected rows while HUD and participant uploads keep four-slot limits', () => {
+test('공대는 선택한 12개 행까지 받고 HUD·파티원창은 4개 슬롯 경계를 유지한다', () => {
   const raid = raidUpload()
   const { capture } = parseUpload({ ...raid, crops: raid.crops.toReversed() })
   assert.equal(capture.kind, 'raid')
@@ -150,7 +150,7 @@ test('raid accepts twelve or selected rows while HUD and participant uploads kee
   }
 })
 
-test('raid rows retain numeric order, labels and nickname splits alongside existing HUD samples', () => {
+test('공대 행과 기존 HUD 표본이 숫자 순서·정답·닉네임 분할을 보존한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const raid = parseUpload(raidUpload())
