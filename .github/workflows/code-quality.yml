@@ -25,6 +25,8 @@ jobs:
           node-version: '24'
       - uses: pnpm/action-setup@v6
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prepare Electron for Desktop tests
+        run: pnpm --filter @dfragon/desktop rebuild electron
       - run: pnpm test:security-dependencies
       - run: pnpm test:product-images
       - run: node --test scripts/test/server-build-info.test.mjs
