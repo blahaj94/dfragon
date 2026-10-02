@@ -16,6 +16,26 @@ import type { projectCharacterDetails } from '../src/characters/details/project.
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'item-a' }
 const set: CatalogKey = { kind: 'set', setItemId: 'set-a' }
+function catalogPayload(key: CatalogKey) {
+  if (key.kind === 'item') {
+    const itemId = key.itemId
+    const itemName = '합성 아이템 ' + itemId
+
+    return { itemId, itemName }
+  }
+
+  if (key.kind === 'set') {
+    const setItemId = key.setItemId
+    const setItemName = '합성 세트 ' + setItemId
+
+    return { setItemId, setItemName, setItemOption: [] }
+  }
+  const jobId = key.jobId
+  const name = '합성 스킬 ' + key.skillId
+
+  return { jobId, name, levelInfo: { rows: [] } }
+}
+
 function memoryStore() {
   const rows = new Map<string, CatalogEntry>()
   const store: CatalogStore = {
@@ -93,8 +113,8 @@ test('저장된 아이템에서만 세트를 발견하고 캐시를 재사용하
     return keys.map((key) => {
       const payload =
         key.kind === 'item'
-          ? { setItemId: 'set-a' }
-          : { setItems: [{ itemId: 'unworn-item' }], setItemId: 'set-a', setItemOption: [] }
+          ? { ...catalogPayload(key), setItemId: 'set-a' }
+          : { ...catalogPayload(key), setItemInfo: [{ itemId: 'unworn-item' }] }
 
       return { key, payload }
     })
@@ -125,7 +145,11 @@ test('저장된 아이템에서만 세트를 발견하고 캐시를 재사용하
   const uncommitted = createCatalogService(broken, async (keys) => {
     attempts++
 
-    return keys.map((key) => ({ key, payload: { setItemId: 'uncommitted-set' } }))
+    return keys.map((key) => {
+      const payload = { ...catalogPayload(key), setItemId: 'uncommitted-set' }
+
+      return { key, payload }
+    })
   })
   assert.equal((await uncommitted.load([item], signal)).has('set:uncommitted-set'), false)
   assert.equal(attempts, 1)
@@ -143,10 +167,14 @@ test('후속 세트도 초기 참조와 함께 128개 한도와 하나의 취소
       if (key.kind === 'item') {
         const setItemId = 'set-' + key.itemId
 
-        return { key, payload: { setItemId } }
+        const payload = { ...catalogPayload(key), setItemId }
+
+        return { key, payload }
       }
 
-      return { key, payload: {} }
+      const payload = catalogPayload(key)
+
+      return { key, payload }
     })
   })
   const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => {
@@ -171,7 +199,12 @@ test('후속 세트도 초기 참조와 함께 128개 한도와 하나의 취소
       controller.abort()
     }
 
-    return keys.map((key) => ({ key, payload: { setItemId: 'set-a' } }))
+    return keys.map((key) => {
+      const setReference = key.kind === 'item' ? { setItemId: 'set-a' } : {}
+      const payload = { ...catalogPayload(key), ...setReference }
+
+      return { key, payload }
+    })
   })
   await assert.rejects(stopping.load([item], controller.signal))
 })
@@ -225,9 +258,11 @@ test('장착 부속에 공용 상세를 연결하고 원본·빈 슬롯·서약 
     calls.push(...keys)
 
     return keys.map((key): CatalogValue => {
-      const setItemId = key.kind === 'item' ? 'shared-set' : 'unused-set'
+      const base = catalogPayload(key)
+      const itemSet = key.kind === 'item' ? { setItemId: 'shared-set' } : {}
+      const payload = { ...base, ...itemSet, tune: [{ level: 0, setPoint: 165 }] }
 
-      return { key, payload: { setItemId, tune: [{ level: 0, setPoint: 165 }] } }
+      return { key, payload }
     })
   })
   const result = await enrichCharacterDetails(details, service, signal)
@@ -323,7 +358,11 @@ test('잘못된 참조는 조회하지 않고 반복 아이템·스킬은 한 �
   const catalog = createCatalogService(memoryStore().store, async (keys) => {
     requested.push(...keys)
 
-    return keys.map((key) => ({ key, payload: { description: catalogKey(key) } }))
+    return keys.map((key) => {
+      const payload = catalogPayload(key)
+
+      return { key, payload }
+    })
   })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
@@ -351,7 +390,11 @@ test('잘못된 참조는 조회하지 않고 반복 아이템·스킬은 한 �
   assert.deepEqual(Object.keys(skillDetails).sort(), ['skill-a', 'skill-b', 'skill-c', 'skill-d'])
   for (const id of ['skill-a', 'skill-b', 'skill-c', 'skill-d']) {
     assert.equal(skillDetails[id]!.status, 'fresh')
-    assert.deepEqual(skillDetails[id]!.data, { description: 'skill:job:' + id })
+    assert.deepEqual(skillDetails[id]!.data, {
+      jobId: 'job',
+      name: '합성 스킬 ' + id,
+      levelInfo: { rows: [] }
+    })
   }
   assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
   assert.deepEqual(details, original)
@@ -387,7 +430,7 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
           if (key.kind === 'skill' && key.skillId === 'missing') {
             return []
           }
-          const payload = { description: catalogKey(key) }
+          const payload = catalogPayload(key)
 
           return [{ key, payload }]
         })
@@ -398,7 +441,11 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
       assert.deepEqual(Object.keys(serialized.setDetails).sort(), ['__proto__', 'constructor'])
       for (const id of ['__proto__', 'constructor']) {
         assert(Object.hasOwn(serialized.setDetails, id))
-        assert.deepEqual(serialized.setDetails[id].data, { description: 'set:' + id })
+        assert.deepEqual(serialized.setDetails[id].data, {
+          setItemId: id,
+          setItemName: '합성 세트 ' + id,
+          setItemOption: []
+        })
         assert.equal(serialized.setDetails[id].status, 'fresh')
       }
       const skillDetails = serialized.skillStyle.skillDetails
@@ -406,7 +453,11 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
       for (const id of ['__proto__', 'constructor', 'missing']) {
         assert(Object.hasOwn(skillDetails, id))
         if (jobId === 'job' && id !== 'missing') {
-          assert.deepEqual(skillDetails[id].data, { description: 'skill:job:' + id })
+          assert.deepEqual(skillDetails[id].data, {
+            jobId: 'job',
+            name: '합성 스킬 ' + id,
+            levelInfo: { rows: [] }
+          })
           assert.equal(skillDetails[id].status, 'fresh')
         } else {
           assert.deepEqual(skillDetails[id], { data: null, fetchedAt: null, status: 'unavailable' })
@@ -420,7 +471,8 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
         jobId === 'job' ? ['skill:job:__proto__', 'skill:job:constructor', 'skill:job:missing'] : []
       assert.deepEqual(skills, expected)
       assert.deepEqual(serialized.equipment.equipment[0].itemDetail.data, {
-        description: 'item:equipment'
+        itemId: 'equipment',
+        itemName: '합성 아이템 equipment'
       })
     })
   }
@@ -442,10 +494,11 @@ test('예약된 itemDetail·skillDetails는 공용 저장값으로 교체하고 
   }
   const original = structuredClone(details)
   const catalog = createCatalogService(memoryStore().store, async (keys) => {
-    return keys.map((key) => ({
-      key,
-      payload: { description: catalogKey(key), tune: { level: 0 } }
-    }))
+    return keys.map((key) => {
+      const payload = { ...catalogPayload(key), tune: { level: 0 } }
+
+      return { key, payload }
+    })
   })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
@@ -453,13 +506,19 @@ test('예약된 itemDetail·skillDetails는 공용 저장값으로 교체하고 
   const equipment = result.equipment.equipment as Array<Record<string, unknown>>
   assert.equal(equipment[0]!.option, '장착 옵션')
   assert.deepEqual((equipment[0]!.itemDetail as CatalogDetail).data, {
-    description: 'item:equipment',
+    itemId: 'equipment',
+    itemName: '합성 아이템 equipment',
     tune: { level: 0 }
   })
   const skillStyle = result.skillStyle as Record<string, unknown>
   const skillDetails = skillStyle.skillDetails as Record<string, CatalogDetail>
   assert.deepEqual(Object.keys(skillDetails), ['first'])
-  assert.deepEqual(skillDetails.first!.data, { description: 'skill:job:first', tune: { level: 0 } })
+  assert.deepEqual(skillDetails.first!.data, {
+    jobId: 'job',
+    name: '합성 스킬 first',
+    levelInfo: { rows: [] },
+    tune: { level: 0 }
+  })
   assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
   assert.deepEqual(details, original)
 })

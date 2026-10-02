@@ -6,6 +6,26 @@ import { catalogKey } from '../src/characters/catalog/types.js'
 import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { CatalogKey } from '../src/characters/catalog/types.js'
 
+function catalogPayload(key: CatalogKey) {
+  if (key.kind === 'item') {
+    const itemId = key.itemId
+    const itemName = '합성 아이템 ' + itemId
+
+    return { itemId, itemName }
+  }
+
+  if (key.kind === 'set') {
+    const setItemId = key.setItemId
+    const setItemName = '합성 세트 ' + setItemId
+
+    return { setItemId, setItemName, setItemOption: [] }
+  }
+  const jobId = key.jobId
+  const name = '합성 스킬 ' + key.skillId
+
+  return { jobId, name, levelInfo: { rows: [] } }
+}
+
 test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내, 스킬은 단독 요청으로 제공한다', async () => {
   const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => {
     const itemId = 'item-' + index
@@ -39,7 +59,11 @@ test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내
   const service = createCatalogService(store, async (keys) => {
     calls.push(keys)
 
-    return keys.map((key) => ({ key, payload: { name: catalogKey(key) } }))
+    return keys.map((key) => {
+      const payload = catalogPayload(key)
+
+      return { key, payload }
+    })
   })
   const unique = [...items, ...sets, ...skills]
   const result = await service.load(
@@ -60,7 +84,7 @@ test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내
     assert.deepEqual(result.get(catalogKey(key)), {
       key,
       detail: {
-        data: { name: catalogKey(key) },
+        data: catalogPayload(key),
         fetchedAt: '2026-09-01T00:00:00.000Z',
         status: 'fresh'
       }
