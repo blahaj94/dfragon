@@ -167,7 +167,21 @@ it('follows refreshed answers while pristine but preserves a dirty draft', async
   expect(editor.text).toBe('최신정답')
 })
 
-it('preserves text typed after a save started and resets only when selecting another sample', async () => {
+it.each(['기존정답', '가나'])(
+  'adopts the normalized saved answer without a newer draft (previous=%s)',
+  async (previous) => {
+    const decomposed = '\u1100\u1161\u1102\u1161'
+    const saved = { ...sample, text: decomposed.normalize('NFC') }
+    vi.mocked(requestOcr).mockResolvedValueOnce(saved)
+    await render({ ...sample, text: previous })
+    await act(async () => editor.setText(decomposed))
+    await act(async () => editor.saveSample())
+    await render(saved)
+    expect(editor.text).toBe(saved.text)
+  }
+)
+
+it('preserves a newer draft when a normalized save completes and resets for another sample', async () => {
   let finish!: (value: Sample) => void
   vi.mocked(requestOcr).mockReturnValueOnce(
     new Promise((resolve) => {
@@ -175,13 +189,13 @@ it('preserves text typed after a save started and resets only when selecting ano
     })
   )
   await render()
-  await act(async () => editor.setText('저장요청'))
+  await act(async () => editor.setText('\u1100\u1161\u1102\u1161'))
   await act(async () => {
     void editor.saveSample()
   })
   await act(async () => editor.setText('다음초안'))
-  await act(async () => finish({ ...sample, text: '저장요청' }))
-  await render({ ...sample, text: '저장요청' })
+  await act(async () => finish({ ...sample, text: '가나' }))
+  await render({ ...sample, text: '가나' })
   expect(editor.text).toBe('다음초안')
   await render({ ...sample, id: 'two', text: '두번째정답' })
   expect(editor.text).toBe('두번째정답')
