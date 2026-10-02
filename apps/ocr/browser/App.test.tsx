@@ -29,7 +29,7 @@ vi.mock('./SampleEditor.js', () => ({
 
 afterEach(() => vi.unstubAllGlobals())
 
-it('retains the editor identity on metadata refresh and replaces it for another sample', async () => {
+it('같은 표본의 메타데이터 갱신은 편집 수명을 유지하고 표본 이동은 새 편집 수명으로 시작한다', async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   const root = createRoot(document.createElement('div'))
   const sample: Sample = {
