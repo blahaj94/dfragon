@@ -9,7 +9,7 @@ type CaptureFields = Omit<Capture, 'kind' | 'synthetic'>
 type SyntheticMetadata = Extract<Capture, { kind: 'synthetic' }>['synthetic']
 type IsCapture<T> = T extends Capture ? true : false
 
-// These literal assignments fail compilation if kind and metadata become independent again.
+// 종류와 메타데이터의 연결이 풀리면 이 리터럴 타입 계약에서 컴파일이 실패한다.
 const contracts: [
   IsCapture<CaptureFields & { kind: 'synthetic' }>,
   IsCapture<CaptureFields & { kind: 'hud'; synthetic: SyntheticMetadata }>,
@@ -17,7 +17,7 @@ const contracts: [
   IsCapture<CaptureFields & { kind: 'hud' }>
 ] = [false, false, true, true]
 
-test('capture kinds require synthetic metadata only for synthetic images', () => {
+test('합성 캡처 종류에만 합성 정답·렌더링 메타데이터를 요구한다', () => {
   assert.deepEqual(contracts, [false, false, true, true])
   const ordinary = parseUpload(upload()).capture
   const synthetic = parseSyntheticUpload(syntheticUpload()).capture

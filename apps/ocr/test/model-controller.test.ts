@@ -5,7 +5,7 @@ import { OcrModelController } from '../src/model-controller.js'
 import { OcrStore } from '../src/store.js'
 import { BASE_MODEL_ARTIFACTS, BASE_MODEL_ID, registerBaseModel } from '../src/base-model.js'
 
-test('base model retries share a download and integrity failure permits a later retry without storing bytes', async (context) => {
+test('기본 모델 동시 재시도는 다운로드를 공유하고 무결성 실패 뒤 저장 없이 다시 시도할 수 있다', async (context) => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   let release!: () => void
   const gate = new Promise<void>((resolve) => {
@@ -52,7 +52,7 @@ const artifacts = BASE_MODEL_ARTIFACTS.map((artifact, index) => {
   return testArtifact
 })
 
-test('verified artifacts register atomically and an existing base is revalidated without downloading', async (t) => {
+test('검증된 기본 모델은 원자적으로 등록하고 기존 모델도 다운로드 없이 bytes를 다시 검증한다', async (t) => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   t.after(() => store.close())
   let calls = 0
@@ -72,7 +72,7 @@ test('verified artifacts register atomically and an existing base is revalidated
   assert.equal(calls, 2)
 })
 
-test('a changed dictionary or oversized artifact leaves no partially registered base', async (t) => {
+test('기본 모델 사전 변경·파일 한도 초과는 모델을 부분 등록하지 않는다', async (t) => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   t.after(() => store.close())
   let calls = 0
