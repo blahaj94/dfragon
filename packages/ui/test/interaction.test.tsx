@@ -329,7 +329,10 @@ describe('Dialog의 상태 전이와 접근성·포커스', () => {
 
     await click(trigger)
 
-    expect(onOpenChange).toHaveBeenCalledWith(true, expect.objectContaining({ reason: 'trigger' }))
+    expect(new Set(onOpenChange.mock.calls.map(([open]) => open))).toEqual(new Set([true]))
+    expect(new Set(onOpenChange.mock.calls.map(([, details]) => details?.reason))).toEqual(
+      new Set(['trigger'])
+    )
     expect(trigger.getAttribute('aria-expanded')).toBe('true')
     expect(referencedTexts(element('[role="dialog"]'), 'aria-labelledby')).toEqual(['상세 정보'])
   })
@@ -381,7 +384,10 @@ describe('Dialog의 상태 전이와 접근성·포커스', () => {
       await click(buttonByText('확인하고 닫기', dialog))
     }
 
-    expect(onOpenChange).toHaveBeenCalledWith(false, expect.objectContaining({ reason }))
+    expect(new Set(onOpenChange.mock.calls.map(([open]) => open))).toEqual(new Set([false]))
+    expect(new Set(onOpenChange.mock.calls.map(([, details]) => details?.reason))).toEqual(
+      new Set([reason])
+    )
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
@@ -404,9 +410,9 @@ describe('Dialog의 상태 전이와 접근성·포커스', () => {
 
     await pressEscape(element('[role="dialog"]'))
 
-    expect(onOpenChange).toHaveBeenCalledWith(
-      false,
-      expect.objectContaining({ reason: 'escapeKeyDown' })
+    expect(new Set(onOpenChange.mock.calls.map(([open]) => open))).toEqual(new Set([false]))
+    expect(new Set(onOpenChange.mock.calls.map(([, details]) => details?.reason))).toEqual(
+      new Set(['escapeKeyDown'])
     )
     expect(buttonByText('상세 정보 열기').getAttribute('aria-expanded')).toBe('true')
     expect(referencedTexts(element('[role="dialog"]'), 'aria-labelledby')).toEqual(['상세 정보'])
