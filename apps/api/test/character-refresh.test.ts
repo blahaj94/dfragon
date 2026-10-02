@@ -2,11 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { setImmediate as nextTurn } from 'node:timers/promises'
 import { createCharacterDetailService } from '../src/characters/details/service.js'
-import {
-  characterFreshness,
-  CHARACTER_FRESHNESS_MS,
-  CHARACTER_REFRESH_COOLDOWN_MS
-} from '../src/characters/details/freshness.js'
+import { characterFreshness } from '../src/characters/details/freshness.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import { characterDetailSections } from '../src/characters/details/sections.js'
 import type { CharacterPayloads } from '../src/characters/details/sections.js'
@@ -90,49 +86,54 @@ function gate() {
   return { promise, release }
 }
 
-test('five-minute GET cache uses the oldest successful section fetch, not content changes', async (t) => {
-  const { state, store } = memory(rowsAt(initialTime))
-  let calls = 0
-  const service = createCharacterDetailService({
-    apiKey: 'fixture',
-    store,
-    fetchDetails: async () => {
-      calls++
+test('GET은 가장 오래된 성공 조회부터 정확히 5분에 만료되고 캐시 적중은 저장값을 바꾸지 않는다', async (t) => {
+  for (const [name, elapsed, refreshes] of [
+    ['5분 만료 1ms 전', 299_999, 0],
+    ['정확히 5분 만료', 300_000, 1],
+    ['5분 만료 1ms 후', 300_001, 1]
+  ] as const) {
+    await t.test(name, async (t) => {
+      const rows = rowsAt(initialTime + 120_000)
+      rows.find((row) => row.section === 'status')!.lastSuccessfulFetchAt = new Date(initialTime)
+      const { state, store } = memory(rows)
+      state.now = initialTime + elapsed
+      const before = structuredClone(state.rows)
+      let calls = 0
+      const service = createCharacterDetailService({
+        apiKey: 'fixture',
+        store,
+        fetchDetails: async () => {
+          calls++
 
-      return payloads
-    }
-  })
-  t.after(() => service.onModuleDestroy())
-  state.now = initialTime + CHARACTER_FRESHNESS_MS - 1
-  const before = structuredClone(state.rows)
-  const hit = await service.get('peer', identity, signal)
-  assert.equal(calls, 0)
-  assert.equal(state.writes, 0)
-  assert.equal(state.starts, 0)
-  assert.deepEqual(state.rows, before)
-  assert.deepEqual(hit.freshness, {
-    lastSuccessfulFetchAt: new Date(initialTime).toISOString(),
-    expiresAt: new Date(initialTime + CHARACTER_FRESHNESS_MS).toISOString()
-  })
-  state.now++
-  const renewed = await service.get('peer', identity, signal)
-  assert.equal(calls, 1)
-  assert.equal(state.writes, 1)
-  assert.equal(renewed.freshness.lastSuccessfulFetchAt, new Date(state.now).toISOString())
-  state.now += CHARACTER_REFRESH_COOLDOWN_MS
-  await service.refresh('peer', identity, signal)
-  assert.equal(calls, 2)
-  assert.equal(state.reads, 3)
+          return payloads
+        }
+      })
+      t.after(() => service.onModuleDestroy())
+
+      const result = await service.get('192.0.2.1', identity, signal)
+
+      assert.equal(calls, refreshes)
+      assert.equal(state.starts, refreshes)
+      assert.equal(state.writes, refreshes)
+      assert.equal(result.character.characterName, '합성 캐릭터')
+      if (refreshes === 0) {
+        assert.deepEqual(state.rows, before)
+        assert.deepEqual(result.freshness, {
+          lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
+          expiresAt: '2026-01-01T00:05:00.000Z'
+        })
+      } else {
+        assert.deepEqual(result.freshness, {
+          lastSuccessfulFetchAt: new Date(state.now).toISOString(),
+          expiresAt: new Date(state.now + 300_000).toISOString()
+        })
+      }
+    })
+  }
   assert.equal(characterFreshness(rowsAt(initialTime).slice(1)), null)
-  const mixed = rowsAt(initialTime + 1000)
-  mixed[0]!.lastSuccessfulFetchAt = new Date(initialTime)
-  assert.equal(
-    characterFreshness(mixed)!.lastSuccessfulFetchAt,
-    new Date(initialTime).toISOString()
-  )
 })
 
-test('missing or incomplete snapshots refresh; read failures do not fall through to upstream', async (t) => {
+test('최초·누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정제된 내부 오류로 중단한다', async (t) => {
   const { state, store } = memory()
   let calls = 0
   const service = createCharacterDetailService({
@@ -151,18 +152,26 @@ test('missing or incomplete snapshots refresh; read failures do not fall through
   assert.equal(calls, 2)
   assert.equal(state.rows.length, 11)
   store.read = async () => {
-    throw new CharacterDetailFailure('api')
+    throw new Error('fixture SQL failure with private database detail')
   }
-  await assert.rejects(
-    service.get('peer', identity, signal),
-    (e: unknown) => e instanceof CharacterDetailFailure && e.status === 502
-  )
+  await assert.rejects(service.get('peer', identity, signal), (error: unknown) => {
+    assert(error instanceof CharacterDetailFailure)
+    assert.equal(error.status, 500)
+    assert.deepEqual(error.body, {
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '서버 오류로 캐릭터 정보를 처리하지 못했습니다.'
+      }
+    })
+
+    return true
+  })
   assert.equal(calls, 2)
 })
 
-test('failed auto or manual refresh preserves stored data and never returns stale success', async (t) => {
+test('자동·명시 갱신 실패는 기존 저장값을 보존하고 만료된 응답을 성공처럼 반환하지 않는다', async (t) => {
   const { state, store } = memory(rowsAt(initialTime))
-  state.now += CHARACTER_REFRESH_COOLDOWN_MS
+  state.now += 30_000
   let failing = true
   const service = createCharacterDetailService({
     apiKey: 'fixture',
@@ -180,8 +189,13 @@ test('failed auto or manual refresh preserves stored data and never returns stal
   await assert.rejects(service.refresh('peer', identity, signal), { status: 503 })
   assert.equal(state.writes, 0)
   assert.deepEqual(state.rows, before)
-  assert((await service.get('peer', identity, signal)).freshness)
-  state.now += CHARACTER_FRESHNESS_MS
+  const cached = await service.get('peer', identity, signal)
+  assert.equal(cached.character.characterName, '합성 캐릭터')
+  assert.deepEqual(cached.freshness, {
+    lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T00:05:00.000Z'
+  })
+  state.now += 300_000
   await assert.rejects(service.get('peer', identity, signal), { status: 503 })
   assert.deepEqual(state.rows, before)
   failing = false
@@ -189,7 +203,7 @@ test('failed auto or manual refresh preserves stored data and never returns stal
   assert.equal(state.writes, 1)
 })
 
-test('GET hits and forced refresh share the per-IP ten-request quota', async (t) => {
+test('GET 캐시 적중과 명시 갱신은 IP별 10회 한도를 함께 소비한다', async (t) => {
   const { state, store } = memory(rowsAt(initialTime))
   let calls = 0
   const service = createCharacterDetailService({
@@ -205,7 +219,7 @@ test('GET hits and forced refresh share the per-IP ten-request quota', async (t)
   for (let i = 0; i < 9; i++) {
     await service.get('peer', identity, signal)
   }
-  state.now += CHARACTER_REFRESH_COOLDOWN_MS
+  state.now += 30_000
   await service.refresh('peer', identity, signal)
   await assert.rejects(
     service.get('peer', identity, signal),
@@ -218,7 +232,7 @@ test('GET hits and forced refresh share the per-IP ten-request quota', async (t)
   assert.equal(calls, 1)
 })
 
-test('sequential forced refresh from different clients respects the per-character cooldown', async (t) => {
+test('다른 IP의 명시 갱신도 캐릭터별 30초 cooldown과 남은 초를 지킨다', async (t) => {
   const { state, store } = memory()
   let calls = 0
   const service = createCharacterDetailService({
@@ -236,8 +250,11 @@ test('sequential forced refresh from different clients respects the per-characte
     status: 429,
     retryAfter: 30
   })
-  assert((await service.get('192.0.2.2', identity, signal)).freshness)
-  state.now += CHARACTER_REFRESH_COOLDOWN_MS - 1
+  assert.equal(
+    (await service.get('192.0.2.2', identity, signal)).freshness.lastSuccessfulFetchAt,
+    '2026-01-01T00:00:00.000Z'
+  )
+  state.now += 30_000 - 1
   await assert.rejects(service.refresh('192.0.2.3', identity, signal), {
     status: 429,
     retryAfter: 1
@@ -250,7 +267,7 @@ test('sequential forced refresh from different clients respects the per-characte
   assert.equal(state.writes, 2)
 })
 
-test('concurrent GET and POST share refresh; one disconnect cannot cancel the surviving waiter', async (t) => {
+test('GET과 명시 갱신은 작업을 공유하고 한 대기자의 연결 종료는 다른 대기자를 취소하지 않는다', async (t) => {
   const { state, store } = memory(),
     entered = gate(),
     finish = gate()
@@ -285,7 +302,7 @@ test('concurrent GET and POST share refresh; one disconnect cannot cancel the su
   assert.equal(state.writes, 1)
 })
 
-test('last waiter cancellation aborts work, prevents late persistence and allows a new request', async (t) => {
+test('마지막 대기자가 취소하면 지연 응답을 저장하지 않고 새 요청은 독립 갱신한다', async (t) => {
   const { state, store } = memory(),
     entered = gate(),
     late = gate()
@@ -321,7 +338,7 @@ test('last waiter cancellation aborts work, prevents late persistence and allows
   assert.equal(state.writes, 1)
 })
 
-test('shared failure is removed for retry and shutdown waits for aborted work cleanup', async (t) => {
+test('공유 갱신 실패 뒤 새 요청을 허용하고 서버 종료는 취소된 작업 정리를 기다린다', async (t) => {
   const { state, store } = memory(),
     entered = gate(),
     finish = gate()
@@ -380,7 +397,7 @@ test('shared failure is removed for retry and shutdown waits for aborted work cl
   assert.equal(state.writes, 0)
 })
 
-test('starting a refresh times out and a late DB timestamp cannot trigger upstream work', async (t) => {
+test('갱신 시작 DB 시각 조회가 2초를 넘으면 늦은 결과로 upstream·저장을 시작하지 않는다', async (t) => {
   const { state, store } = memory()
   const late = gate()
   let calls = 0
@@ -410,7 +427,7 @@ test('starting a refresh times out and a late DB timestamp cannot trigger upstre
   assert.equal(state.writes, 0)
 })
 
-test('shutdown cancels waiting for the DB refresh timestamp without waiting for its result', async (t) => {
+test('서버 종료는 갱신 시작 DB 시각 대기를 취소하고 늦은 결과를 처리하지 않는다', async (t) => {
   const { state, store } = memory()
   const entered = gate()
   const late = gate()
@@ -443,3 +460,83 @@ test('shutdown cancels waiting for the DB refresh timestamp without waiting for 
   assert.equal(calls, 0)
   assert.equal(state.writes, 0)
 })
+
+test('가장 오래된 성공 조회가 DB 현재 시각보다 미래이면 저장값을 유효한 캐시로 쓰지 않는다', async (t) => {
+  const { state, store } = memory(rowsAt(initialTime + 1))
+  let calls = 0
+  const service = createCharacterDetailService({
+    apiKey: 'fixture',
+    store,
+    fetchDetails: async () => {
+      calls++
+
+      return payloads
+    }
+  })
+  t.after(() => service.onModuleDestroy())
+
+  const result = await service.get('192.0.2.1', identity, signal)
+
+  assert.equal(calls, 1)
+  assert.equal(state.starts, 1)
+  assert.equal(state.writes, 1)
+  assert.deepEqual(result.freshness, {
+    lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T00:05:00.000Z'
+  })
+})
+
+test(
+  '명시 갱신 진행 중에도 유효한 GET 캐시는 즉시 기존 값을 제공하고 완료 뒤 새 저장값을 반환한다',
+  { timeout: 2000 },
+  async (t) => {
+    const { state, store } = memory(rowsAt(initialTime))
+    state.now += 30_000
+    const entered = gate()
+    const finish = gate()
+    const updated = structuredClone(payloads)
+    for (const section of characterDetailSections) {
+      updated[section].characterName = '갱신 캐릭터'
+    }
+    let calls = 0
+    const service = createCharacterDetailService({
+      apiKey: 'fixture',
+      store,
+      fetchDetails: async () => {
+        calls++
+        entered.release()
+        await finish.promise
+
+        return updated
+      }
+    })
+    t.after(async () => {
+      finish.release()
+      await service.onModuleDestroy()
+    })
+    const pending = service.refresh('192.0.2.1', identity, signal)
+    await entered.promise
+
+    const cached = await service.get('192.0.2.2', identity, signal)
+    assert.equal(cached.character.characterName, '합성 캐릭터')
+    assert.deepEqual(cached.freshness, {
+      lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
+      expiresAt: '2026-01-01T00:05:00.000Z'
+    })
+    assert.equal(calls, 1)
+    assert.equal(state.writes, 0)
+    finish.release()
+    const refreshed = await pending
+    assert.equal(refreshed.character.characterName, '갱신 캐릭터')
+    assert.deepEqual(refreshed.freshness, {
+      lastSuccessfulFetchAt: '2026-01-01T00:00:30.000Z',
+      expiresAt: '2026-01-01T00:05:30.000Z'
+    })
+    assert.equal(state.writes, 1)
+    assert.equal(
+      (await service.get('192.0.2.2', identity, signal)).character.characterName,
+      '갱신 캐릭터'
+    )
+    assert.equal(calls, 1)
+  }
+)
