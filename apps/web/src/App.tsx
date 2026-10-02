@@ -10,7 +10,7 @@ function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <div {...stylex.props(styles.root)}>
+    <main {...stylex.props(styles.root)}>
       <section id="center" {...stylex.props(styles.center)}>
         <div {...stylex.props(styles.hero)}>
           <img
@@ -132,7 +132,7 @@ function App() {
 
       <div {...stylex.props(styles.ticks)}></div>
       <section id="spacer" {...stylex.props(styles.spacer)}></section>
-    </div>
+    </main>
   )
 }
 
