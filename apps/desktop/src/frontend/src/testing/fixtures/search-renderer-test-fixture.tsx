@@ -164,7 +164,14 @@ export function createRendererFixture(): RendererFixture {
       { id: 'game', name: 'Synthetic game' },
       { id: 'next', name: 'Next game' }
     ]),
-    selectCaptureSource: vi.fn().mockResolvedValue({ id: 'game', name: 'Synthetic game' }),
+    selectCaptureSource: vi.fn(async (sourceId: string) => {
+      if (sourceId === '') {
+        return null
+      }
+      const name = sourceId === 'game' ? 'Synthetic game' : 'Next game'
+
+      return { id: sourceId, name }
+    }),
     notifyStableNicknameDetected: vi
       .fn<ObservationTestApi['notifyStableNicknameDetected']>()
       .mockImplementation(async (observation) => {

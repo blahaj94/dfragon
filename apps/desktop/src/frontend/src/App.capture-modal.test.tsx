@@ -3,6 +3,7 @@ import { act } from 'react'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import {
   createRendererFixture,
+  captureResources,
   authSnapshot,
   media
 } from './testing/fixtures/search-renderer-test-fixture'
@@ -86,6 +87,9 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
 
 it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대상으로 시작한다', async () => {
   const f = createRendererFixture()
+  const next = captureResources()
+  f.getDisplayMedia.mockResolvedValueOnce(f.resources.stream).mockResolvedValueOnce(next.stream)
+  media.worker.mockResolvedValueOnce(f.resources.worker).mockResolvedValueOnce(next.worker)
   await f.mount(
     <ColorThemeProvider>
       <App />
@@ -93,10 +97,73 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
   )
   await click('화면 캡처')
   await select('game')
+  const firstLoop = media.loop.mock.calls[0][0]
   await select('next')
   expect(f.capture.selectCaptureSource).toHaveBeenLastCalledWith('next')
   expect(f.getDisplayMedia).toHaveBeenCalledTimes(2)
   expect(f.resources.track.stop).toHaveBeenCalledOnce()
+  expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
+  expect(firstLoop.signal.aborted).toBe(true)
+  expect(next.track.stop).not.toHaveBeenCalled()
+  expect(next.worker.terminate).not.toHaveBeenCalled()
+  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
+
+  await act(async () => f.resources.track.dispatchEvent(new Event('ended')))
+  expect(document.body.textContent).toContain('캡처 중 · 1920×1080')
+  expect(next.track.stop).not.toHaveBeenCalled()
+
+  await click('캡처 중지')
+  expect(next.track.stop).toHaveBeenCalledOnce()
+  expect(next.worker.terminate).toHaveBeenCalledOnce()
+  expect(media.loop.mock.calls[1][0].signal.aborted).toBe(true)
+  expect(f.resources.track.stop).toHaveBeenCalledOnce()
+  expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
+})
+
+it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처를 교체하지 않는다', async () => {
+  const f = createRendererFixture()
+  const firstSelection = Promise.withResolvers<{ id: string; name: string }>()
+  f.capture.selectCaptureSource.mockReturnValueOnce(firstSelection.promise)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
+  await click('화면 캡처')
+  await select('game')
+  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+
+  await select('next')
+  expect(f.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
+  await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
+
+  expect(f.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(media.worker).toHaveBeenCalledOnce()
+  expect(f.resources.track.stop).not.toHaveBeenCalled()
+  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
+  expect(document.body.textContent).toContain('캡처 중 · 1920×1080')
+})
+
+it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시작하지 않는다', async () => {
+  const f = createRendererFixture()
+  const selection = Promise.withResolvers<{ id: string; name: string }>()
+  f.capture.selectCaptureSource.mockReturnValueOnce(selection.promise)
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
+  await click('화면 캡처')
+  await select('game')
+  await f.unmount()
+  await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
+
+  expect(f.capture.selectCaptureSource).toHaveBeenLastCalledWith('')
+  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(media.worker).not.toHaveBeenCalled()
+  expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
 it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다', async () => {
