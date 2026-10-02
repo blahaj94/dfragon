@@ -232,12 +232,19 @@ it('필터를 바꾼 뒤 이전 목록의 늦은 응답이 현재 선택과 화�
   expect(retiredSignal?.aborted).toBe(true)
   expect(answerInput().value).toBe('기존정답')
   await act(async () => {
-    finish({ samples: [{ ...first, text: '오래된응답' }], nextOffset: null })
+    finish({ samples: [{ ...first, text: null }], nextOffset: null })
     await vi.advanceTimersByTimeAsync(0)
   })
   expect(filter.value).toBe('labeled')
   expect(answerInput().value).toBe('기존정답')
-  expect(container.textContent).not.toContain('오래된응답')
+  const gallery = container.querySelector('section[aria-label="수집 이미지"]')!
+  expect(gallery.textContent).not.toContain('정답 미작성')
+  expect(gallery.querySelector('img[alt="미작성 닉네임"]')).toBeNull()
+  const selected = [...gallery.querySelectorAll('button[aria-pressed="true"]')].map(
+    (button) => button.querySelector('strong')?.textContent
+  )
+  expect(selected).toEqual(['기존정답'])
+  expect(sampleButton('두번째정답')).toBeDefined()
   expect(vi.mocked(requestOcr).mock.calls.map(([path]) => path)).toEqual([
     '/api/samples?offset=0&state=pending',
     '/api/samples?offset=0&state=labeled'
