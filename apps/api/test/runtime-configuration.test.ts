@@ -1,9 +1,29 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { generateKeyPairSync } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { readRuntimeConfiguration } from '../src/runtime/configuration.js'
+
+// 로컬에서 생성한 합성 self-signed fixture이며 배포·인증에 사용하지 않는다.
+const certificatePem = `-----BEGIN CERTIFICATE-----
+MIIBfDCCASOgAwIBAgIUTaPGOpDSt/GNpqe2mIuH+SRZ2oUwCgYIKoZIzj0EAwIw
+FDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI2MTAwMjE3MDEyMVoXDTM2MDkyOTE3
+MDEyMVowFDESMBAGA1UEAwwJbG9jYWxob3N0MFkwEwYHKoZIzj0CAQYIKoZIzj0D
+AQcDQgAEEf2pXtPgruXzVJkJH3LEn8Gjw79FnooFyOaCLPTG/7repqhmMsiAT8/w
+7qDYpzShRJufniTuThvOl/rgugsK0aNTMFEwHQYDVR0OBBYEFOocbmvYUPDarg0W
+tAttA7inijLFMB8GA1UdIwQYMBaAFOocbmvYUPDarg0WtAttA7inijLFMA8GA1Ud
+EwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDRwAwRAIgQsQe22Bbkq9hxrqPtCpv2nmP
+xd0YhIKteKAIzZ9wDxkCIFN5bQ0U9zkls9C0wsNNpGchsO3/6Gg2B0i4+c3JZiHM
+-----END CERTIFICATE-----
+`
+const privateKeyPem = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQghnnmZX64Vmdk8B+M
+IT8iFSoKKNx2FdL/9sw7dGivPgehRANCAAQR/ale0+Cu5fNUmQkfcsSfwaPDv0We
+igXI5oIs9Mb/ut6mqGYyyIBPz/DuoNinNKFEm5+eJO5OG86X+uC6CwrR
+-----END PRIVATE KEY-----
+`
 
 const environment = {
   PORT: '3000',
@@ -135,18 +155,42 @@ test('로컬 HTTPS는 두 절대 파일 경로·일치하는 loopback origin·�
   t.after(() => rm(directory, { recursive: true, force: true }))
   const cert = join(directory, 'private-marker-cert.pem')
   const key = join(directory, 'private-marker-key.pem')
-  await writeFile(cert, 'private-marker-invalid-certificate')
-  await writeFile(key, 'private-marker-invalid-key')
+  const invalidCert = join(directory, 'private-marker-invalid.pem')
+  const mismatchedKey = join(directory, 'private-marker-other-key.pem')
+  await writeFile(cert, certificatePem)
+  await writeFile(key, privateKeyPem)
+  await writeFile(invalidCert, 'private-marker-invalid-certificate')
+  await writeFile(
+    mismatchedKey,
+    generateKeyPairSync('ec', {
+      namedCurve: 'prime256v1',
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      publicKeyEncoding: { type: 'spki', format: 'pem' }
+    }).privateKey
+  )
+  // 거절할 조건 하나만 바꾸므로 PEM 오류가 origin·절대 경로 검사 누락을 가리지 않는다.
+  for (const origin of ['https://localhost:3000', 'https://127.0.0.1:3000']) {
+    const accepted = await readRuntimeConfiguration({
+      ...environment,
+      API_ORIGIN: origin,
+      LOCAL_HTTPS_CERT_FILE: cert,
+      LOCAL_HTTPS_KEY_FILE: key
+    })
+    assert.deepEqual(accepted.localHttps, {
+      cert: Buffer.from(certificatePem),
+      key: Buffer.from(privateKeyPem)
+    })
+  }
   const cases = [
     { name: '인증서만 제공', files: { LOCAL_HTTPS_CERT_FILE: cert } },
     { name: '키만 제공', files: { LOCAL_HTTPS_KEY_FILE: key } },
     {
       name: '상대 인증서 경로',
-      files: { LOCAL_HTTPS_CERT_FILE: 'cert.pem', LOCAL_HTTPS_KEY_FILE: key }
+      files: { LOCAL_HTTPS_CERT_FILE: relative(process.cwd(), cert), LOCAL_HTTPS_KEY_FILE: key }
     },
     {
       name: '상대 키 경로',
-      files: { LOCAL_HTTPS_CERT_FILE: cert, LOCAL_HTTPS_KEY_FILE: 'key.pem' }
+      files: { LOCAL_HTTPS_CERT_FILE: cert, LOCAL_HTTPS_KEY_FILE: relative(process.cwd(), key) }
     },
     {
       name: '읽을 수 없는 파일',
@@ -168,7 +212,14 @@ test('로컬 HTTPS는 두 절대 파일 경로·일치하는 loopback origin·�
         API_ORIGIN: 'https://localhost:3443'
       }
     },
-    { name: '잘못된 PEM', files: { LOCAL_HTTPS_CERT_FILE: cert, LOCAL_HTTPS_KEY_FILE: key } }
+    {
+      name: '잘못된 PEM',
+      files: { LOCAL_HTTPS_CERT_FILE: invalidCert, LOCAL_HTTPS_KEY_FILE: key }
+    },
+    {
+      name: '인증서와 다른 키',
+      files: { LOCAL_HTTPS_CERT_FILE: cert, LOCAL_HTTPS_KEY_FILE: mismatchedKey }
+    }
   ]
   for (const { name, files } of cases) {
     await t.test(name, async () => {
