@@ -119,8 +119,8 @@ test('정확히 16,384-byte인 UTF-8 JSON은 chunk 경계와 지원 media 표기
   }
 })
 
-test('작게 선언한 길이도 실제 chunk가 16,384 byte를 넘으면 malformed JSON보다 먼저 413이다', async () => {
-  const f = parserFixture(['Content-Type', 'application/json', 'Content-Length', '1'])
+test('Content-Length 없는 chunked payload가 상한을 넘으면 malformed JSON보다 먼저 413이다', async () => {
+  const f = parserFixture(['Content-Type', 'application/json', 'Transfer-Encoding', 'chunked'])
   f.request.write(Buffer.alloc(16384, 'x'))
   assert.deepEqual(f.responses, [])
   f.request.write('x')
