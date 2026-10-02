@@ -37,9 +37,23 @@ export function useSampleEditor(sample: Sample) {
   }
   const [message, setMessage] = useState('')
   const save = useMutation({
-    mutationFn: ({ id, body }: SaveRequest) => requestOcr(`/api/samples/${id}`, 'PATCH', body),
-    onSuccess: async (_, request) => {
+    mutationFn: ({ id, body }: SaveRequest) =>
+      requestOcr<Sample>(`/api/samples/${id}`, 'PATCH', body),
+    onSuccess: async (saved, request) => {
       if (request.session.active) {
+        if (request.body.text !== undefined) {
+          const submittedText = request.body.text ?? ''
+          setDraft((current) => {
+            if (current.text !== submittedText) {
+              return current
+            }
+            const text = saved.text ?? ''
+
+            // Accept server normalization only while the submitted draft is still current.
+
+            return { ...current, text }
+          })
+        }
         setMessage(OCR_MESSAGES.saved)
       }
       await invalidateDataset(client)
