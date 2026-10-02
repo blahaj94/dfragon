@@ -12,7 +12,7 @@ function buildTaskContext({ issue, branch, destination, base }) {
     `Branch: ${branch}`,
     `Worktree: ${destination}`,
     `Base: ${base}`,
-    'Issue의 현재 요구·제약과 관련 제품 계약을 확인하고 docs/rules/agent-workflow.md에 따라 구현·검증·PR까지 진행하세요.'
+    '제품 계약: docs/README.md | 명령: scripts/README.md'
   ].join('\n')
 
   return taskContext

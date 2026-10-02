@@ -140,13 +140,8 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 - `scripts/start-task.mjs`: 선택적 Issue 기반 준비 도구. project·Issue 번호·description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
 - `pnpm start-task <project> <Issue 번호> <description> <새 worktree 경로>`: root에서 작업 준비; GitHub CLI 인증 필요
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
-- `scripts/workflow.mmd`: 기본 개발 흐름의 원본. `pnpm workflow`는 준비된 browser로 `.artifacts/workflow.png`를 생성하며 browser를 설치하지 않는다.
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
-
-### PR review
-
-- Review 기준 안내: [review.md](../../.github/ai-review/prompts/review.md)
 
 ## Generated and dependency output
 

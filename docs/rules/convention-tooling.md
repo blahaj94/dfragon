@@ -7,7 +7,7 @@ last-reviewed: 2026-10-02
 
 # Convention 도구 적용
 
-기계적인 표기·정적 검사는 현재 ESLint·Prettier·Oxlint 설정과 native command에 맡긴다. 이름·책임·평가 순서·오류·cleanup·문자열 값은 [convention.md](../../convention.md)에 따라 담당자가 판단한다. 도구 실행만을 위한 별도 역할이나 packet은 필요 없다.
+이 문서는 저장소의 ESLint·Prettier·Oxlint 설정, 생성물 소유권과 CI 계약을 정의한다. 실행 명령과 현재 적용 범위는 package/config 및 아래 Reference에서 확인한다.
 
 ## 설정과 소유권
 
@@ -24,7 +24,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`를 공유한�
 
 ## 검증과 CI
 
-관련 파일에 필요한 fixer·formatter를 적용하고 diff의 의미와 비수정 검사를 확인한다. 최초 설정이나 충돌 조정에서 수렴 여부가 불확실할 때만 재확인하며 매 실행마다 반복하지 않는다. 동작이나 공통 설정 영향은 [Testing](testing.md)에 따라 필요한 범위를 검사한다.
+관련 파일에 필요한 fixer·formatter를 적용하고 diff의 의미와 비수정 검사를 확인한다. 최초 설정이나 충돌 조정에서 수렴 여부가 불확실할 때만 재확인하며 매 실행마다 반복하지 않는다. 동작이나 공통 설정이 바뀌면 영향받는 소비자를 확인한다. 현재 명령은 [scripts 안내](../../scripts/README.md#native-validation)에서 찾는다.
 
 `pnpm test:format-policy`는 블록 첫 `return`의 빈 줄 제거와 이후 `return`의 빈 줄 유지, 연속된 블록 `if` 사이 빈 줄·`else if` 연결·directive·빈 문장·주석·분기·switch·ASI·확장자별 설정과 CLI의 포맷 및 검사 수렴을 검증한다. 공통 프린터 정책을 변경할 때 같은 검사를 실행한다.
 
