@@ -327,24 +327,30 @@ describe('Desktop auth 고정 HTTP client', () => {
     })
   })
 
-  it('Date.parse가 non-finite면 toISOString 없이 정확히 invalid-response를 반환한다', async () => {
-    const parse = vi.spyOn(Date, 'parse').mockReturnValue(Number.NaN)
-    const toISOString = vi.spyOn(Date.prototype, 'toISOString').mockImplementation(() => {
-      throw new Error('toISOString must be skipped')
-    })
-    const fetch = vi.fn<typeof globalThis.fetch>(async () => jsonResponse(validTokens()))
-    const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
+  it.each([
+    { caseName: '평년의 2월 29일', accessTokenExpiresAt: '2025-02-29T12:00:00Z' },
+    { caseName: '30일까지 있는 달의 31일', accessTokenExpiresAt: '2026-04-31T12:00:00Z' },
+    { caseName: '다음 날로 넘어가는 24시', accessTokenExpiresAt: '2026-09-06T24:00:00Z' }
+  ])(
+    'UTC 날짜가 $caseName이면 다른 날짜로 보정하지 않고 거절한다',
+    async ({ accessTokenExpiresAt }) => {
+      const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+        jsonResponse({ ...validTokens(), accessTokenExpiresAt })
+      )
+      const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
 
-    try {
       await expect(client.refresh(REFRESH_0, new AbortController().signal)).rejects.toMatchObject({
         code: 'invalid-response'
       })
-      expect(parse).toHaveBeenCalled()
-      expect(toISOString).not.toHaveBeenCalled()
-    } finally {
-      parse.mockRestore()
-      toISOString.mockRestore()
     }
+  )
+
+  it('윤년의 2월 29일 UTC 날짜는 응답 값 그대로 허용한다', async () => {
+    const tokens = { ...validTokens(), accessTokenExpiresAt: '2024-02-29T12:00:00Z' }
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => jsonResponse(tokens))
+    const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
+
+    await expect(client.refresh(REFRESH_0, new AbortController().signal)).resolves.toEqual(tokens)
   })
 
   it.each(['', '.1', '.12', '.123'])(
@@ -483,4 +489,51 @@ describe('Desktop auth 고정 HTTP client', () => {
     expect(cancel).toHaveBeenCalledTimes(1)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
+  it.each([
+    { caseName: '정확히 16KiB', responseBytes: 16_384, accepted: true },
+    { caseName: '16KiB를 1byte 초과', responseBytes: 16_385, accepted: false }
+  ])(
+    'UTF-8이 chunk 사이에서 나뉘어도 $caseName 누적 body 경계를 지킨다',
+    async ({ responseBytes, accepted }) => {
+      const value = { user: { id: USER_ID, nickname: '모험가🌸' } }
+      const json = JSON.stringify(value)
+      const encoder = new TextEncoder()
+      const jsonBytes = encoder.encode(json).byteLength
+      const body = encoder.encode(json + ' '.repeat(responseBytes - jsonBytes))
+      // 첫 chunk는 4byte UTF-8 문자의 첫 byte까지만 포함한다.
+      const splitInUnicode = encoder.encode(json.slice(0, json.indexOf('🌸'))).byteLength + 1
+      const chunks = [
+        body.slice(0, splitInUnicode),
+        body.slice(splitInUnicode, 8_192),
+        body.slice(8_192)
+      ]
+      const cancel = vi.fn()
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(chunk)
+          }
+          if (accepted) {
+            controller.close()
+          }
+        },
+        cancel
+      })
+      const fetch = vi.fn<typeof globalThis.fetch>(
+        async () => new Response(stream, { status: 200, headers: jsonHeaders })
+      )
+      const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
+
+      const reading = client.me(ACCESS_1, new AbortController().signal)
+      if (accepted) {
+        await expect(reading).resolves.toEqual(value)
+        expect(cancel).not.toHaveBeenCalled()
+      } else {
+        await expect(reading).rejects.toMatchObject({ code: 'invalid-response' })
+        expect(cancel).toHaveBeenCalledTimes(1)
+      }
+      expect(body.byteLength).toBe(responseBytes)
+      expect(fetch).toHaveBeenCalledTimes(1)
+    }
+  )
 })

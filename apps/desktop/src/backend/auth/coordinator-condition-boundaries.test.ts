@@ -1,108 +1,128 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAuthCoordinator } from './coordinator'
 import { AuthHttpFailure } from './http'
-import { CODE, REFRESH_0, RETURN_TARGET, createAuthHarness } from './auth-test-fixtures'
+import {
+  ACCESS_2,
+  REFRESH_0,
+  REFRESH_1,
+  REFRESH_2,
+  createAuthHarness,
+  deferred,
+  tokenResponse
+} from './auth-test-fixtures'
 
-function observedFailure(
-  codes: readonly string[],
-  transmission: 'not-sent' | 'unknown' = 'unknown'
-): {
-  failure: AuthHttpFailure
-  reads: string[]
-} {
-  const failure = new AuthHttpFailure('network', transmission)
-  const reads: string[] = []
-  let codeRead = 0
-
-  Object.defineProperty(failure, 'code', {
-    configurable: true,
-    get: () => {
-      codeRead += 1
-      const code = codes[codeRead - 1] ?? codes[codes.length - 1]
-      reads.push(`code:${codeRead}`)
-
-      return code
-    }
-  })
-  Object.defineProperty(failure, 'transmission', {
-    configurable: true,
-    get: () => {
-      reads.push('transmission')
-
-      return transmission
-    }
-  })
-
-  return { failure, reads }
-}
-
-async function waitForPhase(
-  coordinator: ReturnType<typeof createAuthCoordinator>,
-  phase: ReturnType<typeof coordinator.getSnapshot>['phase']
-): Promise<void> {
-  await vi.waitFor(() => {
-    expect(coordinator.getSnapshot().phase).toBe(phase)
-  })
-}
-
-async function beginWaitingLogin(
-  coordinator: ReturnType<typeof createAuthCoordinator>
-): Promise<void> {
-  await coordinator.beginLogin('passkey')
-  await waitForPhase(coordinator, 'waitingBrowser')
-}
-
-describe('Desktop AuthCoordinator condition boundaries', () => {
-  it('login request failure keeps both independent error-code reads', async () => {
-    const harness = createAuthHarness()
-    const observed = observedFailure(['network', 'unavailable'])
-    harness.http.createLoginRequest.mockRejectedValueOnce(observed.failure)
-    const coordinator = createAuthCoordinator(harness.dependencies)
-    await coordinator.start()
-
-    await coordinator.beginLogin('passkey')
-    await waitForPhase(coordinator, 'signedOut')
-
-    expect(observed.reads).toEqual(['code:1', 'code:2'])
-    expect(coordinator.getSnapshot()).toMatchObject({
-      phase: 'signedOut',
-      notice: 'NETWORK_UNAVAILABLE'
-    })
-  })
-
-  it('exchange failure preserves code-before-transmission evaluation', async () => {
-    const harness = createAuthHarness()
-    const observed = observedFailure(['exchange-invalid', 'network'], 'not-sent')
-    harness.http.exchange.mockRejectedValueOnce(observed.failure)
-    const coordinator = createAuthCoordinator(harness.dependencies)
-    await coordinator.start()
-    await beginWaitingLogin(coordinator)
-
-    await coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
-
-    expect(observed.reads).toEqual(['code:1', 'code:2', 'transmission'])
-    expect(coordinator.getSnapshot()).toMatchObject({
-      phase: 'waitingBrowser',
-      notice: 'LOGIN_RETURN_INVALID'
-    })
-  })
-
-  it('refresh checks transmission only after the network code', async () => {
+describe('동시 authorization의 refresh 실패와 credential 복구', () => {
+  it('전송 전 실패는 동시 caller를 종료하고 확정 credential로 사용자 재시도를 허용한다', async () => {
     const harness = createAuthHarness()
     harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
     const coordinator = createAuthCoordinator(harness.dependencies)
     await coordinator.start()
-    harness.clock.advance(16 * 60_000)
+    harness.clock.elapseWithoutTimers(16 * 60_000)
+    const refresh = deferred<ReturnType<typeof tokenResponse>>()
+    harness.http.refresh.mockReturnValueOnce(refresh.promise)
 
-    const observed = observedFailure(['network'], 'not-sent')
-    harness.http.refresh.mockRejectedValueOnce(observed.failure)
+    const first = coordinator.authorization()
+    const second = coordinator.authorization()
+    await vi.waitFor(() => expect(harness.http.refresh).toHaveBeenCalledTimes(2))
+    expect(harness.store.transitionMarker).toBe('refresh')
+    refresh.reject(new AuthHttpFailure('network', 'not-sent'))
 
-    await coordinator.authorization()
-
-    expect(observed.reads).toEqual(['code:1', 'transmission'])
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { status: 'unavailable' },
+      { status: 'unavailable' }
+    ])
     expect(coordinator.getSnapshot()).toMatchObject({
       phase: 'restorePaused',
-      notice: 'NETWORK_UNAVAILABLE'
+      notice: 'NETWORK_UNAVAILABLE',
+      user: null,
+      entry: null
     })
+    expect(harness.store.inspection).toEqual({ status: 'ready', refreshToken: REFRESH_1 })
+    expect(harness.store.commitCredential).toHaveBeenCalledTimes(1)
+    expect(harness.store.clearCredential).not.toHaveBeenCalled()
+    expect(harness.http.logout).not.toHaveBeenCalled()
+    await expect(coordinator.authorization()).resolves.toEqual({ status: 'unavailable' })
+    expect(harness.http.refresh).toHaveBeenCalledTimes(2)
+
+    harness.http.refresh.mockResolvedValueOnce(
+      tokenResponse({
+        refreshToken: REFRESH_2,
+        accessToken: ACCESS_2,
+        accessTokenExpiresAt: '2026-09-06T12:31:00.000Z'
+      })
+    )
+    await expect(coordinator.retryAuth()).resolves.toMatchObject({
+      ok: true,
+      snapshot: { phase: 'signedIn', entry: 'home' }
+    })
+    expect(harness.http.refresh).toHaveBeenCalledTimes(3)
+    expect(harness.http.refresh.mock.calls.map(([refreshToken]) => refreshToken)).toEqual([
+      REFRESH_0,
+      REFRESH_1,
+      REFRESH_1
+    ])
+    expect(harness.http.me).toHaveBeenLastCalledWith(ACCESS_2, expect.any(AbortSignal))
+    expect(harness.store.inspection).toEqual({ status: 'ready', refreshToken: REFRESH_2 })
   })
+
+  it.each([
+    ['응답 유실', 'network'],
+    ['인증 상실', 'authentication-required'],
+    ['서버 장애', 'unavailable'],
+    ['유효하지 않은 응답', 'invalid-response']
+  ] as const)(
+    '%s는 모든 대기 caller를 차단하고 소비 가능성이 있는 credential을 재사용하지 않는다',
+    async (_caseName, code) => {
+      const harness = createAuthHarness()
+      harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
+      const coordinator = createAuthCoordinator(harness.dependencies)
+      await coordinator.start()
+      harness.clock.elapseWithoutTimers(16 * 60_000)
+      const refresh = deferred<ReturnType<typeof tokenResponse>>()
+      const clear = deferred<'confirmed'>()
+      harness.http.refresh.mockReturnValueOnce(refresh.promise)
+      harness.store.clearWaits.push(clear.promise)
+
+      const first = coordinator.authorization()
+      const second = coordinator.authorization()
+      await vi.waitFor(() => expect(harness.http.refresh).toHaveBeenCalledTimes(2))
+      refresh.reject(new AuthHttpFailure(code, 'unknown'))
+      await vi.waitFor(() => expect(harness.store.clearCredential).toHaveBeenCalledTimes(1))
+
+      expect(coordinator.getSnapshot()).toMatchObject({ phase: 'signingOut', user: null })
+      expect(harness.store.inspection).toEqual({ status: 'recovery-required' })
+      await expect(coordinator.authorization()).resolves.toEqual({ status: 'unavailable' })
+      await expect(coordinator.beginLogin('passkey')).resolves.toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_BUSY' }
+      })
+      expect(harness.http.refresh).toHaveBeenCalledTimes(2)
+      expect(harness.store.commitCredential).toHaveBeenCalledTimes(1)
+      expect(harness.http.logout).toHaveBeenCalledExactlyOnceWith(
+        REFRESH_1,
+        expect.any(AbortSignal)
+      )
+
+      clear.resolve('confirmed')
+      await expect(Promise.all([first, second])).resolves.toEqual([
+        { status: 'unavailable' },
+        { status: 'unavailable' }
+      ])
+      expect(coordinator.getSnapshot()).toMatchObject({
+        phase: 'signedOut',
+        notice: 'REAUTH_REQUIRED',
+        user: null,
+        entry: null
+      })
+      expect(harness.store.inspection).toEqual({ status: 'empty' })
+      await expect(coordinator.retryAuth()).resolves.toMatchObject({
+        ok: false,
+        error: { code: 'AUTH_NOT_ALLOWED' }
+      })
+      expect(harness.http.refresh.mock.calls.map(([refreshToken]) => refreshToken)).toEqual([
+        REFRESH_0,
+        REFRESH_1
+      ])
+    }
+  )
 })

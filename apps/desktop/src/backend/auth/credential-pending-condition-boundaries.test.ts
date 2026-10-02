@@ -1,18 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CredentialSession } from './credential-session'
 import { createAuthRuntime } from './auth-runtime'
-import { createPendingLogin } from './pending-login'
-import {
-  REQUEST_ID,
-  REFRESH_0,
-  REFRESH_1,
-  REFRESH_2,
-  createAuthHarness,
-  deferred
-} from './auth-test-fixtures'
-import type { AuthAuthorization, ClockReading } from './types'
+import { REFRESH_0, REFRESH_1, REFRESH_2, createAuthHarness, deferred } from './auth-test-fixtures'
+import type { AuthAuthorization } from './types'
 
-describe('AuthRuntime refresh condition boundaries', () => {
+describe('refresh 작업의 generation 소유권', () => {
   it('같은 generation의 refresh flight만 기존 Promise를 공유한다', async () => {
     const runtime = createAuthRuntime('refresh-boundary-run', ['passkey'])
     const first = deferred<AuthAuthorization>()
@@ -42,7 +34,7 @@ describe('AuthRuntime refresh condition boundaries', () => {
   })
 })
 
-describe('CredentialSession condition boundaries', () => {
+describe('credential 폐기와 로그아웃의 수명', () => {
   it('같은 refresh token의 disposal flight만 기존 Promise를 공유한다', async () => {
     const harness = createAuthHarness()
     const session = new CredentialSession(harness.http.value, harness.store)
@@ -70,134 +62,39 @@ describe('CredentialSession condition boundaries', () => {
     await Promise.all([firstFlight, nextFlight])
   })
 
-  it('server expiry가 없으면 해당 비교를 위한 clock property를 추가로 읽지 않는다', () => {
+  it('local marker 확립 실패는 서버 폐기와 구분하며 디스크 credential 삭제를 확정하지 않는다', async () => {
     const harness = createAuthHarness()
-    const startedAt = harness.clock.read()
-    const pending = createPendingLogin(
-      {
-        attemptId: '00000000-0000-4000-8000-000000000010',
-        provider: 'passkey',
-        verifier: 'verifier',
-        generation: 1,
-        startedAt
-      },
-      harness.clock,
-      vi.fn()
-    )
-    let wallReads = 0
-    const checkedAt: ClockReading = {
-      get wallMs() {
-        wallReads += 1
-        if (wallReads > 1) {
-          throw new Error('server expiry must not read wallMs without an expiry')
-        }
+    harness.store.inspection = { status: 'ready', refreshToken: REFRESH_0 }
+    harness.store.establishOutcomes.push('failed')
+    const session = new CredentialSession(harness.http.value, harness.store)
+    session.retainForRestore(REFRESH_0)
 
-        return startedAt.wallMs + 1
-      },
-      monotonicMs: startedAt.monotonicMs + 1,
-      discontinuous: false
-    }
-
-    expect(pending.isExpired(checkedAt)).toBe(false)
-    expect(wallReads).toBe(1)
-  })
-
-  it('server expiry 비교는 clock 조건과 startedAt.discontinuous보다 앞선 원래 순서를 유지한다', () => {
-    const harness = createAuthHarness()
-    const events: string[] = []
-    const startedWallMs = harness.clock.wallMs
-    const startedMonotonicMs = harness.clock.monotonicMs
-    const startedAt: ClockReading = {
-      get wallMs() {
-        events.push('started.wallMs')
-
-        return startedWallMs
-      },
-      get monotonicMs() {
-        events.push('started.monotonicMs')
-
-        return startedMonotonicMs
-      },
-      get discontinuous() {
-        events.push('started.discontinuous')
-
-        return false
-      }
-    }
-    const checkedAt: ClockReading = {
-      get wallMs() {
-        events.push('checked.wallMs')
-
-        return startedWallMs + 600_000
-      },
-      get monotonicMs() {
-        events.push('checked.monotonicMs')
-
-        return startedMonotonicMs + 1
-      },
-      get discontinuous() {
-        events.push('checked.discontinuous')
-
-        return false
-      }
-    }
-    const pending = createPendingLogin(
-      {
-        attemptId: '00000000-0000-4000-8000-000000000011',
-        provider: 'passkey',
-        verifier: 'verifier',
-        generation: 1,
-        startedAt
-      },
-      harness.clock,
-      vi.fn()
-    )
-    vi.spyOn(harness.clock, 'read').mockReturnValue(startedAt)
-    pending.start()
-    pending.acceptRequest({
-      requestId: REQUEST_ID,
-      browserUrl: 'https://api.example.test/auth/login/authorize',
-      expiresAt: '2026-09-06T12:10:00.000Z'
-    })
-
-    events.length = 0
-    expect(pending.isExpired(checkedAt)).toBe(true)
-    expect(events).toEqual([
-      'checked.wallMs',
-      'started.wallMs',
-      'checked.monotonicMs',
-      'started.monotonicMs',
-      'checked.monotonicMs',
-      'started.monotonicMs',
-      'checked.wallMs',
-      'started.discontinuous',
-      'checked.discontinuous'
-    ])
-  })
-
-  it('logout writer의 HTTP 상태 합성과 local clear 단락 및 reservation cleanup을 유지한다', async () => {
-    const noWriterHarness = createAuthHarness()
-    const noWriterSession = new CredentialSession(noWriterHarness.http.value, noWriterHarness.store)
-    expect(noWriterSession.beginLogout().credentialHttpStarted).toBe(false)
-
-    const writerHarness = createAuthHarness()
-    const writerSession = new CredentialSession(writerHarness.http.value, writerHarness.store)
-    const writer = writerSession.reserveWriter()
-    await writerSession.sendRefresh(writer, REFRESH_0)
-    expect(writerSession.beginLogout().credentialHttpStarted).toBe(true)
-
-    const logoutHarness = createAuthHarness()
-    const logoutSession = new CredentialSession(logoutHarness.http.value, logoutHarness.store)
-    logoutSession.retainForRestore(REFRESH_0)
-    logoutHarness.store.establishOutcomes.push('failed')
-    const reservation = logoutSession.beginLogout()
-
-    await expect(logoutSession.finishLogout(reservation)).resolves.toEqual({
+    const reservation = session.beginLogout()
+    await expect(session.finishLogout(reservation)).resolves.toEqual({
       localConfirmed: false,
       serverConfirmed: true
     })
-    expect(logoutHarness.store.clearCredential).not.toHaveBeenCalled()
-    expect(logoutSession.knownRefresh).toBeNull()
-    expect(logoutSession.beginLogout()).not.toBe(reservation)
+
+    expect(harness.http.logout).toHaveBeenCalledExactlyOnceWith(REFRESH_0, expect.any(AbortSignal))
+    expect(harness.store.clearCredential).not.toHaveBeenCalled()
+    expect(harness.store.removeTransition).not.toHaveBeenCalled()
+    expect(harness.store.inspection).toEqual({ status: 'ready', refreshToken: REFRESH_0 })
+    expect(session.current).toBeNull()
+    expect(session.knownRefresh).toBeNull()
+  })
+
+  it('서버 폐기 실패를 공유한 caller는 같은 실패를 받고 같은 token을 자동 재전송하지 않는다', async () => {
+    const harness = createAuthHarness()
+    const session = new CredentialSession(harness.http.value, harness.store)
+    const logout = deferred<void>()
+    harness.http.logout.mockReturnValueOnce(logout.promise)
+
+    const first = session.dispose(REFRESH_1)
+    const second = session.dispose(REFRESH_1)
+    logout.reject(new Error('Synthetic logout response loss'))
+
+    await expect(Promise.all([first, second])).resolves.toEqual([false, false])
+    await expect(session.dispose(REFRESH_1)).resolves.toBe(false)
+    expect(harness.http.logout).toHaveBeenCalledExactlyOnceWith(REFRESH_1, expect.any(AbortSignal))
   })
 })
