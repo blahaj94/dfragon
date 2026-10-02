@@ -5,7 +5,7 @@ import { URL } from 'node:url'
 import { test } from 'node:test'
 import { withAccountApp, rawAccountRequest, expectAccountError } from './account-http-fixtures.mjs'
 
-test('HEAD account fallback rejects before verifier and database calls', async () => {
+test('계정 HEAD는 JWT 검증·DB 조회·활동 전에 거절한다', async () => {
   let databaseCalls = 0
   let verifications = 0
   const source = {
@@ -31,7 +31,7 @@ test('HEAD account fallback rejects before verifier and database calls', async (
   assert.equal(databaseCalls, 0)
 })
 
-test('GET account verifier failures are sanitized JSON without DB activity', async () => {
+test('계정 GET의 JWT 검증 실패는 상세 노출과 DB 활동 없이 정제한다', async () => {
   let databaseCalls = 0
   const source = {
     transaction: async () => {
@@ -71,7 +71,7 @@ function rawWire(base, wire) {
   })
 }
 
-test('PATCH overflow closes before stream end; Node framing rejection does not expose input', async () => {
+test('계정 PATCH overflow는 stream 종료 전에 연결을 닫고 framing 오류의 입력을 숨긴다', async () => {
   let verifications = 0
   const f = {
     deps: {},
@@ -108,7 +108,7 @@ test('PATCH overflow closes before stream end; Node framing rejection does not e
   })
 })
 
-test('PATCH real stream transport rejection precedes JWT; JWT precedes field validation', async () => {
+test('계정 PATCH는 transport·JWT·필드 순서로 거절하고 활동을 기록하지 않는다', async () => {
   let verifications = 0
   let databaseCalls = 0
   const source = {
@@ -177,5 +177,72 @@ test('PATCH real stream transport rejection precedes JWT; JWT precedes field val
     }
   })
   assert.equal(verifications, 6)
+  assert.equal(databaseCalls, 0)
+})
+
+test('유효 JWT라도 잘못된 nickname 입력은 DB 활동·변경 없이 거절한다', async () => {
+  let verifications = 0
+  let databaseCalls = 0
+  const f = {
+    deps: {
+      dataSource: {
+        async transaction() {
+          databaseCalls++
+          throw new Error('입력 거절 후 DB transaction을 열 수 없음')
+        }
+      }
+    },
+    async verifyJwt(token) {
+      verifications++
+      assert.equal(token, 'valid-access-placeholder')
+      const issuedAt = Math.floor(Date.now() / 1000)
+      const expiresAt = issuedAt + 900
+
+      return {
+        userId: '00000000-0000-4000-8000-000000000001',
+        sessionId: '00000000-0000-4000-8000-000000000002',
+        issuedAt,
+        expiresAt
+      }
+    }
+  }
+  const cases = [
+    ['body가 null', null, 'INVALID_AUTH_REQUEST', '인증 요청을 확인해 주세요.'],
+    ['배열 body', [], 'INVALID_AUTH_REQUEST', '인증 요청을 확인해 주세요.'],
+    ['nickname 필드 없음', {}, 'INVALID_AUTH_REQUEST', '인증 요청을 확인해 주세요.'],
+    [
+      '회원 ID 추가',
+      { nickname: '새 이름', userId: 'untrusted-user-canary' },
+      'INVALID_AUTH_REQUEST',
+      '인증 요청을 확인해 주세요.'
+    ],
+    [
+      'token 추가',
+      { nickname: '새 이름', accessToken: 'access-token-canary' },
+      'INVALID_AUTH_REQUEST',
+      '인증 요청을 확인해 주세요.'
+    ],
+    ['문자열 아님', { nickname: 1 }, 'INVALID_NICKNAME', '닉네임을 확인해 주세요.'],
+    ['빈 닉네임', { nickname: '   ' }, 'INVALID_NICKNAME', '닉네임을 확인해 주세요.'],
+    ['원문 개행', { nickname: '이름\n' }, 'INVALID_NICKNAME', '닉네임을 확인해 주세요.'],
+    ['분리 surrogate', { nickname: '\ud800' }, 'INVALID_NICKNAME', '닉네임을 확인해 주세요.'],
+    ['21 grapheme', { nickname: '가'.repeat(21) }, 'INVALID_NICKNAME', '닉네임을 확인해 주세요.']
+  ]
+  await withAccountApp(f, async (base) => {
+    for (const [name, body, code, message] of cases) {
+      const response = await fetch(`${base}/me/nickname`, {
+        method: 'PATCH',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer valid-access-placeholder'
+        },
+        body: JSON.stringify(body)
+      })
+      assert.equal(response.status, 400, name)
+      assert.equal(response.headers.get('cache-control'), 'no-store', name)
+      assert.deepEqual(await response.json(), { error: { code, message } }, name)
+    }
+  })
+  assert.equal(verifications, cases.length)
   assert.equal(databaseCalls, 0)
 })

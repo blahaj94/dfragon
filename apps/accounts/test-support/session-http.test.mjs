@@ -5,7 +5,18 @@ import { after, before, test } from 'node:test'
 import { randomUUID } from 'node:crypto'
 import { createLoginHttpApp } from '../dist/auth/login/http.js'
 import { REFRESH_ERRORS, RefreshFailure } from '../dist/auth/refresh/errors.js'
+import { LOGOUT_ERRORS, LogoutFailure } from '../dist/auth/logout/errors.js'
 import { opaque } from './login-fixtures.mjs'
+
+const cases = {
+  success: 'refresh·logout은 refreshToken만 전달하고 no-store 성공 응답을 반환한다',
+  transport: 'session route는 media·크기·UTF-8·JSON·필드 검사를 service 호출 전에 적용한다',
+  bytes: 'session route의 JSON parser는 16,384 UTF-8 byte까지만 허용한다',
+  refreshErrors: 'refresh 오류는 독립적인 공개 status·code·message 계약으로 정제한다',
+  logoutErrors: 'logout의 DB·알 수 없는 실패는 204 대신 정제 오류를 반환한다',
+  bearer: 'session route는 Authorization·query token으로 JSON refreshToken을 대체하지 않는다',
+  login: 'session route 추가 후 로그인 GET과 HEAD의 동작을 유지한다'
+}
 
 let app
 let base
@@ -110,7 +121,7 @@ function post(path, chunks, headers = {}) {
   })
 }
 
-test('refresh and logout accept only refreshToken and return no-store success responses', async () => {
+test(cases.success, async () => {
   const refreshToken = opaque()
   const refreshed = await post('/auth/refresh', [JSON.stringify({ refreshToken })])
   assert.equal(refreshed.status, 200)
@@ -131,7 +142,7 @@ test('refresh and logout accept only refreshToken and return no-store success re
   assert.deepEqual(sessionCalls.logout, [refreshToken])
 })
 
-test('session routes apply media, size, UTF-8, JSON and exact-shape precedence before service', async () => {
+test(cases.transport, async () => {
   const baseline = {
     login: loginCalls,
     refresh: sessionCalls.refresh.length,
@@ -177,7 +188,7 @@ test('session routes apply media, size, UTF-8, JSON and exact-shape precedence b
   )
 })
 
-test('session routes accept exactly 16,384 UTF-8 bytes and reject the next byte', async () => {
+test(cases.bytes, async () => {
   for (const path of ['/auth/refresh', '/auth/logout']) {
     const prefix = '{"refreshToken":"'
     const suffix = '"}'
@@ -197,20 +208,29 @@ test('session routes accept exactly 16,384 UTF-8 bytes and reject the next byte'
   }
 })
 
-test('refresh preserves every explicit RefreshFailure and sanitizes unknown failures', async () => {
+test(cases.refreshErrors, async () => {
   try {
-    for (const definition of [
-      REFRESH_ERRORS.INVALID_REQUEST,
-      REFRESH_ERRORS.AUTHENTICATION_REQUIRED,
-      REFRESH_ERRORS.INTERNAL,
-      REFRESH_ERRORS.UNAVAILABLE
+    for (const [definition, status, code, message] of [
+      [REFRESH_ERRORS.INVALID_REQUEST, 400, 'INVALID_AUTH_REQUEST', '인증 요청을 확인해 주세요.'],
+      [
+        REFRESH_ERRORS.AUTHENTICATION_REQUIRED,
+        401,
+        'AUTHENTICATION_REQUIRED',
+        '로그인이 필요합니다.'
+      ],
+      [REFRESH_ERRORS.INTERNAL, 500, 'AUTH_INTERNAL_ERROR', '인증 요청을 처리하지 못했습니다.'],
+      [
+        REFRESH_ERRORS.UNAVAILABLE,
+        503,
+        'AUTH_UNAVAILABLE',
+        '현재 계정 기능을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      ]
     ]) {
       refreshFailure = new RefreshFailure(definition)
       const response = await post('/auth/refresh', [JSON.stringify({ refreshToken: opaque() })])
-      assert.equal(response.status, definition.status)
-      assert.deepEqual(JSON.parse(response.body), {
-        error: { code: definition.code, message: definition.message }
-      })
+      assert.equal(response.status, status)
+      assert.equal(response.headers['cache-control'], 'no-store')
+      assert.deepEqual(JSON.parse(response.body), { error: { code, message } })
     }
     refreshFailure = new Error('raw credential identity SQL https://private.invalid')
     const internal = await post('/auth/refresh', [JSON.stringify({ refreshToken: opaque() })])
@@ -227,23 +247,64 @@ test('refresh preserves every explicit RefreshFailure and sanitizes unknown fail
   }
 })
 
-test('logout never emits a success 204 when its result is unavailable', async () => {
+test(cases.logoutErrors, async () => {
   try {
-    logoutFailure = new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE)
-    const response = await post('/auth/logout', [JSON.stringify({ refreshToken: opaque() })])
-    assert.equal(response.status, 503)
-    assert.deepEqual(JSON.parse(response.body), {
-      error: {
-        code: 'AUTH_UNAVAILABLE',
-        message: '현재 계정 기능을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-      }
-    })
+    for (const [failure, status, code, message] of [
+      [
+        new LogoutFailure(LOGOUT_ERRORS.UNAVAILABLE),
+        503,
+        'AUTH_UNAVAILABLE',
+        '현재 계정 기능을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+      ],
+      [
+        new Error('raw credential identity SQL https://private.invalid'),
+        500,
+        'AUTH_INTERNAL_ERROR',
+        '인증 요청을 처리하지 못했습니다.'
+      ]
+    ]) {
+      logoutFailure = failure
+      const response = await post('/auth/logout', [JSON.stringify({ refreshToken: opaque() })])
+      assert.equal(response.status, status)
+      assert.equal(response.headers['cache-control'], 'no-store')
+      assert.deepEqual(JSON.parse(response.body), { error: { code, message } })
+      assert.doesNotMatch(response.body, /raw|credential|identity|SQL|private/)
+    }
   } finally {
     logoutFailure = undefined
   }
 })
 
-test('adding session routes preserves login and HEAD behavior', async () => {
+test(cases.bearer, async () => {
+  const baseline = { refresh: sessionCalls.refresh.length, logout: sessionCalls.logout.length }
+  for (const path of ['/auth/refresh', '/auth/logout']) {
+    for (const body of [
+      {},
+      { accessToken: 'access-canary' },
+      { refreshToken: opaque(), userId: randomUUID() },
+      { refreshToken: opaque(), clientId: 'desktop' },
+      { refreshToken: opaque(), sessionId: randomUUID() }
+    ]) {
+      const response = await post(
+        `${path}?refreshToken=${opaque()}&accessToken=access-canary`,
+        [JSON.stringify(body)],
+        { authorization: 'Bearer access-canary' }
+      )
+      assert.equal(response.status, 400)
+      assert.equal(response.headers['cache-control'], 'no-store')
+      assert.deepEqual(JSON.parse(response.body), {
+        error: { code: 'INVALID_AUTH_REQUEST', message: '인증 요청을 확인해 주세요.' }
+      })
+      assert.doesNotMatch(response.body, /access-canary|userId|sessionId|clientId/)
+    }
+  }
+  assert.deepEqual(
+    { refresh: sessionCalls.refresh.length, logout: sessionCalls.logout.length },
+    baseline
+  )
+})
+
+test(cases.login, async () => {
   const refreshBefore = sessionCalls.refresh.length
   const logoutBefore = sessionCalls.logout.length
   const head = await fetch(`${base}/auth/login/authorize?ticket=${opaque()}`, {
