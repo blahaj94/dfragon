@@ -456,7 +456,17 @@ export async function createPostgres(runId, verifiedImage, hooks = {}) {
       }
     }
   } catch (error) {
-    await teardownPostgres({ runId, containerName, volumeName })
+    try {
+      await teardownPostgres({ runId, containerName, volumeName })
+    } catch (teardownError) {
+      throw new AggregateError(
+        [error, teardownError],
+        'Database test creation and teardown failed',
+        {
+          cause: error
+        }
+      )
+    }
     throw error
   }
 }
