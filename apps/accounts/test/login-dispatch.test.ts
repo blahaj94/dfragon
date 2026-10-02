@@ -291,7 +291,7 @@ test(TESTS.expiry, async (t) => {
 
 test(TESTS.list, async () => {
   const fixture = managementFixture()
-  fixture.keys[1]!.lastUsedAt = new Date('2026-10-01T11:59:00Z')
+  fixture.keys[1]!.lastUsedAt = fixture.now
   fixture.keys.push(
     { ...fixture.keys[0]!, id: 'other-rp-key', rpId: 'previous.example.test' },
     { ...fixture.keys[0]!, id: 'other-user-key', userId: randomUUID() }
@@ -310,7 +310,7 @@ test(TESTS.list, async () => {
         id: fixture.keys[1]!.id,
         rpId: 'auth.example.test',
         createdAt: '2026-10-01T12:00:00.000Z',
-        lastUsedAt: '2026-10-01T11:59:00.000Z',
+        lastUsedAt: '2026-10-01T12:00:00.000Z',
         current: false
       }
     ]
