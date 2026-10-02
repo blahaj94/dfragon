@@ -6,8 +6,17 @@ import { uiNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: [
+        { find: /^@dfragon\/lib$/, replacement: resolve('../../packages/lib/src/index.ts') },
+        {
+          find: /^@dfragon\/lib\/ocr-contract$/,
+          replacement: resolve('../../packages/lib/src/ocr-contract.ts')
+        }
+      ]
+    },
     build: {
-      externalizeDeps: { exclude: ['ky'] },
+      externalizeDeps: { exclude: ['ky', '@dfragon/lib'] },
       lib: { entry: resolve('scripts/auth-capture-fixture/main.ts'), formats: ['cjs'] },
       outDir: 'out/auth-capture-fixture/main',
       rollupOptions: { output: { entryFileNames: 'main.cjs' } }
@@ -36,7 +45,10 @@ export default defineConfig({
       })
     ],
     resolve: {
-      alias: [{ find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
+      alias: [
+        { find: /^@dfragon\/lib$/, replacement: resolve('../../packages/lib/src/index.ts') },
+        { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
+      ]
     },
     build: {
       outDir: resolve('out/auth-capture-fixture/renderer'),
