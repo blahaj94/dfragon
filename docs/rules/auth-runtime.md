@@ -12,7 +12,7 @@ review-after: runtime 호환성 또는 DB 실행 조건 변경 시
 
 # Authentication Runtime Contract
 
-이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 인증 runtime과 DB 실행 계약입니다. [`api-runtime.md`](api-runtime.md)의 Node 24/Nest 12/ESM/TypeScript 5.9 및 tsc→Node 검증 계약을 유지합니다. 정책 승인과 실제 구현, 호환성 검증 및 운영 실행은 구분하며, 후속 작업은 [`change-control.md`](change-control.md)의 사용자 실행 허용 범위를 따릅니다.
+이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 인증 runtime과 DB 실행 계약입니다. [`api-runtime.md`](api-runtime.md)의 Node 24/Nest 12/ESM/TypeScript 5.9 및 tsc→Node 검증 계약을 유지합니다. 정책 승인과 실제 구현, 호환성 검증 및 운영 실행은 구분하며, 후속 작업은 [제품 계약 적용 기준](../README.md#document-class)과 사용자 실행 허용 범위를 따릅니다.
 
 ## 의존성 기록과 호환성
 
@@ -78,7 +78,7 @@ PostgreSQL 18 image의 `PGDATA`는 `/var/lib/postgresql/18/docker`, declared `VO
 - 배포 담당의 단일 명시 실행으로 transaction 적용하며 동시 자동 실행을 금지한다. 운영 destructive down을 자동 실행하지 않는다. Rollback 검증은 빈 disposable test DB에 한정한다.
 - 운영 변경은 검토한 forward migration/백업 절차의 별도 승인을 따른다. DB credential·key/패스키 필수 설정은 해당 module을 연결할 때부터 listen 전에 값/stack 없이 정제 검증한다. 미연결 runtime-only app에 이 설정을 요구하지 않는다.
 
-기존 Migration 명령과 구현은 `apps/accounts/package.json`과 `apps/accounts/src/database/`에서 확인한다. 현재 요청에 포함된 구현과 비운영 검증은 [개발 흐름](agent-workflow.md)에 따라 진행한다. 과거 설계 작업의 설치·실행 제외를 새 요청의 금지로 재사용하지 않으며, 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
+기존 Migration 명령과 구현은 `apps/accounts/package.json`과 `apps/accounts/src/database/`에서 확인한다. 현재 요청에 포함된 구현과 비운영 검증은 [제품 계약 적용 기준](../README.md#document-class)에 따라 진행한다. 과거 설계 작업의 설치·실행 제외를 새 요청의 금지로 재사용하지 않으며, 실제 운영 DB와 파괴적 실행에는 해당 실행 권한이 필요하다.
 
 ## accounts의 배포 설정 입력
 
@@ -105,6 +105,6 @@ API/security/schema/보관·key 주기·활동 분류·admission/DB 장애·body
 - 공개 ingress와 서비스 전체 abuse 대응. 구현된 process 단위 제한을 다중 instance 전체 제한으로 확대 해석하지 않음
 - [탈퇴·삭제](auth-withdrawal-proposal.md)의 패스키 재인증·경합 후속 설계, control store 내구성·writer fencing·보관·장애 대응과 선택한 복원 검증
 
-탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [Testing](testing.md)의 관련 검증을 수행한다.
+탈퇴의 정책 승인과 남은 운영/구현 gate를 구분한다. 위 환경 gate는 로그인 핵심 설계 완료를 막지 않으며 탈퇴 Rule 승인은 제품 구현·백업/복원 실행의 자동 착수 지시가 아니다. 현재 요청에 구현·비운영 검증이 포함되면 과거 설계 승인 때의 실행 제외를 이유로 재허락을 요구하지 않는다. 유효한 명시적 금지와 실제 credential·운영 DB·배포 권한은 유지하고, 요청한 범위에 [검증 명령](../../scripts/README.md#native-validation)의 관련 검증을 수행한다.
 
 인증 소유 app은 `apps/accounts`이며 domain API와 DB가 분리된다. 서비스·PostgreSQL·역할·백업의 독립 배포와 이전 인증 경로 정리 절차는 [인프라 운영 절차](../reference/api-start-development.md#서버-이미지)를 따른다. 기존 auth schema migration을 populated source에 재실행하지 않는다.

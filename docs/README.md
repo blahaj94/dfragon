@@ -2,23 +2,18 @@
 type: rule
 status: active
 scope: repository
-last-reviewed: 2026-09-28
+last-reviewed: 2026-10-02
 ---
 
 # DFRAGON Document Guide
 
 ## 읽기 안내
 
-현재 요청과 변경 대상에서 필요한 맥락만 고른다. 기본 개발 절차는 [개발 흐름](rules/agent-workflow.md) 한 곳에서 관리한다. 작업 경로의 하위 `AGENTS.md`와 해당 제품 계약은 실제로 읽으며, 파일이 존재한다고 자동으로 읽힌 것으로 간주하지 않는다. 같은 revision에서 읽은 본문이나 과거 승인 이력을 매번 다시 읽지 않는다. 현행 의미·상태·근거가 불확실할 때만 관련 이력으로 확장한다.
+이 저장소는 제품의 동작·구조·실행 계약과 현재 구현 안내를 관리한다. 개인 에이전트의 작업·검증·작성 지침은 로컬에서 관리한다. 아래 표에서 변경 대상의 제품 계약과 실행 안내를 찾을 수 있다.
 
 | 필요한 내용 | 위치 |
 | --- | --- |
-| 요청·작업 단위·권한·협업·리뷰·PR | [개발 흐름](rules/agent-workflow.md) |
-| 변경 영향에 맞는 검사·성공 재사용·정직한 보고 | [Testing](rules/testing.md) |
-| 코드의 가독성·평가 순서·오류·신뢰 경계 | [convention.md](../convention.md) |
-| 기존 구현·표준 API·패키지 선택 | [코드 재사용](rules/code-reuse.md) |
 | formatter/linter 설정과 생성물 경계 | [도구 적용](rules/convention-tooling.md) |
-| 설명과 GitHub 글 | [작성 기준](rules/writing.md) |
 | 제품 이미지 실행·인프라 운영 원본 | [서버 이미지 안내](reference/api-start-development.md#서버-이미지) |
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app·package 경계 | [Architecture Overview](architecture/overview.md) |
@@ -27,21 +22,17 @@ last-reviewed: 2026-09-28
 | Desktop 개발자 모드·크롭·라벨·모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
 | OCR 이미지 업로드·정답·train/val/test·패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
 | 앱 공용 UI·SEED·StyleX·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
-| React 화면·hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [앱 지침](../apps/AGENTS.md), [OCR 지침](../apps/ocr/AGENTS.md), [Desktop 지침](../apps/desktop/AGENTS.md) |
+| React 화면·hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [OCR 안내](../apps/ocr/README.md), [Repository Map](reference/repository-map.md) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | 인증·session·DB·삭제·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 
-이 표를 전부 읽는 체크리스트로 사용하지 않는다. 코드 없는 문서 작업은 해당 문서의 의미·상태·연결을 확인하며 무관한 코드 컨벤션·제품 실행 절차로 확장하지 않는다.
-
 ## Document class
 
-Rule은 동작과 제약을 정의하고, Reference는 현재 code·config·command를 설명한다. `AGENTS.md`, `convention.md`, `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 이동 안내처럼 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue·PR에서 관리한다.
+Rule은 동작과 제약을 정의하고, Reference는 현재 code·config·command를 설명한다. `docs/rules/**`, `docs/architecture/**`의 제품 계약이 Rule이며 `type: reference`인 문서는 예외다. 작업의 일시적인 상태는 필요한 Issue·PR에서 관리한다.
 
 Reference의 오류는 실제 파일·설정에 맞춰 고친다. Rule과 구현의 중요한 제품 계약 충돌은 임의로 선택하지 않고 영향받는 부분만 확인한다. 허용된 Rule 변경은 채택 범위·status를 PR에 명시해 구현·검증하고, 다른 작업에는 사용자 merge 후 적용한다. Proposed 제품 계약의 링크·절차 정리만으로 그 내용을 채택하지 않는다.
 
-필수 작성 방식·책임 경계는 Rule에 두고, Reference와 앱 안내는 해당 Rule 및 현재 대표 구현을 연결한다. 예제나 기존 코드의 우연한 형태를 다른 앱의 필수 구조로 확대하지 않는다.
-
-같은 원문을 여러 문서에 복제하지 않는다. 지침은 짧은 진입점과 필요한 주제별 계약으로 유지하고, 문서·줄 수 할당량이나 과거 운영 문서의 필수 읽기를 만들지 않는다. 비밀정보와 개인 경로·내부 대화·실행 ID·raw log를 남기지 않는다.
+제품의 필수 책임 경계는 Rule에 두고, Reference와 앱 안내는 해당 Rule 및 현재 대표 구현을 연결한다. 예제나 기존 코드의 우연한 형태를 다른 앱의 필수 구조로 확대하지 않는다.
 
 ## 제품 계약
 

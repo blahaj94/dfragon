@@ -28,7 +28,7 @@ SEED의 기존 Component·Token과 `@dfragon/ui`를 우선 사용해 필요한 �
 
 Snippet을 새로 가져오거나 수정할 때 해당 출처·local 변경과 적용되는 license·NOTICE를 갱신한다. 일반 화면 수정마다 upstream 전체를 재조사하지 않는다. CLI의 최신 출력으로 기존 source를 조용히 덮어쓰지 않는다.
 
-업데이트에서는 바뀐 API·peer 조건·CSS·Snippet과 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [개발 흐름](agent-workflow.md#판단과-권한)을 따른다.
+업데이트에서는 바뀐 API·peer 조건·CSS·Snippet과 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 
 ## 공통 자산과 화면의 책임
 
@@ -36,7 +36,7 @@ Snippet을 새로 가져오거나 수정할 때 해당 출처·local 변경과 �
 
 ## React UI 책임
 
-이 기준은 저장소의 Desktop renderer·Accounts 패스키·OCR·Web React 화면에 공통으로 적용한다. 앱별 폴더 구조와 process 경계는 하위 `AGENTS.md`와 해당 제품 계약을 따른다. 기존 전체 화면을 한 번에 재구성하지 않고 현재 변경에 적용한다.
+이 기준은 저장소의 Desktop renderer·Accounts 패스키·OCR·Web React 화면에 공통으로 적용한다. Desktop의 폴더 구조와 process 경계는 [Desktop 구조](../architecture/desktop-code-organization.md)를, 다른 앱은 해당 제품 계약을 따른다. 기존 전체 화면을 한 번에 재구성하지 않고 현재 변경에 적용한다.
 
 - 수정 전에 실제 앱 진입점과 호출 경로를 확인해 제품 화면·구버전·미리보기를 구분한다. 테스트에서 쓰이는 파일이라는 이유만으로 제품 진입점으로 판단하지 않는다.
 - 컴포넌트는 표시·DOM 이벤트·확인 문구와 대화상자를 소유한다. 입력 draft·포커스 같은 자체 UI 상태는 컴포넌트에 남겨도 된다. 사용자 확인을 취소하면 실행하지 않고, 승인한 요청을 hook이나 실행 경계에 전달한다. 요청 hook이 사용하는 화면의 확인 창까지 직접 띄우지 않는다.
@@ -63,7 +63,7 @@ Desktop·API 패스키·OCR·Web의 화면별 간격·정렬·너비·영역 pad
 
 ## 영향 범위 검증
 
-[Testing](testing.md)에 따라 변경한 화면·상태와 실제 소비 환경을 선택한다. 작은 배치 수정은 해당 화면의 build와 좁은/넓은 화면 확인으로 마칠 수 있다. Interaction 변경은 해당 키보드·focus·disabled/loading 흐름을 확인하고, Theme·Motion을 변경하면 관련 전환·reduced-motion을 확인한다.
+[검증 명령](../../scripts/README.md#native-validation)에 따라 변경한 화면·상태와 실제 소비 환경을 선택한다. 작은 배치 수정은 해당 화면의 build와 좁은/넓은 화면 확인으로 마칠 수 있다. Interaction 변경은 해당 키보드·focus·disabled/loading 흐름을 확인하고, Theme·Motion을 변경하면 관련 전환·reduced-motion을 확인한다.
 
 공유 CSS·의존성처럼 여러 환경에 영향을 주면 실제 소비 앱으로 범위를 넓힌다. 모든 변경에 모든 OS·browser·Theme·font·viewport 조합이나 공식 화면과의 pixel 비교를 요구하지 않는다. Browser 확인을 Electron 실행 성공으로 표시하지 않으며 확인한 환경·동작과 남은 중요한 한계를 PR에 짧게 남긴다.
 

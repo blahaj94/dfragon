@@ -30,7 +30,7 @@ review-after: 최초 실제 media/OCR 관측 후 또는 Electron version·fixtur
 
 **권장안은 고정된 local fixture에서 정상 `getDisplayMedia` → 기존 제품 main capture handler → 실제 stream → 실제 OCR 연결을 관측하도록 한정 허용하는 것이다.** 이는 통제된 fixture code를 신뢰하는 검증 예외다. 임의 renderer code의 모든 capture API를 main이 통제한다는 보장을 추가하지 않는다.
 
-이 문서는 [PR #135의 명시적인 사용자 승인](https://github.com/blahaj94/ldb/pull/135#issuecomment-5578416858)과 사용자 merge `489e4aac61cffd0a6540c558e1e61a6361dd1036`를 반영한 active Rule이다. 구현·실행 범위는 [Issue #126의 재개 기록](https://github.com/blahaj94/ldb/issues/126#issuecomment-5578441165)을 따른다. 기존 승인 범위의 작업과 이 예외에 의존하는 변경을 구분하며 이후 변경은 [변경 승인 절차](change-control.md#approval-evidence)를 따른다.
+이 문서는 [PR #135의 명시적인 사용자 승인](https://github.com/blahaj94/ldb/pull/135#issuecomment-5578416858)과 사용자 merge `489e4aac61cffd0a6540c558e1e61a6361dd1036`를 반영한 active Rule이다. 구현·실행 범위는 [Issue #126의 재개 기록](https://github.com/blahaj94/ldb/issues/126#issuecomment-5578441165)을 따른다. 기존 승인 범위의 작업과 이 예외에 의존하는 변경을 구분하며 이후 변경은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 
 기존 [Desktop 인증·capture 계약](desktop-auth.md#최소-화면과-capture-경계)과 [플랫폼의 기능 완료 기준](desktop-auth-platform.md#기능-완료와-배포-후-검증)는 유지한다. 이 제안의 예외는 아래 fixture의 media request에만 적용한다. Production 인증, credential 저장, provider/API, 검색, restore 종료 정책을 결정하거나 활성화하지 않는다.
 
@@ -70,7 +70,7 @@ Custom request/check handler가 없으면 media 요청과 검사가 기본 허�
 | capture 중 로그인·로그아웃·Stop                                         | 로그인 변경 중 capture 유지. Stop 뒤 track·worker·loop·인식값 정리와 늦은 IPC 차단                                                                                      |
 | Sandbox·asset·노출·종료                                                 | 실제 preload/worker/WASM/asset 호환성, 외부 접근 차단과 synthetic canary 비노출, process/profile 정리를 확인                                                            |
 
-Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관측 누락은 **FAIL**로 남긴다. Synthetic canvas를 실제 OCR worker에 넣은 단독 성공이나 test double/auth-only fixture 성공으로 실제 stream/OCR 연결을 대체하지 않는다. 성공시키려고 기존 AC를 바꾸거나 skip하지 않는다. [Issue #126](https://github.com/blahaj94/ldb/issues/126)의 당시 검증은 이력으로 보존한다. 후속 변경은 [Testing](testing.md)의 영향 범위 검증과 [개발 흐름](agent-workflow.md#리뷰와-전달)의 위험에 맞는 검토를 적용하며, 매번 Desktop 전체 validation과 독립 review를 요구하지 않는다.
+Stream 획득 실패, OCR 기대값 불일치, cleanup 실패 또는 필수 관측 누락은 **FAIL**로 남긴다. Synthetic canvas를 실제 OCR worker에 넣은 단독 성공이나 test double/auth-only fixture 성공으로 실제 stream/OCR 연결을 대체하지 않는다. 성공시키려고 기존 AC를 바꾸거나 skip하지 않는다. [Issue #126](https://github.com/blahaj94/ldb/issues/126)의 당시 검증은 이력으로 보존한다. 후속 변경은 실제 영향 범위의 검증과 위험에 맞는 검토를 적용하며, 매번 Desktop 전체 validation과 독립 review를 요구하지 않는다. 현재 검증 명령은 [scripts 안내](../../scripts/README.md#native-validation)에서 확인한다.
 
 ## 실질적인 대안과 남는 gate
 

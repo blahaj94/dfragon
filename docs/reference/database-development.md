@@ -20,7 +20,7 @@ DB command는 `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME` 설�
    pnpm --filter @dfragon/accounts db:migrate:up
    ```
 
-2. `apps/accounts/src/database/schemas`의 해당 EntitySchema와 TypeScript interface를 수정한다. 예를 들어 `users.ts`에서 property와 column mapping을 먼저 작성한다. Schema 의미를 바꾸는 작업의 승인 절차는 `docs/rules/change-control.md`를 따른다.
+2. `apps/accounts/src/database/schemas`의 해당 EntitySchema와 TypeScript interface를 수정한다. 예를 들어 `users.ts`에서 property와 column mapping을 먼저 작성한다. Schema 의미를 바꾸는 작업은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 3. 의미를 설명하는 PascalCase 이름으로 Migration을 생성한다.
 
    ```bash

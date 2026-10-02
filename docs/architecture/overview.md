@@ -83,7 +83,7 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 - Library를 bundle하면 `@seed-design/*`와 React·React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 SEED runtime·CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다.
 - Library source에서 `@seed-design/css/*.css`를 직접 import하지 않는다. 선택한 공식 Vite 통합은 `base.css`와 Component recipe CSS를 사용하는 경로다. 이 경로에서 각 소비 app·Example의 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 Theme 초기화 책임을 가진다. SEED recipe가 연결하는 Component CSS를 library의 별도 CSS 사본으로 vendor하지 않는다.
 - Web·Desktop renderer·Example은 공식 `@seed-design/vite-plugin` 통합을 사용한다. Desktop의 electron-vite renderer 설정과 실제 Electron 실행 호환성은 후속 검증 대상이다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
-- 공식 icon package는 필요한 Snippet의 runtime dependency로, CLI는 authoring 도구로 구분한다. CLI를 제품 runtime에 포함하지 않는다. Dependency·역할 변경은 개발 흐름의 실제 영향과 권한 기준을 따른다.
+- 공식 icon package는 필요한 Snippet의 runtime dependency로, CLI는 authoring 도구로 구분한다. CLI를 제품 runtime에 포함하지 않는다. Dependency·역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime·배포 계약을 따른다.
 
 Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Electron 호환성, CSS 중복 없음, accessibility·시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example·사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
 
@@ -97,7 +97,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Ele
 
 ## Architecture change
 
-새 공통 package의 분리는 [앱 내부 모듈과 공통 패키지 기준](../rules/code-reuse.md#앱-내부-모듈과-공통-패키지)에 따라 판단합니다. 개별 package의 생성과 의존성 방향은 아래 승인 절차를 유지합니다.
+같은 책임은 먼저 소유 앱의 모듈에 둔다. 별도 package는 독립 계약, 앱으로 되돌아가지 않는 의존성과 실제 경계 이점이 있을 때 분리한다. 앱이 package를 소비하고 package는 소비 앱의 source·전역 상태에 의존하지 않는다. 미래의 재사용 가능성이나 테스트 편의만으로 package를 만들지 않는다. 개별 package의 생성과 의존성 방향은 아래 승인 절차를 유지한다.
 
 다음은 architecture 변경으로 취급한다.
 
@@ -107,4 +107,4 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Ele
 - Runtime, persistence, authentication, deployment boundary 도입 또는 교체
 - 기존 module 전체 교체
 
-Architecture 변경은 [`../rules/change-control.md`](../rules/change-control.md)의 approval workflow를 따른다.
+Architecture 변경은 [제품 계약 적용 기준](../README.md#document-class)에 따라 채택 범위·status를 PR에 명시하고 사용자 merge 후 다른 작업에 적용한다. 이 절차는 운영·credential·배포 실행 권한이나 미확정 제품 조건을 대신하지 않는다.
