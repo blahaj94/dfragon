@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { managementFixture } from './login-service.fixtures.js'
-import { CLEARED_LOGIN_FIELDS } from '../src/constants/login.js'
 
 test('unknown browser actions reject before opening a transaction or changing the request', async () => {
   const fixture = managementFixture()
@@ -13,14 +12,34 @@ test('unknown browser actions reject before opening a transaction or changing th
   assert.deepEqual(fixture.events, [])
 })
 
-test('explicit end consumes only the locked management request after fresh-time checks', async () => {
+test('explicit end clears a pending passkey addition after fresh-time checks', async () => {
   const fixture = managementFixture()
+  await fixture.invoke('options', { operation: 'add' })
+  assert.ok(fixture.row.webauthnChallenge)
+  assert.equal(fixture.row.operation, 'add')
+  assert.equal(fixture.row.pendingUserId, fixture.row.verifiedUserId)
+  const before = { ...fixture.row }
+  fixture.events.length = 0
+
   assert.deepEqual(await fixture.invoke('end'), { ended: true })
-  assert.equal(fixture.row.status, 'consumed')
-  assert.equal(fixture.row.consumedAt, fixture.now)
-  for (const field of Object.keys(CLEARED_LOGIN_FIELDS) as (keyof typeof CLEARED_LOGIN_FIELDS)[]) {
-    assert.equal(fixture.row[field], null)
-  }
+  assert.deepEqual(fixture.row, {
+    ...before,
+    status: 'consumed',
+    consumedAt: fixture.now,
+    codeChallenge: null,
+    launchTicketHash: null,
+    browserBindingHash: null,
+    qrTicketHash: null,
+    phoneBindingHash: null,
+    confirmationCode: null,
+    webauthnChallenge: null,
+    operation: null,
+    pendingUserId: null,
+    verifiedUserId: null,
+    credentialId: null,
+    exchangeCodeHash: null,
+    codeExpiresAt: null
+  })
   assert.deepEqual(fixture.events, [
     'begin',
     'request-lock',
