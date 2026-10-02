@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import test from 'node:test'
+import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { CharacterDetailFailure } from '../src/characters/details/errors.js'
 import {
   createNeopleCharacterDetailsForTest,
@@ -112,4 +113,44 @@ test('native detail transport aborts incomplete body and refuses redirects', asy
     server.closeAllConnections()
     await new Promise<void>((resolve) => server.close(() => resolve()))
   }
+})
+
+test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않고 공급자 호출 예산도 소비하지 않는다', async () => {
+  const budget = new NeopleBudget(() => 0)
+  // 600회 예산에 기본 조회와 정상 후속 transport 한 번만 남겨 둔다.
+  for (let count = 0; count < 598; count++) {
+    await budget.run(async () => undefined)
+  }
+  const controller = new AbortController()
+  let started!: () => void
+  const entered = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  let finish!: () => void
+  const late = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  let calls = 0
+  const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
+    budget,
+    fetch: async () => {
+      calls++
+      started()
+      await late
+
+      return Response.json(basic)
+    }
+  })
+  const pending = adapter(identity, controller.signal)
+  const rejected = assert.rejects(pending, { status: 500 })
+  await entered
+  controller.abort()
+  finish()
+  await rejected
+  assert.equal(calls, 1)
+  assert.equal(await budget.run(async () => '정상 transport'), '정상 transport')
+  await assert.rejects(
+    budget.run(async () => '예산 초과 transport'),
+    { status: 429 }
+  )
 })

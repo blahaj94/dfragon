@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
@@ -334,4 +335,30 @@ test('disconnect ignores a late upstream success while a connected request persi
       assert.deepEqual(result.get(catalogKey(item))!.detail.data, { late: true })
     }
   }
+})
+
+test('이미 취소된 공용 상세 요청은 전송과 공급자 호출 예산을 소비하지 않는다', async () => {
+  const budget = new NeopleBudget(() => 0)
+  for (let count = 0; count < 599; count++) {
+    await budget.run(async () => undefined)
+  }
+  let calls = 0
+  const adapter = createNeopleCatalog(
+    'fixture-key',
+    async () => {
+      calls++
+
+      return Response.json({ rows: [] })
+    },
+    budget
+  )
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(adapter([item], controller.signal), { message: 'Catalog lookup failed' })
+  assert.equal(calls, 0)
+  assert.equal(await budget.run(async () => '정상 transport'), '정상 transport')
+  await assert.rejects(
+    budget.run(async () => '예산 초과 transport'),
+    { status: 429 }
+  )
 })
