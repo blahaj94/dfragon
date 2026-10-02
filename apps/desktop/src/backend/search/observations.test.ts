@@ -75,7 +75,7 @@ describe('main 검색 관측과 slot 수명', () => {
     expect(fixture.published).toHaveBeenLastCalledWith('characterSearchChanged', completed)
   })
 
-  it.each(['', '가', '가나다라마바사아자차카타파', ' 가나', '가나 ', '😀'])(
+  it.each(['', '가', '가나다라마바사아자차카타파', ' 가나', '가나 ', '😀', '\ud800가', '가\udfff'])(
     '입력 %j는 보정하거나 HTTP로 보내지 않고 재시도 없는 입력 실패로 끝낸다',
     async (nickname) => {
       const fixture = await createSearchFixture()
@@ -101,6 +101,19 @@ describe('main 검색 관측과 slot 수명', () => {
       expect(retry).toMatchObject({ ok: false, error: { code: 'SEARCH_RETRY_NOT_READY' } })
     }
   )
+
+  it.each([2, 12])('보조 평면 문자 %i개 관측을 그대로 검색에 전달한다', async (length) => {
+    const fixture = await createSearchFixture()
+    const nickname = '😀'.repeat(length)
+    fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [] } }))
+
+    const admitted = await fixture.observe({ slot: 0, observationRevision: 1, nickname })
+
+    expect(admitted).toMatchObject({ ok: true })
+    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
+    const request = new Request(...fixture.fetchSearch.mock.calls[0])
+    expect(new URL(request.url).searchParams.get('characterName')).toBe(nickname)
+  })
 
   it('네 slot은 독립적으로 진행하며 역순 완료와 0건을 구분한다', async () => {
     const fixture = await createSearchFixture()

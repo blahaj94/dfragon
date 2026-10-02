@@ -14,6 +14,21 @@ export type SplitRow = { id: string; text: string | null; excluded: boolean; spl
 type LabeledRow = SplitRow & { text: string }
 type NicknameGroup = { text: string; split: Split; features: Map<string, number> }
 
+const IMAGE_SCORE_WEIGHT = 4
+const NICKNAME_SCORE_WEIGHT = 1
+const CHARACTER_GROUP_SCORE_WEIGHT = 2
+const CHARACTER_SCORE_WEIGHT = 1
+const RARE_CHARACTER_NORMALIZATION_MINIMUM = 10
+export const SPLIT_IMPROVEMENT_POLICY = {
+  maximumPasses: 8,
+  minimumScoreImprovement: 1e-12
+} as const
+const RATIO_SUM_TOLERANCE = 1e-6
+
+export function isImprovingSplitMove(scoreChange: number): boolean {
+  return scoreChange < -SPLIT_IMPROVEMENT_POLICY.minimumScoreImprovement
+}
+
 export function characterGroup(char: string): CharacterGroup {
   if (/\p{Script=Hangul}/u.test(char)) {
     return 'hangul'
@@ -59,7 +74,8 @@ export function parseSplitOptions(value: unknown): SplitOptions {
         Number(ratios[split]) < 0 ||
         Number(ratios[split]) > 100
     ) ||
-    Math.abs(assignedSplits.reduce((sum, split) => sum + Number(ratios[split]), 0) - 100) > 1e-6
+    Math.abs(assignedSplits.reduce((sum, split) => sum + Number(ratios[split]), 0) - 100) >
+      RATIO_SUM_TOLERANCE
   ) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
@@ -184,18 +200,18 @@ export function planSplits(
       const before = (counts[split].get(key) ?? 0) - target
       let weight: number
       if (key === 'images') {
-        weight = 4
+        weight = IMAGE_SCORE_WEIGHT
       } else if (key === 'nicknames') {
-        weight = 1
+        weight = NICKNAME_SCORE_WEIGHT
       } else if (key.startsWith('group:')) {
-        weight = 2 / kinds.group
+        weight = CHARACTER_GROUP_SCORE_WEIGHT / kinds.group
       } else {
-        weight = 1 / kinds.char
+        weight = CHARACTER_SCORE_WEIGHT / kinds.char
       }
       // A character occurring once has no hard requirement to occur in each split.
       result +=
         (weight * ((before + direction * value) ** 2 - before ** 2)) /
-        Math.max(key.startsWith('char:') ? 10 : 1, total) ** 2
+        Math.max(key.startsWith('char:') ? RARE_CHARACTER_NORMALIZATION_MINIMUM : 1, total) ** 2
     }
 
     return result
@@ -243,13 +259,14 @@ export function planSplits(
     assignment.set(group.text, split)
     update(group, split, 1)
   }
-  for (let pass = 0; pass < 8; pass++) {
+  for (let pass = 0; pass < SPLIT_IMPROVEMENT_POLICY.maximumPasses; pass++) {
     let moved = false
     for (const group of movable) {
       const current = assignment.get(group.text)!
       const destination = destinations.find(
         (split) =>
-          split !== current && costChange(group, current, -1) + costChange(group, split, 1) < -1e-12
+          split !== current &&
+          isImprovingSplitMove(costChange(group, current, -1) + costChange(group, split, 1))
       )
       if (destination) {
         update(group, current, -1)

@@ -39,17 +39,20 @@ export type SyntheticRendering = {
   foregroundRgb: number[]
   backgroundRgb: number[]
 }
-export type Capture = {
+type CaptureFields = {
   id: string
   capturedAt: string
-  kind: CaptureKind | 'synthetic'
   width: number
   height: number
   uiScale: number | null
   uiScaleSource: 'game' | 'estimated' | 'unknown'
   crops: Crop[]
-  synthetic?: { text: string; rendering: SyntheticRendering }
 }
+export type Capture = CaptureFields &
+  (
+    | { kind: CaptureKind; synthetic?: never }
+    | { kind: 'synthetic'; synthetic: { text: string; rendering: SyntheticRendering } }
+  )
 export type Sample = Crop & {
   id: string
   captureId: string

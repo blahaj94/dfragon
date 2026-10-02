@@ -1,10 +1,10 @@
-import { filter, map, pipe, unique } from 'remeda'
+import { map, unique } from 'remeda'
 import { isObject } from '../details/neople.js'
 import type { projectCharacterDetails } from '../details/project.js'
 import { mapCharacterItems } from './items.js'
 import type { CatalogService } from './service.js'
 import { catalogKey, isCatalogId, unavailableDetail } from './types.js'
-import type { CatalogDetail, CatalogKey } from './types.js'
+import type { CatalogDetail, CatalogKey, CatalogResult } from './types.js'
 
 type CharacterDetails = ReturnType<typeof projectCharacterDetails>
 
@@ -19,7 +19,7 @@ export async function enrichCharacterDetails(
     if (isCatalogId(item.itemId)) {
       const properties = { ...item }
       const itemDetail =
-        loaded.get(catalogKey({ kind: 'item', itemId: item.itemId })) ?? unavailableDetail
+        loaded.get(catalogKey({ kind: 'item', itemId: item.itemId }))?.detail ?? unavailableDetail
 
       return { ...properties, itemDetail }
     }
@@ -101,25 +101,21 @@ function collectCharacterCatalogReferences(details: CharacterDetails) {
 
 // Index shared details once, since evolution/enhancement/chain entries select the same skills.
 function projectCharacterCatalogDetails(
-  loaded: ReadonlyMap<string, CatalogDetail>,
+  loaded: ReadonlyMap<string, CatalogResult>,
   skillIds: readonly string[],
   jobId: unknown
 ) {
-  const setDetails = Object.fromEntries(
-    pipe(
-      [...loaded],
-      filter(([key]) => key.startsWith('set:')),
-      map(([key, detail]) => {
-        const setItemId = key.slice(4)
-
-        return [setItemId, detail] as const
-      })
-    )
-  )
+  const sets: [string, CatalogDetail][] = []
+  for (const { key, detail } of loaded.values()) {
+    if (key.kind === 'set') {
+      sets.push([key.setItemId, detail])
+    }
+  }
+  const setDetails = Object.fromEntries(sets)
   const skillDetails = Object.fromEntries(
     map(skillIds, (skillId) => {
       const detail = isCatalogId(jobId)
-        ? (loaded.get(catalogKey({ kind: 'skill', jobId, skillId })) ?? unavailableDetail)
+        ? (loaded.get(catalogKey({ kind: 'skill', jobId, skillId }))?.detail ?? unavailableDetail)
         : unavailableDetail
 
       return [skillId, detail] as const

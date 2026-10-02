@@ -13,7 +13,13 @@ import { FilesInterceptor } from '@nestjs/platform-express'
 import type { Response } from 'express'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
-import { MODEL_MAXIMUM_BYTES, parseModelUpload } from './model-library.js'
+import {
+  MODEL_FILES,
+  MODEL_MAXIMUM_BYTES,
+  MODEL_METADATA_MAXIMUM_BYTES,
+  MODEL_MAXIMUM_PARTS,
+  parseModelUpload
+} from './model-library.js'
 import { registerBaseModel } from './base-model.js'
 
 @Controller('api')
@@ -49,8 +55,14 @@ export class OcrModelController {
 
   @Post(['models', 'desktop/models'])
   @UseInterceptors(
-    FilesInterceptor('files', 3, {
-      limits: { fileSize: MODEL_MAXIMUM_BYTES, files: 3, fields: 1, fieldSize: 8192, parts: 5 }
+    FilesInterceptor('files', MODEL_FILES.length, {
+      limits: {
+        fileSize: MODEL_MAXIMUM_BYTES,
+        files: MODEL_FILES.length,
+        fields: 1,
+        fieldSize: MODEL_METADATA_MAXIMUM_BYTES,
+        parts: MODEL_MAXIMUM_PARTS
+      }
     })
   )
   upload(

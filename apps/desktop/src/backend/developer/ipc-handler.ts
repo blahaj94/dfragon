@@ -1,6 +1,7 @@
 import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
 import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import type {
+  DeveloperApi,
   DeveloperCollectionKind,
   DeveloperFrame,
   DeveloperSettings,
@@ -437,10 +438,11 @@ export function registerDeveloperWindow(
     }
   }
 
-  function register(
-    channel: string,
-    handler: (event: IpcMainInvokeEvent, args: unknown[]) => Promise<unknown>
+  function register<Key extends Exclude<keyof DeveloperApi, 'onPartyCollectionStatus'>>(
+    command: Key,
+    handler: (event: IpcMainInvokeEvent, args: unknown[]) => ReturnType<DeveloperApi[Key]>
   ): void {
+    const channel = DEVELOPER_CHANNELS[command]
     ipcMain.handle(channel, (event, ...args) => handler(event, args))
     registeredChannels.push(channel)
   }
@@ -469,14 +471,14 @@ export function registerDeveloperWindow(
   }
 
   try {
-    register(DEVELOPER_CHANNELS.getSettings, (event, args) =>
+    register('getSettings', (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
 
         return store.getSettings()
       })
     )
-    register(DEVELOPER_CHANNELS.setEnabled, (event, args) =>
+    register('setEnabled', (event, args) =>
       invoke(event, async () => {
         const enabled = requireSingleArgument(args)
         if (typeof enabled !== 'boolean') {
@@ -486,27 +488,27 @@ export function registerDeveloperWindow(
         return setDeveloperEnabled(enabled)
       })
     )
-    register(DEVELOPER_CHANNELS.listSamples, (event, args) =>
+    register('listSamples', (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
 
         return store.listSamples()
       })
     )
-    register(DEVELOPER_CHANNELS.listOcrSamples, (event, args) =>
+    register('listOcrSamples', (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
 
         return invokeRemote((dataset) => dataset.list())
       })
     )
-    register(DEVELOPER_CHANNELS.closeOcrSamples, (event, args) =>
+    register('closeOcrSamples', (event, args) =>
       invoke(event, async () => {
         requireNoArguments(args)
         closeRemoteDataset()
       })
     )
-    register(DEVELOPER_CHANNELS.readImage, (event, args) =>
+    register('readImage', (event, args) =>
       invoke(event, async () => {
         const id = exactSampleId(requireSingleArgument(args))
         if (!id.startsWith('ocr:')) {
@@ -516,7 +518,7 @@ export function registerDeveloperWindow(
         return invokeRemote((dataset) => dataset.readImage(id))
       })
     )
-    register(DEVELOPER_CHANNELS.addSample, (event, args) =>
+    register('addSample', (event, args) =>
       invoke(event, async () => {
         const pngDataUrl = requireSingleArgument(args)
         if (typeof pngDataUrl !== 'string') {
@@ -526,7 +528,7 @@ export function registerDeveloperWindow(
         return store.addSample(pngDataUrl)
       })
     )
-    register(DEVELOPER_CHANNELS.saveLabel, (event, args) =>
+    register('saveLabel', (event, args) =>
       invoke(event, async () => {
         if (args.length !== 2) {
           throw invalidCommand()
@@ -535,7 +537,7 @@ export function registerDeveloperWindow(
         return store.saveLabel(exactSampleId(args[0]), exactLabel(args[1]))
       })
     )
-    register(DEVELOPER_CHANNELS.setSampleExcluded, (event, args) =>
+    register('setSampleExcluded', (event, args) =>
       invoke(event, async () => {
         if (args.length !== 2) {
           throw invalidCommand()
@@ -544,7 +546,7 @@ export function registerDeveloperWindow(
         return store.setSampleExcluded(exactSampleId(args[0]), exactExcluded(args[1]))
       })
     )
-    register(DEVELOPER_CHANNELS.captureFrame, (event, args) =>
+    register('captureFrame', (event, args) =>
       invoke(event, async (): Promise<DeveloperFrame> => {
         requireNoArguments(args)
 
@@ -553,7 +555,7 @@ export function registerDeveloperWindow(
         )
       })
     )
-    register(DEVELOPER_CHANNELS.previewParty, (event, args) =>
+    register('previewParty', (event, args) =>
       invoke(event, async (): Promise<DeveloperPartyPreviewResponse> => {
         if (args.length > 1) {
           throw invalidCommand()
@@ -588,7 +590,7 @@ export function registerDeveloperWindow(
         }
       })
     )
-    register(DEVELOPER_CHANNELS.setPartyCollectionSlots, (event, args) =>
+    register('setPartyCollectionSlots', (event, args) =>
       invoke(event, async () => {
         if (args.length < 1 || args.length > 2) {
           throw invalidCommand()

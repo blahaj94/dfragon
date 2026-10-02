@@ -6,6 +6,7 @@ import '@seed-design/css/base.css'
 import '../../../packages/ui/foundation.css'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './passkeys.style'
+import { parseReturnTarget } from './return-target'
 import { actionButton } from '@seed-design/css/recipes/action-button'
 import {
   startAuthentication,
@@ -285,37 +286,16 @@ function PasskeyPage() {
 
   function showReturn(returnUrl: string) {
     const url = new URL(returnUrl)
-    const webTarget = root.dataset.webReturnUrl
-    if (webTarget !== undefined && webTarget.length > 0) {
-      const target = new URL(webTarget)
-      if (
-        url.protocol !== 'https:' ||
-        url.origin !== target.origin ||
-        url.pathname !== target.pathname ||
-        url.username ||
-        url.password ||
-        url.hash ||
-        url.searchParams.size !== 1 ||
-        !url.searchParams.has('code')
-      ) {
-        throw new Error('웹 복귀 주소를 확인하지 못했습니다.')
-      }
+    const target = parseReturnTarget(url, root.dataset.webReturnUrl)
+    if (target.kind === 'web') {
       endedRef.current = true
-      location.assign(url.href)
+      location.assign(target.href)
 
       return
     }
-
-    if (
-      !['dfragon:', 'dfragon.dev:'].includes(url.protocol) ||
-      url.host !== 'auth' ||
-      url.pathname !== '/callback'
-    ) {
-      throw new Error('앱 복귀 주소를 확인하지 못했습니다.')
-    }
     endedRef.current = true
     qrGeneration.current += 1
-    setScreen({ kind: 'complete', returnUrl: url.href })
+    setScreen({ kind: 'complete', returnUrl: target.href })
     setStatus('')
   }
 

@@ -1,3 +1,4 @@
+import { matchesDNFSearchNicknamePolicy } from '@dfragon/lib'
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { randomUUID } from 'node:crypto'
 import { createActor } from 'xstate'
@@ -50,11 +51,9 @@ function idleSlot({
 }
 
 function validNickname(nickname: string): boolean {
-  const length = [...nickname].length
-  const hasAllowedLength = length >= 2 && length <= 12
-  const hasNoOuterWhitespace = nickname === nickname.trim()
+  const matchesPolicy = matchesDNFSearchNicknamePolicy(nickname)
   const isWellFormed = nickname.isWellFormed()
-  const isValid = hasAllowedLength && hasNoOuterWhitespace && isWellFormed
+  const isValid = matchesPolicy && isWellFormed
 
   return isValid
 }

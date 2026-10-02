@@ -79,7 +79,12 @@ export function databaseEnvironment(
 
 export function startRuntime(
   environment,
-  { fault = '', realDatabase = false, upstreams = {} } = {}
+  {
+    fault = '',
+    realDatabase = false,
+    upstreams = {},
+    preload = './test-support/runtime-preload.mjs'
+  } = {}
 ) {
   // 실제 환경의 credential·NODE_OPTIONS를 상속하지 않고 명시한 fixture만 전달한다.
   const env = {
@@ -91,13 +96,7 @@ export function startRuntime(
   }
   const child = spawn(
     process.execPath,
-    [
-      '--import',
-      'reflect-metadata',
-      '--import',
-      './test-support/runtime-preload.mjs',
-      'dist/main.js'
-    ],
+    ['--import', 'reflect-metadata', '--import', preload, 'dist/main.js'],
     { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] }
   )
   const events = []

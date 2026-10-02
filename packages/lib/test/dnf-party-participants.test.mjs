@@ -257,3 +257,13 @@ test('finds a dialog among unrelated red decorations on a bright game background
   )
   assert.deepEqual(result.window, { x: 186, y: 33, width: 394, height: 210 })
 })
+
+test('accepts a dialog exactly touching the right and bottom frame edges', () => {
+  const exact = frame()
+  popup(exact, { x: 687, y: 457 })
+  const result = cropDNFPartyParticipantNicknames(exact, heading)
+
+  assert.equal(result.status, 'found')
+  assert.equal(result.window.x + result.window.width, exact.width)
+  assert.equal(result.window.y + result.window.height, exact.height)
+})

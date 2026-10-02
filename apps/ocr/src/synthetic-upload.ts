@@ -15,7 +15,10 @@ function parseRgb(value: unknown): number[] {
   return value
 }
 
-export function parseSyntheticUpload(value: unknown): { capture: Capture; png: Buffer } {
+export function parseSyntheticUpload(value: unknown): {
+  capture: Extract<Capture, { kind: 'synthetic' }>
+  png: Buffer
+} {
   const body = parseInputRecord(value)
   if (
     Object.keys(body).some(

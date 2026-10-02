@@ -1,4 +1,9 @@
 import type { DNFRectangle } from './dnf-party-geometry.js'
+import { projectParticipantRectangle } from './dnf-participant-regions.js'
+import {
+  hasParticipantEvidence,
+  participantEvidenceRatio as evidenceRatio
+} from './dnf-participant-evidence.js'
 import type { DNFParticipantFrame } from './dnf-party-participants.js'
 import {
   createParticipantHeadingMatcher,
@@ -35,6 +40,8 @@ export type DNFRaidParticipantCropResult =
       rows: (DNFRaidParticipantRow & { nicknameCrop: DNFParticipantFrame | null })[]
     })
 
+const windowBounds = { left: -15, top: -68, right: 450, bottom: 324 }
+
 const headingLayout = { width: 423, height: 18, anchorX: 405, anchorY: -10 }
 const rowCount = 12
 const rowSpacing = 21
@@ -57,21 +64,6 @@ function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   }
 }
 
-function rectangle(
-  heading: ParticipantHeading,
-  left: number,
-  top: number,
-  right: number,
-  bottom: number
-): DNFRectangle {
-  const x = roundPixel(heading.x + left * heading.scale)
-  const y = roundPixel(heading.y + top * heading.scale)
-  const width = roundPixel(heading.x + right * heading.scale) - x
-  const height = roundPixel(heading.y + bottom * heading.scale) - y
-
-  return { x, y, width, height }
-}
-
 /** Rejects unrelated red decoration before spending the shared template-matching budget. */
 function createRaidRowValidator(frame: ParticipantGrayFrame) {
   const stride = frame.width + 1
@@ -84,11 +76,12 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
   }
 
   return (x: number, y: number, scale: number): boolean => {
+    const window = projectParticipantRectangle({ x, y, scale }, windowBounds)
     if (
-      roundPixel(x - 15 * scale) < 0 ||
-      roundPixel(y - 68 * scale) < 0 ||
-      roundPixel(x + 450 * scale) > frame.width ||
-      roundPixel(y + 324 * scale) > frame.height
+      window.x < 0 ||
+      window.y < 0 ||
+      window.x + window.width > frame.width ||
+      window.y + window.height > frame.height
     ) {
       return false
     }
@@ -112,25 +105,6 @@ function createRaidRowValidator(frame: ParticipantGrayFrame) {
 
     return true
   }
-}
-
-/** Empty portrait placeholders and stray name-column marks are insufficient on their own. */
-function evidenceRatio(frame: DNFParticipantFrame, region: DNFRectangle, colored = false): number {
-  let count = 0
-  for (let y = region.y; y < region.y + region.height; y += 1) {
-    for (let x = region.x; x < region.x + region.width; x += 1) {
-      const offset = (y * frame.width + x) * 4
-      const r = frame.rgba[offset]
-      const g = frame.rgba[offset + 1]
-      const b = frame.rgba[offset + 2]
-      const maximum = Math.max(r, g, b)
-      if (colored ? maximum >= 120 && maximum - Math.min(r, g, b) >= 60 : maximum >= 100) {
-        count += 1
-      }
-    }
-  }
-
-  return count / (region.width * region.height)
 }
 
 /**
@@ -170,7 +144,7 @@ export function detectDNFRaidParticipantWindow(
     if (matched == null) {
       continue
     }
-    const window = rectangle(matched, -15, -68, 450, 324)
+    const window = projectParticipantRectangle(matched, windowBounds)
     if (
       window.x < 0 ||
       window.y < 0 ||
@@ -199,14 +173,44 @@ export function detectDNFRaidParticipantWindow(
   const { heading: matched, window } = candidates[0]
   const rows: DNFRaidParticipantRow[] = Array.from({ length: rowCount }, (_, index) => {
     const top = headingLayout.height + rowSpacing * index
-    const portrait = evidenceRatio(frame, rectangle(matched, 51, top + 2, 66, top + 18))
-    const level = evidenceRatio(frame, rectangle(matched, 85, top + 2, 104, top + 18))
-    const role = evidenceRatio(frame, rectangle(matched, 269, top + 2, 281, top + 18), true)
+    const portrait = evidenceRatio(
+      frame,
+      projectParticipantRectangle(matched, { left: 51, top: top + 2, right: 66, bottom: top + 18 })
+    )
+    const level = evidenceRatio(
+      frame,
+      projectParticipantRectangle(matched, { left: 85, top: top + 2, right: 104, bottom: top + 18 })
+    )
+    const role = evidenceRatio(
+      frame,
+      projectParticipantRectangle(matched, {
+        left: 269,
+        top: top + 2,
+        right: 281,
+        bottom: top + 18
+      }),
+      true
+    )
     const row = (index + 1) as DNFRaidParticipantPosition
-    const occupied = Number(portrait >= 0.12) + Number(level >= 0.035) + Number(role >= 0.1) >= 2
-    const nickname = rectangle(matched, 182, top + 3, 268, top + 20)
-    const partyRegion = rectangle(matched, 3, top + 2, 45, top + 19)
-    const equipmentScoreRegion = rectangle(matched, 106, top + 3, 181, top + 20)
+    const occupied = hasParticipantEvidence({ portrait, level, role })
+    const nickname = projectParticipantRectangle(matched, {
+      left: 182,
+      top: top + 3,
+      right: 268,
+      bottom: top + 20
+    })
+    const partyRegion = projectParticipantRectangle(matched, {
+      left: 3,
+      top: top + 2,
+      right: 45,
+      bottom: top + 19
+    })
+    const equipmentScoreRegion = projectParticipantRectangle(matched, {
+      left: 106,
+      top: top + 3,
+      right: 181,
+      bottom: top + 20
+    })
 
     return { row, occupied, nickname, partyRegion, equipmentScoreRegion }
   })

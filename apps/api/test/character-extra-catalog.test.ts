@@ -6,6 +6,7 @@ import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { catalogKey, unavailableDetail } from '../src/characters/catalog/types.js'
 import type {
   CatalogDetail,
+  CatalogResult,
   CatalogEntry,
   CatalogKey,
   CatalogValue
@@ -101,7 +102,8 @@ test('discovers sets only from stored item data, reuses both caches and never tr
     })
   })
   const loaded = await service.load([item, item], signal)
-  assert.equal(loaded.get(catalogKey(set))!.status, 'fresh')
+  assert.equal(loaded.get(catalogKey(set))!.detail.status, 'fresh')
+  assert.deepEqual(loaded.get(catalogKey(set))!.key, set)
   assert.deepEqual(calls, [[item], [set]])
   assert.equal(rows.size, 2)
   await service.load([item], signal)
@@ -111,8 +113,11 @@ test('discovers sets only from stored item data, reuses both caches and never tr
     throw new Error('failed')
   })
   const stale = await failed.load([item], signal)
-  assert.equal(stale.get(catalogKey(set))!.status, 'stale')
-  assert.deepEqual(stale.get(catalogKey(set))!.data, loaded.get(catalogKey(set))!.data)
+  assert.equal(stale.get(catalogKey(set))!.detail.status, 'stale')
+  assert.deepEqual(
+    stale.get(catalogKey(set))!.detail.data,
+    loaded.get(catalogKey(set))!.detail.data
+  )
 
   const broken = memoryStore().store
   broken.saveAndRead = async () => {
@@ -155,8 +160,9 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
   assert.equal(requested.length, 128)
   assert.equal(requested.filter((key) => key.kind === 'set').length, 1)
   assert.equal(
-    [...result].filter(([key, detail]) => key.startsWith('set:') && detail.status === 'unavailable')
-      .length,
+    [...result].filter(
+      ([key, detail]) => key.startsWith('set:') && detail.detail.status === 'unavailable'
+    ).length,
     126
   )
   assert(signals.every((value) => value === signals[0]))
@@ -352,7 +358,7 @@ test('enrichment preserves reference order, item duplicates and guarded first-oc
   assert.deepEqual(details, original)
 })
 
-test('catalog dictionaries preserve reserved ID keys, detail identity and invalid-job fallbacks', async () => {
+test('catalog dictionaries use typed identities, preserving reserved ID keys and detail identity', async () => {
   const detail: CatalogDetail = { data: { retained: true }, fetchedAt: null, status: 'stale' }
   for (const jobId of ['job', '', null, undefined]) {
     const details = fixture()
@@ -362,13 +368,22 @@ test('catalog dictionaries preserve reserved ID keys, detail identity and invali
         active: [{ skillId: '__proto__' }, { skillId: 'constructor' }, { skillId: 'missing' }]
       }
     }
-    const loaded = new Map<string, CatalogDetail>([
-      ['set:__proto__', detail],
-      ['item:equipment', detail],
-      ['set:constructor', unavailableDetail],
-      ['skill:job:__proto__', detail],
-      ['skill:job:constructor', detail],
-      ['other:ignored', detail]
+    const loaded = new Map<string, CatalogResult>([
+      ['opaque-set-id', { key: { kind: 'set', setItemId: '__proto__' }, detail }],
+      ['item:equipment', { key: { kind: 'item', itemId: 'equipment' }, detail }],
+      [
+        'another-set-id',
+        { key: { kind: 'set', setItemId: 'constructor' }, detail: unavailableDetail }
+      ],
+      [
+        'skill:job:__proto__',
+        { key: { kind: 'skill', jobId: 'job', skillId: '__proto__' }, detail }
+      ],
+      [
+        'skill:job:constructor',
+        { key: { kind: 'skill', jobId: 'job', skillId: 'constructor' }, detail }
+      ],
+      ['set:misleading-item-id', { key: { kind: 'item', itemId: 'ignored' }, detail }]
     ])
     const reads: string[] = []
     const get = loaded.get.bind(loaded)
@@ -455,7 +470,7 @@ test('enrichment keeps live skill traversal and reads item options before catalo
   details.oath = null
   details.buff = { equipment: null, avatar: null, creature: null }
   details.skillStyle = { style: { active } }
-  const loaded = new Map<string, CatalogDetail>()
+  const loaded = new Map<string, CatalogResult>()
   loaded.get = (key) => {
     events.push(`lookup:${key}`)
 

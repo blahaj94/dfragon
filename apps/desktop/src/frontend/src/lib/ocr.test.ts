@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPartyOcrWorker } from './ocr'
+import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
 
 class NativeWorker {
   static latest: NativeWorker
@@ -79,5 +79,6 @@ describe('PaddleOCR worker 수명', () => {
     const failure = expect(recognizing).rejects.toThrow('PaddleOCR could not complete recognition.')
     NativeWorker.latest.reply({ failed: true, internal: 'synthetic internal error' })
     await failure
+    await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
   })
 })

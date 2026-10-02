@@ -1,25 +1,30 @@
+import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import type { AuthCoordinator } from '../auth/types'
 import type { DeveloperPartySlot, DeveloperSample } from '../../preload/common/types/developer'
 import { isDeveloperPartySlot } from '../../preload/common/developer-collection'
 import { DEVELOPER_ERROR_CODES as errors } from '../../preload/common/developer-errors'
+import { requestWithOcrAuthorizationRecovery } from './ocr-authorization-recovery'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 
+export const MAX_OCR_DATASET_SAMPLES = 10_000
+export const MAX_OCR_DATASET_JSON_BYTES = 8 * 1024 * 1024
+
 const origin = 'https://ocr.dfragon.com'
-const dimension = z.number().int().min(1).max(8192)
+const dimension = z.number().int().min(1).max(OCR_DATA_LIMITS.maximumDimension)
 const sampleSchema = z
   .object({
     id: z.string().regex(/^[0-9a-f-]{36}-(?:[1-9]|1[0-2])$/),
     capturedAt: z.iso.datetime(),
     width: dimension,
     height: dimension,
-    text: z.string().max(100).nullable(),
+    text: z.string().max(OCR_DATA_LIMITS.maximumLabelLength).nullable(),
     excluded: z.boolean(),
     slot: z.custom<DeveloperPartySlot>((value) => isDeveloperPartySlot(value, 'raid')),
     frameWidth: dimension,
     frameHeight: dimension,
-    uiScale: z.number().positive().max(10).nullable(),
+    uiScale: z.number().positive().max(OCR_DATA_LIMITS.maximumUiScale).nullable(),
     kind: z.enum(['hud', 'participants', 'raid']),
     split: z.enum(['unassigned', 'train', 'val', 'test'])
   })
@@ -29,7 +34,7 @@ const sampleSchema = z
   )
 const datasetSchema = z.object({
   exportedAt: z.iso.datetime(),
-  samples: z.array(sampleSchema).max(10_000)
+  samples: z.array(sampleSchema).max(MAX_OCR_DATASET_SAMPLES)
 })
 type DatasetAuth = Pick<
   AuthCoordinator,
@@ -106,54 +111,42 @@ export function createOcrDataset(
       captureSignal: session.signal
     })
     try {
-      let authorization = await auth.authorization(lifecycle.signal)
-      for (let attempt = 0; attempt < 2; attempt++) {
-        if (
-          !lifecycle.isCurrent() ||
-          authorization.status !== 'available' ||
-          authorization.generation !== expected
-        ) {
+      const authorization = await auth.authorization(lifecycle.signal)
+      const response = await requestWithOcrAuthorizationRecovery({
+        auth,
+        generation: expected,
+        authorization,
+        lifecycle,
+        send: (accessToken, signal) =>
+          request(`${origin}${path}`, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+            credentials: 'omit',
+            cache: 'no-store',
+            redirect: 'error',
+            signal
+          })
+      })
+      if (response == null) {
+        throw new Error(errors.OCR_LOGIN_REQUIRED)
+      }
+
+      if (response.status !== 200) {
+        await response.body?.cancel()
+        throw new Error(
+          response.status === 403 ? errors.OCR_OWNER_REQUIRED : errors.OCR_UNAVAILABLE
+        )
+      }
+      try {
+        const result = await parse(response, lifecycle.signal)
+        if (!lifecycle.isCurrent()) {
           throw new Error(errors.OCR_LOGIN_REQUIRED)
         }
-        const response = await request(`${origin}${path}`, {
-          headers: { Authorization: `Bearer ${authorization.accessToken}` },
-          credentials: 'omit',
-          cache: 'no-store',
-          redirect: 'error',
-          signal: lifecycle.signal
-        })
-        if (response.status === 401) {
-          await response.body?.cancel()
-          authorization = await auth.recoverAuthorization(
-            {
-              generation: expected,
-              accessGeneration: authorization.accessGeneration,
-              finalRejection: attempt === 1
-            },
-            lifecycle.signal
-          )
-          continue
-        }
 
-        if (response.status !== 200) {
-          await response.body?.cancel()
-          throw new Error(
-            response.status === 403 ? errors.OCR_OWNER_REQUIRED : errors.OCR_UNAVAILABLE
-          )
-        }
-        try {
-          const result = await parse(response, lifecycle.signal)
-          if (!lifecycle.isCurrent()) {
-            throw new Error(errors.OCR_LOGIN_REQUIRED)
-          }
-
-          return result
-        } catch (error) {
-          await response.body?.cancel().catch(() => undefined)
-          throw error
-        }
+        return result
+      } catch (error) {
+        await response.body?.cancel().catch(() => undefined)
+        throw error
       }
-      throw new Error(errors.OCR_LOGIN_REQUIRED)
     } finally {
       lifecycle.cleanup()
     }
@@ -171,7 +164,9 @@ export function createOcrDataset(
         }
 
         return datasetSchema.parse(
-          JSON.parse((await readBody(response, signal, 8 * 1024 * 1024)).toString('utf8'))
+          JSON.parse(
+            (await readBody(response, signal, MAX_OCR_DATASET_JSON_BYTES)).toString('utf8')
+          )
         )
       })
       if (current !== revision) {
@@ -216,7 +211,7 @@ export function createOcrDataset(
         if (response.headers.get('content-type') !== 'image/png') {
           throw new Error(errors.OCR_UNAVAILABLE)
         }
-        const png = await readBody(response, signal, 16 * 1024 * 1024)
+        const png = await readBody(response, signal, OCR_DATA_LIMITS.maximumPngBytes)
         // Validate the PNG signature and dimensions before the renderer's decoder allocates pixels.
         if (
           png.length < 24 ||
@@ -224,7 +219,7 @@ export function createOcrDataset(
           png.toString('ascii', 12, 16) !== 'IHDR' ||
           png.readUInt32BE(16) !== sample.width ||
           png.readUInt32BE(20) !== sample.height ||
-          sample.width * sample.height > 16_777_216
+          sample.width * sample.height > OCR_DATA_LIMITS.maximumPixels
         ) {
           throw new Error(errors.OCR_UNAVAILABLE)
         }

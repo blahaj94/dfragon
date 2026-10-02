@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
 import { paginate } from '@dfragon/lib/utils/pagination'
@@ -42,6 +42,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const evaluation = useDeveloperEvaluation()
   const [filter, setFilter] = useState<DeveloperLabelFilter>('unlabeled')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectionRevision = useRef(0)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [slotsByKind, setSlotsByKind] = useState<
     Record<DeveloperCollectionKind, DeveloperPartySlotNumber[]>
@@ -96,12 +97,23 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     return value !== sample.text
   })
 
+  function selectSample(id: string | null): void {
+    selectionRevision.current += 1
+    setSelectedId(id)
+  }
+
+  function selectTab(tab: WorkbenchTab): void {
+    selectionRevision.current += 1
+    setActiveTab(tab)
+  }
+
   async function saveAndNext(): Promise<void> {
     if (readingRemote || !selected || dataset.saving || draft.length === 0) {
       return
     }
 
     const id = selected.id
+    const revision = selectionRevision.current
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const saved = await dataset.saveLabel(id, draft)
     if (!saved) {
@@ -115,14 +127,16 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       return next
     })
     setNotice('정답을 저장했습니다.')
-    setSelectedId(nextId)
+    if (revision === selectionRevision.current) {
+      setSelectedId(nextId)
+    }
   }
 
   function skipSelected(): void {
     if (!selected) {
       return
     }
-    setSelectedId(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
+    selectSample(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
     setNotice('')
   }
 
@@ -132,13 +146,16 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     }
 
     const id = selected.id
+    const revision = selectionRevision.current
     const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
     const updated = await dataset.setSampleExcluded(id, excluded)
     if (!updated) {
       return
     }
 
-    setSelectedId(nextId)
+    if (revision === selectionRevision.current) {
+      setSelectedId(nextId)
+    }
     setNotice(excluded ? '크롭을 제외했습니다.' : '크롭을 다시 포함했습니다.')
   }
 
@@ -167,7 +184,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       nextIndex = (index + direction + workbenchTabs.length) % workbenchTabs.length
     }
     const nextTab = workbenchTabs[nextIndex]
-    setActiveTab(nextTab)
+    selectTab(nextTab)
     requestAnimationFrame(() => document.getElementById(`developer-${nextTab}-tab`)?.focus())
   }
 
@@ -274,7 +291,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'collection' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
-          onClick={() => setActiveTab('collection')}
+          onClick={() => selectTab('collection')}
         >
           이미지 수집
         </ActionButton>
@@ -288,7 +305,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'participants' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
-          onClick={() => setActiveTab('participants')}
+          onClick={() => selectTab('participants')}
         >
           파티원창 크롭
         </ActionButton>
@@ -302,7 +319,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'raid' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
-          onClick={() => setActiveTab('raid')}
+          onClick={() => selectTab('raid')}
         >
           공대원창 크롭
         </ActionButton>
@@ -317,7 +334,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           {...stylex.props(styles.tab, activeTab === 'labeling' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => {
-            setActiveTab('labeling')
+            selectTab('labeling')
             setNotice('')
           }}
         >
@@ -351,7 +368,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           active={activeTab !== 'labeling'}
           kind={collectionKind}
           previewIntervalMs={previewIntervalMs}
-          onLabeling={() => setActiveTab('labeling')}
+          onLabeling={() => selectTab('labeling')}
           onSaved={() => void dataset.refresh()}
           onDisarmed={() => void dataset.refresh()}
           slots={slotsByKind[collectionKind]}
@@ -373,7 +390,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     setSource(value)
                     setRemotePage(0)
                     setFilter(value === 'ocr' ? 'complete' : 'unlabeled')
-                    setSelectedId(null)
+                    selectSample(null)
                     setNotice('')
                     evaluation.setPreprocessing(evaluation.preprocessing)
                   }}
@@ -389,7 +406,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
                       setRemotePage(0)
-                      setSelectedId(null)
+                      selectSample(null)
                       remote.refresh()
                     }}
                   >
@@ -404,7 +421,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       onChange={(event) => {
                         setSplit(event.target.value)
                         setRemotePage(0)
-                        setSelectedId(null)
+                        selectSample(null)
                       }}
                     >
                       <option value="all">전체 분할</option>
@@ -433,7 +450,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       total: visibleSamples.length,
                       onPageChange: (page) => {
                         setRemotePage(page)
-                        setSelectedId(null)
+                        selectSample(null)
                       }
                     }
                   : undefined
@@ -447,13 +464,19 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               error={displayedDataset.error}
               notice={notice}
               onFilterChange={(nextFilter) => {
+                const nextQuery = queryDeveloperWorkbenchSamples({
+                  samples: displayedDataset.samples,
+                  source,
+                  split,
+                  labelFilter: nextFilter
+                })
                 setFilter(nextFilter)
                 setRemotePage(0)
-                setSelectedId(null)
+                selectSample(nextQuery.visibleSamples[0]?.id ?? null)
                 setNotice('')
               }}
               onSelect={(id) => {
-                setSelectedId(id)
+                selectSample(id)
                 setNotice('')
               }}
               onDraft={(value) => {

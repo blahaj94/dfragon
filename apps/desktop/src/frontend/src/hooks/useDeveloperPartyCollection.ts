@@ -25,6 +25,7 @@ type CollectionSession = {
   statusEventRevision: number
   interval: number | null
   refreshPreview: () => Promise<void>
+  applySlots: (slots: DeveloperPartySlotNumber[]) => void
   disarmPromise: Promise<void> | null
 }
 
@@ -121,6 +122,7 @@ export function useDeveloperPartyCollection(
       statusEventRevision: 0,
       interval: null,
       refreshPreview,
+      applySlots,
       disarmPromise: null
     }
     sessionRef.current = session
@@ -131,7 +133,7 @@ export function useDeveloperPartyCollection(
       }
     })
 
-    const applySlots = (nextSlots: DeveloperPartySlotNumber[]): void => {
+    function applySlots(nextSlots: DeveloperPartySlotNumber[]): void {
       session.commandRevision += 1
       const commandRevision = session.commandRevision
       const statusEventRevision = session.statusEventRevision
@@ -254,27 +256,7 @@ export function useDeveloperPartyCollection(
 
     const session = sessionRef.current
     if (session?.active) {
-      session.commandRevision += 1
-      const commandRevision = session.commandRevision
-      const statusEventRevision = session.statusEventRevision
-      const request =
-        kind === 'hud'
-          ? window.developer.setPartyCollectionSlots(nextSlots)
-          : window.developer.setPartyCollectionSlots(nextSlots, kind)
-      void request
-        .then((status) => {
-          if (session.active && commandRevision === session.commandRevision) {
-            if (statusEventRevision === session.statusEventRevision) {
-              setCollection(status)
-            }
-            setCommandError('')
-          }
-        })
-        .catch(() => {
-          if (session.active && commandRevision === session.commandRevision) {
-            setCommandError('수집 설정을 저장하지 못했습니다.')
-          }
-        })
+      session.applySlots(nextSlots)
     }
   }
 

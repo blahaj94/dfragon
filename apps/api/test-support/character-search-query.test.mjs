@@ -43,3 +43,24 @@ test('search query counts Unicode code points without normalization', async () =
     )
   }
 })
+
+test('search nickname limits agree at one, two, twelve and thirteen code points', async () => {
+  const { parseCharacterSearchQuery } = await import('../dist/characters/query.js')
+  for (const character of ['가', '漢', '𠀀', '😀', '♥']) {
+    for (const length of [1, 2, 12, 13]) {
+      const characterName = character.repeat(length)
+      const parse = () =>
+        parseCharacterSearchQuery(`/characters?characterName=${encodeURIComponent(characterName)}`)
+      if (length === 2 || length === 12) {
+        assert.equal(parse().characterName, characterName)
+      } else {
+        assert.throws(parse, { status: 400 })
+      }
+    }
+  }
+  for (const query of ['%ED%A0%80%EA%B0%80', '%EA%B0%80%ED%BF%BF']) {
+    assert.throws(() => parseCharacterSearchQuery(`/characters?characterName=${query}`), {
+      status: 400
+    })
+  }
+})

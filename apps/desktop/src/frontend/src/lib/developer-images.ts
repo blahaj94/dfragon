@@ -1,4 +1,7 @@
-const MAX_PIXELS = 33_000_000
+import {
+  MAX_IMAGE_DIMENSION,
+  MAX_IMAGE_PIXELS
+} from '../../../preload/common/developer-image-limits'
 
 /** 가져온 파일과 캡처 프레임을 같은 크기 제한의 PNG 캔버스로 읽는다. */
 export async function readDeveloperImage(dataUrl: string): Promise<HTMLCanvasElement> {
@@ -8,11 +11,13 @@ export async function readDeveloperImage(dataUrl: string): Promise<HTMLCanvasEle
   if (
     image.naturalWidth < 1 ||
     image.naturalHeight < 1 ||
-    image.naturalWidth > 8192 ||
-    image.naturalHeight > 8192 ||
-    image.naturalWidth * image.naturalHeight > MAX_PIXELS
+    image.naturalWidth > MAX_IMAGE_DIMENSION ||
+    image.naturalHeight > MAX_IMAGE_DIMENSION ||
+    image.naturalWidth * image.naturalHeight > MAX_IMAGE_PIXELS
   ) {
-    throw new Error('이미지는 한 변 8192px, 총 3300만 픽셀 이하여야 합니다.')
+    throw new Error(
+      `이미지는 한 변 ${MAX_IMAGE_DIMENSION}px, 총 ${MAX_IMAGE_PIXELS / 10_000}만 픽셀 이하여야 합니다.`
+    )
   }
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalWidth

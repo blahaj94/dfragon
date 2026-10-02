@@ -16,6 +16,8 @@ COPY apps/api/tsconfig*.json apps/api/
 COPY apps/api/src apps/api/src
 COPY apps/api/test apps/api/test
 COPY apps/api/test-support apps/api/test-support
+COPY scripts/test-support/docker-postgres.mjs scripts/test-support/docker-postgres.mjs
+COPY scripts/test/docker-postgres.test.mjs scripts/test/docker-postgres.test.mjs
 RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
 COPY packages/licenses/notices/upstream/remeda-2.50.0-LICENSE.txt apps/api/dist/notices/remeda-2.50.0-LICENSE.txt

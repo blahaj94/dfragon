@@ -42,7 +42,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       calls++
       throw new Error('fixture failure')
     })
-    assert.equal((await service.load(keys, signal)).get(catalogKey(item)).status, 'fresh')
+    assert.equal((await service.load(keys, signal)).get(catalogKey(item)).detail.status, 'fresh')
     assert.equal(calls, 0)
     await source.query(
       "UPDATE item_catalog SET expires_at = clock_timestamp() - interval '1 second' WHERE item_id = $1",
@@ -51,7 +51,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     const before = (await store.read(keys, signal)).entries.find(
       (entry) => entry.key.kind === 'item'
     )
-    const stale = (await service.load(keys, signal)).get(catalogKey(item))
+    const stale = (await service.load(keys, signal)).get(catalogKey(item)).detail
     assert.equal(stale.status, 'stale')
     assert.deepEqual(stale.data, before.payload)
     assert.equal(stale.fetchedAt, before.fetchedAt.toISOString())
@@ -128,7 +128,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       "UPDATE set_item_catalog SET expires_at = clock_timestamp() - interval '1 second' WHERE set_item_id = $1",
       [set.setItemId]
     )
-    const staleSet = (await service.load([set], signal)).get(catalogKey(set))
+    const staleSet = (await service.load([set], signal)).get(catalogKey(set)).detail
     assert.equal(staleSet.status, 'stale')
     assert.deepEqual(staleSet.data, setNew.entries[0].payload)
     assert.equal(staleSet.fetchedAt, setNew.entries[0].fetchedAt.toISOString())
@@ -149,7 +149,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     const refresh = createCatalogService(store, async (requested) =>
       requested.map((key) => ({ key, payload: { updated: true } }))
     )
-    assert.equal((await refresh.load([item], signal)).get(catalogKey(item)).status, 'fresh')
+    assert.equal((await refresh.load([item], signal)).get(catalogKey(item)).detail.status, 'fresh')
 
     mark('bad payload rolls back the whole write batch and cancellation creates no rows')
     const snapshot = (await store.read(keys, signal)).entries

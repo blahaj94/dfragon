@@ -13,7 +13,7 @@ import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
 import { OcrModelController } from './model-controller.js'
-import { MODEL_MAXIMUM_BYTES } from './model-library.js'
+import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
 import {
   OCR_CONFIG,
@@ -116,7 +116,7 @@ export async function createOcrApp(
   })
 
   // 큰 본문을 읽기 전에 인증한다. Nest guard는 body parser 이후 실행되므로 여기서는 middleware를 사용한다.
-  app.use('/api', (request: Request, _response: Response, next: NextFunction) => {
+  app.use('/api', (request: Request, response: Response, next: NextFunction) => {
     void Promise.resolve()
       .then(async () => {
         if (isSyntheticUploadRequest(request)) {
@@ -126,7 +126,13 @@ export async function createOcrApp(
           ? auth.requireDesktopOwner(request)
           : auth.require(request))
       })
-      .then(() => next(), next)
+      .then(() => {
+        // Authentication may finish after close; do not reserve a slot whose release already ran.
+        if (request.aborted || response.destroyed || response.writableEnded) {
+          return
+        }
+        next()
+      }, next)
   })
   let activeUploads = 0
   let modelUploadActive = false
@@ -151,7 +157,7 @@ export async function createOcrApp(
       let size = 0
       request.on('data', (chunk: Buffer) => {
         size += chunk.length
-        if (size > MODEL_MAXIMUM_BYTES + 64 * 1024) {
+        if (size > MODEL_MAXIMUM_BYTES + MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES) {
           request.destroy()
         }
       })

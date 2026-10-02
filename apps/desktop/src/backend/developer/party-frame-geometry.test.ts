@@ -8,6 +8,10 @@ type SyntheticTrack = {
   hpWidth?: number
   mpWidth?: number
   withEdges?: boolean
+  hpColor?: readonly [number, number, number]
+  mpColor?: readonly [number, number, number]
+  mpCenterOffsetPx?: number
+  trackHeightPx?: number
 }
 
 function partyFrame({
@@ -30,17 +34,18 @@ function partyFrame({
 
   for (const track of tracks) {
     const { anchorX, scale } = track
-    const trackHeight = scale >= 1.6 ? 2 : 3
+    const defaultTrackHeight = scale >= 1.6 ? 2 : 3
+    const trackHeight = track.trackHeightPx ?? defaultTrackHeight
     const hpCenter = 28 * scale
-    const mpCenter = 34 * scale
+    const mpCenter = 34 * scale + (track.mpCenterOffsetPx ?? 0)
     const hpTop = Math.round(hpCenter - (trackHeight - 1) / 2)
     const mpTop = Math.round(mpCenter - (trackHeight - 1) / 2)
     const barWidth = Math.round(99 * scale)
     const hpWidth = track.hpWidth ?? barWidth
     const mpWidth = track.mpWidth ?? barWidth
 
-    paintBand(rgba, width, anchorX, hpTop, hpWidth, trackHeight, [194, 15, 11])
-    paintBand(rgba, width, anchorX, mpTop, mpWidth, trackHeight, [18, 124, 209])
+    paintBand(rgba, width, anchorX, hpTop, hpWidth, trackHeight, track.hpColor ?? [194, 15, 11])
+    paintBand(rgba, width, anchorX, mpTop, mpWidth, trackHeight, track.mpColor ?? [18, 124, 209])
     if (track.withEdges !== false) {
       const margin = Math.max(1, Math.round(scale))
       const edgeWidth = Math.min(hpWidth, mpWidth) + margin * 2
@@ -302,4 +307,128 @@ it('fails closed for unsupported client sizes and malformed pixel buffers', () =
   expect(() => detect({ width: 1067, height: 600, rgba: Buffer.alloc(4) })).toThrowError(
     expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'invalid-frame' })
   )
+})
+
+it.each<{
+  color: 'hp' | 'mp'
+  pixels: readonly [number, number, number]
+  accepted: boolean
+}>([
+  { color: 'hp', pixels: [109, 34, 54], accepted: false },
+  { color: 'hp', pixels: [110, 35, 55], accepted: true },
+  { color: 'hp', pixels: [111, 36, 56], accepted: true },
+  { color: 'hp', pixels: [194, 120, 11], accepted: false },
+  { color: 'hp', pixels: [194, 119, 11], accepted: true },
+  { color: 'hp', pixels: [194, 118, 11], accepted: true },
+  { color: 'hp', pixels: [194, 15, 140], accepted: false },
+  { color: 'hp', pixels: [194, 15, 139], accepted: true },
+  { color: 'hp', pixels: [194, 15, 138], accepted: true },
+  { color: 'mp', pixels: [60, 60, 129], accepted: false },
+  { color: 'mp', pixels: [60, 60, 130], accepted: true },
+  { color: 'mp', pixels: [60, 60, 131], accepted: true },
+  { color: 'mp', pixels: [145, 124, 209], accepted: false },
+  { color: 'mp', pixels: [144, 124, 209], accepted: true },
+  { color: 'mp', pixels: [143, 124, 209], accepted: true },
+  { color: 'mp', pixels: [18, 178, 209], accepted: false },
+  { color: 'mp', pixels: [18, 177, 209], accepted: true },
+  { color: 'mp', pixels: [18, 176, 209], accepted: true },
+  { color: 'mp', pixels: [18, 54, 130], accepted: false },
+  { color: 'mp', pixels: [18, 55, 130], accepted: true },
+  { color: 'mp', pixels: [18, 56, 130], accepted: true }
+])('keeps $color channel boundary $pixels inclusive: $accepted', ({ color, pixels, accepted }) => {
+  const track: SyntheticTrack = { slot: 1, anchorX: 42, scale: 1 }
+  if (color === 'hp') {
+    track.hpColor = pixels
+  } else {
+    track.mpColor = pixels
+  }
+  const rgba = partyFrame({ width: 1067, height: 600, tracks: [track] })
+
+  if (accepted) {
+    expect(detect({ width: 1067, height: 600, rgba }).slots[0]).toMatchObject({
+      slot: 1,
+      x: 42,
+      y: 10,
+      width: 73,
+      height: 16
+    })
+  } else {
+    expect(() => detect({ width: 1067, height: 600, rgba })).toThrowError(
+      expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'no-anchor' })
+    )
+  }
+})
+
+it.each([77, 78, 79, 119, 120, 121])(
+  'preserves the full-track width boundary at %i pixels',
+  (width) => {
+    const rgba = partyFrame({
+      width: 1067,
+      height: 600,
+      // Keep the accepted scale at 1 so width does not select a neighboring scale.
+      tracks: [
+        { slot: 1, anchorX: 42, scale: 1, hpWidth: width, mpWidth: width, mpCenterOffsetPx: -1 }
+      ]
+    })
+
+    if (width >= 78 && width <= 120) {
+      expect(detect({ width: 1067, height: 600, rgba }).slots[0].x).toBe(42)
+    } else {
+      expect(() => detect({ width: 1067, height: 600, rgba })).toThrowError(
+        expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'no-anchor' })
+      )
+    }
+  }
+)
+
+it.each([2, 3])('preserves the color-run gap boundary at %i missing pixels', (gap) => {
+  const rgba = partyFrame({
+    width: 1067,
+    height: 600,
+    tracks: [{ slot: 1, anchorX: 42, scale: 1 }]
+  })
+  paintBand(rgba, 1067, 89, 27, gap, 3, [176, 176, 176])
+
+  if (gap === 2) {
+    expect(detect({ width: 1067, height: 600, rgba }).slots[0].x).toBe(42)
+  } else {
+    expect(() => detect({ width: 1067, height: 600, rgba })).toThrowError(
+      expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'no-anchor' })
+    )
+  }
+})
+
+it.each([1, 2])('keeps paired center/gap tolerances when the MP center moves %ipx', (offset) => {
+  const rgba = partyFrame({
+    width: 1067,
+    height: 600,
+    tracks: [{ slot: 1, anchorX: 42, scale: 1, mpCenterOffsetPx: offset }]
+  })
+
+  if (offset === 1) {
+    expect(detect({ width: 1067, height: 600, rgba }).slots[0].slot).toBe(1)
+  } else {
+    expect(() => detect({ width: 1067, height: 600, rgba })).toThrowError(
+      expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'no-anchor' })
+    )
+  }
+})
+
+it.each([1.05, 1.06])('keeps the 0.055 scale-cluster boundary at scale %f', (secondScale) => {
+  const rgba = partyFrame({
+    width: 1067,
+    height: 600,
+    tracks: [
+      { slot: 1, anchorX: 42, scale: 1 },
+      { slot: 2, anchorX: 183, scale: secondScale, trackHeightPx: 2 }
+    ]
+  })
+
+  if (secondScale === 1.05) {
+    expect(detect({ width: 1067, height: 600, rgba }).slots.map(({ slot }) => slot)).toEqual([1, 2])
+  } else {
+    expect(() => detect({ width: 1067, height: 600, rgba })).toThrowError(
+      expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'ambiguous-scale' })
+    )
+  }
 })

@@ -10,7 +10,7 @@ import { syncBuiltinESMExports } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { gzipSync } from 'node:zlib'
-import * as postgres from './docker-postgres.mjs'
+import * as postgres from '../test-support/docker-postgres.mjs'
 
 test('container identity accepts verified classic and containerd image IDs and rejects substitution', () => {
   const configDigest = `sha256:${'a'.repeat(64)}`

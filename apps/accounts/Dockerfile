@@ -18,6 +18,8 @@ COPY apps/accounts/src apps/accounts/src
 COPY apps/accounts/browser apps/accounts/browser
 COPY apps/accounts/test apps/accounts/test
 COPY apps/accounts/test-support apps/accounts/test-support
+COPY scripts/test-support/docker-postgres.mjs scripts/test-support/docker-postgres.mjs
+COPY scripts/test/docker-postgres.test.mjs scripts/test/docker-postgres.test.mjs
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx

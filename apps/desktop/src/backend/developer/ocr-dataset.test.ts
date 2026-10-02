@@ -1,7 +1,11 @@
 import { expect, it, vi } from 'vitest'
 import { PNG } from 'pngjs'
 import type { AuthAuthorization, AuthCoordinator, AuthSnapshot } from '../auth/types'
-import { createOcrDataset } from './ocr-dataset'
+import {
+  createOcrDataset,
+  MAX_OCR_DATASET_JSON_BYTES,
+  MAX_OCR_DATASET_SAMPLES
+} from './ocr-dataset'
 
 vi.mock('../api-fetch', () => {
   const fetchApi = vi.fn()
@@ -22,6 +26,38 @@ const remoteSample = {
   kind: 'hud',
   split: 'test'
 }
+
+it('dataset sample count and JSON byte budgets are independent inclusive limits', async () => {
+  const f = setup()
+  const samples = Array.from({ length: MAX_OCR_DATASET_SAMPLES }, (_, index) => ({
+    ...remoteSample,
+    id: `${index.toString(16).padStart(8, '0')}-0000-4000-8000-000000000001-1`
+  }))
+  f.request.mockResolvedValueOnce(
+    Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples })
+  )
+  expect(await f.dataset.list()).toHaveLength(MAX_OCR_DATASET_SAMPLES)
+
+  f.request.mockResolvedValueOnce(
+    Response.json({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [...samples, remoteSample] })
+  )
+  await expect(f.dataset.list()).rejects.toThrow()
+
+  const empty = JSON.stringify({ exportedAt: '2026-09-26T00:00:00.000Z', samples: [] })
+  f.request.mockResolvedValueOnce(
+    new Response(empty.padEnd(MAX_OCR_DATASET_JSON_BYTES, ' '), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  )
+  expect(await f.dataset.list()).toEqual([])
+
+  f.request.mockResolvedValueOnce(
+    new Response(empty.padEnd(MAX_OCR_DATASET_JSON_BYTES + 1, ' '), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+  )
+  await expect(f.dataset.list()).rejects.toThrow('DEVELOPER_OCR_UNAVAILABLE')
+})
 function setup(): {
   dataset: ReturnType<typeof createOcrDataset>
   request: ReturnType<typeof vi.fn<typeof fetch>>

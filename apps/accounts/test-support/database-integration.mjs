@@ -44,7 +44,7 @@ import {
   removeOwnedVolume,
   teardownPostgres,
   verifyApprovedImage
-} from './docker-postgres.mjs'
+} from '../../../scripts/test-support/docker-postgres.mjs'
 
 import { assertSchemaFirst } from './schema-first.mjs'
 

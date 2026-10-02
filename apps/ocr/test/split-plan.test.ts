@@ -8,6 +8,8 @@ import {
   planSplits,
   parseSplitOptions,
   splitStatistics,
+  isImprovingSplitMove,
+  SPLIT_IMPROVEMENT_POLICY,
   type SplitRow
 } from '../src/split-plan.js'
 import { OcrStore } from '../src/store.js'
@@ -20,6 +22,59 @@ const sample = (text: string, id = text): SplitRow => ({
   text,
   excluded: false,
   split: 'unassigned'
+})
+
+test('split policies retain strict score improvement and ratio tolerance boundaries', () => {
+  assert.equal(SPLIT_IMPROVEMENT_POLICY.maximumPasses, 8)
+  assert.equal(isImprovingSplitMove(-1e-12), false)
+  assert.equal(isImprovingSplitMove(-0.999e-12), false)
+  assert.equal(isImprovingSplitMove(-1.001e-12), true)
+  assert.equal(isImprovingSplitMove(0), false)
+  for (const delta of [-0.999e-6, 0, 0.999e-6]) {
+    parseSplitOptions({ ...options, ratios: { train: 60 + delta, val: 20, test: 20 } })
+  }
+  for (const delta of [-1.001e-6, 1.001e-6]) {
+    assert.throws(
+      () => parseSplitOptions({ ...options, ratios: { train: 60 + delta, val: 20, test: 20 } }),
+      { code: 'INVALID_INPUT' }
+    )
+  }
+})
+
+test('named score policies preserve the baseline full nickname assignment for common, rare and duplicate groups', () => {
+  const names = [
+    '가가★',
+    '가나★',
+    '가다★',
+    '나나★',
+    '나다★',
+    '다다★',
+    '龍가',
+    '龍나',
+    'あ가',
+    'ア나',
+    'A2가',
+    '희귀😀'
+  ]
+  const rows = names.flatMap((text, group) =>
+    Array.from({ length: (group % 3) + 1 }, (_, index) => sample(text, `${group}-${index}`))
+  )
+  const plan = planSplits(rows, options)
+  assert.deepEqual(plan, planSplits([...rows].reverse(), options))
+  assert.deepEqual(plan.assignments, [
+    { text: 'A2가', split: 'train' },
+    { text: 'あ가', split: 'train' },
+    { text: 'ア나', split: 'train' },
+    { text: '龍가', split: 'test' },
+    { text: '龍나', split: 'train' },
+    { text: '가가★', split: 'val' },
+    { text: '가나★', split: 'test' },
+    { text: '가다★', split: 'val' },
+    { text: '나나★', split: 'train' },
+    { text: '나다★', split: 'test' },
+    { text: '다다★', split: 'train' },
+    { text: '희귀😀', split: 'train' }
+  ])
 })
 
 test('counts character occurrences including Latin, numbers and other scripts, not image membership', () => {

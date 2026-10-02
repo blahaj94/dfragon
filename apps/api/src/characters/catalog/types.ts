@@ -1,5 +1,11 @@
 import type { CharacterPayload } from '../details/sections.js'
 
+export const CATALOG_LIMITS = {
+  maximumBatchKeys: 15,
+  maximumReferencesPerLoad: 128,
+  maximumConcurrentBatches: 3
+} as const
+
 export type CatalogKey =
   | { kind: 'item'; itemId: string }
   | { kind: 'set'; setItemId: string }
@@ -19,6 +25,11 @@ export interface CatalogDetail {
   data: CharacterPayload | null
   fetchedAt: string | null
   status: 'fresh' | 'stale' | 'unavailable'
+}
+
+export interface CatalogResult {
+  key: CatalogKey
+  detail: CatalogDetail
 }
 
 export function catalogKey(key: CatalogKey): string {

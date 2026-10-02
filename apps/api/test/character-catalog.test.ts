@@ -85,19 +85,22 @@ test('fresh cache avoids upstream and failed refresh keeps stale data or explici
     calls++
     throw new Error('unexpected')
   })
-  assert.equal((await fresh.load([item, item], signal)).get(catalogKey(item))!.status, 'fresh')
+  assert.equal(
+    (await fresh.load([item, item], signal)).get(catalogKey(item))!.detail.status,
+    'fresh'
+  )
   assert.equal(calls, 0)
   const staleEntry = currentEntry(item, true)
   const fallback = createCatalogService(memoryStore([staleEntry]), async () => {
     throw new Error('upstream secret')
   })
   const result = await fallback.load([item, skill], signal)
-  assert.deepEqual(result.get(catalogKey(item)), {
+  assert.deepEqual(result.get(catalogKey(item))!.detail, {
     data: staleEntry.payload,
     fetchedAt: staleEntry.fetchedAt.toISOString(),
     status: 'stale'
   })
-  assert.deepEqual(result.get(catalogKey(skill)), {
+  assert.deepEqual(result.get(catalogKey(skill))!.detail, {
     data: null,
     fetchedAt: null,
     status: 'unavailable'
@@ -116,17 +119,20 @@ test('returns reread committed values and never publishes an unsuccessful DB wri
   const service = createCatalogService(store, async () => [
     { key: item, payload: { upstream: true } }
   ])
-  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.data, {
+  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail.data, {
     retained: true
   })
   store.saveAndRead = async () => {
     throw new Error('commit failed')
   }
-  assert.equal((await service.load([item], signal)).get(catalogKey(item))!.data, null)
+  assert.equal((await service.load([item], signal)).get(catalogKey(item))!.detail.data, null)
   store.read = async () => {
     throw new Error('database unavailable')
   }
-  assert.equal((await service.load([item], signal)).get(catalogKey(item))!.status, 'unavailable')
+  assert.equal(
+    (await service.load([item], signal)).get(catalogKey(item))!.detail.status,
+    'unavailable'
+  )
 })
 
 test('deduplicates, batches at most 15 items, limits concurrency and total reference work', async () => {
@@ -151,10 +157,10 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
   const result = await service.load([...keys, keys[0]!], signal)
   assert.equal(count, 128)
   assert(peak <= 3)
-  assert.equal(result.get(catalogKey(keys[139]!))!.status, 'unavailable')
+  assert.equal(result.get(catalogKey(keys[139]!))!.detail.status, 'unavailable')
 })
 
-test('deadline stops queued work; disconnect aborts without persisting late upstream data', async () => {
+test('deadline stops queued work and pre-aborted requests reject before refresh', async () => {
   let writes = 0,
     calls = 0
   const store = memoryStore()
@@ -183,7 +189,7 @@ test('deadline stops queued work; disconnect aborts without persisting late upst
   const keepAlive = delay(40)
   const result = await service.load(keys, signal)
   assert(calls <= 3)
-  assert([...result.values()].every((entry) => entry.status === 'unavailable'))
+  assert([...result.values()].every((entry) => entry.detail.status === 'unavailable'))
   assert.equal(writes, 0)
   controller.abort()
   await assert.rejects(service.load(keys, controller.signal))
@@ -285,4 +291,47 @@ test('enrichment preserves 14 slots, enchant skill options, nullable chain and o
     ]!.status,
     'fresh'
   )
+})
+
+test('disconnect ignores a late upstream success while a connected request persists it', async () => {
+  for (const disconnected of [false, true]) {
+    const controller = new AbortController()
+    let markStarted!: () => void
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve
+    })
+    let finishFetch!: () => void
+    const release = new Promise<void>((resolve) => {
+      finishFetch = resolve
+    })
+    const store = memoryStore()
+    const save = store.saveAndRead
+    let writes = 0
+    store.saveAndRead = async (...args) => {
+      writes++
+
+      return save(...args)
+    }
+    const service = createCatalogService(store, async (keys, requestSignal) => {
+      markStarted()
+      await release
+      assert.equal(requestSignal.aborted, disconnected)
+
+      return keys.map((key) => ({ key, payload: { late: true } }))
+    })
+    const pending = service.load([item], controller.signal)
+    await started
+    if (disconnected) {
+      controller.abort()
+    }
+    finishFetch()
+    if (disconnected) {
+      await assert.rejects(pending, { name: 'AbortError' })
+      assert.equal(writes, 0)
+    } else {
+      const result = await pending
+      assert.equal(writes, 1)
+      assert.deepEqual(result.get(catalogKey(item))!.detail.data, { late: true })
+    }
+  }
 })

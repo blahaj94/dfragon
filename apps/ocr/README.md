@@ -4,6 +4,7 @@
 
 ```sh
 pnpm --filter @dfragon/ocr test
+pnpm --filter @dfragon/ocr test:browser
 pnpm --filter @dfragon/ocr test:ui
 pnpm --filter @dfragon/ocr lint
 pnpm --filter @dfragon/ocr build
@@ -22,7 +23,15 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 패스키 로그인 후 원본 PNG와 크롭 좌표를 수동 등록하거나 수집 클라이언트가 API로 올린 자료를 조회합니다. 미작성·완료·제외, HUD·파티원창·공대원창, 분할 필터를 제공합니다. 선택한 크롭의 정답·제외 여부를 저장하고 원본을 열 수 있습니다. UI 크기는 %로 표시하고 미상과 추정값을 구분합니다.
 
+같은 표본의 서버 정답·분할·제외 상태가 갱신되어도 작성 중인 초안은 유지합니다. 저장 요청 이후 추가로 입력한 내용도 지우지 않습니다. 수정하지 않은 입력은 최신 서버 정답을 따르며, 다른 표본으로 이동하면 해당 표본의 정답으로 시작합니다. `test:browser`는 jsdom에서 React 상태·요청 경합을 검증하며, 실제 Chromium 화면·HTTPS 연결을 확인하는 `test:ui`를 대신하지 않습니다.
+
+정답 저장에 분할 변경 확인이 필요하면 현재 편집 중인 표본에서만 확인 창을 표시합니다. 응답을 기다리는 동안 다른 표본으로 이동하면 이전 표본의 확인 창과 확인 후 재전송은 취소합니다. 이미 서버에서 완료된 저장을 되돌리는 동작은 아닙니다.
+
+**정답 저장**은 정답만, **학습에서 제외 / 제외 복원**은 제외 여부만 변경합니다. 제외 버튼으로 작성 중인 정답 초안을 함께 저장하지 않습니다. 서로 다른 필드의 덮어쓰기를 방지하는 범위이며, 두 창에서 같은 필드를 동시에 바꿀 때의 버전 충돌 감지는 제공하지 않습니다.
+
 [Penpot OCR 자료실 시안](https://design.penpot.app/#/workspace?team-id=d8ac01df-6646-81d2-8008-a69ecfb5e821&file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&board-id=e2d75c67-3d48-8021-8008-b16f9bafcdf5)을 기준으로 구현합니다. 상단 `이미지 업로드`로 등록 폼을 펼치며 접어도 작성 중인 파일·좌표를 유지합니다. 수집 종류를 바꾸면 종류별 크롭 좌표 초안을 보존하고, HUD·파티원창은 위치 1~4, 공대원창은 위치 1~12 중 실제 저장 대상을 선택할 수 있습니다. 테마 버튼으로 밝은 화면과 어두운 화면을 전환하고 브라우저에 선택을 저장합니다. 좁은 화면에서는 이미지 목록 아래에서 정답을 편집합니다.
+
+실패한 업로드 재시도는 최초 요청의 ID·이미지·크롭·배율을 그대로 다시 보냅니다. 그동안 폼을 수정해도 재시도 본문은 바뀌지 않습니다. 다른 파일을 선택하면 이전 재시도 요청을 비우며, 보관된 요청이 없거나 이미 처리 중이면 재시도하지 않습니다.
 
 닉네임 단위 분할은 `미배정 / train / val / test` 버튼으로 선택하며 현재 값은 강조색으로 표시합니다. 다른 값을 누르면 기존 확인 창을 거쳐 적용하고 현재 값을 다시 누르면 요청하지 않습니다. 정답 미작성·수정 중·저장 중에는 분할 버튼을 비활성화합니다.
 
@@ -34,19 +43,27 @@ Node 24를 사용합니다. 실행 환경·기존 인증 API 연결·영속 저�
 
 미리보기는 규모·문자 분포와 목표 차이, 기존 분할에서 이동할 닉네임 수를 표시합니다. **미리보기 분할 적용**의 확인 창을 승인할 때만 저장합니다. 닉네임 묶음과 희귀 문자 때문에 비율을 정확히 맞추지 못할 수 있습니다. 그 사이 자료가 바뀌면 409로 거절하므로 다시 미리보기합니다. 빈 분할은 경고하며 Windows 학습에는 세 분할이 모두 필요합니다.
 
+버튼뿐 아니라 hook의 명령도 입력 비율과 실행 중 여부를 확인합니다. 한 명령이 처리 중이면 다른 미리보기·적용 요청을 보내지 않고, 비율이나 재배정 설정을 바꾸면 이전 미리보기를 적용할 수 없습니다. 서버는 적용 시 자료 변경 여부를 계속 최종 검사합니다.
+
 수동으로 **미배정**을 선택한 닉네임은 재배정 옵션을 켜도 자동 분할에서 보존하며 유지 개수를 표시합니다. 다시 배정하려면 해당 닉네임의 train/val/test 버튼을 사용합니다.
 
 첫 적용 이후 새 미제외 닉네임은 정답 저장 시 train으로 들어갑니다. 기존 닉네임의 새 캡처는 기존 배정을 따릅니다. 주간 자료를 학습에 반영하려면 Windows 앱에서 새 실험으로 다시 가져오세요. 서버의 val/test에 이미지가 추가되어도 과거 로컬 실험 입력은 바뀌지 않습니다.
 
 알고리즘은 닉네임 그룹의 이미지 수·문자군·개별 문자 빈도를 사용한 결정적 greedy 배정과 제한된 개선을 수행합니다. 흔한 문자와 이미지 규모를 우선하고 희귀 문자에는 약한 목적함수를 적용합니다. 최적해나 희귀 문자의 모든 분할 출현을 보장하지 않습니다.
 
+`src/split-plan.ts`는 이미지 점수 가중치 4, 닉네임 1, 문자군 합계 2, 개별 문자 합계 1과 희귀 문자 정규화 분모 하한 10을 구분합니다. 개선은 최대 8회 반복하며 점수 변화가 엄격히 `-1e-12`보다 작을 때만 이동합니다. 비율 합은 100에서 `1e-6` 이내 오차를 허용합니다. 가중치 나눗셈·제곱·정규화 순서와 동률·정렬 규칙은 유지합니다.
+
 ### 구현 구조와 조회 캐시
 
 자동 분할 화면과 적용 확인 창은 `SplitPlanner.tsx`, 요청·미리보기 수명과 캐시 무효화는 기존 `browser/hooks` 아래 `use-split-planner.ts`, 전용 StyleX는 `SplitPlanner.style.ts`가 소유합니다. 확인을 취소하면 요청하지 않으며 승인한 미리보기만 hook에 전달합니다. 분할·문자군 식별자는 `src/model.ts`에서 공유하고 표시 문구는 `browser/constants.ts`의 기존 상수 패턴을 따릅니다. `split-plan.ts`의 계산과 `store.ts`의 transaction 경계는 구분합니다.
 
+표본 정답 수정의 다음 분할·신규 train 배정·분할 변경 확인은 `src/sample-update.ts`의 순수 계획 함수가 판단합니다. 저장소는 transaction 안에서 현재 표본·닉네임 배정을 읽고 계획이 승인된 뒤에만 분할과 표본을 씁니다. 확인하지 않은 분할 변경은 정답·제외·배정 모두를 그대로 유지합니다.
+
 서버는 기존 API와 같은 NestJS 12 버전의 controller·DI·exception filter를 사용합니다. 큰 본문을 읽기 전 인증과 업로드 동시 제한을 적용하며 경로별 크기 제한만 Express 어댑터의 JSON parser를 사용합니다. 쿠키 파싱은 `cookie-parser`, 발급·삭제는 응답 기본 API를 사용합니다. 로그인 요청 한도는 완료된 대기 요청과 인증 API 호출 중인 요청의 합계입니다. `__Host-ocr-login`은 로그인 시작 브라우저와 callback을 연결하는 임시 쿠키, `__Host-ocr-session`은 인증 후 서버 세션을 찾는 쿠키입니다. 두 쿠키의 값은 Node `crypto.randomBytes`로 생성한 난수이고 기존 API token을 담지 않습니다.
 
 인증은 `OcrAuth`가 담당하고 JSON parser보다 먼저 등록한 middleware에서 호출합니다. [NestJS 요청 순서](https://docs.nestjs.com/faq/request-lifecycle)에 따라 Guard는 middleware 이후 실행되므로, 현재 body parser 구성에서 인증을 Guard로 옮기면 인증 전 큰 본문을 파싱하게 됩니다. Desktop 요청의 정확한 method·URL 판정은 `isDesktopRequest`, 합성 업로드는 `isSyntheticUploadRequest`에서 정의하며 Origin 검사와 인증 방식 선택이 같은 판정을 사용합니다.
+
+인증 대기 중 연결이 끊기면 인증 완료 뒤 업로드 슬롯을 예약하지 않습니다. 살아 있는 요청은 기존 한도에서 즉시 `UPLOAD_BUSY`로 거절하며 대기열에 넣지 않습니다. 예약한 슬롯은 응답 종료·오류·취소의 `close`에서 한 번만 반환합니다.
 
 SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30초 동안 fresh 상태를 유지하고 사용하지 않는 캐시는 5분 후 제거합니다. 업로드·정답·분할 mutation 성공 시 모든 목록과 통계를 invalidate하고, 로그아웃·인증 만료 시 캐시를 비웁니다. Mutation 자동 재시도는 끄고 실패한 업로드만 사용자가 같은 ID로 재시도합니다. Query parameter 생성은 순수 utility, 필터·페이지 상태는 전용 hook이 담당합니다. 스타일·테마는 StyleX로 컴파일하며 전역 CSS에는 reset과 NanumSquare Neo font-face를 둡니다. 폰트는 같은 서버에서 제공하고 원문 라이선스를 browser 산출물 `THIRD-PARTY.txt`에 포함합니다.
 
@@ -72,7 +89,11 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 
 `metadata`는 `{id: UUID, name: 1~100자, preset: "korean-ppocrv5", kind: "pretrained" | "finetuned" | "expanded", parentId: UUID | null}`입니다. pretrained는 parent가 없고 finetuned·expanded는 존재하는 시작 모델 ID가 필요합니다. 파일 이름은 `weights.pdparams`, `characters.txt`, 선택적인 `evaluation.json`만 받습니다. 합계 128 MiB, 사전·평가 파일 각각 1 MiB 이하입니다. 사전은 중복 없는 한 줄 한 문자이며 공백은 모델에서 추가합니다. finetuned의 사전 해시는 시작 모델과 같아야 합니다. expanded는 부모 사전의 모든 문자가 같은 순서로 앞부분에 남고 새 문자가 뒤에 추가된 경우만 허용합니다. 서버는 가중치를 실행하지 않습니다.
 
+업로드의 두 파일 개수 한도는 허용 목록 `MODEL_FILES.length`에서 파생합니다. `src/model-library.ts`는 파일 본문 합계 128 MiB, 보조 파일별 1 MiB, 메타데이터 parser 한도 8192 bytes, 전체 요청의 multipart 부가 예산 64 KiB, parser parts 한도 5를 각각 구분합니다. 서로 다른 예산을 합치거나 확장하지 않습니다. 현행 parser는 메타데이터가 정확히 8192 bytes여도 400으로 거절합니다. 필수 두 파일·메타데이터와 선택 평가 파일의 네 part를 허용하며, 파일 3개·필드 1개의 별도 한도도 적용합니다. `Content-Disposition` 없는 무시된 part도 세므로 정확히 다섯 part는 허용하고 여섯 번째는 거절합니다. 파일 본문 합계와 보조 파일 검사는 정확한 상한을 허용하며, 전체 요청은 128 MiB + 64 KiB를 넘을 때 연결을 끊습니다.
+
 파일과 메타데이터는 한 SQLite transaction으로 저장합니다. 같은 ID·같은 bytes/메타데이터 재요청은 기존 결과를 반환하고 다르면 409입니다. 원본 PNG와 모델 파일에 하나의 저장 용량 한도를 적용하며 기존 자료를 자동 삭제하지 않습니다. 응답은 `{model, duplicate}`이고 POST 성공은 201입니다. 모델 업로드와 기본 모델 가져오기는 인증 후 제한하며, 실제 기본 모델 다운로드 작업은 연결 취소 후 재요청에서도 한 개를 유지합니다. [인프라 운영 절차](../../docs/reference/api-start-development.md#서버-이미지)를 함께 적용해야 합니다.
+
+부모 preset·사전 관계는 `src/model-library.ts`의 순수 검증 함수가 확인하고 부모 조회·중복 확인·파일 쓰기는 저장소 transaction이 소유합니다. finetuned는 줄바꿈을 포함한 사전 bytes가 같아야 하며 expanded는 기존처럼 LF/CRLF 문자 행을 비교해 동일 순서의 전체 부모 접두부와 실제 문자 추가를 요구합니다. 계보 거절은 기존 모델과 파일을 바꾸거나 일부 새 모델을 저장하지 않습니다.
 
 ### 데이터와 로그인
 
@@ -92,7 +113,7 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/captures/:id/image` | 원본 PNG |
 | `GET /api/samples` | 샘플 100개와 `nextOffset`. `offset`, `state=pending/labeled/excluded`, `kind=hud/participants/raid/synthetic`, `split`, 정확한 `text` 필터 |
 | `GET /api/samples/:id/image` | 원본 픽셀에서 만든 크롭 PNG |
-| `PATCH /api/samples/:id` | `{text: string 또는 null, excluded: boolean, confirmSplitChange?: boolean}` |
+| `PATCH /api/samples/:id` | `{text?: string 또는 null, excluded?: boolean, confirmSplitChange?: boolean}`. text·excluded 중 하나 이상 필요 |
 | `PUT /api/splits` | `{text: string, split: unassigned/train/val/test}`. 해당 닉네임 전체에 적용 |
 | `GET /api/splits/statistics` | 대상 규모·문자 빈도·현재 분할 및 자동 추가 활성화 여부 |
 | `POST /api/splits/preview` | `{ratios: {train, val, test}, replaceExisting: boolean}`. 각 값은 %, 합계 100. 읽기 전용 미리보기·fingerprint |
@@ -102,6 +123,8 @@ SPA는 TanStack Query로 세션·필터별 목록·통계를 조회합니다. 30
 | `GET /api/export/manifest` | 현재 메타데이터·정답·분할 JSON |
 | `GET /api/export` | 현재 전체 자료 TAR. 원본·크롭·manifest 포함 |
 | `GET /health` | 데이터 없는 readiness 응답 |
+
+정답 저장은 `{text}`, 제외·복원은 `{excluded}`로 요청하면 생략한 필드를 transaction 안의 최신 값으로 보존합니다. 기존 두 필드 동시 요청도 지원합니다. `text: null`은 정답 제거, `excluded: false`는 복원이며 빈 요청은 거절합니다. 분할 변경의 `confirmSplitChange` 확인은 유지하고 동일 필드 동시 수정의 revision 충돌 정책은 추가하지 않습니다.
 
 업로드 예시의 ID·시각은 수집자가 생성합니다. 재시도 때는 ID와 본문을 그대로 보냅니다. 파일명·로컬 파일 경로는 서버 저장 경로로 사용하지 않습니다.
 
@@ -192,6 +215,10 @@ payload = {
 렌더러 버전은 숫자 `major.minor.patch`, 프로필은 `dotum/nanum-neo`, 배율은 0 초과 16 이하, 두 색상은 0~255 정수 세 개입니다. 이 계약은 단색 배경 합성을 지원합니다. 서버는 정답의 NFC 정규화·빈 값·공백·제어문자를 검사하며, CP949·12바이트·폰트 지원 검사는 생성자가 `dnf-ocr-synth`로 수행합니다. 파일 경로·폰트 파일·임의 추가 JSON 필드는 받지 않습니다.
 
 저장과 동시에 전체 이미지 영역을 `kind: synthetic`, 슬롯 1, 정답 완료·미제외·train으로 등록합니다. 생성 배율은 `synthetic.rendering.scale`에 보관하며 게임 UI 배율로 추정하지 않습니다. 생성 정답과 원본은 수정할 수 없고 제외·복원만 가능합니다. 기존 미배정·val/test 닉네임과 충돌하거나 합성 닉네임을 train 밖으로 이동하려는 요청은 409 `SYNTHETIC_TRAIN_ONLY`입니다. 합성 이미지는 실제 자료 자동 분할 통계에서 제외하고, 같은 닉네임의 실제 자료는 재배정 때도 train을 유지합니다.
+
+내부 `Capture` 타입은 종류로 구분합니다. `synthetic` 캡처에는 생성 정답·렌더링 메타데이터가 필수이고 실제 `hud/participants/raid` 캡처에는 이 메타데이터를 넣을 수 없습니다. 각 업로드 parser는 해당 종류로 좁힌 결과를 반환하며 외부 JSON의 런타임 검증도 유지합니다.
+
+HTTP 오류의 식별자·상태·안내 문구 원본은 `src/errors.ts`의 `OCR_ERRORS`입니다. `OcrErrorCode`, 기존 `OCR_ERROR_CODE` 상수와 브라우저의 런타임 오류 식별 검사는 이 목록에서 파생하며 등록하지 않은 문자열과 상속된 객체 키는 오류 코드로 받지 않습니다.
 
 자료실의 합성 필터·전체 manifest·TAR에서 확인하고 내려받을 수 있습니다. 기존 DFRAGON Desktop의 `/api/desktop/dataset`은 실제 캡처만 반환합니다. 서버는 생성 정보와 이미지의 실제 일치나 학습 효과를 인증하지 않습니다. 이 API는 서버 배포 후 사용할 수 있으며 기존 운영 데이터의 재배정은 하지 않습니다.
 

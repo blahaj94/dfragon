@@ -1,25 +1,4 @@
-export const OCR_ERROR_CODE = {
-  INVALID_INPUT: 'INVALID_INPUT',
-  LOGIN_INVALID: 'LOGIN_INVALID',
-  LOGIN_REQUIRED: 'LOGIN_REQUIRED',
-  UPLOAD_TOKEN_REQUIRED: 'UPLOAD_TOKEN_REQUIRED',
-  OWNER_REQUIRED: 'OWNER_REQUIRED',
-  ORIGIN_REQUIRED: 'ORIGIN_REQUIRED',
-  NOT_FOUND: 'NOT_FOUND',
-  METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
-  CAPTURE_ID_CONFLICT: 'CAPTURE_ID_CONFLICT',
-  MODEL_ID_CONFLICT: 'MODEL_ID_CONFLICT',
-  LABEL_SPLIT_CHANGE: 'LABEL_SPLIT_CHANGE',
-  SYNTHETIC_TRAIN_ONLY: 'SYNTHETIC_TRAIN_ONLY',
-  SYNTHETIC_LABEL_IMMUTABLE: 'SYNTHETIC_LABEL_IMMUTABLE',
-  SPLIT_PREVIEW_STALE: 'SPLIT_PREVIEW_STALE',
-  UPLOAD_TOO_LARGE: 'UPLOAD_TOO_LARGE',
-  UPLOAD_BUSY: 'UPLOAD_BUSY',
-  LOGIN_LIMIT: 'LOGIN_LIMIT',
-  UNAVAILABLE: 'UNAVAILABLE',
-  AUTH_UNAVAILABLE: 'AUTH_UNAVAILABLE',
-  STORAGE_LIMIT: 'STORAGE_LIMIT'
-} as const
+import { mapValues } from 'remeda'
 
 export const OCR_ERRORS = {
   INVALID_INPUT: { status: 400, message: '입력 값을 확인해 주세요.' },
@@ -57,7 +36,11 @@ export const OCR_ERRORS = {
   STORAGE_LIMIT: { status: 507, message: '설정된 저장 용량 한도에 도달했습니다.' }
 } as const
 
-export type OcrErrorCode = (typeof OCR_ERROR_CODE)[keyof typeof OCR_ERROR_CODE]
+export type OcrErrorCode = keyof typeof OCR_ERRORS
+// The mapper returns each key itself; preserve that key's literal type for existing consumers.
+export const OCR_ERROR_CODE = mapValues(OCR_ERRORS, (_metadata, code) => code) as {
+  readonly [Code in OcrErrorCode]: Code
+}
 
 export class OcrError extends Error {
   readonly status: number

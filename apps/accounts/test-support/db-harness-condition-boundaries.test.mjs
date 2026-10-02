@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import * as databaseIntegration from './database-integration.mjs'
-import * as postgres from './docker-postgres.mjs'
+import * as postgres from '../../../scripts/test-support/docker-postgres.mjs'
 
 function resultWithReads({ code, signal, reads }) {
   return {

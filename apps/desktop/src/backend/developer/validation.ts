@@ -1,4 +1,4 @@
-import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './image-limits'
+import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from '../../preload/common/developer-image-limits'
 
 /** Narrows a value to an integer that JavaScript can represent exactly. */
 export function isSafeInteger(value: unknown): value is number {

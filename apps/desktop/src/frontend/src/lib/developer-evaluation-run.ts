@@ -1,6 +1,6 @@
 import { DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
-import { createPartyOcrWorker } from './ocr'
+import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
 import { readDeveloperImage } from './developer-images'
 import { invertNicknamePixels } from './nickname-pixels'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from './developer-evaluation'
@@ -44,8 +44,11 @@ export async function runDeveloperEvaluation(
           ...recognition.data,
           milliseconds: performance.now() - started
         }
-      } catch {
+      } catch (error) {
         signal.throwIfAborted()
+        if (error instanceof OcrWorkerUnavailableError) {
+          throw error
+        }
         result = { status: 'failed' }
       }
       signal.throwIfAborted()

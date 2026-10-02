@@ -7,7 +7,12 @@ import {
 } from '@simplewebauthn/server'
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server'
 import type { EntityManager } from 'typeorm'
-import { CLEARED_LOGIN_FIELDS, LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
+import {
+  CLEARED_LOGIN_FIELDS,
+  LOGIN,
+  LOGIN_ERRORS,
+  MAX_PASSKEYS_PER_USER_AND_RP
+} from '../../constants/login.js'
 import { INITIAL_NICKNAME } from '../../constants/auth.js'
 import { LoginFailure } from '../../errors/login.js'
 import { AuthLoginRequestSchema } from '../../database/schemas/auth-login-requests.js'
@@ -75,6 +80,15 @@ async function checkTime(manager: EntityManager, row: AuthLoginRequest) {
   }
 
   return now
+}
+
+async function endManagement(manager: EntityManager, id: string) {
+  const consumedAt = await freshTime(manager)
+  await manager
+    .getRepository(AuthLoginRequestSchema)
+    .update({ id }, { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt })
+
+  return { ended: true }
 }
 
 /** Browser requests are bound to a single cookie, purpose and configured RP; no client chooses a user. */
@@ -145,7 +159,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     const keys = managing
       ? await manager.getRepository(PasskeySchema).findBy({ userId, rpId: configuration.rpId })
       : []
-    if (keys.length >= 20) {
+    if (keys.length >= MAX_PASSKEYS_PER_USER_AND_RP) {
       throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
     }
     const value = await generateRegistrationOptions({
@@ -247,7 +261,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         adding &&
         (await manager
           .getRepository(PasskeySchema)
-          .countBy({ userId, rpId: configuration.rpId })) >= 20
+          .countBy({ userId, rpId: configuration.rpId })) >= MAX_PASSKEYS_PER_USER_AND_RP
       ) {
         throw new LoginFailure(LOGIN_ERRORS.PASSKEY_LIMIT)
       }
@@ -558,13 +572,18 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
           if (body.credentialId !== row.credentialId) {
             return { value: { managed: true } }
           }
-        }
-        await repo.update(
-          { id },
-          { ...CLEARED_LOGIN_FIELDS, status: 'consumed', consumedAt: await freshTime(manager) }
-        )
+          const value = await endManagement(manager, id)
 
-        return { value: { ended: true } }
+          return { value }
+        }
+
+        if (action === 'end') {
+          const value = await endManagement(manager, id)
+
+          return { value }
+        }
+
+        throw invalid()
       })
       if (result.failure) {
         throw result.failure

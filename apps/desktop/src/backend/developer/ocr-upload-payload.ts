@@ -1,3 +1,4 @@
+import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { randomUUID } from 'node:crypto'
 import { PNG } from 'pngjs'
 import type {
@@ -60,7 +61,7 @@ export function createOcrUploadPayload(
   const image = new PNG({ width: frame.width, height: frame.height })
   image.data = original.rgba
   const png = PNG.sync.write(image)
-  if (png.length > 16 * 1024 * 1024) {
+  if (png.length > OCR_DATA_LIMITS.maximumPngBytes) {
     return null
   }
   const id = randomUUID()

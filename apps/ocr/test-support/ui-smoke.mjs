@@ -212,6 +212,38 @@ try {
       .evaluate((input) => input === globalThis.document.activeElement),
     'saving an answer without a filter keeps focus in the answer input'
   )
+  // A completed save must not discard text entered while its response was pending.
+  let releaseSave
+  const saveResponse = new Promise((resolve) => {
+    releaseSave = resolve
+  })
+  let savedOnServer
+  const serverSaved = new Promise((resolve) => {
+    savedOnServer = resolve
+  })
+  const delaySave = async (route) => {
+    if (route.request().method() !== 'PATCH') {
+      await route.continue()
+
+      return
+    }
+    const response = await route.fetch()
+    savedOnServer()
+    await saveResponse
+    await route.fulfill({ response })
+  }
+  await page.route('**/api/samples/*', delaySave)
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('서버저장')
+  await page.getByRole('button', { name: '정답 저장', exact: true }).click()
+  await serverSaved
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('미저장초안')
+  releaseSave()
+  await page.getByRole('button', { name: /서버저장/ }).waitFor()
+  assert.equal(await page.getByLabel('닉네임 정답', { exact: true }).inputValue(), '미저장초안')
+  await page.unroute('**/api/samples/*', delaySave)
+  await page.getByLabel('닉네임 정답', { exact: true }).fill('샘플고래')
+  await page.getByRole('button', { name: '정답 저장', exact: true }).click()
+  await page.getByRole('button', { name: /샘플고래/ }).waitFor()
   await page.getByLabel('닉네임 정답', { exact: true }).fill('수정중')
   for (const button of await splitGroup.getByRole('button').all()) {
     assert(await button.isDisabled(), 'unsaved answers cannot change the stored nickname split')

@@ -66,7 +66,7 @@ it('uses the shipped heading and preserves slot 3, popup-relative bounds and raw
       new Uint8Array(result.frame.slots[0].rgba.subarray(row * 84 * 4, (row + 1) * 84 * 4))
     ).toEqual(original.subarray(start, start + 84 * 4))
   }
-  expect(rgba).toEqual(original)
+  expect(Buffer.from(rgba).equals(Buffer.from(original))).toBe(true)
 })
 
 it('does not return preview pixels for an absent popup', () => {

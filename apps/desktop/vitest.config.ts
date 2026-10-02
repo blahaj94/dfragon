@@ -15,6 +15,12 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@dfragon\/lib\/ocr-contract$/,
+        replacement: fileURLToPath(
+          new URL('../../packages/lib/src/ocr-contract.ts', import.meta.url)
+        )
+      },
+      {
         find: /^@dfragon\/lib\/utils\/pagination$/,
         replacement: fileURLToPath(
           new URL('../../packages/lib/src/utils/pagination.ts', import.meta.url)

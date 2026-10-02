@@ -10,7 +10,7 @@ import { createAccessJwtIssuer, createAccessJwtVerifier } from '../dist/auth/acc
 import { createLoginService } from '../dist/auth/login/service.js'
 import { challenge } from '../dist/auth/login/crypto.js'
 import { authenticationConfiguration, unusedRuntimePort } from './runtime-fixtures.mjs'
-import { command } from './docker-postgres.mjs'
+import { command } from '../../../scripts/test-support/docker-postgres.mjs'
 
 export async function assertPasskeyIntegration(source, mark = () => {}) {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-passkey-browser-'))

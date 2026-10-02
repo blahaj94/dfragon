@@ -4,12 +4,35 @@ import { useSampleEditor } from './hooks/use-sample-editor.js'
 import { OCR_SAMPLES } from '../src/constants.js'
 import { Typo } from '@dfragon/ui/typo'
 import { primary, secondary } from './buttons.js'
-import type { Sample } from '../src/model.js'
+import type { Sample, Split } from '../src/model.js'
 import { OcrIcon } from './OcrIcon.js'
-import { OCR_CAPTURE_LABELS } from './constants.js'
+import { OCR_CAPTURE_LABELS, OCR_MESSAGES } from './constants.js'
 
 export function SampleEditor({ sample }: { sample: Sample }) {
-  const { text, setText, message, busy, saveSample, assignNicknameSplit } = useSampleEditor(sample)
+  const {
+    text,
+    setText,
+    message,
+    busy,
+    saveSample,
+    setSampleExcluded,
+    isSaveConfirmationCurrent,
+    resolveSaveConfirmation,
+    assignNicknameSplit
+  } = useSampleEditor(sample)
+
+  async function handleSave() {
+    const confirmation = await saveSample()
+    if (confirmation !== null && isSaveConfirmationCurrent(confirmation)) {
+      const confirmed = window.confirm(OCR_MESSAGES.confirmLabelChange)
+      await resolveSaveConfirmation(confirmation, confirmed)
+    }
+  }
+  function handleAssignSplit(split: Split) {
+    if (split !== sample.split && window.confirm(OCR_MESSAGES.confirmSplit(split))) {
+      assignNicknameSplit(split)
+    }
+  }
 
   return (
     <section {...stylex.props(styles.editor)} aria-label="정답 편집">
@@ -31,7 +54,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          void saveSample(sample.excluded)
+          void handleSave()
         }}
       >
         <label {...stylex.props(styles.label)}>
@@ -56,7 +79,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
             type="button"
             className={secondary}
             disabled={busy}
-            onClick={() => void saveSample(!sample.excluded)}
+            onClick={() => void setSampleExcluded(!sample.excluded)}
           >
             {sample.excluded ? '제외 복원' : '학습에서 제외'}
           </button>
@@ -78,7 +101,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
                 sample.text.length === 0 ||
                 text !== sample.text
               }
-              onClick={() => assignNicknameSplit(split)}
+              onClick={() => handleAssignSplit(split)}
             >
               {split === 'unassigned' ? '미배정' : split}
             </button>

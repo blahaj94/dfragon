@@ -1,6 +1,6 @@
 import { NEOPLE_ORIGIN } from '../../constants/neople-character-search.js'
 import { isObject } from '../details/neople.js'
-import { isCatalogId } from './types.js'
+import { CATALOG_LIMITS, isCatalogId } from './types.js'
 import type { CatalogKey, CatalogValue } from './types.js'
 import { neopleBudget } from '../provider-budget.js'
 
@@ -15,7 +15,7 @@ export function createNeopleCatalog(
     const first = keys[0]
     if (
       !first ||
-      keys.length > 15 ||
+      keys.length > CATALOG_LIMITS.maximumBatchKeys ||
       keys.some((key) => {
         if (key.kind === 'item') {
           return !isCatalogId(key.itemId)

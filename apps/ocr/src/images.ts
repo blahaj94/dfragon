@@ -2,7 +2,7 @@ import { PNG } from 'pngjs'
 import { OCR_UPLOAD } from './constants.js'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import { parseCaptureKind, parseInputRecord } from './input.js'
-import type { Capture, Crop } from './model.js'
+import type { Capture, CaptureKind, Crop } from './model.js'
 
 export const MAX_PNG_BYTES = OCR_UPLOAD.maximumPngBytes
 
@@ -105,7 +105,10 @@ export function parseImageIdentity(id: unknown, capturedAt: unknown) {
   return { id, capturedAt }
 }
 
-export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
+export function parseUpload(value: unknown): {
+  capture: Extract<Capture, { kind: CaptureKind }>
+  png: Buffer
+} {
   const body = parseInputRecord(value)
   const { png, decoded } = decodeUploadedPng(body.originalPng)
   const { id, capturedAt } = parseImageIdentity(body.id, body.capturedAt)
@@ -157,7 +160,7 @@ export function parseUpload(value: unknown): { capture: Capture; png: Buffer } {
     })
     .sort((a, b) => a.slot - b.slot)
 
-  const capture: Capture = {
+  const capture: Extract<Capture, { kind: CaptureKind }> = {
     id,
     capturedAt,
     kind,

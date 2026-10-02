@@ -96,3 +96,8 @@ export type {
 } from './dnf-raid-metadata.js'
 export { parseServerBuildInfo } from './server-build-info.js'
 export type { ServerBuildInfo, ServerService } from './server-build-info.js'
+
+export {
+  DNF_SEARCH_NICKNAME_LIMITS,
+  matchesDNFSearchNicknamePolicy
+} from './dnf-character-search.js'

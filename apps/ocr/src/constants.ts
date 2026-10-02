@@ -1,3 +1,5 @@
+import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
+
 export const OCR_AUTH = {
   sessionCookie: '__Host-ocr-session',
   pendingCookie: '__Host-ocr-login',
@@ -17,14 +19,17 @@ export const OCR_AUTH = {
 } as const
 
 export const OCR_UPLOAD = {
-  maximumPngBytes: 16 * 1024 * 1024,
-  maximumDimension: 8192,
-  maximumPixels: 16_777_216,
-  maximumCropsByKind: { hud: 4, participants: 4, raid: 12 },
-  maximumUiScale: 10,
+  maximumPngBytes: OCR_DATA_LIMITS.maximumPngBytes,
+  maximumDimension: OCR_DATA_LIMITS.maximumDimension,
+  maximumPixels: OCR_DATA_LIMITS.maximumPixels,
+  maximumCropsByKind: OCR_DATA_LIMITS.maximumCropsByKind,
+  maximumUiScale: OCR_DATA_LIMITS.maximumUiScale,
   maximumConcurrent: 2,
   bodyLimit: '23mb',
   ordinaryBodyLimit: '16kb'
 } as const
 
-export const OCR_SAMPLES = { pageSize: 100, maximumLabelLength: 100 } as const
+export const OCR_SAMPLES = {
+  pageSize: 100,
+  maximumLabelLength: OCR_DATA_LIMITS.maximumLabelLength
+} as const

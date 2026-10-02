@@ -3,11 +3,19 @@ import { REQUEST_TIMEOUT_MS } from '../constants/capture'
 
 type Reply = { ready: true } | { text: string; confidence: number }
 
+export class OcrWorkerUnavailableError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'OcrWorkerUnavailableError'
+  }
+}
+
 /** OCR worker를 초기화하고 인식 요청·시간 초과·취소에 따른 정리를 관리한다. */
 export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyOcrWorker> {
   signal?.throwIfAborted()
   const worker = new Worker(new URL('./paddle.worker.ts', import.meta.url), { type: 'module' })
   let stopped = false
+  let stopReason: Error = new DOMException('OCR stopped.', 'AbortError')
   let pending: {
     resolve: (value: Reply) => void
     reject: (error: Error) => void
@@ -19,6 +27,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
       return
     }
     stopped = true
+    stopReason = error
     signal?.removeEventListener('abort', abort)
     worker.terminate()
     const current = pending
@@ -34,9 +43,10 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
   signal?.addEventListener('abort', abort, { once: true })
   worker.onerror = (event): void => {
     event.preventDefault()
-    terminate(new Error('PaddleOCR could not complete recognition.'))
+    terminate(new OcrWorkerUnavailableError('PaddleOCR could not complete recognition.'))
   }
-  worker.onmessageerror = (): void => terminate(new Error('PaddleOCR response could not be read.'))
+  worker.onmessageerror = (): void =>
+    terminate(new OcrWorkerUnavailableError('PaddleOCR response could not be read.'))
   worker.onmessage = (event: MessageEvent<unknown>): void => {
     if (stopped || pending == null) {
       return
@@ -52,7 +62,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
       typeof value.confidence === 'number' &&
       Number.isFinite(value.confidence)
     if (!ready && !recognized) {
-      terminate(new Error('PaddleOCR could not complete recognition.'))
+      terminate(new OcrWorkerUnavailableError('PaddleOCR could not complete recognition.'))
 
       return
     }
@@ -63,7 +73,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
   }
   function request(input: { root: string } | { pixels: ImageData }): Promise<Reply> {
     if (stopped) {
-      return Promise.reject(new DOMException('OCR stopped.', 'AbortError'))
+      return Promise.reject(stopReason)
     }
 
     if (pending != null) {
@@ -72,14 +82,14 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(
-        () => terminate(new Error('PaddleOCR timed out.')),
+        () => terminate(new OcrWorkerUnavailableError('PaddleOCR timed out.')),
         REQUEST_TIMEOUT_MS
       )
       pending = { resolve, reject, timer }
       try {
         worker.postMessage(input)
       } catch {
-        terminate(new Error('PaddleOCR request could not be sent.'))
+        terminate(new OcrWorkerUnavailableError('PaddleOCR request could not be sent.'))
       }
     })
   }
@@ -98,7 +108,11 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
         const pixels = context.getImageData(0, 0, image.width, image.height)
         const result = await request({ pixels })
         if ('ready' in result) {
-          throw new Error('PaddleOCR returned an invalid recognition result.')
+          const error = new OcrWorkerUnavailableError(
+            'PaddleOCR returned an invalid recognition result.'
+          )
+          terminate(error)
+          throw error
         }
 
         return { data: result }

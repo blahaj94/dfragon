@@ -25,6 +25,10 @@ jobs:
           node-version: '24'
       - uses: pnpm/action-setup@v6
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Prepare Electron for Desktop tests
+        run: pnpm --filter @dfragon/desktop rebuild electron
+      - name: Test Desktop core behavior without prebuilt shared libraries
+        run: pnpm --filter @dfragon/desktop test
       - run: pnpm test:security-dependencies
       - run: pnpm test:product-images
       - run: node --test scripts/test/server-build-info.test.mjs
@@ -33,16 +37,9 @@ jobs:
       - run: pnpm --filter @dfragon/api test
       - run: pnpm --filter @dfragon/accounts test
       - run: pnpm --filter @dfragon/ocr test
-      - name: Test app and server version display
-        run: |
-          pnpm --filter @dfragon/desktop exec vitest run \
-            build/build-info.test.ts \
-            src/backend/versions/desktop-info.test.ts \
-            src/backend/versions/http.test.ts \
-            src/backend/versions/ipc-handler.test.ts \
-            src/backend/main.test.ts \
-            src/preload/api/versions.test.ts \
-            src/frontend/src/sections/SettingsSection.test.tsx
+      - run: pnpm --filter @dfragon/ocr test:browser
+      - name: Test Desktop search against the public API
+        run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
       - run: pnpm lint
       - run: pnpm test:format-policy
       - run: pnpm format:check

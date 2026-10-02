@@ -3,8 +3,9 @@ import { DatabaseSync } from 'node:sqlite'
 import { createHash } from 'node:crypto'
 import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.js'
-import { inspectModelFiles } from './model-library.js'
+import { inspectModelFiles, validateModelLineage } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
+import { planSampleSplit, type SampleUpdate } from './sample-update.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -85,22 +86,7 @@ export class OcrStore {
         const parent = this.model(input.parentId)
         const parentDictionary = this.modelFile(input.parentId, 'characters.txt')
         const dictionary = content.get('characters.txt')!
-        const parentCharacters = parentDictionary
-          .toString('utf8')
-          .replace(/\r?\n$/, '')
-          .split(/\r?\n/)
-        const characters = dictionary
-          .toString('utf8')
-          .replace(/\r?\n$/, '')
-          .split(/\r?\n/)
-        const validDictionary =
-          input.kind === 'expanded'
-            ? characters.length > parentCharacters.length &&
-              parentCharacters.every((char, index) => characters[index] === char)
-            : parentDictionary.equals(dictionary)
-        if (parent.preset !== input.preset || !validDictionary) {
-          throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
-        }
+        validateModelLineage({ input, parentPreset: parent.preset, parentDictionary, dictionary })
       }
       const used = this.db
         .prepare(
@@ -280,18 +266,25 @@ export class OcrStore {
     return { samples, nextOffset }
   }
 
-  updateSample(
-    id: string,
-    {
-      text,
-      excluded,
-      confirmSplitChange
-    }: { text: string | null; excluded: boolean; confirmSplitChange: boolean }
-  ) {
-    text = text === null ? null : text.normalize('NFC')
+  updateSample(id: string, update: SampleUpdate) {
+    let text = update.text
+    let excluded = update.excluded
+    const confirmSplitChange = update.confirmSplitChange === true
+    if (text !== undefined && text !== null) {
+      text = text.normalize('NFC')
+    }
     this.db.exec('BEGIN IMMEDIATE')
     try {
       const previousSample = this.sample(id)
+      // Omitted fields inherit the current DB value under the same write transaction.
+      if (text === undefined) {
+        text = previousSample.text
+      }
+
+      if (excluded === undefined) {
+        excluded = previousSample.excluded
+      }
+
       if (previousSample.kind === 'synthetic' && text !== previousSample.text) {
         throw new OcrError(OCR_ERROR_CODE.SYNTHETIC_LABEL_IMMUTABLE)
       }
@@ -307,27 +300,24 @@ export class OcrStore {
                 'SELECT 1 FROM samples WHERE text=? AND excluded=0 UNION ALL SELECT 1 FROM label_unassigned WHERE text=? LIMIT 1'
               )
               .get(text, text)
-      const assignNew =
+      // Read initialization only for a new eligible label, preserving the existing query order.
+      const automaticSplitInitialized =
         text !== null &&
         !excluded &&
         target === undefined &&
         known === undefined &&
         this.splitInitialized()
-      let nextSplit = target?.split as Split | null | undefined
-      if (nextSplit == null) {
-        nextSplit = assignNew ? 'train' : 'unassigned'
-      }
+      const plan = planSampleSplit({
+        previousSample,
+        text,
+        excluded,
+        targetSplit: target?.split as Split | undefined,
+        knownLabel: known !== undefined,
+        automaticSplitInitialized,
+        confirmSplitChange
+      })
 
-      if (
-        text !== previousSample.text &&
-        previousSample.split !== 'unassigned' &&
-        previousSample.split !== nextSplit &&
-        !confirmSplitChange
-      ) {
-        throw new OcrError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE)
-      }
-
-      if (assignNew) {
+      if (plan.assignNew) {
         this.db.prepare("INSERT INTO label_splits VALUES(?,'train')").run(text!)
       }
       this.db

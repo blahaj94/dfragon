@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { randomUUID } from 'node:crypto'
 import { OcrStore } from '../src/store.js'
-import { inspectModelFiles, parseModelUpload } from '../src/model-library.js'
+import { inspectModelFiles, parseModelUpload, validateModelLineage } from '../src/model-library.js'
 
 const files = () =>
   new Map([
@@ -17,6 +17,38 @@ const metadata = () =>
     kind: 'pretrained',
     parentId: null
   })
+
+test('lineage validation is DB-free and distinguishes exact bytes from an appended character prefix', () => {
+  const input = { kind: 'finetuned', preset: 'korean-ppocrv5' } as const
+  const parentDictionary = Buffer.from('가\n나\n')
+  const lineage = {
+    input,
+    parentPreset: input.preset,
+    parentDictionary,
+    dictionary: parentDictionary
+  }
+  validateModelLineage(lineage)
+  assert.throws(() => validateModelLineage({ ...lineage, parentPreset: 'other' }), {
+    code: 'INVALID_INPUT'
+  })
+  assert.throws(
+    () => validateModelLineage({ ...lineage, dictionary: Buffer.from('가\r\n나\r\n') }),
+    { code: 'INVALID_INPUT' }
+  )
+  const expanded = { ...lineage, input: { ...input, kind: 'expanded' as const } }
+  validateModelLineage({ ...expanded, dictionary: Buffer.from('가\r\n나\r\n★\r\n') })
+  for (const dictionary of ['가\n나\n', '나\n가\n★\n', '가\n★\n', '가\n나\n★\n']) {
+    const value = Buffer.from(dictionary)
+    if (dictionary === '가\n나\n★\n') {
+      validateModelLineage({ ...expanded, dictionary: value })
+    } else {
+      assert.throws(() => validateModelLineage({ ...expanded, dictionary: value }), {
+        code: 'INVALID_INPUT'
+      })
+    }
+  }
+  assert.equal(parentDictionary.toString(), '가\n나\n')
+})
 
 test('model registration preserves bytes and parentage and retry cannot overwrite a model', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
