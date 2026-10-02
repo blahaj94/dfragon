@@ -27,6 +27,8 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Prepare Electron for Desktop tests
         run: pnpm --filter @dfragon/desktop rebuild electron
+      - name: Test Desktop core behavior without prebuilt shared libraries
+        run: pnpm --filter @dfragon/desktop test
       - run: pnpm test:security-dependencies
       - run: pnpm test:product-images
       - run: node --test scripts/test/server-build-info.test.mjs
@@ -36,8 +38,6 @@ jobs:
       - run: pnpm --filter @dfragon/accounts test
       - run: pnpm --filter @dfragon/ocr test
       - run: pnpm --filter @dfragon/ocr test:browser
-      - name: Test Desktop core behavior
-        run: pnpm --filter @dfragon/desktop test
       - name: Test Desktop search against the public API
         run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
       - run: pnpm lint
