@@ -192,7 +192,30 @@ test('search HEAD fallback cannot verify, record activity or consume quota', asy
   })
 })
 
-test('public HTTP search succeeds without credentials and ignores spoofed forwarded IPs for quota', async () => {
+test('공개 검색은 Authorization 형식과 무관하게 성공하고 전달 IP를 바꿔도 접속 IP 한도를 공유한다', async () => {
+  const authorizationCases = [
+    { name: 'Authorization 없는 요청', headers: {} },
+    { name: 'Basic 인증 형식', headers: { authorization: 'Basic invalid' } },
+    { name: '소문자 bearer 인증 형식', headers: { authorization: 'bearer invalid' } },
+    { name: '값이 없는 Bearer', headers: { authorization: 'Bearer' } },
+    { name: '공백으로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first second' } },
+    { name: '콤마로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first,second' } },
+    {
+      name: '중복 Authorization 헤더',
+      headers: { authorization: ['Bearer first', 'Bearer second'] }
+    },
+    { name: '유효하지 않은 Bearer 값', headers: { authorization: 'Bearer invalid-or-expired' } },
+    {
+      name: 'JWT 형태의 Bearer 값',
+      headers: { authorization: 'Bearer e30.e30.synthetic-signature' }
+    },
+    {
+      name: '과거 exp를 가진 JWT 형태의 Bearer 값',
+      headers: {
+        authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.synthetic-signature'
+      }
+    }
+  ]
   let upstreamCalls = 0
   const app = await createApiHttpApp({
     apiKey: 'synthetic-search-key',
@@ -205,16 +228,18 @@ test('public HTTP search succeeds without credentials and ignores spoofed forwar
   await app.listen(0, '127.0.0.1')
   try {
     const base = await app.getUrl()
-    for (let index = 0; index < 10; index++) {
+    for (const [index, { name, headers }] of authorizationCases.entries()) {
       const response = await rawGet(base, '/characters?characterName=ab', {
         'x-forwarded-for': `192.0.2.${index + 1}`,
-        ...(index === 0 ? {} : { authorization: 'Bearer invalid-or-expired' })
+        ...headers
       })
-      assert.equal(response.status, 200)
-      assert.deepEqual(JSON.parse(response.body), { rows: [] })
+      assert.equal(response.status, 200, name)
+      assert.equal(response.headers['cache-control'], 'no-store', name)
+      assert.deepEqual(JSON.parse(response.body), { rows: [] }, name)
     }
     const limited = await rawGet(base, '/characters?characterName=ab', {
-      'x-forwarded-for': '198.51.100.1'
+      'x-forwarded-for': '198.51.100.1',
+      authorization: 'Bearer another-access-value'
     })
     expectSearchError(
       limited,
