@@ -1,4 +1,5 @@
 import { act, useEffect } from 'react'
+import { flushSync } from 'react-dom'
 import { createRoot, type Root } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -7,6 +8,7 @@ import { requestOcr, OcrApiError } from '../client.js'
 import { OCR_ERROR_CODE } from '../../src/errors.js'
 import { SampleEditor } from '../SampleEditor.js'
 import { useSampleEditor } from './use-sample-editor.js'
+import * as sampleEditorHooks from './use-sample-editor.js'
 
 vi.mock('../client.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../client.js')>()
@@ -124,6 +126,34 @@ it('확인 요청을 받은 뒤 표본을 이동하면 보관한 확인으로 �
   expect(requestOcr).toHaveBeenCalledTimes(1)
   expect(editor.text).toBe('두번째정답')
   expect(editor.message).toBe('')
+})
+
+it('확인 결과를 받은 직후 화면이 닫히면 component가 확인 창을 표시하기 전 수명을 다시 검사한다', async () => {
+  const useEditor = sampleEditorHooks.useSampleEditor
+  let receivedConfirmation = false
+  vi.spyOn(sampleEditorHooks, 'useSampleEditor').mockImplementation((sample) => {
+    const editor = useEditor(sample)
+    function saveSample() {
+      const pending = editor.saveSample()
+      // 실제 hook의 결과는 그대로 전달하고 component의 await 재개 직전에 화면을 닫는다.
+      void pending.then((confirmation) => {
+        receivedConfirmation = confirmation !== null
+        flushSync(() => root.render(null))
+      })
+
+      return pending
+    }
+
+    return { ...editor, saveSample }
+  })
+  vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.LABEL_SPLIT_CHANGE))
+  const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  await renderEditor()
+  await submitEditor()
+  expect(receivedConfirmation).toBe(true)
+  expect(container.childElementCount).toBe(0)
+  expect(confirm).not.toHaveBeenCalled()
+  expect(requestOcr).toHaveBeenCalledTimes(1)
 })
 
 it.each([
@@ -246,6 +276,46 @@ it('분할 변경이 시작되면 같은 렌더의 중복 분할·정답 저장�
   await act(async () => finish({ text: '기존정답', split: 'val' }))
   expect(editor.busy).toBe(false)
 })
+
+it.each([
+  { description: '성공', succeeded: true },
+  { description: '실패', succeeded: false }
+])(
+  '분할 변경 $description 뒤 잠금이 반환되어 정답·제외·다음 분할을 요청할 수 있다',
+  async ({ succeeded }) => {
+    let finish!: (value: unknown) => void
+    let fail!: (error: Error) => void
+    vi.mocked(requestOcr).mockReturnValueOnce(
+      new Promise((resolve, reject) => {
+        finish = resolve
+        fail = reject
+      })
+    )
+    await render()
+    await act(async () => editor.assignNicknameSplit('val'))
+    await act(async () => {
+      if (succeeded) {
+        finish({ text: '기존정답', split: 'val' })
+      } else {
+        fail(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))
+      }
+    })
+    const split = succeeded ? 'val' : 'unassigned'
+    await render({ ...sample, split })
+    vi.mocked(requestOcr).mockResolvedValueOnce({ ...sample, split })
+    await act(async () => editor.saveSample())
+    vi.mocked(requestOcr).mockResolvedValueOnce({ ...sample, split, excluded: true })
+    await act(async () => editor.setSampleExcluded(true))
+    vi.mocked(requestOcr).mockResolvedValueOnce({ text: '기존정답', split: 'train' })
+    await act(async () => editor.assignNicknameSplit('train'))
+    expect(vi.mocked(requestOcr).mock.calls).toEqual([
+      ['/api/splits', 'PUT', { text: '기존정답', split: 'val' }],
+      ['/api/samples/one', 'PATCH', { text: '기존정답' }],
+      ['/api/samples/one', 'PATCH', { excluded: true }],
+      ['/api/splits', 'PUT', { text: '기존정답', split: 'train' }]
+    ])
+  }
+)
 
 it('저장하지 않은 초안으로 분할을 바꾸거나 현재 분할을 다시 요청하지 않는다', async () => {
   await render()
