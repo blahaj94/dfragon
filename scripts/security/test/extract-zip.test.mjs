@@ -1,49 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import {
-  mkdtemp,
-  mkdir,
-  writeFile,
-  readFile,
-  readlink,
-  readdir,
-  symlink,
-  lstat,
-  rm
-} from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, writeFile, readFile, readlink, readdir, symlink, lstat } from 'node:fs/promises'
 import { join, relative } from 'node:path'
-import { pipeline } from 'node:stream/promises'
-import { createWriteStream } from 'node:fs'
 import extract from 'extract-zip'
-import { ZipFile } from 'yazl'
-
-async function fixture(t, entries) {
-  const root = await mkdtemp(join(tmpdir(), 'dfragon-zip-security-'))
-  t.after(() => rm(root, { recursive: true, force: true }))
-  const archive = join(root, 'fixture.zip')
-  const directory = join(root, 'unpacked')
-  const zip = new ZipFile()
-  const fixtureEntries = typeof entries === 'function' ? entries({ root, directory }) : entries
-  for (const entry of fixtureEntries) {
-    if (entry.directory) {
-      zip.addEmptyDirectory(entry.name)
-      continue
-    }
-    zip.addBuffer(Buffer.from(entry.content), entry.name, {
-      mode: entry.link ? 0o120777 : 0o100644
-    })
-  }
-  const written = pipeline(zip.outputStream, createWriteStream(archive))
-  zip.end()
-  await written
-  await mkdir(directory)
-
-  return { root, archive, directory }
-}
+import { createZipFixture } from './fixtures/zip.mjs'
 
 test('ZIP symlink 대상은 추출 root 밖으로 탈출하거나 외부 디렉터리를 만들지 못한다', async (t) => {
-  const { root, archive, directory } = await fixture(t, [
+  const { root, archive, directory } = await createZipFixture(t, [
     { name: 'escape', content: '../outside', link: true },
     { name: 'escape/child/marker', content: 'changed' }
   ])
@@ -55,7 +18,7 @@ test('ZIP symlink 대상은 추출 root 밖으로 탈출하거나 외부 디렉�
 })
 
 test('ZIP의 중복 파일 이름은 앞서 만든 내부 symlink를 통해 원본 파일을 덮어쓰지 못한다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'victim', content: 'original' },
     { name: 'alias', content: 'victim', link: true },
     { name: 'alias', content: 'changed' }
@@ -66,7 +29,7 @@ test('ZIP의 중복 파일 이름은 앞서 만든 내부 symlink를 통해 원�
 })
 
 test('기존 상위 경로와 leaf의 symlink를 통해 외부 경로를 만들거나 파일을 쓰지 못한다', async (t) => {
-  const { root, archive, directory } = await fixture(t, [
+  const { root, archive, directory } = await createZipFixture(t, [
     { name: 'escape/new/marker', content: 'changed' }
   ])
   const outside = join(root, 'outside')
@@ -75,7 +38,7 @@ test('기존 상위 경로와 leaf의 symlink를 통해 외부 경로를 만들�
   await assert.rejects(extract(archive, { dir: directory }), /escapes/)
   await assert.rejects(lstat(join(outside, 'new')), { code: 'ENOENT' })
 
-  const leaf = await fixture(t, [{ name: 'marker', content: 'changed' }])
+  const leaf = await createZipFixture(t, [{ name: 'marker', content: 'changed' }])
   const victim = join(leaf.root, 'victim')
   await writeFile(victim, 'original')
   await symlink(victim, join(leaf.directory, 'marker'))
@@ -84,7 +47,7 @@ test('기존 상위 경로와 leaf의 symlink를 통해 외부 경로를 만들�
 })
 
 test('Electron framework의 내부 symlink와 일반 파일 덮어쓰기는 유지한다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'Framework/Versions/A/Resources/file', content: 'original' },
     { name: 'Framework/Versions/Current', content: 'A', link: true },
     { name: 'Framework/Resources', content: 'Versions/Current/Resources', link: true },
@@ -110,7 +73,7 @@ test('절대 경로와 상위 경로 및 root 이름이 겹치는 이웃으로 �
   for (const { name, target, nested } of targets) {
     await t.test(name, async (t) => {
       const linkName = nested ? 'nested/escape' : 'escape'
-      const { root, archive, directory } = await fixture(t, (paths) => [
+      const { root, archive, directory } = await createZipFixture(t, (paths) => [
         { name: linkName, content: target(paths), link: true },
         { name: `${linkName}/marker`, content: 'changed' }
       ])
@@ -130,7 +93,7 @@ test('절대 경로와 상위 경로 및 root 이름이 겹치는 이웃으로 �
 })
 
 test('기존 내부 parent symlink로 추출해도 실제 내부 디렉터리에만 파일을 만든다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'alias/nested/', directory: true },
     { name: 'alias/nested/file', content: 'internal' }
   ])
@@ -160,7 +123,7 @@ test('기존 외부 parent symlink를 가리키는 새 symlink도 만들기 전�
   ]
   for (const { name, target, outsideExists } of cases) {
     await t.test(name, async (t) => {
-      const { root, archive, directory } = await fixture(t, [
+      const { root, archive, directory } = await createZipFixture(t, [
         { name: 'alias', content: target, link: true }
       ])
       const outside = join(root, 'outside')
@@ -186,7 +149,7 @@ test('기존 외부 parent symlink를 가리키는 새 symlink도 만들기 전�
 })
 
 test('내부 forward symlink chain은 뒤에서 만들어지는 파일까지 연결된다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'first', content: 'second', link: true },
     { name: 'second', content: 'future/file', link: true },
     { name: 'future/file', content: 'internal' }
@@ -200,7 +163,7 @@ test('내부 forward symlink chain은 뒤에서 만들어지는 파일까지 연
 })
 
 test('중복 symlink 항목은 먼저 만든 링크와 두 원본 파일을 변경하지 못한다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'first', content: 'first-original' },
     { name: 'second', content: 'second-original' },
     { name: 'alias', content: 'first', link: true },
@@ -214,7 +177,7 @@ test('중복 symlink 항목은 먼저 만든 링크와 두 원본 파일을 변�
 })
 
 test('4096자를 넘는 ASCII symlink는 거절하고 뒤의 항목을 추출하지 않는다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'before', content: 'preserved' },
     { name: 'oversized', content: 'a'.repeat(4097), link: true },
     { name: 'after', content: 'must-not-write' }
@@ -228,7 +191,7 @@ test('4096자를 넘는 ASCII symlink는 거절하고 뒤의 항목을 추출하
 })
 
 test('유해한 항목에서 중단하면 앞선 내부 파일과 외부 원본을 보존하고 후속 항목은 쓰지 않는다', async (t) => {
-  const { root, archive, directory } = await fixture(t, [
+  const { root, archive, directory } = await createZipFixture(t, [
     { name: 'before', content: 'preserved' },
     { name: 'escape', content: '../outside', link: true },
     { name: 'escape/marker', content: 'changed' },
@@ -246,7 +209,9 @@ test('유해한 항목에서 중단하면 앞선 내부 파일과 외부 원본�
 })
 
 test('상대 추출 경로와 손상된 ZIP은 파일을 만들기 전에 거절한다', async (t) => {
-  const { root, archive, directory } = await fixture(t, [{ name: 'marker', content: 'changed' }])
+  const { root, archive, directory } = await createZipFixture(t, [
+    { name: 'marker', content: 'changed' }
+  ])
   const relativeDirectory = relative(process.cwd(), join(root, 'relative-directory'))
   await assert.rejects(extract(archive, { dir: relativeDirectory }), /expected to be absolute/)
   await assert.rejects(lstat(join(root, 'relative-directory')), { code: 'ENOENT' })
@@ -257,7 +222,7 @@ test('상대 추출 경로와 손상된 ZIP은 파일을 만들기 전에 거절
 })
 
 test('뒤에 추출되는 내부 링크가 미확정 경로 뒤의 ..를 외부로 돌리지 못한다', async (t) => {
-  const { root, archive, directory } = await fixture(t, [
+  const { root, archive, directory } = await createZipFixture(t, [
     { name: 'alias', content: 'sub/pivot/../marker', link: true },
     { name: 'sub/pivot', content: '..', link: true },
     { name: 'after', content: 'must-not-write' }
@@ -272,7 +237,7 @@ test('뒤에 추출되는 내부 링크가 미확정 경로 뒤의 ..를 외부�
 })
 
 test('기존 부모에서 ..로 이동한 뒤의 내부 forward link는 계속 허용한다', async (t) => {
-  const { archive, directory } = await fixture(t, [
+  const { archive, directory } = await createZipFixture(t, [
     { name: 'sub/alias', content: '../future/file', link: true },
     { name: 'future/file', content: 'internal' }
   ])
