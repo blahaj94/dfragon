@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { planSampleSplit } from '../src/sample-update.js'
 import { OcrStore } from '../src/store.js'
 import { parseUpload } from '../src/images.js'
@@ -16,7 +19,7 @@ const input: Parameters<typeof planSampleSplit>[0] = {
   confirmSplitChange: false
 }
 
-test('sample split planning is DB-free and preserves existing, manual, excluded and pending assignments', () => {
+test('표본 분할 판단은 기존 배정·수동 미배정·제외·미작성 계약을 따른다', () => {
   assert.deepEqual(planSampleSplit(input), { nextSplit: 'train', assignNew: true })
   assert.deepEqual(planSampleSplit({ ...input, targetSplit: 'val' }), {
     nextSplit: 'val',
@@ -40,7 +43,7 @@ test('sample split planning is DB-free and preserves existing, manual, excluded 
   assert.equal(planSampleSplit({ ...assigned, text: '기존' }).nextSplit, 'train')
 })
 
-test('declined sample split change writes neither the label, exclusion nor a new train assignment', () => {
+test('분할 이동을 확인하지 않으면 정답·제외·새 train 배정을 함께 거절한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const image = parseUpload(upload())
@@ -76,7 +79,7 @@ test('declined sample split change writes neither the label, exclusion nor a new
   }
 })
 
-test('partial exclusion and restoration preserve synthetic labels and their immutable train assignment', () => {
+test('합성 표본의 제외·복원만 갱신해도 고정 정답과 train 배정을 보존한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const image = parseSyntheticUpload(syntheticUpload())
@@ -95,4 +98,40 @@ test('partial exclusion and restoration preserve synthetic labels and their immu
   } finally {
     store.close()
   }
+})
+
+test('서로 다른 SQLite 연결에서 정답과 제외를 부분 갱신하면 최신 보완 필드와 NFC 닉네임을 보존한다', async (t) => {
+  const directory = await mkdtemp(join(tmpdir(), 'ocr-partial-update-'))
+  const path = join(directory, 'data.sqlite')
+  const first = new OcrStore(path, 1024 * 1024)
+  const second = new OcrStore(path, 1024 * 1024)
+  t.after(async () => {
+    second.close()
+    first.close()
+    await rm(directory, { recursive: true, force: true })
+  })
+  const image = parseUpload(upload())
+  first.add(image.capture, image.png)
+  const id = `${image.capture.id}-1`
+  first.updateSample(id, { text: '이전정답', excluded: false })
+
+  first.updateSample(id, { excluded: true })
+  const corrected = second.updateSample(id, { text: '가' })
+  assert.equal(corrected.text, '가')
+  assert.equal(corrected.excluded, true)
+  assert.equal(corrected.split, 'unassigned')
+
+  second.assign('가', 'val')
+  const restored = first.updateSample(id, { excluded: false })
+  assert.equal(restored.text, '가')
+  assert.equal(restored.excluded, false)
+  assert.equal(restored.split, 'val')
+
+  assert.throws(() => second.updateSample(id, { text: null }), { code: 'LABEL_SPLIT_CHANGE' })
+  assert.deepEqual(first.sample(id), restored)
+  const pending = second.updateSample(id, { text: null, confirmSplitChange: true })
+  assert.equal(pending.text, null)
+  assert.equal(pending.excluded, false)
+  assert.equal(pending.split, 'unassigned')
+  assert.deepEqual(first.sample(id), pending)
 })

@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite'
 import test from 'node:test'
 import { OcrStore } from '../src/store.js'
 
-// The schema used before PR #546. Keep this fixture independent of the new constructor.
+// PR #546 이전 스키마를 새 생성자와 독립된 fixture로 보존한다.
 const legacySchema = `
   PRAGMA foreign_keys=ON; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;
   CREATE TABLE IF NOT EXISTS captures(id TEXT PRIMARY KEY, metadata TEXT NOT NULL, fingerprint TEXT NOT NULL, png BLOB NOT NULL);
@@ -18,7 +18,7 @@ const legacySchema = `
 `
 const tables = ['captures', 'samples', 'label_splits', 'models', 'model_files'] as const
 
-test('opening a pre-split database adds empty tables and preserves all stored data across restart', async () => {
+test('자동 분할 도입 전 SQLite를 열면 빈 설정 테이블만 추가하고 기존 자료를 재시작 뒤 보존한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ocr-upgrade-'))
   const path = join(directory, 'ocr.sqlite')
   let database = new DatabaseSync(path)
@@ -53,7 +53,7 @@ test('opening a pre-split database adds empty tables and preserves all stored da
         store.close()
       }
       database = new DatabaseSync(path)
-      // The old constructor still accepts the database when rolling back only the image.
+      // 서버 이미지만 되돌려도 이전 생성자가 같은 DB를 열 수 있어야 한다.
       database.exec(legacySchema)
       assert.deepEqual(
         tables.map((name) => database.prepare(`SELECT rowid, * FROM ${name}`).all()),

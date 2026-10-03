@@ -7,7 +7,7 @@ import { parseSyntheticUpload } from '../src/synthetic-upload.js'
 import { OcrStore } from '../src/store.js'
 import { syntheticUpload, upload } from './fixtures.js'
 
-test('synthetic input requires an opaque PNG, a label and bounded rendering metadata', () => {
+test('합성 입력은 불투명 PNG와 정답 및 범위 안의 렌더링 정보를 요구한다', () => {
   const input = syntheticUpload()
   const transparent = new PNG({ width: 2, height: 2 })
   for (const invalid of [
@@ -32,7 +32,7 @@ test('synthetic input requires an opaque PNG, a label and bounded rendering meta
   assert.throws(() => parseUpload({ ...upload(), kind: 'synthetic' }), { code: 'INVALID_INPUT' })
 })
 
-test('synthetic bytes, label and train assignment are atomic and idempotent', () => {
+test('합성 이미지·정답·train 배정은 원자적으로 저장하고 같은 재요청을 중복 저장하지 않는다', () => {
   const input = syntheticUpload()
   const { capture, png } = parseSyntheticUpload(input)
   const store = new OcrStore(':memory:', png.length)
@@ -59,7 +59,7 @@ test('synthetic bytes, label and train assignment are atomic and idempotent', ()
   }
 })
 
-test('synthetic nicknames cannot leak into evaluation through upload, edits or repartition', () => {
+test('합성 닉네임은 업로드·수정·재배정으로 평가 분할에 들어가지 못한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const real = parseUpload(upload())
@@ -109,4 +109,41 @@ test('synthetic nicknames cannot leak into evaluation through upload, edits or r
   } finally {
     store.close()
   }
+})
+
+test('렌더러 버전은 숫자 세 구간만 허용하고 마지막 줄바꿈을 저장하지 않는다', async (t) => {
+  const input = syntheticUpload()
+  for (const [name, rendererVersion] of [
+    ['LF 꼬리', '0.1.2\n'],
+    ['CR 꼬리', '0.1.2\r'],
+    ['줄 구분자 꼬리', '0.1.2\u2028'],
+    ['문단 구분자 꼬리', '0.1.2\u2029'],
+    ['네 구간', '0.1.2.3'],
+    ['접미사', '0.1.2-alpha']
+  ] as const) {
+    await t.test(name, () => {
+      assert.throws(
+        () =>
+          parseSyntheticUpload({ ...input, rendering: { ...input.rendering, rendererVersion } }),
+        { code: 'INVALID_INPUT' }
+      )
+    })
+  }
+  const parsed = parseSyntheticUpload({
+    ...input,
+    rendering: {
+      ...input.rendering,
+      rendererVersion: '12.34.56',
+      scale: 16,
+      foregroundRgb: [0, 0, 0],
+      backgroundRgb: [255, 255, 255]
+    }
+  })
+  assert.deepEqual(parsed.capture.synthetic.rendering, {
+    rendererVersion: '12.34.56',
+    profile: 'dotum',
+    scale: 16,
+    foregroundRgb: [0, 0, 0],
+    backgroundRgb: [255, 255, 255]
+  })
 })

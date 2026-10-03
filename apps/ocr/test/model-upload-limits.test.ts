@@ -63,7 +63,7 @@ function multipart({
   return Buffer.concat(parts)
 }
 
-test('auxiliary file and combined model byte budgets accept their exact limits and reject overflow separately', () => {
+test('모델 보조 파일과 합산 bytes의 정확한 한도를 받고 각 초과를 거절한다', () => {
   const evaluation = Buffer.from('{}' + ' '.repeat(MODEL_AUXILIARY_FILE_MAXIMUM_BYTES - 2))
   const small = new Map([
     ['weights.pdparams', Buffer.from('weights')],
@@ -101,7 +101,7 @@ test('auxiliary file and combined model byte budgets accept their exact limits a
   )
 })
 
-test('multipart metadata, optional files, file count and the existing five-part parser boundary remain distinct', async (t) => {
+test('모델 multipart는 메타데이터·선택 파일·파일 개수·전체 파트 한도를 각각 검사한다', async (t) => {
   const f = await fixture(t)
   const send = (body: Buffer) =>
     fetch(`${f.base}/api/desktop/models`, {
@@ -121,7 +121,7 @@ test('multipart metadata, optional files, file count and the existing five-part 
     assert.equal((await send(multipart({ extra }))).status, 400)
     assert.equal(f.store.models().length, before)
   }
-  // Current Multer permits exactly five parts, including parts Busboy skips.
+  // Busboy가 건너뛴 파트도 포함해 현재 Multer의 총 5개 파트 한도를 검증한다.
   assert.equal((await send(multipart({ extra: [ignoredPart] }))).status, 201)
   assert.equal((await send(multipart({ extra: [ignoredPart, ignoredPart] }))).status, 201)
   const text = metadata()
@@ -172,7 +172,7 @@ test('multipart metadata, optional files, file count and the existing five-part 
   assert.equal(f.store.models().length, count + 1)
 })
 
-test('the request overhead budget permits its exact boundary and disconnects only overflow without saving model files', async (t) => {
+test('모델 요청 부가 bytes의 정확한 한도를 받고 초과 연결을 끊으며 파일을 저장하지 않는다', async (t) => {
   const f = await fixture(t)
   const prefix = Buffer.concat([
     part('metadata', metadata()),
@@ -201,7 +201,7 @@ test('the request overhead budget permits its exact boundary and disconnects onl
         incoming.once('end', () => resolve(incoming.statusCode))
       })
     })
-    // Attach error handling before streaming the body, including expected receive-budget disconnects.
+    // 수신 한도 초과로 연결이 끊길 수 있으므로 본문 전송 전에 오류 수신을 등록한다.
     const result = response.then(
       (status) => ({ status }),
       (error: unknown) => ({ error })

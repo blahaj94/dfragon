@@ -13,6 +13,7 @@ type SaveRequest = {
   body: SampleUpdate
   session: EditSession
 }
+type SplitRequest = { text: string; split: Split; session: EditSession }
 
 export function useSampleEditor(sample: Sample) {
   const client = useQueryClient()
@@ -65,12 +66,22 @@ export function useSampleEditor(sample: Sample) {
     }
   })
   const assign = useMutation({
-    mutationFn: (split: Split) => requestOcr('/api/splits', 'PUT', { text: sample.text, split }),
-    onSuccess: async () => {
-      setMessage(OCR_MESSAGES.splitAssigned)
+    mutationFn: ({ text, split }: SplitRequest) =>
+      requestOcr('/api/splits', 'PUT', { text, split }),
+    onSuccess: async (_result, request) => {
+      if (request.session.active) {
+        setMessage(OCR_MESSAGES.splitAssigned)
+      }
       await invalidateDataset(client)
     },
-    onError: (error) => setMessage(errorMessage(error))
+    onError: (error, request) => {
+      if (request.session.active) {
+        setMessage(errorMessage(error))
+      }
+    },
+    onSettled: (_result, _error, request) => {
+      request.session.pending = false
+    }
   })
   async function performSave(request: SaveRequest): Promise<SaveRequest | null> {
     const session = request.session
@@ -125,11 +136,22 @@ export function useSampleEditor(sample: Sample) {
     }
   }
   function assignNicknameSplit(split: Split) {
-    if (sample.text === null || sample.text.length === 0 || split === sample.split) {
+    const session = sessionRef.current
+    if (
+      !session.active ||
+      session.pending ||
+      sample.kind === 'synthetic' ||
+      sample.text === null ||
+      sample.text.length === 0 ||
+      text !== sample.text ||
+      split === sample.split
+    ) {
       return
     }
-
-    assign.mutate(split)
+    session.pending = true
+    session.confirmation = null
+    setMessage('')
+    assign.mutate({ text: sample.text, split, session })
   }
   const busy = save.isPending || assign.isPending
 

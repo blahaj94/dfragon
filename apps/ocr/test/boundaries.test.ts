@@ -3,7 +3,7 @@ import test from 'node:test'
 import { parseCreatedLogin, parseLoginTokens } from '../src/auth-responses.js'
 import { httpFailure, OcrError } from '../src/errors.js'
 
-test('malformed authentication responses are upstream failures', () => {
+test('잘못된 인증 응답을 인증 서버 오류로 분류한다', () => {
   for (const response of [
     null,
     [],
@@ -23,7 +23,7 @@ test('malformed authentication responses are upstream failures', () => {
   )
 })
 
-test('HTTP boundary preserves classified errors and distinguishes invalid JSON from internal bugs', () => {
+test('HTTP 경계는 분류된 오류를 보존하고 잘못된 JSON과 내부 결함을 구분한다', () => {
   const classified = new OcrError('LABEL_SPLIT_CHANGE')
 
   assert.equal(httpFailure(classified), classified)
@@ -32,9 +32,8 @@ test('HTTP boundary preserves classified errors and distinguishes invalid JSON f
   assert.equal(httpFailure(new SyntaxError('internal detail')).code, 'UNAVAILABLE')
 })
 
-test('in-flight logins reserve global capacity and failures release their reservations', async (t) => {
+test('진행 중 로그인도 전체 대기 용량을 예약하고 실패하면 예약을 반환한다', async (t) => {
   const { OcrAuth } = await import('../src/auth.js')
-  const { OCR_AUTH } = await import('../src/constants.js')
   let release = () => {}
   const released = new Promise<void>((resolve) => {
     release = resolve
@@ -51,7 +50,7 @@ test('in-flight logins reserve global capacity and failures release their reserv
     return Response.json({
       requestId: 'synthetic',
       browserUrl: 'https://auth.example.test/auth/login/authorize',
-      expiresAt: new Date(Date.now() + OCR_AUTH.pendingLifetimeMs).toISOString()
+      expiresAt: new Date(Date.now() + 600_000).toISOString()
     })
   }
   const auth = new OcrAuth(
@@ -70,22 +69,22 @@ test('in-flight logins reserve global capacity and failures release their reserv
 
     return { ip, cookies: {} } as import('express').Request
   }
-  const requests = Array.from({ length: OCR_AUTH.maximumPendingLogins }, (_, index) => {
-    if (index === OCR_AUTH.maximumLoginAttempts) {
-      now += OCR_AUTH.loginWindowMs
+  const requests = Array.from({ length: 100 }, (_, index) => {
+    if (index === 60) {
+      now += 60_000
     }
 
     return auth.begin(request(index), response)
   })
 
   await assert.rejects(auth.begin(request(101), response), { code: 'LOGIN_LIMIT' })
-  assert.equal(calls, OCR_AUTH.maximumPendingLogins)
+  assert.equal(calls, 100)
   release()
   const results = await Promise.allSettled(requests)
   assert(results.every((result) => result.status === 'rejected'))
 
   fail = false
   await auth.begin(request(101), response)
-  assert.equal(calls, OCR_AUTH.maximumPendingLogins + 1)
+  assert.equal(calls, 100 + 1)
   await auth.close()
 })
