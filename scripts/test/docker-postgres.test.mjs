@@ -394,3 +394,541 @@ test('removes the temporary saved archive on success, parser/JSON failure and Do
     })
   }
 })
+
+function finishCommand(child, { stdout = '', stderr = '', code = 0, signal = null } = {}) {
+  child.stdout.end(stdout)
+  child.stderr.end(stderr)
+  child.emit('close', code, signal)
+}
+
+function mockCommand(t, start) {
+  const signals = []
+  t.mock.method(childProcess, 'spawn', (program, args, options) => {
+    const child = new EventEmitter()
+    child.stdout = new PassThrough()
+    child.stderr = new PassThrough()
+    child.kill = (signal) => {
+      signals.push(signal)
+      queueMicrotask(() => finishCommand(child, { code: null, signal }))
+
+      return true
+    }
+    queueMicrotask(() => start(child, { program, args, options }))
+
+    return child
+  })
+  syncBuiltinESMExports()
+  t.after(() => {
+    t.mock.restoreAll()
+    syncBuiltinESMExports()
+  })
+
+  return signals
+}
+
+const fixtureRunId = 'helper12345678'
+const fixtureName = 'dfragon-db-helper12345678'
+const fixtureImageId = `sha256:${'c'.repeat(64)}`
+const fixtureImage = { platform: 'linux/amd64', imageId: fixtureImageId }
+
+// Emulate Docker CLI state at the subprocess boundary, including volume-create
+// idempotency and refusing to remove a volume mounted by a live container.
+function mockDocker(t, { containers = new Map(), volumes = new Map(), respond } = {}) {
+  const removals = []
+  const creations = []
+  const runOptions = []
+  const commands = []
+  mockCommand(t, (child, { program, args }) => {
+    assert.equal(program, 'docker')
+    commands.push(args[0])
+    let result = respond?.({ args, containers, volumes })
+    if (result === undefined) {
+      result = { stdout: '' }
+      const [kind, operation] = args
+      if (operation === 'ls') {
+        const filter = args[args.indexOf('--filter') + 1].slice('name='.length)
+        const pattern = new RegExp(filter)
+        const names = kind === 'container' ? containers.keys() : volumes.keys()
+        const matching = [...names].filter((name) => {
+          const dockerName = kind === 'container' ? `/${name}` : name
+
+          return pattern.test(dockerName)
+        })
+        result.stdout = matching.join('\n')
+      } else if (operation === 'inspect') {
+        const name = args[2]
+        const resource = kind === 'container' ? containers.get(name) : volumes.get(name)
+        if (resource === undefined) {
+          result.code = 1
+        } else if (args.at(-1).includes('Labels')) {
+          result.stdout = resource.runId ?? ''
+        } else {
+          result.stdout = `${JSON.stringify(resource.imageId)} "linux" ${JSON.stringify(resource.mounts)}`
+        }
+      } else if (kind === 'volume' && operation === 'create') {
+        const name = args.at(-1)
+        const runId = args[args.indexOf('--label') + 1].split('=')[1]
+        if (!volumes.has(name)) {
+          volumes.set(name, { runId })
+        }
+        creations.push(['volume', name])
+        result.stdout = name
+      } else if (kind === 'run') {
+        const name = args[args.indexOf('--name') + 1]
+        const runId = args[args.indexOf('--label') + 1].split('=')[1]
+        const mount = args[args.indexOf('--mount') + 1]
+        const volume = mount.match(/source=([^,]+)/)[1]
+        const destination = mount.match(/target=([^,]+)/)[1]
+        const platform = args[args.indexOf('--platform') + 1]
+        const publish = args[args.indexOf('--publish') + 1]
+        const pgdata = args.find((argument) => argument.startsWith('PGDATA='))
+        const image = args.at(-1)
+        runOptions.push({ platform, publish, mount, pgdata, image })
+        containers.set(name, {
+          runId,
+          imageId: fixtureImageId,
+          mounts: [{ Type: 'volume', Name: volume, Destination: destination }]
+        })
+        creations.push(['container', name])
+        result.stdout = 'fixture-container-id'
+      } else if (kind === 'exec') {
+        result.stdout = 'x86_64\n'
+      } else if (kind === 'port') {
+        result.stdout = '127.0.0.1:49152\n'
+      } else if (kind === 'rm') {
+        const name = args.at(-1)
+        removals.push(['container', name])
+        containers.delete(name)
+      } else if (kind === 'volume' && operation === 'rm') {
+        const name = args.at(-1)
+        removals.push(['volume', name])
+        const mounted = [...containers.values()].some((container) =>
+          container.mounts?.some((mount) => mount.Name === name)
+        )
+        if (mounted) {
+          result.code = 1
+        } else {
+          volumes.delete(name)
+        }
+      } else {
+        assert.fail(`Unexpected Docker fixture operation: ${kind} ${operation}`)
+      }
+    }
+    finishCommand(child, result)
+  })
+
+  return { containers, volumes, removals, creations, runOptions, commands }
+}
+
+test('명령 결과는 종료 코드와 signal 및 두 출력 스트림을 그대로 전달한다', async (t) => {
+  mockCommand(t, (child, { program, args, options }) => {
+    assert.equal(program, 'fixture-command')
+    assert.deepEqual(args, ['first', 'second'])
+    assert.equal(options.cwd, '/fixture')
+    assert.deepEqual(options.env, { FIXTURE_ONLY: 'value' })
+    assert.deepEqual(options.stdio, ['ignore', 'pipe', 'pipe'])
+    child.stdout.write('앞부분 ')
+    child.stderr.write('경고 ')
+    finishCommand(child, { stdout: '뒷부분', stderr: '완료', code: 7, signal: 'SIGTERM' })
+  })
+  assert.deepEqual(
+    await postgres.command('fixture-command', ['first', 'second'], {
+      cwd: '/fixture',
+      env: { FIXTURE_ONLY: 'value' }
+    }),
+    { code: 7, signal: 'SIGTERM', stdout: '앞부분 뒷부분', stderr: '경고 완료' }
+  )
+})
+
+test('기본 Docker 환경은 임의의 상위 프로세스 credential을 전달하지 않는다', async (t) => {
+  const environmentName = 'DFRAGON_TEST_SYNTHETIC_SECRET'
+  const previous = process.env[environmentName]
+  process.env[environmentName] = 'synthetic-fixture'
+  t.after(() => {
+    if (previous === undefined) {
+      delete process.env[environmentName]
+    } else {
+      process.env[environmentName] = previous
+    }
+  })
+  const allowedNames = new Set([
+    'PATH',
+    'HOME',
+    'DOCKER_HOST',
+    'DOCKER_CONTEXT',
+    'DOCKER_TLS_VERIFY',
+    'DOCKER_CERT_PATH'
+  ])
+  mockCommand(t, (child, { options }) => {
+    assert.equal(Object.hasOwn(options.env, environmentName), false)
+    for (const name of Object.keys(options.env)) {
+      assert.equal(allowedNames.has(name), true)
+      assert.equal(options.env[name], process.env[name])
+    }
+    finishCommand(child)
+  })
+  assert.deepEqual(await postgres.docker(['info']), {
+    code: 0,
+    signal: null,
+    stdout: '',
+    stderr: ''
+  })
+})
+
+test('명령 시작 실패는 외부 오류와 출력을 노출하지 않고 거절한다', async (t) => {
+  mockCommand(t, (child) => {
+    child.emit('error', new Error('synthetic-private-detail'))
+    finishCommand(child, { code: -2, stderr: 'synthetic-private-detail' })
+  })
+  await assert.rejects(postgres.command('fixture-command', []), {
+    message: 'Command failed to start'
+  })
+})
+
+test('명령 timeout은 자식에게 SIGKILL을 보내고 오류로 전파한다', async (t) => {
+  const signals = mockCommand(t, () => {})
+  await assert.rejects(postgres.command('fixture-command', [], { timeoutMs: 1 }), {
+    message: 'Command timed out'
+  })
+  assert.deepEqual(signals, ['SIGKILL'])
+})
+
+test('allowFailure를 허용해도 Docker 명령 timeout은 실패로 전파한다', async (t) => {
+  const signals = mockCommand(t, () => {})
+  await assert.rejects(postgres.docker(['run'], { allowFailure: true, timeoutMs: 1 }), {
+    message: 'Command timed out'
+  })
+  assert.deepEqual(signals, ['SIGKILL'])
+})
+
+test('명령 출력 한도는 문자 수 대신 UTF-8 byte 경계에서 적용한다', async (t) => {
+  const limit = 1024 * 1024
+  for (const stream of ['stdout', 'stderr']) {
+    await t.test(`${stream}은 정확한 한도를 허용한다`, async (t) => {
+      const output = `${'가'.repeat(Math.floor(limit / 3))}x`
+      mockCommand(t, (child) => finishCommand(child, { [stream]: output }))
+      const result = await postgres.command('fixture-command', [])
+      assert.equal(result[stream], output)
+      assert.equal(Buffer.byteLength(result[stream]), limit)
+    })
+    await t.test(`${stream}은 한 byte 초과를 거절한다`, async (t) => {
+      const output = `${'가'.repeat(Math.floor(limit / 3))}xx`
+      const signals = mockCommand(t, (child) => child[stream].write(output))
+      await assert.rejects(postgres.command('fixture-command', []), {
+        message: 'Command output limit exceeded'
+      })
+      assert.deepEqual(signals, ['SIGKILL'])
+    })
+  }
+})
+
+test('Docker의 실패 코드와 signal은 기본 거절하며 allowFailure에서 결과를 보존한다', async (t) => {
+  for (const result of [
+    { code: 1, signal: null },
+    { code: null, signal: 'SIGTERM' },
+    { code: 0, signal: 'SIGTERM' }
+  ]) {
+    await t.test(`종료 code=${result.code}, signal=${result.signal}`, async (t) => {
+      mockCommand(t, (child) => finishCommand(child, { ...result, stderr: 'synthetic-private' }))
+      await assert.rejects(postgres.docker(['run']), { message: 'Docker command failed: run' })
+      assert.deepEqual(await postgres.docker(['run'], { allowFailure: true }), {
+        ...result,
+        stdout: '',
+        stderr: 'synthetic-private'
+      })
+    })
+  }
+})
+
+test('PostgreSQL 생성과 정리는 정확한 자원만 사용하고 이웃 이름의 자원을 보존한다', async (t) => {
+  const neighbor = `${fixtureName}-neighbor`
+  const protectedContainer = { runId: 'different12345678' }
+  const protectedVolume = { runId: 'different12345678' }
+  const state = mockDocker(t, {
+    containers: new Map([[neighbor, protectedContainer]]),
+    volumes: new Map([[neighbor, protectedVolume]])
+  })
+  const resources = await postgres.createPostgres(fixtureRunId, fixtureImage)
+  assert.equal(resources.runId, fixtureRunId)
+  assert.equal(resources.containerName, fixtureName)
+  assert.equal(resources.volumeName, fixtureName)
+  assert.equal(resources.configuration.host, '127.0.0.1')
+  assert.equal(resources.configuration.port, 49152)
+  assert.equal(resources.configuration.database, 'dfragon_auth_test')
+  assert.match(resources.configuration.username, /^dfragon_[a-f0-9]{20}$/)
+  assert.match(resources.configuration.password, /^[a-zA-Z0-9_-]{43}$/)
+  assert.equal(state.containers.get(fixtureName).runId, fixtureRunId)
+  assert.equal(state.volumes.get(fixtureName).runId, fixtureRunId)
+  assert.deepEqual(state.runOptions, [
+    {
+      platform: 'linux/amd64',
+      publish: '127.0.0.1::5432',
+      mount: `type=volume,source=${fixtureName},target=/var/lib/postgresql`,
+      pgdata: 'PGDATA=/var/lib/postgresql/18/docker',
+      image: postgres.POSTGRES_IMAGE
+    }
+  ])
+
+  await postgres.teardownPostgres(resources)
+  await postgres.assertResourcesAbsent(fixtureRunId)
+  await postgres.teardownPostgres(resources)
+  assert.deepEqual(state.removals, [
+    ['container', fixtureName],
+    ['volume', fixtureName]
+  ])
+  assert.deepEqual([...state.containers], [[neighbor, protectedContainer]])
+  assert.deepEqual([...state.volumes], [[neighbor, protectedVolume]])
+})
+
+test('기존 container나 volume은 소유권이 같아도 재사용하거나 삭제하지 않는다', async (t) => {
+  for (const kind of ['container', 'volume']) {
+    await t.test(`${kind} 이름 충돌`, async (t) => {
+      const protectedResource = { runId: fixtureRunId }
+      const containers = new Map()
+      const volumes = new Map()
+      const resources = kind === 'container' ? containers : volumes
+      resources.set(fixtureName, protectedResource)
+      const state = mockDocker(t, { containers, volumes })
+      await assert.rejects(postgres.createPostgres(fixtureRunId, fixtureImage), {
+        message: `Database test ${kind} already exists`
+      })
+      assert.equal(resources.get(fixtureName), protectedResource)
+      assert.deepEqual(state.creations, [])
+      assert.deepEqual(state.removals, [])
+    })
+  }
+})
+
+test('잘못된 run ID는 Docker를 호출하거나 자원을 만들기 전에 거절한다', async (t) => {
+  const state = mockDocker(t)
+  for (const runId of ['', 'SHORT', 'invalid-name', 'a'.repeat(81)]) {
+    await assert.rejects(postgres.createPostgres(runId, fixtureImage), {
+      message: 'Invalid database test run ID'
+    })
+  }
+  assert.equal(state.containers.size, 0)
+  assert.equal(state.volumes.size, 0)
+  assert.deepEqual(state.commands, [])
+  assert.deepEqual(state.creations, [])
+  assert.deepEqual(state.removals, [])
+})
+
+test('사전 조회 뒤 동명 volume이 생기면 소유권을 다시 확인하고 외부 자원을 보존한다', async (t) => {
+  const protectedVolume = { runId: 'protected12345678' }
+  const state = mockDocker(t, {
+    respond: ({ args, volumes }) => {
+      if (args[0] === 'volume' && args[1] === 'create') {
+        // Docker returns an existing volume even when create requested other labels.
+        volumes.set(fixtureName, protectedVolume)
+
+        return { stdout: fixtureName }
+      }
+    }
+  })
+  await assert.rejects(postgres.createPostgres(fixtureRunId, fixtureImage), (error) => {
+    assert.equal(error instanceof AggregateError, true)
+    assert.equal(error.errors[0] instanceof assert.AssertionError, true)
+    assert.equal(error.errors[1] instanceof AggregateError, true)
+    assert.equal(error.errors[1].errors[0].message, 'Database test resource ownership mismatch')
+
+    return true
+  })
+  assert.equal(state.volumes.get(fixtureName), protectedVolume)
+  assert.equal(state.containers.size, 0)
+  assert.deepEqual(state.removals, [])
+})
+
+test('Docker 생성과 runtime 검증이 실패하면 앞서 만든 자원을 정리한다', async (t) => {
+  const cases = [
+    {
+      name: 'volume 생성 실패',
+      matches: (args) => args[0] === 'volume' && args[1] === 'create',
+      result: { code: 1 },
+      error: { message: 'Docker command failed: volume' },
+      removals: []
+    },
+    {
+      name: 'container 생성 실패',
+      matches: (args) => args[0] === 'run',
+      result: { code: 1 },
+      error: { message: 'Docker command failed: run' },
+      removals: [['volume', fixtureName]]
+    },
+    {
+      name: 'container 메타데이터 형식 오류',
+      matches: (args) => args[0] === 'container' && args.at(-1).includes('.Image'),
+      result: { stdout: '{}' },
+      error: { message: 'Database container metadata could not be determined' }
+    },
+    {
+      name: '검증된 이미지 대신 다른 이미지 실행',
+      matches: (args) => args[0] === 'container' && args.at(-1).includes('.Image'),
+      result: {
+        stdout: `"sha256:${'d'.repeat(64)}" "linux" [{"Type":"volume","Name":"${fixtureName}","Destination":"/var/lib/postgresql"}]`
+      },
+      error: assert.AssertionError
+    },
+    {
+      name: '소유 volume 대신 bind mount 사용',
+      matches: (args) => args[0] === 'container' && args.at(-1).includes('.Image'),
+      result: {
+        stdout: `"${fixtureImageId}" "linux" [{"Type":"bind","Name":"${fixtureName}","Destination":"/var/lib/postgresql"}]`
+      },
+      error: assert.AssertionError
+    },
+    {
+      name: '컨테이너 architecture 불일치',
+      matches: (args) => args[0] === 'exec',
+      result: { stdout: 'aarch64\n' },
+      error: assert.AssertionError
+    },
+    {
+      name: 'loopback 대신 공개 interface로 포트 노출',
+      matches: (args) => args[0] === 'port',
+      result: { stdout: '0.0.0.0:49152\n' },
+      error: { message: 'PostgreSQL loopback port could not be determined' }
+    }
+  ]
+  for (const { name, matches, result, error, removals } of cases) {
+    await t.test(name, async (t) => {
+      const state = mockDocker(t, {
+        respond: ({ args }) => {
+          if (matches(args)) {
+            return result
+          }
+        }
+      })
+      await assert.rejects(postgres.createPostgres(fixtureRunId, fixtureImage), error)
+      assert.equal(state.containers.size, 0)
+      assert.equal(state.volumes.size, 0)
+      const expectedRemovals = removals ?? [
+        ['container', fixtureName],
+        ['volume', fixtureName]
+      ]
+      assert.deepEqual(state.removals, expectedRemovals)
+    })
+  }
+})
+
+test('volume 또는 container 생성 후 hook 실패는 원래 오류를 전파하고 생성 자원을 정리한다', async (t) => {
+  for (const hook of ['afterVolumeCreated', 'afterContainerCreated']) {
+    await t.test(`${hook}에서 소비자가 중단을 알린다`, async (t) => {
+      const failure = new Error('Synthetic interruption')
+      const state = mockDocker(t)
+      await assert.rejects(
+        postgres.createPostgres(fixtureRunId, fixtureImage, {
+          [hook]: () => {
+            throw failure
+          }
+        }),
+        (error) => error === failure
+      )
+      assert.equal(state.containers.size, 0)
+      assert.equal(state.volumes.size, 0)
+      const expectedRemovals = [['volume', fixtureName]]
+      if (hook === 'afterContainerCreated') {
+        expectedRemovals.unshift(['container', fixtureName])
+      }
+      assert.deepEqual(state.removals, expectedRemovals)
+    })
+  }
+})
+
+test('생성 실패와 정리 실패는 함께 보존하고 남은 자원을 성공으로 보고하지 않는다', async (t) => {
+  const failure = new Error('Synthetic creation failure')
+  const state = mockDocker(t, {
+    respond: ({ args }) => {
+      if (args[0] === 'volume' && args[1] === 'rm') {
+        return { code: 1 }
+      }
+    }
+  })
+  await assert.rejects(
+    postgres.createPostgres(fixtureRunId, fixtureImage, {
+      afterVolumeCreated: () => {
+        throw failure
+      }
+    }),
+    (error) => {
+      assert.equal(error instanceof AggregateError, true)
+      assert.equal(error.message, 'Database test creation and teardown failed')
+      assert.equal(error.cause, failure)
+      assert.equal(error.errors.length, 2)
+      assert.equal(error.errors[0], failure)
+      assert.equal(error.errors[1] instanceof AggregateError, true)
+      assert.equal(error.errors[1].errors[0].message, 'Docker command failed: volume')
+
+      return true
+    }
+  )
+  assert.equal(state.containers.size, 0)
+  assert.equal(state.volumes.get(fixtureName).runId, fixtureRunId)
+  await assert.rejects(postgres.assertResourcesAbsent(fixtureRunId), assert.AssertionError)
+})
+
+test('소유권이 다른 container는 보존하면서 독립된 소유 volume의 정리를 계속한다', async (t) => {
+  const protectedContainer = { runId: 'protected12345678' }
+  const state = mockDocker(t, {
+    containers: new Map([[fixtureName, protectedContainer]]),
+    volumes: new Map([[fixtureName, { runId: fixtureRunId }]])
+  })
+  await assert.rejects(
+    postgres.teardownPostgres({
+      runId: fixtureRunId,
+      containerName: fixtureName,
+      volumeName: fixtureName
+    }),
+    (error) => {
+      assert.equal(error instanceof AggregateError, true)
+      assert.equal(error.errors.length, 1)
+      assert.equal(error.errors[0].message, 'Database test resource ownership mismatch')
+
+      return true
+    }
+  )
+  assert.equal(state.containers.get(fixtureName), protectedContainer)
+  assert.equal(state.volumes.size, 0)
+  assert.deepEqual(state.removals, [['volume', fixtureName]])
+})
+
+test('소유권 조회가 실패한 자원은 삭제하지 않고 다른 자원 정리를 시도한다', async (t) => {
+  const state = mockDocker(t, {
+    containers: new Map([[fixtureName, { runId: fixtureRunId }]]),
+    volumes: new Map([[fixtureName, { runId: fixtureRunId }]]),
+    respond: ({ args }) => {
+      if (args[0] === 'container' && args[1] === 'inspect') {
+        return { code: 1 }
+      }
+    }
+  })
+  await assert.rejects(
+    postgres.teardownPostgres({
+      runId: fixtureRunId,
+      containerName: fixtureName,
+      volumeName: fixtureName
+    }),
+    (error) => {
+      assert.equal(error instanceof AggregateError, true)
+      assert.equal(error.errors.length, 1)
+      assert.equal(error.errors[0].message, 'Docker command failed: container')
+
+      return true
+    }
+  )
+  assert.equal(state.containers.has(fixtureName), true)
+  assert.equal(state.volumes.size, 0)
+  assert.deepEqual(state.removals, [['volume', fixtureName]])
+})
+
+test('삭제 명령이 성공해도 exact 자원이 남아 있으면 정리를 실패 처리한다', async (t) => {
+  const state = mockDocker(t, {
+    volumes: new Map([[fixtureName, { runId: fixtureRunId }]]),
+    respond: ({ args }) => {
+      if (args[0] === 'volume' && args[1] === 'rm') {
+        return { code: 0 }
+      }
+    }
+  })
+  await assert.rejects(postgres.removeOwnedVolume(fixtureName, fixtureRunId), assert.AssertionError)
+  assert.equal(state.volumes.get(fixtureName).runId, fixtureRunId)
+})

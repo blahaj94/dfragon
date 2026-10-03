@@ -30,8 +30,8 @@ jobs:
       - name: Test Desktop core behavior without prebuilt shared libraries
         run: pnpm --filter @dfragon/desktop test
       - run: pnpm test:security-dependencies
-      - run: pnpm test:product-images
-      - run: node --test scripts/test/server-build-info.test.mjs
+      - name: Test repository tooling
+        run: pnpm test:tooling
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
       - run: pnpm --filter @dfragon/api test
@@ -41,7 +41,6 @@ jobs:
       - name: Test Desktop search against the public API
         run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
       - run: pnpm lint
-      - run: pnpm test:format-policy
       - run: pnpm format:check
       - run: pnpm lint:oxlint
       - name: Select images from the complete main push

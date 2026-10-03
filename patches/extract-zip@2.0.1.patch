@@ -1,5 +1,5 @@
 diff --git a/index.js b/index.js
-index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679f44d086f 100644
+index 23384ea16bb848616886f356d8d69f94325535bf..fedef6a01eab5bb2f7f70e21f9168513061411e6 100644
 --- a/index.js
 +++ b/index.js
 @@ -1,6 +1,6 @@
@@ -26,7 +26,7 @@ index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679
  
            await this.extractEntry(entry)
            debug('finished processing', entry.fileName)
-@@ -74,6 +67,30 @@ class Extractor {
+@@ -74,6 +67,63 @@ class Extractor {
      })
    }
  
@@ -34,6 +34,39 @@ index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679
 +    const relative = path.relative(this.opts.dir, target)
 +    if (path.isAbsolute(relative) || relative.split(path.sep).includes('..')) {
 +      throw new Error('Archive path escapes the extraction directory')
++    }
++  }
++
++  async assertLinkContained (target, followedLinks = 0) {
++    this.assertContained(target)
++    let current = target
++    while (true) {
++      try {
++        this.assertContained(await fs.realpath(current))
++        return
++      } catch (error) {
++        if (error.code !== 'ENOENT') throw error
++        // A later forward symlink could change what this parent traversal means.
++        if (path.basename(current) === '..') throw new Error('Cannot traverse unresolved archive link target')
++      }
++
++      // Forward links may not exist yet. Inspect any dangling ancestor before
++      // walking up, so an external link cannot hide behind ENOENT.
++      try {
++        const existing = await fs.lstat(current)
++        if (existing.isSymbolicLink()) {
++          if (followedLinks >= 40) throw new Error('Too many archive symbolic links')
++          const link = await fs.readlink(current)
++          const next = path.isAbsolute(link) ? link : `${path.dirname(current)}${path.sep}${link}`
++          await this.assertLinkContained(next, followedLinks + 1)
++          return
++        }
++      } catch (error) {
++        if (error.code !== 'ENOENT') throw error
++      }
++      const parent = path.dirname(current)
++      if (parent === current) throw new Error('Archive link target could not be resolved')
++      current = parent
 +    }
 +  }
 +
@@ -57,7 +90,7 @@ index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679
    async extractEntry (entry) {
      /* istanbul ignore if */
      if (this.canceled) {
-@@ -113,23 +130,29 @@ class Extractor {
+@@ -113,23 +163,31 @@ class Extractor {
      // always ensure folders are created
      const destDir = isDir ? dest : path.dirname(dest)
  
@@ -85,7 +118,9 @@ index 23384ea16bb848616886f356d8d69f94325535bf..c13d6417f52dc2825864fa5bc7ca1679
      if (symlink) {
 -      const link = await getStream(readStream)
 +      const link = await getStream(readStream, { maxBuffer: 4096 })
-+      this.assertContained(path.resolve(path.dirname(dest), link))
++      // Preserve .. until realpath has followed preceding symbolic links.
++      const target = path.isAbsolute(link) ? link : `${path.dirname(dest)}${path.sep}${link}`
++      await this.assertLinkContained(target)
        debug('creating symlink', link, dest)
        await fs.symlink(link, dest)
      } else {

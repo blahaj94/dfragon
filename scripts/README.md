@@ -4,6 +4,12 @@
 
 서버 이미지 빌드·실행 입력은 [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)를 따릅니다. 서버 배포·SSH·timer·백업·복구 도구는 그 안내에서 연결한 인프라 저장소가 담당합니다.
 
+## 루트 도구 회귀 검증
+
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비·날짜·build-info·이미지 선택·앱 생성·아이콘 생성·공용 Docker helper·포맷 정책과 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. 보안 의존성 검증은 `pnpm test:security-dependencies`로 별도 실행합니다. Root `pnpm test`는 placeholder입니다.
+
+앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일·입력 거절·실패 코드·정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다. Docker helper의 mock 검사와 API/accounts의 실제 `test:database`도 구분합니다.
+
 ## 작업 시작
 
 명확한 요청은 안전한 작업 브랜치에서 바로 진행할 수 있습니다. 현재 checkout·base·미commit 변경과 진행 작업을 확인한 뒤, 사용할 기준에서 `git switch -c fix-character-search`처럼 목적이 드러나는 이름을 정합니다. 격리가 필요하면 `git worktree add -b fix-character-search ../dfragon-search <확인한-base>`를 사용합니다. 기존 작업을 덮어쓰거나 main에 직접 commit·push하지 않습니다.

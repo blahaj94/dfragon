@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
 
 import {
   catchUpPlan,
@@ -13,45 +11,13 @@ import {
   selectServices,
   validatePlan
 } from '../product-image-plan.mjs'
+import { createProductImageApiFixture } from './fixtures/task-tools/product-image-api.mjs'
+import { createProductImageCliFixture } from './fixtures/task-tools/product-image-cli.mjs'
+import { createProductImageRepository as repository } from './fixtures/task-tools/product-image-repository.mjs'
 
-const script = fileURLToPath(new URL('../product-image-plan.mjs', import.meta.url))
 const allServices = ['api', 'ocr', 'accounts']
 
-function repository(t) {
-  const cwd = mkdtempSync(join(tmpdir(), 'product-image-plan-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
-  const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim()
-  const write = (path, value = path) => {
-    const target = join(cwd, path)
-    mkdirSync(dirname(target), { recursive: true })
-    writeFileSync(target, value)
-  }
-  const commit = () => {
-    git('add', '--all')
-    git(
-      '-c',
-      'user.name=Fixture',
-      '-c',
-      'user.email=fixture@example.invalid',
-      '-c',
-      'core.hooksPath=/dev/null',
-      'commit',
-      '--quiet',
-      '--no-gpg-sign',
-      '-m',
-      'Fixture changes'
-    )
-
-    return git('rev-parse', 'HEAD')
-  }
-  git('init', '--quiet')
-  write('docs/README.md')
-  const initial = commit()
-
-  return { cwd, git, write, commit, initial }
-}
-
-test('app directory changes select only their services in canonical order', () => {
+test('앱별 경로는 해당 서비스만 선택하고 여러 서비스는 정해진 순서로 정렬한다', () => {
   for (const service of allServices) {
     assert.deepEqual(selectServices([`apps/${service}/src/main.ts`]), [service])
   }
@@ -61,7 +27,7 @@ test('app directory changes select only their services in canonical order', () =
   ])
 })
 
-test('shared build inputs select all consumers with conservative package scopes', () => {
+test('공용 빌드 입력은 모든 서비스를 선택하고 UI 변경은 두 소비자만 선택한다', () => {
   for (const path of [
     'packages/lib/src/index.ts',
     'packages/licenses/notices/unknown.txt',
@@ -81,7 +47,7 @@ test('shared build inputs select all consumers with conservative package scopes'
   assert.deepEqual(selectServices(['packages/ui/src/button.tsx']), ['ocr', 'accounts'])
 })
 
-test('docs and unrelated app or tooling changes require no product images', () => {
+test('문서·무관한 앱·다른 tooling과 비슷한 접두사의 경로는 이미지를 선택하지 않는다', () => {
   assert.deepEqual(
     selectServices([
       'docs/reference/api-start-development.md',
@@ -89,13 +55,18 @@ test('docs and unrelated app or tooling changes require no product images', () =
       'assets/logo.svg',
       'apps/desktop/src/main.ts',
       'apps/web/src/main.tsx',
-      'scripts/create-app.mjs'
+      'scripts/create-app.mjs',
+      'apps/api-copy/src/main.ts',
+      'apps/ocr-extra/src/main.ts',
+      'packages/library/src/main.ts',
+      'packages/ui-kit/src/button.tsx',
+      'docs/apps/accounts/src/main.ts'
     ]),
     []
   )
 })
 
-test('push planning includes every commit since before, not just the last commit', (t) => {
+test('push 계획은 마지막 commit뿐 아니라 before 이후의 모든 commit을 포함한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   repo.commit()
@@ -112,7 +83,7 @@ test('push planning includes every commit since before, not just the last commit
   assert.deepEqual(plan, { sourceCommit, services: ['api', 'accounts'] })
 })
 
-test('pull request planning includes merge-source changes, deleted and renamed paths', (t) => {
+test('PR 계획은 head payload 대신 checkout source의 삭제·이름 변경 경로를 포함한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/delete me.ts')
   repo.write('apps/ocr/src/rename\nme.ts')
@@ -135,7 +106,7 @@ test('pull request planning includes merge-source changes, deleted and renamed p
   assert.deepEqual(plan, { sourceCommit, services: allServices })
 })
 
-test('new pushes with a zero before commit build all images', (t) => {
+test('before가 zero SHA인 새 push는 모든 이미지를 선택한다', (t) => {
   const repo = repository(t)
   const plan = createPlan({
     cwd: repo.cwd,
@@ -146,7 +117,7 @@ test('new pushes with a zero before commit build all images', (t) => {
   assert.deepEqual(plan.services, allServices)
 })
 
-test('uncertain event ranges fail instead of skipping builds', (t) => {
+test('불명확한 event 범위와 source commit은 빈 계획 대신 실패 처리한다', (t) => {
   const repo = repository(t)
   const defaults = {
     cwd: repo.cwd,
@@ -168,7 +139,38 @@ test('uncertain event ranges fail instead of skipping builds', (t) => {
   }
 })
 
-test('plans reject mismatched commits, unknown services, duplicate services and invalid shapes', () => {
+test('계획은 미커밋 변경을 포함하지 않고 실제 checkout과 다른 기존 commit을 거절한다', (t) => {
+  const repo = repository(t)
+  repo.write('docs/README.md', 'Committed documentation only\n')
+  const sourceCommit = repo.commit()
+  repo.write('apps/api/src/main.ts', 'Staged server change\n')
+  repo.git('add', 'apps/api/src/main.ts')
+  repo.write('apps/ocr/src/local.ts', 'Untracked server change\n')
+  const statusBefore = repo.git('status', '--porcelain')
+  const options = {
+    cwd: repo.cwd,
+    eventName: 'push',
+    event: { before: repo.initial, after: sourceCommit },
+    sourceCommit
+  }
+
+  assert.deepEqual(createPlan(options), { sourceCommit, services: [] })
+  assert.throws(() => createPlan({ ...options, sourceCommit: repo.initial }), {
+    message: 'Git HEAD does not match the product image source commit'
+  })
+  assert.equal(repo.git('rev-parse', 'HEAD'), sourceCommit)
+  assert.equal(repo.git('status', '--porcelain'), statusBefore)
+  assert.equal(
+    readFileSync(join(repo.cwd, 'apps/api/src/main.ts'), 'utf8'),
+    'Staged server change\n'
+  )
+  assert.equal(
+    readFileSync(join(repo.cwd, 'apps/ocr/src/local.ts'), 'utf8'),
+    'Untracked server change\n'
+  )
+})
+
+test('계획은 commit 불일치·알 수 없는 서비스·중복·잘못된 구조를 거절한다', () => {
   const sourceCommit = 'a'.repeat(40)
   for (const plan of [
     null,
@@ -183,16 +185,14 @@ test('plans reject mismatched commits, unknown services, duplicate services and 
   }
 })
 
-test('CLI selects from the GitHub event and emits matrix outputs without a Git checkout', (t) => {
+test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·빈 목록을 출력한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
-  const eventPath = join(repo.cwd, 'event.json')
-  const planPath = join(repo.cwd, 'plan.json')
-  const outputPath = join(repo.cwd, 'github-output')
+  const { eventPath, planPath, outputPath, run } = createProductImageCliFixture(t, repo.cwd)
   writeFileSync(eventPath, JSON.stringify({ before: repo.initial, after: sourceCommit }))
   const env = {
-    ...process.env,
+    ...repo.env,
     GITHUB_EVENT_NAME: 'push',
     GITHUB_EVENT_PATH: eventPath,
     GITHUB_SHA: sourceCommit,
@@ -200,26 +200,20 @@ test('CLI selects from the GitHub event and emits matrix outputs without a Git c
     GITHUB_OUTPUT: outputPath
   }
 
-  const selected = spawnSync(process.execPath, [script, 'select', planPath], {
-    cwd: repo.cwd,
-    encoding: 'utf8',
-    env
-  })
+  const selected = run(['select', planPath], { env })
   assert.equal(selected.status, 0, selected.stderr)
   assert.deepEqual(JSON.parse(readFileSync(planPath, 'utf8')), { sourceCommit, services: ['api'] })
 
-  const output = spawnSync(process.execPath, [script, 'output', planPath], {
+  const output = run(['output', planPath], {
     cwd: tmpdir(),
-    encoding: 'utf8',
     env
   })
   assert.equal(output.status, 0, output.stderr)
   assert.equal(readFileSync(outputPath, 'utf8'), 'matrix={"service":["api"]}\nhas_changes=true\n')
 
   writeFileSync(planPath, JSON.stringify({ sourceCommit, services: [] }))
-  const noChanges = spawnSync(process.execPath, [script, 'output', planPath], {
+  const noChanges = run(['output', planPath], {
     cwd: tmpdir(),
-    encoding: 'utf8',
     env: { ...env, SOURCE_COMMIT: '' }
   })
   assert.equal(noChanges.status, 0, noChanges.stderr)
@@ -229,7 +223,119 @@ test('CLI selects from the GitHub event and emits matrix outputs without a Git c
   )
 })
 
-test('catch-up recovers canceled accounts changes before a docs-only push', (t) => {
+test('CLI select의 입력·revision·사용법 오류는 기존 plan과 GitHub 출력 파일을 보존한다', (t) => {
+  const repo = repository(t)
+  const { eventPath, planPath, outputPath, run } = createProductImageCliFixture(t, repo.cwd)
+  const eventBody = JSON.stringify({ before: repo.initial, after: repo.initial })
+  writeFileSync(planPath, 'existing plan\n')
+  writeFileSync(outputPath, 'existing output\n')
+
+  for (const options of [
+    { eventName: 'workflow_run', error: 'Expected a push or pull_request event' },
+    { eventBody: '{invalid JSON', error: 'Could not read GitHub event JSON' },
+    { eventPath: join(repo.cwd, 'missing-event.json'), error: 'Could not read GitHub event JSON' },
+    {
+      sourceCommit: 'f'.repeat(40),
+      error: 'Git HEAD does not match the product image source commit'
+    },
+    {
+      args: ['select', planPath, 'unexpected'],
+      error:
+        'Usage: product-image-plan.mjs baseline | <select|output> <plan-file> | catch-up <plan-file> [baseline-plan-file]'
+    }
+  ]) {
+    writeFileSync(eventPath, options.eventBody ?? eventBody)
+    const result = run(options.args ?? ['select', planPath], {
+      env: {
+        ...repo.env,
+        GITHUB_EVENT_NAME: options.eventName ?? 'push',
+        GITHUB_EVENT_PATH: options.eventPath ?? eventPath,
+        SOURCE_COMMIT: options.sourceCommit ?? repo.initial,
+        GITHUB_SHA: repo.initial,
+        GITHUB_OUTPUT: outputPath
+      }
+    })
+
+    assert.equal(result.status, 1)
+    assert.equal(result.stdout, '')
+    assert.equal(result.stderr, `${options.error}\n`)
+    assert.equal(readFileSync(planPath, 'utf8'), 'existing plan\n')
+    assert.equal(readFileSync(outputPath, 'utf8'), 'existing output\n')
+    assert.equal(repo.git('rev-parse', 'HEAD'), repo.initial)
+  }
+})
+
+test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 기존 출력에 추가한다', (t) => {
+  const { planPath, outputPath, run } = createProductImageCliFixture(t)
+  const sourceCommit = 'a'.repeat(40)
+  const planBody = JSON.stringify({ sourceCommit, services: ['accounts', 'api', 'ocr'] })
+  writeFileSync(planPath, planBody)
+  writeFileSync(outputPath, 'existing output\n')
+
+  const result = run(['output', planPath], {
+    env: {
+      ...process.env,
+      SOURCE_COMMIT: sourceCommit,
+      GITHUB_SHA: 'b'.repeat(40),
+      GITHUB_OUTPUT: outputPath
+    }
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.equal(result.stdout, '')
+  assert.equal(
+    readFileSync(outputPath, 'utf8'),
+    'existing output\nmatrix={"service":["api","ocr","accounts"]}\nhas_changes=true\n'
+  )
+  assert.equal(readFileSync(planPath, 'utf8'), planBody)
+})
+
+test('CLI output의 읽기·검증·쓰기 실패는 기존 matrix를 변경하거나 성공으로 처리하지 않는다', (t) => {
+  const { cwd, planPath, outputPath, run } = createProductImageCliFixture(t)
+  const sourceCommit = 'a'.repeat(40)
+  const directoryOutput = join(cwd, 'output-directory')
+  const absentPlan = join(cwd, 'missing-plan.json')
+  const planBody = JSON.stringify({ sourceCommit, services: ['api'] })
+  mkdirSync(directoryOutput)
+  writeFileSync(join(directoryOutput, 'keep.txt'), 'keep output directory\n')
+  writeFileSync(outputPath, 'existing output\n')
+
+  for (const options of [
+    { planPath: absentPlan, error: 'Could not read product image plan JSON' },
+    { planBody: '{invalid JSON', error: 'Could not read product image plan JSON' },
+    {
+      planBody: JSON.stringify({ sourceCommit: 'b'.repeat(40), services: ['api'] }),
+      error: 'Plan source commit does not match the product image source commit'
+    },
+    {
+      planBody: JSON.stringify({ sourceCommit, services: ['api', 'api'] }),
+      error: 'Expected a plan with unique api, ocr, or accounts services'
+    },
+    { outputPath: '', error: 'Expected GITHUB_OUTPUT for product image planning' },
+    { outputPath: directoryOutput, error: 'Could not write the product image planning output' }
+  ]) {
+    const input = options.planBody ?? planBody
+    writeFileSync(planPath, input)
+    const result = run(['output', options.planPath ?? planPath], {
+      env: {
+        ...process.env,
+        SOURCE_COMMIT: sourceCommit,
+        GITHUB_SHA: sourceCommit,
+        GITHUB_OUTPUT: options.outputPath ?? outputPath
+      }
+    })
+
+    assert.equal(result.status, 1)
+    assert.equal(result.stdout, '')
+    assert.equal(result.stderr, `${options.error}\n`)
+    assert.equal(readFileSync(outputPath, 'utf8'), 'existing output\n')
+    assert.equal(readFileSync(planPath, 'utf8'), input)
+    assert.equal(readFileSync(join(directoryOutput, 'keep.txt'), 'utf8'), 'keep output directory\n')
+    assert.equal(existsSync(absentPlan), false)
+  }
+})
+
+test('catch-up은 취소된 accounts 변경을 문서만 바뀐 다음 push 계획에 복구한다', (t) => {
   const repo = repository(t)
   repo.write('apps/accounts/src/main.ts')
   const canceledSource = repo.commit()
@@ -242,15 +348,13 @@ test('catch-up recovers canceled accounts changes before a docs-only push', (t) 
     sourceCommit
   })
   assert.deepEqual(plan.services, [])
-  const planPath = join(repo.cwd, 'plan.json')
+  const { planPath, run } = createProductImageCliFixture(t, repo.cwd)
   const baselinePath = join(repo.cwd, 'baseline.json')
   writeFileSync(planPath, JSON.stringify(plan))
   writeFileSync(baselinePath, JSON.stringify({ sourceCommit: repo.initial, services: allServices }))
 
-  const result = spawnSync(process.execPath, [script, 'catch-up', planPath, baselinePath], {
-    cwd: repo.cwd,
-    encoding: 'utf8',
-    env: { ...process.env, SOURCE_COMMIT: sourceCommit }
+  const result = run(['catch-up', planPath, baselinePath], {
+    env: { ...repo.env, SOURCE_COMMIT: sourceCommit }
   })
 
   assert.equal(result.status, 0, result.stderr)
@@ -260,7 +364,7 @@ test('catch-up recovers canceled accounts changes before a docs-only push', (t) 
   })
 })
 
-test('catch-up keeps normal api-only selection and retains the current push services', (t) => {
+test('catch-up은 현재 선택을 유지하고 이미 발행한 source의 빈 계획을 불필요하게 확장하지 않는다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
@@ -276,9 +380,55 @@ test('catch-up keeps normal api-only selection and retains the current push serv
     catchUpPlan({ ...options, plan: { sourceCommit, services: ['accounts'] } }).services,
     ['api', 'accounts']
   )
+  assert.deepEqual(
+    catchUpPlan({
+      ...options,
+      plan: { sourceCommit, services: [] },
+      baselinePlan: { sourceCommit, services: allServices }
+    }).services,
+    []
+  )
 })
 
-test('missing, unavailable, or nonancestor publication baselines require all images', (t) => {
+test('CLI catch-up에 지정한 baseline이 읽기·검증에 실패하면 기존 계획을 보존한다', (t) => {
+  const repo = repository(t)
+  repo.write('apps/api/src/main.ts')
+  const sourceCommit = repo.commit()
+  const { planPath, run } = createProductImageCliFixture(t, repo.cwd)
+  const baselinePath = join(repo.cwd, 'baseline.json')
+  const absentBaseline = join(repo.cwd, 'missing-baseline.json')
+  const planBody = JSON.stringify({ sourceCommit, services: ['api'] })
+  writeFileSync(planPath, planBody)
+
+  for (const options of [
+    { path: absentBaseline, body: '{}', error: 'Could not read product image baseline JSON' },
+    {
+      path: baselinePath,
+      body: '{invalid JSON',
+      error: 'Could not read product image baseline JSON'
+    },
+    {
+      path: baselinePath,
+      body: JSON.stringify({ sourceCommit: repo.initial, services: ['unknown'] }),
+      error: 'Expected a plan with unique api, ocr, or accounts services'
+    }
+  ]) {
+    writeFileSync(baselinePath, options.body)
+    const result = run(['catch-up', planPath, options.path], {
+      env: { ...repo.env, SOURCE_COMMIT: sourceCommit }
+    })
+
+    assert.equal(result.status, 1)
+    assert.equal(result.stdout, '')
+    assert.equal(result.stderr, `${options.error}\n`)
+    assert.equal(readFileSync(planPath, 'utf8'), planBody)
+    assert.equal(readFileSync(baselinePath, 'utf8'), options.body)
+    assert.equal(repo.git('rev-parse', 'HEAD'), sourceCommit)
+    assert.equal(existsSync(absentBaseline), false)
+  }
+})
+
+test('발행 baseline이 없거나 조회 불가·비조상이면 모든 이미지를 선택한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
@@ -299,23 +449,33 @@ test('missing, unavailable, or nonancestor publication baselines require all ima
   assert.throws(() => catchUpPlan({ ...options, baselinePlan: { services: [] } }))
 })
 
-const successfulRun = { id: 123, event: 'workflow_run', head_branch: 'main', conclusion: 'success' }
-const baselineArtifact = { id: 456, name: 'product-image-plan', expired: false }
-const apiOptions = {
-  apiUrl: 'https://api.github.com',
-  repository: 'example/product',
-  token: 'synthetic-read-token'
-}
-
-function baselineApi(responses, requests = []) {
-  return async (url, options) => {
-    requests.push({ url, options })
-
-    return { ok: true, json: async () => responses.shift() }
+test('잘못된 baseline API 설정은 token을 전송하거나 네트워크 요청을 만들기 전에 거절한다', async () => {
+  const { apiOptions, baselineApi } = createProductImageApiFixture()
+  for (const override of [
+    { apiUrl: 'not-a-url' },
+    { apiUrl: 'http://api.github.com' },
+    { apiUrl: 'https://fixture:synthetic-password@api.github.com' },
+    { apiUrl: 'https://api.github.com?unexpected=value' },
+    { apiUrl: 'https://api.github.com#unexpected' },
+    { repository: 'example/product/extra' },
+    { token: '' }
+  ]) {
+    const requests = []
+    await assert.rejects(
+      findBaselineRun({
+        ...apiOptions,
+        ...override,
+        fetchImpl: baselineApi([{ workflow_runs: [] }], requests)
+      }),
+      /Expected .*GitHub API URL/
+    )
+    assert.deepEqual(requests, [])
   }
-}
+})
 
-test('baseline lookup selects a successful main run with an unexpired plan artifact', async () => {
+test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한 main 실행을 선택한다', async () => {
+  const { successfulRun, baselineArtifact, apiOptions, baselineApi } =
+    createProductImageApiFixture()
   const requests = []
   const runId = await findBaselineRun({
     ...apiOptions,
@@ -336,9 +496,13 @@ test('baseline lookup selects a successful main run with an unexpired plan artif
   )
   assert.equal(requests[0].options.headers.Authorization, `Bearer ${apiOptions.token}`)
   assert.equal(requests[0].options.redirect, 'error')
+  assert.ok(requests[0].options.signal instanceof AbortSignal)
+  assert.equal(requests[0].options.signal.aborted, false)
 })
 
-test('absent successful runs and missing or expired artifacts have no usable baseline', async () => {
+test('성공 실행이 없거나 artifact가 없거나 만료되면 사용 가능한 baseline이 없다', async () => {
+  const { successfulRun, baselineArtifact, apiOptions, baselineApi } =
+    createProductImageApiFixture()
   for (const responses of [
     [{ workflow_runs: [] }],
     [{ workflow_runs: [successfulRun] }, { artifacts: [] }],
@@ -348,7 +512,8 @@ test('absent successful runs and missing or expired artifacts have no usable bas
   }
 })
 
-test('baseline lookup rejects API failures and invalid successful-run identities', async () => {
+test('baseline 조회는 API 실패·잘못된 실행 identity를 거절하고 요청 오류의 token을 숨긴다', async () => {
+  const { successfulRun, apiOptions, baselineApi } = createProductImageApiFixture()
   for (const responses of [
     [{}],
     [{ workflow_runs: [{ ...successfulRun, id: 0 }] }],
@@ -368,6 +533,18 @@ test('baseline lookup rejects API failures and invalid successful-run identities
       fetchImpl: async () => {
         throw new Error(`Request failed with ${apiOptions.token}`)
       }
+    }),
+    { message: 'Could not read the successful product image baseline from GitHub' }
+  )
+  await assert.rejects(
+    findBaselineRun({
+      ...apiOptions,
+      fetchImpl: async () => ({
+        ok: true,
+        json: async () => {
+          throw new Error(`Unreadable response for ${apiOptions.token}`)
+        }
+      })
     }),
     { message: 'Could not read the successful product image baseline from GitHub' }
   )

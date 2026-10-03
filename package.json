@@ -15,7 +15,8 @@
     "format": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
     "format:check": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
     "lint:oxlint": "pnpm --filter @dfragon/web lint:oxlint && pnpm --filter @dfragon/ui lint:oxlint",
-    "test:format-policy": "node --test scripts/test/prettier-return-spacing.test.mjs"
+    "test:format-policy": "node --test scripts/test/prettier-return-spacing.test.mjs",
+    "test:tooling": "node --test scripts/test/*.test.mjs"
   },
   "keywords": [],
   "author": "",
