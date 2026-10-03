@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import {
   existsSync,
   mkdirSync,
@@ -10,7 +10,7 @@ import {
   writeFileSync
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
@@ -21,53 +21,11 @@ import {
   selectServices,
   validatePlan
 } from '../product-image-plan.mjs'
+import { createProductImageApiFixture } from './fixtures/task-tools/product-image-api.mjs'
+import { createProductImageRepository as repository } from './fixtures/task-tools/product-image-repository.mjs'
 
 const script = fileURLToPath(new URL('../product-image-plan.mjs', import.meta.url))
 const allServices = ['api', 'ocr', 'accounts']
-
-function repository(t) {
-  const cwd = mkdtempSync(join(tmpdir(), 'product-image-plan-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
-  const env = {
-    ...process.env,
-    GIT_CONFIG_GLOBAL: '/dev/null',
-    GIT_CONFIG_SYSTEM: '/dev/null',
-    GIT_CONFIG_NOSYSTEM: '1',
-    GIT_DIR: undefined,
-    GIT_WORK_TREE: undefined,
-    GIT_COMMON_DIR: undefined,
-    GIT_INDEX_FILE: undefined
-  }
-  const git = (...args) => execFileSync('git', args, { cwd, env, encoding: 'utf8' }).trim()
-  const write = (path, value = path) => {
-    const target = join(cwd, path)
-    mkdirSync(dirname(target), { recursive: true })
-    writeFileSync(target, value)
-  }
-  const commit = () => {
-    git('add', '--all')
-    git(
-      '-c',
-      'user.name=Fixture',
-      '-c',
-      'user.email=fixture@example.invalid',
-      '-c',
-      'core.hooksPath=/dev/null',
-      'commit',
-      '--quiet',
-      '--no-gpg-sign',
-      '-m',
-      'Fixture changes'
-    )
-
-    return git('rev-parse', 'HEAD')
-  }
-  git('init', '--quiet', '--initial-branch=main')
-  write('docs/README.md')
-  const initial = commit()
-
-  return { cwd, env, git, write, commit, initial }
-}
 
 test('앱별 경로는 해당 서비스만 선택하고 여러 서비스는 정해진 순서로 정렬한다', () => {
   for (const service of allServices) {
@@ -531,23 +489,8 @@ test('발행 baseline이 없거나 조회 불가·비조상이면 모든 이미�
   assert.throws(() => catchUpPlan({ ...options, baselinePlan: { services: [] } }))
 })
 
-const successfulRun = { id: 123, event: 'workflow_run', head_branch: 'main', conclusion: 'success' }
-const baselineArtifact = { id: 456, name: 'product-image-plan', expired: false }
-const apiOptions = {
-  apiUrl: 'https://api.github.com',
-  repository: 'example/product',
-  token: 'synthetic-read-token'
-}
-
-function baselineApi(responses, requests = []) {
-  return async (url, options) => {
-    requests.push({ url, options })
-
-    return { ok: true, json: async () => responses.shift() }
-  }
-}
-
 test('잘못된 baseline API 설정은 token을 전송하거나 네트워크 요청을 만들기 전에 거절한다', async () => {
+  const { apiOptions, baselineApi } = createProductImageApiFixture()
   for (const override of [
     { apiUrl: 'not-a-url' },
     { apiUrl: 'http://api.github.com' },
@@ -571,6 +514,8 @@ test('잘못된 baseline API 설정은 token을 전송하거나 네트워크 요
 })
 
 test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한 main 실행을 선택한다', async () => {
+  const { successfulRun, baselineArtifact, apiOptions, baselineApi } =
+    createProductImageApiFixture()
   const requests = []
   const runId = await findBaselineRun({
     ...apiOptions,
@@ -596,6 +541,8 @@ test('baseline 조회는 만료되지 않은 계획 artifact가 있는 성공한
 })
 
 test('성공 실행이 없거나 artifact가 없거나 만료되면 사용 가능한 baseline이 없다', async () => {
+  const { successfulRun, baselineArtifact, apiOptions, baselineApi } =
+    createProductImageApiFixture()
   for (const responses of [
     [{ workflow_runs: [] }],
     [{ workflow_runs: [successfulRun] }, { artifacts: [] }],
@@ -606,6 +553,7 @@ test('성공 실행이 없거나 artifact가 없거나 만료되면 사용 가�
 })
 
 test('baseline 조회는 API 실패·잘못된 실행 identity를 거절하고 요청 오류의 token을 숨긴다', async () => {
+  const { successfulRun, apiOptions, baselineApi } = createProductImageApiFixture()
   for (const responses of [
     [{}],
     [{ workflow_runs: [{ ...successfulRun, id: 0 }] }],

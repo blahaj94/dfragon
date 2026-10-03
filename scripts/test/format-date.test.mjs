@@ -35,13 +35,11 @@ test('CLI는 host 시간대와 관계없이 연도 경계를 넘은 한국 자�
 })
 
 test('CLI에서 시각을 생략하면 현재 시각을 한국 시간으로 출력한다', () => {
-  const clockSetup = `import { mock } from 'node:test';
-mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-09-08T15:35:00Z') });`
-  const clockImport = `data:text/javascript,${encodeURIComponent(clockSetup)}`
+  const clockImport = new URL('./fixtures/task-tools/format-date-clock.mjs', import.meta.url).href
 
   const result = spawnSync(process.execPath, ['--import', clockImport, script], {
     encoding: 'utf8',
-    env: { ...process.env, TZ: 'UTC' }
+    env: { ...process.env, TZ: 'UTC', FORMAT_DATE_TEST_NOW: '2026-09-08T15:35:00Z' }
   })
 
   assert.equal(result.status, 0, result.stderr)
