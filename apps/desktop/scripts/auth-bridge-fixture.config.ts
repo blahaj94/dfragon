@@ -32,7 +32,14 @@ export default defineConfig({
       })
     ],
     resolve: {
-      alias: [{ find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }]
+      alias: [
+        { find: /^@dfragon\/lib$/, replacement: resolve('../../packages/lib/src/index.ts') },
+        {
+          find: /^@dfragon\/lib\/utils\/pagination$/,
+          replacement: resolve('../../packages/lib/src/utils/pagination.ts')
+        },
+        { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
+      ]
     },
     build: {
       outDir: resolve('out/auth-bridge-fixture/renderer'),

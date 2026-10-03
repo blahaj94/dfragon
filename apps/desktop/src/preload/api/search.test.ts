@@ -1,6 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { CharacterSearchRow, SearchControl, ManualSearchApi } from '../common/types/search'
-import { parseSearchResult } from '../common/search/snapshot'
+import type { SearchControl, ManualSearchApi } from '../common/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -13,13 +12,15 @@ import {
   type ObservationTestApi
 } from './search-test-fixture'
 
-const renderer = vi.hoisted(() => {
+const renderer = await vi.hoisted(async () => {
+  const { EventEmitter } = await import('node:events')
+  const events = new EventEmitter()
   const invoke = vi.fn()
-  const on = vi.fn()
-  const removeListener = vi.fn()
+  const on = vi.fn(events.on.bind(events))
+  const removeListener = vi.fn(events.removeListener.bind(events))
   const expose = vi.fn<(key: string, api: unknown) => void>()
 
-  return { invoke, on, removeListener, expose }
+  return { invoke, on, removeListener, expose, events }
 })
 vi.mock('electron', () => ({
   ipcRenderer: renderer,
@@ -29,6 +30,7 @@ vi.mock('electron', () => ({
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
+  renderer.events.removeAllListeners()
   renderer.invoke.mockResolvedValue({ ok: true, snapshot: searchSnapshot() })
 })
 
@@ -68,22 +70,56 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
   ])
 })
 
-it('event는 Electron event를 제거하고 각 wrapper만 해제한다', async () => {
-  const { search } = await exposedSearch()
-  const first = vi.fn()
-  const second = vi.fn()
-  const unsubscribe = search.onCharacterSearchChanged(first)
-  search.onCharacterSearchChanged(second)
-  const [[channel, firstWrapper], [, secondWrapper]] = renderer.on.mock.calls
+it.each([
+  ['캡처', 'search', 'characterSearchChanged'],
+  ['직접 검색', 'manual', 'manualSearchChanged']
+] as const)(
+  '%s 구독 해제는 해당 listener만 멈추고 잘못된 DTO도 전달하지 않는다',
+  async (_name, kind, channel) => {
+    const { search, manual } = await exposedSearch()
+    const api = kind === 'search' ? search : manual
+    const first = vi.fn()
+    const second = vi.fn()
+    const unsubscribe = api.onCharacterSearchChanged(first)
+    const unsubscribeSecond = api.onCharacterSearchChanged(second)
+    const [[registeredChannel, firstWrapper], [, secondWrapper]] = renderer.on.mock.calls
+    const snapshot = searchSnapshot()
+    const rawEvent = { sender: 'private' }
+
+    renderer.events.emit(channel, rawEvent, snapshot)
+    unsubscribe()
+    renderer.events.emit(channel, rawEvent, { ...snapshot, private: true })
+    const nextSnapshot = searchSnapshot({ revision: 2 })
+    renderer.events.emit(channel, rawEvent, nextSnapshot)
+
+    expect(registeredChannel).toBe(channel)
+    expect(first).toHaveBeenCalledExactlyOnceWith(snapshot)
+    expect(second.mock.calls).toEqual([[snapshot], [nextSnapshot]])
+    expect(firstWrapper).not.toBe(secondWrapper)
+    expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, firstWrapper)
+    unsubscribeSecond()
+    renderer.events.emit(channel, rawEvent, searchSnapshot({ revision: 3 }))
+    expect(second).toHaveBeenCalledTimes(2)
+    expect(renderer.events.listenerCount(channel)).toBe(0)
+  }
+)
+
+it('같은 callback의 캡처 구독을 해제해도 직접 검색 구독은 유지된다', async () => {
+  const { search, manual } = await exposedSearch()
+  const listener = vi.fn()
+  const stopCapture = search.onCharacterSearchChanged(listener)
+  const stopManual = manual.onCharacterSearchChanged(listener)
   const snapshot = searchSnapshot()
-  firstWrapper({ sender: 'private' }, snapshot)
-  secondWrapper({ sender: 'private' }, snapshot)
-  unsubscribe()
-  expect(channel).toBe('characterSearchChanged')
-  expect(first).toHaveBeenCalledExactlyOnceWith(snapshot)
-  expect(second).toHaveBeenCalledExactlyOnceWith(snapshot)
-  expect(firstWrapper).not.toBe(secondWrapper)
-  expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, firstWrapper)
+
+  stopCapture()
+  renderer.events.emit('characterSearchChanged', { sender: 'private' }, snapshot)
+  expect(listener).not.toHaveBeenCalled()
+  renderer.events.emit('manualSearchChanged', { sender: 'private' }, snapshot)
+
+  expect(listener).toHaveBeenCalledExactlyOnceWith(snapshot)
+  stopManual()
+  expect(renderer.events.listenerCount('characterSearchChanged')).toBe(0)
+  expect(renderer.events.listenerCount('manualSearchChanged')).toBe(0)
 })
 
 it.each(invalidSearchSnapshots)(
@@ -139,60 +175,59 @@ it('승인된 상태·nullable 값과 후보 순서를 보존한다', async () =
   }
 })
 
-function searchResultWithRow(row: CharacterSearchRow): object {
-  const snapshot = withSearchSlot(searchSlot({ state: 'success', rows: [row] }))
+it.each([
+  'INVALID_SEARCH_COMMAND',
+  'SEARCH_NOT_ALLOWED',
+  'STALE_SEARCH',
+  'SEARCH_BUSY',
+  'SEARCH_RETRY_NOT_READY'
+])('정제된 명령 거절 %s는 예외나 검색 0건으로 바꾸지 않는다', async (code) => {
+  const { search } = await exposedSearch()
+  const result = { ok: false, error: { code }, snapshot: searchSnapshot() }
+  renderer.invoke.mockResolvedValue(result)
 
-  return { ok: true, snapshot }
-}
-
-it('schema가 inherited 필드를 읽은 뒤 exact shape가 own 확인에서 재귀 읽기를 생략한다', () => {
-  const events: string[] = []
-  const inheritedRow = Object.create({ characterId: searchRow.characterId })
-  Object.assign(inheritedRow, searchRow)
-  delete inheritedRow.characterId
-  const row = new Proxy(inheritedRow, {
-    get(target, property, receiver) {
-      events.push(`get:${String(property)}`)
-
-      return Reflect.get(target, property, receiver)
-    },
-    getOwnPropertyDescriptor(target, property) {
-      events.push(`own:${String(property)}`)
-
-      return Reflect.getOwnPropertyDescriptor(target, property)
-    }
-  })
-
-  expect(parseSearchResult(searchResultWithRow(row))).toBeNull()
-  const characterReads = events.filter((event) => event.endsWith(':characterId'))
-  expect(characterReads).toContain('get:characterId')
-  expect(characterReads).toContain('own:characterId')
-  expect(characterReads.at(-1)).toBe('own:characterId')
+  expect(await search.controlCharacterSearch({ action: 'read' })).toEqual(result)
 })
 
-it('schema 성공 뒤 own field의 exact-shape get 예외를 그대로 전파한다', () => {
-  const sentinel = new Error('search exact-shape getter')
-  let characterReads = 0
-  const row = new Proxy(searchRow, {
-    get(target, property, receiver) {
-      const isCharacterId = property === 'characterId'
-      if (isCharacterId) {
-        characterReads += 1
-        const isExactShapeRead = characterReads > 1
-        if (isExactShapeRead) {
-          throw sentinel
-        }
-      }
-
-      return Reflect.get(target, property, receiver)
+it.each([
+  ['빈 characterId', { ...searchRow, characterId: '' }],
+  ['공백뿐인 characterName', { ...searchRow, characterName: ' \t' }],
+  ['빈 serverId', { ...searchRow, serverId: '' }],
+  ['문자열 fame', { ...searchRow, fame: '0' }],
+  ['boolean fame', { ...searchRow, fame: true }],
+  [
+    '누락된 serverName',
+    { characterId: 'synthetic-character', characterName: '가나', serverId: 'cain', fame: 0 }
+  ],
+  [
+    '누락된 fame',
+    {
+      characterId: 'synthetic-character',
+      characterName: '가나',
+      serverId: 'cain',
+      serverName: '카인'
     }
-  })
+  ]
+])('후보의 %s는 clone된 invoke·event DTO에서도 거절한다', async (_name, row) => {
+  const { search } = await exposedSearch()
+  const snapshot = searchSnapshot()
+  const invalid = {
+    ...snapshot,
+    slots: [{ ...searchSlot(), state: 'success', rows: [row] }, ...snapshot.slots.slice(1)]
+  }
+  renderer.invoke.mockResolvedValue(structuredClone({ ok: true, snapshot: invalid }))
 
-  expect(() => parseSearchResult(searchResultWithRow(row))).toThrow(sentinel)
-  expect(characterReads).toBe(2)
+  await expect(search.controlCharacterSearch({ action: 'read' })).rejects.toThrow(
+    '검색 연결의 응답을 확인하지 못했습니다.'
+  )
+  const listener = vi.fn()
+  const unsubscribe = search.onCharacterSearchChanged(listener)
+  renderer.events.emit('characterSearchChanged', { sender: 'private' }, structuredClone(invalid))
+  expect(listener).not.toHaveBeenCalled()
+  unsubscribe()
 })
 
-it('manual preload uses separate invoke and event channels with the same validated DTO', async () => {
+it('직접 검색 preload는 전용 invoke·event 채널과 같은 검증 DTO를 사용한다', async () => {
   const { manual } = await exposedSearch()
   expect(Object.keys(manual).sort()).toEqual([
     'controlCharacterSearch',
@@ -216,7 +251,7 @@ it('manual preload uses separate invoke and event channels with the same validat
   expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, wrapper)
 })
 
-it('manual preload rejects malformed invoke and event payloads', async () => {
+it('직접 검색 preload도 잘못된 invoke·event DTO를 전달하지 않는다', async () => {
   const { manual } = await exposedSearch()
   const invalid = { ...searchSnapshot(), private: true }
   renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid })

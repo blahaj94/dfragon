@@ -2,6 +2,7 @@ import * as fs from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import type { BrowserWindowConstructorOptions } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
@@ -135,8 +136,8 @@ vi.mock('electron', () => {
   class BrowserWindow {
     static getAllWindows = vi.fn(() => mocks.windows)
 
-    constructor() {
-      mocks.constructWindow()
+    constructor(options: BrowserWindowConstructorOptions) {
+      mocks.constructWindow(options)
       mocks.windows.push(this)
     }
     isDestroyed = vi.fn(() => false)
@@ -484,6 +485,17 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     getWindow: expect.any(Function),
     documentUrl: 'http://localhost:5173/'
   })
+  // 합성 BrowserWindow에서도 실제 renderer의 권한 경계를 생성 인자로 검증한다.
+  expect(mocks.constructWindow).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({
+      webPreferences: expect.objectContaining({
+        sandbox: true,
+        contextIsolation: true,
+        nodeIntegration: false,
+        preload: expect.stringMatching(/[/\\]preload[/\\]index\.js$/)
+      })
+    })
+  )
   const window = mocks.windows[0] as {
     webContents: {
       setWindowOpenHandler: ReturnType<typeof vi.fn>

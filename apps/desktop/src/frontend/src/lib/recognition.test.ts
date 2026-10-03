@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { hasColorMatch, normalizeNickname, runSerialLoop, updateSlotStability } from './recognition'
 
-describe('파티 인식 helper', () => {
-  afterEach(() => {
-    vi.useRealTimers()
-  })
+afterEach(() => vi.useRealTimers())
 
+describe('파티 인식과 OCR 반복 수명', () => {
   it('허용 오차 안의 색상만 인정한다', () => {
     expect(hasColorMatch([[101, 149, 201]], [100, 150, 200], 1)).toBe(true)
     expect(hasColorMatch([[103, 150, 200]], [100, 150, 200], 1)).toBe(false)
@@ -67,4 +65,65 @@ describe('파티 인식 helper', () => {
     expect(completedCycles).toBe(2)
     expect(maximumActiveCycles).toBe(1)
   })
+})
+
+it('다음 OCR 주기를 기다리던 중 취소하면 타이머를 해제하고 다시 실행하지 않는다', async () => {
+  vi.useFakeTimers()
+  const controller = new AbortController()
+  const cycle = vi.fn(async () => undefined)
+  const loop = runSerialLoop({
+    signal: controller.signal,
+    getIntervalMs: () => 3000,
+    runCycle: cycle
+  })
+  await vi.advanceTimersByTimeAsync(0)
+  expect(cycle).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(1)
+
+  controller.abort()
+  await loop
+  await vi.advanceTimersByTimeAsync(3000)
+
+  expect(cycle).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('처리 중 취소하면 현재 OCR 완료 뒤 다음 주기를 예약하지 않는다', async () => {
+  vi.useFakeTimers()
+  const controller = new AbortController()
+  const pending = Promise.withResolvers<void>()
+  const cycle = vi.fn(() => pending.promise)
+  const interval = vi.fn(() => 3000)
+  const loop = runSerialLoop({
+    signal: controller.signal,
+    getIntervalMs: interval,
+    runCycle: cycle
+  })
+  controller.abort()
+  pending.resolve()
+  await loop
+
+  expect(cycle).toHaveBeenCalledOnce()
+  expect(interval).not.toHaveBeenCalled()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('OCR 실패는 호출자에 전달하고 타이머나 후속 주기를 만들지 않는다', async () => {
+  vi.useFakeTimers()
+  const controller = new AbortController()
+  const failure = new Error('synthetic recognition failure')
+  const cycle = vi.fn(async () => {
+    throw failure
+  })
+  const loop = runSerialLoop({
+    signal: controller.signal,
+    getIntervalMs: () => 3000,
+    runCycle: cycle
+  })
+
+  await expect(loop).rejects.toBe(failure)
+  await vi.advanceTimersByTimeAsync(3000)
+  expect(cycle).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+  controller.abort()
 })

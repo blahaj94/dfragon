@@ -79,7 +79,11 @@ function setup(): {
   const auth = {
     captureGeneration: () => generation,
     authorization: vi.fn(async () => credential),
-    recoverAuthorization: vi.fn(async () => credential),
+    recoverAuthorization: vi.fn(async () => ({
+      ...credential,
+      accessGeneration: 2,
+      accessToken: 'synthetic.refreshed.token'
+    })),
     subscribe: (listener: (snapshot: AuthSnapshot) => void) => {
       listeners.add(listener)
 
@@ -167,11 +171,18 @@ it('reads raid sample IDs ending in 10..12 and rejects incompatible kind or ID s
   }
 })
 
-it('refreshes only on 401 once and distinguishes a non-owner account', async () => {
+it('401 목록 조회는 새 토큰으로 한 번 재요청하고 소유자 권한 거절과 최종 401을 구분한다', async () => {
   const f = setup()
   f.request.mockResolvedValueOnce(new Response(null, { status: 401 }))
   await f.dataset.list()
   expect(f.auth.recoverAuthorization).toHaveBeenCalledTimes(1)
+  expect(f.request).toHaveBeenCalledTimes(2)
+  expect(f.request.mock.calls[0][1]?.headers).toEqual({
+    Authorization: 'Bearer synthetic.desktop.token'
+  })
+  expect(f.request.mock.calls[1][1]?.headers).toEqual({
+    Authorization: 'Bearer synthetic.refreshed.token'
+  })
   f.request.mockResolvedValueOnce(new Response(null, { status: 403 }))
   await expect(f.dataset.list()).rejects.toThrow('DEVELOPER_OCR_OWNER_REQUIRED')
   expect(f.auth.recoverAuthorization).toHaveBeenCalledTimes(1)
@@ -228,4 +239,125 @@ it('rejects malformed metadata, oversized bodies and mismatched image dimensions
     })
   )
   await expect(f.dataset.list()).rejects.toThrow('DEVELOPER_OCR_UNAVAILABLE')
+})
+
+it('정답의 null과 빈 문자열 및 제외·분할을 서버 조회 시점의 값으로 보존한다', async () => {
+  const f = setup()
+  f.request.mockResolvedValueOnce(
+    Response.json({
+      exportedAt: '2026-09-26T00:00:00.000Z',
+      samples: [
+        { ...remoteSample, text: null, excluded: true, split: 'unassigned' },
+        { ...remoteSample, id: '00000000-0000-4000-8000-000000000002-1', text: '', split: 'train' }
+      ]
+    })
+  )
+
+  const samples = await f.dataset.list()
+
+  expect(samples.map(({ text, excluded, remote }) => ({ text, excluded, remote }))).toEqual([
+    { text: null, excluded: true, remote: { kind: 'hud', split: 'unassigned' } },
+    { text: '', excluded: false, remote: { kind: 'hud', split: 'train' } }
+  ])
+  expect(f.request).toHaveBeenCalledOnce()
+})
+
+it.each([
+  { name: '소유자 권한 없음', status: 403, error: 'DEVELOPER_OCR_OWNER_REQUIRED' },
+  { name: '요청 제한', status: 429, error: 'DEVELOPER_OCR_UNAVAILABLE' },
+  { name: '서버 장애', status: 503, error: 'DEVELOPER_OCR_UNAVAILABLE' }
+])('$name 목록 응답은 재인증이나 자동 재조회 없이 거절한다', async ({ status, error }) => {
+  const f = setup()
+  const response = new Response('server rejection', { status })
+  const cancel = vi.spyOn(response.body!, 'cancel')
+  f.request.mockResolvedValueOnce(response)
+
+  await expect(f.dataset.list()).rejects.toThrow(error)
+  expect(f.request).toHaveBeenCalledOnce()
+  expect(f.auth.recoverAuthorization).not.toHaveBeenCalled()
+  expect(cancel).toHaveBeenCalledOnce()
+})
+
+it('401 재인증을 기다리는 동안 계정이 바뀌면 새 계정 토큰으로 재조회하지 않는다', async () => {
+  const f = setup()
+  let completeRecovery!: (value: AuthAuthorization) => void
+  const recovering = new Promise<AuthAuthorization>((resolve) => {
+    completeRecovery = resolve
+  })
+  vi.mocked(f.auth.recoverAuthorization).mockReturnValueOnce(recovering)
+  f.request.mockResolvedValueOnce(new Response(null, { status: 401 }))
+  const listing = f.dataset.list()
+  await vi.waitFor(() => expect(f.auth.recoverAuthorization).toHaveBeenCalledOnce())
+
+  f.changeAccount(2)
+  completeRecovery({
+    status: 'available',
+    generation: 2,
+    accessGeneration: 2,
+    accessToken: 'synthetic.other.token'
+  })
+
+  await expect(listing).rejects.toThrow('DEVELOPER_OCR_LOGIN_REQUIRED')
+  expect(f.request).toHaveBeenCalledOnce()
+  expect(f.request.mock.calls[0][1]?.signal?.aborted).toBe(true)
+})
+
+it('다시 불러오기는 읽는 중인 이전 크롭을 취소하고 새 스냅샷만 읽게 한다', async () => {
+  const f = setup()
+  const [oldSample] = await f.dataset.list()
+  const cancel = vi.fn()
+  const response = new Response(
+    new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array(f.png))
+      },
+      cancel
+    }),
+    { headers: { 'Content-Type': 'image/png' } }
+  )
+  const getReader = vi.spyOn(response.body!, 'getReader')
+  f.request.mockResolvedValueOnce(response)
+  const reading = f.dataset.readImage(oldSample.id)
+  // 취소의 rejection을 즉시 관찰해 진행 중 목록 갱신과 unhandled rejection이 경쟁하지 않게 한다.
+  const cancelled = expect(reading).rejects.toMatchObject({ name: 'AbortError' })
+  await vi.waitFor(() => expect(getReader).toHaveBeenCalledOnce())
+
+  const [newSample] = await f.dataset.list()
+
+  await cancelled
+  expect(cancel).toHaveBeenCalledOnce()
+  expect(f.request.mock.calls[1][1]?.signal?.aborted).toBe(true)
+  await expect(f.dataset.readImage(oldSample.id)).rejects.toThrow('DEVELOPER_SAMPLE_NOT_FOUND')
+  expect(await f.dataset.readImage(newSample.id)).toBe(
+    `data:image/png;base64,${f.png.toString('base64')}`
+  )
+})
+
+it('서버 목록 본문도 15초 안에 완료해야 하며 시간 초과 뒤 타이머와 본문을 해제한다', async () => {
+  vi.useFakeTimers()
+  try {
+    const f = setup()
+    const cancel = vi.fn()
+    const response = new Response(new ReadableStream<Uint8Array>({ cancel }), {
+      headers: { 'Content-Type': 'application/json' }
+    })
+    f.request.mockResolvedValueOnce(response)
+    const listing = f.dataset.list()
+    const rejected = expect(listing).rejects.toMatchObject({ name: 'AbortError' })
+    await vi.advanceTimersByTimeAsync(14_999)
+    expect(f.request).toHaveBeenCalledOnce()
+    expect(f.request.mock.calls[0][1]?.signal?.aborted).toBe(false)
+    expect(cancel).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1)
+
+    await rejected
+    expect(f.request.mock.calls[0][1]?.signal?.aborted).toBe(true)
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(f.request).toHaveBeenCalledOnce()
+    expect(f.auth.recoverAuthorization).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  } finally {
+    vi.useRealTimers()
+  }
 })

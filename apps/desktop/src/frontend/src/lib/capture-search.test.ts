@@ -2,9 +2,16 @@ import { afterEach, expect, it, vi, type Mock } from 'vitest'
 import type {
   SearchApi,
   SearchCommandResult,
-  SearchSnapshot
+  SearchSnapshot,
+  SearchObservation
 } from '../../../preload/common/types/search'
-import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
+import {
+  CAPTURE_ID,
+  REQUEST_ID,
+  searchRow,
+  searchSlot,
+  searchSnapshot
+} from '../../../preload/api/search-test-fixture'
 import type { SearchView } from '../types/search'
 import { createCaptureSearch, type CaptureSearch } from './capture-search'
 
@@ -15,7 +22,7 @@ afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 async function fixture(): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>
-  notify: Mock
+  notify: Mock<(observation: SearchObservation) => Promise<SearchCommandResult>>
   changed: Mock<(view: SearchView) => void>
   invalidated: Mock
   emit: (snapshot: SearchSnapshot) => void
@@ -26,7 +33,9 @@ async function fixture(): Promise<{
     ok: true,
     snapshot: current
   }))
-  const notify = vi.fn(async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current }))
+  const notify = vi.fn<(observation: SearchObservation) => Promise<SearchCommandResult>>(
+    async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current })
+  )
   const changed = vi.fn<(view: SearchView) => void>()
   const invalidated = vi.fn()
   const search = createCaptureSearch({
@@ -181,4 +190,146 @@ it('반환 함수를 분리해서 호출해도 각 검색의 관측 상태와 �
     observationRevision: 2,
     nickname: '사아'
   })
+})
+
+it('시작 응답 전에 취소한 호출은 늦은 ID를 한 번만 종료하고 관측을 제출하지 않는다', async () => {
+  const f = await fixture()
+  const pending = Promise.withResolvers<SearchCommandResult>()
+  const controller = new AbortController()
+  f.control.mockReturnValueOnce(pending.promise)
+  const start = f.search.begin({ signal: controller.signal })
+  controller.abort()
+  pending.resolve({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+
+  expect(await start).toBeNull()
+  f.search.observe({ slot: 0, nickname: '가나' })
+  f.search.end()
+  f.search.dispose()
+
+  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.control.mock.calls.map(([command]) => command)).toEqual([
+    { action: 'read' },
+    { action: 'begin' },
+    { action: 'end', captureId: CAPTURE_ID }
+  ])
+  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
+})
+
+it('시작 응답이 유실되면 조회의 ID를 임의로 채택하거나 시작을 재전송하지 않는다', async () => {
+  const f = await fixture()
+  f.control
+    .mockRejectedValueOnce(new Error('synthetic begin reply loss'))
+    .mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+
+  expect(await f.search.begin({ signal: new AbortController().signal })).toBeNull()
+  f.search.observe({ slot: 0, nickname: '가나' })
+
+  expect(f.control.mock.calls.map(([command]) => command)).toEqual([
+    { action: 'read' },
+    { action: 'begin' },
+    { action: 'read' }
+  ])
+  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
+  expect(f.changed.mock.lastCall?.[0].ready).toBe(true)
+})
+
+it('clear 응답을 기다려도 후보는 즉시 지우고 이전 관측 결과는 복원하지 않는다', async () => {
+  const f = await fixture()
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  await f.search.begin({ signal: new AbortController().signal })
+  f.search.observe({ slot: 0, nickname: '가나' })
+  const success = searchSlot({ state: 'success', rows: [searchRow] })
+  f.emit(searchSnapshot({ revision: 3, slots: [success, ...searchSnapshot().slots.slice(1)] }))
+  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(success)
+  const clear = Promise.withResolvers<SearchCommandResult>()
+  f.control.mockReturnValueOnce(clear.promise)
+
+  f.search.observe({ slot: 0, nickname: null })
+
+  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual({
+    slot: 0,
+    observationRevision: 0,
+    requestId: null,
+    nickname: null,
+    state: 'idle',
+    rows: [],
+    error: null
+  })
+  expect(f.control).toHaveBeenLastCalledWith({
+    action: 'clear',
+    captureId: CAPTURE_ID,
+    slot: 0,
+    observationRevision: 2
+  })
+  f.emit(searchSnapshot({ revision: 4, slots: [success, ...searchSnapshot().slots.slice(1)] }))
+  expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
+  const cleared = searchSlot({
+    observationRevision: 2,
+    state: 'idle',
+    requestId: null,
+    nickname: null
+  })
+  clear.resolve({
+    ok: true,
+    snapshot: searchSnapshot({ revision: 5, slots: [cleared, ...searchSnapshot().slots.slice(1)] })
+  })
+  await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(cleared))
+})
+
+it('이전 이름의 retry 완료는 새 이름의 retry 대기를 해제하지 않는다', async () => {
+  const f = await fixture()
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  await f.search.begin({ signal: new AbortController().signal })
+  f.search.observe({ slot: 0, nickname: '가나' })
+  const firstFailure = searchSlot({
+    state: 'failure',
+    error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
+  })
+  f.emit(searchSnapshot({ revision: 3, slots: [firstFailure, ...searchSnapshot().slots.slice(1)] }))
+  const firstResponse = Promise.withResolvers<SearchCommandResult>()
+  f.control.mockReturnValueOnce(firstResponse.promise)
+  const firstRetry = f.search.retry(0)
+  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([true, false, false, false])
+
+  f.search.observe({ slot: 0, nickname: '다라' })
+  const nextRequestId = '00000000-0000-4000-8000-000000000099'
+  const nextFailure = searchSlot({
+    state: 'failure',
+    nickname: '다라',
+    observationRevision: 2,
+    requestId: nextRequestId,
+    error: { code: 'SEARCH_NETWORK_ERROR', retryAfterSeconds: null }
+  })
+  f.emit(searchSnapshot({ revision: 5, slots: [nextFailure, ...searchSnapshot().slots.slice(1)] }))
+  const nextResponse = Promise.withResolvers<SearchCommandResult>()
+  f.control.mockReturnValueOnce(nextResponse.promise)
+  const nextRetry = f.search.retry(0)
+
+  firstResponse.resolve({
+    ok: true,
+    snapshot: searchSnapshot({
+      revision: 4,
+      slots: [firstFailure, ...searchSnapshot().slots.slice(1)]
+    })
+  })
+  await firstRetry
+  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(nextFailure)
+  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([true, false, false, false])
+  await f.search.retry(0)
+  expect(f.control.mock.calls.filter(([command]) => command.action === 'retry')).toEqual([
+    [{ action: 'retry', captureId: CAPTURE_ID, slot: 0, requestId: REQUEST_ID }],
+    [{ action: 'retry', captureId: CAPTURE_ID, slot: 0, requestId: nextRequestId }]
+  ])
+
+  nextResponse.resolve({
+    ok: true,
+    snapshot: searchSnapshot({
+      revision: 6,
+      slots: [nextFailure, ...searchSnapshot().slots.slice(1)]
+    })
+  })
+  await nextRetry
+  expect(f.changed.mock.lastCall?.[0].retryPending).toEqual([false, false, false, false])
+  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(nextFailure)
 })

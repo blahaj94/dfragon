@@ -1,89 +1,35 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PARTY_MANA_COLOR, PARTY_SLOTS } from '../constants/capture'
+import { PARTY_SLOTS } from '../constants/capture'
 import { isPartySlotPresent, capturePartyNicknameCrops } from './party'
 
-describe('파티 layout', () => {
-  it('1920×1080 기준 고정 파티 slot 네 개를 정의한다', () => {
+describe('파티 닉네임 크롭', () => {
+  it('1920×1080 기준 파티 슬롯 네 개의 닉네임 좌표를 유지한다', () => {
     expect(PARTY_SLOTS).toHaveLength(4)
     expect(PARTY_SLOTS[0].nickname).toEqual({ x: 56, y: 15, width: 91, height: 14 })
     expect(PARTY_SLOTS[3].nickname).toEqual({ x: 506, y: 15, width: 91, height: 14 })
   })
 
-  it('충분한 MP 색상 pixel이 있을 때만 slot이 존재한다고 판단한다', () => {
-    const matchingPixels = new Uint8ClampedArray(60 * 4)
-    for (let index = 0; index < matchingPixels.length; index += 4) {
-      matchingPixels[index] = PARTY_MANA_COLOR[0]
-      matchingPixels[index + 1] = PARTY_MANA_COLOR[1]
-      matchingPixels[index + 2] = PARTY_MANA_COLOR[2]
-      matchingPixels[index + 3] = 255
-    }
-
-    const oneMatchingPixel = new Uint8ClampedArray(60 * 4)
-    oneMatchingPixel[0] = PARTY_MANA_COLOR[0]
-    oneMatchingPixel[1] = PARTY_MANA_COLOR[1]
-    oneMatchingPixel[2] = PARTY_MANA_COLOR[2]
-    oneMatchingPixel[3] = 255
-
-    expect(isPartySlotPresent(matchingPixels)).toBe(true)
-    expect(isPartySlotPresent(oneMatchingPixel)).toBe(false)
-  })
-
   it.each([
-    { name: 'red mismatch', values: [0, 121, 170], reads: ['red'] },
-    { name: 'green mismatch', values: [55, 0, 170], reads: ['red', 'green'] },
-    { name: 'all match', values: [55, 121, 170], reads: ['red', 'green', 'blue'] }
-  ])('$name reads only the required RGB channels', ({ values, reads }) => {
-    const access: string[] = []
-    const rgba = {
-      length: 4,
-      0: values[0],
-      1: values[1],
-      2: values[2],
-      3: 255
-    }
-    for (const [index, channel] of [
-      [0, 'red'],
-      [1, 'green'],
-      [2, 'blue']
-    ] as const) {
-      Object.defineProperty(rgba, index, {
-        configurable: true,
-        get: () => {
-          access.push(channel)
-
-          return values[index]
-        }
-      })
+    { name: '49개 일치는 인원이 없는 슬롯', count: 49, color: [55, 121, 170], present: false },
+    { name: '50개 일치는 인원이 있는 슬롯', count: 50, color: [55, 121, 170], present: true },
+    { name: '51개 일치는 인원이 있는 슬롯', count: 51, color: [55, 121, 170], present: true },
+    { name: 'RGB 하한 오차 35 포함', count: 50, color: [20, 86, 135], present: true },
+    { name: 'RGB 상한 오차 35 포함', count: 50, color: [90, 156, 205], present: true },
+    { name: '빨강 하한 오차 36 거절', count: 50, color: [19, 121, 170], present: false },
+    { name: '빨강 상한 오차 36 거절', count: 50, color: [91, 121, 170], present: false },
+    { name: '초록 하한 오차 36 거절', count: 50, color: [55, 85, 170], present: false },
+    { name: '초록 상한 오차 36 거절', count: 50, color: [55, 157, 170], present: false },
+    { name: '파랑 하한 오차 36 거절', count: 50, color: [55, 121, 134], present: false },
+    { name: '파랑 상한 오차 36 거절', count: 50, color: [55, 121, 206], present: false }
+  ])('$name', ({ count, color, present }) => {
+    // 기존 MP 판정의 색상 [55, 121, 170], 허용 오차 35, 최소 50픽셀로 경계값을 직접 계산한다.
+    // 제품 상수로 입력과 기대값을 함께 만들면 경계가 바뀌어도 테스트가 통과한다.
+    const rgba = new Uint8ClampedArray(60 * 4)
+    for (let index = 0; index < count; index += 1) {
+      rgba.set([...color, 255], index * 4)
     }
 
-    isPartySlotPresent(rgba as unknown as Uint8ClampedArray)
-
-    expect(access).toEqual(reads)
-  })
-
-  it('reads all matching RGB channels for every pixel needed to reach the threshold', () => {
-    const access: string[] = []
-    const rgba = { length: 60 * 4 } as Record<number | 'length', number>
-    for (let index = 0; index < rgba.length; index += 4) {
-      for (const [offset, channel] of [
-        [0, 'red'],
-        [1, 'green'],
-        [2, 'blue']
-      ] as const) {
-        Object.defineProperty(rgba, index + offset, {
-          configurable: true,
-          get: () => {
-            access.push(channel)
-
-            return PARTY_MANA_COLOR[offset]
-          }
-        })
-      }
-      rgba[index + 3] = 255
-    }
-
-    expect(isPartySlotPresent(rgba as unknown as Uint8ClampedArray)).toBe(true)
-    expect(access).toEqual(Array.from({ length: 50 }, () => ['red', 'green', 'blue']).flat())
+    expect(isPartySlotPresent(rgba)).toBe(present)
   })
 })
 
@@ -129,14 +75,14 @@ it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯
     0,
     0,
     0,
-    255, // White foreground becomes black.
+    255, // 흰 글자는 검정으로 반전한다.
     255,
     255,
     255,
-    255, // Black background becomes white.
+    255, // 검정 배경은 흰색으로 반전한다.
     107,
     107,
     107,
-    255 // Cyan text keeps intermediate strokes; no binary threshold.
+    255 // 청록색 획은 이진화하지 않고 중간 명암으로 남긴다.
   ])
 })

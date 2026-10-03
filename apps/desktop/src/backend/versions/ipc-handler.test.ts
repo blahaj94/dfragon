@@ -78,6 +78,23 @@ it('returns local package/source identity plus independently read server version
   expect(mocks.add.mock.calls[0][0]).toBe('getBuildVersions')
 })
 
+it('완료 후 새로고침은 이전 응답을 재사용하지 않고 서버의 현재 커밋을 조회한다', async () => {
+  const updatedServers: BuildVersions['servers'] = {
+    api: { status: 'available', commit: 'c'.repeat(40) },
+    accounts: { status: 'available', commit: 'd'.repeat(40) },
+    ocr: { status: 'unsupported' }
+  }
+  mocks.read.mockResolvedValueOnce(servers).mockResolvedValueOnce(updatedServers)
+  const f = fixture()
+
+  expect((await f.invoke(f.event)).servers).toEqual(servers)
+  expect(await f.invoke(f.event)).toEqual({
+    desktop: { version: '2.3.4', commit: 'b'.repeat(40), dirty: false },
+    servers: updatedServers
+  })
+  expect(mocks.read).toHaveBeenCalledTimes(2)
+})
+
 it.each([
   'sender',
   'subframe',

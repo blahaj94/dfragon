@@ -138,49 +138,42 @@ it('subscribe 이후 조회하고 먼저 도착한 높은 event revision을 늦�
   expect(current.snapshot).toEqual(snapshot(4))
 })
 
-it('최초 snapshot을 계정 화면용 변환 없이 유지한다', async () => {
-  let phaseReads = 0
-  const initial = {
-    ...snapshot(1),
-    get phase(): AuthSnapshot['phase'] {
-      phaseReads += 1
-
-      return 'signedOut'
-    }
-  }
-  fixture.api.getAuthState.mockResolvedValue(initial)
-
-  await mount()
-
-  expect(phaseReads).toBe(0)
-  expect(current.snapshot).toBe(initial)
-  expect(current.snapshot).not.toBeNull()
-})
-
-it('stale revision을 무시하고 최신 signedOut snapshot을 적용한다', async () => {
-  fixture.api.getAuthState.mockResolvedValue({
+it('첫 조회의 로그인 계정과 환영 화면 상태를 그대로 표시한다', async () => {
+  const signedIn: AuthSnapshot = {
     ...snapshot(1),
     phase: 'signedIn',
     user: { nickname: '중립모험가' },
-    entry: 'home'
-  })
+    entry: 'welcome'
+  }
+  fixture.api.getAuthState.mockResolvedValue(signedIn)
+
   await mount()
 
-  let phaseReads = 0
-  const stale = {
-    ...snapshot(0),
-    get phase(): AuthSnapshot['phase'] {
-      phaseReads += 1
+  expect(current.snapshot).toEqual(signedIn)
+  expect(current.commandPending).toBe(false)
+  expect(current.connectionFailed).toBe(false)
+  expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+})
 
-      return 'signedOut'
-    }
+it('동일하거나 오래된 revision은 현재 계정을 지우지 않고 새 signedOut만 적용한다', async () => {
+  const signedIn: AuthSnapshot = {
+    ...snapshot(3),
+    phase: 'signedIn',
+    user: { nickname: '중립모험가' },
+    entry: 'home'
   }
-  await act(async () => fixture.emit(stale))
-  expect(phaseReads).toBe(0)
-  expect(current.snapshot).not.toBeNull()
+  fixture.api.getAuthState.mockResolvedValue(signedIn)
+  await mount()
 
-  await act(async () => fixture.emit(snapshot(2)))
-  expect(current.snapshot).toEqual(snapshot(2))
+  await act(async () => {
+    fixture.emit(snapshot(2))
+    fixture.emit(snapshot(3))
+  })
+  expect(current.snapshot).toEqual(signedIn)
+
+  await act(async () => fixture.emit(snapshot(4)))
+  expect(current.snapshot).toEqual(snapshot(4))
 })
 
 it('baseline 전 queued event는 같은 run의 오래된 revision을 버리고 run 변경 snapshot으로 덮어쓴다', async () => {
@@ -604,4 +597,79 @@ it('StrictMode effect 재실행에서도 구독 하나만 유지하고 명령을
   await act(async () => current.onIntent({ type: 'beginLogin', provider: 'passkey' }))
   expect(fixture.api.beginLogin).toHaveBeenCalledOnce()
   expect(current.snapshot).toEqual(snapshot(2))
+})
+
+it.each(['성공 응답', '거절 응답'] as const)(
+  '같은 API 재연결 뒤 이전 명령의 %s는 새 조회와 대기 상태에 영향을 주지 않는다',
+  async (completion) => {
+    await mount()
+    const oldCommand = deferred<AuthCommandResult>()
+    fixture.api.retryAuth.mockReturnValueOnce(oldCommand.promise)
+    await act(async () => current.onIntent({ type: 'retryAuth' }))
+    expect(current.commandPending).toBe(true)
+
+    const query = deferred<AuthSnapshot>()
+    fixture.api.getAuthState.mockReturnValueOnce(query.promise)
+    await act(async () => current.resynchronize())
+    expect(current.snapshot).toBeNull()
+    expect(current.commandPending).toBe(false)
+    expect(fixture.listeners.size).toBe(1)
+    expect(fixture.retired).toHaveLength(1)
+
+    await act(async () => {
+      if (completion === '성공 응답') {
+        oldCommand.resolve({
+          ok: true,
+          snapshot: {
+            ...snapshot(99),
+            phase: 'signedIn',
+            user: { nickname: '이전계정' },
+            entry: 'home'
+          }
+        })
+      } else {
+        oldCommand.reject(new Error('synthetic retired reply'))
+      }
+      fixture.retired[0](snapshot(100))
+      current.onIntent({ type: 'beginLogin', provider: 'passkey' })
+    })
+    expect(current.snapshot).toBeNull()
+    expect(current.connectionFailed).toBe(false)
+    expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+    expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+
+    await act(async () => query.resolve(snapshot(4)))
+    const nextCommand = deferred<AuthCommandResult>()
+    fixture.api.retryAuth.mockReturnValueOnce(nextCommand.promise)
+    await act(async () => current.onIntent({ type: 'retryAuth' }))
+    expect(current.snapshot).toEqual(snapshot(4))
+    expect(current.commandPending).toBe(true)
+    await act(async () => nextCommand.resolve({ ok: true, snapshot: snapshot(5) }))
+    expect(current.snapshot).toEqual(snapshot(5))
+    expect(current.commandPending).toBe(false)
+  }
+)
+
+it('로그인 명령의 AUTH_BUSY 응답도 main의 현재 시도를 표시하고 재전송하지 않는다', async () => {
+  await mount()
+  const waiting: AuthSnapshot = {
+    ...snapshot(2),
+    phase: 'waitingBrowser',
+    login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
+  }
+  fixture.api.beginLogin.mockResolvedValueOnce({
+    ok: false,
+    error: { code: 'AUTH_BUSY' },
+    snapshot: waiting
+  })
+
+  await act(async () => current.onIntent({ type: 'beginLogin', provider: 'passkey' }))
+
+  expect(current.snapshot).toEqual(waiting)
+  expect(current.commandPending).toBe(false)
+  expect(current.connectionFailed).toBe(false)
+  expect(fixture.api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
+  expect(fixture.api.getAuthState).toHaveBeenCalledOnce()
+  expect(fixture.api.retryAuth).not.toHaveBeenCalled()
+  expect(fixture.api.cancelLogin).not.toHaveBeenCalled()
 })

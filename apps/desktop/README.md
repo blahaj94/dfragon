@@ -1,6 +1,6 @@
 # DFRAGON Desktop
 
-던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색·캡처·OCR은 로그인 없이 사용하는 기능입니다. 현재 소스의 기본 화면은 새 카드 UI이며 빈 슬롯 네 개, 테마 전환과 계정 로그인을 제공합니다. 검색·캡처·OCR·캐릭터 상세는 새 화면에 아직 연결되지 않았으며 입력·캡처는 비활성 상태입니다.
+던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색·캡처·OCR은 로그인 없이 사용하는 기능입니다. 현재 소스의 기본 화면은 새 카드 UI이며 빈 슬롯 네 개, 테마 전환, 로그인과 캡처 모달을 제공합니다. 창을 선택하면 캡처를 시작하고 안정화된 OCR 이름을 읽기 전용 카드에 표시합니다. 검색 결과·이름 수정·캐릭터 상세는 새 화면에 아직 연결되지 않았습니다.
 
 ## 설정과 라이선스 사용고지
 
@@ -40,7 +40,7 @@ workflow 실행 시점의 최신 main 대신 실제 checkout한 commit을 기록
 
 ## Windows 배포 빌드
 
-현재 소스를 빌드하면 새 카드 화면이 포함됩니다. 아래 기존 배포본의 검색·캡처 흐름은 새 화면에 아직 연결되지 않았습니다.
+현재 소스를 빌드하면 새 카드 화면이 포함됩니다. 캡처·OCR 이름 표시는 연결되어 있지만 기존 배포본의 검색 결과·이름 수정·상세 흐름은 후속입니다.
 
 Node.js 24와 저장소의 pnpm을 준비한 Windows x64에서 저장소 루트 기준으로 실행합니다.
 
@@ -102,13 +102,31 @@ pnpm --filter @dfragon/desktop dev
 
 `dev`·`dev:app`은 Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 인증 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다. 배포·패키징의 인증 설정 방식은 바뀌지 않습니다.
 
-`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 검색·캡처·OCR·상세 연결은 후속입니다. 합성 데이터의 상태 비교와 상세 전환은 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
+`pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 카메라 버튼에서 창을 선택하면 캡처·OCR 이름 표시를 시작합니다. 모달을 닫거나 로그인 상태가 바뀌어도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 검색 결과·이름 수정·상세 연결은 후속입니다. 합성 데이터의 상태 비교와 상세 전환은 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
-우측 상단 **로그인**에서 계정 창을 열고 **패스키로 계속하기**를 누르면 기존 전용 인증 창으로 이어집니다. 진행 중에는 **로그인 취소**, 실패 후에는 안내에 따른 재시도, 로그인 후 **내 계정**에서는 닉네임·패스키 관리·**이 기기 로그아웃**을 제공합니다. 계정 다이얼로그를 닫는 것은 로그인 취소가 아니며, 다시 열면 현재 진행 상태가 보입니다. 전용 인증 창을 닫거나 **로그인 취소**를 눌러 시도를 끝냅니다.
+우측 상단 **로그인**을 누르면 전용 인증 창을 엽니다. 진행 중에는 로그인 버튼을 비활성화해 중복 요청을 막고, 로그인 후에는 버튼을 숨깁니다. 현재 카드 화면에는 별도 계정 다이얼로그·닉네임·패스키 관리·로그아웃 메뉴를 표시하지 않습니다. 전용 인증 창을 닫으면 진행 중인 시도를 취소합니다.
 
-앱 시작 시 기존 main의 세션 복원 결과를 상단에 반영합니다. 복원·저장소 문제와 인증 연결 실패는 계정 창에서 안내하며 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. `DFRAGON_AUTH_*` 설정이 없어 인증 IPC가 연결되지 않으면 **로그인 연결 확인**과 연결 재확인 안내가 표시됩니다. 인증 runtime이 보고하는 저장소 문제는 **저장소 확인**에서 다시 시도할 수 있습니다. UI 연결만으로 API·실제 패스키·OS 저장소가 구성되지는 않습니다.
+앱 시작 시 기존 main의 세션 복원 결과를 로그인 버튼에 반영합니다. 인증 연결 실패 상태에서 **로그인**을 누르면 연결을 다시 확인하고, 복원 일시 정지·저장소 차단 상태에서는 기존 복구 명령을 보냅니다. 이때도 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. UI 연결만으로 API·실제 패스키·OS 저장소가 구성되지는 않습니다.
 
 `pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator·main/preload IPC의 로그인·취소·renderer reload·저장 완료 후 상태 반영·로그아웃을 검증합니다. HTTP·인증 창·저장소는 합성 효과이며 실제 브라우저·패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
+
+## 테스트 범위와 실행
+
+`App*.test.tsx`는 현재 카드 화면의 로그인·캡처·개발 도구 연결을 확인합니다. `App.capture-controls.test.tsx`는 구버전 `PartyCapture` 조합의 버튼 연결 테스트이며, `integration/search-bridge.test.tsx`·`capture-search.test.tsx`·`logout-relogin.integration.test.tsx`는 `fixture/legacy/LegacyApp.tsx`의 검색 흐름을 검증합니다. 이 테스트의 검색 성공은 현재 카드 화면에 검색 결과가 연결됐다는 뜻이 아닙니다.
+
+관련 Vitest 파일부터 실행한 뒤 변경 영향에 따라 Desktop 전체 검사를 선택합니다.
+
+```sh
+pnpm --filter @dfragon/desktop exec vitest run src/frontend/src/App.capture-modal.test.tsx
+pnpm --filter @dfragon/desktop test
+pnpm --filter @dfragon/desktop lint
+pnpm --filter @dfragon/desktop format:check
+pnpm --filter @dfragon/desktop build
+```
+
+`build`에는 node/web typecheck가 포함됩니다. `--ignore-scripts`로 의존성을 설치했다면 기존 CI처럼 `pnpm --filter @dfragon/desktop rebuild electron`으로 Electron runtime을 준비합니다. 인증 bridge를 실제 Electron에서 확인하려면 `auth:fixture:build` 후 `auth:fixture:smoke`를 사용합니다. Launcher 단위 테스트의 process·signal은 합성이며 실제 child 종료 확인과 구분합니다.
+
+Vitest의 HTTP·credential 저장소·media·OCR worker mock과 합성 Electron fixture는 실제 Windows 캡처·DPI·단축키, 패스키, OS credential 저장소의 검증을 대신하지 않습니다. Windows native/security·crash 도구의 기존 플랫폼·격리 조건을 유지하며 VM 종료·복원 등 파괴적 장애 실험은 별도 허용 범위에서만 실행합니다.
 
 ## 개발 빌드
 

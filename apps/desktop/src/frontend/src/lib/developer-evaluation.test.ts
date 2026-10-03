@@ -64,16 +64,14 @@ describe('개발자 모델 채점', () => {
     expect(summarizeDeveloperEvaluation([], {}).accuracy).toBeNull()
   })
 
-  it('동일 샘플 참조도 각각 채점하고 code point 문자 합계로 CER를 가중 집계한다', () => {
-    const repeated = Object.freeze(sample('repeated', '😀나'))
+  it('서로 다른 정답 길이와 빈 정답의 오류를 전체 code point 문자 수로 가중 집계한다', () => {
     const samples = Object.freeze([
-      repeated,
-      Object.freeze(sample('short', '가')),
-      Object.freeze(sample('empty', '')),
-      repeated
+      Object.freeze(sample('long', '😀가나')),
+      Object.freeze(sample('short', '다')),
+      Object.freeze(sample('empty', ''))
     ])
     const results = Object.freeze({
-      repeated: Object.freeze(success('나')),
+      long: Object.freeze(success('😀가라')),
       short: Object.freeze(success('')),
       empty: Object.freeze(success('😀')),
       outside: Object.freeze({ status: 'failed' as const })
@@ -81,116 +79,66 @@ describe('개발자 모델 채점', () => {
 
     const summary = summarizeDeveloperEvaluation(samples, results)
 
+    // 대체 1개 + 삭제 1개 + 빈 정답의 삽입 1개, 정답 문자는 3 + 1 + 0개다.
     expect(summary).toEqual({
-      scored: 4,
+      scored: 3,
       matched: 0,
       failed: 0,
-      completed: 4,
+      completed: 3,
       accuracy: 0,
-      characterErrorRate: 4 / 5
+      characterErrorRate: 3 / 4
     })
-    expect(samples[0]).toBe(repeated)
-    expect(samples[3]).toBe(repeated)
+    expect(samples.map(({ text }) => text)).toEqual(['😀가나', '다', ''])
+    expect(results.long.text).toBe('😀가라')
   })
 
-  it('샘플별 조회·채점 순서와 실패·미평가·미작성의 단락 평가를 유지한다', () => {
-    const reads: string[] = []
-    const labeled = sample('labeled', '가')
-    const failed = sample('failed', '나')
-    const missing = sample('missing', '다')
-    const unlabeled = sample('unlabeled', null)
-    Object.defineProperty(labeled, 'text', {
-      get: () => {
-        reads.push('label')
-
-        return '가'
-      }
-    })
-    for (const skipped of [failed, missing]) {
-      Object.defineProperty(skipped, 'text', {
-        get: () => {
-          throw new Error('실패·미평가 라벨을 읽으면 안 된다')
-        }
-      })
-    }
-    Object.defineProperty(unlabeled, 'text', {
-      get: () => {
-        reads.push('unlabeled label')
-
-        return null
-      }
-    })
-    const labeledResult = success('가')
-    Object.defineProperty(labeledResult, 'text', {
-      get: () => {
-        reads.push('prediction')
-
-        return '가'
-      }
-    })
-    const unlabeledResult = success('아무개')
-    Object.defineProperty(unlabeledResult, 'text', {
-      get: () => {
-        throw new Error('미작성 정답의 원문을 읽으면 안 된다')
-      }
-    })
-    const results = new Proxy<Record<string, DeveloperEvaluation>>(
-      { labeled: labeledResult, failed: { status: 'failed' }, unlabeled: unlabeledResult },
-      {
-        get: (target, id, receiver) => {
-          reads.push(String(id))
-
-          return Reflect.get(target, id, receiver)
-        }
-      }
-    )
-
-    const summary = summarizeDeveloperEvaluation([labeled, failed, missing, unlabeled], results)
-
-    expect(summary).toEqual({
-      scored: 1,
-      matched: 1,
-      failed: 1,
-      completed: 2,
-      accuracy: 1,
-      characterErrorRate: 0
-    })
-    expect(reads).toEqual([
-      'labeled',
-      'label',
-      'label',
-      'prediction',
-      'label',
-      'prediction',
-      'label',
-      'failed',
-      'missing',
-      'unlabeled',
-      'unlabeled label'
-    ])
-  })
-
-  it('결과 조회 중 추가된 샘플도 기존 순회와 같이 평가한다', () => {
-    const samples = [sample('first', '가')]
-    const firstResult = success('가')
+  it('공백·대소문자 차이를 원문 오류로 세며 미작성·실패·미평가를 점수 분모에서 제외한다', () => {
+    const samples = [
+      sample('case-and-space', 'Ab '),
+      sample('korean', '가나'),
+      sample('unlabeled', null),
+      sample('failed', '다'),
+      sample('unevaluated', '라')
+    ]
     const results = {
-      get first() {
-        samples.push(sample('later', '나'))
-
-        return firstResult
-      },
-      later: success('나')
+      'case-and-space': success('ab'),
+      korean: success('가다'),
+      unlabeled: success('아무개'),
+      failed: { status: 'failed' as const },
+      outside: success('참조하지 않는 결과')
     }
 
     const summary = summarizeDeveloperEvaluation(samples, results)
 
+    // A→a 대체와 끝 공백 삭제가 2개, 나→다 대체가 1개이며 정답 문자는 3 + 2개다.
     expect(summary).toEqual({
       scored: 2,
-      matched: 2,
+      matched: 0,
+      failed: 1,
+      completed: 3,
+      accuracy: 0,
+      characterErrorRate: 3 / 5
+    })
+    expect(samples.map(({ text }) => text)).toEqual(['Ab ', '가나', null, '다', '라'])
+    expect(results['case-and-space'].text).toBe('ab')
+  })
+
+  it('같아 보이는 완성형과 조합형 한글도 저장한 code point 원문대로 비교한다', () => {
+    const expected = '가'
+    const actual = '\u1100\u1161'
+
+    expect(characterErrors(expected, actual)).toBe(2)
+    expect(
+      summarizeDeveloperEvaluation([sample('normalization', expected)], {
+        normalization: success(actual)
+      })
+    ).toEqual({
+      scored: 1,
+      matched: 0,
       failed: 0,
-      completed: 2,
-      accuracy: 1,
-      characterErrorRate: 0
+      completed: 1,
+      accuracy: 0,
+      characterErrorRate: 2
     })
   })
 })

@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import {
-  SEARCH_ERRORS,
   type SearchCommandResult,
   type SearchErrorCode,
   type SearchSlot
@@ -13,6 +12,7 @@ import {
   REQUEST_ID,
   searchRow,
   searchSlot,
+  searchSnapshot,
   withSearchSlot
 } from '../../../preload/api/search-test-fixture'
 import { createRendererFixture, media } from '../testing/fixtures/search-renderer-test-fixture'
@@ -87,7 +87,9 @@ it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후�
   )
   expect(candidates.textContent).not.toContain('undefined')
   expect(region(fixture, 2).textContent).toContain('검색 결과가 없습니다.')
-  expect(region(fixture, 3).textContent).toContain(SEARCH_ERRORS.SEARCH_RESPONSE_INVALID.message)
+  expect(region(fixture, 3).textContent).toContain(
+    '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.'
+  )
   expect(region(fixture, 3).textContent).not.toContain('검색 결과가 없습니다.')
   expect(fixture.button('다시 시도', region(fixture, 3)).disabled).toBe(false)
 })
@@ -144,34 +146,75 @@ it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별�
   expect(values).toEqual(['125,850', '0', '-0.25', '0.00001', '정보 없음'])
 })
 
-const failures = Object.keys(SEARCH_ERRORS) as SearchErrorCode[]
-it.each(failures)('%s는 고정 한국어 안내와 허용된 수동 retry만 제공한다', async (code) => {
-  const fixture = await recognized()
-  await emitSlot(
-    fixture,
-    searchSlot({ state: 'failure', error: { code, retryAfterSeconds: null } })
-  )
-  const view = region(fixture)
-  expect(view.textContent).toContain(SEARCH_ERRORS[code].message)
-  expect(view.textContent).not.toContain('검색 결과가 없습니다.')
-  const canRetry = SEARCH_ERRORS[code].retryable
-  if (canRetry) {
-    const retry = fixture.button('다시 시도', view)
-    expect(retry.disabled).toBe(false)
-    await act(async () => retry.click())
-    expect(fixture.search.controlCharacterSearch).toHaveBeenLastCalledWith({
-      action: 'retry',
-      captureId: CAPTURE_ID,
-      slot: 0,
-      requestId: REQUEST_ID
-    })
-  } else {
-    expect(
-      [...view.querySelectorAll('button')].some((button) => button.textContent === '다시 시도')
-    ).toBe(false)
-    expect(fixture.button('닉네임 수정', view).disabled).toBe(false)
+// 오류 코드와 재시도 정책은 Rule을 따르고, 기존 화면의 고정 안내를 명시적 기대값으로 보존한다.
+const failures = [
+  { code: 'INVALID_SEARCH_QUERY', message: '검색 조건을 확인해 주세요.', retryable: false },
+  {
+    code: 'SEARCH_RATE_LIMITED',
+    message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.',
+    retryable: true
+  },
+  {
+    code: 'INTERNAL_SERVER_ERROR',
+    message: '서버 오류로 검색을 처리하지 못했습니다.',
+    retryable: true
+  },
+  { code: 'NEOPLE_API_ERROR', message: '캐릭터 검색 중 오류가 발생했습니다.', retryable: true },
+  {
+    code: 'NEOPLE_UNAVAILABLE',
+    message: '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.',
+    retryable: true
+  },
+  {
+    code: 'NEOPLE_TIMEOUT',
+    message: '캐릭터 검색 응답 시간이 초과됐습니다. 다시 시도해 주세요.',
+    retryable: true
+  },
+  {
+    code: 'SEARCH_TIMEOUT',
+    message: '검색 시간이 초과됐습니다. 다시 시도해 주세요.',
+    retryable: true
+  },
+  {
+    code: 'SEARCH_NETWORK_ERROR',
+    message: '검색 서버에 연결하지 못했습니다. 다시 시도해 주세요.',
+    retryable: true
+  },
+  {
+    code: 'SEARCH_RESPONSE_INVALID',
+    message: '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.',
+    retryable: true
   }
-})
+] satisfies Array<{ code: SearchErrorCode; message: string; retryable: boolean }>
+it.each(failures)(
+  '$code는 고정 한국어 안내와 허용된 수동 재시도만 제공한다',
+  async ({ code, message, retryable }) => {
+    const fixture = await recognized()
+    await emitSlot(
+      fixture,
+      searchSlot({ state: 'failure', error: { code, retryAfterSeconds: null } })
+    )
+    const view = region(fixture)
+    expect(view.textContent).toContain(message)
+    expect(view.textContent).not.toContain('검색 결과가 없습니다.')
+    if (retryable) {
+      const retry = fixture.button('다시 시도', view)
+      expect(retry.disabled).toBe(false)
+      await act(async () => retry.click())
+      expect(fixture.search.controlCharacterSearch).toHaveBeenLastCalledWith({
+        action: 'retry',
+        captureId: CAPTURE_ID,
+        slot: 0,
+        requestId: REQUEST_ID
+      })
+    } else {
+      expect(
+        [...view.querySelectorAll('button')].some((button) => button.textContent === '다시 시도')
+      ).toBe(false)
+      expect(fixture.button('닉네임 수정', view).disabled).toBe(false)
+    }
+  }
+)
 
 it('429 유효 대기 동안 retry를 막고 같은 failure의 0초 event에서는 버튼만 활성화한다', async () => {
   const fixture = await recognized()
@@ -191,7 +234,9 @@ it('429 유효 대기 동안 retry를 막고 같은 failure의 0초 event에서�
   })
   expect(fixture.search.controlCharacterSearch.mock.calls.length).toBe(before)
   expect(fixture.button('다시 시도', region(fixture)).disabled).toBe(false)
-  expect(region(fixture).textContent).toContain(SEARCH_ERRORS.SEARCH_RATE_LIMITED.message)
+  expect(region(fixture).textContent).toContain(
+    '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+  )
   await act(async () => fixture.button('다시 시도', region(fixture)).click())
   expect(fixture.search.controlCharacterSearch).toHaveBeenLastCalledWith({
     action: 'retry',
@@ -201,49 +246,60 @@ it('429 유효 대기 동안 retry를 막고 같은 failure의 0초 event에서�
   })
 })
 
-it('failure 조건은 오류와 retry 대기 getter를 기존 순서로 평가한다', async () => {
-  const reads: string[] = []
-  const error = new Proxy(
-    { code: 'SEARCH_RATE_LIMITED' as const, retryAfterSeconds: 2 },
-    {
-      get(target, property, receiver) {
-        if (property === 'code' || property === 'retryAfterSeconds') {
-          reads.push(property)
-        }
-
-        return Reflect.get(target, property, receiver)
-      }
-    }
-  ) as SearchSlot['error']
+it('429 대기가 끝나도 진행 중인 재시도 응답을 기다리고 완료 후에만 다시 제출한다', async () => {
+  const slot = searchSlot({
+    state: 'failure',
+    error: { code: 'SEARCH_RATE_LIMITED', retryAfterSeconds: 0 }
+  })
+  const retry = vi.fn<(slot: number) => void>()
   const container = document.createElement('div')
   const root = createRoot(container)
   document.body.append(container)
-
-  await act(async () => {
-    root.render(
-      <SearchResults
-        view={{
-          ready: true,
-          slots: [searchSlot({ state: 'failure', error })],
-          retryPending: [false],
-          connectionFailed: false
-        }}
-        retry={() => undefined}
-      />
+  const slots = [slot, ...searchSnapshot().slots.slice(1)]
+  try {
+    await act(async () =>
+      root.render(
+        <SearchResults
+          view={{
+            ready: true,
+            slots,
+            retryPending: [true, false, false, false],
+            connectionFailed: false
+          }}
+          retry={retry}
+        />
+      )
     )
-  })
+    const region = container.querySelector('[aria-label="슬롯 1 검색"]')!
+    const button = region.querySelector('button')!
+    expect(region.getAttribute('aria-busy')).toBe('true')
+    expect(button.disabled).toBe(true)
+    expect(region.textContent).toContain('검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.')
+    expect(region.textContent).not.toContain('초 제한 대기')
+    await act(async () => button.click())
+    expect(retry).not.toHaveBeenCalled()
 
-  expect(reads).toEqual([
-    'code',
-    'code',
-    'retryAfterSeconds',
-    'retryAfterSeconds',
-    'code',
-    'retryAfterSeconds'
-  ])
-
-  await act(async () => root.unmount())
-  container.remove()
+    await act(async () =>
+      root.render(
+        <SearchResults
+          view={{
+            ready: true,
+            slots,
+            retryPending: [false, false, false, false],
+            connectionFailed: false
+          }}
+          retry={retry}
+        />
+      )
+    )
+    expect(region.getAttribute('aria-busy')).toBe('false')
+    expect(button.disabled).toBe(false)
+    await act(async () => button.click())
+    expect(retry).toHaveBeenCalledExactlyOnceWith(0)
+  } finally {
+    await act(async () => root.unmount())
+    container.remove()
+  }
 })
 
 it('retry 응답을 기다리는 동안 버튼을 비활성화하고 같은 요청을 중복 전송하지 않는다', async () => {
@@ -263,7 +319,7 @@ it('retry 응답을 기다리는 동안 버튼을 비활성화하고 같은 요�
   pending.resolve({ ok: true, snapshot: { ...withSearchSlot(next), revision: 30 } })
   await act(async () => undefined)
   expect(region(fixture).textContent).toContain('검색 중')
-  expect(region(fixture).textContent).not.toContain(SEARCH_ERRORS.SEARCH_TIMEOUT.message)
+  expect(region(fixture).textContent).not.toContain('검색 시간이 초과됐습니다. 다시 시도해 주세요.')
 })
 
 it('retry 응답 유실은 read로 재동기화하고 retry를 자동 재전송하지 않는다', async () => {
@@ -285,7 +341,7 @@ it('retry 응답 유실은 read로 재동기화하고 retry를 자동 재전송�
   expect(region(fixture).textContent).toContain('검색 중')
 })
 
-it.each(['캡처 중지', 'source', 'unmount'] as const)(
+it.each(['캡처 중지', '창 변경', '화면 종료'] as const)(
   '%s는 main 응답 없이 현재 후보를 즉시 지운다',
   async (transition) => {
     const fixture = await recognized()
@@ -293,7 +349,7 @@ it.each(['캡처 중지', 'source', 'unmount'] as const)(
     expect(fixture.container.textContent).toContain(searchRow.characterId)
     fixture.search.controlCharacterSearch.mockReturnValue(new Promise(() => undefined))
     const isStop = transition === '캡처 중지'
-    const isSource = transition === 'source'
+    const isSource = transition === '창 변경'
     if (isStop) {
       await fixture.click('캡처 중지')
     } else if (isSource) {
