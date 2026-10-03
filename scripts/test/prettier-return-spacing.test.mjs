@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +15,7 @@ import {
   createReturnRuntimeSources,
   createSpacingCases
 } from './fixtures/format-policy/cases.mjs'
+import { createFormatInputFile } from './fixtures/format-policy/input-file.mjs'
 
 const run = promisify(execFile)
 const root = fileURLToPath(new URL('../../', import.meta.url))
@@ -140,53 +140,46 @@ test('JavaScript 이외 프린터의 출력을 유지한다', async () => {
   assert.equal(actual, expected)
 })
 
-test('workspace에서 실행한 CLI는 공통 플러그인 정책으로 검사하고 수정한다', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'dfragon-format-policy-'))
-  const filepath = join(directory, 'fixture.ts')
+test('workspace에서 실행한 CLI는 공통 플러그인 정책으로 검사하고 수정한다', async (t) => {
+  const { source, expected } = createCliSpacingCase()
+  const filepath = await createFormatInputFile(t, 'fixture.ts', source)
   const options = { cwd: join(root, 'apps/web') }
   const args = [cli, '--config', configPath, '--ignore-path', join(root, '.prettierignore')]
-  const { source, expected } = createCliSpacingCase()
 
-  try {
-    // Native Prettier already accepts this input; only the shared spacing policy rejects it.
-    assert.equal(await prettier.check(source, { ...config, plugins: [], filepath }), true)
-    await writeFile(filepath, source)
-    await assert.rejects(run(process.execPath, [...args, '--check', filepath], options), {
-      code: 1
-    })
-    assert.equal(await readFile(filepath, 'utf8'), source)
+  // Native Prettier already accepts this input; only the shared spacing policy rejects it.
+  assert.equal(await prettier.check(source, { ...config, plugins: [], filepath }), true)
+  await assert.rejects(run(process.execPath, [...args, '--check', filepath], options), {
+    code: 1
+  })
+  assert.equal(await readFile(filepath, 'utf8'), source)
 
-    await run(process.execPath, [...args, '--write', filepath], options)
+  await run(process.execPath, [...args, '--write', filepath], options)
 
-    assert.equal(await readFile(filepath, 'utf8'), expected)
+  assert.equal(await readFile(filepath, 'utf8'), expected)
 
-    await run(process.execPath, [...args, '--check', filepath], options)
+  await run(process.execPath, [...args, '--check', filepath], options)
 
-    assert.equal(await readFile(filepath, 'utf8'), expected)
+  assert.equal(await readFile(filepath, 'utf8'), expected)
 
-    await run(process.execPath, [...args, '--write', filepath], options)
+  await run(process.execPath, [...args, '--write', filepath], options)
 
-    assert.equal(await readFile(filepath, 'utf8'), expected)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
+  assert.equal(await readFile(filepath, 'utf8'), expected)
 })
 
-test('CLI 구문 오류는 포맷 불일치와 다른 종료값으로 실패하고 파일을 보존한다', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'dfragon-format-policy-invalid-'))
-  const filepath = join(directory, 'invalid.ts')
+test('CLI 구문 오류는 포맷 불일치와 다른 종료값으로 실패하고 파일을 보존한다', async (t) => {
   const source = 'function f( {'
+  const filepath = await createFormatInputFile(
+    t,
+    'invalid.ts',
+    source,
+    'dfragon-format-policy-invalid-'
+  )
 
-  try {
-    await writeFile(filepath, source)
-    await assert.rejects(
-      run(process.execPath, [cli, '--config', configPath, '--check', filepath], {
-        cwd: join(root, 'apps/web')
-      }),
-      { code: 2 }
-    )
-    assert.equal(await readFile(filepath, 'utf8'), source)
-  } finally {
-    await rm(directory, { recursive: true, force: true })
-  }
+  await assert.rejects(
+    run(process.execPath, [cli, '--config', configPath, '--check', filepath], {
+      cwd: join(root, 'apps/web')
+    }),
+    { code: 2 }
+  )
+  assert.equal(await readFile(filepath, 'utf8'), source)
 })
