@@ -1,18 +1,8 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  renameSync,
-  rmSync,
-  writeFileSync
-} from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { fileURLToPath } from 'node:url'
 
 import {
   catchUpPlan,
@@ -22,9 +12,9 @@ import {
   validatePlan
 } from '../product-image-plan.mjs'
 import { createProductImageApiFixture } from './fixtures/task-tools/product-image-api.mjs'
+import { createProductImageCliFixture } from './fixtures/task-tools/product-image-cli.mjs'
 import { createProductImageRepository as repository } from './fixtures/task-tools/product-image-repository.mjs'
 
-const script = fileURLToPath(new URL('../product-image-plan.mjs', import.meta.url))
 const allServices = ['api', 'ocr', 'accounts']
 
 test('앱별 경로는 해당 서비스만 선택하고 여러 서비스는 정해진 순서로 정렬한다', () => {
@@ -199,9 +189,7 @@ test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
-  const eventPath = join(repo.cwd, 'event.json')
-  const planPath = join(repo.cwd, 'plan.json')
-  const outputPath = join(repo.cwd, 'github-output')
+  const { eventPath, planPath, outputPath, run } = createProductImageCliFixture(t, repo.cwd)
   writeFileSync(eventPath, JSON.stringify({ before: repo.initial, after: sourceCommit }))
   const env = {
     ...repo.env,
@@ -212,26 +200,20 @@ test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·
     GITHUB_OUTPUT: outputPath
   }
 
-  const selected = spawnSync(process.execPath, [script, 'select', planPath], {
-    cwd: repo.cwd,
-    encoding: 'utf8',
-    env
-  })
+  const selected = run(['select', planPath], { env })
   assert.equal(selected.status, 0, selected.stderr)
   assert.deepEqual(JSON.parse(readFileSync(planPath, 'utf8')), { sourceCommit, services: ['api'] })
 
-  const output = spawnSync(process.execPath, [script, 'output', planPath], {
+  const output = run(['output', planPath], {
     cwd: tmpdir(),
-    encoding: 'utf8',
     env
   })
   assert.equal(output.status, 0, output.stderr)
   assert.equal(readFileSync(outputPath, 'utf8'), 'matrix={"service":["api"]}\nhas_changes=true\n')
 
   writeFileSync(planPath, JSON.stringify({ sourceCommit, services: [] }))
-  const noChanges = spawnSync(process.execPath, [script, 'output', planPath], {
+  const noChanges = run(['output', planPath], {
     cwd: tmpdir(),
-    encoding: 'utf8',
     env: { ...env, SOURCE_COMMIT: '' }
   })
   assert.equal(noChanges.status, 0, noChanges.stderr)
@@ -243,9 +225,7 @@ test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·
 
 test('CLI select의 입력·revision·사용법 오류는 기존 plan과 GitHub 출력 파일을 보존한다', (t) => {
   const repo = repository(t)
-  const eventPath = join(repo.cwd, 'event.json')
-  const planPath = join(repo.cwd, 'plan.json')
-  const outputPath = join(repo.cwd, 'github-output')
+  const { eventPath, planPath, outputPath, run } = createProductImageCliFixture(t, repo.cwd)
   const eventBody = JSON.stringify({ before: repo.initial, after: repo.initial })
   writeFileSync(planPath, 'existing plan\n')
   writeFileSync(outputPath, 'existing output\n')
@@ -265,22 +245,16 @@ test('CLI select의 입력·revision·사용법 오류는 기존 plan과 GitHub 
     }
   ]) {
     writeFileSync(eventPath, options.eventBody ?? eventBody)
-    const result = spawnSync(
-      process.execPath,
-      [script, ...(options.args ?? ['select', planPath])],
-      {
-        cwd: repo.cwd,
-        encoding: 'utf8',
-        env: {
-          ...repo.env,
-          GITHUB_EVENT_NAME: options.eventName ?? 'push',
-          GITHUB_EVENT_PATH: options.eventPath ?? eventPath,
-          SOURCE_COMMIT: options.sourceCommit ?? repo.initial,
-          GITHUB_SHA: repo.initial,
-          GITHUB_OUTPUT: outputPath
-        }
+    const result = run(options.args ?? ['select', planPath], {
+      env: {
+        ...repo.env,
+        GITHUB_EVENT_NAME: options.eventName ?? 'push',
+        GITHUB_EVENT_PATH: options.eventPath ?? eventPath,
+        SOURCE_COMMIT: options.sourceCommit ?? repo.initial,
+        GITHUB_SHA: repo.initial,
+        GITHUB_OUTPUT: outputPath
       }
-    )
+    })
 
     assert.equal(result.status, 1)
     assert.equal(result.stdout, '')
@@ -292,18 +266,13 @@ test('CLI select의 입력·revision·사용법 오류는 기존 plan과 GitHub 
 })
 
 test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 기존 출력에 추가한다', (t) => {
-  const cwd = mkdtempSync(join(tmpdir(), 'product-image-output-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  const { planPath, outputPath, run } = createProductImageCliFixture(t)
   const sourceCommit = 'a'.repeat(40)
-  const planPath = join(cwd, 'plan.json')
-  const outputPath = join(cwd, 'github-output')
   const planBody = JSON.stringify({ sourceCommit, services: ['accounts', 'api', 'ocr'] })
   writeFileSync(planPath, planBody)
   writeFileSync(outputPath, 'existing output\n')
 
-  const result = spawnSync(process.execPath, [script, 'output', planPath], {
-    cwd,
-    encoding: 'utf8',
+  const result = run(['output', planPath], {
     env: {
       ...process.env,
       SOURCE_COMMIT: sourceCommit,
@@ -322,11 +291,8 @@ test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 
 })
 
 test('CLI output의 읽기·검증·쓰기 실패는 기존 matrix를 변경하거나 성공으로 처리하지 않는다', (t) => {
-  const cwd = mkdtempSync(join(tmpdir(), 'product-image-output-'))
-  t.after(() => rmSync(cwd, { recursive: true, force: true }))
+  const { cwd, planPath, outputPath, run } = createProductImageCliFixture(t)
   const sourceCommit = 'a'.repeat(40)
-  const planPath = join(cwd, 'plan.json')
-  const outputPath = join(cwd, 'github-output')
   const directoryOutput = join(cwd, 'output-directory')
   const absentPlan = join(cwd, 'missing-plan.json')
   const planBody = JSON.stringify({ sourceCommit, services: ['api'] })
@@ -350,9 +316,7 @@ test('CLI output의 읽기·검증·쓰기 실패는 기존 matrix를 변경하�
   ]) {
     const input = options.planBody ?? planBody
     writeFileSync(planPath, input)
-    const result = spawnSync(process.execPath, [script, 'output', options.planPath ?? planPath], {
-      cwd,
-      encoding: 'utf8',
+    const result = run(['output', options.planPath ?? planPath], {
       env: {
         ...process.env,
         SOURCE_COMMIT: sourceCommit,
@@ -384,14 +348,12 @@ test('catch-up은 취소된 accounts 변경을 문서만 바뀐 다음 push 계�
     sourceCommit
   })
   assert.deepEqual(plan.services, [])
-  const planPath = join(repo.cwd, 'plan.json')
+  const { planPath, run } = createProductImageCliFixture(t, repo.cwd)
   const baselinePath = join(repo.cwd, 'baseline.json')
   writeFileSync(planPath, JSON.stringify(plan))
   writeFileSync(baselinePath, JSON.stringify({ sourceCommit: repo.initial, services: allServices }))
 
-  const result = spawnSync(process.execPath, [script, 'catch-up', planPath, baselinePath], {
-    cwd: repo.cwd,
-    encoding: 'utf8',
+  const result = run(['catch-up', planPath, baselinePath], {
     env: { ...repo.env, SOURCE_COMMIT: sourceCommit }
   })
 
@@ -432,7 +394,7 @@ test('CLI catch-up에 지정한 baseline이 읽기·검증에 실패하면 기�
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
-  const planPath = join(repo.cwd, 'plan.json')
+  const { planPath, run } = createProductImageCliFixture(t, repo.cwd)
   const baselinePath = join(repo.cwd, 'baseline.json')
   const absentBaseline = join(repo.cwd, 'missing-baseline.json')
   const planBody = JSON.stringify({ sourceCommit, services: ['api'] })
@@ -452,9 +414,7 @@ test('CLI catch-up에 지정한 baseline이 읽기·검증에 실패하면 기�
     }
   ]) {
     writeFileSync(baselinePath, options.body)
-    const result = spawnSync(process.execPath, [script, 'catch-up', planPath, options.path], {
-      cwd: repo.cwd,
-      encoding: 'utf8',
+    const result = run(['catch-up', planPath, options.path], {
       env: { ...repo.env, SOURCE_COMMIT: sourceCommit }
     })
 
