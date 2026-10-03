@@ -4,7 +4,7 @@ import { parseReturnTarget } from '../browser/return-target.ts'
 
 const callback = 'https://ocr.example.test/auth/callback'
 
-test('web return validation preserves the fixed HTTPS boundary and one code parameter', () => {
+test('웹 복귀 주소는 고정 HTTPS 경계와 code parameter 하나를 요구한다', () => {
   const accepted = callback + '?code=fixture'
   assert.deepEqual(parseReturnTarget(new URL(accepted), callback), { kind: 'web', href: accepted })
   for (const invalid of [
@@ -25,7 +25,7 @@ test('web return validation preserves the fixed HTTPS boundary and one code para
   assert.equal(parseReturnTarget(new URL(callback + '?code='), callback).kind, 'web')
 })
 
-test('app return validation keeps both schemes and existing URL normalization', () => {
+test('앱 복귀 주소는 두 scheme과 기존 URL 정규화 동작을 유지한다', () => {
   for (const scheme of ['dfragon:', 'dfragon.dev:']) {
     const href = scheme + '//auth/callback?code=fixture'
     for (const webTarget of [undefined, '']) {

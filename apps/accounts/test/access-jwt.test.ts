@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { inspect } from 'node:util'
 import {
   CompactSign,
   decodeJwt,
   decodeProtectedHeader,
+  exportJWK,
   importPKCS8,
   importSPKI,
   jwtVerify
@@ -92,7 +94,7 @@ for (const seconds of [1, 899, 900, 901, 2_592_000]) {
   })
 }
 
-test('부호가 유효한 이전 key token도 등록되어 있는 동안 검증한다', async () => {
+test('이전 key token은 등록 중에 검증하고 kid를 긴급 제거하면 만료 전에도 거절한다', async () => {
   const verify = await createAccessJwtVerifier(configuration())
   const token = await signed(claims(), { ...header(), kid: previous.kid }, previous)
   assert.deepEqual(await verify(token, now), {
@@ -122,54 +124,66 @@ test('발급 입력은 UUID와 UTC 정수 초를 요구하고 만료된 session�
     { issuedAt: Number.MAX_SAFE_INTEGER }
   ]
   for (const value of cases) {
-    await assert.rejects(issue({ ...input(), ...value }), (error: unknown) => {
+    const candidate = { ...input(), ...value }
+    const before = structuredClone(candidate)
+    await assert.rejects(issue(candidate), (error: unknown) => {
       const isAccessJwtError = error instanceof AccessJwtError
       if (!isAccessJwtError) {
         return false
       }
+      assert.equal(error.code, 'INVALID_ACCESS_JWT_INPUT')
+      assert.equal(error.message, 'Invalid access JWT input')
+      assert.equal(Object.hasOwn(error, 'cause'), false)
 
-      const hasInvalidInputCode = error.code === 'INVALID_ACCESS_JWT_INPUT'
-
-      return hasInvalidInputCode
+      return true
     })
+    assert.deepEqual(candidate, before)
   }
 })
 
-test('issuedAt 재조회 값의 NaN 비교는 서명 실패와 coercion 순서를 유지한다', async () => {
+test('발급 입력을 변경하지 않고 추가 회원·credential 정보는 token에 넣지 않는다', async () => {
   const issue = await createAccessJwtIssuer(configuration())
-  const issuanceInput = input()
-  const events: string[] = []
-  let issuedAtReads = 0
-  const subsequentIssuedAt = {
-    [Symbol.toPrimitive](hint: string) {
-      events.push(hint)
-      const isDefaultHint = hint === 'default'
-      if (isDefaultHint) {
-        return now
-      }
-      const isNumberHint = hint === 'number'
-      if (isNumberHint) {
-        return NaN
-      }
-
-      return 'invalid duration'
-    }
-  }
-  Object.defineProperty(issuanceInput, 'issuedAt', {
-    get() {
-      events.push('issuedAt')
-      issuedAtReads += 1
-      const isFirstRead = issuedAtReads === 1
-      if (isFirstRead) {
-        return now
-      }
-
-      return subsequentIssuedAt
-    }
+  const issuanceInput = Object.freeze({
+    ...input(),
+    nickname: '추가 회원 정보',
+    credentialId: 'fixture-private-credential',
+    publicKey: 'fixture-public-key'
   })
+  const before = structuredClone(issuanceInput)
+  const result = await issue(issuanceInput)
+  assert.deepEqual(issuanceInput, before)
+  const payload = decodeJwt(result.accessToken)
+  assert.deepEqual(Object.keys(payload).sort(), ['aud', 'exp', 'iat', 'iss', 'jti', 'sid', 'sub'])
+  for (const value of [
+    issuanceInput.nickname,
+    issuanceInput.credentialId,
+    issuanceInput.publicKey
+  ]) {
+    assert.equal(JSON.stringify(payload).includes(value), false)
+  }
+})
 
-  await assert.rejects(issue(issuanceInput), { code: 'ACCESS_JWT_SIGNING_FAILED' })
-  assert.deepEqual(events, ['issuedAt', 'issuedAt', 'default', 'number'])
+test('서명된 claim 거부 오류는 token·회원·credential 원문과 cause를 노출하지 않는다', async () => {
+  const verify = await createAccessJwtVerifier(configuration())
+  const sensitive = 'fixture-private-payload'
+  const token = await signed({ ...claims(), aud: sensitive, nickname: sensitive })
+  await assert.rejects(verify(token, now), (error: unknown) => {
+    assert.ok(isInvalidToken(error))
+    for (const rendered of [inspect(error), JSON.stringify(error), String(error)]) {
+      assert.equal(rendered.includes(token), false)
+      assert.equal(rendered.includes(sensitive), false)
+      assert.equal(rendered.includes(userId), false)
+    }
+
+    return true
+  })
+  assert.deepEqual(await verify(await signed(), now), {
+    userId,
+    sessionId,
+    issuedAt: now,
+    expiresAt: now + 900,
+    tokenId
+  })
 })
 
 test('token 변조·다른 key 서명·malformed compact 입력을 거절한다', async () => {
@@ -287,6 +301,15 @@ test('비허용 alg와 token 제공 key/URL은 등록 key를 대체하지 못한
     ),
     isInvalidToken
   )
+  const attackerKey = await exportJWK(await importSPKI(previous.publicKeyPem, 'ES256'))
+  for (const keyHint of [
+    { jwk: attackerKey },
+    { jku: 'https://invalid.example/jwks' },
+    { x5u: 'https://invalid.example/certificate' }
+  ]) {
+    const injected = await signed(claims(), { ...header(), ...keyHint }, previous)
+    await assert.rejects(verify(injected, now), isInvalidToken)
+  }
 })
 
 test('미지원 crit 및 JSON object가 아닌 payload를 거절한다', async () => {

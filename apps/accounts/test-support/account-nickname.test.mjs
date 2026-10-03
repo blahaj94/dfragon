@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import process from 'node:process'
 
-test('nickname uses the runtime extended grapheme contract and preserves Unicode', async (t) => {
+test('닉네임은 trim 뒤 1~20 grapheme을 허용하고 Unicode 원문을 보존한다', async (t) => {
   const { validateNickname } = await import('../dist/auth/account/nickname.js')
   t.diagnostic(
     `Node ${process.version}; Unicode ${process.versions.unicode}; ICU ${process.versions.icu}`
@@ -14,14 +14,18 @@ test('nickname uses the runtime extended grapheme contract and preserves Unicode
     ['🇰🇷'.repeat(20), '🇰🇷'.repeat(20)],
     ['가'.repeat(20), '가'.repeat(20)],
     ['✈️ a  b <>&', '✈️ a  b <>&'],
-    ['A\u0301\u0308', 'A\u0301\u0308']
+    ['A\u0301\u0308', 'A\u0301\u0308'],
+    ['  Ａ  ', 'Ａ'],
+    ['é', 'é'],
+    ['e\u0301', 'e\u0301'],
+    ['𠮷', '𠮷']
   ]
   for (const [input, expected] of allowed) {
     assert.equal(validateNickname(input), expected)
   }
 })
 
-test('nickname rejects raw controls before trim, malformed UTF-16, empty and 21 graphemes', async () => {
+test('닉네임은 trim 전 제어 문자·깨진 UTF-16·빈 값·21 grapheme을 거절한다', async () => {
   const { validateNickname } = await import('../dist/auth/account/nickname.js')
   const invalid = [
     undefined,

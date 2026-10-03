@@ -1,5 +1,6 @@
 import { assertPasskeyRetirement } from './passkey-retirement.mjs'
 import { assertPasskeyIntegration } from './passkey-integration.mjs'
+import { assertLoginStateIntegration } from './login-state-integration.mjs'
 import assert from 'node:assert/strict'
 import { assertRefreshRotation } from './refresh-rotation.mjs'
 import { assertRefreshConcurrency } from './refresh-concurrency.mjs'
@@ -814,6 +815,16 @@ async function primaryScenario() {
         currentStage = `passkey retirement ${part}`
       })
     )
+    const loginStateScenarios = await withDataSource(
+      createDatabaseDataSource,
+      resources.configuration,
+      (source) =>
+        assertLoginStateIntegration(source, (part) => {
+          currentStage = `로그인 DB 상태 ${part}`
+        })
+    )
+    process.stdout.write(`로그인 proof·교환 transaction: ${loginStateScenarios}개 사례\n`)
+    checkSignal()
     currentStage = 'passkey browser and database'
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
       assertPasskeyIntegration(source, (part) => {

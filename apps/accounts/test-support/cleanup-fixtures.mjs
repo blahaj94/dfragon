@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 
 export const checkedAt = new Date('2026-09-08T00:00:00Z')
 export const idleMilliseconds = 2_592_000_000
@@ -101,13 +101,59 @@ export function session(patch = {}) {
 
 export function request(patch = {}) {
   const id = randomUUID()
+  const status = patch.status ?? 'browser_started'
+  const createdAt = new Date(checkedAt.getTime() - 540_000)
   const expiresAt = new Date(checkedAt.getTime() + 60_000)
-
-  return {
+  const row = {
     id,
-    status: 'processing',
+    purpose: 'login',
+    configuration: 'a'.repeat(64),
+    createdAt,
     expiresAt,
+    status,
+    codeChallenge: null,
+    launchTicketHash: null,
+    browserBindingHash: null,
+    qrTicketHash: null,
+    phoneBindingHash: null,
+    confirmationCode: null,
+    webauthnChallenge: null,
+    operation: null,
+    pendingUserId: null,
+    verifiedUserId: null,
+    credentialId: null,
+    isNewUser: false,
+    exchangeCodeHash: null,
     codeExpiresAt: null,
-    ...patch
+    consumedAt: null
   }
+  if (status === 'created') {
+    row.codeChallenge = randomBytes(32).toString('base64url')
+    row.launchTicketHash = randomBytes(32)
+  }
+
+  if (status === 'browser_started' || status === 'managing') {
+    row.browserBindingHash = randomBytes(32)
+    if (status === 'browser_started') {
+      row.codeChallenge = randomBytes(32).toString('base64url')
+    } else {
+      row.purpose = 'manage'
+      row.verifiedUserId = randomUUID()
+      row.credentialId = 'cleanup-management-credential'
+    }
+  }
+
+  if (status === 'exchange_ready') {
+    row.codeChallenge = randomBytes(32).toString('base64url')
+    row.verifiedUserId = randomUUID()
+    row.credentialId = 'cleanup-exchange-credential'
+    row.exchangeCodeHash = randomBytes(32)
+    row.codeExpiresAt = expiresAt
+  }
+
+  if (status === 'consumed') {
+    row.consumedAt = checkedAt
+  }
+
+  return { ...row, ...patch }
 }

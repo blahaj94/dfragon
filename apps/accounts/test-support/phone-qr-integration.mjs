@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { challenge } from '../dist/auth/login/crypto.js'
+import { assertTerminalLoginRequest } from './database-contract.mjs'
 
 export async function assertPhoneQrIntegration({ source, browser, origin, mark }) {
   const pc = await browser.newContext({ ignoreHTTPSErrors: true })
@@ -95,7 +96,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       }
     })
   try {
-    mark('QR signup: phone approval, automatic PC claim, separate cookies and PKCE exchange')
+    mark('QR 가입은 휴대폰 승인·PC 단일 claim·PKCE 교환 뒤 proof를 정리한다')
     const first = await begin(true)
     assert.equal((await post(phone, 'claim', first.requestId)).status(), 400)
     assert.equal((await post(pc, 'phone-approve', first.requestId)).status(), 400)
@@ -151,9 +152,10 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const results = await Promise.all([exchange(first, code), exchange(first, code)])
     assert.deepEqual(results.map((r) => r.status()).sort(), [200, 400])
     assert.equal((await results.find((r) => r.status() === 200).json()).user.id, userId)
+    await assertTerminalLoginRequest(source, first.requestId, 'consumed')
     assert.equal((await post(pc, 'claim', first.requestId)).status(), 400)
 
-    mark('QR login: same account, PC claim single use')
+    mark('QR 재로그인은 같은 계정에 연결되고 claim·교환 proof를 한 번만 소비한다')
     const again = await begin()
     await phoneVerify(again)
     await approve()
@@ -166,6 +168,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const signedIn = await exchange(again, new URL(callback.returnUrl).searchParams.get('code'))
     assert.equal(signedIn.status(), 200)
     assert.equal((await signedIn.json()).user.id, userId)
+    await assertTerminalLoginRequest(source, again.requestId, 'consumed')
 
     mark('stale approved status cannot claim after QR reissue')
     const stale = await begin()
@@ -208,7 +211,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal(claimCount, 1)
     pcPage.off('request', countClaim)
 
-    mark('QR reissue and cancellation invalidate previous phone authorization')
+    mark('QR 재발급과 취소는 이전 휴대폰 권한을 무효화하고 종료 proof를 정리한다')
     const replaced = await begin()
     await phoneVerify(replaced)
     const reissued = pcPage.waitForResponse((r) => r.url().endsWith('/auth/passkeys/qr'))
@@ -228,10 +231,11 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal((await phone.request.get(replaced.phoneUrl)).status(), 400)
     await phoneVerify({ ...replaced, ...newQr })
     assert.equal((await post(pc, 'cancel', replaced.requestId)).status(), 200)
+    await assertTerminalLoginRequest(source, replaced.requestId, 'failed')
     assert.equal((await post(phone, 'phone-approve', replaced.requestId)).status(), 400)
     assert.equal((await post(pc, 'claim', replaced.requestId)).status(), 400)
 
-    mark('phone ceremony cancellation ends both login and signup requests')
+    mark('휴대폰 인증·가입 취소는 해당 요청을 종료하고 모든 proof를 지운다')
     for (const operation of ['authenticate', 'register']) {
       const canceled = await begin()
       await phonePage.goto(canceled.phoneUrl)
@@ -249,14 +253,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       assert.equal(await phonePage.locator('#phone-confirmation').count(), 0)
       assert.equal((await post(pc, 'claim', canceled.requestId)).status(), 400)
       assert.equal((await post(phone, 'phone-approve', canceled.requestId)).status(), 400)
-      assert.equal(
-        (
-          await source.query('SELECT status FROM auth_login_requests WHERE id=$1', [
-            canceled.requestId
-          ])
-        )[0].status,
-        'failed'
-      )
+      await assertTerminalLoginRequest(source, canceled.requestId, 'failed')
       if (process.env.DFRAGON_PASSKEY_ARTIFACTS && operation === 'authenticate') {
         await phonePage.screenshot({
           path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'phone-canceled.png')
@@ -299,11 +296,6 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal((await rejectedClaim).status(), 400)
     await pcPage.locator('#entry').waitFor()
     assert.equal(await pcPage.locator('#complete').count(), 0)
-    const terminal = await source.query(
-      'SELECT qr_ticket_hash, phone_binding_hash, confirmation_code FROM auth_login_requests WHERE id=ANY($1::uuid[])',
-      [[first.requestId, replaced.requestId]]
-    )
-    assert(terminal.every((row) => Object.values(row).every((value) => value === null)))
   } finally {
     await pc.close()
     await phone.close()

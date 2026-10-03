@@ -84,6 +84,56 @@ test('누락/빈 issuer·audience·key 목록과 중복/빈 kid를 초기화에�
   await assert.rejects(createAccessJwtVerifier({ ...config, verificationKeys: [] }), sanitized)
 })
 
+test('public verifier도 빈 신뢰 설정·중복 kid·비활성 잘못된 key를 독립적으로 거절한다', async (t) => {
+  const config = configuration()
+  const cases = [
+    { name: '공백 issuer', values: { issuer: ' \t' } },
+    { name: '공백 audience', values: { audience: ' \n' } },
+    { name: '공백 kid', values: { verificationKeys: [{ ...active, kid: ' \t' }] } },
+    { name: '중복 kid', values: { verificationKeys: [active, active] } },
+    {
+      name: '잘못된 이전 key',
+      values: {
+        verificationKeys: [active, { kid: 'old-broken', publicKeyPem: 'sensitive-invalid-key' }]
+      }
+    }
+  ]
+  for (const { name, values } of cases) {
+    await t.test(name, async () => {
+      await assert.rejects(createAccessJwtVerifier({ ...config, ...values }), sanitized)
+    })
+  }
+})
+
+test('정상 key 교체는 두 token의 겹침 기간을 허용하고 이전 token 만료 뒤 제거한다', async () => {
+  const oldConfig = configuration()
+  oldConfig.signingKey = { kid: previous.kid, privateKeyPem: previous.privateKeyPem }
+  oldConfig.verificationKeys = [{ kid: previous.kid, publicKeyPem: previous.publicKeyPem }]
+  const oldIssue = await createAccessJwtIssuer(oldConfig)
+  const oldToken = await oldIssue(input())
+
+  const overlap = await createAccessJwtVerifier(configuration())
+  const newIssue = await createAccessJwtIssuer(configuration())
+  const newToken = await newIssue({ ...input(), issuedAt: now + 300 })
+  assert.equal(decodeProtectedHeader(oldToken.accessToken).kid, previous.kid)
+  assert.equal(decodeProtectedHeader(newToken.accessToken).kid, active.kid)
+  assert.equal((await overlap(oldToken.accessToken, now + 300)).expiresAt, now + 900)
+  assert.equal((await overlap(newToken.accessToken, now + 300)).expiresAt, now + 1200)
+  await assert.rejects(overlap(oldToken.accessToken, now + 900), { code: 'INVALID_ACCESS_JWT' })
+
+  const newOnlyConfig = configuration()
+  newOnlyConfig.verificationKeys = [{ kid: active.kid, publicKeyPem: active.publicKeyPem }]
+  const newOnly = await createAccessJwtVerifier(newOnlyConfig)
+  await assert.rejects(newOnly(oldToken.accessToken, now + 900), { code: 'INVALID_ACCESS_JWT' })
+  assert.deepEqual(await newOnly(newToken.accessToken, now + 900), {
+    userId: input().userId,
+    sessionId: input().sessionId,
+    issuedAt: now + 300,
+    expiresAt: now + 1200,
+    tokenId: decodeJwt(newToken.accessToken).jti
+  })
+})
+
 test('private/public mismatch·잘못된 curve·RSA·key 역할 혼동은 초기화 실패다', async () => {
   const config = configuration()
   const p384 = keyPair(undefined, 'secp384r1')

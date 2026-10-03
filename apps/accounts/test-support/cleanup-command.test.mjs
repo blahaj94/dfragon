@@ -8,16 +8,16 @@ import { bounded } from './login-test-control.mjs'
 
 const load = () => import('../dist/auth/cleanup/command.js')
 
-for (const stage of [
-  'success',
-  'factory',
-  'initialize',
-  'cleanup',
-  'destroy',
-  'partial initialize',
-  'partial disconnect'
+for (const [name, stage] of [
+  ['성공', 'success'],
+  ['DataSource 생성 실패', 'factory'],
+  ['initialize 실패', 'initialize'],
+  ['cleanup 실패', 'cleanup'],
+  ['destroy 실패', 'destroy'],
+  ['부분 initialize 실패', 'partial initialize'],
+  ['부분 disconnect 실패', 'partial disconnect']
 ]) {
-  test(`one-shot owns and closes connections: ${stage}`, async () => {
+  test(`cleanup command는 연결을 소유하고 종료한다: ${name}`, async () => {
     const { runAuthenticationCleanup } = await load()
     const calls = []
     const fail = () => {
@@ -95,7 +95,7 @@ for (const stage of [
   })
 }
 
-test('one-shot reports success only after owned connections finish closing', async () => {
+test('cleanup command는 소유 연결의 종료가 끝나야 성공한다', async () => {
   const { runAuthenticationCleanup } = await load()
   const closing = Promise.withResolvers()
   const release = Promise.withResolvers()
@@ -123,7 +123,7 @@ test('one-shot reports success only after owned connections finish closing', asy
   assert.deepEqual(await pending, { sessionsDeleted: 0, loginRequestsDeleted: 0 })
 })
 
-test('compiled command rejects absent DB configuration without exposing values or stack', () => {
+test('cleanup CLI의 DB 설정 누락은 값·stack 없는 실패로 종료한다', () => {
   const result = spawnSync(
     process.execPath,
     ['--import', 'reflect-metadata', 'dist/auth/cleanup/cli.js'],
@@ -140,7 +140,7 @@ test('compiled command rejects absent DB configuration without exposing values o
   assert.equal(result.stderr, 'Authentication cleanup failed\n')
 })
 
-test('explicit cleanup script uses existing compiled ESM build', async () => {
+test('cleanup script는 기존 ESM build를 사용한다', async () => {
   const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
   assert.equal(
     manifest.scripts['auth:cleanup'],
