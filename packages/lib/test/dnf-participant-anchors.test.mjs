@@ -6,7 +6,7 @@ function component(width, height, color = [235, 20, 25, 128], count = width * he
   const frameWidth = 40
   const frameHeight = 40
   const rgba = new Uint8Array(frameWidth * frameHeight * 4)
-  // A connected L first keeps both dimensions fixed even in sparse fill-ratio fixtures.
+  // 연결된 L을 먼저 그려 채움 비율이 낮은 fixture도 같은 가로·세로 크기를 유지한다.
   const pixels = new Set()
   for (let x = 0; x < width; x += 1) {
     pixels.add(x)
@@ -30,7 +30,7 @@ function anchors(image) {
   return findParticipantAnchors(image.width, image.height, image.rgba)
 }
 
-test('keeps red intensity and channel differences inclusive at their measured boundaries', () => {
+test('빨간 밝기와 채널 차이의 실측 경계를 포함한다', () => {
   for (const [color, expected] of [
     [[129, 0, 0, 255], 0],
     [[130, 0, 0, 0], 1],
@@ -50,7 +50,7 @@ test('keeps red intensity and channel differences inclusive at their measured bo
   }
 })
 
-test('preserves the inclusive size and aspect-ratio limits for connected red components', () => {
+test('빨간 연결 영역의 크기와 종횡비 제한 경계를 포함한다', () => {
   for (const [width, height, expected] of [
     [5, 6, 0],
     [6, 5, 0],
@@ -71,7 +71,7 @@ test('preserves the inclusive size and aspect-ratio limits for connected red com
   }
 })
 
-test('preserves the 45 percent fill boundary and the 9px reference-scale interpretation', () => {
+test('45% 채움 비율 경계와 9px 기준 배율 의미를 유지한다', () => {
   for (const [count, expected] of [
     [44, 0],
     [45, 1],
@@ -84,7 +84,7 @@ test('preserves the 45 percent fill boundary and the 9px reference-scale interpr
   assert.equal(anchors(component(30, 30))[0].scale, 10 / 3)
 })
 
-test('accepts exactly 128 anchors and refuses a partial list when the next anchor exceeds the limit', () => {
+test('앵커 128개는 허용하고 다음 앵커가 한도를 넘으면 부분 목록을 거절한다', () => {
   const width = 400
   const height = 220
   const rgba = new Uint8Array(width * height * 4)
@@ -101,4 +101,47 @@ test('accepts exactly 128 anchors and refuses a partial list when the next ancho
     }
   }
   assert.equal(findParticipantAnchors(width, height, rgba), null)
+})
+
+test('대각선으로 닿은 빨간 영역도 8방향 연결 앵커 하나로 묶는다', () => {
+  const width = 24
+  const height = 24
+  const rgba = new Uint8Array(width * height * 4)
+  for (const [left, top] of [
+    [2, 2],
+    [11, 11]
+  ]) {
+    for (let y = top; y < top + 9; y += 1) {
+      for (let x = left; x < left + 9; x += 1) {
+        rgba.set([235, 20, 25, 0], (y * width + x) * 4)
+      }
+    }
+  }
+  const original = rgba.slice()
+
+  // 18×18 외곽 안의 두 9×9 블록은 50%를 채우며 중심은 (10.5, 10.5)다.
+  assert.deepEqual(findParticipantAnchors(width, height, rgba), [{ x: 10.5, y: 10.5, scale: 2 }])
+  assert.deepEqual(rgba, original)
+})
+
+test('배열에서 붙은 행의 양 끝 픽셀을 화면상의 이웃으로 연결하지 않는다', () => {
+  const width = 30
+  const height = 12
+  const rgba = new Uint8Array(width * height * 4)
+  for (const [left, top] of [
+    [24, 0],
+    [0, 6]
+  ]) {
+    for (let y = top; y < top + 6; y += 1) {
+      for (let x = left; x < left + 6; x += 1) {
+        rgba.set([235, 20, 25, 255], (y * width + x) * 4)
+      }
+    }
+  }
+  const actual = findParticipantAnchors(width, height, rgba).sort((left, right) => left.x - right.x)
+
+  assert.deepEqual(actual, [
+    { x: 2.5, y: 8.5, scale: 2 / 3 },
+    { x: 26.5, y: 2.5, scale: 2 / 3 }
+  ])
 })

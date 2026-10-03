@@ -5,7 +5,7 @@ import {
   participantEvidenceRatio
 } from '../dist/dnf-participant-evidence.js'
 
-test('requires each pair of occupancy signals at their inclusive ratio boundaries', () => {
+test('참가 근거 세 쌍의 비율 경계를 포함하고 두 신호 이상을 요구한다', () => {
   const thresholds = { portrait: 0.12, level: 0.035, role: 0.1 }
   for (let mask = 0; mask < 8; mask += 1) {
     const evidence = {
@@ -15,20 +15,20 @@ test('requires each pair of occupancy signals at their inclusive ratio boundarie
     }
     const expected = [3, 5, 6, 7].includes(mask)
 
-    assert.equal(hasParticipantEvidence(evidence), expected, `signal mask ${mask}`)
+    assert.equal(hasParticipantEvidence(evidence), expected, `참가 근거 조합 ${mask}`)
     for (const key of Object.keys(thresholds)) {
       if (evidence[key] === thresholds[key]) {
         assert.equal(
           hasParticipantEvidence({ ...evidence, [key]: thresholds[key] + Number.EPSILON }),
           expected,
-          `${key} immediately above threshold in signal mask ${mask}`
+          `참가 근거 조합 ${mask}에서 ${key}가 경계 바로 위인 경우`
         )
       }
     }
   }
 })
 
-test('preserves brightness and role-color boundaries, independent of channel order or alpha', () => {
+test('채널 위치와 alpha에 관계없이 밝기와 역할 색상의 포함 경계를 유지한다', () => {
   for (const [color, colored, expected] of [
     [[99, 20, 20, 255], false, 0],
     [[100, 20, 20, 0], false, 1],
@@ -50,11 +50,29 @@ test('preserves brightness and role-color boundaries, independent of channel ord
   }
 })
 
-test('measures only the projected evidence rectangle rather than adjacent nickname pixels', () => {
+test('인접 닉네임 픽셀을 제외하고 지정한 근거 사각형만 측정한다', () => {
   const rgba = Uint8ClampedArray.from([
     200, 200, 200, 128, 99, 99, 99, 0, 100, 100, 100, 255, 200, 200, 200, 128
   ])
   const frame = { width: 4, height: 1, rgba }
 
   assert.equal(participantEvidenceRatio(frame, { x: 1, y: 0, width: 2, height: 1 }), 0.5)
+})
+
+test('여러 행의 근거 영역은 frame stride와 전체 면적으로 비율을 계산한다', () => {
+  const outside = [255, 255, 255, 255]
+  const pixels = [
+    [outside, outside, outside, outside],
+    [outside, [100, 100, 100, 0], [120, 60, 60, 17], outside],
+    [outside, [99, 99, 99, 255], [119, 59, 59, 128], outside]
+  ]
+  const rgba = Uint8Array.from(pixels.flat(2))
+  const original = rgba.slice()
+  const image = Object.freeze({ width: 4, height: 3, rgba })
+  const region = Object.freeze({ x: 1, y: 1, width: 2, height: 2 })
+
+  // 네 내부 픽셀 중 밝기 100 이상은 셋, 역할 밝기·색상 차이 근거는 하나다.
+  assert.equal(participantEvidenceRatio(image, region), 0.75)
+  assert.equal(participantEvidenceRatio(image, region, true), 0.25)
+  assert.deepEqual(rgba, original)
 })

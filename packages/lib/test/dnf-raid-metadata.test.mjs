@@ -2,7 +2,22 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { readDNFRaidParticipantMetadata } from '@dfragon/lib'
 
-// Artificial glyphs and badges only; no screenshots, game assets or player data.
+const testTitles = {
+  visibleNotation: '12행의 합성 표식을 읽고 표시된 점수 문자열을 유지한다',
+  scaledFields: '검출 배율 상한까지 확대된 필드의 사본을 기준 크기로 맞춘다',
+  independentNulls: '모호한 표식·미판독 점수·빈 행을 독립적인 null로 반환한다',
+  malformedScores: '모호한 글자와 잘못된 점수 형식을 보정·추측 없이 거절한다',
+  validation: '완전한 영역·중복 없는 화면 행·유효한 기준 픽셀을 요구한다',
+  contrastBoundary: '국소 대비 경계를 포함하고 아래 구분선 두 행을 점수에서 제외한다',
+  glyphBoundary: '글자 획의 겹침 경계를 포함하고 별도로 16글자 상한을 유지한다',
+  independentAmbiguity: '같은 기준 높이에서도 표식과 글자의 모호성 판정을 독립적으로 유지한다',
+  sparseReadonlyRows:
+    '일부 행의 입력 순서와 화면 행 번호를 유지하고 RGBA view·기준 이미지를 변경하지 않는다',
+  regionBoundaries: '빈 행도 완전한 정수 영역을 요구하고 사각형 크기·화면 끝 경계를 포함한다',
+  referenceSetLimits: '같은 표식·글자의 여러 기준은 모호하지 않으며 기준 개수 상한을 포함한다'
+}
+
+// 합성 글자·배지만 사용하며 스크린샷·게임 자산·플레이어 데이터는 포함하지 않는다.
 const alphabet = {
   0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
   1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
@@ -101,7 +116,7 @@ function score(text, color = [205, 210, 225, 255], gold = false) {
     for (let y = 0; y < 17; y += 1) {
       paint(image, 0, y, 75, 1, [18 + y * 3, 16 + y * 2, 8, 255])
     }
-    // The bright bottom separator must not be mistaken for a digit.
+    // 밝은 아래 구분선을 숫자의 획으로 읽지 않아야 한다.
     paint(image, 40, 15, 35, 1, [200, 170, 30, 255])
   }
   let left = 3
@@ -149,7 +164,7 @@ function fixture(values, scale = 1) {
   return { image, rows }
 }
 
-test('reads actual per-row badges and preserves visible score notation across twelve rows', () => {
+test(testTitles.visibleNotation, () => {
   const values = [
     { party: 'G', text: '1000.4K', gold: true },
     { party: '싱글', text: '123,456' },
@@ -186,7 +201,7 @@ test('reads actual per-row badges and preserves visible score notation across tw
   }
 })
 
-test('normalizes scaled field copies, including the detector upper scale boundary', () => {
+test(testTitles.scaledFields, () => {
   for (const scale of [1.8, 2.425]) {
     const { image, rows } = fixture(
       [
@@ -202,7 +217,7 @@ test('normalizes scaled field copies, including the detector upper scale boundar
   }
 })
 
-test('returns independent nulls for ambiguous badges, unreadable scores and empty rows', () => {
+test(testTitles.independentNulls, () => {
   const { image, rows } = fixture([{ party: 'R' }, { party: 'G' }, { occupied: false }])
   const first = rows[0].partyRegion
   paint(image, first.x, first.y, first.width, first.height, [0, 0, 0, 255])
@@ -226,7 +241,7 @@ test('returns independent nulls for ambiguous badges, unreadable scores and empt
   assert.equal(readDNFRaidParticipantMetadata(clean.image, clean.rows, ambiguous)[0].party, null)
 })
 
-test('rejects ambiguous glyphs and malformed score syntax without trimming or guessing', () => {
+test(testTitles.malformedScores, () => {
   const { image, rows } = fixture([
     { text: ',123' },
     { text: '12,34' },
@@ -249,7 +264,7 @@ test('rejects ambiguous glyphs and malformed score syntax without trimming or gu
   )
 })
 
-test('requires bounded complete regions, distinct screen rows, and valid pixel references', () => {
+test(testTitles.validation, () => {
   const { image, rows } = fixture([{}])
   for (const invalid of [
     null,
@@ -288,13 +303,13 @@ test('requires bounded complete regions, distinct screen rows, and valid pixel r
   }
 })
 
-test('keeps the local-contrast boundary inclusive and excludes both bottom separator rows', () => {
+test(testTitles.contrastBoundary, () => {
   for (const [brightness, expected] of [
     [73, null],
     [74, '8'],
     [75, '8']
   ]) {
-    // The fixture background rounds to grayscale 19: these strokes have contrast 54/55/56.
+    // 배경의 반올림 휘도는 19이므로 글자 획의 대비는 각각 54·55·56이다.
     const { image, rows } = fixture([
       { text: '8', color: [brightness, brightness, brightness, 255] }
     ])
@@ -314,7 +329,7 @@ test('keeps the local-contrast boundary inclusive and excludes both bottom separ
   }
 })
 
-test('preserves the inclusive glyph overlap threshold and the independent 16-character limit', () => {
+test(testTitles.glyphBoundary, () => {
   const reference = frame(3, 17, [0, 0, 0, 255])
   paint(reference, 1, 3, 1, 10, [255, 255, 255, 255])
   const narrowTemplates = {
@@ -334,7 +349,7 @@ test('preserves the inclusive glyph overlap threshold and the independent 16-cha
     assert.equal(
       readDNFRaidParticipantMetadata(image, rows, narrowTemplates)[0].equipmentScoreText,
       expected,
-      `${strokeCount}/10 glyph overlap`
+      `글자 획 ${strokeCount}/10 겹침`
     )
   }
   for (const count of [16, 17]) {
@@ -353,7 +368,7 @@ test('preserves the inclusive glyph overlap threshold and the independent 16-cha
   }
 })
 
-test('keeps ambiguous badge and glyph decisions independent at the shared baseline size', () => {
+test(testTitles.independentAmbiguity, () => {
   const { image, rows } = fixture([{ party: 'R', text: '8' }])
   const ambiguousParties = [
     { party: 'R', image: badge('R') },
@@ -377,6 +392,151 @@ test('keeps ambiguous badge and glyph decisions independent at the shared baseli
     { ...templates, parties: [{ party: 'R', image: frame(42, 18) }] },
     { ...templates, equipmentScoreGlyphs: [{ character: '1', image: frame(17, 17) }] },
     { ...templates, equipmentScoreGlyphs: [{ character: '1', image: frame(3, 18) }] }
+  ]) {
+    assert.throws(() => readDNFRaidParticipantMetadata(image, rows, invalid), RangeError)
+  }
+})
+
+test(testTitles.sparseReadonlyRows, () => {
+  const { image, rows } = fixture([
+    { party: 'G', text: '1000.4K' },
+    { party: 'Y', text: '0042' },
+    { party: 'R', text: '12', occupied: false }
+  ])
+  const storage = new Uint8ClampedArray(image.rgba.length + 8).fill(211)
+  storage.set(image.rgba, 4)
+  const rgba = storage.subarray(4, storage.length - 4)
+  for (let index = 3; index < rgba.length; index += 4) {
+    rgba[index] = index % 256
+  }
+  const view = Object.freeze({ width: image.width, height: image.height, rgba })
+  const positions = [12, 3, 1]
+  const inputRows = Object.freeze(
+    rows.map((row, index) => {
+      const position = positions[index]
+      const partyRegion = Object.freeze({ ...row.partyRegion })
+      const equipmentScoreRegion = Object.freeze({ ...row.equipmentScoreRegion })
+
+      return Object.freeze({ ...row, row: position, partyRegion, equipmentScoreRegion })
+    })
+  )
+  const references = Object.freeze({
+    parties: Object.freeze(
+      templates.parties.map((template) => {
+        const image = Object.freeze({ ...template.image })
+
+        return Object.freeze({ ...template, image })
+      })
+    ),
+    equipmentScoreGlyphs: Object.freeze(
+      templates.equipmentScoreGlyphs.map((template) => {
+        const image = Object.freeze({ ...template.image })
+
+        return Object.freeze({ ...template, image })
+      })
+    )
+  })
+  const original = storage.slice()
+  const referenceImages = [...references.parties, ...references.equipmentScoreGlyphs].map(
+    ({ image }) => image
+  )
+  const originalReferences = referenceImages.map(({ rgba }) => rgba.slice())
+
+  assert.deepEqual(readDNFRaidParticipantMetadata(view, inputRows, references), [
+    { row: 12, party: 'G', equipmentScoreText: '1000.4K' },
+    { row: 3, party: 'Y', equipmentScoreText: '0042' },
+    { row: 1, party: null, equipmentScoreText: null }
+  ])
+  assert.deepEqual(
+    inputRows.map(({ row }) => row),
+    [12, 3, 1]
+  )
+  assert.deepEqual(storage, original)
+  for (const [index, image] of referenceImages.entries()) {
+    assert.deepEqual(image.rgba, originalReferences[index])
+  }
+  assert.deepEqual(readDNFRaidParticipantMetadata(view, [], references), [])
+})
+
+test(testTitles.regionBoundaries, () => {
+  const image = frame(640, 600)
+  const valid = {
+    row: 12,
+    occupied: false,
+    partyRegion: { x: 448, y: 552, width: 192, height: 48 },
+    equipmentScoreRegion: { x: 638, y: 598, width: 2, height: 2 }
+  }
+
+  assert.deepEqual(readDNFRaidParticipantMetadata(image, [valid], templates), [
+    { row: 12, party: null, equipmentScoreText: null }
+  ])
+  for (const region of ['partyRegion', 'equipmentScoreRegion']) {
+    for (const change of [
+      { x: 449, y: 552, width: 192, height: 48 },
+      { x: 448, y: 553, width: 192, height: 48 },
+      { x: 0, y: 0, width: 193, height: 17 },
+      { x: 0, y: 0, width: 42, height: 49 },
+      { x: 0, y: 0, width: 0, height: 17 },
+      { x: 0, y: 0, width: 42, height: 0 }
+    ]) {
+      assert.throws(
+        () => readDNFRaidParticipantMetadata(image, [{ ...valid, [region]: change }], templates),
+        RangeError,
+        region
+      )
+    }
+    for (const field of ['x', 'y', 'width', 'height']) {
+      for (const value of [
+        -1,
+        0.5,
+        NaN,
+        Infinity,
+        -Infinity,
+        Number.MAX_SAFE_INTEGER + 1,
+        '1',
+        null,
+        undefined
+      ]) {
+        const invalid = { ...valid[region], [field]: value }
+        assert.throws(
+          () => readDNFRaidParticipantMetadata(image, [{ ...valid, [region]: invalid }], templates),
+          RangeError,
+          `${region}의 ${field}: ${String(value)}`
+        )
+      }
+    }
+  }
+  for (const row of [0, -1, 13, 1.5, NaN, Infinity, '1', null, undefined]) {
+    assert.throws(
+      () => readDNFRaidParticipantMetadata(image, [{ ...valid, row }], templates),
+      RangeError,
+      `행 번호 ${String(row)}`
+    )
+  }
+  for (const occupied of [0, 1, 'false', null, undefined]) {
+    assert.throws(
+      () => readDNFRaidParticipantMetadata(image, [{ ...valid, occupied }], templates),
+      RangeError
+    )
+  }
+  assert.throws(() => readDNFRaidParticipantMetadata(image, Array(1), templates), RangeError)
+})
+
+test(testTitles.referenceSetLimits, () => {
+  const { image, rows } = fixture([{ party: 'R', text: '1' }])
+  const party = templates.parties.find(({ party }) => party === 'R')
+  const glyph = templates.equipmentScoreGlyphs.find(({ character }) => character === '1')
+  const bounded = {
+    parties: Array(8).fill(party),
+    equipmentScoreGlyphs: Array(26).fill(glyph)
+  }
+
+  assert.deepEqual(readDNFRaidParticipantMetadata(image, rows, bounded), [
+    { row: 1, party: 'R', equipmentScoreText: '1' }
+  ])
+  for (const invalid of [
+    { ...bounded, parties: [...bounded.parties, party] },
+    { ...bounded, equipmentScoreGlyphs: [...bounded.equipmentScoreGlyphs, glyph] }
   ]) {
     assert.throws(() => readDNFRaidParticipantMetadata(image, rows, invalid), RangeError)
   }

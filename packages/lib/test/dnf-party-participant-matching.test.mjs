@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  participantGrayscale,
   participantRefinementScales,
   roundParticipantPixel
 } from '../dist/dnf-party-participant-matching.js'
 
-test('rounds projected half pixels to even despite scale arithmetic error', () => {
+test('배율 연산 오차가 있어도 반 픽셀 좌표를 짝수로 반올림한다', () => {
   const scale = 1.28 - 2 * 0.0025
   for (const [value, expected] of [
     [380 * scale, 484],
@@ -25,7 +26,7 @@ test('rounds projected half pixels to even despite scale arithmetic error', () =
   }
 })
 
-test('keeps 21 centered refinement scales with 0.0025 spacing and unchanged half-pixel projection', () => {
+test('중심을 포함한 21개 정밀 배율과 0.0025 간격 및 반 픽셀 투영을 유지한다', () => {
   for (const center of [1, 1.275, 1.8]) {
     const scales = participantRefinementScales(center)
 
@@ -42,4 +43,42 @@ test('keeps 21 centered refinement scales with 0.0025 spacing and unchanged half
 
   assert.equal(roundParticipantPixel(380 * scales[8]), 484)
   assert.equal(roundParticipantPixel(1 + 380 * scales[8]), 486)
+})
+
+test('기본 반 픽셀의 양수·음수 좌표를 짝수로 반올림한다', () => {
+  for (const [value, expected] of [
+    [0.5, 0],
+    [1.5, 2],
+    [2.5, 2],
+    [3.5, 4],
+    [-0.5, 0],
+    [-1.5, -2],
+    [-2.5, -2],
+    [-3.5, -4]
+  ]) {
+    assert.equal(roundParticipantPixel(value), expected, `반 픽셀 ${value}`)
+  }
+})
+
+test('RGBA view의 채널과 alpha를 유지하면서 독립 회색조 배열을 만든다', () => {
+  const pixels = [
+    [255, 0, 0, 0],
+    [0, 255, 0, 17],
+    [0, 0, 255, 128],
+    [255, 255, 255, 255],
+    [10, 20, 30, 0],
+    [0, 0, 0, 255]
+  ].flat()
+  for (const ArrayType of [Uint8Array, Uint8ClampedArray]) {
+    const storage = ArrayType.from([9, 8, 7, 6, ...pixels, 5, 4, 3, 2])
+    const rgba = storage.subarray(4, storage.length - 4)
+    const original = storage.slice()
+    const gray = participantGrayscale(rgba)
+
+    // 원색의 휘도는 76·150·29, (10,20,30)의 휘도는 18로 손으로 검산된다.
+    assert.deepEqual([...gray], [76, 150, 29, 255, 18, 0])
+    assert.deepEqual(storage, original)
+    gray.fill(0)
+    assert.deepEqual(storage, original)
+  }
 })
