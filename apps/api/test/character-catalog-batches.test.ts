@@ -1,10 +1,32 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createCatalogService } from '../src/characters/catalog/service.js'
+import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
+import { catalogKey } from '../src/characters/catalog/types.js'
 import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { CatalogKey } from '../src/characters/catalog/types.js'
 
-test('refreshes mixed references in item, set and single-skill groups with the last duplicate object', async () => {
+function catalogPayload(key: CatalogKey) {
+  if (key.kind === 'item') {
+    const itemId = key.itemId
+    const itemName = '합성 아이템 ' + itemId
+
+    return { itemId, itemName }
+  }
+
+  if (key.kind === 'set') {
+    const setItemId = key.setItemId
+    const setItemName = '합성 세트 ' + setItemId
+
+    return { setItemId, setItemName, setItemOption: [] }
+  }
+  const jobId = key.jobId
+  const name = '합성 스킬 ' + key.skillId
+
+  return { jobId, name, levelInfo: { rows: [] } }
+}
+
+test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내, 스킬은 단독 요청으로 제공한다', async () => {
   const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => {
     const itemId = 'item-' + index
 
@@ -19,38 +41,58 @@ test('refreshes mixed references in item, set and single-skill groups with the l
     { kind: 'skill', jobId: 'job', skillId: 'skill-a' },
     { kind: 'skill', jobId: 'job', skillId: 'skill-b' }
   ]
-  const replacement: CatalogKey = { kind: 'item', itemId: 'item-0' }
-  const now = new Date()
+  const now = new Date('2026-09-01T00:00:00.000Z')
   const requestedAt = now.toISOString()
   const store: CatalogStore = {
     read: async () => ({ entries: [], now, requestedAt }),
-    saveAndRead: async () => ({ entries: [], now })
+    saveAndRead: async (values) => {
+      const entries = values.map((value) => ({
+        ...value,
+        fetchedAt: now,
+        expiresAt: new Date('2026-09-02T00:00:00.000Z')
+      }))
+
+      return { entries, now }
+    }
   }
   const calls: CatalogKey[][] = []
   const service = createCatalogService(store, async (keys) => {
     calls.push(keys)
 
-    return []
-  })
+    return keys.map((key) => {
+      const payload = catalogPayload(key)
 
-  await service.load(
-    [skills[0]!, sets[0]!, ...items, ...sets.slice(1), skills[1]!, replacement],
+      return { key, payload }
+    })
+  })
+  const unique = [...items, ...sets, ...skills]
+  const result = await service.load(
+    [skills[0]!, sets[0]!, ...items, ...sets.slice(1), skills[1]!, { ...items[0]! }],
     new AbortController().signal
   )
 
-  assert.deepEqual(calls, [
-    [replacement, ...items.slice(1, 15)],
-    items.slice(15),
-    sets.slice(0, 15),
-    sets.slice(15),
-    [skills[0]!],
-    [skills[1]!]
-  ])
-  assert.equal(calls[0]![0], replacement)
+  for (const group of calls) {
+    assert(group.length > 0 && group.length <= 15)
+    assert(group.every((key) => key.kind === group[0]!.kind))
+    if (group[0]!.kind === 'skill') {
+      assert.equal(group.length, 1)
+    }
+  }
+  assert.deepEqual(calls.flat().map(catalogKey).sort(), unique.map(catalogKey).sort())
+  assert.equal(result.size, 35)
+  for (const key of unique) {
+    assert.deepEqual(result.get(catalogKey(key)), {
+      key,
+      detail: {
+        data: catalogPayload(key),
+        fetchedAt: '2026-09-01T00:00:00.000Z',
+        status: 'fresh'
+      }
+    })
+  }
 })
 
-test('provider accepts fifteen item or set keys and rejects sixteen before fetching', async () => {
-  const { createNeopleCatalog } = await import('../src/characters/catalog/neople.js')
+test('공급자는 아이템·세트 15개 요청을 받고 16개 요청은 전송 전에 거절한다', async () => {
   let calls = 0
   const adapter = createNeopleCatalog('fixture-key', async (input) => {
     calls++

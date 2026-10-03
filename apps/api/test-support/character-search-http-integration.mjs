@@ -85,11 +85,11 @@ async function initialRejections(source) {
 export async function assertCharacterSearchHttpIntegration(source, mark) {
   const cases = [
     [
-      'public search reaches loopback upstream without authentication tables',
+      '공개 검색은 loopback 공급자의 후보를 정제하고 저장된 캐릭터 목록을 유지한다',
       () => publicSearch(source)
     ],
     [
-      'public raw query refusals preserve all database state and upstream count',
+      '잘못된 공개 검색 query는 공급자를 호출하지 않고 저장된 캐릭터 목록을 유지한다',
       () => initialRejections(source)
     ]
   ]

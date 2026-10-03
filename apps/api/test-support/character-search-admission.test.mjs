@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { settled } from './login-test-control.mjs'
+import { SearchDeadline } from '../dist/characters/search-deadline.js'
 
 function clock() {
   let now = 0
@@ -33,7 +33,7 @@ function clock() {
   }
 }
 
-async function reserve(admission, peerAddress = 'peerAddress') {
+async function reserve(admission, peerAddress = '192.0.2.1') {
   const controller = new AbortController()
   const lease = await admission.acquire(peerAddress, controller.signal)
   try {
@@ -49,7 +49,12 @@ function assertLimited(lease, seconds) {
     () => lease.assertCapacity(),
     (error) => {
       assert.equal(error.status, 429)
-      assert.equal(error.body.error.code, 'SEARCH_RATE_LIMITED')
+      assert.deepEqual(error.body, {
+        error: {
+          code: 'SEARCH_RATE_LIMITED',
+          message: '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+        }
+      })
       assert.equal(error.retryAfter, seconds)
 
       return true
@@ -57,7 +62,7 @@ function assertLimited(lease, seconds) {
   )
 }
 
-test('search quota expires at exactly 60000ms and rejected attempts do not extend the window', async () => {
+test('검색 한도는 정확히 60초에 만료되고 거절된 요청으로 창을 연장하지 않는다', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)
@@ -71,7 +76,7 @@ test('search quota expires at exactly 60000ms and rejected attempts do not exten
     [59_999, 1]
   ]) {
     time.advance(now)
-    const lease = await admission.acquire('peerAddress', controller.signal)
+    const lease = await admission.acquire('192.0.2.1', controller.signal)
     assertLimited(lease, retryAfter)
     lease.release()
   }
@@ -83,14 +88,14 @@ test('search quota expires at exactly 60000ms and rejected attempts do not exten
   assert.equal(time.timerCount, 0)
 })
 
-test('search peers serialize only admission and reserve using the final clock', async () => {
+test('같은 접속 IP의 admission만 직렬화하고 실제 예약 시각으로 한도를 계산한다', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)
-  const owner = await admission.acquire('peerAddress', new AbortController().signal)
+  const owner = await admission.acquire('192.0.2.1', new AbortController().signal)
   owner.assertCapacity()
   let waiterAcquired = false
-  const pending = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
+  const pending = admission.acquire('192.0.2.1', new AbortController().signal).then((lease) => {
     waiterAcquired = true
 
     return lease
@@ -106,41 +111,45 @@ test('search peers serialize only admission and reserve using the final clock', 
     await reserve(admission)
   }
   time.advance(60_000)
-  const beforeExactExpiry = await admission.acquire('peerAddress', new AbortController().signal)
+  const beforeExactExpiry = await admission.acquire('192.0.2.1', new AbortController().signal)
   assertLimited(beforeExactExpiry, 1)
   beforeExactExpiry.release()
   time.advance(61_000)
   assert.equal(admission.entryCount, 0)
 })
 
-test('search cancellation removes queued references and no-reservation peerAddress entries', async () => {
+test('취소한 admission 대기자와 예약 없는 접속 IP entry를 정리한다', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const admission = new SearchAdmission(clock())
   const ownerController = new AbortController()
-  const owner = await admission.acquire('peerAddress', ownerController.signal)
+  const owner = await admission.acquire('192.0.2.1', ownerController.signal)
   const waiterController = new AbortController()
-  const pending = settled(admission.acquire('peerAddress', waiterController.signal))
+  const pending = assert.rejects(admission.acquire('192.0.2.1', waiterController.signal), {
+    status: 500,
+    body: {
+      error: { code: 'INTERNAL_SERVER_ERROR', message: '서버 오류로 검색을 처리하지 못했습니다.' }
+    }
+  })
   waiterController.abort()
-  const rejected = await pending
-  assert.equal(rejected.error.status, 500)
+  await pending
   assert.equal(admission.entryCount, 1)
   ownerController.abort()
   owner.release()
   assert.equal(admission.entryCount, 0)
-  await assert.rejects(admission.acquire('peerAddress', waiterController.signal), { status: 500 })
+  await assert.rejects(admission.acquire('192.0.2.1', waiterController.signal), { status: 500 })
   assert.equal(admission.entryCount, 0)
 })
 
-test('search reservation expiry cannot replace an peerAddress entry with live admission', async () => {
+test('예약 만료 시 살아 있는 admission의 IP entry를 교체하지 않는다', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)
   await reserve(admission)
-  const owner = await admission.acquire('peerAddress', new AbortController().signal)
+  const owner = await admission.acquire('192.0.2.1', new AbortController().signal)
   time.advance(60_000)
   assert.equal(admission.entryCount, 1)
   let nextAcquired = false
-  const next = admission.acquire('peerAddress', new AbortController().signal).then((lease) => {
+  const next = admission.acquire('192.0.2.1', new AbortController().signal).then((lease) => {
     nextAcquired = true
 
     return lease
@@ -151,4 +160,70 @@ test('search reservation expiry cannot replace an peerAddress entry with live ad
   const nextLease = await next
   nextLease.release()
   assert.equal(admission.entryCount, 0)
+})
+
+test('admission 대기는 1,999ms에는 통과하고 정확히 2,000ms에는 취소된다', async (t) => {
+  const { SearchAdmission } = await import('../dist/characters/search-admission.js')
+  for (const releaseAt of [1_999, 2_000]) {
+    await t.test(`${releaseAt}ms 경계`, async () => {
+      const time = clock()
+      const admission = new SearchAdmission(time)
+      const owner = await admission.acquire('192.0.2.1', new AbortController().signal)
+      const deadline = new SearchDeadline(time)
+      const pending = deadline.wait(admission.acquire('192.0.2.1', deadline.signal))
+      const observed = pending.then(
+        (lease) => ({ lease }),
+        (error) => ({ error })
+      )
+      try {
+        time.advance(releaseAt)
+        owner.release()
+        const result = await observed
+        if (releaseAt === 1_999) {
+          assert.equal(result.error, undefined)
+          assert.equal(deadline.signal.aborted, false)
+          result.lease.release()
+        } else {
+          assert.equal(result.lease, undefined)
+          assert.equal(result.error.status, 500)
+          assert.deepEqual(result.error.body, {
+            error: {
+              code: 'INTERNAL_SERVER_ERROR',
+              message: '서버 오류로 검색을 처리하지 못했습니다.'
+            }
+          })
+          assert.equal(deadline.signal.aborted, true)
+        }
+        assert.equal(admission.entryCount, 0)
+      } finally {
+        owner.release()
+        deadline.dispose()
+        admission.close()
+      }
+      assert.equal(time.timerCount, 0)
+    })
+  }
+})
+
+test('admission 종료는 대기자를 취소하고 예약·timer를 정리하며 새 요청을 거절한다', async () => {
+  const { SearchAdmission } = await import('../dist/characters/search-admission.js')
+  const time = clock()
+  const admission = new SearchAdmission(time)
+  await reserve(admission)
+  const owner = await admission.acquire('192.0.2.1', new AbortController().signal)
+  const rejected = assert.rejects(admission.acquire('192.0.2.1', new AbortController().signal), {
+    status: 500,
+    body: {
+      error: { code: 'INTERNAL_SERVER_ERROR', message: '서버 오류로 검색을 처리하지 못했습니다.' }
+    }
+  })
+  admission.close()
+  await rejected
+  assert.throws(() => owner.reserve(), { status: 500 })
+  owner.release()
+  assert.equal(admission.entryCount, 0)
+  assert.equal(time.timerCount, 0)
+  await assert.rejects(admission.acquire('192.0.2.2', new AbortController().signal), {
+    status: 500
+  })
 })

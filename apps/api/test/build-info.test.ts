@@ -8,7 +8,7 @@ import { createApiHttpApp } from '../src/http.js'
 
 const commit = '1234567890abcdef1234567890abcdef12345678'
 
-test('API reads only valid image metadata and reports missing or malformed metadata as unknown', async () => {
+test('API 이미지 메타데이터는 유효한 값만 읽고 누락·오류는 commit null로 반환한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-'))
   const path = join(directory, 'build-info.json')
   try {
@@ -29,8 +29,9 @@ test('API reads only valid image metadata and reports missing or malformed metad
   }
 })
 
-test('API version is public, uncached and fixed at startup without changing existing routes', async () => {
+test('공개 version 응답은 캐시하지 않고 시작 시점 값을 유지하며 기존 route를 제공한다', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-http-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
   const path = join(directory, 'build-info.json')
   await writeFile(path, JSON.stringify({ service: 'api', commit }))
   const app = await createApiHttpApp(
@@ -53,12 +54,12 @@ test('API version is public, uncached and fixed at startup without changing exis
     assert.equal((await fetch(`${origin}/characters`)).status, 400)
   } finally {
     await app.close()
-    await rm(directory, { recursive: true, force: true })
   }
 })
 
-test('API version endpoint identifies the service when an older image has no metadata', async () => {
+test('이전 이미지에 메타데이터가 없어도 version 응답은 API 서비스를 식별한다', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-old-'))
+  t.after(() => rm(directory, { recursive: true, force: true }))
   const app = await createApiHttpApp(
     { apiKey: 'version-fixture' },
     undefined,
@@ -73,6 +74,5 @@ test('API version endpoint identifies the service when an older image has no met
     assert.deepEqual(await response.json(), { service: 'api', commit: null })
   } finally {
     await app.close()
-    await rm(directory, { recursive: true, force: true })
   }
 })

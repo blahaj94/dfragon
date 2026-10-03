@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
@@ -14,21 +15,42 @@ import type { projectCharacterDetails } from '../src/characters/details/project.
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'fixture-item' }
 const skill: CatalogKey = { kind: 'skill', jobId: 'fixture-job', skillId: 'fixture-skill' }
-const currentEntry = (key: CatalogKey, expired = false): CatalogEntry => {
-  const fetchedAt = new Date(Date.now() - 1000)
-  const expiresAt = new Date(Date.now() + (expired ? -1 : 60_000))
+const catalogTime = Date.parse('2026-09-01T00:00:00.000Z')
+function catalogPayload(key: CatalogKey) {
+  if (key.kind === 'item') {
+    const itemId = key.itemId
+    const itemName = '합성 아이템 ' + itemId
 
-  return { key, payload: { retained: true }, fetchedAt, expiresAt }
+    return { itemId, itemName }
+  }
+
+  if (key.kind === 'set') {
+    const setItemId = key.setItemId
+    const setItemName = '합성 세트 ' + setItemId
+
+    return { setItemId, setItemName, setItemOption: [] }
+  }
+  const jobId = key.jobId
+  const name = '합성 스킬 ' + key.skillId
+
+  return { jobId, name, levelInfo: { rows: [] } }
+}
+const currentEntry = (key: CatalogKey, expired = false): CatalogEntry => {
+  const fetchedAt = new Date(catalogTime - (expired ? 86_400_001 : 1000))
+  const expiresAt = new Date(fetchedAt.getTime() + 86_400_000)
+  const payload = { ...catalogPayload(key), retained: true }
+
+  return { key, payload, fetchedAt, expiresAt }
 }
 
-test('abort during the final database clock read rejects before the transaction can commit', async () => {
+test('마지막 DB 시각 조회 직후 취소되면 저장 transaction 콜백의 성공 반환을 막는다', async () => {
   const controller = new AbortController()
   let committed = false
   const manager = {
     async query(sql: string) {
       if (sql === 'SELECT clock_timestamp() AS now') {
         controller.abort()
-        const now = new Date()
+        const now = new Date(catalogTime)
 
         return [{ now }]
       }
@@ -49,37 +71,53 @@ test('abort during the final database clock read rejects before the transaction 
   } as unknown as DataSource
   await assert.rejects(
     createCatalogStore(source).saveAndRead(
-      [{ key: item, payload: {} }],
+      [{ key: item, payload: catalogPayload(item) }],
       new Date().toISOString(),
       controller.signal
-    )
+    ),
+    { name: 'AbortError' }
   )
   assert.equal(committed, false)
 })
-function memoryStore(entries: CatalogEntry[] = []): CatalogStore {
+function memoryStore(entries: CatalogEntry[] = [], time = catalogTime): CatalogStore {
+  const stored = new Map(entries.map((entry) => [catalogKey(entry.key), structuredClone(entry)]))
+
   return {
-    async read() {
-      const requestedAt = new Date().toISOString()
-      const now = new Date()
+    async read(keys, requestSignal) {
+      requestSignal.throwIfAborted()
+      const entries = keys.flatMap((key) => {
+        const entry = stored.get(catalogKey(key))
+        if (!entry) {
+          return []
+        }
+
+        return [structuredClone(entry)]
+      })
+      const requestedAt = new Date(time).toISOString()
+      const now = new Date(time)
 
       return { entries, requestedAt, now }
     },
-    async saveAndRead(values) {
+    async saveAndRead(values, _requestedAt, requestSignal) {
+      requestSignal.throwIfAborted()
       const savedEntries = values.map((value) => {
-        const snapshot = { ...value }
-        const fetchedAt = new Date()
-        const expiresAt = new Date(Date.now() + 86_400_000)
+        const snapshot = structuredClone(value)
+        const fetchedAt = new Date(time)
+        const expiresAt = new Date(time + 86_400_000)
 
         return { ...snapshot, fetchedAt, expiresAt }
       })
-      const now = new Date()
+      for (const entry of savedEntries) {
+        stored.set(catalogKey(entry.key), entry)
+      }
+      const now = new Date(time)
 
-      return { entries: savedEntries, now }
+      return { entries: structuredClone(savedEntries), now }
     }
   }
 }
 
-test('fresh cache avoids upstream and failed refresh keeps stale data or explicit absence', async () => {
+test('유효한 캐시는 upstream 없이 반환하고 갱신 실패는 stale 저장값과 unavailable을 구분한다', async () => {
   let calls = 0
   const fresh = createCatalogService(memoryStore([currentEntry(item)]), async () => {
     calls++
@@ -108,24 +146,30 @@ test('fresh cache avoids upstream and failed refresh keeps stale data or explici
   assert(!JSON.stringify([...result]).includes('secret'))
 })
 
-test('returns reread committed values and never publishes an unsuccessful DB write', async () => {
+test('DB가 재조회한 저장값만 제공하고 저장·읽기 실패의 upstream 원문은 성공값으로 쓰지 않는다', async () => {
   const store = memoryStore()
   store.saveAndRead = async () => {
     const entries = [currentEntry(item)]
-    const now = new Date()
+    const now = new Date(catalogTime)
 
     return { entries, now }
   }
   const service = createCatalogService(store, async () => [
-    { key: item, payload: { upstream: true } }
+    { key: item, payload: { ...catalogPayload(item), upstream: true } }
   ])
-  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail.data, {
-    retained: true
+  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail, {
+    data: currentEntry(item).payload,
+    fetchedAt: '2026-08-31T23:59:59.000Z',
+    status: 'fresh'
   })
   store.saveAndRead = async () => {
     throw new Error('commit failed')
   }
-  assert.equal((await service.load([item], signal)).get(catalogKey(item))!.detail.data, null)
+  assert.deepEqual((await service.load([item], signal)).get(catalogKey(item))!.detail, {
+    data: null,
+    fetchedAt: null,
+    status: 'unavailable'
+  })
   store.read = async () => {
     throw new Error('database unavailable')
   }
@@ -135,7 +179,7 @@ test('returns reread committed values and never publishes an unsuccessful DB wri
   )
 })
 
-test('deduplicates, batches at most 15 items, limits concurrency and total reference work', async () => {
+test('중복을 제거한 128개까지만 조회하고 15개 배치와 동시 3개 호출 한도를 지킨다', async () => {
   let active = 0,
     peak = 0,
     count = 0
@@ -144,10 +188,14 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
     active++
     peak = Math.max(active, peak)
     count += keys.length
-    await delay(2)
+    await Promise.resolve()
     active--
 
-    return keys.map((key) => ({ key, payload: { fixture: true } }))
+    return keys.map((key) => {
+      const payload = catalogPayload(key)
+
+      return { key, payload }
+    })
   })
   const keys: CatalogKey[] = Array.from({ length: 140 }, (_, i) => {
     const itemId = `item-${i}`
@@ -156,17 +204,27 @@ test('deduplicates, batches at most 15 items, limits concurrency and total refer
   })
   const result = await service.load([...keys, keys[0]!], signal)
   assert.equal(count, 128)
-  assert(peak <= 3)
-  assert.equal(result.get(catalogKey(keys[139]!))!.detail.status, 'unavailable')
+  assert(peak > 0 && peak <= 3)
+  assert.equal(result.size, 140)
+  for (const [index, key] of keys.entries()) {
+    const expectedData = index < 128 ? catalogPayload(key) : null
+    const expectedFetchedAt = index < 128 ? '2026-09-01T00:00:00.000Z' : null
+    const expectedStatus = index < 128 ? 'fresh' : 'unavailable'
+    assert.deepEqual(result.get(catalogKey(key))!.detail, {
+      data: expectedData,
+      fetchedAt: expectedFetchedAt,
+      status: expectedStatus
+    })
+  }
 })
 
-test('deadline stops queued work and pre-aborted requests reject before refresh', async () => {
+test('처리 기한이 끝나면 대기 중인 스킬 조회를 시작하지 않고 취소된 요청은 전송하지 않는다', async () => {
   let writes = 0,
     calls = 0
   const store = memoryStore()
   store.saveAndRead = async () => {
     writes++
-    const now = new Date()
+    const now = new Date(catalogTime)
 
     return { entries: [], now }
   }
@@ -182,21 +240,27 @@ test('deadline stops queued work and pre-aborted requests reject before refresh'
       calls++
       await delay(30, undefined, { signal: requestSignal })
 
-      return group.map((key) => ({ key, payload: {} }))
+      return group.map((key) => {
+        const payload = catalogPayload(key)
+
+        return { key, payload }
+      })
     },
     5
   )
-  const keepAlive = delay(40)
   const result = await service.load(keys, signal)
-  assert(calls <= 3)
-  assert([...result.values()].every((entry) => entry.detail.status === 'unavailable'))
+  assert(calls > 0 && calls <= 3)
+  const started = calls
+  for (const entry of result.values()) {
+    assert.deepEqual(entry.detail, { data: null, fetchedAt: null, status: 'unavailable' })
+  }
   assert.equal(writes, 0)
   controller.abort()
   await assert.rejects(service.load(keys, controller.signal))
-  await keepAlive
+  assert.equal(calls, started)
 })
 
-test('provider adapter matches item IDs, retains options, and binds skills to the requested job', async () => {
+test('공급자 응답을 요청 itemId·jobId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
   const requestPaths: string[] = []
   const fetchImpl: typeof fetch = async (url, options) => {
     requestPaths.push(String(url))
@@ -233,7 +297,7 @@ test('provider adapter matches item IDs, retains options, and binds skills to th
   await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
 })
 
-test('enrichment preserves 14 slots, enchant skill options, nullable chain and original JSON', async () => {
+test('14개 장비 슬롯·마법부여 스킬 옵션·체인 null과 캐릭터 원본을 보존한다', async () => {
   const items = Array.from({ length: 14 }, (_, index) => {
     const slotId = index === 13 ? 'SUPPORT_WEAPON' : `SLOT_${index}`
 
@@ -272,7 +336,11 @@ test('enrichment preserves 14 slots, enchant skill options, nullable chain and o
   const service = createCatalogService(memoryStore(), async (keys) => {
     requested += keys.length
 
-    return keys.map((key) => ({ key, payload: { tune: [{ level: 0 }] } }))
+    return keys.map((key) => {
+      const payload = { ...catalogPayload(key), tune: [{ level: 0 }] }
+
+      return { key, payload }
+    })
   })
   const result = await enrichCharacterDetails(details, service, signal)
   assert.equal(requested, 2)
@@ -293,7 +361,7 @@ test('enrichment preserves 14 slots, enchant skill options, nullable chain and o
   )
 })
 
-test('disconnect ignores a late upstream success while a connected request persists it', async () => {
+test('연결 종료 뒤 늦은 성공은 저장하지 않고 연결된 요청의 성공만 저장한다', async () => {
   for (const disconnected of [false, true]) {
     const controller = new AbortController()
     let markStarted!: () => void
@@ -317,7 +385,11 @@ test('disconnect ignores a late upstream success while a connected request persi
       await release
       assert.equal(requestSignal.aborted, disconnected)
 
-      return keys.map((key) => ({ key, payload: { late: true } }))
+      return keys.map((key) => {
+        const payload = { ...catalogPayload(key), late: true }
+
+        return { key, payload }
+      })
     })
     const pending = service.load([item], controller.signal)
     await started
@@ -331,7 +403,121 @@ test('disconnect ignores a late upstream success while a connected request persi
     } else {
       const result = await pending
       assert.equal(writes, 1)
-      assert.deepEqual(result.get(catalogKey(item))!.detail.data, { late: true })
+      assert.deepEqual(result.get(catalogKey(item))!.detail.data, {
+        itemId: 'fixture-item',
+        itemName: '합성 아이템 fixture-item',
+        late: true
+      })
     }
+  }
+})
+
+test('이미 취소된 공용 상세 요청은 전송과 공급자 호출 예산을 소비하지 않는다', async () => {
+  const budget = new NeopleBudget(() => 0)
+  for (let count = 0; count < 599; count++) {
+    await budget.run(async () => undefined)
+  }
+  let calls = 0
+  const adapter = createNeopleCatalog(
+    'fixture-key',
+    async () => {
+      calls++
+
+      return Response.json({ rows: [] })
+    },
+    budget
+  )
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(adapter([item], controller.signal), { message: 'Catalog lookup failed' })
+  assert.equal(calls, 0)
+  assert.equal(await budget.run(async () => '정상 transport'), '정상 transport')
+  await assert.rejects(
+    budget.run(async () => '예산 초과 transport'),
+    { status: 429 }
+  )
+})
+
+test('공용 상세는 DB 시각으로 정확히 24시간에 만료되고 성공 갱신 후 새 조회 시각을 반환한다', async (t) => {
+  for (const [name, elapsed, refreshes] of [
+    ['24시간 만료 1ms 전', 86_399_999, 0],
+    ['정확히 24시간 만료', 86_400_000, 1],
+    ['24시간 만료 1ms 후', 86_400_001, 1]
+  ] as const) {
+    await t.test(name, async () => {
+      const entry: CatalogEntry = {
+        key: item,
+        payload: { itemId: 'fixture-item', itemName: '이전 아이템', itemExplain: '기존 옵션' },
+        fetchedAt: new Date('2026-09-01T00:00:00.000Z'),
+        expiresAt: new Date('2026-09-02T00:00:00.000Z')
+      }
+      const incoming = { itemId: 'fixture-item', itemName: '최신 아이템', itemExplain: '갱신 옵션' }
+      const before = structuredClone(entry)
+      const now = catalogTime + elapsed
+      let calls = 0
+      const service = createCatalogService(memoryStore([entry], now), async (keys) => {
+        calls++
+        assert.deepEqual(keys, [item])
+
+        return [{ key: item, payload: incoming }]
+      })
+
+      const result = await service.load([item], signal)
+
+      assert.equal(calls, refreshes)
+      const expectedData = refreshes === 0 ? entry.payload : incoming
+      const expectedFetchedAt =
+        refreshes === 0 ? '2026-09-01T00:00:00.000Z' : new Date(now).toISOString()
+      assert.deepEqual(result.get(catalogKey(item))!.detail, {
+        data: expectedData,
+        fetchedAt: expectedFetchedAt,
+        status: 'fresh'
+      })
+      assert.deepEqual(entry, before)
+    })
+  }
+})
+
+test('아이템 다중 응답의 누락·중복·잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {
+  const wanted: CatalogKey[] = [
+    { kind: 'item', itemId: 'valid' },
+    { kind: 'item', itemId: 'duplicate' },
+    { kind: 'item', itemId: 'missing' },
+    { kind: 'item', itemId: 'bad-name' }
+  ]
+  const valid = {
+    itemId: 'valid',
+    itemName: '정상 아이템',
+    itemStatus: [{ name: '힘', value: 0 }],
+    futureOption: { rate: '3%' }
+  }
+  const adapter = createNeopleCatalog('fixture-key', async () =>
+    Response.json({
+      rows: [
+        { itemId: 'unrequested', itemName: '요청하지 않은 아이템' },
+        { itemId: 'duplicate', itemName: '중복 아이템' },
+        valid,
+        { itemId: 'duplicate', itemName: '중복 아이템' },
+        { itemId: 'bad-name', itemName: null },
+        null,
+        []
+      ]
+    })
+  )
+
+  assert.deepEqual(await adapter(wanted, signal), [{ key: wanted[0], payload: valid }])
+})
+
+test('스킬 응답에서 제공된 skillId가 다르거나 직업·이름 envelope가 없으면 정제 오류로 거절한다', async (t) => {
+  for (const [name, body] of [
+    ['다른 skillId', { jobId: 'fixture-job', skillId: 'different-skill', name: '스킬' }],
+    ['누락 jobId', { name: '스킬' }],
+    ['빈 이름', { jobId: 'fixture-job', name: ' ' }],
+    ['오류 envelope', { error: { code: 'API901', message: 'private upstream detail' } }]
+  ] as const) {
+    await t.test(name, async () => {
+      const adapter = createNeopleCatalog('fixture-key', async () => Response.json(body))
+      await assert.rejects(adapter([skill], signal), { message: 'Catalog lookup failed' })
+    })
   }
 })

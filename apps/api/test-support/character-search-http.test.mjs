@@ -3,63 +3,39 @@ import { request } from 'node:http'
 import { Buffer } from 'node:buffer'
 import { test } from 'node:test'
 import { createApiHttpApp } from '../dist/http.js'
+import { withSearchApp } from './character-search-fixtures.mjs'
 
-const principal = {
-  userId: '00000000-0000-4000-8000-000000000001',
-  sessionId: '00000000-0000-4000-8000-000000000002',
-  tokenId: '00000000-0000-4000-8000-000000000003',
-  issuedAt: 1,
-  expiresAt: 900
-}
-
-async function withSearchBoundary(
-  operation,
-  { validJwt = true, apiKey = 'synthetic-search-key' } = {}
-) {
-  const calls = { verification: 0, database: 0, upstream: 0 }
-  const deps = {
+async function withSearchBoundary(operation, { apiKey = 'synthetic-search-key' } = {}) {
+  let upstreamCalls = 0
+  const app = await createApiHttpApp({
     apiKey,
-    dataSource: {},
-    createQueryRunner() {
-      calls.database += 1
-      throw new Error('unexpected database call')
-    },
-    async verifyAccessJwt() {
-      calls.verification += 1
-      if (!validJwt) {
-        throw new Error('private verifier canary')
-      }
-
-      return principal
-    },
     async searchCharacters() {
-      calls.upstream += 1
-      throw new Error('unexpected upstream call')
+      upstreamCalls++
+      throw new Error('예상하지 않은 공급자 호출')
     }
-  }
-  const app = await createApiHttpApp(deps)
-  await app.listen(0, '127.0.0.1')
+  })
   try {
-    await operation(await app.getUrl(), calls)
+    await app.listen(0, '127.0.0.1')
+    await operation(await app.getUrl())
+    assert.equal(upstreamCalls, 0)
   } finally {
     await app.close()
   }
-  assert.equal(calls.database, 0)
-  assert.equal(calls.upstream, 0)
 }
 
 function rawGet(base, path, headers = {}) {
   return new Promise((resolve, reject) => {
     const pending = request(`${base}${path}`, { method: 'GET', headers }, (response) => {
       const parts = []
+      response.on('error', reject)
       response.on('data', (part) => parts.push(part))
-      response.on('end', () =>
-        resolve({
-          status: response.statusCode,
-          headers: response.headers,
-          body: Buffer.concat(parts).toString('utf8')
-        })
-      )
+      response.on('end', () => {
+        const status = response.statusCode
+        const headers = response.headers
+        const body = Buffer.concat(parts).toString('utf8')
+
+        resolve({ status, headers, body })
+      })
     })
     pending.once('error', reject)
     pending.end()
@@ -71,52 +47,63 @@ function expectSearchError(response, status, code, message) {
   assert.equal(response.headers['cache-control'], 'no-store')
   assert.match(response.headers['content-type'], /^application\/json/)
   assert.deepEqual(JSON.parse(response.body), { error: { code, message } })
-  assert.doesNotMatch(
-    response.body,
-    /synthetic-search-key|private verifier canary|stack|<!doctype/i
-  )
 }
 
-const authorization = { authorization: 'Bearer synthetic-access-value' }
-const queryMessage = '검색 조건을 확인해 주세요.'
+function expectEmptyRows(response, name) {
+  assert.equal(response.status, 200, name)
+  assert.equal(response.headers['cache-control'], 'no-store', name)
+  assert.match(response.headers['content-type'], /^application\/json/, name)
+  assert.deepEqual(JSON.parse(response.body), { rows: [] }, name)
+}
 
-test('public search ignores absent, malformed and duplicate authorization while validating raw query', async () => {
+const queryMessage = '검색 조건을 확인해 주세요.'
+const limitedMessage = '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+const fixedClock = {
+  now: () => 0,
+  setTimer: () => Symbol('timer'),
+  clearTimer: () => undefined
+}
+
+const authorizationCases = [
+  { name: 'Authorization 없는 요청', headers: {} },
+  { name: 'Basic 인증 형식', headers: { authorization: 'Basic invalid' } },
+  { name: '소문자 bearer 인증 형식', headers: { authorization: 'bearer invalid' } },
+  { name: '값이 없는 Bearer', headers: { authorization: 'Bearer' } },
+  { name: '공백으로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first second' } },
+  { name: '콤마로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first,second' } },
+  {
+    name: '중복 Authorization 헤더',
+    headers: { authorization: ['Bearer first', 'Bearer second'] }
+  },
+  { name: '유효하지 않은 Bearer 값', headers: { authorization: 'Bearer invalid-or-expired' } },
+  {
+    name: 'JWT 형태의 Bearer 값',
+    headers: { authorization: 'Bearer e30.e30.synthetic-signature' }
+  },
+  {
+    name: '과거 exp를 가진 JWT 형태의 값',
+    headers: { authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.synthetic-signature' }
+  }
+]
+
+test('공개 검색의 잘못된 query는 Authorization 형식과 무관하게 설정 검사보다 먼저 거절된다', async () => {
   await withSearchBoundary(
-    async (base, calls) => {
-      for (const headers of [
-        {},
-        { authorization: 'Basic invalid' },
-        { authorization: 'bearer invalid' },
-        { authorization: 'Bearer' },
-        { authorization: 'Bearer first second' },
-        { authorization: 'Bearer first,second' },
-        { authorization: ['Bearer first', 'Bearer second'] }
-      ]) {
+    async (base) => {
+      for (const { name, headers } of authorizationCases) {
         const response = await rawGet(
           base,
           '/characters?limit=%FF&accessToken=query-token',
           headers
         )
         expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
+        assert.equal(response.headers['retry-after'], undefined, name)
       }
-      assert.equal(calls.verification, 0)
     },
     { apiKey: '' }
   )
 })
 
-test('public search never invokes JWT verifier, including when it would reject', async () => {
-  await withSearchBoundary(
-    async (base, calls) => {
-      const response = await rawGet(base, '/characters?unknown=%FF', authorization)
-      expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
-      assert.equal(calls.verification, 0)
-    },
-    { validJwt: false, apiKey: '' }
-  )
-})
-
-test('search original URL rejects malformed structure and strict UTF-8 before configuration', async () => {
+test('검색 HTTP는 raw 구조와 UTF-8 오류를 공급자 호출 전에 거절한다', async () => {
   const invalidQueries = [
     '',
     'characterName=',
@@ -152,141 +139,148 @@ test('search original URL rejects malformed structure and strict UTF-8 before co
     'characterName=ab&limit=%EF%BC%91'
   ]
   await withSearchBoundary(
-    async (base, calls) => {
+    async (base) => {
       for (const query of invalidQueries) {
-        const response = await rawGet(base, `/characters?${query}`, authorization)
-        expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
+        expectSearchError(
+          await rawGet(base, `/characters?${query}`),
+          400,
+          'INVALID_SEARCH_QUERY',
+          queryMessage
+        )
       }
-      assert.equal(calls.verification, 0)
+      expectSearchError(
+        await rawGet(base, '/characters'),
+        400,
+        'INVALID_SEARCH_QUERY',
+        queryMessage
+      )
     },
     { apiKey: '' }
   )
 })
 
-test('search valid raw query reaches configuration failure without database or upstream', async () => {
+test('유효한 검색 query와 빈 API key는 공급자 호출 없이 정제된 설정 오류가 된다', async () => {
   await withSearchBoundary(
-    async (base, calls) => {
-      const response = await rawGet(base, '/characters?characterName=ab', authorization)
+    async (base) => {
       expectSearchError(
-        response,
+        await rawGet(base, '/characters?characterName=ab'),
         500,
         'INTERNAL_SERVER_ERROR',
         '서버 오류로 검색을 처리하지 못했습니다.'
       )
-      assert.equal(calls.verification, 0)
     },
     { apiKey: '' }
   )
 })
 
-test('search HEAD fallback cannot verify, record activity or consume quota', async () => {
-  await withSearchBoundary(async (base, calls) => {
-    const response = await fetch(`${base}/characters?characterName=ab`, {
-      method: 'HEAD',
-      headers: authorization
-    })
-    assert.equal(response.status, 400)
-    assert.equal(response.headers.get('cache-control'), 'no-store')
-    assert.equal(await response.text(), '')
-    assert.equal(calls.verification, 0)
-  })
+test('HEAD와 잘못된 검색 query는 정상 GET의 열 번 한도를 소비하지 않는다', async () => {
+  await withSearchApp(
+    {},
+    async ({ base, calls }) => {
+      const head = await fetch(`${base}/characters?characterName=ab`, { method: 'HEAD' })
+      assert.equal(head.status, 400)
+      assert.equal(head.headers.get('cache-control'), 'no-store')
+      assert.equal(await head.text(), '')
+      expectSearchError(
+        await rawGet(base, '/characters?characterName=ab&unknown=1'),
+        400,
+        'INVALID_SEARCH_QUERY',
+        queryMessage
+      )
+      assert.deepEqual(calls, [])
+      for (let index = 0; index < 10; index++) {
+        expectEmptyRows(await rawGet(base, '/characters?characterName=ab'))
+      }
+      const limited = await rawGet(base, '/characters?characterName=ab')
+      expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
+      assert.equal(limited.headers['retry-after'], '60')
+      assert.equal(calls.length, 10)
+    },
+    { clock: fixedClock }
+  )
 })
 
 test('공개 검색은 Authorization 형식과 무관하게 성공하고 전달 IP를 바꿔도 접속 IP 한도를 공유한다', async () => {
-  const authorizationCases = [
-    { name: 'Authorization 없는 요청', headers: {} },
-    { name: 'Basic 인증 형식', headers: { authorization: 'Basic invalid' } },
-    { name: '소문자 bearer 인증 형식', headers: { authorization: 'bearer invalid' } },
-    { name: '값이 없는 Bearer', headers: { authorization: 'Bearer' } },
-    { name: '공백으로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first second' } },
-    { name: '콤마로 구분한 여러 Bearer 값', headers: { authorization: 'Bearer first,second' } },
-    {
-      name: '중복 Authorization 헤더',
-      headers: { authorization: ['Bearer first', 'Bearer second'] }
-    },
-    { name: '유효하지 않은 Bearer 값', headers: { authorization: 'Bearer invalid-or-expired' } },
-    {
-      name: 'JWT 형태의 Bearer 값',
-      headers: { authorization: 'Bearer e30.e30.synthetic-signature' }
-    },
-    {
-      name: '과거 exp를 가진 JWT 형태의 Bearer 값',
-      headers: {
-        authorization: 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.synthetic-signature'
-      }
-    }
-  ]
-  let upstreamCalls = 0
-  const app = await createApiHttpApp({
-    apiKey: 'synthetic-search-key',
-    async searchCharacters() {
-      upstreamCalls++
-
-      return { rows: [] }
-    }
-  })
-  await app.listen(0, '127.0.0.1')
-  try {
-    const base = await app.getUrl()
-    for (const [index, { name, headers }] of authorizationCases.entries()) {
-      const response = await rawGet(base, '/characters?characterName=ab', {
-        'x-forwarded-for': `192.0.2.${index + 1}`,
-        ...headers
-      })
-      assert.equal(response.status, 200, name)
-      assert.equal(response.headers['cache-control'], 'no-store', name)
-      assert.deepEqual(JSON.parse(response.body), { rows: [] }, name)
-    }
-    const limited = await rawGet(base, '/characters?characterName=ab', {
-      'x-forwarded-for': '198.51.100.1',
-      authorization: 'Bearer another-access-value'
-    })
-    expectSearchError(
-      limited,
-      429,
-      'SEARCH_RATE_LIMITED',
-      '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
-    )
-    assert.match(limited.headers['retry-after'], /^[1-9][0-9]*$/)
-    assert.equal(upstreamCalls, 10)
-  } finally {
-    await app.close()
-  }
-})
-
-test('single-proxy mode isolates client quotas and ignores spoofed addresses to the left', async () => {
-  let upstreamCalls = 0
-  const app = await createApiHttpApp({
-    apiKey: 'synthetic-search-key',
-    trustedProxyHops: 1,
-    async searchCharacters() {
-      upstreamCalls++
-
-      return { rows: [] }
-    }
-  })
-  await app.listen(0, '127.0.0.1')
-  try {
-    const base = await app.getUrl()
-    for (const client of ['192.0.2.1', '192.0.2.2']) {
-      for (let index = 0; index < 10; index++) {
+  await withSearchApp(
+    {},
+    async ({ base, calls }) => {
+      for (const [index, { name, headers }] of authorizationCases.entries()) {
         const response = await rawGet(base, '/characters?characterName=ab', {
-          'x-forwarded-for': `198.51.100.${index + 1}, ${client}`
+          'x-forwarded-for': `192.0.2.${index + 1}`,
+          ...headers
         })
-        assert.equal(response.status, 200)
+        expectEmptyRows(response, name)
       }
       const limited = await rawGet(base, '/characters?characterName=ab', {
-        'x-forwarded-for': `203.0.113.1, ${client}`
+        'x-forwarded-for': '198.51.100.1',
+        authorization: 'Bearer another-access-value'
       })
-      expectSearchError(
-        limited,
-        429,
-        'SEARCH_RATE_LIMITED',
-        '검색 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.'
+      expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
+      assert.equal(limited.headers['retry-after'], '60')
+      assert.equal(calls.length, 10)
+    },
+    { clock: fixedClock }
+  )
+})
+
+test('단일 proxy의 오른쪽 클라이언트 IP로 한도를 구분하고 왼쪽 위조 주소는 무시한다', async () => {
+  await withSearchApp(
+    {},
+    async ({ base, calls }) => {
+      for (const client of ['192.0.2.1', '192.0.2.2']) {
+        for (let index = 0; index < 10; index++) {
+          expectEmptyRows(
+            await rawGet(base, '/characters?characterName=ab', {
+              'x-forwarded-for': `198.51.100.${index + 1}, ${client}`
+            })
+          )
+        }
+        const limited = await rawGet(base, '/characters?characterName=ab', {
+          'x-forwarded-for': `203.0.113.1, ${client}`
+        })
+        expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
+        assert.equal(limited.headers['retry-after'], '60')
+      }
+      assert.equal(calls.length, 20)
+    },
+    { trustedProxyHops: 1, clock: fixedClock }
+  )
+})
+
+test('단일 proxy는 IPv4-mapped IPv6와 같은 IPv6 /64의 주소를 동일 한도로 묶는다', async (t) => {
+  for (const [name, addresses, independent] of [
+    ['IPv4-mapped IPv6', ['192.0.2.1', '::ffff:192.0.2.1'], '192.0.2.2'],
+    [
+      'IPv6 /64',
+      ['2001:db8:10:20::1', '2001:0db8:0010:0020:ffff:ffff:ffff:ffff'],
+      '2001:db8:10:21::1'
+    ]
+  ]) {
+    await t.test(name, async () => {
+      await withSearchApp(
+        {},
+        async ({ base, calls }) => {
+          for (let index = 0; index < 10; index++) {
+            expectEmptyRows(
+              await rawGet(base, '/characters?characterName=ab', {
+                'x-forwarded-for': addresses[index % addresses.length]
+              })
+            )
+          }
+          for (const address of addresses) {
+            const limited = await rawGet(base, '/characters?characterName=ab', {
+              'x-forwarded-for': address
+            })
+            expectSearchError(limited, 429, 'SEARCH_RATE_LIMITED', limitedMessage)
+            assert.equal(limited.headers['retry-after'], '60')
+          }
+          expectEmptyRows(
+            await rawGet(base, '/characters?characterName=ab', { 'x-forwarded-for': independent })
+          )
+          assert.equal(calls.length, 11)
+        },
+        { trustedProxyHops: 1, clock: fixedClock }
       )
-    }
-    assert.equal(upstreamCalls, 20)
-  } finally {
-    await app.close()
+    })
   }
 })

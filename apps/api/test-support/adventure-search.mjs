@@ -31,7 +31,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     )
   let app
   try {
-    mark('existing JSONB migration backfill and nullable duplicate names')
+    mark('migration은 기존 JSONB·시각을 유지하고 중복·잘못된 모험단명을 채움')
     // Exercise this migration even when later unrelated migrations exist.
     const migration = source.migrations.find(
       (m) => m.name === 'AddCharacterAdventureName1789564164377'
@@ -79,7 +79,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
       charactersBefore
     )
 
-    mark('exact indexed lookup with cross-server keyset pages and no writes')
+    mark('모험단명 정확 일치·서버 공통 keyset 페이지와 DB 무변경')
     const first = await search.search(input(name, 1), signal)
     assert.equal(first.scope, 'stored')
     assert.equal(first.rows.length, 1)
@@ -97,7 +97,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     assert.deepEqual(await snapshot(), characters)
     assert.deepEqual(await bodies(), before)
 
-    mark('rename only the refreshed character and keep the winning stored name')
+    mark('갱신한 캐릭터만 이름을 바꾸며 늦은 요청·실패한 요청은 최신 이름을 보존')
     const older = await details.beginFetch()
     const newer = await details.beginFetch()
     await details.saveAndRead(identity, payloads('새모험단'), newer, signal)
@@ -117,7 +117,7 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     assert.equal((await snapshot())[0].adventure_name, null)
     assert.equal((await search.search(input('새모험단'), signal)).rows.length, 0)
 
-    mark('HTTP database read returns pages without provider calls')
+    mark('실제 DB HTTP 조회는 provider 없이 저장된 목록을 반환')
     app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, search)
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/adventures/characters?adventureName=${encodeURIComponent(name)}`

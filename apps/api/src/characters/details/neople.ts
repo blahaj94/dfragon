@@ -78,8 +78,11 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
     const signal = AbortSignal.any([requestSignal, timeout, failureController.signal])
     const startedAt = performance.now()
     const results = {} as CharacterPayloads
-    const load = (section: CharacterDetailSection): Promise<void> =>
-      deps.budget.run(async () => {
+    const load = async (section: CharacterDetailSection): Promise<void> => {
+      // A canceled section never starts transport and must not consume its shared call budget.
+      signal.throwIfAborted()
+
+      return deps.budget.run(async () => {
         signal.throwIfAborted()
         const path = `/df/servers/${encodeURIComponent(identity.serverId)}/characters/${encodeURIComponent(identity.characterId)}${CHARACTER_DETAIL_SECTIONS[section]}`
         const response = await deps.fetch(new URL(path, deps.origin), {
@@ -99,6 +102,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         }
         results[section] = validateCharacterPayload(body, identity, section)
       })
+    }
     try {
       // Confirm identity before spending the other ten provider requests.
       await load('basic')

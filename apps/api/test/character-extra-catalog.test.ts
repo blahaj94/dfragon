@@ -3,21 +3,39 @@ import test from 'node:test'
 import { enrichCharacterDetails } from '../src/characters/catalog/enrich.js'
 import { createCatalogService } from '../src/characters/catalog/service.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
-import { catalogKey, unavailableDetail } from '../src/characters/catalog/types.js'
+import { catalogKey } from '../src/characters/catalog/types.js'
 import type {
   CatalogDetail,
-  CatalogResult,
   CatalogEntry,
   CatalogKey,
   CatalogValue
 } from '../src/characters/catalog/types.js'
-import type { CatalogService } from '../src/characters/catalog/service.js'
 import type { CatalogStore } from '../src/characters/catalog/store.js'
 import type { projectCharacterDetails } from '../src/characters/details/project.js'
 
 const signal = new AbortController().signal
 const item: CatalogKey = { kind: 'item', itemId: 'item-a' }
 const set: CatalogKey = { kind: 'set', setItemId: 'set-a' }
+function catalogPayload(key: CatalogKey) {
+  if (key.kind === 'item') {
+    const itemId = key.itemId
+    const itemName = '합성 아이템 ' + itemId
+
+    return { itemId, itemName }
+  }
+
+  if (key.kind === 'set') {
+    const setItemId = key.setItemId
+    const setItemName = '합성 세트 ' + setItemId
+
+    return { setItemId, setItemName, setItemOption: [] }
+  }
+  const jobId = key.jobId
+  const name = '합성 스킬 ' + key.skillId
+
+  return { jobId, name, levelInfo: { rows: [] } }
+}
+
 function memoryStore() {
   const rows = new Map<string, CatalogEntry>()
   const store: CatalogStore = {
@@ -55,7 +73,7 @@ function memoryStore() {
   return { store, rows }
 }
 
-test('set adapter matches IDs independently of order and rejects missing, duplicate and mixed keys', async () => {
+test('세트 응답 순서와 무관하게 ID를 대응하고 누락·중복 응답과 혼합 요청을 거절한다', async () => {
   const adapter = createNeopleCatalog('fixture-key', async (input, options) => {
     const url = new URL(String(input))
     assert.equal(url.pathname, '/df/multi/setitems')
@@ -86,7 +104,7 @@ test('set adapter matches IDs independently of order and rejects missing, duplic
   )
 })
 
-test('discovers sets only from stored item data, reuses both caches and never traverses set members', async () => {
+test('저장된 아이템에서만 세트를 발견하고 캐시를 재사용하며 세트 구성품을 재귀 조회하지 않는다', async () => {
   const { store, rows } = memoryStore()
   const calls: CatalogKey[][] = []
   const service = createCatalogService(store, async (keys) => {
@@ -95,8 +113,8 @@ test('discovers sets only from stored item data, reuses both caches and never tr
     return keys.map((key) => {
       const payload =
         key.kind === 'item'
-          ? { setItemId: 'set-a' }
-          : { setItems: [{ itemId: 'unworn-item' }], setItemId: 'set-a', setItemOption: [] }
+          ? { ...catalogPayload(key), setItemId: 'set-a' }
+          : { ...catalogPayload(key), setItemInfo: [{ itemId: 'unworn-item' }] }
 
       return { key, payload }
     })
@@ -127,13 +145,17 @@ test('discovers sets only from stored item data, reuses both caches and never tr
   const uncommitted = createCatalogService(broken, async (keys) => {
     attempts++
 
-    return keys.map((key) => ({ key, payload: { setItemId: 'uncommitted-set' } }))
+    return keys.map((key) => {
+      const payload = { ...catalogPayload(key), setItemId: 'uncommitted-set' }
+
+      return { key, payload }
+    })
   })
   assert.equal((await uncommitted.load([item], signal)).has('set:uncommitted-set'), false)
   assert.equal(attempts, 1)
 })
 
-test('discovered sets share the 128-reference cap and the same deadline with initial work', async () => {
+test('후속 세트도 초기 참조와 함께 128개 한도와 하나의 취소 신호를 공유한다', async () => {
   const { store } = memoryStore()
   const requested: CatalogKey[] = []
   const signals: AbortSignal[] = []
@@ -145,10 +167,14 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
       if (key.kind === 'item') {
         const setItemId = 'set-' + key.itemId
 
-        return { key, payload: { setItemId } }
+        const payload = { ...catalogPayload(key), setItemId }
+
+        return { key, payload }
       }
 
-      return { key, payload: {} }
+      const payload = catalogPayload(key)
+
+      return { key, payload }
     })
   })
   const keys: CatalogKey[] = Array.from({ length: 127 }, (_, i) => {
@@ -173,7 +199,12 @@ test('discovered sets share the 128-reference cap and the same deadline with ini
       controller.abort()
     }
 
-    return keys.map((key) => ({ key, payload: { setItemId: 'set-a' } }))
+    return keys.map((key) => {
+      const setReference = key.kind === 'item' ? { setItemId: 'set-a' } : {}
+      const payload = { ...catalogPayload(key), ...setReference }
+
+      return { key, payload }
+    })
   })
   await assert.rejects(stopping.load([item], controller.signal))
 })
@@ -219,7 +250,7 @@ function fixture(): ReturnType<typeof projectCharacterDetails> {
   }
 }
 
-test('all equipped attachments are enriched without changing originals, empty slots, or oath set identity', async () => {
+test('장착 부속에 공용 상세를 연결하고 원본·빈 슬롯·서약 setId를 보존한다', async () => {
   const details = fixture(),
     original = structuredClone(details),
     calls: CatalogKey[] = []
@@ -227,9 +258,11 @@ test('all equipped attachments are enriched without changing originals, empty sl
     calls.push(...keys)
 
     return keys.map((key): CatalogValue => {
-      const setItemId = key.kind === 'item' ? 'shared-set' : 'unused-set'
+      const base = catalogPayload(key)
+      const itemSet = key.kind === 'item' ? { setItemId: 'shared-set' } : {}
+      const payload = { ...base, ...itemSet, tune: [{ level: 0, setPoint: 165 }] }
 
-      return { key, payload: { setItemId, tune: [{ level: 0, setPoint: 165 }] } }
+      return { key, payload }
     })
   })
   const result = await enrichCharacterDetails(details, service, signal)
@@ -267,7 +300,7 @@ test('all equipped attachments are enriched without changing originals, empty sl
   assert.deepEqual(output.buff.creature.creature[0].enchant, { reinforceSkill: [] })
 })
 
-test('null and empty arrays survive optional detail failures without synthesizing equipment', async () => {
+test('공용 상세 실패에도 미장착 null과 빈 배열을 그대로 유지한다', async () => {
   for (const value of [null, []]) {
     const details = fixture()
     details.avatar = value
@@ -288,7 +321,7 @@ test('null and empty arrays survive optional detail failures without synthesizin
   }
 })
 
-test('enrichment preserves reference order, item duplicates and guarded first-occurrence skill IDs', async () => {
+test('잘못된 참조는 조회하지 않고 반복 아이템·스킬은 한 번씩 연결하며 원본 순서를 보존한다', async () => {
   const details = fixture()
   details.equipment = {
     equipment: [
@@ -321,186 +354,171 @@ test('enrichment preserves reference order, item duplicates and guarded first-oc
     creature: { creature: null, skillInfo: [] }
   }
   const original = structuredClone(details)
-  const requests: CatalogKey[][] = []
-  const catalog: CatalogService = {
-    async load(keys, requestSignal) {
-      assert.equal(requestSignal, signal)
-      requests.push(keys)
+  const requested: CatalogKey[] = []
+  const catalog = createCatalogService(memoryStore().store, async (keys) => {
+    requested.push(...keys)
 
-      return new Map()
-    }
-  }
+    return keys.map((key) => {
+      const payload = catalogPayload(key)
+
+      return { key, payload }
+    })
+  })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
 
-  assert.deepEqual(requests, [
-    [
-      { kind: 'item', itemId: 'buff' },
-      { kind: 'set', setItemId: 'shared-set' },
-      { kind: 'item', itemId: 'shared' },
-      { kind: 'set', setItemId: 'shared-set' },
-      { kind: 'item', itemId: 'shared' },
-      { kind: 'set', setItemId: 'equipped-set' },
-      { kind: 'skill', jobId: 'job', skillId: 'skill-a' },
-      { kind: 'skill', jobId: 'job', skillId: 'skill-b' },
-      { kind: 'skill', jobId: 'job', skillId: 'skill-c' },
-      { kind: 'skill', jobId: 'job', skillId: 'skill-d' }
-    ]
+  assert.deepEqual(requested.map(catalogKey).sort(), [
+    'item:buff',
+    'item:shared',
+    'set:equipped-set',
+    'set:shared-set',
+    'skill:job:skill-a',
+    'skill:job:skill-b',
+    'skill:job:skill-c',
+    'skill:job:skill-d'
   ])
+  const equipment = result.equipment.equipment as Array<Record<string, unknown> | null>
+  assert.deepEqual(
+    equipment.map((entry) => entry?.itemId),
+    ['shared', '', undefined, 'shared']
+  )
+  assert.deepEqual(equipment[0]!.itemDetail, equipment[3]!.itemDetail)
+  assert.deepEqual(equipment[1], { itemId: '', setItemId: 'bad/set' })
+  assert.equal(equipment[2], null)
   const skillStyle = result.skillStyle as Record<string, unknown>
-  assert.deepEqual(Object.keys(skillStyle.skillDetails as object), [
-    'skill-a',
-    'skill-b',
-    'skill-c',
-    'skill-d'
-  ])
-  assert.equal(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  const skillDetails = skillStyle.skillDetails as Record<string, CatalogDetail>
+  assert.deepEqual(Object.keys(skillDetails).sort(), ['skill-a', 'skill-b', 'skill-c', 'skill-d'])
+  for (const id of ['skill-a', 'skill-b', 'skill-c', 'skill-d']) {
+    assert.equal(skillDetails[id]!.status, 'fresh')
+    assert.deepEqual(skillDetails[id]!.data, {
+      jobId: 'job',
+      name: '합성 스킬 ' + id,
+      levelInfo: { rows: [] }
+    })
+  }
+  assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
   assert.deepEqual(details, original)
 })
 
-test('catalog dictionaries use typed identities, preserving reserved ID keys and detail identity', async () => {
-  const detail: CatalogDetail = { data: { retained: true }, fetchedAt: null, status: 'stale' }
-  for (const jobId of ['job', '', null, undefined]) {
-    const details = fixture()
-    details.character.jobId = jobId
-    details.skillStyle = {
-      style: {
-        active: [{ skillId: '__proto__' }, { skillId: 'constructor' }, { skillId: 'missing' }]
+test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId가 없으면 스킬 조회를 생략한다', async (t) => {
+  for (const [name, jobId] of [
+    ['정상 jobId', 'job'],
+    ['빈 jobId', ''],
+    ['null jobId', null]
+  ] as const) {
+    await t.test(name, async () => {
+      const details = fixture()
+      details.character.jobId = jobId
+      details.equipment = {
+        equipment: [{ itemId: 'equipment' }],
+        setItemInfo: [{ setItemId: '__proto__' }, { setItemId: 'constructor' }]
       }
-    }
-    const loaded = new Map<string, CatalogResult>([
-      ['opaque-set-id', { key: { kind: 'set', setItemId: '__proto__' }, detail }],
-      ['item:equipment', { key: { kind: 'item', itemId: 'equipment' }, detail }],
-      [
-        'another-set-id',
-        { key: { kind: 'set', setItemId: 'constructor' }, detail: unavailableDetail }
-      ],
-      [
-        'skill:job:__proto__',
-        { key: { kind: 'skill', jobId: 'job', skillId: '__proto__' }, detail }
-      ],
-      [
-        'skill:job:constructor',
-        { key: { kind: 'skill', jobId: 'job', skillId: 'constructor' }, detail }
-      ],
-      ['set:misleading-item-id', { key: { kind: 'item', itemId: 'ignored' }, detail }]
-    ])
-    const reads: string[] = []
-    const get = loaded.get.bind(loaded)
-    loaded.get = (key) => {
-      reads.push(key)
-
-      return get(key)
-    }
-    let calls = 0
-    const catalog: CatalogService = {
-      async load(keys, requestSignal) {
-        calls++
-        assert.equal(requestSignal, signal)
-        const requested = keys.filter((key) => key.kind === 'skill')
-        const expected =
-          jobId === 'job'
-            ? [
-                { kind: 'skill', jobId, skillId: '__proto__' },
-                { kind: 'skill', jobId, skillId: 'constructor' },
-                { kind: 'skill', jobId, skillId: 'missing' }
-              ]
-            : []
-        assert.deepEqual(requested, expected)
-
-        return loaded
+      details.avatar = null
+      details.creature = null
+      details.oath = null
+      details.buff = { equipment: null, avatar: null, creature: null }
+      details.skillStyle = {
+        style: {
+          active: [{ skillId: '__proto__' }, { skillId: 'constructor' }, { skillId: 'missing' }]
+        }
       }
-    }
+      const requested: CatalogKey[] = []
+      const catalog = createCatalogService(memoryStore().store, async (keys) => {
+        requested.push(...keys)
 
-    const result = await enrichCharacterDetails(details, catalog, signal)
+        return keys.flatMap((key) => {
+          if (key.kind === 'skill' && key.skillId === 'missing') {
+            return []
+          }
+          const payload = catalogPayload(key)
 
-    assert.equal(calls, 1)
-    assert.deepEqual(Object.keys(result.setDetails), ['__proto__', 'constructor'])
-    assert.equal(Object.getPrototypeOf(result.setDetails), Object.prototype)
-    assert.equal(result.setDetails.__proto__, detail)
-    assert.equal(result.setDetails.constructor, unavailableDetail)
-    const skillDetails = (result.skillStyle as { skillDetails: Record<string, CatalogDetail> })
-      .skillDetails
-    assert.deepEqual(Object.keys(skillDetails), ['__proto__', 'constructor', 'missing'])
-    assert.equal(Object.getPrototypeOf(skillDetails), Object.prototype)
-    assert.equal(skillDetails.__proto__, jobId === 'job' ? detail : unavailableDetail)
-    assert.equal(skillDetails.constructor, jobId === 'job' ? detail : unavailableDetail)
-    assert.equal(skillDetails.missing, unavailableDetail)
-    const expectedReads =
-      jobId === 'job' ? ['skill:job:__proto__', 'skill:job:constructor', 'skill:job:missing'] : []
-    assert.deepEqual(
-      reads.filter((key) => key.startsWith('skill:')),
-      expectedReads
-    )
-    const equipment = result.equipment.equipment as Array<{ itemDetail: CatalogDetail }>
-    assert.equal(equipment[0]!.itemDetail, detail)
+          return [{ key, payload }]
+        })
+      })
+
+      const result = await enrichCharacterDetails(details, catalog, signal)
+      const serialized = JSON.parse(JSON.stringify(result))
+      assert.deepEqual(Object.keys(serialized.setDetails).sort(), ['__proto__', 'constructor'])
+      for (const id of ['__proto__', 'constructor']) {
+        assert(Object.hasOwn(serialized.setDetails, id))
+        assert.deepEqual(serialized.setDetails[id].data, {
+          setItemId: id,
+          setItemName: '합성 세트 ' + id,
+          setItemOption: []
+        })
+        assert.equal(serialized.setDetails[id].status, 'fresh')
+      }
+      const skillDetails = serialized.skillStyle.skillDetails
+      assert.deepEqual(Object.keys(skillDetails).sort(), ['__proto__', 'constructor', 'missing'])
+      for (const id of ['__proto__', 'constructor', 'missing']) {
+        assert(Object.hasOwn(skillDetails, id))
+        if (jobId === 'job' && id !== 'missing') {
+          assert.deepEqual(skillDetails[id].data, {
+            jobId: 'job',
+            name: '합성 스킬 ' + id,
+            levelInfo: { rows: [] }
+          })
+          assert.equal(skillDetails[id].status, 'fresh')
+        } else {
+          assert.deepEqual(skillDetails[id], { data: null, fetchedAt: null, status: 'unavailable' })
+        }
+      }
+      const skills = requested
+        .filter((key) => key.kind === 'skill')
+        .map(catalogKey)
+        .sort()
+      const expected =
+        jobId === 'job' ? ['skill:job:__proto__', 'skill:job:constructor', 'skill:job:missing'] : []
+      assert.deepEqual(skills, expected)
+      assert.deepEqual(serialized.equipment.equipment[0].itemDetail.data, {
+        itemId: 'equipment',
+        itemName: '합성 아이템 equipment'
+      })
+    })
   }
 })
 
-test('enrichment keeps live skill traversal and reads item options before catalog lookups', async () => {
-  const events: string[] = []
-  const active: Array<{ skillId: string }> = [
-    {
-      get skillId() {
-        events.push('first-skill')
-        if (active.length === 1) {
-          active.push({ skillId: 'second' })
-        }
-
-        return 'first'
-      }
-    }
-  ]
+test('예약된 itemDetail·skillDetails는 공용 저장값으로 교체하고 캐릭터 옵션은 보존한다', async () => {
   const details = fixture()
   details.equipment = {
-    equipment: [
-      {
-        itemId: 'item',
-        get option() {
-          events.push('item-option')
-
-          return 'retained'
-        }
-      }
-    ],
+    equipment: [{ itemId: 'equipment', option: '장착 옵션', itemDetail: { injected: true } }],
     setItemInfo: []
   }
   details.avatar = null
   details.creature = null
   details.oath = null
   details.buff = { equipment: null, avatar: null, creature: null }
-  details.skillStyle = { style: { active } }
-  const loaded = new Map<string, CatalogResult>()
-  loaded.get = (key) => {
-    events.push(`lookup:${key}`)
-
-    return undefined
+  details.skillStyle = {
+    style: { active: [{ skillId: 'first' }] },
+    skillDetails: { obsolete: { injected: true } }
   }
-  const catalog: CatalogService = {
-    async load(keys) {
-      events.push('load')
-      assert.deepEqual(keys, [
-        { kind: 'item', itemId: 'item' },
-        { kind: 'skill', jobId: 'job', skillId: 'first' },
-        { kind: 'skill', jobId: 'job', skillId: 'second' }
-      ])
+  const original = structuredClone(details)
+  const catalog = createCatalogService(memoryStore().store, async (keys) => {
+    return keys.map((key) => {
+      const payload = { ...catalogPayload(key), tune: { level: 0 } }
 
-      return loaded
-    }
-  }
+      return { key, payload }
+    })
+  })
 
   const result = await enrichCharacterDetails(details, catalog, signal)
 
-  assert.deepEqual(events, [
-    'item-option',
-    'first-skill',
-    'first-skill',
-    'load',
-    'item-option',
-    'lookup:item:item',
-    'lookup:skill:job:first',
-    'lookup:skill:job:second'
-  ])
   const equipment = result.equipment.equipment as Array<Record<string, unknown>>
-  assert.equal(equipment[0]!.option, 'retained')
+  assert.equal(equipment[0]!.option, '장착 옵션')
+  assert.deepEqual((equipment[0]!.itemDetail as CatalogDetail).data, {
+    itemId: 'equipment',
+    itemName: '합성 아이템 equipment',
+    tune: { level: 0 }
+  })
+  const skillStyle = result.skillStyle as Record<string, unknown>
+  const skillDetails = skillStyle.skillDetails as Record<string, CatalogDetail>
+  assert.deepEqual(Object.keys(skillDetails), ['first'])
+  assert.deepEqual(skillDetails.first!.data, {
+    jobId: 'job',
+    name: '합성 스킬 first',
+    levelInfo: { rows: [] },
+    tune: { level: 0 }
+  })
+  assert.deepEqual(skillStyle.style, (details.skillStyle as Record<string, unknown>).style)
+  assert.deepEqual(details, original)
 })
