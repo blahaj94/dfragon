@@ -1,8 +1,36 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { isBuiltin } from 'node:module'
+import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
+
+function moduleSpecifiers(file, code) {
+  const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest)
+  const specifiers = []
+  function visit(node) {
+    const isModuleDeclaration = ts.isImportDeclaration(node) || ts.isExportDeclaration(node)
+    if (isModuleDeclaration && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      specifiers.push(node.moduleSpecifier.text)
+    }
+
+    const isImportType = ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)
+    if (isImportType && ts.isStringLiteral(node.argument.literal)) {
+      specifiers.push(node.argument.literal.text)
+    }
+
+    const isDynamicImport =
+      ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword
+    if (isDynamicImport && node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0])) {
+      specifiers.push(node.arguments[0].text)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+
+  return specifiers
+}
 
 const [mode, outputPath] = process.argv.slice(2)
 const isLibrary = mode === 'library'
@@ -12,6 +40,21 @@ assert.ok(isModeValid, 'Use library|consumer and an output directory')
 const output = resolve(outputPath)
 const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const files = await readdir(output, { recursive: true })
+if (isLibrary) {
+  const manifest = JSON.parse(await readFile(resolve(uiRoot, 'package.json'), 'utf8'))
+  for (const [entry, conditions] of Object.entries(manifest.exports)) {
+    const isAsset = typeof conditions === 'string'
+    if (isAsset) {
+      continue
+    }
+    for (const condition of ['import', 'types']) {
+      const target = conditions[condition]
+      assert.ok(target.startsWith('./dist/'), `Public export target: ${entry} ${condition}`)
+      const file = target.slice('./dist/'.length)
+      assert.ok(files.includes(file), `Public export artifact: ${entry} ${condition} ${file}`)
+    }
+  }
+}
 const graph = JSON.parse(await readFile(resolve(output, 'notices/bundle-modules.json'), 'utf8'))
 const javaScriptFiles = JSON.parse(
   await readFile(resolve(output, 'notices/bundle-files.json'), 'utf8')
@@ -73,12 +116,43 @@ if (isLibrary) {
   })
   for (const declaration of declarations) {
     const types = await readFile(resolve(output, declaration), 'utf8')
-    const hasPrivateOrNodeType = /node:|NodeJS|\.pnpm/.test(types)
+    const hasNodeImport = moduleSpecifiers(declaration, types).some(isBuiltin)
+    const hasPrivateOrNodeType = /node:|NodeJS|\.pnpm/.test(types) || hasNodeImport
     assert.equal(hasPrivateOrNodeType, false, `Portable browser declaration: ${declaration}`)
   }
-  const code = await readFile(resolve(output, 'index.js'), 'utf8')
+
+  for (const file of javaScriptFiles) {
+    const code = await readFile(resolve(output, file), 'utf8')
+    for (const specifier of moduleSpecifiers(file, code)) {
+      const isStylesheet = /\.css(?:$|\?)/.test(specifier)
+      assert.equal(isStylesheet, false, `Library must not import CSS: ${file} ${specifier}`)
+    }
+  }
+
+  const visited = new Set()
+  async function verifyTypo(file) {
+    if (visited.has(file)) {
+      return
+    }
+    visited.add(file)
+    const code = await readFile(resolve(output, file), 'utf8')
+    for (const specifier of moduleSpecifiers(file, code)) {
+      const isChunk = specifier.startsWith('.')
+      if (isChunk) {
+        const chunk = relative(output, resolve(output, dirname(file), specifier))
+        assert.ok(files.includes(chunk), `React-only Typo entry chunk: ${specifier}`)
+        await verifyTypo(chunk)
+      } else {
+        const isReact = specifier === 'react' || specifier.startsWith('react/')
+        assert.ok(isReact, `React-only Typo entry: ${file} ${specifier}`)
+      }
+    }
+  }
+  await verifyTypo('typo.js')
+  const index = await readFile(resolve(output, 'index.js'), 'utf8')
+  const imports = moduleSpecifiers('index.js', index)
   for (const external of ['@seed-design/react', 'react', 'react/jsx-runtime']) {
-    const hasExternalImport = code.includes(`from "${external}"`)
+    const hasExternalImport = imports.includes(external)
     assert.ok(hasExternalImport, `External import: ${external}`)
   }
 } else {

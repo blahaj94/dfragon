@@ -13,7 +13,7 @@ node --test packages/ui/scripts/test-consumer-resolution.mjs
 
 Test는 기존 Node test runner·child process·fetch를 사용한다. 범용 command runner나 새 dependency 없이 실제 package script의 exit code와 dev server의 실제 source entry HTTP 응답을 검사한다. 단순 dist 존재 검사는 성공 기준이 아니다. POSIX process group 종료를 사용하며 현재 검증 환경은 macOS다.
 
-Web·Desktop은 각각 `test`, `typecheck`, `build` script를 실행한다. Example의 typecheck와 test는 기존 `@dfragon/ui typecheck`와 `test` 범위에 속하며 별도 Example 전용 script는 없다. Example `dev:examples`와 `build:examples`도 실행한다. Production preview는 consumer production build가 필요한 별도 경로다.
+Web·Desktop은 각각 `test`, `typecheck`, `build` script를 실행한다. UI의 `test`는 실제 `typecheck` 뒤에 Vitest와 빌드 검사 도구의 Node 회귀를 실행한다. Example의 typecheck는 `@dfragon/ui typecheck` 범위에 속하며 별도 Example 전용 script는 없다. Example `dev:examples`와 `build:examples`도 실행한다. Production preview는 consumer production build가 필요한 별도 경로다.
 
 Desktop 제품 `dev`는 Electron bootstrap을 실행하므로 이 regression에서 직접 호출하지 않는다. 설치된 electron-vite 5의 `--rendererOnly`도 이전 main/preload를 실행한다. 대신 `apps/desktop/scripts/ui-renderer-resolution.mjs`가 공개 `resolveConfig` API로 실제 `electron.vite.config.ts`의 renderer 설정을 읽고 같은 Vite server로 실제 renderer entry를 해석한다. 부모 test가 HTTP 결과를 검증하고 자신이 시작한 child process group을 종료한다. 실패한 import 이후 Vite 7의 `server.close()` await가 원래 assertion을 가렸던 접근은 사용하지 않는다. 제품 main/preload·capture/OCR는 실행하지 않는다. 이 결과를 제품 native bootstrap 검증으로 주장하지 않는다.
 
@@ -22,12 +22,12 @@ Desktop 제품 `dev`는 Electron bootstrap을 실행하므로 이 regression에�
 ### 종료 lifecycle의 별도 Node 검사
 
 ```sh
-node --test --test-timeout=25000 packages/ui/test/consumer-process-lifecycle.node.mjs
+pnpm --filter @dfragon/ui test:consumer-lifecycle
 ```
 
 이 파일은 Vitest의 jsdom 테스트와 분리한 Node 전용 검사입니다. 기존 cold 12개 검사를 실행하거나 generated output/cache를 제거하지 않습니다. 종료 helper는 `packages/ui/scripts/consumer-process-lifecycle.mjs`에 있으며, 공통 dev 3개 case가 이를 호출합니다.
 
-Unit 8개는 정상 TERM, 이미 종료·부재, TERM 무응답, child 종료 후 group 잔존, KILL 이후 잔존, 확인 권한 오류, ESRCH 경합, 원래 검사 오류와 cleanup 오류의 동시 보존을 검사합니다. 가상 시계와 신호 주입으로 5초 TERM 유예, KILL 뒤 최대 2초, 50ms polling을 결정적으로 검사합니다. 실제 detached Node child 2개는 최초 TERM 종료와 TERM 무응답 경로의 신호·exit·group 부재 계약을 확인합니다. 실제 Vite 종료 실패를 반복 유도하는 검사는 아닙니다.
+Unit 10개는 정상 TERM, 이미 종료·부재, TERM 무응답, child 종료 후 group 잔존, KILL 이후 잔존, 확인 권한 오류, ESRCH 경합, 원래 검사 오류와 cleanup 오류의 동시 보존, 안전하지 않은 PID 2개를 검사합니다. 가상 시계와 신호 주입으로 5초 TERM 유예, KILL 뒤 최대 2초, 50ms polling을 결정적으로 검사합니다. PID를 거부할 때는 getter 호출 횟수 대신 신호·대기·시계 확인이 발생하지 않는 안전 계약을 확인합니다. 실제 detached Node child 2개는 최초 TERM 종료와 TERM 무응답 경로의 신호·exit·group 부재 계약을 확인합니다. 실제 Vite 종료 실패를 반복 유도하는 검사는 아닙니다.
 
 각 unit은 250ms, 실제 child의 종료 판정은 8초의 테스트 안전 제한을 둡니다. 실제 child는 준비 메시지를 보낸 뒤에만 종료 검사를 시작합니다. 테스트의 `finally`는 직접 생성한 detached group만 정리하고 child exit 및 group 부재를 확인합니다. 별도 안전장치로 synthetic child 자신도 12초 뒤 소유 group을 종료하므로 runner의 강제 종료가 무제한 잔존으로 이어지지 않게 합니다. 테스트 안전 정리는 helper의 성공으로 계산하지 않습니다. 외부 감독에서도 위 명령에 30초 제한을 둡니다.
 
@@ -36,6 +36,12 @@ Unit 8개는 정상 TERM, 이미 종료·부재, TERM 무응답, child 종료 �
 HTTP/import/startup 오류가 있으면 harness가 그 오류를 그대로 다시 던집니다. cleanup도 실패하면 `AggregateError.errors`에 원래 오류와 cleanup 오류를 순서대로 담고 `cause`에는 원래 오류를 유지합니다. 두 실패가 없을 때만 정상 종료로 처리합니다. 이 helper는 호출자가 직접 `detached: true`로 생성한 child만 받으며, 임의 PID나 다른 프로세스 그룹에 대한 정리 도구로 사용하지 않습니다.
 
 Issue #224의 통합 RED에서 10개 중 7개가 새 요구 assertion으로 실패하는 것을 확인한 뒤 Green을 구현했습니다. 최종 cold/전체 workspace 검증은 통합 head에서 수행합니다. 이 보강은 이전 Vite 종료 실패의 내부 원인을 해결했다는 근거가 아닙니다.
+
+### 빌드 산출물과 검사 도구
+
+`pnpm --filter @dfragon/ui test:tooling`은 임시 library fixture로 공개 ESM·declaration 누락, pnpm 내부 타입 경로, Typo의 전이 SEED import와 library CSS import를 거부하는지 확인합니다. 순수 React chunk를 통한 재수출은 허용합니다. 실제 source·고지 hash 검사는 유지하며 소비 앱 output/cache는 삭제하지 않습니다.
+
+`build`는 library 생성 후 `verify:build`를 실행합니다. 별도 TypeScript fixture는 source alias와 자동 Node type 없이 dist의 공개 타입·태그별 속성·ref·거부 사례를 검사합니다. Vite fixture는 실제 package export와 CSS를 해석하고, Node ESM smoke는 React 전용 `@dfragon/ui/typo`를 가져와 native element로 렌더링합니다. 전체 UI는 SEED CSS 때문에 Node 직접 import 대상이 아닙니다. 이 산출물 검사는 UI의 src/test/examples typecheck나 cold consumer 검사를 대신하지 않습니다.
 
 ### 기존 cold import 회귀
 

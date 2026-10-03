@@ -14,7 +14,8 @@
     "types": ["node", "vite/client"],
     "allowImportingTsExtensions": true,
     "paths": {
-      "@dfragon/ui": ["./src/index.tsx"]
+      "@dfragon/ui": ["./src/index.tsx"],
+      "@dfragon/ui/typo": ["./src/typo.tsx"]
     }
   },
   "include": ["src", "test", "vitest.config.ts", "build", "vite.config.ts", "examples"]

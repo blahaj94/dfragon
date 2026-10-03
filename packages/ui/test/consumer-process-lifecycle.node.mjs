@@ -99,27 +99,39 @@ function createControlledGroup(mode) {
 }
 
 const unitCases = [
-  { name: 'normal TERM exit remains successful', mode: 'normal', status: 'fulfilled' },
-  { name: 'already exited and absent needs no signal', mode: 'absent', status: 'fulfilled' },
-  { name: 'TERM refusal requires KILL and remains failure', mode: 'stubborn', status: 'rejected' },
+  { name: 'TERM으로 정상 종료하고 group이 사라지면 성공한다', mode: 'normal', status: 'fulfilled' },
   {
-    name: 'child exit does not prove descendant group absence',
+    name: '이미 종료한 child의 group이 없으면 신호를 보내지 않는다',
+    mode: 'absent',
+    status: 'fulfilled'
+  },
+  {
+    name: 'TERM을 거부하면 KILL로 정리한 뒤에도 실패를 보존한다',
+    mode: 'stubborn',
+    status: 'rejected'
+  },
+  {
+    name: 'child가 종료했어도 descendant group이 남으면 실패한다',
     mode: 'orphan',
     status: 'rejected'
   },
   {
-    name: 'group remaining after KILL fails within both bounds',
+    name: 'KILL 후에도 group이 남으면 정리 제한 안에서 실패한다',
     mode: 'persistent',
     status: 'rejected'
   },
-  { name: 'permission failure is not group absence', mode: 'permission', status: 'rejected' },
   {
-    name: 'ESRCH signal race succeeds after child exit and absence',
+    name: 'group 확인 권한 오류를 group 부재로 처리하지 않는다',
+    mode: 'permission',
+    status: 'rejected'
+  },
+  {
+    name: '신호 전송 중 ESRCH가 발생해도 child 종료와 group 부재를 확인하면 성공한다',
     mode: 'esrch',
     status: 'fulfilled'
   },
   {
-    name: 'original inspection and cleanup errors are both retained',
+    name: '원래 검사 오류와 정리 오류를 cause와 errors에 함께 보존한다',
     mode: 'cleanup-error',
     status: 'rejected'
   }
@@ -150,16 +162,28 @@ for (const { name, mode, status } of unitCases) {
           return isFiftyMilliseconds
         })
         assert.ok(usesFiftyMillisecondPoll, 'Absence polling uses the approved 50ms interval')
+        const isStillPresent = mode === 'persistent'
+        const expectedFailure = isStillPresent
+          ? /could not confirm child exit and group absence/
+          : /exceeded the SIGTERM grace period; cleanup required escalation/
+        assert.match(outcome.error.message, expectedFailure)
       }
       const isAlreadyAbsent = mode === 'absent'
       if (isAlreadyAbsent) {
         assert.deepEqual(group.signals, [])
       }
 
+      if (mode === 'permission') {
+        assert.equal(outcome.error, group.permissionError)
+        assert.deepEqual(group.signals, [])
+        assert.deepEqual(group.sleeps, [])
+      }
+
       if (hasOriginalError) {
         const isAggregate = outcome.error instanceof AggregateError
         assert.ok(isAggregate, 'Both failures must remain inspectable')
         assert.deepEqual(outcome.error.errors, [originalError, group.cleanupError])
+        assert.equal(outcome.error.cause, originalError)
       }
     } finally {
       group.release()
@@ -170,32 +194,22 @@ for (const { name, mode, status } of unitCases) {
 
 const invalidPidCases = [
   {
-    name: 'non-integer PID stops before the owned group check',
-    pid: 1.5,
-    expectedPidReads: 1
+    name: '정수가 아닌 PID는 신호·대기·시계 확인 전에 거부한다',
+    pid: 1.5
   },
   {
-    name: 'PID 1 stops after the integer check without cleanup work',
-    pid: 1,
-    expectedPidReads: 2
+    name: 'PID 1은 신호·대기·시계 확인 전에 거부한다',
+    pid: 1
   }
 ]
 
-for (const { name, pid, expectedPidReads } of invalidPidCases) {
+for (const { name, pid } of invalidPidCases) {
   test(name, async () => {
     const group = createControlledGroup('absent')
-    let pidReads = 0
     let nowCalls = 0
     let killCalls = 0
     let sleepCalls = 0
-    Object.defineProperty(group.child, 'pid', {
-      configurable: true,
-      get: () => {
-        pidReads += 1
-
-        return pid
-      }
-    })
+    group.child.pid = pid
     const operation = stopOwnedProcessGroup({
       ...group,
       now: () => {
@@ -218,7 +232,6 @@ for (const { name, pid, expectedPidReads } of invalidPidCases) {
       const outcome = await settleWithin({ operation, deadlineMs: 250 })
       assert.equal(outcome.status, 'rejected')
       assert.equal(outcome.error.message, 'Cannot identify the owned detached process group')
-      assert.equal(pidReads, expectedPidReads)
       assert.equal(killCalls, 0)
       assert.equal(nowCalls, 0)
       assert.equal(sleepCalls, 0)
@@ -257,8 +270,10 @@ function isGroupAbsent(pid) {
 }
 
 for (const ignoresTerm of [false, true]) {
-  const behavior = ignoresTerm ? 'TERM refusal fails after owned KILL' : 'normal TERM succeeds'
-  test(`real Node detached child: ${behavior}`, async (context) => {
+  const behavior = ignoresTerm
+    ? 'TERM을 거부하면 KILL로 정리한 뒤 실패한다'
+    : 'TERM으로 정상 종료한다'
+  test(`실제 Node detached child가 ${behavior}`, async (context) => {
     const source = createChildSource(ignoresTerm)
     const child = spawn(process.execPath, ['--input-type=module', '-e', source], {
       detached: true,
@@ -281,6 +296,9 @@ for (const ignoresTerm of [false, true]) {
       )
       const expectedSignal = ignoresTerm ? 'SIGKILL' : 'SIGTERM'
       assert.equal(child.signalCode, expectedSignal)
+      if (ignoresTerm) {
+        assert.match(outcome.error.message, /exceeded the SIGTERM grace period/)
+      }
       const hasNoGroup = isGroupAbsent(child.pid)
       assert.ok(hasNoGroup, 'Child exit alone is not group cleanup')
     } finally {
