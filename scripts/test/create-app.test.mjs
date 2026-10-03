@@ -1,40 +1,19 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   readlinkSync,
-  rmSync,
   symlinkSync,
   writeFileSync
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-
-function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'dfragon-create-app-'))
-  t.after(() => rmSync(root, { recursive: true, force: true }))
-  mkdirSync(join(root, 'scripts'))
-  copyFileSync(new URL('../create-app.mjs', import.meta.url), join(root, 'scripts/create-app.mjs'))
-  const cwd = join(root, 'unrelated directory')
-  mkdirSync(cwd)
-  const run = (args) =>
-    spawnSync(process.execPath, [join(root, 'scripts/create-app.mjs'), ...args], {
-      cwd,
-      encoding: 'utf8',
-      timeout: 10000
-    })
-
-  return { root, cwd, run }
-}
+import { createAppFixture } from './fixtures/create-app/repository.mjs'
 
 test('실행 위치와 무관하게 스크립트의 저장소에 정확한 workspace를 생성한다', (t) => {
-  const { root, cwd, run } = fixture(t)
+  const { root, cwd, run } = createAppFixture(t)
   const result = run(['--name', '@dfragon/party-api'])
   assert.equal(result.status, 0, result.stderr)
   assert.match(result.stdout, /생성 완료: apps\/party-api/)
@@ -52,7 +31,7 @@ test('실행 위치와 무관하게 스크립트의 저장소에 정확한 works
 })
 
 test('축약 옵션으로 만든 앱을 다시 요청하면 기존 파일을 보존하고 실패한다', (t) => {
-  const { root, run } = fixture(t)
+  const { root, run } = createAppFixture(t)
   assert.equal(run(['-n', '@dfragon/party-api']).status, 0)
   const source = join(root, 'apps/party-api/src/keep.txt')
   writeFileSync(source, '수작업 코드')
@@ -76,7 +55,7 @@ for (const [name, args] of [
   ['연속 하이픈', ['--name', '@dfragon/api--one']]
 ]) {
   test(`${name} 입력은 디렉터리를 만들기 전에 실패한다`, (t) => {
-    const { root, cwd, run } = fixture(t)
+    const { root, cwd, run } = createAppFixture(t)
     const result = run(args)
     assert.equal(result.status, 1, result.stderr)
     assert.equal(result.signal, null)
@@ -87,7 +66,7 @@ for (const [name, args] of [
 }
 
 test('기존 파일과 끊어진 심볼릭 링크를 앱 경로로 덮어쓰지 않는다', (t) => {
-  const { root, run } = fixture(t)
+  const { root, run } = createAppFixture(t)
   mkdirSync(join(root, 'apps'))
   writeFileSync(join(root, 'apps/file'), '보존할 파일')
   symlinkSync(join(root, 'missing-target'), join(root, 'apps/link'), 'dir')
