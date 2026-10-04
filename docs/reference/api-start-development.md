@@ -74,6 +74,9 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 
 ## 시작·종료와 검증
 
+실제 캐릭터의 스킬 계수·쿨타임을 별도 설치한 비공개 패키지로 확인하는 선택 명령은
+[스킬 패키지 검증](skill-calculation-verification.md)을 참고합니다. 서버와 DB를 시작하지 않습니다.
+
 각 앱의 `build` 후 `start`로 compiled ESM entry를 실행할 수도 있다. 설정·DB 초기화·listen 실패는
 `API failed to start` 또는 `Accounts failed to start`와 nonzero exit만 남긴다. Secret·파일 경로·stack을 기록하지 않는다.
 정상 종료와 부분 초기화 실패에서 앱과 소유 DB를 정리하며 SIGKILL·host 장애는 즉시 cleanup을 보장하지 않는다.
