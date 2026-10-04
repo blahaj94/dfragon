@@ -1,9 +1,9 @@
 import { buildSkillSelection } from './skill-calculation.mjs'
 
 const messages = {
-  INVALID_MEASUREMENT: '측정 조건·스킬·데미지·보정값을 확인해 주세요.',
+  INVALID_MEASUREMENT: '측정 조건, 스킬, 데미지, 보정값을 확인해 주세요.',
   MEASUREMENT_CONTEXT_MISMATCH: '두 측정의 환경 식별자와 대상 레벨이 같아야 합니다.',
-  INVALID_SKILL_SNAPSHOT: '스냅샷의 직업·무기·스킬 상세와 선택을 확인해 주세요.',
+  INVALID_SKILL_SNAPSHOT: '스냅샷의 직업, 무기, 스킬 상세와 선택을 확인해 주세요.',
   SKILL_NOT_CALCULATED: '비교할 두 스킬의 유효한 계산 결과가 필요합니다.',
   MEASUREMENT_FAILED: '오프라인 스킬 비교를 완료하지 못했습니다.'
 }
@@ -279,7 +279,7 @@ export function calculateSnapshotMeasurement(snapshot, observations, skillPackag
       ...result.warnings,
       '기준 스킬의 실측으로 공통 배율을 보정한 비교이며 절대 데미지 공식이나 전체 장비 산식을 검증하지 않습니다.',
       '상태 수치는 비교 문맥으로 표시하며 보정값에 다시 곱하지 않습니다. 장비 보정은 명시한 레벨과 스킬 배율만 적용합니다.',
-      '패키지의 기본 모드와 현재 개화·강화 모델을 사용합니다. 같은 장비·버프·대상·전체 명중 조건은 관측 입력의 전제입니다.',
+      '패키지의 기본 모드와 현재 개화, 강화 모델을 사용합니다. 같은 장비, 버프, 대상, 전체 명중 조건은 관측 입력의 전제입니다.',
       '맹룡 개화의 추가 회오리와 모델의 타수 대응은 검증되지 않았으며 감전 피해는 별도로 포함하지 않습니다.'
     ])
   ]

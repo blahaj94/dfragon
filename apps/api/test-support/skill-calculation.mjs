@@ -15,7 +15,7 @@ const failureMessages = {
   PROFILE_MISMATCH: '캐릭터 직업 식별자가 선택한 계산 규칙과 다릅니다.',
   INVALID_CHARACTER_DATA: '계산에 필요한 캐릭터 정보가 누락되거나 잘못되었습니다.',
   UNSUPPORTED_WEAPON: '장착 무기가 선택한 계산 규칙에서 지원되지 않습니다.',
-  INVALID_SKILL_SELECTION: '스킬 레벨 또는 개화·강화 선택을 계산 입력으로 변환할 수 없습니다.',
+  INVALID_SKILL_SELECTION: '스킬 레벨 또는 개화, 강화 선택을 계산 입력으로 변환할 수 없습니다.',
   CATALOG_LOOKUP_FAILED: '계산에 필요한 스킬 상세를 모두 조회하지 못했습니다.',
   CALCULATION_FAILED: '패키지 계산 입력 검증 또는 계산에 실패했습니다.',
   INVALID_SECRET: 'Neople key 입력을 확인해 주세요.',
@@ -208,8 +208,8 @@ export function buildSkillSelection(style, weapon, metadata) {
     }
   }
   const warnings = [
-    '장비·스탯·대상 방어를 합산한 데미지가 아닌 스킬 계수와 쿨타임 검증입니다.',
-    '장비별 스킬 레벨·스탯·추가 쿨타임 감소·특수 무기 보정은 별도로 입력하지 않습니다. API가 보고한 스킬 레벨과 무기 종류만 사용합니다.',
+    '장비, 스탯, 대상 방어를 합산한 데미지가 아닌 스킬 계수와 쿨타임 검증입니다.',
+    '장비별 스킬 레벨, 스탯, 추가 쿨타임 감소, 특수 무기 보정은 별도로 입력하지 않습니다. API가 보고한 스킬 레벨과 무기 종류만 사용합니다.',
     '모드는 추정하지 않고 패키지의 무기별 기본 모드를 사용합니다.',
     'API 스킬 레벨을 selectedLevel로 전달하고 패키지의 패시브 가산 후 effectiveLevel을 함께 표시합니다.'
   ]
