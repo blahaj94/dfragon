@@ -83,7 +83,7 @@ test('기준 실측만 보정에 쓰며 개별 배율은 한 번만 적용한다
   assert.equal(linked.reference.effectiveLevel, 2)
 })
 
-test('다른 측정 환경·대상 레벨과 같은 스킬의 자기 비교는 거절한다', () => {
+test('다른 측정 환경, 대상 레벨과 같은 스킬의 자기 비교는 거절한다', () => {
   for (const change of [
     (input) => {
       input.comparison.contextId = 'another-session'
@@ -105,7 +105,7 @@ test('다른 측정 환경·대상 레벨과 같은 스킬의 자기 비교는 �
   })
 })
 
-test('계산 보류·누락·레벨 불일치와 유효하지 않은 데미지를 거절한다', () => {
+test('계산 보류, 누락, 레벨 불일치와 유효하지 않은 데미지를 거절한다', () => {
   for (const invalid of [
     [],
     [skills()[0]],
@@ -203,7 +203,7 @@ function snapshotScenario() {
   return { snapshot, skillPackage, readRequest }
 }
 
-test('오프라인 선택·패시브 레벨 보정의 원래 값과 출처를 보존한다', () => {
+test('오프라인 선택, 패시브 레벨 보정의 원래 값과 출처를 보존한다', () => {
   const { snapshot, skillPackage, readRequest } = snapshotScenario()
   const before = structuredClone(snapshot)
   const input = observations()
@@ -233,7 +233,7 @@ test('오프라인 선택·패시브 레벨 보정의 원래 값과 출처를 �
   assert.deepEqual(snapshot, before)
 })
 
-test('다른 직업·필수 상세 누락·알 수 없는 레벨 보정을 거절한다', () => {
+test('다른 직업, 필수 상세 누락, 알 수 없는 레벨 보정을 거절한다', () => {
   for (const change of [
     (snapshot) => {
       snapshot.details.character.jobGrowId = 'other-grow'

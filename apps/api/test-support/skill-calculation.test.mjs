@@ -50,7 +50,7 @@ function fixture() {
   }
 }
 
-test('API 습득 레벨·개화·강화를 전달하고 프로필 밖 스킬과 기본 모드를 명시한다', () => {
+test('API 습득 레벨, 개화, 강화를 전달하고 프로필 밖 스킬과 기본 모드를 명시한다', () => {
   const { request, warnings, excluded } = buildCalculationRequest(fixture(), job, metadata)
   assert.deepEqual(request, {
     weapon: '광검',
@@ -77,7 +77,7 @@ test('직업 식별자 불일치와 지원하지 않는 무기는 계산 전에 
   })
 })
 
-test('필수 스킬 목록 누락과 잘못된 레벨·옵션을 기본값으로 숨기지 않는다', () => {
+test('필수 스킬 목록 누락과 잘못된 레벨, 옵션을 기본값으로 숨기지 않는다', () => {
   for (const field of ['active', 'passive', 'evolution', 'enhancement']) {
     const details = fixture()
     delete details.skill_style.skill.style[field]
@@ -208,7 +208,7 @@ function scenario() {
   return { options, skillPackage, providers, requested, ids, maximumConcurrency }
 }
 
-test('필요한 모든 상세를 최대 세 개씩 조회하고 계산·보류·미습득을 구분한다', async () => {
+test('필요한 모든 상세를 최대 세 개씩 조회하고 계산, 보류, 미습득을 구분한다', async () => {
   const context = scenario()
   const summary = await verifyCharacterSkills(
     context.options,
@@ -288,7 +288,7 @@ test('필수 상세 누락은 실패하며 공급자 원문 오류를 출력하�
   })
 })
 
-test('명시 서버·지원 프로필·절대 설치 경로를 요구하고 일반 검색 규칙을 재사용한다', () => {
+test('명시 서버, 지원 프로필, 절대 설치 경로를 요구하고 일반 검색 규칙을 재사용한다', () => {
   const args = [
     '--server',
     'siroco',
