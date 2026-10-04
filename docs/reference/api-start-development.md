@@ -142,12 +142,14 @@ GHCR의 공개 범위·접근 정책은 workflow가 변경하지 않습니다. �
 제품 main merge는 운영 배포를 실행하지 않으며 제품 CI는 인프라 checkout·운영 credential에 의존하지 않습니다.
 
 Dockerfile과 전용 ignore 파일은 `apps/<service>/`에 있습니다. 빌드 context는 제품 저장소 root이며
-API/accounts의 `docker-entrypoint.sh`도 해당 앱 옆에서 관리합니다. 로컬 빌드는 다음과 같습니다.
+API/accounts의 `docker-entrypoint.sh`도 해당 앱 옆에서 관리합니다. pnpm은 서버만 설치할 때도 전체 lockfile의 공급망 정책을 검사하므로 Desktop의 비공개 피아노 패키지 metadata를 읽을 권한이 필요합니다. `PIANO_SOUND_PACKAGES_TOKEN` Actions secret에 패키지 접근 권한이 있는 `read:packages` classic PAT를 등록합니다. Product Images는 이 값을 BuildKit secret으로 전달하며, 설치와 빌드 명령에서만 사용할 수 있고 이미지의 `ARG`, `ENV`나 인증 파일에 토큰 값을 기록하지 않습니다. GHCR 발행 권한은 기존 발행 job에만 유지합니다.
+
+로컬에서는 같은 읽기 토큰을 `NODE_AUTH_TOKEN` 환경변수로 제공하고 다음 명령으로 빌드합니다. 비밀값을 저장소 `.env`나 빌드 context에 넣지 않습니다.
 
 ```sh
-docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/api/Dockerfile -t dfragon-api:local .
-docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/accounts/Dockerfile -t dfragon-accounts:local .
-docker build --platform linux/amd64 --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/ocr/Dockerfile -t dfragon-ocr:local .
+docker build --platform linux/amd64 --secret id=github_packages_token,env=NODE_AUTH_TOKEN --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/api/Dockerfile -t dfragon-api:local .
+docker build --platform linux/amd64 --secret id=github_packages_token,env=NODE_AUTH_TOKEN --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/accounts/Dockerfile -t dfragon-accounts:local .
+docker build --platform linux/amd64 --secret id=github_packages_token,env=NODE_AUTH_TOKEN --build-arg SOURCE_COMMIT="$(git rev-parse HEAD)" -f apps/ocr/Dockerfile -t dfragon-ocr:local .
 ```
 
 커밋 정보는 커밋한 checkout을 기준으로 넣습니다. 빌드 인자를 생략한 로컬 이미지는 `commit: null`로
