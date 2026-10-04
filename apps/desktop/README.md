@@ -17,7 +17,7 @@ pnpm install --frozen-lockfile
 
 Code Quality와 Desktop CI는 설치 단계에만 `PIANO_SOUND_PACKAGES_TOKEN` secret을 전달합니다. 저장소 **Settings → Secrets and variables → Actions**에서 패키지 읽기 권한이 있는 `read:packages` classic PAT를 해당 이름으로 등록해야 합니다. Secret이 전달되지 않는 외부 fork와 Dependabot PR은 전체 설치를 할 수 없습니다. 인증 실패를 성공으로 처리하거나 검사를 생략하지 않습니다. 서버 이미지의 인증 전달은 [BuildKit secret 안내](../../docs/reference/api-start-development.md#서버-이미지)를 따릅니다.
 
-패키지의 **Manage Actions access**에 공개 저장소 `blahaj94/ldb`를 추가하면 외부 fork도 패키지를 다운로드할 수 있습니다. 비공개 다운로드 범위를 유지하기 위해 기본 `GITHUB_TOKEN`으로 대체하거나 공개 저장소에 패키지 접근을 허용하지 않습니다. GitHub의 [패키지 Actions 접근 안내](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package)를 참고합니다.
+패키지의 **Manage Actions access**에 공개 저장소 `blahaj94/dfragon`을 추가하면 외부 fork도 패키지를 다운로드할 수 있습니다. 비공개 다운로드 범위를 유지하기 위해 기본 `GITHUB_TOKEN`으로 대체하거나 공개 저장소에 패키지 접근을 허용하지 않습니다. GitHub의 [패키지 Actions 접근 안내](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package)를 참고합니다.
 
 Vite 전용 entry는 패키지에 포함된 MP3 18개를 로컬 빌드 자산으로 내보냅니다. CDN이나 CSP 변경 없이 다음처럼 사용하며, Electron main이나 preload에서는 import하지 않습니다.
 
