@@ -143,6 +143,11 @@ function validateCharacter(details, job) {
 export function buildCalculationRequest(details, job, metadata) {
   const weapon = validateCharacter(details, job)
   const style = details.skill_style?.skill?.style
+
+  return buildSkillSelection(style, weapon, metadata)
+}
+
+export function buildSkillSelection(style, weapon, metadata) {
   if (
     !style ||
     !Array.isArray(style.active) ||
