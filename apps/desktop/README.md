@@ -25,20 +25,26 @@ Vite 전용 entry는 패키지에 포함된 MP3 18개를 로컬 빌드 자산으
 import { PianoEngine, loadSamples } from '@blahaj94/piano-sound'
 import { sampleUrls } from '@blahaj94/piano-sound/vite'
 
-// 클릭 등 사용자 입력 핸들러 안에서 생성하고 재개합니다.
-const context = new AudioContext()
-await context.resume()
-const samples = await loadSamples(context, sampleUrls)
-const piano = new PianoEngine(context, samples)
-piano.start()
-piano.bounce()
+// 시작 버튼의 클릭 핸들러에서 호출하고 반환값을 보관합니다.
+async function startPiano() {
+  const context = new AudioContext()
+  try {
+    await context.resume()
+    const samples = await loadSamples(context, sampleUrls)
+    const piano = new PianoEngine(context, samples)
+    piano.start()
 
-// 일시 정지 후 start()로 다시 시작할 수 있습니다.
-piano.stop()
-// 화면을 떠날 때 엔진과 소유한 AudioContext를 정리합니다.
-piano.dispose()
-await context.close()
+    return { context, piano }
+  } catch (error) {
+    await context.close()
+    throw error
+  }
+}
 ```
+
+시작과 정리 명령을 한 번에 실행하면 소리를 듣기 전에 멈춥니다. 이벤트 음은 `piano.bounce()`, 정지 버튼은 `piano.stop()`, 다시 시작은 `await context.resume()` 후 `piano.start()`에 연결합니다. 화면을 떠날 때만 `piano.dispose()` 후 `await context.close()`를 호출합니다.
+
+브라우저에서 바로 들어보려면 piano-sound 저장소에서 `npm ci`, `npm run example`을 실행한 뒤 생성된 `examples/piano.html`을 엽니다. 이 파일은 엔진과 음원을 포함하므로 `file://`와 오프라인에서 동작합니다. Vite 앱의 원본 HTML을 직접 여는 방식은 모듈 해석과 파일 접근 제한 때문에 실행되지 않습니다.
 
 샘플 로딩 중 화면을 떠나는 경우 `loadSamples`의 `signal`에 `AbortSignal`을 전달하고 취소합니다. 로딩 실패 시에도 생성한 context를 닫는 책임은 호출자에게 있습니다. 음원은 Alexander Holm의 Salamander Grand Piano이며 CC BY 3.0 고지와 원문을 패키지에 포함합니다. Desktop의 기존 라이선스 수집기가 패키지의 `LICENSE`, `NOTICE`, `LICENSES`를 읽어 배포 고지와 설정 화면에 포함합니다.
 
