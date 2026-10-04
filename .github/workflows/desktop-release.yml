@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.gitattributes'
+      - '.npmrc'
       - '.github/workflows/desktop-release.yml'
       - 'apps/desktop/**'
       - 'packages/**'
@@ -46,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+          registry-url: https://npm.pkg.github.com
+          scope: '@blahaj94'
       - uses: pnpm/action-setup@v6
       - name: Check release configuration
         id: release
@@ -67,6 +70,8 @@ jobs:
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           NODE
       - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/desktop build:distribution
       - name: Package portable executable with release version
         shell: bash

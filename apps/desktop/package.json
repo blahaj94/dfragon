@@ -44,6 +44,7 @@
     "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
+    "@blahaj94/piano-sound": "0.1.0",
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@stylexjs/stylex": "catalog:",
