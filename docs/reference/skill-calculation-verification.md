@@ -66,3 +66,77 @@ API가 보고한 스킬 레벨과 장착 무기 종류를 사용합니다. 특�
 ```sh
 node --test apps/api/test-support/skill-calculation.test.mjs
 ```
+
+## 저장된 입력과 실측의 오프라인 비교
+
+`verify-skill-measurement.mjs`는 저장된 스킬 상세로 다시 계산하고, 기준 스킬 한 개의 실측으로
+공통 배율을 구해 다른 스킬의 실측과 비교합니다. Neople 호출·credential·DB를 사용하지 않습니다.
+API build 후 다음 명령을 사용합니다. 세 경로는 모두 절대 경로입니다.
+
+```sh
+pnpm --filter @dfragon/api exec node --import reflect-metadata \
+  test-support/verify-skill-measurement.mjs \
+  --package-directory /absolute/path/to/skill-package \
+  --snapshot /absolute/path/to/snapshot.json \
+  --observations /absolute/path/to/observations.json
+```
+
+Snapshot은 `details.character`의 `jobId`·`jobGrowId`, `details.equipment.equipment`,
+`details.skillStyle.style`, `details.status.status`와 `catalog`를 갖습니다. `catalog`에는 패키지가
+요구하는 모든 스킬의 `{key: {kind: "skill", jobId, skillId}, payload}`가 있어야 합니다.
+캐릭터 이름·ID는 필요하지 않습니다. Snapshot과 실측 원문은 저장소 밖에서 보관합니다.
+
+아래 관측 예시는 **합성 값**입니다. 실제 입력에는 패키지의 정확한 스킬 ID와 확인한 값을 사용합니다.
+두 측정의 `contextId`와 `targetLevel`은 공통 `context`와 일치해야 하며, 서로 다른 대상 레벨에서
+측정한 결과를 섞으면 실패합니다. 장비·버프·도핑·치명타·전체 명중 조건의 동일성은 사용자가
+확인해 `conditions`에 적습니다. 이 입력만으로 환경이 같았다는 사실을 자동 검증하지 않습니다.
+`context.id`·`conditions`·`source`는 로컬 결과에 표시되므로 개인정보·비밀값·개인 파일 경로를 넣지 않습니다.
+
+```json
+{
+  "context": {
+    "id": "synthetic-session",
+    "target": { "kind": "sandbag", "level": 110 },
+    "conditions": ["동일한 합성 장비", "전체 명중", "도핑 없음"],
+    "status": [{ "name": "힘", "value": 2000 }]
+  },
+  "levelOverrides": [
+    { "skillId": "reference-id", "level": 2, "source": "합성 인게임 관측" },
+    { "skillId": "comparison-id", "level": 3, "source": "합성 인게임 관측" },
+    { "skillId": "passive-id", "level": 8, "source": "합성 장비 레벨 보정" }
+  ],
+  "reference": {
+    "skillId": "reference-id", "level": 2,
+    "contextId": "synthetic-session", "targetLevel": 110,
+    "damage": 100, "multiplier": { "value": 1, "source": "추가 보정 없음" }
+  },
+  "comparison": {
+    "skillId": "comparison-id", "level": 3,
+    "contextId": "synthetic-session", "targetLevel": 110,
+    "damage": 330, "multiplier": { "value": 1.5, "source": "합성 장비의 해당 스킬 증가" }
+  }
+}
+```
+
+`reference.level`·`comparison.level`은 인게임 표시 레벨이며 패키지 결과의 `effectiveLevel`과
+비교합니다. `levelOverrides[].level`은 패키지에 전달할 **selectedLevel**입니다. 다른 패시브가
+가산하는 레벨은 중복 입력하지 않고 출처에 환산 근거를 적습니다. 결과에는 API 원래 레벨,
+입력한 레벨, 패키지가 계산한 최종 레벨과 출처를 함께 표시합니다. `context.status`의 이름은
+snapshot 상태명과 정확히 일치해야 하며, 원래 상태값과 관측값을 나란히 표시할 뿐 산식에 재곱하지 않습니다.
+
+계산은 `보정값 = 기준 실측 / (기준 effectiveCoefficient × 기준 개별 배율)`,
+`비교 예측 = 비교 effectiveCoefficient × 비교 개별 배율 × 보정값` 순서입니다.
+비교 스킬 실측은 오차 계산에만 사용합니다. 오차율은 `(예측 − 실측) / 실측 × 100`이며,
+음수는 예측이 실측보다 작다는 뜻입니다. `panelMultiplier`는 이미 계수에 포함되어 다시 곱하지 않습니다.
+칭호 등 스킬별 추가 배율은 `multiplier`로 한 번 적용하며, 패키지에 이미 포함된 증가를 중복 입력하면 안 됩니다.
+
+이 방법은 동일 환경의 공통 배율을 실측으로 흡수합니다. 절대 데미지 공식·전체 장비 효과·대상 방어를
+재현한 검증이 아닙니다. 현재 맹룡 개화의 추가 회오리와 모델 타수의 대응은 확인되지 않았고,
+감전 피해는 별도로 포함하지 않습니다. 패키지의 연구 모델·보류 경고를 유지합니다.
+
+기존 입력 변환과 오프라인 비교 회귀 검사는 다음 명령으로 확인합니다.
+
+```sh
+node --test apps/api/test-support/skill-calculation.test.mjs \
+  apps/api/test-support/skill-measurement.test.mjs
+```
