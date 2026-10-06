@@ -9,12 +9,6 @@ it('CTC의 연속 출력은 합치고 blank로 분리한 같은 한글은 보존
   const data = new Float32Array([
     0.05, 0.9, 0.05, 0.05, 0.9, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9, 0.05, 0.05, 0.05, 0.9
   ])
-  expect(decodeCtc(data, 5, ['가', '나'])).toEqual({
-    text: '가가나',
-    confidence: expect.closeTo(90)
-  })
-  expect(decodeCtc(new Float32Array([1, 0, 0]), 1, ['가', '나'])).toEqual({
-    text: '',
-    confidence: 0
-  })
+  expect(decodeCtc(data, 5, ['가', '나'])).toBe('가가나')
+  expect(decodeCtc(new Float32Array([1, 0, 0]), 1, ['가', '나'])).toBe('')
 })

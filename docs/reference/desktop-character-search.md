@@ -41,13 +41,23 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
 
-일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. 현재 전처리는 BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 추가 글자 경계 크롭은 적용하지 않는다. 기존 Tesseract용 3배 확대와 여백을 제거하고 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈한다. BGR 정규화와 오른쪽 zero padding, CTC blank·중복 제거로 문자열을 읽는다. Confidence는 정답 확률이나 검색 허용 조건으로 사용하지 않는다.
+일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. 현재 전처리는 BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 추가 글자 경계 크롭은 적용하지 않는다. 기존 Tesseract용 3배 확대와 여백을 제거하고 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈한다. BGR 정규화와 오른쪽 zero padding 후 아래 CTC 후보 디코더의 1위 문자열을 읽는다. 모델 점수는 정답 확률이나 검색 허용 조건으로 사용하지 않는다.
 
 `createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화·인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 capture의 결과는 기존 signal·검색 수명 검사에서 차단하며, 두 번 연속 관측 일치와 공개 검색 연결은 유지한다. 검색은 인증과 독립적이며 sender·source·capture 검사는 유지한다.
 
 [PR #462](https://github.com/blahaj94/ldb/pull/462)에서 Windows 설치 앱의 실제 선택 창 → 영상 → 한 슬롯의 정확한 OCR → 인증 검색·결과 표시를 확인했다. 이는 당시 Tesseract 빌드의 관측이며 PaddleOCR 전환의 실제 검색 완료 증거와 구분한다. 이번 PaddleOCR 비교는 선택한 게임 창의 허용된 닉네임 영역에서 실제 모델 실행을 확인했으나, 진단 중 검색 전송은 차단했다. UI 100%·돋움은 비교 조건이며 제품의 지원 배율을 확장한 것이 아니다.
 
-작은 한글 글자와 특정 음절의 오인식은 남아 있다. 한 표본의 근접한 결과나 높은 confidence를 전체 정확도로 일반화하지 않는다. 영역 확장·확대·색 분리·Gemma 비교와 합성 입력 재현은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 기록했으며 정확도 추가 개선은 MVP 이후로 미뤘다. 임시 비교 UI, 문자별 후보와 Gemma 연결은 제품에서 제거한다.
+작은 한글 글자와 특정 음절의 오인식은 남아 있다. 한 표본의 근접한 결과나 높은 모델 점수를 전체 정확도로 일반화하지 않는다. 영역 확장, 확대, 색 분리, Gemma 비교와 합성 입력 재현은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 기록했으며 정확도 추가 개선은 MVP 이후로 미뤘다. 임시 비교 UI, 문자별 후보와 Gemma 연결은 제품에서 제거한다.
+
+### CTC 후보와 모델 점수
+
+`lib/paddle-recognition.ts`가 내보내는 `decodeCtcCandidates(data, steps, characters)`는 최대 다섯 개의 `{ rank, modelScore, nickname }`을 반환한다. `lib/ctc-candidates.ts`는 시점별 상위 nonblank 문자 16개로 prefix를 확장하고 최대 32개를 유지한다. Blank 경로와 마지막 문자의 연속 반복은 문자 상위 16개에 포함되는지와 관계없이 합산한다. Blank 없이 이어진 같은 문자는 하나로 합치며 blank로 분리된 반복 문자는 유지한다.
+
+탐색을 마친 뒤 남은 최대 32개 문자열 모두를 CTC forward 계산으로 다시 채점한다. 이 계산은 각 문자열로 축약되는 모든 경로를 원래 출력 확률에서 합산한다. 최종 점수 내림차순으로 최대 다섯 개를 고르고 `rank`를 1부터 부여한다. 동점은 사전 token 순서로 결정한다. 후보 탐색은 제한된 beam을 사용하므로 전체 가능한 문자열의 정확한 상위 다섯 개를 보장하지 않는다. Blank만 관측되면 빈 문자열 후보를 유지하며, 후보 수를 채우려고 다른 이름을 만들지 않는다.
+
+`modelScore`는 재계산한 문자열 확률의 100배다. 실제 정답률이나 상위 후보 사이의 상대 비율이 아니며, 상위 다섯 점수의 합을 100으로 맞추지 않는다. 입력은 유한한 0~1의 softmax 확률이어야 한다. 시점별 확률 합과 1의 차이가 0.001 이하면 그 합으로 나누어 보정하고, 범위를 벗어나면 거절한다. Logits에 softmax를 다시 적용하지 않는다. 빌드 준비 단계도 같은 확률 범위와 합계 조건을 검사한다.
+
+`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 기존 `{ text, confidence }` 응답을 유지하며 `text`에 1위 닉네임, `confidence`에 1위 `modelScore`를 넣는다. 개발자 평가는 이를 **모델 점수**로 표시하고 저장된 정답과 비교한 일치율, CER과 구분한다.
 
 ## UI 구성
 

@@ -1,5 +1,5 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import { decodeCtc, normalizedBgr } from './paddle-recognition'
+import { decodeCtcCandidates, normalizedBgr } from './paddle-recognition'
 
 let session: InferenceSession | null = null
 let characters: string[] = []
@@ -53,7 +53,10 @@ async function recognizeAndReply(pixels: ImageData): Promise<void> {
       throw new Error('OCR model output shape mismatch.')
     }
 
-    postMessage(decodeCtc(output.data as Float32Array, steps, characters))
+    const first = decodeCtcCandidates(output.data as Float32Array, steps, characters)[0]
+    const text = first?.nickname ?? ''
+    const confidence = first?.modelScore ?? 0
+    postMessage({ text, confidence })
   } finally {
     tensor.dispose()
     if (outputs != null) {

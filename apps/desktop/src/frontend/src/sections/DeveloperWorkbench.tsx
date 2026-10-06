@@ -232,7 +232,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             제품 닉네임 정리 후: {normalizeNickname(selectedResult.text) || '(빈 문자열)'}
           </Typo.txtS>
           <Typo.caption>
-            신뢰도 {selectedResult.confidence.toFixed(1)} · 추론{' '}
+            모델 점수 {selectedResult.confidence.toFixed(1)}, 추론{' '}
             {selectedResult.milliseconds.toFixed(0)}ms
           </Typo.caption>
           <Typo.txtS>{getLabelComparison(sample, selectedResult)}</Typo.txtS>
@@ -531,7 +531,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                 </div>
                 <Typo.caption {...stylex.props(styles.muted)}>
                   제품 전처리는 Otsu 반전 이진화를 적용하며, 원본 입력은 이를 생략합니다. 두 방식
-                  모두 48×320 입력으로 변환합니다. 신뢰도는 정답률이 아닙니다.
+                  모두 48×320 입력으로 변환합니다. 모델 점수는 정답률이 아닙니다.
                 </Typo.caption>
                 <div role="status" {...stylex.props(styles.evaluationSummaryGrid)}>
                   <Typo.txtS>

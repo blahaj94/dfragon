@@ -119,14 +119,14 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity·복귀 주소·환경·provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential·Neople API key·DB 암호·인증 key·개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다.
 
-| 항목 | 배포 앱 | 기존 개발 앱 |
-| --- | --- | --- |
-| 이름·실행 파일 | DFRAGON / `dfragon.exe` | DFRAGON Development / `dfragon-dev.exe` |
-| app identity·appData 아래 profile | `dfragon` | `dfragon.dev` |
-| 인증 환경 | `production` | `development` |
-| 복귀 주소 | `dfragon://auth/callback` | `dfragon.dev://auth/callback` |
-| API | 빌드 시 지정한 HTTPS origin | `https://localhost:3443` |
-| 설치 | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지 |
+| 항목                              | 배포 앱                                 | 기존 개발 앱                            |
+| --------------------------------- | --------------------------------------- | --------------------------------------- |
+| 이름·실행 파일                    | DFRAGON / `dfragon.exe`                 | DFRAGON Development / `dfragon-dev.exe` |
+| app identity·appData 아래 profile | `dfragon`                               | `dfragon.dev`                           |
+| 인증 환경                         | `production`                            | `development`                           |
+| 복귀 주소                         | `dfragon://auth/callback`               | `dfragon.dev://auth/callback`           |
+| API                               | 빌드 시 지정한 HTTPS origin             | `https://localhost:3443`                |
+| 설치                              | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지           |
 
 NSIS는 기존 protocol 소유권 검사·사용자별 등록·자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin·RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
@@ -198,7 +198,9 @@ git add apps/desktop/models/finetuned apps/desktop/ocr-model.config.mjs
 
 사전은 UTF-8, BOM 없이 한 줄에 한 문자이며 중복, 빈 행, 공백 문자를 넣지 않습니다. CRLF와 마지막 개행 한 개는 허용합니다. 학습할 때 사용한 사전 순서를 그대로 유지해야 합니다. CTC blank는 0번, 공백은 마지막 클래스로 앱이 추가하므로 출력 클래스 수는 사전 문자 수 + 2입니다. 문자 확장 모델은 확장된 ONNX와 사전을 함께 지정합니다.
 
-준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
+준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 `[1, 3, 48, 320]` 입력을 실행해 출력 형식과 사전 클래스 수를 검사합니다. 출력은 유한한 0~1의 softmax 확률이고 시점별 클래스 확률 합이 1이어야 하며, 합계 오차는 0.001까지 허용합니다. 런타임 디코더도 같은 조건을 검사하고 허용된 합계 오차만 보정합니다. logits에 softmax를 다시 적용하지 않습니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
+
+`decodeCtcCandidates`는 최대 다섯 개의 `{ rank, modelScore, nickname }`을 최종 모델 점수 내림차순으로 반환하며 `rank`는 1부터 시작합니다. 후보 탐색은 제한된 prefix beam search이므로 전체 가능한 문자열의 정확한 상위 다섯 개를 보장하지 않습니다. 남은 후보 각각은 그 문자열을 만드는 모든 CTC 경로의 확률을 합산해 다시 채점하며, `modelScore`는 이 합의 100배입니다. 실제 정답률이나 후보 사이의 상대 비율이 아니며, 상위 다섯 점수의 합을 100으로 맞추지 않습니다. `decodeCtc`는 같은 후보 목록의 첫 닉네임 문자열을 반환합니다. [디코딩 방식과 응답 호환성](../../docs/reference/desktop-character-search.md#ctc-후보와-모델-점수)을 참고합니다.
 
 생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
 
@@ -266,7 +268,9 @@ Print Screen을 누르면 세 수집 탭 상단의 상태 영역에서 **캡처 
 
 게임을 마친 뒤 **정답 입력** 탭에서 미입력·완료·제외 이미지들을 확인합니다. 썸네일을 선택해 원본을 확대하고 이미지마다 정답을 직접 입력합니다. 빈 입력은 저장할 수 없으며 저장에 성공한 뒤 다음 이미지로 이동합니다. 저장 응답을 기다리는 동안 다른 썸네일이나 필터를 선택하면 새 선택을 유지하며 자동으로 이동하지 않습니다. 건너뛰기는 정답을 변경하지 않습니다. 학습에 적합하지 않은 이미지는 삭제하지 않고 제외했다가 복원할 수 있습니다. 이미지나 탭을 바꾸어도 작업 공간 안의 미저장 입력은 유지됩니다. 저장 실패 시 입력은 사라지지 않습니다.
 
-수집은 자동 OCR 평가를 실행하지 않습니다. 기존 PP-OCRv5 한국어 모델 평가는 별도로 실행합니다. **제품 전처리**는 실제 닉네임 OCR과 같은 BT.601 회색 변환과 Otsu 반전 이진화를 적용하고, **원본 입력**은 이 단계를 생략합니다. 두 옵션 모두 worker에서 높이 48px, 너비 `min(320, ceil(48 × 원본너비 / 원본높이))`로 리사이즈한 뒤 오른쪽을 정규화 값 0으로 패딩하여 `[1, 3, 48, 320]` 입력을 만듭니다. 넓은 이미지는 전체 폭을 320px로 줄이며 가우시안 블러, 추가 글자 영역 크롭, 상하 행 제거는 하지 않습니다. 원문과 제품용 닉네임 정리 결과를 따로 표시합니다. 채점은 저장된 정답과 모델 원문의 완전 일치율, Unicode code point 기준 문자 오류율(CER)이며 공백과 대소문자를 유지합니다. 미작성·실패·미평가 이미지는 점수에서 제외합니다. 이미지 읽기 실패는 해당 표본만 실패로 표시하지만, OCR worker 종료나 시간 초과는 실행 전체를 중단하고 남은 표본은 미평가로 둡니다. 새 평가를 실행하면 새 worker로 다시 시작합니다. 기존 데이터의 빈 문자열 정답은 미작성과 구분하며 완전 일치율에 포함합니다. 정답 문자 합계가 0이면 CER은 표시하지 않습니다. 신뢰도와 추론 시간은 정확도와 별개이며 모델 로딩·이미지 읽기 시간은 추론 시간에 포함하지 않습니다.
+수집은 자동 OCR 평가를 실행하지 않습니다. 기존 PP-OCRv5 한국어 모델 평가는 별도로 실행합니다. **제품 전처리**는 실제 닉네임 OCR과 같은 BT.601 회색 변환과 Otsu 반전 이진화를 적용하고, **원본 입력**은 이 단계를 생략합니다. 두 옵션 모두 worker에서 높이 48px, 너비 `min(320, ceil(48 × 원본너비 / 원본높이))`로 리사이즈한 뒤 오른쪽을 정규화 값 0으로 패딩하여 `[1, 3, 48, 320]` 입력을 만듭니다. 넓은 이미지는 전체 폭을 320px로 줄이며 가우시안 블러, 추가 글자 영역 크롭, 상하 행 제거는 하지 않습니다. 원문과 제품용 닉네임 정리 결과를 따로 표시합니다. 채점은 저장된 정답과 모델 원문의 완전 일치율, Unicode code point 기준 문자 오류율(CER)이며 공백과 대소문자를 유지합니다. 미작성, 실패, 미평가 이미지는 점수에서 제외합니다. 이미지 읽기 실패는 해당 표본만 실패로 표시하지만, OCR worker 종료나 시간 초과는 실행 전체를 중단하고 남은 표본은 미평가로 둡니다. 새 평가를 실행하면 새 worker로 다시 시작합니다. 기존 데이터의 빈 문자열 정답은 미작성과 구분하며 완전 일치율에 포함합니다. 정답 문자 합계가 0이면 CER은 표시하지 않습니다.
+
+개별 결과의 **모델 점수**는 1위 후보의 `modelScore`입니다. 모델 점수와 추론 시간은 실제 정답률과 별개이며, 모델 로딩과 이미지 읽기 시간은 추론 시간에 포함하지 않습니다. 기존 worker 응답의 `{ text, confidence }` 형식은 유지하되 `confidence` 필드에 1위 모델 점수를 전달합니다.
 
 이미지와 라벨은 앱 `userData/developer-mode/samples/`의 PNG·JSON에 로컬 저장합니다. 모드를 꺼도 데이터는 보존되며, 모델 학습은 실행하지 않습니다.
 
