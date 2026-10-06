@@ -156,6 +156,36 @@ pnpm --filter @dfragon/desktop dev
 
 `pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator·main/preload IPC의 로그인·취소·renderer reload·저장 완료 후 상태 반영·로그아웃을 검증합니다. HTTP·인증 창·저장소는 합성 효과이며 실제 브라우저·패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
 
+## 파인튜닝 OCR 모델로 빌드하기
+
+ONNX와 문자 사전을 준비한 뒤 [`ocr-model.config.mjs`](ocr-model.config.mjs)의 세 값만 변경합니다. 경로는 `apps/desktop` 기준이며 절대 경로도 사용할 수 있습니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
+
+```js
+export default {
+  name: 'dnf-rec-finetuned-v1',
+  modelPath: 'assets/ocr-finetuned/model.onnx',
+  dictionaryPath: 'assets/ocr-finetuned/characters.txt'
+}
+```
+
+```sh
+# 파일과 모델 호환성만 먼저 확인
+pnpm --filter @dfragon/desktop prepare:ocr-assets
+
+# 선택한 모델을 포함해 앱 빌드
+pnpm --filter @dfragon/desktop build
+```
+
+`dev`, `build:development`, `build:distribution`과 Windows 패키징도 같은 설정을 사용합니다. 모델이나 설정을 바꾸면 개발 프로세스를 다시 시작하거나 다시 빌드합니다. 일반 캡처와 개발자 평가에 같은 모델이 적용되며, 앱 화면에서 바꾸거나 서버에서 내려받는 기능은 아닙니다. CI 빌드에서도 지정한 파일을 같은 경로에 제공해야 합니다. 기본 모델로 돌아가려면 `name`을 `korean_PP-OCRv5_mobile_rec`, 두 경로를 `assets/ocr/korean-rec.onnx`, `assets/ocr/korean-dict.txt`로 되돌립니다.
+
+현재 PP-OCRv5 인식 경로와 호환되는 단일 ONNX 파일을 사용합니다. 가중치가 별도 external data 파일로 분리된 모델과 Paddle 학습 체크포인트는 이 설정에 직접 넣을 수 없습니다. 입력은 float32 BGR `[1, 3, 48, W]`, `[-1, 1]` 정규화, 높이 48과 가변 너비입니다. 첫 출력은 float32 CTC `[1, steps, classes]`여야 합니다. 기존 반전 회색조 전처리는 그대로 적용되므로 해당 입력으로 학습, 평가한 모델을 사용합니다.
+
+사전은 UTF-8, BOM 없이 한 줄에 한 문자이며 중복, 빈 행, 공백 문자를 넣지 않습니다. CRLF와 마지막 개행 한 개는 허용합니다. 학습할 때 사용한 사전 순서를 그대로 유지해야 합니다. CTC blank는 0번, 공백은 마지막 클래스로 앱이 추가하므로 출력 클래스 수는 사전 문자 수 + 2입니다. 문자 확장 모델은 확장된 ONNX와 사전을 함께 지정합니다.
+
+준비 단계는 앱과 같은 [ONNX Runtime WASM의 추론 API](https://onnxruntime.ai/docs/api/js/interfaces/InferenceSession.html)로 너비 320, 640을 실행해 입력과 출력 형식, 사전 클래스 수를 검사합니다. 파일 누락이나 호환성 오류는 빌드 실패로 처리하며 기본 모델로 대체하지 않습니다. 이 검사가 실패하면 기존 public OCR 산출물을 지우지 않습니다. 인식 정확도와 같은 문자 수를 가진 사전의 순서 일치는 자동으로 보장하지 못하므로, 개발자 평가에서 실제 정답 이미지로 확인합니다.
+
+생성된 `src/frontend/public/ocr/provenance.json`에는 선택한 모델 이름과 실제 배포 파일의 SHA-256을 기록합니다. 사용자 모델을 기본 upstream revision으로 표시하거나 로컬 경로를 산출물에 넣지 않습니다. 기존 PaddleOCR와 ONNX Runtime 라이선스 고지는 유지합니다.
+
 ## 테스트 범위와 실행
 
 `App*.test.tsx`는 현재 카드 화면의 로그인·캡처·개발 도구 연결을 확인합니다. `App.capture-controls.test.tsx`는 구버전 `PartyCapture` 조합의 버튼 연결 테스트이며, `integration/search-bridge.test.tsx`·`capture-search.test.tsx`·`logout-relogin.integration.test.tsx`는 `fixture/legacy/LegacyApp.tsx`의 검색 흐름을 검증합니다. 이 테스트의 검색 성공은 현재 카드 화면에 검색 결과가 연결됐다는 뜻이 아닙니다.
