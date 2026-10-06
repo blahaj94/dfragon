@@ -14,7 +14,7 @@ import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
 import type { CapturePhase } from '../types/capture'
-import { getCaptureControlState } from '../lib/capture-presentation'
+import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
 export type CaptureControlsProps = {
   sources: { id: string; name: string }[]
@@ -46,9 +46,7 @@ export function CaptureControls({
   const active = phase === 'active'
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
-  const detected = sources.filter((source) =>
-    /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i.test(source.name)
-  )
+  const detected = sources.filter(isDnfCaptureSource)
   const others = sources.filter((source) => !detected.includes(source))
   const state = getCaptureControlState({
     phase,

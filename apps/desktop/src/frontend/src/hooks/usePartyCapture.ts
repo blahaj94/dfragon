@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
@@ -47,8 +47,7 @@ export function usePartyCapture(): PartyCapture {
       recognizePartyNicknames: recognition.recognizePartyNicknames
     }
   })
-  const setStatus = useCallback((status: string) => send({ type: 'NOTICE', status }), [send])
-  const sources = useCaptureSources(setStatus)
+  const sources = useCaptureSources()
   const phase = getCapturePhase(snapshot)
 
   function stopCapture(status?: string): void {

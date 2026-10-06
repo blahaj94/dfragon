@@ -1,2 +1,3 @@
 export const PARTY_SLOT_COUNT = 4
 export const REQUEST_TIMEOUT_MS = 30_000
+export const CAPTURE_SOURCE_RETRY_INTERVAL_MS = 15_000
