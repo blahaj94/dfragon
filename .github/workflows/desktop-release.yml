@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.gitattributes'
+      - '.gitmodules'
       - '.npmrc'
       - '.github/workflows/desktop-release.yml'
       - 'apps/desktop/**'
@@ -44,6 +45,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
           persist-credentials: false
+          submodules: recursive
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
