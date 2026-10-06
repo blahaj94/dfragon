@@ -229,12 +229,15 @@ describe('usePartyCapture', () => {
     await hook.unmount()
   })
 
-  it('창 목록과 선택 실패는 내부 오류 대신 복구 안내를 표시한다', async () => {
+  it('창 목록 오류는 캡처 상태와 분리하고 창 선택 실패는 복구 안내를 표시한다', async () => {
     api.listCaptureSources.mockRejectedValueOnce(new Error('synthetic internal detail'))
     const hook = await renderPartyCaptureHook()
-    expect(hook.getCurrent().status).toBe(
-      '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 ‘창 목록 새로고침’을 눌러 주세요.'
-    )
+    expect(hook.getCurrent().sourcesFailed).toBe(true)
+    expect(hook.getCurrent().status).toBe('캡처할 게임 창을 선택해 주세요.')
+    api.listCaptureSources.mockResolvedValueOnce([{ id: 'game', name: '던전앤파이터' }])
+    await act(async () => hook.getCurrent().refreshSources())
+    expect(hook.getCurrent().sourcesFailed).toBe(false)
+    expect(hook.getCurrent().status).toBe('캡처할 게임 창을 선택해 주세요.')
 
     api.selectCaptureSource.mockRejectedValueOnce(new Error('synthetic internal detail'))
     await act(async () => hook.getCurrent().selectSource('synthetic-window'))
@@ -991,6 +994,7 @@ it('캡처 중 목록 새로고침이 실패해도 실행 중인 자원과 단�
   moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)
   const hook = await renderPartyCaptureHook()
   await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+  const captureStatus = hook.getCurrent().status
   const list = Promise.withResolvers<{ id: string; name: string }[]>()
   api.listCaptureSources.mockReturnValueOnce(list.promise)
 
@@ -1001,6 +1005,7 @@ it('캡처 중 목록 새로고침이 실패해도 실행 중인 자원과 단�
   expect(hook.getCurrent().sourcesFailed).toBe(true)
   expect(hook.getCurrent().phase).toBe('active')
   expect(resources.track.stop).not.toHaveBeenCalled()
+  expect(hook.getCurrent().status).toBe(captureStatus)
   expect(resources.worker.terminate).not.toHaveBeenCalled()
   expect(getDisplayMedia).toHaveBeenCalledOnce()
   await hook.unmount()
