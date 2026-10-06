@@ -41,7 +41,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
 
-인식 기준은 기존 1920×1080 테두리 없는 게임 창·UI 배율 50%다. 첫 슬롯 기준 MP 검사 영역은 `y=42`, 높이 5이며, 닉네임 영역은 `x=56, y=15, width=91, height=14`다. MP 색상·최소 픽셀 검사를 통과한 슬롯만 인식한다. 밝기 반전으로 밝은 글자를 어두운 글자로 바꾸되 이진화하지 않는다. 기존 Tesseract용 3배 확대와 여백을 제거하고 모델 worker에서 높이 48픽셀로 한 번 리사이즈한다. BGR 정규화와 오른쪽 zero padding, CTC blank·중복 제거로 문자열을 읽는다. Confidence는 정답 확률이나 검색 허용 조건으로 사용하지 않는다.
+일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. 현재 전처리는 BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 추가 글자 경계 크롭은 적용하지 않는다. 기존 Tesseract용 3배 확대와 여백을 제거하고 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈한다. BGR 정규화와 오른쪽 zero padding, CTC blank·중복 제거로 문자열을 읽는다. Confidence는 정답 확률이나 검색 허용 조건으로 사용하지 않는다.
 
 `createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화·인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 capture의 결과는 기존 signal·검색 수명 검사에서 차단하며, 두 번 연속 관측 일치와 공개 검색 연결은 유지한다. 검색은 인증과 독립적이며 sender·source·capture 검사는 유지한다.
 
