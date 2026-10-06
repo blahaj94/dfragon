@@ -58,6 +58,20 @@ export async function validateOcrModel(model, classes) {
       ) {
         throw new Error('Invalid OCR model output.')
       }
+      // 런타임 후보 디코더와 같은 softmax 계약을 빌드 시점에도 확인한다.
+      for (let step = 0; step < output.dims[1]; step += 1) {
+        let sum = 0
+        for (let token = 0; token < classes; token += 1) {
+          const probability = output.data[step * classes + token]
+          if (probability < 0 || probability > 1) {
+            throw new Error('Invalid CTC probabilities.')
+          }
+          sum += probability
+        }
+        if (Math.abs(sum - 1) > 1e-3) {
+          throw new Error('CTC probabilities must sum to one at each step.')
+        }
+      }
     } finally {
       tensor.dispose()
       if (outputs != null) {
@@ -68,7 +82,7 @@ export async function validateOcrModel(model, classes) {
     }
   } catch {
     throw new Error(
-      `OCR model must accept float32 [1, 3, 48, 320] and return float32 CTC [1, steps, ${classes}] in ONNX Runtime WASM. Check the model and matching dictionary.`
+      `OCR model must accept float32 [1, 3, 48, 320] and return normalized softmax float32 CTC [1, steps, ${classes}] in ONNX Runtime WASM. Check the model and matching dictionary.`
     )
   } finally {
     await session?.release()
