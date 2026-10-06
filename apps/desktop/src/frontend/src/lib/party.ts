@@ -1,80 +1,60 @@
-import { invertNicknamePixels } from './nickname-pixels'
 import {
-  PARTY_MANA_COLOR,
-  PARTY_SLOTS,
-  MANA_COLOR_TOLERANCE,
-  MINIMUM_MANA_PIXELS
-} from '../constants/capture'
+  detectPartyFrameGeometry,
+  isValidPartyFrameSize,
+  PartyFrameGeometryError,
+  type PartyFrameGeometry
+} from '@dfragon/lib'
+import { invertNicknamePixels } from './nickname-pixels'
+import { PARTY_SLOT_COUNT } from '../constants/capture'
 
-/** MP 색상과 허용 오차 안에서 일치하는 픽셀이 기준 개수 이상이면 파티원이 있는 슬롯으로 판단한다. */
-export function isPartySlotPresent(rgba: Uint8ClampedArray): boolean {
-  let matches = 0
-
-  for (let index = 0; index < rgba.length; index += 4) {
-    const hasMatchingRed = Math.abs(rgba[index] - PARTY_MANA_COLOR[0]) <= MANA_COLOR_TOLERANCE
-    if (!hasMatchingRed) {
-      continue
-    }
-    const hasMatchingGreen = Math.abs(rgba[index + 1] - PARTY_MANA_COLOR[1]) <= MANA_COLOR_TOLERANCE
-    if (!hasMatchingGreen) {
-      continue
-    }
-    const hasMatchingBlue = Math.abs(rgba[index + 2] - PARTY_MANA_COLOR[2]) <= MANA_COLOR_TOLERANCE
-    const hasManaColor = hasMatchingRed && hasMatchingGreen && hasMatchingBlue
-    if (hasManaColor) {
-      matches += 1
-      const hasMinimumManaPixels = matches >= MINIMUM_MANA_PIXELS
-      if (hasMinimumManaPixels) {
-        return true
-      }
-    }
+/** 현재 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 회색조 OCR 입력을 만든다. */
+export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
+  const crops: (HTMLCanvasElement | null)[] = Array.from({ length: PARTY_SLOT_COUNT }, () => null)
+  const width = video.videoWidth
+  const height = video.videoHeight
+  if (!isValidPartyFrameSize(width, height)) {
+    return crops
   }
 
-  return false
-}
-
-/** 영상의 현재 프레임에서 파티원 닉네임 영역을 잘라 OCR용 반전 회색조 캔버스로 만든다. 빈 슬롯은 null로 반환한다. */
-export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
   const frame = document.createElement('canvas')
-  frame.width = video.videoWidth
-  frame.height = video.videoHeight
+  frame.width = width
+  frame.height = height
   const frameContext = frame.getContext('2d')
-  const hasFrameContext = frameContext != null
-  if (!hasFrameContext) {
+  if (frameContext == null) {
     throw new Error('Could not create a party capture canvas.')
   }
-
   frameContext.drawImage(video, 0, 0)
-
-  return PARTY_SLOTS.map((slot) => {
-    const mana = frameContext.getImageData(
-      slot.mana.x,
-      slot.mana.y,
-      slot.mana.width,
-      slot.mana.height
-    )
-    const isSlotPresent = isPartySlotPresent(mana.data)
-    if (!isSlotPresent) {
-      return null
+  const pixels = frameContext.getImageData(0, 0, width, height).data
+  const rgba = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength)
+  let geometry: PartyFrameGeometry
+  try {
+    geometry = detectPartyFrameGeometry({ width, height, rgba })
+  } catch (error) {
+    if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
+      // 프레임이 사라지거나 모호하면 이전 이름을 비우고 다음 영상에서 다시 검출한다.
+      return crops
     }
+    throw error
+  }
 
-    const pixels = frameContext.getImageData(
-      slot.nickname.x,
-      slot.nickname.y,
-      slot.nickname.width,
-      slot.nickname.height
+  for (const region of geometry.slots) {
+    const nicknamePixels = frameContext.getImageData(
+      region.x,
+      region.y,
+      region.width,
+      region.height
     )
-    invertNicknamePixels(pixels.data)
-
+    invertNicknamePixels(nicknamePixels.data)
     const nickname = document.createElement('canvas')
-    nickname.width = slot.nickname.width
-    nickname.height = slot.nickname.height
+    nickname.width = region.width
+    nickname.height = region.height
     const nicknameContext = nickname.getContext('2d')
     if (nicknameContext == null) {
       throw new Error('Could not create a party nickname canvas.')
     }
-    nicknameContext.putImageData(pixels, 0, 0)
+    nicknameContext.putImageData(nicknamePixels, 0, 0)
+    crops[region.slot - 1] = nickname
+  }
 
-    return nickname
-  })
+  return crops
 }

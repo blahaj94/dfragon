@@ -64,6 +64,7 @@ export function createCaptureActions({
   evaluate: (source: string, userGesture?: boolean) => Promise<unknown>
   hasText: (text: string) => Promise<boolean>
   observe: () => Promise<Observation>
+  waitForCaptureReady: () => Promise<void>
   click: (label: string) => Promise<void>
   login: () => Promise<void>
   selectSyntheticSource: () => Promise<void>
@@ -74,6 +75,16 @@ export function createCaptureActions({
     (await evaluate(`document.body.textContent.includes(${JSON.stringify(text)})`)) as boolean
   const observe = async (): Promise<Observation> =>
     (await evaluate('window.captureObservation()')) as Observation
+  async function waitForCaptureReady(): Promise<void> {
+    await until(async () => {
+      const { frameWidth, frameHeight } = await observe()
+      if (frameWidth <= 0 || frameHeight <= 0) {
+        return false
+      }
+
+      return hasText(`캡처 중, ${frameWidth}×${frameHeight}`)
+    }, 30_000)
+  }
   const click = async (label: string): Promise<void> => {
     const source = createClickSource(label)
     assert.equal(await evaluate(source, true), true)
@@ -136,5 +147,5 @@ export function createCaptureActions({
     await until(async () => (await evaluate(startButtonCheck)) as boolean)
   }
 
-  return { evaluate, hasText, observe, click, login, selectSyntheticSource }
+  return { evaluate, hasText, observe, waitForCaptureReady, click, login, selectSyntheticSource }
 }

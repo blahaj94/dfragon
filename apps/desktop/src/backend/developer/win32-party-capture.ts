@@ -7,7 +7,11 @@ import type {
 import { captureParticipantWindow } from './participant-window'
 import { win32 as win32Path } from 'node:path'
 import { createRequire } from 'node:module'
-import { detectPartyFrameGeometry, PartyFrameGeometryError } from './party-frame-geometry'
+import {
+  detectPartyFrameGeometry,
+  isValidPartyFrameSize,
+  PartyFrameGeometryError
+} from '@dfragon/lib'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'
 import { bgrxToRgba } from './win32-capture'
 import type { CapturedPartyFrame } from './collection-session'
@@ -120,10 +124,6 @@ const SM_XVIRTUALSCREEN = 76
 const SM_YVIRTUALSCREEN = 77
 const SM_CXVIRTUALSCREEN = 78
 const SM_CYVIRTUALSCREEN = 79
-const MIN_CLIENT_WIDTH = 1067
-const MAX_CLIENT_WIDTH = 1920
-const MIN_CLIENT_HEIGHT = 600
-const MAX_CLIENT_HEIGHT = 1080
 const MAX_Z_ORDER_STEPS = 4096
 
 function loadWin32PartyApi(): Win32PartyApi {
@@ -345,20 +345,11 @@ function isDnfProcessWindow(api: Win32PartyApi, hwnd: bigint): { pid: number } |
   return { pid }
 }
 
-function isValidClientSize(width: number, height: number): boolean {
-  return (
-    width >= MIN_CLIENT_WIDTH &&
-    width <= MAX_CLIENT_WIDTH &&
-    height >= MIN_CLIENT_HEIGHT &&
-    height <= MAX_CLIENT_HEIGHT
-  )
-}
-
 function clientRectOnScreen(api: Win32PartyApi, hwnd: bigint): ScreenRect | null {
   const rect = readRect(api, hwnd, api.GetClientRect)
   const width = rect.right - rect.left
   const height = rect.bottom - rect.top
-  if (rect.left !== 0 || rect.top !== 0 || !isValidClientSize(width, height)) {
+  if (rect.left !== 0 || rect.top !== 0 || !isValidPartyFrameSize(width, height)) {
     return null
   }
   const origin = clientScreenOrigin(api, hwnd)

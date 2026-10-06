@@ -1,5 +1,3 @@
-import { filter, first, map, pipe, sort, sum } from 'remeda'
-
 export type PartyFrameSlot = 1 | 2 | 3 | 4
 
 export type PartyFrameRegion = {
@@ -26,13 +24,13 @@ export type PartyFramePixels = Readonly<{
 export type PartyFrameGeometryFailureReason =
   'invalid-frame' | 'no-anchor' | 'ambiguous-scale' | 'ambiguous-layout' | 'out-of-bounds'
 
-const MIN_CLIENT_WIDTH = 1067
-const MAX_CLIENT_WIDTH = 1920
-const MIN_CLIENT_HEIGHT = 600
-const MAX_CLIENT_HEIGHT = 1080
+const MAX_FRAME_DIMENSION = 8192
+const MAX_FRAME_PIXELS = 33_000_000
+const REFERENCE_CLIENT_HEIGHT = 600
 const MIN_SCALE = 1
-const MAX_SCALE = 1.8
-const SCALE_SEARCH_STEP = 0.01
+const MEASURED_MAX_SCALE = 1.8
+const SCALE_SEARCH_STEPS_PER_UNIT = 100
+const SCALE_SEARCH_STEP = 1 / SCALE_SEARCH_STEPS_PER_UNIT
 const NAME_VERTICAL_PADDING_PX = 2
 
 // Measured from full HP/MP bars at 1067×600 and scaled client captures.
@@ -137,6 +135,19 @@ export class PartyFrameGeometryError extends Error {
   }
 }
 
+/** Validates allocation bounds without imposing a game resolution or aspect ratio. */
+export function isValidPartyFrameSize(width: number, height: number): boolean {
+  return (
+    Number.isSafeInteger(width) &&
+    Number.isSafeInteger(height) &&
+    width > 0 &&
+    height > 0 &&
+    width <= MAX_FRAME_DIMENSION &&
+    height <= MAX_FRAME_DIMENSION &&
+    width * height <= MAX_FRAME_PIXELS
+  )
+}
+
 /**
  * Finds full paired HP/MP bars, checks their local edge structure, and crops the name line
  * relative to each observed bar. The scale search is based on measured track row centers;
@@ -148,12 +159,7 @@ export function detectPartyFrameGeometry({
   rgba
 }: PartyFramePixels): PartyFrameGeometry {
   if (
-    !Number.isSafeInteger(width) ||
-    !Number.isSafeInteger(height) ||
-    width < MIN_CLIENT_WIDTH ||
-    width > MAX_CLIENT_WIDTH ||
-    height < MIN_CLIENT_HEIGHT ||
-    height > MAX_CLIENT_HEIGHT ||
+    !isValidPartyFrameSize(width, height) ||
     !(rgba instanceof Uint8Array) ||
     rgba.byteLength !== width * height * 4
   ) {
@@ -201,19 +207,25 @@ export function detectPartyFrameGeometry({
 
 function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] {
   const bands: TrackBand[] = []
-  const lastRow = Math.min(height - 1, SEARCH_LAST_ROW)
-  const lastColumn = Math.min(width - 1, SEARCH_LAST_COLUMN)
+  // At maximum UI size the measured HUD grows with client height. This envelope
+  // bounds discovery only; observed track centers still determine every crop.
+  const searchScale = Math.max(MEASURED_MAX_SCALE, height / REFERENCE_CLIENT_HEIGHT)
+  const searchExpansion = searchScale / MEASURED_MAX_SCALE
+  const lastRow = Math.min(height - 1, Math.ceil(SEARCH_LAST_ROW * searchExpansion))
+  const lastColumn = Math.min(width - 1, Math.ceil(SEARCH_LAST_COLUMN * searchExpansion))
 
   for (const color of ['hp', 'mp'] as const) {
     for (let y = SEARCH_FIRST_ROW; y <= lastRow; y += 1) {
-      const runs = findColoredRuns({ width, rgba, y, color, lastColumn })
+      const referenceCenter = color === 'hp' ? HP_REFERENCE_CENTER_Y : MP_REFERENCE_CENTER_Y
+      const expansion = Math.max(1, y / (referenceCenter * MEASURED_MAX_SCALE))
+      const runs = findColoredRuns({ width, rgba, y, color, lastColumn, expansion })
       const active = bands.filter(
         (band) => band.color === color && y > band.bottom && y - band.bottom <= MAX_ROW_GAP_TO_MERGE
       )
       const used = new Set<TrackBand>()
 
       for (const run of runs) {
-        const matchingBand = selectMatchingTrackBand({ active, run, used })
+        const matchingBand = selectMatchingTrackBand({ active, run, used, expansion })
 
         if (matchingBand) {
           matchingBand.runs.push(run)
@@ -237,14 +249,16 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
     }
   }
 
-  return bands.filter(({ runs, top, bottom, medianWidth }) => {
+  return bands.filter(({ runs, top, bottom, centerY, color, medianWidth }) => {
     const distinctRows = new Set(runs.map(({ y }) => y)).size
+    const referenceCenter = color === 'hp' ? HP_REFERENCE_CENTER_Y : MP_REFERENCE_CENTER_Y
+    const expansion = Math.max(1, centerY / (referenceCenter * MEASURED_MAX_SCALE))
 
     return (
       distinctRows >= bandPolicy.minDistinctRows &&
-      bottom - top + 1 <= bandPolicy.maxHeightPx &&
+      bottom - top + 1 <= Math.ceil(bandPolicy.maxHeightPx * expansion) &&
       medianWidth >= MIN_COLOR_RUN_WIDTH &&
-      medianWidth <= MAX_COLOR_RUN_WIDTH
+      medianWidth <= MAX_COLOR_RUN_WIDTH * expansion
     )
   })
 }
@@ -253,32 +267,33 @@ function findTrackBands({ width, height, rgba }: PartyFramePixels): TrackBand[] 
 function selectMatchingTrackBand({
   active,
   run,
-  used
+  used,
+  expansion
 }: {
   active: TrackBand[]
   run: PixelRun
   used: ReadonlySet<TrackBand>
+  expansion: number
 }): TrackBand | undefined {
-  const matching = pipe(
-    active,
-    filter((band) => !used.has(band)),
-    map((band) => {
+  const matching = active
+    .filter((band) => !used.has(band))
+    .map((band) => {
       const distance = runDistance(band, run)
 
       return { band, distance }
-    }),
-    filter(({ band, distance }) => {
+    })
+    .filter(({ band, distance }) => {
       const overlap = Math.max(
         0,
         Math.min(band.right, run.right) - Math.max(band.left, run.left) + 1
       )
       const overlapRatio = overlap / Math.min(band.right - band.left + 1, run.right - run.left + 1)
 
-      return distance <= MAX_RUN_START_DRIFT && overlapRatio >= bandPolicy.minOverlapRatio
-    }),
-    sort((left, right) => left.distance - right.distance),
-    first()
-  )
+      return (
+        distance <= MAX_RUN_START_DRIFT * expansion && overlapRatio >= bandPolicy.minOverlapRatio
+      )
+    })
+    .sort((left, right) => left.distance - right.distance)[0]
 
   return matching?.band
 }
@@ -288,13 +303,15 @@ function findColoredRuns({
   rgba,
   y,
   color,
-  lastColumn
+  lastColumn,
+  expansion
 }: {
   width: number
   rgba: Uint8Array
   y: number
   color: TrackColor
   lastColumn: number
+  expansion: number
 }): PixelRun[] {
   const runs: PixelRun[] = []
   let start = -1
@@ -310,7 +327,7 @@ function findColoredRuns({
       continue
     }
 
-    if (start >= 0 && x - lastColorPixel > bandPolicy.maxColorGapPx) {
+    if (start >= 0 && x - lastColorPixel > Math.round(bandPolicy.maxColorGapPx * expansion)) {
       if (lastColorPixel - start + 1 >= MIN_COLOR_RUN_WIDTH) {
         runs.push({ y, left: start, right: lastColorPixel })
       }
@@ -365,14 +382,15 @@ function findTrackPairCandidates({
 
   for (const hp of hpBands) {
     for (const mp of mpBands) {
+      const pairScale = fitScaleToTrackCenters(hp, mp)
+      const expansion = Math.max(1, pairScale / MEASURED_MAX_SCALE)
       if (
-        Math.abs(hp.left - mp.left) > pairPolicy.maxStartDifferencePx ||
+        Math.abs(hp.left - mp.left) > pairPolicy.maxStartDifferencePx * expansion ||
         Math.abs(hp.centerY - mp.centerY) < pairPolicy.minCenterSeparationPx
       ) {
         continue
       }
 
-      const pairScale = fitScaleToTrackCenters(hp, mp)
       if (!Number.isFinite(pairScale)) {
         continue
       }
@@ -411,15 +429,26 @@ function findScaleMatch({
   let best: { scale: number; score: number; edgeSupport: number } | undefined
   const leftTolerance = Math.max(
     pairPolicy.minLeftTolerancePx,
-    Math.round(pairPolicy.leftToleranceReferencePx * MAX_SCALE)
+    Math.round(pairPolicy.leftToleranceReferencePx * Math.max(MEASURED_MAX_SCALE, pairScale))
   )
 
   if (Math.abs(hp.left - mp.left) > leftTolerance) {
     return undefined
   }
 
-  for (let step = 0; step <= Math.round((MAX_SCALE - MIN_SCALE) / SCALE_SEARCH_STEP); step += 1) {
-    const scale = MIN_SCALE + step * SCALE_SEARCH_STEP
+  // Search only the neighborhood compatible with both observed centers, keeping
+  // the original 0.01 raster grid and error tolerances at every resolution.
+  const scaleTolerance = pairPolicy.maxCenterErrorPx / HP_REFERENCE_CENTER_Y
+  const firstStep = Math.max(
+    0,
+    Math.ceil((pairScale - scaleTolerance - MIN_SCALE) / SCALE_SEARCH_STEP)
+  )
+  const maxScale = Math.max(MEASURED_MAX_SCALE, height / REFERENCE_CLIENT_HEIGHT)
+  const lastStep = Math.floor(
+    (Math.min(maxScale, pairScale + scaleTolerance) - MIN_SCALE) / SCALE_SEARCH_STEP
+  )
+  for (let step = firstStep; step <= lastStep; step += 1) {
+    const scale = (MIN_SCALE * SCALE_SEARCH_STEPS_PER_UNIT + step) / SCALE_SEARCH_STEPS_PER_UNIT
     const hpError = Math.abs(hp.centerY - HP_REFERENCE_CENTER_Y * scale)
     const mpError = Math.abs(mp.centerY - MP_REFERENCE_CENTER_Y * scale)
     const gapError = Math.abs(mp.centerY - hp.centerY - TRACK_REFERENCE_CENTER_GAP * scale)
@@ -575,7 +604,7 @@ function clusterCandidatesByScale(candidates: TrackPairCandidate[]): TrackPairCa
 function selectScaleCluster(candidates: TrackPairCandidate[]): TrackPairCandidate[] {
   const clusters = clusterCandidatesByScale(candidates)
   const largestClusterSize = Math.max(...clusters.map((cluster) => cluster.length))
-  const bestClusters = filter(clusters, (cluster) => cluster.length === largestClusterSize)
+  const bestClusters = clusters.filter((cluster) => cluster.length === largestClusterSize)
   if (bestClusters.length !== 1) {
     throw new PartyFrameGeometryError('ambiguous-scale')
   }
@@ -585,11 +614,7 @@ function selectScaleCluster(candidates: TrackPairCandidate[]): TrackPairCandidat
 
 /** Aggregate scale values without changing the candidate objects or their order. */
 function medianCandidateScale(candidates: TrackPairCandidate[]): number {
-  const scale = pipe(
-    candidates,
-    map(({ scale }) => scale),
-    median
-  )
+  const scale = median(candidates.map(({ scale }) => scale))
 
   return scale
 }
@@ -621,11 +646,9 @@ function projectObservedSlots({
   bySlot: ReadonlyMap<PartyFrameSlot, TrackPairCandidate>
   scale: number
 }): PartyFrameRegion[] {
-  const slots = pipe(
-    [...bySlot.entries()],
-    map(([slot, candidate]) => projectObservedSlot({ slot, candidate, scale })),
-    sort((left, right) => left.slot - right.slot)
-  )
+  const slots = [...bySlot.entries()]
+    .map(([slot, candidate]) => projectObservedSlot({ slot, candidate, scale }))
+    .sort((left, right) => left.slot - right.slot)
 
   return slots
 }
@@ -704,7 +727,7 @@ function runDistance(band: TrackBand, run: PixelRun): number {
 }
 
 function median(values: number[]): number {
-  const sorted = sort(values, (left, right) => left - right)
+  const sorted = [...values].sort((left, right) => left - right)
   const middle = Math.floor(sorted.length / 2)
   const result =
     sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
@@ -713,7 +736,7 @@ function median(values: number[]): number {
 }
 
 function mean(values: number[]): number {
-  const result = sum(values) / values.length
+  const result = values.reduce((total, value) => total + value, 0) / values.length
 
   return result
 }

@@ -63,7 +63,7 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await select('game')
   expect(f.getDisplayMedia).toHaveBeenCalledOnce()
-  expect(document.body.textContent).toContain('캡처 중 · 1920×1080')
+  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
   await f.cycle(3)
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     'ALICE'
@@ -109,7 +109,7 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
 
   await act(async () => f.resources.track.dispatchEvent(new Event('ended')))
-  expect(document.body.textContent).toContain('캡처 중 · 1920×1080')
+  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
   expect(next.track.stop).not.toHaveBeenCalled()
 
   await click('캡처 중지')
@@ -142,7 +142,7 @@ it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처�
   expect(media.worker).toHaveBeenCalledOnce()
   expect(f.resources.track.stop).not.toHaveBeenCalled()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
-  expect(document.body.textContent).toContain('캡처 중 · 1920×1080')
+  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
 })
 
 it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시작하지 않는다', async () => {

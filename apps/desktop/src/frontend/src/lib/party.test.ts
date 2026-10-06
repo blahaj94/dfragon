@@ -1,88 +1,130 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PARTY_SLOTS } from '../constants/capture'
-import { isPartySlotPresent, capturePartyNicknameCrops } from './party'
+import { afterEach, expect, it, vi } from 'vitest'
+import { capturePartyNicknameCrops } from './party'
 
-describe('파티 닉네임 크롭', () => {
-  it('1920×1080 기준 파티 슬롯 네 개의 닉네임 좌표를 유지한다', () => {
-    expect(PARTY_SLOTS).toHaveLength(4)
-    expect(PARTY_SLOTS[0].nickname).toEqual({ x: 56, y: 15, width: 91, height: 14 })
-    expect(PARTY_SLOTS[3].nickname).toEqual({ x: 506, y: 15, width: 91, height: 14 })
-  })
-
-  it.each([
-    { name: '49개 일치는 인원이 없는 슬롯', count: 49, color: [55, 121, 170], present: false },
-    { name: '50개 일치는 인원이 있는 슬롯', count: 50, color: [55, 121, 170], present: true },
-    { name: '51개 일치는 인원이 있는 슬롯', count: 51, color: [55, 121, 170], present: true },
-    { name: 'RGB 하한 오차 35 포함', count: 50, color: [20, 86, 135], present: true },
-    { name: 'RGB 상한 오차 35 포함', count: 50, color: [90, 156, 205], present: true },
-    { name: '빨강 하한 오차 36 거절', count: 50, color: [19, 121, 170], present: false },
-    { name: '빨강 상한 오차 36 거절', count: 50, color: [91, 121, 170], present: false },
-    { name: '초록 하한 오차 36 거절', count: 50, color: [55, 85, 170], present: false },
-    { name: '초록 상한 오차 36 거절', count: 50, color: [55, 157, 170], present: false },
-    { name: '파랑 하한 오차 36 거절', count: 50, color: [55, 121, 134], present: false },
-    { name: '파랑 상한 오차 36 거절', count: 50, color: [55, 121, 206], present: false }
-  ])('$name', ({ count, color, present }) => {
-    // 기존 MP 판정의 색상 [55, 121, 170], 허용 오차 35, 최소 50픽셀로 경계값을 직접 계산한다.
-    // 제품 상수로 입력과 기대값을 함께 만들면 경계가 바뀌어도 테스트가 통과한다.
-    const rgba = new Uint8ClampedArray(60 * 4)
-    for (let index = 0; index < count; index += 1) {
-      rgba.set([...color, 255], index * 4)
-    }
-
-    expect(isPartySlotPresent(rgba)).toBe(present)
-  })
-})
+type NicknameCanvas = {
+  width: number
+  height: number
+  getContext: () => { putImageData: ReturnType<typeof vi.fn> }
+}
 
 afterEach(() => vi.unstubAllGlobals())
 
-it('UI 50%의 MP 바에서 첫 슬롯을 찾아 OCR crop을 만들고 빈 슬롯은 건너뛴다', () => {
-  // 실제 확인한 MP 세로 위치를 독립적인 합성 입력으로 재현한다.
-  // 제품 좌표로 fixture 위치를 만들면 원래의 y=36 오류도 통과하므로 공유하지 않는다.
-  const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
-    const data = new Uint8ClampedArray(width * height * 4)
-    for (let row = 0; row < height; row += 1) {
-      for (let column = 0; column < width; column += 1) {
-        const pixelX = x + column
-        const pixelY = y + row
-        if (pixelX >= 42 && pixelX < 147 && pixelY >= 42 && pixelY < 47) {
-          data.set([55, 121, 170, 255], (row * width + column) * 4)
-        }
+/** 실측한 기본 배율의 HP, MP와 이름 픽셀을 제품 검출 좌표와 독립적으로 그린다. */
+function framePixels(width: number, height: number, anchors: number[]): Uint8ClampedArray {
+  const rgba = new Uint8ClampedArray(width * height * 4)
+  for (const x of anchors) {
+    for (let column = x; column < x + 99; column += 1) {
+      for (let y = 27; y <= 29; y += 1) {
+        rgba.set([194, 15, 11, 255], (y * width + column) * 4)
+      }
+      for (let y = 33; y <= 35; y += 1) {
+        rgba.set([18, 124, 209, 255], (y * width + column) * 4)
       }
     }
-    if (x === 56 && y === 15) {
-      data.set([255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255])
+    rgba.set([255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255], (10 * width + x) * 4)
+  }
+
+  return rgba
+}
+
+/** Canvas 경계만 대체하고 실제 프레임 검출과 픽셀 전처리를 실행한다. */
+function captureCanvas(
+  width: number,
+  height: number,
+  anchors: number[]
+): {
+  video: HTMLVideoElement
+  getImageData: ReturnType<typeof vi.fn>
+  nicknames: NicknameCanvas[]
+  nextFrame: (width: number, height: number, anchors: number[]) => void
+} {
+  let pixels = framePixels(width, height, anchors)
+  const video = { videoWidth: width, videoHeight: height } as HTMLVideoElement
+  const getImageData = vi.fn((x: number, y: number, cropWidth: number, cropHeight: number) => {
+    const data = new Uint8ClampedArray(cropWidth * cropHeight * 4)
+    for (let row = 0; row < cropHeight; row += 1) {
+      const start = ((y + row) * video.videoWidth + x) * 4
+      data.set(pixels.subarray(start, start + cropWidth * 4), row * cropWidth * 4)
     }
 
     return { data }
   })
-  const nicknameContext = { putImageData: vi.fn() }
-  const frameContext = { drawImage: vi.fn(), getImageData }
-  const frame = { width: 0, height: 0, getContext: () => frameContext }
-  const nickname = { width: 0, height: 0, getContext: () => nicknameContext }
-  const createElement = vi.fn().mockReturnValueOnce(frame).mockReturnValue(nickname)
+  const frame = { width: 0, height: 0, getContext: () => ({ drawImage: vi.fn(), getImageData }) }
+  const nicknames: NicknameCanvas[] = []
+  let nextIsFrame = true
+  const createElement = vi.fn(() => {
+    if (nextIsFrame) {
+      nextIsFrame = false
+
+      return frame
+    }
+    const context = { putImageData: vi.fn() }
+    const nickname = { width: 0, height: 0, getContext: () => context }
+    nicknames.push(nickname)
+
+    return nickname
+  })
   vi.stubGlobal('document', { createElement })
-  const video = { videoWidth: 1920, videoHeight: 1080 } as HTMLVideoElement
 
-  const crops = capturePartyNicknameCrops(video)
+  function nextFrame(nextWidth: number, nextHeight: number, nextAnchors: number[]): void {
+    Object.assign(video, { videoWidth: nextWidth, videoHeight: nextHeight })
+    pixels = framePixels(nextWidth, nextHeight, nextAnchors)
+    nextIsFrame = true
+  }
 
-  expect(crops).toEqual([nickname, null, null, null])
-  expect(nickname.width).toBe(91)
-  expect(nickname.height).toBe(14)
-  expect(createElement).toHaveBeenCalledTimes(2)
-  expect(getImageData).toHaveBeenCalledWith(56, 15, 91, 14)
-  const pixels = nicknameContext.putImageData.mock.calls[0][0].data
+  return { video, getImageData, nicknames, nextFrame }
+}
+
+it.each([
+  [1067, 600],
+  [1280, 720],
+  [1600, 900],
+  [1920, 1080],
+  [2560, 1440],
+  [3440, 1440],
+  [3840, 2160]
+])('%i×%i 영상에서 관측한 1, 3번만 크롭하고 원본 크기와 전처리를 유지한다', (width, height) => {
+  const setup = captureCanvas(width, height, [42, 324])
+  const crops = capturePartyNicknameCrops(setup.video)
+
+  expect(crops).toEqual([setup.nicknames[0], null, setup.nicknames[1], null])
+  expect(setup.getImageData).toHaveBeenCalledWith(42, 10, 73, 16)
+  expect(setup.getImageData).toHaveBeenCalledWith(324, 10, 73, 16)
+  expect(setup.nicknames[0]).toMatchObject({ width: 73, height: 16 })
+  const pixels = setup.nicknames[0].getContext().putImageData.mock.calls[0][0].data
   expect(Array.from(pixels.slice(0, 12))).toEqual([
-    0,
-    0,
-    0,
-    255, // 흰 글자는 검정으로 반전한다.
-    255,
-    255,
-    255,
-    255, // 검정 배경은 흰색으로 반전한다.
-    107,
-    107,
-    107,
-    255 // 청록색 획은 이진화하지 않고 중간 명암으로 남긴다.
+    0, 0, 0, 255, 255, 255, 255, 255, 107, 107, 107, 255
   ])
+})
+
+it('캡처 중 해상도와 프레임 위치가 바뀌면 새 좌표를 검출하고 미검출 뒤 다시 복구한다', () => {
+  const setup = captureCanvas(1280, 720, [42])
+  expect(capturePartyNicknameCrops(setup.video)[0]).not.toBeNull()
+
+  setup.nextFrame(2560, 1440, [])
+  expect(capturePartyNicknameCrops(setup.video)).toEqual([null, null, null, null])
+
+  setup.nextFrame(2560, 1440, [190])
+  const crops = capturePartyNicknameCrops(setup.video)
+  expect(crops).toEqual([null, setup.nicknames[1], null, null])
+  expect(setup.getImageData).toHaveBeenLastCalledWith(190, 10, 73, 16)
+})
+
+it('HP, MP 띠가 이어져 슬롯을 판별할 수 없으면 OCR에 크롭을 넘기지 않는다', () => {
+  const setup = captureCanvas(1920, 1080, [138, 237])
+  expect(capturePartyNicknameCrops(setup.video)).toEqual([null, null, null, null])
+  expect(setup.nicknames).toHaveLength(0)
+})
+
+it.each([
+  [0, 0],
+  [8193, 600],
+  [8192, 8192]
+])('처리할 수 없는 %i×%i 영상은 Canvas를 할당하지 않는다', (width, height) => {
+  const createElement = vi.fn()
+  vi.stubGlobal('document', { createElement })
+  const video = { videoWidth: width, videoHeight: height } as HTMLVideoElement
+
+  expect(capturePartyNicknameCrops(video)).toEqual([null, null, null, null])
+  expect(createElement).not.toHaveBeenCalled()
 })

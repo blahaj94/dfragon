@@ -1,4 +1,5 @@
 import type { DNFRectangle } from './dnf-party-geometry.js'
+import { isValidPartyFrameSize } from './dnf-party-frame-geometry.js'
 import { projectParticipantRectangle } from './dnf-participant-regions.js'
 import {
   hasParticipantEvidence,
@@ -49,16 +50,10 @@ const rowSpacing = 21
 function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   if (
     frame == null ||
-    !Number.isSafeInteger(frame.width) ||
-    !Number.isSafeInteger(frame.height) ||
-    frame.width < 1 ||
-    frame.height < 1 ||
-    frame.width > 1920 ||
-    frame.height > 1080 ||
+    !isValidPartyFrameSize(frame.width, frame.height) ||
     !(frame.rgba instanceof Uint8Array || frame.rgba instanceof Uint8ClampedArray) ||
     frame.rgba.length !== frame.width * frame.height * 4 ||
-    (heading && (frame.width !== headingLayout.width || frame.height !== headingLayout.height)) ||
-    (!heading && (frame.width < 1067 || frame.height < 600))
+    (heading && (frame.width !== headingLayout.width || frame.height !== headingLayout.height))
   ) {
     throw new RangeError('DNF raid detection requires bounded RGBA frames and a 423x18 heading.')
   }

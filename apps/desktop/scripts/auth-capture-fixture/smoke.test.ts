@@ -72,7 +72,11 @@ beforeEach(() => {
 })
 afterEach(() => vi.restoreAllMocks())
 
-async function runCapture(displayLines: string[], nicknameMatchedSlots: number): Promise<void> {
+async function runCapture(
+  displayLines: string[],
+  nicknameMatchedSlots: number,
+  dimensions = { width: 1920, height: 1080 }
+): Promise<void> {
   let isActive = false
   const mainObservation = {
     displayRequests: 1,
@@ -84,7 +88,8 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
   document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="DFRAGON Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
   document.querySelector<HTMLElement>('[role="menuitemradio"]')!.onclick = () => {
     isActive = true
-    document.querySelector('[role="status"]')!.textContent = '캡처 중 · 1920×1080'
+    document.querySelector('[role="status"]')!.textContent =
+      `캡처 중, ${dimensions.width}×${dimensions.height}`
     displayLines.forEach((line, index) => {
       const input = document.createElement('input')
       input.setAttribute('aria-label', `${index + 1}번 캐릭터 이름`)
@@ -103,10 +108,10 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
         workers: 1,
         terminated: 0,
         ended: false,
-        width: 1920,
-        height: 1080,
-        frameWidth: 1920,
-        frameHeight: 1080,
+        width: dimensions.width,
+        height: dimensions.height,
+        frameWidth: dimensions.width,
+        frameHeight: dimensions.height,
         allSlotsPresent: true
       }
     }
@@ -130,9 +135,17 @@ async function runCapture(displayLines: string[], nicknameMatchedSlots: number):
 
 const completeLines = [1, 2, 3, 4].map((slot) => `슬롯 ${slot}: ALICE`)
 describe('automatic smoke synthetic results', () => {
-  it('네 slot의 정확한 표시와 main 통지가 모두 일치해야 capture 성공에 도달한다', async () => {
-    await expect(runCapture(completeLines, 0b1111)).rejects.toThrow('SYNTHETIC_CAPTURE_ACCEPTED')
-  })
+  it.each([
+    { width: 1920, height: 1080 },
+    { width: 3840, height: 2160 }
+  ])(
+    '$width×$height 영상의 정확한 크기, 네 슬롯 표시와 main 통지가 일치하면 성공한다',
+    async (dimensions) => {
+      await expect(runCapture(completeLines, 0b1111, dimensions)).rejects.toThrow(
+        'SYNTHETIC_CAPTURE_ACCEPTED'
+      )
+    }
+  )
   it.each([
     { name: 'slot 4 표시 누락', lines: completeLines.slice(0, 3), mask: 0b1111 },
     {

@@ -44,7 +44,7 @@ export function getParticipantPreviewMessage(
     const detail =
       kind === 'raid'
         ? '공대 상세 창 전체가 가려지지 않았는지 확인해주세요. 창이 여러 개 보이면 하나만 남겨주세요.'
-        : '창이 가려지지 않았는지 확인해주세요. 지원 해상도는 1067×600~1920×1080이에요.'
+        : '파티참가인원 창 전체가 가려지지 않았는지 확인해주세요.'
 
     return { title, detail }
   }

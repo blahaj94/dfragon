@@ -82,7 +82,13 @@ export const installObservation = `(() => {
     });
     return hasEnded;
   };
-  window.captureObservation = () => ({ ...counts, ended: haveTracksEnded() });
+  window.captureObservation = () => {
+    const settings = tracks.at(-1)?.getSettings();
+    const width = settings?.width ?? counts.width;
+    const height = settings?.height ?? counts.height;
+    const ended = haveTracksEnded();
+    return { ...counts, width, height, ended };
+  };
   return true;
 })()`
 

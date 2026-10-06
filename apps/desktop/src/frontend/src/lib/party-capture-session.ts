@@ -1,6 +1,6 @@
 import { createPartyOcrWorker } from './ocr'
 import { runSerialLoop } from './recognition'
-import { SUPPORTED_WIDTH, SUPPORTED_HEIGHT } from '../constants/capture'
+import { isValidPartyFrameSize } from '@dfragon/lib'
 import type { PartyOcrWorker } from '../types/capture'
 
 type Worker = Awaited<ReturnType<typeof createPartyOcrWorker>>
@@ -55,9 +55,7 @@ export function startPartyCaptureSession(
       const stream = await navigator.mediaDevices.getDisplayMedia({
         audio: false,
         video: {
-          frameRate: { ideal: 1, max: 1 },
-          height: { ideal: SUPPORTED_HEIGHT },
-          width: { ideal: SUPPORTED_WIDTH }
+          frameRate: { ideal: 1, max: 1 }
         }
       })
       session.stream = stream
@@ -91,15 +89,9 @@ export function startPartyCaptureSession(
       await video.play()
       await metadataLoaded
       signal.throwIfAborted()
-      const hasSupportedWidth = video.videoWidth === SUPPORTED_WIDTH
-      if (!hasSupportedWidth) {
-        failureMessage = `지원하지 않는 영상 크기입니다: ${video.videoWidth}×${video.videoHeight}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
-        throw new Error(failureMessage)
-      }
-      const hasSupportedHeight = video.videoHeight === SUPPORTED_HEIGHT
-      const hasSupportedLayout = hasSupportedWidth && hasSupportedHeight
-      if (!hasSupportedLayout) {
-        failureMessage = `지원하지 않는 영상 크기입니다: ${video.videoWidth}×${video.videoHeight}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
+      if (!isValidPartyFrameSize(video.videoWidth, video.videoHeight)) {
+        failureMessage =
+          '게임 영상의 크기를 처리할 수 없습니다. 창이 최소화되지 않았는지 확인해 주세요.'
         throw new Error(failureMessage)
       }
 
@@ -108,6 +100,13 @@ export function startPartyCaptureSession(
       const worker = await createPartyOcrWorker(signal)
       session.worker = worker
       signal.throwIfAborted()
+
+      function reportFrameSize(): void {
+        if (!signal.aborted && isValidPartyFrameSize(video.videoWidth, video.videoHeight)) {
+          report({ type: 'READY', status: `캡처 중, ${video.videoWidth}×${video.videoHeight}` })
+        }
+      }
+      video.addEventListener('resize', reportFrameSize, { signal })
 
       void runSerialLoop({
         signal,
@@ -123,9 +122,7 @@ export function startPartyCaptureSession(
           })
         }
       })
-      if (!signal.aborted) {
-        report({ type: 'READY', status: `캡처 중 · ${video.videoWidth}×${video.videoHeight}` })
-      }
+      reportFrameSize()
     } catch {
       if (signal.aborted) {
         // 취소 후 반환된 stream/worker도 이 session에서 정리한다.
