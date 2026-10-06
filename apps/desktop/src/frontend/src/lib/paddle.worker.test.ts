@@ -121,6 +121,19 @@ it.each([
   }
 )
 
+it('최상위 후보의 닉네임과 문자열 확률 점수를 기존 응답 형태로 전달한다', async () => {
+  await send({ root: 'https://fixture.invalid/ocr/' })
+  mocks.run.mockResolvedValueOnce({
+    output: {
+      dims: [1, 2, 4],
+      data: new Float32Array([0.4, 0.35, 0.25, 0, 0.4, 0.35, 0.25, 0]),
+      dispose: outputDispose
+    }
+  })
+  await send({ pixels })
+  expect(postMessage).toHaveBeenLastCalledWith({ text: '가', confidence: expect.closeTo(40.25, 5) })
+})
+
 it('disposes the input tensor when inference rejects and returns only the public failure', async () => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   mocks.run.mockRejectedValueOnce(new Error('private model failure'))
