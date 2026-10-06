@@ -16,7 +16,7 @@ const testTitles = {
   validation: '크기와 RGBA 길이 및 헤더 대비를 각 공개 진입점에서 검사한다',
   brightDecorations: '밝은 배경의 무관한 빨간 장식 사이에서 완전한 합성 창을 찾는다',
   rightBottomEdges: '오른쪽·아래쪽 화면 경계에 정확히 닿는 창을 허용한다',
-  clientLimits: '최소·최대 client 크기의 빈 화면은 각 공개 진입점에서 미검출로 반환한다',
+  clientLimits: '다양한 client 크기의 빈 화면은 각 공개 진입점에서 미검출로 반환한다',
   evidencePairs: '각 근거 쌍을 실측 열에서 읽고 닉네임만 밝은 네 번째 행은 비워 둔다',
   rgbaViews: '투명한 RGBA view도 검출하고 크롭 네 모서리의 채널과 alpha를 그대로 복사한다'
 }
@@ -246,10 +246,10 @@ test(testTitles.validation, () => {
     undefined,
     // 잘못된 크기에도 정확한 바이트 수를 준비해 길이 검사와 구별한다.
     ...[
-      [1066, 600],
-      [1921, 600],
-      [1067, 599],
-      [1067, 1081],
+      [0, 600],
+      [8193, 1],
+      [1067, 0],
+      [1, 8193],
       [1067.5, 600],
       [1067, 600.5]
     ].map(([width, height]) => {
@@ -261,6 +261,7 @@ test(testTitles.validation, () => {
     { ...image, width: Infinity },
     { ...image, height: -Infinity },
     { ...image, width: Number.MAX_SAFE_INTEGER + 1 },
+    { ...image, width: 6000, height: 5501 },
     { ...image, width: '1067' },
     { ...image, height: null },
     { ...image, rgba: image.rgba.subarray(4) },
@@ -332,13 +333,30 @@ test(testTitles.rightBottomEdges, () => {
 
 test(testTitles.clientLimits, () => {
   for (const [width, height] of [
+    [800, 450],
     [1067, 600],
-    [1920, 1080]
+    [1920, 1080],
+    [3840, 2160]
   ]) {
     const image = { width, height, rgba: new Uint8Array(width * height * 4) }
     assert.deepEqual(detectDNFPartyParticipantWindow(image, heading), { status: 'not-found' })
     assert.deepEqual(cropDNFPartyParticipantNicknames(image, heading), { status: 'not-found' })
   }
+})
+
+test('QHD 화면의 FHD 범위 바깥에 있는 파티원창을 원본 좌표로 크롭한다', () => {
+  const image = frame(2560, 1440)
+  popup(image, { x: 2000, y: 1100, occupied: [3] })
+
+  const result = cropDNFPartyParticipantNicknames(image, heading)
+
+  assert.equal(result.status, 'found')
+  assert.deepEqual(result.window, { x: 1986, y: 1033, width: 394, height: 210 })
+  assert.deepEqual(
+    result.rows.filter(({ occupied }) => occupied).map(({ slot }) => slot),
+    [3]
+  )
+  assert.deepEqual(result.rows[2].nickname, { x: 2154, y: 1164, width: 84, height: 15 })
 })
 
 test(testTitles.evidencePairs, () => {

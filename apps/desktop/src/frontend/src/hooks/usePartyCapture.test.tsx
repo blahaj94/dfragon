@@ -382,12 +382,10 @@ describe('usePartyCapture', () => {
     expect(getDisplayMedia).toHaveBeenCalledWith({
       audio: false,
       video: {
-        frameRate: { ideal: 1, max: 1 },
-        height: { ideal: 1080 },
-        width: { ideal: 1920 }
+        frameRate: { ideal: 1, max: 1 }
       }
     })
-    expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+    expect(hook.getCurrent().status).toBe('캡처 중, 1920×1080')
     expect(worker.recognize).not.toHaveBeenCalled()
     expect(loopOptions?.getIntervalMs()).toBe(3000)
 
@@ -459,15 +457,47 @@ describe('usePartyCapture', () => {
   })
 
   it.each([
+    { width: 1067, height: 600 },
+    { width: 1280, height: 720 },
     { width: 1600, height: 1080 },
-    { width: 1920, height: 900 }
-  ])('rejects unsupported capture layout $width×$height before OCR starts', async (dimensions) => {
-    const { stream, track } = captureResources()
-    const access: string[] = []
+    { width: 1920, height: 900 },
+    { width: 2560, height: 1440 },
+    { width: 3440, height: 1440 },
+    { width: 3840, height: 2160 }
+  ])('$width×$height 영상에서도 OCR을 시작하고 중지 시 자원을 정리한다', async (dimensions) => {
+    const { stream, track, worker } = captureResources()
     vi.mocked(HTMLMediaElement.prototype.play).mockImplementationOnce(async function (
       this: HTMLMediaElement
     ) {
-      loadVideoMetadata(this, dimensions, access)
+      loadVideoMetadata(this, dimensions)
+    })
+    getDisplayMedia.mockResolvedValue(stream)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook()
+    await act(async () => hook.getCurrent().selectSource('game'))
+    await act(async () => hook.getCurrent().startCapture())
+
+    expect(hook.getCurrent().status).toBe(`캡처 중, ${dimensions.width}×${dimensions.height}`)
+    expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
+    expect(moduleMocks.runSerialLoop).toHaveBeenCalledOnce()
+    expect(track.stop).not.toHaveBeenCalled()
+
+    await hook.unmount()
+    expect(track.stop).toHaveBeenCalledOnce()
+    expect(worker.terminate).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    { width: 0, height: 1080 },
+    { width: 1920, height: 0 },
+    { width: 8193, height: 600 },
+    { width: 8192, height: 8192 }
+  ])('$width×$height 영상 크기를 처리할 수 없으면 OCR 전에 자원을 정리한다', async (dimensions) => {
+    const { stream, track } = captureResources()
+    vi.mocked(HTMLMediaElement.prototype.play).mockImplementationOnce(async function (
+      this: HTMLMediaElement
+    ) {
+      loadVideoMetadata(this, dimensions)
     })
     getDisplayMedia.mockResolvedValue(stream)
     const hook = await renderPartyCaptureHook()
@@ -477,18 +507,49 @@ describe('usePartyCapture', () => {
     await act(async () => hook.getCurrent().startCapture())
 
     expect(hook.getCurrent().status).toBe(
-      `지원하지 않는 영상 크기입니다: ${dimensions.width}×${dimensions.height}. 게임을 1920×1080 테두리 없는 창 모드로 설정해 주세요.`
+      '게임 영상의 크기를 처리할 수 없습니다. 창이 최소화되지 않았는지 확인해 주세요.'
     )
     expect(track.stop).toHaveBeenCalledOnce()
     expect(moduleMocks.createPartyOcrWorker).not.toHaveBeenCalled()
     expect(moduleMocks.runSerialLoop).not.toHaveBeenCalled()
-    expect(access).toEqual(
-      dimensions.width === 1920
-        ? ['videoWidth', 'videoHeight', 'videoWidth', 'videoHeight']
-        : ['videoWidth', 'videoWidth', 'videoHeight']
-    )
-
     await hook.unmount()
+  })
+
+  it('진행 중 영상 크기가 바뀌면 세션을 재시작하지 않고 표시와 다음 OCR 입력을 갱신한다', async () => {
+    const { stream, track, worker } = captureResources()
+    let loopOptions: LoopOptions | undefined
+    vi.mocked(HTMLMediaElement.prototype.play).mockImplementationOnce(async function (
+      this: HTMLMediaElement
+    ) {
+      loadVideoMetadata(this, { width: 1280, height: 720 })
+    })
+    getDisplayMedia.mockResolvedValue(stream)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    moduleMocks.runSerialLoop.mockImplementation((options: LoopOptions) => {
+      loopOptions = options
+
+      return new Promise<void>(() => undefined)
+    })
+    const hook = await renderPartyCaptureHook()
+    await act(async () => hook.getCurrent().selectSource('game'))
+    await act(async () => hook.getCurrent().startCapture())
+    expect(hook.getCurrent().status).toBe('캡처 중, 1280×720')
+    const video = vi.mocked(HTMLMediaElement.prototype.play).mock.contexts[0] as HTMLMediaElement
+
+    await act(async () => {
+      loadVideoMetadata(video, { width: 3840, height: 2160 })
+      video.dispatchEvent(new Event('resize'))
+      await loopOptions!.runCycle()
+    })
+
+    expect(hook.getCurrent().status).toBe('캡처 중, 3840×2160')
+    expect(moduleMocks.capturePartyNicknameCrops).toHaveBeenLastCalledWith(video)
+    expect(getDisplayMedia).toHaveBeenCalledOnce()
+    expect(moduleMocks.createPartyOcrWorker).toHaveBeenCalledOnce()
+    expect(track.stop).not.toHaveBeenCalled()
+    await hook.unmount()
+    expect(track.stop).toHaveBeenCalledOnce()
+    expect(worker.terminate).toHaveBeenCalledOnce()
   })
 
   it.each(['unmount', 'new capture'] as const)(
@@ -527,7 +588,7 @@ describe('usePartyCapture', () => {
       expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
       if (hasNextHook) {
         expect(nextHook.getCurrent().stableNicknames).toEqual([null, null, null, null])
-        expect(nextHook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+        expect(nextHook.getCurrent().status).toBe('캡처 중, 1920×1080')
         await nextHook.unmount()
       }
       expect(api.selectCaptureSource).toHaveBeenLastCalledWith('')
@@ -699,7 +760,7 @@ describe('usePartyCapture', () => {
     expect(current.track.stop).not.toHaveBeenCalled()
     expect(current.worker.terminate).not.toHaveBeenCalled()
     expect(moduleMocks.runSerialLoop).toHaveBeenCalledOnce()
-    expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+    expect(hook.getCurrent().status).toBe('캡처 중, 1920×1080')
     await hook.unmount()
   })
 
@@ -738,7 +799,7 @@ describe('usePartyCapture', () => {
       expect(current.track.stop).not.toHaveBeenCalled()
       expect(current.worker.terminate).not.toHaveBeenCalled()
       expect(moduleMocks.runSerialLoop).toHaveBeenCalledOnce()
-      expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+      expect(hook.getCurrent().status).toBe('캡처 중, 1920×1080')
       previous.track.dispatchEvent(new Event('ended'))
       expect(current.track.stop).not.toHaveBeenCalled()
       await hook.unmount()
@@ -817,7 +878,7 @@ it('창 선택 등록이 완료되면 별도 시작 없이 캡처를 시작한�
   await act(async () => hook.getCurrent().selectAndStartCapture('game'))
   expect(api.selectCaptureSource).toHaveBeenCalledWith('game')
   expect(getDisplayMedia).toHaveBeenCalledOnce()
-  expect(hook.getCurrent().status).toBe('캡처 중 · 1920×1080')
+  expect(hook.getCurrent().status).toBe('캡처 중, 1920×1080')
   await hook.unmount()
 })
 

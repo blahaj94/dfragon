@@ -182,18 +182,17 @@ function installCanvasBoundary(): void {
     const putImageData = vi.fn()
     const fillRect = vi.fn()
     const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
-      const isFirstSlotMana = x === 42 && y === 42 && width === 105 && height === 5
-      if (!isFirstSlotMana) {
-        const data = new Uint8ClampedArray(width * height * 4)
-
-        return { data }
-      }
       const data = new Uint8ClampedArray(width * height * 4)
-      for (let index = 0; index < data.length; index += 4) {
-        data[index] = 55
-        data[index + 1] = 121
-        data[index + 2] = 170
-        data[index + 3] = 255
+      // 기본 배율의 첫 파티 프레임을 Canvas 경계에서 제공해 실제 검출기를 실행한다.
+      for (const { top, color } of [
+        { top: 27, color: [194, 15, 11, 255] },
+        { top: 33, color: [18, 124, 209, 255] }
+      ]) {
+        for (let row = Math.max(y, top); row < Math.min(y + height, top + 3); row += 1) {
+          for (let column = Math.max(x, 42); column < Math.min(x + width, 141); column += 1) {
+            data.set(color, ((row - y) * width + column - x) * 4)
+          }
+        }
       }
 
       return { data }
@@ -329,7 +328,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     await waitForCondition(() => expect(button(container, '캡처 시작').disabled).toBe(false))
 
     await click(container, '캡처 시작')
-    await waitForText(container, '캡처 중 · 1920×1080')
+    await waitForText(container, '캡처 중, 1920×1080')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
 
@@ -450,7 +449,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
       const nextSource = container.querySelector('select') as HTMLSelectElement | null
       expect(nextSource?.options).toHaveLength(2)
       expect(nextSource?.value).toBe(RENDERER_SOURCE_ID)
-      expect(container.textContent).toContain('캡처 중 · 1920×1080')
+      expect(container.textContent).toContain('캡처 중, 1920×1080')
     })
     expect(container.textContent).toContain('late-character')
     expect(media.getDisplayMedia).toHaveBeenCalledOnce()

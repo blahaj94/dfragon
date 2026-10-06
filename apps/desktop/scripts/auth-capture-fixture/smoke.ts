@@ -47,7 +47,7 @@ export async function smoke(
   completeLogin: () => Promise<void>,
   mainObservation: CaptureObservation
 ): Promise<void> {
-  const { evaluate, hasText, observe, click, login } = createCaptureActions({
+  const { evaluate, observe, waitForCaptureReady, click, login } = createCaptureActions({
     window,
     coordinator,
     completeLogin
@@ -90,7 +90,7 @@ export async function smoke(
     return isMediaReady
   }, 20_000)
   console.log('Capture fixture actual stream acquired')
-  await until(() => hasText('캡처 중 · 1920×1080'), 30_000)
+  await waitForCaptureReady()
   console.log('Capture fixture actual OCR worker ready')
   let displayMatchedSlots = 0
   try {
@@ -120,9 +120,10 @@ export async function smoke(
   const isPositiveHeight = active.height > 0
   const hasPositiveHeight = isSafeHeight && isPositiveHeight
   assert.ok(hasPositiveHeight)
-  // 제품이 지원하는 기존 video frame geometry를 확인한다. Native track 크기는 별도 관측값이다.
-  assert.equal(active.frameWidth, 1920)
-  assert.equal(active.frameHeight, 1080)
+  // CSS 창 크기와 Retina의 물리 픽셀은 다르므로 실제 track 크기의 영상이 유지되는지 확인한다.
+  assert.equal(active.frameWidth, active.width)
+  assert.equal(active.frameHeight, active.height)
+  assert.equal(active.frameWidth * 1080, active.frameHeight * 1920)
   assert.equal(active.allSlotsPresent, true)
   console.log(
     `Capture fixture geometry: ${JSON.stringify({ trackWidth: active.width, trackHeight: active.height, frameWidth: active.frameWidth, frameHeight: active.frameHeight, allSlotsPresent: active.allSlotsPresent })}`
@@ -188,7 +189,7 @@ export async function smoke(
   console.log('Capture fixture step: reselect-and-stop')
   await selectSyntheticSource()
   await until(async () => (await observe()).workers === 2, 30_000)
-  await until(() => hasText('캡처 중 · 1920×1080'), 30_000)
+  await waitForCaptureReady()
   assert.equal((await observe()).streams, 2)
   assert.equal(mainObservation.displayAllowed, 2)
   await click('캡처 중지')

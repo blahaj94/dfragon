@@ -173,7 +173,8 @@ export async function smokeCharacterSearch(
   search: ReturnType<typeof createFixtureSearch>
 ): Promise<void> {
   const actions = createCaptureActions({ window, coordinator, completeLogin })
-  const { evaluate, click, observe, hasText, login, selectSyntheticSource } = actions
+  const { evaluate, click, observe, hasText, waitForCaptureReady, login, selectSyntheticSource } =
+    actions
   const read = (): Promise<SearchUiObservation> =>
     evaluate(inspectSearch) as Promise<SearchUiObservation>
   let previousCapture: string | null = null
@@ -201,7 +202,7 @@ export async function smokeCharacterSearch(
     const displayRequests = main.displayRequests
     const displayAllowed = main.displayAllowed
     await click('캡처 시작')
-    await until(() => hasText('캡처 중 · 1920×1080'), 30_000)
+    await waitForCaptureReady()
     const view = await waitFor((current) => {
       const hasCaptureId = current.captureId != null
       let hasNewCapture: boolean | undefined
@@ -221,8 +222,9 @@ export async function smokeCharacterSearch(
     assert.equal(active.streams, before.streams + 1)
     assert.equal(active.workers, before.workers + 1)
     assert.equal(active.ended, false)
-    assert.equal(active.frameWidth, 1920)
-    assert.equal(active.frameHeight, 1080)
+    assert.equal(active.frameWidth, active.width)
+    assert.equal(active.frameHeight, active.height)
+    assert.equal(active.frameWidth * 1080, active.frameHeight * 1920)
     assert.equal(active.allSlotsPresent, true)
     assert.equal(main.displayRequests, displayRequests + 1)
     assert.equal(main.displayAllowed, displayAllowed + 1)

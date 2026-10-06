@@ -1,5 +1,9 @@
 import { expect, it } from 'vitest'
-import { PartyFrameGeometryError, detectPartyFrameGeometry } from './party-frame-geometry'
+import {
+  PartyFrameGeometryError,
+  detectPartyFrameGeometry,
+  isValidPartyFrameSize
+} from '@dfragon/lib'
 
 type SyntheticTrack = {
   anchorX: number
@@ -181,8 +185,11 @@ it('selects the largest scale cluster while leaving a smaller cluster out of the
   ])
 })
 
-it('detects FHD UI 50-style bars and crops relative to each observed anchor', () => {
-  const anchors = [54, 235, 417, 598]
+it.each([
+  [54, 235, 417, 598],
+  [44, 215, 396, 577],
+  [44, 225, 406, 588]
+])('FHD 실측 앵커 %j의 네 크롭을 관측 위치에서 유지한다', (...anchors) => {
   const rgba = partyFrame({
     width: 1920,
     height: 1080,
@@ -300,13 +307,103 @@ it('fails closed when two equally plausible scale clusters remain', () => {
   )
 })
 
-it('fails closed for unsupported client sizes and malformed pixel buffers', () => {
-  expect(() => detect({ width: 800, height: 600, rgba: Buffer.alloc(800 * 600 * 4) })).toThrowError(
+it('리소스 한도를 넘는 크기와 잘못된 픽셀 버퍼를 거부한다', () => {
+  expect(() => detect({ width: 8193, height: 600, rgba: Buffer.alloc(4) })).toThrowError(
     expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'invalid-frame' })
   )
   expect(() => detect({ width: 1067, height: 600, rgba: Buffer.alloc(4) })).toThrowError(
     expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'invalid-frame' })
   )
+})
+
+it.each([
+  [800, 600],
+  [1280, 720],
+  [1600, 900],
+  [1920, 1080],
+  [2560, 1440],
+  [3840, 2160],
+  [3440, 1440],
+  [5120, 1440]
+])('%i×%i에서 해상도와 관계없이 같은 크기의 HUD 원본 좌표를 유지한다', (width, height) => {
+  const rgba = partyFrame({
+    width,
+    height,
+    tracks: [
+      { slot: 2, anchorX: 183, scale: 1 },
+      { slot: 4, anchorX: 465, scale: 1 }
+    ]
+  })
+
+  const geometry = detect({ width, height, rgba })
+
+  expect(geometry.scale).toBe(1)
+  expect(
+    geometry.slots.map(({ slot, x, y, width, height }) => ({ slot, x, y, width, height }))
+  ).toEqual([
+    { slot: 2, x: 183, y: 10, width: 73, height: 16 },
+    { slot: 4, x: 465, y: 10, width: 73, height: 16 }
+  ])
+})
+
+it.each([
+  { width: 2560, height: 1440, scale: 2.4, anchorX: 1116, y: 26, cropWidth: 174, cropHeight: 33 },
+  { width: 3840, height: 2160, scale: 3.6, anchorX: 1674, y: 41, cropWidth: 261, cropHeight: 48 },
+  { width: 5120, height: 2160, scale: 3.6, anchorX: 1674, y: 41, cropWidth: 261, cropHeight: 48 }
+])(
+  '$width×$height의 $scale 배율 HUD에서 누락된 앞 슬롯을 채우지 않는다',
+  ({ width, height, scale, anchorX, y, cropWidth, cropHeight }) => {
+    const rgba = partyFrame({
+      width,
+      height,
+      tracks: [{ slot: 4, anchorX, scale, trackHeightPx: 10 }]
+    })
+
+    const geometry = detect({ width, height, rgba })
+
+    expect(geometry.scale).toBeCloseTo(scale, 2)
+    expect(geometry.slots).toEqual([
+      expect.objectContaining({ slot: 4, x: anchorX, y, width: cropWidth, height: cropHeight })
+    ])
+  }
+)
+
+it('4K에서도 지지하는 슬롯 수가 같은 서로 다른 배율을 거부한다', () => {
+  const width = 3840
+  const height = 2160
+  const rgba = partyFrame({
+    width,
+    height,
+    tracks: [
+      { slot: 1, anchorX: 42, scale: 1 },
+      { slot: 4, anchorX: 1674, scale: 3.6, trackHeightPx: 9 }
+    ]
+  })
+
+  expect(() => detect({ width, height, rgba })).toThrowError(
+    expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'ambiguous-scale' })
+  )
+})
+
+it('버퍼 할당 전에 정수 크기와 축 및 총 픽셀 한도를 확인한다', () => {
+  expect(isValidPartyFrameSize(1, 1)).toBe(true)
+  expect(isValidPartyFrameSize(8192, 1)).toBe(true)
+  expect(isValidPartyFrameSize(6000, 5500)).toBe(true)
+  for (const [width, height] of [
+    [0, 1080],
+    [-1, 1080],
+    [1920.5, 1080],
+    [1920, NaN],
+    [Infinity, 1080],
+    [8193, 1],
+    [1, 8193],
+    [6000, 5501]
+  ]) {
+    expect(isValidPartyFrameSize(width, height)).toBe(false)
+    expect(() => detect({ width, height, rgba: Buffer.alloc(4) })).toThrowError(
+      expect.objectContaining<Partial<PartyFrameGeometryError>>({ reason: 'invalid-frame' })
+    )
+  }
 })
 
 it.each<{
