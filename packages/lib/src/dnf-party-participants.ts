@@ -1,4 +1,5 @@
 import type { DNFRectangle } from './dnf-party-geometry.js'
+import { isValidPartyFrameSize } from './dnf-party-frame-geometry.js'
 import { projectParticipantRectangle } from './dnf-participant-regions.js'
 import {
   hasParticipantEvidence,
@@ -48,16 +49,10 @@ const windowBounds = { left: -14, top: -67, right: 380, bottom: 143 }
 function validateFrame(frame: DNFParticipantFrame, heading = false): void {
   if (
     frame == null ||
-    !Number.isSafeInteger(frame.width) ||
-    !Number.isSafeInteger(frame.height) ||
-    frame.width < 1 ||
-    frame.height < 1 ||
-    frame.width > 1920 ||
-    frame.height > 1080 ||
+    !isValidPartyFrameSize(frame.width, frame.height) ||
     !(frame.rgba instanceof Uint8Array || frame.rgba instanceof Uint8ClampedArray) ||
     frame.rgba.length !== frame.width * frame.height * 4 ||
-    (heading && (frame.width !== 368 || frame.height !== 17)) ||
-    (!heading && (frame.width < 1067 || frame.height < 600))
+    (heading && (frame.width !== 368 || frame.height !== 17))
   ) {
     throw new RangeError(
       'DNF participant detection requires bounded RGBA frames and a 368x17 heading.'

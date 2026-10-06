@@ -96,6 +96,18 @@ export type {
 } from './dnf-raid-metadata.js'
 export { parseServerBuildInfo } from './server-build-info.js'
 export type { ServerBuildInfo, ServerService } from './server-build-info.js'
+export {
+  detectPartyFrameGeometry,
+  isValidPartyFrameSize,
+  PartyFrameGeometryError
+} from './dnf-party-frame-geometry.js'
+export type {
+  PartyFrameSlot,
+  PartyFrameRegion,
+  PartyFrameGeometry,
+  PartyFramePixels,
+  PartyFrameGeometryFailureReason
+} from './dnf-party-frame-geometry.js'
 
 export {
   DNF_SEARCH_NICKNAME_LIMITS,

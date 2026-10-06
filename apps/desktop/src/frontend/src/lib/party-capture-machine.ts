@@ -200,7 +200,7 @@ export const partyCaptureMachine = setup({
           }
         },
         ocr: { tags: ['busy'], on: { READY: { target: 'active', actions: 'setNotice' } } },
-        active: {}
+        active: { on: { READY: { actions: 'setNotice' } } }
       }
     },
     failed: {}

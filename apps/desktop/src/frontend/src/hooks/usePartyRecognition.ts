@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { PartyOcrWorker, SlotStability } from '../types/capture'
 import { capturePartyNicknameCrops } from '../lib/party'
-import { PARTY_SLOTS } from '../constants/capture'
+import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { normalizeNickname, updateSlotStability } from '../lib/recognition'
 
 export function usePartyRecognition(
@@ -85,9 +85,9 @@ export function usePartyRecognition(
 }
 
 function emptySlots(): (string | null)[] {
-  return Array.from({ length: PARTY_SLOTS.length }, () => null)
+  return Array.from({ length: PARTY_SLOT_COUNT }, () => null)
 }
 
 function emptyStabilitySlots(): (SlotStability | null)[] {
-  return Array.from({ length: PARTY_SLOTS.length }, () => null)
+  return Array.from({ length: PARTY_SLOT_COUNT }, () => null)
 }

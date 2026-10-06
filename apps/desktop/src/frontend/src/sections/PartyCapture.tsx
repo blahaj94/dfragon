@@ -31,8 +31,8 @@ function PartyCapture(): React.JSX.Element {
     <main>
       <ContentStack>
         <SupportingText>
-          게임을 1920×1080 테두리 없는 창 모드·UI 배율 50%로 설정하고, 파티 닉네임이 보이게 해
-          주세요. 게임 창을 최소화하지 않은 상태에서 아래 창을 선택하고 ‘캡처 시작’을 누르세요.
+          게임을 테두리 없는 창 모드로 설정하고, HP, MP가 가득 찬 파티 프레임이 보이게 해 주세요.
+          게임 창을 최소화하지 않은 상태에서 아래 창을 선택하고 ‘캡처 시작’을 누르세요.
         </SupportingText>
         <label {...stylex.props(styles.field)}>
           게임 창
