@@ -83,6 +83,44 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   expect(outputDispose).toHaveBeenCalledOnce()
 })
 
+it.each([
+  { sourceWidth: 2, sourceHeight: 1, resizedWidth: 96 },
+  { sourceWidth: 320, sourceHeight: 48, resizedWidth: 320 },
+  { sourceWidth: 400, sourceHeight: 20, resizedWidth: 320 },
+  { sourceWidth: 8192, sourceHeight: 1, resizedWidth: 320 }
+])(
+  '$sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서에 맞춘다',
+  async ({ sourceWidth, sourceHeight, resizedWidth }) => {
+    await send({ root: 'https://fixture.invalid/ocr/' })
+    const data = new Uint8ClampedArray(resizedWidth * 48 * 4).fill(255)
+    canvasContext.getImageData.mockReturnValueOnce({ data })
+    await send({ pixels: { width: sourceWidth, height: sourceHeight } as ImageData })
+
+    expect(canvasContext.drawImage).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      0,
+      0,
+      resizedWidth,
+      48
+    )
+    expect(canvasContext.getImageData).toHaveBeenCalledWith(0, 0, resizedWidth, 48)
+    expect(mocks.tensor).toHaveBeenCalledExactlyOnceWith(
+      'float32',
+      expect.any(Float32Array),
+      [1, 3, 48, 320]
+    )
+    const values = mocks.tensor.mock.calls[0][1] as Float32Array
+    expect(values).toHaveLength(3 * 48 * 320)
+    for (let channel = 0; channel < 3; channel += 1) {
+      const firstRow = values.subarray(channel * 48 * 320, channel * 48 * 320 + 320)
+      expect([...firstRow]).toEqual([
+        ...Array(resizedWidth).fill(1),
+        ...Array(320 - resizedWidth).fill(0)
+      ])
+    }
+  }
+)
+
 it('disposes the input tensor when inference rejects and returns only the public failure', async () => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   mocks.run.mockRejectedValueOnce(new Error('private model failure'))

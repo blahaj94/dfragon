@@ -4,10 +4,10 @@ import {
   PartyFrameGeometryError,
   type PartyFrameGeometry
 } from '@dfragon/lib'
-import { invertNicknamePixels } from './nickname-pixels'
+import { binarizeNicknamePixels } from './nickname-pixels'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
 
-/** 현재 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 회색조 OCR 입력을 만든다. */
+/** 현재 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
 export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
   const crops: (HTMLCanvasElement | null)[] = Array.from({ length: PARTY_SLOT_COUNT }, () => null)
   const width = video.videoWidth
@@ -44,7 +44,7 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
       region.width,
       region.height
     )
-    invertNicknamePixels(nicknamePixels.data)
+    binarizeNicknamePixels(nicknamePixels.data)
     const nickname = document.createElement('canvas')
     nickname.width = region.width
     nickname.height = region.height

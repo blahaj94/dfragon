@@ -22,7 +22,7 @@ export function countOcrClasses(dictionary) {
 }
 
 /**
- * 앱과 같은 WASM 엔진에서 두 입력 너비의 추론과 CTC 출력, 사전 클래스 수를 검사한다.
+ * 앱과 같은 WASM 엔진에서 고정 48×320 입력과 CTC 출력, 사전 클래스 수를 검사한다.
  * @param {Uint8Array} model
  * @param {number} classes
  * @returns {Promise<void>}
@@ -41,36 +41,34 @@ export async function validateOcrModel(model, classes) {
     if (session.inputNames.length !== 1 || session.outputNames.length === 0) {
       throw new Error('Invalid OCR model inputs or outputs.')
     }
-    for (const width of [320, 640]) {
-      const tensor = new Tensor('float32', new Float32Array(3 * 48 * width), [1, 3, 48, width])
-      let outputs
-      try {
-        outputs = await session.run({ [session.inputNames[0]]: tensor })
-        const output = outputs[session.outputNames[0]]
-        if (
-          output.dims.length !== 3 ||
-          output.dims[0] !== 1 ||
-          !Number.isSafeInteger(output.dims[1]) ||
-          output.dims[1] < 1 ||
-          output.dims[2] !== classes ||
-          output.type !== 'float32' ||
-          output.data.length !== output.dims[1] * classes ||
-          !output.data.every(Number.isFinite)
-        ) {
-          throw new Error('Invalid OCR model output.')
-        }
-      } finally {
-        tensor.dispose()
-        if (outputs != null) {
-          for (const output of Object.values(outputs)) {
-            output.dispose()
-          }
+    const tensor = new Tensor('float32', new Float32Array(3 * 48 * 320), [1, 3, 48, 320])
+    let outputs
+    try {
+      outputs = await session.run({ [session.inputNames[0]]: tensor })
+      const output = outputs[session.outputNames[0]]
+      if (
+        output.dims.length !== 3 ||
+        output.dims[0] !== 1 ||
+        !Number.isSafeInteger(output.dims[1]) ||
+        output.dims[1] < 1 ||
+        output.dims[2] !== classes ||
+        output.type !== 'float32' ||
+        output.data.length !== output.dims[1] * classes ||
+        !output.data.every(Number.isFinite)
+      ) {
+        throw new Error('Invalid OCR model output.')
+      }
+    } finally {
+      tensor.dispose()
+      if (outputs != null) {
+        for (const output of Object.values(outputs)) {
+          output.dispose()
         }
       }
     }
   } catch {
     throw new Error(
-      `OCR model must accept float32 [1, 3, 48, W] at widths 320 and 640 and return float32 CTC [1, steps, ${classes}] in ONNX Runtime WASM. Check the model and matching dictionary.`
+      `OCR model must accept float32 [1, 3, 48, 320] and return float32 CTC [1, steps, ${classes}] in ONNX Runtime WASM. Check the model and matching dictionary.`
     )
   } finally {
     await session?.release()

@@ -4,7 +4,7 @@ import {
   summarizeDeveloperEvaluation,
   type DeveloperEvaluation
 } from './developer-evaluation'
-import { invertNicknamePixels } from './nickname-pixels'
+import { binarizeNicknamePixels } from './nickname-pixels'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 
 const sample = (id: string, text: string | null): DeveloperSample => ({
@@ -144,9 +144,9 @@ describe('개발자 모델 채점', () => {
 })
 
 describe('제품 전처리', () => {
-  it('제품과 평가가 같은 반전 회색조 변환을 사용한다', () => {
+  it('제품과 평가가 같은 Otsu 반전 이진화를 사용한다', () => {
     const data = new Uint8ClampedArray([255, 255, 255, 128, 0, 0, 0, 255, 100, 150, 200, 255])
-    invertNicknamePixels(data)
-    expect([...data]).toEqual([0, 0, 0, 255, 255, 255, 255, 255, 112, 112, 112, 255])
+    binarizeNicknamePixels(data)
+    expect([...data]).toEqual([0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255])
   })
 })
