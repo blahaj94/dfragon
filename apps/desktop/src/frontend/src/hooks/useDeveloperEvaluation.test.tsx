@@ -98,6 +98,43 @@ it('같은 모델 worker로 이미지를 직렬 평가하고 끝나면 자원을
   expect(evaluation.running).toBe(false)
 })
 
+it.each(['party', 'raw'] as const)(
+  '%s 평가에서 제품 이진화와 원본 입력을 구분한다',
+  async (mode) => {
+    const original = [10, 20, 30, 100, 110, 120].flatMap((gray) => [gray, gray, gray, 255])
+    const pixels = { data: new Uint8ClampedArray(original) }
+    const getImageData = vi.fn(() => pixels)
+    const putImageData = vi.fn()
+    const canvas = { width: 6, height: 1, getContext: () => ({ getImageData, putImageData }) }
+    mocks.read.mockResolvedValueOnce(canvas)
+    await act(async () => evaluation.setPreprocessing(mode))
+    await act(async () => evaluation.evaluate([{ ...samples[0], width: 6, height: 1 }]))
+
+    expect(mocks.recognize).toHaveBeenCalledExactlyOnceWith(canvas)
+    expect(canvas).toMatchObject({ width: 6, height: 1 })
+    if (mode === 'party') {
+      expect([...pixels.data]).toEqual(
+        [255, 255, 255, 0, 0, 0].flatMap((gray) => [gray, gray, gray, 255])
+      )
+      expect(putImageData).toHaveBeenCalledExactlyOnceWith(pixels, 0, 0)
+    } else {
+      expect([...pixels.data]).toEqual(original)
+      expect(getImageData).not.toHaveBeenCalled()
+      expect(putImageData).not.toHaveBeenCalled()
+    }
+  }
+)
+
+it('가로로 긴 이미지도 고정 크기 입력을 만드는 worker에 전달한다', async () => {
+  const pixels = { data: new Uint8ClampedArray(8192 * 4) }
+  const context = { getImageData: () => pixels, putImageData: vi.fn() }
+  const canvas = { width: 8192, height: 1, getContext: () => context }
+  mocks.read.mockResolvedValueOnce(canvas)
+  await act(async () => evaluation.evaluate([{ ...samples[0], width: 8192, height: 1 }]))
+  expect(mocks.recognize).toHaveBeenCalledExactlyOnceWith(canvas)
+  expect(evaluation.results.one).toMatchObject({ status: 'success' })
+})
+
 it('일부 이미지 실패를 표시하고 다음 이미지 평가를 계속한다', async () => {
   mocks.read.mockRejectedValueOnce(new Error('unreadable'))
   await act(async () => {

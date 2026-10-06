@@ -92,9 +92,7 @@ it.each([
   expect(setup.getImageData).toHaveBeenCalledWith(324, 10, 73, 16)
   expect(setup.nicknames[0]).toMatchObject({ width: 73, height: 16 })
   const pixels = setup.nicknames[0].getContext().putImageData.mock.calls[0][0].data
-  expect(Array.from(pixels.slice(0, 12))).toEqual([
-    0, 0, 0, 255, 255, 255, 255, 255, 107, 107, 107, 255
-  ])
+  expect(Array.from(pixels.slice(0, 12))).toEqual([0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255])
 })
 
 it('캡처 중 해상도와 프레임 위치가 바뀌면 새 좌표를 검출하고 미검출 뒤 다시 복구한다', () => {
