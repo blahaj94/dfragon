@@ -28,8 +28,8 @@ async function recognizeAndReply(pixels: ImageData): Promise<void> {
     throw new Error('OCR model unavailable.')
   }
   const height = 48
-  const resizedWidth = Math.ceil((height * pixels.width) / pixels.height)
-  const width = Math.max(320, resizedWidth)
+  const width = 320
+  const resizedWidth = Math.min(width, Math.ceil((height * pixels.width) / pixels.height))
   const original = new OffscreenCanvas(pixels.width, pixels.height)
   original.getContext('2d')!.putImageData(pixels, 0, 0)
   const resized = new OffscreenCanvas(resizedWidth, height)

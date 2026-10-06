@@ -1,8 +1,7 @@
-import { DEVELOPER_ERRORS } from '../constants/developer'
 import type { DeveloperSample } from '../../../preload/common/types/developer'
 import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
 import { readDeveloperImage } from './developer-images'
-import { invertNicknamePixels } from './nickname-pixels'
+import { binarizeNicknamePixels } from './nickname-pixels'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from './developer-evaluation'
 
 export type DeveloperEvaluationRun = {
@@ -27,14 +26,10 @@ export async function runDeveloperEvaluation(
         signal.throwIfAborted()
         const canvas = await readDeveloperImage(dataUrl)
         signal.throwIfAborted()
-        // 한 줄 인식 모델에 비정상적으로 큰 텐서가 입력되지 않게 제한한다.
-        if ((48 * canvas.width) / canvas.height > 4096) {
-          throw new Error(DEVELOPER_ERRORS.IMAGE_TOO_WIDE)
-        }
         const context = canvas.getContext('2d')!
         if (preprocessing === 'party') {
           const pixels = context.getImageData(0, 0, canvas.width, canvas.height)
-          invertNicknamePixels(pixels.data)
+          binarizeNicknamePixels(pixels.data)
           context.putImageData(pixels, 0, 0)
         }
         const started = performance.now()
