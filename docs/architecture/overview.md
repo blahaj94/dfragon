@@ -89,7 +89,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web·Ele
 
 ## Shared library boundary
 
-`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source·UI·Node/Electron 전용 runtime·네트워크·저장소에 의존하지 않는다. 범위는 CP949 기반 던파 캐릭터명 형식 검사, 요청 제한용 IP 키 변환, DNF UI 좌표 계산, 호출자가 제공한 RGBA의 파티참가인원 검출·크롭과 공개 타입·빌드·검증이다. 이번 RGBA 공통 함수 범위는 사용자 merge 후 적용한다. IP 키 변환은 API·accounts·OCR의 동일한 IPv4 정규화·IPv6 /64 묶기·잘못된 주소 공유 규칙을 공용 함수로 모으는 사용자 요청 범위이며 해당 PR의 사용자 merge 후 적용한다. 신뢰할 접속 IP 선택·프록시 설정·요청 한도와 카운터는 각 서버 앱이 소유한다. 이미지 디코딩·게임 캡처·OCR·저장과 화면 연결은 소비 앱이 소유한다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
+`packages/lib`의 `@dfragon/lib`는 앱 → library 방향으로 소비하는 순수 함수를 제공하며 앱 source·UI·Node/Electron 전용 runtime·네트워크·저장소에 의존하지 않는다. 범위는 CP949 기반 던파 캐릭터명 형식 검사, 요청 제한용 IP 키 변환, DNF UI 좌표 계산, 호출자가 제공한 RGBA의 HUD 파티 프레임과 파티참가인원 검출, 크롭, 공개 타입, 빌드, 검증이다. 이번 RGBA 공통 함수 범위는 사용자 merge 후 적용한다. IP 키 변환은 API·accounts·OCR의 동일한 IPv4 정규화·IPv6 /64 묶기·잘못된 주소 공유 규칙을 공용 함수로 모으는 사용자 요청 범위이며 해당 PR의 사용자 merge 후 적용한다. 신뢰할 접속 IP 선택·프록시 설정·요청 한도와 카운터는 각 서버 앱이 소유한다. 이미지 디코딩·게임 캡처·OCR·저장과 화면 연결은 소비 앱이 소유한다. 함수의 보장 범위와 사용법은 [공용 함수 안내](../../packages/lib/README.md)를 따른다.
 
 ## License tooling boundary
 

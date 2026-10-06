@@ -35,6 +35,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
 - `estimateDNFUIScale`은 UI 퍼센트와 선택적 게임 영역 높이로 기준 래스터 배율을 추정한다. `estimateDNFPartyScale`은 인접 프레임의 실측 간격으로 배율을 구하고, `projectDNFPartyRegions`는 호출자가 보정한 기준 영역을 네 슬롯 후보에 투영한다. 공식 게임 산식이나 자동 검출기가 아니며 Desktop 호출부에는 아직 연결하지 않았다. [입력 범위와 한계](../../packages/lib/README.md#dnf-ui-배율-추정), [파티 프레임 실측 조사](desktop-party-geometry.md)를 참고한다.
+- `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR과 개발자 이미지 수집이 같은 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처와-개발자-수집의-공용-검출)를 참고한다.
 - `detectDNFPartyParticipantWindow`·`cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행·자물쇠 행의 슬롯 번호를 유지하며 Desktop의 파티원창 크롭 탭에서 사용한다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
 - `detectDNFRaidParticipantWindow`·`cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭에서 사용한다. `readDNFRaidParticipantMetadata`의 파티·점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.

@@ -178,7 +178,7 @@ if (result.status === 'found') {
 }
 ```
 
-두 함수의 입력은 `{ width, height, rgba }`입니다. `rgba`는 행 우선·채널 순서 RGBA·premultiply하지 않은 `Uint8Array | Uint8ClampedArray`이고, padding 없이 정확히 `width × height × 4`바이트여야 합니다. alpha는 검출에 사용하지 않고 크롭에 그대로 보존합니다. 게임 client 크기는 정수 `1067 ≤ width ≤ 1920`, `600 ≤ height ≤ 1080`을 받으며 바탕화면·창 테두리는 호출자가 제외합니다. 범위 안의 모든 해상도·화면 비율에서 검증됐다는 의미는 아닙니다.
+두 함수의 입력은 `{ width, height, rgba }`입니다. `rgba`는 행 우선·채널 순서 RGBA·premultiply하지 않은 `Uint8Array | Uint8ClampedArray`이고, padding 없이 정확히 `width × height × 4`바이트여야 합니다. alpha는 검출에 사용하지 않고 크롭에 그대로 보존합니다. 게임 client 크기는 양의 안전한 정수이며 한 변 8192px, 총 33,000,000픽셀 이하를 받습니다. 바탕화면, 창 테두리는 호출자가 제외합니다. 메모리 보호 한도 안의 모든 해상도, 화면 비율, 팝업 배율에서 검증됐다는 의미는 아닙니다.
 
 `headingTemplate`은 UI 0%에서 **레벨·장비 점수·캐릭터 이름·직업명 네 열의 헤더 전체**를 배경과 테두리까지 포함해 자른 `368 × 17` RGBA입니다. 측정한 팝업 좌상단에서 `(14, 67)`부터 시작합니다. 자르기 외에 확대·이진화·글자만 추출하는 전처리를 하지 않습니다. 기준 이미지 제공·디코딩·갱신은 호출자가 소유하며 패키지에 게임 이미지나 플레이어 데이터는 포함하지 않습니다. 잘못된 크기·바이트 배열과 대비가 없는 기준 헤더는 `RangeError`로 거절합니다.
 
@@ -219,3 +219,11 @@ if (result.status === 'found') {
 파티 구분과 장비 점수 판독은 `readDNFRaidParticipantMetadata(frame, rows, templates)`로 별도 실행합니다. 호출자가 준비한 표식·글자 기준 이미지와 행별 픽셀에서 `party`, `equipmentScoreText`를 반환하며 판독할 수 없는 필드는 `null`입니다. R/Y/G·싱글을 행 번호로 추정하지 않고, 점수는 `1000.4K` 같은 표시 문자열을 유지합니다. 숫자 환산·정답 저장·화면 연결은 하지 않습니다.
 
 공대창 실측과 공개 API의 입력·검증 범위는 [공대원창 검출 안내](../../docs/reference/desktop-raid-participants.md)를 참고합니다.
+
+## HUD 파티 프레임 검출
+
+`detectPartyFrameGeometry({ width, height, rgba })`는 HP, MP가 가득 찬 HUD 프레임과 주변 경계를 찾아 `scale`, `slots`를 반환합니다. 각 슬롯은 1~4번 번호와 원본 닉네임 크롭 좌표, 가림 확인용 `coverage`를 포함합니다. 누락된 슬롯은 채우지 않으며 미검출, 모호한 후보, 잘못된 입력은 `PartyFrameGeometryError`의 `reason`으로 구분합니다. 일반 Desktop OCR 캡처와 개발자 이미지 수집이 같은 함수를 사용합니다.
+
+`rgba`는 행 우선 RGBA `Uint8Array`이며 정확히 `width × height × 4`바이트여야 합니다. Canvas의 `Uint8ClampedArray`는 같은 buffer를 보는 `Uint8Array`로 전달할 수 있습니다. `isValidPartyFrameSize(width, height)`는 양의 안전한 정수, 한 변 8192px 이하, 총 33,000,000픽셀 이하를 확인합니다. 특정 해상도 일치 조건은 없으며, 호출자가 창 테두리를 제외한 게임 client 원점의 픽셀을 제공해야 합니다.
+
+검출기는 화면에서 관측한 래스터 배율을 사용하며 UI 설정 퍼센트를 역산하지 않습니다. HP, MP 잔량이 줄어든 전투 화면, 폰트 변경, 모든 장식의 정확도는 보장하지 않습니다. 실측 및 합성 검증의 구분은 [HUD geometry 안내](../../docs/reference/desktop-party-geometry.md)를 따릅니다.

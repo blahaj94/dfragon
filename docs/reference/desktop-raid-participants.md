@@ -27,7 +27,7 @@ last-reviewed: 2026-09-26
 
 `detectDNFRaidParticipantWindow(frame, headingTemplate)`은 `found`일 때 `window`, `scale`, `matchScore`와 12개의 `rows`를 반환합니다. `cropDNFRaidParticipantNicknames`는 같은 입력에서 각 행의 `nicknameCrop`을 추가합니다. 참가 행의 크롭은 독립 RGBA 복사본이고 빈 행은 `null`입니다. 실패 결과는 기존 파티원창과 같은 `not-found`, `ambiguous`, `search-limit`으로 구분합니다.
 
-두 입력은 `{ width, height, rgba }`이며 `rgba`는 행 우선의 premultiply하지 않은 `Uint8Array | Uint8ClampedArray`입니다. 정확히 `width × height × 4`바이트를 요구하며 원본 alpha를 보존합니다. 게임 client의 정수 크기 범위는 1067×600~1920×1080입니다. 모든 중간 크기를 실제 게임에서 검증한 것은 아닙니다.
+두 입력은 `{ width, height, rgba }`이며 `rgba`는 행 우선의 premultiply하지 않은 `Uint8Array | Uint8ClampedArray`입니다. 정확히 `width × height × 4`바이트를 요구하며 원본 alpha를 보존합니다. 게임 client는 양의 정수 크기, 한 변 8192px 이하, 총 33,000,000픽셀 이하를 받습니다. 특정 해상도 일치 조건은 없으며 모든 크기와 팝업 배율을 실제 게임에서 검증한 것은 아닙니다.
 
 기준 헤더는 UI 0%의 `423 × 18` RGBA로, 파티·레벨·장비 점수·캐릭터 이름·직업명 및 오른쪽 빈 열의 배경과 구분선을 포함합니다. 호출자가 기준 이미지를 보관·디코딩하며 라이브러리에 게임 이미지나 플레이어 데이터를 포함하지 않습니다. 입력 크기·바이트 길이가 잘못됐거나 기준 헤더에 대비가 없으면 `RangeError`를 던집니다.
 
