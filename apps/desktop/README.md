@@ -158,15 +158,28 @@ pnpm --filter @dfragon/desktop dev
 
 ## 파인튜닝 OCR 모델로 빌드하기
 
-ONNX와 문자 사전을 준비한 뒤 [`ocr-model.config.mjs`](ocr-model.config.mjs)의 세 값만 변경합니다. 경로는 `apps/desktop` 기준이며 절대 경로도 사용할 수 있습니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
+파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `apps/desktop/models/finetuned` submodule에서 특정 커밋을 고정합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
+
+처음 checkout할 때 실행합니다. Code Quality와 Windows Portable CI도 고정된 submodule 커밋을 가져옵니다.
+
+```sh
+git submodule update --init --recursive apps/desktop/models/finetuned
+```
+
+실제 모델을 업로드한 뒤 부모의 작업 브랜치에서 해당 커밋으로 갱신합니다. 빌드 중 최신 브랜치를 자동으로 가져오지 않습니다.
+
+```sh
+git -C apps/desktop/models/finetuned fetch origin
+git -C apps/desktop/models/finetuned checkout <모델을-포함한-커밋-SHA>
+```
+
+[`ocr-model.config.mjs`](ocr-model.config.mjs)에는 `bundledOcrModel`, `fineTunedOcrModel` 두 설정이 있습니다. 실제 모델과 사전이 준비되면 마지막 줄 하나를 다음처럼 바꿉니다.
 
 ```js
-export default {
-  name: 'dnf-rec-finetuned-v1',
-  modelPath: 'assets/ocr-finetuned/model.onnx',
-  dictionaryPath: 'assets/ocr-finetuned/characters.txt'
-}
+export default fineTunedOcrModel
 ```
+
+`fineTunedOcrModel`은 `models/finetuned/model.onnx`, `models/finetuned/characters.txt`를 사용합니다. 경로는 `apps/desktop` 기준이며 다른 로컬 모델을 사용하려면 해당 설정의 이름과 경로를 수정할 수 있습니다. 현재 scaffold에는 실제 모델이 없으므로 기본 선택은 `bundledOcrModel`입니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
 
 ```sh
 # 파일과 모델 호환성만 먼저 확인
@@ -174,9 +187,12 @@ pnpm --filter @dfragon/desktop prepare:ocr-assets
 
 # 선택한 모델을 포함해 앱 빌드
 pnpm --filter @dfragon/desktop build
+
+# 검증한 submodule 커밋과 모델 선택을 함께 PR에 포함
+git add apps/desktop/models/finetuned apps/desktop/ocr-model.config.mjs
 ```
 
-`dev`, `build:development`, `build:distribution`과 Windows 패키징도 같은 설정을 사용합니다. 모델이나 설정을 바꾸면 개발 프로세스를 다시 시작하거나 다시 빌드합니다. 일반 캡처와 개발자 평가에 같은 모델이 적용되며, 앱 화면에서 바꾸거나 서버에서 내려받는 기능은 아닙니다. CI 빌드에서도 지정한 파일을 같은 경로에 제공해야 합니다. 기본 모델로 돌아가려면 `name`을 `korean_PP-OCRv5_mobile_rec`, 두 경로를 `assets/ocr/korean-rec.onnx`, `assets/ocr/korean-dict.txt`로 되돌립니다.
+`dev`, `build:development`, `build:distribution`과 Windows 패키징도 같은 설정을 사용합니다. 모델이나 설정을 바꾸면 개발 프로세스를 다시 시작하거나 다시 빌드합니다. 일반 캡처와 개발자 평가에 같은 모델이 적용되며, 앱 화면에서 바꾸거나 서버에서 내려받는 기능은 아닙니다. submodule을 초기화하지 않았거나 선택한 커밋에 모델 파일이 없으면 빌드를 실패시키고 기본 모델로 대체하지 않습니다. 기본 모델로 돌아가려면 마지막 줄을 `export default bundledOcrModel`로 되돌립니다.
 
 현재 PP-OCRv5 인식 경로와 호환되는 단일 ONNX 파일을 사용합니다. 가중치가 별도 external data 파일로 분리된 모델과 Paddle 학습 체크포인트는 이 설정에 직접 넣을 수 없습니다. 입력은 float32 BGR `[1, 3, 48, W]`, `[-1, 1]` 정규화, 높이 48과 가변 너비입니다. 첫 출력은 float32 CTC `[1, steps, classes]`여야 합니다. 기존 반전 회색조 전처리는 그대로 적용되므로 해당 입력으로 학습, 평가한 모델을 사용합니다.
 
