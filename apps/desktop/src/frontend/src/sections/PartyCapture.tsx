@@ -8,6 +8,7 @@ import { formatPartyCaptureStatus } from '../lib/capture-presentation'
 function PartyCapture(): React.JSX.Element {
   const {
     sources,
+    sourcesFailed,
     selectedSourceId,
     sourceRegistered,
     starting,
@@ -34,6 +35,13 @@ function PartyCapture(): React.JSX.Element {
           게임을 테두리 없는 창 모드로 설정하고, HP, MP가 가득 찬 파티 프레임이 보이게 해 주세요.
           게임 창을 최소화하지 않은 상태에서 아래 창을 선택하고 ‘캡처 시작’을 누르세요.
         </SupportingText>
+        {sourcesFailed && (
+          <div role="status">
+            <SupportingText>
+              창 목록을 불러오지 못했습니다. 15초 뒤 다시 확인합니다. 직접 새로고침할 수도 있습니다.
+            </SupportingText>
+          </div>
+        )}
         <label {...stylex.props(styles.field)}>
           게임 창
           <select value={selectedSourceId} onChange={(event) => selectSource(event.target.value)}>

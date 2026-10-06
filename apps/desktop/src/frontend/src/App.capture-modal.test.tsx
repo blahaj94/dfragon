@@ -50,6 +50,26 @@ async function select(id: string): Promise<void> {
   await act(async () => option!.click())
 }
 
+it('앱 시작 때 실행 중인 던파를 감지해 표시하지만 캡처와 OCR은 시작하지 않는다', async () => {
+  const f = createRendererFixture()
+  f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
+  await f.mount(
+    <ColorThemeProvider>
+      <App />
+    </ColorThemeProvider>
+  )
+  expect(f.capture.listCaptureSources).toHaveBeenCalledOnce()
+  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(media.worker).not.toHaveBeenCalled()
+  await click('화면 캡처')
+  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
+    '던전앤파이터, 감지됨'
+  )
+  expect(document.body.textContent).toContain('창 감지됨')
+  expect(f.capture.selectCaptureSource).not.toHaveBeenCalled()
+  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+})
+
 it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
   const f = createRendererFixture()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])

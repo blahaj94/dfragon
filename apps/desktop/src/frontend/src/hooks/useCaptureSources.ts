@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { CAPTURE_SOURCE_RETRY_INTERVAL_MS } from '../constants/capture'
+import { isDnfCaptureSource } from '../lib/capture-presentation'
 
 type CaptureSource = { id: string; name: string }
 
-export function useCaptureSources(setStatus: (status: string) => void): {
+export function useCaptureSources(): {
   sources: CaptureSource[]
   sourcesLoading: boolean
   sourcesFailed: boolean
@@ -15,28 +17,39 @@ export function useCaptureSources(setStatus: (status: string) => void): {
 
   useEffect(() => {
     let cancelled = false
-    void window.api
-      .listCaptureSources()
-      .then((nextSources) => {
-        if (!cancelled) {
-          setSources(nextSources)
-          setSourcesLoading(false)
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
+
+    async function loadSources(): Promise<void> {
+      let foundGame = false
+      setSourcesLoading(true)
+      try {
+        const nextSources = await window.api.listCaptureSources()
+        if (cancelled) {
+          return
         }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSourcesLoading(false)
-          setSourcesFailed(true)
-          setStatus(
-            '창 목록을 불러오지 못했습니다. 게임을 실행한 뒤 ‘창 목록 새로고침’을 눌러 주세요.'
-          )
+        setSources(nextSources)
+        setSourcesFailed(false)
+        foundGame = nextSources.some(isDnfCaptureSource)
+      } catch {
+        if (cancelled) {
+          return
         }
-      })
+        setSourcesFailed(true)
+      }
+      setSourcesLoading(false)
+      // 완료된 조회 뒤에만 예약해 느린 IPC와 다음 자동 조회가 겹치지 않게 한다.
+      if (!foundGame) {
+        retryTimer = setTimeout(() => void loadSources(), CAPTURE_SOURCE_RETRY_INTERVAL_MS)
+      }
+    }
+
+    void loadSources()
 
     return () => {
       cancelled = true
+      clearTimeout(retryTimer)
     }
-  }, [setStatus, sourceListVersion])
+  }, [sourceListVersion])
 
   function refreshSources(): void {
     setSourcesLoading(true)

@@ -43,7 +43,12 @@ export function CaptureSourceSelect({
   let label = '캡처할 프로세스 선택'
   if (value) {
     label = selected?.name ?? '선택한 창 · 목록에서 사라짐'
+  } else if (!failed && detected.length === 1) {
+    label = `${detected[0].name}, 감지됨`
+  } else if (!failed && detected.length > 1) {
+    label = `던파 창 ${detected.length}개 감지됨`
   }
+  const hasSourceLabel = value.length > 0 || (!failed && detected.length > 0)
 
   const notice = getCaptureSourceNotice({ failed, hasOtherSources: others.length > 0 })
 
@@ -60,7 +65,7 @@ export function CaptureSourceSelect({
     >
       <Menu.Trigger
         disabled={loading || !ready}
-        aria-label={`캡처할 프로세스 선택${value ? `: ${label}` : ''}`}
+        aria-label={`캡처할 프로세스 선택${hasSourceLabel ? `: ${label}` : ''}`}
         {...stylex.props(
           styles.trigger,
           !value && styles.muted,

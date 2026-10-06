@@ -26,7 +26,6 @@ type CaptureEvent =
   | { type: 'SELECT'; sourceId: string; autoStart: boolean; request: object }
   | { type: 'START'; request: object }
   | { type: 'STOP'; status?: string }
-  | { type: 'NOTICE'; status: string }
   | CaptureSessionEvent
 
 export const partyCaptureMachine = setup({
@@ -144,8 +143,7 @@ export const partyCaptureMachine = setup({
           status: '게임 창 선택을 확인하고 있습니다. 잠시 후 캡처를 시작해 주세요.'
         })
       }
-    ],
-    NOTICE: { actions: 'setNotice' }
+    ]
   },
   states: {
     idle: {},

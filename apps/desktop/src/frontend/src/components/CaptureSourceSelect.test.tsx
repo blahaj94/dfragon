@@ -63,6 +63,31 @@ async function openDialog(): Promise<void> {
   await click(document.querySelector<HTMLButtonElement>('button[aria-label="화면 캡처"]')!)
 }
 
+it('자동 감지한 창은 선택 전에 표시하고 사용자 클릭 전에는 캡처를 시작하지 않는다', async () => {
+  props.phase = 'idle'
+  props.selectedSourceId = ''
+  await openDialog()
+  expect(trigger().textContent).toContain('던전앤파이터, 감지됨')
+  expect(document.body.textContent).toContain('창 감지됨')
+  expect(props.onSelect).not.toHaveBeenCalled()
+  await click(trigger())
+  const gameOption = document.querySelector<HTMLElement>(
+    '[role="menuitemradio"][aria-label="던전앤파이터"]'
+  )!
+  expect(gameOption.getAttribute('aria-checked')).toBe('false')
+  await click(gameOption)
+  expect(props.onSelect).toHaveBeenCalledExactlyOnceWith('game')
+})
+
+it('후보가 여러 개여도 임의로 선택하지 않고 발견한 개수를 표시한다', async () => {
+  props.phase = 'idle'
+  props.selectedSourceId = ''
+  props.sources.push({ id: 'second-game', name: 'DNF' })
+  await openDialog()
+  expect(trigger().textContent).toContain('던파 창 2개 감지됨')
+  expect(props.onSelect).not.toHaveBeenCalled()
+})
+
 it('감지된 게임을 먼저 표시하고 선택 표시와 직접 선택을 연결한다', async () => {
   await openDialog()
   await click(trigger())
