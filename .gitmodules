@@ -1,0 +1,3 @@
+[submodule "apps/desktop/models/finetuned"]
+	path = apps/desktop/models/finetuned
+	url = https://github.com/blahaj94/dfragon-ocr-models.git
