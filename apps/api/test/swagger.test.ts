@@ -13,7 +13,10 @@ test('Swagger는 공개 API 경로만 문서화하고 DB·provider를 호출하�
       store: { read: unused, beginFetch: unused, saveAndRead: unused },
       fetchDetails: unused
     },
-    { search: unused }
+    { search: unused },
+    undefined,
+    undefined,
+    { fetchAppearance: unused }
   )
   try {
     await app.listen(0, '127.0.0.1')
@@ -35,12 +38,28 @@ test('Swagger는 공개 API 경로만 문서화하고 DB·provider를 호출하�
         'get /characters/candidates',
         'get /adventures/characters',
         'get /characters/{serverId}/{characterId}',
+        'get /characters/{serverId}/{characterId}/appearance',
         'post /characters/{serverId}/{characterId}/refresh'
       ].sort()
     )
     assert.equal(document.paths['/me'], undefined)
     assert.equal(document.security, undefined)
     assert.equal(document.paths['/characters'].get?.security, undefined)
+    assert.equal(
+      document.paths['/characters/{serverId}/{characterId}/appearance'].get?.security,
+      undefined
+    )
+    const appearance = document.components?.schemas?.CharacterAppearance
+    assert(appearance && 'properties' in appearance)
+    assert.equal(appearance.additionalProperties, false)
+    assert.deepEqual(Object.keys(appearance.properties ?? {}), [
+      'serverId',
+      'characterId',
+      'characterName',
+      'jobName',
+      'jobGrowName',
+      'avatar'
+    ])
     // 수동으로 기술한 request/response model을 포함해 모든 참조가 연결되어야 합니다.
     const refs = JSON.stringify(document).matchAll(/"\$ref":"#\/components\/schemas\/([^"/]+)"/g)
     for (const [, name] of refs) {

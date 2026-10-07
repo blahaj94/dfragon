@@ -4,15 +4,16 @@ import { NeopleBudget } from '../src/characters/provider-budget.js'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
 import { createNeopleCharacterDetailsForTest } from '../src/characters/details/neople.js'
 import { createNeopleCatalog } from '../src/characters/catalog/neople.js'
+import { createNeopleCharacterAppearanceForTest } from '../src/characters/appearance/neople.js'
 import { SearchAdmission } from '../src/characters/search-admission.js'
 
 // character-search.md의 서비스 보호 상한: 최근 60초 600회, body 수신까지 동시 12회.
 // 구현 상수를 기대값으로 가져오면 잘못된 상한 변경도 함께 통과하므로 독립 사례로 고정한다.
-test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산을 소비하고 60초 경계에서 만료된다', async () => {
+test('검색, 상세, 외형, 공용 상세의 성공과 실패는 같은 600회 예산을 소비하고 60초 경계에서 만료된다', async () => {
   let now = 0
   const budget = new NeopleBudget(() => now)
   const providerFailure = new Error('합성 공급자 실패')
-  for (let i = 0; i < 597; i++) {
+  for (let i = 0; i < 596; i++) {
     await assert.rejects(
       budget.run(async () => {
         throw providerFailure
@@ -35,6 +36,17 @@ test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산�
         { status: 401 }
       )
     }
+
+    if (url.pathname === '/df/servers/siroco/characters/fixture-character/equip/avatar') {
+      return Response.json({
+        serverId: 'siroco',
+        characterId: 'fixture-character',
+        characterName: '합성',
+        jobName: '귀검사',
+        jobGrowName: '검성',
+        avatar: null
+      })
+    }
     assert.equal(url.pathname, '/df/multi/items')
     assert.equal(url.searchParams.get('itemIds'), 'fixture-item')
 
@@ -43,6 +55,7 @@ test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산�
   const search = createNeopleCharacterSearchForTest('fixture', { fetch: transport }, budget)
   const details = createNeopleCharacterDetailsForTest('fixture', { fetch: transport, budget })
   const catalog = createNeopleCatalog('fixture', transport, budget)
+  const appearance = createNeopleCharacterAppearanceForTest('fixture', { fetch: transport, budget })
   const input = { characterName: '합성', serverId: 'siroco', limit: 10 }
   const identity = { serverId: 'siroco', characterId: 'fixture-character' }
   const signal = new AbortController().signal
@@ -56,11 +69,13 @@ test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산�
       }
     }
   })
+  assert.deepEqual((await appearance(identity, signal)).avatar, [])
   assert.deepEqual(await catalog([{ kind: 'item', itemId: 'fixture-item' }], signal), [
     { key: { kind: 'item', itemId: 'fixture-item' }, payload: item }
   ])
   await assert.rejects(search(input), { status: 429, retryAfter: 60 })
   await assert.rejects(details(identity, signal), { status: 429, retryAfter: 60 })
+  await assert.rejects(appearance(identity, signal), { status: 429, retryAfter: 60 })
   await assert.rejects(catalog([{ kind: 'item', itemId: 'fixture-item' }], signal), {
     status: 429,
     retryAfter: 60
@@ -68,6 +83,7 @@ test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산�
   assert.deepEqual(paths, [
     '/df/servers/siroco/characters',
     '/df/servers/siroco/characters/fixture-character',
+    '/df/servers/siroco/characters/fixture-character/equip/avatar',
     '/df/multi/items'
   ])
   now = 59_999
@@ -77,6 +93,7 @@ test('검색·상세·공용 상세의 성공과 실패는 같은 600회 예산�
   assert.deepEqual(paths, [
     '/df/servers/siroco/characters',
     '/df/servers/siroco/characters/fixture-character',
+    '/df/servers/siroco/characters/fixture-character/equip/avatar',
     '/df/multi/items',
     '/df/servers/siroco/characters'
   ])
