@@ -72,6 +72,10 @@ export const SEARCH_ERRORS = {
   SEARCH_RESPONSE_INVALID: {
     message: '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.',
     retryable: true
+  },
+  SEARCH_APPEARANCE_UNAVAILABLE: {
+    message: '캐릭터 외형을 확인하지 못해 자동 식별을 보류했습니다.',
+    retryable: true
   }
 } as const satisfies Record<string, SearchErrorDefinition>
 
