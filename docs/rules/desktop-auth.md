@@ -132,6 +132,14 @@ review-after: 초기 restore·paused retry의 저장 지연·clock 회귀와 화
 - Renderer는 capture instance와 slot별 `observationRevision`을 소유한다. 현재 안정화 nickname이 사라지는 전이에는 `clear`를 한 번 보내고 새 안정화 결과에는 기존 notify를 보내며, 두 전이 모두 revision을 증가시킨다. 빈 slot·빈 OCR·다른 문자열의 안정화 대기로 기존 stable 값이 null이 되는 경우를 포함한다. 매 frame 전송, OCR 보정·안정화 조건·호출 주기 변경은 요구하지 않는다.
 - Main은 slot별 최신 observation revision과 검색별 새 `requestId`를 소유한다. 낮거나 같은 observation revision의 중복·역순 입력은 작업을 만들지 않는다. Clear 없이 같은 nickname의 더 큰 revision을 받으면 requestId를 유지하며 진행 요청의 수용 observationRevision과 현재 결과의 revision을 함께 올리고 snapshot을 발행한다. 완료 검사는 승격한 수용 revision을 사용하며 시작 시 고정한 옛 revision만 비교해 pending으로 남기지 않는다. 새 검색이나 실패 재시도는 만들지 않는다. 다른 slot은 서로의 결과를 지우거나 요청 순서를 기다리지 않는다.
 
+### OCR 후보와 얼굴 기반 식별 IPC
+
+2026-10-07 요청의 OCR 식별 연결은 별도 `notifyOcrCandidatesDetected`를 사용한다. 인자는 `{captureId,slot,observationRevision,nickname,candidateNicknames,portrait}`이며 main이 기존 renderer, main frame, exact document, source와 capture 수명을 검사한다. 후보는 순위를 유지하는 최대 두 개의 유효한 원문이고 nickname은 첫 후보와 같아야 한다. 얼굴은 크기와 배율, RGBA 길이와 제외 영역 마스크를 검증하고 복사해 보관한다. 상세 입력 제한과 현재 연결 위치는 [Desktop 검색 안내](../reference/desktop-character-search.md#ocr-관측-ipc와-슬롯-수명)를 따른다. 전체 프레임이나 얼굴을 검색 API에 전송하지 않는다.
+
+크롭이 없거나 main에 검증된 비교 기준이 없으면 각각 `waiting-portrait`, `waiting-policy` 상태이며 HTTP를 시작하지 않는다. 두 상태는 기존 슬롯 식별자와 이름, `rows: []`, `error: null`을 유지하며 `selected`는 없다. 성공 상태에서만 선택된 한 행과 일치하는 기본 요약 `selected`를 추가할 수 있다. 기존 다섯 필드 rows와 일반 검색 snapshot은 계속 허용하며 전체 상세를 snapshot에 넣지 않는다.
+
+같은 후보와 유효 얼굴 픽셀은 현재 요청과 시간 예산을 유지한다. 다른 입력은 이전 요청과 선택을 무효화하며, 재시도에는 원래 OCR 입력을 사용한다. 변경, 종료와 오래된 결과 차단은 기존 캡처 계약을 유지한다. 기존 `notifyStableNicknameDetected`, 수동 검색과 인증 경계는 바꾸지 않는다. 이 확장은 구현과 같은 PR의 사용자 merge 후 적용한다.
+
 ### 최소 feature IPC
 
 검색 연결에서 아래 이름과 shape를 사용한다. 기존 `notifyStableNicknameDetected`를 확장하고, 검색 제어 invoke 하나와 event 하나를 추가하는 제안이다. 기존 source 열거·선택·display-media와 auth IPC의 권한 검사는 유지한다.

@@ -1,7 +1,10 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import type { AuthClock } from '../../src/backend/auth/types'
 import { registerCaptureIpc, registerCaptureWindow } from '../../src/backend/capture/ipc-handler'
-import { parseSearchObservation } from '../../src/backend/search/commands'
+import {
+  parseSearchObservation,
+  parseOcrSearchObservation
+} from '../../src/backend/search/commands'
 import { parseSearchResult } from '../../src/preload/common/search/snapshot'
 
 export type CaptureObservation = {
@@ -46,12 +49,14 @@ export function isAcceptedParsedObservation(
 
 function isAcceptedObservation({
   value,
-  response
+  response,
+  isOcr
 }: {
   value: unknown
   response: unknown
+  isOcr: boolean
 }): boolean {
-  const observation = parseSearchObservation([value])
+  const observation = isOcr ? parseOcrSearchObservation([value]) : parseSearchObservation([value])
   const result = parseSearchResult(response)
   const hasObservation = observation != null
   const isSuccessful = result?.ok === true
@@ -132,7 +137,8 @@ export function registerObservedCapture(
     )
   }
   ipcMain.handle = (channel, listener) => {
-    const isNickname = channel === 'notifyStableNicknameDetected'
+    const isNickname =
+      channel === 'notifyStableNicknameDetected' || channel === 'notifyOcrCandidatesDetected'
     if (!isNickname) {
       originalHandle.call(ipcMain, channel, listener)
 
@@ -143,7 +149,11 @@ export function registerObservedCapture(
       const result = listener(event, ...args)
 
       return Promise.resolve(result).then((response: unknown) => {
-        const isAccepted = isAcceptedObservation({ value: args[0], response })
+        const isAccepted = isAcceptedObservation({
+          value: args[0],
+          response,
+          isOcr: channel === 'notifyOcrCandidatesDetected'
+        })
         if (isAccepted) {
           counts.nicknameAccepted += 1
           counts.nicknameMatchedSlots |= syntheticSlotMask(args[0])

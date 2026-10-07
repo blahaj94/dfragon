@@ -11,7 +11,21 @@ const capture = vi.hoisted(() => {
   const stopCapture = vi.fn()
 
   return {
-    search: { connectionFailed: false, ready: true },
+    search: {
+      connectionFailed: false,
+      ready: true,
+      retryPending: [false, false, false, false],
+      slots: Array.from({ length: 4 }, (_, slot) => ({
+        slot,
+        observationRevision: 0,
+        requestId: null,
+        nickname: null,
+        state: 'idle',
+        rows: [],
+        error: null
+      }))
+    },
+    retrySearch: vi.fn(),
     selectedSourceId: '',
     status: '캡처 대기',
     stableNicknames: [null, null, null, null],

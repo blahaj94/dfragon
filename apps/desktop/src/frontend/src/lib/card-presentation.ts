@@ -2,6 +2,14 @@ import type { SlotState } from '../types/cards'
 
 // 캐릭터 카드의 검색 상태에 맞는 표시 문구를 반환한다.
 export function getCharacterCardStatus(state: SlotState): string {
+  if (state === 'waiting-portrait') {
+    return '얼굴 인식 대기'
+  }
+
+  if (state === 'waiting-policy') {
+    return '자동 식별 준비 중'
+  }
+
   if (state === 'failure') {
     return '검색 실패'
   }

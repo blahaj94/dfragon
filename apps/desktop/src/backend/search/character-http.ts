@@ -1,10 +1,8 @@
-import ky from 'ky'
-import { inflateSync } from 'node:zlib'
-import { PNG } from 'pngjs'
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import { validateApiOrigin } from '../auth/protocol'
 import type { AuthClock } from '../auth/types'
+import type { CharacterAppearance } from '../../preload/common/types/appearance'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -13,49 +11,45 @@ import type {
 } from '../../preload/common/types/character'
 import type { SearchErrorCode } from '../../preload/common/types/search'
 import { SearchHttpFailure } from './http'
+import { CHARACTER_IMAGE_LIMITS, decodeCharacterImage } from './character-image'
+import {
+  createCharacterHttpClient,
+  parseCharacterJson,
+  parseCharacterRetryAfter,
+  readCharacterResponseBody,
+  throwCharacterTransportFailure
+} from './character-response'
+import {
+  CHARACTER_SERVER_NAMES as SERVER_NAMES,
+  characterIdentitySchema as identitySchema,
+  characterImageUrl
+} from '../../preload/common/search/character-summary'
 
-const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
-const RETRY_AFTER_SECONDS_PATTERN = /^[0-9]+$/
-const MAX_CHARACTER_ID_LENGTH = 256
 const MAX_CHARACTER_NAME_CODE_POINTS = 12
-const CHARACTER_IMAGE_ORIGIN = 'https://img-api.neople.co.kr'
-const CHARACTER_IMAGE_ZOOM = 1
-const PNG_SIGNATURE_HEX = '89504e470d0a1a0a'
-const PNG_HEADER_BYTES = 33
-const PNG_IHDR_LENGTH = 13
-const PNG_CHUNK_OVERHEAD_BYTES = 12
-const PNG_MAX_BYTES_PER_PIXEL = 8
-const PNG_INTERLACE_PASSES = 7
-const RGBA_CHANNELS = 4
-
 export const CHARACTER_HTTP_LIMITS = {
   candidateJsonBytes: 256 * 1024,
   detailJsonBytes: 8 * 1024 * 1024,
-  imageBytes: 4 * 1024 * 1024,
-  imageDimension: 2048,
-  imagePixels: 1024 * 1024
+  appearanceJsonBytes: 256 * 1024,
+  ...CHARACTER_IMAGE_LIMITS
 } as const
 
-const SERVER_NAMES = {
-  anton: '안톤',
-  bakal: '바칼',
-  cain: '카인',
-  casillas: '카시야스',
-  diregie: '디레지에',
-  hilder: '힐더',
-  prey: '프레이',
-  siroco: '시로코'
-} as const
-const serverIdSchema = z.enum(Object.keys(SERVER_NAMES) as (keyof typeof SERVER_NAMES)[])
-const identitySchema = z.object({
-  serverId: serverIdSchema,
-  characterId: z
-    .string()
-    .min(1)
-    .max(MAX_CHARACTER_ID_LENGTH)
-    .refine((value) => !INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(value))
-})
 const nonblank = z.string().refine((value) => value.trim().length > 0)
+const appearanceCloneSchema = z
+  .object({ itemId: nonblank.nullable(), itemName: nonblank.nullable() })
+  .refine((clone) => (clone.itemId === null) === (clone.itemName === null))
+const appearanceSchema = identitySchema.extend({
+  characterName: nonblank,
+  jobName: nonblank,
+  jobGrowName: nonblank,
+  avatar: z.array(
+    z.object({
+      slotId: nonblank,
+      itemId: nonblank,
+      itemName: nonblank,
+      clone: appearanceCloneSchema
+    })
+  )
+})
 const candidateSchema = identitySchema
   .extend({
     characterName: nonblank,
@@ -123,23 +117,7 @@ export type CharacterCandidatesHttp = (input: {
 }) => Promise<readonly CharacterCandidate[]>
 export type CharacterImageHttp = (input: IdentityRequest) => Promise<CharacterImage>
 export type CharacterDetailsHttp = (input: IdentityRequest) => Promise<CharacterDetails>
-
-function characterImageUrl(identity: CharacterIdentity): string {
-  return `${CHARACTER_IMAGE_ORIGIN}/df/servers/${identity.serverId}/characters/${identity.characterId}?zoom=${CHARACTER_IMAGE_ZOOM}`
-}
-
-function createClient(transport: typeof fetch): ReturnType<typeof ky.create> {
-  return ky.create({
-    fetch: transport,
-    retry: 0,
-    timeout: false,
-    totalTimeout: false,
-    throwHttpErrors: false,
-    redirect: 'error',
-    credentials: 'omit',
-    cache: 'no-store'
-  })
-}
+export type CharacterAppearanceHttp = (input: IdentityRequest) => Promise<CharacterAppearance>
 
 function validateIdentity(identity: CharacterIdentity): void {
   if (!identitySchema.safeParse(identity).success) {
@@ -156,62 +134,6 @@ function validateNickname(nickname: string): void {
     encodeURIComponent(nickname)
   } catch {
     throw new SearchHttpFailure('INVALID_SEARCH_QUERY')
-  }
-}
-
-function parseRetryAfter(value: string | null): number | null {
-  if (value == null || !RETRY_AFTER_SECONDS_PATTERN.test(value)) {
-    return null
-  }
-  const seconds = Number(value)
-  if (!Number.isSafeInteger(seconds) || seconds <= 0) {
-    return null
-  }
-
-  return seconds
-}
-
-/** 호출자의 공통 요청 시간 예산이 끝나면 지연된 응답 본문 읽기도 취소한다. */
-async function readBody(response: Response, signal: AbortSignal, limit: number): Promise<Buffer> {
-  if (!response.body) {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-  }
-  const reader = response.body.getReader()
-  const cancel = (): void => {
-    void reader.cancel().catch(() => undefined)
-  }
-  signal.addEventListener('abort', cancel, { once: true })
-  const chunks: Uint8Array[] = []
-  let length = 0
-  try {
-    signal.throwIfAborted()
-    while (true) {
-      const chunk = await reader.read()
-      signal.throwIfAborted()
-      if (chunk.done) {
-        break
-      }
-      length += chunk.value.length
-      if (length > limit) {
-        throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-      }
-      chunks.push(chunk.value)
-    }
-
-    return Buffer.concat(chunks, length)
-  } finally {
-    signal.removeEventListener('abort', cancel)
-    await reader.cancel().catch(() => undefined)
-  }
-}
-
-function parseJson(bytes: Buffer): unknown {
-  try {
-    const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
-
-    return JSON.parse(text)
-  } catch {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
   }
 }
 
@@ -240,17 +162,11 @@ function assertApiSuccess(
     throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
   }
   const limited = code === 'SEARCH_RATE_LIMITED'
-  const retryAfterSeconds = limited ? parseRetryAfter(response.headers.get('Retry-After')) : null
+  const retryAfterSeconds = limited
+    ? parseCharacterRetryAfter(response.headers.get('Retry-After'))
+    : null
   const retryAfterReceivedAt = limited ? receivedAt : null
   throw new SearchHttpFailure(code, { retryAfterSeconds, retryAfterReceivedAt })
-}
-
-function transportFailure(error: unknown, signal: AbortSignal): never {
-  signal.throwIfAborted()
-  if (error instanceof SearchHttpFailure) {
-    throw error
-  }
-  throw new SearchHttpFailure('SEARCH_NETWORK_ERROR')
 }
 
 /** OCR 이름 하나를 정확히 검색하고 API가 정한 명성과 null 후보 순서를 유지한다. */
@@ -260,7 +176,7 @@ export function createCharacterCandidatesHttp({
   clock
 }: ApiOptions): CharacterCandidatesHttp {
   const origin = validateApiOrigin(apiOrigin)
-  const client = createClient(transport)
+  const client = createCharacterHttpClient(transport)
 
   return async ({ nickname, signal }) => {
     validateNickname(nickname)
@@ -272,8 +188,8 @@ export function createCharacterCandidatesHttp({
         signal
       })
       const receivedAt = clock?.read().monotonicMs ?? performance.now()
-      const body = parseJson(
-        await readBody(response, signal, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
+      const body = parseCharacterJson(
+        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.candidateJsonBytes)
       )
       assertApiSuccess(response, body, receivedAt, false)
       const parsed = candidatesSchema.safeParse(body)
@@ -284,87 +200,8 @@ export function createCharacterCandidatesHttp({
 
       return parsed.data.rows
     } catch (error) {
-      transportFailure(error, signal)
+      throwCharacterTransportFailure(error, signal)
     }
-  }
-}
-
-/** pngjs가 허용하는 중복 IHDR과 상한 없는 인터레이스 압축 해제를 먼저 차단한다. */
-function boundPngInflation(bytes: Buffer, width: number, height: number): void {
-  const compressed: Buffer[] = []
-  let offset = 8
-  let headerSeen = false
-  let endSeen = false
-  while (offset + PNG_CHUNK_OVERHEAD_BYTES <= bytes.length) {
-    const length = bytes.readUInt32BE(offset)
-    const end = offset + PNG_CHUNK_OVERHEAD_BYTES + length
-    if (end > bytes.length) {
-      throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-    }
-    const type = bytes.toString('ascii', offset + 4, offset + 8)
-    if (type === 'IHDR') {
-      if (headerSeen) {
-        throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-      }
-      headerSeen = true
-    } else if (type === 'IDAT') {
-      compressed.push(bytes.subarray(offset + 8, end - 4))
-    } else if (type === 'IEND') {
-      endSeen = true
-      if (end !== bytes.length) {
-        throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-      }
-    }
-    offset = end
-  }
-  if (offset !== bytes.length || !endSeen || compressed.length === 0) {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-  }
-  // 16비트 RGBA와 Adam7의 일곱 패스를 포함하는 압축 해제 상한이다.
-  const maxOutputLength = width * height * PNG_MAX_BYTES_PER_PIXEL + height * PNG_INTERLACE_PASSES
-  try {
-    inflateSync(Buffer.concat(compressed), { maxOutputLength })
-  } catch {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-  }
-}
-
-/** pngjs가 RGBA 이미지를 할당하기 전에 크기와 압축 해제 상한을 검증한다. */
-function decodeCharacterImage(bytes: Buffer): CharacterImage {
-  if (
-    bytes.length < PNG_HEADER_BYTES ||
-    bytes.subarray(0, 8).toString('hex') !== PNG_SIGNATURE_HEX ||
-    bytes.readUInt32BE(8) !== PNG_IHDR_LENGTH ||
-    bytes.toString('ascii', 12, 16) !== 'IHDR'
-  ) {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-  }
-  const width = bytes.readUInt32BE(16)
-  const height = bytes.readUInt32BE(20)
-  if (
-    width < 1 ||
-    height < 1 ||
-    width > CHARACTER_HTTP_LIMITS.imageDimension ||
-    height > CHARACTER_HTTP_LIMITS.imageDimension ||
-    width * height > CHARACTER_HTTP_LIMITS.imagePixels
-  ) {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-  }
-  boundPngInflation(bytes, width, height)
-  try {
-    const decoded = PNG.sync.read(bytes)
-    if (
-      decoded.width !== width ||
-      decoded.height !== height ||
-      decoded.data.length !== width * height * RGBA_CHANNELS
-    ) {
-      throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-    }
-    const rgba = new Uint8Array(decoded.data)
-
-    return { width, height, rgba }
-  } catch {
-    throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
   }
 }
 
@@ -372,7 +209,7 @@ function decodeCharacterImage(bytes: Buffer): CharacterImage {
 export function createCharacterImageHttp({
   fetch: transport = fetchApi
 }: TransportOptions = {}): CharacterImageHttp {
-  const client = createClient(transport)
+  const client = createCharacterHttpClient(transport)
 
   return async ({ serverId, characterId, signal }) => {
     const identity = { serverId, characterId }
@@ -387,7 +224,11 @@ export function createCharacterImageHttp({
         await response.body?.cancel().catch(() => undefined)
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
-      const bytes = await readBody(response, signal, CHARACTER_HTTP_LIMITS.imageBytes)
+      const bytes = await readCharacterResponseBody(
+        response,
+        signal,
+        CHARACTER_HTTP_LIMITS.imageBytes
+      )
       const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase()
       if (contentType !== 'image/png') {
         throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
@@ -397,7 +238,7 @@ export function createCharacterImageHttp({
 
       return image
     } catch (error) {
-      transportFailure(error, signal)
+      throwCharacterTransportFailure(error, signal)
     }
   }
 }
@@ -409,7 +250,7 @@ export function createCharacterDetailsHttp({
   clock
 }: ApiOptions): CharacterDetailsHttp {
   const origin = validateApiOrigin(apiOrigin)
-  const client = createClient(transport)
+  const client = createCharacterHttpClient(transport)
 
   return async ({ serverId, characterId, signal }) => {
     validateIdentity({ serverId, characterId })
@@ -420,8 +261,8 @@ export function createCharacterDetailsHttp({
         signal
       })
       const receivedAt = clock?.read().monotonicMs ?? performance.now()
-      const body = parseJson(
-        await readBody(response, signal, CHARACTER_HTTP_LIMITS.detailJsonBytes)
+      const body = parseCharacterJson(
+        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.detailJsonBytes)
       )
       assertApiSuccess(response, body, receivedAt, true)
       const parsed = detailsSchema.safeParse(body)
@@ -436,7 +277,49 @@ export function createCharacterDetailsHttp({
 
       return parsed.data
     } catch (error) {
-      transportFailure(error, signal)
+      throwCharacterTransportFailure(error, signal)
+    }
+  }
+}
+
+/** 표시용 상세가 보강되기 전의 아바타 외형만 읽고 선택한 식별자를 확인한다. */
+export function createCharacterAppearanceHttp({
+  apiOrigin,
+  fetch: transport = fetchApi,
+  clock
+}: ApiOptions): CharacterAppearanceHttp {
+  const origin = validateApiOrigin(apiOrigin)
+  const client = createCharacterHttpClient(transport)
+
+  return async ({ serverId, characterId, signal }) => {
+    validateIdentity({ serverId, characterId })
+    try {
+      signal.throwIfAborted()
+      const response = await client.get(
+        `${origin}/characters/${serverId}/${characterId}/appearance`,
+        {
+          headers: { Accept: 'application/json' },
+          signal
+        }
+      )
+      const receivedAt = clock?.read().monotonicMs ?? performance.now()
+      const body = parseCharacterJson(
+        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.appearanceJsonBytes)
+      )
+      assertApiSuccess(response, body, receivedAt, true)
+      const parsed = appearanceSchema.safeParse(body)
+      if (
+        !parsed.success ||
+        parsed.data.serverId !== serverId ||
+        parsed.data.characterId !== characterId
+      ) {
+        throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
+      }
+      signal.throwIfAborted()
+
+      return parsed.data
+    } catch (error) {
+      throwCharacterTransportFailure(error, signal)
     }
   }
 }

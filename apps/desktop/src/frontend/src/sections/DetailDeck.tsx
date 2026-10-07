@@ -43,7 +43,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
               명성
             </Typo.caption>
             <Typo.h4 as="dd" {...stylex.props(styles.score, styles.fame)}>
-              {character.fame.toLocaleString('ko-KR')}
+              {character.fame?.toLocaleString('ko-KR') ?? '—'}
             </Typo.h4>
           </div>
         </dl>

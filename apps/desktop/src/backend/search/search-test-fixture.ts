@@ -9,6 +9,8 @@ import {
   registerCaptureWindow,
   consumeCaptureMediaPermission
 } from '../capture/ipc-handler'
+import type { PortraitMatchPolicy } from './portrait-match'
+import type { PortraitEdgeMatchPolicy } from './portrait-edges'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
 const electron = vi.hoisted(() => {
@@ -53,7 +55,10 @@ export function jsonResponse({
 
 export async function createSearchFixture(
   signedIn = false,
-  searchKind: 'capture' | 'manual' = 'capture'
+  searchKind: 'capture' | 'manual' = 'capture',
+  portraitMatchPolicy?: PortraitMatchPolicy,
+  details?: Parameters<typeof registerCaptureIpc>[1],
+  portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
 ): Promise<{
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
@@ -101,11 +106,16 @@ export async function createSearchFixture(
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
-  const dispose = registerCaptureIpc({
-    apiOrigin: API_ORIGIN,
-    fetch: fetchSearch,
-    clock: harness.clock
-  })
+  const dispose = registerCaptureIpc(
+    {
+      apiOrigin: API_ORIGIN,
+      fetch: fetchSearch,
+      clock: harness.clock,
+      portraitMatchPolicy,
+      portraitEdgeMatchPolicy
+    },
+    details
+  )
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()

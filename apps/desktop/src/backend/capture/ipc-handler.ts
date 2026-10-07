@@ -14,8 +14,24 @@ import {
   type CaptureSearchLifetime,
   type CaptureBinding
 } from '../search/capture-lifetime'
-import { parseSearchControl, parseSearchObservation } from '../search/commands'
+import {
+  parseSearchControl,
+  parseSearchObservation,
+  parseOcrSearchObservation,
+  parseCharacterSelection
+} from '../search/commands'
+import type { openSelectedCharacterDetail } from '../character-detail/windows'
 import { createSearchHttp } from '../search/http'
+import {
+  createCharacterCandidatesHttp,
+  createCharacterAppearanceHttp,
+  createCharacterDetailsHttp,
+  createCharacterImageHttp
+} from '../search/character-http'
+import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portrait-match'
+import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
+import { createStayImageSource } from '../search/stay-images'
+import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
 
@@ -167,15 +183,43 @@ function isCurrentSearch(binding: CaptureBinding): boolean {
   return isCurrent
 }
 
-function registerCaptureIpc(configuration?: {
-  apiOrigin: string
-  fetch?: typeof fetch
-  clock: AuthClock
-}): () => void {
-  const runtime =
-    configuration == null
-      ? undefined
-      : { http: createSearchHttp(configuration), clock: configuration.clock }
+function registerCaptureIpc(
+  configuration?: {
+    apiOrigin: string
+    fetch?: typeof fetch
+    clock: AuthClock
+    portraitMatchPolicy?: PortraitMatchPolicy
+    portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
+  },
+  details?: { openSelected: typeof openSelectedCharacterDetail }
+): () => void {
+  let runtime: SearchRuntime | undefined
+  if (configuration != null) {
+    if (
+      configuration.portraitMatchPolicy !== undefined &&
+      configuration.portraitEdgeMatchPolicy !== undefined
+    ) {
+      throw new TypeError('Only one portrait comparison policy can be configured')
+    }
+    runtime = { http: createSearchHttp(configuration), clock: configuration.clock }
+    if (configuration.portraitEdgeMatchPolicy !== undefined) {
+      const appearance = createCharacterAppearanceHttp(configuration)
+      const image = createStayImageSource({ appearance, fetch: configuration.fetch })
+      runtime.identification = {
+        candidates: createCharacterCandidatesHttp(configuration),
+        image,
+        details: createCharacterDetailsHttp(configuration),
+        matchesPortrait: createPortraitEdgeMatcher(configuration.portraitEdgeMatchPolicy)
+      }
+    } else if (configuration.portraitMatchPolicy !== undefined) {
+      runtime.identification = {
+        candidates: createCharacterCandidatesHttp(configuration),
+        image: createCharacterImageHttp(configuration),
+        details: createCharacterDetailsHttp(configuration),
+        matchesPortrait: createPortraitMatcher(configuration.portraitMatchPolicy)
+      }
+    }
+  }
   const lifetime = createCaptureSearchLifetime({
     runtime,
     isCurrent: isCurrentSearch,
@@ -203,6 +247,44 @@ function registerCaptureIpc(configuration?: {
   manualSearch = manual
   search = lifetime
   clearSource()
+  addHandler('openCharacterDetails', async (event, ...args) => {
+    requireSearchSender(event)
+    const reference = parseCharacterSelection(args)
+    const owner = captureWindow
+    if (
+      reference === null ||
+      owner === null ||
+      details === undefined ||
+      event.senderFrame?.detached !== false
+    ) {
+      return { ok: false }
+    }
+    const selected = lifetime.selection(reference)
+    if (selected === null) {
+      return { ok: false }
+    }
+    const isCurrent = (): boolean => {
+      try {
+        requireSearchSender(event)
+
+        return (
+          captureWindow === owner &&
+          event.senderFrame?.detached === false &&
+          lifetime.selection(reference) === selected
+        )
+      } catch {
+        return false
+      }
+    }
+    try {
+      const opened = await details.openSelected(owner, selected, isCurrent)
+      const ok = opened && isCurrent()
+
+      return { ok }
+    } catch {
+      return { ok: false }
+    }
+  })
   addHandler('listCaptureSources', async (event, ...args) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
@@ -318,13 +400,25 @@ function registerCaptureIpc(configuration?: {
     return lifetime.observe(observation)
   })
 
+  addHandler('notifyOcrCandidatesDetected', (event, ...args) => {
+    requireSearchSender(event)
+    const observation = parseOcrSearchObservation(args)
+    if (observation === null) {
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+    }
+
+    return lifetime.observeOcr(observation)
+  })
+
   return () => {
     manual.dispose()
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('notifyStableNicknameDetected')
+    ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
+    ipcMain.removeHandler('openCharacterDetails')
   }
 }
 

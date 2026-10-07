@@ -1,10 +1,12 @@
 import { afterEach, expect, it, vi, type Mock } from 'vitest'
 import type {
+  OcrSearchObservation,
   SearchApi,
   SearchCommandResult,
   SearchSnapshot,
   SearchObservation
 } from '../../../preload/common/types/search'
+import type { CharacterPortrait } from '../../../preload/common/types/character'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -19,10 +21,11 @@ const searches: CaptureSearch[] = []
 afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 
 /** 실제 SearchConnection을 통과시키면서 main 응답·event 순서만 제어한다. */
-async function fixture(): Promise<{
+async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {}): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>
   notify: Mock<(observation: SearchObservation) => Promise<SearchCommandResult>>
+  notifyOcr: Mock<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>
   changed: Mock<(view: SearchView) => void>
   invalidated: Mock
   emit: (snapshot: SearchSnapshot) => void
@@ -34,6 +37,9 @@ async function fixture(): Promise<{
     snapshot: current
   }))
   const notify = vi.fn<(observation: SearchObservation) => Promise<SearchCommandResult>>(
+    async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current })
+  )
+  const notifyOcr = vi.fn<(observation: OcrSearchObservation) => Promise<SearchCommandResult>>(
     async (): Promise<SearchCommandResult> => ({ ok: true, snapshot: current })
   )
   const changed = vi.fn<(view: SearchView) => void>()
@@ -48,6 +54,7 @@ async function fixture(): Promise<{
       }
     },
     notify,
+    notifyOcr: ocrSupported ? notifyOcr : undefined,
     onChange: changed,
     onInvalidated: invalidated
   })
@@ -59,6 +66,7 @@ async function fixture(): Promise<{
     search,
     control,
     notify,
+    notifyOcr,
     changed,
     invalidated,
     emit: (snapshot) => {
@@ -67,6 +75,158 @@ async function fixture(): Promise<{
     }
   }
 }
+
+it('OCR 후보 순서와 얼굴을 현재 capture ID, 관측 revision과 함께 전용 통지로 전달한다', async () => {
+  const f = await fixture()
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  await f.search.begin({ signal: new AbortController().signal })
+  const portrait: CharacterPortrait = {
+    image: {
+      width: 2,
+      height: 1,
+      rgba: new Uint8Array([12, 34, 56, 255, 78, 90, 12, 255])
+    },
+    rasterScale: 2,
+    validMask: new Uint8Array([1, 0])
+  }
+
+  f.search.observe({
+    slot: 2,
+    nickname: '가나',
+    candidateNicknames: ['가나', '가너'],
+    portrait
+  })
+  f.search.observe({
+    slot: 2,
+    nickname: '다라',
+    candidateNicknames: ['다라', '다러'],
+    portrait: null
+  })
+
+  expect(f.notifyOcr.mock.calls).toEqual([
+    [
+      {
+        captureId: CAPTURE_ID,
+        slot: 2,
+        observationRevision: 1,
+        nickname: '가나',
+        candidateNicknames: ['가나', '가너'],
+        portrait
+      }
+    ],
+    [
+      {
+        captureId: CAPTURE_ID,
+        slot: 2,
+        observationRevision: 2,
+        nickname: '다라',
+        candidateNicknames: ['다라', '다러'],
+        portrait: null
+      }
+    ]
+  ])
+  expect(f.notify).not.toHaveBeenCalled()
+})
+
+it('얼굴 크롭이 없는 OCR 관측의 waiting-portrait 상태를 표시한다', async () => {
+  const f = await fixture()
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  await f.search.begin({ signal: new AbortController().signal })
+  const waiting = searchSlot({ state: 'waiting-portrait' })
+  f.notifyOcr.mockResolvedValueOnce({
+    ok: true,
+    snapshot: searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] })
+  })
+
+  f.search.observe({
+    slot: 0,
+    nickname: '가나',
+    candidateNicknames: ['가나', '가너'],
+    portrait: null
+  })
+
+  await vi.waitFor(() => expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting))
+  expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(false)
+  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
+  expect(f.notify).not.toHaveBeenCalled()
+})
+
+it.each(['이름 변경', 'clear', 'end'] as const)(
+  '%s 뒤 도착한 이전 OCR 결과는 슬롯에 다시 표시하지 않는다',
+  async (action) => {
+    const f = await fixture()
+    f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+    await f.search.begin({ signal: new AbortController().signal })
+    const response = Promise.withResolvers<SearchCommandResult>()
+    f.notifyOcr.mockReturnValueOnce(response.promise)
+    f.search.observe({
+      slot: 0,
+      nickname: '가나',
+      candidateNicknames: ['가나', '가너'],
+      portrait: null
+    })
+    const waiting = searchSlot({ state: 'waiting-portrait' })
+    f.emit(searchSnapshot({ revision: 3, slots: [waiting, ...searchSnapshot().slots.slice(1)] }))
+    expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(waiting)
+
+    if (action === '이름 변경') {
+      f.search.observe({
+        slot: 0,
+        nickname: '다라',
+        candidateNicknames: ['다라', '다러'],
+        portrait: null
+      })
+    } else if (action === 'clear') {
+      f.search.observe({ slot: 0, nickname: null })
+    } else {
+      f.search.end()
+    }
+
+    expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
+    const published = f.changed.mock.calls.length
+    const staleSuccess = searchSlot({ state: 'success', rows: [searchRow] })
+    response.resolve({
+      ok: true,
+      snapshot: searchSnapshot({
+        revision: 4,
+        slots: [staleSuccess, ...searchSnapshot().slots.slice(1)]
+      })
+    })
+
+    await vi.waitFor(() => expect(f.changed.mock.calls.length).toBeGreaterThan(published))
+    expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
+    expect(f.notify).not.toHaveBeenCalled()
+    if (action === 'end') {
+      expect(f.changed.mock.lastCall?.[0].captureActive).toBe(false)
+    }
+  }
+)
+
+it('OCR 전용 통지를 지원하지 않으면 기존 결과를 숨기고 연결 실패를 표시한다', async () => {
+  const f = await fixture({ ocrSupported: false })
+  f.control.mockResolvedValueOnce({ ok: true, snapshot: searchSnapshot({ revision: 2 }) })
+  await f.search.begin({ signal: new AbortController().signal })
+  f.search.observe({ slot: 0, nickname: '가나' })
+  const previous = searchSlot({ state: 'success', rows: [searchRow] })
+  f.emit(searchSnapshot({ revision: 3, slots: [previous, ...searchSnapshot().slots.slice(1)] }))
+  expect(f.changed.mock.lastCall?.[0].slots[0]).toEqual(previous)
+  f.notify.mockClear()
+
+  expect(() =>
+    f.search.observe({
+      slot: 0,
+      nickname: '다라',
+      candidateNicknames: ['다라', '다러'],
+      portrait: null
+    })
+  ).not.toThrow()
+
+  expect(f.changed.mock.lastCall?.[0].slots[0].state).toBe('idle')
+  expect(f.changed.mock.lastCall?.[0].connectionFailed).toBe(true)
+  expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
+  expect(f.notify).not.toHaveBeenCalled()
+  expect(f.notifyOcr).not.toHaveBeenCalled()
+})
 
 it('연속 begin의 이전 응답은 자신의 ID만 end하고 새 관측 revision을 초기화하지 않는다', async () => {
   const f = await fixture()

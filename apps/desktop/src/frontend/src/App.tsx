@@ -12,11 +12,12 @@ import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
 import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { styles } from './App.style'
 import brandIcon from '../../../resources/brand.png'
+import { canRetryCharacterSlot, characterSlotNotice, toCharacterCard } from './lib/character-card'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
   const developerMode = useDeveloperMode()
-  const capture = usePartyCapture()
+  const capture = usePartyCapture({ identifyCharacters: true })
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
   let captureNotice = ''
   if (capture.search.connectionFailed) {
@@ -41,7 +42,16 @@ function App(): React.JSX.Element {
     <main {...stylex.props(styles.app, light && lightTheme)}>
       <div hidden={showDeveloperWorkbench}>
         <PartyPage
-          slots={['idle', 'idle', 'idle', 'idle']}
+          slots={capture.search.slots.map((slot) => slot.state)}
+          characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
+          basicOnly
+          slotNotices={capture.search.slots.map(characterSlotNotice)}
+          retryEnabled={capture.search.slots.map((slot) =>
+            canRetryCharacterSlot(slot, capture.search.retryPending[slot.slot])
+          )}
+          retryPending={capture.search.retryPending}
+          onRetry={capture.retrySearch}
+          onSlotDetail={capture.search.openDetails}
           nicknames={capture.stableNicknames}
           capture={
             <CaptureControls
@@ -79,7 +89,7 @@ function App(): React.JSX.Element {
             <img src={brandIcon} width={28} height={28} alt="" />
             <Typo.caption>DFRAGON Desktop</Typo.caption>
           </div>
-          <Typo.caption role="status">{footerStatus}</Typo.caption>
+          <Typo.caption role="status">{capture.search.detailNotice || footerStatus}</Typo.caption>
         </footer>
       )}
     </main>

@@ -3,7 +3,11 @@ import type { SearchClock } from './types.js'
 import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 
 const windowMs = 60_000
-const capacity = 10
+const DEFAULT_SEARCH_CAPACITY = 10
+
+export interface SearchAdmissionOptions {
+  capacity?: number
+}
 
 export const searchClock: SearchClock = {
   now: () => performance.now(),
@@ -34,7 +38,17 @@ export class SearchAdmission {
   private readonly entries = new Map<string, PeerEntry>()
   private closed = false
 
-  constructor(private readonly clock: SearchClock = searchClock) {}
+  private readonly capacity: number
+
+  constructor(
+    private readonly clock: SearchClock = searchClock,
+    options: SearchAdmissionOptions = {}
+  ) {
+    this.capacity = options.capacity ?? DEFAULT_SEARCH_CAPACITY
+    if (!Number.isSafeInteger(this.capacity) || this.capacity < 1) {
+      throw new TypeError('Search admission capacity must be a positive safe integer')
+    }
+  }
 
   get entryCount(): number {
     return this.entries.size
@@ -124,7 +138,7 @@ export class SearchAdmission {
 
   private assertCapacity(entry: PeerEntry, now: number): void {
     this.prune(entry, now)
-    const isFull = entry.reservations.length >= capacity
+    const isFull = entry.reservations.length >= this.capacity
     if (!isFull) {
       return
     }

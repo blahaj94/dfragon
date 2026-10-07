@@ -9,6 +9,8 @@ import {
   type RequestIdentity,
   type RateWait
 } from './slot-lifetime-machine'
+import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
+import type { CharacterDetails } from '../../preload/common/types/character'
 import { remainingRetryAfter, type RetryAfter } from './retry-after'
 import { SEARCH_ERRORS } from '../../preload/common/types/search'
 import type {
@@ -16,6 +18,8 @@ import type {
   SearchCommandResult,
   SearchControl,
   SearchObservation,
+  OcrSearchObservation,
+  OcrSearchInput,
   SearchSlot,
   SearchSnapshot
 } from '../../preload/common/types/search'
@@ -90,6 +94,8 @@ export type CaptureSearchLifetime = {
   end: (captureId: string) => SearchCommandResult
   invalidate: () => void
   observe: (input: SearchObservation) => SearchCommandResult
+  observeOcr: (input: OcrSearchObservation) => SearchCommandResult
+  selection: (input: RequestIdentity) => CharacterDetails | null
   clear: (
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
   ) => SearchCommandResult
@@ -103,6 +109,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   let revision = 0
   let binding: CaptureBinding | null = null
   let slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
+  const ocrInputs: Array<OcrSearchInput | null> = [null, null, null, null]
+  const selectedDetails: Array<CharacterDetails | null> = [null, null, null, null]
   const actors = [0, 1, 2, 3].map(() =>
     createActor(slotLifetimeMachine, {
       input: { canComplete, complete, ready: finishRateWait }
@@ -118,6 +126,9 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       const copiedSlot = { ...slot }
       const rows = slot.rows.map((row) => ({ ...row }))
       copiedSlot.rows = rows
+      if (slot.selected !== undefined) {
+        copiedSlot.selected = { ...slot.selected }
+      }
       let copiedError: SearchSlot['error'] = null
       if (hasError) {
         copiedError = { ...error }
@@ -180,17 +191,9 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!isNewerObservation) {
       return result()
     }
-    const hasSameNickname = input.nickname === previous.nickname
+    const hasSameNickname = ocrInputs[input.slot] === null && input.nickname === previous.nickname
     if (hasSameNickname) {
-      slots[input.slot] = { ...previous, observationRevision: input.observationRevision }
-      const actor = actors[input.slot]
-      const pending = actor.getSnapshot().context.request
-      if (pending != null) {
-        actor.send({ type: 'PROMOTE', observationRevision: input.observationRevision })
-      }
-      emit()
-
-      return result()
+      return promoteObservation(input)
     }
 
     const runtime = options.runtime
@@ -214,6 +217,65 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     }
 
     return startRequest({ input, runtime })
+  }
+
+  function promoteObservation(input: SearchObservation): SearchCommandResult {
+    slots[input.slot] = { ...slots[input.slot], observationRevision: input.observationRevision }
+    actors[input.slot].send({ type: 'PROMOTE', observationRevision: input.observationRevision })
+    emit()
+
+    return result()
+  }
+
+  function observeOcr(input: OcrSearchObservation): SearchCommandResult {
+    if (binding?.captureId !== input.captureId || !options.isCurrent(binding)) {
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+    }
+    const previous = slots[input.slot]
+    if (input.observationRevision <= previous.observationRevision) {
+      return result()
+    }
+    const previousInput = ocrInputs[input.slot]
+    if (previousInput !== null && sameOcrSearchInput(previousInput, input)) {
+      return promoteObservation(input)
+    }
+
+    return startOcrRequest(input)
+  }
+
+  function startOcrRequest(input: OcrSearchObservation): SearchCommandResult {
+    const runtime = options.runtime
+    if (input.portrait !== null && runtime?.identification !== undefined) {
+      return startRequest({ input, runtime })
+    }
+    cancelSlot(input.slot)
+    ocrInputs[input.slot] = cloneOcrInput(input)
+    const state = input.portrait === null ? 'waiting-portrait' : 'waiting-policy'
+    slots[input.slot] = {
+      slot: input.slot,
+      observationRevision: input.observationRevision,
+      requestId: randomUUID(),
+      nickname: input.nickname,
+      state,
+      rows: [],
+      error: null
+    }
+    emit()
+
+    return result()
+  }
+
+  function selection(input: RequestIdentity): CharacterDetails | null {
+    if (
+      !Number.isSafeInteger(input.slot) ||
+      input.slot < 0 ||
+      input.slot >= slots.length ||
+      !isCurrentSlot(input)
+    ) {
+      return null
+    }
+
+    return selectedDetails[input.slot]
   }
 
   function clear(
@@ -275,6 +337,17 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return result(SEARCH_COMMAND_ERRORS.SEARCH_NOT_ALLOWED)
     }
 
+    const ocrInput = ocrInputs[input.slot]
+    if (ocrInput !== null) {
+      return startOcrRequest({
+        captureId: input.captureId,
+        slot: input.slot,
+        observationRevision: slot.observationRevision,
+        nickname,
+        ...ocrInput
+      })
+    }
+
     return startRequest({
       input: {
         captureId: input.captureId,
@@ -290,10 +363,11 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     input,
     runtime
   }: {
-    input: SearchObservation
+    input: SearchObservation | OcrSearchObservation
     runtime: SearchRuntime
   }): SearchCommandResult {
     const startedAt = runtime.clock.read().monotonicMs
+    const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     cancelSlot(input.slot)
     const currentBinding = binding
     const hasBinding = currentBinding != null
@@ -309,7 +383,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const requestId = randomUUID()
-    const isValidInput = validNickname(input.nickname)
+    const isValidInput = ocrInput !== null || validNickname(input.nickname)
+    ocrInputs[input.slot] = ocrInput
     slots[input.slot] = {
       slot: input.slot,
       observationRevision: input.observationRevision,
@@ -319,11 +394,15 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       rows: [],
       error: isValidInput ? null : { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null }
     }
-    const request = {
-      ...input,
+    const request: SearchRequest = {
+      captureId: input.captureId,
+      slot: input.slot,
+      nickname: input.nickname,
+      observationRevision: input.observationRevision,
       requestId,
       startedAt,
-      runtime
+      runtime,
+      ocrInput: ocrInput ?? undefined
     }
     if (isValidInput) {
       actors[input.slot].send({ type: 'PREPARE', request })
@@ -338,6 +417,8 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
 
   function cancelSlot(slot: number): void {
     actors[slot].send({ type: 'CANCEL' })
+    ocrInputs[slot] = null
+    selectedDetails[slot] = null
   }
 
   function isCurrentSlot(request: RequestIdentity): boolean {
@@ -376,17 +457,24 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return
     }
     const isSuccess = result.kind === 'success'
+    const completedSlot = { ...slots[request.slot] }
+    delete completedSlot.selected
+    selectedDetails[request.slot] = null
     if (isSuccess) {
       const hasRows = result.rows.length > 0
       slots[request.slot] = {
-        ...slots[request.slot],
+        ...completedSlot,
         state: hasRows ? 'success' : 'empty',
         rows: result.rows,
         error: null
       }
+      if (result.selected !== undefined) {
+        slots[request.slot] = { ...slots[request.slot], selected: result.selected.summary }
+        selectedDetails[request.slot] = result.selected.details
+      }
     } else {
       slots[request.slot] = {
-        ...slots[request.slot],
+        ...completedSlot,
         state: 'failure',
         rows: [],
         error: result.error
@@ -457,7 +545,26 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     end,
     invalidate,
     observe,
+    observeOcr,
+    selection,
     clear,
     retry
   }
+}
+
+/** IPC 픽셀 참조를 복사해 수동 재시도까지 동일한 관측을 보관한다. */
+function cloneOcrInput(input: OcrSearchInput): OcrSearchInput {
+  const candidateNicknames = [...input.candidateNicknames]
+  if (input.portrait === null) {
+    return { candidateNicknames, portrait: null }
+  }
+  const { image, rasterScale, validMask } = input.portrait
+  const rgba = new Uint8Array(image.rgba)
+  const portrait = { image: { width: image.width, height: image.height, rgba }, rasterScale }
+  if (validMask === undefined) {
+    return { candidateNicknames, portrait }
+  }
+  const copiedMask = new Uint8Array(validMask)
+
+  return { candidateNicknames, portrait: { ...portrait, validMask: copiedMask } }
 }

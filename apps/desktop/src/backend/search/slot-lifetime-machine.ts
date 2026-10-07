@@ -1,6 +1,7 @@
 import { assign, fromCallback, setup } from 'xstate'
 import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
 import { waitForRetryAfter, type RetryAfter } from './retry-after'
+import type { OcrSearchInput } from '../../preload/common/types/search'
 
 export type SearchRequest = {
   captureId: string
@@ -10,6 +11,7 @@ export type SearchRequest = {
   nickname: string
   startedAt: number
   runtime: SearchRuntime
+  ocrInput?: OcrSearchInput
 }
 export type RequestIdentity = Pick<SearchRequest, 'slot' | 'captureId' | 'requestId'>
 export type RateWait = RequestIdentity & RetryAfter
@@ -48,7 +50,8 @@ export const slotLifetimeMachine = setup({
             nickname: request.nickname,
             startedAt: request.startedAt,
             signal: controller.signal,
-            isCurrent: () => input.canComplete(request)
+            isCurrent: () => input.canComplete(request),
+            ocrInput: request.ocrInput
           })
         } catch {
           outcome = {

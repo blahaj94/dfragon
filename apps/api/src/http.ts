@@ -16,7 +16,17 @@ import type { CharacterDetailDependencies } from './characters/details/service.j
 import { characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
+import {
+  CHARACTER_APPEARANCE_SERVICE,
+  CharacterAppearanceController
+} from './characters/appearance/http.js'
+import {
+  createCharacterAppearanceService,
+  type CharacterAppearanceDependencies
+} from './characters/appearance/service.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
+
+const TRAILING_SLASHES_PATTERN = /\/+$/
 
 @Catch()
 class ApiHttpFilter implements ExceptionFilter {
@@ -35,7 +45,7 @@ class ApiHttpFilter implements ExceptionFilter {
 
       return
     }
-    const path = request.path.toLowerCase().replace(/\/+$/, '')
+    const path = request.path.toLowerCase().replace(TRAILING_SLASHES_PATTERN, '')
     let failure: NeopleSearchFailure | ReturnType<typeof characterDetailFailure>
     if (path === '/characters' || path === '/characters/candidates') {
       failure = error instanceof NeopleSearchFailure ? error : neopleSearchFailure('internal')
@@ -64,7 +74,8 @@ export async function createApiHttpApp(
   details?: CharacterDetailDependencies,
   adventures?: AdventureSearchStore,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
-  buildInfoPath = '/app/build-info.json'
+  buildInfoPath = '/app/build-info.json',
+  appearance?: CharacterAppearanceDependencies
 ): Promise<INestApplication> {
   const buildInfo = await readApiBuildInfo(buildInfoPath)
   @Module({
@@ -72,12 +83,21 @@ export async function createApiHttpApp(
       HealthController,
       ApiVersionController,
       CharacterSearchController,
+      ...(appearance ? [CharacterAppearanceController] : []),
       ...(details ? [CharacterDetailController] : []),
       ...(adventures ? [AdventureSearchController] : [])
     ],
     providers: [
       { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
+      ...(appearance
+        ? [
+            {
+              provide: CHARACTER_APPEARANCE_SERVICE,
+              useValue: createCharacterAppearanceService(appearance)
+            }
+          ]
+        : []),
       ...(details
         ? [{ provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }]
         : []),

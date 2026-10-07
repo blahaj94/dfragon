@@ -1,9 +1,15 @@
 import { SEARCH_ACTIONS } from '../../preload/common/types/search'
 import { z } from 'zod'
-import type { SearchControl, SearchObservation } from '../../preload/common/types/search'
+import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
+import type {
+  OcrSearchObservation,
+  SearchControl,
+  SearchObservation
+} from '../../preload/common/types/search'
 
 const text = z.string()
-const uuid = text.regex(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
+const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+const uuid = text.regex(SEARCH_ID_PATTERN)
 const safeInteger = z.int()
 const observationRevision = safeInteger.positive()
 const slot = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
@@ -30,6 +36,67 @@ const observationSchema = z.strictObject({
   observationRevision,
   nickname: text
 })
+const selectionSchema = z.strictObject({ captureId: uuid, slot, requestId: uuid })
+
+export function parseCharacterSelection(args: unknown[]): CharacterSelectionReference | null {
+  return parseCommand({ args, schema: selectionSchema })
+}
+
+const MAX_OCR_NAMES = 2
+const MAX_OCR_NAME_CODE_POINTS = 12
+const MAX_PORTRAIT_DIMENSION = 512
+const MAX_PORTRAIT_PIXELS = 262_144
+const MAX_NORMALIZED_PORTRAIT_DIMENSION = 256
+const RGBA_CHANNELS = 4
+const ocrNickname = z.string().refine((value) => {
+  const length = [...value].length
+
+  return (
+    length >= 1 &&
+    length <= MAX_OCR_NAME_CODE_POINTS &&
+    value === value.trim() &&
+    value.isWellFormed()
+  )
+})
+const portraitImage = z
+  .strictObject({
+    width: z.int().positive().max(MAX_PORTRAIT_DIMENSION),
+    height: z.int().positive().max(MAX_PORTRAIT_DIMENSION),
+    rgba: z.instanceof(Uint8Array)
+  })
+  .refine((image) => {
+    const pixels = image.width * image.height
+
+    return pixels <= MAX_PORTRAIT_PIXELS && image.rgba.length === pixels * RGBA_CHANNELS
+  })
+const portraitSchema = z
+  .strictObject({
+    image: portraitImage,
+    rasterScale: z.number().positive(),
+    validMask: z.instanceof(Uint8Array).optional()
+  })
+  .refine((portrait) => {
+    const width = Math.round(portrait.image.width / portrait.rasterScale)
+    const height = Math.round(portrait.image.height / portrait.rasterScale)
+    const mask = portrait.validMask
+
+    return (
+      width >= 1 &&
+      height >= 1 &&
+      width <= MAX_NORMALIZED_PORTRAIT_DIMENSION &&
+      height <= MAX_NORMALIZED_PORTRAIT_DIMENSION &&
+      (mask === undefined ||
+        (mask.length === portrait.image.width * portrait.image.height &&
+          mask.every((value) => value === 0 || value === 1)))
+    )
+  })
+const ocrObservationSchema = observationSchema
+  .extend({
+    nickname: ocrNickname,
+    candidateNicknames: z.array(ocrNickname).min(1).max(MAX_OCR_NAMES),
+    portrait: portraitSchema.nullable()
+  })
+  .refine((input) => input.nickname === input.candidateNicknames[0])
 
 function parseCommand<T extends object>({
   args,
@@ -76,4 +143,33 @@ export function parseSearchControl(args: unknown[]): SearchControl | null {
 
 export function parseSearchObservation(args: unknown[]): SearchObservation | null {
   return parseCommand({ args, schema: observationSchema })
+}
+
+export function parseOcrSearchObservation(args: unknown[]): OcrSearchObservation | null {
+  const parsed = parseCommand({ args, schema: ocrObservationSchema })
+  if (parsed === null || !hasExactOcrShape(args[0], parsed)) {
+    return null
+  }
+
+  return parsed
+}
+
+function hasExactOcrShape(input: unknown, parsed: unknown): boolean {
+  if (parsed === null || typeof parsed !== 'object' || parsed instanceof Uint8Array) {
+    return true
+  }
+
+  if (input === null || typeof input !== 'object') {
+    return false
+  }
+  const keys = Reflect.ownKeys(parsed)
+
+  return (
+    Reflect.ownKeys(input).length === keys.length &&
+    keys.every(
+      (key) =>
+        Object.hasOwn(input, key) &&
+        hasExactOcrShape(Reflect.get(input, key), Reflect.get(parsed, key))
+    )
+  )
 }

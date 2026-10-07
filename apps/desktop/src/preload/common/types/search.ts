@@ -1,3 +1,5 @@
+import type { CharacterPortrait, CharacterSummary } from './character'
+
 export const SEARCH_ACTIONS = {
   READ: 'read',
   BEGIN: 'begin',
@@ -29,6 +31,12 @@ export type SearchObservation = Readonly<{
   observationRevision: number
   nickname: string
 }>
+
+export type OcrSearchInput = Readonly<{
+  candidateNicknames: readonly string[]
+  portrait: CharacterPortrait | null
+}>
+export type OcrSearchObservation = SearchObservation & OcrSearchInput
 
 export type CharacterSearchRow = Readonly<{
   characterId: string
@@ -64,6 +72,10 @@ export const SEARCH_ERRORS = {
   SEARCH_RESPONSE_INVALID: {
     message: '검색 응답을 확인하지 못했습니다. 다시 시도해 주세요.',
     retryable: true
+  },
+  SEARCH_APPEARANCE_UNAVAILABLE: {
+    message: '캐릭터 외형을 확인하지 못해 자동 식별을 보류했습니다.',
+    retryable: true
   }
 } as const satisfies Record<string, SearchErrorDefinition>
 
@@ -75,9 +87,11 @@ export type SearchSlot = Readonly<{
   observationRevision: number
   requestId: string | null
   nickname: string | null
-  state: 'idle' | 'pending' | 'success' | 'empty' | 'failure'
+  state:
+    'idle' | 'pending' | 'success' | 'empty' | 'failure' | 'waiting-portrait' | 'waiting-policy'
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
+  selected?: CharacterSummary
 }>
 
 export type SearchSnapshot = Readonly<{

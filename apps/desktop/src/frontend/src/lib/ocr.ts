@@ -1,7 +1,76 @@
-import type { PartyOcrWorker } from '../types/capture'
+import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
 import { REQUEST_TIMEOUT_MS } from '../constants/capture'
 
-type Reply = { ready: true } | { text: string; confidence: number }
+type Reply = { ready: true } | PartyOcrResult
+
+const MAX_OCR_CANDIDATES = 2
+const MAX_MODEL_SCORE = 100
+
+/** 초기화 성공을 인식 결과나 실패와 섞인 메시지로 받아들이지 않는다. */
+function isReadyReply(value: unknown): value is { ready: true } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    !Array.isArray(value) &&
+    'ready' in value &&
+    value.ready === true &&
+    !('failed' in value) &&
+    !('text' in value) &&
+    !('confidence' in value) &&
+    !('candidates' in value)
+  )
+}
+
+/** worker 경계에서 후보의 순서와 1위 호환 필드를 검증하며 원문은 그대로 유지한다. */
+function isRecognitionReply(value: unknown): value is PartyOcrResult {
+  if (
+    value == null ||
+    typeof value !== 'object' ||
+    Array.isArray(value) ||
+    'ready' in value ||
+    'failed' in value ||
+    !('text' in value) ||
+    typeof value.text !== 'string' ||
+    !('confidence' in value) ||
+    typeof value.confidence !== 'number' ||
+    !Number.isFinite(value.confidence) ||
+    !('candidates' in value) ||
+    !Array.isArray(value.candidates) ||
+    value.candidates.length > MAX_OCR_CANDIDATES
+  ) {
+    return false
+  }
+  let previousScore = MAX_MODEL_SCORE
+  let firstNickname = ''
+  let firstScore = 0
+  for (let index = 0; index < value.candidates.length; index += 1) {
+    const candidate: unknown = value.candidates[index]
+    if (
+      candidate == null ||
+      typeof candidate !== 'object' ||
+      Array.isArray(candidate) ||
+      !('rank' in candidate) ||
+      candidate.rank !== index + 1 ||
+      !('nickname' in candidate) ||
+      typeof candidate.nickname !== 'string' ||
+      !('modelScore' in candidate) ||
+      typeof candidate.modelScore !== 'number' ||
+      !Number.isFinite(candidate.modelScore) ||
+      candidate.modelScore < 0 ||
+      candidate.modelScore > previousScore
+    ) {
+      return false
+    }
+
+    if (index === 0) {
+      firstNickname = candidate.nickname
+      firstScore = candidate.modelScore
+    }
+    previousScore = candidate.modelScore
+  }
+
+  return value.text === firstNickname && value.confidence === firstScore
+}
 
 export class OcrWorkerUnavailableError extends Error {
   constructor(message: string) {
@@ -52,16 +121,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
       return
     }
     const value = event.data
-    const object = value != null && typeof value === 'object'
-    const ready = object && 'ready' in value && value.ready === true
-    const recognized =
-      object &&
-      'text' in value &&
-      typeof value.text === 'string' &&
-      'confidence' in value &&
-      typeof value.confidence === 'number' &&
-      Number.isFinite(value.confidence)
-    if (!ready && !recognized) {
+    if (!isReadyReply(value) && !isRecognitionReply(value)) {
       terminate(new OcrWorkerUnavailableError('PaddleOCR could not complete recognition.'))
 
       return
@@ -69,7 +129,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
     const current = pending
     pending = null
     clearTimeout(current.timer)
-    current.resolve(value as Reply)
+    current.resolve(value)
   }
   function request(input: { root: string } | { pixels: ImageData }): Promise<Reply> {
     if (stopped) {

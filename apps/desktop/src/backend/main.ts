@@ -28,6 +28,11 @@ import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
 import { registerDeveloperWindow } from './developer/ipc-handler'
 import { registerVersionsWindow } from './versions/ipc-handler'
 import { readDesktopBuildInfo } from './versions/desktop-info'
+import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
+import {
+  registerCharacterDetailWindows,
+  openSelectedCharacterDetail
+} from './character-detail/windows'
 
 const parsedRuntimeConfig = readAppAuthConfig(app)
 type RuntimeProfileState =
@@ -101,12 +106,19 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   let nextDisposeAuthIpc: (() => void) | undefined
   let disposeDeveloper: (() => void) | undefined
   let disposeVersions: (() => void) | undefined
+  let disposeCharacterDetails: (() => void) | undefined
   try {
     registerCapturePermissions(
       session.defaultSession,
       process.platform === 'win32' ? consumeCaptureMediaPermission : undefined
     )
     registerCaptureWindow(window, rendererDocumentUrl)
+    disposeCharacterDetails = registerCharacterDetailWindows({
+      owner: window,
+      entry: join(__dirname, '../frontend/character-detail.html'),
+      preload: join(__dirname, '../preload/character-detail.js'),
+      devUrl: shouldLoadDevUrl ? rendererDocumentUrl : undefined
+    }).dispose
     disposeDeveloper = registerDeveloperWindow(
       window,
       rendererDocumentUrl,
@@ -148,6 +160,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
     observeLoad(load)
   } catch (error) {
+    disposeCharacterDetails?.()
     disposeVersions?.()
     disposeDeveloper?.()
     try {
@@ -224,8 +237,12 @@ app.whenReady().then(async () => {
       const searchConfiguration =
         apiOrigin == null
           ? undefined
-          : { apiOrigin, clock: createAuthRuntimeEffects().createSearchClock() }
-      registerCaptureIpc(searchConfiguration)
+          : {
+              apiOrigin,
+              clock: createAuthRuntimeEffects().createSearchClock(),
+              portraitEdgeMatchPolicy: INITIAL_PORTRAIT_EDGE_POLICY
+            }
+      registerCaptureIpc(searchConfiguration, { openSelected: openSelectedCharacterDetail })
 
       createWindow(authRuntime)
 

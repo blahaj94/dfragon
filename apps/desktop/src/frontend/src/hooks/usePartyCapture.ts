@@ -28,12 +28,15 @@ type PartyCapture = {
   stopCapture: (nextStatus?: string) => void
 }
 
-export function usePartyCapture(): PartyCapture {
+export function usePartyCapture({
+  identifyCharacters = false
+}: { identifyCharacters?: boolean } = {}): PartyCapture {
   const intervalSecondsRef = useRef(3)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
-  const recognition = usePartyRecognition(search.observe)
+  const observeOcr = identifyCharacters ? search.observeOcr : undefined
+  const recognition = usePartyRecognition(search.observe, observeOcr)
 
   // actor 자체가 멈추기 전에 대기 중인 공개 명령의 완료도 알린다.
   useEffect(() => () => stopRef.current(), [])

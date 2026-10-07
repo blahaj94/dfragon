@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld('auth', auth)
 contextBridge.exposeInMainWorld('api', {
   listCaptureSources: async () => [],
   selectCaptureSource: async () => null,
+  notifyOcrCandidatesDetected: async () => {
+    throw new Error('Capture is disabled in this fixture')
+  },
   notifyStableNicknameDetected: async () => {
     throw new Error('Capture is disabled in this fixture')
   }

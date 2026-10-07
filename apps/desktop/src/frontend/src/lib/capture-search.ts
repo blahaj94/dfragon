@@ -6,26 +6,35 @@ import {
   SEARCH_ERRORS,
   type SearchApi,
   type SearchObservation,
+  type OcrSearchInput,
+  type OcrSearchObservation,
   type SearchCommandResult,
   type SearchSlot,
   type SearchSnapshot
 } from '../../../preload/common/types/search'
 import { createSearchConnection } from './search-connection'
 import { captureSearchMachine } from './capture-search-machine'
+import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
 
 type SearchOptions = {
   api: SearchApi
   notify: (observation: SearchObservation) => Promise<SearchCommandResult>
+  notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
 }
+
+export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
+export type CaptureObservation =
+  Readonly<{ slot: number; nickname: string | null }> | OcrCaptureObservation
 
 export type CaptureSearch = {
   connect: () => void
   begin: (input: { signal: AbortSignal }) => Promise<string | null>
   end: () => void
-  observe: (input: { slot: number; nickname: string | null }) => void
+  observe: (input: CaptureObservation) => void
   retry: (slotIndex: number) => Promise<void>
+  selectedReference: (slotIndex: number) => CharacterSelectionReference | null
   dispose: () => void
 }
 
@@ -88,7 +97,8 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   }
 
   // 로컬 관측을 먼저 표시한 뒤 clear 또는 검색 통지를 보낸다.
-  function observe({ slot, nickname }: { slot: number; nickname: string | null }): void {
+  function observe(input: CaptureObservation): void {
+    const { slot, nickname } = input
     const captureId = lifetime.getSnapshot().context.captureId
     if (captureId == null) {
       return
@@ -106,6 +116,15 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         slot,
         observationRevision
       })
+    } else if ('candidateNicknames' in input) {
+      const notifyOcr = options.notifyOcr
+      if (notifyOcr == null) {
+        failed = true
+        publish()
+
+        return
+      }
+      void connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
     } else {
       void connection.invoke(() =>
         options.notify({ captureId, slot, observationRevision, nickname })
@@ -168,6 +187,20 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     connection.dispose()
   }
 
+  // 현재 화면에 공개된 선택 결과만 창 열기 참조로 전달한다.
+  function selectedReference(slotIndex: number): CharacterSelectionReference | null {
+    const captureId = lifetime.getSnapshot().context.captureId
+    if (captureId === null || !Number.isSafeInteger(slotIndex) || slotIndex < 0 || slotIndex > 3) {
+      return null
+    }
+    const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, cleared })[slotIndex]
+    if (slot.state !== 'success' || slot.selected === undefined || slot.requestId === null) {
+      return null
+    }
+
+    return { captureId, slot: slotIndex, requestId: slot.requestId }
+  }
+
   // main snapshot을 반영하고 종료된 캡처의 로컬 수명을 무효화한다.
   function accept(next: SearchSnapshot | null): void {
     snapshot = next
@@ -206,7 +239,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     })
   }
 
-  return { connect, begin, end, observe, retry, dispose }
+  return { connect, begin, end, observe, retry, selectedReference, dispose }
 }
 
 /** 현재 캡처와 로컬 관측 이후의 슬롯만 반환하며 입력 상태를 변경하지 않는다. */

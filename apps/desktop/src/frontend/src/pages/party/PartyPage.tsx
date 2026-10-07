@@ -10,26 +10,40 @@ import { SettingsSection } from '../../sections/SettingsSection'
 
 export function PartyPage({
   character,
+  characters,
   slots,
   resetKey = 'party',
   compareFaces = false,
   inputEnabled = false,
+  basicOnly = false,
   account,
   capture,
   settings = <SettingsSection />,
   nicknames,
-  onDetail
+  onDetail,
+  onSlotDetail,
+  slotNotices,
+  onRetry,
+  retryEnabled,
+  retryPending
 }: {
   character?: CardCharacter
+  characters?: readonly (CardCharacter | null)[]
   slots: SlotState[]
   resetKey?: string
   compareFaces?: boolean
   inputEnabled?: boolean
+  basicOnly?: boolean
   account?: ReactNode
   capture?: ReactNode
   settings?: ReactNode
   nicknames?: readonly (string | null)[]
   onDetail?: () => void
+  onSlotDetail?: (slot: number) => void
+  slotNotices?: readonly (string | undefined)[]
+  onRetry?: (slot: number) => void
+  retryEnabled?: readonly boolean[]
+  retryPending?: readonly boolean[]
 }): React.JSX.Element {
   const { light, toggleTheme } = useColorTheme()
 
@@ -61,18 +75,37 @@ export function PartyPage({
         </div>
       </header>
       <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
-        {slots.map((state, index) => (
-          <CharacterCard
-            key={`${resetKey}-${index}`}
-            slot={index + 1}
-            character={character}
-            state={state}
-            nickname={nicknames?.[index] ?? undefined}
-            inputEnabled={inputEnabled}
-            initialFace={compareFaces ? index : 0}
-            onDetail={onDetail}
-          />
-        ))}
+        {slots.map((state, index) => {
+          const selected = characters == null ? character : (characters[index] ?? undefined)
+          const identity =
+            selected == null ? '' : `${selected.serverId}:${selected.characterId ?? selected.name}`
+          const observedNickname = nicknames?.[index] ?? undefined
+          const displayedNickname =
+            state === 'success' && selected != null ? undefined : observedNickname
+          let detailAction = onDetail
+          if (onSlotDetail !== undefined) {
+            detailAction =
+              state === 'success' && selected != null ? () => onSlotDetail(index) : undefined
+          }
+
+          return (
+            <CharacterCard
+              key={`${resetKey}-${index}-${identity}`}
+              slot={index + 1}
+              character={selected}
+              state={state}
+              nickname={displayedNickname}
+              inputEnabled={inputEnabled}
+              basicOnly={basicOnly}
+              initialFace={compareFaces ? index : 0}
+              onDetail={detailAction}
+              notice={slotNotices?.[index]}
+              onRetry={onRetry == null ? undefined : () => onRetry(index)}
+              retryEnabled={retryEnabled?.[index]}
+              retryPending={retryPending?.[index]}
+            />
+          )
+        })}
       </section>
     </>
   )

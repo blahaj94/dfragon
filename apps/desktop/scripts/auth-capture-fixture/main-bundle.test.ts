@@ -44,6 +44,7 @@ function mainEnvironment(): {
   bootstrap: () => Promise<void> | undefined
   error: ReturnType<typeof vi.fn>
   getPath: ReturnType<typeof vi.fn>
+  fromPartition: ReturnType<typeof vi.fn>
   requireModule: (name: string) => unknown
 } {
   let bootstrap: Promise<void> | undefined
@@ -55,6 +56,12 @@ function mainEnvironment(): {
     setDisplayMediaRequestHandler: vi.fn(),
     webRequest: { onBeforeRequest: vi.fn() }
   }
+  const detailSession = {
+    setPermissionCheckHandler: vi.fn(),
+    setPermissionRequestHandler: vi.fn(),
+    setDisplayMediaRequestHandler: vi.fn()
+  }
+  const fromPartition = vi.fn(() => detailSession)
   const electron = {
     app: {
       getPath,
@@ -75,7 +82,10 @@ function mainEnvironment(): {
       static getAllWindows(): never[] {
         return []
       }
+      id = 1
       on = vi.fn()
+      once = vi.fn()
+      removeListener = vi.fn()
       show = vi.fn()
       destroy = vi.fn()
       isDestroyed = (): boolean => false
@@ -92,7 +102,7 @@ function mainEnvironment(): {
     },
     ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
     desktopCapturer: { getSources: vi.fn() },
-    session: { defaultSession: session },
+    session: { defaultSession: session, fromPartition },
     Menu: { buildFromTemplate: vi.fn(), setApplicationMenu: vi.fn() },
     systemPreferences: { getMediaAccessStatus: () => 'granted' }
   }
@@ -153,7 +163,7 @@ function mainEnvironment(): {
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
 
-  return { context, bootstrap: () => bootstrap, error, getPath, requireModule }
+  return { context, bootstrap: () => bootstrap, error, getPath, fromPartition, requireModule }
 }
 
 type EmittedMainChunk = {
@@ -278,6 +288,12 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
+  if (configFile === 'electron.vite.config.ts') {
+    expect(environment.fromPartition).toHaveBeenCalledExactlyOnceWith('character-detail-1')
+  } else {
+    expect(environment.fromPartition).not.toHaveBeenCalled()
+  }
+
   if (configFile === 'electron.vite.config.ts' && mode === 'dfragon-development') {
     expect(environment.getPath).toHaveBeenCalledTimes(2)
     expect(environment.getPath).toHaveBeenNthCalledWith(1, 'appData')

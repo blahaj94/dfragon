@@ -6,10 +6,35 @@ import {
 } from '@dfragon/lib'
 import { binarizeNicknamePixels } from './nickname-pixels'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
+import type { CharacterPortrait } from '../../../preload/common/types/character'
+import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
+
+export type PartyRecognitionInput = {
+  slot: number
+  nickname: HTMLCanvasElement
+  portrait: CharacterPortrait | null
+}
 
 /** 현재 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
 export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
-  const crops: (HTMLCanvasElement | null)[] = Array.from({ length: PARTY_SLOT_COUNT }, () => null)
+  return capturePartyRecognitionInputs(video).map((input) => {
+    if (input === null) {
+      return null
+    }
+
+    return input.nickname
+  })
+}
+
+/** 같은 영상 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
+export function capturePartyRecognitionInputs(
+  video: HTMLVideoElement,
+  portraitCropper: PartyPortraitCropper = cropPartyPortrait
+): (PartyRecognitionInput | null)[] {
+  const crops: (PartyRecognitionInput | null)[] = Array.from(
+    { length: PARTY_SLOT_COUNT },
+    () => null
+  )
   const width = video.videoWidth
   const height = video.videoHeight
   if (!isValidPartyFrameSize(width, height)) {
@@ -53,7 +78,13 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
       throw new Error('Could not create a party nickname canvas.')
     }
     nicknameContext.putImageData(nicknamePixels, 0, 0)
-    crops[region.slot - 1] = nickname
+    const slot = region.slot - 1
+    const portrait = portraitCropper({
+      frame: { width, height, rgba },
+      nicknameRegion: region,
+      rasterScale: geometry.scale
+    })
+    crops[slot] = { slot, nickname, portrait }
   }
 
   return crops

@@ -1,4 +1,4 @@
-import { Typo, typographyVariants } from '@dfragon/ui'
+import { ActionButton, Typo, typographyVariants } from '@dfragon/ui'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'
@@ -18,24 +18,35 @@ export function CharacterCard({
   slot,
   initialFace = 0,
   inputEnabled = false,
+  basicOnly = false,
   nickname,
-  onDetail
+  onDetail,
+  notice,
+  onRetry,
+  retryEnabled = false,
+  retryPending = false
 }: {
   character?: CardCharacter
   state: SlotState
   slot: number
   initialFace?: number
   inputEnabled?: boolean
+  basicOnly?: boolean
   nickname?: string
   onDetail?: () => void
+  notice?: string
+  onRetry?: () => void
+  retryEnabled?: boolean
+  retryPending?: boolean
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
   const [name, setName] = useState(state === 'idle' ? '' : (character?.name ?? ''))
   const [serverId, setServerId] = useState<string>(character?.serverId ?? '')
   const editing = character != null && (name !== character.name || serverId !== character.serverId)
-  const canTurn = state === 'success' && character != null && !editing
+  const hasCharacter = state === 'success' && character != null && !editing
+  const canTurn = hasCharacter && !basicOnly
   const showCharacter = face === 0 || !canTurn
-  const status = getCharacterCardStatus(state)
+  const status = notice ?? getCharacterCardStatus(state)
 
   return (
     <article
@@ -60,7 +71,7 @@ export function CharacterCard({
               <Typo.caption {...stylex.props(styles.adventure)}>{character.adventure}</Typo.caption>
               <Typo.caption {...stylex.props(styles.muted)}>{character.job}</Typo.caption>
               <Typo.caption {...stylex.props(styles.fame)}>
-                ♙ {character.fame.toLocaleString('ko-KR')}
+                ♙ {character.fame?.toLocaleString('ko-KR') ?? '—'}
               </Typo.caption>
             </div>
           </>
@@ -79,12 +90,28 @@ export function CharacterCard({
           <Typo.txtS
             as="span"
             role="status"
-            {...stylex.props(styles.status, state === 'failure' && styles.error)}
+            {...stylex.props(
+              styles.status,
+              state === 'failure' && styles.error,
+              state === 'failure' && onRetry != null && styles.statusWithRetry
+            )}
           >
             {status}
           </Typo.txtS>
         )}
       </div>
+      {state === 'failure' && onRetry != null && (
+        <div {...stylex.props(styles.retry)}>
+          <ActionButton
+            size="small"
+            disabled={!retryEnabled}
+            loading={retryPending}
+            onClick={onRetry}
+          >
+            다시 시도
+          </ActionButton>
+        </div>
+      )}
       {showCharacter && (
         <>
           {state === 'success' && character != null && (
@@ -120,7 +147,7 @@ export function CharacterCard({
       {state !== 'idle' && (
         <button
           type="button"
-          disabled={!canTurn || onDetail == null}
+          disabled={!hasCharacter || onDetail == null}
           aria-label={`${slot}번 캐릭터 상세 열기`}
           onClick={onDetail}
           {...stylex.props(styles.detail)}
@@ -129,7 +156,7 @@ export function CharacterCard({
         </button>
       )}
       <span aria-live="polite" {...stylex.props(styles.srOnly)}>
-        {canTurn ? cardFaces[face] : status}
+        {hasCharacter ? character?.name : status}
       </span>
     </article>
   )

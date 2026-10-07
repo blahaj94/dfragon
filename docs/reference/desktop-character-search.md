@@ -13,19 +13,21 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 
 ## 구현 위치
 
-| 위치                                                                                                                                                   | 책임                                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                      | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
-| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                      | 함수 factory가 슬롯 DTO·관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
-| `apps/desktop/src/backend/search/request.ts`                                                                                                           | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
-| `apps/desktop/src/backend/search/http.ts`                                                                                                              | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
-| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                       | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
-| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                         | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
-| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                            | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
-| `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                               | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
-| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`        | XState가 Start별 시작·종료 수명을 관리하고, factory와 hook은 로컬 관측 revision·결과 필터·슬롯별 retry를 연결한다.                                                   |
-| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                             | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| 위치                                                                                                                                                           | 책임                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
+| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO·관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
+| `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
+| `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
+| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
+| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
+| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
+| `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작·종료 수명을 관리하고, factory와 hook은 로컬 관측 revision·결과 필터·슬롯별 retry를 연결한다.                                                   |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts`         | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보를 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                       |
+| `apps/desktop/src/preload/character-detail.ts`, `common/character-detail.ts`, `apps/desktop/src/frontend/src/pages/character-detail/CharacterSnapshotPage.tsx` | 전용 읽기 bridge의 응답을 검증하고 기본 정보와 조회 시각을 표시한다.                                                                                                 |
 
 `createCaptureSearch`는 호출마다 연결·actor·관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin·end·무효화·dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision·clear·결과 필터·retry 정책은 기존 일반 로직을 유지한다.
 
@@ -43,11 +45,102 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 - `createCharacterCandidatesHttp`: 이름 하나로 고정 `GET /characters/candidates`를 호출한다. 응답의 이름, 지원 서버, 캐릭터 ID와 이미지 URL을 검증하고 공급자가 반환한 후보 순서를 유지한다.
 - `createCharacterImageHttp`: 검증한 서버와 캐릭터 ID로 네오플의 `zoom=1` 이미지 URL을 직접 구성한다. 임의 URL을 받지 않으며 PNG 다운로드와 디코딩의 크기를 제한한다. 결과는 전체 캐릭터 이미지의 원본 RGBA이며 얼굴 비교 결과가 아니다.
+- `createCharacterAppearanceHttp`: 고정 `/characters/{serverId}/{characterId}/appearance`에서 외형 필드만 받고 identity, 외형 필드와 clone 쌍을 검증한다.
 - `createCharacterDetailsHttp`: 고정 상세 경로를 호출하고 요청한 서버, 캐릭터 ID와 응답의 식별자가 일치하는지 검사한다. 기본 정보와 섹션 JSON을 전달하며 장비 점수나 마법부여 등급을 계산하지 않는다.
 
 각 클라이언트는 호출자의 AbortSignal을 사용하고 자동 재시도나 새로운 전체 검색 시간 예산을 만들지 않는다. 호출 제한은 헤더를 받은 시점을 함께 전달하며, 상세 조회의 오류도 기존 검색 오류 형태로 정제한다. 원격 오류 원문은 화면으로 전달하지 않는다.
 
-이 단계에서는 기존 일반 검색, OCR 슬롯 수명과 제품 카드 화면을 교체하지 않는다. 실제 연결은 얼굴 크롭과 비교 기준, OCR 후보 전달, 슬롯 수명을 함께 연결하는 후속 단위에서 수행한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
+제품의 OCR 전용 관측은 아래 IPC 경로로 식별 함수를 사용한다. 기존 수동 검색은 `/characters`의 일반 검색을 유지한다. API origin이 설정된 제품은 외형 조회, Stay 생성과 윤곽 비교를 연결한다. 얼굴 크롭이 없으면 대기하며 HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
+
+## 얼굴 크롭의 교체 경계와 비교 입력
+
+`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 얼굴 cropper에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. `capturePartyNicknameCrops`는 기존 소비자를 위한 닉네임 전용 반환을 유지한다.
+
+실제 얼굴 위치는 `lib/party-portrait.ts`의 `cropPartyPortrait`가 소유한다. 검출된 HP, MP 시작점의 왼쪽 28 기준 픽셀, 화면 위쪽 11 기준 픽셀에서 26×26 기준 픽셀 영역을 관측 래스터 배율로 투영한다. 기준은 높이 600px의 기본 HUD이며, 실제 영상에서 새로 검출한 각 슬롯의 x와 배율을 사용한다. 원본 RGBA를 복사하고 화면 밖 영역이나 처리 한도를 넘는 영역은 null로 반환한다. 해상도나 파일명, 게임 UI 설정 퍼센트로 좌표를 고정하지 않는다.
+
+크롭 결과 `CharacterPortrait`는 `image: { width, height, rgba }`, `rasterScale`, 선택적 `validMask`다. 현재 cropper는 게임 UI 퍼센트가 아닌 관측 HUD 래스터 배율을 전달한다. 비교기는 이 값으로 기본 크기를 복원하지만 API 스프라이트와 모든 외형의 얼굴이 동일하게 대응한다는 보장은 아직 없다. 마스크는 얼굴 이미지의 픽셀 수와 같은 길이이며, 왕관이나 PC 표시 등 제외할 픽셀은 0, 사용할 픽셀은 1이다. 마스크가 없으면 투명하지 않은 얼굴 픽셀을 모두 사용한다.
+
+얼굴 마스크는 기준 픽셀로 바깥쪽 1px, 위쪽 2px과 좌우 위 모서리 각각 12×9px을 제외한다. 파티장 왕관, PC 표시와 테두리가 없는 슬롯에도 같은 영역을 제외해 장식 변화가 다른 얼굴 관측을 만들지 않게 한다. 비교에 남는 얼굴 정보가 줄어들므로 이 마스크의 적용 자체를 캐릭터 식별 정확도나 일치 기준의 검증으로 해석하지 않는다.
+
+원본 스크린샷 8장 중 정상 7장, 28개 슬롯과 연결중 화면의 정상 1개 슬롯에서 얼굴 크롭을 확인했다. 영상 크기는 1067×600, 1600×900, 1920×1080, 2560×1440, 3840×2160이며 검출 배율은 1.00, 1.20, 1.28, 1.42, 1.80, 1.82였다. UI 0%, 50%, 100% 표본을 포함하지만 모든 해상도와 UI 조합을 전수 검증한 결과는 아니다. 원본과 플레이어 이름은 저장소에 포함하지 않는다.
+
+### 연결중과 가려진 슬롯
+
+`연결중..` 팝업이 닉네임, 얼굴과 HP, MP의 왼쪽을 가린 표본에서는 기존 프레임 검출기가 정상 1번만 반환하고 2~4번을 제외한다. 검출하지 못한 슬롯은 닉네임과 얼굴 전체를 null로 취급하므로 OCR과 후보 검색을 시작하지 않는다. 실제 닉네임일 수 있는 `연결중` 문자열을 금지어로 처리하지 않는다.
+
+일반 OCR과 얼굴 식별 경로 모두 새 프레임에서 null인 슬롯의 이전 표시, 안정화 기록과 검색 관측을 다른 슬롯의 OCR을 기다리기 전에 비운다. 반복 null은 clear를 중복 통지하지 않는다. 팝업이 사라져 정상 영역이 돌아오면 같은 입력 두 번의 기존 안정화를 다시 거친다. 전체 파티의 준비 완료를 추측하지 않고 정상으로 검출된 슬롯은 독립적으로 처리한다. 반짝임 때문에 HP, MP를 찾지 못한 프레임도 같은 미검출 경로를 따른다.
+
+### 얼굴 비교와 일치 기준
+
+`backend/search/portrait-match.ts`의 `scoreCharacterPortrait`는 이미 잘린 얼굴을 배율에 맞춰 정규화한 뒤 후보 이미지의 불투명 영역 주변에서 정렬을 찾는다. API 이미지의 머리 위치를 고정하지 않는다. 반환값은 채널당 평균 RGB 오차(0~255), 실제 비교 픽셀 수, 유효 얼굴 픽셀 중 비교한 비율, 후보 이미지 안의 정렬 좌표다. 이는 확률이나 서버 식별의 확정 근거가 아니다. 정보가 없는 단색, 전체 투명, 전체 제외 얼굴은 점수를 만들지 않는다.
+
+`createPortraitMatcher`에는 `maxMeanChannelError`, `minCoverage`, `minComparedPixels`를 명시적으로 전달해야 한다. 기준을 모두 만족하는 정렬이 하나라도 있으면 통과하며 운영 기본값은 없다. 실제 Windows 표본으로 기준을 정해야 한다. 입력 크기와 계산량에는 별도 상한을 두고, 계산 중 주기적으로 event loop를 양보해 취소를 확인한다. 연산 상한 초과나 잘못된 입력을 불일치로 숨기지 않는다. 원본 버퍼는 변경하지 않는다.
+
+`backend/search/portrait-edges.ts`의 `scoreCharacterPortraitEdges`는 염색에 덜 민감한 윤곽 비교 점수를 계산한다. 원본을 관측 래스터 배율로 정규화하고 회색조, Sobel 기울기, 방향의 두 배 각도 벡터, 국소 기울기 크기 정규화를 적용한다. 밝고 어두운 방향이 반전돼도 같은 경계 방향으로 취급한다. 색상을 단색으로 덮어쓰는 방식이 아니며 원본 RGBA와 마스크는 수정하지 않는다. 특징 배열은 Float32Array로 보관하고 새 이미지 처리 라이브러리는 추가하지 않는다.
+
+Sobel의 3×3 이웃 전체가 불투명하고 마스크에서 허용된 위치만 사용한다. 가려진 픽셀을 검정색으로 채워 가짜 윤곽을 만들지 않는다. 소스의 0이 아닌 기울기 벡터만 비교 표본으로 삼으므로 평탄한 여백으로 비교 픽셀 수를 채울 수 없다. 점수는 -1~1 범위의 `similarity`, 비교 픽셀 수, 유효 윤곽 표본 대비 겹침 비율, 정렬 위치를 반환한다. 확률이 아니며 색상이나 밝기가 달라진 모든 아바타를 같게 만든다는 보장은 없다.
+
+Scorer에는 `{ minCoverage, minComparedPixels }`를 전달한다. `createPortraitEdgeMatcher`에는 이 조건과 `minSimilarity`를 명시적으로 전달해야 한다. 각 정렬에서 세 조건을 함께 검사하고 첫 합격을 반환하므로, 최고 점수 위치가 겹침 조건을 만족하지 못해 다른 유효 위치를 가리지 않는다. 반환 함수는 기존 식별 흐름의 `matchesPortrait`에 주입할 수 있으며 OCR 이름과 명성 순서, 첫 통과 후보 선택은 유지된다. 입력, 정규화 크기와 비교 연산의 한도, 취소 확인과 event loop 양보는 기존 비교기의 제한을 따른다.
+
+윤곽 비교의 픽셀 수와 겹침 비율은 RGB 비교의 원본 픽셀 기준과 다르므로 기존 임계값을 그대로 옮기지 않는다. `portrait-policy.ts`의 초기 기준은 최소 유사도 0.55, 최소 겹침 0.8, 최소 비교 픽셀 100이다. 이 값을 main이 신뢰할 설정으로 주입하며 renderer는 변경할 수 없다. 같은 아바타에 색만 다른 캐릭터를 구분하는 능력은 줄어든다. 초기 표본에 근거한 기준으로, Windows 실시간과 더 많은 동명 후보에 대한 검증이 필요하다.
+
+제품 모듈을 원본 HUD 5개와 Stay 참조 6개에 적용한 로컬 평가에서 각 외형의 정답이 대조 외형보다 높은 점수를 얻었다. 염색된 HUD를 같은 아바타의 미염색 참조와 비교한 유사도는 0.575, 염색색을 맞춘 참조는 0.764, 다른 외형 중 최고는 0.265였다. 이 평가의 최소 겹침 0.8과 최소 비교량 100을 초기 설정에 사용한다. 후보 한 쌍의 최적 정렬 탐색은 로컬 Node 실행에서 약 0.11~0.17초였고, Windows 실행 성능이나 동명 후보 전체의 정확도를 보장하지 않는다. 실제 이미지와 플레이어 식별자는 저장소와 CI에 포함하지 않는다.
+
+기존 RGB 방식으로 서버 정답이 있는 캐릭터 5명의 API 이미지를 비교했을 때 한 외형은 서로 다른 해상도의 정상 화면에서 낮은 오차를 보였지만, 다른 외형 중에는 정답보다 대조 이미지의 오차가 작은 경우가 있었다. 이후 HUD는 stay, 기존 캐릭터 이미지 API는 stand 자세인 차이를 확인했다. 서로 같은 자세의 픽셀이라는 전제가 성립하지 않으므로, 이 결과를 배율이나 정렬 문제만으로 해석하거나 임계값을 완화하지 않는다. 제품 식별은 같은 자세의 Stay PNG와 윤곽 비교를 사용한다. 기존 stand PNG는 카드의 표시 이미지로 유지하며 Stay 실패 때 비교용 fallback으로 사용하지 않는다.
+
+[공식 OpenAPI 문서](https://developers.neople.co.kr/contents/apiDocs/df)는 캐릭터 이미지의 zoom 1~3만 안내하며 자세 선택은 문서화하지 않는다. 별도 쇼룸 이미지 서비스의 `wearInfo.animation: "Stay.1"`은 실제 PNG 자세를 바꾼다. 같은 아바타 구성 한 건에서 animation 생략과 Stay.1 응답을 대조했고, 해당 HUD 얼굴과의 RGB 평균 오차는 62.3에서 14.6으로 줄었다. 이는 한 외형의 비교이며 일반적인 식별 기준 검증은 아니다.
+
+쇼룸 이미지 서비스는 OpenAPI와 다른 계약을 사용한다. [공식 쇼룸 JS](https://resource.df.nexon.com/showroom/avatar_simulator.app.js?v=20230424)는 아바타 index와 염색 index로 wearInfo를 구성하지만, 네오플 itemId에서 이 index로 변환하는 공개 연결은 확인하지 못했다. [쇼룸 아바타 목록](https://bbscdn.df.nexon.com/data7/showroom/static/json/4_cap.json)에는 이름 중복도 있어 이름만으로 확정 매핑하지 않는다. 아래 변환 정책으로 API의 외형명을 쇼룸에 연결한다. 이 서비스는 공식 OpenAPI와 별도로 변경될 수 있으며, 미지원 응답을 실제 외형 불일치로 해석하지 않는다.
+
+쇼룸의 캐릭터 불러오기는 로그인 계정의 내 캐릭터 목록에서 얻은 별도 캐릭터 번호로 외형 정보를 요청한다. 확인한 UI는 위시리스트와 내 캐릭터 탭이며 임의의 서버, 닉네임 검색 입력은 없다. 이 번호를 OpenAPI characterId와 같은 값으로 취급하거나, 해당 경로를 다른 파티원의 외형 조회 API로 사용하지 않는다. 로그인 응답과 서버의 소유권 검사 방식은 확인하지 않았다.
+
+### Stay 이미지 공급과 캐시
+
+`backend/search/stay-images.ts`의 `createStayImageSource`는 공식 외형 API 응답과 쇼룸의 공개 catalog를 사용한다. 직업명은 공식 쇼룸 목록의 18개 job 번호로 변환하고, 슬롯은 대응하는 부위에 연결한다. clone ID와 이름이 모두 있으면 복사 외형을 우선하며 그 외에는 장착 아이템명을 사용한다. 앞뒤 공백만 제거해 catalog 이름을 비교한다. 같은 직업, 부위, 이름의 후보는 유효한 icon 경로까지 전부 같을 때 첫 index를 대표로 사용한다. 이는 승인된 초기 변환 정책이며 모든 중복 코드의 이미지 동등성을 보장하지 않는다. 서로 다른 icon, 알 수 없는 직업이나 외형은 보류한다.
+
+catalog에 없는 빈 `레어 머리 클론 아바타`와 `무기 클론 아바타`는 확인된 기본 외형 예외로 null을 사용한다. 다른 매핑 실패는 기본 외형으로 바꾸지 않는다. AURORA와 AURA_SKIN은 얼굴 레이어 범위에서 명시적으로 제외한다. 일반 장비 무기는 재구성하지 않으므로 얼굴을 가리는 무기와 효과는 추가 검증 대상이다. color 0은 염색 복원값이 아닌 윤곽 비교용 기본색이다. level은 쇼룸처럼 0, grow는 미리보기 기본값 0을 쓰고 아처의 헌터, 호크 아이, 메이븐, 眞 헌터는 확인된 헌터 미리보기 값 3을 사용한다.
+
+직업별 animation 목록에서 Stay.0, Stay.1, Stay2.0을 확인해 해당 자세들을 반환한다. 지원하지 않는 Stay 표기나 빈 목록은 보류하며 Stand로 대체하지 않는다. 같은 캐릭터의 자세들은 순서대로 비교하고 하나가 통과하면 다음 후보로 넘어가지 않는다. 카탈로그와 렌더링 URL은 고정 Nexon origin에서만 구성하며 API key와 로그인 cookie를 전송하지 않는다. redirect, 자체 재시도와 원문 오류 노출은 허용하지 않는다.
+
+성공한 catalog는 최대 32개, 16MiB, 30분이고 성공 RGBA는 최대 64개, 16MiB, 5분인 메모리 LRU 캐시를 사용한다. factory를 캡처마다 다시 만들지 않는다. 완료값만 공유하므로 한 슬롯의 취소가 다른 슬롯의 진행 중 요청을 취소하지 않지만, 동시에 시작한 최초 요청은 중복될 수 있다. 카탈로그 body는 4MiB, PNG는 기존 4MiB와 해상도, 압축 해제 한도를 적용한다. 외형 API와 catalog, 이미지 요청은 모두 최초 접수부터 15초인 같은 식별 예산에 포함된다.
+
+복원할 수 없는 외형은 `SEARCH_APPEARANCE_UNAVAILABLE`로 해당 슬롯을 보류한다. 그 후보를 불일치로 탈락시키거나 다음 OCR 이름으로 넘어가지 않는다. HTTP 실패, 429, 잘못된 JSON과 PNG도 기존 오류로 전달한다. 정상 후보의 명성 순서, null 명성 후순위와 첫 통과 후보 선택은 유지한다.
+
+## 크롭 결과 이후의 식별 처리
+
+`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 비교할 이미지 목록 확보, 얼굴 비교, 상세 조회라는 업무 연산을 주입받는다. 식별 입력은 순위가 있는 닉네임 최대 두 개와 얼굴 크롭 결과다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
+
+`backend/search/request.ts`는 일반 검색과 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 단일 이미지와 Stay 이미지 응답을 이미지 목록으로 변환한다. 식별 결과의 `invalid-input`, `appearance-unavailable`은 여기서 기존 공개 오류로 바꾸며, 선택된 상세는 기존 슬롯 요약으로 투영한다. HTTP 클라이언트와 Stay 캐시는 요청마다 다시 생성하지 않는다.
+
+크롭이 null이면 `portrait-unavailable`로 끝나며 HTTP를 시작하지 않는다. 빈 문자열이나 검색할 수 없는 OCR 후보는 보정 없이 제외하고 같은 이름은 한 번만 조회한다. 유효한 이름의 원문과 순서는 유지한다. 첫 이름의 후보를 API 순서대로 비교하고, 처음 통과한 후보에 대해서만 상세를 조회한다. 명성이 있는 후보와 null 후보가 모두 불일치일 때만 두 번째 이름으로 이동하며 두 이름의 결과를 합쳐 정렬하지 않는다.
+
+성공 결과는 `matched`, 모두 불일치하면 `unmatched`다. 이미지 다운로드, 비교 계산, 공급자 오류나 429를 불일치로 바꾸지 않고 처리를 중단한다. 비교 입력과 연산 상한 오류는 정제한 응답 확인 실패로 전달한다. 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
+
+`backend/search/operation.ts`는 일반 검색과 식별 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 현재 요청과 남은 예산을 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 늦은 결과를 버리고, 시간 초과 후 두 번째 이름이나 상세 요청을 새로 시작하지 않는다. 취소와 만료 판정은 비교 오류보다 우선한다. 기존 수동 검색의 rows 응답과 호출 제한 정책은 유지한다.
+
+`identify.test.ts`는 실행 환경 없이 후보 순서, 첫 일치 선택과 외형 미확인 규칙을 검증한다. `request.test.ts`는 실제 식별기와 요청 경계를 연결해 공통 취소 신호, 15초 예산, 늦은 응답 차단, 실패 우선순위와 공개 결과 변환을 검증한다. 슬롯과 IPC 수명은 기존 통합 테스트를 유지한다.
+
+### OCR 관측 IPC와 슬롯 수명
+
+제품 `App`은 `usePartyCapture({ identifyCharacters: true })`를 사용한다. `usePartyRecognition`은 같은 프레임의 이름 후보와 얼굴 입력이 두 번 연속 같을 때만 `notifyOcrCandidatesDetected`로 전달한다. 후보는 원문과 순위를 유지하고, 검색할 수 없는 이름과 중복만 제외한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 후보나 비교 대상 픽셀이 바뀌면 기존 표시를 먼저 비우고 다시 안정화를 기다린다. 기본 옵션의 legacy fixture와 수동 검색은 기존 경로를 유지한다.
+
+IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
+
+크롭 null은 `waiting-portrait`, 비교기를 구성하지 않은 fixture나 API 미설정 상태는 `waiting-policy`다. 두 상태 모두 HTTP를 호출하지 않는다. 제품 main은 `portraitEdgeMatchPolicy`를 구성하며 정책은 renderer가 보낼 수 없다. 기존 RGB 정책은 별도의 합성 검증 경로로만 남고 두 정책을 동시에 설정하면 거절한다. 같은 관측의 revision 승격은 requestId, 시간 예산과 429 대기를 유지한다. 재시도는 보관한 후보와 얼굴을 사용하고 일반 검색으로 바꾸지 않는다. clear, 캡처 종료, source와 document 변경은 이전 요청, 얼굴과 선택 상세를 모두 비운다.
+
+성공한 슬롯의 `selected`에는 검증된 기본 요약만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. Windows 실시간 캡처와 실제 캐릭터 정답을 이용한 일치 기준 검증은 여전히 후속이다.
+
+## 캐릭터별 상세 창
+
+식별된 슬롯의 상세 버튼은 `openCharacterDetails({ captureId, slot, requestId })`를 호출한다. Main은 현재 등록된 renderer와 main frame, 정확한 document, 입력 형태를 검사하고 검색 수명의 `selection`으로 선택된 상세를 읽는다. Renderer가 임의 URL, 서버나 캐릭터 ID, 상세 데이터를 지정해 창을 열 수 없다. 새 창을 읽고 표시하기 전에 선택이 바뀌었는지 다시 확인하며, 로딩 중 캡처가 끝나거나 슬롯이 교체되면 해당 창을 표시하지 않는다.
+
+`backend/character-detail/windows.ts`는 서버와 캐릭터 ID별로 별도 창을 관리한다. 같은 캐릭터를 다시 열면 기존 창을 복원하고 포커스하며, 최초 선택에서 복사한 기본 정보와 `freshness`를 유지한다. 이미 표시한 창은 캡처 중지나 슬롯 변경 이후에도 그대로 읽을 수 있다. 창을 닫고 현재 선택에서 다시 열면 그 선택에 보관된 정보로 새 snapshot을 만들며 추가 HTTP 조회나 자동 갱신은 하지 않는다. 메인 창의 `closed`에서 모든 상세 창과 reader를 정리한다. 취소된 메인 창 닫기 시도만으로 상세 창을 지우지 않는다.
+
+제품은 고정 `character-detail.html`과 전용 preload를 사용한다. `window.characterDetail.read()`만 노출하며 capture, auth, developer bridge는 포함하지 않는다. Main reader는 등록된 상세 창의 WebContents와 현재 main frame, 정확한 document URL, detached와 destroyed 상태를 매번 검사한다. 별도 메모리 session에서 권한 요청과 미디어 접근을 거절하고, 팝업, 외부 탐색과 redirect, webview를 차단한다. 공급자 전체 JSON은 main에 남기며 상세 renderer에는 검증한 기본 요약과 조회 시각만 복사해 전달한다.
+
+`CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 제품의 이름 수정, 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
+
+창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 얼굴 cropper와 Stay 공급원, 초기 윤곽 정책이 제품에 연결되어 일반 캡처의 선택 결과와 상세 창까지 이어진다. API의 candidates와 appearance endpoint가 배포되어야 하며 Windows 실제 게임에서의 연속 캡처 검증은 별도로 필요하다.
 
 ## PaddleOCR와 실제 게임 인식 영역
 
@@ -69,9 +162,15 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `modelScore`는 재계산한 문자열 확률의 100배다. 실제 정답률이나 상위 후보 사이의 상대 비율이 아니며, 반환한 후보 점수의 합을 100으로 맞추지 않는다. 입력은 유한한 0~1의 softmax 확률이어야 한다. 시점별 확률 합과 1의 차이가 0.001 이하면 그 합으로 나누어 보정하고, 범위를 벗어나면 거절한다. Logits에 softmax를 다시 적용하지 않는다. 빌드 준비 단계도 같은 확률 범위와 합계 조건을 검사한다.
 
-`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 기존 `{ text, confidence }` 응답을 유지하며 `text`에 1위 닉네임, `confidence`에 1위 `modelScore`를 넣는다. 개발자 평가는 이를 **모델 점수**로 표시하고 저장된 정답과 비교한 일치율, CER과 구분한다.
+`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 반환한다. `text`와 `confidence`는 각각 1위 닉네임과 `modelScore`를 유지하고, `candidates`에는 최대 두 개의 원문, 순위, 모델 점수를 전달한다. 빈 문자열이나 같은 이름을 worker 경계에서 보정하거나 제거하지 않는다.
+
+`createPartyOcrWorker`는 후보 개수, 1부터 시작하는 연속 순위, 유한한 0~100 점수의 내림차순과 1위 호환 필드의 일치를 확인한다. 초기화와 인식, 실패가 섞인 응답은 거절하고 기존 worker 종료, 취소, 시간 초과 처리를 유지한다. 이 전달 변경만으로 기존 닉네임 안정화나 검색 정책을 바꾸지 않는다. 개발자 평가는 **모델 점수**를 저장된 정답과 비교한 일치율, CER과 구분한다.
 
 ## UI 구성
+
+제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하며 식별된 슬롯의 상세 버튼으로 해당 캐릭터의 기본 정보 창을 연다. 창 열기 실패는 정제한 안내로 표시하고 이전 선택의 늦은 실패를 새 슬롯에 표시하지 않는다.
+
+카드는 크롭 대기, 판정 기준 대기, 조회 중, 빈 결과와 오류를 구분한다. 오류는 기존 catalog의 고정 문구를 사용하고, 재시도는 슬롯별 진행 상태와 Retry-After를 따른다. `mvp-preview`의 자동 식별 상태 시나리오는 선택, 두 대기 상태, 긴 오류와 재시도를 합성 데이터로 확인한다. Electron의 900px, 500px, 300px 화면 확인은 실제 게임의 얼굴 식별 정확도 검증과 구분한다.
 
 캡처 화면은 게임 창·인식 간격·캡처 시작/중지를 한국어로 표시한다. 1920×1080 테두리 없는 창 모드·UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 대기나 오인식 때 닉네임 수정·직접 검색으로 이어진다. 창 선택·캡처 준비·OCR 준비·실행·종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 영상·OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도·배율과 검색·캡처 수명은 바꾸지 않는다.
 

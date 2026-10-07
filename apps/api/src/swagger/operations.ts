@@ -1,5 +1,6 @@
 import { applyDecorators } from '@nestjs/common'
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse } from '@nestjs/swagger'
+import { CHARACTER_ID_PATTERN_SOURCE } from '../characters/identity.js'
 import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
 
 function success(status: number, schema: string, description: string) {
@@ -100,13 +101,33 @@ export function ApiCharacterDetails(refresh = false) {
     }),
     ApiParam({
       name: 'characterId',
-      schema: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,256}$', minLength: 1, maxLength: 256 }
+      schema: { type: 'string', pattern: CHARACTER_ID_PATTERN_SOURCE, minLength: 1, maxLength: 256 }
     }),
     success(
       200,
       'CharacterDetails',
       '정제된 상세 정보, 섹션별 revision·조회 시각과 freshness 만료 시각'
     ),
+    errors({ 400: 'INVALID_CHARACTER_QUERY', 429: 'CHARACTER_RATE_LIMITED', ...neopleFailures })
+  )
+}
+
+export function ApiCharacterAppearance() {
+  return applyDecorators(
+    ApiOperation({
+      summary: '캐릭터 외형 식별 정보 조회',
+      description:
+        '공개 API. Neople equip/avatar를 한 번 조회하여 캐릭터 직업과 아바타 슬롯, 장착 아이템, clone 외형만 반환합니다. 옵션, 엠블렘, 장비 정보는 포함하지 않습니다. 아바타가 null이면 빈 배열, clone이 없으면 itemId와 itemName이 모두 null입니다. 원본 슬롯 순서를 유지하며 중복 슬롯이나 불완전한 clone은 전체 실패입니다. 저장이나 캐시는 하지 않습니다. 독립 IP당 최근 60초 64회이며 실패한 공급자 호출도 소비합니다. 검색, 상세, 공용 상세와 공급자 전체 60초 600회 및 동시 12회 한도를 공유합니다. 공급자 body 소비까지 5초 deadline과 연결 종료 취소를 적용하며 자동 재시도는 없습니다. Query, 요청 본문과 HEAD는 허용하지 않습니다.'
+    }),
+    ApiParam({
+      name: 'serverId',
+      schema: { type: 'string', enum: [...NEOPLE_SERVER_NAMES.keys()] }
+    }),
+    ApiParam({
+      name: 'characterId',
+      schema: { type: 'string', pattern: CHARACTER_ID_PATTERN_SOURCE, minLength: 1, maxLength: 256 }
+    }),
+    success(200, 'CharacterAppearance', '캐릭터 직업과 아바타 외형 식별 필드'),
     errors({ 400: 'INVALID_CHARACTER_QUERY', 429: 'CHARACTER_RATE_LIMITED', ...neopleFailures })
   )
 }
@@ -131,7 +152,7 @@ export function ApiAdventureSearch() {
     ApiQuery({
       name: 'after',
       required: false,
-      schema: { type: 'string', pattern: '^[a-zA-Z0-9_-]{1,256}$' }
+      schema: { type: 'string', pattern: CHARACTER_ID_PATTERN_SOURCE }
     }),
     success(
       200,

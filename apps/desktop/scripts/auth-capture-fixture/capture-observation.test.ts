@@ -57,13 +57,15 @@ vi.mock('electron', () => {
 })
 vi.mock('../../src/backend/capture/ipc-handler', () => ({
   registerCaptureIpc: () => {
-    ipcMain.handle('notifyStableNicknameDetected', () => {
+    const handler = (): unknown => {
       if (product.rejectNickname) {
         throw new Error('Synthetic handler rejection')
       }
 
       return product.commandResult
-    })
+    }
+    ipcMain.handle('notifyStableNicknameDetected', handler)
+    ipcMain.handle('notifyOcrCandidatesDetected', handler)
 
     return vi.fn()
   },
@@ -242,3 +244,32 @@ it.each(['accepted', 'rejected'] as const)(
     product.commandResult = undefined
   }
 )
+
+it('새 OCR 채널의 크롭 대기도 동일 capture 관측으로 집계한다', async () => {
+  product.rejectNickname = false
+  vi.mocked(ipcMain.handle).mockClear()
+  const window = {
+    webContents: { session: { setDisplayMediaRequestHandler: vi.fn() } }
+  } as unknown as BrowserWindow
+  const { counts } = registerObservedCapture(window, 'file:///fixture')
+  const listener = vi
+    .mocked(ipcMain.handle)
+    .mock.calls.find(([channel]) => channel === 'notifyOcrCandidatesDetected')![1]
+  product.commandResult = {
+    ok: true,
+    snapshot: withSearchSlot(searchSlot({ nickname: 'ALICE', state: 'waiting-portrait' }))
+  }
+  const observation = {
+    captureId: CAPTURE_ID,
+    slot: 0,
+    observationRevision: 1,
+    nickname: 'ALICE',
+    candidateNicknames: ['ALICE'],
+    portrait: null
+  }
+  expect(await listener({} as Electron.IpcMainInvokeEvent, observation)).toEqual(
+    product.commandResult
+  )
+  expect(counts).toMatchObject({ nicknameInvokes: 1, nicknameAccepted: 1, nicknameMatchedSlots: 1 })
+  product.commandResult = undefined
+})
