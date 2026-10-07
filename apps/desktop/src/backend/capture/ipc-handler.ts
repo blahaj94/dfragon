@@ -28,7 +28,6 @@ import {
   createCharacterDetailsHttp,
   createCharacterImageHttp
 } from '../search/character-http'
-import { createCharacterIdentifier } from '../search/identify'
 import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portrait-match'
 import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
 import { createStayImageSource } from '../search/stay-images'
@@ -206,19 +205,19 @@ function registerCaptureIpc(
     if (configuration.portraitEdgeMatchPolicy !== undefined) {
       const appearance = createCharacterAppearanceHttp(configuration)
       const image = createStayImageSource({ appearance, fetch: configuration.fetch })
-      runtime.identify = createCharacterIdentifier({
+      runtime.identification = {
         candidates: createCharacterCandidatesHttp(configuration),
         image,
         details: createCharacterDetailsHttp(configuration),
         matchesPortrait: createPortraitEdgeMatcher(configuration.portraitEdgeMatchPolicy)
-      })
+      }
     } else if (configuration.portraitMatchPolicy !== undefined) {
-      runtime.identify = createCharacterIdentifier({
+      runtime.identification = {
         candidates: createCharacterCandidatesHttp(configuration),
         image: createCharacterImageHttp(configuration),
         details: createCharacterDetailsHttp(configuration),
         matchesPortrait: createPortraitMatcher(configuration.portraitMatchPolicy)
-      })
+      }
     }
   }
   const lifetime = createCaptureSearchLifetime({
