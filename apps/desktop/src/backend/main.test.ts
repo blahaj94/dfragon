@@ -16,6 +16,12 @@ const mocks = vi.hoisted(() => {
   const registerVersionsWindow = vi.fn<
     typeof import('./versions/ipc-handler').registerVersionsWindow
   >(() => vi.fn())
+  const disposeCharacterDetails = vi.fn()
+  const openSelectedCharacterDetail =
+    vi.fn<typeof import('./character-detail/windows').openSelectedCharacterDetail>()
+  const registerCharacterDetailWindows = vi.fn<
+    typeof import('./character-detail/windows').registerCharacterDetailWindows
+  >(() => ({ open: vi.fn(), dispose: disposeCharacterDetails }))
   const consumeCaptureMediaPermission = vi.fn(() => false)
   const permissionCheck = vi.fn()
   const permissionRequest = vi.fn()
@@ -67,6 +73,9 @@ const mocks = vi.hoisted(() => {
     registerWindow,
     registerDeveloperWindow,
     registerVersionsWindow,
+    registerCharacterDetailWindows,
+    openSelectedCharacterDetail,
+    disposeCharacterDetails,
     consumeCaptureMediaPermission,
     permissionCheck,
     permissionRequest,
@@ -170,6 +179,10 @@ vi.mock('./developer/ipc-handler', () => ({
 }))
 vi.mock('./versions/ipc-handler', () => ({
   registerVersionsWindow: mocks.registerVersionsWindow
+}))
+vi.mock('./character-detail/windows', () => ({
+  registerCharacterDetailWindows: mocks.registerCharacterDetailWindows,
+  openSelectedCharacterDetail: mocks.openSelectedCharacterDetail
 }))
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
@@ -376,6 +389,27 @@ it.each([
   await mocks.bootstrap
   expect(mocks.loadURL).toHaveBeenCalledExactlyOnceWith(expected)
   expect(mocks.registerWindow).toHaveBeenCalledWith(expect.anything(), expected)
+  expect(mocks.registerCharacterDetailWindows).toHaveBeenCalledExactlyOnceWith({
+    owner: mocks.windows[0],
+    entry: join(__dirname, '../frontend/character-detail.html'),
+    preload: join(__dirname, '../preload/character-detail.js'),
+    devUrl: expected
+  })
+})
+
+it('API 미구성에서도 상세 창은 고정된 제품 entry와 제한 preload로 조합한다', async () => {
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.registerCharacterDetailWindows).toHaveBeenCalledExactlyOnceWith({
+    owner: mocks.windows[0],
+    entry: join(__dirname, '../frontend/character-detail.html'),
+    preload: join(__dirname, '../preload/character-detail.js'),
+    devUrl: undefined
+  })
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(undefined, {
+    openSelected: mocks.openSelectedCharacterDetail
+  })
 })
 
 it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명시적으로 거절한다', async () => {
@@ -512,10 +546,15 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   )?.[1] as (event: { preventDefault(): void }) => void
   preventNavigation({ preventDefault })
   expect(preventDefault).toHaveBeenCalledOnce()
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
-    apiOrigin: 'https://api.synthetic.test',
-    clock: mocks.searchClock
-  })
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(
+    {
+      apiOrigin: 'https://api.synthetic.test',
+      clock: mocks.searchClock
+    },
+    {
+      openSelected: mocks.openSelectedCharacterDetail
+    }
+  )
   expect(mocks.registerWindow).toHaveBeenCalledExactlyOnceWith(
     expect.anything(),
     'http://localhost:5173/'
@@ -683,6 +722,7 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   expect(partialWindow.destroy).toHaveBeenCalledOnce()
   expect(partialWindow.show).not.toHaveBeenCalled()
   expect(authDisposers[1]).toHaveBeenCalledOnce()
+  expect(mocks.disposeCharacterDetails).toHaveBeenCalledOnce()
 
   activate()
 
@@ -1079,10 +1119,15 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
   expect(mocks.setPath).not.toHaveBeenCalled()
   expect(mocks.createSearchClock).toHaveBeenCalledExactlyOnceWith()
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith({
-    apiOrigin: 'https://api.synthetic.test',
-    clock: mocks.searchClock
-  })
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(
+    {
+      apiOrigin: 'https://api.synthetic.test',
+      clock: mocks.searchClock
+    },
+    {
+      openSelected: mocks.openSelectedCharacterDetail
+    }
+  )
 })
 
 it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 시작하지 않는다', async () => {

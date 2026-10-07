@@ -55,7 +55,8 @@ export function jsonResponse({
 export async function createSearchFixture(
   signedIn = false,
   searchKind: 'capture' | 'manual' = 'capture',
-  portraitMatchPolicy?: PortraitMatchPolicy
+  portraitMatchPolicy?: PortraitMatchPolicy,
+  details?: Parameters<typeof registerCaptureIpc>[1]
 ): Promise<{
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
@@ -103,12 +104,15 @@ export async function createSearchFixture(
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
-  const dispose = registerCaptureIpc({
-    apiOrigin: API_ORIGIN,
-    fetch: fetchSearch,
-    clock: harness.clock,
-    portraitMatchPolicy
-  })
+  const dispose = registerCaptureIpc(
+    {
+      apiOrigin: API_ORIGIN,
+      fetch: fetchSearch,
+      clock: harness.clock,
+      portraitMatchPolicy
+    },
+    details
+  )
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   const handlers = new Map<string, Handler>()
