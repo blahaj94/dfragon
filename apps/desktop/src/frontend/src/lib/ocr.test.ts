@@ -49,6 +49,18 @@ afterEach(() => {
 })
 
 describe('PaddleOCR worker 수명', () => {
+  it('원본 평가 모드는 party 가운데 정렬을 요청하지 않는다', async () => {
+    const creating = createPartyOcrWorker(undefined, 'raw')
+    const native = NativeWorker.latest
+    native.reply({ ready: true })
+    const worker = await creating
+    const recognizing = worker.recognize(image)
+    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels, preprocessing: 'raw' })
+    native.reply(recognized('평가', 80))
+    await recognizing
+    await worker.terminate()
+  })
+
   it('로컬 모델 초기화 후 상위 두 후보와 기존 검색의 1위 호환 필드를 반환한다', async () => {
     const creating = createPartyOcrWorker()
     const native = NativeWorker.latest
@@ -246,7 +258,7 @@ describe('PaddleOCR worker 수명', () => {
     const next = worker.recognize(image)
     native.reply({ text: '', confidence: 0, candidates: [] })
     expect(await next).toEqual({ data: { text: '', confidence: 0, candidates: [] } })
-    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels })
+    expect(native.postMessage).toHaveBeenLastCalledWith({ pixels, preprocessing: 'party' })
     expect(vi.getTimerCount()).toBe(0)
     await worker.terminate()
     expect(native.terminate).toHaveBeenCalledOnce()
