@@ -107,6 +107,10 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## UI 구성
 
+제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하고 상세 열기는 후속 창 연결 전까지 비활성이다.
+
+카드는 크롭 대기, 판정 기준 대기, 조회 중, 빈 결과와 오류를 구분한다. 오류는 기존 catalog의 고정 문구를 사용하고, 재시도는 슬롯별 진행 상태와 Retry-After를 따른다. `mvp-preview`의 자동 식별 상태 시나리오는 선택, 두 대기 상태, 긴 오류와 재시도를 합성 데이터로 확인한다. Electron의 900px, 500px, 300px 화면 확인은 실제 게임의 얼굴 식별 정확도 검증과 구분한다.
+
 캡처 화면은 게임 창·인식 간격·캡처 시작/중지를 한국어로 표시한다. 1920×1080 테두리 없는 창 모드·UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 대기나 오인식 때 닉네임 수정·직접 검색으로 이어진다. 창 선택·캡처 준비·OCR 준비·실행·종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 영상·OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도·배율과 검색·캡처 수명은 바꾸지 않는다.
 
 기존 `@dfragon/ui`의 ActionButton, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFRAGON composition이며 공용 자산의 외형을 덮어쓰는 CSS·style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
