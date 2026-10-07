@@ -4,7 +4,11 @@ import { createApiHttpApp } from '../src/http.js'
 import { parseAdventureSearchQuery } from '../src/adventures/query.js'
 import type { AdventureSearchQuery } from '../src/adventures/query.js'
 import { createAdventureSearchService } from '../src/adventures/service.js'
+import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
+const unusedSearchCharacters: SearchCharacters = async () => {
+  throw new Error('adventure requests must not search Neople characters')
+}
 const url = '/adventures/characters?adventureName=' + encodeURIComponent('합성모험단')
 const empty = { adventureName: '합성모험단', scope: 'stored' as const, rows: [], nextAfter: null }
 const queryFailure = {
@@ -130,7 +134,7 @@ test('모험단 query는 잘못된 구조·UTF-8·이름·페이지 경계를 �
 test('공개 모험단 HTTP는 입력 실패를 한도에 포함하지 않고 DB 실패와 한도 오류를 정제한다', async (t) => {
   let calls = 0
   let failing = false
-  const app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, {
+  const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters }, undefined, {
     search: async (input) => {
       calls++
       assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })
@@ -259,7 +263,7 @@ test(
     let calls = 0
     let readSignal: AbortSignal | undefined
     const controller = new AbortController()
-    const app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, {
+    const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters }, undefined, {
       search: async (input, signal) => {
         calls++
         assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })

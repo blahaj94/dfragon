@@ -2,7 +2,6 @@ import { NEOPLE_SERVER_NAMES } from '../../constants/neople-character-search.js'
 import { SearchAdmission, searchClock } from '../search-admission.js'
 import { SearchDeadline } from '../search-deadline.js'
 import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
-import { createNeopleCharacterDetails } from './neople.js'
 import type { FetchCharacterDetails } from './neople.js'
 import { projectCharacterDetails } from './project.js'
 import type { CharacterIdentity } from './sections.js'
@@ -13,9 +12,8 @@ import { CharacterRefreshes } from './refreshes.js'
 import type { CatalogService } from '../catalog/service.js'
 
 export interface CharacterDetailDependencies {
-  apiKey: string
   store: CharacterDetailStore
-  fetchDetails?: FetchCharacterDetails
+  fetchDetails: FetchCharacterDetails
   catalog?: CatalogService
 }
 
@@ -39,7 +37,7 @@ export function parseCharacterIdentity(
 
 export function createCharacterDetailService(deps: CharacterDetailDependencies) {
   const admission = new SearchAdmission()
-  const adapter = deps.fetchDetails ?? createNeopleCharacterDetails(deps.apiKey)
+  const adapter = deps.fetchDetails
   const shutdown = new AbortController()
   const active = new Set<Promise<unknown>>()
 
@@ -54,7 +52,7 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
     const deadline = new SearchDeadline(searchClock, signal)
     let lease: Awaited<ReturnType<SearchAdmission['acquire']>> | undefined
     try {
-      if (!peerAddress || !deps.apiKey.trim() || signal.aborted) {
+      if (!peerAddress || signal.aborted) {
         throw new CharacterDetailFailure('internal')
       }
       lease = await deadline.wait(admission.acquire(peerAddress, deadline.signal))

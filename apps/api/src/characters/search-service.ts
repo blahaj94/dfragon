@@ -4,7 +4,6 @@ import type {
   CharacterSearchResult,
   NeopleCharacterSearchInput
 } from '../types/neople-character-search.js'
-import { createNeopleCharacterSearch } from './neople-character-search.js'
 import { parseCharacterCandidatesQuery, parseCharacterSearchQuery } from './query.js'
 import { SearchAdmission, searchClock } from './search-admission.js'
 import { SearchDeadline } from './search-deadline.js'
@@ -16,7 +15,7 @@ export function createCharacterSearchService(
   const deps = Object.freeze({ ...dependencies })
   const clock = deps.clock ?? searchClock
   const admission = new SearchAdmission(clock)
-  const adapter = deps.searchCharacters ?? createNeopleCharacterSearch(deps.apiKey)
+  const adapter = deps.searchCharacters
   const active = new Set<SearchDeadline>()
   let closed = false
 
@@ -25,12 +24,7 @@ export function createCharacterSearchService(
     input: NeopleCharacterSearchInput,
     requestSignal?: AbortSignal
   ): Promise<CharacterSearchResult> => {
-    const isKeyString = typeof deps.apiKey === 'string'
-    if (!isKeyString) {
-      throw neopleSearchFailure('internal')
-    }
-    const hasKey = deps.apiKey.length > 0
-    const cannotStart = !hasKey || closed || !peerAddress
+    const cannotStart = closed || !peerAddress
     if (cannotStart) {
       throw neopleSearchFailure('internal')
     }

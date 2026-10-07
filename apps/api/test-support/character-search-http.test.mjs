@@ -5,10 +5,9 @@ import { test } from 'node:test'
 import { createApiHttpApp } from '../dist/http.js'
 import { withSearchApp } from './character-search-fixtures.mjs'
 
-async function withSearchBoundary(operation, { apiKey = 'synthetic-search-key' } = {}) {
+async function withSearchBoundary(operation) {
   let upstreamCalls = 0
   const app = await createApiHttpApp({
-    apiKey,
     async searchCharacters() {
       upstreamCalls++
       throw new Error('예상하지 않은 공급자 호출')
@@ -86,21 +85,14 @@ const authorizationCases = [
   }
 ]
 
-test('공개 검색의 잘못된 query는 Authorization 형식과 무관하게 설정 검사보다 먼저 거절된다', async () => {
-  await withSearchBoundary(
-    async (base) => {
-      for (const { name, headers } of authorizationCases) {
-        const response = await rawGet(
-          base,
-          '/characters?limit=%FF&accessToken=query-token',
-          headers
-        )
-        expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
-        assert.equal(response.headers['retry-after'], undefined, name)
-      }
-    },
-    { apiKey: '' }
-  )
+test('공개 검색의 잘못된 query는 Authorization 형식과 무관하게 공급자 호출 전에 거절된다', async () => {
+  await withSearchBoundary(async (base) => {
+    for (const { name, headers } of authorizationCases) {
+      const response = await rawGet(base, '/characters?limit=%FF&accessToken=query-token', headers)
+      expectSearchError(response, 400, 'INVALID_SEARCH_QUERY', queryMessage)
+      assert.equal(response.headers['retry-after'], undefined, name)
+    }
+  })
 })
 
 test('검색 HTTP는 raw 구조와 UTF-8 오류를 공급자 호출 전에 거절한다', async () => {
@@ -138,39 +130,17 @@ test('검색 HTTP는 raw 구조와 UTF-8 오류를 공급자 호출 전에 거�
     'characterName=ab&limit=1e2',
     'characterName=ab&limit=%EF%BC%91'
   ]
-  await withSearchBoundary(
-    async (base) => {
-      for (const query of invalidQueries) {
-        expectSearchError(
-          await rawGet(base, `/characters?${query}`),
-          400,
-          'INVALID_SEARCH_QUERY',
-          queryMessage
-        )
-      }
+  await withSearchBoundary(async (base) => {
+    for (const query of invalidQueries) {
       expectSearchError(
-        await rawGet(base, '/characters'),
+        await rawGet(base, `/characters?${query}`),
         400,
         'INVALID_SEARCH_QUERY',
         queryMessage
       )
-    },
-    { apiKey: '' }
-  )
-})
-
-test('유효한 검색 query와 빈 API key는 공급자 호출 없이 정제된 설정 오류가 된다', async () => {
-  await withSearchBoundary(
-    async (base) => {
-      expectSearchError(
-        await rawGet(base, '/characters?characterName=ab'),
-        500,
-        'INTERNAL_SERVER_ERROR',
-        '서버 오류로 검색을 처리하지 못했습니다.'
-      )
-    },
-    { apiKey: '' }
-  )
+    }
+    expectSearchError(await rawGet(base, '/characters'), 400, 'INVALID_SEARCH_QUERY', queryMessage)
+  })
 })
 
 test('HEAD와 잘못된 검색 query는 정상 GET의 열 번 한도를 소비하지 않는다', async () => {

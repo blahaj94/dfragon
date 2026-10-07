@@ -19,7 +19,6 @@ function fixture(overrides = {}) {
     clearTimer: (id) => timers.delete(id)
   }
   const service = createCharacterSearchService({
-    apiKey: 'synthetic-search-key',
     clock,
     searchCharacters: async (input) => {
       calls.push(input)
@@ -38,18 +37,12 @@ function fixture(overrides = {}) {
   }
 }
 
-test('검색은 query를 먼저 검증하고 설정 실패 때 공급자를 호출하지 않는다', async () => {
-  const f = fixture({ apiKey: '' })
+test('검색은 잘못된 query를 공급자 호출 전에 거절한다', async () => {
+  const f = fixture()
   try {
     await assert.rejects(f.service.search('127.0.0.1', '/characters?characterName='), {
       status: 400,
       body: { error: { code: 'INVALID_SEARCH_QUERY', message: '검색 조건을 확인해 주세요.' } }
-    })
-    await assert.rejects(f.service.search('127.0.0.1', originalUrl), {
-      status: 500,
-      body: {
-        error: { code: 'INTERNAL_SERVER_ERROR', message: '서버 오류로 검색을 처리하지 못했습니다.' }
-      }
     })
     assert.equal(f.calls.length, 0)
   } finally {

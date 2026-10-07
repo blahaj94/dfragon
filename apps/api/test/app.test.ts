@@ -137,6 +137,8 @@ test('compiled main은 잘못된 필수 설정을 DB 연결 전에 거절하고 
     { name: 'PORT 비십진 입력', change: { PORT: '30.00' } },
     { name: 'DB 사용자 누락', change: { DB_USERNAME: undefined } },
     { name: 'Neople key 누락', change: { NEOPLE_API_KEY: undefined } },
+    { name: 'Neople key 빈 값', change: { NEOPLE_API_KEY: '' } },
+    { name: 'Neople key 공백', change: { NEOPLE_API_KEY: ' \n' } },
     { name: '프록시 모드 오류', change: { SEARCH_TRUST_PROXY: 'unsafe-proxy' } },
     { name: 'TLS 파일 짝 누락', change: { LOCAL_HTTPS_CERT_FILE: '/missing/cert.pem' } }
   ]

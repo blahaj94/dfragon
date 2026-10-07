@@ -118,7 +118,15 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     assert.equal((await search.search(input('새모험단'), signal)).rows.length, 0)
 
     mark('실제 DB HTTP 조회는 provider 없이 저장된 목록을 반환')
-    app = await createApiHttpApp({ apiKey: 'synthetic' }, undefined, search)
+    app = await createApiHttpApp(
+      {
+        async searchCharacters() {
+          throw new Error('예상하지 않은 캐릭터 검색 공급자 호출')
+        }
+      },
+      undefined,
+      search
+    )
     await app.listen(0, '127.0.0.1')
     const url = `${await app.getUrl()}/adventures/characters?adventureName=${encodeURIComponent(name)}`
     const response = await fetch(url)

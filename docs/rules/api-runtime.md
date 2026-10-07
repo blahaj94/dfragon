@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api
-last-reviewed: 2026-09-10
+last-reviewed: 2026-10-07
 rationale: 검색 구현이 runtime과 검증 도구를 추측해 추가하지 않도록 승인 경계를 정한다.
 evidence: "PR #42 runtime 승인: https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698 ; PR #48 인증/DB 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519"
 exceptions: 사용자의 명시적인 실행 허용 전에는 dependency 설치와 실행 기반 구현을 허용하지 않는다.
@@ -60,6 +60,8 @@ HTTP client는 Node 내장 `fetch`, test runner와 assertion은 `node:test`, `no
 App 생성은 port를 열지 않는 factory로 분리하고, `main.ts`만 설정 읽기·listen·종료 signal 연결을 담당한다. Test는 factory에 fake 설정/provider를 넣어 `127.0.0.1`의 port `0`에서 실행하고 반드시 `app.close()`한다. 정상 HTTP 검증용 route는 test module 안에 두며 제품용 health/API를 추가하지 않는다.
 
 실행 기반의 최소 **필수** 설정은 `PORT`(십진 정수 1~65535)다. 누락·빈 값·잘못된 값은 listen 전에 실패한다. 따라서 runtime-only 단계에서도 실제 필수 설정 누락 실패를 검증한다. Test factory의 loopback port 0 주입은 환경변수 검증과 구분한다. 검색 구성에 필요한 `NEOPLE_API_KEY`는 검색 module을 연결할 때부터 필수이며 누락·빈 값은 listen 전에 실패한다. Runtime-only app은 아직 연결하지 않은 인증·DB·검색 설정을 요구하지 않는다. 필수 설정 실패는 값이나 stack을 출력하지 않고 검증한다. Fake 설정은 test에서만 주입하며 운영용 인증 우회나 test mode를 추가하지 않는다.
+
+2026-10-07 설정 책임 정리에서는 키의 누락, 빈 값, 공백뿐인 값 검증을 runtime 설정 읽기에 집중한다. DB 연결과 listen 전에 검증하고, runtime 조합부가 검색, 상세, 카탈로그 어댑터를 생성한다. 검색과 상세 서비스, HTTP 앱 factory는 raw API 키 없이 준비된 어댑터를 필수 의존성으로 받는다. 서비스 생성 후 매 요청 키를 다시 검사하지 않으며, 서비스 종료, 접속 IP와 취소 상태 등 요청마다 달라지는 조건만 실행 단계에서 확인한다. HTTP 테스트의 fake 어댑터에는 형식상 API 키를 요구하지 않는다. 잘못된 키로 HTTP 앱을 구성한 뒤 400/500 우선순위를 검사하던 내부 factory 테스트는 시작 단계의 설정 실패 검증으로 옮긴다. 정상 runtime의 설정 오류 시 시작 거절과 공개 HTTP 입력, 오류, 호출 한도 계약은 유지하며, 이 책임 변경은 같은 PR의 사용자 merge 후 적용한다.
 
 후속 구현의 표준 검증 command는 다음과 같다. Package script를 아래 동작으로 구현한 뒤 [검증 명령](../../scripts/README.md#native-validation)에 따라 실제 검증 범위와 결과를 기록한다.
 

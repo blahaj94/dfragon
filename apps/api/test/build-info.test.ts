@@ -5,7 +5,11 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { readApiBuildInfo } from '../src/build-info.js'
 import { createApiHttpApp } from '../src/http.js'
+import type { SearchCharacters } from '../src/types/neople-character-search.js'
 
+const unusedSearchCharacters: SearchCharacters = async () => {
+  throw new Error('build info requests must not search Neople characters')
+}
 const commit = '1234567890abcdef1234567890abcdef12345678'
 
 test('API 이미지 메타데이터는 유효한 값만 읽고 누락·오류는 commit null로 반환한다', async () => {
@@ -35,7 +39,7 @@ test('공개 version 응답은 캐시하지 않고 시작 시점 값을 유지�
   const path = join(directory, 'build-info.json')
   await writeFile(path, JSON.stringify({ service: 'api', commit }))
   const app = await createApiHttpApp(
-    { apiKey: 'version-fixture' },
+    { searchCharacters: unusedSearchCharacters },
     undefined,
     undefined,
     undefined,
@@ -61,7 +65,7 @@ test('이전 이미지에 메타데이터가 없어도 version 응답은 API 서
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-old-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
   const app = await createApiHttpApp(
-    { apiKey: 'version-fixture' },
+    { searchCharacters: unusedSearchCharacters },
     undefined,
     undefined,
     undefined,

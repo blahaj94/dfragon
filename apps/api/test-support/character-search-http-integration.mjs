@@ -57,28 +57,24 @@ async function publicSearch(source) {
 async function initialRejections(source) {
   const f = await searchFixture(source)
   const before = await snapshot(source, f)
-  await withSearchApp(
-    f,
-    async ({ base, calls }) => {
-      await expectSearchError(
-        await fetch(`${base}/characters?unknown=%FF`),
-        400,
-        'INVALID_SEARCH_QUERY'
-      )
-      await expectSearchError(
-        await searchRequest(base, f, 'characterName=ab&limit=1&%6Cimit=2'),
-        400,
-        'INVALID_SEARCH_QUERY'
-      )
-      await expectSearchError(
-        await searchRequest(base, f, 'characterName=%FF'),
-        400,
-        'INVALID_SEARCH_QUERY'
-      )
-      assert.deepEqual(calls, [])
-    },
-    { apiKey: '' }
-  )
+  await withSearchApp(f, async ({ base, calls }) => {
+    await expectSearchError(
+      await fetch(`${base}/characters?unknown=%FF`),
+      400,
+      'INVALID_SEARCH_QUERY'
+    )
+    await expectSearchError(
+      await searchRequest(base, f, 'characterName=ab&limit=1&%6Cimit=2'),
+      400,
+      'INVALID_SEARCH_QUERY'
+    )
+    await expectSearchError(
+      await searchRequest(base, f, 'characterName=%FF'),
+      400,
+      'INVALID_SEARCH_QUERY'
+    )
+    assert.deepEqual(calls, [])
+  })
   assert.deepEqual(await snapshot(source, f), before)
 }
 

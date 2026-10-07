@@ -5,6 +5,7 @@ import type { Request, Response } from 'express'
 import { CharacterDetailFailure } from './errors.js'
 import { parseCharacterIdentity } from './service.js'
 import type { CharacterDetailService } from './service.js'
+import { respondWithCancellation } from '../../http-response.js'
 
 export const CHARACTER_DETAIL_SERVICE = Symbol('CHARACTER_DETAIL_SERVICE')
 
@@ -47,22 +48,12 @@ export class CharacterDetailController {
       request.params.characterId,
       request.originalUrl
     )
-    const controller = new AbortController()
-    const cancel = () => {
-      if (!response.writableFinished) {
-        controller.abort()
+    await respondWithCancellation(response, (signal) => {
+      if (forceRefresh) {
+        return this.service.refresh(request.ip, identity, signal)
       }
-    }
-    response.once('close', cancel)
-    try {
-      const result = forceRefresh
-        ? await this.service.refresh(request.ip, identity, controller.signal)
-        : await this.service.get(request.ip, identity, controller.signal)
-      if (!response.destroyed) {
-        response.status(200).json(result)
-      }
-    } finally {
-      response.removeListener('close', cancel)
-    }
+
+      return this.service.get(request.ip, identity, signal)
+    })
   }
 }
