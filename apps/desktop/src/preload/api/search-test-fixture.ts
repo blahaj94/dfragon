@@ -2,6 +2,7 @@ import type {
   SearchCommandResult,
   SearchControl,
   SearchObservation,
+  OcrSearchObservation,
   SearchSlot,
   SearchSnapshot
 } from '../common/types/search'
@@ -22,6 +23,7 @@ export type SearchTestApi = {
   onCharacterSearchChanged: (listener: (snapshot: SearchSnapshot) => void) => () => void
 }
 export type ObservationTestApi = {
+  notifyOcrCandidatesDetected: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   notifyStableNicknameDetected: (observation: SearchObservation) => Promise<SearchCommandResult>
 }
 

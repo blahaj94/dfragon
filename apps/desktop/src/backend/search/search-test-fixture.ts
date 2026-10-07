@@ -9,6 +9,7 @@ import {
   registerCaptureWindow,
   consumeCaptureMediaPermission
 } from '../capture/ipc-handler'
+import type { PortraitMatchPolicy } from './portrait-match'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
 const electron = vi.hoisted(() => {
@@ -53,7 +54,8 @@ export function jsonResponse({
 
 export async function createSearchFixture(
   signedIn = false,
-  searchKind: 'capture' | 'manual' = 'capture'
+  searchKind: 'capture' | 'manual' = 'capture',
+  portraitMatchPolicy?: PortraitMatchPolicy
 ): Promise<{
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
@@ -104,7 +106,8 @@ export async function createSearchFixture(
   const dispose = registerCaptureIpc({
     apiOrigin: API_ORIGIN,
     fetch: fetchSearch,
-    clock: harness.clock
+    clock: harness.clock,
+    portraitMatchPolicy
   })
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
