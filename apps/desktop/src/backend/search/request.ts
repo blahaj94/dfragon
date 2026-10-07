@@ -1,5 +1,9 @@
 import type { AuthClock } from '../auth/types'
-import type { CharacterSearchRow, OcrSearchInput } from '../../preload/common/types/search'
+import type {
+  CharacterSearchRow,
+  CharacterSelectionMethod,
+  OcrSearchInput
+} from '../../preload/common/types/search'
 import type {
   CharacterDetails,
   CharacterSummary,
@@ -7,7 +11,11 @@ import type {
   CharacterImage,
   CharacterPortrait
 } from '../../preload/common/types/character'
-import { createCharacterIdentifier, type IdentificationServices } from './identify'
+import {
+  createCharacterIdentifier,
+  createManualCharacterLookup,
+  type IdentificationServices
+} from './identify'
 import { SearchHttpFailure, type SearchHttp } from './http'
 import type {
   CharacterCandidatesHttp,
@@ -39,7 +47,11 @@ export type SearchOutcome =
   | {
       kind: 'success'
       rows: readonly CharacterSearchRow[]
-      selected?: { summary: CharacterSummary; details: CharacterDetails }
+      selected?: {
+        summary: CharacterSummary
+        details: CharacterDetails
+        selectionMethod: CharacterSelectionMethod
+      }
     }
   | SearchOperationFailure
   | null
@@ -51,6 +63,7 @@ type RequestInput = {
   signal: AbortSignal
   isCurrent: () => boolean
   ocrInput?: OcrSearchInput
+  manualServerId?: string
 }
 
 function displayText(value: CharacterJsonValue | undefined): string | null {
@@ -71,8 +84,8 @@ function displayNumber(value: CharacterJsonValue | undefined): number | null {
 
 /** 기존 일반 검색을 공통 요청 예산으로 실행하고 기존 rows 응답을 유지한다. */
 export async function runSearchRequest(input: RequestInput): Promise<SearchOutcome> {
-  if (input.ocrInput !== undefined) {
-    return runIdentificationRequest(input, input.ocrInput)
+  if (input.ocrInput !== undefined || input.manualServerId !== undefined) {
+    return runIdentificationRequest(input)
   }
   const outcome = await runSearchOperation(
     {
@@ -92,10 +105,7 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
 }
 
 /** OCR 입력은 일반 검색으로 대체하지 않고 선택된 한 캐릭터만 공개 요약으로 투영한다. */
-async function runIdentificationRequest(
-  input: RequestInput,
-  ocr: OcrSearchInput
-): Promise<SearchOutcome> {
+async function runIdentificationRequest(input: RequestInput): Promise<SearchOutcome> {
   const adapters = input.runtime.identification
   if (adapters === undefined) {
     return {
@@ -113,9 +123,16 @@ async function runIdentificationRequest(
     },
     (execution) => {
       const services = bindIdentificationServices(adapters, execution)
-      const identify = createCharacterIdentifier(services)
+      if (input.manualServerId !== undefined) {
+        const lookup = createManualCharacterLookup(services)
 
-      return identify({ nicknames: ocr.candidateNicknames, portrait: ocr.portrait })
+        return lookup({ nickname: input.nickname, serverId: input.manualServerId })
+      }
+      const identify = createCharacterIdentifier(services)
+      const nicknames = input.ocrInput?.candidateNicknames ?? []
+      const portrait = input.ocrInput?.portrait ?? null
+
+      return identify({ nicknames, portrait })
     }
   )
   if (outcome === null || outcome.kind === 'failure') {
@@ -130,18 +147,10 @@ async function runIdentificationRequest(
     }
   }
 
-  if (outcome.value.kind === 'appearance-unavailable') {
-    return {
-      kind: 'failure',
-      error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE', retryAfterSeconds: null },
-      retryAfterReceivedAt: null
-    }
-  }
-
   if (outcome.value.kind !== 'matched') {
     return { kind: 'success', rows: [] }
   }
-  const { candidate, details } = outcome.value
+  const { candidate, details, selectionMethod } = outcome.value
   const { characterId, characterName, serverId, serverName, fame } = candidate
   const rows = [{ characterId, characterName, serverId, serverName, fame }]
   const character = details.character
@@ -163,7 +172,7 @@ async function runIdentificationRequest(
     imageUrl: candidate.imageUrl
   }
 
-  return { kind: 'success', rows, selected: { summary, details } }
+  return { kind: 'success', rows, selected: { summary, details, selectionMethod } }
 }
 
 /** 요청의 실행 관리를 결합하고 식별 규칙에는 업무 연산만 전달한다. */
@@ -176,16 +185,25 @@ function bindIdentificationServices(
       execution.run((signal) => adapters.candidates({ nickname, signal })),
     loadPortraits: (identity) =>
       execution.run(async (signal) => {
-        const source = await adapters.image({ ...identity, signal })
-        if ('kind' in source) {
-          if (source.kind === 'unavailable') {
-            return null
+        try {
+          const source = await adapters.image({ ...identity, signal })
+          if ('kind' in source) {
+            if (source.kind === 'unavailable') {
+              return null
+            }
+
+            return source.images
           }
 
-          return source.images
-        }
+          return [source]
+        } catch (error) {
+          if (error instanceof SearchHttpFailure && error.code === 'SEARCH_RATE_LIMITED') {
+            throw error
+          }
+          // 외형 조회 실패는 명성 대체 표시로 이어지되 취소와 만료는 실행 계층이 판정한다.
 
-        return [source]
+          return null
+        }
       }),
     getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
     matchesPortrait: (input) =>
@@ -193,8 +211,8 @@ function bindIdentificationServices(
         try {
           return await adapters.matchesPortrait({ ...input, signal })
         } catch {
-          // 비교 입력이나 연산 한도 문제를 불일치로 숨겨 다음 후보를 선택하지 않는다.
-          throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
+          // 비교 실패는 다음 후보의 일치로 확정하지 않고 명성 대체 표시로 보낸다.
+          return null
         }
       })
   }

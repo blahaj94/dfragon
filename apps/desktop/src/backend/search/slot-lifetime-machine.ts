@@ -12,6 +12,7 @@ export type SearchRequest = {
   startedAt: number
   runtime: SearchRuntime
   ocrInput?: OcrSearchInput
+  manualServerId?: string
 }
 export type RequestIdentity = Pick<SearchRequest, 'slot' | 'captureId' | 'requestId'>
 export type RateWait = RequestIdentity & RetryAfter
@@ -51,7 +52,8 @@ export const slotLifetimeMachine = setup({
             startedAt: request.startedAt,
             signal: controller.signal,
             isCurrent: () => input.canComplete(request),
-            ocrInput: request.ocrInput
+            ocrInput: request.ocrInput,
+            manualServerId: request.manualServerId
           })
         } catch {
           outcome = {

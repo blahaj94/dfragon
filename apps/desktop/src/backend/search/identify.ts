@@ -1,3 +1,4 @@
+import type { CharacterSelectionMethod } from '../../preload/common/types/search'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -16,19 +17,18 @@ export type IdentificationServices = {
   matchesPortrait: (input: {
     portrait: CharacterPortrait
     candidate: CharacterImage
-  }) => Promise<boolean>
+  }) => Promise<boolean | null>
 }
 
 export type CharacterIdentification =
   | { kind: 'invalid-input' }
-  | { kind: 'portrait-unavailable' }
-  | { kind: 'appearance-unavailable' }
   | { kind: 'unmatched' }
   | {
       kind: 'matched'
       candidate: CharacterCandidate
       details: CharacterDetails
       nickname: string
+      selectionMethod: CharacterSelectionMethod
     }
 
 export type CharacterIdentificationInput = {
@@ -36,61 +36,109 @@ export type CharacterIdentificationInput = {
   portrait: CharacterPortrait | null
 }
 
-/** 순위는 유지하고 검색할 수 없는 빈 OCR 후보와 같은 이름의 반복만 제외한다. */
-function searchableNames(nicknames: readonly string[]): string[] {
-  const names: string[] = []
-  for (const nickname of nicknames) {
-    const length = [...nickname].length
-    const valid =
-      length > 0 &&
-      length <= MAX_NAME_CODE_POINTS &&
-      nickname === nickname.trim() &&
-      nickname.isWellFormed()
-    if (valid && !names.includes(nickname)) {
-      names.push(nickname)
-    }
+/** 검색 가능한 원문만 허용하고 두 번째 OCR 후보로 보정하지 않는다. */
+export function isCharacterSearchNickname(nickname: string | undefined): nickname is string {
+  if (nickname === undefined) {
+    return false
   }
+  const length = [...nickname].length
 
-  return names
+  return (
+    length > 0 &&
+    length <= MAX_NAME_CODE_POINTS &&
+    nickname === nickname.trim() &&
+    nickname.isWellFormed()
+  )
 }
 
-/** 크롭 결과가 있을 때만 이름별 후보를 순서대로 비교하고 처음 일치한 캐릭터의 상세를 조회한다. */
-export function createCharacterIdentifier(services: IdentificationServices) {
-  return async (input: CharacterIdentificationInput): Promise<CharacterIdentification> => {
-    if (input.nicknames.length > MAX_OCR_NAMES) {
-      return { kind: 'invalid-input' }
-    }
-    const names = searchableNames(input.nicknames)
-    const portrait = input.portrait
-    if (portrait === null) {
-      return { kind: 'portrait-unavailable' }
+/** 명성이 같은 후보는 API 순서를 유지하고 null은 0을 포함한 모든 명성 뒤에 둔다. */
+function orderedCandidates(candidates: readonly CharacterCandidate[]): CharacterCandidate[] {
+  return candidates.toSorted((left, right) => {
+    if (left.fame === right.fame) {
+      return 0
     }
 
-    for (const nickname of names) {
-      const candidates = await services.findCandidates(nickname)
+    if (left.fame === null) {
+      return 1
+    }
+
+    if (right.fame === null) {
+      return -1
+    }
+
+    return right.fame - left.fame
+  })
+}
+
+/** 첫 이름의 외형을 순서대로 비교하고 확인하지 못하면 최고 명성 후보를 제시한다. */
+export function createCharacterIdentifier(services: IdentificationServices) {
+  return async (input: CharacterIdentificationInput): Promise<CharacterIdentification> => {
+    const nickname = input.nicknames[0]
+    if (input.nicknames.length > MAX_OCR_NAMES || !isCharacterSearchNickname(nickname)) {
+      return { kind: 'invalid-input' }
+    }
+    const candidates = orderedCandidates(await services.findCandidates(nickname))
+    const highest = candidates[0]
+    if (highest === undefined) {
+      return { kind: 'unmatched' }
+    }
+    const portrait = input.portrait
+    if (portrait !== null) {
       for (const candidate of candidates) {
         const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
         const images = await services.loadPortraits(identity)
         if (images === null || images.length === 0) {
-          return { kind: 'appearance-unavailable' }
+          break
         }
-        let matches = false
         for (const image of images) {
-          matches = await services.matchesPortrait({ portrait, candidate: image })
+          const matches = await services.matchesPortrait({ portrait, candidate: image })
+          if (matches === null) {
+            return selectCandidate(services, highest, nickname, 'highest-fame')
+          }
+
           if (matches) {
-            break
+            return selectCandidate(services, candidate, nickname, 'portrait')
           }
         }
-
-        if (!matches) {
-          continue
-        }
-        const details = await services.getDetails(identity)
-
-        return { kind: 'matched', candidate, details, nickname }
       }
     }
 
-    return { kind: 'unmatched' }
+    return selectCandidate(services, highest, nickname, 'highest-fame')
   }
+}
+
+/** 사용자가 지정한 서버와 이름이 모두 일치하는 캐릭터만 선택한다. */
+export function createManualCharacterLookup(
+  services: Pick<IdentificationServices, 'findCandidates' | 'getDetails'>
+) {
+  return async (input: {
+    nickname: string
+    serverId: string
+  }): Promise<CharacterIdentification> => {
+    if (!isCharacterSearchNickname(input.nickname)) {
+      return { kind: 'invalid-input' }
+    }
+    const candidates = await services.findCandidates(input.nickname)
+    const candidate = candidates.find(
+      (candidate) =>
+        candidate.serverId === input.serverId && candidate.characterName === input.nickname
+    )
+    if (candidate === undefined) {
+      return { kind: 'unmatched' }
+    }
+
+    return selectCandidate(services, candidate, input.nickname, 'manual')
+  }
+}
+
+async function selectCandidate(
+  services: Pick<IdentificationServices, 'getDetails'>,
+  candidate: CharacterCandidate,
+  nickname: string,
+  selectionMethod: CharacterSelectionMethod
+): Promise<CharacterIdentification> {
+  const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
+  const details = await services.getDetails(identity)
+
+  return { kind: 'matched', candidate, details, nickname, selectionMethod }
 }
