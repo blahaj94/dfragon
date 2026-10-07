@@ -7,8 +7,15 @@ import type {
   OcrSearchObservation
 } from './search'
 import type { BuildVersions } from './build-versions'
+import type {
+  CharacterDetailSnapshot,
+  CharacterSelectionReference,
+  OpenCharacterDetailResult
+} from './character-detail'
 
 interface AsyncIPCFunctions {
+  readCharacterDetail: () => Promise<CharacterDetailSnapshot>
+  openCharacterDetails: (input: CharacterSelectionReference) => Promise<OpenCharacterDetailResult>
   getBuildVersions: () => Promise<BuildVersions>
   getAuthState: () => Promise<AuthSnapshot>
   beginLogin: (input: { provider: AuthProvider }) => Promise<AuthCommandResult>

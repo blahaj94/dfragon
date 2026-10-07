@@ -21,6 +21,7 @@ export function PartyPage({
   settings = <SettingsSection />,
   nicknames,
   onDetail,
+  onSlotDetail,
   slotNotices,
   onRetry,
   retryEnabled,
@@ -38,6 +39,7 @@ export function PartyPage({
   settings?: ReactNode
   nicknames?: readonly (string | null)[]
   onDetail?: () => void
+  onSlotDetail?: (slot: number) => void
   slotNotices?: readonly (string | undefined)[]
   onRetry?: (slot: number) => void
   retryEnabled?: readonly boolean[]
@@ -80,6 +82,11 @@ export function PartyPage({
           const observedNickname = nicknames?.[index] ?? undefined
           const displayedNickname =
             state === 'success' && selected != null ? undefined : observedNickname
+          let detailAction = onDetail
+          if (onSlotDetail !== undefined) {
+            detailAction =
+              state === 'success' && selected != null ? () => onSlotDetail(index) : undefined
+          }
 
           return (
             <CharacterCard
@@ -91,7 +98,7 @@ export function PartyPage({
               inputEnabled={inputEnabled}
               basicOnly={basicOnly}
               initialFace={compareFaces ? index : 0}
-              onDetail={onDetail}
+              onDetail={detailAction}
               notice={slotNotices?.[index]}
               onRetry={onRetry == null ? undefined : () => onRetry(index)}
               retryEnabled={retryEnabled?.[index]}

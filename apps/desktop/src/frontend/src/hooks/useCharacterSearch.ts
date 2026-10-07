@@ -7,6 +7,7 @@ import {
 } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
+import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
 
 type CharacterSearch = SearchView & {
   begin: (signal: AbortSignal) => Promise<string | null>
@@ -14,6 +15,8 @@ type CharacterSearch = SearchView & {
   observe: (input: { slot: number; nickname: string | null }) => void
   observeOcr: (input: OcrCaptureObservation) => void
   retry: (slot: number) => void
+  openDetails: (slot: number) => void
+  detailNotice: string
   manualSlots: readonly boolean[]
   editSlot: (slot: number) => void
   submitSlot: (slot: number, nickname: string) => void
@@ -26,6 +29,8 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     invalidatedRef.current = onInvalidated
   }, [onInvalidated])
   const bridgeRef = useRef<CaptureSearch | null>(null)
+  const detailPendingRef = useRef(new Set<string>())
+  const [detailFailure, setDetailFailure] = useState<CharacterSelectionReference | null>(null)
   const manualSlotsRef = useRef(new Set<number>())
   const latestOcrRef = useRef<(CaptureObservation | null)[]>([null, null, null, null])
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>([false, false, false, false])
@@ -41,6 +46,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
 
   useEffect(() => {
     let active = true
+    const pendingDetails = detailPendingRef.current
     const bridge = createCaptureSearch({
       api,
       notify,
@@ -48,6 +54,21 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       onChange: (value) => {
         if (active) {
           setView(value)
+          setDetailFailure((failure) => {
+            if (failure === null) {
+              return null
+            }
+            const current = bridgeRef.current?.selectedReference(failure.slot)
+            if (
+              current?.captureId === failure.captureId &&
+              current.slot === failure.slot &&
+              current.requestId === failure.requestId
+            ) {
+              return failure
+            }
+
+            return null
+          })
         }
       },
       onInvalidated: () => invalidatedRef.current()
@@ -58,6 +79,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     return () => {
       active = false
       bridgeRef.current = null
+      pendingDetails.clear()
       bridge.dispose()
     }
   }, [api, notify, notifyOcr])
@@ -71,6 +93,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     return bridge.begin({ signal })
   }, [])
   const end = useCallback((): void => {
+    setDetailFailure(null)
     manualSlotsRef.current.clear()
     latestOcrRef.current = [null, null, null, null]
     setManualSlots([false, false, false, false])
@@ -106,6 +129,40 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   const retry = useCallback((slot: number): void => {
     void bridgeRef.current?.retry(slot)
   }, [])
+  const openDetails = useCallback((slot: number): void => {
+    const bridge = bridgeRef.current
+    const reference = bridge?.selectedReference(slot)
+    if (bridge == null || reference == null) {
+      return
+    }
+    const identity = `${reference.captureId}:${reference.slot}:${reference.requestId}`
+    if (detailPendingRef.current.has(identity)) {
+      return
+    }
+    detailPendingRef.current.add(identity)
+    setDetailFailure(null)
+    const reportFailure = (): void => {
+      const current = bridge.selectedReference(slot)
+      if (
+        bridgeRef.current === bridge &&
+        current?.captureId === reference.captureId &&
+        current.requestId === reference.requestId
+      ) {
+        setDetailFailure(reference)
+      }
+    }
+    void window.api
+      .openCharacterDetails(reference)
+      .then((result) => {
+        if (!result.ok) {
+          reportFailure()
+        }
+      })
+      .catch(reportFailure)
+      .finally(() => detailPendingRef.current.delete(identity))
+  }, [])
+  const detailNotice =
+    detailFailure === null ? '' : '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.'
 
   return {
     ...view,
@@ -114,6 +171,8 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     observe,
     observeOcr: observe,
     retry,
+    openDetails,
+    detailNotice,
     manualSlots,
     editSlot,
     submitSlot,

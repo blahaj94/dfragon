@@ -26,13 +26,11 @@ export default defineConfig(({ mode, command }) => {
   )
   const backendEntry = resolve('src/backend/main.ts')
   const frontendRoot = resolve('src/frontend')
-  const rendererInput =
-    mode === 'mvp-preview'
-      ? {
-          app: resolve('src/frontend/index.html'),
-          mvpPreview: resolve('src/frontend/mvp-preview.html')
-        }
-      : resolve('src/frontend/index.html')
+  const rendererInput = {
+    app: resolve('src/frontend/index.html'),
+    characterDetail: resolve('src/frontend/character-detail.html'),
+    ...(mode === 'mvp-preview' ? { mvpPreview: resolve('src/frontend/mvp-preview.html') } : {})
+  }
   const rendererAliases = [
     { find: '@frontend', replacement: resolve('src/frontend/src') },
     { find: /^@dfragon\/lib$/, replacement: libAlias },
@@ -107,11 +105,23 @@ export default defineConfig(({ mode, command }) => {
         outDir: 'out/backend'
       }
     },
-    preload: { build: { externalizeDeps: false } },
+    preload: {
+      build: {
+        externalizeDeps: false,
+        rollupOptions: {
+          input: {
+            index: resolve('src/preload/index.ts'),
+            'character-detail': resolve('src/preload/character-detail.ts')
+          }
+        }
+      }
+    },
     renderer: {
       worker: { format: 'es' },
       root: frontendRoot,
       build: {
+        // StyleX 규칙을 담은 공통 CSS를 모든 HTML entry에서 읽는다.
+        cssCodeSplit: false,
         rollupOptions: {
           input: rendererInput,
           output: {
