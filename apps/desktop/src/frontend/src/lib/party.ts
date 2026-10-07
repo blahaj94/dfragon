@@ -29,7 +29,8 @@ export type PartyRecognitionInput = {
   portrait: CharacterPortrait | null
 }
 
-export type PartyFrameSource = CharacterImage | HTMLVideoElement | null
+export type PartyFrameSource =
+  (CharacterImage & { captureId?: string; frameId?: string }) | HTMLVideoElement | null
 
 /** 현재 RGBA 또는 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
 export function capturePartyNicknameCrops(source: PartyFrameSource): (HTMLCanvasElement | null)[] {

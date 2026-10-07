@@ -3,6 +3,8 @@ import { runSerialLoop } from './recognition'
 import type { PartyOcrWorker } from '../types/capture'
 import type { PartyFrameSource } from './party'
 import type { WindowFrameResult } from '../../../preload/common/types/capture'
+import { reportRendererDiagnostic } from './runtime-diagnostics'
+import type { RendererDiagnosticCode } from '../../../preload/common/types/diagnostics'
 
 type Worker = Awaited<ReturnType<typeof createPartyOcrWorker>>
 
@@ -58,6 +60,7 @@ export function startPartyCaptureSession(
 
   async function start(): Promise<void> {
     let failureMessage = '검색을 시작하지 못했습니다. 창을 다시 선택해 주세요.'
+    let diagnostic: RendererDiagnosticCode = 'CAPTURE_START_FAILED'
     try {
       const captureId = await input.beginSearch(signal)
       signal.throwIfAborted()
@@ -66,6 +69,7 @@ export function startPartyCaptureSession(
       }
       report({ type: 'FRAME_REQUESTED' })
       failureMessage = '캡처 연결이 종료되었습니다. 창을 다시 선택해 주세요.'
+      diagnostic = 'CAPTURE_READ_FAILED'
       const initialFrame = await input.readFrame(captureId)
       signal.throwIfAborted()
       if (initialFrame.kind === 'unsupported') {
@@ -73,6 +77,7 @@ export function startPartyCaptureSession(
         throw new Error(failureMessage)
       }
       report({ type: 'OCR_START' })
+      diagnostic = 'OCR_FAILED'
       failureMessage = '글자 인식을 준비하지 못했습니다. 캡처를 다시 시작해 주세요.'
       worker = await createPartyOcrWorker(signal)
       signal.throwIfAborted()
@@ -90,6 +95,7 @@ export function startPartyCaptureSession(
             return
           }
           failureMessage = '캡처 연결이 종료되었습니다. 창을 다시 선택해 주세요.'
+          diagnostic = 'CAPTURE_READ_FAILED'
           const result = await input.readFrame(captureId)
           if (signal.aborted) {
             return
@@ -101,6 +107,7 @@ export function startPartyCaptureSession(
           }
           failureMessage =
             '글자 인식에 실패해 캡처를 중지했습니다. 다시 시작하거나 캐릭터 직접 검색을 사용해 주세요.'
+          diagnostic = 'OCR_FAILED'
           if (result.kind === 'waiting') {
             await input.recognizePartyNicknames(null, activeWorker, signal)
             if (signal.aborted) {
@@ -111,7 +118,8 @@ export function startPartyCaptureSession(
 
             return
           }
-          await input.recognizePartyNicknames(result.image, activeWorker, signal)
+          const frame = { ...result.image, captureId, frameId: result.frameId }
+          await input.recognizePartyNicknames(frame, activeWorker, signal)
           if (signal.aborted) {
             return
           }
@@ -122,6 +130,7 @@ export function startPartyCaptureSession(
       if (signal.aborted) {
         release()
       } else {
+        reportRendererDiagnostic(diagnostic)
         report({ type: 'FAILED', status: failureMessage })
       }
     }
