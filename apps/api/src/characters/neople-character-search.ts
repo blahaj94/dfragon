@@ -19,6 +19,8 @@ import type {
 } from '../types/neople-character-search.js'
 import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
+const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
+
 const nativeDependencies: SearchDependencies = {
   fetch: (request, init) => fetch(request, init),
   origin: NEOPLE_ORIGIN,
@@ -108,7 +110,7 @@ function projectResponse(
       (characterName !== input.characterName ||
         !NEOPLE_SERVER_NAMES.has(serverId) ||
         characterId.length > 256 ||
-        /[^a-zA-Z0-9_-]/.test(characterId))
+        INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(characterId))
     ) {
       throw neopleSearchFailure('api')
     }
