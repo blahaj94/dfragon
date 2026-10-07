@@ -1,6 +1,6 @@
 # OCR 자료실
 
-원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버·React SPA입니다. 관리는 기존 패스키로 인증한 지정 계정만 사용할 수 있으며 합성 자료 등록은 별도 전용 토큰을 사용합니다. 로그인 중 Desktop에서 수집한 원본과 크롭 좌표를 받을 수 있으며, 자동 업로드 큐, 학습 실행, 데이터셋 버전 관리는 포함하지 않습니다. 최초 자동 분할은 미리보기 후 사용자가 명시 적용합니다.
+원본 게임 화면, 닉네임 크롭 영역, 정답과 train/val/test 배정을 관리하는 개인용 Linux NestJS 서버, React SPA입니다. 관리는 기존 패스키로 인증한 지정 계정만 사용할 수 있으며 합성 자료 등록은 별도 전용 토큰을 사용합니다. 로그인한 Desktop의 수집과 명시적으로 켠 테스트 버전의 비로그인 수집을 받습니다. 서버의 자동 재전송, 학습 실행, 데이터셋 버전 관리는 포함하지 않습니다. 최초 자동 분할은 미리보기 후 사용자가 명시 적용합니다.
 
 ```sh
 pnpm --filter @dfragon/ocr test
@@ -247,3 +247,33 @@ HTTP 오류의 식별자·상태·안내 문구 원본은 `src/errors.ts`의 `OC
 ## Desktop 수집 연결
 
 로그인한 Desktop의 main process가 기존 access token으로 `POST /api/desktop/captures`에 원본 PNG와 크롭 좌표를 보냅니다. 업로드 JSON은 `/api/captures`와 같습니다. 서버는 기존 인증 API `/me`로 활성 세션과 `OCR_OWNER_ID`를 확인하며 cookie만 있는 요청이나 Origin이 있는 브라우저 요청은 받지 않습니다. 관리 API와 자료실 로그인은 기존 owner cookie 경계를 유지합니다. 새 DB migration·환경 변수·별도 역할은 없습니다. `raid`를 받는 OCR 서버를 먼저 배포한 뒤 공대원창 수집이 포함된 Desktop을 배포합니다. 공대원창은 닉네임 크롭을 같은 정답·제외·분할·평가 흐름으로 제공합니다. 공대원 행 번호는 해당 캡처의 화면 위치이므로, 공대원이 나가 목록이 위로 당겨지면 같은 번호가 다른 사람을 가리킬 수 있습니다.
+
+### 테스트 버전의 비로그인 HUD 수집
+
+`OCR_TEST_UPLOAD_ENABLED=true`로 시작한 서버에 한해 `POST /api/desktop/test-captures`를 받습니다. 생략 또는 `false`는 404이며 그 외 설정은 시작 오류입니다. 서버 배포와 이 설정 적용은 별도 운영 작업입니다. 공개 클라이언트에 비밀 토큰을 넣지 않으며, 이 경로는 Origin, Authorization, Cookie 헤더를 받지 않습니다. 조회, 정답 변경, 분할, 모델, 기존 Desktop 업로드의 인증은 그대로 유지합니다.
+
+본문은 기존 실제 캡처 계약에 `testCollection`만 추가합니다. `kind`는 `hud`입니다. `crops`에는 원본 픽셀 기준 닉네임 좌표를, `testCollection.slots`에는 얼굴과 닉네임을 포함한 전체 파티원 슬롯 좌표를 넣습니다. 두 목록은 같은 슬롯 집합이며 각 전체 슬롯이 해당 닉네임을 포함해야 합니다. 서버는 원본 PNG 한 장을 저장하고 두 크롭을 필요할 때 생성합니다.
+
+```json
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "capturedAt": "2026-10-08T00:00:00.000Z",
+  "kind": "hud",
+  "uiScale": null,
+  "uiScaleSource": "unknown",
+  "originalPng": "<base64 PNG>",
+  "crops": [{ "slot": 1, "x": 42, "y": 10, "width": 73, "height": 16 }],
+  "testCollection": {
+    "trigger": "ocr",
+    "slots": [{ "slot": 1, "x": 10, "y": 4, "width": 142, "height": 38, "prediction": "예측값" }]
+  }
+}
+```
+
+`trigger`는 `ocr` 또는 `shortcut`입니다. `prediction`은 최대 128 UTF-16 code unit 문자열 또는 null이며 `shortcut`에는 null만 허용합니다. 성공 여부와 무관하게 미검수 예측을 보관하고 정답, 분할을 채우지 않습니다. 학습용 `/api/samples/:id/image`는 닉네임 크롭을 유지합니다. owner는 편집기에서 미검수 예측과 `/api/samples/:id/context/image`의 전체 슬롯을 확인할 수 있습니다. Context 경로는 Desktop Bearer에도 추가로 개방하지 않습니다.
+
+같은 ID, 같은 요청은 200 중복 응답입니다. 같은 ID의 다른 내용은 409입니다. ID가 달라도 원본 PNG bytes와 닉네임, 슬롯 좌표가 모두 같으면 200 `{id: 기존 캡처 ID, duplicate: true}`로 중복 저장을 막고 최초 예측을 유지합니다. 다른 픽셀의 연속 프레임까지 같은 자료로 판단하지 않으며 train/val/test를 자동 배정하지 않습니다.
+
+본문 23 MiB, PNG 16 MiB, 한 축 8192, 총 16,777,216 pixels와 기존 통합 저장 용량 한도를 적용합니다. 테스트 수집은 추가로 원본 합계 256 MiB, 10,000개 캡처를 상한으로 하고 가득 차면 507로 거절하며 기존 자료를 삭제하지 않습니다. PNG bytes 한도는 SQLite 파일, 메타데이터, journal의 실제 사용량과 다릅니다. 60초마다 IP별 24회, 전체 120회의 요청을 받으며 실패도 횟수를 소비합니다. IPv6는 /64를 공유하고 IP 신뢰는 기존 `OCR_TRUST_PROXY` 설정을 따릅니다. 전체 업로드 동시 2개 중 익명 요청은 최대 1개, 수신은 30초로 제한합니다. 프로세스 재시작과 여러 서버 간 요청 한도는 공유하지 않습니다.
+
+새 SQL 테이블, 컬럼, migration은 없습니다. 기존 `captures.metadata` JSON에 수집 출처, 전체 슬롯 좌표, 미검수 예측과 서버 계산 content hash를 추가합니다. 기존 자료, 정답, 분할은 변경하지 않습니다. 이 기능만 되돌린 서버에서도 기존 canonical 닉네임 크롭을 읽을 수 있지만 새 문맥과 예측 표시는 제공하지 않습니다.
