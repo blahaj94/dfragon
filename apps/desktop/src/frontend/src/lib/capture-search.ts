@@ -14,6 +14,7 @@ import {
 } from '../../../preload/common/types/search'
 import { createSearchConnection } from './search-connection'
 import { captureSearchMachine } from './capture-search-machine'
+import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
 
 type SearchOptions = {
   api: SearchApi
@@ -33,6 +34,7 @@ export type CaptureSearch = {
   end: () => void
   observe: (input: CaptureObservation) => void
   retry: (slotIndex: number) => Promise<void>
+  selectedReference: (slotIndex: number) => CharacterSelectionReference | null
   dispose: () => void
 }
 
@@ -185,6 +187,20 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     connection.dispose()
   }
 
+  // 현재 화면에 공개된 선택 결과만 창 열기 참조로 전달한다.
+  function selectedReference(slotIndex: number): CharacterSelectionReference | null {
+    const captureId = lifetime.getSnapshot().context.captureId
+    if (captureId === null || !Number.isSafeInteger(slotIndex) || slotIndex < 0 || slotIndex > 3) {
+      return null
+    }
+    const slot = getVisibleSearchSlots({ captureId, snapshot, revisions, cleared })[slotIndex]
+    if (slot.state !== 'success' || slot.selected === undefined || slot.requestId === null) {
+      return null
+    }
+
+    return { captureId, slot: slotIndex, requestId: slot.requestId }
+  }
+
   // main snapshot을 반영하고 종료된 캡처의 로컬 수명을 무효화한다.
   function accept(next: SearchSnapshot | null): void {
     snapshot = next
@@ -223,7 +239,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     })
   }
 
-  return { connect, begin, end, observe, retry, dispose }
+  return { connect, begin, end, observe, retry, selectedReference, dispose }
 }
 
 /** 현재 캡처와 로컬 관측 이후의 슬롯만 반환하며 입력 상태를 변경하지 않는다. */

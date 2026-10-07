@@ -17,8 +17,10 @@ import {
 import {
   parseSearchControl,
   parseSearchObservation,
-  parseOcrSearchObservation
+  parseOcrSearchObservation,
+  parseCharacterSelection
 } from '../search/commands'
+import type { openSelectedCharacterDetail } from '../character-detail/windows'
 import { createSearchHttp } from '../search/http'
 import {
   createCharacterCandidatesHttp,
@@ -179,12 +181,15 @@ function isCurrentSearch(binding: CaptureBinding): boolean {
   return isCurrent
 }
 
-function registerCaptureIpc(configuration?: {
-  apiOrigin: string
-  fetch?: typeof fetch
-  clock: AuthClock
-  portraitMatchPolicy?: PortraitMatchPolicy
-}): () => void {
+function registerCaptureIpc(
+  configuration?: {
+    apiOrigin: string
+    fetch?: typeof fetch
+    clock: AuthClock
+    portraitMatchPolicy?: PortraitMatchPolicy
+  },
+  details?: { openSelected: typeof openSelectedCharacterDetail }
+): () => void {
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
     runtime = { http: createSearchHttp(configuration), clock: configuration.clock }
@@ -224,6 +229,44 @@ function registerCaptureIpc(configuration?: {
   manualSearch = manual
   search = lifetime
   clearSource()
+  addHandler('openCharacterDetails', async (event, ...args) => {
+    requireSearchSender(event)
+    const reference = parseCharacterSelection(args)
+    const owner = captureWindow
+    if (
+      reference === null ||
+      owner === null ||
+      details === undefined ||
+      event.senderFrame?.detached !== false
+    ) {
+      return { ok: false }
+    }
+    const selected = lifetime.selection(reference)
+    if (selected === null) {
+      return { ok: false }
+    }
+    const isCurrent = (): boolean => {
+      try {
+        requireSearchSender(event)
+
+        return (
+          captureWindow === owner &&
+          event.senderFrame?.detached === false &&
+          lifetime.selection(reference) === selected
+        )
+      } catch {
+        return false
+      }
+    }
+    try {
+      const opened = await details.openSelected(owner, selected, isCurrent)
+      const ok = opened && isCurrent()
+
+      return { ok }
+    } catch {
+      return { ok: false }
+    }
+  })
   addHandler('listCaptureSources', async (event, ...args) => {
     const window = captureWindow
     const startedWindowGeneration = windowGeneration
@@ -357,6 +400,7 @@ function registerCaptureIpc(configuration?: {
     ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
+    ipcMain.removeHandler('openCharacterDetails')
   }
 }
 

@@ -1,5 +1,6 @@
 import { SEARCH_ACTIONS } from '../../preload/common/types/search'
 import { z } from 'zod'
+import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
 import type {
   OcrSearchObservation,
   SearchControl,
@@ -35,6 +36,11 @@ const observationSchema = z.strictObject({
   observationRevision,
   nickname: text
 })
+const selectionSchema = z.strictObject({ captureId: uuid, slot, requestId: uuid })
+
+export function parseCharacterSelection(args: unknown[]): CharacterSelectionReference | null {
+  return parseCommand({ args, schema: selectionSchema })
+}
 
 const MAX_OCR_NAMES = 2
 const MAX_OCR_NAME_CODE_POINTS = 12

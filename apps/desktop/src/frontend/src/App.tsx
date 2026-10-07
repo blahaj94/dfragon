@@ -51,6 +51,7 @@ function App(): React.JSX.Element {
           )}
           retryPending={capture.search.retryPending}
           onRetry={capture.retrySearch}
+          onSlotDetail={capture.search.openDetails}
           nicknames={capture.stableNicknames}
           capture={
             <CaptureControls
@@ -88,7 +89,7 @@ function App(): React.JSX.Element {
             <img src={brandIcon} width={28} height={28} alt="" />
             <Typo.caption>DFRAGON Desktop</Typo.caption>
           </div>
-          <Typo.caption role="status">{footerStatus}</Typo.caption>
+          <Typo.caption role="status">{capture.search.detailNotice || footerStatus}</Typo.caption>
         </footer>
       )}
     </main>
