@@ -49,6 +49,18 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 이 단계에서는 기존 일반 검색, OCR 슬롯 수명과 제품 카드 화면을 교체하지 않는다. 실제 연결은 얼굴 크롭과 비교 기준, OCR 후보 전달, 슬롯 수명을 함께 연결하는 후속 단위에서 수행한다. HTTP 클라이언트 테스트와 실제 게임의 식별 성공을 구분한다.
 
+## 얼굴 크롭의 교체 경계와 비교 입력
+
+`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 얼굴 cropper에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. `capturePartyNicknameCrops`는 기존 소비자를 위한 닉네임 전용 반환을 유지한다.
+
+실제 얼굴 위치는 `lib/party-portrait.ts`의 `cropPartyPortrait`가 소유한다. 현재 이 함수는 항상 `null`을 반환하는 명시적 미구현 경계다. 화면 좌표, 해상도 비율, 가짜 얼굴을 추정해 반환하지 않는다. Windows에서 확보할 실제 위치와 배율 자료로 이 함수만 구현하며, 유효한 얼굴이 없는 경우에는 계속 null을 반환한다.
+
+크롭 결과 `CharacterPortrait`는 `image: { width, height, rgba }`, `rasterScale`, 선택적 `validMask`다. 배율은 게임 UI 퍼센트가 아니라 API 기본 이미지와 비교할 래스터 배율이다. 마스크는 얼굴 이미지의 픽셀 수와 같은 길이이며, 왕관이나 PC 표시 등 제외할 픽셀은 0, 사용할 픽셀은 1이다. 마스크가 없으면 투명하지 않은 얼굴 픽셀을 모두 사용한다.
+
+`backend/search/portrait-match.ts`의 `scoreCharacterPortrait`는 이미 잘린 얼굴을 배율에 맞춰 정규화한 뒤 후보 이미지의 불투명 영역 주변에서 정렬을 찾는다. API 이미지의 머리 위치를 고정하지 않는다. 반환값은 채널당 평균 RGB 오차(0~255), 실제 비교 픽셀 수, 유효 얼굴 픽셀 중 비교한 비율, 후보 이미지 안의 정렬 좌표다. 이는 확률이나 서버 식별의 확정 근거가 아니다. 정보가 없는 단색, 전체 투명, 전체 제외 얼굴은 점수를 만들지 않는다.
+
+`createPortraitMatcher`에는 `maxMeanChannelError`, `minCoverage`, `minComparedPixels`를 명시적으로 전달해야 한다. 기준을 모두 만족하는 정렬이 하나라도 있으면 통과하며 운영 기본값은 없다. 실제 Windows 표본으로 기준을 정해야 한다. 입력 크기와 계산량에는 별도 상한을 두고, 계산 중 주기적으로 event loop를 양보해 취소를 확인한다. 연산 상한 초과나 잘못된 입력을 불일치로 숨기지 않는다. 원본 버퍼는 변경하지 않는다.
+
 ## PaddleOCR와 실제 게임 인식 영역
 
 현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
