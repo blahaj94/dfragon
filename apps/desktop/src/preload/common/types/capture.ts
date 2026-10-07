@@ -1,4 +1,5 @@
 import type { SearchObservation } from './search'
+import type { CharacterImage } from './character'
 
 export type CaptureSource = {
   id: string
@@ -6,3 +7,8 @@ export type CaptureSource = {
 }
 
 export type StableNicknameDetection = SearchObservation
+
+export type WindowFrameResult =
+  | { kind: 'frame'; image: CharacterImage }
+  | { kind: 'waiting'; reason: 'covered' | 'unavailable' }
+  | { kind: 'unsupported' }

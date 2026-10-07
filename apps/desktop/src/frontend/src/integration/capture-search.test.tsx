@@ -1,3 +1,4 @@
+import type { WindowFrameResult } from '../../../preload/common/types/capture'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { expect, it } from 'vitest'
@@ -19,8 +20,8 @@ it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 medi
     action: 'begin'
   })
   const beginOrder = fixture.search.controlCharacterSearch.mock.invocationCallOrder.at(-1)!
-  expect(beginOrder).toBeLessThan(fixture.getDisplayMedia.mock.invocationCallOrder[0])
-  expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(beginOrder).toBeLessThan(fixture.readCaptureFrame.mock.invocationCallOrder[0])
+  expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
   expect(media.loop).toHaveBeenCalledOnce()
   expect(media.loop.mock.calls[0][0].getIntervalMs()).toBe(3000)
 
@@ -45,10 +46,10 @@ it('begin 완료 전 중복 Start는 새 begin·media를 만들지 않고 진행
   })
   expect(fixture.button('캡처 시작').disabled).toBe(true)
   await fixture.click('캡처 시작')
-  expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+  expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
   begin.resolve({ ok: true, snapshot: searchSnapshot() })
   await act(async () => undefined)
-  expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
 })
 
 it.each(['캡처 중지', 'source', 'unmount'] as const)(
@@ -74,12 +75,12 @@ it.each(['캡처 중지', 'source', 'unmount'] as const)(
       action: 'end',
       captureId: CAPTURE_ID
     })
-    expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+    expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
     expect(media.worker).not.toHaveBeenCalled()
   }
 )
 
-it.each(['캡처 중지', 'source', 'unmount', 'track ended', 'media failed', 'OCR failed'] as const)(
+it.each(['캡처 중지', 'source', 'unmount', 'media failed', 'OCR failed'] as const)(
   '%s는 현재 capture ID를 end하고 stream·worker·loop를 정리한다',
   async (transition) => {
     const fixture = createRendererFixture()
@@ -87,14 +88,13 @@ it.each(['캡처 중지', 'source', 'unmount', 'track ended', 'media failed', 'O
     media.loop.mockReturnValue(loop.promise)
     const isMediaFailure = transition === 'media failed'
     if (isMediaFailure) {
-      fixture.getDisplayMedia.mockRejectedValueOnce(new Error('Synthetic media failure'))
+      fixture.readCaptureFrame.mockRejectedValueOnce(new Error('Synthetic media failure'))
     }
     await fixture.mount()
     await fixture.start()
     const isStop = transition === '캡처 중지'
     const isSource = transition === 'source'
     const isUnmount = transition === 'unmount'
-    const isTrackEnded = transition === 'track ended'
     const isOcrFailure = transition === 'OCR failed'
     if (isStop) {
       await fixture.click('캡처 중지')
@@ -102,8 +102,6 @@ it.each(['캡처 중지', 'source', 'unmount', 'track ended', 'media failed', 'O
       await fixture.select('next')
     } else if (isUnmount) {
       await fixture.unmount()
-    } else if (isTrackEnded) {
-      await act(async () => fixture.resources.track.dispatchEvent(new Event('ended')))
     } else if (isOcrFailure) {
       await act(async () => loop.reject(new Error('Synthetic OCR failure')))
     }
@@ -112,7 +110,6 @@ it.each(['캡처 중지', 'source', 'unmount', 'track ended', 'media failed', 'O
       captureId: CAPTURE_ID
     })
     if (!isMediaFailure) {
-      expect(fixture.resources.track.stop).toHaveBeenCalledOnce()
       expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
       expect(media.loop.mock.calls[0][0].signal.aborted).toBe(true)
     }
@@ -143,19 +140,19 @@ it('늦은 이전 begin은 새 capture를 end하거나 새 stream을 정리하�
     action: 'end',
     captureId: nextId
   })
-  expect(fixture.resources.track.stop).not.toHaveBeenCalled()
-  expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
+
+  expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
 })
 
 it('새 capture의 늦은 이전 media 실패가 새 ID를 end하지 않는다', async () => {
   const fixture = createRendererFixture()
-  const oldMedia = Promise.withResolvers<MediaStream>()
-  fixture.getDisplayMedia.mockReturnValueOnce(oldMedia.promise)
+  const oldMedia = Promise.withResolvers<WindowFrameResult>()
+  fixture.readCaptureFrame.mockReturnValueOnce(oldMedia.promise)
   await fixture.mount()
   await fixture.start()
   await fixture.click('캡처 중지')
   const next = captureResources()
-  fixture.getDisplayMedia.mockResolvedValue(next.stream)
+  fixture.readCaptureFrame.mockResolvedValue(next.frame)
   media.worker.mockResolvedValue(next.worker)
   await fixture.click('캡처 시작')
   const nextId = fixture.current().captureId
@@ -168,7 +165,7 @@ it('새 capture의 늦은 이전 media 실패가 새 ID를 end하지 않는다',
     action: 'end',
     captureId: nextId
   })
-  expect(next.track.stop).not.toHaveBeenCalled()
+
   expect(next.worker.terminate).not.toHaveBeenCalled()
 })
 
@@ -227,8 +224,10 @@ it('로그인과 로그아웃은 진행 중 캡처와 표시된 검색 결과를
   })
   expect(fixture.container.querySelector('select')?.value).toBe('game')
   expect(fixture.container.textContent).toContain('ALICE')
-  expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
-  expect(fixture.resources.track.stop).not.toHaveBeenCalled()
+  expect(
+    fixture.search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
+  ).toHaveLength(1)
+
   expect(fixture.resources.worker.terminate).not.toHaveBeenCalled()
   expect(media.loop.mock.calls[0][0].signal.aborted).toBe(false)
 })
@@ -266,7 +265,7 @@ it.each(['ended', 'other capture'] as const)(
     begin.resolve({ ok: true, snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: 1 }) })
     await act(async () => undefined)
 
-    expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+    expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
     expect(media.worker).not.toHaveBeenCalled()
     expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
       action: 'end',
@@ -293,7 +292,7 @@ it.each(['older end', 'newer same capture'] as const)(
     )
     begin.resolve({ ok: true, snapshot: searchSnapshot({ captureId: CAPTURE_ID, revision: 2 }) })
     await act(async () => undefined)
-    expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
+    expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
     expect(media.worker).toHaveBeenCalledOnce()
     expect(fixture.search.controlCharacterSearch).not.toHaveBeenCalledWith({
       action: 'end',
@@ -321,6 +320,5 @@ it('취소된 Start의 begin 응답 유실 뒤 read가 새 capture를 찾아도 
     action: 'end',
     captureId: nextId
   })
-  expect(fixture.getDisplayMedia).toHaveBeenCalledOnce()
-  expect(fixture.resources.track.stop).not.toHaveBeenCalled()
+  expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
 })

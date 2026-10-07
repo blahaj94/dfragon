@@ -97,6 +97,14 @@ vi.mock('../lib/ocr', () => {
   return { createPartyOcrWorker }
 })
 
+const nativeFrame = vi.hoisted(() => {
+  const read = vi.fn()
+  const bind = vi.fn(() => read)
+
+  return { read, bind }
+})
+vi.mock('../../../backend/capture/native-frame', () => ({ bindWindowFrame: nativeFrame.bind }))
+
 const DOCUMENT_URL = 'file:///fixture/index.html'
 const RENDERER_SOURCE_ID = 'window:synthetic'
 const RENDERER_SOURCE_NAME = 'Synthetic game window'
@@ -154,26 +162,11 @@ function createFixtureWindow(): FixtureWindow {
   }
 }
 
-function installMediaBoundary(): {
-  media: { getDisplayMedia: ReturnType<typeof vi.fn> }
-  track: { stop: ReturnType<typeof vi.fn>; readyState: string }
-} {
-  const track = new EventTarget() as EventTarget & {
-    stop: ReturnType<typeof vi.fn>
-    readyState: string
-  }
-  track.readyState = 'live'
-  track.stop = vi.fn(() => {
-    track.readyState = 'ended'
+function installNativeBoundary(): void {
+  nativeFrame.read.mockResolvedValue({
+    kind: 'frame',
+    image: { width: 1920, height: 1080, rgba: new Uint8Array(1920 * 1080 * 4) }
   })
-  const stream = {
-    getVideoTracks: () => [track],
-    getTracks: () => [track]
-  } as unknown as MediaStream
-  const media = { getDisplayMedia: vi.fn(async () => stream) }
-  Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: media })
-
-  return { media, track }
 }
 
 function installCanvasBoundary(): void {
@@ -183,6 +176,9 @@ function installCanvasBoundary(): void {
     const fillRect = vi.fn()
     const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
       const data = new Uint8ClampedArray(width * height * 4)
+      for (let offset = 3; offset < data.length; offset += 4) {
+        data[offset] = 255
+      }
       // 기본 배율의 첫 파티 프레임을 Canvas 경계에서 제공해 실제 검출기를 실행한다.
       for (const { top, color } of [
         { top: 27, color: [194, 15, 11, 255] },
@@ -202,17 +198,12 @@ function installCanvasBoundary(): void {
       drawImage,
       putImageData,
       fillRect,
-      getImageData
+      getImageData,
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      })
     } as unknown as CanvasRenderingContext2D
   })
-  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(async function (
-    this: HTMLMediaElement
-  ) {
-    Object.defineProperty(this, 'videoWidth', { configurable: true, value: 1920 })
-    Object.defineProperty(this, 'videoHeight', { configurable: true, value: 1080 })
-    this.dispatchEvent(new Event('loadedmetadata'))
-  })
-  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
 }
 
 function button(container: HTMLDivElement, label: string): HTMLButtonElement {
@@ -303,7 +294,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     clock: runtime.searchClock
   })
 
-  const { media, track } = installMediaBoundary()
+  installNativeBoundary()
   const container = document.createElement('div')
   document.body.append(container)
   const root: Root = createRoot(container)
@@ -329,7 +320,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
 
     await click(container, '캡처 시작')
     await waitForText(container, '캡처 중, 1920×1080')
-    expect(media.getDisplayMedia).toHaveBeenCalledOnce()
+    expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
 
     const searchState = await searchApi.controlCharacterSearch({ action: 'read' })
@@ -386,8 +377,7 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
     })
     await waitForCondition(() => expect(runtime.coordinator.getSnapshot().phase).toBe('signedIn'))
     expect(container.textContent).toContain('live-character')
-    expect(media.getDisplayMedia).toHaveBeenCalledOnce()
-    expect(track.stop).not.toHaveBeenCalled()
+    expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
 
     ocrWorker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
     await waitForCondition(() => expect(observedRequests).toHaveLength(2), { timeout: 10_000 })
@@ -406,7 +396,6 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
       expect.any(AbortSignal)
     )
     expect(harness.store.inspection).toEqual({ status: 'empty' })
-    expect(track.stop).not.toHaveBeenCalled()
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
     expect(fixtureWindow.contents.send.mock.calls.map(([channel]) => channel)).toContain(
       'authStateChanged'
@@ -452,12 +441,10 @@ it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같�
       expect(container.textContent).toContain('캡처 중, 1920×1080')
     })
     expect(container.textContent).toContain('late-character')
-    expect(media.getDisplayMedia).toHaveBeenCalledOnce()
+    expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
     expect(harness.http.exchange).toHaveBeenCalledTimes(2)
-    expect(track.stop).not.toHaveBeenCalled()
     expect(ocrWorker.terminate).not.toHaveBeenCalled()
     await click(container, '캡처 중지')
-    await waitForCondition(() => expect(track.stop).toHaveBeenCalledOnce())
     await waitForCondition(() => expect(ocrWorker.terminate).toHaveBeenCalledOnce())
     expect(container.textContent).not.toContain('late-character')
     expect(

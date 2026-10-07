@@ -1708,8 +1708,8 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
 })
 
 it.each([
-  { platform: 'win32', configured: true, hasCapture: true, allowed: true },
-  { platform: 'win32', configured: false, hasCapture: true, allowed: true },
+  { platform: 'win32', configured: true, hasCapture: true, allowed: false },
+  { platform: 'win32', configured: false, hasCapture: true, allowed: false },
   { platform: 'win32', configured: false, hasCapture: false, allowed: false },
   { platform: 'darwin', configured: true, hasCapture: true, allowed: false },
   { platform: 'linux', configured: true, hasCapture: true, allowed: false }
@@ -1732,13 +1732,7 @@ it.each([
     })
 
     expect(callback).toHaveBeenCalledExactlyOnceWith(allowed)
-    expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledTimes(platform === 'win32' ? 1 : 0)
-    if (platform === 'win32') {
-      expect(mocks.consumeCaptureMediaPermission).toHaveBeenCalledWith(
-        contents,
-        'file:///fixture/index.html'
-      )
-    }
+    expect(mocks.consumeCaptureMediaPermission).not.toHaveBeenCalled()
   } finally {
     Object.defineProperty(process, 'platform', originalPlatform)
   }

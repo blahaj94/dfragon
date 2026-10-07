@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
 import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from './party'
 import type { PartyPortraitCropper } from './party-portrait'
@@ -106,7 +107,20 @@ function captureCanvas(
 
     return { data }
   })
-  const frame = { width: 0, height: 0, getContext: () => ({ drawImage: vi.fn(), getImageData }) }
+  const frame = {
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      drawImage: vi.fn(),
+      getImageData,
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      }),
+      putImageData: (image: { data: Uint8ClampedArray }) => {
+        pixels = image.data
+      }
+    })
+  }
   const nicknames: NicknameCanvas[] = []
   let nextIsFrame = true
   const createElement = vi.fn(() => {
@@ -207,4 +221,43 @@ it.each([
 
   expect(capturePartyNicknameCrops(video)).toEqual([null, null, null, null])
   expect(createElement).not.toHaveBeenCalled()
+})
+
+/** 실제 GDI와 같이 원본 전체를 불투명하게 구성한다. */
+function nativePixels(): Uint8Array {
+  const rgba = new Uint8Array(framePixels(1280, 720, [42]))
+  for (let offset = 3; offset < rgba.length; offset += 4) {
+    rgba[offset] = 255
+  }
+
+  return rgba
+}
+
+it('공통 네이티브 캡처의 RGBA를 영상 변환 없이 크롭하고 원본은 바꾸지 않는다', () => {
+  const setup = captureCanvas(1280, 720, [42])
+  const rgba = nativePixels()
+  const before = rgba.slice()
+
+  const inputs = capturePartyRecognitionInputs({ width: 1280, height: 720, rgba })
+
+  expect(inputs[0]?.nickname).toBe(setup.nicknames[0])
+  expect(inputs[0]?.portrait).not.toBeNull()
+  expect(inputs.slice(1)).toEqual([null, null, null])
+  expect(Buffer.compare(rgba, before)).toBe(0)
+})
+
+it.each([
+  { label: '닉네임', x: 42, y: 10 },
+  { label: '얼굴', x: 20, y: 20 }
+])('$label 영역이 가려진 슬롯은 OCR과 얼굴 비교에 전달하지 않는다', ({ x, y }) => {
+  captureCanvas(1280, 720, [42])
+  const rgba = nativePixels()
+  rgba[(y * 1280 + x) * 4 + 3] = 0
+
+  expect(capturePartyRecognitionInputs({ width: 1280, height: 720, rgba })).toEqual([
+    null,
+    null,
+    null,
+    null
+  ])
 })

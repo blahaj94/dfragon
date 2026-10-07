@@ -1,5 +1,6 @@
 import { runInNewContext } from 'node:vm'
-import { build } from 'vite'
+import { build, normalizePath } from 'vite'
+import { resolve } from 'node:path'
 import { resolveConfig } from 'electron-vite'
 import { expect, it, vi } from 'vitest'
 
@@ -9,11 +10,27 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
     const resolved = await resolveConfig({ configFile, logLevel: 'silent' }, 'build', 'production')
     const preload = resolved.config?.preload
     expect(preload).toBeDefined()
+    const modules = new Set<string>()
     const output = await build({
       ...preload,
       logLevel: 'silent',
+      plugins: [
+        ...(preload?.plugins ?? []),
+        {
+          name: 'observe-preload-source-dependencies',
+          generateBundle(): void {
+            for (const id of this.getModuleIds()) {
+              modules.add(normalizePath(id))
+            }
+          }
+        }
+      ],
       build: { ...preload!.build, write: false }
     })
+    // 로컬 dist가 남아 있어도 CI의 깨끗한 checkout과 같은 소스 의존성을 요구한다.
+    expect(modules.has(normalizePath(resolve('../../packages/lib/src/index.ts')))).toBe(true)
+    const libraryBuild = normalizePath(resolve('../../packages/lib/dist')) + '/'
+    expect([...modules].some((id) => id.startsWith(libraryBuild))).toBe(false)
     const isOutputArray = Array.isArray(output)
     const bundles = isOutputArray ? output : [output]
     const chunks = new Map<string, string>()

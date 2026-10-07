@@ -34,12 +34,14 @@ import { createStayImageSource } from '../search/stay-images'
 import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
+import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
 
 let captureWindow: BrowserWindow | null = null
 let documentUrl: string | null = null
 let windowGeneration = 0
 let sourceSelectionGeneration = 0
 let selectedSourceId: string | null = null
+let readSelectedFrame: ReadWindowFrame | null = null
 let selectingSource = false
 let search: CaptureSearchLifetime | undefined
 let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
@@ -83,6 +85,7 @@ async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
 function clearSource(): void {
   mediaPermissionCaptureId = null
   selectedSourceId = null
+  readSelectedFrame = null
   selectingSource = false
   sourceSelectionGeneration += 1
   search?.invalidate()
@@ -338,7 +341,9 @@ function registerCaptureIpc(
       if (!hasSource) {
         throw new Error('Selected capture source is no longer available')
       }
+      const readFrame = bindWindowFrame(source.id)
       selectedSourceId = source.id
+      readSelectedFrame = readFrame
 
       return { id: source.id, name: source.name }
     } finally {
@@ -347,6 +352,33 @@ function registerCaptureIpc(
         selectingSource = false
       }
     }
+  })
+
+  addHandler('readCaptureFrame', async (event, ...args) => {
+    requireSearchSender(event)
+    const binding = lifetime.current
+    const readFrame = readSelectedFrame
+    if (
+      args.length !== 1 ||
+      typeof args[0] !== 'string' ||
+      binding == null ||
+      binding.captureId !== args[0] ||
+      !isCurrentSearch(binding) ||
+      readFrame === null
+    ) {
+      throw new Error('CAPTURE_NOT_ALLOWED')
+    }
+    const result = await readFrame()
+    requireSearchSender(event)
+    if (
+      lifetime.current !== binding ||
+      !isCurrentSearch(binding) ||
+      readSelectedFrame !== readFrame
+    ) {
+      throw new Error('CAPTURE_NOT_ALLOWED')
+    }
+
+    return result
   })
 
   addHandler('controlCharacterSearch', (event, ...args) => {
@@ -415,6 +447,7 @@ function registerCaptureIpc(
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
+    ipcMain.removeHandler('readCaptureFrame')
     ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
@@ -428,7 +461,9 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   windowGeneration += 1
   clearSource()
   manualSearch?.invalidate()
-  registerDisplayMediaHandler(window)
+  window.webContents.session.setDisplayMediaRequestHandler((_request, callback) => {
+    deliverMediaResult(callback, null)
+  })
 
   window.webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
     const isCurrentWindow = captureWindow === window
@@ -484,7 +519,8 @@ function deliverMediaResult(
   }
 }
 
-function registerDisplayMediaHandler(window: BrowserWindow): void {
+/** 이전 Electron media 경로의 격리 회귀 검증에서만 명시적으로 등록한다. */
+export function registerCaptureMediaForFixture(window: BrowserWindow): void {
   window.webContents.session.setDisplayMediaRequestHandler((request, callback) => {
     const startedWindowGeneration = windowGeneration
     const selectionGeneration = sourceSelectionGeneration

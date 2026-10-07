@@ -44,6 +44,7 @@ export function usePartyCapture({
     input: {
       selectSource: (sourceId) => window.api.selectCaptureSource(sourceId),
       beginSearch: search.begin,
+      readFrame: (captureId) => window.api.readCaptureFrame(captureId),
       endSearch: search.end,
       resetRecognition: recognition.resetRecognition,
       getIntervalMs: () => intervalSecondsRef.current * 1000,

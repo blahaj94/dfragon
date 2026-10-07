@@ -1,6 +1,7 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
+import type { WindowFrameResult } from '../../../../preload/common/types/capture'
 import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
 import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
 import {
@@ -82,8 +83,7 @@ export function authSnapshot({
 }
 
 type CaptureResources = {
-  track: EventTarget & { stop: ReturnType<typeof vi.fn> }
-  stream: MediaStream
+  frame: WindowFrameResult
   worker: { recognize: ReturnType<typeof vi.fn>; terminate: ReturnType<typeof vi.fn> }
 }
 type RendererFixture = {
@@ -92,12 +92,13 @@ type RendererFixture = {
   capture: {
     listCaptureSources: ReturnType<typeof vi.fn>
     selectCaptureSource: ReturnType<typeof vi.fn>
+    readCaptureFrame: ReturnType<typeof vi.fn>
     notifyStableNicknameDetected: Mocked<ObservationTestApi>['notifyStableNicknameDetected']
     notifyOcrCandidatesDetected: Mocked<ObservationTestApi>['notifyOcrCandidatesDetected']
   }
   auth: Mocked<AuthApi>
   resources: CaptureResources
-  getDisplayMedia: ReturnType<typeof vi.fn>
+  readCaptureFrame: ReturnType<typeof vi.fn>
   order: string[]
   mount: (content?: ReactNode) => Promise<void>
   unmount: () => Promise<void>
@@ -113,11 +114,10 @@ type RendererFixture = {
 }
 
 export function captureResources(): CaptureResources {
-  const track = Object.assign(new EventTarget(), { stop: vi.fn() })
-  const stream = {
-    getTracks: () => [track],
-    getVideoTracks: () => [track]
-  } as unknown as MediaStream
+  const frame: WindowFrameResult = {
+    kind: 'frame',
+    image: { width: 1920, height: 1080, rgba: new Uint8Array(1920 * 1080 * 4) }
+  }
   const worker = {
     recognize: vi.fn().mockResolvedValue({
       data: {
@@ -129,7 +129,7 @@ export function captureResources(): CaptureResources {
     terminate: vi.fn().mockResolvedValue(undefined)
   }
 
-  return { track, stream, worker }
+  return { frame, worker }
 }
 
 export function createRendererFixture(): RendererFixture {
@@ -144,7 +144,7 @@ export function createRendererFixture(): RendererFixture {
   const searchListeners = new Set<(snapshot: SearchSnapshot) => void>()
   const authListeners = new Set<(snapshot: AuthSnapshot) => void>()
   const resources = captureResources()
-  const getDisplayMedia = vi.fn().mockResolvedValue(resources.stream)
+  const readCaptureFrame = vi.fn().mockResolvedValue(resources.frame)
   const search = {
     controlCharacterSearch: vi
       .fn<SearchTestApi['controlCharacterSearch']>()
@@ -175,6 +175,7 @@ export function createRendererFixture(): RendererFixture {
       })
   }
   const capture = {
+    readCaptureFrame,
     listCaptureSources: vi.fn().mockResolvedValue([
       { id: 'game', name: 'Synthetic game' },
       { id: 'next', name: 'Next game' }
@@ -244,10 +245,6 @@ export function createRendererFixture(): RendererFixture {
   Object.defineProperty(window, 'api', { configurable: true, value: capture })
   Object.defineProperty(window, 'auth', { configurable: true, value: auth })
   Object.defineProperty(window, 'search', { configurable: true, value: search })
-  Object.defineProperty(navigator, 'mediaDevices', {
-    configurable: true,
-    value: { getDisplayMedia }
-  })
   media.worker.mockResolvedValue(resources.worker)
   media.crops.mockReturnValue([null, null, null, null])
   media.loop.mockImplementation(() => new Promise<void>(() => undefined))
@@ -316,7 +313,7 @@ export function createRendererFixture(): RendererFixture {
     capture,
     auth,
     resources,
-    getDisplayMedia,
+    readCaptureFrame,
     order,
     mount: async (content = <LegacyApp />) => {
       await act(async () => root.render(content))
@@ -337,14 +334,6 @@ export function createRendererFixture(): RendererFixture {
 beforeEach(() => {
   vi.resetAllMocks()
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
-  vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(async function (
-    this: HTMLMediaElement
-  ) {
-    Object.defineProperty(this, 'videoWidth', { configurable: true, value: 1920 })
-    Object.defineProperty(this, 'videoHeight', { configurable: true, value: 1080 })
-    this.dispatchEvent(new Event('loadedmetadata'))
-  })
 })
 afterEach(async () => {
   for (const dispose of cleanup.splice(0)) {

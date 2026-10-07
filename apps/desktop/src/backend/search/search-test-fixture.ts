@@ -7,11 +7,16 @@ import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixt
 import {
   registerCaptureIpc,
   registerCaptureWindow,
+  registerCaptureMediaForFixture,
   consumeCaptureMediaPermission
 } from '../capture/ipc-handler'
 import type { PortraitMatchPolicy } from './portrait-match'
 import type { PortraitEdgeMatchPolicy } from './portrait-edges'
 import type { SearchSnapshot } from '../../preload/common/types/search'
+
+vi.mock('../capture/native-frame', () => ({
+  bindWindowFrame: () => () => ({ kind: 'unsupported' })
+}))
 
 const electron = vi.hoisted(() => {
   const getSources = vi.fn()
@@ -118,6 +123,7 @@ export async function createSearchFixture(
   )
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
+  registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
     handlers.set(channel, handler)
@@ -160,6 +166,7 @@ export async function createSearchFixture(
 
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
+    registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   }
 
   return {
@@ -169,7 +176,7 @@ export async function createSearchFixture(
     mediaPermissionAllowed: () => consumeCaptureMediaPermission(event.sender, rendererUrl),
     requestMedia: () =>
       new Promise((resolve) =>
-        registerMedia.mock.calls[0][0](
+        registerMedia.mock.calls.at(-1)![0](
           {
             frame,
             videoRequested: true,

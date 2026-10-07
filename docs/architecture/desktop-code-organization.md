@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: desktop source organization and process boundaries
-last-reviewed: 2026-10-02
+last-reviewed: 2026-10-08
 ---
 
 # Desktop 코드 구조와 프로세스 경계
@@ -19,5 +19,6 @@ last-reviewed: 2026-10-02
 - Frontend의 `src/frontend/src/testing`에는 여러 테스트가 공유하는 유틸리티·mock·fixture만 둔다. 실제 테스트 파일은 검증하는 코드 옆에 두고, 앱 조합 통합 테스트는 기존 `integration`에 둔다. 제품 코드는 `testing`을 import하지 않는다. 직접 실행하는 미리보기·Electron fixture는 기존 `fixture`에 유지한다.
 - `src/backend/main.ts`와 `src/preload/index.ts`는 composition root로 유지한다. App lifecycle, module 등록, API 노출만 두고 feature state, handler body, domain logic은 넣지 않는다.
 - Feature 관련 implementation과 test는 process별 feature 위치에 함께 둔다. 예: `src/backend/capture/**`, `src/preload/api/capture.ts`.
+- Desktop main의 공통 Windows 화면 획득은 `src/backend/lib`가 소유한다. 일반 캡처와 개발자 수집은 같은 GDI, DPI, 픽셀 변환과 자원 정리 구현을 사용한다. 이 lib는 개발자 모드, 저장소, 검색, UI와 IPC handler에 의존하지 않으며 각 기능이 획득 결과를 자기 계약으로 변환한다. 네이티브 DLL과 Node API는 Desktop 내부에 유지하고 순수 함수용 `packages/lib`로 옮기지 않는다.
 - Backend handler와 preload invoker의 argument 및 return type은 shared IPC contract에서 파생한다.
 - TypeScript IPC contract가 있더라도 renderer에서 전달되는 값은 backend trust boundary에서 runtime validation한다.
