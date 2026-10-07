@@ -2,8 +2,8 @@
 type: rule
 status: active
 enforcement: approval-required
-scope: Windows product capture permission and Issue 126 isolated media fixture
-last-reviewed: 2026-09-15
+scope: Windows native product capture and legacy isolated media fixture
+last-reviewed: 2026-10-08
 rationale: 고정된 검증 화면에서 실제 media와 OCR 연결을 관측하되 Electron 권한 정보의 한계를 제품 보안 보장과 구분한다.
 evidence: "PR #135 사용자 승인: https://github.com/blahaj94/ldb/pull/135#issuecomment-5578416858 ; 사용자 merge: 489e4aac61cffd0a6540c558e1e61a6361dd1036 ; Issue #126 판단: https://github.com/blahaj94/ldb/issues/126#issuecomment-5572323933 ; Electron 39.8.10 공식 source"
 exceptions: Fixture 승인은 해당 fixture에만 적용한다. Windows 제품 정책은 아래 별도 사용자 선택과 PR 범위를 따른다.
@@ -14,17 +14,20 @@ review-after: 최초 실제 media/OCR 관측 후 또는 Electron version·fixtur
 
 ## Windows 제품 캡처 정책
 
-이 절은 기존 fixture 승인을 확장한 것으로 간주하지 않는다. 사용자는 2026-09-15 개발 요청에서 아래 legacy API 한계를 수용하고 Windows 제품의 제한된 허용안 구현·설치·검증을 허용했다. 이 작업의 구현·검증에 적용하며, [PR #462](https://github.com/blahaj94/ldb/pull/462)의 사용자 merge로 다른 작업에도 활성화한다.
+개발자 모드에서 검증한 화면 획득 구현을 공통 lib로 옮겨 일반 캡처에서도 사용하는 변경이다. 본 PR의 사용자 merge 후 제품 경계로 적용하며, 이전 Electron 영상 스트림 경로는 제품에서 사용하지 않는다.
 
-- Windows 제품의 등록된 main window, 살아 있고 attached 상태인 exact local main document, main의 현재 window·source generation과 유효한 capture 수명을 모두 확인한다. Source 선택과 `begin` 뒤 해당 capture당 media request를 한 번만 허용한다. Stop·source 변경·navigation·창 종료로 무효화된 수명에는 허용하지 않는다.
-- `media`, `isMainFrame:true`, exact `requestingUrl`, 존재하는 빈 `mediaTypes` 배열만 후보로 받는다. Camera/microphone, 다른 permission, media check는 계속 거절한다. Windows 외 제품 entry는 계속 거절한다.
-- 정상 `getDisplayMedia`에는 기존 display handler의 video-only·Start gesture·선택 창 재열거와 비동기 완료 직전 document/source/capture 검사를 유지한다. Renderer의 기존 stream/worker/loop 정리와 늦은 OCR·검색 결과 폐기도 유지한다.
-- **이 선택은 제품 renderer가 정상 API를 호출한다는 신뢰를 수용한다.** Electron 39.8.10의 빈 배열은 legacy desktop `getUserMedia`와 구별되지 않는다. 침해된 renderer는 허용 가능한 capture 수명을 만들고 legacy 경로로 선택하지 않은 창·전체 화면 또는 지원되는 system audio를 요청할 수 있다. 한 번 제한·CSP·sandbox·media check 거절은 이 우회를 차단한다는 보장이 아니다. Legacy stream의 강제 종료를 main이 보장한다고도 주장하지 않는다.
-- 실제 검증은 사용자가 준비한 1920×1080 게임 창의 영상→OCR→공개 검색→화면 결과로 한정한다. 화면·닉네임·source title/ID·credential 원문은 기록하지 않는다. Mock/fixture 결과와 실제 게임 결과를 구분하며 다른 OS·해상도 전체 검증을 선행 조건으로 추가하지 않는다.
+- `backend/lib/win32-window-capture.ts`가 실제 화면에 보이는 창의 클라이언트 영역을 GDI로 복사하고 DPI와 네이티브 자원을 정리한다. 개발자 수집의 영역 검출과 저장, 일반 캡처의 주기와 OCR은 각 기능에 남긴다.
+- Main은 창 목록에 있는 선택을 확인한 뒤 창 핸들과 프로세스를 결합한다. 같은 핸들이 다른 프로세스에 재사용되면 읽지 않는다. Renderer는 임의 좌표나 창 핸들 대신 현재 `captureId`만 `readCaptureFrame`으로 전달한다.
+- 각 프레임 요청은 등록된 main window, exact document, 현재 source와 capture 수명을 확인한다. 읽기 완료 후에도 다시 확인하고 중지, source 변경, navigation 또는 창 종료 뒤의 응답은 전달하지 않는다. 로그인과 무관하게 동작한다.
+- 일반 캡처는 다른 창에 가려진 픽셀을 투명하게 제외하고 보이는 파티 영역의 인식을 이어간다. 창 전체가 가려졌거나 최소화, 종료, 이동 중인 경우 원본 픽셀을 전달하지 않고 대기한다. 캡처 전후의 위치와 소유 프로세스, 가림 여부를 확인한다. 기다리는 동안 이전 슬롯을 비우고 화면이 돌아오면 같은 세션에서 다시 안정화한다. 가려진 창이나 최소화된 창의 백그라운드 캡처는 제공하지 않는다.
+- 원본 크기와 RGBA를 유지하고 한 변 8192px, 총 33,000,000픽셀 상한을 적용한다. Preload도 크기와 바이트 수를 검증한다. 픽셀은 로컬 OCR에만 사용하며 네트워크 업로드나 저장은 일반 캡처에 포함하지 않는다.
+- 제품은 모든 Electron media request와 permission check를 거절한다. `getDisplayMedia`의 gesture나 스트림 권한을 정상 캡처의 전제 조건으로 사용하지 않는다. Windows 외 환경은 미지원 안내를 반환한다.
 
-대안은 제품 media 거절을 유지하면서 API/source를 main에서 통제할 수 있는 별도 native capture 또는 runtime 변경을 검토하는 것이다. 이 대안은 현재 구현 재사용 범위보다 크며 이번 실제 캡처 완료를 보류한다. 이 절은 아래 fixture 전용 예외와 별개인 제품 정책이며, 아래의 production 이전 금지는 이 명시적 Windows 제품 범위에 한해서 대체한다.
+기존 Windows media 허용은 [PR #462](https://github.com/blahaj94/ldb/pull/462)의 사용자 merge로 채택했던 결정이다. 그 구현의 로그인 독립성, 원문 비노출과 캡처 수명 보호는 유지하며, 화면 획득과 권한 경로만 위의 공통 네이티브 구현으로 대체한다. 아래 media 관련 승인과 한계는 기존 격리 fixture의 이력과 범위로 유지한다.
 
-로그인 선택 정책에서 signedIn과 auth generation은 제품 media 조건이 아니다. 로그인/로그아웃은 현재 capture를 종료하지 않는다. 아래 격리 fixture의 이전 인증 결합 관측은 당시 검증 이력이며 제품 로그인 필수 조건을 되살리지 않는다.
+## 이전 media fixture의 위치
+
+`auth-capture-fixture.config.ts`는 전용 renderer에서만 `legacy-capture-session.ts`를 연결하고 main에서 `registerCaptureMediaForFixture`를 명시적으로 호출한다. 제품 번들에는 이 renderer 대체 설정을 적용하지 않는다. 해당 fixture의 영상 스트림 성공은 새 Windows GDI 캡처 성공으로 보고하지 않는다. 새 제품의 실제 외부 창과 게임 캡처 검증은 Windows에서 별도로 수행한다.
 
 ## 승인된 선택과 적용 경계
 

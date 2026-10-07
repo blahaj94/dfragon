@@ -2,14 +2,14 @@
 type: reference
 status: active
 scope: desktop OCR character search implementation and isolated verification
-last-reviewed: 2026-10-07
+last-reviewed: 2026-10-08
 ---
 
 # Desktop 캐릭터 검색
 
 OCR 안정화 결과를 현재 capture의 네 슬롯 검색으로 연결한다. [로그인 선택 계약](../rules/desktop-auth.md#최소-화면과-capture-경계)에 따라 창 선택·캡처·OCR·검색·결과는 계정 상태와 독립적이다. 제품 main은 고정 API origin만으로 공개 검색을 구성하며 provider·credential 설정이나 auth snapshot을 요구하지 않는다. 계정 화면은 함께 표시하고 로그인·로그아웃이 진행 중 capture를 중단하지 않는다.
 
-Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)은 등록 document·source·capture 수명당 빈 media request를 한 번 허용한다. Camera/microphone·media check와 Windows 외 제품 entry는 거절한다. Electron legacy API의 source/gesture 우회 차단을 보장하지 않는다.
+Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)은 개발자 수집과 같은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외하며 전체 가림과 최소화 상태에서는 대기한다. 제품의 Electron media 권한은 거절한다.
 
 ## 구현 위치
 
@@ -24,7 +24,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작·종료 수명을 관리하고, factory와 hook은 로컬 관측 revision·결과 필터·슬롯별 retry를 연결한다.                                                   |
-| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts`         | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts`         | begin 완료 뒤 네이티브 프레임/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
 | `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
 | `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보를 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                       |
 | `apps/desktop/src/preload/character-detail.ts`, `common/character-detail.ts`, `apps/desktop/src/frontend/src/pages/character-detail/CharacterSnapshotPage.tsx` | 전용 읽기 bridge의 응답을 검증하고 기본 정보와 조회 시각을 표시한다.                                                                                                 |
@@ -38,6 +38,14 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 `createSearchConnection`은 연결마다 별도 XState actor를 클로저에 보관한다. `isReady()`는 호출 시점의 동기화 상태를 읽고, 명령은 호출 당시 actor를 참조해 재연결 후 늦은 응답을 격리한다. 구독의 초기 기준과 마지막 조회의 성공 여부를 병렬 상태로 표현한다. 이미 초기 기준을 세운 연결은 복구 조회에 실패해도 후속 event를 표시할 수 있지만, 다시 조회에 성공하기 전까지 새 begin은 차단한다. 초기 조회 성공 전 event는 최신 revision만 보류하며, 재연결·dispose는 이전 actor와 구독을 종료한다. 슬롯별 명령은 직렬화하지 않고 직접 응답을 각각 돌려준다. 종료된 actor에는 명령·복구 조회 결과를 반영하지 않지만, 늦은 begin의 직접 응답과 그 ID의 end 전송은 캡처 정리를 위해 유지한다.
 
 검색 run이 바뀌면 이전 구독·표시·capture resource를 버리고 새 검색 조회를 시작한다. 초기 read가 성공하기 전에는 Start와 직접 begin 호출을 차단하며, 조회 실패 시 기존 앱 화면 다시 열기 안내를 유지하고 event만으로 회복하거나 자동 재시도하지 않는다. 로컬 관측·clear·Stop·source 변경은 main 응답을 기다리지 않고 이전 표시를 가린다. Renderer와 preload는 같은 DTO 검증기를 각각의 경계에서 사용한다.
+
+## 공통 Windows 화면 획득
+
+`backend/lib/win32-window-capture.ts`와 `win32-pixels.ts`가 창 선택 시점의 프로세스 결합, DPI 처리, GDI 복사, 가림 확인과 자원 정리를 소유한다. `backend/developer/win32-party-capture.ts`는 그 결과에서 수집 영역을 검출하고, `backend/capture/native-frame.ts`는 일반 캡처용 프레임 또는 고정 대기 사유를 만든다. 각 기능의 오류와 저장 정책은 공통 lib로 옮기지 않는다.
+
+`readCaptureFrame(captureId)`는 현재 선택한 창에만 결합된 읽기를 실행한다. 등록 문서와 source/capture 수명이 읽기 전후에 일치해야 하며, 임의 창 ID나 좌표를 renderer에서 받지 않는다. Preload는 반환된 RGBA 크기를 검증한다. 공통 lib는 네이티브 호출을 마치기 전에 자원과 DPI를 정리한다.
+
+`party-capture-session.ts`는 최초 프레임 확인과 OCR worker 준비 후 프레임 읽기와 인식을 직렬 반복한다. 영상 스트림과 HTMLVideoElement를 만들지 않는다. `party.ts`는 RGBA 프레임에서 기존 닉네임과 얼굴 크롭을 생성한다. 가려진 픽셀은 투명하게 제외해 미검출 슬롯을 비운다. 전체 가림이나 창 미사용 상태에서는 인식 입력을 비우고 대기하며, 복귀 시 기존의 두 번 연속 관측 기준을 다시 적용한다. 종료 후 도착한 프레임이나 OCR 결과는 버린다.
 
 ## OCR 식별용 HTTP 통신 준비
 
@@ -182,7 +190,7 @@ Keyboard·focus·좁은 화면·theme·reduced-motion의 실제 Electron 관측�
 
 아래 검색 결과 조작은 LegacyApp 기반 protocol 회귀 절차다. 현재 카드 App의 UI 검증은 `capture:fixture:smoke`가 담당한다.
 
-기존 [auth capture fixture](desktop-auth-capture.md)를 사용한다. `scripts/auth-capture-fixture/search-effects.ts`의 transport는 고정 합성 origin·endpoint·query와 credential 부재만 받아 메모리에서 Response를 만든다. 전역 fetch나 실제 API·provider를 호출하지 않는다. `session.webRequest` 차단을 main Node HTTP 차단의 근거로 사용하지 않는다.
+기존 [auth capture fixture](desktop-auth-capture.md)는 이전 Electron media 계약의 회귀 검증이다. 전용 config가 legacy 세션을 연결하므로 제품의 공통 Windows 캡처 검증을 대신하지 않는다. `scripts/auth-capture-fixture/search-effects.ts`의 transport는 고정 합성 origin·endpoint·query와 credential 부재만 받아 메모리에서 Response를 만든다. 전역 fetch나 실제 API·provider를 호출하지 않는다. `session.webRequest` 차단을 main Node HTTP 차단의 근거로 사용하지 않는다.
 
 앱 메뉴에서 아래 응답을 선택한 뒤 **Stop → Start**로 새 OCR 관측을 만들거나 현재 실패의 **다시 시도**를 누른다. 메뉴 선택 자체는 검색을 보내거나 진행 중 응답을 바꾸지 않는다. Source 선택은 기존 fixture 절차를 따른다. 제품 로그인은 선택 사항이다.
 
