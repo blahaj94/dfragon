@@ -10,6 +10,7 @@ import {
   consumeCaptureMediaPermission
 } from '../capture/ipc-handler'
 import type { PortraitMatchPolicy } from './portrait-match'
+import type { PortraitEdgeMatchPolicy } from './portrait-edges'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
 const electron = vi.hoisted(() => {
@@ -56,7 +57,8 @@ export async function createSearchFixture(
   signedIn = false,
   searchKind: 'capture' | 'manual' = 'capture',
   portraitMatchPolicy?: PortraitMatchPolicy,
-  details?: Parameters<typeof registerCaptureIpc>[1]
+  details?: Parameters<typeof registerCaptureIpc>[1],
+  portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
 ): Promise<{
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
@@ -109,7 +111,8 @@ export async function createSearchFixture(
       apiOrigin: API_ORIGIN,
       fetch: fetchSearch,
       clock: harness.clock,
-      portraitMatchPolicy
+      portraitMatchPolicy,
+      portraitEdgeMatchPolicy
     },
     details
   )
