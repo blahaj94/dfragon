@@ -12,7 +12,7 @@ import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
 import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { styles } from './App.style'
 import brandIcon from '../../../resources/brand.png'
-import { canRetryCharacterSlot, characterSlotNotice, toCharacterCard } from './lib/character-card'
+import { characterSlotNotice, toCharacterCard } from './lib/character-card'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
@@ -28,6 +28,16 @@ function App(): React.JSX.Element {
   const footerStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
   const showDeveloperWorkbench =
     workbenchOpen && developerMode.status === 'ready' && developerMode.enabled
+  const slotNotices = capture.search.slots.map((slot) => {
+    const notice = characterSlotNotice(slot)
+    if (slot.state === 'failure' || slot.state === 'empty') {
+      const message = notice ?? '검색 결과가 없습니다.'
+
+      return `${message} Shift+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.`
+    }
+
+    return notice
+  })
 
   function openDeveloperWorkbench(): void {
     if (developerMode.status !== 'ready' || !developerMode.enabled) {
@@ -42,15 +52,17 @@ function App(): React.JSX.Element {
     <main {...stylex.props(styles.app, light && lightTheme)}>
       <div hidden={showDeveloperWorkbench}>
         <PartyPage
+          resetKey={String(capture.round)}
           slots={capture.search.slots.map((slot) => slot.state)}
           characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
           basicOnly
-          slotNotices={capture.search.slots.map(characterSlotNotice)}
-          retryEnabled={capture.search.slots.map((slot) =>
-            canRetryCharacterSlot(slot, capture.search.retryPending[slot.slot])
+          inputEnabled
+          onLookup={capture.search.lookupSlot}
+          loadingSlots={capture.recognitionStates.map(
+            (state, slot) =>
+              !capture.search.manualSlots[slot] && (state === 'pending' || capture.starting)
           )}
-          retryPending={capture.search.retryPending}
-          onRetry={capture.retrySearch}
+          slotNotices={slotNotices}
           onSlotDetail={capture.search.openDetails}
           nicknames={capture.stableNicknames}
           capture={

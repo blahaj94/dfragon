@@ -50,10 +50,18 @@ export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): 
 
 /** 정제된 오류와 남은 재시도 대기 시간을 카드에 표시한다. */
 export function characterSlotNotice(slot: SearchSlot): string | undefined {
+  if (slot.selectionMethod === 'highest-fame') {
+    return '외형 미확인, 최고 명성 후보입니다.'
+  }
+
   if (slot.error == null) {
     return undefined
   }
   const { code, retryAfterSeconds } = slot.error
+  if (code === 'INVALID_SEARCH_QUERY' && slot.nickname === '') {
+    return '닉네임을 읽지 못했습니다. 서버와 이름을 직접 입력해 주세요.'
+  }
+
   if (code === 'SEARCH_RATE_LIMITED' && retryAfterSeconds != null && retryAfterSeconds > 0) {
     return `${retryAfterSeconds}초 후 다시 시도할 수 있습니다.`
   }

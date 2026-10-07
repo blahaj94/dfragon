@@ -33,6 +33,7 @@ export type CaptureSearch = {
   begin: (input: { signal: AbortSignal }) => Promise<string | null>
   end: () => void
   observe: (input: CaptureObservation) => void
+  lookup: (input: { slot: number; nickname: string; serverId: string }) => void
   retry: (slotIndex: number) => Promise<void>
   selectedReference: (slotIndex: number) => CharacterSelectionReference | null
   dispose: () => void
@@ -130,6 +131,25 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         options.notify({ captureId, slot, observationRevision, nickname })
       )
     }
+  }
+
+  // 서버를 사용자가 정한 조회는 OCR 관측과 별도 명령으로 전달한다.
+  function lookup(input: { slot: number; nickname: string; serverId: string }): void {
+    const captureId = lifetime.getSnapshot().context.captureId
+    if (captureId === null) {
+      return
+    }
+    revisions[input.slot] += 1
+    cleared[input.slot] = false
+    pending.delete(input.slot)
+    const observationRevision = revisions[input.slot]
+    publish()
+    void connection.command({
+      action: SEARCH_ACTIONS.LOOKUP,
+      captureId,
+      observationRevision,
+      ...input
+    })
   }
 
   // 현재 슬롯의 수동 재시도 가능 여부와 중복 요청을 검사한다.
@@ -239,7 +259,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     })
   }
 
-  return { connect, begin, end, observe, retry, selectedReference, dispose }
+  return { connect, begin, end, observe, lookup, retry, selectedReference, dispose }
 }
 
 /** 현재 캡처와 로컬 관측 이후의 슬롯만 반환하며 입력 상태를 변경하지 않는다. */

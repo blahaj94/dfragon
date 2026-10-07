@@ -1,4 +1,4 @@
-import { ActionButton, Typo, typographyVariants } from '@dfragon/ui'
+import { ActionButton, ProgressCircle, Typo, typographyVariants } from '@dfragon/ui'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'
@@ -24,7 +24,9 @@ export function CharacterCard({
   notice,
   onRetry,
   retryEnabled = false,
-  retryPending = false
+  retryPending = false,
+  loading = false,
+  onLookup
 }: {
   character?: CardCharacter
   state: SlotState
@@ -38,19 +40,58 @@ export function CharacterCard({
   onRetry?: () => void
   retryEnabled?: boolean
   retryPending?: boolean
+  loading?: boolean
+  onLookup?: (nickname: string, serverId: string) => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
-  const [name, setName] = useState(state === 'idle' ? '' : (character?.name ?? ''))
+  const [name, setName] = useState(nickname ?? character?.name ?? '')
   const [serverId, setServerId] = useState<string>(character?.serverId ?? '')
+  const [dirty, setDirty] = useState(false)
+  const [inputNotice, setInputNotice] = useState('')
+  const incomingName = character?.name ?? nickname
+  const incomingServerId = character?.serverId
+  const source = `${incomingName ?? ''}:${incomingServerId ?? ''}`
+  const [previousSource, setPreviousSource] = useState(source)
+  if (previousSource !== source) {
+    setPreviousSource(source)
+    if (!dirty) {
+      if (incomingName !== undefined) {
+        setName(incomingName)
+      }
+
+      if (incomingServerId !== undefined) {
+        setServerId(incomingServerId)
+      }
+    }
+  }
   const editing = character != null && (name !== character.name || serverId !== character.serverId)
   const hasCharacter = state === 'success' && character != null && !editing
   const canTurn = hasCharacter && !basicOnly
   const showCharacter = face === 0 || !canTurn
-  const status = notice ?? getCharacterCardStatus(state)
+  const busy = loading || state === 'pending'
+  const status = inputNotice || notice || getCharacterCardStatus(state)
+
+  function submit(nextServerId = serverId): void {
+    if (nextServerId.length === 0) {
+      setInputNotice('서버를 선택해 주세요.')
+
+      return
+    }
+
+    if (name.trim().length === 0) {
+      setInputNotice('캐릭터 이름을 입력해 주세요.')
+
+      return
+    }
+    setDirty(false)
+    setInputNotice('')
+    onLookup?.(name.trim(), nextServerId)
+  }
 
   return (
     <article
       aria-label={`${slot}번 슬롯`}
+      aria-busy={busy}
       {...stylex.props(styles.card, state === 'failure' && styles.failure)}
     >
       {canTurn && (
@@ -62,6 +103,15 @@ export function CharacterCard({
         />
       )}
       <div {...stylex.props(styles.content)}>
+        {busy && (
+          <div
+            role="status"
+            aria-label={`${slot}번 캐릭터 확인 중`}
+            {...stylex.props(styles.progress)}
+          >
+            <ProgressCircle size="24" tone="brand" />
+          </div>
+        )}
         {state === 'success' && character != null && showCharacter && (
           <>
             <div {...stylex.props(styles.portrait)}>
@@ -92,6 +142,8 @@ export function CharacterCard({
             role="status"
             {...stylex.props(
               styles.status,
+              busy && styles.statusWhileLoading,
+              state === 'success' && styles.selectedNotice,
               state === 'failure' && styles.error,
               state === 'failure' && onRetry != null && styles.statusWithRetry
             )}
@@ -114,14 +166,18 @@ export function CharacterCard({
       )}
       {showCharacter && (
         <>
-          {state === 'success' && character != null && (
+          {(inputEnabled || (state === 'success' && character != null)) && (
             <div {...stylex.props(styles.serverAnchor)}>
               <ServerSelect
                 label={`${slot}번 서버`}
                 value={serverId}
                 disabled={!inputEnabled}
                 options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
-                onValueChange={setServerId}
+                onValueChange={(value) => {
+                  setDirty(true)
+                  setServerId(value)
+                  submit(value)
+                }}
               />
             </div>
           )}
@@ -129,20 +185,26 @@ export function CharacterCard({
             as="input"
             weight={700}
             aria-label={`${slot}번 캐릭터 이름`}
-            value={nickname ?? name}
+            value={name}
             disabled={!inputEnabled}
-            readOnly={nickname != null}
             placeholder="캐릭터명 입력"
-            style={(nickname ?? name) ? undefined : typographyVariants.txtS}
-            onChange={(event) => setName(event.target.value)}
+            style={name ? undefined : typographyVariants.txtS}
+            onChange={(event) => {
+              setDirty(true)
+              setName(event.target.value)
+              setInputNotice('')
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                submit()
+              }
+            }}
             {...stylex.props(styles.input)}
           />
         </>
       )}
       {editing && state === 'success' && (
-        <Typo.caption {...stylex.props(styles.editing)}>
-          이름·서버 수정 중 · 조회 연결 예정
-        </Typo.caption>
+        <Typo.caption {...stylex.props(styles.editing)}>Enter로 조회</Typo.caption>
       )}
       {state !== 'idle' && (
         <button
