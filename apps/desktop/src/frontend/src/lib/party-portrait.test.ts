@@ -46,7 +46,7 @@ it.each([
 )
 
 it('왕관, PC 표시와 테두리 변화는 같은 얼굴로 취급하고 유효 얼굴 변화는 구분한다', () => {
-  const source = input()
+  const source = input(64, 64)
   source.frame.rgba.fill(255)
   const before = source.frame.rgba.slice()
   const first = cropPartyPortrait(source)!
