@@ -35,6 +35,16 @@ contextBridge.exposeInMainWorld('api', {
   }
 })
 
+contextBridge.exposeInMainWorld('diagnostics', {
+  getDiagnosticHistory: async () => [],
+  reportRendererDiagnostic: async () => {},
+  onDiagnosticEntry: () => () => {}
+})
+contextBridge.exposeInMainWorld('desktopShortcut', { onDesktopShortcut: () => () => {} })
+contextBridge.exposeInMainWorld('ocrCollection', {
+  collectOcrSample: async () => ({ status: 'skipped' })
+})
+
 // Public synthetic metadata only; the UI fixture never contacts real services.
 contextBridge.exposeInMainWorld('versions', {
   getBuildVersions: async () => {

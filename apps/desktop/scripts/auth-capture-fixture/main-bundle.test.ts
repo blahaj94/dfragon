@@ -65,6 +65,8 @@ function mainEnvironment(): {
   const electron = {
     app: {
       getPath,
+      getVersion: () => '1.0.0',
+      isPackaged: true,
       setPath: vi.fn(),
       setName: vi.fn(),
       on: vi.fn(),
@@ -152,6 +154,8 @@ function mainEnvironment(): {
     clearTimeout,
     __dirname: resolve('out/auth-capture-fixture/main'),
     process: {
+      on: vi.fn(),
+      removeListener: vi.fn(),
       ppid: 424242,
       platform: process.platform,
       argv: ['electron', 'synthetic-main.cjs'],
