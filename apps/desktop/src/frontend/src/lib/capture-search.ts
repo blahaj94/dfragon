@@ -6,6 +6,8 @@ import {
   SEARCH_ERRORS,
   type SearchApi,
   type SearchObservation,
+  type OcrSearchInput,
+  type OcrSearchObservation,
   type SearchCommandResult,
   type SearchSlot,
   type SearchSnapshot
@@ -16,15 +18,20 @@ import { captureSearchMachine } from './capture-search-machine'
 type SearchOptions = {
   api: SearchApi
   notify: (observation: SearchObservation) => Promise<SearchCommandResult>
+  notifyOcr?: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   onChange: (view: SearchView) => void
   onInvalidated: () => void
 }
+
+export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
+export type CaptureObservation =
+  Readonly<{ slot: number; nickname: string | null }> | OcrCaptureObservation
 
 export type CaptureSearch = {
   connect: () => void
   begin: (input: { signal: AbortSignal }) => Promise<string | null>
   end: () => void
-  observe: (input: { slot: number; nickname: string | null }) => void
+  observe: (input: CaptureObservation) => void
   retry: (slotIndex: number) => Promise<void>
   dispose: () => void
 }
@@ -88,7 +95,8 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   }
 
   // 로컬 관측을 먼저 표시한 뒤 clear 또는 검색 통지를 보낸다.
-  function observe({ slot, nickname }: { slot: number; nickname: string | null }): void {
+  function observe(input: CaptureObservation): void {
+    const { slot, nickname } = input
     const captureId = lifetime.getSnapshot().context.captureId
     if (captureId == null) {
       return
@@ -106,6 +114,15 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
         slot,
         observationRevision
       })
+    } else if ('candidateNicknames' in input) {
+      const notifyOcr = options.notifyOcr
+      if (notifyOcr == null) {
+        failed = true
+        publish()
+
+        return
+      }
+      void connection.invoke(() => notifyOcr({ ...input, captureId, observationRevision }))
     } else {
       void connection.invoke(() =>
         options.notify({ captureId, slot, observationRevision, nickname })

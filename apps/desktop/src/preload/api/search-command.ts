@@ -6,6 +6,7 @@ import { parseSearchResult } from '../common/search/snapshot'
 type SearchChannel =
   | 'controlCharacterSearch'
   | 'notifyStableNicknameDetected'
+  | 'notifyOcrCandidatesDetected'
   | 'controlManualSearch'
   | 'notifyManualNickname'
 export async function invokeSearchCommand<Channel extends SearchChannel>(

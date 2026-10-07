@@ -14,8 +14,20 @@ import {
   type CaptureSearchLifetime,
   type CaptureBinding
 } from '../search/capture-lifetime'
-import { parseSearchControl, parseSearchObservation } from '../search/commands'
+import {
+  parseSearchControl,
+  parseSearchObservation,
+  parseOcrSearchObservation
+} from '../search/commands'
 import { createSearchHttp } from '../search/http'
+import {
+  createCharacterCandidatesHttp,
+  createCharacterDetailsHttp,
+  createCharacterImageHttp
+} from '../search/character-http'
+import { createCharacterIdentifier } from '../search/identify'
+import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portrait-match'
+import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
 
@@ -171,11 +183,20 @@ function registerCaptureIpc(configuration?: {
   apiOrigin: string
   fetch?: typeof fetch
   clock: AuthClock
+  portraitMatchPolicy?: PortraitMatchPolicy
 }): () => void {
-  const runtime =
-    configuration == null
-      ? undefined
-      : { http: createSearchHttp(configuration), clock: configuration.clock }
+  let runtime: SearchRuntime | undefined
+  if (configuration != null) {
+    runtime = { http: createSearchHttp(configuration), clock: configuration.clock }
+    if (configuration.portraitMatchPolicy !== undefined) {
+      runtime.identify = createCharacterIdentifier({
+        candidates: createCharacterCandidatesHttp(configuration),
+        image: createCharacterImageHttp(configuration),
+        details: createCharacterDetailsHttp(configuration),
+        matchesPortrait: createPortraitMatcher(configuration.portraitMatchPolicy)
+      })
+    }
+  }
   const lifetime = createCaptureSearchLifetime({
     runtime,
     isCurrent: isCurrentSearch,
@@ -318,12 +339,23 @@ function registerCaptureIpc(configuration?: {
     return lifetime.observe(observation)
   })
 
+  addHandler('notifyOcrCandidatesDetected', (event, ...args) => {
+    requireSearchSender(event)
+    const observation = parseOcrSearchObservation(args)
+    if (observation === null) {
+      return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+    }
+
+    return lifetime.observeOcr(observation)
+  })
+
   return () => {
     manual.dispose()
     clearSource()
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('notifyStableNicknameDetected')
+    ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
   }
 }

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { characterSummarySchema } from './character-summary'
 import {
   SEARCH_COMMAND_ERRORS,
   SEARCH_ERRORS,
@@ -6,7 +7,8 @@ import {
   type SearchSnapshot
 } from '../types/search'
 
-const uuid = z.string().regex(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
+const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+const uuid = z.string().regex(SEARCH_ID_PATTERN)
 const revision = z.int().nonnegative()
 const nonblank = z.string().refine((value) => {
   const hasText = value.trim().length > 0
@@ -38,11 +40,30 @@ const slot = z
     observationRevision: revision,
     requestId: uuid.nullable(),
     nickname: z.string().nullable(),
-    state: z.enum(['idle', 'pending', 'success', 'empty', 'failure']),
+    state: z.enum([
+      'idle',
+      'pending',
+      'success',
+      'empty',
+      'failure',
+      'waiting-portrait',
+      'waiting-policy'
+    ]),
     rows: z.array(row),
-    error: error.nullable()
+    error: error.nullable(),
+    selected: characterSummarySchema.optional()
   })
   .refine((value) => {
+    if (Object.hasOwn(value, 'selected')) {
+      const selected = value.selected
+      if (selected === undefined || value.state !== 'success' || value.rows.length !== 1) {
+        return false
+      }
+      const row = value.rows[0]
+      if (row.serverId !== selected.serverId || row.characterId !== selected.characterId) {
+        return false
+      }
+    }
     const hasRows = value.rows.length > 0
     const hasError = value.error != null
     const hasRequestId = value.requestId != null

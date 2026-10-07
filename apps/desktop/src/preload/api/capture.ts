@@ -7,3 +7,7 @@ export const selectCaptureSource = makeHandlerInvoker('selectCaptureSource')
 export const notifyStableNicknameDetected: AsyncIPCFunctions['notifyStableNicknameDetected'] = (
   observation
 ) => invokeSearchCommand('notifyStableNicknameDetected', observation)
+
+export const notifyOcrCandidatesDetected: AsyncIPCFunctions['notifyOcrCandidatesDetected'] = (
+  observation
+) => invokeSearchCommand('notifyOcrCandidatesDetected', observation)

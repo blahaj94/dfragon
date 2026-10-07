@@ -2,6 +2,18 @@ import type { CharacterSearchRow } from './search'
 
 export type CharacterIdentity = Readonly<{ serverId: string; characterId: string }>
 
+export type CharacterSummary = CharacterIdentity &
+  Readonly<{
+    characterName: string
+    serverName: string
+    adventureName: string | null
+    jobName: string | null
+    jobGrowName: string | null
+    level: number | null
+    fame: number | null
+    imageUrl: string
+  }>
+
 export type CharacterCandidate = CharacterSearchRow &
   Readonly<{ serverName: string; imageUrl: string }>
 

@@ -13,13 +13,14 @@ import type {
 } from '../../preload/common/types/character'
 import type { SearchErrorCode } from '../../preload/common/types/search'
 import { SearchHttpFailure } from './http'
+import {
+  CHARACTER_SERVER_NAMES as SERVER_NAMES,
+  characterIdentitySchema as identitySchema,
+  characterImageUrl
+} from '../../preload/common/search/character-summary'
 
-const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
 const RETRY_AFTER_SECONDS_PATTERN = /^[0-9]+$/
-const MAX_CHARACTER_ID_LENGTH = 256
 const MAX_CHARACTER_NAME_CODE_POINTS = 12
-const CHARACTER_IMAGE_ORIGIN = 'https://img-api.neople.co.kr'
-const CHARACTER_IMAGE_ZOOM = 1
 const PNG_SIGNATURE_HEX = '89504e470d0a1a0a'
 const PNG_HEADER_BYTES = 33
 const PNG_IHDR_LENGTH = 13
@@ -36,25 +37,6 @@ export const CHARACTER_HTTP_LIMITS = {
   imagePixels: 1024 * 1024
 } as const
 
-const SERVER_NAMES = {
-  anton: '안톤',
-  bakal: '바칼',
-  cain: '카인',
-  casillas: '카시야스',
-  diregie: '디레지에',
-  hilder: '힐더',
-  prey: '프레이',
-  siroco: '시로코'
-} as const
-const serverIdSchema = z.enum(Object.keys(SERVER_NAMES) as (keyof typeof SERVER_NAMES)[])
-const identitySchema = z.object({
-  serverId: serverIdSchema,
-  characterId: z
-    .string()
-    .min(1)
-    .max(MAX_CHARACTER_ID_LENGTH)
-    .refine((value) => !INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(value))
-})
 const nonblank = z.string().refine((value) => value.trim().length > 0)
 const candidateSchema = identitySchema
   .extend({
@@ -123,10 +105,6 @@ export type CharacterCandidatesHttp = (input: {
 }) => Promise<readonly CharacterCandidate[]>
 export type CharacterImageHttp = (input: IdentityRequest) => Promise<CharacterImage>
 export type CharacterDetailsHttp = (input: IdentityRequest) => Promise<CharacterDetails>
-
-function characterImageUrl(identity: CharacterIdentity): string {
-  return `${CHARACTER_IMAGE_ORIGIN}/df/servers/${identity.serverId}/characters/${identity.characterId}?zoom=${CHARACTER_IMAGE_ZOOM}`
-}
 
 function createClient(transport: typeof fetch): ReturnType<typeof ky.create> {
   return ky.create({
