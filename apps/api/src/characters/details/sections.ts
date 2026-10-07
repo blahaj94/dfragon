@@ -17,10 +17,7 @@ export const characterDetailSections = Object.keys(
   CHARACTER_DETAIL_SECTIONS
 ) as CharacterDetailSection[]
 
-export interface CharacterIdentity {
-  characterId: string
-  serverId: string
-}
+export type { CharacterIdentity } from '../identity.js'
 
 export type CharacterPayload = Record<string, unknown>
 export type CharacterPayloads = Record<CharacterDetailSection, CharacterPayload>

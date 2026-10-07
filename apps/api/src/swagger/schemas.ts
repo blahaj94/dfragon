@@ -125,6 +125,30 @@ export const apiSchemas: Record<string, SchemaObject> = {
       })
     }
   }),
+  CharacterAppearance: object({
+    serverId: { type: 'string', enum: [...NEOPLE_SERVER_NAMES.keys()] },
+    characterId: {
+      type: 'string',
+      pattern: CHARACTER_CANDIDATE_ID_SCHEMA_PATTERN,
+      minLength: 1,
+      maxLength: 256
+    },
+    characterName: text,
+    jobName: text,
+    jobGrowName: text,
+    avatar: {
+      type: 'array',
+      items: object({
+        slotId: text,
+        itemId: text,
+        itemName: text,
+        clone: object({
+          itemId: { type: 'string', nullable: true },
+          itemName: { type: 'string', nullable: true }
+        })
+      })
+    }
+  }),
   AdventureCharacters: object({
     adventureName: text,
     scope: {

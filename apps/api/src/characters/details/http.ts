@@ -3,9 +3,11 @@ import { ApiCharacterDetails } from '../../swagger/operations.js'
 import { Controller, Get, Post, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { CharacterDetailFailure } from './errors.js'
-import { parseCharacterIdentity } from './service.js'
+import { parseCharacterIdentity } from '../identity.js'
 import type { CharacterDetailService } from './service.js'
 import { respondWithCancellation } from '../../http-response.js'
+
+const EMPTY_CONTENT_LENGTH_PATTERN = /^0+$/
 
 export const CHARACTER_DETAIL_SERVICE = Symbol('CHARACTER_DETAIL_SERVICE')
 
@@ -29,7 +31,8 @@ export class CharacterDetailController {
     // No body is accepted; refuse framed payloads before acquiring quota or touching the DB.
     if (
       request.headers['transfer-encoding'] != null ||
-      (request.headers['content-length'] != null && !/^0+$/.test(request.headers['content-length']))
+      (request.headers['content-length'] != null &&
+        !EMPTY_CONTENT_LENGTH_PATTERN.test(request.headers['content-length']))
     ) {
       request.pause()
       response.setHeader('Connection', 'close')
