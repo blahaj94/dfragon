@@ -57,7 +57,9 @@ const api = {
   notifyStableNicknameDetected: vi.fn(),
   notifyOcrCandidatesDetected: vi.fn(),
   selectCaptureSource: vi.fn(),
-  readCaptureFrame: (...args: unknown[]) => readCaptureFrame(...args)
+  readCaptureFrame: (...args: unknown[]) => readCaptureFrame(...args),
+  onDesktopShortcut: vi.fn(),
+  collectOcrSample: vi.fn().mockResolvedValue({ status: 'queued' })
 }
 
 const search = { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.fn() }
@@ -143,6 +145,14 @@ beforeEach(() => {
     value: true
   })
   Object.defineProperty(window, 'api', { configurable: true, value: api })
+  Object.defineProperty(window, 'desktopShortcut', {
+    configurable: true,
+    value: { onDesktopShortcut: api.onDesktopShortcut }
+  })
+  Object.defineProperty(window, 'ocrCollection', {
+    configurable: true,
+    value: { collectOcrSample: api.collectOcrSample }
+  })
   Object.defineProperty(window, 'search', { configurable: true, value: search })
   currentSearch = searchSnapshot({ captureId: null, revision: 0 })
   search.onCharacterSearchChanged.mockReturnValue(() => {})
@@ -160,6 +170,7 @@ beforeEach(() => {
     return { ok: true, snapshot: currentSearch }
   })
 
+  api.onDesktopShortcut.mockReturnValue(() => {})
   api.listCaptureSources.mockResolvedValue([])
   api.notifyStableNicknameDetected.mockImplementation(async () => ({
     ok: true,
@@ -180,6 +191,70 @@ afterEach(() => {
 })
 
 describe('usePartyCapture', () => {
+  it('실행 시 던파 창이 하나면 선택과 캡처를 자동으로 시작한다', async () => {
+    const { frame, worker } = captureResources()
+    readCaptureFrame.mockResolvedValue(frame)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    api.listCaptureSources.mockResolvedValue([{ id: 'dnf', name: '던전앤파이터' }])
+    const hook = await renderPartyCaptureHook(false, true)
+    await flushPromises()
+    expect(api.selectCaptureSource).toHaveBeenCalledWith('dnf')
+    expect(readCaptureFrame).toHaveBeenCalledWith(CAPTURE_ID)
+    expect(hook.getCurrent().phase).toBe('active')
+    await act(async () => hook.getCurrent().stopCapture())
+    await flushPromises()
+    expect(api.selectCaptureSource.mock.calls.filter(([id]) => id === 'dnf')).toHaveLength(1)
+    await hook.unmount()
+  })
+
+  it('나중에 실행한 던파는 다음 목록 조회에서 자동 캡처한다', async () => {
+    vi.useFakeTimers()
+    const { frame, worker } = captureResources()
+    readCaptureFrame.mockResolvedValue(frame)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook(false, true)
+    try {
+      expect(api.selectCaptureSource).not.toHaveBeenCalled()
+      api.listCaptureSources.mockResolvedValue([{ id: 'later-dnf', name: '던전앤파이터' }])
+      await act(async () => vi.advanceTimersByTimeAsync(15_000))
+      expect(hook.getCurrent().selectedSourceId).toBe('later-dnf')
+      expect(hook.getCurrent().phase).toBe('active')
+    } finally {
+      await hook.unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  it('던파 창이 여러 개면 자동으로 하나를 추측하지 않는다', async () => {
+    api.listCaptureSources.mockResolvedValue([
+      { id: 'one', name: '던전앤파이터' },
+      { id: 'two', name: '던전앤파이터' }
+    ])
+    const hook = await renderPartyCaptureHook(false, true)
+    expect(api.selectCaptureSource).not.toHaveBeenCalled()
+    expect(hook.getCurrent().selectedSourceId).toBe('')
+    await hook.unmount()
+  })
+
+  it('재검색 단축키는 새 라운드를 만들고 업로드 단축키를 중복 실행하지 않는다', async () => {
+    const { frame, worker } = captureResources()
+    readCaptureFrame.mockResolvedValue(frame)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook(false, true)
+    await act(async () => hook.getCurrent().selectAndStartCapture('dnf'))
+    const listener = api.onDesktopShortcut.mock.lastCall![0]
+    const round = hook.getCurrent().round
+    await act(async () => listener('upload-capture'))
+    expect(hook.getCurrent().round).toBe(round)
+    await act(async () => listener('restart-search'))
+    expect(hook.getCurrent().round).toBe(round + 1)
+    expect(worker.terminate).toHaveBeenCalledOnce()
+    expect(
+      search.controlCharacterSearch.mock.calls.filter(([command]) => command.action === 'begin')
+    ).toHaveLength(2)
+    await hook.unmount()
+  })
+
   it('식별 모드가 같은 프레임의 후보를 OCR IPC로 전달하고 중지 뒤에는 다시 안정화한다', async () => {
     const { frame, worker } = captureResources()
     const nickname = document.createElement('canvas')
@@ -218,7 +293,7 @@ describe('usePartyCapture', () => {
       slot: 0,
       observationRevision: 1,
       nickname: '기사*',
-      candidateNicknames: ['기사*', '기사☆'],
+      candidateNicknames: ['기사*'],
       portrait: null
     })
     expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
@@ -575,7 +650,11 @@ describe('usePartyCapture', () => {
     })
 
     expect(hook.getCurrent().status).toBe('캡처 중, 3840×2160')
-    expect(moduleMocks.capturePartyNicknameCrops).toHaveBeenLastCalledWith(nextImage)
+    const observedFrame = moduleMocks.capturePartyNicknameCrops.mock.lastCall![0]
+    expect(observedFrame.width).toBe(nextImage.width)
+    expect(observedFrame.height).toBe(nextImage.height)
+    expect(observedFrame.rgba).toBe(nextImage.rgba)
+    expect(observedFrame.captureId).toBe(CAPTURE_ID)
     expect(
       search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
     ).toHaveLength(1)
