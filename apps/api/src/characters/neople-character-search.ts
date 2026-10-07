@@ -19,6 +19,8 @@ import type {
 } from '../types/neople-character-search.js'
 import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
+const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
+
 const nativeDependencies: SearchDependencies = {
   fetch: (request, init) => fetch(request, init),
   origin: NEOPLE_ORIGIN,
@@ -43,7 +45,12 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return isNotArray
 }
 
-function projectResponse(body: unknown, status: number, ok: boolean): CharacterSearchResult {
+function projectResponse(
+  body: unknown,
+  status: number,
+  ok: boolean,
+  input: NeopleCharacterSearchInput
+): CharacterSearchResult {
   const upstreamFailure = classifyNeopleUpstreamFailure(body, status, ok)
   const hasUpstreamFailure = upstreamFailure !== undefined
   if (hasUpstreamFailure) {
@@ -98,6 +105,16 @@ function projectResponse(body: unknown, status: number, ok: boolean): CharacterS
       throw neopleSearchFailure('api')
     }
 
+    if (
+      input.wordType === 'match' &&
+      (characterName !== input.characterName ||
+        !NEOPLE_SERVER_NAMES.has(serverId) ||
+        characterId.length > 256 ||
+        INVALID_CHARACTER_ID_CHARACTERS_PATTERN.test(characterId))
+    ) {
+      throw neopleSearchFailure('api')
+    }
+
     const rawFame = candidate.fame
     const hasFame = rawFame != null
     if (hasFame) {
@@ -130,7 +147,7 @@ function buildUrl(input: NeopleCharacterSearchInput, origin: string): URL {
   const url = new URL(`/df/servers/${encodeURIComponent(input.serverId)}/characters`, origin)
   url.searchParams.set('characterName', input.characterName)
   url.searchParams.set('limit', String(input.limit))
-  url.searchParams.set('wordType', 'full')
+  url.searchParams.set('wordType', input.wordType ?? 'full')
 
   return url
 }
@@ -224,7 +241,7 @@ function makeSearch(
       }
 
       try {
-        const result = projectResponse(body, response.status, response.ok)
+        const result = projectResponse(body, response.status, response.ok, input)
         const didReachDeadlineAfterProjection = deadlineReached()
         if (didReachDeadlineAfterProjection) {
           throw neopleSearchFailure('timeout')

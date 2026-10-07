@@ -1,4 +1,8 @@
-import type { CharacterSearchResult, SearchCharacters } from '../types/neople-character-search.js'
+import type {
+  CharacterCandidatesResult,
+  CharacterSearchResult,
+  SearchCharacters
+} from '../types/neople-character-search.js'
 
 export interface SearchClock {
   now(): number
@@ -19,5 +23,10 @@ export interface CharacterSearchHttpService {
     originalUrl: string,
     signal?: AbortSignal
   ): Promise<CharacterSearchResult>
+  candidates(
+    peerAddress: string | undefined,
+    originalUrl: string,
+    signal?: AbortSignal
+  ): Promise<CharacterCandidatesResult>
   onModuleDestroy(): Promise<void>
 }

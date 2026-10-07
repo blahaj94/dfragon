@@ -37,7 +37,7 @@ class ApiHttpFilter implements ExceptionFilter {
     }
     const path = request.path.toLowerCase().replace(/\/+$/, '')
     let failure: NeopleSearchFailure | ReturnType<typeof characterDetailFailure>
-    if (path === '/characters') {
+    if (path === '/characters' || path === '/characters/candidates') {
       failure = error instanceof NeopleSearchFailure ? error : neopleSearchFailure('internal')
     } else {
       failure = characterDetailFailure(error)

@@ -1,5 +1,8 @@
 import type { SchemaObject } from '@nestjs/swagger'
 import { characterDetailSections } from '../characters/details/sections.js'
+import { NEOPLE_SERVER_NAMES } from '../constants/neople-character-search.js'
+
+const CHARACTER_CANDIDATE_ID_SCHEMA_PATTERN = '^[a-zA-Z0-9_-]{1,256}$'
 
 const text: SchemaObject = { type: 'string' }
 const timestamp: SchemaObject = { type: 'string', format: 'date-time' }
@@ -95,6 +98,30 @@ export const apiSchemas: Record<string, SchemaObject> = {
         serverId: text,
         serverName: { type: 'string', nullable: true },
         fame: { type: 'number', nullable: true }
+      })
+    }
+  }),
+  CharacterCandidatesResult: object({
+    rows: {
+      type: 'array',
+      description: 'fame 내림차순, null은 마지막. 동률과 null은 공급자 순서 유지.',
+      items: object({
+        characterId: {
+          type: 'string',
+          pattern: CHARACTER_CANDIDATE_ID_SCHEMA_PATTERN,
+          minLength: 1,
+          maxLength: 256
+        },
+        characterName: text,
+        serverId: { type: 'string', enum: [...NEOPLE_SERVER_NAMES.keys()] },
+        serverName: text,
+        fame: { type: 'number', nullable: true },
+        imageUrl: {
+          type: 'string',
+          format: 'uri',
+          description: 'Neople 전체 캐릭터 이미지 URL. Desktop에서 파티원 얼굴 영역과 비교합니다.',
+          example: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-id?zoom=1'
+        }
       })
     }
   }),

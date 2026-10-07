@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api character search
-last-reviewed: 2026-09-15
+last-reviewed: 2026-10-07
 rationale: 검색 입력·응답·실패·호출 제한을 후속 구현자가 추측하지 않게 한다.
 evidence: "PR #42 검색 승인: https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698 ; PR #48 인증 통합 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519"
 exceptions: 미확인 외부 규격과 새 정책은 사용자 결정 없이 구현하지 않는다.
@@ -29,6 +29,36 @@ review-after: 검색 adapter 첫 validation 완료 또는 네오플 공식 규�
 | `fame`                                     | 유한한 JSON number는 0을 포함해 그대로 유지. null·누락은 null. 문자열·boolean·object·array는 실패. 음수·소수에 별도 제약을 추가하지 않음. |
 
 Top-level은 null·array가 아닌 JSON object이고 `rows`는 array여야 한다. 모든 row도 null·array가 아닌 object여야 한다. 후보 하나라도 invalid하면 `502 NEOPLE_API_ERROR`로 **전체 실패**한다. 일부 후보만 제외하거나 숫자 문자열을 변환하지 않는다. 알려지지 않은 추가 field는 무시한다. `fame` 추가는 [공식 공지](https://developers.neople.co.kr/contents/notice/view/214)로 확인했지만 null·누락의 실제 발생 여부는 확인하지 않았으며 위 처리는 프로젝트 정책이다.
+
+## OCR 캐릭터 식별 후보
+
+2026-10-07 요청에 따라 `GET /characters/candidates?characterName=...`를 공개 API로 추가한다. 이 절의 입력, 정렬, 이미지 URL 계약을 구현과 같은 PR에서 검토하고 사용자 merge 후 다른 작업에 적용한다. 기존 `GET /characters`의 `full` 검색, 입력, 응답 순서는 유지한다. 공식 검색 타입은 동일 단어 `match`, 전문 검색 `full`이며, 새 후보 API는 `match`를 사용한다. [네오플 캐릭터 검색](https://developers.neople.co.kr/contents/apiDocs/df)
+
+### 요청과 반환
+
+요청은 OCR 우선순위에서 선택한 이름 하나만 받는다. 필수 query는 `characterName`이고 decode 후 Unicode code point 1~12개를 허용한다. `match`에 `full`의 최소 2자 제한을 적용하지 않으며, 이 길이 상한과 측정 단위는 우리 입력 정책이다. 앞뒤 공백, 중복 key, 배열 key, 미정의 key, 잘못된 URL encoding과 HEAD는 `400 INVALID_SEARCH_QUERY`다. 이름을 trim, 대소문자 변환, Unicode 정규화하거나 OCR 보정하지 않는다. `serverId`, `wordType`, `limit`, `zoom`을 요청자가 지정할 수 없다.
+
+서버는 Neople 검색을 `serverId=all`, `wordType=match`, `limit=200`으로 한 번 호출한다. 현재 8개 서버의 동명 캐릭터를 찾지만 응답을 임의로 8개에서 자르지 않는다. 검색 응답의 이름은 요청 이름과 정확히 같아야 한다. 후보의 서버는 지원하는 실제 서버 ID이고 캐릭터 ID는 상세 API와 같은 1~256자의 ASCII 영숫자, `_`, `-`여야 한다. 다른 이름이나 사용할 수 없는 식별자가 섞이면 일부만 반환하지 않고 `502 NEOPLE_API_ERROR`로 실패한다. 이 추가 검증은 새 후보 API에 한정하며 기존 검색의 미등록 서버 보존 정책을 바꾸지 않는다.
+
+성공 응답은 `{"rows":[...]}`다. 각 행은 기존 `characterId`, `characterName`, `serverId`, `serverName`, `fame`에 `imageUrl`을 추가한다. `imageUrl`은 검증한 식별자로 구성한 `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=1`이다. 네오플의 전체 캐릭터 이미지 URL이며 얼굴만 잘린 이미지가 아니다. API는 이미지를 다운로드, 변환, 저장하거나 중계하지 않는다.
+
+정렬 순서는 아래와 같다.
+
+1. `fame !== null`인 후보를 명성 내림차순으로 반환한다. `0`도 이 그룹에 포함한다.
+2. 명성이 같으면 Neople 응답 순서를 유지한다.
+3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
+
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로는 같은 IP별 최근 60초 10회 한도를 공유하며, 공급자 전체 호출 예산도 함께 소비한다. 후보 API는 DB와 상세 서비스를 호출하지 않는다.
+
+### Desktop의 식별 흐름
+
+API와 Desktop의 역할은 다음 순서로 나눈다. 이 API 구현은 후보 제공까지이며 Desktop의 이미지 비교, 판정 임계값, 상세 화면 연결은 별도 구현 대상이다.
+
+1. Desktop은 `decodeCtcCandidates`가 반환한 OCR 후보 순서를 유지하고 첫 번째 닉네임으로 후보 API를 호출한다.
+2. Desktop은 반환된 순서대로 이미지를 가져와 게임 파티원 슬롯의 얼굴 크롭과 비교한다. 네오플 전체 이미지에서 비교 영역을 맞추는 처리는 Desktop이 담당한다.
+3. 판정 기준을 처음 통과한 후보의 서버와 캐릭터 ID를 선택한다. 여러 서버의 외형이 같더라도 명시한 비교 순서가 선택 우선순위이며, 외형만으로 실제 서버가 유일하게 증명된다는 뜻은 아니다.
+4. 첫 닉네임의 명성이 있는 후보와 null 후보가 모두 불일치이면 두 번째 OCR 닉네임으로 같은 과정을 진행한다. 두 닉네임의 후보를 합쳐 명성순으로 정렬하지 않는다.
+5. 선택한 후보로 `GET /characters/:serverId/:characterId`를 호출해 상세 정보를 표시한다. 모든 OCR 후보에서 불일치이면 미식별로 처리하며, 이미지 로딩 실패를 불일치로 간주하지 않는다.
 
 ## Server map
 
