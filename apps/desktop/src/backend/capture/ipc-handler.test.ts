@@ -238,6 +238,7 @@ describe('capture main document and source boundary', () => {
       'notifyManualNickname',
       'notifyOcrCandidatesDetected',
       'notifyStableNicknameDetected',
+      'openCharacterDetails',
       'selectCaptureSource'
     ])
     expect(

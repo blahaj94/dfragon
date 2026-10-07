@@ -16,7 +16,7 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
     })
     const isOutputArray = Array.isArray(output)
     const bundles = isOutputArray ? output : [output]
-    const chunks: string[] = []
+    const chunks = new Map<string, string>()
     for (const bundle of bundles) {
       const hasOutput = 'output' in bundle
       if (!hasOutput) {
@@ -25,11 +25,15 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       for (const item of bundle.output) {
         const isChunk = item.type === 'chunk'
         if (isChunk) {
-          chunks.push(item.code)
+          chunks.set(item.fileName, item.code)
         }
       }
     }
-    expect(chunks).toHaveLength(1)
+    const expectedBundles =
+      configFile === 'electron.vite.config.ts'
+        ? ['character-detail.js', 'index.js']
+        : ['preload.cjs']
+    expect([...chunks.keys()].sort()).toEqual(expectedBundles)
     const expose = vi.fn()
     // Native sandbox 전체 대신 이 preload가 필요로 하는 require 경계와 실행을 검사한다.
     const requireModule = (name: string): unknown => {
@@ -47,14 +51,17 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
         ipcRenderer: { invoke, on, removeListener }
       }
     }
-    expect(() => runInNewContext(chunks[0], { require: requireModule, exports: {} })).not.toThrow()
-    expect(expose.mock.calls.map(([name]) => name)).toEqual([
-      'api',
-      'auth',
-      'search',
-      'manualSearch',
-      'developer',
-      'versions'
-    ])
+    for (const [fileName, code] of chunks) {
+      expose.mockClear()
+      expect(() => runInNewContext(code, { require: requireModule, exports: {} })).not.toThrow()
+      const expectedApis =
+        fileName === 'character-detail.js'
+          ? ['characterDetail']
+          : ['api', 'auth', 'search', 'manualSearch', 'developer', 'versions']
+      expect(expose.mock.calls.map(([name]) => name)).toEqual(expectedApis)
+      if (fileName === 'character-detail.js') {
+        expect(Object.keys(expose.mock.calls[0][1])).toEqual(['read'])
+      }
+    }
   }
 )
