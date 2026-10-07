@@ -101,7 +101,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로 시작한다', async () => {
+it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 수 있다', async () => {
   await act(async () =>
     root.render(
       <ColorThemeProvider>
@@ -116,8 +116,11 @@ it('기본 앱은 샘플 데이터와 구버전 폼 없이 빈 카드 네 개로
     expect(slot.getAttribute('aria-label')).toBe(`${index + 1}번 슬롯`)
     const input = slot.querySelector('input')!
     expect(input.value).toBe('')
-    expect(input.disabled).toBe(true)
-    expect(slot.querySelector('button')).toBeNull()
+    expect(input.disabled).toBe(false)
+    expect(
+      slot.querySelector<HTMLButtonElement>(`[aria-label="${index + 1}번 서버"]`)!.disabled
+    ).toBe(false)
+    expect(slot.querySelector('[aria-label*="상세 열기"]')).toBeNull()
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()

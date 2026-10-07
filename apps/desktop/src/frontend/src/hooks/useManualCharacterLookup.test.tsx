@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from 'react'
+import { act, useLayoutEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
@@ -16,7 +16,10 @@ const api: ManualSearchApi = {
 }
 
 function Harness(): null {
-  current = useManualCharacterLookup()
+  const value = useManualCharacterLookup()
+  useLayoutEffect(() => {
+    current = value
+  })
 
   return null
 }

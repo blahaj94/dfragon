@@ -14,6 +14,8 @@ const capture = vi.hoisted(() => {
     search: {
       connectionFailed: false,
       ready: true,
+      manualSlots: [false, false, false, false],
+      lookupSlot: vi.fn(),
       retryPending: [false, false, false, false],
       slots: Array.from({ length: 4 }, (_, slot) => ({
         slot,
@@ -29,6 +31,9 @@ const capture = vi.hoisted(() => {
     selectedSourceId: '',
     status: '캡처 대기',
     stableNicknames: [null, null, null, null],
+    recognitionStates: ['idle', 'idle', 'idle', 'idle'],
+    round: 0,
+    starting: false,
     sources: [],
     sourcesLoading: false,
     sourcesFailed: false,
