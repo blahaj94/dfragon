@@ -4,6 +4,7 @@ import type { Request, Response } from 'express'
 import { ApiAdventureSearch } from '../swagger/operations.js'
 import { CharacterDetailFailure } from '../characters/details/errors.js'
 import type { AdventureSearchService } from './service.js'
+import { respondWithCancellation } from '../http-response.js'
 
 export const ADVENTURE_SEARCH_SERVICE = Symbol('ADVENTURE_SEARCH_SERVICE')
 
@@ -18,20 +19,8 @@ export class AdventureSearchController {
     if (request.method !== 'GET') {
       throw new CharacterDetailFailure('query')
     }
-    const controller = new AbortController()
-    const cancel = () => {
-      if (!response.writableFinished) {
-        controller.abort()
-      }
-    }
-    response.once('close', cancel)
-    try {
-      const result = await this.service.search(request.ip, request.originalUrl, controller.signal)
-      if (!response.destroyed) {
-        response.status(200).json(result)
-      }
-    } finally {
-      response.removeListener('close', cancel)
-    }
+    await respondWithCancellation(response, (signal) =>
+      this.service.search(request.ip, request.originalUrl, signal)
+    )
   }
 }

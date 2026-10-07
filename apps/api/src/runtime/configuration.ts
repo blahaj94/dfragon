@@ -53,10 +53,6 @@ export async function readRuntimeConfiguration(environment: NodeJS.ProcessEnv) {
     if (!isApiKeyDefined) {
       throw new Error(invalidConfiguration)
     }
-    const hasApiKeyContent = apiKey.length > 0
-    if (!hasApiKeyContent) {
-      throw new Error(invalidConfiguration)
-    }
     const localHttps = await readLocalHttps(environment, port, environment.API_ORIGIN ?? '')
 
     return {

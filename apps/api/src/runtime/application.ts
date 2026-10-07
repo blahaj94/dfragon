@@ -4,6 +4,8 @@ import { createCharacterDetailStore } from '../characters/details/store.js'
 import { createCatalogStore } from '../characters/catalog/store.js'
 import { createCatalogService } from '../characters/catalog/service.js'
 import { createNeopleCatalog } from '../characters/catalog/neople.js'
+import { createNeopleCharacterSearch } from '../characters/neople-character-search.js'
+import { createNeopleCharacterDetails } from '../characters/details/neople.js'
 import { createApiHttpApp } from '../http.js'
 import { createDatabaseDataSource } from '../database/index.js'
 import type { readRuntimeConfiguration } from './configuration.js'
@@ -55,9 +57,12 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
   try {
     await dataSource.initialize()
     app = await createApiHttpApp(
-      { apiKey: configuration.apiKey, trustedProxyHops: configuration.trustedProxyHops },
       {
-        apiKey: configuration.apiKey,
+        searchCharacters: createNeopleCharacterSearch(configuration.apiKey),
+        trustedProxyHops: configuration.trustedProxyHops
+      },
+      {
+        fetchDetails: createNeopleCharacterDetails(configuration.apiKey),
         store: createCharacterDetailStore(dataSource),
         catalog: createCatalogService(
           createCatalogStore(dataSource),
