@@ -23,14 +23,31 @@ describe('OCR 관측 IPC의 제한된 입력 계약', () => {
     expect(parseSearchObservation([input])).toBeNull()
   })
 
+  it('빈 첫 후보는 조회 실패를 표시하도록 원문 그대로 전달한다', () => {
+    const input = { ...observation, nickname: '', candidateNicknames: ['', '가'] }
+    expect(parseOcrSearchObservation([input])).toEqual(input)
+  })
+
+  it('두 번째 후보의 내용은 첫 후보 접수 여부를 바꾸지 않는다', () => {
+    for (const ignored of ['', ' 나', '\ud800']) {
+      const input = { ...observation, candidateNicknames: ['가', ignored] }
+      expect(parseOcrSearchObservation([input])).toEqual(input)
+    }
+  })
+
   it.each([
     ['빈 후보', { ...observation, candidateNicknames: [] }],
     ['세 후보', { ...observation, candidateNicknames: ['가', '나', '다'] }],
     ['대표 이름 불일치', { ...observation, nickname: '나' }],
-    ['빈 이름', { ...observation, candidateNicknames: ['가', ''] }],
-    ['공백 보정 필요', { ...observation, candidateNicknames: ['가', ' 나'] }],
-    ['13 code point', { ...observation, candidateNicknames: ['가', '😀'.repeat(13)] }],
-    ['깨진 surrogate', { ...observation, candidateNicknames: ['가', '\ud800'] }],
+    ['공백 보정 필요', { ...observation, nickname: ' 가', candidateNicknames: [' 가', '나'] }],
+    [
+      '13 code point',
+      { ...observation, nickname: '😀'.repeat(13), candidateNicknames: ['😀'.repeat(13), '가'] }
+    ],
+    [
+      '깨진 surrogate',
+      { ...observation, nickname: '\ud800', candidateNicknames: ['\ud800', '나'] }
+    ],
     ['배열이 아닌 후보', { ...observation, candidateNicknames: '가' }],
     ['정책 제출', { ...observation, policy: { maxMeanChannelError: 255 } }],
     ['이미지 URL 제출', { ...observation, portrait: 'https://example.test/face.png' }],

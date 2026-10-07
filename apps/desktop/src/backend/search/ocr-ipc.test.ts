@@ -95,28 +95,45 @@ function resolveMatch(fixture: Fixture, detail = details()): void {
 }
 
 describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
-  it.each([false, true])(
-    '정책 유무 %s에서 얼굴이 없으면 HTTP 없이 크롭을 기다린다',
-    async (configured) => {
-      const fixture = await createSearchFixture(false, 'capture', configured ? policy : undefined)
-      await fixture.invoke('notifyOcrCandidatesDetected', {
-        ...observation(fixture),
-        portrait: null
-      })
-      const snapshot = await fixture.read()
-      expect(snapshot.slots[0]).toMatchObject({ state: 'waiting-portrait', rows: [], error: null })
-      expect(snapshot.slots[0].selected).toBeUndefined()
-      expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
-      expect(fixture.fetchSearch).not.toHaveBeenCalled()
-    }
-  )
+  it('얼굴이 없어도 첫 이름의 후보와 상세를 조회해 최고 명성을 표시한다', async () => {
+    const fixture = await createSearchFixture(false, 'capture', policy)
+    fixture.fetchSearch
+      .mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
+      .mockResolvedValueOnce(jsonResponse({ body: details() }))
+    await fixture.invoke('notifyOcrCandidatesDetected', { ...observation(fixture), portrait: null })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
+    const snapshot = await fixture.read()
+    expect(snapshot.slots[0]).toMatchObject({
+      selectionMethod: 'highest-fame',
+      selected: { ...candidate, fame: 71000 }
+    })
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+  })
 
-  it('운영 기본값은 정책 대기이며 일반 검색으로 우회하지 않는다', async () => {
+  it('식별 서비스가 설정되지 않았으면 조회 실패를 표시한다', async () => {
     const fixture = await createSearchFixture()
     await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
     const snapshot = await fixture.read()
-    expect(snapshot.slots[0]).toMatchObject({ state: 'waiting-policy', rows: [], error: null })
+    expect(snapshot.slots[0]).toMatchObject({
+      state: 'failure',
+      error: { code: 'NEOPLE_UNAVAILABLE' }
+    })
     expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+    expect(fixture.fetchSearch).not.toHaveBeenCalled()
+  })
+
+  it('빈 첫 OCR 이름은 조회 실패이며 두 번째 후보를 검색하지 않는다', async () => {
+    const fixture = await createSearchFixture(false, 'capture', policy)
+    await fixture.invoke('notifyOcrCandidatesDetected', {
+      ...observation(fixture),
+      nickname: '',
+      candidateNicknames: ['', '정상이름']
+    })
+    expect((await fixture.read()).slots[0]).toMatchObject({
+      state: 'failure',
+      error: { code: 'INVALID_SEARCH_QUERY' }
+    })
     expect(fixture.fetchSearch).not.toHaveBeenCalled()
   })
 
@@ -201,7 +218,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       ...observation(fixture, 3),
       portrait: null
     })
-    expect((await fixture.read()).slots[0]).toMatchObject({ state: 'waiting-portrait', rows: [] })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
   })
 
   it('같은 후보와 보이는 얼굴의 revision은 요청을 유지하고 15초를 연장하지 않는다', async () => {
@@ -227,7 +244,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     response.resolve(jsonResponse({ body: { rows: [] } }))
   })
 
-  it.each(['후보 순서', '얼굴 픽셀'] as const)(
+  it.each(['첫 후보', '얼굴 픽셀'] as const)(
     '%s 변경은 진행 중 요청을 취소한다',
     async (change) => {
       const fixture = await createSearchFixture(false, 'capture', policy)
@@ -238,8 +255,9 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       const request = new Request(...fixture.fetchSearch.mock.calls[0])
       const before = await fixture.read()
       const next = { ...observation(fixture, 2) }
-      if (change === '후보 순서') {
-        next.candidateNicknames = ['가나', '마바']
+      if (change === '첫 후보') {
+        next.nickname = '마바'
+        next.candidateNicknames = ['마바', '가나']
       } else {
         next.portrait.image.rgba[0] += 1
       }
@@ -254,7 +272,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     }
   )
 
-  it('재시도는 입력 픽셀 복사본과 두 OCR 이름을 유지하며 429 뒤 자동 호출하지 않는다', async () => {
+  it('재시도는 입력 픽셀 복사본과 첫 OCR 이름을 유지하며 429 뒤 자동 호출하지 않는다', async () => {
     const fixture = await createSearchFixture(false, 'capture', policy)
     fixture.fetchSearch.mockResolvedValueOnce(
       jsonResponse({
@@ -280,25 +298,33 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     })
     fixture.harness.clock.advance(2_000)
     expect(fixture.fetchSearch).toHaveBeenCalledOnce()
-    // 둘째 이름의 후보 응답도 해당 검색어를 그대로 반환한다.
     fixture.fetchSearch.mockReset()
-    fixture.fetchSearch
-      .mockResolvedValueOnce(jsonResponse({ body: { rows: [] } }))
-      .mockResolvedValueOnce(
-        jsonResponse({ body: { rows: [{ ...matchedCandidate, characterName: '다라' }] } })
-      )
-      .mockResolvedValueOnce(imageResponse())
-      .mockResolvedValueOnce(
-        jsonResponse({
-          body: { ...details(), character: { ...details().character, characterName: '다라' } }
-        })
-      )
+    resolveMatch(fixture)
     expect(await fixture.invoke('controlCharacterSearch', retry)).toMatchObject({ ok: true })
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     const urls = fixture.fetchSearch.mock.calls.map((args) => new URL(new Request(...args).url))
-    expect(urls.slice(0, 2).map((url) => url.searchParams.get('characterName'))).toEqual(names)
-    expect(urls.slice(0, 2).every((url) => url.pathname === '/characters/candidates')).toBe(true)
-    expect((await fixture.read()).slots[0].selected?.characterName).toBe('다라')
+    expect(urls[0].searchParams.get('characterName')).toBe('가나')
+    expect(urls.filter((url) => url.pathname === '/characters/candidates')).toHaveLength(1)
+    expect((await fixture.read()).slots[0].selected?.characterName).toBe('가나')
+  })
+
+  it('두 번째 후보만 바뀌면 현재 요청과 시간 예산을 유지한다', async () => {
+    const fixture = await createSearchFixture(false, 'capture', policy)
+    const response = deferred<Response>()
+    fixture.fetchSearch.mockReturnValueOnce(response.promise)
+    await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
+    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledOnce())
+    const request = new Request(...fixture.fetchSearch.mock.calls[0])
+    const before = await fixture.read()
+    await fixture.invoke('notifyOcrCandidatesDetected', {
+      ...observation(fixture, 2),
+      candidateNicknames: ['가나', '마바']
+    })
+    expect(request.signal.aborted).toBe(false)
+    expect((await fixture.read()).slots[0].requestId).toBe(before.slots[0].requestId)
+    response.resolve(jsonResponse({ body: { rows: [] } }))
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    expect(fixture.fetchSearch).toHaveBeenCalledOnce()
   })
 
   it.each(['종료', 'source', 'navigation', 'destroyed', 'render-process-gone'] as const)(
@@ -375,6 +401,136 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       await expect(
         fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
       ).rejects.toThrow('SEARCH_NOT_ALLOWED')
+      expect(fixture.fetchSearch).not.toHaveBeenCalled()
+    }
+  )
+})
+
+describe('수동 서버 지정 검색', () => {
+  it('캡처 없이 선택한 서버와 이름을 조회하고 상세를 표시한다', async () => {
+    const fixture = await createSearchFixture(false, 'manual', policy)
+    const other = {
+      ...matchedCandidate,
+      serverId: 'siroco',
+      serverName: '시로코',
+      fame: 90000,
+      imageUrl:
+        'https://img-api.neople.co.kr/df/servers/siroco/characters/synthetic-character?zoom=1'
+    }
+    fixture.fetchSearch
+      .mockResolvedValueOnce(jsonResponse({ body: { rows: [other, matchedCandidate] } }))
+      .mockResolvedValueOnce(jsonResponse({ body: details() }))
+    await fixture.invoke('controlManualSearch', {
+      action: 'lookup',
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'cain'
+    })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
+    const snapshot = await fixture.read()
+    expect(snapshot.slots[0]).toMatchObject({
+      selectionMethod: 'manual',
+      selected: { serverId: 'cain', characterName: '가나' }
+    })
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+    expect(fixture.getSources).not.toHaveBeenCalled()
+    expect(
+      fixture.fetchSearch.mock.calls.map((args) => new URL(new Request(...args).url).pathname)
+    ).toEqual(['/characters/candidates', '/characters/cain/synthetic-character'])
+  })
+
+  it('지정 서버에 없는 캐릭터와 빈 이름은 완료된 조회 실패로 표시한다', async () => {
+    const fixture = await createSearchFixture(false, 'manual', policy)
+    fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
+    const lookup = {
+      action: 'lookup',
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'siroco'
+    }
+    await fixture.invoke('controlManualSearch', lookup)
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    await fixture.invoke('controlManualSearch', { ...lookup, nickname: '', observationRevision: 2 })
+    expect((await fixture.read()).slots[0]).toMatchObject({
+      state: 'failure',
+      error: { code: 'INVALID_SEARCH_QUERY' }
+    })
+    expect(fixture.fetchSearch).toHaveBeenCalledOnce()
+  })
+
+  it('새 수동 입력은 이전 요청을 취소하고 늦은 결과를 게시하지 않는다', async () => {
+    const fixture = await createSearchFixture(false, 'manual', policy)
+    const late = deferred<Response>()
+    fixture.fetchSearch.mockReturnValueOnce(late.promise)
+    const lookup = {
+      action: 'lookup',
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'cain'
+    }
+    await fixture.invoke('controlManualSearch', lookup)
+    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledOnce())
+    const request = new Request(...fixture.fetchSearch.mock.calls[0])
+    await fixture.invoke('controlManualSearch', {
+      ...lookup,
+      serverId: 'siroco',
+      observationRevision: 2
+    })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    const current = await fixture.read()
+    late.resolve(jsonResponse({ body: { rows: [matchedCandidate] } }))
+    await new Promise<void>((resolve) => setImmediate(resolve))
+    expect(request.signal.aborted).toBe(true)
+    expect(await fixture.read()).toEqual(current)
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+  })
+
+  it('재시도는 지정한 서버를 유지하고 후보가 없으면 다른 서버로 바꾸지 않는다', async () => {
+    const fixture = await createSearchFixture(false, 'manual', policy)
+    fixture.fetchSearch.mockResolvedValueOnce(
+      jsonResponse({ status: 500, body: { error: { code: 'INTERNAL_SERVER_ERROR' } } })
+    )
+    await fixture.invoke('controlManualSearch', {
+      action: 'lookup',
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'siroco'
+    })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('failure'))
+    const requestId = (await fixture.read()).slots[0].requestId
+    fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
+    await fixture.invoke('controlManualSearch', {
+      action: 'retry',
+      captureId: fixture.captureId,
+      slot: 0,
+      requestId
+    })
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
+  })
+
+  it.each(['all', 'invalid', 'cain/characters', ''])(
+    '서버 %s는 네트워크 전에 거절한다',
+    async (serverId) => {
+      const fixture = await createSearchFixture(false, 'manual', policy)
+      expect(
+        await fixture.invoke('controlManualSearch', {
+          action: 'lookup',
+          captureId: fixture.captureId,
+          slot: 0,
+          observationRevision: 1,
+          nickname: '가나',
+          serverId
+        })
+      ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
       expect(fixture.fetchSearch).not.toHaveBeenCalled()
     }
   )

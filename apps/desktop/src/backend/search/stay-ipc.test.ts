@@ -132,7 +132,7 @@ it.each([false, true])(
       candidateNicknames: [candidate.characterName],
       portrait: portrait()
     })
-    const expectedState = unsupported ? 'failure' : 'success'
+    const expectedState = 'success'
     await expect.poll(async () => (await fixture.read()).slots[0].state).toBe(expectedState)
     const slot = (await fixture.read()).slots[0]
     const origin = API_ORIGIN
@@ -141,8 +141,9 @@ it.each([false, true])(
       `${origin}/characters/cain/${candidate.characterId}/appearance`
     ]
     if (unsupported) {
-      expect(slot.error).toMatchObject({ code: 'SEARCH_APPEARANCE_UNAVAILABLE' })
-      expect(slot.selected).toBeUndefined()
+      expect(slot.selectionMethod).toBe('highest-fame')
+      expect(slot.selected).toMatchObject({ characterId: candidate.characterId })
+      expectedCalls.push(`${origin}/characters/cain/${candidate.characterId}`)
     } else {
       expectedCalls.push(
         'https://bbscdn.df.nexon.com/data7/showroom/static/json/4_animation.json',

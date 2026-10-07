@@ -175,17 +175,17 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       })
 
       expect(await identify(f.input)).toMatchObject({
-        kind: 'failure',
-        error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE', retryAfterSeconds: null }
+        kind: 'success',
+        selected: { selectionMethod: 'highest-fame', details: details('high') }
       })
       expect(source).toHaveBeenCalledOnce()
       expect(f.candidates).toHaveBeenCalledOnce()
       expect(f.matchesPortrait).not.toHaveBeenCalled()
-      expect(f.getDetails).not.toHaveBeenCalled()
+      expect(f.getDetails).toHaveBeenCalledOnce()
     }
   )
 
-  it('비어 있는 Stay 결과는 외형 미확인으로 보류한다', async () => {
+  it('비어 있는 Stay 결과는 최고 명성으로 표시한다', async () => {
     const f = fixture()
     const source: StayImageSource = async () => ({ kind: 'ready', images: [] })
     const identify = requestWith({
@@ -196,8 +196,8 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     })
 
     expect(await identify(f.input)).toMatchObject({
-      kind: 'failure',
-      error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE' }
+      kind: 'success',
+      selected: { selectionMethod: 'highest-fame', details: details('high') }
     })
     expect(f.candidates).toHaveBeenCalledOnce()
     expect(f.matchesPortrait).not.toHaveBeenCalled()
@@ -264,18 +264,18 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.calls).toEqual(['candidates:첫이름', 'image:high', 'image:low', 'details:low'])
   })
 
-  it('아직 크롭이 없으면 후보와 이미지를 조회하지 않는다', async () => {
+  it('크롭이 없으면 후보 조회와 상세만 실행한다', async () => {
     const f = fixture()
 
-    expect(await f.identify({ ...f.input, portrait: null })).toEqual({
+    expect(await f.identify({ ...f.input, portrait: null })).toMatchObject({
       kind: 'success',
-      rows: []
+      selected: { selectionMethod: 'highest-fame', details: details('high') }
     })
-    expect(f.calls).toEqual([])
+    expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
     expect(f.matchesPortrait).not.toHaveBeenCalled()
   })
 
-  it('첫 이름이 전부 불일치일 때만 둘째 이름을 조회하고 같은 취소 신호를 사용한다', async () => {
+  it('첫 이름이 전부 불일치이면 최고 명성을 조회하고 같은 취소 신호를 사용한다', async () => {
     const f = fixture()
     f.matchesPortrait
       .mockResolvedValueOnce(false)
@@ -285,15 +285,14 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
 
     expect(await f.identify(f.input)).toMatchObject({
       kind: 'success',
-      rows: [expect.objectContaining({ characterName: '둘째이름' })]
+      rows: [expect.objectContaining({ characterName: '첫이름' })],
+      selected: { selectionMethod: 'highest-fame' }
     })
     expect(f.calls).toEqual([
       'candidates:첫이름',
       'image:high',
       'image:low',
       'image:null',
-      'candidates:둘째이름',
-      'image:high',
       'details:high'
     ])
     const signals = [
@@ -315,28 +314,28 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.calls).toEqual([])
   })
 
-  it('이미지 로딩 실패와 비교 실패를 불일치로 숨기지 않는다', async () => {
+  it('이미지 로딩 실패와 비교 실패는 명성 표시로 구분한다', async () => {
     const loading = fixture()
     loading.image.mockRejectedValueOnce(new SearchHttpFailure('NEOPLE_API_ERROR'))
     expect(await loading.identify(loading.input)).toMatchObject({
-      kind: 'failure',
-      error: { code: 'NEOPLE_API_ERROR' }
+      kind: 'success',
+      selected: { selectionMethod: 'highest-fame' }
     })
     expect(loading.candidates).toHaveBeenCalledOnce()
     expect(loading.image).toHaveBeenCalledOnce()
-    expect(loading.getDetails).not.toHaveBeenCalled()
+    expect(loading.getDetails).toHaveBeenCalledOnce()
 
     const comparing = fixture()
     comparing.matchesPortrait.mockRejectedValueOnce(new Error('comparison budget exhausted'))
     expect(await comparing.identify(comparing.input)).toMatchObject({
-      kind: 'failure',
-      error: { code: 'SEARCH_RESPONSE_INVALID' }
+      kind: 'success',
+      selected: { selectionMethod: 'highest-fame' }
     })
     expect(comparing.image).toHaveBeenCalledOnce()
-    expect(comparing.getDetails).not.toHaveBeenCalled()
+    expect(comparing.getDetails).toHaveBeenCalledOnce()
   })
 
-  it.each(['후보', '상세'] as const)(
+  it.each(['후보', '외형', '상세'] as const)(
     '%s 호출 제한은 원래 수신 시각을 유지하고 다른 후보로 넘어가지 않는다',
     async (stage) => {
       const f = fixture()
@@ -346,6 +345,8 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       })
       if (stage === '후보') {
         f.candidates.mockRejectedValueOnce(error)
+      } else if (stage === '외형') {
+        f.image.mockRejectedValueOnce(error)
       } else {
         f.matchesPortrait.mockResolvedValueOnce(true)
         f.getDetails.mockRejectedValueOnce(error)
@@ -433,6 +434,32 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       expect(f.image).toHaveBeenCalledOnce()
       expect(f.getDetails).not.toHaveBeenCalled()
       expect(f.matchesPortrait.mock.calls[0][0].signal.aborted).toBe(true)
+    }
+  )
+
+  it.each(['취소', '만료', '이전 요청'] as const)(
+    '외형 오류를 복구하더라도 %s 판정 뒤에는 명성 후보의 상세를 요청하지 않는다',
+    async (reason) => {
+      const f = fixture()
+      let current = true
+      f.image.mockImplementationOnce(async () => {
+        if (reason === '취소') {
+          f.controller.abort()
+        } else if (reason === '만료') {
+          f.clock.elapseWithoutTimers(15_000)
+        } else {
+          current = false
+        }
+        throw new SearchHttpFailure('NEOPLE_API_ERROR')
+      })
+      const outcome = await f.identify({ ...f.input, isCurrent: () => current })
+      if (reason === '만료') {
+        expect(outcome).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
+      } else {
+        expect(outcome).toBeNull()
+      }
+      expect(f.getDetails).not.toHaveBeenCalled()
+      expect(f.matchesPortrait).not.toHaveBeenCalled()
     }
   )
 
