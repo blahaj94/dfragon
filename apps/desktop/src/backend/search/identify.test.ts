@@ -19,6 +19,7 @@ import type {
 } from './character-http'
 import { SearchHttpFailure } from './http'
 import { createPortraitEdgeMatcher } from './portrait-edges'
+import type { StayImageSource } from './stay-images'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 
@@ -122,6 +123,98 @@ function fixture(): {
 }
 
 describe('얼굴 크롭 경계 이후의 캐릭터 식별', () => {
+  it('한 후보의 Stay 자세들을 순서대로 비교하고 통과하면 다음 후보로 넘어가지 않는다', async () => {
+    const f = fixture()
+    const firstImage = portrait.image
+    const secondImage = { ...portrait.image, rgba: new Uint8Array([90, 80, 70, 255]) }
+    const source = vi.fn<StayImageSource>(async ({ characterId }) => {
+      f.calls.push(`stay:${characterId}`)
+
+      return { kind: 'ready', images: [firstImage, secondImage, firstImage] }
+    })
+    f.matchesPortrait.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
+    const identify = createCharacterIdentifier({
+      candidates: f.candidates,
+      image: source,
+      details: f.getDetails,
+      matchesPortrait: f.matchesPortrait
+    })
+
+    expect(await identify(f.input)).toMatchObject({
+      kind: 'success',
+      value: { kind: 'matched', candidate: { characterId: 'high' }, nickname: '첫이름' }
+    })
+    expect(f.matchesPortrait.mock.calls.map(([input]) => input.candidate)).toEqual([
+      firstImage,
+      secondImage
+    ])
+    expect(f.calls).toEqual(['candidates:첫이름', 'stay:high', 'details:high'])
+  })
+
+  it.each(['unknown-avatar', 'ambiguous-avatar', 'unsupported-job'] as const)(
+    '%s 외형을 불일치로 취급해 다음 후보나 이름을 선택하지 않는다',
+    async (reason) => {
+      const f = fixture()
+      const source = vi.fn<StayImageSource>(async () => ({ kind: 'unavailable', reason }))
+      const identify = createCharacterIdentifier({
+        candidates: f.candidates,
+        image: source,
+        details: f.getDetails,
+        matchesPortrait: f.matchesPortrait
+      })
+
+      expect(await identify(f.input)).toMatchObject({
+        kind: 'failure',
+        error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE', retryAfterSeconds: null }
+      })
+      expect(source).toHaveBeenCalledOnce()
+      expect(f.candidates).toHaveBeenCalledOnce()
+      expect(f.matchesPortrait).not.toHaveBeenCalled()
+      expect(f.getDetails).not.toHaveBeenCalled()
+    }
+  )
+
+  it('비어 있는 Stay 결과는 외형 미확인으로 보류한다', async () => {
+    const f = fixture()
+    const source: StayImageSource = async () => ({ kind: 'ready', images: [] })
+    const identify = createCharacterIdentifier({
+      candidates: f.candidates,
+      image: source,
+      details: f.getDetails,
+      matchesPortrait: f.matchesPortrait
+    })
+
+    expect(await identify(f.input)).toMatchObject({
+      kind: 'failure',
+      error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE' }
+    })
+    expect(f.candidates).toHaveBeenCalledOnce()
+    expect(f.matchesPortrait).not.toHaveBeenCalled()
+  })
+
+  it('첫 Stay 비교 중 캡처가 끝나면 다음 자세나 상세를 요청하지 않는다', async () => {
+    const f = fixture()
+    const source: StayImageSource = async () => ({
+      kind: 'ready',
+      images: [portrait.image, portrait.image]
+    })
+    f.matchesPortrait.mockImplementation(async () => {
+      f.controller.abort()
+
+      return false
+    })
+    const identify = createCharacterIdentifier({
+      candidates: f.candidates,
+      image: source,
+      details: f.getDetails,
+      matchesPortrait: f.matchesPortrait
+    })
+
+    expect(await identify(f.input)).toBeNull()
+    expect(f.matchesPortrait).toHaveBeenCalledOnce()
+    expect(f.getDetails).not.toHaveBeenCalled()
+  })
+
   it('색을 반전한 같은 윤곽의 첫 후보를 선택하고 다음 후보나 이름을 조회하지 않는다', async () => {
     const f = fixture()
     const createRamp = (direction: 'horizontal' | 'vertical', inverted = false): CharacterImage => {
