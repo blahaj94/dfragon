@@ -32,15 +32,19 @@ function enumeratePaths(
   return probabilities
 }
 
-it('CTC 경로를 합산한 문자열 상위 5개를 반환하며 greedy와 다른 1위를 선택한다', () => {
+it('기본 두 후보와 요청한 개수를 최종 점수 순으로 반환하며 greedy와 다른 1위를 선택한다', () => {
   const data = new Float32Array([0.4, 0.35, 0.25, 0.4, 0.35, 0.25])
-  expect(decodeCtcCandidates(data, 2, ['A', 'B'])).toEqual([
+  const expected = [
     { rank: 1, modelScore: expect.closeTo(40.25, 5), nickname: 'A' },
     { rank: 2, modelScore: expect.closeTo(26.25, 5), nickname: 'B' },
     { rank: 3, modelScore: expect.closeTo(16, 5), nickname: '' },
     { rank: 4, modelScore: expect.closeTo(8.75, 5), nickname: 'AB' },
     { rank: 5, modelScore: expect.closeTo(8.75, 5), nickname: 'BA' }
-  ])
+  ]
+  expect(decodeCtcCandidates(data, 2, ['A', 'B'])).toEqual(expected.slice(0, 2))
+  expect(decodeCtcCandidates(data, 2, ['A', 'B'], 1)).toEqual(expected.slice(0, 1))
+  expect(decodeCtcCandidates(data, 2, ['A', 'B'], 5)).toEqual(expected)
+  expect(decodeCtcCandidates(data, 2, ['A', 'B'], 10)).toEqual(expected)
   expect(decodeCtc(data, 2, ['A', 'B'])).toBe('A')
 })
 
@@ -70,7 +74,7 @@ it.each([
   const roundedRows = rows.map((_, index) => [...data.subarray(index * 3, index * 3 + 3)])
   const oracle = enumeratePaths(roundedRows, ['가', '😀'])
   const expectedScores = [...oracle.values()].sort((left, right) => right - left).slice(0, 5)
-  const candidates = decodeCtcCandidates(data, rows.length, ['가', '😀'])
+  const candidates = decodeCtcCandidates(data, rows.length, ['가', '😀'], 5)
   expect(candidates).toHaveLength(expectedScores.length)
   expect(new Set(candidates.map(({ nickname }) => nickname)).size).toBe(candidates.length)
   candidates.forEach(({ rank, nickname, modelScore }, index) => {
@@ -114,7 +118,7 @@ it('대소문자와 l/I 혼동 후보를 구분하고 다섯 후보의 확률을
     blank[0] = 1
     rows.push(blank)
   }
-  const candidates = decodeCtcCandidates(new Float32Array(rows.flat()), rows.length, characters)
+  const candidates = decodeCtcCandidates(new Float32Array(rows.flat()), rows.length, characters, 5)
   expect(candidates.map(({ nickname }) => nickname)).toEqual([
     'lnBloom',
     'InBloom',
@@ -151,7 +155,7 @@ it('재채점으로 순위가 바뀌면 복구된 최종 점수 내림차순으�
   const data = new Float32Array([...first, ...second])
   // 탐색 중 A는 5.2점으로 빈 문자열과 B의 6점보다 낮다.
   // top16 밖의 blank→A 경로 1.8점을 복구하면 A가 7점으로 1위가 된다.
-  const candidates = decodeCtcCandidates(data, 2, characters)
+  const candidates = decodeCtcCandidates(data, 2, characters, 5)
   expect(candidates).toEqual([
     { rank: 1, modelScore: expect.closeTo(7, 5), nickname: 'A' },
     { rank: 2, modelScore: expect.closeTo(6, 5), nickname: '' },
@@ -176,6 +180,29 @@ it('확률이 같은 후보는 사전 순서를 유지하고 부족한 후보를
     { rank: 2, modelScore: 50, nickname: 'A' }
   ])
 })
+
+it('기존 탐색 폭보다 많은 후보를 요청하면 그 수까지 점수 순으로 반환한다', () => {
+  const characters = [...'ABCDEFGHIJKLMNOP']
+  const row = [...new Float32Array(17).fill(1 / 17)]
+  const oracle = enumeratePaths([row, row], characters)
+  const expectedScores = [...oracle.values()].sort((left, right) => right - left).slice(0, 40)
+  const candidates = decodeCtcCandidates(new Float32Array([...row, ...row]), 2, characters, 40)
+  expect(candidates).toHaveLength(40)
+  candidates.forEach(({ rank, nickname, modelScore }, index) => {
+    expect(rank).toBe(index + 1)
+    expect(modelScore / 100).toBeCloseTo(oracle.get(nickname)!, 10)
+    expect(modelScore / 100).toBeCloseTo(expectedScores[index], 10)
+  })
+})
+
+it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+  '유효한 양의 정수가 아닌 후보 개수 %s를 거절한다',
+  (candidateCount) => {
+    expect(() => decodeCtcCandidates(new Float32Array([0, 1]), 1, ['A'], candidateCount)).toThrow(
+      RangeError
+    )
+  }
+)
 
 it.each([
   [0, 0],

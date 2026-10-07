@@ -5,7 +5,6 @@ export type CtcCandidate = {
   nickname: string
 }
 
-const RESULT_COUNT = 5
 const BEAM_WIDTH = 32
 const TOKENS_PER_STEP = 16
 const PROBABILITY_SUM_TOLERANCE = 1e-3
@@ -21,12 +20,18 @@ type Frame = {
 type Prefix = { nickname: string; tokens: readonly number[] }
 type Beam = Prefix & { blank: number; nonBlank: number; score: number }
 
-/** 제한된 prefix beam으로 후보를 찾고, 각 문자열의 모든 CTC 경로를 재계산해 최대 5개를 반환한다. */
+/** 제한된 prefix beam으로 후보를 찾고 전체 CTC 경로로 재채점해 요청한 개수까지 반환한다. 기본값은 2개다. */
 export function decodeCtcCandidates(
   data: Float32Array,
   steps: number,
-  characters: readonly string[]
+  characters: readonly string[],
+  candidateCount = 2
 ): CtcCandidate[] {
+  if (!Number.isSafeInteger(candidateCount) || candidateCount < 1) {
+    throw new RangeError('CTC candidate count must be a positive safe integer.')
+  }
+  // 요청한 반환 개수가 기존 탐색 폭보다 크면 그만큼 후보를 유지한다.
+  const beamWidth = Math.max(BEAM_WIDTH, candidateCount)
   const classes = characters.length + 1
   if (!Number.isSafeInteger(steps) || steps < 0 || data.length !== steps * classes) {
     throw new Error('OCR model output shape mismatch.')
@@ -69,7 +74,7 @@ export function decodeCtcCandidates(
       beam.score = addLogProbabilities(beam.blank, beam.nonBlank)
     }
     beams.sort(compareBeams)
-    beams.length = Math.min(beams.length, BEAM_WIDTH)
+    beams.length = Math.min(beams.length, beamWidth)
   }
 
   // 탐색 중 잘린 경로까지 포함해 남은 모든 문자열을 채점한 뒤 최종 순위를 정한다.
@@ -78,7 +83,7 @@ export function decodeCtcCandidates(
   }
   beams.sort(compareBeams)
 
-  return beams.slice(0, RESULT_COUNT).map((beam, index) => {
+  return beams.slice(0, candidateCount).map((beam, index) => {
     const rank = index + 1
     const modelScore = Math.min(100, Math.exp(beam.score) * 100)
     const nickname = beam.nickname
