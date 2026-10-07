@@ -236,6 +236,7 @@ describe('capture main document and source boundary', () => {
       'controlManualSearch',
       'listCaptureSources',
       'notifyManualNickname',
+      'notifyOcrCandidatesDetected',
       'notifyStableNicknameDetected',
       'selectCaptureSource'
     ])

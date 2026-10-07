@@ -64,9 +64,12 @@ it('검색 feature는 제어 invoke와 단일 event만 노출하고 기존 notif
   }
   const observation = { captureId: CAPTURE_ID, slot: 2, observationRevision: 4, nickname: '가나' }
   await capture.notifyStableNicknameDetected(observation)
+  const ocr = { ...observation, candidateNicknames: ['가나', '다라'], portrait: null }
+  await capture.notifyOcrCandidatesDetected(ocr)
   expect(renderer.invoke.mock.calls).toEqual([
     ...controls.map((control) => ['controlCharacterSearch', control]),
-    ['notifyStableNicknameDetected', observation]
+    ['notifyStableNicknameDetected', observation],
+    ['notifyOcrCandidatesDetected', ocr]
   ])
 })
 

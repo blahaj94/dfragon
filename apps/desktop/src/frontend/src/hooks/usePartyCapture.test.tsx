@@ -9,10 +9,16 @@ import { usePartyCapture } from './usePartyCapture'
 
 const moduleMocks = vi.hoisted(() => {
   const capturePartyNicknameCrops = vi.fn()
+  const capturePartyRecognitionInputs = vi.fn()
   const createPartyOcrWorker = vi.fn()
   const runSerialLoop = vi.fn()
 
-  return { capturePartyNicknameCrops, createPartyOcrWorker, runSerialLoop }
+  return {
+    capturePartyNicknameCrops,
+    capturePartyRecognitionInputs,
+    createPartyOcrWorker,
+    runSerialLoop
+  }
 })
 
 vi.mock('../lib/ocr', async (importOriginal) => {
@@ -25,6 +31,7 @@ vi.mock('../lib/ocr', async (importOriginal) => {
 vi.mock('../lib/party', async (importOriginal) => {
   const party = { ...(await importOriginal<typeof import('../lib/party')>()) }
   party.capturePartyNicknameCrops = moduleMocks.capturePartyNicknameCrops
+  party.capturePartyRecognitionInputs = moduleMocks.capturePartyRecognitionInputs
 
   return party
 })
@@ -47,6 +54,7 @@ type LoopOptions = {
 const api = {
   listCaptureSources: vi.fn(),
   notifyStableNicknameDetected: vi.fn(),
+  notifyOcrCandidatesDetected: vi.fn(),
   selectCaptureSource: vi.fn()
 }
 
@@ -54,13 +62,22 @@ const search = { controlCharacterSearch: vi.fn(), onCharacterSearchChanged: vi.f
 let currentSearch = searchSnapshot({ captureId: null, revision: 0 })
 const getDisplayMedia = vi.fn()
 
-function HookHarness({ onRender }: { onRender: (value: HookValue) => void }): null {
-  onRender(usePartyCapture())
+function HookHarness({
+  onRender,
+  identifyCharacters
+}: {
+  onRender: (value: HookValue) => void
+  identifyCharacters: boolean
+}): null {
+  onRender(usePartyCapture({ identifyCharacters }))
 
   return null
 }
 
-async function renderPartyCaptureHook(strict = false): Promise<{
+async function renderPartyCaptureHook(
+  strict = false,
+  identifyCharacters = false
+): Promise<{
   getCurrent: () => HookValue
   unmount: () => Promise<void>
 }> {
@@ -69,7 +86,12 @@ async function renderPartyCaptureHook(strict = false): Promise<{
   let current: HookValue | undefined
 
   await act(async () => {
-    const harness = <HookHarness onRender={(value) => (current = value)} />
+    const harness = (
+      <HookHarness
+        onRender={(value) => (current = value)}
+        identifyCharacters={identifyCharacters}
+      />
+    )
     root.render(strict ? <StrictMode>{harness}</StrictMode> : harness)
   })
 
@@ -179,8 +201,13 @@ beforeEach(() => {
     ok: true,
     snapshot: currentSearch
   }))
+  api.notifyOcrCandidatesDetected.mockImplementation(async () => ({
+    ok: true,
+    snapshot: currentSearch
+  }))
   api.selectCaptureSource.mockResolvedValue(null)
   moduleMocks.capturePartyNicknameCrops.mockReturnValue([null, null, null, null])
+  moduleMocks.capturePartyRecognitionInputs.mockReturnValue([null, null, null, null])
   moduleMocks.runSerialLoop.mockImplementation(() => new Promise<void>(() => undefined))
 
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
@@ -196,6 +223,93 @@ afterEach(() => {
 })
 
 describe('usePartyCapture', () => {
+  it('식별 모드가 같은 프레임의 후보를 OCR IPC로 전달하고 중지 뒤에는 다시 안정화한다', async () => {
+    const { stream, worker } = captureResources()
+    const nickname = document.createElement('canvas')
+    let loopOptions: LoopOptions | undefined
+    getDisplayMedia.mockResolvedValue(stream)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    worker.recognize.mockResolvedValue({
+      data: {
+        text: '기사*',
+        confidence: 20,
+        candidates: [
+          { nickname: '기사*', rank: 1, modelScore: 20 },
+          { nickname: '기사☆', rank: 2, modelScore: 10 }
+        ]
+      }
+    })
+    moduleMocks.capturePartyRecognitionInputs.mockReturnValue([
+      { slot: 0, nickname, portrait: null },
+      null,
+      null,
+      null
+    ])
+    moduleMocks.runSerialLoop.mockImplementation((options: LoopOptions) => {
+      loopOptions = options
+
+      return new Promise<void>(() => undefined)
+    })
+    const hook = await renderPartyCaptureHook(false, true)
+    await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+    await act(async () => loopOptions?.runCycle())
+    expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
+    await act(async () => loopOptions?.runCycle())
+
+    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith({
+      captureId: CAPTURE_ID,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '기사*',
+      candidateNicknames: ['기사*', '기사☆'],
+      portrait: null
+    })
+    expect(api.notifyStableNicknameDetected).not.toHaveBeenCalled()
+    expect(moduleMocks.capturePartyNicknameCrops).not.toHaveBeenCalled()
+    expect(hook.getCurrent().stableNicknames[0]).toBe('기사*')
+
+    await act(async () => hook.getCurrent().stopCapture())
+    expect(hook.getCurrent().stableNicknames[0]).toBeNull()
+    await act(async () => hook.getCurrent().startCapture())
+    await act(async () => loopOptions?.runCycle())
+    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledTimes(1)
+    await act(async () => loopOptions?.runCycle())
+    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledTimes(2)
+    await hook.unmount()
+  })
+
+  it('수동 검색에서 OCR로 복귀할 때 최신 후보 순서와 얼굴을 함께 복구한다', async () => {
+    const { stream, worker } = captureResources()
+    getDisplayMedia.mockResolvedValue(stream)
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook(false, true)
+    await act(async () => hook.getCurrent().selectAndStartCapture('game'))
+    await act(async () => hook.getCurrent().search.editSlot(0))
+    const latest = {
+      slot: 0,
+      nickname: '새별*',
+      candidateNicknames: ['새별*', '새별☆'],
+      portrait: {
+        image: { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) },
+        rasterScale: 2
+      }
+    }
+    await act(async () => hook.getCurrent().search.observeOcr(latest))
+    expect(api.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
+    await act(async () => hook.getCurrent().search.submitSlot(0, '직접검색'))
+    expect(api.notifyStableNicknameDetected).toHaveBeenCalledTimes(1)
+
+    await act(async () => hook.getCurrent().search.resumeOcr(0))
+
+    expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith({
+      ...latest,
+      captureId: CAPTURE_ID,
+      observationRevision: 5
+    })
+    expect(hook.getCurrent().search.manualSlots[0]).toBe(false)
+    await hook.unmount()
+  })
+
   it('새로고침으로 나중에 열린 창을 표시하며 기존 선택을 유지한다', async () => {
     const initialSource = { id: 'initial-window', name: 'Initial window' }
     const gameSource = { id: 'later-window', name: 'Later game window' }
