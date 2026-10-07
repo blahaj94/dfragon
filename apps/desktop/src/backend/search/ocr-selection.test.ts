@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { CharacterDetails } from '../../preload/common/types/character'
-import type { SearchRuntime } from './request'
+import type { IdentificationAdapters } from './request'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { FakeClock } from '../auth/auth-test-fixtures'
 
@@ -31,23 +31,22 @@ describe('선택 상세의 main 전용 보관 수명', () => {
     '%s는 상세 접근을 무효화한다',
     async (reset) => {
       let current = true
-      const identify = vi.fn<NonNullable<SearchRuntime['identify']>>().mockResolvedValue({
-        kind: 'success',
-        value: {
-          kind: 'matched',
-          nickname: '가나',
-          details,
-          candidate: {
+      const identification: IdentificationAdapters = {
+        candidates: async () => [
+          {
             ...details.character,
             fame: 50000,
             imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1'
           }
-        }
-      })
+        ],
+        image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
+        matchesPortrait: async () => true,
+        details: async () => details
+      }
       const lifetime = createCaptureSearchLifetime({
         publish: vi.fn(),
         isCurrent: () => current,
-        runtime: { http: vi.fn(), clock: new FakeClock(), identify }
+        runtime: { http: vi.fn(), clock: new FakeClock(), identification }
       })
       const captureId = lifetime.begin({ windowGeneration: 1, sourceGeneration: 1 }).snapshot
         .captureId!
