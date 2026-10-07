@@ -69,7 +69,9 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `modelScore`는 재계산한 문자열 확률의 100배다. 실제 정답률이나 상위 후보 사이의 상대 비율이 아니며, 반환한 후보 점수의 합을 100으로 맞추지 않는다. 입력은 유한한 0~1의 softmax 확률이어야 한다. 시점별 확률 합과 1의 차이가 0.001 이하면 그 합으로 나누어 보정하고, 범위를 벗어나면 거절한다. Logits에 softmax를 다시 적용하지 않는다. 빌드 준비 단계도 같은 확률 범위와 합계 조건을 검사한다.
 
-`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 기존 `{ text, confidence }` 응답을 유지하며 `text`에 1위 닉네임, `confidence`에 1위 `modelScore`를 넣는다. 개발자 평가는 이를 **모델 점수**로 표시하고 저장된 정답과 비교한 일치율, CER과 구분한다.
+`decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 반환한다. `text`와 `confidence`는 각각 1위 닉네임과 `modelScore`를 유지하고, `candidates`에는 최대 두 개의 원문, 순위, 모델 점수를 전달한다. 빈 문자열이나 같은 이름을 worker 경계에서 보정하거나 제거하지 않는다.
+
+`createPartyOcrWorker`는 후보 개수, 1부터 시작하는 연속 순위, 유한한 0~100 점수의 내림차순과 1위 호환 필드의 일치를 확인한다. 초기화와 인식, 실패가 섞인 응답은 거절하고 기존 worker 종료, 취소, 시간 초과 처리를 유지한다. 이 전달 변경만으로 기존 닉네임 안정화나 검색 정책을 바꾸지 않는다. 개발자 평가는 **모델 점수**를 저장된 정답과 비교한 일치율, CER과 구분한다.
 
 ## UI 구성
 
