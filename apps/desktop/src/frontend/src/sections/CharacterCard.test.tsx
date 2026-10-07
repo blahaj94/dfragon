@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from './CharacterCard'
 import type { ServerSelect } from '../components/ServerSelect'
+import type { CardCharacter } from '../types/cards'
 
 vi.mock('../components/ServerSelect', () => ({
   ServerSelect: ({
@@ -109,4 +110,61 @@ it('OCR 갱신이 사용자가 수정 중인 이름을 덮어쓰지 않는다', 
   const input = await enterName('직접수정')
   await render({ nickname: '뒤늦은OCR' })
   expect(input.value).toBe('직접수정')
+})
+
+it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐릭터로 바뀌지 않는다', async () => {
+  const lookup = vi.fn()
+  const previous: CardCharacter = {
+    name: '이전OCR',
+    serverId: 'cain',
+    adventure: '',
+    job: '',
+    fame: null,
+    equipment: [],
+    oath: []
+  }
+  await render({ state: 'success', character: previous, onLookup: lookup })
+  const input = await enterName('수동이름')
+  await act(async () =>
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  )
+  expect(lookup).toHaveBeenLastCalledWith('수동이름', 'cain')
+
+  await render({ state: 'pending', nickname: '이전OCR', onLookup: lookup })
+  expect(input.value).toBe('수동이름')
+  await render({ state: 'failure', nickname: '이전OCR', onLookup: lookup })
+  expect(input.value).toBe('수동이름')
+  await act(async () =>
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  )
+  expect(lookup).toHaveBeenCalledTimes(2)
+  expect(lookup).toHaveBeenLastCalledWith('수동이름', 'cain')
+
+  await render({ state: 'success', character: previous, onLookup: lookup })
+  expect(input.value).toBe('수동이름')
+  const details = vi.fn()
+  await render({
+    state: 'success',
+    character: { ...previous, name: '수동이름' },
+    onLookup: lookup,
+    onDetail: details
+  })
+  expect(input.value).toBe('수동이름')
+  expect(
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!.disabled
+  ).toBe(false)
+  await act(async () =>
+    root.render(
+      <CharacterCard
+        key="new-round"
+        state="pending"
+        slot={1}
+        nickname="다음OCR"
+        inputEnabled
+        basicOnly
+        onLookup={lookup}
+      />
+    )
+  )
+  expect(container.querySelector('input')!.value).toBe('다음OCR')
 })
