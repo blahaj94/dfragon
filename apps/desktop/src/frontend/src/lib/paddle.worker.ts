@@ -1,5 +1,9 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
 import { decodeCtcCandidates, normalizedBgr } from './paddle-recognition'
+import type { PartyOcrResult } from '../types/capture'
+
+const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
+const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
 
 let session: InferenceSession | null = null
 let characters: string[] = []
@@ -14,7 +18,10 @@ async function initializeModel(root: string): Promise<void> {
   if (!response.ok) {
     throw new Error('OCR dictionary unavailable.')
   }
-  characters = (await response.text()).replace(/\r/g, '').replace(/\n$/, '').split('\n')
+  characters = (await response.text())
+    .replace(DICTIONARY_CARRIAGE_RETURN_PATTERN, '')
+    .replace(DICTIONARY_FINAL_NEWLINE_PATTERN, '')
+    .split('\n')
   characters.push(' ')
   session = await InferenceSession.create(new URL('korean-rec.onnx', root).toString(), {
     executionProviders: ['wasm'],
@@ -49,14 +56,19 @@ async function recognizeAndReply(pixels: ImageData): Promise<void> {
     outputs = await session.run({ [session.inputNames[0]]: tensor })
     const output = outputs[session.outputNames[0]]
     const [batch, steps, classes] = output.dims
-    if (batch !== 1 || classes !== characters.length + 1) {
+    if (
+      batch !== 1 ||
+      classes !== characters.length + 1 ||
+      !(output.data instanceof Float32Array)
+    ) {
       throw new Error('OCR model output shape mismatch.')
     }
 
-    const first = decodeCtcCandidates(output.data as Float32Array, steps, characters)[0]
+    const candidates = decodeCtcCandidates(output.data, steps, characters)
+    const first = candidates[0]
     const text = first?.nickname ?? ''
     const confidence = first?.modelScore ?? 0
-    postMessage({ text, confidence })
+    postMessage({ text, confidence, candidates } satisfies PartyOcrResult)
   } finally {
     tensor.dispose()
     if (outputs != null) {
