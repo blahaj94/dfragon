@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/api character details
-last-reviewed: 2026-09-16
+last-reviewed: 2026-10-07
 ---
 
 # 캐릭터 상세 정보
@@ -25,11 +25,21 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 
 응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
 
+## 외형 조회
+
+`GET /characters/:serverId/:characterId/appearance`는 얼굴 식별에 필요한 외형만 로그인 없이 조회한다. 상세 조회와 같은 서버, ASCII 캐릭터 ID 규칙을 적용하며 query, HEAD와 본문을 거절한다. 공급자의 `/equip/avatar`를 한 번 호출하고 캐릭터 DB 읽기, 저장, 11개 상세 조회와 공용 아이템 보강은 수행하지 않는다.
+
+응답은 `serverId`, `characterId`, `characterName`, `jobName`, `jobGrowName`, `avatar`다. 각 아바타는 `slotId`, `itemId`, `itemName`, `clone: { itemId, itemName }`만 포함한다. 원본 슬롯 순서와 문자열을 유지하고 중복 슬롯, 식별 불일치와 불완전한 clone 쌍은 거절한다. 미장착 avatar null은 빈 배열로, clone 누락 또는 null은 두 필드가 null인 쌍으로 반환한다. 옵션, 엠블렘, 모험단과 길드 정보는 응답에 포함하지 않는다.
+
+외형 조회는 기존 검색과 상세의 한도와 독립적으로 IP당 최근 60초 64회다. 네 슬롯, OCR 이름 두 개, 최대 여덟 서버의 후보를 확인할 수 있는 한도이며, 예약은 공급자 호출 전에 소비하고 실패 시 반환하지 않는다. IPv6 /64와 신뢰할 프록시 정책은 기존 검색과 같다. 공급자 호출은 공통 최근 60초 600회, 동시 12회 예산을 공유한다. 서버 캐시와 주기 수집은 추가하지 않는다.
+
+API key는 runtime에서 prepared adapter를 만들 때 주입한다. 서비스는 준비된 함수를 사용하며 실행 중 key를 다시 찾지 않는다. 공급자 headers, 최대 1MiB body 수신과 검증에 하나의 5초 제한을 적용하고 연결 종료와 서버 종료를 전파한다. 자동 재시도와 redirect는 허용하지 않는다. 오류 형식과 Retry-After는 기존 캐릭터 상세 오류 계약을 따른다. 이 endpoint와 독립 호출 한도는 해당 구현 PR의 사용자 merge로 채택한다.
+
 ## 모험단명 검색
 
 `GET /adventures/characters?adventureName=...`는 로그인 없이 우리 DB에 저장된 캐릭터를 모험단명으로 검색한다. 서버 구분 없이 이름을 정확히 비교하며 부분 일치·대소문자 변환·Unicode 정규화·공백 제거를 하지 않는다. Neople 호출, 미수집 캐릭터 발견, 검색 시 갱신은 하지 않는다. 전체 보유 캐릭터가 아니라 마지막으로 관측된 소속 목록이라는 범위를 응답의 `scope: "stored"`로 명시한다. 결과가 없으면 200과 빈 `rows`를 반환한다.
 
-Query는 `adventureName`, 선택 `limit`, 선택 `after`만 허용하며 중복·잘못된 percent encoding·알 수 없는 key와 HEAD는 400이다. 모험단명은 1~100 Unicode 코드 포인트이며 공백만 있는 값과 제어 문자는 거절한다. 이 길이는 서버 입력 상한이며 게임의 이름 생성 규칙을 정의하지 않는다. `limit`은 기본 100, 1~100의 십진 정수다. `after`는 응답의 `nextAfter`로 받은 characterId이며 기존 ID 문자·길이 규칙을 따른다.
+Query는 `adventureName`, 선택 `limit`, 선택 `after`만 허용하며 중복·잘못된 percent encoding·알 수 없는 key와 HEAD는 400이다. 모험단명은 1~~100 Unicode 코드 포인트이며 공백만 있는 값과 제어 문자는 거절한다. 이 길이는 서버 입력 상한이며 게임의 이름 생성 규칙을 정의하지 않는다. `limit`은 기본 100, 1~~100의 십진 정수다. `after`는 응답의 `nextAfter`로 받은 characterId이며 기존 ID 문자·길이 규칙을 따른다.
 
 응답은 `adventureName`, `scope`, `rows`, `nextAfter`다. 각 행은 캐릭터·서버 ID, 서버명, 캐릭터명, 레벨, 직업·전직명, 명성과 기본정보의 `lastSuccessfulFetchAt`을 담는다. 공급자의 표시 값이 기대한 문자열·숫자가 아니면 null로 반환하며 JSONB 원본은 보존한다. characterId 오름차순으로 조회하고 다음 페이지에는 같은 모험단명과 `nextAfter`를 `after`로 전달한다. 마지막 페이지의 `nextAfter`는 null이다. 페이지 사이의 캐릭터 갱신에 대한 고정 snapshot은 제공하지 않는다.
 
