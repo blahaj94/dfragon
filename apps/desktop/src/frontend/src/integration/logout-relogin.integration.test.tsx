@@ -176,6 +176,9 @@ function installCanvasBoundary(): void {
     const fillRect = vi.fn()
     const getImageData = vi.fn((x: number, y: number, width: number, height: number) => {
       const data = new Uint8ClampedArray(width * height * 4)
+      for (let offset = 3; offset < data.length; offset += 4) {
+        data[offset] = 255
+      }
       // 기본 배율의 첫 파티 프레임을 Canvas 경계에서 제공해 실제 검출기를 실행한다.
       for (const { top, color } of [
         { top: 27, color: [194, 15, 11, 255] },
