@@ -12,6 +12,11 @@ import {
 } from './build/distribution-config'
 import { readDesktopSourceInfo } from './build/build-info'
 
+const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
+const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
+const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
+const UI_IMPORT_PATTERN = /^@dfragon\/ui$/
+
 export default defineConfig(({ mode, command }) => {
   const libAlias = resolve('../../packages/lib/src/index.ts')
   const desktopBuild = JSON.stringify(
@@ -33,12 +38,12 @@ export default defineConfig(({ mode, command }) => {
   }
   const rendererAliases = [
     { find: '@frontend', replacement: resolve('src/frontend/src') },
-    { find: /^@dfragon\/lib$/, replacement: libAlias },
+    { find: LIB_IMPORT_PATTERN, replacement: libAlias },
     {
-      find: /^@dfragon\/lib\/utils\/pagination$/,
+      find: PAGINATION_IMPORT_PATTERN,
       replacement: resolve('../../packages/lib/src/utils/pagination.ts')
     },
-    { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
+    { find: UI_IMPORT_PATTERN, replacement: resolve('../../packages/ui/src/index.tsx') }
   ]
   const rendererPlugins = [
     ...rendererTransforms(),
@@ -83,9 +88,9 @@ export default defineConfig(({ mode, command }) => {
     main: {
       resolve: {
         alias: [
-          { find: /^@dfragon\/lib$/, replacement: libAlias },
+          { find: LIB_IMPORT_PATTERN, replacement: libAlias },
           {
-            find: /^@dfragon\/lib\/ocr-contract$/,
+            find: OCR_CONTRACT_IMPORT_PATTERN,
             replacement: resolve('../../packages/lib/src/ocr-contract.ts')
           }
         ]
@@ -106,6 +111,7 @@ export default defineConfig(({ mode, command }) => {
       }
     },
     preload: {
+      resolve: { alias: [{ find: LIB_IMPORT_PATTERN, replacement: libAlias }] },
       build: {
         externalizeDeps: false,
         rollupOptions: {

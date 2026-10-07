@@ -28,6 +28,9 @@ export default defineConfig({
     }
   },
   preload: {
+    resolve: {
+      alias: [{ find: LIB_IMPORT_PATTERN, replacement: resolve('../../packages/lib/src/index.ts') }]
+    },
     build: {
       externalizeDeps: false,
       lib: { entry: resolve('src/preload/index.ts'), formats: ['cjs'] },
