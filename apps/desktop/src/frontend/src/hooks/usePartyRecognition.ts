@@ -54,22 +54,28 @@ export function usePartyRecognition(
 
       return
     }
+    const generation = generationRef.current
     const crops = capturePartyNicknameCrops(video)
+    // 같은 프레임에서 사라진 슬롯은 다른 슬롯의 OCR 완료를 기다리지 않는다.
+    for (const [slot, crop] of crops.entries()) {
+      if (crop == null) {
+        clearRecognitionSlot(slot)
+      }
+    }
     const nextStableNicknames = stableNicknamesRef.current.slice()
     for (const [slot, crop] of crops.entries()) {
-      const hasCrop = crop != null
-      const nickname = hasCrop ? normalizeNickname((await worker.recognize(crop)).data.text) : null
-      if (signal.aborted) {
+      if (signal.aborted || generation !== generationRef.current) {
         return
       }
-      const hasNickname = nickname != null
-      let recognizedNickname: string | null = null
-      if (hasNickname) {
-        const isNicknameEmpty = nickname.length === 0
-        if (!isNicknameEmpty) {
-          recognizedNickname = nickname
-        }
+
+      if (crop == null) {
+        continue
       }
+      const nickname = normalizeNickname((await worker.recognize(crop)).data.text)
+      if (signal.aborted || generation !== generationRef.current) {
+        return
+      }
+      const recognizedNickname = nickname.length > 0 ? nickname : null
       const stability = updateSlotStability(slotStabilityRef.current[slot], recognizedNickname)
       slotStabilityRef.current[slot] = stability
       const hasStableNickname = stability.stableNickname != null
@@ -109,20 +115,27 @@ export function usePartyRecognition(
     const generation = generationRef.current
     const inputs = capturePartyRecognitionInputs(video)
     for (const [slot, captured] of inputs.entries()) {
+      if (captured == null) {
+        clearRecognitionSlot(slot)
+      }
+    }
+    for (const [slot, captured] of inputs.entries()) {
       if (signal.aborted || generation !== generationRef.current) {
         return
       }
+
+      if (captured == null) {
+        continue
+      }
+      const result = await worker.recognize(captured.nickname)
+      if (signal.aborted || generation !== generationRef.current) {
+        return
+      }
+      const candidateNicknames = candidateNames(result.data)
+      const nickname = candidateNicknames[0]
       let input: OcrCaptureObservation | null = null
-      if (captured != null) {
-        const result = await worker.recognize(captured.nickname)
-        if (signal.aborted || generation !== generationRef.current) {
-          return
-        }
-        const candidateNicknames = candidateNames(result.data)
-        const nickname = candidateNicknames[0]
-        if (nickname != null) {
-          input = { slot, nickname, candidateNicknames, portrait: captured.portrait }
-        }
+      if (nickname != null) {
+        input = { slot, nickname, candidateNicknames, portrait: captured.portrait }
       }
       const previous = ocrStabilityRef.current[slot]
       const sameInput =
@@ -141,6 +154,18 @@ export function usePartyRecognition(
       }
       ocrStabilityRef.current[slot] = { input, reported: true }
       setStableSlot(slot, input.nickname)
+    }
+  }
+
+  function clearRecognitionSlot(slot: number): void {
+    const hadReported =
+      reportedNicknamesRef.current[slot] != null || ocrStabilityRef.current[slot]?.reported === true
+    slotStabilityRef.current[slot] = null
+    reportedNicknamesRef.current[slot] = null
+    ocrStabilityRef.current[slot] = null
+    setStableSlot(slot, null)
+    if (hadReported) {
+      observe({ slot, nickname: null })
     }
   }
 
