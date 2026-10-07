@@ -47,14 +47,20 @@ export function CharacterCard({
   const [name, setName] = useState(nickname ?? character?.name ?? '')
   const [serverId, setServerId] = useState<string>(character?.serverId ?? '')
   const [dirty, setDirty] = useState(false)
+  const [submitted, setSubmitted] = useState<{ nickname: string; serverId: string } | null>(null)
   const [inputNotice, setInputNotice] = useState('')
   const incomingName = character?.name ?? nickname
   const incomingServerId = character?.serverId
-  const source = `${incomingName ?? ''}:${incomingServerId ?? ''}`
-  const [previousSource, setPreviousSource] = useState(source)
-  if (previousSource !== source) {
-    setPreviousSource(source)
-    if (!dirty) {
+  const [previousSource, setPreviousSource] = useState({
+    name: incomingName,
+    serverId: incomingServerId
+  })
+  const acceptsSource =
+    submitted === null ||
+    (character?.name === submitted.nickname && character?.serverId === submitted.serverId)
+  if (previousSource.name !== incomingName || previousSource.serverId !== incomingServerId) {
+    setPreviousSource({ name: incomingName, serverId: incomingServerId })
+    if (!dirty && acceptsSource) {
       if (incomingName !== undefined) {
         setName(incomingName)
       }
@@ -83,9 +89,12 @@ export function CharacterCard({
 
       return
     }
+    const nickname = name.trim()
     setDirty(false)
+    setName(nickname)
+    setSubmitted({ nickname, serverId: nextServerId })
     setInputNotice('')
-    onLookup?.(name.trim(), nextServerId)
+    onLookup?.(nickname, nextServerId)
   }
 
   return (
