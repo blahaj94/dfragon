@@ -61,6 +61,18 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `createPortraitMatcher`에는 `maxMeanChannelError`, `minCoverage`, `minComparedPixels`를 명시적으로 전달해야 한다. 기준을 모두 만족하는 정렬이 하나라도 있으면 통과하며 운영 기본값은 없다. 실제 Windows 표본으로 기준을 정해야 한다. 입력 크기와 계산량에는 별도 상한을 두고, 계산 중 주기적으로 event loop를 양보해 취소를 확인한다. 연산 상한 초과나 잘못된 입력을 불일치로 숨기지 않는다. 원본 버퍼는 변경하지 않는다.
 
+## 크롭 결과 이후의 식별 처리
+
+`backend/search/identify.ts`의 `createCharacterIdentifier`는 후보, 이미지, 상세 HTTP 함수와 얼굴 비교 함수를 주입받는다. 호출자는 순위가 있는 닉네임 최대 두 개, 얼굴 크롭 결과, 접수 시각, clock, 취소 신호와 현재 요청인지 확인하는 함수를 전달한다.
+
+크롭이 null이면 `portrait-unavailable`로 끝나며 HTTP를 시작하지 않는다. 빈 문자열이나 검색할 수 없는 OCR 후보는 보정 없이 제외하고 같은 이름은 한 번만 조회한다. 유효한 이름의 원문과 순서는 유지한다. 첫 이름의 후보를 API 순서대로 비교하고, 처음 통과한 후보에 대해서만 상세를 조회한다. 명성이 있는 후보와 null 후보가 모두 불일치일 때만 두 번째 이름으로 이동하며 두 이름의 결과를 합쳐 정렬하지 않는다.
+
+성공 결과는 `matched`, 모두 불일치하면 `unmatched`다. 이미지 다운로드, 비교 계산, 공급자 오류나 429를 불일치로 바꾸지 않고 처리를 중단한다. 비교 입력과 연산 상한 오류는 정제한 응답 확인 실패로 전달한다. 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
+
+`backend/search/operation.ts`는 기존 일반 검색과 새 식별 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 각 조회와 비교 단계가 같은 취소 신호를 사용하고, 후속 작업 전에 현재 요청과 남은 예산을 다시 확인한다. 캡처가 끝나거나 요청이 오래된 상태이면 결과를 버리며, 시간 초과 후 두 번째 이름이나 상세 요청을 새로 시작하지 않는다. 기존 수동 검색의 rows 응답과 호출 제한 정책은 유지한다.
+
+현재 새 식별 함수는 실제 캡처 IPC와 제품 카드에 활성화하지 않았다. 얼굴 크롭 구현, Windows 표본의 비교 기준, 슬롯별 연결은 후속 단위다. 기존 일반 검색과 OCR 이름 표시는 유지하고, 가짜 얼굴이나 임의 서버를 제품 결과로 표시하지 않는다.
+
 ## PaddleOCR와 실제 게임 인식 영역
 
 현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
