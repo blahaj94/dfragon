@@ -18,6 +18,7 @@ import type {
   CharacterImageHttp
 } from './character-http'
 import { SearchHttpFailure } from './http'
+import { createPortraitEdgeMatcher } from './portrait-edges'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 
@@ -121,6 +122,43 @@ function fixture(): {
 }
 
 describe('얼굴 크롭 경계 이후의 캐릭터 식별', () => {
+  it('색을 반전한 같은 윤곽의 첫 후보를 선택하고 다음 후보나 이름을 조회하지 않는다', async () => {
+    const f = fixture()
+    const createRamp = (direction: 'horizontal' | 'vertical', inverted = false): CharacterImage => {
+      const width = 10
+      const height = 10
+      const rgba = new Uint8Array(width * height * 4)
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const position = direction === 'horizontal' ? x : y
+          const brightness = 20 + position * 20
+          const value = inverted ? 255 - brightness : brightness
+          rgba.set([value, value, value, 255], (y * width + x) * 4)
+        }
+      }
+
+      return { width, height, rgba }
+    }
+    f.matchesPortrait.mockImplementation(
+      createPortraitEdgeMatcher({ minSimilarity: 0.99, minCoverage: 1, minComparedPixels: 20 })
+    )
+    f.image.mockImplementation(async ({ characterId }) => {
+      f.calls.push(`image:${characterId}`)
+      if (characterId === 'high') {
+        return createRamp('vertical')
+      }
+
+      return createRamp('horizontal', true)
+    })
+    const portrait = { image: createRamp('horizontal'), rasterScale: 1 }
+
+    expect(await f.identify({ ...f.input, portrait })).toMatchObject({
+      kind: 'success',
+      value: { kind: 'matched', candidate: { characterId: 'low' }, nickname: '첫이름' }
+    })
+    expect(f.calls).toEqual(['candidates:첫이름', 'image:high', 'image:low', 'details:low'])
+  })
+
   it('아직 크롭이 없으면 후보와 이미지를 조회하지 않는다', async () => {
     const f = fixture()
 
