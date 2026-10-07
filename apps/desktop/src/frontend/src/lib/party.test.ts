@@ -106,7 +106,20 @@ function captureCanvas(
 
     return { data }
   })
-  const frame = { width: 0, height: 0, getContext: () => ({ drawImage: vi.fn(), getImageData }) }
+  const frame = {
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      drawImage: vi.fn(),
+      getImageData,
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4)
+      }),
+      putImageData: (image: { data: Uint8ClampedArray }) => {
+        pixels = image.data
+      }
+    })
+  }
   const nicknames: NicknameCanvas[] = []
   let nextIsFrame = true
   const createElement = vi.fn(() => {
@@ -207,4 +220,17 @@ it.each([
 
   expect(capturePartyNicknameCrops(video)).toEqual([null, null, null, null])
   expect(createElement).not.toHaveBeenCalled()
+})
+
+it('공통 네이티브 캡처의 RGBA를 영상 변환 없이 크롭하고 원본은 바꾸지 않는다', () => {
+  const setup = captureCanvas(1280, 720, [42])
+  const rgba = new Uint8Array(framePixels(1280, 720, [42]))
+  const before = rgba.slice()
+
+  const inputs = capturePartyRecognitionInputs({ width: 1280, height: 720, rgba })
+
+  expect(inputs[0]?.nickname).toBe(setup.nicknames[0])
+  expect(inputs[0]?.portrait).not.toBeNull()
+  expect(inputs.slice(1)).toEqual([null, null, null])
+  expect(rgba).toEqual(before)
 })

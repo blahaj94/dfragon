@@ -117,7 +117,7 @@ vi.mock('../../src/backend/capture/ipc-handler', () => {
   const registerCaptureIpc = fixture.capture
   const registerCaptureWindow = vi.fn()
 
-  return { registerCaptureIpc, registerCaptureWindow }
+  return { registerCaptureIpc, registerCaptureWindow, registerCaptureMediaForFixture: vi.fn() }
 })
 
 beforeEach(async () => {

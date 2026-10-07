@@ -12,8 +12,18 @@ import {
 import {
   registerCaptureIpc,
   registerCaptureWindow,
+  registerCaptureMediaForFixture,
   consumeCaptureMediaPermission
 } from './ipc-handler'
+import type { WindowFrameResult } from '../../preload/common/types/capture'
+
+const nativeFrame = vi.hoisted(() => {
+  const read = vi.fn<() => Promise<WindowFrameResult>>()
+  const bind = vi.fn(() => read)
+
+  return { read, bind }
+})
+vi.mock('./native-frame', () => ({ bindWindowFrame: nativeFrame.bind }))
 
 const electron = vi.hoisted(() => {
   const getSources = vi.fn()
@@ -77,6 +87,7 @@ async function setup(signedIn = true): Promise<{
   const disposeIpc = registerCaptureIpc()
   disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
+  registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
     handlers.set(channel, handler)
@@ -239,6 +250,7 @@ describe('capture main document and source boundary', () => {
       'notifyOcrCandidatesDetected',
       'notifyStableNicknameDetected',
       'openCharacterDetails',
+      'readCaptureFrame',
       'selectCaptureSource'
     ])
     expect(
@@ -796,4 +808,64 @@ describe('product media permission capture lifetime', () => {
       expect(consumeCaptureMediaPermission(contents, url)).toBe(false)
     }
   )
+})
+
+describe('선택한 창의 네이티브 프레임 IPC', () => {
+  it('활성 캡처에 결합된 창만 읽고 임의 창 식별자를 받지 않는다', async () => {
+    const f = await setup(false)
+    const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
+    nativeFrame.read.mockResolvedValue({ kind: 'frame', image })
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+      snapshot: { captureId: string }
+    }
+    const captureId = begun.snapshot.captureId
+
+    await expect(f.invoke('readCaptureFrame', captureId)).resolves.toEqual({ kind: 'frame', image })
+    expect(nativeFrame.bind).toHaveBeenCalledWith(sources[0].id)
+    expect(nativeFrame.read).toHaveBeenCalledExactlyOnceWith()
+    await expect(f.invoke('readCaptureFrame', captureId, 'window:999:0')).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+    await expect(f.invoke('readCaptureFrame', 'stale')).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    expect(nativeFrame.read).toHaveBeenCalledOnce()
+  })
+
+  it.each(['end', 'source', 'document'] as const)(
+    '%s 뒤 늦은 픽셀 응답은 전달하지 않는다',
+    async (change) => {
+      const f = await setup(false)
+      const pending = deferred<WindowFrameResult>()
+      nativeFrame.read.mockReturnValueOnce(pending.promise)
+      await f.invoke('selectCaptureSource', sources[0].id)
+      const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+        snapshot: { captureId: string }
+      }
+      const captureId = begun.snapshot.captureId
+      const response = f.invoke('readCaptureFrame', captureId)
+      const rejected = expect(response).rejects.toThrow()
+      await vi.waitFor(() => expect(nativeFrame.read).toHaveBeenCalledOnce())
+      if (change === 'end') {
+        await f.invoke('controlCharacterSearch', { action: 'end', captureId })
+      } else if (change === 'source') {
+        await f.invoke('selectCaptureSource', sources[0].id)
+      } else {
+        f.documentEvents.emit('did-start-navigation', {}, rendererUrl, false, true)
+      }
+      pending.resolve({ kind: 'frame', image: { width: 1, height: 1, rgba: new Uint8Array(4) } })
+      await rejected
+    }
+  )
+
+  it('다른 문서에서는 네이티브 읽기를 시작하지 않는다', async () => {
+    const f = await setup(false)
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+      snapshot: { captureId: string }
+    }
+    f.mainFrame.url = 'file:///other.html'
+
+    await expect(f.invoke('readCaptureFrame', begun.snapshot.captureId)).rejects.toThrow()
+    expect(nativeFrame.read).not.toHaveBeenCalled()
+  })
 })

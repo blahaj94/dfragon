@@ -59,7 +59,7 @@ it('앱 시작 때 실행 중인 던파를 감지해 표시하지만 캡처와 O
     </ColorThemeProvider>
   )
   expect(f.capture.listCaptureSources).toHaveBeenCalledOnce()
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(media.worker).not.toHaveBeenCalled()
   await click('화면 캡처')
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
@@ -67,7 +67,7 @@ it('앱 시작 때 실행 중인 던파를 감지해 표시하지만 캡처와 O
   )
   expect(document.body.textContent).toContain('창 감지됨')
   expect(f.capture.selectCaptureSource).not.toHaveBeenCalled()
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
 })
 
 it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
@@ -82,7 +82,7 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
   await click('화면 캡처')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await select('game')
-  expect(f.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
   expect(document.body.textContent).toContain('캡처 중, 1920×1080')
   await f.cycle(3)
   expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
@@ -99,26 +99,28 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
     'ALICE'
   )
   await click('닫기')
-  expect(f.resources.track.stop).not.toHaveBeenCalled()
+
   await f.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
   expect([...f.container.querySelectorAll('article')]).toEqual(cards)
-  expect(f.resources.track.stop).not.toHaveBeenCalled()
+
   await click('화면 캡처')
   expect(document.body.textContent).toContain('캡처 중지')
   await click('캡처 중지')
-  expect(f.resources.track.stop).toHaveBeenCalledOnce()
+
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     ''
   )
   await select('game')
-  expect(f.getDisplayMedia).toHaveBeenCalledTimes(2)
+  expect(
+    f.search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
+  ).toHaveLength(2)
 })
 
 it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대상으로 시작한다', async () => {
   const f = createRendererFixture()
   const next = captureResources()
-  f.getDisplayMedia.mockResolvedValueOnce(f.resources.stream).mockResolvedValueOnce(next.stream)
+  f.readCaptureFrame.mockResolvedValueOnce(f.resources.frame).mockResolvedValueOnce(next.frame)
   media.worker.mockResolvedValueOnce(f.resources.worker).mockResolvedValueOnce(next.worker)
   await f.mount(
     <ColorThemeProvider>
@@ -130,23 +132,21 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
   const firstLoop = media.loop.mock.calls[0][0]
   await select('next')
   expect(f.capture.selectCaptureSource).toHaveBeenLastCalledWith('next')
-  expect(f.getDisplayMedia).toHaveBeenCalledTimes(2)
-  expect(f.resources.track.stop).toHaveBeenCalledOnce()
+  expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
+
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
   expect(firstLoop.signal.aborted).toBe(true)
-  expect(next.track.stop).not.toHaveBeenCalled()
+
   expect(next.worker.terminate).not.toHaveBeenCalled()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
 
-  await act(async () => f.resources.track.dispatchEvent(new Event('ended')))
   expect(document.body.textContent).toContain('캡처 중, 1920×1080')
-  expect(next.track.stop).not.toHaveBeenCalled()
 
   await click('캡처 중지')
-  expect(next.track.stop).toHaveBeenCalledOnce()
+
   expect(next.worker.terminate).toHaveBeenCalledOnce()
   expect(media.loop.mock.calls[1][0].signal.aborted).toBe(true)
-  expect(f.resources.track.stop).toHaveBeenCalledOnce()
+
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
 })
 
@@ -161,16 +161,16 @@ it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처�
   )
   await click('화면 캡처')
   await select('game')
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
 
   await select('next')
-  expect(f.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
   await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
 
-  expect(f.getDisplayMedia).toHaveBeenCalledOnce()
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
   expect(media.worker).toHaveBeenCalledOnce()
-  expect(f.resources.track.stop).not.toHaveBeenCalled()
+
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
   expect(document.body.textContent).toContain('캡처 중, 1920×1080')
 })
@@ -190,7 +190,7 @@ it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시�
   await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
 
   expect(f.capture.selectCaptureSource).toHaveBeenLastCalledWith('')
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(media.worker).not.toHaveBeenCalled()
   expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
   expect(document.querySelector('[role="dialog"]')).toBeNull()
@@ -213,7 +213,7 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
   )!
   await act(async () => refresh.click())
   expect(document.body.textContent).toContain('창 미감지')
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
 })
 
 it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상태를 덮어쓰지 않는다', async () => {
@@ -235,7 +235,7 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
   expect(document.body.textContent).toContain('캡처를 중지했습니다.')
   expect(document.body.textContent).not.toContain('준비 중')
   await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
-  expect(f.getDisplayMedia).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(document.body.textContent).toContain('캡처를 중지했습니다.')
   expect(document.body.textContent).not.toContain('캡처 시작을 눌러 주세요.')
 })

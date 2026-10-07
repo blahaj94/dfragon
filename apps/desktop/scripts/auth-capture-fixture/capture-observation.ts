@@ -1,6 +1,10 @@
 import { ipcMain, type BrowserWindow } from 'electron'
 import type { AuthClock } from '../../src/backend/auth/types'
-import { registerCaptureIpc, registerCaptureWindow } from '../../src/backend/capture/ipc-handler'
+import {
+  registerCaptureIpc,
+  registerCaptureWindow,
+  registerCaptureMediaForFixture
+} from '../../src/backend/capture/ipc-handler'
 import {
   parseSearchObservation,
   parseOcrSearchObservation
@@ -166,6 +170,7 @@ export function registerObservedCapture(
   try {
     const dispose = registerCaptureIpc(runtime)
     registerCaptureWindow(window, documentUrl)
+    registerCaptureMediaForFixture(window)
 
     return { counts, dispose }
   } finally {

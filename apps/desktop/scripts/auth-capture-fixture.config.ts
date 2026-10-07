@@ -4,13 +4,18 @@ import { rendererTransforms } from '../build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
+const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
+const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
+const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
+const UI_IMPORT_PATTERN = /^@dfragon\/ui$/
+
 export default defineConfig({
   main: {
     resolve: {
       alias: [
-        { find: /^@dfragon\/lib$/, replacement: resolve('../../packages/lib/src/index.ts') },
+        { find: LIB_IMPORT_PATTERN, replacement: resolve('../../packages/lib/src/index.ts') },
         {
-          find: /^@dfragon\/lib\/ocr-contract$/,
+          find: OCR_CONTRACT_IMPORT_PATTERN,
           replacement: resolve('../../packages/lib/src/ocr-contract.ts')
         }
       ]
@@ -46,12 +51,16 @@ export default defineConfig({
     ],
     resolve: {
       alias: [
-        { find: /^@dfragon\/lib$/, replacement: resolve('../../packages/lib/src/index.ts') },
         {
-          find: /^@dfragon\/lib\/utils\/pagination$/,
+          find: './party-capture-session',
+          replacement: resolve('src/frontend/src/fixture/auth-capture/legacy-capture-session.ts')
+        },
+        { find: LIB_IMPORT_PATTERN, replacement: resolve('../../packages/lib/src/index.ts') },
+        {
+          find: PAGINATION_IMPORT_PATTERN,
           replacement: resolve('../../packages/lib/src/utils/pagination.ts')
         },
-        { find: /^@dfragon\/ui$/, replacement: resolve('../../packages/ui/src/index.tsx') }
+        { find: UI_IMPORT_PATTERN, replacement: resolve('../../packages/ui/src/index.tsx') }
       ]
     },
     build: {

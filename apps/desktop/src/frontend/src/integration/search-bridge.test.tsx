@@ -59,7 +59,7 @@ it('read 응답 전 event가 있어도 reload에서 기존 capture를 재개하�
   read.resolve({ ok: true, snapshot: { ...existing, revision: 7 } })
   await act(async () => undefined)
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
-  expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+  expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
   expect(fixture.button('캡처 시작').disabled).toBe(true)
 })
 
@@ -159,7 +159,7 @@ it('초기 read 실패는 검색 연결 안내를 표시하고 command를 자동
   await fixture.mount()
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledExactlyOnceWith({ action: 'read' })
   expect(fixture.container.textContent).toContain('검색 연결을 확인할 수 없습니다')
-  expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+  expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
 })
 
 it('검색 run 변경은 구독·표시를 버리고 검색만 다시 조회한다', async () => {
@@ -301,7 +301,7 @@ it.each(['buffered', 'late'] as const)(
     expect(fixture.search.controlCharacterSearch).toHaveBeenCalledExactlyOnceWith({
       action: 'read'
     })
-    expect(fixture.getDisplayMedia).not.toHaveBeenCalled()
+    expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
     expect(media.worker).not.toHaveBeenCalled()
     expect(media.loop).not.toHaveBeenCalled()
     expect(fixture.container.textContent).toContain('검색 연결을 확인할 수 없습니다')
