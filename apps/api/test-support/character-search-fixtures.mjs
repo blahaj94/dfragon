@@ -85,7 +85,6 @@ export async function withSearchApp(f, operation, overrides = {}) {
     return adapter(input)
   }
   const deps = {
-    apiKey: 'synthetic-search-key',
     searchCharacters,
     ...overrides
   }

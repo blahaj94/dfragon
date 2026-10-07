@@ -100,7 +100,6 @@ test('GET은 가장 오래된 성공 조회부터 정확히 5분에 만료되고
       const before = structuredClone(state.rows)
       let calls = 0
       const service = createCharacterDetailService({
-        apiKey: 'fixture',
         store,
         fetchDetails: async () => {
           calls++
@@ -137,7 +136,6 @@ test('최초·누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정
   const { state, store } = memory()
   let calls = 0
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -174,7 +172,6 @@ test('자동·명시 갱신 실패는 기존 저장값을 보존하고 만료된
   state.now += 30_000
   let failing = true
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       if (failing) {
@@ -207,7 +204,6 @@ test('GET 캐시 적중과 명시 갱신은 IP별 10회 한도를 함께 소비�
   const { state, store } = memory(rowsAt(initialTime))
   let calls = 0
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -236,7 +232,6 @@ test('다른 IP의 명시 갱신도 캐릭터별 30초 cooldown과 남은 초를
   const { state, store } = memory()
   let calls = 0
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -274,7 +269,6 @@ test('GET과 명시 갱신은 작업을 공유하고 한 대기자의 연결 종
   let calls = 0,
     sharedSignal: AbortSignal | undefined
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async (_identity, s) => {
       calls++
@@ -313,7 +307,6 @@ test('마지막 대기자가 취소하면 지연 응답을 저장하지 않고 �
   let calls = 0,
     abortedSignal: AbortSignal | undefined
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async (_identity, s) => {
       calls++
@@ -351,7 +344,6 @@ test('공유 갱신 실패 뒤 새 요청을 허용하고 서버 종료는 취�
     finish = gate()
   let calls = 0
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -379,7 +371,6 @@ test('공유 갱신 실패 뒤 새 요청을 허용하고 서버 종료는 취�
     cleanup = gate(),
     stopped = new AbortController()
   const shutting = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async (_identity, s) => {
       start.release()
@@ -414,7 +405,6 @@ test('갱신 시작 DB 시각 조회가 2초를 넘으면 늦은 결과로 upstr
     return new Date(initialTime).toISOString()
   }
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -446,7 +436,6 @@ test('서버 종료는 갱신 시작 DB 시각 대기를 취소하고 늦은 결
     return new Date(initialTime).toISOString()
   }
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -472,7 +461,6 @@ test('가장 오래된 성공 조회가 DB 현재 시각보다 미래이면 저�
   const { state, store } = memory(rowsAt(initialTime + 1))
   let calls = 0
   const service = createCharacterDetailService({
-    apiKey: 'fixture',
     store,
     fetchDetails: async () => {
       calls++
@@ -507,7 +495,6 @@ test(
     }
     let calls = 0
     const service = createCharacterDetailService({
-      apiKey: 'fixture',
       store,
       fetchDetails: async () => {
         calls++

@@ -33,7 +33,6 @@ async function startApp(
     dependencies
   )
   const app = await createApiHttpApp({
-    apiKey: 'synthetic-candidates-key',
     searchCharacters,
     clock
   })

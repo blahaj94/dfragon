@@ -8,9 +8,8 @@ test('Swagger는 공개 API 경로만 문서화하고 DB·provider를 호출하�
     throw new Error('documentation must not call services')
   })
   const app = await createApiHttpApp(
-    { apiKey: 'documentation-fixture', searchCharacters: unused },
+    { searchCharacters: unused },
     {
-      apiKey: 'documentation-fixture',
       store: { read: unused, beginFetch: unused, saveAndRead: unused },
       fetchDetails: unused
     },

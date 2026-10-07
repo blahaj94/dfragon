@@ -257,7 +257,6 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       })
       const boundedStore = createCharacterDetailStore(boundedSource)
       detailService = createCharacterDetailService({
-        apiKey: 'fixture-neople-key',
         store: {
           ...boundedStore,
           saveAndRead(...args) {
@@ -333,9 +332,12 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       origin: `http://127.0.0.1:${provider.address().port}`
     })
     app = await createApiHttpApp(
-      { apiKey: 'synthetic' },
       {
-        apiKey: 'fixture-neople-key',
+        async searchCharacters() {
+          throw new Error('예상하지 않은 캐릭터 검색 공급자 호출')
+        }
+      },
+      {
         store,
         fetchDetails: adapter,
         catalog: createCatalogService(createCatalogStore(source), async (keys) =>
