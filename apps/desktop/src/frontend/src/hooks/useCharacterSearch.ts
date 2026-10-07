@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createCaptureSearch, type CaptureSearch } from '../lib/capture-search'
+import {
+  createCaptureSearch,
+  type CaptureSearch,
+  type CaptureObservation,
+  type OcrCaptureObservation
+} from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 
@@ -7,6 +12,7 @@ type CharacterSearch = SearchView & {
   begin: (signal: AbortSignal) => Promise<string | null>
   end: () => void
   observe: (input: { slot: number; nickname: string | null }) => void
+  observeOcr: (input: OcrCaptureObservation) => void
   retry: (slot: number) => void
   manualSlots: readonly boolean[]
   editSlot: (slot: number) => void
@@ -21,7 +27,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   }, [onInvalidated])
   const bridgeRef = useRef<CaptureSearch | null>(null)
   const manualSlotsRef = useRef(new Set<number>())
-  const latestOcrRef = useRef<(string | null)[]>([null, null, null, null])
+  const latestOcrRef = useRef<(CaptureObservation | null)[]>([null, null, null, null])
   const [manualSlots, setManualSlots] = useState<readonly boolean[]>([false, false, false, false])
   const [view, setView] = useState<SearchView>({
     ready: false,
@@ -31,12 +37,14 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
   })
   const api = window.search
   const notify = window.api.notifyStableNicknameDetected
+  const notifyOcr = window.api.notifyOcrCandidatesDetected
 
   useEffect(() => {
     let active = true
     const bridge = createCaptureSearch({
       api,
       notify,
+      notifyOcr,
       onChange: (value) => {
         if (active) {
           setView(value)
@@ -52,7 +60,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
       bridgeRef.current = null
       bridge.dispose()
     }
-  }, [api, notify])
+  }, [api, notify, notifyOcr])
 
   const begin = useCallback(async (signal: AbortSignal): Promise<string | null> => {
     const bridge = bridgeRef.current
@@ -68,8 +76,8 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     setManualSlots([false, false, false, false])
     bridgeRef.current?.end()
   }, [])
-  const observe = useCallback((input: { slot: number; nickname: string | null }): void => {
-    latestOcrRef.current[input.slot] = input.nickname
+  const observe = useCallback((input: CaptureObservation): void => {
+    latestOcrRef.current[input.slot] = input
     if (!manualSlotsRef.current.has(input.slot)) {
       bridgeRef.current?.observe(input)
     }
@@ -90,11 +98,25 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     manualSlotsRef.current.delete(slot)
     setManualSlots([0, 1, 2, 3].map((index) => manualSlotsRef.current.has(index)))
     bridgeRef.current?.observe({ slot, nickname: null })
-    bridgeRef.current?.observe({ slot, nickname: latestOcrRef.current[slot] })
+    const latestOcr = latestOcrRef.current[slot]
+    if (latestOcr != null) {
+      bridgeRef.current?.observe(latestOcr)
+    }
   }, [])
   const retry = useCallback((slot: number): void => {
     void bridgeRef.current?.retry(slot)
   }, [])
 
-  return { ...view, begin, end, observe, retry, manualSlots, editSlot, submitSlot, resumeOcr }
+  return {
+    ...view,
+    begin,
+    end,
+    observe,
+    observeOcr: observe,
+    retry,
+    manualSlots,
+    editSlot,
+    submitSlot,
+    resumeOcr
+  }
 }

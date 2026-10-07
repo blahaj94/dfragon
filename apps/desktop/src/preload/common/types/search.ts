@@ -1,3 +1,5 @@
+import type { CharacterPortrait, CharacterSummary } from './character'
+
 export const SEARCH_ACTIONS = {
   READ: 'read',
   BEGIN: 'begin',
@@ -29,6 +31,12 @@ export type SearchObservation = Readonly<{
   observationRevision: number
   nickname: string
 }>
+
+export type OcrSearchInput = Readonly<{
+  candidateNicknames: readonly string[]
+  portrait: CharacterPortrait | null
+}>
+export type OcrSearchObservation = SearchObservation & OcrSearchInput
 
 export type CharacterSearchRow = Readonly<{
   characterId: string
@@ -75,9 +83,11 @@ export type SearchSlot = Readonly<{
   observationRevision: number
   requestId: string | null
   nickname: string | null
-  state: 'idle' | 'pending' | 'success' | 'empty' | 'failure'
+  state:
+    'idle' | 'pending' | 'success' | 'empty' | 'failure' | 'waiting-portrait' | 'waiting-policy'
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
+  selected?: CharacterSummary
 }>
 
 export type SearchSnapshot = Readonly<{
