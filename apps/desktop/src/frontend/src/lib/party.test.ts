@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { capturePartyNicknameCrops } from './party'
+import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from './party'
+import type { PartyPortraitCropper } from './party-portrait'
 
 type NicknameCanvas = {
   width: number
@@ -8,6 +9,47 @@ type NicknameCanvas = {
 }
 
 afterEach(() => vi.unstubAllGlobals())
+
+it('얼굴 크롭 구현이 준비되지 않았으면 닉네임만 반환하고 얼굴을 추측하지 않는다', () => {
+  const setup = captureCanvas(1280, 720, [42, 324])
+
+  const inputs = capturePartyRecognitionInputs(setup.video)
+
+  expect(inputs).toEqual([
+    { slot: 0, nickname: setup.nicknames[0], portrait: null },
+    null,
+    { slot: 2, nickname: setup.nicknames[1], portrait: null },
+    null
+  ])
+})
+
+it('얼굴 크롭 경계에는 닉네임과 같은 프레임의 원본 RGBA와 검출 배율을 전달한다', () => {
+  const setup = captureCanvas(1280, 720, [42, 324])
+  const portrait = {
+    image: { width: 1, height: 1, rgba: new Uint8Array([55, 170, 200, 255]) },
+    rasterScale: 1
+  }
+  const cropper = vi.fn<PartyPortraitCropper>(() => portrait)
+
+  const inputs = capturePartyRecognitionInputs(setup.video, cropper)
+
+  expect(cropper).toHaveBeenCalledTimes(2)
+  const first = cropper.mock.calls[0][0]
+  const third = cropper.mock.calls[1][0]
+  expect(first).toMatchObject({
+    frame: { width: 1280, height: 720 },
+    nicknameRegion: { slot: 1, x: 42, y: 10, width: 73, height: 16 },
+    rasterScale: 1
+  })
+  expect(third.nicknameRegion).toMatchObject({ slot: 3, x: 324 })
+  expect(third.frame.rgba).toBe(first.frame.rgba)
+  const nicknameStart = (10 * 1280 + 42) * 4
+  expect([...first.frame.rgba.slice(nicknameStart, nicknameStart + 12)]).toEqual([
+    255, 255, 255, 255, 0, 0, 0, 255, 55, 170, 200, 255
+  ])
+  expect(inputs[0]?.portrait).toBe(portrait)
+  expect(inputs[2]?.portrait).toBe(portrait)
+})
 
 /** 실측한 기본 배율의 HP, MP와 이름 픽셀을 제품 검출 좌표와 독립적으로 그린다. */
 function framePixels(width: number, height: number, anchors: number[]): Uint8ClampedArray {
