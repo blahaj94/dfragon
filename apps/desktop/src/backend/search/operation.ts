@@ -17,6 +17,9 @@ export type SearchOperationContext = {
   signal: AbortSignal
   isCurrent: () => boolean
 }
+export type SearchOperation = {
+  run: <T>(step: (signal: AbortSignal) => Promise<T>) => Promise<T>
+}
 type Check = { active: true } | { active: false; result: SearchOperationFailure | null }
 
 function failure(code: SearchErrorCode): SearchOperationFailure {
@@ -26,7 +29,7 @@ function failure(code: SearchErrorCode): SearchOperationFailure {
 /** 조회와 후속 이미지 비교를 처음 접수한 시각부터 하나의 취소 신호와 시간 예산으로 실행한다. */
 export async function runSearchOperation<T>(
   input: SearchOperationContext,
-  operation: (signal: AbortSignal, assertActive: () => void) => Promise<T>
+  operation: (execution: SearchOperation) => Promise<T>
 ): Promise<SearchOperationOutcome<T>> {
   const { clock, signal } = input
   const deadline = input.startedAt + SEARCH_OPERATION_TIMEOUT_MS
@@ -64,6 +67,20 @@ export async function runSearchOperation<T>(
     }
   }
 
+  async function runStep<Value>(step: (signal: AbortSignal) => Promise<Value>): Promise<Value> {
+    assertActive()
+    try {
+      const value = await step(transport.signal)
+      assertActive()
+
+      return value
+    } catch (error) {
+      // 취소를 무시한 의존성이나 늦게 실행된 타이머도 다음 업무 단계로 진행하지 못하게 한다.
+      assertActive()
+      throw error
+    }
+  }
+
   function expire(): void {
     if (finished) {
       return
@@ -86,7 +103,7 @@ export async function runSearchOperation<T>(
     }
 
     try {
-      const value = await operation(transport.signal, assertActive)
+      const value = await operation({ run: runStep })
       const completed = check()
       if (completed.active) {
         return { kind: 'success', value }

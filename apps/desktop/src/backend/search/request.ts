@@ -3,16 +3,37 @@ import type { CharacterSearchRow, OcrSearchInput } from '../../preload/common/ty
 import type {
   CharacterDetails,
   CharacterSummary,
-  CharacterJsonValue
+  CharacterJsonValue,
+  CharacterImage,
+  CharacterPortrait
 } from '../../preload/common/types/character'
-import type { createCharacterIdentifier } from './identify'
-import type { SearchHttp } from './http'
-import { runSearchOperation, type SearchOperationFailure } from './operation'
+import { createCharacterIdentifier, type IdentificationServices } from './identify'
+import { SearchHttpFailure, type SearchHttp } from './http'
+import type {
+  CharacterCandidatesHttp,
+  CharacterDetailsHttp,
+  CharacterImageHttp
+} from './character-http'
+import type { StayImageSource } from './stay-images'
+import { runSearchOperation, type SearchOperation, type SearchOperationFailure } from './operation'
+
+export type PortraitMatcher = (input: {
+  portrait: CharacterPortrait
+  candidate: CharacterImage
+  signal: AbortSignal
+}) => Promise<boolean>
+
+export type IdentificationAdapters = {
+  candidates: CharacterCandidatesHttp
+  image: CharacterImageHttp | StayImageSource
+  details: CharacterDetailsHttp
+  matchesPortrait: PortraitMatcher
+}
 
 export type SearchRuntime = {
   http: SearchHttp
   clock: AuthClock
-  identify?: ReturnType<typeof createCharacterIdentifier>
+  identification?: IdentificationAdapters
 }
 export type SearchOutcome =
   | {
@@ -60,7 +81,8 @@ export async function runSearchRequest(input: RequestInput): Promise<SearchOutco
       signal: input.signal,
       isCurrent: input.isCurrent
     },
-    (signal) => input.runtime.http({ nickname: input.nickname, signal })
+    (execution) =>
+      execution.run((signal) => input.runtime.http({ nickname: input.nickname, signal }))
   )
   if (outcome === null || outcome.kind === 'failure') {
     return outcome
@@ -74,24 +96,46 @@ async function runIdentificationRequest(
   input: RequestInput,
   ocr: OcrSearchInput
 ): Promise<SearchOutcome> {
-  const identify = input.runtime.identify
-  if (identify === undefined) {
+  const adapters = input.runtime.identification
+  if (adapters === undefined) {
     return {
       kind: 'failure',
       error: { code: 'NEOPLE_UNAVAILABLE', retryAfterSeconds: null },
       retryAfterReceivedAt: null
     }
   }
-  const outcome = await identify({
-    clock: input.runtime.clock,
-    startedAt: input.startedAt,
-    signal: input.signal,
-    isCurrent: input.isCurrent,
-    nicknames: ocr.candidateNicknames,
-    portrait: ocr.portrait
-  })
+  const outcome = await runSearchOperation(
+    {
+      clock: input.runtime.clock,
+      startedAt: input.startedAt,
+      signal: input.signal,
+      isCurrent: input.isCurrent
+    },
+    (execution) => {
+      const services = bindIdentificationServices(adapters, execution)
+      const identify = createCharacterIdentifier(services)
+
+      return identify({ nicknames: ocr.candidateNicknames, portrait: ocr.portrait })
+    }
+  )
   if (outcome === null || outcome.kind === 'failure') {
     return outcome
+  }
+
+  if (outcome.value.kind === 'invalid-input') {
+    return {
+      kind: 'failure',
+      error: { code: 'INVALID_SEARCH_QUERY', retryAfterSeconds: null },
+      retryAfterReceivedAt: null
+    }
+  }
+
+  if (outcome.value.kind === 'appearance-unavailable') {
+    return {
+      kind: 'failure',
+      error: { code: 'SEARCH_APPEARANCE_UNAVAILABLE', retryAfterSeconds: null },
+      retryAfterReceivedAt: null
+    }
   }
 
   if (outcome.value.kind !== 'matched') {
@@ -120,4 +164,38 @@ async function runIdentificationRequest(
   }
 
   return { kind: 'success', rows, selected: { summary, details } }
+}
+
+/** 요청의 실행 관리를 결합하고 식별 규칙에는 업무 연산만 전달한다. */
+function bindIdentificationServices(
+  adapters: IdentificationAdapters,
+  execution: SearchOperation
+): IdentificationServices {
+  return {
+    findCandidates: (nickname) =>
+      execution.run((signal) => adapters.candidates({ nickname, signal })),
+    loadPortraits: (identity) =>
+      execution.run(async (signal) => {
+        const source = await adapters.image({ ...identity, signal })
+        if ('kind' in source) {
+          if (source.kind === 'unavailable') {
+            return null
+          }
+
+          return source.images
+        }
+
+        return [source]
+      }),
+    getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
+    matchesPortrait: (input) =>
+      execution.run(async (signal) => {
+        try {
+          return await adapters.matchesPortrait({ ...input, signal })
+        } catch {
+          // 비교 입력이나 연산 한도 문제를 불일치로 숨겨 다음 후보를 선택하지 않는다.
+          throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
+        }
+      })
+  }
 }
