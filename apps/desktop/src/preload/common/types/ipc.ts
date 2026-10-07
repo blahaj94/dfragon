@@ -1,5 +1,5 @@
 import type { AuthSnapshot, AuthCommandResult, AuthProvider } from './auth'
-import type { CaptureSource, StableNicknameDetection } from './capture'
+import type { CaptureSource, StableNicknameDetection, WindowFrameResult } from './capture'
 import type {
   SearchControl,
   SearchCommandResult,
@@ -25,6 +25,7 @@ interface AsyncIPCFunctions {
   logout: () => Promise<AuthCommandResult>
   listCaptureSources: () => Promise<CaptureSource[]>
   selectCaptureSource: (sourceId: string) => Promise<CaptureSource | null>
+  readCaptureFrame: (captureId: string) => Promise<WindowFrameResult>
   notifyStableNicknameDetected: (detection: StableNicknameDetection) => Promise<SearchCommandResult>
   notifyOcrCandidatesDetected: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>

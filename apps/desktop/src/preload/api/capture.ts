@@ -1,6 +1,14 @@
 import { makeHandlerInvoker } from '../ipc'
 import type { AsyncIPCFunctions } from '../common/types/ipc'
 import { invokeSearchCommand } from './search-command'
+import { parseWindowFrame } from '../common/capture-frame'
+
+const invokeReadCaptureFrame = makeHandlerInvoker('readCaptureFrame')
+export const readCaptureFrame: AsyncIPCFunctions['readCaptureFrame'] = async (captureId) => {
+  const value: unknown = await invokeReadCaptureFrame(captureId)
+
+  return parseWindowFrame(value)
+}
 
 const invokeOpenCharacterDetails = makeHandlerInvoker('openCharacterDetails')
 export const openCharacterDetails: AsyncIPCFunctions['openCharacterDetails'] = async (input) => {

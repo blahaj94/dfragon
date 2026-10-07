@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react'
 import type { PartyOcrWorker, PartyOcrResult, SlotStability } from '../types/capture'
-import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from '../lib/party'
+import {
+  capturePartyNicknameCrops,
+  capturePartyRecognitionInputs,
+  type PartyFrameSource
+} from '../lib/party'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { normalizeNickname, updateSlotStability } from '../lib/recognition'
 import type { OcrCaptureObservation } from '../lib/capture-search'
@@ -18,7 +22,7 @@ export function usePartyRecognition(
 ): {
   stableNicknames: (string | null)[]
   recognizePartyNicknames: (
-    video: HTMLVideoElement,
+    frame: PartyFrameSource,
     worker: PartyOcrWorker,
     signal: AbortSignal
   ) => Promise<void>
@@ -41,7 +45,7 @@ export function usePartyRecognition(
   }
 
   async function recognizePartyNicknames(
-    video: HTMLVideoElement,
+    frame: PartyFrameSource,
     worker: PartyOcrWorker,
     signal: AbortSignal
   ): Promise<void> {
@@ -50,12 +54,12 @@ export function usePartyRecognition(
     }
 
     if (observeOcr != null) {
-      await recognizeOcrInputs(video, worker, signal, observeOcr)
+      await recognizeOcrInputs(frame, worker, signal, observeOcr)
 
       return
     }
     const generation = generationRef.current
-    const crops = capturePartyNicknameCrops(video)
+    const crops = capturePartyNicknameCrops(frame)
     // 같은 프레임에서 사라진 슬롯은 다른 슬롯의 OCR 완료를 기다리지 않는다.
     for (const [slot, crop] of crops.entries()) {
       if (crop == null) {
@@ -107,13 +111,13 @@ export function usePartyRecognition(
   }
 
   async function recognizeOcrInputs(
-    video: HTMLVideoElement,
+    frame: PartyFrameSource,
     worker: PartyOcrWorker,
     signal: AbortSignal,
     notify: (input: OcrCaptureObservation) => void
   ): Promise<void> {
     const generation = generationRef.current
-    const inputs = capturePartyRecognitionInputs(video)
+    const inputs = capturePartyRecognitionInputs(frame)
     for (const [slot, captured] of inputs.entries()) {
       if (captured == null) {
         clearRecognitionSlot(slot)

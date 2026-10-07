@@ -6,8 +6,10 @@ import {
 } from '@dfragon/lib'
 import { binarizeNicknamePixels } from './nickname-pixels'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
-import type { CharacterPortrait } from '../../../preload/common/types/character'
+import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
 import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
+
+const RGBA_CHANNELS = 4
 
 export type PartyRecognitionInput = {
   slot: number
@@ -15,9 +17,11 @@ export type PartyRecognitionInput = {
   portrait: CharacterPortrait | null
 }
 
-/** 현재 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
-export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasElement | null)[] {
-  return capturePartyRecognitionInputs(video).map((input) => {
+export type PartyFrameSource = CharacterImage | HTMLVideoElement | null
+
+/** 현재 RGBA 또는 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
+export function capturePartyNicknameCrops(source: PartyFrameSource): (HTMLCanvasElement | null)[] {
+  return capturePartyRecognitionInputs(source).map((input) => {
     if (input === null) {
       return null
     }
@@ -26,17 +30,21 @@ export function capturePartyNicknameCrops(video: HTMLVideoElement): (HTMLCanvasE
   })
 }
 
-/** 같은 영상 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
+/** 같은 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
 export function capturePartyRecognitionInputs(
-  video: HTMLVideoElement,
+  source: PartyFrameSource,
   portraitCropper: PartyPortraitCropper = cropPartyPortrait
 ): (PartyRecognitionInput | null)[] {
   const crops: (PartyRecognitionInput | null)[] = Array.from(
     { length: PARTY_SLOT_COUNT },
     () => null
   )
-  const width = video.videoWidth
-  const height = video.videoHeight
+  if (source === null) {
+    return crops
+  }
+  const native = 'rgba' in source
+  const width = native ? source.width : source.videoWidth
+  const height = native ? source.height : source.videoHeight
   if (!isValidPartyFrameSize(width, height)) {
     return crops
   }
@@ -48,7 +56,17 @@ export function capturePartyRecognitionInputs(
   if (frameContext == null) {
     throw new Error('Could not create a party capture canvas.')
   }
-  frameContext.drawImage(video, 0, 0)
+
+  if (native) {
+    if (source.rgba.byteLength !== width * height * RGBA_CHANNELS) {
+      throw new Error('Invalid native capture pixels.')
+    }
+    const image = frameContext.createImageData(width, height)
+    image.data.set(source.rgba)
+    frameContext.putImageData(image, 0, 0)
+  } else {
+    frameContext.drawImage(source, 0, 0)
+  }
   const pixels = frameContext.getImageData(0, 0, width, height).data
   const rgba = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength)
   let geometry: PartyFrameGeometry

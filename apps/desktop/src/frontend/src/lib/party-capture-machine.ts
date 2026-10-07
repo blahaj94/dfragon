@@ -187,8 +187,8 @@ export const partyCaptureMachine = setup({
         FAILED: { target: 'failed', actions: ['resetSearch', 'setNotice'] }
       },
       states: {
-        search: { tags: ['busy'], on: { START: {}, MEDIA_REQUESTED: 'media' } },
-        media: {
+        search: { tags: ['busy'], on: { START: {}, FRAME_REQUESTED: 'frame' } },
+        frame: {
           tags: ['busy'],
           on: {
             OCR_START: {
