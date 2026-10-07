@@ -13,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: dfragon
+  requestedExecutionLevel: requireAdministrator
   target:
     - target: nsis
       arch: [x64]
@@ -29,7 +30,7 @@ nsis:
   include: build/distribution-installer.nsh
 portable:
   artifactName: ${productName}-${version}-${arch}-portable.${ext}
-  requestExecutionLevel: user
+  requestExecutionLevel: admin
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
