@@ -28,6 +28,7 @@ import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
 import { registerDeveloperWindow } from './developer/ipc-handler'
 import { registerVersionsWindow } from './versions/ipc-handler'
 import { readDesktopBuildInfo } from './versions/desktop-info'
+import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
 import {
   registerCharacterDetailWindows,
   openSelectedCharacterDetail
@@ -236,7 +237,11 @@ app.whenReady().then(async () => {
       const searchConfiguration =
         apiOrigin == null
           ? undefined
-          : { apiOrigin, clock: createAuthRuntimeEffects().createSearchClock() }
+          : {
+              apiOrigin,
+              clock: createAuthRuntimeEffects().createSearchClock(),
+              portraitEdgeMatchPolicy: INITIAL_PORTRAIT_EDGE_POLICY
+            }
       registerCaptureIpc(searchConfiguration, { openSelected: openSelectedCharacterDetail })
 
       createWindow(authRuntime)

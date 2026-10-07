@@ -24,11 +24,14 @@ import type { openSelectedCharacterDetail } from '../character-detail/windows'
 import { createSearchHttp } from '../search/http'
 import {
   createCharacterCandidatesHttp,
+  createCharacterAppearanceHttp,
   createCharacterDetailsHttp,
   createCharacterImageHttp
 } from '../search/character-http'
 import { createCharacterIdentifier } from '../search/identify'
 import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portrait-match'
+import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
+import { createStayImageSource } from '../search/stay-images'
 import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
@@ -187,13 +190,29 @@ function registerCaptureIpc(
     fetch?: typeof fetch
     clock: AuthClock
     portraitMatchPolicy?: PortraitMatchPolicy
+    portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
   },
   details?: { openSelected: typeof openSelectedCharacterDetail }
 ): () => void {
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
+    if (
+      configuration.portraitMatchPolicy !== undefined &&
+      configuration.portraitEdgeMatchPolicy !== undefined
+    ) {
+      throw new TypeError('Only one portrait comparison policy can be configured')
+    }
     runtime = { http: createSearchHttp(configuration), clock: configuration.clock }
-    if (configuration.portraitMatchPolicy !== undefined) {
+    if (configuration.portraitEdgeMatchPolicy !== undefined) {
+      const appearance = createCharacterAppearanceHttp(configuration)
+      const image = createStayImageSource({ appearance, fetch: configuration.fetch })
+      runtime.identify = createCharacterIdentifier({
+        candidates: createCharacterCandidatesHttp(configuration),
+        image,
+        details: createCharacterDetailsHttp(configuration),
+        matchesPortrait: createPortraitEdgeMatcher(configuration.portraitEdgeMatchPolicy)
+      })
+    } else if (configuration.portraitMatchPolicy !== undefined) {
       runtime.identify = createCharacterIdentifier({
         candidates: createCharacterCandidatesHttp(configuration),
         image: createCharacterImageHttp(configuration),

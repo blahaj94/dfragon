@@ -10,6 +10,7 @@ import type {
   CharacterImageHttp
 } from './character-http'
 import { SearchHttpFailure } from './http'
+import type { StayImageSource } from './stay-images'
 import {
   runSearchOperation,
   type SearchOperationContext,
@@ -27,7 +28,7 @@ export type PortraitMatcher = (input: {
 
 type IdentificationDependencies = {
   candidates: CharacterCandidatesHttp
-  image: CharacterImageHttp
+  image: CharacterImageHttp | StayImageSource
   details: CharacterDetailsHttp
   matchesPortrait: PortraitMatcher
 }
@@ -89,17 +90,33 @@ export function createCharacterIdentifier(dependencies: IdentificationDependenci
           for (const candidate of candidates) {
             assertActive()
             const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
-            const image = await dependencies.image({ ...identity, signal })
+            const source = await dependencies.image({ ...identity, signal })
             assertActive()
-            let matches: boolean
-            try {
-              matches = await dependencies.matchesPortrait({ portrait, candidate: image, signal })
-            } catch {
-              assertActive()
-              // 비교 입력이나 연산 한도 문제를 불일치로 숨겨 다음 후보를 선택하지 않는다.
-              throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
+            let images: readonly CharacterImage[]
+            if ('kind' in source) {
+              if (source.kind === 'unavailable' || source.images.length === 0) {
+                throw new SearchHttpFailure('SEARCH_APPEARANCE_UNAVAILABLE')
+              }
+              images = source.images
+            } else {
+              images = [source]
             }
-            assertActive()
+            let matches = false
+            for (const image of images) {
+              assertActive()
+              try {
+                matches = await dependencies.matchesPortrait({ portrait, candidate: image, signal })
+              } catch {
+                assertActive()
+                // 비교 입력이나 연산 한도 문제를 불일치로 숨겨 다음 후보를 선택하지 않는다.
+                throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
+              }
+              assertActive()
+              if (matches) {
+                break
+              }
+            }
+
             if (!matches) {
               continue
             }
