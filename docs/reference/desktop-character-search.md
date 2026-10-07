@@ -13,19 +13,21 @@ Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposa
 
 ## 구현 위치
 
-| 위치                                                                                                                                                   | 책임                                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                      | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
-| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                      | 함수 factory가 슬롯 DTO·관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
-| `apps/desktop/src/backend/search/request.ts`                                                                                                           | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
-| `apps/desktop/src/backend/search/http.ts`                                                                                                              | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
-| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                       | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
-| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                         | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
-| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                            | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
-| `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                               | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
-| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`        | XState가 Start별 시작·종료 수명을 관리하고, factory와 hook은 로컬 관측 revision·결과 필터·슬롯별 retry를 연결한다.                                                   |
-| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts` | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
-| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                             | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| 위치                                                                                                                                                           | 책임                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC·media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
+| `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO·관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
+| `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP·body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
+| `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
+| `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
+| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO·오류 문구·feature API와 exact own shape·상태 조합 검증을 정의한다.                                                                                        |
+| `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
+| `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read·event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
+| `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작·종료 수명을 관리하고, factory와 hook은 로컬 관측 revision·결과 필터·슬롯별 retry를 연결한다.                                                   |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts`         | begin 완료 뒤 media/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화·기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태·후보·고정 오류·수동 retry를 text로 표시한다.                                                                                                          |
+| `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보를 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                       |
+| `apps/desktop/src/preload/character-detail.ts`, `common/character-detail.ts`, `apps/desktop/src/frontend/src/pages/character-detail/CharacterSnapshotPage.tsx` | 전용 읽기 bridge의 응답을 검증하고 기본 정보와 조회 시각을 표시한다.                                                                                                 |
 
 `createCaptureSearch`는 호출마다 연결·actor·관측 상태를 클로저에 보관하고 제어 함수를 반환한다. 표시할 슬롯의 계산은 상태를 변경하지 않는 순수 함수로 분리한다. 캡처 검색 수명은 `idle → starting → active`와 `invalidated`, 최종 `disposed` 상태로 관리한다. 새 begin·end·무효화·dispose는 이전 시작 actor를 종료한다. 시작 actor는 종료 뒤에도 직접 응답을 기다려 자신이 생성한 늦은 ID만 end하고 호출자에게 null을 반환한다. Main이 종료를 알린 수명은 로컬 상태만 비우며 END를 중복 전송하지 않는다. 슬롯의 관측 revision·clear·결과 필터·retry 정책은 기존 일반 로직을 유지한다.
 
@@ -81,6 +83,18 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 성공한 슬롯의 `selected`에는 검증된 기본 요약만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. 실제 크롭과 Windows 표본의 일치 기준 검증은 여전히 후속이다.
 
+## 캐릭터별 상세 창
+
+식별된 슬롯의 상세 버튼은 `openCharacterDetails({ captureId, slot, requestId })`를 호출한다. Main은 현재 등록된 renderer와 main frame, 정확한 document, 입력 형태를 검사하고 검색 수명의 `selection`으로 선택된 상세를 읽는다. Renderer가 임의 URL, 서버나 캐릭터 ID, 상세 데이터를 지정해 창을 열 수 없다. 새 창을 읽고 표시하기 전에 선택이 바뀌었는지 다시 확인하며, 로딩 중 캡처가 끝나거나 슬롯이 교체되면 해당 창을 표시하지 않는다.
+
+`backend/character-detail/windows.ts`는 서버와 캐릭터 ID별로 별도 창을 관리한다. 같은 캐릭터를 다시 열면 기존 창을 복원하고 포커스하며, 최초 선택에서 복사한 기본 정보와 `freshness`를 유지한다. 이미 표시한 창은 캡처 중지나 슬롯 변경 이후에도 그대로 읽을 수 있다. 창을 닫고 현재 선택에서 다시 열면 그 선택에 보관된 정보로 새 snapshot을 만들며 추가 HTTP 조회나 자동 갱신은 하지 않는다. 메인 창의 `closed`에서 모든 상세 창과 reader를 정리한다. 취소된 메인 창 닫기 시도만으로 상세 창을 지우지 않는다.
+
+제품은 고정 `character-detail.html`과 전용 preload를 사용한다. `window.characterDetail.read()`만 노출하며 capture, auth, developer bridge는 포함하지 않는다. Main reader는 등록된 상세 창의 WebContents와 현재 main frame, 정확한 document URL, detached와 destroyed 상태를 매번 검사한다. 별도 메모리 session에서 권한 요청과 미디어 접근을 거절하고, 팝업, 외부 탐색과 redirect, webview를 차단한다. 공급자 전체 JSON은 main에 남기며 상세 renderer에는 검증한 기본 요약과 조회 시각만 복사해 전달한다.
+
+`CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 제품의 이름 수정, 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
+
+창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 현재 얼굴 cropper는 null을 반환하고 제품의 `portraitMatchPolicy`도 설정되지 않았다. 실제 크롭과 Windows 표본의 일치 기준이 준비되어야 일반 캡처에서 선택된 캐릭터와 상세 창까지 이어진다.
+
 ## PaddleOCR와 실제 게임 인식 영역
 
 현재 제품은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델을 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 모델·문자 목록·라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 빌드와 앱 실행에 모델 다운로드나 외부 OCR 서버가 필요하지 않다. Tesseract 의존성과 language/core assets는 제거했다.
@@ -107,7 +121,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 ## UI 구성
 
-제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하고 상세 열기는 후속 창 연결 전까지 비활성이다.
+제품 `App`은 네 슬롯의 상태와 `selected` 요약을 각각 `PartyPage`에 전달한다. `lib/character-card.ts`는 기본 정보만 표시 값으로 바꾸며 누락된 명성을 0으로 대체하거나 장비 점수를 계산하지 않는다. 실제 선택 identity가 바뀌면 카드의 편집 초기 상태도 교체해, 늦게 도착한 결과를 이름 수정 중으로 오인하지 않는다. 제품은 기본 면만 표시하며 식별된 슬롯의 상세 버튼으로 해당 캐릭터의 기본 정보 창을 연다. 창 열기 실패는 정제한 안내로 표시하고 이전 선택의 늦은 실패를 새 슬롯에 표시하지 않는다.
 
 카드는 크롭 대기, 판정 기준 대기, 조회 중, 빈 결과와 오류를 구분한다. 오류는 기존 catalog의 고정 문구를 사용하고, 재시도는 슬롯별 진행 상태와 Retry-After를 따른다. `mvp-preview`의 자동 식별 상태 시나리오는 선택, 두 대기 상태, 긴 오류와 재시도를 합성 데이터로 확인한다. Electron의 900px, 500px, 300px 화면 확인은 실제 게임의 얼굴 식별 정확도 검증과 구분한다.
 
