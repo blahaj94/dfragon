@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
 import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from './party'
 import type { PartyPortraitCropper } from './party-portrait'
@@ -232,5 +233,5 @@ it('공통 네이티브 캡처의 RGBA를 영상 변환 없이 크롭하고 원�
   expect(inputs[0]?.nickname).toBe(setup.nicknames[0])
   expect(inputs[0]?.portrait).not.toBeNull()
   expect(inputs.slice(1)).toEqual([null, null, null])
-  expect(rgba).toEqual(before)
+  expect(Buffer.compare(rgba, before)).toBe(0)
 })
