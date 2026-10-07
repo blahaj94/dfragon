@@ -78,7 +78,11 @@ it('preserves WASM setup, dictionary normalization and recognition tensor layout
   expect(canvasContext.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 96, 48)
   expect(canvasContext.imageSmoothingEnabled).toBe(true)
   expect(canvasContext.imageSmoothingQuality).toBe('low')
-  expect(postMessage).toHaveBeenLastCalledWith({ text: '가', confidence: 100 })
+  expect(postMessage).toHaveBeenLastCalledWith({
+    text: '가',
+    confidence: 100,
+    candidates: [{ rank: 1, nickname: '가', modelScore: 100 }]
+  })
   expect(mocks.dispose).toHaveBeenCalledOnce()
   expect(outputDispose).toHaveBeenCalledOnce()
 })
@@ -121,7 +125,7 @@ it.each([
   }
 )
 
-it('최상위 후보의 닉네임과 문자열 확률 점수를 기존 응답 형태로 전달한다', async () => {
+it('상위 두 후보와 1위의 닉네임, 모델 점수 호환 필드를 전달한다', async () => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   mocks.run.mockResolvedValueOnce({
     output: {
@@ -131,7 +135,33 @@ it('최상위 후보의 닉네임과 문자열 확률 점수를 기존 응답 �
     }
   })
   await send({ pixels })
-  expect(postMessage).toHaveBeenLastCalledWith({ text: '가', confidence: expect.closeTo(40.25, 5) })
+  expect(postMessage).toHaveBeenLastCalledWith({
+    text: '가',
+    confidence: expect.closeTo(40.25, 5),
+    candidates: [
+      { rank: 1, nickname: '가', modelScore: expect.closeTo(40.25, 5) },
+      { rank: 2, nickname: '나', modelScore: expect.closeTo(26.25, 5) }
+    ]
+  })
+})
+
+it('빈 닉네임 후보도 모델 점수와 함께 보존한다', async () => {
+  await send({ root: 'https://fixture.invalid/ocr/' })
+  mocks.run.mockResolvedValueOnce({
+    output: {
+      dims: [1, 1, 4],
+      data: new Float32Array([1, 0, 0, 0]),
+      dispose: outputDispose
+    }
+  })
+
+  await send({ pixels })
+
+  expect(postMessage).toHaveBeenLastCalledWith({
+    text: '',
+    confidence: 100,
+    candidates: [{ rank: 1, nickname: '', modelScore: 100 }]
+  })
 })
 
 it('disposes the input tensor when inference rejects and returns only the public failure', async () => {
@@ -145,11 +175,14 @@ it('disposes the input tensor when inference rejects and returns only the public
   expect(outputDispose).not.toHaveBeenCalled()
 })
 
-it('disposes all output tensors when output validation fails', async () => {
+it.each([
+  { name: '잘못된 배치 크기', dims: [2, 1, 4], data: new Float32Array(4) },
+  { name: '다른 텐서 자료형', dims: [1, 1, 4], data: new Float64Array([0, 1, 0, 0]) }
+])('$name이면 모든 출력 텐서를 정리하고 실패를 반환한다', async ({ dims, data }) => {
   await send({ root: 'https://fixture.invalid/ocr/' })
   const auxiliaryDispose = vi.fn()
   mocks.run.mockResolvedValueOnce({
-    output: { dims: [2, 1, 4], data: new Float32Array(4), dispose: outputDispose },
+    output: { dims, data, dispose: outputDispose },
     auxiliary: { dispose: auxiliaryDispose }
   })
 
