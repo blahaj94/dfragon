@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { bgrxToRgba } from '../lib/win32-pixels'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'
 
 // Adapted from https://github.com/blahaj94/dfragon-cropper/blob/045a71c/src/main/capture/win32.ts.
@@ -45,20 +46,7 @@ type Win32Api = {
   GetLastError: () => number
 }
 
-export function bgrxToRgba(bgrx: Uint8Array): Buffer {
-  if (bgrx.length % 4 !== 0) {
-    throw new Error('BGRX data must contain whole 32-bit pixels.')
-  }
-  const rgba = Buffer.allocUnsafe(bgrx.length)
-  for (let offset = 0; offset < bgrx.length; offset += 4) {
-    rgba[offset] = bgrx[offset + 2]
-    rgba[offset + 1] = bgrx[offset + 1]
-    rgba[offset + 2] = bgrx[offset]
-    rgba[offset + 3] = 255
-  }
-
-  return rgba
-}
+export { bgrxToRgba } from '../lib/win32-pixels'
 
 function loadWin32(): Win32Api {
   // Main is built as CommonJS. Keep koffi/native DLLs out of non-Windows UI and unit tests.
