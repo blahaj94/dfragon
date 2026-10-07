@@ -2,6 +2,7 @@ import { isValidPartyFrameSize } from '@dfragon/lib'
 import type { WindowFrameResult } from './types/capture'
 
 const RGBA_CHANNELS = 4
+const FRAME_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 /** 네이티브 캡처 응답의 크기와 픽셀 수를 IPC 경계에서 확인한다. */
 export function parseWindowFrame(value: unknown): WindowFrameResult {
@@ -22,7 +23,16 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
     return { kind: 'waiting', reason: value.reason }
   }
 
-  if (value.kind === 'frame' && Reflect.ownKeys(value).length === 2 && 'image' in value) {
+  const hasFrameId = 'frameId' in value
+  const validFrameId =
+    hasFrameId && typeof value.frameId === 'string' && FRAME_ID_PATTERN.test(value.frameId)
+  const frameKeyCount = hasFrameId ? 3 : 2
+  if (
+    value.kind === 'frame' &&
+    Reflect.ownKeys(value).length === frameKeyCount &&
+    (!hasFrameId || validFrameId) &&
+    'image' in value
+  ) {
     const image = value.image
     if (
       image !== null &&
@@ -39,6 +49,9 @@ export function parseWindowFrame(value: unknown): WindowFrameResult {
     ) {
       const { width, height, rgba } = image
       const frame = { width, height, rgba }
+      if (validFrameId && typeof value.frameId === 'string') {
+        return { kind: 'frame', image: frame, frameId: value.frameId }
+      }
 
       return { kind: 'frame', image: frame }
     }

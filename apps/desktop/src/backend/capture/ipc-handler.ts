@@ -35,6 +35,9 @@ import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
 import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
+import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
+import type { OcrCollectionResult } from '../../preload/common/types/ocr-collection'
+import type { OcrCollection } from '../ocr-collection/collection'
 
 let captureWindow: BrowserWindow | null = null
 let documentUrl: string | null = null
@@ -46,6 +49,7 @@ let selectingSource = false
 let search: CaptureSearchLifetime | undefined
 let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
 let mediaPermissionCaptureId: string | null = null
+let ocrCollection: OcrCollection | undefined
 
 function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: string): boolean {
   const binding = search?.current
@@ -83,6 +87,7 @@ async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
 }
 
 function clearSource(): void {
+  ocrCollection?.clear()
   mediaPermissionCaptureId = null
   selectedSourceId = null
   readSelectedFrame = null
@@ -194,8 +199,10 @@ function registerCaptureIpc(
     portraitMatchPolicy?: PortraitMatchPolicy
     portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
   },
-  details?: { openSelected: typeof openSelectedCharacterDetail }
+  details?: { openSelected: typeof openSelectedCharacterDetail },
+  collection?: OcrCollection
 ): () => void {
+  ocrCollection = collection
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
     if (
@@ -378,7 +385,35 @@ function registerCaptureIpc(
       throw new Error('CAPTURE_NOT_ALLOWED')
     }
 
+    if (result.kind === 'frame') {
+      const frameId = ocrCollection?.retain(binding.captureId, result.image)
+      if (frameId !== undefined) {
+        return { ...result, frameId }
+      }
+    }
+
     return result
+  })
+
+  addHandler('collectOcrSample', (event, ...args) => {
+    requireSearchSender(event)
+    const input = parseCollectOcrSample(args)
+    const binding = lifetime.current
+    if (
+      input === null ||
+      binding === null ||
+      binding.captureId !== input.captureId ||
+      event.senderFrame?.detached !== false ||
+      !isCurrentSearch(binding)
+    ) {
+      return { status: 'skipped' }
+    }
+
+    if (ocrCollection === undefined) {
+      return { status: 'skipped' }
+    }
+
+    return ocrCollection.collect(input)
   })
 
   addHandler('controlCharacterSearch', (event, ...args) => {
@@ -394,6 +429,10 @@ function registerCaptureIpc(
     }
     const isEnd = control.action === SEARCH_ACTIONS.END
     if (isEnd) {
+      if (lifetime.current?.captureId === control.captureId) {
+        ocrCollection?.clear()
+      }
+
       return lifetime.end(control.captureId)
     }
 
@@ -445,13 +484,49 @@ function registerCaptureIpc(
   return () => {
     manual.dispose()
     clearSource()
+    ocrCollection?.dispose()
+    ocrCollection = undefined
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('readCaptureFrame')
+    ipcMain.removeHandler('collectOcrSample')
     ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
     ipcMain.removeHandler('controlCharacterSearch')
     ipcMain.removeHandler('openCharacterDetails')
+  }
+}
+
+/** foreground 검사를 마친 main 단축키에서 선택 창의 최신 프레임만 수집한다. */
+export async function collectCurrentCapture(): Promise<OcrCollectionResult> {
+  const binding = search?.current
+  const readFrame = readSelectedFrame
+  const collection = ocrCollection
+  if (
+    binding == null ||
+    readFrame === null ||
+    collection === undefined ||
+    currentMainFrame()?.detached !== false ||
+    !isCurrentSearch(binding)
+  ) {
+    return { status: 'skipped' }
+  }
+  try {
+    const result = await readFrame()
+    if (
+      search?.current !== binding ||
+      readSelectedFrame !== readFrame ||
+      ocrCollection !== collection ||
+      currentMainFrame()?.detached !== false ||
+      !isCurrentSearch(binding) ||
+      result.kind !== 'frame'
+    ) {
+      return { status: 'skipped' }
+    }
+
+    return collection.collectShortcut(binding.captureId, result.image)
+  } catch {
+    return { status: 'failed' }
   }
 }
 
