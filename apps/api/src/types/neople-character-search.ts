@@ -2,6 +2,7 @@ export interface NeopleCharacterSearchInput {
   characterName: string
   serverId: string
   limit: number
+  wordType?: 'full' | 'match'
 }
 
 export interface CharacterCandidate {
@@ -14,6 +15,14 @@ export interface CharacterCandidate {
 
 export interface CharacterSearchResult {
   rows: CharacterCandidate[]
+}
+
+export interface CharacterImageCandidate extends CharacterCandidate {
+  imageUrl: string
+}
+
+export interface CharacterCandidatesResult {
+  rows: CharacterImageCandidate[]
 }
 
 export interface SearchErrorBody {

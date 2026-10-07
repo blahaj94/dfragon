@@ -1,5 +1,5 @@
 import { ApiTags } from '@nestjs/swagger'
-import { ApiCharacterSearch } from '../swagger/operations.js'
+import { ApiCharacterCandidates, ApiCharacterSearch } from '../swagger/operations.js'
 import { Controller, Get, Inject, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { neopleSearchFailure } from '../errors/neople-search.js'
@@ -17,6 +17,16 @@ export class CharacterSearchController {
   @Get()
   @ApiCharacterSearch()
   async search(@Req() request: Request, @Res() response: Response): Promise<void> {
+    await this.respond(request, response, false)
+  }
+
+  @Get('candidates')
+  @ApiCharacterCandidates()
+  async candidates(@Req() request: Request, @Res() response: Response): Promise<void> {
+    await this.respond(request, response, true)
+  }
+
+  private async respond(request: Request, response: Response, candidates: boolean): Promise<void> {
     const isGet = request.method === 'GET'
     if (!isGet) {
       throw neopleSearchFailure('query')
@@ -30,7 +40,9 @@ export class CharacterSearchController {
     }
     response.once('close', cancelDisconnectedRequest)
     try {
-      const result = await this.service.search(request.ip, request.originalUrl, controller.signal)
+      const result = candidates
+        ? await this.service.candidates(request.ip, request.originalUrl, controller.signal)
+        : await this.service.search(request.ip, request.originalUrl, controller.signal)
       const canRespond = !response.destroyed
       if (canRespond) {
         response.status(200).json(result)

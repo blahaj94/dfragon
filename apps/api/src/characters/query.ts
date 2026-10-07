@@ -12,6 +12,21 @@ export function parseCharacterSearchQuery(originalUrl: string): NeopleCharacterS
   return validateSearchQuery(pairs)
 }
 
+export function parseCharacterCandidatesQuery(originalUrl: string): NeopleCharacterSearchInput {
+  const pairs = decodeRawQuery(originalUrl)
+  const pair = pairs[0]
+  if (pairs.length !== 1 || pair?.key !== 'characterName') {
+    throw neopleSearchFailure('query')
+  }
+  const characterName = pair.value
+  const length = [...characterName].length
+  if (length < 1 || length > 12 || characterName !== characterName.trim()) {
+    throw neopleSearchFailure('query')
+  }
+
+  return { characterName, serverId: 'all', limit: 200, wordType: 'match' }
+}
+
 function decodeQueryPart(raw: string): string {
   try {
     return decodeURIComponent(raw.replace(/\+/g, ' '))

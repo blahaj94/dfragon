@@ -66,6 +66,24 @@ export function ApiCharacterSearch() {
   )
 }
 
+export function ApiCharacterCandidates() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'OCR 닉네임의 캐릭터 비교 후보 조회',
+      description:
+        '공개 API. 닉네임 하나를 전체 서버에서 정확히 일치하는 wordType=match로 검색합니다. fame이 있는 후보를 내림차순, fame이 null인 후보를 뒤에 반환하며 동률과 null 사이에는 공급자 순서를 유지합니다. imageUrl은 zoom=1인 전체 캐릭터 이미지이며 얼굴 크롭과 비교는 Desktop에서 수행합니다. 반환 순서대로 비교하여 기준을 먼저 통과한 캐릭터를 선택하고, 모두 실패한 뒤 다음 OCR 닉네임을 요청합니다. 검색 결과와 이미지는 API에 저장하지 않습니다. /characters와 합산 IP당 최근 60초 10회이며 실패한 upstream 호출도 한도를 소비합니다. characterName 외 query key, 중복 query와 HEAD는 거절합니다.'
+    }),
+    ApiQuery({
+      name: 'characterName',
+      required: true,
+      schema: { type: 'string', minLength: 1, maxLength: 12 },
+      description: 'Unicode code point 1~12개. 앞뒤 공백 불가, 정규화 없음.'
+    }),
+    success(200, 'CharacterCandidatesResult', '비교 순서의 후보와 이미지 URL (0건이면 빈 rows)'),
+    errors({ 400: 'INVALID_SEARCH_QUERY', 429: 'SEARCH_RATE_LIMITED', ...neopleFailures })
+  )
+}
+
 export function ApiCharacterDetails(refresh = false) {
   return applyDecorators(
     ApiOperation({
