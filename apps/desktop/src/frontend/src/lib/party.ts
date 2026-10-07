@@ -10,6 +10,18 @@ import type { CharacterImage, CharacterPortrait } from '../../../preload/common/
 import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
 
 const RGBA_CHANNELS = 4
+const ALPHA_CHANNEL = 3
+
+/** GDI 원본에서 다른 창의 가림 때문에 제외된 픽셀이 있는지 확인한다. */
+function containsExcludedPixels(pixels: ArrayLike<number>): boolean {
+  for (let index = ALPHA_CHANNEL; index < pixels.length; index += RGBA_CHANNELS) {
+    if (pixels[index] === 0) {
+      return true
+    }
+  }
+
+  return false
+}
 
 export type PartyRecognitionInput = {
   slot: number
@@ -87,6 +99,9 @@ export function capturePartyRecognitionInputs(
       region.width,
       region.height
     )
+    if (native && containsExcludedPixels(nicknamePixels.data)) {
+      continue
+    }
     binarizeNicknamePixels(nicknamePixels.data)
     const nickname = document.createElement('canvas')
     nickname.width = region.width
@@ -102,6 +117,9 @@ export function capturePartyRecognitionInputs(
       nicknameRegion: region,
       rasterScale: geometry.scale
     })
+    if (native && portrait !== null && containsExcludedPixels(portrait.image.rgba)) {
+      continue
+    }
     crops[slot] = { slot, nickname, portrait }
   }
 
