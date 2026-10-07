@@ -11,6 +11,14 @@ export type CharacterImage = Readonly<{
   rgba: Uint8Array
 }>
 
+/** 크롭을 마친 원본 얼굴과 게임 UI의 래스터 배율. 화면 좌표는 크롭 구현이 소유한다. */
+export type CharacterPortrait = Readonly<{
+  image: CharacterImage
+  rasterScale: number
+  /** 픽셀당 0 또는 1. 왕관 등 비교에서 제외할 영역은 0이며 생략하면 모두 사용한다. */
+  validMask?: Uint8Array
+}>
+
 export type CharacterJsonValue =
   | null
   | boolean
