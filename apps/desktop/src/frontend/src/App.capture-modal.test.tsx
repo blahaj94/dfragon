@@ -85,6 +85,16 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
   expect(f.getDisplayMedia).toHaveBeenCalledOnce()
   expect(document.body.textContent).toContain('캡처 중, 1920×1080')
   await f.cycle(3)
+  expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
+  expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledWith(
+    expect.objectContaining({
+      nickname: 'ALICE',
+      candidateNicknames: ['ALICE'],
+      portrait: null
+    })
+  )
+  expect(f.capture.notifyStableNicknameDetected).not.toHaveBeenCalled()
+  expect(f.container.textContent).toContain('얼굴 인식 대기')
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     'ALICE'
   )
