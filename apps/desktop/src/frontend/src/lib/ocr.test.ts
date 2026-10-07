@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
+import type { PartyOcrResult } from '../types/capture'
 
 class NativeWorker {
   static latest: NativeWorker
@@ -14,7 +15,15 @@ class NativeWorker {
     NativeWorker.instances.push(this)
   }
   reply(data: unknown): void {
-    this.onmessage?.({ data } as MessageEvent)
+    this.onmessage?.(new MessageEvent('message', { data }))
+  }
+}
+
+function recognized(nickname: string, modelScore: number): PartyOcrResult {
+  return {
+    text: nickname,
+    confidence: modelScore,
+    candidates: [{ rank: 1, nickname, modelScore }]
   }
 }
 const pixels: ImageData = {
@@ -40,15 +49,31 @@ afterEach(() => {
 })
 
 describe('PaddleOCR worker 수명', () => {
-  it('앱의 로컬 모델로 초기화하고 실제 worker 결과를 기존 검색 소비 형태로 반환한다', async () => {
+  it('로컬 모델 초기화 후 상위 두 후보와 기존 검색의 1위 호환 필드를 반환한다', async () => {
     const creating = createPartyOcrWorker()
     const native = NativeWorker.latest
     expect(native.postMessage).toHaveBeenCalledWith({ root: 'file:///app/out/frontend/ocr/' })
     native.reply({ ready: true })
     const worker = await creating
     const recognizing = worker.recognize(image)
-    native.reply({ text: '합성문자', confidence: 82 })
-    expect(await recognizing).toEqual({ data: { text: '합성문자', confidence: 82 } })
+    native.reply({
+      text: '합성문자',
+      confidence: 82,
+      candidates: [
+        { rank: 1, nickname: '합성문자', modelScore: 82 },
+        { rank: 2, nickname: '합성문지', modelScore: 12 }
+      ]
+    })
+    expect(await recognizing).toEqual({
+      data: {
+        text: '합성문자',
+        confidence: 82,
+        candidates: [
+          { rank: 1, nickname: '합성문자', modelScore: 82 },
+          { rank: 2, nickname: '합성문지', modelScore: 12 }
+        ]
+      }
+    })
     await worker.terminate()
     await worker.terminate()
     expect(native.terminate).toHaveBeenCalledOnce()
@@ -70,7 +95,7 @@ describe('PaddleOCR worker 수명', () => {
     const recognizing = worker.recognize(image)
     const rejected = expect(recognizing).rejects.toMatchObject({ name: 'AbortError' })
     controller.abort()
-    NativeWorker.latest.reply({ text: '늦은합성', confidence: 99 })
+    NativeWorker.latest.reply(recognized('늦은합성', 99))
     await rejected
     await expect(worker.recognize(image)).rejects.toMatchObject({ name: 'AbortError' })
     expect(NativeWorker.latest.terminate).toHaveBeenCalledOnce()
@@ -150,15 +175,15 @@ describe('PaddleOCR worker 수명', () => {
       expect(native.terminate).toHaveBeenCalledOnce()
       expect(native.postMessage).toHaveBeenCalledTimes(2)
       expect(vi.getTimerCount()).toBe(0)
-      native.reply({ text: '이전인식', confidence: 99 })
+      native.reply(recognized('이전인식', 99))
 
       const retry = createPartyOcrWorker()
       const nextNative = NativeWorker.latest
       nextNative.reply({ ready: true })
       const nextWorker = await retry
       const nextRecognition = nextWorker.recognize(image)
-      nextNative.reply({ text: '재시도', confidence: 82 })
-      expect(await nextRecognition).toEqual({ data: { text: '재시도', confidence: 82 } })
+      nextNative.reply(recognized('재시도', 82))
+      expect(await nextRecognition).toEqual({ data: recognized('재시도', 82) })
       expect(nextNative.terminate).not.toHaveBeenCalled()
       await nextWorker.terminate()
       expect(nextNative.terminate).toHaveBeenCalledOnce()
@@ -174,7 +199,7 @@ describe('PaddleOCR worker 수명', () => {
     },
     {
       name: '유한하지 않은 신뢰도',
-      value: { text: '합성문자', confidence: Infinity },
+      value: { ...recognized('합성문자', 82), confidence: Infinity },
       message: 'PaddleOCR could not complete recognition.'
     },
     {
@@ -214,16 +239,144 @@ describe('PaddleOCR worker 수명', () => {
     )
     expect(native.postMessage).toHaveBeenCalledTimes(2)
     expect(native.terminate).not.toHaveBeenCalled()
-    native.reply({ text: '첫인식', confidence: 80 })
-    expect(await recognizing).toEqual({ data: { text: '첫인식', confidence: 80 } })
+    native.reply(recognized('첫인식', 80))
+    expect(await recognizing).toEqual({ data: recognized('첫인식', 80) })
     expect(vi.getTimerCount()).toBe(0)
 
     const next = worker.recognize(image)
-    native.reply({ text: '', confidence: 0 })
-    expect(await next).toEqual({ data: { text: '', confidence: 0 } })
+    native.reply({ text: '', confidence: 0, candidates: [] })
+    expect(await next).toEqual({ data: { text: '', confidence: 0, candidates: [] } })
     expect(native.postMessage).toHaveBeenLastCalledWith({ pixels })
     expect(vi.getTimerCount()).toBe(0)
     await worker.terminate()
     expect(native.terminate).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    { name: '후보 없음', value: { text: '', confidence: 0, candidates: [] } },
+    { name: '빈 닉네임 한 개', value: recognized('', 100) },
+    { name: '낮은 점수 한 개', value: recognized('  합성 문자  ', 0.001) },
+    {
+      name: '동점, 중복 원문',
+      value: {
+        text: '  합성 문자  ',
+        confidence: 20,
+        candidates: [
+          { rank: 1, nickname: '  합성 문자  ', modelScore: 20 },
+          { rank: 2, nickname: '  합성 문자  ', modelScore: 20 }
+        ]
+      }
+    }
+  ])('$name 결과를 정리하거나 점수로 제외하지 않고 보존한다', async ({ value }) => {
+    const creating = createPartyOcrWorker()
+    const native = NativeWorker.latest
+    native.reply({ ready: true })
+    const worker = await creating
+
+    const recognizing = worker.recognize(image)
+    native.reply(value)
+
+    expect(await recognizing).toEqual({ data: value })
+    expect(native.terminate).not.toHaveBeenCalled()
+    await worker.terminate()
+  })
+
+  it.each([
+    { name: '후보 배열 누락', value: { text: '합성문자', confidence: 82 } },
+    { name: '배열이 아닌 후보', value: { ...recognized('합성문자', 82), candidates: {} } },
+    {
+      name: '세 개의 후보',
+      value: {
+        ...recognized('합성문자', 82),
+        candidates: [
+          { rank: 1, nickname: '합성문자', modelScore: 82 },
+          { rank: 2, nickname: '합성문지', modelScore: 12 },
+          { rank: 3, nickname: '합성문주', modelScore: 6 }
+        ]
+      }
+    },
+    {
+      name: '순위가 뒤집힌 후보',
+      value: {
+        ...recognized('합성문자', 82),
+        candidates: [{ rank: 2, nickname: '합성문자', modelScore: 82 }]
+      }
+    },
+    {
+      name: '점수가 증가하는 후보',
+      value: {
+        ...recognized('합성문자', 12),
+        candidates: [
+          { rank: 1, nickname: '합성문자', modelScore: 12 },
+          { rank: 2, nickname: '합성문지', modelScore: 82 }
+        ]
+      }
+    },
+    {
+      name: '유한하지 않은 두 번째 모델 점수',
+      value: {
+        ...recognized('합성문자', 82),
+        candidates: [
+          { rank: 1, nickname: '합성문자', modelScore: 82 },
+          { rank: 2, nickname: '합성문지', modelScore: NaN }
+        ]
+      }
+    },
+    {
+      name: '문자열이 아닌 두 번째 닉네임',
+      value: {
+        ...recognized('합성문자', 82),
+        candidates: [
+          { rank: 1, nickname: '합성문자', modelScore: 82 },
+          { rank: 2, nickname: 2, modelScore: 12 }
+        ]
+      }
+    },
+    { name: '음수 모델 점수', value: recognized('합성문자', -1) },
+    { name: '상한 초과 모델 점수', value: recognized('합성문자', 101) },
+    { name: '1위와 다른 text', value: { ...recognized('합성문자', 82), text: '다른문자' } },
+    { name: '1위와 다른 confidence', value: { ...recognized('합성문자', 82), confidence: 80 } },
+    {
+      name: '빈 후보와 다른 호환 필드',
+      value: { text: '합성문자', confidence: 82, candidates: [] }
+    },
+    { name: '인식과 실패가 섞인 응답', value: { ...recognized('합성문자', 82), failed: true } },
+    { name: '초기화와 실패가 섞인 응답', value: { ready: true, failed: true } }
+  ])('$name은 대기와 취소 구독을 정리하고 다음 요청도 거절한다', async ({ value }) => {
+    vi.useFakeTimers()
+    const controller = new AbortController()
+    const removeListener = vi.spyOn(controller.signal, 'removeEventListener')
+    const creating = createPartyOcrWorker(controller.signal)
+    const native = NativeWorker.latest
+    native.reply({ ready: true })
+    const worker = await creating
+    const recognizing = worker.recognize(image)
+    const rejected = expect(recognizing).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+
+    native.reply(value)
+
+    await rejected
+    expect(native.terminate).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
+    expect(removeListener).toHaveBeenCalledWith('abort', expect.any(Function))
+    await expect(worker.recognize(image)).rejects.toBeInstanceOf(OcrWorkerUnavailableError)
+    expect(native.postMessage).toHaveBeenCalledTimes(2)
+  })
+
+  it.each([
+    { name: '인식 결과', value: recognized('합성문자', 82) },
+    { name: '초기화와 인식이 섞인 응답', value: { ready: true, ...recognized('합성문자', 82) } },
+    { name: '초기화와 실패가 섞인 응답', value: { ready: true, failed: true } }
+  ])('초기화 요청에 $name이 오면 worker를 반환하지 않는다', async ({ value }) => {
+    vi.useFakeTimers()
+    const creating = createPartyOcrWorker()
+    const native = NativeWorker.latest
+    const rejected = expect(creating).rejects.toThrow()
+
+    native.reply(value)
+
+    await rejected
+    expect(native.terminate).toHaveBeenCalledOnce()
+    expect(vi.getTimerCount()).toBe(0)
   })
 })
