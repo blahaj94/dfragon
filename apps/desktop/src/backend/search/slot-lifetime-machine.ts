@@ -1,6 +1,7 @@
 import { assign, fromCallback, setup } from 'xstate'
 import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
 import { waitForRetryAfter, type RetryAfter } from './retry-after'
+import { reportSearchOutcome } from './diagnostics'
 import type { OcrSearchInput } from '../../preload/common/types/search'
 
 export type SearchRequest = {
@@ -63,6 +64,7 @@ export const slotLifetimeMachine = setup({
           }
         }
         if (!stopped) {
+          reportSearchOutcome(outcome)
           input.complete(request, outcome)
         }
       }
