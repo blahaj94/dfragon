@@ -269,18 +269,19 @@ function registerCaptureIpc(
     ) {
       return { ok: false }
     }
-    const selected = lifetime.selection(reference)
+    const selected = lifetime.selection(reference) ?? manual.selection(reference)
     if (selected === null) {
       return { ok: false }
     }
     const isCurrent = (): boolean => {
       try {
         requireSearchSender(event)
+        const currentSelected = lifetime.selection(reference) ?? manual.selection(reference)
 
         return (
           captureWindow === owner &&
           event.senderFrame?.detached === false &&
-          lifetime.selection(reference) === selected
+          currentSelected === selected
         )
       } catch {
         return false
@@ -443,6 +444,10 @@ function registerCaptureIpc(
     const isRetry = control.action === SEARCH_ACTIONS.RETRY
     if (isRetry) {
       return lifetime.retry(control)
+    }
+
+    if (control.action === SEARCH_ACTIONS.LOOKUP) {
+      return lifetime.lookup(control)
     }
     const hasCapture = lifetime.current != null
     const isBusy = selectingSource || hasCapture
