@@ -5,6 +5,7 @@ import { createCatalogStore } from '../characters/catalog/store.js'
 import { createCatalogService } from '../characters/catalog/service.js'
 import { createNeopleCatalog } from '../characters/catalog/neople.js'
 import { createNeopleCharacterSearch } from '../characters/neople-character-search.js'
+import { createNeopleCharacterAppearance } from '../characters/appearance/neople.js'
 import { createNeopleCharacterDetails } from '../characters/details/neople.js'
 import { createApiHttpApp } from '../http.js'
 import { createDatabaseDataSource } from '../database/index.js'
@@ -70,7 +71,9 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
         )
       },
       createAdventureSearchStore(dataSource),
-      configuration.localHttps
+      configuration.localHttps,
+      undefined,
+      { fetchAppearance: createNeopleCharacterAppearance(configuration.apiKey) }
     )
 
     return { app, close }

@@ -1,4 +1,3 @@
-import { NEOPLE_SERVER_NAMES } from '../../constants/neople-character-search.js'
 import { SearchAdmission, searchClock } from '../search-admission.js'
 import { SearchDeadline } from '../search-deadline.js'
 import { CharacterDetailFailure, characterDetailFailure } from './errors.js'
@@ -17,23 +16,7 @@ export interface CharacterDetailDependencies {
   catalog?: CatalogService
 }
 
-export function parseCharacterIdentity(
-  serverId: unknown,
-  characterId: unknown,
-  originalUrl: string
-): CharacterIdentity {
-  if (
-    typeof serverId !== 'string' ||
-    !NEOPLE_SERVER_NAMES.has(serverId) ||
-    typeof characterId !== 'string' ||
-    !/^[a-zA-Z0-9_-]{1,256}$/.test(characterId) ||
-    originalUrl.includes('?')
-  ) {
-    throw new CharacterDetailFailure('query')
-  }
-
-  return { serverId, characterId }
-}
+export { parseCharacterIdentity } from '../identity.js'
 
 export function createCharacterDetailService(deps: CharacterDetailDependencies) {
   const admission = new SearchAdmission()
