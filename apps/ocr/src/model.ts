@@ -31,6 +31,12 @@ export const characterGroups = [
 ] as const
 export type CharacterGroup = (typeof characterGroups)[number]
 export type Crop = { slot: number; x: number; y: number; width: number; height: number }
+export type TestCollectionSlot = Crop & { prediction: string | null }
+export type TestCollection = {
+  trigger: 'ocr' | 'shortcut'
+  slots: TestCollectionSlot[]
+  contentSha256: string
+}
 export type CaptureKind = keyof typeof OCR_UPLOAD.maximumCropsByKind
 export type SyntheticRendering = {
   rendererVersion: string
@@ -50,8 +56,12 @@ type CaptureFields = {
 }
 export type Capture = CaptureFields &
   (
-    | { kind: CaptureKind; synthetic?: never }
-    | { kind: 'synthetic'; synthetic: { text: string; rendering: SyntheticRendering } }
+    | { kind: CaptureKind; synthetic?: never; testCollection?: TestCollection }
+    | {
+        kind: 'synthetic'
+        synthetic: { text: string; rendering: SyntheticRendering }
+        testCollection?: never
+      }
   )
 export type Sample = Crop & {
   id: string
@@ -65,4 +75,5 @@ export type Sample = Crop & {
   text: string | null
   excluded: boolean
   split: Split
+  testCollection?: { trigger: TestCollection['trigger']; context: Crop; prediction: string | null }
 }

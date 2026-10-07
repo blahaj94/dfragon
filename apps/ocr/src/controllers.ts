@@ -21,6 +21,7 @@ import { parseCaptureKind, parseInputRecord, parseLabel, parseSplit } from './in
 import { parseSplitOptions } from './split-plan.js'
 import { downloadDataset } from './export.js'
 import { parseSyntheticUpload } from './synthetic-upload.js'
+import { isTestCaptureRequest, parseTestCapture } from './test-capture.js'
 
 export const OCR_CONFIG = Symbol('OCR_CONFIG')
 
@@ -84,6 +85,16 @@ export class OcrDataController {
     response.status(result.duplicate ? 200 : 201).json(result)
   }
 
+  @Post('desktop/test-captures')
+  uploadTest(@Req() request: Request, @Body() body: unknown, @Res() response: Response) {
+    if (!isTestCaptureRequest(request)) {
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    }
+    const { capture, png } = parseTestCapture(body)
+    const result = this.store.add(capture, png)
+    response.status(result.duplicate ? 200 : 201).json(result)
+  }
+
   @Get('samples')
   samples(@Req() request: Request) {
     const query = new URL(request.originalUrl, this.config.origin).searchParams
@@ -136,6 +147,16 @@ export class OcrDataController {
   cropped(@Param('id') id: string, @Res() response: Response) {
     const sample = this.store.sample(id)
     response.type('png').send(cropPng(decodePng(this.store.capture(sample.captureId).png), sample))
+  }
+
+  @Get('samples/:id/context/image')
+  context(@Param('id') id: string, @Res() response: Response) {
+    const sample = this.store.sample(id)
+    if (sample.testCollection === undefined) {
+      throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
+    }
+    const original = decodePng(this.store.capture(sample.captureId).png)
+    response.type('png').send(cropPng(original, sample.testCollection.context))
   }
 
   @Patch('samples/:id')

@@ -12,6 +12,8 @@ import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
+import { isTestCaptureRequest, TEST_CAPTURE_LIMITS, TEST_CAPTURE_PATH } from './test-capture.js'
+import { TestCaptureAdmission } from './test-capture-admission.js'
 import { OcrModelController } from './model-controller.js'
 import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
@@ -94,6 +96,7 @@ export async function createOcrApp(
   app.disable('x-powered-by')
   app.set('trust proxy', config.trustedProxyHops ?? false)
   app.useGlobalFilters(new OcrHttpFilter())
+  const testAdmission = new TestCaptureAdmission(config.testUploadEnabled === true)
   app.use(cookieParser())
   app.use((request: Request, response: Response, next: NextFunction) => {
     response.set({
@@ -104,7 +107,9 @@ export async function createOcrApp(
         "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
     if (
-      isDesktopRequest(request) || isSyntheticUploadRequest(request)
+      isDesktopRequest(request) ||
+      isSyntheticUploadRequest(request) ||
+      isTestCaptureRequest(request)
         ? request.headers.origin !== undefined
         : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
     ) {
@@ -119,6 +124,10 @@ export async function createOcrApp(
   app.use('/api', (request: Request, response: Response, next: NextFunction) => {
     void Promise.resolve()
       .then(async () => {
+        if (isTestCaptureRequest(request)) {
+          return testAdmission.require(request)
+        }
+
         if (isSyntheticUploadRequest(request)) {
           return auth.requireSyntheticUpload(request)
         }
@@ -135,6 +144,7 @@ export async function createOcrApp(
       }, next)
   })
   let activeUploads = 0
+  let activeTestUploads = 0
   let modelUploadActive = false
   app.use(
     ['/api/models', '/api/desktop/models'],
@@ -166,7 +176,7 @@ export async function createOcrApp(
   )
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
   app.use(
-    ['/api/captures', '/api/desktop/captures', '/api/synthetic-samples'],
+    ['/api/captures', '/api/desktop/captures', '/api/synthetic-samples', TEST_CAPTURE_PATH],
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST' || request.path !== '/') {
         next()
@@ -174,14 +184,28 @@ export async function createOcrApp(
         return
       }
 
-      if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
+      const testUpload = isTestCaptureRequest(request)
+      if (
+        activeUploads >= OCR_UPLOAD.maximumConcurrent ||
+        (testUpload && activeTestUploads >= TEST_CAPTURE_LIMITS.maximumConcurrent)
+      ) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
 
         return
       }
       activeUploads++
+      let receiveTimeout: ReturnType<typeof setTimeout> | undefined
+      if (testUpload) {
+        activeTestUploads++
+        receiveTimeout = setTimeout(() => request.destroy(), TEST_CAPTURE_LIMITS.receiveTimeoutMs)
+        receiveTimeout.unref()
+      }
       response.once('close', () => {
         activeUploads--
+        if (testUpload) {
+          activeTestUploads--
+        }
+        clearTimeout(receiveTimeout)
       })
       parseUploadBody(request, response, next)
     }

@@ -27,6 +27,10 @@ export const OCR_ERRORS = {
   },
   UPLOAD_TOO_LARGE: { status: 413, message: '이미지 파일이 너무 큽니다.' },
   UPLOAD_BUSY: { status: 429, message: '다른 업로드가 진행 중입니다. 잠시 후 재시도해 주세요.' },
+  TEST_UPLOAD_LIMIT: {
+    status: 429,
+    message: '테스트 자료 업로드가 많습니다. 잠시 후 다시 시도해 주세요.'
+  },
   LOGIN_LIMIT: { status: 429, message: '로그인 요청이 많습니다. 잠시 후 다시 시도해 주세요.' },
   UNAVAILABLE: { status: 500, message: '처리하지 못했습니다. 다시 시도해 주세요.' },
   AUTH_UNAVAILABLE: {

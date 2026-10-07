@@ -51,6 +51,21 @@ export function SampleEditor({ sample }: { sample: Sample }) {
           alt="정답을 입력할 닉네임 크롭"
         />
       </div>
+      {sample.testCollection !== undefined && (
+        <div>
+          <p {...stylex.props(styles.paragraph, styles.muted)}>
+            OCR 예측(미검수): {sample.testCollection.prediction || '예측 없음'}
+          </p>
+          <a
+            {...stylex.props(styles.originalLink)}
+            href={`/api/samples/${sample.id}/context/image`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            얼굴과 닉네임이 포함된 파티원 슬롯 열기 ↗
+          </a>
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault()

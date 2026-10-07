@@ -6,6 +6,7 @@ import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.
 import { inspectModelFiles, validateModelLineage } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
 import { planSampleSplit, type SampleUpdate } from './sample-update.js'
+import { TEST_CAPTURE_LIMITS } from './test-capture.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -134,6 +135,31 @@ export class OcrStore {
         return { id: capture.id, duplicate: true }
       }
 
+      if (capture.testCollection !== undefined) {
+        const duplicate = this.db
+          .prepare(
+            "SELECT id FROM captures WHERE json_extract(metadata,'$.testCollection.contentSha256')=? LIMIT 1"
+          )
+          .get(capture.testCollection.contentSha256)
+        if (duplicate !== undefined) {
+          this.db.exec('COMMIT')
+          const id = duplicate.id as string
+
+          return { id, duplicate: true }
+        }
+        const collected = this.db
+          .prepare(
+            "SELECT COUNT(*) AS captures, COALESCE(SUM(length(png)),0) AS bytes FROM captures WHERE json_type(metadata,'$.testCollection')='object'"
+          )
+          .get()!
+        if (
+          Number(collected.captures) >= TEST_CAPTURE_LIMITS.maximumStoredCaptures ||
+          Number(collected.bytes) + png.length > TEST_CAPTURE_LIMITS.maximumStoredBytes
+        ) {
+          throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
+        }
+      }
+
       const used = this.db
         .prepare(
           'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
@@ -210,8 +236,17 @@ export class OcrStore {
       text: row.text as string | null
     }
     const excluded = row.excluded === 1
+    const sample: Sample = { ...fields, excluded, split: row.split as Split }
+    if (capture.testCollection !== undefined) {
+      const slot = capture.testCollection.slots.find((entry) => entry.slot === row.slot)
+      if (slot === undefined) {
+        throw new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
+      }
+      const { prediction, ...context } = slot
+      sample.testCollection = { trigger: capture.testCollection.trigger, context, prediction }
+    }
 
-    return { ...fields, excluded, split: row.split as Split }
+    return sample
   }
 
   sample(id: string): Sample {
