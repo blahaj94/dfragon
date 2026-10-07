@@ -23,6 +23,14 @@ export function Preview(): React.JSX.Element {
   const [source, setSource] = useState('')
   const detail = query.get('detail') === 'sample'
   const character = getCharacterPreview(scenario, previewCharacter)
+  const identification = scenario === 'identification'
+  const identifiedCharacter = {
+    ...character,
+    characterId: 'preview-selected',
+    fame: null,
+    equipment: [],
+    oath: []
+  }
   const openDetail = (): void => {
     const url = new URL(window.location.href)
     url.search = new URLSearchParams({
@@ -63,6 +71,21 @@ export function Preview(): React.JSX.Element {
               />
             }
             character={character}
+            characters={identification ? [identifiedCharacter, null, null, null] : undefined}
+            basicOnly={identification}
+            nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
+            slotNotices={
+              identification
+                ? [
+                    undefined,
+                    undefined,
+                    undefined,
+                    '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+                  ]
+                : undefined
+            }
+            onRetry={identification ? () => setScenario('pending') : undefined}
+            retryEnabled={identification ? [false, false, false, true] : undefined}
             slots={scenarios[scenario]}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
@@ -97,6 +120,7 @@ export function Preview(): React.JSX.Element {
               <option value="faces">네 면 비교</option>
               <option value="pending">검색 중 · 결과 없음</option>
               <option value="missing">누락 · 이미지 실패</option>
+              <option value="identification">자동 식별 상태</option>
             </select>
           </footer>
           <p {...stylex.props(styles.notice)}>

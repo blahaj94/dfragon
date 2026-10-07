@@ -33,7 +33,15 @@ vi.mock('../../lib/party', async (original) => {
 
   return {
     ...originalModule,
-    capturePartyNicknameCrops: media.crops
+    capturePartyNicknameCrops: media.crops,
+    capturePartyRecognitionInputs: (video: HTMLVideoElement) =>
+      media.crops(video).map((nickname: HTMLCanvasElement | null, slot: number) => {
+        if (nickname === null) {
+          return null
+        }
+
+        return { slot, nickname, portrait: null }
+      })
   }
 })
 vi.mock('../../lib/recognition', async (original) => {
@@ -85,6 +93,7 @@ type RendererFixture = {
     listCaptureSources: ReturnType<typeof vi.fn>
     selectCaptureSource: ReturnType<typeof vi.fn>
     notifyStableNicknameDetected: Mocked<ObservationTestApi>['notifyStableNicknameDetected']
+    notifyOcrCandidatesDetected: Mocked<ObservationTestApi>['notifyOcrCandidatesDetected']
   }
   auth: Mocked<AuthApi>
   resources: CaptureResources
@@ -110,7 +119,13 @@ export function captureResources(): CaptureResources {
     getVideoTracks: () => [track]
   } as unknown as MediaStream
   const worker = {
-    recognize: vi.fn().mockResolvedValue({ data: { text: 'ALICE' } }),
+    recognize: vi.fn().mockResolvedValue({
+      data: {
+        text: 'ALICE',
+        confidence: 90,
+        candidates: [{ rank: 1, modelScore: 90, nickname: 'ALICE' }]
+      }
+    }),
     terminate: vi.fn().mockResolvedValue(undefined)
   }
 
@@ -172,6 +187,27 @@ export function createRendererFixture(): RendererFixture {
 
       return { id: sourceId, name }
     }),
+    notifyOcrCandidatesDetected: vi
+      .fn<ObservationTestApi['notifyOcrCandidatesDetected']>()
+      .mockImplementation(async (observation) => {
+        const slots = currentSearch.slots.map((slot) => {
+          if (slot.slot !== observation.slot) {
+            return slot
+          }
+          const state = observation.portrait === null ? 'waiting-portrait' : 'waiting-policy'
+
+          return searchSlot({
+            slot: observation.slot,
+            nickname: observation.nickname,
+            observationRevision: observation.observationRevision,
+            state,
+            rows: []
+          })
+        })
+        currentSearch = { ...currentSearch, revision: currentSearch.revision + 1, slots }
+
+        return { ok: true, snapshot: currentSearch }
+      }),
     notifyStableNicknameDetected: vi
       .fn<ObservationTestApi['notifyStableNicknameDetected']>()
       .mockImplementation(async (observation) => {
