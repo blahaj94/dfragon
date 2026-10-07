@@ -4,7 +4,11 @@ import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { validateDevRendererUrl } from './renderer-document'
-import { registerCaptureIpc, registerCaptureWindow } from './capture/ipc-handler'
+import {
+  collectCurrentCapture,
+  registerCaptureIpc,
+  registerCaptureWindow
+} from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
 import { registerAuthIpc } from './auth/ipc-handler'
 import {
@@ -25,6 +29,12 @@ import { registerDeveloperWindow } from './developer/ipc-handler'
 import { registerVersionsWindow } from './versions/ipc-handler'
 import { readDesktopBuildInfo } from './versions/desktop-info'
 import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
+import { registerDesktopShortcuts } from './shortcuts/register'
+import { DESKTOP_SHORTCUTS } from '../preload/common/types/desktop-shortcut'
+import { createOcrCollection } from './ocr-collection/collection'
+import { isOcrCollectionEnabled } from './ocr-collection/policy'
+import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
+import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
 import {
   registerCharacterDetailWindows,
   openSelectedCharacterDetail
@@ -103,9 +113,22 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   let disposeDeveloper: (() => void) | undefined
   let disposeVersions: (() => void) | undefined
   let disposeCharacterDetails: (() => void) | undefined
+  let disposeShortcuts: (() => void) | undefined
+  let disposeDiagnostics: (() => void) | undefined
   try {
     registerCapturePermissions(session.defaultSession)
     registerCaptureWindow(window, rendererDocumentUrl)
+    disposeDiagnostics = registerDiagnosticsWindow({ window, documentUrl: rendererDocumentUrl })
+    disposeShortcuts = registerDesktopShortcuts({
+      window,
+      rendererDocumentUrl,
+      onShortcut: (action) => {
+        if (action === DESKTOP_SHORTCUTS.uploadCapture) {
+          void collectCurrentCapture().catch(() => reportDiagnostic('UPLOAD_FAILED'))
+        }
+      },
+      onUnavailable: () => reportDiagnostic('SHORTCUT_FAILED')
+    })
     disposeCharacterDetails = registerCharacterDetailWindows({
       owner: window,
       entry: join(__dirname, '../frontend/character-detail.html'),
@@ -153,6 +176,8 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     const load = shouldLoadDevUrl ? window.loadURL(rendererDocumentUrl) : window.loadFile(entry)
     observeLoad(load)
   } catch (error) {
+    disposeShortcuts?.()
+    disposeDiagnostics?.()
     disposeCharacterDetails?.()
     disposeVersions?.()
     disposeDeveloper?.()
@@ -212,6 +237,8 @@ app.whenReady().then(async () => {
   }
 
   authAppLifecycle.registerAppHandlers()
+  const disposeMainDiagnostics = registerMainDiagnosticErrors()
+  app.on('quit', disposeMainDiagnostics)
 
   try {
     // Default open or close DevTools by F12 in development
@@ -235,7 +262,18 @@ app.whenReady().then(async () => {
               clock: createAuthRuntimeEffects().createSearchClock(),
               portraitEdgeMatchPolicy: INITIAL_PORTRAIT_EDGE_POLICY
             }
-      registerCaptureIpc(searchConfiguration, { openSelected: openSelectedCharacterDetail })
+      const collection = createOcrCollection({
+        enabled: isOcrCollectionEnabled({ isPackaged: app.isPackaged, version: app.getVersion() }),
+        onFailure: reportDiagnostic
+      })
+      const disposeCapture = registerCaptureIpc(
+        searchConfiguration,
+        { openSelected: openSelectedCharacterDetail },
+        collection
+      )
+      app.on('quit', () => {
+        disposeCapture()
+      })
 
       createWindow(authRuntime)
 

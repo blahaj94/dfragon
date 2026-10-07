@@ -7,13 +7,16 @@ import type {
   OcrSearchObservation
 } from './search'
 import type { BuildVersions } from './build-versions'
+import type { CollectOcrSample, OcrCollectionResult } from './ocr-collection'
+import type { DiagnosticIPCFunctions } from './diagnostics'
 import type {
   CharacterDetailSnapshot,
   CharacterSelectionReference,
   OpenCharacterDetailResult
 } from './character-detail'
 
-interface AsyncIPCFunctions {
+interface AsyncIPCFunctions extends DiagnosticIPCFunctions {
+  collectOcrSample: (input: CollectOcrSample) => Promise<OcrCollectionResult>
   readCharacterDetail: () => Promise<CharacterDetailSnapshot>
   openCharacterDetails: (input: CharacterSelectionReference) => Promise<OpenCharacterDetailResult>
   getBuildVersions: () => Promise<BuildVersions>
