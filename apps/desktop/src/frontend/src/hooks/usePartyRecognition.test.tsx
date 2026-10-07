@@ -5,7 +5,11 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CharacterPortrait } from '../../../preload/common/types/character'
 import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
-import { capturePartyRecognitionInputs, type PartyRecognitionInput } from '../lib/party'
+import {
+  capturePartyNicknameCrops,
+  capturePartyRecognitionInputs,
+  type PartyRecognitionInput
+} from '../lib/party'
 import { usePartyRecognition } from './usePartyRecognition'
 
 vi.mock('../lib/party', () => ({
@@ -27,8 +31,9 @@ afterEach(async () => {
   await act(async () => mounted.splice(0).forEach((unmount) => unmount()))
 })
 
-async function fixture(): Promise<{
+async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
   cycle: (controller?: AbortController) => Promise<void>
+  startCycle: (controller?: AbortController) => Promise<void>
   current: () => ReturnType<typeof usePartyRecognition>
   worker: PartyOcrWorker & { recognize: ReturnType<typeof vi.fn<PartyOcrWorker['recognize']>> }
   observe: ReturnType<typeof vi.fn>
@@ -48,7 +53,8 @@ async function fixture(): Promise<{
   mounted.push(() => root.unmount())
 
   function Harness(): null {
-    current = usePartyRecognition(observe, observeOcr)
+    const identify = mode === 'identify' ? observeOcr : undefined
+    current = usePartyRecognition(observe, identify)
 
     return null
   }
@@ -64,6 +70,7 @@ async function fixture(): Promise<{
   function setFrame(portrait: CharacterPortrait | null = null): void {
     const input: PartyRecognitionInput = { slot: 0, nickname, portrait }
     vi.mocked(capturePartyRecognitionInputs).mockReturnValue([input, null, null, null])
+    vi.mocked(capturePartyNicknameCrops).mockReturnValue([nickname, null, null, null])
   }
 
   setFrame()
@@ -73,6 +80,8 @@ async function fixture(): Promise<{
     cycle: async (controller = new AbortController()) => {
       await act(async () => readCurrent().recognizePartyNicknames(video, worker, controller.signal))
     },
+    startCycle: (controller = new AbortController()) =>
+      readCurrent().recognizePartyNicknames(video, worker, controller.signal),
     current: readCurrent,
     worker,
     observe,
@@ -265,6 +274,98 @@ describe('OCR 식별 입력 안정화', () => {
         await f.cycle()
         expect(f.observeOcr).toHaveBeenCalledTimes(1)
       }
+    }
+  )
+})
+
+describe.each(['legacy', 'identify'] as const)('%s 프레임의 사라진 파티원 처리', (mode) => {
+  function setSlots(...slots: number[]): void {
+    const crops = Array.from({ length: 4 }, (_, slot) => {
+      if (slots.includes(slot)) {
+        return document.createElement('canvas')
+      }
+
+      return null
+    })
+    vi.mocked(capturePartyNicknameCrops).mockReturnValue(crops)
+    const inputs = crops.map((nickname, slot) => {
+      if (nickname === null) {
+        return null
+      }
+
+      return { slot, nickname, portrait: null }
+    })
+    vi.mocked(capturePartyRecognitionInputs).mockReturnValue(inputs)
+  }
+
+  it('뒤 슬롯은 앞 슬롯 OCR을 기다리기 전에 비우고 재등장 시 두 번 안정화한다', async () => {
+    const f = await fixture(mode)
+    setSlots(0, 3)
+    await f.cycle()
+    await f.cycle()
+    expect(f.current().stableNicknames).toEqual(['가나', null, null, '가나'])
+    f.observe.mockClear()
+    f.observeOcr.mockClear()
+    setSlots(0)
+    const pending = Promise.withResolvers<{ data: PartyOcrResult }>()
+    f.worker.recognize.mockReturnValueOnce(pending.promise)
+    let cycle!: Promise<void>
+
+    try {
+      await act(async () => {
+        cycle = f.startCycle()
+      })
+      expect(f.observe).toHaveBeenCalledExactlyOnceWith({ slot: 3, nickname: null })
+      expect(f.current().stableNicknames).toEqual(['가나', null, null, null])
+    } finally {
+      await act(async () => {
+        pending.resolve(ocrResult('가나', '가너'))
+        await cycle
+      })
+    }
+
+    await f.cycle()
+    expect(f.observe).toHaveBeenCalledExactlyOnceWith({ slot: 3, nickname: null })
+    setSlots(0, 3)
+    await f.cycle()
+    expect(f.current().stableNicknames[3]).toBeNull()
+    const notify = mode === 'identify' ? f.observeOcr : f.observe
+    expect(
+      notify.mock.calls.filter(([input]) => input.slot === 3 && input.nickname != null)
+    ).toEqual([])
+    await f.cycle()
+    expect(f.current().stableNicknames[3]).toBe('가나')
+    expect(
+      notify.mock.calls.filter(([input]) => input.slot === 3 && input.nickname === '가나')
+    ).toHaveLength(1)
+  })
+
+  it.each(['abort', 'reset'] as const)(
+    '%s 이후 앞 슬롯의 늦은 응답이 초기화된 관측을 복원하지 않는다',
+    async (action) => {
+      const f = await fixture(mode)
+      setSlots(0, 3)
+      await f.cycle()
+      const pending = Promise.withResolvers<{ data: PartyOcrResult }>()
+      f.worker.recognize.mockReturnValueOnce(pending.promise)
+      const controller = new AbortController()
+      let cycle!: Promise<void>
+      await act(async () => {
+        cycle = f.startCycle(controller)
+        if (action === 'abort') {
+          controller.abort()
+        } else {
+          f.current().resetRecognition()
+        }
+      })
+      await act(async () => {
+        pending.resolve(ocrResult('가나', '가너'))
+        await cycle
+      })
+      expect(f.observe).not.toHaveBeenCalled()
+      expect(f.observeOcr).not.toHaveBeenCalled()
+      expect(f.current().stableNicknames).toEqual([null, null, null, null])
+      expect(f.worker.recognize).toHaveBeenCalledTimes(3)
     }
   )
 })
