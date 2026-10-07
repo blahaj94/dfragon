@@ -64,6 +64,19 @@ it('왕관, PC 표시와 테두리 변화는 같은 얼굴로 취급하고 유�
   expect(sameCharacterPortrait(first, second)).toBe(false)
 })
 
+it('UI 100% 확대에서도 왕관과 PC 영역을 항상 가리고 아래 얼굴과 중앙은 비교한다', () => {
+  const source = input(1920, 1080, 329, 1.8)
+  const portrait = cropPartyPortrait(source)!
+  const mask = portrait.validMask!
+  const width = portrait.image.width
+
+  expect(mask[16 * width + 10]).toBe(0)
+  expect(mask[16 * width + 36]).toBe(0)
+  expect(mask[16 * width + 23]).toBe(1)
+  expect(mask[17 * width + 10]).toBe(1)
+  expect(mask[17 * width + 36]).toBe(1)
+})
+
 it('얼굴이 프레임을 벗어나거나 크기가 처리 범위를 벗어나면 자르지 않는다', () => {
   expect(cropPartyPortrait(input(1067, 600, 10))).toBeNull()
   expect(cropPartyPortrait(input(1067, 600, 1090))).toBeNull()
