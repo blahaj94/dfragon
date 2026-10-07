@@ -98,6 +98,15 @@ export const styles = stylex.create({
     color: colors.muted
   },
   error: { color: '#ff8888' },
+  statusWithRetry: { top: '28%' },
+  retry: {
+    position: 'absolute',
+    bottom: 85,
+    left: 10,
+    right: 10,
+    display: 'flex',
+    justifyContent: 'center'
+  },
   editing: {
     position: 'absolute',
     top: 45,
