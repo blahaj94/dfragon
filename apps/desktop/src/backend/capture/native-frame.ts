@@ -5,6 +5,7 @@ import {
   type WindowCaptureTarget
 } from '../lib/win32-window-capture'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
+import { reportDiagnostic } from '../diagnostics/log'
 
 export type ReadWindowFrame = () => WindowFrameResult | Promise<WindowFrameResult>
 
@@ -17,6 +18,7 @@ export function bindWindowFrame(sourceId: string): ReadWindowFrame {
   try {
     target = selectWindowClient(sourceId)
   } catch {
+    reportDiagnostic('CAPTURE_SELECTION_FAILED')
     throw new Error('CAPTURE_UNAVAILABLE')
   }
 
@@ -28,6 +30,15 @@ export function bindWindowFrame(sourceId: string): ReadWindowFrame {
       return { kind: 'frame', image }
     } catch (error) {
       const covered = error instanceof Error && error.message === WINDOW_CAPTURE_ERRORS.COVERED
+      const adminRequired =
+        error instanceof Error && error.message === WINDOW_CAPTURE_ERRORS.ADMIN_REQUIRED
+      if (covered) {
+        reportDiagnostic('CAPTURE_COVERED')
+      } else if (adminRequired) {
+        reportDiagnostic('CAPTURE_ADMIN_REQUIRED')
+      } else {
+        reportDiagnostic('CAPTURE_UNAVAILABLE')
+      }
       const reason = covered ? 'covered' : 'unavailable'
 
       return { kind: 'waiting', reason }
