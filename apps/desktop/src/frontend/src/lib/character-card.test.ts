@@ -67,3 +67,20 @@ it('서버 제한과 중복 요청을 지키고 정제된 오류만 표시한다
     )
   ).toBe(false)
 })
+
+it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () => {
+  const slot: SearchSlot = {
+    slot: 0,
+    observationRevision: 1,
+    requestId: 'request',
+    nickname: '이름',
+    state: 'success',
+    rows: [],
+    error: null,
+    selected: summary,
+    selectionMethod: 'highest-fame'
+  }
+  expect(characterSlotNotice(slot)).toBe('외형 미확인, 최고 명성 후보입니다.')
+  expect(characterSlotNotice({ ...slot, selectionMethod: 'portrait' })).toBeUndefined()
+  expect(characterSlotNotice({ ...slot, selectionMethod: 'manual' })).toBeUndefined()
+})
