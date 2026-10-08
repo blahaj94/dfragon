@@ -106,6 +106,10 @@ for (const source of provenance.files) {
   assert.equal(hash, source.localSha256 ?? source.sha256, source.local)
 }
 
+const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
+const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
+const FOUNDATION_FONT_FAMILY_PATTERN = /Apple SD Gothic Neo/g
+
 if (isLibrary) {
   assert.equal(graph.length, 0, 'Library must externalize all runtime dependencies')
   assert.equal(cssFiles.length, 0, 'Library must not emit CSS')
@@ -117,14 +121,14 @@ if (isLibrary) {
   for (const declaration of declarations) {
     const types = await readFile(resolve(output, declaration), 'utf8')
     const hasNodeImport = moduleSpecifiers(declaration, types).some(isBuiltin)
-    const hasPrivateOrNodeType = /node:|NodeJS|\.pnpm/.test(types) || hasNodeImport
+    const hasPrivateOrNodeType = NONPORTABLE_DECLARATION_PATTERN.test(types) || hasNodeImport
     assert.equal(hasPrivateOrNodeType, false, `Portable browser declaration: ${declaration}`)
   }
 
   for (const file of javaScriptFiles) {
     const code = await readFile(resolve(output, file), 'utf8')
     for (const specifier of moduleSpecifiers(file, code)) {
-      const isStylesheet = /\.css(?:$|\?)/.test(specifier)
+      const isStylesheet = STYLESHEET_IMPORT_PATTERN.test(specifier)
       assert.equal(isStylesheet, false, `Library must not import CSS: ${file} ${specifier}`)
     }
   }
@@ -184,7 +188,11 @@ if (isLibrary) {
   assert.equal(baseImports.length, 1, 'Consumer must import base.css once')
   assert.equal(cssFiles.length, 1, 'Consumer must emit one combined stylesheet')
   const styles = await readFile(resolve(output, cssFiles[0]), 'utf8')
-  assert.equal(styles.match(/Apple SD Gothic Neo/g)?.length, 1, 'Shared foundation font stack once')
+  assert.equal(
+    styles.match(FOUNDATION_FONT_FAMILY_PATTERN)?.length,
+    1,
+    'Shared foundation font stack once'
+  )
   const licenses = await readFile(resolve(output, 'notices/THIRD-PARTY.txt'), 'utf8')
   const hasMitLicense = licenses.includes('MIT License')
   assert.ok(hasMitLicense, 'Bundled dependency license text retained')

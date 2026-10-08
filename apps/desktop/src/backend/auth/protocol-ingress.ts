@@ -216,6 +216,8 @@ type StructuredOptionPayload = Readonly<{
   value: string
 }>
 
+const OPTION_NAME_PATH_SEPARATOR_PATTERN = /[\\/]/
+
 function readStructuredOptionPayload(value: string): StructuredOptionPayload | undefined {
   let prefixLength = 0
   if (value.startsWith('--')) {
@@ -236,7 +238,8 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
   }
 
   const name = option.slice(0, separatorIndex)
-  const isSlashOptionWithPathName = prefixLength === 1 && /[\\/]/.test(name)
+  const isSlashOptionWithPathName =
+    prefixLength === 1 && OPTION_NAME_PATH_SEPARATOR_PATTERN.test(name)
   if (isSlashOptionWithPathName) {
     return undefined
   }
@@ -246,6 +249,10 @@ function readStructuredOptionPayload(value: string): StructuredOptionPayload | u
 
   return { name: normalizedName, value: payload }
 }
+
+const WINDOWS_ABSOLUTE_USER_DATA_PATTERN = /^[A-Za-z]:[\\/](?![\\/])/
+const PROTOCOL_SCHEME_PATTERN = /^[A-Za-z][A-Za-z0-9+.-]*:/
+const MALFORMED_HIERARCHICAL_SCHEME_PATTERN = /^[^/?#]*:[\\/]+/
 
 function looksLikeUrlInput(value: string): boolean {
   const projectedArgument = projectUrlDetectionInput(value)
@@ -259,14 +266,14 @@ function looksLikeUrlInput(value: string): boolean {
     structuredOption?.name === 'user-data-dir' &&
     projectedArgument.matchesRaw &&
     projectedPayload.matchesRaw &&
-    /^[A-Za-z]:[\\/](?![\\/])/.test(projected)
+    WINDOWS_ABSOLUTE_USER_DATA_PATTERN.test(projected)
 
   if (isKnownAbsoluteWindowsPathOption) {
     return hasInternalControl && projected.includes(':')
   }
 
-  const hasScheme = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(projected)
-  const hasMalformedHierarchicalScheme = /^[^/?#]*:[\\/]+/.test(projected)
+  const hasScheme = PROTOCOL_SCHEME_PATTERN.test(projected)
+  const hasMalformedHierarchicalScheme = MALFORMED_HIERARCHICAL_SCHEME_PATTERN.test(projected)
   const hasControlBeforeDelimiter = hasInternalControl && projected.includes(':')
 
   return hasScheme || hasMalformedHierarchicalScheme || hasControlBeforeDelimiter

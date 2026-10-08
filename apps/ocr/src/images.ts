@@ -86,11 +86,10 @@ export function decodeUploadedPng(value: unknown) {
   return { png, decoded }
 }
 
+const IMAGE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
 export function parseImageIdentity(id: unknown, capturedAt: unknown) {
-  if (
-    typeof id !== 'string' ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
-  ) {
+  if (typeof id !== 'string' || !IMAGE_ID_PATTERN.test(id)) {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
 

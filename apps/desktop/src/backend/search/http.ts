@@ -52,11 +52,13 @@ export class SearchHttpFailure extends Error {
   }
 }
 
+const RETRY_AFTER_SECONDS_PATTERN = /^[0-9]+$/
+
 function parseRetryAfter(value: string | null): number | null {
   const hasValue = value != null
   let seconds: number
   if (hasValue) {
-    const isDecimal = /^[0-9]+$/.test(value)
+    const isDecimal = RETRY_AFTER_SECONDS_PATTERN.test(value)
     seconds = isDecimal ? Number(value) : Number.NaN
   } else {
     seconds = Number.NaN

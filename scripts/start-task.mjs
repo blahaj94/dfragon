@@ -18,14 +18,17 @@ function buildTaskContext({ issue, branch, destination, base }) {
   return taskContext
 }
 
+const TASK_ISSUE_NUMBER_PATTERN = /^[1-9]\d*$/
+const TASK_BRANCH_DESCRIPTION_PATTERN = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
+
 export function startTask(args, run = execFileSync) {
   const [project, issueNumber, description, worktreePath] = args
   const hasExpectedArgumentCount = args.length === 4
   const isProjectAllowed = PROJECTS.has(project)
-  const hasIssueNumberFormat = /^[1-9]\d*$/.test(issueNumber ?? '')
+  const hasIssueNumberFormat = TASK_ISSUE_NUMBER_PATTERN.test(issueNumber ?? '')
   const isIssueNumberSafeInteger = Number.isSafeInteger(Number(issueNumber))
   const isIssueNumberTrimmed = issueNumber === issueNumber?.trim()
-  const hasDescriptionFormat = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(description ?? '')
+  const hasDescriptionFormat = TASK_BRANCH_DESCRIPTION_PATTERN.test(description ?? '')
   const isDescriptionTrimmed = description === description?.trim()
   const hasWorktreePath = (worktreePath?.trim().length ?? 0) > 0
   const isInputValid =

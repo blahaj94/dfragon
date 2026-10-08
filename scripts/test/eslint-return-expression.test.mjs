@@ -8,7 +8,10 @@ const eslint = new ESLint({ cwd: root })
 const policyRules = new Set(['no-nested-ternary', 'no-restricted-syntax'])
 const sampleFiles = [
   'scripts/return-expression-sample.mjs',
-  'apps/api/src/return-expression-sample.ts'
+  'apps/api/src/return-expression-sample.ts',
+  'scripts/test/return-expression-sample.test.mjs',
+  'apps/api/test/return-expression-sample.test.ts',
+  'apps/ocr/test-support/return-expression-sample.mjs'
 ]
 
 async function policyMessages(source, filePath) {

@@ -25,6 +25,34 @@ const browserFiles = [
   'packages/ui/examples/main.tsx'
 ]
 
+const returnExpressionRestrictions = [
+  {
+    selector: 'ReturnStatement > ConditionalExpression.argument',
+    message: 'return 식에서 삼항 연산자 대신 if 분기로 값을 반환합니다.'
+  },
+  {
+    selector: "ReturnStatement > LogicalExpression.argument[operator='??']",
+    message: 'return 식에서 ?? 대신 if 분기로 값을 반환합니다.'
+  },
+  {
+    selector:
+      'ReturnStatement > ObjectExpression.argument > Property > :matches(ConditionalExpression, LogicalExpression).value',
+    message: '반환 객체의 조건식 속성값은 먼저 의미 있는 지역 변수에 할당합니다.'
+  }
+]
+// Test helpers and executable fixtures are test code even without a .test suffix.
+const regexLiteralExclusions = [
+  '**/*.{test,spec,fixture}.*',
+  '**/{test,tests,__tests__,fixture,fixtures,testing,test-support}/**',
+  'apps/desktop/scripts/*fixture*/**',
+  'apps/desktop/scripts/*fixture*.{ts,mjs,cts}',
+  'apps/desktop/scripts/credential-store-native{,/**,.mjs}',
+  'apps/desktop/scripts/search-server-integration/**',
+  'packages/ui/scripts/test-consumer-resolution.mjs',
+  '**/{generated,vendor}/**',
+  '**/*.generated.*'
+]
+
 export default defineConfig(
   {
     ignores: [
@@ -112,20 +140,20 @@ export default defineConfig(
     files: sourceFiles,
     rules: {
       'no-nested-ternary': 'error',
+      'no-restricted-syntax': ['error', ...returnExpressionRestrictions]
+    }
+  },
+  {
+    files: sourceFiles,
+    ignores: regexLiteralExclusions,
+    rules: {
       'no-restricted-syntax': [
         'error',
-        {
-          selector: 'ReturnStatement > ConditionalExpression.argument',
-          message: 'return 식에서 삼항 연산자 대신 if 분기로 값을 반환합니다.'
-        },
-        {
-          selector: "ReturnStatement > LogicalExpression.argument[operator='??']",
-          message: 'return 식에서 ?? 대신 if 분기로 값을 반환합니다.'
-        },
+        ...returnExpressionRestrictions,
         {
           selector:
-            'ReturnStatement > ObjectExpression.argument > Property > :matches(ConditionalExpression, LogicalExpression).value',
-          message: '반환 객체의 조건식 속성값은 먼저 의미 있는 지역 변수에 할당합니다.'
+            "Literal[regex]:not(VariableDeclaration[kind='const'] > VariableDeclarator > Literal.init)",
+          message: '정규식 리터럴은 검사 목적과 도메인 의미가 드러나는 const 상수로 선언합니다.'
         }
       ]
     }

@@ -64,6 +64,8 @@ function exactField(args: unknown[], key: string): unknown {
   return Object.getOwnPropertyDescriptor(value, key)?.value
 }
 
+const LOGIN_ATTEMPT_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+
 function validArguments(channel: Mutation, args: unknown[]): boolean {
   const isBegin = channel === 'beginLogin'
   if (isBegin) {
@@ -78,9 +80,7 @@ function validArguments(channel: Mutation, args: unknown[]): boolean {
     if (!isString) {
       return false
     }
-    const hasUuidShape = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(
-      attemptId
-    )
+    const hasUuidShape = LOGIN_ATTEMPT_ID_PATTERN.test(attemptId)
 
     return hasUuidShape
   }

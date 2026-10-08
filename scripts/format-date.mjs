@@ -10,13 +10,15 @@ const koreanDate = new Intl.DateTimeFormat('ko-KR', {
   hourCycle: 'h23'
 })
 
+const UTC_TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/
+
 export function formatDate(timestamp) {
   const isString = typeof timestamp === 'string'
   if (!isString) {
     throw new Error('Expected a valid UTC ISO timestamp ending in Z')
   }
 
-  const hasUtcIsoShape = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(timestamp)
+  const hasUtcIsoShape = UTC_TIMESTAMP_PATTERN.test(timestamp)
   if (!hasUtcIsoShape) {
     throw new Error('Expected a valid UTC ISO timestamp ending in Z')
   }

@@ -15,6 +15,9 @@ function parseRgb(value: unknown): number[] {
   return value
 }
 
+const SYNTHETIC_LABEL_WHITESPACE_PATTERN = /\s/u
+const SYNTHETIC_RENDERER_VERSION_PATTERN = /^\d+\.\d+\.\d+$/
+
 export function parseSyntheticUpload(value: unknown): {
   capture: Extract<Capture, { kind: 'synthetic' }>
   png: Buffer
@@ -32,9 +35,9 @@ export function parseSyntheticUpload(value: unknown): {
   const rendering = parseInputRecord(body.rendering)
   if (
     text === null ||
-    /\s/u.test(text) ||
+    SYNTHETIC_LABEL_WHITESPACE_PATTERN.test(text) ||
     typeof rendering.rendererVersion !== 'string' ||
-    !/^\d+\.\d+\.\d+$/.test(rendering.rendererVersion) ||
+    !SYNTHETIC_RENDERER_VERSION_PATTERN.test(rendering.rendererVersion) ||
     rendering.rendererVersion.length > 32 ||
     (rendering.profile !== 'dotum' && rendering.profile !== 'nanum-neo') ||
     typeof rendering.scale !== 'number' ||

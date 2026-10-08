@@ -20,6 +20,8 @@ type Frame = {
 type Prefix = { nickname: string; tokens: readonly number[] }
 type Beam = Prefix & { blank: number; nonBlank: number; score: number }
 
+const INVALID_CTC_LABEL_SURROGATE_PATTERN = /[\uD800-\uDFFF]/u
+
 /** 제한된 prefix beam으로 후보를 찾고 전체 CTC 경로로 재채점해 요청한 개수까지 반환한다. 기본값은 2개다. */
 export function decodeCtcCandidates(
   data: Float32Array,
@@ -40,7 +42,8 @@ export function decodeCtcCandidates(
   if (
     new Set(characters).size !== characters.length ||
     characters.some(
-      (character) => [...character].length !== 1 || /[\uD800-\uDFFF]/u.test(character)
+      (character) =>
+        [...character].length !== 1 || INVALID_CTC_LABEL_SURROGATE_PATTERN.test(character)
     )
   ) {
     throw new Error('CTC labels must be unique Unicode characters.')

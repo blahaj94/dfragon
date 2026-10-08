@@ -14,6 +14,8 @@ function parseHttpsOrigin(value: string | undefined): string {
   return value
 }
 
+const OCR_OWNER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+
 try {
   process.umask(0o077)
   const directory = process.env.OCR_DATA_DIR ?? ''
@@ -23,7 +25,7 @@ try {
   const proxy = process.env.OCR_TRUST_PROXY
   if (
     !isAbsolute(directory) ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(ownerId) ||
+    !OCR_OWNER_ID_PATTERN.test(ownerId) ||
     !Number.isSafeInteger(maximumBytes) ||
     maximumBytes < 16 * 1024 * 1024 ||
     !Number.isInteger(port) ||

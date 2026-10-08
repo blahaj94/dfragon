@@ -217,6 +217,8 @@ function scoreGlyphs(mask: Uint8Array, width: number): GlyphPattern[] {
   return result
 }
 
+const RAID_EQUIPMENT_SCORE_PATTERN = /^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?K?$/
+
 function readEquipmentScore(
   rgba: Uint8Array,
   templates: readonly { character: DNFRaidScoreGlyph; pattern: GlyphPattern }[]
@@ -252,12 +254,14 @@ function readEquipmentScore(
     text += best[0]
   }
   // Reject malformed/partial readings, while preserving every accepted display character.
-  if (/^(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?K?$/.test(text)) {
+  if (RAID_EQUIPMENT_SCORE_PATTERN.test(text)) {
     return text
   }
 
   return null
 }
+
+const RAID_EQUIPMENT_SCORE_GLYPH_PATTERN = /^[0-9,.K]$/
 
 /**
  * Reads each occupied row's actual pixels using caller-owned UI-0% references.
@@ -323,7 +327,7 @@ export function readDNFRaidParticipantMetadata(
     if (
       template == null ||
       typeof template.character !== 'string' ||
-      !/^[0-9,.K]$/.test(template.character)
+      !RAID_EQUIPMENT_SCORE_GLYPH_PATTERN.test(template.character)
     ) {
       throw new RangeError('DNF raid metadata score references must identify one supported glyph.')
     }

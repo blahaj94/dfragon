@@ -146,11 +146,17 @@ function assertCanonicalPath(path: string, filesystem: RuntimeProfileFilesystem)
   }
 }
 
+const WINDOWS_PATH_SEPARATOR_PATTERN = /[\\/]/
+const POSIX_PATH_SEPARATOR_PATTERN = /\//
+
 function splitNativePath(path: string, pathSemantics: RuntimePathSemantics): string[] {
-  const separator = pathSemantics.sep === '\\' ? /[\\/]/ : /\//
+  const separator =
+    pathSemantics.sep === '\\' ? WINDOWS_PATH_SEPARATOR_PATTERN : POSIX_PATH_SEPARATOR_PATTERN
 
   return path.split(separator)
 }
+
+const WINDOWS_PATH_ALIAS_ENDING_PATTERN = /[ .]$/
 
 function hasPathAlias(path: string, pathSemantics: RuntimePathSemantics): boolean {
   const hasNonNativeSeparator = pathSemantics.sep === '\\' && path.includes('/')
@@ -160,7 +166,8 @@ function hasPathAlias(path: string, pathSemantics: RuntimePathSemantics): boolea
   const hasDotSegment = segments.some((segment) => segment === '.' || segment === '..')
   const hasEmptySegment = segments.some((segment) => segment.length === 0)
   const hasWin32NormalizedSegment =
-    pathSemantics.sep === '\\' && segments.some((segment) => /[ .]$/.test(segment))
+    pathSemantics.sep === '\\' &&
+    segments.some((segment) => WINDOWS_PATH_ALIAS_ENDING_PATTERN.test(segment))
 
   return (
     hasNonNativeSeparator ||
@@ -314,6 +321,9 @@ function prepareWindowsUserDataDirectory(
   security.syncDirectory(finalParentPath, finalParentPath === rootPath ? 'root' : 'ancestor')
 }
 
+const AUTH_PROFILE_PATTERN = /^[a-z][a-z0-9-]{0,31}$/
+const APP_IDENTITY_PATTERN = /^[a-zA-Z][a-zA-Z0-9.-]{0,127}$/
+
 export function readAuthRuntimeConfig(
   environment: RuntimeEnvironment = process.env,
   pathSemantics: RuntimePathSemantics = nativeRuntimePathSemantics
@@ -334,12 +344,12 @@ export function readAuthRuntimeConfig(
     return null
   }
 
-  const isValidProfile = /^[a-z][a-z0-9-]{0,31}$/.test(profile)
+  const isValidProfile = AUTH_PROFILE_PATTERN.test(profile)
   if (!isValidProfile) {
     return null
   }
 
-  const hasValidAppIdentity = /^[a-zA-Z][a-zA-Z0-9.-]{0,127}$/.test(appIdentity)
+  const hasValidAppIdentity = APP_IDENTITY_PATTERN.test(appIdentity)
   const hasNoControlPath = [...userDataPath].every((character) => {
     const code = character.charCodeAt(0)
 

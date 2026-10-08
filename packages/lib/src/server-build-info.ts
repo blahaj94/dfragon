@@ -5,6 +5,8 @@ export interface ServerBuildInfo {
   commit: string | null
 }
 
+const SERVER_COMMIT_PATTERN = /^[0-9a-f]{40}$/
+
 /** Accept only the requested service and a complete image-build revision. */
 export function parseServerBuildInfo(
   value: unknown,
@@ -27,7 +29,7 @@ export function parseServerBuildInfo(
     (info.commit !== null &&
       (typeof info.commit !== 'string' ||
         info.commit.length !== 40 ||
-        !/^[0-9a-f]{40}$/.test(info.commit)))
+        !SERVER_COMMIT_PATTERN.test(info.commit)))
   ) {
     return null
   }

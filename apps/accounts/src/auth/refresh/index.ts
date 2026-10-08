@@ -13,12 +13,14 @@ export type { RefreshDependencies, RefreshTokens } from './types.js'
 
 type RefreshCommitResult = { status: 'issued'; tokens: RefreshTokens } | { status: 'reuse-revoked' }
 
+const REFRESH_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+
 export function refreshTokenHash(rawToken: unknown): Buffer {
   const isTokenString = typeof rawToken === 'string'
   if (!isTokenString) {
     throw new RefreshFailure(REFRESH_ERRORS.INVALID_REQUEST)
   }
-  const hasEncodedTokenFormat = /^[A-Za-z0-9_-]{43}$/.test(rawToken)
+  const hasEncodedTokenFormat = REFRESH_TOKEN_PATTERN.test(rawToken)
   if (!hasEncodedTokenFormat) {
     throw new RefreshFailure(REFRESH_ERRORS.INVALID_REQUEST)
   }

@@ -56,8 +56,10 @@ const htmlEntities: Record<string, string> = {
   "'": '&#39;'
 }
 
+const HTML_ESCAPE_CHARACTER_PATTERN = /[&<>"']/g
+
 function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => htmlEntities[character]!)
+  return value.replace(HTML_ESCAPE_CHARACTER_PATTERN, (character) => htmlEntities[character]!)
 }
 
 function loginPage(message: string, returnUrl?: string): string {
@@ -105,6 +107,8 @@ function authHttpFailure(
   return loginFailure(error)
 }
 
+const AUTH_ROUTE_SUFFIX_PATTERN = /\/+$/
+
 @Catch()
 class LoginHttpFilter implements ExceptionFilter {
   catch(error: unknown, host: ArgumentsHost): void {
@@ -127,7 +131,7 @@ class LoginHttpFilter implements ExceptionFilter {
       return
     }
 
-    const path = request.path.toLowerCase().replace(/\/+$/, '')
+    const path = request.path.toLowerCase().replace(AUTH_ROUTE_SUFFIX_PATTERN, '')
     const failure = authHttpFailure(error)
     if (failure.status === 429) {
       response.setHeader('Retry-After', '1')

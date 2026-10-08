@@ -27,9 +27,11 @@ export function parseCharacterCandidatesQuery(originalUrl: string): NeopleCharac
   return { characterName, serverId: 'all', limit: 200, wordType: 'match' }
 }
 
+const QUERY_ENCODED_SPACE_PATTERN = /\+/g
+
 function decodeQueryPart(raw: string): string {
   try {
-    return decodeURIComponent(raw.replace(/\+/g, ' '))
+    return decodeURIComponent(raw.replace(QUERY_ENCODED_SPACE_PATTERN, ' '))
   } catch {
     throw neopleSearchFailure('query')
   }
@@ -58,6 +60,8 @@ function decodeRawQuery(originalUrl: string): DecodedQueryPair[] {
 
   return pairs
 }
+
+const CHARACTER_RESULT_LIMIT_PATTERN = /^[0-9]+$/
 
 function validateSearchQuery(pairs: readonly DecodedQueryPair[]): NeopleCharacterSearchInput {
   const values = new Map<string, string>()
@@ -90,7 +94,7 @@ function validateSearchQuery(pairs: readonly DecodedQueryPair[]): NeopleCharacte
   }
 
   const rawLimit = values.get('limit') ?? '10'
-  const isDecimal = /^[0-9]+$/.test(rawLimit)
+  const isDecimal = CHARACTER_RESULT_LIMIT_PATTERN.test(rawLimit)
   const limit = Number(rawLimit)
   const isInRange = limit >= 1 && limit <= 200
   const isLimitValid = isDecimal && isInRange

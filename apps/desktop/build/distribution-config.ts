@@ -1,5 +1,9 @@
 import { validateApiOrigin } from '../src/backend/auth/protocol'
 
+const DNS_ROOT_LABEL_PATTERN = /\.$/
+const IPV4_MAPPED_LOOPBACK_PATTERN = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/
+const IPV4_LOOPBACK_PATTERN = /^127\.\d+\.\d+\.\d+$/
+
 /** Only public connection settings may cross into the installed main bundle. */
 export function readDistributionApiOrigin(
   environment: Readonly<Record<string, string | undefined>> = process.env
@@ -10,13 +14,13 @@ export function readDistributionApiOrigin(
       throw new Error()
     }
     validateApiOrigin(origin)
-    const hostname = new URL(origin).hostname.replace(/\.$/, '')
+    const hostname = new URL(origin).hostname.replace(DNS_ROOT_LABEL_PATTERN, '')
     // Canonical URL hostnames encode IPv4-mapped IPv6 as ::ffff:hhhh:hhhh.
-    const isMappedLoopback = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/.test(hostname)
+    const isMappedLoopback = IPV4_MAPPED_LOOPBACK_PATTERN.test(hostname)
     if (
       hostname === 'localhost' ||
       hostname.endsWith('.localhost') ||
-      /^127\.\d+\.\d+\.\d+$/.test(hostname) ||
+      IPV4_LOOPBACK_PATTERN.test(hostname) ||
       hostname === '[::1]' ||
       isMappedLoopback
     ) {

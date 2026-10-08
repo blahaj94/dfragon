@@ -38,9 +38,15 @@ function readHeaderValues(request: Request, name: string): string[] {
   })
 }
 
+const AUTH_ROUTE_SUFFIX_PATTERN = /\/+$/
+const LOGIN_JSON_CONTENT_TYPE_PATTERN =
+  /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i
+const UNCOMPRESSED_CONTENT_ENCODING_PATTERN = /^identity$/i
+const PAYLOAD_BYTE_LENGTH_PATTERN = /^\d+$/
+
 /** Nest/Express parser를 끈 app에서 가장 먼저 실제 payload stream을 제한한다. */
 export function loginJsonParser(request: Request, response: Response, next: NextFunction): void {
-  const path = request.path.toLowerCase().replace(/\/+$/, '')
+  const path = request.path.toLowerCase().replace(AUTH_ROUTE_SUFFIX_PATTERN, '')
   const isPost = request.method === 'POST'
   const isAuthJsonPath = [
     '/auth/login-requests',
@@ -74,8 +80,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
 
     return
   }
-  const isContentTypeSupported =
-    /^application\/json(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(contentTypes[0])
+  const isContentTypeSupported = LOGIN_JSON_CONTENT_TYPE_PATTERN.test(contentTypes[0])
   if (!isContentTypeSupported) {
     rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
 
@@ -89,7 +94,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
   }
   const hasSingleEncoding = contentEncodings.length === 1
   if (hasSingleEncoding) {
-    const isEncodingUnsupported = !/^identity$/i.test(contentEncodings[0])
+    const isEncodingUnsupported = !UNCOMPRESSED_CONTENT_ENCODING_PATTERN.test(contentEncodings[0])
     if (isEncodingUnsupported) {
       rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)
 
@@ -101,7 +106,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
   const contentLengths = readHeaderValues(request, 'content-length')
   const hasSingleContentLength = contentLengths.length === 1
   if (hasSingleContentLength) {
-    const isContentLengthDecimal = /^\d+$/.test(contentLengths[0])
+    const isContentLengthDecimal = PAYLOAD_BYTE_LENGTH_PATTERN.test(contentLengths[0])
     if (isContentLengthDecimal) {
       const isDeclaredPayloadTooLarge = Number(contentLengths[0]) > LOGIN.jsonBytes
       if (isDeclaredPayloadTooLarge) {

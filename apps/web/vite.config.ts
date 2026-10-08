@@ -6,6 +6,8 @@ import react from '@vitejs/plugin-react'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '@dfragon/licenses/vite'
 
+const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
+
 export default defineConfig({
   plugins: [
     stylex.vite(stylexOptions),
@@ -16,7 +18,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@dfragon\/ui$/,
+        find: SHARED_UI_IMPORT_PATTERN,
         replacement: fileURLToPath(new URL('../../packages/ui/src/index.tsx', import.meta.url))
       }
     ]

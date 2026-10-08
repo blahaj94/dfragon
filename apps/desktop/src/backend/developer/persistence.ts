@@ -106,6 +106,9 @@ function inspectPng(png: Buffer, decodePng: (png: Buffer) => PngDimensions | nul
   return { width, height }
 }
 
+const PNG_BASE64_PAYLOAD_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
+
 function parsePngDataUrl(value: unknown): Buffer {
   if (typeof value !== 'string') {
     throw invalidCommand()
@@ -113,9 +116,7 @@ function parsePngDataUrl(value: unknown): Buffer {
   const prefix = 'data:image/png;base64,'
   const hasPrefix = value.startsWith(prefix)
   const encoded = hasPrefix ? value.slice(prefix.length) : ''
-  const hasValidBase64 =
-    encoded.length > 0 &&
-    /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)
+  const hasValidBase64 = encoded.length > 0 && PNG_BASE64_PAYLOAD_PATTERN.test(encoded)
   const maximumEncodedLength = Math.ceil(MAX_PNG_BYTES / 3) * 4
   if (!hasPrefix || !hasValidBase64 || encoded.length > maximumEncodedLength) {
     throw invalidCommand()
@@ -298,6 +299,8 @@ async function readRegularFile(filePath: string, maximumBytes: number): Promise<
   return fs.readFile(filePath)
 }
 
+const SAMPLE_METADATA_EXTENSION_PATTERN = /\.json$/
+
 export function createDeveloperStore({
   rootDir,
   decodePng
@@ -437,7 +440,7 @@ export function createDeveloperStore({
       const metadataFiles = entries.filter(
         (entry) =>
           entry.isFile() &&
-          SAMPLE_ID.test(entry.name.replace(/\.json$/, '')) &&
+          SAMPLE_ID.test(entry.name.replace(SAMPLE_METADATA_EXTENSION_PATTERN, '')) &&
           entry.name.endsWith('.json')
       )
       const samples = await Promise.all(

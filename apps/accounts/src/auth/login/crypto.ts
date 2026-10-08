@@ -2,12 +2,14 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { LOGIN_ERRORS } from '../../constants/login.js'
 import { LoginFailure } from '../../errors/login.js'
 
+const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+
 export function decodeOpaque(value: unknown): Buffer {
   const isValueString = typeof value === 'string'
   if (!isValueString) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }
-  const hasOpaqueFormat = /^[A-Za-z0-9_-]{43}$/.test(value)
+  const hasOpaqueFormat = OPAQUE_TOKEN_PATTERN.test(value)
   if (!hasOpaqueFormat) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
   }

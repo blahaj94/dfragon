@@ -14,8 +14,13 @@ import type { LoginTokens } from './auth-responses.js'
 const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 const SYNTHETIC_UPLOAD_TOKEN_PATTERN = /^Bearer [A-Za-z0-9_-]{43,128}$/
 
+const SYNTHETIC_UPLOAD_TOKEN_DIGEST_PATTERN = /^[0-9a-f]{64}$/
+
 export function parseSyntheticUploadTokenSha256(value: string | undefined): string | undefined {
-  if (value !== undefined && (value.length !== 64 || !/^[0-9a-f]{64}$/.test(value))) {
+  if (
+    value !== undefined &&
+    (value.length !== 64 || !SYNTHETIC_UPLOAD_TOKEN_DIGEST_PATTERN.test(value))
+  ) {
     throw new Error('Invalid OCR configuration')
   }
 
@@ -50,6 +55,8 @@ function readCookie(request: Request, name: string): string | undefined {
 
   return undefined
 }
+
+const LOGIN_EXCHANGE_CODE_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
 export class OcrAuth {
   private closed = false
@@ -236,7 +243,7 @@ export class OcrAuth {
       pending === undefined ||
       query.size !== 1 ||
       code === null ||
-      !/^[A-Za-z0-9_-]{43}$/.test(code)
+      !LOGIN_EXCHANGE_CODE_PATTERN.test(code)
     ) {
       throw new OcrError(OCR_ERROR_CODE.LOGIN_INVALID)
     }

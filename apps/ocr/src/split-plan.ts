@@ -29,32 +29,40 @@ export function isImprovingSplitMove(scoreChange: number): boolean {
   return scoreChange < -SPLIT_IMPROVEMENT_POLICY.minimumScoreImprovement
 }
 
+const SPLIT_HANGUL_CHARACTER_PATTERN = /\p{Script=Hangul}/u
+const SPLIT_HIRAGANA_CHARACTER_PATTERN = /\p{Script=Hiragana}/u
+const SPLIT_KATAKANA_CHARACTER_PATTERN = /\p{Script=Katakana}/u
+const SPLIT_HANJA_CHARACTER_PATTERN = /\p{Script=Han}/u
+const SPLIT_LATIN_CHARACTER_PATTERN = /\p{Script=Latin}/u
+const SPLIT_DIGIT_CHARACTER_PATTERN = /\p{Number}/u
+const SPLIT_SPECIAL_CHARACTER_PATTERN = /[\p{Punctuation}\p{Symbol}]/u
+
 export function characterGroup(char: string): CharacterGroup {
-  if (/\p{Script=Hangul}/u.test(char)) {
+  if (SPLIT_HANGUL_CHARACTER_PATTERN.test(char)) {
     return 'hangul'
   }
 
-  if (/\p{Script=Hiragana}/u.test(char)) {
+  if (SPLIT_HIRAGANA_CHARACTER_PATTERN.test(char)) {
     return 'hiragana'
   }
 
-  if (/\p{Script=Katakana}/u.test(char)) {
+  if (SPLIT_KATAKANA_CHARACTER_PATTERN.test(char)) {
     return 'katakana'
   }
 
-  if (/\p{Script=Han}/u.test(char)) {
+  if (SPLIT_HANJA_CHARACTER_PATTERN.test(char)) {
     return 'hanja'
   }
 
-  if (/\p{Script=Latin}/u.test(char)) {
+  if (SPLIT_LATIN_CHARACTER_PATTERN.test(char)) {
     return 'latin'
   }
 
-  if (/\p{Number}/u.test(char)) {
+  if (SPLIT_DIGIT_CHARACTER_PATTERN.test(char)) {
     return 'digit'
   }
 
-  if (/[\p{Punctuation}\p{Symbol}]/u.test(char)) {
+  if (SPLIT_SPECIAL_CHARACTER_PATTERN.test(char)) {
     return 'special'
   }
 

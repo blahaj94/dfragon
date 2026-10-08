@@ -12,6 +12,9 @@ export const MODEL_MAXIMUM_PARTS = 5
 export const MODEL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 export const PADDLEOCR_REVISION = 'b03f46425e8ff4442b268ce449e3eef758146cd4'
 
+const MODEL_DICTIONARY_TERMINATOR_PATTERN = /\r?\n$/
+const MODEL_DICTIONARY_LINE_PATTERN = /\r?\n/
+
 export function validateModelLineage({
   input,
   parentPreset,
@@ -25,12 +28,12 @@ export function validateModelLineage({
 }) {
   const parentCharacters = parentDictionary
     .toString('utf8')
-    .replace(/\r?\n$/, '')
-    .split(/\r?\n/)
+    .replace(MODEL_DICTIONARY_TERMINATOR_PATTERN, '')
+    .split(MODEL_DICTIONARY_LINE_PATTERN)
   const characters = dictionary
     .toString('utf8')
-    .replace(/\r?\n$/, '')
-    .split(/\r?\n/)
+    .replace(MODEL_DICTIONARY_TERMINATOR_PATTERN, '')
+    .split(MODEL_DICTIONARY_LINE_PATTERN)
   const validDictionary =
     input.kind === 'expanded'
       ? characters.length > parentCharacters.length &&
@@ -41,6 +44,8 @@ export function validateModelLineage({
   }
 }
 
+const INVALID_MODEL_NAME_CHARACTER_PATTERN = /[\p{Control}\p{Surrogate}]/u
+
 export function parseModelUpload(value: unknown): ModelUpload {
   const body = parseInputRecord(value)
   if (
@@ -50,7 +55,7 @@ export function parseModelUpload(value: unknown): ModelUpload {
     typeof body.name !== 'string' ||
     body.name.trim().length === 0 ||
     body.name.length > 100 ||
-    /[\p{Control}\p{Surrogate}]/u.test(body.name) ||
+    INVALID_MODEL_NAME_CHARACTER_PATTERN.test(body.name) ||
     body.preset !== 'korean-ppocrv5' ||
     (body.kind !== 'pretrained' && body.kind !== 'finetuned' && body.kind !== 'expanded') ||
     (body.parentId !== null &&
@@ -69,6 +74,8 @@ export function parseModelUpload(value: unknown): ModelUpload {
     parentId: body.parentId
   }
 }
+
+const INVALID_MODEL_DICTIONARY_CHARACTER_PATTERN = /[\p{Control}\p{Surrogate}\uFEFF]/u
 
 export function inspectModelFiles(files: Map<string, Buffer>): ModelSummary['files'] {
   if (
@@ -113,11 +120,13 @@ export function inspectModelFiles(files: Map<string, Buffer>): ModelSummary['fil
   } catch {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
-  const characters = dictionary.replace(/\r?\n$/, '').split(/\r?\n/)
+  const characters = dictionary
+    .replace(MODEL_DICTIONARY_TERMINATOR_PATTERN, '')
+    .split(MODEL_DICTIONARY_LINE_PATTERN)
   if (
     characters.length === 0 ||
     characters.some(
-      (char) => [...char].length !== 1 || /[\p{Control}\p{Surrogate}\uFEFF]/u.test(char)
+      (char) => [...char].length !== 1 || INVALID_MODEL_DICTIONARY_CHARACTER_PATTERN.test(char)
     ) ||
     characters.includes(' ') ||
     new Set(characters).size !== characters.length
