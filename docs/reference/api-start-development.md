@@ -112,6 +112,7 @@ OCI `source`·`revision` label에 저장소와 commit을 기록합니다. 대상
 대조합니다. 이미지의 label, 내부 버전 정보와 인계 artifact가 같은 소스를 가리켜야 합니다.
 테스트 실패는 Code Quality, 이미지 빌드 실패는 `Build image`, 인증·발행·digest 확인
 실패는 각각 `Authenticate to GHCR`·`Publish the built image`·`Verify the registry digest`에서 확인합니다.
+Provenance 기록 실패는 `Attest the published image provenance`에서 확인합니다.
 선택한 이미지 빌드가 모두 성공해야 같은 목록의 발행 job이 시작됩니다.
 
 인프라에서는 성공한 발행 실행의 summary 또는 `image-handoff-api`, `image-handoff-ocr`,
@@ -129,8 +130,14 @@ Tag는 조회 편의용이고 배포 입력은 `image@sha256:digest`입니다.
 }
 ```
 
+발행 job은 push한 digest에 build provenance attestation을 기록하고 GHCR에도 함께 올립니다.
+Attestation이 실패하면 handoff artifact를 올리지 않고 발행 실행도 실패합니다. 출처는
+`gh attestation verify oci://ghcr.io/blahaj94/dfragon/<service>@sha256:<digest> -R blahaj94/dfragon`으로
+확인하며 해당 이미지의 GHCR 조회 권한이 필요합니다.
+
 선택 job은 `contents: read`와 원본·이전 성공 실행의 목록을 읽기 위한 `actions: read`,
-빌드 job은 `contents: read`, 발행 job은 `packages: write`만 사용합니다.
+빌드 job은 `contents: read`, 발행 job은 `packages: write`와 provenance 서명용 `id-token: write`,
+`attestations: write`만 사용합니다.
 발행 job은 같은 실행의 이미지 archive를 받아 source·플랫폼을 확인하고 push하며,
 앱 코드를 checkout하거나 실행하지 않습니다. 운영 secret·SSH·Tailscale 접근은 없습니다.
 GHCR의 공개 범위·접근 정책은 workflow가 변경하지 않습니다. 인프라의 pull 인증은

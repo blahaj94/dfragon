@@ -481,56 +481,54 @@ test('가장 오래된 성공 조회가 DB 현재 시각보다 미래이면 저�
   })
 })
 
-test(
-  '명시 갱신 진행 중에도 유효한 GET 캐시는 즉시 기존 값을 제공하고 완료 뒤 새 저장값을 반환한다',
-  { timeout: 2000 },
-  async (t) => {
-    const { state, store } = memory(rowsAt(initialTime))
-    state.now += 30_000
-    const entered = gate()
-    const finish = gate()
-    const updated = structuredClone(payloads)
-    for (const section of characterDetailSections) {
-      updated[section].characterName = '갱신 캐릭터'
-    }
-    let calls = 0
-    const service = createCharacterDetailService({
-      store,
-      fetchDetails: async () => {
-        calls++
-        entered.release()
-        await finish.promise
-
-        return updated
-      }
-    })
-    t.after(async () => {
-      finish.release()
-      await service.onModuleDestroy()
-    })
-    const pending = service.refresh('192.0.2.1', identity, signal)
-    await entered.promise
-
-    const cached = await service.get('192.0.2.2', identity, signal)
-    assert.equal(cached.character.characterName, '합성 캐릭터')
-    assert.deepEqual(cached.freshness, {
-      lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
-      expiresAt: '2026-01-01T00:05:00.000Z'
-    })
-    assert.equal(calls, 1)
-    assert.equal(state.writes, 0)
-    finish.release()
-    const refreshed = await pending
-    assert.equal(refreshed.character.characterName, '갱신 캐릭터')
-    assert.deepEqual(refreshed.freshness, {
-      lastSuccessfulFetchAt: '2026-01-01T00:00:30.000Z',
-      expiresAt: '2026-01-01T00:05:30.000Z'
-    })
-    assert.equal(state.writes, 1)
-    assert.equal(
-      (await service.get('192.0.2.2', identity, signal)).character.characterName,
-      '갱신 캐릭터'
-    )
-    assert.equal(calls, 1)
+test('명시 갱신 진행 중에도 유효한 GET 캐시는 즉시 기존 값을 제공하고 완료 뒤 새 저장값을 반환한다', {
+  timeout: 2000
+}, async (t) => {
+  const { state, store } = memory(rowsAt(initialTime))
+  state.now += 30_000
+  const entered = gate()
+  const finish = gate()
+  const updated = structuredClone(payloads)
+  for (const section of characterDetailSections) {
+    updated[section].characterName = '갱신 캐릭터'
   }
-)
+  let calls = 0
+  const service = createCharacterDetailService({
+    store,
+    fetchDetails: async () => {
+      calls++
+      entered.release()
+      await finish.promise
+
+      return updated
+    }
+  })
+  t.after(async () => {
+    finish.release()
+    await service.onModuleDestroy()
+  })
+  const pending = service.refresh('192.0.2.1', identity, signal)
+  await entered.promise
+
+  const cached = await service.get('192.0.2.2', identity, signal)
+  assert.equal(cached.character.characterName, '합성 캐릭터')
+  assert.deepEqual(cached.freshness, {
+    lastSuccessfulFetchAt: '2026-01-01T00:00:00.000Z',
+    expiresAt: '2026-01-01T00:05:00.000Z'
+  })
+  assert.equal(calls, 1)
+  assert.equal(state.writes, 0)
+  finish.release()
+  const refreshed = await pending
+  assert.equal(refreshed.character.characterName, '갱신 캐릭터')
+  assert.deepEqual(refreshed.freshness, {
+    lastSuccessfulFetchAt: '2026-01-01T00:00:30.000Z',
+    expiresAt: '2026-01-01T00:05:30.000Z'
+  })
+  assert.equal(state.writes, 1)
+  assert.equal(
+    (await service.get('192.0.2.2', identity, signal)).character.characterName,
+    '갱신 캐릭터'
+  )
+  assert.equal(calls, 1)
+})

@@ -49,7 +49,11 @@ function multipart({
   metadataText = metadata(),
   evaluation,
   extra = []
-}: { metadataText?: string; evaluation?: Buffer; extra?: Buffer[] } = {}) {
+}: {
+  metadataText?: string
+  evaluation?: Buffer
+  extra?: Buffer[]
+} = {}) {
   const parts: Buffer[] = [
     part('metadata', metadataText),
     part('files', 'weights', 'weights.pdparams'),

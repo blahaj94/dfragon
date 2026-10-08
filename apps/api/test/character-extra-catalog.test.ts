@@ -79,7 +79,7 @@ test('세트 응답 순서와 무관하게 ID를 대응하고 누락·중복 응
     assert.equal(url.pathname, '/df/multi/setitems')
     assert.equal(url.searchParams.get('setItemIds'), 'set-a,set-b,set-missing')
     assert.equal(url.searchParams.has('apikey'), false)
-    assert.equal((options?.headers as Record<string, string>).apikey, 'fixture-key')
+    assert.equal((options?.headers as Record<string, string> | undefined)?.apikey, 'fixture-key')
 
     return Response.json({
       rows: [

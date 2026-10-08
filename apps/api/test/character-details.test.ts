@@ -230,71 +230,69 @@ const sectionsByPath = new Map<string, CharacterDetailSection>([
   ['/skill/buff/equip/creature', 'buff_creature']
 ])
 
-test(
-  '기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문·옵션·null을 모두 반환한다',
-  { timeout: 2000 },
-  async (t) => {
-    let basicStarted!: () => void, finishBasic!: () => void
-    const enteredBasic = new Promise<void>((resolve) => {
-      basicStarted = resolve
-    })
-    const basicBody = new Promise<void>((resolve) => {
-      finishBasic = resolve
-    })
-    let sectionStarted!: () => void, finishSections!: () => void
-    const enteredSection = new Promise<void>((resolve) => {
-      sectionStarted = resolve
-    })
-    const sectionBodies = new Promise<void>((resolve) => {
-      finishSections = resolve
-    })
-    t.after(() => {
-      finishBasic()
-      finishSections()
-    })
-    const requested: string[] = []
-    let active = 0,
-      peak = 0
-    const prefix = '/df/servers/siroco/characters/fixture-character'
-    const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
-      fetch: async (input, options) => {
-        const url = new URL(String(input))
-        assert(url.pathname.startsWith(prefix))
-        assert.equal(url.search, '')
-        assert.equal(new Headers(options?.headers).get('apikey'), 'fixture-key')
-        assert.equal(options?.redirect, 'error')
-        const suffix = url.pathname.slice(prefix.length)
-        const section = sectionsByPath.get(suffix)
-        assert(section)
-        requested.push(suffix)
-        active++
-        peak = Math.max(peak, active)
-        if (section === 'basic') {
-          basicStarted()
-          await basicBody
-        } else {
-          sectionStarted()
-          await sectionBodies
-        }
-        active--
-
-        return Response.json(completePayloads[section])
-      }
-    })
-    const pending = adapter(identity, new AbortController().signal)
-    await enteredBasic
-    assert.deepEqual(requested, [''])
+test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문·옵션·null을 모두 반환한다', {
+  timeout: 2000
+}, async (t) => {
+  let basicStarted!: () => void, finishBasic!: () => void
+  const enteredBasic = new Promise<void>((resolve) => {
+    basicStarted = resolve
+  })
+  const basicBody = new Promise<void>((resolve) => {
+    finishBasic = resolve
+  })
+  let sectionStarted!: () => void, finishSections!: () => void
+  const enteredSection = new Promise<void>((resolve) => {
+    sectionStarted = resolve
+  })
+  const sectionBodies = new Promise<void>((resolve) => {
+    finishSections = resolve
+  })
+  t.after(() => {
     finishBasic()
-    await enteredSection
-    assert(active > 0 && active <= 3)
     finishSections()
+  })
+  const requested: string[] = []
+  let active = 0,
+    peak = 0
+  const prefix = '/df/servers/siroco/characters/fixture-character'
+  const adapter = createNeopleCharacterDetailsForTest('fixture-key', {
+    fetch: async (input, options) => {
+      const url = new URL(String(input))
+      assert(url.pathname.startsWith(prefix))
+      assert.equal(url.search, '')
+      assert.equal(new Headers(options?.headers).get('apikey'), 'fixture-key')
+      assert.equal(options?.redirect, 'error')
+      const suffix = url.pathname.slice(prefix.length)
+      const section = sectionsByPath.get(suffix)
+      assert(section)
+      requested.push(suffix)
+      active++
+      peak = Math.max(peak, active)
+      if (section === 'basic') {
+        basicStarted()
+        await basicBody
+      } else {
+        sectionStarted()
+        await sectionBodies
+      }
+      active--
 
-    assert.deepEqual(await pending, completePayloads)
-    assert.deepEqual(requested.sort(), [...sectionsByPath.keys()].sort())
-    assert(peak > 0 && peak <= 3)
-    assert.equal(active, 0)
-  }
-)
+      return Response.json(completePayloads[section])
+    }
+  })
+  const pending = adapter(identity, new AbortController().signal)
+  await enteredBasic
+  assert.deepEqual(requested, [''])
+  finishBasic()
+  await enteredSection
+  assert(active > 0 && active <= 3)
+  finishSections()
+
+  assert.deepEqual(await pending, completePayloads)
+  assert.deepEqual(requested.sort(), [...sectionsByPath.keys()].sort())
+  assert(peak > 0 && peak <= 3)
+  assert.equal(active, 0)
+})
 
 test('각 상세 섹션의 필수 최상위 envelope를 검사하되 미장착 null은 유효하게 받는다', async (t) => {
   for (const [section, fields] of [

@@ -472,7 +472,8 @@ test('지연된 표본 PATCH도 생략한 최신 필드를 보존하고 명시�
     return { promise, resolve }
   }
   let delayed:
-    { entered: ReturnType<typeof deferred>; release: ReturnType<typeof deferred> } | undefined
+    | { entered: ReturnType<typeof deferred>; release: ReturnType<typeof deferred> }
+    | undefined
   let releasePending: (() => void) | undefined
   const f = await fixture(ownerId, false, false, undefined, undefined, async () => {
     const current = delayed

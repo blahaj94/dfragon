@@ -88,11 +88,14 @@ function collectCharacterCatalogReferences(details: CharacterDetails) {
   }
   const skillIds = unique(skills)
   if (isCatalogId(jobId)) {
-    const skillReferences = map(skillIds, (skillId): CatalogKey => ({
-      kind: 'skill',
-      jobId,
-      skillId
-    }))
+    const skillReferences = map(
+      skillIds,
+      (skillId): CatalogKey => ({
+        kind: 'skill',
+        jobId,
+        skillId
+      })
+    )
     references = [...references, ...skillReferences]
   }
 

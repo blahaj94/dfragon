@@ -84,13 +84,17 @@ function loadWin32Api(): Win32KeyboardApi {
 export function createWin32KeyboardHook({
   platform = process.platform,
   loadNativeApi = loadWin32Api
-}: { platform?: NodeJS.Platform; loadNativeApi?: () => Win32KeyboardApi } = {}): {
+}: {
+  platform?: NodeJS.Platform
+  loadNativeApi?: () => Win32KeyboardApi
+} = {}): {
   register: (handler: KeyboardHandler) => boolean
   unregister: (handler: KeyboardHandler) => void
 } {
   const handlers = new Set<KeyboardHandler>()
   let registration:
-    { api: Win32KeyboardApi; callback: bigint; hook: bigint | null | undefined } | undefined
+    | { api: Win32KeyboardApi; callback: bigint; hook: bigint | null | undefined }
+    | undefined
 
   function release(): void {
     if (!registration) {

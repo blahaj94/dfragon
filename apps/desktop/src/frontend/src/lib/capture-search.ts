@@ -26,7 +26,8 @@ type SearchOptions = {
 
 export type OcrCaptureObservation = OcrSearchInput & Readonly<{ slot: number; nickname: string }>
 export type CaptureObservation =
-  Readonly<{ slot: number; nickname: string | null }> | OcrCaptureObservation
+  | Readonly<{ slot: number; nickname: string | null }>
+  | OcrCaptureObservation
 
 export type CaptureSearch = {
   connect: () => void

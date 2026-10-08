@@ -77,7 +77,12 @@ export type DeveloperPartyCollectionUpdate = {
 }
 
 export type DeveloperUploadStatus =
-  'signedOut' | 'uploading' | 'uploaded' | 'failed' | 'ownerRequired' | 'storageFull'
+  | 'signedOut'
+  | 'uploading'
+  | 'uploaded'
+  | 'failed'
+  | 'ownerRequired'
+  | 'storageFull'
 
 export type DeveloperPartyPreviewResponse = {
   frame: DeveloperPartyPreviewFrame | null

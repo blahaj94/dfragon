@@ -42,7 +42,9 @@ Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 sig
 
 Flush, 동일 HANDLE rename, disposition과 close의 성공 관측은 namespace 내구성 완료를 뜻하지 않습니다. Directory flush의 실제 성공/실패는 그대로 출력합니다. 손상 buffer, close failure와 unknown-marker 복구는 기존 mock 테스트의 evidence이며 native 관측에 합치지 않습니다. 다른 owner, 전원 손실, OS/CPU 지원, packaged binary와 실제 인증 E2E는 미검증입니다.
 
-초기 긴 checkout 내부 경로 실행은 목록 파일 생성 중 실패했고 HANDLE 및 root cleanup은 완료됐습니다. 짧은 표준 임시 parent를 사용한 재실행은 통과했으며, 이는 장경로 지원을 검증한 결과가 아닙니다. 2026-09-12 Windows x64 관측에서 122,410 byte 목록은 3개 batch로 반환됐고 file/directory flush, rename과 disposition 호출이 성공했습니다. 최종 수치는 실행 JSON을 확인합니다. 기존 전체 Windows suite의 122개 실패와 canonical CRLF format 실패는 이 fixture 성공으로 해소되지 않습니다.
+초기 긴 checkout 내부 경로 실행은 목록 파일 생성 중 실패했고 HANDLE 및 root cleanup은 완료됐습니다. 짧은 표준 임시 parent를 사용한 재실행은 통과했으며, 이는 장경로 지원을 검증한 결과가 아닙니다. 2026-09-12 Windows x64 관측에서 122,410 byte 목록은 3개 batch로 반환됐고 file/directory flush, rename과 disposition 호출이 성공했습니다. 최종 수치는 실행 JSON을 확인합니다. 기존에 기록한 전체 Windows suite의 122개 실패는 2026-10-09 GitHub hosted runner에서 재현되지 않았습니다. `core.autocrlf`를 `true`와 `false`로 각각 checkout해도 Desktop 전체 test 171개 파일, 2,437개 테스트가 모두 통과했습니다. canonical CRLF format 실패는 다시 확인하지 않았으며 이 fixture 성공으로 해소되지 않습니다.
+
+Desktop 관련 PR과 main push에서는 [Desktop Windows workflow](../../.github/workflows/desktop-windows.yml)가 GitHub hosted `windows-latest` runner에서 같은 command와 Desktop 전체 `test`를 실행합니다. 2026-10-09 관측에서 runner process는 관리자 권한으로 상승된 token(High 무결성 수준, Administrators 그룹 활성화)으로 실행됐고, 새로 만든 directory의 owner는 현재 사용자가 아니라 `BUILTIN\Administrators`였으며 `core.autocrlf`는 `true`였습니다. 이 조건에서 fixture는 `APPDATA` ancestor 4개를 통과했고 122,410 byte 목록을 2개 batch로 반환했으며 directory flush와 cleanup이 성공했습니다. 이는 `requireAdministrator`로 실행되는 배포 앱과 같은 상승 권한 경로의 확인이며, 위의 일반 권한 실행 확인을 대신하지 않습니다.
 
 ## Windows 파일 목록 조회
 

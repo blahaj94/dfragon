@@ -31,8 +31,8 @@
     "build": "tsc -p tsconfig.json && dfragon-copy-notices lib dist/notices && dfragon-copy-notices lib LICENSES",
     "test": "pnpm build && node --test test/*.test.mjs",
     "generate:cp949": "node scripts/generate-cp949.mjs",
-    "lint": "eslint .",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{ts,mjs,json}\""
+    "lint": "biome lint",
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "dependencies": {
     "ipaddr.js": "2.5.0"

@@ -6,7 +6,7 @@
 
 ## 루트 도구 회귀 검증
 
-`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비·날짜·build-info·이미지 선택·앱 생성·아이콘 생성·공용 Docker helper·포맷 정책과 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. 보안 의존성 검증은 `pnpm test:security-dependencies`로 별도 실행합니다. Root `pnpm test`는 placeholder입니다.
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책과 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. 보안 의존성 검증은 `pnpm test:security-dependencies`로 별도 실행합니다. Root `pnpm test`는 placeholder입니다.
 
 앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일·입력 거절·실패 코드·정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다. Docker helper의 mock 검사와 API/accounts의 실제 `test:database`도 구분합니다.
 
@@ -41,16 +41,20 @@ node --test scripts/test/start-task.test.mjs
 node --check scripts/start-task.mjs
 ```
 
-## `prettier-return-spacing`
+## `statement-spacing`
 
-공통 Prettier 설정에서 사용하는 로컬 플러그인입니다. 블록의 첫 문장인 `return` 앞에는 빈 줄을 넣지 않고, 앞에 다른 문장이 있으면 기존 ESTree 프린터의 `ReturnStatement` 출력에 필요한 줄바꿈을 더해 빈 줄 한 줄을 둡니다. 같은 문장 목록에서 연속되는 블록 `if` 사이에도 빈 줄 한 줄을 둡니다. `else`·`else if` 연결과 블록 없는 `if`의 기존 배치는 유지합니다. 기존 빈 줄·주석·반환식과 ASI 처리를 재사용하며 별도 후처리 명령은 필요하지 않습니다.
+공통 Biome 포맷 뒤에 실행하는 문장 간격 도구입니다. Biome는 formatter plugin을 지원하지 않으므로 TypeScript parser로 문장 목록을 읽어 필요한 빈 줄만 추가합니다. 블록, 파일, `case`의 첫 문장이 아닌 `return`은 바로 윗줄을 빈 줄로 두고, 같은 문장 목록에서 연속되는 블록 `if` 사이에도 빈 줄 한 줄을 둡니다. 첫 문장 앞 빈 줄 제거, 여러 빈 줄의 수렴, `else`, `else if` 연결과 블록 없는 `if`의 배치는 Biome 출력을 따릅니다. 주석, 반환식, 문자열 값은 바꾸지 않습니다.
 
-Root와 각 workspace의 `format`·`format:check`, 공통 설정을 읽는 에디터에서 동일하게 적용됩니다. Prettier를 갱신하거나 정책을 수정할 때 다음 회귀검사를 실행합니다.
+Root와 각 workspace의 `format`, `format:check`가 Biome 다음에 `--write`, `--check`로 실행합니다. 실행 위치 아래의 Git 추적, 미추적 파일 중 Git ignore 대상이 아니고 root `biome.json`의 includes에 포함된 JavaScript/TypeScript만 처리합니다. 에디터의 Biome 포맷은 이 간격을 추가하지 않으므로 `format`으로 적용합니다. Biome를 갱신하거나 정책을 수정할 때 다음 회귀검사를 실행합니다.
 
 ```sh
 pnpm test:format-policy
-node --check scripts/prettier-return-spacing.mjs
+node --check scripts/statement-spacing.mjs
 ```
+
+## Biome lint 플러그인
+
+`scripts/biome/return-expression.grit`은 `return` 식의 삼항, `??`, 반환 객체 속성의 조건식을, `scripts/biome/regex-literal-constant.grit`은 `const` 초기값이 아닌 정규식 리터럴을 보고합니다. Root `biome.json`이 두 GritQL 플러그인을 등록하며 정규식 플러그인은 테스트 코드와 생성물을 제외하는 override에서만 붙습니다. 적용 기준은 [Convention 도구 적용](../docs/rules/convention-tooling.md)을 따릅니다. `pnpm test:tooling`의 `biome-return-expression.test.mjs`, `biome-regex-literal.test.mjs`가 저장소 설정을 임시 디렉터리에 복사해 거부, 허용 사례와 제외 범위를 검증합니다.
 
 ## `format-date`
 
@@ -180,7 +184,7 @@ apps/party-api/
     "build": "",
     "test": "",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
+    "lint": "biome lint"
   }
 }
 ```
