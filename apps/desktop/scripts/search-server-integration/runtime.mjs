@@ -1,4 +1,3 @@
-/* eslint @typescript-eslint/explicit-function-return-type: "off" -- Native Node ESM cannot use TypeScript return annotations. */
 import '../../../api/node_modules/reflect-metadata/Reflect.js'
 import assert from 'node:assert/strict'
 import process from 'node:process'

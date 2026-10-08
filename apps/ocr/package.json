@@ -11,7 +11,7 @@
     "start": "node dist/src/main.js",
     "dev": "pnpm build && node --env-file=.env dist/src/main.js",
     "test": "pnpm build && node --test dist/test/*.test.js",
-    "lint": "eslint .",
+    "lint": "biome lint",
     "typecheck": "pnpm --filter @dfragon/lib build && tsc --noEmit && tsc -p tsconfig.browser.json",
     "test:ui": "pnpm build && node test-support/ui-smoke.mjs",
     "test:browser": "vitest run"

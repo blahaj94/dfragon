@@ -14,15 +14,15 @@
     "test:database": "pnpm run build && node --import reflect-metadata test-support/database-integration.mjs",
     "typecheck": "pnpm --filter @dfragon/lib build && tsc --noEmit -p tsconfig.test.json",
     "start": "node --import reflect-metadata dist/main.js",
-    "lint": "eslint .",
+    "lint": "biome lint",
     "db:migrate:up": "pnpm run build && node --import reflect-metadata dist/database/cli.js up",
     "db:migrate:down": "pnpm run build && node --import reflect-metadata dist/database/cli.js down",
     "db:migrate:show": "pnpm run build && node --import reflect-metadata dist/database/cli.js show",
     "db:migrate:generate": "pnpm run build && node --import reflect-metadata dist/database/generate-cli.js",
     "auth:cleanup": "pnpm run build && node --import reflect-metadata dist/auth/cleanup/cli.js",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\""
+    "lint:fix": "biome lint --write",
+    "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "dependencies": {
     "@dfragon/lib": "workspace:*",

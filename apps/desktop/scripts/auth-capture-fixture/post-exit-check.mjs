@@ -100,7 +100,6 @@ const searchDiagnosticDefinitions = {
 }
 
 /** @returns {boolean} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function isDiagnosticValue(value, type) {
   if (type === 'boolean') {
     return typeof value === 'boolean'
@@ -134,7 +133,6 @@ function isDiagnosticValue(value, type) {
 }
 
 /** @returns {Record<string, unknown> | null} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function readSearchDiagnostic(output) {
   const prefix = 'Capture fixture search diagnostic: '
   const lines = output.split('\n').filter((line) => line.startsWith(prefix))
@@ -216,7 +214,6 @@ function readSearchDiagnostic(output) {
 }
 
 /** @returns {Record<string, boolean | number> | null} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function readSearchEvidence(output) {
   const prefix = 'Capture fixture search evidence: '
   const lines = output.split('\n').filter((line) => line.startsWith(prefix))
@@ -245,7 +242,6 @@ function readSearchEvidence(output) {
 }
 
 /** @returns {void} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function reportSearchStages(output, { reportDiagnostic }) {
   for (const line of output.split('\n')) {
     const stage = /^Capture fixture search stage(?: FAIL)?: ([a-z-]+)$/.exec(line)?.[1]
@@ -302,7 +298,6 @@ function reportSearchStages(output, { reportDiagnostic }) {
 }
 
 /** @returns {boolean} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function hasGroupExited() {
   const hasChild = child?.pid != null
   if (!hasChild) {
@@ -322,7 +317,6 @@ function hasGroupExited() {
 }
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function waitForExit() {
   const deadline = Date.now() + 5_000
   while (true) {

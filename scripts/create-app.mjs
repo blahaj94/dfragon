@@ -51,7 +51,7 @@ const packageJson = {
     build: '',
     test: '',
     typecheck: 'tsc --noEmit',
-    lint: 'eslint .'
+    lint: 'biome lint'
   }
 }
 
