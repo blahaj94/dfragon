@@ -136,16 +136,7 @@ test(TITLES.rejectedCharacters, () => {
 })
 
 test(TITLES.unencodable, () => {
-  for (const nickname of [
-    '사쿠라🌸',
-    '검신🫠',
-    '검신🚀',
-    '검신🇰🇷',
-    '검신1️⃣',
-    '검신♥️',
-    '𠀀',
-    '龥'
-  ]) {
+  for (const nickname of ['사쿠라🌸', '검신🫠', '검신🚀', '검신🇰🇷', '검신1️⃣', '검신♥️', '𠀀', '龥']) {
     assert.deepEqual(
       validateDFNickname(nickname),
       { isValid: false, reason: invalidCharacterReason },

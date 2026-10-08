@@ -772,7 +772,6 @@ describe('Windows security native boundary', () => {
 
               return currentSidData.length
             case 'IsValidSid':
-
               return true
             case 'EqualSid':
               equalSidCurrentArguments.push(args[1])
@@ -828,7 +827,6 @@ describe('Windows security native boundary', () => {
 
               return true
             case 'FlushFileBuffers':
-
               return true
             case 'SetFileInformationByHandle':
               if (!(args[2] instanceof Buffer) || args[3] !== args[2].byteLength) {
@@ -837,10 +835,8 @@ describe('Windows security native boundary', () => {
 
               return true
             case 'GetCurrentProcess':
-
               return 108n
             case 'GetLastError':
-
               return lastError
             default:
               throw new Error(`Unexpected Win32 function ${library}:${name}`)
