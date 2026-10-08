@@ -105,10 +105,23 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
+      - name: Write portable executable checksum
+        shell: bash
+        working-directory: apps/desktop/dist
+        run: |
+          set -euo pipefail
+          for executable in DFRAGON-*-x64-portable.exe; do
+            # Write the sha256sum format with LF so Linux and Windows tools read the same file.
+            hash=$(sha256sum "$executable" | cut -d ' ' -f 1)
+            printf '%s  %s\n' "$hash" "$executable" > "$executable.sha256"
+            sha256sum --check "$executable.sha256"
+          done
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-x64-portable
-          path: apps/desktop/dist/DFRAGON-*-x64-portable.exe
+          path: |
+            apps/desktop/dist/DFRAGON-*-x64-portable.exe
+            apps/desktop/dist/DFRAGON-*-x64-portable.exe.sha256
           if-no-files-found: error
           retention-days: 7
 
@@ -119,14 +132,24 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+      # Sign provenance here, outside the job that runs dependency install scripts.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-x64-portable
           path: release
-      - name: Attach portable executable to release
+      - name: Verify transferred executable checksum
+        working-directory: release
+        run: sha256sum --check DFRAGON-*-x64-portable.exe.sha256
+      - name: Attest portable executable provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/DFRAGON-*-x64-portable.exe
+      - name: Attach portable executable and checksum to release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" release/DFRAGON-*-x64-portable.exe
+        run: gh release upload "$RELEASE_TAG" release/DFRAGON-*-x64-portable.exe release/DFRAGON-*-x64-portable.exe.sha256
