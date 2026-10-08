@@ -33,7 +33,9 @@ type PartyCapture = {
 
 export function usePartyCapture({
   identifyCharacters = false
-}: { identifyCharacters?: boolean } = {}): PartyCapture {
+}: {
+  identifyCharacters?: boolean
+} = {}): PartyCapture {
   const intervalSecondsRef = useRef(3)
   const [round, setRound] = useState(0)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)

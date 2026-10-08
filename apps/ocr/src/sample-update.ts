@@ -2,7 +2,8 @@ import { OCR_ERROR_CODE, OcrError } from './errors.js'
 import type { Sample, Split } from './model.js'
 
 export type SampleUpdate = (
-  { text: string | null; excluded?: boolean } | { text?: string | null; excluded: boolean }
+  | { text: string | null; excluded?: boolean }
+  | { text?: string | null; excluded: boolean }
 ) & { confirmSplitChange?: boolean }
 
 export function planSampleSplit({

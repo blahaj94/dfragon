@@ -8,7 +8,10 @@ import type { RefreshErrorDefinition } from '../refresh/errors.js'
 import type { AccountErrorDefinition } from '../account/errors.js'
 
 type AuthJsonErrorCatalogEntry =
-  LoginErrorDefinition | LogoutErrorDefinition | RefreshErrorDefinition | AccountErrorDefinition
+  | LoginErrorDefinition
+  | LogoutErrorDefinition
+  | RefreshErrorDefinition
+  | AccountErrorDefinition
 
 type AuthJsonErrorDefinition = Readonly<{
   status: AuthJsonErrorCatalogEntry['status']

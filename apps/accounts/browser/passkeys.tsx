@@ -37,7 +37,9 @@ type Passkey = {
 }
 type Qr = { phoneUrl: string; confirmationCode?: string; expiresAt?: string }
 type Verification =
-  { phoneVerified: true; nickname: string } | { managed: true } | { returnUrl: string }
+  | { phoneVerified: true; nickname: string }
+  | { managed: true }
+  | { returnUrl: string }
 type Screen =
   | { kind: 'entry' }
   | { kind: 'signup' }
