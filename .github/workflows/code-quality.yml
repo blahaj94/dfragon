@@ -211,6 +211,11 @@ jobs:
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
+          if [[ -z "$RESULTS" ]]; then
+            echo "No Code Quality job results reached the aggregate check"
+            exit 1
+          fi
+
           for result in $RESULTS; do
             if [[ "$result" != success ]]; then
               echo "A Code Quality job finished with: $result"
