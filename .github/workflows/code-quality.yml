@@ -34,6 +34,8 @@ jobs:
         run: pnpm --filter @dfragon/desktop rebuild electron
       - name: Test Desktop core behavior without prebuilt shared libraries
         run: pnpm --filter @dfragon/desktop test
+      - name: Typecheck Desktop main, preload and renderer
+        run: pnpm --filter @dfragon/desktop typecheck
       - run: pnpm test:security-dependencies
       - name: Test repository tooling
         run: pnpm test:tooling
@@ -43,6 +45,10 @@ jobs:
       - run: pnpm --filter @dfragon/accounts test
       - run: pnpm --filter @dfragon/ocr test
       - run: pnpm --filter @dfragon/ocr test:browser
+      - run: pnpm --filter @dfragon/ui test
+      - run: pnpm --filter @dfragon/web test
+      - name: Typecheck and bundle Web
+        run: pnpm --filter @dfragon/web build
       - name: Test Desktop search against the public API
         run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
       - run: pnpm lint

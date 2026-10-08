@@ -25,4 +25,4 @@ pnpm --filter @dfragon/web build
 
 `index.html` → `src/main.tsx`가 제품 진입점입니다. Entry가 SEED `base.css`와 UI `foundation.css`를 가져오고, Vite의 SEED plugin과 StyleX compiler가 production CSS를 연결합니다. 선행 UI build가 없는 소비 경로의 기존 회귀검사는 [공용 UI 소비 검사 안내](../../packages/ui/test/consumer-resolution.md)에 있습니다. 이 검사는 여러 앱의 생성물·cache를 정리하므로 전용 checkout에서 실행해야 합니다.
 
-현재 Code Quality CI는 Web의 lint·format·Oxlint를 포함하지만 Web `test`·`build`는 실행하지 않습니다. 로컬 성공과 CI 성공을 구분해야 하며, Web 동작 검사를 CI에 연결하려면 루트 workflow의 별도 변경이 필요합니다.
+Code Quality CI는 PR과 main push에서 Web의 lint, format, Oxlint와 함께 `test`, `build`를 실행합니다. `build`가 `tsc -b`를 포함하므로 CI에서 `typecheck`를 따로 실행하지 않습니다. 위 jsdom 한계처럼 실제 레이아웃과 키보드 동작은 CI 성공에 포함되지 않습니다.
