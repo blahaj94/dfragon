@@ -36,22 +36,28 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      # Read Code Quality runs to confirm the release commit passed main CI.
+      actions: read
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
       DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://accounts.example.test' || vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN || 'https://accounts.dfragon.com' }}
       DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://api.example.test' || inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
           persist-credentials: false
           submodules: recursive
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
+          # Release builds must not restore package caches that other runs could have written.
+          package-manager-cache: false
           registry-url: https://npm.pkg.github.com
           scope: '@blahaj94'
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - name: Check release configuration
         id: release
         shell: bash
@@ -71,6 +77,27 @@ jobs:
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           NODE
+      # Check the checked-out commit, not the tag name, so a moved tag cannot bypass the check.
+      - name: Require a main commit that passed Code Quality
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_COMMIT=$(git rev-parse HEAD)
+          export RELEASE_COMMIT
+          main_relation=$(gh api "repos/$GITHUB_REPOSITORY/compare/$RELEASE_COMMIT...main?per_page=1" --jq .status)
+          if [[ "$main_relation" != ahead && "$main_relation" != identical ]]; then
+            echo "::error::Release tag $RELEASE_TAG points to $RELEASE_COMMIT, which is not on main."
+            exit 1
+          fi
+          passed_runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/code-quality.yml/runs?head_sha=$RELEASE_COMMIT&event=push&branch=main&status=success" \
+            --jq '[.workflow_runs[] | select(.head_sha == env.RELEASE_COMMIT and .event == "push" and .head_branch == "main" and .conclusion == "success")] | length')
+          if [[ "$passed_runs" == 0 ]]; then
+            echo "::error::Code Quality has not succeeded for the main push of $RELEASE_COMMIT. Re-run it before releasing."
+            exit 1
+          fi
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
@@ -80,10 +107,23 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
-      - uses: actions/upload-artifact@v7
+      - name: Write portable executable checksum
+        shell: bash
+        working-directory: apps/desktop/dist
+        run: |
+          set -euo pipefail
+          for executable in DFRAGON-*-x64-portable.exe; do
+            # Write the sha256sum format with LF so Linux and Windows tools read the same file.
+            hash=$(sha256sum "$executable" | cut -d ' ' -f 1)
+            printf '%s  %s\n' "$hash" "$executable" > "$executable.sha256"
+            sha256sum --check "$executable.sha256"
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-x64-portable
-          path: apps/desktop/dist/DFRAGON-*-x64-portable.exe
+          path: |
+            apps/desktop/dist/DFRAGON-*-x64-portable.exe
+            apps/desktop/dist/DFRAGON-*-x64-portable.exe.sha256
           if-no-files-found: error
           retention-days: 7
 
@@ -94,14 +134,24 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: write
+      # Sign provenance here, outside the job that runs dependency install scripts.
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-x64-portable
           path: release
-      - name: Attach portable executable to release
+      - name: Verify transferred executable checksum
+        working-directory: release
+        run: sha256sum --check DFRAGON-*-x64-portable.exe.sha256
+      - name: Attest portable executable provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release/DFRAGON-*-x64-portable.exe
+      - name: Attach portable executable and checksum to release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" release/DFRAGON-*-x64-portable.exe
+        run: gh release upload "$RELEASE_TAG" release/DFRAGON-*-x64-portable.exe release/DFRAGON-*-x64-portable.exe.sha256

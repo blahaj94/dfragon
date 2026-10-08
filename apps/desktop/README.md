@@ -120,15 +120,17 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 포터블은 설치 없이 실행하는 배포 형식입니다. 설정과 로그인 정보는 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`에 저장되며 설치형과 공유합니다. 다른 PC로 exe를 복사해도 로그인 정보는 이동하지 않습니다. 바로가기와 OS 로그인 복귀 protocol은 등록하지 않으며 앱 내부 인증 창을 사용합니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
 
-[Windows Portable workflow](../../.github/workflows/desktop-release.yml)는 Release를 게시하면 해당 태그의 소스로 빌드하여 포터블 exe를 Release의 Assets에 첨부합니다.
+[Windows Portable workflow](../../.github/workflows/desktop-release.yml)는 Release를 게시하면 해당 태그의 소스로 빌드하여 포터블 exe와 SHA-256 checksum 파일을 Release의 Assets에 첨부하고, exe의 build provenance attestation을 기록합니다.
 
 1. 저장소 **Settings → Secrets and variables → Actions → Variables**에 `DFRAGON_DISTRIBUTION_API_ORIGIN`을 실제 배포 API의 HTTPS origin으로 설정합니다. 공개 연결 주소만 입력하며 서버 credential은 넣지 않습니다.
-2. 배포할 변경을 merge하고 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 첫 릴리스는 `v0.0.1`, 사전 릴리스는 `v0.0.1-beta.1`처럼 지정합니다. 태그의 버전을 실행 파일의 앱 metadata와 파일명에 사용하므로 `apps/desktop/package.json`의 기본 버전과 같을 필요는 없습니다.
-3. workflow가 성공하면 **Releases → Assets → `DFRAGON-<버전>-x64-portable.exe`**를 내려받습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
+2. 배포할 변경을 merge하고 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 첫 릴리스는 `v0.0.1`, 사전 릴리스는 `v0.0.1-beta.1`처럼 지정합니다. 태그의 버전을 실행 파일의 앱 metadata와 파일명에 사용하므로 `apps/desktop/package.json`의 기본 버전과 같을 필요는 없습니다. 태그가 가리키는 commit은 main에 포함되고 그 commit의 main push Code Quality가 성공해야 하며, 아니면 빌드 전에 실패합니다. 연속 merge로 Code Quality가 취소된 commit이면 그 실행을 다시 실행해 성공시킨 뒤 진행합니다.
+3. workflow가 성공하면 **Releases → Assets → `DFRAGON-<버전>-x64-portable.exe`**를 내려받습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일에 exe의 SHA-256 값이 있습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
 
-기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 저장소 변수 대신 사용할 공개 API 주소이며 비우면 변수를 사용합니다. 같은 이름의 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
+내려받은 exe는 PowerShell의 `Get-FileHash <파일> -Algorithm SHA256` 결과를 `.sha256` 파일의 값과 비교해 손상 여부를 확인합니다. 이 저장소의 Windows Portable workflow가 빌드한 파일인지는 GitHub CLI의 `gh attestation verify <파일> -R blahaj94/dfragon`으로 확인합니다. Checksum과 attestation은 코드 서명을 대신하지 않습니다.
 
-관련 PR에서도 Windows 포터블 패키징을 확인하고 Actions artifact를 7일간 보관합니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. 패키징 성공과 실제 Windows에서의 앱 실행·API·패스키 동작 확인은 구분합니다.
+기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 저장소 변수 대신 사용할 공개 API 주소이며 비우면 변수를 사용합니다. Release 게시와 같은 main, Code Quality 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
+
+관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. 패키징 성공과 실제 Windows에서의 앱 실행·API·패스키 동작 확인은 구분합니다.
 
 설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity·복귀 주소·환경·provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential·Neople API key·DB 암호·인증 key·개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다.
 
