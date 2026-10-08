@@ -101,7 +101,6 @@ const searchEvidence = {
 }
 
 /** @returns {Promise<void>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function runSearchChild({
   evidence = searchEvidence,
   diagnostic = null,

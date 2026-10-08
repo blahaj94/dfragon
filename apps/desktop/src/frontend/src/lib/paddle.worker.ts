@@ -83,7 +83,7 @@ async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'ra
 }
 
 // 메시지 경계는 모델 내부 오류를 노출하지 않고 공개 응답만 전달한다.
-onmessage = async (
+globalThis.onmessage = async (
   event: MessageEvent<{ root?: string; pixels?: ImageData; preprocessing?: 'party' | 'raw' }>
 ) => {
   try {

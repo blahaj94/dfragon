@@ -21,7 +21,6 @@ vi.mock('node:fs/promises', () => ({
 vi.mock('node:timers/promises', () => {
   // Group 종료 polling도 테스트에서 제어하는 같은 시계를 사용한다.
   /** @param {number} milliseconds @returns {Promise<void>} */
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   function delay(milliseconds) {
     return new Promise((resolve) => {
       setTimeout(resolve, milliseconds)

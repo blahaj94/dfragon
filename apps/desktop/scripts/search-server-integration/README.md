@@ -7,12 +7,12 @@ Repository root에서 실행한다. Docker가 실행 중이어야 하며 설치�
 ```bash
 pnpm --filter @dfragon/api build
 pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
-pnpm --filter @dfragon/desktop exec eslint scripts/search-server-integration
+pnpm --filter @dfragon/desktop exec biome lint scripts/search-server-integration
 pnpm --filter @dfragon/desktop exec tsc --noEmit --allowJs --strict --skipLibCheck --esModuleInterop --moduleResolution bundler --module esnext --target es2023 scripts/search-server-integration/search.integration.ts scripts/search-server-integration/vitest.config.ts
 node --check apps/desktop/scripts/search-server-integration/runtime.mjs
 ```
 
-전용 `*.integration.ts`는 일반 Desktop test의 기본 pattern에 포함되지 않는다. Code Quality는 별도 job에서 API를 build한 뒤 위 통합 명령을 실행하며 Ubuntu runner의 Docker를 사용한다. 전용 config는 forks process 하나에서 실행하며 서버 시작 helper 호출 동안만 cwd를 API로 변경하고 즉시 복원한다. Accounts가 소유한 기존 runtime 관측 preload를 명시적인 절대 경로로 전달한다. API는 build된 ESM을 실행하므로 Nest decorator를 Vitest에서 다시 변환하지 않는다. Node helper는 syntax·lint와 실제 소비 실행으로, TypeScript test/config와 소비 type은 별도 `tsc`로 확인한다. JavaScript helper에서 TypeScript 반환형 문법만 lint 대상에서 제외한다.
+전용 `*.integration.ts`는 일반 Desktop test의 기본 pattern에 포함되지 않는다. Code Quality는 별도 job에서 API를 build한 뒤 위 통합 명령을 실행하며 Ubuntu runner의 Docker를 사용한다. 전용 config는 forks process 하나에서 실행하며 서버 시작 helper 호출 동안만 cwd를 API로 변경하고 즉시 복원한다. Accounts가 소유한 기존 runtime 관측 preload를 명시적인 절대 경로로 전달한다. API는 build된 ESM을 실행하므로 Nest decorator를 Vitest에서 다시 변환하지 않는다. Node helper는 syntax·lint와 실제 소비 실행으로, TypeScript test/config와 소비 type은 별도 `tsc`로 확인한다.
 
 검증하는 결과는 기본 query `characterName`만 전송했을 때의 서버 기본값 `all`·10·`full`, 다섯 field·순서·0명성·음수 소수·미등록 서버·누락 명성, 0건, 잘못된 upstream 후보의 전체 실패, 400의 upstream 0회, 실패 예약을 포함한 10회 뒤 429와 양의 Retry-After 소비다. 모든 Desktop 검색 요청에서 Authorization header가 없는지 확인한다.
 

@@ -28,7 +28,6 @@ const defaultDestination = fileURLToPath(new URL('../src/frontend/public/ocr', i
  * @param {{name: string, modelPath: string, dictionaryPath: string}} selection
  * @returns {Promise<void>}
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export async function prepareOcrAssets(destination = defaultDestination, selection = ocrModel) {
   if (
     selection == null ||

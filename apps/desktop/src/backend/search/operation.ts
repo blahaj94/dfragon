@@ -10,7 +10,9 @@ export type SearchOperationFailure = {
   retryAfterReceivedAt: number | null
 }
 export type SearchOperationOutcome<T> =
-  { kind: 'success'; value: T } | SearchOperationFailure | null
+  | { kind: 'success'; value: T }
+  | SearchOperationFailure
+  | null
 export type SearchOperationContext = {
   clock: AuthClock
   startedAt: number

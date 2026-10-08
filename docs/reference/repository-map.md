@@ -19,17 +19,17 @@ last-reviewed: 2026-09-12
 
 ## 공통 정적 검사와 정렬
 
-Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 devDependency를 모든 프로젝트가 공유한다. API/Desktop의 compiler는 기존 TypeScript 5.9, Web/UI는 기존 6.0 계열이며 root TypeScript는 ESLint parser 전용이다.
+Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. API/Desktop의 compiler는 기존 TypeScript 5.9, Web/UI는 기존 6.0 계열이며 root TypeScript는 문장 간격 도구의 parser 전용이다.
 
-- `pnpm lint`, `pnpm lint:fix`: root 설정·scripts·API·Desktop·Web·UI의 ESLint 비수정 검사와 자동수정.
-- `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS·JSON/JSONC·YAML·CSS/SCSS/LESS·HTML을 Prettier로 정렬하거나 비수정 검사한다. Markdown은 자동 정렬 대상에 포함하지 않는다.
-- `pnpm test:format-policy`: 로컬 ESTree 프린터 플러그인의 블록 첫 `return` 빈 줄 제거·이후 `return` 빈 줄 유지·연속된 블록 `if` 사이 빈 줄·`else if` 연결·ASI·공통 설정과 CLI 수렴을 검사한다.
+- `pnpm lint`, `pnpm lint:fix`: root 설정, scripts, API, Desktop, Web, UI 등 저장소 전체의 Biome lint 비수정 검사와 안전한 자동수정.
+- `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS, JSON/JSONC, CSS, HTML을 Biome로 정렬하고 JS/TS에 문장 간격 정책을 적용하거나 비수정 검사한다. YAML, Markdown과 SVG 자산은 자동 정렬 대상에 포함하지 않는다.
+- `pnpm test:format-policy`: Biome 포맷 뒤 문장 간격 도구의 블록 첫 `return` 처리, 이후 `return` 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, ASI, 확장자별 결과와 CLI 범위, 수렴을 검사한다.
 - 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
-- `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @dfragon/web lint:oxlint`, `pnpm --filter @dfragon/ui lint:oxlint`다. ESLint와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
+- `pnpm lint:oxlint`: Web/UI의 기존 Oxlint 전체 검사를 보조 실행한다. 개별 명령은 `pnpm --filter @dfragon/web lint:oxlint`, `pnpm --filter @dfragon/ui lint:oxlint`다. Biome와 대응하지 않는 기본 검사도 유지하기 위해 Oxlint 설정과 dependency를 보존한다.
 
-각 leaf의 formatter 명령은 root config와 ignore 경로를 명시한다. 생성물·OCR·고정 SEED source·foundation/provenance·lockfile·license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사·정렬 대상이다. 세부 범위는 실행되는 config와 ignore를 따른다.
+각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, 고정 SEED source, foundation/provenance, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root ESLint, Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root Biome lint, format 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
 ## Shared library
 

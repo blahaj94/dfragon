@@ -34,14 +34,18 @@ async function readEntries(manager: EntityManager, keys: CatalogKey[]): Promise<
 
   return [
     ...items.map((row): CatalogEntry => ({ ...row, key: { kind: 'item', itemId: row.itemId } })),
-    ...sets.map((row): CatalogEntry => ({
-      ...row,
-      key: { kind: 'set', setItemId: row.setItemId }
-    })),
-    ...skills.map((row): CatalogEntry => ({
-      ...row,
-      key: { kind: 'skill', jobId: row.jobId, skillId: row.skillId }
-    }))
+    ...sets.map(
+      (row): CatalogEntry => ({
+        ...row,
+        key: { kind: 'set', setItemId: row.setItemId }
+      })
+    ),
+    ...skills.map(
+      (row): CatalogEntry => ({
+        ...row,
+        key: { kind: 'skill', jobId: row.jobId, skillId: row.skillId }
+      })
+    )
   ]
 }
 

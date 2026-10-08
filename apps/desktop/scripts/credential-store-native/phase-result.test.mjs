@@ -12,7 +12,6 @@ const validResult = {
 }
 
 /** @returns {string} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function outputFor(result) {
   return `ignored\nDFRAGON_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`
 }

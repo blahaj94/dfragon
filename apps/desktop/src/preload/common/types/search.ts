@@ -95,7 +95,13 @@ export type SearchSlot = Readonly<{
   requestId: string | null
   nickname: string | null
   state:
-    'idle' | 'pending' | 'success' | 'empty' | 'failure' | 'waiting-portrait' | 'waiting-policy'
+    | 'idle'
+    | 'pending'
+    | 'success'
+    | 'empty'
+    | 'failure'
+    | 'waiting-portrait'
+    | 'waiting-policy'
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
   selected?: CharacterSummary

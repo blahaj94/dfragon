@@ -193,7 +193,8 @@ export class OcrStore {
 
   capture(id: string): { capture: Capture; png: Buffer } {
     const row = this.db.prepare('SELECT metadata,png FROM captures WHERE id=?').get(id) as
-      CaptureRow | undefined
+      | CaptureRow
+      | undefined
     if (row === undefined) {
       throw new OcrError(OCR_ERROR_CODE.NOT_FOUND)
     }

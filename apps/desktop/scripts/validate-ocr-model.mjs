@@ -9,7 +9,6 @@ const OCR_LABEL_WHITESPACE_PATTERN = /\s/u
  * @param {Uint8Array} dictionary
  * @returns {number}
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export function countOcrClasses(dictionary) {
   const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(dictionary)
   const characters = text
@@ -36,7 +35,6 @@ export function countOcrClasses(dictionary) {
  * @param {number} classes
  * @returns {Promise<void>}
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export async function validateOcrModel(model, classes) {
   env.logLevel = 'fatal'
   env.wasm.numThreads = 1

@@ -7,7 +7,8 @@ function addHandler<ChannelName extends keyof AsyncIPCFunctions>(
     e: IpcMainInvokeEvent,
     ...args: Parameters<AsyncIPCFunctions[ChannelName]>
   ) =>
-    ReturnType<AsyncIPCFunctions[ChannelName]> | Awaited<ReturnType<AsyncIPCFunctions[ChannelName]>>
+    | ReturnType<AsyncIPCFunctions[ChannelName]>
+    | Awaited<ReturnType<AsyncIPCFunctions[ChannelName]>>
 ): void {
   ipcMain.handle(channel, handler)
 }

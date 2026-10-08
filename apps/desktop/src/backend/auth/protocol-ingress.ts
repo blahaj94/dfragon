@@ -101,7 +101,8 @@ type ReturnCandidateClassification =
   | Readonly<{ status: 'valid'; rawReturnUrl: string }>
 
 type BoundedArguments =
-  Readonly<{ status: 'invalid' }> | Readonly<{ status: 'valid'; values: readonly string[] }>
+  | Readonly<{ status: 'invalid' }>
+  | Readonly<{ status: 'valid'; values: readonly string[] }>
 
 const SECOND_INSTANCE_HANDOFF_VERSION = 1
 const MAX_HANDOFF_ARGUMENTS = 64
