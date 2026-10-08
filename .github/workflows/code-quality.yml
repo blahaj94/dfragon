@@ -156,6 +156,9 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      # The search client imports api-fetch, which loads the electron package.
+      - name: Prepare Electron for the Desktop search test
+        run: pnpm --filter @dfragon/desktop rebuild electron
       # The integration test starts the built apps/api/dist runtime.
       - name: Build API for the integration test
         run: pnpm --filter @dfragon/api build
