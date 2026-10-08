@@ -10,7 +10,8 @@ permissions:
 
 concurrency:
   group: code-quality-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer PR push replaces the running check. Main runs finish so each pushed commit keeps a result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   static:
