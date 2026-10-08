@@ -12,8 +12,7 @@
     "typecheck": "tsc -b",
     "lint:fix": "biome lint --write",
     "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
-    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
-    "lint:oxlint": "oxlint"
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "dependencies": {
     "react": "19.2.8",
@@ -28,7 +27,6 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.75.0",
     "typescript": "~6.0.2",
     "vite": "^8.2.0",
     "vitest": "4.1.11",
