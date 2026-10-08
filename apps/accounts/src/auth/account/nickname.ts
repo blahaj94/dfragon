@@ -2,6 +2,9 @@ import { ACCOUNT_ERRORS, AccountFailure } from './errors.js'
 
 const graphemes = new Intl.Segmenter('und', { granularity: 'grapheme' })
 
+const NICKNAME_LONE_SURROGATE_PATTERN = /\p{Surrogate}/u
+const NICKNAME_CONTROL_CHARACTER_PATTERN = /[\p{Cc}\u2028\u2029]/u
+
 export function validateNickname(input: unknown): string {
   const isString = typeof input === 'string'
   if (!isString) {
@@ -9,12 +12,12 @@ export function validateNickname(input: unknown): string {
   }
 
   // Unicode mode는 정상 surrogate pair를 한 code point로 읽으므로 lone surrogate만 검출한다.
-  const hasLoneSurrogate = /\p{Surrogate}/u.test(input)
+  const hasLoneSurrogate = NICKNAME_LONE_SURROGATE_PATTERN.test(input)
   if (hasLoneSurrogate) {
     throw new AccountFailure(ACCOUNT_ERRORS.INVALID_NICKNAME)
   }
 
-  const hasRawControl = /[\p{Cc}\u2028\u2029]/u.test(input)
+  const hasRawControl = NICKNAME_CONTROL_CHARACTER_PATTERN.test(input)
   if (hasRawControl) {
     throw new AccountFailure(ACCOUNT_ERRORS.INVALID_NICKNAME)
   }

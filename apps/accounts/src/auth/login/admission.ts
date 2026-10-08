@@ -28,12 +28,14 @@ export class AuthCapacity {
   }
 }
 
+const AUTH_ROUTE_SUFFIX_PATTERN = /\/+$/
+
 export function createAuthRateLimit() {
   const clients = new Map<string, number>()
   let window = { until: 0, count: 0 }
 
   return (request: Request, response: Response, next: () => void) => {
-    const path = request.path.toLowerCase().replace(/\/+$/, '')
+    const path = request.path.toLowerCase().replace(AUTH_ROUTE_SUFFIX_PATTERN, '')
     const accountRead = request.method === 'GET' && path === '/me'
     const limited =
       (request.method === 'POST' &&
