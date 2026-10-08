@@ -74,6 +74,9 @@ export function resolvePackageRoot(name: string, from: string): string {
   }
 }
 
+const DEPENDENCY_NOTICE_FILE_PATTERN =
+  /^(licen[cs]es?|notice|copying|copyright|third[-_]?party[-_]?notices?)([._-]|$)/i
+
 // Include conventional root notices and nested license directories, without crawling source.
 export function readNotices(directory: string): NoticeEntry['documents'] {
   const documents: NoticeEntry['documents'] = []
@@ -98,11 +101,7 @@ export function readNotices(directory: string): NoticeEntry['documents'] {
     }
   }
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (
-      !/^(licen[cs]es?|notice|copying|copyright|third[-_]?party[-_]?notices?)([._-]|$)/i.test(
-        entry.name
-      )
-    ) {
+    if (!DEPENDENCY_NOTICE_FILE_PATTERN.test(entry.name)) {
       continue
     }
     const file = join(directory, entry.name)
