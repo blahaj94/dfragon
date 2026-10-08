@@ -175,28 +175,33 @@ test('익명 등록은 조회나 관리 권한을 열지 않고 owner는 닉네�
   )
 })
 
-test('익명 수집 한 개가 본문을 기다려도 owner 업로드 슬롯은 남고 취소 후 반환된다', async (t) => {
+test('익명 수집은 기존 동시 한도보다 많은 요청을 받고 owner 업로드 슬롯을 소비하지 않는다', async (t) => {
   const f = await fixture()
   const clients: ClientRequest[] = []
   t.after(async () => {
     clients.forEach((client) => client.destroy())
     await f.close()
   })
-  const incoming = once(f.server, 'request') as Promise<[IncomingMessage]>
-  const client = httpRequest(`${f.base}${TEST_CAPTURE_PATH}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  clients.push(client)
-  client.on('error', () => {})
-  client.flushHeaders()
-  const [request] = await incoming
-  const receiving = once(request, 'data')
-  client.write('{')
-  await receiving
-  const busy = await f.send(testCapture())
-  assert.equal(busy.status, 429)
-  assert.deepEqual(await busy.json(), { error: 'UPLOAD_BUSY' })
+  const requests: IncomingMessage[] = []
+  const uploadsOverPreviousSharedLimit = 3
+  for (let index = 0; index < uploadsOverPreviousSharedLimit; index++) {
+    const incoming = once(f.server, 'request') as Promise<[IncomingMessage]>
+    const client = httpRequest(`${f.base}${TEST_CAPTURE_PATH}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    clients.push(client)
+    client.on('error', () => {})
+    client.flushHeaders()
+    const [request] = await incoming
+    requests.push(request)
+    const receiving = once(request, 'data')
+    client.write('{')
+    await receiving
+  }
+  const anonymous = await f.send(testCapture())
+  assert.equal(anonymous.status, 201)
+  await anonymous.arrayBuffer()
   const owner = await f.send(
     upload(),
     { Authorization: 'Bearer synthetic.desktop.token' },
@@ -204,18 +209,21 @@ test('익명 수집 한 개가 본문을 기다려도 owner 업로드 슬롯은 
   )
   assert.equal(owner.status, 201)
   await owner.arrayBuffer()
-  const closed = new Promise<void>((resolve) => request.socket.once('close', () => resolve()))
-  client.destroy()
-  await closed
+  const closed = requests.map(
+    (request) => new Promise<void>((resolve) => request.socket.once('close', () => resolve()))
+  )
+  clients.forEach((client) => client.destroy())
+  await Promise.all(closed)
   const accepted = await f.send(testCapture())
-  assert.equal(accepted.status, 201)
+  assert.equal(accepted.status, 200)
   await accepted.arrayBuffer()
 })
 
-test('JSON 파싱 실패도 익명 IP 한도를 소비하고 초과 요청은 본문 전에 거절한다', async (t) => {
+test('잘못된 본문이 반복돼도 이후 정상 익명 업로드를 요청 횟수로 거절하지 않는다', async (t) => {
   const f = await fixture()
   t.after(f.close)
-  for (let attempt = 0; attempt < 24; attempt++) {
+  const requestsOverPreviousClientLimit = 25
+  for (let attempt = 0; attempt < requestsOverPreviousClientLimit; attempt++) {
     const response = await fetch(`${f.base}${TEST_CAPTURE_PATH}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -224,9 +232,9 @@ test('JSON 파싱 실패도 익명 IP 한도를 소비하고 초과 요청은 �
     assert.equal(response.status, 400)
     await response.arrayBuffer()
   }
-  const limited = await f.send(testCapture())
-  assert.equal(limited.status, 429)
-  assert.deepEqual(await limited.json(), { error: 'TEST_UPLOAD_LIMIT' })
-  assert.equal(f.store.stats()?.captures, 0)
+  const accepted = await f.send(testCapture())
+  assert.equal(accepted.status, 201)
+  await accepted.arrayBuffer()
+  assert.equal(f.store.stats()?.captures, 1)
   assert.deepEqual(f.calls, [])
 })

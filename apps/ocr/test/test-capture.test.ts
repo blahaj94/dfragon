@@ -6,7 +6,8 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { OcrStore } from '../src/store.js'
 import { parseTestCapture, parseTestUploadEnabled } from '../src/test-capture.js'
-import { testCapture } from './fixtures.js'
+import { parseUpload } from '../src/images.js'
+import { testCapture, upload } from './fixtures.js'
 
 test('테스트 수집은 명시 설정에서만 켜지고 알 수 없는 설정은 시작 실패로 처리한다', () => {
   assert.equal(parseTestUploadEnabled(undefined), false)
@@ -123,13 +124,16 @@ test('테스트 수집은 정답 주입, 잘못된 슬롯 매핑, 영역과 예�
   assert.equal(parseTestCapture(shortcut).capture.testCollection?.trigger, 'shortcut')
 })
 
-test('원본과 닉네임, 문맥은 합산 저장 한도를 넘으면 모두 저장하지 않는다', () => {
+test('테스트 수집은 통합 저장 한도를 넘어도 받고 기존 일반 업로드 한도는 유지한다', () => {
   const store = new OcrStore(':memory:', 1)
   try {
     const { capture, png } = parseTestCapture(testCapture())
-    assert.throws(() => store.add(capture, png), { code: 'STORAGE_LIMIT' })
-    assert.equal(store.stats()?.captures, 0)
-    assert.equal(store.stats()?.samples, 0)
+    assert.deepEqual(store.add(capture, png), { id: capture.id, duplicate: false })
+    assert.equal(store.stats()?.captures, 1)
+    assert.equal(store.stats()?.samples, capture.crops.length)
+    const regular = parseUpload(upload())
+    assert.throws(() => store.add(regular.capture, regular.png), { code: 'STORAGE_LIMIT' })
+    assert.equal(store.stats()?.captures, 1)
   } finally {
     store.close()
   }

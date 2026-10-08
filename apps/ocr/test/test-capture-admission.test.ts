@@ -1,28 +1,19 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { Request } from 'express'
-import { TestCaptureAdmission } from '../src/test-capture-admission.js'
+import { requireTestCaptureUpload } from '../src/test-capture-admission.js'
 
-function request(ip: string): Request {
-  return { ip, headers: {}, socket: { remoteAddress: '127.0.0.1' } } as Request
-}
+const REQUESTS_OVER_PREVIOUS_GLOBAL_LIMIT = 121
 
-test('익명 IPv6 수집은 같은 /64 예산을 공유하고 한도 창이 지나면 다시 받는다', () => {
-  let now = 0
-  const admission = new TestCaptureAdmission(true, () => now)
-  for (let attempt = 0; attempt < 24; attempt++) {
-    admission.require(request(`2001:db8:1:2::${attempt + 1}`))
+test('익명 수집은 이전 IP별 한도와 전체 한도를 넘어도 계속 허용한다', () => {
+  const request = { headers: {} }
+  for (let attempt = 0; attempt < REQUESTS_OVER_PREVIOUS_GLOBAL_LIMIT; attempt++) {
+    assert.doesNotThrow(() => requireTestCaptureUpload(request, true))
   }
-  assert.throws(() => admission.require(request('2001:db8:1:2::ff')), { code: 'TEST_UPLOAD_LIMIT' })
-  admission.require(request('2001:db8:1:3::1'))
-  now = 60_000
-  admission.require(request('2001:db8:1:2::ff'))
 })
 
-test('서로 다른 IP도 익명 수집 전체 한도를 공유한다', () => {
-  const admission = new TestCaptureAdmission(true, () => 0)
-  for (let attempt = 0; attempt < 120; attempt++) {
-    admission.require(request(`192.0.2.${attempt + 1}`))
+test('요청량 제한 없이도 비활성 설정과 자격 헤더는 거절한다', () => {
+  assert.throws(() => requireTestCaptureUpload({ headers: {} }, false), { code: 'NOT_FOUND' })
+  for (const headers of [{ authorization: 'synthetic-token' }, { cookie: 'synthetic=value' }]) {
+    assert.throws(() => requireTestCaptureUpload({ headers }, true), { code: 'INVALID_INPUT' })
   }
-  assert.throws(() => admission.require(request('198.51.100.1')), { code: 'TEST_UPLOAD_LIMIT' })
 })
