@@ -265,7 +265,7 @@ test('공급자 응답을 요청 itemId·jobId로 대응하고 옵션을 보존�
   const fetchImpl: typeof fetch = async (url, options) => {
     requestPaths.push(String(url))
     assert.equal(options?.redirect, 'error')
-    assert.equal((options?.headers as Record<string, string>).apikey, 'fixture-key')
+    assert.equal((options?.headers as Record<string, string> | undefined)?.apikey, 'fixture-key')
 
     return Response.json({
       rows: [
