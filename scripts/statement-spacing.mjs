@@ -15,6 +15,7 @@ const SCRIPT_KINDS = new Map([
   ['.tsx', ts.ScriptKind.TSX]
 ])
 const BLANK_LINE_PATTERN = /^[ \t]*\n$/
+const SUPPRESSION_LINE_PATTERN = /^[ \t]*(\/\/|\/\*)[ \t]*biome-ignore\b/
 const NEGATED_GLOB_PREFIX = /^!+/
 const MESSAGES = {
   return: 'return 앞에 빈 줄이 필요합니다.',
@@ -42,7 +43,7 @@ function isBlockIf(statement) {
 
 // The first statement of a list keeps Biome's layout; later returns and adjacent block ifs are separated.
 // A return needs the blank line right above it, after any leading comment. A block if accepts a blank
-// line anywhere between the previous if and its own line.
+// line anywhere between the previous if and its own line. Biome suppression comments stay attached.
 function spacingKind(statement, previous) {
   if (ts.isReturnStatement(statement)) {
     return 'return'
@@ -74,16 +75,29 @@ export function applyStatementSpacing(source, fileName) {
   const missing = []
   const unresolved = []
 
-  function isBlankLine(line) {
-    return BLANK_LINE_PATTERN.test(source.slice(lineStarts[line], lineStarts[line + 1]))
+  function lineText(line) {
+    return source.slice(lineStarts[line], lineStarts[line + 1])
   }
 
-  function hasBlankLine(kind, previous, line) {
+  function isBlankLine(line) {
+    return BLANK_LINE_PATTERN.test(lineText(line))
+  }
+
+  // A biome-ignore comment applies only to the next node, so the blank line goes above the comments.
+  function anchorLineOf(line, previousEndLine) {
+    let anchor = line
+    while (anchor - 1 > previousEndLine && SUPPRESSION_LINE_PATTERN.test(lineText(anchor - 1))) {
+      anchor--
+    }
+
+    return anchor
+  }
+
+  function hasBlankLine(kind, previousEndLine, line) {
     if (kind === 'return') {
       return isBlankLine(line - 1)
     }
 
-    const previousEndLine = sourceFile.getLineAndCharacterOfPosition(previous.end).line
     for (let between = previousEndLine + 1; between < line; between++) {
       if (isBlankLine(between)) {
         return true
@@ -102,12 +116,13 @@ export function applyStatementSpacing(source, fileName) {
 
       if (kind) {
         const { line } = sourceFile.getLineAndCharacterOfPosition(statement.getStart(sourceFile))
-        const lineStart = lineStarts[line]
-        const issue = { line: line + 1, kind, lineStart }
+        const previousEndLine = sourceFile.getLineAndCharacterOfPosition(previous.end).line
+        const anchorLine = anchorLineOf(line, previousEndLine)
+        const issue = { line: line + 1, kind, lineStart: lineStarts[anchorLine] }
 
-        if (previous.end > lineStart) {
+        if (previous.end > lineStarts[line]) {
           unresolved.push(issue)
-        } else if (!hasBlankLine(kind, previous, line)) {
+        } else if (!hasBlankLine(kind, previousEndLine, anchorLine)) {
           missing.push(issue)
         }
       }
