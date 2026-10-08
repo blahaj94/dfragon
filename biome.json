@@ -1,0 +1,331 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/dist-ssr",
+      "!**/dist-examples",
+      "!**/out",
+      "!**/.test-dist",
+      "!**/coverage",
+      "!apps/desktop/src/frontend/public/ocr",
+      "!packages/ui/src/seed",
+      "!packages/ui/foundation.css",
+      "!packages/ui/seed-provenance.json",
+      "!packages/licenses/notices",
+      "!**/package-lock.json",
+      "!**/*.svg"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf",
+    "includes": ["**", "!apps/desktop/tsconfig.json", "!apps/desktop/tsconfig.*.json"]
+  },
+  "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "none"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "css": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "html": {
+    "formatter": {
+      "enabled": true,
+      "selfCloseVoidElements": "always"
+    }
+  },
+  "assist": {
+    "enabled": false
+  },
+  "plugins": ["./scripts/biome/return-expression.grit"],
+  "linter": {
+    "rules": {
+      "preset": "none",
+      "complexity": {
+        "noAdjacentSpacesInRegex": "error",
+        "noExtraBooleanCast": "error",
+        "noUselessCatch": "error",
+        "noUselessEscapeInRegex": "error"
+      },
+      "correctness": {
+        "noConstAssign": "error",
+        "noConstantCondition": "error",
+        "noEmptyCharacterClassInRegex": "error",
+        "noEmptyPattern": "error",
+        "noGlobalObjectCalls": "error",
+        "noInvalidBuiltinInstantiation": "error",
+        "noInvalidConstructorSuper": "error",
+        "noNonoctalDecimalEscape": "error",
+        "noPrecisionLoss": "error",
+        "noSelfAssign": "error",
+        "noSetterReturn": "error",
+        "noSwitchDeclarations": "error",
+        "noUndeclaredVariables": "error",
+        "noUnreachable": "error",
+        "noUnreachableSuper": "error",
+        "noUnsafeFinally": "error",
+        "noUnsafeOptionalChaining": "error",
+        "noUnusedImports": "error",
+        "noUnusedLabels": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error",
+        "useIsNan": "error",
+        "useValidForDirection": "error",
+        "useValidTypeof": "error",
+        "useYield": "error"
+      },
+      "style": {
+        "noNestedTernary": "error",
+        "useBlockStatements": "error"
+      },
+      "suspicious": {
+        "noAssignInExpressions": "error",
+        "noAsyncPromiseExecutor": "error",
+        "noCatchAssign": "error",
+        "noClassAssign": "error",
+        "noCompareNegZero": "error",
+        "noConstantBinaryExpressions": "error",
+        "noControlCharactersInRegex": "error",
+        "noDebugger": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateClassMembers": "error",
+        "noDuplicateElseIf": "error",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateParameters": "error",
+        "noFallthroughSwitchClause": "error",
+        "noFunctionAssign": "error",
+        "noGlobalAssign": "error",
+        "noImportAssign": "error",
+        "noIrregularWhitespace": "error",
+        "noMisleadingCharacterClass": "error",
+        "noPrototypeBuiltins": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "noSparseArray": "error",
+        "noUnsafeNegation": "error",
+        "noUselessEscapeInString": "error",
+        "noUselessRegexBackrefs": "error",
+        "noWith": "error",
+        "useGetterReturn": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/*.fixture.*",
+        "!**/test/**",
+        "!**/tests/**",
+        "!**/__tests__/**",
+        "!**/fixture/**",
+        "!**/fixtures/**",
+        "!**/testing/**",
+        "!**/test-support/**",
+        "!apps/desktop/scripts/*fixture*/**",
+        "!apps/desktop/scripts/*fixture*.ts",
+        "!apps/desktop/scripts/*fixture*.mjs",
+        "!apps/desktop/scripts/*fixture*.cts",
+        "!apps/desktop/scripts/credential-store-native/**",
+        "!apps/desktop/scripts/credential-store-native.mjs",
+        "!apps/desktop/scripts/search-server-integration/**",
+        "!packages/ui/scripts/test-consumer-resolution.mjs",
+        "!**/generated/**",
+        "!**/vendor/**",
+        "!**/*.generated.*"
+      ],
+      "plugins": ["./scripts/biome/regex-literal-constant.grit"]
+    },
+    {
+      "includes": ["**/*.ts", "**/*.mts", "**/*.cts", "**/*.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noArguments": "error"
+          },
+          "correctness": {
+            "noUndeclaredVariables": "off"
+          },
+          "style": {
+            "useConst": "error",
+            "useSpreadOverApply": "error"
+          },
+          "suspicious": {
+            "noVar": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.ts",
+        "**/*.mts",
+        "**/*.cts",
+        "**/*.tsx",
+        "apps/api/**",
+        "apps/accounts/**",
+        "apps/desktop/**"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "error",
+            "noUselessThisAlias": "error",
+            "noUselessTypeConstraint": "error"
+          },
+          "style": {
+            "noCommonJs": "error",
+            "noNamespace": "error",
+            "useArrayLiterals": "error",
+            "useAsConstAssertion": "error"
+          },
+          "suspicious": {
+            "noDuplicateEnumValues": "error",
+            "noEmptyInterface": "error",
+            "noExplicitAny": "error",
+            "noExtraNonNullAssertion": "error",
+            "noMisleadingInstantiator": "error",
+            "noNonNullAssertedOptionalChain": "error",
+            "noTsIgnore": "error",
+            "noUnsafeDeclarationMerging": "error",
+            "noUnusedExpressions": "error",
+            "useNamespaceKeyword": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/desktop/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noChildrenProp": "error",
+            "noRenderReturnValue": "error",
+            "useJsxKeyInIterable": "error"
+          },
+          "nursery": {
+            "noReactStringRefs": "error"
+          },
+          "security": {
+            "noBlankTarget": "error",
+            "noDangerouslySetInnerHtmlWithChildren": "error"
+          },
+          "suspicious": {
+            "noCommentText": "error",
+            "noDuplicateJsxProps": "error",
+            "noUnknownAttribute": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/desktop/**/*.ts",
+        "apps/desktop/**/*.tsx",
+        "apps/accounts/browser/**/*.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useExhaustiveDependencies": {
+              "level": "warn",
+              "options": {
+                "reportUnnecessaryDependencies": false
+              }
+            },
+            "useHookAtTopLevel": "error"
+          },
+          "nursery": {
+            "useReactCompiler": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/desktop/**/*.ts",
+        "apps/desktop/**/*.tsx",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/*.cy.*",
+        "!**/*.stories.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": {
+              "level": "error",
+              "options": {
+                "allowConstantExport": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/**/*.js",
+        "apps/web/**/*.jsx",
+        "apps/web/**/*.ts",
+        "apps/web/**/*.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useHookAtTopLevel": "error"
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "apps/web/**/*.js",
+        "apps/web/**/*.jsx",
+        "apps/web/**/*.ts",
+        "apps/web/**/*.tsx",
+        "!**/*.test.*",
+        "!**/*.spec.*",
+        "!**/*.cy.*",
+        "!**/*.stories.*"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "useComponentExportOnlyModules": {
+              "level": "warn",
+              "options": {
+                "allowConstantExport": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

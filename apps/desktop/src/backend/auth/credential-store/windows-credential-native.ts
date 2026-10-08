@@ -11,10 +11,8 @@ function mapInspection(
 ): WindowsPathInspection {
   switch (inspection) {
     case 'missing':
-
       return { status: 'missing' }
     case 'reparse':
-
       return { status: 'reparse' }
     case 'trusted': {
       const status = kind === 'directory' ? 'trusted-directory' : 'trusted-file'
@@ -22,10 +20,8 @@ function mapInspection(
       return { status }
     }
     case 'untrusted':
-
       return { status: 'untrusted' }
     case 'unavailable':
-
       return { status: 'unavailable' }
   }
 }

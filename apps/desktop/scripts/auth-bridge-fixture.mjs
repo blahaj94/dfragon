@@ -10,7 +10,6 @@ const require = createRequire(import.meta.url)
 const entry = fileURLToPath(new URL('../out/auth-bridge-fixture/main/main.cjs', import.meta.url))
 
 /** @returns {void} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function signalGroup(pid, signal) {
   try {
     process.kill(-pid, signal)
@@ -20,7 +19,6 @@ function signalGroup(pid, signal) {
 }
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function waitForGroupExit(pid, milliseconds) {
   const deadline = Date.now() + milliseconds
   while (true) {
@@ -43,7 +41,6 @@ async function waitForGroupExit(pid, milliseconds) {
 }
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function finishGroup(pid) {
   let stopped = await waitForGroupExit(pid, 500)
   if (stopped) {
@@ -60,7 +57,6 @@ async function finishGroup(pid) {
 }
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function removeProfile(profile) {
   try {
     await rm(profile, { recursive: true, force: true, maxRetries: 3 })
@@ -79,7 +75,6 @@ async function removeProfile(profile) {
 }
 
 /** @returns {Promise<number>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export async function runAuthBridgeFixture(args = []) {
   const isInteractive = args.length === 0
   const isSmoke = args.length === 1 && args[0] === '--smoke'
@@ -100,7 +95,6 @@ export async function runAuthBridgeFixture(args = []) {
   let deadline
   let forcedKill
   /** @returns {void} */
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
   function interrupt() {
     if (interrupted) {
       return

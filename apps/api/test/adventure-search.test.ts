@@ -196,109 +196,105 @@ test('공개 모험단 HTTP는 입력 실패를 한도에 포함하지 않고 DB
   assert.equal(calls, 10)
 })
 
-test(
-  '종료는 활성 모험단 읽기를 취소하고 정리를 기다리며 늦은 성공을 거절한다',
-  { timeout: 2_000 },
-  async (t) => {
-    let entered!: () => void
-    let finish!: () => void
-    const started = new Promise<void>((resolve) => {
-      entered = resolve
-    })
-    const pending = new Promise<void>((resolve) => {
-      finish = resolve
-    })
-    let readSignal: AbortSignal | undefined
-    let calls = 0
-    const service = createAdventureSearchService({
-      search: async (_input, signal) => {
-        calls++
-        readSignal = signal
-        entered()
-        await pending
+test('종료는 활성 모험단 읽기를 취소하고 정리를 기다리며 늦은 성공을 거절한다', {
+  timeout: 2_000
+}, async (t) => {
+  let entered!: () => void
+  let finish!: () => void
+  const started = new Promise<void>((resolve) => {
+    entered = resolve
+  })
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  let readSignal: AbortSignal | undefined
+  let calls = 0
+  const service = createAdventureSearchService({
+    search: async (_input, signal) => {
+      calls++
+      readSignal = signal
+      entered()
+      await pending
 
-        return empty
-      }
-    })
-    t.after(async () => {
-      finish()
-      await service.onModuleDestroy()
-    })
-    const rejected = assert.rejects(
-      service.search('192.0.2.1', url, new AbortController().signal),
-      internalFailure
-    )
-    await started
-    let closed = false
-    const closing = service.onModuleDestroy().then(() => {
-      closed = true
-    })
-    assert(readSignal)
-    assert.equal(readSignal.aborted, true)
-    assert.equal(closed, false)
+      return empty
+    }
+  })
+  t.after(async () => {
     finish()
-    await rejected
-    await closing
-    assert.equal(closed, true)
-    await assert.rejects(
-      service.search('192.0.2.1', url, new AbortController().signal),
-      internalFailure
-    )
-    assert.equal(calls, 1)
-  }
-)
+    await service.onModuleDestroy()
+  })
+  const rejected = assert.rejects(
+    service.search('192.0.2.1', url, new AbortController().signal),
+    internalFailure
+  )
+  await started
+  let closed = false
+  const closing = service.onModuleDestroy().then(() => {
+    closed = true
+  })
+  assert(readSignal)
+  assert.equal(readSignal.aborted, true)
+  assert.equal(closed, false)
+  finish()
+  await rejected
+  await closing
+  assert.equal(closed, true)
+  await assert.rejects(
+    service.search('192.0.2.1', url, new AbortController().signal),
+    internalFailure
+  )
+  assert.equal(calls, 1)
+})
 
-test(
-  'HTTP 연결 해제는 진행 중인 모험단 store 읽기로 취소 신호를 전달한다',
-  { timeout: 2_000 },
-  async (t) => {
-    let entered!: () => void
-    let markAborted!: () => void
-    const started = new Promise<void>((resolve) => {
-      entered = resolve
-    })
-    const aborted = new Promise<void>((resolve) => {
-      markAborted = resolve
-    })
-    let calls = 0
-    let readSignal: AbortSignal | undefined
-    const controller = new AbortController()
-    const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters }, undefined, {
-      search: async (input, signal) => {
-        calls++
-        assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })
-        readSignal = signal
-        entered()
-        await new Promise<void>((resolve) => {
-          signal.addEventListener(
-            'abort',
-            () => {
-              markAborted()
-              resolve()
-            },
-            { once: true }
-          )
-        })
+test('HTTP 연결 해제는 진행 중인 모험단 store 읽기로 취소 신호를 전달한다', {
+  timeout: 2_000
+}, async (t) => {
+  let entered!: () => void
+  let markAborted!: () => void
+  const started = new Promise<void>((resolve) => {
+    entered = resolve
+  })
+  const aborted = new Promise<void>((resolve) => {
+    markAborted = resolve
+  })
+  let calls = 0
+  let readSignal: AbortSignal | undefined
+  const controller = new AbortController()
+  const app = await createApiHttpApp({ searchCharacters: unusedSearchCharacters }, undefined, {
+    search: async (input, signal) => {
+      calls++
+      assert.deepEqual(input, { adventureName: '합성모험단', limit: 100, after: null })
+      readSignal = signal
+      entered()
+      await new Promise<void>((resolve) => {
+        signal.addEventListener(
+          'abort',
+          () => {
+            markAborted()
+            resolve()
+          },
+          { once: true }
+        )
+      })
 
-        return empty
-      }
-    })
-    t.after(async () => {
-      controller.abort()
-      await app.close()
-    })
-    await app.listen(0, '127.0.0.1')
-    const rejected = assert.rejects(
-      fetch((await app.getUrl()) + url, { signal: controller.signal }),
-      { name: 'AbortError' }
-    )
-    await started
-    assert(readSignal)
-    assert.equal(readSignal.aborted, false)
+      return empty
+    }
+  })
+  t.after(async () => {
     controller.abort()
-    await rejected
-    await aborted
-    assert.equal(readSignal.aborted, true)
-    assert.equal(calls, 1)
-  }
-)
+    await app.close()
+  })
+  await app.listen(0, '127.0.0.1')
+  const rejected = assert.rejects(
+    fetch((await app.getUrl()) + url, { signal: controller.signal }),
+    { name: 'AbortError' }
+  )
+  await started
+  assert(readSignal)
+  assert.equal(readSignal.aborted, false)
+  controller.abort()
+  await rejected
+  await aborted
+  assert.equal(readSignal.aborted, true)
+  assert.equal(calls, 1)
+})

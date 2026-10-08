@@ -96,13 +96,10 @@ export const authCoordinatorMachine = setup({
           }
         }
         case 'SIGNED_OUT':
-
           return { ...inactive, revision, notice: event.notice, recoveryPurpose: null }
         case 'RESTORING':
-
           return { ...inactive, revision, notice: null }
         case 'RESTORE_PAUSED':
-
           return {
             ...inactive,
             revision,
@@ -110,13 +107,10 @@ export const authCoordinatorMachine = setup({
             recoveryPurpose: 'resume-credential' as const
           }
         case 'SIGNING_OUT':
-
           return { ...inactive, revision, notice: null, recoveryPurpose: null }
         case 'STORAGE_BLOCKED':
-
           return { ...inactive, revision, notice: event.notice, recoveryPurpose: event.purpose }
         default:
-
           return {}
       }
     })

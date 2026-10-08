@@ -10,12 +10,12 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:security-dependencies": "node --test scripts/security/test/*.test.mjs",
     "test:product-images": "node --test scripts/test/product-image-plan.test.mjs",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
-    "format:check": "prettier --config ./.prettierrc.json --ignore-path ./.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "format": "biome format --write && node scripts/statement-spacing.mjs --write",
+    "format:check": "biome format && node scripts/statement-spacing.mjs --check",
     "lint:oxlint": "pnpm --filter @dfragon/web lint:oxlint && pnpm --filter @dfragon/ui lint:oxlint",
-    "test:format-policy": "node --test scripts/test/prettier-return-spacing.test.mjs",
+    "test:format-policy": "node --test scripts/test/statement-spacing.test.mjs",
     "test:tooling": "node --test scripts/test/*.test.mjs"
   },
   "keywords": [],
@@ -31,19 +31,11 @@
   "packageManager": "pnpm@11.23.0",
   "type": "module",
   "devDependencies": {
-    "@eslint/js": "9.39.5",
-    "eslint": "9.39.5",
-    "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-react": "7.37.5",
-    "eslint-plugin-react-hooks": "7.1.1",
-    "eslint-plugin-react-refresh": "0.4.26",
+    "@biomejs/biome": "2.5.15",
     "extract-zip": "2.0.1",
-    "globals": "16.5.0",
     "playwright": "1.62.1",
-    "prettier": "3.9.6",
     "tar": "7.5.22",
     "typescript": "6.0.2",
-    "typescript-eslint": "8.69.0",
     "yazl": "3.3.1"
   }
 }

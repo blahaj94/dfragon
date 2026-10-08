@@ -23,7 +23,7 @@ test('실행 위치와 무관하게 스크립트의 저장소에 정확한 works
     version: '0.0.0',
     private: true,
     type: 'module',
-    scripts: { dev: '', build: '', test: '', typecheck: 'tsc --noEmit', lint: 'eslint .' }
+    scripts: { dev: '', build: '', test: '', typecheck: 'tsc --noEmit', lint: 'biome lint' }
   })
   assert.deepEqual(readdirSync(app).sort(), ['package.json', 'src'])
   assert.deepEqual(readdirSync(join(app, 'src')), [])

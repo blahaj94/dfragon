@@ -5,7 +5,19 @@ import type { DNFRaidParticipantPosition, DNFRaidParticipantRow } from './dnf-ra
 
 export type DNFRaidParty = 'R' | 'Y' | 'G' | '싱글'
 export type DNFRaidScoreGlyph =
-  '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | ',' | '.' | 'K'
+  | '0'
+  | '1'
+  | '2'
+  | '3'
+  | '4'
+  | '5'
+  | '6'
+  | '7'
+  | '8'
+  | '9'
+  | ','
+  | '.'
+  | 'K'
 export type DNFRaidMetadataTemplates = Readonly<{
   /** UI-0% 42x17 party regions, including each actual badge and its background. */
   parties: readonly Readonly<{ party: DNFRaidParty; image: DNFParticipantFrame }>[]

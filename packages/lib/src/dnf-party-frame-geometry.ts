@@ -22,7 +22,11 @@ export type PartyFramePixels = Readonly<{
 }>
 
 export type PartyFrameGeometryFailureReason =
-  'invalid-frame' | 'no-anchor' | 'ambiguous-scale' | 'ambiguous-layout' | 'out-of-bounds'
+  | 'invalid-frame'
+  | 'no-anchor'
+  | 'ambiguous-scale'
+  | 'ambiguous-layout'
+  | 'out-of-bounds'
 
 const MAX_FRAME_DIMENSION = 8192
 const MAX_FRAME_PIXELS = 33_000_000

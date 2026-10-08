@@ -112,7 +112,8 @@ export function capturePrimaryFrame(): PixelFrame {
   if (process.platform !== 'win32') {
     throw new Error('Desktop capture requires Windows 10.')
   }
-  const api = (win32 ??= loadWin32())
+  win32 ??= loadWin32()
+  const api = win32
   const fail = (operation: string): Error =>
     new Error(`${operation} failed (Win32 ${api.GetLastError()}).`)
 

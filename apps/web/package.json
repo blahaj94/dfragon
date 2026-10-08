@@ -6,13 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
+    "lint": "biome lint",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc -b",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
+    "lint:fix": "biome lint --write",
+    "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
     "lint:oxlint": "oxlint"
   },
   "dependencies": {
