@@ -2,7 +2,7 @@ import { win32KeyboardHook, type KeyboardEvent } from './win32-keyboard-hook'
 
 export type ShortcutBinding<T extends string> = {
   key: number
-  shift: boolean
+  alt: boolean
   action: T
   releaseOnly?: boolean
 }
@@ -49,9 +49,9 @@ export function createKeyboardShortcut<T extends string>({
       return false
     }
     const allowed = foreground()
-    const noOtherModifier = !modifiers.control && !modifiers.alt && !modifiers.windows
+    const noOtherModifier = !modifiers.control && !modifiers.shift && !modifiers.windows
     const binding = bindings.find(
-      (candidate) => candidate.key === key && candidate.shift === modifiers.shift && noOtherModifier
+      (candidate) => candidate.key === key && candidate.alt === modifiers.alt && noOtherModifier
     )
     const knownPress = presses.has(key)
     const handledPress = presses.get(key)

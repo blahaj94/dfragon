@@ -33,7 +33,7 @@ function App(): React.JSX.Element {
     if (slot.state === 'failure' || slot.state === 'empty') {
       const message = notice ?? '검색 결과가 없습니다.'
 
-      return `${message} Shift+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.`
+      return `${message} Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.`
     }
 
     return notice

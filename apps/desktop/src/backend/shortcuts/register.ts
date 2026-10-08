@@ -37,8 +37,8 @@ export function registerDesktopShortcuts({
 
   const shortcut = createKeyboardShortcut({
     bindings: [
-      { key: VK_R, shift: true, action: DESKTOP_SHORTCUTS.restartSearch },
-      { key: VK_SNAPSHOT, shift: true, action: DESKTOP_SHORTCUTS.uploadCapture, releaseOnly: true }
+      { key: VK_R, alt: true, action: DESKTOP_SHORTCUTS.restartSearch },
+      { key: VK_SNAPSHOT, alt: true, action: DESKTOP_SHORTCUTS.uploadCapture, releaseOnly: true }
     ],
     isForeground: () => isTrusted() && (isCurrentProcessForeground() || isDnfForeground())
   })

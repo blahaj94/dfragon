@@ -5,7 +5,7 @@ import { createWin32KeyboardHook, type Win32KeyboardApi } from '../lib/win32-key
 export type PrintScreenNativeApi = Win32KeyboardApi
 const VK_SNAPSHOT = 0x2c
 
-/** Developer collection handles plain Print Screen; shifted presses belong to party uploads. */
+/** 개발자 수집은 일반 Print Screen을 처리하고 Alt 조합은 파티 업로드에 맡긴다. */
 export function createPrintScreenShortcut({
   isGameForeground,
   platform,
@@ -20,7 +20,7 @@ export function createPrintScreenShortcut({
       ? createWin32KeyboardHook({ platform, loadNativeApi })
       : undefined
   const shortcut = createKeyboardShortcut({
-    bindings: [{ key: VK_SNAPSHOT, shift: false, action: 'capture', releaseOnly: true }],
+    bindings: [{ key: VK_SNAPSHOT, alt: false, action: 'capture', releaseOnly: true }],
     isForeground: isGameForeground,
     hook
   })
