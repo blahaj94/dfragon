@@ -73,7 +73,9 @@ function childrenByReference(dependencies, knownReferences) {
         throw new Error(`Unknown SBOM dependency ${child} of ${reference}`)
       }
     }
-    byReference.set(reference, dependsOn)
+    // A repeated ref adds children instead of replacing the ones already listed.
+    const listed = byReference.get(reference) ?? []
+    byReference.set(reference, [...new Set([...listed, ...dependsOn])])
   }
 
   return byReference
@@ -110,13 +112,31 @@ export function createDependencySnapshot(sbom, { sha, ref, correlator, runId }) 
   const directReferences = new Set(children.get(rootReference))
   const resolved = {}
   for (const [reference, { url, scope }] of components) {
-    resolved[url] = {
-      package_url: url,
-      relationship: directReferences.has(reference) ? 'direct' : 'indirect',
-      // pnpm marks packages reachable only through devDependencies as CycloneDX `excluded`.
-      scope: scope === 'excluded' ? 'development' : 'runtime',
-      dependencies: (children.get(reference) ?? []).map((child) => components.get(child).url)
+    const relationship = directReferences.has(reference) ? 'direct' : 'indirect'
+    // pnpm marks packages reachable only through devDependencies as CycloneDX `excluded`.
+    const packageScope = scope === 'excluded' ? 'development' : 'runtime'
+    const dependencies = (children.get(reference) ?? []).map((child) => components.get(child).url)
+    const merged = resolved[url]
+    if (merged == null) {
+      resolved[url] = {
+        package_url: url,
+        relationship,
+        scope: packageScope,
+        dependencies: [...new Set(dependencies)]
+      }
+      continue
     }
+
+    // Variants of one name@version, such as different peer sets, share a purl but not a bom-ref.
+    // Keep the classification that exposes the package most, so no variant hides an alert.
+    if (relationship === 'direct') {
+      merged.relationship = 'direct'
+    }
+
+    if (packageScope === 'runtime') {
+      merged.scope = 'runtime'
+    }
+    merged.dependencies = [...new Set([...merged.dependencies, ...dependencies])]
   }
 
   return {
