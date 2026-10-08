@@ -103,25 +103,35 @@ test('Code Quality는 PR과 main push에서 루트 도구 집계를 조건 없�
   assert.doesNotMatch(toolingStep, /^(?: {8})?(?:if|continue-on-error):/mu)
 })
 
-test('lint-and-format은 항상 실행되며 조건 없이 실행되는 모든 job을 기다린다', () => {
+test('이미지 계획 외의 job은 조건 없이 실행되고 lint-and-format이 항상 모두 기다린다', () => {
   const settings = settingsOf(aggregateJob)
   const needs = /^ {4}needs:\s*\n((?: {6}- [\w-]+\s*\n)+)/mu.exec(settings)
   assert.ok(needs, 'lint-and-format은 기다릴 job을 needs 목록으로 선언해야 한다')
+  // Only the main push image plan may be conditional. Product Images reads it after the whole run.
   const checkJobs = jobs.filter((job) => {
-    return job !== aggregateJob && !/^ {4}if:/mu.test(settingsOf(job))
+    return job !== aggregateJob && jobIdOf(job) !== 'image-plan'
   })
 
   assert.match(settings, /^ {4}if: always\(\)\s*$/mu)
   assert.doesNotMatch(settings, /^ {4}continue-on-error:/mu)
   assert.ok(checkJobs.includes(toolingJob))
+
+  for (const job of checkJobs) {
+    assert.doesNotMatch(settingsOf(job), /^ {4}(?:if|continue-on-error):/mu, jobIdOf(job))
+  }
+
   assert.deepEqual(
     [...needs[1].matchAll(/- ([\w-]+)/gu)].map(([, id]) => id).sort(),
     checkJobs.map(jobIdOf).sort()
   )
 })
 
-test('lint-and-format은 모든 job이 성공했을 때만 통과한다', async () => {
+test('lint-and-format은 needs 전체 결과를 받아 모두 성공일 때만 통과한다', async () => {
+  const [step] = stepsOf(aggregateJob)
+
+  assert.match(step, /^ {10}RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}\s*$/mu)
   await runAggregate(['success', 'success', 'success'])
+  await assert.rejects(runAggregate([]), { code: 1 }, '전달된 결과 없음')
 
   for (const result of ['failure', 'cancelled', 'skipped']) {
     await assert.rejects(runAggregate(['success', result, 'success']), { code: 1 }, result)
