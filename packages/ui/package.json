@@ -28,8 +28,7 @@
     "preview:examples": "vite preview --config examples/vite.config.ts",
     "lint:fix": "biome lint --write",
     "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
-    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
-    "lint:oxlint": "oxlint"
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "peerDependencies": {
     "@seed-design/react": "2.4.1",
@@ -48,7 +47,6 @@
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "6.0.4",
     "jsdom": "30.0.1",
-    "oxlint": "1.75.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "typescript": "6.0.2",

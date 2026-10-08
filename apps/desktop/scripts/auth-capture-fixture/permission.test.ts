@@ -50,6 +50,7 @@ vi.mock('electron', () => {
       exit,
       quit,
       whenReady: (): { then: (callback: () => Promise<void>) => Promise<void> } => ({
+        // biome-ignore lint/suspicious/noThenProperty: Electron whenReady()가 돌려주는 thenable을 흉내 낸다.
         then: (callback: () => Promise<void>) => {
           fixture.ready = Promise.resolve().then(callback)
 

@@ -139,6 +139,7 @@ vi.mock('electron', () => {
   }
   const app = {
     whenReady: () => ({
+      // biome-ignore lint/suspicious/noThenProperty: Electron whenReady()가 돌려주는 thenable을 흉내 낸다.
       then: (callback: () => void | Promise<void>): Promise<void> => {
         mocks.bootstrap = Promise.resolve().then(callback)
 
