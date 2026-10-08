@@ -5,16 +5,7 @@ import { parseInputRecord } from './input.js'
 import type { Capture, Crop, TestCollection, TestCollectionSlot } from './model.js'
 
 export const TEST_CAPTURE_PATH = '/api/desktop/test-captures'
-export const TEST_CAPTURE_LIMITS = {
-  maximumPredictionLength: 128,
-  maximumStoredBytes: 256 * 1024 * 1024,
-  maximumStoredCaptures: 10_000,
-  maximumRequestsPerClient: 24,
-  maximumRequests: 120,
-  requestWindowMs: 60_000,
-  maximumConcurrent: 1,
-  receiveTimeoutMs: 30_000
-} as const
+const MAXIMUM_PREDICTION_LENGTH = 128
 
 const UPLOAD_KEYS = [
   'id',
@@ -107,8 +98,7 @@ export function parseTestCapture(value: unknown): { capture: Capture; png: Buffe
         x + width > capture.width ||
         y + height > capture.height ||
         (prediction !== null &&
-          (typeof prediction !== 'string' ||
-            prediction.length > TEST_CAPTURE_LIMITS.maximumPredictionLength)) ||
+          (typeof prediction !== 'string' || prediction.length > MAXIMUM_PREDICTION_LENGTH)) ||
         (collection.trigger === 'shortcut' && prediction !== null)
       ) {
         throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)

@@ -6,7 +6,6 @@ import type { Capture, Sample, Split, ModelSummary, ModelUpload } from './model.
 import { inspectModelFiles, validateModelLineage } from './model-library.js'
 import { planSplits, splitStatistics, type SplitOptions } from './split-plan.js'
 import { planSampleSplit, type SampleUpdate } from './sample-update.js'
-import { TEST_CAPTURE_LIMITS } from './test-capture.js'
 
 type CaptureRow = { metadata: string; png: Uint8Array; fingerprint: string }
 const sampleQuery = `SELECT s.*, c.metadata, COALESCE(g.split,'unassigned') AS split
@@ -147,26 +146,15 @@ export class OcrStore {
 
           return { id, duplicate: true }
         }
-        const collected = this.db
+      } else {
+        const used = this.db
           .prepare(
-            "SELECT COUNT(*) AS captures, COALESCE(SUM(length(png)),0) AS bytes FROM captures WHERE json_type(metadata,'$.testCollection')='object'"
+            'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
           )
           .get()!
-        if (
-          Number(collected.captures) >= TEST_CAPTURE_LIMITS.maximumStoredCaptures ||
-          Number(collected.bytes) + png.length > TEST_CAPTURE_LIMITS.maximumStoredBytes
-        ) {
+        if (Number(used.bytes) + png.length > this.maximumBytes) {
           throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
         }
-      }
-
-      const used = this.db
-        .prepare(
-          'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
-        )
-        .get()!
-      if (Number(used.bytes) + png.length > this.maximumBytes) {
-        throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
       }
 
       const text = capture.synthetic?.text ?? null

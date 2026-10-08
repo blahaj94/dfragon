@@ -12,8 +12,8 @@ import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
-import { isTestCaptureRequest, TEST_CAPTURE_LIMITS, TEST_CAPTURE_PATH } from './test-capture.js'
-import { TestCaptureAdmission } from './test-capture-admission.js'
+import { isTestCaptureRequest, TEST_CAPTURE_PATH } from './test-capture.js'
+import { requireTestCaptureUpload } from './test-capture-admission.js'
 import { OcrModelController } from './model-controller.js'
 import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
@@ -96,7 +96,6 @@ export async function createOcrApp(
   app.disable('x-powered-by')
   app.set('trust proxy', config.trustedProxyHops ?? false)
   app.useGlobalFilters(new OcrHttpFilter())
-  const testAdmission = new TestCaptureAdmission(config.testUploadEnabled === true)
   app.use(cookieParser())
   app.use((request: Request, response: Response, next: NextFunction) => {
     response.set({
@@ -125,7 +124,7 @@ export async function createOcrApp(
     void Promise.resolve()
       .then(async () => {
         if (isTestCaptureRequest(request)) {
-          return testAdmission.require(request)
+          return requireTestCaptureUpload(request, config.testUploadEnabled === true)
         }
 
         if (isSyntheticUploadRequest(request)) {
@@ -144,7 +143,6 @@ export async function createOcrApp(
       }, next)
   })
   let activeUploads = 0
-  let activeTestUploads = 0
   let modelUploadActive = false
   app.use(
     ['/api/models', '/api/desktop/models'],
@@ -184,28 +182,20 @@ export async function createOcrApp(
         return
       }
 
-      const testUpload = isTestCaptureRequest(request)
-      if (
-        activeUploads >= OCR_UPLOAD.maximumConcurrent ||
-        (testUpload && activeTestUploads >= TEST_CAPTURE_LIMITS.maximumConcurrent)
-      ) {
+      if (isTestCaptureRequest(request)) {
+        parseUploadBody(request, response, next)
+
+        return
+      }
+
+      if (activeUploads >= OCR_UPLOAD.maximumConcurrent) {
         next(new OcrError(OCR_ERROR_CODE.UPLOAD_BUSY))
 
         return
       }
       activeUploads++
-      let receiveTimeout: ReturnType<typeof setTimeout> | undefined
-      if (testUpload) {
-        activeTestUploads++
-        receiveTimeout = setTimeout(() => request.destroy(), TEST_CAPTURE_LIMITS.receiveTimeoutMs)
-        receiveTimeout.unref()
-      }
       response.once('close', () => {
         activeUploads--
-        if (testUpload) {
-          activeTestUploads--
-        }
-        clearTimeout(receiveTimeout)
       })
       parseUploadBody(request, response, next)
     }
