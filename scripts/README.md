@@ -43,7 +43,7 @@ node --check scripts/start-task.mjs
 
 ## `statement-spacing`
 
-공통 Biome 포맷 뒤에 실행하는 문장 간격 도구입니다. Biome는 formatter plugin을 지원하지 않으므로 TypeScript parser로 문장 목록을 읽어 필요한 빈 줄만 추가합니다. 블록, 파일, `case`의 첫 문장이 아닌 `return`은 바로 윗줄을 빈 줄로 두고, 같은 문장 목록에서 연속되는 블록 `if` 사이에도 빈 줄 한 줄을 둡니다. 첫 문장 앞 빈 줄 제거, 여러 빈 줄의 수렴, `else`, `else if` 연결과 블록 없는 `if`의 배치는 Biome 출력을 따릅니다. 주석, 반환식, 문자열 값은 바꾸지 않습니다.
+공통 Biome 포맷 뒤에 실행하는 문장 간격 도구입니다. Biome는 formatter plugin을 지원하지 않으므로 TypeScript parser로 문장 목록을 읽어 필요한 빈 줄만 추가합니다. 블록, 파일, `case`의 첫 문장이 아닌 `return`은 바로 윗줄을 빈 줄로 두고, 같은 문장 목록에서 연속되는 블록 `if` 사이에도 빈 줄 한 줄을 둡니다. 첫 문장 앞 빈 줄 제거, 여러 빈 줄의 수렴, `else`, `else if` 연결과 블록 없는 `if`의 배치는 Biome 출력을 따릅니다. 주석, 반환식, 문자열 값은 바꾸지 않습니다. 문장 바로 앞의 `biome-ignore` 주석은 문장에 붙은 것으로 보고 빈 줄을 그 위에 둡니다.
 
 Root와 각 workspace의 `format`, `format:check`가 Biome 다음에 `--write`, `--check`로 실행합니다. 실행 위치 아래의 Git 추적, 미추적 파일 중 Git ignore 대상이 아니고 root `biome.json`의 includes에 포함된 JavaScript/TypeScript만 처리합니다. 에디터의 Biome 포맷은 이 간격을 추가하지 않으므로 `format`으로 적용합니다. Biome를 갱신하거나 정책을 수정할 때 다음 회귀검사를 실행합니다.
 

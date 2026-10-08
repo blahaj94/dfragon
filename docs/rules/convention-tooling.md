@@ -19,6 +19,7 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 - Biome가 정렬하지 않는 YAML, Markdown과 SVG 자산은 자동 정렬 대상이 아니다.
 - JavaScript/TypeScript의 `return` 문이 블록이나 `case`의 첫 문장이면 앞에 빈 줄을 두지 않는다. 앞에 다른 문장이 있으면 `return` 바로 윗줄을 빈 줄로 두며, 윗줄이 주석이면 주석과 `return` 사이에 둔다. 첫 문장 앞의 빈 줄 제거는 Biome가, 이후 `return` 앞의 빈 줄 추가는 `scripts/statement-spacing.mjs`가 처리한다. 도구는 TypeScript parser로 문장 목록을 읽고 필요한 줄바꿈만 추가하며 주석, 반환식, 문자열 값은 바꾸지 않는다.
 - 같은 문장 목록에서 블록 형태의 `if` 문이 연속되면 앞 `if`의 끝과 다음 `if` 사이에 빈 줄 한 줄을 둔다. 빈 줄이 없으면 다음 `if` 줄 바로 위에 추가한다. `else`, `else if` 연결과 블록이 없는 `if`, label에 붙은 문장은 Biome 배치를 유지한다.
+- `biome-ignore` 억제 주석은 바로 다음 문장에만 적용되므로 `return`, 블록 `if`와 그 앞 억제 주석 사이에는 빈 줄을 두지 않고 억제 주석 위에 둔다.
 - Biome는 formatter plugin을 지원하지 않으므로 에디터의 Biome 포맷은 위 빈 줄을 추가하지 않는다. Root나 workspace의 `format`으로 적용하며 `format:check`가 누락을 실패로 보고한다.
 - JavaScript/TypeScript의 `return` 식에서 삼항 연산자와 `??`로 값을 고르지 않고 `if` 등 명시적 분기로 반환한다. 반환 객체 리터럴의 속성값에 조건식, 논리식을 직접 쓰지 않고 먼저 의미 있는 지역 변수에 할당한다. 중첩 삼항은 사용하지 않는다. `scripts/biome/return-expression.grit` 플러그인과 Biome `noNestedTernary`가 모든 handwritten source에 적용한다. `return a || b` 같은 불리언 판정식 반환과 변수 할당의 단일 삼항은 허용한다.
 - 직접 관리하는 JavaScript/TypeScript 제품 코드와 빌드, 관리 도구의 정규식 리터럴은 사용처에 직접 쓰지 않고, 검사 목적과 도메인 의미가 드러나는 `const` 상수의 초기값으로 선언한다. 사용하는 로직 가까이에 두며 모듈 상단, `export const`, 함수 안 `const`를 모두 허용한다. 같은 패턴도 책임과 변경 이유가 같을 때만 합친다. `new RegExp(문자열)`의 패턴 문자열은 이번 검사 범위에서 제외한다. `scripts/biome/regex-literal-constant.grit` 플러그인이 검사한다.
