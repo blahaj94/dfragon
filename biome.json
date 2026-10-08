@@ -126,6 +126,7 @@
         "noShadowRestrictedNames": "error",
         "noSparseArray": "error",
         "noUnsafeNegation": "error",
+        "noUselessEscapeInString": "error",
         "noUselessRegexBackrefs": "error",
         "noWith": "error",
         "useGetterReturn": "error"
