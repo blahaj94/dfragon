@@ -29,7 +29,7 @@ export function useCaptureSources(): {
         }
         setSources(nextSources)
         setSourcesFailed(false)
-        foundGame = nextSources.some(isDnfCaptureSource)
+        foundGame = nextSources.filter(isDnfCaptureSource).length === 1
       } catch {
         if (cancelled) {
           return

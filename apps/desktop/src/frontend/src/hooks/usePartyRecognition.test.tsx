@@ -8,6 +8,7 @@ import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
 import {
   capturePartyNicknameCrops,
   capturePartyRecognitionInputs,
+  type PartyFrameSource,
   type PartyRecognitionInput
 } from '../lib/party'
 import { usePartyRecognition } from './usePartyRecognition'
@@ -29,10 +30,11 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => mounted.splice(0).forEach((unmount) => unmount()))
+  vi.unstubAllGlobals()
 })
 
 async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
-  cycle: (controller?: AbortController) => Promise<void>
+  cycle: (controller?: AbortController, frame?: PartyFrameSource) => Promise<void>
   startCycle: (controller?: AbortController) => Promise<void>
   current: () => ReturnType<typeof usePartyRecognition>
   worker: PartyOcrWorker & { recognize: ReturnType<typeof vi.fn<PartyOcrWorker['recognize']>> }
@@ -77,8 +79,8 @@ async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
   await act(async () => root.render(<Harness />))
 
   return {
-    cycle: async (controller = new AbortController()) => {
-      await act(async () => readCurrent().recognizePartyNicknames(video, worker, controller.signal))
+    cycle: async (controller = new AbortController(), frame = video) => {
+      await act(async () => readCurrent().recognizePartyNicknames(frame, worker, controller.signal))
     },
     startCycle: (controller = new AbortController()) =>
       readCurrent().recognizePartyNicknames(video, worker, controller.signal),
@@ -113,172 +115,172 @@ function portrait(maskedValue = 20): CharacterPortrait {
   }
 }
 
-describe('OCR 식별 입력 안정화', () => {
-  it('같은 프레임 입력을 두 번 관측한 뒤 낮은 모델 점수와 관계없이 원문 후보 두 개를 전달한다', async () => {
+describe('OCR 조회 라운드', () => {
+  it('안정화용 반복 OCR은 최초 프레임만 업로드하고 새 라운드에서 다시 수집한다', async () => {
+    const collect = vi.fn().mockResolvedValue({ status: 'queued' })
+    vi.stubGlobal('ocrCollection', { collectOcrSample: collect })
     const f = await fixture()
-    f.worker.recognize.mockResolvedValue(ocrResult('검사*', '검사☆'))
-    f.setFrame(portrait())
+    const frame = {
+      width: 1,
+      height: 1,
+      rgba: new Uint8Array(4),
+      captureId: 'round-one',
+      frameId: 'frame-one'
+    }
+    await f.cycle(undefined, frame)
+    await f.cycle(undefined, { ...frame, frameId: 'frame-two' })
+    expect(collect).toHaveBeenCalledExactlyOnceWith({
+      captureId: 'round-one',
+      frameId: 'frame-one',
+      slot: 1,
+      prediction: '가나'
+    })
+    await act(async () => f.current().resetRecognition())
+    await f.cycle(undefined, { ...frame, captureId: 'round-two', frameId: 'frame-three' })
+    expect(collect).toHaveBeenLastCalledWith({
+      captureId: 'round-two',
+      frameId: 'frame-three',
+      slot: 1,
+      prediction: '가나'
+    })
+  })
 
+  it('업로드 실패는 OCR 검색을 차단하지 않고 빈 인식도 원본 프레임을 수집한다', async () => {
+    const collect = vi.fn().mockRejectedValue(new Error('upload unavailable'))
+    vi.stubGlobal('ocrCollection', { collectOcrSample: collect })
+    const f = await fixture()
+    f.worker.recognize.mockResolvedValue(ocrResult())
+    await f.cycle(undefined, {
+      width: 1,
+      height: 1,
+      rgba: new Uint8Array(4),
+      captureId: 'round',
+      frameId: 'frame'
+    })
+    expect(collect).toHaveBeenCalledWith({
+      captureId: 'round',
+      frameId: 'frame',
+      slot: 1,
+      prediction: null
+    })
+    expect(f.observeOcr).toHaveBeenCalledOnce()
+    expect(f.current().recognitionStates[0]).toBe('failure')
+  })
+
+  it('첫 후보만 두 번 안정화한 뒤 전달하고 낮은 순위의 변경은 무시한다', async () => {
+    const f = await fixture()
+    f.worker.recognize.mockResolvedValueOnce(ocrResult('검사*', '검사☆'))
+    f.worker.recognize.mockResolvedValue(ocrResult('검사*', '다른후보'))
+    f.setFrame(portrait())
     await f.cycle()
+    expect(f.current().recognitionStates[0]).toBe('pending')
     expect(f.observeOcr).not.toHaveBeenCalled()
+    await f.cycle()
+    expect(f.observeOcr).toHaveBeenCalledExactlyOnceWith({
+      slot: 0,
+      nickname: '검사*',
+      candidateNicknames: ['검사*'],
+      portrait: portrait()
+    })
+    expect(f.current().recognitionStates[0]).toBe('complete')
+  })
+
+  it.each(['', ' 가나', '가나 ', 'a'.repeat(13), '\uD800'])(
+    '첫 후보 %j가 유효하지 않으면 두 번째 후보로 대체하지 않고 조회 실패를 전달한다',
+    async (first) => {
+      const f = await fixture()
+      f.worker.recognize.mockResolvedValue(ocrResult(first, '정상후보'))
+      await f.cycle()
+      await f.cycle()
+      expect(f.observeOcr).toHaveBeenCalledExactlyOnceWith({
+        slot: 0,
+        nickname: '',
+        candidateNicknames: [''],
+        portrait: null
+      })
+      expect(f.current().recognitionStates[0]).toBe('failure')
+      expect(f.worker.recognize).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it('빈 후보 목록도 완료된 조회 실패로 처리한다', async () => {
+    const f = await fixture()
+    f.worker.recognize.mockResolvedValue(ocrResult())
+    await f.cycle()
+    expect(f.current().recognitionStates[0]).toBe('failure')
     expect(f.current().stableNicknames[0]).toBeNull()
-    await f.cycle()
-
-    expect(f.observeOcr.mock.calls).toEqual([
-      [{ slot: 0, nickname: '검사*', candidateNicknames: ['검사*', '검사☆'], portrait: portrait() }]
-    ])
-    expect(f.current().stableNicknames[0]).toBe('검사*')
-    expect(capturePartyRecognitionInputs).toHaveBeenCalledTimes(2)
   })
 
-  it('유효하지 않은 이름과 중복만 제외하고 한 글자, 특수문자와 Unicode 원문을 보존한다', async () => {
-    const f = await fixture()
-    f.worker.recognize.mockResolvedValue(
-      ocrResult('', ' 가나', '가나 ', 'a'.repeat(13), '\uD800', '😀', '😀', '별*')
-    )
-
-    await f.cycle()
-    await f.cycle()
-
-    expect(f.observeOcr).toHaveBeenCalledWith({
-      slot: 0,
-      nickname: '😀',
-      candidateNicknames: ['😀', '별*'],
-      portrait: null
-    })
-    expect(f.current().stableNicknames[0]).toBe('😀')
-  })
-
-  it.each([
-    ['첫 후보', ['다라', '가너']],
-    ['두 번째 후보', ['가나', '가니']],
-    ['후보 순서', ['가너', '가나']]
-  ])('%s가 바뀌면 이전 슬롯을 즉시 비우고 새 입력 두 번을 기다린다', async (_, names) => {
+  it('완료 후 이름과 얼굴이 바뀌거나 창이 가려져도 OCR과 검색을 다시 실행하지 않는다', async () => {
     const f = await fixture()
     await f.cycle()
     await f.cycle()
-    f.worker.recognize.mockResolvedValue(ocrResult(...names))
-
-    await f.cycle()
-    expect(f.observe).toHaveBeenCalledExactlyOnceWith({ slot: 0, nickname: null })
-    expect(f.current().stableNicknames[0]).toBeNull()
-    expect(f.observeOcr).toHaveBeenCalledTimes(1)
-    await f.cycle()
-
-    expect(f.observeOcr).toHaveBeenLastCalledWith({
-      slot: 0,
-      nickname: names[0],
-      candidateNicknames: names,
-      portrait: null
-    })
-    expect(f.current().stableNicknames[0]).toBe(names[0])
-  })
-
-  it('얼굴이 없어도 안정된 이름을 전달하고 얼굴을 확보하면 새 관측 두 번 뒤 다시 전달한다', async () => {
-    const f = await fixture()
-    await f.cycle()
-    await f.cycle()
-    expect(f.observeOcr).toHaveBeenLastCalledWith({
-      slot: 0,
-      nickname: '가나',
-      candidateNicknames: ['가나', '가너'],
-      portrait: null
-    })
+    f.worker.recognize.mockResolvedValue(ocrResult('새파티원'))
     f.setFrame(portrait())
-
     await f.cycle()
-    expect(f.observe).toHaveBeenCalledWith({ slot: 0, nickname: null })
+    vi.mocked(capturePartyRecognitionInputs).mockReturnValue([null, null, null, null])
+    await f.cycle()
+    expect(f.current().stableNicknames[0]).toBe('가나')
+    expect(f.observe).not.toHaveBeenCalled()
     expect(f.observeOcr).toHaveBeenCalledTimes(1)
-    await f.cycle()
-
-    expect(f.observeOcr).toHaveBeenCalledTimes(2)
-    expect(f.observeOcr.mock.lastCall?.[0].portrait).toEqual(portrait())
+    expect(f.worker.recognize).toHaveBeenCalledTimes(2)
   })
 
-  it('가려진 픽셀만 바뀌면 안정화와 기존 결과를 유지하지만 유효한 얼굴이 바뀌면 비운다', async () => {
+  it('라운드를 초기화하면 모든 결과를 지우고 첫 후보부터 다시 인식한다', async () => {
+    const f = await fixture()
+    await f.cycle()
+    await f.cycle()
+    await act(async () => f.current().resetRecognition())
+    expect(f.current().recognitionStates).toEqual(['idle', 'idle', 'idle', 'idle'])
+    expect(f.current().stableNicknames).toEqual([null, null, null, null])
+    f.worker.recognize.mockResolvedValue(ocrResult('새파티원'))
+    await f.cycle()
+    await f.cycle()
+    expect(f.observeOcr).toHaveBeenLastCalledWith({
+      slot: 0,
+      nickname: '새파티원',
+      candidateNicknames: ['새파티원'],
+      portrait: null
+    })
+  })
+
+  it('제외한 얼굴 픽셀의 변화는 첫 조회 안정화를 방해하지 않는다', async () => {
     const f = await fixture()
     f.setFrame(portrait())
     await f.cycle()
     f.setFrame(portrait(90))
     await f.cycle()
-    f.setFrame(portrait(120))
-    await f.cycle()
-
     expect(f.observeOcr).toHaveBeenCalledTimes(1)
-    expect(f.observe).not.toHaveBeenCalled()
-    expect(f.current().stableNicknames[0]).toBe('가나')
-    const changed = portrait()
-    changed.image.rgba[0] = 11
-    f.setFrame(changed)
-    await f.cycle()
-    expect(f.observe).toHaveBeenCalledWith({ slot: 0, nickname: null })
-    expect(f.current().stableNicknames[0]).toBeNull()
   })
 
-  it.each(['빈 OCR', '프레임 없음'])(
-    '%s은 이전 결과를 비우고 다시 나타난 이름의 안정화를 초기화한다',
-    async (reason) => {
-      const f = await fixture()
-      await f.cycle()
-      await f.cycle()
-      if (reason === '빈 OCR') {
-        f.worker.recognize.mockResolvedValue(ocrResult())
-      } else {
-        vi.mocked(capturePartyRecognitionInputs).mockReturnValue([null, null, null, null])
-      }
-
-      await f.cycle()
-      expect(f.observe).toHaveBeenCalledExactlyOnceWith({ slot: 0, nickname: null })
-      expect(f.current().stableNicknames[0]).toBeNull()
-      f.worker.recognize.mockResolvedValue(ocrResult('가나', '가너'))
-      f.setFrame()
-      await f.cycle()
-      expect(f.observeOcr).toHaveBeenCalledTimes(1)
-      await f.cycle()
-      expect(f.observeOcr).toHaveBeenCalledTimes(2)
-    }
-  )
-
-  it.each(['abort', 'reset'])(
-    '%s 이후 늦게 끝난 OCR은 통지하지 않고 다음 슬롯도 읽지 않는다',
+  it.each(['abort', 'reset'] as const)(
+    '%s 이후 늦게 끝난 OCR은 새 라운드에 영향을 주지 않는다',
     async (action) => {
       const f = await fixture()
       await f.cycle()
-      const firstInput = vi.mocked(capturePartyRecognitionInputs).mock.results[0].value[0]
-      vi.mocked(capturePartyRecognitionInputs).mockReturnValue([
-        firstInput,
-        { slot: 1, nickname: document.createElement('canvas'), portrait: null },
-        null,
-        null
-      ])
       const pending = Promise.withResolvers<{ data: PartyOcrResult }>()
       f.worker.recognize.mockReturnValueOnce(pending.promise)
       const controller = new AbortController()
-      const cycle = f.cycle(controller)
-      if (action === 'abort') {
-        controller.abort()
-      } else {
-        await act(async () => f.current().resetRecognition())
-      }
-      pending.resolve(ocrResult('가나', '가너'))
-      await cycle
-
+      let cycle!: Promise<void>
+      await act(async () => {
+        cycle = f.startCycle(controller)
+        if (action === 'abort') {
+          controller.abort()
+        } else {
+          f.current().resetRecognition()
+        }
+      })
+      await act(async () => {
+        pending.resolve(ocrResult('가나'))
+        await cycle
+      })
       expect(f.observeOcr).not.toHaveBeenCalled()
-      expect(f.observe).not.toHaveBeenCalled()
-      expect(f.worker.recognize).toHaveBeenCalledTimes(2)
       expect(f.current().stableNicknames[0]).toBeNull()
-      if (action === 'reset') {
-        f.setFrame()
-        await f.cycle()
-        expect(f.observeOcr).not.toHaveBeenCalled()
-        await f.cycle()
-        expect(f.observeOcr).toHaveBeenCalledTimes(1)
-      }
     }
   )
 })
 
-describe.each(['legacy', 'identify'] as const)('%s 프레임의 사라진 파티원 처리', (mode) => {
+describe.each(['legacy'] as const)('%s 프레임의 사라진 파티원 처리', (mode) => {
   function setSlots(...slots: number[]): void {
     const crops = Array.from({ length: 4 }, (_, slot) => {
       if (slots.includes(slot)) {
@@ -329,7 +331,7 @@ describe.each(['legacy', 'identify'] as const)('%s 프레임의 사라진 파티
     setSlots(0, 3)
     await f.cycle()
     expect(f.current().stableNicknames[3]).toBeNull()
-    const notify = mode === 'identify' ? f.observeOcr : f.observe
+    const notify = f.observe
     expect(
       notify.mock.calls.filter(([input]) => input.slot === 3 && input.nickname != null)
     ).toEqual([])

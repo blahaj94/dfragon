@@ -7,6 +7,7 @@ import type {
 } from '../../preload/common/types/character'
 import {
   createCharacterIdentifier,
+  createManualCharacterLookup,
   type CharacterIdentificationInput,
   type IdentificationServices
 } from './identify'
@@ -90,13 +91,15 @@ function fixture(): {
 }
 
 describe('캐릭터 식별 규칙', () => {
-  it('아직 크롭이 없으면 후보와 이미지를 조회하지 않는다', async () => {
+  it('얼굴이 없으면 첫 이름을 조회하고 최고 명성으로 표시한다', async () => {
     const f = fixture()
 
-    expect(await f.identify({ ...f.input, portrait: null })).toEqual({
-      kind: 'portrait-unavailable'
+    expect(await f.identify({ ...f.input, portrait: null })).toMatchObject({
+      kind: 'matched',
+      selectionMethod: 'highest-fame',
+      candidate: { characterId: 'high' }
     })
-    expect(f.calls).toEqual([])
+    expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
     expect(f.matchesPortrait).not.toHaveBeenCalled()
   })
 
@@ -111,7 +114,8 @@ describe('캐릭터 식별 규칙', () => {
       kind: 'matched',
       candidate: candidate('null', '첫이름', null),
       details: details('null'),
-      nickname: '첫이름'
+      nickname: '첫이름',
+      selectionMethod: 'portrait'
     })
     expect(f.calls).toEqual([
       'candidates:첫이름',
@@ -123,24 +127,23 @@ describe('캐릭터 식별 규칙', () => {
     expect(f.getDetails).toHaveBeenCalledOnce()
   })
 
-  it('첫 이름이 전부 불일치일 때만 둘째 이름을 조회한다', async () => {
+  it('전부 불일치이면 둘째 이름을 조회하지 않고 첫 이름의 최고 명성을 표시한다', async () => {
     const f = fixture()
-    f.matchesPortrait
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
 
-    expect(await f.identify(f.input)).toMatchObject({ kind: 'matched', nickname: '둘째이름' })
+    expect(await f.identify(f.input)).toMatchObject({
+      kind: 'matched',
+      nickname: '첫이름',
+      selectionMethod: 'highest-fame',
+      candidate: { characterId: 'high' }
+    })
     expect(f.calls).toEqual([
       'candidates:첫이름',
       'image:high',
       'image:low',
       'image:null',
-      'candidates:둘째이름',
-      'image:high',
       'details:high'
     ])
+    expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('첫이름')
   })
 
   it('한 후보의 자세들을 순서대로 비교하고 통과하면 다음 후보로 넘어가지 않는다', async () => {
@@ -151,73 +154,122 @@ describe('캐릭터 식별 규칙', () => {
 
     expect(await f.identify(f.input)).toMatchObject({
       kind: 'matched',
+      selectionMethod: 'portrait',
       candidate: { characterId: 'high' }
     })
     expect(f.matchesPortrait.mock.calls.map(([input]) => input.candidate)).toEqual([
       portrait.image,
       secondImage
     ])
-    expect(f.loadPortraits).toHaveBeenCalledExactlyOnceWith({
-      serverId: 'cain',
-      characterId: 'high'
-    })
-    expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
+    expect(f.loadPortraits).toHaveBeenCalledOnce()
   })
 
   it.each([{ images: null }, { images: [] }])(
-    '외형이 없으면 불일치로 취급하지 않고 식별을 보류한다: $images',
+    '외형 $images이면 비교 순서를 건너뛰어 확정하지 않고 최고 명성으로 표시한다',
     async ({ images }) => {
       const f = fixture()
       f.loadPortraits.mockResolvedValueOnce(images)
 
-      expect(await f.identify(f.input)).toEqual({ kind: 'appearance-unavailable' })
-      expect(f.loadPortraits).toHaveBeenCalledExactlyOnceWith({
-        serverId: 'cain',
-        characterId: 'high'
+      expect(await f.identify(f.input)).toMatchObject({
+        kind: 'matched',
+        selectionMethod: 'highest-fame',
+        candidate: { characterId: 'high' }
       })
-      expect(f.calls).toEqual(['candidates:첫이름'])
+      expect(f.loadPortraits).toHaveBeenCalledOnce()
       expect(f.matchesPortrait).not.toHaveBeenCalled()
-      expect(f.getDetails).not.toHaveBeenCalled()
     }
   )
 
-  it('원문과 순위를 유지하고 같은 이름은 한 번만 조회한다', async () => {
+  it('비교가 불가능하면 다음 후보로 넘어가지 않고 최고 명성으로 표시한다', async () => {
     const f = fixture()
-    f.findCandidates.mockResolvedValue([])
+    f.matchesPortrait.mockResolvedValueOnce(null)
 
-    expect(await f.identify({ ...f.input, nicknames: ['가+&', '가+&'] })).toEqual({
-      kind: 'unmatched'
+    expect(await f.identify(f.input)).toMatchObject({
+      kind: 'matched',
+      selectionMethod: 'highest-fame',
+      candidate: { characterId: 'high' }
     })
-    expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('가+&')
-    expect(f.loadPortraits).not.toHaveBeenCalled()
+    expect(f.loadPortraits).toHaveBeenCalledOnce()
+  })
+
+  it('이름 검색이 비어 있으면 둘째 이름이나 상세를 조회하지 않는다', async () => {
+    const f = fixture()
+    f.findCandidates.mockResolvedValueOnce([])
+
+    expect(await f.identify(f.input)).toEqual({ kind: 'unmatched' })
+    expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('첫이름')
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it.each([['', ' A'], ['x'.repeat(13), '\ud800'], []])(
-    '검색할 수 없는 OCR 후보 %j는 보정하지 않고 제외한다',
-    async (...nicknames) => {
-      const f = fixture()
-
-      expect(await f.identify({ ...f.input, nicknames })).toEqual({ kind: 'unmatched' })
-      expect(f.calls).toEqual([])
-    }
-  )
-
-  it('첫 OCR 후보가 비어 있어도 유효한 두 번째 원문은 조회한다', async () => {
+  it.each([
+    ['', '정상이름'],
+    [' ', '정상이름'],
+    ['x'.repeat(13), '정상이름'],
+    ['\ud800', '정상이름'],
+    []
+  ])('잘못된 첫 후보 %j를 두 번째 후보로 대체하지 않는다', async (...nicknames) => {
     const f = fixture()
-    f.findCandidates.mockResolvedValue([])
 
-    await f.identify({ ...f.input, nicknames: ['', '가'] })
-
-    expect(f.findCandidates).toHaveBeenCalledExactlyOnceWith('가')
+    expect(await f.identify({ ...f.input, nicknames })).toEqual({ kind: 'invalid-input' })
+    expect(f.calls).toEqual([])
   })
 
-  it('두 개를 초과한 후보 입력은 크롭 유무와 무관하게 조회 전에 거절한다', async () => {
+  it('두 개를 초과한 입력은 조회 전에 거절한다', async () => {
     const f = fixture()
 
     expect(await f.identify({ nicknames: ['가', '나', '다'], portrait: null })).toEqual({
       kind: 'invalid-input'
     })
     expect(f.calls).toEqual([])
+  })
+
+  it.each([
+    { fames: [null, 0, 100, 100], expected: '2' },
+    { fames: [null, 0, null], expected: '1' },
+    { fames: [null, null], expected: '0' }
+  ])('명성 $fames를 정렬하고 동점은 원래 순서를 유지한다', async ({ fames, expected }) => {
+    const f = fixture()
+    f.findCandidates.mockResolvedValueOnce(
+      fames.map((fame, index) => candidate(String(index), '첫이름', fame))
+    )
+
+    expect(await f.identify({ ...f.input, portrait: null })).toMatchObject({
+      candidate: { characterId: expected },
+      selectionMethod: 'highest-fame'
+    })
+  })
+
+  it('수동 조회는 선택한 서버와 원문 이름으로만 상세를 선택한다', async () => {
+    const f = fixture()
+    f.findCandidates.mockResolvedValueOnce([
+      candidate('other-server', '첫이름', 100),
+      { ...candidate('wrong-name', '다른이름', 90), serverId: 'siroco' },
+      { ...candidate('chosen', '첫이름', 50), serverId: 'siroco' }
+    ])
+    const lookup = createManualCharacterLookup({
+      findCandidates: f.findCandidates,
+      getDetails: f.getDetails
+    })
+
+    expect(await lookup({ nickname: '첫이름', serverId: 'siroco' })).toMatchObject({
+      candidate: { characterId: 'chosen' },
+      selectionMethod: 'manual'
+    })
+    expect(f.getDetails).toHaveBeenCalledExactlyOnceWith({
+      serverId: 'siroco',
+      characterId: 'chosen'
+    })
+    expect(f.loadPortraits).not.toHaveBeenCalled()
+  })
+
+  it('지정한 서버에 없으면 다른 서버 캐릭터로 대체하지 않는다', async () => {
+    const f = fixture()
+    const lookup = createManualCharacterLookup({
+      findCandidates: f.findCandidates,
+      getDetails: f.getDetails
+    })
+
+    expect(await lookup({ nickname: '첫이름', serverId: 'siroco' })).toEqual({ kind: 'unmatched' })
+    expect(f.getDetails).not.toHaveBeenCalled()
   })
 })

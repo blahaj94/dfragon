@@ -28,6 +28,7 @@ export const styles = stylex.create({
     ':hover': { boxShadow: 'inset 0 0 0 1px #8795a8' }
   },
   content: { position: 'absolute', inset: 0, pointerEvents: 'none' },
+  progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
   portrait: { position: 'absolute', inset: '10px 12px 50px', opacity: 1 },
   identity: {
     position: 'absolute',
@@ -98,6 +99,8 @@ export const styles = stylex.create({
     color: colors.muted
   },
   error: { color: '#ff8888' },
+  statusWhileLoading: { top: '58%' },
+  selectedNotice: { top: 48, fontSize: 11 },
   statusWithRetry: { top: '28%' },
   retry: {
     position: 'absolute',

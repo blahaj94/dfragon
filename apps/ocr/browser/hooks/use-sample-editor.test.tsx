@@ -90,6 +90,25 @@ async function submitEditor() {
   })
 }
 
+it('테스트 수집의 미검수 예측은 정답 입력을 채우지 않고 전체 슬롯을 별도로 연다', async () => {
+  await renderEditor({
+    ...sample,
+    text: null,
+    testCollection: {
+      trigger: 'ocr',
+      prediction: '틀린예측',
+      context: { slot: 1, x: 0, y: 0, width: 4, height: 2 }
+    }
+  })
+  expect(container.querySelector('input')?.value).toBe('')
+  expect(container.textContent).toContain('OCR 예측(미검수): 틀린예측')
+  expect(
+    container.querySelector('a[href="/api/samples/one/context/image"]')?.textContent
+  ).toContain('파티원 슬롯')
+  expect(container.querySelector('img')?.getAttribute('src')).toBe('/api/samples/one/image')
+  expect(requestOcr).not.toHaveBeenCalled()
+})
+
 it('다른 표본으로 이동한 뒤 이전 저장 응답의 확인 창과 재전송을 취소한다', async () => {
   let reject!: (error: Error) => void
   vi.mocked(requestOcr).mockReturnValueOnce(

@@ -3,6 +3,7 @@ import { isAbsolute, join } from 'node:path'
 import { createOcrApp } from './server.js'
 import { OcrStore } from './store.js'
 import { parseSyntheticUploadTokenSha256 } from './auth.js'
+import { parseTestUploadEnabled } from './test-capture.js'
 
 function parseHttpsOrigin(value: string | undefined): string {
   const url = new URL(value ?? '')
@@ -36,6 +37,7 @@ try {
     origin: parseHttpsOrigin(process.env.OCR_ORIGIN),
     authOrigin: parseHttpsOrigin(process.env.OCR_AUTH_ORIGIN),
     ownerId,
+    testUploadEnabled: parseTestUploadEnabled(process.env.OCR_TEST_UPLOAD_ENABLED),
     trustedProxyHops: proxy === 'single-hop' ? (1 as const) : undefined,
     syntheticUploadTokenSha256: parseSyntheticUploadTokenSha256(
       process.env.OCR_SYNTHETIC_UPLOAD_TOKEN_SHA256

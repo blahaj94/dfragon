@@ -27,7 +27,8 @@ function setup(platform: NodeJS.Platform = 'win32'): ShortcutTestContext {
     installHook: vi.fn(() => 20n),
     removeHook: vi.fn(() => true),
     callNext: vi.fn(() => 77n),
-    readVirtualKey: vi.fn(() => virtualKey)
+    readVirtualKey: vi.fn(() => virtualKey),
+    readModifiers: vi.fn(() => ({ shift: false, control: false, alt: false, windows: false }))
   }
   const isGameForeground = vi.fn(() => true)
   const loadNativeApi = vi.fn(() => api)

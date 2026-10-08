@@ -4,8 +4,9 @@ import { waitFor } from 'xstate'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
 import type { CapturePhase } from '../types/capture'
 import { useCaptureSources } from './useCaptureSources'
-import { usePartyRecognition } from './usePartyRecognition'
+import { usePartyRecognition, type RecognitionState } from './usePartyRecognition'
 import { useCharacterSearch } from './useCharacterSearch'
+import { isDnfCaptureSource } from '../lib/capture-presentation'
 
 type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>
@@ -19,6 +20,8 @@ type PartyCapture = {
   sourcesFailed: boolean
   intervalSeconds: number
   stableNicknames: (string | null)[]
+  recognitionStates: readonly RecognitionState[]
+  round: number
   status: string
   selectSource: (sourceId: string) => void
   selectAndStartCapture: (sourceId: string) => Promise<void>
@@ -32,6 +35,7 @@ export function usePartyCapture({
   identifyCharacters = false
 }: { identifyCharacters?: boolean } = {}): PartyCapture {
   const intervalSecondsRef = useRef(3)
+  const [round, setRound] = useState(0)
   const [intervalSeconds, setIntervalSecondsState] = useState(3)
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
@@ -46,13 +50,41 @@ export function usePartyCapture({
       beginSearch: search.begin,
       readFrame: (captureId) => window.api.readCaptureFrame(captureId),
       endSearch: search.end,
-      resetRecognition: recognition.resetRecognition,
+      resetRecognition: () => {
+        recognition.resetRecognition()
+        setRound((current) => current + 1)
+      },
       getIntervalMs: () => intervalSecondsRef.current * 1000,
       recognizePartyNicknames: recognition.recognizePartyNicknames
     }
   })
   const sources = useCaptureSources()
   const phase = getCapturePhase(snapshot)
+  const autoAttemptedSource = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!identifyCharacters || !search.ready || snapshot.context.selectedSourceId.length > 0) {
+      return
+    }
+    const games = sources.sources.filter(isDnfCaptureSource)
+    if (games.length !== 1 || autoAttemptedSource.current === games[0].id) {
+      return
+    }
+    autoAttemptedSource.current = games[0].id
+    send({ type: 'SELECT', sourceId: games[0].id, autoStart: true, request: {} })
+  }, [identifyCharacters, search.ready, send, snapshot.context.selectedSourceId, sources.sources])
+
+  useEffect(() => {
+    if (!identifyCharacters || window.desktopShortcut === undefined) {
+      return
+    }
+
+    return window.desktopShortcut.onDesktopShortcut((shortcut) => {
+      if (shortcut === 'restart-search') {
+        send({ type: 'START', request: {} })
+      }
+    })
+  }, [identifyCharacters, send])
 
   function stopCapture(status?: string): void {
     send({ type: 'STOP', status })
@@ -101,6 +133,8 @@ export function usePartyCapture({
     retrySearch: search.retry,
     intervalSeconds,
     stableNicknames: recognition.stableNicknames,
+    recognitionStates: recognition.recognitionStates,
+    round,
     status: snapshot.context.status,
     setIntervalSeconds,
     startCapture,

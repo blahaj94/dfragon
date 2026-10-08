@@ -1,5 +1,6 @@
 import { SEARCH_ACTIONS } from '../../preload/common/types/search'
 import { z } from 'zod'
+import { CHARACTER_SERVER_NAMES } from '../../preload/common/search/character-summary'
 import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
 import type {
   OcrSearchObservation,
@@ -7,6 +8,7 @@ import type {
   SearchObservation
 } from '../../preload/common/types/search'
 
+const MAX_NICKNAME_INPUT_LENGTH = 24
 const text = z.string()
 const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 const uuid = text.regex(SEARCH_ID_PATTERN)
@@ -16,6 +18,14 @@ const slot = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
 const controlSchema = z.discriminatedUnion('action', [
   z.strictObject({ action: z.literal(SEARCH_ACTIONS.READ) }),
   z.strictObject({ action: z.literal(SEARCH_ACTIONS.BEGIN) }),
+  z.strictObject({
+    action: z.literal(SEARCH_ACTIONS.LOOKUP),
+    captureId: uuid,
+    slot,
+    observationRevision,
+    nickname: text.max(MAX_NICKNAME_INPUT_LENGTH),
+    serverId: z.enum(Object.keys(CHARACTER_SERVER_NAMES))
+  }),
   z.strictObject({ action: z.literal(SEARCH_ACTIONS.END), captureId: uuid }),
   z.strictObject({
     action: z.literal(SEARCH_ACTIONS.CLEAR),
@@ -51,12 +61,7 @@ const RGBA_CHANNELS = 4
 const ocrNickname = z.string().refine((value) => {
   const length = [...value].length
 
-  return (
-    length >= 1 &&
-    length <= MAX_OCR_NAME_CODE_POINTS &&
-    value === value.trim() &&
-    value.isWellFormed()
-  )
+  return length <= MAX_OCR_NAME_CODE_POINTS && value === value.trim() && value.isWellFormed()
 })
 const portraitImage = z
   .strictObject({
@@ -93,7 +98,7 @@ const portraitSchema = z
 const ocrObservationSchema = observationSchema
   .extend({
     nickname: ocrNickname,
-    candidateNicknames: z.array(ocrNickname).min(1).max(MAX_OCR_NAMES),
+    candidateNicknames: z.array(text.max(MAX_NICKNAME_INPUT_LENGTH)).min(1).max(MAX_OCR_NAMES),
     portrait: portraitSchema.nullable()
   })
   .refine((input) => input.nickname === input.candidateNicknames[0])

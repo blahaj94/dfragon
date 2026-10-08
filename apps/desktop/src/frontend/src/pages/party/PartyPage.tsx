@@ -25,7 +25,9 @@ export function PartyPage({
   slotNotices,
   onRetry,
   retryEnabled,
-  retryPending
+  retryPending,
+  loadingSlots,
+  onLookup
 }: {
   character?: CardCharacter
   characters?: readonly (CardCharacter | null)[]
@@ -44,6 +46,8 @@ export function PartyPage({
   onRetry?: (slot: number) => void
   retryEnabled?: readonly boolean[]
   retryPending?: readonly boolean[]
+  loadingSlots?: readonly boolean[]
+  onLookup?: (slot: number, nickname: string, serverId: string) => void
 }): React.JSX.Element {
   const { light, toggleTheme } = useColorTheme()
 
@@ -77,8 +81,6 @@ export function PartyPage({
       <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
         {slots.map((state, index) => {
           const selected = characters == null ? character : (characters[index] ?? undefined)
-          const identity =
-            selected == null ? '' : `${selected.serverId}:${selected.characterId ?? selected.name}`
           const observedNickname = nicknames?.[index] ?? undefined
           const displayedNickname =
             state === 'success' && selected != null ? undefined : observedNickname
@@ -90,7 +92,7 @@ export function PartyPage({
 
           return (
             <CharacterCard
-              key={`${resetKey}-${index}-${identity}`}
+              key={`${resetKey}-${index}`}
               slot={index + 1}
               character={selected}
               state={state}
@@ -103,6 +105,12 @@ export function PartyPage({
               onRetry={onRetry == null ? undefined : () => onRetry(index)}
               retryEnabled={retryEnabled?.[index]}
               retryPending={retryPending?.[index]}
+              loading={loadingSlots?.[index]}
+              onLookup={
+                onLookup === undefined
+                  ? undefined
+                  : (nickname, serverId) => onLookup(index, nickname, serverId)
+              }
             />
           )
         })}

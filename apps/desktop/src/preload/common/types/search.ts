@@ -5,12 +5,19 @@ export const SEARCH_ACTIONS = {
   BEGIN: 'begin',
   END: 'end',
   CLEAR: 'clear',
-  RETRY: 'retry'
+  RETRY: 'retry',
+  LOOKUP: 'lookup'
 } as const
+
+export const CHARACTER_SELECTION_METHODS = ['portrait', 'highest-fame', 'manual'] as const
+export type CharacterSelectionMethod = (typeof CHARACTER_SELECTION_METHODS)[number]
+
+export type ManualCharacterLookup = SearchObservation & Readonly<{ serverId: string }>
 
 export type SearchControl =
   | Readonly<{ action: typeof SEARCH_ACTIONS.READ }>
   | Readonly<{ action: typeof SEARCH_ACTIONS.BEGIN }>
+  | (Readonly<{ action: typeof SEARCH_ACTIONS.LOOKUP }> & ManualCharacterLookup)
   | Readonly<{ action: typeof SEARCH_ACTIONS.END; captureId: string }>
   | Readonly<{
       action: typeof SEARCH_ACTIONS.CLEAR
@@ -92,6 +99,7 @@ export type SearchSlot = Readonly<{
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
   selected?: CharacterSummary
+  selectionMethod?: CharacterSelectionMethod
 }>
 
 export type SearchSnapshot = Readonly<{

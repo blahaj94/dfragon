@@ -74,7 +74,17 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
       const expectedApis =
         fileName === 'character-detail.js'
           ? ['characterDetail']
-          : ['api', 'auth', 'search', 'manualSearch', 'developer', 'versions']
+          : [
+              'api',
+              'auth',
+              'search',
+              'manualSearch',
+              'developer',
+              'versions',
+              'desktopShortcut',
+              'ocrCollection',
+              'diagnostics'
+            ]
       expect(expose.mock.calls.map(([name]) => name)).toEqual(expectedApis)
       if (fileName === 'character-detail.js') {
         expect(Object.keys(expose.mock.calls[0][1])).toEqual(['read'])

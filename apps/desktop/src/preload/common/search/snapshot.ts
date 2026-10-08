@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { characterSummarySchema } from './character-summary'
 import {
+  CHARACTER_SELECTION_METHODS,
   SEARCH_COMMAND_ERRORS,
   SEARCH_ERRORS,
   type SearchCommandResult,
@@ -51,9 +52,14 @@ const slot = z
     ]),
     rows: z.array(row),
     error: error.nullable(),
-    selected: characterSummarySchema.optional()
+    selected: characterSummarySchema.optional(),
+    selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional()
   })
   .refine((value) => {
+    if (Object.hasOwn(value, 'selectionMethod') && value.selected === undefined) {
+      return false
+    }
+
     if (Object.hasOwn(value, 'selected')) {
       const selected = value.selected
       if (selected === undefined || value.state !== 'success' || value.rows.length !== 1) {

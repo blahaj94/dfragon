@@ -9,18 +9,21 @@ import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { normalizeNickname, updateSlotStability } from '../lib/recognition'
 import type { OcrCaptureObservation } from '../lib/capture-search'
 import { sameOcrSearchInput } from '../../../preload/common/search/ocr-input'
+import { reportRendererDiagnostic } from '../lib/runtime-diagnostics'
 
-const MAX_OCR_CANDIDATE_COUNT = 2
 const MAX_NICKNAME_CODE_POINTS = 12
 const UNPAIRED_SURROGATE_PATTERN = /[\uD800-\uDFFF]/u
+const PARTY_SAMPLE_SLOTS = [1, 2, 3, 4] as const
 
 type OcrStability = { input: OcrCaptureObservation; reported: boolean }
+export type RecognitionState = 'idle' | 'pending' | 'complete' | 'failure'
 
 export function usePartyRecognition(
   observe: (input: { slot: number; nickname: string | null }) => void,
   observeOcr?: (input: OcrCaptureObservation) => void
 ): {
   stableNicknames: (string | null)[]
+  recognitionStates: readonly RecognitionState[]
   recognizePartyNicknames: (
     frame: PartyFrameSource,
     worker: PartyOcrWorker,
@@ -33,10 +36,18 @@ export function usePartyRecognition(
   const stableNicknamesRef = useRef<(string | null)[]>(emptySlots())
   const ocrStabilityRef = useRef<(OcrStability | null)[]>(emptyOcrSlots())
   const generationRef = useRef(0)
+  const completedSlotsRef = useRef(new Set<number>())
+  const uploadedSlotsRef = useRef(new Set<number>())
+  const [recognitionStates, setRecognitionStates] = useState<RecognitionState[]>(
+    Array.from({ length: PARTY_SLOT_COUNT }, () => 'idle')
+  )
   const [stableNicknames, setStableNicknames] = useState<(string | null)[]>(emptySlots())
 
   function resetRecognition(): void {
     generationRef.current += 1
+    completedSlotsRef.current.clear()
+    uploadedSlotsRef.current.clear()
+    setRecognitionStates(Array.from({ length: PARTY_SLOT_COUNT }, () => 'idle'))
     ocrStabilityRef.current = emptyOcrSlots()
     slotStabilityRef.current = emptyStabilitySlots()
     reportedNicknamesRef.current = emptySlots()
@@ -119,7 +130,7 @@ export function usePartyRecognition(
     const generation = generationRef.current
     const inputs = capturePartyRecognitionInputs(frame)
     for (const [slot, captured] of inputs.entries()) {
-      if (captured == null) {
+      if (captured == null && !completedSlotsRef.current.has(slot)) {
         clearRecognitionSlot(slot)
       }
     }
@@ -128,27 +139,64 @@ export function usePartyRecognition(
         return
       }
 
-      if (captured == null) {
+      if (captured == null || completedSlotsRef.current.has(slot)) {
         continue
       }
-      const result = await worker.recognize(captured.nickname)
+      setRecognitionState(slot, 'pending')
+      let prediction: string | null = null
+      let result: { data: PartyOcrResult }
+      try {
+        result = await worker.recognize(captured.nickname)
+        prediction = result.data.candidates[0]?.nickname ?? null
+      } finally {
+        if (
+          !signal.aborted &&
+          generation === generationRef.current &&
+          !uploadedSlotsRef.current.has(slot)
+        ) {
+          uploadedSlotsRef.current.add(slot)
+          if (
+            frame !== null &&
+            'rgba' in frame &&
+            frame.captureId !== undefined &&
+            frame.frameId !== undefined
+          ) {
+            void window.ocrCollection
+              .collectOcrSample({
+                captureId: frame.captureId,
+                frameId: frame.frameId,
+                slot: PARTY_SAMPLE_SLOTS[slot],
+                prediction
+              })
+              .then((result) => {
+                if (result.status === 'failed') {
+                  reportRendererDiagnostic('UPLOAD_FAILED')
+                }
+              })
+              .catch(() => reportRendererDiagnostic('UPLOAD_FAILED'))
+          }
+        }
+      }
       if (signal.aborted || generation !== generationRef.current) {
         return
       }
-      const candidateNicknames = candidateNames(result.data)
-      const nickname = candidateNicknames[0]
-      let input: OcrCaptureObservation | null = null
-      if (nickname != null) {
-        input = { slot, nickname, candidateNicknames, portrait: captured.portrait }
+      const nickname = firstCandidateName(result.data)
+      if (nickname === null) {
+        completedSlotsRef.current.add(slot)
+        setRecognitionState(slot, 'failure')
+        notify({ slot, nickname: '', candidateNicknames: [''], portrait: captured.portrait })
+        continue
+      }
+      const input: OcrCaptureObservation = {
+        slot,
+        nickname,
+        candidateNicknames: [nickname],
+        portrait: captured.portrait
       }
       const previous = ocrStabilityRef.current[slot]
-      const sameInput =
-        input != null && previous != null && sameOcrSearchInput(previous.input, input)
-      if (input == null || previous == null || !sameInput) {
-        if (previous?.reported) {
-          observe({ slot, nickname: null })
-        }
-        ocrStabilityRef.current[slot] = input == null ? null : { input, reported: false }
+      const sameInput = previous != null && sameOcrSearchInput(previous.input, input)
+      if (previous == null || !sameInput) {
+        ocrStabilityRef.current[slot] = { input, reported: false }
         setStableSlot(slot, null)
         continue
       }
@@ -157,6 +205,8 @@ export function usePartyRecognition(
         notify(input)
       }
       ocrStabilityRef.current[slot] = { input, reported: true }
+      completedSlotsRef.current.add(slot)
+      setRecognitionState(slot, 'complete')
       setStableSlot(slot, input.nickname)
     }
   }
@@ -167,6 +217,7 @@ export function usePartyRecognition(
     slotStabilityRef.current[slot] = null
     reportedNicknamesRef.current[slot] = null
     ocrStabilityRef.current[slot] = null
+    setRecognitionState(slot, 'idle')
     setStableSlot(slot, null)
     if (hadReported) {
       observe({ slot, nickname: null })
@@ -183,30 +234,38 @@ export function usePartyRecognition(
     setStableNicknames(next)
   }
 
-  return { stableNicknames, recognizePartyNicknames, resetRecognition }
-}
+  function setRecognitionState(slot: number, state: RecognitionState): void {
+    setRecognitionStates((previous) => {
+      if (previous[slot] === state) {
+        return previous
+      }
+      const next = previous.slice()
+      next[slot] = state
 
-/** OCR 순위를 유지하며 검색 계약을 벗어난 이름과 중복만 제외한다. 글자와 점수는 보정하지 않는다. */
-function candidateNames(result: PartyOcrResult): string[] {
-  const names: string[] = []
-  for (const { nickname } of result.candidates) {
-    const length = [...nickname].length
-    if (
-      length === 0 ||
-      length > MAX_NICKNAME_CODE_POINTS ||
-      nickname !== nickname.trim() ||
-      UNPAIRED_SURROGATE_PATTERN.test(nickname) ||
-      names.includes(nickname)
-    ) {
-      continue
-    }
-    names.push(nickname)
-    if (names.length === MAX_OCR_CANDIDATE_COUNT) {
-      break
-    }
+      return next
+    })
   }
 
-  return names
+  return { stableNicknames, recognitionStates, recognizePartyNicknames, resetRecognition }
+}
+
+/** 첫 후보가 비어 있거나 잘못됐어도 낮은 순위의 이름으로 대체하지 않는다. */
+function firstCandidateName(result: PartyOcrResult): string | null {
+  const nickname = result.candidates[0]?.nickname
+  if (nickname == null) {
+    return null
+  }
+  const length = [...nickname].length
+  if (
+    length === 0 ||
+    length > MAX_NICKNAME_CODE_POINTS ||
+    nickname !== nickname.trim() ||
+    UNPAIRED_SURROGATE_PATTERN.test(nickname)
+  ) {
+    return null
+  }
+
+  return nickname
 }
 
 function emptyOcrSlots(): (OcrStability | null)[] {

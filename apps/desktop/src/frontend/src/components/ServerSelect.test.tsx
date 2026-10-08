@@ -23,8 +23,9 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('서버 변경은 해당 카드의 수정 상태만 바꾸고 카드 전환·상세 열기를 실행하지 않는다', async () => {
+it('서버 변경은 해당 카드만 조회하고 카드 전환, 상세 열기를 실행하지 않는다', async () => {
   const onDetail = vi.fn()
+  const onLookup = vi.fn()
   await act(async () =>
     root.render(
       <>
@@ -34,6 +35,7 @@ it('서버 변경은 해당 카드의 수정 상태만 바꾸고 카드 전환·
           character={previewCharacter}
           inputEnabled
           onDetail={onDetail}
+          onLookup={onLookup}
         />
         <CharacterCard
           slot={2}
@@ -53,11 +55,12 @@ it('서버 변경은 해당 카드의 수정 상태만 바꾸고 카드 전환·
     (item) => item.textContent === '카인'
   )!
   await act(async () => option.click())
+  expect(onLookup).toHaveBeenCalledExactlyOnceWith(previewCharacter.name, 'cain')
   expect(trigger.textContent).toContain('카인')
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
   const cards = document.querySelectorAll('article')
-  expect(cards[0].textContent).toContain('이름·서버 수정 중')
-  expect(cards[1].textContent).not.toContain('이름·서버 수정 중')
+  expect(cards[0].textContent).toContain('Enter로 조회')
+  expect(cards[1].textContent).not.toContain('Enter로 조회')
   expect(cards[1].querySelector('[aria-label="2번 서버"]')!.textContent).toContain('시로코')
   expect(cards[0].querySelector('[aria-label="1번 캐릭터 이름"]')).not.toBeNull()
   expect(onDetail).not.toHaveBeenCalled()

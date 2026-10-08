@@ -12,6 +12,8 @@ import type { AuthConfiguration } from './auth.js'
 import { OcrStore } from './store.js'
 import { OCR_ERROR_CODE, OcrError, httpFailure } from './errors.js'
 import { OCR_UPLOAD } from './constants.js'
+import { isTestCaptureRequest, TEST_CAPTURE_PATH } from './test-capture.js'
+import { requireTestCaptureUpload } from './test-capture-admission.js'
 import { OcrModelController } from './model-controller.js'
 import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
@@ -104,7 +106,9 @@ export async function createOcrApp(
         "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' blob:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
     })
     if (
-      isDesktopRequest(request) || isSyntheticUploadRequest(request)
+      isDesktopRequest(request) ||
+      isSyntheticUploadRequest(request) ||
+      isTestCaptureRequest(request)
         ? request.headers.origin !== undefined
         : !['GET', 'HEAD'].includes(request.method) && request.headers.origin !== config.origin
     ) {
@@ -119,6 +123,10 @@ export async function createOcrApp(
   app.use('/api', (request: Request, response: Response, next: NextFunction) => {
     void Promise.resolve()
       .then(async () => {
+        if (isTestCaptureRequest(request)) {
+          return requireTestCaptureUpload(request, config.testUploadEnabled === true)
+        }
+
         if (isSyntheticUploadRequest(request)) {
           return auth.requireSyntheticUpload(request)
         }
@@ -166,10 +174,16 @@ export async function createOcrApp(
   )
   const parseUploadBody = json({ limit: OCR_UPLOAD.bodyLimit, strict: true, inflate: false })
   app.use(
-    ['/api/captures', '/api/desktop/captures', '/api/synthetic-samples'],
+    ['/api/captures', '/api/desktop/captures', '/api/synthetic-samples', TEST_CAPTURE_PATH],
     (request: Request, response: Response, next: NextFunction) => {
       if (request.method !== 'POST' || request.path !== '/') {
         next()
+
+        return
+      }
+
+      if (isTestCaptureRequest(request)) {
+        parseUploadBody(request, response, next)
 
         return
       }

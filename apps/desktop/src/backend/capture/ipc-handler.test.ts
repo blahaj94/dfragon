@@ -1,6 +1,6 @@
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { EventEmitter } from 'node:events'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createAuthCoordinator } from '../auth/coordinator'
 import {
   createAuthHarness,
@@ -13,9 +13,11 @@ import {
   registerCaptureIpc,
   registerCaptureWindow,
   registerCaptureMediaForFixture,
-  consumeCaptureMediaPermission
+  consumeCaptureMediaPermission,
+  collectCurrentCapture
 } from './ipc-handler'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
+import type { OcrCollection } from '../ocr-collection/collection'
 
 const nativeFrame = vi.hoisted(() => {
   const read = vi.fn<() => Promise<WindowFrameResult>>()
@@ -46,7 +48,10 @@ type MediaHandler = (
   callback: (result: unknown) => void
 ) => void
 
-async function setup(signedIn = true): Promise<{
+async function setup(
+  signedIn = true,
+  collection?: OcrCollection
+): Promise<{
   auth: ReturnType<typeof createAuthCoordinator>
   harness: ReturnType<typeof createAuthHarness>
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>
@@ -84,7 +89,7 @@ async function setup(signedIn = true): Promise<{
     }
   }
   const window = { webContents, isDestroyed: () => false, on: windowEvents.on.bind(windowEvents) }
-  const disposeIpc = registerCaptureIpc()
+  const disposeIpc = registerCaptureIpc(undefined, undefined, collection)
   disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
   registerCaptureMediaForFixture(window as unknown as BrowserWindow)
@@ -243,6 +248,7 @@ describe('capture main document and source boundary', () => {
     fixture.dispose()
 
     expect(electron.removeHandler.mock.calls.map(([channel]) => channel).sort()).toEqual([
+      'collectOcrSample',
       'controlCharacterSearch',
       'controlManualSearch',
       'listCaptureSources',
@@ -867,5 +873,74 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
 
     await expect(f.invoke('readCaptureFrame', begun.snapshot.captureId)).rejects.toThrow()
     expect(nativeFrame.read).not.toHaveBeenCalled()
+  })
+})
+
+describe('OCR 수집 프레임 권한', () => {
+  const frameId = '10000000-0000-4000-8000-000000000002'
+  const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
+
+  function collectionFixture(): { [K in keyof OcrCollection]: Mock<OcrCollection[K]> } {
+    return {
+      retain: vi.fn<OcrCollection['retain']>(() => frameId),
+      collect: vi.fn<OcrCollection['collect']>(() => ({ status: 'queued' })),
+      collectShortcut: vi.fn<OcrCollection['collectShortcut']>(() => ({ status: 'queued' })),
+      clear: vi.fn<OcrCollection['clear']>(),
+      dispose: vi.fn<OcrCollection['dispose']>()
+    }
+  }
+
+  it('API 설정과 로그인 없이 현재 main 프레임을 보관하고 발급 참조만 수집기에 전달한다', async () => {
+    const collection = collectionFixture()
+    const f = await setup(false, collection)
+    nativeFrame.read.mockResolvedValue({ kind: 'frame', image })
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+      snapshot: { captureId: string }
+    }
+    const captureId = begun.snapshot.captureId
+    await expect(f.invoke('readCaptureFrame', captureId)).resolves.toEqual({
+      kind: 'frame',
+      image,
+      frameId
+    })
+    expect(collection.retain).toHaveBeenCalledExactlyOnceWith(captureId, image)
+    const request = { captureId, frameId, slot: 1, prediction: null }
+    await expect(f.invoke('collectOcrSample', request)).resolves.toEqual({ status: 'queued' })
+    expect(collection.collect).toHaveBeenCalledExactlyOnceWith(request)
+    await expect(f.invoke('collectOcrSample', { ...request, rgba: image.rgba })).resolves.toEqual({
+      status: 'skipped'
+    })
+    await expect(f.invoke('collectOcrSample', { ...request, captureId: frameId })).resolves.toEqual(
+      { status: 'skipped' }
+    )
+    expect(collection.collect).toHaveBeenCalledTimes(1)
+    f.mainFrame.url = 'file:///other.html'
+    await expect(f.invoke('collectOcrSample', request)).rejects.toThrow()
+    expect(collection.collect).toHaveBeenCalledTimes(1)
+  })
+
+  it('단축키는 최신 프레임을 읽되 캡처 종료 후 늦은 응답은 업로드하지 않는다', async () => {
+    const collection = collectionFixture()
+    const f = await setup(false, collection)
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+      snapshot: { captureId: string }
+    }
+    const captureId = begun.snapshot.captureId
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
+    await expect(collectCurrentCapture()).resolves.toEqual({ status: 'queued' })
+    expect(collection.collectShortcut).toHaveBeenCalledExactlyOnceWith(captureId, image)
+    const pending = deferred<WindowFrameResult>()
+    nativeFrame.read.mockReturnValueOnce(pending.promise)
+    const result = collectCurrentCapture()
+    collection.clear.mockClear()
+    await f.invoke('controlCharacterSearch', { action: 'end', captureId })
+    pending.resolve({ kind: 'frame', image })
+    await expect(result).resolves.toEqual({ status: 'skipped' })
+    expect(collection.collectShortcut).toHaveBeenCalledTimes(1)
+    expect(collection.clear).toHaveBeenCalledOnce()
+    f.dispose()
+    expect(collection.dispose).toHaveBeenCalledOnce()
   })
 })

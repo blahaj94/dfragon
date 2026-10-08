@@ -1,7 +1,7 @@
 import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
-import { createCaptureSearchLifetime } from './capture-lifetime'
+import { createCaptureSearchLifetime, type CaptureSearchLifetime } from './capture-lifetime'
 import { parseSearchControl, parseSearchObservation } from './commands'
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
@@ -18,7 +18,11 @@ export function registerManualSearchIpc({
   windowGeneration: () => number
   isCurrentDocument: (generation: number) => boolean
   publish: (snapshot: SearchSnapshot) => void
-}): { invalidate: () => void; dispose: () => void } {
+}): {
+  invalidate: () => void
+  dispose: () => void
+  selection: CaptureSearchLifetime['selection']
+} {
   // The shared DTO calls its session ID captureId; this instance never grants media access.
   const lifetime = createCaptureSearchLifetime({
     runtime,
@@ -39,6 +43,9 @@ export function registerManualSearchIpc({
       case SEARCH_ACTIONS.END:
 
         return lifetime.end(control.captureId)
+      case SEARCH_ACTIONS.LOOKUP:
+
+        return lifetime.lookup(control)
       case SEARCH_ACTIONS.CLEAR:
 
         return lifetime.clear(control)
@@ -64,6 +71,7 @@ export function registerManualSearchIpc({
   })
 
   return {
+    selection: lifetime.selection,
     invalidate: () => lifetime.invalidate(),
     dispose: () => {
       lifetime.invalidate()

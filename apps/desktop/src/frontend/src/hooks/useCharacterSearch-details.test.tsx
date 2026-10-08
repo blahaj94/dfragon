@@ -70,6 +70,7 @@ beforeEach(async () => {
     begin: vi.fn(),
     end: vi.fn(),
     observe: vi.fn(),
+    lookup: vi.fn(),
     retry: vi.fn(),
     selectedReference: (slot) => {
       if (reference?.slot === slot) {

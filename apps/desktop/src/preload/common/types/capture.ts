@@ -9,6 +9,6 @@ export type CaptureSource = {
 export type StableNicknameDetection = SearchObservation
 
 export type WindowFrameResult =
-  | { kind: 'frame'; image: CharacterImage }
+  | { kind: 'frame'; image: CharacterImage; frameId?: string }
   | { kind: 'waiting'; reason: 'covered' | 'unavailable' }
   | { kind: 'unsupported' }

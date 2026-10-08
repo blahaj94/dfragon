@@ -32,6 +32,7 @@ export type AuthConfiguration = {
   ownerId: string
   trustedProxyHops?: 1
   syntheticUploadTokenSha256?: string
+  testUploadEnabled?: boolean
 }
 type Session = { tokens: LoginTokens; expires: number; active: boolean; refresh?: Promise<void> }
 type PendingLogin = { requestId: string; verifier: string; expires: number; client: string }

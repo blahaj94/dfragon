@@ -50,7 +50,7 @@ async function select(id: string): Promise<void> {
   await act(async () => option!.click())
 }
 
-it('앱 시작 때 실행 중인 던파를 감지해 표시하지만 캡처와 OCR은 시작하지 않는다', async () => {
+it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR을 준비한다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await f.mount(
@@ -59,15 +59,15 @@ it('앱 시작 때 실행 중인 던파를 감지해 표시하지만 캡처와 O
     </ColorThemeProvider>
   )
   expect(f.capture.listCaptureSources).toHaveBeenCalledOnce()
-  expect(f.readCaptureFrame).not.toHaveBeenCalled()
-  expect(media.worker).not.toHaveBeenCalled()
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
+  expect(media.worker).toHaveBeenCalledOnce()
   await click('화면 캡처')
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
-    '던전앤파이터, 감지됨'
+    '던전앤파이터'
   )
-  expect(document.body.textContent).toContain('창 감지됨')
-  expect(f.capture.selectCaptureSource).not.toHaveBeenCalled()
-  expect(f.readCaptureFrame).not.toHaveBeenCalled()
+  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
+  expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
 })
 
 it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
@@ -78,7 +78,6 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
       <App />
     </ColorThemeProvider>
   )
-  const cards = [...f.container.querySelectorAll('article')]
   await click('화면 캡처')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await select('game')
@@ -99,9 +98,12 @@ it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처
     'ALICE'
   )
   await click('닫기')
+  const cards = [...f.container.querySelectorAll('article')]
 
   await f.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
-  expect([...f.container.querySelectorAll('article')]).toEqual(cards)
+  expect(
+    [...f.container.querySelectorAll('article')].every((card, index) => card === cards[index])
+  ).toBe(true)
 
   await click('화면 캡처')
   expect(document.body.textContent).toContain('캡처 중지')

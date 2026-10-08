@@ -80,7 +80,10 @@ export class OcrWorkerUnavailableError extends Error {
 }
 
 /** OCR worker를 초기화하고 인식 요청·시간 초과·취소에 따른 정리를 관리한다. */
-export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyOcrWorker> {
+export async function createPartyOcrWorker(
+  signal?: AbortSignal,
+  preprocessing: 'party' | 'raw' = 'party'
+): Promise<PartyOcrWorker> {
   signal?.throwIfAborted()
   const worker = new Worker(new URL('./paddle.worker.ts', import.meta.url), { type: 'module' })
   let stopped = false
@@ -131,7 +134,9 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
     clearTimeout(current.timer)
     current.resolve(value)
   }
-  function request(input: { root: string } | { pixels: ImageData }): Promise<Reply> {
+  function request(
+    input: { root: string } | { pixels: ImageData; preprocessing: 'party' | 'raw' }
+  ): Promise<Reply> {
     if (stopped) {
       return Promise.reject(stopReason)
     }
@@ -166,7 +171,7 @@ export async function createPartyOcrWorker(signal?: AbortSignal): Promise<PartyO
           throw new Error('Could not read the OCR image.')
         }
         const pixels = context.getImageData(0, 0, image.width, image.height)
-        const result = await request({ pixels })
+        const result = await request({ pixels, preprocessing })
         if ('ready' in result) {
           const error = new OcrWorkerUnavailableError(
             'PaddleOCR returned an invalid recognition result.'

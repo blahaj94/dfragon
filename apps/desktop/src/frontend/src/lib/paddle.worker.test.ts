@@ -29,9 +29,13 @@ const postMessage = vi.fn()
 const outputDispose = vi.fn()
 const pixels = { width: 2, height: 1 } as ImageData
 
-async function send(data: { root?: string; pixels?: ImageData }): Promise<void> {
+async function send(data: {
+  root?: string
+  pixels?: ImageData
+  preprocessing?: 'party' | 'raw'
+}): Promise<void> {
   const receive: ((event: MessageEvent) => unknown) | null = globalThis.onmessage
-  await receive?.(new MessageEvent('message', { data }))
+  await receive?.(new MessageEvent('message', { data: { preprocessing: 'party', ...data } }))
 }
 
 beforeEach(async () => {
@@ -93,12 +97,15 @@ it.each([
   { sourceWidth: 400, sourceHeight: 20, resizedWidth: 320 },
   { sourceWidth: 8192, sourceHeight: 1, resizedWidth: 320 }
 ])(
-  '$sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서에 맞춘다',
+  '원본 모드의 $sourceWidth×$sourceHeight 이미지를 자르지 않고 48×320 텐서에 맞춘다',
   async ({ sourceWidth, sourceHeight, resizedWidth }) => {
     await send({ root: 'https://fixture.invalid/ocr/' })
     const data = new Uint8ClampedArray(resizedWidth * 48 * 4).fill(255)
     canvasContext.getImageData.mockReturnValueOnce({ data })
-    await send({ pixels: { width: sourceWidth, height: sourceHeight } as ImageData })
+    await send({
+      pixels: { width: sourceWidth, height: sourceHeight } as ImageData,
+      preprocessing: 'raw'
+    })
 
     expect(canvasContext.drawImage).toHaveBeenCalledExactlyOnceWith(
       expect.anything(),
@@ -200,3 +207,29 @@ it('does not attempt inference before model initialization', async () => {
   expect(mocks.run).not.toHaveBeenCalled()
   expect(mocks.tensor).not.toHaveBeenCalled()
 })
+
+it.each([
+  { preprocessing: 'party', foregroundX: 159, paddingX: 0 },
+  { preprocessing: 'raw', foregroundX: 0, paddingX: 159 }
+] as const)(
+  'worker의 $preprocessing 입력에 해당 정렬을 적용해 모델에 전달한다',
+  async ({ preprocessing, foregroundX, paddingX }) => {
+    await send({ root: 'https://fixture.invalid/ocr/' })
+    const data = new Uint8ClampedArray(6 * 48 * 4)
+    data.fill(255)
+    data.set([0, 0, 0, 255, 0, 0, 0, 255], 20 * 6 * 4)
+    canvasContext.getImageData.mockReturnValueOnce({ data })
+    await send({ pixels: { width: 6, height: 48 } as ImageData, preprocessing })
+
+    expect(mocks.tensor).toHaveBeenCalledOnce()
+    const tensor = mocks.tensor.mock.calls[0][1] as Float32Array
+    for (let channel = 0; channel < 3; channel += 1) {
+      const row = channel * 320 * 48 + 20 * 320
+      expect(tensor[row + foregroundX]).toBe(-1)
+      expect(tensor[row + foregroundX + 1]).toBe(-1)
+      expect(tensor[row + paddingX]).toBe(0)
+      expect(tensor[row - 320 + foregroundX]).toBe(1)
+    }
+    expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ text: '가' }))
+  }
+)

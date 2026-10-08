@@ -17,7 +17,7 @@ export async function runDeveloperEvaluation(
 ): Promise<void> {
   let worker: Awaited<ReturnType<typeof createPartyOcrWorker>> | null = null
   try {
-    worker = await createPartyOcrWorker(signal)
+    worker = await createPartyOcrWorker(signal, preprocessing)
     for (const sample of samples) {
       signal.throwIfAborted()
       let result: DeveloperEvaluation

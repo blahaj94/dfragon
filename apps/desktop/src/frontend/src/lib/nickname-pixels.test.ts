@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { binarizeNicknamePixels } from './nickname-pixels'
+import { binarizeNicknamePixels, nicknameCenterOffset } from './nickname-pixels'
 
 // OpenCV 4.12.0의 THRESH_BINARY_INV | THRESH_OTSU 출력과 대조한 회색 입력이다.
 it.each([
@@ -39,4 +39,42 @@ it('빈 픽셀 배열은 그대로 유지한다', () => {
   const pixels = new Uint8ClampedArray()
   binarizeNicknamePixels(pixels)
   expect(pixels).toHaveLength(0)
+})
+
+it('글자 밑획에 붙은 프레임 선과 모서리 장식은 가로 정렬의 글자 경계로 세지 않는다', () => {
+  const width = 24
+  const height = 48
+  const rgba = new Uint8ClampedArray(width * height * 4)
+  rgba.fill(255)
+  const paint = (x: number, y: number): void => {
+    rgba.set([0, 0, 0, 255], (y * width + x) * 4)
+  }
+  for (let y = 0; y < 7; y += 1) {
+    paint(23, y)
+  }
+  for (let y = 20; y <= 42; y += 1) {
+    paint(2, y)
+    paint(6, y)
+  }
+  for (let y = 43; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      paint(x, y)
+    }
+  }
+  const before = rgba.slice()
+
+  // 글자 폭 5px가 32px 입력의 x=13..17에 놓이고 픽셀 자체는 수정하지 않는다.
+  expect(nicknameCenterOffset(rgba, width, height, 32)).toBe(11)
+  expect(rgba).toEqual(before)
+})
+
+it('위쪽 가장자리에서 본문까지 이어지는 획과 떨어진 구두점은 글자 경계로 보존한다', () => {
+  const rgba = new Uint8ClampedArray(20 * 48 * 4)
+  rgba.fill(255)
+  for (let y = 0; y <= 12; y += 1) {
+    rgba.set([0, 0, 0, 255], (y * 20 + 1) * 4)
+  }
+  rgba.set([0, 0, 0, 255], (40 * 20 + 12) * 4)
+
+  expect(nicknameCenterOffset(rgba, 20, 48, 32)).toBe(9)
 })

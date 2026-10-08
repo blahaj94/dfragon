@@ -46,10 +46,7 @@ export function sameCharacterPortrait(
 
 /** 같은 순위의 이름과 같은 얼굴이면 현재 요청과 기존 시간 예산을 유지한다. */
 export function sameOcrSearchInput(left: OcrSearchInput, right: OcrSearchInput): boolean {
-  if (
-    left.candidateNicknames.length !== right.candidateNicknames.length ||
-    left.candidateNicknames.some((name, index) => name !== right.candidateNicknames[index])
-  ) {
+  if (left.candidateNicknames[0] !== right.candidateNicknames[0]) {
     return false
   }
 

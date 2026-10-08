@@ -1,9 +1,11 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import { decodeCtcCandidates, normalizedBgr } from './paddle-recognition'
+import { decodeCtcCandidates, normalizedBgr, normalizedNicknameBgr } from './paddle-recognition'
 import type { PartyOcrResult } from '../types/capture'
 
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
 const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
+const MODEL_HEIGHT = 48
+const MODEL_WIDTH = 320
 
 let session: InferenceSession | null = null
 let characters: string[] = []
@@ -29,13 +31,13 @@ async function initializeModel(root: string): Promise<void> {
   })
 }
 
-/** 이미지 전처리·추론·디코딩을 수행하고 성공과 실패 모두 텐서를 정리한다. */
-async function recognizeAndReply(pixels: ImageData): Promise<void> {
+/** 이미지 전처리, 추론, 디코딩을 수행하고 성공과 실패 모두 텐서를 정리한다. */
+async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'raw'): Promise<void> {
   if (session == null) {
     throw new Error('OCR model unavailable.')
   }
-  const height = 48
-  const width = 320
+  const height = MODEL_HEIGHT
+  const width = MODEL_WIDTH
   const resizedWidth = Math.min(width, Math.ceil((height * pixels.width) / pixels.height))
   const original = new OffscreenCanvas(pixels.width, pixels.height)
   original.getContext('2d')!.putImageData(pixels, 0, 0)
@@ -45,7 +47,8 @@ async function recognizeAndReply(pixels: ImageData): Promise<void> {
   context.imageSmoothingQuality = 'low'
   context.drawImage(original, 0, 0, resizedWidth, height)
   const rgba = context.getImageData(0, 0, resizedWidth, height).data
-  const tensor = new Tensor('float32', normalizedBgr(rgba, resizedWidth, height, width), [
+  const normalize = preprocessing === 'party' ? normalizedNicknameBgr : normalizedBgr
+  const tensor = new Tensor('float32', normalize(rgba, resizedWidth, height, width), [
     1,
     3,
     height,
@@ -80,9 +83,11 @@ async function recognizeAndReply(pixels: ImageData): Promise<void> {
 }
 
 // 메시지 경계는 모델 내부 오류를 노출하지 않고 공개 응답만 전달한다.
-onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) => {
+onmessage = async (
+  event: MessageEvent<{ root?: string; pixels?: ImageData; preprocessing?: 'party' | 'raw' }>
+) => {
   try {
-    const { root, pixels } = event.data
+    const { root, pixels, preprocessing } = event.data
     if (root != null) {
       await initializeModel(root)
       postMessage({ ready: true })
@@ -90,10 +95,10 @@ onmessage = async (event: MessageEvent<{ root?: string; pixels?: ImageData }>) =
       return
     }
 
-    if (pixels == null) {
+    if (pixels == null || (preprocessing !== 'party' && preprocessing !== 'raw')) {
       throw new Error('OCR model unavailable.')
     }
-    await recognizeAndReply(pixels)
+    await recognizeAndReply(pixels, preprocessing)
   } catch {
     // Never forward model exceptions, image pixels, or recognized names to logs.
     postMessage({ failed: true })

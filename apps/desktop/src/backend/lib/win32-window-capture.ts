@@ -713,6 +713,26 @@ export function isDnfForeground(): boolean {
   }
 }
 
+/** Checks process ownership so all DFragon windows can use the product shortcuts. */
+export function isCurrentProcessForeground(): boolean {
+  if (process.platform !== 'win32') {
+    return false
+  }
+  try {
+    const api = getApi()
+    const hwnd = api.GetForegroundWindow()
+    if (!hwnd || !api.IsWindowVisible(hwnd) || api.IsIconic(hwnd)) {
+      return false
+    }
+    const processId = [0]
+    api.GetWindowThreadProcessId(hwnd, processId)
+
+    return processId[0] === process.pid
+  } catch {
+    return false
+  }
+}
+
 /** Pure region predicate kept exportable for deterministic coverage tests. */
 export function partySlotCoverageIntersectsWindow(
   client: ScreenRect,

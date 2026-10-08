@@ -11,7 +11,7 @@ const portrait = {
 }
 const policy = { maxMeanChannelError: 0, minCoverage: 1, minComparedPixels: 1 }
 
-async function selectedFixture(): Promise<
+async function selectedFixture(searchKind: 'capture' | 'manual' = 'capture'): Promise<
   Awaited<ReturnType<typeof createSearchFixture>> & {
     reference: CharacterSelectionReference
     details: CharacterDetails
@@ -19,7 +19,7 @@ async function selectedFixture(): Promise<
   }
 > {
   const openSelected = vi.fn<typeof openSelectedCharacterDetail>().mockResolvedValue(true)
-  const fixture = await createSearchFixture(false, 'capture', policy, { openSelected })
+  const fixture = await createSearchFixture(false, searchKind, policy, { openSelected })
   const metadata = {
     revision: 1,
     contentUpdatedAt: '2026-10-07T00:00:00.000Z',
@@ -58,34 +58,46 @@ async function selectedFixture(): Promise<
   }
   const image = new PNG({ width: 2, height: 1 })
   image.data = Buffer.from(portrait.image.rgba)
-  fixture.fetchSearch
-    .mockResolvedValueOnce(
-      jsonResponse({
-        body: {
-          rows: [
-            {
-              ...candidate,
-              imageUrl:
-                'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
-            }
-          ]
-        }
-      })
-    )
-    .mockResolvedValueOnce(
+  fixture.fetchSearch.mockResolvedValueOnce(
+    jsonResponse({
+      body: {
+        rows: [
+          {
+            ...candidate,
+            imageUrl:
+              'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
+          }
+        ]
+      }
+    })
+  )
+  if (searchKind === 'capture') {
+    fixture.fetchSearch.mockResolvedValueOnce(
       new Response(new Uint8Array(PNG.sync.write(image)), {
         headers: { 'Content-Type': 'image/png' }
       })
     )
-    .mockResolvedValueOnce(jsonResponse({ body: details }))
-  await fixture.invoke('notifyOcrCandidatesDetected', {
-    captureId: fixture.captureId,
-    slot: 0,
-    observationRevision: 1,
-    nickname: '가나',
-    candidateNicknames: ['가나'],
-    portrait
-  })
+  }
+  fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: details }))
+  if (searchKind === 'capture') {
+    await fixture.invoke('notifyOcrCandidatesDetected', {
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      candidateNicknames: ['가나'],
+      portrait
+    })
+  } else {
+    await fixture.invoke('controlManualSearch', {
+      action: 'lookup',
+      captureId: fixture.captureId,
+      slot: 0,
+      observationRevision: 1,
+      nickname: '가나',
+      serverId: 'cain'
+    })
+  }
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
   const requestId = (await fixture.read()).slots[0].requestId!
   const reference = { captureId: fixture.captureId, slot: 0, requestId }
@@ -94,6 +106,18 @@ async function selectedFixture(): Promise<
 }
 
 describe('현재 선택으로만 여는 상세 창 IPC', () => {
+  it('캡처 없이 직접 조회한 선택도 열고 수동 검색 종료 후에는 거절한다', async () => {
+    const fixture = await selectedFixture('manual')
+    expect((await fixture.read()).slots[0].selectionMethod).toBe('manual')
+    expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: true })
+    const isCurrent = fixture.openSelected.mock.calls[0][2]
+    expect(isCurrent()).toBe(true)
+    await fixture.invoke('controlManualSearch', { action: 'end', captureId: fixture.captureId })
+    expect(isCurrent()).toBe(false)
+    expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: false })
+    expect(fixture.openSelected).toHaveBeenCalledTimes(1)
+  })
+
   it('선택한 실제 상세를 main에서 전달하고 HTTP를 추가 실행하지 않는다', async () => {
     const fixture = await selectedFixture()
     fixture.fetchSearch.mockClear()

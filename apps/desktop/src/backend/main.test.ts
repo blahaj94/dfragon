@@ -25,7 +25,14 @@ const mocks = vi.hoisted(() => {
   const consumeCaptureMediaPermission = vi.fn(() => false)
   const permissionCheck = vi.fn()
   const permissionRequest = vi.fn()
-  const registerCapture = vi.fn()
+  const disposeCapture = vi.fn()
+  const registerCapture = vi.fn(() => disposeCapture)
+  const registerDiagnosticsWindow = vi.fn(() => vi.fn())
+  const disposeMainDiagnostics = vi.fn()
+  const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
+  const reportDiagnostic = vi.fn()
+  const registerDesktopShortcuts = vi.fn(() => vi.fn())
+  const collectCurrentCapture = vi.fn(async () => ({ status: 'queued' }))
   const createIngress = vi.fn()
   const attachIngress = vi.fn()
   const attachAfterStart = vi.fn()
@@ -80,6 +87,13 @@ const mocks = vi.hoisted(() => {
     permissionCheck,
     permissionRequest,
     registerCapture,
+    disposeCapture,
+    registerDiagnosticsWindow,
+    registerMainDiagnosticErrors,
+    disposeMainDiagnostics,
+    reportDiagnostic,
+    registerDesktopShortcuts,
+    collectCurrentCapture,
     bootstrap: undefined as Promise<void> | undefined,
     createIngress,
     attachIngress,
@@ -187,7 +201,18 @@ vi.mock('./character-detail/windows', () => ({
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
   registerCaptureWindow: mocks.registerWindow,
-  consumeCaptureMediaPermission: mocks.consumeCaptureMediaPermission
+  consumeCaptureMediaPermission: mocks.consumeCaptureMediaPermission,
+  collectCurrentCapture: mocks.collectCurrentCapture
+}))
+vi.mock('./shortcuts/register', () => ({
+  registerDesktopShortcuts: mocks.registerDesktopShortcuts
+}))
+vi.mock('./diagnostics/ipc-handler', () => ({
+  registerDiagnosticsWindow: mocks.registerDiagnosticsWindow
+}))
+vi.mock('./diagnostics/log', () => ({
+  registerMainDiagnosticErrors: mocks.registerMainDiagnosticErrors,
+  reportDiagnostic: mocks.reportDiagnostic
 }))
 vi.mock('./auth/protocol-ingress', () => ({
   createProtocolIngress: mocks.createIngress,
@@ -407,9 +432,11 @@ it('API 미구성에서도 상세 창은 고정된 제품 entry와 제한 preloa
     preload: join(__dirname, '../preload/character-detail.js'),
     devUrl: undefined
   })
-  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(undefined, {
-    openSelected: mocks.openSelectedCharacterDetail
-  })
+  expect(mocks.registerCapture).toHaveBeenCalledExactlyOnceWith(
+    undefined,
+    { openSelected: mocks.openSelectedCharacterDetail },
+    expect.objectContaining({ collect: expect.any(Function), dispose: expect.any(Function) })
+  )
 })
 
 it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명시적으로 거절한다', async () => {
@@ -554,7 +581,8 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     },
     {
       openSelected: mocks.openSelectedCharacterDetail
-    }
+    },
+    expect.objectContaining({ collect: expect.any(Function), dispose: expect.any(Function) })
   )
   expect(mocks.registerWindow).toHaveBeenCalledExactlyOnceWith(
     expect.anything(),
@@ -1128,7 +1156,8 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
     },
     {
       openSelected: mocks.openSelectedCharacterDetail
-    }
+    },
+    expect.objectContaining({ collect: expect.any(Function), dispose: expect.any(Function) })
   )
 })
 

@@ -134,13 +134,27 @@ export class OcrStore {
         return { id: capture.id, duplicate: true }
       }
 
-      const used = this.db
-        .prepare(
-          'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
-        )
-        .get()!
-      if (Number(used.bytes) + png.length > this.maximumBytes) {
-        throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
+      if (capture.testCollection !== undefined) {
+        const duplicate = this.db
+          .prepare(
+            "SELECT id FROM captures WHERE json_extract(metadata,'$.testCollection.contentSha256')=? LIMIT 1"
+          )
+          .get(capture.testCollection.contentSha256)
+        if (duplicate !== undefined) {
+          this.db.exec('COMMIT')
+          const id = duplicate.id as string
+
+          return { id, duplicate: true }
+        }
+      } else {
+        const used = this.db
+          .prepare(
+            'SELECT (SELECT COALESCE(SUM(length(png)),0) FROM captures) + (SELECT COALESCE(SUM(length(data)),0) FROM model_files) AS bytes'
+          )
+          .get()!
+        if (Number(used.bytes) + png.length > this.maximumBytes) {
+          throw new OcrError(OCR_ERROR_CODE.STORAGE_LIMIT)
+        }
       }
 
       const text = capture.synthetic?.text ?? null
@@ -210,8 +224,17 @@ export class OcrStore {
       text: row.text as string | null
     }
     const excluded = row.excluded === 1
+    const sample: Sample = { ...fields, excluded, split: row.split as Split }
+    if (capture.testCollection !== undefined) {
+      const slot = capture.testCollection.slots.find((entry) => entry.slot === row.slot)
+      if (slot === undefined) {
+        throw new OcrError(OCR_ERROR_CODE.UNAVAILABLE)
+      }
+      const { prediction, ...context } = slot
+      sample.testCollection = { trigger: capture.testCollection.trigger, context, prediction }
+    }
 
-    return { ...fields, excluded, split: row.split as Split }
+    return sample
   }
 
   sample(id: string): Sample {
