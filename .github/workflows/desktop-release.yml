@@ -36,6 +36,10 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      # Read Code Quality runs to confirm the release commit passed main CI.
+      actions: read
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
       DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://accounts.example.test' || vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN || 'https://accounts.dfragon.com' }}
@@ -71,6 +75,27 @@ jobs:
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           NODE
+      # Check the checked-out commit, not the tag name, so a moved tag cannot bypass the check.
+      - name: Require a main commit that passed Code Quality
+        if: github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_COMMIT=$(git rev-parse HEAD)
+          export RELEASE_COMMIT
+          main_relation=$(gh api "repos/$GITHUB_REPOSITORY/compare/$RELEASE_COMMIT...main?per_page=1" --jq .status)
+          if [[ "$main_relation" != ahead && "$main_relation" != identical ]]; then
+            echo "::error::Release tag $RELEASE_TAG points to $RELEASE_COMMIT, which is not on main."
+            exit 1
+          fi
+          passed_runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/code-quality.yml/runs?head_sha=$RELEASE_COMMIT&event=push&branch=main&status=success" \
+            --jq '[.workflow_runs[] | select(.head_sha == env.RELEASE_COMMIT and .event == "push" and .head_branch == "main" and .conclusion == "success")] | length')
+          if [[ "$passed_runs" == 0 ]]; then
+            echo "::error::Code Quality has not succeeded for the main push of $RELEASE_COMMIT. Re-run it before releasing."
+            exit 1
+          fi
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
