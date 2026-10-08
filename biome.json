@@ -68,9 +68,12 @@
         "noAdjacentSpacesInRegex": "error",
         "noExtraBooleanCast": "error",
         "noUselessCatch": "error",
-        "noUselessEscapeInRegex": "error"
+        "noUselessEmptyExport": "error",
+        "noUselessEscapeInRegex": "error",
+        "noUselessRename": "error"
       },
       "correctness": {
+        "noChildrenProp": "error",
         "noConstAssign": "error",
         "noConstantCondition": "error",
         "noEmptyCharacterClassInRegex": "error",
@@ -80,6 +83,7 @@
         "noInvalidConstructorSuper": "error",
         "noNonoctalDecimalEscape": "error",
         "noPrecisionLoss": "error",
+        "noRenderReturnValue": "error",
         "noSelfAssign": "error",
         "noSetterReturn": "error",
         "noSwitchDeclarations": "error",
@@ -92,10 +96,20 @@
         "noUnusedLabels": "error",
         "noUnusedPrivateClassMembers": "error",
         "noUnusedVariables": "error",
+        "noVoidElementsWithChildren": "error",
         "useIsNan": "error",
+        "useJsxKeyInIterable": "error",
         "useValidForDirection": "error",
         "useValidTypeof": "error",
         "useYield": "error"
+      },
+      "nursery": {
+        "noReactStringRefs": "error",
+        "useStringStartsEndsWith": "error"
+      },
+      "security": {
+        "noDangerouslySetInnerHtmlWithChildren": "error",
+        "noGlobalEval": "error"
       },
       "style": {
         "noNestedTernary": "error",
@@ -113,18 +127,24 @@
         "noDuplicateCase": "error",
         "noDuplicateClassMembers": "error",
         "noDuplicateElseIf": "error",
+        "noDuplicateJsxProps": "error",
         "noDuplicateObjectKeys": "error",
         "noDuplicateParameters": "error",
+        "noDuplicatedSpreadProps": "error",
+        "noEmptySource": "error",
         "noFallthroughSwitchClause": "error",
         "noFunctionAssign": "error",
         "noGlobalAssign": "error",
         "noImportAssign": "error",
         "noIrregularWhitespace": "error",
         "noMisleadingCharacterClass": "error",
+        "noParametersOnlyUsedInRecursion": "error",
         "noPrototypeBuiltins": "error",
         "noRedeclare": "error",
         "noShadowRestrictedNames": "error",
         "noSparseArray": "error",
+        "noThenProperty": "error",
+        "noUnassignedVariables": "error",
         "noUnsafeNegation": "error",
         "noUselessEscapeInString": "error",
         "noUselessRegexBackrefs": "error",
@@ -223,21 +243,11 @@
       "includes": ["apps/desktop/**"],
       "linter": {
         "rules": {
-          "correctness": {
-            "noChildrenProp": "error",
-            "noRenderReturnValue": "error",
-            "useJsxKeyInIterable": "error"
-          },
-          "nursery": {
-            "noReactStringRefs": "error"
-          },
           "security": {
-            "noBlankTarget": "error",
-            "noDangerouslySetInnerHtmlWithChildren": "error"
+            "noBlankTarget": "error"
           },
           "suspicious": {
             "noCommentText": "error",
-            "noDuplicateJsxProps": "error",
             "noUnknownAttribute": "error"
           }
         }
@@ -247,7 +257,11 @@
       "includes": [
         "apps/desktop/**/*.ts",
         "apps/desktop/**/*.tsx",
-        "apps/accounts/browser/**/*.tsx"
+        "apps/accounts/browser/**/*.tsx",
+        "apps/web/**/*.js",
+        "apps/web/**/*.jsx",
+        "apps/web/**/*.ts",
+        "apps/web/**/*.tsx"
       ],
       "linter": {
         "rules": {
@@ -293,21 +307,6 @@
         "apps/web/**/*.js",
         "apps/web/**/*.jsx",
         "apps/web/**/*.ts",
-        "apps/web/**/*.tsx"
-      ],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "useHookAtTopLevel": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": [
-        "apps/web/**/*.js",
-        "apps/web/**/*.jsx",
-        "apps/web/**/*.ts",
         "apps/web/**/*.tsx",
         "!**/*.test.*",
         "!**/*.spec.*",
@@ -323,6 +322,26 @@
                 "allowConstantExport": true
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "includes": [
+        "**/*.test.*",
+        "**/*.spec.*",
+        "**/test/**",
+        "**/tests/**",
+        "**/__tests__/**",
+        "**/test-support/**"
+      ],
+      "linter": {
+        "rules": {
+          "security": {
+            "noGlobalEval": "off"
+          },
+          "suspicious": {
+            "noThenProperty": "off"
           }
         }
       }
