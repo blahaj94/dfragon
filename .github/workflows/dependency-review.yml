@@ -49,3 +49,20 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api --method POST "repos/$GITHUB_REPOSITORY/dependency-graph/snapshots" --input "$RUNNER_TEMP/dependency-snapshot.json"
+
+  review:
+    name: Review dependency changes
+    needs: submit
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Not a required check: a failure flags the PR without blocking merge.
+      # Build tools run in CI and bundled apps ship devDependencies, so every scope counts.
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          fail-on-scopes: runtime, development, unknown
+          retry-on-snapshot-warnings: true
+          retry-on-snapshot-warnings-timeout: 60
