@@ -31,6 +31,8 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 `.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root Biome lint, format 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
+`.github/workflows/workflow-lint.yml`은 `.github` 경로가 바뀐 PR과 main push에서 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하며 required check가 아니다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다. Action 버전 갱신은 `.github/dependabot.yml`이 7일 cooldown을 둔 주간 묶음 PR로 제안한다.
+
 ## Shared library
 
 - Package: `@dfragon/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
