@@ -165,6 +165,20 @@ export function createSpacingCases() {
         'function f(a, b) {\n  if (a) {\n    one()\n  }\n\n  // reason\n  if (b) {\n    two()\n  }\n}\n'
     },
     {
+      name: 'return 앞 biome-ignore 주석은 return에 붙여 두고 그 위에 빈 줄을 둔다',
+      source:
+        'function f(source){work()\n// biome-ignore lint/security/noGlobalEval: reason\nreturn eval(source)}',
+      expected:
+        'function f(source) {\n  work()\n\n  // biome-ignore lint/security/noGlobalEval: reason\n  return eval(source)\n}\n'
+    },
+    {
+      name: '두 번째 블록 if 앞 biome-ignore 주석은 if에 붙여 두고 그 위에 빈 줄을 둔다',
+      source:
+        'function f(a,b){if(a){one()}\n// biome-ignore lint/suspicious/noDebugger: reason\nif(b){debugger}}',
+      expected:
+        'function f(a, b) {\n  if (a) {\n    one()\n  }\n\n  // biome-ignore lint/suspicious/noDebugger: reason\n  if (b) {\n    debugger\n  }\n}\n'
+    },
+    {
       name: '블록 if의 줄 끝 주석 위치를 유지한다',
       source: 'function f(a,b){if(a){one()} // first\nif(b){two()}}',
       expected:
