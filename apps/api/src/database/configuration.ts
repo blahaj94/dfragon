@@ -24,10 +24,12 @@ function required(value: string | undefined): string {
   return value
 }
 
+const DATABASE_PORT_PATTERN = /^[0-9]+$/
+
 export function readDatabaseConfiguration(env: NodeJS.ProcessEnv): DatabaseConfiguration {
   try {
     const portText = required(env.DB_PORT)
-    const isPortDecimal = /^[0-9]+$/.test(portText)
+    const isPortDecimal = DATABASE_PORT_PATTERN.test(portText)
     if (!isPortDecimal) {
       throw new Error(configurationError)
     }

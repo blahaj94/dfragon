@@ -50,6 +50,8 @@ ${downStatements}
   return migrationSource
 }
 
+const MIGRATION_NAME_PATTERN = /^[A-Z][A-Za-z0-9]{0,79}$/
+
 // TypeORM의 schema diff를 사용하되, TS type import와 정제된 오류 출력은 기존 ESM 계약에 맞춘다.
 export async function generateMigration(
   name: string,
@@ -58,7 +60,7 @@ export async function generateMigration(
 ): Promise<string> {
   let dataSource: DataSource | undefined
   try {
-    const isMigrationNameValid = /^[A-Z][A-Za-z0-9]{0,79}$/.test(name)
+    const isMigrationNameValid = MIGRATION_NAME_PATTERN.test(name)
     if (!isMigrationNameValid) {
       throw new Error('Invalid migration name')
     }

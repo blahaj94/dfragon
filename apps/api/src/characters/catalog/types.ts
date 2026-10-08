@@ -46,8 +46,10 @@ export function catalogKey(key: CatalogKey): string {
   }
 }
 
+const CATALOG_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
+
 export function isCatalogId(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-zA-Z0-9_-]{1,256}$/.test(value)
+  return typeof value === 'string' && CATALOG_ID_PATTERN.test(value)
 }
 
 export const unavailableDetail: CatalogDetail = {

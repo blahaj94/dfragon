@@ -6,6 +6,11 @@ export interface AdventureSearchQuery {
   after: string | null
 }
 
+const QUERY_ENCODED_SPACE_PATTERN = /\+/g
+const ADVENTURE_NAME_CONTROL_PATTERN = /\p{Cc}/u
+const ADVENTURE_RESULT_LIMIT_PATTERN = /^[0-9]+$/
+const ADVENTURE_CURSOR_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
+
 export function parseAdventureSearchQuery(originalUrl: string): AdventureSearchQuery {
   const separator = originalUrl.indexOf('?')
   if (separator < 0 || originalUrl.length > 4096) {
@@ -19,8 +24,10 @@ export function parseAdventureSearchQuery(originalUrl: string): AdventureSearchQ
     }
     let key: string, value: string
     try {
-      key = decodeURIComponent(component.slice(0, equal).replace(/\+/g, ' '))
-      value = decodeURIComponent(component.slice(equal + 1).replace(/\+/g, ' '))
+      key = decodeURIComponent(component.slice(0, equal).replace(QUERY_ENCODED_SPACE_PATTERN, ' '))
+      value = decodeURIComponent(
+        component.slice(equal + 1).replace(QUERY_ENCODED_SPACE_PATTERN, ' ')
+      )
     } catch {
       throw new CharacterDetailFailure('query')
     }
@@ -34,17 +41,17 @@ export function parseAdventureSearchQuery(originalUrl: string): AdventureSearchQ
     adventureName == null ||
     !adventureName.trim() ||
     [...adventureName].length > 100 ||
-    /\p{Cc}/u.test(adventureName)
+    ADVENTURE_NAME_CONTROL_PATTERN.test(adventureName)
   ) {
     throw new CharacterDetailFailure('query')
   }
   const rawLimit = values.get('limit') ?? '100'
   const limit = Number(rawLimit)
-  if (!/^[0-9]+$/.test(rawLimit) || limit < 1 || limit > 100) {
+  if (!ADVENTURE_RESULT_LIMIT_PATTERN.test(rawLimit) || limit < 1 || limit > 100) {
     throw new CharacterDetailFailure('query')
   }
   const after = values.get('after') ?? null
-  if (after != null && !/^[a-zA-Z0-9_-]{1,256}$/.test(after)) {
+  if (after != null && !ADVENTURE_CURSOR_PATTERN.test(after)) {
     throw new CharacterDetailFailure('query')
   }
 
