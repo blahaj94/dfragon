@@ -5,3 +5,7 @@ rules:
       # Its select and publish jobs recheck event, head_branch and head_repository, and the
       # workflow never consumes pull request artifacts.
       - product-images.yml:3
+  # actionlint 1.7.12 rejects the suggested `$/...` local action syntax, so local actions keep
+  # `./...`. Re-enable this audit once actionlint accepts `$/...`.
+  self-repository:
+    disable: true
