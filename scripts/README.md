@@ -99,7 +99,7 @@ GitHub 이미지 빌드·발행은 내장 정보와 선택한 정확한 commit�
 
 pnpm 11 lockfile은 pnpm 실행 파일을 담은 첫 YAML 문서와 workspace 의존성을 담은 마지막 문서로 나뉩니다. 현재 GitHub dependency graph는 이 lockfile에서 첫 문서의 package만 인식해 workspace의 전이 의존성이 Dependabot alerts와 dependency review에서 빠집니다. Dependency Review workflow는 `pnpm sbom --sbom-format cyclonedx --lockfile-only` 결과를 이 도구로 Dependency submission snapshot으로 바꿔 제출합니다.
 
-인자는 `<cyclonedx-sbom-file> <snapshot-file>`이고 `SNAPSHOT_SHA`, `SNAPSHOT_REF`(`refs/heads/<branch>`), `GITHUB_WORKFLOW`, `GITHUB_JOB`, `GITHUB_RUN_ID`를 읽습니다. Workspace가 직접 의존하는 package는 `direct`, 나머지는 `indirect`로 기록합니다. pnpm이 개발 의존성으로만 도달한다고 표시한(`excluded`) package는 `development`, 나머지는 `runtime`입니다. 그래프가 불완전하거나 commit, branch 값이 올바르지 않으면 파일을 쓰지 않고 실패합니다.
+인자는 `<cyclonedx-sbom-file> <snapshot-file>`이고 `SNAPSHOT_SHA`, `SNAPSHOT_REF`(`refs/heads/<branch>`), `GITHUB_WORKFLOW`, `GITHUB_JOB`, `GITHUB_RUN_ID`를 읽습니다. Workspace가 직접 의존하는 package는 `direct`, 나머지는 `indirect`로 기록합니다. pnpm이 개발 의존성으로만 도달한다고 표시한(`excluded`) package는 `development`, 나머지는 `runtime`입니다. peer 조합처럼 bom-ref만 다르고 purl이 같은 package는 하나로 합치며, 한 변형이라도 `direct`, `runtime`이면 그 값을 쓰고 하위 의존성은 중복 없이 모읍니다. 그래프가 불완전하거나 commit, branch 값이 올바르지 않으면 파일을 쓰지 않고 실패합니다.
 
 main push는 Dependabot alerts의 기준을, 같은 저장소 PR은 dependency review가 비교할 PR head를 제출합니다. Fork PR은 쓰기 권한이 없어 제출하지 않고, review는 정적 dependency graph만 비교합니다.
 
