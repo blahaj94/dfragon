@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: write
+      contents: write # Dependency submission API requires write access to contents.
     env:
       # Dependency review compares the PR head commit, not the merge commit in github.sha.
       SNAPSHOT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -36,7 +36,7 @@ jobs:
           ref: ${{ env.SNAPSHOT_SHA }}
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
       - name: Set up pnpm
