@@ -11,23 +11,51 @@ const run = promisify(execFile)
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const workflow = await readFile(join(root, '.github/workflows/code-quality.yml'), 'utf8')
-const jobs = workflow.split(/^jobs:\s*$/mu)[1].split(/(?=^ {2}[\w-]+:\s*$)/mu)
-const toolingJob = jobs.find((job) => /\bpnpm(?:\s+run)?\s+test:tooling\b/u.test(job))
-assert.ok(toolingJob, 'Code Quality가 루트 도구 집계를 호출해야 한다')
-const steps = toolingJob.split(/^ {6}- /mu).slice(1)
-const toolingStep = steps.find((step) => /\bpnpm(?:\s+run)?\s+test:tooling\b/u.test(step))
-const runLine = toolingStep.split('\n').findIndex((line) => line.trimStart().startsWith('run:'))
-const runValue = toolingStep.split('\n')[runLine].trimStart().slice('run:'.length).trim()
-let command = runValue
+const jobs = workflow
+  .split(/^jobs:\s*$/mu)[1]
+  .split(/(?=^ {2}[\w-]+:\s*$)/mu)
+  .filter((job) => /^ {2}[\w-]+:\s*$/mu.test(job))
 
-if (runValue === '|' || runValue === '|-') {
-  command = toolingStep
-    .split('\n')
+function jobIdOf(job) {
+  return /^ {2}([\w-]+):\s*$/mu.exec(job)[1]
+}
+
+function settingsOf(job) {
+  return job.split(/^ {4}steps:/mu)[0]
+}
+
+function stepsOf(job) {
+  return job
+    .split(/^ {4}steps:/mu)[1]
+    .split(/^ {6}- /mu)
+    .slice(1)
+}
+
+function runCommandOf(step) {
+  const lines = step.split('\n')
+  const runLine = lines.findIndex((line) => line.trimStart().startsWith('run:'))
+  const runValue = lines[runLine].trimStart().slice('run:'.length).trim()
+
+  if (runValue !== '|' && runValue !== '|-') {
+    return runValue
+  }
+
+  return lines
     .slice(runLine + 1)
     .filter((line) => line.startsWith('          '))
     .map((line) => line.slice(10))
     .join('\n')
 }
+
+const toolingJob = jobs.find((job) => /\bpnpm(?:\s+run)?\s+test:tooling\b/u.test(job))
+assert.ok(toolingJob, 'Code Quality가 루트 도구 집계를 호출해야 한다')
+const toolingStep = stepsOf(toolingJob).find((step) => {
+  return /\bpnpm(?:\s+run)?\s+test:tooling\b/u.test(step)
+})
+const command = runCommandOf(toolingStep)
+// The main ruleset requires this check name, so it must summarize every Code Quality check.
+const aggregateJob = jobs.find((job) => jobIdOf(job) === 'lint-and-format')
+assert.ok(aggregateJob, 'main ruleset의 required check인 lint-and-format job이 있어야 한다')
 
 const suites = (await readdir(join(root, 'scripts/test'))).filter((name) => {
   return name.endsWith('.test.mjs')
@@ -56,16 +84,58 @@ async function runToolingFixture(t, failedSuite) {
   }
 }
 
+// The aggregate step uses GitHub's default Linux shell, which runs bash with -e.
+async function runAggregate(results) {
+  const [step] = stepsOf(aggregateJob)
+  const env = { ...process.env, RESULTS: results.join(' ') }
+
+  return run('bash', ['-e', '-c', runCommandOf(step)], { env, timeout: 20_000 })
+}
+
 test('Code Quality는 PR과 main push에서 루트 도구 집계를 조건 없이 검사한다', () => {
   const triggers = workflow.split(/^on:\s*$/mu)[1].split(/^\S/mu)[0]
-  const jobSettings = toolingJob.split(/^ {4}steps:/mu)[0]
 
   assert.match(triggers, /^ {2}pull_request:\s*$/mu)
   assert.match(triggers, /^ {2}push:\s*$/mu)
   assert.match(triggers, /^ {4}branches: \[main\]\s*$/mu)
   assert.doesNotMatch(triggers, /\b(?:paths|paths-ignore):/u)
-  assert.doesNotMatch(jobSettings, /^ {4}(?:if|continue-on-error):/mu)
+  assert.doesNotMatch(settingsOf(toolingJob), /^ {4}(?:if|continue-on-error):/mu)
   assert.doesNotMatch(toolingStep, /^(?: {8})?(?:if|continue-on-error):/mu)
+})
+
+test('이미지 계획 외의 job은 조건 없이 실행되고 lint-and-format이 항상 모두 기다린다', () => {
+  const settings = settingsOf(aggregateJob)
+  const needs = /^ {4}needs:\s*\n((?: {6}- [\w-]+\s*\n)+)/mu.exec(settings)
+  assert.ok(needs, 'lint-and-format은 기다릴 job을 needs 목록으로 선언해야 한다')
+  // Only the main push image plan may be conditional. Product Images reads it after the whole run.
+  const checkJobs = jobs.filter((job) => {
+    return job !== aggregateJob && jobIdOf(job) !== 'image-plan'
+  })
+
+  assert.match(settings, /^ {4}if: always\(\)\s*$/mu)
+  assert.doesNotMatch(settings, /^ {4}continue-on-error:/mu)
+  assert.ok(checkJobs.includes(toolingJob))
+
+  for (const job of checkJobs) {
+    assert.doesNotMatch(settingsOf(job), /^ {4}(?:if|continue-on-error):/mu, jobIdOf(job))
+  }
+
+  assert.deepEqual(
+    [...needs[1].matchAll(/- ([\w-]+)/gu)].map(([, id]) => id).sort(),
+    checkJobs.map(jobIdOf).sort()
+  )
+})
+
+test('lint-and-format은 needs 전체 결과를 받아 모두 성공일 때만 통과한다', async () => {
+  const [step] = stepsOf(aggregateJob)
+
+  assert.match(step, /^ {10}RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}\s*$/mu)
+  await runAggregate(['success', 'success', 'success'])
+  await assert.rejects(runAggregate([]), { code: 1 }, '전달된 결과 없음')
+
+  for (const result of ['failure', 'cancelled', 'skipped']) {
+    await assert.rejects(runAggregate(['success', result, 'success']), { code: 1 }, result)
+  }
 })
 
 test('실제 CI 명령과 package script는 현재 및 새 루트 도구 테스트를 모두 실행한다', async (t) => {

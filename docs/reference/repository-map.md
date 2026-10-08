@@ -29,7 +29,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, 고정 SEED source, foundation/provenance, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root Biome lint, format 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root Biome lint, format 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
 ## Shared library
 
