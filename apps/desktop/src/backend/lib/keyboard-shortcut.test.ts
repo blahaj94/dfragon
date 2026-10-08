@@ -8,10 +8,13 @@ import {
 
 const KEY_DOWN = 0x100
 const KEY_UP = 0x101
+const SYSTEM_KEY_DOWN = 0x104
+const SYSTEM_KEY_UP = 0x105
 const VK_R = 0x52
 const VK_SNAPSHOT = 0x2c
 const NO_MODIFIERS = { shift: false, control: false, alt: false, windows: false }
 const SHIFT = { ...NO_MODIFIERS, shift: true }
+const ALT = { ...NO_MODIFIERS, alt: true }
 
 function setup(): {
   api: Win32KeyboardApi
@@ -23,7 +26,7 @@ function setup(): {
 } {
   let callback: Parameters<Win32KeyboardApi['registerCallback']>[0] | undefined
   let keyCode = VK_R
-  let modifiers = SHIFT
+  let modifiers = ALT
   const api: Win32KeyboardApi = {
     registerCallback: vi.fn((handler) => {
       callback = handler
@@ -41,8 +44,8 @@ function setup(): {
   const isForeground = vi.fn(() => true)
   const shortcut = createKeyboardShortcut({
     bindings: [
-      { key: VK_R, shift: true, action: 'restart-search' },
-      { key: VK_SNAPSHOT, shift: true, action: 'upload-capture', releaseOnly: true }
+      { key: VK_R, alt: true, action: 'restart-search' },
+      { key: VK_SNAPSHOT, alt: true, action: 'upload-capture', releaseOnly: true }
     ],
     isForeground,
     hook
@@ -52,7 +55,7 @@ function setup(): {
   function key(
     message: number,
     code = VK_R,
-    nextModifiers: KeyboardModifiers = SHIFT
+    nextModifiers: KeyboardModifiers = ALT
   ): number | bigint {
     keyCode = code
     modifiers = nextModifiers
@@ -65,29 +68,46 @@ function setup(): {
 
 afterEach(() => vi.useRealTimers())
 
-it('Shift+R과 Shift+PrintScreen은 한 번만 실행하고 다른 조합은 넘긴다', () => {
+it.each([
+  { input: '일반 키 메시지', down: KEY_DOWN, up: KEY_UP },
+  { input: 'Alt 시스템 키 메시지', down: SYSTEM_KEY_DOWN, up: SYSTEM_KEY_UP }
+])('$input에서 Alt+R과 Alt+PrintScreen은 한 번만 실행하고 다른 조합은 넘긴다', ({ down, up }) => {
   vi.useFakeTimers()
   const { shortcut, listener, key } = setup()
-  expect(key(KEY_DOWN)).toBe(1)
-  expect(key(KEY_DOWN)).toBe(1)
-  expect(key(KEY_UP)).toBe(1)
-  expect(key(KEY_UP)).toBe(77n)
+  expect(key(down)).toBe(1)
+  expect(key(down)).toBe(1)
+  expect(key(up)).toBe(1)
+  expect(key(up)).toBe(77n)
   vi.runAllTimers()
   expect(listener.mock.calls).toEqual([['restart-search']])
-  expect(key(KEY_UP, VK_SNAPSHOT)).toBe(1)
+  expect(key(up, VK_SNAPSHOT)).toBe(1)
   vi.runAllTimers()
   expect(listener.mock.calls).toEqual([['restart-search'], ['upload-capture']])
   for (const modifiers of [
     NO_MODIFIERS,
-    { ...SHIFT, control: true },
-    { ...SHIFT, alt: true },
-    { ...SHIFT, windows: true }
+    SHIFT,
+    { ...ALT, control: true },
+    { ...ALT, shift: true },
+    { ...ALT, windows: true }
   ]) {
-    expect(key(KEY_DOWN, VK_R, modifiers)).toBe(77n)
-    expect(key(KEY_UP, VK_R, modifiers)).toBe(77n)
+    expect(key(down, VK_R, modifiers)).toBe(77n)
+    expect(key(up, VK_R, modifiers)).toBe(77n)
   }
   vi.runAllTimers()
   expect(listener).toHaveBeenCalledTimes(2)
+  shortcut.unregister()
+})
+
+it('대문자 R과 두벌식 ㄲ의 Shift+R 입력 및 이전 캡처 조합은 소비하지 않는다', () => {
+  vi.useFakeTimers()
+  const { shortcut, listener, key } = setup()
+  for (const code of [VK_R, VK_SNAPSHOT]) {
+    expect(key(KEY_DOWN, code, SHIFT)).toBe(77n)
+    expect(key(KEY_DOWN, code, SHIFT)).toBe(77n)
+    expect(key(KEY_UP, code, SHIFT)).toBe(77n)
+  }
+  vi.runAllTimers()
+  expect(listener).not.toHaveBeenCalled()
   shortcut.unregister()
 })
 
@@ -107,12 +127,12 @@ it('다른 앱에서 시작한 키나 다른 앱으로 전환한 후 대기 중�
   shortcut.unregister()
 })
 
-it('한 네이티브 hook을 공유하고 Shift를 먼저 떼도 개발자 캡처가 중복 실행되지 않는다', () => {
+it('한 네이티브 hook을 공유하고 Alt를 먼저 떼도 개발자 캡처가 중복 실행되지 않는다', () => {
   vi.useFakeTimers()
   const { api, hook, shortcut, listener, key } = setup()
   const developerListener = vi.fn()
   const developer = createKeyboardShortcut({
-    bindings: [{ key: VK_SNAPSHOT, shift: false, action: 'developer', releaseOnly: true }],
+    bindings: [{ key: VK_SNAPSHOT, alt: false, action: 'developer', releaseOnly: true }],
     isForeground: () => true,
     hook
   })

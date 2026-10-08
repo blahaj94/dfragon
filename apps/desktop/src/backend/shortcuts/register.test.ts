@@ -16,6 +16,8 @@ vi.mock('../lib/win32-window-capture', () => ({
 }))
 
 const DOCUMENT_URL = 'file:///dfragon/index.html'
+const VK_R = 0x52
+const VK_SNAPSHOT = 0x2c
 
 type TestFrame = { url: string; detached: boolean; isDestroyed: () => boolean; send: Mock }
 type TestContents = EventEmitter & { mainFrame: TestFrame; isDestroyed: () => boolean }
@@ -73,6 +75,18 @@ beforeEach(() => {
   vi.clearAllMocks()
   fixtures.gameForeground.mockReturnValue(false)
   fixtures.appForeground.mockReturnValue(false)
+})
+
+it('제품의 재검색과 업로드 모두 Alt 조합으로 등록한다', () => {
+  const fixture = setup()
+  expect(fixtures.create).toHaveBeenCalledWith({
+    bindings: [
+      { key: VK_R, alt: true, action: 'restart-search' },
+      { key: VK_SNAPSHOT, alt: true, action: 'upload-capture', releaseOnly: true }
+    ],
+    isForeground: expect.any(Function)
+  })
+  fixture.dispose()
 })
 
 it('허용 앱과 현재 main document가 모두 맞아야 키를 처리한다', () => {
