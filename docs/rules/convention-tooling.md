@@ -7,7 +7,7 @@ last-reviewed: 2026-10-09
 
 # Convention 도구 적용
 
-이 문서는 저장소의 Biome, Oxlint 설정과 문장 간격 도구, 생성물 소유권과 CI 계약을 정의한다. 실행 명령과 현재 적용 범위는 package/config 및 아래 Reference에서 확인한다.
+이 문서는 저장소의 Biome 설정과 문장 간격 도구, 생성물 소유권과 CI 계약을 정의한다. 실행 명령과 현재 적용 범위는 package/config 및 아래 Reference에서 확인한다.
 
 ## 설정과 소유권
 
@@ -24,10 +24,10 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 - 직접 관리하는 JavaScript/TypeScript 제품 코드와 빌드, 관리 도구의 정규식 리터럴은 사용처에 직접 쓰지 않고, 검사 목적과 도메인 의미가 드러나는 `const` 상수의 초기값으로 선언한다. 사용하는 로직 가까이에 두며 모듈 상단, `export const`, 함수 안 `const`를 모두 허용한다. 같은 패턴도 책임과 변경 이유가 같을 때만 합친다. `new RegExp(문자열)`의 패턴 문자열은 이번 검사 범위에서 제외한다. `scripts/biome/regex-literal-constant.grit` 플러그인이 검사한다.
 - 정규식의 플래그와 상태에 따른 동작을 보존한다. `g`, `y` 정규식의 `.test()`, `.exec()` 등 상태 의존 사용은 호출 간 `lastIndex`를 공유하지 않도록 함수 안 `const`로 유지한다. 모듈 상수 추출은 문자열 치환 등 기존 상태 동작을 보존하는 사용에서만 허용한다. 플래그나 호출 방식을 바꾸려면 동작이 같다는 근거가 필요하다.
 - 정규식 규칙은 `*.test.*`, `*.spec.*`, `*.fixture.*`, `test/`, `tests/`, `__tests__/`, `fixture/`, `fixtures/`, `testing/`, `test-support/`의 테스트 코드에 적용하지 않는다. Desktop의 `scripts/*fixture*`, `scripts/credential-store-native`와 launcher, `scripts/search-server-integration/`, UI의 `scripts/test-consumer-resolution.mjs`도 테스트 전용 실행 코드로 제외한다. `generated/`, `vendor/`, `*.generated.*`와 기존 전역 ignore 대상도 제외하며, 테스트의 `assert.match(value, /.../)`는 허용한다. 직접 관리하는 `build/` 도구와 Vite, Vitest 설정은 검사한다. 이 제외는 `biome.json`에서 정규식 플러그인을 붙이는 override에만 적용하고 `return` 식 플러그인과 중첩 삼항 규칙의 범위는 유지한다.
-- `biome.json`은 Biome recommended를 쓰지 않고(`preset: none`) 이전 ESLint 구성에 대응하는 규칙만 켠다. `@eslint/js` recommended는 모든 source, typescript-eslint recommended는 TypeScript와 API, Accounts, Desktop의 JavaScript, React 기본 규칙은 Desktop, hooks와 React Compiler 검사는 Desktop TypeScript와 Accounts browser, Fast Refresh export 검사는 테스트를 제외한 Desktop(error), Web(warn)에 둔다. `curly: all`은 `useBlockStatements`로 유지한다. 현재 설정에 없는 naming/custom rule, plugin을 암묵적으로 도입하지 않는다.
-- Biome에 대응 규칙이 없거나 기존 코드에서 허용하던 사례까지 거부해 적용하지 않은 ESLint 검사는 다음과 같다. Browser와 Node의 전역 구분, API, Accounts의 `no-unexpected-multiline`, `no-empty`(Biome 규칙은 빈 함수 본문까지 거부), `no-unused-vars`의 마지막 사용 인자 뒤 미사용 함수 인자(Biome `noUnusedFunctionParameters`는 사용하는 인자 앞의 미사용 인자까지 거부), `ban-ts-comment`의 `@ts-nocheck`와 설명 없는 `@ts-expect-error` 금지(Biome `noTsIgnore`는 `@ts-ignore`만 검사), Desktop의 `explicit-function-return-type`(Biome nursery 규칙은 타입이 정해진 객체 메서드까지 거부)과 설명이 있는 `@ts-ignore` 허용, React의 `display-name`, `prop-types`, `no-unescaped-entities` 등이다. 다시 도입하려면 기존 코드 영향과 함께 별도 변경으로 정한다.
+- `biome.json`은 Biome recommended를 쓰지 않고(`preset: none`) 이전 ESLint와 Web/UI Oxlint 구성에 대응하는 규칙만 켠다. `@eslint/js` recommended와 Oxlint 기본 correctness 검사의 대응 규칙, JSX key, void 요소, 중복 prop 같은 React 기본 규칙은 모든 source, typescript-eslint recommended는 TypeScript와 API, Accounts, Desktop의 JavaScript, Desktop 전용 React 규칙(`target=_blank`, 주석 텍스트, 알 수 없는 속성)은 Desktop, hooks와 React Compiler 검사는 Desktop TypeScript, Accounts browser와 Web, Fast Refresh export 검사는 테스트를 제외한 Desktop(error), Web(warn)에 둔다. Oxlint에서 경고였던 검사도 현재 위반이 없어 오류로 둔다. 테스트 코드는 의도한 thenable mock과 관측 스크립트 실행을 위해 `noThenProperty`, `noGlobalEval`만 끈다. `curly: all`은 `useBlockStatements`로 유지한다. 현재 설정에 없는 naming/custom rule, plugin을 암묵적으로 도입하지 않는다.
+- Biome에 대응 규칙이 없거나 기존 코드에서 허용하던 사례까지 거부해 적용하지 않은 ESLint 검사는 다음과 같다. Browser와 Node의 전역 구분, API, Accounts의 `no-unexpected-multiline`, `no-empty`(Biome 규칙은 빈 함수 본문까지 거부), `no-unused-vars`의 마지막 사용 인자 뒤 미사용 함수 인자(Biome `noUnusedFunctionParameters`는 사용하는 인자 앞의 미사용 인자까지 거부), `ban-ts-comment`의 `@ts-nocheck`와 설명 없는 `@ts-expect-error` 금지(Biome `noTsIgnore`는 `@ts-ignore`만 검사), Desktop의 `explicit-function-return-type`(Biome nursery 규칙은 타입이 정해진 객체 메서드까지 거부)과 설명이 있는 `@ts-ignore` 허용, React의 `display-name`, `prop-types`, `no-unescaped-entities` 등이다. Oxlint에서 옮기지 않은 검사는 `no-caller`, `no-delete-var`, `no-invalid-regexp`, `no-iterator`, `no-empty-static-block`, typescript의 `triple-slash-reference`, `no-unnecessary-parameter-property-assignment`, class component 규칙과 `forward-ref-uses-ref`, `jsx-no-undef`, `no-this-in-sfc` 같은 React 규칙, `unicorn/no-useless-spread` 등 unicorn 규칙 10개, `oxc/const-comparisons` 등 oxc 버그 패턴 규칙 13개다. type-aware 규칙 15개는 Oxlint에서도 실행되지 않았다. 다시 도입하려면 기존 코드 영향과 함께 별도 변경으로 정한다.
 - Biome는 정확한 버전으로 고정한다. 버전을 바꾸면 포맷 결과와 nursery 규칙이 달라질 수 있으므로 `pnpm format` 결과 diff와 `pnpm test:tooling`을 함께 확인한다.
-- Root TypeScript는 문장 간격 도구의 parser 전용이다. App compiler/runtime을 이 설정 정리로 교체하지 않는다. Web/UI의 기존 보조 Oxlint를 검증 없이 제거하거나 다른 검사로 대체하지 않는다.
+- Root TypeScript는 문장 간격 도구의 parser 전용이다. App compiler/runtime을 이 설정 정리로 교체하지 않는다.
 - Generated/vendor, OCR, 고정 SEED source, provenance, lockfile, license/notice의 소유 규칙과 기존 ignore를 유지한다. 제외 범위는 `biome.json`의 `files.includes`와 Git ignore 연동이 정하며, 문장 간격 도구도 같은 includes와 Git ignore 기준을 따른다. `build`라는 경로 이름만으로 직접 관리 generator source를 제외하지 않는다. Broad 자동수정으로 무관한 파일을 바꾸지 않는다.
 
 ## 검증과 CI
@@ -38,4 +38,4 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 
 `pnpm test:format-policy`는 Biome 포맷 뒤 문장 간격 도구를 적용한 결과로 블록, `case` 첫 `return`의 빈 줄 제거와 이후 `return`의 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, directive, 빈 문장, 주석, 분기, ASI, 확장자별 결과와 Biome 재검사의 수렴을 검증한다. CLI가 실행 위치와 Biome 제외 경로, Git ignore 대상을 따르는지도 확인한다. 공통 포맷 정책을 바꾸거나 Biome를 갱신할 때 같은 검사를 실행한다.
 
-기존 Code Quality CI의 root Biome lint, format 검사와 Web/UI 보조 Oxlint를 유지한다. 같은 검사를 workspace별로 중복할 의무는 없으며 실패를 glob, ignore, disable이나 기대값 약화로 숨기지 않는다. 도구 성공을 제품 계약이나 전체 컨벤션 이행 완료로 확대하지 않는다.
+기존 Code Quality CI의 root Biome lint, format 검사를 유지한다. 같은 검사를 workspace별로 중복할 의무는 없으며 실패를 glob, ignore, disable이나 기대값 약화로 숨기지 않는다. 도구 성공을 제품 계약이나 전체 컨벤션 이행 완료로 확대하지 않는다.
