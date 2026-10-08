@@ -99,6 +99,16 @@ node --test scripts/test/server-build-info.test.mjs
 GitHub 이미지 빌드·발행은 내장 정보와 선택한 정확한 commit을 추가로 대조합니다.
 실행 중인 서버 조회는 [제품 이미지 안내](../docs/reference/api-start-development.md#실행-중인-서버의-버전-조회)를 참고합니다.
 
+## `dependency-snapshot`
+
+pnpm 11 lockfile은 pnpm 실행 파일을 담은 첫 YAML 문서와 workspace 의존성을 담은 마지막 문서로 나뉩니다. 현재 GitHub dependency graph는 이 lockfile에서 첫 문서의 package만 인식해 workspace의 전이 의존성이 Dependabot alerts와 dependency review에서 빠집니다. Dependency Review workflow는 `pnpm sbom --sbom-format cyclonedx --lockfile-only` 결과를 이 도구로 Dependency submission snapshot으로 바꿔 제출합니다.
+
+인자는 `<cyclonedx-sbom-file> <snapshot-file>`이고 `SNAPSHOT_SHA`, `SNAPSHOT_REF`(`refs/heads/<branch>`), `GITHUB_WORKFLOW`, `GITHUB_JOB`, `GITHUB_RUN_ID`를 읽습니다. Workspace가 직접 의존하는 package는 `direct`, 나머지는 `indirect`로 기록합니다. pnpm이 개발 의존성으로만 도달한다고 표시한(`excluded`) package는 `development`, 나머지는 `runtime`입니다. peer 조합처럼 bom-ref만 다르고 purl이 같은 package는 하나로 합치며, 한 변형이라도 `direct`, `runtime`이면 그 값을 쓰고 하위 의존성은 중복 없이 모읍니다. 그래프가 불완전하거나 commit, branch 값이 올바르지 않으면 파일을 쓰지 않고 실패합니다.
+
+main push는 Dependabot alerts의 기준을, 같은 저장소 PR은 dependency review가 비교할 PR head를 제출합니다. Fork PR은 쓰기 권한이 없어 제출하지 않고, review는 정적 dependency graph만 비교합니다.
+
+검증: `node --test scripts/test/dependency-snapshot.test.mjs`, `node --check scripts/dependency-snapshot.mjs`.
+
 ## Native validation
 
 로컬 API·accounts·Desktop은 각 앱 `package.json`의 `dev` 명령을 사용합니다. `pnpm --filter @dfragon/api dev`, `pnpm --filter @dfragon/accounts dev`, `pnpm --filter @dfragon/desktop dev`가 해당 앱의 `.env`를 읽으며, 개인 홈의 별도 실행 파일은 필요하지 않습니다. 최초 준비와 명시적 개발 DB migration은 [API 로컬 실행](../docs/reference/api-start-development.md#로컬-개발-명령), Desktop 설정은 [카드 화면 개발](../apps/desktop/README.md#카드-화면-개발)을 참고합니다.
