@@ -3,6 +3,8 @@ import { stylexOptions } from '@dfragon/ui/stylex-config'
 import { defineConfig } from 'vitest/config'
 import { fileURLToPath } from 'node:url'
 
+const SEED_DESIGN_IMPORT_PATTERN = /@seed-design\//
+
 export default defineConfig({
   plugins: [stylex.rollup(stylexOptions)],
   resolve: {
@@ -16,6 +18,6 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['browser/**/*.test.{ts,tsx}'],
-    server: { deps: { inline: [/@seed-design\//] } }
+    server: { deps: { inline: [SEED_DESIGN_IMPORT_PATTERN] } }
   }
 })

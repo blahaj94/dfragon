@@ -50,6 +50,8 @@ export class OcrAuthController {
   }
 }
 
+const SPLIT_FINGERPRINT_PATTERN = /^[0-9a-f]{64}$/
+
 @Controller('api')
 export class OcrDataController {
   constructor(
@@ -212,7 +214,7 @@ export class OcrDataController {
   @HttpCode(200)
   applySplit(@Body() value: unknown) {
     const body = parseInputRecord(value)
-    if (typeof body.fingerprint !== 'string' || !/^[0-9a-f]{64}$/.test(body.fingerprint)) {
+    if (typeof body.fingerprint !== 'string' || !SPLIT_FINGERPRINT_PATTERN.test(body.fingerprint)) {
       throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
     }
 

@@ -46,6 +46,11 @@ class OcrHttpFilter implements ExceptionFilter {
   }
 }
 
+const DESKTOP_MODEL_DOWNLOAD_ROUTE_PATTERN =
+  /^\/api\/desktop\/models(?:\/[0-9a-f-]{36}(?:\/files\/(?:weights\.pdparams|characters\.txt|evaluation\.json))?)?$/
+const DESKTOP_SAMPLE_IMAGE_ROUTE_PATTERN =
+  /^\/api\/desktop\/samples\/[0-9a-f-]{36}-(?:[1-9]|1[0-2])\/image$/
+
 function isDesktopRequest(request: Request): boolean {
   if (request.method === 'POST' && request.originalUrl === '/api/desktop/captures') {
     return true
@@ -58,10 +63,8 @@ function isDesktopRequest(request: Request): boolean {
   return (
     request.method === 'GET' &&
     (request.originalUrl === '/api/desktop/dataset' ||
-      /^\/api\/desktop\/models(?:\/[0-9a-f-]{36}(?:\/files\/(?:weights\.pdparams|characters\.txt|evaluation\.json))?)?$/.test(
-        request.originalUrl
-      ) ||
-      /^\/api\/desktop\/samples\/[0-9a-f-]{36}-(?:[1-9]|1[0-2])\/image$/.test(request.originalUrl))
+      DESKTOP_MODEL_DOWNLOAD_ROUTE_PATTERN.test(request.originalUrl) ||
+      DESKTOP_SAMPLE_IMAGE_ROUTE_PATTERN.test(request.originalUrl))
   )
 }
 
