@@ -11,7 +11,7 @@ const script = fileURLToPath(new URL('../dependency-snapshot.mjs', import.meta.u
 const sha = 'a'.repeat(40)
 const context = { sha, ref: 'refs/heads/main', correlator: 'Dependency Review submit', runId: '42' }
 
-// pnpm sbom --sbom-format cyclonedx --lockfile-only의 형태를 줄인 workspace다.
+// A reduced workspace in the shape of `pnpm sbom --sbom-format cyclonedx --lockfile-only`.
 function pnpmSbom() {
   return {
     bomFormat: 'CycloneDX',
@@ -25,14 +25,16 @@ function pnpmSbom() {
       { 'bom-ref': 'nest', purl: 'pkg:npm/%40nestjs/core@12.0.1', scope: null },
       { 'bom-ref': 'multer', purl: 'pkg:npm/multer@2.4.0' },
       { 'bom-ref': 'vitest', purl: 'pkg:npm/vitest@4.1.11', scope: 'excluded' },
-      { 'bom-ref': 'undici', purl: 'pkg:npm/undici@8.10.2', scope: 'excluded' }
+      { 'bom-ref': 'undici', purl: 'pkg:npm/undici@8.10.2', scope: 'excluded' },
+      // pnpm omits the dependencies entry of some leaf packages.
+      { 'bom-ref': 'ms', purl: 'pkg:npm/ms@2.1.3', scope: 'excluded' }
     ],
     dependencies: [
       { ref: 'root', dependsOn: ['nest', 'vitest'] },
       { ref: 'nest', dependsOn: ['multer'] },
       { ref: 'multer' },
       { ref: 'vitest', dependsOn: ['undici'] },
-      { ref: 'undici', dependsOn: [] }
+      { ref: 'undici', dependsOn: ['ms'] }
     ]
   }
 }
@@ -72,12 +74,63 @@ test('pnpm SBOM의 전이 의존성까지 pnpm-lock.yaml snapshot 하나로 옮�
             package_url: 'pkg:npm/undici@8.10.2',
             relationship: 'indirect',
             scope: 'development',
+            dependencies: ['pkg:npm/ms@2.1.3']
+          },
+          'pkg:npm/ms@2.1.3': {
+            package_url: 'pkg:npm/ms@2.1.3',
+            relationship: 'indirect',
+            scope: 'development',
             dependencies: []
           }
         }
       }
     }
   })
+})
+
+test('bom-ref만 다른 같은 package는 direct, runtime을 각각 우선해 합치고 하위 의존성을 중복 없이 모은다', () => {
+  // One variant is direct but development-only, the other indirect but shipped at runtime.
+  const directVariant = {
+    'bom-ref': 'react-dom(a)',
+    purl: 'pkg:npm/react-dom@19.2.8',
+    scope: 'excluded'
+  }
+  const runtimeVariant = { 'bom-ref': 'react-dom(b)', purl: 'pkg:npm/react-dom@19.2.8' }
+  for (const [variants, dependencies] of [
+    [
+      [directVariant, runtimeVariant],
+      ['pkg:npm/scheduler@0.27.0', 'pkg:npm/loose-envify@1.4.0', 'pkg:npm/js-tokens@4.0.0']
+    ],
+    [
+      [runtimeVariant, directVariant],
+      ['pkg:npm/loose-envify@1.4.0', 'pkg:npm/scheduler@0.27.0', 'pkg:npm/js-tokens@4.0.0']
+    ]
+  ]) {
+    const sbom = pnpmSbom()
+    sbom.components.push(
+      ...variants,
+      { 'bom-ref': 'scheduler', purl: 'pkg:npm/scheduler@0.27.0' },
+      { 'bom-ref': 'loose-envify', purl: 'pkg:npm/loose-envify@1.4.0' },
+      { 'bom-ref': 'js-tokens', purl: 'pkg:npm/js-tokens@4.0.0' }
+    )
+    sbom.dependencies[0].dependsOn.push('react-dom(a)')
+    sbom.dependencies.push(
+      { ref: 'react-dom(a)', dependsOn: ['scheduler', 'loose-envify'] },
+      // A repeated ref adds js-tokens and must keep the children listed before.
+      { ref: 'react-dom(a)', dependsOn: ['js-tokens'] },
+      { ref: 'react-dom(b)', dependsOn: ['loose-envify'] }
+    )
+
+    const { resolved } = createDependencySnapshot(sbom, context).manifests['pnpm-lock.yaml']
+
+    assert.deepEqual(resolved['pkg:npm/react-dom@19.2.8'], {
+      package_url: 'pkg:npm/react-dom@19.2.8',
+      relationship: 'direct',
+      scope: 'runtime',
+      dependencies
+    })
+    assert.equal(Object.keys(resolved).length, 9)
+  }
 })
 
 test('PR merge ref나 축약 SHA로는 snapshot을 만들지 않는다', () => {
@@ -112,6 +165,12 @@ test('SBOM 그래프가 불완전하거나 pnpm 형식이 아니면 snapshot을 
         sbom.metadata.tools.components = []
       },
       'Expected the pnpm tool version to be a non-empty string'
+    ],
+    [
+      (sbom) => {
+        sbom.metadata.timestamp = 'yesterday'
+      },
+      'Expected the SBOM timestamp to be a date'
     ]
   ]
   for (const [corrupt, message] of cases) {
@@ -121,7 +180,7 @@ test('SBOM 그래프가 불완전하거나 pnpm 형식이 아니면 snapshot을 
   }
 })
 
-test('CLI는 workflow 환경값으로 snapshot을 쓰고, 값이 없으면 파일을 만들지 않는다', (t) => {
+test('CLI는 workflow 환경값으로 snapshot을 쓰고, 필수 값이 하나라도 없으면 파일을 만들지 않는다', (t) => {
   const folder = mkdtempSync(join(tmpdir(), 'dfragon-dependency-snapshot-'))
   t.after(() => rmSync(folder, { recursive: true, force: true }))
   const sbomPath = join(folder, 'pnpm.cdx.json')
@@ -136,11 +195,19 @@ test('CLI는 workflow 환경값으로 snapshot을 쓰고, 값이 없으면 파�
     GITHUB_RUN_ID: '7'
   }
 
-  const missingSha = spawnSync(process.execPath, [script, sbomPath, snapshotPath], {
-    env: { ...env, SNAPSHOT_SHA: '' }
-  })
-  assert.equal(missingSha.status, 1)
-  assert.equal(existsSync(snapshotPath), false)
+  for (const name of [
+    'SNAPSHOT_SHA',
+    'SNAPSHOT_REF',
+    'GITHUB_WORKFLOW',
+    'GITHUB_JOB',
+    'GITHUB_RUN_ID'
+  ]) {
+    const partial = { ...env }
+    delete partial[name]
+    const missing = spawnSync(process.execPath, [script, sbomPath, snapshotPath], { env: partial })
+    assert.equal(missing.status, 1, name)
+    assert.equal(existsSync(snapshotPath), false, name)
+  }
 
   const result = spawnSync(process.execPath, [script, sbomPath, snapshotPath], { env })
   assert.equal(result.status, 0, result.stderr.toString())
