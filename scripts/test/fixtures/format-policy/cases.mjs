@@ -63,20 +63,26 @@ export function createSpacingCases() {
       expected: 'function f(x) {\n  if (x) {\n    return 1\n  } else {\n    return 2\n  }\n}\n'
     },
     {
-      name: '블록 없는 분기의 return 앞에는 빈 줄을 둔다',
+      name: '블록 없는 분기의 return은 Biome 배치를 유지한다',
       source: 'function f(x){if(x)return 1;else return 2}',
-      expected: 'function f(x) {\n  if (x)\n\n    return 1\n  else\n\n    return 2\n}\n'
+      expected: 'function f(x) {\n  if (x) return 1\n  else return 2\n}\n'
     },
     {
-      name: 'switch case와 중첩 case 블록의 return 간격을 구분한다',
+      name: 'case의 첫 return과 중첩 case 블록의 첫 return 앞에는 빈 줄을 넣지 않는다',
       source: 'function f(x){switch(x){case 1:return 1;default:{return 2}}}',
       expected:
-        'function f(x) {\n  switch (x) {\n    case 1:\n\n      return 1\n    default: {\n      return 2\n    }\n  }\n}\n'
+        'function f(x) {\n  switch (x) {\n    case 1:\n      return 1\n    default: {\n      return 2\n    }\n  }\n}\n'
     },
     {
-      name: 'label 뒤 return 앞에는 빈 줄을 둔다',
+      name: 'case 안에서 앞 문장이 있으면 return 앞에 빈 줄을 둔다',
+      source: 'function f(x){switch(x){case 1:work();return 1}}',
+      expected:
+        'function f(x) {\n  switch (x) {\n    case 1:\n      work()\n\n      return 1\n  }\n}\n'
+    },
+    {
+      name: 'label에 붙은 return은 Biome 배치를 유지한다',
       source: 'function f(){done:return 1}',
-      expected: 'function f() {\n  done:\n\n  return 1\n}\n'
+      expected: 'function f() {\n  done: return 1\n}\n'
     },
     {
       name: '블록 첫 return 앞의 한 줄 주석 위치를 유지한다',
@@ -92,6 +98,11 @@ export function createSpacingCases() {
       name: '주석과 블록 첫 return 사이의 빈 줄은 한 줄로 유지한다',
       source: 'function f(){\n/* reason */\n\n\nreturn 1}',
       expected: 'function f() {\n  /* reason */\n\n  return 1\n}\n'
+    },
+    {
+      name: '앞 문장 뒤 한 줄 주석과 return 사이에 빈 줄을 둔다',
+      source: 'function f(){work()\n\n// reason\nreturn 1}',
+      expected: 'function f() {\n  work()\n\n  // reason\n\n  return 1\n}\n'
     },
     {
       name: '이전 문장의 줄 끝 주석을 유지하며 return 앞에 빈 줄을 둔다',
@@ -142,10 +153,16 @@ export function createSpacingCases() {
       expected: 'if (first) {\n  one()\n}\n\nif (second) {\n  two()\n}\n'
     },
     {
-      name: '두 번째 블록 if와 같은 줄의 블록 주석은 한 번의 포맷으로 빈 줄을 만든다',
+      name: '두 번째 블록 if와 같은 줄의 블록 주석 앞에 빈 줄을 둔다',
       source: 'function f(a,b){if(a){one()}\n/* reason */ if(b){two()}}',
       expected:
-        'function f(a, b) {\n  if (a) {\n    one()\n  }\n  /* reason */\n\n  if (b) {\n    two()\n  }\n}\n'
+        'function f(a, b) {\n  if (a) {\n    one()\n  }\n\n  /* reason */ if (b) {\n    two()\n  }\n}\n'
+    },
+    {
+      name: '앞 블록 if와 주석 사이의 빈 줄로 연속된 블록 if를 구분한다',
+      source: 'function f(a,b){if(a){one()}\n\n// reason\nif(b){two()}}',
+      expected:
+        'function f(a, b) {\n  if (a) {\n    one()\n  }\n\n  // reason\n  if (b) {\n    two()\n  }\n}\n'
     },
     {
       name: '블록 if의 줄 끝 주석 위치를 유지한다',
@@ -186,7 +203,7 @@ export function createIfRuntimeSources() {
 export function createExtensionSpacingCase() {
   const source = 'function f(a,b){if(a){return 1}\n/* reason */ if(b){return 2}return 3}'
   const expected =
-    'function f(a, b) {\n  if (a) {\n    return 1\n  }\n  /* reason */\n\n  if (b) {\n    return 2\n  }\n\n  return 3\n}\n'
+    'function f(a, b) {\n  if (a) {\n    return 1\n  }\n\n  /* reason */ if (b) {\n    return 2\n  }\n\n  return 3\n}\n'
 
   return { source, expected }
 }
