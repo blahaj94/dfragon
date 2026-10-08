@@ -70,12 +70,14 @@
         "noUselessCatch": "error",
         "noUselessEmptyExport": "error",
         "noUselessEscapeInRegex": "error",
-        "noUselessRename": "error"
+        "noUselessRename": "error",
+        "noUselessThisAlias": "error"
       },
       "correctness": {
         "noChildrenProp": "error",
         "noConstAssign": "error",
         "noConstantCondition": "error",
+        "noConstantMathMinMaxClamp": "error",
         "noEmptyCharacterClassInRegex": "error",
         "noEmptyPattern": "error",
         "noGlobalObjectCalls": "error",
@@ -146,6 +148,7 @@
         "noThenProperty": "error",
         "noUnassignedVariables": "error",
         "noUnsafeNegation": "error",
+        "noUnusedExpressions": "error",
         "noUselessEscapeInString": "error",
         "noUselessRegexBackrefs": "error",
         "noWith": "error",
@@ -215,7 +218,6 @@
         "rules": {
           "complexity": {
             "noBannedTypes": "error",
-            "noUselessThisAlias": "error",
             "noUselessTypeConstraint": "error"
           },
           "style": {
@@ -233,7 +235,6 @@
             "noNonNullAssertedOptionalChain": "error",
             "noTsIgnore": "error",
             "noUnsafeDeclarationMerging": "error",
-            "noUnusedExpressions": "error",
             "useNamespaceKeyword": "error"
           }
         }
@@ -322,26 +323,6 @@
                 "allowConstantExport": true
               }
             }
-          }
-        }
-      }
-    },
-    {
-      "includes": [
-        "**/*.test.*",
-        "**/*.spec.*",
-        "**/test/**",
-        "**/tests/**",
-        "**/__tests__/**",
-        "**/test-support/**"
-      ],
-      "linter": {
-        "rules": {
-          "security": {
-            "noGlobalEval": "off"
-          },
-          "suspicious": {
-            "noThenProperty": "off"
           }
         }
       }
