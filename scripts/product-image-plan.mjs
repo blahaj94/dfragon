@@ -40,8 +40,10 @@ export function selectServices(changedPaths) {
   return services.filter((service) => selected.has(service))
 }
 
+const SOURCE_COMMIT_PATTERN = /^[a-f\d]{40}$/i
+
 function commitSha(value, name) {
-  if (typeof value !== 'string' || !/^[a-f\d]{40}$/i.test(value)) {
+  if (typeof value !== 'string' || !SOURCE_COMMIT_PATTERN.test(value)) {
     throw new Error(`Expected a 40-character hexadecimal ${name}`)
   }
 
@@ -164,6 +166,9 @@ function positiveId(value) {
   return Number.isSafeInteger(value) && value > 0
 }
 
+const GITHUB_REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/
+const GITHUB_API_BASE_PATH_SUFFIX_PATTERN = /\/$/
+
 export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = fetch }) {
   let baseUrl
   try {
@@ -178,14 +183,14 @@ export async function findBaselineRun({ apiUrl, repository, token, fetchImpl = f
     baseUrl.search ||
     baseUrl.hash ||
     typeof repository !== 'string' ||
-    !/^[\w.-]+\/[\w.-]+$/.test(repository) ||
+    !GITHUB_REPOSITORY_PATTERN.test(repository) ||
     typeof token !== 'string' ||
     token.length === 0
   ) {
     throw new Error('Expected a GitHub API URL, repository, and read token')
   }
 
-  const repoUrl = `${baseUrl.href.replace(/\/$/, '')}/repos/${repository}`
+  const repoUrl = `${baseUrl.href.replace(GITHUB_API_BASE_PATH_SUFFIX_PATTERN, '')}/repos/${repository}`
   const request = async (url) => {
     try {
       const response = await fetchImpl(url, {

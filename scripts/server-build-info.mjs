@@ -2,6 +2,8 @@ import { writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+const SOURCE_COMMIT_PATTERN = /^[0-9a-f]{40}$/
+
 /** Record the source revision supplied by the image builder, never runtime environment values. */
 export function createServerBuildInfo(service, commit) {
   if (!['api', 'accounts', 'ocr'].includes(service)) {
@@ -10,7 +12,7 @@ export function createServerBuildInfo(service, commit) {
 
   if (
     typeof commit !== 'string' ||
-    (commit !== '' && (commit.length !== 40 || !/^[0-9a-f]{40}$/.test(commit)))
+    (commit !== '' && (commit.length !== 40 || !SOURCE_COMMIT_PATTERN.test(commit)))
   ) {
     throw new Error('Source commit must be a full lowercase Git SHA.')
   }
