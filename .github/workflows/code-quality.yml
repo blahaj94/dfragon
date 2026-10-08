@@ -10,55 +10,178 @@ permissions:
 
 concurrency:
   group: code-quality-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer PR push replaces the running check. Main runs finish so each pushed commit keeps a result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  lint-and-format:
+  static:
+    name: Static checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm lint:oxlint
+
+  tooling:
+    name: Repository tooling
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      - run: pnpm test:security-dependencies
+      - name: Test repository tooling
+        run: pnpm test:tooling
+
+  packages:
+    name: Shared packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      - run: pnpm --filter @dfragon/licenses test
+      - run: pnpm --filter @dfragon/lib test
+      - run: pnpm --filter @dfragon/ui test
+
+  desktop:
+    name: Desktop test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
           submodules: recursive
-      - uses: actions/setup-node@v7
+      - uses: ./.github/actions/setup-workspace
         with:
-          node-version: '24'
-          registry-url: https://npm.pkg.github.com
-          scope: '@blahaj94'
-      - uses: pnpm/action-setup@v6
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - name: Prepare Electron for Desktop tests
         run: pnpm --filter @dfragon/desktop rebuild electron
       - name: Test Desktop core behavior without prebuilt shared libraries
         run: pnpm --filter @dfragon/desktop test
+
+  desktop-typecheck:
+    name: Desktop typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - name: Typecheck Desktop main, preload and renderer
         run: pnpm --filter @dfragon/desktop typecheck
-      - run: pnpm test:security-dependencies
-      - name: Test repository tooling
-        run: pnpm test:tooling
-      - run: pnpm --filter @dfragon/licenses test
-      - run: pnpm --filter @dfragon/lib test
+
+  api:
+    name: API test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/api test
+
+  accounts:
+    name: Accounts test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/accounts test
+
+  ocr:
+    name: OCR test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/ocr test
       - run: pnpm --filter @dfragon/ocr test:browser
-      - run: pnpm --filter @dfragon/ui test
+
+  web:
+    name: Web test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/web test
       - name: Typecheck and bundle Web
         run: pnpm --filter @dfragon/web build
+
+  desktop-search:
+    name: Desktop search integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      # The search client imports api-fetch, which loads the electron package.
+      - name: Prepare Electron for the Desktop search test
+        run: pnpm --filter @dfragon/desktop rebuild electron
+      # The integration test starts the built apps/api/dist runtime.
+      - name: Build API for the integration test
+        run: pnpm --filter @dfragon/api build
       - name: Test Desktop search against the public API
         run: pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
-      - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm lint:oxlint
+
+  image-plan:
+    name: Select images from the main push
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
       - name: Select images from the complete main push
-        if: github.event_name == 'push'
         run: node scripts/product-image-plan.mjs select "$RUNNER_TEMP/product-image-plan.json"
+      # Product Images reads this artifact only after the whole Code Quality run succeeds.
       - name: Transfer the image plan to Product Images
-        if: github.event_name == 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: product-image-plan
@@ -66,3 +189,36 @@ jobs:
           path: ${{ runner.temp }}/product-image-plan.json
           retention-days: 7
           if-no-files-found: error
+
+  # The main ruleset requires this check name. It passes only when every check job succeeded.
+  lint-and-format:
+    if: always()
+    needs:
+      - static
+      - tooling
+      - packages
+      - desktop
+      - desktop-typecheck
+      - api
+      - accounts
+      - ocr
+      - web
+      - desktop-search
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every Code Quality job to succeed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          if [[ -z "$RESULTS" ]]; then
+            echo "No Code Quality job results reached the aggregate check"
+            exit 1
+          fi
+
+          for result in $RESULTS; do
+            if [[ "$result" != success ]]; then
+              echo "A Code Quality job finished with: $result"
+              exit 1
+            fi
+          done

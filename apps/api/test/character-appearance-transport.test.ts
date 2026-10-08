@@ -307,78 +307,74 @@ async function loopback(
   return `http://127.0.0.1:${address.port}`
 }
 
-test(
-  'timer가 늦어도 headers 시점에 5초가 지나면 native body 연결을 닫는다',
-  { timeout: 2_000 },
-  async (t) => {
+test('timer가 늦어도 headers 시점에 5초가 지나면 native body 연결을 닫는다', {
+  timeout: 2_000
+}, async (t) => {
+  const closed = completionSignal()
+  const clock = new AppearanceClock()
+  const origin = await loopback(t, (_request, response) => {
+    response.once('close', () => closed.resolve())
+    response.writeHead(200, { 'content-type': 'application/json' })
+    response.write('{"avatar":[')
+  })
+  const adapter = createNeopleCharacterAppearanceForTest('synthetic-key', {
+    origin,
+    clock,
+    fetch: async (input, init) => {
+      const response = await fetch(input, init)
+      clock.value = 5_000
+
+      return response
+    }
+  })
+  await assert.rejects(adapter(identity, new AbortController().signal), { status: 504 })
+  await closed.promise
+  assert.equal(clock.timerCount, 0)
+})
+
+for (const action of ['disconnect', 'shutdown'] as const) {
+  test(`${action}는 API에서 native 공급자 body까지 취소를 전파한다`, {
+    timeout: 2_000
+  }, async (t) => {
+    const started = completionSignal()
     const closed = completionSignal()
-    const clock = new AppearanceClock()
-    const origin = await loopback(t, (_request, response) => {
+    let calls = 0
+    const upstream = await loopback(t, (_request, response) => {
+      calls++
       response.once('close', () => closed.resolve())
       response.writeHead(200, { 'content-type': 'application/json' })
       response.write('{"avatar":[')
+      started.resolve()
     })
-    const adapter = createNeopleCharacterAppearanceForTest('synthetic-key', {
-      origin,
-      clock,
-      fetch: async (input, init) => {
-        const response = await fetch(input, init)
-        clock.value = 5_000
-
-        return response
-      }
+    const fetchAppearance = createNeopleCharacterAppearanceForTest('synthetic-key', {
+      origin: upstream,
+      fetch
     })
-    await assert.rejects(adapter(identity, new AbortController().signal), { status: 504 })
-    await closed.promise
-    assert.equal(clock.timerCount, 0)
-  }
-)
-
-for (const action of ['disconnect', 'shutdown'] as const) {
-  test(
-    `${action}는 API에서 native 공급자 body까지 취소를 전파한다`,
-    { timeout: 2_000 },
-    async (t) => {
-      const started = completionSignal()
-      const closed = completionSignal()
-      let calls = 0
-      const upstream = await loopback(t, (_request, response) => {
-        calls++
-        response.once('close', () => closed.resolve())
-        response.writeHead(200, { 'content-type': 'application/json' })
-        response.write('{"avatar":[')
-        started.resolve()
-      })
-      const fetchAppearance = createNeopleCharacterAppearanceForTest('synthetic-key', {
-        origin: upstream,
-        fetch
-      })
-      const app = await createApiHttpApp(
-        { searchCharacters: async () => ({ rows: [] }) },
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        { fetchAppearance }
-      )
-      t.after(() => app.close())
-      await app.listen(0, '127.0.0.1')
-      const controller = new AbortController()
-      const response = fetch(
-        `${await app.getUrl()}/characters/${identity.serverId}/${identity.characterId}/appearance`,
-        { signal: controller.signal }
-      )
-      await started.promise
-      if (action === 'disconnect') {
-        const rejected = assert.rejects(response, { name: 'AbortError' })
-        controller.abort()
-        await rejected
-      } else {
-        await app.close()
-        assert.equal((await response).status, 500)
-      }
-      await closed.promise
-      assert.equal(calls, 1)
+    const app = await createApiHttpApp(
+      { searchCharacters: async () => ({ rows: [] }) },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      { fetchAppearance }
+    )
+    t.after(() => app.close())
+    await app.listen(0, '127.0.0.1')
+    const controller = new AbortController()
+    const response = fetch(
+      `${await app.getUrl()}/characters/${identity.serverId}/${identity.characterId}/appearance`,
+      { signal: controller.signal }
+    )
+    await started.promise
+    if (action === 'disconnect') {
+      const rejected = assert.rejects(response, { name: 'AbortError' })
+      controller.abort()
+      await rejected
+    } else {
+      await app.close()
+      assert.equal((await response).status, 500)
     }
-  )
+    await closed.promise
+    assert.equal(calls, 1)
+  })
 }

@@ -1,7 +1,11 @@
 import { createWindowsSecurityNative } from './windows-security-native'
 
 export type WindowsProfilePathInspection =
-  'missing' | 'trusted' | 'reparse' | 'untrusted' | 'unavailable'
+  | 'missing'
+  | 'trusted'
+  | 'reparse'
+  | 'untrusted'
+  | 'unavailable'
 
 export type WindowsProfileSecurity = Readonly<{
   inspectDirectory(path: string, role: 'root' | 'ancestor' | 'final'): WindowsProfilePathInspection

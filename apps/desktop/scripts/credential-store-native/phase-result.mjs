@@ -5,7 +5,6 @@ const phaseResultError = 'Native credential phase failed; raw diagnostics were w
  * @param {{ exitCode: number | null, expectedPhase: string, parsed: Record<string, unknown> | null }} input
  * @returns {{ phase: string, ok: true, decryptCalls: number, encryptionAvailabilityCalls: number }}
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export function validateNativeCredentialPhaseResult({ exitCode, expectedPhase, parsed }) {
   const hasSuccessfulExit = exitCode === 0
   const hasSuccessfulResult = parsed?.ok === true
@@ -48,7 +47,6 @@ export function validateNativeCredentialPhaseResult({ exitCode, expectedPhase, p
  * @param {{ exitCode: number | null, expectedPhase: string, stdout: string }} input
  * @returns {{ phase: string, ok: true, decryptCalls: number, encryptionAvailabilityCalls: number }}
  */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export function parseNativeCredentialPhaseResult({ exitCode, expectedPhase, stdout }) {
   const outputLines = stdout.split('\n')
   const line = outputLines.find((candidate) => candidate.startsWith(resultPrefix))

@@ -1,0 +1,38 @@
+// Return values are chosen by explicit branches; see docs/rules/convention-tooling.md.
+or {
+  JsReturnStatement(argument=$value) where {
+    $value <: or {
+      JsConditionalExpression(),
+      JsParenthesizedExpression(expression=JsConditionalExpression())
+    },
+    register_diagnostic(span=$value, message="return 식에서 삼항 연산자 대신 if 분기로 값을 반환합니다.")
+  },
+  JsReturnStatement(argument=$value) where {
+    $value <: or {
+      `$left ?? $right`,
+      JsParenthesizedExpression(expression=`$left ?? $right`)
+    },
+    register_diagnostic(span=$value, message="return 식에서 ?? 대신 if 분기로 값을 반환합니다.")
+  },
+  JsReturnStatement(argument=$object) where {
+    $object <: or {
+      JsObjectExpression(members=$members),
+      JsParenthesizedExpression(expression=JsObjectExpression(members=$members))
+    },
+    // Report every direct property instead of stopping at the first match.
+    $members <: every or {
+      bubble JsPropertyObjectMember(value=$value) where {
+        $value <: or {
+          JsConditionalExpression(),
+          JsLogicalExpression(),
+          JsParenthesizedExpression(expression=or {
+            JsConditionalExpression(),
+            JsLogicalExpression()
+          })
+        },
+        register_diagnostic(span=$value, message="반환 객체의 조건식 속성값은 먼저 의미 있는 지역 변수에 할당합니다.")
+      },
+      $_
+    }
+  }
+}

@@ -8,7 +8,9 @@ export type DeveloperEvaluation =
 
 type LabelScore = { matched: number; errors: number; characters: number }
 type SampleEvaluation =
-  { status: 'unevaluated' } | { status: 'failed' } | { status: 'success'; score: LabelScore | null }
+  | { status: 'unevaluated' }
+  | { status: 'failed' }
+  | { status: 'success'; score: LabelScore | null }
 
 /** 유니코드 code point 단위 Levenshtein 거리를 계산해 한글을 바이트 수로 세지 않는다. */
 export function characterErrors(expected: string, actual: string): number {

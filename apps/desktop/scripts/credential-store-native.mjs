@@ -21,7 +21,6 @@ if (!canRun) {
 const ownedGroups = new Set()
 let interrupted = false
 /** @returns {void} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function interruptRun() {
   interrupted = true
   for (const pid of ownedGroups) {
@@ -36,7 +35,6 @@ process.once('SIGINT', interruptRun)
 process.once('SIGTERM', interruptRun)
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function waitForGroupExit(pid, milliseconds) {
   const deadline = Date.now() + milliseconds
   while (true) {
@@ -60,7 +58,6 @@ async function waitForGroupExit(pid, milliseconds) {
 }
 
 /** @returns {Promise<void>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function confirmPathAbsent(path) {
   try {
     await lstat(path)
@@ -74,7 +71,6 @@ async function confirmPathAbsent(path) {
 }
 
 /** @returns {Promise<{code: number | null, stdout: string, stderr: string}>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function execute(command, args, environment = process.env) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -92,7 +88,6 @@ function execute(command, args, environment = process.env) {
     let timedOut = false
     let outputExceeded = false
     /** @returns {void} */
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
     function stopGroup(signal) {
       const hasPid = child.pid != null
       if (!hasPid) {
@@ -110,7 +105,6 @@ function execute(command, args, environment = process.env) {
       forcedKill = setTimeout(() => stopGroup('SIGKILL'), 2_000)
     }, 30_000)
     /** @returns {void} */
-    // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
     function capture(chunk, standardOutput) {
       const isWithinLimit = stdout.length + stderr.length + chunk.length <= 65_536
       if (!isWithinLimit) {
@@ -170,7 +164,6 @@ function execute(command, args, environment = process.env) {
 }
 
 /** @returns {Promise<string>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function defaultKeychain() {
   const result = await execute('/usr/bin/security', ['default-keychain', '-d', 'user'])
   const succeeded = result.code === 0
@@ -182,7 +175,6 @@ async function defaultKeychain() {
 }
 
 /** @returns {Promise<boolean>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function itemExists(appName, keychain) {
   const args = ['find-generic-password', '-s', `${appName} Safe Storage`, '-a', appName]
   const hasKeychain = keychain != null
@@ -202,7 +194,6 @@ async function itemExists(appName, keychain) {
 }
 
 /** @returns {Promise<void>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function removeOwnedItem(appName, keychain) {
   const exists = await itemExists(appName, keychain)
   let wasDeleted = !exists
@@ -241,7 +232,6 @@ let injectedFailure = false
 const phaseResults = []
 
 /** @returns {Promise<void>} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 async function cleanupOwnedProfile() {
   const allGroupsStopped = ownedGroups.size === 0
   if (!allGroupsStopped) {

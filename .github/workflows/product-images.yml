@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
       - name: Select images changed by the PR
@@ -175,6 +175,9 @@ jobs:
     timeout-minutes: 15
     permissions:
       packages: write
+      # Sign provenance for the pushed digest and store it next to the image.
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.select.outputs.matrix) }}
@@ -213,6 +216,7 @@ jobs:
         shell: bash
         run: docker push "$IMAGE:$SOURCE_COMMIT"
       - name: Verify the registry digest and write handoff
+        id: registry
         shell: bash
         run: |
           set -euo pipefail
@@ -222,6 +226,7 @@ jobs:
           digest="${reference##*@}"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           docker manifest inspect "$reference" >/dev/null
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
           mkdir -p "$RUNNER_TEMP/image-handoff"
           jq -n --arg service "$SERVICE" --arg image "$reference" --arg sourceCommit "$SOURCE_COMMIT" \
             '{service: $service, image: $image, sourceCommit: $sourceCommit}' \
@@ -230,6 +235,15 @@ jobs:
             printf '| Service | Image reference | Source commit |\n| --- | --- | --- |\n'
             printf "| %s | \`%s\` | \`%s\` |\n" "$SERVICE" "$reference" "$SOURCE_COMMIT"
           } >> "$GITHUB_STEP_SUMMARY"
+      # Hand off only images whose provenance was recorded for the same digest.
+      - name: Attest the published image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.registry.outputs.digest }}
+          push-to-registry: true
+          # Storage records are only available to organization-owned repositories.
+          create-storage-record: false
       - name: Upload image handoff
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

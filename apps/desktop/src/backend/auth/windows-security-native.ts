@@ -5,7 +5,11 @@ type WindowsNativePointer = WindowsNativeHandle | ReturnType<typeof koffi.as>
 type WindowsSidStorage = Buffer
 
 export type WindowsNativePathInspection =
-  'missing' | 'trusted' | 'reparse' | 'untrusted' | 'unavailable'
+  | 'missing'
+  | 'trusted'
+  | 'reparse'
+  | 'untrusted'
+  | 'unavailable'
 
 type WindowsNativePathKind = 'directory' | 'file'
 export type WindowsSecurityPolicy = 'private' | 'ancestor' | 'root'

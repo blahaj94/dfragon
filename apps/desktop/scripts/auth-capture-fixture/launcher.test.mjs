@@ -113,7 +113,6 @@ it('owned group 종료가 확인되지 않으면 profile을 삭제하지 않고 
 })
 
 /** @returns {{ deliver: (signal: string) => void, unhandled: () => number, count: () => number }} */
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 function captureSignals() {
   const handlers = new Map()
   let unhandled = 0

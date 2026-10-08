@@ -1,0 +1,14 @@
+// Regex literals are named const initializers; see docs/rules/convention-tooling.md.
+// GritQL compares bound nodes by source text, so the declarator check keeps an equal regex elsewhere in
+// the same declaration from allowing this one.
+JsRegexLiteralExpression() as $regex where {
+  not $regex <: and { within JsVariableDeclarator(initializer=JsInitializerClause(expression=or {
+    $regex,
+    JsParenthesizedExpression(expression=$regex)
+  })),
+  within JsVariableDeclaration(declarators=some JsVariableDeclarator(initializer=JsInitializerClause(expression=or {
+    $regex,
+    JsParenthesizedExpression(expression=$regex)
+  }))) as $declaration where { $declaration <: r"const\s[\s\S]*" } },
+  register_diagnostic(span=$regex, message="정규식 리터럴은 검사 목적과 도메인 의미가 드러나는 const 상수로 선언합니다.")
+}

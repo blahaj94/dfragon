@@ -6,8 +6,8 @@
   "author": "DFRAGON contributors",
   "homepage": "https://github.com/blahaj94/ldb",
   "scripts": {
-    "format": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --write \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
-    "lint": "eslint .",
+    "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
+    "lint": "biome lint",
     "prepare:ocr-assets": "node scripts/prepare-ocr-assets.mjs",
     "test": "vitest run",
     "test:windows-native": "tsc --noEmit -p scripts/windows-security-fixture/tsconfig.json && vitest run --config scripts/windows-security-fixture/vitest.config.ts",
@@ -37,8 +37,8 @@
     "capture:fixture:smoke": "node scripts/auth-capture-fixture.mjs --smoke",
     "capture:fixture:ocr": "node scripts/auth-capture-fixture.mjs --ocr",
     "capture:fixture:deny": "node scripts/auth-capture-fixture.mjs --deny-media",
-    "lint:fix": "eslint . --fix",
-    "format:check": "prettier --config ../../.prettierrc.json --ignore-path ../../.prettierignore --check \"**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,yaml,yml,css,scss,less,html}\"",
+    "lint:fix": "biome lint --write",
+    "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
     "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
     "dev:app": "npm run prepare:ocr-assets && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
     "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
