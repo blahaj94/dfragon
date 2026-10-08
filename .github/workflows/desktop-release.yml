@@ -41,17 +41,17 @@ jobs:
       DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://accounts.example.test' || vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN || 'https://accounts.dfragon.com' }}
       DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://api.example.test' || inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.tag) || github.ref }}
           persist-credentials: false
           submodules: recursive
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24'
           registry-url: https://npm.pkg.github.com
           scope: '@blahaj94'
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - name: Check release configuration
         id: release
         shell: bash
@@ -80,7 +80,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-x64-portable
           path: apps/desktop/dist/DFRAGON-*-x64-portable.exe
@@ -95,7 +95,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: windows-x64-portable
           path: release
