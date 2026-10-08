@@ -1,0 +1,7 @@
+rules:
+  dangerous-triggers:
+    ignore:
+      # Product Images acts only on a successful Code Quality push run of this repository's main.
+      # Its select and publish jobs recheck event, head_branch and head_repository, and the
+      # workflow never consumes pull request artifacts.
+      - product-images.yml:3
