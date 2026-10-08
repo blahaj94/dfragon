@@ -107,6 +107,29 @@ export default defineConfig(
     files: ['apps/desktop/*.{js,mjs}'],
     rules: { '@typescript-eslint/explicit-function-return-type': 'off' }
   },
+  // Return values are chosen by explicit branches; see docs/rules/convention-tooling.md.
+  {
+    files: sourceFiles,
+    rules: {
+      'no-nested-ternary': 'error',
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ReturnStatement > ConditionalExpression.argument',
+          message: 'return 식에서 삼항 연산자 대신 if 분기로 값을 반환합니다.'
+        },
+        {
+          selector: "ReturnStatement > LogicalExpression.argument[operator='??']",
+          message: 'return 식에서 ?? 대신 if 분기로 값을 반환합니다.'
+        },
+        {
+          selector:
+            'ReturnStatement > ObjectExpression.argument > Property > :matches(ConditionalExpression, LogicalExpression).value',
+          message: '반환 객체의 조건식 속성값은 먼저 의미 있는 지역 변수에 할당합니다.'
+        }
+      ]
+    }
+  },
   // Prettier only conflicts with curly's multi-line/minimum-size options, not all.
   { ...prettier, rules: { ...prettier.rules, curly: ['error', 'all'] } },
   // Keep the API's existing ASI check after Prettier's conflict defaults.
