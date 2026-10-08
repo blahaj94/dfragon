@@ -73,6 +73,7 @@ function mainEnvironment(): {
       quit: vi.fn(),
       exit: vi.fn(),
       whenReady: () => ({
+        // biome-ignore lint/suspicious/noThenProperty: Electron whenReady()가 돌려주는 thenable을 흉내 낸다.
         then: (start: () => void | Promise<void>): Promise<void> => {
           bootstrap = Promise.resolve().then(start)
 

@@ -125,6 +125,7 @@ async function runCapture(
           return true
         }
 
+        // biome-ignore lint/security/noGlobalEval: 렌더러에 주입하는 관측 스크립트를 jsdom에서 실행한다.
         return window.eval(source)
       }
     }

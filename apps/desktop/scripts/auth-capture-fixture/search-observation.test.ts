@@ -37,6 +37,7 @@ async function inspect(): Promise<Probe> {
   const script = Reflect.get(observations, 'inspectSearch')
   expect(typeof script, '검색 UI 관측 script').toBe('string')
 
+  // biome-ignore lint/security/noGlobalEval: 렌더러에 주입하는 관측 스크립트를 jsdom에서 실행한다.
   return window.eval(script)
 }
 
@@ -171,6 +172,7 @@ it('관측용 read 실패는 원문 오류를 반환하지 않고 고정 실패�
   expect(typeof script, '검색 UI 관측 script').toBe('string')
   let failure = ''
   try {
+    // biome-ignore lint/security/noGlobalEval: 렌더러에 주입하는 관측 스크립트를 jsdom에서 실행한다.
     await window.eval(script)
   } catch (error) {
     failure = String(error)
