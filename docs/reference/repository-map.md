@@ -31,7 +31,7 @@ Root의 `eslint.config.mjs`, `.prettierrc.json`, `.prettierignore`와 직접 dev
 
 `.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, Desktop `typecheck`, Web `build`, 루트 도구와 보안 의존성 테스트, root ESLint, Prettier 비수정 검사와 Web/UI 보조 Oxlint를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
-`.github/workflows/workflow-lint.yml`은 `.github` 경로가 바뀐 PR과 main push에서 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하며 required check가 아니다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다.
+`.github/workflows/workflow-lint.yml`은 `.github` 경로가 바뀐 PR과 main push에서 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하며 required check가 아니다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다. Action 버전 갱신은 `.github/dependabot.yml`이 7일 cooldown을 둔 주간 묶음 PR로 제안한다.
 
 ## Shared library
 
