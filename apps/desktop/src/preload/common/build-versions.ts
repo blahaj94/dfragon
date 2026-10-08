@@ -1,11 +1,9 @@
 import { z } from 'zod'
 import type { BuildVersions } from './types/build-versions'
 
-const commitSchema = z
-  .string()
-  .length(40)
-  .regex(/^[0-9a-f]{40}$/)
-  .nullable()
+const SOURCE_COMMIT_PATTERN = /^[0-9a-f]{40}$/
+
+const commitSchema = z.string().length(40).regex(SOURCE_COMMIT_PATTERN).nullable()
 const serverSchema = z.union([
   z.strictObject({ status: z.literal('available'), commit: commitSchema }),
   z.strictObject({ status: z.enum(['unsupported', 'unavailable']) })

@@ -13,9 +13,12 @@ export const MAX_OCR_DATASET_JSON_BYTES = 8 * 1024 * 1024
 
 const origin = 'https://ocr.dfragon.com'
 const dimension = z.number().int().min(1).max(OCR_DATA_LIMITS.maximumDimension)
+
+const OCR_SAMPLE_ID_PATTERN = /^[0-9a-f-]{36}-(?:[1-9]|1[0-2])$/
+
 const sampleSchema = z
   .object({
-    id: z.string().regex(/^[0-9a-f-]{36}-(?:[1-9]|1[0-2])$/),
+    id: z.string().regex(OCR_SAMPLE_ID_PATTERN),
     capturedAt: z.iso.datetime(),
     width: dimension,
     height: dimension,

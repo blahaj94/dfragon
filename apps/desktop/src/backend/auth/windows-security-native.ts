@@ -870,6 +870,9 @@ function renameInfo(destination: string): Buffer {
   return information
 }
 
+const UNSAFE_DIRECTORY_ENTRY_CHARACTER_PATTERN = /[\\/:]/u
+const DIRECTORY_ENTRY_ALIAS_ENDING_PATTERN = /[. ]$/u
+
 function readDirectoryBatch(buffer: Buffer): string[] {
   const names: string[] = []
   const decoder = new TextDecoder('utf-16le', { fatal: true, ignoreBOM: true })
@@ -903,8 +906,8 @@ function readDirectoryBatch(buffer: Buffer): string[] {
     const isDotEntry = name === '.' || name === '..'
     if (!isDotEntry) {
       const hasNull = name.includes('\0')
-      const hasUnsafeCharacter = /[\\/:]/u.test(name)
-      const hasAliasedEnding = /[. ]$/u.test(name)
+      const hasUnsafeCharacter = UNSAFE_DIRECTORY_ENTRY_CHARACTER_PATTERN.test(name)
+      const hasAliasedEnding = DIRECTORY_ENTRY_ALIAS_ENDING_PATTERN.test(name)
       const isUnsafeName = hasNull || hasUnsafeCharacter || hasAliasedEnding
       if (isUnsafeName) {
         throw new Error('Windows directory filename is unsafe.')

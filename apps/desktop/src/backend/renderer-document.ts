@@ -1,5 +1,7 @@
+const UNSAFE_RENDERER_URL_CHARACTER_PATTERN = /[\s\\]/u
+
 export function validateDevRendererUrl(value: string): string {
-  const hasWhitespaceOrBackslash = /[\s\\]/u.test(value)
+  const hasWhitespaceOrBackslash = UNSAFE_RENDERER_URL_CHARACTER_PATTERN.test(value)
   const hasControlCharacter = Array.from(value).some((character) => {
     const code = character.charCodeAt(0)
     const isC0Control = code <= 31

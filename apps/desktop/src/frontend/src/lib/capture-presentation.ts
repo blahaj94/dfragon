@@ -1,9 +1,11 @@
 import { filter, join, map, pipe } from 'remeda'
 import type { CapturePhase } from '../types/capture'
 
+const DNF_CAPTURE_WINDOW_TITLE_PATTERN = /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i
+
 /** 창 제목에서 던파 후보를 분류한다. 프로세스 확인이나 캡처 권한을 의미하지 않는다. */
 export function isDnfCaptureSource(source: { name: string }): boolean {
-  return /던전\s*앤\s*파이터|Dungeon.*Fighter|\bDNF\b/i.test(source.name)
+  return DNF_CAPTURE_WINDOW_TITLE_PATTERN.test(source.name)
 }
 
 type CaptureControlState = {

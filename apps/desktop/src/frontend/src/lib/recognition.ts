@@ -28,9 +28,11 @@ export function hasColorMatch(pixels: Iterable<Rgb>, target: Rgb, tolerance: num
   return false
 }
 
+const NICKNAME_COMPARISON_NOISE_PATTERN = /[^\p{Script=Hangul}A-Za-z0-9]/gu
+
 /** OCR 문자열에서 한글·영문·숫자만 남겨 닉네임 비교에 사용할 값으로 정리한다. */
 export function normalizeNickname(text: string): string {
-  return text.replace(/[^\p{Script=Hangul}A-Za-z0-9]/gu, '')
+  return text.replace(NICKNAME_COMPARISON_NOISE_PATTERN, '')
 }
 
 /** 같은 닉네임이 두 번 연속 관측되면 안정된 이름으로 확정하고, 빈 관측이면 누적 상태를 초기화한다. */

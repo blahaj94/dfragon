@@ -1,5 +1,9 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
 
+const OCR_DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
+const OCR_DICTIONARY_TERMINATOR_PATTERN = /\n$/
+const OCR_LABEL_WHITESPACE_PATTERN = /\s/u
+
 /**
  * 현재 worker의 사전 순서와 암묵적인 blank, 공백 클래스를 확인한다.
  * @param {Uint8Array} dictionary
@@ -8,9 +12,14 @@ import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- JSDoc carries the JavaScript return type.
 export function countOcrClasses(dictionary) {
   const text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(dictionary)
-  const characters = text.replace(/\r/g, '').replace(/\n$/, '').split('\n')
+  const characters = text
+    .replace(OCR_DICTIONARY_CARRIAGE_RETURN_PATTERN, '')
+    .replace(OCR_DICTIONARY_TERMINATOR_PATTERN, '')
+    .split('\n')
   if (
-    characters.some((character) => [...character].length !== 1 || /\s/u.test(character)) ||
+    characters.some(
+      (character) => [...character].length !== 1 || OCR_LABEL_WHITESPACE_PATTERN.test(character)
+    ) ||
     new Set(characters).size !== characters.length
   ) {
     throw new Error(

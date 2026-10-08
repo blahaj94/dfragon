@@ -3,8 +3,11 @@ import { isCanonicalOpaque } from '../pkce'
 import { validateApiOrigin } from '../protocol'
 
 export const MAX_RECORD_BYTES = 16_384
+
+const CREDENTIAL_ENVIRONMENT_PATTERN = /^[a-z][a-z0-9-]{0,31}$/
+
 const contextSchema = z.strictObject({
-  environment: z.string().regex(/^[a-z][a-z0-9-]{0,31}$/),
+  environment: z.string().regex(CREDENTIAL_ENVIRONMENT_PATTERN),
   apiOrigin: z.string(),
   clientId: z.literal('desktop')
 })
