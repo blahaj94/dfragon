@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop design sources and renderer implementation status
-last-reviewed: 2026-09-17
+last-reviewed: 2026-10-08
 ---
 
 # Desktop MVP 디자인 이관
@@ -18,7 +18,15 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 | 메인 슬롯의 면 전환 | [08 · 카드 순환 · 상태 비교][faces] | 캐릭터 → 장비 → 서약 → 투자 현황 → 캐릭터. 슬롯마다 독립적이다.                   |
 | 별도 상세창         | [07 · 캐릭터 상세 · 확정 A][detail] | 장비·서약·강화·마법부여·스킬트리를 각각 한 장으로 둔, 반듯하게 겹친 카드 A안이다. |
 
-`보관`으로 시작하는 보드와 09B·09C는 구현 기준에서 제외한다. Penpot의 메인 카드 일부는 시연용 상세창 링크를 가지고 있으므로, 클릭 링크를 그대로 복제하기보다 08의 면 전환과 상세 열기 액션을 구분한다. 프로토타입의 화면 이동은 실제 입력·API 호출·Electron 창 수명 구현을 대신하지 않는다.
+위 링크는 편집 페이지 `01, 클라이언트 메인과 상세`의 보드다. `보관`으로 시작하는 보드(카드 시안 B, 서약 전환 오버레이, 09A, 09B, 09C)는 `23, 이전 클라이언트 시안` 페이지에 있으며 구현 기준에서 제외한다. Penpot의 메인 카드 일부는 시연용 상세창 링크를 가지고 있으므로, 클릭 링크를 그대로 복제하기보다 08의 면 전환과 상세 열기 액션을 구분한다. 프로토타입의 화면 이동은 실제 입력·API 호출·Electron 창 수명 구현을 대신하지 않는다.
+
+Penpot 파일은 화면별 편집 페이지가 편집 기준이고, `00, 전체 프로토타입과 원본` 페이지는 페이지를 나누기 전의 보존 원본이다. 두 쪽은 자동으로 맞춰지지 않으므로 `00` 페이지는 다른 페이지로 넘어가는 전환을 확인할 때만 본다.
+
+## 이후 기능의 디자인 인계
+
+메인 카드, 캡처, 로그인, 설정, OCR 밖의 기능은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이 인계 자료다. 스킬트리, 쿨타임, 캐릭터 검색과 상세, 모아보기, 패키지 효율, 캐릭터 기록, 아바타 피팅룸, 피아노방, 버프 계산기, 플레이 플래너, 성장 로드맵, 이벤트 보상, 미궁 지도의 14개다. 기능별 요구와 불변조건은 그 저장소의 `README.md`, `decisions.md`, `docs/screens/`에, 시안 요소와 SEED 컴포넌트의 대응은 `ui-mapping.md`에 있다. 기능별 대상 앱과 우선순위는 그 README의 기능 목록에서 관리한다. 제품 계약의 원본은 이 저장소의 `docs/rules`이고 dfragon-design은 구현하지 않은 화면의 시안과 요구다. 캐릭터 검색과 상세처럼 두 곳에 모두 있는 주제는 [캐릭터 검색 계약](../rules/character-search.md), [캐릭터 상세 계약](../rules/character-details.md)이 우선하며, 시안에서 채택할 의미는 Rule 변경으로 들여온다.
+
+색 토큰의 기준은 같은 Penpot 파일의 토큰 세트 `dark`, `light`와 테마 `Mode / Dark`, `Mode / Light`다. 토큰 이름 `color.<key>`는 `apps/desktop/src/frontend/src/constants/theme.stylex.ts`의 `colors` 키와 같고, 이 파일의 값은 Penpot 토큰의 값을 옮겨 적은 것이다. 시안에서 추가한 `color.inset`, `color.blueBg`, `color.green`, `color.gold`는 아직 코드에 없다. 시안 팔레트와 코드 토큰의 차이는 dfragon-design의 `design/README.md`에 있다.
 
 ## 데이터와 기존 구현 연결
 
@@ -58,7 +66,7 @@ Penpot 원본과 현재 Electron 구현 연결점을 설명한다. 확정 동작
 
 ## Typo 적용
 
-[Typo 가이드 보드](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=4481fd50-c2f6-80a2-8008-a96a89ac7899)의 10개 텍스트 자산과 React `typographyVariants`를 같은 규격으로 사용한다. 화면 크기와 문서 heading 단계는 분리하며, 예를 들어 화면 제목은 `Typo.h3 as="h1"`로 작성한다.
+[Typo 가이드 보드](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdf0614c4172&section=interactions&frame-id=61bb727b-6711-8058-8008-bdf0660bcb50)의 10개 텍스트 자산과 React `typographyVariants`를 같은 규격으로 사용한다. 화면 크기와 문서 heading 단계는 분리하며, 예를 들어 화면 제목은 `Typo.h3 as="h1"`로 작성한다.
 
 | 역할                           | variant                       |
 | ------------------------------ | ----------------------------- |
@@ -103,7 +111,7 @@ pnpm --filter @dfragon/desktop ui:fixture mvp dark
 
 실제 검색 연결, 429 재시도와 OCR 복귀, 상세 API·main/preload·제품 별도 창, Windows 실행은 후속이다. 제품 HTML의 현재 `img-src 'self' data:`는 원격 이미지를 차단한다. 미리보기는 로컬 자산을 사용하며, 실제 이미지 연결 시 [이미지 로딩 계약](../rules/desktop-mvp-ui.md#표현과-이미지)의 고정 origin 허용을 적용한다.
 
-[main]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=e544b383-212e-80a8-8008-a6a5dded2c34
-[responsive]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=36a60d12-e4f9-806a-8008-a6de95b3ec65
-[faces]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=1c4d04b3-0eec-80a4-8008-a702a86db2a1
-[detail]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=1c4d04b3-0eec-80a4-8008-a6fb4242d2e7
+[main]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdec5680efc4&section=interactions&frame-id=61bb727b-6711-8058-8008-bdec67f90349
+[responsive]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdec5680efc4&section=interactions&frame-id=61bb727b-6711-8058-8008-bdec67f9729d
+[faces]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdec5680efc4&section=interactions&frame-id=61bb727b-6711-8058-8008-bdec67f9916e
+[detail]: https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdec5680efc4&section=interactions&frame-id=61bb727b-6711-8058-8008-bdec67f99124
