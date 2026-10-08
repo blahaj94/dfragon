@@ -18,6 +18,7 @@ disallowWorkspaceCycles: true
 
 overrides:
   multer@2.2.0: 2.4.0
+  proxy-addr@2.0.7: 2.0.8
   undici@6.28.0: 6.28.1
   undici@8.10.1: 8.10.2
 
