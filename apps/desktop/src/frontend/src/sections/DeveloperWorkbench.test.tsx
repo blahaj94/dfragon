@@ -581,6 +581,14 @@ it('keeps failed label drafts, skips without saving, and restores excluded sampl
   await act(async () => Promise.resolve())
   expect(api.setSampleExcluded).toHaveBeenCalledExactlyOnceWith('first', true)
   await click('제외')
+  const filters = [
+    ...container.querySelectorAll('[role="group"][aria-label="이미지 상태 필터"] button')
+  ]
+  expect(filters.map((filter) => filter.getAttribute('aria-pressed'))).toEqual([
+    'false',
+    'false',
+    'true'
+  ])
   expect(button('포함으로 복원')).toBeDefined()
   await click('포함으로 복원')
   await act(async () => Promise.resolve())
