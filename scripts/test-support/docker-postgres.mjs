@@ -28,6 +28,8 @@ const maxOutputBytes = 1024 * 1024
 const redactedText = '[redacted]'
 const maxStderrHeadLines = 2
 const maxStderrTailLines = 3
+const maxFailureLines = 40
+const maxFailureDepth = 3
 const maxDiagnosticLineLength = 300
 const maxDockerCommandWords = 3
 const dockerCommandWordPattern = /^[a-z]+$/
@@ -258,6 +260,53 @@ function diagnosticLines(text) {
 
     return `${printable.slice(0, maxDiagnosticLineLength)}…`
   })
+}
+
+// 단계 이름만으로 알 수 없는 실패 원인을 남긴다. stack은 남기지 않고, 알려진 비밀 값과
+// 연결 문자열 credential, 비밀 이름에 붙은 값을 가린 뒤 줄 수를 제한한다.
+export function describeFailure(error, { secrets = [] } = {}) {
+  const text = failureLines({ error, depth: 0 }).join('\n')
+  const lines = diagnosticLines(redactDiagnostic(text, secrets))
+  const omittedLineCount = lines.length - maxFailureLines
+  const hasOmittedLines = omittedLineCount > 0
+  if (!hasOmittedLines) {
+    return lines.join('\n')
+  }
+
+  return [...lines.slice(0, maxFailureLines), `… ${omittedLineCount} more lines`].join('\n')
+}
+
+function failureLines({ error, depth }) {
+  const isError = error instanceof Error
+  if (!isError) {
+    const isText = typeof error === 'string'
+    if (isText) {
+      return error.split(lineBreakPattern)
+    }
+
+    return [`Non-Error value: ${typeof error}`]
+  }
+  const lines = `${error.name}: ${error.message}`.split(lineBreakPattern)
+  const canDescribeNested = depth < maxFailureDepth
+  if (!canDescribeNested) {
+    return lines
+  }
+  const nestedErrors = []
+  const isAggregate = error instanceof AggregateError
+  if (isAggregate) {
+    nestedErrors.push(...error.errors)
+  }
+  for (const nestedError of nestedErrors) {
+    const nestedLines = failureLines({ error: nestedError, depth: depth + 1 })
+    lines.push(...nestedLines.map((line) => `  ${line}`))
+  }
+  const hasSeparateCause = error.cause !== undefined && !nestedErrors.includes(error.cause)
+  if (hasSeparateCause) {
+    const [firstCauseLine, ...causeLines] = failureLines({ error: error.cause, depth: depth + 1 })
+    lines.push(`  cause: ${firstCauseLine}`, ...causeLines.map((line) => `  ${line}`))
+  }
+
+  return lines
 }
 
 function normalizeNativePlatform({ os, architecture }) {

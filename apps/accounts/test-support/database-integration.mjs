@@ -40,6 +40,7 @@ import {
   assertResourcesAbsent,
   command,
   createPostgres,
+  describeFailure,
   docker,
   newRunId,
   removeOwnedVolume,
@@ -53,6 +54,10 @@ import { assertSchemaFirst } from './schema-first.mjs'
 const scriptPath = fileURLToPath(import.meta.url)
 const apiDirectory = fileURLToPath(new URL('..', import.meta.url))
 let currentStage = 'startup'
+// 실패 원인을 출력할 때 가릴 이번 실행의 DB 비밀번호
+const generatedPasswords = new Set()
+// 부모가 자식 시나리오의 stderr를 고정 문구로 비교하므로, 자식은 실패 원인을 이 표시 뒤 stdout에 남긴다.
+const childFailureCauseMarker = 'CHILD_FAILURE_CAUSE\n'
 
 function resourceNames(runId) {
   const name = `dfragon-db-${runId.slice(0, 48)}`
@@ -370,8 +375,23 @@ async function runFailureScenario({ scenario, image }) {
   assert.equal(result.signal, null)
   assert.equal(result.stderr, 'Database integration scenario failed\n')
   const didChildAnnounceReadiness = result.stdout.includes('CHILD_RESOURCE_READY\n')
-  assert.equal(didChildAnnounceReadiness, true)
+  if (!didChildAnnounceReadiness) {
+    throw new Error('Child scenario did not announce resource readiness', {
+      cause: childFailureCause(result.stdout)
+    })
+  }
   await assertResourcesAbsent(runId)
+}
+
+// 자식이 자원 준비 전에 실패하면 부모에는 준비 여부만 남으므로 자식이 남긴 원인을 붙인다.
+function childFailureCause(stdout) {
+  const markerIndex = stdout.indexOf(childFailureCauseMarker)
+  const hasFailureCause = markerIndex >= 0
+  if (!hasFailureCause) {
+    return undefined
+  }
+
+  return stdout.slice(markerIndex + childFailureCauseMarker.length).trimEnd()
 }
 
 async function runSignalScenario({ signal, stage, image }) {
@@ -398,7 +418,10 @@ async function runSignalScenario({ signal, stage, image }) {
   })
   const ready = new Promise((resolve, reject) => {
     const timer = setTimeout(
-      () => reject(new Error('Signal scenario did not become ready')),
+      () =>
+        reject(
+          new Error('Signal scenario did not become ready', { cause: childFailureCause(stdout) })
+        ),
       20_000
     )
     child.stdout.on('data', (chunk) => {
@@ -568,6 +591,7 @@ async function childScenario() {
         }
       }
     )
+    generatedPasswords.add(resources.configuration.password)
     const isFailureScenario = scenario === 'failure'
     if (isFailureScenario) {
       process.stdout.write('CHILD_RESOURCE_READY\n')
@@ -588,7 +612,7 @@ async function childScenario() {
       throw new Error('Signal scenario stage is invalid')
     }
     throw new Error('Unknown child scenario')
-  } catch {
+  } catch (error) {
     const hasReceivedSignal = receivedSignal != null
     if (hasReceivedSignal) {
       const isInterruptSignal = receivedSignal === 'SIGINT'
@@ -596,6 +620,9 @@ async function childScenario() {
 
       return
     }
+    // 의도한 실패도 같은 형식으로 남는다. 부모는 자원 준비 전 실패일 때만 이 원인을 출력한다.
+    const cause = describeFailure(error, { secrets: generatedPasswords })
+    process.stdout.write(`${childFailureCauseMarker}${cause}\n`)
     process.stderr.write('Database integration scenario failed\n')
     process.exitCode = 1
   } finally {
@@ -616,9 +643,10 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
         currentStage = part
       })
       process.stdout.write(`Runtime database PASS: ${name}\n`)
-    } catch {
+    } catch (error) {
       failed += 1
-      process.stdout.write(`Runtime database FAIL: ${currentStage}\n`)
+      const cause = describeFailure(error, { secrets: [configuration.password] })
+      process.stdout.write(`Runtime database FAIL: ${currentStage}\n${cause}\n`)
     }
     checkSignal()
   }
@@ -637,6 +665,39 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   )
   currentStage = `runtime focused validation: ${failed} failed`
   assert.equal(failed, 0)
+}
+
+// finally에서 정리 오류만 던지면 앞선 단계의 실패 원인이 사라지므로 두 오류를 함께 남긴다.
+// 자원 제거 뒤 runtime-only 부재 확인 순서와, 제거가 실패하면 부재 확인을 건너뛰는 동작은 유지한다.
+export async function cleanupPrimaryResources({
+  resources,
+  runId,
+  runtimeOnly,
+  stageError,
+  teardown = teardownPostgres,
+  assertAbsent = assertResourcesAbsent
+}) {
+  try {
+    const hasResources = resources != null
+    if (hasResources) {
+      await teardown(resources)
+    }
+
+    if (runtimeOnly) {
+      await assertAbsent(runId)
+      process.stdout.write('Runtime database owned resources absent\n')
+    }
+  } catch (cleanupError) {
+    const hasStageError = stageError !== undefined
+    if (hasStageError) {
+      throw new AggregateError(
+        [stageError, cleanupError],
+        'Database integration and resource cleanup failed',
+        { cause: stageError }
+      )
+    }
+    throw cleanupError
+  }
 }
 
 async function primaryScenario() {
@@ -672,9 +733,11 @@ async function primaryScenario() {
   const runId = newRunId('primary')
   announceRecovery({ runId })
   let resources
+  let stageError
   try {
     currentStage = 'primary resource creation'
     resources = await createPostgres(runId, image)
+    generatedPasswords.add(resources.configuration.password)
     checkSignal()
     currentStage = 'authenticated readiness'
     await waitForAuthenticatedReadiness(createReadinessDataSource, resources.configuration)
@@ -880,18 +943,11 @@ async function primaryScenario() {
   } catch (error) {
     const hasReceivedSignal = receivedSignal != null
     if (!hasReceivedSignal) {
+      stageError = error
       throw error
     }
   } finally {
-    const hasResources = resources != null
-    if (hasResources) {
-      await teardownPostgres(resources)
-    }
-
-    if (runtimeOnly) {
-      await assertResourcesAbsent(runId)
-      process.stdout.write('Runtime database owned resources absent\n')
-    }
+    await cleanupPrimaryResources({ resources, runId, runtimeOnly, stageError })
   }
   await assertResourcesAbsent(runId)
 
@@ -962,8 +1018,9 @@ if (hasScriptArgument) {
       } else {
         await primaryScenario()
       }
-    } catch {
-      process.stderr.write(`Database integration failed at ${currentStage}\n`)
+    } catch (error) {
+      const cause = describeFailure(error, { secrets: generatedPasswords })
+      process.stderr.write(`Database integration failed at ${currentStage}\n${cause}\n`)
       process.exitCode = 1
     }
   }
