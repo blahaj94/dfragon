@@ -3,8 +3,7 @@ import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
   camera: { color: colors.fgDefault },
-  active: { color: colors.fgBrand },
-  activeState: { color: colors.fgInfo },
+  cameraActive: { color: colors.fgBrand },
   dialog: {
     width: 440,
     maxWidth: 'calc(100vw - 32px)',
@@ -20,6 +19,7 @@ export const styles = stylex.create({
     paddingRight: 24
   },
   state: { color: colors.fgMuted, whiteSpace: 'nowrap' },
+  stateActive: { color: colors.fgInfo },
   notice: {
     color: colors.fgMuted,
     paddingTop: 12,
