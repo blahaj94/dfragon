@@ -3,7 +3,7 @@ import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
-import { Icon } from '@seed-design/react'
+import { Icon, Switch } from '@seed-design/react'
 import type { NoticeEntry } from '@dfragon/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
@@ -83,36 +83,40 @@ export function SettingsSection({
 
     return (
       <>
-        <div {...stylex.props(styles.developerActions)}>
-          <ActionButton
-            size="small"
-            variant="neutralWeak"
-            aria-pressed={mode.enabled}
-            disabled={mode.updating}
-            onClick={() => mode.setEnabled(!mode.enabled)}
-          >
-            <Typo.txtS as="span" weight={700}>
-              {mode.enabled ? '개발자 모드 끄기' : '개발자 모드 켜기'}
-            </Typo.txtS>
-          </ActionButton>
-          {mode.enabled && onOpenDeveloperWorkbench && (
+        <Switch.Root
+          size="24"
+          checked={mode.enabled}
+          disabled={mode.updating}
+          onCheckedChange={mode.setEnabled}
+          {...stylex.props(styles.developerSwitch)}
+        >
+          <Switch.Label>
+            <Typo.txtM as="span">개발자 모드</Typo.txtM>
+          </Switch.Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+          <Switch.HiddenInput />
+        </Switch.Root>
+        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
+          {getDeveloperStatusText()}
+        </Typo.txtS>
+        {mode.enabled && onOpenDeveloperWorkbench && (
+          <div {...stylex.props(styles.developerActions)}>
             <ActionButton
-              size="small"
+              size="medium"
               variant="brandSolid"
               onClick={() => {
                 setOpen(false)
                 onOpenDeveloperWorkbench()
               }}
             >
-              <Typo.txtS as="span" weight={700}>
+              <Typo.txtM as="span" weight={700}>
                 개발 도구 열기
-              </Typo.txtS>
+              </Typo.txtM>
             </ActionButton>
-          )}
-        </div>
-        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
-          {getDeveloperStatusText()}
-        </Typo.txtS>
+          </div>
+        )}
       </>
     )
   }

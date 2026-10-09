@@ -76,6 +76,16 @@ export const styles = stylex.create({
   },
   heading: { paddingBottom: 16 },
   developerDescription: { paddingBottom: 20, color: colors.fgMuted },
-  developerActions: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
-  developerStatus: { paddingTop: 12, color: colors.fgMuted }
+  // The whole row is the switch label, so the label text and the track share one target.
+  developerSwitch: {
+    display: 'flex',
+    width: '100%',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: colors.bgInset
+  },
+  developerStatus: { paddingTop: 16, color: colors.fgMuted },
+  developerActions: { paddingTop: 16 }
 })
