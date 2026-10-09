@@ -21,6 +21,6 @@ export const styles = stylex.create({
     gap: 12,
     padding: 16,
     backgroundColor: colors.bgCanvas,
-    borderRadius: 8
+    borderRadius: 12
   }
 })
