@@ -225,6 +225,8 @@ pnpm --filter @dfragon/desktop build
 
 `build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`, `start`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 CI처럼 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다. 인증 bridge를 실제 Electron에서 확인하려면 `auth:fixture:build` 후 `auth:fixture:smoke`를 사용합니다. Launcher 단위 테스트의 process, signal은 합성이며 실제 child 종료 확인과 구분합니다.
 
+`test`의 `runtime-config.test.ts`, `main.test.ts`는 HOME 아래에 임시 profile을 만들고, 제품 코드(`src/backend/auth/runtime-config.ts`)가 그 상위 디렉터리의 소유자와 권한을 검사합니다. HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과합니다. `/tmp`처럼 누구나 쓸 수 있는 디렉터리 아래를 HOME으로 쓰는 sandbox에서는 이 테스트들이 실패합니다.
+
 Desktop 관련 PR과 main push에서는 [Desktop Windows workflow](../../.github/workflows/desktop-windows.yml)가 Windows runner 두 대에서 `test`의 테스트 파일을 절반씩 나눠 실행하고, `test:windows-native`는 첫 번째 runner에서만 실행합니다. Runner의 실행 권한과 관측 범위는 [Windows synthetic native fixture](../../docs/reference/desktop-credential-store.md#windows-synthetic-native-fixture)를 따릅니다.
 
 Vitest의 HTTP, credential 저장소, media, OCR worker mock과 합성 Electron fixture는 실제 Windows 캡처, DPI, 단축키, 패스키, OS credential 저장소의 검증을 대신하지 않습니다. Windows native/security, crash 도구의 기존 플랫폼, 격리 조건을 유지하며 VM 종료, 복원 등 파괴적 장애 실험은 별도 허용 범위에서만 실행합니다.

@@ -19,7 +19,7 @@ Node 24를 사용합니다. 실행 환경, 기존 인증 API 연결, 영속 저�
 
 - `test`는 실제 HTTP 서버와 메모리, 임시 파일 SQLite를 사용합니다. 중간 쓰기 실패의 rollback, 부분 정답 갱신, 오래된 분할 거부, 다운로드 시점의 일관성, 모델 식별자, 해시와 입력, 인증 경계를 검사합니다. 인증 서버 응답은 격리된 fixture로 제공합니다.
 - `test:browser`는 jsdom에서 실제 React hook, component와 조회 캐시를 실행해 초안, 선택 유지, 늦은 응답, 겹친 명령과 요청 본문 보존을 검사합니다. 네트워크 응답은 제어하지만 검사할 상태 판단 자체를 대체하지 않습니다.
-- `test:ui`는 임시 자체 서명 HTTPS 서버, SQLite, Chromium을 연결합니다. 서버 저장 뒤 응답 실패를 합성한 재시도, 자료 변경으로 만료된 미리보기의 거부, 복구, 정답 입력, 분할, 다운로드와 화면 흐름을 검사합니다.
+- `test:ui`는 임시 자체 서명 HTTPS 서버, SQLite, Chromium을 연결합니다. 서버 저장 뒤 응답 실패를 합성한 재시도, 자료 변경으로 만료된 미리보기의 거부, 복구, 정답 입력, 분할, 다운로드와 화면 흐름을 검사합니다. Playwright Chromium은 저장소 root에서 `pnpm exec playwright install chromium`으로 한 번 설치하고, Linux에서 브라우저 시스템 라이브러리가 없으면 `--with-deps`를 붙입니다. Code Quality와 `pnpm verify`는 `test`, `test:browser`만 실행하고 `test:ui`는 실행하지 않습니다.
 
 모두 합성 자료와 임시 자원을 사용하며 실제 사용자 저장소를 열지 않습니다. 합성 로그인, 자체 서명 인증서 검증은 실제 패스키, 운영 HTTPS, 프록시 설정이나 Windows 학습 성공을 보장하지 않습니다.
 
