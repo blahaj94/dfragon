@@ -90,7 +90,7 @@ DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력�
 [Product Images](../../.github/workflows/product-images.yml)는 변경된 서비스의 이미지만 선택합니다.
 `apps/api/**`, `apps/ocr/**`, `apps/accounts/**`만 바뀌면 각각 해당 이미지만 빌드하며,
 여러 서비스가 바뀌면 그 서비스들을 함께 빌드합니다. `packages/ui/**`는 accounts, OCR,
-`packages/lib/**`, `packages/licenses/**`, `patches/**`와 root package, lockfile, workspace 설정은
+`packages/lib/**`, `packages/licenses/**`와 root package, lockfile, workspace 설정은
 세 이미지에 영향을 줍니다. 이미지 workflow, 선택 도구, 커밋 정보 생성기
 (`scripts/server-build-info.mjs`) 변경도 세 이미지를 검사합니다.
 서버 이미지 입력이 없는 문서, Desktop, Web 전용 변경은 이미지 빌드, 발행을 건너뜁니다.
