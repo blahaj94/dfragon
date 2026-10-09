@@ -6,6 +6,9 @@ export type { CtcCandidate } from './ctc-candidates'
 
 export const MODEL_INPUT_HEIGHT = 48
 export const MODEL_INPUT_WIDTH = 320
+// 반전 이진화한 HUD 닉네임의 흰 배경과 같은 정규화 값이다.
+const NICKNAME_PADDING = 1
+const ZERO_PADDING = 0
 
 /** 모델 높이로 리사이즈한 이미지를 선택한 전처리로 [3, 48, 320] BGR 입력 값으로 만든다. */
 export function recognitionInputValues(
@@ -49,7 +52,7 @@ export function recognitionInputRgba(
   return rgba
 }
 
-/** HUD 글자 경계가 최종 입력 너비의 가운데에 오도록 옮긴 뒤 같은 BGR 정규화를 적용한다. */
+/** HUD 글자 경계가 최종 입력 너비의 가운데에 오도록 옮기고 좌우 여백을 흰 배경으로 채운다. */
 export function normalizedNicknameBgr(
   rgba: Uint8ClampedArray,
   width: number,
@@ -58,7 +61,7 @@ export function normalizedNicknameBgr(
 ): Float32Array {
   const horizontalOffset = nicknameCenterOffset(rgba, width, height, paddedWidth)
 
-  return normalizedBgrAtOffset(rgba, width, height, paddedWidth, horizontalOffset)
+  return normalizedBgrAtOffset(rgba, width, height, paddedWidth, horizontalOffset, NICKNAME_PADDING)
 }
 
 /** RGBA 픽셀을 PP-OCRv5용 [-1, 1] 범위의 BGR 채널 배열로 변환하고 오른쪽 여백을 0으로 채운다. */
@@ -68,18 +71,19 @@ export function normalizedBgr(
   height: number,
   paddedWidth: number
 ): Float32Array {
-  return normalizedBgrAtOffset(rgba, width, height, paddedWidth, 0)
+  return normalizedBgrAtOffset(rgba, width, height, paddedWidth, 0, ZERO_PADDING)
 }
 
-/** 기존 배경색과 zero padding을 유지하고 입력 밖으로 밀린 여백만 제외한다. */
+/** 크롭 밖의 입력을 지정한 정규화 값으로 채우고 입력 밖으로 밀린 여백만 제외한다. */
 function normalizedBgrAtOffset(
   rgba: Uint8ClampedArray,
   width: number,
   height: number,
   paddedWidth: number,
-  horizontalOffset: number
+  horizontalOffset: number,
+  padding: number
 ): Float32Array {
-  const values = new Float32Array(3 * height * paddedWidth)
+  const values = new Float32Array(3 * height * paddedWidth).fill(padding)
   for (let channel = 0; channel < 3; channel += 1) {
     for (let y = 0; y < height; y += 1) {
       for (let x = 0; x < width; x += 1) {
