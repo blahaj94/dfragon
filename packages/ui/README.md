@@ -1,18 +1,18 @@
 # 공용 SEED UI
 
-`@dfragon/ui`는 공식 SEED Snippet·Layout을 제공한다. 제품 data·event·platform 연결은 소비 app이 소유한다. 기준은 `docs/rules/design-system.md`와 `docs/architecture/overview.md`다.
+`@dfragon/ui`는 공식 SEED Snippet, Layout을 제공한다. 제품 data, event, platform 연결은 소비 app이 소유한다. 기준은 `docs/rules/design-system.md`와 `docs/architecture/overview.md`다.
 
 ## Public API와 CSS 책임
 
-ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack·ExampleSection·SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름·semantic prop·ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style·className·시각 값 override를 제외한다. 내부 `src/seed` 경로는 package export가 아니다.
+ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. 내부 `src/seed` 경로는 package export가 아니다.
 
-SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`은 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED·React·React DOM·JSX runtime·icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
+SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`은 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
 
 ## Typo
 
-`Typo`는 외부 UI 라이브러리에 의존하지 않는 React 컴포넌트다. `Typo`·`typographyVariants`와 `TypoProps`·`TypoTag`·`TypoVariant` 타입을 public entry에서 제공한다. TypeScript 5.4 이상의 `NoInfer`로 HTML 속성이 `as`의 태그 추론을 넓히지 않도록 한다.
+`Typo`는 외부 UI 라이브러리에 의존하지 않는 React 컴포넌트다. `Typo`, `typographyVariants`와 `TypoProps`, `TypoTag`, `TypoVariant` 타입을 public entry에서 제공한다. TypeScript 5.4 이상의 `NoInfer`로 HTML 속성이 `as`의 태그 추론을 넓히지 않도록 한다.
 
 ```tsx
 import { Typo } from '@dfragon/ui'
@@ -40,62 +40,62 @@ import { Typo } from '@dfragon/ui'
 <Typo.caption style={{ marginTop: 8, display: 'block' }}>Additional text</Typo.caption>
 ```
 
-`h1`–`h6`는 같은 이름의 heading 태그, `txtL`·`txtM`·`txtS`는 `p`, `caption`은 `span`으로 렌더링된다. 크기·행간·굵기는 `typographyVariants` 한 곳에서 관리하며 `TypoBase`가 공통 style과 HTML attribute·event를 전달한다. `typographyVariants`의 행간은 `"56px"`처럼 단위를 포함하므로 `style={typographyVariants.h1}`로 직접 사용해도 px로 적용된다. 기본 margin은 0이다. 화면 간격은 wrapper의 gap 또는 텍스트 padding으로 주고, margin이 필요하면 `style`로 명시한다. 글꼴과 지정하지 않은 색은 상속된다.
+`h1`–`h6`는 같은 이름의 heading 태그, `txtL`, `txtM`, `txtS`는 `p`, `caption`은 `span`으로 렌더링된다. 크기, 행간, 굵기는 `typographyVariants` 한 곳에서 관리하며 `TypoBase`가 공통 style과 HTML attribute, event를 전달한다. `typographyVariants`의 행간은 `"56px"`처럼 단위를 포함하므로 `style={typographyVariants.h1}`로 직접 사용해도 px로 적용된다. 기본 margin은 0이다. 화면 간격은 wrapper의 gap 또는 텍스트 padding으로 주고, margin이 필요하면 `style`로 명시한다. 글꼴과 지정하지 않은 색은 상속된다.
 
-스타일 우선순위는 variant → `color`·`align`·`weight` → `style`이다. `className`은 전달되지만 일반 CSS 선언은 inline style보다 우선하지 않는다. `as`는 HTML 태그를 바꾸면서 시각 variant를 유지한다. Heading 단계는 문서 구조에 맞춰 선택하고, 상호작용에는 `as="button"`·`as="a"`와 해당 native 속성을 사용한다. 임의 role·tabIndex는 추가하지 않는다. React 19의 `ref` prop을 실제 HTML element에 전달하며 `as`에 맞는 element 타입으로 검사한다. 제목 focus나 input focus를 유지할 때 사용할 수 있다.
+스타일 우선순위는 variant → `color`, `align`, `weight` → `style`이다. `className`은 전달되지만 일반 CSS 선언은 inline style보다 우선하지 않는다. `as`는 HTML 태그를 바꾸면서 시각 variant를 유지한다. Heading 단계는 문서 구조에 맞춰 선택하고, 상호작용에는 `as="button"`, `as="a"`와 해당 native 속성을 사용한다. 임의 role, tabIndex는 추가하지 않는다. React 19의 `ref` prop을 실제 HTML element에 전달하며 `as`에 맞는 element 타입으로 검사한다. 제목 focus나 input focus를 유지할 때 사용할 수 있다.
 
 `@dfragon/ui/typo`는 동일한 Typo API만 내보내는 React 전용 entry다. API의 인증 browser entry는 이 경로를 사용하며 SEED React를 번들에 포함하지 않는다. 해당 browser build와 TypeScript paths는 public source entry를 해석하므로 library 선행 build가 필요 없다.
 
 ## 공통 StyleX 설정
 
-`@dfragon/ui/stylex-config`는 모든 앱과 Example·test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
+`@dfragon/ui/stylex-config`는 모든 앱과 Example, test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
 
 ## Command
 
-- `pnpm --filter @dfragon/ui build`: ESM bundle·declaration 생성 뒤 public package export의 실제 소비 검사.
-- `pnpm --filter @dfragon/ui verify:build`: 기존 library 산출물의 export·dependency·CSS·고지 검사, alias 없는 declaration·Vite 소비 fixture와 React 전용 entry의 ESM import 검사.
+- `pnpm --filter @dfragon/ui build`: ESM bundle, declaration 생성 뒤 public package export의 실제 소비 검사.
+- `pnpm --filter @dfragon/ui verify:build`: 기존 library 산출물의 export, dependency, CSS, 고지 검사, alias 없는 declaration, Vite 소비 fixture와 React 전용 entry의 ESM import 검사.
 - `pnpm --filter @dfragon/ui dev:examples`: 독립 Vite Example.
-- `pnpm --filter @dfragon/ui build:examples` / `preview:examples`: production Example 생성·확인.
-- `pnpm --filter @dfragon/ui test`: typecheck → Vitest interaction·Typo → 빌드 검사 도구의 Node 회귀를 실행한다. Layout 크기 관측만 jsdom에서 격리한다.
+- `pnpm --filter @dfragon/ui build:examples` / `preview:examples`: production Example 생성, 확인.
+- `pnpm --filter @dfragon/ui test`: typecheck → Vitest interaction, Typo → 빌드 검사 도구의 Node 회귀를 실행한다. Layout 크기 관측만 jsdom에서 격리한다.
 - `pnpm --filter @dfragon/ui exec vitest run test/interaction.test.tsx`: 선택한 runtime 테스트만 실행한다. 파일 인수를 aggregate `test`에 전달하지 않는다.
-- `pnpm --filter @dfragon/ui typecheck`: src·test·examples를 실제 `tsc --noEmit`으로 검사한다.
-- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export·private declaration·Typo의 전이 dependency·CSS import 거부를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
-- `pnpm --filter @dfragon/ui test:consumer-lifecycle`: POSIX detached child/group 종료의 실패·기한·오류 보존 검사. 일반 `test`와 분리하며 현재 macOS에서 검증한다.
+- `pnpm --filter @dfragon/ui typecheck`: src, test, examples를 실제 `tsc --noEmit`으로 검사한다.
+- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export, private declaration, Typo의 전이 dependency, CSS import 거부를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
+- `pnpm --filter @dfragon/ui test:consumer-lifecycle`: POSIX detached child/group 종료의 실패, 기한, 오류 보존 검사. 일반 `test`와 분리하며 현재 macOS에서 검증한다.
 - `pnpm --filter @dfragon/ui lint`
-- `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: external·CSS 없음·source/고지 hash 검증.
-- `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React/SEED 사본·base.css 1회·stylesheet 1개·고지 확인.
+- `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: external, CSS 없음, source/고지 hash 검증.
+- `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React/SEED 사본, base.css 1회, stylesheet 1개, 고지 확인.
 - `pnpm install --frozen-lockfile`
-- `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리·삭제되는 산출물·Desktop 경계는 `test/consumer-resolution.md`를 먼저 확인한다.
+- `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리, 삭제되는 산출물, Desktop 경계는 `test/consumer-resolution.md`를 먼저 확인한다.
 
-현재 package command는 repository root에서 실행한다. 소비 app과 Example은 [Design System의 영향 범위 검증](../../docs/rules/design-system.md#영향-범위-검증)에 따라 변경한 화면·상태·환경을 선택해 확인한다. jsdom 결과를 실제 browser/Electron 또는 Tab 이동 성공으로 대신하지 않는다.
+현재 package command는 repository root에서 실행한다. 소비 app과 Example은 [Design System의 영향 범위 검증](../../docs/rules/design-system.md#영향-범위-검증)에 따라 변경한 화면, 상태, 환경을 선택해 확인한다. jsdom 결과를 실제 browser/Electron 또는 Tab 이동 성공으로 대신하지 않는다.
 
 Vitest는 TypeScript를 변환해 runtime assertion을 실행한다. Public API의 compile-only JSX 사례와 `expectTypeOf` assertion은 `test` 첫 단계의 실제 tsc에서 검사하며, runtime PASS만으로 타입 계약을 판단하지 않는다. Library의 declaration 생성은 src만 포함하므로 test와 examples의 typecheck를 대신하지 않는다.
 
 `test/build-consumer`의 별도 tsconfig는 source paths 없이 `@dfragon/ui`와 `@dfragon/ui/typo`의 dist declaration을 browser의 `Bundler` module resolution으로 해석한다. 같은 package specifier와 소비자 소유 CSS를 별도 Vite fixture가 번들링하며 임시 결과는 `packages/ui/node_modules/.tmp/build-consumer`에 둔다. React 전용 `typo` entry는 Node ESM import와 React 렌더링도 확인한다. 전체 UI entry는 SEED CSS를 소비하는 browser용이므로 Node에서 직접 import하는 경로를 지원하지 않는다.
 
-Web·Desktop renderer·Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 TypeScript paths로 public source entry를 직접 해석한다. 소비 command 전에 library build를 실행할 필요가 없으며 dev에는 source 변경이 직접 반영된다. Exact alias는 `@dfragon/ui/foundation.css` subpath를 바꾸지 않는다. Package export의 ESM/declaration 산출물은 별도 library build로 계속 검증한다. Web의 명시 `node` type은 공식 Snippet의 개발용 `process.env` guard를 검사하는 기존 build-time dependency이며 runtime Node global을 추가하지 않는다.
+Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 TypeScript paths로 public source entry를 직접 해석한다. 소비 command 전에 library build를 실행할 필요가 없으며 dev에는 source 변경이 직접 반영된다. Exact alias는 `@dfragon/ui/foundation.css` subpath를 바꾸지 않는다. Package export의 ESM/declaration 산출물은 별도 library build로 계속 검증한다. Web의 명시 `node` type은 공식 Snippet의 개발용 `process.env` guard를 검사하는 기존 build-time dependency이며 runtime Node global을 추가하지 않는다.
 
 ## Source와 고지
 
-`seed-provenance.json`이 upstream repository·고정 SHA·source path·원본/local hash·전이 Snippet·local diff를 기록한다. 기준 SHA는 `08b3600989597f4e9017731484a409685c08aa68`이다. ActionButton → LoadingIndicator → ProgressCircle과 Dialog → ActionButton, TextField/Dialog의 공식 icon 의존을 포함한다. `LayoutBlock`은 실제 registry id `layout-01`, source `docs/registry/react/block/layout-01.tsx`의 Header+Content+Footer 구조와 공식 반응형 조건을 유지하고 header/footer/children content slot만 연결한 DFragon composition이다.
+`seed-provenance.json`이 upstream repository, 고정 SHA, source path, 원본/local hash, 전이 Snippet, local diff를 기록한다. 기준 SHA는 `08b3600989597f4e9017731484a409685c08aa68`이다. ActionButton → LoadingIndicator → ProgressCircle과 Dialog → ActionButton, TextField/Dialog의 공식 icon 의존을 포함한다. `LayoutBlock`은 실제 registry id `layout-01`, source `docs/registry/react/block/layout-01.tsx`의 Header+Content+Footer 구조와 공식 반응형 조건을 유지하고 header/footer/children content slot만 연결한 DFragon composition이다.
 
 `node packages/ui/scripts/prepare-seed-source.mjs`는 고정 source hash를 확인한 뒤 Snippet을 생성한다. Source 직접 수정 대신 이 생성 script에서 필요한 변환을 관리한다. DialogTrigger의 동일한 public type을 명시해 declaration의 pnpm private 경로 참조를 방지하고 LayoutBlock content slot을 연결하는 변환을 적용한다. Interaction과 시각 값은 변경하지 않는다. TypeScript는 build-time `node` type을 명시하며 library declaration에는 Node runtime을 노출하지 않는다.
 
-원본 LICENSE/NOTICE는 [`@dfragon/licenses`](../licenses/README.md)의 `notices/ui`에 보존한다. 공용 `uiNotices` plugin은 각 build에서 고지·source provenance와 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE·module 목록을 산출물 `notices`에 기록한다. 수정 source 자체와 해당 declaration에 DFragon changed-file 고지를 넣고, `notices/bundle-files.json`에 기록된 생성 JS bundle의 banner와 `notices/DFRAGON-MODIFICATIONS.txt`에도 변경 내역을 보존한다. Absolute filesystem path는 이 목록에 저장하지 않는다. 최초 Red와 정정한 두 기대값의 근거는 `test/contract-corrections.md`에 남겼다.
+원본 LICENSE/NOTICE는 [`@dfragon/licenses`](../licenses/README.md)의 `notices/ui`에 보존한다. 공용 `uiNotices` plugin은 각 build에서 고지, source provenance와 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE, module 목록을 산출물 `notices`에 기록한다. 수정 source 자체와 해당 declaration에 DFragon changed-file 고지를 넣고, `notices/bundle-files.json`에 기록된 생성 JS bundle의 banner와 `notices/DFRAGON-MODIFICATIONS.txt`에도 변경 내역을 보존한다. Absolute filesystem path는 이 목록에 저장하지 않는다. 최초 Red와 정정한 두 기대값의 근거는 `test/contract-corrections.md`에 남겼다.
 
 ## 소비 entry와 실제 UI 확인
 
-각 browser entry는 base.css 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거·DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
+각 browser entry는 base.css 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
 
-Web은 기존 counter를 ActionButton으로 바꾸고 충돌하던 counter CSS·root 18px font 초기화를 제거했다. 기존 설명·link·counter 의미를 유지한다. Desktop은 renderer의 Start/Stop만 ActionButton으로 바꾸며 source 선택·interval·callback·disabled 의미와 capture 구현을 보존한다. Desktop의 React·UI package는 기존 renderer dependency 배치에 맞춰 devDependency로 설치하고 renderer bundle에 포함한다.
+Web은 기존 counter를 ActionButton으로 바꾸고 충돌하던 counter CSS, root 18px font 초기화를 제거했다. 기존 설명, link, counter 의미를 유지한다. Desktop은 renderer의 Start/Stop만 ActionButton으로 바꾸며 source 선택, interval, callback, disabled 의미와 capture 구현을 보존한다. Desktop의 React, UI package는 기존 renderer dependency 배치에 맞춰 devDependency로 설치하고 renderer bundle에 포함한다.
 
-Browser에서는 `dev:examples`와 `preview:examples`, Web의 `dev`·`preview`를 확인한다. 실제 Electron은 아래 test-only harness에서 각각 production renderer와 Example 산출물을 연다.
+Browser에서는 `dev:examples`와 `preview:examples`, Web의 `dev`, `preview`를 확인한다. 실제 Electron은 아래 test-only harness에서 각각 production renderer와 Example 산출물을 연다.
 
 - `pnpm --filter @dfragon/desktop ui:fixture desktop light`
 - `pnpm --filter @dfragon/desktop ui:fixture example dark`
 
-두 번째 인자는 `system`, `light`, `dark`이며 fixture process의 Theme만 변경한다. 제품 main/preload/auth는 로드하지 않는다. Source 목록과 선택은 synthetic bridge이며 native media API는 거절 stub으로 교체한다. Stub 설치 확인 전 window를 보이지 않고 실패 시 종료하며 fallback하지 않는다. Start는 `UI fixture: media capture blocked.` 상태로 callback 진입만 확인하고 stream·OCR를 실행하지 않는다. 실제 capture 성공이나 OS permission 검증은 이 evidence의 범위가 아니다. Desktop App component test와 fixture 검증의 경계를 구분한다.
+두 번째 인자는 `system`, `light`, `dark`이며 fixture process의 Theme만 변경한다. 제품 main/preload/auth는 로드하지 않는다. Source 목록과 선택은 synthetic bridge이며 native media API는 거절 stub으로 교체한다. Stub 설치 확인 전 window를 보이지 않고 실패 시 종료하며 fallback하지 않는다. Start는 `UI fixture: media capture blocked.` 상태로 callback 진입만 확인하고 stream, OCR를 실행하지 않는다. 실제 capture 성공이나 OS permission 검증은 이 evidence의 범위가 아니다. Desktop App component test와 fixture 검증의 경계를 구분한다.
 
 Changed-file 검사는 생성 bundle 목록을 대상으로 한다. Desktop의 기존 OCR worker처럼 수정하지 않고 복사하는 third-party asset에 DFragon 수정 고지를 임의로 붙이지 않는다.
 
-최초 구현의 실제 환경·검증 결과·upstream reduced-motion 지원 제한은 `docs/reference/ui-validation.md`에 기록했다.
+최초 구현의 실제 환경, 검증 결과, upstream reduced-motion 지원 제한은 `docs/reference/ui-validation.md`에 기록했다.

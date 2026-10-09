@@ -7,31 +7,31 @@ last-reviewed: 2026-09-14
 
 # Desktop Auth UI
 
-이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`·계정 모달·환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로·명령·화면 관측은 당시 revision에만 해당한다. 현재 UI는 `sections/LoginSection.tsx`의 로그인 버튼과 API의 전용 인증 창이며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
+이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`, 계정 모달, 환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로, 명령, 화면 관측은 당시 revision에만 해당한다. 현재 UI는 `sections/LoginSection.tsx`의 로그인 버튼과 API의 전용 인증 창이며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
 
 ## Source와 연결 경계
 
 `apps/desktop/src/frontend/src/sections/AuthPresentation.tsx`는 `types/auth.ts`의 renderer-local input을 표시하고 `onIntent` callback으로 의도를 전달한다. 원본 contract는 [`Desktop Authentication`](../rules/desktop-auth.md)과 [`lifecycle`](../rules/desktop-auth-lifecycle.md)다. Local type은 실제 IPC public type이나 runtime DTO validator가 아니다.
 
-- `snapshot`이 표시할 phase·provider·계정·entry·고정 notice를 결정한다. Command callback 자체로 signedIn을 만들지 않는다.
+- `snapshot`이 표시할 phase, provider, 계정, entry, 고정 notice를 결정한다. Command callback 자체로 signedIn을 만들지 않는다.
 - `commandPending`은 AuthSection이 전달하는 버튼 대기 상태다. Invocation 결과를 기다리거나 snapshot을 재동기화하는 동안 true를 유지한다. 취소 완료 snapshot 전 새 provider 선택을 만들지 않는다.
-- `SignedIn`의 welcome dismissal만 React mount에 남는다. 같은 mount의 입력 갱신은 dismissal을 유지하고 signedIn 이탈·전체 unmount는 초기화한다. `시작하기`는 local navigation이며 auth intent를 보내지 않는다.
-- Home에는 계정·주입된 `home` content와 logout이 있다. Content를 주입하지 않는 presentation-only fixture에는 화면 캡처 안내가 남고, 제품 App은 기존 PartyCapture를 주입한다.
-- [AuthBridge](desktop-auth-bridge.md)가 subscribe/getAuthState·runId/revision과 IPC 결과 재동기화를 맡는다. 제품 entry·preload 및 capture 수명의 후속 연결은 [Auth Capture](desktop-auth-capture.md)를 따른다. 아래 과거 presentation-only fixture 관측을 실제 capture 검증으로 해석하지 않는다.
+- `SignedIn`의 welcome dismissal만 React mount에 남는다. 같은 mount의 입력 갱신은 dismissal을 유지하고 signedIn 이탈, 전체 unmount는 초기화한다. `시작하기`는 local navigation이며 auth intent를 보내지 않는다.
+- Home에는 계정, 주입된 `home` content와 logout이 있다. Content를 주입하지 않는 presentation-only fixture에는 화면 캡처 안내가 남고, 제품 App은 기존 PartyCapture를 주입한다.
+- [AuthBridge](desktop-auth-bridge.md)가 subscribe/getAuthState, runId/revision과 IPC 결과 재동기화를 맡는다. 제품 entry, preload 및 capture 수명의 후속 연결은 [Auth Capture](desktop-auth-capture.md)를 따른다. 아래 과거 presentation-only fixture 관측을 실제 capture 검증으로 해석하지 않는다.
 
 ## 로그인과 연결 실패 안내
 
 브라우저 로그인 대기 화면은 API 완료 페이지의 “앱으로 돌아가기” 버튼과 OS의 앱 열기 확인을 안내합니다. 브라우저에서 취소하거나 브라우저를 닫은 경우 앱에 즉시 전달되지 않으므로 앱의 “로그인 취소” 후 새 시도를 안내합니다. 자동 복귀나 브라우저 취소의 자동 감지를 약속하지 않습니다.
 
-인증 연결 조회에 실패하면 “연결 다시 확인”으로 AuthSection에서 사용하는 useAuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인·교환·refresh·로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
+인증 연결 조회에 실패하면 “연결 다시 확인”으로 AuthSection에서 사용하는 useAuthBridge의 구독과 `getAuthState` 조회를 다시 연결합니다. 새 기준 snapshot을 기다리는 동안 보호 화면과 재확인 버튼을 숨깁니다. 이 동작은 `retryAuth`나 로그인, 교환, refresh, 로그아웃 명령을 재전송하지 않습니다. 실패가 계속되면 다음 수동 확인과 앱 재실행 안내를 유지합니다. 설정 누락이나 native 저장소 미준비를 화면 재조회만으로 해결하지 않습니다.
 
-패스키 로그인·저장·복원·로그아웃·capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한·암호화·파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, 브라우저 지원과 실제 기기 인증은 별도로 확인합니다.
+패스키 로그인, 저장, 복원, 로그아웃, capture 연결을 재사용합니다. 실제 제품 실행에는 [runtime 설정](desktop-auth-core.md)과 [플랫폼 조건](../rules/desktop-auth-platform.md)이 필요합니다. Windows 저장소는 실제 권한, 암호화, 파일 작업 결과로 판단합니다. 실제 API/identity/return tuple이 일치해야 하며, 브라우저 지원과 실제 기기 인증은 별도로 확인합니다.
 
 ## 공용 표현
 
-`@dfragon/ui`의 `LayoutBlock`, `ContentStack`, `ExampleSection`, `SupportingText`, `ActionButton`을 그대로 소비한다. SEED Theme 초기화와 system font는 fixture entry의 `@seed-design/css/base.css`, `@dfragon/ui/foundation.css` 및 공식 Vite plugin을 따른다. 화면 CSS·style·className override와 추가 framework는 없다.
+`@dfragon/ui`의 `LayoutBlock`, `ContentStack`, `ExampleSection`, `SupportingText`, `ActionButton`을 그대로 소비한다. SEED Theme 초기화와 system font는 fixture entry의 `@seed-design/css/base.css`, `@dfragon/ui/foundation.css` 및 공식 Vite plugin을 따른다. 화면 CSS, style, className override와 추가 framework는 없다.
 
-고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton·Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 DFragon composition의 제품 content 조합이다. 기존 공용 appearance·Motion을 변경하지 않았다.
+고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton, Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 DFragon composition의 제품 content 조합이다. 기존 공용 appearance, Motion을 변경하지 않았다.
 
 ## 격리 fixture 실행
 
@@ -44,9 +44,9 @@ pnpm --filter @dfragon/desktop exec electron scripts/auth-ui-fixture.mjs light
 pnpm --filter @dfragon/desktop exec electron scripts/auth-ui-fixture.mjs dark --force-prefers-reduced-motion
 ```
 
-Fixture source는 `apps/desktop/src/frontend/src/fixture/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox·contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file·내장 devtools resource 외 요청과 새 window·renderer navigation을 차단한다. 브라우저 인증·credential store·제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
+Fixture source는 `apps/desktop/src/frontend/src/fixture/auth/`이며 output은 `apps/desktop/out/auth-ui-fixture/`다. 제품 renderer build와 별도로 생성한다. `scripts/auth-ui-fixture.mjs`는 별도 임시 userData, sandbox, contextIsolation, nodeIntegration off, preload 없음으로 실행한다. Permission을 거절하고 file, 내장 devtools resource 외 요청과 새 window, renderer navigation을 차단한다. 브라우저 인증, credential store, 제품 auth/capture module을 실행하지 않는다. 종료 시 임시 userData를 정리하며 native filesystem의 일시적인 종료 경합에는 제한된 재시도를 사용한다.
 
-macOS의 Electron application menu에서 phase·invalidReturn·welcome/home·longNickname·noProviders를 선택한다. Light/Dark와 Narrow 360(360×740 content)/Wide 1100(1100×770 content)을 전환할 수 있다. 최초 window는 1100×800 outer size다. State 선택·Reload는 React를 다시 mount한다. App menu를 사용한 Theme·viewport 변경은 현재 mount를 보존한다.
+macOS의 Electron application menu에서 phase, invalidReturn, welcome/home, longNickname, noProviders를 선택한다. Light/Dark와 Narrow 360(360×740 content)/Wide 1100(1100×770 content)을 전환할 수 있다. 최초 window는 1100×800 outer size다. State 선택, Reload는 React를 다시 mount한다. App menu를 사용한 Theme, viewport 변경은 현재 mount를 보존한다.
 
 Fixture의 provider 선택은 800ms 후 Synthetic waitingBrowser, 취소는 signedOut/LOGIN_CANCELLED, retryAuth는 restoring, logout은 signingOut을 전달한다. 이 대기는 UI 검증을 위한 fixture 지연이며 제품 timeout 정책이 아니다. 자동 브라우저 인증 성공이나 실제 계정 권한은 없다.
 
@@ -58,22 +58,22 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-`AuthPresentation.test.tsx`는 실제 공용 component와 React DOM/jsdom을 사용한다. Red `a2fcd7d`는 빈 component scaffold에서 24개 assertion이 실패했으며, 통합 `1df14bc`에서도 재현 후 Green을 시작했다. Provider allowlist·현재 attempt·취소 후 snapshot 대기·복원/삭제 실패·보호 표시 제한·safe text·welcome mount·busy disabled를 검증한다. Assertion을 약화하거나 test를 skip하지 않았다.
+`AuthPresentation.test.tsx`는 실제 공용 component와 React DOM/jsdom을 사용한다. Red `a2fcd7d`는 빈 component scaffold에서 24개 assertion이 실패했으며, 통합 `1df14bc`에서도 재현 후 Green을 시작했다. Provider allowlist, 현재 attempt, 취소 후 snapshot 대기, 복원/삭제 실패, 보호 표시 제한, safe text, welcome mount, busy disabled를 검증한다. Assertion을 약화하거나 test를 skip하지 않았다.
 
-Code result `bd5d5e1`에서 aggregate exit 0, 10 files/53 tests, lint, Desktop build와 포함된 두 typecheck가 통과했다. 별도 fixture Vite build도 통과했다. 최초 lint의 explicit return type·Fast Refresh entry 오류와 typecheck의 nullable expiry 오류는 수정 후 재검증했다. Build의 기존 npm `shamefully-hoist` 경고는 남는다. 최종 integration exact head gate는 PR evidence에서 별도로 기록한다.
+Code result `bd5d5e1`에서 aggregate exit 0, 10 files/53 tests, lint, Desktop build와 포함된 두 typecheck가 통과했다. 별도 fixture Vite build도 통과했다. 최초 lint의 explicit return type, Fast Refresh entry 오류와 typecheck의 nullable expiry 오류는 수정 후 재검증했다. Build의 기존 npm `shamefully-hoist` 경고는 남는다. 최종 integration exact head gate는 PR evidence에서 별도로 기록한다.
 
 ## 실제 Electron 관측
 
-2026-09-07 macOS 26.6.2 arm64, Electron 39.8.10 / Chromium 142.0.7444.265에서 CUA로 실제 window·AX tree·screenshot과 keyboard를 확인했다. Font는 공식 system stack의 `-apple-system`, `system-ui`, `Apple SD Gothic Neo` 등을 사용한다. Screenshot은 CUA tool image로 확인했으며 repository에 image 파일을 추가하지 않았다.
+2026-09-07 macOS 26.6.2 arm64, Electron 39.8.10 / Chromium 142.0.7444.265에서 CUA로 실제 window, AX tree, screenshot과 keyboard를 확인했다. Font는 공식 system stack의 `-apple-system`, `system-ui`, `Apple SD Gothic Neo` 등을 사용한다. Screenshot은 CUA tool image로 확인했으며 repository에 image 파일을 추가하지 않았다.
 
 | 조건                                                         | 직접 확인한 내용                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Light, 초기 wide(1100×768 content), signedOut→waitingBrowser | provider 표시, Tab/Shift+Tab focus, Enter intent, 대기 중 disabled, 다음 snapshot의 현재 attempt 취소 focus.                                                                                                                                                                                                                              |
-| Dark, 360×740, startingLogin·exchanging·restoring·signingOut | 안내와 loading/disabled 표현, 보호 content 부재, exchange 취소 focus, restoring/signingOut의 activation 차단.                                                                                                                                                                                                                             |
+| Dark, 360×740, startingLogin, exchanging, restoring, signingOut | 안내와 loading/disabled 표현, 보호 content 부재, exchange 취소 focus, restoring/signingOut의 activation 차단.                                                                                                                                                                                                                             |
 | Dark, 360×740, invalidReturn                                 | 새 로그인 Enter→취소 대기 중 두 action disabled→signedOut 안내. 대기 중 provider가 나타나지 않는다.                                                                                                                                                                                                                                       |
-| Dark, 360×740, restorePaused·storageBlocked                  | retry/logout 순서와 focus, logout 후 signingOut, storageBlocked의 retry만 노출 및 local/server 불명 안내. `RESTORE_RETRY_REQUIRED`도 같은 안전한 retry/logout action과 고정 시간 확인 안내를 사용한다.                                                                                                                                    |
-| Light/Dark, 360×740, 최대 nickname welcome→home              | `W` 20 grapheme가 영역 안에 표시된다. 시작하기 Enter 후 home 계정·캡처 안내·logout 표시와 focus를 확인했다.                                                                                                                                                                                                                               |
-| Dark, reduced-motion run                                     | CLI flag만 사용한 실행에서 실제 DevTools `matchMedia('(prefers-reduced-motion: reduce)').matches === true`, dark true, `window.api` undefined 확인. Wide 화면에서 Tab→provider·Enter→busy→waiting→취소 focus·Enter→busy→signedOut·Tab→provider focus를 확인했다. DevTools는 read-only query에 사용했고 media emulation을 설정하지 않았다. |
+| Dark, 360×740, restorePaused, storageBlocked                  | retry/logout 순서와 focus, logout 후 signingOut, storageBlocked의 retry만 노출 및 local/server 불명 안내. `RESTORE_RETRY_REQUIRED`도 같은 안전한 retry/logout action과 고정 시간 확인 안내를 사용한다.                                                                                                                                    |
+| Light/Dark, 360×740, 최대 nickname welcome→home              | `W` 20 grapheme가 영역 안에 표시된다. 시작하기 Enter 후 home 계정, 캡처 안내, logout 표시와 focus를 확인했다.                                                                                                                                                                                                                               |
+| Dark, reduced-motion run                                     | CLI flag만 사용한 실행에서 실제 DevTools `matchMedia('(prefers-reduced-motion: reduce)').matches === true`, dark true, `window.api` undefined 확인. Wide 화면에서 Tab→provider, Enter→busy→waiting→취소 focus, Enter→busy→signedOut, Tab→provider focus를 확인했다. DevTools는 read-only query에 사용했고 media emulation을 설정하지 않았다. |
 
 유효 최대 nickname 기준은 서버의 1–20 grapheme contract다. 범위 밖의 매우 긴 unbroken stress text는 공용 flex 영역을 넘었지만, 정상 최대 조건과 구분했다. 이 stress만으로 공용 API를 확대하거나 renderer에서 nickname을 잘라 표시하지 않았다. HTML 형태 string은 component test에서 text 출력과 element 미생성을 검증한다.
 
@@ -83,11 +83,11 @@ Code result `bd5d5e1`에서 aggregate exit 0, 10 files/53 tests, lint, Desktop b
 
 고정 package의 `@seed-design/css/recipes/progress-circle.css`는 rotate 1.2s animation을 정의한다. 이는 source 근거이며 위 시간차 관측과 구분한다. 공식 동작을 그대로 보존했고 이번 UI에서 회전 정지 지원을 추가했다고 주장하지 않는다. 선행 PR #104 관측과도 일치한다.
 
-Native Quit으로 fixture를 정상 종료한 뒤 command exit 0, main PID 종료, 해당 임시 userData directory 부재와 worker Electron binary 경로의 잔여 process 없음을 확인했다. DevTools를 연 동안 Autofill protocol·Runtime agent 진단 경고가 있었지만 제품 auth 호출은 없었고 종료·정리 gate는 통과했다. 최종 상태에 실행 중인 fixture는 없다.
+Native Quit으로 fixture를 정상 종료한 뒤 command exit 0, main PID 종료, 해당 임시 userData directory 부재와 worker Electron binary 경로의 잔여 process 없음을 확인했다. DevTools를 연 동안 Autofill protocol, Runtime agent 진단 경고가 있었지만 제품 auth 호출은 없었고 종료, 정리 gate는 통과했다. 최종 상태에 실행 중인 fixture는 없다.
 
-## 미검증·후속
+## 미검증, 후속
 
 - 모든 상태×모든 viewport×모든 Theme의 전체 Cartesian matrix나 pixel 동등성을 주장하지 않는다. Button의 공식 loading 표현과 disabled는 구분하며 현재 화면은 둘을 함께 사용한다. 별도 page transition/Motion preset을 추가하지 않았다.
-- 실제 브라우저 인증·계정 API·IPC·native protocol·OS credential 저장·capture 통합, 다른 OS/runtime/font는 후속이다. Synthetic fixture 성공은 제품 인증 검증이 아니다.
+- 실제 브라우저 인증, 계정 API, IPC, native protocol, OS credential 저장, capture 통합, 다른 OS/runtime/font는 후속이다. Synthetic fixture 성공은 제품 인증 검증이 아니다.
 
 로그인한 화면의 `패스키 관리`는 고정 관리 주소를 외부 브라우저로 엽니다. 웹 화면에서 관리할 계정의 패스키로 다시 인증하며 앱에 credential 목록을 전달하지 않습니다.

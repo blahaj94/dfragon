@@ -27,7 +27,7 @@ builder의 실제 `getConfig(projectDir, null, null)`로 읽는다. 이어서
 electron-builder가 함께 제공하는 app-builder-lib 26.15.3의
 `validateConfiguration`을 호출해 해당 버전의 `scheme.json` schema가 전체
 configuration과 두 fuse field를 수용하는지 확인한 뒤 두 값을 모두 `false`로
-검사한다. 새 dependency를 추가하거나 builder 설정을 wrapper·afterPack hook으로
+검사한다. 새 dependency를 추가하거나 builder 설정을 wrapper, afterPack hook으로
 변환하지 않는다.
 
 Focused test:
@@ -54,8 +54,8 @@ builder loader와 schema가 통과하는 것은 source configuration의 적합�
 - 실제 packaged Electron executable의 fuse readback
 - 실제 executable 실행에서 `--inspect`, `--inspect-brk`, `NODE_OPTIONS`,
   `NODE_EXTRA_CA_CERTS`, `SIGUSR1` 처리 확인
-- 실제 서명·공증·제품 package 생성과 설치/OS 등록
+- 실제 서명, 공증, 제품 package 생성과 설치/OS 등록
 - credential store와 실제 user profile을 사용하는 실행
 
 이번 configuration test에서는 Electron/packaged app을 실행하지 않고, 위 native
-gate·credential·서명·공증도 수행하지 않는다.
+gate, credential, 서명, 공증도 수행하지 않는다.

@@ -34,40 +34,40 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 ## Shared library
 
-- Package: `@dfragon/lib`, 위치: `packages/lib`. 앱·UI·플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
+- Package: `@dfragon/lib`, 위치: `packages/lib`. 앱, UI, 플랫폼 전용 runtime에 의존하지 않는 공용 함수 ESM과 TypeScript 선언을 제공한다.
 - `estimateDNFUIScale`은 UI 퍼센트와 선택적 게임 영역 높이로 기준 래스터 배율을 추정한다. `estimateDNFPartyScale`은 인접 프레임의 실측 간격으로 배율을 구하고, `projectDNFPartyRegions`는 호출자가 보정한 기준 영역을 네 슬롯 후보에 투영한다. 공식 게임 산식이나 자동 검출기가 아니며 Desktop 호출부에는 아직 연결하지 않았다. [입력 범위와 한계](../../packages/lib/README.md#dnf-ui-배율-추정), [파티 프레임 실측 조사](desktop-party-geometry.md)를 참고한다.
 - `detectPartyFrameGeometry`는 가득 찬 HP, MP와 주변 테두리에서 HUD 닉네임 위치와 래스터 배율을 검출한다. 일반 Desktop OCR과 개발자 이미지 수집이 같은 함수를 사용하며, 특정 해상도 일치 조건 대신 `isValidPartyFrameSize`의 메모리 보호 한도를 적용한다. [검출 범위와 한계](desktop-party-geometry.md#일반-캡처와-개발자-수집의-공용-검출)를 참고한다.
-- `detectDNFPartyParticipantWindow`·`cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행·자물쇠 행의 슬롯 번호를 유지하며 Desktop의 파티원창 크롭 탭에서 사용한다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
-- `detectDNFRaidParticipantWindow`·`cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭에서 사용한다. `readDNFRaidParticipantMetadata`의 파티·점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
-- `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색·계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
-- `pnpm --filter @dfragon/lib test`는 build 후 공개 export·경계값·문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
+- `detectDNFPartyParticipantWindow`, `cropDNFPartyParticipantNicknames`는 RGBA 화면과 호출자가 제공한 기준 헤더로 이동 가능한 파티참가인원 팝업과 네 행의 상태를 찾아 원본 닉네임을 자른다. 빈 행, 자물쇠 행의 슬롯 번호를 유지하며 Desktop의 파티원창 크롭 탭에서 사용한다. [입력 계약과 사용법](../../packages/lib/README.md#파티참가인원-닉네임-검출크롭), [관측값과 검증 한계](desktop-party-participants.md)를 참고한다.
+- `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
+- `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
+- `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 
 ## License tooling
 
-- Package: `@dfragon/licenses`, 위치: `packages/licenses`. 빌드용 수집기·정적 원문·버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
-- 기존 UI·Web·Desktop·lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
+- Package: `@dfragon/licenses`, 위치: `packages/licenses`. 빌드용 수집기, 정적 원문, 버전별 upstream 보완을 관리한다. 제품 runtime은 이 패키지를 import하지 않는다.
+- 기존 UI, Web, Desktop, lib 빌드의 고지 원문 배포 경로를 유지하며 중앙 원본을 소비한다.
 - `pnpm --filter @dfragon/licenses test`: typecheck와 수집 테스트. [원문 공백과 사용법](../../packages/licenses/README.md)을 함께 확인한다.
 
 ## Applications
 
 ### `apps/api`
 
-- Package: `@dfragon/api`, Node 24·NestJS·TypeORM ESM. `src/http.ts`는 캐릭터·모험단 HTTP와 `/health`를 합성한다.
+- Package: `@dfragon/api`, Node 24, NestJS, TypeORM ESM. `src/http.ts`는 캐릭터, 모험단 HTTP와 `/health`를 합성한다.
 - Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
-- 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정·JWT·계정 DB를 사용하지 않는다.
-- `test`는 build·타입·단위·HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration·검색·캐시를 검증한다.
-- 개발: [API 개발](api-start-development.md). 이미지 실행·운영 책임: [제품 안내](api-start-development.md#서버-이미지).
+- 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT, 계정 DB를 사용하지 않는다.
+- `test`는 build, 타입, 단위, HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration, 검색, 캐시를 검증한다.
+- 개발: [API 개발](api-start-development.md). 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
 
 ### `apps/accounts`
 
 - Package: `@dfragon/accounts`, 인증 NestJS 서비스. `/auth/**`, `/me`, `/me/nickname`, 패스키 browser bundle을 소유한다.
-- `src/auth`: passkey·동일 계정 RP 이전·JWT·refresh/logout·nickname·cleanup. Desktop/OCR은 이 서비스에 인증한다.
-- 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container·volume·역할을 사용한다.
+- `src/auth`: passkey, 동일 계정 RP 이전, JWT, refresh/logout, nickname, cleanup. Desktop/OCR은 이 서비스에 인증한다.
+- 인증 DB는 user/passkey/session/refresh/login request/migration 여섯 table과 별도 PostgreSQL container, volume, 역할을 사용한다.
 - `src/database/schemas`가 Schema First 원본이다. 기존 auth migration 세 개와 RP/handoff migration 한 개를 빈 target에 적용한다.
-- `database/retire-api-*.sql`은 이전 인증 사본·RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
+- `database/retire-api-*.sql`은 이전 인증 사본, RP 키의 삭제 전제를 검증하는 제품 SQL이며 기존 DB suite에서 검증한다.
 - 입력: `PORT`, `DB_*`, `AUTH_CONFIG_FILE`, 선택 `AUTH_TRUST_PROXY`. 로컬 TLS는 accounts 3444, API 3443을 사용한다.
 - 명령: `pnpm --filter @dfragon/accounts dev`, `test`, `test:database`, `auth:cleanup`, `db:migrate:generate Name`, `db:migrate:up`, `db:migrate:show`.
-- 이미지 실행·운영 책임은 [제품 안내](api-start-development.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
+- 이미지 실행, 운영 책임은 [제품 안내](api-start-development.md#서버-이미지), 개발 설정은 [패스키 안내](passkey-authentication.md).
 - 양쪽 runtime은 시작할 때 schema migration을 자동 실행하지 않는다. `/docs`와 `/docs/openapi.json`도 각각 자기 서비스의 HTTP 계약만 제공한다.
 
 ### `apps/web`
@@ -85,27 +85,27 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 ### `apps/desktop`
 
 - Package: `@dfragon/desktop`
-- Windows MVP 배포: 이름 `DFragon`, x64 NSIS, `dfragon` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
+- Windows MVP 배포: 이름 `DFragon`, x64 NSIS, `dfragon` identity, profile, protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치, 사용, 빌드 안내](../../apps/desktop/README.md)를 따른다.
 - Stack: Electron, React, TypeScript, electron-vite
 - Process boundary: `main`, `preload`, `renderer`
-- TypeScript: `tsconfig.node.json`·`tsconfig.web.json`에 `composite: false`, `noEmit: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.
+- TypeScript: `tsconfig.node.json`, `tsconfig.web.json`에 `composite: false`, `noEmit: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.
 - Main entry: `src/backend/main.ts` → `out/backend/main.js`
-- Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending·generation·credential writer와 restore·refresh·logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
-- 캐릭터 검색: main 검색 수명·HTTP와 preload/renderer·격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
-- Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`·`App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
-  - `constants/`: 서버 목록, 카드 면·장비 배치·인증 문구·캡처 설정과 공유 StyleX 변수·테마.
-  - `components/`: `CardImage`·`InvestmentTable`·`CharacterCandidates`·`SlotNicknameEditor`·`LoginButtonLabel`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일·테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패·입력 draft 같은 자체 UI 상태를 가질 수 있다.
-  - `sections/`: 카드·인증·캡처·검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `EquipmentGrid`의 장비 배치, `CharacterCard`·`DetailDeck`의 전환, `LoginSection`의 전용 인증 창 진입과 진행 표시, `ManualSearch`·`PartyCapture`의 요청·구독 수명을 담당하며 전용 스타일·UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
-  - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증·홈 배치), `home/HomePage`(legacy fixture의 직접 검색·캡처 홈).
-  - `fixture/`: MVP 합성 데이터·자산·화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI·bridge·capture 실행 화면. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
-  - `lib/`: 화면과 독립적인 입력 검증·OCR 계산·파티 이미지 처리·검색 초기 슬롯 생성·검색 연결 및 캡처 수명·OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
-  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록·인식·XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색·OCR의 기존 비UI 구현은 `lib/capture-search.ts`·`lib/ocr.ts`에서 직접 참조한다. 인증 IPC 연결 전이는 `lib/auth-bridge-machine.ts`가 소유하며 인증 결과는 main snapshot에서 읽는다. 캡처 전이는 `lib/party-capture-machine.ts`, 미디어·worker 자원 수명은 `lib/party-capture-session.ts`가 소유한다.
-  - `testing/`: 여러 테스트가 공유하는 유틸리티·mock·fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
-  - `types/`: 카드·인증·검색·캡처·서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
-  - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section·page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트·fixture의 조합은 이 제품 의존 규칙과 구분한다.
-  - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일·불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결·OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
-- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개·테마 전환과 상단 로그인 버튼의 인증 창 진입·진행 표시·실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 선택 즉시 캡처·대상 변경·중지를 연결하고 OCR 이름을 카드에 표시한다. 검색 결과·이름 수정·상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인·상세·캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML·데이터·이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
-- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED·`@dfragon/ui`를 함께 사용한다. 제품·test·fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+- Auth core: `src/backend/auth/coordinator.ts`의 단일 main coordinator가 pending, generation, credential writer와 restore, refresh, logout을 소유한다. 제품 main은 완전한 trusted runtime 설정에서 conditional bootstrap과 macOS credential adapter를 구성하며, 실제 native 성공과 지원 OS는 미확정 gate다. 상세 검증 범위는 [`desktop-auth-core.md`](desktop-auth-core.md)를 참고한다.
+- 캐릭터 검색: main 검색 수명, HTTP와 preload/renderer, 격리 fixture의 위치 및 검증은 [`desktop-character-search.md`](desktop-character-search.md)를 참고한다. 실제 서버 소비 검증은 별도 `apps/desktop/scripts/search-server-integration/README.md`를 따른다.
+- Renderer source root: `src/frontend` → `out/frontend`. `src/frontend/src`는 아래 역할로 나눈다. 실행 진입점 `main.tsx`, `App.tsx`와 App 테스트는 root에 두고, 앱 조합 통합 테스트는 `integration`에 둔다.
+  - `constants/`: 서버 목록, 카드 면, 장비 배치, 인증 문구, 캡처 설정과 공유 StyleX 변수, 테마.
+  - `components/`: `CardImage`, `InvestmentTable`, `CharacterCandidates`, `SlotNicknameEditor`, `LoginButtonLabel`처럼 독립적으로 쓸 수 있는 UI와 전용 스타일, 테스트를 하위 폴더 없이 둔다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. 이미지 실패, 입력 draft 같은 자체 UI 상태를 가질 수 있다.
+  - `sections/`: 카드, 인증, 캡처, 검색의 기능 조합을 하위 폴더 없이 배치한다. 파일당 컴포넌트 하나를 선언하고 StyleX 정의는 `{name}.style.ts`로 분리한다. `EquipmentGrid`의 장비 배치, `CharacterCard`, `DetailDeck`의 전환, `LoginSection`의 전용 인증 창 진입과 진행 표시, `ManualSearch`, `PartyCapture`의 요청, 구독 수명을 담당하며 전용 스타일, UI 테스트를 함께 둔다. UI는 `hooks`의 커스텀 hook을 사용한다.
+  - `pages/`: `party/PartyPage`(4개 슬롯), `character-detail/CharacterDetailPage`(상세), `login/LoginPage`(인증, 홈 배치), `home/HomePage`(legacy fixture의 직접 검색, 캡처 홈).
+  - `fixture/`: MVP 합성 데이터, 자산, 화면 제어, 구버전 조합 `legacy/LegacyApp`, 인증 UI, bridge, capture 실행 화면. 공용 글꼴은 `assets/fonts`, UI 자산 원본 고지는 `packages/licenses/notices/desktop`에 두고 공용 도구가 앱별 산출물을 만든다. 제품 페이지가 fixture를 import하지 않는다.
+  - `lib/`: 화면과 독립적인 입력 검증, OCR 계산, 파티 이미지 처리, 검색 초기 슬롯 생성, 검색 연결 및 캡처 수명, OCR worker와 관련 단위 테스트를 하위 폴더 없이 배치한다. 각 유틸리티 함수에는 역할 설명 주석을 둔다.
+  - `hooks/`: 인증 연결, 캐릭터 검색, 캡처 창 목록, 인식, XState 연결을 담당하는 커스텀 hook과 `ColorThemeProvider`의 공유 상태를 읽는 테마 hook, hook 전용 테스트를 하위 폴더 없이 둔다. 검색, OCR의 기존 비UI 구현은 `lib/capture-search.ts`, `lib/ocr.ts`에서 직접 참조한다. 인증 IPC 연결 전이는 `lib/auth-bridge-machine.ts`가 소유하며 인증 결과는 main snapshot에서 읽는다. 캡처 전이는 `lib/party-capture-machine.ts`, 미디어, worker 자원 수명은 `lib/party-capture-session.ts`가 소유한다.
+  - `testing/`: 여러 테스트가 공유하는 유틸리티, mock, fixture를 둔다. 현재 `testing/fixtures`의 검색 renderer 도우미를 공유하며, 실제 테스트 파일은 검증하는 코드 옆 또는 기존 `integration`에 둔다.
+  - `types/`: 카드, 인증, 검색, 캡처, 서버의 frontend 공통 타입. IPC 타입은 기존 preload contract에서 직접 가져온다.
+  - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section, page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트, fixture의 조합은 이 제품 의존 규칙과 구분한다.
+  - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일, 불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결, OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
+- 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개, 테마 전환과 상단 로그인 버튼의 인증 창 진입, 진행 표시, 실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 선택 즉시 캡처, 대상 변경, 중지를 연결하고 OCR 이름을 카드에 표시한다. 검색 결과, 이름 수정, 상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합은 legacy fixture와 기존 기능 테스트에서만 사용한다. 합성 메인, 상세, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
+- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED, `@dfragon/ui`를 함께 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @dfragon/desktop dev`
   - `pnpm --filter @dfragon/desktop test`
@@ -115,41 +115,41 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 ### `apps/ocr`
 
-- Package: `@dfragon/ocr`, Node 24·NestJS·React/TanStack Query/StyleX·esbuild·SQLite.
-- `src`: 서버·기존 패스키 API 연결·원본/정답 저장·PNG 크롭·TAR 다운로드. `browser`: 관리 SPA.
+- Package: `@dfragon/ocr`, Node 24, NestJS, React/TanStack Query/StyleX, esbuild, SQLite.
+- `src`: 서버, 기존 패스키 API 연결, 원본/정답 저장, PNG 크롭, TAR 다운로드. `browser`: 관리 SPA.
 - 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
 - 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.
-- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행·운영 책임: [제품 안내](api-start-development.md#서버-이미지).
+- 실행/API: [OCR 안내](../../apps/ocr/README.md), 이미지 실행, 운영 책임: [제품 안내](api-start-development.md#서버-이미지).
 
 ## Shared UI
 
-- Desktop·API 패스키·OCR·Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치·작성·검증 범위를 정리한다.
+- Desktop, API 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
 
-- 실제 검증 환경·결과·upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
-- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet·Layout과 중립 Example. Package/peer/CSS 소유·고정 source·고지·명령은 `packages/ui/README.md`를 따른다.
+- 실제 검증 환경, 결과, upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
+- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet, Layout과 중립 Example. Package/peer/CSS 소유, 고정 source, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
 - Web/Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
 - 각 consumer는 SEED base.css와 별도 공용 foundation.css를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 SEED/React/JSX runtime을 external 처리한다.
-- Source 재생성·hash/local diff: `packages/ui/scripts/prepare-seed-source.mjs`, `packages/ui/seed-provenance.json`.
-- 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example·Web·Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
+- Source 재생성, hash/local diff: `packages/ui/scripts/prepare-seed-source.mjs`, `packages/ui/seed-provenance.json`.
+- 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Web, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
 - Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
 
 ## Repository tooling
 
 - `scripts/create-app.mjs`: 새 app workspace 생성 script
 - `pnpm create-app`: root에서 생성 script 실행
-- `scripts/start-task.mjs`: 선택적 Issue 기반 준비 도구. project·Issue 번호·description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
+- `scripts/start-task.mjs`: 선택적 Issue 기반 준비 도구. project, Issue 번호, description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
 - `pnpm start-task <project> <Issue 번호> <description> <새 worktree 경로>`: root에서 작업 준비; GitHub CLI 인증 필요
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
 - `pnpm check:writing`: 제품 이름 표기와 사용자 문구 문체 검사. 기준은 [표기와 문체](../rules/writing.md), 사용법은 [`scripts/README.md`](../../scripts/README.md#check-writing)
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
-- `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구·공용 helper·포맷·CI 연결 검사를 실행한다. Code Quality의 PR·main push에서 같은 명령을 호출하며 보안 의존성 검사는 별도 유지한다.
+- `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구, 공용 helper, 포맷, CI 연결 검사를 실행한다. Code Quality의 PR, main push에서 같은 명령을 호출하며 보안 의존성 검사는 별도 유지한다.
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
 
 ## Generated and dependency output
 
-다음 directory는 일반적인 architecture context로 읽지 않는다. 현재 요청의 구현·검증이나 원인 확인에 필요한 경우에만 확인한다.
+다음 directory는 일반적인 architecture context로 읽지 않는다. 현재 요청의 구현, 검증이나 원인 확인에 필요한 경우에만 확인한다.
 
 - `node_modules`
 - `dist`
@@ -160,13 +160,13 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 다음 변경이 생기면 이 Reference document를 같은 PR에서 갱신한다.
 
-- Workspace, app, package 추가·삭제·이름 변경
+- Workspace, app, package 추가, 삭제, 이름 변경
 - Runtime 또는 주요 framework 변경
 - 표준 command 변경
 - Process boundary 또는 source root 변경
 
 ## Desktop 개발 도구
 
-설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정·PNG/라벨 저장과 Windows 게임 client 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 HUD·파티원창의 네 위치와 공대원창의 12행 수집, 라벨·기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본·선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰·원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치·조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, Otsu 반전 이진화는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
+설치 앱의 설정에서 개발자 모드를 활성화한다. `apps/desktop/src/backend/developer`가 로컬 설정, PNG/라벨 저장과 Windows 게임 client 캡처를 소유하고, `src/preload/api/developer.ts`의 제한된 API로 연결한다. Renderer의 `sections/DeveloperWorkbench.tsx`가 HUD, 파티원창의 네 위치와 공대원창의 12행 수집, 라벨, 기존 OCR 모델 평가를 조합한다. `backend/developer/ocr-upload.ts`는 로그인 중 Print Screen 수집의 원본, 선택 좌표를 기존 인증 coordinator로 OCR 서버에 전송하며 토큰, 원본 전송 IPC나 재시도 큐는 노출하지 않는다. `backend/developer/ocr-dataset.ts`는 같은 소유자 인증으로 서버 정답 스냅샷과 크롭을 읽고, `hooks/useOcrSamples.ts`가 자료 위치, 조회 수명과 읽기 전용 평가 화면을 연결한다. 모델 실행은 제품의 `lib/ocr.ts`, Otsu 반전 이진화는 `lib/nickname-pixels.ts`를 공유한다. [사용법과 현재 이관 범위](../../apps/desktop/README.md#개발자-모드)를 참고한다.
 
-`lib/developer-mode-machine.ts`, `lib/developer-samples-machine.ts`, `lib/developer-evaluation-machine.ts`가 각각 설정 전환, 샘플 조회·저장, 평가 실행·취소의 상태를 소유한다. 대응하는 `hooks/useDeveloper*.ts`는 machine 상태를 화면 API로 연결하고, `lib/developer-evaluation-run.ts`는 actor의 취소 신호에 따라 OCR 자원을 정리한다. 선택한 이미지와 라벨 초안 등 화면 입력은 컴포넌트에 둔다.
+`lib/developer-mode-machine.ts`, `lib/developer-samples-machine.ts`, `lib/developer-evaluation-machine.ts`가 각각 설정 전환, 샘플 조회, 저장, 평가 실행, 취소의 상태를 소유한다. 대응하는 `hooks/useDeveloper*.ts`는 machine 상태를 화면 API로 연결하고, `lib/developer-evaluation-run.ts`는 actor의 취소 신호에 따라 OCR 자원을 정리한다. 선택한 이미지와 라벨 초안 등 화면 입력은 컴포넌트에 둔다.
