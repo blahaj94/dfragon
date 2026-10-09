@@ -101,6 +101,6 @@ Playwright로 Windows의 실제 renderer에서 저장된 24개 조회, 12행 선
 
 ## Desktop 수집 화면
 
-기존 Penpot 파일에 [12명 참가 화면](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=4ea68358-4b74-800d-8008-b2ad70602a7b)과 [9명 참가 화면](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=4ea68358-4b74-800d-8008-b2aee718e423)을 추가했습니다. 실제 플레이어 정보를 사용하지 않은 편집 가능한 합성 화면입니다.
+기존 Penpot 파일에 12명 참가 화면과 9명 참가 화면을 추가했습니다. 지금은 [공대원창 크롭 보드](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdeed85a326d&section=interactions&frame-id=f47e4ca8-7ec0-8075-8008-c2867199abb8)가 편집 기준입니다. 실제 플레이어 정보를 사용하지 않은 편집 가능한 합성 화면입니다.
 
 기존 개발자 작업 공간의 색상, 글꼴을 유지하고 공대원창 크롭 탭, 검출 원본과 닉네임 경계, 2열×6행의 크롭 선택, Print Screen 안내, 로그인 중 전체 원본 전송 안내를 보여줍니다. 9명 화면은 같은 12행 창에서 아래 세 행이 비활성인 상태입니다. 실제 사용법과 수집, 정답 입력 흐름은 [Desktop 안내](../../apps/desktop/README.md#공대원창-크롭)를 따릅니다.
