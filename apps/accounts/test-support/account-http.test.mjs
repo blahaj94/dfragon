@@ -5,7 +5,7 @@ import { URL } from 'node:url'
 import { test } from 'node:test'
 import { withAccountApp, rawAccountRequest, expectAccountError } from './account-http-fixtures.mjs'
 
-test('계정 HEAD는 JWT 검증·DB 조회·활동 전에 거절한다', async () => {
+test('계정 HEAD는 JWT 검증, DB 조회, 활동 전에 거절한다', async () => {
   let databaseCalls = 0
   let verifications = 0
   const source = {
@@ -108,7 +108,7 @@ test('계정 PATCH overflow는 stream 종료 전에 연결을 닫고 framing 오
   })
 })
 
-test('계정 PATCH는 transport·JWT·필드 순서로 거절하고 활동을 기록하지 않는다', async () => {
+test('계정 PATCH는 transport, JWT, 필드 순서로 거절하고 활동을 기록하지 않는다', async () => {
   let verifications = 0
   let databaseCalls = 0
   const source = {
@@ -180,7 +180,7 @@ test('계정 PATCH는 transport·JWT·필드 순서로 거절하고 활동을 �
   assert.equal(databaseCalls, 0)
 })
 
-test('유효 JWT라도 잘못된 nickname 입력은 DB 활동·변경 없이 거절한다', async () => {
+test('유효 JWT라도 잘못된 nickname 입력은 DB 활동, 변경 없이 거절한다', async () => {
   let verifications = 0
   let databaseCalls = 0
   const f = {

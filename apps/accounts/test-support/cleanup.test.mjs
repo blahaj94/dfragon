@@ -6,8 +6,8 @@ const load = () => import('../dist/auth/cleanup/index.js')
 const cases = {
   session: 'cleanup의 session 삭제 경계',
   request: 'cleanup의 패스키 요청 삭제 경계',
-  reread: 'cleanup은 후보 이후 활동·소유 변경·삭제를 잠금 아래 다시 확인한다',
-  requestReread: 'cleanup은 후보 이후 패스키 요청의 존재·terminal 상태를 다시 확인한다',
+  reread: 'cleanup은 후보 이후 활동, 소유 변경, 삭제를 잠금 아래 다시 확인한다',
+  requestReread: 'cleanup은 후보 이후 패스키 요청의 존재, terminal 상태를 다시 확인한다',
   empty: '빈 cleanup은 호출자 DataSource의 연결 수명을 소유하지 않는다',
   partialFailure: '나중 transaction 실패는 앞서 확인한 삭제 commit을 되돌렸다고 보고하지 않는다',
   uncertain: '삭제 commit 응답 유실은 데이터가 삭제됐어도 실패로 정제한다'

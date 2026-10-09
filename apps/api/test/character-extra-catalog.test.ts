@@ -73,7 +73,7 @@ function memoryStore() {
   return { store, rows }
 }
 
-test('세트 응답 순서와 무관하게 ID를 대응하고 누락·중복 응답과 혼합 요청을 거절한다', async () => {
+test('세트 응답 순서와 무관하게 ID를 대응하고 누락, 중복 응답과 혼합 요청을 거절한다', async () => {
   const adapter = createNeopleCatalog('fixture-key', async (input, options) => {
     const url = new URL(String(input))
     assert.equal(url.pathname, '/df/multi/setitems')
@@ -250,7 +250,7 @@ function fixture(): ReturnType<typeof projectCharacterDetails> {
   }
 }
 
-test('장착 부속에 공용 상세를 연결하고 원본·빈 슬롯·서약 setId를 보존한다', async () => {
+test('장착 부속에 공용 상세를 연결하고 원본, 빈 슬롯, 서약 setId를 보존한다', async () => {
   const details = fixture(),
     original = structuredClone(details),
     calls: CatalogKey[] = []
@@ -321,7 +321,7 @@ test('공용 상세 실패에도 미장착 null과 빈 배열을 그대로 유�
   }
 })
 
-test('잘못된 참조는 조회하지 않고 반복 아이템·스킬은 한 번씩 연결하며 원본 순서를 보존한다', async () => {
+test('잘못된 참조는 조회하지 않고 반복 아이템, 스킬은 한 번씩 연결하며 원본 순서를 보존한다', async () => {
   const details = fixture()
   details.equipment = {
     equipment: [
@@ -478,7 +478,7 @@ test('예약어 ID도 JSON 사전에 안전하게 연결하고 유효한 jobId�
   }
 })
 
-test('예약된 itemDetail·skillDetails는 공용 저장값으로 교체하고 캐릭터 옵션은 보존한다', async () => {
+test('예약된 itemDetail, skillDetails는 공용 저장값으로 교체하고 캐릭터 옵션은 보존한다', async () => {
   const details = fixture()
   details.equipment = {
     equipment: [{ itemId: 'equipment', option: '장착 옵션', itemDetail: { injected: true } }],

@@ -17,7 +17,7 @@ function gate() {
   return { promise, resolve }
 }
 
-test('인증 중 끊긴 연결은 업로드 슬롯을 차지하지 않고 완료·실패·취소는 슬롯을 한 번 반환한다', async (t) => {
+test('인증 중 끊긴 연결은 업로드 슬롯을 차지하지 않고 완료, 실패, 취소는 슬롯을 한 번 반환한다', async (t) => {
   const config = {
     origin: 'https://ocr.example.test',
     authOrigin: 'https://auth.example.test',
@@ -112,7 +112,7 @@ test('인증 중 끊긴 연결은 업로드 슬롯을 차지하지 않고 완료
   }
 })
 
-test('실제·합성 업로드는 두 슬롯을 공유하고 본문 실패·연결 취소 뒤 같은 내용을 재시도한다', async (t) => {
+test('실제, 합성 업로드는 두 슬롯을 공유하고 본문 실패, 연결 취소 뒤 같은 내용을 재시도한다', async (t) => {
   const token = 'fixture-synthetic-upload-token-for-boundary-tests-'.repeat(2)
   const config = {
     origin: 'https://ocr.example.test',

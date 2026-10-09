@@ -39,7 +39,7 @@ async function emitSlot(fixture: Fixture, slot: SearchSlot): Promise<void> {
   await fixture.emit({ ...withSearchSlot(slot), revision: fixture.current().revision + 1 })
 }
 
-it('네 slot은 pending·후보·0건·실패를 독립 표시하고 모든 후보 field와 서버 순서를 보존한다', async () => {
+it('네 slot은 pending, 후보, 0건, 실패를 독립 표시하고 모든 후보 field와 서버 순서를 보존한다', async () => {
   const fixture = await recognized()
   const second = {
     ...searchRow,
@@ -126,7 +126,7 @@ it('검색 상태와 결과 수는 같은 status 영역에서 갱신하고 후�
   }
 })
 
-it('후보 명성은 숫자 구분을 돕되 0·소수·정보 없음을 구별한다', async () => {
+it('후보 명성은 숫자 구분을 돕되 0, 소수, 정보 없음을 구별한다', async () => {
   const fixture = await recognized()
   await emitSlot(
     fixture,

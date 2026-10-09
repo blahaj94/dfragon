@@ -205,7 +205,7 @@ test('admission 대기는 1,999ms에는 통과하고 정확히 2,000ms에는 취
   }
 })
 
-test('admission 종료는 대기자를 취소하고 예약·timer를 정리하며 새 요청을 거절한다', async () => {
+test('admission 종료는 대기자를 취소하고 예약, timer를 정리하며 새 요청을 거절한다', async () => {
   const { SearchAdmission } = await import('../dist/characters/search-admission.js')
   const time = clock()
   const admission = new SearchAdmission(time)

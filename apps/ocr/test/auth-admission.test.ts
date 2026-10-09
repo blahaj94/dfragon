@@ -4,7 +4,7 @@ import type { Request, Response } from 'express'
 import { OcrAuth } from '../src/auth.js'
 import { OCR_AUTH } from '../src/constants.js'
 
-test('쿠키 없는 IPv6 주소 변경도 같은 대역의 대기 한도를 공유하고 교체·만료로 용량을 회수한다', async (t) => {
+test('쿠키 없는 IPv6 주소 변경도 같은 대역의 대기 한도를 공유하고 교체, 만료로 용량을 회수한다', async (t) => {
   let now = Date.now()
   t.mock.method(Date, 'now', () => now)
   let calls = 0

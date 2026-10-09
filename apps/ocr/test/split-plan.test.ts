@@ -42,7 +42,7 @@ test('분할 개선 점수와 비율 합의 엄격한 허용 경계를 유지한
   }
 })
 
-test('흔한·희귀 문자와 반복 닉네임의 기존 배정·독립 문자 집계를 함께 보존한다', () => {
+test('흔한, 희귀 문자와 반복 닉네임의 기존 배정, 독립 문자 집계를 함께 보존한다', () => {
   const names = [
     '가가★',
     '가나★',
@@ -62,7 +62,7 @@ test('흔한·희귀 문자와 반복 닉네임의 기존 배정·독립 문자 
   )
   const plan = planSplits(rows, options)
   assert.deepEqual(plan, planSplits([...rows].reverse(), options))
-  // README에 기록한 점수·정렬·동률 정책의 기존 회귀 기대값은 유지한다.
+  // README에 기록한 점수, 정렬, 동률 정책의 기존 회귀 기대값은 유지한다.
   assert.deepEqual(plan.assignments, [
     { text: 'A2가', split: 'train' },
     { text: 'あ가', split: 'train' },
@@ -99,7 +99,7 @@ test('흔한·희귀 문자와 반복 닉네임의 기존 배정·독립 문자 
   }
 })
 
-test('문자군 통계는 영문·숫자·기타 문자를 구분해 정답 내 문자 등장 횟수를 센다', () => {
+test('문자군 통계는 영문, 숫자, 기타 문자를 구분해 정답 내 문자 등장 횟수를 센다', () => {
   assert.deepEqual([...'ⓐ⒜Ⅰⅰ'].map(characterGroup), ['special', 'special', 'latin', 'latin'])
   const stats = splitStatistics([
     sample('검사★龍'),
@@ -120,7 +120,7 @@ test('문자군 통계는 영문·숫자·기타 문자를 구분해 정답 내 
   assert.equal(stats.skipped, 1)
 })
 
-test('문자 통계는 반복 표본·빈 분할과 같은 빈도 문자의 UTF-16 순서를 보존한다', () => {
+test('문자 통계는 반복 표본, 빈 분할과 같은 빈도 문자의 UTF-16 순서를 보존한다', () => {
   const rows: SplitRow[] = [
     sample('2😀\uE000'),
     { ...sample('2😀\uE000', 'duplicate'), split: 'train' },
@@ -291,7 +291,7 @@ test('분할 미리보기는 읽기 전용이며 오래된 적용을 거절하�
   }
 })
 
-test('수동 미배정 닉네임은 자동 분할 미리보기·적용·재시작 뒤에도 보존한다', async () => {
+test('수동 미배정 닉네임은 자동 분할 미리보기, 적용, 재시작 뒤에도 보존한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ocr-protected-split-'))
   const database = join(directory, 'data.sqlite')
   let store = new OcrStore(database, 1024 * 1024)
@@ -334,7 +334,7 @@ test('수동 미배정 닉네임은 자동 분할 미리보기·적용·재시�
   }
 })
 
-test('자료·정답·제외·배정·초기화·비율이 바뀌면 오래된 분할 적용을 거절하고 현재 상태를 보존한다', async (t) => {
+test('자료, 정답, 제외, 배정, 초기화, 비율이 바뀌면 오래된 분할 적용을 거절하고 현재 상태를 보존한다', async (t) => {
   const cases: {
     title: string
     change: (store: OcrStore, id: string, settings: SplitOptions) => SplitOptions

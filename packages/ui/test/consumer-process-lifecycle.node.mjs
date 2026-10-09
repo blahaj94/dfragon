@@ -194,11 +194,11 @@ for (const { name, mode, status } of unitCases) {
 
 const invalidPidCases = [
   {
-    name: '정수가 아닌 PID는 신호·대기·시계 확인 전에 거부한다',
+    name: '정수가 아닌 PID는 신호, 대기, 시계 확인 전에 거부한다',
     pid: 1.5
   },
   {
-    name: 'PID 1은 신호·대기·시계 확인 전에 거부한다',
+    name: 'PID 1은 신호, 대기, 시계 확인 전에 거부한다',
     pid: 1
   }
 ]

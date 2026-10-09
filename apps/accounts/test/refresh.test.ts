@@ -11,8 +11,8 @@ const cases = {
   stale: '없는 row나 잠금 뒤 소유 변경으로 다른 session을 폐기하지 않는다',
   ended: '정확한 idle 만료와 폐기 session은 발급하거나 부활시키지 않는다',
   capped: 'idle 만료 1초 전 JWT는 deadline까지만 유효하고 활동은 연장하지 않는다',
-  failures: '서명·난수·insert·commit 실패는 기존 token을 보존하고 상세를 정제한다',
-  entropy: '잘못된 길이의 난수는 서명·소비·저장 전에 정제 거절한다',
+  failures: '서명, 난수, insert, commit 실패는 기존 token을 보존하고 상세를 정제한다',
+  entropy: '잘못된 길이의 난수는 서명, 소비, 저장 전에 정제 거절한다',
   retry: 'rotation insert가 rollback된 뒤 기존 refresh를 명시적으로 다시 사용할 수 있다'
 } as const
 

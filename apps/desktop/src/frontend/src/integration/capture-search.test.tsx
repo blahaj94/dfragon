@@ -35,7 +35,7 @@ it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 medi
   })
 })
 
-it('begin 완료 전 중복 Start는 새 begin·media를 만들지 않고 진행 상태로 차단한다', async () => {
+it('begin 완료 전 중복 Start는 새 begin, media를 만들지 않고 진행 상태로 차단한다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
   const begin = Promise.withResolvers<SearchCommandResult>()
@@ -81,7 +81,7 @@ it.each(['캡처 중지', 'source', 'unmount'] as const)(
 )
 
 it.each(['캡처 중지', 'source', 'unmount', 'media failed', 'OCR failed'] as const)(
-  '%s는 현재 capture ID를 end하고 stream·worker·loop를 정리한다',
+  '%s는 현재 capture ID를 end하고 stream, worker, loop를 정리한다',
   async (transition) => {
     const fixture = createRendererFixture()
     const loop = Promise.withResolvers<void>()

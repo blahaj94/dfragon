@@ -92,7 +92,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-it('보관한 요청이 없으면 재시도하지 않고 실패 뒤 폼을 수정해도 최초 PNG·좌표·배율 본문을 유지한다', async () => {
+it('보관한 요청이 없으면 재시도하지 않고 실패 뒤 폼을 수정해도 최초 PNG, 좌표, 배율 본문을 유지한다', async () => {
   await act(async () => upload.retryPrevious())
   expect(requestOcr).not.toHaveBeenCalled()
   vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))

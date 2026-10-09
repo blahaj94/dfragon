@@ -5,19 +5,19 @@ import { readDNFRaidParticipantMetadata } from '@dfragon/lib'
 const testTitles = {
   visibleNotation: '12행의 합성 표식을 읽고 표시된 점수 문자열을 유지한다',
   scaledFields: '검출 배율 상한까지 확대된 필드의 사본을 기준 크기로 맞춘다',
-  independentNulls: '모호한 표식·미판독 점수·빈 행을 독립적인 null로 반환한다',
-  malformedScores: '모호한 글자와 잘못된 점수 형식을 보정·추측 없이 거절한다',
-  validation: '완전한 영역·중복 없는 화면 행·유효한 기준 픽셀을 요구한다',
+  independentNulls: '모호한 표식, 미판독 점수, 빈 행을 독립적인 null로 반환한다',
+  malformedScores: '모호한 글자와 잘못된 점수 형식을 보정, 추측 없이 거절한다',
+  validation: '완전한 영역, 중복 없는 화면 행, 유효한 기준 픽셀을 요구한다',
   contrastBoundary: '국소 대비 경계를 포함하고 아래 구분선 두 행을 점수에서 제외한다',
   glyphBoundary: '글자 획의 겹침 경계를 포함하고 별도로 16글자 상한을 유지한다',
   independentAmbiguity: '같은 기준 높이에서도 표식과 글자의 모호성 판정을 독립적으로 유지한다',
   sparseReadonlyRows:
-    '일부 행의 입력 순서와 화면 행 번호를 유지하고 RGBA view·기준 이미지를 변경하지 않는다',
-  regionBoundaries: '빈 행도 완전한 정수 영역을 요구하고 사각형 크기·화면 끝 경계를 포함한다',
-  referenceSetLimits: '같은 표식·글자의 여러 기준은 모호하지 않으며 기준 개수 상한을 포함한다'
+    '일부 행의 입력 순서와 화면 행 번호를 유지하고 RGBA view, 기준 이미지를 변경하지 않는다',
+  regionBoundaries: '빈 행도 완전한 정수 영역을 요구하고 사각형 크기, 화면 끝 경계를 포함한다',
+  referenceSetLimits: '같은 표식, 글자의 여러 기준은 모호하지 않으며 기준 개수 상한을 포함한다'
 }
 
-// 합성 글자·배지만 사용하며 스크린샷·게임 자산·플레이어 데이터는 포함하지 않는다.
+// 합성 글자, 배지만 사용하며 스크린샷, 게임 자산, 플레이어 데이터는 포함하지 않는다.
 const alphabet = {
   0: ['01110', '10001', '10011', '10101', '11001', '10001', '01110'],
   1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
@@ -309,7 +309,7 @@ test(testTitles.contrastBoundary, () => {
     [74, '8'],
     [75, '8']
   ]) {
-    // 배경의 반올림 휘도는 19이므로 글자 획의 대비는 각각 54·55·56이다.
+    // 배경의 반올림 휘도는 19이므로 글자 획의 대비는 각각 54, 55, 56이다.
     const { image, rows } = fixture([
       { text: '8', color: [brightness, brightness, brightness, 255] }
     ])

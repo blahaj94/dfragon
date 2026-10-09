@@ -7,10 +7,10 @@ import { checkedAt, logoutFixture } from './logout.fixtures.js'
 
 const cases = {
   format: 'logout은 canonical refresh 형식 오류를 DB 조회 전에 거절한다',
-  committed: '현재·소비된 refresh의 session 폐기는 commit 뒤 성공하고 활동·token은 보존한다',
-  stale: '없는 row·잠금 뒤 소유 변경·종료 session의 logout은 데이터를 변경하지 않는다',
+  committed: '현재, 소비된 refresh의 session 폐기는 commit 뒤 성공하고 활동, token은 보존한다',
+  stale: '없는 row, 잠금 뒤 소유 변경, 종료 session의 logout은 데이터를 변경하지 않는다',
   deadline: 'logout은 잠금 뒤 fresh 시각의 정확한 idle 만료 경계를 다시 확인한다',
-  failure: 'logout의 DB·commit 실패는 성공으로 응답하거나 자동 재시도하지 않는다'
+  failure: 'logout의 DB, commit 실패는 성공으로 응답하거나 자동 재시도하지 않는다'
 } as const
 
 async function expectUnavailable(operation: Promise<void>): Promise<void> {

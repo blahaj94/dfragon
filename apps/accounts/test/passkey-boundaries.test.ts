@@ -23,7 +23,7 @@ const isInvalidInput = (error: unknown) => {
   return true
 }
 
-test('패스키 생성은 등록된 client·S256·정확한 필드만 받고 입력을 변경하지 않는다', async (t) => {
+test('패스키 생성은 등록된 client, S256, 정확한 필드만 받고 입력을 변경하지 않는다', async (t) => {
   const input = {
     provider: 'passkey',
     clientId: 'desktop',
@@ -65,7 +65,7 @@ test('패스키 생성은 등록된 client·S256·정확한 필드만 받고 입
   }
 })
 
-test('앱 교환 입력은 UUID·client 문자열·32-byte 정규 proof와 정확한 필드를 요구한다', async (t) => {
+test('앱 교환 입력은 UUID, client 문자열, 32-byte 정규 proof와 정확한 필드를 요구한다', async (t) => {
   const input = {
     requestId: randomUUID(),
     clientId: 'desktop',

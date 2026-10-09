@@ -83,7 +83,7 @@ test('패스키 브라우저는 같은 origin에서 브랜드 PNG를 제공한�
   }
 })
 
-test('배포 브라우저 bundle은 설치된 QR·React 패키지의 고지문을 포함한다', async () => {
+test('배포 브라우저 bundle은 설치된 QR, React 패키지의 고지문을 포함한다', async () => {
   const script = await readFile(new URL('../dist/browser/passkeys.js', import.meta.url), 'utf8')
   assert.ok(script.includes('/auth/passkeys/icon.png'))
   assert.ok(script.includes('Copyright (c) 2012 Ryan Day'))

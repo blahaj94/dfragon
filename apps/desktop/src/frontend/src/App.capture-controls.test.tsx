@@ -37,7 +37,7 @@ const capture = vi.hoisted(() => {
   }
 })
 
-// Renderer 연결만 검증하며 capture hook·IPC·media/OCR는 실행하지 않는다.
+// Renderer 연결만 검증하며 capture hook, IPC, media/OCR는 실행하지 않는다.
 vi.mock('./hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 
 let container: HTMLDivElement

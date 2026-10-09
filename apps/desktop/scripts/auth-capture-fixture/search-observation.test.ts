@@ -98,7 +98,7 @@ afterEach(async () => {
   document.body.innerHTML = ''
 })
 
-it('실제 검색 component와 read를 함께 관측하고 원문 대신 상태·mask·비교용 식별자만 반환한다', async () => {
+it('실제 검색 component와 read를 함께 관측하고 원문 대신 상태, mask, 비교용 식별자만 반환한다', async () => {
   const probe = await inspect()
   expect(read).toHaveBeenCalledExactlyOnceWith({ action: 'read' })
   expect(probe.slots.map((slot) => slot.state)).toEqual(['success', 'empty', 'pending', 'failure'])

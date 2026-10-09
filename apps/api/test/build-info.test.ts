@@ -12,7 +12,7 @@ const unusedSearchCharacters: SearchCharacters = async () => {
 }
 const commit = '1234567890abcdef1234567890abcdef12345678'
 
-test('API 이미지 메타데이터는 유효한 값만 읽고 누락·오류는 commit null로 반환한다', async () => {
+test('API 이미지 메타데이터는 유효한 값만 읽고 누락, 오류는 commit null로 반환한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-api-version-'))
   const path = join(directory, 'build-info.json')
   try {

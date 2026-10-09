@@ -5,20 +5,20 @@ import { validateDFNickname } from '@dfragon/lib'
 import { cp949Characters } from '../dist/cp949-characters.js'
 
 const TITLES = {
-  byteLengths: 'ASCII는 1B, 한글·일본어·고전 기호는 2B로 계산해 최대 12B를 허용한다',
+  byteLengths: 'ASCII는 1B, 한글, 일본어, 고전 기호는 2B로 계산해 최대 12B를 허용한다',
   mixedByteLengths: '문자군을 섞은 조합도 순서와 무관하게 CP949의 12B 경계를 지킨다',
   rejectedCharacters:
-    '빈 값·Unicode 공백·제어문자·보이지 않는 문자·잘못된 UTF-16을 구분해 거절한다',
+    '빈 값, Unicode 공백, 제어문자, 보이지 않는 문자, 잘못된 UTF-16을 구분해 거절한다',
   unencodable: '기존 이모지 차단 목록 밖의 문자도 CP949로 표현할 수 없으면 거절한다',
-  errorPriority: '여러 오류가 겹치면 빈 값·공백·문자 집합·바이트 길이·금칙어 순서로 보고한다',
+  errorPriority: '여러 오류가 겹치면 빈 값, 공백, 문자 집합, 바이트 길이, 금칙어 순서로 보고한다',
   bannedWords: '금칙어는 호출자 정책으로만 적용하며 빈 항목을 무시하고 대소문자 없이 부분 일치한다',
   bannedWordsImmutability: '읽기 전용 금칙어 목록을 변경하거나 다음 호출의 정책으로 남기지 않는다',
-  normalization: 'NFC·NFKC 정규화로 원문의 문자 집합이나 바이트 길이를 바꾸지 않는다',
+  normalization: 'NFC, NFKC 정규화로 원문의 문자 집합이나 바이트 길이를 바꾸지 않는다',
   codecMembership: '생성 문자 집합은 BMP 전체에서 손실 없는 CP949 인코딩과 일치한다',
   knownExamples: '모양이 비슷해도 CP949로 표현할 수 없는 제공 예시는 거절한다'
 }
 const invalidCharacterReason =
-  '공백·제어문자·보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
+  '공백, 제어문자, 보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
 
 test(TITLES.byteLengths, () => {
   for (const nickname of [
@@ -52,7 +52,7 @@ test(TITLES.mixedByteLengths, () => {
   const asciiCharacters = ['A', '0', '$', '~']
   const legacyCharacters = ['가', '힣', 'ア', '郞', '★', '♡', 'ㄱ']
 
-  // 유한한 조합을 codec으로 따로 계산하여 UTF-16·UTF-8 길이와 혼동하는 회귀를 잡는다.
+  // 유한한 조합을 codec으로 따로 계산하여 UTF-16, UTF-8 길이와 혼동하는 회귀를 잡는다.
   for (let asciiCount = 0; asciiCount <= 13; asciiCount++) {
     for (let legacyCount = 0; legacyCount <= 7; legacyCount++) {
       if (asciiCount + legacyCount === 0) {
@@ -107,7 +107,7 @@ test(TITLES.rejectedCharacters, () => {
       reason: '공백(띄어쓰기)은 포함할 수 없습니다.'
     },
     {
-      name: '제어문자·format·default-ignorable·단독 surrogate·분해 한글',
+      name: '제어문자, format, default-ignorable, 단독 surrogate, 분해 한글',
       nicknames: [
         '검\u0000신',
         '검\u007f신',

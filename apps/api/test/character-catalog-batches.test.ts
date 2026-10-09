@@ -26,7 +26,7 @@ function catalogPayload(key: CatalogKey) {
   return { jobId, name, levelInfo: { rows: [] } }
 }
 
-test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내, 스킬은 단독 요청으로 제공한다', async () => {
+test('중복 참조를 한 번씩 조회하고 아이템, 세트는 15개 이내, 스킬은 단독 요청으로 제공한다', async () => {
   const items: CatalogKey[] = Array.from({ length: 17 }, (_, index) => {
     const itemId = 'item-' + index
 
@@ -92,7 +92,7 @@ test('중복 참조를 한 번씩 조회하고 아이템·세트는 15개 이내
   }
 })
 
-test('공급자는 아이템·세트 15개 요청을 받고 16개 요청은 전송 전에 거절한다', async () => {
+test('공급자는 아이템, 세트 15개 요청을 받고 16개 요청은 전송 전에 거절한다', async () => {
   let calls = 0
   const adapter = createNeopleCatalog('fixture-key', async (input) => {
     calls++

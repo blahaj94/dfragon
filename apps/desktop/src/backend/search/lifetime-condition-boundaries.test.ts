@@ -63,7 +63,7 @@ it('검색 불가 닉네임의 새 관측은 이전 HTTP와 deadline을 취소�
   lifetime.end(captureId)
 })
 
-it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 늦은 완료·종료로부터 보호한다', async () => {
+it('Stop은 모든 슬롯의 HTTP와 429 대기를 정리하고 새 수명을 늦은 완료, 종료로부터 보호한다', async () => {
   const firstResponse = deferred<readonly CharacterSearchRow[]>()
   const thirdResponse = deferred<readonly CharacterSearchRow[]>()
   const clock = new FakeClock()
@@ -176,7 +176,7 @@ it('pending 발행 중 clear가 발생하면 HTTP나 deadline을 시작하지 �
   lifetime.end(captureId)
 })
 
-it('한 검색 수명의 종료는 다른 수명의 HTTP·deadline·결과를 건드리지 않는다', async () => {
+it('한 검색 수명의 종료는 다른 수명의 HTTP, deadline, 결과를 건드리지 않는다', async () => {
   const firstResponse = deferred<readonly CharacterSearchRow[]>()
   const secondResponse = deferred<readonly CharacterSearchRow[]>()
   const firstHttp = vi.fn<SearchRuntime['http']>().mockReturnValue(firstResponse.promise)

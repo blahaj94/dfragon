@@ -123,7 +123,7 @@ test('cleanup command는 소유 연결의 종료가 끝나야 성공한다', asy
   assert.deepEqual(await pending, { sessionsDeleted: 0, loginRequestsDeleted: 0 })
 })
 
-test('cleanup CLI의 DB 설정 누락은 값·stack 없는 실패로 종료한다', () => {
+test('cleanup CLI의 DB 설정 누락은 값, stack 없는 실패로 종료한다', () => {
   const result = spawnSync(
     process.execPath,
     ['--import', 'reflect-metadata', 'dist/auth/cleanup/cli.js'],

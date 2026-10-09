@@ -6,21 +6,21 @@ const testTitles = {
   rawCrops: '12개 화면 행을 찾아 닉네임 원본 RGBA를 독립 크롭으로 복사한다',
   shrinkingRaid: '공대 인원이 줄어도 12행을 유지하며 이전 프레임 상태를 재사용하지 않는다',
   emptyDialog: '빈 창도 검출하며 닉네임 열 밖의 근거로 참가 여부를 판단한다',
-  scaledDialog: 'UI 설정 없이 이동·확대한 12행 래스터를 찾는다',
+  scaledDialog: 'UI 설정 없이 이동, 확대한 12행 래스터를 찾는다',
   requiredRows: '헤더가 없는 빨간 표식과 12개 구분선이 없는 창을 제외한다',
   ambiguous: '완전한 공대창이 두 개면 임의 선택 없이 ambiguous를 반환한다',
   clippedEdges: '화면 경계의 완전한 창은 허용하고 잘리거나 아래 행이 없는 창은 제외한다',
   anchorLimit: '후보 한도를 넘으면 앞선 유효한 창도 성공으로 반환하지 않는다',
   brightDecorations: '밝은 배경의 무관한 빨간 장식을 제외한다',
-  validation: '각 공대 검출 진입점에서 정수 client 크기·RGBA 길이·공대 헤더를 검사한다',
+  validation: '각 공대 검출 진입점에서 정수 client 크기, RGBA 길이, 공대 헤더를 검사한다',
   comparisonLimit: '뒤의 앵커가 공통 비교 예산을 소진하면 앞선 공대 일치도 반환하지 않는다',
-  rightBottomEdges: '오른쪽·아래쪽 화면 경계에 정확히 닿는 공대창을 허용한다',
+  rightBottomEdges: '오른쪽, 아래쪽 화면 경계에 정확히 닿는 공대창을 허용한다',
   clientLimits: '공대 검출은 다양한 client 크기의 빈 화면에서 미검출을 반환한다',
   evidencePairs: '공대 고유 열에서 참가 근거 세 쌍을 읽고 닉네임 픽셀만 있는 행은 제외한다',
   rgbaViews: '공대의 투명한 RGBA view에서 네 모서리 원본 픽셀과 독립 크롭을 보존한다'
 }
 
-// 합성 픽셀만 사용하며 게임 자산·참가자 정보는 포함하지 않는다.
+// 합성 픽셀만 사용하며 게임 자산, 참가자 정보는 포함하지 않는다.
 function frame(width = 1067, height = 600) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {
@@ -171,7 +171,7 @@ test(testTitles.emptyDialog, () => {
   assert.ok(result.rows.every((row) => !row.occupied && row.nicknameCrop === null))
 })
 
-// desktop-raid-participants.md의 기준 열·12행을 손으로 확대·이동한 연속 좌표다.
+// desktop-raid-participants.md의 기준 열, 12행을 손으로 확대, 이동한 연속 좌표다.
 // 합성 최근접 보간과 검출기 보간의 차이에 대한 기존 2px 허용 범위는 유지한다.
 const scaledNicknameCases = [
   {

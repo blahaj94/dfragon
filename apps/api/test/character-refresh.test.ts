@@ -132,7 +132,7 @@ test('GET은 가장 오래된 성공 조회부터 정확히 5분에 만료되고
   assert.equal(characterFreshness(rowsAt(initialTime).slice(1)), null)
 })
 
-test('최초·누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정제된 내부 오류로 중단한다', async (t) => {
+test('최초, 누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정제된 내부 오류로 중단한다', async (t) => {
   const { state, store } = memory()
   let calls = 0
   const service = createCharacterDetailService({
@@ -167,7 +167,7 @@ test('최초·누락된 저장값은 전체 갱신하고 DB 읽기 실패는 정
   assert.equal(calls, 2)
 })
 
-test('자동·명시 갱신 실패는 기존 저장값을 보존하고 만료된 응답을 성공처럼 반환하지 않는다', async (t) => {
+test('자동, 명시 갱신 실패는 기존 저장값을 보존하고 만료된 응답을 성공처럼 반환하지 않는다', async (t) => {
   const { state, store } = memory(rowsAt(initialTime))
   state.now += 30_000
   let failing = true
@@ -395,7 +395,7 @@ test('공유 갱신 실패 뒤 새 요청을 허용하고 서버 종료는 취�
   assert.equal(state.writes, 0)
 })
 
-test('갱신 시작 DB 시각 조회가 2초를 넘으면 늦은 결과로 upstream·저장을 시작하지 않는다', async (t) => {
+test('갱신 시작 DB 시각 조회가 2초를 넘으면 늦은 결과로 upstream, 저장을 시작하지 않는다', async (t) => {
   const { state, store } = memory()
   const late = gate()
   let calls = 0

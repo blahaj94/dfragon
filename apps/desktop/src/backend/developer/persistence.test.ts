@@ -321,22 +321,25 @@ it('PNG 헤더만 있고 픽셀 본문이 없는 입력은 샘플 파일을 만�
 it.each([
   { name: '제외', previous: false, next: true },
   { name: '복원', previous: true, next: false }
-])('$name 저장이 실패하면 정답·제외 상태·원본 PNG를 함께 보존한다', async ({ previous, next }) => {
-  const { store } = await createStore()
-  await store.setEnabled(true)
-  const dataUrl = `data:image/png;base64,${png().toString('base64')}`
-  const sample = await store.addSample(dataUrl)
-  await store.saveLabel(sample.id, '저장한 정답')
-  await store.setSampleExcluded(sample.id, previous)
-  const rename = vi.spyOn(fs, 'rename').mockRejectedValueOnce(new Error('simulated disk failure'))
+])(
+  '$name 저장이 실패하면 정답, 제외 상태, 원본 PNG를 함께 보존한다',
+  async ({ previous, next }) => {
+    const { store } = await createStore()
+    await store.setEnabled(true)
+    const dataUrl = `data:image/png;base64,${png().toString('base64')}`
+    const sample = await store.addSample(dataUrl)
+    await store.saveLabel(sample.id, '저장한 정답')
+    await store.setSampleExcluded(sample.id, previous)
+    const rename = vi.spyOn(fs, 'rename').mockRejectedValueOnce(new Error('simulated disk failure'))
 
-  await expect(store.setSampleExcluded(sample.id, next)).rejects.toThrow(
-    'DEVELOPER_STORAGE_UNAVAILABLE'
-  )
-  rename.mockRestore()
+    await expect(store.setSampleExcluded(sample.id, next)).rejects.toThrow(
+      'DEVELOPER_STORAGE_UNAVAILABLE'
+    )
+    rename.mockRestore()
 
-  expect(await store.listSamples()).toEqual([
-    { ...sample, text: '저장한 정답', excluded: previous }
-  ])
-  expect(await store.readImage(sample.id)).toBe(dataUrl)
-})
+    expect(await store.listSamples()).toEqual([
+      { ...sample, text: '저장한 정답', excluded: previous }
+    ])
+    expect(await store.readImage(sample.id)).toBe(dataUrl)
+  }
+)

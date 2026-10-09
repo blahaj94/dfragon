@@ -63,7 +63,7 @@ it('read 응답 전 event가 있어도 reload에서 기존 capture를 재개하�
   expect(fixture.button('캡처 시작').disabled).toBe(true)
 })
 
-it('같은 run의 오래된·중복 event는 최신 성공을 덮지 않는다', async () => {
+it('같은 run의 오래된, 중복 event는 최신 성공을 덮지 않는다', async () => {
   const fixture = await recognizedFixture()
   const latest = state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 10)
   await fixture.emit(latest)
@@ -162,7 +162,7 @@ it('초기 read 실패는 검색 연결 안내를 표시하고 command를 자동
   expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
 })
 
-it('검색 run 변경은 구독·표시를 버리고 검색만 다시 조회한다', async () => {
+it('검색 run 변경은 구독, 표시를 버리고 검색만 다시 조회한다', async () => {
   const fixture = await recognizedFixture()
   await fixture.emit(state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 10))
   const callback = fixture.search.onCharacterSearchChanged.mock.calls[0]?.[0]
@@ -277,7 +277,7 @@ it('초기 read 실패 뒤 먼저 보류한 event만으로 연결 실패를 지�
 })
 
 it.each(['buffered', 'late'] as const)(
-  '초기 read 실패 후 %s event가 와도 source 선택과 Start로 검색·media·OCR를 시작하지 않는다',
+  '초기 read 실패 후 %s event가 와도 source 선택과 Start로 검색, media, OCR를 시작하지 않는다',
   async (eventTiming) => {
     const fixture = createRendererFixture()
     const read = Promise.withResolvers<SearchCommandResult>()

@@ -11,7 +11,7 @@ const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import
 const notice = '/*! DFragon modified SEED source: test fixture */\n'
 const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nexport { ActionButton, React, jsx };\n`
 
-// 실제 고지·provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
+// 실제 고지, provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
   const output = await mkdtemp(join(tmpdir(), 'dfragon-ui-build-'))
   context.after(() => rm(output, { recursive: true, force: true }))
@@ -45,7 +45,7 @@ function inspect(output) {
   return result
 }
 
-test('공개 ESM·선언 파일과 React 전용 Typo 산출물을 허용한다', async (context) => {
+test('공개 ESM, 선언 파일과 React 전용 Typo 산출물을 허용한다', async (context) => {
   const output = await createLibraryFixture(context)
   const result = inspect(output)
   assert.equal(result.status, 0, result.stderr)

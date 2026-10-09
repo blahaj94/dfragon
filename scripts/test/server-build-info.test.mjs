@@ -23,7 +23,7 @@ test('로컬 이미지의 빈 source commit은 명시적인 null로 기록한다
   assert.deepEqual(createServerBuildInfo('api', ''), { service: 'api', commit: null })
 })
 
-test('잘못된 source revision·서비스는 기존 메타데이터를 덮어쓰기 전에 실패한다', (t) => {
+test('잘못된 source revision, 서비스는 기존 메타데이터를 덮어쓰기 전에 실패한다', (t) => {
   const { output, run } = fixture(t)
   const original = JSON.stringify({ service: 'api', commit })
   writeFileSync(output, original)
@@ -50,7 +50,7 @@ test('문자열이 아닌 source commit은 coercion 없이 입력 오류로 거�
   }
 })
 
-test('CLI는 상대 경로·공백 경로에 로컬 빌드의 null commit JSON을 기록한다', (t) => {
+test('CLI는 상대 경로, 공백 경로에 로컬 빌드의 null commit JSON을 기록한다', (t) => {
   const { folder, run } = fixture(t)
   const result = run(['api', '', 'build info.json'], {
     cwd: folder,
@@ -66,7 +66,7 @@ test('CLI는 상대 경로·공백 경로에 로컬 빌드의 null commit JSON�
   )
 })
 
-test('CLI의 누락·추가 인자는 사용법 오류로 실패하고 기존 출력 파일을 보존한다', (t) => {
+test('CLI의 누락, 추가 인자는 사용법 오류로 실패하고 기존 출력 파일을 보존한다', (t) => {
   const { output, run } = fixture(t)
   writeFileSync(output, 'existing metadata\n')
 

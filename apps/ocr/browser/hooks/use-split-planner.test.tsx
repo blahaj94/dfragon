@@ -148,7 +148,7 @@ it('비활성 버튼을 우회해 직접 호출해도 유효한 비율에서만 
   })
 })
 
-it('미리보기 명령을 즉시 잠그고 처리 중 중복 요청·적용·비율 수정을 거절한다', async () => {
+it('미리보기 명령을 즉시 잠그고 처리 중 중복 요청, 적용, 비율 수정을 거절한다', async () => {
   let finish!: (value: SplitPreview) => void
   vi.mocked(requestOcr).mockReturnValueOnce(
     new Promise((resolve) => {

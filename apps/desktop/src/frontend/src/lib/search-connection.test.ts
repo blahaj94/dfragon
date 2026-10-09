@@ -11,7 +11,7 @@ import { createSearchConnection, type SearchConnection } from './search-connecti
 const connections: SearchConnection[] = []
 afterEach(() => connections.splice(0).forEach((connection) => connection.dispose()))
 
-/** 실제 연결의 구독·명령 응답 순서를 개별적으로 제어한다. */
+/** 실제 연결의 구독, 명령 응답 순서를 개별적으로 제어한다. */
 function fixture(): {
   connection: SearchConnection
   control: Mock<SearchApi['controlCharacterSearch']>
@@ -157,7 +157,7 @@ it('복구 조회 실패 뒤 event는 표시하되 조회 성공 전에는 새 �
   expect(f.connection.isReady()).toBe(true)
 })
 
-it('dispose 뒤 늦은 begin의 직접 응답과 end 전송은 보존하되 표시·복구 조회는 하지 않는다', async () => {
+it('dispose 뒤 늦은 begin의 직접 응답과 end 전송은 보존하되 표시, 복구 조회는 하지 않는다', async () => {
   const f = fixture()
   f.connection.connect()
   await vi.waitFor(() => expect(f.connection.isReady()).toBe(true))

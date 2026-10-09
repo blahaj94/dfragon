@@ -19,7 +19,7 @@ const input: Parameters<typeof planSampleSplit>[0] = {
   confirmSplitChange: false
 }
 
-test('표본 분할 판단은 기존 배정·수동 미배정·제외·미작성 계약을 따른다', () => {
+test('표본 분할 판단은 기존 배정, 수동 미배정, 제외, 미작성 계약을 따른다', () => {
   assert.deepEqual(planSampleSplit(input), { nextSplit: 'train', assignNew: true })
   assert.deepEqual(planSampleSplit({ ...input, targetSplit: 'val' }), {
     nextSplit: 'val',
@@ -43,7 +43,7 @@ test('표본 분할 판단은 기존 배정·수동 미배정·제외·미작성
   assert.equal(planSampleSplit({ ...assigned, text: '기존' }).nextSplit, 'train')
 })
 
-test('분할 이동을 확인하지 않으면 정답·제외·새 train 배정을 함께 거절한다', () => {
+test('분할 이동을 확인하지 않으면 정답, 제외, 새 train 배정을 함께 거절한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const image = parseUpload(upload())
@@ -79,7 +79,7 @@ test('분할 이동을 확인하지 않으면 정답·제외·새 train 배정�
   }
 })
 
-test('합성 표본의 제외·복원만 갱신해도 고정 정답과 train 배정을 보존한다', () => {
+test('합성 표본의 제외, 복원만 갱신해도 고정 정답과 train 배정을 보존한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const image = parseSyntheticUpload(syntheticUpload())

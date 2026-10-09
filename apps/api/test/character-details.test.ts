@@ -16,7 +16,7 @@ import { parseCharacterIdentity } from '../src/characters/details/service.js'
 const identity = { serverId: 'siroco', characterId: 'fixture-character' }
 const basic = { ...identity, characterName: '테스트 캐릭터' }
 
-test('상세 입력은 지원 서버·안전한 ID만 허용하고 query와 경로 주입을 거절한다', () => {
+test('상세 입력은 지원 서버, 안전한 ID만 허용하고 query와 경로 주입을 거절한다', () => {
   assert.deepEqual(
     parseCharacterIdentity(
       identity.serverId,
@@ -38,7 +38,7 @@ test('상세 입력은 지원 서버·안전한 ID만 허용하고 query와 경�
   }
 })
 
-test('공급자 원문의 시즌 옵션과 미장착 null을 보존하고 누락·잘못된 envelope를 거절한다', () => {
+test('공급자 원문의 시즌 옵션과 미장착 null을 보존하고 누락, 잘못된 envelope를 거절한다', () => {
   const payload = { ...basic, creature: null, futureOption: { rate: '48.3%', value: 0 } }
   assert.deepEqual(validateCharacterPayload(payload, identity, 'creature'), payload)
   for (const body of [
@@ -162,7 +162,7 @@ test('기본 응답 뒤 취소되면 남은 섹션은 전송하지 않고 공급
   )
 })
 
-test('상세 ID는 대소문자와 ASCII 경계 1~256자를 보존하고 빈 값·257자·비ASCII를 거절한다', () => {
+test('상세 ID는 대소문자와 ASCII 경계 1~256자를 보존하고 빈 값, 257자, 비ASCII를 거절한다', () => {
   for (const characterId of ['A', 'Mixed_ID-Case', 'x'.repeat(256)]) {
     assert.deepEqual(
       parseCharacterIdentity('siroco', characterId, '/characters/siroco/' + characterId),
@@ -230,7 +230,7 @@ const sectionsByPath = new Map<string, CharacterDetailSection>([
   ['/skill/buff/equip/creature', 'buff_creature']
 ])
 
-test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문·옵션·null을 모두 반환한다', {
+test('기본 식별 응답을 확인한 뒤 최대 3개씩 조회해 11개 원문, 옵션, null을 모두 반환한다', {
   timeout: 2000
 }, async (t) => {
   let basicStarted!: () => void, finishBasic!: () => void

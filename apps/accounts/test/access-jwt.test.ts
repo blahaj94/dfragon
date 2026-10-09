@@ -141,7 +141,7 @@ test('발급 입력은 UUID와 UTC 정수 초를 요구하고 만료된 session�
   }
 })
 
-test('발급 입력을 변경하지 않고 추가 회원·credential 정보는 token에 넣지 않는다', async () => {
+test('발급 입력을 변경하지 않고 추가 회원, credential 정보는 token에 넣지 않는다', async () => {
   const issue = await createAccessJwtIssuer(configuration())
   const issuanceInput = Object.freeze({
     ...input(),
@@ -163,7 +163,7 @@ test('발급 입력을 변경하지 않고 추가 회원·credential 정보는 t
   }
 })
 
-test('서명된 claim 거부 오류는 token·회원·credential 원문과 cause를 노출하지 않는다', async () => {
+test('서명된 claim 거부 오류는 token, 회원, credential 원문과 cause를 노출하지 않는다', async () => {
   const verify = await createAccessJwtVerifier(configuration())
   const sensitive = 'fixture-private-payload'
   const token = await signed({ ...claims(), aud: sensitive, nickname: sensitive })
@@ -186,7 +186,7 @@ test('서명된 claim 거부 오류는 token·회원·credential 원문과 cause
   })
 })
 
-test('token 변조·다른 key 서명·malformed compact 입력을 거절한다', async () => {
+test('token 변조, 다른 key 서명, malformed compact 입력을 거절한다', async () => {
   const verify = await createAccessJwtVerifier(configuration())
   const token = await signed()
   const parts = token.split('.')

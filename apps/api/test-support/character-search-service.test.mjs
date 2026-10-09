@@ -83,7 +83,7 @@ test('동시 검색 열한 건 중 열 건만 호출하고 다른 IP와 만료 �
   }
 })
 
-test('IP 누락·이미 취소된 요청·종료 후 검색은 공급자를 호출하지 않는다', async () => {
+test('IP 누락, 이미 취소된 요청, 종료 후 검색은 공급자를 호출하지 않는다', async () => {
   const f = fixture()
   const controller = new AbortController()
   controller.abort()

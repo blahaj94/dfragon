@@ -238,7 +238,7 @@ describe('capture main document and source boundary', () => {
     expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
   })
 
-  it('IPC 해제는 캡처·직접 검색을 정리하고 모든 전용 handler와 media 허용을 제거한다', async () => {
+  it('IPC 해제는 캡처, 직접 검색을 정리하고 모든 전용 handler와 media 허용을 제거한다', async () => {
     const fixture = await setup(false)
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
@@ -449,7 +449,7 @@ describe('capture main document and source boundary', () => {
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
-  it('signedOut에서도 source 열거·선택·begin·media와 cleanup을 허용한다', async () => {
+  it('signedOut에서도 source 열거, 선택, begin, media와 cleanup을 허용한다', async () => {
     const fixture = await setup(false)
     await expect(fixture.invoke('listCaptureSources')).resolves.toEqual(sources)
     await expect(fixture.invoke('selectCaptureSource', sources[0].id)).resolves.toEqual(sources[0])
@@ -743,7 +743,7 @@ describe('capture main document and source boundary', () => {
     }
   )
 
-  it('capture 조회·선택·media는 HTTP refresh 없이 실행하고 raw OCR를 log하지 않는다', async () => {
+  it('capture 조회, 선택, media는 HTTP refresh 없이 실행하고 raw OCR를 log하지 않는다', async () => {
     const fixture = await setup()
     fixture.harness.clock.elapseWithoutTimers(16 * 60 * 1000)
     const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)

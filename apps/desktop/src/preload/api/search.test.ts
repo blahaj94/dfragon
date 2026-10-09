@@ -158,7 +158,7 @@ it.each([
   await expect(search.controlCharacterSearch({ action: 'read' })).rejects.toThrow()
 })
 
-it('승인된 상태·nullable 값과 후보 순서를 보존한다', async () => {
+it('승인된 상태, nullable 값과 후보 순서를 보존한다', async () => {
   const { search } = await exposedSearch()
   const rows = [searchRow, { ...searchRow, characterId: 'second', serverName: null, fame: -1.5 }]
   const slots = [
@@ -211,7 +211,7 @@ it.each([
       serverName: '카인'
     }
   ]
-])('후보의 %s는 clone된 invoke·event DTO에서도 거절한다', async (_name, row) => {
+])('후보의 %s는 clone된 invoke, event DTO에서도 거절한다', async (_name, row) => {
   const { search } = await exposedSearch()
   const snapshot = searchSnapshot()
   const invalid = {
@@ -230,7 +230,7 @@ it.each([
   unsubscribe()
 })
 
-it('직접 검색 preload는 전용 invoke·event 채널과 같은 검증 DTO를 사용한다', async () => {
+it('직접 검색 preload는 전용 invoke, event 채널과 같은 검증 DTO를 사용한다', async () => {
   const { manual } = await exposedSearch()
   expect(Object.keys(manual).sort()).toEqual([
     'controlCharacterSearch',
@@ -254,7 +254,7 @@ it('직접 검색 preload는 전용 invoke·event 채널과 같은 검증 DTO를
   expect(renderer.removeListener).toHaveBeenCalledExactlyOnceWith(channel, wrapper)
 })
 
-it('직접 검색 preload도 잘못된 invoke·event DTO를 전달하지 않는다', async () => {
+it('직접 검색 preload도 잘못된 invoke, event DTO를 전달하지 않는다', async () => {
   const { manual } = await exposedSearch()
   const invalid = { ...searchSnapshot(), private: true }
   renderer.invoke.mockResolvedValue({ ok: true, snapshot: invalid })

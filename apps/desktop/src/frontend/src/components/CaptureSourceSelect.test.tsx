@@ -141,7 +141,7 @@ it('조회 실패 시 이전 목록 선택을 막고 새로고침 명령만 실�
   expect(props.onSelect).not.toHaveBeenCalled()
 })
 
-it('빈 목록·사라진 선택과 로딩·연결 미준비 상태를 처리한다', async () => {
+it('빈 목록, 사라진 선택과 로딩, 연결 미준비 상태를 처리한다', async () => {
   props.sources = []
   await openDialog()
   expect(trigger().textContent).toContain('선택한 창 · 목록에서 사라짐')

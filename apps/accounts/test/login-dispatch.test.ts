@@ -16,7 +16,7 @@ const TESTS = {
   lastKey: '마지막 현재 RP 키 삭제 거절은 요청과 모든 패스키를 보존한다',
   invalidProof: '잘못된 추가 증명은 challenge만 소비하고 재사용을 거절하며 새 옵션으로 재시도한다',
   retiredCredential: '관리 인증에 쓴 키가 삭제된 뒤에는 기존 관리 권한을 사용할 수 없다',
-  expiry: '요청·관리 키·삭제 대상 잠금 뒤 fresh time이 만료 경계면 삭제하지 않는다',
+  expiry: '요청, 관리 키, 삭제 대상 잠금 뒤 fresh time이 만료 경계면 삭제하지 않는다',
   list: '관리 목록은 본인 계정의 현재 RP 키에 필요한 공개 metadata만 반환한다'
 } as const
 

@@ -418,7 +418,7 @@ it('연결 재확인도 실패하면 실패 안내와 다음 수동 재확인을
   expect(fixture.api.beginLogin).not.toHaveBeenCalled()
 })
 
-it('계정 확인·환영·로그아웃·연결 재설정 중에도 캡처를 같은 mount로 유지한다', async () => {
+it('계정 확인, 환영, 로그아웃, 연결 재설정 중에도 캡처를 같은 mount로 유지한다', async () => {
   const mounted = vi.fn()
   const cleaned = vi.fn()
   function Capture(): JSX.Element {

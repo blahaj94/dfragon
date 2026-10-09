@@ -15,7 +15,7 @@ const config = {
   ownerId: '00000000-0000-4000-8000-000000000001'
 }
 
-test('OCR은 유효한 이미지 버전 메타데이터만 읽고 누락·잘못된 값은 미상으로 처리한다', async () => {
+test('OCR은 유효한 이미지 버전 메타데이터만 읽고 누락, 잘못된 값은 미상으로 처리한다', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dfragon-ocr-version-'))
   const path = join(directory, 'build-info.json')
   try {

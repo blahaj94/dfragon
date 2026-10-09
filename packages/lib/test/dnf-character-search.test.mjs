@@ -3,10 +3,10 @@ import test from 'node:test'
 import { matchesDNFSearchNicknamePolicy, DNF_SEARCH_NICKNAME_LIMITS } from '@dfragon/lib'
 
 const TITLES = {
-  lengthLimits: '검색어는 바이트·UTF-16 단위 대신 Unicode code point로 2~12개를 센다',
-  preservedUnicode: '정규화·내부 공백·결합 sequence의 원문 code point 수를 유지한다',
+  lengthLimits: '검색어는 바이트, UTF-16 단위 대신 Unicode code point로 2~12개를 센다',
+  preservedUnicode: '정규화, 내부 공백, 결합 sequence의 원문 code point 수를 유지한다',
   trimWhitespace: 'ECMAScript trim 공백은 앞뒤에서 거절하고 내부에서는 허용한다',
-  trimDifference: 'trim 대상이 아닌 Unicode 공백·format 문자를 별도 금지하지 않는다',
+  trimDifference: 'trim 대상이 아닌 Unicode 공백, format 문자를 별도 금지하지 않는다',
   generatedCodePoints: '문자군을 섞은 유한한 조합도 grapheme 수가 아닌 code point 경계를 지킨다'
 }
 
@@ -54,7 +54,7 @@ test(TITLES.trimWhitespace, () => {
 })
 
 test(TITLES.trimDifference, () => {
-  // CP949 이름 검사·계정 validator의 문자 제한을 길이/trim 전용 검색 helper에 옮기지 않는다.
+  // CP949 이름 검사, 계정 validator의 문자 제한을 길이/trim 전용 검색 helper에 옮기지 않는다.
   for (const character of ['\u0085', '\u180e', '\u200b']) {
     for (const nickname of [character + '가', '가' + character, '가' + character + '나']) {
       assert.equal(matchesDNFSearchNicknamePolicy(nickname), true, JSON.stringify(nickname))
@@ -63,7 +63,7 @@ test(TITLES.trimDifference, () => {
 })
 
 test(TITLES.generatedCodePoints, () => {
-  // 각 항목은 정확히 한 code point다. 결합 문자·ZWJ·variation selector도 길이에 포함된다.
+  // 각 항목은 정확히 한 code point다. 결합 문자, ZWJ, variation selector도 길이에 포함된다.
   const atoms = ['A', '가', '𠀀', '😀', '\u0301', '\u200d', '\ufe0f']
   for (let length = 0; length <= 13; length++) {
     for (let offset = 0; offset < atoms.length; offset++) {

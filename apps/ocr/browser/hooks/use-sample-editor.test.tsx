@@ -256,7 +256,7 @@ it('제외와 정답은 지정한 필드만 요청하며 빈 정답은 명시적
   expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { text: null })
 })
 
-it('정답 저장이 시작되면 같은 렌더의 중복 저장·제외·분할 명령을 거절한다', async () => {
+it('정답 저장이 시작되면 같은 렌더의 중복 저장, 제외, 분할 명령을 거절한다', async () => {
   let finish!: (value: Sample) => void
   vi.mocked(requestOcr).mockReturnValueOnce(
     new Promise((resolve) => {
@@ -276,7 +276,7 @@ it('정답 저장이 시작되면 같은 렌더의 중복 저장·제외·분할
   expect(editor.busy).toBe(false)
 })
 
-it('분할 변경이 시작되면 같은 렌더의 중복 분할·정답 저장·제외 명령을 거절한다', async () => {
+it('분할 변경이 시작되면 같은 렌더의 중복 분할, 정답 저장, 제외 명령을 거절한다', async () => {
   let finish!: (value: unknown) => void
   vi.mocked(requestOcr).mockReturnValueOnce(
     new Promise((resolve) => {
@@ -300,7 +300,7 @@ it.each([
   { description: '성공', succeeded: true },
   { description: '실패', succeeded: false }
 ])(
-  '분할 변경 $description 뒤 잠금이 반환되어 정답·제외·다음 분할을 요청할 수 있다',
+  '분할 변경 $description 뒤 잠금이 반환되어 정답, 제외, 다음 분할을 요청할 수 있다',
   async ({ succeeded }) => {
     let finish!: (value: unknown) => void
     let fail!: (error: Error) => void

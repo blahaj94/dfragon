@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { readRuntimeConfiguration } from '../src/runtime/configuration.js'
 
-// 로컬에서 생성한 합성 self-signed fixture이며 배포·인증에 사용하지 않는다.
+// 로컬에서 생성한 합성 self-signed fixture이며 배포, 인증에 사용하지 않는다.
 const certificatePem = `-----BEGIN CERTIFICATE-----
 MIIBfDCCASOgAwIBAgIUTaPGOpDSt/GNpqe2mIuH+SRZ2oUwCgYIKoZIzj0EAwIw
 FDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI2MTAwMjE3MDEyMVoXDTM2MDkyOTE3
@@ -150,7 +150,7 @@ test('runtime 필수 설정과 프록시 모드 오류는 secret과 원인 없�
   )
 })
 
-test('로컬 HTTPS는 두 절대 파일 경로·일치하는 loopback origin·유효한 PEM을 요구한다', async (t) => {
+test('로컬 HTTPS는 두 절대 파일 경로, 일치하는 loopback origin, 유효한 PEM을 요구한다', async (t) => {
   const directory = await mkdtemp(join(tmpdir(), 'api-local-https-'))
   t.after(() => rm(directory, { recursive: true, force: true }))
   const cert = join(directory, 'private-marker-cert.pem')
@@ -168,7 +168,7 @@ test('로컬 HTTPS는 두 절대 파일 경로·일치하는 loopback origin·�
       publicKeyEncoding: { type: 'spki', format: 'pem' }
     }).privateKey
   )
-  // 거절할 조건 하나만 바꾸므로 PEM 오류가 origin·절대 경로 검사 누락을 가리지 않는다.
+  // 거절할 조건 하나만 바꾸므로 PEM 오류가 origin, 절대 경로 검사 누락을 가리지 않는다.
   for (const origin of ['https://localhost:3000', 'https://127.0.0.1:3000']) {
     const accepted = await readRuntimeConfiguration({
       ...environment,

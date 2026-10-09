@@ -175,7 +175,7 @@ export function logoutFixture() {
         }
         events.push('commit')
       } catch (error) {
-        // 대기 중 다른 transaction이 바꾼 소유·활동은 보존하고 이 logout의 쓰기만 되돌린다.
+        // 대기 중 다른 transaction이 바꾼 소유, 활동은 보존하고 이 logout의 쓰기만 되돌린다.
         if (revokeBefore !== undefined) {
           Object.assign(session, revokeBefore)
         }

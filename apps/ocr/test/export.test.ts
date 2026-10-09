@@ -11,7 +11,7 @@ import { parseUpload } from '../src/images.js'
 import { OcrStore } from '../src/store.js'
 import { upload } from './fixtures.js'
 
-test('TAR 전송 시작 후 정답·제외·분할·자료가 바뀌어도 시작 시점 목록과 원본·크롭을 함께 내려받는다', {
+test('TAR 전송 시작 후 정답, 제외, 분할, 자료가 바뀌어도 시작 시점 목록과 원본, 크롭을 함께 내려받는다', {
   timeout: 5_000
 }, async (t) => {
   const store = new OcrStore(':memory:', 1024 * 1024)

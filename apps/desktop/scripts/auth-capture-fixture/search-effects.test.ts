@@ -44,7 +44,7 @@ it.each([
   }
 })
 
-it('고정 origin·path·method·query·무인증 요청을 벗어나면 실제 fetch 없이 거절한다', async () => {
+it('고정 origin, path, method, query, 무인증 요청을 벗어나면 실제 fetch 없이 거절한다', async () => {
   const search = fixture()
   const original = request()
   const invalid = [

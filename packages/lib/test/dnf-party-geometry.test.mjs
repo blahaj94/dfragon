@@ -138,7 +138,7 @@ test('작은 양수 소수 영역을 잃지 않고 각 슬롯 모서리를 바�
   assert.deepEqual(input.baseRegion, { x: 0.5, y: 0.5, width: 1, height: 1 })
 })
 
-test('각 숫자 필드의 유한 값·정수·양수 계약을 별도로 검사한다', () => {
+test('각 숫자 필드의 유한 값, 정수, 양수 계약을 별도로 검사한다', () => {
   for (const value of [NaN, Infinity, -Infinity, '1', null, undefined]) {
     for (const field of ['x', 'y', 'width', 'height']) {
       assert.throws(

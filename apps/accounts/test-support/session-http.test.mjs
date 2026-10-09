@@ -9,12 +9,12 @@ import { LOGOUT_ERRORS, LogoutFailure } from '../dist/auth/logout/errors.js'
 import { opaque } from './login-fixtures.mjs'
 
 const cases = {
-  success: 'refresh·logout은 refreshToken만 전달하고 no-store 성공 응답을 반환한다',
-  transport: 'session route는 media·크기·UTF-8·JSON·필드 검사를 service 호출 전에 적용한다',
+  success: 'refresh, logout은 refreshToken만 전달하고 no-store 성공 응답을 반환한다',
+  transport: 'session route는 media, 크기, UTF-8, JSON, 필드 검사를 service 호출 전에 적용한다',
   bytes: 'session route의 JSON parser는 16,384 UTF-8 byte까지만 허용한다',
-  refreshErrors: 'refresh 오류는 독립적인 공개 status·code·message 계약으로 정제한다',
-  logoutErrors: 'logout의 DB·알 수 없는 실패는 204 대신 정제 오류를 반환한다',
-  bearer: 'session route는 Authorization·query token으로 JSON refreshToken을 대체하지 않는다',
+  refreshErrors: 'refresh 오류는 독립적인 공개 status, code, message 계약으로 정제한다',
+  logoutErrors: 'logout의 DB, 알 수 없는 실패는 204 대신 정제 오류를 반환한다',
+  bearer: 'session route는 Authorization, query token으로 JSON refreshToken을 대체하지 않는다',
   login: 'session route 추가 후 로그인 GET과 HEAD의 동작을 유지한다'
 }
 
