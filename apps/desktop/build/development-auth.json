@@ -1,8 +1,0 @@
-{
-  "apiOrigin": "https://localhost:3443",
-  "returnTarget": "dfragon.dev://auth/callback",
-  "environment": "development",
-  "providers": ["passkey"],
-  "appIdentity": "dfragon.dev",
-  "accountsOrigin": "https://localhost:3444"
-}

@@ -1,25 +1,27 @@
-import development from './build/development-auth.json' with { type: 'json' }
+import channels from './build/channels.json' with { type: 'json' }
+
+const { packaging, identity } = channels.development
 
 /** @type {import('electron-builder').Configuration} */
 export default {
   extends: './electron-builder.yml',
-  appId: development.appIdentity,
-  productName: 'DFragon Development',
-  extraMetadata: { name: '@dfragon/desktop' },
-  directories: { output: 'dist/development' },
+  appId: identity.appIdentity,
+  productName: packaging.productName,
+  extraMetadata: { name: packaging.packageName },
+  directories: { output: packaging.output },
   protocols: [
     {
       name: 'DFragon development login',
-      schemes: [new URL(development.returnTarget).protocol.slice(0, -1)]
+      schemes: [new URL(identity.returnTarget).protocol.slice(0, -1)]
     }
   ],
   win: {
-    executableName: 'dfragon-dev'
+    executableName: packaging.executableName
   },
   nsis: {
     perMachine: false,
     runAfterFinish: false,
-    include: 'build/development-installer.nsh'
+    include: packaging.installerInclude
   },
   publish: null
 }

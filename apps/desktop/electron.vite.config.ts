@@ -6,10 +6,7 @@ import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
-import {
-  readDistributionApiOrigin,
-  readDistributionAccountsOrigin
-} from './build/distribution-config'
+import { readChannelOrigin } from './build/channels'
 import { readDesktopSourceInfo } from './build/build-info'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
@@ -24,10 +21,10 @@ export default defineConfig(({ mode, command }) => {
   )
   const developmentAuth = JSON.stringify(mode === 'dfragon-development')
   const distributionAccountsOrigin = JSON.stringify(
-    mode === 'dfragon-distribution' ? readDistributionAccountsOrigin() : null
+    mode === 'dfragon-distribution' ? readChannelOrigin('distribution', 'accounts') : null
   )
   const distributionApiOrigin = JSON.stringify(
-    mode === 'dfragon-distribution' ? readDistributionApiOrigin() : null
+    mode === 'dfragon-distribution' ? readChannelOrigin('distribution', 'api') : null
   )
   const backendEntry = resolve('src/backend/main.ts')
   const frontendRoot = resolve('src/frontend')

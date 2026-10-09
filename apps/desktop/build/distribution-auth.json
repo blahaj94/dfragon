@@ -1,6 +1,0 @@
-{
-  "returnTarget": "dfragon://auth/callback",
-  "environment": "production",
-  "providers": ["passkey"],
-  "appIdentity": "dfragon"
-}
