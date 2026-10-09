@@ -50,7 +50,7 @@ const styles = stylex.create({
 
 `constants/theme.stylex.ts`의 `colors`는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase 키로 옮긴 것입니다. 예를 들어 `bg.brand.solid`는 `bgBrandSolid`, `card.fgMuted`는 `cardFgMuted`입니다. 값은 SEED 팔레트 변수 `--seed-color-palette-*`를 참조하고, 기본값은 다크 단계이며 `lightTheme`은 라이트에서 단계가 다른 토큰만 덮어씁니다. SEED 팔레트는 같은 단계 이름이 color mode마다 다른 값이므로, `defineVars`의 기본값은 `:root`에서 document의 `data-seed-color-mode`로 해석됩니다. 따라서 document color mode와 `lightTheme` 적용 범위가 맞아야 의미 토큰이 디자인 값과 같습니다. 라이트에서는 `<main>`뿐 아니라 그 밖으로 렌더링되는 대화상자, 메뉴 포털에도 `light && lightTheme`을 다시 적용합니다. 하위 요소에 다른 `data-seed-color-mode`를 두면 그 요소의 SEED 토큰은 바뀌지만 `:root`에서 해석된 `colors` 기본값은 바뀌지 않습니다.
 
-카드 토큰 `card*`와 게임 색 `enchant*`, `gameAmplify`는 두 모드에서 같은 리터럴입니다. 라이트에서도 어두운 카드와 서버 메뉴는 카드 토큰을 쓰고, 명성 숫자, 포커스 링, 상태색은 디자인대로 의미 토큰을 그대로 씁니다. 디자인 카드 세트에 없는 `cardControlHover`, `cardBrandWeak`는 서버 메뉴의 hover와 선택 배경으로 `bg.controlHover`, `bg.brand.weak`의 다크 값을 둔 것입니다. 화면이 쓰는 토큰만 정의하며, 새로 필요한 색은 색 체계의 의미 토큰 이름과 값으로 추가합니다.
+카드 토큰 `card*`와 게임 색 `enchant*`, `gameAmplify`는 두 모드에서 같은 리터럴입니다. 라이트에서도 어두운 카드와 서버 메뉴는 카드 토큰을 쓰고, 명성 숫자, 포커스 링, 상태색은 디자인대로 의미 토큰을 그대로 씁니다. 디자인 카드 세트에 없는 `cardControlHover`, `cardBrandWeak`, `cardFgBrand`는 서버 메뉴의 hover, 선택 배경, 선택 글자와 체크 표시에, `cardBorderStrong`은 카드 hover 테두리에 `bg.controlHover`, `bg.brand.weak`, `fg.brand`, `border.strong`의 다크 값을 둔 것입니다. 상세 창의 카드 더미는 디자인 보드대로 앞 카드만 `cardBg`이고 뒤 카드는 테마를 따르는 `bgSurface`입니다. 투자 현황의 강화 열은 `EquipmentSlot.enhancement`가 강화와 증폭을 구분하지 않아 모두 `gameAmplify`로 표시하며, 디자인의 무기 강화 색 `game.enhance`는 구분할 데이터가 생길 때 더합니다. 화면이 쓰는 토큰만 정의하며, 새로 필요한 색은 색 체계의 의미 토큰 이름과 값으로 추가합니다.
 
 ## 검증
 
