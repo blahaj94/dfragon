@@ -94,7 +94,7 @@ Preload event는 고정 channel 하나에서 DTO만 전달하고 개별 wrapper�
 
 Capture와 검색 화면은 인증 snapshot 로딩, signedOut, 로그인 진행, welcome, signedIn, 로그아웃, 복원/저장 실패 상태 모두에서 사용할 수 있다. 2026-09-18 사용자 요청에 따라 계정 모달과 로그인 후 계정 메뉴, 환영 화면은 제거한다. 메인의 로그인 버튼은 전용 인증 창을 열고 진행 중 재클릭을 막으며 완료 시 숨긴다. 취소는 인증 창 닫기로 처리한다. 연결 실패는 로그인 버튼으로 조회를 재시도하고 복원, 저장소 실패는 기존 복구 명령을 호출한다. 이 화면 변경은 해당 PR에서 구현, 검증하고 사용자 merge 후 활성화한다. 로그인 실패나 계정 전환이 capture component를 재생성하거나 인식값, 검색 결과를 지우지 않는다. Snapshot의 welcome/home 구분과 main의 인증, 취소, 복구, 로그아웃 계약은 유지하며 UI 메뉴 삭제로 인증 상태를 조작하지 않는다.
 
-Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, capture unmount, renderer reload/navigation/destruction은 프레임 읽기 loop, worker, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. Stop과 프레임 읽기 실패는 프레임 읽기 loop, worker와 검색을 정리하고 늦은 완료를 차단하지만 source 선택은 유지한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
+Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, capture unmount, renderer reload/navigation/destruction은 프레임 읽기 loop, worker, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. Stop과 프레임 읽기 실패는 프레임 읽기 loop, worker와 검색을 정리하고 늦은 완료를 차단하지만, 확인을 마친 source 선택은 유지한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
 
 Main의 token 소유, account endpoint 권한 검사, sandbox와 navigation 차단은 유지한다. Renderer가 인증을 조작하지 않아도 기능을 사용할 수 있게 하며 임의 화면, camera/microphone 허용으로 확대하지 않는다. 제품의 화면 캡처와 Electron 권한 처리는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)을 따른다.
 
