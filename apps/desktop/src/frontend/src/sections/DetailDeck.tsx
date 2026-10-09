@@ -52,12 +52,16 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
         <div aria-label="캐릭터 상세 카드" {...stylex.props(styles.deck)}>
           {detailFaces.map((face, index) => {
             const active = selected === index
+            const rank = order.indexOf(index)
 
             return (
               <section
                 key={face}
                 aria-label={`${face} 카드`}
-                {...stylex.props(styles.card(order.indexOf(index)))}
+                {...stylex.props(
+                  styles.card(rank),
+                  rank === 0 ? styles.frontCard : styles.backCard
+                )}
               >
                 <button
                   type="button"

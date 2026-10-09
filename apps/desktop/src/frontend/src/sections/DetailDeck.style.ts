@@ -34,16 +34,16 @@ export const styles = stylex.create({
     zIndex: 5 - rank,
     borderWidth: 1,
     borderStyle: 'solid',
-    // As on the design board, only the front card stays dark. The cards behind it and the
-    // borders follow the theme.
-    borderColor: rank === 0 ? colors.borderStrong : colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: rank === 0 ? colors.cardBg : colors.bgSurface,
     transitionProperty: 'left, top, background-color, border-color',
     transitionDuration: { default: '180ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
     transitionTimingFunction: 'ease-out',
     color: colors.cardFg
   }),
+  // As on the design board, only the front card stays dark. The cards behind it and the
+  // borders follow the theme.
+  frontCard: { borderColor: colors.borderStrong, backgroundColor: colors.cardBg },
+  backCard: { borderColor: colors.borderDefault, backgroundColor: colors.bgSurface },
   selector: (selected: boolean) => ({
     position: 'absolute',
     inset: 0,
