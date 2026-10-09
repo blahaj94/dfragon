@@ -23,8 +23,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm check:writing
@@ -38,8 +36,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - name: Test repository tooling
         run: pnpm test:tooling
 
@@ -52,8 +48,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
       - run: pnpm --filter @dfragon/ui test
@@ -68,8 +62,6 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - name: Prepare Electron for Desktop tests
         run: pnpm --filter @dfragon/desktop exec install-electron
       - name: Test Desktop core behavior without prebuilt shared libraries
@@ -84,8 +76,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - name: Typecheck Desktop main, preload and renderer
         run: pnpm --filter @dfragon/desktop typecheck
 
@@ -98,8 +88,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/api test
 
   # The database jobs run the pinned PostgreSQL image on the runner's Docker daemon.
@@ -112,8 +100,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/api test:database
 
   accounts:
@@ -125,8 +111,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/accounts test
 
   accounts-database:
@@ -138,8 +122,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       # The passkey scenarios drive a virtual WebAuthn authenticator in headless Chromium.
       - name: Install Chromium for the passkey scenarios
         run: pnpm exec playwright install --with-deps chromium
@@ -154,8 +136,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/ocr test
       - run: pnpm --filter @dfragon/ocr test:browser
 
@@ -168,8 +148,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/web test
       - name: Typecheck and bundle Web
         run: pnpm --filter @dfragon/web build
@@ -183,8 +161,6 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-workspace
-        with:
-          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       # The search client imports api-fetch, which loads the electron package.
       - name: Prepare Electron for the Desktop search test
         run: pnpm --filter @dfragon/desktop exec install-electron

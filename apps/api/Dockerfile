@@ -1,17 +1,13 @@
-# syntax=docker/dockerfile:1
 ARG NODE_IMAGE=docker.io/library/node:24-bookworm-slim@sha256:2fe369e969550cde8e867afc3fe370b260140cab4a23d467074295b42163d553
 FROM ${NODE_IMAGE} AS build
 WORKDIR /workspace
-RUN npm install --global pnpm@11.23.0 \
-    && npm config set '@blahaj94:registry' 'https://npm.pkg.github.com' --location=user \
-    && npm config set '//npm.pkg.github.com/:_authToken' '${NODE_AUTH_TOKEN}' --location=user
+RUN npm install --global pnpm@11.23.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 COPY packages/lib/package.json packages/lib/package.json
 COPY packages/licenses/package.json packages/licenses/package.json
 COPY packages/licenses/src/copy-notices.mjs packages/licenses/src/copy-notices.mjs
-RUN --mount=type=secret,id=github_packages_token,env=NODE_AUTH_TOKEN,required=true \
-    pnpm install --frozen-lockfile --filter @dfragon/api...
+RUN pnpm install --frozen-lockfile --filter @dfragon/api...
 COPY packages/lib/tsconfig.json packages/lib/tsconfig.json
 COPY packages/lib/src packages/lib/src
 COPY packages/licenses/notices/lib packages/licenses/notices/lib
@@ -21,8 +17,7 @@ COPY apps/api/test apps/api/test
 COPY apps/api/test-support apps/api/test-support
 COPY scripts/test-support/docker-postgres.mjs scripts/test-support/docker-postgres.mjs
 COPY scripts/test/docker-postgres.test.mjs scripts/test/docker-postgres.test.mjs
-RUN --mount=type=secret,id=github_packages_token,env=NODE_AUTH_TOKEN,required=true \
-    pnpm --filter @dfragon/api test \
+RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
 COPY packages/licenses/notices/upstream/remeda-2.50.0-LICENSE.txt apps/api/dist/notices/remeda-2.50.0-LICENSE.txt
 

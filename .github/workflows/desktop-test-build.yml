@@ -47,11 +47,7 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          registry-url: https://npm.pkg.github.com
-          scope: '@blahaj94'
       - run: pnpm install --frozen-lockfile
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/desktop build:test
       - name: Package the test channel portable executable
         shell: bash
