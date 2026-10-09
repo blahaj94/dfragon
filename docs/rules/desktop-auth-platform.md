@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
-last-reviewed: 2026-10-09
+last-reviewed: 2026-10-10
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
 exceptions: 실제 credential/keychain, protocol registry, 패스키 설정과 packaged E2E는 수행하지 않는다.
@@ -156,7 +156,7 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하고, loopba
 
 개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
-Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치, 관리자 권한 없이 실행하며 바로가기와 OS protocol은 등록하지 않고 앱 내부 인증 창의 복귀 처리를 사용한다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
+Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않고 앱 내부 인증 창의 복귀 처리를 사용한다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
 
 ### 공통 진입점
 
