@@ -140,14 +140,13 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 
 설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
 
-| 항목                              | 배포 앱                                 | 기존 개발 앱                            |
-| --------------------------------- | --------------------------------------- | --------------------------------------- |
-| 이름, 실행 파일                    | DFragon / `dfragon.exe`                 | DFragon Development / `dfragon-dev.exe` |
-| app identity, appData 아래 profile | `dfragon`                               | `dfragon.dev`                           |
-| 인증 환경                         | `production`                            | `development`                           |
-| 복귀 주소                         | `dfragon://auth/callback`               | `dfragon.dev://auth/callback`           |
-| API                               | 빌드 시 지정한 HTTPS origin             | `https://localhost:3443`                |
-| 설치                              | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지           |
+| 채널           | 용도                                          | `build/channels.json` 항목 | 만드는 경로                                   |
+| -------------- | --------------------------------------------- | -------------------------- | --------------------------------------------- |
+| `distribution` | 사용자에게 배포하는 설치형, 포터블             | `distribution`             | `build:win`, `build:win:portable`, Release 첨부 |
+| `development`  | 로컬 API, accounts를 바라보는 개발 설치본      | `development`              | `build:win:development`                       |
+| `test`         | PR 실기 테스트용 포터블, 로그인 없음           | `test`                     | Windows Test Build artifact                   |
+
+각 채널의 앱 이름, 실행 파일, identity, 로그인 설정, API와 accounts origin 값은 이 표가 아니라 `build/channels.json`의 해당 항목에서 읽습니다. 값을 바꿀 때는 [Desktop Authentication Platform](../../docs/rules/desktop-auth-platform.md)의 승인 tuple과 `build/channels.test.ts`의 고정값을 함께 고칩니다.
 
 배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 로그인 설정(환경, 복귀 주소, provider)과 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 로그인 설정이 없는 채널은 로그인 없이 실행하고 Electron 기본 profile 경로를 씁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`는 개발 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
