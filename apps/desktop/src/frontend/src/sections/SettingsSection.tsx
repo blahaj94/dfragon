@@ -45,14 +45,14 @@ export function SettingsSection({
 
   function getDeveloperStatusText(): string {
     if (mode.updating) {
-      return '개발자 모드 설정을 저장하는 중입니다.'
+      return '개발자 모드 설정 저장 중'
     }
 
     if (mode.enabled) {
-      return '개발자 모드가 켜져 있습니다.'
+      return '개발자 모드 켜짐'
     }
 
-    return '개발자 모드가 꺼져 있습니다.'
+    return '개발자 모드 꺼짐'
   }
 
   function renderDeveloperControls(): React.JSX.Element {
@@ -152,7 +152,7 @@ export function SettingsSection({
           개발자 모드
         </Typo.h4>
         <Typo.txtS as="p" {...stylex.props(styles.developerDescription)}>
-          개발 도구를 사용하려면 개발자 모드를 켜세요. 설정은 이 기기에 저장됩니다.
+          개발 도구를 쓰려면 켜세요. 이 기기에만 저장됩니다.
         </Typo.txtS>
         {renderDeveloperControls()}
       </>

@@ -126,7 +126,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       <p {...stylex.props(styles.paragraph, styles.muted)}>
         {sample.kind === 'synthetic'
           ? '합성 자료는 생성 정답을 유지하며 train에만 사용합니다. 잘못된 자료는 제외해 주세요.'
-          : '같은 정답 닉네임의 모든 이미지에 적용됩니다.'}
+          : '같은 정답의 모든 이미지에 적용'}
       </p>
       <dl {...stylex.props(styles.metadata)}>
         <div>

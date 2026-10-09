@@ -103,9 +103,9 @@ function entryDescription() {
 
   return (
     <>
-      아이디와 비밀번호 없이 로그인합니다.
+      아이디, 비밀번호 없이 패스키로 로그인합니다.
       <br />
-      패스키가 없으면 휴대폰을 사용할 수 있습니다.
+      패스키가 없으면 휴대폰을 쓰세요.
     </>
   )
 }
@@ -441,18 +441,18 @@ function PasskeyPage() {
             회원가입
           </Typo.h3>
           <Typo.txtM {...stylex.props(styles.paragraph, styles.signupIntro)}>
-            아이디와 비밀번호 없이 가입합니다.
+            아이디, 비밀번호 없이 가입합니다.
             <br />
-            기기의 인증 안내에 따라 패스키를 만들어 주세요.
+            기기 안내에 따라 패스키를 만드세요.
           </Typo.txtM>
           <div {...stylex.props(styles.signupNotice)}>
             <Typo.txtM as="h2" weight={700} {...stylex.props(styles.noticeHeading)}>
-              이미 계정이 있습니까?
+              이미 계정이 있다면
             </Typo.txtM>
             <Typo.txtS {...stylex.props(styles.paragraph, styles.noPadding)}>
-              기존 패스키로 로그인해 주세요.
+              기존 패스키로 로그인하세요.
               <br />
-              새로 가입하면 별도 계정이 만들어집니다.
+              새로 가입하면 별도 계정이 됩니다.
             </Typo.txtS>
           </div>
           <div {...stylex.props(styles.actions, styles.signupActions)}>
@@ -480,9 +480,9 @@ function PasskeyPage() {
             </button>
           </div>
           <Typo.txtS {...stylex.props(styles.paragraph, styles.signupRecovery)}>
-            모든 패스키를 잃으면 계정을 복구할 수 없습니다.
+            패스키를 모두 잃으면 복구할 수 없습니다.
             <br />
-            가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
+            가입 후 예비 패스키를 추가하세요.
           </Typo.txtS>
         </section>
       )}
@@ -509,11 +509,11 @@ function PasskeyPage() {
             role="timer"
           >
             {expired
-              ? '0분 0초 · 인증 시간이 만료됐습니다'
-              : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증할 수 있습니다`}
+              ? '인증 시간 만료'
+              : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초 남음`}
           </Typo.txtM>
           <Typo.txtS {...stylex.props(styles.paragraph, styles.qrWarning)}>
-            이 QR코드를 절대 공유하지 마세요.
+            QR 코드를 공유하지 마세요.
           </Typo.txtS>
           <button
             id="qr-start"
@@ -748,7 +748,7 @@ function PasskeyPage() {
       {screen.kind === 'complete' && (
         <section id="complete">
           <Typo.h6 as="h2" {...stylex.props(styles.completeHeading)}>
-            인증을 완료했습니다
+            인증 완료
           </Typo.h6>
           <a
             id="return"

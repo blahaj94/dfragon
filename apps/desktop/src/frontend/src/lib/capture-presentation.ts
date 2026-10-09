@@ -62,13 +62,13 @@ export function getCaptureSourceNotice({
 
   if (hasOtherSources) {
     return {
-      title: '던파 창을 찾지 못했습니다',
-      description: '15초마다 자동으로 찾습니다. 다른 창을 직접 선택할 수도 있습니다.'
+      title: '던파 창 미감지',
+      description: '15초마다 자동으로 다시 찾습니다.'
     }
   }
 
   return {
-    title: '던파 창을 찾지 못했습니다',
+    title: '던파 창 미감지',
     description: '게임을 실행하면 15초마다 자동으로 찾습니다.'
   }
 }

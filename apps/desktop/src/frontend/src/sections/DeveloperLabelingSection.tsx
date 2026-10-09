@@ -175,7 +175,7 @@ export function DeveloperLabelingSection({
       <Typo.caption {...stylex.props(styles.muted)}>
         {selected?.remote
           ? '제외한 크롭은 평가에 포함하지 않습니다.'
-          : '제외한 크롭은 보존됩니다. 제외 탭에서 다시 포함할 수 있습니다.'}
+          : '제외한 크롭은 제외 탭에서 다시 포함 가능'}
       </Typo.caption>
     </section>
   )

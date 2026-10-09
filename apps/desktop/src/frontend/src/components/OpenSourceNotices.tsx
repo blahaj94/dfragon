@@ -68,9 +68,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
       <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
         라이선스 사용고지
       </Typo.h4>
-      <Typo.txtS {...stylex.props(styles.description)}>
-        DFragon에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
-      </Typo.txtS>
+      <Typo.txtS {...stylex.props(styles.description)}>오픈소스와 글꼴 라이선스</Typo.txtS>
       <TextField
         label={
           <Typo.txtS as="span" weight={700}>
