@@ -101,6 +101,18 @@ test('build entry preserves 404 for unregistered paths and existing registered r
         stdout: '',
         stderr: ''
       })
+      // 원문 경로가 담긴 줄은 접근 로그로 인정되지 않고 stdout에 남으므로 위 stdout 검사가 막는다.
+      // 여기서는 기본 entry가 접근 로그를 켜고 route template과 정제 code를 남기는지 확인한다.
+      const accessLogs = runtime.accessLogs
+      assert(
+        accessLogs.some(
+          (entry) =>
+            entry.route === '/me' &&
+            entry.status === 401 &&
+            entry.code === 'AUTHENTICATION_REQUIRED'
+        )
+      )
+      assert(accessLogs.some((entry) => entry.route === '<unmatched>' && entry.status === 404))
     } finally {
       await stopRuntime(runtime)
     }
