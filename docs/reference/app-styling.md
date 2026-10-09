@@ -21,6 +21,7 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 - Vite에서는 StyleX를 React plugin보다 먼저 실행한다. Vitest는 HTTP/HMR timer가 없는 Rollup adapter를 사용한다.
 - esbuild는 `metafile: true`와 StyleX plugin을 함께 사용한다. 기존 CSS 출력에 추출한 스타일을 합치므로 HTML의 stylesheet 링크는 유지된다.
 - Browser entry는 SEED `base.css`와 공용 `foundation.css`를 한 번 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
+- Desktop renderer entry는 `base.css` 다음에 `apps/desktop/src/frontend/src/assets/seed-brand.css`를 import해 SEED brand 토큰을 메인 컬러 파랑으로 다시 매핑한다. 허용 범위는 [Design System의 전역 override 예외](../rules/design-system.md#화면별-스타일-조정)를 따르며, 다른 앱의 SEED brand 표현은 당근 주황 그대로다.
 
 | 소비자 | 연결 위치 |
 | --- | --- |
