@@ -56,7 +56,7 @@ async function rotate({
         const sessions = manager.getRepository(AuthSessionSchema)
         const refresh = manager.getRepository(AuthRefreshTokenSchema)
 
-        // 잠금 없는 두 조회는 잠글 ID의 hint다. 아래 재조회 전에는 존재·소유·상태를 신뢰하지 않는다.
+        // 잠금 없는 두 조회는 잠글 ID의 hint다. 아래 재조회 전에는 존재, 소유, 상태를 신뢰하지 않는다.
         const tokenHint = await refresh.findOneBy({ tokenHash: presentedHash })
         const hasTokenHint = tokenHint != null
         if (!hasTokenHint) {
@@ -184,7 +184,7 @@ async function rotate({
       }
     )
 
-    // DataSource가 commit·release를 완료한 후에만 결과를 전달한다.
+    // DataSource가 commit, release를 완료한 후에만 결과를 전달한다.
     const isReuseRevoked = committed.status === 'reuse-revoked'
     if (isReuseRevoked) {
       throw new RefreshFailure(REFRESH_ERRORS.AUTHENTICATION_REQUIRED)
@@ -196,7 +196,7 @@ async function rotate({
     if (isRefreshFailure) {
       throw error
     }
-    // DB 실패·random unique 충돌·commit 결과 불명은 원문 상세 없이 거절한다. 자동 retry하지 않는다.
+    // DB 실패, random unique 충돌, commit 결과 불명은 원문 상세 없이 거절한다. 자동 retry하지 않는다.
     throw new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE)
   }
 }
@@ -209,7 +209,7 @@ export function rotateRefresh(
   return rotate({ deps, rawToken, refreshBytes: randomBytes })
 }
 
-/** Random 충돌·실패 검증용 주입 경계. Runtime 설정이나 HTTP 입력으로 노출하지 않는다. */
+/** Random 충돌, 실패 검증용 주입 경계. Runtime 설정이나 HTTP 입력으로 노출하지 않는다. */
 export function rotateRefreshForTest(
   deps: RefreshDependencies,
   rawToken: unknown,

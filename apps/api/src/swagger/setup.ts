@@ -7,7 +7,7 @@ import { apiSchemas } from './schemas.js'
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
     .setTitle(`${PRODUCT_NAME} API`)
-    .setDescription('캐릭터 검색·상세와 모험단 조회를 제공하는 공개 API입니다.')
+    .setDescription('캐릭터 검색, 상세와 모험단 조회를 제공하는 공개 API입니다.')
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')
     .build()

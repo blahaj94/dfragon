@@ -30,7 +30,7 @@ export function hasColorMatch(pixels: Iterable<Rgb>, target: Rgb, tolerance: num
 
 const NICKNAME_COMPARISON_NOISE_PATTERN = /[^\p{Script=Hangul}A-Za-z0-9]/gu
 
-/** OCR 문자열에서 한글·영문·숫자만 남겨 닉네임 비교에 사용할 값으로 정리한다. */
+/** OCR 문자열에서 한글, 영문, 숫자만 남겨 닉네임 비교에 사용할 값으로 정리한다. */
 export function normalizeNickname(text: string): string {
   return text.replace(NICKNAME_COMPARISON_NOISE_PATTERN, '')
 }

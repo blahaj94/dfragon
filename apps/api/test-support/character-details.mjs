@@ -84,7 +84,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     )
     const original = await snapshot()
 
-    mark('중첩 객체 key 순서가 달라도 JSONB 내용·revision·내용 시각은 유지')
+    mark('중첩 객체 key 순서가 달라도 JSONB 내용, revision, 내용 시각은 유지')
     const reordered = Object.fromEntries(
       Object.entries(fixture(identity)).map(([section, body]) => [
         section,
@@ -116,7 +116,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     assert.equal(reread.find((r) => r.section === 'equipment').payload.equipment[0].reinforce, 13)
     assert.deepEqual(await snapshot(), newer)
 
-    mark('실패한 신규·기존 저장 전체 rollback과 다른 서버 병합 거절')
+    mark('실패한 신규, 기존 저장 전체 rollback과 다른 서버 병합 거절')
     const invalid = fixture(identity, 15)
     invalid.buff_creature = null
     await assert.rejects(store.saveAndRead(identity, invalid, await store.beginFetch(), signal))
@@ -305,7 +305,7 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
       await boundedSource.destroy()
     }
 
-    mark('loopback provider·실제 PostgreSQL의 저장·정제 HTTP 응답')
+    mark('loopback provider, 실제 PostgreSQL의 저장, 정제 HTTP 응답')
     await ageSuccessfulFetch()
     let providerCalls = 0,
       fail = false

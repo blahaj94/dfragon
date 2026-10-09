@@ -24,7 +24,7 @@ export type SearchConnection = {
   dispose: () => void
 }
 
-/** 호출별 actor를 클로저에 격리하고 연결·명령·정리 함수를 반환한다. */
+/** 호출별 actor를 클로저에 격리하고 연결, 명령, 정리 함수를 반환한다. */
 export function createSearchConnection(options: ConnectionOptions): SearchConnection {
   let currentActor = createActor(searchConnectionMachine, { input: { api: options.api } })
 
@@ -35,7 +35,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     return state.status === 'active' && state.hasTag('ready')
   }
 
-  // 이전 actor를 종료하고 구독·초기 조회를 새 actor에서 시작한다.
+  // 이전 actor를 종료하고 구독, 초기 조회를 새 actor에서 시작한다.
   function connect(): void {
     if (currentActor.getSnapshot().status === 'stopped') {
       return
@@ -73,7 +73,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     actor.start()
   }
 
-  // 제어 IPC의 직접 응답을 공통 검증·복구 경계로 전달한다.
+  // 제어 IPC의 직접 응답을 공통 검증, 복구 경계로 전달한다.
   async function command(control: SearchControl): Promise<SearchCommandResult | null> {
     return invoke(() => options.api.controlCharacterSearch(control))
   }
@@ -114,7 +114,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     }
   }
 
-  // 구독·조회 actor를 종료하되 늦은 직접 응답의 반환 경로는 유지한다.
+  // 구독, 조회 actor를 종료하되 늦은 직접 응답의 반환 경로는 유지한다.
   function dispose(): void {
     currentActor.stop()
   }

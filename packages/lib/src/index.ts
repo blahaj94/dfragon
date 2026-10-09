@@ -39,7 +39,8 @@ export function validateDFNickname(
     ) {
       return {
         isValid: false,
-        reason: '공백·제어문자·보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
+        reason:
+          '공백, 제어문자, 보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
       }
     }
     totalBytes += isAscii ? 1 : 2

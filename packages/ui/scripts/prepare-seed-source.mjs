@@ -60,7 +60,7 @@ for (const file of provenance.files) {
       localSource = localSource.replace(change.before, change.after)
       file.localChanges.push({
         reason:
-          'DFragon composition: 공식 Layout 구조·Token·반응형 조건을 유지하며 중립 content slot만 연결한다.',
+          'DFragon composition: 공식 Layout 구조, Token, 반응형 조건을 유지하며 중립 content slot만 연결한다.',
         ...change
       })
     }

@@ -30,7 +30,7 @@ export const OCR_CHARACTER_GROUP_LABELS = {
   hiragana: '히라가나',
   katakana: '가타카나',
   hanja: '한자',
-  latin: '영문·라틴',
+  latin: '영문, 라틴',
   digit: '숫자',
   other: '기타'
 } as const satisfies Record<CharacterGroup, string>

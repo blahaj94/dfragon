@@ -97,13 +97,13 @@ function Examples() {
         </ExampleSection>
         <ExampleSection title="Pattern · 입력한 값 확인">
           <SupportingText>
-            Text Field와 Dialog를 조합한 DFragon composition입니다. 제출·저장 동작은 없습니다.
+            Text Field와 Dialog를 조합한 DFragon composition입니다. 제출, 저장 동작은 없습니다.
           </SupportingText>
           <DialogRoot>
             <DialogTrigger asChild>
               <ActionButton variant="neutralOutline">Dialog 열기</ActionButton>
             </DialogTrigger>
-            <DialogContent title="입력한 값" description="열기·닫기·keyboard focus를 확인합니다.">
+            <DialogContent title="입력한 값" description="열기, 닫기, keyboard focus를 확인합니다.">
               <DialogBody>
                 <SupportingText>{name}</SupportingText>
               </DialogBody>

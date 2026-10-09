@@ -8,7 +8,7 @@ import type {
 } from '../src/preload/common/types/developer'
 import { contextBridge, ipcRenderer } from 'electron'
 
-// 제품 preload·IPC를 로드하지 않는다. Media API는 synthetic 거절 함수만 제공한다.
+// 제품 preload, IPC를 로드하지 않는다. Media API는 synthetic 거절 함수만 제공한다.
 const isMediaIsolated = contextBridge.executeInMainWorld({
   func: (): boolean => {
     const rejectCapture = (): Promise<never> =>

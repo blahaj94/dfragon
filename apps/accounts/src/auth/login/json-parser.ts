@@ -76,7 +76,7 @@ export function loginJsonParser(request: Request, response: Response, next: Next
     jsonError(response, definition)
   }
 
-  // 1. Media/encoding 오류를 크기·JSON 오류보다 먼저 거절한다.
+  // 1. Media/encoding 오류를 크기, JSON 오류보다 먼저 거절한다.
   const hasSingleContentType = contentTypes.length === 1
   if (!hasSingleContentType) {
     rejectPayloadAndClose(LOGIN_ERRORS.MEDIA)

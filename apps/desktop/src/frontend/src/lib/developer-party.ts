@@ -38,7 +38,7 @@ export function getDeveloperCollectionErrorMessage(errorCode: string): string {
   }
 
   if (errorCode === DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND) {
-    return '선택한 위치에서 저장할 크롭을 찾지 못했습니다. HP·MP가 가득 찬 파티 프레임을 보여주세요.'
+    return '선택한 위치에서 저장할 크롭을 찾지 못했습니다. HP, MP가 가득 찬 파티 프레임을 보여주세요.'
   }
 
   if (errorCode === DEVELOPER_ERROR_CODES.GAME_NOT_FOREGROUND) {

@@ -109,7 +109,7 @@ export async function cleanupAuthentication(source: DataSource): Promise<Cleanup
 
     return { sessionsDeleted, loginRequestsDeleted }
   } catch {
-    // 앞선 row의 commit과 마지막 commit의 결과 불명이 남을 수 있다. 성공·전체 rollback을 추정하지 않는다.
+    // 앞선 row의 commit과 마지막 commit의 결과 불명이 남을 수 있다. 성공, 전체 rollback을 추정하지 않는다.
     throw cleanupFailure()
   }
 }

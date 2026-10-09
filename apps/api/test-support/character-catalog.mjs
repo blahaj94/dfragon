@@ -25,7 +25,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
   }
   await clear()
   try {
-    mark('최초 공용 상세 저장의 JSONB 원문·복합 스킬 식별자·24시간 캐시')
+    mark('최초 공용 상세 저장의 JSONB 원문, 복합 스킬 식별자, 24시간 캐시')
     const started = await store.read(keys, signal)
     const values = keys.map((key, i) => ({
       key,
@@ -41,7 +41,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       assert(Math.abs(entry.expiresAt.getTime() - entry.fetchedAt.getTime() - 86_400_000) < 10)
     }
 
-    mark('유효 캐시 재사용과 갱신 실패의 이전 원문·조회 시각 보존')
+    mark('유효 캐시 재사용과 갱신 실패의 이전 원문, 조회 시각 보존')
     let calls = 0
     const service = createCatalogService(store, async () => {
       calls++
@@ -61,7 +61,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     assert.deepEqual(stale.data, before.payload)
     assert.equal(stale.fetchedAt, before.fetchedAt.toISOString())
 
-    mark('실제 행 잠금 대기에서도 늦은 이전 아이템·스킬 요청이 최신 값을 덮어쓰지 않음')
+    mark('실제 행 잠금 대기에서도 늦은 이전 아이템, 스킬 요청이 최신 값을 덮어쓰지 않음')
     const older = (await store.read(keys, signal)).requestedAt
     const newer = (await store.read(keys, signal)).requestedAt
     const blocker = source.createQueryRunner()
@@ -134,7 +134,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
       signal
     )
     assert.deepEqual(setOld.entries[0].payload, setNew.entries[0].payload)
-    mark('아이템·스킬·세트의 동일 시각 요청은 먼저 저장한 원문과 조회 시각을 유지한다')
+    mark('아이템, 스킬, 세트의 동일 시각 요청은 먼저 저장한 원문과 조회 시각을 유지한다')
     const tieKeys = [item, skill, set]
     const beforeTie = (await store.read(tieKeys, signal)).entries
     const tie = await store.saveAndRead(
@@ -190,7 +190,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     ])
     assert.deepEqual(storedItem.payload, refreshedPayload)
 
-    mark('저장 실패는 신규·기존 batch 전체를 rollback하고 취소는 새 행을 생성하지 않음')
+    mark('저장 실패는 신규, 기존 batch 전체를 rollback하고 취소는 새 행을 생성하지 않음')
     const snapshot = (await store.read(keys, signal)).entries
     await assert.rejects(
       store.saveAndRead(
@@ -229,7 +229,7 @@ export async function assertCharacterCatalog(source, mark = () => undefined) {
     assert.deepEqual((await store.read(keys, signal)).entries, snapshot)
     assert.deepEqual((await store.read([canceledItem], signal)).entries, [])
 
-    mark('실제 테스트 role은 공용 상세 세 테이블의 SELECT·INSERT·UPDATE만 허용')
+    mark('실제 테스트 role은 공용 상세 세 테이블의 SELECT, INSERT, UPDATE만 허용')
     const runner = source.createQueryRunner()
     await runner.connect()
     await runner.startTransaction()

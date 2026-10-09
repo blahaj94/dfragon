@@ -41,7 +41,7 @@ const catalogDetail = object({
   status: {
     type: 'string',
     enum: ['fresh', 'stale', 'unavailable'],
-    description: '유효한 캐시 / 갱신 실패·예산 종료로 이전 캐시 사용 / 전달할 캐시 없음'
+    description: '유효한 캐시 / 갱신 실패, 예산 종료로 이전 캐시 사용 / 전달할 캐시 없음'
   }
 })
 const catalogEquipment: SchemaObject = {
@@ -237,7 +237,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
           type: 'object',
           additionalProperties: catalogDetail,
           description:
-            '캐릭터 직업의 skillId별 공용 상세. 습득·진화·강화·체인·버프 스킬 참조를 포함합니다.'
+            '캐릭터 직업의 skillId별 공용 상세. 습득, 진화, 강화, 체인, 버프 스킬 참조를 포함합니다.'
         }
       }
     },

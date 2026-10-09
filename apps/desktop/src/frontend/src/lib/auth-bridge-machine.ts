@@ -18,7 +18,7 @@ type BridgeEvent =
   | { type: 'SNAPSHOT'; snapshot: AuthSnapshot }
   | { type: 'COMMAND'; api: AuthApi; intent: AuthIntent }
 
-// 인증 결과는 main snapshot으로 유지하고 IPC 연결·조회·명령의 수명만 관리한다.
+// 인증 결과는 main snapshot으로 유지하고 IPC 연결, 조회, 명령의 수명만 관리한다.
 export const authBridgeMachine = setup({
   types: {
     context: {} as BridgeContext,

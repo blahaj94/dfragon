@@ -122,7 +122,7 @@ void run().then(
     process.stdout.write(`DFRAGON_CREDENTIAL_NATIVE:${JSON.stringify(result)}\n`, () => app.quit())
   },
   () => {
-    // Native/OS 오류 원문·plaintext·ciphertext·profile은 출력하지 않는다.
+    // Native/OS 오류 원문, plaintext, ciphertext, profile은 출력하지 않는다.
     process.stdout.write(
       `DFRAGON_CREDENTIAL_NATIVE:${JSON.stringify({ phase, ok: false, stage, decryptCalls, encryptionAvailabilityCalls })}\n`,
       () => app.exit(1)

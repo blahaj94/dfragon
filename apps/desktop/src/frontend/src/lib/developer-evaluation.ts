@@ -33,7 +33,7 @@ export function characterErrors(expected: string, actual: string): number {
   return previous[right.length]
 }
 
-/** 미작성 라벨과 실패를 분리하고 성공한 라벨 이미지의 원문 일치율·전체 문자 오류율을 계산한다. */
+/** 미작성 라벨과 실패를 분리하고 성공한 라벨 이미지의 원문 일치율, 전체 문자 오류율을 계산한다. */
 export function summarizeDeveloperEvaluation(
   samples: readonly DeveloperSample[],
   results: Readonly<Record<string, DeveloperEvaluation>>
@@ -63,7 +63,7 @@ export function summarizeDeveloperEvaluation(
   return { scored, matched, failed, completed, accuracy, characterErrorRate }
 }
 
-/** 샘플 순서대로 결과를 조회하고 채점까지 확정해 실패·미평가의 라벨을 읽지 않는다. */
+/** 샘플 순서대로 결과를 조회하고 채점까지 확정해 실패, 미평가의 라벨을 읽지 않는다. */
 function collectSampleEvaluations(
   samples: readonly DeveloperSample[],
   results: Readonly<Record<string, DeveloperEvaluation>>

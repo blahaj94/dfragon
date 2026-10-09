@@ -373,7 +373,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     assert.equal((await browserPost('list', { requestId: otherId })).status(), 400)
     await assertTerminalLoginRequest(source, otherId, 'consumed')
-    mark('만료 code와 잘못된 앱 verifier를 거절하고 교환·관리 종료 proof를 정리한다')
+    mark('만료 code와 잘못된 앱 verifier를 거절하고 교환, 관리 종료 proof를 정리한다')
     const pending = await complete(await begin())
     assert.equal(
       (

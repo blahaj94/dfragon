@@ -29,7 +29,7 @@ export function decodeOpaque(value: unknown): Buffer {
 }
 
 export function opaqueHash(value: string): Buffer {
-  // Ticket·state·code는 인코딩된 문자열이 아닌 원래 random bytes를 hash한다.
+  // Ticket, state, code는 인코딩된 문자열이 아닌 원래 random bytes를 hash한다.
 
   return createHash('sha256').update(decodeOpaque(value)).digest()
 }

@@ -60,7 +60,7 @@ export function ApiLoginExchange() {
         '앱 복귀 URL의 일회용 code와 원래 codeVerifier로 로그인합니다. code는 60초 동안 유효하며 한 번만 소비할 수 있습니다.'
     }),
     body('LoginExchange'),
-    success(200, 'LoginTokens', '토큰·사용자 정보·신규 가입 여부'),
+    success(200, 'LoginTokens', '토큰, 사용자 정보, 신규 가입 여부'),
     errors({
       400: 'INVALID_AUTH_REQUEST / LOGIN_EXCHANGE_INVALID',
       ...jsonFailures,
@@ -115,11 +115,11 @@ export function ApiAuthorize() {
     }),
     ApiResponse({
       status: 200,
-      description: '패스키 가입·로그인 HTML',
+      description: '패스키 가입, 로그인 HTML',
       headers: {
         'Set-Cookie': {
           schema: { type: 'string' },
-          description: 'Secure·HttpOnly 브라우저 바인딩 쿠키'
+          description: 'Secure, HttpOnly 브라우저 바인딩 쿠키'
         }
       }
     }),
@@ -133,7 +133,7 @@ export function ApiProfile(update = false) {
     ApiOperation({
       summary: update ? '닉네임 변경' : '내 프로필 조회',
       description:
-        '유효한 access JWT와 활성 계정·세션이 필요합니다. Authorization: Bearer 헤더를 사용합니다.'
+        '유효한 access JWT와 활성 계정, 세션이 필요합니다. Authorization: Bearer 헤더를 사용합니다.'
     }),
     ...(update ? [body('NicknameRequest'), errors(jsonFailures)] : []),
     success(200, 'AccountProfile', '사용자 ID와 닉네임'),

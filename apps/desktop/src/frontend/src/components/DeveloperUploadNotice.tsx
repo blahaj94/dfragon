@@ -68,7 +68,7 @@ export function DeveloperUploadNotice({
     }
   } else if (collection?.error && status !== 'failed') {
     tone = 'warning'
-    title = capture ? '캡처·저장 실패' : '캡처 준비 확인 필요'
+    title = capture ? '캡처, 저장 실패' : '캡처 준비 확인 필요'
     detail = getDeveloperCollectionErrorMessage(collection.error)
   }
 
@@ -103,7 +103,8 @@ export function DeveloperUploadNotice({
         {capture && (
           <div {...stylex.props(styles.metadata)}>
             <Typo.caption>
-              캡처 #{capture.attempt} ·{' '}
+              캡처 #{capture.attempt}
+              {' · '}
               {new Date(capture.startedAt).toLocaleTimeString('ko-KR', { hour12: false })}
             </Typo.caption>
             {busy ? (

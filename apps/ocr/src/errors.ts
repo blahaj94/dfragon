@@ -19,7 +19,7 @@ export const OCR_ERRORS = {
   SYNTHETIC_TRAIN_ONLY: {
     status: 409,
     message:
-      '합성 자료의 닉네임은 train에만 배정할 수 있습니다. 기존 미배정·val/test 닉네임은 사용할 수 없습니다.'
+      '합성 자료의 닉네임은 train에만 배정할 수 있습니다. 기존 미배정, val/test 닉네임은 사용할 수 없습니다.'
   },
   SYNTHETIC_LABEL_IMMUTABLE: {
     status: 409,

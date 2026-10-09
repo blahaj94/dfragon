@@ -77,7 +77,7 @@ async function create({
       isNewUser
     }
   } catch (error) {
-    // QueryFailedError의 SQL/parameters·identity를 호출자나 log에 전달하지 않는다.
+    // QueryFailedError의 SQL/parameters, identity를 호출자나 log에 전달하지 않는다.
     const isIdentitySessionFailure = error instanceof IdentitySessionFailure
     if (isIdentitySessionFailure) {
       throw error

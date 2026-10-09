@@ -28,7 +28,7 @@ export const POSIX_TEST_FILE_CONSTANTS = constants
 
 type Metadata = { mode: number; uid: number; target?: string }
 
-// Windows의 POSIX 사례와 합성 경계 자체 검사에 사용한다. 내용·exclusive 생성·rename·unlink는 실제 IO다.
+// Windows의 POSIX 사례와 합성 경계 자체 검사에 사용한다. 내용, exclusive 생성, rename, unlink는 실제 IO다.
 // Directory handle은 이 protocol이 사용하는 stat/sync/close만 모델링한다.
 export function createPosixTestFiles({
   root,

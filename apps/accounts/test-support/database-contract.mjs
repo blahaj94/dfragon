@@ -349,7 +349,7 @@ export async function insertLogin(source, row) {
   )
 }
 
-// 제품의 정리 상수와 독립적으로 모든 proof·회원 연결의 terminal 보존 계약을 확인한다.
+// 제품의 정리 상수와 독립적으로 모든 proof, 회원 연결의 terminal 보존 계약을 확인한다.
 export async function assertTerminalLoginRequest(source, id, status) {
   const rows = await source.query('SELECT * FROM auth_login_requests WHERE id=$1', [id])
   assert.equal(rows.length, 1, '종료 요청이 정확히 하나 존재해야 한다')

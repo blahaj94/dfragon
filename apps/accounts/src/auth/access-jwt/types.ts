@@ -27,7 +27,7 @@ export interface IssuedAccessJwt {
   readonly expiresAt: number
 }
 
-// 서명·claim 검증 결과다. DB의 존재·활성·소유 확인을 포함하지 않는다.
+// 서명, claim 검증 결과다. DB의 존재, 활성, 소유 확인을 포함하지 않는다.
 export interface AccessJwtPrincipal {
   readonly userId: string
   readonly sessionId: string

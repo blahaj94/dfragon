@@ -40,7 +40,7 @@ export type CaptureSearch = {
   dispose: () => void
 }
 
-/** 호출마다 독립된 검색 연결·actor·관측 상태를 만들고 수명 제어 함수를 반환한다. */
+/** 호출마다 독립된 검색 연결, actor, 관측 상태를 만들고 수명 제어 함수를 반환한다. */
 export function createCaptureSearch(options: SearchOptions): CaptureSearch {
   let revisions = [0, 0, 0, 0]
   let cleared = [true, true, true, true]
@@ -240,7 +240,7 @@ export function createCaptureSearch(options: SearchOptions): CaptureSearch {
     publish()
   }
 
-  // 현재 연결·actor·관측 상태로 화면용 값을 만들어 전달한다.
+  // 현재 연결, actor, 관측 상태로 화면용 값을 만들어 전달한다.
   function publish(): void {
     options.onChange({
       ready: connection.isReady(),

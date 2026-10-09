@@ -99,7 +99,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       }
     })
   try {
-    mark('QR 가입은 휴대폰 승인·PC 단일 claim·PKCE 교환 뒤 proof를 정리한다')
+    mark('QR 가입은 휴대폰 승인, PC 단일 claim, PKCE 교환 뒤 proof를 정리한다')
     const first = await begin(true)
     assert.equal((await post(phone, 'claim', first.requestId)).status(), 400)
     assert.equal((await post(pc, 'phone-approve', first.requestId)).status(), 400)
@@ -158,7 +158,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     await assertTerminalLoginRequest(source, first.requestId, 'consumed')
     assert.equal((await post(pc, 'claim', first.requestId)).status(), 400)
 
-    mark('QR 재로그인은 같은 계정에 연결되고 claim·교환 proof를 한 번만 소비한다')
+    mark('QR 재로그인은 같은 계정에 연결되고 claim, 교환 proof를 한 번만 소비한다')
     const again = await begin()
     await phoneVerify(again)
     await approve()
@@ -238,7 +238,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     assert.equal((await post(phone, 'phone-approve', replaced.requestId)).status(), 400)
     assert.equal((await post(pc, 'claim', replaced.requestId)).status(), 400)
 
-    mark('휴대폰 인증·가입 취소는 해당 요청을 종료하고 모든 proof를 지운다')
+    mark('휴대폰 인증, 가입 취소는 해당 요청을 종료하고 모든 proof를 지운다')
     for (const operation of ['authenticate', 'register']) {
       const canceled = await begin()
       await phonePage.goto(canceled.phoneUrl)
