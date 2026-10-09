@@ -143,7 +143,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 | API                               | 빌드 시 지정한 HTTPS origin             | `https://localhost:3443`                |
 | 설치                              | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지           |
 
-배포 앱과 개발 앱의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 복귀 주소, 환경, provider와 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 앱 main이 이 파일을 읽고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만들며 `electron-builder.ts`와 `electron-builder.development.ts`는 채널만 고릅니다. `scripts/desktop-package-fuses.test.mjs`가 electron-builder가 실제로 읽은 두 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
+배포 앱과 개발 앱의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 복귀 주소, 환경, provider와 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만들며 `electron-builder.ts`와 `electron-builder.development.ts`는 채널만 고릅니다. `scripts/desktop-package-fuses.test.mjs`가 electron-builder가 실제로 읽은 두 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
 NSIS는 기존 protocol 소유권 검사, 사용자별 등록, 자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin, RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
