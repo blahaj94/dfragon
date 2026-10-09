@@ -209,11 +209,11 @@ it('does not attempt inference before model initialization', async () => {
 })
 
 it.each([
-  { preprocessing: 'party', foregroundX: 159, paddingX: 0 },
-  { preprocessing: 'raw', foregroundX: 0, paddingX: 159 }
+  { preprocessing: 'party', foregroundX: 159, paddingX: 0, padding: 1 },
+  { preprocessing: 'raw', foregroundX: 0, paddingX: 159, padding: 0 }
 ] as const)(
-  'worker의 $preprocessing 입력에 해당 정렬을 적용해 모델에 전달한다',
-  async ({ preprocessing, foregroundX, paddingX }) => {
+  'worker의 $preprocessing 입력에 해당 정렬과 여백 값을 적용해 모델에 전달한다',
+  async ({ preprocessing, foregroundX, paddingX, padding }) => {
     await send({ root: 'https://fixture.invalid/ocr/' })
     const data = new Uint8ClampedArray(6 * 48 * 4)
     data.fill(255)
@@ -227,7 +227,7 @@ it.each([
       const row = channel * 320 * 48 + 20 * 320
       expect(tensor[row + foregroundX]).toBe(-1)
       expect(tensor[row + foregroundX + 1]).toBe(-1)
-      expect(tensor[row + paddingX]).toBe(0)
+      expect(tensor[row + paddingX]).toBe(padding)
       expect(tensor[row - 320 + foregroundX]).toBe(1)
     }
     expect(postMessage).toHaveBeenLastCalledWith(expect.objectContaining({ text: '가' }))
