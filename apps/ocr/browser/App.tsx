@@ -9,7 +9,7 @@ import { errorMessage } from './client.js'
 import { OCR_SAMPLES } from '../src/constants.js'
 import type { Sample } from '../src/model.js'
 import { Typo } from '@dfragon/ui/typo'
-import { primary, secondary } from './buttons.js'
+import { primary, secondary, secondarySmall } from './buttons.js'
 import { CaptureUpload } from './CaptureUpload.js'
 import { SampleEditor } from './SampleEditor.js'
 import { OcrIcon } from './OcrIcon.js'
@@ -193,7 +193,7 @@ export function App() {
           {sample !== undefined && <SampleEditor key={sample.id} sample={sample} />}
           <nav {...stylex.props(styles.pagination)} aria-label="페이지">
             <button
-              className={`${secondary} ${stylex.props(styles.paginationButton).className}`}
+              className={secondarySmall}
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - OCR_SAMPLES.pageSize))}
             >
@@ -201,7 +201,7 @@ export function App() {
             </button>
             <span>{offset / OCR_SAMPLES.pageSize + 1} 페이지</span>
             <button
-              className={`${secondary} ${stylex.props(styles.paginationButton).className}`}
+              className={secondarySmall}
               disabled={next === null}
               onClick={() => {
                 if (next !== null) {

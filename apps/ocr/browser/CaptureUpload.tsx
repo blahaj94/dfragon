@@ -5,7 +5,7 @@ import { OCR_UPLOAD } from '../src/constants.js'
 import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { UI_SCALE_PERCENT } from './constants.js'
 import { parseCaptureKind } from '../src/input.js'
-import { primary, secondary } from './buttons.js'
+import { primary, secondary, secondarySmall } from './buttons.js'
 import { Typo } from '@dfragon/ui/typo'
 import { OcrIcon } from './OcrIcon.js'
 
@@ -48,7 +48,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             원본 이미지 업로드
           </Typo.h5>
         </div>
-        <button type="button" className={secondary} onClick={onClose}>
+        <button type="button" className={secondarySmall} onClick={onClose}>
           접기
         </button>
       </div>

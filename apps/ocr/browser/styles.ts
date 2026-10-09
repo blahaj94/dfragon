@@ -345,7 +345,6 @@ export const styles = stylex.create({
     gridColumn: 1,
     gridRow: { default: 2, '@media (max-width: 760px)': 3 }
   },
-  paginationButton: { minHeight: 36, height: 36, padding: '0 24px' },
   empty: {
     gridColumn: '1 / -1',
     backgroundColor: colors.bgSurface,
@@ -377,7 +376,7 @@ export const styles = stylex.create({
     color: colors.fgBrand,
     borderRadius: 16
   },
-  loginButton: { width: '100%', marginTop: 32, minHeight: 48 },
+  loginButton: { width: '100%', marginTop: 32 },
   serviceAddress: {
     display: 'block',
     textAlign: 'center',
