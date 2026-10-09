@@ -83,9 +83,13 @@ it('전달된 서버만 제공하고 Escape로 선택 변경 없이 닫는다', 
   )
   const trigger = document.querySelector<HTMLButtonElement>('[role="combobox"]')!
   await act(async () => trigger.click())
-  expect([...document.querySelectorAll('[role="option"]')].map((item) => item.textContent)).toEqual(
-    ['카인', '시로코']
-  )
+  const listbox = document.querySelector('[role="listbox"]')!
+  expect(listbox.getAttribute('aria-label')).toBe('서버')
+  expect([...listbox.querySelectorAll('[role="option"]')].map((item) => item.textContent)).toEqual([
+    '카인',
+    '시로코'
+  ])
+  expect(listbox.textContent).toBe('카인시로코')
   await act(async () =>
     document.activeElement!.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
@@ -94,6 +98,26 @@ it('전달된 서버만 제공하고 Escape로 선택 변경 없이 닫는다', 
   expect(trigger.getAttribute('aria-expanded')).toBe('false')
   expect(trigger.textContent).toContain('카인')
   expect(onValueChange).not.toHaveBeenCalled()
+})
+
+it('서버를 고르지 않으면 트리거에 서버를 표시하고 선택된 항목을 두지 않는다', async () => {
+  await act(async () =>
+    root.render(
+      <ServerSelect
+        label="서버"
+        value=""
+        options={[
+          { id: 'cain', label: '카인' },
+          { id: 'siroco', label: '시로코' }
+        ]}
+        onValueChange={vi.fn()}
+      />
+    )
+  )
+  const trigger = document.querySelector<HTMLButtonElement>('[role="combobox"]')!
+  expect(trigger.textContent).toBe('서버')
+  await act(async () => trigger.click())
+  expect(document.querySelectorAll('[role="option"][aria-selected="true"]')).toHaveLength(0)
 })
 
 it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 유지한다', async () => {
