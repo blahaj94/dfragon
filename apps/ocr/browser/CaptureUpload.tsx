@@ -23,6 +23,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
     setCrops,
     submission,
     message,
+    failed,
     busy,
     uploadNew,
     retryPrevious
@@ -210,7 +211,14 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
           </button>
         </div>
       </div>
-      <p {...stylex.props(styles.paragraph, message !== '' && styles.uploadStatus)} role="status">
+      <p
+        {...stylex.props(
+          styles.paragraph,
+          message !== '' && styles.uploadStatus,
+          failed && styles.failedStatus
+        )}
+        role="status"
+      >
         {message}
       </p>
     </section>

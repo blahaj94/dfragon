@@ -13,6 +13,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
     text,
     setText,
     message,
+    failed,
     busy,
     saveSample,
     setSampleExcluded,
@@ -160,7 +161,14 @@ export function SampleEditor({ sample }: { sample: Sample }) {
       >
         원본 화면 열기 ↗
       </a>
-      <p {...stylex.props(styles.paragraph, message !== '' && styles.editorStatus)} role="status">
+      <p
+        {...stylex.props(
+          styles.paragraph,
+          message !== '' && styles.editorStatus,
+          failed && styles.failedStatus
+        )}
+        role="status"
+      >
         {message}
       </p>
     </section>

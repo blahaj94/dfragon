@@ -153,6 +153,7 @@ export const styles = stylex.create({
     borderTopColor: colors.borderDefault
   },
   uploadStatus: { marginTop: 12, color: colors.fgBrand },
+  failedStatus: { color: colors.fgDanger },
   filterBar: { display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28 },
   collectionHeading: {
     flexBasis: 246,
