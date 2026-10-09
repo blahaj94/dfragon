@@ -17,12 +17,15 @@ export function getParticipantPreviewMessage(
   }
 
   if (code === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND) {
-    return { title: '파티참가인원 창을 열어주세요.', detail: '창이 보이면 자동으로 다시 찾습니다.' }
+    return {
+      title: '파티참가인원 창을 열어 주세요.',
+      detail: '창이 보이면 자동으로 다시 찾습니다.'
+    }
   }
 
   if (code === DEVELOPER_ERROR_CODES.RAID_WINDOW_NOT_FOUND) {
     return {
-      title: '공대 상세 창을 열어주세요.',
+      title: '공대 상세 창을 열어 주세요.',
       detail: '12인 공대 상세 창 전체가 보이면 자동으로 다시 찾습니다.'
     }
   }
@@ -40,10 +43,10 @@ export function getParticipantPreviewMessage(
     code === DEVELOPER_ERROR_CODES.RAID_WINDOW_UNCERTAIN ||
     code === DEVELOPER_ERRORS.PREVIEW_FAILED
   ) {
-    const title = `${windowName}이 잘 보이게 해주세요.`
+    const title = `${windowName}이 잘 보이게 해 주세요.`
     const detail =
       kind === 'raid'
-        ? '공대 상세 창 전체가 가려지지 않았는지 확인해 주세요. 창이 여러 개 보이면 하나만 남겨주세요.'
+        ? '공대 상세 창 전체가 가려지지 않았는지 확인해 주세요. 창이 여러 개 보이면 하나만 남겨 주세요.'
         : '파티참가인원 창 전체가 가려지지 않았는지 확인해 주세요.'
 
     return { title, detail }
@@ -68,8 +71,8 @@ export function getParticipantPreviewMessage(
   const title = `${windowName}을 찾고 있습니다.`
   const detail =
     kind === 'raid'
-      ? '게임에서 12인 공대 상세 창을 열어주세요.'
-      : '게임에서 파티참가인원 창을 열어주세요.'
+      ? '게임에서 12인 공대 상세 창을 열어 주세요.'
+      : '게임에서 파티참가인원 창을 열어 주세요.'
 
   return { title, detail }
 }
