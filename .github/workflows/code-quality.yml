@@ -103,6 +103,20 @@ jobs:
           node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/api test
 
+  # The database jobs run the pinned PostgreSQL image on the runner's Docker daemon.
+  api-database:
+    name: API database integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      - run: pnpm --filter @dfragon/api test:database
+
   accounts:
     name: Accounts test
     runs-on: ubuntu-latest
@@ -115,6 +129,22 @@ jobs:
         with:
           node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm --filter @dfragon/accounts test
+
+  accounts-database:
+    name: Accounts database integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-workspace
+        with:
+          node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      # The passkey scenarios drive a virtual WebAuthn authenticator in headless Chromium.
+      - name: Install Chromium for the passkey scenarios
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @dfragon/accounts test:database
 
   ocr:
     name: OCR test
@@ -200,7 +230,9 @@ jobs:
       - desktop
       - desktop-typecheck
       - api
+      - api-database
       - accounts
+      - accounts-database
       - ocr
       - web
       - desktop-search
