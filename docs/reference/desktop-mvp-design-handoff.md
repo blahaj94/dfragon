@@ -92,6 +92,8 @@ pnpm --filter @dfragon/desktop dev
 pnpm --filter @dfragon/desktop dev:preview
 ```
 
+상단 바의 카메라, 테마, 설정은 디자인 `IconButton`과 같은 40 정사각형에 24px Lucide 아이콘(`camera`, `sun` 또는 `moon`, `settings`)을 둡니다. 카메라는 `neutralWeak` 배경, 테마와 설정은 배경 없는 `ghost`입니다. 로그인은 SEED `medium` `neutralWeak` 버튼에 `Typo.txtM` 700 라벨입니다.
+
 설정 대화상자는 디자인 대화상자 lg 크기 800 × 600, 반지름 12, `border.default` 1이고 머리 아래에 구분선을 둡니다. 폭 200의 메뉴는 높이 40의 `NavItem`이며 선택 항목은 `bg.brand.weak`입니다. 디자인 메뉴에 없는 `버전 정보`는 제품 기능이라 첫 메뉴로 유지합니다. 라이선스 행은 한 줄 기준 48이고 목록과 고지 상세 패널의 반지름은 12입니다. 개발자 모드는 SEED `Switch` 한 줄로 켜고 끄며, 켜진 동안에만 `개발 도구 열기`(medium brandSolid)를 표시합니다.
 
 캡처 모달은 `@dfragon/ui` 대화상자에 디자인 대화상자 sm 폭 480, 반지름 12, `border.default` 1을 적용합니다. 상태는 SEED `Badge`(large, weak)에 `role="status"`로 표시하며 tone은 준비 중과 창 확인 중 neutral, 캡처 중 informative, 조회 실패 critical, 창 미감지 warning, 창 감지됨 positive입니다. 카메라 아이콘은 캡처 중에만 `fg.brand`입니다. 바닥에는 `닫기`(neutralWeak)와, 준비 중과 캡처 중에만 보이는 `캡처 중지`(brandSolid)를 이 순서로 둡니다. 디자인 화면 문서는 `캡처 중지`를 캡처 중에만 두지만, 창 등록을 기다리는 동안에도 중지할 수 있어야 해서 준비 중에도 표시합니다.
@@ -99,6 +101,8 @@ pnpm --filter @dfragon/desktop dev:preview
 캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크, 라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키, 문자 탐색, Enter/Space, Escape, 포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치, 스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다. 트리거는 높이 40, 반지름 8, `bg.control`에 24px `monitor`와 `chevron-down`을 두고, 목록은 반지름 8에 32px 아이콘 타일과 16px 선택 `check`, 16px 새로고침 아이콘을 씁니다.
 
 캐릭터 카드의 서버 선택도 기본 select 대신 `ServerSelect`를 사용합니다. SEED Select의 단일 선택, 키보드 탐색, 포커스 복귀에 카드 토큰의 작은 트리거와 `fg.brand` 다크 값의 선택 글자, 체크를 적용하고, 카드 밖 포털로 목록이 카드 경계에 잘리지 않게 합니다. 트리거는 높이 24(`size.control.xs`)에 16px `chevron-down`(`card.fgSubtle`)이고 값이 없으면 `서버`를 표시합니다. 목록은 디자인 `Menu`(폭 120, 안쪽 여백 4, 항목 간격 2, 반지름 8)와 `MenuItem`(높이 32, 좌우 여백 8, 반지름 4, `txtS`, 선택 항목은 700과 이름 옆 16px `check`) 규격을 SEED Select `medium` 위에 화면 범위 StyleX로 맞추며, 그룹 제목 없이 목록의 `aria-label`로 이름을 알립니다. 포인터 hover와 키보드 이동이 같은 강조 상태를 쓰므로 강조 항목에는 디자인의 hover 배경에 `border.focus` 1px 테두리를 더합니다. 카드와 서버 목록은 두 테마에서 어두운 색을 유지합니다. 컴포넌트는 전달받은 후보만 표시하며 현재 합성 미리보기의 서버 수정 상태와 제품의 입력 비활성 정책은 그대로 유지합니다. 실제 검색 결과 서버 연결은 기존 후속 범위입니다.
+
+카드의 명성은 16px `user` 아이콘과 700 숫자로 표시하고, 화면 낭독기는 화면에서 숨긴 `명성` 글자와 함께 읽습니다. 지금 카드 높이 280에서는 모험단, 직업과 같은 `caption` 크기를 유지하며 디자인의 `txtS`는 카드 296 × 384 전환과 함께 적용합니다. 상세 버튼 반지름은 8, 카드 그리드 패널 반지름은 12입니다.
 
 Mac에서도 `dev:preview`의 하단 **캡처 미리보기 상태**로 대기, 준비 중, 캡처 중, 창 미감지, 실패를 확인할 수 있다. 합성 창 선택은 UI 상태만 바꾸고 실제 media, OCR, IPC를 호출하지 않는다. 제품 UI에는 OS 분기를 추가하지 않으며 실제 캡처 권한은 기존 Windows main 정책이 검사한다.
 

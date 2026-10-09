@@ -73,7 +73,7 @@ last-reviewed: 2026-10-10
 
 - 라이트 메인 보드도 캐릭터 카드 면은 다크 색상을 유지하며 바깥 배경, 헤더, 본문 패널, 하단 바를 밝게 바꾼다.
 - 글꼴은 번들한 Pretendard이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 2026-09-19 Typo 적용 요청에 따라 작은 투자 현황 목록은 `Typo.caption`(12px/18px), 상세 목록은 `Typo.txtS`(14px/20px) 일반 두께로 맞춘다. 상세 행은 위아래 4px padding으로 기존 행 높이를 유지한다. 테이블의 교차 행 배경은 `card.bg` `#1D2025` / `card.stripe` `#2B2E35`이다.
-- 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 sun, moon, camera, x, chevron-down, user, external-link를 기준으로 구현 자산과 출처를 맞춘다.
+- 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 sun, moon, camera, settings, x, chevron-down, check, monitor, refresh-cw, user, external-link를 기준으로 구현 자산과 출처를 맞춘다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 - 아이템 이미지: `https://img-api.neople.co.kr/df/items/<itemId>`.
 - 서약 대표 이미지는 임시 [발키리 이미지](https://bbscdn.df.nexon.com/data7/showroom/static/icon/oath_09_valkyrie/00001.png)를 사용한 상태다. 이 그림으로 실제 서약 종류를 판정하지 않는다. 종류별 자산 매핑은 후속이다.
