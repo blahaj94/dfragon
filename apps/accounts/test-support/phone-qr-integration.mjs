@@ -62,10 +62,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const qr = await (await qrResponse).json()
     await pcPage.locator('#qr-panel').waitFor({ state: 'visible' })
     assert.equal(await pcPage.locator('#confirmation').textContent(), qr.confirmationCode)
-    assert.match(
-      await pcPage.locator('#qr-expiry').textContent(),
-      /분 \d+초까지 인증할 수 있습니다/
-    )
+    assert.match(await pcPage.locator('#qr-expiry').textContent(), /^\d+분 \d+초 남음$/)
     assert.equal(await pcPage.locator('#direct').count(), 0)
 
     return { ...request, ...qr, codeVerifier }
@@ -81,7 +78,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     await phonePage.locator('#phone-consent').waitFor({ state: 'visible' })
     assert.equal(await phonePage.locator('#signup').count(), 0)
     assert.equal(await phonePage.locator('#cancel').count(), 0)
-    assert.match(await phonePage.locator('#phone-account').textContent(), / 님이 맞으신가요\?$/)
+    assert.match(await phonePage.locator('#phone-account').textContent(), / 님이 맞습니까\?$/)
   }
   const approve = async () => {
     await phonePage.locator('#approve').click()
@@ -274,10 +271,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     mark('QR expiry countdown remains visible and disables reissue')
     await pcPage.clock.setSystemTime(new Date(Date.parse(expired.expiresAt) + 1000))
     await pcPage.clock.runFor(5000)
-    assert.equal(
-      await pcPage.locator('#qr-expiry').textContent(),
-      '0분 0초 · 인증 시간이 만료됐습니다'
-    )
+    assert.equal(await pcPage.locator('#qr-expiry').textContent(), '인증 시간 만료')
     assert.equal(await pcPage.locator('#qr-start').isDisabled(), true)
     mark('expired QR close cancels locally even if server rejects cancellation')
     await pcPage.evaluate(() => {
