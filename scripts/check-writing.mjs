@@ -21,15 +21,15 @@ const casualEnding =
   /(?<=[가-힣])(?:[아어여해돼예에네데게까군래나가]요|죠)[.!?,:]?(?=[\s'"`<)\]}」』]|$)/u
 // 나열의 가운뎃점이다. 양쪽에 공백을 둔 ` · ` 구분자는 제목, 상태 표시에 허용한다.
 const tightMiddleDot = /(?<! )·|·(?! )/u
-// 보조용언을 붙여 쓴 요청형이다. 요청은 `해 주세요`로 띄어 쓴다.
-const attachedRequest = /[가-힣]해주세요/u
+// 보조용언 주세요를 붙여 쓴 요청형이다. `열어 주세요`처럼 띄어 쓴다.
+const attachedRequest = /[가-힣]주세요/u
 
 export const rules = [
   { name: '제품 이름은 DFragon으로 쓴다', pattern: legacyBrandName },
   { name: '제품 이름은 DFragon으로 쓴다', pattern: mixedCaseBrandName },
   { name: '사용자 문구에 해요체를 쓰지 않는다', pattern: casualEnding },
   { name: '나열에는 가운뎃점 대신 쉼표와 공백을 쓴다', pattern: tightMiddleDot },
-  { name: '요청형은 해 주세요로 띄어 쓴다', pattern: attachedRequest }
+  { name: '요청형의 주세요는 띄어 쓴다', pattern: attachedRequest }
 ]
 
 export function findViolations(path, content) {
