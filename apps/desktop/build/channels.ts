@@ -14,18 +14,27 @@ const channelSchema = z.strictObject({
     executableName: publicTextSchema,
     packageName: publicTextSchema,
     output: publicTextSchema,
-    installerInclude: publicTextSchema,
+    installerInclude: publicTextSchema.optional(),
+    artifactPrefix: publicTextSchema.optional(),
     protocolName: publicTextSchema.optional()
   }),
   identity: z.strictObject({
     appIdentity: publicTextSchema,
-    environment: publicTextSchema,
-    returnTarget: publicTextSchema,
-    providers: z.array(publicTextSchema).min(1)
+    auth: z
+      .strictObject({
+        environment: publicTextSchema,
+        returnTarget: publicTextSchema,
+        providers: z.array(publicTextSchema).min(1)
+      })
+      .optional()
   }),
-  origins: z.strictObject({ api: originSourceSchema, accounts: originSourceSchema })
+  origins: z.strictObject({ api: originSourceSchema, accounts: originSourceSchema.optional() })
 })
-const channelsSchema = z.strictObject({ development: channelSchema, distribution: channelSchema })
+const channelsSchema = z.strictObject({
+  development: channelSchema,
+  test: channelSchema,
+  distribution: channelSchema
+})
 
 export type Channel = z.infer<typeof channelSchema>
 export type ChannelName = keyof z.infer<typeof channelsSchema>
@@ -36,9 +45,23 @@ type BuildEnvironment = Readonly<Record<string, string | undefined>>
 const LOOPBACK_ORIGIN_CHANNEL = 'development' satisfies ChannelName
 // electron-vite mode `dfragon-<채널>`이 채널 빌드를 고른다. 그 밖의 mode는 채널 없는 빌드나 개발 실행이다.
 const CHANNEL_MODE_PREFIX = 'dfragon-'
+// electron-builder의 기본 진입 파일은 이 변수로 채널을 고르고, 비우면 배포 채널을 만든다.
+const CHANNEL_ENVIRONMENT_VARIABLE = 'DFRAGON_CHANNEL'
+const DEFAULT_PACKAGING_CHANNEL = 'distribution' satisfies ChannelName
 const DNS_ROOT_LABEL_PATTERN = /\.$/
 const IPV4_MAPPED_LOOPBACK_PATTERN = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/
 const IPV4_LOOPBACK_PATTERN = /^127\.\d+\.\d+\.\d+$/
+
+// CI는 비어 있는 변수도 설정된 값으로 넘기므로 빈 문자열은 미설정으로 본다.
+function readConfiguredValue(environment: BuildEnvironment, variable: string): string | null {
+  const configured = environment[variable]
+  const hasConfiguredValue = configured != null && configured.length > 0
+  if (!hasConfiguredValue) {
+    return null
+  }
+
+  return configured
+}
 
 function isLoopbackHostname(hostname: string): boolean {
   // Canonical URL hostnames encode IPv4-mapped IPv6 as ::ffff:hhhh:hhhh.
@@ -70,10 +93,20 @@ function describeOriginRequirement(allowsLoopback: boolean): string {
 }
 
 function assertPublicChannelValues(name: string, channel: Channel): void {
-  try {
-    validateReturnTarget(channel.identity.returnTarget)
-  } catch {
-    throw new Error(`Set a canonical private return target for the ${name} channel.`)
+  const { auth } = channel.identity
+  if (auth != null) {
+    try {
+      validateReturnTarget(auth.returnTarget)
+    } catch {
+      throw new Error(`Set a canonical private return target for the ${name} channel.`)
+    }
+    if (channel.origins.accounts == null) {
+      throw new Error(`Set an accounts origin for the ${name} channel, which enables login.`)
+    }
+  }
+
+  if (auth == null && channel.packaging.protocolName != null) {
+    throw new Error(`The ${name} channel declares a protocol without a return target.`)
   }
   const allowsLoopback = name === LOOPBACK_ORIGIN_CHANNEL
   for (const [kind, source] of Object.entries(channel.origins)) {
@@ -113,12 +146,15 @@ export function readChannelOrigin(
   environment: BuildEnvironment = process.env
 ): string {
   const source = channels[name].origins[kind]
+  if (source == null) {
+    throw new Error(`The ${name} channel has no ${kind} origin.`)
+  }
   const isLiteralOrigin = typeof source === 'string'
   if (isLiteralOrigin) {
     return source
   }
   const allowsLoopback = name === LOOPBACK_ORIGIN_CHANNEL
-  const origin = environment[source.variable] ?? source.default
+  const origin = readConfiguredValue(environment, source.variable) ?? source.default
   try {
     if (origin == null) {
       throw new Error()
@@ -149,17 +185,32 @@ export function readChannelNameFromMode(mode: string): ChannelName | null {
   return name
 }
 
+export function readChannelNameFromEnvironment(
+  environment: BuildEnvironment = process.env
+): ChannelName {
+  const configured = readConfiguredValue(environment, CHANNEL_ENVIRONMENT_VARIABLE)
+  if (configured == null) {
+    return DEFAULT_PACKAGING_CHANNEL
+  }
+
+  if (!isChannelName(configured)) {
+    throw new Error(`Unknown channel in ${CHANNEL_ENVIRONMENT_VARIABLE}.`)
+  }
+
+  return configured
+}
+
 /** 채널 빌드의 main bundle에 넣는 공개 tuple. 빌드 변수 origin은 여기서 한 번 읽는다. */
 export function readDesktopChannel(
   name: ChannelName,
   environment: BuildEnvironment = process.env
 ): DesktopChannel {
-  return {
-    name,
-    identity: channels[name].identity,
-    origins: {
-      api: readChannelOrigin(name, 'api', environment),
-      accounts: readChannelOrigin(name, 'accounts', environment)
-    }
+  const { identity, origins } = channels[name]
+  const api = readChannelOrigin(name, 'api', environment)
+  if (origins.accounts == null) {
+    return { name, identity, origins: { api } }
   }
+  const accounts = readChannelOrigin(name, 'accounts', environment)
+
+  return { name, identity, origins: { api, accounts } }
 }

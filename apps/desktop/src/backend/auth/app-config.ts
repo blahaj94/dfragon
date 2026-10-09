@@ -23,15 +23,20 @@ export function readAppAuthConfig(application: {
   }
   // OS protocol launches do not inherit the shell that built or first ran the app.
   // Keep the public tuple in the main bundle, including on cold starts.
-  const { identity } = channel
+  const { auth, appIdentity } = channel.identity
+  const accountsOrigin = channel.origins.accounts
+  // 로그인 없는 채널은 셸 설정으로도 로그인을 켜지 않는다.
+  if (auth == null || accountsOrigin == null) {
+    return null
+  }
 
   return readAuthRuntimeConfig({
-    DFRAGON_AUTH_API_ORIGIN: channel.origins.accounts,
-    DFRAGON_AUTH_RETURN_TARGET: identity.returnTarget,
-    DFRAGON_AUTH_ENVIRONMENT: identity.environment,
-    DFRAGON_AUTH_PROVIDERS: identity.providers.join(','),
-    DFRAGON_AUTH_APP_IDENTITY: identity.appIdentity,
-    DFRAGON_AUTH_USER_DATA_PATH: join(application.getPath('appData'), identity.appIdentity)
+    DFRAGON_AUTH_API_ORIGIN: accountsOrigin,
+    DFRAGON_AUTH_RETURN_TARGET: auth.returnTarget,
+    DFRAGON_AUTH_ENVIRONMENT: auth.environment,
+    DFRAGON_AUTH_PROVIDERS: auth.providers.join(','),
+    DFRAGON_AUTH_APP_IDENTITY: appIdentity,
+    DFRAGON_AUTH_USER_DATA_PATH: join(application.getPath('appData'), appIdentity)
   })
 }
 
