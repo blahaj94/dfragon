@@ -69,6 +69,7 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점, 붙여 쓴 요청형을
       '사진을 올려요.',
       '결과를 보여 줘요.',
       '<p>장비마다 수치가 달라져요</p>',
+      '장비마다 수치가 달라져요',
       '라이선스를 확인하세요.',
       ''
     ].join('\n')
@@ -76,12 +77,12 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점, 붙여 쓴 요청형을
 
   assert.equal(result.code, 1)
 
-  for (const line of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]) {
+  for (const line of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]) {
     assert.match(result.stderr, new RegExp(`^copy\\.tsx:${line}: `, 'mu'), `${line}번째 줄`)
   }
 
-  assert.doesNotMatch(result.stderr, /^copy\.tsx:14: /mu)
-  assert.match(result.stderr, /위반 13건/u)
+  assert.doesNotMatch(result.stderr, /^copy\.tsx:15: /mu)
+  assert.match(result.stderr, /위반 14건/u)
 })
 
 test('규칙 문서처럼 금지 표기를 예시로 담는 제외 경로는 명시해도 건너뛴다', async (t) => {
