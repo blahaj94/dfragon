@@ -71,11 +71,11 @@ Fixture는 제품 restore 종료 정책을 다시 선택하거나 새 notice를 
 
 ## 제품 logout, 재로그인 조합 검증
 
-`apps/desktop/src/frontend/src/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 검색 protocol 회귀용 `LegacyApp` renderer를 연결하고, 합성 IPC transport, BrowserWindow/window source, media/OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
+`apps/desktop/src/frontend/src/integration/logout-relogin.integration.test.tsx`는 Electron child를 시작하지 않는 Vitest/jsdom 제품 조합 테스트다. `bootstrapAuthRuntime`의 실제 coordinator에 실제 auth IPC handler, capture/search IPC handler, preload invoker와 검색 protocol 회귀용 `LegacyApp` renderer를 연결하고, 합성 IPC transport, BrowserWindow/window source, 네이티브 프레임 읽기 모듈, OCR worker와 auth HTTP/store/clock/browser/entropy harness 및 검색 HTTP를 경계로 주입한다. 따라서 다음 연결을 한 테스트에서 확인한다.
 
 - 로그인 전부터 capture source 조회, 선택과 search begin이 가능하다.
 - 로그인, 로그아웃, 재로그인 중 같은 capture, OCR, 검색 수명을 유지한다. 인증 generation은 캡처 권한의 근거가 아니다.
-- 중지 명령은 track, worker, 검색 수명을 정리한다.
+- 중지 명령은 OCR worker와 검색 수명을 정리한다.
 
 현재 카드 화면의 UI 검증은 위 Electron auth fixture가 담당하며, 이 LegacyApp 조합 테스트를 현재 화면의 검색 결과 UI 검증으로 취급하지 않는다.
 
