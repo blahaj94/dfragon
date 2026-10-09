@@ -130,7 +130,7 @@ catalog에 없는 빈 `레어 머리 클론 아바타`와 `무기 클론 아바�
 
 ### OCR 관측 IPC와 슬롯 수명
 
-제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `usePartyRecognition`은 같은 프레임의 첫 이름과 얼굴 입력이 안정화되면 `notifyOcrCandidatesDetected`로 전달한다. 첫 이름의 원문을 유지하고 두 번째 이름으로 보정하지 않는다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 이후 프레임 변화로 검색을 재실행하지 않는다. 기본 옵션을 쓰는 `fixture/legacy/LegacyApp`의 `PartyCapture`는 기존 연속 관측 경로를 유지한다.
+제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `usePartyRecognition`은 같은 프레임의 첫 이름과 얼굴 입력이 안정화되면 `notifyOcrCandidatesDetected`로 전달한다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 테스트 수집의 `prediction`은 공백을 제거하지 않은 모델 원문을 유지한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 이후 프레임 변화로 검색을 재실행하지 않는다. 기본 옵션을 쓰는 `fixture/legacy/LegacyApp`의 `PartyCapture`는 기존 연속 관측 경로를 유지한다.
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 

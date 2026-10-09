@@ -134,7 +134,7 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 ### OCR 후보와 얼굴 기반 식별 IPC
 
-2026-10-07 요청의 OCR 식별 연결은 별도 `notifyOcrCandidatesDetected`를 사용한다. 인자는 `{captureId,slot,observationRevision,nickname,candidateNicknames,portrait}`이며 main이 기존 renderer, main frame, exact document, source와 capture 수명을 검사한다. 후보는 순위를 유지하는 최대 두 개의 유효한 원문이고 nickname은 첫 후보와 같아야 한다. 얼굴은 크기와 배율, RGBA 길이와 제외 영역 마스크를 검증하고 복사해 보관한다. 상세 입력 제한과 현재 연결 위치는 [Desktop 검색 안내](../reference/desktop-character-search.md#ocr-관측-ipc와-슬롯-수명)를 따른다. 전체 프레임이나 얼굴을 검색 API에 전송하지 않는다.
+2026-10-07 요청의 OCR 식별 연결은 별도 `notifyOcrCandidatesDetected`를 사용한다. 인자는 `{captureId,slot,observationRevision,nickname,candidateNicknames,portrait}`이며 main이 기존 renderer, main frame, exact document, source와 capture 수명을 검사한다. 후보는 순위를 유지하는 최대 두 개의 유효한 이름이고 nickname은 첫 후보와 같아야 한다. Renderer는 OCR 첫 후보의 앞뒤 공백만 제거해 전달하며 main의 바깥 공백 거절 검사는 유지한다. 얼굴은 크기와 배율, RGBA 길이와 제외 영역 마스크를 검증하고 복사해 보관한다. 상세 입력 제한과 현재 연결 위치는 [Desktop 검색 안내](../reference/desktop-character-search.md#ocr-관측-ipc와-슬롯-수명)를 따른다. 전체 프레임이나 얼굴을 검색 API에 전송하지 않는다.
 
 크롭이 없거나 main에 검증된 비교 기준이 없으면 각각 `waiting-portrait`, `waiting-policy` 상태이며 HTTP를 시작하지 않는다. 두 상태는 기존 슬롯 식별자와 이름, `rows: []`, `error: null`을 유지하며 `selected`는 없다. 성공 상태에서만 선택된 한 행과 일치하는 기본 요약 `selected`를 추가할 수 있다. 기존 다섯 필드 rows와 일반 검색 snapshot은 계속 허용하며 전체 상세를 snapshot에 넣지 않는다.
 
