@@ -185,7 +185,56 @@ describe('OCR 조회 라운드', () => {
     expect(f.current().recognitionStates[0]).toBe('complete')
   })
 
-  it.each(['', ' 가나', '가나 ', 'a'.repeat(13), '\uD800'])(
+  it('첫 후보의 앞뒤 공백을 제거한 이름으로 안정화해 전달한다', async () => {
+    const f = await fixture()
+    f.worker.recognize.mockResolvedValueOnce(ocrResult(' 가나', '정상후보'))
+    f.worker.recognize.mockResolvedValueOnce(ocrResult('가나 ', '정상후보'))
+    await f.cycle()
+    await f.cycle()
+    expect(f.observeOcr).toHaveBeenCalledExactlyOnceWith({
+      slot: 0,
+      nickname: '가나',
+      candidateNicknames: ['가나'],
+      portrait: null
+    })
+    expect(f.current().stableNicknames[0]).toBe('가나')
+  })
+
+  it('자료 수집은 앞뒤 공백을 제거하지 않은 모델 원문을 올린다', async () => {
+    const collect = vi.fn().mockResolvedValue({ status: 'queued' })
+    vi.stubGlobal('ocrCollection', { collectOcrSample: collect })
+    const f = await fixture()
+    f.worker.recognize.mockResolvedValue(ocrResult(' 가나'))
+    await f.cycle(undefined, {
+      width: 1,
+      height: 1,
+      rgba: new Uint8Array(4),
+      captureId: 'round',
+      frameId: 'frame'
+    })
+    expect(collect).toHaveBeenCalledExactlyOnceWith({
+      captureId: 'round',
+      frameId: 'frame',
+      slot: 1,
+      prediction: ' 가나'
+    })
+  })
+
+  it('앞뒤 공백을 제거한 12자 이름은 최대 길이 안에서 전달한다', async () => {
+    const f = await fixture()
+    const nickname = 'a'.repeat(12)
+    f.worker.recognize.mockResolvedValue(ocrResult(` ${nickname} `))
+    await f.cycle()
+    await f.cycle()
+    expect(f.observeOcr).toHaveBeenCalledExactlyOnceWith({
+      slot: 0,
+      nickname,
+      candidateNicknames: [nickname],
+      portrait: null
+    })
+  })
+
+  it.each(['', '  ', 'a'.repeat(13), '\uD800'])(
     '첫 후보 %j가 유효하지 않으면 두 번째 후보로 대체하지 않고 조회 실패를 전달한다',
     async (first) => {
       const f = await fixture()
