@@ -170,7 +170,7 @@ cp apps/desktop/.env.example apps/desktop/.env
 pnpm --filter @dfragon/desktop dev
 ```
 
-`dev`, `dev:app`은 Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 인증 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다. 배포, 패키징의 인증 설정 방식은 바뀌지 않습니다.
+`dev`, `dev:app`은 Electron 실행 파일이 없으면 먼저 내려받고, Node의 `--env-file-if-exists=.env`로 앱 폴더의 설정을 읽은 뒤 기존 Electron 개발 실행을 시작합니다. `.env`가 없어도 카드 화면을 실행할 수 있으며, 이미 설정된 process 환경변수가 우선합니다. 인증 설정을 바꾸면 개발 명령을 종료하고 다시 실행합니다. 배포, 패키징의 인증 설정 방식은 바뀌지 않습니다.
 
 `pnpm --filter @dfragon/desktop dev`는 실제 앱 진입점의 새 카드 화면을 열고 소스 수정을 즉시 반영합니다. `dev:app`도 같은 화면을 엽니다. 샘플 데이터 없이 빈 슬롯 네 개로 시작하며 카메라 버튼에서 창을 선택하면 개발자 모드와 같은 Windows GDI 모듈로 캡처와 OCR 이름 표시를 시작합니다. 다른 창에 가려진 픽셀은 인식에서 제외합니다. 창 전체가 가려졌거나 최소화되면 이전 인식값을 비우고 기다리며, 게임을 앞으로 가져오면 자동으로 이어갑니다. 최소화된 창의 백그라운드 캡처는 지원하지 않습니다. OCR 식별 상태와 선택된 캐릭터의 기본 정보를 슬롯별로 표시하며, 얼굴 영역을 검출하지 못하면 대기하며, API 외형 정보와 쇼룸 Stay 이미지를 윤곽으로 비교합니다. 외형 복원이 불확실하면 해당 슬롯의 자동 식별을 보류합니다. 연결중 팝업으로 가려져 검출되지 않은 슬롯은 검색에서 제외하고 이전 결과를 비우며, 정상 영역이 돌아오면 다시 안정화를 기다립니다. 모달을 닫거나 로그인 상태가 바뀌어도 캡처는 유지되며 별도 중지 버튼으로 정리합니다. 식별된 슬롯의 상세 버튼은 아래 기본 정보 창을 엽니다. 이름 수정과 장비 면 연결은 후속입니다. 합성 데이터의 자동 식별 상태, 네 면 비교와 상세 전환은 `pnpm --filter @dfragon/desktop dev:preview`로 확인합니다. 상태와 빌드 미리보기는 [디자인 이관 안내](../../docs/reference/desktop-mvp-design-handoff.md#renderer-미리보기)를 참고합니다.
 
@@ -259,7 +259,7 @@ pnpm --filter @dfragon/desktop format:check
 pnpm --filter @dfragon/desktop build
 ```
 
-`build`에는 node/web typecheck가 포함됩니다. `--ignore-scripts`로 의존성을 설치했다면 기존 CI처럼 `pnpm --filter @dfragon/desktop rebuild electron`으로 Electron runtime을 준비합니다. 인증 bridge를 실제 Electron에서 확인하려면 `auth:fixture:build` 후 `auth:fixture:smoke`를 사용합니다. Launcher 단위 테스트의 process, signal은 합성이며 실제 child 종료 확인과 구분합니다.
+`build`에는 node/web typecheck가 포함됩니다. Electron은 설치 단계에서 실행 파일을 내려받지 않으므로 `test`, `dev`, `start`가 먼저 `install-electron`으로 Electron runtime을 준비하며, 이미 받은 runtime은 다시 내려받지 않습니다. 의존성을 새로 설치한 뒤 `exec vitest run`으로 파일을 직접 실행하거나 VS Code 디버그 설정을 쓰려면 CI처럼 `pnpm --filter @dfragon/desktop exec install-electron`을 한 번 실행합니다. 인증 bridge를 실제 Electron에서 확인하려면 `auth:fixture:build` 후 `auth:fixture:smoke`를 사용합니다. Launcher 단위 테스트의 process, signal은 합성이며 실제 child 종료 확인과 구분합니다.
 
 Desktop 관련 PR과 main push에서는 [Desktop Windows workflow](../../.github/workflows/desktop-windows.yml)가 Windows runner 두 대에서 `test`의 테스트 파일을 절반씩 나눠 실행하고, `test:windows-native`는 첫 번째 runner에서만 실행합니다. Runner의 실행 권한과 관측 범위는 [Windows synthetic native fixture](../../docs/reference/desktop-credential-store.md#windows-synthetic-native-fixture)를 따릅니다.
 
