@@ -47,7 +47,7 @@ export function EquipmentGrid({
             title={slot?.label ?? id}
             {...stylex.props(
               styles.slot,
-              styles.rarity(slot?.rarityColor ?? colors.border),
+              styles.rarity(slot?.rarityColor ?? colors.cardBorder),
               styles.position(large && column > 2 ? column + 1 : column, row)
             )}
           >

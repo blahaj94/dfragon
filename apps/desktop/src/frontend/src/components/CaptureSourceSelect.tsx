@@ -9,7 +9,6 @@ import { useState, type RefObject } from 'react'
 import { Menu } from '@seed-design/react'
 import * as stylex from '@stylexjs/stylex'
 import { lightTheme } from '../constants/theme.stylex'
-import { selectLightTheme } from '../constants/select.stylex'
 import { styles } from './CaptureSourceSelect.style'
 
 type Source = { id: string; name: string }
@@ -66,12 +65,7 @@ export function CaptureSourceSelect({
       <Menu.Trigger
         disabled={loading || !ready}
         aria-label={`캡처할 프로세스 선택${hasSourceLabel ? `: ${label}` : ''}`}
-        {...stylex.props(
-          styles.trigger,
-          !value && styles.muted,
-          open && styles.open,
-          light && selectLightTheme
-        )}
+        {...stylex.props(styles.trigger, !value && styles.muted, open && styles.open)}
       >
         <MonitorIcon {...stylex.props(styles.icon)} />
         <Typo.txtS as="span" {...stylex.props(styles.value)} title={label}>
@@ -82,7 +76,7 @@ export function CaptureSourceSelect({
       {open && (
         <Menu.Positioner
           container={portalContainer}
-          {...stylex.props(styles.positioner, light && lightTheme, light && selectLightTheme)}
+          {...stylex.props(styles.positioner, light && lightTheme)}
         >
           <Menu.Content aria-label="캡처할 창" {...stylex.props(styles.content)}>
             <Menu.ScrollArea {...stylex.props(styles.scroll)}>

@@ -6,8 +6,8 @@ export const styles = stylex.create({
     width: 900,
     maxWidth: 'calc(100vw - 24px)',
     maxHeight: 'calc(100dvh - 24px)',
-    backgroundColor: colors.surface,
-    color: colors.shellText,
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault,
     borderRadius: 12,
     overflow: 'hidden'
   },
@@ -26,7 +26,7 @@ export const styles = stylex.create({
     padding: { default: '24px 12px', '@media (max-width: 600px)': '8px 12px' }
   },
   group: {
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     paddingInline: 12,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
@@ -36,15 +36,14 @@ export const styles = stylex.create({
     justifyContent: 'flex-start',
     padding: 12,
     borderRadius: 8,
-    color: colors.shellText,
+    color: colors.fgDefault,
     textAlign: 'left'
   },
-  menuSelected: { backgroundColor: '#45382f', color: '#ffad78' },
-  menuSelectedLight: { backgroundColor: '#fff0e5', color: '#ab4d0c' },
+  menuSelected: { backgroundColor: colors.bgBrandWeak },
   appName: {
     marginTop: 'auto',
     paddingInline: 12,
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     display: { default: 'flex', '@media (max-width: 600px)': 'none' },
     alignItems: 'center',
     gap: 8
@@ -55,10 +54,10 @@ export const styles = stylex.create({
     minHeight: 0,
     overflowY: 'auto',
     padding: { default: 28, '@media (max-width: 600px)': 16 },
-    backgroundColor: colors.background
+    backgroundColor: colors.bgCanvas
   },
   heading: { paddingBottom: 16 },
-  developerDescription: { paddingBottom: 20, color: colors.shellMuted },
+  developerDescription: { paddingBottom: 20, color: colors.fgMuted },
   developerActions: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 },
-  developerStatus: { paddingTop: 12, color: colors.shellMuted }
+  developerStatus: { paddingTop: 12, color: colors.fgMuted }
 })

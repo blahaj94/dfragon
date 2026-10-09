@@ -5,8 +5,8 @@ export const styles = stylex.create({
   app: {
     minHeight: '100vh',
     boxSizing: 'border-box',
-    backgroundColor: colors.background,
-    color: colors.shellText,
+    backgroundColor: colors.bgCanvas,
+    color: colors.fgDefault,
     padding: '16px 24px'
   },
   workbench: { minHeight: 'calc(100dvh - 32px)' },
@@ -18,9 +18,9 @@ export const styles = stylex.create({
     justifyContent: 'space-between',
     gap: 12,
     padding: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     marginTop: 16,
-    color: colors.shellMuted
+    color: colors.fgMuted
   }
 })

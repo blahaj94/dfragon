@@ -9,9 +9,9 @@ export const styles = stylex.create({
     gap: 12,
     paddingBlock: 18,
     borderBottom: '1px solid',
-    borderBottomColor: colors.shellMuted
+    borderBottomColor: colors.borderDefault
   },
   value: { margin: 0, minWidth: 0 },
   commit: { overflowWrap: 'anywhere', userSelect: 'text' },
-  notice: { color: colors.shellMuted, paddingTop: 8 }
+  notice: { color: colors.fgMuted, paddingTop: 8 }
 })

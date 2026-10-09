@@ -5,8 +5,8 @@ export const styles = stylex.create({
   app: {
     minHeight: '100vh',
     boxSizing: 'border-box',
-    backgroundColor: colors.background,
-    color: colors.text,
+    backgroundColor: colors.bgCanvas,
+    color: colors.fgDefault,
     padding: '16px 24px'
   },
   footer: {
@@ -16,22 +16,22 @@ export const styles = stylex.create({
     justifyContent: 'space-between',
     gap: 12,
     padding: 16,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     borderRadius: 8,
     marginTop: 16,
     fontSize: 12,
-    color: colors.shellMuted
+    color: colors.fgMuted
   },
   select: {
     maxWidth: '100%',
     padding: 6,
     fontFamily: 'inherit',
-    backgroundColor: colors.card,
-    color: colors.text,
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 6
   },
-  notice: { fontSize: 12, lineHeight: 1.6, color: colors.shellMuted, margin: '12px 0 0' }
+  notice: { fontSize: 12, lineHeight: 1.6, color: colors.fgMuted, margin: '12px 0 0' }
 })

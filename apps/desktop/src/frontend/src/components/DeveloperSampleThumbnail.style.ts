@@ -18,11 +18,11 @@ export const styles = stylex.create({
     height: 44,
     overflow: 'hidden',
     borderRadius: 5,
-    backgroundColor: '#101216'
+    backgroundColor: colors.bgInset
   },
   image: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' },
-  placeholder: { color: '#aeb5bf' },
+  placeholder: { color: colors.fgMuted },
   description: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
   overflow: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  muted: { color: colors.shellMuted }
+  muted: { color: colors.fgMuted }
 })

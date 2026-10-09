@@ -13,20 +13,20 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.collectionBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     flexWrap: 'wrap'
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
   badge: {
-    color: colors.collectionAccentText,
-    backgroundColor: colors.collectionAccentSurface,
+    color: colors.fgBrand,
+    backgroundColor: colors.bgBrandWeak,
     padding: '7px 12px',
     borderRadius: 6
   },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
-  muted: { color: colors.shellMuted },
+  muted: { color: colors.fgMuted },
   saveGuide: {
     display: 'flex',
     alignItems: 'center',
@@ -35,10 +35,10 @@ export const styles = stylex.create({
     minHeight: 88,
     boxSizing: 'border-box',
     borderRadius: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.collectionBorder
+    borderColor: colors.borderDefault
   },
   keycap: {
     display: 'flex',
@@ -50,8 +50,8 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.collectionBorder,
-    backgroundColor: colors.collectionSurface,
+    borderColor: colors.borderDefault,
+    backgroundColor: colors.bgControl,
     borderRadius: 4,
     fontFamily: 'inherit',
     fontSize: 14,
@@ -74,10 +74,10 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     minWidth: 0,
     minHeight: { default: 372, '@media (max-width: 760px)': 332 },
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.collectionBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 12
   },
   windowArea: {
@@ -101,7 +101,7 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     borderWidth: 2,
     borderStyle: 'solid',
-    borderColor: '#f56c00',
+    borderColor: colors.fgDanger,
     pointerEvents: 'none'
   },
   placeholder: {
@@ -109,9 +109,9 @@ export const styles = stylex.create({
     flexDirection: 'column',
     textAlign: 'center',
     gap: 12,
-    color: colors.shellMuted
+    color: colors.fgMuted
   },
-  legend: { display: 'flex', alignItems: 'center', gap: 8, color: colors.shellMuted },
+  legend: { display: 'flex', alignItems: 'center', gap: 8, color: colors.fgMuted },
   swatch: {
     display: 'inline-block',
     width: 20,
@@ -119,7 +119,7 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     borderWidth: 2,
     borderStyle: 'solid',
-    borderColor: '#f56c00'
+    borderColor: colors.fgDanger
   },
   rows: { display: 'flex', flexDirection: 'column', gap: 12 },
   raidRows: {
@@ -139,9 +139,9 @@ export const styles = stylex.create({
     padding: '10px 16px',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.collectionBorder,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     minWidth: 0
   },
   rowHeader: {
@@ -153,18 +153,18 @@ export const styles = stylex.create({
   },
   raidRow: { height: 90, padding: '12px 10px' },
   raidRowHeader: { gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 6 },
-  rowLabel: { color: colors.shellMuted, textAlign: 'right' },
-  checkbox: { margin: 0, width: 18, height: 18, accentColor: '#f56c00', flexShrink: 0 },
+  rowLabel: { color: colors.fgMuted, textAlign: 'right' },
+  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.bgBrandSolid, flexShrink: 0 },
   cropArea: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     height: 34,
-    backgroundColor: '#101216',
+    backgroundColor: colors.bgInset,
     borderRadius: 4,
     overflow: 'hidden'
   },
-  emptyArea: { backgroundColor: colors.collectionSurface },
+  emptyArea: { backgroundColor: colors.bgSurface },
   cropImage: {
     display: 'block',
     height: 30,
@@ -177,7 +177,7 @@ export const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     marginTop: -8
   },
   notice: {
@@ -187,7 +187,7 @@ export const styles = stylex.create({
     gap: 12,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: colors.collectionAccentSurface,
-    color: colors.collectionAccentText
+    backgroundColor: colors.bgBrandWeak,
+    color: colors.fgBrand
   }
 })

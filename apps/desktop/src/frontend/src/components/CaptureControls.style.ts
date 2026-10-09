@@ -2,13 +2,14 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
-  camera: { color: colors.shellText },
-  active: { color: '#ff9f0a' },
+  camera: { color: colors.fgDefault },
+  active: { color: colors.fgBrand },
+  activeState: { color: colors.fgInfo },
   dialog: {
     width: 440,
     maxWidth: 'calc(100vw - 32px)',
-    backgroundColor: colors.surface,
-    color: colors.shellText,
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault,
     borderRadius: 16
   },
   heading: {
@@ -18,9 +19,9 @@ export const styles = stylex.create({
     gap: 16,
     paddingRight: 24
   },
-  state: { color: colors.shellMuted, whiteSpace: 'nowrap' },
+  state: { color: colors.fgMuted, whiteSpace: 'nowrap' },
   notice: {
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     paddingTop: 12,
     overflowWrap: 'anywhere'
   },

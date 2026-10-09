@@ -11,7 +11,7 @@ export const styles = stylex.create({
     width: '100%',
     height: 248,
     padding: 16,
-    backgroundColor: '#101216',
+    backgroundColor: colors.bgInset,
     borderRadius: 8,
     overflow: 'hidden'
   },
@@ -23,5 +23,5 @@ export const styles = stylex.create({
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: 8
   },
-  muted: { color: colors.shellMuted }
+  muted: { color: colors.fgMuted }
 })

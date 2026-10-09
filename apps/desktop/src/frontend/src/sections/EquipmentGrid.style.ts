@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
+import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
   equipment: {
@@ -23,7 +24,7 @@ export const styles = stylex.create({
     aspectRatio: '1',
     overflow: 'hidden',
     minWidth: 0,
-    backgroundColor: '#16181c'
+    backgroundColor: colors.cardInset
   },
   rarity: (color: string) => ({ borderColor: color }),
   position: (column: number, row: number) => ({ gridColumn: column, gridRow: row }),
