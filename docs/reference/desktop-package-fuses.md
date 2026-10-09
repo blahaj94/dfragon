@@ -7,8 +7,8 @@ last-reviewed: 2026-09-12
 
 # Desktop 패키지의 Node 진입점 fuse
 
-`apps/desktop/electron-builder.yml`의 root `electronFuses`는 electron-builder가
-Electron executable에 기록하는 두 V1 fuse를 명시적으로 끈다.
+`apps/desktop/build/electron-builder-config.ts`가 만드는 설정의 root `electronFuses`는
+electron-builder가 Electron executable에 기록하는 두 V1 fuse를 명시적으로 끈다.
 
 | 설정 | 값 | 차단하는 진입점 |
 | --- | --- | --- |

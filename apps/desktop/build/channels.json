@@ -5,7 +5,8 @@
       "executableName": "dfragon-dev",
       "packageName": "@dfragon/desktop",
       "output": "dist/development",
-      "installerInclude": "build/development-installer.nsh"
+      "installerInclude": "build/development-installer.nsh",
+      "protocolName": "DFragon development login"
     },
     "identity": {
       "appIdentity": "dfragon.dev",

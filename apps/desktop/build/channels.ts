@@ -13,7 +13,8 @@ const channelSchema = z.strictObject({
     executableName: publicTextSchema,
     packageName: publicTextSchema,
     output: publicTextSchema,
-    installerInclude: publicTextSchema
+    installerInclude: publicTextSchema,
+    protocolName: publicTextSchema.optional()
   }),
   identity: z.strictObject({
     appIdentity: publicTextSchema,

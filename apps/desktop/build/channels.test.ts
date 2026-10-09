@@ -44,7 +44,8 @@ it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', (
     executableName: 'dfragon-dev',
     packageName: '@dfragon/desktop',
     output: 'dist/development',
-    installerInclude: 'build/development-installer.nsh'
+    installerInclude: 'build/development-installer.nsh',
+    protocolName: 'DFragon development login'
   })
 })
 
