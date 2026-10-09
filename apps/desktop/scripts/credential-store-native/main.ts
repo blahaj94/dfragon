@@ -51,9 +51,9 @@ async function run(): Promise<void> {
   await app.whenReady()
   stage = 'session-profile'
   assert.equal(app.getPath('sessionData'), profile)
-  assert.equal(process.versions.electron, '39.8.10')
-  assert.equal(process.versions.node, '22.22.1')
-  assert.equal(process.versions.uv, '1.51.0')
+  assert.equal(process.versions.electron, '44.7.0')
+  assert.equal(process.versions.node, '24.21.0')
+  assert.equal(process.versions.uv, '1.52.1')
   const observedSafeStorage = {
     isEncryptionAvailable: () => {
       encryptionAvailabilityCalls += 1

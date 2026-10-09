@@ -58,6 +58,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      # Electron no longer downloads its binary during install. Tests that load the electron
+      # package would otherwise download it from several Vitest workers at once.
+      - name: Prepare Electron for Desktop tests
+        run: pnpm --filter @dfragon/desktop exec install-electron
       # GitHub hosted runners execute with an elevated administrator token. The fixture is not
       # sharded, so one runner is enough for it.
       - name: Run Windows native security fixture

@@ -1,6 +1,6 @@
 # 보안 패치
 
-`extract-zip@2.0.1.patch`는 [GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv)와 [GHSA-7pqw-9j4j-h8q3](https://github.com/advisories/GHSA-7pqw-9j4j-h8q3)를 처리한다. 2026-09-30 기준 npm의 최신 버전은 2.0.1이며 수정 릴리스가 없다. Electron의 설치 의존성에도 같은 pnpm 패치를 적용한다.
+`extract-zip@2.0.1.patch`는 [GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv)와 [GHSA-7pqw-9j4j-h8q3](https://github.com/advisories/GHSA-7pqw-9j4j-h8q3)를 처리한다. 2026-09-30 기준 npm의 최신 버전은 2.0.1이며 수정 릴리스가 없다. 현재 고정한 Electron 44의 `electron` package는 두 advisory의 대상이 아닌 `@electron-internal/extract-zip`으로 실행 파일을 풀므로, 이 패치는 루트 개발 의존성으로 설치한 회귀 검증용 `extract-zip`에만 적용된다.
 
 - ZIP symlink의 대상이 추출 디렉터리 밖을 가리키면 거절한다. 기존 symlink를 따라간 실제 경로와 가장 가까운 기존 조상도 확인하므로, 외부로 이어지는 끊어진 링크나 `pivot/../file`처럼 symlink 뒤의 상위 경로 이동으로 검사를 우회할 수 없다.
 - 부모 디렉터리를 한 단계씩 생성, 확인해 기존 symlink를 통한 외부 디렉터리 생성도 막는다.

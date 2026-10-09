@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop authentication capture integration and isolated media fixture
-last-reviewed: 2026-09-19
+last-reviewed: 2026-10-10
 ---
 
 # Desktop Auth Capture
@@ -72,7 +72,7 @@ Fixture constructor는 `sandbox:true`, `contextIsolation:true`, `nodeIntegration
 
 ## Native media와 독립 OCR의 관측 구분
 
-Pinned Electron 39.8.10의 [permission 처리 source](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/web_contents_permission_helper.cc)는 `getDisplayMedia`와 legacy desktop `getUserMedia`를 모두 `media` permission 및 빈 `mediaTypes`로 전달한다. 이 빈 배열만 허용하면 legacy 경로가 display handler의 source, gesture 검사를 우회할 수 있다. [승인된 media 검증 예외](../rules/desktop-capture-media-fixture-proposal.md)는 통제된 fixture만 신뢰한다. 초기 검증 당시 제품은 permission check와 request를 모두 거절했고 fixture만 별도 예외를 사용했다. 현재 제품의 제한된 허용 범위와 legacy API 한계는 [Windows 제품 캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)을 따른다. `capture:fixture:deny`는 fixture request도 전면 거절하는 회귀 검증 모드다. Renderer API monkey patch를 legacy 경로 차단 보장으로 해석하거나 CSP/webSecurity를 완화하지 않는다.
+Pinned Electron 44.7.0의 [permission 처리 source](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/web_contents_permission_helper.cc)는 `getDisplayMedia`와 legacy desktop `getUserMedia`를 모두 `media` permission 및 빈 `mediaTypes`로 전달한다. 이 빈 배열만 허용하면 legacy 경로가 display handler의 source, gesture 검사를 우회할 수 있다. [승인된 media 검증 예외](../rules/desktop-capture-media-fixture-proposal.md)는 통제된 fixture만 신뢰한다. 초기 검증 당시 제품은 permission check와 request를 모두 거절했고 fixture만 별도 예외를 사용했다. 현재 제품의 제한된 허용 범위와 legacy API 한계는 [Windows 제품 캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)을 따른다. `capture:fixture:deny`는 fixture request도 전면 거절하는 회귀 검증 모드다. Renderer API monkey patch를 legacy 경로 차단 보장으로 해석하거나 CSP/webSecurity를 완화하지 않는다.
 
 첫 native 관측에서 auth, sandbox, synthetic source 열거/선택은 진행됐고 host screen permission은 `granted`였다. Native media 요청은 `NotAllowedError`, 실제 stream 0, worker 0으로 종료됐다. 당시 child의 cleanup PASS 이후 초기 실패 실행의 profile 두 개가 남은 것을 확인했으므로 이전 cleanup 성공 판정은 철회했다. OS 권한이 있다는 사실을 앱의 capture 경계 검증 완료로 해석하지 않는다. 이 기록은 승인 전 실패이며 아래 승인 후 관측과 구분한다.
 
@@ -80,9 +80,9 @@ Pinned Electron 39.8.10의 [permission 처리 source](https://raw.githubusercont
 
 이 실행에서 무선택 요청 거절 callback은 Electron의 `Video was requested, but no video stream was provided` unhandled rejection warning을 남겼으나 renderer의 media promise는 거절됐다. 마지막 logout과 진행 중 source 열거가 경합해 main의 `Capture source access denied`도 출력됐다. 이 출력은 숨기지 않으며 경고 없는 실행이라고 주장하지 않는다. Launcher의 cleanup PASS와 exit 0은 확인했지만 별도 종료 후 검증의 결과는 해당 exact head와 함께 따로 기록한다.
 
-이후 독립 review에서 빈 객체 거절이 실제 Electron API 형식 결함임을 확인해 보완했다. Pinned [native 결과 처리](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/electron_browser_context.cc)는 `null`에 예외 없는 `CAPTURE_FAILURE`를 반환한다. 제품의 `deliverMediaResult`는 공개 `Streams` type에 없는 이 native 거절을 좁은 interop로 전달하고, 이미 소비됐을 수 있는 callback의 예외를 source 열거 실패와 분리해 재호출하지 않는다. 기존 `{}` 기대 test는 거절 의미를 유지하면서 실제 runtime 형식에 맞게 정정했고 fixture 관측도 `null`을 그대로 전달한다.
+이후 독립 review에서 빈 객체 거절이 실제 Electron API 형식 결함임을 확인해 보완했다. 당시 pinned Electron 39.8.10의 [native 결과 처리](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/electron_browser_context.cc)는 `null`에 예외 없는 `CAPTURE_FAILURE`를 반환했지만 공개 callback type에 `null`이 없어 좁은 interop로 전달했다. 현재 pinned Electron 44.7.0은 [session API 문서](https://raw.githubusercontent.com/electron/electron/v44.7.0/docs/api/session.md)와 공개 callback type에서 `null`을 거절 값으로 정의한다. [native 결과 처리](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/electron_browser_context.cc)는 `null`에 예외 없는 `INVALID_DISPLAY_CAPTURE_CONSTRAINTS`를 반환하고 renderer의 `getDisplayMedia()`는 `AbortError`로 거절된다. `{}`는 거절과 함께 TypeError를 계속 낸다. 제품의 `deliverMediaResult`는 `null`을 그대로 전달하고, 이미 소비됐을 수 있는 callback의 예외를 source 열거 실패와 분리해 재호출하지 않는다. 기존 `{}` 기대 test는 거절 의미를 유지하면서 실제 runtime 형식에 맞게 정정했고 fixture 관측도 `null`을 그대로 전달한다.
 
-수정 후 입력 `cf0c5640988aa0faf67578211f9bac969e15435b`에서 같은 OS/Electron의 `post-exit-check.mjs --media`를 한 번 실행했다. 당시 자동 검증 범위인 실제 stream, Slot 1 OCR 표시, 안정화 통지 1회 이상, logout 정리, 재로그인 무선택 거절과 child exit 0, process group 종료, 종료 뒤 profile 0개가 PASS했다. 위 수동 관측의 네 slot 표시와 두 번째 capture는 이 자동 검증과 별도 evidence다. Check는 고정된 video 누락 TypeError와 `UnhandledPromiseRejectionWarning`이 child 출력에 없음을 별도로 확인했다. Source 열거의 정상 auth 거절 출력은 이 경고 회귀로 분류하지 않는다.
+수정 후 입력 `cf0c5640988aa0faf67578211f9bac969e15435b`에서 같은 macOS 26.6.2 arm64, Electron 39.8.10의 `post-exit-check.mjs --media`를 한 번 실행했다. 당시 자동 검증 범위인 실제 stream, Slot 1 OCR 표시, 안정화 통지 1회 이상, logout 정리, 재로그인 무선택 거절과 child exit 0, process group 종료, 종료 뒤 profile 0개가 PASS했다. 위 수동 관측의 네 slot 표시와 두 번째 capture는 이 자동 검증과 별도 evidence다. Check는 고정된 video 누락 TypeError와 `UnhandledPromiseRejectionWarning`이 child 출력에 없음을 별도로 확인했다. Source 열거의 정상 auth 거절 출력은 이 경고 회귀로 분류하지 않는다.
 
 [PR #142의 검토 지적](https://github.com/blahaj94/ldb/pull/142#discussion_r3954191493)을 반영한 입력 `6cc70e03d529342a6b5f24f70a63055d906aa983`에서 같은 macOS 26.6.2 arm64, Electron 39.8.10으로 강화된 `post-exit-check.mjs --media`를 한 번 실행했다. 네 slot의 정확한 실제 OCR 표시 bitmask `15`와 실제 main handler 통과 뒤 각 slot 기대값 통지 bitmask `15`를 함께 확인했다. 실제 media/OCR smoke와 child exit 0, process group 종료, native 거절 경고 0, 종료 뒤 profile 0개가 PASS했다. Slot 누락, 오인식, 중복 통지나 표시/통지 한쪽만 일치하면 성공할 수 없는 회귀 검증도 추가했다. 이 실행은 기존 수동 재로그인, 재선택 후 두 번째 capture 관측을 대체하거나 반복한 것이 아니다.
 
