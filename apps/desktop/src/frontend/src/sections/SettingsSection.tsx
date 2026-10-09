@@ -201,8 +201,7 @@ export function SettingsSection({
                 aria-current={selectedSection === 'versions' ? 'page' : undefined}
                 {...stylex.props(
                   styles.menu,
-                  selectedSection === 'versions' && styles.menuSelected,
-                  selectedSection === 'versions' && light && styles.menuSelectedLight
+                  selectedSection === 'versions' && styles.menuSelected
                 )}
                 onClick={() => setSelectedSection('versions')}
               >
@@ -216,8 +215,7 @@ export function SettingsSection({
                 aria-current={selectedSection === 'licenses' ? 'page' : undefined}
                 {...stylex.props(
                   styles.menu,
-                  selectedSection === 'licenses' && styles.menuSelected,
-                  selectedSection === 'licenses' && light && styles.menuSelectedLight
+                  selectedSection === 'licenses' && styles.menuSelected
                 )}
                 onClick={() => setSelectedSection('licenses')}
               >
@@ -231,8 +229,7 @@ export function SettingsSection({
                 aria-current={selectedSection === 'developer' ? 'page' : undefined}
                 {...stylex.props(
                   styles.menu,
-                  selectedSection === 'developer' && styles.menuSelected,
-                  selectedSection === 'developer' && light && styles.menuSelectedLight
+                  selectedSection === 'developer' && styles.menuSelected
                 )}
                 onClick={() => setSelectedSection('developer')}
               >

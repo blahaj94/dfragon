@@ -52,12 +52,16 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
         <div aria-label="캐릭터 상세 카드" {...stylex.props(styles.deck)}>
           {detailFaces.map((face, index) => {
             const active = selected === index
+            const rank = order.indexOf(index)
 
             return (
               <section
                 key={face}
                 aria-label={`${face} 카드`}
-                {...stylex.props(styles.card(order.indexOf(index)))}
+                {...stylex.props(
+                  styles.card(rank),
+                  rank === 0 ? styles.frontCard : styles.backCard
+                )}
               >
                 <button
                   type="button"
@@ -93,7 +97,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                             <Typo.h5 as="p" {...stylex.props(styles.characterName)}>
                               {character.name}
                             </Typo.h5>
-                            <Typo.txtS as="span" {...stylex.props(styles.subtitle)}>
+                            <Typo.txtS as="span" {...stylex.props(styles.job)}>
                               {character.job}
                             </Typo.txtS>
                           </div>

@@ -70,7 +70,7 @@ export function CaptureControls({
           <CameraIcon
             width="20"
             height="20"
-            {...stylex.props(styles.camera, (active || starting) && styles.active)}
+            {...stylex.props(styles.camera, active && styles.cameraActive)}
           />
         </ActionButton>
       </DialogTrigger>
@@ -84,7 +84,7 @@ export function CaptureControls({
               as="span"
               weight={700}
               role="status"
-              {...stylex.props(styles.state, active && styles.active)}
+              {...stylex.props(styles.state, active && styles.stateActive)}
             >
               {state}
             </Typo.txtS>

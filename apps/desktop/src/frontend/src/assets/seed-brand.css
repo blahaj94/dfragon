@@ -1,0 +1,34 @@
+/*
+ * DFragon의 메인 컬러는 SEED blue 팔레트다. SEED brand 토큰은 당근 주황을 가리키므로 Desktop renderer
+ * entry에서 디자인 의미 토큰 bg.brand.*, fg.brand, border.brand의 blue 단계로 다시 연결한다.
+ * 선택자는 base.css의 color mode 블록과 같고, base.css 다음에 import해 같은 특이성에서 이 값을 쓴다.
+ * 하위 요소의 data-seed-color-mode도 같은 값을 받도록 :root 아래 선택자를 함께 둔다.
+ * 디자인에 없는 토큰은 SEED의 단계 규칙을 따른다. weak-pressed는 weak보다 한 단계 진하게,
+ * stroke-brand-weak는 informative와 같은 blue-300, fg-brand-contrast는 weak 배경 위 글자라 fg.brand와 같다.
+ */
+:root,
+:root[data-seed-color-mode='system'][data-seed-user-color-scheme='light'],
+:root[data-seed-color-mode='light-only'],
+:root [data-seed-color-mode='light-only'] {
+  --seed-color-fg-brand: var(--seed-color-palette-blue-700);
+  --seed-color-fg-brand-contrast: var(--seed-color-palette-blue-700);
+  --seed-color-bg-brand-solid: var(--seed-color-palette-blue-700);
+  --seed-color-bg-brand-solid-pressed: var(--seed-color-palette-blue-800);
+  --seed-color-bg-brand-weak: var(--seed-color-palette-blue-100);
+  --seed-color-bg-brand-weak-pressed: var(--seed-color-palette-blue-200);
+  --seed-color-stroke-brand-solid: var(--seed-color-palette-blue-700);
+  --seed-color-stroke-brand-weak: var(--seed-color-palette-blue-300);
+}
+
+:root[data-seed-color-mode='system'][data-seed-user-color-scheme='dark'],
+:root[data-seed-color-mode='dark-only'],
+:root [data-seed-color-mode='dark-only'] {
+  --seed-color-fg-brand: var(--seed-color-palette-blue-700);
+  --seed-color-fg-brand-contrast: var(--seed-color-palette-blue-700);
+  --seed-color-bg-brand-solid: var(--seed-color-palette-blue-600);
+  --seed-color-bg-brand-solid-pressed: var(--seed-color-palette-blue-700);
+  --seed-color-bg-brand-weak: var(--seed-color-palette-blue-200);
+  --seed-color-bg-brand-weak-pressed: var(--seed-color-palette-blue-300);
+  --seed-color-stroke-brand-solid: var(--seed-color-palette-blue-600);
+  --seed-color-stroke-brand-weak: var(--seed-color-palette-blue-300);
+}

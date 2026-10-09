@@ -12,12 +12,12 @@ export const styles = stylex.create({
     marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
-    borderLeftColor: colors.accent,
+    borderLeftColor: colors.borderBrand,
     borderRadius: 8,
-    backgroundColor: colors.surface,
-    color: colors.shellText
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault
   },
   message: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
-  detail: { color: colors.shellMuted },
+  detail: { color: colors.fgMuted },
   actions: { display: 'flex', alignItems: 'center', gap: 8 }
 })

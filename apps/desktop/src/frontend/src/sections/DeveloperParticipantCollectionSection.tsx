@@ -69,7 +69,13 @@ export function DeveloperParticipantCollectionSection({
       <div {...stylex.props(styles.connection)}>
         <div {...stylex.props(styles.connectionText)}>
           <Typo.h6 as="p">
-            {connected ? '● 던전앤파이터 연결됨' : '던전앤파이터 연결 확인 중'}
+            {connected ? (
+              <>
+                <span {...stylex.props(styles.connectedDot)}>●</span> 던전앤파이터 연결됨
+              </>
+            ) : (
+              '던전앤파이터 연결 확인 중'
+            )}
           </Typo.h6>
           <Typo.txtS {...stylex.props(styles.muted)}>
             {frame
@@ -77,7 +83,9 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <Typo.caption {...stylex.props(styles.badge)}>
+        <Typo.caption
+          {...stylex.props(styles.badge, popup ? styles.badgeFound : styles.badgeSearching)}
+        >
           {windowName} {popup ? '찾음' : '찾는 중'}
         </Typo.caption>
       </div>
@@ -200,13 +208,7 @@ export function DeveloperParticipantCollectionSection({
                     {...stylex.props(styles.checkbox)}
                   />
                 </label>
-                <div
-                  {...stylex.props(
-                    styles.cropArea,
-                    !crop && styles.emptyArea,
-                    crop && !included && styles.unchecked
-                  )}
-                >
+                <div {...stylex.props(styles.cropArea, crop && !included && styles.unchecked)}>
                   {crop ? (
                     <img
                       src={crop.dataUrl}

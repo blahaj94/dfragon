@@ -12,14 +12,14 @@ export const styles = stylex.create({
     padding: '16px 20px',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.surface,
-    color: colors.shellText
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault
   },
   connectionDetails: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  muted: { color: colors.shellMuted },
-  error: { color: '#d34d4d' },
+  muted: { color: colors.fgMuted },
+  error: { color: colors.fgDanger },
   crops: {
     display: 'grid',
     gridTemplateColumns: {
@@ -38,10 +38,10 @@ export const styles = stylex.create({
     padding: '12px 16px',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.card,
-    color: colors.text
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault
   },
   cropHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   cropImage: {
@@ -58,11 +58,11 @@ export const styles = stylex.create({
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
-    backgroundColor: '#101216',
+    backgroundColor: colors.bgPreview,
     borderRadius: 6
   },
   unchecked: { opacity: 0.32 },
-  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.accent },
-  emptyCrop: { color: '#aeb5bf' },
-  footnote: { color: colors.shellMuted, marginTop: -8 }
+  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.bgBrandSolid },
+  emptyCrop: { color: colors.fgMuted },
+  footnote: { color: colors.fgMuted, marginTop: -8 }
 })

@@ -5,8 +5,8 @@ export const styles = stylex.create({
   page: {
     minHeight: '100vh',
     boxSizing: 'border-box',
-    backgroundColor: colors.background,
-    color: colors.shellText,
+    backgroundColor: colors.bgCanvas,
+    color: colors.fgDefault,
     padding: 20
   },
   header: {
@@ -20,7 +20,7 @@ export const styles = stylex.create({
     display: 'grid',
     gap: 20,
     padding: 20,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgSurface,
     borderRadius: 12
   },
   identity: {
@@ -32,7 +32,7 @@ export const styles = stylex.create({
   image: {
     width: 160,
     height: 160,
-    backgroundColor: colors.card,
+    backgroundColor: colors.cardBg,
     borderRadius: 8,
     overflow: 'hidden',
     flexShrink: 0
@@ -45,8 +45,8 @@ export const styles = stylex.create({
     margin: 0
   },
   field: { display: 'grid', gap: 8, minWidth: 0 },
-  label: { color: colors.shellMuted },
+  label: { color: colors.fgMuted },
   value: { margin: 0, overflowWrap: 'anywhere' },
-  freshness: { display: 'grid', gap: 8, color: colors.shellMuted },
-  notice: { color: colors.shellMuted }
+  freshness: { display: 'grid', gap: 8, color: colors.fgMuted },
+  notice: { color: colors.fgMuted }
 })

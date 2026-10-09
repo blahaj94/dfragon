@@ -23,10 +23,10 @@ export const styles = stylex.create({
     padding: 16,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.surface,
-    color: colors.shellText
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault
   },
   filters: { display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 36 },
   list: {
@@ -40,14 +40,14 @@ export const styles = stylex.create({
     padding: 2,
     listStyle: 'none'
   },
-  listEmpty: { padding: 8, color: colors.shellMuted },
-  error: { color: '#d34d4d' },
-  muted: { color: colors.shellMuted },
+  listEmpty: { padding: 8, color: colors.fgMuted },
+  error: { color: colors.fgDanger },
+  muted: { color: colors.fgMuted },
   divider: {
     border: 0,
     borderTopWidth: 1,
     borderTopStyle: 'solid',
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderDefault,
     width: '100%',
     margin: '8px 0'
   },
@@ -58,10 +58,10 @@ export const styles = stylex.create({
     padding: 16,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: colors.surface,
-    color: colors.shellText
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault
   },
   summary: { display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
   actions: { display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }

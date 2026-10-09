@@ -87,10 +87,10 @@ export function DeveloperSampleThumbnail({
     <li>
       <ActionButton
         size="small"
-        variant={selected ? 'neutralSolid' : 'ghost'}
+        variant="ghost"
         aria-pressed={selected}
         onClick={onSelect}
-        {...stylex.props(styles.button)}
+        {...stylex.props(styles.button, selected && styles.selected)}
       >
         <div ref={itemRef} {...stylex.props(styles.row)}>
           <div {...stylex.props(styles.thumbnail)}>
@@ -104,7 +104,9 @@ export function DeveloperSampleThumbnail({
             <Typo.txtS as="span" weight={700} {...stylex.props(styles.overflow)}>
               {getAnswerLabel(sample)}
             </Typo.txtS>
-            <Typo.caption {...stylex.props(styles.muted)}>{state}</Typo.caption>
+            <Typo.caption {...stylex.props(styles.muted, selected && styles.selectedState)}>
+              {state}
+            </Typo.caption>
           </div>
         </div>
       </ActionButton>

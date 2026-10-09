@@ -1,5 +1,4 @@
 import * as stylex from '@stylexjs/stylex'
-import { selectColors } from '../constants/select.stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
@@ -15,15 +14,20 @@ export const styles = stylex.create({
     paddingInline: 8,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#b96931',
+    borderColor: 'transparent',
     borderRadius: 6,
-    backgroundColor: '#4a3025',
-    color: '#ffad78',
+    // The card stays dark in both modes, so drop SEED's mode-dependent inset stroke.
+    boxShadow: 'none',
+    backgroundColor: colors.cardControl,
+    color: colors.cardFg,
     fontFamily: 'inherit',
     cursor: 'pointer',
-    ':hover:not(:disabled)': { backgroundColor: '#60402d' },
-    ':is([data-open])': { borderColor: '#ff9f0a', boxShadow: '0 0 0 2px rgba(255,159,10,0.2)' },
-    ':focus-visible': { outline: '2px solid #ff9f0a', outlineOffset: 2 },
+    ':hover:not(:disabled)': { backgroundColor: colors.cardControlHover },
+    ':is([data-open])': {
+      borderColor: colors.borderFocus,
+      boxShadow: `0 0 0 1px ${colors.borderFocus}`
+    },
+    ':focus-visible': { outline: `2px solid ${colors.borderFocus}`, outlineOffset: 2 },
     ':disabled': { opacity: 0.4, cursor: 'not-allowed' }
   },
   value: {
@@ -42,23 +46,23 @@ export const styles = stylex.create({
     ':is([data-open])': { transform: 'rotate(180deg)' },
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
-  positioner: { color: colors.text },
+  positioner: { color: colors.cardFg },
   content: {
     width: 160,
     maxWidth: 'calc(100vw - 16px)',
     boxSizing: 'border-box',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: selectColors.border,
+    borderColor: colors.cardBorder,
     borderRadius: 12,
-    backgroundColor: '#292d33',
-    boxShadow: `0 12px 32px -8px ${selectColors.shadow}`,
+    backgroundColor: colors.cardBg,
+    boxShadow: 'var(--seed-shadow-s3)',
     '@media (prefers-reduced-motion: reduce)': { animationDuration: '0s' }
   },
   scroll: { padding: 6, maxHeight: 'min(320px, var(--seed-select-available-height, 320px))' },
   groupLabel: {
     padding: '6px 10px 8px',
-    color: colors.muted
+    color: colors.cardFgSubtle
   },
   option: {
     display: 'flex',
@@ -69,19 +73,20 @@ export const styles = stylex.create({
     minHeight: 32,
     padding: '6px 10px',
     borderRadius: 6,
-    color: colors.text,
+    color: colors.cardFg,
     backgroundColor: 'transparent',
     cursor: 'pointer',
     ':is([data-highlighted])': {
-      backgroundColor: selectColors.hover,
-      outline: '1px solid #ff9f0a',
+      backgroundColor: colors.cardControlHover,
+      outline: `1px solid ${colors.borderFocus}`,
       outlineOffset: -1
     }
   },
   selected: {
-    backgroundColor: selectColors.selected,
-    ':is([data-highlighted])': { backgroundColor: selectColors.selected }
+    backgroundColor: colors.cardBrandWeak,
+    ':is([data-highlighted])': { backgroundColor: colors.cardBrandWeak }
   },
-  itemLabel: { color: colors.text },
-  check: { width: 16, height: 16, color: selectColors.accent, flexShrink: 0 }
+  itemLabel: { color: colors.cardFg },
+  selectedLabel: { color: colors.cardFgBrand },
+  check: { width: 16, height: 16, color: colors.cardFgBrand, flexShrink: 0 }
 })

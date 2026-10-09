@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop design sources and renderer implementation status
-last-reviewed: 2026-10-09
+last-reviewed: 2026-10-10
 ---
 
 # Desktop MVP 디자인 이관
@@ -26,7 +26,7 @@ Penpot 파일은 화면별 편집 페이지가 편집 기준이다. 페이지를
 
 메인 카드, 캡처, 로그인, 설정, OCR 밖의 기능은 [dfragon-design](https://github.com/blahaj94/dfragon-design)이 인계 자료다. 스킬트리, 쿨타임, 캐릭터 검색과 상세, 모아보기, 패키지 효율, 캐릭터 기록, 아바타 피팅룸, 피아노방, 버프 계산기, 플레이 플래너, 성장 로드맵, 이벤트 보상, 미궁 지도의 14개다. 기능별 요구와 불변조건은 그 저장소의 `README.md`, `decisions.md`, `docs/screens/`에, 시안 요소와 SEED 컴포넌트의 대응은 `ui-mapping.md`에 있다. 14개 기능의 대상 앱은 모두 Desktop이다. dfragon-design의 결정에서 캐릭터 검색 화면은 상단 바의 검색 버튼으로 여는 별도 화면이다. 파티에 없는 캐릭터를 찾을 때 쓰고, 결과를 누르면 기존 상세 창을 연다. 첫 화면의 슬롯 카드와 [Desktop MVP 카드 UI](../rules/desktop-mvp-ui.md) 계약은 그대로이며, 검색 버튼을 제품에 넣을 때는 그 Rule의 변경으로 들여온다. 제품 계약의 원본은 이 저장소의 `docs/rules`이고 dfragon-design은 구현하지 않은 화면의 시안과 요구다. 캐릭터 검색과 상세처럼 두 곳에 모두 있는 주제는 [캐릭터 검색 계약](../rules/character-search.md), [캐릭터 상세 계약](../rules/character-details.md)이 우선하며, 시안에서 채택할 의미는 Rule 변경으로 들여온다.
 
-색 토큰의 기준은 같은 Penpot 파일의 토큰 세트 `dark`, `light`와 테마 `Mode / Dark`, `Mode / Light`다. 토큰 이름 `color.<key>`는 `apps/desktop/src/frontend/src/constants/theme.stylex.ts`의 `colors` 키와 같고, 이 파일의 값은 Penpot 토큰의 값을 옮겨 적은 것이다. 시안에서 추가한 `color.inset`, `color.accentSurface`, `color.success`, `color.warning`은 아직 코드에 없고, 처음 쓰는 화면을 구현할 때 `colors`에 같은 이름으로 넣는다. 시안의 버튼 채움과 구분선은 새 토큰 대신 기존 `control`, `border`를 쓴다. 시안 팔레트와 코드 토큰의 차이는 dfragon-design의 `design/README.md`에 있다.
+색 토큰의 기준은 dfragon-design의 [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)와 같은 Penpot 파일의 토큰 테마 `Mode / Dark`, `Mode / Light`다. `apps/desktop/src/frontend/src/constants/theme.stylex.ts`의 `colors` 키는 의미 토큰 이름을 camelCase로 옮긴 것이고(`bg.brand.solid` → `bgBrandSolid`, `card.stripe` → `cardStripe`), 값은 SEED 팔레트 변수를 참조한다. 카드와 게임 색은 두 모드에서 같은 리터럴이다. 이전 키는 색 체계의 기존 이름 대응표를 기준으로 옮겼고, 보드가 대응표와 다르게 그린 곳은 보드를 따랐다. 카드 그리드 배경은 `bg.canvas`, Print Screen 키캡은 `bg.control`, 닉네임 경계와 범례는 `fg.danger`, 상세 창의 뒤 카드와 설정 내용 영역은 `bg.surface`, 수집 화면의 연결 상태는 `fg.success`와 `fg.warning`이다. 디자인 카드 세트에 없는 서버 메뉴의 hover, 선택 색과 카드 hover 테두리는 다크 값을 카드 토큰으로 두었다. 메인 컬러는 파랑이며 주황은 쓰지 않는다. SEED brand 토큰의 파랑 재매핑은 [앱 공통 StyleX](app-styling.md), 테마 적용 범위와 카드 토큰은 [Desktop 스타일 작성](desktop-styling.md#테마-상태)을 따른다. 새 화면에 필요한 색은 색 체계의 의미 토큰 이름과 값으로 `colors`에 추가한다.
 
 ## 데이터와 기존 구현 연결
 
@@ -94,7 +94,7 @@ pnpm --filter @dfragon/desktop dev:preview
 
 캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크, 라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키, 문자 탐색, Enter/Space, Escape, 포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치, 스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다.
 
-캐릭터 카드의 서버 선택도 기본 select 대신 `ServerSelect`를 사용합니다. SEED Select의 단일 선택, 키보드 탐색, 포커스 복귀에 작은 주황색 트리거와 선택 체크를 적용하고, 카드 밖 포털로 목록이 카드 경계에 잘리지 않게 합니다. 카드와 서버 목록은 두 테마에서 어두운 색을 유지합니다. 컴포넌트는 전달받은 후보만 표시하며 현재 합성 미리보기의 서버 수정 상태와 제품의 입력 비활성 정책은 그대로 유지합니다. 실제 검색 결과 서버 연결은 기존 후속 범위입니다.
+캐릭터 카드의 서버 선택도 기본 select 대신 `ServerSelect`를 사용합니다. SEED Select의 단일 선택, 키보드 탐색, 포커스 복귀에 카드 토큰의 작은 트리거와 `fg.brand` 다크 값의 선택 글자, 체크를 적용하고, 카드 밖 포털로 목록이 카드 경계에 잘리지 않게 합니다. 카드와 서버 목록은 두 테마에서 어두운 색을 유지합니다. 컴포넌트는 전달받은 후보만 표시하며 현재 합성 미리보기의 서버 수정 상태와 제품의 입력 비활성 정책은 그대로 유지합니다. 실제 검색 결과 서버 연결은 기존 후속 범위입니다.
 
 Mac에서도 `dev:preview`의 하단 **캡처 미리보기 상태**로 대기, 준비 중, 캡처 중, 창 미감지, 실패를 확인할 수 있다. 합성 창 선택은 UI 상태만 바꾸고 실제 media, OCR, IPC를 호출하지 않는다. 제품 UI에는 OS 분기를 추가하지 않으며 실제 캡처 권한은 기존 Windows main 정책이 검사한다.
 

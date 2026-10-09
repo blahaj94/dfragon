@@ -1,6 +1,7 @@
 import '@seed-design/css/base.css'
 import '@dfragon/ui/foundation.css'
 import './assets/fonts.css'
+import './assets/seed-brand.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'

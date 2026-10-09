@@ -74,7 +74,7 @@ export function DeveloperUploadNotice({
 
   function renderIcon(): React.JSX.Element | string {
     if (busy) {
-      return <ProgressCircle size="24" tone="brand" />
+      return <ProgressCircle size="24" />
     }
 
     if (tone === 'success') {

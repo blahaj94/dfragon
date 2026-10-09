@@ -5,24 +5,24 @@ export const styles = stylex.create({
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    color: colors.text
+    color: colors.cardFg
   },
   largeTable: { maxWidth: 560, marginInline: 'auto' },
   largeCell: { paddingBlock: 4 },
   row: {
     backgroundColor: {
-      default: colors.card,
-      ':nth-child(even)': colors.alternate
+      default: colors.cardBg,
+      ':nth-child(even)': colors.cardStripe
     }
   },
   cell: { paddingInline: 6, paddingBlock: 0, textAlign: 'left' },
   value: { textAlign: 'right', whiteSpace: 'nowrap' },
-  enhancement: { color: '#ff75f5' }
+  enhancement: { color: colors.gameAmplify }
 })
 
 export const gradeStyles = stylex.create({
-  종결: { color: '#50e3c2' },
-  준종결: { color: '#ffb400' },
-  기타: { color: '#ffffff' },
-  미평가: { color: colors.muted }
+  종결: { color: colors.enchantFinal },
+  준종결: { color: colors.enchantSemi },
+  기타: { color: colors.enchantOther },
+  미평가: { color: colors.cardFgMuted }
 })

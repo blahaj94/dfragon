@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: application-browser-ui
-last-reviewed: 2026-10-09
+last-reviewed: 2026-10-10
 ---
 
 # Design System Contract
@@ -65,6 +65,8 @@ Desktop, API 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 pad
 공용 색, 간격은 SEED CSS 변수와 기존 테마를 우선 사용한다. StyleX 변수, 테마 정의가 필요하면 `.stylex.ts`의 `defineVars`, `createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시, disabled/loading 차단, 접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작, 접근성 결함을 숨기지 않는다.
+
+전역 override의 예외로 Desktop renderer는 디자인 인계 저장소의 [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)가 정한 메인 컬러 파랑에 맞춰 SEED brand 토큰을 다시 매핑한다. 범위는 각 browser entry가 SEED `base.css` 다음에 import하는 전역 기반 CSS 한 곳(`apps/desktop/src/frontend/src/assets/seed-brand.css`)에서 `--seed-color-bg-brand-*`, `--seed-color-fg-brand*`, `--seed-color-stroke-brand-*` 8개를 blue 팔레트 단계로 연결하는 것이다. 선택자는 `base.css`의 color mode 선택자와 같게 두고 `.seed-*` class 선택자는 쓰지 않는다. `--seed-color-palette-*` 팔레트 이름과 다른 의미 토큰은 재정의하지 않으며, recipe가 당근 팔레트를 직접 참조하는 표현은 사용처에서 다른 tone이나 variant를 고른다. OCR, Accounts, Web은 이 예외의 범위가 아니다. 이 예외는 해당 구현 PR의 사용자 merge 후 적용한다.
 
 ## Example 관리
 

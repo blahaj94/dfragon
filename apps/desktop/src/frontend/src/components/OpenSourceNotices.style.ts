@@ -4,16 +4,16 @@ import { colors } from '../constants/theme.stylex'
 export const styles = stylex.create({
   heading: { paddingBlock: 12, overflowWrap: 'anywhere' },
   description: {
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     paddingBottom: 20,
     overflowWrap: 'anywhere'
   },
-  count: { color: colors.shellMuted, paddingTop: 20, paddingBottom: 12 },
+  count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
   list: {
     listStyle: 'none',
     padding: 0,
     margin: 0,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.bgInset,
     borderRadius: 8
   },
   row: {
@@ -27,7 +27,7 @@ export const styles = stylex.create({
     textAlign: 'left',
     padding: '12px 16px',
     gap: 12,
-    color: colors.shellText,
+    color: colors.fgDefault,
     whiteSpace: 'normal'
   },
   name: {
@@ -38,16 +38,16 @@ export const styles = stylex.create({
     minWidth: 0,
     overflowWrap: 'anywhere'
   },
-  version: { color: colors.shellMuted },
+  version: { color: colors.fgMuted },
   license: {
     maxWidth: { default: '40%', '@media (max-width: 600px)': '100%' },
     gridColumn: 1,
     gridRow: 2,
-    color: colors.shellMuted,
+    color: colors.fgMuted,
     overflowWrap: 'anywhere'
   },
   rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
-  document: { backgroundColor: colors.surface, borderRadius: 8, padding: 20, marginTop: 16 },
+  document: { backgroundColor: colors.bgInset, borderRadius: 8, padding: 20, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'inherit',

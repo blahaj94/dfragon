@@ -14,14 +14,14 @@ export const styles = stylex.create({
     borderLeftWidth: 5,
     borderStyle: 'solid',
     borderRadius: 10,
-    backgroundColor: colors.surface,
-    color: colors.shellText,
+    backgroundColor: colors.bgSurface,
+    color: colors.fgDefault,
     minWidth: 0
   },
-  idle: { borderColor: colors.collectionBorder },
-  busy: { borderColor: '#3392ff' },
-  success: { borderColor: '#239b63' },
-  warning: { borderColor: '#df8731' },
+  idle: { borderColor: colors.borderDefault },
+  busy: { borderColor: colors.fgInfo },
+  success: { borderColor: colors.fgSuccess },
+  warning: { borderColor: colors.fgWarning },
   icon: {
     display: 'flex',
     alignItems: 'center',
@@ -39,5 +39,5 @@ export const styles = stylex.create({
     minWidth: 0,
     overflowWrap: 'anywhere'
   },
-  metadata: { display: 'flex', flexWrap: 'wrap', gap: '4px 12px', color: colors.shellMuted }
+  metadata: { display: 'flex', flexWrap: 'wrap', gap: '4px 12px', color: colors.fgMuted }
 })

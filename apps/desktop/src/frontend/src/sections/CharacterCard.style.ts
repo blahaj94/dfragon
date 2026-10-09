@@ -9,13 +9,13 @@ export const styles = stylex.create({
     minWidth: 0,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     borderRadius: 12,
-    backgroundColor: colors.card,
-    color: colors.text,
+    backgroundColor: colors.cardBg,
+    color: colors.cardFg,
     overflow: 'hidden'
   },
-  failure: { borderWidth: 2, borderStyle: 'solid', borderColor: '#ff535b' },
+  failure: { borderWidth: 2, borderStyle: 'solid', borderColor: colors.borderDanger },
   turn: {
     position: 'absolute',
     inset: 0,
@@ -24,8 +24,8 @@ export const styles = stylex.create({
     backgroundColor: 'transparent',
     cursor: 'pointer',
     outlineOffset: -4,
-    ':focus-visible': { outline: `2px solid ${colors.accent}` },
-    ':hover': { boxShadow: 'inset 0 0 0 1px #8795a8' }
+    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` },
+    ':hover': { boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}` }
   },
   content: { position: 'absolute', inset: 0, pointerEvents: 'none' },
   progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
@@ -39,9 +39,9 @@ export const styles = stylex.create({
     display: 'grid',
     gap: 2
   },
-  adventure: { color: colors.adventure, paddingBottom: 28 },
-  fame: { color: colors.accent },
-  muted: { color: colors.muted },
+  adventure: { color: colors.cardFgAdventure, paddingBottom: 28 },
+  fame: { color: colors.fgBrand },
+  muted: { color: colors.cardFgMuted },
   equipment: {
     position: 'absolute',
     inset: '48px 11px 48px',
@@ -60,13 +60,13 @@ export const styles = stylex.create({
     textAlign: 'center',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.cardBorder,
     borderRadius: 4,
-    backgroundColor: colors.input,
-    color: colors.text,
+    backgroundColor: colors.cardInset,
+    color: colors.cardFg,
     fontFamily: 'inherit',
     outlineOffset: 2,
-    ':focus-visible': { outline: '2px solid #f57424' }
+    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` }
   },
   serverAnchor: {
     position: 'absolute',
@@ -84,10 +84,10 @@ export const styles = stylex.create({
     placeItems: 'center',
     borderWidth: 0,
     borderRadius: 6,
-    backgroundColor: colors.control,
-    color: colors.text,
+    backgroundColor: colors.cardControl,
+    color: colors.cardFg,
     cursor: 'pointer',
-    ':focus-visible': { outline: `2px solid ${colors.accent}` },
+    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` },
     ':disabled': { opacity: 0.35, cursor: 'default' }
   },
   status: {
@@ -96,9 +96,9 @@ export const styles = stylex.create({
     left: 10,
     right: 10,
     textAlign: 'center',
-    color: colors.muted
+    color: colors.cardFgMuted
   },
-  error: { color: '#ff8888' },
+  error: { color: colors.fgDanger },
   statusWhileLoading: { top: '58%' },
   selectedNotice: { top: 48, fontSize: 11 },
   statusWithRetry: { top: '28%' },
@@ -115,7 +115,7 @@ export const styles = stylex.create({
     top: 45,
     left: 12,
     right: 12,
-    color: colors.muted,
+    color: colors.cardFgMuted,
     textAlign: 'center'
   },
   srOnly: {
