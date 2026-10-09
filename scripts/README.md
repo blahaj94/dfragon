@@ -6,7 +6,7 @@
 
 ## 루트 도구 회귀 검증
 
-`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책, 표기와 문체 검사, 토큰 없는 의존성 설치와 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 placeholder입니다.
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책, 표기와 문체 검사, 문서 링크와 경로 검사, 토큰 없는 의존성 설치와 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. Root `pnpm test`는 placeholder입니다.
 
 앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일, 입력 거절, 실패 코드, 정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다. Docker helper의 mock 검사와 API/accounts의 실제 `test:database`도 구분합니다.
 
@@ -80,6 +80,20 @@ node scripts/check-writing.mjs apps/desktop/README.md
 
 검증: `node --test scripts/test/check-writing.test.mjs`, `node --check scripts/check-writing.mjs`.
 
+## `check-docs`
+
+Git이 추적하는 파일과 ignore 대상이 아닌 새 파일 중 `*.md`의 상대 링크를 검사합니다. 링크한 파일, 디렉터리가 저장소에 있는지와 Markdown 대상의 `#anchor`가 그 문서의 heading과 맞는지 확인합니다. Anchor는 GitHub와 같은 규칙으로 만듭니다. Heading 글자를 소문자로 바꾸고 문자, 숫자, `_`, 공백, `-` 외의 문장부호를 지운 뒤 공백을 `-`로 바꾸며, 같은 heading이 다시 나오면 `-1`, `-2`를 붙입니다. 한국어 heading도 같은 규칙입니다.
+
+`#`로 시작하는 ATX heading만 anchor로 읽습니다. Front matter, code block, code span 안의 링크와 외부 URL, 코드 파일의 `#L10` 같은 줄 anchor는 검사하지 않습니다. 위반은 `경로:줄: 규칙: 링크나 경로`로 출력하고 non-zero로 종료합니다. Code Quality의 Static checks가 `pnpm check:docs`를 실행합니다.
+
+Code span 전체가 `apps/`, `packages/`, `.github/`로 시작하는 저장소 경로이면 그 파일, 디렉터리가 있는지도 확인합니다. 아직 add하지 않은 새 파일도 있는 것으로 봅니다. `*`, `<이름>`, `...`이 든 glob, 자리표시와 `:10`처럼 줄 번호를 붙인 표기, ignore 규칙에 걸리는 build 산출물과 `.env`, submodule 안의 파일은 건너뜁니다. Front matter가 `status: historical`인 문서는 과거 revision의 경로를 기록하므로 경로를 확인하지 않습니다. `scripts/...`, `docs/...`처럼 짧은 경로는 앱 디렉터리나 upstream 저장소 기준인 경우가 많아 확인하지 않습니다.
+
+```bash
+pnpm check:docs
+```
+
+검증: `node --test scripts/test/check-docs.test.mjs`, `node --check scripts/check-docs.mjs`.
+
 ## `product-image-plan`
 
 Product Images의 변경 경로를 서비스별 빌드 목록으로 바꿉니다. 앱별 경로와 공용 입력은
@@ -135,7 +149,7 @@ main push는 Dependabot alerts의 기준을, 같은 저장소 PR은 dependency r
 | Web | `pnpm --filter @dfragon/web run --sequential '/^(test\|lint\|build)$/'` |
 | Task 준비 tooling | 위 `node --test`와 `node --check` command |
 
-Code Quality의 Static checks와 같은 검사를 로컬에서 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`을 CI와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
+Code Quality의 Static checks와 같은 검사를 로컬에서 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 CI와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
 
 API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 24, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함), Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회, pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
 

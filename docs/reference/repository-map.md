@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: repository
-last-reviewed: 2026-09-12
+last-reviewed: 2026-10-10
 ---
 
 # Repository Map
@@ -28,7 +28,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, 고정 SEED source, foundation/provenance, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
-`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, API와 accounts의 Docker PostgreSQL `test:database`, Desktop `typecheck`, Web `build`, 루트 도구 테스트, root Biome lint, format 비수정 검사, 표기와 문체 검사를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
+`.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, API와 accounts의 Docker PostgreSQL `test:database`, Desktop `typecheck`, Web `build`, 루트 도구 테스트, root Biome lint, format 비수정 검사와 표기, 문서 링크와 경로 검사를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
 `.github/workflows/workflow-lint.yml`은 `.github` 경로가 바뀐 PR과 main push에서 actionlint(runner의 shellcheck 포함)와 zizmor로 workflow, composite action, Dependabot 설정을 검사하며 required check가 아니다. zizmor 무시 항목과 사유는 `.github/zizmor.yml`에 둔다. 저장소 Actions 설정은 외부 action을 40자리 commit SHA로 고정하도록 요구하므로 tag로 참조한 action은 실행되지 않는다. 저장소 안의 composite action을 `./.github/actions/...` 경로로 부르는 참조 자체는 이 요구의 대상이 아니지만, 그 composite action 안에서 부르는 외부 action은 같은 방식으로 고정해야 한다. Action 버전 갱신은 `.github/dependabot.yml`이 7일 cooldown을 둔 주간 묶음 PR로 제안한다.
 
@@ -143,7 +143,8 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `pnpm start-task <project> <Issue 번호> <description> <새 worktree 경로>`: root에서 작업 준비; GitHub CLI 인증 필요
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
 - `pnpm check:writing`: 제품 이름 표기와 사용자 문구 문체 검사. 기준은 [표기와 문체](../rules/writing.md), 사용법은 [`scripts/README.md`](../../scripts/README.md#check-writing)
-- `pnpm check:static`: Code Quality의 Static checks와 같은 `lint`, `format:check`, `check:writing`을 같은 순서로 실행하고 먼저 실패한 검사에서 멈춘다. 사용법은 [`scripts/README.md`](../../scripts/README.md#native-validation)
+- `pnpm check:docs`: 추적 Markdown의 상대 링크 대상, heading anchor와 code span에 적은 `apps/`, `packages/`, `.github/` 경로 검사. 사용법은 [`scripts/README.md`](../../scripts/README.md#check-docs)
+- `pnpm check:static`: Code Quality의 Static checks와 같은 `lint`, `format:check`, `check:writing`, `check:docs`를 같은 순서로 실행하고 먼저 실패한 검사에서 멈춘다. 사용법은 [`scripts/README.md`](../../scripts/README.md#native-validation)
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구, 공용 helper, 포맷, CI 연결 검사를 실행한다. Code Quality의 PR, main push에서 같은 명령을 호출한다.
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
