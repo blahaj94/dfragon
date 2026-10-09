@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { BrowserWindow, session } from 'electron'
+import { PRODUCT_NAME } from '@dfragon/lib'
 import type { AuthBrowser } from './types'
 
 /** Remote authentication content has no preload, product IPC bridge or persistent session. */
@@ -51,7 +52,7 @@ export function createAuthBrowser(
         minHeight: 520,
         show: false,
         autoHideMenuBar: true,
-        title: `DFRAGON · ${new URL(apiOrigin).host}`,
+        title: `${PRODUCT_NAME} · ${new URL(apiOrigin).host}`,
         webPreferences: {
           session: isolatedSession,
           nodeIntegration: false,

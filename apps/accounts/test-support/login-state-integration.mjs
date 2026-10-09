@@ -18,7 +18,7 @@ import { authenticationConfiguration } from './runtime-fixtures.mjs'
 const configuration = {
   apiOrigin: 'https://accounts.example.test',
   rpId: 'accounts.example.test',
-  rpName: 'DFRAGON 테스트',
+  rpName: 'DFragon 테스트',
   returnUrl: 'dfragon.dev://auth/callback',
   ocrReturnUrl: 'https://ocr.example.test/auth/callback'
 }

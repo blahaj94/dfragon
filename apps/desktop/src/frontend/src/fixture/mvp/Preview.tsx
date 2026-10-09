@@ -93,7 +93,7 @@ export function Preview(): React.JSX.Element {
             onDetail={openDetail}
           />
           <footer {...stylex.props(styles.footer)}>
-            <span>DFRAGON Desktop</span>
+            <span>DFragon Desktop</span>
             <select
               aria-label="캡처 미리보기 상태"
               value={captureState}

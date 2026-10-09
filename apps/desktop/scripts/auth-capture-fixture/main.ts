@@ -28,7 +28,7 @@ const isOcr = process.argv.includes('--ocr')
 const isDenyMedia = process.argv.includes('--deny-media')
 if (canStart) {
   app.setPath('userData', profile)
-  app.setName('DFRAGON Auth Capture fixture')
+  app.setName('DFragon Auth Capture fixture')
   app.on('window-all-closed', () => app.quit())
 
   app
@@ -39,7 +39,7 @@ if (canStart) {
       const search = createFixtureSearch(effects.dependencies)
       await coordinator.start()
       const window = new BrowserWindow({
-        title: 'DFRAGON Auth Capture fixture',
+        title: 'DFragon Auth Capture fixture',
         width: 1100,
         height: 800,
         webPreferences: {
@@ -51,7 +51,7 @@ if (canStart) {
         }
       })
       const source = new BrowserWindow({
-        title: 'DFRAGON Synthetic Capture Source',
+        title: 'DFragon Synthetic Capture Source',
         width: 1920,
         height: 1080,
         useContentSize: true,
@@ -127,7 +127,7 @@ if (canStart) {
               })),
               { label: 'Show capture app', click: () => window.show() },
               { label: 'Show synthetic source', click: () => source.show() },
-              { label: 'Quit DFRAGON Auth Capture fixture', click: () => app.quit() }
+              { label: 'Quit DFragon Auth Capture fixture', click: () => app.quit() }
             ]
           }
         ])

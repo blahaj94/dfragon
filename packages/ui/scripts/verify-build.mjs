@@ -63,7 +63,7 @@ const hasJavaScriptFiles = javaScriptFiles.length > 0
 assert.ok(hasJavaScriptFiles, 'Generated JS bundle list must not be empty')
 for (const file of javaScriptFiles) {
   const code = await readFile(resolve(output, file), 'utf8')
-  const hasModificationNotice = code.startsWith('/*! DFRAGON modified SEED source:')
+  const hasModificationNotice = code.startsWith('/*! DFragon modified SEED source:')
   assert.ok(hasModificationNotice, `Distributed modification notice: ${file}`)
 }
 const changes = await readFile(resolve(output, 'notices/DFRAGON-MODIFICATIONS.txt'), 'utf8')
@@ -99,7 +99,7 @@ for (const source of provenance.files) {
   const bytes = await readFile(resolve(uiRoot, source.local))
   const isModifiedSource = source.localChanges.length > 0
   if (isModifiedSource) {
-    const hasSourceModificationNotice = bytes.toString().includes('/*! DFRAGON 수정:')
+    const hasSourceModificationNotice = bytes.toString().includes('/*! DFragon 수정:')
     assert.ok(hasSourceModificationNotice)
   }
   const hash = createHash('sha256').update(bytes).digest('hex')

@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@dfragon/lib'
 import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
@@ -241,7 +242,7 @@ export function SettingsSection({
               </ActionButton>
               <div {...stylex.props(styles.appName)}>
                 <img src={brandIcon} width={32} height={32} alt="" />
-                <Typo.caption>DFRAGON Desktop</Typo.caption>
+                <Typo.caption>{PRODUCT_NAME} Desktop</Typo.caption>
               </div>
             </aside>
             <div {...stylex.props(styles.content)}>{renderSectionContent()}</div>

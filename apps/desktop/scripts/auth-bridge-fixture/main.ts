@@ -18,7 +18,7 @@ const canStart = hasProfile && hasExpectedDirectory && hasOwnedName && isLaunche
 const isAuto = process.argv.includes('--smoke')
 if (canStart) {
   app.setPath('userData', profile)
-  app.setName('DFRAGON Auth Bridge fixture')
+  app.setName('DFragon Auth Bridge fixture')
   let failed = false
   app.on('window-all-closed', () => app.quit())
 
@@ -38,7 +38,7 @@ if (canStart) {
       const coordinator = createAuthCoordinator(effects.dependencies)
       await coordinator.start()
       const window = new BrowserWindow({
-        title: 'DFRAGON Auth Bridge fixture',
+        title: 'DFragon Auth Bridge fixture',
         width: 1100,
         height: 800,
         webPreferences: {

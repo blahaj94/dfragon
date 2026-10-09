@@ -113,3 +113,4 @@ export {
   DNF_SEARCH_NICKNAME_LIMITS,
   matchesDNFSearchNicknamePolicy
 } from './dnf-character-search.js'
+export { PRODUCT_NAME } from './product.js'

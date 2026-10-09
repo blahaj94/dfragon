@@ -45,7 +45,7 @@ export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot
         }
         generatedJavaScriptFiles.push(fileName)
         chunk.code =
-          '/*! DFRAGON modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n' +
+          '/*! DFragon modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n' +
           chunk.code
       }
       this.emitFile({

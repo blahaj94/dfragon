@@ -7,6 +7,7 @@ import {
 } from '@simplewebauthn/server'
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server'
 import type { EntityManager } from 'typeorm'
+import { PRODUCT_NAME } from '@dfragon/lib'
 import {
   CLEARED_LOGIN_FIELDS,
   LOGIN,
@@ -166,8 +167,8 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       rpName: configuration.rpName,
       rpID: configuration.rpId,
       userID: new Uint8Array(Buffer.from(userId)),
-      userName: `DFRAGON ${userId.slice(0, 8)}`,
-      userDisplayName: 'DFRAGON 계정',
+      userName: `${PRODUCT_NAME} ${userId.slice(0, 8)}`,
+      userDisplayName: `${PRODUCT_NAME} 계정`,
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
       excludeCredentials: keys.map((key) => ({ id: key.id, transports: key.transports }))

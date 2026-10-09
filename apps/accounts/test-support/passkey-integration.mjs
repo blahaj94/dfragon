@@ -44,7 +44,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     const configuration = {
       apiOrigin: origin,
       rpId: 'localhost',
-      rpName: 'DFRAGON',
+      rpName: 'DFragon',
       returnUrl: 'dfragon.dev://auth/callback',
       ocrReturnUrl: 'https://ocr.example.test/auth/callback'
     }

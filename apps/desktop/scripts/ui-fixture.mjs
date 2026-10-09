@@ -45,7 +45,7 @@ if (isMvp && devRendererUrl != null) {
 
 const userData = mkdtempSync(join(tmpdir(), 'dfragon-ui-fixture-'))
 app.setPath('userData', userData)
-app.setName('DFRAGON UI fixture')
+app.setName('DFragon UI fixture')
 nativeTheme.themeSource = theme
 app.on('window-all-closed', () => app.quit())
 app.on('quit', () => rmSync(userData, { recursive: true, force: true }))
@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
     callback(false)
   )
 
-  const title = `DFRAGON UI fixture — ${mode} · ${theme}`
+  const title = `DFragon UI fixture — ${mode} · ${theme}`
   const width = isMvp || isDeveloper ? 900 : 1100
   let height = 800
   if (isMvp) {

@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@dfragon/lib'
 import {
   DIAGNOSTIC_MESSAGES,
   DIAGNOSTIC_HISTORY_LIMIT,
@@ -32,7 +33,7 @@ export function startRendererDiagnostics(api: DiagnosticApi, target: Window = wi
     lastSequence = entry.sequence
     const time = new Date(entry.timestamp).toLocaleTimeString()
     const message = DIAGNOSTIC_MESSAGES[entry.code]
-    console.warn(`[DFRAGON ${time}] ${entry.code}: ${message}`)
+    console.warn(`[${PRODUCT_NAME} ${time}] ${entry.code}: ${message}`)
   }
 
   const unsubscribe = api.onDiagnosticEntry((entry) => {

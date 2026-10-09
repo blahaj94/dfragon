@@ -220,7 +220,7 @@ export function App() {
     >
       <main {...stylex.props(styles.main)}>
         <header {...stylex.props(styles.header)}>
-          <div {...stylex.props(styles.eyebrow, styles.brand)}>DFRAGON / DEVELOPER</div>
+          <div {...stylex.props(styles.eyebrow, styles.brand)}>DFragon / Developer</div>
           <Typo.h3 as="h1" {...stylex.props(styles.heading, styles.title)}>
             OCR 자료실
           </Typo.h3>

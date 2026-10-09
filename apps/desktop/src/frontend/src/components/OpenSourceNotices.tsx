@@ -69,7 +69,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
         라이선스 사용고지
       </Typo.h4>
       <Typo.txtS {...stylex.props(styles.description)}>
-        DFRAGON에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
+        DFragon에 사용된 오픈소스와 글꼴의 라이선스를 확인하세요.
       </Typo.txtS>
       <TextField
         label={

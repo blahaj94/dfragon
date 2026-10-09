@@ -30,7 +30,7 @@ export function getDeveloperCollectionErrorMessage(errorCode: string): string {
   }
 
   if (errorCode === DEVELOPER_ERROR_CODES.ADMIN_REQUIRED) {
-    return '던파가 관리자 권한으로 실행 중입니다. DFRAGON을 종료한 뒤 관리자 권한으로 다시 실행해 주세요.'
+    return '던파가 관리자 권한으로 실행 중입니다. DFragon을 종료한 뒤 관리자 권한으로 다시 실행해 주세요.'
   }
 
   if (errorCode === DEVELOPER_ERROR_CODES.HOTKEY_UNAVAILABLE) {

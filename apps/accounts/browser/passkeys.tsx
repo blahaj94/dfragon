@@ -175,7 +175,7 @@ function PasskeyPage() {
 
       if (Date.now() >= expiresAt) {
         setNow(Date.now())
-        setStatus('인증 시간이 만료됐어요. 창을 닫고 DFRAGON 앱에서 다시 로그인해 주세요.')
+        setStatus('인증 시간이 만료됐어요. 창을 닫고 DFragon 앱에서 다시 로그인해 주세요.')
 
         return
       }
@@ -409,7 +409,7 @@ function PasskeyPage() {
                 alt=""
               />
               <Typo.caption as="small" {...stylex.props(styles.keepWords)}>
-                DFRAGON ACCOUNT
+                DFragon Account
               </Typo.caption>
             </div>
           )}

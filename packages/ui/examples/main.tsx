@@ -27,7 +27,7 @@ function Examples() {
       <ContentStack>
         <SupportingText>
           Component · Pattern · Template — 중립 content로 공식 Variant와 State를 확인합니다.
-          Layout은 layout-01의 content slot을 연결한 DFRAGON composition입니다.
+          Layout은 layout-01의 content slot을 연결한 DFragon composition입니다.
         </SupportingText>
         <ExampleSection title="Action Button · Variant와 State">
           <ActionButton onClick={() => setActivation('기본 버튼 실행')}>
@@ -97,7 +97,7 @@ function Examples() {
         </ExampleSection>
         <ExampleSection title="Pattern · 입력한 값 확인">
           <SupportingText>
-            Text Field와 Dialog를 조합한 DFRAGON composition입니다. 제출·저장 동작은 없습니다.
+            Text Field와 Dialog를 조합한 DFragon composition입니다. 제출·저장 동작은 없습니다.
           </SupportingText>
           <DialogRoot>
             <DialogTrigger asChild>
