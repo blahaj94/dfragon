@@ -545,31 +545,39 @@ test('명령 결과는 종료 코드와 signal 및 두 출력 스트림을 그�
   )
 })
 
-test('기본 Docker 환경은 임의의 상위 프로세스 credential을 전달하지 않는다', async (t) => {
-  const environmentName = 'DFRAGON_TEST_SYNTHETIC_SECRET'
-  const previous = process.env[environmentName]
-  process.env[environmentName] = 'synthetic-fixture'
-  t.after(() => {
-    if (previous === undefined) {
-      delete process.env[environmentName]
-    } else {
-      process.env[environmentName] = previous
-    }
+function setSyntheticEnvironment(t, values) {
+  for (const [name, value] of Object.entries(values)) {
+    const previous = process.env[name]
+    process.env[name] = value
+    t.after(() => {
+      if (previous === undefined) {
+        delete process.env[name]
+      } else {
+        process.env[name] = previous
+      }
+    })
+  }
+}
+
+test('기본 Docker 환경은 CLI 설정 위치를 전달하고 상위 프로세스 credential은 전달하지 않는다', async (t) => {
+  // DOCKER_CONFIG를 넘기지 않으면 설정 위치를 옮겨 HOME/.docker에 buildx가 없는 환경에서 이미지 검증이 실패한다.
+  setSyntheticEnvironment(t, {
+    DOCKER_CONFIG: '/synthetic/docker-config',
+    DOCKER_AUTH_CONFIG: 'synthetic-auth-config',
+    DFRAGON_TEST_SYNTHETIC_SECRET: 'synthetic-fixture'
   })
   const allowedNames = new Set([
     'PATH',
     'HOME',
+    'DOCKER_CONFIG',
     'DOCKER_HOST',
     'DOCKER_CONTEXT',
     'DOCKER_TLS_VERIFY',
     'DOCKER_CERT_PATH'
   ])
+  let environment
   mockCommand(t, (child, { options }) => {
-    assert.equal(Object.hasOwn(options.env, environmentName), false)
-    for (const name of Object.keys(options.env)) {
-      assert.equal(allowedNames.has(name), true)
-      assert.equal(options.env[name], process.env[name])
-    }
+    environment = options.env
     finishCommand(child)
   })
   assert.deepEqual(await postgres.docker(['info']), {
@@ -578,6 +586,13 @@ test('기본 Docker 환경은 임의의 상위 프로세스 credential을 전달
     stdout: '',
     stderr: ''
   })
+  assert.equal(environment.DOCKER_CONFIG, '/synthetic/docker-config')
+  assert.equal(Object.hasOwn(environment, 'DOCKER_AUTH_CONFIG'), false)
+  assert.equal(Object.hasOwn(environment, 'DFRAGON_TEST_SYNTHETIC_SECRET'), false)
+  for (const name of Object.keys(environment)) {
+    assert.equal(allowedNames.has(name), true)
+    assert.equal(environment[name], process.env[name])
+  }
 })
 
 test('명령 시작 실패는 외부 오류와 출력을 노출하지 않고 거절한다', async (t) => {
