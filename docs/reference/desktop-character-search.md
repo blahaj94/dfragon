@@ -200,7 +200,7 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
-일반 tests는 API, DB, native media를 실행하지 않는다. 실제 #125 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 stream/OCR 성공을 대신하지 않는다. 최종 head의 unit/build, 독립 review, 실제 UI/media, 서버 검증 결과는 Issue #144와 PR #149에서 관리한다.
+일반 tests는 API, DB, 네이티브 캡처를 실행하지 않는다. 실제 #125 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 캡처, OCR 성공을 대신하지 않는다. 최종 head의 unit/build, 독립 review, 실제 UI/media, 서버 검증 결과는 Issue #144와 PR #149에서 관리한다.
 
 ## 이번 전환의 검증
 

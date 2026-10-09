@@ -44,7 +44,7 @@ Main은 로그인, 로그아웃만으로 선택을 지우지 않으며 trusted r
 
 ## 검증과 제한
 
-`main.test.ts`는 인증 설정, provider가 없어도 공개 검색 설정을 연결하고 Windows를 포함한 모든 플랫폼에서 제품 session의 permission check와 media 요청을 거절하는지 확인한다. 거절 규칙 자체는 `permission-policy.test.ts`가 확인한다. `App.test.tsx`는 인증 로딩, 실패, 로그인, 로그아웃, auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron/media doubles를 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
+`main.test.ts`는 인증 설정, provider가 없어도 공개 검색 설정을 연결하고 Windows를 포함한 모든 플랫폼에서 제품 session의 permission check와 media 요청을 거절하는지 확인한다. 거절 규칙 자체는 `permission-policy.test.ts`가 확인한다. `App.test.tsx`는 인증 로딩, 실패, 로그인, 로그아웃, auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron과 preload API double을 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
 
 ```sh
 pnpm --filter @dfragon/desktop exec vitest run src/backend/capture src/backend/main.test.ts src/backend/main-bundle.test.ts src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/hooks src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx
