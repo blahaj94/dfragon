@@ -3,9 +3,16 @@ node_modules
 .codex/
 apps/desktop/src/frontend/public/ocr
 /.artifacts/workflow.png
-/apps/api/.env
-/apps/desktop/.env
-
-/apps/ocr/.env
 /.artifacts/ocr/
 .dnf-image
+
+# Local settings and secrets. The setup docs keep secret files outside the repository, so these
+# patterns only stop a copy made inside it. Only the .env.example templates are tracked.
+.env
+.env.*
+!.env.example
+*.pem
+auth.json
+db-password
+neople-api-key
+neople-key
