@@ -204,7 +204,9 @@ describe('OCR 조회 라운드', () => {
   })
 
   it('자료 수집은 앞뒤 공백을 제거하지 않은 모델 원문을 올린다', async () => {
-    const collect = vi.fn().mockResolvedValue({ status: 'queued' })
+    const collect = vi
+      .fn<typeof window.ocrCollection.collectOcrSample>()
+      .mockResolvedValue({ status: 'queued' })
     vi.stubGlobal('ocrCollection', { collectOcrSample: collect })
     const f = await fixture()
     f.worker.recognize.mockResolvedValue(ocrResult(' 가나'))
