@@ -2,14 +2,20 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
+  // SEED medium iconOnly의 좌우 여백 10에 24 아이콘을 넣으면 폭이 44가 되므로,
+  // 디자인 IconButton의 40 정사각형에 맞춰 여백만 줄인다.
+  cameraButton: { padding: 8 },
   camera: { color: colors.fgDefault },
   cameraActive: { color: colors.fgBrand },
   dialog: {
-    width: 440,
+    width: 480,
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
-    borderRadius: 16
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderDefault,
+    borderRadius: 12
   },
   heading: {
     display: 'flex',
@@ -18,20 +24,10 @@ export const styles = stylex.create({
     gap: 16,
     paddingRight: 24
   },
-  state: { color: colors.fgMuted, whiteSpace: 'nowrap' },
-  stateActive: { color: colors.fgInfo },
   notice: {
     color: colors.fgMuted,
     paddingTop: 12,
     overflowWrap: 'anywhere'
-  },
-  footer: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-    padding: 24
   },
   actions: { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }
 })
