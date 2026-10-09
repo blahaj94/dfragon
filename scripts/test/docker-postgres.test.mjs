@@ -804,6 +804,66 @@ test('Docker stderr의 연결 문자열 credential과 비밀 이름 값은 가�
   )
 })
 
+test('실패 원인 설명은 중첩 오류와 cause를 펼치고 알려진 비밀 값을 가린다', () => {
+  const password = 'synthetic-run-password'
+  const creation = new Error(`connect with ${password}`)
+  const teardown = new AggregateError(
+    [new Error('Docker command failed: volume rm (exit code 1)\n  volume is in use')],
+    'Database test teardown failed'
+  )
+  const failure = new AggregateError(
+    [creation, teardown],
+    'Database test creation and teardown failed',
+    { cause: creation }
+  )
+  assert.equal(
+    postgres.describeFailure(failure, { secrets: new Set([password]) }),
+    [
+      'AggregateError: Database test creation and teardown failed',
+      '  Error: connect with [redacted]',
+      '  AggregateError: Database test teardown failed',
+      '    Error: Docker command failed: volume rm (exit code 1)',
+      '      volume is in use'
+    ].join('\n')
+  )
+  const fetchFailure = new TypeError('fetch failed', {
+    cause: new Error('connect ECONNREFUSED 127.0.0.1:5432')
+  })
+  assert.equal(
+    postgres.describeFailure(fetchFailure),
+    'TypeError: fetch failed\n  cause: Error: connect ECONNREFUSED 127.0.0.1:5432'
+  )
+  // 자원을 만들기 전 실패에서는 가릴 비밀번호가 아직 없다.
+  assert.equal(
+    postgres.describeFailure(new Error('before creation'), { secrets: [undefined] }),
+    'Error: before creation'
+  )
+})
+
+test('실패 원인 설명은 길이와 중첩 깊이를 제한하고 Error가 아닌 객체의 내용은 출력하지 않는다', () => {
+  const message = Array.from({ length: 100 }, (_, index) => `line ${index + 1}`).join('\n')
+  const lines = postgres.describeFailure(new Error(message)).split('\n')
+  assert.equal(lines.length, 41)
+  assert.equal(lines[0], 'Error: line 1')
+  assert.equal(lines[39], 'line 40')
+  assert.equal(lines[40], '… 60 more lines')
+
+  const cyclic = new Error('loop')
+  cyclic.cause = cyclic
+  assert.equal(
+    postgres.describeFailure(cyclic),
+    [
+      'Error: loop',
+      '  cause: Error: loop',
+      '    cause: Error: loop',
+      '      cause: Error: loop'
+    ].join('\n')
+  )
+
+  assert.equal(postgres.describeFailure({ password: 'object-secret' }), 'Non-Error value: object')
+  assert.equal(postgres.describeFailure('thrown token=string-secret'), 'thrown token=[redacted]')
+})
+
 test('PostgreSQL 생성과 정리는 정확한 자원만 사용하고 이웃 이름의 자원을 보존한다', async (t) => {
   const neighbor = `${fixtureName}-neighbor`
   const protectedContainer = { runId: 'different12345678' }

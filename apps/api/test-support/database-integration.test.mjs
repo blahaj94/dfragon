@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { cleanupDatabaseIntegration } from './database-integration.mjs'
 
-test('DB runner는 연결 정리가 실패해도 전용 자원 제거와 부재 확인을 계속한다', async (t) => {
+test('DB runner는 연결 정리가 실패해도 전용 자원 제거와 부재 확인을 계속하고 원인을 보존한다', async (t) => {
   for (const [failure, description] of [
     ['source', '연결 종료'],
     ['teardown', '자원 제거'],
@@ -10,10 +10,11 @@ test('DB runner는 연결 정리가 실패해도 전용 자원 제거와 부재 
   ]) {
     await t.test(`${description} 실패`, async () => {
       const calls = []
+      const cleanupError = new Error('synthetic-private-cleanup-error')
       const operation = (name) => async () => {
         calls.push(name)
         if (name === failure) {
-          throw new Error('synthetic-private-cleanup-error')
+          throw cleanupError
         }
       }
       await assert.rejects(
@@ -24,7 +25,14 @@ test('DB runner는 연결 정리가 실패해도 전용 자원 제거와 부재 
           teardown: operation('teardown'),
           assertAbsent: operation('assertAbsent')
         }),
-        new Error('API database test resource cleanup failed')
+        (error) => {
+          assert.equal(error instanceof AggregateError, true)
+          assert.equal(error.message, 'API database test resource cleanup failed')
+          assert.equal(error.errors.length, 1)
+          assert.equal(error.errors[0], cleanupError)
+
+          return true
+        }
       )
       assert.deepEqual(calls, ['source', 'teardown', 'assertAbsent'])
     })
