@@ -9,12 +9,7 @@ import {
   CODE,
   RETURN_TARGET
 } from '../auth/auth-test-fixtures'
-import {
-  registerCaptureIpc,
-  registerCaptureWindow,
-  consumeCaptureMediaPermission,
-  collectCurrentCapture
-} from './ipc-handler'
+import { registerCaptureIpc, registerCaptureWindow, collectCurrentCapture } from './ipc-handler'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
 import type { OcrCollection } from '../ocr-collection/collection'
 
@@ -165,9 +160,12 @@ describe('capture main document and source boundary', () => {
     '%s는 열거하거나 기존 캡처를 끝내기 전에 거절한다',
     async (_name, channel, args, message) => {
       const fixture = await setup(false)
+      const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
       await fixture.invoke('selectCaptureSource', sources[0].id)
       await beginCapture(fixture)
-      const before = await fixture.invoke('controlCharacterSearch', { action: 'read' })
+      const before = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+        snapshot: { captureId: string }
+      }
       electron.getSources.mockClear()
       fixture.published.mockClear()
 
@@ -176,7 +174,11 @@ describe('capture main document and source boundary', () => {
       expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(before)
       expect(electron.getSources).not.toHaveBeenCalled()
       expect(fixture.published).not.toHaveBeenCalled()
-      expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(true)
+      nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
+      await expect(fixture.invoke('readCaptureFrame', before.snapshot.captureId)).resolves.toEqual({
+        kind: 'frame',
+        image
+      })
     }
   )
 
@@ -229,13 +231,18 @@ describe('capture main document and source boundary', () => {
       ok: true,
       snapshot: { captureId: null }
     })
-    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
+    await expect(fixture.invoke('readCaptureFrame', before.snapshot.captureId)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
   })
 
-  it('IPC 해제는 캡처, 직접 검색을 정리하고 모든 전용 handler와 media 허용을 제거한다', async () => {
+  it('IPC 해제는 캡처, 직접 검색과 캡처 프레임 읽기를 정리하고 모든 전용 handler를 제거한다', async () => {
     const fixture = await setup(false)
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
+    const captured = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+      snapshot: { captureId: string }
+    }
     await fixture.invoke('controlManualSearch', { action: 'begin' })
     fixture.published.mockClear()
 
@@ -261,7 +268,11 @@ describe('capture main document and source boundary', () => {
       ['characterSearchChanged', null],
       ['manualSearchChanged', null]
     ])
-    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
+    // 해제 전에 받은 handler 참조로 호출해도 정리된 캡처의 프레임은 읽지 않는다.
+    await expect(fixture.invoke('readCaptureFrame', captured.snapshot.captureId)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+    expect(nativeFrame.read).not.toHaveBeenCalled()
   })
 
   it('검색 read는 capture를 시작하거나 인증 HTTP를 실행하지 않는다', async () => {
@@ -523,12 +534,20 @@ describe('capture main document and source boundary', () => {
     await expect(fixture.invoke('selectCaptureSource', '')).rejects.toThrow()
   })
 
-  it('선택 뒤 logout은 main source와 media 허용을 유지한다', async () => {
+  it('선택 뒤 logout은 main source와 캡처 프레임 읽기를 유지한다', async () => {
     const fixture = await setup()
+    const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
+    const captured = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+      snapshot: { captureId: string }
+    }
     await fixture.auth.logout()
-    expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(true)
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
+    await expect(fixture.invoke('readCaptureFrame', captured.snapshot.captureId)).resolves.toEqual({
+      kind: 'frame',
+      image
+    })
   })
 
   // Electron 44.7.0은 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
@@ -619,65 +638,6 @@ describe('capture main document and source boundary', () => {
   })
 })
 
-describe('product media permission capture lifetime', () => {
-  it('requires selection and begin, permits once, and allows a new Start after Stop', async () => {
-    const fixture = await setup()
-    const ask = (): boolean => consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)
-    expect(ask()).toBe(false)
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-    expect(ask()).toBe(false)
-    await beginCapture(fixture)
-    expect(ask()).toBe(true)
-    expect(ask()).toBe(false)
-    const current = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
-      snapshot: { captureId: string }
-    }
-    await fixture.invoke('controlCharacterSearch', {
-      action: 'end',
-      captureId: current.snapshot.captureId
-    })
-    expect(ask()).toBe(false)
-    await beginCapture(fixture)
-    expect(ask()).toBe(true)
-  })
-
-  it.each(['contents', 'request-document', 'document', 'detached', 'destroyed', 'source-clear'])(
-    'rejects %s at permission time',
-    async (condition) => {
-      const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      await beginCapture(fixture)
-      let contents = fixture.event.sender
-      let url = rendererUrl
-      if (condition === 'contents') {
-        contents = {} as typeof contents
-      }
-
-      if (condition === 'request-document') {
-        url = 'about:blank'
-      }
-
-      if (condition === 'document') {
-        fixture.mainFrame.url = 'about:blank'
-      }
-
-      if (condition === 'detached') {
-        fixture.mainFrame.detached = true
-      }
-
-      if (condition === 'destroyed') {
-        fixture.mainFrame.isDestroyed = () => true
-      }
-
-      if (condition === 'source-clear') {
-        await fixture.invoke('selectCaptureSource', '')
-      }
-
-      expect(consumeCaptureMediaPermission(contents, url)).toBe(false)
-    }
-  )
-})
-
 describe('선택한 창의 네이티브 프레임 IPC', () => {
   it('활성 캡처에 결합된 창만 읽고 임의 창 식별자를 받지 않는다', async () => {
     const f = await setup(false)
@@ -725,17 +685,25 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
     }
   )
 
-  it('다른 문서에서는 네이티브 읽기를 시작하지 않는다', async () => {
-    const f = await setup(false)
-    await f.invoke('selectCaptureSource', sources[0].id)
-    const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
-      snapshot: { captureId: string }
-    }
-    f.mainFrame.url = 'file:///other.html'
+  it.each(['다른 문서', '파괴된 main frame'])(
+    '%s에서는 네이티브 읽기를 시작하지 않는다',
+    async (condition) => {
+      const f = await setup(false)
+      await f.invoke('selectCaptureSource', sources[0].id)
+      const begun = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+        snapshot: { captureId: string }
+      }
+      const isDestroyed = condition === '파괴된 main frame'
+      if (isDestroyed) {
+        f.mainFrame.isDestroyed = () => true
+      } else {
+        f.mainFrame.url = 'file:///other.html'
+      }
 
-    await expect(f.invoke('readCaptureFrame', begun.snapshot.captureId)).rejects.toThrow()
-    expect(nativeFrame.read).not.toHaveBeenCalled()
-  })
+      await expect(f.invoke('readCaptureFrame', begun.snapshot.captureId)).rejects.toThrow()
+      expect(nativeFrame.read).not.toHaveBeenCalled()
+    }
+  )
 })
 
 describe('OCR 수집 프레임 권한', () => {

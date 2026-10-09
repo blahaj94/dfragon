@@ -23,7 +23,6 @@ const mocks = vi.hoisted(() => {
   const registerCharacterDetailWindows = vi.fn<
     typeof import('./character-detail/windows').registerCharacterDetailWindows
   >(() => ({ open: vi.fn(), dispose: disposeCharacterDetails }))
-  const consumeCaptureMediaPermission = vi.fn(() => false)
   const permissionCheck = vi.fn()
   const permissionRequest = vi.fn()
   const disposeCapture = vi.fn()
@@ -98,7 +97,6 @@ const mocks = vi.hoisted(() => {
     registerCharacterDetailWindows,
     openSelectedCharacterDetail,
     disposeCharacterDetails,
-    consumeCaptureMediaPermission,
     permissionCheck,
     permissionRequest,
     registerCapture,
@@ -221,7 +219,6 @@ vi.mock('./character-detail/windows', () => ({
 vi.mock('./capture/ipc-handler', () => ({
   registerCaptureIpc: mocks.registerCapture,
   registerCaptureWindow: mocks.registerWindow,
-  consumeCaptureMediaPermission: mocks.consumeCaptureMediaPermission,
   collectCurrentCapture: mocks.collectCurrentCapture
 }))
 vi.mock('./shortcuts/register', () => ({
@@ -1818,32 +1815,42 @@ it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리�
 })
 
 it.each([
-  { platform: 'win32', configured: true, hasCapture: true, allowed: false },
-  { platform: 'win32', configured: false, hasCapture: true, allowed: false },
-  { platform: 'win32', configured: false, hasCapture: false, allowed: false },
-  { platform: 'darwin', configured: true, hasCapture: true, allowed: false },
-  { platform: 'linux', configured: true, hasCapture: true, allowed: false }
-])('product permission composition: %j', async ({ platform, configured, hasCapture, allowed }) => {
-  const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
-  Object.defineProperty(process, 'platform', { value: platform })
-  try {
-    if (configured) {
-      stubTrustedRuntimeEnvironment()
-    }
-    mocks.consumeCaptureMediaPermission.mockReturnValue(hasCapture)
-    await import('./main')
-    await mocks.bootstrap
-    const callback = vi.fn()
-    const contents = {}
-    mocks.permissionRequest.mock.calls[0][0](contents, 'media', callback, {
-      mediaTypes: [],
-      isMainFrame: true,
-      requestingUrl: 'file:///fixture/index.html'
-    })
+  { platform: 'win32', configured: true },
+  { platform: 'win32', configured: false },
+  { platform: 'darwin', configured: true },
+  { platform: 'linux', configured: true }
+])(
+  'product session denies media permission checks and requests: %j',
+  async ({ platform, configured }) => {
+    const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
+    Object.defineProperty(process, 'platform', { value: platform })
+    try {
+      if (configured) {
+        stubTrustedRuntimeEnvironment()
+      }
+      await import('./main')
+      await mocks.bootstrap
+      const documentUrl = 'file:///fixture/index.html'
+      const callback = vi.fn()
 
-    expect(callback).toHaveBeenCalledExactlyOnceWith(allowed)
-    expect(mocks.consumeCaptureMediaPermission).not.toHaveBeenCalled()
-  } finally {
-    Object.defineProperty(process, 'platform', originalPlatform)
+      expect(mocks.permissionCheck).toHaveBeenCalledOnce()
+      expect(mocks.permissionRequest).toHaveBeenCalledOnce()
+      expect(
+        mocks.permissionCheck.mock.calls[0][0]({}, 'media', documentUrl, {
+          isMainFrame: true,
+          mediaType: 'video',
+          requestingUrl: documentUrl
+        })
+      ).toBe(false)
+      // 예전 제품이 캡처 수명마다 한 번 허용하던 main frame의 빈 mediaTypes 요청도 거절한다.
+      mocks.permissionRequest.mock.calls[0][0]({}, 'media', callback, {
+        mediaTypes: [],
+        isMainFrame: true,
+        requestingUrl: documentUrl
+      })
+      expect(callback).toHaveBeenCalledExactlyOnceWith(false)
+    } finally {
+      Object.defineProperty(process, 'platform', originalPlatform)
+    }
   }
-})
+)
