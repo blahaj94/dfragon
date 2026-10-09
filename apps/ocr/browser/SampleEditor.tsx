@@ -3,7 +3,7 @@ import { styles } from './styles.js'
 import { useSampleEditor } from './hooks/use-sample-editor.js'
 import { OCR_SAMPLES } from '../src/constants.js'
 import { Typo } from '@dfragon/ui/typo'
-import { primary, secondary } from './buttons.js'
+import { chip, primary, secondary } from './buttons.js'
 import type { Sample, Split } from '../src/model.js'
 import { OcrIcon } from './OcrIcon.js'
 import { OCR_CAPTURE_LABELS, OCR_MESSAGES } from './constants.js'
@@ -108,7 +108,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
             <button
               key={split}
               type="button"
-              className={sample.split === split ? primary : secondary}
+              className={`${chip} ${stylex.props(styles.chip, sample.split === split && styles.selectedChip).className}`}
               aria-pressed={sample.split === split}
               disabled={
                 busy ||

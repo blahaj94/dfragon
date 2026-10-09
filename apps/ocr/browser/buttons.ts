@@ -1,5 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { actionButton } from '@seed-design/css/recipes/action-button'
+import { controlChip } from '@seed-design/css/recipes/control-chip'
 import { colors } from './theme.stylex.js'
 
 // Keep SEED medium size, focus, pressed and disabled states; scope the design palette and the
@@ -19,3 +20,4 @@ const appearance = stylex.create({
 const className = stylex.props(appearance.button).className
 export const primary = `${actionButton({ variant: 'brandSolid', size: 'medium' })} ${className}`
 export const secondary = `${actionButton({ variant: 'neutralWeak', size: 'medium' })} ${className}`
+export const chip = controlChip({ size: 'small' })

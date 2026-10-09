@@ -62,10 +62,19 @@ export const styles = stylex.create({
     color: colors.fgMuted,
     minWidth: 0
   },
-  splitButtons: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-    gap: 8
+  splitButtons: { display: 'flex', flexWrap: 'wrap', gap: 8 },
+  // StyleX rules outrank the SEED chip recipe, so restate its disabled colors and focus ring.
+  chip: {
+    backgroundColor: { default: colors.bgControl, ':disabled': 'var(--seed-color-bg-disabled)' },
+    boxShadow: 'none',
+    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
+    outlineOffset: { default: null, ':focus-visible': 2 }
+  },
+  selectedChip: {
+    backgroundColor: { default: colors.bgBrandWeak, ':disabled': 'var(--seed-color-bg-disabled)' },
+    color: { default: colors.fgBrand, ':disabled': 'var(--seed-color-fg-disabled)' },
+    boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`,
+    fontWeight: 700
   },
   control: {
     fontFamily: 'inherit',
