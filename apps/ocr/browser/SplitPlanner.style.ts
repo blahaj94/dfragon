@@ -11,7 +11,7 @@ export const layout = stylex.create({
     padding: 8,
     borderBottomWidth: 1,
     borderBottomStyle: 'solid',
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderDefault,
     whiteSpace: 'nowrap'
   },
   frequencies: { maxHeight: 180, overflowY: 'auto', lineHeight: 2, wordBreak: 'break-all' }

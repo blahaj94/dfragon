@@ -9,7 +9,7 @@ import { errorMessage } from './client.js'
 import { OCR_SAMPLES } from '../src/constants.js'
 import type { Sample } from '../src/model.js'
 import { Typo } from '@dfragon/ui/typo'
-import { primary, secondary } from './buttons.js'
+import { primary, secondary, secondarySmall } from './buttons.js'
 import { CaptureUpload } from './CaptureUpload.js'
 import { SampleEditor } from './SampleEditor.js'
 import { OcrIcon } from './OcrIcon.js'
@@ -98,7 +98,7 @@ export function App() {
             <label {...stylex.props(styles.label)}>
               작성 상태
               <select
-                {...stylex.props(styles.control)}
+                {...stylex.props(styles.control, styles.select)}
                 value={state}
                 onChange={(e) => setFilter('state', e.target.value)}
               >
@@ -111,7 +111,7 @@ export function App() {
             <label {...stylex.props(styles.label)}>
               수집 종류
               <select
-                {...stylex.props(styles.control)}
+                {...stylex.props(styles.control, styles.select)}
                 value={kind}
                 onChange={(e) => setFilter('kind', e.target.value)}
               >
@@ -125,7 +125,7 @@ export function App() {
             <label {...stylex.props(styles.label)}>
               분할
               <select
-                {...stylex.props(styles.control)}
+                {...stylex.props(styles.control, styles.select)}
                 value={split}
                 onChange={(e) => setFilter('split', e.target.value)}
               >
@@ -169,7 +169,9 @@ export function App() {
                       alt={item.text ?? '미작성 닉네임'}
                     />
                   </div>
-                  <strong {...stylex.props(styles.sampleTitle)}>
+                  <strong
+                    {...stylex.props(styles.sampleTitle, item.text !== null && styles.labeledTitle)}
+                  >
                     {item.text ?? '정답 미작성'}
                   </strong>
                   <span {...stylex.props(styles.sampleMeta)}>
@@ -178,7 +180,8 @@ export function App() {
                   <span
                     {...stylex.props(
                       styles.sampleSplit,
-                      !item.excluded && item.split === 'unassigned' && styles.unassigned
+                      !item.excluded && item.split === 'unassigned' && styles.unassigned,
+                      item.excluded && styles.excludedSplit
                     )}
                   >
                     {sampleSplitLabel(item)}
@@ -190,7 +193,7 @@ export function App() {
           {sample !== undefined && <SampleEditor key={sample.id} sample={sample} />}
           <nav {...stylex.props(styles.pagination)} aria-label="페이지">
             <button
-              className={`${secondary} ${stylex.props(styles.paginationButton).className}`}
+              className={secondarySmall}
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - OCR_SAMPLES.pageSize))}
             >
@@ -198,7 +201,7 @@ export function App() {
             </button>
             <span>{offset / OCR_SAMPLES.pageSize + 1} 페이지</span>
             <button
-              className={`${secondary} ${stylex.props(styles.paginationButton).className}`}
+              className={secondarySmall}
               disabled={next === null}
               onClick={() => {
                 if (next !== null) {

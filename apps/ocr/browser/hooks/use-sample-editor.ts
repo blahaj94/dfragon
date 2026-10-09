@@ -14,6 +14,8 @@ type SaveRequest = {
   session: EditSession
 }
 type SplitRequest = { text: string; split: Split; session: EditSession }
+type Notice = { message: string; failed: boolean }
+const EMPTY_NOTICE: Notice = { message: '', failed: false }
 
 export function useSampleEditor(sample: Sample) {
   const client = useQueryClient()
@@ -36,7 +38,7 @@ export function useSampleEditor(sample: Sample) {
   function setText(value: string) {
     setDraft((current) => ({ ...current, text: value }))
   }
-  const [message, setMessage] = useState('')
+  const [notice, setNotice] = useState<Notice>(EMPTY_NOTICE)
   const save = useMutation({
     mutationFn: ({ id, body }: SaveRequest) =>
       requestOcr<Sample>(`/api/samples/${id}`, 'PATCH', body),
@@ -55,13 +57,13 @@ export function useSampleEditor(sample: Sample) {
             return { ...current, text }
           })
         }
-        setMessage(OCR_MESSAGES.saved)
+        setNotice({ message: OCR_MESSAGES.saved, failed: false })
       }
       await invalidateDataset(client)
     },
     onError: (error, request) => {
       if (request.session.active) {
-        setMessage(errorMessage(error))
+        setNotice({ message: errorMessage(error), failed: true })
       }
     }
   })
@@ -70,13 +72,13 @@ export function useSampleEditor(sample: Sample) {
       requestOcr('/api/splits', 'PUT', { text, split }),
     onSuccess: async (_result, request) => {
       if (request.session.active) {
-        setMessage(OCR_MESSAGES.splitAssigned)
+        setNotice({ message: OCR_MESSAGES.splitAssigned, failed: false })
       }
       await invalidateDataset(client)
     },
     onError: (error, request) => {
       if (request.session.active) {
-        setMessage(errorMessage(error))
+        setNotice({ message: errorMessage(error), failed: true })
       }
     },
     onSettled: (_result, _error, request) => {
@@ -90,7 +92,7 @@ export function useSampleEditor(sample: Sample) {
     }
     session.pending = true
     session.confirmation = null
-    setMessage('')
+    setNotice(EMPTY_NOTICE)
     try {
       await save.mutateAsync(request)
 
@@ -150,7 +152,7 @@ export function useSampleEditor(sample: Sample) {
     }
     session.pending = true
     session.confirmation = null
-    setMessage('')
+    setNotice(EMPTY_NOTICE)
     assign.mutate({ text: sample.text, split, session })
   }
   const busy = save.isPending || assign.isPending
@@ -158,7 +160,8 @@ export function useSampleEditor(sample: Sample) {
   return {
     text,
     setText,
-    message,
+    message: notice.message,
+    failed: notice.failed,
     busy,
     saveSample,
     setSampleExcluded,

@@ -5,7 +5,7 @@ import { OCR_UPLOAD } from '../src/constants.js'
 import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { UI_SCALE_PERCENT } from './constants.js'
 import { parseCaptureKind } from '../src/input.js'
-import { primary, secondary } from './buttons.js'
+import { primary, secondary, secondarySmall } from './buttons.js'
 import { Typo } from '@dfragon/ui/typo'
 import { OcrIcon } from './OcrIcon.js'
 
@@ -23,6 +23,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
     setCrops,
     submission,
     message,
+    failed,
     busy,
     uploadNew,
     retryPrevious
@@ -47,7 +48,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             원본 이미지 업로드
           </Typo.h5>
         </div>
-        <button type="button" className={secondary} onClick={onClose}>
+        <button type="button" className={secondarySmall} onClick={onClose}>
           접기
         </button>
       </div>
@@ -56,7 +57,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           원본 PNG
           <input
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.fileInput)}
             type="file"
             accept="image/png"
             disabled={busy}
@@ -68,7 +69,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           수집 종류
           <select
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.select)}
             value={kind}
             disabled={busy}
             onChange={(e) => setKind(parseCaptureKind(e.target.value))}
@@ -93,7 +94,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           UI 크기 확인 방법
           <select
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.select)}
             value={source}
             onChange={(e) => setSource(e.target.value)}
           >
@@ -112,7 +113,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             <label {...stylex.props(styles.label, styles.cropPosition)}>
               위치
               <select
-                {...stylex.props(styles.control)}
+                {...stylex.props(styles.control, styles.select)}
                 aria-label={`크롭 ${index + 1} 위치`}
                 value={crop.slot}
                 disabled={busy}
@@ -210,7 +211,14 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
           </button>
         </div>
       </div>
-      <p {...stylex.props(styles.paragraph, message !== '' && styles.uploadStatus)} role="status">
+      <p
+        {...stylex.props(
+          styles.paragraph,
+          message !== '' && styles.uploadStatus,
+          failed && styles.failedStatus
+        )}
+        role="status"
+      >
         {message}
       </p>
     </section>
