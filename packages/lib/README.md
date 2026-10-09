@@ -73,7 +73,7 @@ validateDFNickname('MyGM', { bannedWords: ['gm'] })
 
 ## 도메인 근거와 한계
 
-[네오플의 2018년 검색 API 공지](https://developers.neople.co.kr/contents/notice/view/106)는 `wordType=full` 검색의 2~12자를 안내합니다. 검색어 길이는 캐릭터명 생성의 인코딩·바이트 상한과 다른 계약입니다. [DFRAGON 검색 규칙](../../docs/rules/character-search.md)은 Unicode code point 기준 2~12자이며, [DFRAGON 계정 닉네임](../../docs/rules/auth-api.md#닉네임)은 grapheme 기준 1~20자와 이모지를 허용합니다. 이 함수로 두 validator를 대체하면 기존 동작을 깨뜨립니다.
+[네오플의 2018년 검색 API 공지](https://developers.neople.co.kr/contents/notice/view/106)는 `wordType=full` 검색의 2~12자를 안내합니다. 검색어 길이는 캐릭터명 생성의 인코딩·바이트 상한과 다른 계약입니다. [DFragon 검색 규칙](../../docs/rules/character-search.md)은 Unicode code point 기준 2~12자이며, [DFragon 계정 닉네임](../../docs/rules/auth-api.md#닉네임)은 grapheme 기준 1~20자와 이모지를 허용합니다. 이 함수로 두 validator를 대체하면 기존 동작을 깨뜨립니다.
 
 [과거 던파 공식 생성 안내](https://df.nexon.com/community/news/notice/118741)는 일부 ASCII 기호·완성형 한글·한문·히라가나를 열거합니다. 이는 CP949 전체와 동일한 목록이 아니며, 오래된 공지만으로 현재 허용 문자 전체를 확정할 수 없습니다. 이 함수는 요청한 고전 특수문자 지원을 위해 인쇄 가능한 ASCII 및 CP949 문자 집합을 채택한 근사 검사입니다. 실제 생성·검색 성공을 보장하지 않습니다.
 

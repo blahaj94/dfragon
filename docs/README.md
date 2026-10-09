@@ -5,7 +5,7 @@ scope: repository
 last-reviewed: 2026-10-02
 ---
 
-# DFRAGON Document Guide
+# DFragon Document Guide
 
 ## 읽기 안내
 

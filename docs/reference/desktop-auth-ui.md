@@ -31,7 +31,7 @@ last-reviewed: 2026-09-14
 
 `@dfragon/ui`의 `LayoutBlock`, `ContentStack`, `ExampleSection`, `SupportingText`, `ActionButton`을 그대로 소비한다. SEED Theme 초기화와 system font는 fixture entry의 `@seed-design/css/base.css`, `@dfragon/ui/foundation.css` 및 공식 Vite plugin을 따른다. 화면 CSS·style·className override와 추가 framework는 없다.
 
-고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton·Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 DFRAGON composition의 제품 content 조합이다. 기존 공용 appearance·Motion을 변경하지 않았다.
+고정 조합은 `@seed-design/react@2.4.1`, `@seed-design/css@2.7.0`, `@seed-design/vite-plugin@2.1.0`이다. 공식 ActionButton·Layout source 기준은 `packages/ui/seed-provenance.json`의 `08b3600989597f4e9017731484a409685c08aa68`이다. 전체 auth 화면은 공식 auth Template 복제가 아닌 기존 DFragon composition의 제품 content 조합이다. 기존 공용 appearance·Motion을 변경하지 않았다.
 
 ## 격리 fixture 실행
 

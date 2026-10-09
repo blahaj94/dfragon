@@ -22,7 +22,7 @@ last-reviewed: 2026-09-28
 
 Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답의 URL만 격리된 Electron 로그인 전용 BrowserWindow에서 연다. Node·preload·제품 IPC를 제공하지 않고 메모리 session을 사용한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면에서 기존 계정 로그인과 새 계정 생성을 분리한다.
 
-요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. DFRAGON 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
+요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure·HttpOnly·SameSite=Lax·Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. DFragon 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
 
 직접 패스키 인증 또는 아래 QR 휴대폰 승인과 PC 자동 claim 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 앱은 원래 request ID·client ID·verifier로 교환한다. 서버가 credential의 존재·소유 관계를 재확인하고 session·refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
 
@@ -32,7 +32,7 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback·PKCE·client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl·fingerprint·기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
 
-## DFRAGON 휴대폰 QR
+## DFragon 휴대폰 QR
 
 PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, PC 회원가입 화면에서 기존 계정과 별개의 계정이 생김을 안내한다. 휴대폰은 별도 회원가입 안내 화면 없이 `새 계정 만들기`에서 기기의 패스키 생성을 바로 시작한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
 

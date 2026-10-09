@@ -13,7 +13,7 @@ last-reviewed: 2026-09-26
   "passkey": {
     "apiOrigin": "https://accounts.dfragon.com",
     "rpId": "accounts.dfragon.com",
-    "rpName": "DFRAGON",
+    "rpName": "DFragon",
     "returnUrl": "dfragon://auth/callback"
   }
 }
@@ -35,7 +35,7 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 - `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema·migration·가상 WebAuthn 브라우저·refresh·계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태·IPC·화면 회귀와 build.
 
-운영 배포와 실제 휴대폰 QR 검증은 별도다. DFRAGON QR은 휴대폰의 HTTPS 패스키 인증·명시 승인과 PC 자동 claim을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
+운영 배포와 실제 휴대폰 QR 검증은 별도다. DFragon QR은 휴대폰의 HTTPS 패스키 인증·명시 승인과 PC 자동 claim을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
 
 ## OCR 관리 웹의 선택 연결
 
@@ -99,13 +99,13 @@ RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소�
 별도로 조회한 결과가 아니다. 서버 로그아웃 실패·로컬 정리 실패를 주입하지 않았고,
 이 결과를 물리 정전 내구성이나 다른 OS·브라우저·기기의 성공으로 확대하지 않는다.
 
-## DFRAGON QR과 전용 창
+## DFragon QR과 전용 창
 
 Desktop 메인의 `로그인`은 중간 계정 모달 없이 전용 인증 창을 바로 연다. 로그인 진행 중에는 버튼 재클릭을 막으며, 취소는 인증 창의 닫기로 처리한다. 기존 계정 모달과 로그인 후 계정 메뉴는 제거했다. 인증 창의 로그인 화면은 왼쪽 휴대폰, 오른쪽 패스키 로그인과 아래 새 계정 만들기로 구성한다.
 
 PC QR 화면에는 확인 번호, 초 단위 남은 시간, 공유 금지 안내와 재발급·닫기를 표시한다. 표시 시간은 서버가 내려준 원래 만료 시각을 기준으로 계산하며 상태 조회는 기존 5초 간격을 유지한다. 만료 후에는 QR 화면에 만료를 표시하고 재발급을 막는다. 창을 닫고 앱에서 새 로그인 요청을 시작해야 한다. 만료 등으로 서버 취소가 거절되더라도 닫기를 사용할 수 있다.
 
-PC의 `새 계정 만들기`는 별도 회원가입 화면을 연다. PC에서는 왼쪽 `휴대폰으로 회원가입`으로 DFRAGON QR을 열거나 오른쪽 `패스키로 회원가입`으로 현재 기기의 인증 안내를 시작한다. WebAuthn을 지원하지 않는 PC도 휴대폰 경로를 사용할 수 있다. 휴대폰에서는 `새 계정 만들기`를 누르면 중간 가입 화면 없이 패스키 생성을 시작한다. 가입 또는 기존 패스키 인증 후 확인 번호와 `{닉네임} 님이 맞으신가요?`를 표시하고 `로그인`을 눌러 승인한다. 인증만으로는 PC 앱 복귀 code가 발급되지 않는다.
+PC의 `새 계정 만들기`는 별도 회원가입 화면을 연다. PC에서는 왼쪽 `휴대폰으로 회원가입`으로 DFragon QR을 열거나 오른쪽 `패스키로 회원가입`으로 현재 기기의 인증 안내를 시작한다. WebAuthn을 지원하지 않는 PC도 휴대폰 경로를 사용할 수 있다. 휴대폰에서는 `새 계정 만들기`를 누르면 중간 가입 화면 없이 패스키 생성을 시작한다. 가입 또는 기존 패스키 인증 후 확인 번호와 `{닉네임} 님이 맞으신가요?`를 표시하고 `로그인`을 눌러 승인한다. 인증만으로는 PC 앱 복귀 code가 발급되지 않는다.
 
 PC 회원가입 화면에는 기존 계정과 별개의 계정이 생긴다는 안내와 패스키 분실·예비 키 안내를 표시한다. PC에서 패스키 생성을 취소하면 같은 화면에서 재시도할 수 있다. 휴대폰 인증창의 취소·시간 초과는 요청을 종료하고 드래곤 아이콘과 `로그인 취소`를 표시한다. `닫기`는 인증 요청을 취소하고 전용 창을 닫으며, 일반 브라우저에서 창 닫기가 제한되면 취소 완료 안내를 남긴다. SEED의 밝은·어두운 테마를 따르고 좁은 화면에서는 가입 버튼을 세로로 배치한다.
 

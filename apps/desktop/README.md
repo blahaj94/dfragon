@@ -1,4 +1,4 @@
-# DFRAGON Desktop
+# DFragon Desktop
 
 던전앤파이터 캐릭터를 직접 검색하거나 게임 화면의 닉네임을 PaddleOCR로 읽어 검색하는 Windows 앱입니다. 검색, 캡처와 OCR은 로그인 없이 사용합니다. 던파 창이 하나면 자동 캡처하고 각 카드 중앙에 OCR부터 조회 완료까지 진행 상태를 표시합니다. OCR 첫 번째 이름만 검색하며 외형을 확인하지 못하면 최고 명성 후보를 대체 표시합니다. 서버와 닉네임은 항상 수정할 수 있고 별도 상세 창에서 기본 정보를 비교할 수 있습니다. 장비 카드 확장과 실제 Windows 검증은 별도입니다.
 
@@ -12,7 +12,7 @@
 
 ## 실행 중 오류 확인
 
-앱에서 **Ctrl+Shift+I**를 누르면 Electron 기본 DevTools가 열립니다. **Console**의 `[DFRAGON ...]` 항목에서 캡처, OCR, 검색, 업로드와 화면 오류의 정제된 코드를 확인합니다. 최근 200개 기록을 현재 프로세스 메모리에만 유지하며 같은 오류가 연속되면 중복을 줄입니다. 앱을 종료하면 없어지고 파일로 저장하지 않습니다.
+앱에서 **Ctrl+Shift+I**를 누르면 Electron 기본 DevTools가 열립니다. **Console**의 `[DFragon ...]` 항목에서 캡처, OCR, 검색, 업로드와 화면 오류의 정제된 코드를 확인합니다. 최근 200개 기록을 현재 프로세스 메모리에만 유지하며 같은 오류가 연속되면 중복을 줄입니다. 앱을 종료하면 없어지고 파일로 저장하지 않습니다.
 
 원문 오류, 닉네임, 토큰, 이미지, 외부 응답과 개인 경로는 이 진단 기록에 넣지 않습니다. 따라서 상세 stack 대신 실패 영역과 고정 코드를 확인하는 용도입니다. 앱이 종료되는 치명적 오류의 기록은 다음 실행으로 복구하지 않습니다.
 
@@ -85,13 +85,13 @@ workflow 실행 시점의 최신 main 대신 실제 checkout한 commit을 기록
 
 ## 기존 배포본 설치와 사용
 
-1. 배포받은 `DFRAGON-<버전>-x64-setup.exe`를 실행합니다. 현재 Windows 사용자용으로 `dfragon` 폴더에 설치하며 개발 앱 `DFRAGON Development`와 별도로 사용할 수 있습니다.
-2. 시작 메뉴나 바탕화면의 **DFRAGON**을 실행하고 Windows 관리자 권한 요청을 승인합니다. Portable도 같은 권한을 요구합니다. Node.js, DB와 OCR 모델을 별도로 설치할 필요는 없으며 검색에는 인터넷과 배포 API 연결이 필요합니다.
+1. 배포받은 `DFragon-<버전>-x64-setup.exe`를 실행합니다. 현재 Windows 사용자용으로 `dfragon` 폴더에 설치하며 개발 앱 `DFragon Development`와 별도로 사용할 수 있습니다.
+2. 시작 메뉴나 바탕화면의 **DFragon**을 실행하고 Windows 관리자 권한 요청을 승인합니다. Portable도 같은 권한을 요구합니다. Node.js, DB와 OCR 모델을 별도로 설치할 필요는 없으며 검색에는 인터넷과 배포 API 연결이 필요합니다.
 3. 닉네임을 입력해 직접 검색하거나 게임을 **창 모드 또는 테두리 없는 창 모드**로 맞추고 HP, MP가 가득 찬 파티 프레임을 표시합니다. 앱 시작 시 던파 창이 하나면 자동으로 캡처합니다. 게임을 나중에 실행해도 기본 15초 간격으로 감지합니다. 후보가 여러 개면 직접 선택하며 **창 목록 새로고침**으로 즉시 확인할 수 있습니다.
 4. 한 번 조회한 결과는 파티원이 바뀌어도 유지합니다. **Alt+R**로 전체 파티를 처음부터 다시 인식합니다. 서버와 닉네임은 언제든 수정하고 **Enter 또는 서버 변경**으로 해당 슬롯만 조회합니다. 외형 비교로 확인하지 못한 후보는 최고 명성 대체 표시라는 안내가 붙습니다.
 5. 캡처를 중지하면 슬롯 결과가 정리됩니다. 종료할 때는 캡처를 중지하고 창의 X를 누릅니다.
 
-앱 identity와 로그인 복귀 주소를 DFRAGON 이름으로 전환했습니다. 기존 `ldb`·`ldb.dev` profile은 새 앱으로 가져오지 않으며 자동 삭제하지도 않습니다. DFRAGON은 새 profile을 만들고 다시 로그인이 필요합니다. 로그인 복귀를 사용하려면 서버 `returnUrl`도 배포용 `dfragon://auth/callback` 또는 개발용 `dfragon.dev://auth/callback`과 맞춰야 합니다.
+앱 identity와 로그인 복귀 주소를 DFragon 이름으로 전환했습니다. 기존 `ldb`·`ldb.dev` profile은 새 앱으로 가져오지 않으며 자동 삭제하지도 않습니다. DFragon은 새 profile을 만들고 다시 로그인이 필요합니다. 로그인 복귀를 사용하려면 서버 `returnUrl`도 배포용 `dfragon://auth/callback` 또는 개발용 `dfragon.dev://auth/callback`과 맞춰야 합니다.
 
 작은 한글 닉네임 오인식은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 남아 있습니다. 해상도와 UI 배율을 고정하지 않고 HP, MP 프레임의 위치와 배율을 매번 검출합니다. 잔량이 줄어든 전투 화면과 폰트 변경은 검증하지 않았습니다. 검색이 실패하면 인터넷·배포 API 상태를 확인하고 다시 시도합니다. 로그인 문제는 비로그인 검색·캡처의 선행 조건이 아닙니다.
 
@@ -110,13 +110,13 @@ $env:DFRAGON_DISTRIBUTION_API_ORIGIN = 'https://api.example.test'
 pnpm --filter @dfragon/desktop build:win
 ```
 
-설치 파일은 `apps/desktop/dist/DFRAGON-<버전>-x64-setup.exe`에 생성됩니다. 명령은 node/web typecheck, OCR 자산 검증·복사, main/preload/renderer 빌드, NSIS 패키징을 포함합니다. API 주소가 없거나 HTTP·localhost·경로/쿼리가 포함된 값이면 실패합니다. 예시 주소로 패키징에 성공해도 실제 배포·검색 검증이 된 것이 아닙니다.
+설치 파일은 `apps/desktop/dist/DFragon-<버전>-x64-setup.exe`에 생성됩니다. 명령은 node/web typecheck, OCR 자산 검증·복사, main/preload/renderer 빌드, NSIS 패키징을 포함합니다. API 주소가 없거나 HTTP·localhost·경로/쿼리가 포함된 값이면 실패합니다. 예시 주소로 패키징에 성공해도 실제 배포·검색 검증이 된 것이 아닙니다.
 
 Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 한국어(대한민국, LCID `0x0412`)로 기록합니다. 이 값은 EXE 메타데이터에 적용하며 앱 UI와 라이선스 원문은 기존 구성을 유지합니다.
 
 ### 포터블 exe와 GitHub Releases
 
-같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFRAGON-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js·별도 설치 프로그램·관리자 권한은 필요하지 않습니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
+같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFragon-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js·별도 설치 프로그램·관리자 권한은 필요하지 않습니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
 
 포터블은 설치 없이 실행하는 배포 형식입니다. 설정과 로그인 정보는 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`에 저장되며 설치형과 공유합니다. 다른 PC로 exe를 복사해도 로그인 정보는 이동하지 않습니다. 바로가기와 OS 로그인 복귀 protocol은 등록하지 않으며 앱 내부 인증 창을 사용합니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
 
@@ -124,7 +124,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 1. 저장소 **Settings → Secrets and variables → Actions → Variables**에 `DFRAGON_DISTRIBUTION_API_ORIGIN`을 실제 배포 API의 HTTPS origin으로 설정합니다. 공개 연결 주소만 입력하며 서버 credential은 넣지 않습니다.
 2. 배포할 변경을 merge하고 해당 commit에 `v<버전>` 태그로 Release를 게시합니다. 예를 들어 첫 릴리스는 `v0.0.1`, 사전 릴리스는 `v0.0.1-beta.1`처럼 지정합니다. 태그의 버전을 실행 파일의 앱 metadata와 파일명에 사용하므로 `apps/desktop/package.json`의 기본 버전과 같을 필요는 없습니다. 태그가 가리키는 commit은 main에 포함되고 그 commit의 main push Code Quality가 성공해야 하며, 아니면 빌드 전에 실패합니다. 연속 merge로 Code Quality가 취소된 commit이면 그 실행을 다시 실행해 성공시킨 뒤 진행합니다.
-3. workflow가 성공하면 **Releases → Assets → `DFRAGON-<버전>-x64-portable.exe`**를 내려받습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일에 exe의 SHA-256 값이 있습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
+3. workflow가 성공하면 **Releases → Assets → `DFragon-<버전>-x64-portable.exe`**를 내려받습니다. 같은 이름 뒤에 `.sha256`이 붙은 파일에 exe의 SHA-256 값이 있습니다. `Source code` 압축 파일은 실행 파일이 아닙니다.
 
 내려받은 exe는 PowerShell의 `Get-FileHash <파일> -Algorithm SHA256` 결과를 `.sha256` 파일의 값과 비교해 손상 여부를 확인합니다. 이 저장소의 Windows Portable workflow가 빌드한 파일인지는 GitHub CLI의 `gh attestation verify <파일> -R blahaj94/dfragon`으로 확인합니다. Checksum과 attestation은 코드 서명을 대신하지 않습니다.
 
@@ -136,7 +136,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 | 항목                              | 배포 앱                                 | 기존 개발 앱                            |
 | --------------------------------- | --------------------------------------- | --------------------------------------- |
-| 이름·실행 파일                    | DFRAGON / `dfragon.exe`                 | DFRAGON Development / `dfragon-dev.exe` |
+| 이름·실행 파일                    | DFragon / `dfragon.exe`                 | DFragon Development / `dfragon-dev.exe` |
 | app identity·appData 아래 profile | `dfragon`                               | `dfragon.dev`                           |
 | 인증 환경                         | `production`                            | `development`                           |
 | 복귀 주소                         | `dfragon://auth/callback`               | `dfragon.dev://auth/callback`           |

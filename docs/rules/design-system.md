@@ -15,8 +15,8 @@ SEED의 기존 Component·Token과 `@dfragon/ui`를 우선 사용해 필요한 �
 
 - 기존 styled Component·recipe·Token·Variant·State와 기본값을 우선 사용한다. 같은 역할을 별도 markup·CSS로 다시 구현하거나 화면 작업 때문에 디자인 시스템을 교체하지 않는다.
 - Typography·Theme·공식 interaction과 접근성 처리를 유지한다. 화면의 요구를 충족하는 기존 layout이 있으면 사용하고, 대응물이 없으면 앱 안에서 필요한 조합을 작성한다. 모든 조합을 명명한 공용 Pattern으로 등록하거나 출처 비교 문서를 작성할 의무는 없다.
-- 공식 Snippet은 필요한 의존 Snippet과 함께 사용한다. 출처와 라이선스를 보존하며 DFRAGON에서 추가한 표현을 공식 SEED 보장으로 설명하지 않는다.
-- SEED의 상표·로고·제품 예시 content를 DFRAGON 정체성이나 제품 데이터로 복제하지 않는다. Package·CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
+- 공식 Snippet은 필요한 의존 Snippet과 함께 사용한다. 출처와 라이선스를 보존하며 DFragon에서 추가한 표현을 공식 SEED 보장으로 설명하지 않는다.
+- SEED의 상표·로고·제품 예시 content를 DFragon 정체성이나 제품 데이터로 복제하지 않는다. Package·CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 
 ## Typo의 명시적 예외
 

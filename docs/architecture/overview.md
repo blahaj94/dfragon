@@ -10,7 +10,7 @@ last-reviewed: 2026-09-29
 
 ## Repository topology
 
-DFRAGON은 pnpm workspace monorepo다.
+DFragon은 pnpm workspace monorepo다.
 
 ```text
 apps/

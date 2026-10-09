@@ -71,13 +71,13 @@ Main이 고정 HTTPS 주소와 credential을 소유하고 renderer에는 검증�
 
 ## 미니PC 모델 보관과 Windows 학습
 
-후속 사용자 요청으로 실제 모델 파일의 미니PC 보관, REST 조회·다운로드·수동 등록과 별도 Windows 평가 앱의 GPU 학습 연결을 채택했다. 서버 API·보관 화면은 [서버 PR #539](https://github.com/blahaj94/dfragon/pull/539), Windows 로그인·데이터 고정·GPU 학습·평가·수동 등록은 별도 [dfragon-ocr-eval-tool](https://github.com/blahaj94/dfragon-ocr-eval-tool)의 [PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 구현했다. 앞 절의 학습·로컬 복제 제외는 기존 DFRAGON Desktop 자료 조회 기능에 유지하며, 새 평가 앱은 다운로드 시점의 입력을 로컬 실험으로 고정한다. 서버에 영구 데이터셋 버전을 만들거나 학습을 실행하지 않는다.
+후속 사용자 요청으로 실제 모델 파일의 미니PC 보관, REST 조회·다운로드·수동 등록과 별도 Windows 평가 앱의 GPU 학습 연결을 채택했다. 서버 API·보관 화면은 [서버 PR #539](https://github.com/blahaj94/dfragon/pull/539), Windows 로그인·데이터 고정·GPU 학습·평가·수동 등록은 별도 [dfragon-ocr-eval-tool](https://github.com/blahaj94/dfragon-ocr-eval-tool)의 [PR #1](https://github.com/blahaj94/dfragon-ocr-eval-tool/pull/1)에서 구현했다. 앞 절의 학습·로컬 복제 제외는 기존 DFragon Desktop 자료 조회 기능에 유지하며, 새 평가 앱은 다운로드 시점의 입력을 로컬 실험으로 고정한다. 서버에 영구 데이터셋 버전을 만들거나 학습을 실행하지 않는다.
 
 자료실의 정답·제외·닉네임 단위 train/val/test 배정이 원천이다. 앱은 정답 완료·미제외·배정된 자료와 선택 모델을 내려받아 해시와 함께 고정하며 서버 배정을 재분할하지 않는다. Windows GPU에서 train으로 학습하고 val로 선택한 모델을 test로 평가한다. 사용자가 등록 버튼을 누르면 새 가중치·사전·평가 요약을 새 모델 ID로 보관한다. 자동 결과 업로드·임의 GitHub 저장소/실행 명령 등록은 제공하지 않는다.
 
 모델의 이름·preset·kind·parentId·등록 시각과 파일 SHA-256을 보관하고 동일 ID 재시도가 기존 bytes를 바꾸지 못하게 한다. 파일과 메타데이터는 원자적으로 저장한다. 일반 파인튜닝은 기존 parent와 같은 preset·사전 bytes를 유지한다. 후속 사용자 승인으로 `expanded` 문자 확장 모델을 추가한다. 부모 preset을 유지하고 부모 사전 전체를 동일 순서의 접두부로 보존하며 새 문자를 뒤에만 추가한다. 기존 ID·사전·가중치는 수정하지 않는다. Windows 앱은 선택한 추가 문자에 필요한 CTC·NRTR 층을 확장하고 기존 문자·공백·특수 토큰의 가중치를 대응시켜 복사한다. 서버는 사전 관계를 검증하되 가중치를 실행하거나 학습 성공을 인증하지 않는다. 원본과 모델 파일에 합산 저장 상한을 적용하며 자동 삭제하지 않는다. 웹 로그인은 기존 owner cookie·Origin 경계를 사용한다. 모델 목록·파일·등록용 Desktop REST는 정확한 허용 경로에서 Origin 없는 활성 owner Bearer만 허용한다.
 
-별도 Windows 평가 앱은 main process가 소유한 웹 로그인 세션으로 `/api/models`, `/api/export/manifest`, `/api/samples/:id/image`를 사용한다. Origin 없는 Bearer를 사용하는 기존 DFRAGON Desktop과 인증 방식·저장소를 구분한다.
+별도 Windows 평가 앱은 main process가 소유한 웹 로그인 세션으로 `/api/models`, `/api/export/manifest`, `/api/samples/:id/image`를 사용한다. Origin 없는 Bearer를 사용하는 기존 DFragon Desktop과 인증 방식·저장소를 구분한다.
 
 첫 지원 모델은 공식 한국어 PP-OCRv5 recognition 학습 가중치이며 웹의 기본 모델 추가로 등록한다. 새로운 패스키·owner·역할을 만들지 않는다. 서버 배포·운영 로그인·프록시 제한 적용과 실제 데이터 학습 성공을 로컬 합성 테스트로 대신하지 않는다.
 
@@ -99,7 +99,7 @@ Windows 앱이 내려받은 실제 train을 모두 유지하고, 정답 문자 �
 
 한 요청은 배경에 합성된 불투명 PNG 한 장과 NFC 정답, 생성 시각, 렌더러 버전·프로필·배율·글자색·배경색을 받는다. 원본 PNG 전체를 한 recognition 샘플로 취급하고 `kind: synthetic`으로 실제 캡처와 구분한다. 이미지·정답·train 배정을 한 transaction으로 저장하며 같은 ID·같은 내용은 중복 저장하지 않는다. 같은 ID의 다른 내용은 충돌이다. 저장 후 정답·원본은 바꾸지 않고 제외·복원만 허용한다. 서버는 입력 정답의 CP949·폰트·실제 글자 일치를 인증하지 않으며 생성자가 렌더러의 검사를 수행한다.
 
-합성은 train 전용이다. 기존 val/test·미배정 닉네임과 충돌하면 업로드 전체를 거절한다. 기존 train 닉네임의 추가 이미지는 허용한다. 합성 닉네임을 수동·자동 재배정으로 train 밖으로 옮기지 않으며 같은 정답의 실제 자료도 train을 따른다. 실제 자료의 자동 분할 통계·목표에는 합성 이미지를 넣지 않는다. 전체 manifest·TAR와 웹 샘플 조회는 합성을 포함하고, 기존 DFRAGON Desktop 자료 조회·평가는 실제 캡처만 유지한다.
+합성은 train 전용이다. 기존 val/test·미배정 닉네임과 충돌하면 업로드 전체를 거절한다. 기존 train 닉네임의 추가 이미지는 허용한다. 합성 닉네임을 수동·자동 재배정으로 train 밖으로 옮기지 않으며 같은 정답의 실제 자료도 train을 따른다. 실제 자료의 자동 분할 통계·목표에는 합성 이미지를 넣지 않는다. 전체 manifest·TAR와 웹 샘플 조회는 합성을 포함하고, 기존 DFragon Desktop 자료 조회·평가는 실제 캡처만 유지한다.
 
 ## 구현과 검증
 

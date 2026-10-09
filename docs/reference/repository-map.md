@@ -85,7 +85,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 ### `apps/desktop`
 
 - Package: `@dfragon/desktop`
-- Windows MVP 배포: 이름 `DFRAGON`, x64 NSIS, `dfragon` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
+- Windows MVP 배포: 이름 `DFragon`, x64 NSIS, `dfragon` identity·profile·protocol과 빌드 시 HTTPS API origin을 사용한다. 기존 `dfragon.dev` 개발 설치본과 분리하며 [설치·사용·빌드 안내](../../apps/desktop/README.md)를 따른다.
 - Stack: Electron, React, TypeScript, electron-vite
 - Process boundary: `main`, `preload`, `renderer`
 - TypeScript: `tsconfig.node.json`·`tsconfig.web.json`에 `composite: false`, `noEmit: true`를 정의하며 에디터와 `typecheck`는 같은 설정을 사용한다. Root `tsconfig.json`은 빈 `files`와 두 프로젝트 참조로 에디터의 프로젝트 탐색을 연결한다. 타입 검사는 각 설정에 `tsc -p`를 실행하고 제품 산출물은 electron-vite가 생성한다. 인증 fixture도 이 설정을 상속하며 명령에서 `composite`를 덮어쓰지 않는다.

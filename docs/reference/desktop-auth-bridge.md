@@ -50,7 +50,7 @@ pnpm --filter @dfragon/desktop auth:fixture:smoke
 pnpm --filter @dfragon/desktop auth:fixture
 ```
 
-Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한다. 실행 entry는 `apps/desktop/out/auth-bridge-fixture/main/main.cjs`다. 고정 window title은 **DFRAGON Auth Bridge fixture**다.
+Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한다. 실행 entry는 `apps/desktop/out/auth-bridge-fixture/main/main.cjs`다. 고정 window title은 **DFragon Auth Bridge fixture**다.
 
 수동 실행에서는 현재 카드 화면의 **로그인** 버튼으로 로그인 대기에 들어가며 자동으로 완료하지 않는다. 앱 메뉴의 **Complete login**으로 main 내부 synthetic return을 전달하면 로그인 버튼이 사라지고 네 카드는 유지된다. 계정 메뉴·환영 화면·화면 내 취소 버튼은 없다. 종료 메뉴나 창 닫기로 앱을 종료하면 launcher가 임시 profile을 삭제하고 부재를 확인한다.
 
