@@ -3,6 +3,10 @@ import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
   button: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
+  selected: {
+    backgroundColor: { default: colors.bgBrandWeak, ':hover': colors.bgBrandWeak },
+    boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`
+  },
   row: {
     display: 'grid',
     gridTemplateColumns: '72px minmax(0, 1fr)',
@@ -24,5 +28,6 @@ export const styles = stylex.create({
   placeholder: { color: colors.fgMuted },
   description: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 },
   overflow: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  muted: { color: colors.fgMuted }
+  muted: { color: colors.fgMuted },
+  selectedState: { color: colors.fgBrand }
 })

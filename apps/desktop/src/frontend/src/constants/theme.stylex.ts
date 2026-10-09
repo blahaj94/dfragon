@@ -23,6 +23,7 @@ export const colors = stylex.defineVars({
   fgDanger: 'var(--seed-color-palette-red-700)',
   borderDefault: 'var(--seed-color-palette-gray-400)',
   borderStrong: 'var(--seed-color-palette-gray-500)',
+  borderBrand: 'var(--seed-color-palette-blue-600)',
   borderFocus: 'var(--seed-color-palette-blue-600)',
   borderDanger: 'var(--seed-color-palette-red-600)',
   cardBg: '#1d2025',
@@ -54,5 +55,6 @@ export const lightTheme = stylex.createTheme(colors, {
   bgControlHover: 'var(--seed-color-palette-gray-400)',
   bgBrandSolid: 'var(--seed-color-palette-blue-700)',
   bgBrandWeak: 'var(--seed-color-palette-blue-100)',
+  borderBrand: 'var(--seed-color-palette-blue-700)',
   borderDanger: 'var(--seed-color-palette-red-700)'
 })

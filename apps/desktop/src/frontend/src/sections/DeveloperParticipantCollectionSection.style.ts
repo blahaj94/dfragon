@@ -19,12 +19,14 @@ export const styles = stylex.create({
     flexWrap: 'wrap'
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
+  connectedDot: { color: colors.fgSuccess },
   badge: {
-    color: colors.fgBrand,
-    backgroundColor: colors.bgBrandWeak,
+    backgroundColor: colors.bgInset,
     padding: '7px 12px',
     borderRadius: 6
   },
+  badgeFound: { color: colors.fgSuccess },
+  badgeSearching: { color: colors.fgWarning },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
   muted: { color: colors.fgMuted },
   saveGuide: {
@@ -164,7 +166,6 @@ export const styles = stylex.create({
     borderRadius: 4,
     overflow: 'hidden'
   },
-  emptyArea: { backgroundColor: colors.bgSurface },
   cropImage: {
     display: 'block',
     height: 30,
@@ -188,6 +189,6 @@ export const styles = stylex.create({
     padding: 16,
     borderRadius: 8,
     backgroundColor: colors.bgBrandWeak,
-    color: colors.fgBrand
+    color: colors.fgDefault
   }
 })
