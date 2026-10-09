@@ -33,6 +33,20 @@ const mocks = vi.hoisted(() => {
   const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
   const reportDiagnostic = vi.fn()
   const registerDesktopShortcuts = vi.fn(() => vi.fn())
+  const updateNotices = {
+    start: vi.fn(),
+    snapshot: vi.fn(),
+    subscribe: vi.fn(),
+    dismiss: vi.fn(),
+    dispose: vi.fn()
+  }
+  const createUpdateNotices = vi.fn<typeof import('./update-notice/notices').createUpdateNotices>(
+    () => updateNotices
+  )
+  const registerUpdateNoticeWindow = vi.fn<
+    typeof import('./update-notice/ipc-handler').registerUpdateNoticeWindow
+  >(() => vi.fn())
+  const readReleaseFeed = vi.fn<typeof import('./update-notice/http').readReleaseFeed>()
   const collectCurrentCapture = vi.fn(async () => ({ status: 'queued' }))
   const createIngress = vi.fn()
   const attachIngress = vi.fn()
@@ -94,6 +108,10 @@ const mocks = vi.hoisted(() => {
     disposeMainDiagnostics,
     reportDiagnostic,
     registerDesktopShortcuts,
+    updateNotices,
+    createUpdateNotices,
+    registerUpdateNoticeWindow,
+    readReleaseFeed,
     collectCurrentCapture,
     bootstrap: undefined as Promise<void> | undefined,
     createIngress,
@@ -208,6 +226,15 @@ vi.mock('./capture/ipc-handler', () => ({
 }))
 vi.mock('./shortcuts/register', () => ({
   registerDesktopShortcuts: mocks.registerDesktopShortcuts
+}))
+vi.mock('./update-notice/notices', () => ({
+  createUpdateNotices: mocks.createUpdateNotices
+}))
+vi.mock('./update-notice/http', () => ({
+  readReleaseFeed: mocks.readReleaseFeed
+}))
+vi.mock('./update-notice/ipc-handler', () => ({
+  registerUpdateNoticeWindow: mocks.registerUpdateNoticeWindow
 }))
 vi.mock('./diagnostics/ipc-handler', () => ({
   registerDiagnosticsWindow: mocks.registerDiagnosticsWindow
@@ -470,6 +497,58 @@ it('version metadata uses separate product and account origins and does not depe
   })
   const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop
   expect(desktop()).toEqual({ version: '6.7.8', commit: null, dirty: null })
+})
+
+it('배포 채널만 새 버전 확인을 시작하고 앱 종료 때 정리한다', async () => {
+  vi.stubGlobal(
+    '__DFRAGON_CHANNEL__',
+    readDesktopChannel('distribution', {
+      DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.synthetic.test'
+    })
+  )
+  mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.createUpdateNotices).toHaveBeenCalledExactlyOnceWith({
+    currentVersion: '6.7.8',
+    readFeed: expect.any(Function),
+    onFailure: mocks.reportDiagnostic
+  })
+  expect(mocks.updateNotices.start).toHaveBeenCalledOnce()
+  // 피드는 cookie를 쓰지 않는 앱 API session으로 요청한다.
+  const { fetchApi } = await import('./api-fetch')
+  const signal = new AbortController().signal
+  void mocks.createUpdateNotices.mock.calls[0][0].readFeed(signal)
+  expect(mocks.readReleaseFeed).toHaveBeenCalledExactlyOnceWith(fetchApi, signal)
+  for (const [event, listener] of mocks.appOn.mock.calls) {
+    if (event === 'quit') {
+      ;(listener as () => void)()
+    }
+  }
+  expect(mocks.updateNotices.dispose).toHaveBeenCalledOnce()
+  expect(mocks.registerUpdateNoticeWindow).toHaveBeenCalledExactlyOnceWith({
+    window: mocks.windows[0],
+    documentUrl: expect.stringContaining('/frontend/index.html'),
+    notices: mocks.updateNotices,
+    onFailure: mocks.reportDiagnostic
+  })
+})
+
+it.each([
+  { name: 'test 채널', channel: 'test' },
+  { name: 'development 채널', channel: 'development' },
+  { name: '채널 없는 실행', channel: null }
+] as const)('$name은 새 버전을 확인하지 않고 알림 IPC만 연결한다', async ({ channel }) => {
+  if (channel != null) {
+    vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel(channel, {}))
+  }
+  mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
+  await import('./main')
+  await mocks.bootstrap
+
+  expect(mocks.updateNotices.start).not.toHaveBeenCalled()
+  expect(mocks.registerUpdateNoticeWindow).toHaveBeenCalledOnce()
 })
 
 it('capture and authentication still start when version metadata registration fails', async () => {

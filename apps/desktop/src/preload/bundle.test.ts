@@ -83,7 +83,8 @@ it.each(['electron.vite.config.ts', 'scripts/auth-capture-fixture.config.ts'])(
               'versions',
               'desktopShortcut',
               'ocrCollection',
-              'diagnostics'
+              'diagnostics',
+              'updateNotice'
             ]
       expect(expose.mock.calls.map(([name]) => name)).toEqual(expectedApis)
       if (fileName === 'character-detail.js') {
