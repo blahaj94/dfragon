@@ -24,6 +24,7 @@ last-reviewed: 2026-10-02
 | 앱 공용 UI·SEED·StyleX·시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
 | React 화면·hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [OCR 안내](../apps/ocr/README.md), [Repository Map](reference/repository-map.md) |
 | Penpot 확정 화면·Desktop MVP 구현 이관 | [Desktop MVP 디자인 이관](reference/desktop-mvp-design-handoff.md) |
+| 제품 이름 표기, 사용자 문구 문체, 표기 검사 | [표기와 문체](rules/writing.md) |
 | 인증·session·DB·삭제·Desktop 플랫폼 | 아래 주제별 제품 계약 |
 
 ## Document class

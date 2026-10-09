@@ -6,7 +6,7 @@
 
 ## 루트 도구 회귀 검증
 
-`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책과 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. 보안 의존성 검증은 `pnpm test:security-dependencies`로 별도 실행합니다. Root `pnpm test`는 placeholder입니다.
+`pnpm test:tooling`은 `scripts/test/*.test.mjs`를 모두 실행합니다. 작업 준비, 날짜, build-info, 이미지 선택, 앱 생성, 아이콘 생성, 공용 Docker helper, lint 플러그인, 포맷 정책, 표기와 문체 검사와 CI 연결의 회귀 검사가 포함됩니다. Code Quality의 PR과 main push에서도 이 명령을 실행하며, 어느 테스트든 실패하면 검사가 실패합니다. 보안 의존성 검증은 `pnpm test:security-dependencies`로 별도 실행합니다. Root `pnpm test`는 placeholder입니다.
 
 앱 생성과 아이콘 생성 검사는 저장소 코드를 격리된 임시 디렉터리에 복사해 실제 CLI의 출력 파일·입력 거절·실패 코드·정리를 확인합니다. 아이콘 변환기는 합성 파일을 만드는 fake이므로 실제 Electron 이미지 변환 품질이나 제품 아이콘은 검증하지 않습니다. Docker helper의 mock 검사와 API/accounts의 실제 `test:database`도 구분합니다.
 
@@ -68,6 +68,17 @@ node scripts/format-date.mjs
 입력은 `YYYY-MM-DDTHH:mm:ssZ`이며 소수 초 1–3자리를 허용합니다. 잘못된 날짜나 시간대 없는 값은 오류로 거절합니다. `formatDate(timestamp)`를 import해 재사용할 수 있습니다.
 
 검증: `node --test scripts/test/format-date.test.mjs`, `node --check scripts/format-date.mjs`.
+
+## `check-writing`
+
+제품 이름 표기와 사용자 문구의 문체를 검사합니다. 기준은 [표기와 문체](../docs/rules/writing.md)입니다. 인자가 없으면 Git이 추적하는 파일을 모두 읽고, 경로를 주면 현재 디렉터리 기준으로 그 파일만 검사합니다. NUL 바이트가 있는 이진 파일, submodule 항목과 검사 스크립트 자신, 그 테스트는 건너뜁니다. 위반은 `경로:줄: 규칙: 내용`으로 출력하고 non-zero로 종료합니다. Code Quality의 Static checks가 `pnpm check:writing`을 실행합니다.
+
+```bash
+pnpm check:writing
+node scripts/check-writing.mjs apps/desktop/README.md
+```
+
+검증: `node --test scripts/test/check-writing.test.mjs`, `node --check scripts/check-writing.mjs`.
 
 ## `product-image-plan`
 

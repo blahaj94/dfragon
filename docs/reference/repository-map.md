@@ -142,6 +142,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `scripts/start-task.mjs`: 선택적 Issue 기반 준비 도구. project·Issue 번호·description을 검증하고 OPEN Issue 확인 후 최신 main 기반 `{project}-{issue-number}-{description}` branch와 worktree 생성
 - `pnpm start-task <project> <Issue 번호> <description> <새 worktree 경로>`: root에서 작업 준비; GitHub CLI 인증 필요
 - `node scripts/format-date.mjs '2026-09-08T15:35:00Z'`: UTC ISO 시각을 `2026년 9월 9일 00시 35분`으로 표시; 인자 생략 시 현재 한국 시간. 사용법과 검증은 [`scripts/README.md`](../../scripts/README.md#format-date)
+- `pnpm check:writing`: 제품 이름 표기와 사용자 문구 문체 검사. 기준은 [표기와 문체](../rules/writing.md), 사용법은 [`scripts/README.md`](../../scripts/README.md#check-writing)
 - 작업 준비와 workspace별 native validation 예제: [`scripts/README.md`](../../scripts/README.md)
 - `pnpm test:tooling`: `scripts/test/*.test.mjs`의 루트 도구·공용 helper·포맷·CI 연결 검사를 실행한다. Code Quality의 PR·main push에서 같은 명령을 호출하며 보안 의존성 검사는 별도 유지한다.
 - Root `test` script는 현재 placeholder이며 성공하는 validation command가 아니다.
