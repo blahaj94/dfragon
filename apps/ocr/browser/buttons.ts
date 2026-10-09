@@ -2,26 +2,20 @@ import * as stylex from '@stylexjs/stylex'
 import { actionButton } from '@seed-design/css/recipes/action-button'
 import { colors } from './theme.stylex.js'
 
-// Keep SEED focus, pressed and disabled states; scope the Penpot palette to these buttons.
+// Keep SEED medium size, focus, pressed and disabled states; scope the design palette and the
+// txtM label to these buttons because primary text needs txtM bold on bg.brand.solid.
 const appearance = stylex.create({
   button: {
-    '--seed-color-bg-neutral-inverted': colors.primary,
-    '--seed-color-bg-neutral-inverted-pressed': colors.primary,
-    '--seed-color-fg-neutral-inverted': colors.onPrimary,
-    '--seed-color-bg-neutral-weak': colors.control,
-    '--seed-color-bg-neutral-weak-pressed': colors.border,
-    '--seed-color-fg-neutral': colors.text,
-    '--seed-color-bg-disabled': colors.control,
-    '--seed-color-fg-disabled': colors.muted,
-    '--seed-color-stroke-focus-ring': colors.accent,
-    '--seed-font-weight-bold': '400',
-    '--seed-font-size-t4': '14px',
-    '--seed-line-height-t4': '20px',
-    '--seed-dimension-x10': '44px',
-    '--seed-radius-r2': '8px',
-    opacity: { default: 1, ':disabled': 0.5 }
+    '--seed-color-bg-brand-solid': colors.bgBrandSolid,
+    '--seed-color-bg-brand-solid-pressed': colors.bgBrandSolidHover,
+    '--seed-color-bg-neutral-weak': colors.bgControl,
+    '--seed-color-bg-neutral-weak-pressed': colors.bgControlHover,
+    '--seed-color-fg-neutral': colors.fgDefault,
+    '--seed-color-stroke-focus-ring': colors.borderFocus,
+    '--seed-font-size-t4': '16px',
+    '--seed-line-height-t4': '24px'
   }
 })
 const className = stylex.props(appearance.button).className
-export const primary = `${actionButton({ variant: 'neutralSolid', size: 'medium' })} ${className}`
+export const primary = `${actionButton({ variant: 'brandSolid', size: 'medium' })} ${className}`
 export const secondary = `${actionButton({ variant: 'neutralWeak', size: 'medium' })} ${className}`

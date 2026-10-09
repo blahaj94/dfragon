@@ -5,8 +5,8 @@ export const styles = stylex.create({
   root: {
     fontSize: 14,
     fontSynthesis: 'none',
-    color: colors.text,
-    backgroundColor: colors.background,
+    color: colors.fgDefault,
+    backgroundColor: colors.bgCanvas,
     colorScheme: 'light',
     minHeight: '100vh'
   },
@@ -29,7 +29,7 @@ export const styles = stylex.create({
     marginBottom: { default: 26, '@media (max-width: 760px)': 24 }
   },
   brand: { gridColumn: '1 / -1' },
-  eyebrow: { fontSize: 12, lineHeight: '24px', color: colors.accent },
+  eyebrow: { fontSize: 12, lineHeight: '24px', color: colors.fgBrand },
   heading: { margin: 0 },
   title: { gridColumn: 1, gridRow: 2 },
   fileActions: {
@@ -47,11 +47,11 @@ export const styles = stylex.create({
     gridRow: 2
   },
   headerButton: { flexGrow: { default: 0, '@media (max-width: 760px)': 1 } },
-  themeButton: { width: 44, padding: 0, flexShrink: 0 },
+  themeButton: { width: 40, padding: 0, flexShrink: 0 },
   paragraph: { lineHeight: 1.5, margin: 0 },
-  muted: { color: colors.muted, fontSize: 12, margin: '4px 0 0' },
+  muted: { color: colors.fgMuted, fontSize: 12, margin: '4px 0 0' },
   actions: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
-  error: { color: colors.error, margin: '12px 0 24px', overflowWrap: 'anywhere' },
+  error: { color: colors.fgDanger, margin: '12px 0 24px', overflowWrap: 'anywhere' },
   label: {
     display: 'flex',
     flexDirection: 'column',
@@ -59,7 +59,7 @@ export const styles = stylex.create({
     fontSize: 12,
     fontWeight: 400,
     lineHeight: '20px',
-    color: colors.muted,
+    color: colors.fgMuted,
     minWidth: 0
   },
   splitButtons: {
@@ -72,17 +72,17 @@ export const styles = stylex.create({
     fontSize: 14,
     fontWeight: 400,
     lineHeight: '20px',
-    padding: '11px 14px',
+    padding: '9px 14px',
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 8,
-    backgroundColor: colors.inset,
+    backgroundColor: colors.bgInset,
     minWidth: 0,
     width: '100%',
-    minHeight: 44,
-    color: colors.text,
-    outline: { default: null, ':focus-visible': `2px solid ${colors.accent}` },
+    minHeight: 40,
+    color: colors.fgDefault,
+    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
     outlineOffset: { default: null, ':focus-visible': 2 },
     opacity: { default: 1, ':disabled': 0.5 }
   },
@@ -97,25 +97,25 @@ export const styles = stylex.create({
   },
   statCard: {
     padding: { default: '12px 20px', '@media (max-width: 760px)': '10px 16px' },
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     minHeight: { default: 88, '@media (max-width: 760px)': 80 }
   },
-  statLabel: { fontSize: 12, lineHeight: '20px', color: colors.muted },
+  statLabel: { fontSize: 12, lineHeight: '20px', color: colors.fgMuted },
   statValue: { display: 'block', marginTop: 4, fontSize: 24, lineHeight: '34px', fontWeight: 600 },
-  accent: { color: colors.accent },
+  accent: { color: colors.fgBrand },
   upload: {
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.border,
+    borderColor: colors.borderDefault,
     borderRadius: 12,
     padding: 24,
     marginBottom: 28
   },
   uploadHeading: { display: 'flex', alignItems: 'center', gap: 12 },
   uploadHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  uploadParagraph: { fontSize: 14, color: colors.muted, margin: '16px 0 28px' },
+  uploadParagraph: { fontSize: 14, color: colors.fgMuted, margin: '16px 0 28px' },
   fields: {
     display: 'grid',
     gridTemplateColumns: {
@@ -126,7 +126,7 @@ export const styles = stylex.create({
     gap: 16
   },
   cropSection: { marginTop: 32 },
-  cropDescription: { fontSize: 12, color: colors.muted, margin: '8px 0 20px' },
+  cropDescription: { fontSize: 12, color: colors.fgMuted, margin: '8px 0 20px' },
   cropFields: {
     display: 'grid',
     gridTemplateColumns: {
@@ -150,16 +150,16 @@ export const styles = stylex.create({
     paddingTop: 28,
     borderTopWidth: 1,
     borderTopStyle: 'solid',
-    borderTopColor: colors.border
+    borderTopColor: colors.borderDefault
   },
-  uploadStatus: { marginTop: 12, color: colors.accent },
+  uploadStatus: { marginTop: 12, color: colors.fgBrand },
   filterBar: { display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28 },
   collectionHeading: {
     flexBasis: 246,
     flexShrink: 0,
     display: { default: 'block', '@media (max-width: 760px)': 'none' }
   },
-  sampleCount: { display: 'block', marginTop: 8, color: colors.muted, fontSize: 12 },
+  sampleCount: { display: 'block', marginTop: 8, color: colors.fgMuted, fontSize: 12 },
   filters: {
     display: 'grid',
     gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
@@ -197,17 +197,17 @@ export const styles = stylex.create({
     borderRadius: 10,
     padding: 11,
     minHeight: 164,
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     cursor: 'pointer',
-    color: colors.text,
+    color: colors.fgDefault,
     overflow: 'hidden',
-    outline: { default: null, ':focus-visible': `2px solid ${colors.accent}` },
+    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
     outlineOffset: 2
   },
   selectedSample: {
-    borderColor: colors.accent,
-    backgroundColor: colors.selected,
-    color: colors.accent
+    borderColor: colors.borderBrand,
+    backgroundColor: colors.bgBrandWeak,
+    color: colors.fgBrand
   },
   excludedSample: { opacity: 0.65 },
   sampleTitle: {
@@ -222,23 +222,23 @@ export const styles = stylex.create({
     display: 'block',
     fontSize: 12,
     lineHeight: '18px',
-    color: colors.muted,
+    color: colors.fgMuted,
     margin: '0 4px'
   },
   sampleSplit: {
     display: 'block',
     fontSize: 12,
     lineHeight: '18px',
-    color: colors.accent,
+    color: colors.fgBrand,
     margin: '4px 4px 0'
   },
-  unassigned: { color: colors.muted },
+  unassigned: { color: colors.fgMuted },
   thumb: {
     height: 62,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#161a20',
+    backgroundColor: colors.bgInset,
     borderRadius: 6,
     overflow: 'hidden'
   },
@@ -250,7 +250,7 @@ export const styles = stylex.create({
   },
   editor: {
     padding: 24,
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     minWidth: 0,
     gridColumn: { default: 2, '@media (max-width: 760px)': 1 },
@@ -267,14 +267,14 @@ export const styles = stylex.create({
   },
   badge: {
     fontSize: 14,
-    color: colors.accent,
-    backgroundColor: colors.selected,
+    color: colors.fgBrand,
+    backgroundColor: colors.bgBrandWeak,
     borderRadius: 8,
     padding: '6px 14px',
     whiteSpace: 'nowrap'
   },
   largePreview: {
-    backgroundColor: '#161a20',
+    backgroundColor: colors.bgInset,
     height: 104,
     padding: '12px',
     display: 'flex',
@@ -292,38 +292,38 @@ export const styles = stylex.create({
     gap: '8px 16px',
     borderTopWidth: 1,
     borderTopStyle: 'solid',
-    borderTopColor: colors.border,
+    borderTopColor: colors.borderDefault,
     paddingTop: 16,
     margin: '24px 0 8px'
   },
-  metadataLabel: { fontSize: 12, lineHeight: '18px', color: colors.muted },
+  metadataLabel: { fontSize: 12, lineHeight: '18px', color: colors.fgMuted },
   metadataValue: { fontSize: 14, lineHeight: '22px', margin: 0, overflowWrap: 'anywhere' },
-  originalLink: { fontSize: 14, lineHeight: '22px', color: colors.accent, textDecoration: 'none' },
-  editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.accent },
+  originalLink: { fontSize: 14, lineHeight: '22px', color: colors.fgBrand, textDecoration: 'none' },
+  editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.fgBrand },
   pagination: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 20,
     fontSize: 12,
-    color: colors.muted,
+    color: colors.fgMuted,
     gridColumn: 1,
     gridRow: { default: 2, '@media (max-width: 760px)': 3 }
   },
   paginationButton: { minHeight: 36, height: 36, padding: '0 24px' },
   empty: {
     gridColumn: '1 / -1',
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: '70px 24px',
     textAlign: 'center',
-    color: colors.muted
+    color: colors.fgMuted
   },
   emptyParagraph: { fontSize: 14, margin: '12px 0' },
   login: {
     margin: { default: '84px auto 0', '@media (max-width: 760px)': '60px auto 0' },
     maxWidth: 540,
-    backgroundColor: colors.panel,
+    backgroundColor: colors.bgSurface,
     borderRadius: 12,
     padding: { default: '32px 64px 48px', '@media (max-width: 760px)': '32px 24px 48px' },
     textAlign: 'center'
@@ -335,8 +335,8 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     margin: '0 auto 20px',
-    backgroundColor: colors.selected,
-    color: colors.accent,
+    backgroundColor: colors.bgBrandWeak,
+    color: colors.fgBrand,
     borderRadius: 16
   },
   loginButton: { width: '100%', marginTop: 32, minHeight: 48 },
@@ -344,7 +344,7 @@ export const styles = stylex.create({
     display: 'block',
     textAlign: 'center',
     marginTop: 32,
-    color: colors.muted,
+    color: colors.fgMuted,
     fontSize: 12
   }
 })

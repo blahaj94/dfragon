@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 
 type ColorMode = 'light' | 'dark'
 const STORAGE_KEY = 'ocr-color-mode'
@@ -16,7 +16,8 @@ export function useColorMode() {
       return 'light'
     }
   })
-  useEffect(() => {
+  // Theme tokens read SEED palette steps from this attribute, so it changes before paint with darkTheme.
+  useLayoutEffect(() => {
     document.documentElement.dataset.seedColorMode = `${mode}-only`
     try {
       localStorage.setItem(STORAGE_KEY, mode)

@@ -1,31 +1,32 @@
 import * as stylex from '@stylexjs/stylex'
 
+// Names follow the dfragon-design semantic tokens. SEED palette steps resolve by the root
+// data-seed-color-mode, so the dark theme only overrides tokens that use a different step.
 export const colors = stylex.defineVars({
-  background: '#f3f4f6',
-  panel: '#ffffff',
-  inset: '#f3f4f6',
-  control: '#e4e7eb',
-  text: '#20242b',
-  muted: '#626a76',
-  border: '#d4d9e0',
-  accent: '#ab4d0c',
-  selected: '#fff0e5',
-  primary: '#ab4d0c',
-  onPrimary: '#ffffff',
-  error: '#b13232'
+  bgCanvas: 'var(--seed-color-palette-gray-200)',
+  bgSurface: 'var(--seed-color-palette-gray-00)',
+  bgInset: 'var(--seed-color-palette-gray-100)',
+  bgControl: 'var(--seed-color-palette-gray-300)',
+  bgControlHover: 'var(--seed-color-palette-gray-400)',
+  bgBrandSolid: 'var(--seed-color-palette-blue-700)',
+  bgBrandSolidHover: 'var(--seed-color-palette-blue-800)',
+  bgBrandWeak: 'var(--seed-color-palette-blue-100)',
+  fgDefault: 'var(--seed-color-palette-gray-1000)',
+  fgMuted: 'var(--seed-color-palette-gray-800)',
+  fgBrand: 'var(--seed-color-palette-blue-700)',
+  fgDanger: 'var(--seed-color-palette-red-700)',
+  borderDefault: 'var(--seed-color-palette-gray-400)',
+  borderBrand: 'var(--seed-color-palette-blue-700)',
+  borderFocus: 'var(--seed-color-palette-blue-600)'
 })
 
 export const darkTheme = stylex.createTheme(colors, {
-  background: '#16181c',
-  panel: '#292d33',
-  inset: '#20242b',
-  control: '#343b45',
-  text: '#f3f4f6',
-  muted: '#aeb5bf',
-  border: '#48515e',
-  accent: '#ffad78',
-  selected: '#45382f',
-  primary: '#ffad78',
-  onPrimary: '#20242b',
-  error: '#ff9f9f'
+  bgCanvas: 'var(--seed-color-palette-gray-100)',
+  bgSurface: 'var(--seed-color-palette-gray-200)',
+  bgControl: 'var(--seed-color-palette-gray-400)',
+  bgControlHover: 'var(--seed-color-palette-gray-500)',
+  bgBrandSolid: 'var(--seed-color-palette-blue-600)',
+  bgBrandSolidHover: 'var(--seed-color-palette-blue-700)',
+  bgBrandWeak: 'var(--seed-color-palette-blue-200)',
+  borderBrand: 'var(--seed-color-palette-blue-600)'
 })
