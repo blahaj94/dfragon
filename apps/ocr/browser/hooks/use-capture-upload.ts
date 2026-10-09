@@ -73,11 +73,10 @@ export function useCaptureUpload() {
       setNotice({ message: OCR_MESSAGES.uploaded, failed: false })
       await invalidateDataset(client)
     },
-    onError: (error) =>
-      setNotice({
-        message: error instanceof UploadInputError ? error.message : errorMessage(error),
-        failed: true
-      }),
+    onError: (error) => {
+      const message = error instanceof UploadInputError ? error.message : errorMessage(error)
+      setNotice({ message, failed: true })
+    },
     onSettled: () => {
       pending.current = false
     }
