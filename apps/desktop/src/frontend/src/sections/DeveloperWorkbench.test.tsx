@@ -230,9 +230,26 @@ beforeEach(() => {
       return { putImageData }
     }
   })
+  vi.stubGlobal(
+    'OffscreenCanvas',
+    class SyntheticOffscreenCanvas {
+      getContext(): object {
+        return {
+          putImageData: vi.fn(),
+          drawImage: vi.fn(),
+          getImageData: (_x: number, _y: number, width: number, height: number) => ({
+            data: new Uint8ClampedArray(width * height * 4).fill(255)
+          })
+        }
+      }
+    }
+  )
   Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
     configurable: true,
-    value: (type: string) => `data:${type};base64,crop`
+    // 크기를 담아 미리보기가 모델 입력과 원본 크롭 중 무엇을 그렸는지 구분한다.
+    value(this: HTMLCanvasElement, type: string) {
+      return `data:${type};base64,crop-${this.width}x${this.height}`
+    }
   })
   container = document.createElement('div')
   document.body.append(container)
@@ -347,7 +364,7 @@ it('shows immediate upload progress while preview is pending and ignores stale r
   expect(notice()).not.toContain('서버 업로드 중')
 })
 
-it('arms only on the collection tab, previews four raw crops, and disarms on tab switch and unmount', async () => {
+it('arms only on the collection tab, previews four model input crops, and disarms on tab switch and unmount', async () => {
   vi.useFakeTimers()
   const { api } = installApi()
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
@@ -386,7 +403,10 @@ it('arms only on the collection tab, previews four raw crops, and disarms on tab
   await click('공대원창 크롭')
   expect(intervalSelect.value).toBe('1000')
   await click('이미지 수집')
-  expect(container.querySelectorAll('img[alt$="번 크롭 원본 미리보기"]')).toHaveLength(4)
+  const previews = container.querySelectorAll('img[alt$="번 크롭 모델 입력 미리보기"]')
+  expect([...previews].map((image) => image.getAttribute('src'))).toEqual(
+    Array(4).fill('data:image/png;base64,crop-320x48')
+  )
   expect(container.querySelector('[aria-label="저장 포함"]')).toBeNull()
   expect(container.textContent).toContain('게임 화면 연결됨')
   expect(container.textContent).not.toContain('최근 저장')
@@ -710,7 +730,9 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   expect(container.querySelectorAll('input:disabled')).toHaveLength(3)
   expect(third().disabled).toBe(false)
   expect(third().checked).toBe(false)
-  expect(container.querySelector('img[alt="3번 닉네임 원본 크롭"]')).not.toBeNull()
+  expect(container.querySelector('img[alt="3번 닉네임 원본 크롭"]')?.getAttribute('src')).toBe(
+    'data:image/png;base64,crop-2x2'
+  )
   await act(async () => third().click())
   expect(container.textContent).toContain('현재 저장 대상 1개')
   await click('정답 입력')
@@ -811,6 +833,9 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
   expect(container.textContent).toContain('12 / 12명')
   expect(container.textContent).toContain('화면의 행 위치 기준')
   expect(container.querySelectorAll('img[alt$="닉네임 원본 크롭"]')).toHaveLength(12)
+  expect(container.querySelector('img[alt="1행 닉네임 원본 크롭"]')?.getAttribute('src')).toBe(
+    'data:image/png;base64,crop-86x17'
+  )
   await act(async () => checkbox('12행 공대원 닉네임 저장').click())
   expect(container.textContent).toContain('현재 저장 대상 11개')
 

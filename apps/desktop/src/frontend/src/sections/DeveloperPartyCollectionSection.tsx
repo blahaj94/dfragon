@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import type { DeveloperPartySlotNumber } from '../lib/developer-party'
 import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
+import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH } from '../lib/paddle-recognition'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
 import { styles } from './DeveloperPartyCollectionSection.style'
@@ -147,7 +148,7 @@ export function DeveloperPartyCollectionSection({
                   {preview ? (
                     <img
                       src={preview.dataUrl}
-                      alt={`${slotNumber}번 크롭 원본 미리보기`}
+                      alt={`${slotNumber}번 크롭 모델 입력 미리보기`}
                       {...stylex.props(styles.cropImage)}
                     />
                   ) : (
@@ -161,6 +162,9 @@ export function DeveloperPartyCollectionSection({
           })}
         </div>
       </div>
+      <Typo.caption {...stylex.props(styles.footnote)}>
+        미리보기는 OCR 모델 입력 {MODEL_INPUT_WIDTH} × {MODEL_INPUT_HEIGHT}px, 저장은 원본 크기
+      </Typo.caption>
     </section>
   )
 }

@@ -8,7 +8,7 @@ import type {
   DeveloperPartySlotNumber,
   DeveloperPartyPreviewSlotWithDataUrl
 } from '../lib/developer-party'
-import { developerPartySlotDataUrl } from '../lib/developer-party'
+import { developerPartyModelInputDataUrl, developerPartySlotDataUrl } from '../lib/developer-party'
 
 type PreviewFrame = Omit<DeveloperPartyPreviewFrame, 'slots' | 'participantWindow'> & {
   kind: DeveloperCollectionKind
@@ -186,7 +186,11 @@ export function useDeveloperPartyCollection(
           }
           const slots = response.frame.slots.map((slot) => {
             const slotFields = { ...slot }
-            const dataUrl = developerPartySlotDataUrl(slot)
+            // HUD crops show the OCR model input; participant and raid tabs keep raw crops.
+            const dataUrl =
+              kind === 'hud'
+                ? developerPartyModelInputDataUrl(slot)
+                : developerPartySlotDataUrl(slot)
 
             return { ...slotFields, dataUrl }
           })

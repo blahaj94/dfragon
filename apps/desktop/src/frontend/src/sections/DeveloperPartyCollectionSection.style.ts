@@ -63,5 +63,6 @@ export const styles = stylex.create({
   },
   unchecked: { opacity: 0.32 },
   checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.accent },
-  emptyCrop: { color: '#aeb5bf' }
+  emptyCrop: { color: '#aeb5bf' },
+  footnote: { color: colors.shellMuted, marginTop: -8 }
 })
