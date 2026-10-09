@@ -68,7 +68,9 @@ it('자동 감지한 창은 선택 전에 표시하고 사용자 클릭 전에�
   props.selectedSourceId = ''
   await openDialog()
   expect(trigger().textContent).toContain('던전앤파이터, 감지됨')
-  expect(document.body.textContent).toContain('창 감지됨')
+  const statuses = [...document.querySelectorAll('[role="dialog"] [role="status"]')]
+  expect(statuses.map((status) => status.textContent)).toContain('창 감지됨')
+  expect(document.body.textContent).not.toContain('캡처 중지')
   expect(props.onSelect).not.toHaveBeenCalled()
   await click(trigger())
   const gameOption = document.querySelector<HTMLElement>(
