@@ -6,10 +6,11 @@ import {
   type ReactNode
 } from 'react'
 
+// h4 이하는 자간을 inline으로 지정하지 않아 기본 자간 0을 따르고 화면 className의 letter-spacing을 덮지 않는다.
 export const typographyVariants = {
-  h1: { fontSize: 48, lineHeight: '56px', fontWeight: 700 },
-  h2: { fontSize: 40, lineHeight: '48px', fontWeight: 700 },
-  h3: { fontSize: 32, lineHeight: '40px', fontWeight: 700 },
+  h1: { fontSize: 48, lineHeight: '60px', fontWeight: 700, letterSpacing: '-0.02em' },
+  h2: { fontSize: 40, lineHeight: '52px', fontWeight: 700, letterSpacing: '-0.02em' },
+  h3: { fontSize: 32, lineHeight: '42px', fontWeight: 700, letterSpacing: '-0.02em' },
   h4: { fontSize: 24, lineHeight: '32px', fontWeight: 600 },
   h5: { fontSize: 20, lineHeight: '28px', fontWeight: 600 },
   h6: { fontSize: 18, lineHeight: '26px', fontWeight: 600 },
@@ -52,7 +53,7 @@ function TypoBase<Tag extends TypoTag>({
   weight,
   ...htmlProps
 }: TypoBaseProps<Tag>) {
-  const { fontSize, lineHeight, fontWeight } = typographyVariants[variant]
+  const variantStyle: CSSProperties = typographyVariants[variant]
 
   return createElement(
     as ?? defaultTag,
@@ -61,9 +62,8 @@ function TypoBase<Tag extends TypoTag>({
       className,
       style: {
         margin: 0,
-        fontSize,
-        lineHeight,
-        fontWeight: weight ?? fontWeight,
+        ...variantStyle,
+        fontWeight: weight ?? variantStyle.fontWeight,
         color,
         textAlign: align,
         ...style

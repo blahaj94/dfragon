@@ -127,7 +127,7 @@ try {
   await page.goto(origin)
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).waitFor()
   await screenshot('login')
-  assert(await page.evaluate(() => globalThis.document.fonts.check('14px NanumSquareNeo')))
+  assert(await page.evaluate(() => globalThis.document.fonts.check('14px "Pretendard Variable"')))
   await page.getByRole('button', { name: '패스키 로그인', exact: true }).click()
   await page.getByRole('link', { name: '전체 다운로드' }).waitFor()
   await page.getByText('학습 모델 · 1개', { exact: true }).click()

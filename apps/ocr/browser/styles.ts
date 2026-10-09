@@ -3,7 +3,6 @@ import { colors } from './theme.stylex.js'
 
 export const styles = stylex.create({
   root: {
-    fontFamily: 'NanumSquareNeo, system-ui, sans-serif',
     fontSize: 14,
     fontSynthesis: 'none',
     color: colors.text,

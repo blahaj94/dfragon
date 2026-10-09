@@ -7,8 +7,7 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     backgroundColor: colors.background,
     color: colors.shellText,
-    padding: '16px 24px',
-    fontFamily: 'NanumSquareNeo, sans-serif'
+    padding: '16px 24px'
   },
   workbench: { minHeight: 'calc(100dvh - 32px)' },
   brand: { display: 'flex', alignItems: 'center', gap: 8 },

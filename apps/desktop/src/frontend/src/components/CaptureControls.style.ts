@@ -9,7 +9,6 @@ export const styles = stylex.create({
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: colors.surface,
     color: colors.shellText,
-    fontFamily: 'NanumSquareNeo, sans-serif',
     borderRadius: 16
   },
   heading: {

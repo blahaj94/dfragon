@@ -8,7 +8,6 @@ export const styles = stylex.create({
     maxHeight: 'calc(100dvh - 24px)',
     backgroundColor: colors.surface,
     color: colors.shellText,
-    fontFamily: 'NanumSquareNeo, sans-serif',
     borderRadius: 12,
     overflow: 'hidden'
   },

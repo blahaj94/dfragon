@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop design sources and renderer implementation status
-last-reviewed: 2026-10-08
+last-reviewed: 2026-10-09
 ---
 
 # Desktop MVP 디자인 이관
@@ -78,7 +78,7 @@ Penpot 파일은 화면별 편집 페이지가 편집 기준이고, `99, 전체 
 | 목록, 고지 원문, 작은 버튼       | txtS (버튼 weight=700)        |
 | 서버, 직업, 버전, 작은 투자 표    | caption                       |
 
-화면에서는 직접 fontSize, lineHeight를 반복하지 않는다. 작은 카드 이름은 24px 행간과 26px input 외곽 높이를 사용하고, 빈 입력은 txtS로 표시한다. 닉네임과 보조 정보 사이의 공간을 함께 조정해 280px 카드 높이를 유지한다. h4–h6의 계약은 weight=600이며 현재 Desktop의 나눔스퀘어 네오 자산은 CSS font matching으로 700 파일을 사용한다. 인증 browser의 기존 글꼴 상속은 유지한다.
+화면에서는 직접 fontSize, lineHeight를 반복하지 않는다. 작은 카드 이름은 24px 행간과 26px input 외곽 높이를 사용하고, 빈 입력은 txtS로 표시한다. 닉네임과 보조 정보 사이의 공간을 함께 조정해 280px 카드 높이를 유지한다. h4–h6의 계약은 weight=600이며 Desktop이 번들한 Pretendard 가변 글꼴에서 실제 SemiBold로 표시된다. 인증 browser의 기존 글꼴 상속은 유지한다.
 
 현재 적용은 제품 App이 사용하는 화면과 같은 컴포넌트를 쓰는 상세 미리보기까지다. `fixture/legacy`와 연결되지 않은 예전 화면의 일괄 교체는 포함하지 않는다. 실제 인증 UI는 Desktop의 예전 LoginPage가 아닌 `apps/accounts/browser/passkeys.tsx`이며, 이 entry에서도 같은 Typo를 소비한다.
 

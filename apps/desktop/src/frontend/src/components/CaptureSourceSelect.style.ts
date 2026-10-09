@@ -45,7 +45,7 @@ export const styles = stylex.create({
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
   rotated: { transform: 'rotate(180deg)' },
-  positioner: { fontFamily: 'NanumSquareNeo, sans-serif', color: colors.shellText },
+  positioner: { color: colors.shellText },
   content: {
     width: 'var(--seed-menu-reference-width)',
     maxWidth: 'calc(100vw - 16px)',

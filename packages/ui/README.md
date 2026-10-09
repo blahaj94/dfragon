@@ -40,7 +40,7 @@ import { Typo } from '@dfragon/ui'
 <Typo.caption style={{ marginTop: 8, display: 'block' }}>Additional text</Typo.caption>
 ```
 
-`h1`–`h6`는 같은 이름의 heading 태그, `txtL`, `txtM`, `txtS`는 `p`, `caption`은 `span`으로 렌더링된다. 크기, 행간, 굵기는 `typographyVariants` 한 곳에서 관리하며 `TypoBase`가 공통 style과 HTML attribute, event를 전달한다. `typographyVariants`의 행간은 `"56px"`처럼 단위를 포함하므로 `style={typographyVariants.h1}`로 직접 사용해도 px로 적용된다. 기본 margin은 0이다. 화면 간격은 wrapper의 gap 또는 텍스트 padding으로 주고, margin이 필요하면 `style`로 명시한다. 글꼴과 지정하지 않은 색은 상속된다.
+`h1`–`h6`는 같은 이름의 heading 태그, `txtL`, `txtM`, `txtS`는 `p`, `caption`은 `span`으로 렌더링된다. 크기, 행간, 굵기, 자간은 `typographyVariants` 한 곳에서 관리하며 `TypoBase`가 공통 style과 HTML attribute, event를 전달한다. `h1`–`h3`만 `-0.02em` 자간을 지정한다. 나머지는 자간을 inline으로 지정하지 않아 기본 자간 0을 따르며 화면 `className`의 letter-spacing을 덮지 않는다. `typographyVariants`의 행간은 `"60px"`처럼 단위를 포함하므로 `style={typographyVariants.h1}`로 직접 사용해도 px로 적용된다. 기본 margin은 0이다. 화면 간격은 wrapper의 gap 또는 텍스트 padding으로 주고, margin이 필요하면 `style`로 명시한다. 글꼴과 지정하지 않은 색은 상속된다.
 
 스타일 우선순위는 variant → `color`, `align`, `weight` → `style`이다. `className`은 전달되지만 일반 CSS 선언은 inline style보다 우선하지 않는다. `as`는 HTML 태그를 바꾸면서 시각 variant를 유지한다. Heading 단계는 문서 구조에 맞춰 선택하고, 상호작용에는 `as="button"`, `as="a"`와 해당 native 속성을 사용한다. 임의 role, tabIndex는 추가하지 않는다. React 19의 `ref` prop을 실제 HTML element에 전달하며 `as`에 맞는 element 타입으로 검사한다. 제목 focus나 input focus를 유지할 때 사용할 수 있다.
 
