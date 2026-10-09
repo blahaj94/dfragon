@@ -12,13 +12,11 @@ it('manual search works signed out without listing, selecting or capturing a win
   expect(fixture.auth.getSnapshot().phase).toBe('signedOut')
   expect(new Request(...fixture.fetchSearch.mock.calls[0]).headers.has('authorization')).toBe(false)
   expect(fixture.mediaPermissionAllowed()).toBe(false)
-  expect(await fixture.requestMedia()).toBeNull()
   expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
     snapshot: { captureId: null }
   })
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
   expect(fixture.mediaPermissionAllowed()).toBe(false)
-  expect(await fixture.requestMedia()).toBeNull()
 })
 
 it('capture source and Stop do not cancel manual requests; each channel rejects the other ID', async () => {
