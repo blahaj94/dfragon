@@ -34,9 +34,16 @@ concurrency:
 
 jobs:
   test:
-    name: Windows native fixture and Desktop tests
+    name: Desktop tests on Windows (${{ matrix.shard }})
     runs-on: windows-latest
     timeout-minutes: 30
+    strategy:
+      # A failing shard must not cancel the other one, so a failure shows its full scope.
+      fail-fast: false
+      # The Desktop suite is the longest PR job on a Windows runner, so two runners each take half
+      # of the test files. The runner setup is paid twice to roughly halve the wall-clock time.
+      matrix:
+        shard: ['1/2', '2/2']
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,8 +58,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
         env:
           NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
-      # GitHub hosted runners execute with an elevated administrator token.
+      # GitHub hosted runners execute with an elevated administrator token. The fixture is not
+      # sharded, so one runner is enough for it.
       - name: Run Windows native security fixture
+        if: matrix.shard == '1/2'
         run: pnpm --filter @dfragon/desktop test:windows-native
       - name: Test Desktop on Windows
-        run: pnpm --filter @dfragon/desktop test
+        env:
+          VITEST_SHARD: ${{ matrix.shard }}
+        run: pnpm --filter @dfragon/desktop test --shard "$env:VITEST_SHARD"
