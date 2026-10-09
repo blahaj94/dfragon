@@ -52,7 +52,7 @@ export const styles = stylex.create({
     borderStyle: 'solid',
     borderColor: colors.borderDefault,
     borderRadius: 6,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgControl,
     color: colors.fgDefault,
     font: 'inherit'
   },

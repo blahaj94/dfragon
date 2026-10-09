@@ -162,7 +162,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 34,
-    backgroundColor: colors.bgInset,
+    backgroundColor: colors.bgPreview,
     borderRadius: 4,
     overflow: 'hidden'
   },

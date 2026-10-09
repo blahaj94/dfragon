@@ -22,7 +22,7 @@ export const styles = stylex.create({
     height: 44,
     overflow: 'hidden',
     borderRadius: 5,
-    backgroundColor: colors.bgInset
+    backgroundColor: colors.bgPreview
   },
   image: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' },
   placeholder: { color: colors.fgMuted },

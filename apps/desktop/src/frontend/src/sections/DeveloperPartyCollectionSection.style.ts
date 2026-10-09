@@ -58,7 +58,7 @@ export const styles = stylex.create({
     flex: 1,
     minHeight: 0,
     overflow: 'hidden',
-    backgroundColor: colors.bgInset,
+    backgroundColor: colors.bgPreview,
     borderRadius: 6
   },
   unchecked: { opacity: 0.32 },

@@ -13,7 +13,7 @@ export const styles = stylex.create({
     listStyle: 'none',
     padding: 0,
     margin: 0,
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgInset,
     borderRadius: 8
   },
   row: {
@@ -47,7 +47,7 @@ export const styles = stylex.create({
     overflowWrap: 'anywhere'
   },
   rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
-  document: { backgroundColor: colors.bgSurface, borderRadius: 8, padding: 20, marginTop: 16 },
+  document: { backgroundColor: colors.bgInset, borderRadius: 8, padding: 20, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'inherit',

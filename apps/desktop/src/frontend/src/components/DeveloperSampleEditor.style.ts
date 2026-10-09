@@ -11,7 +11,7 @@ export const styles = stylex.create({
     width: '100%',
     height: 248,
     padding: 16,
-    backgroundColor: colors.bgInset,
+    backgroundColor: colors.bgPreview,
     borderRadius: 8,
     overflow: 'hidden'
   },
