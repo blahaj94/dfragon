@@ -241,7 +241,7 @@ pnpm --filter @dfragon/desktop build
 
 `build`에는 node/web typecheck가 포함됩니다. `--ignore-scripts`로 의존성을 설치했다면 기존 CI처럼 `pnpm --filter @dfragon/desktop rebuild electron`으로 Electron runtime을 준비합니다. 인증 bridge를 실제 Electron에서 확인하려면 `auth:fixture:build` 후 `auth:fixture:smoke`를 사용합니다. Launcher 단위 테스트의 process, signal은 합성이며 실제 child 종료 확인과 구분합니다.
 
-Desktop 관련 PR과 main push에서는 [Desktop Windows workflow](../../.github/workflows/desktop-windows.yml)가 Windows runner에서 `test`와 `test:windows-native`를 실행합니다. Runner의 실행 권한과 관측 범위는 [Windows synthetic native fixture](../../docs/reference/desktop-credential-store.md#windows-synthetic-native-fixture)를 따릅니다.
+Desktop 관련 PR과 main push에서는 [Desktop Windows workflow](../../.github/workflows/desktop-windows.yml)가 Windows runner 두 대에서 `test`의 테스트 파일을 절반씩 나눠 실행하고, `test:windows-native`는 첫 번째 runner에서만 실행합니다. Runner의 실행 권한과 관측 범위는 [Windows synthetic native fixture](../../docs/reference/desktop-credential-store.md#windows-synthetic-native-fixture)를 따릅니다.
 
 Vitest의 HTTP, credential 저장소, media, OCR worker mock과 합성 Electron fixture는 실제 Windows 캡처, DPI, 단축키, 패스키, OS credential 저장소의 검증을 대신하지 않습니다. Windows native/security, crash 도구의 기존 플랫폼, 격리 조건을 유지하며 VM 종료, 복원 등 파괴적 장애 실험은 별도 허용 범위에서만 실행합니다.
 
