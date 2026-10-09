@@ -604,7 +604,7 @@ describe('capture main document and source boundary', () => {
     }
   )
 
-  // Electron 39.8.10의 null 거절은 CAPTURE_FAILURE만 반환한다. {}는 별도 TypeError도 낸다.
+  // Electron 44.7.0은 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
   it('선택 없는 즉시 거절은 native null 결과를 한 번 전달한다', async () => {
     const fixture = await setup()
     const callback = vi.fn()

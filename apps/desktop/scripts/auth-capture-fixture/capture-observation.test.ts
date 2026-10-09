@@ -72,9 +72,7 @@ vi.mock('../../src/backend/capture/ipc-handler', () => ({
   registerCaptureWindow: vi.fn(),
   registerCaptureMediaForFixture: (window: BrowserWindow) => {
     window.webContents.session.setDisplayMediaRequestHandler((_request, callback) => {
-      // Pinned native runtime은 null 거절을 받지만 공개 Streams type에는 빠져 있다.
-      const nativeCallback = callback as (streams: Electron.Streams | null) => void
-      nativeCallback(product.result)
+      callback(product.result)
     })
   }
 }))
