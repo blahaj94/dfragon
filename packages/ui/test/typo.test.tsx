@@ -4,22 +4,51 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { Typo, typographyVariants } from '../src/index'
 
+// 자간 ''는 inline 지정 없이 기본 자간 0을 따른다는 뜻이다.
 const typographyCases = [
-  { variant: 'h1', tag: 'h1', fontSize: 48, lineHeight: 56, fontWeight: 700 },
-  { variant: 'h2', tag: 'h2', fontSize: 40, lineHeight: 48, fontWeight: 700 },
-  { variant: 'h3', tag: 'h3', fontSize: 32, lineHeight: 40, fontWeight: 700 },
-  { variant: 'h4', tag: 'h4', fontSize: 24, lineHeight: 32, fontWeight: 600 },
-  { variant: 'h5', tag: 'h5', fontSize: 20, lineHeight: 28, fontWeight: 600 },
-  { variant: 'h6', tag: 'h6', fontSize: 18, lineHeight: 26, fontWeight: 600 },
-  { variant: 'txtL', tag: 'p', fontSize: 18, lineHeight: 28, fontWeight: 400 },
-  { variant: 'txtM', tag: 'p', fontSize: 16, lineHeight: 24, fontWeight: 400 },
-  { variant: 'txtS', tag: 'p', fontSize: 14, lineHeight: 20, fontWeight: 400 },
-  { variant: 'caption', tag: 'span', fontSize: 12, lineHeight: 18, fontWeight: 400 }
+  {
+    variant: 'h1',
+    tag: 'h1',
+    fontSize: 48,
+    lineHeight: 60,
+    fontWeight: 700,
+    letterSpacing: '-0.02em'
+  },
+  {
+    variant: 'h2',
+    tag: 'h2',
+    fontSize: 40,
+    lineHeight: 52,
+    fontWeight: 700,
+    letterSpacing: '-0.02em'
+  },
+  {
+    variant: 'h3',
+    tag: 'h3',
+    fontSize: 32,
+    lineHeight: 42,
+    fontWeight: 700,
+    letterSpacing: '-0.02em'
+  },
+  { variant: 'h4', tag: 'h4', fontSize: 24, lineHeight: 32, fontWeight: 600, letterSpacing: '' },
+  { variant: 'h5', tag: 'h5', fontSize: 20, lineHeight: 28, fontWeight: 600, letterSpacing: '' },
+  { variant: 'h6', tag: 'h6', fontSize: 18, lineHeight: 26, fontWeight: 600, letterSpacing: '' },
+  { variant: 'txtL', tag: 'p', fontSize: 18, lineHeight: 28, fontWeight: 400, letterSpacing: '' },
+  { variant: 'txtM', tag: 'p', fontSize: 16, lineHeight: 24, fontWeight: 400, letterSpacing: '' },
+  { variant: 'txtS', tag: 'p', fontSize: 14, lineHeight: 20, fontWeight: 400, letterSpacing: '' },
+  {
+    variant: 'caption',
+    tag: 'span',
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: 400,
+    letterSpacing: ''
+  }
 ] as const
 
 it.each(typographyCases)(
-  '$variant는 기본 $tag 태그를 쓰고 공개 style과 같은 픽셀 규격을 적용한다',
-  ({ variant, tag, fontSize, lineHeight, fontWeight }) => {
+  '$variant는 기본 $tag 태그를 쓰고 공개 style과 같은 크기, 행간, 굵기, 자간을 적용한다',
+  ({ variant, tag, fontSize, lineHeight, fontWeight, letterSpacing }) => {
     const Component = Typo[variant]
     const container = document.createElement('div')
     container.innerHTML = renderToStaticMarkup(
@@ -37,6 +66,7 @@ it.each(typographyCases)(
       expect(target.style.fontSize).toBe(`${fontSize}px`)
       expect(target.style.lineHeight).toBe(`${lineHeight}px`)
       expect(target.style.fontWeight).toBe(String(fontWeight))
+      expect(target.style.letterSpacing).toBe(letterSpacing)
     }
     expect(element.style.margin).toBe('0px')
     expect(['', 'inherit']).toContain(element.style.fontFamily)
@@ -72,8 +102,9 @@ it('as로 링크 태그를 선택해도 variant를 유지하고 HTML 속성과 �
   expect(link.className).toBe('title')
   expect(link.textContent).toBe('소개')
   expect(link.style.fontSize).toBe('40px')
-  expect(link.style.lineHeight).toBe('48px')
+  expect(link.style.lineHeight).toBe('52px')
   expect(link.style.fontWeight).toBe('500')
+  expect(link.style.letterSpacing).toBe('-0.02em')
   expect(link.style.color).toBe('rgb(17, 17, 17)')
   expect(link.style.textAlign).toBe('center')
   for (const prop of ['as', 'variant', 'defaultTag', 'color', 'align', 'weight']) {
