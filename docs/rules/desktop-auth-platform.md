@@ -142,6 +142,8 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하고, loopba
 | 앱 복귀 | `dfragon.dev://auth/callback` |
 | 개발 앱 identity, profile | `dfragon.dev`, Electron `appData` 아래의 `dfragon.dev` |
 
+이 절과 아래 Windows MVP 배포 구성은 승인 기록이다. 구현이 실제로 읽는 값의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
+
 이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 DFragon 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치, 등록은 실행 허용 범위 안에서 서버 설정의 API, RP ID, returnUrl 일치와 기존 사용자, 컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치, 업데이트의 근거로 대신하지 않는다.
 
 빌드, NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler, cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
