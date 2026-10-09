@@ -80,9 +80,11 @@ jobs:
           {
             echo "Test channel build \`$TEST_VERSION\` (\`DFragon Test\`, \`dfragon-test.exe\`, no login)."
             echo
-            echo "Download on a Windows PC with the GitHub CLI:"
+            echo "Download in PowerShell on a Windows PC with the GitHub CLI. It prints nothing on success, creates the folder,"
+            echo "and refuses to overwrite existing files, so keep one folder per run:"
             echo
             echo '```powershell'
-            echo "gh run download $GITHUB_RUN_ID --repo $GITHUB_REPOSITORY -n windows-x64-portable-test"
+            # Escape $HOME so the summary shows the PowerShell variable instead of the runner's home.
+            echo "gh run download $GITHUB_RUN_ID --repo $GITHUB_REPOSITORY -n windows-x64-portable-test -D \"\$HOME\\Downloads\\dfragon-test-$GITHUB_RUN_ID\""
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
