@@ -74,7 +74,7 @@ function expectedStaticEntries(): NoticeEntry[] {
       ]
     },
     {
-      name: 'NanumSquare Neo',
+      name: 'Pretendard',
       version: '',
       license: 'OFL-1.1',
       documents: [
