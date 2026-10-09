@@ -14,7 +14,7 @@ last-reviewed: 2026-10-09
 - 산문, UI 문구, 주석, 창 제목, 설치 파일과 바로 가기의 표시 이름에서 제품 이름은 `DFragon`으로 쓴다. `DFRAGON`, `Dfragon`은 쓰지 않는다.
 - 식별자는 바꾸지 않는다. `DFRAGON_` 접두어의 환경 변수와 빌드 상수, `@dfragon/*` 패키지, `dfragon` 실행 파일, profile, protocol 이름, `dfragon.com` 도메인, `DFRAGON-MODIFICATIONS.txt` 같은 파일 이름은 그대로 둔다. 검사는 앞뒤에 `_`, `-`, 영숫자가 붙은 표기를 식별자로 보고 건너뛴다.
 - 코드에서 제품 이름이 단독으로 서거나 영문 제목에 들어갈 때는 `@dfragon/lib`의 `PRODUCT_NAME`을 쓴다. HTML `<title>`처럼 import할 수 없는 곳과 `DFragon을`처럼 한국어 조사가 붙는 문장은 문자열로 쓴다.
-- Penpot 보드 안의 로고 글자와 외부 저장소 이름은 이 규칙의 대상이 아니다.
+- 외부 저장소 이름은 이 규칙의 대상이 아니다.
 
 ## 사용자 문구의 문체
 
