@@ -370,26 +370,34 @@ it('arms only on the collection tab, previews four model input crops, and disarm
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
 
   expect(api.setPartyCollectionSlots).toHaveBeenCalledWith([1, 2, 3, 4])
-  const intervalSelect = container.querySelector<HTMLSelectElement>(
-    'select[aria-label="캡처 주기"]'
-  )!
-  expect(intervalSelect?.value).toBe('500')
-  expect([...intervalSelect.options].map((option) => option.text)).toEqual([
+  const intervalTrigger = (): HTMLButtonElement =>
+    container.querySelector<HTMLButtonElement>('[role="combobox"][aria-label="캡처 주기"]')!
+  const intervalOptions = (): HTMLElement[] => [
+    ...document.querySelectorAll<HTMLElement>('[role="option"]')
+  ]
+  expect(intervalTrigger().textContent).toBe('0.5초')
+  await act(async () => intervalTrigger().click())
+  expect(intervalOptions().map((option) => option.textContent)).toEqual([
     '0.25초',
     '0.5초',
     '0.75초',
     '1초'
   ])
+  await act(async () => intervalTrigger().click())
+  expect(intervalTrigger().getAttribute('aria-expanded')).toBe('false')
   await act(async () => vi.advanceTimersByTimeAsync(499))
   expect(api.previewParty).toHaveBeenCalledTimes(1)
   await act(async () => vi.advanceTimersByTimeAsync(1))
   expect(api.previewParty).toHaveBeenCalledTimes(2)
 
   for (const intervalMs of [250, 500, 750, 1000]) {
-    await act(async () => {
-      intervalSelect.value = String(intervalMs)
-      intervalSelect.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    await act(async () => intervalTrigger().click())
+    await act(async () =>
+      intervalOptions()
+        .find((option) => option.textContent === `${intervalMs / 1000}초`)!
+        .click()
+    )
+    expect(intervalTrigger().getAttribute('aria-expanded')).toBe('false')
     const calls = api.previewParty.mock.calls.length
     await act(async () => vi.advanceTimersByTimeAsync(intervalMs - 1))
     expect(api.previewParty).toHaveBeenCalledTimes(calls)
@@ -399,9 +407,9 @@ it('arms only on the collection tab, previews four model input crops, and disarm
   }
 
   await click('파티원창 크롭')
-  expect(intervalSelect.value).toBe('1000')
+  expect(intervalTrigger().textContent).toBe('1초')
   await click('공대원창 크롭')
-  expect(intervalSelect.value).toBe('1000')
+  expect(intervalTrigger().textContent).toBe('1초')
   await click('이미지 수집')
   const previews = container.querySelectorAll('img[alt$="번 크롭 모델 입력 미리보기"]')
   expect([...previews].map((image) => image.getAttribute('src'))).toEqual(
