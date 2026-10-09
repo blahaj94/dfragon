@@ -15,6 +15,9 @@ export const styles = stylex.create({
     marginBottom: 16
   },
   actions: { display: 'flex', alignItems: 'center', gap: 8 },
+  // SEED medium iconOnly의 좌우 여백 10에 24 아이콘을 넣으면 폭이 44가 되므로,
+  // 상단 바의 카메라, 설정 버튼과 같은 40 정사각형에 맞춰 여백만 줄인다.
+  iconButton: { padding: 8 },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 190px), 1fr))',

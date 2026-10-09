@@ -59,8 +59,15 @@ export function PartyPage({
     <>
       <header {...stylex.props(styles.header)}>
         {capture ?? (
-          <ActionButton size="small" variant="ghost" disabled aria-label="캡처 연결 예정">
-            <CameraIcon width="20" height="20" />
+          <ActionButton
+            size="medium"
+            variant="neutralWeak"
+            layout="iconOnly"
+            disabled
+            aria-label="캡처 연결 예정"
+            {...stylex.props(styles.iconButton)}
+          >
+            <Icon svg={<CameraIcon />} size="x6" />
           </ActionButton>
         )}
         <div {...stylex.props(styles.actions)}>
@@ -70,6 +77,7 @@ export function PartyPage({
             layout="iconOnly"
             aria-label={light ? '다크 테마' : '라이트 테마'}
             onClick={toggleTheme}
+            {...stylex.props(styles.iconButton)}
           >
             <Icon svg={light ? <MoonIcon /> : <SunIcon />} size="x6" />
           </ActionButton>
