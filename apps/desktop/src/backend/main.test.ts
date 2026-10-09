@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import type { BrowserWindowConstructorOptions } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { readDesktopChannel } from '../../build/channels'
 
 const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
 
@@ -287,7 +288,7 @@ afterEach(() => {
 it.each([false, true])(
   '개발 빌드는 셸 설정 유무(%s)와 무관하게 고정 프로필과 복귀 주소를 사용한다',
   async (hasShellConfiguration) => {
-    vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
+    vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('development', {}))
     if (hasShellConfiguration) {
       stubTrustedRuntimeEnvironment()
     }
@@ -317,7 +318,7 @@ it.each([false, true])(
 )
 
 it('개발 빌드도 Windows profile 준비 실패를 우회하지 않는다', async () => {
-  vi.stubGlobal('__DFRAGON_DEVELOPMENT_AUTH__', true)
+  vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('development', {}))
   mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
   mocks.applyProfile.mockImplementationOnce(() => {
     throw new Error('Windows profile security is unavailable.')

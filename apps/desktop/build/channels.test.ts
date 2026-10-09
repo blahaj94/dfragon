@@ -1,7 +1,14 @@
 import { resolve } from 'node:path'
 import { expect, it } from 'vitest'
 import { readAuthRuntimeConfig } from '../src/backend/auth/runtime-config'
-import { channels, parseChannels, readChannelOrigin, type ChannelName } from './channels'
+import {
+  channels,
+  parseChannels,
+  readChannelNameFromMode,
+  readChannelOrigin,
+  readDesktopChannel,
+  type ChannelName
+} from './channels'
 
 const CHANNEL_NAMES: readonly ChannelName[] = ['development', 'distribution']
 
@@ -189,4 +196,33 @@ it('배포 accounts origin은 검색 origin과 별도로 읽고 기본값을 둔
       DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: 'http://accounts.example.test'
     })
   ).toThrow(DISTRIBUTION_ACCOUNTS_ORIGIN_FAILURE)
+})
+
+it('electron-vite mode의 dfragon- 접두어로 채널 빌드를 고르고 모르는 채널은 거절한다', () => {
+  expect(readChannelNameFromMode('dfragon-distribution')).toBe('distribution')
+  expect(readChannelNameFromMode('dfragon-development')).toBe('development')
+  expect(readChannelNameFromMode('development')).toBeNull()
+  expect(readChannelNameFromMode('production')).toBeNull()
+  expect(readChannelNameFromMode('mvp-preview')).toBeNull()
+  expect(() => readChannelNameFromMode('dfragon-staging')).toThrow(
+    /^Unknown channel mode dfragon-staging\.$/
+  )
+})
+
+it('main bundle에 넣는 채널 tuple은 identity와 빌드 시점에 읽은 origin을 담는다', () => {
+  expect(
+    readDesktopChannel('distribution', {
+      DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.example.test'
+    })
+  ).toEqual({
+    name: 'distribution',
+    identity: channels.distribution.identity,
+    origins: { api: 'https://api.example.test', accounts: 'https://accounts.dfragon.com' }
+  })
+  expect(readDesktopChannel('development', {})).toEqual({
+    name: 'development',
+    identity: channels.development.identity,
+    origins: { api: 'https://localhost:3443', accounts: 'https://localhost:3444' }
+  })
+  expect(() => readDesktopChannel('distribution', {})).toThrow(DISTRIBUTION_API_ORIGIN_FAILURE)
 })
