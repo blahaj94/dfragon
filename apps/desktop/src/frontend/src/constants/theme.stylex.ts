@@ -29,12 +29,14 @@ export const colors = stylex.defineVars({
   cardInset: '#16171b',
   cardStripe: '#2b2e35',
   cardControl: '#393d46',
-  // The design card set has no hover or selected colors, so these keep the dark values of
-  // bg.controlHover, bg.brand.weak and fg.brand for the server menu that stays dark in light mode.
+  // The design card set has no hover, selected or strong border colors, so these keep the dark
+  // values of bg.controlHover, bg.brand.weak, fg.brand and border.strong for the card and the
+  // server menu that stay dark in light mode.
   cardControlHover: '#5b606a',
   cardBrandWeak: '#1e3352',
   cardFgBrand: '#41a2f9',
   cardBorder: '#393d46',
+  cardBorderStrong: '#5b606a',
   cardFg: '#f3f4f5',
   cardFgMuted: '#dcdee3',
   cardFgSubtle: '#b0b3ba',

@@ -25,7 +25,7 @@ export const styles = stylex.create({
     cursor: 'pointer',
     outlineOffset: -4,
     ':focus-visible': { outline: `2px solid ${colors.borderFocus}` },
-    ':hover': { boxShadow: `inset 0 0 0 1px ${colors.borderStrong}` }
+    ':hover': { boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}` }
   },
   content: { position: 'absolute', inset: 0, pointerEvents: 'none' },
   progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },

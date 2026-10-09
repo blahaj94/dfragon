@@ -34,10 +34,12 @@ export const styles = stylex.create({
     zIndex: 5 - rank,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: colors.cardBorder,
+    // As on the design board, only the front card stays dark. The cards behind it and the
+    // borders follow the theme.
+    borderColor: rank === 0 ? colors.borderStrong : colors.borderDefault,
     borderRadius: 12,
-    backgroundColor: rank === 0 ? colors.cardBg : colors.cardStripe,
-    transitionProperty: 'left, top, background-color',
+    backgroundColor: rank === 0 ? colors.cardBg : colors.bgSurface,
+    transitionProperty: 'left, top, background-color, border-color',
     transitionDuration: { default: '180ms', '@media (prefers-reduced-motion: reduce)': '0ms' },
     transitionTimingFunction: 'ease-out',
     color: colors.cardFg
@@ -48,7 +50,7 @@ export const styles = stylex.create({
     borderWidth: 0,
     borderRadius: 12,
     backgroundColor: 'transparent',
-    color: colors.cardFg,
+    color: colors.fgMuted,
     cursor: selected ? 'default' : 'pointer',
     textAlign: 'right',
     padding: 0,
@@ -67,13 +69,14 @@ export const styles = stylex.create({
     right: 0,
     width: 84,
     textAlign: 'center',
-    color: colors.cardFgMuted
+    color: colors.fgSubtle
   },
   title: { margin: 0, position: 'absolute', top: 20, left: 20 },
   content: { position: 'absolute', inset: '68px 20px 20px', pointerEvents: 'none' },
   identity: { textAlign: 'center', marginTop: 12 },
   adventure: { color: colors.cardFgAdventure },
   characterName: { paddingBlock: 8 },
+  job: { color: colors.cardFgMuted },
   pending: {
     display: 'grid',
     placeContent: 'center',

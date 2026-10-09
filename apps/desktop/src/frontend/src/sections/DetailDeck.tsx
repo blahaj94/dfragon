@@ -93,7 +93,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                             <Typo.h5 as="p" {...stylex.props(styles.characterName)}>
                               {character.name}
                             </Typo.h5>
-                            <Typo.txtS as="span" {...stylex.props(styles.subtitle)}>
+                            <Typo.txtS as="span" {...stylex.props(styles.job)}>
                               {character.job}
                             </Typo.txtS>
                           </div>
