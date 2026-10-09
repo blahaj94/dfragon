@@ -1,6 +1,5 @@
 import { join } from 'node:path'
-import development from '../../../build/development-auth.json'
-import distribution from '../../../build/distribution-auth.json'
+import channels from '../../../build/channels.json'
 import { validateApiOrigin } from './protocol'
 import { readAuthRuntimeConfig, type AuthRuntimeConfig } from './runtime-config'
 
@@ -27,12 +26,12 @@ export function readAppAuthConfig(application: {
       : null
   // OS protocol launches do not inherit the shell that built or first ran the app.
   // Keep the public tuple in the main bundle, including on cold starts.
-  const config = isDevelopmentBuild ? development : distribution
+  const config = isDevelopmentBuild ? channels.development.identity : channels.distribution.identity
 
   return readAuthRuntimeConfig({
     DFRAGON_AUTH_API_ORIGIN: isDevelopmentBuild
-      ? development.accountsOrigin
-      : (accountsOrigin ?? 'https://accounts.dfragon.com'),
+      ? channels.development.origins.accounts
+      : (accountsOrigin ?? channels.distribution.origins.accounts.default),
     DFRAGON_AUTH_RETURN_TARGET: config.returnTarget,
     DFRAGON_AUTH_ENVIRONMENT: config.environment,
     DFRAGON_AUTH_PROVIDERS: config.providers.join(','),
@@ -50,7 +49,7 @@ export function readAppApiOrigin(): string | null {
       ? __DFRAGON_DISTRIBUTION_API_ORIGIN__
       : null
   const origin = isDevelopmentBuild
-    ? development.apiOrigin
+    ? channels.development.origins.api
     : (distributionOrigin ?? process.env['DFRAGON_API_ORIGIN'])
   if (origin == null) {
     return null

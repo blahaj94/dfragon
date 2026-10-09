@@ -1,0 +1,43 @@
+{
+  "development": {
+    "packaging": {
+      "productName": "DFragon Development",
+      "executableName": "dfragon-dev",
+      "packageName": "@dfragon/desktop",
+      "output": "dist/development",
+      "installerInclude": "build/development-installer.nsh"
+    },
+    "identity": {
+      "appIdentity": "dfragon.dev",
+      "environment": "development",
+      "returnTarget": "dfragon.dev://auth/callback",
+      "providers": ["passkey"]
+    },
+    "origins": {
+      "api": "https://localhost:3443",
+      "accounts": "https://localhost:3444"
+    }
+  },
+  "distribution": {
+    "packaging": {
+      "productName": "DFragon",
+      "executableName": "dfragon",
+      "packageName": "dfragon",
+      "output": "dist",
+      "installerInclude": "build/distribution-installer.nsh"
+    },
+    "identity": {
+      "appIdentity": "dfragon",
+      "environment": "production",
+      "returnTarget": "dfragon://auth/callback",
+      "providers": ["passkey"]
+    },
+    "origins": {
+      "api": { "variable": "DFRAGON_DISTRIBUTION_API_ORIGIN" },
+      "accounts": {
+        "variable": "DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN",
+        "default": "https://accounts.dfragon.com"
+      }
+    }
+  }
+}
