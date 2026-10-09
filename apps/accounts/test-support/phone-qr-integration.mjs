@@ -268,7 +268,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
       [expired.requestId]
     )
     assert.equal((await phone.request.get(expired.phoneUrl)).status(), 400)
-    mark('QR expiry countdown remains visible and disables reissue')
+    mark('QR expiry notice remains visible and disables reissue')
     await pcPage.clock.setSystemTime(new Date(Date.parse(expired.expiresAt) + 1000))
     await pcPage.clock.runFor(5000)
     assert.equal(await pcPage.locator('#qr-expiry').textContent(), '인증 시간 만료')
