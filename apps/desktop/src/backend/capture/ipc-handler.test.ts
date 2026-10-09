@@ -203,7 +203,7 @@ describe('capture main document and source boundary', () => {
   it('subframe navigation은 캡처를 유지하고 main document navigation은 수명을 끝낸다', async () => {
     const fixture = await setup(false)
     const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
-    nativeFrame.read.mockResolvedValue({ kind: 'frame', image })
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     const before = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
@@ -219,7 +219,7 @@ describe('capture main document and source boundary', () => {
     )
 
     expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(before)
-    // snapshot만으로는 수명 무효화를 알 수 없으므로 같은 캡처로 프레임을 계속 읽을 수 있는지 확인한다.
+    // snapshot은 창 세대만 바뀌어 낡은 binding을 드러내지 않으므로 같은 캡처로 프레임을 계속 읽을 수 있는지 확인한다.
     await expect(fixture.invoke('readCaptureFrame', before.snapshot.captureId)).resolves.toEqual({
       kind: 'frame',
       image
