@@ -91,7 +91,7 @@ Docker image는 고정 index, native child, config를 검증한 뒤 같은 local
 
 ## 공용 상세 캐시
 
-`AddCharacterCatalog1789554193117`은 `item_catalog`와 `skill_catalog` 두 테이블만 추가한다. 기존 캐릭터 JSONB, 인증 데이터는 변경하지 않는다. 후속 `AddSetItemCatalog1789557135610`은 같은 캐시 정책의 `set_item_catalog`만 추가한다. 아바타, 엠블렘, 크리쳐, 아티팩트, 서약, 결정, 버프 장착 상세는 기존 `item_catalog`를 재사용한다. [캐릭터 상세 계약](../rules/character-details.md#공용-아이템, 스킬, 세트-상세)과 [DBML](character-details.dbml)을 함께 참고한다.
+`AddCharacterCatalog1789554193117`은 `item_catalog`와 `skill_catalog` 두 테이블만 추가한다. 기존 캐릭터 JSONB, 인증 데이터는 변경하지 않는다. 후속 `AddSetItemCatalog1789557135610`은 같은 캐시 정책의 `set_item_catalog`만 추가한다. 아바타, 엠블렘, 크리쳐, 아티팩트, 서약, 결정, 버프 장착 상세는 기존 `item_catalog`를 재사용한다. [캐릭터 상세 계약](../rules/character-details.md#공용-아이템-스킬-세트-상세)과 [DBML](character-details.dbml)을 함께 참고한다.
 
 Runtime에는 공용 상세 세 테이블의 SELECT, INSERT, UPDATE 권한이 필요하며 별도 읽기 전용 계정은 SELECT만 가진다. 제품 DB 검증은 `apps/api/test-support/grant-api.sql` fixture로 이 최소 권한을 확인한다. 실제 역할, 권한 부여와 실행 순서는 [인프라 책임](api-start-development.md#서버-이미지)이다. 자동 migration은 계속 비활성화하며 `down`은 공용 캐시를 삭제하므로 격리 테스트에서만 사용한다.
 

@@ -141,7 +141,7 @@ Clock 검사는 wall/monotonic 각각을 마지막으로 수용한 관측과 비
 
 `pnpm --filter @dfragon/desktop build:win:development`는 실제 Desktop main, preload, renderer와 Windows x64 NSIS 설치 파일을 빌드한다. Main의 CommonJS bundle에는 ESM-only Ky를 포함한다. Ky를 외부 `require`로 남기면 default export 연결이 달라 HTTP client 초기화 시 앱이 종료될 수 있으므로, 제품 build 설정을 사용하는 bundle 테스트에서 인증, 검색 client 생성을 확인한다. 결과는 `apps/desktop/dist/development`에 있으며 fixture main이나 주입 저장소를 사용하지 않는다. `build:development`는 같은 설정의 앱 bundle만 만들고 OS protocol을 등록하지 않는다.
 
-개발 tuple은 `apps/desktop/build/channels.json`의 development 항목(identity, auth, origins)에서 관리하며 `apps/desktop/build/channels.test.ts`가 승인 값을 고정한다. 서버 패스키 설정과 같은 origin, 복귀 주소를 사용한다. API 시작과 CA 신뢰는 [localhost HTTPS 안내](api-start-development.md#같은-컴퓨터에서-desktop과-api-연결)를 따른다.
+개발 tuple은 `apps/desktop/build/channels.json`의 development 항목(identity, auth, origins)에서 관리하며 `apps/desktop/build/channels.test.ts`가 승인 값을 고정한다. 서버 패스키 설정과 같은 origin, 복귀 주소를 사용한다. API 시작과 CA 신뢰는 [localhost HTTPS 안내](api-start-development.md#로컬-개발-명령)를 따른다.
 
 `dfragon-development` 빌드 mode에서는 `auth/app-config.ts`가 main bundle의 tuple을 기존 runtime validator로 검증한다. UserData는 Electron `appData` 아래의 `dfragon.dev`로 고정한다. Windows에서는 일반적으로 `%APPDATA%\dfragon.dev`다. 브라우저나 바로가기로 재실행해도 셸의 `DFRAGON_AUTH_*` 설정 없이 같은 API, identity, 프로필을 사용하며 환경변수로 일부 값을 덮어쓰지 않는다. 다른 빌드 mode는 기존 설정을 유지한다. Pending 로그인은 여전히 메모리에만 있으므로 cold callback으로 이전 시도를 복원하지 않는다.
 
