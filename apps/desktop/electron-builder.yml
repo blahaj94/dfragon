@@ -9,6 +9,9 @@ files:
   - resources/**
   - package.json
   - '!**/{.env,.env.*,.npmrc,*.pem,*.key,*.pfx,*.p12}'
+  # The renderer bundles onnxruntime-web and loads its WASM from out/frontend/ocr/ort, so the
+  # installed package is never read at runtime. Leaving it out keeps about 138MB out of app.asar.
+  - '!node_modules/onnxruntime-web/**'
 asarUnpack:
   - resources/**
 win:

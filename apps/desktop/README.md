@@ -132,7 +132,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. PR 빌드는 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며 실행 동작은 같습니다. 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
 
-설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다.
+설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
 
 | 항목                              | 배포 앱                                 | 기존 개발 앱                            |
 | --------------------------------- | --------------------------------------- | --------------------------------------- |
