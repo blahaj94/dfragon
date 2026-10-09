@@ -25,6 +25,12 @@ import {
   type CharacterAppearanceDependencies
 } from './characters/appearance/service.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
+import {
+  type AccessLogSink,
+  createAccessLog,
+  recordAccessLogErrorCode,
+  writeAccessLogToStdout
+} from './access-log.js'
 
 const TRAILING_SLASHES_PATTERN = /\/+$/
 
@@ -56,6 +62,7 @@ class ApiHttpFilter implements ExceptionFilter {
     if (failure.retryAfter != null) {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }
+    recordAccessLogErrorCode(response, failure.body.error.code)
     response.status(failure.status).json(failure.body)
   }
 }
@@ -75,7 +82,8 @@ export async function createApiHttpApp(
   adventures?: AdventureSearchStore,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
   buildInfoPath = '/app/build-info.json',
-  appearance?: CharacterAppearanceDependencies
+  appearance?: CharacterAppearanceDependencies,
+  writeAccessLog: AccessLogSink = writeAccessLogToStdout
 ): Promise<INestApplication> {
   const buildInfo = await readApiBuildInfo(buildInfoPath)
   @Module({
@@ -120,6 +128,8 @@ export async function createApiHttpApp(
   })
   try {
     app.set('trust proxy', search.trustedProxyHops ?? false)
+    // Nest 기본 logger는 끈 채로 두고, 다른 middleware의 거절까지 재도록 가장 먼저 등록한다.
+    app.use(createAccessLog(writeAccessLog))
     app.use((_request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')
       response.removeHeader('X-Powered-By')
