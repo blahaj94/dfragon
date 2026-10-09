@@ -20,7 +20,7 @@ last-reviewed: 2026-10-02
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
 | Desktop MVP 카드, 상세 A안, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 개발자 모드, 크롭, 라벨, 모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
-| Desktop 새 버전 알림과 자동 업데이트(채택 전 제안) | [Desktop 업데이트 제안](rules/desktop-update-proposal.md) |
+| Desktop 새 버전 알림, 자동 업데이트 제안 | [Desktop 새 버전 알림과 업데이트 제안](rules/desktop-update-proposal.md) |
 | OCR 이미지 업로드, 정답, train/val/test, 패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
 | 앱 공용 UI, SEED, StyleX, 시각 검증 | [Design System](rules/design-system.md), [Shared UI boundary](architecture/overview.md#shared-ui-boundary), [앱 공통 StyleX](reference/app-styling.md) |
 | React 화면, hook 책임과 앱별 진입점 | [공통 책임 기준](rules/design-system.md#react-ui-책임), [Desktop 구조](architecture/desktop-code-organization.md), [OCR 안내](../apps/ocr/README.md), [Repository Map](reference/repository-map.md) |
