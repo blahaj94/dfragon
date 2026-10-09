@@ -92,7 +92,7 @@ export function developerPartySlotDataUrl(slot: DeveloperPartyCrop): string {
   return canvas.toDataURL('image/png')
 }
 
-// Encodes a copy of the crop as the HUD OCR model input; the saved raw crop is unchanged.
+// Encodes a copy of the crop as the HUD OCR model input without modifying the input crop.
 export function developerPartyModelInputDataUrl(slot: DeveloperPartyCrop): string {
   assertDeveloperPartyCrop(slot)
   const pixels = new ImageData(new Uint8ClampedArray(slot.rgba), slot.width, slot.height)
