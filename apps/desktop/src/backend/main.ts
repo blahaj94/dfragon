@@ -35,6 +35,7 @@ import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
 import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
 import { registerDesktopShortcuts } from './shortcuts/register'
 import { DESKTOP_SHORTCUTS } from '../preload/common/types/desktop-shortcut'
+import { AUTH_AVAILABLE_ARGUMENT } from '../preload/common/types/auth'
 import { createOcrCollection } from './ocr-collection/collection'
 import { isOcrCollectionEnabled } from './ocr-collection/policy'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
@@ -114,6 +115,8 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     webPreferences: {
       backgroundThrottling: false,
       preload: join(__dirname, '../preload/index.js'),
+      // 아래에서 인증 IPC를 등록하는 창에만 preload가 인증 API를 노출하게 한다.
+      additionalArguments: authRuntime == null ? [] : [AUTH_AVAILABLE_ARGUMENT],
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false

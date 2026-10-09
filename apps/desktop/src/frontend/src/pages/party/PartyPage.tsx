@@ -36,6 +36,7 @@ export function PartyPage({
   compareFaces?: boolean
   inputEnabled?: boolean
   basicOnly?: boolean
+  /** 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. */
   account?: ReactNode
   capture?: ReactNode
   settings?: ReactNode
@@ -68,12 +69,14 @@ export function PartyPage({
           >
             <span {...stylex.props(styles.themeIcon)}>{light ? '☾' : '☀'}</span>
           </ActionButton>
-          {account ?? (
+          {account === undefined ? (
             <ActionButton size="small" variant="ghost" disabled>
               <Typo.txtS as="span" weight={700}>
                 로그인
               </Typo.txtS>
             </ActionButton>
+          ) : (
+            account
           )}
           {settings}
         </div>
