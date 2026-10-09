@@ -75,7 +75,7 @@ Node 24를 사용합니다. 실행 환경, 기존 인증 API 연결, 영속 저�
 
 인증 대기 중 연결이 끊기면 인증 완료 뒤 업로드 슬롯을 예약하지 않습니다. 살아 있는 요청은 기존 한도에서 즉시 `UPLOAD_BUSY`로 거절하며 대기열에 넣지 않습니다. 예약한 슬롯은 응답 종료, 오류, 취소의 `close`에서 한 번만 반환합니다.
 
-SPA는 TanStack Query로 세션, 필터별 목록, 통계를 조회합니다. 30초 동안 fresh 상태를 유지하고 사용하지 않는 캐시는 5분 후 제거합니다. 업로드, 정답, 분할 mutation 성공 시 모든 목록과 통계를 invalidate하고, 로그아웃, 인증 만료 시 캐시를 비웁니다. Mutation 자동 재시도는 끄고 실패한 업로드만 사용자가 같은 ID로 재시도합니다. Query parameter 생성은 순수 utility, 필터, 페이지 상태는 전용 hook이 담당합니다. 스타일, 테마는 StyleX로 컴파일하며 전역 CSS에는 reset과 NanumSquare Neo font-face를 둡니다. 폰트는 같은 서버에서 제공하고 원문 라이선스를 browser 산출물 `THIRD-PARTY.txt`에 포함합니다.
+SPA는 TanStack Query로 세션, 필터별 목록, 통계를 조회합니다. 30초 동안 fresh 상태를 유지하고 사용하지 않는 캐시는 5분 후 제거합니다. 업로드, 정답, 분할 mutation 성공 시 모든 목록과 통계를 invalidate하고, 로그아웃, 인증 만료 시 캐시를 비웁니다. Mutation 자동 재시도는 끄고 실패한 업로드만 사용자가 같은 ID로 재시도합니다. Query parameter 생성은 순수 utility, 필터, 페이지 상태는 전용 hook이 담당합니다. 스타일, 테마는 StyleX로 컴파일하며 전역 CSS에는 reset, Pretendard font-face와 body의 UI 글꼴, 한국어 줄바꿈 기준을 둡니다. 폰트는 같은 서버에서 제공하고 원문 라이선스를 browser 산출물 `THIRD-PARTY.txt`에 포함합니다.
 
 ## HTTP API
 

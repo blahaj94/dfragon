@@ -5,7 +5,7 @@ DFragon의 빌드 도구용 오픈소스 고지 패키지입니다. 공용 원�
 ## 원본과 수집 범위
 
 - `notices/ui`: 기존 SEED, 아이콘 LICENSE/NOTICE 원문입니다. 수정 내역, source hash는 소유 코드의 `packages/ui/seed-provenance.json`에 유지합니다.
-- `notices/desktop`: NanumSquareNeo, Lucide와 Desktop UI 자산 출처입니다.
+- `notices/desktop`: Pretendard, Lucide와 Desktop UI 자산 출처입니다. Pretendard 원문은 OCR browser build도 `THIRD-PARTY.txt`에 포함합니다.
 - `notices/lib`: CP949 문자 표의 iconv-lite 고지입니다. `@dfragon/lib` build에서 기존 `dist/notices`와 runtime 의존성 수집용 패키지 루트 `LICENSES`에 복사합니다. OCR은 공용 IP 함수를 runtime 의존성으로 사용하므로 lib의 원문과 전이 의존성 `ipaddr.js`도 수집합니다. Desktop이 이 함수를 아직 소비하지 않으므로 Desktop 고지에는 넣지 않습니다.
 - `notices/upstream`, `overrides.json`: 설치된 npm 패키지에서 빠진 원문을 해당 버전의 upstream 또는 배포 패키지로부터 보완합니다. 출처, 버전, SHA-256을 기록하며 빌드 중 네트워크에서 가져오지 않습니다. 범용 MIT 문구로 저작권자를 추정하지 않습니다.
 - OCR 원문은 모델, 사전과 검증 hash를 함께 관리하는 `apps/desktop/assets/ocr`에 보존하고 원래 OCR 배포 경로도 유지합니다.
