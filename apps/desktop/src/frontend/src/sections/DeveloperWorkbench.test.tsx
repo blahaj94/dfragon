@@ -809,7 +809,7 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
   expect(container.querySelectorAll('input:checked')).toHaveLength(12)
   expect(container.textContent).toContain('현재 저장 대상 12개')
   expect(container.textContent).toContain('12 / 12명')
-  expect(container.textContent).toContain('현재 화면의 행 위치')
+  expect(container.textContent).toContain('화면의 행 위치 기준')
   expect(container.querySelectorAll('img[alt$="닉네임 원본 크롭"]')).toHaveLength(12)
   await act(async () => checkbox('12행 공대원 닉네임 저장').click())
   expect(container.textContent).toContain('현재 저장 대상 11개')

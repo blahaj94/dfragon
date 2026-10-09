@@ -252,9 +252,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       <header {...stylex.props(styles.header)}>
         <div {...stylex.props(styles.heading)}>
           <Typo.h3 as="h1">개발자 작업 공간</Typo.h3>
-          <Typo.txtS {...stylex.props(styles.muted)}>
-            게임 중에는 수집하고, 정답은 나중에 입력하세요.
-          </Typo.txtS>
+          <Typo.txtS {...stylex.props(styles.muted)}>게임 중 수집, 정답은 나중에 입력</Typo.txtS>
         </div>
         <ActionButton
           size="small"

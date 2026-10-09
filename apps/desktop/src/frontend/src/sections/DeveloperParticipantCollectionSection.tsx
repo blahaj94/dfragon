@@ -93,8 +93,8 @@ export function DeveloperParticipantCollectionSection({
           <Typo.h6 as="p">현재 저장 대상 {count}개</Typo.h6>
           <Typo.txtS {...stylex.props(styles.muted)}>
             {raid
-              ? '게임에서 Print Screen을 누르면 그 순간의 선택한 행을 저장합니다.'
-              : '게임에서 키보드의 Print Screen 키를 누르면 저장합니다.'}
+              ? '게임에서 Print Screen을 누르면 선택한 행 저장'
+              : '게임에서 Print Screen을 누르면 저장'}
           </Typo.txtS>
         </div>
       </div>
@@ -223,13 +223,11 @@ export function DeveloperParticipantCollectionSection({
         </div>
       </div>
       <div {...stylex.props(styles.footnotes)}>
-        <Typo.caption>
-          미리보기는 선택한 캡처 주기로 갱신됩니다. 저장 이미지는 원본 크기를 유지합니다.
-        </Typo.caption>
+        <Typo.caption>미리보기는 캡처 주기마다 갱신, 저장은 원본 크기</Typo.caption>
         <Typo.caption>
           {raid
-            ? '선택은 현재 화면의 행 위치를 기준으로 합니다. 공대원이 빠지면 아래 행이 위로 이동하며, 빈 행은 저장하지 않습니다.'
-            : '빈 행은 자동으로 건너뛰고, 남은 파티원의 행 번호는 그대로 유지합니다.'}
+            ? '선택은 화면의 행 위치 기준, 빈 행은 저장하지 않음'
+            : '빈 행은 건너뛰고 행 번호는 유지'}
         </Typo.caption>
       </div>
     </section>

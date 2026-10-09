@@ -51,9 +51,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
           접기
         </button>
       </div>
-      <p {...stylex.props(styles.paragraph, styles.uploadParagraph)}>
-        원본 PNG와 원본 픽셀 기준 크롭 영역을 등록합니다.
-      </p>
+      <p {...stylex.props(styles.paragraph, styles.uploadParagraph)}>원본 PNG와 크롭 영역 등록</p>
       <div {...stylex.props(styles.fields)}>
         <label {...stylex.props(styles.label)}>
           원본 PNG
@@ -199,9 +197,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         </div>
       </div>
       <div {...stylex.props(styles.uploadFooter)}>
-        <span {...stylex.props(styles.muted)}>
-          크롭을 등록한 뒤 자료실에서 닉네임 정답을 입력하세요.
-        </span>
+        <span {...stylex.props(styles.muted)}>등록 후 자료실에서 정답 입력</span>
         <div {...stylex.props(styles.actions)}>
           {submission !== null && (
             <button className={secondary} disabled={busy} onClick={retryPrevious}>

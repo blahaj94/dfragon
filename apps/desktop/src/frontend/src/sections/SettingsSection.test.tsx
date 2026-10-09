@@ -121,7 +121,7 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
   expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('라이선스')
   await click('개발자 모드')
   expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('개발자 모드')
-  expect(document.body.textContent).toContain('개발자 모드가 꺼져 있습니다.')
+  expect(document.body.textContent).toContain('개발자 모드 꺼짐')
   await click('개발자 모드 켜기')
   expect(setEnabled).toHaveBeenCalledExactlyOnceWith(true)
   expect(openDeveloperWorkbench).not.toHaveBeenCalled()
