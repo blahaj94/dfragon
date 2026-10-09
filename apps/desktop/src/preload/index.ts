@@ -9,9 +9,13 @@ import * as desktopShortcut from './api/desktop-shortcut'
 import * as ocrCollection from './api/ocr-collection'
 import * as diagnostics from './api/diagnostics'
 import * as updateNotice from './api/update-notice'
+import { AUTH_AVAILABLE_ARGUMENT } from './common/types/auth'
 
 contextBridge.exposeInMainWorld('api', capture)
-contextBridge.exposeInMainWorld('auth', auth)
+// 로그인 설정이 없는 빌드는 인증 IPC가 없으므로 호출할 수 없는 API를 노출하지 않는다.
+if (process.argv.includes(AUTH_AVAILABLE_ARGUMENT)) {
+  contextBridge.exposeInMainWorld('auth', auth)
+}
 
 contextBridge.exposeInMainWorld('search', search)
 

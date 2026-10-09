@@ -22,6 +22,8 @@ function App(): React.JSX.Element {
   const developerMode = useDeveloperMode()
   const capture = usePartyCapture({ identifyCharacters: true })
   const updateNotice = useUpdateNotice()
+  // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
+  const authApi = window.auth
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
   let captureNotice = ''
   if (capture.search.connectionFailed) {
@@ -93,7 +95,7 @@ function App(): React.JSX.Element {
               onStop={() => capture.stopCapture()}
             />
           }
-          account={<LoginSection api={window.auth} />}
+          account={authApi == null ? null : <LoginSection api={authApi} />}
           settings={
             <SettingsSection
               developerMode={developerMode}

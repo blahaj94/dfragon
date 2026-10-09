@@ -10,7 +10,7 @@ import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 
 declare global {
   interface Window {
-    auth: AuthApi
+    auth?: AuthApi
   }
 }
 const root = document.getElementById('root')
