@@ -130,7 +130,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 저장소 변수 대신 사용할 공개 API 주소이며 비우면 변수를 사용합니다. Release 게시와 같은 main, Code Quality 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
+관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. PR 빌드는 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며 실행 동작은 같습니다. 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
 
 설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다.
 
