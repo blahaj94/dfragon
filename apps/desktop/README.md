@@ -130,7 +130,13 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 저장소 변수 대신 사용할 공개 API 주소이며 비우면 변수를 사용합니다. Release 게시와 같은 main, Code Quality 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. PR 빌드는 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며 실행 동작은 같습니다. 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
+관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 로그인 없이 실제 API로 검색, 캡처, OCR을 확인하는 용도입니다. API는 저장소 변수 `DFRAGON_TEST_API_ORIGIN`이 있으면 그 값, 비우면 `https://api.dfragon.com`입니다. 설치한 DFragon과 profile이 겹치지 않고, `-alpha` 버전이 아니므로 OCR 수집은 꺼집니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC에서는 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID는 workflow 실행 요약에 있습니다.
+
+```powershell
+gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
+```
+
+패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
 
 설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
 
@@ -143,7 +149,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 | API                               | 빌드 시 지정한 HTTPS origin             | `https://localhost:3443`                |
 | 설치                              | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지           |
 
-배포 앱과 개발 앱의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 복귀 주소, 환경, provider와 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만들며 `electron-builder.ts`와 `electron-builder.development.ts`는 채널만 고릅니다. `scripts/desktop-package-fuses.test.mjs`가 electron-builder가 실제로 읽은 두 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
+배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 로그인 설정(환경, 복귀 주소, provider)과 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 로그인 설정이 없는 채널은 로그인 없이 실행하고 Electron 기본 profile 경로를 씁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`는 개발 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
 NSIS는 기존 protocol 소유권 검사, 사용자별 등록, 자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin, RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
@@ -181,7 +187,7 @@ pnpm --filter @dfragon/desktop dev
 
 파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `apps/desktop/models/finetuned` submodule에서 특정 커밋을 고정합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
 
-처음 checkout할 때 실행합니다. Code Quality와 Windows Portable CI도 고정된 submodule 커밋을 가져옵니다.
+처음 checkout할 때 실행합니다. Code Quality, Windows Test Build와 Windows Portable CI도 고정된 submodule 커밋을 가져옵니다.
 
 ```sh
 git submodule update --init --recursive apps/desktop/models/finetuned
