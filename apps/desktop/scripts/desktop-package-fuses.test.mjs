@@ -45,7 +45,7 @@ describe('desktop package fuse configuration', () => {
     const productionConfig = await getConfig(desktopProjectDir, null, null)
     const developmentConfig = await getConfig(
       desktopProjectDir,
-      'electron-builder.development.mjs',
+      'electron-builder.development.ts',
       null
     )
     await validateConfiguration(developmentConfig, debugLogger)
@@ -59,7 +59,7 @@ describe('desktop package fuse configuration', () => {
       expect(config.win.executableName).toBe(channel.packaging.executableName)
       expect(config.extraMetadata.name).toBe(channel.packaging.packageName)
       expect(config.nsis.include).toBe(channel.packaging.installerInclude)
-      expect(config.directories?.output ?? 'dist').toBe(channel.packaging.output)
+      expect(config.directories.output).toBe(channel.packaging.output)
       const installer = await readFile(join(desktopProjectDir, config.nsis.include), 'utf8')
       expect(installer).toContain(
         `!define DFRAGON_PROTOCOL_SCHEME "${new URL(channel.identity.returnTarget).protocol.slice(0, -1)}"`
@@ -68,6 +68,7 @@ describe('desktop package fuse configuration', () => {
       expect(config.win.target).toEqual([{ target: 'nsis', arch: ['x64'] }])
     }
     expect(productionConfig.nsis.oneClick).toBe(true)
+    expect(productionConfig.protocols).toBeUndefined()
     expect(developmentConfig.protocols).toEqual([
       { name: 'DFragon development login', schemes: ['dfragon.dev'] }
     ])
