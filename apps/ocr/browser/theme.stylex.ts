@@ -6,6 +6,8 @@ export const colors = stylex.defineVars({
   bgCanvas: 'var(--seed-color-palette-gray-200)',
   bgSurface: 'var(--seed-color-palette-gray-00)',
   bgInset: 'var(--seed-color-palette-gray-100)',
+  // Crop previews stay on a dark surface in both modes, as decided in #526.
+  bgPreview: '#16171B',
   bgControl: 'var(--seed-color-palette-gray-300)',
   bgControlHover: 'var(--seed-color-palette-gray-400)',
   bgBrandSolid: 'var(--seed-color-palette-blue-700)',

@@ -270,7 +270,7 @@ export const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgInset,
+    backgroundColor: colors.bgPreview,
     borderRadius: 6,
     overflow: 'hidden'
   },
@@ -309,7 +309,7 @@ export const styles = stylex.create({
     whiteSpace: 'nowrap'
   },
   largePreview: {
-    backgroundColor: colors.bgInset,
+    backgroundColor: colors.bgPreview,
     height: 104,
     padding: '12px',
     display: 'flex',
