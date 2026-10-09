@@ -23,7 +23,10 @@ export const styles = stylex.create({
     fontFamily: 'inherit',
     cursor: 'pointer',
     ':hover:not(:disabled)': { backgroundColor: colors.cardControlHover },
-    ':is([data-open])': { borderColor: colors.borderFocus },
+    ':is([data-open])': {
+      borderColor: colors.borderFocus,
+      boxShadow: `0 0 0 1px ${colors.borderFocus}`
+    },
     ':focus-visible': { outline: `2px solid ${colors.borderFocus}`, outlineOffset: 2 },
     ':disabled': { opacity: 0.4, cursor: 'not-allowed' }
   },
@@ -59,7 +62,7 @@ export const styles = stylex.create({
   scroll: { padding: 6, maxHeight: 'min(320px, var(--seed-select-available-height, 320px))' },
   groupLabel: {
     padding: '6px 10px 8px',
-    color: colors.cardFgMuted
+    color: colors.cardFgSubtle
   },
   option: {
     display: 'flex',
@@ -84,5 +87,6 @@ export const styles = stylex.create({
     ':is([data-highlighted])': { backgroundColor: colors.cardBrandWeak }
   },
   itemLabel: { color: colors.cardFg },
-  check: { width: 16, height: 16, color: colors.fgBrand, flexShrink: 0 }
+  selectedLabel: { color: colors.cardFgBrand },
+  check: { width: 16, height: 16, color: colors.cardFgBrand, flexShrink: 0 }
 })

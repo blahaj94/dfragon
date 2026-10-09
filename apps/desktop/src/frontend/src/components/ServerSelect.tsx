@@ -59,7 +59,7 @@ export function ServerSelect({
                 >
                   <Select.ItemLabel
                     style={typographyVariants.caption}
-                    {...stylex.props(styles.itemLabel)}
+                    {...stylex.props(styles.itemLabel, option.id === value && styles.selectedLabel)}
                   />
                   <Select.ItemIndicator selected={<CheckIcon />} {...stylex.props(styles.check)} />
                 </Select.Item>

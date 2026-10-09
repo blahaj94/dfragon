@@ -26,7 +26,7 @@ export const styles = stylex.create({
     padding: { default: '24px 12px', '@media (max-width: 600px)': '8px 12px' }
   },
   group: {
-    color: colors.fgMuted,
+    color: colors.fgSubtle,
     paddingInline: 12,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
@@ -36,10 +36,10 @@ export const styles = stylex.create({
     justifyContent: 'flex-start',
     padding: 12,
     borderRadius: 8,
-    color: colors.fgDefault,
+    color: colors.fgSubtle,
     textAlign: 'left'
   },
-  menuSelected: { backgroundColor: colors.bgBrandWeak },
+  menuSelected: { backgroundColor: colors.bgBrandWeak, color: colors.fgDefault },
   appName: {
     marginTop: 'auto',
     paddingInline: 12,
@@ -54,7 +54,12 @@ export const styles = stylex.create({
     minHeight: 0,
     overflowY: 'auto',
     padding: { default: 28, '@media (max-width: 600px)': 16 },
-    backgroundColor: colors.bgCanvas
+    backgroundColor: colors.bgSurface,
+    // The sidebar and the content share bg.surface, so a line separates them.
+    boxShadow: {
+      default: `inset 1px 0 0 ${colors.borderDefault}`,
+      '@media (max-width: 600px)': `inset 0 1px 0 ${colors.borderDefault}`
+    }
   },
   heading: { paddingBottom: 16 },
   developerDescription: { paddingBottom: 20, color: colors.fgMuted },

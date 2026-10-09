@@ -33,7 +33,7 @@ export const styles = stylex.create({
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
     borderBottomColor: 'transparent',
-    color: colors.fgMuted
+    color: colors.fgSubtle
   },
   tabSelected: { borderBottomColor: colors.bgBrandSolid, color: colors.fgDefault },
   separator: { width: '100%', height: 1, backgroundColor: colors.borderDefault, marginTop: 16 },

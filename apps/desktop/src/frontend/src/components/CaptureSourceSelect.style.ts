@@ -39,7 +39,7 @@ export const styles = stylex.create({
     flexShrink: 0,
     width: 16,
     height: 16,
-    color: colors.fgMuted,
+    color: colors.fgSubtle,
     transition: 'transform 140ms ease',
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
@@ -61,7 +61,7 @@ export const styles = stylex.create({
   group: { '::before': { display: 'none' } },
   groupLabel: {
     padding: '0 8px 8px',
-    color: colors.fgMuted
+    color: colors.fgSubtle
   },
   option: {
     display: 'flex',
@@ -108,6 +108,7 @@ export const styles = stylex.create({
     whiteSpace: 'nowrap',
     color: colors.fgDefault
   },
+  selectedLabel: { color: colors.fgBrand },
   description: { color: colors.fgMuted },
   check: { width: 20, height: 20, flexShrink: 0, color: colors.fgBrand },
   notice: { padding: '4px 8px 12px', color: colors.fgMuted },

@@ -15,6 +15,7 @@ export const colors = stylex.defineVars({
   bgBrandWeak: 'var(--seed-color-palette-blue-200)',
   fgDefault: 'var(--seed-color-palette-gray-1000)',
   fgMuted: 'var(--seed-color-palette-gray-800)',
+  fgSubtle: 'var(--seed-color-palette-gray-700)',
   fgBrand: 'var(--seed-color-palette-blue-700)',
   fgInfo: 'var(--seed-color-palette-blue-700)',
   fgSuccess: 'var(--seed-color-palette-green-700)',
@@ -28,13 +29,15 @@ export const colors = stylex.defineVars({
   cardInset: '#16171b',
   cardStripe: '#2b2e35',
   cardControl: '#393d46',
-  // The design card set has no hover or selected fill, so these keep the dark values of
-  // bg.controlHover and bg.brand.weak for the server menu that stays dark in light mode.
+  // The design card set has no hover or selected colors, so these keep the dark values of
+  // bg.controlHover, bg.brand.weak and fg.brand for the server menu that stays dark in light mode.
   cardControlHover: '#5b606a',
   cardBrandWeak: '#1e3352',
+  cardFgBrand: '#41a2f9',
   cardBorder: '#393d46',
   cardFg: '#f3f4f5',
   cardFgMuted: '#dcdee3',
+  cardFgSubtle: '#b0b3ba',
   cardFgAdventure: '#93e5c0',
   enchantFinal: '#50e3c2',
   enchantSemi: '#ffb400',

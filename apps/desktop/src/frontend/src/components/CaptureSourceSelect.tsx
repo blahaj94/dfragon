@@ -122,7 +122,13 @@ export function CaptureSourceSelect({
                           <MonitorIcon {...stylex.props(styles.icon)} />
                         </span>
                         <Menu.ItemBody {...stylex.props(styles.itemBody)}>
-                          <Menu.ItemLabel title={source.name} {...stylex.props(styles.itemLabel)}>
+                          <Menu.ItemLabel
+                            title={source.name}
+                            {...stylex.props(
+                              styles.itemLabel,
+                              source.id === value && styles.selectedLabel
+                            )}
+                          >
                             <Typo.txtS as="span" weight={700}>
                               {source.name}
                             </Typo.txtS>
