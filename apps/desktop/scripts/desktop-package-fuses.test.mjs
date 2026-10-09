@@ -84,4 +84,24 @@ describe('desktop package fuse configuration', () => {
     expect(productionConfig.appId).not.toBe(developmentConfig.appId)
     expect(productionConfig.win.executableName).not.toBe(developmentConfig.win.executableName)
   })
+
+  it('test 채널 진입 파일은 로그인 protocol과 NSIS include 없이 test identity로 패키징한다', async () => {
+    const { getConfig, validateConfiguration } = await import(
+      pathToFileURL(appBuilderConfigModulePath).href
+    )
+    const testConfig = await getConfig(desktopProjectDir, 'electron-builder.test-channel.ts', null)
+    await validateConfiguration(testConfig, debugLogger)
+
+    expect(testConfig.appId).toBe(channels.test.identity.appIdentity)
+    expect(testConfig.productName).toBe(channels.test.packaging.productName)
+    expect(testConfig.win.executableName).toBe(channels.test.packaging.executableName)
+    expect(testConfig.directories.output).toBe(channels.test.packaging.output)
+    expect(testConfig.protocols).toBeUndefined()
+    expect(testConfig.nsis).not.toHaveProperty('include')
+    expect(testConfig.publish).toBeNull()
+    expect(testConfig.electronFuses).toEqual({
+      enableNodeOptionsEnvironmentVariable: false,
+      enableNodeCliInspectArguments: false
+    })
+  })
 })

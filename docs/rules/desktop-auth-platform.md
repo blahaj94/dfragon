@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
-last-reviewed: 2026-09-25
+last-reviewed: 2026-10-09
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서"
 exceptions: 실제 credential/keychain, protocol registry, 패스키 설정과 packaged E2E는 수행하지 않는다.
@@ -22,7 +22,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, prot
 | --- | --- | --- |
 | Source/config | `apps/desktop/package.json` 범위는 Electron `^39.2.6`, `pnpm-lock.yaml` 해결 version은 **39.8.10**, electron-builder **26.15.3** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
-| Placeholder/미구현 | appId `com.electron.app`, productName `apps-desktop`, Windows model ID `com.electron`, `notarize:false`; protocol 선언, handler, single-instance, safeStorage 없음 | 실제 배포 identity, 서명, 공증, scheme/host/path가 확정됐다는 근거가 아님 |
+| Identity, 보호 기능 (2026-10-09 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 배포, 개발 채널에는 protocol 선언, OS 복귀 handler, single-instance lock, safeStorage credential store가 구현됨. 로그인 없는 test 채널은 이 기능을 쓰지 않음. `notarize: false`는 유지 | 서명, 공증과 실제 OS 등록, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
 | Electron 공식 범위 | Pinned README는 macOS 12+ Intel/Apple Silicon, Windows 10+ x86/x64/arm64, Linux Ubuntu 18.04+/Fedora 32+/Debian 10+ 검증 목록을 명시 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 

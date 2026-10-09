@@ -144,11 +144,11 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 | -------------- | --------------------------------------------- | -------------------------- | --------------------------------------------- |
 | `distribution` | 사용자에게 배포하는 설치형, 포터블             | `distribution`             | `build:win`, `build:win:portable`, Release 첨부 |
 | `development`  | 로컬 API, accounts를 바라보는 개발 설치본      | `development`              | `build:win:development`                       |
-| `test`         | PR 실기 테스트용 포터블, 로그인 없음           | `test`                     | Windows Test Build artifact                   |
+| `test`         | PR 실기 테스트용 포터블, 로그인 없음           | `test`                     | Windows Test Build artifact, `build:win:test:portable` |
 
 각 채널의 앱 이름, 실행 파일, identity, 로그인 설정, API와 accounts origin 값은 이 표가 아니라 `build/channels.json`의 해당 항목에서 읽습니다. 값을 바꿀 때는 [Desktop Authentication Platform](../../docs/rules/desktop-auth-platform.md)의 승인 tuple과 `build/channels.test.ts`의 고정값을 함께 고칩니다.
 
-배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 로그인 설정(환경, 복귀 주소, provider)과 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 로그인 설정이 없는 채널은 로그인 없이 실행하고 Electron 기본 profile 경로를 씁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`는 개발 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
+배포 앱, 개발 앱, PR용 test 채널의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 로그인 설정(환경, 복귀 주소, provider)과 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 로그인 설정이 없는 채널은 로그인 없이 실행하고 Electron 기본 profile 경로를 씁니다. 빌드가 이 파일에서 채널 하나의 identity와 origin을 main bundle에 넣고, packaging 설정은 `build/electron-builder-config.ts`가 이 파일로 만듭니다. 기본 진입 파일 `electron-builder.ts`는 `DFRAGON_CHANNEL` 환경변수로 채널을 고르고 비우면 배포 채널이며, `electron-builder.development.ts`와 `electron-builder.test-channel.ts`는 각각 개발, test 채널로 고정되어 Windows PowerShell에서 환경변수 없이 쓸 수 있습니다. `scripts/desktop-package-fuses.test.mjs`와 `build/electron-builder-config.test.ts`가 electron-builder가 읽는 설정과 이 파일의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
 NSIS는 기존 protocol 소유권 검사, 사용자별 등록, 자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin, RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
@@ -181,6 +181,19 @@ pnpm --filter @dfragon/desktop dev
 앱 시작 시 기존 main의 세션 복원 결과를 로그인 버튼에 반영합니다. 인증 연결 실패 상태에서 **로그인**을 누르면 연결을 다시 확인하고, 복원 일시 정지, 저장소 차단 상태에서는 기존 복구 명령을 보냅니다. 이때도 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. UI 연결만으로 API, 실제 패스키, OS 저장소가 구성되지는 않습니다.
 
 `pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator, main/preload IPC의 로그인, 취소, renderer reload, 저장 완료 후 상태 반영, 로그아웃을 검증합니다. HTTP, 인증 창, 저장소는 합성 효과이며 실제 브라우저, 패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
+
+## Windows PC에서 소스로 실행
+
+게임이 도는 Windows PC에 저장소를 받아 소스로 실행하면 빌드, 업로드, 다운로드 왕복 없이 수정을 바로 확인할 수 있습니다. 개발 실행도 캡처는 같은 Windows GDI 모듈, OCR과 검색은 같은 코드로 동작합니다. 패키징에서만 생기는 동작(asar, fuses, 관리자 권한 manifest, 포터블 압축 해제)은 아래 포터블 빌드나 PR의 Windows Test Build로 확인합니다.
+
+1. Node.js 24와 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [파인튜닝 OCR 모델](#파인튜닝-ocr-모델로-빌드하기) 절의 submodule 명령을 한 번 실행합니다.
+2. [피아노 사운드 패키지](#피아노-사운드-패키지) 절의 안내대로 사용자 npm 설정에 인증 템플릿을 한 번 등록하고, 비공개 package 읽기 토큰은 `NODE_AUTH_TOKEN` 환경변수로 넣은 뒤 `pnpm install --frozen-lockfile`을 실행합니다. 실제 토큰은 명령문이나 저장소에 적지 않고 PowerShell의 보안 입력으로 받습니다.
+3. 검색만 실제 API로 확인하려면 `apps/desktop/.env`에 `DFRAGON_API_ORIGIN=<배포 API origin>` 한 줄만 둡니다. 로그인까지 보려면 [카드 화면 개발](#카드-화면-개발) 절의 `.env` 설정을 따릅니다. 개발 실행은 패키지가 아니므로 [테스트 버전 자료 수집](#테스트-버전-자료-수집)이 켜집니다.
+4. `pnpm --filter @dfragon/desktop dev`를 실행하고 게임 창을 띄웁니다. 던파가 관리자 권한으로 실행 중이면 이 명령도 관리자 권한 PowerShell에서 실행합니다. 권한이 낮으면 게임 창이 활성일 때 Alt+R, Alt+Print Screen 단축키를 받지 못하고, 개발자 모드의 Print Screen 수집은 관리자 권한 필요로 거절됩니다. 패키지는 실행할 때 관리자 권한을 요청하도록 빌드되므로 이 차이가 없습니다. 소스를 고치면 renderer는 즉시, main은 다시 시작할 때 반영됩니다.
+
+Mac에서 편집하려면 Windows PC에 OpenSSH 서버를 켜고 편집기의 원격 SSH 접속으로 같은 checkout을 열거나, branch를 push한 뒤 Windows PC에서 pull합니다. 두 PC가 같은 checkout을 동시에 고치지 않도록 한쪽에서만 편집합니다.
+
+CI를 기다리지 않고 포터블을 만들려면 같은 PC에서 `pnpm --filter @dfragon/desktop build:win:test:portable`을 실행합니다. `apps/desktop/dist/test/DFragon-Test-<버전>-x64-portable.exe`가 생기며 버전은 `package.json`의 기본 버전, 채널은 PR 빌드와 같은 test 채널입니다. 개발 설치본은 `build:win:development`, 배포본은 [Windows 배포 빌드](#windows-배포-빌드) 절을 따릅니다.
 
 ## 파인튜닝 OCR 모델로 빌드하기
 
