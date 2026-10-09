@@ -26,6 +26,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm check:writing
+      - run: pnpm check:docs
 
   tooling:
     name: Repository tooling
