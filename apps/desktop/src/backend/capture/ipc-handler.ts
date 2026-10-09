@@ -587,13 +587,11 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
 }
 
 function deliverMediaResult(
-  callback: (streams: Electron.Streams) => void,
+  callback: (streams: Electron.Streams | null) => void,
   streams: Electron.Streams | null
 ): void {
-  // Electron 39.8.10 native는 null을 CAPTURE_FAILURE로 받지만 공개 Streams type에는 빠져 있다.
-  const nativeCallback = callback as (result: Electron.Streams | null) => void
   try {
-    nativeCallback(streams)
+    callback(streams)
   } catch {
     // Native once callback은 throw 전에 소비될 수 있으므로 재호출하지 않는다.
   }
