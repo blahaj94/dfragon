@@ -14,7 +14,7 @@ const noticeFiles = {
 }
 const copyCommand = fileURLToPath(new URL('../src/copy-notices.mjs', import.meta.url))
 
-test('Desktop plugin은 중앙 글꼴·아이콘·자산 고지를 기존 배포 경로에 원문 그대로 낸다', () => {
+test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포 경로에 원문 그대로 낸다', () => {
   const assets = new Map<string, string>()
   desktopNotices().generateBundle.call({
     emitFile(asset) {

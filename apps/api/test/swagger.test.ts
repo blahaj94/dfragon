@@ -3,7 +3,7 @@ import test from 'node:test'
 import type { OpenAPIObject } from '@nestjs/swagger'
 import { createApiHttpApp } from '../src/http.js'
 
-test('Swagger는 공개 API 경로만 문서화하고 DB·provider를 호출하지 않는다', async (t) => {
+test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하지 않는다', async (t) => {
   const unused = t.mock.fn(async (): Promise<never> => {
     throw new Error('documentation must not call services')
   })

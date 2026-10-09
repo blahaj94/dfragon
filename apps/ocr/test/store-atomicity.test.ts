@@ -27,7 +27,7 @@ async function diskStore(t: TestContext, maximumBytes: number) {
 
 // 실제 SQLite가 중간 쓰기를 거절하도록 임시 DB에만 trigger를 설치한다.
 // HTTP 입력 검증이나 저장 판단을 mock하지 않고 transaction rollback을 검증한다.
-test('두 번째 표본 쓰기가 실패하면 캡처·첫 표본·사용 bytes를 되돌리고 같은 요청을 다시 저장할 수 있다', async (t) => {
+test('두 번째 표본 쓰기가 실패하면 캡처, 첫 표본, 사용 bytes를 되돌리고 같은 요청을 다시 저장할 수 있다', async (t) => {
   const existing = parseUpload(upload())
   const incoming = parseUpload(upload())
   const { store, database } = await diskStore(t, existing.png.length + incoming.png.length)
@@ -61,7 +61,7 @@ test('두 번째 표본 쓰기가 실패하면 캡처·첫 표본·사용 bytes�
   assert.equal(store.stats()?.storedBytes, existing.png.length + incoming.png.length)
 })
 
-test('합성 표본 쓰기가 실패하면 원본·정답·train 배정을 모두 되돌린다', async (t) => {
+test('합성 표본 쓰기가 실패하면 원본, 정답, train 배정을 모두 되돌린다', async (t) => {
   const incoming = parseSyntheticUpload(syntheticUpload())
   const { store, database } = await diskStore(t, incoming.png.length)
   database.exec(`CREATE TRIGGER fail_synthetic BEFORE INSERT ON samples
@@ -80,7 +80,7 @@ test('합성 표본 쓰기가 실패하면 원본·정답·train 배정을 모�
   assert.equal(store.sample(`${incoming.capture.id}-1`).split, 'train')
 })
 
-test('두 번째 모델 파일 쓰기가 실패하면 메타데이터·첫 파일을 되돌리고 부모와 저장 한도를 보존한다', async (t) => {
+test('두 번째 모델 파일 쓰기가 실패하면 메타데이터, 첫 파일을 되돌리고 부모와 저장 한도를 보존한다', async (t) => {
   const files = new Map([
     ['weights.pdparams', Buffer.from('abc')],
     ['characters.txt', Buffer.from('가\n나\n')]
@@ -157,7 +157,7 @@ test('원본과 모델 파일 합산 저장 한도는 정확한 경계를 받고
   }
 })
 
-test('원본·모델 중 어떤 것을 먼저 저장해도 합산 한도 1 byte 초과를 부분 저장 없이 거절한다', () => {
+test('원본, 모델 중 어떤 것을 먼저 저장해도 합산 한도 1 byte 초과를 부분 저장 없이 거절한다', () => {
   const original = parseUpload(upload())
   const content = new Map([
     ['weights.pdparams', Buffer.from('abc')],

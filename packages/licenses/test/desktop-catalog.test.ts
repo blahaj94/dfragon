@@ -107,7 +107,7 @@ function expectedStaticEntries(): NoticeEntry[] {
   return entries
 }
 
-test('실제 UI peer와 앱·UI production의 전이 의존성을 포함하고 다른 개발 도구를 제외한다', async (t) => {
+test('실제 UI peer와 앱, UI production의 전이 의존성을 포함하고 다른 개발 도구를 제외한다', async (t) => {
   const fixture = createCatalogFixture(t)
   const uiManifest: { peerDependencies: Record<string, string> } = JSON.parse(
     readFileSync(new URL('../../ui/package.json', import.meta.url), 'utf8')

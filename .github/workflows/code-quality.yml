@@ -27,6 +27,7 @@ jobs:
           node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
       - run: pnpm lint
       - run: pnpm format:check
+      - run: pnpm check:writing
 
   tooling:
     name: Repository tooling

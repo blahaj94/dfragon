@@ -10,8 +10,8 @@ const TESTS = {
   verifyLimit: '추가 옵션 발급 뒤 현재 RP 키가 20개에 도달하면 최종 검증에서 재검사한다',
   registration: '19개 키에서 검증한 패스키는 20번째 키를 저장하고 challenge를 소비한다',
   replacedChallenge:
-    '재발급으로 대체된 challenge의 등록 증명은 소비·거절하고 새 옵션으로 재시도한다',
-  verificationBoundary: '잘못된 origin·RP·UV 등록 증명은 키를 만들지 않고 challenge를 소비한다'
+    '재발급으로 대체된 challenge의 등록 증명은 소비, 거절하고 새 옵션으로 재시도한다',
+  verificationBoundary: '잘못된 origin, RP, UV 등록 증명은 키를 만들지 않고 challenge를 소비한다'
 } as const
 
 test(TESTS.optionsLimit, async () => {
@@ -77,7 +77,7 @@ function registrationResponse(
   const credentialLength = Buffer.alloc(2)
   credentialLength.writeUInt16BE(credentialId.length)
   const rpIdHash = createHash('sha256').update(rpId).digest()
-  // 실제 none attestation 형식의 응답이며 기본 flags는 UP·UV·AT를 포함한다.
+  // 실제 none attestation 형식의 응답이며 기본 flags는 UP, UV, AT를 포함한다.
   const authData = Buffer.concat([
     rpIdHash,
     Buffer.from([flags]),

@@ -70,7 +70,7 @@ test('계약의 전체 서버 map을 제공하고 prototype key를 서버로 취
   assert.equal(NEOPLE_SERVER_NAMES.get('__proto__'), undefined)
 })
 
-test('후보 순서·값을 보존하며 응답을 다섯 field로 정제한다', async () => {
+test('후보 순서, 값을 보존하며 응답을 다섯 field로 정제한다', async () => {
   const search = createNeopleCharacterSearchForTest('fake-key', {
     fetch: async () =>
       jsonResponse({
@@ -298,7 +298,7 @@ test('식별한 공급자 code는 다른 HTTP 오류 상태보다 우선한다',
   }
 })
 
-test('미식별·잘못된 code와 HTTP 실패는 실제 상태의 fallback을 적용한다', async (t) => {
+test('미식별, 잘못된 code와 HTTP 실패는 실제 상태의 fallback을 적용한다', async (t) => {
   const cases: Array<[string, unknown, number, number, string]> = [
     ['HTTP 503의 미식별 code', { error: { code: 'FUTURE' } }, 503, 503, 'NEOPLE_UNAVAILABLE'],
     ['HTTP 429의 미식별 code', { error: { code: 'FUTURE' } }, 429, 503, 'NEOPLE_UNAVAILABLE'],
@@ -338,7 +338,7 @@ test('미식별·잘못된 code와 HTTP 실패는 실제 상태의 fallback을 �
   }
 })
 
-test('JSON 파싱 실패는 HTTP fallback을 적용하고 본문·통신 실패는 502로 정제한다', async () => {
+test('JSON 파싱 실패는 HTTP fallback을 적용하고 본문, 통신 실패는 502로 정제한다', async () => {
   const malformed503 = createNeopleCharacterSearchForTest('fake-key', {
     fetch: async () => rawResponse('not json', 503)
   })
@@ -418,7 +418,7 @@ test('본문 수신 완료가 정확히 5,000ms이면 취소하고 정제된 tim
   assert.equal(cleared, 1)
 })
 
-test('본문·응답 검증이 4,999ms에 끝나면 값을 반환하고 timer를 정리한다', async () => {
+test('본문, 응답 검증이 4,999ms에 끝나면 값을 반환하고 timer를 정리한다', async () => {
   let now = 0
   let cleared = false
   let signal: AbortSignal | undefined
@@ -539,7 +539,7 @@ test('deadline timer는 진행 중인 transport를 취소하고 재시도하지 
   assert.equal(calls, 1)
 })
 
-test('동시 검색은 controller·timer·결과를 공유하지 않는다', async () => {
+test('동시 검색은 controller, timer, 결과를 공유하지 않는다', async () => {
   const timers: Array<{ callback: () => void; cleared: boolean }> = []
   let calls = 0
   const search = createNeopleCharacterSearchForTest('fake-key', {

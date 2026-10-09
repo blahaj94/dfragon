@@ -40,7 +40,7 @@ export function parseLabel(value: unknown): string | null {
     throw new OcrError(OCR_ERROR_CODE.INVALID_INPUT)
   }
 
-  // 같은 Unicode 표기의 닉네임은 분할을 공유하고 대소문자·공백은 그대로 보존한다.
+  // 같은 Unicode 표기의 닉네임은 분할을 공유하고 대소문자, 공백은 그대로 보존한다.
 
   return value.normalize('NFC')
 }

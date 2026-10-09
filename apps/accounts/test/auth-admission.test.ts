@@ -8,7 +8,7 @@ import { createLoginHttpApp } from '../src/auth/login/http.js'
 const CLIENT_LIMIT = 120
 const SERVICE_LIMIT = 32
 
-test('refresh·logout·exchange·인증 진입은 IPv6 /64 대역의 인증 예산 120회를 공유한다', async (t) => {
+test('refresh, logout, exchange, 인증 진입은 IPv6 /64 대역의 인증 예산 120회를 공유한다', async (t) => {
   let calls = 0
   const unavailable = async (): Promise<never> => {
     calls++

@@ -32,7 +32,7 @@ export function authenticationConfiguration() {
     passkey: {
       apiOrigin: 'https://api.test.invalid',
       rpId: 'api.test.invalid',
-      rpName: 'DFRAGON test',
+      rpName: 'DFragon test',
       returnUrl: 'dfragon.dev://auth/callback'
     }
   }
@@ -86,7 +86,7 @@ export function startRuntime(
     preload = './test-support/runtime-preload.mjs'
   } = {}
 ) {
-  // 실제 환경의 credential·NODE_OPTIONS를 상속하지 않고 명시한 fixture만 전달한다.
+  // 실제 환경의 credential, NODE_OPTIONS를 상속하지 않고 명시한 fixture만 전달한다.
   const env = {
     PATH: process.env.PATH,
     ...environment,

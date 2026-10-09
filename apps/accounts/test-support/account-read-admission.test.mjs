@@ -8,7 +8,7 @@ import { UserSchema } from '../dist/database/schemas/users.js'
 const clientAllowance = 120
 const processAllowance = 1200
 const cases = {
-  live: '180회 계정 조회도 매번 활성 상태를 확인하고 refresh·logout 예산을 보존한다',
+  live: '180회 계정 조회도 매번 활성 상태를 확인하고 refresh, logout 예산을 보존한다',
   client: 'client의 120회 session 예산을 소진해도 계정 조회는 허용한다',
   process: '계정 조회와 session 요청은 전체 1,200회 예산을 함께 소비한다',
   invalid: '무효 token의 계정 조회도 전체 예산을 소비하며 DB 활동은 남기지 않는다'

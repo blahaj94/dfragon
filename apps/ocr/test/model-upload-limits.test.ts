@@ -105,7 +105,7 @@ test('모델 보조 파일과 합산 bytes의 정확한 한도를 받고 각 초
   )
 })
 
-test('모델 multipart는 메타데이터·선택 파일·파일 개수·전체 파트 한도를 각각 검사한다', async (t) => {
+test('모델 multipart는 메타데이터, 선택 파일, 파일 개수, 전체 파트 한도를 각각 검사한다', async (t) => {
   const f = await fixture(t)
   const send = (body: Buffer) =>
     fetch(`${f.base}/api/desktop/models`, {

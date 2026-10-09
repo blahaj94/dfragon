@@ -5,12 +5,12 @@ import { getIpQuotaKey } from '@dfragon/lib/utils/ip-quota-key'
 const TITLES = {
   ipv4: 'IPv4 주소는 끝점에서도 원래 주소별로 다른 요청 제한 키를 유지한다',
   mappedIpv4: 'IPv4와 IPv4-mapped IPv6의 여러 표기는 같은 IPv4 키를 사용한다',
-  ipv6Spellings: '축약·확장·대문자 IPv6 표기는 같은 요청 제한 키를 사용한다',
+  ipv6Spellings: '축약, 확장, 대문자 IPv6 표기는 같은 요청 제한 키를 사용한다',
   ipv6Prefixes: 'IPv6의 앞 64비트를 묶고 서로 다른 /64는 구분한다',
   prefixByteBoundaries: 'IPv6 앞 8바이트의 각 경계값을 보존하고 뒤 8바이트는 키에 넣지 않는다',
   notMappedIpv4: 'IPv4를 담은 일반 IPv6와 NAT64 주소를 IPv4-mapped 주소로 오인하지 않는다',
   zones: 'IPv6 zone identifier를 바꿔도 별도 요청 제한 키를 만들지 않는다',
-  invalidAddresses: '빈 값·주소가 아닌 문자열·잘못된 주소는 모두 unknown 키를 공유한다'
+  invalidAddresses: '빈 값, 주소가 아닌 문자열, 잘못된 주소는 모두 unknown 키를 공유한다'
 }
 
 test(TITLES.ipv4, () => {

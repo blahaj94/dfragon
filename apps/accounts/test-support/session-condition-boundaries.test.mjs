@@ -10,7 +10,7 @@ import { AuthRefreshTokenSchema } from '../dist/database/schemas/auth-refresh-to
 
 const checkedAt = new Date('2026-09-06T00:00:00.000Z')
 const cases = {
-  refresh: 'refresh는 hint 뒤 사라지거나 소유가 바뀐 row로 발급·소비·폐기하지 않는다',
+  refresh: 'refresh는 hint 뒤 사라지거나 소유가 바뀐 row로 발급, 소비, 폐기하지 않는다',
   logout: 'logout은 hint 뒤 사라지거나 소유가 바뀐 row를 폐기하지 않고 성공한다',
   unknown: '미발급 canonical hash로 기존 소비 이력의 session을 선택하거나 폐기하지 않는다'
 }

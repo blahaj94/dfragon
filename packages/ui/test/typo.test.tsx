@@ -81,7 +81,7 @@ it('as로 링크 태그를 선택해도 variant를 유지하고 HTML 속성과 �
   }
 })
 
-it('style은 variant와 color·align·weight보다 우선하며 추가 CSS 속성도 전달한다', () => {
+it('style은 variant와 color, align, weight보다 우선하며 추가 CSS 속성도 전달한다', () => {
   const container = document.createElement('div')
   container.innerHTML = renderToStaticMarkup(
     <Typo.txtM

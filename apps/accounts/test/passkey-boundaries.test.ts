@@ -23,7 +23,7 @@ const isInvalidInput = (error: unknown) => {
   return true
 }
 
-test('패스키 생성은 등록된 client·S256·정확한 필드만 받고 입력을 변경하지 않는다', async (t) => {
+test('패스키 생성은 등록된 client, S256, 정확한 필드만 받고 입력을 변경하지 않는다', async (t) => {
   const input = {
     provider: 'passkey',
     clientId: 'desktop',
@@ -65,7 +65,7 @@ test('패스키 생성은 등록된 client·S256·정확한 필드만 받고 입
   }
 })
 
-test('앱 교환 입력은 UUID·client 문자열·32-byte 정규 proof와 정확한 필드를 요구한다', async (t) => {
+test('앱 교환 입력은 UUID, client 문자열, 32-byte 정규 proof와 정확한 필드를 요구한다', async (t) => {
   const input = {
     requestId: randomUUID(),
     clientId: 'desktop',
@@ -116,7 +116,7 @@ test('RP origin과 고정 앱 복귀 설정의 신뢰 경계 변경을 거절한
   const config = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFRAGON',
+    rpName: 'DFragon',
     returnUrl: 'dfragon://auth/callback'
   }
   assert.deepEqual(validatePasskeyConfiguration(config), config)
@@ -198,7 +198,7 @@ test('고정 HTTPS OCR callback 설정은 Desktop 요청 바인딩을 바꾸지 
   const base = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFRAGON',
+    rpName: 'DFragon',
     returnUrl: 'dfragon://auth/callback'
   }
   const config = validatePasskeyConfiguration({

@@ -71,7 +71,7 @@ test('여러 행의 근거 영역은 frame stride와 전체 면적으로 비율�
   const image = Object.freeze({ width: 4, height: 3, rgba })
   const region = Object.freeze({ x: 1, y: 1, width: 2, height: 2 })
 
-  // 네 내부 픽셀 중 밝기 100 이상은 셋, 역할 밝기·색상 차이 근거는 하나다.
+  // 네 내부 픽셀 중 밝기 100 이상은 셋, 역할 밝기, 색상 차이 근거는 하나다.
   assert.equal(participantEvidenceRatio(image, region), 0.75)
   assert.equal(participantEvidenceRatio(image, region, true), 0.25)
   assert.deepEqual(rgba, original)

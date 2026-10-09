@@ -436,7 +436,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             </div>
             {readingRemote && (
               <Typo.txtS>
-                ocr.dfragon.com의 정답·이미지를 읽어 평가합니다. 정답과 제외 여부는 자료실에서
+                ocr.dfragon.com의 정답, 이미지를 읽어 평가합니다. 정답과 제외 여부는 자료실에서
                 수정한 뒤 다시 불러오세요.
               </Typo.txtS>
             )}

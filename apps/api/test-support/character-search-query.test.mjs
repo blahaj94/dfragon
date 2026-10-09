@@ -59,7 +59,7 @@ test('검색 query는 한 번만 decode하고 생략한 옵션에만 기본값�
   }
 })
 
-test('검색 query는 code point를 세고 대소문자·분해된 Unicode·내부 공백을 보존한다', async (t) => {
+test('검색 query는 code point를 세고 대소문자, 분해된 Unicode, 내부 공백을 보존한다', async (t) => {
   for (const [name, characterName] of [
     ['한글', '가나'],
     ['대소문자 혼합', 'aB'],
@@ -138,7 +138,7 @@ test('검색 query는 모든 허용 서버를 받고 응답용 map에 없는 요
   }
 })
 
-test('검색 query는 잘못된 UTF-8·구조·숫자·앞뒤 공백을 정제된 400으로 거절한다', async (t) => {
+test('검색 query는 잘못된 UTF-8, 구조, 숫자, 앞뒤 공백을 정제된 400으로 거절한다', async (t) => {
   const cases = [
     ['query 없음', '/characters'],
     ['빈 query', '/characters?'],

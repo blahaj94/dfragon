@@ -601,7 +601,7 @@ try {
   await screenshot('synthetic-mobile')
   assert.deepEqual(errors, [])
   process.stdout.write(
-    'OCR 브라우저 HUD·공대원 업로드 한도, 응답 유실 후 동일 본문 재시도, 초안 보존, 정답·포커스, 오래된 분할 거부·재미리보기, 제외·다운로드, 테마·반응형·로그아웃 검증 통과\n'
+    'OCR 브라우저 HUD, 공대원 업로드 한도, 응답 유실 후 동일 본문 재시도, 초안 보존, 정답, 포커스, 오래된 분할 거부, 재미리보기, 제외, 다운로드, 테마, 반응형, 로그아웃 검증 통과\n'
   )
 } finally {
   await browser?.close()

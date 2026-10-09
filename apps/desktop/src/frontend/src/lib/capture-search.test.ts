@@ -20,7 +20,7 @@ import { createCaptureSearch, type CaptureSearch } from './capture-search'
 const searches: CaptureSearch[] = []
 afterEach(() => searches.splice(0).forEach((search) => search.dispose()))
 
-/** 실제 SearchConnection을 통과시키면서 main 응답·event 순서만 제어한다. */
+/** 실제 SearchConnection을 통과시키면서 main 응답, event 순서만 제어한다. */
 async function fixture({ ocrSupported = true }: { ocrSupported?: boolean } = {}): Promise<{
   search: CaptureSearch
   control: Mock<SearchApi['controlCharacterSearch']>
@@ -258,7 +258,7 @@ it('연속 begin의 이전 응답은 자신의 ID만 end하고 새 관측 revisi
   expect(f.changed.mock.lastCall?.[0].captureActive).toBe(true)
 })
 
-it('실행 중 end·dispose를 반복해도 소유 ID는 한 번만 end하고 폐기 뒤 begin은 보내지 않는다', async () => {
+it('실행 중 end, dispose를 반복해도 소유 ID는 한 번만 end하고 폐기 뒤 begin은 보내지 않는다', async () => {
   const f = await fixture()
   const active = searchSnapshot({ revision: 2 })
   f.control.mockResolvedValueOnce({ ok: true, snapshot: active })

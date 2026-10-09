@@ -63,7 +63,7 @@ beforeEach(() => {
   clock.now = 0
   vi.spyOn(performance, 'now').mockImplementation(() => clock.now)
   vi.spyOn(console, 'log').mockImplementation((message) => {
-    // 이후 계정 전환·Stop 경로와 독립적으로 실제 smoke의 capture 성공 판정까지만 실행한다.
+    // 이후 계정 전환, Stop 경로와 독립적으로 실제 smoke의 capture 성공 판정까지만 실행한다.
     const hasPassedCapture = message === 'Capture fixture real media/OCR PASS'
     if (hasPassedCapture) {
       throw new Error('SYNTHETIC_CAPTURE_ACCEPTED')
@@ -85,7 +85,7 @@ async function runCapture(
     nicknameAccepted: 4,
     nicknameMatchedSlots
   }
-  document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="DFRAGON Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
+  document.body.innerHTML = `<button aria-label="화면 캡처">카메라</button><div role="dialog"><button aria-haspopup="menu">프로세스 선택</button><button role="menuitemradio" aria-label="DFragon Synthetic Capture Source">합성 창</button></div><p role="status"></p>`
   document.querySelector<HTMLElement>('[role="menuitemradio"]')!.onclick = () => {
     isActive = true
     document.querySelector('[role="status"]')!.textContent =

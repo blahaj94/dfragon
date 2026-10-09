@@ -4,12 +4,12 @@ import development from './build/development-auth.json' with { type: 'json' }
 export default {
   extends: './electron-builder.yml',
   appId: development.appIdentity,
-  productName: 'DFRAGON Development',
+  productName: 'DFragon Development',
   extraMetadata: { name: '@dfragon/desktop' },
   directories: { output: 'dist/development' },
   protocols: [
     {
-      name: 'DFRAGON development login',
+      name: 'DFragon development login',
       schemes: [new URL(development.returnTarget).protocol.slice(0, -1)]
     }
   ],

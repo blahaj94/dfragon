@@ -1,10 +1,10 @@
 # Windows 합성 crash 실험 도구
 
-Issue #432의 생성, marker 확립, R0→R1 교체, clear와 재시작 복구를 기존 Windows credential store에 연결합니다. 합성 safeStorage만 사용하며 실제 credential, Electron safeStorage/DPAPI, HTTP 및 VM 전원 제어는 없습니다. 기존 native adapter에 관측을 연결하며 제품의 실행 시 권한·파일 검사는 유지합니다. 정상 대조 통과도 namespace 또는 전원 손실 내구성의 증명이 아닙니다.
+Issue #432의 생성, marker 확립, R0→R1 교체, clear와 재시작 복구를 기존 Windows credential store에 연결합니다. 합성 safeStorage만 사용하며 실제 credential, Electron safeStorage/DPAPI, HTTP 및 VM 전원 제어는 없습니다. 기존 native adapter에 관측을 연결하며 제품의 실행 시 권한, 파일 검사는 유지합니다. 정상 대조 통과도 namespace 또는 전원 손실 내구성의 증명이 아닙니다.
 
 `createWindowsSecurityApiForTesting` → 반환 관측 API → `createWindowsSecurityNative` → 실험 adapter → `createWindowsCredentialStore`의 기존 `WindowsCredentialFiles` 경로를 사용합니다. 기존 `prepareCredentialTransition`, `finalizeCredentialTransition`, `clearCredential`을 재사용하며 실험 경계만 연결합니다.
 
-이 도구는 배포 후 재현된 저장 문제를 조사할 때 선택적으로 사용합니다. 로그인 개발·활성화·배포를 위해 지점별 장애 시험을 완료할 필요는 없습니다. 기존 실패와 수집 증거는 보존합니다.
+이 도구는 배포 후 재현된 저장 문제를 조사할 때 선택적으로 사용합니다. 로그인 개발, 활성화, 배포를 위해 지점별 장애 시험을 완료할 필요는 없습니다. 기존 실패와 수집 증거는 보존합니다.
 
 ## 실행
 
@@ -142,7 +142,7 @@ $inventory = foreach ($file in Get-ChildItem -LiteralPath $normalHostEvidence -F
 $inventory | Format-Table family, scenario, sequence, cutpoint, phase, path
 ```
 
-모든 분류의 대표 지점을 일괄 강제 종료하는 batch는 필수 절차가 아닙니다. 실제 문제를 조사할 때만 필요한 지점을 선택하고 실행 허용 범위에서 수행합니다. 기존 실행의 미도달·제어/관측 실패나 finding은 보존하며, 반복 성공을 물리 전원 손실 내구성으로 해석하지 않습니다.
+모든 분류의 대표 지점을 일괄 강제 종료하는 batch는 필수 절차가 아닙니다. 실제 문제를 조사할 때만 필요한 지점을 선택하고 실행 허용 범위에서 수행합니다. 기존 실행의 미도달, 제어/관측 실패나 finding은 보존하며, 반복 성공을 물리 전원 손실 내구성으로 해석하지 않습니다.
 
 ```powershell
 $batch = @($inventory | Group-Object family, cutpoint, phase | ForEach-Object { $_.Group[0] })
@@ -227,7 +227,7 @@ Wrapper는 recovery guest의 실제 숫자 exit 0, 해당 run/case의 result, te
 
 `host-evidence.ps1`의 `Get-CrashEvidenceReport`는 동결된 로컬 수집본만 읽습니다. VM, session, credential이나 process에 접근하지 않고 원본 파일을 쓰거나 이름을 변경하지 않습니다. 기존 실행 묶음의 검증기를 대체하거나 재실행하지 않으며, 새 실행 계약에서 명시적으로 선택하는 별도 분석입니다.
 
-입력은 외부에 보존한 `HostEvidence`, 수집된 `artifacts`에 해당하는 `CollectionDirectory`, 원래 수집의 `SnapshotFile`과 봉인된 `SnapshotSHA256`, 중단 전에 고정한 `HeldSHA256`, 실행 담당이 고정한 `Expected`입니다. Snapshot의 `Files`는 collection 기준 `RelativePath`와 `SHA256` 전체 목록이며 `ManifestExists`가 true여야 합니다. 검증기는 실제 파일 목록과 snapshot을 전량 대조한 뒤에만 파일 부재를 관측합니다. 수집 실패나 경로·읽기 실패를 정상적인 누락으로 바꾸지 않습니다. 입력 hash를 검증 대상 파일에서 즉석으로 만들어 신뢰 근거를 대신하지 않습니다.
+입력은 외부에 보존한 `HostEvidence`, 수집된 `artifacts`에 해당하는 `CollectionDirectory`, 원래 수집의 `SnapshotFile`과 봉인된 `SnapshotSHA256`, 중단 전에 고정한 `HeldSHA256`, 실행 담당이 고정한 `Expected`입니다. Snapshot의 `Files`는 collection 기준 `RelativePath`와 `SHA256` 전체 목록이며 `ManifestExists`가 true여야 합니다. 검증기는 실제 파일 목록과 snapshot을 전량 대조한 뒤에만 파일 부재를 관측합니다. 수집 실패나 경로, 읽기 실패를 정상적인 누락으로 바꾸지 않습니다. 입력 hash를 검증 대상 파일에서 즉석으로 만들어 신뢰 근거를 대신하지 않습니다.
 
 `Expected`에는 `RunId`, `CaseId`(`normal-control`), `RootName`, `InvocationOwner`, `Sequence`, `Cutpoint`, `Phase`, `Outcome`과 `GuestEvidenceRelativePath`를 전달합니다. 마지막 경로는 `native-lab\<RootName>-<RunId>-evidence`여야 합니다. Directory와 ancestor의 reparse point, 16 MiB를 넘는 파일, 중첩 host artifact는 거절합니다. 이 검사와 hash는 동시 writer를 허용하거나 로컬 공격자에 대한 원자적 snapshot을 보장하지 않습니다. 실행 담당이 모든 writer의 종료와 수집 동결을 먼저 확인해야 합니다.
 
@@ -240,11 +240,11 @@ $report = Get-CrashEvidenceReport -HostEvidence $originalHostEvidence `
 
 호스트의 연속 raw record와 held bytes, 원래 manifest/run/root/owner, 선택 지점 및 이전 ACK 전달을 검증합니다. 선택 지점 ACK, release, 후속 이벤트, 미완성 host publication이나 identity/bytes 모순은 실패입니다. 기존 guest manifest 교차 검사는 유지합니다. `hold-expired.json`, failure와 미확인 원래 종료 상태는 그대로 보존하며 새 분석으로 원래 실행을 성공으로 바꾸지 않습니다.
 
-게스트의 request/ACK 최종 이름과 pending 이름은 각각 검사합니다. 둘이 함께 있으면 둘 다 host bytes와 같아야 합니다. 최종 이름이 없고 동일한 pending만 있거나, 신뢰 가능한 수집에서 양쪽 이름이 모두 없으면 `namespace-findings`를 반환합니다. 최종 파일이 읽혔다는 과거 host 관측과 장애 후 그 이름이 남았다는 주장을 구분합니다. Guest 이름이 없다는 이유로 host 이력을 폐기하지 않지만, 다른 bytes나 선택 ACK·후속 이벤트를 관측하면 거절합니다. Pending을 canonical로 승격하거나 guest에 host record를 다시 쓰지 않습니다.
+게스트의 request/ACK 최종 이름과 pending 이름은 각각 검사합니다. 둘이 함께 있으면 둘 다 host bytes와 같아야 합니다. 최종 이름이 없고 동일한 pending만 있거나, 신뢰 가능한 수집에서 양쪽 이름이 모두 없으면 `namespace-findings`를 반환합니다. 최종 파일이 읽혔다는 과거 host 관측과 장애 후 그 이름이 남았다는 주장을 구분합니다. Guest 이름이 없다는 이유로 host 이력을 폐기하지 않지만, 다른 bytes나 선택 ACK, 후속 이벤트를 관측하면 거절합니다. Pending을 canonical로 승격하거나 guest에 host record를 다시 쓰지 않습니다.
 
-결과의 `HostHistoryVerified`는 호스트 이력에만 해당합니다. `Status`는 `evidence-consistent` 또는 `namespace-findings`이고 `GuestNamespace`에 각 파일의 존재와 finding을 남깁니다. 전자는 제품·원래 실행·복구의 PASS가 아니며, 후자를 aggregate 성공에 숨기지 않습니다. `RecoveryEligibility`는 항상 `not-evaluated`, `NamespaceDurability`는 `unverified`, `OriginalRunReclassified`는 false입니다. 실제 복구에는 별도의 source/disk/owner/수집·실행 승인 조건과, 원본 disk 관측을 host에 보존하고 ACK받은 뒤 store를 검사하는 기존 순서가 계속 필요합니다.
+결과의 `HostHistoryVerified`는 호스트 이력에만 해당합니다. `Status`는 `evidence-consistent` 또는 `namespace-findings`이고 `GuestNamespace`에 각 파일의 존재와 finding을 남깁니다. 전자는 제품, 원래 실행, 복구의 PASS가 아니며, 후자를 aggregate 성공에 숨기지 않습니다. `RecoveryEligibility`는 항상 `not-evaluated`, `NamespaceDurability`는 `unverified`, `OriginalRunReclassified`는 false입니다. 실제 복구에는 별도의 source/disk/owner/수집, 실행 승인 조건과, 원본 disk 관측을 host에 보존하고 ACK받은 뒤 store를 검사하는 기존 순서가 계속 필요합니다.
 
-합성 회귀 검증은 `host-evidence.test.ps1`입니다. 새 UUID 임시 directory만 사용하고 입력 불변, canonical/pending/누락 구분, host 무결성 및 collection·읽기·reparse 거절을 확인합니다. `transport.ts`의 write→file sync→close→rename과 live host record→ACK/hold 순서는 그대로이며, guest rename이나 Windows directory flush의 전원 손실 내구성을 추가로 보증하지 않습니다.
+합성 회귀 검증은 `host-evidence.test.ps1`입니다. 새 UUID 임시 directory만 사용하고 입력 불변, canonical/pending/누락 구분, host 무결성 및 collection, 읽기, reparse 거절을 확인합니다. `transport.ts`의 write→file sync→close→rename과 live host record→ACK/hold 순서는 그대로이며, guest rename이나 Windows directory flush의 전원 손실 내구성을 추가로 보증하지 않습니다.
 
 ### 강제 종료 없는 별도 recovery 대조
 

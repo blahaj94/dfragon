@@ -21,7 +21,7 @@ export function validateDFNickname(
   options: DFNicknameValidationOptions = {}
 ): NicknameValidationResult {
   if (nickname.length === 0 || nickname.trim().length === 0) {
-    return { isValid: false, reason: '닉네임을 입력해주세요.' }
+    return { isValid: false, reason: '닉네임을 입력해 주세요.' }
   }
 
   if (whitespace.test(nickname)) {
@@ -39,7 +39,8 @@ export function validateDFNickname(
     ) {
       return {
         isValid: false,
-        reason: '공백·제어문자·보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
+        reason:
+          '공백, 제어문자, 보이지 않는 문자와 CP949로 표현할 수 없는 문자는 사용할 수 없습니다.'
       }
     }
     totalBytes += isAscii ? 1 : 2
@@ -113,3 +114,4 @@ export {
   DNF_SEARCH_NICKNAME_LIMITS,
   matchesDNFSearchNicknamePolicy
 } from './dnf-character-search.js'
+export { PRODUCT_NAME } from './product.js'

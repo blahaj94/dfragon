@@ -50,7 +50,7 @@ test('모델 부모 관계는 일반 미세 조정의 동일 bytes와 문자 확
   assert.equal(parentDictionary.toString(), '가\n나\n')
 })
 
-test('모델 등록은 파일·부모 관계를 보존하고 동일 ID 재시도로 덮어쓰지 않는다', () => {
+test('모델 등록은 파일, 부모 관계를 보존하고 동일 ID 재시도로 덮어쓰지 않는다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const base = metadata()
@@ -92,7 +92,7 @@ test('모델 등록은 파일·부모 관계를 보존하고 동일 ID 재시도
   }
 })
 
-test('부모 누락·파일 누락·저장 한도 실패는 모델을 부분 등록하지 않는다', () => {
+test('부모 누락, 파일 누락, 저장 한도 실패는 모델을 부분 등록하지 않는다', () => {
   const store = new OcrStore(':memory:', 10)
   const base = metadata()
   try {
@@ -111,7 +111,7 @@ test('부모 누락·파일 누락·저장 한도 실패는 모델을 부분 등
   }
 })
 
-test('모델 사전 순서를 보존하고 중복·공백·다중 문자·추가 파일을 거절한다', () => {
+test('모델 사전 순서를 보존하고 중복, 공백, 다중 문자, 추가 파일을 거절한다', () => {
   const dictionary = files().get('characters.txt')!
   inspectModelFiles(files())
   assert.equal(dictionary.toString(), '가\n나\nA\n')
@@ -196,7 +196,7 @@ test('모델 ID와 파일 SHA-256은 별개이며 같은 bytes의 새 ID 등록�
   }
 })
 
-test('동일 모델 ID의 메타데이터·파일·평가 요약 변경을 거절하고 기존 bytes·해시·등록 시각을 보존한다', () => {
+test('동일 모델 ID의 메타데이터, 파일, 평가 요약 변경을 거절하고 기존 bytes, 해시, 등록 시각을 보존한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   const base = metadata()
   const content = files().set('evaluation.json', Buffer.from('{"samples":12}'))

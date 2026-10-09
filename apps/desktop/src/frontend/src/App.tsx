@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@dfragon/lib'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
@@ -99,7 +100,7 @@ function App(): React.JSX.Element {
         <footer {...stylex.props(styles.footer)}>
           <div {...stylex.props(styles.brand)}>
             <img src={brandIcon} width={28} height={28} alt="" />
-            <Typo.caption>DFRAGON Desktop</Typo.caption>
+            <Typo.caption>{PRODUCT_NAME} Desktop</Typo.caption>
           </div>
           <Typo.caption role="status">{capture.search.detailNotice || footerStatus}</Typo.caption>
         </footer>

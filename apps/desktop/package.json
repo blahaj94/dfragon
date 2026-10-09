@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "./out/backend/main.js",
-  "author": "DFRAGON contributors",
+  "author": "DFragon contributors",
   "homepage": "https://github.com/blahaj94/ldb",
   "scripts": {
     "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",

@@ -67,7 +67,7 @@ describe('desktop package fuse configuration', () => {
     expect(productionConfig.extraMetadata.name).toBe('dfragon')
     expect(developmentConfig.extraMetadata.name).toBe('@dfragon/desktop')
     expect(developmentConfig.protocols).toEqual([
-      { name: 'DFRAGON development login', schemes: ['dfragon.dev'] }
+      { name: 'DFragon development login', schemes: ['dfragon.dev'] }
     ])
     expect(developmentConfig.nsis.oneClick).toBe(true)
     expect(productionConfig.nsis.include).toBe('build/distribution-installer.nsh')

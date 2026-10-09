@@ -47,7 +47,7 @@ test('공용 빌드 입력은 모든 서비스를 선택하고 UI 변경은 두 
   assert.deepEqual(selectServices(['packages/ui/src/button.tsx']), ['ocr', 'accounts'])
 })
 
-test('문서·무관한 앱·다른 tooling과 비슷한 접두사의 경로는 이미지를 선택하지 않는다', () => {
+test('문서, 무관한 앱, 다른 tooling과 비슷한 접두사의 경로는 이미지를 선택하지 않는다', () => {
   assert.deepEqual(
     selectServices([
       'docs/reference/api-start-development.md',
@@ -83,7 +83,7 @@ test('push 계획은 마지막 commit뿐 아니라 before 이후의 모든 commi
   assert.deepEqual(plan, { sourceCommit, services: ['api', 'accounts'] })
 })
 
-test('PR 계획은 head payload 대신 checkout source의 삭제·이름 변경 경로를 포함한다', (t) => {
+test('PR 계획은 head payload 대신 checkout source의 삭제, 이름 변경 경로를 포함한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/delete me.ts')
   repo.write('apps/ocr/src/rename\nme.ts')
@@ -170,7 +170,7 @@ test('계획은 미커밋 변경을 포함하지 않고 실제 checkout과 다�
   )
 })
 
-test('계획은 commit 불일치·알 수 없는 서비스·중복·잘못된 구조를 거절한다', () => {
+test('계획은 commit 불일치, 알 수 없는 서비스, 중복, 잘못된 구조를 거절한다', () => {
   const sourceCommit = 'a'.repeat(40)
   for (const plan of [
     null,
@@ -185,7 +185,7 @@ test('계획은 commit 불일치·알 수 없는 서비스·중복·잘못된 �
   }
 })
 
-test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·빈 목록을 출력한다', (t) => {
+test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix, 빈 목록을 출력한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
@@ -223,7 +223,7 @@ test('CLI는 GitHub event로 계획을 저장하고 Git checkout 없이 matrix·
   )
 })
 
-test('CLI select의 입력·revision·사용법 오류는 기존 plan과 GitHub 출력 파일을 보존한다', (t) => {
+test('CLI select의 입력, revision, 사용법 오류는 기존 plan과 GitHub 출력 파일을 보존한다', (t) => {
   const repo = repository(t)
   const { eventPath, planPath, outputPath, run } = createProductImageCliFixture(t, repo.cwd)
   const eventBody = JSON.stringify({ before: repo.initial, after: repo.initial })
@@ -290,7 +290,7 @@ test('CLI output은 SOURCE_COMMIT을 우선하고 서비스 순서를 정렬해 
   assert.equal(readFileSync(planPath, 'utf8'), planBody)
 })
 
-test('CLI output의 읽기·검증·쓰기 실패는 기존 matrix를 변경하거나 성공으로 처리하지 않는다', (t) => {
+test('CLI output의 읽기, 검증, 쓰기 실패는 기존 matrix를 변경하거나 성공으로 처리하지 않는다', (t) => {
   const { cwd, planPath, outputPath, run } = createProductImageCliFixture(t)
   const sourceCommit = 'a'.repeat(40)
   const directoryOutput = join(cwd, 'output-directory')
@@ -390,7 +390,7 @@ test('catch-up은 현재 선택을 유지하고 이미 발행한 source의 빈 �
   )
 })
 
-test('CLI catch-up에 지정한 baseline이 읽기·검증에 실패하면 기존 계획을 보존한다', (t) => {
+test('CLI catch-up에 지정한 baseline이 읽기, 검증에 실패하면 기존 계획을 보존한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
@@ -428,7 +428,7 @@ test('CLI catch-up에 지정한 baseline이 읽기·검증에 실패하면 기�
   }
 })
 
-test('발행 baseline이 없거나 조회 불가·비조상이면 모든 이미지를 선택한다', (t) => {
+test('발행 baseline이 없거나 조회 불가, 비조상이면 모든 이미지를 선택한다', (t) => {
   const repo = repository(t)
   repo.write('apps/api/src/main.ts')
   const sourceCommit = repo.commit()
@@ -512,7 +512,7 @@ test('성공 실행이 없거나 artifact가 없거나 만료되면 사용 가�
   }
 })
 
-test('baseline 조회는 API 실패·잘못된 실행 identity를 거절하고 요청 오류의 token을 숨긴다', async () => {
+test('baseline 조회는 API 실패, 잘못된 실행 identity를 거절하고 요청 오류의 token을 숨긴다', async () => {
   const { successfulRun, apiOptions, baselineApi } = createProductImageApiFixture()
   for (const responses of [
     [{}],

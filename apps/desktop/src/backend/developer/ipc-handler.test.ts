@@ -556,7 +556,7 @@ it.each([
   { name: '종료된 main frame', invalid: 'frame' },
   { name: '종료된 webContents', invalid: 'contents' },
   { name: '종료된 창', invalid: 'window' }
-])('$name의 읽기·변경 요청은 파일 접근과 단축키 등록 전에 거절한다', async ({ invalid }) => {
+])('$name의 읽기, 변경 요청은 파일 접근과 단축키 등록 전에 거절한다', async ({ invalid }) => {
   const fixture = await setup()
   await fixture.invoke(DEVELOPER_CHANNELS.setEnabled, true)
   if (invalid === 'detached') {

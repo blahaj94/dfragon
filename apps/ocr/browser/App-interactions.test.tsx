@@ -168,7 +168,7 @@ async function refreshSamples(samples: Sample[]) {
   })
 }
 
-it('서버 정답·제외·분할 갱신은 작성 중 초안을 유지하고 표본 이동은 선택한 정답으로 시작한다', async () => {
+it('서버 정답, 제외, 분할 갱신은 작성 중 초안을 유지하고 표본 이동은 선택한 정답으로 시작한다', async () => {
   await changeInput(answerInput(), '작성중')
   await refreshSamples([{ ...first, text: '서버정답', excluded: true, split: 'train' }, second])
   expect(answerInput().value).toBe('작성중')
@@ -180,7 +180,7 @@ it('서버 정답·제외·분할 갱신은 작성 중 초안을 유지하고 �
   expect(requestOcr).not.toHaveBeenCalled()
 })
 
-it('저장 중 중복 제출을 거절하고 늦은 저장·목록 갱신이 추가로 입력한 초안을 지우지 않는다', async () => {
+it('저장 중 중복 제출을 거절하고 늦은 저장, 목록 갱신이 추가로 입력한 초안을 지우지 않는다', async () => {
   let finish!: (value: Sample) => void
   vi.mocked(requestOcr).mockReturnValueOnce(
     new Promise((resolve) => {

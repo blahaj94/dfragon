@@ -68,7 +68,7 @@ function assertInvalidResponse(responses) {
   ])
 }
 
-test('지원하지 않는 media·encoding은 초과 선언 길이보다 먼저 정제 415로 거절한다', async (t) => {
+test('지원하지 않는 media, encoding은 초과 선언 길이보다 먼저 정제 415로 거절한다', async (t) => {
   const cases = [
     { name: 'Content-Type 없음', headers: [] },
     { name: 'JSON이 아닌 media', headers: ['Content-Type', 'text/plain'] },
@@ -139,7 +139,7 @@ test('Content-Length 없는 chunked payload가 상한을 넘으면 malformed JSO
   await setImmediate()
 })
 
-test('분할된 UTF-8은 수집 뒤 decode하고 잘린 UTF-8·BOM은 무효 입력으로 거절한다', async () => {
+test('분할된 UTF-8은 수집 뒤 decode하고 잘린 UTF-8, BOM은 무효 입력으로 거절한다', async () => {
   const body = Buffer.from('{"code":"한"}')
   const split = Buffer.byteLength('{"code":"') + 1
   const valid = parserFixture()
@@ -187,7 +187,7 @@ test('request error의 원문 metadata가 raw-body 오류와 닮아도 정제 40
   }
 })
 
-test('header 전송·response 파기 후 request error는 응답을 쓰지 않는다', async () => {
+test('header 전송, response 파기 후 request error는 응답을 쓰지 않는다', async () => {
   for (const state of ['headersSent', 'destroyed']) {
     const f = parserFixture()
     f.response[state] = true

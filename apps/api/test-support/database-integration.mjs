@@ -103,7 +103,7 @@ async function main() {
       await runMigrationCommand('show', () => createDatabaseDataSource(resources.configuration)),
       'Database migrations current'
     )
-    stage = '실제 DB runtime factory의 listen·반복 종료·연결 정리'
+    stage = '실제 DB runtime factory의 listen, 반복 종료, 연결 정리'
     const connectionCount = async () =>
       (
         await source.query(

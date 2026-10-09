@@ -24,12 +24,12 @@ const success = (text: string): Extract<DeveloperEvaluation, { status: 'success'
 })
 
 describe('개발자 모델 채점', () => {
-  it('한글·보조 평면 문자를 code point로 세고 삽입·삭제·대체를 계산한다', () => {
+  it('한글, 보조 평면 문자를 code point로 세고 삽입, 삭제, 대체를 계산한다', () => {
     expect(characterErrors('가나다', '가라')).toBe(2)
     expect(characterErrors('😀나', '나')).toBe(1)
     expect(characterErrors('', '가')).toBe(1)
   })
-  it('미작성·실패·미평가를 정답률 분모에 섞지 않으며 빈 정답은 채점한다', () => {
+  it('미작성, 실패, 미평가를 정답률 분모에 섞지 않으며 빈 정답은 채점한다', () => {
     const summary = summarizeDeveloperEvaluation(
       [
         sample('one', '가나'),
@@ -92,7 +92,7 @@ describe('개발자 모델 채점', () => {
     expect(results.long.text).toBe('😀가라')
   })
 
-  it('공백·대소문자 차이를 원문 오류로 세며 미작성·실패·미평가를 점수 분모에서 제외한다', () => {
+  it('공백, 대소문자 차이를 원문 오류로 세며 미작성, 실패, 미평가를 점수 분모에서 제외한다', () => {
     const samples = [
       sample('case-and-space', 'Ab '),
       sample('korean', '가나'),

@@ -27,7 +27,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     })
   })
 
-  it('비-macOS host는 암호화·파일 작업 전에 거절한다', async () => {
+  it('비-macOS host는 암호화, 파일 작업 전에 거절한다', async () => {
     const store = createMacOsCredentialStore({
       userDataPath: fixture.userDataPath,
       context: CONTEXT,
@@ -80,7 +80,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     })
   })
 
-  it('marker와 credential은 동일 directory exclusive temp·flush·replace·directory sync 순서다', async () => {
+  it('marker와 credential은 동일 directory exclusive temp, flush, replace, directory sync 순서다', async () => {
     await fixture.store.inspect()
     fixture.events.length = 0
     await fixture.store.establishTransition('exchange')
@@ -175,7 +175,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
     { refreshToken: 'invalid' },
     { refreshToken: `${REFRESH_1}=` },
     { accessToken: 'forbidden.payload.signature' }
-  ])('복호화된 payload도 exact context·field·canonical token을 검사한다: %j', async (changes) => {
+  ])('복호화된 payload도 exact context, field, canonical token을 검사한다: %j', async (changes) => {
     await fixture.seedReady()
     const record = await fixture.readRecord()
     fixture.plaintexts.set(
@@ -382,7 +382,7 @@ describe('macOS CredentialStore의 파일 protocol', () => {
   })
 
   it.each(['malformed', 'unknown-schema', 'permission', 'symlink', 'directory'] as const)(
-    'transition.v1의 %s는 ready 복원·복호화를 허용하지 않는다',
+    'transition.v1의 %s는 ready 복원, 복호화를 허용하지 않는다',
     async (kind) => {
       await fixture.seedReady()
       const path = join(fixture.directory, 'transition.v1')

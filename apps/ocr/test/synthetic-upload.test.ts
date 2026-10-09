@@ -32,7 +32,7 @@ test('합성 입력은 불투명 PNG와 정답 및 범위 안의 렌더링 정�
   assert.throws(() => parseUpload({ ...upload(), kind: 'synthetic' }), { code: 'INVALID_INPUT' })
 })
 
-test('합성 이미지·정답·train 배정은 원자적으로 저장하고 같은 재요청을 중복 저장하지 않는다', () => {
+test('합성 이미지, 정답, train 배정은 원자적으로 저장하고 같은 재요청을 중복 저장하지 않는다', () => {
   const input = syntheticUpload()
   const { capture, png } = parseSyntheticUpload(input)
   const store = new OcrStore(':memory:', png.length)
@@ -59,7 +59,7 @@ test('합성 이미지·정답·train 배정은 원자적으로 저장하고 같
   }
 })
 
-test('합성 닉네임은 업로드·수정·재배정으로 평가 분할에 들어가지 못한다', () => {
+test('합성 닉네임은 업로드, 수정, 재배정으로 평가 분할에 들어가지 못한다', () => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   try {
     const real = parseUpload(upload())

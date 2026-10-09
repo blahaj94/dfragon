@@ -4,7 +4,7 @@ status: active
 enforcement: approval-required
 scope: apps/api character search
 last-reviewed: 2026-10-07
-rationale: 검색 입력·응답·실패·호출 제한을 후속 구현자가 추측하지 않게 한다.
+rationale: 검색 입력, 응답, 실패, 호출 제한을 후속 구현자가 추측하지 않게 한다.
 evidence: "PR #42 검색 승인: https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698 ; PR #48 인증 통합 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519"
 exceptions: 미확인 외부 규격과 새 정책은 사용자 결정 없이 구현하지 않는다.
 review-after: 검색 adapter 첫 validation 완료 또는 네오플 공식 규격 변경 시
@@ -12,23 +12,23 @@ review-after: 검색 adapter 첫 validation 완료 또는 네오플 공식 규�
 
 # Character Search Contract
 
-이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. 요청·응답·오류·deadline과 code point 입력 정책, 단일 process memory quota 및 명시된 한계가 승인 범위다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장·캐싱, OCR 보정, 인증·DB 구현과 전체 서비스 한도는 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
+이 문서는 [PR #42의 사용자 승인](https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698)을 반영한 Rule이다. 요청, 응답, 오류, deadline과 code point 입력 정책, 단일 process memory quota 및 명시된 한계가 승인 범위다. 이전 인증/session 통합은 아래 공개 검색 정책으로 대체한다. 검색 결과 저장, 캐싱, OCR 보정, 인증, DB 구현과 전체 서비스 한도는 이 문서의 범위 밖이다. 구현은 현재 요청 범위에서 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 
 ## 요청과 성공 응답
 
-`GET /characters`는 로그인 없이 검색 query를 검증하고 `GET https://api.neople.co.kr/df/servers/:serverId/characters`를 한 번 호출한다. `characterName`은 필수 2~~12자, `serverId` 생략 시 `all`, `limit` 생략 시 10이며 정수 1~~200을 허용한다. Upstream `wordType=full`은 서버가 고정하며 pagination·직업 filter는 노출하지 않는다. [네오플 02. 캐릭터 검색](https://developers.neople.co.kr/contents/apiDocs/df)
+`GET /characters`는 로그인 없이 검색 query를 검증하고 `GET https://api.neople.co.kr/df/servers/:serverId/characters`를 한 번 호출한다. `characterName`은 필수 2~~12자, `serverId` 생략 시 `all`, `limit` 생략 시 10이며 정수 1~~200을 허용한다. Upstream `wordType=full`은 서버가 고정하며 pagination, 직업 filter는 노출하지 않는다. [네오플 02. 캐릭터 검색](https://developers.neople.co.kr/contents/apiDocs/df)
 
-- 기본값은 생략에만 적용한다. Empty value·검색어 앞뒤 공백·정수의 십진 숫자 표기가 아닌 `limit`·중복/배열/객체 query·미정의 key는 `400 INVALID_SEARCH_QUERY`이며 upstream을 호출하지 않는다.
-- URL decoding 외에 trim·OCR 보정·대소문자 변경·Unicode 정규화를 하지 않는다.
+- 기본값은 생략에만 적용한다. Empty value, 검색어 앞뒤 공백, 정수의 십진 숫자 표기가 아닌 `limit`, 중복/배열/객체 query, 미정의 key는 `400 INVALID_SEARCH_QUERY`이며 upstream을 호출하지 않는다.
+- URL decoding 외에 trim, OCR 보정, 대소문자 변경, Unicode 정규화를 하지 않는다.
 - 성공 HTTP는 200이며 body는 `{"rows":[...]}`다. 결과 없음은 `{"rows":[]}`다. 전체 검증을 통과한 후보를 upstream 순서 그대로 반환하고, 각 row에는 아래 다섯 field만 넣는다.
 
-| Field                                      | 검증·반환 규격                                                                                                                            |
+| Field                                      | 검증, 반환 규격                                                                                                                            |
 | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `characterId`, `characterName`, `serverId` | 필수 string. 빈 문자열·공백뿐인 값은 실패. 값은 그대로 유지하며 요청 검색어 길이나 별도 ID format을 적용하지 않음.                        |
-| `serverName`                               | 우리 server map으로 생성한 string. 미등록 응답 ID는 후보·ID를 유지하고 null. Upstream `serverName`은 사용하지 않음.                       |
-| `fame`                                     | 유한한 JSON number는 0을 포함해 그대로 유지. null·누락은 null. 문자열·boolean·object·array는 실패. 음수·소수에 별도 제약을 추가하지 않음. |
+| `characterId`, `characterName`, `serverId` | 필수 string. 빈 문자열, 공백뿐인 값은 실패. 값은 그대로 유지하며 요청 검색어 길이나 별도 ID format을 적용하지 않음.                        |
+| `serverName`                               | 우리 server map으로 생성한 string. 미등록 응답 ID는 후보, ID를 유지하고 null. Upstream `serverName`은 사용하지 않음.                       |
+| `fame`                                     | 유한한 JSON number는 0을 포함해 그대로 유지. null, 누락은 null. 문자열, boolean, object, array는 실패. 음수, 소수에 별도 제약을 추가하지 않음. |
 
-Top-level은 null·array가 아닌 JSON object이고 `rows`는 array여야 한다. 모든 row도 null·array가 아닌 object여야 한다. 후보 하나라도 invalid하면 `502 NEOPLE_API_ERROR`로 **전체 실패**한다. 일부 후보만 제외하거나 숫자 문자열을 변환하지 않는다. 알려지지 않은 추가 field는 무시한다. `fame` 추가는 [공식 공지](https://developers.neople.co.kr/contents/notice/view/214)로 확인했지만 null·누락의 실제 발생 여부는 확인하지 않았으며 위 처리는 프로젝트 정책이다.
+Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한다. 모든 row도 null, array가 아닌 object여야 한다. 후보 하나라도 invalid하면 `502 NEOPLE_API_ERROR`로 **전체 실패**한다. 일부 후보만 제외하거나 숫자 문자열을 변환하지 않는다. 알려지지 않은 추가 field는 무시한다. `fame` 추가는 [공식 공지](https://developers.neople.co.kr/contents/notice/view/214)로 확인했지만 null, 누락의 실제 발생 여부는 확인하지 않았으며 위 처리는 프로젝트 정책이다.
 
 ## OCR 캐릭터 식별 후보
 
@@ -75,21 +75,21 @@ API와 Desktop의 역할은 다음 순서로 나눈다. 이 API 구현은 후보
 
 ## Raw query 판별
 
-Framework의 object 변환·숫자 coercion 전에 original request URL의 `?` 이후 원본 query를 검사한다. Express가 만든 `req.query`만으로 중복 여부를 판단하지 않는다.
+Framework의 object 변환, 숫자 coercion 전에 original request URL의 `?` 이후 원본 query를 검사한다. Express가 만든 `req.query`만으로 중복 여부를 판단하지 않는다.
 
 1. Raw query를 `&`로 나누고 각 component의 첫 `=`만 key/value 경계로 사용한다. `=` 없는 key는 empty value다. 비어 있는 component(`&&`, 마지막 `&`)도 잘못된 입력이다.
 2. Key와 value에서 `+`를 space로 처리하고 percent-encoded UTF-8을 정확히 한 번 decode한다. 잘못된 `%` escape나 유효하지 않은 UTF-8은 400이다. `URLSearchParams`의 관대한 오류 복구 결과만 사용하지 않는다.
 3. Decode한 key는 정확히 `characterName`, `serverId`, `limit` 중 하나여야 하며 각각 최대 한 번이다. `limit`와 `%6Cimit`도 중복이다. `limit[]`, `limit[0]`, `characterName[x]`와 encode된 bracket key는 허용 key가 아니므로 400이다. JSON/object로 value를 재해석하지 않는다.
-4. Decode한 값에 확정 규칙을 적용한다. `characterName !== characterName.trim()`이면 400이며 공백 판별은 ECMAScript `trim`을 사용한다. 내부 공백은 별도 금지하지 않는다. `serverId`도 trim·case 변환 없이 map 또는 `all`과 비교한다.
-5. `limit`는 ASCII `/^[0-9]+$/`와 숫자 범위 1~200을 모두 만족해야 한다. Leading zero는 십진 표기로 허용한다(`0010` → 10). 부호·소수점·지수·앞뒤 공백·비ASCII 숫자는 400이다. `parseInt`의 부분 성공은 사용하지 않는다.
+4. Decode한 값에 확정 규칙을 적용한다. `characterName !== characterName.trim()`이면 400이며 공백 판별은 ECMAScript `trim`을 사용한다. 내부 공백은 별도 금지하지 않는다. `serverId`도 trim, case 변환 없이 map 또는 `all`과 비교한다.
+5. `limit`는 ASCII `/^[0-9]+$/`와 숫자 범위 1~200을 모두 만족해야 한다. Leading zero는 십진 표기로 허용한다(`0010` → 10). 부호, 소수점, 지수, 앞뒤 공백, 비ASCII 숫자는 400이다. `parseInt`의 부분 성공은 사용하지 않는다.
 
-Literal string value가 `[]`처럼 보이는 것만으로 배열로 변환하지 않는다. 배열·객체 전달 거절은 중복 key와 bracket key 등 query 구조에 적용한다. Decode 후 남은 `%xx`는 다시 decode하지 않는다. 통과한 값을 upstream URL에 만들 때 한 번 encode한다. 이 판별은 인증 guard와 별개로 순수 함수와 raw HTTP integration test에서 검증할 수 있어야 한다.
+Literal string value가 `[]`처럼 보이는 것만으로 배열로 변환하지 않는다. 배열, 객체 전달 거절은 중복 key와 bracket key 등 query 구조에 적용한다. Decode 후 남은 `%xx`는 다시 decode하지 않는다. 통과한 값을 upstream URL에 만들 때 한 번 encode한다. 이 판별은 인증 guard와 별개로 순수 함수와 raw HTTP integration test에서 검증할 수 있어야 한다.
 
 ## 검색어 길이와 외부 규격 한계
 
 **입력 정책은 decode 후 Unicode code point 수 2~12**다. JavaScript string iterator로 세며 정규화하지 않는다. `가나`는 2, `😀`는 1, `😀가`는 2, 분해된 `가`는 2다. 공백 검증은 길이와 별도로 적용한다.
 
-공식 문서는 `full`의 2~12자와 UTF-8 전송을 안내하지만 UTF-16 code unit·code point·grapheme 중 무엇인지는 명시하지 않는다. 이 안을 네오플과 검증된 일치 규격으로 표현하지 않는다. [검색 규격](https://developers.neople.co.kr/contents/apiDocs/df), [UTF-8·검색 타입 FAQ](https://developers.neople.co.kr/contents/faq?category=2)
+공식 문서는 `full`의 2~12자와 UTF-8 전송을 안내하지만 UTF-16 code unit, code point, grapheme 중 무엇인지는 명시하지 않는다. 이 안을 네오플과 검증된 일치 규격으로 표현하지 않는다. [검색 규격](https://developers.neople.co.kr/contents/apiDocs/df), [UTF-8, 검색 타입 FAQ](https://developers.neople.co.kr/contents/faq?category=2)
 
 | 선택                           | 영향                                                                                    |
 | ------------------------------ | --------------------------------------------------------------------------------------- |
@@ -97,11 +97,11 @@ Literal string value가 `[]`처럼 보이는 것만으로 배열로 변환하지
 | UTF-16 code unit — 미채택 대안 | JavaScript `length`와 같지만 supplementary character 하나가 둘로 셈.                    |
 | Grapheme — 미채택 대안         | 화면상의 글자에 가까우나 Unicode segmentation과 외부 검색 제한이 같다고 보장할 수 없음. |
 
-Code point 입력 정책과 외부 단위 미확인 한계는 승인됐다. 이는 네오플의 측정 단위를 실제로 확인했다는 뜻이 아니며, 다른 측정 정책으로 바꾸려면 별도 승인을 받는다. 우리 검증을 통과한 query를 네오플이 거절하는 경우 아래 502 mapping을 유지하고 임의로 길이·정규화 정책을 바꾸지 않는다. 이 결정은 credential 없는 runtime·adapter 검증을 막지 않는다.
+Code point 입력 정책과 외부 단위 미확인 한계는 승인됐다. 이는 네오플의 측정 단위를 실제로 확인했다는 뜻이 아니며, 다른 측정 정책으로 바꾸려면 별도 승인을 받는다. 우리 검증을 통과한 query를 네오플이 거절하는 경우 아래 502 mapping을 유지하고 임의로 길이, 정규화 정책을 바꾸지 않는다. 이 결정은 credential 없는 runtime, adapter 검증을 막지 않는다.
 
 ## 정제된 오류
 
-Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Upstream body·message·Key·내부 상세를 포함하지 않는다.
+Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Upstream body, message, Key, 내부 상세를 포함하지 않는다.
 
 | 우리 HTTP / code            | 고정 message                                                       |
 | --------------------------- | ------------------------------------------------------------------ |
@@ -115,13 +115,13 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 | 순서       | 조건                                                                                  | 결과                                                   |
 | ---------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Local      | 우리 query 오류 / 호출자 제한 초과                                                    | 각각 400 / 429; query 검증 우선, upstream 없음.        |
-| Local      | 우리 설정·내부 오류                                                                   | 500; upstream 여부는 오류 발생 지점에 따름.            |
+| Local      | 우리 설정, 내부 오류                                                                   | 500; upstream 여부는 오류 발생 지점에 따름.            |
 | Upstream 1 | 호출 deadline 도달                                                                    | 504; 도착이 늦은 response나 code로 결과를 바꾸지 않음. |
 | Upstream 2 | 식별한 `API000`, `API003`, `API004`, `API005`                                         | Upstream HTTP와 관계없이 500.                          |
 | Upstream 3 | 식별한 `API002`, `API008`, `DNF980`                                                   | Upstream HTTP와 관계없이 503.                          |
 | Upstream 4 | 식별한 `API901`, `DNF901`, `DNF000`, `API006`, `API007`, `API900`, `API999`, `DNF999` | Upstream HTTP와 관계없이 502.                          |
 | Upstream 5 | 위 분류가 없는 실패이며 upstream HTTP 429 또는 503                                    | 503.                                                   |
-| Upstream 6 | 그 밖의 upstream 실패·통신 실패·JSON/응답 검증 실패                                   | 502.                                                   |
+| Upstream 6 | 그 밖의 upstream 실패, 통신 실패, JSON/응답 검증 실패                                   | 502.                                                   |
 
 네오플 error code는 exact string `error.code`로 식별하며 `error.status`가 HTTP나 알려진 code를 덮어쓰지 않는 안이다. 표에 없는 code는 미분류 fallback을 적용한다. 알려진 code가 HTTP 2xx와 함께 와도 code 분류를 우선하고, `error`가 존재하는 body는 `rows`와 함께 와도 성공으로 처리하지 않는 안이다. 비JSON 또는 malformed error의 code를 추정하지 않는다. 식별 가능한 code가 없으면 실제 HTTP fallback을 사용하며 2xx body가 유효한 `rows`일 때만 성공한다.
 
@@ -129,36 +129,36 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 ## Deadline과 adapter
 
-네오플 호출 대기는 최대 5초, timeout은 504, 서버 자동 retry는 0회다. 세부 규칙은 transport 호출 직전부터 headers와 전체 body 수신·검증 완료까지 하나의 5,000ms deadline을 적용하는 것이다. 완료 판정 시각이 deadline **이상**이면 timeout이다. Headers만 빨리 도착해도 body가 늦으면 성공하지 않는다.
+네오플 호출 대기는 최대 5초, timeout은 504, 서버 자동 retry는 0회다. 세부 규칙은 transport 호출 직전부터 headers와 전체 body 수신, 검증 완료까지 하나의 5,000ms deadline을 적용하는 것이다. 완료 판정 시각이 deadline **이상**이면 timeout이다. Headers만 빨리 도착해도 body가 늦으면 성공하지 않는다.
 
 Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → 공급자 예산 확인·URL 구성·transport 1회·전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색·상세·공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport·clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding·status·body·취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
-2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무·유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT·session DB 조회·활동 갱신·refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현·검증과 같은 PR의 사용자 merge로 적용한다.
+2026-09-15 사용자의 로그인 선택 요구에 따라 검색은 인증 없이 제공한다. Authorization 유무, 유효성으로 기능을 막지 않고 검색 handler는 이를 사용하지 않는다. JWT, session DB 조회, 활동 갱신, refresh는 검색 경로에서 수행하지 않는다. `/me` 등 계정 전용 endpoint의 인증은 유지한다. 이 변경은 구현, 검증과 같은 PR의 사용자 merge로 적용한다.
 
-호출 제한은 **클라이언트별 최근 60초 10회**다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query·Authorization·X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log·DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 다중 process 공유 저장소는 추가하지 않는다.
+호출 제한은 **클라이언트별 최근 60초 10회**다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기본 실행은 서버가 직접 연결받은 peer IP를 사용하며 요청 query, Authorization, X-Forwarded-For를 제한 key로 신뢰하지 않는다. IP는 단일 process의 만료되는 quota entry에만 쓰고 log, DB에 남기지 않는다. 같은 NAT 주소를 공유하면 한도를 공유하며, 여러 process의 전체 한도를 보장하지 않는다. 다중 process 공유 저장소는 추가하지 않는다.
 
-프로세스가 사용하는 Neople API key의 호출은 모든 검색·캐릭터 섹션·공용 상세를 합쳐 최근 60초 600회, 동시에 12회까지 허용한다. 이는 서비스의 보호 상한이며 공급자의 공식 할당량을 뜻하지 않는다. 실제 transport 시작을 기록하고 실패해도 환불하지 않는다. 동시 슬롯은 body 수신·검증 완료까지 유지하고 완료·실패 때 반환한다. 초과는 기존 정제 429와 `Retry-After`로 거절하며 queue·자동 재시도는 없다. 공용 상세 실패는 기존 unavailable 표현을 유지한다. 이 보안 수정 요청의 구현·검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
+프로세스가 사용하는 Neople API key의 호출은 모든 검색, 캐릭터 섹션, 공용 상세를 합쳐 최근 60초 600회, 동시에 12회까지 허용한다. 이는 서비스의 보호 상한이며 공급자의 공식 할당량을 뜻하지 않는다. 실제 transport 시작을 기록하고 실패해도 환불하지 않는다. 동시 슬롯은 body 수신, 검증 완료까지 유지하고 완료, 실패 때 반환한다. 초과는 기존 정제 429와 `Retry-After`로 거절하며 queue, 자동 재시도는 없다. 공용 상세 실패는 기존 unavailable 표현을 유지한다. 이 보안 수정 요청의 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
 단일 호스트 Caddy 배포는 명시적 `SEARCH_TRUST_PROXY=single-hop` 설정에서만 Express의
 1-hop `trust proxy`와 `request.ip`를 사용한다. Caddy가 `X-Forwarded-For`를 직접 연결한
 클라이언트 주소로 덮어쓰고, API의 공개 port는 loopback으로 제한한다. 외부의 유일한 경로가
-Caddy라는 배포 경계에 의존하며 호스트·동일 Docker network의 직접 접근 주체까지 인증하는
-설정은 아니다. 다중 proxy·외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
-구현·검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다.
+Caddy라는 배포 경계에 의존하며 호스트, 동일 Docker network의 직접 접근 주체까지 인증하는
+설정은 아니다. 다중 proxy, 외부 직접 접근으로 확대하지 않는다. 이 예외는 배포 PR #471의
+구현, 검증 범위이며 사용자 merge 후 다른 작업과 운영 설정에 적용한다.
 
 - API 키 설정은 DB 연결과 listen 전에 검증한다. 서비스는 준비된 검색 어댑터를 주입받으며 요청 단계에서 키를 다시 읽거나 검사하지 않는다. 누락, 빈 값, 공백뿐인 키는 HTTP 응답이 아닌 시작 실패다. [Runtime의 설정 책임](api-runtime.md#실행과-검증-경계)을 따른다.
 - 요청에서는 raw query를 먼저 검증한다. 입력 실패와 클라이언트 한도 초과는 upstream과 예약이 없다. 공급자 예산 초과는 이미 소비한 클라이언트 한도를 환불하지 않으며 upstream을 시작하지 않는다. 공급자가 반환하는 키 오류 등 기존 정제 500 정책은 유지한다.
-- Upstream 직전에 단조 clock의 `(t - 60,000ms, t]` 예약을 prune/count하고 10개 미만이면 원자적으로 예약한 뒤 즉시 호출한다. 성공·0건·upstream 실패·timeout은 환불하지 않는다.
+- Upstream 직전에 단조 clock의 `(t - 60,000ms, t]` 예약을 prune/count하고 10개 미만이면 원자적으로 예약한 뒤 즉시 호출한다. 성공, 0건, upstream 실패, timeout은 환불하지 않는다.
 - 10개면 `Retry-After = max(1, ceil((oldest + 60,000 - t) / 1,000))`와 429다. 거절은 제한 창을 연장하지 않는다. 같은 peer의 동시 11개는 최대 10개만 통과하고 다른 peer는 독립적이다.
-- 만료 entry를 정리하고 재시작 시 이력은 사라진다. Quota가 풀리기를 기다리는 queue·자동 retry는 없다.
+- 만료 entry를 정리하고 재시작 시 이력은 사라진다. Quota가 풀리기를 기다리는 queue, 자동 retry는 없다.
 
 ### Authentication activity contract
 
-이전 PR #48의 검색 JWT·계정 admission·DB 활동 계약은 공개 검색에 적용하지 않는다. 검색 사용은 계정의 로그인 유지 기간을 연장하지 않는다. 계정 기능의 활동은 [auth-activity.md](auth-activity.md)를 계속 따른다.
+이전 PR #48의 검색 JWT, 계정 admission, DB 활동 계약은 공개 검색에 적용하지 않는다. 검색 사용은 계정의 로그인 유지 기간을 연장하지 않는다. 계정 기능의 활동은 [auth-activity.md](auth-activity.md)를 계속 따른다.
 
 ## 간결한 경계 예시
 
@@ -167,10 +167,10 @@ Caddy라는 배포 경계에 의존하며 호스트·동일 Docker network의 �
 | 사례                                                  | HTTP / body의 핵심                                        | Upstream |
 | ----------------------------------------------------- | --------------------------------------------------------- | -------- |
 | `characterName=가나`, 옵션 생략, 빈 결과              | 200 / `{"rows":[]}`, upstream `all`, 10, `full`           | 1        |
-| `characterName` 없음·1자·13자·앞뒤 공백               | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
-| `serverId=`·`limit=`·`limit=1e2`·미지원 서버          | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
-| 중복·encoded 중복·bracket key·unknown key·깨진 escape | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
-| `limit=0001`·`limit=200`                              | 200 / 검증된 rows, upstream limit 1·200                   | 각 1     |
+| `characterName` 없음, 1자, 13자, 앞뒤 공백               | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
+| `serverId=`, `limit=`, `limit=1e2`, 미지원 서버          | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
+| 중복, encoded 중복, bracket key, unknown key, 깨진 escape | 400 / `INVALID_SEARCH_QUERY`                              | 0        |
+| `limit=0001`, `limit=200`                              | 200 / 검증된 rows, upstream limit 1, 200                   | 각 1     |
 | 응답 `fame: 0` / null / 누락                          | 200 / 각각 0 / null / null                                | 각 1     |
 | 정상 후보와 `fame: "0"` 후보 혼합                     | 502 / `NEOPLE_API_ERROR`, 부분 rows 없음                  | 1        |
 | 정상 미등록 응답 서버                                 | 200 / ID 유지, `serverName: null`                         | 1        |
@@ -179,4 +179,4 @@ Caddy라는 배포 경계에 의존하며 호스트·동일 Docker network의 �
 | 예약 10개가 t=0, 요청 t=59,999ms                      | 429 / `SEARCH_RATE_LIMITED`, `Retry-After: 1`             | 0        |
 | 같은 상태, 요청 t=60,000ms                            | 허용 후 upstream 결과, 이전 10개 만료                     | 1        |
 
-상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이·raw decoding·deadline·quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.
+상세 acceptance matrix와 실행 evidence는 기존 작업 기록이나 PR에 둔다. Runtime 도구와 실제 실행 계획은 [`api-runtime.md`](api-runtime.md), 변경별 검증은 [검증 명령](../../scripts/README.md#native-validation)를 따른다. 길이, raw decoding, deadline, quota 정책과 승인된 인증 통합의 변경을 후속 구현자의 일반 선택으로 숨기지 않는다.

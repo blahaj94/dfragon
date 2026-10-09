@@ -55,21 +55,21 @@ export function getCaptureSourceNotice({
 }): { title: string; description: string } {
   if (failed) {
     return {
-      title: '창 목록을 불러오지 못했어요',
-      description: '15초마다 다시 확인해요. 직접 새로고침할 수도 있어요.'
+      title: '창 목록을 불러오지 못했습니다',
+      description: '15초마다 다시 확인합니다. 직접 새로고침할 수도 있습니다.'
     }
   }
 
   if (hasOtherSources) {
     return {
-      title: '던파 창을 찾지 못했어요',
-      description: '15초마다 자동으로 찾아요. 다른 창을 직접 선택할 수도 있어요.'
+      title: '던파 창을 찾지 못했습니다',
+      description: '15초마다 자동으로 찾습니다. 다른 창을 직접 선택할 수도 있습니다.'
     }
   }
 
   return {
-    title: '던파 창을 찾지 못했어요',
-    description: '게임을 실행하면 15초마다 자동으로 찾아요.'
+    title: '던파 창을 찾지 못했습니다',
+    description: '게임을 실행하면 15초마다 자동으로 찾습니다.'
   }
 }
 

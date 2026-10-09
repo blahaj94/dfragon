@@ -49,7 +49,7 @@ test('public key만으로 verifier를 초기화하며 key/issuer 설정은 초�
   await verify(result.accessToken, now)
 })
 
-test('누락/빈 issuer·audience·key 목록과 중복/빈 kid를 초기화에서 거절한다', async () => {
+test('누락/빈 issuer, audience, key 목록과 중복/빈 kid를 초기화에서 거절한다', async () => {
   const config = configuration()
   const cases: unknown[] = [
     undefined,
@@ -84,7 +84,7 @@ test('누락/빈 issuer·audience·key 목록과 중복/빈 kid를 초기화에�
   await assert.rejects(createAccessJwtVerifier({ ...config, verificationKeys: [] }), sanitized)
 })
 
-test('public verifier도 빈 신뢰 설정·중복 kid·비활성 잘못된 key를 독립적으로 거절한다', async (t) => {
+test('public verifier도 빈 신뢰 설정, 중복 kid, 비활성 잘못된 key를 독립적으로 거절한다', async (t) => {
   const config = configuration()
   const cases = [
     { name: '공백 issuer', values: { issuer: ' \t' } },
@@ -134,7 +134,7 @@ test('정상 key 교체는 두 token의 겹침 기간을 허용하고 이전 tok
   })
 })
 
-test('private/public mismatch·잘못된 curve·RSA·key 역할 혼동은 초기화 실패다', async () => {
+test('private/public mismatch, 잘못된 curve, RSA, key 역할 혼동은 초기화 실패다', async () => {
   const config = configuration()
   const p384 = keyPair(undefined, 'secp384r1')
   const rsa = generateKeyPairSync('rsa', {

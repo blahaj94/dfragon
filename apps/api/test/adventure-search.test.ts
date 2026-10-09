@@ -85,7 +85,7 @@ test('모험단 query는 이름을 그대로 보존하고 생략한 페이지 �
   }
 })
 
-test('모험단 query는 잘못된 구조·UTF-8·이름·페이지 경계를 정제된 400으로 거절한다', async (t) => {
+test('모험단 query는 잘못된 구조, UTF-8, 이름, 페이지 경계를 정제된 400으로 거절한다', async (t) => {
   const cases: Array<[string, string]> = [
     ['query 없음', '/adventures/characters'],
     ['빈 query', '/?'],

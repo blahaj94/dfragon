@@ -72,7 +72,7 @@ test('검증된 기본 모델은 원자적으로 등록하고 기존 모델도 �
   assert.equal(calls, 2)
 })
 
-test('기본 모델 사전 변경·파일 한도 초과는 모델을 부분 등록하지 않는다', async (t) => {
+test('기본 모델 사전 변경, 파일 한도 초과는 모델을 부분 등록하지 않는다', async (t) => {
   const store = new OcrStore(':memory:', 1024 * 1024)
   t.after(() => store.close())
   let calls = 0

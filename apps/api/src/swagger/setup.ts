@@ -1,12 +1,13 @@
 import type { INestApplication } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import type { Request, Response } from 'express'
+import { PRODUCT_NAME } from '@dfragon/lib'
 import { apiSchemas } from './schemas.js'
 
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
-    .setTitle('DFRAGON API')
-    .setDescription('캐릭터 검색·상세와 모험단 조회를 제공하는 공개 API입니다.')
+    .setTitle(`${PRODUCT_NAME} API`)
+    .setDescription('캐릭터 검색, 상세와 모험단 조회를 제공하는 공개 API입니다.')
     .setVersion('1.0.0')
     .addTag('캐릭터', '로그인 없이 검색과 상세 정보 조회')
     .build()
@@ -34,7 +35,7 @@ export function setupSwagger(app: INestApplication): void {
     {
       jsonDocumentUrl: 'docs/openapi.json',
       raw: ['json'],
-      customSiteTitle: 'DFRAGON API 문서',
+      customSiteTitle: `${PRODUCT_NAME} API 문서`,
       swaggerOptions: {
         persistAuthorization: false,
         validatorUrl: null,

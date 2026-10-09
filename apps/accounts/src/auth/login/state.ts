@@ -13,7 +13,7 @@ export async function loginTransaction<T>(
   try {
     return await source.transaction('READ COMMITTED', operation)
   } catch (error) {
-    // Commit 응답 유실·release 실패도 결과를 폐기한다. Token 재전달/retry 경로는 없다.
+    // Commit 응답 유실, release 실패도 결과를 폐기한다. Token 재전달/retry 경로는 없다.
     throw loginFailure(error, LOGIN_ERRORS.UNAVAILABLE)
   }
 }

@@ -1,4 +1,4 @@
-/** OCR 서버·브라우저·Desktop이 같은 이미지와 표본 계약을 검증한다. */
+/** OCR 서버, 브라우저, Desktop이 같은 이미지와 표본 계약을 검증한다. */
 export const OCR_DATA_LIMITS = {
   maximumPngBytes: 16 * 1024 * 1024,
   maximumDimension: 8192,

@@ -18,7 +18,7 @@ import { authenticationConfiguration } from './runtime-fixtures.mjs'
 const configuration = {
   apiOrigin: 'https://accounts.example.test',
   rpId: 'accounts.example.test',
-  rpName: 'DFRAGON 테스트',
+  rpName: 'DFragon 테스트',
   returnUrl: 'dfragon.dev://auth/callback',
   ocrReturnUrl: 'https://ocr.example.test/auth/callback'
 }
@@ -106,7 +106,7 @@ async function withExchangeFixture(source, issueAccessJwt, operation) {
          verified_user_id=$2,credential_id=$3,exchange_code_hash=$4,code_expires_at=$5 WHERE id=$1`,
         [input.requestId, userId, credentialId, hash(input.code), new Date(now.getTime() + 60_000)]
       )
-      // 기존 기기 session과 이력은 교환 거절·rollback의 영향 밖에 있어야 한다.
+      // 기존 기기 session과 이력은 교환 거절, rollback의 영향 밖에 있어야 한다.
       await createIdentitySession(manager, { userId, isNewUser: false })
     })
     await operation({ userId, credentialId, input, service, signing })
@@ -367,7 +367,7 @@ export async function assertLoginStateIntegration(source, mark) {
   const issuer = await createAccessJwtIssuer(authenticationConfiguration().accessJwt)
   const cases = [
     [
-      '앱 proof·client·설정 불일치는 두 요청과 기존 기기를 보존한다',
+      '앱 proof, client, 설정 불일치는 두 요청과 기존 기기를 보존한다',
       () => bindingsPreserveState(source, issuer)
     ],
     ...['auth_login_requests', 'users', 'auth_passkeys'].map((table) => [
@@ -375,7 +375,7 @@ export async function assertLoginStateIntegration(source, mark) {
       () => expiresAfterLock(source, issuer, table)
     ]),
     [
-      'JWT 발급 실패는 새 session·refresh와 code 소비를 rollback한다',
+      'JWT 발급 실패는 새 session, refresh와 code 소비를 rollback한다',
       () => signingRollback(source, issuer)
     ],
     [
@@ -395,7 +395,7 @@ export async function assertLoginStateIntegration(source, mark) {
       () => uncertainCommit(source, issuer, true)
     ],
     [
-      'launch ticket은 한 번만 소비되고 browser cookie·Origin 불일치는 요청을 보존한다',
+      'launch ticket은 한 번만 소비되고 browser cookie, Origin 불일치는 요청을 보존한다',
       () => launchAndBrowserBinding(source, issuer)
     ]
   ]

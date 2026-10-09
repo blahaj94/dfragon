@@ -247,7 +247,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('로그인 전 검색부터 로그인·로그아웃·재로그인까지 같은 캡처와 검색을 유지한다', async () => {
+it('로그인 전 검색부터 로그인, 로그아웃, 재로그인까지 같은 캡처와 검색을 유지한다', async () => {
   const harness = createAuthHarness()
   const liveSearch = deferred<Response>()
   const lateSearch = deferred<Response>()

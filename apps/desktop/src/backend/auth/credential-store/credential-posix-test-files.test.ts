@@ -23,7 +23,7 @@ describe('credential POSIX 테스트 filesystem 경계', () => {
     await fs.rm(root, { recursive: true, force: true })
   })
 
-  it('생성 mode와 변경 mode를 path 및 열린 handle에 보존하고 교체·삭제에 반영한다', async () => {
+  it('생성 mode와 변경 mode를 path 및 열린 handle에 보존하고 교체, 삭제에 반영한다', async () => {
     const from = join(root, 'temporary')
     const to = join(root, 'record')
     const handle = await files.open(

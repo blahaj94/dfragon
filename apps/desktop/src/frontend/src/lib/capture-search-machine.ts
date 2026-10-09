@@ -46,7 +46,7 @@ export function inspectCaptureStart(
       const differentCapture = latest.captureId !== captureId
       superseded = changedRun || (newerSnapshot && differentCapture)
     } else {
-      // 응답이 없어도 기존 snapshot 접근·취소 판정 순서를 유지한다.
+      // 응답이 없어도 기존 snapshot 접근, 취소 판정 순서를 유지한다.
       const differentCapture = latest.captureId !== captureId
       superseded = differentCapture && completed != null
     }

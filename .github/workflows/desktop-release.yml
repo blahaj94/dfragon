@@ -112,7 +112,7 @@ jobs:
         working-directory: apps/desktop/dist
         run: |
           set -euo pipefail
-          for executable in DFRAGON-*-x64-portable.exe; do
+          for executable in DFragon-*-x64-portable.exe; do
             # Write the sha256sum format with LF so Linux and Windows tools read the same file.
             hash=$(sha256sum "$executable" | cut -d ' ' -f 1)
             printf '%s  %s\n' "$hash" "$executable" > "$executable.sha256"
@@ -122,8 +122,8 @@ jobs:
         with:
           name: windows-x64-portable
           path: |
-            apps/desktop/dist/DFRAGON-*-x64-portable.exe
-            apps/desktop/dist/DFRAGON-*-x64-portable.exe.sha256
+            apps/desktop/dist/DFragon-*-x64-portable.exe
+            apps/desktop/dist/DFragon-*-x64-portable.exe.sha256
           if-no-files-found: error
           retention-days: 7
 
@@ -144,14 +144,14 @@ jobs:
           path: release
       - name: Verify transferred executable checksum
         working-directory: release
-        run: sha256sum --check DFRAGON-*-x64-portable.exe.sha256
+        run: sha256sum --check DFragon-*-x64-portable.exe.sha256
       - name: Attest portable executable provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: release/DFRAGON-*-x64-portable.exe
+          subject-path: release/DFragon-*-x64-portable.exe
       - name: Attach portable executable and checksum to release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-        run: gh release upload "$RELEASE_TAG" release/DFRAGON-*-x64-portable.exe release/DFRAGON-*-x64-portable.exe.sha256
+        run: gh release upload "$RELEASE_TAG" release/DFragon-*-x64-portable.exe release/DFragon-*-x64-portable.exe.sha256

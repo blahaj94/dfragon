@@ -105,7 +105,7 @@ async function runAccountOperation(
 
     return await deps.dataSource.transaction('READ COMMITTED', async (manager) => {
       const { user } = await lockActiveAccount(manager, principal)
-      // JWT는 admission에서 판정했다. 여기서는 logout·삭제·idle을 재확인하고 JWT 경과만으로 거절하지 않는다.
+      // JWT는 admission에서 판정했다. 여기서는 logout, 삭제, idle을 재확인하고 JWT 경과만으로 거절하지 않는다.
       const shouldUpdateNickname = operation.kind === 'nickname'
       if (shouldUpdateNickname) {
         await manager

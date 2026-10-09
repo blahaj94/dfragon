@@ -58,7 +58,7 @@ test('PNG는 축 8192와 총 16777216 pixels의 정확한 상한을 각각 적�
   }
 })
 
-test('PNG의 CRC 손상·잘린 종료·종료 뒤 bytes는 입력 오류로 거절한다', async (t) => {
+test('PNG의 CRC 손상, 잘린 종료, 종료 뒤 bytes는 입력 오류로 거절한다', async (t) => {
   const png = Buffer.from(upload().originalPng, 'base64')
   const corruptCrc = Buffer.from(png)
   corruptCrc[29] ^= 1
@@ -73,7 +73,7 @@ test('PNG의 CRC 손상·잘린 종료·종료 뒤 bytes는 입력 오류로 거
   }
 })
 
-test('크롭은 마지막 pixel까지 허용하고 정수·양수 크기·원본 범위·중복 슬롯을 검사한다', async (t) => {
+test('크롭은 마지막 pixel까지 허용하고 정수, 양수 크기, 원본 범위, 중복 슬롯을 검사한다', async (t) => {
   const input = upload()
   const accepted = parseUpload({ ...input, crops: [{ slot: 4, x: 7, y: 3, width: 1, height: 1 }] })
   assert.deepEqual(accepted.capture.crops, [{ slot: 4, x: 7, y: 3, width: 1, height: 1 }])
@@ -105,7 +105,7 @@ test('크롭은 마지막 pixel까지 허용하고 정수·양수 크기·원본
   assert.throws(() => parseUpload({ ...input, crops: [crop, crop] }), { code: 'INVALID_INPUT' })
 })
 
-test('캡처 식별자는 소문자 UUID만 받고 끝의 개행·공백이나 비표준 생성 시각을 거절한다', async (t) => {
+test('캡처 식별자는 소문자 UUID만 받고 끝의 개행, 공백이나 비표준 생성 시각을 거절한다', async (t) => {
   const input = upload('00000000-0000-4000-8000-000000000001')
   for (const [name, change] of [
     ['UUID 끝 LF', { id: `${input.id}\n` }],

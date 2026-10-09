@@ -3,14 +3,14 @@ import test from 'node:test'
 import { paginate } from '@dfragon/lib/utils/pagination'
 
 const TITLES = {
-  references: '0부터 시작하는 페이지에서 입력 배열·항목 순서·참조를 보존한다',
+  references: '0부터 시작하는 페이지에서 입력 배열, 항목 순서, 참조를 보존한다',
   clamp: '존재하는 페이지 범위를 벗어나면 첫 페이지 또는 마지막 페이지로 맞춘다',
   empty: '필터 결과가 비어 있어도 빈 페이지 하나를 유지한다',
   exactMultiple: '항목 수가 페이지 크기의 배수이면 뒤에 빈 페이지를 추가하지 않는다',
-  safeIntegerBoundaries: '안전 정수의 최소·최대 page와 최대 pageSize도 허용한다',
+  safeIntegerBoundaries: '안전 정수의 최소, 최대 page와 최대 pageSize도 허용한다',
   independentResults: '각 호출의 결과 배열은 서로 독립이고 결과 수정이 입력에 전파되지 않는다',
   generatedPartitions:
-    '유한한 길이·페이지 크기 조합을 재조합하면 모든 항목과 참조가 원래 순서로 남는다',
+    '유한한 길이, 페이지 크기 조합을 재조합하면 모든 항목과 참조가 원래 순서로 남는다',
   invalidPage: '안전 정수가 아닌 page는 빈 목록에서도 RangeError로 거절한다',
   invalidPageSize: '양의 안전 정수가 아닌 pageSize는 빈 목록에서도 RangeError로 거절한다'
 }
@@ -138,7 +138,7 @@ test(TITLES.generatedPartitions, () => {
         }
         last = result
       }
-      assert.deepEqual(collected, items, `${label}: 누락·중복·순서 변경 없음`)
+      assert.deepEqual(collected, items, `${label}: 누락, 중복, 순서 변경 없음`)
       assert.deepEqual(
         paginate(items, { page: Number.MIN_SAFE_INTEGER, pageSize }),
         first,

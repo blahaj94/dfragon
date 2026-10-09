@@ -64,7 +64,7 @@ export const apiSchemas: Record<string, SchemaObject> = {
     nickname: {
       type: 'string',
       description:
-        '앞뒤 공백 제거 후 grapheme 1~20개. 제어문자·줄바꿈·잘못된 UTF-16은 거절합니다. 중복 허용.'
+        '앞뒤 공백 제거 후 grapheme 1~20개. 제어문자, 줄바꿈, 잘못된 UTF-16은 거절합니다. 중복 허용.'
     }
   })
 }

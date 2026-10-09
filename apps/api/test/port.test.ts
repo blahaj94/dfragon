@@ -8,7 +8,7 @@ test('PORT는 허용 범위의 ASCII 십진 정수와 선행 0을 받는다', ()
   assert.equal(parsePort('00001'), 1)
 })
 
-test('PORT는 누락·범위 초과·공백·비십진 입력을 거절한다', () => {
+test('PORT는 누락, 범위 초과, 공백, 비십진 입력을 거절한다', () => {
   const invalidValues = [
     undefined,
     '',

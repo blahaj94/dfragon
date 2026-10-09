@@ -45,7 +45,7 @@ test('중심을 포함한 21개 정밀 배율과 0.0025 간격 및 반 픽셀 �
   assert.equal(roundParticipantPixel(1 + 380 * scales[8]), 486)
 })
 
-test('기본 반 픽셀의 양수·음수 좌표를 짝수로 반올림한다', () => {
+test('기본 반 픽셀의 양수, 음수 좌표를 짝수로 반올림한다', () => {
   for (const [value, expected] of [
     [0.5, 0],
     [1.5, 2],
@@ -75,7 +75,7 @@ test('RGBA view의 채널과 alpha를 유지하면서 독립 회색조 배열을
     const original = storage.slice()
     const gray = participantGrayscale(rgba)
 
-    // 원색의 휘도는 76·150·29, (10,20,30)의 휘도는 18로 손으로 검산된다.
+    // 원색의 휘도는 76, 150, 29, (10,20,30)의 휘도는 18로 손으로 검산된다.
     assert.deepEqual([...gray], [76, 150, 29, 255, 18, 0])
     assert.deepEqual(storage, original)
     gray.fill(0)

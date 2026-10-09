@@ -53,7 +53,7 @@ export function deferred(): Readonly<{ promise: Promise<void>; resolve: () => vo
   return { promise, resolve }
 }
 
-// 실제 임시 file IO를 유지하고 지정한 호출의 실패·지연만 주입한다.
+// 실제 임시 file IO를 유지하고 지정한 호출의 실패, 지연만 주입한다.
 export async function createStoreFixture({
   modelPosix = process.platform === 'win32'
 }: Readonly<{ modelPosix?: boolean }> = {}): Promise<StoreFixture> {

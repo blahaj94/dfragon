@@ -241,7 +241,7 @@ it('rejects malformed metadata, oversized bodies and mismatched image dimensions
   await expect(f.dataset.list()).rejects.toThrow('DEVELOPER_OCR_UNAVAILABLE')
 })
 
-it('정답의 null과 빈 문자열 및 제외·분할을 서버 조회 시점의 값으로 보존한다', async () => {
+it('정답의 null과 빈 문자열 및 제외, 분할을 서버 조회 시점의 값으로 보존한다', async () => {
   const f = setup()
   f.request.mockResolvedValueOnce(
     Response.json({

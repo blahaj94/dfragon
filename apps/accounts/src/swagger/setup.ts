@@ -1,16 +1,17 @@
 import type { INestApplication } from '@nestjs/common'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import type { Request, Response } from 'express'
+import { PRODUCT_NAME } from '@dfragon/lib'
 import { apiSchemas } from './schemas.js'
 
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
-    .setTitle('DFRAGON Accounts')
+    .setTitle(`${PRODUCT_NAME} Accounts`)
     .setDescription(
-      '패스키 가입·로그인·관리, 세션과 계정 API입니다. 인증 JSON은 UTF-8 application/json이며 최대 16,384바이트입니다.'
+      '패스키 가입, 로그인, 관리, 세션과 계정 API입니다. 인증 JSON은 UTF-8 application/json이며 최대 16,384바이트입니다.'
     )
     .setVersion('1.0.0')
-    .addTag('인증', 'Desktop 로그인 요청·교환·세션 관리')
+    .addTag('인증', 'Desktop 로그인 요청, 교환, 세션 관리')
     .addTag('계정', '로그인한 사용자의 프로필과 닉네임')
     .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build()
@@ -38,7 +39,7 @@ export function setupSwagger(app: INestApplication): void {
     {
       jsonDocumentUrl: 'docs/openapi.json',
       raw: ['json'],
-      customSiteTitle: 'DFRAGON Accounts 문서',
+      customSiteTitle: `${PRODUCT_NAME} Accounts 문서`,
       swaggerOptions: {
         persistAuthorization: false,
         validatorUrl: null,

@@ -27,7 +27,7 @@ test('합성 업로드는 전용 토큰만 사용하고 저장된 정답과 이�
     'Content-Type': 'application/json'
   }
   try {
-    // 누락·오류·owner JWT 자격은 JSON 파싱 전에 거절한다.
+    // 누락, 오류, owner JWT 자격은 JSON 파싱 전에 거절한다.
     for (const authorization of [
       undefined,
       'Bearer short',
@@ -73,7 +73,7 @@ test('합성 업로드는 전용 토큰만 사용하고 저장된 정답과 이�
     assert.equal(changed.status, 409)
     assert.deepEqual(f.calls, [])
 
-    // 업로드 토큰으로 자료 조회·정답/분할 수정·실제 캡처/모델 등록을 할 수 없다.
+    // 업로드 토큰으로 자료 조회, 정답/분할 수정, 실제 캡처/모델 등록을 할 수 없다.
     for (const path of [
       '/api/session',
       '/api/stats',
@@ -581,7 +581,7 @@ test('과도한 multipart 배열 인덱스를 거절하고 서버와 기존 모�
     await f.close()
   }
 })
-test('Desktop 업로드는 활성 owner Bearer를 요구하고 브라우저·관리 세션을 발급하지 않는다', async () => {
+test('Desktop 업로드는 활성 owner Bearer를 요구하고 브라우저, 관리 세션을 발급하지 않는다', async () => {
   const f = await fixture()
   const headers = {
     Authorization: 'Bearer synthetic.desktop.token',
@@ -774,7 +774,7 @@ test('합성 owner 인증 인계와 CSRF 경계를 확인하고 인증된 이미
     await f.close()
   }
 })
-test('다른 유효한 DFRAGON 계정은 OCR 세션을 발급받지 못한다', async () => {
+test('다른 유효한 DFragon 계정은 OCR 세션을 발급받지 못한다', async () => {
   const f = await fixture(randomUUID())
   try {
     const { response, cookie } = await f.login()
@@ -806,7 +806,7 @@ test('동시 보호 요청은 기존 인증 세션의 refresh를 한 번 공유�
   }
 })
 
-test('Desktop 자료 조회는 정답·제외·분할·크롭을 제공하고 수정 권한을 주지 않는다', async () => {
+test('Desktop 자료 조회는 정답, 제외, 분할, 크롭을 제공하고 수정 권한을 주지 않는다', async () => {
   const f = await fixture()
   const headers = { Authorization: 'Bearer synthetic.desktop.token' }
   try {
@@ -893,7 +893,7 @@ test('Desktop 조회는 자료 반환 전에 다른 계정과 폐기된 세션�
   }
 })
 
-test('공대 업로드는 부분 저장 없이 범위 밖·중복 슬롯을 거절한다', async () => {
+test('공대 업로드는 부분 저장 없이 범위 밖, 중복 슬롯을 거절한다', async () => {
   const f = await fixture()
   const headers = {
     Authorization: 'Bearer synthetic.desktop.token',
@@ -933,7 +933,7 @@ test('공대 업로드는 부분 저장 없이 범위 밖·중복 슬롯을 거�
   }
 })
 
-test('공대 10~12행도 보호된 조회와 브라우저 정답·필터·전체 내보내기를 사용한다', async () => {
+test('공대 10~12행도 보호된 조회와 브라우저 정답, 필터, 전체 내보내기를 사용한다', async () => {
   const f = await fixture()
   const desktopHeaders = { Authorization: 'Bearer synthetic.desktop.token' }
   try {
@@ -1041,7 +1041,7 @@ test('공대 10~12행도 보호된 조회와 브라우저 정답·필터·전체
   }
 })
 
-test('자동 분할 미리보기·적용은 owner 쿠키와 Origin을 요구하고 오래된 미리보기는 배정을 바꾸지 못한다', async () => {
+test('자동 분할 미리보기, 적용은 owner 쿠키와 Origin을 요구하고 오래된 미리보기는 배정을 바꾸지 못한다', async () => {
   const f = await fixture()
   try {
     const { cookie } = await f.login()
@@ -1285,7 +1285,7 @@ test('같은 ID의 서로 다른 동시 업로드는 한 묶음만 저장하고 
   assert.deepEqual(f.store.capture(input.id).png, Buffer.from(input.originalPng, 'base64'))
 })
 
-test('저장 상한 실패는 507로 분류하고 원본·샘플을 남기지 않아 같은 ID를 재사용할 수 있다', async (t) => {
+test('저장 상한 실패는 507로 분류하고 원본, 샘플을 남기지 않아 같은 ID를 재사용할 수 있다', async (t) => {
   const f = await fixture()
   t.after(() => f.close())
   const image = new PNG({ width: 600, height: 600 })

@@ -917,7 +917,7 @@ it('이전 창 등록 완료가 새 창의 준비 상태를 해제하지 않는�
   await hook.unmount()
 })
 
-it('StrictMode 재마운트 뒤 선택·시작과 종료 정리를 정상 수행한다', async () => {
+it('StrictMode 재마운트 뒤 선택, 시작과 종료 정리를 정상 수행한다', async () => {
   const resources = captureResources()
   readCaptureFrame.mockResolvedValue(resources.frame)
   moduleMocks.createPartyOcrWorker.mockResolvedValue(resources.worker)

@@ -95,7 +95,7 @@ async function pressEscape(target: HTMLElement) {
   })
 }
 
-describe('ActionButton의 클릭과 disabled·loading 상태', () => {
+describe('ActionButton의 클릭과 disabled, loading 상태', () => {
   it.each([
     { title: '활성 버튼은 클릭을 전달한다', loading: false, disabled: false },
     { title: 'disabled 버튼은 클릭을 차단한다', loading: false, disabled: true },
@@ -121,7 +121,7 @@ describe('ActionButton의 클릭과 disabled·loading 상태', () => {
     }
   })
 
-  it('활성·busy·활성 상태가 바뀌면 현재 disabled 값에 따라 클릭을 처리한다', async () => {
+  it('활성, busy, 활성 상태가 바뀌면 현재 disabled 값에 따라 클릭을 처리한다', async () => {
     const onClick = vi.fn<NonNullable<ActionButtonProps['onClick']>>()
     await render(<ActionButton onClick={onClick}>실행</ActionButton>)
     await click(element('button'))
@@ -231,14 +231,14 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(onValueChange).not.toHaveBeenCalled()
   })
 
-  it('invalid 전환에 따라 오류 연결을 추가·제거하며 설명 연결을 유지한다', async () => {
+  it('invalid 전환에 따라 오류 연결을 추가, 제거하며 설명 연결을 유지한다', async () => {
     function Field({ invalid }: { invalid: boolean }) {
       return (
         <TextField
           label="표시 이름"
           invalid={invalid}
           description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 입력해주세요."
+          errorMessage="이름을 입력해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -253,7 +253,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     input = inputByLabel('표시 이름')
     expect(input.getAttribute('aria-invalid')).toBe('true')
     expect(new Set(referencedTexts(input, 'aria-describedby'))).toEqual(
-      new Set(['다른 사람이 볼 이름입니다.', '이름을 입력해주세요.'])
+      new Set(['다른 사람이 볼 이름입니다.', '이름을 입력해 주세요.'])
     )
 
     await render(<Field invalid={false} />)
@@ -262,7 +262,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(referencedTexts(input, 'aria-describedby')).toEqual(['다른 사람이 볼 이름입니다.'])
   })
 
-  it('여러 입력의 label·설명·오류가 다른 필드와 섞이지 않는다', async () => {
+  it('여러 입력의 label, 설명, 오류가 다른 필드와 섞이지 않는다', async () => {
     await render(
       <>
         <TextField
@@ -270,7 +270,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value="모험가"
           invalid
           description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 확인해주세요."
+          errorMessage="이름을 확인해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -279,7 +279,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value="hello@example.invalid"
           invalid
           description="연락받을 이메일입니다."
-          errorMessage="이메일을 확인해주세요."
+          errorMessage="이메일을 확인해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -292,10 +292,10 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(name.value).toBe('모험가')
     expect(email.value).toBe('hello@example.invalid')
     expect(new Set(referencedTexts(name, 'aria-describedby'))).toEqual(
-      new Set(['다른 사람이 볼 이름입니다.', '이름을 확인해주세요.'])
+      new Set(['다른 사람이 볼 이름입니다.', '이름을 확인해 주세요.'])
     )
     expect(new Set(referencedTexts(email, 'aria-describedby'))).toEqual(
-      new Set(['연락받을 이메일입니다.', '이메일을 확인해주세요.'])
+      new Set(['연락받을 이메일입니다.', '이메일을 확인해 주세요.'])
     )
   })
 })
@@ -311,14 +311,14 @@ function DialogExample(props: DialogExampleProps) {
       <DialogTrigger asChild>
         <ActionButton>상세 정보 열기</ActionButton>
       </DialogTrigger>
-      <DialogContent title="상세 정보" description="입력한 내용을 확인해주세요.">
+      <DialogContent title="상세 정보" description="입력한 내용을 확인해 주세요.">
         <DialogAction>확인하고 닫기</DialogAction>
       </DialogContent>
     </DialogRoot>
   )
 }
 
-describe('Dialog의 상태 전이와 접근성·포커스', () => {
+describe('Dialog의 상태 전이와 접근성, 포커스', () => {
   it('trigger를 누르면 열림 값을 전달하고 dialog를 표시한다', async () => {
     const onOpenChange = vi.fn<NonNullable<DialogRootProps['onOpenChange']>>()
     await render(<DialogExample onOpenChange={onOpenChange} />)
@@ -337,13 +337,13 @@ describe('Dialog의 상태 전이와 접근성·포커스', () => {
     expect(referencedTexts(element('[role="dialog"]'), 'aria-labelledby')).toEqual(['상세 정보'])
   })
 
-  it('modal의 제목과 설명이 dialog의 접근성 이름·설명에 연결된다', async () => {
+  it('modal의 제목과 설명이 dialog의 접근성 이름, 설명에 연결된다', async () => {
     await render(<DialogExample defaultOpen />)
     const dialog = element('[role="dialog"]')
 
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(referencedTexts(dialog, 'aria-labelledby')).toEqual(['상세 정보'])
-    expect(referencedTexts(dialog, 'aria-describedby')).toEqual(['입력한 내용을 확인해주세요.'])
+    expect(referencedTexts(dialog, 'aria-describedby')).toEqual(['입력한 내용을 확인해 주세요.'])
   })
 
   it('trigger로 열면 focus가 dialog 안으로 이동하고 바깥으로의 focus 이동을 막는다', async () => {

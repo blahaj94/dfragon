@@ -88,7 +88,7 @@ test('잘못된 인자는 외부 명령을 실행하기 전에 사용법 오류�
   }
 })
 
-test('닫힌 Issue·번호 불일치·GitHub 실패에서는 fetch하거나 worktree를 만들지 않는다', (t) => {
+test('닫힌 Issue, 번호 불일치, GitHub 실패에서는 fetch하거나 worktree를 만들지 않는다', (t) => {
   const f = fixture(t)
   f.issue.state = 'CLOSED'
   assert.throws(() => startTask(['api', '30', 'fix-search', f.destination], f.run), /OPEN/)
@@ -135,7 +135,7 @@ test('기존 대상 경로와 같은 이름의 브랜치를 덮어쓰지 않는�
   assert.equal(isOtherPathPresent, false)
 })
 
-test('깨진 심볼릭 링크 경로는 조회·fetch 전에 거절하고 링크와 기존 브랜치를 보존한다', (t) => {
+test('깨진 심볼릭 링크 경로는 조회, fetch 전에 거절하고 링크와 기존 브랜치를 보존한다', (t) => {
   const f = fixture(t)
   const missingTarget = join(f.repository, 'missing-worktree')
   symlinkSync(missingTarget, f.destination)
@@ -153,7 +153,7 @@ test('깨진 심볼릭 링크 경로는 조회·fetch 전에 거절하고 링크
   )
 })
 
-test('CLI는 상대 경로와 공백을 해석하고 생성한 Issue·브랜치·base를 정확히 출력한다', (t) => {
+test('CLI는 상대 경로와 공백을 해석하고 생성한 Issue, 브랜치, base를 정확히 출력한다', (t) => {
   const f = fixture(t)
   const base = f.git(['rev-parse', 'HEAD'])
   writeFileSync(join(f.repository, 'README.md'), 'local tracked changes\n')

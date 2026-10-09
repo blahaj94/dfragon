@@ -70,7 +70,7 @@ it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR�
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()
 })
 
-it('카메라에서 시작하고 모달·로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
+it('카메라에서 시작하고 모달, 로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
   const f = createRendererFixture()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await f.mount(

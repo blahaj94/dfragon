@@ -103,9 +103,9 @@ function entryDescription() {
 
   return (
     <>
-      아이디와 비밀번호 없이 로그인해요.
+      아이디와 비밀번호 없이 로그인합니다.
       <br />
-      패스키가 없으면 휴대폰을 사용할 수 있어요.
+      패스키가 없으면 휴대폰을 사용할 수 있습니다.
     </>
   )
 }
@@ -175,7 +175,7 @@ function PasskeyPage() {
 
       if (Date.now() >= expiresAt) {
         setNow(Date.now())
-        setStatus('인증 시간이 만료됐어요. 창을 닫고 DFRAGON 앱에서 다시 로그인해 주세요.')
+        setStatus('인증 시간이 만료됐습니다. 창을 닫고 DFragon 앱에서 다시 로그인해 주세요.')
 
         return
       }
@@ -367,7 +367,11 @@ function PasskeyPage() {
   }
 
   async function removeKey(key: Passkey) {
-    if (!window.confirm('이 패스키의 로그인 권한을 삭제할까요? 이미 로그인한 기기는 유지됩니다.')) {
+    if (
+      !window.confirm(
+        '이 패스키의 로그인 권한을 삭제하시겠습니까? 이미 로그인한 기기는 유지됩니다.'
+      )
+    ) {
       return
     }
     const outcome = await api<{ ended?: boolean }>('remove', { credentialId: key.id })
@@ -409,7 +413,7 @@ function PasskeyPage() {
                 alt=""
               />
               <Typo.caption as="small" {...stylex.props(styles.keepWords)}>
-                DFRAGON ACCOUNT
+                DFragon Account
               </Typo.caption>
             </div>
           )}
@@ -437,13 +441,13 @@ function PasskeyPage() {
             회원가입
           </Typo.h3>
           <Typo.txtM {...stylex.props(styles.paragraph, styles.signupIntro)}>
-            아이디와 비밀번호 없이 가입해요.
+            아이디와 비밀번호 없이 가입합니다.
             <br />
             기기의 인증 안내에 따라 패스키를 만들어 주세요.
           </Typo.txtM>
           <div {...stylex.props(styles.signupNotice)}>
             <Typo.txtM as="h2" weight={700} {...stylex.props(styles.noticeHeading)}>
-              이미 계정이 있나요?
+              이미 계정이 있습니까?
             </Typo.txtM>
             <Typo.txtS {...stylex.props(styles.paragraph, styles.noPadding)}>
               기존 패스키로 로그인해 주세요.
@@ -476,7 +480,7 @@ function PasskeyPage() {
             </button>
           </div>
           <Typo.txtS {...stylex.props(styles.paragraph, styles.signupRecovery)}>
-            모든 패스키를 잃으면 계정을 복구할 수 없어요.
+            모든 패스키를 잃으면 계정을 복구할 수 없습니다.
             <br />
             가입 후 패스키 관리에서 예비 패스키를 추가해 주세요.
           </Typo.txtS>
@@ -505,8 +509,8 @@ function PasskeyPage() {
             role="timer"
           >
             {expired
-              ? '0분 0초 · 인증 시간이 만료됐어요'
-              : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증 가능해요`}
+              ? '0분 0초 · 인증 시간이 만료됐습니다'
+              : `${Math.floor((remaining ?? 0) / 60)}분 ${(remaining ?? 0) % 60}초까지 인증할 수 있습니다`}
           </Typo.txtM>
           <Typo.txtS {...stylex.props(styles.paragraph, styles.qrWarning)}>
             이 QR코드를 절대 공유하지 마세요.
@@ -624,7 +628,7 @@ function PasskeyPage() {
             id="phone-account"
             {...stylex.props(styles.paragraph, styles.phoneDescription)}
           >
-            {screen.nickname} 님이 맞으신가요?
+            {screen.nickname} 님이 맞습니까?
           </Typo.txtM>
           <button
             id="approve"

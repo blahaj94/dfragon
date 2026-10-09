@@ -38,7 +38,7 @@ import manifest from '@dfragon/lib/package.json' with { type: 'json' }
 
 export const packageName: string = manifest.name
 
-// DOM·Node 타입 없는 소비자도 결과를 좁힌 뒤 실패 이유를 읽을 수 있어야 한다.
+// DOM, Node 타입 없는 소비자도 결과를 좁힌 뒤 실패 이유를 읽을 수 있어야 한다.
 export function nicknameMessage(
   nickname: string,
   options: DFNicknameValidationOptions

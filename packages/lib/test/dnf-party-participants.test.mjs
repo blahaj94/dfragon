@@ -9,19 +9,19 @@ const testTitles = {
   scaledDialog: 'UI 설정 없이 FHD 화면의 1.8배 래스터를 찾는다',
   requiredRows: '무관한 빨간 영역과 네 행 구조가 없는 헤더를 제외한다',
   ambiguous: '완전한 창이 두 개 일치하면 임의 선택 없이 ambiguous를 반환한다',
-  leftTopEdges: '왼쪽·위쪽 화면 경계는 허용하고 잘린 창은 거절한다',
+  leftTopEdges: '왼쪽, 위쪽 화면 경계는 허용하고 잘린 창은 거절한다',
   anchorLimit: '빨간 후보가 한도를 넘으면 일부를 제외하지 않고 search-limit을 반환한다',
   comparisonLimit: 'FHD의 큰 빨간 후보 128개에 대한 헤더 비교량을 제한한다',
   partialLimit: '뒤의 후보가 비교 예산을 소진하면 앞선 일치를 부분 성공으로 반환하지 않는다',
   validation: '크기와 RGBA 길이 및 헤더 대비를 각 공개 진입점에서 검사한다',
   brightDecorations: '밝은 배경의 무관한 빨간 장식 사이에서 완전한 합성 창을 찾는다',
-  rightBottomEdges: '오른쪽·아래쪽 화면 경계에 정확히 닿는 창을 허용한다',
+  rightBottomEdges: '오른쪽, 아래쪽 화면 경계에 정확히 닿는 창을 허용한다',
   clientLimits: '다양한 client 크기의 빈 화면은 각 공개 진입점에서 미검출로 반환한다',
   evidencePairs: '각 근거 쌍을 실측 열에서 읽고 닉네임만 밝은 네 번째 행은 비워 둔다',
   rgbaViews: '투명한 RGBA view도 검출하고 크롭 네 모서리의 채널과 alpha를 그대로 복사한다'
 }
 
-// 합성 픽셀만 사용하며 게임 자산·스크린샷·플레이어 이름은 포함하지 않는다.
+// 합성 픽셀만 사용하며 게임 자산, 스크린샷, 플레이어 이름은 포함하지 않는다.
 function frame(width = 1067, height = 600) {
   const rgba = new Uint8ClampedArray(width * height * 4)
   for (let index = 0; index < rgba.length; index += 4) {

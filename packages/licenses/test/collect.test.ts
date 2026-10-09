@@ -13,7 +13,7 @@ import { createPackageFixture } from './fixtures.ts'
 
 const fixtureLicense = 'Fixture license text\r\n'
 
-test('번들 입력과 production 전이·순환 의존성을 한 번씩 수집하고 개발 도구를 제외한다', (t) => {
+test('번들 입력과 production 전이, 순환 의존성을 한 번씩 수집하고 개발 도구를 제외한다', (t) => {
   const { root, pkg, writeManifest } = createPackageFixture(t)
   writeManifest('', {
     dependencies: { runtime: '1' },
@@ -98,7 +98,7 @@ test('별도 node_modules에 설치된 같은 이름의 서로 다른 버전을 
   ])
 })
 
-test('실제 입력으로 소비하는 개발 설치 peer는 포함하고 다른 개발 도구·peer 선언은 제외한다', (t) => {
+test('실제 입력으로 소비하는 개발 설치 peer는 포함하고 다른 개발 도구, peer 선언은 제외한다', (t) => {
   const { root, pkg, writeManifest } = createPackageFixture(t)
   writeManifest('', {
     dependencies: { ui: '1' },
@@ -144,7 +144,7 @@ test('번들 입력은 실제 graph를 따르고 runtimeRoot를 전달할 때만
   })
 })
 
-test('Windows 경로·query·심볼릭 링크의 같은 입력을 중복 제거하고 가상 입력을 제외한다', (t) => {
+test('Windows 경로, query, 심볼릭 링크의 같은 입력을 중복 제거하고 가상 입력을 제외한다', (t) => {
   const { root, pkg, writeFile } = createPackageFixture(t)
   const peer = pkg('@example/peer')
   const moduleId = join(peer, 'index.js')

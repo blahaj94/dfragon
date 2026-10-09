@@ -121,7 +121,7 @@ test('compiled main은 잘못된 필수 설정을 DB 연결 전에 거절하고 
   await new Promise<void>((resolve) => database.listen(0, '127.0.0.1', resolve))
   const address = database.address()
   assert(address != null && typeof address !== 'string')
-  // 실제 환경·credential은 상속하지 않고 테스트가 만든 DB 접속 감시 주소만 전달한다.
+  // 실제 환경, credential은 상속하지 않고 테스트가 만든 DB 접속 감시 주소만 전달한다.
   const environment: NodeJS.ProcessEnv = {
     PORT: '3000',
     DB_HOST: '127.0.0.1',

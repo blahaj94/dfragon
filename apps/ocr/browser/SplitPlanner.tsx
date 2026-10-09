@@ -36,7 +36,7 @@ export function SplitPlanner() {
       return
     }
     const confirmed = window.confirm(
-      `미리보기대로 ${preview.changedNicknames}개 닉네임을 배정합니다. 기존 분할 이동은 ${preview.reassignedNicknames}개입니다. 적용할까요?`
+      `미리보기대로 ${preview.changedNicknames}개 닉네임을 배정합니다. 기존 분할 이동은 ${preview.reassignedNicknames}개입니다. 적용하시겠습니까?`
     )
     if (confirmed) {
       applySplit(preview)
@@ -47,13 +47,13 @@ export function SplitPlanner() {
     <details {...stylex.props(styles.upload)}>
       <summary>자동 분할 · 실제 자료 분포</summary>
       <p {...stylex.props(styles.uploadParagraph)}>
-        정답 완료·미제외 자료를 닉네임 단위로 나눕니다. 원하는 이미지 비율을 직접 입력해
+        정답 완료, 미제외 자료를 닉네임 단위로 나눕니다. 원하는 이미지 비율을 직접 입력해
         미리보기하세요. 적용 전에는 배정이 바뀌지 않습니다.
       </p>
       {stats && (
         <p>
           실제 이미지 {stats.total.images}장 · 고유 닉네임 {stats.total.nicknames}개 · 정답 문자{' '}
-          {stats.total.characters}개 · 제외·미작성 {stats.skipped}장
+          {stats.total.characters}개 · 제외, 미작성 {stats.skipped}장
         </p>
       )}
       <p>

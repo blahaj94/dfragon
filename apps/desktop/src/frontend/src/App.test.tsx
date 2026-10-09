@@ -140,7 +140,7 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('인증 창의 취소·실패·성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
+it('인증 창의 취소, 실패, 성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
   await act(async () =>
     root.render(
       <ColorThemeProvider>
@@ -243,7 +243,7 @@ it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고
   expect(api.beginLogin).not.toHaveBeenCalled()
 })
 
-it('인증 연결 실패 중에도 카드·테마를 유지하고 연결 재확인은 로그인 명령을 보내지 않는다', async () => {
+it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확인은 로그인 명령을 보내지 않는다', async () => {
   vi.mocked(api.getAuthState).mockRejectedValueOnce(new Error('test connection unavailable'))
   await act(async () =>
     root.render(
@@ -287,7 +287,7 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
   }
 )
 
-it('새 기본 화면에서 다크·라이트 테마를 전환한다', async () => {
+it('새 기본 화면에서 다크, 라이트 테마를 전환한다', async () => {
   await act(async () =>
     root.render(
       <ColorThemeProvider>

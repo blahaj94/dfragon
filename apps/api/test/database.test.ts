@@ -21,7 +21,7 @@ const environment = {
   DB_NAME: 'synthetic'
 }
 
-// 이 fake는 CLI orchestration·오류 정제만 검증한다. SQL·잠금은 test:database에서 확인한다.
+// 이 fake는 CLI orchestration, 오류 정제만 검증한다. SQL, 잠금은 test:database에서 확인한다.
 function migrationSource(t: TestContext) {
   const source = createDatabaseDataSource(readDatabaseConfiguration(environment))
   let initialized = false
@@ -47,7 +47,7 @@ function assertSanitized(error: unknown, message: string): boolean {
   return true
 }
 
-test('DB 설정은 필수 값·십진 포트를 검사하고 runtime 자동 schema 변경을 끈다', async (t) => {
+test('DB 설정은 필수 값, 십진 포트를 검사하고 runtime 자동 schema 변경을 끈다', async (t) => {
   const configuration = readDatabaseConfiguration(environment)
   assert.deepEqual(configuration, {
     host: '127.0.0.1',
@@ -62,7 +62,7 @@ test('DB 설정은 필수 값·십진 포트를 검사하고 runtime 자동 sche
   assert.equal(options.logging, false)
   assert.equal(options.migrationsTransactionMode, 'all')
   for (const name of ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD', 'DB_NAME']) {
-    await t.test(`${name} 누락·빈 값`, () => {
+    await t.test(`${name} 누락, 빈 값`, () => {
       for (const value of [undefined, '']) {
         assert.throws(() => readDatabaseConfiguration({ ...environment, [name]: value }), {
           message: 'Invalid database configuration'
@@ -79,7 +79,7 @@ test('DB 설정은 필수 값·십진 포트를 검사하고 runtime 자동 sche
   assert.equal(readDatabaseConfiguration({ ...environment, DB_PORT: '65535' }).port, 65_535)
 })
 
-test('migration up·down은 전체 transaction을 요청하고 성공 뒤 소유 연결을 정리한다', async (t) => {
+test('migration up, down은 전체 transaction을 요청하고 성공 뒤 소유 연결을 정리한다', async (t) => {
   for (const command of ['up', 'down'] as const) {
     await t.test(command === 'up' ? 'up 적용' : 'down 되돌리기', async (t) => {
       const { source, destroy } = migrationSource(t)
@@ -142,7 +142,7 @@ test('migration show는 읽기만 수행하고 등록된 migration의 적용 여
   }
 })
 
-test('migration factory·연결·실행·정리 실패는 비밀 원문 없이 실패하고 열린 연결을 정리한다', async (t) => {
+test('migration factory, 연결, 실행, 정리 실패는 비밀 원문 없이 실패하고 열린 연결을 정리한다', async (t) => {
   for (const stage of ['factory', 'initialize', 'up', 'down', 'show', 'destroy'] as const) {
     await t.test(`${stage} 실패`, async (t) => {
       const { source, initialize, destroy } = migrationSource(t)

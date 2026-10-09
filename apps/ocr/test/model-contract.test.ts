@@ -25,7 +25,7 @@ const contracts: [
   IsCapture<CaptureFields & { kind: 'hud'; testCollection: TestCollection }>
 ] = [false, false, true, true, false, true]
 
-test('합성 캡처 종류에만 합성 정답·렌더링 메타데이터를 요구한다', () => {
+test('합성 캡처 종류에만 합성 정답, 렌더링 메타데이터를 요구한다', () => {
   assert.deepEqual(contracts, [false, false, true, true, false, true])
   const ordinary = parseUpload(upload()).capture
   const synthetic = parseSyntheticUpload(syntheticUpload()).capture

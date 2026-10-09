@@ -3,7 +3,7 @@ import { deferred } from '../auth/auth-test-fixtures'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 it.each(['navigation', 'destruction', 'render-process-gone'] as const)(
-  '%s callback은 pending 요청을 즉시 종료하고 같은 URL의 새 capture에 늦은 성공·실패를 보내지 않는다',
+  '%s callback은 pending 요청을 즉시 종료하고 같은 URL의 새 capture에 늦은 성공, 실패를 보내지 않는다',
   async (transition) => {
     const fixture = await createSearchFixture()
     const oldSuccess = deferred<Response>()

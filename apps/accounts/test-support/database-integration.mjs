@@ -823,7 +823,7 @@ async function primaryScenario() {
           currentStage = `로그인 DB 상태 ${part}`
         })
     )
-    process.stdout.write(`로그인 proof·교환 transaction: ${loginStateScenarios}개 사례\n`)
+    process.stdout.write(`로그인 proof, 교환 transaction: ${loginStateScenarios}개 사례\n`)
     checkSignal()
     currentStage = 'passkey browser and database'
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>

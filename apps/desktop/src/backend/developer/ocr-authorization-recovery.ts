@@ -1,7 +1,7 @@
 import type { AuthAuthorization, AuthCoordinator } from '../auth/types'
 import type { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 
-/** 401 자격 증명만 한 번 복구하며 호출자의 요청·본문·응답 처리 계약을 유지한다. */
+/** 401 자격 증명만 한 번 복구하며 호출자의 요청, 본문, 응답 처리 계약을 유지한다. */
 export async function requestWithOcrAuthorizationRecovery({
   auth,
   generation,

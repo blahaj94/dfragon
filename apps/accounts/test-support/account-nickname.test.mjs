@@ -25,7 +25,7 @@ test('닉네임은 trim 뒤 1~20 grapheme을 허용하고 Unicode 원문을 보�
   }
 })
 
-test('닉네임은 trim 전 제어 문자·깨진 UTF-16·빈 값·21 grapheme을 거절한다', async () => {
+test('닉네임은 trim 전 제어 문자, 깨진 UTF-16, 빈 값, 21 grapheme을 거절한다', async () => {
   const { validateNickname } = await import('../dist/auth/account/nickname.js')
   const invalid = [
     undefined,

@@ -117,7 +117,7 @@ export function createCaptureActions({
     const select = document.querySelector('select');
     const hasSelect = select != null;
     const source = hasSelect ? [...select.options].find(option => {
-      const isSyntheticSource = option.textContent === 'DFRAGON Synthetic Capture Source';
+      const isSyntheticSource = option.textContent === 'DFragon Synthetic Capture Source';
       return isSyntheticSource;
     }) : null;
     const hasSource = source != null;
@@ -128,7 +128,7 @@ export function createCaptureActions({
     const syntheticSourceSelection = `(() => {
     const select = document.querySelector('select');
     const source = [...select.options].find(option => {
-      const isSyntheticSource = option.textContent === 'DFRAGON Synthetic Capture Source';
+      const isSyntheticSource = option.textContent === 'DFragon Synthetic Capture Source';
       return isSyntheticSource;
     });
     select.value = source.value;

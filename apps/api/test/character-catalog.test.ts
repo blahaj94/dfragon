@@ -146,7 +146,7 @@ test('유효한 캐시는 upstream 없이 반환하고 갱신 실패는 stale �
   assert(!JSON.stringify([...result]).includes('secret'))
 })
 
-test('DB가 재조회한 저장값만 제공하고 저장·읽기 실패의 upstream 원문은 성공값으로 쓰지 않는다', async () => {
+test('DB가 재조회한 저장값만 제공하고 저장, 읽기 실패의 upstream 원문은 성공값으로 쓰지 않는다', async () => {
   const store = memoryStore()
   store.saveAndRead = async () => {
     const entries = [currentEntry(item)]
@@ -260,7 +260,7 @@ test('처리 기한이 끝나면 대기 중인 스킬 조회를 시작하지 않
   assert.equal(calls, started)
 })
 
-test('공급자 응답을 요청 itemId·jobId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
+test('공급자 응답을 요청 itemId, jobId로 대응하고 옵션을 보존하며 오류 원문을 정제한다', async () => {
   const requestPaths: string[] = []
   const fetchImpl: typeof fetch = async (url, options) => {
     requestPaths.push(String(url))
@@ -297,7 +297,7 @@ test('공급자 응답을 요청 itemId·jobId로 대응하고 옵션을 보존�
   await assert.rejects(failure([item], signal), { message: 'Catalog lookup failed' })
 })
 
-test('14개 장비 슬롯·마법부여 스킬 옵션·체인 null과 캐릭터 원본을 보존한다', async () => {
+test('14개 장비 슬롯, 마법부여 스킬 옵션, 체인 null과 캐릭터 원본을 보존한다', async () => {
   const items = Array.from({ length: 14 }, (_, index) => {
     const slotId = index === 13 ? 'SUPPORT_WEAPON' : `SLOT_${index}`
 
@@ -478,7 +478,7 @@ test('공용 상세는 DB 시각으로 정확히 24시간에 만료되고 성공
   }
 })
 
-test('아이템 다중 응답의 누락·중복·잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {
+test('아이템 다중 응답의 누락, 중복, 잘못된 이름은 저장 대상에서 제외하고 올바른 이웃만 유지한다', async () => {
   const wanted: CatalogKey[] = [
     { kind: 'item', itemId: 'valid' },
     { kind: 'item', itemId: 'duplicate' },
@@ -508,7 +508,7 @@ test('아이템 다중 응답의 누락·중복·잘못된 이름은 저장 대�
   assert.deepEqual(await adapter(wanted, signal), [{ key: wanted[0], payload: valid }])
 })
 
-test('스킬 응답에서 제공된 skillId가 다르거나 직업·이름 envelope가 없으면 정제 오류로 거절한다', async (t) => {
+test('스킬 응답에서 제공된 skillId가 다르거나 직업, 이름 envelope가 없으면 정제 오류로 거절한다', async (t) => {
   for (const [name, body] of [
     ['다른 skillId', { jobId: 'fixture-job', skillId: 'different-skill', name: '스킬' }],
     ['누락 jobId', { name: '스킬' }],
