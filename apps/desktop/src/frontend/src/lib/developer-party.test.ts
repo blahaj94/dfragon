@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { developerPartyModelInputDataUrl } from './developer-party'
 
-type Pixels = { data: Uint8ClampedArray; width: number; height: number }
+type Pixels = Pick<ImageData, 'data' | 'width' | 'height'>
 
 let drawn: Pixels | null = null
 
@@ -60,7 +60,7 @@ beforeEach(() => {
 
 afterEach(() => vi.unstubAllGlobals())
 
-it('저장 원본은 그대로 두고 밝은 글자를 반전 이진화해 320×48 입력의 가운데에 그린다', () => {
+it('입력 크롭은 바꾸지 않고 밝은 글자를 반전 이진화해 320×48 입력의 가운데에 그린다', () => {
   const width = 4
   const height = 48
   const rgba = new Uint8Array(width * height * 4)
@@ -78,7 +78,7 @@ it('저장 원본은 그대로 두고 밝은 글자를 반전 이진화해 320×
   for (const y of [0, 47]) {
     const row = drawn!.data.subarray(y * 320 * 4, (y + 1) * 320 * 4)
     const red = [...row].filter((_, index) => index % 4 === 0)
-    // 글자 폭 2는 (320 - 2) / 2 = 159에서 시작하고 나머지는 zero padding 회색이다.
+    // 글자 폭 2는 (320 - 2) / 2 = 159에서 시작하고 뒤의 배경 2칸은 흰색, 나머지는 zero padding 회색이다.
     expect(red.slice(157, 164)).toEqual([128, 128, 0, 0, 255, 255, 128])
     expect(red.filter((value) => value === 128)).toHaveLength(316)
   }
