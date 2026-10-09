@@ -4,6 +4,30 @@ import { nicknameCenterOffset } from './nickname-pixels'
 export { decodeCtcCandidates } from './ctc-candidates'
 export type { CtcCandidate } from './ctc-candidates'
 
+export const MODEL_INPUT_HEIGHT = 48
+export const MODEL_INPUT_WIDTH = 320
+
+/** 모델 높이로 리사이즈한 이미지를 선택한 전처리로 [3, 48, 320] BGR 입력 값으로 만든다. */
+export function recognitionInputValues(
+  pixels: ImageData,
+  preprocessing: 'party' | 'raw'
+): Float32Array {
+  const height = MODEL_INPUT_HEIGHT
+  const width = MODEL_INPUT_WIDTH
+  const resizedWidth = Math.min(width, Math.ceil((height * pixels.width) / pixels.height))
+  const original = new OffscreenCanvas(pixels.width, pixels.height)
+  original.getContext('2d')!.putImageData(pixels, 0, 0)
+  const resized = new OffscreenCanvas(resizedWidth, height)
+  const context = resized.getContext('2d')!
+  context.imageSmoothingEnabled = true
+  context.imageSmoothingQuality = 'low'
+  context.drawImage(original, 0, 0, resizedWidth, height)
+  const rgba = context.getImageData(0, 0, resizedWidth, height).data
+  const normalize = preprocessing === 'party' ? normalizedNicknameBgr : normalizedBgr
+
+  return normalize(rgba, resizedWidth, height, width)
+}
+
 /** HUD 글자 경계가 최종 입력 너비의 가운데에 오도록 옮긴 뒤 같은 BGR 정규화를 적용한다. */
 export function normalizedNicknameBgr(
   rgba: Uint8ClampedArray,

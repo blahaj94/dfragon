@@ -1,11 +1,14 @@
 import { env, InferenceSession, Tensor } from 'onnxruntime-web/wasm'
-import { decodeCtcCandidates, normalizedBgr, normalizedNicknameBgr } from './paddle-recognition'
+import {
+  decodeCtcCandidates,
+  MODEL_INPUT_HEIGHT,
+  MODEL_INPUT_WIDTH,
+  recognitionInputValues
+} from './paddle-recognition'
 import type { PartyOcrResult } from '../types/capture'
 
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
 const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
-const MODEL_HEIGHT = 48
-const MODEL_WIDTH = 320
 
 let session: InferenceSession | null = null
 let characters: string[] = []
@@ -36,23 +39,11 @@ async function recognizeAndReply(pixels: ImageData, preprocessing: 'party' | 'ra
   if (session == null) {
     throw new Error('OCR model unavailable.')
   }
-  const height = MODEL_HEIGHT
-  const width = MODEL_WIDTH
-  const resizedWidth = Math.min(width, Math.ceil((height * pixels.width) / pixels.height))
-  const original = new OffscreenCanvas(pixels.width, pixels.height)
-  original.getContext('2d')!.putImageData(pixels, 0, 0)
-  const resized = new OffscreenCanvas(resizedWidth, height)
-  const context = resized.getContext('2d')!
-  context.imageSmoothingEnabled = true
-  context.imageSmoothingQuality = 'low'
-  context.drawImage(original, 0, 0, resizedWidth, height)
-  const rgba = context.getImageData(0, 0, resizedWidth, height).data
-  const normalize = preprocessing === 'party' ? normalizedNicknameBgr : normalizedBgr
-  const tensor = new Tensor('float32', normalize(rgba, resizedWidth, height, width), [
+  const tensor = new Tensor('float32', recognitionInputValues(pixels, preprocessing), [
     1,
     3,
-    height,
-    width
+    MODEL_INPUT_HEIGHT,
+    MODEL_INPUT_WIDTH
   ])
   let outputs: InferenceSession.ReturnType | undefined
   try {
