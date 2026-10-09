@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import channels from '../build/channels.json' with { type: 'json' }
 
 const require = createRequire(new URL('../package.json', import.meta.url))
@@ -22,6 +22,14 @@ const debugLogger = {
   isEnabled: false,
   add: () => undefined
 }
+
+// electron-builder.ts는 DFRAGON_CHANNEL로 채널을 고르므로 실행 환경의 값과 무관하게 배포 채널을 읽는다.
+beforeAll(() => {
+  vi.stubEnv('DFRAGON_CHANNEL', '')
+})
+afterAll(() => {
+  vi.unstubAllEnvs()
+})
 
 describe('desktop package fuse configuration', () => {
   it('loads and validates the packaging configuration with app-builder-lib', async () => {
@@ -62,7 +70,7 @@ describe('desktop package fuse configuration', () => {
       expect(config.directories.output).toBe(channel.packaging.output)
       const installer = await readFile(join(desktopProjectDir, config.nsis.include), 'utf8')
       expect(installer).toContain(
-        `!define DFRAGON_PROTOCOL_SCHEME "${new URL(channel.identity.returnTarget).protocol.slice(0, -1)}"`
+        `!define DFRAGON_PROTOCOL_SCHEME "${new URL(channel.identity.auth.returnTarget).protocol.slice(0, -1)}"`
       )
       expect(config.publish).toBeNull()
       expect(config.win.target).toEqual([{ target: 'nsis', arch: ['x64'] }])
