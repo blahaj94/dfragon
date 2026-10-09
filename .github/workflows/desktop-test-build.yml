@@ -27,10 +27,14 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
+    # The test environment holds test-channel variables. PR builds are not deployments, so record none.
+    environment:
+      name: test
+      deployment: false
     env:
       # The test channel keeps its own identity and talks to the real API without login.
       DFRAGON_CHANNEL: test
-      # Empty means the channels.json default. Set the repository variable to point test builds elsewhere.
+      # Empty means the channels.json default. Set the test environment variable to point test builds elsewhere.
       DFRAGON_TEST_API_ORIGIN: ${{ vars.DFRAGON_TEST_API_ORIGIN }}
       TEST_VERSION: 0.0.0-test.${{ github.run_number }}
     steps:
