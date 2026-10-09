@@ -75,6 +75,20 @@ it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣�
   })
 })
 
+it('로그인 없는 test 채널은 셸의 로그인 설정이 있어도 로그인을 켜지 않고 검색 origin만 쓴다', () => {
+  vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('test', {}))
+  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3444')
+  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
+  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
+  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
+  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'dfragon.local')
+  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', resolve('synthetic-development-profile'))
+  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://shell.example.test')
+
+  expect(readAppAuthConfig({ getPath: () => resolve('synthetic-app-data') })).toBeNull()
+  expect(readAppApiOrigin()).toBe('https://api.dfragon.com')
+})
+
 it('채널 없는 실행의 로그인 설정은 process 설정 여섯 값에서만 온다', () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3444')
   vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')

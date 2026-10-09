@@ -1,17 +1,6 @@
 name: Windows Portable
 
 on:
-  pull_request:
-    paths:
-      - '.gitattributes'
-      - '.gitmodules'
-      - '.npmrc'
-      - '.github/workflows/desktop-release.yml'
-      - 'apps/desktop/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
   release:
     types: [published]
   workflow_dispatch:
@@ -29,9 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: windows-portable-${{ github.event.release.tag_name || inputs.tag || github.ref }}
-  # A newer PR push replaces the running build. Release and manual builds finish so a tag keeps its asset.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: windows-portable-${{ github.event.release.tag_name || inputs.tag }}
+  # Release and manual builds finish so a tag keeps its asset.
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -43,8 +32,10 @@ jobs:
       actions: read
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
-      DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://accounts.example.test' || vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN || 'https://accounts.dfragon.com' }}
-      DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ github.event_name == 'pull_request' && 'https://api.example.test' || inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
+      DFRAGON_CHANNEL: distribution
+      # Empty means the channels.json default. The API origin has no default and must be configured.
+      DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: ${{ vars.DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN }}
+      DFRAGON_DISTRIBUTION_API_ORIGIN: ${{ inputs.api_origin || vars.DFRAGON_DISTRIBUTION_API_ORIGIN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -64,15 +55,12 @@ jobs:
         shell: bash
         run: |
           node --input-type=module <<'NODE'
-          import { appendFileSync, readFileSync } from 'node:fs';
-          let { version } = JSON.parse(readFileSync('apps/desktop/package.json', 'utf8'));
-          if (process.env.RELEASE_TAG) {
-            const match = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(process.env.RELEASE_TAG);
-            if (!match) {
-              throw new Error('Release tag must use v<version>, for example v0.0.1 or v0.0.1-beta.1.');
-            }
-            version = match[1];
+          import { appendFileSync } from 'node:fs';
+          const match = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(process.env.RELEASE_TAG ?? '');
+          if (!match) {
+            throw new Error('Release tag must use v<version>, for example v0.0.1 or v0.0.1-beta.1.');
           }
+          const version = match[1];
           if (!process.env.DFRAGON_DISTRIBUTION_API_ORIGIN) {
             throw new Error('Set the DFRAGON_DISTRIBUTION_API_ORIGIN repository variable or api_origin input.');
           }
@@ -80,7 +68,6 @@ jobs:
           NODE
       # Check the checked-out commit, not the tag name, so a moved tag cannot bypass the check.
       - name: Require a main commit that passed Code Quality
-        if: github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,16 +94,8 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
-        run: |
-          set -euo pipefail
-          # 7z archiving dominates this job. PR builds only prove that packaging works, so they
-          # trade exe size for time. Release builds keep the electron-builder default level 9, and the
-          # variable must stay unset there because electron-builder rejects an empty value.
-          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
-            export ELECTRON_BUILDER_COMPRESSION_LEVEL=3
-          fi
-          echo "7z compression level: ${ELECTRON_BUILDER_COMPRESSION_LEVEL:-9}"
-          pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
+        # Release builds keep the electron-builder default 7z level 9; test builds lower it in their own workflow.
+        run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
       - name: Write portable executable checksum
         shell: bash
         working-directory: apps/desktop/dist
@@ -138,7 +117,6 @@ jobs:
           retention-days: 7
 
   upload-release:
-    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -10,13 +10,30 @@
     },
     "identity": {
       "appIdentity": "dfragon.dev",
-      "environment": "development",
-      "returnTarget": "dfragon.dev://auth/callback",
-      "providers": ["passkey"]
+      "auth": {
+        "environment": "development",
+        "returnTarget": "dfragon.dev://auth/callback",
+        "providers": ["passkey"]
+      }
     },
     "origins": {
       "api": "https://localhost:3443",
       "accounts": "https://localhost:3444"
+    }
+  },
+  "test": {
+    "packaging": {
+      "productName": "DFragon Test",
+      "executableName": "dfragon-test",
+      "packageName": "dfragon-test",
+      "output": "dist/test",
+      "artifactPrefix": "DFragon-Test"
+    },
+    "identity": {
+      "appIdentity": "dfragon.test"
+    },
+    "origins": {
+      "api": { "variable": "DFRAGON_TEST_API_ORIGIN", "default": "https://api.dfragon.com" }
     }
   },
   "distribution": {
@@ -29,9 +46,11 @@
     },
     "identity": {
       "appIdentity": "dfragon",
-      "environment": "production",
-      "returnTarget": "dfragon://auth/callback",
-      "providers": ["passkey"]
+      "auth": {
+        "environment": "production",
+        "returnTarget": "dfragon://auth/callback",
+        "providers": ["passkey"]
+      }
     },
     "origins": {
       "api": { "variable": "DFRAGON_DISTRIBUTION_API_ORIGIN" },

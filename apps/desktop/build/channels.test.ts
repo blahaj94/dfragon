@@ -4,16 +4,23 @@ import { readAuthRuntimeConfig } from '../src/backend/auth/runtime-config'
 import {
   channels,
   parseChannels,
+  readChannelNameFromEnvironment,
   readChannelNameFromMode,
   readChannelOrigin,
   readDesktopChannel,
   type ChannelName
 } from './channels'
 
-const CHANNEL_NAMES: readonly ChannelName[] = ['development', 'distribution']
+const CHANNEL_NAMES: readonly ChannelName[] = ['development', 'test', 'distribution']
+const LOGIN_CHANNEL_NAMES: readonly ChannelName[] = ['development', 'distribution']
 
 function readProtocolScheme(name: ChannelName): string {
-  return new URL(channels[name].identity.returnTarget).protocol.slice(0, -1)
+  const { auth } = channels[name].identity
+  if (auth == null) {
+    throw new Error(`The ${name} channel has no return target.`)
+  }
+
+  return new URL(auth.returnTarget).protocol.slice(0, -1)
 }
 
 const DISTRIBUTION_API_ORIGIN_FAILURE =
@@ -27,16 +34,22 @@ it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', (
   // README의 배포 앱, 기존 개발 앱 표와 Release workflow의 파일명 glob이 어긋난다.
   expect(channels.distribution.identity).toEqual({
     appIdentity: 'dfragon',
-    environment: 'production',
-    returnTarget: 'dfragon://auth/callback',
-    providers: ['passkey']
+    auth: {
+      environment: 'production',
+      returnTarget: 'dfragon://auth/callback',
+      providers: ['passkey']
+    }
   })
   expect(channels.development.identity).toEqual({
     appIdentity: 'dfragon.dev',
-    environment: 'development',
-    returnTarget: 'dfragon.dev://auth/callback',
-    providers: ['passkey']
+    auth: {
+      environment: 'development',
+      returnTarget: 'dfragon.dev://auth/callback',
+      providers: ['passkey']
+    }
   })
+  // test 채널은 로그인 없이 실제 API로 검색, 캡처, OCR을 확인하는 PR 빌드다.
+  expect(channels.test.identity).toEqual({ appIdentity: 'dfragon.test' })
   expect(readProtocolScheme('distribution')).toBe('dfragon')
   expect(readProtocolScheme('development')).toBe('dfragon.dev')
   expect(channels.distribution.packaging).toEqual({
@@ -54,27 +67,38 @@ it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', (
     installerInclude: 'build/development-installer.nsh',
     protocolName: 'DFragon development login'
   })
+  expect(channels.test.packaging).toEqual({
+    productName: 'DFragon Test',
+    executableName: 'dfragon-test',
+    packageName: 'dfragon-test',
+    output: 'dist/test',
+    artifactPrefix: 'DFragon-Test'
+  })
 })
 
-it.each(CHANNEL_NAMES)('%s 채널의 tuple은 앱 runtime 설정 검증을 그대로 통과한다', (name) => {
+it.each(LOGIN_CHANNEL_NAMES)('%s 채널의 tuple은 앱 runtime 설정 검증을 그대로 통과한다', (name) => {
   const { identity } = channels[name]
+  const { auth } = identity
+  if (auth == null) {
+    throw new Error(`The ${name} channel must enable login.`)
+  }
   const accountsOrigin = readChannelOrigin(name, 'accounts', {})
   const userDataPath = resolve('synthetic-profile', identity.appIdentity)
 
   expect(
     readAuthRuntimeConfig({
       DFRAGON_AUTH_API_ORIGIN: accountsOrigin,
-      DFRAGON_AUTH_RETURN_TARGET: identity.returnTarget,
-      DFRAGON_AUTH_ENVIRONMENT: identity.environment,
-      DFRAGON_AUTH_PROVIDERS: identity.providers.join(','),
+      DFRAGON_AUTH_RETURN_TARGET: auth.returnTarget,
+      DFRAGON_AUTH_ENVIRONMENT: auth.environment,
+      DFRAGON_AUTH_PROVIDERS: auth.providers.join(','),
       DFRAGON_AUTH_APP_IDENTITY: identity.appIdentity,
       DFRAGON_AUTH_USER_DATA_PATH: userDataPath
     })
   ).toEqual({
     apiOrigin: accountsOrigin,
-    returnTarget: identity.returnTarget,
-    environment: identity.environment,
-    providers: identity.providers,
+    returnTarget: auth.returnTarget,
+    environment: auth.environment,
+    providers: auth.providers,
     appIdentity: identity.appIdentity,
     userDataPath
   })
@@ -83,7 +107,7 @@ it.each(CHANNEL_NAMES)('%s 채널의 tuple은 앱 runtime 설정 검증을 그�
 it('채널끼리 identity, 실행 파일 이름, protocol scheme이 겹치지 않는다', () => {
   const identities = CHANNEL_NAMES.map((name) => channels[name].identity.appIdentity)
   const executables = CHANNEL_NAMES.map((name) => channels[name].packaging.executableName)
-  const schemes = CHANNEL_NAMES.map(readProtocolScheme)
+  const schemes = LOGIN_CHANNEL_NAMES.map(readProtocolScheme)
   for (const values of [identities, executables, schemes]) {
     expect(new Set(values).size).toBe(values.length)
   }
@@ -97,14 +121,36 @@ it('채널 파일의 복귀 주소와 고정 origin이 공개 규칙을 어기�
   )
 
   const webReturnTarget = structuredClone(channels)
-  webReturnTarget.distribution.identity.returnTarget = 'https://dfragon.com/auth/callback'
+  webReturnTarget.distribution.identity.auth = {
+    environment: 'production',
+    returnTarget: 'https://dfragon.com/auth/callback',
+    providers: ['passkey']
+  }
   expect(() => parseChannels(webReturnTarget)).toThrow(
     /^Set a canonical private return target for the distribution channel\.$/
   )
 
   const missingProviders = structuredClone(channels)
-  missingProviders.distribution.identity.providers = []
+  missingProviders.distribution.identity.auth = {
+    environment: 'production',
+    returnTarget: 'dfragon://auth/callback',
+    providers: []
+  }
   expect(() => parseChannels(missingProviders)).toThrow(/providers/)
+
+  const loginWithoutAccounts = structuredClone(channels)
+  loginWithoutAccounts.distribution.origins = {
+    api: { variable: 'DFRAGON_DISTRIBUTION_API_ORIGIN' }
+  }
+  expect(() => parseChannels(loginWithoutAccounts)).toThrow(
+    /^Set an accounts origin for the distribution channel, which enables login\.$/
+  )
+
+  const protocolWithoutLogin = structuredClone(channels)
+  protocolWithoutLogin.test.packaging.protocolName = 'DFragon test login'
+  expect(() => parseChannels(protocolWithoutLogin)).toThrow(
+    /^The test channel declares a protocol without a return target\.$/
+  )
 })
 
 it('개발 채널만 loopback origin을 두고 다른 채널의 고정 origin, default는 공개 주소여야 한다', () => {
@@ -186,6 +232,10 @@ it('배포 accounts origin은 검색 origin과 별도로 읽고 기본값을 둔
       DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://search.example.test'
     })
   ).toBe('https://accounts.dfragon.com')
+  // CI는 비어 있는 저장소 변수도 빈 문자열로 넘긴다.
+  expect(
+    readChannelOrigin('distribution', 'accounts', { DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: '' })
+  ).toBe('https://accounts.dfragon.com')
   expect(
     readChannelOrigin('distribution', 'accounts', {
       DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN: 'https://accounts.example.test'
@@ -225,4 +275,35 @@ it('main bundle에 넣는 채널 tuple은 identity와 빌드 시점에 읽은 or
     origins: { api: 'https://localhost:3443', accounts: 'https://localhost:3444' }
   })
   expect(() => readDesktopChannel('distribution', {})).toThrow(DISTRIBUTION_API_ORIGIN_FAILURE)
+})
+
+it('로그인 없는 test 채널의 tuple은 accounts origin 없이 실제 API를 가리킨다', () => {
+  expect(readDesktopChannel('test', {})).toEqual({
+    name: 'test',
+    identity: { appIdentity: 'dfragon.test' },
+    origins: { api: 'https://api.dfragon.com' }
+  })
+  expect(
+    readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://api.example.test' })
+  ).toEqual({
+    name: 'test',
+    identity: { appIdentity: 'dfragon.test' },
+    origins: { api: 'https://api.example.test' }
+  })
+  expect(() => readChannelOrigin('test', 'accounts', {})).toThrow(
+    /^The test channel has no accounts origin\.$/
+  )
+  expect(() =>
+    readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://localhost:3443' })
+  ).toThrow(/^Set DFRAGON_TEST_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/)
+})
+
+it('electron-builder 기본 진입 파일은 DFRAGON_CHANNEL로 채널을 고르고 비우면 배포 채널을 만든다', () => {
+  expect(readChannelNameFromEnvironment({})).toBe('distribution')
+  expect(readChannelNameFromEnvironment({ DFRAGON_CHANNEL: '' })).toBe('distribution')
+  expect(readChannelNameFromEnvironment({ DFRAGON_CHANNEL: 'test' })).toBe('test')
+  expect(readChannelNameFromEnvironment({ DFRAGON_CHANNEL: 'development' })).toBe('development')
+  expect(() => readChannelNameFromEnvironment({ DFRAGON_CHANNEL: 'staging' })).toThrow(
+    /^Unknown channel in DFRAGON_CHANNEL\.$/
+  )
 })

@@ -6,12 +6,24 @@ function readProtocolDeclaration(
   packaging: Channel['packaging'],
   identity: Channel['identity']
 ): Pick<Configuration, 'protocols'> {
-  if (packaging.protocolName == null) {
+  const { auth } = identity
+  if (packaging.protocolName == null || auth == null) {
     return {}
   }
-  const scheme = new URL(identity.returnTarget).protocol.slice(0, -1)
+  const scheme = new URL(auth.returnTarget).protocol.slice(0, -1)
 
   return { protocols: [{ name: packaging.protocolName, schemes: [scheme] }] }
+}
+
+// NSIS registers the protocol through this include, not the top-level protocols option.
+function readInstallerInclude(
+  packaging: Channel['packaging']
+): Pick<NonNullable<Configuration['nsis']>, 'include'> {
+  if (packaging.installerInclude == null) {
+    return {}
+  }
+
+  return { include: packaging.installerInclude }
 }
 
 /**
@@ -21,6 +33,9 @@ function readProtocolDeclaration(
 export function createBuilderConfig(name: ChannelName): Configuration {
   const { packaging, identity } = channels[name]
   const protocolDeclaration = readProtocolDeclaration(packaging, identity)
+  const installerInclude = readInstallerInclude(packaging)
+  // 파일명은 공백 없는 접두어가 필요한 채널만 따로 정하고, 나머지는 electron-builder가 앱 이름으로 채운다.
+  const artifactPrefix = packaging.artifactPrefix ?? '${productName}'
 
   return {
     appId: identity.appIdentity,
@@ -46,17 +61,16 @@ export function createBuilderConfig(name: ChannelName): Configuration {
     nsis: {
       language: '1042',
       oneClick: true,
-      artifactName: '${productName}-${version}-${arch}-setup.${ext}',
+      artifactName: `${artifactPrefix}-\${version}-\${arch}-setup.\${ext}`,
       shortcutName: '${productName}',
       uninstallDisplayName: '${productName}',
       createDesktopShortcut: 'always',
       perMachine: false,
       runAfterFinish: false,
-      // NSIS registers the protocol through this include, not the top-level protocols option.
-      include: packaging.installerInclude
+      ...installerInclude
     },
     portable: {
-      artifactName: '${productName}-${version}-${arch}-portable.${ext}',
+      artifactName: `${artifactPrefix}-\${version}-\${arch}-portable.\${ext}`,
       requestExecutionLevel: 'admin'
     },
     mac: {
@@ -75,13 +89,13 @@ export function createBuilderConfig(name: ChannelName): Configuration {
       ],
       notarize: false
     },
-    dmg: { artifactName: '${productName}-${version}.${ext}' },
+    dmg: { artifactName: `${artifactPrefix}-\${version}.\${ext}` },
     linux: {
       target: ['AppImage', 'snap', 'deb'],
       maintainer: 'electronjs.org',
       category: 'Utility'
     },
-    appImage: { artifactName: '${productName}-${version}.${ext}' },
+    appImage: { artifactName: `${artifactPrefix}-\${version}.\${ext}` },
     npmRebuild: false,
     electronFuses: {
       enableNodeOptionsEnvironmentVariable: false,

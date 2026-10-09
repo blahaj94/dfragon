@@ -1,0 +1,88 @@
+name: Windows Test Build
+
+on:
+  pull_request:
+    paths:
+      - '.gitattributes'
+      - '.gitmodules'
+      - '.npmrc'
+      - '.github/workflows/desktop-test-build.yml'
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  # Run workflow on any branch from the Actions page to build it without a PR.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-test-build-${{ github.ref }}
+  # A newer push replaces the running test build.
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      # The test channel keeps its own identity and talks to the real API without login.
+      DFRAGON_CHANNEL: test
+      # Empty means the channels.json default. Set the repository variable to point test builds elsewhere.
+      DFRAGON_TEST_API_ORIGIN: ${{ vars.DFRAGON_TEST_API_ORIGIN }}
+      TEST_VERSION: 0.0.0-test.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: pnpm
+          registry-url: https://npm.pkg.github.com
+          scope: '@blahaj94'
+      - run: pnpm install --frozen-lockfile
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
+      - run: pnpm --filter @dfragon/desktop build:test
+      - name: Package the test channel portable executable
+        shell: bash
+        env:
+          # 7z archiving dominates this job. Test builds trade exe size for time.
+          ELECTRON_BUILDER_COMPRESSION_LEVEL: 3
+        run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$TEST_VERSION"
+      - name: Write portable executable checksum
+        shell: bash
+        working-directory: apps/desktop/dist/test
+        run: |
+          set -euo pipefail
+          for executable in DFragon-Test-*-x64-portable.exe; do
+            # Write the sha256sum format with LF so Linux and Windows tools read the same file.
+            hash=$(sha256sum "$executable" | cut -d ' ' -f 1)
+            printf '%s  %s\n' "$hash" "$executable" > "$executable.sha256"
+            sha256sum --check "$executable.sha256"
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x64-portable-test
+          path: |
+            apps/desktop/dist/test/DFragon-Test-*-x64-portable.exe
+            apps/desktop/dist/test/DFragon-Test-*-x64-portable.exe.sha256
+          if-no-files-found: error
+          retention-days: 7
+      - name: Describe how to download the build
+        shell: bash
+        run: |
+          {
+            echo "Test channel build \`$TEST_VERSION\` (\`DFragon Test\`, \`dfragon-test.exe\`, no login)."
+            echo
+            echo "Download on a Windows PC with the GitHub CLI:"
+            echo
+            echo '```powershell'
+            echo "gh run download $GITHUB_RUN_ID --repo $GITHUB_REPOSITORY -n windows-x64-portable-test"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
