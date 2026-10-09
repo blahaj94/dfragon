@@ -15,7 +15,8 @@
     "format": "biome format --write && node scripts/statement-spacing.mjs --write",
     "format:check": "biome format && node scripts/statement-spacing.mjs --check",
     "test:format-policy": "node --test scripts/test/statement-spacing.test.mjs",
-    "test:tooling": "node --test scripts/test/*.test.mjs"
+    "test:tooling": "node --test scripts/test/*.test.mjs",
+    "check:writing": "node scripts/check-writing.mjs"
   },
   "keywords": [],
   "author": "",
