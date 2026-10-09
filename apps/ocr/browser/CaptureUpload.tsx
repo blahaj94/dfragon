@@ -57,7 +57,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           원본 PNG
           <input
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.fileInput)}
             type="file"
             accept="image/png"
             disabled={busy}
@@ -69,7 +69,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           수집 종류
           <select
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.select)}
             value={kind}
             disabled={busy}
             onChange={(e) => setKind(parseCaptureKind(e.target.value))}
@@ -94,7 +94,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
         <label {...stylex.props(styles.label)}>
           UI 크기 확인 방법
           <select
-            {...stylex.props(styles.control)}
+            {...stylex.props(styles.control, styles.select)}
             value={source}
             onChange={(e) => setSource(e.target.value)}
           >
@@ -113,7 +113,7 @@ export function CaptureUpload({ open, onClose }: { open: boolean; onClose(): voi
             <label {...stylex.props(styles.label, styles.cropPosition)}>
               위치
               <select
-                {...stylex.props(styles.control)}
+                {...stylex.props(styles.control, styles.select)}
                 aria-label={`크롭 ${index + 1} 위치`}
                 value={crop.slot}
                 disabled={busy}

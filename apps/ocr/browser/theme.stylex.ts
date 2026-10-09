@@ -13,6 +13,8 @@ export const colors = stylex.defineVars({
   bgBrandWeak: 'var(--seed-color-palette-blue-100)',
   fgDefault: 'var(--seed-color-palette-gray-1000)',
   fgMuted: 'var(--seed-color-palette-gray-800)',
+  fgSubtle: 'var(--seed-color-palette-gray-700)',
+  fgPlaceholder: 'var(--seed-color-palette-gray-600)',
   fgBrand: 'var(--seed-color-palette-blue-700)',
   fgDanger: 'var(--seed-color-palette-red-700)',
   borderDefault: 'var(--seed-color-palette-gray-400)',
