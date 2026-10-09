@@ -1,4 +1,11 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
+import { binarizeNicknamePixels } from './nickname-pixels'
+import {
+  MODEL_INPUT_HEIGHT,
+  MODEL_INPUT_WIDTH,
+  recognitionInputRgba,
+  recognitionInputValues
+} from './paddle-recognition'
 import type {
   DeveloperPartyCollectionStatus,
   DeveloperPartyPreviewFrame,
@@ -56,13 +63,17 @@ export function getDeveloperCollectionErrorMessage(errorCode: string): string {
   return '수집 설정을 저장하지 못했습니다. 다시 시도해 주세요.'
 }
 
-// Encodes a raw RGBA crop without resizing or changing its pixels.
-export function developerPartySlotDataUrl(
-  slot: Pick<DeveloperPartyPreviewSlot, 'width' | 'height' | 'rgba'>
-): string {
+type DeveloperPartyCrop = Pick<DeveloperPartyPreviewSlot, 'width' | 'height' | 'rgba'>
+
+function assertDeveloperPartyCrop(slot: DeveloperPartyCrop): void {
   if (slot.width < 1 || slot.height < 1 || slot.rgba.length !== slot.width * slot.height * 4) {
     throw new Error('Invalid developer party crop')
   }
+}
+
+// Encodes a raw RGBA crop without resizing or changing its pixels.
+export function developerPartySlotDataUrl(slot: DeveloperPartyCrop): string {
+  assertDeveloperPartyCrop(slot)
 
   const canvas = document.createElement('canvas')
   canvas.width = slot.width
@@ -79,4 +90,19 @@ export function developerPartySlotDataUrl(
   )
 
   return canvas.toDataURL('image/png')
+}
+
+// Encodes a copy of the crop as the HUD OCR model input; the saved raw crop is unchanged.
+export function developerPartyModelInputDataUrl(slot: DeveloperPartyCrop): string {
+  assertDeveloperPartyCrop(slot)
+  const pixels = new ImageData(new Uint8ClampedArray(slot.rgba), slot.width, slot.height)
+  binarizeNicknamePixels(pixels.data)
+  const values = recognitionInputValues(pixels, 'party')
+  const rgba = recognitionInputRgba(values, MODEL_INPUT_WIDTH, MODEL_INPUT_HEIGHT)
+
+  return developerPartySlotDataUrl({
+    width: MODEL_INPUT_WIDTH,
+    height: MODEL_INPUT_HEIGHT,
+    rgba: new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength)
+  })
 }

@@ -28,6 +28,27 @@ export function recognitionInputValues(
   return normalize(rgba, resizedWidth, height, width)
 }
 
+/** 정규화한 BGR 입력을 확인용 RGBA로 되돌리며 zero padding은 중간 회색이 된다. */
+export function recognitionInputRgba(
+  values: Float32Array,
+  width: number,
+  height: number
+): Uint8ClampedArray {
+  const plane = width * height
+  if (values.length !== 3 * plane) {
+    throw new TypeError('Invalid recognition input dimensions')
+  }
+  const rgba = new Uint8ClampedArray(plane * 4)
+  for (let pixel = 0; pixel < plane; pixel += 1) {
+    for (let channel = 0; channel < 3; channel += 1) {
+      rgba[pixel * 4 + (2 - channel)] = (values[channel * plane + pixel] + 1) * 127.5
+    }
+    rgba[pixel * 4 + 3] = 255
+  }
+
+  return rgba
+}
+
 /** HUD 글자 경계가 최종 입력 너비의 가운데에 오도록 옮긴 뒤 같은 BGR 정규화를 적용한다. */
 export function normalizedNicknameBgr(
   rgba: Uint8ClampedArray,
