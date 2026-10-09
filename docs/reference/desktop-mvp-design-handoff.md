@@ -92,7 +92,9 @@ pnpm --filter @dfragon/desktop dev
 pnpm --filter @dfragon/desktop dev:preview
 ```
 
-캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크, 라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키, 문자 탐색, Enter/Space, Escape, 포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치, 스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다.
+캡처 모달은 `@dfragon/ui` 대화상자에 디자인 대화상자 sm 폭 480, 반지름 12, `border.default` 1을 적용합니다. 상태는 SEED `Badge`(large, weak)에 `role="status"`로 표시하며 tone은 준비 중과 창 확인 중 neutral, 캡처 중 informative, 조회 실패 critical, 창 미감지 warning, 창 감지됨 positive입니다. 카메라 아이콘은 캡처 중에만 `fg.brand`입니다. 바닥에는 `닫기`(neutralWeak)와, 준비 중과 캡처 중에만 보이는 `캡처 중지`(brandSolid)를 이 순서로 둡니다. 디자인 화면 문서는 `캡처 중지`를 캡처 중에만 두지만, 창 등록을 기다리는 동안에도 중지할 수 있어야 해서 준비 중에도 표시합니다.
+
+캡처 창 선택은 `CaptureSourceSelect`에서 Penpot의 다크, 라이트 트리거와 팝업을 구현합니다. SEED Menu의 방향키, 문자 탐색, Enter/Space, Escape, 포커스 복귀를 재사용하고, 창은 `menuitemradio`로 선택 여부를 알리며 목록 아래 새로고침은 별도 명령으로 처리합니다. 팝업 포털은 모달 안에 두어 모달의 접근성 숨김 대상이 되지 않게 합니다. 긴 창 이름은 말줄임과 전체 제목을 제공하고 목록은 화면 경계에 맞춰 배치, 스크롤됩니다. 기본 select는 캡처 UI에서 사용하지 않습니다. 트리거는 높이 40, 반지름 8, `bg.control`에 24px `monitor`와 `chevron-down`을 두고, 목록은 반지름 8에 32px 아이콘 타일과 16px 선택 `check`, 16px 새로고침 아이콘을 씁니다.
 
 캐릭터 카드의 서버 선택도 기본 select 대신 `ServerSelect`를 사용합니다. SEED Select의 단일 선택, 키보드 탐색, 포커스 복귀에 카드 토큰의 작은 트리거와 `fg.brand` 다크 값의 선택 글자, 체크를 적용하고, 카드 밖 포털로 목록이 카드 경계에 잘리지 않게 합니다. 카드와 서버 목록은 두 테마에서 어두운 색을 유지합니다. 컴포넌트는 전달받은 후보만 표시하며 현재 합성 미리보기의 서버 수정 상태와 제품의 입력 비활성 정책은 그대로 유지합니다. 실제 검색 결과 서버 연결은 기존 후속 범위입니다.
 
