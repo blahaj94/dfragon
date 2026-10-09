@@ -1,5 +1,8 @@
 import { CameraIcon } from '../../components/CameraIcon'
+import { MoonIcon } from '../../components/MoonIcon'
+import { SunIcon } from '../../components/SunIcon'
 import { Typo, ActionButton } from '@dfragon/ui'
+import { Icon } from '@seed-design/react'
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
@@ -62,18 +65,19 @@ export function PartyPage({
         )}
         <div {...stylex.props(styles.actions)}>
           <ActionButton
-            size="small"
+            size="medium"
             variant="ghost"
+            layout="iconOnly"
             aria-label={light ? '다크 테마' : '라이트 테마'}
             onClick={toggleTheme}
           >
-            <span {...stylex.props(styles.themeIcon)}>{light ? '☾' : '☀'}</span>
+            <Icon svg={light ? <MoonIcon /> : <SunIcon />} size="x6" />
           </ActionButton>
           {account === undefined ? (
-            <ActionButton size="small" variant="ghost" disabled>
-              <Typo.txtS as="span" weight={700}>
+            <ActionButton size="medium" variant="neutralWeak" disabled>
+              <Typo.txtM as="span" weight={700}>
                 로그인
-              </Typo.txtS>
+              </Typo.txtM>
             </ActionButton>
           ) : (
             account
