@@ -774,7 +774,7 @@ test('합성 owner 인증 인계와 CSRF 경계를 확인하고 인증된 이미
     await f.close()
   }
 })
-test('다른 유효한 DFRAGON 계정은 OCR 세션을 발급받지 못한다', async () => {
+test('다른 유효한 DFragon 계정은 OCR 세션을 발급받지 못한다', async () => {
   const f = await fixture(randomUUID())
   try {
     const { response, cookie } = await f.login()

@@ -116,7 +116,7 @@ test('RP origin과 고정 앱 복귀 설정의 신뢰 경계 변경을 거절한
   const config = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFRAGON',
+    rpName: 'DFragon',
     returnUrl: 'dfragon://auth/callback'
   }
   assert.deepEqual(validatePasskeyConfiguration(config), config)
@@ -198,7 +198,7 @@ test('고정 HTTPS OCR callback 설정은 Desktop 요청 바인딩을 바꾸지 
   const base = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFRAGON',
+    rpName: 'DFragon',
     returnUrl: 'dfragon://auth/callback'
   }
   const config = validatePasskeyConfiguration({

@@ -8,7 +8,7 @@ import { test } from 'node:test'
 
 const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import.meta.url))
-const notice = '/*! DFRAGON modified SEED source: test fixture */\n'
+const notice = '/*! DFragon modified SEED source: test fixture */\n'
 const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nexport { ActionButton, React, jsx };\n`
 
 // 실제 고지·provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.

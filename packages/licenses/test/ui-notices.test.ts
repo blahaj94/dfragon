@@ -100,7 +100,7 @@ test('SEED 수정 기록·provenance 원문·정적 고지를 보존하고 JavaS
   const fixture = createPackageFixture(t)
   const provenance =
     '{\n  "files": [\n' +
-    '    { "local": "src/seed/modified.tsx", "localChanges": ["DFRAGON 수정", "접근성 표시"] },\n' +
+    '    { "local": "src/seed/modified.tsx", "localChanges": ["DFragon 수정", "접근성 표시"] },\n' +
     '    { "local": "src/seed/original.tsx", "localChanges": [] }\n' +
     '  ]\n}\n'
   fixture.writeFile('seed-provenance.json', provenance)
@@ -116,10 +116,10 @@ test('SEED 수정 기록·provenance 원문·정적 고지를 보존하고 JavaS
   assert.equal(assets.get('notices/seed-provenance.json'), provenance)
   assert.equal(
     assets.get('notices/DFRAGON-MODIFICATIONS.txt'),
-    'src/seed/modified.tsx:\n[\n  "DFRAGON 수정",\n  "접근성 표시"\n]'
+    'src/seed/modified.tsx:\n[\n  "DFragon 수정",\n  "접근성 표시"\n]'
   )
   const banner =
-    '/*! DFRAGON modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n'
+    '/*! DFragon modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n'
   assert.equal(bundle['app.js'].code, banner + 'export const app = 1\n')
   assert.equal(bundle['lazy.js'].code, banner + 'export const lazy = 2\n')
   assert.equal(bundle['style.css'].source, 'body { color: red; }\n')

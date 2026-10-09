@@ -17,7 +17,7 @@ export function managementFixture(count = 2) {
   const configuration = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFRAGON',
+    rpName: 'DFragon',
     returnUrl: 'dfragon://auth/callback'
   }
   const secret = newOpaque()
