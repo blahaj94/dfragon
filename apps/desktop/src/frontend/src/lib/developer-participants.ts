@@ -12,24 +12,24 @@ export function getParticipantPreviewMessage(
   if (code === DEVELOPER_ERROR_CODES.GAME_NOT_FOUND) {
     return {
       title: '던전앤파이터를 실행해주세요.',
-      detail: '게임 창을 찾으면 미리보기를 시작해요.'
+      detail: '게임 창을 찾으면 미리보기를 시작합니다.'
     }
   }
 
   if (code === DEVELOPER_ERROR_CODES.PARTICIPANT_WINDOW_NOT_FOUND) {
-    return { title: '파티참가인원 창을 열어주세요.', detail: '창이 보이면 자동으로 다시 찾을게요.' }
+    return { title: '파티참가인원 창을 열어주세요.', detail: '창이 보이면 자동으로 다시 찾습니다.' }
   }
 
   if (code === DEVELOPER_ERROR_CODES.RAID_WINDOW_NOT_FOUND) {
     return {
       title: '공대 상세 창을 열어주세요.',
-      detail: '12인 공대 상세 창 전체가 보이면 자동으로 다시 찾을게요.'
+      detail: '12인 공대 상세 창 전체가 보이면 자동으로 다시 찾습니다.'
     }
   }
 
   if (code === DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND) {
     return {
-      title: '저장할 닉네임이 없어요.',
+      title: '저장할 닉네임이 없습니다.',
       detail: '참가자가 있는지와 저장 선택을 확인해주세요.'
     }
   }
@@ -54,7 +54,7 @@ export function getParticipantPreviewMessage(
     code === DEVELOPER_ERROR_CODES.OPERATION_FAILED
   ) {
     return {
-      title: '이미지를 저장하지 못했어요.',
+      title: '이미지를 저장하지 못했습니다.',
       detail: '저장소를 확인한 뒤 게임에서 Print Screen 키로 다시 시도해주세요.'
     }
   }
@@ -65,7 +65,7 @@ export function getParticipantPreviewMessage(
     return { title, detail: '' }
   }
 
-  const title = `${windowName}을 찾고 있어요.`
+  const title = `${windowName}을 찾고 있습니다.`
   const detail =
     kind === 'raid'
       ? '게임에서 12인 공대 상세 창을 열어주세요.'

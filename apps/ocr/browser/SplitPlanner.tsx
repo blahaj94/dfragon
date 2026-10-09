@@ -36,7 +36,7 @@ export function SplitPlanner() {
       return
     }
     const confirmed = window.confirm(
-      `미리보기대로 ${preview.changedNicknames}개 닉네임을 배정합니다. 기존 분할 이동은 ${preview.reassignedNicknames}개입니다. 적용할까요?`
+      `미리보기대로 ${preview.changedNicknames}개 닉네임을 배정합니다. 기존 분할 이동은 ${preview.reassignedNicknames}개입니다. 적용하시겠습니까?`
     )
     if (confirmed) {
       applySplit(preview)

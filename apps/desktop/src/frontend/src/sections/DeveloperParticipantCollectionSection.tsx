@@ -74,7 +74,7 @@ export function DeveloperParticipantCollectionSection({
           <Typo.txtS {...stylex.props(styles.muted)}>
             {frame
               ? `원본 ${frame.width} × ${frame.height}px`
-              : '게임 창이 보이면 자동으로 연결해요.'}
+              : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
         <Typo.caption {...stylex.props(styles.badge)}>
@@ -93,15 +93,15 @@ export function DeveloperParticipantCollectionSection({
           <Typo.h6 as="p">현재 저장 대상 {count}개</Typo.h6>
           <Typo.txtS {...stylex.props(styles.muted)}>
             {raid
-              ? '게임에서 Print Screen을 누르면 그 순간의 선택한 행을 저장해요.'
-              : '게임에서 키보드의 Print Screen 키를 누르면 저장해요.'}
+              ? '게임에서 Print Screen을 누르면 그 순간의 선택한 행을 저장합니다.'
+              : '게임에서 키보드의 Print Screen 키를 누르면 저장합니다.'}
           </Typo.txtS>
         </div>
       </div>
 
       {(error || (popup && count === 0) || saved > 0) && (
         <div role="status" {...stylex.props(styles.notice)}>
-          {saved > 0 && <Typo.txtS>닉네임 {saved}개를 저장했어요.</Typo.txtS>}
+          {saved > 0 && <Typo.txtS>닉네임 {saved}개를 저장했습니다.</Typo.txtS>}
           {(error || (popup && count === 0)) && (
             <>
               <Typo.txtS weight={700}>{message.title}</Typo.txtS>
@@ -177,7 +177,7 @@ export function DeveloperParticipantCollectionSection({
               if (raid) {
                 emptyMessage = popup ? '저장할 닉네임 없음' : '검출 대기 중'
               } else {
-                emptyMessage = popup ? '저장할 닉네임이 없어요' : '닉네임을 기다리고 있어요'
+                emptyMessage = popup ? '저장할 닉네임이 없습니다' : '닉네임을 기다리고 있습니다'
               }
             }
 
@@ -224,12 +224,12 @@ export function DeveloperParticipantCollectionSection({
       </div>
       <div {...stylex.props(styles.footnotes)}>
         <Typo.caption>
-          미리보기는 선택한 캡처 주기로 갱신돼요. 저장 이미지는 원본 크기를 유지합니다.
+          미리보기는 선택한 캡처 주기로 갱신됩니다. 저장 이미지는 원본 크기를 유지합니다.
         </Typo.caption>
         <Typo.caption>
           {raid
-            ? '선택은 현재 화면의 행 위치를 기준으로 해요. 공대원이 빠지면 아래 행이 위로 이동하며, 빈 행은 저장하지 않아요.'
-            : '빈 행은 자동으로 건너뛰고, 남은 파티원의 행 번호는 그대로 유지해요.'}
+            ? '선택은 현재 화면의 행 위치를 기준으로 합니다. 공대원이 빠지면 아래 행이 위로 이동하며, 빈 행은 저장하지 않습니다.'
+            : '빈 행은 자동으로 건너뛰고, 남은 파티원의 행 번호는 그대로 유지합니다.'}
         </Typo.caption>
       </div>
     </section>

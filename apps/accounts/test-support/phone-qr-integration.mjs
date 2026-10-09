@@ -62,7 +62,10 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     const qr = await (await qrResponse).json()
     await pcPage.locator('#qr-panel').waitFor({ state: 'visible' })
     assert.equal(await pcPage.locator('#confirmation').textContent(), qr.confirmationCode)
-    assert.match(await pcPage.locator('#qr-expiry').textContent(), /분 \d+초까지 인증 가능해요/)
+    assert.match(
+      await pcPage.locator('#qr-expiry').textContent(),
+      /분 \d+초까지 인증할 수 있습니다/
+    )
     assert.equal(await pcPage.locator('#direct').count(), 0)
 
     return { ...request, ...qr, codeVerifier }
@@ -273,7 +276,7 @@ export async function assertPhoneQrIntegration({ source, browser, origin, mark }
     await pcPage.clock.runFor(5000)
     assert.equal(
       await pcPage.locator('#qr-expiry').textContent(),
-      '0분 0초 · 인증 시간이 만료됐어요'
+      '0분 0초 · 인증 시간이 만료됐습니다'
     )
     assert.equal(await pcPage.locator('#qr-start').isDisabled(), true)
     mark('expired QR close cancels locally even if server rejects cancellation')
