@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module'
-import { tmpdir } from 'node:os'
-import { dirname, join, posix, resolve } from 'node:path'
+import { dirname, posix, resolve } from 'node:path'
 import { createContext, runInContext, Script } from 'node:vm'
 import { resolveConfig } from 'electron-vite'
 import { build } from 'vite'
@@ -105,9 +104,7 @@ function mainEnvironment(): {
     },
     ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
     desktopCapturer: { getSources: vi.fn() },
-    session: { defaultSession: session, fromPartition },
-    Menu: { buildFromTemplate: vi.fn(), setApplicationMenu: vi.fn() },
-    systemPreferences: { getMediaAccessStatus: () => 'granted' }
+    session: { defaultSession: session, fromPartition }
   }
   const requireModule = (name: string): unknown => {
     const isElectron = name === 'electron'
@@ -153,17 +150,13 @@ function mainEnvironment(): {
     performance,
     setTimeout,
     clearTimeout,
-    __dirname: resolve('out/auth-capture-fixture/main'),
+    __dirname: resolve('out/backend'),
     process: {
       on: vi.fn(),
       removeListener: vi.fn(),
-      ppid: 424242,
       platform: process.platform,
       argv: ['electron', 'synthetic-main.cjs'],
-      env: {
-        DFRAGON_AUTH_CAPTURE_PROFILE: join(tmpdir(), 'dfragon-auth-capture-fixture-unit01'),
-        DFRAGON_AUTH_CAPTURE_LAUNCHER_PID: '424242'
-      }
+      env: {}
     },
     console: { log: vi.fn(), error, warn: vi.fn() }
   })
@@ -233,7 +226,6 @@ function executeMainEntry(
 
 it.each([
   ['electron.vite.config.ts', 'production'],
-  ['scripts/auth-capture-fixture.config.ts', 'production'],
   ['electron.vite.config.ts', 'dfragon-development']
 ])('%s의 %s main bundle은 기존 composition을 초기화할 수 있다', async (configFile, mode) => {
   const resolved = await resolveConfig({ configFile, logLevel: 'silent' }, 'build', mode)
@@ -275,7 +267,6 @@ it.each([
     // Exercise the built-in tuple on an OS-style cold launch without auth env vars.
     // This isolated bundle has no Win32 module; native loading must fail before profile IO.
     environment.context.process.platform = 'win32'
-    environment.context.process.env = {}
   }
   environment.context.__dirname = dirname(resolve(main!.build!.outDir!, entry.fileName))
   executeMainEntry(
@@ -293,20 +284,13 @@ it.each([
   }
   expect(failure).toBeNull()
   expect(environment.error).not.toHaveBeenCalled()
-  if (configFile === 'electron.vite.config.ts') {
-    expect(environment.fromPartition).toHaveBeenCalledExactlyOnceWith('character-detail-1')
-  } else {
-    expect(environment.fromPartition).not.toHaveBeenCalled()
-  }
-
-  if (configFile === 'electron.vite.config.ts' && mode === 'dfragon-development') {
+  expect(environment.fromPartition).toHaveBeenCalledExactlyOnceWith('character-detail-1')
+  if (mode === 'dfragon-development') {
     expect(environment.getPath).toHaveBeenCalledTimes(2)
     expect(environment.getPath).toHaveBeenNthCalledWith(1, 'appData')
     expect(environment.getPath).toHaveBeenNthCalledWith(2, 'userData')
-  } else if (configFile === 'electron.vite.config.ts') {
+  } else {
     expect(environment.getPath).toHaveBeenCalledExactlyOnceWith('userData')
     expect(environment.getPath).not.toHaveBeenCalledWith('appData')
-  } else {
-    expect(environment.getPath).not.toHaveBeenCalled()
   }
 })
