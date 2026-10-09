@@ -9,12 +9,12 @@
     "format": "biome format --write && node ../../scripts/statement-spacing.mjs --write",
     "lint": "biome lint",
     "prepare:ocr-assets": "node scripts/prepare-ocr-assets.mjs",
-    "test": "vitest run",
+    "test": "install-electron && vitest run",
     "test:windows-native": "tsc --noEmit -p scripts/windows-security-fixture/tsconfig.json && vitest run --config scripts/windows-security-fixture/vitest.config.ts",
     "typecheck:node": "tsc -p tsconfig.node.json",
     "typecheck:web": "tsc -p tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "start": "electron-vite preview",
+    "start": "install-electron && electron-vite preview",
     "dev": "npm run dev:app",
     "dev:preview": "npm run ui:fixture:prepare && node scripts/mvp-dev.mjs",
     "build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build",
@@ -42,7 +42,7 @@
     "lint:fix": "biome lint --write",
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
     "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
-    "dev:app": "npm run prepare:ocr-assets && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
+    "dev:app": "npm run prepare:ocr-assets && install-electron && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
     "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
