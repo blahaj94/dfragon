@@ -30,7 +30,8 @@ permissions:
 
 concurrency:
   group: windows-portable-${{ github.event.release.tag_name || inputs.tag || github.ref }}
-  cancel-in-progress: false
+  # A newer PR push replaces the running build. Release and manual builds finish so a tag keeps its asset.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -106,7 +107,16 @@ jobs:
         shell: bash
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
-        run: pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
+        run: |
+          set -euo pipefail
+          # 7z archiving dominates this job. PR builds only prove that packaging works, so they
+          # trade exe size for time. Release builds keep the electron-builder default level 9, and the
+          # variable must stay unset there because electron-builder rejects an empty value.
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            export ELECTRON_BUILDER_COMPRESSION_LEVEL=3
+          fi
+          echo "7z compression level: ${ELECTRON_BUILDER_COMPRESSION_LEVEL:-9}"
+          pnpm --filter @dfragon/desktop exec electron-builder --win portable --x64 --publish never --config.extraMetadata.version="$RELEASE_VERSION"
       - name: Write portable executable checksum
         shell: bash
         working-directory: apps/desktop/dist
