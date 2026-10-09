@@ -3,10 +3,12 @@ import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
+import { Icon } from '@seed-design/react'
 import type { NoticeEntry } from '@dfragon/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
+import { SettingsIcon } from '../components/SettingsIcon'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 import { styles } from './SettingsSection.style'
 import { BuildVersionsSection } from './BuildVersionsSection'
@@ -170,21 +172,15 @@ export function SettingsSection({
       }}
     >
       <DialogTrigger asChild>
-        <ActionButton size="small" variant="ghost" aria-label="설정" aria-haspopup="dialog">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+        <ActionButton
+          size="medium"
+          layout="iconOnly"
+          variant="ghost"
+          aria-label="설정"
+          aria-haspopup="dialog"
+          {...stylex.props(styles.trigger)}
+        >
+          <Icon svg={<SettingsIcon />} size="x6" />
         </ActionButton>
       </DialogTrigger>
       <DialogContent
