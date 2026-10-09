@@ -4,11 +4,7 @@ import { afterEach, expect, vi } from 'vitest'
 import { createAuthCoordinator } from '../auth/coordinator'
 import type { AuthCoordinator } from '../auth/types'
 import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixtures'
-import {
-  registerCaptureIpc,
-  registerCaptureWindow,
-  consumeCaptureMediaPermission
-} from '../capture/ipc-handler'
+import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
 import type { PortraitMatchPolicy } from './portrait-match'
 import type { PortraitEdgeMatchPolicy } from './portrait-edges'
 import type { SearchSnapshot } from '../../preload/common/types/search'
@@ -67,7 +63,6 @@ export async function createSearchFixture(
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
-  mediaPermissionAllowed: () => boolean
   harness: ReturnType<typeof createAuthHarness>
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
@@ -168,7 +163,6 @@ export async function createSearchFixture(
     auth,
     event,
     getSources: electron.getSources,
-    mediaPermissionAllowed: () => consumeCaptureMediaPermission(event.sender, rendererUrl),
     harness,
     fetchSearch,
     captureId,

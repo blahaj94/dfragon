@@ -17,7 +17,7 @@ last-reviewed: 2026-10-10
 | `apps/desktop/src/backend/capture/ipc-handler.ts`                                                          | Source 열거, 선택, 프레임 읽기의 window/document, 선택, capture 수명을 확인한다. 제품 display media 요청은 `null`로 거절한다. 선택 무효화, trusted 빈 선택 cleanup과 안정화 통지의 수명을 검사한다.             |
 | `apps/desktop/src/backend/renderer-document.ts`                                                            | 개발 URL은 HTTP(S)의 exact `localhost`, `127.0.0.1`, `[::1]`과 canonical 입력만 허용한다. Credential, 공백, control, backslash, host alias를 거절하고 Electron Vite가 제공하는 slash 없는 bare origin만 정규화한다. |
 | `apps/desktop/src/backend/main.ts`                                                                         | 검증한 renderer URL, sandbox, contextIsolation, navigation/popup 차단을 구성한다. Capture와 공개 검색을 인증 설정과 별도로 등록하고, auth runtime이 있을 때만 auth IPC를 추가한다.                               |
-| `apps/desktop/src/backend/capture/permission-policy.ts`                                                    | 제품 session의 media permission check와 request를 모두 거절한다. 인증 여부와 플랫폼은 조건이 아니다.                                                                                                            |
+| `apps/desktop/src/backend/capture/permission-policy.ts`                                                    | 제품 session의 모든 permission check와 request를 거절한다. 인증 여부와 플랫폼은 조건이 아니다.                                                                                                                  |
 | `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                          | auth/capture와 검색 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
 | `apps/desktop/src/frontend/src/App.tsx`, `pages/login/LoginPage.tsx`, `sections/LoginSection.tsx`          | 기본 App은 CaptureControls 모달과 네 카드의 OCR 이름을 표시한다. LegacyApp의 직접 검색, PartyCapture는 기존 회귀 테스트용 `fixture/legacy`에 남긴다. 인증 상태 변경은 캡처 수명을 초기화하지 않는다.            |
 | `apps/desktop/src/frontend/src/sections/PartyCapture.tsx`                                                  | 기존 source/interval, Start/Stop, 인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
@@ -44,7 +44,7 @@ Main은 로그인, 로그아웃만으로 선택을 지우지 않으며 trusted r
 
 ## 검증과 제한
 
-`main.test.ts`는 인증 설정, provider가 없어도 공개 검색 설정을 연결하고 Windows를 포함한 모든 플랫폼에서 capture 수명과 관계없이 media 요청을 거절하는지 확인한다. `App.test.tsx`는 인증 로딩, 실패, 로그인, 로그아웃, auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron/media doubles를 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
+`main.test.ts`는 인증 설정, provider가 없어도 공개 검색 설정을 연결하고 Windows를 포함한 모든 플랫폼에서 제품 session의 permission check와 media 요청을 거절하는지 확인한다. 거절 규칙 자체는 `permission-policy.test.ts`가 확인한다. `App.test.tsx`는 인증 로딩, 실패, 로그인, 로그아웃, auth runId 재연결과 무관한 source 선택 유지, 선택 전 Start 차단과 unmount cleanup을 확인한다. 이 테스트는 Electron/media doubles를 사용하며 실제 설치 앱의 캡처 성공을 대신하지 않는다.
 
 ```sh
 pnpm --filter @dfragon/desktop exec vitest run src/backend/capture src/backend/main.test.ts src/backend/main-bundle.test.ts src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/hooks src/frontend/src/App.test.tsx src/frontend/src/App.capture-controls.test.tsx

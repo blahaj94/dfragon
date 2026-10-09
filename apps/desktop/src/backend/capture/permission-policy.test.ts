@@ -7,30 +7,26 @@ const documentUrl = 'file:///fixture/index.html'
 type Fixture = {
   check: ReturnType<typeof vi.fn>
   request: ReturnType<typeof vi.fn>
-  consume: ReturnType<typeof vi.fn<() => boolean>>
-  contents: WebContents
 }
 
-function createFixture(configured = true): Fixture {
+function createFixture(): Fixture {
   const check = vi.fn()
   const request = vi.fn()
-  const consume = vi.fn(() => true)
-  const contents = {} as WebContents
-  registerCapturePermissions(
-    { setPermissionCheckHandler: check, setPermissionRequestHandler: request },
-    configured ? consume : undefined
-  )
+  registerCapturePermissions({
+    setPermissionCheckHandler: check,
+    setPermissionRequestHandler: request
+  })
 
-  return { check, request, consume, contents }
+  return { check, request }
 }
 
 function ask(
-  fixture: ReturnType<typeof createFixture>,
+  fixture: Fixture,
   changes: Record<string, unknown> = {},
   permission = 'media'
 ): ReturnType<typeof vi.fn> {
   const callback = vi.fn()
-  fixture.request.mock.calls[0][0](fixture.contents, permission, callback, {
+  fixture.request.mock.calls[0][0]({} as WebContents, permission, callback, {
     isMainFrame: true,
     requestingUrl: documentUrl,
     mediaTypes: [],
@@ -41,20 +37,26 @@ function ask(
 }
 
 describe('capture permission policy', () => {
-  it('keeps unconfigured product media request and every check denied', () => {
-    const fixture = createFixture(false)
+  it.each(['media', 'notifications', 'clipboard-read', 'display-capture'])(
+    'denies %s checks',
+    (permission) => {
+      const fixture = createFixture()
 
-    expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(false)
-    expect(fixture.check.mock.calls[0][0]()).toBe(false)
-    expect(fixture.consume).not.toHaveBeenCalled()
-  })
+      expect(
+        fixture.check.mock.calls[0][0]({} as WebContents, permission, documentUrl, {
+          isMainFrame: true,
+          mediaType: 'video',
+          requestingUrl: documentUrl
+        })
+      ).toBe(false)
+    }
+  )
 
-  it('delegates an empty media request to the current capture boundary once', () => {
+  // 예전 제품이 캡처 수명마다 한 번 허용하던 main frame의 빈 mediaTypes 요청이다.
+  it('denies the former capture candidate media request', () => {
     const fixture = createFixture()
 
-    expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(true)
-    expect(fixture.consume).toHaveBeenCalledExactlyOnceWith(fixture.contents, documentUrl)
-    expect(fixture.check.mock.calls[0][0]()).toBe(false)
+    expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(false)
   })
 
   it.each([
@@ -67,24 +69,18 @@ describe('capture permission policy', () => {
     { mediaTypes: ['audio'] },
     { mediaTypes: ['video'] },
     { mediaTypes: ['audio', 'video'] }
-  ])('rejects invalid request metadata without consuming capture: %j', (changes) => {
+  ])('denies media request metadata variants: %j', (changes) => {
     const fixture = createFixture()
 
     expect(ask(fixture, changes)).toHaveBeenCalledExactlyOnceWith(false)
-    expect(fixture.consume).not.toHaveBeenCalled()
   })
 
-  it('rejects other permissions without consuming capture', () => {
-    const fixture = createFixture()
+  it.each(['notifications', 'clipboard-read', 'display-capture'])(
+    'denies %s requests',
+    (permission) => {
+      const fixture = createFixture()
 
-    expect(ask(fixture, {}, 'notifications')).toHaveBeenCalledExactlyOnceWith(false)
-    expect(fixture.consume).not.toHaveBeenCalled()
-  })
-
-  it('denies when the capture boundary rejects the request', () => {
-    const fixture = createFixture()
-    fixture.consume.mockReturnValue(false)
-
-    expect(ask(fixture)).toHaveBeenCalledExactlyOnceWith(false)
-  })
+      expect(ask(fixture, {}, permission)).toHaveBeenCalledExactlyOnceWith(false)
+    }
+  )
 })

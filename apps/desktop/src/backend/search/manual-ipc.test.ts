@@ -11,12 +11,13 @@ it('manual search works signed out without listing, selecting or capturing a win
   expect(fixture.getSources).not.toHaveBeenCalled()
   expect(fixture.auth.getSnapshot().phase).toBe('signedOut')
   expect(new Request(...fixture.fetchSearch.mock.calls[0]).headers.has('authorization')).toBe(false)
-  expect(fixture.mediaPermissionAllowed()).toBe(false)
   expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
     snapshot: { captureId: null }
   })
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
-  expect(fixture.mediaPermissionAllowed()).toBe(false)
+  expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
+    snapshot: { captureId: null }
+  })
 })
 
 it('capture source and Stop do not cancel manual requests; each channel rejects the other ID', async () => {
@@ -48,6 +49,9 @@ it('capture source and Stop do not cancel manual requests; each channel rejects 
       nickname: '다라'
     })
   ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  await expect(fixture.invoke('readCaptureFrame', fixture.captureId)).rejects.toThrow(
+    'CAPTURE_NOT_ALLOWED'
+  )
   await fixture.invoke('controlCharacterSearch', {
     action: 'end',
     captureId: captured.snapshot.captureId
@@ -148,7 +152,7 @@ it('manual input keeps exact command validation, retry and revision ordering', a
   expect(fixture.fetchSearch).toHaveBeenCalledTimes(2)
 })
 
-it('ending manual search leaves an active capture request and its media permission intact', async () => {
+it('ending manual search leaves an active capture request and its frame access intact', async () => {
   const fixture = await createSearchFixture()
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
@@ -166,7 +170,9 @@ it('ending manual search leaves an active capture request and its media permissi
 
   expect(request.signal.aborted).toBe(false)
   expect((await fixture.read()).captureId).toBe(fixture.captureId)
-  expect(fixture.mediaPermissionAllowed()).toBe(true)
+  await expect(fixture.invoke('readCaptureFrame', fixture.captureId)).resolves.toEqual({
+    kind: 'unsupported'
+  })
   response.resolve(jsonResponse({ body: { rows: [candidate] } }))
   await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
 })
@@ -179,7 +185,9 @@ it('manual begin replaces an orphaned session and ignores its late response and 
   await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
   const request = new Request(...fixture.fetchSearch.mock.calls[0])
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
-  const capture = await fixture.invoke('controlCharacterSearch', { action: 'begin' })
+  const capture = (await fixture.invoke('controlCharacterSearch', { action: 'begin' })) as {
+    snapshot: { captureId: string }
+  }
 
   // The UI may lose a committed begin response; a fresh submit can replace that session.
   const replacement = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
@@ -190,7 +198,9 @@ it('manual begin replaces an orphaned session and ignores its late response and 
   expect(current.slots.every((slot) => slot.state === 'idle')).toBe(true)
   expect(request.signal.aborted).toBe(true)
   expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(capture)
-  expect(fixture.mediaPermissionAllowed()).toBe(true)
+  await expect(fixture.invoke('readCaptureFrame', capture.snapshot.captureId)).resolves.toEqual({
+    kind: 'unsupported'
+  })
 
   await fixture.invoke('controlManualSearch', { action: 'end', captureId: fixture.captureId })
   expect(await fixture.read()).toEqual(current)
