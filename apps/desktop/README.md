@@ -132,7 +132,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 관련 PR에서도 Windows 포터블 패키징과 checksum 생성을 확인하고 exe와 checksum을 Actions artifact로 7일간 보관합니다. PR 빌드에는 attestation을 기록하지 않습니다. PR 빌드는 예시 API 주소를 사용하므로 실제 서비스용 배포 파일이 아닙니다. PR 빌드는 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며 실행 동작은 같습니다. 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
 
-설치본 main에는 공개 API origin과 `build/distribution-auth.json`의 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
+설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
 
 | 항목                              | 배포 앱                                 | 기존 개발 앱                            |
 | --------------------------------- | --------------------------------------- | --------------------------------------- |
@@ -142,6 +142,8 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 | 복귀 주소                         | `dfragon://auth/callback`               | `dfragon.dev://auth/callback`           |
 | API                               | 빌드 시 지정한 HTTPS origin             | `https://localhost:3443`                |
 | 설치                              | 사용자별 one-click NSIS, `dfragon` 폴더 | 기존 one-click NSIS 경로 유지           |
+
+배포 앱과 개발 앱의 공개 값은 `build/channels.json`에 채널별로 모아 둡니다. 앱 이름, 실행 파일 이름, package 이름, 출력 폴더, NSIS include, identity, 복귀 주소, 환경, provider와 API, accounts origin의 출처가 여기에 있으며 `build/channels.ts`가 빌드 시 형식과 공개 origin 조건을 검증합니다. 개발 설치 설정과 앱 main은 이 파일을 읽고, `electron-builder.yml`의 배포 값은 아직 같은 값을 다시 적으므로 `scripts/desktop-package-fuses.test.mjs`가 두 값의 일치를 검사합니다. Secret, credential은 이 파일에 넣지 않습니다.
 
 NSIS는 기존 protocol 소유권 검사, 사용자별 등록, 자기 등록만 제거하는 처리를 공유합니다. 다른 앱이 해당 scheme을 소유하면 설치를 중단합니다. 패스키 로그인에는 API의 HTTPS origin, RP ID와 앱 복귀 주소 설정이 맞아야 합니다. [패스키 설정](../../docs/reference/passkey-authentication.md)을 참고합니다.
 
