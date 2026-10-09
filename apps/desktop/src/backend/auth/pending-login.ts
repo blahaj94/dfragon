@@ -66,7 +66,7 @@ export function createPendingLogin(
   const actor = createActor(
     pendingLoginMachine.provide({
       actors: {
-        expiry: createPendingExpiry(clock, isExpired, (checkedAt) =>
+        expiry: createPendingExpiry(clock, isExpired, (checkedAt): number =>
           pendingLoginExpiryDelay(actor.getSnapshot().context, checkedAt)
         )
       }
