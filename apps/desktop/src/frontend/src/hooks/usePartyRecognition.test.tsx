@@ -45,7 +45,7 @@ async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
   const observe = vi.fn()
   const observeOcr = vi.fn()
   let current: ReturnType<typeof usePartyRecognition> | undefined
-  const video = document.createElement('video')
+  const defaultFrame: PartyFrameSource = { width: 1, height: 1, rgba: new Uint8Array(4) }
   const nickname = document.createElement('canvas')
   const worker = {
     recognize: vi.fn<PartyOcrWorker['recognize']>().mockResolvedValue(ocrResult('가나', '가너')),
@@ -79,11 +79,11 @@ async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
   await act(async () => root.render(<Harness />))
 
   return {
-    cycle: async (controller = new AbortController(), frame = video) => {
+    cycle: async (controller = new AbortController(), frame = defaultFrame) => {
       await act(async () => readCurrent().recognizePartyNicknames(frame, worker, controller.signal))
     },
     startCycle: (controller = new AbortController()) =>
-      readCurrent().recognizePartyNicknames(video, worker, controller.signal),
+      readCurrent().recognizePartyNicknames(defaultFrame, worker, controller.signal),
     current: readCurrent,
     worker,
     observe,

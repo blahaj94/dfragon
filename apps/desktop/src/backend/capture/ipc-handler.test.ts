@@ -12,7 +12,6 @@ import {
 import {
   registerCaptureIpc,
   registerCaptureWindow,
-  registerCaptureMediaForFixture,
   consumeCaptureMediaPermission,
   collectCurrentCapture
 } from './ipc-handler'
@@ -61,9 +60,6 @@ async function setup(
   dispose: () => void
   mainFrame: { url: string; detached: boolean; isDestroyed: () => boolean }
   dispatchMedia: (callback: (result: unknown) => void) => void
-  requestMedia: (
-    changes?: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest>
-  ) => Promise<unknown>
 }> {
   const harness = createAuthHarness()
   if (signedIn) {
@@ -92,7 +88,6 @@ async function setup(
   const disposeIpc = registerCaptureIpc(undefined, undefined, collection)
   disposeFixtures.add(disposeIpc)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
-  registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
     handlers.set(channel, handler)
@@ -108,22 +103,15 @@ async function setup(
 
     return Promise.resolve().then(() => handler(event, ...args))
   }
-  const dispatchMedia = (
-    callback: (result: unknown) => void,
-    changes: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest> = {}
-  ): void => {
+  const dispatchMedia = (callback: (result: unknown) => void): void => {
     const request = {
       frame: mainFrame,
       videoRequested: true,
       audioRequested: false,
-      userGesture: true,
-      ...changes
+      userGesture: true
     }
     mediaHandler?.(request as Electron.DisplayMediaRequestHandlerHandlerRequest, callback)
   }
-  const requestMedia = (
-    changes: Partial<Electron.DisplayMediaRequestHandlerHandlerRequest> = {}
-  ): Promise<unknown> => new Promise((resolve) => dispatchMedia(resolve, changes))
 
   const dispose = (): void => {
     disposeFixtures.delete(disposeIpc)
@@ -137,7 +125,6 @@ async function setup(
     event,
     mainFrame,
     dispatchMedia,
-    requestMedia,
     documentEvents,
     published,
     dispose
@@ -210,14 +197,18 @@ describe('capture main document and source boundary', () => {
 
     expect(await firstSelection).toBeNull()
     expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(current)
-    expect(await fixture.requestMedia()).toEqual({ video: nextSource })
+    expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(nextSource.id)
   })
 
   it('subframe navigation은 캡처를 유지하고 main document navigation은 수명을 끝낸다', async () => {
     const fixture = await setup(false)
+    const image = { width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }
+    nativeFrame.read.mockResolvedValueOnce({ kind: 'frame', image })
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
-    const before = await fixture.invoke('controlCharacterSearch', { action: 'read' })
+    const before = (await fixture.invoke('controlCharacterSearch', { action: 'read' })) as {
+      snapshot: { captureId: string }
+    }
 
     fixture.documentEvents.emit(
       'did-start-navigation',
@@ -228,13 +219,16 @@ describe('capture main document and source boundary', () => {
     )
 
     expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(before)
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
+    // snapshot은 창 세대만 바뀌어 낡은 binding을 드러내지 않으므로 같은 캡처로 프레임을 계속 읽을 수 있는지 확인한다.
+    await expect(fixture.invoke('readCaptureFrame', before.snapshot.captureId)).resolves.toEqual({
+      kind: 'frame',
+      image
+    })
     fixture.documentEvents.emit('did-start-navigation', {}, rendererUrl, false, true)
     expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
       ok: true,
       snapshot: { captureId: null }
     })
-    expect(await fixture.requestMedia()).toBeNull()
     expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
   })
 
@@ -267,7 +261,6 @@ describe('capture main document and source boundary', () => {
       ['characterSearchChanged', null],
       ['manualSearchChanged', null]
     ])
-    expect(await fixture.requestMedia()).toBeNull()
     expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(false)
   })
 
@@ -293,7 +286,6 @@ describe('capture main document and source boundary', () => {
     expect(first).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
     const firstCaptureId = (first as { snapshot: { captureId: string } }).snapshot.captureId
     expect(firstCaptureId).toMatch(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i)
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     expect(await fixture.invoke('controlCharacterSearch', begin)).toMatchObject({
       ok: false,
       error: { code: 'SEARCH_BUSY' }
@@ -305,7 +297,6 @@ describe('capture main document and source boundary', () => {
     })
 
     expect(ended).toMatchObject({ ok: true, snapshot: { captureId: null } })
-    expect(await fixture.requestMedia()).toBeNull()
     const second = await fixture.invoke('controlCharacterSearch', begin)
     expect(second).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
     const secondCaptureId = (second as { snapshot: { captureId: string } }).snapshot.captureId
@@ -365,37 +356,8 @@ describe('capture main document and source boundary', () => {
       expect(
         await fixture.invoke('controlCharacterSearch', { action: 'end', captureId })
       ).toMatchObject({ ok: true, snapshot: { captureId: null } })
-      expect(await fixture.requestMedia()).toBeNull()
     }
   )
-
-  it('source 선택만으로는 begin 이전의 media 요청을 허용하지 않는다', async () => {
-    const fixture = await setup()
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-
-    expect(await fixture.requestMedia()).toBeNull()
-  })
-
-  it('이전 media 열거는 같은 source의 end와 새 begin 뒤에 stream을 허용하지 않는다', async () => {
-    const fixture = await setup()
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-    await beginCapture(fixture)
-    const current = await fixture.invoke('controlCharacterSearch', { action: 'read' })
-    expect(current).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
-    const captureId = (current as { snapshot: { captureId: string } }).snapshot.captureId
-    const pending = deferred<typeof sources>()
-    electron.getSources.mockReturnValueOnce(pending.promise)
-    const callsBeforeMedia = electron.getSources.mock.calls.length
-    const previousMedia = fixture.requestMedia()
-    expect(electron.getSources).toHaveBeenCalledTimes(callsBeforeMedia + 1)
-
-    await fixture.invoke('controlCharacterSearch', { action: 'end', captureId })
-    await beginCapture(fixture)
-    pending.resolve(sources)
-
-    expect(await previousMedia).toBeNull()
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
-  })
 
   it.each([
     { name: '기존 shape', args: [{ slot: 0, nickname: '가나' }] },
@@ -449,14 +411,16 @@ describe('capture main document and source boundary', () => {
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
-  it('signedOut에서도 source 열거, 선택, begin, media와 cleanup을 허용한다', async () => {
+  it('signedOut에서도 source 열거, 선택, begin과 cleanup을 허용한다', async () => {
     const fixture = await setup(false)
     await expect(fixture.invoke('listCaptureSources')).resolves.toEqual(sources)
     await expect(fixture.invoke('selectCaptureSource', sources[0].id)).resolves.toEqual(sources[0])
     await beginCapture(fixture)
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     await expect(fixture.invoke('selectCaptureSource', '')).resolves.toBeNull()
-    expect(await fixture.requestMedia()).toBeNull()
+    expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
+      ok: true,
+      snapshot: { captureId: null }
+    })
   })
 
   it('검색 설정이 없어도 guest capture와 OCR 관측을 유지하고 검색 불가를 표시한다', async () => {
@@ -489,7 +453,6 @@ describe('capture main document and source boundary', () => {
         ]
       }
     })
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
   })
 
@@ -521,7 +484,6 @@ describe('capture main document and source boundary', () => {
     expect(fixture.auth.getSnapshot().phase).toBe('signedIn')
     pending.resolve(sources)
     expect(await operation).toEqual(sources)
-    expect(await fixture.requestMedia()).toBeNull()
   })
 
   it.each(['subframe', 'document'])(
@@ -561,141 +523,42 @@ describe('capture main document and source boundary', () => {
     await expect(fixture.invoke('selectCaptureSource', '')).rejects.toThrow()
   })
 
-  it.each([
-    { userGesture: false },
-    { audioRequested: true },
-    { videoRequested: false },
-    { frame: null }
-  ])('기존 media 조건 위반 %j는 계속 거절한다', async (changes) => {
-    const fixture = await setup()
-    await fixture.invoke('selectCaptureSource', sources[0].id)
-    await beginCapture(fixture)
-    expect(await fixture.requestMedia(changes)).toBeNull()
-  })
-
   it('선택 뒤 logout은 main source와 media 허용을 유지한다', async () => {
     const fixture = await setup()
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
     await fixture.auth.logout()
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     expect(consumeCaptureMediaPermission(fixture.event.sender, rendererUrl)).toBe(true)
   })
 
-  it.each(['clear', 'document'])(
-    'media 열거 중 %s이면 늦은 stream을 허용하지 않는다',
-    async (kind) => {
+  // Electron 44.7.0은 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
+  it.each(['선택 없음', '선택 후 캡처 중'])(
+    '창 등록의 display media 요청은 %s 상태에서도 native null로 한 번 거절한다',
+    async (state) => {
       const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      await beginCapture(fixture)
-      const pending = deferred<typeof sources>()
-      electron.getSources.mockReturnValue(pending.promise)
-      const callsBeforeMedia = electron.getSources.mock.calls.length
-      const media = fixture.requestMedia()
-      expect(electron.getSources).toHaveBeenCalledTimes(callsBeforeMedia + 1)
-      const isClear = kind === 'clear'
-      if (isClear) {
-        await fixture.invoke('selectCaptureSource', '')
-      } else {
-        fixture.mainFrame.url = 'about:blank'
+      const isCapturing = state === '선택 후 캡처 중'
+      if (isCapturing) {
+        await fixture.invoke('selectCaptureSource', sources[0].id)
+        await beginCapture(fixture)
       }
-      pending.resolve(sources)
-      expect(await media).toBeNull()
+      const callback = vi.fn()
+
+      fixture.dispatchMedia(callback)
+
+      expect(callback).toHaveBeenCalledExactlyOnceWith(null)
     }
   )
 
-  // Electron 44.7.0은 null을 예외 없는 거절로 처리한다. {}는 별도 TypeError도 낸다.
-  it('선택 없는 즉시 거절은 native null 결과를 한 번 전달한다', async () => {
+  it('창 등록의 display media callback이 소비 뒤 throw해도 handler 밖으로 던지거나 다시 호출하지 않는다', async () => {
     const fixture = await setup()
-    const callback = vi.fn()
+    const callback = vi.fn(() => {
+      throw new Error('SYNTHETIC_CONSUMED_CALLBACK')
+    })
 
-    fixture.dispatchMedia(callback)
+    expect(() => fixture.dispatchMedia(callback)).not.toThrow()
 
     expect(callback).toHaveBeenCalledExactlyOnceWith(null)
   })
-
-  it.each(['missing', 'failure'])(
-    'media source %s는 native null로 거절하고 capture를 끝낸다',
-    async (kind) => {
-      const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      await beginCapture(fixture)
-      const isFailure = kind === 'failure'
-      if (isFailure) {
-        electron.getSources.mockRejectedValue(new Error('Synthetic enumeration failure'))
-      } else {
-        electron.getSources.mockResolvedValue([])
-      }
-
-      const callback = vi.fn()
-      fixture.dispatchMedia(callback)
-      await vi.waitFor(() => expect(callback).toHaveBeenCalledExactlyOnceWith(null))
-
-      expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toMatchObject({
-        ok: true,
-        snapshot: { captureId: null }
-      })
-      electron.getSources.mockResolvedValue(sources)
-      await beginCapture(fixture)
-      expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
-    }
-  )
-
-  it.each(['missing', 'failure'])(
-    '이전 media의 늦은 %s 결과는 새 capture를 끝내거나 callback을 반복하지 않는다',
-    async (kind) => {
-      const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      await beginCapture(fixture)
-      const previous = await fixture.invoke('controlCharacterSearch', { action: 'read' })
-      expect(previous).toMatchObject({ ok: true, snapshot: { captureId: expect.any(String) } })
-      const captureId = (previous as { snapshot: { captureId: string } }).snapshot.captureId
-      const pending = deferred<typeof sources>()
-      electron.getSources.mockReturnValueOnce(pending.promise)
-      const callsBeforeMedia = electron.getSources.mock.calls.length
-      const callback = vi.fn()
-      fixture.dispatchMedia(callback)
-      expect(electron.getSources).toHaveBeenCalledTimes(callsBeforeMedia + 1)
-      await fixture.invoke('controlCharacterSearch', { action: 'end', captureId })
-      await beginCapture(fixture)
-      const current = await fixture.invoke('controlCharacterSearch', { action: 'read' })
-
-      const isFailure = kind === 'failure'
-      if (isFailure) {
-        pending.reject(new Error('Synthetic enumeration failure'))
-      } else {
-        pending.resolve([])
-      }
-      await vi.waitFor(() => expect(callback).toHaveBeenCalledExactlyOnceWith(null))
-
-      expect(await fixture.invoke('controlCharacterSearch', { action: 'read' })).toEqual(current)
-      expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
-    }
-  )
-
-  it.each(['allowed', 'denied'])(
-    '비동기 %s callback이 소비 뒤 throw해도 다시 호출하지 않는다',
-    async (kind) => {
-      const fixture = await setup()
-      await fixture.invoke('selectCaptureSource', sources[0].id)
-      await beginCapture(fixture)
-      const isDenied = kind === 'denied'
-      if (isDenied) {
-        electron.getSources.mockResolvedValue([])
-      }
-      const callback = vi.fn().mockImplementationOnce(() => {
-        throw new Error('Synthetic callback already consumed')
-      })
-      const callsBeforeMedia = electron.getSources.mock.calls.length
-
-      fixture.dispatchMedia(callback)
-      expect(electron.getSources).toHaveBeenCalledTimes(callsBeforeMedia + 1)
-      await new Promise((resolve) => setTimeout(resolve, 0))
-
-      expect(callback).toHaveBeenCalledTimes(1)
-      expect(callback).toHaveBeenCalledWith(isDenied ? null : { video: sources[0] })
-    }
-  )
 
   it.each(['signedOut', 'logout'])(
     '%s에서도 capture ID가 없는 관측은 STALE_SEARCH로 거절한다',
@@ -743,14 +606,13 @@ describe('capture main document and source boundary', () => {
     }
   )
 
-  it('capture 조회, 선택, media는 HTTP refresh 없이 실행하고 raw OCR를 log하지 않는다', async () => {
+  it('capture 조회, 선택, begin은 HTTP refresh 없이 실행하고 raw OCR를 log하지 않는다', async () => {
     const fixture = await setup()
     fixture.harness.clock.elapseWithoutTimers(16 * 60 * 1000)
     const log = vi.spyOn(console, 'info').mockImplementation(() => undefined)
     await fixture.invoke('listCaptureSources')
     await fixture.invoke('selectCaptureSource', sources[0].id)
     await beginCapture(fixture)
-    expect(await fixture.requestMedia()).toEqual({ video: sources[0] })
     await fixture.invoke('notifyStableNicknameDetected', { slot: 0, nickname: 'SYNTHETIC_CANARY' })
     expect(fixture.harness.http.refresh).not.toHaveBeenCalled()
     expect(log).not.toHaveBeenCalled()

@@ -7,7 +7,6 @@ import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixt
 import {
   registerCaptureIpc,
   registerCaptureWindow,
-  registerCaptureMediaForFixture,
   consumeCaptureMediaPermission
 } from '../capture/ipc-handler'
 import type { PortraitMatchPolicy } from './portrait-match'
@@ -69,7 +68,6 @@ export async function createSearchFixture(
   event: IpcMainInvokeEvent
   getSources: typeof electron.getSources
   mediaPermissionAllowed: () => boolean
-  requestMedia: () => Promise<unknown>
   harness: ReturnType<typeof createAuthHarness>
   fetchSearch: ReturnType<typeof vi.fn<typeof fetch>>
   captureId: string
@@ -99,7 +97,6 @@ export async function createSearchFixture(
     .fn<typeof fetch>()
     .mockImplementation(async () => jsonResponse({ body: { rows: [] } }))
   const frame = { url: rendererUrl, detached: false, isDestroyed: () => false }
-  const registerMedia = vi.fn()
   const published = vi.fn()
   const documentEvents = new EventEmitter()
   const contents = {
@@ -107,7 +104,7 @@ export async function createSearchFixture(
     isDestroyed: () => false,
     on: documentEvents.on.bind(documentEvents),
     send: published,
-    session: { setDisplayMediaRequestHandler: registerMedia }
+    session: { setDisplayMediaRequestHandler: vi.fn() }
   }
   const window = { webContents: contents, isDestroyed: () => false, on: vi.fn() }
   // Main 설정과 외부 fetch만 제어하며 실제 core와 capture handler를 사용한다.
@@ -123,7 +120,6 @@ export async function createSearchFixture(
   )
   disposeFixtures.push(dispose)
   registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
-  registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   const handlers = new Map<string, Handler>()
   for (const [channel, handler] of electron.handle.mock.calls) {
     handlers.set(channel, handler)
@@ -166,7 +162,6 @@ export async function createSearchFixture(
 
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)
-    registerCaptureMediaForFixture(window as unknown as BrowserWindow)
   }
 
   return {
@@ -174,18 +169,6 @@ export async function createSearchFixture(
     event,
     getSources: electron.getSources,
     mediaPermissionAllowed: () => consumeCaptureMediaPermission(event.sender, rendererUrl),
-    requestMedia: () =>
-      new Promise((resolve) =>
-        registerMedia.mock.calls.at(-1)![0](
-          {
-            frame,
-            videoRequested: true,
-            audioRequested: false,
-            userGesture: true
-          },
-          resolve
-        )
-      ),
     harness,
     fetchSearch,
     captureId,

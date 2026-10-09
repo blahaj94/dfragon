@@ -33,7 +33,7 @@ import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../sear
 import { createStayImageSource } from '../search/stay-images'
 import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc } from '../search/manual-ipc'
-import { findSelectedSource, isCaptureRequestAllowed } from './capture-policy'
+import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
 import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
 import type { OcrCollectionResult } from '../../preload/common/types/ocr-collection'
@@ -542,7 +542,11 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   clearSource()
   manualSearch?.invalidate()
   window.webContents.session.setDisplayMediaRequestHandler((_request, callback) => {
-    deliverMediaResult(callback, null)
+    try {
+      callback(null)
+    } catch {
+      // Native once callback은 throw 전에 소비될 수 있으므로 재호출하지 않는다.
+    }
   })
 
   window.webContents.on('did-start-navigation', (_event, _url, _isInPlace, isMainFrame) => {
@@ -583,71 +587,6 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     windowGeneration += 1
     clearSource()
     manualSearch?.invalidate()
-  })
-}
-
-function deliverMediaResult(
-  callback: (streams: Electron.Streams | null) => void,
-  streams: Electron.Streams | null
-): void {
-  try {
-    callback(streams)
-  } catch {
-    // Native once callback은 throw 전에 소비될 수 있으므로 재호출하지 않는다.
-  }
-}
-
-/** 이전 Electron media 경로의 격리 회귀 검증에서만 명시적으로 등록한다. */
-export function registerCaptureMediaForFixture(window: BrowserWindow): void {
-  window.webContents.session.setDisplayMediaRequestHandler((request, callback) => {
-    const startedWindowGeneration = windowGeneration
-    const selectionGeneration = sourceSelectionGeneration
-    const sourceId = selectedSourceId
-    const binding = search?.current
-    const hasSource = sourceId != null
-    const isTrusted = isTrustedFrame(window, request.frame)
-    const isRequestAllowed = isCaptureRequestAllowed({
-      hasSelectedSource: hasSource,
-      isMainFrame: isTrusted,
-      videoRequested: request.videoRequested,
-      audioRequested: request.audioRequested,
-      userGesture: request.userGesture
-    })
-    const hasCapture = binding != null
-    if (!hasCapture) {
-      deliverMediaResult(callback, null)
-
-      return
-    }
-
-    const hasSameWindow = binding.windowGeneration === startedWindowGeneration
-    const hasSameSource = binding.sourceGeneration === selectionGeneration
-    const hasCurrentCapture = hasSameWindow && hasSameSource
-    const isAllowed = hasSource && isRequestAllowed && hasCurrentCapture
-    if (!isAllowed) {
-      deliverMediaResult(callback, null)
-
-      return
-    }
-    const captureId = binding.captureId
-    void getWindowSources()
-      .then((sources) => {
-        const isCurrent = isCurrentCapture(startedWindowGeneration)
-        const isStillTrusted = isTrustedFrame(window, request.frame)
-        const hasSameSelection = selectionGeneration === sourceSelectionGeneration
-        const hasSameCapture = search?.current?.captureId === binding?.captureId
-        const canAllow = isCurrent && isStillTrusted && hasSameSelection && hasSameCapture
-        const source = canAllow ? findSelectedSource(sources, sourceId) : null
-        const hasSource = source != null
-        if (!hasSource) {
-          search?.end(captureId)
-        }
-        deliverMediaResult(callback, hasSource ? { video: source } : null)
-      })
-      .catch(() => {
-        search?.end(captureId)
-        deliverMediaResult(callback, null)
-      })
   })
 }
 

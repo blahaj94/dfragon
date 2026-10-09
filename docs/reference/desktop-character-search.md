@@ -1,21 +1,21 @@
 ---
 type: reference
 status: active
-scope: desktop OCR character search implementation and isolated verification
-last-reviewed: 2026-10-08
+scope: desktop OCR character search implementation and verification
+last-reviewed: 2026-10-10
 ---
 
 # Desktop 캐릭터 검색
 
 OCR 안정화 결과의 첫 번째 이름을 네 슬롯 검색으로 연결한다. [로그인 선택 계약](../rules/desktop-auth.md#최소-화면과-capture-경계)에 따라 창 선택, 캡처, OCR, 검색과 결과는 계정 상태와 독립적이다. 제품 main은 고정 API origin만으로 공개 검색을 구성하며 provider, credential 설정이나 auth snapshot을 요구하지 않는다. 로그인과 로그아웃이 진행 중 capture를 중단하지 않는다. 자동 조회를 마친 슬롯은 Alt+R 전까지 유지하고 수동 서버, 닉네임 조회만 해당 슬롯을 교체한다.
 
-Windows 제품의 [캡처 정책](../rules/desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)은 개발자 수집과 같은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외하며 전체 가림과 최소화 상태에서는 대기한다. 제품의 Electron media 권한은 거절한다.
+Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)은 개발자 수집과 같은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외하며 전체 가림과 최소화 상태에서는 대기한다. 제품의 Electron media 권한은 거절한다.
 
 ## 구현 위치
 
 | 위치                                                                                                                                                           | 책임                                                                                                                                                                 |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC, media를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다. |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다.        |
 | `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO, 관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
 | `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP, body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
 | `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
@@ -130,7 +130,7 @@ catalog에 없는 빈 `레어 머리 클론 아바타`와 `무기 클론 아바�
 
 ### OCR 관측 IPC와 슬롯 수명
 
-제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `usePartyRecognition`은 같은 프레임의 첫 이름과 얼굴 입력이 안정화되면 `notifyOcrCandidatesDetected`로 전달한다. 첫 이름의 원문을 유지하고 두 번째 이름으로 보정하지 않는다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 이후 프레임 변화로 검색을 재실행하지 않는다. 기본 옵션의 legacy fixture는 기존 연속 관측 경로를 유지한다.
+제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `usePartyRecognition`은 같은 프레임의 첫 이름과 얼굴 입력이 안정화되면 `notifyOcrCandidatesDetected`로 전달한다. 첫 이름의 원문을 유지하고 두 번째 이름으로 보정하지 않는다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 이후 프레임 변화로 검색을 재실행하지 않는다. 기본 옵션을 쓰는 `fixture/legacy/LegacyApp`의 `PartyCapture`는 기존 연속 관측 경로를 유지한다.
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
@@ -192,60 +192,15 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 Keyboard, focus, 좁은 화면, theme, reduced-motion의 실제 Electron 관측은 최종 실행 head의 Issue/PR evidence에 기록한다. 공용 spinner의 기존 motion 동작을 변경하지 않으며 unit 성공을 native UI 검증으로 대신하지 않는다.
 
-## 격리 미디어와 화면 검증
-
-아래 검색 결과 조작은 LegacyApp 기반 protocol 회귀 절차다. 현재 카드 App의 UI 검증은 `capture:fixture:smoke`가 담당한다.
-
-기존 [auth capture fixture](desktop-auth-capture.md)는 이전 Electron media 계약의 회귀 검증이다. 전용 config가 legacy 세션을 연결하므로 제품의 공통 Windows 캡처 검증을 대신하지 않는다. `scripts/auth-capture-fixture/search-effects.ts`의 transport는 고정 합성 origin, endpoint, query와 credential 부재만 받아 메모리에서 Response를 만든다. 전역 fetch나 실제 API, provider를 호출하지 않는다. `session.webRequest` 차단을 main Node HTTP 차단의 근거로 사용하지 않는다.
-
-앱 메뉴에서 아래 응답을 선택한 뒤 **Stop → Start**로 새 OCR 관측을 만들거나 현재 실패의 **다시 시도**를 누른다. 메뉴 선택 자체는 검색을 보내거나 진행 중 응답을 바꾸지 않는다. Source 선택은 기존 fixture 절차를 따른다. 제품 로그인은 선택 사항이다.
-
-| 메뉴                      | 다음 검색의 관측                                                     |
-| ------------------------- | -------------------------------------------------------------------- |
-| 검색 응답: 성공           | 합성 후보 한 건과 다섯 field 표시                                    |
-| 검색 응답: 0건            | 후보 없이 “검색 결과가 없습니다.” 표시                               |
-| 검색 응답: 서버 오류      | 고정 오류와 활성화된 수동 retry                                      |
-| 검색 응답: 5초 제한       | 429 안내와 비활성 retry, main 대기 만료 뒤 같은 실패의 버튼만 활성화 |
-| 검색 응답: 시간 초과 대기 | pending 표시 후 제품의 전체 검색 예산 만료, 종료, Stop 시 abort       |
-
-Main 접수 계측은 결과의 `ok:true`와 capture/slot/nickname/observationRevision의 정확한 일치를 확인한다. 더 높은 snapshot 관측 revision은 오래된 입력의 접수 증거가 아니다. 원문 payload를 저장하지 않고 counter, 합성 일치 mask만 기록한다.
-
-```sh
-pnpm --filter @dfragon/desktop capture:fixture:build
-pnpm --filter @dfragon/desktop capture:fixture
-node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --media
-```
-
-수동 실행과 자동 media 실행을 같은 profile/process에서 병렬 수행하지 않는다. `--media`는 기존 smoke와 종료 뒤 process/profile 확인을 포함한다. 자동 smoke의 실제 stream/OCR, 접수 증거와 화면의 검색 결과, 버튼 관측은 구분해 기록한다. 실제 Electron 실행 전 준비만 완료한 상태를 native PASS로 표현하지 않는다.
-
 ## 검증 경계
 
 ```sh
-pnpm --filter @dfragon/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/components scripts/auth-capture-fixture
+pnpm --filter @dfragon/desktop exec vitest run src/backend/search src/backend/capture src/preload src/frontend/src/sections src/frontend/src/lib src/frontend/src/integration src/frontend/src/components
 pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 git diff --check
 ```
 
 일반 tests는 API, DB, native media를 실행하지 않는다. 실제 #125 API, disposable DB 소비 검증은 `apps/desktop/scripts/search-server-integration/README.md`의 별도 command와 격리를 따른다. 이는 Desktop HTTP 클라이언트 소비 검증이며 auth waiter, slot, IPC, renderer, 실제 stream/OCR 성공을 대신하지 않는다. 최종 head의 unit/build, 독립 review, 실제 UI/media, 서버 검증 결과는 Issue #144와 PR #149에서 관리한다.
-
-## 검색 UI 전용 native smoke
-
-기존 media smoke와 별도로 아래 command를 사용한다. 준비 build 뒤 Parent가 한 번 실행하며 같은 fixture의 수동 실행과 병렬로 사용하지 않는다.
-
-```sh
-pnpm --filter @dfragon/desktop capture:fixture:build
-node apps/desktop/scripts/auth-capture-fixture/post-exit-check.mjs --search
-```
-
-직접 launcher 경로는 `pnpm --filter @dfragon/desktop capture:fixture:search`다. 기존 media/OCR/deny 모드와 기준은 유지한다. 이 모드는 `legacy-search.html`의 검색 protocol 회귀용 LegacyApp, 실제 preload, main, 고정 synthetic source의 native stream과 실제 OCR를 사용한다. HTTP는 기존 memory-only 합성 transport이며 실제 API/provider에 접근하지 않는다.
-
-`search-smoke.ts`는 0건 표시, 두 실패, pending, 429의 동시 상태, 슬롯별 수동 retry 독립성, 15초 timeout, 429 양의 대기 중 disabled와 같은 실패의 만료 후 버튼 활성화, 자동 GET 부재, pending 중 로그인 상태 변경의 capture 유지와 Stop 정리를 관측한다. 네 합성 응답의 HTTP 도착 순서는 슬롯 번호 계약으로 취급하지 않고 실제 상태에서 대상 슬롯을 찾는다. 기존 로그인, source 선택, resource 관측 helper는 `actions.ts`에서 공유한다.
-
-`search-observation.ts`는 기존 read API와 실제 DOM의 문구, 버튼, 후보 field를 별도로 읽는다. Capture/request 식별자는 실행 중 전후 비교에만 사용하며 원문 DOM, nickname, source ID는 로그에 남기지 않는다. 최종 search evidence는 관측한 mask, boolean, 요청/abort counter로 구성한다. Post-exit wrapper는 exact evidence, child 성공, native 거절/미처리 오류 부재, process group 종료와 profile 부재를 함께 요구한다. 실패 시 고정 단계만 전달한다.
-
-시간 제한은 새 모드에만 fixture 180초, launcher 210초, post-exit 240초를 적용한다. 네 capture 시작과 로그인, 로그아웃, 동시에 진행하는 15초/5초 대기 및 cleanup의 전체 상한이며 완료 시간 보장은 아니다. 각 바깥 계층에 종료, 정리 여유 30초를 둔다. 기존 모드는 90/120/150초, 제품 검색 예산은 15초를 유지한다.
-
-소유 window의 640/1100 content 폭과 app-scoped light/dark 전환은 별도 `layout evidence`의 표본 수, 가로 overflow 수, theme 불일치 수로 기록한다. 이 보조 관측을 핵심 검색 PASS나 공식 시각 기준 비교의 성공으로 합치지 않는다. OS 설정은 변경하지 않는다. 실제 Tab/Shift+Tab/Return/Space와 focus/loading의 수동 관측은 별도 evidence이며 이 자동화는 native keyboard 검증을 대신하지 않는다. Reduced-motion, 픽셀 비교, 다른 OS는 이 모드에서 검증하지 않는다. Source/test/build 성공과 실제 native 실행 결과는 Issue/PR에서 구분해 기록한다.
 
 ## 이번 전환의 검증
 

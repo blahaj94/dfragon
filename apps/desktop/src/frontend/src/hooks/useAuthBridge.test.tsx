@@ -428,12 +428,12 @@ it('계정 확인, 환영, 로그아웃, 연결 재설정 중에도 캡처를 �
       return cleaned
     }, [])
 
-    return <span>Capture fixture</span>
+    return <span>Capture content</span>
   }
   const initial = deferred<AuthSnapshot>()
   fixture.api.getAuthState.mockReturnValueOnce(initial.promise)
   await act(async () => root.render(<LoginPage api={fixture.api} home={<Capture />} />))
-  expect(container.textContent).toContain('Capture fixture')
+  expect(container.textContent).toContain('Capture content')
   await act(async () => initial.resolve(snapshot(1)))
   await act(async () =>
     fixture.emit({
@@ -449,7 +449,7 @@ it('계정 확인, 환영, 로그아웃, 연결 재설정 중에도 캡처를 �
   fixture.api.getAuthState.mockRejectedValueOnce(new Error('unavailable'))
   await act(async () => fixture.emit(snapshot(1, 'new-run')))
   expect(container.querySelector('button')?.disabled).toBe(false)
-  expect(container.textContent).toContain('Capture fixture')
+  expect(container.textContent).toContain('Capture content')
   expect(mounted).toHaveBeenCalledOnce()
   expect(cleaned).not.toHaveBeenCalled()
 })

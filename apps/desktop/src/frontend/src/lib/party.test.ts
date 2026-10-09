@@ -1,5 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
+import type { CharacterImage } from '../../../preload/common/types/character'
 import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from './party'
 import type { PartyPortraitCropper } from './party-portrait'
 
@@ -14,7 +15,7 @@ afterEach(() => vi.unstubAllGlobals())
 it('얼굴 크롭 제공자가 얼굴을 반환하지 않으면 닉네임만 유지한다', () => {
   const setup = captureCanvas(1280, 720, [42, 324])
 
-  const inputs = capturePartyRecognitionInputs(setup.video, () => null)
+  const inputs = capturePartyRecognitionInputs(setup.frame, () => null)
 
   expect(inputs).toEqual([
     { slot: 0, nickname: setup.nicknames[0], portrait: null },
@@ -32,7 +33,7 @@ it('얼굴 크롭 경계에는 닉네임과 같은 프레임의 원본 RGBA와 �
   }
   const cropper = vi.fn<PartyPortraitCropper>(() => portrait)
 
-  const inputs = capturePartyRecognitionInputs(setup.video, cropper)
+  const inputs = capturePartyRecognitionInputs(setup.frame, cropper)
 
   expect(cropper).toHaveBeenCalledTimes(2)
   const first = cropper.mock.calls[0][0]
@@ -58,8 +59,12 @@ function framePixels(
   height: number,
   anchors: number[],
   loadingAnchors: number[] = []
-): Uint8ClampedArray {
-  const rgba = new Uint8ClampedArray(width * height * 4)
+): Uint8Array {
+  const rgba = new Uint8Array(width * height * 4)
+  // 실제 GDI와 같이 원본 전체를 불투명하게 구성한다.
+  for (let offset = 3; offset < rgba.length; offset += 4) {
+    rgba[offset] = 255
+  }
   for (const x of anchors) {
     for (let column = x; column < x + 99; column += 1) {
       for (let y = 27; y <= 29; y += 1) {
@@ -91,27 +96,30 @@ function captureCanvas(
   anchors: number[],
   loadingAnchors: number[] = []
 ): {
-  video: HTMLVideoElement
+  frame: CharacterImage
   getImageData: ReturnType<typeof vi.fn>
   nicknames: NicknameCanvas[]
   nextFrame: (width: number, height: number, anchors: number[]) => void
 } {
-  let pixels = framePixels(width, height, anchors, loadingAnchors)
-  const video = { videoWidth: width, videoHeight: height } as HTMLVideoElement
+  let frame: CharacterImage = {
+    width,
+    height,
+    rgba: framePixels(width, height, anchors, loadingAnchors)
+  }
+  let pixels: Uint8ClampedArray = new Uint8ClampedArray(0)
   const getImageData = vi.fn((x: number, y: number, cropWidth: number, cropHeight: number) => {
     const data = new Uint8ClampedArray(cropWidth * cropHeight * 4)
     for (let row = 0; row < cropHeight; row += 1) {
-      const start = ((y + row) * video.videoWidth + x) * 4
+      const start = ((y + row) * frameCanvas.width + x) * 4
       data.set(pixels.subarray(start, start + cropWidth * 4), row * cropWidth * 4)
     }
 
     return { data }
   })
-  const frame = {
+  const frameCanvas = {
     width: 0,
     height: 0,
     getContext: () => ({
-      drawImage: vi.fn(),
       getImageData,
       createImageData: (width: number, height: number) => ({
         data: new Uint8ClampedArray(width * height * 4)
@@ -127,7 +135,7 @@ function captureCanvas(
     if (nextIsFrame) {
       nextIsFrame = false
 
-      return frame
+      return frameCanvas
     }
     const context = { putImageData: vi.fn() }
     const nickname = { width: 0, height: 0, getContext: () => context }
@@ -138,12 +146,22 @@ function captureCanvas(
   vi.stubGlobal('document', { createElement })
 
   function nextFrame(nextWidth: number, nextHeight: number, nextAnchors: number[]): void {
-    Object.assign(video, { videoWidth: nextWidth, videoHeight: nextHeight })
-    pixels = framePixels(nextWidth, nextHeight, nextAnchors)
+    frame = {
+      width: nextWidth,
+      height: nextHeight,
+      rgba: framePixels(nextWidth, nextHeight, nextAnchors)
+    }
     nextIsFrame = true
   }
 
-  return { video, getImageData, nicknames, nextFrame }
+  return {
+    get frame() {
+      return frame
+    },
+    getImageData,
+    nicknames,
+    nextFrame
+  }
 }
 
 it.each([
@@ -154,9 +172,9 @@ it.each([
   [2560, 1440],
   [3440, 1440],
   [3840, 2160]
-])('%i×%i 영상에서 관측한 1, 3번만 크롭하고 원본 크기와 전처리를 유지한다', (width, height) => {
+])('%i×%i 프레임에서 관측한 1, 3번만 크롭하고 원본 크기와 전처리를 유지한다', (width, height) => {
   const setup = captureCanvas(width, height, [42, 324])
-  const crops = capturePartyNicknameCrops(setup.video)
+  const crops = capturePartyNicknameCrops(setup.frame)
 
   expect(crops).toEqual([setup.nicknames[0], null, setup.nicknames[1], null])
   expect(setup.getImageData).toHaveBeenCalledWith(42, 10, 73, 16)
@@ -168,20 +186,20 @@ it.each([
 
 it('캡처 중 해상도와 프레임 위치가 바뀌면 새 좌표를 검출하고 미검출 뒤 다시 복구한다', () => {
   const setup = captureCanvas(1280, 720, [42])
-  expect(capturePartyNicknameCrops(setup.video)[0]).not.toBeNull()
+  expect(capturePartyNicknameCrops(setup.frame)[0]).not.toBeNull()
 
   setup.nextFrame(2560, 1440, [])
-  expect(capturePartyNicknameCrops(setup.video)).toEqual([null, null, null, null])
+  expect(capturePartyNicknameCrops(setup.frame)).toEqual([null, null, null, null])
 
   setup.nextFrame(2560, 1440, [190])
-  const crops = capturePartyNicknameCrops(setup.video)
+  const crops = capturePartyNicknameCrops(setup.frame)
   expect(crops).toEqual([null, setup.nicknames[1], null, null])
   expect(setup.getImageData).toHaveBeenLastCalledWith(190, 10, 73, 16)
 })
 
 it('HP, MP 띠가 이어져 슬롯을 판별할 수 없으면 OCR에 크롭을 넘기지 않는다', () => {
   const setup = captureCanvas(1920, 1080, [138, 237])
-  expect(capturePartyNicknameCrops(setup.video)).toEqual([null, null, null, null])
+  expect(capturePartyNicknameCrops(setup.frame)).toEqual([null, null, null, null])
   expect(setup.nicknames).toHaveLength(0)
 })
 
@@ -189,7 +207,7 @@ it('연결중 팝업으로 가려진 슬롯은 OCR과 얼굴 크롭에서 제외
   const setup = captureCanvas(1920, 1080, [42, 183, 324, 465], [183, 324, 465])
   const cropper = vi.fn<PartyPortraitCropper>(() => null)
 
-  const inputs = capturePartyRecognitionInputs(setup.video, cropper)
+  const inputs = capturePartyRecognitionInputs(setup.frame, cropper)
 
   expect(inputs).toEqual([
     { slot: 0, nickname: setup.nicknames[0], portrait: null },
@@ -199,7 +217,7 @@ it('연결중 팝업으로 가려진 슬롯은 OCR과 얼굴 크롭에서 제외
   ])
   expect(cropper).toHaveBeenCalledOnce()
   setup.nextFrame(1920, 1080, [42, 183, 324, 465])
-  expect(capturePartyRecognitionInputs(setup.video).every((entry) => entry?.portrait != null)).toBe(
+  expect(capturePartyRecognitionInputs(setup.frame).every((entry) => entry?.portrait != null)).toBe(
     true
   )
 })
@@ -207,57 +225,40 @@ it('연결중 팝업으로 가려진 슬롯은 OCR과 얼굴 크롭에서 제외
 it('기존 닉네임 전용 경로도 연결중 슬롯을 OCR 입력으로 보내지 않는다', () => {
   const setup = captureCanvas(1920, 1080, [42, 183, 324, 465], [183, 324, 465])
 
-  expect(capturePartyNicknameCrops(setup.video)).toEqual([setup.nicknames[0], null, null, null])
+  expect(capturePartyNicknameCrops(setup.frame)).toEqual([setup.nicknames[0], null, null, null])
 })
 
 it.each([
   [0, 0],
   [8193, 600],
   [8192, 8192]
-])('처리할 수 없는 %i×%i 영상은 Canvas를 할당하지 않는다', (width, height) => {
+])('처리할 수 없는 %i×%i 프레임은 Canvas를 할당하지 않는다', (width, height) => {
   const createElement = vi.fn()
   vi.stubGlobal('document', { createElement })
-  const video = { videoWidth: width, videoHeight: height } as HTMLVideoElement
+  const frame = { width, height, rgba: new Uint8Array(0) }
 
-  expect(capturePartyNicknameCrops(video)).toEqual([null, null, null, null])
+  expect(capturePartyNicknameCrops(frame)).toEqual([null, null, null, null])
   expect(createElement).not.toHaveBeenCalled()
 })
 
-/** 실제 GDI와 같이 원본 전체를 불투명하게 구성한다. */
-function nativePixels(): Uint8Array {
-  const rgba = new Uint8Array(framePixels(1280, 720, [42]))
-  for (let offset = 3; offset < rgba.length; offset += 4) {
-    rgba[offset] = 255
-  }
-
-  return rgba
-}
-
-it('공통 네이티브 캡처의 RGBA를 영상 변환 없이 크롭하고 원본은 바꾸지 않는다', () => {
+it('공통 네이티브 캡처의 RGBA를 크롭하고 원본은 바꾸지 않는다', () => {
   const setup = captureCanvas(1280, 720, [42])
-  const rgba = nativePixels()
-  const before = rgba.slice()
+  const before = setup.frame.rgba.slice()
 
-  const inputs = capturePartyRecognitionInputs({ width: 1280, height: 720, rgba })
+  const inputs = capturePartyRecognitionInputs(setup.frame)
 
   expect(inputs[0]?.nickname).toBe(setup.nicknames[0])
   expect(inputs[0]?.portrait).not.toBeNull()
   expect(inputs.slice(1)).toEqual([null, null, null])
-  expect(Buffer.compare(rgba, before)).toBe(0)
+  expect(Buffer.compare(setup.frame.rgba, before)).toBe(0)
 })
 
 it.each([
   { label: '닉네임', x: 42, y: 10 },
   { label: '얼굴', x: 20, y: 20 }
 ])('$label 영역이 가려진 슬롯은 OCR과 얼굴 비교에 전달하지 않는다', ({ x, y }) => {
-  captureCanvas(1280, 720, [42])
-  const rgba = nativePixels()
-  rgba[(y * 1280 + x) * 4 + 3] = 0
+  const setup = captureCanvas(1280, 720, [42])
+  setup.frame.rgba[(y * 1280 + x) * 4 + 3] = 0
 
-  expect(capturePartyRecognitionInputs({ width: 1280, height: 720, rgba })).toEqual([
-    null,
-    null,
-    null,
-    null
-  ])
+  expect(capturePartyRecognitionInputs(setup.frame)).toEqual([null, null, null, null])
 })
