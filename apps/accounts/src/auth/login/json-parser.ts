@@ -6,6 +6,7 @@ import type { LoginErrorDefinition } from '../../types/login.js'
 import type { LogoutErrorDefinition } from '../logout/errors.js'
 import type { RefreshErrorDefinition } from '../refresh/errors.js'
 import type { AccountErrorDefinition } from '../account/errors.js'
+import { recordAccessLogErrorCode } from '../../access-log.js'
 
 type AuthJsonErrorCatalogEntry =
   | LoginErrorDefinition
@@ -20,6 +21,7 @@ type AuthJsonErrorDefinition = Readonly<{
 }>
 
 export function jsonError(response: Response, definition: AuthJsonErrorDefinition): void {
+  recordAccessLogErrorCode(response, definition.code)
   response.status(definition.status).json({
     error: { code: definition.code, message: definition.message }
   })
