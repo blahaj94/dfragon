@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: desktop macOS and Windows credential adapters and isolated validation
-last-reviewed: 2026-09-15
+last-reviewed: 2026-10-10
 ---
 
 # Desktop credential store
@@ -82,6 +82,7 @@ Repository root에서 실행한다.
 ```sh
 pnpm --filter @dfragon/desktop exec vitest run src/backend/auth/credential-store/windows-credential-native.test.ts src/backend/auth/credential-store/windows-credential-store.test.ts src/backend/auth/windows-security-native.test.ts src/backend/auth/credential-store/macos-credential-store.test.ts src/backend/auth/credential-store/macos-credential-lifecycle.test.ts
 pnpm --filter @dfragon/desktop exec tsc --noEmit -p scripts/credential-store-native/tsconfig.json --composite false
+pnpm --filter @dfragon/desktop exec install-electron
 node apps/desktop/scripts/credential-store-native.mjs --prepare-only
 node apps/desktop/scripts/credential-store-native.mjs
 node apps/desktop/scripts/credential-store-native.mjs --fail-after-write
@@ -90,22 +91,22 @@ pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'
 
 전용 Vitest는 소유한 `mkdtemp` 아래 실제 Node IO에 실패, 지연만 주입하고 safeStorage는 합성 double을 사용한다. 파일/handle 정리, marker, 교체, 삭제 실패, marker 재확립 실패와 정상 재시작, 저장 중 취소, 늦은 응답, 새 writer 차단을 관찰한다. 초기 Red는 module 부재로 collection에 실패했으며 실제 assertion 통과는 Green evidence다. Marker 재확립 회귀는 별도 assertion 실패를 재현한 뒤 수정했다.
 
-Native runner의 `--prepare-only`는 bundle 생성, 정리만 하며 Electron/Keychain을 호출하지 않는다. 이 `.mjs` launcher의 실제 실행은 macOS 전용이다. 고유 시험 app name, profile을 만들고 exact Keychain service/account가 search list와 default Keychain에 없음을 먼저 확인한다. 첫 await 이전 `app.setName`으로 시험 identity를 고정하며 ready 이후에만 safeStorage를 호출한다. 서로 다른 네 process에서 합성 R0 저장, 재시작, R1 교체, marker 생성, 복호화 없는 재시작 정리를 검증한다. 현재 default가 바뀌면 진행을 중단한다. 실패 또는 30초 제한에 도달하면 child process group을 종료하며 OS prompt를 자동 승인하지 않는다.
+Electron 실행 파일은 의존성 설치 단계에서 받지 않으므로 native runner 전에 `install-electron`으로 준비한다. Native runner의 `--prepare-only`는 bundle 생성, 정리만 하며 Electron/Keychain을 호출하지 않는다. 이 `.mjs` launcher의 실제 실행은 macOS 전용이다. 고유 시험 app name, profile을 만들고 exact Keychain service/account가 search list와 default Keychain에 없음을 먼저 확인한다. Electron safeStorage는 key를 `<app name> Safe Storage` service의 `<app name> Key` account에 두므로 확인, 삭제도 이 account를 대상으로 한다. 첫 await 이전 `app.setName`으로 시험 identity를 고정하며 ready 이후에만 safeStorage를 호출한다. 서로 다른 네 process에서 합성 R0 저장, 재시작, R1 교체, marker 생성, 복호화 없는 재시작 정리를 검증한다. 현재 default가 바뀌면 진행을 중단한다. 실패 또는 30초 제한에 도달하면 child process group을 종료하며 OS prompt를 자동 승인하지 않는다.
 
 `--fail-after-write`는 별도 고유 identity에서 저장 직후 의도적으로 실패한다. 기대 결과는 exit 1, `injectedFailure:true`, `cleanupConfirmed:true`이며 정상 검증의 실패로 숨기지 않고 실패 후 정리 evidence로 구분한다.
 
-종료 후 이번 실행의 exact service/account만 기록한 Keychain에서 삭제하고 default, search list의 부재를 확인한다. 기본 Keychain, search list, ACL은 변경하지 않는다. Child process group과 profile/bundle의 종료, 부재를 확인하며 정리가 불명확하면 실패하고 local owner manifest를 남긴다. 비밀번호 조회 flag와 raw child/OS 오류 출력은 사용하지 않는다. 실제 실행 결과와 미실행 항목은 해당 PR의 evidence를 따른다.
+종료 후 이번 실행의 exact service/account만 기록한 Keychain에서 삭제하고 default, search list의 부재를 확인한다. Write가 성공한 뒤에는 삭제 전에 그 item을 실제로 찾은 경우만 정리로 인정하므로, 조회 account가 어긋나 item이 남는 경우를 정리 성공으로 보고하지 않는다. 기본 Keychain, search list, ACL은 변경하지 않는다. Child process group과 profile/bundle의 종료, 부재를 확인하며 정리가 불명확하면 실패하고 local owner manifest를 남긴다. 비밀번호 조회 flag와 raw child/OS 오류 출력은 사용하지 않는다. 실제 실행 결과와 미실행 항목은 해당 PR의 evidence를 따른다.
 
 공통 entry인 `scripts/credential-store-native/main.ts`는 Windows에서도 실제 Electron safeStorage와 Windows credential adapter를 사용한다. 승인된 격리 Windows 실행에서는 이 entry를 CJS로 bundle하고 `electron`, `koffi`, Node built-in을 external로 유지한다. 새 `DFRAGON-Credential-Test-<UUID>` 이름과 같은 basename의 새 절대 profile을 각각 `DFRAGON_CREDENTIAL_NATIVE_NAME`, `DFRAGON_CREDENTIAL_NATIVE_PROFILE`로 지정한다. 동일한 identity/profile에서 `DFRAGON_CREDENTIAL_NATIVE_PHASE`를 `write` → `restart` → `mark` → `recover`로 바꿔 별도 Electron process를 순서대로 실행한다. 각 process의 숫자 exit 0과 해당 phase의 성공 결과를 모두 확인하며, 실패한 profile을 재사용하거나 원본 실패를 덮어쓰지 않는다. Token, 암호문, OS 오류 원문은 출력하지 않는다.
 
 Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용하고 ready 이후 `sessionData`가 같은 profile인지 확인한다. 제품과 같은 기본 profile/store adapter를 사용하며 검증 완료 flag를 주입하지 않는다. 실제 암호화 대상은 고정 합성 token이며 실제 계정 credential을 사용하지 않는다. `recover`는 marker가 있을 때 암호화 availability 조회와 복호화가 모두 0회이고 기존 clear 후 credential directory가 비었는지 확인한다. Windows 실행 담당은 main과 소유 보조 process의 종료를 확인한 뒤에만 자신의 새 profile/bundle을 정리하며, 종료나 정리가 불명확하면 실패 자료를 보존한다.
 
-성공 phase는 `app.quit()`으로 정상 종료한다. 초기 startup 중 `app.exit()`은 message loop 준비 상태에 따라 즉시 process를 끝낼 수 있고, 다음 실행에 필요한 Windows `Local State` 저장을 생략할 수 있다. 실제 Windows 관측에서 즉시 종료 뒤 credential만 남아 복원에 실패했고, 정상 종료로 바꾼 뒤 별도 process에서 복원이 성공했다. 근거는 [Electron의 Exit/Shutdown](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser.cc)과 [Local State의 생성, 종료 시 저장](https://raw.githubusercontent.com/electron/electron/v39.8.10/shell/browser/browser_process_impl.cc)이다. 이 결과는 정상 process 종료, 복원 범위이며 강제 종료, 물리 정전 내구성, 실제 로그인 성공의 근거로 확대하지 않는다.
+성공 phase는 `app.quit()`으로 정상 종료한다. 초기 startup 중 `app.exit()`은 message loop 준비 상태에 따라 즉시 process를 끝낼 수 있고, 다음 실행에 필요한 Windows `Local State` 저장을 생략할 수 있다. 실제 Windows 관측에서 즉시 종료 뒤 credential만 남아 복원에 실패했고, 정상 종료로 바꾼 뒤 별도 process에서 복원이 성공했다. 근거는 [Electron의 Exit/Shutdown](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/browser.cc)과 [Local State의 생성, 종료 시 저장](https://raw.githubusercontent.com/electron/electron/v44.7.0/shell/browser/browser_process_impl.cc)이다. 이 결과는 정상 process 종료, 복원 범위이며 강제 종료, 물리 정전 내구성, 실제 로그인 성공의 근거로 확대하지 않는다.
 
 ## Bootstrap 연결과 실제 로그인 확인
 
 제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity, API, 복귀 주소는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 브라우저 인증, packaged app과 production 저장 검증은 별도 통합 범위다.
 
-확인한 고정 조합은 Electron **39.8.10**, Node **22.22.1**, libuv **1.51.0**이다. [Electron DEPS](https://raw.githubusercontent.com/electron/electron/v39.8.10/DEPS)와 설치 runtime을 대조했다. [Node의 libuv Apple 구현](https://raw.githubusercontent.com/nodejs/node/v22.22.1/deps/uv/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용한다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability, 전원 손실 보장을 증명하지 않는다.
+확인한 고정 조합은 Electron **44.7.0**, Node **24.21.0**, libuv **1.52.1**이다. [Electron DEPS](https://raw.githubusercontent.com/electron/electron/v44.7.0/DEPS), [Node의 libuv version](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/include/uv/version.h)과 설치 runtime을 대조했다. [Node의 libuv Apple 구현](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용하며, 이 순서는 이전 고정 조합(Electron 39.8.10, Node 22.22.1, libuv 1.51.0)과 같다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability, 전원 손실 보장을 증명하지 않는다.
 
 Native 합성 저장 성공도 Keychain 잠금/사용자 거절, 실제 서명, 공증, 다른 bundle, 업데이트/백업 복원 검증을 대체하지 않는다. 실제 확인한 정상 재실행 결과만 로그인 유지의 근거로 설명하며, 이 전체 시험 목록을 배포 조건으로 요구하지 않는다. 이 adapter는 OS profile rollback, 동일 user malware, physical erase를 보장하지 않는다.
