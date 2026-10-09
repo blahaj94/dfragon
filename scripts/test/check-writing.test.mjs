@@ -38,7 +38,6 @@ test('DFragon 표기, 식별자, 합니다체와 하세요체는 통과한다', 
       'DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.example.test',
       '__DFRAGON_DESKTOP_BUILD__, @dfragon/ui, dfragon://auth/callback, notices/DFRAGON-MODIFICATIONS.txt',
       '창 목록을 불러오지 못했습니다. 닉네임을 입력하세요. 다시 로그인해 주세요.',
-      '해주세요체가 아니라 띄어 쓴 요청형을 씁니다.',
       "confirm: '저장하시겠습니까?'",
       '필요한 값이 없습니다. 주요 항목과 개요, 해요체 설명',
       '측정 조건, 스킬, 데미지 · 2026-10-09 기준',
@@ -50,7 +49,7 @@ test('DFragon 표기, 식별자, 합니다체와 하세요체는 통과한다', 
   assert.match(result.stdout, /파일 1개/u)
 })
 
-test('옛 표기, 해요체 어미, 나열 가운뎃점을 경로, 줄 번호와 함께 보고하고 실패한다', async (t) => {
+test('옛 표기, 해요체 어미, 나열 가운뎃점, 붙여 쓴 요청형을 경로, 줄 번호와 함께 보고하고 실패한다', async (t) => {
   const result = await checkFixture(t, {
     'copy.tsx': [
       "const title = 'DFRAGON Desktop'",
@@ -61,7 +60,7 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점을 경로, 줄 번호와
       '"body": "타격 장면을 비교해보는 영상이에요."',
       '패스키가 있나요: 로그인했어요, 다시 시도하세요',
       '측정 조건·스킬·데미지를 확인하세요.',
-      '닉네임을 입력해주세요.',
+      '게임 창을 열어주세요.',
       '라이선스를 확인하세요.',
       ''
     ].join('\n')
