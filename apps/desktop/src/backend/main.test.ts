@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import type { BrowserWindowConstructorOptions } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { readDesktopChannel } from '../../build/channels'
+import { AUTH_AVAILABLE_ARGUMENT } from '../preload/common/types/auth'
 
 const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
 
@@ -631,7 +632,8 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
         sandbox: true,
         contextIsolation: true,
         nodeIntegration: false,
-        preload: expect.stringMatching(/[/\\]preload[/\\]index\.js$/)
+        preload: expect.stringMatching(/[/\\]preload[/\\]index\.js$/),
+        additionalArguments: [AUTH_AVAILABLE_ARGUMENT]
       })
     })
   )
@@ -1341,6 +1343,9 @@ it('profile owner의 auth bootstrap이 runtime을 만들지 않으면 비인증 
   expect(mocks.exit).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
+  // 인증 IPC가 없는 창의 preload는 인증 API를 노출하지 않아야 한다.
+  const options: BrowserWindowConstructorOptions = mocks.constructWindow.mock.calls[0][0]
+  expect(options.webPreferences?.additionalArguments ?? []).not.toContain(AUTH_AVAILABLE_ARGUMENT)
 })
 
 it('auth bootstrap fallback은 일반 second-instance만 활성화하고 protocol-like argv는 무시한다', async () => {

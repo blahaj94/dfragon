@@ -264,6 +264,23 @@ it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확�
   expect([...container.querySelectorAll('article')]).toEqual(cards)
 })
 
+it('로그인 설정이 없어 인증 API가 없으면 로그인 버튼 없이 카드와 테마를 표시한다', async () => {
+  vi.stubGlobal('auth', undefined)
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+
+  const header = container.querySelector('header')!
+  expect(header.querySelector('[aria-label="로그인"]')).toBeNull()
+  expect(header.textContent).not.toContain('로그인')
+  expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
+  expect(container.querySelectorAll('article')).toHaveLength(4)
+})
+
 it.each(['restorePaused', 'storageBlocked'] as const)(
   '%s에서 기존 복구 명령을 사용하고 카드를 유지한다',
   async (phase) => {
