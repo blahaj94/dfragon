@@ -8,24 +8,27 @@ export const styles = stylex.create({
     paddingBottom: 20,
     overflowWrap: 'anywhere'
   },
+  // SEED draws the focused field border with the neutral contrast stroke; the design uses border.focus.
+  search: { '--seed-color-stroke-neutral-contrast': colors.borderFocus },
   count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
   list: {
     listStyle: 'none',
     padding: 0,
     margin: 0,
     backgroundColor: colors.bgInset,
-    borderRadius: 8
+    borderRadius: 12
   },
   row: {
     display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     alignItems: 'center',
     width: '100%',
-    minHeight: 60,
+    minHeight: 48,
     height: 'auto',
     justifyContent: 'space-between',
     textAlign: 'left',
-    padding: '12px 16px',
+    paddingBlock: 4,
+    paddingInline: 12,
     gap: 12,
     color: colors.fgDefault,
     whiteSpace: 'normal'
@@ -33,7 +36,6 @@ export const styles = stylex.create({
   name: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
     flex: 1,
     minWidth: 0,
     overflowWrap: 'anywhere'
@@ -47,7 +49,7 @@ export const styles = stylex.create({
     overflowWrap: 'anywhere'
   },
   rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
-  document: { backgroundColor: colors.bgInset, borderRadius: 8, padding: 20, marginTop: 16 },
+  document: { backgroundColor: colors.bgInset, borderRadius: 12, padding: 16, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'inherit',

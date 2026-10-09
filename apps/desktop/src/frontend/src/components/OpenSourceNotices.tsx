@@ -70,6 +70,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
       </Typo.h4>
       <Typo.txtS {...stylex.props(styles.description)}>오픈소스와 글꼴 라이선스</Typo.txtS>
       <TextField
+        {...stylex.props(styles.search)}
         label={
           <Typo.txtS as="span" weight={700}>
             구성 요소 검색

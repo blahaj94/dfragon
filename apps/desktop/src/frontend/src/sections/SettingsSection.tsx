@@ -192,7 +192,7 @@ export function SettingsSection({
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">
               <Typo.caption {...stylex.props(styles.group)}>앱 정보</Typo.caption>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'versions' ? 'page' : undefined}
                 {...stylex.props(
@@ -201,12 +201,10 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('versions')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  버전 정보
-                </Typo.txtS>
+                <Typo.txtM as="span">버전 정보</Typo.txtM>
               </ActionButton>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'licenses' ? 'page' : undefined}
                 {...stylex.props(
@@ -215,12 +213,10 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('licenses')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  라이선스 사용고지
-                </Typo.txtS>
+                <Typo.txtM as="span">라이선스 사용고지</Typo.txtM>
               </ActionButton>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'developer' ? 'page' : undefined}
                 {...stylex.props(
@@ -229,9 +225,7 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('developer')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  개발자 모드
-                </Typo.txtS>
+                <Typo.txtM as="span">개발자 모드</Typo.txtM>
               </ActionButton>
               <div {...stylex.props(styles.appName)}>
                 <img src={brandIcon} width={32} height={32} alt="" />
