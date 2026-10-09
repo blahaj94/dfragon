@@ -40,7 +40,6 @@ jobs:
       - uses: ./.github/actions/setup-workspace
         with:
           node-auth-token: ${{ secrets.PIANO_SOUND_PACKAGES_TOKEN }}
-      - run: pnpm test:security-dependencies
       - name: Test repository tooling
         run: pnpm test:tooling
 

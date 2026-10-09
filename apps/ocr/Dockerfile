@@ -6,7 +6,6 @@ RUN npm install --global pnpm@11.23.0 \
     && npm config set '@blahaj94:registry' 'https://npm.pkg.github.com' --location=user \
     && npm config set '//npm.pkg.github.com/:_authToken' '${NODE_AUTH_TOKEN}' --location=user
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches patches
 COPY apps/ocr/package.json apps/ocr/package.json
 COPY packages/lib/package.json packages/lib/package.json
 COPY packages/ui/package.json packages/ui/package.json

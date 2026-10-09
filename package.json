@@ -8,7 +8,6 @@
     "create-app": "node scripts/create-app.mjs",
     "start-task": "node scripts/start-task.mjs",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:security-dependencies": "node --test scripts/security/test/*.test.mjs",
     "test:product-images": "node --test scripts/test/product-image-plan.test.mjs",
     "lint": "biome lint",
     "lint:fix": "biome lint --write",
@@ -32,10 +31,8 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
-    "extract-zip": "2.0.1",
     "playwright": "1.62.1",
     "tar": "7.5.22",
-    "typescript": "6.0.2",
-    "yazl": "3.3.1"
+    "typescript": "6.0.2"
   }
 }

@@ -14,7 +14,7 @@ const commonFiles = new Set([
   'scripts/product-image-plan.mjs',
   'scripts/server-build-info.mjs'
 ])
-const commonDirectories = ['packages/lib/', 'packages/licenses/', 'patches/']
+const commonDirectories = ['packages/lib/', 'packages/licenses/']
 
 export function selectServices(changedPaths) {
   const selected = new Set()
