@@ -1,7 +1,10 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
+import { Select } from '@seed-design/react'
 import { paginate } from '@dfragon/lib/utils/pagination'
+import { CheckIcon } from '../components/CheckIcon'
+import { ChevronDownIcon } from '../components/ChevronDownIcon'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
@@ -255,12 +258,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtS {...stylex.props(styles.muted)}>게임 중 수집, 정답은 나중에 입력</Typo.txtS>
         </div>
         <ActionButton
-          size="small"
+          size="medium"
           variant="neutralWeak"
+          {...stylex.props(styles.secondaryButton)}
           disabled={dataset.saving}
           onClick={requestClose}
         >
-          일반 화면으로 돌아가기
+          <Typo.txtM as="span" weight={700}>
+            일반 화면으로 돌아가기
+          </Typo.txtM>
         </ActionButton>
       </header>
 
@@ -268,7 +274,12 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         <div role="alert" {...stylex.props(styles.panel)}>
           <Typo.txtS>저장하지 않은 정답 입력이 있습니다.</Typo.txtS>
           <div {...stylex.props(styles.actions)}>
-            <ActionButton size="small" variant="neutralWeak" onClick={() => setConfirmClose(false)}>
+            <ActionButton
+              size="small"
+              variant="neutralWeak"
+              {...stylex.props(styles.secondaryButton)}
+              onClick={() => setConfirmClose(false)}
+            >
               계속 작성
             </ActionButton>
             <ActionButton size="small" variant="ghost" onClick={onClose}>
@@ -285,13 +296,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           aria-selected={activeTab === 'collection'}
           aria-controls="developer-collection-panel"
           tabIndex={activeTab === 'collection' ? 0 : -1}
-          size="small"
+          size="medium"
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'collection' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('collection')}
         >
-          이미지 수집
+          <Typo.txtM as="span" weight={700}>
+            이미지 수집
+          </Typo.txtM>
         </ActionButton>
         <ActionButton
           id="developer-participants-tab"
@@ -299,13 +312,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           aria-selected={activeTab === 'participants'}
           aria-controls="developer-participants-panel"
           tabIndex={activeTab === 'participants' ? 0 : -1}
-          size="small"
+          size="medium"
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'participants' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('participants')}
         >
-          파티원창 크롭
+          <Typo.txtM as="span" weight={700}>
+            파티원창 크롭
+          </Typo.txtM>
         </ActionButton>
         <ActionButton
           id="developer-raid-tab"
@@ -313,13 +328,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           aria-selected={activeTab === 'raid'}
           aria-controls="developer-raid-panel"
           tabIndex={activeTab === 'raid' ? 0 : -1}
-          size="small"
+          size="medium"
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'raid' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('raid')}
         >
-          공대원창 크롭
+          <Typo.txtM as="span" weight={700}>
+            공대원창 크롭
+          </Typo.txtM>
         </ActionButton>
         <ActionButton
           id="developer-labeling-tab"
@@ -327,7 +344,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           aria-selected={activeTab === 'labeling'}
           aria-controls="developer-labeling-panel"
           tabIndex={activeTab === 'labeling' ? 0 : -1}
-          size="small"
+          size="medium"
           variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'labeling' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
@@ -336,7 +353,9 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             setNotice('')
           }}
         >
-          정답 입력
+          <Typo.txtM as="span" weight={700}>
+            정답 입력
+          </Typo.txtM>
         </ActionButton>
       </div>
       <div aria-hidden="true" {...stylex.props(styles.separator)} />
@@ -344,22 +363,46 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
       <div {...stylex.props(styles.tabPanel)}>
         {activeTab !== 'labeling' && (
           <div {...stylex.props(styles.captureInterval)}>
-            <Typo.txtS as="label" htmlFor="developer-capture-interval">
-              캡처 주기
-            </Typo.txtS>
-            <select
-              id="developer-capture-interval"
-              aria-label="캡처 주기"
-              {...stylex.props(styles.captureIntervalInput)}
-              value={previewIntervalMs}
-              onChange={(event) => setPreviewIntervalMs(Number(event.target.value))}
+            <Typo.txtS as="span">캡처 주기</Typo.txtS>
+            <Select.Root
+              size="medium"
+              value={[String(previewIntervalMs)]}
+              onValueChange={(values) => {
+                if (values[0] != null) {
+                  setPreviewIntervalMs(Number(values[0]))
+                }
+              }}
+              placement="bottom-start"
+              strategy="fixed"
+              gutter={4}
             >
-              {DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => (
-                <option key={intervalMs} value={intervalMs}>
-                  {intervalMs / 1000}초
-                </option>
-              ))}
-            </select>
+              <Select.Trigger
+                aria-label="캡처 주기"
+                {...stylex.props(styles.captureIntervalTrigger)}
+              >
+                <Select.Value />
+                <Select.SuffixIcon
+                  svg={<ChevronDownIcon />}
+                  {...stylex.props(styles.captureIntervalChevron)}
+                />
+              </Select.Trigger>
+              <Select.Positioner>
+                <Select.Content aria-label="캡처 주기">
+                  <Select.ScrollArea>
+                    {DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => (
+                      <Select.Item
+                        key={intervalMs}
+                        value={String(intervalMs)}
+                        label={`${intervalMs / 1000}초`}
+                      >
+                        <Select.ItemLabel />
+                        <Select.ItemIndicator selected={<CheckIcon />} />
+                      </Select.Item>
+                    ))}
+                  </Select.ScrollArea>
+                </Select.Content>
+              </Select.Positioner>
+            </Select.Root>
           </div>
         )}
         <DeveloperPartyCollectionSection
@@ -401,6 +444,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   <ActionButton
                     size="small"
                     variant="neutralWeak"
+                    {...stylex.props(styles.secondaryButton)}
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
                       setRemotePage(0)
@@ -522,7 +566,12 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     {readingRemote ? '정답 완료 자료 평가' : '전체 평가'}
                   </ActionButton>
                   {evaluation.running && (
-                    <ActionButton size="small" variant="neutralWeak" onClick={evaluation.cancel}>
+                    <ActionButton
+                      size="small"
+                      variant="neutralWeak"
+                      {...stylex.props(styles.secondaryButton)}
+                      onClick={evaluation.cancel}
+                    >
                       평가 중지
                     </ActionButton>
                   )}
@@ -569,6 +618,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
+                      {...stylex.props(styles.secondaryButton)}
                       disabled={!canEvaluateSelected}
                       onClick={() => {
                         if (canEvaluateSelected) {

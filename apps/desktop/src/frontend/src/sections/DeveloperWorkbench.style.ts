@@ -21,14 +21,12 @@ export const styles = stylex.create({
   },
   heading: { display: 'flex', flexDirection: 'column', gap: 4 },
   muted: { color: colors.fgMuted },
-  tabs: { display: 'flex', flexWrap: 'wrap', gap: 8, minHeight: 40 },
+  tabs: { display: 'flex', flexWrap: 'wrap', minHeight: 40 },
+  // Design Tab: label width with 12px sides, txtM 700, and a 2px bg.brand.solid underline
+  // sitting on the tab bar line.
   tab: {
     minWidth: 0,
-    width: {
-      default: 'min(186px, calc((100% - 24px) / 4))',
-      '@media (max-width: 600px)': 'calc((100% - 8px) / 2)'
-    },
-    height: 40,
+    paddingInline: 12,
     borderRadius: 0,
     borderBottomWidth: 2,
     borderBottomStyle: 'solid',
@@ -36,8 +34,8 @@ export const styles = stylex.create({
     color: colors.fgSubtle
   },
   tabSelected: { borderBottomColor: colors.bgBrandSolid, color: colors.fgDefault },
-  separator: { width: '100%', height: 1, backgroundColor: colors.borderDefault, marginTop: 16 },
-  tabPanel: { marginTop: 20, minWidth: 0 },
+  separator: { width: '100%', height: 1, backgroundColor: colors.borderDefault },
+  tabPanel: { marginTop: 24, minWidth: 0 },
   captureInterval: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -45,22 +43,24 @@ export const styles = stylex.create({
     gap: 8,
     marginBottom: 16
   },
-  captureIntervalInput: {
-    minHeight: 32,
-    padding: '4px 8px',
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 6,
-    backgroundColor: colors.bgControl,
+  // Design SelectTrigger: 160 wide on bg.control with a fg.subtle chevron and a 2px
+  // border.focus ring while open. SEED medium already gives the 40px height and 8px radius.
+  captureIntervalTrigger: {
+    width: 160,
+    boxShadow: 'none',
+    backgroundColor: { default: colors.bgControl, ':hover': colors.bgControlHover },
     color: colors.fgDefault,
-    font: 'inherit'
+    ':is([data-open])': { boxShadow: `inset 0 0 0 2px ${colors.borderFocus}` }
   },
+  captureIntervalChevron: { color: colors.fgSubtle },
   panel: {
     display: 'flex',
     flexDirection: 'column',
     gap: 12,
     padding: 16,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderDefault,
     borderRadius: 12,
     backgroundColor: colors.bgSurface,
     minWidth: 0
@@ -79,5 +79,14 @@ export const styles = stylex.create({
   evaluationSummary: { cursor: 'pointer', padding: '14px 16px', fontWeight: 700 },
   evaluationBody: { display: 'flex', flexDirection: 'column', gap: 12, padding: '0 16px 16px' },
   evaluationSummaryGrid: { display: 'flex', flexWrap: 'wrap', gap: '8px 20px' },
-  evaluationResult: { display: 'flex', flexDirection: 'column', gap: 8, overflowWrap: 'anywhere' }
+  evaluationResult: { display: 'flex', flexDirection: 'column', gap: 8, overflowWrap: 'anywhere' },
+  // Design secondary button: bg.control. SEED neutralWeak uses the gray step of bg.canvas in
+  // light mode, so the button would disappear on the canvas.
+  secondaryButton: {
+    backgroundColor: {
+      default: colors.bgControl,
+      ':hover:not(:disabled)': colors.bgControlHover,
+      ':disabled': 'var(--seed-color-bg-disabled)'
+    }
+  }
 })
