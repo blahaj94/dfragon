@@ -7,13 +7,13 @@ export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       {...props}
     >
-      <rect x="3" y="4" width="18" height="13" rx="2" />
-      <path d="M8 21h8m-4-4v4" />
+      <rect width="20" height="14" x="2" y="3" rx="2" />
+      <path d="M8 21h8M12 17v4" />
     </svg>
   )
 }

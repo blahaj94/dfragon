@@ -5,11 +5,11 @@ export const styles = stylex.create({
   trigger: {
     display: 'flex',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     width: '100%',
-    height: 44,
+    height: 40,
     paddingInline: 12,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderStyle: 'solid',
     boxSizing: 'border-box',
@@ -34,11 +34,11 @@ export const styles = stylex.create({
     whiteSpace: 'nowrap'
   },
   muted: { color: colors.fgMuted },
-  icon: { flexShrink: 0, width: 20, height: 20 },
+  icon: { flexShrink: 0, width: 24, height: 24 },
   chevron: {
     flexShrink: 0,
-    width: 16,
-    height: 16,
+    width: 24,
+    height: 24,
     color: colors.fgSubtle,
     transition: 'transform 140ms ease',
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
@@ -48,7 +48,7 @@ export const styles = stylex.create({
   content: {
     width: 'var(--seed-menu-reference-width)',
     maxWidth: 'calc(100vw - 16px)',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderStyle: 'solid',
     boxSizing: 'border-box',
@@ -94,8 +94,8 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: 8,
     backgroundColor: colors.bgControl,
     color: colors.fgMuted
@@ -110,9 +110,10 @@ export const styles = stylex.create({
   },
   selectedLabel: { color: colors.fgBrand },
   description: { color: colors.fgMuted },
-  check: { width: 20, height: 20, flexShrink: 0, color: colors.fgBrand },
+  check: { width: 16, height: 16, flexShrink: 0, color: colors.fgBrand },
   notice: { padding: '4px 8px 12px', color: colors.fgMuted },
   noticeTitle: { paddingBottom: 6, color: colors.fgDefault },
   divider: { height: 1, margin: '2px 8px', backgroundColor: colors.borderDefault, flexShrink: 0 },
-  refresh: { minHeight: 36, color: colors.fgMuted }
+  refresh: { minHeight: 36, gap: 8, color: colors.fgMuted },
+  refreshIcon: { flexShrink: 0, width: 16, height: 16 }
 })

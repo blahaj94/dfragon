@@ -151,7 +151,7 @@ export function CaptureSourceSelect({
                 onClick={onRefresh}
                 {...stylex.props(styles.option, styles.refresh)}
               >
-                <RefreshIcon {...stylex.props(styles.icon)} />
+                <RefreshIcon {...stylex.props(styles.refreshIcon)} />
                 <Typo.caption>창 목록 새로고침</Typo.caption>
               </Menu.Item>
             </Menu.ScrollArea>
