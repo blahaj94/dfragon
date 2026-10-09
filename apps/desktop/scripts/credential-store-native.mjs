@@ -174,9 +174,21 @@ async function defaultKeychain() {
   return JSON.parse(result.stdout.trim())
 }
 
+// 고정한 Electron 44.7.0의 macOS safeStorage는 key를 `<app name> Safe Storage` service의 `<app name> Key` account에 둔다.
+/** @returns {string} */
+function safeStorageAccount(appName) {
+  return `${appName} Key`
+}
+
 /** @returns {Promise<boolean>} */
 async function itemExists(appName, keychain) {
-  const args = ['find-generic-password', '-s', `${appName} Safe Storage`, '-a', appName]
+  const args = [
+    'find-generic-password',
+    '-s',
+    `${appName} Safe Storage`,
+    '-a',
+    safeStorageAccount(appName)
+  ]
   const hasKeychain = keychain != null
   if (hasKeychain) {
     args.push(keychain)
@@ -203,7 +215,7 @@ async function removeOwnedItem(appName, keychain) {
       '-s',
       `${appName} Safe Storage`,
       '-a',
-      appName,
+      safeStorageAccount(appName),
       keychain
     ])
     wasDeleted = result.code === 0
@@ -239,6 +251,13 @@ async function cleanupOwnedProfile() {
   }
 
   if (mayOwnItem) {
+    // Write가 성공했다면 Electron이 만든 item을 실제로 찾아 지운 경우만 정리로 인정한다.
+    // 조회할 account가 어긋나면 item을 남긴 채 부재를 정리 성공으로 볼 수 있다.
+    const hasWrittenKey = phaseResults.length > 0
+    const isWrittenKeyMissing = hasWrittenKey && !(await itemExists(appName, keychain))
+    if (isWrittenKeyMissing) {
+      throw new Error('Owned Keychain item was not observed before cleanup.')
+    }
     await removeOwnedItem(appName, keychain)
     const stillHasSameDefault = (await defaultKeychain()) === keychain
     const hasStableDefault = stillHasSameDefault && !defaultChanged
