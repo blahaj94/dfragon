@@ -17,7 +17,9 @@ export const DIAGNOSTIC_MESSAGES = {
   RENDERER_ERROR: '화면 실행 중 오류가 발생했습니다.',
   RENDERER_REJECTION: '화면의 비동기 작업 중 오류가 발생했습니다.',
   RENDERER_PROCESS_GONE: '화면 프로세스가 종료되었습니다.',
-  MAIN_PROCESS_FAILED: '앱의 메인 프로세스에서 오류가 발생했습니다.'
+  MAIN_PROCESS_FAILED: '앱의 메인 프로세스에서 오류가 발생했습니다.',
+  UPDATE_CHECK_FAILED: '새 버전을 확인하지 못했습니다.',
+  UPDATE_RELEASE_OPEN_FAILED: 'Release 페이지를 열지 못했습니다.'
 } as const
 
 export type DiagnosticCode = keyof typeof DIAGNOSTIC_MESSAGES

@@ -9,6 +9,7 @@ declare global {
     desktopShortcut: typeof import('./api/desktop-shortcut')
     ocrCollection: typeof import('./api/ocr-collection')
     diagnostics: typeof import('./api/diagnostics')
+    updateNotice: typeof import('./api/update-notice')
   }
 }
 

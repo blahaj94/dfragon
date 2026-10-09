@@ -40,6 +40,16 @@ export function readAppAuthConfig(application: {
   })
 }
 
+/** main bundle에 넣은 채널 이름. 개발 실행과 채널 없는 빌드는 null이다. */
+export function readAppChannelName(): string | null {
+  const channel = readBundledChannel()
+  if (channel == null) {
+    return null
+  }
+
+  return channel.name
+}
+
 /** Public search configuration does not require a configured login provider or credential store. */
 export function readAppApiOrigin(): string | null {
   const channel = readBundledChannel()

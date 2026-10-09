@@ -11,6 +11,8 @@ import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
 import { useDeveloperMode } from './hooks/useDeveloperMode'
+import { useUpdateNotice } from './hooks/useUpdateNotice'
+import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import brandIcon from '../../../resources/brand.png'
 import { characterSlotNotice, toCharacterCard } from './lib/character-card'
@@ -19,6 +21,7 @@ function App(): React.JSX.Element {
   const { light } = useColorTheme()
   const developerMode = useDeveloperMode()
   const capture = usePartyCapture({ identifyCharacters: true })
+  const updateNotice = useUpdateNotice()
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
   let captureNotice = ''
   if (capture.search.connectionFailed) {
@@ -52,6 +55,14 @@ function App(): React.JSX.Element {
   return (
     <main {...stylex.props(styles.app, light && lightTheme)}>
       <div hidden={showDeveloperWorkbench}>
+        {updateNotice.notice != null && (
+          <UpdateNotice
+            tag={updateNotice.notice.tag}
+            endsOcrCollection={updateNotice.notice.endsOcrCollection}
+            onOpenRelease={updateNotice.openRelease}
+            onDismiss={updateNotice.dismiss}
+          />
+        )}
         <PartyPage
           resetKey={String(capture.round)}
           slots={capture.search.slots.map((slot) => slot.state)}

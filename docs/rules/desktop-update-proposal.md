@@ -1,16 +1,16 @@
 ---
 type: rule
-status: proposed
-scope: apps/desktop update notification and automatic update for the Windows distribution channel
+status: active
+scope: apps/desktop new version notice for the Windows distribution channel; automatic update remains a proposal
 last-reviewed: 2026-10-10
 rationale: 코드 서명 없이 운영하는 동안 사용자가 새 버전을 놓치지 않게 하되, 서명 없는 자동 설치가 배포 경로 침해를 모든 사용자에게 퍼뜨리는 위험은 피한다.
-evidence: "Issue #632 결정 항목(https://github.com/blahaj94/dfragon/issues/632) ; electron-updater 6.8.9 npm package, 저장소의 electron-builder 26.15.3, electron-builder 저장소 master branch(미배포) source와 SignPath Foundation 약관 확인(2026-10-10)"
-review-after: 설치형 배포 시작, 코드 서명 방식 결정, electron-updater나 electron-builder major 갱신 전
+evidence: "Issue #632 결정 항목(https://github.com/blahaj94/dfragon/issues/632)과 1단계 구현 결정 ; electron-updater 6.8.9 npm package, 저장소의 electron-builder 26.15.3, electron-builder 저장소 master branch(미배포) source와 SignPath Foundation 약관 확인(2026-10-10) ; GitHub releases.atom 응답 확인(2026-10-10)"
+review-after: 설치형 배포 시작, 코드 서명 방식 결정, Release tag 규칙이나 GitHub feed 형식 변경, electron-updater나 electron-builder major 갱신 전
 ---
 
-# Desktop 업데이트 제안
+# Desktop 새 버전 알림과 업데이트 제안
 
-이 문서는 채택 전 제안이다. merge는 설계 기록을 남기는 것이며, 아래 1단계를 구현하기로 정하는 PR에서 status와 채택 범위를 바꾼다. 이 문서는 현재 배포, 빌드, 앱 동작을 바꾸지 않는다.
+[1단계: 새 버전 알림](#1단계-새-버전-알림)은 채택해 구현한 제품 계약이다. 자동 설치 선택지, [포터블에서 설치형으로 옮기기](#포터블에서-설치형으로-옮기기), [자동 설치를 고를 때 정할 것](#자동-설치를-고를-때-정할-것)은 채택 전 제안이며, 자동 설치를 정하는 PR에서 채택 범위를 다시 바꾼다. 앱은 아직 업데이트를 내려받거나 설치하지 않는다.
 
 ## 전제
 
@@ -31,6 +31,7 @@ npm에 배포된 electron-updater 6.8.9와 저장소의 electron-builder 26.15.3
 - 6.8.9는 `releases.atom`의 게시 순서에서 처음 맞는 항목을 고른다. 그래서 더 높은 alpha 뒤에 낮은 정식 hotfix를 게시하면 그 hotfix가 먼저 걸리고, 현재보다 낮은 버전은 설치하지 않으므로 alpha 사용자가 더 높은 alpha를 받지 못할 수 있다. master는 semver로 가장 높은 후보를 고르도록 바뀌었다.
 - 단계적 배포는 update 정보 파일의 `stagingPercentage`와 userData의 `.updaterId`로 정한다. 잘못된 버전을 되돌리려면 더 높은 버전을 배포한다.
 - 사용자별 NSIS 설치는 권한 상승 없이 설치된다. 앱은 `requireAdministrator`로 실행하므로 업데이트 뒤 재실행할 때 UAC를 다시 묻는다.
+- GitHub `releases.atom`은 인증 없이 받을 수 있고 최근 Release 10개를 게시 순서로 담는다. 항목마다 첫 link가 `/releases/tag/<tag>` 형식의 Release 페이지이고, Release note는 escape한 HTML로 들어 있다(2026-10-10, Release 12개 가운데 10개 확인).
 - 서명 없는 파일의 SmartScreen 평판은 파일 hash마다 새로 쌓인다. 앱이 직접 내려받은 파일에는 Mark of the Web이 없어 SmartScreen 검사를 건너뛸 가능성이 크지만 실제로 확인하지 않았다.
 
 ## 선택지
@@ -54,19 +55,21 @@ D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게
 
 ## 권장안
 
-1단계로 A를 구현한다. 서명 없이도 지금의 신뢰 모델을 바꾸지 않고, 포터블 사용자도 새 버전을 알 수 있다. 자동 설치는 설치형 사용자가 생기고 필요가 분명해질 때 C 또는 D로 다시 정한다. B는 권장하지 않는다.
+1단계로 A를 채택해 구현했다. 서명 없이도 지금의 신뢰 모델을 바꾸지 않고, 포터블 사용자도 새 버전을 알 수 있다. 자동 설치는 설치형 사용자가 생기고 필요가 분명해질 때 C 또는 D로 다시 정한다. B는 권장하지 않는다.
 
 ## 1단계: 새 버전 알림
 
 - 대상: 배포 채널(`distribution`) 빌드만 확인한다. test, development 채널과 채널 없는 실행은 확인하지 않는다.
 - 시점: 앱 시작 뒤 한 번, 이후 6시간마다 확인한다. 실패하면 다음 주기에 다시 시도한다.
 - 방법: main process가 `https://github.com/blahaj94/dfragon/releases.atom`을 받아 각 항목의 tag를 semver로 해석한다. 토큰과 GitHub REST API를 쓰지 않는다. Release의 Pre-release 표시는 보지 않고 tag의 semver로 판단한다. 지금은 모든 Release가 Pre-release라 `/releases/latest`를 쓸 수 없다.
+- 범위: feed에 없는 오래된 Release는 후보가 되지 않는다. 새 정식 Release 뒤에 다른 Release가 10개 넘게 게시되면 정식 버전 사용자는 그 정식 Release를 알림으로 받지 못한다.
 - 후보: 현재 버전이 정식이면 정식, beta면 beta와 정식, alpha면 alpha, beta, 정식 중에서 현재보다 높고 semver로 가장 높은 버전 하나를 알린다. alpha, beta 사용자의 후보를 고르는 방식은 electron-updater 6.8.9의 게시 순서 규칙이 아니라 master의 semver 규칙과 같다. 정식 버전 사용자에게는 electron-updater가 Pre-release 표시를 기준으로 `/releases/latest`를 보는 것과 달리, 1단계 알림은 Pre-release 표시를 보지 않고 tag의 semver로 판단한다. `v<semver>` 형식이 아닌 tag와 alpha, beta가 아닌 suffix는 무시한다.
-- 표시: 카드 화면 상단에 새 버전 한 줄과 **Release 열기** 버튼을 보인다. 버튼은 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 형식의 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다.
+- 표시: 카드 화면 상단에 새 버전 한 줄과 **Release 열기** 버튼을 보인다. 버튼은 지금 알리는 tag의 `https://github.com/blahaj94/dfragon/releases/tag/<tag>` 주소만 `shell.openExternal`로 연다. 알림을 닫으면 앱을 다시 시작할 때까지 같은 버전을 다시 알리지 않는다. 알림 상태는 main process가 보관하므로 창을 다시 만들어도 유지된다.
 - OCR 자료 수집: alpha 빌드에서 beta나 정식 버전을 알릴 때는 그 버전으로 옮기면 자료 수집이 꺼진다는 안내를 함께 보인다.
-- 실패 처리: 네트워크, 파싱 실패는 화면에 보이지 않고 기존 진단 기록에 고정 코드만 남긴다. 응답 크기와 대기 시간에 상한을 둔다.
-- 개인정보: github.com에 IP와 User-Agent가 전달된다. 그 밖의 정보는 보내지 않는다.
+- 실패 처리: 네트워크, 파싱 실패는 화면에 보이지 않고 기존 진단 기록에 `UPDATE_CHECK_FAILED`만 남긴다. 확인에 실패해도 이전 알림은 유지한다. Release 페이지를 열지 못하면 `UPDATE_RELEASE_OPEN_FAILED`를 남긴다. 응답 크기와 대기 시간에 상한을 둔다.
+- 개인정보: github.com에 IP와 User-Agent가 전달된다. 그 밖의 정보는 보내지 않는다. 언어 header는 사용자 설정 대신 고정값 `en-US`를 보내고, 나머지 header도 사용자와 관계없는 고정값이다(2026-10-10, Electron 44.7.0 session fetch의 요청 header 확인).
 - 검증: atom 파싱, 후보 규칙, 주소 allowlist의 단위 테스트와 실제 Release 목록으로 확인한다.
+- 구현: 확인 주기, 판정, IPC는 `apps/desktop/src/backend/update-notice/`, 화면은 `apps/desktop/src/frontend/src/components/UpdateNotice.tsx`에 있다.
 
 ## 포터블에서 설치형으로 옮기기
 
@@ -89,4 +92,4 @@ D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게
 
 ## 바꾸지 않는 것
 
-이 제안은 승인된 배포 identity, 복귀 주소, Release workflow와 현재 앱 동작을 바꾸지 않는다.
+1단계 알림과 이 제안은 승인된 배포 identity, 복귀 주소, Release workflow를 바꾸지 않는다. 자동 설치를 고르기 전까지 앱은 Release 파일을 내려받거나 설치하지 않는다.
