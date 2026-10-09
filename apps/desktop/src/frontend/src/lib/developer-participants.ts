@@ -11,7 +11,7 @@ export function getParticipantPreviewMessage(
   const windowName = kind === 'raid' ? '공대원창' : '파티원창'
   if (code === DEVELOPER_ERROR_CODES.GAME_NOT_FOUND) {
     return {
-      title: '던전앤파이터를 실행해주세요.',
+      title: '던전앤파이터를 실행해 주세요.',
       detail: '게임 창을 찾으면 미리보기를 시작합니다.'
     }
   }
@@ -30,7 +30,7 @@ export function getParticipantPreviewMessage(
   if (code === DEVELOPER_ERROR_CODES.PARTY_SLOTS_NOT_FOUND) {
     return {
       title: '저장할 닉네임이 없습니다.',
-      detail: '참가자가 있는지와 저장 선택을 확인해주세요.'
+      detail: '참가자가 있는지와 저장 선택을 확인해 주세요.'
     }
   }
 
@@ -43,8 +43,8 @@ export function getParticipantPreviewMessage(
     const title = `${windowName}이 잘 보이게 해주세요.`
     const detail =
       kind === 'raid'
-        ? '공대 상세 창 전체가 가려지지 않았는지 확인해주세요. 창이 여러 개 보이면 하나만 남겨주세요.'
-        : '파티참가인원 창 전체가 가려지지 않았는지 확인해주세요.'
+        ? '공대 상세 창 전체가 가려지지 않았는지 확인해 주세요. 창이 여러 개 보이면 하나만 남겨주세요.'
+        : '파티참가인원 창 전체가 가려지지 않았는지 확인해 주세요.'
 
     return { title, detail }
   }
@@ -55,7 +55,7 @@ export function getParticipantPreviewMessage(
   ) {
     return {
       title: '이미지를 저장하지 못했습니다.',
-      detail: '저장소를 확인한 뒤 게임에서 Print Screen 키로 다시 시도해주세요.'
+      detail: '저장소를 확인한 뒤 게임에서 Print Screen 키로 다시 시도해 주세요.'
     }
   }
 

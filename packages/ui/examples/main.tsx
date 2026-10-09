@@ -83,7 +83,7 @@ function Examples() {
           <TextField
             label="Invalid 예시"
             invalid
-            errorMessage="이름을 입력해주세요."
+            errorMessage="이름을 입력해 주세요."
             description="오류와 설명의 연결을 확인합니다."
           >
             <TextFieldInput />

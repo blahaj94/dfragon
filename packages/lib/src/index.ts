@@ -21,7 +21,7 @@ export function validateDFNickname(
   options: DFNicknameValidationOptions = {}
 ): NicknameValidationResult {
   if (nickname.length === 0 || nickname.trim().length === 0) {
-    return { isValid: false, reason: '닉네임을 입력해주세요.' }
+    return { isValid: false, reason: '닉네임을 입력해 주세요.' }
   }
 
   if (whitespace.test(nickname)) {
