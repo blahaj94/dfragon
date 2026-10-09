@@ -7,8 +7,7 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     backgroundColor: colors.background,
     color: colors.text,
-    padding: '16px 24px',
-    fontFamily: 'NanumSquareNeo, sans-serif'
+    padding: '16px 24px'
   },
   footer: {
     display: 'flex',

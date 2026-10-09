@@ -45,7 +45,7 @@ export function collectDesktopCatalog({
       documents: [document(join(noticeRoot, 'desktop'), 'LUCIDE-LICENSE')]
     },
     {
-      name: 'NanumSquare Neo',
+      name: 'Pretendard',
       version: '',
       license: 'OFL-1.1',
       documents: [document(join(noticeRoot, 'desktop'), 'FONT-LICENSE')]

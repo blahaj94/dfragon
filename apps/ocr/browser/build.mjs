@@ -41,7 +41,7 @@ await writeFile(
         `${entry.name}@${entry.version}\n${entry.documents.map((document) => `${document.name}\n${document.text}`).join('\n\n')}`
     )
     .join('\n\n--------------------\n\n') +
-    '\n\nNanumSquare Neo\n' +
+    '\n\nPretendard\n' +
     (await readFile(
       new URL('../../../packages/licenses/notices/desktop/FONT-LICENSE', import.meta.url),
       'utf8'

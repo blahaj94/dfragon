@@ -42,7 +42,7 @@ export const styles = stylex.create({
     ':is([data-open])': { transform: 'rotate(180deg)' },
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
-  positioner: { fontFamily: 'NanumSquareNeo, sans-serif', color: colors.text },
+  positioner: { color: colors.text },
   content: {
     width: 160,
     maxWidth: 'calc(100vw - 16px)',

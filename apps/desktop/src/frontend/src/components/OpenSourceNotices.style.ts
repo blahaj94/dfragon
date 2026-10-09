@@ -50,7 +50,7 @@ export const styles = stylex.create({
   document: { backgroundColor: colors.surface, borderRadius: 8, padding: 20, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
-    fontFamily: 'NanumSquareNeo, sans-serif',
+    fontFamily: 'inherit',
     whiteSpace: 'pre-wrap',
     overflowWrap: 'anywhere',
     margin: 0
