@@ -8,7 +8,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
-    padding: '16px 20px',
+    padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
     borderWidth: 1,
@@ -20,20 +20,32 @@ export const styles = stylex.create({
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
   connectedDot: { color: colors.fgSuccess },
+  // Design StatusBadge: a pill on bg.inset with an 8px dot and text in the tone color. The
+  // SEED large badge keeps its 24px height; the width limit is lifted so the full state
+  // text stays visible instead of being cut with an ellipsis.
   badge: {
-    backgroundColor: colors.bgInset,
-    padding: '7px 12px',
-    borderRadius: 6
+    maxWidth: 'none',
+    borderRadius: 999,
+    backgroundColor: colors.bgInset
   },
   badgeFound: { color: colors.fgSuccess },
   badgeSearching: { color: colors.fgWarning },
+  badgeDot: {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    marginInlineEnd: 6,
+    verticalAlign: 'middle',
+    borderRadius: '50%',
+    backgroundColor: 'currentColor'
+  },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
   muted: { color: colors.fgMuted },
   saveGuide: {
     display: 'flex',
     alignItems: 'center',
     gap: 20,
-    padding: '16px 20px',
+    padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
     borderRadius: 12,
@@ -71,8 +83,8 @@ export const styles = stylex.create({
   windowPanel: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
-    padding: '20px 24px',
+    gap: 12,
+    padding: 16,
     boxSizing: 'border-box',
     minWidth: 0,
     minHeight: { default: 372, '@media (max-width: 760px)': 332 },
@@ -151,12 +163,13 @@ export const styles = stylex.create({
     gridTemplateColumns: 'auto 1fr auto',
     alignItems: 'center',
     gap: 12,
-    minHeight: 20
+    minHeight: 20,
+    cursor: 'pointer'
   },
+  rowHeaderDisabled: { cursor: 'not-allowed' },
   raidRow: { height: 90, padding: '12px 10px' },
   raidRowHeader: { gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 6 },
   rowLabel: { color: colors.fgMuted, textAlign: 'right' },
-  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.bgBrandSolid, flexShrink: 0 },
   cropArea: {
     display: 'flex',
     alignItems: 'center',
@@ -190,5 +203,14 @@ export const styles = stylex.create({
     borderRadius: 8,
     backgroundColor: colors.bgBrandWeak,
     color: colors.fgDefault
+  },
+  // Design secondary button: bg.control. SEED neutralWeak uses the gray step of bg.canvas in
+  // light mode, so the button would disappear on the canvas.
+  secondaryButton: {
+    backgroundColor: {
+      default: colors.bgControl,
+      ':hover:not(:disabled)': colors.bgControlHover,
+      ':disabled': 'var(--seed-color-bg-disabled)'
+    }
   }
 })
