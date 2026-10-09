@@ -4,8 +4,6 @@
 !pnpm-workspace.yaml
 !scripts/
 !scripts/server-build-info.mjs
-!patches/
-!patches/*.patch
 !apps/
 !apps/ocr/
 !apps/ocr/package.json

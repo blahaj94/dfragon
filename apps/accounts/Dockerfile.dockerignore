@@ -9,8 +9,6 @@
 !scripts/test-support/docker-postgres.mjs
 !scripts/test/
 !scripts/test/docker-postgres.test.mjs
-!patches/
-!patches/*.patch
 !apps/
 !apps/accounts/
 !apps/accounts/package.json
