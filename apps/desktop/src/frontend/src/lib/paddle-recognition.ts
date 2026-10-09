@@ -74,7 +74,7 @@ export function normalizedBgr(
   return normalizedBgrAtOffset(rgba, width, height, paddedWidth, 0, ZERO_PADDING)
 }
 
-/** 크롭 밖의 입력을 지정한 정규화 값으로 채우고 입력 밖으로 밀린 여백만 제외한다. */
+/** 크롭 밖의 입력을 지정한 정규화 값으로 채우고 입력 밖으로 밀린 픽셀은 버린다. */
 function normalizedBgrAtOffset(
   rgba: Uint8ClampedArray,
   width: number,
