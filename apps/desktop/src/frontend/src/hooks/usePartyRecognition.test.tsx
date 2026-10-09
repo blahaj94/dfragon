@@ -31,6 +31,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => mounted.splice(0).forEach((unmount) => unmount()))
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 async function fixture(mode: 'legacy' | 'identify' = 'identify'): Promise<{
@@ -185,7 +186,8 @@ describe('OCR 조회 라운드', () => {
     expect(f.current().recognitionStates[0]).toBe('complete')
   })
 
-  it('첫 후보의 앞뒤 공백을 제거한 이름으로 안정화해 전달한다', async () => {
+  it('첫 후보의 앞뒤 공백을 제거한 이름으로 안정화해 전달하고 Console에 남기지 않는다', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const f = await fixture()
     f.worker.recognize.mockResolvedValueOnce(ocrResult(' 가나', '정상후보'))
     f.worker.recognize.mockResolvedValueOnce(ocrResult('가나 ', '정상후보'))
@@ -198,6 +200,7 @@ describe('OCR 조회 라운드', () => {
       portrait: null
     })
     expect(f.current().stableNicknames[0]).toBe('가나')
+    expect(warn).not.toHaveBeenCalled()
   })
 
   it('자료 수집은 앞뒤 공백을 제거하지 않은 모델 원문을 올린다', async () => {
@@ -234,9 +237,15 @@ describe('OCR 조회 라운드', () => {
     })
   })
 
-  it.each(['', '  ', 'a'.repeat(13), '\uD800'])(
-    '첫 후보 %j가 유효하지 않으면 두 번째 후보로 대체하지 않고 조회 실패를 전달한다',
-    async (first) => {
+  it.each([
+    ['', '이유: 빈 문자열, 원문: ""'],
+    ['  ', '이유: 빈 문자열, 원문: "  "'],
+    ['a'.repeat(13), '이유: 최대 길이 초과, 원문: "aaaaaaaaaaaaa"'],
+    ['\uD800', '이유: 잘못된 Unicode, 원문: "\\ud800"']
+  ])(
+    '첫 후보 %j가 유효하지 않으면 두 번째 후보로 대체하지 않고 조회 실패와 원문을 Console에 남긴다',
+    async (first, message) => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const f = await fixture()
       f.worker.recognize.mockResolvedValue(ocrResult(first, '정상후보'))
       await f.cycle()
@@ -249,15 +258,22 @@ describe('OCR 조회 라운드', () => {
       })
       expect(f.current().recognitionStates[0]).toBe('failure')
       expect(f.worker.recognize).toHaveBeenCalledTimes(1)
+      expect(warn).toHaveBeenCalledOnce()
+      expect(warn.mock.calls[0][0]).toContain('슬롯 1의 OCR 첫 후보를 검색에 쓰지 못했습니다.')
+      expect(warn.mock.calls[0][0]).toContain(message)
     }
   )
 
-  it('빈 후보 목록도 완료된 조회 실패로 처리한다', async () => {
+  it('빈 후보 목록도 완료된 조회 실패로 처리하고 후보가 없었음을 Console에 남긴다', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const f = await fixture()
     f.worker.recognize.mockResolvedValue(ocrResult())
     await f.cycle()
     expect(f.current().recognitionStates[0]).toBe('failure')
     expect(f.current().stableNicknames[0]).toBeNull()
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('이유: 후보 없음, 원문: 없음')
+    )
   })
 
   it('완료 후 이름과 얼굴이 바뀌거나 창이 가려져도 OCR과 검색을 다시 실행하지 않는다', async () => {
