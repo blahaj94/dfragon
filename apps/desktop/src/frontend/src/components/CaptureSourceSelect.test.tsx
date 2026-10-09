@@ -146,7 +146,7 @@ it('빈 목록, 사라진 선택과 로딩, 연결 미준비 상태를 처리한
   await openDialog()
   expect(trigger().textContent).toContain('선택한 창 · 목록에서 사라짐')
   await click(trigger())
-  expect(document.body.textContent).toContain('던파 창을 찾지 못했습니다')
+  expect(document.body.textContent).toContain('던파 창 미감지')
   expect(document.querySelector('[role="menuitemradio"]')).toBeNull()
   await click(trigger())
   props.loading = true
