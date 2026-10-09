@@ -66,7 +66,7 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
   const slot = container.querySelector('article')!
   expect(slot.querySelector('input')?.value).toBe('선택된이름')
   expect(slot.textContent).toContain('카인')
-  expect(slot.textContent).toContain('♙ 0')
+  expect(slot.textContent).toContain('명성 0')
   expect(slot.textContent).not.toContain('수정 중')
   expect(slot.querySelector('img')?.getAttribute('src')).toBe(character.image)
   expect(slot.querySelector('[aria-label*="다음 면"]')).toBeNull()
@@ -91,7 +91,7 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
   const slots = container.querySelectorAll('article')
   expect(slots[0].querySelector('input')?.value).toBe('선택된이름')
   expect(slots[1].querySelector('input')?.value).toBe('다른이름')
-  expect(slots[1].textContent).toContain('♙ —')
+  expect(slots[1].textContent).toContain('명성 —')
   expect(slots[2].textContent).toContain('얼굴 인식 대기')
   expect(slots[3].textContent).toContain('자동 식별 준비 중')
   expect(slots[2].querySelector('img')).toBeNull()
