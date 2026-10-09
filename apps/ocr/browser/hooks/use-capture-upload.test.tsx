@@ -129,7 +129,7 @@ it('보관한 요청이 없으면 재시도하지 않고 실패 뒤 폼을 수�
   expect(upload.submission).toBeNull()
 })
 
-it('업로드 실패 안내는 실패로 표시하고 재시도에 성공하면 완료 안내로 바꾼다', async () => {
+it('업로드 요청 실패 안내는 실패로 표시하고 재시도에 성공하면 완료 안내로 바꾼다', async () => {
   vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))
   await act(async () => upload.setFile(pngFile('fixture.png')))
   await act(async () => {
