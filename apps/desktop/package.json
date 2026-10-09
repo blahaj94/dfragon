@@ -82,11 +82,5 @@
     "vitest": "^4.1.11",
     "@dfragon/licenses": "workspace:*",
     "@dfragon/lib": "workspace:*"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild"
-    ]
   }
 }

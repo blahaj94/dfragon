@@ -8,7 +8,6 @@ catalog:
 
 allowBuilds:
   '@scarf/scarf': false
-  electron: true
   electron-winstaller: true
   esbuild: true
   koffi: true
