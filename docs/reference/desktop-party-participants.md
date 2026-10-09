@@ -82,7 +82,7 @@ ties-to-even 반올림은 가로 파티 HUD 후보의 `floor`/`ceil` 바깥쪽 �
 
 ## Desktop 연결
 
-[승인 Penpot 화면](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=d8ac01df-6646-81d2-8008-a69f349be8fd&section=interactions&frame-id=14aaaf11-fc9c-8040-8008-b093b431c09a)을 바탕으로 기존 수집 session에 `hud`/`participants` 모드를 추가했다. 하나의 키보드 훅을 공유하며 탭 전환, 해제 때 generation과 저장 commit 검사를 통해 이전 요청을 무효화한다. 미리보기 응답도 hook 수명이 끝나면 폐기한다. 참가자가 없는 행은 저장 입력에 포함하지 않고 원래 슬롯 번호를 유지한다.
+[파티원창 크롭 Penpot 화면](https://design.penpot.app/#/view?file-id=d8ac01df-6646-81d2-8008-a69f349be8fc&page-id=61bb727b-6711-8058-8008-bdeed85a326d&section=interactions&frame-id=f47e4ca8-7ec0-8075-8008-c2866e084a2e)을 바탕으로 기존 수집 session에 `hud`/`participants` 모드를 추가했다. 하나의 키보드 훅을 공유하며 탭 전환, 해제 때 generation과 저장 commit 검사를 통해 이전 요청을 무효화한다. 미리보기 응답도 hook 수명이 끝나면 폐기한다. 참가자가 없는 행은 저장 입력에 포함하지 않고 원래 슬롯 번호를 유지한다.
 
 `participant-window.ts`는 공통 크롭 함수 결과에서 팝업 전체의 미리보기 픽셀과 팝업 기준 닉네임 사각형을 구성한다. 검출과 크롭은 같은 RGBA 프레임을 사용한다. 기존 Win32 캡처 경로의 client 일관성, 화면 경계, 캡처 전후 외부 창 가림 검사를 팝업 전체에 적용한다. 탐지는 현재 main process에서 동기로 수행하며, 1초 미리보기 polling은 이전 응답이 끝나기 전 중복 요청하지 않는다. 저장은 미리보기 캐시를 사용하지 않고 새 캡처를 읽는다.
 
