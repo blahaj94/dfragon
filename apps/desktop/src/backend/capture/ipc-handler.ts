@@ -4,7 +4,6 @@ import {
   ipcMain,
   type BrowserWindow,
   type IpcMainInvokeEvent,
-  type WebContents,
   type WebFrameMain
 } from 'electron'
 import { addHandler } from '../ipc'
@@ -48,35 +47,7 @@ let readSelectedFrame: ReadWindowFrame | null = null
 let selectingSource = false
 let search: CaptureSearchLifetime | undefined
 let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
-let mediaPermissionCaptureId: string | null = null
 let ocrCollection: OcrCollection | undefined
-
-function consumeCaptureMediaPermission(contents: WebContents, requestingUrl: string): boolean {
-  const binding = search?.current
-  if (binding == null || !isCurrentSearch(binding)) {
-    return false
-  }
-  const frame = currentMainFrame()
-  if (contents !== captureWindow?.webContents) {
-    return false
-  }
-
-  if (requestingUrl !== documentUrl) {
-    return false
-  }
-
-  if (frame?.detached !== false) {
-    return false
-  }
-
-  if (mediaPermissionCaptureId === binding.captureId) {
-    return false
-  }
-  // Start 수명당 한 번만 허용한다. API/source/gesture 증명이 되지는 않는다.
-  mediaPermissionCaptureId = binding.captureId
-
-  return true
-}
 
 async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
   return desktopCapturer.getSources({
@@ -88,7 +59,6 @@ async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
 
 function clearSource(): void {
   ocrCollection?.clear()
-  mediaPermissionCaptureId = null
   selectedSourceId = null
   readSelectedFrame = null
   selectingSource = false
@@ -590,4 +560,4 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   })
 }
 
-export { registerCaptureIpc, registerCaptureWindow, consumeCaptureMediaPermission }
+export { registerCaptureIpc, registerCaptureWindow }
