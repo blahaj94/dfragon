@@ -8,6 +8,7 @@ import * as versions from './api/versions'
 import * as desktopShortcut from './api/desktop-shortcut'
 import * as ocrCollection from './api/ocr-collection'
 import * as diagnostics from './api/diagnostics'
+import * as updateNotice from './api/update-notice'
 
 contextBridge.exposeInMainWorld('api', capture)
 contextBridge.exposeInMainWorld('auth', auth)
@@ -23,3 +24,4 @@ contextBridge.exposeInMainWorld('versions', versions)
 contextBridge.exposeInMainWorld('desktopShortcut', desktopShortcut)
 contextBridge.exposeInMainWorld('ocrCollection', ocrCollection)
 contextBridge.exposeInMainWorld('diagnostics', diagnostics)
+contextBridge.exposeInMainWorld('updateNotice', updateNotice)

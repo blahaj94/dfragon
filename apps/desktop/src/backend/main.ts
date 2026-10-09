@@ -24,10 +24,14 @@ import {
   applyAuthRuntimeProfile,
   AuthRuntimeProfileApplicationFailure
 } from './auth/runtime-config'
-import { readAppApiOrigin, readAppAuthConfig } from './auth/app-config'
+import { readAppApiOrigin, readAppAuthConfig, readAppChannelName } from './auth/app-config'
 import { registerDeveloperWindow } from './developer/ipc-handler'
 import { registerVersionsWindow } from './versions/ipc-handler'
 import { readDesktopBuildInfo } from './versions/desktop-info'
+import { fetchApi } from './api-fetch'
+import { readReleaseFeed } from './update-notice/http'
+import { createUpdateNotices } from './update-notice/notices'
+import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
 import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
 import { registerDesktopShortcuts } from './shortcuts/register'
 import { DESKTOP_SHORTCUTS } from '../preload/common/types/desktop-shortcut'
@@ -79,6 +83,12 @@ const authAppLifecycle = createAuthAppLifecycle({
 if (runtimeProfileState.status === 'application-failed') {
   app.exit(1)
 }
+// 알림 상태는 창을 다시 만들어도 앱 실행 동안 유지한다. 확인은 배포 채널에서만 시작한다.
+const updateNotices = createUpdateNotices({
+  currentVersion: app.getVersion(),
+  readFeed: (signal) => readReleaseFeed(fetchApi, signal),
+  onFailure: reportDiagnostic
+})
 
 function createWindow(authRuntime: AuthRuntime | null): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
@@ -112,6 +122,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   let nextDisposeAuthIpc: (() => void) | undefined
   let disposeDeveloper: (() => void) | undefined
   let disposeVersions: (() => void) | undefined
+  let disposeUpdateNotice: (() => void) | undefined
   let disposeCharacterDetails: (() => void) | undefined
   let disposeShortcuts: (() => void) | undefined
   let disposeDiagnostics: (() => void) | undefined
@@ -152,6 +163,16 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     } catch {
       // Metadata availability does not control capture or authentication startup.
     }
+    try {
+      disposeUpdateNotice = registerUpdateNoticeWindow({
+        window,
+        documentUrl: rendererDocumentUrl,
+        notices: updateNotices,
+        onFailure: reportDiagnostic
+      })
+    } catch {
+      // 새 버전 알림은 캡처와 로그인 시작을 막지 않는다.
+    }
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
@@ -180,6 +201,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     disposeDiagnostics?.()
     disposeCharacterDetails?.()
     disposeVersions?.()
+    disposeUpdateNotice?.()
     disposeDeveloper?.()
     try {
       nextDisposeAuthIpc?.()
@@ -274,6 +296,10 @@ app.whenReady().then(async () => {
       app.on('quit', () => {
         disposeCapture()
       })
+      if (readAppChannelName() === 'distribution') {
+        updateNotices.start()
+      }
+      app.on('quit', updateNotices.dispose)
 
       createWindow(authRuntime)
 
