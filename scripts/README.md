@@ -152,6 +152,8 @@ Schema First 작성, 생성, 적용 순서는 [`database-development.md`](../doc
 
 Accounts와 API의 PostgreSQL 컨테이너, 이미지 검증, 정리 원본은 `scripts/test-support/docker-postgres.mjs`입니다. 앱별 runner는 schema와 seed 등 앱 책임만 유지합니다. 공통 회귀 검증은 `node --test scripts/test/docker-postgres.test.mjs`로 실행하며 두 앱의 `test`에도 포함됩니다. Docker를 실행하는 실제 DB, 컨테이너 통합 검증과 이 mock 기반 helper 검증은 구분합니다.
 
+Code Quality는 PR과 main push마다 API와 accounts의 `test:database`를 GitHub runner의 Docker에서 별도 job(`API database integration`, `Accounts database integration`)으로 실행합니다. Runner는 `linux/amd64`이므로 고정 PostgreSQL 이미지의 amd64 digest를 검증합니다. Accounts job은 패스키 시나리오의 가상 인증기를 위해 Playwright Chromium을 먼저 설치합니다. 두 job은 main ruleset의 필수 check인 `lint-and-format` 집계에 포함되어 실패하면 PR merge가 막힙니다. main에서는 Product Images가 Code Quality 전체 실행의 성공을 확인하므로, 두 job이 실패하면 이미지도 빌드, 발행하지 않습니다.
+
 API의 `test:database`는 Docker daemon이 없거나 고정 image, native platform을 검증할 수 없으면 skip하지 않고 실패합니다. Run마다 생성한 credential, `127.0.0.1` dynamic port, ownership label이 붙은 container와 named volume만 사용하며 정상, 오류, timeout, 처리 가능한 signal 뒤 exact resource 부재를 확인합니다. 자원을 만들기 전에 stdout에 secret이나 연결 정보가 없는 recovery run ID와 exact container, volume 이름을 기록합니다.
 
 `SIGKILL`, host crash, Docker daemon 장애 뒤 자원이 남으면 출력된 exact 이름을 `docker container inspect NAME --format '{{ index .Config.Labels "com.dfragon.database-test.run" }}'`과 `docker volume inspect NAME --format '{{ index .Labels "com.dfragon.database-test.run" }}'`로 각각 확인합니다. 두 결과가 출력된 run ID와 정확히 같을 때만 `docker rm --force NAME`과 `docker volume rm --force NAME`으로 회수합니다. 일치하지 않거나 inspect 자체가 실패하면 삭제하지 않습니다. 이 command는 운영 database에 사용하지 않습니다.
