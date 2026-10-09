@@ -452,7 +452,7 @@ function PasskeyPage() {
             <Typo.txtS {...stylex.props(styles.paragraph, styles.noPadding)}>
               기존 패스키로 로그인해 주세요.
               <br />
-              새로 가입하면 새로운 계정이 만들어져요.
+              새로 가입하면 별도 계정이 만들어집니다.
             </Typo.txtS>
           </div>
           <div {...stylex.props(styles.actions, styles.signupActions)}>
