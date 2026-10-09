@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       api_origin:
-        description: '배포 API HTTPS origin (비우면 저장소 변수 사용)'
+        description: '배포 API HTTPS origin (비우면 production 환경 변수 사용)'
         required: false
         type: string
 
@@ -26,6 +26,8 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 30
+    # Release variables live in the production environment, which only main and v* tag runs can use.
+    environment: production
     permissions:
       contents: read
       # Read Code Quality runs to confirm the release commit passed main CI.
@@ -62,7 +64,7 @@ jobs:
           }
           const version = match[1];
           if (!process.env.DFRAGON_DISTRIBUTION_API_ORIGIN) {
-            throw new Error('Set the DFRAGON_DISTRIBUTION_API_ORIGIN repository variable or api_origin input.');
+            throw new Error('Set DFRAGON_DISTRIBUTION_API_ORIGIN in the production environment or the api_origin input.');
           }
           appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
           NODE
