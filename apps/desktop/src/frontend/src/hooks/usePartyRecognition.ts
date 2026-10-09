@@ -244,17 +244,17 @@ export function usePartyRecognition(
   return { stableNicknames, recognitionStates, recognizePartyNicknames, resetRecognition }
 }
 
-/** 첫 후보가 비어 있거나 잘못됐어도 낮은 순위의 이름으로 대체하지 않는다. */
+/** 첫 후보의 앞뒤 공백만 제거하며, 비어 있거나 잘못됐어도 낮은 순위의 이름으로 대체하지 않는다. */
 function firstCandidateName(result: PartyOcrResult): string | null {
-  const nickname = result.candidates[0]?.nickname
-  if (nickname == null) {
+  const text = result.candidates[0]?.nickname
+  if (text == null) {
     return null
   }
+  const nickname = text.trim()
   const length = [...nickname].length
   if (
     length === 0 ||
     length > MAX_NICKNAME_CODE_POINTS ||
-    nickname !== nickname.trim() ||
     UNPAIRED_SURROGATE_PATTERN.test(nickname)
   ) {
     return null
