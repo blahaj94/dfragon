@@ -154,7 +154,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 현재 기본 설정은 `korean_PP-OCRv5_mobile_rec` 공식 ONNX 모델이며 `onnxruntime-web`의 로컬 WASM worker로 실행한다. 파인튜닝 모델 선택은 별도 빌드 설정이다. 모델, 문자 목록과 라이선스는 `apps/desktop/assets/ocr`에 고정하고 `provenance.json`에 원본과 checksum을 기록한다. `prepare-ocr-assets.mjs`는 checksum을 검사한 뒤 모델과 설치된 ONNX Runtime의 WASM을 renderer public assets로 복사한다. `.gitattributes`는 vendor assets의 줄바꿈 변환을 막아 Windows checkout에서도 고정 checksum을 유지한다. 이번 전처리 변경은 기본 모델을 교체하지 않는다.
 
-일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈하고 실제 검은 글자 경계를 입력 폭 320의 가로 중앙으로 이동한다. 글자 크기와 세로 위치는 유지하며 새 좌우 여백은 기존 정규화 값 0으로 채운다. 구두점을 제거하는 잡음 필터나 세로 크롭은 추가하지 않는다. 제품 전처리 평가도 같은 중심화 경로를 사용하고 원본 평가만 기존 왼쪽 정렬을 유지한다. CTC 후보 디코더의 1위 문자열만 검색에 사용하며 모델 점수는 정답 확률이나 검색 허용 조건이 아니다.
+일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈하고 실제 검은 글자 경계를 입력 폭 320의 가로 중앙으로 이동한다. 글자 크기와 세로 위치는 유지하며 새 좌우 여백은 이진화한 배경과 같은 흰색(정규화 값 1)으로 채운다. 구두점을 제거하는 잡음 필터나 세로 크롭은 추가하지 않는다. 제품 전처리 평가도 같은 중심화 경로를 사용하고 원본 평가만 기존 왼쪽 정렬을 유지한다. CTC 후보 디코더의 1위 문자열만 검색에 사용하며 모델 점수는 정답 확률이나 검색 허용 조건이 아니다.
 
 `createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 capture의 결과는 기존 signal, 검색 수명 검사에서 차단하며, 두 번 연속 관측 일치와 공개 검색 연결은 유지한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
 
