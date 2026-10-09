@@ -1,17 +1,9 @@
 name: Desktop Windows
 
 on:
+  # Pull requests run without a paths filter so the required gate always reports. The changes job
+  # applies the push paths below to the pull request instead.
   pull_request:
-    paths:
-      - '.gitattributes'
-      - '.gitmodules'
-      - '.npmrc'
-      - '.github/workflows/desktop-windows.yml'
-      - 'apps/desktop/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
   push:
     branches: [main]
     paths:
@@ -33,8 +25,55 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect Desktop changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      needed: ${{ steps.paths.outputs.needed }}
+    steps:
+      # The test merge commit and its two parents are enough to list the pull request changes.
+      - name: Checkout the pull request merge commit
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Match the pull request changes against the push paths
+        id: paths
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          # A main push reaches this job only through the push paths filter.
+          if [[ "$EVENT_NAME" != pull_request ]]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The first parent of the test merge commit is the base branch it merges into.
+          if ! git rev-parse --verify --quiet 'HEAD^2' > /dev/null; then
+            echo "The pull request checkout is not a merge commit"
+            exit 1
+          fi
+
+          # These pathspecs cover the push paths filter. A file moved out of them still counts.
+          status=0
+          git diff --name-only --exit-code --no-renames 'HEAD^1' HEAD -- \
+            .gitattributes .gitmodules .npmrc .github/workflows/desktop-windows.yml \
+            apps/desktop packages package.json pnpm-lock.yaml pnpm-workspace.yaml || status=$?
+
+          case "$status" in
+            0) echo "needed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "needed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+
   test:
     name: Desktop tests on Windows (${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.needed == 'true'
     runs-on: windows-latest
     timeout-minutes: 30
     strategy:
@@ -71,3 +110,33 @@ jobs:
         env:
           VITEST_SHARD: ${{ matrix.shard }}
         run: pnpm --filter @dfragon/desktop test --shard "$env:VITEST_SHARD"
+
+  # The main ruleset can require this stable check name. Skipped tests pass when the pull request
+  # changed no Desktop path.
+  gate:
+    name: Desktop Windows gate
+    if: always()
+    needs:
+      - changes
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every Desktop Windows job to succeed or skip
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          if [[ -z "$RESULTS" ]]; then
+            echo "No Desktop Windows job results reached the gate"
+            exit 1
+          fi
+
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "A Desktop Windows job finished with: $result"
+                exit 1
+                ;;
+            esac
+          done
