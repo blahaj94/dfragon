@@ -256,6 +256,24 @@ it('제외와 정답은 지정한 필드만 요청하며 빈 정답은 명시적
   expect(requestOcr).toHaveBeenLastCalledWith('/api/samples/one', 'PATCH', { text: null })
 })
 
+it('정답 저장과 분할 실패 안내는 실패로 표시하고 저장에 성공하면 완료 안내로 바꾼다', async () => {
+  vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))
+  await render()
+  await act(async () => editor.saveSample())
+  expect(editor).toMatchObject({
+    message: '처리하지 못했습니다. 다시 시도해 주세요.',
+    failed: true
+  })
+  await act(async () => editor.saveSample())
+  expect(editor).toMatchObject({ message: '저장했습니다.', failed: false })
+  vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))
+  await act(async () => editor.assignNicknameSplit('train'))
+  expect(editor).toMatchObject({
+    message: '처리하지 못했습니다. 다시 시도해 주세요.',
+    failed: true
+  })
+})
+
 it('정답 저장이 시작되면 같은 렌더의 중복 저장, 제외, 분할 명령을 거절한다', async () => {
   let finish!: (value: Sample) => void
   vi.mocked(requestOcr).mockReturnValueOnce(

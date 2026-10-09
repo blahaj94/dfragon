@@ -129,6 +129,24 @@ it('보관한 요청이 없으면 재시도하지 않고 실패 뒤 폼을 수�
   expect(upload.submission).toBeNull()
 })
 
+it('업로드 실패 안내는 실패로 표시하고 재시도에 성공하면 완료 안내로 바꾼다', async () => {
+  vi.mocked(requestOcr).mockRejectedValueOnce(new OcrApiError(OCR_ERROR_CODE.UNAVAILABLE))
+  await act(async () => upload.setFile(pngFile('fixture.png')))
+  await act(async () => {
+    upload.uploadNew()
+    await vi.waitFor(() => expect(requestOcr).toHaveBeenCalledOnce())
+  })
+  expect(upload).toMatchObject({
+    message: '처리하지 못했습니다. 다시 시도해 주세요.',
+    failed: true
+  })
+  await act(async () => upload.retryPrevious())
+  expect(upload).toMatchObject({
+    message: '업로드했습니다. 정답을 입력할 수 있습니다.',
+    failed: false
+  })
+})
+
 it('파일 읽기부터 즉시 중복 요청을 잠그고 다른 PNG를 고르면 이전 재시도 본문을 비운다', async () => {
   let finish!: (value: string) => void
   vi.mocked(uploadInput.readPngBase64).mockReturnValueOnce(
