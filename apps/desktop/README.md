@@ -155,7 +155,7 @@ NSIS는 기존 protocol 소유권 검사, 사용자별 등록, 자기 등록만 
 
 ## 카드 화면 개발
 
-인증을 포함해 개발할 때는 `apps/desktop/.env.example`을 같은 폴더의 `.env`로 복사하고 API origin, 복귀 주소, 별도 개발 profile의 절대 경로를 채웁니다. 실제 `.env`는 Git에서 제외됩니다. API는 [로컬 개발 명령](../../docs/reference/api-start-development.md#로컬-개발-명령)으로 먼저 실행합니다.
+인증을 포함해 개발할 때는 `apps/desktop/.env.example`을 같은 폴더의 `.env`로 복사하고 별도 개발 profile의 절대 경로를 채웁니다. 템플릿의 검색 API `DFRAGON_API_ORIGIN`은 로컬 API, 로그인용 `DFRAGON_AUTH_API_ORIGIN`은 로컬 accounts를 가리키며, identity `dfragon.local`은 설치한 개발 앱 `dfragon.dev`와 profile, 단일 인스턴스 lock이 겹치지 않게 합니다. 실제 `.env`는 Git에서 제외됩니다. API는 [로컬 개발 명령](../../docs/reference/api-start-development.md#로컬-개발-명령)으로 먼저 실행합니다.
 
 ```sh
 # 최초 한 번 복사하고 실제 개발 설정으로 수정합니다.
