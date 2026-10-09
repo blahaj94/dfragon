@@ -29,12 +29,9 @@ export type PartyRecognitionInput = {
   portrait: CharacterPortrait | null
 }
 
-export type PartyFrameSource =
-  | (CharacterImage & { captureId?: string; frameId?: string })
-  | HTMLVideoElement
-  | null
+export type PartyFrameSource = (CharacterImage & { captureId?: string; frameId?: string }) | null
 
-/** 현재 RGBA 또는 영상의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
+/** 현재 RGBA의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
 export function capturePartyNicknameCrops(source: PartyFrameSource): (HTMLCanvasElement | null)[] {
   return capturePartyRecognitionInputs(source).map((input) => {
     if (input === null) {
@@ -57,9 +54,7 @@ export function capturePartyRecognitionInputs(
   if (source === null) {
     return crops
   }
-  const native = 'rgba' in source
-  const width = native ? source.width : source.videoWidth
-  const height = native ? source.height : source.videoHeight
+  const { width, height } = source
   if (!isValidPartyFrameSize(width, height)) {
     return crops
   }
@@ -72,16 +67,12 @@ export function capturePartyRecognitionInputs(
     throw new Error('Could not create a party capture canvas.')
   }
 
-  if (native) {
-    if (source.rgba.byteLength !== width * height * RGBA_CHANNELS) {
-      throw new Error('Invalid native capture pixels.')
-    }
-    const image = frameContext.createImageData(width, height)
-    image.data.set(source.rgba)
-    frameContext.putImageData(image, 0, 0)
-  } else {
-    frameContext.drawImage(source, 0, 0)
+  if (source.rgba.byteLength !== width * height * RGBA_CHANNELS) {
+    throw new Error('Invalid native capture pixels.')
   }
+  const image = frameContext.createImageData(width, height)
+  image.data.set(source.rgba)
+  frameContext.putImageData(image, 0, 0)
   const pixels = frameContext.getImageData(0, 0, width, height).data
   const rgba = new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength)
   let geometry: PartyFrameGeometry
@@ -89,7 +80,7 @@ export function capturePartyRecognitionInputs(
     geometry = detectPartyFrameGeometry({ width, height, rgba })
   } catch (error) {
     if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
-      // 프레임이 사라지거나 모호하면 이전 이름을 비우고 다음 영상에서 다시 검출한다.
+      // 프레임이 사라지거나 모호하면 이전 이름을 비우고 다음 캡처 프레임에서 다시 검출한다.
       return crops
     }
     throw error
@@ -102,7 +93,7 @@ export function capturePartyRecognitionInputs(
       region.width,
       region.height
     )
-    if (native && containsExcludedPixels(nicknamePixels.data)) {
+    if (containsExcludedPixels(nicknamePixels.data)) {
       continue
     }
     binarizeNicknamePixels(nicknamePixels.data)
@@ -120,7 +111,7 @@ export function capturePartyRecognitionInputs(
       nicknameRegion: region,
       rasterScale: geometry.scale
     })
-    if (native && portrait !== null && containsExcludedPixels(portrait.image.rgba)) {
+    if (portrait !== null && containsExcludedPixels(portrait.image.rgba)) {
       continue
     }
     crops[slot] = { slot, nickname, portrait }

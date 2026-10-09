@@ -13,6 +13,7 @@ import {
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
 import { LegacyApp } from '../../fixture/legacy/LegacyApp'
+import type { PartyFrameSource } from '../../lib/party'
 
 const media = vi.hoisted(() => {
   const crops = vi.fn()
@@ -35,8 +36,8 @@ vi.mock('../../lib/party', async (original) => {
   return {
     ...originalModule,
     capturePartyNicknameCrops: media.crops,
-    capturePartyRecognitionInputs: (video: HTMLVideoElement) =>
-      media.crops(video).map((nickname: HTMLCanvasElement | null, slot: number) => {
+    capturePartyRecognitionInputs: (frame: PartyFrameSource) =>
+      media.crops(frame).map((nickname: HTMLCanvasElement | null, slot: number) => {
         if (nickname === null) {
           return null
         }

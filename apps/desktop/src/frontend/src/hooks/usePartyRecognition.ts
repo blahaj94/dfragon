@@ -155,12 +155,7 @@ export function usePartyRecognition(
           !uploadedSlotsRef.current.has(slot)
         ) {
           uploadedSlotsRef.current.add(slot)
-          if (
-            frame !== null &&
-            'rgba' in frame &&
-            frame.captureId !== undefined &&
-            frame.frameId !== undefined
-          ) {
+          if (frame !== null && frame.captureId !== undefined && frame.frameId !== undefined) {
             void window.ocrCollection
               .collectOcrSample({
                 captureId: frame.captureId,
