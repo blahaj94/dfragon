@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: desktop-mvp-ui
-last-reviewed: 2026-10-09
+last-reviewed: 2026-10-10
 ---
 
 # Desktop MVP 카드 UI
@@ -19,7 +19,7 @@ last-reviewed: 2026-10-09
 
 일반 캡처는 실제 게임 client 영역에서 개발자 이미지 수집과 같은 HP, MP 검출기로 닉네임을 찾는다. 해상도와 UI 배율은 현재 프레임에서 검출하며 가득 찬 HP, MP와 주변 경계를 대상으로 한다. 잔량이 줄어든 전투 화면은 지원 범위 밖이다. 검색이 끝난 슬롯은 파티원 교체, 가림이나 미검출로 재검색하거나 비우지 않는다. Alt+R은 새 캡처, OCR, 전체 파티 조회를 처음부터 실행한다. 수동 입력은 선택한 슬롯만 새로 조회한다.
 
-모달의 닫기, Escape와 로그인 상태 변경은 캡처를 유지한다. 캡처 중지는 별도 버튼으로 처리한다. 준비, 캡처 중에는 카메라 아이콘을 주황색으로 표시하며 실패, 빈 목록은 새로고침, 재선택할 수 있게 한다. 각 카드 중앙의 Process Circle은 OCR부터 캐릭터 확인까지 표시한다. 빈 슬롯에 별도 비활성 상태는 추가하지 않는다.
+모달의 닫기, Escape와 로그인 상태 변경은 캡처를 유지한다. 캡처 중지는 별도 버튼으로 처리한다. 카메라 아이콘의 색은 기본은 기본 글자색, 캡처 중은 `fg.brand`다. 실패, 빈 목록은 새로고침, 재선택할 수 있게 한다. 각 카드 중앙의 Process Circle은 OCR부터 캐릭터 확인까지 표시한다. 빈 슬롯에 별도 비활성 상태는 추가하지 않는다.
 
 2026-09-18 요청의 범위는 Windows 제품 캡처와 Mac에서 볼 수 있는 합성 UI 미리보기다. 제품 renderer에 OS 분기를 추가하지 않으며 기존 main 권한 정책은 유지한다. 이 연결 범위는 해당 PR에서 구현, 검증하고 사용자 merge로 활성화한다.
 
@@ -72,7 +72,7 @@ last-reviewed: 2026-10-09
 ## 표현과 이미지
 
 - 라이트 메인 보드도 캐릭터 카드 면은 다크 색상을 유지하며 바깥 배경, 헤더, 본문 패널, 하단 바를 밝게 바꾼다.
-- 글꼴은 번들한 Pretendard이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 2026-09-19 Typo 적용 요청에 따라 작은 투자 현황 목록은 `Typo.caption`(12px/18px), 상세 목록은 `Typo.txtS`(14px/20px) 일반 두께로 맞춘다. 상세 행은 위아래 4px padding으로 기존 행 높이를 유지한다. 테이블의 교차 행 배경은 `#22262C` / `#2B3037`이다.
+- 글꼴은 번들한 Pretendard이며 한국어 줄바꿈과 표기 기준은 [글꼴과 한국어 타이포그래피](design-system.md#글꼴과-한국어-타이포그래피)를 따른다. 2026-09-19 Typo 적용 요청에 따라 작은 투자 현황 목록은 `Typo.caption`(12px/18px), 상세 목록은 `Typo.txtS`(14px/20px) 일반 두께로 맞춘다. 상세 행은 위아래 4px padding으로 기존 행 높이를 유지한다. 테이블의 교차 행 배경은 `card.bg` `#1D2025` / `card.stripe` `#2B2E35`이다.
 - 무료 아이콘의 디자인 원본은 [Lucide 아이콘 목록](https://lucide.dev/icons)이다. 현재 사용 중인 sun, moon, camera, x, chevron-down, user, external-link를 기준으로 구현 자산과 출처를 맞춘다.
 - 캐릭터 이미지: `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=<zoom>`.
 - 아이템 이미지: `https://img-api.neople.co.kr/df/items/<itemId>`.
