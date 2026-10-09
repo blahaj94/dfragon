@@ -43,6 +43,7 @@ import {
   docker,
   newRunId,
   removeOwnedVolume,
+  safeDockerEnvironment,
   teardownPostgres,
   verifyApprovedImage
 } from '../../../scripts/test-support/docker-postgres.mjs'
@@ -66,28 +67,11 @@ function announceRecovery({ runId, names = resourceNames(runId) }) {
   )
 }
 
+// 자식 Node 프로세스(실패, signal 시나리오와 databaseEnvironment를 쓰는 컴파일된 DB CLI,
+// data source 확인)에 Docker helper와 같은 환경 변수만 물려준다. 자식 시나리오는 Docker를
+// 직접 호출하므로 같은 목록을 써야 한다.
 function nodeEnvironment(extra = {}) {
-  const names = [
-    'PATH',
-    'HOME',
-    'DOCKER_HOST',
-    'DOCKER_CONTEXT',
-    'DOCKER_TLS_VERIFY',
-    'DOCKER_CERT_PATH'
-  ]
-
-  const inheritedEnvironment = Object.fromEntries(
-    names.flatMap((name) => {
-      const isVariableMissing = process.env[name] === undefined
-      if (isVariableMissing) {
-        return []
-      }
-
-      return [[name, process.env[name]]]
-    })
-  )
-
-  return { ...inheritedEnvironment, ...extra }
+  return { ...safeDockerEnvironment(), ...extra }
 }
 
 function databaseEnvironment(configuration) {

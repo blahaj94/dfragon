@@ -42,10 +42,15 @@ const urlCredentialPattern = /([a-z][a-z0-9+.-]*:\/\/)[^\s/]+@/gi
 const secretAssignmentPattern =
   /([\w.-]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key)[\w.-]*(?:=["']?|["']?\s*:\s*["']))[^\s"',;&]+/gi
 
-function safeDockerEnvironment() {
+// DOCKER_CONFIG는 context, buildx 같은 cli-plugins, credential helper 설정을 찾는 디렉터리 경로다.
+// 값 자체는 credential이 아니고, HOME으로 이미 기본 위치(~/.docker)를 읽을 수 있으므로 접근 범위를 넓히지 않는다.
+// 위치를 옮긴 환경에서도 사용자 shell과 같은 Docker CLI 설정을 쓰게 한다.
+// DOCKER_AUTH_CONFIG처럼 credential 값을 직접 담을 수 있는 변수는 전달하지 않는다.
+export function safeDockerEnvironment() {
   const names = [
     'PATH',
     'HOME',
+    'DOCKER_CONFIG',
     'DOCKER_HOST',
     'DOCKER_CONTEXT',
     'DOCKER_TLS_VERIFY',
