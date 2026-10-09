@@ -40,7 +40,7 @@ Renderer의 인증 presentation epoch와 auth runId 재연결은 계정 화면�
 
 Main은 로그인, 로그아웃만으로 선택을 지우지 않으며 trusted renderer의 빈 source 선택은 인증 phase와 무관하게 허용한다. 다른 window/frame/document의 cleanup 요청은 거절한다. Stop, source 변경, 프레임 읽기 실패, unmount, document 종료는 기존 capture 정리를 수행한다. Capture의 이전 AbortSignal이 취소되면 늦은 OCR은 새 instance의 상태를 변경하거나 안정화 통지를 보내지 않는다. IPC 발송 뒤 capture 수명이 끝나 생긴 통지 거절도 raw error log 없이 회수한다.
 
-`notifyStableNicknameDetected`는 captureId, slot, observationRevision, nickname을 받아 현재 수명의 검색으로 연결한다. Main의 HTTP/전체 응답 검증과 renderer의 네 슬롯 후보, retry 구현은 [캐릭터 검색](desktop-character-search.md)을 참고한다. Raw OCR nickname은 log에 남기지 않는다. 제품 main은 trusted profile, auth restore, capture/search composition을 연결하며, 실제 API/패스키 연결과 profile의 실행 시 검사는 [Desktop auth core](desktop-auth-core.md)를 따른다.
+`notifyStableNicknameDetected`는 captureId, slot, observationRevision, nickname을 받아 현재 수명의 검색으로 연결한다. Main의 HTTP/전체 응답 검증과 renderer의 네 슬롯 후보, retry 구현은 [캐릭터 검색](desktop-character-search.md)을 참고한다. Raw OCR nickname은 main log와 진단 기록에 남기지 않는다. 검색에 쓰지 못한 OCR 첫 후보만 원인 확인을 위해 이유와 원문을 renderer DevTools Console에 한 줄 표시한다([Desktop 실행 중 오류 확인](../../apps/desktop/README.md#실행-중-오류-확인)). 제품 main은 trusted profile, auth restore, capture/search composition을 연결하며, 실제 API/패스키 연결과 profile의 실행 시 검사는 [Desktop auth core](desktop-auth-core.md)를 따른다.
 
 ## 검증과 제한
 
