@@ -181,7 +181,7 @@ export const styles = stylex.create({
     borderTopStyle: 'solid',
     borderTopColor: colors.borderDefault
   },
-  uploadStatus: { marginTop: 12, color: colors.fgBrand },
+  uploadStatus: { marginTop: 12, color: colors.fgSuccess },
   failedStatus: { color: colors.fgDanger },
   filterBar: { display: 'flex', alignItems: 'center', gap: 24, marginBottom: 28 },
   collectionHeading: {
@@ -301,11 +301,15 @@ export const styles = stylex.create({
     marginBottom: 16
   },
   badge: {
-    fontSize: 14,
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: 24,
+    fontSize: 12,
+    lineHeight: '18px',
     color: colors.fgDefault,
     backgroundColor: colors.bgControl,
     borderRadius: 9999,
-    padding: '6px 14px',
+    padding: '0 10px',
     whiteSpace: 'nowrap'
   },
   largePreview: {
@@ -334,7 +338,7 @@ export const styles = stylex.create({
   metadataLabel: { fontSize: 12, lineHeight: '18px', color: colors.fgSubtle },
   metadataValue: { fontSize: 14, lineHeight: '22px', margin: 0, overflowWrap: 'anywhere' },
   originalLink: { fontSize: 14, lineHeight: '22px', color: colors.fgBrand, textDecoration: 'none' },
-  editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.fgBrand },
+  editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.fgSuccess },
   pagination: {
     display: 'flex',
     justifyContent: 'center',
@@ -348,6 +352,9 @@ export const styles = stylex.create({
   empty: {
     gridColumn: '1 / -1',
     backgroundColor: colors.bgSurface,
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderDefault,
     borderRadius: 12,
     padding: '70px 24px',
     textAlign: 'center',

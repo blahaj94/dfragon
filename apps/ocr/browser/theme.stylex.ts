@@ -6,7 +6,8 @@ export const colors = stylex.defineVars({
   bgCanvas: 'var(--seed-color-palette-gray-200)',
   bgSurface: 'var(--seed-color-palette-gray-00)',
   bgInset: 'var(--seed-color-palette-gray-100)',
-  // Crop previews stay on a dark surface in both modes, as decided in #526.
+  // Game screen crops sit on a dark surface in either mode. This literal is the dark bg.inset
+  // step and is not part of the design color set.
   bgPreview: '#16171B',
   bgControl: 'var(--seed-color-palette-gray-300)',
   bgControlHover: 'var(--seed-color-palette-gray-400)',
@@ -18,6 +19,7 @@ export const colors = stylex.defineVars({
   fgSubtle: 'var(--seed-color-palette-gray-700)',
   fgPlaceholder: 'var(--seed-color-palette-gray-600)',
   fgBrand: 'var(--seed-color-palette-blue-700)',
+  fgSuccess: 'var(--seed-color-palette-green-700)',
   fgDanger: 'var(--seed-color-palette-red-700)',
   borderDefault: 'var(--seed-color-palette-gray-400)',
   borderBrand: 'var(--seed-color-palette-blue-700)',
