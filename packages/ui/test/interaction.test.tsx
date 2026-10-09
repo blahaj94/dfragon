@@ -238,7 +238,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           label="표시 이름"
           invalid={invalid}
           description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 입력해주세요."
+          errorMessage="이름을 입력해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -253,7 +253,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     input = inputByLabel('표시 이름')
     expect(input.getAttribute('aria-invalid')).toBe('true')
     expect(new Set(referencedTexts(input, 'aria-describedby'))).toEqual(
-      new Set(['다른 사람이 볼 이름입니다.', '이름을 입력해주세요.'])
+      new Set(['다른 사람이 볼 이름입니다.', '이름을 입력해 주세요.'])
     )
 
     await render(<Field invalid={false} />)
@@ -270,7 +270,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value="모험가"
           invalid
           description="다른 사람이 볼 이름입니다."
-          errorMessage="이름을 확인해주세요."
+          errorMessage="이름을 확인해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -279,7 +279,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value="hello@example.invalid"
           invalid
           description="연락받을 이메일입니다."
-          errorMessage="이메일을 확인해주세요."
+          errorMessage="이메일을 확인해 주세요."
         >
           <TextFieldInput />
         </TextField>
@@ -292,10 +292,10 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(name.value).toBe('모험가')
     expect(email.value).toBe('hello@example.invalid')
     expect(new Set(referencedTexts(name, 'aria-describedby'))).toEqual(
-      new Set(['다른 사람이 볼 이름입니다.', '이름을 확인해주세요.'])
+      new Set(['다른 사람이 볼 이름입니다.', '이름을 확인해 주세요.'])
     )
     expect(new Set(referencedTexts(email, 'aria-describedby'))).toEqual(
-      new Set(['연락받을 이메일입니다.', '이메일을 확인해주세요.'])
+      new Set(['연락받을 이메일입니다.', '이메일을 확인해 주세요.'])
     )
   })
 })
@@ -311,7 +311,7 @@ function DialogExample(props: DialogExampleProps) {
       <DialogTrigger asChild>
         <ActionButton>상세 정보 열기</ActionButton>
       </DialogTrigger>
-      <DialogContent title="상세 정보" description="입력한 내용을 확인해주세요.">
+      <DialogContent title="상세 정보" description="입력한 내용을 확인해 주세요.">
         <DialogAction>확인하고 닫기</DialogAction>
       </DialogContent>
     </DialogRoot>
@@ -343,7 +343,7 @@ describe('Dialog의 상태 전이와 접근성, 포커스', () => {
 
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(referencedTexts(dialog, 'aria-labelledby')).toEqual(['상세 정보'])
-    expect(referencedTexts(dialog, 'aria-describedby')).toEqual(['입력한 내용을 확인해주세요.'])
+    expect(referencedTexts(dialog, 'aria-describedby')).toEqual(['입력한 내용을 확인해 주세요.'])
   })
 
   it('trigger로 열면 focus가 dialog 안으로 이동하고 바깥으로의 focus 이동을 막는다', async () => {

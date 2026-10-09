@@ -90,7 +90,7 @@ test(TITLES.rejectedCharacters, () => {
     {
       name: '빈 값 또는 trim 후 빈 값',
       nicknames: ['', ' ', '\t\n', '\u00a0\u3000', '\ufeff'],
-      reason: '닉네임을 입력해주세요.'
+      reason: '닉네임을 입력해 주세요.'
     },
     {
       name: '앞뒤 또는 내부 Unicode 공백',
@@ -148,7 +148,7 @@ test(TITLES.unencodable, () => {
 test(TITLES.errorPriority, () => {
   const options = { bannedWords: Object.freeze(['gm']) }
   const cases = [
-    [' \t\n', '닉네임을 입력해주세요.'],
+    [' \t\n', '닉네임을 입력해 주세요.'],
     ['MyGM 가가가가🫠', '공백(띄어쓰기)은 포함할 수 없습니다.'],
     ['MyGM가가가가🫠', invalidCharacterReason],
     ['A'.repeat(13) + '🫠', invalidCharacterReason],

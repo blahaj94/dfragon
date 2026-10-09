@@ -775,7 +775,7 @@ it.each([
     await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
     await click(tab)
     expect(attempts).toBe(1)
-    expect(container.textContent).toContain('던전앤파이터를 실행해주세요.')
+    expect(container.textContent).toContain('던전앤파이터를 실행해 주세요.')
     gameVisible = true
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
