@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { DesktopChannel } from '../src/backend/auth/desktop-channel'
 import { validateApiOrigin, validateReturnTarget } from '../src/backend/auth/protocol'
 import channelsFile from './channels.json'
 
@@ -33,6 +34,8 @@ type BuildEnvironment = Readonly<Record<string, string | undefined>>
 
 // 개발 채널만 localhost 서버를 바라본다. 다른 채널의 고정 origin, default와 빌드 변수 값은 공개 주소여야 한다.
 const LOOPBACK_ORIGIN_CHANNEL = 'development' satisfies ChannelName
+// electron-vite mode `dfragon-<채널>`이 채널 빌드를 고른다. 그 밖의 mode는 채널 없는 빌드나 개발 실행이다.
+const CHANNEL_MODE_PREFIX = 'dfragon-'
 const DNS_ROOT_LABEL_PATTERN = /\.$/
 const IPV4_MAPPED_LOOPBACK_PATTERN = /^\[::ffff:7f[0-9a-f]{2}:[0-9a-f]{1,4}\]$/
 const IPV4_LOOPBACK_PATTERN = /^127\.\d+\.\d+\.\d+$/
@@ -127,5 +130,36 @@ export function readChannelOrigin(
     // Never echo an invalid value: it may accidentally contain credentials.
     const requirement = describeOriginRequirement(allowsLoopback)
     throw new Error(`Set ${source.variable} to a ${requirement} origin.`)
+  }
+}
+
+function isChannelName(name: string): name is ChannelName {
+  return Object.hasOwn(channels, name)
+}
+
+export function readChannelNameFromMode(mode: string): ChannelName | null {
+  if (!mode.startsWith(CHANNEL_MODE_PREFIX)) {
+    return null
+  }
+  const name = mode.slice(CHANNEL_MODE_PREFIX.length)
+  if (!isChannelName(name)) {
+    throw new Error(`Unknown channel mode ${mode}.`)
+  }
+
+  return name
+}
+
+/** 채널 빌드의 main bundle에 넣는 공개 tuple. 빌드 변수 origin은 여기서 한 번 읽는다. */
+export function readDesktopChannel(
+  name: ChannelName,
+  environment: BuildEnvironment = process.env
+): DesktopChannel {
+  return {
+    name,
+    identity: channels[name].identity,
+    origins: {
+      api: readChannelOrigin(name, 'api', environment),
+      accounts: readChannelOrigin(name, 'accounts', environment)
+    }
   }
 }

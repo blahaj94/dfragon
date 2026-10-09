@@ -6,7 +6,7 @@ import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
-import { readChannelOrigin } from './build/channels'
+import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
 import { readDesktopSourceInfo } from './build/build-info'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
@@ -19,12 +19,9 @@ export default defineConfig(({ mode, command }) => {
   const desktopBuild = JSON.stringify(
     readDesktopSourceInfo(fileURLToPath(new URL('.', import.meta.url)))
   )
-  const developmentAuth = JSON.stringify(mode === 'dfragon-development')
-  const distributionAccountsOrigin = JSON.stringify(
-    mode === 'dfragon-distribution' ? readChannelOrigin('distribution', 'accounts') : null
-  )
-  const distributionApiOrigin = JSON.stringify(
-    mode === 'dfragon-distribution' ? readChannelOrigin('distribution', 'api') : null
+  const channelName = readChannelNameFromMode(mode)
+  const desktopChannel = JSON.stringify(
+    channelName == null ? null : readDesktopChannel(channelName)
   )
   const backendEntry = resolve('src/backend/main.ts')
   const frontendRoot = resolve('src/frontend')
@@ -94,9 +91,7 @@ export default defineConfig(({ mode, command }) => {
       },
       define: {
         __DFRAGON_DESKTOP_BUILD__: desktopBuild,
-        __DFRAGON_DEVELOPMENT_AUTH__: developmentAuth,
-        __DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN__: distributionAccountsOrigin,
-        __DFRAGON_DISTRIBUTION_API_ORIGIN__: distributionApiOrigin
+        __DFRAGON_CHANNEL__: desktopChannel
       },
       build: {
         // Ky is ESM-only; bundle its default export into the CommonJS main process.
