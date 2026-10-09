@@ -9,6 +9,7 @@
   "compilerOptions": {
     "composite": false,
     "noEmit": true,
+    "noImplicitAny": true,
     "jsx": "react-jsx",
     "paths": {
       "@dfragon/ui": ["../../packages/ui/src/index.tsx"],
