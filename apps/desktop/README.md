@@ -20,49 +20,9 @@
 
 ## 피아노 사운드 패키지
 
-Desktop renderer에서 `@blahaj94/piano-sound@0.1.0`을 사용할 수 있습니다. Web Audio 기반의 피아노 배경음과 이벤트 사운드를 제공하며, 재생 UI와 자동 재생은 연결하지 않습니다. 코드는 [비공개 piano-sound 저장소](https://github.com/blahaj94/piano-sound), 배포 파일은 GitHub Packages에서 관리합니다.
+`@blahaj94/piano-sound`는 import하는 코드와 재생 UI가 없어 의존성에서 뺐습니다. 이 패키지를 배포한 GitHub Packages npm registry는 공개 패키지도 설치할 때 토큰이 필요합니다([GitHub 안내](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-npm-registry#authenticating-to-github-packages)). pnpm은 일부 workspace만 설치해도 lockfile 전체의 공급망 정책을 검사하므로, lockfile에 이 패키지가 있으면 토큰 없는 checkout과 fork PR은 어떤 workspace도 설치하지 못합니다.
 
-전체 workspace 설치에도 이 비공개 패키지를 읽을 권한이 필요합니다. 패키지 접근 권한과 `read:packages` 범위를 가진 GitHub classic PAT를 `NODE_AUTH_TOKEN` 환경변수로 제공하고, 아래 인증 템플릿을 사용자 npm 설정에 한 번 등록합니다. 실제 토큰은 저장소나 명령문에 적지 않습니다.
-
-```sh
-npm config set '//npm.pkg.github.com/:_authToken' '${NODE_AUTH_TOKEN}' --location=user
-pnpm install --frozen-lockfile
-```
-
-루트 `.npmrc`는 `@blahaj94` 패키지만 GitHub Packages로 보냅니다. pnpm 11은 저장소 `.npmrc`의 인증 환경변수 치환을 허용하지 않으므로 인증 템플릿은 사용자 설정에 둡니다. PowerShell에서도 위 명령의 작은따옴표를 유지하고 환경변수는 해당 셸의 보안 입력 방식으로 설정합니다.
-
-Code Quality와 Desktop CI는 설치 단계에만 `PIANO_SOUND_PACKAGES_TOKEN` secret을 전달합니다. 저장소 **Settings → Secrets and variables → Actions**에서 패키지 읽기 권한이 있는 `read:packages` classic PAT를 해당 이름으로 등록해야 합니다. Dependabot이 만든 PR의 workflow는 Actions secret 대신 Dependabot secret을 받으므로 같은 PAT를 **Settings → Secrets and variables → Dependabot**에도 같은 이름으로 등록합니다. Secret이 전달되지 않는 외부 fork PR은 전체 설치를 할 수 없습니다. 인증 실패를 성공으로 처리하거나 검사를 생략하지 않습니다. 서버 이미지의 인증 전달은 [BuildKit secret 안내](../../docs/reference/api-start-development.md#서버-이미지)를 따릅니다.
-
-패키지의 **Manage Actions access**에 공개 저장소 `blahaj94/dfragon`을 추가하면 외부 fork도 패키지를 다운로드할 수 있습니다. 비공개 다운로드 범위를 유지하기 위해 기본 `GITHUB_TOKEN`으로 대체하거나 공개 저장소에 패키지 접근을 허용하지 않습니다. GitHub의 [패키지 Actions 접근 안내](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility#ensuring-workflow-access-to-your-package)를 참고합니다.
-
-Vite 전용 entry는 패키지에 포함된 MP3 18개를 로컬 빌드 자산으로 내보냅니다. CDN이나 CSP 변경 없이 다음처럼 사용하며, Electron main이나 preload에서는 import하지 않습니다.
-
-```ts
-import { PianoEngine, loadSamples } from '@blahaj94/piano-sound'
-import { sampleUrls } from '@blahaj94/piano-sound/vite'
-
-// 시작 버튼의 클릭 핸들러에서 호출하고 반환값을 보관합니다.
-async function startPiano() {
-  const context = new AudioContext()
-  try {
-    await context.resume()
-    const samples = await loadSamples(context, sampleUrls)
-    const piano = new PianoEngine(context, samples)
-    piano.start()
-
-    return { context, piano }
-  } catch (error) {
-    await context.close()
-    throw error
-  }
-}
-```
-
-시작과 정리 명령을 한 번에 실행하면 소리를 듣기 전에 멈춥니다. 이벤트 음은 `piano.bounce()`, 정지 버튼은 `piano.stop()`, 다시 시작은 `await context.resume()` 후 `piano.start()`에 연결합니다. 화면을 떠날 때만 `piano.dispose()` 후 `await context.close()`를 호출합니다.
-
-브라우저에서 바로 들어보려면 piano-sound 저장소에서 `npm ci`, `npm run example`을 실행한 뒤 생성된 `examples/piano.html`을 엽니다. 이 파일은 엔진과 음원을 포함하므로 `file://`와 오프라인에서 동작합니다. Vite 앱의 원본 HTML을 직접 여는 방식은 모듈 해석과 파일 접근 제한 때문에 실행되지 않습니다.
-
-샘플 로딩 중 화면을 떠나는 경우 `loadSamples`의 `signal`에 `AbortSignal`을 전달하고 취소합니다. 로딩 실패 시에도 생성한 context를 닫는 책임은 호출자에게 있습니다. 음원은 Alexander Holm의 Salamander Grand Piano이며 CC BY 3.0 고지와 원문을 패키지에 포함합니다. Desktop의 기존 라이선스 수집기가 패키지의 `LICENSE`, `NOTICE`, `LICENSES`를 읽어 배포 고지와 설정 화면에 포함합니다.
+다시 쓰려면 npmjs 공개 배포나 저장소 안 tarball(`file:`)처럼 토큰 없이 설치되는 방식으로 연결합니다. CI와 서버 이미지 빌드는 registry 토큰 없이 설치하며, `scripts/test/token-free-install.test.mjs`가 설치 경로의 토큰 전달을 검사합니다.
 
 ## 설정과 라이선스 사용고지
 
@@ -193,7 +153,7 @@ pnpm --filter @dfragon/desktop dev
 게임이 도는 Windows PC에 저장소를 받아 소스로 실행하면 빌드, 업로드, 다운로드 왕복 없이 수정을 바로 확인할 수 있습니다. 개발 실행도 캡처는 같은 Windows GDI 모듈, OCR과 검색은 같은 코드로 동작합니다. 패키징에서만 생기는 동작(asar, fuses, 관리자 권한 manifest, 포터블 압축 해제)은 아래 포터블 빌드나 PR의 Windows Test Build로 확인합니다.
 
 1. Node.js 24와 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [파인튜닝 OCR 모델](#파인튜닝-ocr-모델로-빌드하기) 절의 submodule 명령을 한 번 실행합니다.
-2. [피아노 사운드 패키지](#피아노-사운드-패키지) 절의 안내대로 사용자 npm 설정에 인증 템플릿을 한 번 등록하고, 비공개 package 읽기 토큰은 `NODE_AUTH_TOKEN` 환경변수로 넣은 뒤 `pnpm install --frozen-lockfile`을 실행합니다. 실제 토큰은 명령문이나 저장소에 적지 않고 PowerShell의 보안 입력으로 받습니다.
+2. `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 패키지 registry 토큰은 필요하지 않습니다.
 3. 검색만 실제 API로 확인하려면 `apps/desktop/.env`에 `DFRAGON_API_ORIGIN=<배포 API origin>` 한 줄만 둡니다. 로그인까지 보려면 [카드 화면 개발](#카드-화면-개발) 절의 `.env` 설정을 따릅니다. 개발 실행은 패키지가 아니므로 [테스트 버전 자료 수집](#테스트-버전-자료-수집)이 켜집니다.
 4. `pnpm --filter @dfragon/desktop dev`를 실행하고 게임 창을 띄웁니다. 던파가 관리자 권한으로 실행 중이면 이 명령도 관리자 권한 PowerShell에서 실행합니다. 권한이 낮으면 게임 창이 활성일 때 Alt+R, Alt+Print Screen 단축키를 받지 못하고, 개발자 모드의 Print Screen 수집은 관리자 권한 필요로 거절됩니다. 패키지는 실행할 때 관리자 권한을 요청하도록 빌드되므로 이 차이가 없습니다. 소스를 고치면 renderer는 즉시, main은 다시 시작할 때 반영됩니다.
 
