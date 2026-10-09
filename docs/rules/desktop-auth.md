@@ -96,7 +96,7 @@ Capture와 검색 화면은 인증 snapshot 로딩, signedOut, 로그인 진행,
 
 Source 열거, 선택, display media, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, Stop, track 종료, capture unmount, renderer reload/navigation/destruction은 stream, worker, loop, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
 
-Main의 token 소유, account endpoint 권한 검사, sandbox와 navigation 차단은 유지한다. Renderer가 인증을 조작하지 않아도 기능을 사용할 수 있게 하며 임의 화면, camera/microphone 허용으로 확대하지 않는다. 제품 display 권한은 [Windows 제품 캡처 정책](desktop-capture-media-fixture-proposal.md#windows-제품-캡처-정책)을 따른다.
+Main의 token 소유, account endpoint 권한 검사, sandbox와 navigation 차단은 유지한다. Renderer가 인증을 조작하지 않아도 기능을 사용할 수 있게 하며 임의 화면, camera/microphone 허용으로 확대하지 않는다. 제품 display 권한은 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)을 따른다.
 
 ## 저장 확정 뒤 복원 안내 제안
 

@@ -10,7 +10,7 @@ Desktop renderer의 화면별 스타일은 StyleX로 작성합니다. SEED Compo
 
 ## 빌드 연결
 
-[앱 공통 StyleX](app-styling.md)의 compiler 옵션, 버전을 사용한다. `apps/desktop/build/renderer-transforms.ts`가 공식 `@stylexjs/unplugin`과 React plugin의 순서를 관리합니다. 제품 electron-vite renderer, Vitest, auth UI, bridge, capture fixture가 이 설정을 함께 사용합니다. Vitest는 HTTP/HMR timer 없이 같은 compiler를 실행하는 Rollup adapter를 사용합니다. Main, preload에는 StyleX 변환을 적용하지 않습니다.
+[앱 공통 StyleX](app-styling.md)의 compiler 옵션, 버전을 사용한다. `apps/desktop/build/renderer-transforms.ts`가 공식 `@stylexjs/unplugin`과 React plugin의 순서를 관리합니다. 제품 electron-vite renderer, Vitest, auth bridge fixture가 이 설정을 함께 사용합니다. Vitest는 HTTP/HMR timer 없이 같은 compiler를 실행하는 Rollup adapter를 사용합니다. Main, preload에는 StyleX 변환을 적용하지 않습니다.
 
 - StyleX를 React보다 먼저 실행해 Fast Refresh를 유지합니다.
 - `runtimeInjection: false`로 빌드 시 CSS를 추출합니다. 기존 SEED CSS와 같은 cascade에서 사용하도록 `useCSSLayers: false`를 명시합니다.

@@ -274,7 +274,7 @@ pnpm --filter @dfragon/desktop dev:app
 pnpm --filter @dfragon/desktop build:win:development
 ```
 
-개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색, 인증, 캡처 회귀 테스트와 capture fixture에서만 사용합니다. 기존 localhost HTTPS, `dfragon.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS, Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
+개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색, 인증, 캡처 회귀 테스트에서만 사용합니다. 기존 localhost HTTPS, `dfragon.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS, Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
 
 ## 개발자 모드
 
