@@ -732,7 +732,7 @@ it('rejects a late HUD preview after switching to participant collection', async
     old.resolve({ frame: partyFrame(), previewError: null, collection: status })
   )
   expect(container.querySelectorAll('img')).toHaveLength(0)
-  expect(container.textContent).toContain('파티참가인원 창을 열어주세요.')
+  expect(container.textContent).toContain('파티참가인원 창을 열어 주세요.')
   expect(container.querySelectorAll('[role="tab"]')).toHaveLength(4)
 })
 
@@ -782,8 +782,8 @@ it.each([
     })
     expect(attempts).toBe(2)
     expect(status.armed).toBe(true)
-    expect(container.textContent).not.toContain('파티원창이 잘 보이게 해주세요.')
-    expect(container.textContent).not.toContain('공대원창이 잘 보이게 해주세요.')
+    expect(container.textContent).not.toContain('파티원창이 잘 보이게 해 주세요.')
+    expect(container.textContent).not.toContain('공대원창이 잘 보이게 해 주세요.')
   }
 )
 
@@ -850,8 +850,8 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
 })
 
 it.each([
-  ['DEVELOPER_RAID_WINDOW_NOT_FOUND', '공대 상세 창을 열어주세요.'],
-  ['DEVELOPER_RAID_WINDOW_UNCERTAIN', '공대원창이 잘 보이게 해주세요.']
+  ['DEVELOPER_RAID_WINDOW_NOT_FOUND', '공대 상세 창을 열어 주세요.'],
+  ['DEVELOPER_RAID_WINDOW_UNCERTAIN', '공대원창이 잘 보이게 해 주세요.']
 ])(
   'clears stale raid crops on %s and restores selected rows after recovery',
   async (code, message) => {
