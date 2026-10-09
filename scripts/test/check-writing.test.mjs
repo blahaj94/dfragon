@@ -38,6 +38,7 @@ test('DFragon 표기, 식별자, 합니다체와 하세요체는 통과한다', 
       'DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.example.test',
       '__DFRAGON_DESKTOP_BUILD__, @dfragon/ui, dfragon://auth/callback, notices/DFRAGON-MODIFICATIONS.txt',
       '창 목록을 불러오지 못했습니다. 닉네임을 입력하세요. 다시 로그인해 주세요.',
+      '해주세요체가 아니라 띄어 쓴 요청형을 씁니다.',
       "confirm: '저장하시겠습니까?'",
       '필요한 값이 없습니다. 주요 항목과 개요, 해요체 설명',
       '측정 조건, 스킬, 데미지 · 2026-10-09 기준',
@@ -60,6 +61,7 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점을 경로, 줄 번호와
       '"body": "타격 장면을 비교해보는 영상이에요."',
       '패스키가 있나요: 로그인했어요, 다시 시도하세요',
       '측정 조건·스킬·데미지를 확인하세요.',
+      '닉네임을 입력해주세요.',
       '라이선스를 확인하세요.',
       ''
     ].join('\n')
@@ -67,12 +69,12 @@ test('옛 표기, 해요체 어미, 나열 가운뎃점을 경로, 줄 번호와
 
   assert.equal(result.code, 1)
 
-  for (const line of [1, 2, 3, 4, 5, 6, 7, 8]) {
+  for (const line of [1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     assert.match(result.stderr, new RegExp(`^copy\\.tsx:${line}: `, 'mu'), `${line}번째 줄`)
   }
 
-  assert.doesNotMatch(result.stderr, /^copy\.tsx:9: /mu)
-  assert.match(result.stderr, /위반 8건/u)
+  assert.doesNotMatch(result.stderr, /^copy\.tsx:10: /mu)
+  assert.match(result.stderr, /위반 9건/u)
 })
 
 test('규칙 문서처럼 금지 표기를 예시로 담는 제외 경로는 명시해도 건너뛴다', async (t) => {
