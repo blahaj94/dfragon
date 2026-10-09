@@ -30,7 +30,8 @@ permissions:
 
 concurrency:
   group: windows-portable-${{ github.event.release.tag_name || inputs.tag || github.ref }}
-  cancel-in-progress: false
+  # A newer PR push replaces the running build. Release and manual builds finish so a tag keeps its asset.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
