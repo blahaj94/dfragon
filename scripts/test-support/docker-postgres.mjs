@@ -25,6 +25,22 @@ export const POSTGRES_DATA = Object.freeze({
 
 const ownershipLabel = 'com.dfragon.database-test.run'
 const maxOutputBytes = 1024 * 1024
+const redactedText = '[redacted]'
+const maxStderrHeadLines = 2
+const maxStderrTailLines = 3
+const maxDiagnosticLineLength = 300
+const maxDockerCommandWords = 3
+const dockerCommandWordPattern = /^[a-z]+$/
+const dockerEnvironmentFlags = new Set(['--env', '-e'])
+const dockerInlineEnvironmentFlag = '--env='
+const lineBreakPattern = /\r\n|\r|\n/
+const controlCharacterPattern = /\p{Cc}/gu
+// 연결 문자열의 userinfo(user:password@)
+const urlCredentialPattern = /([a-z][a-z0-9+.-]*:\/\/)[^\s/]+@/gi
+// password=..., DB_PASSWORD="...", "refreshToken":"...", apiKey: '...'처럼 비밀 이름에 붙은 값.
+// 따옴표 없는 콜론 뒤는 값으로 보지 않아 'oauth token: unexpected status' 같은 오류 문장을 보존한다.
+const secretAssignmentPattern =
+  /([\w.-]*(?:password|passwd|secret|token|api[_-]?key|private[_-]?key)[\w.-]*(?:=["']?|["']?\s*:\s*["']))[^\s"',;&]+/gi
 
 function safeDockerEnvironment() {
   const names = [
@@ -125,13 +141,118 @@ export function shouldThrowDockerFailure({ allowFailure, result }) {
 }
 
 export async function docker(args, options = {}) {
-  const result = await command('docker', args, { timeoutMs: options.timeoutMs })
+  let result
+  try {
+    result = await command('docker', args, { timeoutMs: options.timeoutMs })
+  } catch (error) {
+    // 시작 실패, timeout, 출력 한도 초과도 어느 Docker 명령에서 났는지 남긴다.
+    throw new Error(`Docker command failed: ${dockerCommandName(args)} (${error.message})`)
+  }
   const shouldThrow = shouldThrowDockerFailure({ allowFailure: options.allowFailure, result })
   if (shouldThrow) {
-    throw new Error(`Docker command failed: ${args[0] ?? 'unknown'}`)
+    throw new Error(dockerFailureMessage({ args, result }))
   }
 
   return result
+}
+
+// 이미지, 컨테이너 이름이나 옵션 값 대신 앞쪽의 하위 명령 단어만 남긴다.
+function dockerCommandName(args) {
+  const words = []
+  for (const argument of args.slice(0, maxDockerCommandWords)) {
+    const isCommandWord = dockerCommandWordPattern.test(argument)
+    if (!isCommandWord) {
+      break
+    }
+    words.push(argument)
+  }
+  const hasCommandWords = words.length > 0
+  if (!hasCommandWords) {
+    return 'unknown'
+  }
+
+  return words.join(' ')
+}
+
+function dockerFailureMessage({ args, result }) {
+  const hasExitSignal = result.signal !== null
+  const status = hasExitSignal ? `signal ${result.signal}` : `exit code ${result.code}`
+  const stderr = redactDiagnostic(result.stderr, dockerEnvironmentValues(args))
+  const stderrLines = diagnosticLines(stderr).filter((line) => line.trim() !== '')
+  const summary = `Docker command failed: ${dockerCommandName(args)} (${status})`
+
+  return [summary, ...stderrExcerpt(stderrLines).map((line) => `  ${line}`)].join('\n')
+}
+
+// Docker CLI는 flag 오류를 첫 줄에 쓰고 사용법 전체를 이어 출력한다. daemon, registry 오류는
+// 마지막 줄에 남으므로 앞뒤 줄을 함께 보존한다.
+function stderrExcerpt(lines) {
+  const omittedLineCount = lines.length - maxStderrHeadLines - maxStderrTailLines
+  const hasOmittedLines = omittedLineCount > 0
+  if (!hasOmittedLines) {
+    return lines
+  }
+
+  return [
+    ...lines.slice(0, maxStderrHeadLines),
+    `… ${omittedLineCount} lines omitted`,
+    ...lines.slice(-maxStderrTailLines)
+  ]
+}
+
+// Docker CLI는 flag 해석 오류에서 --env 인자를 그대로 되풀이할 수 있어 모든 값을 가린다.
+function dockerEnvironmentValues(args) {
+  return args.flatMap((argument, index) => {
+    let assignment
+    const followsEnvironmentFlag = dockerEnvironmentFlags.has(args[index - 1])
+    const isInlineEnvironmentFlag = argument.startsWith(dockerInlineEnvironmentFlag)
+    if (followsEnvironmentFlag) {
+      assignment = argument
+    } else if (isInlineEnvironmentFlag) {
+      assignment = argument.slice(dockerInlineEnvironmentFlag.length)
+    } else {
+      return []
+    }
+    // KEY만 넘기면 상위 환경의 값을 쓰므로 args에는 가릴 값이 없다.
+    const separatorIndex = assignment.indexOf('=')
+    const hasValue = separatorIndex >= 0
+    if (!hasValue) {
+      return []
+    }
+
+    return [assignment.slice(separatorIndex + 1)]
+  })
+}
+
+function redactDiagnostic(text, secrets) {
+  const values = [...secrets].filter((value) => typeof value === 'string' && value !== '')
+  let redacted = text
+  const hasSecretValues = values.length > 0
+  if (hasSecretValues) {
+    // 긴 값부터 한 번에 치환해 다른 값의 일부나 이미 넣은 치환 표시를 다시 바꾸지 않는다.
+    const longestFirst = values.toSorted((left, right) => right.length - left.length)
+    const secretValuePattern = new RegExp(
+      longestFirst.map((value) => RegExp.escape(value)).join('|'),
+      'g'
+    )
+    redacted = redacted.replace(secretValuePattern, redactedText)
+  }
+
+  return redacted
+    .replace(urlCredentialPattern, `$1${redactedText}@`)
+    .replace(secretAssignmentPattern, `$1${redactedText}`)
+}
+
+function diagnosticLines(text) {
+  return text.split(lineBreakPattern).map((line) => {
+    const printable = line.replace(controlCharacterPattern, ' ').trimEnd()
+    const isTooLong = printable.length > maxDiagnosticLineLength
+    if (!isTooLong) {
+      return printable
+    }
+
+    return `${printable.slice(0, maxDiagnosticLineLength)}…`
+  })
 }
 
 function normalizeNativePlatform({ os, architecture }) {
