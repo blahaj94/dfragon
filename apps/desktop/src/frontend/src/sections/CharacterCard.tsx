@@ -118,7 +118,7 @@ export function CharacterCard({
             aria-label={`${slot}번 캐릭터 확인 중`}
             {...stylex.props(styles.progress)}
           >
-            <ProgressCircle size="24" tone="brand" />
+            <ProgressCircle size="24" tone="staticWhite" />
           </div>
         )}
         {state === 'success' && character != null && showCharacter && (
