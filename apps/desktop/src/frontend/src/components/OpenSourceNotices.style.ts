@@ -50,7 +50,14 @@ export const styles = stylex.create({
     color: colors.fgMuted,
     overflowWrap: 'anywhere'
   },
-  rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
+  rowChevron: {
+    gridColumn: 2,
+    gridRow: '1 / span 2',
+    flexShrink: 0,
+    width: 24,
+    height: 24,
+    color: colors.fgSubtle
+  },
   document: { backgroundColor: colors.bgInset, borderRadius: 12, padding: 16, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {

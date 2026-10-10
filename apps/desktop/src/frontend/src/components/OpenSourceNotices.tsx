@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, TextField, TextFieldInput } from '@dfragon/ui'
 import type { NoticeEntry } from '@dfragon/licenses/types'
+import { ChevronRightIcon } from './ChevronRightIcon'
 import { styles } from './OpenSourceNotices.style'
 
 export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): React.JSX.Element {
@@ -115,9 +116,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
               <Typo.txtS as="span" {...stylex.props(styles.license)}>
                 {entry.license}
               </Typo.txtS>
-              <span aria-hidden="true" {...stylex.props(styles.rowChevron)}>
-                ›
-              </span>
+              <ChevronRightIcon {...stylex.props(styles.rowChevron)} />
             </ActionButton>
           </li>
         ))}
