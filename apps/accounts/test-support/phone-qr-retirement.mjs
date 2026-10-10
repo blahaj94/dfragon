@@ -27,10 +27,13 @@ export async function assertPhoneQrRetirement(admin, mark = () => {}) {
     await admin.query('CREATE DATABASE dfragon_phone_qr_retirement_test')
     created = true
     await source.initialize()
-    const migrations = source.migrations
+    const migrations = source.migrations.toSorted(
+      (left, right) => Number(left.name.slice(-13)) - Number(right.name.slice(-13))
+    )
     const removal = migrations.find((migration) => migration.name.startsWith('RemovePhoneQrLogin'))
     assert.ok(removal)
-    source.migrations = migrations.filter((migration) => migration !== removal)
+    const removalIndex = migrations.indexOf(removal)
+    source.migrations = migrations.slice(0, removalIndex)
     await source.runMigrations({ transaction: 'all' })
     const user = randomUUID()
     const session = randomUUID()
@@ -116,7 +119,7 @@ export async function assertPhoneQrRetirement(admin, mark = () => {}) {
     }
     const before = await accountRows(source)
     mark('활성 QR 요청 종료와 직접 로그인, 관리, 회원, 키, session, refresh 보존')
-    source.migrations = migrations
+    source.migrations = migrations.slice(0, removalIndex + 1)
     assert.deepEqual(
       (await source.runMigrations({ transaction: 'all' })).map((migration) => migration.name),
       [removal.name]
@@ -129,8 +132,24 @@ export async function assertPhoneQrRetirement(admin, mark = () => {}) {
       )
     }
     for (const row of qr) {
-      await assertTerminalLoginRequest(source, row.id, 'failed')
       const [ended] = await source.query('SELECT * FROM auth_login_requests WHERE id=$1', [row.id])
+      // 뒤의 loopback migration도 요청을 종료하므로 QR 제거 직후에 검증한다.
+      assert.equal(ended.status, 'failed')
+      for (const field of [
+        'code_challenge',
+        'launch_ticket_hash',
+        'browser_binding_hash',
+        'webauthn_challenge',
+        'operation',
+        'pending_user_id',
+        'verified_user_id',
+        'credential_id',
+        'exchange_code_hash',
+        'code_expires_at',
+        'consumed_at'
+      ]) {
+        assert.equal(ended[field], null, `QR 제거 직후 ${field}를 지워야 한다`)
+      }
       assert.equal(ended.is_new_user, row.is_new_user)
       assert.deepEqual(ended.created_at, row.created_at)
       assert.deepEqual(ended.expires_at, row.expires_at)
@@ -139,6 +158,11 @@ export async function assertPhoneQrRetirement(admin, mark = () => {}) {
       (await source.query('SELECT count(*)::int AS n FROM auth_login_requests'))[0].n,
       direct.length + qr.length
     )
+    source.migrations = migrations
+    await source.runMigrations({ transaction: 'all' })
+    for (const row of qr) {
+      await assertTerminalLoginRequest(source, row.id, 'failed')
+    }
     await assertSchema(source)
     assert.deepEqual((await source.driver.createSchemaBuilder().log()).upQueries, [])
     assert.deepEqual(await source.runMigrations({ transaction: 'all' }), [])
@@ -146,6 +170,7 @@ export async function assertPhoneQrRetirement(admin, mark = () => {}) {
     mark('빈 disposable DB의 구조 rollback과 재적용')
     await source.query('DELETE FROM auth_login_requests')
     await source.query('DELETE FROM users')
+    await source.undoLastMigration({ transaction: 'all' })
     await source.undoLastMigration({ transaction: 'all' })
     const columns = await source.query(
       "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='auth_login_requests' AND column_name IN ('qr_ticket_hash','phone_binding_hash','confirmation_code') ORDER BY column_name"
