@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { describeErrorChain, withSanitizedCause } from '../src/error-chain.js'
+import { SanitizedFailure, describeErrorChain } from '../src/error-chain.js'
 
 // 정제 결과에 나오면 안 되는 값이다. 모두 합성 값이며 실제 credential이 아니다.
 const secret = 'fake-secret-detail-3e1d'
@@ -31,11 +31,11 @@ test('원인은 다섯 단계까지만 따라가고 순환하는 cause에서도 
   assert.equal(describeErrorChain(deep).length, 5)
 })
 
-test('withSanitizedCause는 원래 오류 object를 cause로 붙이지 않고 정제한 chain만 이어 준다', () => {
+test('{ cause }로 만든 failure는 원래 오류 object를 cause로 두지 않고 정제한 chain만 이어 준다', () => {
   const original = Object.assign(new Error(secret), { code: 'ECONNRESET', query: secret })
-  const failure = withSanitizedCause(new Error('정제한 응답 오류'), original)
+  const failure = new SanitizedFailure('정제한 응답 오류', { cause: original })
 
-  assert.equal(failure.cause, undefined)
+  assert.equal(Object.hasOwn(failure, 'cause'), false)
   const chain = describeErrorChain(failure)
   assert.deepEqual(
     chain.map(({ name, code }) => ({ name, code })),
@@ -44,7 +44,25 @@ test('withSanitizedCause는 원래 오류 object를 cause로 붙이지 않고 �
       { name: 'Error', code: 'ECONNRESET' }
     ]
   )
+  assert.deepEqual(
+    failure.sanitizedCause?.map(({ name, code }) => ({ name, code })),
+    [{ name: 'Error', code: 'ECONNRESET' }]
+  )
+  assert.equal(JSON.stringify(failure).includes(secret), false)
   assert.equal(JSON.stringify(chain).includes(secret), false)
+})
+
+test('cause option이 없으면 sanitizedCause가 없고, 정제 중 예외가 나면 원인만 생략한다', () => {
+  const unreadable = Object.defineProperty(new Error('getter'), 'name', {
+    get(): never {
+      throw new Error(secret)
+    }
+  })
+
+  assert.equal(new SanitizedFailure('원인 없음').sanitizedCause, undefined)
+  const failure = new SanitizedFailure('정제 실패', { cause: unreadable })
+  assert.equal(failure.sanitizedCause, undefined)
+  assert.equal(describeErrorChain(failure).length, 1)
 })
 
 test('오류마다 stack frame은 다섯 줄, 한 줄은 300자까지만 남긴다', () => {
@@ -63,7 +81,7 @@ test('오류마다 stack frame은 다섯 줄, 한 줄은 300자까지만 남긴�
 test('정제한 chain을 이은 failure를 다시 감싸도 오류는 다섯 개까지만 남긴다', () => {
   let failure = new Error('root')
   for (let depth = 0; depth < 6; depth += 1) {
-    failure = withSanitizedCause(new Error(`wrapper ${depth}`), failure)
+    failure = new SanitizedFailure(`wrapper ${depth}`, { cause: failure })
   }
 
   assert.equal(describeErrorChain(failure).length, 5)
