@@ -9,6 +9,7 @@
   "compilerOptions": {
     "composite": false,
     "noEmit": true,
+    "noImplicitAny": true,
     "types": [
       "electron-vite/node"
     ],

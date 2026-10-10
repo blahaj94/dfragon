@@ -945,8 +945,7 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return state.getSnapshot()
     }
 
-    const hasReadyCredential = inspection.status === 'ready'
-    if (hasReadyCredential) {
+    if (inspection.status === 'ready') {
       await restoreReadyCredential(inspection.refreshToken, operationGeneration)
     }
 
