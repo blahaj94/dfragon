@@ -584,11 +584,11 @@ it('keeps failed label drafts, skips without saving, and restores excluded sampl
   const filters = [
     ...container.querySelectorAll('[role="group"][aria-label="이미지 상태 필터"] button')
   ]
-  expect(filters.map((filter) => filter.getAttribute('aria-pressed'))).toEqual([
-    'false',
-    'false',
-    'true'
-  ])
+  expect(
+    Object.fromEntries(
+      filters.map((filter) => [filter.textContent, filter.getAttribute('aria-pressed')])
+    )
+  ).toEqual({ 미입력: 'false', 완료: 'false', 제외: 'true' })
   expect(button('포함으로 복원')).toBeDefined()
   await click('포함으로 복원')
   await act(async () => Promise.resolve())
