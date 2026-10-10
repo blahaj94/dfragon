@@ -20,7 +20,7 @@ type CaptureControlInput = {
 // StatusBadge의 info, success, danger는 각각 informative, positive, critical에 대응한다.
 export type CaptureControlTone = 'neutral' | 'informative' | 'positive' | 'warning' | 'critical'
 
-// 캡처 진행 상태를 우선하여 모달에 표시할 상태 이름과 배지 tone을 결정한다.
+// 캡처 진행 상태를 우선하여 상단 바와 캡처 모달에 표시할 상태 이름과 배지 tone을 결정한다.
 export function getCaptureControlState({
   phase,
   loading,

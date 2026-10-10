@@ -3,12 +3,15 @@ import { colors } from '../../constants/theme.stylex'
 
 export const styles = stylex.create({
   app: {
-    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100dvh',
     boxSizing: 'border-box',
     backgroundColor: colors.bgCanvas,
-    color: colors.fgDefault,
-    padding: '16px 24px'
+    color: colors.fgDefault
   },
+  // OS 창 버튼은 창 위쪽에 고정되므로 상단 바도 고정하고 그 아래 내용만 스크롤한다.
+  content: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 24px' },
   footer: {
     display: 'flex',
     flexWrap: 'wrap',

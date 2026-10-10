@@ -1,14 +1,7 @@
-import { CameraIcon } from '../../components/CameraIcon'
-import { MoonIcon } from '../../components/MoonIcon'
-import { SunIcon } from '../../components/SunIcon'
-import { Typo, ActionButton, IconButton } from '@dfragon/ui'
-import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './PartyPage.style'
-import { useColorTheme } from '../../hooks/useColorTheme'
-import { SettingsSection } from '../../sections/SettingsSection'
 
 export function PartyPage({
   character,
@@ -18,9 +11,6 @@ export function PartyPage({
   compareFaces = false,
   inputEnabled = false,
   basicOnly = false,
-  account,
-  capture,
-  settings = <SettingsSection />,
   nicknames,
   onDetail,
   onSlotDetail,
@@ -38,10 +28,6 @@ export function PartyPage({
   compareFaces?: boolean
   inputEnabled?: boolean
   basicOnly?: boolean
-  /** 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. */
-  account?: ReactNode
-  capture?: ReactNode
-  settings?: ReactNode
   nicknames?: readonly (string | null)[]
   onDetail?: () => void
   onSlotDetail?: (slot: number) => void
@@ -52,75 +38,43 @@ export function PartyPage({
   loadingSlots?: readonly boolean[]
   onLookup?: (slot: number, nickname: string, serverId: string) => void
 }): React.JSX.Element {
-  const { light, toggleTheme } = useColorTheme()
-
   return (
-    <>
-      <header {...stylex.props(styles.header)}>
-        {capture ?? (
-          <IconButton
-            variant="neutralWeak"
-            disabled
-            aria-label="캡처 연결 예정"
-            icon={<CameraIcon />}
-          />
-        )}
-        <div {...stylex.props(styles.actions)}>
-          <IconButton
-            variant="ghost"
-            aria-label={light ? '다크 테마' : '라이트 테마'}
-            onClick={toggleTheme}
-            icon={light ? <MoonIcon /> : <SunIcon />}
-          />
-          {account === undefined ? (
-            <ActionButton size="medium" variant="neutralWeak" disabled>
-              <Typo.txtM as="span" weight={700}>
-                로그인
-              </Typo.txtM>
-            </ActionButton>
-          ) : (
-            account
-          )}
-          {settings}
-        </div>
-      </header>
-      <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
-        {slots.map((state, index) => {
-          const selected = characters == null ? character : (characters[index] ?? undefined)
-          const observedNickname = nicknames?.[index] ?? undefined
-          const displayedNickname =
-            state === 'success' && selected != null ? undefined : observedNickname
-          let detailAction = onDetail
-          if (onSlotDetail !== undefined) {
-            detailAction =
-              state === 'success' && selected != null ? () => onSlotDetail(index) : undefined
-          }
+    <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
+      {slots.map((state, index) => {
+        const selected = characters == null ? character : (characters[index] ?? undefined)
+        const observedNickname = nicknames?.[index] ?? undefined
+        const displayedNickname =
+          state === 'success' && selected != null ? undefined : observedNickname
+        let detailAction = onDetail
+        if (onSlotDetail !== undefined) {
+          detailAction =
+            state === 'success' && selected != null ? () => onSlotDetail(index) : undefined
+        }
 
-          return (
-            <CharacterCard
-              key={`${resetKey}-${index}`}
-              slot={index + 1}
-              character={selected}
-              state={state}
-              nickname={displayedNickname}
-              inputEnabled={inputEnabled}
-              basicOnly={basicOnly}
-              initialFace={compareFaces ? index : 0}
-              onDetail={detailAction}
-              notice={slotNotices?.[index]}
-              onRetry={onRetry == null ? undefined : () => onRetry(index)}
-              retryEnabled={retryEnabled?.[index]}
-              retryPending={retryPending?.[index]}
-              loading={loadingSlots?.[index]}
-              onLookup={
-                onLookup === undefined
-                  ? undefined
-                  : (nickname, serverId) => onLookup(index, nickname, serverId)
-              }
-            />
-          )
-        })}
-      </section>
-    </>
+        return (
+          <CharacterCard
+            key={`${resetKey}-${index}`}
+            slot={index + 1}
+            character={selected}
+            state={state}
+            nickname={displayedNickname}
+            inputEnabled={inputEnabled}
+            basicOnly={basicOnly}
+            initialFace={compareFaces ? index : 0}
+            onDetail={detailAction}
+            notice={slotNotices?.[index]}
+            onRetry={onRetry == null ? undefined : () => onRetry(index)}
+            retryEnabled={retryEnabled?.[index]}
+            retryPending={retryPending?.[index]}
+            loading={loadingSlots?.[index]}
+            onLookup={
+              onLookup === undefined
+                ? undefined
+                : (nickname, serverId) => onLookup(index, nickname, serverId)
+            }
+          />
+        )
+      })}
+    </section>
   )
 }
