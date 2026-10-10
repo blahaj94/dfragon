@@ -8,15 +8,12 @@ test('빌드된 패스키 HTML은 표시 값을 escape하고 같은 origin 자�
   const input = {
     requestId: '"<script>&',
     purpose: 'login',
-    view: 'phone',
-    confirmationCode: '<123456>',
     webReturnUrl: 'https://ocr.example.test/auth/callback?value="<&\'',
     cookie: '__Host-dfragon-fixture=fixture-browser-secret'
   }
   const first = await passkeyPage(input)
   const second = await passkeyPage(input)
   assert.match(first.html, /data-request-id="&quot;&lt;script&gt;&amp;"/)
-  assert.match(first.html, /&lt;123456&gt;/)
   assert.match(
     first.html,
     /data-web-return-url="https:\/\/ocr\.example\.test\/auth\/callback\?value=&quot;&lt;&amp;&#39;"/
@@ -51,7 +48,7 @@ test('빌드된 패스키 HTML은 표시 값을 escape하고 같은 origin 자�
   assert.match(first.html, /href="\/auth\/passkeys\/icon.png"/)
 })
 
-test('패스키 브라우저는 같은 origin에서 브랜드 PNG를 제공한다', async () => {
+test('패스키 HTTP는 브랜드 PNG를 제공하고 제거된 휴대폰 경로는 노출하지 않는다', async () => {
   const expected = await readFile(new URL('../dist/browser/icon.png', import.meta.url))
   const app = await createLoginHttpApp({
     create: async () => {
@@ -78,16 +75,30 @@ test('패스키 브라우저는 같은 origin에서 브랜드 PNG를 제공한�
     assert.equal(response.status, 200)
     assert.equal(response.headers.get('content-type'), 'image/png')
     assert.deepEqual(Buffer.from(await response.arrayBuffer()), expected)
+    for (const method of ['GET', 'HEAD']) {
+      const retired = await fetch(
+        `http://127.0.0.1:${address.port}/auth/login/phone?ticket=retired`,
+        { method }
+      )
+      assert.equal(retired.status, 404)
+      assert.equal(retired.headers.get('set-cookie'), null)
+    }
   } finally {
     await app.close()
   }
 })
 
-test('배포 브라우저 bundle은 설치된 QR, React 패키지의 고지문을 포함한다', async () => {
+test('배포 브라우저 bundle은 설치된 React, StyleX 패키지의 고지문을 포함한다', async () => {
   const script = await readFile(new URL('../dist/browser/passkeys.js', import.meta.url), 'utf8')
+  const reactLicense = await readFile(
+    new URL('./LICENSE', import.meta.resolve('react/package.json')),
+    'utf8'
+  )
+  const stylexLicense = await readFile(
+    new URL('../../../packages/licenses/notices/upstream/stylex-LICENSE.txt', import.meta.url),
+    'utf8'
+  )
   assert.ok(script.includes('/auth/passkeys/icon.png'))
-  assert.ok(script.includes('Copyright (c) 2012 Ryan Day'))
-  assert.ok(script.includes('Wyatt Baldwin'))
-  assert.ok(script.includes('Meta Platforms, Inc. and affiliates.'))
-  assert.ok(script.includes('Permission is hereby granted'))
+  assert.ok(script.includes(`React, React DOM and Scheduler\n${reactLicense}`))
+  assert.ok(script.includes(`StyleX\n${stylexLicense}`))
 })

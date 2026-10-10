@@ -6,6 +6,7 @@ import { configurationFingerprint } from '../src/auth/login/configuration.js'
 
 const TESTS = {
   unknownAction: '알 수 없는 브라우저 action은 transaction 시작과 요청 변경 없이 거절한다',
+  retiredQrAction: '제거된 QR action은 직접 로그인과 관리 요청을 변경하지 않고 거절한다',
   exactInput: '관리 action은 정확한 필드와 목적을 요구하고 잘못된 입력으로 권한을 변경하지 않는다',
   originBinding: '관리 Origin은 정확히 일치해야 하며 거절 전에 transaction을 시작하지 않는다',
   cookieBinding:
@@ -28,6 +29,45 @@ test(TESTS.unknownAction, async () => {
   }
   assert.deepEqual(fixture.row, before)
   assert.deepEqual(fixture.events, [])
+})
+
+test(TESTS.retiredQrAction, async (t) => {
+  for (const action of [
+    'qr',
+    'status',
+    'claim',
+    'direct',
+    'cancel',
+    'phone-options',
+    'phone-verify',
+    'phone-approve',
+    'phone-cancel'
+  ]) {
+    await t.test(action, async () => {
+      for (const managing of [false, true]) {
+        const fixture = managementFixture()
+        if (!managing) {
+          Object.assign(fixture.row, {
+            purpose: 'login',
+            status: 'browser_started',
+            codeChallenge: 'a'.repeat(43),
+            verifiedUserId: null,
+            credentialId: null
+          })
+        }
+        const before = structuredClone({ row: fixture.row, keys: fixture.keys })
+        let values = {}
+        if (action === 'phone-options') {
+          values = { operation: 'authenticate' }
+        } else if (action === 'phone-verify') {
+          values = { response: {} }
+        }
+        await assert.rejects(fixture.invoke(action, values), { code: 'LOGIN_REQUEST_INVALID' })
+        assert.deepEqual(structuredClone({ row: fixture.row, keys: fixture.keys }), before)
+        assert.deepEqual(fixture.events, [])
+      }
+    })
+  }
 })
 
 test(TESTS.exactInput, async (t) => {
@@ -156,9 +196,6 @@ test(TESTS.end, async () => {
     codeChallenge: null,
     launchTicketHash: null,
     browserBindingHash: null,
-    qrTicketHash: null,
-    phoneBindingHash: null,
-    confirmationCode: null,
     webauthnChallenge: null,
     operation: null,
     pendingUserId: null,
