@@ -124,9 +124,17 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  const brandImage = container.querySelector('footer img')
-  expect(brandImage?.getAttribute('src')).toBe(brandIcon)
-  expect([...container.querySelectorAll('img')]).toEqual([brandImage])
+  const topBarImage = container.querySelector<HTMLImageElement>('main > header img')!
+  const footerImage = container.querySelector<HTMLImageElement>('footer img')!
+  expect(topBarImage.getAttribute('src')).toBe(brandIcon)
+  expect(topBarImage.getAttribute('alt')).toBe('')
+  expect([topBarImage.width, topBarImage.height]).toEqual([24, 24])
+  expect(footerImage.getAttribute('src')).toBe(brandIcon)
+  expect([footerImage.width, footerImage.height]).toEqual([28, 28])
+  expect([...container.querySelectorAll('img')]).toEqual([topBarImage, footerImage])
+  expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
+  expect(container.querySelector('header')?.textContent).toContain('창 미감지')
+  expect(container.querySelector('header [role="status"]')).toBeNull()
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
   expect(container.textContent).toContain('캡처 대기')

@@ -50,6 +50,16 @@ async function select(id: string): Promise<void> {
   await act(async () => option!.click())
 }
 
+// SEED 대화상자는 portal 없이 카메라 버튼 옆에 그려지므로 모달 문구를 뺀 상단 바 글자만 읽는다.
+function topBarText(): string | null {
+  const header = document.querySelector('main > header')!.cloneNode(true) as HTMLElement
+  for (const dialog of header.querySelectorAll('[role="dialog"]')) {
+    dialog.remove()
+  }
+
+  return header.textContent
+}
+
 it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR을 준비한다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
@@ -65,7 +75,8 @@ it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR�
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
     '던전앤파이터'
   )
-  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
+  expect(topBarText()).toContain('캡처 중')
   expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()
 })
@@ -82,7 +93,8 @@ it('카메라에서 시작하고 모달, 로그인 상태가 바뀌어도 캡처
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await select('game')
   expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
+  expect(topBarText()).toContain('캡처 중')
   await f.cycle(3)
   expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
   expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledWith(
@@ -106,7 +118,7 @@ it('카메라에서 시작하고 모달, 로그인 상태가 바뀌어도 캡처
   ).toBe(true)
 
   await click('화면 캡처')
-  expect(document.body.textContent).toContain('캡처 중지')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중지')
   await click('캡처 중지')
 
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
@@ -142,7 +154,8 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
   expect(next.worker.terminate).not.toHaveBeenCalled()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
 
-  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
+  expect(topBarText()).toContain('캡처 중')
 
   await click('캡처 중지')
 
@@ -174,7 +187,8 @@ it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처�
   expect(media.worker).toHaveBeenCalledOnce()
 
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
-  expect(document.body.textContent).toContain('캡처 중, 1920×1080')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
+  expect(topBarText()).toContain('캡처 중')
 })
 
 it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시작하지 않는다', async () => {
@@ -207,14 +221,16 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
     </ColorThemeProvider>
   )
   await click('화면 캡처')
-  expect(document.body.textContent).toContain('조회 실패')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('조회 실패')
+  expect(topBarText()).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
   await click('캡처할 프로세스 선택')
   const refresh = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((item) =>
     item.textContent?.includes('창 목록 새로고침')
   )!
   await act(async () => refresh.click())
-  expect(document.body.textContent).toContain('창 미감지')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('창 미감지')
+  expect(topBarText()).toContain('창 미감지')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
 })
 
@@ -229,15 +245,16 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
   )
   await click('화면 캡처')
   await select('game')
-  expect(document.body.textContent).toContain('준비 중')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('준비 중')
+  expect(topBarText()).toContain('준비 중')
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
     'Synthetic game'
   )
   await click('캡처 중지')
-  expect(document.body.textContent).toContain('캡처를 중지했습니다.')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처를 중지했습니다.')
   expect(document.body.textContent).not.toContain('준비 중')
   await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
-  expect(document.body.textContent).toContain('캡처를 중지했습니다.')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처를 중지했습니다.')
   expect(document.body.textContent).not.toContain('캡처 시작을 눌러 주세요.')
 })
