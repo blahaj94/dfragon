@@ -1,11 +1,13 @@
 ---
 type: reference
-status: active
+status: historical
 scope: apps/desktop protocol ingress and single-instance bootstrap
-last-reviewed: 2026-09-25
+last-reviewed: 2026-10-10
 ---
 
 # Desktop Auth Protocol Ingress
+
+이 문서는 OS private protocol 복귀를 사용하던 구현의 이력이다. `protocol-ingress.ts`와 관련 테스트, OS protocol 등록과 URL 처리는 제거했다. 현재 로그인은 시스템 브라우저와 loopback 수신기를 사용하며, single-instance lock과 두 번째 실행 시 창 활성화는 유지한다. 현재 계약은 [Desktop Authentication Platform](../rules/desktop-auth-platform.md#loopback-복귀-및-browser-launch-선택)을 따른다. 아래 API, 코드와 검증 설명은 제거 전 상태를 기록한다.
 
 `apps/desktop/src/backend/auth/protocol-ingress.ts`는 Electron의 process-level protocol 입력을 인증 core의 `handleReturnUrl` 같은 dispatch 함수에 연결하는 main 전용 adapter다. 실제 protocol registry, API origin, app identity와 OS package 설정을 소유하지 않는다. 그 값은 trusted composition이 주입하며 현재 source에는 placeholder를 두지 않는다.
 
