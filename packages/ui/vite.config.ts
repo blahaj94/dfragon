@@ -7,8 +7,9 @@ function isExternal(id: string) {
   const isSeed = id.startsWith('@seed-design/')
   const isReact = id === 'react' || id.startsWith('react/')
   const isReactDom = id === 'react-dom' || id.startsWith('react-dom/')
+  const isStylex = id === '@stylexjs/stylex' || id.startsWith('@stylexjs/stylex/')
   const isOfficialIcon = id.startsWith('@karrotmarket/react-monochrome-icon')
-  const isPeerOrIcon = isSeed || isReact || isReactDom || isOfficialIcon
+  const isPeerOrIcon = isSeed || isReact || isReactDom || isStylex || isOfficialIcon
 
   return isPeerOrIcon
 }
