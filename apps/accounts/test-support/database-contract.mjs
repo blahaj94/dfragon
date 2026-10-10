@@ -32,6 +32,7 @@ export async function waitForAuthenticatedReadiness(
   timeoutMs = 20_000
 ) {
   const deadline = Date.now() + timeoutMs
+  let lastError
   while (true) {
     const isBeforeDeadline = Date.now() < deadline
     if (!isBeforeDeadline) {
@@ -49,7 +50,8 @@ export async function waitForAuthenticatedReadiness(
           return true
         }
       )
-    } catch {
+    } catch (error) {
+      lastError = error
       const remainingMs = deadline - Date.now()
       const hasTimeRemaining = remainingMs > 0
       if (hasTimeRemaining) {
@@ -57,7 +59,7 @@ export async function waitForAuthenticatedReadiness(
       }
     }
   }
-  throw new Error('PostgreSQL readiness timed out')
+  throw new Error('PostgreSQL readiness timed out', { cause: lastError })
 }
 
 export async function databaseSnapshot(dataSource) {

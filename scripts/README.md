@@ -194,6 +194,8 @@ API의 `test:database`는 Docker daemon이 없거나 고정 image, native platfo
 
 `SIGKILL`, host crash, Docker daemon 장애 뒤 자원이 남으면 출력된 exact 이름을 `docker container inspect NAME --format '{{ index .Config.Labels "com.dfragon.database-test.run" }}'`과 `docker volume inspect NAME --format '{{ index .Labels "com.dfragon.database-test.run" }}'`로 각각 확인합니다. 두 결과가 출력된 run ID와 정확히 같을 때만 `docker rm --force NAME`과 `docker volume rm --force NAME`으로 회수합니다. 일치하지 않거나 inspect 자체가 실패하면 삭제하지 않습니다. 이 command는 운영 database에 사용하지 않습니다.
 
+검증이 실패하면 API, accounts runner는 실패한 단계 이름 아래에 정제한 원인을 출력합니다. Docker 명령 실패는 `Docker command failed: buildx imagetools inspect (exit code 1)`처럼 하위 명령과 종료 상태, stderr의 앞 2줄과 뒤 3줄을 남깁니다. `--env` 값, 연결 문자열의 사용자 정보, password나 token 같은 이름에 붙은 값과 생성한 DB 비밀번호는 `[redacted]`로 가립니다. Docker CLI 설정 위치를 옮긴 환경에서도 buildx 같은 plugin을 찾도록 `DOCKER_CONFIG`를 Docker 명령에 전달합니다.
+
 ## `create-app`
 
 새로운 API 애플리케이션 workspace를 생성합니다.

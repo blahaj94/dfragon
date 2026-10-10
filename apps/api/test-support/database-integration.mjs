@@ -6,7 +6,8 @@ import {
   newRunId,
   createPostgres,
   teardownPostgres,
-  assertResourcesAbsent
+  assertResourcesAbsent,
+  describeFailure
 } from '../../../scripts/test-support/docker-postgres.mjs'
 import { createApiRuntime } from '../dist/runtime/application.js'
 import { assertCharacterDetails } from './character-details.mjs'
@@ -22,7 +23,7 @@ export async function cleanupDatabaseIntegration({
   teardown = teardownPostgres,
   assertAbsent = assertResourcesAbsent
 }) {
-  let failed = false
+  const errors = []
   const operations = [
     async () => {
       if (source?.isInitialized) {
@@ -39,12 +40,13 @@ export async function cleanupDatabaseIntegration({
   for (const operation of operations) {
     try {
       await operation()
-    } catch {
-      failed = true
+    } catch (error) {
+      errors.push(error)
     }
   }
-  if (failed) {
-    throw new Error('API database test resource cleanup failed')
+  const hasCleanupErrors = errors.length > 0
+  if (hasCleanupErrors) {
+    throw new AggregateError(errors, 'API database test resource cleanup failed')
   }
 }
 
@@ -57,16 +59,21 @@ async function main() {
     process.stdout.write(`임시 API DB 정리 식별자: ${id}\n`)
     resources = await createPostgres(id, image)
     stage = 'DB 연결 준비'
+    let connectionError
     for (let attempt = 0; attempt < 100; attempt++) {
       source = createDatabaseDataSource(resources.configuration)
       try {
         await source.initialize()
         break
-      } catch {
+      } catch (error) {
+        connectionError = error
         await delay(150)
       }
     }
-    assert(source.isInitialized)
+    const isSourceInitialized = source.isInitialized
+    if (!isSourceInitialized) {
+      throw new Error('PostgreSQL connection was not ready', { cause: connectionError })
+    }
     stage = '빈 DB migration show는 schema를 생성하지 않는다'
     const publicTables = async () =>
       (
@@ -163,14 +170,16 @@ async function main() {
       ['typeorm_migrations']
     )
     process.stdout.write('API domain DB 분리 검증: 통과\n')
-  } catch {
-    process.stderr.write(`API DB 검증 실패: ${stage}\n`)
+  } catch (error) {
+    const cause = describeFailure(error, { secrets: [resources?.configuration.password] })
+    process.stderr.write(`API DB 검증 실패: ${stage}\n${cause}\n`)
     process.exitCode = 1
   } finally {
     try {
       await cleanupDatabaseIntegration({ source, resources, id })
-    } catch {
-      process.stderr.write('API DB 검증 자원 정리 실패\n')
+    } catch (error) {
+      const cause = describeFailure(error, { secrets: [resources?.configuration.password] })
+      process.stderr.write(`API DB 검증 자원 정리 실패\n${cause}\n`)
       process.exitCode = 1
     }
   }
