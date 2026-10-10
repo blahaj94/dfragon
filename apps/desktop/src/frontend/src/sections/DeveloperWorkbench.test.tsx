@@ -756,6 +756,56 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   expect(container.querySelector('#developer-participants-panel')).toBeNull()
 })
 
+it('shows an empty participant row unchecked and checks it again when the participant returns', async () => {
+  vi.useFakeTimers()
+  const { api } = installApi()
+  const popup = {
+    width: 20,
+    height: 10,
+    rgba: new Uint8Array(20 * 10 * 4),
+    rows: ([1, 2, 3, 4] as const).map((slot) => {
+      const y = slot * 2
+
+      return { slot, occupied: true, x: 5, y, width: 4, height: 1 }
+    })
+  }
+  let nextFrame = { ...partyFrame(), participantWindow: popup }
+  api.previewParty.mockImplementation(async () => ({
+    frame: nextFrame,
+    previewError: null,
+    collection: { armed: true, slots: [1, 2, 3, 4], revision: 0, lastSavedAt: null, error: null }
+  }))
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('파티원창 크롭')
+  const first = (): HTMLInputElement =>
+    container.querySelector<HTMLInputElement>('input[aria-label="1번 파티원 닉네임 저장"]')!
+  expect(first().checked).toBe(true)
+
+  nextFrame = {
+    ...nextFrame,
+    slots: partyFrame().slots.slice(1),
+    participantWindow: {
+      ...popup,
+      rows: popup.rows.map((row) => ({ ...row, occupied: row.slot !== 1 }))
+    }
+  }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(first().disabled).toBe(true)
+  expect(first().checked).toBe(false)
+  expect(container.textContent).toContain('현재 저장 대상 3개')
+
+  nextFrame = { ...nextFrame, slots: partyFrame().slots, participantWindow: popup }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(first().disabled).toBe(false)
+  expect(first().checked).toBe(true)
+  expect(container.textContent).toContain('현재 저장 대상 4개')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4], 'participants')
+})
+
 it('rejects a late HUD preview after switching to participant collection', async () => {
   const { api, status } = installApi()
   const old = deferred<Awaited<ReturnType<DeveloperApi['previewParty']>>>()
