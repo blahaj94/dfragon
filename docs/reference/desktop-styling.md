@@ -61,6 +61,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 SEED 공개 옵션으로 부족한 작은 표현은 해당 요소나 감싼 요소의 className에서 SEED CSS 변수만 화면 범위로 바꿉니다. `.seed-*` 선택자나 라이브러리 내부 DOM 선택자는 쓰지 않습니다. SEED가 변수 이름을 바꾸면 조용히 SEED 기본 표현으로 돌아가므로 SEED를 갱신할 때 이 사용처를 함께 확인합니다.
 
 - `TextField`의 포커스 테두리는 `--seed-color-stroke-neutral-contrast`를 씁니다. 디자인의 `border.focus`가 필요한 입력은 이 변수만 `colors.borderFocus`로 바꿉니다. `@dfragon/ui`의 `TextField`는 className을 받지 않으므로 라이선스 검색(`OpenSourceNotices`)과 정답 입력란(`DeveloperSampleEditor`) 모두 감싼 요소의 StyleX에서 지정합니다.
+- `Checkbox`의 꺼짐 테두리는 `--seed-color-stroke-neutral-weak`를 씁니다. `constants/checkbox.style.ts`가 `Checkbox.Control`의 className에서 이 변수를 `border.strong`으로 바꾸고, 꺼짐 상태의 기본 배경으로 `bg.inset`을 칠합니다. StyleX 규칙이 SEED recipe보다 우선하므로 이 배경은 `data-checked`, `data-indeterminate`, `data-disabled`, `data-hover`, `data-active`가 없을 때로 한정해 켜짐, hover, 눌림, 비활성의 SEED 색을 유지합니다. 켜짐의 체크 아이콘은 `Checkbox.Indicator`의 className으로 SEED 기본 12px 대신 디자인 16px을 씁니다.
 - 서버 목록(`ServerSelect`) 항목은 SEED가 강조 항목 안쪽에 덧그리는 눌림 면을 `--seed-color-bg-transparent-pressed: transparent`로 끕니다. 포인터 hover와 키보드 이동이 같은 강조 상태를 쓰므로 강조 항목의 `border.focus` 1px 테두리는 남깁니다.
 
 SEED에 같은 이름의 컴포넌트가 없거나 그대로 쓰면 의미, 배치가 달라지는 곳은 다음처럼 구현합니다.
@@ -68,7 +69,7 @@ SEED에 같은 이름의 컴포넌트가 없거나 그대로 쓰면 의미, 배�
 | 디자인 | 구현 | 이유 |
 | --- | --- | --- |
 | `Chip`(정답 입력 필터) | SEED `Chip.Root`에 `aria-pressed`, 선택 칩은 `bg.brand.weak`, `border.brand`, `fg.brand` 700 | 설치한 `@seed-design/react` 2.4.1에는 `Chip.Toggle`이 없습니다. `ControlChip`은 deprecated이고 키보드 포커스 표시를 지우며, `SegmentedControl`은 radio로 의미가 바뀝니다 |
-| `Checkbox`(저장 포함) | SEED `Checkbox.Root.Primitive` 안의 `Control`, `Indicator`, `HiddenInput` | styled `Checkbox.Root`는 최소 높이 32와 체크 위치 여백 때문에 고정 높이 행의 머리 줄을 늘리거나 체크 위치를 어긋나게 합니다 |
+| `Checkbox`(저장 포함) | SEED `Checkbox.Root.Primitive` 안의 `Control`, `Indicator`, `HiddenInput`에 `constants/checkbox.style.ts` | styled `Checkbox.Root`는 최소 높이 32와 체크 위치 여백 때문에 고정 높이 행의 머리 줄을 늘리거나 체크 위치를 어긋나게 합니다. 비활성은 SEED 표현(`--seed-color-bg-disabled` 배경, `--seed-color-stroke-neutral-muted` 테두리)을 그대로 씁니다 |
 | `StatusBadge` | 공용 `components/StatusBadge`: SEED `Badge` large에 `bg.inset` 알약, `currentColor` 8px 점과 상태색 글자 | SEED `weak` 배경은 tone마다 색이 달라 디자인의 `bg.inset` 알약과 다릅니다. 캡처 모달과 개발자 창 검출 상태가 같은 컴포넌트를 쓰며, tone `neutral`, `informative`, `critical`, `warning`, `positive`의 글자색은 `fg.subtle`, `fg.info`, `fg.danger`, `fg.warning`, `fg.success`입니다. 글자는 SEED large의 12px medium이고 좌우 여백은 8입니다 |
 | `Switch`(개발자 모드) | SEED `Switch` size 24 | 디자인 36 × 20에 가장 가까운 단계입니다. 꺼짐 트랙은 SEED 기본색입니다 |
 | `SelectTrigger`, `Menu` | SEED `Select` medium과 화면 범위 StyleX | 캡처 주기는 폭 160, `bg.control` 트리거로 맞춥니다. 서버 선택의 24 트리거와 32 항목은 SEED 크기 단계에 없어 StyleX로 맞춥니다. 열림 상태의 `chevron-up`은 SEED Select가 `data-open`에서 `chevron-down`을 뒤집어 표시합니다 |
