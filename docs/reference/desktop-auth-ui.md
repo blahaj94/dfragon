@@ -2,12 +2,12 @@
 type: reference
 status: historical
 scope: desktop renderer auth presentation and isolated fixture
-last-reviewed: 2026-09-14
+last-reviewed: 2026-10-10
 ---
 
 # Desktop Auth UI
 
-이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`, 계정 모달, 환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로, 명령, 화면 관측은 당시 revision에만 해당한다. 현재 UI는 `sections/LoginSection.tsx`의 로그인 버튼과 API의 전용 인증 창이며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
+이 문서는 이전 계정 UI와 검증 이력이다. 2026-09-18 사용자 요청으로 `AuthPresentation`, 계정 모달, 환영/계정 메뉴와 아래 전용 UI fixture를 삭제했다. 아래 경로, 명령, 화면 관측은 당시 revision에만 해당한다. 현재 UI는 `sections/LoginSection.tsx`의 로그인, 취소 버튼과 시스템 기본 브라우저의 accounts 페이지다. 인증 완료 뒤 loopback 수신기로 앱에 복귀하며, 실행은 [패스키 안내](passkey-authentication.md)를 따른다.
 
 ## Source와 연결 경계
 

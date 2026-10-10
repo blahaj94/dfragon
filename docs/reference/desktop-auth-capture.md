@@ -7,7 +7,7 @@ last-reviewed: 2026-10-10
 
 # Desktop Auth Capture
 
-[승인된 Desktop auth 경계](../rules/desktop-auth.md)에 따라 capture, OCR, 검색은 로그인 상태와 독립적으로 제공한다. 인증 로딩, 실패, 로그인, 로그아웃은 계정 안내만 변경하며 선택한 창이나 검색 화면을 초기화하지 않는다. Main은 공개 검색 API 설정과 검색용 clock을 인증 runtime과 별도로 구성한다. 이 구현 설명은 실제 로그인, native credential 저장, OS protocol registry, API/패스키 연결 완료를 뜻하지 않는다.
+[승인된 Desktop auth 경계](../rules/desktop-auth.md)에 따라 capture, OCR, 검색은 로그인 상태와 독립적으로 제공한다. 인증 로딩, 실패, 로그인, 로그아웃은 계정 안내만 변경하며 선택한 창이나 검색 화면을 초기화하지 않는다. Main은 공개 검색 API 설정과 검색용 clock을 인증 runtime과 별도로 구성한다. 이 구현 설명은 실제 로그인, native credential 저장, 시스템 브라우저와 loopback 복귀, API/패스키 연결 완료를 뜻하지 않는다.
 
 ## 구현 위치
 
@@ -55,4 +55,4 @@ git diff --check
 
 Unit/hook 검증은 실제 core와 테스트용 effects, IPC, worker doubles를 사용한 경합 evidence이며 설치 앱의 Windows 캡처, OCR 관측을 대신하지 않는다. Build에는 기존 node/web typecheck가 포함된다. 검증 범위는 [검증 명령](../../scripts/README.md#native-validation)에 따라 실제 영향으로 판단한다.
 
-실제 native 인증의 Keychain, file durability, protocol association, 패스키 설정, 다른 OS/arch/package는 이 테스트로 검증되지 않는다. 남은 지원, 배포 gate는 [Desktop auth platform](../rules/desktop-auth-platform.md)을 따른다. Auth bridge fixture나 mocked OCR의 PASS로 설치 앱의 실제 캡처, OCR 실패를 대체하지 않는다.
+실제 native 인증의 Keychain, file durability, 시스템 브라우저와 loopback 복귀, 패스키 설정, 다른 OS/arch/package는 이 테스트로 검증되지 않는다. 남은 지원, 배포 gate는 [Desktop auth platform](../rules/desktop-auth-platform.md)을 따른다. Auth bridge fixture나 mocked OCR의 PASS로 설치 앱의 실제 캡처, OCR 실패를 대체하지 않는다.

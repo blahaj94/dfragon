@@ -53,7 +53,7 @@ workflow 실행 시점의 최신 main 대신 실제 checkout한 commit을 기록
 4. 한 번 조회한 결과는 파티원이 바뀌어도 유지합니다. **Alt+R**로 전체 파티를 처음부터 다시 인식합니다. 서버와 닉네임은 언제든 수정하고 **Enter 또는 서버 변경**으로 해당 슬롯만 조회합니다. 외형 비교로 확인하지 못한 후보는 최고 명성 대체 표시라는 안내가 붙습니다.
 5. 캡처를 중지하면 슬롯 결과가 정리됩니다. 중지한 캡처는 **Alt+R**로 다시 시작하지 않으며, 화면 캡처 창에서 게임 창을 다시 선택하면 시작합니다. 캡처가 실패했을 때는 창을 다시 고르지 않고 **Alt+R**로 다시 시작할 수 있습니다. 종료할 때는 캡처를 중지하고 창의 X를 누릅니다.
 
-앱 identity와 로그인 복귀 주소를 DFragon 이름으로 전환했습니다. 기존 `ldb`, `ldb.dev` profile은 새 앱으로 가져오지 않으며 자동 삭제하지도 않습니다. DFragon은 새 profile을 만들고 다시 로그인이 필요합니다. 로그인 복귀를 사용하려면 서버 `returnUrl`도 배포용 `dfragon://auth/callback` 또는 개발용 `dfragon.dev://auth/callback`과 맞춰야 합니다.
+앱 identity를 DFragon 이름으로 전환했습니다. 기존 `ldb`, `ldb.dev` profile은 새 앱으로 가져오지 않으며 자동 삭제하지도 않습니다. DFragon은 새 profile을 만들고 다시 로그인이 필요합니다. 로그인 복귀는 요청마다 연 `127.0.0.1` loopback 수신기를 사용합니다. 서버 인증 설정에서 `passkey.returnUrl` key를 제거하고, 요청별 loopback 복귀를 지원하는 accounts를 사용해야 합니다.
 
 작은 한글 닉네임 오인식은 [Issue #463](https://github.com/blahaj94/ldb/issues/463)에 남아 있습니다. 해상도와 UI 배율을 고정하지 않고 HP, MP 프레임의 위치와 배율을 매번 검출합니다. 잔량이 줄어든 전투 화면과 폰트 변경은 검증하지 않았습니다. 검색이 실패하면 인터넷, 배포 API 상태를 확인하고 다시 시도합니다. 로그인 문제는 비로그인 검색, 캡처의 선행 조건이 아닙니다.
 
@@ -82,7 +82,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 같은 환경에서 `pnpm --filter @dfragon/desktop build:win:portable`을 실행하면 `apps/desktop/dist/DFragon-<버전>-x64-portable.exe`가 생성됩니다. Windows x64에서 이 파일을 내려받아 실행하며 Node.js나 별도 설치 프로그램은 필요하지 않습니다. 설치형처럼 실행할 때 Windows 관리자 권한을 요청합니다. OCR 모델과 실행 라이브러리도 포함합니다. 실행할 때 임시 폴더에 앱을 풀기 때문에 첫 실행에 시간이 걸릴 수 있습니다.
 
-포터블은 설치 없이 실행하는 배포 형식입니다. 설정과 로그인 정보는 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`에 저장되며 설치형과 공유합니다. 다른 PC로 exe를 복사해도 로그인 정보는 이동하지 않습니다. 바로가기와 OS 로그인 복귀 protocol은 등록하지 않으며 앱 내부 인증 창을 사용합니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
+포터블은 설치 없이 실행하는 배포 형식입니다. 설정과 로그인 정보는 exe 옆이 아닌 기존 사용자 profile `appData/dfragon`에 저장되며 설치형과 공유합니다. 다른 PC로 exe를 복사해도 로그인 정보는 이동하지 않습니다. 바로가기와 OS 로그인 복귀 protocol은 등록하지 않습니다. 설치형과 같이 시스템 기본 브라우저에서 로그인하고 loopback 수신기로 복귀합니다. 자동 업데이트와 코드 서명은 기존 배포본과 같습니다.
 
 [Windows Portable workflow](../../.github/workflows/desktop-release.yml)는 Release를 게시하면 해당 태그의 소스로 빌드하여 포터블 exe와 SHA-256 checksum 파일을 Release의 Assets에 첨부하고, exe의 build provenance attestation을 기록합니다.
 
@@ -104,7 +104,7 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 
 패키징 성공과 실제 Windows에서의 앱 실행, API, 패스키 동작 확인은 구분합니다.
 
-설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity, 복귀 주소, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
+설치본 main에는 공개 API origin과 `build/channels.json`의 distribution 항목에 있는 identity, 환경, provider만 포함합니다. 실행 PC의 개발용 `DFRAGON_AUTH_*` 환경변수에 의존하지 않습니다. 서버 credential, Neople API key, DB 암호, 인증 key, 개인 certificate는 설치 파일에 넣지 않습니다. 패키징 대상은 `out`, `resources`, 앱 metadata와 production dependency이며 서버 설정 파일을 이 경로에 복사하지 않습니다. `onnxruntime-web`은 renderer가 번들하고 WASM은 `out`에 복사한 OCR 자산에서 읽으므로 설치된 패키지는 패키징에서 제외합니다.
 
 | 채널           | 용도                                          | `build/channels.json` 항목 | 만드는 경로                                   |
 | -------------- | --------------------------------------------- | -------------------------- | --------------------------------------------- |
@@ -142,7 +142,7 @@ pnpm --filter @dfragon/desktop dev
 
 현재 상세 창에는 이미지, 이름, 서버, 모험단, 직업, 전직, 레벨, 명성과 마지막 조회 시각, 정보 유효 시각을 표시합니다. 누락된 값은 `정보 없음`으로 표시하고 장비 점수나 마법부여 등급을 추정하지 않습니다. 창은 전용 읽기 bridge로 보관된 기본 정보만 받으며 장비 카드와 자동 갱신은 제공하지 않습니다. [상세 창 구현과 수명](../../docs/reference/desktop-character-search.md#캐릭터별-상세-창)에서 연결 경계와 검증 범위를 확인할 수 있습니다.
 
-우측 상단 **로그인**을 누르면 전용 인증 창을 엽니다. 진행 중에는 로그인 버튼을 비활성화해 중복 요청을 막고, 로그인 후에는 버튼을 숨깁니다. 현재 카드 화면에는 별도 계정 다이얼로그, 닉네임, 패스키 관리, 로그아웃 메뉴를 표시하지 않습니다. 전용 인증 창을 닫으면 진행 중인 시도를 취소합니다. 로그인 설정이 없는 test 채널과 인증 설정 없이 실행한 `dev`에서는 로그인 버튼을 표시하지 않습니다.
+우측 상단 **로그인**을 누르면 시스템 기본 브라우저에서 accounts 로그인 페이지를 엽니다. 진행 중에는 같은 버튼이 **취소**로 바뀌며 현재 로그인 시도를 취소할 수 있습니다. 로그인 후에는 버튼을 숨깁니다. 현재 카드 화면에는 별도 계정 다이얼로그, 닉네임, 패스키 관리, 로그아웃 메뉴를 표시하지 않습니다. 브라우저 탭을 닫아도 앱에 취소가 전달되지 않으므로 앱의 **취소** 버튼을 사용합니다. 로그인 설정이 없는 test 채널과 인증 설정 없이 실행한 `dev`에서는 로그인 버튼을 표시하지 않습니다.
 
 앱 시작 시 기존 main의 세션 복원 결과를 로그인 버튼에 반영합니다. 인증 연결 실패 상태에서 **로그인**을 누르면 연결을 다시 확인하고, 복원 일시 정지, 저장소 차단 상태에서는 기존 복구 명령을 보냅니다. 이때도 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. UI 연결만으로 API, 실제 패스키, OS 저장소가 구성되지는 않습니다.
 
@@ -238,7 +238,7 @@ pnpm --filter @dfragon/desktop dev:app
 pnpm --filter @dfragon/desktop build:win:development
 ```
 
-개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색, 인증, 캡처 회귀 테스트에서만 사용합니다. 기존 localhost HTTPS, `dfragon.dev` 등록값은 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS, Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
+개발 설치본도 새 카드 화면을 사용하며 `dist/development`에 생성됩니다. 구버전 화면 조합은 `src/frontend/src/fixture/legacy/LegacyApp.tsx`에 격리하여 기존 검색, 인증, 캡처 회귀 테스트에서만 사용합니다. localhost HTTPS, `dfragon.dev` identity와 loopback 복귀는 [개발 패키지 안내](../../docs/reference/desktop-auth-core.md#windows-localhost-개발-패키지)를 따릅니다. macOS, Linux용 기존 명령은 Windows MVP 배포 지원이나 검증 완료를 뜻하지 않습니다.
 
 ## 개발자 모드
 

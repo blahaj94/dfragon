@@ -68,7 +68,7 @@ Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현
 | --- | --- |
 | Process 책임, 기존 capture 연결, 최소 IPC, 화면 | [`rules/desktop-auth.md`](rules/desktop-auth.md) |
 | Pending/PKCE, 브라우저→exchange, refresh, 취소/실패, 재시작 | [`rules/desktop-auth-lifecycle.md`](rules/desktop-auth-lifecycle.md) |
-| 실제 환경 근거, safeStorage/파일, protocol, 배포 후 검증, 등록 조건 | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
+| 실제 환경 근거, safeStorage/파일, loopback 복귀, 배포 후 검증, 채널 설정 | [`rules/desktop-auth-platform.md`](rules/desktop-auth-platform.md) |
 | 탈퇴 전용 main receipt, 상태 조회, local auth 정리, 재시작 연결 | [`rules/auth-withdrawal-proposal.md`](rules/auth-withdrawal-proposal.md) |
 
 탈퇴의 Desktop 확장은 PR #72에서 승인됐으며 기존 login pending, polling 없음과 구분한다. 구체적 IPC/화면, OS 구현과 실제 환경 검증은 별도 후속 범위다.
