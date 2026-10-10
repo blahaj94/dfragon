@@ -80,6 +80,7 @@ function mainEnvironment(): {
         }
       })
     },
+    nativeTheme: { shouldUseDarkColors: false },
     BrowserWindow: class {
       static getAllWindows(): never[] {
         return []
@@ -89,6 +90,8 @@ function mainEnvironment(): {
       once = vi.fn()
       removeListener = vi.fn()
       show = vi.fn()
+      setTitleBarOverlay = vi.fn()
+      setBackgroundColor = vi.fn()
       destroy = vi.fn()
       isDestroyed = (): boolean => false
       loadFile = vi.fn().mockResolvedValue(undefined)
