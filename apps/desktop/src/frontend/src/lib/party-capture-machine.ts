@@ -16,7 +16,6 @@ type CaptureInput = CaptureSessionInput & {
 type CaptureContext = {
   effects: CaptureInput
   selectedSourceId: string
-  registeredSourceId: string | null
   autoStart: boolean
   request: object | null
   status: string
@@ -38,8 +37,6 @@ export const partyCaptureMachine = setup({
     registerSource: fromPromise(
       async ({ input }: { input: { sourceId: string; effects: CaptureInput } }) => {
         await input.effects.selectSource(input.sourceId)
-
-        return input.sourceId
       }
     ),
     captureSession: fromCallback<CaptureSessionEvent, CaptureInput>(({ input, sendBack }) =>
@@ -51,9 +48,6 @@ export const partyCaptureMachine = setup({
     })
   },
   guards: {
-    hasRegisteredSource: ({ context }) =>
-      context.selectedSourceId.length > 0 &&
-      context.selectedSourceId === context.registeredSourceId,
     shouldAutoStart: ({ context }) => context.autoStart && context.selectedSourceId.length > 0,
     hasSelectedSource: ({ context }) => context.selectedSourceId.length > 0
   },
@@ -95,7 +89,6 @@ export const partyCaptureMachine = setup({
 
       return {
         selectedSourceId,
-        registeredSourceId: null,
         autoStart,
         request,
         status
@@ -108,16 +101,16 @@ export const partyCaptureMachine = setup({
   context: ({ input }) => ({
     effects: input,
     selectedSourceId: '',
-    registeredSourceId: null,
     autoStart: false,
     request: null,
     status: '캡처할 게임 창을 선택해 주세요.'
   }),
   invoke: { src: 'lifetime', input: ({ context }) => context.effects },
+  // START는 전이를 선언한 상태에서만 받으며, 그 밖의 상태에서는 Alt+R을 눌러도 캡처를 시작하지 않는다.
   on: {
     SELECT: { target: '.selecting', actions: ['resetSearch', 'selectSource'] },
     STOP: {
-      target: '.idle',
+      target: '.stopped',
       actions: [
         'resetSearch',
         assign({
@@ -131,19 +124,7 @@ export const partyCaptureMachine = setup({
           }
         })
       ]
-    },
-    START: [
-      {
-        guard: 'hasRegisteredSource',
-        target: '.capturing',
-        actions: ['resetSearch', 'recordRequest']
-      },
-      {
-        actions: assign({
-          status: '게임 창 선택을 확인하고 있습니다. 잠시 후 캡처를 시작해 주세요.'
-        })
-      }
-    ]
+    }
   },
   states: {
     idle: {},
@@ -156,35 +137,32 @@ export const partyCaptureMachine = setup({
         src: 'registerSource',
         input: ({ context }) => ({ sourceId: context.selectedSourceId, effects: context.effects }),
         onDone: [
-          {
-            guard: 'shouldAutoStart',
-            target: 'capturing',
-            actions: assign({ registeredSourceId: ({ event }) => event.output })
-          },
+          { guard: 'shouldAutoStart', target: 'capturing' },
           {
             guard: 'hasSelectedSource',
             target: 'selected',
-            actions: assign({
-              registeredSourceId: ({ event }) => event.output,
-              status: '게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.'
-            })
+            actions: assign({ status: '게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.' })
           },
           { target: 'idle' }
         ],
         onError: {
-          target: 'failed',
+          target: 'selectionFailed',
           actions: assign({ status: '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.' })
         }
       }
     },
-    selected: {},
+    selected: {
+      on: { START: { target: 'capturing', actions: ['resetSearch', 'recordRequest'] } }
+    },
+    // 중지한 뒤에는 창을 다시 선택해야 캡처를 시작한다.
+    stopped: {},
     capturing: {
       initial: 'search',
       entry: assign({ status: '캡처를 준비하고 있습니다.' }),
       invoke: { src: 'captureSession', input: ({ context }) => context.effects },
       on: {
         START: { target: 'capturing', reenter: true, actions: ['resetSearch', 'recordRequest'] },
-        FAILED: { target: 'failed', actions: ['resetSearch', 'setNotice'] }
+        FAILED: { target: 'captureFailed', actions: ['resetSearch', 'setNotice'] }
       },
       states: {
         search: { tags: ['busy'], on: { START: {}, FRAME_REQUESTED: 'frame' } },
@@ -201,7 +179,11 @@ export const partyCaptureMachine = setup({
         active: { on: { READY: { actions: 'setNotice' } } }
       }
     },
-    failed: {}
+    selectionFailed: {},
+    // 캡처 실패는 확인을 마친 창 선택을 유지하므로 창을 다시 고르지 않고 재시작할 수 있다.
+    captureFailed: {
+      on: { START: { target: 'capturing', actions: ['resetSearch', 'recordRequest'] } }
+    }
   }
 })
 
@@ -223,7 +205,7 @@ export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachin
     return 'selected'
   }
 
-  if (snapshot.matches('failed')) {
+  if (snapshot.matches('selectionFailed') || snapshot.matches('captureFailed')) {
     return 'failed'
   }
 
