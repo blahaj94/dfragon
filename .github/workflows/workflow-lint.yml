@@ -103,7 +103,7 @@ jobs:
           advanced-security: false
           annotations: true
 
-  # The main ruleset can require this stable check name. Skipped lint jobs pass when the pull
+  # The main ruleset requires this stable check name. Skipped lint jobs pass when the pull
   # request changed nothing under .github.
   gate:
     name: Workflow Lint gate
