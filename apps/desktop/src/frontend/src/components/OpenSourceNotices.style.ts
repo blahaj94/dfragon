@@ -8,7 +8,9 @@ export const styles = stylex.create({
     paddingBottom: 20,
     overflowWrap: 'anywhere'
   },
-  // SEED draws the focused field border with the neutral contrast stroke; the design uses border.focus.
+  // Design TextField focus is a 2px border.focus line. The shared TextField does not take a
+  // className, and SEED draws its focus line with this stroke token, so the wrapper scope
+  // points the token at border.focus.
   search: { '--seed-color-stroke-neutral-contrast': colors.borderFocus },
   count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
   list: { listStyle: 'none', padding: 0, margin: 0 },
