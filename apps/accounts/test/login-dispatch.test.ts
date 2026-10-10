@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { randomUUID } from 'node:crypto'
-import { managementFixture } from './login-service.fixtures.js'
+import { newOpaque, opaqueHash } from '../src/auth/login/crypto.js'
+import { browserCookie } from '../src/auth/login/state.js'
+import { managementFixture, registrationResponse } from './login-service.fixtures.js'
 import { configurationFingerprint } from '../src/auth/login/configuration.js'
 
 const TESTS = {
@@ -18,7 +20,9 @@ const TESTS = {
   invalidProof: '잘못된 추가 증명은 challenge만 소비하고 재사용을 거절하며 새 옵션으로 재시도한다',
   retiredCredential: '관리 인증에 쓴 키가 삭제된 뒤에는 기존 관리 권한을 사용할 수 없다',
   expiry: '요청, 관리 키, 삭제 대상 잠금 뒤 fresh time이 만료 경계면 삭제하지 않는다',
-  list: '관리 목록은 본인 계정의 현재 RP 키에 필요한 공개 metadata만 반환한다'
+  list: '관리 목록은 본인 계정의 현재 RP 키에 필요한 공개 metadata만 반환한다',
+  invalidReturnUrl: '잘못된 Desktop returnUrl은 요청을 저장하기 전에 400으로 거절한다',
+  loopbackReturn: '인증 완료는 같은 요청에 저장한 포트로 정규 code 하나만 돌려준다'
 } as const
 
 test(TESTS.unknownAction, async () => {
@@ -169,7 +173,7 @@ test(TESTS.configurationBinding, async () => {
   // 재시작 뒤 바뀐 RP/client 설정으로 만들어진 요청의 fingerprint를 모델링한다.
   fixture.row.configuration = configurationFingerprint({
     ...fixture.configuration,
-    returnUrl: 'dfragon.dev://auth/callback'
+    rpName: '변경된 이름'
   })
   const before = structuredClone({ row: fixture.row, keys: fixture.keys })
   await assert.rejects(fixture.invoke('end'), { code: 'LOGIN_REQUEST_INVALID' })
@@ -354,4 +358,82 @@ test(TESTS.list, async () => {
   })
   assert.deepEqual(structuredClone({ row: fixture.row, keys: fixture.keys }), before)
   assert.equal(fixture.events.at(-1), 'commit')
+})
+
+test(TESTS.invalidReturnUrl, async () => {
+  const fixture = managementFixture()
+  const before = structuredClone(fixture.row)
+  const input = {
+    provider: 'passkey',
+    clientId: 'desktop',
+    codeChallenge: 'A'.repeat(43),
+    codeChallengeMethod: 'S256'
+  }
+  for (const values of [
+    {},
+    { returnUrl: 'http://localhost:49152/auth/callback' },
+    { returnUrl: 'http://127.0.0.1:1023/auth/callback' },
+    { returnUrl: 'http://127.0.0.1:65536/auth/callback' },
+    { returnUrl: 'http://127.0.0.1:49152/auth/callback/extra' }
+  ]) {
+    await assert.rejects(fixture.service.create({ ...input, ...values }), {
+      code: 'INVALID_AUTH_REQUEST',
+      status: 400
+    })
+    assert.deepEqual(structuredClone(fixture.row), before)
+    assert.deepEqual(fixture.events, [])
+  }
+})
+
+test(TESTS.loopbackReturn, async () => {
+  const fingerprints = new Set<string>()
+  for (const port of [1024, 49152, 65535]) {
+    const fixture = managementFixture()
+    const returnUrl = `http://127.0.0.1:${port}/auth/callback`
+    await fixture.service.create({
+      provider: 'passkey',
+      clientId: 'desktop',
+      codeChallenge: 'A'.repeat(43),
+      codeChallengeMethod: 'S256',
+      returnUrl
+    })
+    assert.equal(fixture.row.returnUrl, returnUrl)
+    fingerprints.add(fixture.row.configuration)
+    // Launch 소비 후의 요청과 cookie를 모델링한다. 서명 검증은 실제 WebAuthn 검증기를 쓴다.
+    const secret = newOpaque()
+    Object.assign(fixture.row, {
+      status: 'browser_started',
+      launchTicketHash: null,
+      browserBindingHash: opaqueHash(secret)
+    })
+    const boundary = {
+      cookie: browserCookie({ requestId: fixture.row.id, bindingValue: secret, maxAgeSeconds: 600 })
+    }
+    await fixture.invoke('options', { operation: 'register' }, boundary)
+    const response = registrationResponse(fixture)
+    await assert.rejects(
+      fixture.invoke(
+        'verify',
+        { response, returnUrl: 'http://127.0.0.1:65534/auth/callback' },
+        boundary
+      ),
+      {
+        code: 'INVALID_AUTH_REQUEST'
+      }
+    )
+    const result = await fixture.invoke('verify', { response }, boundary)
+    assert.ok(result !== null && typeof result === 'object' && 'returnUrl' in result)
+    assert.equal(typeof result.returnUrl, 'string')
+    const url = new URL(result.returnUrl as string)
+    const code = url.searchParams.get('code')!
+    assert.match(code, /^[A-Za-z0-9_-]{43}$/)
+    assert.equal(Buffer.from(code, 'base64url').byteLength, 32)
+    assert.equal(Buffer.from(code, 'base64url').toString('base64url'), code)
+    assert.equal(result.returnUrl, `${returnUrl}?code=${code}`)
+    assert.deepEqual(Object.keys(result), ['returnUrl'])
+    assert.equal(fixture.row.status, 'exchange_ready')
+    assert.equal(fixture.row.returnUrl, returnUrl)
+    assert.deepEqual(fixture.row.exchangeCodeHash, opaqueHash(code))
+  }
+  assert.equal(fingerprints.size, 1)
 })

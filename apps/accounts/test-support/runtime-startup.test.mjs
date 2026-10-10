@@ -313,9 +313,9 @@ test('build entry rejects malformed authentication JSON and exact binding violat
         }
       ],
       [
-        'untrusted return target',
+        '제거된 returnUrl 설정은 이전에 허용한 scheme이어도 거절',
         (c) => {
-          c.passkey.returnUrl = 'https://other.invalid'
+          c.passkey.returnUrl = 'dfragon.dev://auth/callback'
         }
       ],
       [
