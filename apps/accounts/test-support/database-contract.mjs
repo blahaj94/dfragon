@@ -154,7 +154,8 @@ export async function assertSchema(
     'ReplaceOAuthWithPasskeys1789566809748',
     'AddPhoneQrLogin1789601588410',
     'AddAccountsPasskeyMigration1790548862756',
-    'RetirePasskeyHandoffs1790556264995'
+    'RetirePasskeyHandoffs1790556264995',
+    'RemovePhoneQrLogin1791590400000'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -306,9 +307,6 @@ export function loginRequest(status, id, overrides = {}) {
     code_challenge: null,
     launch_ticket_hash: null,
     browser_binding_hash: null,
-    qr_ticket_hash: null,
-    phone_binding_hash: null,
-    confirmation_code: null,
     webauthn_challenge: null,
     operation: null,
     pending_user_id: null,
@@ -361,9 +359,6 @@ export async function assertTerminalLoginRequest(source, id, status) {
     'code_challenge',
     'launch_ticket_hash',
     'browser_binding_hash',
-    'qr_ticket_hash',
-    'phone_binding_hash',
-    'confirmation_code',
     'webauthn_challenge',
     'operation',
     'pending_user_id',
@@ -483,14 +478,17 @@ export async function assertConstraintBehavior(dataSource) {
       loginRequest('exchange_ready', randomUUID(), { verified_user_id: null })
     ],
     [
-      'ck_passkey_request_terminal_phone',
+      'ck_passkey_request_terminal_direct',
       loginRequest('consumed', randomUUID(), { code_challenge: 'retained' })
     ],
     [
       'ck_passkey_request_browser_binding_hash',
       loginRequest('browser_started', randomUUID(), { browser_binding_hash: Buffer.alloc(31) })
     ],
-    ['ck_passkey_request_status_phone', loginRequest('processing', randomUUID())]
+    ...['processing', 'phone_verified', 'phone_approved'].map((status) => [
+      'ck_passkey_request_status_direct',
+      loginRequest(status, randomUUID())
+    ])
   ]) {
     await rejectConstraint(dataSource, constraint, (runner) => insertLogin(runner, row))
   }
