@@ -10,7 +10,7 @@ Desktop renderer, API 패스키 페이지, OCR 관리 SPA, Web은 화면 스타�
 
 ## 공통 설정과 소비 경로
 
-StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관리한다. 앱 manifest는 `@stylexjs/stylex`와 개발 의존성 `@stylexjs/unplugin`을 `catalog:`로 참조한다. Compiler 옵션은 `@dfragon/ui/stylex-config` 한 곳에서 가져온다. 이 entry는 빌드 전용이며 browser bundle에서 import하지 않는다.
+StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관리한다. 앱 manifest는 `@stylexjs/stylex`와 개발 의존성 `@stylexjs/unplugin`을 `catalog:`로 참조한다. `@dfragon/ui`는 `@stylexjs/stylex`를 같은 catalog 버전의 peer와 개발 의존성으로 둔다. Compiler 옵션은 `@dfragon/ui/stylex-config` 한 곳에서 가져온다. 이 entry는 빌드 전용이며 browser bundle에서 import하지 않는다.
 
 `catalog:`는 [pnpm의 버전 참조 문법](https://pnpm.io/catalogs#the-catalog-protocol-catalog)이다. 예를 들어 앱의 `"@stylexjs/stylex": "catalog:"`는 `pnpm-workspace.yaml`의 기본 `catalog`에서 같은 패키지의 버전을 읽는다. 현재 지정된 값은 정확한 고정 버전이며 최신 버전을 자동 선택하지 않는다. 여러 앱의 manifest에 버전 번호를 반복하는 대신 catalog 한 곳을 수정하고 lockfile을 갱신해 함께 올린다. `workspace:*`는 저장소 내부 패키지를 연결하는 문법이고, `catalog:`는 의존성 버전을 참조하는 문법이다.
 
@@ -30,8 +30,9 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 | OCR 관리 SPA | `apps/ocr/browser/build.mjs` |
 | Web | `apps/web/vite.config.ts`, `vitest.config.ts` |
 | 공용 UI Example, test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |
+| 공용 UI 산출물 소비 검사 | `packages/ui/test/build-consumer/vite.config.ts` |
 
-공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. 공용 UI library의 기존 SEED 배포/CSS 소유 경계는 유지한다.
+공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. 공용 UI library의 기존 SEED 배포/CSS 소유 경계는 유지한다. 공용 UI의 디자인 컴포넌트와 TextField 포커스 색은 SEED CSS 변수만 쓰는 `stylex.create`이며, library build는 이를 컴파일하지 않고 CSS도 내지 않는다. 위 소비자의 compiler가 앱 스타일과 함께 정적 CSS로 추출하므로 `@dfragon/ui` 기본 entry를 쓰는 앱은 StyleX compiler를 연결해야 한다. `@dfragon/ui/typo`는 StyleX를 쓰지 않는다.
 
 ## 작성 예시
 

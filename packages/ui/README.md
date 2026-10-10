@@ -6,7 +6,7 @@
 
 ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. 내부 `src/seed` 경로는 package export가 아니다.
 
-SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`은 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
+SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
 
@@ -50,19 +50,21 @@ import { Typo } from '@dfragon/ui'
 
 `@dfragon/ui/stylex-config`는 모든 앱과 Example, test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
 
+Library의 StyleX는 SEED CSS 변수만 참조하고 `defineVars`나 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 `stylex.create`를 그대로 내보낸다. 소비 앱과 Example, test의 StyleX compiler가 이 옵션으로 정적 CSS를 만들며, compiler 없이 전체 entry를 실행하면 `stylex.create`가 실행 시점에 오류를 낸다. 주입 runtime(`@stylexjs/stylex/lib/stylex-inject`)은 정적 stylesheet와 CSP 경로를 깨므로 쓰지 않는다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+
 ## Command
 
 - `pnpm --filter @dfragon/ui build`: ESM bundle, declaration 생성 뒤 public package export의 실제 소비 검사.
-- `pnpm --filter @dfragon/ui verify:build`: 기존 library 산출물의 export, dependency, CSS, 고지 검사, alias 없는 declaration, Vite 소비 fixture와 React 전용 entry의 ESM import 검사.
+- `pnpm --filter @dfragon/ui verify:build`: 기존 library 산출물의 export, dependency, CSS, 고지 검사, alias 없는 declaration, Vite 소비 fixture의 StyleX 컴파일과 산출 CSS, React 전용 entry의 ESM import 검사.
 - `pnpm --filter @dfragon/ui dev:examples`: 독립 Vite Example.
 - `pnpm --filter @dfragon/ui build:examples` / `preview:examples`: production Example 생성, 확인.
 - `pnpm --filter @dfragon/ui test`: typecheck → Vitest interaction, Typo → 빌드 검사 도구의 Node 회귀를 실행한다. Layout 크기 관측만 jsdom에서 격리한다.
 - `pnpm --filter @dfragon/ui exec vitest run test/interaction.test.tsx`: 선택한 runtime 테스트만 실행한다. 파일 인수를 aggregate `test`에 전달하지 않는다.
 - `pnpm --filter @dfragon/ui typecheck`: src, test, examples를 실제 `tsc --noEmit`으로 검사한다.
-- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export, private declaration, Typo의 전이 dependency, CSS import 거부를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
+- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export, private declaration, Typo의 전이 dependency, CSS와 StyleX 주입 runtime import 거부를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
 - `pnpm --filter @dfragon/ui test:consumer-lifecycle`: POSIX detached child/group 종료의 실패, 기한, 오류 보존 검사. 일반 `test`와 분리하며 현재 macOS에서 검증한다.
 - `pnpm --filter @dfragon/ui lint`
-- `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: external, CSS 없음, source/고지 hash 검증.
+- `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: StyleX를 포함한 external, `@stylexjs/stylex` 외 StyleX import 없음, CSS 없음, source/고지 hash 검증.
 - `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React/SEED 사본, base.css 1회, stylesheet 1개, 고지 확인.
 - `pnpm install --frozen-lockfile`
 - `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리, 삭제되는 산출물, Desktop 경계는 `test/consumer-resolution.md`를 먼저 확인한다.
@@ -71,7 +73,7 @@ import { Typo } from '@dfragon/ui'
 
 Vitest는 TypeScript를 변환해 runtime assertion을 실행한다. Public API의 compile-only JSX 사례와 `expectTypeOf` assertion은 `test` 첫 단계의 실제 tsc에서 검사하며, runtime PASS만으로 타입 계약을 판단하지 않는다. Library의 declaration 생성은 src만 포함하므로 test와 examples의 typecheck를 대신하지 않는다.
 
-`test/build-consumer`의 별도 tsconfig는 source paths 없이 `@dfragon/ui`와 `@dfragon/ui/typo`의 dist declaration을 browser의 `Bundler` module resolution으로 해석한다. 같은 package specifier와 소비자 소유 CSS를 별도 Vite fixture가 번들링하며 임시 결과는 `packages/ui/node_modules/.tmp/build-consumer`에 둔다. React 전용 `typo` entry는 Node ESM import와 React 렌더링도 확인한다. 전체 UI entry는 SEED CSS를 소비하는 browser용이므로 Node에서 직접 import하는 경로를 지원하지 않는다.
+`test/build-consumer`의 별도 tsconfig는 source paths 없이 `@dfragon/ui`와 `@dfragon/ui/typo`의 dist declaration을 browser의 `Bundler` module resolution으로 해석한다. 같은 package specifier와 소비자 소유 CSS를 별도 Vite fixture가 소비 앱과 같은 StyleX compiler로 번들링하며 임시 결과는 `packages/ui/node_modules/.tmp/build-consumer`에 둔다. 산출 CSS에 library StyleX 선언의 atomic class가 들어 있는지 확인한다. React 전용 `typo` entry는 Node ESM import와 React 렌더링도 확인한다. 전체 UI entry는 SEED CSS와 StyleX 컴파일이 필요한 browser용이므로 Node에서 직접 import하는 경로를 지원하지 않는다.
 
 Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 TypeScript paths로 public source entry를 직접 해석한다. 소비 command 전에 library build를 실행할 필요가 없으며 dev에는 source 변경이 직접 반영된다. Exact alias는 `@dfragon/ui/foundation.css` subpath를 바꾸지 않는다. Package export의 ESM/declaration 산출물은 별도 library build로 계속 검증한다. Web의 명시 `node` type은 공식 Snippet의 개발용 `process.env` guard를 검사하는 기존 build-time dependency이며 runtime Node global을 추가하지 않는다.
 
