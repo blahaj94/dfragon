@@ -91,7 +91,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
       </Typo.caption>
       <ul {...stylex.props(styles.list)}>
         {filtered.map((entry) => (
-          <li key={`${entry.name}@${entry.version}`}>
+          <li key={`${entry.name}@${entry.version}`} {...stylex.props(styles.item)}>
             <ActionButton
               size="small"
               variant="ghost"

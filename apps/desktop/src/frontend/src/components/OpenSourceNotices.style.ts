@@ -11,12 +11,12 @@ export const styles = stylex.create({
   // SEED draws the focused field border with the neutral contrast stroke; the design uses border.focus.
   search: { '--seed-color-stroke-neutral-contrast': colors.borderFocus },
   count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
-  list: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    backgroundColor: colors.bgInset,
-    borderRadius: 12
+  list: { listStyle: 'none', padding: 0, margin: 0 },
+  // The design table counts its header row, so its bg.stripe rows are the first, third and
+  // following odd entries of this header-less list.
+  item: {
+    borderRadius: 4,
+    backgroundColor: { default: null, ':nth-child(odd)': colors.bgStripe }
   },
   row: {
     display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
@@ -30,6 +30,7 @@ export const styles = stylex.create({
     paddingBlock: 4,
     paddingInline: 12,
     gap: 12,
+    borderRadius: 4,
     color: colors.fgDefault,
     whiteSpace: 'normal'
   },
