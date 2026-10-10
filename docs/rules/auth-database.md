@@ -19,11 +19,15 @@ UUID는 API의 CSPRNG로 생성한다. 시간은 서버 UTC whole-second다. 원
 | `auth_passkeys` | `id text PK` credential ID, `rp_id text NOT NULL`, `user_id` FK cascade, `public_key bytea`, `counter`, `transports`, `device_type`, `backed_up`, 등록, 최근 사용 시각. 동일 credential을 다른 회원에 재연결하지 않음. |
 | `auth_sessions` | UUID PK, user FK cascade, 생성, 최종 활동, 폐기 시각과 폐기 이유. Revoked pair null 일치, 시각 순서, user/활동 index. Absolute expiry, 하드웨어 fingerprint 없음. |
 | `auth_refresh_tokens` | 32-byte token hash PK, session FK cascade, 발급, 소비 시각. `consumed_at IS NULL` partial unique로 session당 미소비 하나, session index. |
-| `auth_login_requests` | UUID PK, login/manage 목적, 설정 fingerprint, 상태, 생성, 만료 시각, 아래 일회용 증명. 회원 생성 전에도 존재하므로 user FK를 강제하지 않음. |
+| `auth_login_requests` | UUID PK, login/manage 목적, 설정 fingerprint, 요청별 Desktop `return_url`, 상태, 생성, 만료 시각, 아래 일회용 증명. 회원 생성 전에도 존재하므로 user FK를 강제하지 않음. |
 
 ## `auth_login_requests`
 
 Login 요청은 S256 challenge와 일회용 launch hash를 가진다. Manage 요청은 browser binding으로 시작하고 앱 교환 proof는 없다. Browser binding, launch, exchange code hash는 존재할 때 32byte다. WebAuthn challenge는 register/authenticate/add 목적과 등록 예정 user에 결합한다. 검증 회원, credential ID는 관리 권한 또는 앱 교환에만 쓴다.
+
+Desktop 로그인은 검증한 loopback `returnUrl` 원문을 nullable `return_url text`에 보관한다. OCR, manage 요청은 null이며 OCR 복귀는 기존 `ocrReturnUrl` 설정을 사용한다. 형식과 포트 범위를 SQL CHECK로 제한하므로 길이도 최대 36바이트로 제한된다. 별도 길이 CHECK는 중복하지 않는다. 이 column은 login 목적의 비종료 요청에만 값을 가질 수 있고 성공, 실패 terminal commit 때 null로 지운다. 만료 뒤 물리 정리는 기존 cleanup 정책을 따른다.
+
+설정 fingerprint는 서버 설정 변경 뒤 기존 요청을 거절하고 client를 구분하기 위한 값이다. 로그인마다 달라지는 Desktop `returnUrl`은 fingerprint에 포함하지 않으며 요청 행과 같은 수명으로 저장한다. Desktop 주소가 서버 설정에서 빠져도 OCR 설정 변경에 따른 fingerprint 거절은 유지한다.
 
 | 상태 | 제약 |
 | --- | --- |
@@ -61,6 +65,12 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 `RemovePhoneQrLogin` forward migration은 `AddPhoneQrLogin`이 추가한 `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code` column과 `phone_verified`, `phone_approved` 상태를 제거한다. 기존 migration은 이력으로 보존한다. 요청 table의 쓰기를 잠근 뒤 QR 필드나 phone 상태가 남은 요청의 proof, challenge, 회원/credential 연결을 null 처리하고 `failed`로 종료한다. 활성 QR 요청이 있어도 적용을 거절하지 않는다. users, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다.
 
 상태와 terminal CHECK는 새 이름으로 교체한다. Disposable down은 nullable QR column과 이전 제약만 복원하며 제거한 QR data와 종료된 요청을 복구하지 않는다.
+
+## 요청별 loopback 복귀 주소
+
+`AddLoginReturnUrl1791590400001` forward migration은 `return_url`과 형식, 상태 CHECK를 추가한다. 기존 행에는 복원 가능한 임시 포트가 없고 서버 설정에서 Desktop 주소가 빠지면서 모든 client의 fingerprint가 달라진다. 쓰기를 잠근 뒤 기존 비종료 인증 요청의 proof, challenge, 회원/credential 연결을 지우고 `failed`로 종료한다. Desktop, OCR 로그인과 관리 중이던 브라우저는 새 인증을 시작해야 한다. 이미 종료된 요청과 users, 패스키, session, refresh는 보존한다.
+
+Disposable down은 추가한 column과 CHECK만 제거하며 종료된 요청을 복구하지 않는다.
 
 ## 별도 accounts DB와 이전 종료
 
