@@ -19,6 +19,7 @@ import {
   DialogRoot,
   DialogTrigger,
   ExampleSection,
+  IconButton,
   LayoutBlock,
   ProgressCircle,
   SupportingText,
@@ -33,6 +34,7 @@ import {
   type DialogFooterProps,
   type DialogRootProps,
   type DialogTriggerProps,
+  type IconButtonProps,
   type ProgressCircleProps,
   type TextFieldInputProps,
   type TextFieldProps,
@@ -75,6 +77,14 @@ expectTypeOf<DialogBodyProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undef
 expectTypeOf<DialogFooterProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<DialogRootProps>().not.toHaveProperty('ref')
+
+// 디자인 컴포넌트도 SEED 변수로 외형을 소유하고 화면별 외형 override를 노출하지 않는다.
+type DesignPropKeys = keyof IconButtonProps
+expectTypeOf<
+  Extract<DesignPropKeys, AppearanceOverrides | 'size' | 'layout'>
+>().toEqualTypeOf<never>()
+expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
+expectTypeOf<IconButtonProps['variant']>().toEqualTypeOf<'neutralWeak' | 'ghost'>()
 
 const buttonRef = createRef<HTMLButtonElement>()
 const inputRef = createRef<HTMLInputElement>()
@@ -164,6 +174,42 @@ export const snippetExamples = (
       </ExampleSection>
     </ContentStack>
   </LayoutBlock>
+)
+
+export const designExamples = (
+  <>
+    <IconButton
+      ref={buttonRef}
+      variant="ghost"
+      aria-label="설정"
+      aria-haspopup="dialog"
+      icon={<svg aria-hidden="true" />}
+      disabled
+      onClick={(event) => {
+        expectTypeOf(event).toEqualTypeOf<MouseEvent<HTMLButtonElement>>()
+      }}
+    />
+    <DialogRoot>
+      <DialogTrigger asChild>
+        <IconButton
+          variant="neutralWeak"
+          aria-label="화면 캡처"
+          icon={<svg aria-hidden="true" />}
+        />
+      </DialogTrigger>
+    </DialogRoot>
+  </>
+)
+
+export const invalidDesignExamples = (
+  <>
+    {/* @ts-expect-error 아이콘만 보이는 IconButton은 접근 가능한 이름을 요구한다. */}
+    <IconButton variant="ghost" icon={<svg aria-hidden="true" />} />
+    {/* @ts-expect-error IconButton variant는 디자인의 neutralWeak, ghost 중 하나여야 한다. */}
+    <IconButton variant="brandSolid" aria-label="설정" icon={<svg aria-hidden="true" />} />
+    {/* @ts-expect-error IconButton의 임의 className은 공개 prop이 아니다. */}
+    <IconButton className="square" variant="ghost" aria-label="설정" icon={<svg />} />
+  </>
 )
 
 // Typo는 Snippet과 달리 명시된 style/className/표현 옵션을 허용한다.

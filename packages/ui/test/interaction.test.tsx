@@ -1,4 +1,4 @@
-import { act, useState, type ReactNode } from 'react'
+import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -7,10 +7,12 @@ import {
   DialogContent,
   DialogRoot,
   DialogTrigger,
+  IconButton,
   TextField,
   TextFieldInput,
   type ActionButtonProps,
   type DialogRootProps,
+  type IconButtonProps,
   type TextFieldProps
 } from '../src/index'
 
@@ -423,5 +425,78 @@ describe('Dialog의 상태 전이와 접근성, 포커스', () => {
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(buttonByText('상세 정보 열기').getAttribute('aria-expanded')).toBe('false')
     expect(onOpenChange).not.toHaveBeenCalled()
+  })
+})
+
+function SettingsIcon() {
+  return <svg data-testid="settings-icon" viewBox="0 0 24 24" />
+}
+
+describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () => {
+  it('아이콘만 보이는 버튼이 aria-label을 이름으로 갖고 클릭과 ref를 전달한다', async () => {
+    const onClick = vi.fn<NonNullable<IconButtonProps['onClick']>>()
+    const ref = createRef<HTMLButtonElement>()
+    await render(
+      <IconButton
+        ref={ref}
+        variant="ghost"
+        aria-label="설정"
+        icon={<SettingsIcon />}
+        onClick={onClick}
+      />
+    )
+    const button = element<HTMLButtonElement>('button')
+
+    expect(ref.current).toBe(button)
+    expect(button.getAttribute('aria-label')).toBe('설정')
+    expect(button.textContent).toBe('')
+    expect(button.querySelector('[data-testid="settings-icon"]')).not.toBeNull()
+    await click(button)
+    expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  it('disabled 버튼은 클릭을 차단한다', async () => {
+    const onClick = vi.fn<NonNullable<IconButtonProps['onClick']>>()
+    await render(
+      <IconButton
+        variant="neutralWeak"
+        aria-label="캡처 연결 예정"
+        icon={<SettingsIcon />}
+        disabled
+        onClick={onClick}
+      />
+    )
+    const button = element<HTMLButtonElement>('button')
+
+    expect(button.disabled).toBe(true)
+    await click(button)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('DialogTrigger의 asChild로 dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다', async () => {
+    await render(
+      <DialogRoot>
+        <DialogTrigger asChild>
+          <IconButton variant="ghost" aria-label="설정" icon={<SettingsIcon />} />
+        </DialogTrigger>
+        <DialogContent title="설정">
+          <DialogAction>닫기</DialogAction>
+        </DialogContent>
+      </DialogRoot>
+    )
+    const trigger = element<HTMLButtonElement>('button[aria-label="설정"]')
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
+    trigger.focus()
+
+    await click(trigger)
+    const dialog = element('[role="dialog"]')
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(referencedTexts(dialog, 'aria-labelledby')).toEqual(['설정'])
+    await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+
+    await pressEscape(dialog)
+
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
   })
 })

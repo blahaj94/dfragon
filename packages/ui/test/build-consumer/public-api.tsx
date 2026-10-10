@@ -9,6 +9,7 @@ import {
   DialogRoot,
   DialogTrigger,
   ExampleSection,
+  IconButton,
   LayoutBlock,
   ProgressCircle,
   SupportingText,
@@ -25,6 +26,7 @@ import type {
   DialogFooterProps,
   DialogRootProps,
   DialogTriggerProps,
+  IconButtonProps,
   LayoutBlockProps,
   ProgressCircleProps,
   TextFieldInputProps,
@@ -47,6 +49,7 @@ export const components = [
   DialogRoot,
   DialogTrigger,
   ExampleSection,
+  IconButton,
   LayoutBlock,
   ProgressCircle,
   SupportingText,
@@ -65,6 +68,7 @@ export type PublicProps = {
   dialogBody: DialogBodyProps
   dialogFooter: DialogFooterProps
   dialogAction: DialogActionProps
+  iconButton: IconButtonProps
   layout: LayoutBlockProps
   typo: TypoProps<'button'>
   standaloneTypo: StandaloneTypoProps<'a'>
@@ -78,6 +82,14 @@ export const button = (
   </ActionButton>
 )
 export const input = <TextFieldInput ref={createRef<HTMLInputElement>()} placeholder="입력" />
+export const iconButton = (
+  <IconButton
+    variant="ghost"
+    aria-label="설정"
+    ref={createRef<HTMLButtonElement>()}
+    icon={<svg aria-hidden="true" />}
+  />
+)
 export const paragraph = <Typo.txtM style={typographyVariants.txtM}>공개 entry</Typo.txtM>
 export const link = (
   <StandaloneTypo.txtM
