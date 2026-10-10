@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-09-29
+last-reviewed: 2026-10-10
 ---
 
 # Architecture Overview
@@ -67,21 +67,22 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 | 대상                               | 책임과 dependency direction                                                                                                                                                                                                                                                |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/ui`의 `@dfragon/ui`          | Browser React shared package 하나로 공식 SEED styled Component, Snippet과 실제로 공유하는 Layout, composition을 제공한다. `@dfragon/ui` → SEED/React, 필요한 공식 icon 방향으로 연결하며 app source, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
+| `packages/ui`의 `@dfragon/ui`          | Browser React shared package 하나로 공식 SEED styled Component, Snippet과 실제로 공유하는 Layout, composition, 디자인 컴포넌트를 제공한다. `@dfragon/ui` → SEED/React, StyleX runtime, 필요한 공식 icon 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
 | `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다.                                                                                                      |
 | `apps/ocr/browser` | 관리 React 화면에서 SEED recipe, token과 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
 | `apps/accounts/browser`                 | 인증 React 화면에서 `@dfragon/ui/typo`만 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다.                                                                                                                           |
 | 독립 Vite Example entry            | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다.                                                                                                        |
 
-공식 요소를 불필요하게 재명명, wrapper로 감싸지 않고 SEED 이름과 semantic API를 유지한다. 화면별 스타일 허용 범위와 필요한 Example, version, Snippet source, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
+공식 요소를 불필요하게 재명명, wrapper로 감싸지 않고 SEED 이름과 semantic API를 유지한다. SEED에 같은 역할이 없는 디자인 컴포넌트는 SEED Component를 조합한 DFragon 구성으로 제공한다. 화면별 스타일 허용 범위와 필요한 Example, version, Snippet source, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
 
 ### Dependency와 CSS 소유
 
 [공식 Library Authors 가이드](https://seed-design.io/react/getting-started/library-authors)를 따른다.
 
-- `@dfragon/ui`는 `@seed-design/react`, `@seed-design/css`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. SEED React와 CSS의 peer 범위를 각각 명시하고, 소비 app, Example은 manifest, lockfile에 기록된 호환 SEED 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
-- Library를 bundle하면 `@seed-design/*`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 SEED runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다.
+- `@dfragon/ui`는 `@seed-design/react`, `@seed-design/css`, `@stylexjs/stylex`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. SEED React와 CSS의 peer 범위를 각각 명시하고, 소비 app, Example은 manifest, lockfile에 기록된 호환 SEED 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
+- Library를 bundle하면 `@seed-design/*`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 SEED runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다.
 - Library source에서 `@seed-design/css/*.css`를 직접 import하지 않는다. 선택한 공식 Vite 통합은 `base.css`와 Component recipe CSS를 사용하는 경로다. 이 경로에서 각 소비 app, Example의 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 Theme 초기화 책임을 가진다. SEED recipe가 연결하는 Component CSS를 library의 별도 CSS 사본으로 vendor하지 않는다.
+- Library의 StyleX는 SEED CSS 변수만 참조하고 `defineVars`, 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
 - Web, Desktop renderer, Example은 공식 `@seed-design/vite-plugin` 통합을 사용한다. Desktop의 electron-vite renderer 설정과 실제 Electron 실행 호환성은 후속 검증 대상이다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
 - 공식 icon package는 필요한 Snippet의 runtime dependency로, CLI는 authoring 도구로 구분한다. CLI를 제품 runtime에 포함하지 않는다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
 

@@ -62,7 +62,7 @@ Desktop, API 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 pad
 
 컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. SEED recipe의 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
 
-공용 색, 간격은 SEED CSS 변수와 기존 테마를 우선 사용한다. StyleX 변수, 테마 정의가 필요하면 `.stylex.ts`의 `defineVars`, `createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
+공용 색, 간격은 SEED CSS 변수와 기존 테마를 우선 사용한다. StyleX 변수, 테마 정의가 필요하면 `.stylex.ts`의 `defineVars`, `createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. `@dfragon/ui`의 StyleX는 SEED CSS 변수만 참조한다. SEED 의미 토큰이 없는 디자인 값은 같은 값의 팔레트 변수로 적는다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시, disabled/loading 차단, 접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작, 접근성 결함을 숨기지 않는다.
 
