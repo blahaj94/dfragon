@@ -56,7 +56,7 @@ const styles = stylex.create({
 
 dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/main/design/components.md)의 크기와 상태는 SEED 컴포넌트와 크기 단계로 옮기고, 시안의 픽셀을 맞추려고 SEED 모양을 다시 그리지 않습니다. 디자인 버튼 md(40)는 SEED `medium`에 `Typo.txtM` 700 라벨을, sm은 SEED `small`(36)에 `Typo.txtS` 700 라벨을 씁니다. secondary 버튼은 SEED `neutralWeak` 배경을 그대로 쓰며, 이 값은 디자인 `bg.control`보다 한 단계 밝습니다. 라이트에서는 `neutralWeak`가 `bg.canvas`와 같은 회색이라, `bg.canvas` 위에 바로 놓이는 개발자 작업 공간의 보조 버튼에는 `bg.control`, `bg.controlHover` 배경을 지정합니다.
 
-아이콘만 있는 `ActionButton`은 `layout="iconOnly"`와 SEED `Icon`으로 만듭니다(`<Icon svg={<SettingsIcon />} size="x6" />`). SEED는 개발 빌드와 Vitest에서 `Icon` 없이 SVG를 바로 넣으면 오류를 냅니다. medium iconOnly는 좌우 여백이 10이라 24px 아이콘을 넣으면 폭이 44가 됩니다. 디자인 `IconButton`의 40 정사각형에 맞추려고 화면 스타일에서 여백만 8로 줄입니다(`CaptureControls`, `SettingsSection`, `PartyPage`).
+아이콘만 있는 `ActionButton`은 `layout="iconOnly"`와 SEED `Icon`으로 만듭니다(`<Icon svg={<SettingsIcon />} size="x6" />`). SEED는 개발 빌드와 Vitest에서 `Icon` 없이 SVG를 바로 넣으면 오류를 냅니다. medium iconOnly는 좌우 여백이 10이라 24px 아이콘을 넣으면 폭이 44가 됩니다. 디자인 `IconButton` md(40 정사각형)는 Desktop `components/IconButton`이 SEED medium iconOnly, 24px `Icon`과 여백 8을 한 곳에서 맞추며, 상단 바의 캡처(`CaptureControls`와 연결 전 `PartyPage`의 자리 버튼), 테마(`PartyPage`), 설정(`SettingsSection`) 버튼이 이 컴포넌트를 씁니다.
 
 SEED 공개 옵션으로 부족한 작은 표현은 해당 요소의 className에서 SEED CSS 변수만 화면 범위로 바꿉니다. `.seed-*` 선택자나 라이브러리 내부 DOM 선택자는 쓰지 않습니다. SEED가 변수 이름을 바꾸면 조용히 SEED 기본 표현으로 돌아가므로 SEED를 갱신할 때 이 사용처를 함께 확인합니다.
 
