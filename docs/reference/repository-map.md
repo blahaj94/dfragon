@@ -126,11 +126,11 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - Desktop, API 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
 
 - 실제 검증 환경, 결과, upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
-- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet, Layout과 중립 Example. Package/peer/CSS 소유, 고정 source, 고지, 명령은 `packages/ui/README.md`를 따른다.
+- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet, Layout, SEED를 조합한 디자인 컴포넌트(`IconButton`, `StatusBadge`, `Checkmark`)와 중립 Example. Package/peer/CSS 소유, 고정 source, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
 - Web/Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
-- 각 consumer는 SEED base.css와 별도 공용 foundation.css를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 SEED/React/JSX runtime을 external 처리한다.
+- 각 consumer는 SEED base.css와 별도 공용 foundation.css를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 SEED/React/JSX runtime과 StyleX를 external 처리한다. 디자인 컴포넌트의 `stylex.create`는 각 consumer의 StyleX compiler가 정적 CSS로 바꾼다.
 - Source 재생성, hash/local diff: `packages/ui/scripts/prepare-seed-source.mjs`, `packages/ui/seed-provenance.json`.
 - 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Web, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
 - Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
