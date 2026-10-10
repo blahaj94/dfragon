@@ -3,9 +3,9 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop secure storage loopback login and validation
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-11
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용"
 exceptions: 실제 credential/keychain, legacy protocol registry 정리, 패스키 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loopback 로그인 E2E 시
 ---
@@ -128,7 +128,7 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 - Main은 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 수신기 하나를 열고 `POST /auth/login-requests`에 `returnUrl: http://127.0.0.1:<port>/auth/callback`을 함께 보낸다. 응답 `browserUrl`은 Electron `shell.openExternal`로 연다. 열기 실패는 기존 `BROWSER_OPEN_FAILED`다.
 - 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받는다. 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 설치형, 포터블 모두 같은 흐름이다.
-- code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 교환 함수에 전달하며 메인 창을 활성화한다. Code-only 복귀와 60초 code TTL은 유지한다.
+- code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 교환 함수에 전달하며 메인 창 활성화를 요청한다. Windows에서는 best-effort이며, foreground 전환이 막혀 작업 표시줄 아이콘만 깜빡여도 로그인 완료는 같다. Code-only 복귀와 60초 code TTL은 유지한다.
 
 Loopback의 한계: 같은 OS user의 다른 프로세스가 포트에 요청을 보낼 수 있지만 pending과 S256 verifier가 없으면 code를 교환할 수 없다. 가용성 방해, 정품 앱 보증 문제를 모두 해결하지 않으며 public clientId도 설치 인증이 아니다. 이전 인증 창이 주던 메모리 session, origin 제한, 팝업 차단 격리는 시스템 브라우저에 적용되지 않고, 외부 브라우저의 세션 cookie는 브라우저가 보관한다. 로그인 요청마다 새 패스키 인증을 요구하는 현재 정책은 유지한다. 앱에서 먼저 취소한 뒤 브라우저에서 완료하면 복귀 이동이 연결 실패로 끝나고 브라우저 기본 오류 페이지가 보인다.
 

@@ -3,9 +3,9 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop authentication lifecycle and recovery
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-11
 rationale: callback, 재시작, rotation, 취소 경합에서 중복 credential 사용과 거짓 로그인 성공을 막는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용"
 exceptions: 설계 승인은 구현 착수가 아니며 서버 grace, 취소/status endpoint 또는 session 정책을 추가하지 않는다.
 review-after: 최초 로그인, refresh, 저장 실패 integration validation 시
 ---
@@ -76,7 +76,7 @@ sequenceDiagram
    - 생성 응답 처리 및 시스템 브라우저 열기 직전에 현재 attempt/generation을 재검사한다. 취소/만료 뒤 늦게 온 201은 URL을 열지 않고 버리며 이미 결정된 상태를 덮지 않는다.
 2. 201 응답에서 request UUID, exact launch URL, 유효 UTC ISO expiresAt을 검사한다. 서버 request 전체 TTL 600초를 연장하지 않는다. Main은 요청 시작부터 monotonic 600초 상한과 expiresAt wall-clock 조건 중 먼저 도달한 시점에 pending을 끝낸다. Clock 역행/큰 불연속이 관측되면 새 로그인을 요구한다. 절전 복귀, loopback 복귀, HTTP 완료 때도 시간을 재검사한다. Client countdown은 안내/조기 포기 기준이며 서버의 fresh time 판단을 대체하지 않는다.
 3. Pending을 완전히 저장한 뒤 `waitingBrowser`를 발행하고 main이 `browserUrl`을 Electron `shell.openExternal`로 시스템 기본 브라우저에서 한 번 연다. 열기 호출의 성공은 브라우저 패스키 인증 성공 증거가 아니다. Renderer로 browserUrl을 보내지 않는다. 열기 실패면 loopback 수신기와 pending을 정리하고 `signedOut/BROWSER_OPEN_FAILED`다.
-4. 패스키 응답은 브라우저에서 서버로 제출하고 검증한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 등록 `returnUrl`인 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며 `앱으로 돌아가기` 버튼도 같은 주소를 연다. 복귀에는 **code 하나**만 싣는다. App은 callback에 requestId/provider/error/state/token이 있다고 가정하지 않는다. Loopback 수신기가 code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 main 교환 함수에 전달하며 메인 창을 활성화한다. 앱 내 취소, 만료는 수신기를 닫는다. 브라우저에 남은 페이지는 서버 TTL로 만료되며 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱에서 먼저 취소한 뒤 브라우저에서 완료하면 복귀 이동이 연결 실패로 끝나고 브라우저 기본 오류 페이지가 보이는 한계를 받아들인다. 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리하며 DFragon 자체 QR 상태 polling은 없다.
+4. 패스키 응답은 브라우저에서 서버로 제출하고 검증한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 등록 `returnUrl`인 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며 `앱으로 돌아가기` 버튼도 같은 주소를 연다. 복귀에는 **code 하나**만 싣는다. App은 callback에 requestId/provider/error/state/token이 있다고 가정하지 않는다. Loopback 수신기가 code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 main 교환 함수에 전달하며 메인 창 활성화를 요청한다. Windows에서는 best-effort이며, foreground 전환이 막혀 작업 표시줄 아이콘만 깜빡여도 로그인 완료는 같다. 앱 내 취소, 만료는 수신기를 닫는다. 브라우저에 남은 페이지는 서버 TTL로 만료되며 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱에서 먼저 취소한 뒤 브라우저에서 완료하면 복귀 이동이 연결 실패로 끝나고 브라우저 기본 오류 페이지가 보이는 한계를 받아들인다. 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리하며 DFragon 자체 QR 상태 polling은 없다.
 5. Loopback 복귀 요청 URL을 strict parser로 검증한 뒤 현재 살아 있는 pending 하나를 선택한다. Client/proof/request binding은 `/auth/exchange`가 최종 검증한다. 유효한 pending이 없으면 서버 요청 0: signedOut이면 `LOGIN_RESTART_REQUIRED`, 이미 signedIn/restoring이면 현재 session을 그대로 유지한다. 앱 재시작 뒤에는 수신기가 없어 늦은 복귀는 연결 실패로 끝나며, verifier가 없다는 이유로 저장된 정상 session까지 지우지 않는다.
 6. `waitingBrowser → exchanging`: 동기적으로 현재 candidate를 claim하고 loopback 수신기를 닫은 뒤 아래 durable marker를 확립하고 requestId, clientId, code, verifier를 교환한다. 수신기가 GET `/auth/callback`을 한 번만 받으므로 같은 pending에 두 번째 code가 들어오지 않으며, 늦게 온 요청은 연결 실패로 끝난다. 두 번째 exchange를 보내지 않는다.
 7. 200 응답 전체를 검사하고 아직 같은 generation이면 새 refresh를 durable 저장한다. **저장 완료 전에는 signedIn/event/user 화면을 발행하지 않는다.** 저장 뒤 memory access/user를 publish하고 pending/verifier/code를 폐기한다. 신규 insert winner만 welcome, 나머지는 home이다.

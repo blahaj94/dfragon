@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: accounts and Desktop passkey runtime
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-11
 ---
 
 # 패스키 실행 안내
@@ -34,7 +34,7 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 - `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema, migration, 가상 WebAuthn 브라우저, refresh, 계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태, IPC, 화면 회귀와 build.
 
-운영 배포와 실제 브라우저 hybrid QR 검증은 별도다. 휴대폰 로그인은 시스템 브라우저의 패스키 창이 제공하는 hybrid QR로 처리하며, DFragon 자체 로그인 QR과 관리 QR은 제거했다. 시스템 브라우저 흐름의 실제 Windows+iPhone 검증은 [#668](https://github.com/blahaj94/dfragon/issues/668)의 실기 검증 항목에서 따로 기록한다.
+자동 검증은 운영 배포와 실제 브라우저의 hybrid QR을 대신하지 않는다. 휴대폰 로그인은 시스템 브라우저의 패스키 창이 제공하는 hybrid QR로 처리하며, DFragon 자체 로그인 QR과 관리 QR은 제거했다. 시스템 브라우저 흐름의 Windows, iPhone 실기 결과는 [Windows 시스템 브라우저 로그인 확인](#windows-시스템-브라우저-로그인-확인)에 있다.
 
 ## OCR 관리 웹의 선택 연결
 
@@ -45,6 +45,38 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 기존 accounts를 중지한 뒤 `AddLoginReturnUrl1791590400001`을 포함한 forward migration을 명시 적용하고, 인증 JSON에서 `passkey.returnUrl` key를 제거한 새 accounts를 시작한다. Key가 남아 있으면 strict 설정 검사가 기동을 거절한다. 새 accounts는 `return_url` column을 요구하므로 migration 전에 시작하지 않는다. 기존 비종료 Desktop, OCR 로그인과 관리 요청은 종료되며 새 인증이 필요하다. 회원, 패스키, session, refresh는 유지한다. 요청에 `returnUrl`을 보내는 Desktop 배포와 함께 적용한다.
 
 `test-support/login-return-url-migration.mjs`는 진행 요청 종료, 기존 인증 데이터 보존, schema drift, 빈 DB rollback을 검사한다. `test:database`는 요청별 주소 저장, code-only 자동 복귀, 수동 버튼과 OCR 고정 callback도 검증한다.
+
+## Windows 시스템 브라우저 로그인 확인
+
+2026-10-11에 [#668](https://github.com/blahaj94/dfragon/issues/668)의 실기 항목을 확인했다. 대상은 main `96f395d5`를 배포 채널(`DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.dfragon.com`)로 로컬 빌드한 Windows x64 사용자별 NSIS 설치본과 포터블이다. Release workflow 산출물은 아니다. 운영 accounts는 `/version` 기준 `34b6d0b6`이며 main과 accounts 코드가 같다.
+
+PC는 Windows 10 22H2 x64(build 19045)이고 Windows Hello에 DFragon 패스키가 없으며 지문 센서도 없다. 브라우저는 Firefox 157, Chrome 154이고 휴대폰은 iCloud 키체인에 운영 패스키가 있는 iPhone이다. 앱은 로그인한 사용자 세션에서 관리자 권한으로 실행했다. 인증 상태와 수신 포트는 개발자 도구 포트와 PowerShell로 읽고, 브라우저 화면과 창 위치는 사용자가 확인했다.
+
+| 확인 | 결과 |
+| --- | --- |
+| 로그인 시작 | 메인의 `로그인`이 기본 브라우저(Firefox, Chrome)에서 accounts 로그인 페이지를 열고 같은 버튼이 `취소`가 된다. 수신기는 `127.0.0.1`의 임시 포트에서만 대기한다. 만료 시간은 600초이며 시작 직후 읽은 남은 시간은 594~595초다. |
+| Firefox 인증 | Windows 보안 창에 이 PC의 패스키가 없어 완료하지 못했다. Firefox의 휴대폰 QR은 확인하지 않았다. |
+| Chrome, iPhone hybrid QR | 설치본 2회, 포터블 2회 로그인을 완료했고 매번 앱이 `signedIn`이 되고 수신기가 닫혔다. 설치본과 포터블의 첫 회에서 브라우저에 수신기가 응답한 `이 탭을 닫아도 됩니다.` 페이지가 보이는 것을 사용자가 확인했다. |
+| 앱 창 활성화 | 설치본 첫 로그인에서는 앱 창이 앞으로 나왔고 두 번째는 확인하지 않았다. 포터블 2회는 Chrome 뒤에 남았고 그중 1회는 작업 표시줄 아이콘이 깜빡였다. |
+| 앱에서 취소 | 설치본, 포터블 모두 `signedOut`, `LOGIN_CANCELLED`가 되고 수신기가 바로 닫혔다. |
+| 취소 뒤 브라우저 완료 | 설치본에서 복귀 이동이 Chrome 기본 오류 페이지 `사이트에 연결할 수 없음`으로 끝나고 앱은 `signedOut`에 남는다. |
+| 600초 만료 | 설치본은 만료 6초 뒤, 포터블은 3초 뒤에 `signedOut`, `LOGIN_EXPIRED`였고 수신기가 닫혀 있었다. 설치본의 남은 탭에서 패스키 버튼을 누르면 요청이 유효하지 않다는 안내가 보인다. |
+| 두 번째 실행 | 새 프로세스는 끝나고 기존 프로세스와 창 하나가 유지된다. 창이 앞으로 나왔는지는 확인하지 않았다. |
+
+Windows는 마지막 입력을 받지 않은 프로세스의 foreground 전환을 제한한다. Windows에서 앱의 창 활성화는 best-effort이며, 창이 앞으로 나오지 않아도 로그인 완료와 상태 반영은 같다. 포터블 두 번째 로그인에서 renderer의 `document.hasFocus()`는 `true`였지만 창은 Chrome 뒤에 있었으므로 자동 확인에서 전면 표시 판정에 쓰지 않는다.
+
+예전 OS protocol 키 정리는 같은 PC의 사용자별 설치본으로 확인했다. 예전 설치본은 OS protocol 제거 전 main `34b6d0b6`의 빌드다.
+
+| 순서 | 결과 |
+| --- | --- |
+| 예전 설치본 설치 | `HKCU\Software\Classes\dfragon`이 설치 앱 실행 파일을 가리킨다. |
+| 새 설치본으로 업데이트 | 키가 삭제된다. |
+| 이 앱을 가리키는 키를 다시 만든 뒤 재설치 | 키가 삭제된다. |
+| 다른 앱을 가리키는 키를 만든 뒤 재설치 | 설치는 성공하고 키는 보존된다. |
+| 다른 앱을 가리키는 키가 있을 때 제거 | 키는 보존된다. |
+| 이 앱을 가리키는 키가 있을 때 제거 | 키가 삭제된다. |
+
+확인하지 않은 범위는 Windows 11, Windows Hello 패스키, Firefox와 Edge의 휴대폰 QR, 포터블에서 취소 뒤 브라우저 완료와 만료 뒤 브라우저 화면, 바로 가기로 직접 실행한 앱의 창 활성화, 인증 완료 페이지의 `앱으로 돌아가기` 버튼 수동 클릭이다. 이 결과를 다른 OS, 브라우저, 기기의 성공으로 확대하지 않는다.
 
 ## accounts 분리
 
