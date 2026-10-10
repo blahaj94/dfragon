@@ -41,9 +41,6 @@ export function managementFixture(count = 2) {
   const row: AuthLoginRequest = {
     codeChallenge: null,
     launchTicketHash: null,
-    qrTicketHash: null,
-    phoneBindingHash: null,
-    confirmationCode: null,
     webauthnChallenge: null,
     operation: null,
     pendingUserId: null,
