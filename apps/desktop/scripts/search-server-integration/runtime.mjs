@@ -22,6 +22,9 @@ import {
 } from '../../../accounts/test-support/runtime-fixtures.mjs'
 
 const apiDirectory = fileURLToPath(new URL('../../../api/', import.meta.url))
+// 이 검사가 부르는 API route template이다. 준비 확인의 `/` 요청은 `<unmatched>`로 남는다.
+const searchRoute = '/characters'
+const searchAccessLog = { service: 'api', routes: [searchRoute] }
 
 function startApi(environment, upstreams) {
   const originalDirectory = process.cwd()
@@ -34,7 +37,8 @@ function startApi(environment, upstreams) {
       upstreams,
       preload: fileURLToPath(
         new URL('../../../accounts/test-support/runtime-preload.mjs', import.meta.url)
-      )
+      ),
+      accessLog: searchAccessLog
     })
   } finally {
     process.chdir(originalDirectory)
@@ -75,6 +79,8 @@ async function withApi({ source, database, neople }, operation) {
       const hasNoStderr = result.stderr.length === 0
       const hasNoRuntimeOutput = hasNoStdout && hasNoStderr
       assert(hasNoRuntimeOutput, 'API must not log raw fixture data')
+      const hasSearchAccessLog = runtime.accessLogs.some(({ route }) => route === searchRoute)
+      assert(hasSearchAccessLog, 'API must write an allowlisted access log for public search')
       const events = runtime.events.map(({ event }) => event)
       const hasDisconnectedDatabase = events.includes('db.disconnected')
       assert(hasDisconnectedDatabase, 'API must disconnect its real database')

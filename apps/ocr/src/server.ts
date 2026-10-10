@@ -18,6 +18,12 @@ import { OcrModelController } from './model-controller.js'
 import { MODEL_MAXIMUM_BYTES, MODEL_MULTIPART_OVERHEAD_MAXIMUM_BYTES } from './model-library.js'
 import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-info.js'
 import {
+  type AccessLogSink,
+  createAccessLog,
+  recordAccessLogErrorCode,
+  writeAccessLogToStdout
+} from './access-log.js'
+import {
   OCR_CONFIG,
   OcrAuthController,
   OcrDataController,
@@ -42,6 +48,7 @@ class OcrHttpFilter implements ExceptionFilter {
       failure = httpFailure(error)
     }
 
+    recordAccessLogErrorCode(response, failure.code)
     response.status(failure.status).json({ error: failure.code })
   }
 }
@@ -72,7 +79,8 @@ export async function createOcrApp(
   config: AuthConfiguration,
   store: OcrStore,
   auth = new OcrAuth(config),
-  buildInfoPath = '/app/build-info.json'
+  buildInfoPath = '/app/build-info.json',
+  writeAccessLog: AccessLogSink = writeAccessLogToStdout
 ) {
   const buildInfo = await readOcrBuildInfo(buildInfoPath)
   @Module({
@@ -99,6 +107,8 @@ export async function createOcrApp(
   app.disable('x-powered-by')
   app.set('trust proxy', config.trustedProxyHops ?? false)
   app.useGlobalFilters(new OcrHttpFilter())
+  // Nest 기본 logger는 끈 채로 두고, 인증과 업로드 제한 middleware의 거절까지 재도록 가장 먼저 등록한다.
+  app.use(createAccessLog(writeAccessLog))
   app.use(cookieParser())
   app.use((request: Request, response: Response, next: NextFunction) => {
     response.set({

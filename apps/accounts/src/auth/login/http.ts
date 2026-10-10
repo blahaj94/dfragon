@@ -45,6 +45,12 @@ import {
   AccountsVersionController,
   readAccountsBuildInfo
 } from '../../build-info.js'
+import {
+  type AccessLogSink,
+  createAccessLog,
+  recordAccessLogErrorCode,
+  writeAccessLogToStdout
+} from '../../access-log.js'
 
 const LOGIN_SERVICE = Symbol('LOGIN_SERVICE')
 const SESSION_SERVICE = Symbol('SESSION_SERVICE')
@@ -140,6 +146,7 @@ class LoginHttpFilter implements ExceptionFilter {
     const isGet = request.method === 'GET'
     const shouldRenderHtml = isGet && !isAccountPath
     if (shouldRenderHtml) {
+      recordAccessLogErrorCode(response, failure.code)
       response.status(failure.status).type('html').send(loginPage(failure.message))
     } else {
       jsonError(response, failure)
@@ -307,7 +314,7 @@ export async function createLoginHttpApp(
   service: LoginHttpService,
   sessionService?: SessionHttpService,
   accountDependencies?: AccountDependencies,
-  httpOptions?: Readonly<{ trustedProxyHops?: 1 }>,
+  httpOptions?: Readonly<{ trustedProxyHops?: 1; writeAccessLog?: AccessLogSink }>,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
   buildInfoPath = '/app/build-info.json'
 ): Promise<INestApplication> {
@@ -373,6 +380,8 @@ export async function createLoginHttpApp(
   try {
     // Only an explicitly configured, isolated single-proxy deployment trusts XFF.
     app.set('trust proxy', httpOptions?.trustedProxyHops ?? false)
+    // Nest 기본 logger는 끈 채로 두고, 요청 제한과 JSON parser의 거절까지 재도록 가장 먼저 등록한다.
+    app.use(createAccessLog(httpOptions?.writeAccessLog ?? writeAccessLogToStdout))
     app.use(createAuthRateLimit())
     app.use((request: Request, response: Response, next: () => void) => {
       response.setHeader('Cache-Control', 'no-store')

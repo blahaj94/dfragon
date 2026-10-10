@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { generateKeyPairSync } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { METHODS } from 'node:http'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -77,13 +78,47 @@ export function databaseEnvironment(
   }
 }
 
+// accounts 기본 entry가 등록한 route template이다. 원문 경로가 route로 남는 회귀는 이 목록에 없어
+// 결과 stdout에 그대로 남고, 기존 빈 stdout 검사가 막는다.
+const ACCOUNTS_ACCESS_LOG = {
+  service: 'accounts',
+  routes: [
+    '/auth/exchange',
+    '/auth/login-requests',
+    '/auth/login/authorize',
+    '/auth/login/phone',
+    '/auth/logout',
+    '/auth/passkeys/:action',
+    '/auth/passkeys/client.css',
+    '/auth/passkeys/client.js',
+    '/auth/passkeys/icon.png',
+    '/auth/passkeys/manage',
+    '/auth/refresh',
+    '/docs',
+    '/docs/',
+    '/docs/LICENSE',
+    '/docs/docs/swagger-ui-init.js',
+    '/docs/index.html',
+    '/docs/openapi.json',
+    '/docs/swagger-ui-init.js',
+    '/me',
+    '/me/nickname',
+    '/version'
+  ]
+}
+
+/**
+ * 빌드한 기본 entry를 띄운다. `accessLog`는 stdout에서 검증한 접근 로그로 인정할 service와
+ * route template 목록이다. 다른 서버 entry를 띄울 때는 그 서버의 값을 넘긴다.
+ */
 export function startRuntime(
   environment,
   {
     fault = '',
     realDatabase = false,
     upstreams = {},
-    preload = './test-support/runtime-preload.mjs'
+    preload = './test-support/runtime-preload.mjs',
+    accessLog = ACCOUNTS_ACCESS_LOG
   } = {}
 ) {
   // 실제 환경의 credential, NODE_OPTIONS를 상속하지 않고 명시한 fixture만 전달한다.
@@ -100,6 +135,7 @@ export function startRuntime(
     { cwd: process.cwd(), env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] }
   )
   const events = []
+  const accessLogs = []
   let stdout = ''
   let stderr = ''
   child.on('message', (message) => events.push(message))
@@ -111,10 +147,91 @@ export function startRuntime(
   })
   const exited = new Promise((resolve, reject) => {
     child.once('error', reject)
-    child.once('close', (code, signal) => resolve({ code, signal, stdout, stderr }))
+    child.once('close', (code, signal) => {
+      // 결과의 stdout은 검증한 접근 로그를 뺀 나머지 출력이다. 빈 값 검사는 그 밖의 출력을 계속 막는다.
+      const separated = separateAccessLogs(stdout, accessLog)
+      accessLogs.push(...separated.accessLogs)
+      resolve({ code, signal, stdout: separated.otherOutput, stderr })
+    })
   })
 
-  return { child, events, exited }
+  return { child, events, accessLogs, exited }
+}
+
+const ACCESS_LOG_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
+const ACCESS_LOG_CODE_PATTERN = /^[A-Z][A-Z_]*$/
+const ACCESS_LOG_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+/** 기본 entry의 접근 로그는 auth-api Rule의 allowlist field와 형식만 가진 JSON 한 줄이어야 한다. */
+function parseAccessLog(line, accessLog) {
+  let entry
+  try {
+    entry = JSON.parse(line)
+  } catch {
+    return undefined
+  }
+  const isObject = typeof entry === 'object' && entry !== null && !Array.isArray(entry)
+  if (!isObject) {
+    return undefined
+  }
+
+  const {
+    time,
+    service,
+    method,
+    route,
+    status,
+    code,
+    durationMs,
+    correlationId,
+    aborted,
+    ...rest
+  } = entry
+  const hasOnlyAllowedFields = Object.keys(rest).length === 0
+  const hasTime = typeof time === 'string' && ACCESS_LOG_TIME_PATTERN.test(time)
+  const hasRoute = route === '<unmatched>' || accessLog.routes.includes(route)
+  // Header 전송 전에 끊긴 요청만 status 없이 aborted로 남는다.
+  const hasStatus = status === undefined ? aborted === true : Number.isInteger(status)
+  const hasCode =
+    code === undefined || (typeof code === 'string' && ACCESS_LOG_CODE_PATTERN.test(code))
+  const hasDuration = Number.isInteger(durationMs) && durationMs >= 0
+  const hasCorrelationId =
+    typeof correlationId === 'string' && ACCESS_LOG_ID_PATTERN.test(correlationId)
+  const hasAborted = aborted === undefined || aborted === true
+  const isAccessLog =
+    hasOnlyAllowedFields &&
+    hasTime &&
+    service === accessLog.service &&
+    METHODS.includes(method) &&
+    hasRoute &&
+    hasStatus &&
+    hasCode &&
+    hasDuration &&
+    hasCorrelationId &&
+    hasAborted
+  if (!isAccessLog) {
+    return undefined
+  }
+
+  return entry
+}
+
+function separateAccessLogs(stdout, accessLog) {
+  const outputLinePattern = /[^\n]*\n|[^\n]+$/g
+  const accessLogs = []
+  let otherOutput = ''
+  for (const segment of stdout.match(outputLinePattern) ?? []) {
+    const isCompleteLine = segment.endsWith('\n')
+    const entry = isCompleteLine ? parseAccessLog(segment.slice(0, -1), accessLog) : undefined
+    if (entry === undefined) {
+      otherOutput += segment
+    } else {
+      accessLogs.push(entry)
+    }
+  }
+
+  return { accessLogs, otherOutput }
 }
 
 export async function collectRuntimeExit(runtime, timeoutMs = 5000) {
