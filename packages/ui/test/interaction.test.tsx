@@ -1,16 +1,21 @@
-import { act, useState, type ReactNode } from 'react'
+import { Checkbox } from '@seed-design/react'
+import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ActionButton,
+  Checkmark,
   DialogAction,
   DialogContent,
   DialogRoot,
   DialogTrigger,
+  IconButton,
+  StatusBadge,
   TextField,
   TextFieldInput,
   type ActionButtonProps,
   type DialogRootProps,
+  type IconButtonProps,
   type TextFieldProps
 } from '../src/index'
 
@@ -155,6 +160,17 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
 
     expect(label.textContent).toBe('표시 이름')
     expect(label.control).toBe(input)
+  })
+
+  it('포커스 색을 지정하는 TextField도 ref를 입력 상자에 전달한다', async () => {
+    const ref = createRef<HTMLDivElement>()
+    await render(
+      <TextField ref={ref} label="표시 이름">
+        <TextFieldInput />
+      </TextField>
+    )
+
+    expect(ref.current).toBe(element<HTMLInputElement>('input').parentElement)
   })
 
   it('편집 값과 빈 문자열을 전달하고 소비자가 변환한 controlled 값을 표시한다', async () => {
@@ -423,5 +439,148 @@ describe('Dialog의 상태 전이와 접근성, 포커스', () => {
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     expect(buttonByText('상세 정보 열기').getAttribute('aria-expanded')).toBe('false')
     expect(onOpenChange).not.toHaveBeenCalled()
+  })
+})
+
+function SettingsIcon() {
+  return <svg data-testid="settings-icon" viewBox="0 0 24 24" />
+}
+
+describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () => {
+  it('아이콘만 보이는 버튼이 aria-label을 이름으로 갖고 클릭과 ref를 전달한다', async () => {
+    const onClick = vi.fn<NonNullable<IconButtonProps['onClick']>>()
+    const ref = createRef<HTMLButtonElement>()
+    await render(
+      <IconButton
+        ref={ref}
+        variant="ghost"
+        aria-label="설정"
+        icon={<SettingsIcon />}
+        onClick={onClick}
+      />
+    )
+    const button = element<HTMLButtonElement>('button')
+
+    expect(ref.current).toBe(button)
+    expect(button.getAttribute('aria-label')).toBe('설정')
+    expect(button.textContent).toBe('')
+    expect(button.querySelector('[data-testid="settings-icon"]')).not.toBeNull()
+    await click(button)
+    expect(onClick).toHaveBeenCalledOnce()
+  })
+
+  it('disabled 버튼은 클릭을 차단한다', async () => {
+    const onClick = vi.fn<NonNullable<IconButtonProps['onClick']>>()
+    await render(
+      <IconButton
+        variant="neutralWeak"
+        aria-label="캡처 연결 예정"
+        icon={<SettingsIcon />}
+        disabled
+        onClick={onClick}
+      />
+    )
+    const button = element<HTMLButtonElement>('button')
+
+    expect(button.disabled).toBe(true)
+    await click(button)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('DialogTrigger의 asChild로 dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다', async () => {
+    await render(
+      <DialogRoot>
+        <DialogTrigger asChild>
+          <IconButton variant="ghost" aria-label="설정" icon={<SettingsIcon />} />
+        </DialogTrigger>
+        <DialogContent title="설정">
+          <DialogAction>닫기</DialogAction>
+        </DialogContent>
+      </DialogRoot>
+    )
+    const trigger = element<HTMLButtonElement>('button[aria-label="설정"]')
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
+    trigger.focus()
+
+    await click(trigger)
+    const dialog = element('[role="dialog"]')
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(referencedTexts(dialog, 'aria-labelledby')).toEqual(['설정'])
+    await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+
+    await pressEscape(dialog)
+
+    await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+})
+
+describe('StatusBadge의 상태 알림 범위', () => {
+  it('호출자가 status 영역을 요청하면 상태 글자만 알린다', async () => {
+    await render(
+      <StatusBadge tone="positive" role="status">
+        창 감지됨
+      </StatusBadge>
+    )
+
+    expect(element('[role="status"]').textContent).toBe('창 감지됨')
+  })
+
+  it('호출자가 요청하지 않으면 live region을 만들지 않는다', async () => {
+    await render(<StatusBadge tone="warning">파티원창 찾는 중</StatusBadge>)
+
+    expect(container.textContent).toBe('파티원창 찾는 중')
+    expect(container.querySelector('[role]')).toBeNull()
+    expect(container.querySelector('[aria-live]')).toBeNull()
+  })
+})
+
+describe('Checkmark의 Checkbox.Root 안 상태 표시', () => {
+  function SaveCheckbox({ disabled = false }: { disabled?: boolean }) {
+    return (
+      <Checkbox.Root defaultChecked={false} disabled={disabled}>
+        <Checkmark />
+        <Checkbox.HiddenInput aria-label="1번 크롭 저장" />
+      </Checkbox.Root>
+    )
+  }
+
+  // Checkmark의 꺼짐 배경은 SEED가 상자에 붙이는 상태 속성이 없을 때만 칠한다.
+  function control() {
+    return element('label > [aria-hidden="true"]')
+  }
+
+  // jsdom에는 키보드 기본 동작이 없어 Space가 checkbox input에 만드는 것과 같은 native click으로 토글한다.
+  it('클릭으로 켜고 끄며 상자의 켜짐 속성과 체크 표시를 함께 바꾼다', async () => {
+    await render(<SaveCheckbox />)
+    const input = element<HTMLInputElement>('input[aria-label="1번 크롭 저장"]')
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
+
+    await click(input)
+
+    expect(input.checked).toBe(true)
+    expect(control().hasAttribute('data-checked')).toBe(true)
+    expect(container.querySelector('svg[data-checked]')).not.toBeNull()
+
+    await click(input)
+
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
+  it('disabled Root 안에서는 상자가 비활성 속성을 갖고 눌러도 꺼짐을 유지한다', async () => {
+    await render(<SaveCheckbox disabled />)
+    const input = element<HTMLInputElement>('input[aria-label="1번 크롭 저장"]')
+    expect(input.disabled).toBe(true)
+    expect(control().hasAttribute('data-disabled')).toBe(true)
+
+    await click(input)
+
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
   })
 })

@@ -70,24 +70,22 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
         라이선스 사용고지
       </Typo.h4>
       <Typo.txtS {...stylex.props(styles.description)}>오픈소스와 글꼴 라이선스</Typo.txtS>
-      <div {...stylex.props(styles.search)}>
-        <TextField
-          label={
-            <Typo.txtS as="span" weight={700}>
-              구성 요소 검색
-            </Typo.txtS>
-          }
+      <TextField
+        label={
+          <Typo.txtS as="span" weight={700}>
+            구성 요소 검색
+          </Typo.txtS>
+        }
+      >
+        <TextFieldInput
+          asChild
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="이름 또는 라이선스"
         >
-          <TextFieldInput
-            asChild
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="이름 또는 라이선스"
-          >
-            <Typo.txtS as="input" />
-          </TextFieldInput>
-        </TextField>
-      </div>
+          <Typo.txtS as="input" />
+        </TextFieldInput>
+      </TextField>
       <Typo.caption as="p" role="status" {...stylex.props(styles.count)}>
         {filtered.length}개 구성 요소
       </Typo.caption>

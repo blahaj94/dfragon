@@ -8,14 +8,14 @@ import {
   DialogTrigger,
   DialogContent,
   DialogBody,
-  DialogFooter
+  DialogFooter,
+  IconButton,
+  StatusBadge
 } from '@dfragon/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
-import { IconButton } from './IconButton'
-import { StatusBadge } from './StatusBadge'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 

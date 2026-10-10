@@ -1,18 +1,17 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
   // SEED large Badge가 높이 24를 유지한다. 상태 글자가 말줄임으로 잘리지 않도록 폭 제한을 푼다.
   badge: {
     maxWidth: 'none',
-    borderRadius: 999,
-    backgroundColor: colors.bgInset
+    borderRadius: 'var(--seed-radius-full)',
+    backgroundColor: 'var(--seed-color-palette-gray-100)'
   },
-  neutral: { color: colors.fgSubtle },
-  informative: { color: colors.fgInfo },
-  critical: { color: colors.fgDanger },
-  warning: { color: colors.fgWarning },
-  positive: { color: colors.fgSuccess },
+  neutral: { color: 'var(--seed-color-fg-neutral-subtle)' },
+  informative: { color: 'var(--seed-color-fg-informative)' },
+  critical: { color: 'var(--seed-color-fg-critical)' },
+  warning: { color: 'var(--seed-color-fg-warning)' },
+  positive: { color: 'var(--seed-color-fg-positive)' },
   dot: {
     display: 'inline-block',
     width: 8,

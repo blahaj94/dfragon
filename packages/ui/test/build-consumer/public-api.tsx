@@ -1,6 +1,7 @@
 import { createRef } from 'react'
 import {
   ActionButton,
+  Checkmark,
   ContentStack,
   DialogAction,
   DialogBody,
@@ -9,8 +10,10 @@ import {
   DialogRoot,
   DialogTrigger,
   ExampleSection,
+  IconButton,
   LayoutBlock,
   ProgressCircle,
+  StatusBadge,
   SupportingText,
   TextField,
   TextFieldInput,
@@ -25,8 +28,11 @@ import type {
   DialogFooterProps,
   DialogRootProps,
   DialogTriggerProps,
+  IconButtonProps,
   LayoutBlockProps,
   ProgressCircleProps,
+  StatusBadgeProps,
+  StatusBadgeTone,
   TextFieldInputProps,
   TextFieldProps,
   TypoProps,
@@ -39,6 +45,7 @@ import type { TypoProps as StandaloneTypoProps } from '@dfragon/ui/typo'
 // 별도 tsconfig는 source alias 없이 package export의 dist declaration을 해석한다.
 export const components = [
   ActionButton,
+  Checkmark,
   ContentStack,
   DialogAction,
   DialogBody,
@@ -47,8 +54,10 @@ export const components = [
   DialogRoot,
   DialogTrigger,
   ExampleSection,
+  IconButton,
   LayoutBlock,
   ProgressCircle,
+  StatusBadge,
   SupportingText,
   TextField,
   TextFieldInput
@@ -65,6 +74,9 @@ export type PublicProps = {
   dialogBody: DialogBodyProps
   dialogFooter: DialogFooterProps
   dialogAction: DialogActionProps
+  iconButton: IconButtonProps
+  statusBadge: StatusBadgeProps
+  statusTone: StatusBadgeTone
   layout: LayoutBlockProps
   typo: TypoProps<'button'>
   standaloneTypo: StandaloneTypoProps<'a'>
@@ -78,6 +90,19 @@ export const button = (
   </ActionButton>
 )
 export const input = <TextFieldInput ref={createRef<HTMLInputElement>()} placeholder="입력" />
+export const iconButton = (
+  <IconButton
+    variant="ghost"
+    aria-label="설정"
+    ref={createRef<HTMLButtonElement>()}
+    icon={<svg aria-hidden="true" />}
+  />
+)
+export const statusBadge = (
+  <StatusBadge tone="positive" role="status">
+    연결됨
+  </StatusBadge>
+)
 export const paragraph = <Typo.txtM style={typographyVariants.txtM}>공개 entry</Typo.txtM>
 export const link = (
   <StandaloneTypo.txtM

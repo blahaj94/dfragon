@@ -1,6 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { Typo } from '@dfragon/ui'
+import { Checkmark, Typo } from '@dfragon/ui'
 import { Checkbox } from '@seed-design/react'
 import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
@@ -9,10 +9,8 @@ import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH } from '../lib/paddle-recognition'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
-import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperPartyCollectionSection.style'
 import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
-import { CheckIcon } from '../components/CheckIcon'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 
@@ -141,12 +139,7 @@ export function DeveloperPartyCollectionSection({
                   <Typo.txtM as="span" weight={700}>
                     {slotNumber}
                   </Typo.txtM>
-                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
-                    <Checkbox.Indicator
-                      checked={<CheckIcon />}
-                      {...stylex.props(checkboxStyles.indicator)}
-                    />
-                  </Checkbox.Control>
+                  <Checkmark />
                   <Checkbox.HiddenInput aria-label={`${slotNumber}번 크롭 저장`} />
                 </Checkbox.Root.Primitive>
                 <div {...stylex.props(styles.cropImageArea, !included && styles.unchecked)}>

@@ -130,6 +130,14 @@ if (isLibrary) {
     for (const specifier of moduleSpecifiers(file, code)) {
       const isStylesheet = STYLESHEET_IMPORT_PATTERN.test(specifier)
       assert.equal(isStylesheet, false, `Library must not import CSS: ${file} ${specifier}`)
+      // 소비 앱 compiler가 stylex.create를 정적 CSS로 바꾼다. 주입 runtime은 CSP 경로를 깨뜨린다.
+      const isStylexPackage = specifier.startsWith('@stylexjs/')
+      const isStylexRuntime = specifier === '@stylexjs/stylex'
+      const isAllowedStylexImport = !isStylexPackage || isStylexRuntime
+      assert.ok(
+        isAllowedStylexImport,
+        `Library must import only @stylexjs/stylex: ${file} ${specifier}`
+      )
     }
   }
 
@@ -155,7 +163,7 @@ if (isLibrary) {
   await verifyTypo('typo.js')
   const index = await readFile(resolve(output, 'index.js'), 'utf8')
   const imports = moduleSpecifiers('index.js', index)
-  for (const external of ['@seed-design/react', 'react', 'react/jsx-runtime']) {
+  for (const external of ['@seed-design/react', '@stylexjs/stylex', 'react', 'react/jsx-runtime']) {
     const hasExternalImport = imports.includes(external)
     assert.ok(hasExternalImport, `External import: ${external}`)
   }

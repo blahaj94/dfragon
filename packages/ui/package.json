@@ -33,6 +33,7 @@
   "peerDependencies": {
     "@seed-design/react": "2.4.1",
     "@seed-design/css": "2.7.0",
+    "@stylexjs/stylex": "catalog:",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -54,6 +55,7 @@
     "vitest": "4.1.11",
     "@types/node": "24.13.3",
     "@dfragon/licenses": "workspace:*",
+    "@stylexjs/stylex": "catalog:",
     "@stylexjs/unplugin": "catalog:"
   },
   "files": [

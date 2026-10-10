@@ -16,10 +16,6 @@ export const styles = stylex.create({
     overflow: 'hidden'
   },
   image: { maxWidth: '100%', maxHeight: '100%', imageRendering: 'pixelated', objectFit: 'contain' },
-  // Design TextField focus is a 2px border.focus line. The shared TextField does not take a
-  // className, and SEED draws its focus line with this stroke token, so the field scope
-  // points the token at border.focus.
-  field: { '--seed-color-stroke-neutral-contrast': colors.borderFocus },
   form: { display: 'flex', flexDirection: 'column', gap: 8 },
   actions: { display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 },
   primaryAction: { width: '100%' },

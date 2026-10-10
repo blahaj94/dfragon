@@ -125,30 +125,28 @@ export function DeveloperSampleEditor({
           }
         }}
       >
-        <div {...stylex.props(styles.field)}>
-          <TextField
-            size="medium"
-            label={
-              <Typo.txtS as="span" weight={700}>
-                정답 닉네임
-              </Typo.txtS>
-            }
-          >
-            <TextFieldInput
-              value={draft}
-              maxLength={500}
-              disabled={saving}
-              readOnly={readOnly}
-              onChange={(event) => onDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && event.nativeEvent.isComposing) {
-                  event.preventDefault()
-                }
-              }}
-              autoComplete="off"
-            />
-          </TextField>
-        </div>
+        <TextField
+          size="medium"
+          label={
+            <Typo.txtS as="span" weight={700}>
+              정답 닉네임
+            </Typo.txtS>
+          }
+        >
+          <TextFieldInput
+            value={draft}
+            maxLength={500}
+            disabled={saving}
+            readOnly={readOnly}
+            onChange={(event) => onDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && event.nativeEvent.isComposing) {
+                event.preventDefault()
+              }
+            }}
+            autoComplete="off"
+          />
+        </TextField>
         <Typo.caption as="p" {...stylex.props(styles.muted)}>
           {readOnly
             ? `자료실 정답 · ${DEVELOPER_COLLECTION_LABELS[sample.remote!.kind]} · ${sample.remote!.split}`
