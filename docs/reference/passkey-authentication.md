@@ -13,13 +13,12 @@ last-reviewed: 2026-10-10
   "passkey": {
     "apiOrigin": "https://accounts.dfragon.com",
     "rpId": "accounts.dfragon.com",
-    "rpName": "DFragon",
-    "returnUrl": "http://127.0.0.1:<port>/auth/callback"
+    "rpName": "DFragon"
   }
 }
 ```
 
-예제는 public 설정 부분만 보여준다. `returnUrl`의 `<port>`는 Desktop이 로그인마다 여는 loopback 수신기의 임시 포트라 실행마다 다르며, 서버는 포트만 가변인 이 형식과 정확히 일치하는 요청의 `returnUrl`만 받는다(2026-10-10 결정, 구현 전까지는 `dfragon://auth/callback`). 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 같은 형식의 복귀 `http://127.0.0.1:<port>/auth/callback`(포트는 실행마다 다름)을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
+예제는 public 설정 부분만 보여준다. Desktop의 `returnUrl`은 서버 설정이 아니라 `POST /auth/login-requests` 요청값이다. 서버는 `http://127.0.0.1:<port>/auth/callback`에서 포트만 가변인 정규 형식을 검증해 요청 행에 저장하고, 인증 완료 때 그 주소에 code 하나만 붙여 돌려준다. 포트는 선행 0 없는 10진수 1024~65535다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 같은 형식의 복귀 `http://127.0.0.1:<port>/auth/callback`(포트는 실행마다 다름)을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
 JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PRIVATE_KEY`,
 `AUTH_JWT_PRIVATE_KEY_FILE` 중 하나로 제공한다. 외부 입력을 쓰면 JSON의 signingKey에는 `kid`만
@@ -39,7 +38,13 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 
 ## OCR 관리 웹의 선택 연결
 
-기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 accounts RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 accounts는 OCR 요청을 거절한다. 기존 앱 returnUrl과 RP ID는 변경하지 않으며 DB migration은 필요 없다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [인프라 운영 절차](api-start-development.md#서버-이미지)를 따른다.
+기존 `passkey` 설정에 `ocrReturnUrl: "https://ocr.dfragon.com/auth/callback"`을 추가하면 accounts RP의 패스키로 OCR에 로그인할 수 있다. 설정을 추가하지 않은 accounts는 OCR 요청을 거절한다. OCR은 요청에 `returnUrl`을 보내지 않고 기존 고정 HTTPS callback과 RP ID를 사용한다. OCR server가 PKCE proof와 token을 보유하고 허용 계정만 관리 세션을 받는다. 실제 배포 순서는 [인프라 운영 절차](api-start-development.md#서버-이미지)를 따른다.
+
+## 요청별 Desktop 복귀 주소 배포
+
+기존 accounts를 중지한 뒤 `AddLoginReturnUrl1791590400001`을 포함한 forward migration을 명시 적용하고, 인증 JSON에서 `passkey.returnUrl` key를 제거한 새 accounts를 시작한다. Key가 남아 있으면 strict 설정 검사가 기동을 거절한다. 새 accounts는 `return_url` column을 요구하므로 migration 전에 시작하지 않는다. 기존 비종료 Desktop, OCR 로그인과 관리 요청은 종료되며 새 인증이 필요하다. 회원, 패스키, session, refresh는 유지한다. 요청에 `returnUrl`을 보내는 Desktop 배포와 함께 적용한다.
+
+`test-support/login-return-url-migration.mjs`는 진행 요청 종료, 기존 인증 데이터 보존, schema drift, 빈 DB rollback을 검사한다. `test:database`는 요청별 주소 저장, code-only 자동 복귀, 수동 버튼과 OCR 고정 callback도 검증한다.
 
 ## accounts 분리
 
@@ -105,7 +110,7 @@ RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소�
 
 accounts의 `browser/passkeys.tsx`는 로그인에서 `패스키로 로그인`, `새 계정 만들기`, 회원가입에서 `패스키로 회원가입`만 표시한다. 기존 계정과 별개 계정이 생긴다는 안내, 패스키 분실과 예비 키 안내는 유지한다. 패스키 생성을 취소하면 같은 화면에서 재시도할 수 있다. WebAuthn 미지원 브라우저에는 지원 브라우저에서 열도록 안내한다. 관리 화면은 `/auth/passkeys/manage`에서 패스키 재인증 후 목록, 추가, 삭제를 제공한다.
 
-자체 QR 생성, 확인 번호, 남은 시간, 상태 조회, claim과 휴대폰 승인 화면, 관리 QR은 제거했다. `RemovePhoneQrLogin1791590400000` forward migration은 활성 QR 요청을 실패로 종료하고 QR column과 상태를 제거한다. 회원, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다. `AddPhoneQrLogin1789601588410` 등 기존 적용 migration은 변경하지 않는다. 새 accounts는 QR column을 읽거나 쓰지 않아 이전 schema에서도 동작하지만, 이전 accounts는 column이 지워지면 로그인 요청을 처리하지 못한다. 따라서 배포는 새 accounts 이미지로 교체한 뒤 이 migration을 적용한다.
+자체 QR 생성, 확인 번호, 남은 시간, 상태 조회, claim과 휴대폰 승인 화면, 관리 QR은 제거했다. `RemovePhoneQrLogin1791590400000` forward migration은 활성 QR 요청을 실패로 종료하고 QR column과 상태를 제거한다. 회원, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다. `AddPhoneQrLogin1789601588410` 등 기존 적용 migration은 변경하지 않는다. 새 accounts는 QR column을 읽거나 쓰지 않아 이전 schema에서도 동작하지만, 이전 accounts는 column이 지워지면 로그인 요청을 처리하지 못한다. 이 설명은 QR 제거만 반영한 revision의 배포 순서다. 요청별 Desktop 복귀 주소까지 함께 배포할 때는 위의 [배포 순서](#요청별-desktop-복귀-주소-배포)를 따른다.
 
 자동 검증은 제거된 경로와 action의 거절, 직접 패스키 가입, 재로그인, 관리 재인증과 삭제 경계를 확인한다. `test-support/phone-qr-retirement.mjs`는 이전 schema의 활성 QR 요청 종료, 직접 로그인과 기존 인증 데이터 보존, 최신 schema 대조와 빈 disposable DB rollback을 검사한다. DB와 WebAuthn 통합 검증은 `test:database`로 실행하며 가상 인증기를 실제 iPhone 또는 packaged Windows 성공으로 표시하지 않는다.
 
