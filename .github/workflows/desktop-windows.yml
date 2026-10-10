@@ -107,7 +107,7 @@ jobs:
           VITEST_SHARD: ${{ matrix.shard }}
         run: pnpm --filter @dfragon/desktop test --shard "$env:VITEST_SHARD"
 
-  # The main ruleset can require this stable check name. Skipped tests pass when the pull request
+  # The main ruleset requires this stable check name. Skipped tests pass when the pull request
   # changed no Desktop path.
   gate:
     name: Desktop Windows gate

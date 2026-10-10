@@ -1,4 +1,4 @@
-# Not enforced yet: the main ruleset keeps require_code_owner_review off. The repository owner
-# decides whether to turn it on once agents work under their own GitHub identity, separate from the
-# code owner.
+# The main ruleset requires one approving review from a code owner. A pull request author cannot
+# approve their own pull request, and a new push dismisses earlier approvals. Repository admins
+# may bypass these rules when merging a pull request.
 * @blahaj94
