@@ -162,6 +162,17 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     expect(label.control).toBe(input)
   })
 
+  it('포커스 색을 지정하는 TextField도 ref를 입력 상자에 전달한다', async () => {
+    const ref = createRef<HTMLDivElement>()
+    await render(
+      <TextField ref={ref} label="표시 이름">
+        <TextFieldInput />
+      </TextField>
+    )
+
+    expect(ref.current).toBe(element<HTMLInputElement>('input').parentElement)
+  })
+
   it('편집 값과 빈 문자열을 전달하고 소비자가 변환한 controlled 값을 표시한다', async () => {
     const onValueChange = vi.fn<NonNullable<TextFieldProps['onValueChange']>>()
     function ControlledField() {
