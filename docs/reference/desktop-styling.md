@@ -58,9 +58,9 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 
 아이콘만 있는 `ActionButton`은 `layout="iconOnly"`와 SEED `Icon`으로 만듭니다(`<Icon svg={<SettingsIcon />} size="x6" />`). SEED는 개발 빌드와 Vitest에서 `Icon` 없이 SVG를 바로 넣으면 오류를 냅니다. medium iconOnly는 좌우 여백이 10이라 24px 아이콘을 넣으면 폭이 44가 됩니다. 디자인 `IconButton` md(40 정사각형)는 Desktop `components/IconButton`이 SEED medium iconOnly, 24px `Icon`과 여백 8을 한 곳에서 맞추며, 상단 바의 캡처(`CaptureControls`와 연결 전 `PartyPage`의 자리 버튼), 테마(`PartyPage`), 설정(`SettingsSection`) 버튼이 이 컴포넌트를 씁니다.
 
-SEED 공개 옵션으로 부족한 작은 표현은 해당 요소의 className에서 SEED CSS 변수만 화면 범위로 바꿉니다. `.seed-*` 선택자나 라이브러리 내부 DOM 선택자는 쓰지 않습니다. SEED가 변수 이름을 바꾸면 조용히 SEED 기본 표현으로 돌아가므로 SEED를 갱신할 때 이 사용처를 함께 확인합니다.
+SEED 공개 옵션으로 부족한 작은 표현은 해당 요소나 감싼 요소의 className에서 SEED CSS 변수만 화면 범위로 바꿉니다. `.seed-*` 선택자나 라이브러리 내부 DOM 선택자는 쓰지 않습니다. SEED가 변수 이름을 바꾸면 조용히 SEED 기본 표현으로 돌아가므로 SEED를 갱신할 때 이 사용처를 함께 확인합니다.
 
-- `TextField`의 포커스 테두리는 `--seed-color-stroke-neutral-contrast`를 씁니다. 디자인의 `border.focus`가 필요한 입력은 이 변수만 `colors.borderFocus`로 바꿉니다. 라이선스 검색(`OpenSourceNotices`)은 SEED `TextField`의 className에, 정답 입력란(`DeveloperSampleEditor`)은 공용 `TextField`가 className을 받지 않으므로 감싼 요소에 지정합니다.
+- `TextField`의 포커스 테두리는 `--seed-color-stroke-neutral-contrast`를 씁니다. 디자인의 `border.focus`가 필요한 입력은 이 변수만 `colors.borderFocus`로 바꿉니다. `@dfragon/ui`의 `TextField`는 className을 받지 않으므로 라이선스 검색(`OpenSourceNotices`)과 정답 입력란(`DeveloperSampleEditor`) 모두 감싼 요소의 StyleX에서 지정합니다.
 - 서버 목록(`ServerSelect`) 항목은 SEED가 강조 항목 안쪽에 덧그리는 눌림 면을 `--seed-color-bg-transparent-pressed: transparent`로 끕니다. 포인터 hover와 키보드 이동이 같은 강조 상태를 쓰므로 강조 항목의 `border.focus` 1px 테두리는 남깁니다.
 
 SEED에 같은 이름의 컴포넌트가 없거나 그대로 쓰면 의미, 배치가 달라지는 곳은 다음처럼 구현합니다.
