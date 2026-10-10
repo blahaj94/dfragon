@@ -68,9 +68,18 @@ if (canStart) {
         }
       })
       const completeLogin = async (): Promise<void> => {
-        await coordinator.handleReturnUrl(
-          `${effects.dependencies.returnTarget}?code=${syntheticCode}`
-        )
+        const returnUrl = effects.returnUrl
+        if (returnUrl == null) {
+          return
+        }
+        const response = await fetch(`${returnUrl}?code=${syntheticCode}`, {
+          redirect: 'error',
+          signal: AbortSignal.timeout(5_000)
+        })
+        await response.text()
+        if (response.status !== 200) {
+          throw new Error('Fixture login return failed')
+        }
       }
       Menu.setApplicationMenu(
         Menu.buildFromTemplate([
@@ -80,7 +89,9 @@ if (canStart) {
               {
                 label: 'Complete login',
                 click: () => {
-                  void completeLogin()
+                  void completeLogin().catch(() => {
+                    console.error('Auth bridge fixture login return FAIL')
+                  })
                 }
               },
               { role: 'reload' },
@@ -91,11 +102,11 @@ if (canStart) {
       )
       await window.loadFile(entry)
       console.log(
-        'Auth bridge fixture ready: fake effects; network/media/native credentials disabled'
+        'Auth bridge fixture ready: loopback return; synthetic API/browser/store; renderer network/media disabled'
       )
       if (isAuto) {
         try {
-          await smoke(window, coordinator, effects)
+          await smoke(window, effects)
           if (failed) {
             throw new Error('Fixture canary detected')
           }

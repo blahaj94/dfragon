@@ -3,6 +3,8 @@ import type { MockedFunction } from 'vitest'
 import type {
   AuthBrowser,
   AuthClock,
+  AuthLoopback,
+  LoginReturnListener,
   AuthCoordinatorDependencies,
   AuthEntropy,
   AuthHttp,
@@ -19,7 +21,8 @@ export const ATTEMPT_ID = '00000000-0000-4000-8000-000000000002'
 export const NEXT_ATTEMPT_ID = '00000000-0000-4000-8000-000000000003'
 export const REQUEST_ID = '10000000-0000-4000-8000-000000000001'
 export const USER_ID = '20000000-0000-4000-8000-000000000001'
-export const RETURN_TARGET = 'dfragon-test://auth/return'
+export const RETURN_TARGET = 'http://127.0.0.1:49152/auth/callback'
+export const PROTOCOL_RETURN_TARGET = 'dfragon-test://auth/return'
 export const API_ORIGIN = 'https://api.example.test'
 export const CODE = Buffer.alloc(32, 9).toString('base64url')
 export const OTHER_CODE = Buffer.alloc(32, 10).toString('base64url')
@@ -257,6 +260,9 @@ export class FakeStore implements CredentialStore {
 export type AuthHarness = Readonly<{
   dependencies: AuthCoordinatorDependencies
   browser: Readonly<{ open: MockedFunction<AuthBrowser['open']> }>
+  loopback: Readonly<{ open: MockedFunction<AuthLoopback['open']> }>
+  listener: LoginReturnListener & Readonly<{ close: MockedFunction<LoginReturnListener['close']> }>
+  activateMainWindow: MockedFunction<AuthCoordinatorDependencies['activateMainWindow']>
   clock: FakeClock
   entropy: AuthEntropy
   operations: string[]
@@ -298,6 +304,9 @@ export function createAuthHarness(): AuthHarness {
       operations.push('browser:open')
     })
   }
+  const listener = { returnUrl: RETURN_TARGET, close: vi.fn<LoginReturnListener['close']>() }
+  const loopback = { open: vi.fn<AuthLoopback['open']>(async () => listener) }
+  const activateMainWindow = vi.fn<AuthCoordinatorDependencies['activateMainWindow']>()
   const http: AuthHttp = {
     createLoginRequest: vi.fn(async () => {
       operations.push('http:create-login')
@@ -337,7 +346,8 @@ export function createAuthHarness(): AuthHarness {
   const dependencies: AuthCoordinatorDependencies = {
     providers: ['passkey'],
     apiOrigin: API_ORIGIN,
-    returnTarget: RETURN_TARGET,
+    loopback,
+    activateMainWindow,
     browser,
     clock,
     entropy,
@@ -356,6 +366,9 @@ export function createAuthHarness(): AuthHarness {
   return {
     dependencies,
     browser,
+    loopback,
+    listener,
+    activateMainWindow,
     clock,
     entropy,
     operations,
