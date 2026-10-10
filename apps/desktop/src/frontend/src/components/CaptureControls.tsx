@@ -9,13 +9,13 @@ import {
   DialogContent,
   DialogBody,
   DialogFooter,
-  IconButton
+  IconButton,
+  StatusBadge
 } from '@dfragon/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
-import { StatusBadge } from './StatusBadge'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 

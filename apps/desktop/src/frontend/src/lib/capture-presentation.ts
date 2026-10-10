@@ -15,8 +15,9 @@ type CaptureControlInput = {
   hasDetectedSource: boolean
 }
 
-// 공용 StatusBadge가 받는 SEED Badge tone 이름이다. 디자인 StatusBadge의 info, success, danger는
-// 각각 informative, positive, critical에 대응한다.
+// `@dfragon/ui` StatusBadge의 tone이다. lib는 UI 계층을 import하지 않으므로 같은 이름을 따로 두고,
+// CaptureControls의 tone 전달에서 이 값이 StatusBadgeTone에 속하는지 타입 검사가 확인한다. 디자인
+// StatusBadge의 info, success, danger는 각각 informative, positive, critical에 대응한다.
 export type CaptureControlTone = 'neutral' | 'informative' | 'positive' | 'warning' | 'critical'
 
 // 캡처 진행 상태를 우선하여 모달에 표시할 상태 이름과 배지 tone을 결정한다.
