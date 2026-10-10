@@ -120,6 +120,17 @@ it('계정 요소를 넘기면 로그인 자리 대신 해당 요소를 표시�
   expect(login).toHaveBeenCalledOnce()
 })
 
+it('계정 요소가 아무것도 그리지 않으면 빈 감싼 span을 남기지 않는다', async () => {
+  function SignedIn(): null {
+    return null
+  }
+
+  await render({ account: <SignedIn /> })
+  const header = container.querySelector('header')!
+  expect(header.querySelectorAll('span:empty:not([aria-hidden])')).toHaveLength(0)
+  expect(container.textContent).not.toContain('로그인')
+})
+
 it('캡처를 숨기면 배지와 카메라만 사라지고 나머지 도구를 유지한다', async () => {
   await render({ showCapture: false })
   expect(container.textContent).not.toContain('캡처 중')
