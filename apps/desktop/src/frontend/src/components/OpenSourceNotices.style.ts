@@ -18,6 +18,7 @@ export const styles = stylex.create({
     borderRadius: 4,
     backgroundColor: { default: null, ':nth-child(odd)': colors.bgStripe }
   },
+  // Design two-line row is 48: a 16/24 name over a 12/18 line with 3px above and below.
   row: {
     display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
     gridTemplateColumns: 'minmax(0, 1fr) auto',
@@ -27,7 +28,7 @@ export const styles = stylex.create({
     height: 'auto',
     justifyContent: 'space-between',
     textAlign: 'left',
-    paddingBlock: 4,
+    paddingBlock: 3,
     paddingInline: 12,
     gap: 12,
     borderRadius: 4,
