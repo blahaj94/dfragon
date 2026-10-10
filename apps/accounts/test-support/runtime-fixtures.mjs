@@ -33,8 +33,7 @@ export function authenticationConfiguration() {
     passkey: {
       apiOrigin: 'https://api.test.invalid',
       rpId: 'api.test.invalid',
-      rpName: 'DFragon test',
-      returnUrl: 'dfragon.dev://auth/callback'
+      rpName: 'DFragon test'
     }
   }
 }

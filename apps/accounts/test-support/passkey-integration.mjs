@@ -44,7 +44,6 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       apiOrigin: origin,
       rpId: 'localhost',
       rpName: 'DFragon',
-      returnUrl: 'dfragon.dev://auth/callback',
       ocrReturnUrl: 'https://ocr.example.test/auth/callback'
     }
     const jwt = authenticationConfiguration().accessJwt
@@ -122,6 +121,15 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         })
       ).authenticatorId
     let authenticator = await newAuthenticator()
+    let manualReturn = false
+    await context.route('http://127.0.0.1:*/auth/callback?*', (route) => {
+      if (!manualReturn) {
+        return route.abort('aborted')
+      }
+
+      return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>로그인 완료</p>' })
+    })
+    let nextReturnPort = 49152
     const post = (path, body, headers = {}) =>
       context.request.post(`${origin}${path}`, { data: body, headers })
     const begin = async (clientId = 'desktop') => {
@@ -130,7 +138,10 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         provider: 'passkey',
         clientId,
         codeChallenge: challenge(codeVerifier),
-        codeChallengeMethod: 'S256'
+        codeChallengeMethod: 'S256',
+        ...(clientId === 'desktop'
+          ? { returnUrl: `http://127.0.0.1:${nextReturnPort++}/auth/callback` }
+          : {})
       })
       assert.equal(response.status(), 201)
       const request = await response.json()
@@ -140,19 +151,32 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       return { requestId: request.requestId, clientId, codeVerifier }
     }
     const complete = async (input, button = 'authenticate') => {
-      await page.locator(`#${button}`).click()
-      try {
-        await page.locator('#complete').waitFor({ state: 'visible', timeout: 10000 })
-      } catch {
-        throw new Error('Passkey UI: ' + (await page.locator('#status').textContent()))
-      }
-
-      const exchangeInput = { ...input }
-      const code = new URL(await page.locator('#return').getAttribute('href')).searchParams.get(
-        'code'
+      const [stored] = await source.query(
+        'SELECT return_url FROM auth_login_requests WHERE id=$1',
+        [input.requestId]
       )
+      manualReturn = false
+      const automatic = page.waitForRequest((request) =>
+        request.url().startsWith(stored.return_url + '?')
+      )
+      await page.locator(`#${button}`).click()
+      const returned = await automatic
+      await page.locator('#complete').waitFor({ state: 'visible', timeout: 10000 })
+      assert.equal(
+        await page.locator('#complete').getByText('인증 완료', { exact: true }).count(),
+        1
+      )
+      const href = await page.locator('#return').getAttribute('href')
+      assert.equal(await page.locator('#return').textContent(), '앱으로 돌아가기')
+      assert.equal(returned.url(), href)
+      const code = new URL(href).searchParams.get('code')
+      assert.equal(href, `${stored.return_url}?code=${code}`)
+      assert.equal(Buffer.from(code, 'base64url').length, 32)
+      assert.equal(Buffer.from(code, 'base64url').toString('base64url'), code)
+      manualReturn = true
+      await Promise.all([page.waitForURL(href), page.locator('#return').click()])
 
-      return { ...exchangeInput, code }
+      return { ...input, code }
     }
     const browserPost = (action, body, overrideOrigin = origin) =>
       post(`/auth/passkeys/${action}`, body, { Origin: overrideOrigin })
@@ -177,6 +201,71 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
 
         return { requestId, response }
       })
+    mark('요청별 loopback 입력 거절은 요청 행을 생성하지 않는다')
+    const [{ count: beforeRequests }] = await source.query(
+      'SELECT count(*)::int AS count FROM auth_login_requests'
+    )
+    for (const returnUrl of [
+      undefined,
+      'http://localhost:49152/auth/callback',
+      'http://127.0.0.1:1023/auth/callback',
+      'http://127.0.0.1:65536/auth/callback',
+      'http://127.0.0.1:49152/auth/callback/extra'
+    ]) {
+      const response = await post('/auth/login-requests', {
+        provider: 'passkey',
+        clientId: 'desktop',
+        codeChallenge: challenge(randomBytes(32).toString('base64url')),
+        codeChallengeMethod: 'S256',
+        ...(returnUrl === undefined ? {} : { returnUrl })
+      })
+      assert.equal(response.status(), 400)
+      assert.equal((await response.json()).error.code, 'INVALID_AUTH_REQUEST')
+    }
+    assert.equal(
+      (await source.query('SELECT count(*)::int AS count FROM auth_login_requests'))[0].count,
+      beforeRequests
+    )
+    mark('요청 만료 페이지는 새 로그인 안내를 표시한다')
+    const expired = await begin()
+    await source.query(
+      "UPDATE auth_login_requests SET created_at=clock_timestamp()-interval '601 seconds', expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",
+      [expired.requestId]
+    )
+    await page.locator('#authenticate').click()
+    await page.getByText('앱에서 새 로그인을 시작하세요.', { exact: false }).waitFor()
+    assert.equal(
+      await page.locator('#status').textContent(),
+      '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.\n앱에서 새 로그인을 시작하세요.'
+    )
+    assert.equal(await page.locator('#authenticate').isVisible(), true)
+    const expiredColor = await page
+      .locator('#status')
+      .evaluate((element) => getComputedStyle(element).color)
+    mark('다른 오류에는 재시작 안내를 붙이지 않고 code로 만료 표시를 구분한다')
+    for (const message of [
+      '인증 요청을 확인해 주세요.',
+      '문구에 포함된 안내: 앱에서 새 로그인을 시작하세요.'
+    ]) {
+      await page.route('**/auth/passkeys/options', (route) =>
+        route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'INVALID_AUTH_REQUEST', message } })
+        })
+      )
+      try {
+        await page.locator('#authenticate').click()
+        await page.getByText(message, { exact: true }).waitFor()
+        assert.equal(await page.locator('#status').textContent(), message)
+        assert.notEqual(
+          await page.locator('#status').evaluate((element) => getComputedStyle(element).color),
+          expiredColor
+        )
+      } finally {
+        await page.unroute('**/auth/passkeys/options')
+      }
+    }
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
     assert.deepEqual(await page.getByRole('button').allTextContents(), [
@@ -254,7 +343,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
           provider: 'google',
           clientId: 'desktop',
           codeChallenge: challenge(first.codeVerifier),
-          codeChallengeMethod: 'S256'
+          codeChallengeMethod: 'S256',
+          returnUrl: 'http://127.0.0.1:49152/auth/callback'
         })
       ).status(),
       400
@@ -279,6 +369,20 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal((await post('/auth/exchange', ocrExchange)).status(), 400)
     await post('/auth/logout', { refreshToken: ocrIdentity.refreshToken })
     await context.unroute('https://ocr.example.test/auth/callback?*')
+    mark('OCR 로그인의 만료에는 앱 재시작 안내를 붙이지 않는다')
+    const expiredOcr = await begin('ocr')
+    await source.query(
+      "UPDATE auth_login_requests SET created_at=clock_timestamp()-interval '601 seconds', expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",
+      [expiredOcr.requestId]
+    )
+    await page.locator('#authenticate').click()
+    await page
+      .getByText('로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.', { exact: true })
+      .waitFor()
+    assert.equal(
+      await page.locator('#status').textContent(),
+      '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.'
+    )
     mark('wrong origin, handle, signature and replay refused')
     await begin()
     for (const tamper of [
@@ -309,6 +413,30 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     await page.goto(`${origin}/auth/passkeys/manage`)
     await page.locator('#authenticate').waitFor({ state: 'visible' })
     assert.deepEqual(await page.getByRole('button').allTextContents(), ['패스키로 인증하기'])
+    await page.route('**/auth/passkeys/options', (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: {
+            code: 'LOGIN_REQUEST_INVALID',
+            message: '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.'
+          }
+        })
+      })
+    )
+    try {
+      await page.locator('#authenticate').click()
+      await page
+        .getByText('로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.', { exact: true })
+        .waitFor()
+      assert.equal(
+        await page.locator('#status').textContent(),
+        '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.'
+      )
+    } finally {
+      await page.unroute('**/auth/passkeys/options')
+    }
     const managementId = await idOnPage()
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     await page.locator('#authenticate').click()
@@ -406,7 +534,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       provider: 'passkey',
       clientId: 'desktop',
       codeChallenge: challenge(first.codeVerifier),
-      codeChallengeMethod: 'S256'
+      codeChallengeMethod: 'S256',
+      returnUrl: 'http://127.0.0.1:65535/auth/callback'
     })
     const changed = createLoginService({
       dataSource: source,
