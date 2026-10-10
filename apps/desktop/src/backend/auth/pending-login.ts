@@ -12,7 +12,8 @@ import type {
   AuthProvider,
   AuthSnapshot,
   ClockReading,
-  LoginRequestResponse
+  LoginRequestResponse,
+  LoginReturnListener
 } from './types'
 
 type PendingLoginInput = Readonly<{
@@ -38,7 +39,10 @@ export type PendingLogin = Readonly<{
   attemptId: string
   provider: AuthProvider
   generation: number
-  browserSignal: AbortSignal
+  lifetimeSignal: AbortSignal
+  returnUrl: string | null
+  attachListener(listener: LoginReturnListener): void
+  closeListener(): void
   signal: AbortSignal
   isBeforeExchange: boolean
   snapshot(): NonNullable<AuthSnapshot['login']>
@@ -49,7 +53,6 @@ export type PendingLogin = Readonly<{
     code: string,
     reserve: () => Writer | null
   ): ExchangeClaim<Writer>
-  rejectExchange(recover: () => Promise<boolean>, onRecovered: () => void): Promise<boolean>
   dispose(): void
 }>
 
@@ -61,6 +64,8 @@ export function createPendingLogin(
   // Secrets and abort resources stay outside actor snapshots and events.
   let verifier: string | null = initialVerifier
   initialVerifier = ''
+  let listener: LoginReturnListener | null = null
+  let returnUrl: string | null = null
   let controller = new AbortController()
   const lifetime = new AbortController()
   const actor = createActor(
@@ -89,6 +94,8 @@ export function createPendingLogin(
     verifier = null
     controller.abort()
     lifetime.abort()
+    pending.closeListener()
+    returnUrl = null
   }
 
   function isExpired(checkedAt: ClockReading): boolean {
@@ -104,8 +111,25 @@ export function createPendingLogin(
     attemptId,
     provider,
     generation,
-    get browserSignal() {
+    get lifetimeSignal() {
       return lifetime.signal
+    },
+    get returnUrl() {
+      return returnUrl
+    },
+    attachListener: (opened) => {
+      if (lifetime.signal.aborted) {
+        opened.close()
+
+        return
+      }
+      listener = opened
+      returnUrl = opened.returnUrl
+    },
+    closeListener: () => {
+      const current = listener
+      listener = null
+      current?.close()
     },
     get signal() {
       return controller.signal
@@ -140,11 +164,7 @@ export function createPendingLogin(
     claimExchange: (code, reserve) => {
       const snapshot = actor.getSnapshot()
       const fingerprint = createHash('sha256').update(code, 'ascii').digest('base64url')
-      const { requestId, rejectedFingerprint, exchangeFingerprint, exchangePromise } =
-        snapshot.context
-      if (rejectedFingerprint === fingerprint) {
-        return { status: 'ignored' }
-      }
+      const { requestId, exchangeFingerprint, exchangePromise } = snapshot.context
 
       if (snapshot.matches({ active: 'exchanging' })) {
         if (exchangeFingerprint === fingerprint && exchangePromise != null) {
@@ -158,6 +178,7 @@ export function createPendingLogin(
         return { status: 'ignored' }
       }
       actor.send(claim)
+      pending.closeListener()
       controller = new AbortController()
       const input = { requestId, clientId: 'desktop' as const, code, codeVerifier: verifier }
       // Publication and its current-attempt check must precede reserving the writer.
@@ -169,29 +190,6 @@ export function createPendingLogin(
       const signal = controller.signal
 
       return { status: 'claimed', input, signal, writer }
-    },
-    rejectExchange: async (recover, onRecovered) => {
-      const snapshot = actor.getSnapshot()
-      if (!snapshot.matches({ active: 'exchanging' })) {
-        return false
-      }
-      const exchangePromise = snapshot.context.exchangePromise
-      actor.send({ type: 'EXCHANGE_REJECTED' })
-      if (!(await recover())) {
-        return false
-      }
-      const recovered = actor.getSnapshot()
-      if (
-        !recovered.matches({ active: 'exchanging' }) ||
-        recovered.context.exchangePromise !== exchangePromise
-      ) {
-        return false
-      }
-      actor.send({ type: 'RESUME_WAITING' })
-      // Publish in this continuation before a new code can claim the waiting attempt.
-      onRecovered()
-
-      return true
     },
     dispose: () => {
       actor.send({ type: 'DISPOSE' })

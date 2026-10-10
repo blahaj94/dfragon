@@ -21,8 +21,8 @@ export function readAppAuthConfig(application: {
   if (channel == null) {
     return readAuthRuntimeConfig()
   }
-  // OS protocol launches do not inherit the shell that built or first ran the app.
-  // Keep the public tuple in the main bundle, including on cold starts.
+  // 로그인 복귀 주소는 pending의 loopback 수신기가 정한다.
+  // 기존 protocol 값은 OS ingress 제거 전까지 설정에만 남긴다.
   const { auth, appIdentity } = channel.identity
   const accountsOrigin = channel.origins.accounts
   // 로그인 없는 채널은 셸 설정으로도 로그인을 켜지 않는다.
