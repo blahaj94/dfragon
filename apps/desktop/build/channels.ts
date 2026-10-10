@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { DesktopChannel } from '../src/backend/auth/desktop-channel'
-import { validateApiOrigin, validateReturnTarget } from '../src/backend/auth/protocol'
+import { validateApiOrigin } from '../src/backend/auth/protocol'
 import channelsFile from './channels.json'
 
 const publicTextSchema = z.string().min(1)
@@ -15,15 +15,13 @@ const channelSchema = z.strictObject({
     packageName: publicTextSchema,
     output: publicTextSchema,
     installerInclude: publicTextSchema.optional(),
-    artifactPrefix: publicTextSchema.optional(),
-    protocolName: publicTextSchema.optional()
+    artifactPrefix: publicTextSchema.optional()
   }),
   identity: z.strictObject({
     appIdentity: publicTextSchema,
     auth: z
       .strictObject({
         environment: publicTextSchema,
-        returnTarget: publicTextSchema,
         providers: z.array(publicTextSchema).min(1)
       })
       .optional()
@@ -95,19 +93,11 @@ function describeOriginRequirement(allowsLoopback: boolean): string {
 function assertPublicChannelValues(name: string, channel: Channel): void {
   const { auth } = channel.identity
   if (auth != null) {
-    try {
-      validateReturnTarget(auth.returnTarget)
-    } catch {
-      throw new Error(`Set a canonical private return target for the ${name} channel.`)
-    }
     if (channel.origins.accounts == null) {
       throw new Error(`Set an accounts origin for the ${name} channel, which enables login.`)
     }
   }
 
-  if (auth == null && channel.packaging.protocolName != null) {
-    throw new Error(`The ${name} channel declares a protocol without a return target.`)
-  }
   const allowsLoopback = name === LOOPBACK_ORIGIN_CHANNEL
   for (const [kind, source] of Object.entries(channel.origins)) {
     const origin = typeof source === 'string' ? source : source.default

@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: apps/desktop electron-builder packaging fuse configuration
-last-reviewed: 2026-09-12
+last-reviewed: 2026-10-10
 ---
 
 # Desktop 패키지의 Node 진입점 fuse
@@ -29,6 +29,8 @@ electron-builder가 함께 제공하는 app-builder-lib 26.15.3의
 configuration과 두 fuse field를 수용하는지 확인한 뒤 두 값을 모두 `false`로
 검사한다. 새 dependency를 추가하거나 builder 설정을 wrapper, afterPack hook으로
 변환하지 않는다.
+
+채널별 설정에는 OS protocol 선언이 없다. 개발, 배포 NSIS include는 설치와 제거 때 이 앱 실행 명령과 정확히 일치하는 HKCU legacy protocol 키만 정리하며, 테스트는 해당 include와 등록 코드 부재도 검사한다. 실제 Windows registry 변경은 이 source 검사로 검증하지 않는다.
 
 Focused test:
 

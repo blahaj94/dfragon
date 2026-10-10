@@ -43,9 +43,8 @@ it('개발 설치본의 검색 origin은 배포 변수와 셸 설정의 영향�
   expect(readAppApiOrigin()).toBe('https://localhost:3443')
 })
 
-it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣은 로그인 origin, 복귀 주소, 전용 profile을 쓴다', () => {
+it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣은 로그인 origin, 전용 profile을 쓴다', () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3443')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'dfragon.local')
   vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', resolve('synthetic-development-profile'))
@@ -57,7 +56,6 @@ it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣�
   )
   expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
     apiOrigin: 'https://accounts.example.test',
-    returnTarget: 'dfragon://auth/callback',
     environment: 'production',
     providers: ['passkey'],
     appIdentity: 'dfragon',
@@ -67,7 +65,6 @@ it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣�
   vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('development', {}))
   expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
     apiOrigin: 'https://localhost:3444',
-    returnTarget: 'dfragon.dev://auth/callback',
     environment: 'development',
     providers: ['passkey'],
     appIdentity: 'dfragon.dev',
@@ -78,7 +75,6 @@ it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣�
 it('로그인 없는 test 채널은 셸의 로그인 설정이 있어도 로그인을 켜지 않고 검색 origin만 쓴다', () => {
   vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('test', {}))
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3444')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'dfragon.local')
@@ -89,9 +85,8 @@ it('로그인 없는 test 채널은 셸의 로그인 설정이 있어도 로그�
   expect(readAppApiOrigin()).toBe('https://api.dfragon.com')
 })
 
-it('채널 없는 실행의 로그인 설정은 process 설정 여섯 값에서만 온다', () => {
+it('채널 없는 실행의 로그인 설정은 process 설정 다섯 값에서만 온다', () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3444')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon.dev://auth/callback')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'dfragon.local')
@@ -100,7 +95,6 @@ it('채널 없는 실행의 로그인 설정은 process 설정 여섯 값에서�
 
   expect(readAppAuthConfig({ getPath: () => resolve('synthetic-app-data') })).toEqual({
     apiOrigin: 'https://localhost:3444',
-    returnTarget: 'dfragon.dev://auth/callback',
     environment: 'development',
     providers: ['passkey'],
     appIdentity: 'dfragon.local',

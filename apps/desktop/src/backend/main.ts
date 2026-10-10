@@ -11,12 +11,6 @@ import {
 } from './capture/ipc-handler'
 import { registerCapturePermissions } from './capture/permission-policy'
 import { registerAuthIpc } from './auth/ipc-handler'
-import {
-  attachProtocolIngressAfterStart,
-  createProtocolIngress,
-  isOrdinarySecondInstanceInvocation,
-  selectProtocolIngressArguments
-} from './auth/protocol-ingress'
 import { bootstrapAuthRuntime, type AuthRuntime } from './auth/bootstrap'
 import { createAuthAppLifecycle } from './auth/app-lifecycle'
 import { createAuthRuntimeEffects } from './auth/runtime-effects'
@@ -70,18 +64,14 @@ const runtimeProfileState: RuntimeProfileState = (() => {
   }
 })()
 const runtimeConfig = runtimeProfileState.status === 'applied' ? runtimeProfileState.config : null
-const protocolIngress =
-  runtimeConfig == null
-    ? null
-    : createProtocolIngress({
-        app,
-        argv: selectProtocolIngressArguments(process.argv, process.defaultApp === true),
-        returnTarget: runtimeConfig.returnTarget
-      })
+// Credential file은 적용된 profile의 단일 인스턴스만 쓴다.
+const ownsAuthProfile = runtimeConfig != null && app.requestSingleInstanceLock()
+if (runtimeConfig != null && !ownsAuthProfile) {
+  app.quit()
+}
 const authAppLifecycle = createAuthAppLifecycle({
   app,
-  ownsAuthProfile: () => protocolIngress?.ownsInstance === true,
-  disposeProtocolIngress: () => protocolIngress?.dispose()
+  ownsAuthProfile: () => ownsAuthProfile
 })
 
 if (runtimeProfileState.status === 'application-failed') {
@@ -271,7 +261,7 @@ app.whenReady().then(async () => {
     return
   }
 
-  const hasOwnedInstance = protocolIngress == null || protocolIngress.ownsInstance
+  const hasOwnedInstance = runtimeConfig == null || ownsAuthProfile
   if (!hasOwnedInstance) {
     return
   }
@@ -338,7 +328,6 @@ app.whenReady().then(async () => {
             createWindow(authRuntime)
           }
         } catch (error) {
-          const ownsAuthProfile = protocolIngress?.ownsInstance === true
           if (ownsAuthProfile) {
             authAppLifecycle.exitAfterOwnedAuthFailure()
 
@@ -347,16 +336,6 @@ app.whenReady().then(async () => {
           throw error
         }
       })
-      if (authRuntime == null) {
-        app.on('second-instance', (_event, _commandLine, _workingDirectory, additionalData) => {
-          const isOrdinaryInvocation =
-            runtimeConfig == null ||
-            isOrdinarySecondInstanceInvocation(additionalData, runtimeConfig.returnTarget)
-          if (isOrdinaryInvocation) {
-            activateWindowSafely(authRuntime)
-          }
-        })
-      }
       app.on('window-all-closed', () => {
         const shouldQuit = process.platform !== 'darwin'
         if (shouldQuit) {
@@ -364,21 +343,14 @@ app.whenReady().then(async () => {
         }
       })
 
-      const startAuthRuntime = authRuntime?.start()
-      void startAuthRuntime?.catch(authAppLifecycle.exitAfterOwnedAuthFailure)
-      if (authRuntime != null && protocolIngress != null && startAuthRuntime != null) {
-        attachProtocolIngressAfterStart(
-          protocolIngress,
-          startAuthRuntime,
-          (rawReturnUrl) =>
-            authAppLifecycle.runAfterQuitOutcome(() =>
-              authRuntime.coordinator.handleReturnUrl(rawReturnUrl, () => {
-                activateWindowSafely(authRuntime)
-              })
-            ),
-          () => authAppLifecycle.canReceiveProtocolIngress(),
-          () => authAppLifecycle.runAfterQuitOutcome(() => activateWindowSafely(authRuntime))
-        )
+      const activateMainWindow = (): void => activateWindowSafely(authRuntime)
+      if (authRuntime == null) {
+        authAppLifecycle.enableWindowActivation(activateMainWindow)
+      } else {
+        void authRuntime
+          .start()
+          .then(() => authAppLifecycle.enableWindowActivation(activateMainWindow))
+          .catch(authAppLifecycle.exitAfterOwnedAuthFailure)
       }
     }
 
@@ -406,7 +378,6 @@ app.whenReady().then(async () => {
       return
     }
 
-    const ownsAuthProfile = protocolIngress?.ownsInstance === true
     if (ownsAuthProfile) {
       authAppLifecycle.exitAfterOwnedAuthFailure()
 

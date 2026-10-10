@@ -22,7 +22,6 @@ export const NEXT_ATTEMPT_ID = '00000000-0000-4000-8000-000000000003'
 export const REQUEST_ID = '10000000-0000-4000-8000-000000000001'
 export const USER_ID = '20000000-0000-4000-8000-000000000001'
 export const RETURN_TARGET = 'http://127.0.0.1:49152/auth/callback'
-export const PROTOCOL_RETURN_TARGET = 'dfragon-test://auth/return'
 export const API_ORIGIN = 'https://api.example.test'
 export const CODE = Buffer.alloc(32, 9).toString('base64url')
 export const OTHER_CODE = Buffer.alloc(32, 10).toString('base64url')

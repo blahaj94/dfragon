@@ -41,7 +41,6 @@ function createRuntimeHarness(): RuntimeHarness {
   })
   const dependencies = effects.createDependencies({
     apiOrigin: harness.dependencies.apiOrigin,
-    returnTarget: 'dfragon-test://auth/return',
     environment: 'test',
     providers: ['passkey'],
     appIdentity: 'com.synthetic.dfragon',

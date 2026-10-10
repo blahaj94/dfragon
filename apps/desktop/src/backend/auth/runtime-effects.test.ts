@@ -16,7 +16,6 @@ vi.mock('electron', () => {
 
 const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.synthetic.test',
-  returnTarget: 'dfragon-synthetic://auth/return',
   environment: 'test',
   providers: ['passkey'],
   appIdentity: 'com.synthetic.dfragon',

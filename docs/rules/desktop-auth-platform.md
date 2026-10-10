@@ -2,12 +2,12 @@
 type: rule
 status: active
 enforcement: approval-required
-scope: apps/desktop secure storage protocol and validation
+scope: apps/desktop secure storage loopback login and validation
 last-reviewed: 2026-10-10
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
-exceptions: 실제 credential/keychain, protocol registry, 패스키 설정과 packaged E2E는 수행하지 않는다.
-review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, protocol E2E 시
+exceptions: 실제 credential/keychain, legacy protocol registry 정리, 패스키 설정과 packaged E2E는 수행하지 않는다.
+review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loopback 로그인 E2E 시
 ---
 
 # Desktop Authentication Platform
@@ -22,7 +22,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, prot
 | --- | --- | --- |
 | Source/config (2026-10-10 갱신) | `apps/desktop/package.json` 범위는 Electron `^44.7.0`, `pnpm-lock.yaml` 해결 version은 **44.7.0**(Chromium 152.0.7977.130, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
-| Identity, 보호 기능 (2026-10-09 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 배포, 개발 채널에는 protocol 선언, OS 복귀 handler, single-instance lock, safeStorage credential store가 구현됨. 로그인 없는 test 채널은 이 기능을 쓰지 않음. `notarize: false`는 유지 | 서명, 공증과 실제 OS 등록, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
+| Identity, 보호 기능 (2026-10-10 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 배포, 개발 채널에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. 로그인 없는 test 채널은 이 기능을 쓰지 않음. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
 | Electron 공식 범위 (2026-10-10 갱신) | Pinned README는 macOS 13(Ventura)+ Intel/Apple Silicon, Windows 10+ x64/arm64, Linux x64/arm64와 Chromium, 배포판 제작사가 함께 지원하는 주요 배포판 version을 명시. 39.8.10 README의 macOS 12, Windows x86, Ubuntu 18.04+/Fedora 32+/Debian 10+ 목록은 빠짐 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 
@@ -122,9 +122,9 @@ Missing directory는 current SID를 명시한 private security descriptor와 `bI
 
 Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결과를 사용한다. `profileProtection`, `fileMutation`, `namespaceMutation`을 `unknown`으로 고정해 모든 실행을 거절하던 release capability는 제거한다. 검증되지 않은 보장을 `confirmed`로 표시하는 설정이나 개발용 우회 flag로 대체하지 않는다. Native 모듈 로드, SID/ACL, reparse 검사 또는 필요한 파일 작업이 실패하면 기존 `preparation-failed` 또는 `storageBlocked` 처리를 유지한다. 배포할 설치 파일에서 native 모듈과 실제 로그인 흐름을 확인하되, 전체 OS/CPU의 ABI, 권한, 전원 손실 시험을 통과해야 배포할 수 있다는 조건은 두지 않는다.
 
-## Protocol 및 browser launch 선택
+## Loopback 복귀 및 browser launch 선택
 
-**흐름: main이 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다 → 브라우저의 패스키 인증(휴대폰은 브라우저 패스키 창의 hybrid QR) → 인증 완료 페이지가 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 자동 이동 → main.** OS protocol 등록, `open-url`, `second-instance` 복귀 처리, NSIS protocol 등록의 제거는 후속 PR에서 한다. Electron 내부 브라우저는 WebAuthn의 기기 간(hybrid) QR 인증을 지원하지 않아 자체 QR이 필요했으나, 시스템 브라우저에서는 브라우저가 제공하는 패스키 QR로 충분하다.
+**흐름: main이 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다 → 브라우저의 패스키 인증(휴대폰은 브라우저 패스키 창의 hybrid QR) → 인증 완료 페이지가 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 자동 이동 → main.** OS protocol 등록과 `open-url`, `second-instance`의 URL 복귀 처리는 제거했다. Single-instance lock과 두 번째 실행 시 메인 창 활성화는 유지한다. Electron 내부 브라우저는 WebAuthn의 기기 간(hybrid) QR 인증을 지원하지 않아 자체 QR이 필요했으나, 시스템 브라우저에서는 브라우저가 제공하는 패스키 QR로 충분하다.
 
 - Main은 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 수신기 하나를 열고 `POST /auth/login-requests`에 `returnUrl: http://127.0.0.1:<port>/auth/callback`을 함께 보낸다. 응답 `browserUrl`은 Electron `shell.openExternal`로 연다. 열기 실패는 기존 `BROWSER_OPEN_FAILED`다.
 - 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받는다. 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 설치형, 포터블 모두 같은 흐름이다.
@@ -136,57 +136,52 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 
 ### 로컬 개발용 등록값
 
-이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 아래 표의 앱 복귀 값 `dfragon.dev://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 protocol 등록 제거는 후속 PR에서 한다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
+이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 이전 앱 복귀 값 `dfragon.dev://auth/callback`과 protocol 등록은 제거했다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
 
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
 | 환경, 대상 | `development`, 사용자가 지정한 Windows 개발 컴퓨터의 현재 사용자, x64 NSIS |
 | API, 인증 | 같은 컴퓨터의 `https://localhost:3443`, 패스키 |
 | RP ID | `localhost` |
-| 앱 복귀 | `dfragon.dev://auth/callback` |
+| 앱 복귀 | `http://127.0.0.1:<port>/auth/callback` |
 | 개발 앱 identity, profile | `dfragon.dev`, Electron `appData` 아래의 `dfragon.dev` |
 
-이 절과 아래 Windows MVP 배포 구성은 승인 기록이다. 구현이 실제로 읽는 값의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
+이 절과 아래 Windows MVP 배포 구성은 승인 기록이다. 채널 identity와 공개 빌드 설정의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 로그인 복귀 주소는 채널 설정에 두지 않고 pending의 loopback 수신기가 정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
 
-이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 실제 설치는 실행 허용 범위 안에서 서버 설정의 API, RP ID와 loopback 복귀 형식 일치를 확인한 뒤 수행한다. Protocol 등록이 남아 있는 동안의 association 충돌 확인, 다른 앱 등록을 덮어쓰지 않는 보류 규칙은 등록 제거 전까지 유지한다.
+이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 실제 설치는 실행 허용 범위 안에서 서버 설정의 API, RP ID와 loopback 복귀 형식 일치를 확인한 뒤 수행한다. NSIS는 protocol을 등록하거나 다른 앱 소유를 이유로 설치를 중단하지 않는다. 설치와 제거 때 HKCU의 legacy `dfragon.dev` 키에서 `shell\open\command`가 정확히 `"$INSTDIR\${APP_EXECUTABLE_FILENAME}" "%1"`인 경우에만 해당 키를 지운다. 다른 앱의 키는 보존한다.
 
 빌드, NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. PKCE의 보호 한계와 loopback 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
 ### Windows MVP 배포 구성
 
-기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 복귀 주소 `dfragon://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 NSIS protocol 등록 제거는 후속 PR에서 한다. 이름, identity, profile 값은 그대로 쓴다.
+기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 이전 복귀 주소 `dfragon://auth/callback`과 NSIS protocol 등록은 제거했다. 이름, identity, profile 값은 그대로 쓴다.
 
 배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버는 `returnUrl`을 loopback 형식 `http://127.0.0.1:<port>/auth/callback`으로 검증한다. 공개 설정만 포함하고 서버 secret, credential은 설치 파일에 넣지 않는다. 실제 서버, HTTPS 연결, 패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
-개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책은 protocol 등록을 걷어내는 후속 PR까지 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
+개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 설치와 제거 때 legacy `dfragon` 키에 위와 같은 실행 명령 일치 검사를 적용해 이 앱 소유 키만 정리한다. Protocol 등록과 다른 앱 소유에 따른 설치 중단은 수행하지 않는다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
 Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않는다. 로그인 복귀는 설치형과 같은 loopback 수신기 하나로 처리하며 포터블 전용 복귀 경로는 없다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
 
 ### 공통 진입점
 
-아래 표의 OS 복귀 진입점(`open-url`, `second-instance`의 URL 전달)은 2026-10-10 결정으로 로그인 계약에서 제외하며 제거는 후속 PR에서 한다. 제거 전까지는 현재 구현의 검증 규칙으로만 남는다. Single-instance ownership은 credential file의 단일 writer를 위해 유지한다.
+OS protocol 복귀 진입점과 macOS bundle의 scheme 선언은 제거했다. Single-instance ownership은 credential file의 단일 writer를 위해 유지한다. Main은 trusted identity/profile을 적용한 뒤 ready, store, window 초기화 전에 lock을 얻는다. Lock을 얻지 못한 두 번째 프로세스는 store/network/window를 초기화하지 않고 종료한다.
 
-| 진입점 | 등록, 처리 계약 | 실제 사용에서 확인할 사항 |
-| --- | --- | --- |
-| macOS | main entry에서 ready 이전 `open-url` listener 등록 및 preventDefault. Bundle `CFBundleURLTypes`에 승인 target의 scheme 선언. OS event를 단일 validator로 전달 | Packaged/installed cold, warm, 창 없음, 서명/업데이트, 여러 bundle의 association 충돌 |
-| Windows/Linux | Packaged executable 또는 Electron `defaultApp`의 executable, app path를 제거한 user argv를 검사한다. Lock loser가 bounded/versioned `additionalData`로 같은 user argv를 보내며 owner는 이를 재검증하고 mutable `second-instance` command line을 인증 판정에 쓰지 않는다. Single-instance loser는 store/network 작업 없이 종료 | Install 경로 공백, URI 전달, 중복, 실제 default handler와 OS별 focus |
-| 공통 | Bootstrap에서 event handler와 single-instance ownership을 준비한 뒤 ready, store, window를 초기화. 초기 후보는 raw 2,048 byte 이하 1개만 일시 보유하고 추가 후보는 버림 | Cold start는 pending verifier가 없어 교환하지 않음. 정상 저장 session 복원과 독립적으로 안내 |
+기존 프로세스의 `second-instance`는 URL과 argv를 인증 입력으로 처리하지 않고 메인 창만 생성, restore, show, focus한다. 초기 bootstrap과 restore를 기다리는 동안에는 활성화 요청 하나를 보관한다. 취소 가능한 quit 중에는 결과를 기다리고, 종료 취소 뒤 활성화를 재개하며 확정 종료 뒤에는 폐기한다.
 
 Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app은 별도 identity를 쓴다. macOS에서 창만 닫아 main이 살아 있으면 pending과 loopback 수신기는 유지하고 유효 복귀 때 창을 다시 만든다. Windows/Linux의 마지막 창 닫힘은 현재 lifecycle상 main quit이므로 pending과 수신기는 소실되고 늦은 복귀는 연결 실패로 끝난다. 복귀를 처리하기 위해 창에 URL을 load하지 않고 local renderer만 생성, restore, focus한다. Foreground 전환은 OS가 제한할 수 있어 상태 완료와 focus 성공을 구분한다.
 
 ### 입력 검증
 
 - Browser launch URL은 string, 2,048 byte 이하이며 exact trusted API HTTPS origin, `/auth/login/authorize` path, **ticket 하나**의 canonical 32-byte base64url query만 허용한다. Username/password, fragment, 추가 query, path/port alias, redirect를 허용하지 않는다. URL parser 뒤 canonical 재구성한 값과 원문이 동일해야 하며 allowlist prefix 비교로 대체하지 않는다.
-- 아래 argv 복귀 후보 검사는 OS protocol 복귀의 규칙이며 2026-10-10 결정으로 로그인 계약에서 제외한다. 제거 전까지 현재 구현은 다음을 유지한다. App 복귀 후보는 bootstrap argument를 제거한 초기 user argv 또는 exact version, shape, count, UTF-8 byte 경계를 다시 확인한 lock handoff의 모든 문자열에서 검사한다. `second-instance` command line의 순서, 내용을 인증 입력으로 신뢰하거나 마지막 argument라고 가정하거나 joined command line을 shell로 재해석하거나 arbitrary command를 실행하지 않는다. 한 OS event에 복귀 후보가 2개 이상이면 전체 거절한다. 제거된 executable/app path와 단독 `--` 등 일반 argument를 URL로 취급하지 않는다. `--` 또는 slash prefix option의 첫 `=`나 `:` 뒤 payload는 option 이름의 punctuation, 빈 이름과 무관하게 URL-like 분류 대상으로 검사한다. Slash prefix 이름에 path separator가 있으면 POSIX path로 유지한다. 예외는 대소문자를 정규화한 option 이름이 정확히 `user-data-dir`이고 raw argument, payload에 trim/control projection이 없으며, payload가 drive letter와 colon 뒤에 slash 또는 backslash가 정확히 하나인 absolute Windows drive 형태(`C:/...`, `C:\...`)일 때뿐이다. Well-formed scheme 또는 path/query/fragment 구분자 없는 prefix 뒤의 colon과 slash/backslash로 시작하는 형태는 protocol-like이다. Direct drive-shaped user argument와 다른 option의 drive-shaped payload, control 제거 뒤에만 drive path가 되는 값처럼 one-letter URI와 구별할 수 없는 입력은 fail closed한다.
-- 복귀 URL은 loopback 수신기가 받은 요청의 URL이며 2,048 byte 이하, control/공백/backslash 없음, 등록 `returnUrl` `http://127.0.0.1:<port>/auth/callback`과 정확히 일치해야 한다(RFC 8252 7.3, 포트만 가변). 서버 `apps/accounts/browser/return-target.ts`와 앱 `apps/desktop/src/backend/auth/protocol.ts`가 같은 형식을 검증한다(2026-10-10 결정, 구현 전). Userinfo/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<returnTarget>?code=<canonical-code>`와 정확히 같아야 한다.
+- 복귀 URL은 loopback 수신기가 받은 요청의 URL이며 2,048 byte 이하, control/공백/backslash 없음, 등록 `returnUrl` `http://127.0.0.1:<port>/auth/callback`과 정확히 일치해야 한다(RFC 8252 7.3, 포트만 가변). 서버 `apps/accounts/browser/return-target.ts`와 앱 `apps/desktop/src/backend/auth/protocol.ts`가 같은 형식을 검증한다. Userinfo/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<returnUrl>?code=<canonical-code>`와 정확히 같아야 한다.
 - Code는 auth-passkeys의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
 - URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패는 기존 pending/session, window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 수신기는 요청 하나만 받으므로 같은 pending에 두 번째 code가 오지 않으며, expired handling은 lifecycle을 따른다.
 
 ### Linux package별 동작 참고
 
-- deb: 설치된 `.desktop`, `MimeType=x-scheme-handler/...`, `Exec`의 URI 전달, default association, 업데이트, 제거를 검증한다. [electron-builder v26 Linux](https://www.electron.build/v26/docs/linux/)
-- AppImage: electron-builder 21 이후 self desktop integration이 없으므로 AppImage 실행 성공은 browser 복귀 보장이 아니다. Desktop integration 배포 방법을 먼저 선택한다. [AppImage 안내](https://www.electron.build/v26/docs/appimage/#desktop-integration)
-- snap: installed desktop entry, URI 전달, confinement, secret store 접근을 따로 확인한다. `password-manager-service` 자동 연결을 가정하지 않으며 추가 interface 채택은 배포 결정이다. [desktop interface](https://snapcraft.io/docs/reference/interfaces/desktop-interface/), [password-manager-service](https://snapcraft.io/docs/reference/interfaces/password-manager-service-interface/)
+- deb: 로그인 복귀를 위한 `MimeType=x-scheme-handler/...`와 URI 전달 설정은 사용하지 않는다. [electron-builder v26 Linux](https://www.electron.build/v26/docs/linux/)
+- AppImage: electron-builder 21 이후 self desktop integration이 없으므로 로그인 복귀는 desktop integration 없이 loopback 수신기를 사용한다. [AppImage 안내](https://www.electron.build/v26/docs/appimage/#desktop-integration)
+- snap: loopback 수신기의 confinement과 secret store 접근을 따로 확인한다. `password-manager-service` 자동 연결을 가정하지 않으며 추가 interface 채택은 배포 결정이다. [desktop interface](https://snapcraft.io/docs/reference/interfaces/desktop-interface/), [password-manager-service](https://snapcraft.io/docs/reference/interfaces/password-manager-service-interface/)
 
 ## 기능 완료와 배포 후 검증
 

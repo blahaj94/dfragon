@@ -52,14 +52,8 @@ const mocks = vi.hoisted(() => {
   >(() => vi.fn())
   const readReleaseFeed = vi.fn<typeof import('./update-notice/http').readReleaseFeed>()
   const collectCurrentCapture = vi.fn(async () => ({ status: 'queued' }))
-  const createIngress = vi.fn()
-  const attachIngress = vi.fn()
-  const attachAfterStart = vi.fn()
-  const isOrdinarySecondInstance = vi.fn(() => true)
-  const selectIngressArguments = vi.fn((argv: readonly unknown[], isDefaultApp: boolean) =>
-    argv.slice(isDefaultApp ? 2 : 1)
-  )
-  const disposeIngress = vi.fn()
+  const requestSingleInstanceLock = vi.fn(() => true)
+  const quit = vi.fn()
   const createEffects = vi.fn()
   const searchClock = {}
   const createSearchClock = vi.fn()
@@ -119,12 +113,8 @@ const mocks = vi.hoisted(() => {
     readReleaseFeed,
     collectCurrentCapture,
     bootstrap: undefined as Promise<void> | undefined,
-    createIngress,
-    attachIngress,
-    attachAfterStart,
-    isOrdinarySecondInstance,
-    selectIngressArguments,
-    disposeIngress,
+    requestSingleInstanceLock,
+    quit,
     createEffects,
     searchClock,
     createSearchClock,
@@ -172,14 +162,14 @@ vi.mock('electron', () => {
     }),
     on: mocks.appOn,
     removeListener: mocks.appRemoveListener,
-    requestSingleInstanceLock: vi.fn(() => true),
+    requestSingleInstanceLock: mocks.requestSingleInstanceLock,
     setPath: mocks.setPath,
     getPath: mocks.getPath,
     getVersion: mocks.getVersion,
     setName: mocks.setName,
     setAppUserModelId: mocks.setAppUserModelId,
     exit: mocks.exit,
-    quit: vi.fn()
+    quit: mocks.quit
   }
   class BrowserWindow {
     static getAllWindows = vi.fn(() => mocks.windows)
@@ -250,12 +240,6 @@ vi.mock('./diagnostics/log', () => ({
   registerMainDiagnosticErrors: mocks.registerMainDiagnosticErrors,
   reportDiagnostic: mocks.reportDiagnostic
 }))
-vi.mock('./auth/protocol-ingress', () => ({
-  createProtocolIngress: mocks.createIngress,
-  attachProtocolIngressAfterStart: mocks.attachAfterStart,
-  isOrdinarySecondInstanceInvocation: mocks.isOrdinarySecondInstance,
-  selectProtocolIngressArguments: mocks.selectIngressArguments
-}))
 vi.mock('./auth/runtime-effects', () => ({
   createAuthRuntimeEffects: mocks.createEffects
 }))
@@ -278,21 +262,7 @@ beforeEach(() => {
   mocks.setName.mockReset()
   mocks.windows = []
   mocks.nativeTheme.shouldUseDarkColors = false
-  mocks.createIngress.mockReturnValue({
-    ownsInstance: true,
-    attach: mocks.attachIngress,
-    dispose: mocks.disposeIngress
-  })
-  mocks.attachAfterStart.mockImplementation((_ingress, _start, dispatch, _isActive, activate) => {
-    mocks.attachIngress(dispatch, activate)
-
-    return vi.fn()
-  })
-  mocks.coordinator.handleReturnUrl.mockImplementation(
-    async (_raw: unknown, onClaimed?: () => void) => {
-      onClaimed?.()
-    }
-  )
+  mocks.requestSingleInstanceLock.mockReturnValue(true)
   mocks.runtime = {
     coordinator: mocks.coordinator,
     apiOrigin: 'https://api.synthetic.test',
@@ -321,7 +291,7 @@ afterEach(() => {
 })
 
 it.each([false, true])(
-  '개발 빌드는 셸 설정 유무(%s)와 무관하게 고정 프로필과 복귀 주소를 사용한다',
+  '개발 빌드는 셸 설정 유무(%s)와 무관하게 고정 프로필과 accounts origin를 사용한다',
   async (hasShellConfiguration) => {
     vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('development', {}))
     if (hasShellConfiguration) {
@@ -335,15 +305,12 @@ it.each([false, true])(
 
     expect(mocks.applyProfile).toHaveBeenCalledWith(expect.anything(), {
       apiOrigin: 'https://localhost:3444',
-      returnTarget: 'dfragon.dev://auth/callback',
       environment: 'development',
       providers: ['passkey'],
       appIdentity: 'dfragon.dev',
       userDataPath: join(appData, 'dfragon.dev')
     })
-    expect(mocks.createIngress).toHaveBeenCalledWith(
-      expect.objectContaining({ returnTarget: 'dfragon.dev://auth/callback' })
-    )
+    expect(mocks.requestSingleInstanceLock).toHaveBeenCalledExactlyOnceWith()
     expect(mocks.bootstrapAuth).toHaveBeenCalledWith(
       expect.objectContaining({
         config: expect.objectContaining({ apiOrigin: 'https://localhost:3444' })
@@ -362,7 +329,7 @@ it('개발 빌드도 Windows profile 준비 실패를 우회하지 않는다', a
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.createIngress).not.toHaveBeenCalled()
+  expect(mocks.requestSingleInstanceLock).not.toHaveBeenCalled()
   expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
   expect(mocks.setPath).not.toHaveBeenCalled()
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
@@ -401,7 +368,6 @@ it('detaches clock power listeners when auth bootstrap does not create a runtime
 function stubTrustedRuntimeEnvironment(): void {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -648,7 +614,6 @@ it('capture and authentication still start when version metadata registration fa
 it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제품에 연결한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -656,7 +621,6 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   vi.stubEnv('ELECTRON_RENDERER_URL', 'http://localhost:5173')
   const appliedConfig = Object.freeze({
     apiOrigin: 'https://api.synthetic.test',
-    returnTarget: 'dfragon-synthetic://auth/return',
     environment: 'test',
     providers: ['passkey'] as const,
     appIdentity: 'com.synthetic.dfragon',
@@ -679,12 +643,7 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.createIngress).toHaveBeenCalledExactlyOnceWith({
-    app: expect.anything(),
-    argv: process.argv.slice(1),
-    returnTarget: 'dfragon-synthetic://auth/return'
-  })
-  expect(mocks.selectIngressArguments).toHaveBeenCalledExactlyOnceWith(process.argv, false)
+  expect(mocks.requestSingleInstanceLock).toHaveBeenCalledExactlyOnceWith()
   expect(mocks.createEffects.mock.calls).toEqual([
     [{ activateMainWindow: expect.any(Function) }],
     []
@@ -750,16 +709,12 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     expect.anything(),
     'http://localhost:5173/'
   )
-  expect(mocks.attachIngress).toHaveBeenCalledExactlyOnceWith(
-    expect.any(Function),
-    expect.any(Function)
-  )
   expect(mocks.runtime?.start).toHaveBeenCalledOnce()
   expect(mocks.runtime?.start.mock.invocationCallOrder[0]).toBeGreaterThan(
     mocks.registerAuth.mock.invocationCallOrder[0]
   )
   expect(mocks.setAppUserModelId.mock.invocationCallOrder[0]).toBeLessThan(
-    mocks.createIngress.mock.invocationCallOrder[0]
+    mocks.requestSingleInstanceLock.mock.invocationCallOrder[0]
   )
   const beforeQuit = mocks.appOn.mock.calls.find(
     ([event]) => event === 'before-quit'
@@ -813,38 +768,6 @@ it.each(['cancel', 'commit'] as const)(
     expect(mocks.constructWindow).toHaveBeenCalledTimes(expectedCompositionCount)
   }
 )
-
-it('Electron defaultApp은 executable과 app path를 제외한 user argv만 lock handoff에 넘긴다', async () => {
-  stubTrustedRuntimeEnvironment()
-  const originalArgv = process.argv
-  const originalDefaultApp = Object.getOwnPropertyDescriptor(process, 'defaultApp')
-  const argv = [
-    'C:\\Program Files\\Electron\\electron.exe',
-    'C:\\workspace\\dfragon',
-    '--new-window'
-  ]
-  process.argv = argv
-  Object.defineProperty(process, 'defaultApp', { configurable: true, value: true })
-
-  try {
-    await import('./main')
-    await mocks.bootstrap
-
-    expect(mocks.selectIngressArguments).toHaveBeenCalledExactlyOnceWith(argv, true)
-    expect(mocks.createIngress).toHaveBeenCalledWith({
-      app: expect.anything(),
-      argv: ['--new-window'],
-      returnTarget: 'dfragon-synthetic://auth/return'
-    })
-  } finally {
-    process.argv = originalArgv
-    if (originalDefaultApp == null) {
-      Reflect.deleteProperty(process, 'defaultApp')
-    } else {
-      Object.defineProperty(process, 'defaultApp', originalDefaultApp)
-    }
-  }
-})
 
 it('file document의 closed 정리 뒤 activate에서 같은 runtime과 IPC를 다시 연결한다', async () => {
   stubTrustedRuntimeEnvironment()
@@ -905,7 +828,9 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   mocks.loadFile.mockImplementationOnce(() => {
     throw new Error('Synthetic late window composition failure')
   })
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   activate()
   const partialWindow = mocks.windows[0] as {
     destroy: ReturnType<typeof vi.fn>
@@ -936,7 +861,6 @@ it('profile owner의 document load rejection은 blank window를 폐기하고 non
   const window = mocks.windows[0] as { destroy: ReturnType<typeof vi.fn> }
 
   expect(window.destroy).toHaveBeenCalledOnce()
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit.mock.invocationCallOrder[0]).toBeLessThan(
     window.destroy.mock.invocationCallOrder[0]
   )
@@ -962,7 +886,9 @@ it('교체된 이전 window의 늦은 load rejection은 현재 window owner를 �
   )?.[1] as () => void
   closeWindow()
   mocks.windows = []
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   activate()
   const currentWindow = mocks.windows[0] as { destroy: ReturnType<typeof vi.fn> }
   const currentAuthDisposer = authDisposers[1]!
@@ -973,7 +899,6 @@ it('교체된 이전 window의 늦은 load rejection은 현재 window owner를 �
 
   expect(currentWindow.destroy).not.toHaveBeenCalled()
   expect(currentAuthDisposer).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
@@ -999,13 +924,11 @@ it('진행 중인 close와 겹친 load rejection은 closed가 실제 종료를 �
   await Promise.resolve()
 
   expect(window.destroy).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
 
   closed()
 
   expect(window.destroy).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
@@ -1057,7 +980,6 @@ it.each(['close event', 'renderer beforeunload'] as const)(
     }
 
     expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
-    expect(mocks.disposeIngress).toHaveBeenCalledOnce()
     expect(window.destroy).toHaveBeenCalledOnce()
   }
 )
@@ -1101,17 +1023,15 @@ it('will-prevent-unload override가 unload를 허용하면 closed까지 load rej
   await Promise.resolve()
 
   expect(window.destroy).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
 
   closed()
 
   expect(window.destroy).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
-it('동기 before-quit 취소 뒤에는 ingress와 window activation을 다시 사용한다', async () => {
+it('동기 before-quit 취소 뒤에는 window activation을 다시 사용한다', async () => {
   stubTrustedRuntimeEnvironment()
 
   await import('./main')
@@ -1119,7 +1039,9 @@ it('동기 before-quit 취소 뒤에는 ingress와 window activation을 다시 �
   const beforeQuit = mocks.appOn.mock.calls.find(
     ([event]) => event === 'before-quit'
   )?.[1] as (event: { defaultPrevented: boolean }) => void
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   const window = mocks.windows[0] as {
     show: ReturnType<typeof vi.fn>
     focus: ReturnType<typeof vi.fn>
@@ -1139,13 +1061,12 @@ it('동기 before-quit 취소 뒤에는 ingress와 window activation을 다시 �
   await Promise.resolve()
   activate()
 
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(window.show).toHaveBeenCalledOnce()
   expect(window.focus).toHaveBeenCalledOnce()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
-it('동기 will-quit 취소 뒤에도 ingress와 window activation을 다시 사용한다', async () => {
+it('동기 will-quit 취소 뒤에도 window activation을 다시 사용한다', async () => {
   stubTrustedRuntimeEnvironment()
 
   await import('./main')
@@ -1156,7 +1077,9 @@ it('동기 will-quit 취소 뒤에도 ingress와 window activation을 다시 사
   const willQuit = mocks.appOn.mock.calls.find(([event]) => event === 'will-quit')?.[1] as (event: {
     defaultPrevented: boolean
   }) => void
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   const window = mocks.windows[0] as {
     show: ReturnType<typeof vi.fn>
     focus: ReturnType<typeof vi.fn>
@@ -1177,7 +1100,6 @@ it('동기 will-quit 취소 뒤에도 ingress와 window activation을 다시 사
   await Promise.resolve()
   activate()
 
-  expect(mocks.disposeIngress).not.toHaveBeenCalled()
   expect(window.show).toHaveBeenCalledOnce()
   expect(window.focus).toHaveBeenCalledOnce()
   expect(mocks.exit).not.toHaveBeenCalled()
@@ -1209,7 +1131,6 @@ it('before-quit 취소 전에 보류한 restore rejection은 fatal로 다시 처
   await pendingStart.promise.catch(() => undefined)
   await Promise.resolve()
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
 })
 
@@ -1246,7 +1167,6 @@ it('renderer beforeunload가 app quit을 취소하면 보류한 load rejection�
   willPreventUnload({ defaultPrevented: false })
   await Promise.resolve()
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
   expect(window.destroy).toHaveBeenCalledOnce()
 })
@@ -1271,7 +1191,6 @@ it('확정된 정상 quit 뒤의 늦은 document load rejection은 nonzero 종�
   await Promise.resolve()
 
   expect(window.destroy).not.toHaveBeenCalled()
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
@@ -1291,14 +1210,12 @@ it('profile owner의 activate 재구성 예외는 event 밖으로 던지지 않�
   const activate = registration?.[1] as () => void
 
   expect(() => activate()).not.toThrow()
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
 })
 
 it('does not activate product auth for the unsupported OAuth provider', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'discord')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -1307,7 +1224,7 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.createIngress).not.toHaveBeenCalled()
+  expect(mocks.requestSingleInstanceLock).not.toHaveBeenCalled()
   expect(mocks.bindPowerMonitor).not.toHaveBeenCalled()
   expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
@@ -1333,7 +1250,6 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
   fs.mkdirSync(userDataPath, { mode: 0o700 })
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -1369,7 +1285,7 @@ it('profile 적용이 시작된 뒤 실패하면 부분 적용된 userData로 �
     expect(mocks.setPath).toHaveBeenCalledExactlyOnceWith('userData', userDataPath)
     expect(mocks.setName).toHaveBeenCalledExactlyOnceWith('com.synthetic.dfragon')
     expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
-    expect(mocks.createIngress).not.toHaveBeenCalled()
+    expect(mocks.requestSingleInstanceLock).not.toHaveBeenCalled()
     expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
     expect(mocks.constructWindow).not.toHaveBeenCalled()
   } finally {
@@ -1387,7 +1303,7 @@ it('profile 준비 실패는 Electron 전역값과 lock을 건드리지 않고 �
   await mocks.bootstrap
 
   expect(mocks.setPath).not.toHaveBeenCalled()
-  expect(mocks.createIngress).not.toHaveBeenCalled()
+  expect(mocks.requestSingleInstanceLock).not.toHaveBeenCalled()
   expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
   expect(mocks.exit).not.toHaveBeenCalled()
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
@@ -1396,20 +1312,16 @@ it('profile 준비 실패는 Electron 전역값과 lock을 건드리지 않고 �
 it('single-instance loser는 auth/store/window 초기화 없이 종료한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
   vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
-  mocks.createIngress.mockReturnValue({
-    ownsInstance: false,
-    attach: mocks.attachIngress,
-    dispose: mocks.disposeIngress
-  })
+  mocks.requestSingleInstanceLock.mockReturnValueOnce(false)
 
   await import('./main')
   await mocks.bootstrap
 
+  expect(mocks.quit).toHaveBeenCalledOnce()
   expect(mocks.createEffects).not.toHaveBeenCalled()
   expect(mocks.bootstrapAuth).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
@@ -1424,7 +1336,6 @@ it('profile owner의 auth bootstrap이 runtime을 만들지 않으면 비인증 
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
   expect(mocks.constructWindow).toHaveBeenCalledOnce()
@@ -1433,47 +1344,24 @@ it('profile owner의 auth bootstrap이 runtime을 만들지 않으면 비인증 
   expect(options.webPreferences?.additionalArguments ?? []).not.toContain(AUTH_AVAILABLE_ARGUMENT)
 })
 
-it('auth bootstrap fallback은 일반 second-instance만 활성화하고 protocol-like argv는 무시한다', async () => {
+it('auth bootstrap fallback에서도 second-instance는 기존 창을 활성화한다', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.bootstrapAuth.mockResolvedValueOnce(null)
 
   await import('./main')
   await mocks.bootstrap
-  const registration = mocks.appOn.mock.calls.find(([event]) => event === 'second-instance')
-  expect(registration).toBeDefined()
-  const secondInstance = registration?.[1] as (
-    event: unknown,
-    commandLine: readonly string[],
-    workingDirectory: string,
-    additionalData: unknown
-  ) => void
+  const secondInstance = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   const window = mocks.windows[0] as {
     show: ReturnType<typeof vi.fn>
     focus: ReturnType<typeof vi.fn>
   }
 
-  const ordinaryHandoff = { version: 1, argv: ['--new-window'] }
-  secondInstance({}, ['electron', '--new-window'], '/tmp', ordinaryHandoff)
+  secondInstance()
   expect(window.show).toHaveBeenCalledOnce()
   expect(window.focus).toHaveBeenCalledOnce()
-
-  mocks.isOrdinarySecondInstance.mockReturnValueOnce(false)
-  const malformedHandoff = {
-    version: 1,
-    argv: ['dfragon-synthetic://auth/return?code=short']
-  }
-  secondInstance(
-    {},
-    ['electron', 'dfragon-synthetic://auth/return?code=short'],
-    '/tmp',
-    malformedHandoff
-  )
-  expect(window.show).toHaveBeenCalledOnce()
-  expect(window.focus).toHaveBeenCalledOnce()
-  expect(mocks.isOrdinarySecondInstance).toHaveBeenLastCalledWith(
-    malformedHandoff,
-    'dfragon-synthetic://auth/return'
-  )
+  expect(mocks.requestSingleInstanceLock).toHaveBeenCalledExactlyOnceWith()
 })
 
 it.each([
@@ -1491,21 +1379,17 @@ it.each([
         new Error('Synthetic auth bootstrap construction failure')
       )
   ]
-] as const)(
-  'profile owner의 예상 밖 %s 실패는 ingress를 닫고 nonzero로 종료한다',
-  async (_name, fail) => {
-    stubTrustedRuntimeEnvironment()
-    fail()
+] as const)('profile owner의 예상 밖 %s 실패는 nonzero로 종료한다', async (_name, fail) => {
+  stubTrustedRuntimeEnvironment()
+  fail()
 
-    await import('./main')
-    await mocks.bootstrap
+  await import('./main')
+  await mocks.bootstrap
 
-    expect(mocks.disposeIngress).toHaveBeenCalledOnce()
-    expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
-    expect(mocks.registerCapture).not.toHaveBeenCalled()
-    expect(mocks.constructWindow).not.toHaveBeenCalled()
-  }
-)
+  expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
+  expect(mocks.registerCapture).not.toHaveBeenCalled()
+  expect(mocks.constructWindow).not.toHaveBeenCalled()
+})
 
 it('auth bootstrap 대기 중 quit은 IPC, window와 restore를 뒤늦게 시작하지 않는다', async () => {
   stubTrustedRuntimeEnvironment()
@@ -1524,7 +1408,6 @@ it('auth bootstrap 대기 중 quit은 IPC, window와 restore를 뒤늦게 시작
   pendingBootstrap.resolve(mocks.runtime)
   await mocks.bootstrap
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.registerCapture).not.toHaveBeenCalled()
   expect(mocks.registerAuth).not.toHaveBeenCalled()
   expect(mocks.constructWindow).not.toHaveBeenCalled()
@@ -1571,13 +1454,10 @@ it('auth bootstrap 대기 중 quit이 취소되면 composition을 다시 진행�
   expect(mocks.runtime?.start).toHaveBeenCalledOnce()
 })
 
-it('start 성공과 protocol callback이 quit 시도 중 겹쳐도 취소 뒤 한 번 전달한다', async () => {
+it('start 성공과 second-instance가 quit 시도 중 겹쳐도 취소 뒤 한 번 활성화한다', async () => {
   stubTrustedRuntimeEnvironment()
   const pendingStart = deferred<void>()
   mocks.runtime!.start = vi.fn(() => pendingStart.promise)
-  const actualIngress =
-    await vi.importActual<typeof import('./auth/protocol-ingress')>('./auth/protocol-ingress')
-  mocks.attachAfterStart.mockImplementationOnce(actualIngress.attachProtocolIngressAfterStart)
 
   await import('./main')
   await mocks.bootstrap
@@ -1602,25 +1482,21 @@ it('start 성공과 protocol callback이 quit 시도 중 겹쳐도 취소 뒤 �
   await pendingStart.promise
   await Promise.resolve()
 
-  expect(mocks.attachIngress).toHaveBeenCalledOnce()
-  const dispatch = mocks.attachIngress.mock.calls[0][0] as (raw: string) => Promise<void>
-  const dispatchResult = dispatch('dfragon-synthetic://auth/return?code=synthetic')
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
+  activate()
   await Promise.resolve()
 
-  expect(mocks.coordinator.handleReturnUrl).not.toHaveBeenCalled()
   expect(window.show).not.toHaveBeenCalled()
 
   willPreventUnload({ defaultPrevented: false })
-  await dispatchResult
+  await vi.waitFor(() => expect(window.show).toHaveBeenCalledOnce())
 
-  expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledExactlyOnceWith(
-    'dfragon-synthetic://auth/return?code=synthetic',
-    expect.any(Function)
-  )
   expect(window.show).toHaveBeenCalledOnce()
 })
 
-it('profile owner의 예상 밖 restore rejection은 ingress를 닫고 nonzero로 종료한다', async () => {
+it('profile owner의 예상 밖 restore rejection은 nonzero로 종료한다', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.runtime!.start = vi.fn(async () => {
     throw new Error('Synthetic unexpected restore failure')
@@ -1629,8 +1505,6 @@ it('profile owner의 예상 밖 restore rejection은 ingress를 닫고 nonzero�
   await import('./main')
   await mocks.bootstrap
   await vi.waitFor(() => expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1))
-
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
 })
 
 it('정상 quit 뒤의 늦은 restore rejection은 nonzero 종료로 바꾸지 않는다', async () => {
@@ -1651,11 +1525,10 @@ it('정상 quit 뒤의 늦은 restore rejection은 nonzero 종료로 바꾸지 �
   await pendingStart.promise.catch(() => undefined)
   await Promise.resolve()
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).not.toHaveBeenCalled()
 })
 
-it('profile owner의 post-bootstrap composition 예외는 ingress를 닫고 nonzero로 종료한다', async () => {
+it('profile owner의 post-bootstrap composition 예외는 nonzero로 종료한다', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.registerCapture.mockImplementationOnce(() => {
     throw new Error('Synthetic capture composition failure')
@@ -1664,7 +1537,6 @@ it('profile owner의 post-bootstrap composition 예외는 ingress를 닫고 nonz
   await import('./main')
   await mocks.bootstrap
 
-  expect(mocks.disposeIngress).toHaveBeenCalledOnce()
   expect(mocks.exit).toHaveBeenCalledExactlyOnceWith(1)
   expect(mocks.constructWindow).not.toHaveBeenCalled()
   expect(mocks.runtime?.start).not.toHaveBeenCalled()
@@ -1673,7 +1545,6 @@ it('profile owner의 post-bootstrap composition 예외는 ingress를 닫고 nonz
 it('URL 없는 second-instance는 기존 창을 표시하고 focus한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -1681,7 +1552,9 @@ it('URL 없는 second-instance는 기존 창을 표시하고 focus한다', async
 
   await import('./main')
   await mocks.bootstrap
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   expect(activate).toBeTypeOf('function')
   const window = mocks.windows[0] as {
     show: ReturnType<typeof vi.fn>
@@ -1699,7 +1572,9 @@ it('URL 없는 second-instance는 최소화된 기존 창을 복원한 뒤 표�
 
   await import('./main')
   await mocks.bootstrap
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   expect(activate).toBeTypeOf('function')
   const window = mocks.windows[0] as {
     isMinimized: ReturnType<typeof vi.fn>
@@ -1724,7 +1599,9 @@ it('일반 second-instance의 window 활성화 실패를 Electron event 경계 �
 
   await import('./main')
   await mocks.bootstrap
-  const activate = mocks.attachIngress.mock.calls[0][1] as () => void
+  const activate = mocks.appOn.mock.calls.find(
+    ([event]) => event === 'second-instance'
+  )![1] as () => void
   expect(activate).toBeTypeOf('function')
   const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
   window.show.mockImplementationOnce(() => {
@@ -1734,116 +1611,59 @@ it('일반 second-instance의 window 활성화 실패를 Electron event 경계 �
   expect(() => activate()).not.toThrow()
 })
 
-it('actual ingress 하나가 valid callback을 한 번 시작하고 window 예외를 회수한다', async () => {
+it('open-url을 등록하지 않고 URL handoff 없이 single-instance lock을 요청한다', async () => {
   stubTrustedRuntimeEnvironment()
-  const pendingStart = deferred<void>()
-  mocks.runtime!.start = vi.fn(() => pendingStart.promise)
-  const actualProtocol =
-    await vi.importActual<typeof import('./auth/protocol-ingress')>('./auth/protocol-ingress')
-  mocks.createIngress.mockImplementationOnce(actualProtocol.createProtocolIngress)
-  mocks.attachAfterStart.mockImplementationOnce(actualProtocol.attachProtocolIngressAfterStart)
 
   await import('./main')
   await mocks.bootstrap
-  const secondInstanceListeners = mocks.appOn.mock.calls
-    .filter(([event]) => event === 'second-instance')
-    .map(
-      ([, listener]) =>
-        listener as (
-          event: unknown,
-          commandLine: string[],
-          cwd: string,
-          additionalData: unknown
-        ) => void
-    )
-  expect(secondInstanceListeners).toHaveLength(1)
-  const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
-  window.show.mockImplementation(() => {
-    throw new Error('Synthetic persistent window activation failure')
-  })
-  const code = Buffer.alloc(32, 7).toString('base64url')
-  const rawReturnUrl = `dfragon-synthetic://auth/return?code=${code}`
-  const commandLine = ['--original-process-start-time=changed', 'https://chromium.invalid']
-  const handoff = { version: 1, argv: [rawReturnUrl] }
 
-  expect(() => {
-    secondInstanceListeners[0]({}, commandLine, '/tmp', handoff)
-  }).not.toThrow()
-  await Promise.resolve()
-  expect(mocks.coordinator.handleReturnUrl).not.toHaveBeenCalled()
-  expect(window.show).not.toHaveBeenCalled()
-
-  pendingStart.resolve()
-  await pendingStart.promise
-  await vi.waitFor(() =>
-    expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledExactlyOnceWith(
-      rawReturnUrl,
-      expect.any(Function)
-    )
-  )
-  expect(window.show).toHaveBeenCalledOnce()
+  expect(mocks.appOn.mock.calls.some(([event]) => event === 'open-url')).toBe(false)
+  expect(mocks.requestSingleInstanceLock).toHaveBeenCalledExactlyOnceWith()
 })
 
-it('actual ingress는 malformed, 복수, pending 없는 callback에 window side effect를 만들지 않는다', async () => {
-  stubTrustedRuntimeEnvironment()
-  const actualProtocol =
-    await vi.importActual<typeof import('./auth/protocol-ingress')>('./auth/protocol-ingress')
-  mocks.createIngress.mockImplementationOnce(actualProtocol.createProtocolIngress)
-  mocks.attachAfterStart.mockImplementationOnce(actualProtocol.attachProtocolIngressAfterStart)
+it.each(['bootstrap', 'restore'] as const)(
+  '%s 대기 중 두 번째 실행은 완료 뒤 한 번만 창을 활성화한다',
+  async (stage) => {
+    stubTrustedRuntimeEnvironment()
+    const pending = deferred<void>()
+    if (stage === 'bootstrap') {
+      mocks.bootstrapAuth.mockImplementationOnce(async () => {
+        await pending.promise
 
-  await import('./main')
-  await mocks.bootstrap
-  const registration = mocks.appOn.mock.calls.find(([event]) => event === 'second-instance')
-  expect(registration).toBeDefined()
-  const secondInstance = registration?.[1] as (
-    event: unknown,
-    commandLine: string[],
-    cwd: string,
-    additionalData: unknown
-  ) => void
-  const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
-  const code = Buffer.alloc(32, 7).toString('base64url')
-  const otherCode = Buffer.alloc(32, 8).toString('base64url')
-  const returnUrl = `dfragon-synthetic://auth/return?code=${code}`
-  const emit = (argv: readonly string[]): void => {
-    secondInstance(
-      {},
-      ['--original-process-start-time=changed', 'https://chromium.invalid'],
-      '/tmp',
-      { version: 1, argv }
-    )
+        return mocks.runtime
+      })
+    } else {
+      mocks.runtime!.start = vi.fn(() => pending.promise)
+    }
+
+    await import('./main')
+    const secondInstance = mocks.appOn.mock.calls.find(
+      ([event]) => event === 'second-instance'
+    )![1] as () => void
+    secondInstance()
+    secondInstance()
+    if (stage === 'bootstrap') {
+      expect(mocks.constructWindow).not.toHaveBeenCalled()
+    } else {
+      expect(mocks.constructWindow).toHaveBeenCalledOnce()
+      const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
+      expect(window.show).not.toHaveBeenCalled()
+    }
+
+    pending.resolve()
+    await mocks.bootstrap
+    const window = mocks.windows[0] as {
+      show: ReturnType<typeof vi.fn>
+      focus: ReturnType<typeof vi.fn>
+    }
+    await vi.waitFor(() => expect(window.show).toHaveBeenCalledOnce())
+    expect(window.focus).toHaveBeenCalledOnce()
   }
+)
 
-  emit(['dfragon-synthetic://auth/return?code=short'])
-  emit([returnUrl, `dfragon-synthetic://auth/return?code=${otherCode}`])
-  emit(['dfragon-wrong://auth/return'])
-  emit(['https://example.test/auth/return'])
-  emit([' \tdfragon-wrong://auth/return'])
-  emit(['1bad://auth/return'])
-  emit(['x://auth/return'])
-  emit(['\u0001mailto:user@example.test'])
-  emit(['ma\tilto:user@example.test'])
-  emit(['\u007fmailto:user@example.test'])
-  await Promise.resolve()
-
-  expect(mocks.coordinator.handleReturnUrl).not.toHaveBeenCalled()
-  expect(window.show).not.toHaveBeenCalled()
-
-  mocks.coordinator.handleReturnUrl.mockImplementationOnce(async () => undefined)
-  emit([returnUrl])
-  await vi.waitFor(() =>
-    expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledExactlyOnceWith(
-      returnUrl,
-      expect.any(Function)
-    )
-  )
-  expect(window.show).not.toHaveBeenCalled()
-})
-
-it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runtime으로 재생성한다', async () => {
+it('effects의 활성화 callback은 현재 창을 focus하고, 창이 없으면 같은 auth runtime으로 재생성한다', async () => {
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
   vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
   vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
@@ -1852,56 +1672,22 @@ it('warm return은 현재 창을 focus하고, 창이 없으면 같은 auth runti
 
   await import('./main')
   await mocks.bootstrap
-  const dispatch = mocks.attachIngress.mock.calls[0][0] as (raw: string) => Promise<void>
+  const activate = mocks.createEffects.mock.calls[0][0].activateMainWindow as () => void
   const firstWindow = mocks.windows[0] as {
     show: ReturnType<typeof vi.fn>
     focus: ReturnType<typeof vi.fn>
     isDestroyed: ReturnType<typeof vi.fn>
   }
 
-  await dispatch('dfragon-synthetic://auth/return?code=synthetic')
+  activate()
   expect(firstWindow.show).toHaveBeenCalledOnce()
   expect(firstWindow.focus).toHaveBeenCalledOnce()
-  expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledWith(
-    'dfragon-synthetic://auth/return?code=synthetic',
-    expect.any(Function)
-  )
 
   firstWindow.isDestroyed = vi.fn(() => true)
-  await dispatch('dfragon-synthetic://auth/return?code=synthetic-2')
+  activate()
   expect(mocks.constructWindow).toHaveBeenCalledTimes(2)
   expect(mocks.registerAuth).toHaveBeenCalledTimes(2)
   expect(mocks.registerWindow).toHaveBeenCalledTimes(2)
-  expect(mocks.coordinator.handleReturnUrl).toHaveBeenLastCalledWith(
-    'dfragon-synthetic://auth/return?code=synthetic-2',
-    expect.any(Function)
-  )
-})
-
-it('warm return은 창 활성화가 실패해도 auth callback을 먼저 처리한다', async () => {
-  vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://api.synthetic.test')
-  vi.stubEnv('DFRAGON_AUTH_RETURN_TARGET', 'dfragon-synthetic://auth/return')
-  vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'test')
-  vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')
-  vi.stubEnv('DFRAGON_AUTH_APP_IDENTITY', 'com.synthetic.dfragon')
-  vi.stubEnv('DFRAGON_AUTH_USER_DATA_PATH', syntheticProfilePath)
-
-  await import('./main')
-  await mocks.bootstrap
-  const dispatch = mocks.attachIngress.mock.calls[0][0] as (raw: string) => Promise<void>
-  const window = mocks.windows[0] as { show: ReturnType<typeof vi.fn> }
-  window.show.mockImplementationOnce(() => {
-    throw new Error('Synthetic window activation failure')
-  })
-  const rawReturnUrl = 'dfragon-synthetic://auth/return?code=synthetic'
-
-  await expect(dispatch(rawReturnUrl)).resolves.toBeUndefined()
-
-  expect(mocks.coordinator.handleReturnUrl).toHaveBeenCalledExactlyOnceWith(
-    rawReturnUrl,
-    expect.any(Function)
-  )
 })
 
 it.each([

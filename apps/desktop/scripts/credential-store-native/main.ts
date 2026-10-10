@@ -36,7 +36,6 @@ async function run(): Promise<void> {
     assert.equal(basename(profile), appName)
     applyAuthRuntimeProfile(app, {
       ...context,
-      returnTarget: 'dfragon-credential-test://auth/callback',
       providers: ['passkey'],
       appIdentity: appName,
       userDataPath: profile

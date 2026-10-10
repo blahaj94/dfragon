@@ -9,11 +9,11 @@ type App = Parameters<typeof createAuthAppLifecycle>[0]['app'] & {
 
 function createApp(): {
   app: App
-  handlers: Map<string, (...args: never[]) => void>
+  handlers: Map<string, (...args: never[]) => Promise<void> | void>
 } {
-  const handlers = new Map<string, (...args: never[]) => void>()
+  const handlers = new Map<string, (...args: never[]) => Promise<void> | void>()
   const app = {
-    on: vi.fn((event: string, handler: (...args: never[]) => void) => {
+    on: vi.fn((event: string, handler: (...args: never[]) => Promise<void> | void) => {
       handlers.set(event, handler)
     }),
     exit: vi.fn()
@@ -49,23 +49,20 @@ function createWindow(): {
 
 function createLifecycle(): {
   lifecycle: ReturnType<typeof createAuthAppLifecycle>
-  handlers: Map<string, (...args: never[]) => void>
-  disposeIngress: ReturnType<typeof vi.fn>
+  handlers: Map<string, (...args: never[]) => Promise<void> | void>
   disposePowerMonitor: ReturnType<typeof vi.fn>
   app: App
 } {
   const { app, handlers } = createApp()
-  const disposeIngress = vi.fn()
   const disposePowerMonitor = vi.fn()
   const lifecycle = createAuthAppLifecycle({
     app,
-    ownsAuthProfile: () => true,
-    disposeProtocolIngress: disposeIngress
+    ownsAuthProfile: () => true
   })
   lifecycle.setPowerMonitorDisposer(disposePowerMonitor)
   lifecycle.registerAppHandlers()
 
-  return { lifecycle, handlers, disposeIngress, disposePowerMonitor, app }
+  return { lifecycle, handlers, disposePowerMonitor, app }
 }
 
 it('canceled quit resolves waiters and resumes deferred actions', async () => {
@@ -84,11 +81,10 @@ it('canceled quit resolves waiters and resumes deferred actions', async () => {
   expect(action).toHaveBeenCalledOnce()
   expect(lifecycle.isQuitting()).toBe(false)
   expect(lifecycle.isShutdownCommitted()).toBe(false)
-  expect(lifecycle.canReceiveProtocolIngress()).toBe(true)
 })
 
 it('committed quit resolves waiters as terminal and releases auth resources once', async () => {
-  const { lifecycle, handlers, disposeIngress, disposePowerMonitor, app } = createLifecycle()
+  const { lifecycle, handlers, disposePowerMonitor, app } = createLifecycle()
   const beforeQuit = handlers.get('before-quit')!
   const quit = handlers.get('quit')!
   const action = vi.fn()
@@ -100,14 +96,81 @@ it('committed quit resolves waiters as terminal and releases auth resources once
 
   expect(action).not.toHaveBeenCalled()
   expect(disposePowerMonitor).toHaveBeenCalledOnce()
-  expect(disposeIngress).toHaveBeenCalledOnce()
   expect(app.exit).not.toHaveBeenCalled()
   expect(lifecycle.isShutdownCommitted()).toBe(true)
-  expect(lifecycle.canReceiveProtocolIngress()).toBe(false)
 
   quit()
   expect(disposePowerMonitor).toHaveBeenCalledOnce()
-  expect(disposeIngress).toHaveBeenCalledOnce()
+})
+
+it('창 준비 전에 반복한 두 번째 실행 요청은 활성화를 연결하면 정확히 한 번 실행된다', async () => {
+  const { lifecycle, handlers } = createLifecycle()
+  const activate = vi.fn()
+  const nextActivate = vi.fn()
+  const secondInstance = handlers.get('second-instance')!
+
+  await secondInstance()
+  await secondInstance()
+  expect(activate).not.toHaveBeenCalled()
+  lifecycle.enableWindowActivation(activate)
+  expect(activate).toHaveBeenCalledOnce()
+
+  lifecycle.enableWindowActivation(nextActivate)
+  expect(nextActivate).not.toHaveBeenCalled()
+  await secondInstance()
+  expect(nextActivate).toHaveBeenCalledOnce()
+  expect(activate).toHaveBeenCalledOnce()
+})
+
+it.each(['cancel', 'commit'] as const)(
+  'quit 시도 중 두 번째 실행 요청은 %s 결과를 기다린다',
+  async (outcome) => {
+    const { lifecycle, handlers } = createLifecycle()
+    const activate = vi.fn()
+    lifecycle.enableWindowActivation(activate)
+    handlers.get('before-quit')!({ defaultPrevented: false } as never)
+
+    const activation = handlers.get('second-instance')!()
+    expect(activate).not.toHaveBeenCalled()
+    if (outcome === 'cancel') {
+      handlers.get('will-quit')!({ defaultPrevented: true } as never)
+    } else {
+      handlers.get('quit')!()
+    }
+    await activation
+
+    expect(activate).toHaveBeenCalledTimes(outcome === 'cancel' ? 1 : 0)
+  }
+)
+
+it('quit 취소 직후 보류한 활성화가 재개되기 전에 종료가 확정되면 실행하지 않는다', async () => {
+  const { lifecycle, handlers } = createLifecycle()
+  const activate = vi.fn()
+  lifecycle.enableWindowActivation(activate)
+  handlers.get('before-quit')!({ defaultPrevented: false } as never)
+  const committedAfterCancellation = lifecycle.waitForQuitOutcome().then((canResume) => {
+    expect(canResume).toBe(true)
+    handlers.get('quit')!()
+  })
+  const activation = handlers.get('second-instance')!()
+
+  handlers.get('will-quit')!({ defaultPrevented: true } as never)
+  await Promise.all([committedAfterCancellation, activation])
+
+  expect(activate).not.toHaveBeenCalled()
+})
+
+it('확정 종료 뒤 늦게 연결한 활성화와 새 실행 요청은 실행하지 않는다', async () => {
+  const { lifecycle, handlers } = createLifecycle()
+  const activate = vi.fn()
+  const secondInstance = handlers.get('second-instance')!
+
+  await secondInstance()
+  handlers.get('quit')!()
+  lifecycle.enableWindowActivation(activate)
+  await secondInstance()
+
+  expect(activate).not.toHaveBeenCalled()
 })
 
 it.each(['cancel', 'commit'] as const)(
@@ -195,8 +258,8 @@ it('does not retry bootstrap after quit commits while bootstrap is pending', asy
   expect(bootstrapCalls).toBe(1)
 })
 
-it('owned document load failure clears the window, IPC, ingress, and exits nonzero', async () => {
-  const { lifecycle, disposeIngress, app } = createLifecycle()
+it('owned document load failure clears the window, IPC, and exits nonzero', async () => {
+  const { lifecycle, app } = createLifecycle()
   const { window, destroy } = createWindow()
   const disposeAuthIpc = vi.fn()
 
@@ -206,12 +269,11 @@ it('owned document load failure clears the window, IPC, ingress, and exits nonze
 
   expect(lifecycle.getWindow()).toBeNull()
   expect(disposeAuthIpc).toHaveBeenCalledOnce()
-  expect(disposeIngress).toHaveBeenCalledOnce()
   expect(destroy).toHaveBeenCalledOnce()
 })
 
 it('load failure held by a canceled close is handled after close cancellation', async () => {
-  const { lifecycle, disposeIngress, app } = createLifecycle()
+  const { lifecycle, app } = createLifecycle()
   const { window, handlers, destroy } = createWindow()
   const disposeAuthIpc = vi.fn()
   let rejectLoad!: (error: unknown) => void
@@ -234,7 +296,6 @@ it('load failure held by a canceled close is handled after close cancellation', 
   await Promise.resolve()
 
   expect(app.exit).toHaveBeenCalledExactlyOnceWith(1)
-  expect(disposeIngress).toHaveBeenCalledOnce()
   expect(disposeAuthIpc).toHaveBeenCalledOnce()
   expect(destroy).toHaveBeenCalledOnce()
 })

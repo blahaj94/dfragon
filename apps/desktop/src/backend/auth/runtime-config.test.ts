@@ -33,7 +33,6 @@ type WindowsRuntimeFilesystemDouble = {
 
 const validEnvironment = {
   DFRAGON_AUTH_API_ORIGIN: 'https://api.synthetic.test',
-  DFRAGON_AUTH_RETURN_TARGET: 'dfragon-synthetic://auth/return',
   DFRAGON_AUTH_ENVIRONMENT: 'test',
   DFRAGON_AUTH_PROVIDERS: 'passkey',
   DFRAGON_AUTH_APP_IDENTITY: 'com.synthetic.dfragon',
@@ -138,7 +137,6 @@ describe('desktop auth runtime config', () => {
   it('validates a complete trusted tuple without supplying defaults', () => {
     expect(readAuthRuntimeConfig(validEnvironment, posix)).toEqual({
       apiOrigin: 'https://api.synthetic.test',
-      returnTarget: 'dfragon-synthetic://auth/return',
       environment: 'test',
       providers: ['passkey'],
       appIdentity: 'com.synthetic.dfragon',
@@ -149,7 +147,6 @@ describe('desktop auth runtime config', () => {
   it.each([
     {},
     { ...validEnvironment, DFRAGON_AUTH_API_ORIGIN: '' },
-    { ...validEnvironment, DFRAGON_AUTH_RETURN_TARGET: 'https://wrong.test/return' },
     { ...validEnvironment, DFRAGON_AUTH_ENVIRONMENT: 'Test' },
     { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'google,google' },
     { ...validEnvironment, DFRAGON_AUTH_PROVIDERS: 'discord' },
@@ -165,7 +162,6 @@ describe('desktop auth runtime config', () => {
 
   it.each([
     'DFRAGON_AUTH_API_ORIGIN',
-    'DFRAGON_AUTH_RETURN_TARGET',
     'DFRAGON_AUTH_ENVIRONMENT',
     'DFRAGON_AUTH_PROVIDERS',
     'DFRAGON_AUTH_APP_IDENTITY',
@@ -253,7 +249,6 @@ describe('desktop auth runtime config', () => {
       }
       const config: AuthRuntimeConfig = {
         apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
         environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
         appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,
@@ -614,7 +609,6 @@ describe('desktop auth runtime config', () => {
       }
       const config: AuthRuntimeConfig = {
         apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
         environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
         appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,
@@ -663,7 +657,6 @@ describe('desktop auth runtime config', () => {
       }
       const config: AuthRuntimeConfig = {
         apiOrigin: validEnvironment.DFRAGON_AUTH_API_ORIGIN,
-        returnTarget: validEnvironment.DFRAGON_AUTH_RETURN_TARGET,
         environment: validEnvironment.DFRAGON_AUTH_ENVIRONMENT,
         providers: ['passkey'],
         appIdentity: validEnvironment.DFRAGON_AUTH_APP_IDENTITY,

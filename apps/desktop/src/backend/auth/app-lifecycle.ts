@@ -6,11 +6,10 @@ type AuthAppLifecycleOptions = Readonly<{
   app: {
     on(event: 'before-quit', listener: (event: QuitEvent) => void): void
     on(event: 'will-quit', listener: (event: QuitEvent) => void): void
-    on(event: 'quit', listener: () => void): void
+    on(event: 'quit' | 'second-instance', listener: () => void): void
     exit(code?: number): void
   }
   ownsAuthProfile(): boolean
-  disposeProtocolIngress(): void
 }>
 
 export type AuthAppLifecycle = Readonly<{
@@ -24,7 +23,7 @@ export type AuthAppLifecycle = Readonly<{
   disposeExternalResources(): void
   isQuitting(): boolean
   isShutdownCommitted(): boolean
-  canReceiveProtocolIngress(): boolean
+  enableWindowActivation(activate: () => void): void
   waitForQuitOutcome(): Promise<boolean>
   runBootstrap<T>(bootstrap: (isActive: () => boolean) => Promise<T | null>): Promise<T | null>
   runAfterQuitOutcome(action: () => Promise<void> | void): Promise<void> | void
@@ -40,7 +39,8 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
   let mainWindow: BrowserWindow | null = null
   let disposeAuthIpc: (() => void) | undefined
   let disposeClockPowerMonitor: (() => void) | undefined
-  let protocolIngressDisposed = false
+  let activateWindow: (() => void) | undefined
+  let hasPendingWindowActivation = false
   let isQuitting = false
   let activeQuitAttempt: symbol | null = null
   let shutdownCommitted = false
@@ -173,23 +173,21 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     }
   }
 
-  function disposeProtocolIngress(): void {
-    if (protocolIngressDisposed) {
+  function requestWindowActivation(): Promise<void> | void {
+    if (activateWindow == null) {
+      hasPendingWindowActivation = true
+
       return
     }
 
-    protocolIngressDisposed = true
-    options.disposeProtocolIngress()
-  }
+    // 실행과 종료 차단은 quit 결과를 소유한 경계에서 함께 처리한다.
 
-  function disposePowerMonitor(): void {
-    disposeClockPowerMonitor?.()
-    disposeClockPowerMonitor = undefined
+    return runAfterQuitOutcome(activateWindow)
   }
 
   function disposeExternalResources(): void {
-    disposePowerMonitor()
-    disposeProtocolIngress()
+    disposeClockPowerMonitor?.()
+    disposeClockPowerMonitor = undefined
   }
 
   function commitShutdown(): void {
@@ -374,6 +372,7 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     options.app.on('before-quit', beginQuitAttempt)
     options.app.on('will-quit', observeQuitAttempt)
     options.app.on('quit', commitShutdown)
+    options.app.on('second-instance', requestWindowActivation)
   }
 
   return {
@@ -400,7 +399,13 @@ export function createAuthAppLifecycle(options: AuthAppLifecycleOptions): AuthAp
     disposeExternalResources,
     isQuitting: () => isQuitting,
     isShutdownCommitted: () => shutdownCommitted,
-    canReceiveProtocolIngress: () => !shutdownCommitted && !protocolIngressDisposed,
+    enableWindowActivation: (activate) => {
+      activateWindow = activate
+      if (hasPendingWindowActivation) {
+        hasPendingWindowActivation = false
+        requestWindowActivation()
+      }
+    },
     waitForQuitOutcome,
     runBootstrap,
     runAfterQuitOutcome,
