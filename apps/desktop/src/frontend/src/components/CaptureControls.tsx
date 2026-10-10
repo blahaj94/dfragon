@@ -1,7 +1,7 @@
 import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Badge, Icon } from '@seed-design/react'
+import { Badge } from '@seed-design/react'
 import {
   Typo,
   ActionButton,
@@ -15,6 +15,7 @@ import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
+import { IconButton } from './IconButton'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
@@ -68,19 +69,12 @@ export function CaptureControls({
       }}
     >
       <DialogTrigger asChild>
-        <ActionButton
-          size="medium"
+        <IconButton
           variant="neutralWeak"
-          layout="iconOnly"
           aria-label="화면 캡처"
           aria-haspopup="dialog"
-          {...stylex.props(styles.cameraButton)}
-        >
-          <Icon
-            svg={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
-            size="x6"
-          />
-        </ActionButton>
+          icon={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
+        />
       </DialogTrigger>
       <DialogContent
         ref={dialogRef}

@@ -2,8 +2,6 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
-  // SEED medium iconOnly pads 10px around an 18px icon; 8px keeps the 40px square around the 24px icon.
-  trigger: { padding: 8 },
   dialog: {
     width: 800,
     maxWidth: 'calc(100vw - 24px)',

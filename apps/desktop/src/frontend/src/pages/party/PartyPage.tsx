@@ -1,8 +1,8 @@
 import { CameraIcon } from '../../components/CameraIcon'
+import { IconButton } from '../../components/IconButton'
 import { MoonIcon } from '../../components/MoonIcon'
 import { SunIcon } from '../../components/SunIcon'
 import { Typo, ActionButton } from '@dfragon/ui'
-import { Icon } from '@seed-design/react'
 import type { ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CharacterCard } from '../../sections/CharacterCard'
@@ -59,28 +59,20 @@ export function PartyPage({
     <>
       <header {...stylex.props(styles.header)}>
         {capture ?? (
-          <ActionButton
-            size="medium"
+          <IconButton
             variant="neutralWeak"
-            layout="iconOnly"
             disabled
             aria-label="캡처 연결 예정"
-            {...stylex.props(styles.iconButton)}
-          >
-            <Icon svg={<CameraIcon />} size="x6" />
-          </ActionButton>
+            icon={<CameraIcon />}
+          />
         )}
         <div {...stylex.props(styles.actions)}>
-          <ActionButton
-            size="medium"
+          <IconButton
             variant="ghost"
-            layout="iconOnly"
             aria-label={light ? '다크 테마' : '라이트 테마'}
             onClick={toggleTheme}
-            {...stylex.props(styles.iconButton)}
-          >
-            <Icon svg={light ? <MoonIcon /> : <SunIcon />} size="x6" />
-          </ActionButton>
+            icon={light ? <MoonIcon /> : <SunIcon />}
+          />
           {account === undefined ? (
             <ActionButton size="medium" variant="neutralWeak" disabled>
               <Typo.txtM as="span" weight={700}>

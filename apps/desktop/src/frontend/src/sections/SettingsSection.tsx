@@ -3,12 +3,13 @@ import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
-import { Icon, Switch } from '@seed-design/react'
+import { Switch } from '@seed-design/react'
 import type { NoticeEntry } from '@dfragon/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
 import { SettingsIcon } from '../components/SettingsIcon'
+import { IconButton } from '../components/IconButton'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 import { styles } from './SettingsSection.style'
 import { BuildVersionsSection } from './BuildVersionsSection'
@@ -176,16 +177,12 @@ export function SettingsSection({
       }}
     >
       <DialogTrigger asChild>
-        <ActionButton
-          size="medium"
-          layout="iconOnly"
+        <IconButton
           variant="ghost"
           aria-label="설정"
           aria-haspopup="dialog"
-          {...stylex.props(styles.trigger)}
-        >
-          <Icon svg={<SettingsIcon />} size="x6" />
-        </ActionButton>
+          icon={<SettingsIcon />}
+        />
       </DialogTrigger>
       <DialogContent
         title={<Typo.h5 as="span">설정</Typo.h5>}
