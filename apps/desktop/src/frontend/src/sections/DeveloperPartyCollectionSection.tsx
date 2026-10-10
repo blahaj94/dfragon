@@ -9,6 +9,7 @@ import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH } from '../lib/paddle-recognition'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
+import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperPartyCollectionSection.style'
 import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
 import { CheckIcon } from '../components/CheckIcon'
@@ -140,8 +141,11 @@ export function DeveloperPartyCollectionSection({
                   <Typo.txtM as="span" weight={700}>
                     {slotNumber}
                   </Typo.txtM>
-                  <Checkbox.Control>
-                    <Checkbox.Indicator checked={<CheckIcon />} />
+                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
+                    <Checkbox.Indicator
+                      checked={<CheckIcon />}
+                      {...stylex.props(checkboxStyles.indicator)}
+                    />
                   </Checkbox.Control>
                   <Checkbox.HiddenInput aria-label={`${slotNumber}번 크롭 저장`} />
                 </Checkbox.Root.Primitive>

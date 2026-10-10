@@ -5,6 +5,7 @@ import { Checkbox } from '@seed-design/react'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
+import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
 import { CheckIcon } from '../components/CheckIcon'
 import { StatusBadge } from '../components/StatusBadge'
@@ -213,8 +214,11 @@ export function DeveloperParticipantCollectionSection({
                     {raid ? '행' : '번'}
                   </Typo.txtS>
                   <Typo.caption {...stylex.props(styles.rowLabel)}>{rowLabel}</Typo.caption>
-                  <Checkbox.Control>
-                    <Checkbox.Indicator checked={<CheckIcon />} />
+                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
+                    <Checkbox.Indicator
+                      checked={<CheckIcon />}
+                      {...stylex.props(checkboxStyles.indicator)}
+                    />
                   </Checkbox.Control>
                   <Checkbox.HiddenInput
                     aria-label={
