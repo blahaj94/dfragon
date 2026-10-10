@@ -10,6 +10,7 @@ declare global {
     ocrCollection: typeof import('./api/ocr-collection')
     diagnostics: typeof import('./api/diagnostics')
     updateNotice: typeof import('./api/update-notice')
+    windowChrome: typeof import('./api/window-chrome')
   }
 }
 

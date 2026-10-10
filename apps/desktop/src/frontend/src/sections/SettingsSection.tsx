@@ -2,6 +2,7 @@ import { PRODUCT_NAME } from '@dfragon/lib'
 import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
   Typo,
   ActionButton,
@@ -182,14 +183,16 @@ export function SettingsSection({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <IconButton
-          variant="ghost"
-          aria-label="설정"
-          aria-haspopup="dialog"
-          icon={<SettingsIcon />}
-        />
-      </DialogTrigger>
+      <span {...stylex.props(windowChromeStyles.noDrag)}>
+        <DialogTrigger asChild>
+          <IconButton
+            variant="ghost"
+            aria-label="설정"
+            aria-haspopup="dialog"
+            icon={<SettingsIcon />}
+          />
+        </DialogTrigger>
+      </span>
       <DialogContent
         title={<Typo.h5 as="span">설정</Typo.h5>}
         {...stylex.props(styles.dialog, light && lightTheme)}

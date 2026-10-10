@@ -29,6 +29,10 @@ const mocks = vi.hoisted(() => {
   const disposeCapture = vi.fn()
   const registerCapture = vi.fn(() => disposeCapture)
   const registerDiagnosticsWindow = vi.fn(() => vi.fn())
+  const registerWindowChromeWindow = vi.fn<
+    typeof import('./window-chrome/ipc-handler').registerWindowChromeWindow
+  >(() => vi.fn())
+  const nativeTheme = { shouldUseDarkColors: false }
   const disposeMainDiagnostics = vi.fn()
   const registerMainDiagnosticErrors = vi.fn(() => disposeMainDiagnostics)
   const reportDiagnostic = vi.fn()
@@ -103,6 +107,8 @@ const mocks = vi.hoisted(() => {
     registerCapture,
     disposeCapture,
     registerDiagnosticsWindow,
+    registerWindowChromeWindow,
+    nativeTheme,
     registerMainDiagnosticErrors,
     disposeMainDiagnostics,
     reportDiagnostic,
@@ -199,7 +205,7 @@ vi.mock('electron', () => {
     destroy = vi.fn()
   }
 
-  return { powerMonitor, session, app, BrowserWindow }
+  return { powerMonitor, session, app, BrowserWindow, nativeTheme: mocks.nativeTheme }
 })
 vi.mock('@electron-toolkit/utils', () => {
   const electronApp = { setAppUserModelId: vi.fn() }
@@ -237,6 +243,9 @@ vi.mock('./update-notice/ipc-handler', () => ({
 vi.mock('./diagnostics/ipc-handler', () => ({
   registerDiagnosticsWindow: mocks.registerDiagnosticsWindow
 }))
+vi.mock('./window-chrome/ipc-handler', () => ({
+  registerWindowChromeWindow: mocks.registerWindowChromeWindow
+}))
 vi.mock('./diagnostics/log', () => ({
   registerMainDiagnosticErrors: mocks.registerMainDiagnosticErrors,
   reportDiagnostic: mocks.reportDiagnostic
@@ -268,6 +277,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   mocks.setName.mockReset()
   mocks.windows = []
+  mocks.nativeTheme.shouldUseDarkColors = false
   mocks.createIngress.mockReturnValue({
     ownsInstance: true,
     attach: mocks.attachIngress,
@@ -549,6 +559,78 @@ it.each([
   expect(mocks.registerUpdateNoticeWindow).toHaveBeenCalledOnce()
 })
 
+it.each([
+  ['win32', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
+  ['win32', true, { color: '#1d2025', symbolColor: '#f3f4f5', height: 56 }, '#1d2025'],
+  ['linux', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
+  ['linux', true, { color: '#1d2025', symbolColor: '#f3f4f5', height: 56 }, '#1d2025'],
+  ['darwin', false, { height: 56 }, '#ffffff'],
+  ['darwin', true, { height: 56 }, '#1d2025']
+] as const)(
+  '%s의 시스템 다크 모드 %s에 맞춰 제목 표시줄과 초기 창 색상을 설정한다',
+  async (platform, shouldUseDarkColors, titleBarOverlay, backgroundColor) => {
+    const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform')!
+    Object.defineProperty(process, 'platform', { value: platform })
+    mocks.nativeTheme.shouldUseDarkColors = shouldUseDarkColors
+    try {
+      await import('./main')
+      await mocks.bootstrap
+
+      expect(mocks.constructWindow).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          minWidth: 460,
+          titleBarStyle: 'hidden',
+          titleBarOverlay,
+          backgroundColor
+        })
+      )
+    } finally {
+      Object.defineProperty(process, 'platform', originalPlatform)
+    }
+  }
+)
+
+it.each([undefined, 'http://localhost:5173'])(
+  '메인 창과 정확한 문서 URL로 창 색상 IPC를 등록한다: %s',
+  async (devUrl) => {
+    vi.stubEnv('ELECTRON_RENDERER_URL', devUrl)
+    await import('./main')
+    await mocks.bootstrap
+    const documentUrl =
+      devUrl == null
+        ? pathToFileURL(mocks.loadFile.mock.calls[0][0]).href
+        : 'http://localhost:5173/'
+
+    expect(mocks.registerWindowChromeWindow).toHaveBeenCalledExactlyOnceWith({
+      window: mocks.windows[0],
+      documentUrl
+    })
+  }
+)
+
+it('창 색상 IPC 등록 실패에도 캡처와 인증을 시작하고 창을 연다', async () => {
+  stubTrustedRuntimeEnvironment()
+  mocks.registerWindowChromeWindow.mockImplementationOnce(() => {
+    throw new Error('Synthetic window chrome registration failure')
+  })
+  await import('./main')
+  await mocks.bootstrap
+  const window = mocks.windows[0] as {
+    on: ReturnType<typeof vi.fn>
+    show: ReturnType<typeof vi.fn>
+  }
+  const showWindow = window.on.mock.calls.find(
+    ([event]) => event === 'ready-to-show'
+  )![1] as () => void
+  showWindow()
+
+  expect(window.show).toHaveBeenCalledOnce()
+  expect(mocks.registerCapture).toHaveBeenCalledOnce()
+  expect(mocks.registerAuth).toHaveBeenCalledOnce()
+  expect(mocks.loadFile).toHaveBeenCalledOnce()
+  expect(mocks.runtime?.start).toHaveBeenCalledOnce()
+})
+
 it('capture and authentication still start when version metadata registration fails', async () => {
   stubTrustedRuntimeEnvironment()
   mocks.registerVersionsWindow.mockImplementationOnce(() => {
@@ -818,6 +900,8 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   closeWindow()
   mocks.windows = []
 
+  const disposeWindowChrome = vi.fn()
+  mocks.registerWindowChromeWindow.mockReturnValueOnce(disposeWindowChrome)
   mocks.loadFile.mockImplementationOnce(() => {
     throw new Error('Synthetic late window composition failure')
   })
@@ -832,6 +916,7 @@ it('window 구성 후반 실패는 auth IPC와 partial instance를 폐기하고 
   expect(partialWindow.show).not.toHaveBeenCalled()
   expect(authDisposers[1]).toHaveBeenCalledOnce()
   expect(mocks.disposeCharacterDetails).toHaveBeenCalledOnce()
+  expect(disposeWindowChrome).toHaveBeenCalledOnce()
 
   activate()
 

@@ -1,7 +1,9 @@
 import { ActionButton } from '@dfragon/ui'
+import * as stylex from '@stylexjs/stylex'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
 import { useAuthBridge } from '../hooks/useAuthBridge'
+import { windowChromeStyles } from '../constants/window-chrome.style'
 
 export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | null {
   const { snapshot, commandPending, connectionFailed, onIntent, resynchronize } = useAuthBridge(api)
@@ -21,27 +23,29 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
   }
 
   return (
-    <ActionButton
-      size="medium"
-      variant="neutralWeak"
-      aria-label="로그인"
-      aria-busy={inProgress}
-      disabled={inProgress || (!canBeginLogin && !canRetry && !connectionFailed)}
-      onClick={() => {
-        if (inProgress) {
-          return
-        }
+    <span {...stylex.props(windowChromeStyles.noDrag)}>
+      <ActionButton
+        size="medium"
+        variant="neutralWeak"
+        aria-label="로그인"
+        aria-busy={inProgress}
+        disabled={inProgress || (!canBeginLogin && !canRetry && !connectionFailed)}
+        onClick={() => {
+          if (inProgress) {
+            return
+          }
 
-        if (connectionFailed) {
-          resynchronize()
-        } else if (canRetry) {
-          onIntent({ type: 'retryAuth' })
-        } else if (canBeginLogin) {
-          onIntent({ type: 'beginLogin', provider: 'passkey' })
-        }
-      }}
-    >
-      <LoginButtonLabel label="로그인" inProgress={inProgress} />
-    </ActionButton>
+          if (connectionFailed) {
+            resynchronize()
+          } else if (canRetry) {
+            onIntent({ type: 'retryAuth' })
+          } else if (canBeginLogin) {
+            onIntent({ type: 'beginLogin', provider: 'passkey' })
+          }
+        }}
+      >
+        <LoginButtonLabel label="로그인" inProgress={inProgress} />
+      </ActionButton>
+    </span>
   )
 }

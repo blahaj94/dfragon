@@ -5,7 +5,9 @@ export const styles = stylex.create({
   dialog: {
     width: 800,
     maxWidth: 'calc(100vw - 24px)',
-    maxHeight: 'calc(100dvh - 24px)',
+    // OS 창 버튼 띠 아래에서 가운데에 놓는다. 창 버튼은 웹 내용보다 먼저 클릭을 받는다.
+    marginTop: 'env(titlebar-area-height, 0px)',
+    maxHeight: 'calc(100dvh - env(titlebar-area-height, 0px) - 24px)',
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
     borderWidth: 1,
@@ -20,7 +22,7 @@ export const styles = stylex.create({
     boxSizing: 'border-box',
     minHeight: 0,
     // With the 70px header and the borders this keeps the dialog at 800 x 600.
-    height: 'min(528px, calc(100dvh - 110px))',
+    height: 'min(528px, calc(100dvh - env(titlebar-area-height, 0px) - 110px))',
     borderTopWidth: 1,
     borderTopStyle: 'solid',
     borderTopColor: colors.borderDefault

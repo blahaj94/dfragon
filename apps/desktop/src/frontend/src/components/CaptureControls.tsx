@@ -1,6 +1,7 @@
 import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
+import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
   Typo,
   ActionButton,
@@ -68,14 +69,16 @@ export function CaptureControls({
         }
       }}
     >
-      <DialogTrigger asChild>
-        <IconButton
-          variant="neutralWeak"
-          aria-label="화면 캡처"
-          aria-haspopup="dialog"
-          icon={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
-        />
-      </DialogTrigger>
+      <span {...stylex.props(windowChromeStyles.noDrag)}>
+        <DialogTrigger asChild>
+          <IconButton
+            variant="neutralWeak"
+            aria-label="화면 캡처"
+            aria-haspopup="dialog"
+            icon={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
+          />
+        </DialogTrigger>
+      </span>
       <DialogContent
         ref={dialogRef}
         {...stylex.props(styles.dialog, light && lightTheme)}

@@ -41,7 +41,7 @@ async function render(props: ComponentProps<typeof PartyPage>): Promise<void> {
   await act(async () =>
     root.render(
       <ColorThemeProvider>
-        <PartyPage {...props} settings={<span />} account={<span />} capture={<span />} />
+        <PartyPage {...props} />
       </ColorThemeProvider>
     )
   )
