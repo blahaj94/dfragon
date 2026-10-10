@@ -173,7 +173,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 size="medium"
                 variant="neutralWeak"
-                {...stylex.props(buttonStyles.secondaryOnCanvas)}
+                {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={onSkip}
               >
@@ -185,7 +185,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 size="medium"
                 variant="neutralWeak"
-                {...stylex.props(buttonStyles.secondaryOnCanvas)}
+                {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={() => onSetExcluded(!sample.excluded)}
               >

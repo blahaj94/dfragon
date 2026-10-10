@@ -127,7 +127,7 @@ export function DeveloperParticipantCollectionSection({
             <ActionButton
               size="small"
               variant="neutralWeak"
-              {...stylex.props(buttonStyles.secondaryOnCanvas)}
+              {...stylex.props(buttonStyles.secondary)}
               onClick={onLabeling}
             >
               정답 입력으로

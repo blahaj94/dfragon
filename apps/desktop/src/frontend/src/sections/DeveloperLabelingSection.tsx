@@ -149,7 +149,7 @@ export function DeveloperLabelingSection({
           <ActionButton
             size="small"
             variant="neutralWeak"
-            {...stylex.props(buttonStyles.secondaryOnCanvas)}
+            {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page === 0}
             onClick={() => pagination.onPageChange(pagination.page - 1)}
           >
@@ -161,7 +161,7 @@ export function DeveloperLabelingSection({
           <ActionButton
             size="small"
             variant="neutralWeak"
-            {...stylex.props(buttonStyles.secondaryOnCanvas)}
+            {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page + 1 >= pagination.pageCount}
             onClick={() => pagination.onPageChange(pagination.page + 1)}
           >

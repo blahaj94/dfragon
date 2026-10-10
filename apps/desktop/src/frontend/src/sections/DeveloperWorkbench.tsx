@@ -261,7 +261,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         <ActionButton
           size="medium"
           variant="neutralWeak"
-          {...stylex.props(buttonStyles.secondaryOnCanvas)}
+          {...stylex.props(buttonStyles.secondary)}
           disabled={dataset.saving}
           onClick={requestClose}
         >
@@ -278,7 +278,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             <ActionButton
               size="small"
               variant="neutralWeak"
-              {...stylex.props(buttonStyles.secondaryOnCanvas)}
+              {...stylex.props(buttonStyles.secondary)}
               onClick={() => setConfirmClose(false)}
             >
               계속 작성
@@ -445,7 +445,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   <ActionButton
                     size="small"
                     variant="neutralWeak"
-                    {...stylex.props(buttonStyles.secondaryOnCanvas)}
+                    {...stylex.props(buttonStyles.secondary)}
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
                       setRemotePage(0)
@@ -570,7 +570,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      {...stylex.props(buttonStyles.secondaryOnCanvas)}
+                      {...stylex.props(buttonStyles.secondary)}
                       onClick={evaluation.cancel}
                     >
                       평가 중지
@@ -619,7 +619,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      {...stylex.props(buttonStyles.secondaryOnCanvas)}
+                      {...stylex.props(buttonStyles.secondary)}
                       disabled={!canEvaluateSelected}
                       onClick={() => {
                         if (canEvaluateSelected) {
