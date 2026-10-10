@@ -42,6 +42,7 @@ export { IconButton } from './icon-button'
 export type { IconButtonProps } from './icon-button'
 export { StatusBadge } from './status-badge'
 export type { StatusBadgeProps, StatusBadgeTone } from './status-badge'
+export { Checkmark } from './checkmark'
 
 export { default as LayoutBlock } from './seed/layout-01'
 export type { LayoutBlockProps } from './seed/layout-01'
