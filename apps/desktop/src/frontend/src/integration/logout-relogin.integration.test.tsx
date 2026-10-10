@@ -247,7 +247,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('로그인 전 검색부터 로그인, 로그아웃, 재로그인까지 같은 캡처와 검색을 유지한다', async () => {
+it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로그인까지 같은 캡처와 검색을 유지한다', async () => {
   const harness = createAuthHarness()
   const liveSearch = deferred<Response>()
   const lateSearch = deferred<Response>()
@@ -372,6 +372,29 @@ it('로그인 전 검색부터 로그인, 로그아웃, 재로그인까지 같�
     await waitForCondition(() =>
       expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
     )
+    const attemptId = runtime.coordinator.getSnapshot().login?.attemptId
+    expect(attemptId).toEqual(expect.any(String))
+    expect(button(container, '취소').disabled).toBe(false)
+    await click(container, '취소')
+    await waitForText(container, '로그인')
+    expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith('cancelLogin', { attemptId })
+    expect(runtime.coordinator.getSnapshot()).toMatchObject({
+      phase: 'signedOut',
+      login: null,
+      notice: 'LOGIN_CANCELLED'
+    })
+    expect(harness.http.exchange).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('live-character')
+    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    expect((await searchApi.controlCharacterSearch({ action: 'read' })).snapshot.captureId).toBe(
+      captureId
+    )
+
+    await click(container, '로그인')
+    await waitForCondition(() =>
+      expect(runtime.coordinator.getSnapshot().phase).toBe('waitingBrowser')
+    )
+    expect(runtime.coordinator.getSnapshot().login?.attemptId).not.toBe(attemptId)
     await act(async () => {
       await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     })

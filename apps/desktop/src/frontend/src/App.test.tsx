@@ -149,7 +149,7 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('인증 창의 취소, 실패, 성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
+it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
   await act(async () =>
     root.render(
       <ColorThemeProvider>
@@ -160,17 +160,14 @@ it('인증 창의 취소, 실패, 성공과 외부 로그아웃 이후에도 카
   const cards = [...container.querySelectorAll('article')]
   const loginButton = container.querySelector('header button[aria-label="로그인"]')
   await click('로그인')
-  expect(container.querySelector('header button[aria-label="로그인"]')).toBe(loginButton)
+  expect(container.querySelector('header button[aria-label="취소"]')).toBe(loginButton)
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
-  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(container.querySelector('header')?.textContent).toContain('취소')
   expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
-  await click('로그인')
+  await click('취소')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.beginLogin).toHaveBeenCalledTimes(1)
-  await act(async () => {
-    await api.cancelLogin({ attemptId: 'test-attempt' })
-  })
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
   expect(container.querySelector('header')?.textContent).toContain('로그인')
   expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
@@ -191,6 +188,7 @@ it('인증 창의 취소, 실패, 성공과 외부 로그아웃 이후에도 카
     })
   })
   expect(container.querySelector('header button[aria-label="로그인"]')).toBeNull()
+  expect(container.querySelector('header button[aria-label="취소"]')).toBeNull()
   expect(document.body.textContent).not.toContain('내 계정')
   expect(document.body.textContent).not.toContain('테스트모험가')
   await act(async () => {
@@ -202,23 +200,70 @@ it('인증 창의 취소, 실패, 성공과 외부 로그아웃 이후에도 카
   expect([...container.querySelectorAll('article')]).toEqual(cards)
 })
 
-it('로그인 진행 중 재클릭은 모달과 중복 요청을 만들지 않는다', async () => {
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider>
-        <App />
-      </ColorThemeProvider>
+it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
+  '%s에서 취소 버튼을 표시하고 응답 대기 중 재클릭도 현재 attempt로 전달한다',
+  async (phase) => {
+    snapshot = {
+      ...snapshot,
+      phase,
+      login: {
+        attemptId: 'current-attempt',
+        provider: 'passkey',
+        expiresAt: phase === 'startingLogin' ? null : '2030-01-01T00:10:00Z'
+      }
+    }
+    let finishCancellation!: (result: Awaited<ReturnType<AuthApi['cancelLogin']>>) => void
+    const cancellation = new Promise<Awaited<ReturnType<AuthApi['cancelLogin']>>>((resolve) => {
+      finishCancellation = resolve
+    })
+    vi.mocked(api.cancelLogin).mockReturnValue(cancellation)
+    await act(async () =>
+      root.render(
+        <ColorThemeProvider>
+          <App />
+        </ColorThemeProvider>
+      )
     )
-  )
-  await click('로그인')
-  await click('로그인')
-  await click('로그인')
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
-  expect(container.querySelector('[aria-label="로그인"]')?.getAttribute('aria-haspopup')).toBeNull()
-  expect(api.beginLogin).toHaveBeenCalledTimes(1)
-  expect(api.cancelLogin).not.toHaveBeenCalled()
-  expect(listeners.size).toBe(1)
-})
+
+    const cancel = container.querySelector<HTMLButtonElement>('header button[aria-label="취소"]')!
+    expect(cancel.textContent).toBe('취소')
+    expect(cancel.disabled).toBe(false)
+    expect(cancel.getAttribute('aria-busy')).toBe('true')
+    const icon = cancel.firstElementChild!
+    expect(icon.tagName).toBe('svg')
+    expect(icon.getAttribute('width')).toBe('16')
+    expect(icon.getAttribute('height')).toBe('16')
+    expect(icon.getAttribute('aria-hidden')).toBe('true')
+    await click('취소')
+    expect(cancel.disabled).toBe(false)
+    await click('취소')
+    expect(api.cancelLogin).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(api.cancelLogin).mock.calls).toEqual([
+      [{ attemptId: 'current-attempt' }],
+      [{ attemptId: 'current-attempt' }]
+    ])
+    expect(api.beginLogin).not.toHaveBeenCalled()
+    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(listeners.size).toBe(1)
+
+    await act(async () => {
+      finishCancellation({
+        ok: true,
+        snapshot: {
+          ...snapshot,
+          revision: 2,
+          phase: 'signedOut',
+          login: null,
+          notice: 'LOGIN_CANCELLED'
+        }
+      })
+    })
+    expect(container.querySelector('header button[aria-label="취소"]')).toBeNull()
+    expect(
+      container.querySelector<HTMLButtonElement>('header button[aria-label="로그인"]')?.disabled
+    ).toBe(false)
+  }
+)
 
 it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고 unmount 때 구독을 해제한다', async () => {
   snapshot = { ...snapshot, phase: 'restoring' }

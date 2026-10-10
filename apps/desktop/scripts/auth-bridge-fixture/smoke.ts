@@ -105,9 +105,8 @@ export async function smoke(
     assert.equal(args.length, 1)
     noCanary(args)
   }
-  await evaluate(
-    'window.auth.getAuthState().then(state => window.auth.cancelLogin({attemptId: state.login.attemptId}))'
-  )
+  await until(() => textIncludes('취소'))
+  await click('취소')
   await until(async () => {
     const isSignedOut = (await state()).phase === 'signedOut'
 
@@ -128,8 +127,8 @@ export async function smoke(
     window.webContents.once('did-finish-load', () => resolve())
     window.webContents.reload()
   })
-  await until(() => textIncludes('로그인'))
-  assert.equal(await evaluate('document.querySelector("button[aria-label=로그인]").disabled'), true)
+  await until(() => textIncludes('취소'))
+  assert.equal(await evaluate('document.querySelector("button[aria-label=취소]").disabled'), false)
   assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null)
   await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
   assert.equal((await state()).login?.attemptId, beforeReload.login?.attemptId)
