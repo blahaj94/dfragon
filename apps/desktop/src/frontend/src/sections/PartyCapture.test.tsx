@@ -15,7 +15,7 @@ const capture = vi.hoisted(() => {
   return {
     sources: [],
     selectedSourceId: '',
-    sourceRegistered: false,
+    canStartCapture: false,
     starting: false,
     search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
     retrySearch,

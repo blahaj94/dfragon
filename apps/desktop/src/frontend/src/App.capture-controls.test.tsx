@@ -16,7 +16,7 @@ const capture = vi.hoisted(() => {
   return {
     sources: [{ id: 'example-window', name: 'Example window' }],
     selectedSourceId: '',
-    sourceRegistered: false,
+    canStartCapture: false,
     starting: false,
     search: {
       ready: true,
@@ -45,7 +45,7 @@ let root: Root
 
 beforeEach(async () => {
   vi.clearAllMocks()
-  capture.sourceRegistered = false
+  capture.canStartCapture = false
   capture.search.captureActive = false
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   container = document.createElement('div')
@@ -98,11 +98,11 @@ it('preserves selection values and numeric OCR interval callback', async () => {
   expect(capture.setIntervalSeconds).toHaveBeenCalledExactlyOnceWith(5)
 })
 
-it('blocks unregistered Start and preserves registered Start and Stop callbacks', async () => {
+it('blocks Start when capture cannot start and preserves allowed Start and Stop callbacks', async () => {
   await act(async () => button('캡처 시작').click())
   expect(capture.startCapture).not.toHaveBeenCalled()
 
-  capture.sourceRegistered = true
+  capture.canStartCapture = true
   await act(async () => root.render(<PartyCapture />))
   await act(async () => {
     button('캡처 시작').click()
