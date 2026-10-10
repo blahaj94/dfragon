@@ -92,6 +92,8 @@ pnpm --filter @dfragon/desktop dev
 pnpm --filter @dfragon/desktop dev:preview
 ```
 
+상단 바는 `components/TopBar.tsx`가 창 맨 위에 폭 전체, 높이 56으로 그린다. 로고(`resources/brand.png` 24px과 `Typo.h6` 18px 600의 제품 이름), 캡처 상태 배지, 도구 버튼 순서다. 배지는 캡처 모달과 같은 `getCaptureControlState`의 이름과 tone을 `@dfragon/ui`의 `StatusBadge`로 그린다. 상단 바 배지에는 `role`을 주지 않는다. 모달이 열려 있으면 모달 배지가 같은 상태를 알리므로 두 번 읽히지 않게 하려는 것이다. 모달이 닫혀 있을 때의 창 감지 상태 변화는 이전처럼 알리지 않고, 하단 바는 캡처 진행 문구를 알린다. OS 창 버튼 자리를 뺀 상단 바 내용 폭이 440px 이하면 배지를, 344px 이하면 제품 이름을 container query로 숨긴다. 로그인 버튼이 있을 때 도구 묶음 224px, 로고 103px, 가장 긴 배지 80px과 간격으로 정한 기준이다. 개발자 작업 공간을 여는 동안은 배지와 카메라를 숨긴다. 디자인의 검색, 캐릭터, 도구, 플래너 메뉴는 아직 넣지 않았다.
+
 상단 바의 카메라, 테마, 설정은 `@dfragon/ui`의 `IconButton`(디자인 `IconButton` md와 같은 40 정사각형)에 24px Lucide 아이콘(`camera`, `sun` 또는 `moon`, `settings`)을 둡니다. 카메라는 `neutralWeak` 배경, 테마와 설정은 배경 없는 `ghost`입니다. 로그인은 SEED `medium` `neutralWeak` 버튼에 `Typo.txtM` 700 라벨입니다.
 
 설정 대화상자는 디자인 대화상자 lg 크기 800 × 600, 반지름 12, `border.default` 1이고 머리 아래에 구분선을 둡니다. 폭 200의 메뉴는 높이 40의 `NavItem`이며 선택 항목은 `bg.brand.weak`입니다. 디자인 메뉴에 없는 `버전 정보`는 제품 기능이라 첫 메뉴로 유지합니다. 라이선스 목록은 디자인 표처럼 배경 없이 반지름 4의 행을 쌓고, 첫 행부터 한 줄 걸러 `bg.stripe`를 칠합니다. 디자인 표의 머리 행 대신 검색 입력과 구성 요소 개수를 두므로, 머리 행을 세는 디자인의 짝수 행이 여기서는 홀수 행입니다. 행은 이름(16/24)과 버전(12/18)의 두 줄에 위아래 여백 3을 둔 48이고, 버전이 없는 한 줄 행도 최소 높이 48입니다. 행 끝에는 24px `chevron-right`(`fg.subtle`)를 둡니다. 고지 상세 패널의 반지름은 12입니다. 개발자 모드는 SEED `Switch` 한 줄로 켜고 끄며, 켜진 동안에만 `개발 도구 열기`(medium brandSolid)를 표시합니다.
