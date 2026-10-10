@@ -20,25 +20,6 @@ export const styles = stylex.create({
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
   connectedDot: { color: colors.fgSuccess },
-  // Design StatusBadge: a pill on bg.inset with an 8px dot and text in the tone color. The
-  // SEED large badge keeps its 24px height; the width limit is lifted so the full state
-  // text stays visible instead of being cut with an ellipsis.
-  badge: {
-    maxWidth: 'none',
-    borderRadius: 999,
-    backgroundColor: colors.bgInset
-  },
-  badgeFound: { color: colors.fgSuccess },
-  badgeSearching: { color: colors.fgWarning },
-  badgeDot: {
-    display: 'inline-block',
-    width: 8,
-    height: 8,
-    marginInlineEnd: 6,
-    verticalAlign: 'middle',
-    borderRadius: '50%',
-    backgroundColor: 'currentColor'
-  },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
   muted: { color: colors.fgMuted },
   saveGuide: {

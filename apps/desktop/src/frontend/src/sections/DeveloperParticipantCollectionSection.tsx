@@ -1,12 +1,13 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
-import { Badge, Checkbox } from '@seed-design/react'
+import { Checkbox } from '@seed-design/react'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
 import { CheckIcon } from '../components/CheckIcon'
+import { StatusBadge } from '../components/StatusBadge'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
@@ -86,15 +87,9 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <Badge
-          size="large"
-          variant="weak"
-          tone={popup ? 'positive' : 'warning'}
-          {...stylex.props(styles.badge, popup ? styles.badgeFound : styles.badgeSearching)}
-        >
-          <span aria-hidden="true" {...stylex.props(styles.badgeDot)} />
+        <StatusBadge tone={popup ? 'positive' : 'warning'}>
           {windowName} {popup ? '찾음' : '찾는 중'}
-        </Badge>
+        </StatusBadge>
       </div>
 
       <div {...stylex.props(styles.heading)}>

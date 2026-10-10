@@ -1,7 +1,6 @@
 import { useColorTheme } from '../hooks/useColorTheme'
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Badge } from '@seed-design/react'
 import {
   Typo,
   ActionButton,
@@ -16,6 +15,7 @@ import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
 import { IconButton } from './IconButton'
+import { StatusBadge } from './StatusBadge'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
@@ -82,9 +82,9 @@ export function CaptureControls({
         title={
           <Typo.h5 as="span" {...stylex.props(styles.heading)}>
             화면 캡처
-            <Badge size="large" variant="weak" tone={state.tone} role="status">
+            <StatusBadge tone={state.tone} role="status">
               {state.label}
-            </Badge>
+            </StatusBadge>
           </Typo.h5>
         }
       >

@@ -15,7 +15,7 @@ type CaptureControlInput = {
   hasDetectedSource: boolean
 }
 
-// SEED Badge의 tone 이름이다. 디자인 StatusBadge의 info, success, danger는
+// 공용 StatusBadge가 받는 SEED Badge tone 이름이다. 디자인 StatusBadge의 info, success, danger는
 // 각각 informative, positive, critical에 대응한다.
 export type CaptureControlTone = 'neutral' | 'informative' | 'positive' | 'warning' | 'critical'
 
