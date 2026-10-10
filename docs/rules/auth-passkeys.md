@@ -37,11 +37,11 @@ OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts
 
 휴대폰 패스키는 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리한다. DFragon 화면에는 휴대폰 버튼, QR, 확인 번호가 없고 패스키 응답 검증은 서버가 한다. 휴대폰의 기존 패스키는 별도 계정 이관 없이 같은 RP에서 사용한다.
 
-2026-10-10 사용자 결정으로 DFragon 자체 휴대폰 QR 로그인(PC의 QR 생성, 휴대폰 패스키 인증, 6자리 확인 번호 승인, 5초 상태 조회, claim)은 완전히 제거한다. Electron 내부 브라우저가 WebAuthn hybrid QR을 지원하지 않아 만든 것이며 시스템 브라우저 인증에서는 필요 없다. 제거 범위는 `apps/accounts/src/auth/login/phone.ts`, `GET /auth/login/phone`, `POST /auth/passkeys/`의 `qr`, `status`, `claim`, `direct`, `cancel`, `phone-options`, `phone-verify`, `phone-approve`, `phone-cancel` action, phone cookie, 로그인 페이지의 휴대폰 버튼과 QR 화면, 전용 column과 상태(삭제 migration)다. 로그인 페이지에 `닫기`가 없으므로 PC 취소 action도 함께 지운다. 이 절은 승인된 변경 contract이며 제거는 구현 PR 범위다. 2026-09-26 Penpot 리뷰에서 정한 휴대폰 화면 간소화, PC 재확인 생략 결정은 폐기한다.
+2026-10-10 사용자 결정에 따라 DFragon 자체 휴대폰 QR 로그인과 패스키 관리 QR을 제거했다. `GET /auth/login/phone`, QR 생성, 상태 조회, claim, 직접 로그인 전환, 취소와 phone action, phone cookie를 더 이상 제공하지 않는다. 로그인 페이지는 `패스키로 로그인`, `새 계정 만들기`만 표시하고 회원가입 페이지는 `패스키로 회원가입` 하나만 표시한다. 휴대폰 버튼, QR 화면, 확인 번호, 남은 시간과 닫기 버튼은 제거했다. 2026-09-26 Penpot 리뷰에서 정한 자체 휴대폰 화면 동작은 폐기했다.
 
 ## 예비 패스키 관리
 
-패스키 관리의 고정 경로는 `/auth/passkeys/manage`다. 2026-09-18 사용자 요청으로 Desktop 계정 메뉴를 제거하며 메인 UI에는 관리 진입 버튼을 두지 않는다. Desktop의 `managePasskeys`는 이 고정 경로를 시스템 브라우저로 열며(2026-10-10 결정, 구현 전) 관리 API의 경계는 유지한다. 휴대폰 관리 QR은 같은 origin의 고정 관리 주소만 담고, 관리 권한은 휴대폰에만 발급한다. 관리할 계정의 패스키로 다시 인증해야 목록, 추가, 삭제가 가능하다. Renderer가 임의 URL, 회원 ID, credential을 main에 전달하지 않는다.
+패스키 관리의 고정 경로는 `/auth/passkeys/manage`다. 2026-09-18 사용자 요청으로 Desktop 계정 메뉴를 제거하며 메인 UI에는 관리 진입 버튼을 두지 않는다. Desktop의 `managePasskeys`는 이 고정 경로를 시스템 브라우저로 열며(2026-10-10 결정, 구현 전) 관리 API의 경계는 유지한다. 관리할 계정의 패스키로 다시 인증해야 목록, 추가, 삭제가 가능하다. Renderer가 임의 URL, 회원 ID, credential을 main에 전달하지 않는다.
 
 관리 요청은 생성부터 600초 동안만 유효하며 별도의 앱 session을 발급하지 않는다. 인증한 회원과 credential ID에 묶고 모든 동작에서 해당 키의 존재를 재확인한다. 현재 RP의 키만 표시하고 계정당 현재 RP의 키를 최대 20개까지 추가할 수 있다. 마지막 현재 RP 패스키 삭제는 거부하며, 다른 RP의 키는 예비 키로 세지 않는다. 현재 관리 인증에 사용한 키를 삭제하면 그 관리 권한도 종료한다. 다른 창에서 해당 키를 삭제한 경우 기존 관리 권한도 사용할 수 없다.
 
@@ -51,7 +51,7 @@ OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts
 
 `users`는 UUID, nickname, created_at을 저장한다. `auth_passkeys`는 credential ID, RP ID, user FK, 공개키, counter, transports, device type, backup flag, 등록/최근 사용 시각을 저장한다. 개인키, 지문, 얼굴, PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
-`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. 자체 휴대폰 QR의 ticket hash, phone binding hash, 6자리 확인 번호 column과 phone 상태는 2026-10-10 결정에 따라 구현 PR의 삭제 migration으로 제거한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
+`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. `RemovePhoneQrLogin` forward migration은 자체 휴대폰 QR의 ticket hash, phone binding hash, 확인 번호 column과 phone 상태를 제거한다. 활성 QR 요청은 proof와 회원 연결을 지우고 실패로 종료하며 진행 중 직접 로그인, 관리 요청과 기존 회원, 패스키, session, refresh는 보존한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
 잠금은 request → user → credential 순서다. 마지막 키 개수 검사와 추가/삭제는 user 잠금으로 직렬화한다. 모든 관련 잠금과 서명 검증 뒤 fresh DB 시각으로 만료를 재확인한다. 로그인 세션 발급 시 기존 user → session → refresh 순서를 이어 사용한다.
 
