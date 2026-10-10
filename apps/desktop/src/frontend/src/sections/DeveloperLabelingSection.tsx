@@ -5,6 +5,7 @@ import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import type { DeveloperLabelFilter } from '../lib/developer-workbench-samples'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperLabelingSection.style'
 
 const filters: { id: DeveloperLabelFilter; label: string }[] = [
@@ -148,7 +149,7 @@ export function DeveloperLabelingSection({
           <ActionButton
             size="small"
             variant="neutralWeak"
-            {...stylex.props(styles.secondaryButton)}
+            {...stylex.props(buttonStyles.secondaryOnCanvas)}
             disabled={pagination.page === 0}
             onClick={() => pagination.onPageChange(pagination.page - 1)}
           >
@@ -160,7 +161,7 @@ export function DeveloperLabelingSection({
           <ActionButton
             size="small"
             variant="neutralWeak"
-            {...stylex.props(styles.secondaryButton)}
+            {...stylex.props(buttonStyles.secondaryOnCanvas)}
             disabled={pagination.page + 1 >= pagination.pageCount}
             onClick={() => pagination.onPageChange(pagination.page + 1)}
           >

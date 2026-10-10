@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, TextField, TextFieldInput, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperSampleEditor.style'
 import { DEVELOPER_COLLECTION_LABELS } from '../constants/developer'
 
@@ -172,7 +173,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 size="medium"
                 variant="neutralWeak"
-                {...stylex.props(styles.secondaryButton)}
+                {...stylex.props(buttonStyles.secondaryOnCanvas)}
                 disabled={saving}
                 onClick={onSkip}
               >
@@ -184,7 +185,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 size="medium"
                 variant="neutralWeak"
-                {...stylex.props(styles.secondaryButton)}
+                {...stylex.props(buttonStyles.secondaryOnCanvas)}
                 disabled={saving}
                 onClick={() => onSetExcluded(!sample.excluded)}
               >

@@ -28,14 +28,5 @@ export const styles = stylex.create({
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: 8
   },
-  muted: { color: colors.fgMuted },
-  // Design secondary button: bg.control. SEED neutralWeak uses the gray step of bg.canvas in
-  // light mode, so the button would disappear on the canvas.
-  secondaryButton: {
-    backgroundColor: {
-      default: colors.bgControl,
-      ':hover:not(:disabled)': colors.bgControlHover,
-      ':disabled': 'var(--seed-color-bg-disabled)'
-    }
-  }
+  muted: { color: colors.fgMuted }
 })

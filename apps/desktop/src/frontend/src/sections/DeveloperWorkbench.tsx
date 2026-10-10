@@ -20,6 +20,7 @@ import {
   nextDeveloperWorkbenchSampleId,
   type DeveloperLabelFilter
 } from '../lib/developer-workbench-samples'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperWorkbench.style'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import {
@@ -260,7 +261,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
         <ActionButton
           size="medium"
           variant="neutralWeak"
-          {...stylex.props(styles.secondaryButton)}
+          {...stylex.props(buttonStyles.secondaryOnCanvas)}
           disabled={dataset.saving}
           onClick={requestClose}
         >
@@ -277,7 +278,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             <ActionButton
               size="small"
               variant="neutralWeak"
-              {...stylex.props(styles.secondaryButton)}
+              {...stylex.props(buttonStyles.secondaryOnCanvas)}
               onClick={() => setConfirmClose(false)}
             >
               계속 작성
@@ -444,7 +445,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   <ActionButton
                     size="small"
                     variant="neutralWeak"
-                    {...stylex.props(styles.secondaryButton)}
+                    {...stylex.props(buttonStyles.secondaryOnCanvas)}
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
                       setRemotePage(0)
@@ -569,7 +570,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      {...stylex.props(styles.secondaryButton)}
+                      {...stylex.props(buttonStyles.secondaryOnCanvas)}
                       onClick={evaluation.cancel}
                     >
                       평가 중지
@@ -618,7 +619,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     <ActionButton
                       size="small"
                       variant="neutralWeak"
-                      {...stylex.props(styles.secondaryButton)}
+                      {...stylex.props(buttonStyles.secondaryOnCanvas)}
                       disabled={!canEvaluateSelected}
                       onClick={() => {
                         if (canEvaluateSelected) {

@@ -203,14 +203,5 @@ export const styles = stylex.create({
     borderRadius: 8,
     backgroundColor: colors.bgBrandWeak,
     color: colors.fgDefault
-  },
-  // Design secondary button: bg.control. SEED neutralWeak uses the gray step of bg.canvas in
-  // light mode, so the button would disappear on the canvas.
-  secondaryButton: {
-    backgroundColor: {
-      default: colors.bgControl,
-      ':hover:not(:disabled)': colors.bgControlHover,
-      ':disabled': 'var(--seed-color-bg-disabled)'
-    }
   }
 })

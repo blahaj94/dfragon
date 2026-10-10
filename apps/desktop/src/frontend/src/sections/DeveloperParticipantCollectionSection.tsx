@@ -4,6 +4,7 @@ import { ActionButton, Typo } from '@dfragon/ui'
 import { Badge, Checkbox } from '@seed-design/react'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
 import { CheckIcon } from '../components/CheckIcon'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
@@ -126,7 +127,7 @@ export function DeveloperParticipantCollectionSection({
             <ActionButton
               size="small"
               variant="neutralWeak"
-              {...stylex.props(styles.secondaryButton)}
+              {...stylex.props(buttonStyles.secondaryOnCanvas)}
               onClick={onLabeling}
             >
               정답 입력으로
