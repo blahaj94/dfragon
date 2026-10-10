@@ -4,6 +4,10 @@ import { UUID_PATTERN } from '../access-jwt/constants.js'
 import type { LoginCreation, LoginExchange } from '../../types/login.js'
 import { decodeOpaque } from './crypto.js'
 
+// $는 마지막 개행 직전에도 일치하므로 실제 문자열 끝만 허용한다.
+const LOOPBACK_RETURN_URL_PATTERN =
+  /^http:\/\/127\.0\.0\.1:([1-9][0-9]{3,4})\/auth\/callback(?![\s\S])/
+
 export function requireExactFields(
   value: unknown,
   fields: readonly string[]
@@ -35,11 +39,18 @@ export function requireExactFields(
 }
 
 export function parseCreation(value: unknown): LoginCreation {
+  const isDesktop =
+    typeof value === 'object' &&
+    value !== null &&
+    'clientId' in value &&
+    value.clientId === 'desktop'
+  const returnUrlFields = isDesktop ? ['returnUrl'] : []
   const body = requireExactFields(value, [
     'provider',
     'clientId',
     'codeChallenge',
-    'codeChallengeMethod'
+    'codeChallengeMethod',
+    ...returnUrlFields
   ])
 
   const isSupportedProvider = body.provider === 'passkey'
@@ -57,6 +68,21 @@ export function parseCreation(value: unknown): LoginCreation {
 
   if (isCreationRequestInvalid) {
     throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
+  }
+
+  if (body.clientId === 'desktop') {
+    const returnUrl = body.returnUrl
+    if (typeof returnUrl !== 'string') {
+      throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
+    }
+    const match = LOOPBACK_RETURN_URL_PATTERN.exec(returnUrl)
+    if (match === null) {
+      throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
+    }
+    const port = Number(match[1])
+    if (port < 1024 || port > 65535) {
+      throw new LoginFailure(LOGIN_ERRORS.INVALID_REQUEST)
+    }
   }
 
   decodeOpaque(body.codeChallenge)

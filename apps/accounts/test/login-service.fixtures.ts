@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
-import { randomUUID } from 'node:crypto'
+import { isoCBOR } from '@simplewebauthn/server/helpers'
+import type { RegistrationResponseJSON } from '@simplewebauthn/server'
+import { createHash, generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
 import type { DataSource, EntityManager } from 'typeorm'
 import { createLoginService } from '../src/auth/login/service.js'
 import { configurationFingerprint } from '../src/auth/login/configuration.js'
@@ -17,8 +19,7 @@ export function managementFixture(count = 2) {
   const configuration = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFragon',
-    returnUrl: 'dfragon://auth/callback'
+    rpName: 'DFragon'
   }
   const secret = newOpaque()
   const userId = randomUUID()
@@ -39,11 +40,9 @@ export function managementFixture(count = 2) {
     }
   })
   const row: AuthLoginRequest = {
+    returnUrl: null,
     codeChallenge: null,
     launchTicketHash: null,
-    qrTicketHash: null,
-    phoneBindingHash: null,
-    confirmationCode: null,
     webauthnChallenge: null,
     operation: null,
     pendingUserId: null,
@@ -73,6 +72,10 @@ export function managementFixture(count = 2) {
   const currentKeys = () =>
     keys.filter((key) => key.userId === userId && key.rpId === configuration.rpId)
   const requests = {
+    async insert(value: AuthLoginRequest) {
+      events.push('request-insert')
+      Object.assign(row, value)
+    },
     async findOne(query: unknown) {
       assert.deepEqual(query, { where: { id: row.id }, lock: { mode: 'pessimistic_write' } })
       events.push('request-lock')
@@ -170,6 +173,9 @@ export function managementFixture(count = 2) {
       assert.equal(schema, UserSchema)
 
       return {
+        async insert() {
+          events.push('user-insert')
+        },
         async findOne(query: unknown) {
           assert.deepEqual(query, { where: { id: userId }, lock: { mode: 'pessimistic_write' } })
           events.push('user-lock')
@@ -226,4 +232,66 @@ export function managementFixture(count = 2) {
   }
 
   return { invoke, service, cookie, row, keys, now, events, configuration, state }
+}
+
+export function registrationResponse(
+  fixture: ReturnType<typeof managementFixture>,
+  {
+    challenge = fixture.row.webauthnChallenge,
+    origin = fixture.configuration.apiOrigin,
+    rpId = fixture.configuration.rpId,
+    flags = 0x45
+  } = {}
+): RegistrationResponseJSON {
+  const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+  const jwk = publicKey.export({ format: 'jwk' })
+  const coseKey = isoCBOR.encode(
+    new Map<number, number | Uint8Array>([
+      [1, 2],
+      [3, -7],
+      [-1, 1],
+      [-2, Buffer.from(jwk.x!, 'base64url')],
+      [-3, Buffer.from(jwk.y!, 'base64url')]
+    ])
+  )
+  const credentialId = randomBytes(32)
+  const id = credentialId.toString('base64url')
+  const credentialLength = Buffer.alloc(2)
+  credentialLength.writeUInt16BE(credentialId.length)
+  const rpIdHash = createHash('sha256').update(rpId).digest()
+  // 실제 none attestation 형식의 응답이며 기본 flags는 UP, UV, AT를 포함한다.
+  const authData = Buffer.concat([
+    rpIdHash,
+    Buffer.from([flags]),
+    Buffer.alloc(4),
+    Buffer.alloc(16),
+    credentialLength,
+    credentialId,
+    coseKey
+  ])
+  const encoded = isoCBOR.encode(
+    new Map<string, string | Uint8Array | Map<string, never>>([
+      ['fmt', 'none'],
+      ['authData', authData],
+      ['attStmt', new Map<string, never>()]
+    ])
+  )
+  const clientDataJSON = Buffer.from(
+    JSON.stringify({
+      type: 'webauthn.create',
+      challenge,
+      origin,
+      crossOrigin: false
+    })
+  ).toString('base64url')
+  const attestationObject = Buffer.from(encoded).toString('base64url')
+  const response: RegistrationResponseJSON = {
+    id,
+    rawId: id,
+    type: 'public-key',
+    clientExtensionResults: {},
+    response: { clientDataJSON, attestationObject, transports: ['internal'] }
+  }
+
+  return response
 }

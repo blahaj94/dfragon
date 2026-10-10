@@ -19,7 +19,6 @@ const configuration = {
   apiOrigin: 'https://accounts.example.test',
   rpId: 'accounts.example.test',
   rpName: 'DFragon 테스트',
-  returnUrl: 'dfragon.dev://auth/callback',
   ocrReturnUrl: 'https://ocr.example.test/auth/callback'
 }
 const opaque = () => randomBytes(32).toString('base64url')
@@ -84,7 +83,8 @@ async function withExchangeFixture(source, issueAccessJwt, operation) {
     provider: 'passkey',
     clientId: input.clientId,
     codeChallenge: pkce(input.codeVerifier),
-    codeChallengeMethod: 'S256'
+    codeChallengeMethod: 'S256',
+    ...(input.clientId === 'desktop' ? { returnUrl: 'http://127.0.0.1:49152/auth/callback' } : {})
   })
   input.requestId = request.requestId
   try {
@@ -315,7 +315,8 @@ async function launchAndBrowserBinding(source, issuer) {
     provider: 'passkey',
     clientId: 'desktop',
     codeChallenge: pkce(opaque()),
-    codeChallengeMethod: 'S256'
+    codeChallengeMethod: 'S256',
+    returnUrl: 'http://127.0.0.1:49153/auth/callback'
   })
   try {
     const ticket = new URL(request.browserUrl).searchParams.get('ticket')
@@ -333,6 +334,7 @@ async function launchAndBrowserBinding(source, issuer) {
       request.requestId
     ])
     assert.equal(row.status, 'browser_started')
+    assert.equal(row.return_url, 'http://127.0.0.1:49153/auth/callback')
     assert.equal(row.launch_ticket_hash, null)
     assert.deepEqual(row.browser_binding_hash, hash(cookie.slice(cookie.indexOf('=') + 1)))
     for (const [header, origin] of [
@@ -343,7 +345,13 @@ async function launchAndBrowserBinding(source, issuer) {
       [cookie, 'https://attacker.invalid']
     ]) {
       await rejected(
-        () => service.browser('cancel', { requestId: request.requestId }, header, origin),
+        () =>
+          service.browser(
+            'options',
+            { requestId: request.requestId, operation: 'authenticate' },
+            header,
+            origin
+          ),
         'LOGIN_REQUEST_INVALID'
       )
       assert.deepEqual(
@@ -351,13 +359,20 @@ async function launchAndBrowserBinding(source, issuer) {
         [row]
       )
     }
-    await service.browser(
-      'cancel',
-      { requestId: request.requestId },
+    const options = await service.browser(
+      'options',
+      { requestId: request.requestId, operation: 'authenticate' },
       cookie,
       configuration.apiOrigin
     )
-    await assertTerminalLoginRequest(source, request.requestId, 'failed')
+    const [started] = await source.query('SELECT * FROM auth_login_requests WHERE id=$1', [
+      request.requestId
+    ])
+    assert.equal(started.status, 'browser_started')
+    assert.equal(started.return_url, row.return_url)
+    assert.equal(started.operation, 'authenticate')
+    assert.equal(started.webauthn_challenge, options.challenge)
+    assert.deepEqual(started.browser_binding_hash, row.browser_binding_hash)
   } finally {
     await source.query('DELETE FROM auth_login_requests WHERE id=$1', [request.requestId])
   }

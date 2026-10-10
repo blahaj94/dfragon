@@ -1,7 +1,9 @@
 import { assertPasskeyRetirement } from './passkey-retirement.mjs'
+import { assertPhoneQrRetirement } from './phone-qr-retirement.mjs'
 import { assertPasskeyIntegration } from './passkey-integration.mjs'
 import { assertLoginStateIntegration } from './login-state-integration.mjs'
 import assert from 'node:assert/strict'
+import { assertLoginReturnUrlMigration } from './login-return-url-migration.mjs'
 import { assertRefreshRotation } from './refresh-rotation.mjs'
 import { assertRefreshConcurrency } from './refresh-concurrency.mjs'
 import { assertRefreshFailures } from './refresh-failures.mjs'
@@ -244,8 +246,14 @@ async function assertFreshDatabaseRollback(resources) {
     const up = await runCompiledCli({ configuration, operation: 'up' })
     assert.equal(up.code, 0)
     assert.equal(up.stderr, '')
-    assert.equal(up.stdout, 'Database migration applied: 5\n')
+    assert.equal(up.stdout, 'Database migration applied: 7\n')
     await withDataSource(createDatabaseDataSource, configuration, assertSchema)
+
+    const returnUrlDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(returnUrlDown.code, 0)
+
+    const removalDown = await runCompiledCli({ configuration, operation: 'down' })
+    assert.equal(removalDown.code, 0)
 
     // The additive QR migration also applies with existing authentication data.
     await withDataSource(createDatabaseDataSource, configuration, async (source) => {
@@ -656,7 +664,7 @@ async function assertFocusedRuntime({ configuration, checkSignal }) {
   currentStage = 'runtime explicit compiled migration'
   const migration = await runCompiledCli({ configuration, operation: 'up' })
   assert.equal(migration.code, 0)
-  assert.equal(migration.stdout, 'Database migration applied: 5\n')
+  assert.equal(migration.stdout, 'Database migration applied: 7\n')
   await run('default entry full HTTP flow', (mark) =>
     assertRuntimeHttpIntegration(configuration, mark)
   )
@@ -796,7 +804,7 @@ async function primaryScenario() {
         stdout: firstUp.stdout,
         stderr: firstUp.stderr
       },
-      { code: 0, signal: null, stdout: 'Database migration applied: 5\n', stderr: '' }
+      { code: 0, signal: null, stdout: 'Database migration applied: 7\n', stderr: '' }
     )
     currentStage = 'no-op migration rerun'
     const secondUp = await runCompiledCli({
@@ -858,8 +866,18 @@ async function primaryScenario() {
       `Account HTTP/database/JWT: ${accountFlows} scenarios; Node ${process.version}; Unicode ${process.versions.unicode}; ICU ${process.versions.icu}\n`
     )
     await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertPhoneQrRetirement(source, (part) => {
+        currentStage = `phone QR retirement ${part}`
+      })
+    )
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
       assertPasskeyRetirement(source, (part) => {
         currentStage = `passkey retirement ${part}`
+      })
+    )
+    await withDataSource(createDatabaseDataSource, resources.configuration, (source) =>
+      assertLoginReturnUrlMigration(source, (part) => {
+        currentStage = `loopback return URL migration ${part}`
       })
     )
     const loginStateScenarios = await withDataSource(

@@ -81,16 +81,14 @@ export function parseAuthenticationInput(value: unknown, externalPrivateKey?: st
     'apiOrigin',
     'rpId',
     'rpName',
-    'returnUrl',
     ...(hasOcr ? ['ocrReturnUrl'] : [])
   ])
   const jwt = accessJwt(input.accessJwt, externalPrivateKey)
   const apiOrigin = text(passkey.apiOrigin)
   const rpId = text(passkey.rpId)
   const rpName = text(passkey.rpName)
-  const returnUrl = text(passkey.returnUrl)
   const optionalOcr = hasOcr ? { ocrReturnUrl: text(passkey.ocrReturnUrl) } : {}
-  const passkeyConfiguration = { apiOrigin, rpId, rpName, returnUrl, ...optionalOcr }
+  const passkeyConfiguration = { apiOrigin, rpId, rpName, ...optionalOcr }
 
   return {
     accessJwt: jwt,

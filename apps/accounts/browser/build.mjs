@@ -7,14 +7,6 @@ import stylex from '@stylexjs/unplugin/esbuild'
 import { stylexOptions } from '@dfragon/ui/stylex-config'
 
 const require = createRequire(import.meta.url)
-const qrPackage = require.resolve('qrcode/package.json')
-const qrRequire = createRequire(qrPackage)
-const qrLicense = await readFile(join(dirname(qrPackage), 'license'), 'utf8')
-const pathLicense = await readFile(
-  join(dirname(qrRequire.resolve('dijkstrajs/package.json')), 'LICENSE.md'),
-  'utf8'
-)
-
 const reactLicense = await readFile(
   join(dirname(require.resolve('react/package.json')), 'LICENSE'),
   'utf8'
@@ -42,7 +34,7 @@ await build({
   outfile: 'dist/browser/passkeys.js',
   // Keep upstream notices in the delivered bundle without duplicating them in application code.
   banner: {
-    js: `/*! qrcode\n${qrLicense}\ndijkstrajs\n${pathLicense}\nReact, React DOM and Scheduler\n${reactLicense}\nStyleX\n${stylexLicense}\n*/`
+    js: `/*! React, React DOM and Scheduler\n${reactLicense}\nStyleX\n${stylexLicense}\n*/`
   }
 })
 await copyFile(

@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createHash, generateKeyPairSync, randomBytes } from 'node:crypto'
-import { isoCBOR } from '@simplewebauthn/server/helpers'
-import type { RegistrationResponseJSON } from '@simplewebauthn/server'
-import { managementFixture } from './login-service.fixtures.js'
+import { managementFixture, registrationResponse } from './login-service.fixtures.js'
 
 const TESTS = {
   optionsLimit: '현재 RP의 19개 키는 추가 옵션을 허용하고 20개 키는 무변경 거절한다',
@@ -51,68 +48,6 @@ test(TESTS.verifyLimit, async () => {
   ])
   assert.deepEqual(structuredClone({ row: fixture.row, keys: fixture.keys }), before)
 })
-
-function registrationResponse(
-  fixture: ReturnType<typeof managementFixture>,
-  {
-    challenge = fixture.row.webauthnChallenge,
-    origin = fixture.configuration.apiOrigin,
-    rpId = fixture.configuration.rpId,
-    flags = 0x45
-  } = {}
-): RegistrationResponseJSON {
-  const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
-  const jwk = publicKey.export({ format: 'jwk' })
-  const coseKey = isoCBOR.encode(
-    new Map<number, number | Uint8Array>([
-      [1, 2],
-      [3, -7],
-      [-1, 1],
-      [-2, Buffer.from(jwk.x!, 'base64url')],
-      [-3, Buffer.from(jwk.y!, 'base64url')]
-    ])
-  )
-  const credentialId = randomBytes(32)
-  const id = credentialId.toString('base64url')
-  const credentialLength = Buffer.alloc(2)
-  credentialLength.writeUInt16BE(credentialId.length)
-  const rpIdHash = createHash('sha256').update(rpId).digest()
-  // 실제 none attestation 형식의 응답이며 기본 flags는 UP, UV, AT를 포함한다.
-  const authData = Buffer.concat([
-    rpIdHash,
-    Buffer.from([flags]),
-    Buffer.alloc(4),
-    Buffer.alloc(16),
-    credentialLength,
-    credentialId,
-    coseKey
-  ])
-  const encoded = isoCBOR.encode(
-    new Map<string, string | Uint8Array | Map<string, never>>([
-      ['fmt', 'none'],
-      ['authData', authData],
-      ['attStmt', new Map<string, never>()]
-    ])
-  )
-  const clientDataJSON = Buffer.from(
-    JSON.stringify({
-      type: 'webauthn.create',
-      challenge,
-      origin,
-      crossOrigin: false
-    })
-  ).toString('base64url')
-  const attestationObject = Buffer.from(encoded).toString('base64url')
-  const response: RegistrationResponseJSON = {
-    id,
-    rawId: id,
-    type: 'public-key',
-    clientExtensionResults: {},
-    response: { clientDataJSON, attestationObject, transports: ['internal'] }
-  }
-
-  return response
-}
 
 test(TESTS.registration, async () => {
   const fixture = managementFixture(19)

@@ -28,12 +28,14 @@ test('패스키 생성은 등록된 client, S256, 정확한 필드만 받고 입
     provider: 'passkey',
     clientId: 'desktop',
     codeChallenge: opaque(),
-    codeChallengeMethod: 'S256'
+    codeChallengeMethod: 'S256',
+    returnUrl: 'http://127.0.0.1:49152/auth/callback'
   }
-  for (const clientId of ['desktop', 'ocr']) {
-    const candidate = Object.freeze({ ...input, clientId })
-    assert.deepEqual(parseCreation(candidate), candidate)
-  }
+  assert.deepEqual(parseCreation(Object.freeze(input)), input)
+  const { returnUrl: _, ...proof } = input
+  const ocr = { ...proof, clientId: 'ocr' }
+  assert.deepEqual(parseCreation(ocr), ocr)
+  assert.throws(() => parseCreation({ ...ocr, returnUrl: input.returnUrl }), isInvalidInput)
   const withoutChallenge = {
     provider: input.provider,
     clientId: input.clientId,
@@ -112,18 +114,13 @@ test('S256은 RFC 7636의 독립 벡터를 따르고 opaque proof는 raw bytes�
   }
 })
 
-test('RP origin과 고정 앱 복귀 설정의 신뢰 경계 변경을 거절한다', () => {
+test('RP origin 설정의 신뢰 경계 변경을 거절한다', () => {
   const config = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFragon',
-    returnUrl: 'dfragon://auth/callback'
+    rpName: 'DFragon'
   }
   assert.deepEqual(validatePasskeyConfiguration(config), config)
-  assert.deepEqual(
-    validatePasskeyConfiguration({ ...config, returnUrl: 'dfragon.dev://auth/callback' }),
-    { ...config, returnUrl: 'dfragon.dev://auth/callback' }
-  )
   for (const change of [
     { rpId: 'example.test' },
     { apiOrigin: 'http://auth.example.test' },
@@ -131,11 +128,6 @@ test('RP origin과 고정 앱 복귀 설정의 신뢰 경계 변경을 거절한
     { apiOrigin: 'https://user:password@auth.example.test' },
     { apiOrigin: 'https://auth.example.test/' },
     { apiOrigin: 'https://AUTH.example.test' },
-    { returnUrl: 'https://attacker.invalid' },
-    { returnUrl: 'other://auth/callback' },
-    { returnUrl: 'dfragon://auth/callback?code=preselected' },
-    { returnUrl: 'dfragon://user:password@auth/callback' },
-    { returnUrl: 'dfragon://auth/callback#fragment' },
     { rpName: '' },
     { rpName: ' \t' },
     { rpName: 'x'.repeat(81) }
@@ -173,7 +165,8 @@ test('클라이언트 제한 거절은 신뢰 proxy 뒤의 전체 인증 예산�
       provider: 'passkey',
       clientId: 'desktop',
       codeChallenge: opaque(),
-      codeChallengeMethod: 'S256'
+      codeChallengeMethod: 'S256',
+      returnUrl: 'http://127.0.0.1:49152/auth/callback'
     })
     const request = (ip: string) =>
       fetch(`${base}/auth/login-requests`, {
@@ -198,8 +191,7 @@ test('고정 HTTPS OCR callback 설정은 Desktop 요청 바인딩을 바꾸지 
   const base = {
     apiOrigin: 'https://auth.example.test',
     rpId: 'auth.example.test',
-    rpName: 'DFragon',
-    returnUrl: 'dfragon://auth/callback'
+    rpName: 'DFragon'
   }
   const config = validatePasskeyConfiguration({
     ...base,
@@ -226,5 +218,55 @@ test('고정 HTTPS OCR callback 설정은 Desktop 요청 바인딩을 바꾸지 
     'https://ocr.example.test/auth/callback#x'
   ]) {
     assert.throws(() => validatePasskeyConfiguration({ ...base, ocrReturnUrl }))
+  }
+})
+
+test('Desktop returnUrl은 원문이 정규 loopback 형식일 때만 허용한다', () => {
+  const input = {
+    provider: 'passkey',
+    clientId: 'desktop',
+    codeChallenge: opaque(),
+    codeChallengeMethod: 'S256'
+  }
+  assert.throws(() => parseCreation(input), isInvalidInput)
+  for (const returnUrl of [
+    undefined,
+    null,
+    49152,
+    ['http://127.0.0.1:49152/auth/callback'],
+    '',
+    'dfragon://auth/callback',
+    'dfragon.dev://auth/callback',
+    'https://127.0.0.1:49152/auth/callback',
+    'http://localhost:49152/auth/callback',
+    'http://127.0.0.2:49152/auth/callback',
+    'http://[::1]:49152/auth/callback',
+    'http://127.1:49152/auth/callback',
+    'http://2130706433:49152/auth/callback',
+    'http://0x7f000001:49152/auth/callback',
+    'http://127.0.0.1:1023/auth/callback',
+    'http://127.0.0.1:65536/auth/callback',
+    'http://127.0.0.1:80/auth/callback',
+    'http://127.0.0.1/auth/callback',
+    'http://127.0.0.1:049152/auth/callback',
+    'HTTP://127.0.0.1:49152/auth/callback',
+    'http://127.0.0.1:49152/auth/callback/extra',
+    'http://127.0.0.1:49152/other/../auth/callback',
+    'http://127.0.0.1:49152/auth%2fcallback',
+    'http://user:password@127.0.0.1:49152/auth/callback',
+    'http://127.0.0.1:49152/auth/callback?code=preselected',
+    'http://127.0.0.1:49152/auth/callback?',
+    'http://127.0.0.1:49152/auth/callback#',
+    ' http://127.0.0.1:49152/auth/callback',
+    'http://127.0.0.1:49152/auth/callback\n',
+    'http://127.0.0.1:49152/auth/\tcallback',
+    'http://127.0.0.1:49152/auth\\callback',
+    'http://127.0.0.1:49152/auth/callback' + 'a'.repeat(2048)
+  ]) {
+    assert.throws(() => parseCreation({ ...input, returnUrl }), isInvalidInput)
+  }
+  for (const port of [1024, 49152, 65535]) {
+    const candidate = { ...input, returnUrl: `http://127.0.0.1:${port}/auth/callback` }
+    assert.deepEqual(parseCreation(candidate), candidate)
   }
 })

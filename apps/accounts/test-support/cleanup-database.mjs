@@ -31,7 +31,9 @@ async function eligibleRows(source, cleanup) {
   const requestCases = []
   for (const status of ['created', 'browser_started', 'exchange_ready', 'consumed', 'failed']) {
     for (const expiredRequest of [false, true]) {
+      const isActive = status !== 'consumed' && status !== 'failed'
       const request = loginRequest(status, randomUUID(), {
+        return_url: isActive ? 'http://127.0.0.1:49152/auth/callback' : null,
         created_at: new Date(now.getTime() - (expiredRequest ? 600_000 : 60_000)),
         expires_at: expiredRequest ? now : new Date(now.getTime() + 540_000)
       })
