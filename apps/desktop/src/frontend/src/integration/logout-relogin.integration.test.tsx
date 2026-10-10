@@ -111,7 +111,6 @@ const RENDERER_SOURCE_NAME = 'Synthetic game window'
 
 const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.example.test',
-  returnTarget: RETURN_TARGET,
   environment: 'test',
   providers: ['passkey'],
   appIdentity: 'com.synthetic.dfragon',

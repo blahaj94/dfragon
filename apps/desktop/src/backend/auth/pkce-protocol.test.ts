@@ -3,14 +3,12 @@ import { describe, expect, it, vi } from 'vitest'
 import { createPkce, isCanonicalOpaque } from './pkce'
 import {
   AuthProtocolFailure,
-  parseProtocolReturnUrl,
   parseReturnUrl,
   validateApiOrigin,
   validateBrowserLaunchUrl,
-  validateLoopbackReturnUrl,
-  validateReturnTarget
+  validateLoopbackReturnUrl
 } from './protocol'
-import { API_ORIGIN, CODE, PROTOCOL_RETURN_TARGET, RETURN_TARGET } from './auth-test-fixtures'
+import { API_ORIGIN, CODE, RETURN_TARGET } from './auth-test-fixtures'
 
 describe('Desktop auth PKCE와 URL 경계', () => {
   it.each([
@@ -18,21 +16,13 @@ describe('Desktop auth PKCE와 URL 경계', () => {
       name: 'API origin',
       validate: () => validateApiOrigin('https://example.test/'),
       laterGetter: 'pathname'
-    },
-    {
-      name: 'protocol return target',
-      validate: () => validateReturnTarget('test-dfragon://auth/return'),
-      laterGetter: 'port'
     }
   ])(
     '$name: username 실패 뒤 password를 건너뛰고 이후 getter를 평가한다',
     ({ validate, laterGetter }) => {
       const access: string[] = []
       class ObservedUrl {
-        protocol: string
-        constructor(raw: string) {
-          this.protocol = raw.startsWith('test-dfragon:') ? 'test-dfragon:' : 'https:'
-        }
+        protocol = 'https:'
         username = 'user'
         get password(): string {
           access.push('password')
@@ -42,16 +32,9 @@ describe('Desktop auth PKCE와 URL 경계', () => {
           access.push('pathname')
           throw new Error('sentinel later getter')
         }
-        get port(): string {
-          access.push('port')
-          throw new Error('sentinel later getter')
-        }
         search = ''
         hash = ''
         origin = 'https://example.test'
-        toString(): string {
-          return 'test-dfragon://auth/return'
-        }
       }
       vi.stubGlobal('URL', ObservedUrl)
 
@@ -208,48 +191,5 @@ describe('Desktop auth PKCE와 URL 경계', () => {
     `${RETURN_TARGET.replace('/auth/', '/auth\\')}?code=${CODE}`
   ])('다른 포트, query alias, 구분자를 보정하지 않는다: %s', (raw) => {
     expect(() => parseReturnUrl(raw, RETURN_TARGET)).toThrow(AuthProtocolFailure)
-  })
-
-  it.each([
-    PROTOCOL_RETURN_TARGET,
-    'test-dfragon:/auth/return',
-    'test-dfragon://auth/return%3F%23',
-    'x://auth/return',
-    'x:/auth/return',
-    'x:opaque-return'
-  ])('남아 있는 protocol target %s와 code 복귀를 그대로 허용한다', (target) => {
-    expect(validateReturnTarget(target)).toBe(target)
-    expect(parseProtocolReturnUrl(`${target}?code=${CODE}`, target)).toEqual({ code: CODE })
-  })
-
-  it.each([
-    `${PROTOCOL_RETURN_TARGET}?`,
-    `${PROTOCOL_RETURN_TARGET}#`,
-    `${PROTOCOL_RETURN_TARGET}?#`,
-    `${PROTOCOL_RETURN_TARGET}#?`,
-    'javascript:alert',
-    'data:text/plain,value',
-    'ftp://auth/return',
-    'https://auth/return',
-    'dfragon-test://user:password@auth/return',
-    'dfragon-test://auth:49152/return'
-  ])('남아 있는 protocol target의 비허용 형식 %s를 거절한다', (target) => {
-    expect(() => validateReturnTarget(target)).toThrow(AuthProtocolFailure)
-    expect(() => parseProtocolReturnUrl(`${target}?code=${CODE}`, target)).toThrow(
-      AuthProtocolFailure
-    )
-  })
-
-  it.each([
-    `dfragon-test://auth/other?code=${CODE}`,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE}&state=extra`,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE}&code=${CODE}`,
-    `${PROTOCOL_RETURN_TARGET}?%63ode=${CODE}`,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE}#fragment`,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE} `,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE.slice(0, -1)}`,
-    `${PROTOCOL_RETURN_TARGET}?code=${CODE}=`
-  ])('남아 있는 protocol 복귀도 target과 canonical code가 정확히 일치해야 한다: %s', (raw) => {
-    expect(() => parseProtocolReturnUrl(raw, PROTOCOL_RETURN_TARGET)).toThrow(AuthProtocolFailure)
   })
 })
