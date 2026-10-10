@@ -200,7 +200,7 @@ export function DeveloperParticipantCollectionSection({
             return (
               <article key={slot} {...stylex.props(styles.row, raid && styles.raidRow)}>
                 <Checkbox.Root.Primitive
-                  checked={included && (!raid || crop != null)}
+                  checked={included && crop != null}
                   disabled={!crop}
                   onCheckedChange={(checked) => collection.setSlotIncluded(slot, checked)}
                   {...stylex.props(
