@@ -47,7 +47,7 @@ C는 sigstore 검증 라이브러리를 main process에 넣고, 내려받은 설
 
 D는 SignPath Foundation 약관의 다음 조건을 모두 맞춰야 하며, 게시자는 SignPath Foundation으로 표시된다.
 
-- 모든 구성요소에 OSI 승인 라이선스를 적용하고 비공개 구성요소가 없어야 한다. 지금은 저장소에 라이선스 파일이 없고 Desktop이 비공개 패키지 `@blahaj94/piano-sound`를 쓴다.
+- 모든 구성요소에 OSI 승인 라이선스를 적용하고 비공개 구성요소가 없어야 한다. 지금은 저장소에 라이선스 파일이 없다.
 - 바이너리를 공개 저장소의 소스에서 검증 가능한 방식으로 자동 빌드해야 한다. 지금의 Release workflow와 attestation이 이 방향이지만 SignPath의 CI 연동은 따로 정해야 한다.
 - 서명할 형태로 이미 Release되어 있어야 한다. NSIS 설치형은 아직 Release에 없다.
 - 사용자가 지정하지 않은 시스템으로 데이터를 보내면 개인정보 정책을 설치 중에 보이고 그 기능을 끄는 설치 옵션을 둬야 한다. alpha 빌드의 OCR 자료 수집 업로드가 여기에 해당한다.

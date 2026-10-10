@@ -7,7 +7,9 @@
   "scripts": {
     "create-app": "node scripts/create-app.mjs",
     "start-task": "node scripts/start-task.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "pnpm verify",
+    "verify": "node scripts/verify.mjs",
+    "verify:database": "node scripts/verify.mjs --database",
     "test:product-images": "node --test scripts/test/product-image-plan.test.mjs",
     "lint": "biome lint",
     "lint:fix": "biome lint --write",
@@ -16,7 +18,8 @@
     "test:format-policy": "node --test scripts/test/statement-spacing.test.mjs",
     "test:tooling": "node --test scripts/test/*.test.mjs",
     "check:writing": "node scripts/check-writing.mjs",
-    "check:static": "pnpm lint && pnpm format:check && pnpm check:writing"
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:static": "pnpm lint && pnpm format:check && pnpm check:writing && pnpm check:docs"
   },
   "keywords": [],
   "author": "",
