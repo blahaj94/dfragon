@@ -1,9 +1,14 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
+import { Checkbox } from '@seed-design/react'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
+import { buttonStyles } from '../constants/button.style'
+import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
+import { CheckIcon } from '../components/CheckIcon'
+import { StatusBadge } from '../components/StatusBadge'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
@@ -83,11 +88,9 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <Typo.caption
-          {...stylex.props(styles.badge, popup ? styles.badgeFound : styles.badgeSearching)}
-        >
+        <StatusBadge tone={popup ? 'positive' : 'warning'}>
           {windowName} {popup ? '찾음' : '찾는 중'}
-        </Typo.caption>
+        </StatusBadge>
       </div>
 
       <div {...stylex.props(styles.heading)}>
@@ -117,7 +120,12 @@ export function DeveloperParticipantCollectionSection({
             </>
           )}
           {saved > 0 && onLabeling && (
-            <ActionButton size="small" variant="neutralWeak" onClick={onLabeling}>
+            <ActionButton
+              size="small"
+              variant="neutralWeak"
+              {...stylex.props(buttonStyles.secondary)}
+              onClick={onLabeling}
+            >
               정답 입력으로
             </ActionButton>
           )}
@@ -191,23 +199,33 @@ export function DeveloperParticipantCollectionSection({
 
             return (
               <article key={slot} {...stylex.props(styles.row, raid && styles.raidRow)}>
-                <label {...stylex.props(styles.rowHeader, raid && styles.raidRowHeader)}>
+                <Checkbox.Root.Primitive
+                  checked={included && crop != null}
+                  disabled={!crop}
+                  onCheckedChange={(checked) => collection.setSlotIncluded(slot, checked)}
+                  {...stylex.props(
+                    styles.rowHeader,
+                    raid && styles.raidRowHeader,
+                    !crop && styles.rowHeaderDisabled
+                  )}
+                >
                   <Typo.txtS weight={700}>
                     {slot}
                     {raid ? '행' : '번'}
                   </Typo.txtS>
                   <Typo.caption {...stylex.props(styles.rowLabel)}>{rowLabel}</Typo.caption>
-                  <input
-                    type="checkbox"
+                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
+                    <Checkbox.Indicator
+                      checked={<CheckIcon />}
+                      {...stylex.props(checkboxStyles.indicator)}
+                    />
+                  </Checkbox.Control>
+                  <Checkbox.HiddenInput
                     aria-label={
                       raid ? `${slot}행 공대원 닉네임 저장` : `${slot}번 파티원 닉네임 저장`
                     }
-                    checked={included && (!raid || crop != null)}
-                    disabled={!crop}
-                    onChange={(event) => collection.setSlotIncluded(slot, event.target.checked)}
-                    {...stylex.props(styles.checkbox)}
                   />
-                </label>
+                </Checkbox.Root.Primitive>
                 <div {...stylex.props(styles.cropArea, crop && !included && styles.unchecked)}>
                   {crop ? (
                     <img

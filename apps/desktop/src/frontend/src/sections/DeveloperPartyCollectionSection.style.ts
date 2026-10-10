@@ -9,7 +9,7 @@ export const styles = stylex.create({
     justifyContent: 'center',
     gap: 8,
     minHeight: 88,
-    padding: '16px 20px',
+    padding: 16,
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: colors.borderDefault,
@@ -43,7 +43,13 @@ export const styles = stylex.create({
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault
   },
-  cropHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  cropHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    cursor: 'pointer'
+  },
   cropImage: {
     display: 'block',
     width: '100%',
@@ -59,10 +65,9 @@ export const styles = stylex.create({
     minHeight: 0,
     overflow: 'hidden',
     backgroundColor: colors.bgPreview,
-    borderRadius: 6
+    borderRadius: 8
   },
   unchecked: { opacity: 0.32 },
-  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.bgBrandSolid },
   emptyCrop: { color: colors.fgMuted },
   footnote: { color: colors.fgMuted, marginTop: -8 }
 })

@@ -1,9 +1,11 @@
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, Typo } from '@dfragon/ui'
+import { Chip } from '@seed-design/react'
 import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail'
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import type { DeveloperLabelFilter } from '../lib/developer-workbench-samples'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperLabelingSection.style'
 
 const filters: { id: DeveloperLabelFilter; label: string }[] = [
@@ -123,23 +125,31 @@ export function DeveloperLabelingSection({
     >
       <Typo.h4 as="h2">저장된 크롭</Typo.h4>
       <div role="group" aria-label="이미지 상태 필터" {...stylex.props(styles.filters)}>
-        {filters.map(({ id, label }) => (
-          <ActionButton
-            key={id}
-            size="small"
-            variant={filter === id ? 'neutralSolid' : 'ghost'}
-            aria-pressed={filter === id}
-            onClick={() => onFilterChange(id)}
-          >
-            {label}
-          </ActionButton>
-        ))}
+        {filters.map(({ id, label }) => {
+          const selected = filter === id
+
+          return (
+            <Chip.Root
+              key={id}
+              type="button"
+              size="small"
+              aria-pressed={selected}
+              onClick={() => onFilterChange(id)}
+              {...stylex.props(selected && styles.filterSelected)}
+            >
+              <Chip.Label {...stylex.props(selected && styles.filterSelectedLabel)}>
+                {label}
+              </Chip.Label>
+            </Chip.Root>
+          )
+        })}
       </div>
       {pagination && (
         <nav aria-label="자료실 페이지" {...stylex.props(styles.filters)}>
           <ActionButton
             size="small"
             variant="neutralWeak"
+            {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page === 0}
             onClick={() => pagination.onPageChange(pagination.page - 1)}
           >
@@ -151,6 +161,7 @@ export function DeveloperLabelingSection({
           <ActionButton
             size="small"
             variant="neutralWeak"
+            {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page + 1 >= pagination.pageCount}
             onClick={() => pagination.onPageChange(pagination.page + 1)}
           >

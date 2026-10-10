@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react'
 
-export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
+export function ChevronRightIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
   return (
     <svg
       aria-hidden="true"
@@ -12,8 +12,7 @@ export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       strokeLinejoin="round"
       {...props}
     >
-      <rect width="20" height="14" x="2" y="3" rx="2" />
-      <path d="M8 21h8M12 17v4" />
+      <path d="m9 18 6-6-6-6" />
     </svg>
   )
 }

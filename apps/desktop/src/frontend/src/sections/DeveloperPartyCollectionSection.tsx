@@ -1,6 +1,7 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
+import { Checkbox } from '@seed-design/react'
 import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import type { DeveloperPartySlotNumber } from '../lib/developer-party'
@@ -8,8 +9,10 @@ import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import { MODEL_INPUT_HEIGHT, MODEL_INPUT_WIDTH } from '../lib/paddle-recognition'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 import { DeveloperParticipantCollectionSection } from './DeveloperParticipantCollectionSection'
+import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperPartyCollectionSection.style'
 import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
+import { CheckIcon } from '../components/CheckIcon'
 
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 
@@ -130,20 +133,22 @@ export function DeveloperPartyCollectionSection({
 
             return (
               <article key={slotNumber} {...stylex.props(styles.crop)}>
-                <div {...stylex.props(styles.cropHeader)}>
+                <Checkbox.Root.Primitive
+                  checked={included}
+                  onCheckedChange={(checked) => collection.setSlotIncluded(slotNumber, checked)}
+                  {...stylex.props(styles.cropHeader)}
+                >
                   <Typo.txtM as="span" weight={700}>
                     {slotNumber}
                   </Typo.txtM>
-                  <input
-                    type="checkbox"
-                    aria-label={`${slotNumber}번 크롭 저장`}
-                    checked={included}
-                    {...stylex.props(styles.checkbox)}
-                    onChange={(event) =>
-                      collection.setSlotIncluded(slotNumber, event.target.checked)
-                    }
-                  />
-                </div>
+                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
+                    <Checkbox.Indicator
+                      checked={<CheckIcon />}
+                      {...stylex.props(checkboxStyles.indicator)}
+                    />
+                  </Checkbox.Control>
+                  <Checkbox.HiddenInput aria-label={`${slotNumber}번 크롭 저장`} />
+                </Checkbox.Root.Primitive>
                 <div {...stylex.props(styles.cropImageArea, !included && styles.unchecked)}>
                   {preview ? (
                     <img

@@ -9,6 +9,7 @@ export const colors = stylex.defineVars({
   bgCanvas: 'var(--seed-color-palette-gray-100)',
   bgSurface: 'var(--seed-color-palette-gray-200)',
   bgInset: 'var(--seed-color-palette-gray-100)',
+  bgStripe: 'var(--seed-color-palette-gray-300)',
   // Game screen crops sit on a dark surface in either mode. This literal is the dark bg.inset
   // step and is not part of the design color set.
   bgPreview: '#16171b',
@@ -54,6 +55,7 @@ export const colors = stylex.defineVars({
 export const lightTheme = stylex.createTheme(colors, {
   bgCanvas: 'var(--seed-color-palette-gray-200)',
   bgSurface: 'var(--seed-color-palette-gray-00)',
+  bgStripe: 'var(--seed-color-palette-gray-200)',
   bgControl: 'var(--seed-color-palette-gray-300)',
   bgControlHover: 'var(--seed-color-palette-gray-400)',
   bgBrandSolid: 'var(--seed-color-palette-blue-700)',

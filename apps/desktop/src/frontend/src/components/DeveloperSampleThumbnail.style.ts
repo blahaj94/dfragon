@@ -2,7 +2,16 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '../constants/theme.stylex'
 
 export const styles = stylex.create({
-  button: { width: '100%', justifyContent: 'flex-start', textAlign: 'left' },
+  // A two line list row uses the design lg height 48. The SEED small height 36 is lifted so the
+  // 44px thumbnail and two text lines stay inside the selected outline.
+  button: {
+    width: '100%',
+    height: 'auto',
+    minHeight: 48,
+    paddingBlock: 4,
+    justifyContent: 'flex-start',
+    textAlign: 'left'
+  },
   selected: {
     backgroundColor: { default: colors.bgBrandWeak, ':hover': colors.bgBrandWeak },
     boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`
@@ -21,7 +30,7 @@ export const styles = stylex.create({
     width: 72,
     height: 44,
     overflow: 'hidden',
-    borderRadius: 5,
+    borderRadius: 4,
     backgroundColor: colors.bgPreview
   },
   image: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' },

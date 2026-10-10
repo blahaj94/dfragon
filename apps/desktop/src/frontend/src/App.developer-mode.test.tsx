@@ -82,6 +82,17 @@ async function click(label: string): Promise<void> {
   await act(async () => button(label).click())
 }
 
+async function toggle(label: string): Promise<void> {
+  const input = [...container.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
+    (candidate) => candidate.labels?.[0]?.textContent === label
+  )
+  if (input == null) {
+    throw new Error(`Missing ${label} switch`)
+  }
+
+  await act(async () => input.click())
+}
+
 it('stops normal capture and preserves the party page while the workbench is open', async () => {
   const developer = {
     onPartyCollectionStatus: vi.fn(() => vi.fn()),
@@ -128,7 +139,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
 
   await click('설정')
   await click('개발자 모드')
-  await click('개발자 모드 켜기')
+  await toggle('개발자 모드')
   await click('개발 도구 열기')
 
   expect(developer.setEnabled).toHaveBeenCalledExactlyOnceWith(true)

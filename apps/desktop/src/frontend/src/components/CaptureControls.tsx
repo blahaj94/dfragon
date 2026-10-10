@@ -7,12 +7,15 @@ import {
   DialogRoot,
   DialogTrigger,
   DialogContent,
-  DialogBody
+  DialogBody,
+  DialogFooter
 } from '@dfragon/ui'
 import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
+import { IconButton } from './IconButton'
+import { StatusBadge } from './StatusBadge'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
@@ -66,13 +69,12 @@ export function CaptureControls({
       }}
     >
       <DialogTrigger asChild>
-        <ActionButton size="small" variant="ghost" aria-label="화면 캡처" aria-haspopup="dialog">
-          <CameraIcon
-            width="20"
-            height="20"
-            {...stylex.props(styles.camera, active && styles.cameraActive)}
-          />
-        </ActionButton>
+        <IconButton
+          variant="neutralWeak"
+          aria-label="화면 캡처"
+          aria-haspopup="dialog"
+          icon={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
+        />
       </DialogTrigger>
       <DialogContent
         ref={dialogRef}
@@ -80,14 +82,9 @@ export function CaptureControls({
         title={
           <Typo.h5 as="span" {...stylex.props(styles.heading)}>
             화면 캡처
-            <Typo.txtS
-              as="span"
-              weight={700}
-              role="status"
-              {...stylex.props(styles.state, active && styles.stateActive)}
-            >
-              {state}
-            </Typo.txtS>
+            <StatusBadge tone={state.tone} role="status">
+              {state.label}
+            </StatusBadge>
           </Typo.h5>
         }
       >
@@ -109,22 +106,22 @@ export function CaptureControls({
             </Typo.caption>
           )}
         </DialogBody>
-        <div {...stylex.props(styles.footer)}>
+        <DialogFooter>
           <div {...stylex.props(styles.actions)}>
+            <ActionButton size="medium" variant="neutralWeak" onClick={() => setOpen(false)}>
+              <Typo.txtM as="span" weight={700}>
+                닫기
+              </Typo.txtM>
+            </ActionButton>
             {(active || starting) && (
-              <ActionButton size="small" variant="neutralWeak" onClick={onStop}>
-                <Typo.txtS as="span" weight={700}>
+              <ActionButton size="medium" variant="brandSolid" onClick={onStop}>
+                <Typo.txtM as="span" weight={700}>
                   캡처 중지
-                </Typo.txtS>
+                </Typo.txtM>
               </ActionButton>
             )}
-            <ActionButton size="small" variant="neutralWeak" onClick={() => setOpen(false)}>
-              <Typo.txtS as="span" weight={700}>
-                닫기
-              </Typo.txtS>
-            </ActionButton>
           </div>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </DialogRoot>
   )

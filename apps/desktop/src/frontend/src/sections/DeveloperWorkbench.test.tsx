@@ -370,26 +370,34 @@ it('arms only on the collection tab, previews four model input crops, and disarm
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
 
   expect(api.setPartyCollectionSlots).toHaveBeenCalledWith([1, 2, 3, 4])
-  const intervalSelect = container.querySelector<HTMLSelectElement>(
-    'select[aria-label="캡처 주기"]'
-  )!
-  expect(intervalSelect?.value).toBe('500')
-  expect([...intervalSelect.options].map((option) => option.text)).toEqual([
+  const intervalTrigger = (): HTMLButtonElement =>
+    container.querySelector<HTMLButtonElement>('[role="combobox"][aria-label="캡처 주기"]')!
+  const intervalOptions = (): HTMLElement[] => [
+    ...document.querySelectorAll<HTMLElement>('[role="option"]')
+  ]
+  expect(intervalTrigger().textContent).toBe('0.5초')
+  await act(async () => intervalTrigger().click())
+  expect(intervalOptions().map((option) => option.textContent)).toEqual([
     '0.25초',
     '0.5초',
     '0.75초',
     '1초'
   ])
+  await act(async () => intervalTrigger().click())
+  expect(intervalTrigger().getAttribute('aria-expanded')).toBe('false')
   await act(async () => vi.advanceTimersByTimeAsync(499))
   expect(api.previewParty).toHaveBeenCalledTimes(1)
   await act(async () => vi.advanceTimersByTimeAsync(1))
   expect(api.previewParty).toHaveBeenCalledTimes(2)
 
   for (const intervalMs of [250, 500, 750, 1000]) {
-    await act(async () => {
-      intervalSelect.value = String(intervalMs)
-      intervalSelect.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    await act(async () => intervalTrigger().click())
+    await act(async () =>
+      intervalOptions()
+        .find((option) => option.textContent === `${intervalMs / 1000}초`)!
+        .click()
+    )
+    expect(intervalTrigger().getAttribute('aria-expanded')).toBe('false')
     const calls = api.previewParty.mock.calls.length
     await act(async () => vi.advanceTimersByTimeAsync(intervalMs - 1))
     expect(api.previewParty).toHaveBeenCalledTimes(calls)
@@ -399,9 +407,9 @@ it('arms only on the collection tab, previews four model input crops, and disarm
   }
 
   await click('파티원창 크롭')
-  expect(intervalSelect.value).toBe('1000')
+  expect(intervalTrigger().textContent).toBe('1초')
   await click('공대원창 크롭')
-  expect(intervalSelect.value).toBe('1000')
+  expect(intervalTrigger().textContent).toBe('1초')
   await click('이미지 수집')
   const previews = container.querySelectorAll('img[alt$="번 크롭 모델 입력 미리보기"]')
   expect([...previews].map((image) => image.getAttribute('src'))).toEqual(
@@ -573,6 +581,14 @@ it('keeps failed label drafts, skips without saving, and restores excluded sampl
   await act(async () => Promise.resolve())
   expect(api.setSampleExcluded).toHaveBeenCalledExactlyOnceWith('first', true)
   await click('제외')
+  const filters = [
+    ...container.querySelectorAll('[role="group"][aria-label="이미지 상태 필터"] button')
+  ]
+  expect(
+    Object.fromEntries(
+      filters.map((filter) => [filter.textContent, filter.getAttribute('aria-pressed')])
+    )
+  ).toEqual({ 미입력: 'false', 완료: 'false', 제외: 'true' })
   expect(button('포함으로 복원')).toBeDefined()
   await click('포함으로 복원')
   await act(async () => Promise.resolve())
@@ -738,6 +754,56 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   await click('정답 입력')
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(null)
   expect(container.querySelector('#developer-participants-panel')).toBeNull()
+})
+
+it('shows an empty participant row unchecked and checks it again when the participant returns', async () => {
+  vi.useFakeTimers()
+  const { api } = installApi()
+  const popup = {
+    width: 20,
+    height: 10,
+    rgba: new Uint8Array(20 * 10 * 4),
+    rows: ([1, 2, 3, 4] as const).map((slot) => {
+      const y = slot * 2
+
+      return { slot, occupied: true, x: 5, y, width: 4, height: 1 }
+    })
+  }
+  let nextFrame = { ...partyFrame(), participantWindow: popup }
+  api.previewParty.mockImplementation(async () => ({
+    frame: nextFrame,
+    previewError: null,
+    collection: { armed: true, slots: [1, 2, 3, 4], revision: 0, lastSavedAt: null, error: null }
+  }))
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('파티원창 크롭')
+  const first = (): HTMLInputElement =>
+    container.querySelector<HTMLInputElement>('input[aria-label="1번 파티원 닉네임 저장"]')!
+  expect(first().checked).toBe(true)
+
+  nextFrame = {
+    ...nextFrame,
+    slots: partyFrame().slots.slice(1),
+    participantWindow: {
+      ...popup,
+      rows: popup.rows.map((row) => ({ ...row, occupied: row.slot !== 1 }))
+    }
+  }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(first().disabled).toBe(true)
+  expect(first().checked).toBe(false)
+  expect(container.textContent).toContain('현재 저장 대상 3개')
+
+  nextFrame = { ...nextFrame, slots: partyFrame().slots, participantWindow: popup }
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1000)
+  })
+  expect(first().disabled).toBe(false)
+  expect(first().checked).toBe(true)
+  expect(container.textContent).toContain('현재 저장 대상 4개')
+  expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4], 'participants')
 })
 
 it('rejects a late HUD preview after switching to participant collection', async () => {

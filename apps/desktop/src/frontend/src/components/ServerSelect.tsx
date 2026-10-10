@@ -5,6 +5,9 @@ import { Select } from '@seed-design/react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './ServerSelect.style'
 
+// The typography variant sets font-weight inline, so the selected weight has to be inline too.
+const selectedLabelTypography = { ...typographyVariants.txtS, fontWeight: 700 }
+
 type ServerSelectProps = {
   label: string
   value: string
@@ -29,6 +32,7 @@ export function ServerSelect({
         }
       }}
       disabled={disabled}
+      size="medium"
       placement="bottom-start"
       strategy="fixed"
       gutter={6}
@@ -36,35 +40,31 @@ export function ServerSelect({
       <Select.Trigger aria-label={label} {...stylex.props(styles.trigger)}>
         <Select.Value style={typographyVariants.caption} {...stylex.props(styles.value)} />
         <Select.Placeholder style={typographyVariants.caption} {...stylex.props(styles.value)}>
-          서버 선택
+          서버
         </Select.Placeholder>
         <Select.SuffixIcon svg={<ChevronDownIcon />} {...stylex.props(styles.chevron)} />
       </Select.Trigger>
       <Select.Positioner {...stylex.props(styles.positioner)}>
         <Select.Content aria-label={label} {...stylex.props(styles.content)}>
           <Select.ScrollArea {...stylex.props(styles.scroll)}>
-            <Select.Group>
-              <Select.GroupLabel
-                style={typographyVariants.caption}
-                {...stylex.props(styles.groupLabel)}
-              >
-                서버 선택
-              </Select.GroupLabel>
-              {options.map((option) => (
+            {options.map((option) => {
+              const selected = option.id === value
+
+              return (
                 <Select.Item
                   key={option.id}
                   value={option.id}
                   label={option.label}
-                  {...stylex.props(styles.option, option.id === value && styles.selected)}
+                  {...stylex.props(styles.option, selected && styles.selected)}
                 >
                   <Select.ItemLabel
-                    style={typographyVariants.caption}
-                    {...stylex.props(styles.itemLabel, option.id === value && styles.selectedLabel)}
+                    style={selected ? selectedLabelTypography : typographyVariants.txtS}
+                    {...stylex.props(styles.itemLabel, selected && styles.selectedLabel)}
                   />
                   <Select.ItemIndicator selected={<CheckIcon />} {...stylex.props(styles.check)} />
                 </Select.Item>
-              ))}
-            </Select.Group>
+              )
+            })}
           </Select.ScrollArea>
         </Select.Content>
       </Select.Positioner>

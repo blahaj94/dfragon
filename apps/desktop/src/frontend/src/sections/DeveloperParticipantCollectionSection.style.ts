@@ -8,7 +8,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
-    padding: '16px 20px',
+    padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
     borderWidth: 1,
@@ -20,20 +20,13 @@ export const styles = stylex.create({
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
   connectedDot: { color: colors.fgSuccess },
-  badge: {
-    backgroundColor: colors.bgInset,
-    padding: '7px 12px',
-    borderRadius: 6
-  },
-  badgeFound: { color: colors.fgSuccess },
-  badgeSearching: { color: colors.fgWarning },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
   muted: { color: colors.fgMuted },
   saveGuide: {
     display: 'flex',
     alignItems: 'center',
     gap: 20,
-    padding: '16px 20px',
+    padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
     borderRadius: 12,
@@ -71,8 +64,8 @@ export const styles = stylex.create({
   windowPanel: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
-    padding: '20px 24px',
+    gap: 12,
+    padding: 16,
     boxSizing: 'border-box',
     minWidth: 0,
     minHeight: { default: 372, '@media (max-width: 760px)': 332 },
@@ -151,12 +144,13 @@ export const styles = stylex.create({
     gridTemplateColumns: 'auto 1fr auto',
     alignItems: 'center',
     gap: 12,
-    minHeight: 20
+    minHeight: 20,
+    cursor: 'pointer'
   },
+  rowHeaderDisabled: { cursor: 'not-allowed' },
   raidRow: { height: 90, padding: '12px 10px' },
   raidRowHeader: { gridTemplateColumns: 'auto minmax(0, 1fr) auto', gap: 6 },
   rowLabel: { color: colors.fgMuted, textAlign: 'right' },
-  checkbox: { margin: 0, width: 18, height: 18, accentColor: colors.bgBrandSolid, flexShrink: 0 },
   cropArea: {
     display: 'flex',
     alignItems: 'center',

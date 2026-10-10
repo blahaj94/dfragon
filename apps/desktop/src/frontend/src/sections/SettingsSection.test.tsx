@@ -63,6 +63,12 @@ async function click(label: string): Promise<void> {
   await act(async () => button(label).click())
 }
 
+function developerSwitch(): HTMLInputElement | undefined {
+  return [...document.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
+    (input) => input.labels?.[0]?.textContent === '개발자 모드'
+  )
+}
+
 it('설정에서 전체 고지를 안전한 텍스트로 표시하고 목록 포커스를 복원한다', async () => {
   await click('설정')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
@@ -122,7 +128,9 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
   await click('개발자 모드')
   expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('개발자 모드')
   expect(document.body.textContent).toContain('개발자 모드 꺼짐')
-  await click('개발자 모드 켜기')
+  expect(developerSwitch()?.checked).toBe(false)
+  expect(document.body.textContent).not.toContain('개발 도구 열기')
+  await act(async () => developerSwitch()!.click())
   expect(setEnabled).toHaveBeenCalledExactlyOnceWith(true)
   expect(openDeveloperWorkbench).not.toHaveBeenCalled()
 
@@ -138,18 +146,44 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
   )
   await click('설정')
   await click('개발자 모드')
+  expect(developerSwitch()?.checked).toBe(true)
   await click('개발 도구 열기')
   expect(openDeveloperWorkbench).toHaveBeenCalledExactlyOnceWith()
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
+it('개발자 모드 설정을 저장하는 동안 스위치를 바꿀 수 없다', async () => {
+  const setEnabled = vi.fn()
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider initialTheme="dark">
+        <SettingsSection
+          developerMode={{
+            status: 'ready',
+            enabled: false,
+            updating: true,
+            retry: vi.fn(),
+            setEnabled
+          }}
+        />
+      </ColorThemeProvider>
+    )
+  )
+  await click('설정')
+  await click('개발자 모드')
+  expect(document.body.textContent).toContain('개발자 모드 설정 저장 중')
+  expect(developerSwitch()?.disabled).toBe(true)
+  await act(async () => developerSwitch()!.click())
+  expect(setEnabled).not.toHaveBeenCalled()
+})
+
 it('shows the mode as unavailable when preload APIs are absent', async () => {
   await click('설정')
   await click('개발자 모드')
-  expect(document.body.textContent).toContain(
-    '이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'
-  )
-  expect(document.body.textContent).not.toContain('개발자 모드 켜기')
+  expect(
+    [...document.querySelectorAll('[role="status"]')].map((status) => status.textContent)
+  ).toEqual(['이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'])
+  expect(document.querySelector('[role="switch"]')).toBeNull()
 })
 
 it('shows full app and service commits with partial failures and refreshes the deployed versions', async () => {

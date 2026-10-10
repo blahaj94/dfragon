@@ -28,7 +28,14 @@ export const styles = stylex.create({
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault
   },
-  filters: { display: 'flex', flexWrap: 'wrap', gap: 4, minHeight: 36 },
+  filters: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minHeight: 36 },
+  // Design Chip on state: bg.brand.weak with a border.brand outline and fg.brand 700 text.
+  // SEED chips mark selection with a neutral inverted fill, so the filter sets these colors.
+  filterSelected: {
+    backgroundColor: colors.bgBrandWeak,
+    boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`
+  },
+  filterSelectedLabel: { color: colors.fgBrand, fontWeight: 700 },
   list: {
     display: 'flex',
     flexDirection: 'column',

@@ -8,32 +8,38 @@ export const styles = stylex.create({
     paddingBottom: 20,
     overflowWrap: 'anywhere'
   },
+  // Design TextField focus is a 2px border.focus line. The shared TextField does not take a
+  // className, and SEED draws its focus line with this stroke token, so the wrapper scope
+  // points the token at border.focus.
+  search: { '--seed-color-stroke-neutral-contrast': colors.borderFocus },
   count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
-  list: {
-    listStyle: 'none',
-    padding: 0,
-    margin: 0,
-    backgroundColor: colors.bgInset,
-    borderRadius: 8
+  list: { listStyle: 'none', padding: 0, margin: 0 },
+  // The design table counts its header row, so its bg.stripe rows are the first, third and
+  // following odd entries of this header-less list.
+  item: {
+    borderRadius: 4,
+    backgroundColor: { default: null, ':nth-child(odd)': colors.bgStripe }
   },
+  // Design two-line row is 48: a 16/24 name over a 12/18 line with 3px above and below.
   row: {
     display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
     gridTemplateColumns: 'minmax(0, 1fr) auto',
     alignItems: 'center',
     width: '100%',
-    minHeight: 60,
+    minHeight: 48,
     height: 'auto',
     justifyContent: 'space-between',
     textAlign: 'left',
-    padding: '12px 16px',
+    paddingBlock: 3,
+    paddingInline: 12,
     gap: 12,
+    borderRadius: 4,
     color: colors.fgDefault,
     whiteSpace: 'normal'
   },
   name: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
     flex: 1,
     minWidth: 0,
     overflowWrap: 'anywhere'
@@ -46,8 +52,15 @@ export const styles = stylex.create({
     color: colors.fgMuted,
     overflowWrap: 'anywhere'
   },
-  rowChevron: { gridColumn: 2, gridRow: '1 / span 2' },
-  document: { backgroundColor: colors.bgInset, borderRadius: 8, padding: 20, marginTop: 16 },
+  rowChevron: {
+    gridColumn: 2,
+    gridRow: '1 / span 2',
+    flexShrink: 0,
+    width: 24,
+    height: 24,
+    color: colors.fgSubtle
+  },
+  document: { backgroundColor: colors.bgInset, borderRadius: 12, padding: 16, marginTop: 16 },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'inherit',

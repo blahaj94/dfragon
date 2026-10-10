@@ -40,7 +40,13 @@ export const styles = stylex.create({
     gap: 2
   },
   adventure: { color: colors.cardFgAdventure, paddingBottom: 28 },
-  fame: { color: colors.fgBrand },
+  fame: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    color: colors.fgBrand
+  },
   muted: { color: colors.cardFgMuted },
   equipment: {
     position: 'absolute',
@@ -83,7 +89,7 @@ export const styles = stylex.create({
     display: 'grid',
     placeItems: 'center',
     borderWidth: 0,
-    borderRadius: 6,
+    borderRadius: 8,
     backgroundColor: colors.cardControl,
     color: colors.cardFg,
     cursor: 'pointer',

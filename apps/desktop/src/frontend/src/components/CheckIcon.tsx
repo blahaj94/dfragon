@@ -12,7 +12,7 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       strokeLinejoin="round"
       {...props}
     >
-      <path d="m5 12 4 4L19 6" />
+      <path d="M20 6 9 17l-5-5" />
     </svg>
   )
 }

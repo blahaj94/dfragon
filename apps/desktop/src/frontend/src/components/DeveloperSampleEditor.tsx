@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ActionButton, TextField, TextFieldInput, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
+import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperSampleEditor.style'
 import { DEVELOPER_COLLECTION_LABELS } from '../constants/developer'
 
@@ -116,6 +117,7 @@ export function DeveloperSampleEditor({
         </Typo.caption>
       )}
       <form
+        {...stylex.props(styles.form)}
         onSubmit={(event) => {
           event.preventDefault()
           if (!readOnly && !saving && draft.length > 0) {
@@ -123,27 +125,30 @@ export function DeveloperSampleEditor({
           }
         }}
       >
-        <TextField
-          label={
-            <Typo.txtS as="span" weight={700}>
-              정답 닉네임
-            </Typo.txtS>
-          }
-        >
-          <TextFieldInput
-            value={draft}
-            maxLength={500}
-            disabled={saving}
-            readOnly={readOnly}
-            onChange={(event) => onDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && event.nativeEvent.isComposing) {
-                event.preventDefault()
-              }
-            }}
-            autoComplete="off"
-          />
-        </TextField>
+        <div {...stylex.props(styles.field)}>
+          <TextField
+            size="medium"
+            label={
+              <Typo.txtS as="span" weight={700}>
+                정답 닉네임
+              </Typo.txtS>
+            }
+          >
+            <TextFieldInput
+              value={draft}
+              maxLength={500}
+              disabled={saving}
+              readOnly={readOnly}
+              onChange={(event) => onDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && event.nativeEvent.isComposing) {
+                  event.preventDefault()
+                }
+              }}
+              autoComplete="off"
+            />
+          </TextField>
+        </div>
         <Typo.caption as="p" {...stylex.props(styles.muted)}>
           {readOnly
             ? `자료실 정답 · ${DEVELOPER_COLLECTION_LABELS[sample.remote!.kind]} · ${sample.remote!.split}`
@@ -153,31 +158,40 @@ export function DeveloperSampleEditor({
           <div {...stylex.props(styles.actions)}>
             <ActionButton
               type="submit"
-              size="small"
+              size="medium"
+              variant="brandSolid"
               disabled={saving || draft.length === 0}
               loading={saving}
               {...stylex.props(styles.primaryAction)}
             >
-              저장하고 다음
+              <Typo.txtM as="span" weight={700}>
+                저장하고 다음
+              </Typo.txtM>
             </ActionButton>
             <div {...stylex.props(styles.secondaryActions)}>
               <ActionButton
                 type="button"
-                size="small"
+                size="medium"
                 variant="neutralWeak"
+                {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={onSkip}
               >
-                건너뛰기
+                <Typo.txtM as="span" weight={700}>
+                  건너뛰기
+                </Typo.txtM>
               </ActionButton>
               <ActionButton
                 type="button"
-                size="small"
-                variant="ghost"
+                size="medium"
+                variant="neutralWeak"
+                {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={() => onSetExcluded(!sample.excluded)}
               >
-                {sample.excluded ? '포함으로 복원' : '학습에서 제외'}
+                <Typo.txtM as="span" weight={700}>
+                  {sample.excluded ? '포함으로 복원' : '학습에서 제외'}
+                </Typo.txtM>
               </ActionButton>
             </div>
           </div>

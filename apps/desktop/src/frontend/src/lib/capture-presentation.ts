@@ -8,41 +8,45 @@ export function isDnfCaptureSource(source: { name: string }): boolean {
   return DNF_CAPTURE_WINDOW_TITLE_PATTERN.test(source.name)
 }
 
-type CaptureControlState = {
+type CaptureControlInput = {
   phase: CapturePhase
   loading: boolean
   failed: boolean
   hasDetectedSource: boolean
 }
 
-// 캡처 진행 상태를 우선하여 모달에 표시할 상태 이름을 결정한다.
+// 공용 StatusBadge가 받는 SEED Badge tone 이름이다. 디자인 StatusBadge의 info, success, danger는
+// 각각 informative, positive, critical에 대응한다.
+export type CaptureControlTone = 'neutral' | 'informative' | 'positive' | 'warning' | 'critical'
+
+// 캡처 진행 상태를 우선하여 모달에 표시할 상태 이름과 배지 tone을 결정한다.
 export function getCaptureControlState({
   phase,
   loading,
   failed,
   hasDetectedSource
-}: CaptureControlState): string {
+}: CaptureControlInput): { label: string; tone: CaptureControlTone } {
   if (phase === 'selecting' || phase === 'starting') {
-    return '준비 중'
+    return { label: '준비 중', tone: 'neutral' }
   }
 
   if (phase === 'active') {
-    return '캡처 중'
+    return { label: '캡처 중', tone: 'informative' }
   }
 
   if (loading) {
-    return '창 확인 중'
+    return { label: '창 확인 중', tone: 'neutral' }
   }
 
   if (failed) {
-    return '조회 실패'
+    return { label: '조회 실패', tone: 'critical' }
   }
 
   if (!hasDetectedSource) {
-    return '창 미감지'
+    return { label: '창 미감지', tone: 'warning' }
   }
 
-  return '창 감지됨'
+  return { label: '창 감지됨', tone: 'positive' }
 }
 
 // 창 목록 조회 결과에 맞는 안내 문구를 결정한다.

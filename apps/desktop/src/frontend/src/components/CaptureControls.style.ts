@@ -5,11 +5,14 @@ export const styles = stylex.create({
   camera: { color: colors.fgDefault },
   cameraActive: { color: colors.fgBrand },
   dialog: {
-    width: 440,
+    width: 480,
     maxWidth: 'calc(100vw - 32px)',
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
-    borderRadius: 16
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: colors.borderDefault,
+    borderRadius: 12
   },
   heading: {
     display: 'flex',
@@ -18,20 +21,10 @@ export const styles = stylex.create({
     gap: 16,
     paddingRight: 24
   },
-  state: { color: colors.fgMuted, whiteSpace: 'nowrap' },
-  stateActive: { color: colors.fgInfo },
   notice: {
     color: colors.fgMuted,
     paddingTop: 12,
     overflowWrap: 'anywhere'
-  },
-  footer: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8,
-    padding: 24
   },
   actions: { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 8 }
 })

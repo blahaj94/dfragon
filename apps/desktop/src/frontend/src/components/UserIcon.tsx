@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react'
 
-export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
+export function UserIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
   return (
     <svg
       aria-hidden="true"
@@ -12,8 +12,8 @@ export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       strokeLinejoin="round"
       {...props}
     >
-      <rect width="20" height="14" x="2" y="3" rx="2" />
-      <path d="M8 21h8M12 17v4" />
+      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
     </svg>
   )
 }

@@ -3,10 +3,13 @@ import brandIcon from '../../../../resources/brand.png'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo, ActionButton, DialogContent, DialogRoot, DialogTrigger } from '@dfragon/ui'
+import { Switch } from '@seed-design/react'
 import type { NoticeEntry } from '@dfragon/licenses/types'
 import { useColorTheme } from '../hooks/useColorTheme'
 import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
+import { SettingsIcon } from '../components/SettingsIcon'
+import { IconButton } from '../components/IconButton'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 import { styles } from './SettingsSection.style'
 import { BuildVersionsSection } from './BuildVersionsSection'
@@ -81,36 +84,40 @@ export function SettingsSection({
 
     return (
       <>
-        <div {...stylex.props(styles.developerActions)}>
-          <ActionButton
-            size="small"
-            variant="neutralWeak"
-            aria-pressed={mode.enabled}
-            disabled={mode.updating}
-            onClick={() => mode.setEnabled(!mode.enabled)}
-          >
-            <Typo.txtS as="span" weight={700}>
-              {mode.enabled ? '개발자 모드 끄기' : '개발자 모드 켜기'}
-            </Typo.txtS>
-          </ActionButton>
-          {mode.enabled && onOpenDeveloperWorkbench && (
+        <Switch.Root
+          size="24"
+          checked={mode.enabled}
+          disabled={mode.updating}
+          onCheckedChange={mode.setEnabled}
+          {...stylex.props(styles.developerSwitch)}
+        >
+          <Switch.Label>
+            <Typo.txtM as="span">개발자 모드</Typo.txtM>
+          </Switch.Label>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+          <Switch.HiddenInput />
+        </Switch.Root>
+        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
+          {getDeveloperStatusText()}
+        </Typo.txtS>
+        {mode.enabled && onOpenDeveloperWorkbench && (
+          <div {...stylex.props(styles.developerActions)}>
             <ActionButton
-              size="small"
+              size="medium"
               variant="brandSolid"
               onClick={() => {
                 setOpen(false)
                 onOpenDeveloperWorkbench()
               }}
             >
-              <Typo.txtS as="span" weight={700}>
+              <Typo.txtM as="span" weight={700}>
                 개발 도구 열기
-              </Typo.txtS>
+              </Typo.txtM>
             </ActionButton>
-          )}
-        </div>
-        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
-          {getDeveloperStatusText()}
-        </Typo.txtS>
+          </div>
+        )}
       </>
     )
   }
@@ -170,22 +177,12 @@ export function SettingsSection({
       }}
     >
       <DialogTrigger asChild>
-        <ActionButton size="small" variant="ghost" aria-label="설정" aria-haspopup="dialog">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        </ActionButton>
+        <IconButton
+          variant="ghost"
+          aria-label="설정"
+          aria-haspopup="dialog"
+          icon={<SettingsIcon />}
+        />
       </DialogTrigger>
       <DialogContent
         title={<Typo.h5 as="span">설정</Typo.h5>}
@@ -196,7 +193,7 @@ export function SettingsSection({
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">
               <Typo.caption {...stylex.props(styles.group)}>앱 정보</Typo.caption>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'versions' ? 'page' : undefined}
                 {...stylex.props(
@@ -205,12 +202,10 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('versions')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  버전 정보
-                </Typo.txtS>
+                <Typo.txtM as="span">버전 정보</Typo.txtM>
               </ActionButton>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'licenses' ? 'page' : undefined}
                 {...stylex.props(
@@ -219,12 +214,10 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('licenses')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  라이선스 사용고지
-                </Typo.txtS>
+                <Typo.txtM as="span">라이선스 사용고지</Typo.txtM>
               </ActionButton>
               <ActionButton
-                size="small"
+                size="medium"
                 variant="ghost"
                 aria-current={selectedSection === 'developer' ? 'page' : undefined}
                 {...stylex.props(
@@ -233,9 +226,7 @@ export function SettingsSection({
                 )}
                 onClick={() => setSelectedSection('developer')}
               >
-                <Typo.txtS as="span" weight={700}>
-                  개발자 모드
-                </Typo.txtS>
+                <Typo.txtM as="span">개발자 모드</Typo.txtM>
               </ActionButton>
               <div {...stylex.props(styles.appName)}>
                 <img src={brandIcon} width={32} height={32} alt="" />

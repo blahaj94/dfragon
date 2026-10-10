@@ -5,7 +5,7 @@ export const styles = stylex.create({
   trigger: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     minWidth: 64,
     maxWidth: '100%',
     minHeight: 24,
@@ -15,7 +15,7 @@ export const styles = stylex.create({
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: 'transparent',
-    borderRadius: 6,
+    borderRadius: 4,
     // The card stays dark in both modes, so drop SEED's mode-dependent inset stroke.
     boxShadow: 'none',
     backgroundColor: colors.cardControl,
@@ -38,44 +38,46 @@ export const styles = stylex.create({
     color: 'inherit'
   },
   chevron: {
-    width: 12,
-    height: 12,
+    width: 16,
+    height: 16,
     flexShrink: 0,
-    color: 'inherit',
+    color: colors.cardFgSubtle,
     transition: 'transform 140ms ease',
     ':is([data-open])': { transform: 'rotate(180deg)' },
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
   positioner: { color: colors.cardFg },
   content: {
-    width: 160,
+    width: 120,
     maxWidth: 'calc(100vw - 16px)',
     boxSizing: 'border-box',
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: colors.cardBorder,
-    borderRadius: 12,
+    borderRadius: 8,
     backgroundColor: colors.cardBg,
     boxShadow: 'var(--seed-shadow-s3)',
     '@media (prefers-reduced-motion: reduce)': { animationDuration: '0s' }
   },
-  scroll: { padding: 6, maxHeight: 'min(320px, var(--seed-select-available-height, 320px))' },
-  groupLabel: {
-    padding: '6px 10px 8px',
-    color: colors.cardFgSubtle
+  scroll: {
+    gap: 2,
+    padding: 4,
+    maxHeight: 'min(320px, var(--seed-select-available-height, 320px))'
   },
   option: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
     boxSizing: 'border-box',
     minHeight: 32,
-    padding: '6px 10px',
-    borderRadius: 6,
+    padding: '6px 8px',
+    borderRadius: 4,
     color: colors.cardFg,
     backgroundColor: 'transparent',
+    // SEED paints its own inset pressed layer on highlight; the design hover is the item background.
+    '--seed-color-bg-transparent-pressed': 'transparent',
     cursor: 'pointer',
+    // The outline stays because pointer hover and keyboard navigation share data-highlighted.
     ':is([data-highlighted])': {
       backgroundColor: colors.cardControlHover,
       outline: `1px solid ${colors.borderFocus}`,

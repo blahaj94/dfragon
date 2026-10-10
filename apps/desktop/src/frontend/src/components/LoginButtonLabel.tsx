@@ -10,17 +10,17 @@ export function LoginButtonLabel({
   inProgress: boolean
 }): React.JSX.Element {
   return (
-    <span {...stylex.props(styles.root, inProgress && styles.compact)} aria-hidden="true">
-      <Typo.txtS
-        as="span"
-        weight={700}
-        {...stylex.props(styles.text, inProgress && styles.textHidden)}
-      >
-        {label}
-      </Typo.txtS>
+    // The root carries the label font so the em-based widths match the 16px label.
+    <Typo.txtM
+      as="span"
+      weight={700}
+      aria-hidden="true"
+      {...stylex.props(styles.root, inProgress && styles.compact)}
+    >
+      <span {...stylex.props(styles.text, inProgress && styles.textHidden)}>{label}</span>
       <span {...stylex.props(styles.icon, inProgress && styles.iconShown)}>
         <ProgressCircle size="24" />
       </span>
-    </span>
+    </Typo.txtM>
   )
 }

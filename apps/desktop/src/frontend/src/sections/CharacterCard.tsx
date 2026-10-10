@@ -1,5 +1,6 @@
 import { ActionButton, ProgressCircle, Typo, typographyVariants } from '@dfragon/ui'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
+import { UserIcon } from '../components/UserIcon'
 import { getCharacterCardStatus } from '../lib/card-presentation'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
@@ -129,8 +130,10 @@ export function CharacterCard({
             <div {...stylex.props(styles.identity)}>
               <Typo.caption {...stylex.props(styles.adventure)}>{character.adventure}</Typo.caption>
               <Typo.caption {...stylex.props(styles.muted)}>{character.job}</Typo.caption>
-              <Typo.caption {...stylex.props(styles.fame)}>
-                ♙ {character.fame?.toLocaleString('ko-KR') ?? '—'}
+              <Typo.caption weight={700} {...stylex.props(styles.fame)}>
+                <UserIcon width="16" height="16" />
+                <span {...stylex.props(styles.srOnly)}>명성 </span>
+                {character.fame?.toLocaleString('ko-KR') ?? '—'}
               </Typo.caption>
             </div>
           </>
