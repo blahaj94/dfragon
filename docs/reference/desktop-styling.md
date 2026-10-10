@@ -71,7 +71,7 @@ SEED에 같은 이름의 컴포넌트가 없거나 그대로 쓰면 의미, 배�
 | `Checkbox`(저장 포함) | SEED `Checkbox.Root.Primitive` 안의 `Control`, `Indicator`, `HiddenInput` | styled `Checkbox.Root`는 최소 높이 32와 체크 위치 여백 때문에 고정 높이 행의 머리 줄을 늘리거나 체크 위치를 어긋나게 합니다 |
 | `StatusBadge` | 공용 `components/StatusBadge`: SEED `Badge` large에 `bg.inset` 알약, `currentColor` 8px 점과 상태색 글자 | SEED `weak` 배경은 tone마다 색이 달라 디자인의 `bg.inset` 알약과 다릅니다. 캡처 모달과 개발자 창 검출 상태가 같은 컴포넌트를 쓰며, tone `neutral`, `informative`, `critical`, `warning`, `positive`의 글자색은 `fg.subtle`, `fg.info`, `fg.danger`, `fg.warning`, `fg.success`입니다. 글자는 SEED large의 12px medium이고 좌우 여백은 8입니다 |
 | `Switch`(개발자 모드) | SEED `Switch` size 24 | 디자인 36 × 20에 가장 가까운 단계입니다. 꺼짐 트랙은 SEED 기본색입니다 |
-| `SelectTrigger`, `Menu` | SEED `Select` medium과 화면 범위 StyleX | 캡처 주기는 폭 160, `bg.control` 트리거로 맞춥니다. 서버 선택의 24 트리거와 32 항목은 SEED 크기 단계에 없어 StyleX로 맞춥니다 |
+| `SelectTrigger`, `Menu` | SEED `Select` medium과 화면 범위 StyleX | 캡처 주기는 폭 160, `bg.control` 트리거로 맞춥니다. 서버 선택의 24 트리거와 32 항목은 SEED 크기 단계에 없어 StyleX로 맞춥니다. 열림 상태의 `chevron-up`은 SEED Select가 `data-open`에서 `chevron-down`을 뒤집어 표시합니다 |
 | `Tab`(개발자 작업 공간) | 기존 `role="tablist"`의 `ActionButton` medium에 선택 탭 아래 2px `bg.brand.solid` | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유합니다. 값마다 내용을 나누는 SEED `Tabs` 전환은 마운트 방식과 함께 따로 정합니다 |
 
 ## 검증
