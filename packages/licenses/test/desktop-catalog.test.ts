@@ -125,10 +125,11 @@ test('실제 UI peer와 앱, UI production의 전이 의존성을 포함하고 �
   const peerOriginals: Record<string, string> = {
     '@seed-design/css': '  SEED CSS fixture original\r\n',
     '@seed-design/react': 'SEED React fixture original\r\n',
+    '@stylexjs/stylex': 'StyleX fixture original\n',
     react: 'React fixture original\n',
     'react-dom': 'React DOM fixture original\r\n'
   }
-  for (const name of ['@seed-design/css', '@seed-design/react', 'react', 'react-dom']) {
+  for (const name of Object.keys(peerOriginals)) {
     let dependencies = {}
     if (name === '@seed-design/react') {
       dependencies = { 'peer-child': '1' }
@@ -171,6 +172,12 @@ test('실제 UI peer와 앱, UI production의 전이 의존성을 포함하고 �
       version: peers['@seed-design/react'],
       license: 'MIT',
       documents: [{ name: 'LICENSE', text: 'SEED React fixture original\r\n' }]
+    },
+    {
+      name: '@stylexjs/stylex',
+      version: peers['@stylexjs/stylex'],
+      license: 'MIT',
+      documents: [{ name: 'LICENSE', text: 'StyleX fixture original\n' }]
     },
     {
       name: 'main-runtime',

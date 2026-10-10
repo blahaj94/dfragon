@@ -9,7 +9,7 @@ import { test } from 'node:test'
 const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import.meta.url))
 const notice = '/*! DFragon modified SEED source: test fixture */\n'
-const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nexport { ActionButton, React, jsx };\n`
+const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nexport { ActionButton, React, jsx, stylex };\n`
 
 // 실제 고지, provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
@@ -112,6 +112,18 @@ for (const { name, file, source, failure } of [
     file: 'typo.js',
     source: `${notice}export { Typo } from './index.js';\n`,
     failure: /React-only Typo entry/
+  },
+  {
+    name: 'Typo가 StyleX runtime을 가져오는 경우',
+    file: 'typo.js',
+    source: `${notice}import * as stylex from '@stylexjs/stylex';\nexport const Typo = stylex.props;\n`,
+    failure: /React-only Typo entry/
+  },
+  {
+    name: 'library JS가 StyleX 주입 runtime을 가져오는 경우',
+    file: 'index.js',
+    source: `${indexSource}import '@stylexjs/stylex/lib/stylex-inject';\n`,
+    failure: /Library must import only @stylexjs\/stylex/
   },
   {
     name: 'library JS가 소비자 소유 CSS를 가져오는 경우',
