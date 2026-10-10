@@ -7,8 +7,8 @@ import { useColorTheme } from '../hooks/useColorTheme'
 import type { CaptureControlTone } from '../lib/capture-presentation'
 import { MoonIcon } from './MoonIcon'
 import { SunIcon } from './SunIcon'
-import { styles } from './TopBar.style'
 import { windowChromeStyles } from '../constants/window-chrome.style'
+import { styles } from './TopBar.style'
 
 export function TopBar({
   captureStatus,
@@ -19,7 +19,10 @@ export function TopBar({
 }: {
   captureStatus: { label: string; tone: CaptureControlTone }
   capture: ReactNode
-  /** 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. */
+  /**
+   * 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. 넘기는 요소는 상단 바 끌기에서
+   * 빠지도록 자기 버튼을 `windowChromeStyles.noDrag`로 감싼다.
+   */
   account?: ReactNode
   settings: ReactNode
   showCapture: boolean
@@ -59,7 +62,7 @@ export function TopBar({
             </ActionButton>
           </span>
         ) : (
-          account != null && <span {...stylex.props(windowChromeStyles.noDrag)}>{account}</span>
+          account
         )}
         {settings}
       </div>

@@ -4,5 +4,7 @@ import * as stylex from '@stylexjs/stylex'
 // 끌기 제외는 버튼 묶음 대신 각 버튼을 감싼 요소에 둔다. 묶음에 두면 그 안에 그려지는
 // 대화상자 positioner(닫혀 있어도 창 전체 크기)까지 끌기 제외가 되어 끌기 영역이 모두 지워진다.
 export const windowChromeStyles = stylex.create({
-  noDrag: { display: 'inline-flex', WebkitAppRegion: 'no-drag' }
+  // inline-flex는 감싼 요소를 버튼 상자와 같은 크기로 두고, relative는 absolute인 끌기 배경보다
+  // 위에서 클릭을 받게 한다. 버튼 자체의 position에 기대지 않는다.
+  noDrag: { display: 'inline-flex', position: 'relative', WebkitAppRegion: 'no-drag' }
 })
