@@ -8,6 +8,7 @@ import {
   DialogRoot,
   DialogTrigger,
   IconButton,
+  StatusBadge,
   TextField,
   TextFieldInput,
   type ActionButtonProps,
@@ -498,5 +499,25 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
 
     await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+})
+
+describe('StatusBadge의 상태 알림 범위', () => {
+  it('호출자가 status 영역을 요청하면 상태 글자만 알린다', async () => {
+    await render(
+      <StatusBadge tone="positive" role="status">
+        창 감지됨
+      </StatusBadge>
+    )
+
+    expect(element('[role="status"]').textContent).toBe('창 감지됨')
+  })
+
+  it('호출자가 요청하지 않으면 live region을 만들지 않는다', async () => {
+    await render(<StatusBadge tone="warning">파티원창 찾는 중</StatusBadge>)
+
+    expect(container.textContent).toBe('파티원창 찾는 중')
+    expect(container.querySelector('[role]')).toBeNull()
+    expect(container.querySelector('[aria-live]')).toBeNull()
   })
 })

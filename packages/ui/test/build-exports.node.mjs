@@ -22,7 +22,10 @@ test('소비자 compiler가 library의 StyleX 선언을 산출 CSS의 atomic cla
     'utf8'
   )
   const rules = stylesheet.replace(WHITESPACE_PATTERN, '')
-  for (const declaration of ['padding:var(--seed-dimension-x2)']) {
+  for (const declaration of [
+    'padding:var(--seed-dimension-x2)',
+    'border-radius:var(--seed-radius-full)'
+  ]) {
     const atomicRule = new RegExp(
       `\\.x[a-z0-9]+(?::not\\(#\\\\#\\))*\\{${RegExp.escape(declaration)};?\\}`
     )

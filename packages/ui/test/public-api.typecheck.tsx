@@ -22,6 +22,7 @@ import {
   IconButton,
   LayoutBlock,
   ProgressCircle,
+  StatusBadge,
   SupportingText,
   TextField,
   TextFieldInput,
@@ -36,6 +37,8 @@ import {
   type DialogTriggerProps,
   type IconButtonProps,
   type ProgressCircleProps,
+  type StatusBadgeProps,
+  type StatusBadgeTone,
   type TextFieldInputProps,
   type TextFieldProps,
   type TypoProps
@@ -79,12 +82,15 @@ expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | 
 expectTypeOf<DialogRootProps>().not.toHaveProperty('ref')
 
 // 디자인 컴포넌트도 SEED 변수로 외형을 소유하고 화면별 외형 override를 노출하지 않는다.
-type DesignPropKeys = keyof IconButtonProps
+type DesignPropKeys = keyof IconButtonProps | keyof StatusBadgeProps
 expectTypeOf<
   Extract<DesignPropKeys, AppearanceOverrides | 'size' | 'layout'>
 >().toEqualTypeOf<never>()
 expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<IconButtonProps['variant']>().toEqualTypeOf<'neutralWeak' | 'ghost'>()
+expectTypeOf<StatusBadgeTone>().toEqualTypeOf<
+  'neutral' | 'informative' | 'critical' | 'warning' | 'positive'
+>()
 
 const buttonRef = createRef<HTMLButtonElement>()
 const inputRef = createRef<HTMLInputElement>()
@@ -198,6 +204,9 @@ export const designExamples = (
         />
       </DialogTrigger>
     </DialogRoot>
+    <StatusBadge tone="positive" role="status">
+      창 감지됨
+    </StatusBadge>
   </>
 )
 
@@ -209,6 +218,8 @@ export const invalidDesignExamples = (
     <IconButton variant="brandSolid" aria-label="설정" icon={<svg aria-hidden="true" />} />
     {/* @ts-expect-error IconButton의 임의 className은 공개 prop이 아니다. */}
     <IconButton className="square" variant="ghost" aria-label="설정" icon={<svg />} />
+    {/* @ts-expect-error StatusBadge tone은 디자인 상태 tone 중 하나여야 한다. */}
+    <StatusBadge tone="brand">상태</StatusBadge>
   </>
 )
 

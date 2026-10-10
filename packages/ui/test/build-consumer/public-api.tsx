@@ -12,6 +12,7 @@ import {
   IconButton,
   LayoutBlock,
   ProgressCircle,
+  StatusBadge,
   SupportingText,
   TextField,
   TextFieldInput,
@@ -29,6 +30,8 @@ import type {
   IconButtonProps,
   LayoutBlockProps,
   ProgressCircleProps,
+  StatusBadgeProps,
+  StatusBadgeTone,
   TextFieldInputProps,
   TextFieldProps,
   TypoProps,
@@ -52,6 +55,7 @@ export const components = [
   IconButton,
   LayoutBlock,
   ProgressCircle,
+  StatusBadge,
   SupportingText,
   TextField,
   TextFieldInput
@@ -69,6 +73,8 @@ export type PublicProps = {
   dialogFooter: DialogFooterProps
   dialogAction: DialogActionProps
   iconButton: IconButtonProps
+  statusBadge: StatusBadgeProps
+  statusTone: StatusBadgeTone
   layout: LayoutBlockProps
   typo: TypoProps<'button'>
   standaloneTypo: StandaloneTypoProps<'a'>
@@ -89,6 +95,11 @@ export const iconButton = (
     ref={createRef<HTMLButtonElement>()}
     icon={<svg aria-hidden="true" />}
   />
+)
+export const statusBadge = (
+  <StatusBadge tone="positive" role="status">
+    연결됨
+  </StatusBadge>
 )
 export const paragraph = <Typo.txtM style={typographyVariants.txtM}>공개 entry</Typo.txtM>
 export const link = (
