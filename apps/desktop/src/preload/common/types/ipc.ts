@@ -10,13 +10,17 @@ import type { BuildVersions } from './build-versions'
 import type { CollectOcrSample, OcrCollectionResult } from './ocr-collection'
 import type { DiagnosticIPCFunctions } from './diagnostics'
 import type { UpdateNoticeIPCFunctions } from './update-notice'
+import type { WindowChromeIPCFunctions } from './window-chrome'
 import type {
   CharacterDetailSnapshot,
   CharacterSelectionReference,
   OpenCharacterDetailResult
 } from './character-detail'
 
-interface AsyncIPCFunctions extends DiagnosticIPCFunctions, UpdateNoticeIPCFunctions {
+interface AsyncIPCFunctions
+  extends DiagnosticIPCFunctions,
+    UpdateNoticeIPCFunctions,
+    WindowChromeIPCFunctions {
   collectOcrSample: (input: CollectOcrSample) => Promise<OcrCollectionResult>
   readCharacterDetail: () => Promise<CharacterDetailSnapshot>
   openCharacterDetails: (input: CharacterSelectionReference) => Promise<OpenCharacterDetailResult>

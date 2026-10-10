@@ -9,6 +9,7 @@ import * as desktopShortcut from './api/desktop-shortcut'
 import * as ocrCollection from './api/ocr-collection'
 import * as diagnostics from './api/diagnostics'
 import * as updateNotice from './api/update-notice'
+import * as windowChrome from './api/window-chrome'
 import { AUTH_AVAILABLE_ARGUMENT } from './common/types/auth'
 
 contextBridge.exposeInMainWorld('api', capture)
@@ -29,3 +30,4 @@ contextBridge.exposeInMainWorld('desktopShortcut', desktopShortcut)
 contextBridge.exposeInMainWorld('ocrCollection', ocrCollection)
 contextBridge.exposeInMainWorld('diagnostics', diagnostics)
 contextBridge.exposeInMainWorld('updateNotice', updateNotice)
+contextBridge.exposeInMainWorld('windowChrome', windowChrome)

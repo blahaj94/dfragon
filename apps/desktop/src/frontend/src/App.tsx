@@ -4,6 +4,7 @@ import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
 import { lightTheme } from './constants/theme.stylex'
 import { useColorTheme } from './hooks/useColorTheme'
+import { useWindowChromeTheme } from './hooks/useWindowChromeTheme'
 import { usePartyCapture } from './hooks/usePartyCapture'
 import { CaptureControls } from './components/CaptureControls'
 import { TopBar } from './components/TopBar'
@@ -21,6 +22,7 @@ import { getCaptureControlState, isDnfCaptureSource } from './lib/capture-presen
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
+  useWindowChromeTheme(light)
   const developerMode = useDeveloperMode()
   const capture = usePartyCapture({ identifyCharacters: true })
   const updateNotice = useUpdateNotice()

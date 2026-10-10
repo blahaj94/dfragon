@@ -1,4 +1,4 @@
-import { app, BrowserWindow, powerMonitor, session } from 'electron'
+import { app, BrowserWindow, nativeTheme, powerMonitor, session } from 'electron'
 import { join } from 'path'
 import { pathToFileURL } from 'node:url'
 import { optimizer, is } from '@electron-toolkit/utils'
@@ -39,6 +39,9 @@ import { AUTH_AVAILABLE_ARGUMENT } from '../preload/common/types/auth'
 import { createOcrCollection } from './ocr-collection/collection'
 import { isOcrCollectionEnabled } from './ocr-collection/policy'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
+import { registerWindowChromeWindow } from './window-chrome/ipc-handler'
+import { WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
+import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
 import {
   registerCharacterDetailWindows,
@@ -106,11 +109,17 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     throw new Error('Main window already exists.')
   }
   authAppLifecycle.prepareWindow()
+  const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   const window = new BrowserWindow({
     width: 900,
     height: 670,
+    // Windows 창 버튼(138)과 상단 바 여백, 로그인 버튼이 있는 도구 묶음이 겹치지 않는 최소 폭이다.
+    minWidth: 460,
     show: false,
     autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: getTitleBarOverlay(process.platform, theme),
+    backgroundColor: WINDOW_CHROME_COLORS[theme].color,
     icon,
     webPreferences: {
       backgroundThrottling: false,
@@ -129,6 +138,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   let disposeCharacterDetails: (() => void) | undefined
   let disposeShortcuts: (() => void) | undefined
   let disposeDiagnostics: (() => void) | undefined
+  let disposeWindowChrome: (() => void) | undefined
   try {
     registerCapturePermissions(session.defaultSession)
     registerCaptureWindow(window, rendererDocumentUrl)
@@ -176,6 +186,14 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     } catch {
       // 새 버전 알림은 캡처와 로그인 시작을 막지 않는다.
     }
+    try {
+      disposeWindowChrome = registerWindowChromeWindow({
+        window,
+        documentUrl: rendererDocumentUrl
+      })
+    } catch {
+      // 창 색상 동기화는 캡처와 로그인 시작을 막지 않는다.
+    }
     if (authRuntime != null) {
       nextDisposeAuthIpc = registerAuthIpc({
         coordinator: authRuntime.coordinator,
@@ -202,6 +220,7 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   } catch (error) {
     disposeShortcuts?.()
     disposeDiagnostics?.()
+    disposeWindowChrome?.()
     disposeCharacterDetails?.()
     disposeVersions?.()
     disposeUpdateNotice?.()
