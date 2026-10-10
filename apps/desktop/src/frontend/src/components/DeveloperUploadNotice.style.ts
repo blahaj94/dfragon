@@ -13,7 +13,7 @@ export const styles = stylex.create({
     borderWidth: 1,
     borderLeftWidth: 5,
     borderStyle: 'solid',
-    borderRadius: 10,
+    borderRadius: 12,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
     minWidth: 0
