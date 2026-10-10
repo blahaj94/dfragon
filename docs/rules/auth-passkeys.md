@@ -21,7 +21,7 @@ evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loop
 
 ## Desktop과 브라우저 연결
 
-Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/src/auth/login/input.ts`는 요청의 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). `apps/accounts/browser/return-target.ts`는 브라우저가 이동하기 전에 code가 붙은 복귀 주소를 검증한다. 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다. 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 Electron BrowserWindow, `dfragon://` 복귀)이 아니다. 제거는 구현 PR에서 한다.
+Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/src/auth/login/input.ts`는 요청의 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). `apps/accounts/browser/return-target.ts`는 브라우저가 이동하기 전에 code가 붙은 복귀 주소를 검증한다. 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다.
 
 accounts는 Desktop 요청의 `returnUrl`을 검증해 해당 요청 행에 저장하고 인증 완료 때 그 값만 사용한다. Scheme은 `http`, host는 정확히 `127.0.0.1`, path는 `/auth/callback`이며 포트는 선행 0 없는 10진수 1024~65535다. Userinfo, query, fragment 없이 URL 정규화 결과와 원문이 같아야 한다. 서버 `passkey.returnUrl` 설정은 사용하지 않는다. OCR의 고정 `ocrReturnUrl` 흐름은 유지한다.
 

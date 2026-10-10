@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: server runtime configuration and product images
-last-reviewed: 2026-09-30
+last-reviewed: 2026-10-10
 ---
 
 # 서버 실행과 이미지
@@ -62,13 +62,15 @@ pnpm --filter @dfragon/desktop dev
 
 서버별 `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`을 같은 신뢰한 localhost 인증서의 절대 경로로 설정한다.
 API는 `API_ORIGIN=https://localhost:3443`, accounts의 JSON은 `apiOrigin=https://localhost:3444`,
-RP ID `localhost`, returnUrl `dfragon.dev://auth/callback`을 사용한다. 두 origin은 port가 달라도
+RP ID `localhost`를 사용한다. `passkey.returnUrl` key는 제거해야 하며, 남아 있으면 accounts가 기동을 거절한다.
+Desktop은 로그인 요청마다 `returnUrl: http://127.0.0.1:<port>/auth/callback`을 보낸다.
+`<port>`는 main이 연 loopback 수신기의 임시 포트(1024~65535)다. 두 origin은 port가 달라도
 hostname이 같아서 로컬에서는 같은 RP다. 실제 도메인 이전 검증은 `test:database`의 별도 hostname 가상 인증기로 수행한다.
 TLS 파일의 key 일치, localhost/port 입력을 listen 전에 확인하며 client의 실제 신뢰 체인 검증을 끄지 않는다.
 
 Desktop 개발 build에는 두 주소가 각각 포함된다. 설치형 배포는 `DFRAGON_DISTRIBUTION_API_ORIGIN`과
 별도 `DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN`을 사용한다. Shell 기반 구성의 검색은 `DFRAGON_API_ORIGIN`,
-인증은 기존 이름인 `DFRAGON_AUTH_API_ORIGIN`으로 구분한다. 인증 창은 해당 origin만 허용한다.
+인증은 기존 이름인 `DFRAGON_AUTH_API_ORIGIN`으로 구분한다. Main은 로그인 URL이 해당 origin인지 검증한 뒤 시스템 기본 브라우저에서 연다.
 별도 Node client의 개발 CA는 실행 전 `NODE_EXTRA_CA_CERTS`에 공개 CA certificate를 지정한다.
 Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 않는다.
 
@@ -82,7 +84,7 @@ Desktop은 OS 인증서 신뢰를 사용하며 인증서 오류를 무시하지 
 정상 종료와 부분 초기화 실패에서 앱과 소유 DB를 정리하며 SIGKILL, host 장애는 즉시 cleanup을 보장하지 않는다.
 
 `pnpm --filter @dfragon/api test`는 domain HTTP, 설정과 build를, `test:database`는 domain schema, cache, 검색을 검증한다.
-accounts의 같은 명령은 인증 HTTP, key, session, 설정과 build, 별도 PostgreSQL, migration, 이전 RP 정리, 현재 RP 브라우저, QR을 검증한다.
+accounts의 같은 명령은 인증 HTTP, key, session, 설정과 build, 별도 PostgreSQL, migration, 이전 RP 정리, 현재 RP의 패스키 가입, 로그인, 관리와 요청별 loopback 자동 복귀를 검증한다.
 DB suite에는 Docker와 Playwright Chromium이 필요하다. 이미지 입력과 운영 책임은 [제품 안내](#서버-이미지)를 따른다. 로컬 성공은 실제 DNS/TLS, 기기 패스키 검증을 대신하지 않는다.
 
 ## 서버 이미지

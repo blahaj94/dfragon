@@ -105,7 +105,7 @@ Windows entry는 기존 `applyAuthRuntimeProfile`의 native ACL 검사를 사용
 
 ## Bootstrap 연결과 실제 로그인 확인
 
-제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity, API, 복귀 주소는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 브라우저 인증, packaged app과 production 저장 검증은 별도 통합 범위다.
+제품 main은 single-instance lock 전에 app identity와 private userData profile을 적용하고, `app.ready` 이후 접근 안내를 표시한 뒤 runtime effects가 기본 Electron safeStorage를 사용하는 dependency를 생성하게 한다. 설정이 없거나 잘못되면 adapter, auth HTTP와 coordinator를 생성하지 않는다. 개발용 identity와 API는 [platform의 개발 tuple](../rules/desktop-auth-platform.md#로컬-개발용-등록값)을 사용하며 실행 시 실제 private root 권한을 검사한다. OS prompt는 동기 safeStorage 호출을 막을 수 있으며 JavaScript timer로 취소된다고 가정하지 않는다. 실제 브라우저 인증, packaged app과 production 저장 검증은 별도 통합 범위다.
 
 확인한 고정 조합은 Electron **44.7.0**, Node **24.21.0**, libuv **1.52.1**이다. [Electron DEPS](https://raw.githubusercontent.com/electron/electron/v44.7.0/DEPS), [Node의 libuv version](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/include/uv/version.h)과 설치 runtime을 대조했다. [Node의 libuv Apple 구현](https://raw.githubusercontent.com/nodejs/node/v24.21.0/deps/uv/src/unix/fs.c)은 `FileHandle.sync()` 경로에서 `F_FULLFSYNC`, 실패 시 `F_BARRIERFSYNC`, 다시 실패 시 `fsync`를 사용하며, 이 순서는 이전 고정 조합(Electron 39.8.10, Node 22.22.1, libuv 1.51.0)과 같다. JavaScript 성공은 선택된 fallback을 알려 주지 않으므로 실제 filesystem의 directory durability, 전원 손실 보장을 증명하지 않는다.
 

@@ -92,7 +92,7 @@ Preload event는 고정 channel 하나에서 DTO만 전달하고 개별 wrapper�
 
 ## 최소 화면과 capture 경계
 
-Capture와 검색 화면은 인증 snapshot 로딩, signedOut, 로그인 진행, welcome, signedIn, 로그아웃, 복원/저장 실패 상태 모두에서 사용할 수 있다. 2026-09-18 사용자 요청에 따라 계정 모달과 로그인 후 계정 메뉴, 환영 화면은 제거한다. 메인의 로그인 버튼은 시스템 브라우저를 열고 완료 시 숨긴다. 진행 중(`startingLogin`, `waitingBrowser`, `exchanging`)에는 같은 버튼이 `취소`가 되며 누르면 `cancelLogin`을 보낸다. 인증 창이 없으므로 창 닫기로 취소하지 않는다. 연결 실패는 로그인 버튼으로 조회를 재시도하고 복원, 저장소 실패는 기존 복구 명령을 호출한다. 로그인 설정이 없는 채널과 인증 설정 없이 실행한 개발 실행은 main이 인증 IPC를 등록하지 않으므로 preload 인증 API와 로그인 버튼을 노출하지 않는다(2026-10-10 사용자 결정). 이 화면 변경은 해당 PR에서 구현, 검증하고 사용자 merge 후 활성화한다. 로그인 실패나 계정 전환이 capture component를 재생성하거나 인식값, 검색 결과를 지우지 않는다. Snapshot의 welcome/home 구분과 main의 인증, 취소, 복구, 로그아웃 계약은 유지하며 UI 메뉴 삭제로 인증 상태를 조작하지 않는다.
+Capture와 검색 화면은 인증 snapshot 로딩, signedOut, 로그인 진행, welcome, signedIn, 로그아웃, 복원/저장 실패 상태 모두에서 사용할 수 있다. 2026-09-18 사용자 요청에 따라 계정 모달과 로그인 후 계정 메뉴, 환영 화면은 제거한다. 메인의 로그인 버튼은 시스템 브라우저를 열고 완료 시 숨긴다. 진행 중(`startingLogin`, `waitingBrowser`, `exchanging`)에는 같은 버튼이 `취소`가 되며 누르면 `cancelLogin`을 보낸다. 인증 창이 없으므로 창 닫기로 취소하지 않는다. 연결 실패는 로그인 버튼으로 조회를 재시도하고 복원, 저장소 실패는 기존 복구 명령을 호출한다. 로그인 설정이 없는 채널과 인증 설정 없이 실행한 개발 실행은 main이 인증 IPC를 등록하지 않으므로 preload 인증 API와 로그인 버튼을 노출하지 않는다(2026-10-10 사용자 결정). 로그인 실패나 계정 전환이 capture component를 재생성하거나 인식값, 검색 결과를 지우지 않는다. Snapshot의 welcome/home 구분과 main의 인증, 취소, 복구, 로그아웃 계약은 유지하며 UI 메뉴 삭제로 인증 상태를 조작하지 않는다.
 
 Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, capture unmount, renderer reload/navigation/destruction은 프레임 읽기 loop, worker, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. Stop과 프레임 읽기 실패는 프레임 읽기 loop, worker와 검색을 정리하고 늦은 완료를 차단한다. 프레임 읽기 실패는 확인을 마친 source 선택을 유지하고, Stop한 뒤에는 source를 다시 선택해야 캡처를 시작한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
 
@@ -116,7 +116,7 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 ## 승인된 선택과 서버 별도 결정
 
-권장안은 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 시스템 브라우저와 loopback 복귀 + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, 시스템 브라우저 인증은 제품 renderer와 session, 권한을 분리하면서 브라우저가 제공하는 패스키 hybrid QR을 그대로 쓴다. 등록 private protocol과 인증 BrowserWindow를 loopback으로 바꾼 것은 2026-10-10 사용자 결정으로 승인된 변경 contract다. 저장/복귀의 실질 대안 비교는 platform 문서에 둔다.
+권장안은 main 단독 소유 + feature IPC + memory-only pending/access + 암호화 refresh 보관 + 시스템 브라우저와 loopback 복귀 + 최소 welcome/home이다. Renderer token 보관은 bridge 노출면을 늘리고, 시스템 브라우저 인증은 제품 renderer와 session, 권한을 분리하면서 브라우저가 제공하는 패스키 hybrid QR을 그대로 쓴다. 등록 private protocol과 인증 BrowserWindow를 loopback으로 바꾼 것은 2026-10-10 사용자 결정에 따른다. 저장/복귀의 실질 대안 비교는 platform 문서에 둔다.
 
 휴대폰 로그인은 [패스키 계약](auth-passkeys.md)의 브라우저 hybrid QR만 사용하며 DFragon 자체 QR의 상태 조회, 서버 취소는 제공하지 않는다. Main의 login pending은 메모리에만 유지하며 재시작 복구, code/refresh 응답 유실의 idempotent 재전달, error URL parameter, refresh grace, 계정 연결은 추가하지 않는다. [승인된 탈퇴 contract](auth-withdrawal-proposal.md)의 withdrawal 전용 status/resume, main-owned receipt, 재시작 1회/사용자 gesture 조회는 별도로 승인된 확장이다. 기존 login pending의 memory-only/재시작 복구 없음과 혼합하지 않으며 구체적 feature IPC, UI/OS 구현과 검증은 후속 범위다.
 

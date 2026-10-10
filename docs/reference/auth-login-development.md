@@ -1,6 +1,6 @@
 ---
 type: reference
-scope: apps/api passkey login implementation
+scope: apps/accounts passkey login implementation
 last-reviewed: 2026-10-10
 ---
 
@@ -11,7 +11,9 @@ last-reviewed: 2026-10-10
 | 위치 | 책임 |
 | --- | --- |
 | `apps/accounts/src/auth/login/service.ts` | 요청 생성, 브라우저 binding, WebAuthn 옵션/검증, 패스키 관리 |
-| `apps/accounts/src/auth/login/configuration.ts` | HTTPS origin, RP ID, 복귀 주소 검증과 fingerprint |
+| `apps/accounts/src/auth/login/configuration.ts` | HTTPS origin, RP ID, 고정 OCR 복귀 주소 검증과 fingerprint |
+| `apps/accounts/src/auth/login/input.ts` | Desktop 로그인 요청의 loopback `returnUrl`과 strict 입력 검증 |
+| `apps/accounts/browser/return-target.ts` | 인증 완료 후 이동할 code-only 복귀 URL 검증 |
 | `apps/accounts/src/auth/login/exchange.ts` | S256, code, 키 소유 확인 뒤 session/JWT 발급과 code 소비 |
 | `apps/accounts/src/access-log.ts` | 요청마다 stdout에 쓰는 JSON 접근 로그와 `X-Correlation-Id` 응답 header |
 | `apps/accounts/src/error-chain.ts` | 5xx 접근 로그에 남길 오류 chain 정제와 응답용 failure의 base class `SanitizedFailure` |
@@ -32,4 +34,6 @@ API, accounts, OCR 서버는 요청마다 JSON 한 줄의 접근 로그를 stdou
 
 기본 entry는 초기화한 DB, 검증한 패스키 설정, 기존 JWT issuer/verifier를 factory에 전달한다. Session, account, 검색 factory와 자원 수명은 유지한다. 계정 생성은 최초 등록의 WebAuthn 검증 뒤 수행하며 앱 exchange가 기존 회원을 다시 생성하지 않는다.
 
-합성 브라우저/DB 검증은 가입, 동일 계정 로그인, 관리 재인증, 예비 키, 마지막 키 보호, 키 삭제와 미교환 code, 서명/계정/origin 오류, 단일 소비, 만료를 확인한다. 실제 휴대폰 QR, Bluetooth, 운영 TLS, OS 앱 복귀 검증과는 구분한다.
+Desktop 로그인 요청은 검증한 `returnUrl`을 요청 행의 `return_url`에 저장한다. 패스키 인증 완료 페이지는 그 주소에 code 하나만 붙여 자동 이동하며, 같은 주소를 여는 `앱으로 돌아가기` 버튼도 제공한다. 서버 설정의 `passkey.returnUrl`은 사용하지 않는다. OCR은 기존 고정 HTTPS callback을 사용한다.
+
+합성 브라우저/DB 검증은 가입, 동일 계정 로그인, 관리 재인증, 예비 키, 마지막 키 보호, 키 삭제와 미교환 code, 서명/계정/origin 오류, 단일 소비, 만료, 요청별 loopback 자동 복귀와 제거된 자체 QR 경로의 거절을 확인한다. 실제 브라우저 패스키 창의 hybrid QR, Bluetooth, 운영 TLS와 설치 앱의 loopback 복귀 검증과는 구분한다.
