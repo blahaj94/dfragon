@@ -1,5 +1,5 @@
-import type { unstable_StyleProps as SeedStyleProps } from '@seed-design/react'
-import type { ComponentPropsWithRef, ComponentType, ElementType } from 'react'
+import type { ComponentType } from 'react'
+import type { PublicProps } from './public-props'
 import { ActionButton as SeedActionButton } from './seed/action-button'
 import { ProgressCircle as SeedProgressCircle } from './seed/progress-circle'
 import { TextField as SeedTextField, TextFieldInput as SeedTextFieldInput } from './seed/text-field'
@@ -12,12 +12,8 @@ import {
   DialogAction as SeedDialogAction
 } from './seed/dialog'
 
-// Runtime wrapper 없이 공식 Snippet을 제공하고 화면별 외형 override prop은 공개하지 않는다.
-type PublicProps<T extends ElementType> = Omit<
-  ComponentPropsWithRef<T>,
-  'style' | 'className' | 'fontWeight' | keyof SeedStyleProps
->
-
+// 공식 Snippet은 runtime wrapper 없이 제공한다. 디자인 컴포넌트는 SEED 변수만 쓰는
+// StyleX로 외형을 소유한다.
 export type ActionButtonProps = PublicProps<typeof SeedActionButton>
 export const ActionButton: ComponentType<ActionButtonProps> = SeedActionButton
 
@@ -41,6 +37,9 @@ export type DialogFooterProps = PublicProps<typeof SeedDialogFooter>
 export const DialogFooter: ComponentType<DialogFooterProps> = SeedDialogFooter
 export type DialogActionProps = PublicProps<typeof SeedDialogAction>
 export const DialogAction: ComponentType<DialogActionProps> = SeedDialogAction
+
+export { IconButton } from './icon-button'
+export type { IconButtonProps } from './icon-button'
 
 export { default as LayoutBlock } from './seed/layout-01'
 export type { LayoutBlockProps } from './seed/layout-01'
