@@ -255,7 +255,66 @@ describe('usePartyCapture', () => {
     await hook.unmount()
   })
 
-  it('식별 모드가 같은 프레임의 후보를 OCR IPC로 전달하고 중지 뒤에는 다시 안정화한다', async () => {
+  it.each(['캡처', '창 선택 확인'] as const)(
+    '%s 중에 중지하면 재검색 단축키로 다시 시작하지 않고 창을 다시 선택해야 시작한다',
+    async (stage) => {
+      const { frame, worker } = captureResources()
+      readCaptureFrame.mockResolvedValue(frame)
+      moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+      const hook = await renderPartyCaptureHook(false, true)
+      const listener = api.onDesktopShortcut.mock.lastCall![0]
+      const beginCount = (): number =>
+        search.controlCharacterSearch.mock.calls.filter(([command]) => command.action === 'begin')
+          .length
+      let finishSelection = (): void => {}
+      if (stage === '캡처') {
+        await act(async () => hook.getCurrent().selectAndStartCapture('dnf'))
+        expect(hook.getCurrent().phase).toBe('active')
+      } else {
+        const selection = Promise.withResolvers<null>()
+        api.selectCaptureSource.mockReturnValueOnce(selection.promise)
+        act(() => void hook.getCurrent().selectAndStartCapture('dnf'))
+        expect(hook.getCurrent().phase).toBe('selecting')
+        finishSelection = () => selection.resolve(null)
+      }
+
+      await act(async () => hook.getCurrent().stopCapture())
+      finishSelection()
+      await flushPromises()
+      const stoppedBegins = beginCount()
+      await act(async () => listener('restart-search'))
+
+      expect(hook.getCurrent().phase).toBe('idle')
+      expect(hook.getCurrent().canStartCapture).toBe(false)
+      expect(hook.getCurrent().status).toBe('캡처를 중지했습니다.')
+      expect(beginCount()).toBe(stoppedBegins)
+
+      await act(async () => hook.getCurrent().selectAndStartCapture('dnf'))
+      expect(hook.getCurrent().phase).toBe('active')
+      expect(beginCount()).toBe(stoppedBegins + 1)
+      await hook.unmount()
+    }
+  )
+
+  it('캡처가 실패하면 재검색 단축키로 창을 다시 선택하지 않고 다시 시작한다', async () => {
+    const { frame, worker } = captureResources()
+    readCaptureFrame.mockResolvedValue(frame)
+    readCaptureFrame.mockRejectedValueOnce(new Error('synthetic internal detail'))
+    moduleMocks.createPartyOcrWorker.mockResolvedValue(worker)
+    const hook = await renderPartyCaptureHook(false, true)
+    const listener = api.onDesktopShortcut.mock.lastCall![0]
+    await act(async () => hook.getCurrent().selectAndStartCapture('dnf'))
+    expect(hook.getCurrent().phase).toBe('failed')
+    expect(hook.getCurrent().canStartCapture).toBe(true)
+
+    await act(async () => listener('restart-search'))
+
+    expect(hook.getCurrent().phase).toBe('active')
+    expect(api.selectCaptureSource).toHaveBeenCalledExactlyOnceWith('dnf')
+    await hook.unmount()
+  })
+
+  it('식별 모드가 같은 프레임의 후보를 OCR IPC로 전달하고 중지 뒤 창을 다시 선택하면 다시 안정화한다', async () => {
     const { frame, worker } = captureResources()
     const nickname = document.createElement('canvas')
     let loopOptions: LoopOptions | undefined
@@ -302,7 +361,7 @@ describe('usePartyCapture', () => {
 
     await act(async () => hook.getCurrent().stopCapture())
     expect(hook.getCurrent().stableNicknames[0]).toBeNull()
-    await act(async () => hook.getCurrent().startCapture())
+    await act(async () => hook.getCurrent().selectAndStartCapture('game'))
     await act(async () => loopOptions?.runCycle())
     expect(api.notifyOcrCandidatesDetected).toHaveBeenCalledTimes(1)
     await act(async () => loopOptions?.runCycle())
@@ -355,7 +414,7 @@ describe('usePartyCapture', () => {
 
     expect(hook.getCurrent().sources).toEqual([initialSource, gameSource])
     expect(hook.getCurrent().selectedSourceId).toBe(initialSource.id)
-    expect(hook.getCurrent().sourceRegistered).toBe(true)
+    expect(hook.getCurrent().canStartCapture).toBe(true)
     expect(api.selectCaptureSource).not.toHaveBeenCalled()
     await hook.unmount()
   })
@@ -388,7 +447,7 @@ describe('usePartyCapture', () => {
     api.selectCaptureSource.mockRejectedValueOnce(new Error('synthetic internal detail'))
     await act(async () => hook.getCurrent().selectSource('synthetic-window'))
     expect(hook.getCurrent().status).toBe('게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.')
-    expect(hook.getCurrent().sourceRegistered).toBe(false)
+    expect(hook.getCurrent().canStartCapture).toBe(false)
     await hook.unmount()
   })
 
@@ -487,18 +546,17 @@ describe('usePartyCapture', () => {
     act(() => hook.getCurrent().selectSource('new'))
     await act(async () => hook.getCurrent().startCapture())
 
-    expect(hook.getCurrent().status).toBe(
-      '게임 창 선택을 확인하고 있습니다. 잠시 후 캡처를 시작해 주세요.'
-    )
+    expect(hook.getCurrent().status).toBe('게임 창 선택을 확인하고 있습니다.')
 
     oldSelection.resolve(null)
     await flushPromises()
-    expect(hook.getCurrent().sourceRegistered).toBe(false)
+    expect(hook.getCurrent().canStartCapture).toBe(false)
 
     newSelection.resolve(null)
     await flushPromises()
     expect(hook.getCurrent().selectedSourceId).toBe('new')
-    expect(hook.getCurrent().sourceRegistered).toBe(true)
+    expect(hook.getCurrent().phase).toBe('selected')
+    expect(hook.getCurrent().canStartCapture).toBe(true)
 
     await hook.unmount()
   })

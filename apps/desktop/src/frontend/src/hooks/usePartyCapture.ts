@@ -15,7 +15,7 @@ type PartyCapture = {
   starting: boolean
   sources: { id: string; name: string }[]
   selectedSourceId: string
-  sourceRegistered: boolean
+  canStartCapture: boolean
   sourcesLoading: boolean
   sourcesFailed: boolean
   intervalSeconds: number
@@ -119,16 +119,14 @@ export function usePartyCapture({
   const sourceState = { ...sources }
   const starting = phase === 'starting' || (phase === 'selecting' && snapshot.context.autoStart)
   const selectedSourceId = snapshot.context.selectedSourceId
-  const sourceRegistered =
-    snapshot.context.selectedSourceId.length > 0 &&
-    snapshot.context.selectedSourceId === snapshot.context.registeredSourceId
+  const canStartCapture = snapshot.can({ type: 'START', request: {} })
 
   return {
     ...sourceState,
     phase,
     starting,
     selectedSourceId,
-    sourceRegistered,
+    canStartCapture,
     selectSource,
     selectAndStartCapture,
     search,

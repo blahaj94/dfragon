@@ -129,7 +129,7 @@ it('늦은 이전 begin은 새 capture를 end하거나 새 stream을 정리하�
     ok: true,
     snapshot: searchSnapshot({ captureId: nextId, revision: 2 })
   })
-  await fixture.click('캡처 시작')
+  await fixture.start()
   first.resolve({ ok: true, snapshot: searchSnapshot() })
   await act(async () => undefined)
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
@@ -154,7 +154,7 @@ it('새 capture의 늦은 이전 media 실패가 새 ID를 end하지 않는다',
   const next = captureResources()
   fixture.readCaptureFrame.mockResolvedValue(next.frame)
   media.worker.mockResolvedValue(next.worker)
-  await fixture.click('캡처 시작')
+  await fixture.start()
   const nextId = fixture.current().captureId
   await act(async () => oldMedia.reject(new Error('Synthetic old media failure')))
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
@@ -311,7 +311,7 @@ it('취소된 Start의 begin 응답 유실 뒤 read가 새 capture를 찾아도 
   const nextId = '00000000-0000-4000-8000-000000000099'
   const nextSnapshot = searchSnapshot({ captureId: nextId, revision: 3 })
   fixture.search.controlCharacterSearch.mockResolvedValueOnce({ ok: true, snapshot: nextSnapshot })
-  await fixture.click('캡처 시작')
+  await fixture.start()
   await fixture.emit(nextSnapshot)
   previous.reject(new Error('Synthetic old begin response loss'))
   await act(async () => undefined)

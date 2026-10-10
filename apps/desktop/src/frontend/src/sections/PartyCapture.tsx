@@ -10,7 +10,7 @@ function PartyCapture(): React.JSX.Element {
     sources,
     sourcesFailed,
     selectedSourceId,
-    sourceRegistered,
+    canStartCapture,
     starting,
     search,
     retrySearch,
@@ -23,9 +23,8 @@ function PartyCapture(): React.JSX.Element {
     startCapture,
     stopCapture
   } = usePartyCapture()
-  const isSourceRegistered = sourceRegistered
   const isSearchReady = search.ready
-  const cannotStartCapture = !isSourceRegistered || starting || !isSearchReady
+  const cannotStartCapture = !canStartCapture || starting || !isSearchReady
   const statusText = formatPartyCaptureStatus({ status, stableNicknames })
 
   return (
