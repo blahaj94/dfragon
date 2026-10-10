@@ -1,6 +1,8 @@
 import { isCanonicalOpaque } from './pkce'
 
 const MAX_URL_BYTES = 2_048
+const MIN_LOOPBACK_PORT = 1_024
+const MAX_LOOPBACK_PORT = 65_535
 const INCOMPATIBLE_APP_PROTOCOLS = new Set([
   'about:',
   'blob:',
@@ -79,6 +81,7 @@ export function validateApiOrigin(apiOrigin: string): string {
   return apiOrigin
 }
 
+// Retained channel builds and OS protocol ingress only; login uses validateLoopbackReturnUrl.
 export function validateReturnTarget(returnTarget: string): string {
   const url = parseExactUrl(returnTarget)
   // 실제 owned scheme 값은 bootstrap이 주입한다. Browser/network가 이미 소유한 built-in만 제외한다.
@@ -136,8 +139,50 @@ export function validateBrowserLaunchUrl(raw: unknown, apiOrigin: string): strin
   return expected
 }
 
+// OS protocol ingress is retained until its separate removal task.
+export function parseProtocolReturnUrl(
+  raw: unknown,
+  returnTarget: string
+): Readonly<{ code: string }> {
+  return parseCodeReturnUrl(raw, validateReturnTarget(returnTarget))
+}
+
+export function formatLoopbackReturnUrl(port: number): string {
+  return `http://127.0.0.1:${port}/auth/callback`
+}
+
+export function validateLoopbackReturnUrl(returnTarget: string): string {
+  const url = parseExactUrl(returnTarget)
+  const port = Number(url.port)
+  const expected = formatLoopbackReturnUrl(port)
+  const isEphemeralPort =
+    Number.isInteger(port) && port >= MIN_LOOPBACK_PORT && port <= MAX_LOOPBACK_PORT
+  const isExactTarget = returnTarget === expected
+  const isValidTarget = isEphemeralPort && isExactTarget
+  if (!isValidTarget) {
+    throw new AuthProtocolFailure()
+  }
+
+  return returnTarget
+}
+
 export function parseReturnUrl(raw: unknown, returnTarget: string): Readonly<{ code: string }> {
-  const trustedTarget = validateReturnTarget(returnTarget)
+  return parseCodeReturnUrl(raw, validateLoopbackReturnUrl(returnTarget))
+}
+
+// 기대 주소가 없는 pending 없는 복귀에서 새 로그인 안내 여부를 정할 때만 형식을 확인한다.
+export function isLoopbackReturnUrl(raw: unknown): boolean {
+  try {
+    const port = Number(parseExactUrl(raw).port)
+    parseReturnUrl(raw, formatLoopbackReturnUrl(port))
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+function parseCodeReturnUrl(raw: unknown, trustedTarget: string): Readonly<{ code: string }> {
   const url = parseExactUrl(raw)
   const codes = url.searchParams.getAll('code')
   const hasOneQueryParameter = url.searchParams.size === 1

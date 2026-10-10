@@ -1,4 +1,5 @@
 import type { AuthCoordinatorDependencies } from '../../src/backend/auth/types'
+import { openLoopbackListener } from '../../src/backend/auth/loopback-listener'
 
 // 실제 credential이 아닌 fixture 전용 canary. 값은 진단 출력에 기록하지 않는다.
 export const syntheticCode = Buffer.alloc(32, 9).toString('base64url')
@@ -15,6 +16,7 @@ export const canaries = [
 
 type Effects = {
   dependencies: AuthCoordinatorDependencies
+  readonly returnUrl: string | null
   counts: { browser: number; exchange: number; logout: number; commit: number }
   holdCommit: () => void
   releaseCommit: () => void
@@ -22,6 +24,7 @@ type Effects = {
 
 export function createFixtureEffects(): Effects {
   let sequence = 0
+  let returnUrl: string | null = null
   let committed = false
   let marked = false
   let heldCommit: Promise<void> | null = null
@@ -33,7 +36,8 @@ export function createFixtureEffects(): Effects {
   const dependencies: AuthCoordinatorDependencies = {
     providers: ['passkey'],
     apiOrigin: 'https://api.example.test',
-    returnTarget: 'dfragon-fixture://auth/return',
+    loopback: { open: openLoopbackListener },
+    activateMainWindow: () => {},
     clock: {
       read: () => {
         const wallMs = wallNow()
@@ -62,7 +66,8 @@ export function createFixtureEffects(): Effects {
       }
     },
     http: {
-      createLoginRequest: async () => {
+      createLoginRequest: async (input) => {
+        returnUrl = input.returnUrl
         const expiresAt = new Date(wallNow() + 600_000).toISOString()
 
         return {
@@ -140,6 +145,9 @@ export function createFixtureEffects(): Effects {
 
   return {
     dependencies,
+    get returnUrl() {
+      return returnUrl
+    },
     counts,
     holdCommit: () => {
       heldCommit = new Promise((resolve) => {

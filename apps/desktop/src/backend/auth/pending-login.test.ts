@@ -36,36 +36,6 @@ function createAttempt(clock = new FakeClock()): {
 }
 
 describe('pending login actor', () => {
-  it('publishes recovery before another microtask can claim the next code', async () => {
-    const { pending, acceptRequest } = createAttempt()
-    acceptRequest()
-    pending.claimExchange(CODE, () => {
-      const completion = Promise.resolve()
-
-      return { completion }
-    })
-    const cleanup = deferred<boolean>()
-    let published = false
-    const recovery = pending.rejectExchange(
-      () => cleanup.promise,
-      () => {
-        published = true
-      }
-    )
-    cleanup.resolve(true)
-    await Promise.resolve()
-    const claim = pending.claimExchange(OTHER_CODE, () => {
-      expect(published).toBe(true)
-
-      const completion = Promise.resolve()
-
-      return { completion }
-    })
-    expect(claim.status).toBe('claimed')
-    await recovery
-    pending.dispose()
-  })
-
   it('allows expiry disposal to abort resources before the coordinator publishes signedOut', () => {
     const clock = new FakeClock()
     const order: string[] = []
@@ -86,13 +56,13 @@ describe('pending login actor', () => {
       }
     )
     pending.signal.addEventListener('abort', () => order.push('abort'))
-    pending.browserSignal.addEventListener('abort', () => order.push('browserAbort'))
+    pending.lifetimeSignal.addEventListener('abort', () => order.push('listenerAbort'))
     pending.start()
     clock.advance(600_000)
-    expect(order).toEqual(['invalidate', 'abort', 'browserAbort', 'signedOut'])
+    expect(order).toEqual(['invalidate', 'abort', 'listenerAbort', 'signedOut'])
   })
 
-  it('claims synchronously, shares the reserved completion, and rejects a code before recovery', async () => {
+  it('claims synchronously, shares the reserved completion, and ignores another code', async () => {
     const { pending, acceptRequest } = createAttempt()
     const initialSignal = pending.signal
     const exchange = deferred<void>()
@@ -123,20 +93,6 @@ describe('pending login actor', () => {
     expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({ status: 'ignored' })
     expect(reserve).toHaveBeenCalledTimes(1)
 
-    const cleanup = deferred<boolean>()
-    const recovery = pending.rejectExchange(() => cleanup.promise, vi.fn())
-    expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
-    expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({ status: 'ignored' })
-    cleanup.resolve(true)
-    expect(await recovery).toBe(true)
-    expect(pending.isBeforeExchange).toBe(true)
-    expect(pending.claimExchange(CODE, reserve)).toEqual({ status: 'ignored' })
-    const nextWriter = { completion: Promise.resolve() }
-    expect(pending.claimExchange(OTHER_CODE, () => nextWriter).status).toBe('claimed')
-    expect(pending.claimExchange(OTHER_CODE, reserve)).toEqual({
-      status: 'joined',
-      promise: nextWriter.completion
-    })
     exchange.resolve()
     await exchange.promise
     pending.dispose()
@@ -160,24 +116,8 @@ describe('pending login actor', () => {
     expect(secondReserve).not.toHaveBeenCalled()
   })
 
-  it('does not resume a disposed attempt after delayed rejection recovery', async () => {
-    const { pending, acceptRequest } = createAttempt()
-    acceptRequest()
-    pending.claimExchange(CODE, () => {
-      const completion = Promise.resolve()
-
-      return { completion }
-    })
-    const cleanup = deferred<boolean>()
-    const recovery = pending.rejectExchange(() => cleanup.promise, vi.fn())
-    pending.dispose()
-    cleanup.resolve(true)
-    expect(await recovery).toBe(false)
-    expect(pending.isBeforeExchange).toBe(false)
-  })
-
   it.each(['starting', 'waiting', 'exchanging'] as const)(
-    'disposal in %s cancels expiry and aborts the HTTP and browser lifetimes once',
+    'disposal in %s cancels expiry and aborts the HTTP and listener lifetimes once',
     (stage) => {
       const { pending, clock, onExpired, acceptRequest } = createAttempt()
       if (stage !== 'starting') {
@@ -192,9 +132,9 @@ describe('pending login actor', () => {
         })
       }
       const onAbort = vi.fn()
-      const onBrowserAbort = vi.fn()
+      const onListenerAbort = vi.fn()
       pending.signal.addEventListener('abort', onAbort)
-      pending.browserSignal.addEventListener('abort', onBrowserAbort)
+      pending.lifetimeSignal.addEventListener('abort', onListenerAbort)
       pending.start()
 
       pending.dispose()
@@ -204,7 +144,7 @@ describe('pending login actor', () => {
       clock.advance(600_000)
 
       expect(onAbort).toHaveBeenCalledTimes(1)
-      expect(onBrowserAbort).toHaveBeenCalledTimes(1)
+      expect(onListenerAbort).toHaveBeenCalledTimes(1)
       expect(onExpired).not.toHaveBeenCalled()
       expect(clock.scheduled.every((task) => task.cancelled)).toBe(true)
       expect(
@@ -254,7 +194,7 @@ describe('pending login actor', () => {
       clock.advance(1)
       expect(onExpired).toHaveBeenCalledExactlyOnceWith(pending)
       expect(pending.signal.aborted).toBe(true)
-      expect(pending.browserSignal.aborted).toBe(true)
+      expect(pending.lifetimeSignal.aborted).toBe(true)
       expect(
         pending.claimExchange(CODE, () => {
           const completion = Promise.resolve()
@@ -379,13 +319,11 @@ describe('pending login actor', () => {
     })
     actor.send({ type: 'CLAIM', fingerprint: 'test-fingerprint' })
     actor.send({ type: 'TRACK_EXCHANGE', promise: Promise.resolve() })
-    actor.send({ type: 'EXCHANGE_REJECTED' })
     actor.send({ type: 'DISPOSE' })
     expect(actor.getSnapshot().status).toBe('done')
     expect(actor.getSnapshot().context).toMatchObject({
       requestId: null,
       exchangeFingerprint: null,
-      rejectedFingerprint: null,
       exchangePromise: null
     })
   })

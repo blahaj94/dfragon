@@ -1,15 +1,16 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import { createAuthCoordinator } from './coordinator'
 import { createPkce, isCanonicalOpaque } from './pkce'
 import {
   AuthProtocolFailure,
+  parseProtocolReturnUrl,
   parseReturnUrl,
   validateApiOrigin,
   validateBrowserLaunchUrl,
+  validateLoopbackReturnUrl,
   validateReturnTarget
 } from './protocol'
-import { API_ORIGIN, CODE, RETURN_TARGET, createAuthHarness } from './auth-test-fixtures'
+import { API_ORIGIN, CODE, PROTOCOL_RETURN_TARGET, RETURN_TARGET } from './auth-test-fixtures'
 
 describe('Desktop auth PKCE와 URL 경계', () => {
   it.each([
@@ -19,12 +20,12 @@ describe('Desktop auth PKCE와 URL 경계', () => {
       laterGetter: 'pathname'
     },
     {
-      name: 'return target',
+      name: 'protocol return target',
       validate: () => validateReturnTarget('test-dfragon://auth/return'),
       laterGetter: 'port'
     }
   ])(
-    '$name은 username 실패 뒤 password를 건너뛰고 이후 getter를 평가한다',
+    '$name: username 실패 뒤 password를 건너뛰고 이후 getter를 평가한다',
     ({ validate, laterGetter }) => {
       const access: string[] = []
       class ObservedUrl {
@@ -146,7 +147,7 @@ describe('Desktop auth PKCE와 URL 경계', () => {
     expect(() =>
       parseReturnUrl(`${RETURN_TARGET}?code=${CODE}&code=${CODE}`, RETURN_TARGET)
     ).toThrow()
-    expect(() => parseReturnUrl(valid.replace('return', 'other'), RETURN_TARGET)).toThrow()
+    expect(() => parseReturnUrl(valid.replace('callback', 'other'), RETURN_TARGET)).toThrow()
     expect(() => parseReturnUrl(`${valid}#fragment`, RETURN_TARGET)).toThrow()
     expect(() => parseReturnUrl(`${valid} `, RETURN_TARGET)).toThrow()
     expect(() =>
@@ -157,40 +158,98 @@ describe('Desktop auth PKCE와 URL 경계', () => {
     )
   })
 
-  it.each(['?', '#', '?#', '#?'])(
-    'return target의 빈 delimiter %s는 coordinator 설정 단계에서 거절한다',
-    (delimiter) => {
-      const harness = createAuthHarness()
-      const returnTarget = `${RETURN_TARGET}${delimiter}`
+  it('기대 복귀 주소를 생략하면 입력 URL의 port를 신뢰하지 않고 거절한다', () => {
+    expect(() =>
+      Reflect.apply(parseReturnUrl, undefined, [`${RETURN_TARGET}?code=${CODE}`])
+    ).toThrow(AuthProtocolFailure)
+  })
 
-      expect(() => createAuthCoordinator({ ...harness.dependencies, returnTarget })).toThrow(
-        AuthProtocolFailure
-      )
-      expect(harness.http.createLoginRequest).not.toHaveBeenCalled()
-      expect(harness.browser.open).not.toHaveBeenCalled()
-    }
-  )
+  it.each([
+    'http://127.0.0.1:1024/auth/callback',
+    'http://127.0.0.1:65535/auth/callback',
+    RETURN_TARGET
+  ])('임시 포트의 정확한 loopback target %s만 허용한다', (target) => {
+    expect(validateLoopbackReturnUrl(target)).toBe(target)
+    expect(parseReturnUrl(`${target}?code=${CODE}`, target)).toEqual({ code: CODE })
+  })
 
-  it.each([RETURN_TARGET, 'test-dfragon:/auth/return', 'test-dfragon://auth/return%3F%23'])(
-    '정상 return target %s와 code query 복귀를 그대로 허용한다',
-    (returnTarget) => {
-      expect(validateReturnTarget(returnTarget)).toBe(returnTarget)
-      expect(parseReturnUrl(`${returnTarget}?code=${CODE}`, returnTarget)).toEqual({ code: CODE })
-    }
-  )
+  it.each([
+    'http://127.0.0.1/auth/callback',
+    'http://127.0.0.1:1023/auth/callback',
+    'http://127.0.0.1:65536/auth/callback',
+    'http://127.0.0.1:049152/auth/callback',
+    'https://127.0.0.1:49152/auth/callback',
+    'http://localhost:49152/auth/callback',
+    'http://[::1]:49152/auth/callback',
+    'http://127.1:49152/auth/callback',
+    'http://2130706433:49152/auth/callback',
+    'http://0.0.0.0:49152/auth/callback',
+    'http://user@127.0.0.1:49152/auth/callback',
+    'http://127.0.0.1:49152/auth/../auth/callback',
+    'http://127.0.0.1:49152/auth/%63allback',
+    'http://127.0.0.1:49152/auth/callback/',
+    'dfragon://auth/callback',
+    `${RETURN_TARGET}?`,
+    `${RETURN_TARGET}#`,
+    `${RETURN_TARGET} `
+  ])('alias나 범위를 벗어난 target %s를 거절한다', (target) => {
+    expect(() => validateLoopbackReturnUrl(target)).toThrow(AuthProtocolFailure)
+    expect(() => parseReturnUrl(`${target}?code=${CODE}`, target)).toThrow(AuthProtocolFailure)
+  })
 
-  it.each(['javascript:alert', 'data:text/plain,value', 'ftp://auth/return'])(
-    'app private protocol이 될 수 없는 built-in target %s을 거절한다',
-    (target) => {
-      expect(() => parseReturnUrl(`${target}?code=${CODE}`, target)).toThrow()
-    }
-  )
+  it.each([
+    `http://127.0.0.1:49153/auth/callback?code=${CODE}`,
+    `${RETURN_TARGET}?%63ode=${CODE}`,
+    `${RETURN_TARGET}?code=${CODE}&state=extra`,
+    `${RETURN_TARGET}?code=${CODE}&code=${CODE}`,
+    `${RETURN_TARGET}?code=%41${CODE.slice(1)}`,
+    `${RETURN_TARGET}?code=${CODE}#`,
+    `${RETURN_TARGET}?code=${CODE}\n`,
+    `${RETURN_TARGET.replace('/auth/', '/auth\\')}?code=${CODE}`
+  ])('다른 포트, query alias, 구분자를 보정하지 않는다: %s', (raw) => {
+    expect(() => parseReturnUrl(raw, RETURN_TARGET)).toThrow(AuthProtocolFailure)
+  })
 
-  it.each(['x://auth/return', 'x:/auth/return', 'x:opaque-return'])(
-    'one-letter private scheme %s도 기존 exact parser 계약대로 허용한다',
-    (target) => {
-      expect(validateReturnTarget(target)).toBe(target)
-      expect(parseReturnUrl(`${target}?code=${CODE}`, target)).toEqual({ code: CODE })
-    }
-  )
+  it.each([
+    PROTOCOL_RETURN_TARGET,
+    'test-dfragon:/auth/return',
+    'test-dfragon://auth/return%3F%23',
+    'x://auth/return',
+    'x:/auth/return',
+    'x:opaque-return'
+  ])('남아 있는 protocol target %s와 code 복귀를 그대로 허용한다', (target) => {
+    expect(validateReturnTarget(target)).toBe(target)
+    expect(parseProtocolReturnUrl(`${target}?code=${CODE}`, target)).toEqual({ code: CODE })
+  })
+
+  it.each([
+    `${PROTOCOL_RETURN_TARGET}?`,
+    `${PROTOCOL_RETURN_TARGET}#`,
+    `${PROTOCOL_RETURN_TARGET}?#`,
+    `${PROTOCOL_RETURN_TARGET}#?`,
+    'javascript:alert',
+    'data:text/plain,value',
+    'ftp://auth/return',
+    'https://auth/return',
+    'dfragon-test://user:password@auth/return',
+    'dfragon-test://auth:49152/return'
+  ])('남아 있는 protocol target의 비허용 형식 %s를 거절한다', (target) => {
+    expect(() => validateReturnTarget(target)).toThrow(AuthProtocolFailure)
+    expect(() => parseProtocolReturnUrl(`${target}?code=${CODE}`, target)).toThrow(
+      AuthProtocolFailure
+    )
+  })
+
+  it.each([
+    `dfragon-test://auth/other?code=${CODE}`,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE}&state=extra`,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE}&code=${CODE}`,
+    `${PROTOCOL_RETURN_TARGET}?%63ode=${CODE}`,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE}#fragment`,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE} `,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE.slice(0, -1)}`,
+    `${PROTOCOL_RETURN_TARGET}?code=${CODE}=`
+  ])('남아 있는 protocol 복귀도 target과 canonical code가 정확히 일치해야 한다: %s', (raw) => {
+    expect(() => parseProtocolReturnUrl(raw, PROTOCOL_RETURN_TARGET)).toThrow(AuthProtocolFailure)
+  })
 })

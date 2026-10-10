@@ -8,6 +8,7 @@ import {
   REFRESH_0,
   REFRESH_1,
   REQUEST_ID,
+  RETURN_TARGET,
   USER_ID
 } from './auth-test-fixtures'
 
@@ -64,6 +65,30 @@ afterEach(() => {
 })
 
 describe('Desktop auth 고정 HTTP client', () => {
+  it.each([
+    'dfragon://auth/callback',
+    'http://localhost:49152/auth/callback',
+    'http://127.0.0.1:80/auth/callback',
+    'http://127.0.0.1:65536/auth/callback',
+    `${RETURN_TARGET}?code=${CODE}`
+  ])('잘못된 loopback returnUrl %s는 서버 요청 전에 거절한다', async (returnUrl) => {
+    const fetch = vi.fn()
+    const client = createAuthHttpClient({ apiOrigin: API_ORIGIN, fetch })
+    await expect(
+      client.createLoginRequest(
+        {
+          provider: 'passkey',
+          clientId: 'desktop',
+          codeChallenge: CODE,
+          codeChallengeMethod: 'S256',
+          returnUrl
+        },
+        new AbortController().signal
+      )
+    ).rejects.toThrow('Authentication URL is invalid.')
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('login request를 고정 endpoint와 exact JSON body로 한 번 전송한다', async () => {
     const ticket = Buffer.alloc(32, 8).toString('base64url')
     const requests: RecordedRequest[] = []
@@ -87,6 +112,7 @@ describe('Desktop auth 고정 HTTP client', () => {
           provider: 'passkey',
           clientId: 'desktop',
           codeChallenge: Buffer.alloc(32, 4).toString('base64url'),
+          returnUrl: RETURN_TARGET,
           codeChallengeMethod: 'S256'
         },
         new AbortController().signal
@@ -105,6 +131,7 @@ describe('Desktop auth 고정 HTTP client', () => {
       provider: 'passkey',
       clientId: 'desktop',
       codeChallenge: Buffer.alloc(32, 4).toString('base64url'),
+      returnUrl: RETURN_TARGET,
       codeChallengeMethod: 'S256'
     })
   })

@@ -10,7 +10,13 @@ import { AuthHttpFailure } from './http'
 import { createPkce } from './pkce'
 import { createPendingLogin } from './pending-login'
 import type { ClaimedExchange, PendingLogin } from './pending-login'
-import { parseReturnUrl, validateApiOrigin, validateReturnTarget } from './protocol'
+import {
+  isLoopbackReturnUrl,
+  parseReturnUrl,
+  validateApiOrigin,
+  validateLoopbackReturnUrl,
+  validateBrowserLaunchUrl
+} from './protocol'
 import type {
   AuthAuthorization,
   AuthCommandResult,
@@ -44,7 +50,6 @@ function isCanonicalUuid(value: unknown): value is string {
 
 export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies): AuthCoordinator {
   validateApiOrigin(dependencies.apiOrigin)
-  validateReturnTarget(dependencies.returnTarget)
 
   const providers = [...dependencies.providers]
   const hasOnlyProviders = providers.every(isAuthProvider)
@@ -414,6 +419,29 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return
     }
 
+    if (!keepPendingFresh(value)) {
+      return
+    }
+    let returnUrl: string
+    try {
+      const listener = await dependencies.loopback.open(value.lifetimeSignal, (url) => {
+        if (!isCurrentPending(value)) {
+          return Promise.resolve()
+        }
+
+        return handleReturnUrl(url, dependencies.activateMainWindow)
+      })
+      value.attachListener(listener)
+      if (!keepPendingFresh(value)) {
+        return
+      }
+      returnUrl = validateLoopbackReturnUrl(listener.returnUrl)
+    } catch {
+      finishPendingFailure(value, 'LOGIN_RESTART_REQUIRED')
+
+      return
+    }
+
     let created
     try {
       created = await dependencies.http.createLoginRequest(
@@ -421,7 +449,8 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
           provider: value.provider,
           clientId: 'desktop',
           codeChallenge: challenge,
-          codeChallengeMethod: 'S256'
+          codeChallengeMethod: 'S256',
+          returnUrl
         },
         value.signal
       )
@@ -435,6 +464,13 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       return
     }
 
+    try {
+      validateBrowserLaunchUrl(created.browserUrl, dependencies.apiOrigin)
+    } catch {
+      finishPendingFailure(value, 'LOGIN_RESTART_REQUIRED')
+
+      return
+    }
     value.acceptRequest(created)
     const isCurrentAfterScheduling = isCurrentPending(value)
     if (!isCurrentAfterScheduling) {
@@ -442,49 +478,19 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
     }
     state.waitingForBrowser(value.snapshot())
 
-    const isCurrentBeforeBrowserOpen = isCurrentPending(value)
-    if (!isCurrentBeforeBrowserOpen) {
+    const isPendingFreshBeforeBrowserOpen = keepPendingFresh(value)
+    if (!isPendingFreshBeforeBrowserOpen) {
       return
     }
     try {
-      await dependencies.browser.open(created.browserUrl, {
-        signal: value.browserSignal,
-        onReturn: handleReturnUrl,
-        onClosed: () => {
-          void cancelLogin(value.attemptId)
-        }
-      })
+      const opening = dependencies.browser.open(created.browserUrl)
+      created = undefined
+      await opening
     } catch {
-      finishPendingFailure(value, 'BROWSER_OPEN_FAILED')
+      if (value.isBeforeExchange) {
+        finishPendingFailure(value, 'BROWSER_OPEN_FAILED')
+      }
     }
-  }
-
-  async function recoverRejectedExchange(value: PendingLogin): Promise<boolean> {
-    const cleared = await session.clearLocal()
-    const isCurrentAfterClear = isCurrentPending(value)
-    const logoutOwnsCleanup = runtime.logoutFlight != null
-    const cleanup = decideLocalCleanup({
-      cleared,
-      isCurrent: isCurrentAfterClear,
-      logoutOwnsCleanup
-    })
-    if (cleanup.shouldBlockStorage) {
-      runtime.invalidate()
-      storageBlocked('LOCAL_CLEAR_UNCONFIRMED', 'clear-store')
-    }
-
-    if (!cleanup.canContinue) {
-      return false
-    }
-    const checkedAt = dependencies.clock.read()
-    const isExpired = value.isExpired(checkedAt)
-    if (isExpired) {
-      expirePending(value)
-
-      return false
-    }
-
-    return true
   }
 
   async function exchangeLogin(
@@ -529,19 +535,6 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
         return
       }
 
-      if (isRejected === true) {
-        await value.rejectExchange(
-          () => recoverRejectedExchange(value),
-          () => {
-            if (isCurrentPending(value)) {
-              state.waitingForBrowser(value.snapshot(), 'LOGIN_RETURN_INVALID')
-            }
-          }
-        )
-
-        return
-      }
-
       const cleared = await session.clearLocal()
       const isCurrentAfterClear = isCurrentPending(value)
       const logoutOwnsCleanup = runtime.logoutFlight != null
@@ -556,7 +549,12 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
       }
 
       if (cleanup.canContinue) {
-        finishPendingFailure(value, 'LOGIN_RESTART_REQUIRED')
+        if (keepPendingFresh(value)) {
+          finishPendingFailure(
+            value,
+            isRejected === true ? 'LOGIN_RETURN_INVALID' : 'LOGIN_RESTART_REQUIRED'
+          )
+        }
       }
 
       return
@@ -656,23 +654,26 @@ export function createAuthCoordinator(dependencies: AuthCoordinatorDependencies)
   }
 
   function handleReturnUrl(raw: unknown, onClaimed?: () => Promise<void> | void): Promise<void> {
-    let parsed: Readonly<{ code: string }>
-    try {
-      parsed = parseReturnUrl(raw, dependencies.returnTarget)
-    } catch {
-      return Promise.resolve()
-    }
-
     const value = runtime.pending
-    const hasPendingLogin = value != null
-    if (!hasPendingLogin) {
-      const needsNewLogin = state.phase === 'signedOut'
+    if (value == null) {
+      const needsNewLogin = state.phase === 'signedOut' && isLoopbackReturnUrl(raw)
       if (needsNewLogin) {
         state.signedOut('LOGIN_RESTART_REQUIRED')
       }
 
       return Promise.resolve()
     }
+    const returnUrl = value.returnUrl
+    if (returnUrl == null) {
+      return Promise.resolve()
+    }
+    let parsed: Readonly<{ code: string }>
+    try {
+      parsed = parseReturnUrl(raw, returnUrl)
+    } catch {
+      return Promise.resolve()
+    }
+
     const checkedAt = dependencies.clock.read()
     const isExpired = value.isExpired(checkedAt)
     if (isExpired) {

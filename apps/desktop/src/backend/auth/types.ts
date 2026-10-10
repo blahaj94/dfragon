@@ -102,6 +102,7 @@ export interface AuthHttp {
       clientId: 'desktop'
       codeChallenge: string
       codeChallengeMethod: 'S256'
+      returnUrl: string
     }>,
     signal: AbortSignal
   ): Promise<LoginRequestResponse>
@@ -156,20 +157,23 @@ export interface CredentialStore {
 }
 
 export interface AuthBrowser {
-  open(
-    url: string,
-    login?: Readonly<{
-      signal: AbortSignal
-      onReturn(url: string, onClaimed: () => void): Promise<void>
-      onClosed(): void
-    }>
-  ): Promise<void>
+  open(url: string): Promise<void>
+}
+
+export type LoginReturnListener = Readonly<{
+  returnUrl: string
+  close(): void
+}>
+
+export interface AuthLoopback {
+  open(signal: AbortSignal, onReturn: (url: string) => Promise<void>): Promise<LoginReturnListener>
 }
 
 export type AuthCoordinatorDependencies = Readonly<{
   providers: readonly AuthProvider[]
   apiOrigin: string
-  returnTarget: string
+  loopback: AuthLoopback
+  activateMainWindow(): void
   browser: AuthBrowser
   clock: AuthClock
   entropy: AuthEntropy

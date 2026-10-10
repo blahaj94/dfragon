@@ -1,8 +1,8 @@
 import { randomBytes, randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import type { EventEmitter } from 'node:events'
-import { safeStorage as electronSafeStorage, type SafeStorage } from 'electron'
-import { createAuthBrowser } from './browser-window'
+import { safeStorage as electronSafeStorage, shell, type SafeStorage } from 'electron'
+import { openLoopbackListener } from './loopback-listener'
 import { createAuthHttpClient } from './http'
 import { createMacOsCredentialStore } from './credential-store/macos-credential-store'
 import { createWindowsCredentialStore } from './credential-store/windows-credential-store'
@@ -96,19 +96,14 @@ export function createAuthRuntimeEffects(
       })
       const clock = createRuntimeClock({ readWallMs, readMonotonicMs, powerState })
       const providers = config.providers
-      const returnTarget = config.returnTarget
-      const browser = options.openBrowser
-        ? { open: options.openBrowser }
-        : createAuthBrowser(
-            apiOrigin,
-            config.returnTarget,
-            options.activateMainWindow ?? (() => {})
-          )
+      const browser = { open: options.openBrowser ?? ((url: string) => shell.openExternal(url)) }
+      const activateMainWindow = options.activateMainWindow ?? (() => {})
 
       return {
         providers,
         apiOrigin,
-        returnTarget,
+        loopback: { open: openLoopbackListener },
+        activateMainWindow,
         browser,
         clock,
         entropy: {

@@ -11,6 +11,7 @@ import {
   REFRESH_0,
   REFRESH_1,
   REFRESH_2,
+  RETURN_TARGET,
   tokenResponse,
   USER_ID
 } from './auth-test-fixtures'
@@ -40,13 +41,13 @@ function createRuntimeHarness(): RuntimeHarness {
   })
   const dependencies = effects.createDependencies({
     apiOrigin: harness.dependencies.apiOrigin,
-    returnTarget: harness.dependencies.returnTarget,
+    returnTarget: 'dfragon-test://auth/return',
     environment: 'test',
     providers: ['passkey'],
     appIdentity: 'com.synthetic.dfragon',
     userDataPath: '/synthetic/user-data'
   })
-  const coordinator = createAuthCoordinator(dependencies)
+  const coordinator = createAuthCoordinator({ ...dependencies, loopback: harness.loopback })
 
   return { ...harness, time, effects, clock: dependencies.clock, coordinator }
 }
@@ -166,7 +167,7 @@ describe('runtime clock and real coordinator', () => {
     powerMonitor.emit('resume')
     harness.clock.read()
 
-    await harness.coordinator.handleReturnUrl(`${harness.dependencies.returnTarget}?code=${CODE}`)
+    await harness.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
 
     expect(harness.http.exchange).not.toHaveBeenCalled()
     expect(harness.coordinator.getSnapshot()).toMatchObject({

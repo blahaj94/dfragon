@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createAuthRuntimeEffects } from './runtime-effects'
-import { createAuthHarness, deferred } from './auth-test-fixtures'
+import { API_ORIGIN, CODE, createAuthHarness, deferred } from './auth-test-fixtures'
 import { bootstrapAuthRuntime } from './bootstrap'
 import type { AuthRuntimeConfig } from './runtime-config'
+import { shell } from 'electron'
+import { createAuthCoordinator } from './coordinator'
+
+vi.mock('electron', () => {
+  const shell = {
+    openExternal: vi.fn<typeof import('electron').shell.openExternal>(async () => {})
+  }
+
+  return { safeStorage: {}, shell }
+})
 
 const config: AuthRuntimeConfig = {
   apiOrigin: 'https://api.synthetic.test',
@@ -14,6 +24,66 @@ const config: AuthRuntimeConfig = {
 }
 
 describe('desktop auth runtime effects', () => {
+  it.each(['success', 'failure'] as const)(
+    '시스템 브라우저 %s와 실제 loopback 수신기를 coordinator에 연결한다',
+    async (outcome) => {
+      const harness = createAuthHarness()
+      const activateMainWindow = vi.fn()
+      vi.mocked(shell.openExternal).mockReset().mockResolvedValue(undefined)
+      if (outcome === 'failure') {
+        vi.mocked(shell.openExternal).mockRejectedValueOnce(new Error('synthetic browser failure'))
+      }
+      const effects = createAuthRuntimeEffects({
+        safeStorage: {
+          isEncryptionAvailable: () => true,
+          encryptString: (value) => Buffer.from(value),
+          decryptString: (value) => value.toString()
+        },
+        createHttp: () => harness.dependencies.http,
+        createStore: () => harness.store,
+        activateMainWindow
+      })
+      const dependencies = effects.createDependencies({ ...config, apiOrigin: API_ORIGIN })
+      const coordinator = createAuthCoordinator({ ...dependencies, clock: harness.clock })
+      await coordinator.start()
+      await coordinator.beginLogin('passkey')
+      await vi.waitFor(() => expect(shell.openExternal).toHaveBeenCalledOnce())
+      const request = harness.http.createLoginRequest.mock.calls[0]![0]
+      expect(request.returnUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/auth\/callback$/)
+      const ticket = Buffer.alloc(32, 8).toString('base64url')
+      expect(shell.openExternal).toHaveBeenCalledWith(
+        `${API_ORIGIN}/auth/login/authorize?ticket=${ticket}`
+      )
+      if (outcome === 'failure') {
+        expect(coordinator.getSnapshot()).toMatchObject({
+          phase: 'signedOut',
+          notice: 'BROWSER_OPEN_FAILED'
+        })
+        await expect(fetch(`${request.returnUrl}?code=${CODE}`)).rejects.toThrow()
+        expect(activateMainWindow).not.toHaveBeenCalled()
+        expect(harness.http.exchange).not.toHaveBeenCalled()
+
+        return
+      }
+      try {
+        const response = await fetch(`${request.returnUrl}?code=${CODE}`)
+        expect(response.status).toBe(200)
+        await response.text()
+        await vi.waitFor(() => expect(coordinator.getSnapshot().phase).toBe('signedIn'))
+        expect(activateMainWindow).toHaveBeenCalledOnce()
+        expect(harness.http.exchange).toHaveBeenCalledOnce()
+        await coordinator.managePasskeys()
+        expect(shell.openExternal).toHaveBeenLastCalledWith(`${API_ORIGIN}/auth/passkeys/manage`)
+        expect(shell.openExternal).toHaveBeenCalledTimes(2)
+      } finally {
+        const attemptId = coordinator.getSnapshot().login?.attemptId
+        if (attemptId != null) {
+          await coordinator.cancelLogin(attemptId)
+        }
+      }
+    }
+  )
+
   it('binds HTTP, browser and store to the same trusted runtime tuple', async () => {
     const harness = createAuthHarness()
     const fetch = vi.fn()
@@ -48,7 +118,7 @@ describe('desktop auth runtime effects', () => {
       })
     )
     expect(dependencies.apiOrigin).toBe(config.apiOrigin)
-    expect(dependencies.returnTarget).toBe(config.returnTarget)
+    expect(dependencies).not.toHaveProperty('returnTarget')
     expect(dependencies.providers).toEqual(config.providers)
     const browserUrl = 'https://api.synthetic.test/auth/login/authorize?ticket=synthetic'
     await dependencies.browser.open(browserUrl)

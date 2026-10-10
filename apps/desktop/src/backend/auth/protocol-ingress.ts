@@ -1,4 +1,4 @@
-import { parseReturnUrl, validateReturnTarget } from './protocol'
+import { parseProtocolReturnUrl as parseReturnUrl, validateReturnTarget } from './protocol'
 
 export type ProtocolOpenUrlEvent = Readonly<{
   preventDefault(): void
