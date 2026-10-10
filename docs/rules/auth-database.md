@@ -56,9 +56,11 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 
 근거는 #39가 2026-09-05에 검토한 [constraints](https://www.postgresql.org/docs/current/ddl-constraints.html), [partial index](https://www.postgresql.org/docs/current/indexes-partial.html), [INSERT/ON CONFLICT](https://www.postgresql.org/docs/current/sql-insert.html), [row lock/deadlock](https://www.postgresql.org/docs/current/explicit-locking.html)다. Schema/DB 실행 성공 evidence가 아니다.
 
-## 휴대폰 QR 요청
+## 자체 휴대폰 QR 제거
 
-`AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`, `phone_approved` 상태를 추가했다. 2026-10-10 사용자 결정으로 자체 휴대폰 QR 로그인을 제거하므로 이 column과 상태는 구현 PR의 forward migration으로 지운다. 지우는 migration은 활성 QR 요청이 있으면 거절하지 않고 해당 요청을 함께 종료하며, users, 패스키, session, refresh와 진행 중 직접 로그인은 보존한다. 제거 전까지는 QR ticket과 phone binding의 raw 값을 저장하지 않고 완료/실패 시 QR 필드를 null 처리하는 현재 규칙을 유지한다. 이 절은 승인된 변경 contract이며 현재 구현이 아니다.
+`RemovePhoneQrLogin` forward migration은 `AddPhoneQrLogin`이 추가한 `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code` column과 `phone_verified`, `phone_approved` 상태를 제거한다. 기존 migration은 이력으로 보존한다. 요청 table의 쓰기를 잠근 뒤 QR 필드나 phone 상태가 남은 요청의 proof, challenge, 회원/credential 연결을 null 처리하고 `failed`로 종료한다. 활성 QR 요청이 있어도 적용을 거절하지 않는다. users, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다.
+
+상태와 terminal CHECK는 새 이름으로 교체한다. Disposable down은 nullable QR column과 이전 제약만 복원하며 제거한 QR data와 종료된 요청을 복구하지 않는다.
 
 ## 별도 accounts DB와 이전 종료
 
