@@ -1,3 +1,2 @@
-!define DFRAGON_PROTOCOL_SCHEME "dfragon"
-!define DFRAGON_PROTOCOL_DESCRIPTION "DFragon login"
-!include "${BUILD_RESOURCES_DIR}\protocol-installer.nsh"
+!define DFRAGON_LEGACY_PROTOCOL_SCHEME "dfragon"
+!include "${BUILD_RESOURCES_DIR}\legacy-protocol-cleanup.nsh"

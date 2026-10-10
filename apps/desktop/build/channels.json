@@ -5,14 +5,12 @@
       "executableName": "dfragon-dev",
       "packageName": "@dfragon/desktop",
       "output": "dist/development",
-      "installerInclude": "build/development-installer.nsh",
-      "protocolName": "DFragon development login"
+      "installerInclude": "build/development-installer.nsh"
     },
     "identity": {
       "appIdentity": "dfragon.dev",
       "auth": {
         "environment": "development",
-        "returnTarget": "dfragon.dev://auth/callback",
         "providers": ["passkey"]
       }
     },
@@ -48,7 +46,6 @@
       "appIdentity": "dfragon",
       "auth": {
         "environment": "production",
-        "returnTarget": "dfragon://auth/callback",
         "providers": ["passkey"]
       }
     },

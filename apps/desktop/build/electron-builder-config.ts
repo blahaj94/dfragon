@@ -1,21 +1,7 @@
 import type { Configuration } from 'electron-builder'
 import { channels, type Channel, type ChannelName } from './channels'
 
-// NSIS registers the Windows protocol through the channel's include; this declaration covers macOS.
-function readProtocolDeclaration(
-  packaging: Channel['packaging'],
-  identity: Channel['identity']
-): Pick<Configuration, 'protocols'> {
-  const { auth } = identity
-  if (packaging.protocolName == null || auth == null) {
-    return {}
-  }
-  const scheme = new URL(auth.returnTarget).protocol.slice(0, -1)
-
-  return { protocols: [{ name: packaging.protocolName, schemes: [scheme] }] }
-}
-
-// NSIS registers the protocol through this include, not the top-level protocols option.
+// 설치와 제거 때 이 앱 소유의 legacy protocol 키만 정리한다.
 function readInstallerInclude(
   packaging: Channel['packaging']
 ): Pick<NonNullable<Configuration['nsis']>, 'include'> {
@@ -32,7 +18,6 @@ function readInstallerInclude(
  */
 export function createBuilderConfig(name: ChannelName): Configuration {
   const { packaging, identity } = channels[name]
-  const protocolDeclaration = readProtocolDeclaration(packaging, identity)
   const installerInclude = readInstallerInclude(packaging)
   // 파일명은 공백 없는 접두어가 필요한 채널만 따로 정하고, 나머지는 electron-builder가 앱 이름으로 채운다.
   const artifactPrefix = packaging.artifactPrefix ?? '${productName}'
@@ -42,7 +27,6 @@ export function createBuilderConfig(name: ChannelName): Configuration {
     productName: packaging.productName,
     extraMetadata: { name: packaging.packageName },
     directories: { buildResources: 'build', output: packaging.output },
-    ...protocolDeclaration,
     files: [
       'out/**',
       'resources/**',
