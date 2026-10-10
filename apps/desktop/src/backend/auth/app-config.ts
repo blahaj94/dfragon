@@ -22,7 +22,6 @@ export function readAppAuthConfig(application: {
     return readAuthRuntimeConfig()
   }
   // 로그인 복귀 주소는 pending의 loopback 수신기가 정한다.
-  // 기존 protocol 값은 OS ingress 제거 전까지 설정에만 남긴다.
   const { auth, appIdentity } = channel.identity
   const accountsOrigin = channel.origins.accounts
   // 로그인 없는 채널은 셸 설정으로도 로그인을 켜지 않는다.
@@ -32,7 +31,6 @@ export function readAppAuthConfig(application: {
 
   return readAuthRuntimeConfig({
     DFRAGON_AUTH_API_ORIGIN: accountsOrigin,
-    DFRAGON_AUTH_RETURN_TARGET: auth.returnTarget,
     DFRAGON_AUTH_ENVIRONMENT: auth.environment,
     DFRAGON_AUTH_PROVIDERS: auth.providers.join(','),
     DFRAGON_AUTH_APP_IDENTITY: appIdentity,

@@ -1,15 +1,13 @@
 import * as fs from 'node:fs'
 import { dirname, isAbsolute, join, normalize, parse, sep } from 'node:path'
 import type { Stats } from 'node:fs'
-import { validateApiOrigin, validateReturnTarget } from './protocol'
+import { validateApiOrigin } from './protocol'
 import type { AuthProvider } from './types'
 import { createWindowsProfileSecurity } from './windows-profile-native'
 import type { WindowsProfileSecurity } from './windows-profile-native'
 
 export type AuthRuntimeConfig = Readonly<{
   apiOrigin: string
-  // Only the retained OS protocol ingress reads this legacy setting.
-  returnTarget: string
   environment: string
   providers: readonly AuthProvider[]
   appIdentity: string
@@ -330,17 +328,12 @@ export function readAuthRuntimeConfig(
   pathSemantics: RuntimePathSemantics = nativeRuntimePathSemantics
 ): AuthRuntimeConfig | null {
   const apiOrigin = readRequiredText(environment, 'DFRAGON_AUTH_API_ORIGIN')
-  const returnTarget = readRequiredText(environment, 'DFRAGON_AUTH_RETURN_TARGET')
   const profile = readRequiredText(environment, 'DFRAGON_AUTH_ENVIRONMENT')
   const providers = readProviders(environment)
   const appIdentity = readRequiredText(environment, 'DFRAGON_AUTH_APP_IDENTITY')
   const userDataPath = readRequiredText(environment, 'DFRAGON_AUTH_USER_DATA_PATH')
   const hasRequiredValues =
-    apiOrigin != null &&
-    returnTarget != null &&
-    profile != null &&
-    appIdentity != null &&
-    userDataPath != null
+    apiOrigin != null && profile != null && appIdentity != null && userDataPath != null
   if (!hasRequiredValues || providers == null) {
     return null
   }
@@ -366,14 +359,12 @@ export function readAuthRuntimeConfig(
 
   try {
     validateApiOrigin(apiOrigin)
-    validateReturnTarget(returnTarget)
   } catch {
     return null
   }
 
   return {
     apiOrigin,
-    returnTarget,
     environment: profile,
     providers,
     appIdentity,

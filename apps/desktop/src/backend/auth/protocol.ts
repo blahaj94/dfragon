@@ -3,19 +3,6 @@ import { isCanonicalOpaque } from './pkce'
 const MAX_URL_BYTES = 2_048
 const MIN_LOOPBACK_PORT = 1_024
 const MAX_LOOPBACK_PORT = 65_535
-const INCOMPATIBLE_APP_PROTOCOLS = new Set([
-  'about:',
-  'blob:',
-  'data:',
-  'file:',
-  'ftp:',
-  'http:',
-  'https:',
-  'javascript:',
-  'mailto:',
-  'ws:',
-  'wss:'
-])
 
 function hasForbiddenUrlCharacter(value: string): boolean {
   for (const character of value) {
@@ -81,35 +68,6 @@ export function validateApiOrigin(apiOrigin: string): string {
   return apiOrigin
 }
 
-// Retained channel builds and OS protocol ingress only; login uses validateLoopbackReturnUrl.
-export function validateReturnTarget(returnTarget: string): string {
-  const url = parseExactUrl(returnTarget)
-  // 실제 owned scheme 값은 bootstrap이 주입한다. Browser/network가 이미 소유한 built-in만 제외한다.
-  const isPrivateScheme = !INCOMPATIBLE_APP_PROTOCOLS.has(url.protocol)
-  const hasNoUsername = url.username.length === 0
-  let hasNoPassword: boolean | undefined
-  if (hasNoUsername) {
-    hasNoPassword = url.password.length === 0
-  }
-  const hasNoCredentials = hasNoUsername && hasNoPassword === true
-  const hasNoPort = url.port.length === 0
-  const hasNoQuery = !returnTarget.includes('?')
-  const hasNoFragment = !returnTarget.includes('#')
-  const isCanonicalTarget = url.toString() === returnTarget
-  const isValidTarget =
-    isPrivateScheme &&
-    hasNoCredentials &&
-    hasNoPort &&
-    hasNoQuery &&
-    hasNoFragment &&
-    isCanonicalTarget
-  if (!isValidTarget) {
-    throw new AuthProtocolFailure()
-  }
-
-  return returnTarget
-}
-
 export function validateBrowserLaunchUrl(raw: unknown, apiOrigin: string): string {
   const trustedOrigin = validateApiOrigin(apiOrigin)
   const url = parseExactUrl(raw)
@@ -139,35 +97,27 @@ export function validateBrowserLaunchUrl(raw: unknown, apiOrigin: string): strin
   return expected
 }
 
-// OS protocol ingress is retained until its separate removal task.
-export function parseProtocolReturnUrl(
-  raw: unknown,
-  returnTarget: string
-): Readonly<{ code: string }> {
-  return parseCodeReturnUrl(raw, validateReturnTarget(returnTarget))
-}
-
 export function formatLoopbackReturnUrl(port: number): string {
   return `http://127.0.0.1:${port}/auth/callback`
 }
 
-export function validateLoopbackReturnUrl(returnTarget: string): string {
-  const url = parseExactUrl(returnTarget)
+export function validateLoopbackReturnUrl(returnUrl: string): string {
+  const url = parseExactUrl(returnUrl)
   const port = Number(url.port)
   const expected = formatLoopbackReturnUrl(port)
   const isEphemeralPort =
     Number.isInteger(port) && port >= MIN_LOOPBACK_PORT && port <= MAX_LOOPBACK_PORT
-  const isExactTarget = returnTarget === expected
-  const isValidTarget = isEphemeralPort && isExactTarget
-  if (!isValidTarget) {
+  const isExactReturnUrl = returnUrl === expected
+  const isValidReturnUrl = isEphemeralPort && isExactReturnUrl
+  if (!isValidReturnUrl) {
     throw new AuthProtocolFailure()
   }
 
-  return returnTarget
+  return returnUrl
 }
 
-export function parseReturnUrl(raw: unknown, returnTarget: string): Readonly<{ code: string }> {
-  return parseCodeReturnUrl(raw, validateLoopbackReturnUrl(returnTarget))
+export function parseReturnUrl(raw: unknown, returnUrl: string): Readonly<{ code: string }> {
+  return parseCodeReturnUrl(raw, validateLoopbackReturnUrl(returnUrl))
 }
 
 // 기대 주소가 없는 pending 없는 복귀에서 새 로그인 안내 여부를 정할 때만 형식을 확인한다.
