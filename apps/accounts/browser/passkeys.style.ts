@@ -24,6 +24,7 @@ export const styles = stylex.create({
   key: { padding: '12px 0', borderBottom: '1px solid var(--seed-color-stroke-neutral-muted)' },
   keys: { padding: 0, listStyle: 'none' },
   status: { minHeight: 28 },
+  expiredStatus: { color: 'var(--seed-color-fg-critical)', whiteSpace: 'pre-line' },
   emptyStatus: { padding: 0, minHeight: 0 },
   brand: { display: 'flex', alignItems: 'center', gap: 8 },
   icon: { flex: 'none', objectFit: 'contain' },
@@ -51,5 +52,6 @@ export const styles = stylex.create({
   entryDescription: { padding: '0 0 24px' },
   register: { height: 52, margin: '12px 0 32px' },
   returnButton: { height: 52, margin: 0 },
-  completeHeading: { padding: '8px 0 32px' }
+  completeHeading: { padding: '0 0 24px' },
+  returnHint: { padding: '24px 0 0' }
 })

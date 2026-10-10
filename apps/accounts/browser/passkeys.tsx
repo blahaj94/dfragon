@@ -20,10 +20,25 @@ import type {
 const root = document.querySelector<HTMLElement>('main')!
 const requestId = root.dataset.requestId!
 const management = root.dataset.purpose === 'manage'
+// 앱에서 다시 시작하라는 안내는 Desktop 로그인에만 맞다. OCR과 관리 화면은 앱 로그인이 아니다.
+const isDesktopLogin = !management && (root.dataset.webReturnUrl ?? '') === ''
 const supportsPasskeys = browserSupportsWebAuthn()
 const primaryButton = actionButton({ variant: 'neutralSolid', size: 'large' })
 const secondaryButton = actionButton({ variant: 'neutralOutline', size: 'large' })
 const removeButton = actionButton({ variant: 'neutralOutline', size: 'medium' })
+const LOGIN_RESTART_MESSAGE = '앱에서 새 로그인을 시작하세요.'
+const LOGIN_REQUEST_INVALID_CODE = 'LOGIN_REQUEST_INVALID'
+
+class PasskeyRequestError extends Error {
+  readonly code: string | undefined
+
+  constructor(message: string, code: unknown) {
+    super(message)
+    this.code = typeof code === 'string' ? code : undefined
+  }
+}
+
+type Status = { message: string; code?: string }
 
 type Passkey = {
   id: string
@@ -50,7 +65,12 @@ async function api<T>(action: string, values: Record<string, unknown> = {}): Pro
   })
   const body = await response.json()
   if (!response.ok) {
-    throw new Error(body.error?.message ?? '요청을 처리하지 못했습니다.')
+    const message = body.error?.message ?? '요청을 처리하지 못했습니다.'
+    const failureMessage =
+      isDesktopLogin && body.error?.code === LOGIN_REQUEST_INVALID_CODE
+        ? `${message}\n${LOGIN_RESTART_MESSAGE}`
+        : message
+    throw new PasskeyRequestError(failureMessage, body.error?.code)
   }
 
   return body
@@ -75,7 +95,9 @@ function PasskeyPage() {
     kind: 'entry'
   })
   const unsupportedMessage = '패스키를 지원하는 브라우저에서 열어 주세요.'
-  const [status, setStatus] = useState(supportsPasskeys ? '' : unsupportedMessage)
+  const [status, setStatus] = useState<Status>({
+    message: supportsPasskeys ? '' : unsupportedMessage
+  })
   const [busy, setBusy] = useState(false)
   // Refs guard events and in-flight responses before React commits the next render.
   const busyRef = useRef(false)
@@ -100,10 +122,16 @@ function PasskeyPage() {
     }
   }, [screen.kind])
 
+  useEffect(() => {
+    if (screen.kind === 'complete') {
+      location.assign(screen.returnUrl)
+    }
+  }, [screen])
+
   function finish(message: string) {
     endedRef.current = true
     setScreen({ kind: 'ended' })
-    setStatus(message)
+    setStatus({ message })
   }
 
   async function run(operation: () => Promise<void>) {
@@ -112,7 +140,7 @@ function PasskeyPage() {
     }
     busyRef.current = true
     setBusy(true)
-    setStatus('기기의 인증 안내를 확인해 주세요.')
+    setStatus({ message: '기기의 인증 안내를 확인해 주세요.' })
     try {
       await operation()
     } catch (error) {
@@ -124,7 +152,8 @@ function PasskeyPage() {
       } else {
         message = '인증을 완료하지 못했습니다. 다시 시도해 주세요.'
       }
-      setStatus(message)
+      const code = error instanceof PasskeyRequestError ? error.code : undefined
+      setStatus({ message, code })
     } finally {
       busyRef.current = false
       setBusy(false)
@@ -137,8 +166,7 @@ function PasskeyPage() {
   }
 
   function showReturn(returnUrl: string) {
-    const url = new URL(returnUrl)
-    const target = parseReturnTarget(url, root.dataset.webReturnUrl)
+    const target = parseReturnTarget(returnUrl, root.dataset.webReturnUrl)
     if (target.kind === 'web') {
       endedRef.current = true
       location.assign(target.href)
@@ -147,7 +175,7 @@ function PasskeyPage() {
     }
     endedRef.current = true
     setScreen({ kind: 'complete', returnUrl: target.href })
-    setStatus('')
+    setStatus({ message: '' })
   }
 
   async function authenticate(operation: 'register' | 'authenticate' | 'add') {
@@ -162,9 +190,9 @@ function PasskeyPage() {
     const result = await api<Verification>('verify', { response })
     if ('managed' in result) {
       await showKeys()
-      setStatus(
+      const message =
         operation === 'add' ? '예비 패스키를 추가했습니다.' : '관리할 패스키를 선택해 주세요.'
-      )
+      setStatus({ message })
     } else {
       showReturn(result.returnUrl)
     }
@@ -185,7 +213,7 @@ function PasskeyPage() {
       )
     } else {
       await showKeys()
-      setStatus('패스키를 삭제했습니다.')
+      setStatus({ message: '패스키를 삭제했습니다.' })
     }
   }
 
@@ -282,7 +310,7 @@ function PasskeyPage() {
               className={`${secondaryButton} ${stylex.props(styles.button, styles.register).className}`}
               disabled={busy}
               onClick={() => {
-                setStatus(supportsPasskeys ? '' : unsupportedMessage)
+                setStatus({ message: supportsPasskeys ? '' : unsupportedMessage })
                 setScreen({ kind: 'signup' })
               }}
             >
@@ -354,18 +382,19 @@ function PasskeyPage() {
       )}
       {screen.kind === 'complete' && (
         <section id="complete">
-          <Typo.h6 as="h2" {...stylex.props(styles.completeHeading)}>
-            인증 완료
-          </Typo.h6>
+          <Typo.txtM {...stylex.props(styles.completeHeading)}>인증 완료</Typo.txtM>
           <a
             id="return"
-            className={`${primaryButton} ${stylex.props(styles.button, styles.returnButton).className}`}
+            className={`${secondaryButton} ${stylex.props(styles.button, styles.returnButton).className}`}
             href={screen.returnUrl}
           >
             <Typo.txtM as="span" weight={700}>
-              돌아가기
+              앱으로 돌아가기
             </Typo.txtM>
           </a>
+          <Typo.caption {...stylex.props(styles.paragraph, styles.returnHint)}>
+            자동으로 돌아가지 않으면 버튼을 누르세요.
+          </Typo.caption>
         </section>
       )}
       <Typo.txtM
@@ -375,10 +404,11 @@ function PasskeyPage() {
         {...stylex.props(
           styles.paragraph,
           styles.status,
-          !management && status === '' && styles.emptyStatus
+          status.code === LOGIN_REQUEST_INVALID_CODE && styles.expiredStatus,
+          !management && status.message === '' && styles.emptyStatus
         )}
       >
-        {status}
+        {status.message}
       </Typo.txtM>
     </div>
   )

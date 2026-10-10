@@ -4,12 +4,13 @@ import type { DataSource } from 'typeorm'
 import type { RefreshTokens } from '../auth/refresh/types.js'
 
 export type LoginErrorDefinition = (typeof LOGIN_ERRORS)[keyof typeof LOGIN_ERRORS]
-export interface LoginCreation {
+interface LoginCreationProof {
   provider: 'passkey'
-  clientId: 'desktop' | 'ocr'
   codeChallenge: string
   codeChallengeMethod: 'S256'
 }
+export type LoginCreation = LoginCreationProof &
+  ({ clientId: 'desktop'; returnUrl: string } | { clientId: 'ocr' })
 export interface LoginExchange {
   requestId: string
   clientId: string
@@ -20,7 +21,6 @@ export interface PasskeyConfiguration {
   apiOrigin: string
   rpId: string
   rpName: string
-  returnUrl: string
   ocrReturnUrl?: string
 }
 export interface LoginDependencies {

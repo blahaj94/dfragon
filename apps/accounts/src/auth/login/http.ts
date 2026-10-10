@@ -25,7 +25,7 @@ import {
 import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { Request, Response } from 'express'
-import { LOGIN, LOGIN_ERRORS } from '../../constants/login.js'
+import { LOGIN, LOGIN_ERRORS, LOGIN_RESTART_MESSAGE } from '../../constants/login.js'
 import { LoginFailure, loginFailure } from '../../errors/login.js'
 import type { LoginHttpService, SessionHttpService } from '../../types/login.js'
 import { AccountFailure } from '../account/errors.js'
@@ -69,16 +69,9 @@ function escapeHtml(value: string): string {
   return value.replace(HTML_ESCAPE_CHARACTER_PATTERN, (character) => htmlEntities[character]!)
 }
 
-function loginPage(message: string, returnUrl?: string): string {
+function loginPage(message: string, showsRestartMessage = false): string {
   const messageHtml = `<p>${escapeHtml(message)}</p>`
-  const hasReturnUrl = returnUrl != null
-  let returnLink = ''
-  if (hasReturnUrl) {
-    const hasTruthyReturnUrl = Boolean(returnUrl)
-    if (hasTruthyReturnUrl) {
-      returnLink = `<a href="${escapeHtml(returnUrl)}">앱으로 돌아가기</a>`
-    }
-  }
+  const restartHtml = showsRestartMessage ? `<p>${LOGIN_RESTART_MESSAGE}</p>` : ''
 
   const pageHtml = [
     '<!doctype html>',
@@ -88,7 +81,7 @@ function loginPage(message: string, returnUrl?: string): string {
     '<title>로그인</title>',
     '<body>',
     messageHtml,
-    returnLink,
+    restartHtml,
     '</body></html>'
   ].join('')
 
@@ -149,7 +142,10 @@ class LoginHttpFilter implements ExceptionFilter {
     const shouldRenderHtml = isGet && !isAccountPath
     if (shouldRenderHtml) {
       recordAccessLogErrorCode(response, failure.code)
-      response.status(failure.status).type('html').send(loginPage(failure.message))
+      response
+        .status(failure.status)
+        .type('html')
+        .send(loginPage(failure.message, failure.code === LOGIN_ERRORS.REQUEST_INVALID.code))
     } else {
       jsonError(response, failure)
     }
