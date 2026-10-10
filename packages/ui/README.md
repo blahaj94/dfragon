@@ -1,14 +1,20 @@
 # 공용 SEED UI
 
-`@dfragon/ui`는 공식 SEED Snippet, Layout을 제공한다. 제품 data, event, platform 연결은 소비 app이 소유한다. 기준은 `docs/rules/design-system.md`와 `docs/architecture/overview.md`다.
+`@dfragon/ui`는 공식 SEED Snippet, Layout과 SEED를 조합한 디자인 컴포넌트를 제공한다. 제품 data, event, platform 연결은 소비 app이 소유한다. 기준은 `docs/rules/design-system.md`와 `docs/architecture/overview.md`다.
 
 ## Public API와 CSS 책임
 
-ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. 내부 `src/seed` 경로는 package export가 아니다.
+ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. 내부 `src/seed` 경로는 package export가 아니다. IconButton은 아래 [디자인 컴포넌트](#디자인-컴포넌트)에서 설명한다.
 
 SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
+
+## 디자인 컴포넌트
+
+SEED에 같은 역할이 없는 디자인 컴포넌트는 SEED Component를 조합한 DFragon 구성이다. 외형은 SEED CSS 변수만 쓰는 StyleX로 소유하고 공개 타입은 style, className을 받지 않는다. 기준 디자인은 dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/main/design/components.md)다.
+
+- `IconButton`: 디자인 IconButton md. SEED `medium` `iconOnly` ActionButton에 24px `Icon`과 여백 `--seed-dimension-x2`를 둔 40 정사각형이다. `variant`는 `neutralWeak`, `ghost` 중 하나이고 `aria-label`과 `icon`이 필수다. 나머지 ActionButton prop과 React 19의 `ref` prop을 전달하므로 `DialogTrigger asChild` 안에서 쓸 수 있다.
 
 ## Typo
 
