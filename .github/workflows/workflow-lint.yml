@@ -1,9 +1,9 @@
 name: Workflow Lint
 
 on:
+  # Pull requests run without a paths filter so the required gate always reports. The changes job
+  # applies the push paths below to the pull request instead.
   pull_request:
-    paths:
-      - '.github/**'
   push:
     branches: [main]
     paths:
@@ -17,7 +17,52 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  changes:
+    name: Detect workflow changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      needed: ${{ steps.paths.outputs.needed }}
+    steps:
+      # The test merge commit and its two parents are enough to list the pull request changes.
+      - name: Checkout the pull request merge commit
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Match the pull request changes against the push paths
+        id: paths
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          # A main push reaches this job only through the push paths filter.
+          if [[ "$EVENT_NAME" != pull_request ]]; then
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # The first parent of the test merge commit is the base branch it merges into.
+          if ! git rev-parse --verify --quiet 'HEAD^2' > /dev/null; then
+            echo "The pull request checkout is not a merge commit"
+            exit 1
+          fi
+
+          # This pathspec covers the push paths filter. A file moved out of it still counts.
+          status=0
+          git diff --name-only --exit-code --no-renames 'HEAD^1' HEAD -- .github || status=$?
+
+          case "$status" in
+            0) echo "needed=false" >> "$GITHUB_OUTPUT" ;;
+            1) echo "needed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+
   actionlint:
+    needs: changes
+    if: needs.changes.outputs.needed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -41,6 +86,8 @@ jobs:
         run: '"$RUNNER_TEMP/actionlint"'
 
   zizmor:
+    needs: changes
+    if: needs.changes.outputs.needed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -55,3 +102,34 @@ jobs:
           version: 1.30.1
           advanced-security: false
           annotations: true
+
+  # The main ruleset can require this stable check name. Skipped lint jobs pass when the pull
+  # request changed nothing under .github.
+  gate:
+    name: Workflow Lint gate
+    if: always()
+    needs:
+      - changes
+      - actionlint
+      - zizmor
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every Workflow Lint job to succeed or skip
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          if [[ -z "$RESULTS" ]]; then
+            echo "No Workflow Lint job results reached the gate"
+            exit 1
+          fi
+
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *)
+                echo "A Workflow Lint job finished with: $result"
+                exit 1
+                ;;
+            esac
+          done
