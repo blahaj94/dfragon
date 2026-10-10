@@ -13,7 +13,7 @@ import {
 import {
   CODE,
   OTHER_CODE,
-  RETURN_TARGET,
+  PROTOCOL_RETURN_TARGET as RETURN_TARGET,
   createAuthHarness,
   deferred,
   settle
@@ -728,7 +728,7 @@ describe('Desktop auth protocol ingress', () => {
 
     expect(dispatch).toHaveBeenCalledExactlyOnceWith(returnUrl())
     expect(coordinator.getSnapshot().phase).toBe('signedOut')
-    expect(coordinator.getSnapshot().notice).toBe('LOGIN_RESTART_REQUIRED')
+    expect(coordinator.getSnapshot().notice).toBeNull()
     expect(harness.http.exchange).not.toHaveBeenCalled()
   })
 
@@ -767,7 +767,7 @@ describe('Desktop auth protocol ingress', () => {
 
     expect(dispatch).toHaveBeenCalledExactlyOnceWith(raw)
     expect(runtime.coordinator.getSnapshot().phase).toBe('signedOut')
-    expect(runtime.coordinator.getSnapshot().notice).toBe('LOGIN_RESTART_REQUIRED')
+    expect(runtime.coordinator.getSnapshot().notice).toBeNull()
     expect(harness.http.exchange).not.toHaveBeenCalled()
   })
 

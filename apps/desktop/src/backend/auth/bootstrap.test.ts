@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { bootstrapAuthRuntime } from './bootstrap'
-import { createAuthHarness, CODE, deferred, REFRESH_0, settle } from './auth-test-fixtures'
+import {
+  createAuthHarness,
+  CODE,
+  deferred,
+  REFRESH_0,
+  RETURN_TARGET,
+  settle
+} from './auth-test-fixtures'
 import { AuthHttpFailure } from './http'
 import type { AuthRuntimeConfig } from './runtime-config'
 import type { AuthClock } from './types'
@@ -196,7 +203,7 @@ describe('desktop auth bootstrap', () => {
     await settle()
     expect(started).toMatchObject({ ok: true, snapshot: { phase: 'startingLogin' } })
     expect(runtime.coordinator.getSnapshot()).toMatchObject({ phase: 'waitingBrowser' })
-    await runtime.coordinator.handleReturnUrl(`${config.returnTarget}?code=${CODE}`)
+    await runtime.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
 
     expect(runtime.coordinator.getSnapshot()).toMatchObject({
       phase: 'signedIn',
@@ -222,7 +229,7 @@ describe('desktop auth bootstrap', () => {
     await failedLogin.start()
     await failedLogin.coordinator.beginLogin('passkey')
     await settle()
-    await failedLogin.coordinator.handleReturnUrl(`${config.returnTarget}?code=${CODE}`)
+    await failedLogin.coordinator.handleReturnUrl(`${RETURN_TARGET}?code=${CODE}`)
     expect(failedLogin.coordinator.getSnapshot()).toMatchObject({
       phase: 'signedOut',
       notice: 'LOGIN_RESTART_REQUIRED'

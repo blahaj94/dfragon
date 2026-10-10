@@ -8,6 +8,7 @@ import type { WindowsProfileSecurity } from './windows-profile-native'
 
 export type AuthRuntimeConfig = Readonly<{
   apiOrigin: string
+  // Only the retained OS protocol ingress reads this legacy setting.
   returnTarget: string
   environment: string
   providers: readonly AuthProvider[]

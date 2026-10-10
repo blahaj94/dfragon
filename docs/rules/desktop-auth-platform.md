@@ -124,7 +124,7 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 ## Protocol 및 browser launch 선택
 
-**흐름: main이 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다 → 브라우저의 패스키 인증(휴대폰은 브라우저 패스키 창의 hybrid QR) → 인증 완료 페이지가 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 자동 이동 → main.** 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 인증 창과 OS private protocol 복귀)이 아니다. 격리 인증 창, OS protocol 등록, `open-url`, `second-instance` 복귀 처리, NSIS protocol 등록의 제거는 구현 PR에서 한다. Electron 내부 브라우저는 WebAuthn의 기기 간(hybrid) QR 인증을 지원하지 않아 자체 QR이 필요했으나, 시스템 브라우저에서는 브라우저가 제공하는 패스키 QR로 충분하다.
+**흐름: main이 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다 → 브라우저의 패스키 인증(휴대폰은 브라우저 패스키 창의 hybrid QR) → 인증 완료 페이지가 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 자동 이동 → main.** OS protocol 등록, `open-url`, `second-instance` 복귀 처리, NSIS protocol 등록의 제거는 후속 PR에서 한다. Electron 내부 브라우저는 WebAuthn의 기기 간(hybrid) QR 인증을 지원하지 않아 자체 QR이 필요했으나, 시스템 브라우저에서는 브라우저가 제공하는 패스키 QR로 충분하다.
 
 - Main은 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 수신기 하나를 열고 `POST /auth/login-requests`에 `returnUrl: http://127.0.0.1:<port>/auth/callback`을 함께 보낸다. 응답 `browserUrl`은 Electron `shell.openExternal`로 연다. 열기 실패는 기존 `BROWSER_OPEN_FAILED`다.
 - 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받는다. 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 설치형, 포터블 모두 같은 흐름이다.
@@ -136,7 +136,7 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 
 ### 로컬 개발용 등록값
 
-이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 아래 표의 앱 복귀 값 `dfragon.dev://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 protocol 등록 제거는 구현 PR에서 한다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
+이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 아래 표의 앱 복귀 값 `dfragon.dev://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 protocol 등록 제거는 후속 PR에서 한다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
 
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
@@ -154,17 +154,17 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 
 ### Windows MVP 배포 구성
 
-기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 복귀 주소 `dfragon://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 NSIS protocol 등록 제거는 구현 PR에서 한다. 이름, identity, profile 값은 그대로 쓴다.
+기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 복귀 주소 `dfragon://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 NSIS protocol 등록 제거는 후속 PR에서 한다. 이름, identity, profile 값은 그대로 쓴다.
 
 배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버는 `returnUrl`을 loopback 형식 `http://127.0.0.1:<port>/auth/callback`으로 검증한다. 공개 설정만 포함하고 서버 secret, credential은 설치 파일에 넣지 않는다. 실제 서버, HTTPS 연결, 패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
-개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책은 protocol 등록을 걷어내는 구현 PR까지 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
+개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책은 protocol 등록을 걷어내는 후속 PR까지 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
-Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않는다. 로그인 복귀는 설치형과 같은 loopback 수신기 하나로 처리하며 포터블 전용 복귀 경로는 없다(2026-10-10 결정, 구현 전). 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
+Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않는다. 로그인 복귀는 설치형과 같은 loopback 수신기 하나로 처리하며 포터블 전용 복귀 경로는 없다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
 
 ### 공통 진입점
 
-아래 표의 OS 복귀 진입점(`open-url`, `second-instance`의 URL 전달)은 2026-10-10 결정으로 로그인 계약에서 제외하며 제거는 구현 PR에서 한다. 제거 전까지는 현재 구현의 검증 규칙으로만 남는다. Single-instance ownership은 credential file의 단일 writer를 위해 유지한다.
+아래 표의 OS 복귀 진입점(`open-url`, `second-instance`의 URL 전달)은 2026-10-10 결정으로 로그인 계약에서 제외하며 제거는 후속 PR에서 한다. 제거 전까지는 현재 구현의 검증 규칙으로만 남는다. Single-instance ownership은 credential file의 단일 writer를 위해 유지한다.
 
 | 진입점 | 등록, 처리 계약 | 실제 사용에서 확인할 사항 |
 | --- | --- | --- |

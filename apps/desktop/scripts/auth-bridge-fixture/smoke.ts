@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { setTimeout as delay } from 'node:timers/promises'
 import type { BrowserWindow } from 'electron'
-import type { AuthCoordinator, AuthSnapshot } from '../../src/backend/auth/types'
+import type { AuthSnapshot } from '../../src/backend/auth/types'
 import { canaries, syntheticCode, createFixtureEffects } from './effects'
 
 function createClickSource(label: string): string {
@@ -40,7 +40,6 @@ async function until(condition: () => Promise<boolean>): Promise<void> {
 
 export async function smoke(
   window: BrowserWindow,
-  coordinator: AuthCoordinator,
   effects: ReturnType<typeof createFixtureEffects>
 ): Promise<void> {
   const evaluate = (source: string): Promise<unknown> =>
@@ -105,9 +104,8 @@ export async function smoke(
     assert.equal(args.length, 1)
     noCanary(args)
   }
-  await evaluate(
-    'window.auth.getAuthState().then(state => window.auth.cancelLogin({attemptId: state.login.attemptId}))'
-  )
+  await until(() => textIncludes('취소'))
+  await click('취소')
   await until(async () => {
     const isSignedOut = (await state()).phase === 'signedOut'
 
@@ -128,17 +126,48 @@ export async function smoke(
     window.webContents.once('did-finish-load', () => resolve())
     window.webContents.reload()
   })
-  await until(() => textIncludes('로그인'))
-  assert.equal(await evaluate('document.querySelector("button[aria-label=로그인]").disabled'), true)
+  await until(() => textIncludes('취소'))
+  assert.equal(await evaluate('document.querySelector("button[aria-label=취소]").disabled'), false)
   assert.equal(await evaluate('document.querySelector("[role=dialog]")'), null)
   await evaluate('window.fixtureCards = [...document.querySelectorAll("article")]; true')
   assert.equal((await state()).login?.attemptId, beforeReload.login?.attemptId)
 
   console.log('Auth bridge fixture step: exchange-commit')
   effects.holdCommit()
-  const exchange = coordinator.handleReturnUrl(
-    `${effects.dependencies.returnTarget}?code=${syntheticCode}`
-  )
+  const returnUrl = effects.returnUrl
+  assert.notEqual(returnUrl, null)
+  const callbackUrl = `${returnUrl}?code=${syntheticCode}`
+  const response = await fetch(callbackUrl, {
+    redirect: 'error',
+    signal: AbortSignal.timeout(5_000)
+  })
+  assert.equal(response.status, 200)
+  const body = await response.text()
+  assert.ok(body.includes('로그인 완료'))
+  assert.ok(body.includes('이 탭을 닫아도 됩니다.'))
+
+  let duplicate: Response | undefined
+  try {
+    duplicate = await fetch(callbackUrl, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(5_000)
+    })
+  } catch (error) {
+    assert.ok(error instanceof TypeError)
+    const cause = error.cause
+    assert.ok(cause instanceof Error && 'code' in cause)
+    const connectionFailureCodes = new Set([
+      'ECONNREFUSED',
+      'ECONNRESET',
+      'EPIPE',
+      'UND_ERR_SOCKET'
+    ])
+    assert.ok(typeof cause.code === 'string' && connectionFailureCodes.has(cause.code))
+  }
+  if (duplicate != null) {
+    await duplicate.body?.cancel()
+    assert.equal(duplicate.status, 404)
+  }
   await until(async () => {
     const hasStartedCommit = effects.counts.commit === 1
 
@@ -147,7 +176,6 @@ export async function smoke(
   assert.equal((await state()).phase, 'exchanging')
   assert.equal(await textIncludes('중립모험가'), false)
   effects.releaseCommit()
-  await exchange
   await until(async () => (await state()).phase === 'signedIn')
   const signedIn = await state()
   assert.equal(signedIn.phase, 'signedIn')

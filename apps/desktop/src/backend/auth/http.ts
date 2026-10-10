@@ -10,7 +10,7 @@ import {
   requireLogoutResponse,
   requireSuccessJson
 } from './http-response'
-import { validateApiOrigin } from './protocol'
+import { validateApiOrigin, validateLoopbackReturnUrl } from './protocol'
 import type { AuthHttp } from './types'
 
 export { AuthHttpFailure } from './http-response'
@@ -94,6 +94,7 @@ export function createAuthHttpClient(configuration: AuthHttpClientConfiguration)
 
   return {
     async createLoginRequest(input, signal) {
+      validateLoopbackReturnUrl(input.returnUrl)
       const value = await requestJson('/auth/login-requests', { json: input }, signal, 201)
 
       return parseLoginRequest(value, apiOrigin)

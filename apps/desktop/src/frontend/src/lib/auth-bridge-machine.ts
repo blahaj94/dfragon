@@ -47,6 +47,12 @@ export const authBridgeMachine = setup({
         if (intent == null) {
           throw new Error('Auth command intent missing')
         }
+
+        if (intent.type === 'cancelLogin') {
+          const result = await api.cancelLogin({ attemptId: intent.attemptId })
+
+          return result.snapshot
+        }
         const result = await (intent.type === 'beginLogin'
           ? api.beginLogin({ provider: intent.provider })
           : api.retryAuth())
@@ -56,7 +62,9 @@ export const authBridgeMachine = setup({
     )
   },
   guards: {
-    sameApi: ({ context, event }) => 'api' in event && event.api === context.api
+    sameApi: ({ context, event }) => 'api' in event && event.api === context.api,
+    sameApiCancellation: ({ context, event }) =>
+      event.type === 'COMMAND' && event.api === context.api && event.intent.type === 'cancelLogin'
   },
   actions: {
     resetConnection: assign({ snapshot: null, queued: null, intent: null }),
@@ -167,6 +175,15 @@ export const authBridgeMachine = setup({
         },
         commanding: {
           tags: ['commandPending'],
+          // 취소는 기존 IPC 응답을 기다리지 않는다. 이전 응답은 버리고 main이 취소를 판정한다.
+          on: {
+            COMMAND: {
+              guard: 'sameApiCancellation',
+              target: 'commanding',
+              reenter: true,
+              actions: assign({ intent: ({ event }) => event.intent })
+            }
+          },
           invoke: {
             src: 'command',
             input: ({ context }) => ({ api: context.api, intent: context.intent }),
@@ -183,6 +200,13 @@ export const authBridgeMachine = setup({
         },
         refreshing: {
           tags: ['commandPending'],
+          on: {
+            COMMAND: {
+              guard: 'sameApiCancellation',
+              target: 'commanding',
+              actions: assign({ intent: ({ event }) => event.intent })
+            }
+          },
           invoke: {
             src: 'readSnapshot',
             input: ({ context }) => context.api,

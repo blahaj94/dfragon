@@ -7,7 +7,6 @@ type PendingLoginContext = {
   requestId: string | null
   expiresAt: string | null
   expiresAtMs: number | null
-  rejectedFingerprint: string | null
   exchangeFingerprint: string | null
   exchangePromise: Promise<void> | null
   expired: boolean
@@ -20,8 +19,6 @@ type PendingLoginEvent =
   | { type: 'RESCHEDULE_EXPIRY' }
   | { type: 'CLAIM'; fingerprint: string }
   | { type: 'TRACK_EXCHANGE'; promise: Promise<void> }
-  | { type: 'EXCHANGE_REJECTED' }
-  | { type: 'RESUME_WAITING' }
   | { type: 'EXPIRE' }
   | { type: 'DISPOSE' }
 
@@ -42,7 +39,6 @@ export const pendingLoginMachine = setup({
     requestId: null,
     expiresAt: null,
     expiresAtMs: null,
-    rejectedFingerprint: null,
     exchangeFingerprint: null,
     exchangePromise: null,
     expired: false
@@ -82,8 +78,7 @@ export const pendingLoginMachine = setup({
         waiting: {
           on: {
             CLAIM: {
-              guard: ({ context, event }) =>
-                context.requestId != null && context.rejectedFingerprint !== event.fingerprint,
+              guard: ({ context }) => context.requestId != null,
               target: 'exchanging',
               actions: assign({ exchangeFingerprint: ({ event }) => event.fingerprint })
             }
@@ -91,15 +86,8 @@ export const pendingLoginMachine = setup({
         },
         exchanging: {
           on: {
-            EXCHANGE_REJECTED: {
-              actions: assign({ rejectedFingerprint: ({ context }) => context.exchangeFingerprint })
-            },
             TRACK_EXCHANGE: {
               actions: assign({ exchangePromise: ({ event }) => event.promise })
-            },
-            RESUME_WAITING: {
-              target: 'waiting',
-              actions: assign({ exchangeFingerprint: null, exchangePromise: null })
             }
           }
         }
@@ -109,7 +97,6 @@ export const pendingLoginMachine = setup({
       type: 'final',
       entry: assign({
         requestId: null,
-        rejectedFingerprint: null,
         exchangeFingerprint: null,
         exchangePromise: null
       })
