@@ -227,6 +227,107 @@ it('응답 유실은 snapshot만 재조회하고 mutation을 자동 재전송하
   expect(current.commandPending).toBe(false)
 })
 
+it('현재 attempt가 없는 조회 대기와 로그아웃 상태에서는 취소를 보내지 않는다', async () => {
+  const query = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(query.promise)
+  await mount()
+  await act(async () => current.cancelLogin())
+  await act(async () => query.resolve(snapshot(1)))
+  await act(async () => current.cancelLogin())
+
+  expect(fixture.api.cancelLogin).not.toHaveBeenCalled()
+  expect(current.snapshot).toEqual(snapshot(1))
+})
+
+it('시작 응답 대기 중 취소를 보내고 늦은 시작 실패가 재조회를 일으키지 않는다', async () => {
+  await mount()
+  const begin = deferred<AuthCommandResult>()
+  const cancel = deferred<AuthCommandResult>()
+  fixture.api.beginLogin.mockReturnValueOnce(begin.promise)
+  fixture.api.cancelLogin.mockReturnValueOnce(cancel.promise)
+  await act(async () => current.onIntent({ type: 'beginLogin', provider: 'passkey' }))
+  const starting: AuthSnapshot = {
+    ...snapshot(2),
+    phase: 'startingLogin',
+    login: { attemptId: 'starting-attempt', provider: 'passkey', expiresAt: null }
+  }
+  await act(async () => fixture.emit(starting))
+  await act(async () => current.cancelLogin())
+
+  expect(fixture.api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'starting-attempt' })
+  expect(current.snapshot).toEqual(starting)
+  expect(current.commandPending).toBe(true)
+  const cancelled: AuthSnapshot = { ...snapshot(4), notice: 'LOGIN_CANCELLED' }
+  await act(async () => cancel.resolve({ ok: true, snapshot: cancelled }))
+  // 버린 시작 명령의 실패가 처리되면 응답 유실 경로로 넘어가 snapshot을 다시 조회한다.
+  await act(async () => begin.reject(new Error('synthetic late begin failure')))
+
+  expect(current.snapshot).toEqual(cancelled)
+  expect(current.commandPending).toBe(false)
+  expect(fixture.api.getAuthState).toHaveBeenCalledOnce()
+})
+
+it('취소 응답 유실은 재조회하고 조회 대기 중 새 취소는 최신 attempt로 보낸다', async () => {
+  const waiting: AuthSnapshot = {
+    ...snapshot(2),
+    phase: 'waitingBrowser',
+    login: { attemptId: 'first-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
+  }
+  fixture.api.getAuthState.mockResolvedValueOnce(waiting)
+  await mount()
+  const query = deferred<AuthSnapshot>()
+  fixture.api.getAuthState.mockReturnValueOnce(query.promise)
+  fixture.api.cancelLogin.mockRejectedValueOnce(new Error('synthetic lost reply'))
+  await act(async () => current.cancelLogin())
+  expect(fixture.api.cancelLogin).toHaveBeenCalledTimes(1)
+  expect(fixture.api.getAuthState).toHaveBeenCalledTimes(2)
+  expect(current.commandPending).toBe(true)
+
+  const next: AuthSnapshot = {
+    ...waiting,
+    revision: 4,
+    login: { attemptId: 'next-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:20:00Z' }
+  }
+  await act(async () => fixture.emit(next))
+  const cancelled: AuthSnapshot = { ...snapshot(5), notice: 'LOGIN_CANCELLED' }
+  fixture.api.cancelLogin.mockResolvedValueOnce({ ok: true, snapshot: cancelled })
+  await act(async () => current.cancelLogin())
+  expect(fixture.api.cancelLogin.mock.calls).toEqual([
+    [{ attemptId: 'first-attempt' }],
+    [{ attemptId: 'next-attempt' }]
+  ])
+  await act(async () => query.resolve(waiting))
+
+  expect(current.snapshot).toEqual(cancelled)
+  expect(current.commandPending).toBe(false)
+  expect(fixture.api.beginLogin).not.toHaveBeenCalled()
+})
+
+it('main이 취소를 거절하면 반환한 로그인 상태를 적용한다', async () => {
+  fixture.api.getAuthState.mockResolvedValueOnce({
+    ...snapshot(2),
+    phase: 'exchanging',
+    login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
+  })
+  await mount()
+  const signedIn: AuthSnapshot = {
+    ...snapshot(3),
+    phase: 'signedIn',
+    user: { nickname: '중립모험가' },
+    entry: 'home'
+  }
+  fixture.api.cancelLogin.mockResolvedValueOnce({
+    ok: false,
+    error: { code: 'STALE_ATTEMPT' },
+    snapshot: signedIn
+  })
+  await act(async () => current.cancelLogin())
+
+  expect(fixture.api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'current-attempt' })
+  expect(current.snapshot).toEqual(signedIn)
+  expect(current.commandPending).toBe(false)
+})
+
 it('실패한 bridge 조회는 인증 snapshot을 만들지 않고 연결 실패를 표시한다', async () => {
   fixture.api.getAuthState.mockRejectedValue(new Error('synthetic transport failure'))
   await mount()
@@ -401,7 +502,8 @@ it('로그인 명령과 재조회 응답 유실 뒤 수동 연결 확인은 로�
     login: { attemptId: 'current-attempt', provider: 'passkey', expiresAt: '2030-01-01T00:10:00Z' }
   })
   await act(async () => container.querySelector('button')?.click())
-  expect(container.querySelector('button')?.disabled).toBe(true)
+  expect(container.querySelector('button')?.disabled).toBe(false)
+  expect(container.querySelector('button')?.textContent).toBe('취소')
   expect(container.querySelector('[role="dialog"]')).toBeNull()
   expect(fixture.api.beginLogin).toHaveBeenCalledTimes(1)
   expect(fixture.api.cancelLogin).not.toHaveBeenCalled()
@@ -499,7 +601,7 @@ it('첫 조회 실패 뒤 event만 도착해도 기준 없는 계정 상태를 �
   expect(current.connectionFailed).toBe(false)
 })
 
-it('같은 tick의 중복 명령과 응답 유실 재조회 중 명령을 모두 막는다', async () => {
+it('같은 tick과 응답 유실 재조회 중에는 시작, 복구 명령을 중복 전송하지 않는다', async () => {
   await mount()
   const command = deferred<AuthCommandResult>()
   const read = deferred<AuthSnapshot>()
