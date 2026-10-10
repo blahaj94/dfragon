@@ -31,16 +31,29 @@ const tokens = {
 }
 export const apiSchemas: Record<string, SchemaObject> = {
   ApiError: object({ error: object({ code: text, message: text }) }),
-  LoginRequest: object({
-    provider: {
-      type: 'string',
-      enum: ['passkey'],
-      description: '패스키만 지원합니다.'
-    },
-    clientId: { type: 'string', enum: ['desktop', 'ocr'] },
-    codeChallenge: opaque,
-    codeChallengeMethod: { type: 'string', enum: ['S256'] }
-  }),
+  LoginRequest: {
+    oneOf: [
+      object({
+        provider: { type: 'string', enum: ['passkey'] },
+        clientId: { type: 'string', enum: ['desktop'] },
+        codeChallenge: opaque,
+        codeChallengeMethod: { type: 'string', enum: ['S256'] },
+        returnUrl: {
+          type: 'string',
+          format: 'uri',
+          maxLength: 2048,
+          description:
+            'http://127.0.0.1:<port>/auth/callback, 포트는 선행 0 없는 1024~65535. Query, fragment, userinfo는 허용하지 않습니다.'
+        }
+      }),
+      object({
+        provider: { type: 'string', enum: ['passkey'] },
+        clientId: { type: 'string', enum: ['ocr'] },
+        codeChallenge: opaque,
+        codeChallengeMethod: { type: 'string', enum: ['S256'] }
+      })
+    ]
+  },
   CreatedLoginRequest: object({
     requestId: { type: 'string', format: 'uuid' },
     browserUrl: {

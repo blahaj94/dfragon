@@ -6,26 +6,12 @@ export function validatePasskeyConfiguration(
 ): Readonly<PasskeyConfiguration> {
   try {
     const origin = new URL(value.apiOrigin)
-    const target = new URL(value.returnUrl)
     if (
       origin.protocol !== 'https:' ||
       origin.origin !== value.apiOrigin ||
       origin.hostname !== value.rpId ||
       !value.rpName.trim() ||
       value.rpName.length > 80
-    ) {
-      throw new Error()
-    }
-
-    if (
-      !['dfragon:', 'dfragon.dev:'].includes(target.protocol) ||
-      target.host !== 'auth' ||
-      target.pathname !== '/callback' ||
-      target.search ||
-      target.hash ||
-      target.username ||
-      target.password ||
-      target.href !== value.returnUrl
     ) {
       throw new Error()
     }
@@ -51,12 +37,12 @@ export function validatePasskeyConfiguration(
   }
 }
 
-/** Each client binds its fixed return address into the existing request fingerprint. */
+/** 설정 변경을 감지한다. 요청별 Desktop 주소는 요청 행에 별도로 보관한다. */
 export function configurationFingerprint(
   config: PasskeyConfiguration,
   clientId: 'desktop' | 'ocr' = 'desktop'
 ): string {
-  const values = [config.apiOrigin, config.rpId, config.rpName, config.returnUrl]
+  const values = [config.apiOrigin, config.rpId, config.rpName]
   if (clientId === 'ocr') {
     if (config.ocrReturnUrl === undefined) {
       throw new Error('OCR login is not configured')

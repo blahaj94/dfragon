@@ -4,6 +4,7 @@ export interface AuthLoginRequest {
   id: string
   purpose: 'login' | 'manage'
   configuration: string
+  returnUrl: string | null
   createdAt: Date
   expiresAt: Date
   status: 'created' | 'browser_started' | 'exchange_ready' | 'managing' | 'consumed' | 'failed'
@@ -33,6 +34,7 @@ export const AuthLoginRequestSchema = new EntitySchema<AuthLoginRequest>({
     id: { type: 'uuid', primary: true, primaryKeyConstraintName: 'pk_auth_login_requests' },
     purpose: { type: 'text' },
     configuration: { type: 'text' },
+    returnUrl: { name: 'return_url', type: 'text', nullable: true },
     createdAt: { name: 'created_at', ...time },
     expiresAt: { name: 'expires_at', ...time },
     status: { type: 'text' },
@@ -61,6 +63,14 @@ export const AuthLoginRequestSchema = new EntitySchema<AuthLoginRequest>({
       expression: `"status" IN ('created','browser_started','exchange_ready','managing','consumed','failed')`
     },
     { name: 'ck_passkey_request_configuration', expression: 'char_length("configuration") = 64' },
+    {
+      name: 'ck_passkey_request_return_url',
+      expression: `"return_url" IS NULL OR CASE WHEN "return_url" ~ '^http://127[.]0[.]0[.]1:[1-9][0-9]{3,4}/auth/callback$' THEN split_part(split_part("return_url", ':', 3), '/', 1)::integer BETWEEN 1024 AND 65535 ELSE false END`
+    },
+    {
+      name: 'ck_passkey_request_return_url_state',
+      expression: `"return_url" IS NULL OR ("purpose" = 'login' AND "status" NOT IN ('consumed','failed'))`
+    },
     { name: 'ck_auth_login_requests_expiry', expression: '"expires_at" > "created_at"' },
     {
       name: 'ck_auth_login_requests_code_deadline',

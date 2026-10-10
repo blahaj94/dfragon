@@ -155,7 +155,8 @@ export async function assertSchema(
     'AddPhoneQrLogin1789601588410',
     'AddAccountsPasskeyMigration1790548862756',
     'RetirePasskeyHandoffs1790556264995',
-    'RemovePhoneQrLogin1791590400000'
+    'RemovePhoneQrLogin1791590400000',
+    'AddLoginReturnUrl1791590400001'
   ]
 ) {
   const snapshot = await databaseSnapshot(dataSource)
@@ -356,6 +357,7 @@ export async function assertTerminalLoginRequest(source, id, status) {
   const [row] = rows
   assert.equal(row.status, status)
   for (const field of [
+    'return_url',
     'code_challenge',
     'launch_ticket_hash',
     'browser_binding_hash',
@@ -467,6 +469,43 @@ export async function assertConstraintBehavior(dataSource) {
 
   for (const status of ['created', 'browser_started', 'exchange_ready', 'consumed', 'failed']) {
     await insertLogin(dataSource, loginRequest(status, randomUUID()))
+  }
+  for (const port of [1024, 49152, 65535]) {
+    const row = loginRequest('created', randomUUID(), {
+      return_url: `http://127.0.0.1:${port}/auth/callback`
+    })
+    await insertLogin(dataSource, row)
+    const [stored] = await dataSource.query(
+      'SELECT return_url FROM auth_login_requests WHERE id=$1',
+      [row.id]
+    )
+    assert.equal(stored.return_url, row.return_url)
+  }
+  for (const return_url of [
+    '',
+    'http://localhost:49152/auth/callback',
+    'http://127.0.0.1:1023/auth/callback',
+    'http://127.0.0.1:65536/auth/callback',
+    'http://127.0.0.1:049152/auth/callback',
+    'http://127.0.0.1:49152/auth/callback/extra',
+    'http://127.0.0.1:49152/auth/callback?code=x',
+    'http://127.0.0.1:49152/auth/callback#x',
+    'http://127.0.0.1:abcd/auth/callback',
+    'http://127.0.0.1:49152/auth/callback\n',
+    'a'.repeat(2049)
+  ]) {
+    await rejectConstraint(dataSource, 'ck_passkey_request_return_url', (runner) =>
+      insertLogin(runner, loginRequest('created', randomUUID(), { return_url }))
+    )
+  }
+  for (const row of [
+    loginRequest('failed', randomUUID()),
+    loginRequest('consumed', randomUUID()),
+    loginRequest('browser_started', randomUUID(), { purpose: 'manage', code_challenge: null })
+  ]) {
+    await rejectConstraint(dataSource, 'ck_passkey_request_return_url_state', (runner) =>
+      insertLogin(runner, { ...row, return_url: 'http://127.0.0.1:49152/auth/callback' })
+    )
   }
   for (const [constraint, row] of [
     [

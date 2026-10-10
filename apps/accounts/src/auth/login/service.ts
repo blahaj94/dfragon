@@ -102,7 +102,8 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
   async function newRequest(
     purpose: 'login' | 'manage',
     codeChallenge: string | null,
-    clientId: 'desktop' | 'ocr' = 'desktop'
+    clientId: 'desktop' | 'ocr' = 'desktop',
+    returnUrl: string | null = null
   ) {
     return loginTransaction(deps.dataSource, async (manager) => {
       const now = await freshTime(manager)
@@ -111,6 +112,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
         id: randomUUID(),
         purpose,
         configuration: configurationFingerprint(configuration, clientId),
+        returnUrl,
         createdAt: now,
         expiresAt: new Date(now.getTime() + LOGIN.requestSeconds * 1000),
         status: purpose === 'login' ? 'created' : 'browser_started',
@@ -342,8 +344,8 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
     })
     await manager.getRepository(AuthLoginRequestSchema).save(row)
     const clientId = configuredLoginClient(configuration, row.configuration)
-    const returnUrl = clientId === 'ocr' ? configuration.ocrReturnUrl : configuration.returnUrl
-    if (returnUrl === undefined) {
+    const returnUrl = clientId === 'ocr' ? configuration.ocrReturnUrl : row.returnUrl
+    if (returnUrl == null) {
       throw invalid()
     }
     const url = new URL(returnUrl)
@@ -358,7 +360,13 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       if (body.clientId === 'ocr' && configuration.ocrReturnUrl === undefined) {
         throw invalid()
       }
-      const { row, secret } = await newRequest('login', body.codeChallenge, body.clientId)
+      const returnUrl = body.clientId === 'desktop' ? body.returnUrl : null
+      const { row, secret } = await newRequest(
+        'login',
+        body.codeChallenge,
+        body.clientId,
+        returnUrl
+      )
       const requestId = row.id
       const browserUrl = `${configuration.apiOrigin}/auth/login/authorize?ticket=${secret}`
       const expiresAt = row.expiresAt.toISOString()

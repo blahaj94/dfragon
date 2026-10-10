@@ -21,7 +21,9 @@ evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loop
 
 ## Desktop과 브라우저 연결
 
-Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/browser/return-target.ts`는 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다. 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 Electron BrowserWindow, `dfragon://` 복귀)이 아니다. 제거는 구현 PR에서 한다.
+Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/src/auth/login/input.ts`는 요청의 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). `apps/accounts/browser/return-target.ts`는 브라우저가 이동하기 전에 code가 붙은 복귀 주소를 검증한다. 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다. 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 Electron BrowserWindow, `dfragon://` 복귀)이 아니다. 제거는 구현 PR에서 한다.
+
+accounts는 Desktop 요청의 `returnUrl`을 검증해 해당 요청 행에 저장하고 인증 완료 때 그 값만 사용한다. Scheme은 `http`, host는 정확히 `127.0.0.1`, path는 `/auth/callback`이며 포트는 선행 0 없는 10진수 1024~65535다. Userinfo, query, fragment 없이 URL 정규화 결과와 원문이 같아야 한다. 서버 `passkey.returnUrl` 설정은 사용하지 않는다. OCR의 고정 `ocrReturnUrl` 흐름은 유지한다.
 
 요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure, HttpOnly, SameSite=Lax, Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. 인증은 브라우저/OS의 기본 패스키 인증만 제공한다. 휴대폰은 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리하며 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다. 외부 브라우저의 세션 cookie는 브라우저가 보관하고, 로그인 요청마다 새 패스키 인증을 요구하는 정책은 유지한다.
 
@@ -31,7 +33,7 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 ## OCR 관리 웹 연결
 
-OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback, PKCE, client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl, fingerprint, 기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
+OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback, PKCE, client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. OCR 요청은 `returnUrl`을 보내지 않으며 Desktop의 요청별 `returnUrl`과 기존 세션 계약에 영향을 주지 않는다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
 
 ## 휴대폰 로그인
 
@@ -51,7 +53,7 @@ OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts
 
 `users`는 UUID, nickname, created_at을 저장한다. `auth_passkeys`는 credential ID, RP ID, user FK, 공개키, counter, transports, device type, backup flag, 등록/최근 사용 시각을 저장한다. 개인키, 지문, 얼굴, PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
-`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. `RemovePhoneQrLogin` forward migration은 자체 휴대폰 QR의 ticket hash, phone binding hash, 확인 번호 column과 phone 상태를 제거한다. 활성 QR 요청은 proof와 회원 연결을 지우고 실패로 종료하며 진행 중 직접 로그인, 관리 요청과 기존 회원, 패스키, session, refresh는 보존한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
+`auth_login_requests`는 login/manage 목적, 설정 fingerprint, Desktop 로그인의 요청별 loopback 복귀 주소, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. `RemovePhoneQrLogin` forward migration은 자체 휴대폰 QR의 ticket hash, phone binding hash, 확인 번호 column과 phone 상태를 제거한다. 활성 QR 요청은 proof와 회원 연결을 지우고 실패로 종료하며 진행 중 직접 로그인, 관리 요청과 기존 회원, 패스키, session, refresh는 보존한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
 잠금은 request → user → credential 순서다. 마지막 키 개수 검사와 추가/삭제는 user 잠금으로 직렬화한다. 모든 관련 잠금과 서명 검증 뒤 fresh DB 시각으로 만료를 재확인한다. 로그인 세션 발급 시 기존 user → session → refresh 순서를 이어 사용한다.
 

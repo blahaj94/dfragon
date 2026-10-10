@@ -19,7 +19,7 @@ review-after: 최초 인증 integration validation 또는 client boundary 변경
 ## Client와 transport
 
 - Desktop은 public client이며 자체 `clientId`는 `"desktop"`만 허용한다. 등록 항목 선택값이지 인증 secret, 정품 앱 증명, 패스키 RP ID가 아니다. 휴대폰은 브라우저 패스키 창의 hybrid QR로만 참여하며 독립 token client나 요청자 지정 RP 설정을 추가하지 않는다.
-- 인증 origin, RP ID, 앱 복귀 주소는 서버 설정으로 고정한다. Electron main은 앱 로그인 요청 상태, verifier, token 보관을, renderer는 표시 요청을 담당한다. Main↔preload IPC와 OS 보안 저장 설계는 승인된 [Desktop contract](desktop-auth.md)를 따른다. 실제 구현 착수, OS 저장 검증, 등록값은 별도 gate다.
+- 인증 origin과 RP ID는 서버 설정으로 고정한다. Desktop 복귀 주소는 로그인 요청마다 받은 loopback `returnUrl`을 검증해 저장한다. Electron main은 앱 로그인 요청 상태, verifier, token 보관을, renderer는 표시 요청을 담당한다. Main↔preload IPC와 OS 보안 저장 설계는 승인된 [Desktop contract](desktop-auth.md)를 따른다. 실제 구현 착수, OS 저장 검증, 등록값은 별도 gate다.
 - 시스템 기본 브라우저의 accounts 페이지가 패스키 가입, 로그인, 관리와 완료 화면을 담당한다(2026-10-10 결정, 구현 전까지는 격리 인증 창). 개인키와 생체정보는 서버로 전송하지 않는다. 모든 제품 API는 HTTPS다.
 - 자체 JSON request는 표의 key만 가진 object다. Unknown key, array, null, wrong type을 거절하고 string/boolean을 coercion하지 않는다. 기존 검색 raw query contract는 [`character-search.md`](character-search.md)를 유지한다.
 - 기능 API의 인증은 정확히 하나의 `Authorization: Bearer <access JWT>`다. Header 중복, 잘못된 scheme, body/query의 token 대체 전달은 인증 성공으로 취급하지 않는다. Refresh는 JSON body로만, 앱 복귀 URL에는 자체 exchange code 하나만 전달한다.
@@ -42,7 +42,7 @@ Unsupported media+oversize는 415, supported media의 oversize+malformed JSON은
 
 | Endpoint | 입력과 성공 | 그 밖의 실패 |
 | --- | --- | --- |
-| `POST /auth/login-requests` | Public `{provider:"passkey",clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}` → 201 `{requestId,browserUrl,expiresAt}`. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback` 형식(포트만 가변)만 받으며 2026-10-10 결정으로 추가한 승인된 변경 contract다(구현 전). 계정/session 생성 없음. | 형식, 미등록 client, 형식에 맞지 않는 `returnUrl`: `400 INVALID_AUTH_REQUEST`. |
+| `POST /auth/login-requests` | Public `{provider:"passkey",clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}` → 201 `{requestId,browserUrl,expiresAt}`. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback` 형식(10진수 포트 1024~65535만 가변)과 정규화 전후 문자열이 정확히 일치해야 한다. 선행 0, userinfo, query, fragment, 추가 path는 거절한다. 계정/session 생성 없음. | 형식, 미등록 client, 형식에 맞지 않는 `returnUrl`: `400 INVALID_AUTH_REQUEST`. |
 | `GET /auth/login/authorize?ticket=...` | 일회용 ticket의 hash, TTL, 상태 확인, browser cookie 설정 → 200 패스키 가입, 로그인 HTML. | Unknown/expired/used ticket: `400 LOGIN_REQUEST_INVALID`. |
 | `GET /auth/passkeys/manage` | 관리 요청과 browser cookie 발급 → 200 재인증 화면. | 패스키 인증 전에는 계정 관리 권한 없음. |
 | `POST /auth/passkeys/:action` | Exact Origin, cookie, 요청별 상태 확인. options/verify/list/remove/end action의 입력, 결과는 [패스키 계약](auth-passkeys.md)과 구현을 따름. 자체 휴대폰 QR의 `GET /auth/login/phone`과 `qr`, `status`, `claim`, `direct`, `cancel`, `phone-options`, `phone-verify`, `phone-approve`, `phone-cancel` action은 제거됨. | 무효 proof/상태, 마지막 키, 개수 제한, rate limit을 정제 거절. |

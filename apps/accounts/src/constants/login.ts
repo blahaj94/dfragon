@@ -2,6 +2,8 @@ import { AUTH_ERRORS } from './auth.js'
 
 export const MAX_PASSKEYS_PER_USER_AND_RP = 20
 
+export const LOGIN_RESTART_MESSAGE = '앱에서 새 로그인을 시작하세요.'
+
 const invalidMessage = '로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.'
 
 type LoginErrorDefinitionShape = Readonly<{
@@ -78,6 +80,7 @@ export const LOGIN = {
 } as const
 
 export const CLEARED_LOGIN_FIELDS = {
+  returnUrl: null,
   codeChallenge: null,
   launchTicketHash: null,
   browserBindingHash: null,
