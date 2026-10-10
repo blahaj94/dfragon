@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import type { PublicProps } from './public-props'
 import { ActionButton as SeedActionButton } from './seed/action-button'
 import { ProgressCircle as SeedProgressCircle } from './seed/progress-circle'
-import { TextField as SeedTextField, TextFieldInput as SeedTextFieldInput } from './seed/text-field'
+import { TextFieldInput as SeedTextFieldInput } from './seed/text-field'
 import {
   DialogRoot as SeedDialogRoot,
   DialogTrigger as SeedDialogTrigger,
@@ -12,16 +12,16 @@ import {
   DialogAction as SeedDialogAction
 } from './seed/dialog'
 
-// 공식 Snippet은 runtime wrapper 없이 제공한다. 디자인 컴포넌트는 SEED 변수만 쓰는
-// StyleX로 외형을 소유한다.
+// TextField를 제외한 공식 Snippet은 runtime wrapper 없이 제공한다. 디자인 컴포넌트와 TextField
+// 포커스 색은 SEED 변수만 쓰는 StyleX로 외형을 소유한다.
 export type ActionButtonProps = PublicProps<typeof SeedActionButton>
 export const ActionButton: ComponentType<ActionButtonProps> = SeedActionButton
 
 export type ProgressCircleProps = PublicProps<typeof SeedProgressCircle>
 export const ProgressCircle: ComponentType<ProgressCircleProps> = SeedProgressCircle
 
-export type TextFieldProps = PublicProps<typeof SeedTextField>
-export const TextField: ComponentType<TextFieldProps> = SeedTextField
+export { TextField } from './text-field'
+export type { TextFieldProps } from './text-field'
 export type TextFieldInputProps = PublicProps<typeof SeedTextFieldInput>
 export const TextFieldInput: ComponentType<TextFieldInputProps> = SeedTextFieldInput
 
