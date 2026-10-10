@@ -146,7 +146,7 @@ pnpm --filter @dfragon/desktop dev
 
 앱 시작 시 기존 main의 세션 복원 결과를 로그인 버튼에 반영합니다. 인증 연결 실패 상태에서 **로그인**을 누르면 연결을 다시 확인하고, 복원 일시 정지, 저장소 차단 상태에서는 기존 복구 명령을 보냅니다. 이때도 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. UI 연결만으로 API, 실제 패스키, OS 저장소가 구성되지는 않습니다.
 
-`pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator, main/preload IPC의 로그인, 취소, renderer reload, 저장 완료 후 상태 반영, 로그아웃을 검증합니다. HTTP, 인증 창, 저장소는 합성 효과이며 실제 브라우저, 패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
+`pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator, main/preload IPC의 로그인, 취소, renderer reload, 저장 완료 후 상태 반영, 로그아웃을 검증합니다. 로그인 복귀는 main의 GET 요청으로 실제 127.0.0.1 수신기를 거쳐 완료 HTML과 한 번만 수신하는 동작을 확인합니다. API 호출, 브라우저 열기, 저장소는 합성 효과이며 실제 브라우저, 패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
 
 ## Windows PC에서 소스로 실행
 

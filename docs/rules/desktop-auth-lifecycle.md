@@ -71,7 +71,7 @@ sequenceDiagram
     M-->>R: signedIn snapshot (welcome 또는 home)
 ```
 
-1. `signedOut → startingLogin`: enabled provider와 저장 준비/이전 marker 정리를 확인한다. 준비 실패면 browser/서버 요청 없이 storageBlocked다. 새 attempt/verifier를 만들고 127.0.0.1의 임시 포트에 loopback 수신기를 연 뒤 `{provider,clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}`만 보낸다. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback`이다. 수신기를 열지 못하면 서버 요청 없이 pending/verifier를 폐기하고 `signedOut/LOGIN_RESTART_REQUIRED`다. 이 흐름은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 인증 창, OS protocol 복귀)이 아니다.
+1. `signedOut → startingLogin`: enabled provider와 저장 준비/이전 marker 정리를 확인한다. 준비 실패면 browser/서버 요청 없이 storageBlocked다. 새 attempt/verifier를 만들고 127.0.0.1의 임시 포트에 loopback 수신기를 연 뒤 `{provider,clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}`만 보낸다. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback`이다. 수신기를 열지 못하면 서버 요청 없이 pending/verifier를 폐기하고 `signedOut/LOGIN_RESTART_REQUIRED`다.
    - 생성 요청의 network/15초 timeout은 `signedOut/NETWORK_UNAVAILABLE`, 500/503은 `signedOut/AUTH_SERVICE_UNAVAILABLE`, 400, 예상 밖 status, malformed/invalid 201은 `signedOut/LOGIN_RESTART_REQUIRED`로 끝낸다. 모두 pending/verifier를 폐기하고 loopback 수신기를 닫으며 browser 호출, 자동 retry는 0이다. 응답을 못 받은 request row는 서버 TTL로 종료되며 이 endpoint는 session을 생성하지 않는다.
    - 생성 응답 처리 및 시스템 브라우저 열기 직전에 현재 attempt/generation을 재검사한다. 취소/만료 뒤 늦게 온 201은 URL을 열지 않고 버리며 이미 결정된 상태를 덮지 않는다.
 2. 201 응답에서 request UUID, exact launch URL, 유효 UTC ISO expiresAt을 검사한다. 서버 request 전체 TTL 600초를 연장하지 않는다. Main은 요청 시작부터 monotonic 600초 상한과 expiresAt wall-clock 조건 중 먼저 도달한 시점에 pending을 끝낸다. Clock 역행/큰 불연속이 관측되면 새 로그인을 요구한다. 절전 복귀, loopback 복귀, HTTP 완료 때도 시간을 재검사한다. Client countdown은 안내/조기 포기 기준이며 서버의 fresh time 판단을 대체하지 않는다.
