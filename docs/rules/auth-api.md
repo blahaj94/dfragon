@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api apps/desktop authentication HTTP boundary
-last-reviewed: 2026-09-06
+last-reviewed: 2026-10-10
 rationale: 로그인과 계정 API의 입력, 오류, credential 노출 경계를 구현 전에 고정한다.
 evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691"
 exceptions: 사용자 구현 금지 조건을 유지하며 실제 client 등록과 OS 저장 실행, 검증은 별도 gate다.
@@ -85,6 +85,7 @@ API의 `Intl.Segmenter('und',{granularity:'grapheme'})` 결과가 최종 기준�
 - 모든 인증 응답은 `Cache-Control: no-store`, browser 응답은 추가로 `Referrer-Policy: no-referrer`다. Third-party asset/analytics를 두지 않는다.
 - API access/error/application log, proxy/gateway, APM/trace/redirect capture, Desktop main/renderer/IPC/deep-link 진단을 같은 경계로 검증한다. Launch, QR ticket, 확인 번호, 앱 복귀 code, 앱 verifier, WebAuthn challenge, assertion, credential, access, refresh token, Cookie/Set-Cookie/Authorization 및 이를 포함한 URL/body/완료 HTML 원문을 기록하지 않는다.
 - Structured log는 route template, HTTP status, 정제 error code, duration, credential과 별개인 임의 correlation ID 같은 비민감 field만 allowlist로 출력한다. User ID, nickname도 제외하고 불신 request/response/error object를 통째로 serialization하지 않는다. Redaction이 불명확하면 원문을 생략하고 비민감 실패 counter만 남긴다. 설정/callback/oversize/parse 실패도 같다.
+- 2026-10-10 사용자 결정에 따라 5xx 응답의 log에는 원인 확인용 오류 chain을 추가한다. 던져진 오류와 그 원인을 최대 5개까지 따라가며 각 오류의 `name` 값(JavaScript 식별자 형식일 때), SQLSTATE, Node system error 같은 `code` 문자열(영문, 숫자, `_`로 된 64자 이하일 때), message를 뺀 stack frame(오류마다 최대 5줄, 줄당 300자)만 남긴다. Message, 그 밖의 속성 값, Error가 아닌 값의 원문은 남기지 않는다. 원래 오류를 응답용 오류로 바꿀 때는 원래 오류를 그 자리에서 정제한 결과만 잇고 원래 오류 object를 `cause`로 보관하지 않는다. Stack 앞부분이 현재 name, message와 정확히 맞지 않아 message와 frame의 경계를 알 수 없으면 frame을 생략한다.
 - 완료 HTML은 등록 복귀 버튼에 필요한 code만 담고 verifier/token을 DOM에 두지 않는다. 자체 response-body/DOM snapshot, protocol URL 진단 수집을 끈다. Nonce script와 같은 origin의 API, 스타일만 CSP로 허용하며 third-party resource와 frame embedding은 금지한다.
 - Browser/OS의 callback/deep-link history, 외부 진단까지 서버가 지운다고 보장하지 않는다. 이 노출 한계는 짧은 TTL, single-use, 앱 proof와 함께 승인됐다. Code 사본도 TTL 뒤 교환할 수 없고 verifier 없이 교환할 수 없다. TTL만으로 만료 전 노출, 불필요한 보관을 정당화하지 않는다.
 

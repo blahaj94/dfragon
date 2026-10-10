@@ -118,8 +118,8 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         let body: unknown
         try {
           body = JSON.parse(text)
-        } catch {
-          throw neopleStatusFailure(response.status)
+        } catch (error) {
+          throw neopleStatusFailure(response.status, { cause: error })
         }
         const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
         if (failure !== undefined) {
@@ -146,7 +146,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (error instanceof NeopleSearchFailure) {
         throw characterDetailFailure(error)
       }
-      throw new CharacterDetailFailure('api')
+      throw new CharacterDetailFailure('api', { cause: error })
     } finally {
       deps.clock.clearTimer(timer)
       requestSignal.removeEventListener('abort', cancel)

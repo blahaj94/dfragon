@@ -37,8 +37,8 @@ export function opaqueHash(value: string): Buffer {
 export function newOpaque(): string {
   try {
     return randomBytes(32).toString('base64url')
-  } catch {
-    throw new LoginFailure(LOGIN_ERRORS.INTERNAL)
+  } catch (error) {
+    throw new LoginFailure(LOGIN_ERRORS.INTERNAL, { cause: error })
   }
 }
 

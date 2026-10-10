@@ -20,6 +20,7 @@ import { OCR_BUILD_INFO, OcrVersionController, readOcrBuildInfo } from './build-
 import {
   type AccessLogSink,
   createAccessLog,
+  recordAccessLogErrorChain,
   recordAccessLogErrorCode,
   writeAccessLogToStdout
 } from './access-log.js'
@@ -49,6 +50,7 @@ class OcrHttpFilter implements ExceptionFilter {
     }
 
     recordAccessLogErrorCode(response, failure.code)
+    recordAccessLogErrorChain(response, error)
     response.status(failure.status).json({ error: failure.code })
   }
 }

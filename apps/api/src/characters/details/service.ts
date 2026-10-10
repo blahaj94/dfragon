@@ -68,7 +68,9 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
               const fetchedAt = freshness ? Date.parse(freshness.lastSuccessfulFetchAt) : NaN
               const remaining = fetchedAt + CHARACTER_REFRESH_COOLDOWN_MS - snapshot.now.getTime()
               if (fetchedAt <= snapshot.now.getTime() && remaining > 0) {
-                throw new CharacterDetailFailure('limited', Math.ceil(remaining / 1000))
+                throw new CharacterDetailFailure('limited', {
+                  retryAfter: Math.ceil(remaining / 1000)
+                })
               }
             }
             requestedAt = await startDeadline.wait(deps.store.beginFetch())

@@ -201,11 +201,11 @@ function makeSearch(
           redirect: 'manual',
           signal: controller.signal
         })
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
         const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
-          : neopleSearchFailure('api')
+          : neopleSearchFailure('api', { cause: error })
         throw failure
       }
 
@@ -217,11 +217,11 @@ function makeSearch(
       let rawBody: string
       try {
         rawBody = await response.text()
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
         const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
-          : neopleSearchFailure('api')
+          : neopleSearchFailure('api', { cause: error })
         throw failure
       }
 
@@ -233,11 +233,12 @@ function makeSearch(
       let body: unknown
       try {
         body = JSON.parse(rawBody) as unknown
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
-        throw didReachDeadline
+        const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
-          : neopleStatusFailure(response.status)
+          : neopleStatusFailure(response.status, { cause: error })
+        throw failure
       }
 
       try {
@@ -254,7 +255,7 @@ function makeSearch(
           throw neopleSearchFailure('timeout')
         }
         const isSearchFailure = error instanceof NeopleSearchFailure
-        const failure = isSearchFailure ? error : neopleSearchFailure('api')
+        const failure = isSearchFailure ? error : neopleSearchFailure('api', { cause: error })
         throw failure
       }
     }

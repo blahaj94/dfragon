@@ -1,5 +1,6 @@
 import { AUTH_ERRORS } from '../../constants/auth.js'
 import { LOGIN_ERRORS } from '../../constants/login.js'
+import { type FailureOptions, SanitizedFailure } from '../../error-chain.js'
 
 type RefreshErrorDefinitionShape = Readonly<{
   code: string
@@ -19,12 +20,12 @@ export const REFRESH_ERRORS = {
 
 export type RefreshErrorDefinition = (typeof REFRESH_ERRORS)[keyof typeof REFRESH_ERRORS]
 
-export class RefreshFailure extends Error {
+export class RefreshFailure extends SanitizedFailure {
   readonly code: RefreshErrorDefinition['code']
   readonly status: RefreshErrorDefinition['status']
 
-  constructor(definition: RefreshErrorDefinition) {
-    super(definition.message)
+  constructor(definition: RefreshErrorDefinition, options?: FailureOptions) {
+    super(definition.message, options)
     this.name = 'RefreshFailure'
     this.code = definition.code
     this.status = definition.status

@@ -106,8 +106,8 @@ export class OcrAuth {
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) })
       })
-    } catch {
-      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
+    } catch (error) {
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE, { cause: error })
     }
 
     if (!response.ok) {
@@ -122,8 +122,8 @@ export class OcrAuth {
 
     try {
       return await response.json()
-    } catch {
-      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE)
+    } catch (error) {
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE, { cause: error })
     }
   }
 

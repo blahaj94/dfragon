@@ -93,6 +93,6 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
     if (isLogoutFailure) {
       throw error
     }
-    throw new LogoutFailure(LOGOUT_ERRORS.UNAVAILABLE)
+    throw new LogoutFailure(LOGOUT_ERRORS.UNAVAILABLE, { cause: error })
   }
 }

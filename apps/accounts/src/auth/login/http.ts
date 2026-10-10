@@ -48,6 +48,7 @@ import {
 import {
   type AccessLogSink,
   createAccessLog,
+  recordAccessLogErrorChain,
   recordAccessLogErrorCode,
   writeAccessLogToStdout
 } from '../../access-log.js'
@@ -139,6 +140,7 @@ class LoginHttpFilter implements ExceptionFilter {
 
     const path = request.path.toLowerCase().replace(AUTH_ROUTE_SUFFIX_PATTERN, '')
     const failure = authHttpFailure(error)
+    recordAccessLogErrorChain(response, error)
     if (failure.status === 429) {
       response.setHeader('Retry-After', '1')
     }

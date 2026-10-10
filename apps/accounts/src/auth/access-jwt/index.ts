@@ -101,8 +101,8 @@ export async function createAccessJwtIssuer(
           .sign(privateKey)
 
         return { accessToken, issuedAt, expiresAt }
-      } catch {
-        throw new AccessJwtError('ACCESS_JWT_SIGNING_FAILED')
+      } catch (error) {
+        throw new AccessJwtError('ACCESS_JWT_SIGNING_FAILED', { cause: error })
       }
     }
   } catch {

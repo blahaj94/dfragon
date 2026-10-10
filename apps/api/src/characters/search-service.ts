@@ -52,7 +52,7 @@ export function createCharacterSearchService(
       if (isSearchFailure) {
         throw error
       }
-      throw neopleSearchFailure('internal')
+      throw neopleSearchFailure('internal', { cause: error })
     } finally {
       finishAdmission()
     }

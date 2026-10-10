@@ -93,8 +93,8 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         let body: unknown
         try {
           body = await response.json()
-        } catch {
-          throw neopleStatusFailure(response.status)
+        } catch (error) {
+          throw neopleStatusFailure(response.status, { cause: error })
         }
         const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
         if (failure) {
@@ -131,7 +131,9 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       }
       const failure = characterDetailFailure(error)
       // Transport failures are upstream failures, not an internal exception reflection.
-      throw error instanceof NeopleSearchFailure ? failure : new CharacterDetailFailure('api')
+      throw error instanceof NeopleSearchFailure
+        ? failure
+        : new CharacterDetailFailure('api', { cause: error })
     }
   }
 }

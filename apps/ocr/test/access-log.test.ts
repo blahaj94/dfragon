@@ -110,7 +110,9 @@ test('OCR 접근 로그는 allowlist field만 남기고 업로드 토큰, Cookie
         route: '/api/synthetic-samples',
         status: 500,
         code: 'UNAVAILABLE'
-      }
+      },
+      // Filter가 받은 저장 단계의 원래 오류가 chain의 시작이다.
+      errorChain: [{ name: 'Error' }]
     },
     {
       name: '로그인 callback의 code 거절',
@@ -178,11 +180,18 @@ test('OCR 접근 로그는 allowlist field만 남기고 업로드 토큰, Cookie
       return [entry.correlationId, entry.fields]
     })
   )
-  for (const [index, { name, expected }] of cases.entries()) {
+  for (const [index, { name, expected, ...rest }] of cases.entries()) {
     // 응답 header의 ID로 같은 요청의 로그 줄을 찾으며 클라이언트가 보낸 값은 쓰지 않는다.
     const correlationId = correlationIds[index]!
     assert.match(correlationId, UUID_PATTERN, name)
-    assert.deepEqual(entries.get(correlationId), expected, name)
+    const { errorChain, ...fields } = entries.get(correlationId) ?? {}
+    assert.deepEqual(fields, expected, name)
+    // Frame 내용은 위치마다 달라 이름과 code만 비교한다. 4xx 이하 응답에는 chain이 없다.
+    const chain = errorChain as Array<{ name: string; code?: string }> | undefined
+    const summary = chain?.map(({ name: errorName, code }) =>
+      code === undefined ? { name: errorName } : { name: errorName, code }
+    )
+    assert.deepEqual(summary, 'errorChain' in rest ? rest.errorChain : undefined, name)
   }
   assert.equal(new Set(correlationIds).size, cases.length)
 })

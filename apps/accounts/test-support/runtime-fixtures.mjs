@@ -162,6 +162,36 @@ const ACCESS_LOG_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/
 const ACCESS_LOG_CODE_PATTERN = /^[A-Z][A-Z_]*$/
 const ACCESS_LOG_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+const ERROR_CHAIN_NAME_PATTERN = /^(?:[A-Za-z_$][\w$]{0,79}|<unnamed>|<non-error>)$/
+const ERROR_CHAIN_CODE_PATTERN = /^\w{1,64}$/
+
+/** 5xx의 오류 chain은 이름, 식별자 형식 code, 길이를 제한한 frame만 가진 항목 5개 이하다. */
+function isErrorChain(errorChain) {
+  const isChainList = Array.isArray(errorChain) && errorChain.length >= 1 && errorChain.length <= 5
+  if (!isChainList) {
+    return false
+  }
+
+  return errorChain.every((item) => {
+    const isObject = typeof item === 'object' && item !== null && !Array.isArray(item)
+    if (!isObject) {
+      return false
+    }
+
+    const { name, code, frames, ...rest } = item
+    const hasOnlyAllowedFields = Object.keys(rest).length === 0
+    const hasName = typeof name === 'string' && ERROR_CHAIN_NAME_PATTERN.test(name)
+    const hasCode =
+      code === undefined || (typeof code === 'string' && ERROR_CHAIN_CODE_PATTERN.test(code))
+    const hasFrames =
+      frames === undefined ||
+      (Array.isArray(frames) &&
+        frames.length <= 5 &&
+        frames.every((frame) => typeof frame === 'string' && frame.length <= 300))
+
+    return hasOnlyAllowedFields && hasName && hasCode && hasFrames
+  })
+}
 
 /** 기본 entry의 접근 로그는 auth-api Rule의 allowlist field와 형식만 가진 JSON 한 줄이어야 한다. */
 function parseAccessLog(line, accessLog) {
@@ -183,6 +213,7 @@ function parseAccessLog(line, accessLog) {
     route,
     status,
     code,
+    errorChain,
     durationMs,
     correlationId,
     aborted,
@@ -195,6 +226,9 @@ function parseAccessLog(line, accessLog) {
   const hasStatus = status === undefined ? aborted === true : Number.isInteger(status)
   const hasCode =
     code === undefined || (typeof code === 'string' && ACCESS_LOG_CODE_PATTERN.test(code))
+  // 오류 chain은 5xx 응답에만 붙는다.
+  const isServerError = Number.isInteger(status) && status >= 500
+  const hasErrorChain = errorChain === undefined || (isServerError && isErrorChain(errorChain))
   const hasDuration = Number.isInteger(durationMs) && durationMs >= 0
   const hasCorrelationId =
     typeof correlationId === 'string' && ACCESS_LOG_ID_PATTERN.test(correlationId)
@@ -207,6 +241,7 @@ function parseAccessLog(line, accessLog) {
     hasRoute &&
     hasStatus &&
     hasCode &&
+    hasErrorChain &&
     hasDuration &&
     hasCorrelationId &&
     hasAborted

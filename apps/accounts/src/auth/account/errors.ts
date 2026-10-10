@@ -1,5 +1,6 @@
 import { AUTH_ERRORS } from '../../constants/auth.js'
 import { LOGIN_ERRORS } from '../../constants/login.js'
+import { type FailureOptions, SanitizedFailure } from '../../error-chain.js'
 
 type AccountErrorDefinitionShape = Readonly<{
   code: string
@@ -24,12 +25,12 @@ export const ACCOUNT_ERRORS = {
 
 export type AccountErrorDefinition = (typeof ACCOUNT_ERRORS)[keyof typeof ACCOUNT_ERRORS]
 
-export class AccountFailure extends Error {
+export class AccountFailure extends SanitizedFailure {
   readonly code: AccountErrorDefinition['code']
   readonly status: AccountErrorDefinition['status']
 
-  constructor(definition: AccountErrorDefinition) {
-    super(definition.message)
+  constructor(definition: AccountErrorDefinition, options?: FailureOptions) {
+    super(definition.message, options)
     this.name = 'AccountFailure'
     this.code = definition.code
     this.status = definition.status

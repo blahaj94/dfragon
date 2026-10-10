@@ -161,9 +161,138 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
     // 응답 header의 ID로 같은 요청의 로그 줄을 찾으며 클라이언트가 보낸 값은 쓰지 않는다.
     const correlationId = correlationIds[index]!
     assert.match(correlationId, UUID_PATTERN, name)
-    assert.deepEqual(entries.get(correlationId), expected, name)
+    // 오류 chain의 내용은 아래 test가 검사하고, 여기서는 5xx 응답에만 붙는지 확인한다.
+    const { errorChain, ...fields } = entries.get(correlationId) ?? {}
+    assert.equal(Array.isArray(errorChain), expected.status >= 500, name)
+    assert.deepEqual(fields, expected, name)
   }
   assert.equal(new Set(correlationIds).size, cases.length)
+})
+
+test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame만 담은 오류 chain을 남긴다', {
+  timeout: 5000
+}, async (t) => {
+  // Message 끝에 frame처럼 보이는 줄을 넣어도 message 경계 뒤의 실제 frame만 남아야 한다.
+  const databaseFailure = Object.assign(
+    new Error(`${secrets.errorDetail}\n    at forged (${secrets.query})`),
+    { code: '57P01', detail: secrets.characterName }
+  )
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp(
+    {
+      searchCharacters: async (): Promise<never> => {
+        throw databaseFailure
+      }
+    },
+    {
+      store: {
+        read: async (): Promise<never> => {
+          // Error가 아닌 값은 원문 대신 종류만 남아야 한다.
+          throw secrets.token
+        },
+        beginFetch: async (): Promise<never> => {
+          throw new Error(secrets.errorDetail)
+        },
+        saveAndRead: async (): Promise<never> => {
+          throw new Error(secrets.errorDetail)
+        }
+      },
+      fetchDetails: async (): Promise<never> => {
+        throw new Error(secrets.errorDetail)
+      }
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    logs.sink
+  )
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  const origin = await app.getUrl()
+  const searchName = encodeURIComponent(secrets.characterName)
+  for (const path of [
+    `/characters?characterName=${searchName}&serverId=cain`,
+    `/characters/cain/${secrets.pathValue}`
+  ]) {
+    const response = await fetch(origin + path, { headers: sensitiveHeaders })
+    assert.equal(response.status, 500)
+    await response.arrayBuffer()
+  }
+  await logs.waitFor(2)
+
+  const output = logs.lines.join('\n')
+  for (const value of Object.values(secrets)) {
+    assert.equal(output.includes(value), false, value)
+  }
+  const [search, detail] = logs.lines.map((line) => {
+    const { errorChain } = readEntry(line).fields
+
+    return errorChain as Array<{ name: string; code?: string; frames?: string[] }>
+  })
+  assert.deepEqual(
+    search!.map(({ name, code }) => ({ name, code })),
+    [
+      { name: 'NeopleSearchFailure', code: undefined },
+      { name: 'Error', code: '57P01' }
+    ]
+  )
+  // 원래 오류의 frame은 이 test file에서 오류를 만든 위치부터 시작한다.
+  assert.match(search![1]!.frames![0]!, /access-log\.test\.js:\d+:\d+\)?$/)
+  assert.equal(output.includes('forged'), false)
+  assert.deepEqual(
+    detail!.map(({ name }) => name),
+    ['CharacterDetailFailure', '<non-error>']
+  )
+  assert.equal(detail![1]!.frames, undefined)
+})
+
+test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오류를 정제하다 예외가 나면 원인을 생략한다', {
+  timeout: 5000
+}, async (t) => {
+  const changedMessage = new Error('stack을 만들 때의 message')
+  void changedMessage.stack
+  changedMessage.message = secrets.errorDetail
+  const unreadableName = Object.defineProperty(new Error('getter'), 'name', {
+    get(): never {
+      throw new Error(secrets.errorDetail)
+    }
+  })
+  const thrown = [changedMessage, unreadableName]
+  const logs = collectAccessLogs()
+  const app = await createApiHttpApp(
+    {
+      searchCharacters: async (): Promise<never> => {
+        throw thrown.shift()
+      }
+    },
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    logs.sink
+  )
+  t.after(() => app.close())
+  await app.listen(0, '127.0.0.1')
+  const origin = await app.getUrl()
+  const searchName = encodeURIComponent(secrets.characterName)
+  for (let count = 1; count <= 2; count += 1) {
+    const response = await fetch(`${origin}/characters?characterName=${searchName}&serverId=cain`)
+    assert.equal(response.status, 500)
+    await response.arrayBuffer()
+    await logs.waitFor(count)
+  }
+
+  assert.equal(logs.lines.join('\n').includes(secrets.errorDetail), false)
+  const [changed, unreadable] = logs.lines.map((line) => readEntry(line).fields)
+  const changedChain = changed!.errorChain as Array<{ name: string; frames?: string[] }>
+  assert.deepEqual(changedChain[1], { name: 'Error' })
+  const unreadableChain = unreadable!.errorChain as Array<{ name: string }>
+  assert.deepEqual(
+    unreadableChain.map(({ name }) => name),
+    ['NeopleSearchFailure']
+  )
 })
 
 test('응답 header를 보내기 전에 연결이 끊기면 status 없이 aborted로 남긴다', {

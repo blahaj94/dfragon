@@ -154,8 +154,8 @@ async function rotate({
             issuedAt,
             idleDeadline
           })
-        } catch {
-          throw new RefreshFailure(REFRESH_ERRORS.INTERNAL)
+        } catch (error) {
+          throw new RefreshFailure(REFRESH_ERRORS.INTERNAL, { cause: error })
         }
         const nextHash = createHash(REFRESH_TOKEN.hashAlgorithm).update(bytes).digest()
         await refresh.update({ tokenHash: presentedHash }, { consumedAt: checkedAt })
@@ -197,7 +197,7 @@ async function rotate({
       throw error
     }
     // DB 실패, random unique 충돌, commit 결과 불명은 원문 상세 없이 거절한다. 자동 retry하지 않는다.
-    throw new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE)
+    throw new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE, { cause: error })
   }
 }
 
