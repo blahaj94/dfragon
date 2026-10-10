@@ -2,7 +2,8 @@
 type: rule
 status: active
 scope: accounts and Desktop passkey authentication
-last-reviewed: 2026-09-28
+last-reviewed: 2026-10-10
+evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성"
 ---
 
 # 패스키 인증
@@ -15,16 +16,16 @@ last-reviewed: 2026-09-28
 - WebAuthn discoverable credential을 등록한다. `residentKey: required`, `userVerification: required`, attestation `none`을 사용하고 서버 검증에서도 UV를 요구한다. 기기 종류를 platform으로 제한하지 않아 브라우저의 휴대폰 hybrid QR, 보안 키를 사용할 수 있다.
 - HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 운영 인증 origin/RP는 accounts.dfragon.com 하나다. 이전 API 주소의 패스키 로그인과 RP 이전 경로는 제공하지 않는다.
 - 등록 옵션, 서명 검증, 브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 브라우저 origin, RP ID, challenge, 서명, UV와 저장 credential ID, 회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일, 실명을 넣지 않는다.
-- 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 창을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
+- 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 브라우저 탭을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
 - 패스키 credential ID는 전역 PK다. 기존 키를 다른 계정에 연결하는 upsert를 하지 않는다. 동기화된 동일 패스키는 동일 계정에 접근한다.
 
 ## Desktop과 브라우저 연결
 
-Desktop main이 S256 challenge로 `/auth/login-requests`를 호출하고 응답의 URL만 격리된 Electron 로그인 전용 BrowserWindow에서 연다. Node, preload, 제품 IPC를 제공하지 않고 메모리 session을 사용한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면에서 기존 계정 로그인과 새 계정 생성을 분리한다.
+Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/browser/return-target.ts`는 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다. 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 Electron BrowserWindow, `dfragon://` 복귀)이 아니다. 제거는 구현 PR에서 한다.
 
-요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure, HttpOnly, SameSite=Lax, Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. DFragon 휴대폰 QR과 브라우저/OS의 기본 패스키 인증을 제공한다. 기본 hybrid QR은 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다.
+요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure, HttpOnly, SameSite=Lax, Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. 인증은 브라우저/OS의 기본 패스키 인증만 제공한다. 휴대폰은 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리하며 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다. 외부 브라우저의 세션 cookie는 브라우저가 보관하고, 로그인 요청마다 새 패스키 인증을 요구하는 정책은 유지한다.
 
-직접 패스키 인증 또는 아래 QR 휴대폰 승인과 PC 자동 claim 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 앱은 원래 request ID, client ID, verifier로 교환한다. 서버가 credential의 존재, 소유 관계를 재확인하고 session, refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
+패스키 인증 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 `<returnUrl>?code=<code>`로 바로 이동하며 `앱으로 돌아가기` 버튼도 같은 주소를 연다. 복귀에는 code 하나만 싣는다. 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱은 원래 request ID, client ID, verifier로 교환한다. 서버가 credential의 존재, 소유 관계를 재확인하고 session, refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
 
 Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번만 검증한다. 새 옵션 발급은 이전 challenge를 대체한다. 잘못된 패스키 증명은 그 브라우저의 challenge를 소비하며 다른 요청을 바꾸지 않는다. 처리 중 설정 fingerprint가 달라진 요청은 거부한다.
 
@@ -32,21 +33,15 @@ Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번�
 
 OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts RP의 패스키와 고정 HTTPS callback, PKCE, client별 configuration fingerprint로 OCR 서버에 로그인 결과를 전달한다. Desktop의 returnUrl, fingerprint, 기존 세션 계약은 유지한다. 추가 경계는 [OCR 자료실](ocr-workspace.md)을 따르며 사용자 merge 후 다른 작업에 적용한다.
 
-## DFragon 휴대폰 QR
+## 휴대폰 로그인
 
-PC 화면의 `휴대폰으로 로그인`에서 32-byte 일회용 ticket이 담긴 HTTPS QR을 로컬에서 생성한다. 외부 QR 서비스로 URL을 보내지 않는다. 휴대폰은 같은 인증 origin과 RP에서 기존 패스키 로그인과 첫 패스키 등록을 모두 지원한다. 기존 패스키는 별도 계정 이관 없이 사용한다. 신규 가입은 사용자가 `새 계정 만들기`를 따로 선택한 경우에만 진행하며, PC 회원가입 화면에서 기존 계정과 별개의 계정이 생김을 안내한다. 휴대폰은 별도 회원가입 안내 화면 없이 `새 계정 만들기`에서 기기의 패스키 생성을 바로 시작한다. QR은 로그인 요청의 원래 600초 TTL을 공유하며 재발급해도 연장하지 않는다.
+휴대폰 패스키는 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리한다. DFragon 화면에는 휴대폰 버튼, QR, 확인 번호가 없고 패스키 응답 검증은 서버가 한다. 휴대폰의 기존 패스키는 별도 계정 이관 없이 같은 RP에서 사용한다.
 
-QR 진입은 ticket을 한 번 소비하고 PC와 다른 요청별 `__Host-dfragon-phone-` cookie를 발급한다. PC cookie나 verifier, token은 휴대폰으로 보내지 않는다. 휴대폰에서 패스키 인증 후 두 화면의 확인 번호를 비교하고 PC 로그인을 명시 승인한다. 휴대폰은 확인 번호와 인증한 계정의 닉네임을 표시하고 `로그인` 버튼으로 명시 승인을 받는다. PC는 승인 상태를 확인한 뒤 추가 사용자 확인 없이 PC cookie로 `claim`하여 앱 복귀 화면으로 이동한다. 확인 번호는 사용자 비교용이며 인증 secret이 아니다. 이 방식은 Bluetooth 근접성을 증명하지 않으며 PC QR 화면에 QR 공유 금지를 안내한다. 휴대폰의 중복 안내와 취소 버튼은 표시하지 않는다.
-
-PC의 `qr`, `status`, `claim`, `direct`, `cancel`은 `{requestId}`와 PC cookie가 필요하다. 휴대폰의 `phone-options`는 `{requestId,operation}` (`authenticate` 또는 `register`), `phone-verify`는 `{requestId,response}`, `phone-approve`, `phone-cancel`은 `{requestId}`와 phone cookie가 필요하다. 모두 exact Origin을 검사한다. 휴대폰 인증은 `phone_verified`, 휴대폰 승인은 `phone_approved`로 전이한다. PC `claim`만 일회용 code를 발급하며 기존 PKCE 교환을 거쳐야 앱 session이 생긴다. 승인, claim, 교환 시 해당 credential이 여전히 존재하는지 확인한다.
-
-2026-09-26 Penpot 리뷰에서 정한 휴대폰 화면 간소화, PC 재확인 생략을 이 PR에서 채택한다. 휴대폰 승인 성공과 인증 취소 화면은 드래곤 아이콘과 `로그인 성공!` 또는 `로그인 취소`만 표시한다. 휴대폰 인증창의 취소, 시간 초과(`NotAllowedError`)는 재시도 화면 대신 해당 로그인 요청을 종료한다. 서버 취소가 실패해도 휴대폰 화면은 종료하고 남은 서버 요청은 TTL로 만료한다. 다른 인증 오류는 성공으로 표시하지 않는다.
-
-PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. 자동 claim 중 QR 재발급, 닫기는 막고, 이미 재발급하거나 종료한 요청의 늦은 상태 응답은 무시한다. 새 QR이나 직접 인증 선택은 이전 phone cookie, challenge, 승인 결과를 무효화한다. 취소는 요청을 failed로 종료하고 proof를 지운다. 창 닫힘의 서버 취소는 best-effort이며, main의 pending 폐기와 서버 TTL은 늦은 앱 로그인을 차단한다.
+2026-10-10 사용자 결정으로 DFragon 자체 휴대폰 QR 로그인(PC의 QR 생성, 휴대폰 패스키 인증, 6자리 확인 번호 승인, 5초 상태 조회, claim)은 완전히 제거한다. Electron 내부 브라우저가 WebAuthn hybrid QR을 지원하지 않아 만든 것이며 시스템 브라우저 인증에서는 필요 없다. 제거 범위는 `apps/accounts/src/auth/login/phone.ts`, `GET /auth/login/phone`, `POST /auth/passkeys/`의 `qr`, `status`, `claim`, `direct`, `cancel`, `phone-options`, `phone-verify`, `phone-approve`, `phone-cancel` action, phone cookie, 로그인 페이지의 휴대폰 버튼과 QR 화면, 전용 column과 상태(삭제 migration)다. 로그인 페이지에 `닫기`가 없으므로 PC 취소 action도 함께 지운다. 이 절은 승인된 변경 contract이며 제거는 구현 PR 범위다. 2026-09-26 Penpot 리뷰에서 정한 휴대폰 화면 간소화, PC 재확인 생략 결정은 폐기한다.
 
 ## 예비 패스키 관리
 
-패스키 관리의 고정 경로는 `/auth/passkeys/manage`다. 2026-09-18 사용자 요청으로 Desktop 계정 메뉴를 제거하며 메인 UI에는 관리 진입 버튼을 두지 않는다. 기존 별도 인증 창과 관리 API의 경계는 유지한다. 휴대폰 관리 QR은 같은 origin의 고정 관리 주소만 담고, 관리 권한은 휴대폰에만 발급한다. 관리할 계정의 패스키로 다시 인증해야 목록, 추가, 삭제가 가능하다. Renderer가 임의 URL, 회원 ID, credential을 main에 전달하지 않는다.
+패스키 관리의 고정 경로는 `/auth/passkeys/manage`다. 2026-09-18 사용자 요청으로 Desktop 계정 메뉴를 제거하며 메인 UI에는 관리 진입 버튼을 두지 않는다. Desktop의 `managePasskeys`는 이 고정 경로를 시스템 브라우저로 열며(2026-10-10 결정, 구현 전) 관리 API의 경계는 유지한다. 휴대폰 관리 QR은 같은 origin의 고정 관리 주소만 담고, 관리 권한은 휴대폰에만 발급한다. 관리할 계정의 패스키로 다시 인증해야 목록, 추가, 삭제가 가능하다. Renderer가 임의 URL, 회원 ID, credential을 main에 전달하지 않는다.
 
 관리 요청은 생성부터 600초 동안만 유효하며 별도의 앱 session을 발급하지 않는다. 인증한 회원과 credential ID에 묶고 모든 동작에서 해당 키의 존재를 재확인한다. 현재 RP의 키만 표시하고 계정당 현재 RP의 키를 최대 20개까지 추가할 수 있다. 마지막 현재 RP 패스키 삭제는 거부하며, 다른 RP의 키는 예비 키로 세지 않는다. 현재 관리 인증에 사용한 키를 삭제하면 그 관리 권한도 종료한다. 다른 창에서 해당 키를 삭제한 경우 기존 관리 권한도 사용할 수 없다.
 
@@ -56,11 +51,11 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 
 `users`는 UUID, nickname, created_at을 저장한다. `auth_passkeys`는 credential ID, RP ID, user FK, 공개키, counter, transports, device type, backup flag, 등록/최근 사용 시각을 저장한다. 개인키, 지문, 얼굴, PIN은 수집하지 않는다. 공개키도 계정에 연결된 데이터이므로 로그나 공개 응답에 내보내지 않는다.
 
-`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료, 상태, 앱 proof hash, browser binding hash, QR ticket hash, phone binding hash, 6자리 확인 번호, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
+`auth_login_requests`는 login/manage 목적, 설정 fingerprint, 만료, 상태, 앱 proof hash, browser binding hash, WebAuthn challenge와 목적, 등록 예정 회원, 검증 회원, credential ID, code hash와 deadline을 저장한다. 자체 휴대폰 QR의 ticket hash, phone binding hash, 6자리 확인 번호 column과 phone 상태는 2026-10-10 결정에 따라 구현 PR의 삭제 migration으로 제거한다. 완료 상태에서는 proof, 회원 연결 정보를 null 처리한다. 전체 만료, 완료 요청은 기존 cleanup으로 삭제한다. 만료는 접근 시 즉시 거부하지만 물리 삭제 완료 시각과는 구분한다.
 
 잠금은 request → user → credential 순서다. 마지막 키 개수 검사와 추가/삭제는 user 잠금으로 직렬화한다. 모든 관련 잠금과 서명 검증 뒤 fresh DB 시각으로 만료를 재확인한다. 로그인 세션 발급 시 기존 user → session → refresh 순서를 이어 사용한다.
 
-요청 제한은 API process마다 60초 창에서 클라이언트별 120회, 전체 1,200회다. 생성, 인증 진입, 관리 시작, QR 진입, 브라우저 mutation 및 상태 조회, exchange, refresh, logout과 닉네임 변경에 적용하며 클라이언트 제한 거절은 전체 quota를 소비하지 않는다. `GET /me`는 같은 전체 1,200회 예산만 소비하고 클라이언트별 120회 예산을 검사하거나 소비하지 않는다. OCR 서버의 이미지별 활성 세션 확인이 같은 발신 IP를 사용하므로 이미지 조회가 로그인, refresh, logout의 클라이언트 예산을 소진하지 않게 한다. `/me`의 실패, 무효 토큰 요청도 전체 예산을 소비하며 JWT 검증과 매 요청의 DB 활성 세션 확인은 유지한다. 전체 예산이 소진되면 `/me`를 포함한 모든 제한 대상 요청을 거절하며, 1,200회 이상의 빠른 데이터셋 조회를 보장하지 않는다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기존 단일 신뢰 proxy 설정이 있으면 해당 경계의 client IP를 사용하며 그 외에는 전달 header를 신뢰하지 않는다.
+요청 제한은 API process마다 60초 창에서 클라이언트별 120회, 전체 1,200회다. 생성, 인증 진입, 관리 시작, 브라우저 mutation, exchange, refresh, logout과 닉네임 변경에 적용하며 클라이언트 제한 거절은 전체 quota를 소비하지 않는다. `GET /me`는 같은 전체 1,200회 예산만 소비하고 클라이언트별 120회 예산을 검사하거나 소비하지 않는다. OCR 서버의 이미지별 활성 세션 확인이 같은 발신 IP를 사용하므로 이미지 조회가 로그인, refresh, logout의 클라이언트 예산을 소진하지 않게 한다. `/me`의 실패, 무효 토큰 요청도 전체 예산을 소비하며 JWT 검증과 매 요청의 DB 활성 세션 확인은 유지한다. 전체 예산이 소진되면 `/me`를 포함한 모든 제한 대상 요청을 거절하며, 1,200회 이상의 빠른 데이터셋 조회를 보장하지 않는다. IPv4-mapped IPv6는 IPv4로 정규화하고 IPv6는 동일 /64 대역의 한도를 공유한다. 기존 단일 신뢰 proxy 설정이 있으면 해당 경계의 client IP를 사용하며 그 외에는 전달 header를 신뢰하지 않는다.
 
 같은 HTTP 앱의 로그인, 세션, 계정 service는 전체 최대 32개만 동시에 실행한다. 초과 요청은 DB 작업 시작 전에 정제 429와 `Retry-After`로 거절하고 대기 queue를 만들지 않는다. 연결 종료만으로 실행 중인 DB 작업의 슬롯을 반환하지 않으며 실제 service 완료, 실패 때 반환한다. 요청 횟수는 실패해도 환불하지 않는다. 다중 instance 전체 제한, 1인 1계정, 분산 공격 방지를 보장하지 않는다. 이 보안 수정 요청의 구현, 검증과 같은 PR에서 채택하고 사용자 merge 후 다른 작업에도 적용한다.
 
@@ -68,14 +63,14 @@ PC 상태 조회는 5초 간격이며 숨겨진 화면에서는 건너뛴다. �
 
 기존 migration은 이력으로 보존한다. 새 schema에서 생성한 forward migration으로 이전 외부 인증 field를 제거하고 패스키 table을 만든다. 변경 transaction은 대상 table 쓰기를 먼저 잠근 뒤 users, 로그인 요청이 비어있는지 검사한다. 데이터가 있으면 up/down 모두 거부하며 자동 삭제, 자동 이관하지 않는다. 운영 DB에는 이 작업에서 migration을 실행하지 않는다.
 
-실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비, 만료, 잘못된 서명/계정, 삭제된 키, 예비 키, 세션 회귀를 검사한다. 가상 인증기 성공을 실제 휴대폰 QR, Bluetooth, 운영 HTTPS, packaged Desktop OS 복귀 검증으로 확대하지 않는다.
+실제 WebAuthn 가상 인증기를 사용하는 브라우저/DB 검증, 단일 소비, 만료, 잘못된 서명/계정, 삭제된 키, 예비 키, 세션 회귀를 검사한다. 가상 인증기 성공을 실제 브라우저 hybrid QR, Bluetooth, 운영 HTTPS, packaged Desktop loopback 복귀 검증으로 확대하지 않는다.
 
 ## accounts 단일 인증 origin과 이전 종료
 
 인증 HTTP, UI, 회원, session의 소유자는 `apps/accounts`다. API의 domain PostgreSQL과 별도
 컨테이너, 볼륨, 접근 계정을 사용한다. API는 인증 DB와 JWT 개인키를 받지 않는다.
-설정의 `apiOrigin`은 accounts origin이며 등록, 로그인, 휴대폰 QR, 예비 키 관리는 같은 RP만 사용한다.
-Desktop 인증 창도 설정된 accounts origin의 요청과 이동만 허용한다.
+설정의 `apiOrigin`은 accounts origin이며 등록, 로그인, 예비 키 관리는 같은 RP만 사용한다.
+Desktop main은 설정된 accounts origin의 로그인 launch URL과 관리 경로만 시스템 브라우저로 연다.
 
 2026-09-28 사용자의 전체 계정 이전 완료 확인과 종료 요청에 따라 다음 계약을 적용한다.
 이전 API origin의 인증 UI, handoff, 일회용 이전 ticket, 이전 설정과 proxy 경로를 제거한다.
