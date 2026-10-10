@@ -1,13 +1,11 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, StatusBadge, Typo } from '@dfragon/ui'
+import { ActionButton, Checkmark, StatusBadge, Typo } from '@dfragon/ui'
 import { Checkbox } from '@seed-design/react'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
-import { checkboxStyles } from '../constants/checkbox.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
-import { CheckIcon } from '../components/CheckIcon'
 import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
@@ -213,12 +211,7 @@ export function DeveloperParticipantCollectionSection({
                     {raid ? '행' : '번'}
                   </Typo.txtS>
                   <Typo.caption {...stylex.props(styles.rowLabel)}>{rowLabel}</Typo.caption>
-                  <Checkbox.Control {...stylex.props(checkboxStyles.control)}>
-                    <Checkbox.Indicator
-                      checked={<CheckIcon />}
-                      {...stylex.props(checkboxStyles.indicator)}
-                    />
-                  </Checkbox.Control>
+                  <Checkmark />
                   <Checkbox.HiddenInput
                     aria-label={
                       raid ? `${slot}행 공대원 닉네임 저장` : `${slot}번 파티원 닉네임 저장`
