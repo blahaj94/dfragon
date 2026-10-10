@@ -1,8 +1,10 @@
+import { Checkbox } from '@seed-design/react'
 import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ActionButton,
+  Checkmark,
   DialogAction,
   DialogContent,
   DialogRoot,
@@ -519,5 +521,55 @@ describe('StatusBadge의 상태 알림 범위', () => {
     expect(container.textContent).toBe('파티원창 찾는 중')
     expect(container.querySelector('[role]')).toBeNull()
     expect(container.querySelector('[aria-live]')).toBeNull()
+  })
+})
+
+describe('Checkmark의 Checkbox.Root 안 상태 표시', () => {
+  function SaveCheckbox({ disabled = false }: { disabled?: boolean }) {
+    return (
+      <Checkbox.Root defaultChecked={false} disabled={disabled}>
+        <Checkmark />
+        <Checkbox.HiddenInput aria-label="1번 크롭 저장" />
+      </Checkbox.Root>
+    )
+  }
+
+  // Checkmark의 꺼짐 배경은 SEED가 상자에 붙이는 상태 속성이 없을 때만 칠한다.
+  function control() {
+    return element('label > [aria-hidden="true"]')
+  }
+
+  // jsdom에는 키보드 기본 동작이 없어 Space가 checkbox input에 만드는 것과 같은 native click으로 토글한다.
+  it('클릭으로 켜고 끄며 상자의 켜짐 속성과 체크 표시를 함께 바꾼다', async () => {
+    await render(<SaveCheckbox />)
+    const input = element<HTMLInputElement>('input[aria-label="1번 크롭 저장"]')
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
+
+    await click(input)
+
+    expect(input.checked).toBe(true)
+    expect(control().hasAttribute('data-checked')).toBe(true)
+    expect(container.querySelector('svg[data-checked]')).not.toBeNull()
+
+    await click(input)
+
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
+  it('disabled Root 안에서는 상자가 비활성 속성을 갖고 눌러도 꺼짐을 유지한다', async () => {
+    await render(<SaveCheckbox disabled />)
+    const input = element<HTMLInputElement>('input[aria-label="1번 크롭 저장"]')
+    expect(input.disabled).toBe(true)
+    expect(control().hasAttribute('data-disabled')).toBe(true)
+
+    await click(input)
+
+    expect(input.checked).toBe(false)
+    expect(control().hasAttribute('data-checked')).toBe(false)
+    expect(container.querySelector('svg')).toBeNull()
   })
 })

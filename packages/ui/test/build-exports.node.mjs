@@ -24,7 +24,8 @@ test('소비자 compiler가 library의 StyleX 선언을 산출 CSS의 atomic cla
   const rules = stylesheet.replace(WHITESPACE_PATTERN, '')
   for (const declaration of [
     'padding:var(--seed-dimension-x2)',
-    'border-radius:var(--seed-radius-full)'
+    'border-radius:var(--seed-radius-full)',
+    '--seed-color-stroke-neutral-weak:var(--seed-color-palette-gray-500)'
   ]) {
     const atomicRule = new RegExp(
       `\\.x[a-z0-9]+(?::not\\(#\\\\#\\))*\\{${RegExp.escape(declaration)};?\\}`

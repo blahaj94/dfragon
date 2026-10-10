@@ -1,6 +1,7 @@
 import { createRef } from 'react'
 import {
   ActionButton,
+  Checkmark,
   ContentStack,
   DialogAction,
   DialogBody,
@@ -44,6 +45,7 @@ import type { TypoProps as StandaloneTypoProps } from '@dfragon/ui/typo'
 // 별도 tsconfig는 source alias 없이 package export의 dist declaration을 해석한다.
 export const components = [
   ActionButton,
+  Checkmark,
   ContentStack,
   DialogAction,
   DialogBody,

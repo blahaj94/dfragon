@@ -8,9 +8,11 @@ import {
   type MouseEvent,
   type Ref
 } from 'react'
+import { Checkbox } from '@seed-design/react'
 import { expectTypeOf } from 'vitest'
 import {
   ActionButton,
+  Checkmark,
   ContentStack,
   DialogAction,
   DialogBody,
@@ -207,6 +209,10 @@ export const designExamples = (
     <StatusBadge tone="positive" role="status">
       창 감지됨
     </StatusBadge>
+    <Checkbox.Root checked disabled>
+      <Checkmark />
+      <Checkbox.HiddenInput aria-label="저장" />
+    </Checkbox.Root>
   </>
 )
 
@@ -220,6 +226,8 @@ export const invalidDesignExamples = (
     <IconButton className="square" variant="ghost" aria-label="설정" icon={<svg />} />
     {/* @ts-expect-error StatusBadge tone은 디자인 상태 tone 중 하나여야 한다. */}
     <StatusBadge tone="brand">상태</StatusBadge>
+    {/* @ts-expect-error Checkmark는 외형 prop을 받지 않는다. */}
+    <Checkmark className="box" />
   </>
 )
 
