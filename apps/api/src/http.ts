@@ -28,6 +28,7 @@ import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-
 import {
   type AccessLogSink,
   createAccessLog,
+  recordAccessLogErrorChain,
   recordAccessLogErrorCode,
   writeAccessLogToStdout
 } from './access-log.js'
@@ -63,6 +64,7 @@ class ApiHttpFilter implements ExceptionFilter {
       response.setHeader('Retry-After', String(failure.retryAfter))
     }
     recordAccessLogErrorCode(response, failure.body.error.code)
+    recordAccessLogErrorChain(response, error)
     response.status(failure.status).json(failure.body)
   }
 }

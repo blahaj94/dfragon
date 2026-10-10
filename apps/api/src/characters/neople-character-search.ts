@@ -18,6 +18,7 @@ import type {
   SearchDependencies
 } from '../types/neople-character-search.js'
 import { NeopleBudget, neopleBudget } from './provider-budget.js'
+import { withSanitizedCause } from '../error-chain.js'
 
 const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
 
@@ -201,12 +202,12 @@ function makeSearch(
           redirect: 'manual',
           signal: controller.signal
         })
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
         const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
           : neopleSearchFailure('api')
-        throw failure
+        throw withSanitizedCause(failure, error)
       }
 
       const didReachDeadlineAfterHeaders = deadlineReached()
@@ -217,12 +218,12 @@ function makeSearch(
       let rawBody: string
       try {
         rawBody = await response.text()
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
         const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
           : neopleSearchFailure('api')
-        throw failure
+        throw withSanitizedCause(failure, error)
       }
 
       const didReachDeadlineAfterBody = deadlineReached()
@@ -233,11 +234,12 @@ function makeSearch(
       let body: unknown
       try {
         body = JSON.parse(rawBody) as unknown
-      } catch {
+      } catch (error) {
         const didReachDeadline = deadlineReached()
-        throw didReachDeadline
+        const failure = didReachDeadline
           ? neopleSearchFailure('timeout')
           : neopleStatusFailure(response.status)
+        throw withSanitizedCause(failure, error)
       }
 
       try {
@@ -251,10 +253,12 @@ function makeSearch(
       } catch (error) {
         const didReachDeadline = deadlineReached()
         if (didReachDeadline) {
-          throw neopleSearchFailure('timeout')
+          throw withSanitizedCause(neopleSearchFailure('timeout'), error)
         }
         const isSearchFailure = error instanceof NeopleSearchFailure
-        const failure = isSearchFailure ? error : neopleSearchFailure('api')
+        const failure = isSearchFailure
+          ? error
+          : withSanitizedCause(neopleSearchFailure('api'), error)
         throw failure
       }
     }

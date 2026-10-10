@@ -1,4 +1,5 @@
 import { NeopleSearchFailure } from '../../errors/neople-search.js'
+import { withSanitizedCause } from '../../error-chain.js'
 
 const failures = {
   query: {
@@ -66,8 +67,8 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
       kind = 'api'
     }
 
-    return new CharacterDetailFailure(kind, error.retryAfter)
+    return withSanitizedCause(new CharacterDetailFailure(kind, error.retryAfter), error)
   }
 
-  return new CharacterDetailFailure('internal')
+  return withSanitizedCause(new CharacterDetailFailure('internal'), error)
 }

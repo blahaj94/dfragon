@@ -1,6 +1,7 @@
 import { LOGIN_ERRORS } from '../constants/login.js'
 import { IdentitySessionFailure } from './identity-session.js'
 import type { LoginErrorDefinition } from '../types/login.js'
+import { withSanitizedCause } from '../error-chain.js'
 
 export class LoginFailure extends Error {
   readonly code: LoginErrorDefinition['code']
@@ -29,8 +30,8 @@ export function loginFailure(
     const isUnavailable = error.code === LOGIN_ERRORS.UNAVAILABLE.code
     const definition = isUnavailable ? LOGIN_ERRORS.UNAVAILABLE : LOGIN_ERRORS.INTERNAL
 
-    return new LoginFailure(definition)
+    return withSanitizedCause(new LoginFailure(definition), error)
   }
 
-  return new LoginFailure(fallback)
+  return withSanitizedCause(new LoginFailure(fallback), error)
 }

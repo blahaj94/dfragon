@@ -13,6 +13,7 @@ import { searchClock } from '../search-admission.js'
 import type { SearchClock } from '../types.js'
 import type { CharacterIdentity } from '../identity.js'
 import { projectCharacterAppearance, type CharacterAppearance } from './project.js'
+import { withSanitizedCause } from '../../error-chain.js'
 
 const MAX_APPEARANCE_BODY_BYTES = 1024 * 1024
 
@@ -118,8 +119,8 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         let body: unknown
         try {
           body = JSON.parse(text)
-        } catch {
-          throw neopleStatusFailure(response.status)
+        } catch (error) {
+          throw withSanitizedCause(neopleStatusFailure(response.status), error)
         }
         const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
         if (failure !== undefined) {
@@ -138,7 +139,13 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
 
       return await deps.budget.run(() => Promise.race([load(), interrupted]))
     } catch (error) {
-      assertActive()
+      try {
+        assertActive()
+      } catch (failure) {
+        // 기한 초과나 요청 종료로 응답을 바꿀 때, 그 전에 잡힌 다른 오류는 원인으로 잇는다.
+        const isCaughtFailure = failure === error || !(failure instanceof Error)
+        throw isCaughtFailure ? failure : withSanitizedCause(failure, error)
+      }
       if (error instanceof CharacterDetailFailure) {
         throw error
       }
@@ -146,7 +153,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       if (error instanceof NeopleSearchFailure) {
         throw characterDetailFailure(error)
       }
-      throw new CharacterDetailFailure('api')
+      throw withSanitizedCause(new CharacterDetailFailure('api'), error)
     } finally {
       deps.clock.clearTimer(timer)
       requestSignal.removeEventListener('abort', cancel)

@@ -6,6 +6,7 @@ import { UserSchema } from '../database/schemas/users.js'
 import { AUTH_ERRORS, REFRESH_TOKEN } from '../constants/auth.js'
 import { IdentitySessionFailure } from '../errors/identity-session.js'
 import type { IdentitySession, IdentitySessionEntropy, VerifiedIdentity } from '../types/auth.js'
+import { withSanitizedCause } from '../error-chain.js'
 
 export { IdentitySessionFailure } from '../errors/identity-session.js'
 export type { IdentitySession, VerifiedIdentity } from '../types/auth.js'
@@ -20,8 +21,8 @@ const databaseTimeExpression = 'to_timestamp(floor(extract(epoch from clock_time
 function generate<T>(operation: () => T): T {
   try {
     return operation()
-  } catch {
-    throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL)
+  } catch (error) {
+    throw withSanitizedCause(new IdentitySessionFailure(AUTH_ERRORS.INTERNAL), error)
   }
 }
 
@@ -77,12 +78,13 @@ async function create({
       isNewUser
     }
   } catch (error) {
-    // QueryFailedError의 SQL/parameters, identity를 호출자나 log에 전달하지 않는다.
+    // QueryFailedError의 SQL/parameters, identity를 호출자나 log에 전달하지 않는다. 접근 로그용으로
+    // 정제한 오류 이름, code, stack frame만 연결한다.
     const isIdentitySessionFailure = error instanceof IdentitySessionFailure
     if (isIdentitySessionFailure) {
       throw error
     }
-    throw new IdentitySessionFailure(AUTH_ERRORS.UNAVAILABLE)
+    throw withSanitizedCause(new IdentitySessionFailure(AUTH_ERRORS.UNAVAILABLE), error)
   }
 }
 
