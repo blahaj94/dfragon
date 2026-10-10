@@ -8,6 +8,7 @@ import type { CaptureControlTone } from '../lib/capture-presentation'
 import { MoonIcon } from './MoonIcon'
 import { SunIcon } from './SunIcon'
 import { styles } from './TopBar.style'
+import { windowChromeStyles } from '../constants/window-chrome.style'
 
 export function TopBar({
   captureStatus,
@@ -27,6 +28,7 @@ export function TopBar({
 
   return (
     <header {...stylex.props(styles.header)}>
+      <div aria-hidden="true" {...stylex.props(styles.dragArea)} />
       <div {...stylex.props(styles.brand)}>
         <img src={brandIcon} width={24} height={24} alt="" />
         <Typo.h6 as="span" {...stylex.props(styles.name)}>
@@ -40,20 +42,24 @@ export function TopBar({
       )}
       <div {...stylex.props(styles.actions)}>
         {showCapture && capture}
-        <IconButton
-          variant="ghost"
-          aria-label={light ? '다크 테마' : '라이트 테마'}
-          onClick={toggleTheme}
-          icon={light ? <MoonIcon /> : <SunIcon />}
-        />
+        <span {...stylex.props(windowChromeStyles.noDrag)}>
+          <IconButton
+            variant="ghost"
+            aria-label={light ? '다크 테마' : '라이트 테마'}
+            onClick={toggleTheme}
+            icon={light ? <MoonIcon /> : <SunIcon />}
+          />
+        </span>
         {account === undefined ? (
-          <ActionButton size="medium" variant="neutralWeak" disabled>
-            <Typo.txtM as="span" weight={700}>
-              로그인
-            </Typo.txtM>
-          </ActionButton>
+          <span {...stylex.props(windowChromeStyles.noDrag)}>
+            <ActionButton size="medium" variant="neutralWeak" disabled>
+              <Typo.txtM as="span" weight={700}>
+                로그인
+              </Typo.txtM>
+            </ActionButton>
+          </span>
         ) : (
-          account
+          account != null && <span {...stylex.props(windowChromeStyles.noDrag)}>{account}</span>
         )}
         {settings}
       </div>

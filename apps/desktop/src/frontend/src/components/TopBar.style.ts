@@ -22,8 +22,10 @@ export const styles = stylex.create({
     containerType: 'inline-size',
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
-    WebkitAppRegion: 'drag'
+    position: 'relative'
   },
+  // 상단 바 전체를 덮는 빈 요소만 끌기 영역이다. 자식이 없어 다른 요소가 drag를 상속하지 않는다.
+  dragArea: { position: 'absolute', inset: 0, WebkitAppRegion: 'drag' },
   brand: {
     display: 'flex',
     alignItems: 'center',
@@ -37,7 +39,6 @@ export const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    flexShrink: 0,
-    WebkitAppRegion: 'no-drag'
+    flexShrink: 0
   }
 })
