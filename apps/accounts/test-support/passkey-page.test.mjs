@@ -42,7 +42,7 @@ test('빌드된 패스키 HTML은 표시 값을 escape하고 같은 origin 자�
     'form-action': "'none'",
     'frame-ancestors': "'none'"
   })
-  const scripts = [...first.html.matchAll(/<script\b[^>]*>/g)]
+  const scripts = [...first.html.matchAll(/<script\b[^>]*>/gi)]
   assert.equal(scripts.length, 1)
   assert.ok(scripts[0][0].includes(`nonce="${nonce}"`))
   assert.ok(scripts[0][0].includes('src="/auth/passkeys/client.js"'))
