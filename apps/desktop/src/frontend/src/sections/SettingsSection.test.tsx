@@ -180,10 +180,10 @@ it('개발자 모드 설정을 저장하는 동안 스위치를 바꿀 수 없�
 it('shows the mode as unavailable when preload APIs are absent', async () => {
   await click('설정')
   await click('개발자 모드')
-  expect(document.body.textContent).toContain(
-    '이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'
-  )
-  expect(developerSwitch()).toBeUndefined()
+  expect(
+    [...document.querySelectorAll('[role="status"]')].map((status) => status.textContent)
+  ).toEqual(['이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'])
+  expect(document.querySelector('[role="switch"]')).toBeNull()
 })
 
 it('shows full app and service commits with partial failures and refreshes the deployed versions', async () => {
