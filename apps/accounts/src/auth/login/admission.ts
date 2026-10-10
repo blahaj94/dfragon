@@ -44,9 +44,7 @@ export function createAuthRateLimit() {
         ) ||
           path.startsWith('/auth/passkeys/'))) ||
       (request.method === 'GET' &&
-        ['/auth/login/authorize', '/auth/login/phone', '/auth/passkeys/manage', '/me'].includes(
-          path
-        )) ||
+        ['/auth/login/authorize', '/auth/passkeys/manage', '/me'].includes(path)) ||
       (request.method === 'PATCH' && path === '/me/nickname')
     if (!limited) {
       next()

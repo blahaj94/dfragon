@@ -20,8 +20,6 @@ export async function passkeyPage(authorization: LoginAuthorization) {
     nonce,
     requestId: authorization.requestId,
     purpose: authorization.purpose,
-    view: authorization.view === 'phone' ? 'phone' : 'desktop',
-    confirmationCode: authorization.confirmationCode ?? '',
     webReturnUrl: authorization.webReturnUrl ?? ''
   }
   const html = template.replace(PASSKEY_PAGE_PLACEHOLDER_PATTERN, (_match, key: string) => {

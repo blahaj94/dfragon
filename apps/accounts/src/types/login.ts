@@ -47,8 +47,6 @@ export interface LoginAuthorization {
   purpose: 'login' | 'manage'
   webReturnUrl?: string
   cookie: string
-  view?: 'phone'
-  confirmationCode?: string
 }
 export interface CompletedLoginCallback {
   returnUrl: string
@@ -56,7 +54,7 @@ export interface CompletedLoginCallback {
 }
 export interface LoginHttpService {
   create(input: unknown): Promise<CreatedLoginRequest>
-  authorize(ticket: string, view?: 'phone'): Promise<LoginAuthorization>
+  authorize(ticket: string): Promise<LoginAuthorization>
   manage(): Promise<LoginAuthorization>
   browser(
     action: string,
