@@ -16,7 +16,6 @@ import type {
   CharacterPayloads
 } from './sections.js'
 import { NeopleBudget, neopleBudget } from '../provider-budget.js'
-import { withSanitizedCause } from '../../error-chain.js'
 
 export function isObject(value: unknown): value is CharacterPayload {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -95,7 +94,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
         try {
           body = await response.json()
         } catch (error) {
-          throw withSanitizedCause(neopleStatusFailure(response.status), error)
+          throw neopleStatusFailure(response.status, { cause: error })
         }
         const failure = classifyNeopleUpstreamFailure(body, response.status, response.ok)
         if (failure) {
@@ -120,11 +119,11 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
     } catch (error) {
       failureController.abort()
       if (timeout.aborted || performance.now() - startedAt >= deps.timeoutMs) {
-        throw withSanitizedCause(new CharacterDetailFailure('timeout'), error)
+        throw new CharacterDetailFailure('timeout')
       }
 
       if (requestSignal.aborted) {
-        throw withSanitizedCause(new CharacterDetailFailure('internal'), error)
+        throw new CharacterDetailFailure('internal')
       }
 
       if (error instanceof CharacterDetailFailure) {
@@ -134,7 +133,7 @@ function makeAdapter(apiKey: string, deps: TransportDependencies): FetchCharacte
       // Transport failures are upstream failures, not an internal exception reflection.
       throw error instanceof NeopleSearchFailure
         ? failure
-        : withSanitizedCause(new CharacterDetailFailure('api'), error)
+        : new CharacterDetailFailure('api', { cause: error })
     }
   }
 }

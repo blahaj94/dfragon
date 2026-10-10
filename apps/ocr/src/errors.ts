@@ -1,4 +1,5 @@
 import { mapValues } from 'remeda'
+import { type FailureOptions, SanitizedFailure } from './error-chain.js'
 
 export const OCR_ERRORS = {
   INVALID_INPUT: { status: 400, message: '입력 값을 확인해 주세요.' },
@@ -42,11 +43,14 @@ export const OCR_ERROR_CODE = mapValues(OCR_ERRORS, (_metadata, code) => code) a
   readonly [Code in OcrErrorCode]: Code
 }
 
-export class OcrError extends Error {
+export class OcrError extends SanitizedFailure {
   readonly status: number
 
-  constructor(readonly code: OcrErrorCode) {
-    super(OCR_ERRORS[code].message)
+  constructor(
+    readonly code: OcrErrorCode,
+    options?: FailureOptions
+  ) {
+    super(OCR_ERRORS[code].message, options)
     this.name = 'OcrError'
     this.status = OCR_ERRORS[code].status
   }

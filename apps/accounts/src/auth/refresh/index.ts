@@ -7,7 +7,6 @@ import { UserSchema } from '../../database/schemas/users.js'
 import type { IssuedAccessJwt } from '../access-jwt/types.js'
 import { REFRESH_ERRORS, RefreshFailure } from './errors.js'
 import type { RefreshDependencies, RefreshTokens } from './types.js'
-import { withSanitizedCause } from '../../error-chain.js'
 
 export { RefreshFailure } from './errors.js'
 export type { RefreshDependencies, RefreshTokens } from './types.js'
@@ -156,7 +155,7 @@ async function rotate({
             idleDeadline
           })
         } catch (error) {
-          throw withSanitizedCause(new RefreshFailure(REFRESH_ERRORS.INTERNAL), error)
+          throw new RefreshFailure(REFRESH_ERRORS.INTERNAL, { cause: error })
         }
         const nextHash = createHash(REFRESH_TOKEN.hashAlgorithm).update(bytes).digest()
         await refresh.update({ tokenHash: presentedHash }, { consumedAt: checkedAt })
@@ -198,7 +197,7 @@ async function rotate({
       throw error
     }
     // DB 실패, random unique 충돌, commit 결과 불명은 원문 상세 없이 거절한다. 자동 retry하지 않는다.
-    throw withSanitizedCause(new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE), error)
+    throw new RefreshFailure(REFRESH_ERRORS.UNAVAILABLE, { cause: error })
   }
 }
 

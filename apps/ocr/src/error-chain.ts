@@ -11,25 +11,37 @@ const ERROR_NAME_PATTERN = /^[A-Za-z_$][\w$]{0,79}$/
 const ERROR_CODE_PATTERN = /^\w{1,64}$/
 const UNNAMED_ERROR = '<unnamed>'
 const NON_ERROR = '<non-error>'
-const sanitizedCauses = new WeakMap<Error, readonly ErrorChainEntry[]>()
+
+/** 응답용 failure를 만들 때 넘기는 option이다. 모양은 표준 `ErrorOptions`와 같다. */
+export type FailureOptions = { cause?: unknown }
 
 /**
- * 원래 오류를 응답용 failure로 바꿀 때 원래 오류를 정제한 chain만 failure에 연결한다. 원래 오류
- * object, message는 보관하지 않으므로 failure의 `cause`는 계속 비어 있다.
+ * DB, Neople, 인증 서버 오류를 바꾼 응답용 failure의 base class다. `{ cause }`는 표준 ErrorOptions처럼
+ * 받지만 원래 오류 object와 message는 보관하지 않고, 그 자리에서 정제한 chain만 `sanitizedCause`에 둔다.
+ * 그래서 failure의 `cause`는 비어 있고, failure를 그대로 출력해도 SQL이나 요청 값이 나오지 않는다.
  */
-export function withSanitizedCause<T extends Error>(failure: T, cause: unknown): T {
+export class SanitizedFailure extends Error {
+  readonly sanitizedCause: readonly ErrorChainEntry[] | undefined
+
+  constructor(message: string, options?: FailureOptions) {
+    super(message)
+    const hasCause = options !== undefined && 'cause' in options
+    this.sanitizedCause = hasCause ? sanitizeCause(options.cause) : undefined
+  }
+}
+
+function sanitizeCause(cause: unknown): readonly ErrorChainEntry[] | undefined {
   try {
-    sanitizedCauses.set(failure, describeErrorChain(cause))
+    return describeErrorChain(cause)
   } catch {
     // getter가 예외를 던지는 등 정제 결과를 믿을 수 없는 오류는 원인 없이 failure만 남긴다.
+    return undefined
   }
-
-  return failure
 }
 
 /**
  * 오류와 그 원인을 바깥쪽부터 정제한다. 오류마다 class 이름, 식별자 형식의 `code`, message를 뺀
- * stack frame만 읽는다. 원인은 `withSanitizedCause`로 연결한 chain과 라이브러리가 붙인 `cause`를 따른다.
+ * stack frame만 읽는다. 원인은 `SanitizedFailure`가 정제해 둔 chain과 라이브러리가 붙인 `cause`를 따른다.
  * Getter가 던진 예외는 호출자에게 전달한다.
  */
 export function describeErrorChain(error: unknown): ErrorChainEntry[] {
@@ -42,7 +54,7 @@ export function describeErrorChain(error: unknown): ErrorChainEntry[] {
       break
     }
     chain.push(describeError(current))
-    const sanitized = sanitizedCauses.get(current)
+    const sanitized = current instanceof SanitizedFailure ? current.sanitizedCause : undefined
     if (sanitized !== undefined) {
       chain.push(...sanitized)
       break

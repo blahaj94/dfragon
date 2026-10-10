@@ -1,5 +1,5 @@
 import { NeopleSearchFailure } from '../../errors/neople-search.js'
-import { withSanitizedCause } from '../../error-chain.js'
+import { type FailureOptions, SanitizedFailure } from '../../error-chain.js'
 
 const failures = {
   query: {
@@ -34,16 +34,17 @@ const failures = {
   }
 } as const
 
-export class CharacterDetailFailure extends Error {
+type CharacterDetailFailureOptions = FailureOptions & { retryAfter?: number }
+
+export class CharacterDetailFailure extends SanitizedFailure {
   readonly body: { error: { code: string; message: string } }
   readonly status: number
+  readonly retryAfter: number | undefined
 
-  constructor(
-    kind: keyof typeof failures,
-    readonly retryAfter?: number
-  ) {
+  constructor(kind: keyof typeof failures, options: CharacterDetailFailureOptions = {}) {
     const definition = failures[kind]
-    super(definition.message)
+    super(definition.message, options)
+    this.retryAfter = options.retryAfter
     this.name = 'CharacterDetailFailure'
     this.status = definition.status
     this.body = { error: { code: definition.code, message: definition.message } }
@@ -67,8 +68,8 @@ export function characterDetailFailure(error: unknown): CharacterDetailFailure {
       kind = 'api'
     }
 
-    return withSanitizedCause(new CharacterDetailFailure(kind, error.retryAfter), error)
+    return new CharacterDetailFailure(kind, { retryAfter: error.retryAfter, cause: error })
   }
 
-  return withSanitizedCause(new CharacterDetailFailure('internal'), error)
+  return new CharacterDetailFailure('internal', { cause: error })
 }

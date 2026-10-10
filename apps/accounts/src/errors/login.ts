@@ -1,14 +1,14 @@
 import { LOGIN_ERRORS } from '../constants/login.js'
 import { IdentitySessionFailure } from './identity-session.js'
 import type { LoginErrorDefinition } from '../types/login.js'
-import { withSanitizedCause } from '../error-chain.js'
+import { type FailureOptions, SanitizedFailure } from '../error-chain.js'
 
-export class LoginFailure extends Error {
+export class LoginFailure extends SanitizedFailure {
   readonly code: LoginErrorDefinition['code']
   readonly status: LoginErrorDefinition['status']
 
-  constructor(definition: LoginErrorDefinition) {
-    super(definition.message)
+  constructor(definition: LoginErrorDefinition, options?: FailureOptions) {
+    super(definition.message, options)
     this.name = 'LoginFailure'
     this.code = definition.code
     this.status = definition.status
@@ -30,8 +30,8 @@ export function loginFailure(
     const isUnavailable = error.code === LOGIN_ERRORS.UNAVAILABLE.code
     const definition = isUnavailable ? LOGIN_ERRORS.UNAVAILABLE : LOGIN_ERRORS.INTERNAL
 
-    return withSanitizedCause(new LoginFailure(definition), error)
+    return new LoginFailure(definition, { cause: error })
   }
 
-  return withSanitizedCause(new LoginFailure(fallback), error)
+  return new LoginFailure(fallback, { cause: error })
 }

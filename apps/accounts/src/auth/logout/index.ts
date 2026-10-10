@@ -5,7 +5,6 @@ import { AuthSessionSchema } from '../../database/schemas/auth-sessions.js'
 import { UserSchema } from '../../database/schemas/users.js'
 import { refreshTokenHash } from '../refresh/index.js'
 import { LOGOUT_ERRORS, LogoutFailure } from './errors.js'
-import { withSanitizedCause } from '../../error-chain.js'
 
 export { LogoutFailure } from './errors.js'
 
@@ -94,6 +93,6 @@ export async function logoutSession(dataSource: DataSource, rawToken: unknown): 
     if (isLogoutFailure) {
       throw error
     }
-    throw withSanitizedCause(new LogoutFailure(LOGOUT_ERRORS.UNAVAILABLE), error)
+    throw new LogoutFailure(LOGOUT_ERRORS.UNAVAILABLE, { cause: error })
   }
 }

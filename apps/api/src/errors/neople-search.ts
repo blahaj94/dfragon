@@ -1,4 +1,5 @@
 import type { SearchErrorBody } from '../types/neople-character-search.js'
+import { type FailureOptions, SanitizedFailure } from '../error-chain.js'
 
 const errors = {
   query: {
@@ -53,15 +54,16 @@ const upstreamCodeErrors = new Map<string, keyof typeof errors>([
   ['DNF999', 'api']
 ])
 
-export class NeopleSearchFailure extends Error {
+type NeopleSearchFailureOptions = FailureOptions & { retryAfter?: number }
+
+export class NeopleSearchFailure extends SanitizedFailure {
   readonly body: SearchErrorBody
   readonly status: SearchErrorDefinition['status']
+  readonly retryAfter: number | undefined
 
-  constructor(
-    definition: SearchErrorDefinition,
-    readonly retryAfter?: number
-  ) {
-    super(definition.message)
+  constructor(definition: SearchErrorDefinition, options: NeopleSearchFailureOptions = {}) {
+    super(definition.message, options)
+    this.retryAfter = options.retryAfter
     this.name = 'NeopleSearchFailure'
     this.status = definition.status
     this.body = { error: { code: definition.code, message: definition.message } }
@@ -86,20 +88,20 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 export function neopleSearchFailure(
   kind: keyof typeof errors,
-  retryAfter?: number
+  options?: NeopleSearchFailureOptions
 ): NeopleSearchFailure {
   const error = errors[kind]
 
-  return new NeopleSearchFailure(error, retryAfter)
+  return new NeopleSearchFailure(error, options)
 }
 
-export function neopleStatusFailure(status: number): NeopleSearchFailure {
+export function neopleStatusFailure(status: number, options?: FailureOptions): NeopleSearchFailure {
   const isRateLimited = status === 429
   const isUnavailable = status === 503
   const isTemporarilyUnavailable = isRateLimited || isUnavailable
   const failureKind = isTemporarilyUnavailable ? 'unavailable' : 'api'
 
-  return neopleSearchFailure(failureKind)
+  return neopleSearchFailure(failureKind, options)
 }
 
 export function classifyNeopleUpstreamFailure(

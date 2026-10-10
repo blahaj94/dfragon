@@ -1,7 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { LOGIN_ERRORS } from '../../constants/login.js'
 import { LoginFailure } from '../../errors/login.js'
-import { withSanitizedCause } from '../../error-chain.js'
 
 const OPAQUE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
@@ -39,7 +38,7 @@ export function newOpaque(): string {
   try {
     return randomBytes(32).toString('base64url')
   } catch (error) {
-    throw withSanitizedCause(new LoginFailure(LOGIN_ERRORS.INTERNAL), error)
+    throw new LoginFailure(LOGIN_ERRORS.INTERNAL, { cause: error })
   }
 }
 

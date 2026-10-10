@@ -7,7 +7,6 @@ import { readBearerToken } from '../bearer.js'
 import { ACCOUNT_ERRORS, AccountFailure } from './errors.js'
 import { validateNickname } from './nickname.js'
 import type { AccountDependencies, AccountHttpService, AccountProfile } from './types.js'
-import { withSanitizedCause } from '../../error-chain.js'
 
 async function authenticate(
   verify: VerifyAccessJwt,
@@ -123,7 +122,7 @@ async function runAccountOperation(
       throw error
     }
     // Read/write와 commit acknowledgement 불명은 정제 503이다. 자동 retry나 rollback 확정 주장을 하지 않는다.
-    throw withSanitizedCause(new AccountFailure(ACCOUNT_ERRORS.UNAVAILABLE), error)
+    throw new AccountFailure(ACCOUNT_ERRORS.UNAVAILABLE, { cause: error })
   }
 }
 

@@ -144,7 +144,7 @@ export class SearchAdmission {
     }
     const oldest = entry.reservations[0]!
     const retryAfter = Math.max(1, Math.ceil((oldest + windowMs - now) / 1000))
-    throw neopleSearchFailure('limited', retryAfter)
+    throw neopleSearchFailure('limited', { retryAfter })
   }
 
   private maintain(peerAddress: string, entry: PeerEntry): void {

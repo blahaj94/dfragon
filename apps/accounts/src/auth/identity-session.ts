@@ -6,7 +6,6 @@ import { UserSchema } from '../database/schemas/users.js'
 import { AUTH_ERRORS, REFRESH_TOKEN } from '../constants/auth.js'
 import { IdentitySessionFailure } from '../errors/identity-session.js'
 import type { IdentitySession, IdentitySessionEntropy, VerifiedIdentity } from '../types/auth.js'
-import { withSanitizedCause } from '../error-chain.js'
 
 export { IdentitySessionFailure } from '../errors/identity-session.js'
 export type { IdentitySession, VerifiedIdentity } from '../types/auth.js'
@@ -22,7 +21,7 @@ function generate<T>(operation: () => T): T {
   try {
     return operation()
   } catch (error) {
-    throw withSanitizedCause(new IdentitySessionFailure(AUTH_ERRORS.INTERNAL), error)
+    throw new IdentitySessionFailure(AUTH_ERRORS.INTERNAL, { cause: error })
   }
 }
 
@@ -84,7 +83,7 @@ async function create({
     if (isIdentitySessionFailure) {
       throw error
     }
-    throw withSanitizedCause(new IdentitySessionFailure(AUTH_ERRORS.UNAVAILABLE), error)
+    throw new IdentitySessionFailure(AUTH_ERRORS.UNAVAILABLE, { cause: error })
   }
 }
 

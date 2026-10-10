@@ -10,7 +10,6 @@ import {
 } from './auth-responses.js'
 import { OCR_AUTH } from './constants.js'
 import type { LoginTokens } from './auth-responses.js'
-import { withSanitizedCause } from './error-chain.js'
 
 const BEARER_JWT_PATTERN = /^Bearer [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 const SYNTHETIC_UPLOAD_TOKEN_PATTERN = /^Bearer [A-Za-z0-9_-]{43,128}$/
@@ -108,7 +107,7 @@ export class OcrAuth {
         ...(body === undefined ? {} : { body: JSON.stringify(body) })
       })
     } catch (error) {
-      throw withSanitizedCause(new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE), error)
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE, { cause: error })
     }
 
     if (!response.ok) {
@@ -124,7 +123,7 @@ export class OcrAuth {
     try {
       return await response.json()
     } catch (error) {
-      throw withSanitizedCause(new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE), error)
+      throw new OcrError(OCR_ERROR_CODE.AUTH_UNAVAILABLE, { cause: error })
     }
   }
 

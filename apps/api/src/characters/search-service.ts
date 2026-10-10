@@ -8,7 +8,6 @@ import { parseCharacterCandidatesQuery, parseCharacterSearchQuery } from './quer
 import { SearchAdmission, searchClock } from './search-admission.js'
 import { SearchDeadline } from './search-deadline.js'
 import type { CharacterSearchDependencies, CharacterSearchHttpService } from './types.js'
-import { withSanitizedCause } from '../error-chain.js'
 
 export function createCharacterSearchService(
   dependencies: CharacterSearchDependencies
@@ -53,7 +52,7 @@ export function createCharacterSearchService(
       if (isSearchFailure) {
         throw error
       }
-      throw withSanitizedCause(neopleSearchFailure('internal'), error)
+      throw neopleSearchFailure('internal', { cause: error })
     } finally {
       finishAdmission()
     }

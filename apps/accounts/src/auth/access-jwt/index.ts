@@ -7,7 +7,6 @@ import {
   ACCESS_JWT_TYPE,
   UUID_PATTERN
 } from './constants.js'
-import { withSanitizedCause } from '../../error-chain.js'
 import { AccessJwtError } from './errors.js'
 import { loadSigningKey, loadVerificationKeys } from './keys.js'
 import type {
@@ -103,7 +102,7 @@ export async function createAccessJwtIssuer(
 
         return { accessToken, issuedAt, expiresAt }
       } catch (error) {
-        throw withSanitizedCause(new AccessJwtError('ACCESS_JWT_SIGNING_FAILED'), error)
+        throw new AccessJwtError('ACCESS_JWT_SIGNING_FAILED', { cause: error })
       }
     }
   } catch {
