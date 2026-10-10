@@ -31,7 +31,96 @@ afterAll(() => {
   vi.unstubAllEnvs()
 })
 
+// NSIS는 줄 단위 명령이다. 따옴표 안의 실행 명령은 보존하고 들여쓰기, 주석만 제외한다.
+function readNsisStatements(source) {
+  return source.split(/\r?\n/).flatMap((line) => {
+    const tokens = line.match(/"[^"]*"|'[^']*'|`[^`]*`|;.*$|[^\s;]+/g) ?? []
+    const statement = tokens.filter((token) => !token.startsWith(';'))
+    if (statement.length === 0) {
+      return []
+    }
+
+    return [statement]
+  })
+}
+
 describe('desktop package fuse configuration', () => {
+  it.each([
+    ['development', 'dfragon.dev'],
+    ['distribution', 'dfragon']
+  ])('%s installer는 scheme 정의 뒤 legacy cleanup만 include한다', async (channel, scheme) => {
+    const source = await readFile(join(desktopProjectDir, `build/${channel}-installer.nsh`), 'utf8')
+    const includeLine = '!include "${BUILD_RESOURCES_DIR}\\legacy-protocol-cleanup.nsh"'
+    expect(source.split(/\r?\n/)).toContain(includeLine)
+    expect(readNsisStatements(source)).toEqual([
+      ['!define', 'DFRAGON_LEGACY_PROTOCOL_SCHEME', `"${scheme}"`],
+      ['!include', '"${BUILD_RESOURCES_DIR}\\legacy-protocol-cleanup.nsh"']
+    ])
+  })
+
+  it('NSIS cleanup은 실행 명령이 일치하는 HKCU 키만 지우고 두 hook에서 호출한다', async () => {
+    const source = await readFile(
+      join(desktopProjectDir, 'build/legacy-protocol-cleanup.nsh'),
+      'utf8'
+    )
+    const statements = readNsisStatements(source)
+    const key = '"${DFRAGON_LEGACY_PROTOCOL_KEY}"'
+    const command = '\'"$INSTDIR\\${APP_EXECUTABLE_FILENAME}" "%1"\''
+    const definitions = []
+    const macros = new Map()
+    let current = definitions
+    for (const statement of statements) {
+      const [instruction, name] = statement
+      if (instruction === '!macro') {
+        expect(current).toBe(definitions)
+        expect(macros.has(name)).toBe(false)
+        current = []
+        macros.set(name, current)
+      } else if (instruction === '!macroend') {
+        expect(current).not.toBe(definitions)
+        current = definitions
+      } else {
+        current.push(statement)
+      }
+    }
+    expect(current).toBe(definitions)
+    expect(definitions).toHaveLength(2)
+    expect(definitions).toEqual(
+      expect.arrayContaining([
+        [
+          '!define',
+          'DFRAGON_LEGACY_PROTOCOL_KEY',
+          '"Software\\Classes\\${DFRAGON_LEGACY_PROTOCOL_SCHEME}"'
+        ],
+        ['!define', 'DFRAGON_LEGACY_PROTOCOL_COMMAND', command]
+      ])
+    )
+    expect([...macros.keys()].sort()).toEqual([
+      'cleanupDfragonLegacyProtocol',
+      'customInstall',
+      'customUnInstall'
+    ])
+    const cleanup = macros.get('cleanupDfragonLegacyProtocol')
+    // ReadRegStr의 목적 레지스터 이름은 계약이 아니며, 읽은 값과 비교한 값이 같아야 한다.
+    const register = cleanup?.[0]?.[1]
+    expect(register).toMatch(/^\$(?:R[0-9]|[0-9])$/)
+    expect(cleanup).toEqual([
+      [
+        'ReadRegStr',
+        register,
+        'HKCU',
+        '"${DFRAGON_LEGACY_PROTOCOL_KEY}\\shell\\open\\command"',
+        '""'
+      ],
+      ['${If}', register, '==', "'${DFRAGON_LEGACY_PROTOCOL_COMMAND}'"],
+      ['DeleteRegKey', 'HKCU', key],
+      ['${EndIf}']
+    ])
+    for (const hook of ['customInstall', 'customUnInstall']) {
+      expect(macros.get(hook)).toEqual([['!insertmacro', 'cleanupDfragonLegacyProtocol']])
+    }
+  })
+
   it('loads and validates the packaging configuration with app-builder-lib', async () => {
     const { getConfig, validateConfiguration } = await import(
       pathToFileURL(appBuilderConfigModulePath).href
@@ -68,18 +157,12 @@ describe('desktop package fuse configuration', () => {
       expect(config.extraMetadata.name).toBe(channel.packaging.packageName)
       expect(config.nsis.include).toBe(channel.packaging.installerInclude)
       expect(config.directories.output).toBe(channel.packaging.output)
-      const installer = await readFile(join(desktopProjectDir, config.nsis.include), 'utf8')
-      expect(installer).toContain(
-        `!define DFRAGON_PROTOCOL_SCHEME "${new URL(channel.identity.auth.returnTarget).protocol.slice(0, -1)}"`
-      )
+      expect(config.protocols).toBeUndefined()
       expect(config.publish).toBeNull()
       expect(config.win.target).toEqual([{ target: 'nsis', arch: ['x64'] }])
     }
     expect(productionConfig.nsis.oneClick).toBe(true)
     expect(productionConfig.protocols).toBeUndefined()
-    expect(developmentConfig.protocols).toEqual([
-      { name: 'DFragon development login', schemes: ['dfragon.dev'] }
-    ])
     expect(developmentConfig.nsis.oneClick).toBe(true)
     expect(productionConfig.appId).not.toBe(developmentConfig.appId)
     expect(productionConfig.win.executableName).not.toBe(developmentConfig.win.executableName)

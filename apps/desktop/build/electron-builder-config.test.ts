@@ -33,15 +33,13 @@ it.each(CHANNEL_NAMES)(
     expect(configuration.directories).toEqual({ buildResources: 'build', output: packaging.output })
     expect(configuration.win?.executableName).toBe(packaging.executableName)
     expect(configuration.publish).toBeNull()
+    expect(configuration.protocols).toBeUndefined()
   }
 )
 
-it('로그인 채널은 NSIS include와 선언한 protocol을 가지고 파일명은 앱 이름으로 시작한다', () => {
+it('로그인 채널은 legacy cleanup NSIS include를 가지고 파일명은 앱 이름으로 시작한다', () => {
   const development = createBuilderConfig('development')
   expect(development.nsis?.include).toBe('build/development-installer.nsh')
-  expect(development.protocols).toEqual([
-    { name: 'DFragon development login', schemes: ['dfragon.dev'] }
-  ])
   expect(development.nsis?.artifactName).toBe('${productName}-${version}-${arch}-setup.${ext}')
 
   const distribution = createBuilderConfig('distribution')
