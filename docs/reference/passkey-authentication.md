@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: accounts and Desktop passkey runtime
-last-reviewed: 2026-09-26
+last-reviewed: 2026-10-10
 ---
 
 # 패스키 실행 안내
@@ -14,12 +14,12 @@ last-reviewed: 2026-09-26
     "apiOrigin": "https://accounts.dfragon.com",
     "rpId": "accounts.dfragon.com",
     "rpName": "DFragon",
-    "returnUrl": "dfragon://auth/callback"
+    "returnUrl": "http://127.0.0.1:<port>/auth/callback"
   }
 }
 ```
 
-예제는 public 설정 부분만 보여준다. 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 복귀 `dfragon.dev://auth/callback`을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
+예제는 public 설정 부분만 보여준다. `returnUrl`의 `<port>`는 Desktop이 로그인마다 여는 loopback 수신기의 임시 포트라 실행마다 다르며, 서버는 포트만 가변인 이 형식과 정확히 일치하는 요청의 `returnUrl`만 받는다(2026-10-10 결정, 구현 전까지는 `dfragon://auth/callback`). 실제 파일에는 기존 `accessJwt` 객체도 있어야 하며 signing key를 저장소나 로그에 넣지 않는다. 개발은 신뢰한 local TLS의 `https://localhost:3444`, RP ID `localhost`, 같은 형식의 복귀 `http://127.0.0.1:<port>/auth/callback`(포트는 실행마다 다름)을 사용한다. `LOCAL_HTTPS_CERT_FILE`, `LOCAL_HTTPS_KEY_FILE`은 기존 방식이다. 실제 인증 domain은 배포 전에 확정해야 한다.
 
 JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PRIVATE_KEY`,
 `AUTH_JWT_PRIVATE_KEY_FILE` 중 하나로 제공한다. 외부 입력을 쓰면 JSON의 signingKey에는 `kid`만
@@ -27,7 +27,7 @@ JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PR
 verificationKeys, passkey 설정과 키 일치 검증은 유지한다. 입력, 재시작 조건은
 [서버 실행 안내](api-start-development.md#준비할-입력) 한 곳에서 확인한다.
 
-Desktop public 설정의 providers는 `["passkey"]`다. 로그인은 격리 Electron BrowserWindow에서 진행하고 앱 복귀 code를 기존 coordinator, S256으로 교환한다. 내부 창은 callback을 가로채며 기존 OS protocol ingress도 유지한다. 같은 인증 origin의 `/auth/passkeys/manage`는 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
+Desktop public 설정의 providers는 `["passkey"]`다. 2026-10-10 결정(구현 전)으로 로그인은 시스템 기본 브라우저에서 진행하고, main이 127.0.0.1 임시 포트에 여는 loopback 수신기가 받은 앱 복귀 code를 기존 coordinator, S256으로 교환한다. 격리 Electron BrowserWindow와 OS protocol ingress는 로그인 계약에서 제외하며 제거는 구현 PR에서 한다. 같은 인증 origin의 `/auth/passkeys/manage`는 시스템 브라우저에서 열고 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
 
 accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버, 브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 
@@ -35,7 +35,7 @@ accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. B
 - `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema, migration, 가상 WebAuthn 브라우저, refresh, 계정 회귀. Playwright Chromium이 설치되어 있어야 한다.
 - `pnpm --filter @dfragon/desktop run --sequential '/^(test|lint|build)$/'`: 앱 상태, IPC, 화면 회귀와 build.
 
-운영 배포와 실제 휴대폰 QR 검증은 별도다. DFragon QR은 휴대폰의 HTTPS 패스키 인증, 명시 승인과 PC 자동 claim을 연결하며 Bluetooth 근접 확인을 제공하지 않는다. 새 QR의 실제 Windows+iPhone 검증은 기존 브라우저 hybrid QR 검증과 별도로 기록한다.
+운영 배포와 실제 브라우저 hybrid QR 검증은 별도다. 휴대폰 로그인은 시스템 브라우저의 패스키 창이 제공하는 hybrid QR로 처리하며, DFragon 자체 QR은 2026-10-10 결정으로 제거 대상이다. 시스템 브라우저 흐름의 실제 Windows+iPhone 검증은 구현 PR에서 따로 기록한다.
 
 ## OCR 관리 웹의 선택 연결
 
@@ -100,6 +100,10 @@ RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소�
 이 결과를 물리 정전 내구성이나 다른 OS, 브라우저, 기기의 성공으로 확대하지 않는다.
 
 ## DFragon QR과 전용 창
+
+현재 흐름 요약(2026-10-10 결정, 구현 전): Desktop 메인의 `로그인`은 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다. 페이지에는 `패스키로 로그인`, `새 계정 만들기`만 있고 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며, 앱은 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 code를 교환한다. 진행 중에는 메인 상단 바의 같은 버튼이 `취소`가 된다. 계약은 [Desktop 인증](../rules/desktop-auth.md), [lifecycle](../rules/desktop-auth-lifecycle.md), [platform](../rules/desktop-auth-platform.md)을 따른다.
+
+아래는 2026-10-10 결정으로 폐기된 이전 revision의 이력이며 현재 계약이 아니다. 제거는 구현 PR에서 한다.
 
 Desktop 메인의 `로그인`은 중간 계정 모달 없이 전용 인증 창을 바로 연다. 로그인 진행 중에는 버튼 재클릭을 막으며, 취소는 인증 창의 닫기로 처리한다. 기존 계정 모달과 로그인 후 계정 메뉴는 제거했다. 인증 창의 로그인 화면은 왼쪽 휴대폰, 오른쪽 패스키 로그인과 아래 새 계정 만들기로 구성한다.
 

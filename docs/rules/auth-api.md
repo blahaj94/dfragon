@@ -5,7 +5,7 @@ enforcement: approval-required
 scope: apps/api apps/desktop authentication HTTP boundary
 last-reviewed: 2026-10-10
 rationale: 로그인과 계정 API의 입력, 오류, credential 노출 경계를 구현 전에 고정한다.
-evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691"
+evidence: "PR #48 사용자 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519 ; 설계 근거: Issue #39 Proposal Revision 2 https://github.com/blahaj94/ldb/issues/39#issuecomment-5551313691 ; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거"
 exceptions: 사용자 구현 금지 조건을 유지하며 실제 client 등록과 OS 저장 실행, 검증은 별도 gate다.
 review-after: 최초 인증 integration validation 또는 client boundary 변경 시
 ---
@@ -18,9 +18,9 @@ review-after: 최초 인증 integration validation 또는 client boundary 변경
 
 ## Client와 transport
 
-- Desktop은 public client이며 자체 `clientId`는 `"desktop"`만 허용한다. 등록 항목 선택값이지 인증 secret, 정품 앱 증명, 패스키 RP ID가 아니다. 휴대폰은 Desktop 요청 승인용 브라우저이며 독립 token client나 요청자 지정 RP 설정을 추가하지 않는다.
+- Desktop은 public client이며 자체 `clientId`는 `"desktop"`만 허용한다. 등록 항목 선택값이지 인증 secret, 정품 앱 증명, 패스키 RP ID가 아니다. 휴대폰은 브라우저 패스키 창의 hybrid QR로만 참여하며 독립 token client나 요청자 지정 RP 설정을 추가하지 않는다.
 - 인증 origin, RP ID, 앱 복귀 주소는 서버 설정으로 고정한다. Electron main은 앱 로그인 요청 상태, verifier, token 보관을, renderer는 표시 요청을 담당한다. Main↔preload IPC와 OS 보안 저장 설계는 승인된 [Desktop contract](desktop-auth.md)를 따른다. 실제 구현 착수, OS 저장 검증, 등록값은 별도 gate다.
-- 격리 인증 창과 휴대폰 browser는 패스키 가입, 로그인, 관리와 완료 화면을 담당한다. 개인키와 생체정보는 서버로 전송하지 않는다. 모든 제품 API는 HTTPS다.
+- 시스템 기본 브라우저의 accounts 페이지가 패스키 가입, 로그인, 관리와 완료 화면을 담당한다(2026-10-10 결정, 구현 전까지는 격리 인증 창). 개인키와 생체정보는 서버로 전송하지 않는다. 모든 제품 API는 HTTPS다.
 - 자체 JSON request는 표의 key만 가진 object다. Unknown key, array, null, wrong type을 거절하고 string/boolean을 coercion하지 않는다. 기존 검색 raw query contract는 [`character-search.md`](character-search.md)를 유지한다.
 - 기능 API의 인증은 정확히 하나의 `Authorization: Bearer <access JWT>`다. Header 중복, 잘못된 scheme, body/query의 token 대체 전달은 인증 성공으로 취급하지 않는다. Refresh는 JSON body로만, 앱 복귀 URL에는 자체 exchange code 하나만 전달한다.
 
@@ -42,11 +42,10 @@ Unsupported media+oversize는 415, supported media의 oversize+malformed JSON은
 
 | Endpoint | 입력과 성공 | 그 밖의 실패 |
 | --- | --- | --- |
-| `POST /auth/login-requests` | Public `{provider:"passkey",clientId:"desktop",codeChallenge,codeChallengeMethod:"S256"}` → 201 `{requestId,browserUrl,expiresAt}`. 계정/session 생성 없음. | 형식, 미등록 client: `400 INVALID_AUTH_REQUEST`. |
+| `POST /auth/login-requests` | Public `{provider:"passkey",clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}` → 201 `{requestId,browserUrl,expiresAt}`. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback` 형식(포트만 가변)만 받으며 2026-10-10 결정으로 추가한 승인된 변경 contract다(구현 전). 계정/session 생성 없음. | 형식, 미등록 client, 형식에 맞지 않는 `returnUrl`: `400 INVALID_AUTH_REQUEST`. |
 | `GET /auth/login/authorize?ticket=...` | 일회용 ticket의 hash, TTL, 상태 확인, browser cookie 설정 → 200 패스키 가입, 로그인 HTML. | Unknown/expired/used ticket: `400 LOGIN_REQUEST_INVALID`. |
-| `GET /auth/login/phone?ticket=...` | 일회용 QR ticket 소비와 별도 phone cookie → 200 휴대폰 패스키, PC 승인 HTML. HEAD는 소비하지 않음. | Unknown/expired/used ticket: `400 LOGIN_REQUEST_INVALID`. |
 | `GET /auth/passkeys/manage` | 관리 요청과 browser cookie 발급 → 200 재인증 화면. | 패스키 인증 전에는 계정 관리 권한 없음. |
-| `POST /auth/passkeys/:action` | Exact Origin, cookie, 요청별 상태 확인. options/verify/list/remove/end 및 QR, phone action의 입력, 결과는 [패스키 계약](auth-passkeys.md)과 구현을 따름. | 무효 proof/상태, 마지막 키, 개수 제한, rate limit을 정제 거절. |
+| `POST /auth/passkeys/:action` | Exact Origin, cookie, 요청별 상태 확인. options/verify/list/remove/end action의 입력, 결과는 [패스키 계약](auth-passkeys.md)과 구현을 따름. 자체 휴대폰 QR의 `GET /auth/login/phone`과 `qr`, `status`, `claim`, `direct`, `cancel`, `phone-options`, `phone-verify`, `phone-approve`, `phone-cancel` action은 2026-10-10 결정으로 제거 대상이며 구현 PR에서 지움. | 무효 proof/상태, 마지막 키, 개수 제한, rate limit을 정제 거절. |
 | `POST /auth/exchange` | `{requestId,clientId,code,codeVerifier}` → 200 token 응답+`user:{id,nickname}`+`isNewUser:boolean`. Code 소비, 패스키 소유 확인, 새 session, 첫 refresh를 한 transaction으로 commit. 임의 user/session ID 금지. | 형식: `400 INVALID_AUTH_REQUEST`; code/proof/client 불일치, 소비, 만료: `400 LOGIN_EXCHANGE_INVALID`. 실패로 다른 session을 폐기하지 않음. |
 | `POST /auth/refresh` | `{refreshToken}` → 200 새 token 응답. 만료 access JWT를 요구하지 않으며 hash로 서버가 session을 결정. 소비/대체 hash commit 후만 응답. | 구조: 400; unknown/consumed/revoked/expired: 401. 확인된 consumed 재사용은 해당 session 폐기 commit 후 401. |
 | `POST /auth/logout` | `{refreshToken}` → 204. Known current/consumed token의 session만 폐기. 종료/삭제/unknown도 204. Access 만료와 무관. | 구조: 400; DB: 503. 서버 성공을 확인하지 못하면 서버 logout 완료로 표시하지 않음. |
@@ -83,7 +82,7 @@ API의 `Intl.Segmenter('und',{granularity:'grapheme'})` 결과가 최종 기준�
 ## 응답과 log sink
 
 - 모든 인증 응답은 `Cache-Control: no-store`, browser 응답은 추가로 `Referrer-Policy: no-referrer`다. Third-party asset/analytics를 두지 않는다.
-- API access/error/application log, proxy/gateway, APM/trace/redirect capture, Desktop main/renderer/IPC/deep-link 진단을 같은 경계로 검증한다. Launch, QR ticket, 확인 번호, 앱 복귀 code, 앱 verifier, WebAuthn challenge, assertion, credential, access, refresh token, Cookie/Set-Cookie/Authorization 및 이를 포함한 URL/body/완료 HTML 원문을 기록하지 않는다.
+- API access/error/application log, proxy/gateway, APM/trace/redirect capture, Desktop main/renderer/IPC/deep-link 진단을 같은 경계로 검증한다. Launch ticket, 앱 복귀 code, 앱 verifier, WebAuthn challenge, assertion, credential, access, refresh token, Cookie/Set-Cookie/Authorization 및 이를 포함한 URL/body/완료 HTML 원문을 기록하지 않는다.
 - Structured log는 route template, HTTP status, 정제 error code, duration, credential과 별개인 임의 correlation ID 같은 비민감 field만 allowlist로 출력한다. User ID, nickname도 제외하고 불신 request/response/error object를 통째로 serialization하지 않는다. Redaction이 불명확하면 원문을 생략하고 비민감 실패 counter만 남긴다. 설정/callback/oversize/parse 실패도 같다.
 - 2026-10-10 사용자 결정에 따라 5xx 응답의 log에는 원인 확인용 오류 chain을 추가한다. 던져진 오류와 그 원인을 최대 5개까지 따라가며 각 오류의 `name` 값(JavaScript 식별자 형식일 때), SQLSTATE, Node system error 같은 `code` 문자열(영문, 숫자, `_`로 된 64자 이하일 때), message를 뺀 stack frame(오류마다 최대 5줄, 줄당 300자)만 남긴다. Message, 그 밖의 속성 값, Error가 아닌 값의 원문은 남기지 않는다. 원래 오류를 응답용 오류로 바꿀 때는 원래 오류를 그 자리에서 정제한 결과만 잇고 원래 오류 object를 `cause`로 보관하지 않는다. Stack 앞부분이 현재 name, message와 정확히 맞지 않아 message와 frame의 경계를 알 수 없으면 frame을 생략한다.
 - 완료 HTML은 등록 복귀 버튼에 필요한 code만 담고 verifier/token을 DOM에 두지 않는다. 자체 response-body/DOM snapshot, protocol URL 진단 수집을 끈다. Nonce script와 같은 origin의 API, 스타일만 CSP로 허용하며 third-party resource와 frame embedding은 금지한다.

@@ -5,7 +5,7 @@ enforcement: approval-required
 scope: apps/desktop secure storage protocol and validation
 last-reviewed: 2026-10-10
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
 exceptions: 실제 credential/keychain, protocol registry, 패스키 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, protocol E2E 시
 ---
@@ -58,7 +58,7 @@ Pinned safeStorage는 동기 API이며 OS prompt가 main thread를 막을 수 �
 
 ## Credential file과 crash 복구
 
-Path는 main이 고정한 `app.getPath('userData')/auth/<environment>/` 아래로 한정한다. `<environment>`는 trusted build 설정의 제한된 값이며 renderer 입력이 아니다. Dev/test/prod는 userData, API origin, protocol identity를 분리한다. 실제 directory/backup, OS ACL 동작은 platform 검증 대상이다.
+Path는 main이 고정한 `app.getPath('userData')/auth/<environment>/` 아래로 한정한다. `<environment>`는 trusted build 설정의 제한된 값이며 renderer 입력이 아니다. Dev/test/prod는 userData, API origin, app identity를 분리한다. 실제 directory/backup, OS ACL 동작은 platform 검증 대상이다.
 
 - `credential.v1`: version, environment/API origin/clientId context, safeStorage ciphertext만 담는 최대 16,384-byte record. 암호화 payload는 동일 context와 canonical refresh token 하나다. Access/user/nickname/pending/verifier/code/launch URL은 저장하지 않는다. Context mismatch/unknown version/key/형식/크기 오류는 복원하지 않는다.
 - `transition.v1`: secret 없는 durable marker. Version, local operation ID, 종류(`exchange`, `refresh`, `clear`)만 가진다. Marker가 있으면 credential file의 값은 **어느 version이든 사용 불가**다. Local operation ID는 서버 credential/ID와 별개다.
@@ -90,7 +90,7 @@ review-after: Issue #425 구현 PR의 사용자 merge와 POSIX, native profile �
 
 App 시작 시 marker가 있으면 새/옛 credential을 **복호화해서 자동 refresh하지 않는다**. 파일과 owned temporary record를 위 clear 순서로 제거하고 성공하면 signedOut/REAUTH_REQUIRED, 실패하면 storageBlocked다. Marker 없이 정상 credential 하나만 있으면 복원한다. 손상 record는 사용하지 않고 같은 clear/실패 규칙을 따른다. Backend 잠금, 일시적 복호화 거절은 credential을 임의 평문 복원하지 않고 storageBlocked로 유지한다. retryAuth에서 접근이 회복되고 record/marker가 정상일 때만 정상 복원을 재개한다.
 
-`LOGIN_EXCHANGE_INVALID`처럼 명시적인 비성공 응답 뒤 pending을 계속 기다릴 때는 secret 없는 marker를 안전하게 clear한 다음 waitingBrowser로 돌아간다. Clear 실패는 storageBlocked다. Pending memory를 file로 이동하거나 같은 code를 자동 재전송하지 않는다.
+`LOGIN_EXCHANGE_INVALID`처럼 명시적인 비성공 응답 뒤에는 secret 없는 marker를 안전하게 clear한 다음 lifecycle대로 signedOut으로 끝낸다. Clear 실패는 storageBlocked다. Pending memory를 file로 이동하거나 같은 code를 자동 재전송하지 않는다.
 
 아래 복구 동작은 다음 실행에서 관측되는 marker와 파일 상태를 기준으로 한다. 정전이나 저장 장치의 손실로 marker 자체가 사라진 경우까지 복원 금지를 보장하지 않는다.
 
@@ -124,15 +124,19 @@ Windows profile 준비와 credential 저장은 Koffi/Win32의 실제 호출 결�
 
 ## Protocol 및 browser launch 선택
 
-**흐름: 격리 HTTPS 인증 창의 직접 패스키 또는 휴대폰 QR 승인 → 완료 화면의 앱 복귀 버튼 → main.** 전용 창에서는 callback navigation을 차단하고 기존 교환 함수에 전달한다. 외부에서 도착하는 기존 OS protocol 복귀도 같은 검증을 유지한다. 고정된 returnUrl과 code-only 흐름으로 별도 listener 없이 앱을 활성화한다. 정확한 scheme/host/path는 owned namespace와 배포 identity를 확인한 후 서버 설정와 packaged 앱에 동일하게 등록한다. 현재 placeholder나 임의 `dfragon://...`를 실제 등록값으로 간주하지 않는다.
+**흐름: main이 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다 → 브라우저의 패스키 인증(휴대폰은 브라우저 패스키 창의 hybrid QR) → 인증 완료 페이지가 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 자동 이동 → main.** 이 절은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 인증 창과 OS private protocol 복귀)이 아니다. 격리 인증 창, OS protocol 등록, `open-url`, `second-instance` 복귀 처리, NSIS protocol 등록의 제거는 구현 PR에서 한다. Electron 내부 브라우저는 WebAuthn의 기기 간(hybrid) QR 인증을 지원하지 않아 자체 QR이 필요했으나, 시스템 브라우저에서는 브라우저가 제공하는 패스키 QR로 충분하다.
 
-Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있다. Pending request + S256 verifier가 없는 앱은 자체 code를 교환할 수 없지만 가용성 방해, 정품 앱 보증 문제를 모두 해결하지 않는다. Public clientId도 설치 인증이 아니다. 이 선택은 브라우저 인증 이후 별도 code 복귀라는 프로젝트 선택이며 모든 OS의 최선이라는 주장이 아니다.
+- Main은 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 수신기 하나를 열고 `POST /auth/login-requests`에 `returnUrl: http://127.0.0.1:<port>/auth/callback`을 함께 보낸다. 응답 `browserUrl`은 Electron `shell.openExternal`로 연다. 열기 실패는 기존 `BROWSER_OPEN_FAILED`다.
+- 수신기는 pending 하나에 하나이며 GET `/auth/callback` 한 번만 받는다. 다른 경로와 method에는 404, loopback 밖 원격 주소는 거부한다. 교환 시작, 취소, 만료 중 먼저 오는 때 닫는다. 설치형, 포터블 모두 같은 흐름이다.
+- code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 교환 함수에 전달하며 메인 창을 활성화한다. Code-only 복귀와 60초 code TTL은 유지한다.
 
-Claimed HTTPS는 domain association, OS별 배포 검증을 추가하고, loopback은 listener/port/lifecycle과 현재 복귀 설정 형태에 대한 별도 결정을 요구한다. 실제 private protocol을 안정적으로 등록할 수 없는 배포를 선택한다면 해당 대안과 서버 설정 영향부터 별도 승인받는다. 임의 loopback redirect나 manual token/code 붙여넣기를 fallback으로 추가하지 않는다.
+Loopback의 한계: 같은 OS user의 다른 프로세스가 포트에 요청을 보낼 수 있지만 pending과 S256 verifier가 없으면 code를 교환할 수 없다. 가용성 방해, 정품 앱 보증 문제를 모두 해결하지 않으며 public clientId도 설치 인증이 아니다. 이전 인증 창이 주던 메모리 session, origin 제한, 팝업 차단 격리는 시스템 브라우저에 적용되지 않고, 외부 브라우저의 세션 cookie는 브라우저가 보관한다. 로그인 요청마다 새 패스키 인증을 요구하는 현재 정책은 유지한다. 앱에서 먼저 취소한 뒤 브라우저에서 완료하면 복귀 이동이 연결 실패로 끝나고 브라우저 기본 오류 페이지가 보인다.
+
+Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채택하지 않는다. Private protocol은 같은 OS user의 다른 앱이 가로챌 수 있고 포터블 exe에서는 등록하지 않으므로 loopback으로 대체한다. Manual token/code 붙여넣기를 fallback으로 추가하지 않는다.
 
 ### 로컬 개발용 등록값
 
-이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다.
+이전 로컬 개발 tuple은 [PR #455](https://github.com/blahaj94/ldb/pull/455)에서 `ldb.dev://auth/callback`과 `ldb.dev` identity로 승인됐다. 이번 이름 변경에서는 이를 `dfragon.dev://auth/callback`과 새 `dfragon.dev` identity로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 아래 표의 앱 복귀 값 `dfragon.dev://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 protocol 등록 제거는 구현 PR에서 한다. 로그인 복귀는 위 loopback 주소다. Identity, profile 값은 그대로 쓴다.
 
 | 항목 | 로컬 개발 구성 |
 | --- | --- |
@@ -144,21 +148,23 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하고, loopba
 
 이 절과 아래 Windows MVP 배포 구성은 승인 기록이다. 구현이 실제로 읽는 값의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
 
-이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 해당 사용자 환경에서 DFragon 개발 앱에 할당할 수 있는지 설치 전에 확인한다. 실제 설치, 등록은 실행 허용 범위 안에서 서버 설정의 API, RP ID, returnUrl 일치와 기존 사용자, 컴퓨터 protocol association 충돌 여부를 확인한 뒤 수행한다. 다른 앱의 등록이 있거나 소유권이 불분명하면 덮어쓰지 않고 그 설치를 보류한다. 과거 충돌 부재를 다음 설치, 업데이트의 근거로 대신하지 않는다.
+이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 실제 설치는 실행 허용 범위 안에서 서버 설정의 API, RP ID와 loopback 복귀 형식 일치를 확인한 뒤 수행한다. Protocol 등록이 남아 있는 동안의 association 충돌 확인, 다른 앱 등록을 덮어쓰지 않는 보류 규칙은 등록 제거 전까지 유지한다.
 
-빌드, NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. 이후 다른 앱이 protocol을 가로채는 위험과 PKCE의 보호 한계, 설치 후 실제 handler, cold/warm 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
+빌드, NSIS 파일 생성은 설치나 등록 실행이 아니다. 이 개발 구성은 운영 installer나 다른 OS package의 기본값으로 사용하지 않는다. PKCE의 보호 한계와 loopback 복귀 검증 의무는 위 공통 계약대로 유지한다. 이 등록값 선택이 실제 패스키 로그인 성공을 뜻하지는 않는다. Windows 저장은 위 실행 시 검사와 실패 처리를 따른다.
 
 ### Windows MVP 배포 구성
 
-기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다.
+기존 Windows x64 NSIS 설정은 이름 `LDB`, executable `ldb.exe`, app identity 및 `appData` 아래 profile `ldb`, 인증 환경 `production`, 복귀 주소 `ldb://auth/callback`을 사용했다. 이번 이름 변경은 이를 `DFragon`, `dfragon.exe`, identity/profile `dfragon`, `dfragon://auth/callback`으로 바꾼다. 기존 LDB profile의 인증 정보를 가져오지 않으며, 사용자는 다시 로그인한다. 인터넷 도메인 소유권이나 protocol의 전역 독점권을 주장하지 않는다. 복귀 주소 `dfragon://auth/callback`은 2026-10-10 결정으로 로그인 복귀에 더 이상 쓰지 않으며 NSIS protocol 등록 제거는 구현 PR에서 한다. 이름, identity, profile 값은 그대로 쓴다.
 
-배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버 설정의 복귀 주소는 `dfragon://auth/callback`과 일치해야 한다. 공개 설정만 포함하고 서버 secret, credential은 설치 파일에 넣지 않는다. 실제 서버, HTTPS 연결, 패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
+배포 API는 빌드 시 지정한 canonical HTTPS origin을 main bundle에 포함하며 localhost 개발 origin을 배포 기본값으로 사용하지 않는다. RP ID는 해당 origin의 hostname이며 서버는 `returnUrl`을 loopback 형식 `http://127.0.0.1:<port>/auth/callback`으로 검증한다. 공개 설정만 포함하고 서버 secret, credential은 설치 파일에 넣지 않는다. 실제 서버, HTTPS 연결, 패스키 설정의 준비와 성공을 이 namespace 선택으로 대신하지 않는다.
 
-개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책을 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
+개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 기존 NSIS 소유권 검사와 자기 protocol 등록만 제거하는 정책은 protocol 등록을 걷어내는 구현 PR까지 재사용한다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
-Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않고 앱 내부 인증 창의 복귀 처리를 사용한다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
+Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않는다. 로그인 복귀는 설치형과 같은 loopback 수신기 하나로 처리하며 포터블 전용 복귀 경로는 없다(2026-10-10 결정, 구현 전). 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
 
 ### 공통 진입점
+
+아래 표의 OS 복귀 진입점(`open-url`, `second-instance`의 URL 전달)은 2026-10-10 결정으로 로그인 계약에서 제외하며 제거는 구현 PR에서 한다. 제거 전까지는 현재 구현의 검증 규칙으로만 남는다. Single-instance ownership은 credential file의 단일 writer를 위해 유지한다.
 
 | 진입점 | 등록, 처리 계약 | 실제 사용에서 확인할 사항 |
 | --- | --- | --- |
@@ -166,15 +172,15 @@ Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 �
 | Windows/Linux | Packaged executable 또는 Electron `defaultApp`의 executable, app path를 제거한 user argv를 검사한다. Lock loser가 bounded/versioned `additionalData`로 같은 user argv를 보내며 owner는 이를 재검증하고 mutable `second-instance` command line을 인증 판정에 쓰지 않는다. Single-instance loser는 store/network 작업 없이 종료 | Install 경로 공백, URI 전달, 중복, 실제 default handler와 OS별 focus |
 | 공통 | Bootstrap에서 event handler와 single-instance ownership을 준비한 뒤 ready, store, window를 초기화. 초기 후보는 raw 2,048 byte 이하 1개만 일시 보유하고 추가 후보는 버림 | Cold start는 pending verifier가 없어 교환하지 않음. 정상 저장 session 복원과 독립적으로 안내 |
 
-Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app은 별도 identity를 쓴다. macOS에서 창만 닫아 main이 살아 있으면 pending은 유지하고 유효 복귀 때 창을 다시 만든다. Windows/Linux의 마지막 창 닫힘은 현재 lifecycle상 main quit이므로 pending은 소실된다. Packaged 앱은 URL을 처리하기 위해 창에 URL을 load하지 않고 local renderer만 생성, restore, focus한다. Foreground 전환은 OS가 제한할 수 있어 상태 완료와 focus 성공을 구분한다.
+Single-instance의 범위는 동일 app profile이며 서로 다른 dev/prod app은 별도 identity를 쓴다. macOS에서 창만 닫아 main이 살아 있으면 pending과 loopback 수신기는 유지하고 유효 복귀 때 창을 다시 만든다. Windows/Linux의 마지막 창 닫힘은 현재 lifecycle상 main quit이므로 pending과 수신기는 소실되고 늦은 복귀는 연결 실패로 끝난다. 복귀를 처리하기 위해 창에 URL을 load하지 않고 local renderer만 생성, restore, focus한다. Foreground 전환은 OS가 제한할 수 있어 상태 완료와 focus 성공을 구분한다.
 
 ### 입력 검증
 
 - Browser launch URL은 string, 2,048 byte 이하이며 exact trusted API HTTPS origin, `/auth/login/authorize` path, **ticket 하나**의 canonical 32-byte base64url query만 허용한다. Username/password, fragment, 추가 query, path/port alias, redirect를 허용하지 않는다. URL parser 뒤 canonical 재구성한 값과 원문이 동일해야 하며 allowlist prefix 비교로 대체하지 않는다.
-- App 복귀 후보는 bootstrap argument를 제거한 초기 user argv 또는 exact version, shape, count, UTF-8 byte 경계를 다시 확인한 lock handoff의 모든 문자열에서 검사한다. `second-instance` command line의 순서, 내용을 인증 입력으로 신뢰하거나 마지막 argument라고 가정하거나 joined command line을 shell로 재해석하거나 arbitrary command를 실행하지 않는다. 한 OS event에 복귀 후보가 2개 이상이면 전체 거절한다. 제거된 executable/app path와 단독 `--` 등 일반 argument를 URL로 취급하지 않는다. `--` 또는 slash prefix option의 첫 `=`나 `:` 뒤 payload는 option 이름의 punctuation, 빈 이름과 무관하게 URL-like 분류 대상으로 검사한다. Slash prefix 이름에 path separator가 있으면 POSIX path로 유지한다. 예외는 대소문자를 정규화한 option 이름이 정확히 `user-data-dir`이고 raw argument, payload에 trim/control projection이 없으며, payload가 drive letter와 colon 뒤에 slash 또는 backslash가 정확히 하나인 absolute Windows drive 형태(`C:/...`, `C:\...`)일 때뿐이다. Well-formed scheme 또는 path/query/fragment 구분자 없는 prefix 뒤의 colon과 slash/backslash로 시작하는 형태는 protocol-like이다. Direct drive-shaped user argument와 다른 option의 drive-shaped payload, control 제거 뒤에만 drive path가 되는 값처럼 one-letter URI와 구별할 수 없는 입력은 fail closed한다.
-- 복귀 URL도 2,048 byte 이하, control/공백/backslash 없음, 정확한 등록 scheme/host/path여야 한다. Userinfo/port/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<registered-return-target>?code=<canonical-code>`와 정확히 같아야 한다. 대상 target의 authority 유무까지 등록 형태를 따른다.
+- 아래 argv 복귀 후보 검사는 OS protocol 복귀의 규칙이며 2026-10-10 결정으로 로그인 계약에서 제외한다. 제거 전까지 현재 구현은 다음을 유지한다. App 복귀 후보는 bootstrap argument를 제거한 초기 user argv 또는 exact version, shape, count, UTF-8 byte 경계를 다시 확인한 lock handoff의 모든 문자열에서 검사한다. `second-instance` command line의 순서, 내용을 인증 입력으로 신뢰하거나 마지막 argument라고 가정하거나 joined command line을 shell로 재해석하거나 arbitrary command를 실행하지 않는다. 한 OS event에 복귀 후보가 2개 이상이면 전체 거절한다. 제거된 executable/app path와 단독 `--` 등 일반 argument를 URL로 취급하지 않는다. `--` 또는 slash prefix option의 첫 `=`나 `:` 뒤 payload는 option 이름의 punctuation, 빈 이름과 무관하게 URL-like 분류 대상으로 검사한다. Slash prefix 이름에 path separator가 있으면 POSIX path로 유지한다. 예외는 대소문자를 정규화한 option 이름이 정확히 `user-data-dir`이고 raw argument, payload에 trim/control projection이 없으며, payload가 drive letter와 colon 뒤에 slash 또는 backslash가 정확히 하나인 absolute Windows drive 형태(`C:/...`, `C:\...`)일 때뿐이다. Well-formed scheme 또는 path/query/fragment 구분자 없는 prefix 뒤의 colon과 slash/backslash로 시작하는 형태는 protocol-like이다. Direct drive-shaped user argument와 다른 option의 drive-shaped payload, control 제거 뒤에만 drive path가 되는 값처럼 one-letter URI와 구별할 수 없는 입력은 fail closed한다.
+- 복귀 URL은 loopback 수신기가 받은 요청의 URL이며 2,048 byte 이하, control/공백/backslash 없음, 등록 `returnUrl` `http://127.0.0.1:<port>/auth/callback`과 정확히 일치해야 한다(RFC 8252 7.3, 포트만 가변). 서버 `apps/accounts/browser/return-target.ts`와 앱 `apps/desktop/src/backend/auth/protocol.ts`가 같은 형식을 검증한다(2026-10-10 결정, 구현 전). Userinfo/fragment, 추가 path, encoded 구분자, dot segment, unknown/duplicate query key를 거절한다. Canonical raw 값은 `<returnTarget>?code=<canonical-code>`와 정확히 같아야 한다.
 - Code는 auth-passkeys의 **43자 canonical unpadded base64url, decode 32byte, re-encode 동일**만 허용한다. Code를 URL decode 반복/coercion/trim으로 보정하지 않는다. 입력 code만으로 request/provider/user를 선택하지 않는다.
-- URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패, 잘못된 scheme은 기존 pending/session, window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 동일 code의 중복, expired handling은 lifecycle을 따른다.
+- URL을 network로 따라가거나 renderer로 전달하지 않는다. Validation 실패는 기존 pending/session, window navigation에 side effect가 없다. 정상 URL도 현재 pending이 없으면 교환 0이다. 수신기는 요청 하나만 받으므로 같은 pending에 두 번째 code가 오지 않으며, expired handling은 lifecycle을 따른다.
 
 ### Linux package별 동작 참고
 
@@ -192,6 +198,6 @@ VM 강제 종료의 지점별 반복, 물리 정전, 장기 clock drift, profile
 
 ## 배포 구성과 실행 조건
 
-배포 대상과 실제 사용한 OS, architecture, package, API HTTPS origin, RP ID, 앱 return target과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 등록값이 서버와 앱에서 일치해야 하며, 다른 앱의 protocol 등록을 덮어쓰지 않는다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
+배포 대상과 실제 사용한 OS, architecture, package, API HTTPS origin, RP ID, loopback 복귀 형식과 identity를 구분해 기록한다. 선택하지 않은 플랫폼 검증이나 서명/업데이트 시험이 현재 대상의 로그인 구현을 막지 않는다. 설치 파일에 필요한 native 모듈이 포함되고 복귀 형식이 서버와 앱에서 일치해야 한다. 로컬 개발은 위 개발 tuple을 사용하고 운영 등록값을 placeholder로 추정하지 않는다.
 
-패스키, QR 지원은 현재 구현과 실제 브라우저, 기기 연결 결과로 판단한다. 선택하지 않은 기기의 미완료 검증을 현재 환경의 성공으로 확대하지 않는다. 실제 credential, 패스키 설정, 운영 DB, 배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [제품 계약 적용 기준](../README.md#document-class)을 따르며 사용자만 merge한다.
+패스키와 브라우저 hybrid QR 지원은 현재 구현과 실제 브라우저, 기기 연결 결과로 판단한다. 선택하지 않은 기기의 미완료 검증을 현재 환경의 성공으로 확대하지 않는다. 실제 credential, 패스키 설정, 운영 DB, 배포 실행 권한은 검증 절차 제거만으로 새로 생기지 않는다. 후속 작업과 PR은 [제품 계약 적용 기준](../README.md#document-class)을 따르며 사용자만 merge한다.

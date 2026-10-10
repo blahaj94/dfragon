@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/accounts core authentication database
-last-reviewed: 2026-09-28
+last-reviewed: 2026-10-10
 ---
 
 # Authentication Database Contract
@@ -58,7 +58,7 @@ User 삭제 시 passkeys와 sessions→refresh cascade는 기본 구조다. JWT 
 
 ## 휴대폰 QR 요청
 
-`AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`, `phone_approved` 상태를 추가한다. QR ticket과 phone binding은 raw 값을 저장하지 않는다. 기존 users, 패스키, session, refresh와 진행 중 직접 로그인은 보존한다. 완료/실패 시 QR 필드도 null 처리하고 기존 cleanup, 만료 규칙을 재사용한다. 운영은 forward migration만 적용하며 disposable down은 활성 QR 요청이 있으면 거절한다.
+`AddPhoneQrLogin`은 기존 요청 table에 nullable `qr_ticket_hash`, `phone_binding_hash`, `confirmation_code`와 `phone_verified`, `phone_approved` 상태를 추가했다. 2026-10-10 사용자 결정으로 자체 휴대폰 QR 로그인을 제거하므로 이 column과 상태는 구현 PR의 forward migration으로 지운다. 지우는 migration은 활성 QR 요청이 있으면 거절하지 않고 해당 요청을 함께 종료하며, users, 패스키, session, refresh와 진행 중 직접 로그인은 보존한다. 제거 전까지는 QR ticket과 phone binding의 raw 값을 저장하지 않고 완료/실패 시 QR 필드를 null 처리하는 현재 규칙을 유지한다. 이 절은 승인된 변경 contract이며 현재 구현이 아니다.
 
 ## 별도 accounts DB와 이전 종료
 

@@ -53,7 +53,7 @@ PostgreSQL의 최초 선택 이력과 현재 갱신, 검증 기준은 [`auth-run
 
 ## Authentication boundary contract
 
-accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 회원, 공개키, session을 저장한다. 인증 UI, 패스키 로그인, 키 관리는 accounts.dfragon.com의 단일 origin과 RP를 사용한다. Desktop public client는 격리 인증 BrowserWindow에서 인증하고 S256으로 보호한 앱 복귀 code를 교환한다. 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다. 이전 인증 설계 승인은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)에 보존한다.
+accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 회원, 공개키, session을 저장한다. 인증 UI, 패스키 로그인, 키 관리는 accounts.dfragon.com의 단일 origin과 RP를 사용한다. Desktop public client는 시스템 기본 브라우저에서 인증하고 loopback 수신기로 받은 앱 복귀 code를 S256으로 보호해 교환한다(2026-10-10 결정, 구현 전까지는 격리 인증 BrowserWindow와 OS protocol 복귀). 계약은 [패스키](../rules/auth-passkeys.md), [HTTP 경계](../rules/auth-api.md), [세션](../rules/auth-session.md), [DB](../rules/auth-database.md), [활동](../rules/auth-activity.md), [runtime](../rules/auth-runtime.md)을 따른다. 이전 인증 설계 승인은 [PR #48](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)에 보존한다.
 
 위 승인은 서버 인증/DB contract 범위다. 추가로 [PR #60 사용자 승인](https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475)으로 Desktop main/IPC/화면, 인증 lifecycle, OS 저장, protocol 설계가 승인됐다. Canonical contract는 [`../rules/desktop-auth.md`](../rules/desktop-auth.md), [`../rules/desktop-auth-lifecycle.md`](../rules/desktop-auth-lifecycle.md), [`../rules/desktop-auth-platform.md`](../rules/desktop-auth-platform.md)다.
 

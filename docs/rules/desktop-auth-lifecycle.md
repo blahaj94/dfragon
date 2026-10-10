@@ -3,9 +3,9 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop authentication lifecycle and recovery
-last-reviewed: 2026-09-12
+last-reviewed: 2026-10-10
 rationale: callback, 재시작, rotation, 취소 경합에서 중복 credential 사용과 거짓 로그인 성공을 막는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; docs/rules/auth-api.md, auth-passkeys.md, auth-session.md; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
 exceptions: 설계 승인은 구현 착수가 아니며 서버 grace, 취소/status endpoint 또는 session 정책을 추가하지 않는다.
 review-after: 최초 로그인, refresh, 저장 실패 integration validation 시
 ---
@@ -25,18 +25,19 @@ review-after: 최초 로그인, refresh, 저장 실패 integration validation �
 | 항목               | 위치, 생성                                                                                                                                                                               | 수명, 폐기                                                                                                                                                      |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 앱 PKCE verifier   | main memory, beginLogin마다 32-byte CSPRNG canonical base64url 43자. S256 challenge는 ASCII verifier의 SHA-256                                                                          | pending attempt 하나에만 결합. 취소, request 만료, 정상 exchange 종료, 재시작 시 폐기; file/IPC 저장 없음                                                         |
-| Pending login      | main memory: local attemptId/generation, server requestId, provider/client, verifier, request expiresAt, clock 기준, 상태/abort controller, 진행 중 exchange, 최근 거절 code fingerprint | 한 번에 하나. App main 종료 시 복구하지 않음. Renderer reload, macOS 창 닫힘처럼 main이 살아 있으면 유지                                                        |
-| Browser launch URL | main memory의 검증된 HTTPS URL                                                                                                                                                          | 전용 BrowserWindow에 1회 전달 뒤 참조 해제. 브라우저 열기 실패/취소에서도 새 request로 재시작하며 재사용하지 않음                                                    |
-| 복귀 exchange code | main parser→진행 중 exchange body memory                                                                                                                                                | 입력 검증, 현재 pending과 교환하는 동안만. 성공/실패/취소/timeout 뒤 raw 참조 해제. 중복 방지 fingerprint는 pending 수명만 유지                                 |
+| Pending login      | main memory: local attemptId/generation, server requestId, provider/client, verifier, request expiresAt, clock 기준, 상태/abort controller, 진행 중 exchange, loopback 수신기 참조 | 한 번에 하나. App main 종료 시 복구하지 않음. Renderer reload, macOS 창 닫힘처럼 main이 살아 있으면 유지                                                        |
+| Loopback 수신기    | main이 `beginLogin`마다 127.0.0.1의 임시 포트(1024~65535)에 하나 생성. 주소는 `returnUrl`로 서버에 전달                                                                                | pending 하나에 하나. GET `/auth/callback` 한 번만 받고 교환 시작, 취소, 만료, 생성과 브라우저 열기 실패 중 먼저 오는 때 닫음. 재시작 시 다시 열지 않음                                      |
+| Browser launch URL | main memory의 검증된 HTTPS URL                                                                                                                                                          | `shell.openExternal`에 1회 전달 뒤 참조 해제. 브라우저 열기 실패/취소에서도 새 request로 재시작하며 재사용하지 않음                                                  |
+| 복귀 exchange code | loopback 수신기가 받은 요청 URL을 main parser가 검증→진행 중 exchange body memory                                                                                                      | 입력 검증, 현재 pending과 교환하는 동안만. 성공/실패/취소/timeout 뒤 raw 참조 해제                                                                               |
 | Access JWT         | main memory, exchange/refresh 응답에서만                                                                                                                                                | 서버 만료 시각까지의 요청용. 파일에 보관하지 않고 logout, 인증 상실, main 종료 시 폐기. Client가 JWT를 새로 발급/수정하거나 user identity source로 해석하지 않음 |
 | Refresh token      | main memory + safeStorage 암호화 credential file                                                                                                                                        | rotation 전 durable marker, 새 응답 저장 후 교체. Logout, 401, 결과 불명, 저장 실패 시 재사용 금지. 정확한 저장 순서는 platform 문서                              |
 | User, entry         | main memory의 검증된 exchange `/me` 결과                                                                                                                                                | signedIn 동안만. 디스크 profile cache 없음. 재시작은 refresh 뒤 `/me`; isNewUser는 새 exchange의 안내 분기에만 사용                                            |
 
-패스키 개인키, 생체정보, WebAuthn credential 응답은 Desktop에 오지 않는다. JS string/Buffer 참조 해제를 즉시 zeroization 또는 OS/browser history 삭제 보장으로 표현하지 않는다. 모든 main/renderer/IPC/protocol/HTTP 진단은 auth-api의 log allowlist를 따른다. Raw URL/argv/body/response/error object를 log, crash breadcrumb에 넣지 않는다.
+패스키 개인키, 생체정보, WebAuthn credential 응답은 Desktop에 오지 않는다. JS string/Buffer 참조 해제를 즉시 zeroization 또는 OS/browser history 삭제 보장으로 표현하지 않는다. 모든 main/renderer/IPC/loopback/HTTP 진단은 auth-api의 log allowlist를 따른다. Raw URL/argv/body/response/error object를 log, crash breadcrumb에 넣지 않는다.
 
 ## 단일 coordinator와 경합
 
-- Main bootstrap에서 단일 인스턴스 ownership을 먼저 얻는다. Auth state, credential file을 쓰는 주체는 그 main 하나다. OS event 등록, cold/warm 차이는 platform 문서를 따른다.
+- Main bootstrap에서 단일 인스턴스 ownership을 먼저 얻는다. Auth state, credential file을 쓰는 주체는 그 main 하나다. Loopback 수신기 조건과 창 닫힘 뒤 pending 유지는 platform 문서를 따른다.
 - Auth generation은 로그인 시작/취소, 복원 포기, logout, session 무효화 때 증가한다. 모든 HTTP, 저장 작업은 시작 generation을 기억하고 완료 시 다시 검사한다. 늦은 성공이 새 계정이나 signedOut을 덮지 않는다.
 - Credential mutation은 한 queue/critical section에서 직렬화한다. In-flight 작업이 끝나거나 timeout으로 결과 불명 처리, marker 유지가 확정되기 전 새 login/refresh writer를 시작하지 않는다. Late response 처리도 이 경계를 거친다.
 - Renderer가 새로 열리면 snapshot을 읽는다. UI 부재 때문에 main pending을 새로 만들거나 callback을 renderer로 보내지 않는다. 정상 quit도 verifier를 저장하지 않는다.
@@ -47,38 +48,39 @@ review-after: 최초 로그인, refresh, 저장 실패 integration validation �
 sequenceDiagram
     participant R as Renderer
     participant M as Electron main
-    participant B as 격리 인증 창
+    participant B as 시스템 브라우저
     participant A as 중앙 API
     participant P as 패스키 인증기
     R->>M: beginLogin(provider)
-    M->>M: 저장 가능 확인, 새 pending 및 S256
-    M->>A: POST /auth/login-requests
+    M->>M: 저장 가능 확인, 새 pending 및 S256, loopback 수신기 열기
+    M->>A: POST /auth/login-requests (returnUrl 포함)
     A-->>M: requestId, browserUrl, expiresAt
-    M->>B: 검증한 launch URL 열기
+    M->>B: shell.openExternal로 검증한 launch URL 열기
     B->>A: 일회용 launch ticket
     A-->>B: cookie, 패스키 화면
     B->>P: WebAuthn 생성 또는 서명, 사용자 확인
     P-->>B: WebAuthn 응답
     B->>A: 같은 origin에서 증명 검증 요청
-    A-->>B: 검증 완료 HTML, 앱 복귀 버튼
-    B->>M: OS private protocol, code 하나
-    M->>M: URL 검증, 현재 pending 선택
+    A-->>B: 인증 완료 HTML, loopback 복귀로 자동 이동
+    B->>M: loopback callback, code 하나
+    M-->>B: 로그인 완료 HTML
+    M->>M: URL 검증, 현재 pending 선택, 수신기 닫기
     M->>A: POST /auth/exchange (requestId, clientId, code, verifier)
     A-->>M: commit 뒤 token, user, isNewUser
     M->>M: 응답 검증, 새 refresh durable 저장
     M-->>R: signedIn snapshot (welcome 또는 home)
 ```
 
-1. `signedOut → startingLogin`: enabled provider와 저장 준비/이전 marker 정리를 확인한다. 준비 실패면 browser/서버 요청 없이 storageBlocked다. 새 attempt/verifier를 만들고 `{provider,clientId:"desktop",codeChallenge,codeChallengeMethod:"S256"}`만 보낸다.
-   - 생성 요청의 network/15초 timeout은 `signedOut/NETWORK_UNAVAILABLE`, 500/503은 `signedOut/AUTH_SERVICE_UNAVAILABLE`, 400, 예상 밖 status, malformed/invalid 201은 `signedOut/LOGIN_RESTART_REQUIRED`로 끝낸다. 모두 pending/verifier를 폐기하고 browser 호출, 자동 retry는 0이다. 응답을 못 받은 request row는 서버 TTL로 종료되며 이 endpoint는 session을 생성하지 않는다.
-   - 생성 응답 처리 및 인증 창 열기 직전에 현재 attempt/generation을 재검사한다. 취소/만료 뒤 늦게 온 201은 URL을 열지 않고 버리며 이미 결정된 상태를 덮지 않는다.
-2. 201 응답에서 request UUID, exact launch URL, 유효 UTC ISO expiresAt을 검사한다. 서버 request 전체 TTL 600초를 연장하지 않는다. Main은 요청 시작부터 monotonic 600초 상한과 expiresAt wall-clock 조건 중 먼저 도달한 시점에 pending을 끝낸다. Clock 역행/큰 불연속이 관측되면 새 로그인을 요구한다. 절전 복귀, OS callback, HTTP 완료 때도 시간을 재검사한다. Client countdown은 안내/조기 포기 기준이며 서버의 fresh time 판단을 대체하지 않는다.
-3. Pending을 완전히 저장한 뒤 `waitingBrowser`를 발행하고 main이 격리 인증 BrowserWindow를 한 번 연다. Resolver 성공은 브라우저 패스키 인증 성공 증거가 아니다. Renderer로 browserUrl을 보내지 않는다. 창 열기 실패면 pending을 정리하고 `signedOut/BROWSER_OPEN_FAILED`다.
-4. 패스키 응답은 브라우저에서 서버로 제출하고 검증한다. 완료 HTML의 버튼은 등록 target에 **code 하나**만 싣는다. App은 callback에 requestId/provider/error/state/token이 있다고 가정하지 않는다. 인증 창은 정확한 callback을 가로채 기존 main 교환 함수에 전달한다. 교환이 claim되면 메인 창을 활성화하고 인증 창을 닫는다. 인증 창 수동 닫힘은 해당 pending을 취소하고 앱 내 취소, 만료도 창을 닫는다. QR 상태 polling, 서버 취소는 인증 페이지의 제한된 기능이며 제품 renderer에 자격을 노출하지 않는다.
-5. OS 복귀를 strict parser로 검증한 뒤 현재 살아 있는 pending 하나를 선택한다. Client/proof/request binding은 `/auth/exchange`가 최종 검증한다. 유효한 pending이 없으면 서버 요청 0: signedOut이면 `LOGIN_RESTART_REQUIRED`, 이미 signedIn/restoring이면 현재 session을 그대로 유지한다. Cold start에서 verifier가 없다는 이유로 저장된 정상 session까지 지우지 않는다.
-6. `waitingBrowser → exchanging`: 동기적으로 현재 candidate를 claim하고 아래 durable marker를 확립한 뒤 requestId, clientId, code, verifier를 교환한다. 같은 callback 중복은 기존 작업에 합류하거나 무시하고 두 번째 exchange를 보내지 않는다. 다른 code가 in-flight 중 들어오면 추가 작업을 queue하지 않고 무시한다.
+1. `signedOut → startingLogin`: enabled provider와 저장 준비/이전 marker 정리를 확인한다. 준비 실패면 browser/서버 요청 없이 storageBlocked다. 새 attempt/verifier를 만들고 127.0.0.1의 임시 포트에 loopback 수신기를 연 뒤 `{provider,clientId:"desktop",codeChallenge,codeChallengeMethod:"S256",returnUrl}`만 보낸다. `returnUrl`은 `http://127.0.0.1:<port>/auth/callback`이다. 수신기를 열지 못하면 서버 요청 없이 pending/verifier를 폐기하고 `signedOut/LOGIN_RESTART_REQUIRED`다. 이 흐름은 2026-10-10 사용자 결정으로 승인된 변경 contract이며 현재 구현(격리 인증 창, OS protocol 복귀)이 아니다.
+   - 생성 요청의 network/15초 timeout은 `signedOut/NETWORK_UNAVAILABLE`, 500/503은 `signedOut/AUTH_SERVICE_UNAVAILABLE`, 400, 예상 밖 status, malformed/invalid 201은 `signedOut/LOGIN_RESTART_REQUIRED`로 끝낸다. 모두 pending/verifier를 폐기하고 loopback 수신기를 닫으며 browser 호출, 자동 retry는 0이다. 응답을 못 받은 request row는 서버 TTL로 종료되며 이 endpoint는 session을 생성하지 않는다.
+   - 생성 응답 처리 및 시스템 브라우저 열기 직전에 현재 attempt/generation을 재검사한다. 취소/만료 뒤 늦게 온 201은 URL을 열지 않고 버리며 이미 결정된 상태를 덮지 않는다.
+2. 201 응답에서 request UUID, exact launch URL, 유효 UTC ISO expiresAt을 검사한다. 서버 request 전체 TTL 600초를 연장하지 않는다. Main은 요청 시작부터 monotonic 600초 상한과 expiresAt wall-clock 조건 중 먼저 도달한 시점에 pending을 끝낸다. Clock 역행/큰 불연속이 관측되면 새 로그인을 요구한다. 절전 복귀, loopback 복귀, HTTP 완료 때도 시간을 재검사한다. Client countdown은 안내/조기 포기 기준이며 서버의 fresh time 판단을 대체하지 않는다.
+3. Pending을 완전히 저장한 뒤 `waitingBrowser`를 발행하고 main이 `browserUrl`을 Electron `shell.openExternal`로 시스템 기본 브라우저에서 한 번 연다. 열기 호출의 성공은 브라우저 패스키 인증 성공 증거가 아니다. Renderer로 browserUrl을 보내지 않는다. 열기 실패면 loopback 수신기와 pending을 정리하고 `signedOut/BROWSER_OPEN_FAILED`다.
+4. 패스키 응답은 브라우저에서 서버로 제출하고 검증한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 등록 `returnUrl`인 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며 `앱으로 돌아가기` 버튼도 같은 주소를 연다. 복귀에는 **code 하나**만 싣는다. App은 callback에 requestId/provider/error/state/token이 있다고 가정하지 않는다. Loopback 수신기가 code를 받으면 브라우저에 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 기존 main 교환 함수에 전달하며 메인 창을 활성화한다. 앱 내 취소, 만료는 수신기를 닫는다. 브라우저에 남은 페이지는 서버 TTL로 만료되며 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱에서 먼저 취소한 뒤 브라우저에서 완료하면 복귀 이동이 연결 실패로 끝나고 브라우저 기본 오류 페이지가 보이는 한계를 받아들인다. 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리하며 DFragon 자체 QR 상태 polling은 없다.
+5. Loopback 복귀 요청 URL을 strict parser로 검증한 뒤 현재 살아 있는 pending 하나를 선택한다. Client/proof/request binding은 `/auth/exchange`가 최종 검증한다. 유효한 pending이 없으면 서버 요청 0: signedOut이면 `LOGIN_RESTART_REQUIRED`, 이미 signedIn/restoring이면 현재 session을 그대로 유지한다. 앱 재시작 뒤에는 수신기가 없어 늦은 복귀는 연결 실패로 끝나며, verifier가 없다는 이유로 저장된 정상 session까지 지우지 않는다.
+6. `waitingBrowser → exchanging`: 동기적으로 현재 candidate를 claim하고 loopback 수신기를 닫은 뒤 아래 durable marker를 확립하고 requestId, clientId, code, verifier를 교환한다. 수신기가 GET `/auth/callback`을 한 번만 받으므로 같은 pending에 두 번째 code가 들어오지 않으며, 늦게 온 요청은 연결 실패로 끝난다. 두 번째 exchange를 보내지 않는다.
 7. 200 응답 전체를 검사하고 아직 같은 generation이면 새 refresh를 durable 저장한다. **저장 완료 전에는 signedIn/event/user 화면을 발행하지 않는다.** 저장 뒤 memory access/user를 publish하고 pending/verifier/code를 폐기한다. 신규 insert winner만 welcome, 나머지는 home이다.
-8. `400 LOGIN_EXCHANGE_INVALID`는 code/proof/소비/만료를 구분하지 않는다. 서버 성공을 추정하지 않고 candidate를 폐기한다. 현재 request TTL 안이면 waitingBrowser로 돌아가 `LOGIN_RETURN_INVALID`와 새 로그인 action을 보여주며 verifier를 유지한다. 최근 거절 fingerprint와 같은 복귀는 재전송하지 않는다. 다른 정상 callback이 이후 도착하면 교환할 수 있다. Local request 만료면 signedOut/LOGIN_EXPIRED다. 이 선택은 다른 request의 잘못된 복귀가 현재 pending을 즉시 없애지 않게 한다.
+8. `400 LOGIN_EXCHANGE_INVALID`는 code/proof/소비/만료를 구분하지 않는다. 서버 성공을 추정하지 않고 candidate를 폐기한다. Loopback 수신기는 교환 시작 때 이미 닫혔고 다시 열지 않으므로 pending/verifier도 폐기하고 `signedOut/LOGIN_RETURN_INVALID`로 끝내며 사용자는 새 로그인으로 다시 시작한다. 이전 revision의 waitingBrowser 복귀, 거절 fingerprint 재전송 차단, 다른 callback 대기는 한 번만 받는 수신기(2026-10-10 결정)로 대체한다. Local request 만료면 signedOut/LOGIN_EXPIRED다.
 9. 형식/설정 오류, exchange transport/5xx, 응답 body 불명/유실은 새 로그인을 요구하고 해당 code를 자동 재시도하지 않는다. 서버 commit됐으나 token을 못 받은 session은 앱에서 폐기할 수 없을 수 있고 서버 30일 미사용 종료를 따른다. 서버에 새 grace/idempotency를 요구하지 않는다.
 
 ## Main HTTP 계약
@@ -137,11 +139,11 @@ review-after: 초기 restore, paused retry의 commit/finalize 지연과 후속 �
 
 | 사건                                        | Main, 저장, 서버 동작                                                                                                                                                                            | 화면/후속 action                                                                                                                                    |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 앱 내 pending 취소                          | generation 증가, HTTP abort, pending 참조 해제. 전용 인증 창 종료. 페이지의 서버 취소 요청은 best-effort                                                                                                | signedOut/LOGIN_CANCELLED. 늦은 URL은 새 로그인 자격을 만들지 못함                                                                                  |
+| 앱 내 pending 취소 (상단 바 `취소` 버튼)    | generation 증가, HTTP abort, pending 참조 해제. Loopback 수신기 종료. 브라우저에 남은 페이지는 서버 TTL로 만료                                                                                          | signedOut/LOGIN_CANCELLED. 늦은 복귀는 연결 실패로 끝나며 새 로그인 자격을 만들지 못함                                                              |
 | Exchange 중 취소 후 token 성공 응답 도착    | signedIn/저장 금지. 완전히 검증한 refresh가 있으면 `/auth/logout` 1회, 실패도 credential 폐기. Network 종료, store 정리 전 새 writer 금지                                                       | 취소 유지. 서버 미확인 session의 idle 종료 한계 공개                                                                                                |
-| Local request TTL 도달, 절전 중 만료         | pending을 폐기. 진행 중 exchange가 있어도 취소와 같은 generation 처리                                                                                                                          | signedOut/LOGIN_EXPIRED, 새 attempt 필요. Code 60초 TTL은 서버만 최종 판정                                                                          |
-| Main crash/종료, renderer reload            | Main 종료는 pending 폐기, 정상 refresh만 복원. Renderer reload는 main snapshot 재조회                                                                                                           | 종료 중 로그인은 처음부터. 이미 저장된 session은 정상 복원 절차                                                                                     |
-| 중복/잘못된 URL, 창 없는 warm 복귀          | Platform parser와 위 pending 선택을 따름. 잘못된 URL은 HTTP, window navigation 0; 현재 인증을 지우지 않음                                                                                       | 정상 pending 복귀에만 창 생성/복원/focus 후 처리. OS가 focus를 보장한다고 주장하지 않음                                                             |
+| Local request TTL 도달(600초), 절전 중 만료  | pending과 loopback 수신기를 폐기. 진행 중 exchange가 있어도 취소와 같은 generation 처리                                                                                                        | signedOut/LOGIN_EXPIRED, 새 attempt 필요. Code 60초 TTL은 서버만 최종 판정                                                                          |
+| Main crash/종료, renderer reload            | Main 종료는 pending과 수신기 폐기, 정상 refresh만 복원. Renderer reload는 main snapshot 재조회                                                                                                  | 종료 중 로그인은 처음부터. 이미 저장된 session은 정상 복원 절차                                                                                     |
+| 잘못된 loopback 요청, 창 없는 복귀          | 다른 경로와 method는 404, loopback 밖 원격 주소는 거부. 잘못된 복귀 URL은 platform parser를 따르며 HTTP 교환 0; 현재 인증을 지우지 않음                                                        | 정상 pending 복귀에만 메인 창 생성/복원/focus 후 처리. OS가 focus를 보장한다고 주장하지 않음                                                        |
 | Refresh/저장 중 logout                      | 즉시 generation 증가, 계정 보호 요청 차단. 단일 writer와 조정해 이미 알고 있는 마지막 refresh를 선택. Known consumed R0도 logout 자격이므로 R1 도착을 기다려 재사용하지 않음                    | signingOut. 늦은 200은 로그인 복구에 사용하지 않음                                                                                                  |
 | 현재 기기 logout 정상                       | Durable marker→known refresh로 `/auth/logout` 1회→local record/marker 정리→memory 해제. 서버 204만 폐기 확인. 기기에 저장된 패스키 삭제 없음                                                             | signedOut. Server logout과 local 정리 모두 확인된 경우에만 완료 안내                                                                                |
 | Logout 503/timeout/offline, local 정리 성공 | 서버 결과를 추정하지 않고 local credential 사용, 보관 중단. 자동 background retry 위해 token을 남기지 않음                                                                                      | signedOut/LOGOUT_SERVER_UNCONFIRMED: “이 기기 정보는 지웠지만 서버 로그아웃은 확인하지 못했습니다.”                                                 |

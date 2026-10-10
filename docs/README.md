@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: repository
-last-reviewed: 2026-10-02
+last-reviewed: 2026-10-10
 ---
 
 # DFragon Document Guide
@@ -47,7 +47,7 @@ Reference의 오류는 실제 파일, 설정에 맞춰 고친다. Rule과 구현
 | 필요한 topic | Canonical Rule |
 | --- | --- |
 | Endpoint, parser, 오류, nickname, log sink | [`rules/auth-api.md`](rules/auth-api.md) |
-| 패스키 가입, WebAuthn, QR, 예비 키, 앱 교환, TTL | [`rules/auth-passkeys.md`](rules/auth-passkeys.md) |
+| 패스키 가입, WebAuthn, 예비 키, 앱 교환, TTL | [`rules/auth-passkeys.md`](rules/auth-passkeys.md) |
 | JWT/key, 30일, refresh/logout 최종 경합 | [`rules/auth-session.md`](rules/auth-session.md) |
 | 핵심 5개 테이블, constraint, 잠금, 정리/물리 보관, 삭제 경계 | [`rules/auth-database.md`](rules/auth-database.md) |
 | 검색 admission/quota, 활동 commit, residual JWT, DB 장애, 계정 기능 경합 | [`rules/auth-activity.md`](rules/auth-activity.md) |
