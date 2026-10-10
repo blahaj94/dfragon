@@ -9,6 +9,7 @@ type AuthBridge = {
   commandPending: boolean
   connectionFailed: boolean
   onIntent: (intent: AuthIntent) => void
+  cancelLogin: () => void
   resynchronize: () => void
 }
 
@@ -28,12 +29,20 @@ export function useAuthBridge(api: AuthApi): AuthBridge {
   const snapshot = hasSameSource ? state.context.snapshot : null
   const commandPending = hasSameSource && state.hasTag('commandPending')
   const connectionFailed = hasSameSource && state.hasTag('connectionFailed')
+  const attemptId = snapshot?.login?.attemptId
+  const cancelLogin = useCallback((): void => {
+    if (attemptId == null) {
+      return
+    }
+    onIntent({ type: 'cancelLogin', attemptId })
+  }, [attemptId, onIntent])
 
   return {
     snapshot,
     commandPending,
     connectionFailed,
     onIntent,
+    cancelLogin,
     resynchronize
   }
 }

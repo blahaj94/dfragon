@@ -1,19 +1,23 @@
-import { ActionButton } from '@dfragon/ui'
+import { ActionButton, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
+import { RefreshIcon } from '../components/RefreshIcon'
 import { useAuthBridge } from '../hooks/useAuthBridge'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 
 export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | null {
-  const { snapshot, commandPending, connectionFailed, onIntent, resynchronize } = useAuthBridge(api)
+  const { snapshot, commandPending, connectionFailed, onIntent, cancelLogin, resynchronize } =
+    useAuthBridge(api)
+  const loginInProgress =
+    snapshot?.phase === 'startingLogin' ||
+    snapshot?.phase === 'waitingBrowser' ||
+    snapshot?.phase === 'exchanging'
   const inProgress =
     commandPending ||
     (snapshot == null && !connectionFailed) ||
     snapshot?.phase === 'restoring' ||
-    snapshot?.phase === 'startingLogin' ||
-    snapshot?.phase === 'waitingBrowser' ||
-    snapshot?.phase === 'exchanging' ||
+    loginInProgress ||
     snapshot?.phase === 'signingOut'
   const canBeginLogin = snapshot?.phase === 'signedOut' && snapshot.providers.includes('passkey')
   const canRetry = snapshot?.phase === 'restorePaused' || snapshot?.phase === 'storageBlocked'
@@ -27,10 +31,18 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
       <ActionButton
         size="medium"
         variant="neutralWeak"
-        aria-label="로그인"
+        aria-label={loginInProgress ? '취소' : '로그인'}
         aria-busy={inProgress}
-        disabled={inProgress || (!canBeginLogin && !canRetry && !connectionFailed)}
+        disabled={
+          !loginInProgress && (inProgress || (!canBeginLogin && !canRetry && !connectionFailed))
+        }
         onClick={() => {
+          if (loginInProgress) {
+            cancelLogin()
+
+            return
+          }
+
           if (inProgress) {
             return
           }
@@ -44,7 +56,16 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
           }
         }}
       >
-        <LoginButtonLabel label="로그인" inProgress={inProgress} />
+        {loginInProgress ? (
+          <>
+            <RefreshIcon width={16} height={16} />
+            <Typo.txtM as="span" weight={700}>
+              취소
+            </Typo.txtM>
+          </>
+        ) : (
+          <LoginButtonLabel label="로그인" inProgress={inProgress} />
+        )}
       </ActionButton>
     </span>
   )
