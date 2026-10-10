@@ -104,7 +104,7 @@ it('서버를 고르지 않으면 트리거에 서버를 표시하고 선택된 
   await act(async () =>
     root.render(
       <ServerSelect
-        label="서버"
+        label="1번 서버"
         value=""
         options={[
           { id: 'cain', label: '카인' },
