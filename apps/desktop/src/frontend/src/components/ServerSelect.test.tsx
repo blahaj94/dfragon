@@ -117,7 +117,10 @@ it('서버를 고르지 않으면 트리거에 서버를 표시하고 선택된 
   const trigger = document.querySelector<HTMLButtonElement>('[role="combobox"]')!
   expect(trigger.textContent).toBe('서버')
   await act(async () => trigger.click())
-  expect(document.querySelectorAll('[role="option"][aria-selected="true"]')).toHaveLength(0)
+  expect(trigger.getAttribute('aria-expanded')).toBe('true')
+  const options = [...document.querySelectorAll('[role="listbox"] [role="option"]')]
+  expect(options.map((item) => item.textContent)).toEqual(['카인', '시로코'])
+  expect(options.filter((item) => item.getAttribute('aria-selected') === 'true')).toEqual([])
 })
 
 it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 유지한다', async () => {
