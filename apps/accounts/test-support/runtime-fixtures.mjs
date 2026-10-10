@@ -86,7 +86,6 @@ const ACCOUNTS_ACCESS_LOG = {
     '/auth/exchange',
     '/auth/login-requests',
     '/auth/login/authorize',
-    '/auth/login/phone',
     '/auth/logout',
     '/auth/passkeys/:action',
     '/auth/passkeys/client.css',

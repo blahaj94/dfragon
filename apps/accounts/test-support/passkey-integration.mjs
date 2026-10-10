@@ -1,4 +1,3 @@
-import { assertPhoneQrIntegration } from './phone-qr-integration.mjs'
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
@@ -66,7 +65,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     mark('retired login pages and browser actions are unavailable')
     const retiredContext = await browser.newContext({ ignoreHTTPSErrors: true })
     try {
-      for (const path of ['/auth/login/legacy', '/auth/login/migrate']) {
+      for (const path of ['/auth/login/legacy', '/auth/login/migrate', '/auth/login/phone']) {
         const response = await retiredContext.request.get(`${origin}${path}?ticket=retired`)
         assert.equal(response.status(), 404)
       }
@@ -78,7 +77,16 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         'legacy-cancel',
         'migration-options',
         'migration-verify',
-        'migration-skip'
+        'migration-skip',
+        'qr',
+        'status',
+        'claim',
+        'direct',
+        'cancel',
+        'phone-options',
+        'phone-verify',
+        'phone-approve',
+        'phone-cancel'
       ]) {
         const response = await retiredContext.request.post(`${origin}/auth/passkeys/${action}`, {
           headers: { Origin: origin },
@@ -89,11 +97,6 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     } finally {
       await retiredContext.close()
     }
-    await runtime.close()
-    runtime = await createAccountsRuntime(runtimeConfiguration)
-    await runtime.app.listen(port, '127.0.0.1')
-    await assertPhoneQrIntegration({ source, browser, origin, mark })
-    // Independent suites must not spend each other's per-IP abuse budget.
     await runtime.close()
     runtime = await createAccountsRuntime(runtimeConfiguration)
     await runtime.app.listen(port, '127.0.0.1')
@@ -132,6 +135,7 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       assert.equal(response.status(), 201)
       const request = await response.json()
       await page.goto(request.browserUrl)
+      await page.locator('#authenticate').waitFor({ state: 'visible' })
 
       return { requestId: request.requestId, clientId, codeVerifier }
     }
@@ -175,9 +179,14 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       })
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
+    assert.deepEqual(await page.getByRole('button').allTextContents(), [
+      '패스키로 로그인',
+      '새 계정 만들기'
+    ])
     const usersBeforeSignup = await source.query('SELECT count(*)::int AS n FROM users')
     await page.locator('#register').click()
     await page.locator('#signup-heading').waitFor({ state: 'visible' })
+    assert.deepEqual(await page.getByRole('button').allTextContents(), ['패스키로 회원가입'])
     assert.equal(
       await page
         .locator('#signup-heading')
@@ -298,6 +307,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     assert.equal((await browserPost('verify', body)).status(), 400)
     mark('management requires reauth; last key preserved; backup belongs to same account')
     await page.goto(`${origin}/auth/passkeys/manage`)
+    await page.locator('#authenticate').waitFor({ state: 'visible' })
+    assert.deepEqual(await page.getByRole('button').allTextContents(), ['패스키로 인증하기'])
     const managementId = await idOnPage()
     assert.equal((await browserPost('list', { requestId: managementId })).status(), 400)
     await page.locator('#authenticate').click()

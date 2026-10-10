@@ -343,7 +343,13 @@ async function launchAndBrowserBinding(source, issuer) {
       [cookie, 'https://attacker.invalid']
     ]) {
       await rejected(
-        () => service.browser('cancel', { requestId: request.requestId }, header, origin),
+        () =>
+          service.browser(
+            'options',
+            { requestId: request.requestId, operation: 'authenticate' },
+            header,
+            origin
+          ),
         'LOGIN_REQUEST_INVALID'
       )
       assert.deepEqual(
@@ -351,13 +357,19 @@ async function launchAndBrowserBinding(source, issuer) {
         [row]
       )
     }
-    await service.browser(
-      'cancel',
-      { requestId: request.requestId },
+    const options = await service.browser(
+      'options',
+      { requestId: request.requestId, operation: 'authenticate' },
       cookie,
       configuration.apiOrigin
     )
-    await assertTerminalLoginRequest(source, request.requestId, 'failed')
+    const [started] = await source.query('SELECT * FROM auth_login_requests WHERE id=$1', [
+      request.requestId
+    ])
+    assert.equal(started.status, 'browser_started')
+    assert.equal(started.operation, 'authenticate')
+    assert.equal(started.webauthn_challenge, options.challenge)
+    assert.deepEqual(started.browser_binding_hash, row.browser_binding_hash)
   } finally {
     await source.query('DELETE FROM auth_login_requests WHERE id=$1', [request.requestId])
   }
