@@ -39,7 +39,8 @@
   },
   "devDependencies": {
     "iconv-lite": "0.7.3",
-    "typescript": "6.0.2",
+    "typescript": "7.0.2",
+    "typescript-compiler-api": "npm:typescript@6.0.2",
     "@dfragon/licenses": "workspace:*"
   }
 }
