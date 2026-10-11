@@ -28,7 +28,9 @@ verificationKeys, passkey 설정과 키 일치 검증은 유지한다. 입력, �
 
 Desktop public 설정의 providers는 `["passkey"]`다. 2026-10-10 결정에 따라 로그인은 시스템 기본 브라우저에서 진행하고, main이 127.0.0.1 임시 포트에 여는 loopback 수신기가 받은 앱 복귀 code를 기존 coordinator, S256으로 교환한다. 격리 Electron BrowserWindow와 OS protocol ingress는 제거했다. 같은 인증 origin의 `/auth/passkeys/manage`는 시스템 브라우저에서 열고 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다. PR 실기 확인용 test 채널은 운영과 분리된 `https://staging-accounts.dfragon.com`(RP ID `staging-accounts.dfragon.com`)으로 로그인하며 운영 패스키와 계정은 쓸 수 없다.
 
-accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버, 브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
+accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버, 브라우저는 SimpleWebAuthn 14 계열을 사용한다.
+
+Node 26에서 ML-DSA-44는 실험적 Web Crypto API이므로 등록 알고리즘을 EdDSA(-8), ES256(-7), RS256(-257) 순서로 고정한다. 등록 옵션 생성과 등록 응답 검증에 같은 `supportedAlgorithmIDs`를 전달해 ML-DSA-44 등의 목록 밖 credential을 거절하고 기본 목록의 PQC 지원 확인에서 발생하는 `ExperimentalWarning`을 피한다. ML-DSA-44 지원은 API 안정화 후 별도로 검토한다. 인증은 기존에 저장한 공개키로 검증한다.
 
 - `pnpm --filter @dfragon/accounts test`: API build, 단위, HTTP, runtime startup 검사.
 - `pnpm --filter @dfragon/accounts test:database`: 격리 Docker PostgreSQL, schema, migration, 가상 WebAuthn 브라우저, refresh, 계정 회귀. Playwright Chromium이 설치되어 있어야 한다.

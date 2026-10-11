@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: accounts and Desktop passkey authentication
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-11
 evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성"
 ---
 
@@ -15,7 +15,7 @@ evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loop
 - 내부 random UUID로 회원을 식별한다. 사용자는 로그인용 아이디를 입력하지 않는다. 닉네임 초기 생성과 수정 규칙은 유지한다.
 - WebAuthn discoverable credential을 등록한다. `residentKey: required`, `userVerification: required`, attestation `none`을 사용하고 서버 검증에서도 UV를 요구한다. 기기 종류를 platform으로 제한하지 않아 브라우저의 휴대폰 hybrid QR, 보안 키를 사용할 수 있다.
 - HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 운영 인증 origin/RP는 accounts.dfragon.com 하나다. 이전 API 주소의 패스키 로그인과 RP 이전 경로는 제공하지 않는다.
-- 등록 옵션, 서명 검증, 브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 브라우저 origin, RP ID, challenge, 서명, UV와 저장 credential ID, 회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일, 실명을 넣지 않는다.
+- 등록 옵션, 서명 검증, 브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 등록 알고리즘 목록은 저장소가 EdDSA(-8), ES256(-7), RS256(-257) 순서로 고정하고 등록 검증에서도 같은 목록만 허용한다. 브라우저 origin, RP ID, challenge, 서명, UV와 저장 credential ID, 회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일, 실명을 넣지 않는다.
 - 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 브라우저 탭을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
 - 패스키 credential ID는 전역 PK다. 기존 키를 다른 계정에 연결하는 upsert를 하지 않는다. 동기화된 동일 패스키는 동일 계정에 접근한다.
 
