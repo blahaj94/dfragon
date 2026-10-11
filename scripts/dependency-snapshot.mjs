@@ -82,7 +82,7 @@ function childrenByReference(dependencies, knownReferences) {
 }
 
 /**
- * GitHub's static dependency graph reads only the first document of a pnpm 11 lockfile, which holds
+ * GitHub's static dependency graph reads only the first document of a pnpm 11 or later lockfile, which holds
  * the pnpm binary rather than the workspace. Submit the whole workspace from pnpm's own SBOM instead.
  */
 export function createDependencySnapshot(sbom, { sha, ref, correlator, runId }) {
