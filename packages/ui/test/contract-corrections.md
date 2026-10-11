@@ -8,3 +8,9 @@
 이는 승인 behavior를 통과시키기 위한 runtime 변경이 아니라, 원래 test가 임의로 추가한 두 가정을 제거한 것이다. 실제 pointer/keyboard, Tab, Motion 검증은 jsdom과 분리한다.
 
 Dialog focus 복귀는 content unmount 다음 비동기 focus 단계가 끝날 때까지 같은 bounded wait로 확인한다. 즉시 assertion으로 발생한 timing failure를 수정했으며, 기대한 trigger focus 자체는 유지한다.
+
+## SEED 3 마이그레이션
+
+위 정정의 source와 버전은 최초 검증의 근거로 보존한다. 현재 기준은 `@seed-design/react@3.0.0`, `@seed-design/css@3.0.2`와 `seed-provenance.json`의 commit이다. 기존 loading, controlled value, Dialog 접근성, Escape와 focus 복귀 기대값은 유지한다. 공용 Dialog는 2.x의 `ContentDialog`에 해당하므로 3.x의 `Dialog` snippet을 사용하며 `AlertDialog`로 전환하지 않는다. 바깥 클릭은 기본적으로 닫지 않고 `closeOnInteractOutside`를 명시적으로 허용했을 때만 닫는 정책도 검증한다.
+
+StatusBadge는 `Badge.Root`, `Badge.Label`로 조합하지만 상태 문구와 선택적인 `role="status"` 계약은 같다. 기존 StyleX의 `maxWidth: none`을 유지하므로 3.x의 기본 최대 너비 제거에 기대값을 바꿀 필요가 없다. 소비 빌드 fixture의 SEED 버전만 현재 설치 조합으로 갱신하며 foundation font-family 중복, 누락 거부는 그대로 검사한다.

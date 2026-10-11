@@ -318,7 +318,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
 
 type DialogExampleProps = Pick<
   DialogRootProps,
-  'defaultOpen' | 'open' | 'onOpenChange' | 'closeOnEscape'
+  'defaultOpen' | 'open' | 'onOpenChange' | 'closeOnEscape' | 'closeOnInteractOutside'
 >
 
 function DialogExample(props: DialogExampleProps) {
@@ -360,6 +360,38 @@ describe('Dialog의 상태 전이와 접근성, 포커스', () => {
     expect(dialog.getAttribute('aria-modal')).toBe('true')
     expect(referencedTexts(dialog, 'aria-labelledby')).toEqual(['상세 정보'])
     expect(referencedTexts(dialog, 'aria-describedby')).toEqual(['입력한 내용을 확인해 주세요.'])
+  })
+
+  it.each([
+    { title: '기본값', props: {}, closes: false },
+    { title: '명시적으로 허용한 경우', props: { closeOnInteractOutside: true }, closes: true }
+  ])('바깥 클릭은 $title 닫기 정책을 따른다', async ({ props, closes }) => {
+    const onOpenChange = vi.fn<NonNullable<DialogRootProps['onOpenChange']>>()
+    await render(<DialogExample {...props} onOpenChange={onOpenChange} />)
+    await click(buttonByText('상세 정보 열기'))
+    const dialog = element('[role="dialog"]')
+    await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+    // SEED는 열기를 유발한 입력을 제외하려고 바깥 pointer listener를 다음 timer에서 등록한다.
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
+    onOpenChange.mockClear()
+
+    await act(async () => {
+      document.body.dispatchEvent(
+        new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' })
+      )
+      document.body.click()
+    })
+
+    if (closes) {
+      expect(onOpenChange).toHaveBeenCalledWith(
+        false,
+        expect.objectContaining({ reason: 'interactOutside' })
+      )
+      await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+    } else {
+      expect(onOpenChange).not.toHaveBeenCalled()
+      expect(document.querySelector('[role="dialog"]')).toBe(dialog)
+    }
   })
 
   it('trigger로 열면 focus가 dialog 안으로 이동하고 바깥으로의 focus 이동을 막는다', async () => {
