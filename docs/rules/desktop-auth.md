@@ -94,7 +94,7 @@ Preload event는 고정 channel 하나에서 DTO만 전달하고 개별 wrapper�
 
 Capture와 검색 화면은 인증 snapshot 로딩, signedOut, 로그인 진행, welcome, signedIn, 로그아웃, 복원/저장 실패 상태 모두에서 사용할 수 있다. 2026-09-18 사용자 요청에 따라 계정 모달과 로그인 후 계정 메뉴, 환영 화면은 제거한다. 메인의 로그인 버튼은 시스템 브라우저를 열고 완료 시 숨긴다. 진행 중(`startingLogin`, `waitingBrowser`, `exchanging`)에는 같은 버튼이 `취소`가 되며 누르면 `cancelLogin`을 보낸다. 인증 창이 없으므로 창 닫기로 취소하지 않는다. 연결 실패는 로그인 버튼으로 조회를 재시도하고 복원, 저장소 실패는 기존 복구 명령을 호출한다. 로그인 설정이 없는 채널과 인증 설정 없이 실행한 개발 실행은 main이 인증 IPC를 등록하지 않으므로 preload 인증 API와 로그인 버튼을 노출하지 않는다(2026-10-10 사용자 결정). 로그인 실패나 계정 전환이 capture component를 재생성하거나 인식값, 검색 결과를 지우지 않는다. Snapshot의 welcome/home 구분과 main의 인증, 취소, 복구, 로그아웃 계약은 유지하며 UI 메뉴 삭제로 인증 상태를 조작하지 않는다.
 
-Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, capture unmount, renderer reload/navigation/destruction은 프레임 읽기 loop, worker, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. Stop과 프레임 읽기 실패는 프레임 읽기 loop, worker와 검색을 정리하고 늦은 완료를 차단한다. 프레임 읽기 실패는 확인을 마친 source 선택을 유지하고, Stop한 뒤에는 source를 다시 선택해야 캡처를 시작한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
+Source 열거, 선택, 프레임 읽기, OCR와 검색 IPC는 등록된 renderer의 sender/main frame/exact document와 source, capture 수명을 검사한다. signedIn, auth snapshot revision, auth generation은 이 기능의 허용 조건이 아니다. Source 변경, capture unmount, renderer reload/navigation/destruction은 회차의 프레임 읽기, worker, 선택 수명과 검색을 정리하고 늦은 완료를 차단한다. Stop과 프레임 읽기 실패는 회차의 프레임 읽기, worker와 검색을 정리하고 늦은 완료를 차단한다. 프레임 읽기 실패는 확인을 마친 source 선택을 유지하고, Stop한 뒤에는 source를 다시 선택한 다음 Alt+R로 회차를 시작한다. 로그인, 로그아웃, 인증 만료만으로 이 수명을 종료하지 않는다.
 
 Main의 token 소유, account endpoint 권한 검사, sandbox와 navigation 차단은 유지한다. Renderer가 인증을 조작하지 않아도 기능을 사용할 수 있게 하며 임의 화면, camera/microphone 허용으로 확대하지 않는다. 제품의 화면 캡처와 Electron 권한 처리는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)을 따른다.
 
@@ -126,10 +126,10 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 ### 입력과 권한의 소유
 
-- Renderer는 기존 OCR 안정화 결과와 그 결과의 무효화만 전달한다. HTTP와 응답 검증은 main이 소유하며 검색에는 token을 사용하지 않는다. 고정 `GET /characters`에 안정화 nickname을 `characterName`으로 보내고 선택 query는 생략한다. 입력 길이, 정규화, 응답 field, 후보 순서, 오류, quota는 [서버 검색](character-search.md)을 그대로 소비하며 Desktop에서 재정의하지 않는다.
+- Renderer는 회차 프레임의 OCR 첫 후보로 확정한 결과와 그 결과의 무효화만 전달한다. HTTP와 응답 검증은 main이 소유하며 검색에는 token을 사용하지 않는다. 고정 `GET /characters`에 확정한 nickname을 `characterName`으로 보내고 선택 query는 생략한다. 입력 길이, 정규화, 응답 field, 후보 순서, 오류, quota는 [서버 검색](character-search.md)을 그대로 소비하며 Desktop에서 재정의하지 않는다.
 - Main은 등록 renderer document와 선택 source, capture 수명을 검사하고 고정 공개 검색 endpoint를 호출한다. Renderer가 보내는 식별자는 상관관계 확인용이며 권한 증거가 아니다.
-- Main은 Start마다 새 `captureId`를 만들고 등록 renderer document, 선택 source generation에 결합한다. 프레임 읽기와 OCR 시작, 완료도 이 수명에 속해야 한다. Source 변경, 프레임 읽기 실패, Stop, capture unmount, renderer reload/navigation/destruction은 이 수명을 끝낸다. 선택한 창이 가려지거나 최소화, 종료, 이동 중인 대기 상태는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)에 따라 이 수명을 끝내지 않는다. 캡처 실패는 확인을 마친 source 선택을 지우지 않으므로 source를 다시 고르지 않고 새 Start로 캡처를 다시 시작할 수 있다. 제품 화면에는 별도 시작 버튼이 없어 [테스트 버전 자동 캡처](desktop-windows-capture.md#테스트-버전-자동-캡처와-자료-수집)의 전경 조건을 따르는 Alt+R이 이 Start를 보낸다. 창을 다시 선택해 시작할 수도 있다. 창 선택 실패와 Stop 뒤에는 Start로 캡처를 시작하지 않으며 창을 다시 선택해야 한다. 제품에서 Stop은 화면 캡처 창의 ‘캡처 중지’, 개발 도구 열기와 검색 연결 무효화(검색 run 교체, main의 캡처 종료)가 보낸다.
-- Renderer는 capture instance와 slot별 `observationRevision`을 소유한다. 현재 안정화 nickname이 사라지는 전이에는 `clear`를 한 번 보내고 새 안정화 결과에는 기존 notify를 보내며, 두 전이 모두 revision을 증가시킨다. 빈 slot, 빈 OCR, 다른 문자열의 안정화 대기로 기존 stable 값이 null이 되는 경우를 포함한다. 매 frame 전송, OCR 보정, 안정화 조건, 호출 주기 변경은 요구하지 않는다.
+- Main은 Start마다 새 `captureId`를 만들고 등록 renderer document, 선택 source generation에 결합한다. 프레임 읽기와 OCR 시작, 완료도 이 수명에 속해야 한다. Source 변경, 프레임 읽기 실패, Stop, capture unmount, renderer reload/navigation/destruction은 이 수명을 끝낸다. 선택한 창이 가려지거나 최소화, 종료, 이동 중이라는 main의 프레임 응답만으로 이 수명을 끝내지는 않는다. Renderer는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)에 따라 안내 후 해당 회차의 인식을 끝내며 화면 복귀를 기다리거나 다시 읽지 않는다. 캡처 실패는 확인을 마친 source 선택을 지우지 않으므로 source를 다시 고르지 않고 새 Start로 캡처를 다시 시작할 수 있다. 제품 화면에는 별도 시작 버튼이 없어 [테스트 버전 자동 캡처](desktop-windows-capture.md#테스트-버전-자동-캡처와-자료-수집)의 전경 조건을 따르는 Alt+R이 이 Start를 보낸다. 새 Start 전에는 이전 회차와 검색 수명을 정리한다. 창 선택은 등록만 하며 Start를 보내지 않는다. 창 선택 실패와 Stop 뒤에는 Start로 캡처를 시작하지 않으며 창을 다시 선택한 다음 Alt+R을 눌러야 한다. 제품에서 Stop은 화면 캡처 창의 ‘캡처 중지’, 개발 도구 열기와 검색 연결 무효화(검색 run 교체, main의 캡처 종료)가 보낸다.
+- Renderer는 capture instance와 slot별 `observationRevision`을 소유한다. 현재 OCR 입력을 무효화하는 전이에는 `clear`를 한 번 보내고 새 확정 결과에는 기존 notify를 보내며, 두 전이 모두 revision을 증가시킨다. 회차 프레임에서 검출되지 않은 슬롯은 비워 두고 검색하지 않는다. OCR 확정과 회차 진행은 [Desktop MVP 카드 UI](desktop-mvp-ui.md#캡처-모달)를 따르며 main의 입력, revision 검사는 유지한다.
 - Main은 slot별 최신 observation revision과 검색별 새 `requestId`를 소유한다. 낮거나 같은 observation revision의 중복, 역순 입력은 작업을 만들지 않는다. Clear 없이 같은 nickname의 더 큰 revision을 받으면 requestId를 유지하며 진행 요청의 수용 observationRevision과 현재 결과의 revision을 함께 올리고 snapshot을 발행한다. 완료 검사는 승격한 수용 revision을 사용하며 시작 시 고정한 옛 revision만 비교해 pending으로 남기지 않는다. 새 검색이나 실패 재시도는 만들지 않는다. 다른 slot은 서로의 결과를 지우거나 요청 순서를 기다리지 않는다.
 
 ### OCR 후보와 얼굴 기반 식별 IPC
@@ -146,11 +146,11 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 | Channel / preload API                                           | 정확한 입력                                                       | 의미                                                                                                           |
 | --------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `notifyStableNicknameDetected`                                  | object 1개 `{captureId,slot,observationRevision,nickname}`        | 현재 capture의 안정화 입력. 기존 `{slot,nickname}`/`Promise<void>` 확장은 후속 검색 구현에만 적용              |
+| `notifyStableNicknameDetected`                                  | object 1개 `{captureId,slot,observationRevision,nickname}`        | 현재 capture의 확정 OCR 입력. 기존 `{slot,nickname}`/`Promise<void>` 확장은 후속 검색 구현에만 적용             |
 | `controlCharacterSearch`                                        | object 1개 `{action:"read"}`                                      | main의 현재 `SearchSnapshot` 조회. HTTP, 활동, capture 시작 없음                                                 |
 | 같은 invoke                                                     | `{action:"begin"}`                                                | Start 의도. 등록 document에서 선택 source가 있을 때 새 capture 수명 생성. 이미 살아 있는 capture가 있으면 거절 |
 | 같은 invoke                                                     | `{action:"end",captureId}`                                        | 해당 수명만 무효화. 이미 끝난 ID는 no-op이며 새 capture에 영향 없음                                            |
-| 같은 invoke                                                     | `{action:"clear",captureId,slot,observationRevision}`             | 해당 slot의 안정화 입력, 검색, 결과 무효화                                                                       |
+| 같은 invoke                                                     | `{action:"clear",captureId,slot,observationRevision}`             | 해당 slot의 OCR 입력, 검색, 결과 무효화                                                                           |
 | 같은 invoke                                                     | `{action:"retry",captureId,slot,requestId}`                       | 해당 slot의 현재 실패에 대한 사용자 재시도. Main이 보관한 nickname으로 새 requestId 생성                       |
 | `characterSearchChanged` / `onCharacterSearchChanged(listener)` | main→등록 renderer `SearchSnapshot`; preload 입력은 callback 하나 | unsubscribe 반환. Electron event, sender, raw 오류를 전달하지 않음                                               |
 
@@ -186,7 +186,7 @@ Renderer는 event를 먼저 구독한 뒤 `read`하고 같은 runId에서 더 �
 
 ### 취소와 완료의 최종 판정
 
-- 새 안정화 입력, clear, 사용자 재시도는 해당 slot의 이전 요청을 무효화하고 가능한 transport를 abort한다. Source 변경, Stop, capture 종료은 모든 slot에 적용한다. 취소 자체를 failure로 표시하지 않는다.
+- 새 확정 OCR 입력, clear, 사용자 재시도는 해당 slot의 이전 요청을 무효화하고 가능한 transport를 abort한다. Source 변경, Stop, capture 종료은 모든 slot에 적용한다. 취소 자체를 failure로 표시하지 않는다.
 - HTTP 전송, 완료 처리, event 발행 직전에 현재 captureId, source generation, renderer document와 slot의 requestId/observationRevision을 재확인한다. 하나라도 다르면 결과, 오류를 버린다. 먼저 보낸 요청이 나중에 끝나도 새 slot 상태를 바꿀 수 없다.
 - 로그인 상태 변경은 capture, 검색 요청, 표시를 바꾸지 않는다. 취소나 화면 제거는 서버 quota의 환불을 뜻하지 않는다.
 
@@ -209,5 +209,5 @@ PR #149의 `SEARCH_AUTH_NOT_READY`와 인증 회복 오류는 공개 검색 전�
 - 직접 검색은 source 선택, 캡처, OCR 없이 사용할 수 있다. 별도 검색 수명을 사용하므로 캡처 Stop/source 변경과 서로의 결과를 지우지 않는다. 등록 document 종료, navigation, renderer 종료는 모두 정리한다. 수동 검색 ID로 캡처 프레임을 읽거나 캡처 검색을 조작할 수 없다.
 - Preload의 `window.manualSearch`는 기존 `SearchApi`의 control/subscribe shape와 `notifyManualNickname(SearchObservation)`을 제공한다. IPC는 `controlManualSearch`, `notifyManualNickname`, `manualSearchChanged`다. 동일한 sender/main frame/exact document, exact own key, DTO 검사를 적용한다. Shared DTO의 `captureId`는 수동 채널에서는 독립 검색 세션 ID이며 캡처 프레임 읽기 권한이 아니다.
 - 수동 `begin`은 이전 수동 세션을 종료하고 새 수명을 만든다. 시작 응답 유실 후 사용자 재검색으로 복구할 수 있고 늦은 이전 `end`, HTTP 결과는 새 세션에 영향을 주지 않는다. 캡처 `begin`의 source 전제는 유지한다.
-- 슬롯에서 ‘닉네임 수정’을 선택하면 해당 슬롯의 이전 검색을 취소하고 자동 검색 제출을 멈춘다. 다른 슬롯과 캡처, OCR은 계속 동작한다. 편집 입력과 수정 검색 결과는 이후 OCR로 덮어쓰지 않으며 ‘OCR 다시 사용’을 누르면 최근 안정화 관측부터 자동 검색을 재개한다. Stop/source 변경, capture 종료 시 수정 모드를 해제한다.
+- 슬롯에서 ‘닉네임 수정’을 선택하면 해당 슬롯의 이전 검색을 취소하고 자동 검색 제출을 멈춘다. 다른 슬롯의 회차 처리는 계속 동작한다. 편집 입력과 수정 검색 결과는 이후 도착한 OCR로 덮어쓰지 않으며 ‘OCR 다시 사용’을 누르면 보관한 회차의 OCR 결과로 자동 검색을 재개한다. 이때 새 프레임은 읽지 않는다. Stop/source 변경, capture 종료 시 수정 모드를 해제한다.
 - 검색은 Enter 또는 명시적 버튼으로 제출하며 한글 조합 중 Enter는 제출하지 않는다. 중복된 진행 요청은 추가로 보내지 않고 새로운 이름은 이전 요청을 취소, 교체한다. 오류, 빈 결과, 429, 수동 retry는 기존 결과 UI를 재사용한다. 화면 입력값, 닉네임, 검색 결과를 log나 영구 저장소에 추가 기록하지 않는다.

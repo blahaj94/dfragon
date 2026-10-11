@@ -14,24 +14,27 @@ last-reviewed: 2026-10-10
 | File                                                                                                       | 현재 책임                                                                                                                                                                                                       |
 | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/desktop/src/backend/auth/coordinator.ts`, `types.ts`                                                 | 계정 인증, 로그아웃과 내부 auth generation을 관리한다. Capture IPC는 coordinator나 `captureGeneration()`에 의존하지 않는다.                                                                                      |
-| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                          | Source 열거, 선택, 프레임 읽기의 window/document, 선택, capture 수명을 확인한다. 제품 display media 요청은 `null`로 거절한다. 선택 무효화, trusted 빈 선택 cleanup과 안정화 통지의 수명을 검사한다.             |
+| `apps/desktop/src/backend/capture/ipc-handler.ts`                                                          | Source 열거, 선택, 프레임 읽기의 window/document, 선택, capture 수명을 확인한다. 제품 display media 요청은 `null`로 거절한다. 선택 무효화, trusted 빈 선택 cleanup과 OCR 통지의 수명을 검사한다.                 |
 | `apps/desktop/src/backend/renderer-document.ts`                                                            | 개발 URL은 HTTP(S)의 exact `localhost`, `127.0.0.1`, `[::1]`과 canonical 입력만 허용한다. Credential, 공백, control, backslash, host alias를 거절하고 Electron Vite가 제공하는 slash 없는 bare origin만 정규화한다. |
 | `apps/desktop/src/backend/main.ts`                                                                         | 검증한 renderer URL, sandbox, contextIsolation, navigation/popup 차단과 상단 바 안의 OS 창 버튼(`titleBarOverlay`), 창 색 IPC를 구성한다. Capture와 공개 검색을 인증 설정과 별도로 등록하고, auth runtime이 있을 때만 auth IPC를 추가한다.                               |
 | `apps/desktop/src/backend/capture/permission-policy.ts`                                                    | 제품 session의 모든 permission check와 request를 거절한다. 인증 여부와 플랫폼은 조건이 아니다.                                                                                                                  |
 | `apps/desktop/src/backend/window-chrome/ipc-handler.ts`, `title-bar-overlay.ts` | 메인 창의 main frame, 정확한 문서 URL, 인자 하나의 `light`, `dark` 값을 매 호출 확인한 뒤 창 배경색을 바꾼다. OS 창 버튼 색은 Windows, Linux에서만 바꾼다. |
 | `apps/desktop/src/preload/index.ts`, `index.d.ts`                                                          | auth/capture, 검색, 창 색(`windowChrome`) 같은 feature API만 노출한다. 범용 `window.electron`과 isolation-off fallback은 없다.                                                                                                             |
 | `apps/desktop/src/frontend/src/App.tsx`, `pages/login/LoginPage.tsx`, `sections/LoginSection.tsx`          | 기본 App은 CaptureControls 모달과 네 카드의 OCR 이름을 표시한다. LegacyApp의 직접 검색, PartyCapture는 기존 회귀 테스트용 `fixture/legacy`에 남긴다. 인증 상태 변경은 캡처 수명을 초기화하지 않는다.            |
-| `apps/desktop/src/frontend/src/sections/PartyCapture.tsx`                                                  | 기존 source/interval, Start/Stop, 인식값 UI와 네 슬롯 검색 결과를 표시한다. 공용 UI 외형을 변경하지 않는다.                                                                                                       |
-| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`                   | XState가 창 등록, 검색 준비, 프레임 확인, OCR 준비, 실행, 중지, 실패 전이를 소유한다. 세션 actor 종료는 AbortSignal과 OCR worker, 프레임 읽기 loop를 정리하며, 취소 뒤 도착한 자원도 해당 세션에서 정리한다.              |
-| `apps/desktop/src/frontend/src/hooks/usePartyCapture.ts`, `useCaptureSources.ts`, `usePartyRecognition.ts` | React와 machine을 연결하고, 창 목록 조회, OCR 이름 안정화를 각각 유지한다. UI는 캡처 phase를 읽는다. Unmount에서는 main의 창 선택도 해제한다.                                                                    |
+| `apps/desktop/src/frontend/src/sections/PartyCapture.tsx`                                                  | 창 선택, 회차 시작과 중지, 인식값 UI와 네 슬롯 검색 결과를 표시한다. 캡처 시작 버튼은 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다. 공용 UI 외형을 변경하지 않는다.                          |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`                                               | XState가 창 등록과 회차 시작, 검색 준비, 한 프레임 인식, 완료, 중지, 실패 전이를 소유한다. 회차 종료 시 AbortSignal과 OCR worker를 정리하며 취소 뒤 도착한 자원과 결과도 이전 회차에서 정리한다.                  |
+| `apps/desktop/src/frontend/src/hooks/usePartyCapture.ts`, `useCaptureSources.ts` | React와 machine을 연결하고 창 목록 조회와 회차 결과의 화면 표시를 담당한다. UI는 캡처 진행 상태를 읽는다. Unmount에서는 main의 창 선택도 해제한다.                                                    |
+| `apps/desktop/src/frontend/src/lib/party-recognition.ts` | `recognizePartyFrame`이 회차 프레임의 크롭과 OCR 첫 후보를 슬롯별 미검출, 인식, 거절, 실패 결과로 돌려준다. 취소와 결과 반영은 machine이 담당한다. |
 
 인증 generation은 capture 권한 근거가 아니다. Renderer의 revision이나 인증 snapshot도 권한 근거로 사용하지 않는다. 기존 [auth bridge](desktop-auth-bridge.md)의 구독 순서, snapshot allowlist, credential 비노출을 유지한다. Auth API 오류는 기존 고정 UI로 처리하며 명령을 자동 재전송하지 않는다.
 
 ## Renderer 캡처 상태
 
-캡처 수명에는 XState 5와 `@xstate/react`를 사용한다. `selecting`에서 창 등록 actor가 완료되면 자동 시작 또는 수동 시작 대기로 전이한다. `capturing`은 검색 준비 → 프레임 확인 → OCR 준비 → 실행 단계를 포함하며, 중지, 재선택, 실패로 빠져나갈 때 세션 actor를 정리한다. 이전 창 등록의 늦은 결과는 종료된 actor에서 무시된다. 이미 요청한 프레임 읽기, worker는 취소가 즉시 완료되지 않을 수 있어 세션별 AbortSignal과 자원 정리를 유지한다.
+캡처 수명에는 XState 5와 `@xstate/react`를 사용한다. 창 선택과 던파 창 하나 자동 감지는 main 등록만 마치고 Alt+R을 기다린다. 회차 시작 시 이전 검색, 인식 상태를 비우고 검색 수명을 시작한 뒤 프레임을 한 장만 읽어 OCR과 검색에 사용한다. 회차 처리가 끝나면 추가 프레임을 읽지 않고 검색 결과, 재시도와 상세 열기에 필요한 입력과 결과를 유지한다. 프레임을 쓸 수 없거나 파티 프레임이 미검출이면 안내 후 끝내며 화면 복귀를 기다리지 않는다. 일부 슬롯만 미검출이면 그 슬롯은 비워 두고 나머지를 같은 프레임으로 처리한다. 이전 창 등록의 늦은 결과는 종료된 actor에서 무시된다. 이미 요청한 프레임 읽기, worker는 취소가 즉시 완료되지 않을 수 있어 회차별 AbortSignal과 자원 정리를 유지한다.
 
-창 목록 새로고침은 캡처 수명과 독립적이다. 목록 조회 실패만으로 실행 중인 캡처를 중지하지 않는다. 검색 snapshot, 수동 검색 상태는 기존 `CaptureSearch`, OCR 안정화는 `usePartyRecognition`이 계속 관리한다. 로그인 수명과 Windows 제품 캡처 권한 정책은 바꾸지 않는다.
+진행 중이나 완료 뒤 Alt+R은 이전 회차를 정리하고 새 회차를 처음부터 시작하며 늦은 이전 결과를 버린다. 검색 수명을 시작하는 동안 누른 Alt+R은 무시한다. 창 변경은 회차와 검색 수명을 정리하고 새 창만 등록한다. 중지 뒤에는 Alt+R로 다시 시작할 수 없으며 창을 다시 고른 다음 Alt+R을 눌러야 한다. 레거시 회귀 테스트 화면의 캡처 시작 버튼도 같은 회차 시작을 보낸다. 상단 바 배지는 진행 중 `인식 중`, 완료 뒤 `인식 완료`를 표시하며 창 등록 중 `준비 중`과 창 감지 관련 표시는 유지한다.
+
+창 목록 새로고침은 캡처 수명과 독립적이다. 목록 조회 실패만으로 실행 중인 캡처를 중지하지 않는다. 검색 snapshot, 수동 검색 상태는 기존 `CaptureSearch`가 관리하며 `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임의 첫 OCR 후보를 판정하고 `lib/party-capture-machine.ts`가 결과를 반영한다. 두 번 연속 같은 입력을 기다리거나 일정 간격으로 다시 인식하지 않는다. 슬롯 OCR이 실패하면 검출된 모든 슬롯의 수집을 먼저 요청한 뒤 검색 수명을 종료하며, 실패 슬롯의 예측은 `null`이고 검색 통지는 보내지 않는다. 로그인 수명과 Windows 제품 캡처 권한 정책은 바꾸지 않는다.
 
 ## 권한과 수명
 
@@ -39,7 +42,7 @@ Source 요청의 시작 및 비동기 완료에서 등록 window, sender, main f
 
 Renderer의 인증 presentation epoch와 auth runId 재연결은 계정 화면에만 적용한다. React가 로그아웃과 재로그인을 한 render로 합쳐도 capture와 직접 검색 component는 유지한다. 검색 연결 자체의 runId, capture 수명 변경은 검색 bridge가 별도로 처리한다.
 
-Main은 로그인, 로그아웃만으로 선택을 지우지 않으며 trusted renderer의 빈 source 선택은 인증 phase와 무관하게 허용한다. 다른 window/frame/document의 cleanup 요청은 거절한다. Stop, source 변경, 프레임 읽기 실패, unmount, document 종료는 기존 capture 정리를 수행한다. Capture의 이전 AbortSignal이 취소되면 늦은 OCR은 새 instance의 상태를 변경하거나 안정화 통지를 보내지 않는다. IPC 발송 뒤 capture 수명이 끝나 생긴 통지 거절도 raw error log 없이 회수한다.
+Main은 로그인, 로그아웃만으로 선택을 지우지 않으며 trusted renderer의 빈 source 선택은 인증 phase와 무관하게 허용한다. 다른 window/frame/document의 cleanup 요청은 거절한다. Stop, source 변경, 프레임 읽기 실패, unmount, document 종료는 기존 capture 정리를 수행한다. 이전 회차의 AbortSignal이 취소되면 늦은 OCR은 새 회차의 상태를 변경하거나 검색 통지를 보내지 않는다. IPC 발송 뒤 capture 수명이 끝나 생긴 통지 거절도 raw error log 없이 회수한다.
 
 `notifyStableNicknameDetected`는 captureId, slot, observationRevision, nickname을 받아 현재 수명의 검색으로 연결한다. Main의 HTTP/전체 응답 검증과 renderer의 네 슬롯 후보, retry 구현은 [캐릭터 검색](desktop-character-search.md)을 참고한다. Raw OCR nickname은 main log와 진단 기록에 남기지 않는다. 검색에 쓰지 못한 OCR 첫 후보만 원인 확인을 위해 이유와 원문을 renderer DevTools Console에 한 줄 표시한다([Desktop 실행 중 오류 확인](../../apps/desktop/README.md#실행-중-오류-확인)). 제품 main은 trusted profile, auth restore, capture/search composition을 연결하며, 실제 API/패스키 연결과 profile의 실행 시 검사는 [Desktop auth core](desktop-auth-core.md)를 따른다.
 
