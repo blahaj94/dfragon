@@ -1,8 +1,8 @@
 {
-  "@stylexjs/stylex@0.19.0": [
+  "@stylexjs/stylex@0.19.1": [
     {
       "file": "upstream/stylex-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/facebook/stylex/5f51b24444abced04b213726977b9d67339bb26d/LICENSE",
+      "source": "https://raw.githubusercontent.com/facebook/stylex/1fcb9a51cbecad2c82255e0f4b45cc072fa1a95a/LICENSE",
       "sha256": "da6d3703ed11cbe42bd212c725957c98da23cbff1998c05fa4b3d976d1a58e93"
     }
   ],
@@ -41,44 +41,44 @@
       "sha256": "44b8c61c1d0f4fad76c7755a21e44067893ab23f5bcc2a0d7fbfdf1794e8d160"
     }
   ],
-  "onnxruntime-web@1.24.3": [
+  "onnxruntime-web@1.30.0": [
     {
       "file": "upstream/onnx-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/LICENSE",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.30.0/LICENSE",
       "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
     },
     {
       "file": "upstream/onnx-third-party-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/ThirdPartyNotices.txt",
-      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.30.0/ThirdPartyNotices.txt",
+      "sha256": "143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3"
     }
   ],
-  "onnxruntime-common@1.24.3": [
+  "onnxruntime-common@1.30.0": [
     {
       "file": "upstream/onnx-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/LICENSE",
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.30.0/LICENSE",
       "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
     },
     {
       "file": "upstream/onnx-third-party-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.24.3/ThirdPartyNotices.txt",
-      "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
+      "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.30.0/ThirdPartyNotices.txt",
+      "sha256": "143764b952fdb1a7c69ce653bfba74a7744d6a8a573bfb73e235fba356c83de3"
     }
   ],
-  "koffi@3.2.1": [
+  "koffi@3.3.3": [
     {
       "file": "upstream/koffi-LICENSE.txt",
-      "source": "npm:koffi@3.2.1/LICENSE.txt",
+      "source": "npm:koffi@3.3.3/LICENSE.txt",
       "sha256": "22bcbbbacd739b026a8dc484f62a31484ce4c4e31f3408b60b29b4e41d62b290"
     },
     {
       "file": "upstream/node-api-headers-LICENSE.txt",
-      "source": "npm:koffi@3.2.1/vendor/node-api-headers/LICENSE",
+      "source": "npm:koffi@3.3.3/vendor/node-api-headers/LICENSE",
       "sha256": "a553508f516031c91f3af1148d44970cb81bbae6c4f091be6835d39cc252238c"
     },
     {
       "file": "upstream/node-addon-api-LICENSE.txt",
-      "source": "npm:koffi@3.2.1/vendor/node-addon-api/LICENSE.md",
+      "source": "npm:koffi@3.3.3/vendor/node-addon-api/LICENSE.md",
       "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
     }
   ],
@@ -124,10 +124,10 @@
       "sha256": "4072f7ac49dd39f61e83af60c0bbea0350d3a40b93217a97829acb6d872881d8"
     }
   ],
-  "remeda@2.50.0": [
+  "remeda@2.51.0": [
     {
-      "file": "upstream/remeda-2.50.0-LICENSE.txt",
-      "source": "https://raw.githubusercontent.com/remeda/remeda/b9ec4b0ac5ba86f2f687bae6e92d318db02eea24/LICENSE",
+      "file": "upstream/remeda-2.51.0-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/remeda/remeda/8e6e78f6eaf66eaf0b4797d72cc3691823c91335/LICENSE",
       "sha256": "acf30083045d768ce20640237313ee31a45d548d66ef76df5bb5fb0745479535"
     }
   ]
