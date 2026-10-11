@@ -28,10 +28,15 @@
       "artifactPrefix": "DFragon-Test"
     },
     "identity": {
-      "appIdentity": "dfragon.test"
+      "appIdentity": "dfragon.test",
+      "auth": {
+        "environment": "staging",
+        "providers": ["passkey"]
+      }
     },
     "origins": {
-      "api": { "variable": "DFRAGON_TEST_API_ORIGIN", "default": "https://api.dfragon.com" }
+      "api": { "variable": "DFRAGON_TEST_API_ORIGIN", "default": "https://api.dfragon.com" },
+      "accounts": "https://staging-accounts.dfragon.com"
     }
   },
   "distribution": {

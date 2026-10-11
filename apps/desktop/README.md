@@ -94,7 +94,7 @@ Windows 배포용 설치형 setup.exe는 파일 속성의 VersionInfo 언어를 
 
 기존 Release에 첨부하려면 **Actions → Windows Portable → Run workflow**에서 기존 `tag`를 입력합니다. `api_origin`은 production 환경 변수 대신 사용할 공개 API 주소이며 비우면 환경 변수를 사용합니다. 이 실행도 main branch나 `v*` tag에서 시작한 경우에만 production 환경을 쓸 수 있습니다. Release 게시와 같은 main, Code Quality 확인을 적용합니다. 같은 이름의 exe나 checksum 첨부 파일이 이미 있으면 덮어쓰지 않고 실패합니다. 배포 API 설정 누락이나 `v<버전>` 형식이 아닌 태그도 빌드를 중단합니다. 로컬 `build:win:portable` 명령은 `package.json`의 기본 버전을 사용합니다.
 
-관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 로그인 없이 실제 API로 검색, 캡처, OCR을 확인하는 용도입니다. API는 **Settings → Environments → test**의 변수 `DFRAGON_TEST_API_ORIGIN`이 있으면 그 값, 비우면 `https://api.dfragon.com`입니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않고, `-alpha` 버전이 아니므로 OCR 수집은 꺼집니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
+관련 PR에서는 [Windows Test Build workflow](../../.github/workflows/desktop-test-build.yml)가 test 채널로 포터블 exe를 빌드해 checksum과 함께 Actions artifact `windows-x64-portable-test`로 7일간 보관합니다. test 채널은 이름 DFragon Test, 실행 파일 `dfragon-test.exe`, 버전 `0.0.0-test.<실행 번호>`이며, 검색, 캡처, OCR과 staging accounts(`https://staging-accounts.dfragon.com`) 로그인을 확인하는 용도입니다. staging accounts는 운영과 패스키 RP가 달라 운영 계정으로는 로그인할 수 없으므로, 처음에는 **새 계정 만들기**로 staging 계정을 만듭니다. API는 **Settings → Environments → test**의 변수 `DFRAGON_TEST_API_ORIGIN`이 있으면 그 값, 비우면 `https://api.dfragon.com`입니다. test 환경은 PR 실행마다 deployment 기록을 남기지 않습니다. 설치한 DFragon과 profile이 겹치지 않고, `-alpha` 버전이 아니므로 OCR 수집은 꺼집니다. 패키징 시간을 줄이기 위해 7z 압축 수준을 낮추므로 exe가 Release 첨부 파일보다 크며, attestation은 기록하지 않습니다. **Actions → Windows Test Build → Run workflow**에서 branch를 고르면 PR 없이도 같은 빌드를 만듭니다. Windows PC의 PowerShell에서 GitHub에 로그인한 GitHub CLI로 내려받습니다. 실행 ID와 아래 명령은 workflow 실행 요약에 있습니다. 명령 프롬프트(cmd)에서는 `$HOME`이 펼쳐지지 않아 현재 폴더 아래에 `$HOME` 폴더가 생기므로, `-D`에 실제 폴더 경로를 적습니다.
 
 ```powershell
 gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test -D "$HOME\Downloads\dfragon-test-<실행 ID>"
@@ -110,7 +110,7 @@ gh run download <실행 ID> --repo blahaj94/dfragon -n windows-x64-portable-test
 | -------------- | --------------------------------------------- | -------------------------- | --------------------------------------------- |
 | `distribution` | 사용자에게 배포하는 설치형, 포터블             | `distribution`             | `build:win`, `build:win:portable`, Release 첨부 |
 | `development`  | 로컬 API, accounts를 바라보는 개발 설치본      | `development`              | `build:win:development`                       |
-| `test`         | PR 실기 테스트용 포터블, 로그인 없음           | `test`                     | Windows Test Build artifact, `build:win:test:portable` |
+| `test`         | PR 실기 테스트용 포터블, staging accounts 로그인 | `test`                     | Windows Test Build artifact, `build:win:test:portable` |
 
 각 채널의 앱 이름, 실행 파일, identity, 로그인 설정, API와 accounts origin 값은 이 표가 아니라 `build/channels.json`의 해당 항목에서 읽습니다. 값을 바꿀 때는 [Desktop Authentication Platform](../../docs/rules/desktop-auth-platform.md)의 승인 tuple과 `build/channels.test.ts`의 고정값을 함께 고칩니다.
 
@@ -142,7 +142,7 @@ pnpm --filter @dfragon/desktop dev
 
 현재 상세 창에는 이미지, 이름, 서버, 모험단, 직업, 전직, 레벨, 명성과 마지막 조회 시각, 정보 유효 시각을 표시합니다. 누락된 값은 `정보 없음`으로 표시하고 장비 점수나 마법부여 등급을 추정하지 않습니다. 창은 전용 읽기 bridge로 보관된 기본 정보만 받으며 장비 카드와 자동 갱신은 제공하지 않습니다. [상세 창 구현과 수명](../../docs/reference/desktop-character-search.md#캐릭터별-상세-창)에서 연결 경계와 검증 범위를 확인할 수 있습니다.
 
-우측 상단 **로그인**을 누르면 시스템 기본 브라우저에서 accounts 로그인 페이지를 엽니다. 진행 중에는 같은 버튼이 **취소**로 바뀌며 현재 로그인 시도를 취소할 수 있습니다. 로그인 후에는 버튼을 숨깁니다. 현재 카드 화면에는 별도 계정 다이얼로그, 닉네임, 패스키 관리, 로그아웃 메뉴를 표시하지 않습니다. 브라우저 탭을 닫아도 앱에 취소가 전달되지 않으므로 앱의 **취소** 버튼을 사용합니다. 로그인 설정이 없는 test 채널과 인증 설정 없이 실행한 `dev`에서는 로그인 버튼을 표시하지 않습니다.
+우측 상단 **로그인**을 누르면 시스템 기본 브라우저에서 accounts 로그인 페이지를 엽니다. 진행 중에는 같은 버튼이 **취소**로 바뀌며 현재 로그인 시도를 취소할 수 있습니다. 로그인 후에는 버튼을 숨깁니다. 현재 카드 화면에는 별도 계정 다이얼로그, 닉네임, 패스키 관리, 로그아웃 메뉴를 표시하지 않습니다. 브라우저 탭을 닫아도 앱에 취소가 전달되지 않으므로 앱의 **취소** 버튼을 사용합니다. 인증 설정 없이 실행한 `dev`에서는 로그인 버튼을 표시하지 않습니다. test 채널은 staging accounts로 로그인합니다.
 
 앱 시작 시 기존 main의 세션 복원 결과를 로그인 버튼에 반영합니다. 인증 연결 실패 상태에서 **로그인**을 누르면 연결을 다시 확인하고, 복원 일시 정지, 저장소 차단 상태에서는 기존 복구 명령을 보냅니다. 이때도 카드 화면과 테마 전환은 유지합니다. `dev`의 인증은 기존 [인증 실행 설정](../../docs/reference/desktop-auth-core.md#module-경계)을 사용합니다. UI 연결만으로 API, 실제 패스키, OS 저장소가 구성되지는 않습니다.
 
@@ -242,7 +242,7 @@ pnpm --filter @dfragon/desktop build:win:development
 
 ## 개발자 모드
 
-설치한 앱의 **설정 → 개발자 모드**에서 **개발자 모드** 스위치를 켠 뒤 **개발 도구 열기**를 눌러 사용합니다. 로컬 크롭, 정답 기능은 로그인 없이 사용할 수 있으며 기본값은 꺼짐입니다. 로그인 상태에서 수집하면 OCR 자료실에도 전송합니다. 활성 상태는 다시 실행해도 유지됩니다. 작업 공간을 열면 일반 파티 캡처는 중지됩니다.
+설치한 앱의 **설정 → 개발자 모드**에서 **개발자 모드** 스위치를 켠 뒤 **개발 도구 열기**를 눌러 사용합니다. 로컬 크롭, 정답 기능은 로그인 없이 사용할 수 있으며 기본값은 꺼짐입니다. 배포 채널에서 로그인한 상태로 수집하면 OCR 자료실에도 전송합니다. 운영 OCR 자료실은 운영 계정만 받으므로 test, 개발 채널에서는 로그인해도 로컬에만 저장합니다. 활성 상태는 다시 실행해도 유지됩니다. 작업 공간을 열면 일반 파티 캡처는 중지됩니다.
 
 ### 이미지 수집
 
@@ -289,7 +289,7 @@ Windows 배포 앱은 실행할 때 관리자 권한을 요청합니다. 개발 
 
 프레임 장식에 따른 위치 차이는 각 HP, MP와 경계를 독립 검출해 처리합니다. 고정 간격으로 미검출 위치를 채우지 않습니다. 실제 FHD 표본의 12개 프레임과 Windows 최소 해상도에서 크롭을 확인했으며, 최대 길이 닉네임과 모든 장식, 배율 조합까지 검증한 것은 아닙니다. [파티 geometry 조사](../../docs/reference/desktop-party-geometry.md)에 실측 범위와 남은 확인을 기록합니다. Cropper의 기존 프로필, 전체화면 ROI 선택창, 기존 데이터 폴더 가져오기와 모델 학습은 포함하지 않습니다. Windows 실제 캡처, DPI, 단축키 검증과 macOS의 UI, 저장, OCR 검증을 구분합니다.
 
-정답 입력 탭의 **OCR 자료실**을 선택하면 앱에 로그인한 자료실 소유자 계정으로 `ocr.dfragon.com`의 정답과 크롭을 조회합니다. 서버 정답, 제외 여부는 읽기 전용이며, 자료실 웹에서 수정 후 **자료실 다시 불러오기**를 누르면 반영됩니다. 로컬 자료로 돌아와도 작성 중인 정답 초안은 유지됩니다.
+정답 입력 탭의 **OCR 자료실**을 선택하면 앱에 로그인한 자료실 소유자 계정으로 `ocr.dfragon.com`의 정답과 크롭을 조회합니다. 배포 채널에서 로그인한 경우에만 조회하며 test, 개발 채널에서는 로그인이 필요하다고 표시합니다. 서버 정답, 제외 여부는 읽기 전용이며, 자료실 웹에서 수정 후 **자료실 다시 불러오기**를 누르면 반영됩니다. 로컬 자료로 돌아와도 작성 중인 정답 초안은 유지됩니다.
 
 자료실 목록은 한 번에 50개씩 표시하며 이전, 다음 페이지로 이동합니다. 필터, 분할 변경이나 다시 불러오기는 첫 페이지부터 보여줍니다. 평가 대상은 표시 중인 페이지에 한정하지 않습니다.
 

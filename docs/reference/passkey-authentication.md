@@ -26,7 +26,7 @@ JWT 개인키는 기존 `accessJwt.signingKey.privateKeyPem` 또는 `AUTH_JWT_PR
 verificationKeys, passkey 설정과 키 일치 검증은 유지한다. 입력, 재시작 조건은
 [서버 실행 안내](api-start-development.md#준비할-입력) 한 곳에서 확인한다.
 
-Desktop public 설정의 providers는 `["passkey"]`다. 2026-10-10 결정에 따라 로그인은 시스템 기본 브라우저에서 진행하고, main이 127.0.0.1 임시 포트에 여는 loopback 수신기가 받은 앱 복귀 code를 기존 coordinator, S256으로 교환한다. 격리 Electron BrowserWindow와 OS protocol ingress는 제거했다. 같은 인증 origin의 `/auth/passkeys/manage`는 시스템 브라우저에서 열고 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다.
+Desktop public 설정의 providers는 `["passkey"]`다. 2026-10-10 결정에 따라 로그인은 시스템 기본 브라우저에서 진행하고, main이 127.0.0.1 임시 포트에 여는 loopback 수신기가 받은 앱 복귀 code를 기존 coordinator, S256으로 교환한다. 격리 Electron BrowserWindow와 OS protocol ingress는 제거했다. 같은 인증 origin의 `/auth/passkeys/manage`는 시스템 브라우저에서 열고 패스키 재인증을 요청한다. Desktop 계정 메뉴를 제거했으므로 현재 앱에는 관리 화면 진입 버튼이 없다. PR 실기 확인용 test 채널은 운영과 분리된 `https://staging-accounts.dfragon.com`(RP ID `staging-accounts.dfragon.com`)으로 로그인하며 운영 패스키와 계정은 쓸 수 없다.
 
 accounts build는 TypeScript 서버와 `browser/passkeys.tsx`를 bundle한다. Browser script를 CDN에서 불러오지 않는다. 서버, 브라우저는 SimpleWebAuthn 13 계열을 사용하며 새 14 계열의 실험적 Web Crypto 초기화 경고에 의존하지 않는다.
 

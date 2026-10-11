@@ -5,7 +5,7 @@ enforcement: approval-required
 scope: apps/desktop secure storage loopback login and validation
 last-reviewed: 2026-10-11
 rationale: 실제 로그인 흐름과 실행 시 보호 검사를 유지하며 광범위한 사전 검증을 배포 차단 조건으로 삼지 않는다.
-evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용"
+evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; main a82547c; Electron 39.8.10 공식 문서; Electron 44.7.0 교체 재확인: Issue #618, v44.7.0 공식 문서와 source; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성; 2026-10-11 사용자 결정: Windows 실기에서 확인한 로그인 복귀 뒤 창 활성화 한계 수용; 2026-10-11 사용자 결정: test 채널을 staging-accounts.dfragon.com 로그인으로 전환"
 exceptions: 실제 credential/keychain, legacy protocol registry 정리, 패스키 설정과 packaged E2E는 수행하지 않는다.
 review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loopback 로그인 E2E 시
 ---
@@ -22,7 +22,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loop
 | --- | --- | --- |
 | Source/config (2026-10-10 갱신) | `apps/desktop/package.json` 범위는 Electron `^44.7.0`, `pnpm-lock.yaml` 해결 version은 **44.7.0**(Chromium 152.0.7977.130, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
-| Identity, 보호 기능 (2026-10-10 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 배포, 개발 채널에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. 로그인 없는 test 채널은 이 기능을 쓰지 않음. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
+| Identity, 보호 기능 (2026-10-11 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 모든 채널(배포, 개발, test)에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |
 | Electron 공식 범위 (2026-10-10 갱신) | Pinned README는 macOS 13(Ventura)+ Intel/Apple Silicon, Windows 10+ x64/arm64, Linux x64/arm64와 Chromium, 배포판 제작사가 함께 지원하는 주요 배포판 version을 명시. 39.8.10 README의 macOS 12, Windows x86, Ubuntu 18.04+/Fedora 32+/Debian 10+ 목록은 빠짐 | Electron 지원 설명은 DFragon 최소 OS나 해당 OS의 현재 보안 지원 기간을 확정하지 않음 |
 
@@ -146,7 +146,7 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 | 앱 복귀 | `http://127.0.0.1:<port>/auth/callback` |
 | 개발 앱 identity, profile | `dfragon.dev`, Electron `appData` 아래의 `dfragon.dev` |
 
-이 절과 아래 Windows MVP 배포 구성은 승인 기록이다. 채널 identity와 공개 빌드 설정의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 로그인 복귀 주소는 채널 설정에 두지 않고 pending의 loopback 수신기가 정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
+이 절과 아래 Windows MVP 배포 구성, test 채널 구성은 승인 기록이다. 채널 identity와 공개 빌드 설정의 원본은 `apps/desktop/build/channels.json`이며, `apps/desktop/build/channels.test.ts`가 그 값이 이 기록과 같은지 고정한다. 로그인 복귀 주소는 채널 설정에 두지 않고 pending의 loopback 수신기가 정한다. 값을 바꾸려면 이 Rule을 먼저 갱신한다.
 
 이 선택은 개발 환경에서 사용할 이름을 정한 것이며 `dfragon.dev` 인터넷 도메인의 소유권이나 OS protocol의 전역 독점권을 주장하지 않는다. 실제 설치는 실행 허용 범위 안에서 서버 설정의 API, RP ID와 loopback 복귀 형식 일치를 확인한 뒤 수행한다. NSIS는 protocol을 등록하거나 다른 앱 소유를 이유로 설치를 중단하지 않는다. 설치와 제거 때 HKCU의 legacy `dfragon.dev` 키에서 `shell\open\command`가 정확히 `"$INSTDIR\${APP_EXECUTABLE_FILENAME}" "%1"`인 경우에만 해당 키를 지운다. 다른 앱의 키는 보존한다.
 
@@ -161,6 +161,21 @@ Claimed HTTPS는 domain association, OS별 배포 검증을 추가하므로 채�
 개발 앱의 `dfragon.dev`, profile, 설치 경로는 보존한다. 배포 앱은 별도 `dfragon` 설치 폴더를 사용하며, 설치와 제거 때 legacy `dfragon` 키에 위와 같은 실행 명령 일치 검사를 적용해 이 앱 소유 키만 정리한다. Protocol 등록과 다른 앱 소유에 따른 설치 중단은 수행하지 않는다. 자동 업데이트, 추가 OS는 이번 배포 완료 조건에 포함하지 않는다. 실행 명령과 짧은 사용 안내는 [Desktop README](../../apps/desktop/README.md)를 따른다.
 
 Windows x64 포터블 exe도 같은 배포 identity, API, 사용자 profile을 사용한다. 설치 없이 실행하되 설치형처럼 실행할 때 관리자 권한을 요청하며([PR #596](https://github.com/blahaj94/dfragon/pull/596)), 바로가기와 OS protocol은 등록하지 않는다. 로그인 복귀는 설치형과 같은 loopback 수신기 하나로 처리하며 포터블 전용 복귀 경로는 없다. 설정, 인증 정보는 기존 사용자 profile에 보관하며 exe와 함께 다른 PC로 옮기는 저장 방식은 제공하지 않는다.
+
+### test 채널 구성
+
+PR 실기 확인용 test 채널은 운영과 분리된 staging accounts로 로그인한다. 2026-10-11 결정이며, staging accounts의 서버 구성은 인프라 저장소의 결정 기록 0004를 따른다.
+
+| 항목 | test 채널 구성 |
+| --- | --- |
+| 환경, 대상 | `staging`, Windows x64 포터블(Windows Test Build artifact, `build:win:test:portable`) |
+| API | `DFRAGON_TEST_API_ORIGIN`, 비우면 `https://api.dfragon.com` |
+| 인증 | `https://staging-accounts.dfragon.com`, 패스키 |
+| RP ID | `staging-accounts.dfragon.com` |
+| 앱 복귀 | `http://127.0.0.1:<port>/auth/callback` |
+| test 앱 identity, profile | `dfragon.test`, Electron `appData` 아래의 `dfragon.test` |
+
+RP와 서명 키가 운영과 달라 운영 패스키와 계정으로는 로그인할 수 없고, test 채널에서 만든 패스키와 token은 운영에서 쓸 수 없다. 포터블이라 설치와 legacy protocol 키 정리는 없다. Profile이 배포 앱과 달라 같은 PC에서 함께 실행해도 credential file과 single-instance lock이 겹치지 않는다. 검색, 캡처, OCR은 로그인 없이 쓰므로 staging accounts를 멈춰도 계속 쓸 수 있다.
 
 ### 공통 진입점
 
