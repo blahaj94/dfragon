@@ -20,7 +20,7 @@ review-after: 출시 OS 및 package 선택, Electron 변경, 최초 저장, loop
 
 | 분류 | 확인 내용 | 아직 증명하지 않은 것 |
 | --- | --- | --- |
-| Source/config (2026-10-10 갱신) | `apps/desktop/package.json` 범위는 Electron `^44.7.0`, `pnpm-lock.yaml` 해결 version은 **44.7.0**(Chromium 152.0.7977.130, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
+| Source/config (2026-10-11 갱신) | `pnpm-workspace.yaml` catalog의 Electron은 44.7.0(`apps/desktop/package.json`은 `catalog:` 참조), `pnpm-lock.yaml` 해결 version은 **44.7.0**(Chromium 152.0.7977.130, Node 24.21.0), electron-builder **26.15.3**. 2026-09-06 조사 시점은 `^39.2.6`, **39.8.10** | 설치 runtime 실행, 지원 최신성, 배포 안전성 |
 | Packaging 선언 | `apps/desktop/build/electron-builder-config.ts`: Windows/NSIS, macOS/DMG, Linux AppImage/snap/deb 관련 설정 | DFragon의 실제 지원 OS/arch 약속, package 생성/설치, 인증 성공 |
 | Identity, 보호 기능 (2026-10-11 갱신) | appId와 identity는 `apps/desktop/build/channels.json`의 채널 값(배포 `dfragon`, 개발 `dfragon.dev`, test `dfragon.test`)이고, 로그인 설정이 있는 모든 채널(배포, 개발, test)에는 loopback 수신기, single-instance lock, safeStorage credential store가 구현됨. OS protocol 선언과 복귀 handler는 제거됨. `notarize: false`는 유지 | 서명, 공증과 legacy protocol 키 정리, 설치본 로그인 성공은 설치 검증 대상이며 설정 존재가 그 근거는 아님 |
 | Host 관측 | macOS **26.6.2 / arm64**, `sw_vers -productVersion`, `uname -m` 읽기 | macOS 앱/Keychain 성공, Windows/Linux 실행 성공 |

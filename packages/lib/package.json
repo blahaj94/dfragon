@@ -35,12 +35,12 @@
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "dependencies": {
-    "ipaddr.js": "2.5.0"
+    "ipaddr.js": "catalog:"
   },
   "devDependencies": {
-    "iconv-lite": "0.7.3",
-    "typescript": "7.0.2",
-    "typescript-compiler-api": "npm:typescript@6.0.2",
+    "iconv-lite": "catalog:",
+    "typescript": "catalog:",
+    "typescript-compiler-api": "catalog:",
     "@dfragon/licenses": "workspace:*"
   }
 }

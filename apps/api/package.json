@@ -26,23 +26,23 @@
   },
   "dependencies": {
     "@dfragon/lib": "workspace:*",
-    "@nestjs/common": "12.0.1",
-    "@nestjs/core": "12.0.1",
-    "@nestjs/platform-express": "12.0.1",
-    "@nestjs/swagger": "12.0.1",
-    "@nestjs/typeorm": "12.0.1",
-    "pg": "8.23.0",
-    "reflect-metadata": "0.2.2",
-    "remeda": "2.50.0",
-    "rxjs": "7.8.2",
-    "typeorm": "1.1.1"
+    "@nestjs/common": "catalog:",
+    "@nestjs/core": "catalog:",
+    "@nestjs/platform-express": "catalog:",
+    "@nestjs/swagger": "catalog:",
+    "@nestjs/typeorm": "catalog:",
+    "pg": "catalog:",
+    "reflect-metadata": "catalog:",
+    "remeda": "catalog:",
+    "rxjs": "catalog:",
+    "typeorm": "catalog:"
   },
   "devDependencies": {
-    "@nestjs/testing": "12.0.1",
-    "@types/express": "5.0.6",
-    "@types/node": "24.13.3",
-    "@types/pg": "8.23.1",
-    "dotenv-cli": "11.0.0",
-    "typescript": "7.0.2"
+    "@nestjs/testing": "catalog:",
+    "@types/express": "catalog:",
+    "@types/node": "catalog:",
+    "@types/pg": "catalog:",
+    "dotenv-cli": "catalog:",
+    "typescript": "catalog:"
   }
 }

@@ -112,7 +112,9 @@ test('실제 UI peer와 앱, UI production의 전이 의존성을 포함하고 �
   const uiManifest: { peerDependencies: Record<string, string> } = JSON.parse(
     readFileSync(new URL('../../ui/package.json', import.meta.url), 'utf8')
   )
-  const peers = uiManifest.peerDependencies
+  const peers: Record<string, string> = Object.fromEntries(
+    Object.keys(uiManifest.peerDependencies).map((name) => [name, '1.2.3'])
+  )
   fixture.writeManifest('desktop', {
     dependencies: { 'main-runtime': '1' },
     devDependencies: { ...peers, 'build-tool': '1' }

@@ -31,30 +31,30 @@
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "peerDependencies": {
-    "@seed-design/react": "2.4.1",
-    "@seed-design/css": "2.7.0",
+    "@seed-design/react": "catalog:",
+    "@seed-design/css": "catalog:",
     "@stylexjs/stylex": "catalog:",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "dependencies": {
-    "@karrotmarket/react-monochrome-icon": "1.26.0"
+    "@karrotmarket/react-monochrome-icon": "catalog:"
   },
   "devDependencies": {
-    "@seed-design/react": "2.4.1",
-    "@seed-design/css": "2.7.0",
-    "@seed-design/vite-plugin": "2.1.0",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
-    "@vitejs/plugin-react": "6.0.4",
-    "jsdom": "30.0.1",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "typescript": "7.0.2",
-    "typescript-compiler-api": "npm:typescript@6.0.2",
-    "vite": "8.2.0",
-    "vitest": "4.1.11",
-    "@types/node": "24.13.3",
+    "@seed-design/react": "catalog:",
+    "@seed-design/css": "catalog:",
+    "@seed-design/vite-plugin": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "typescript": "catalog:",
+    "typescript-compiler-api": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "@types/node": "catalog:",
     "@dfragon/licenses": "workspace:*",
     "@stylexjs/stylex": "catalog:",
     "@stylexjs/unplugin": "catalog:"
