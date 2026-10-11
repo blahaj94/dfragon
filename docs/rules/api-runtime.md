@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/api
-last-reviewed: 2026-10-07
+last-reviewed: 2026-10-11
 rationale: 검색 구현이 runtime과 검증 도구를 추측해 추가하지 않도록 승인 경계를 정한다.
 evidence: "PR #42 runtime 승인: https://github.com/blahaj94/ldb/pull/42#issuecomment-5550598698 ; PR #48 인증/DB 승인: https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519"
 exceptions: 사용자의 명시적인 실행 허용 전에는 dependency 설치와 실행 기반 구현을 허용하지 않는다.
@@ -30,7 +30,7 @@ review-after: API 실행 기반의 첫 validation 완료 또는 지원 major 변
 
 API만 Node `>=24.15.0 <25`를 호환 floor/major 범위로 두며, 실제 선택은 해당 major의 최신 보안 patch로 한다. `@types/node`는 24.x로 맞춘다. Node 24는 확인 시점 LTS이며 기존 `pnpm@11.23.0`의 지원 Node 범위에 들어간다. 다른 app의 Node/types 버전이나 workspace package manager를 변경하지 않는다. [Node release 상태](https://nodejs.org/en/about/previous-releases), [pnpm 호환 표](https://pnpm.io/installation#compatibility)
 
-Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScript compiler는 5.9.x를 사용합니다. Node와 Express의 type은 사용하는 runtime과 맞추며, 직접 사용하는 패키지를 전이 의존성 경로에서 가져오지 않습니다.
+Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScript compiler는 7.0.x(native `tsc`)를 사용하며, `tsc`로 먼저 컴파일한 뒤 Node로 검증하는 방식과 `emitDecoratorMetadata` 사용은 그대로 유지합니다. Node와 Express의 type은 사용하는 runtime과 맞추며, 직접 사용하는 패키지를 전이 의존성 경로에서 가져오지 않습니다.
 
 ## 의존성 관리
 
