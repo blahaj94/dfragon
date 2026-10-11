@@ -319,6 +319,29 @@ it.each([false, true])(
   }
 )
 
+it.each([
+  ['production', mocks.coordinator],
+  ['staging', undefined],
+  ['development', undefined]
+])(
+  '운영 OCR로 가는 개발자 기능에는 production 인증 환경의 인증만 넘긴다: %s',
+  async (environment, developerAuth) => {
+    stubTrustedRuntimeEnvironment()
+    vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', environment)
+
+    await import('./main')
+    await mocks.bootstrap
+
+    expect(mocks.bootstrapAuth).toHaveBeenCalledOnce()
+    expect(mocks.registerDeveloperWindow).toHaveBeenCalledExactlyOnceWith(
+      expect.anything(),
+      expect.any(String),
+      expect.any(String),
+      developerAuth
+    )
+  }
+)
+
 it('개발 빌드도 Windows profile 준비 실패를 우회하지 않는다', async () => {
   vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('development', {}))
   mocks.getPath.mockImplementation(() => join(process.cwd(), 'synthetic-app-data'))
