@@ -9,6 +9,7 @@ describe('getCaptureControlState', () => {
     ['준비 중', { ...idle, phase: 'selecting', loading: true }, 'neutral'],
     ['인식 중', { ...idle, phase: 'recognizing', loading: true }, 'informative'],
     ['인식 완료', { ...idle, phase: 'complete', failed: true }, 'informative'],
+    ['확인 필요', { ...idle, phase: 'unavailable', loading: true }, 'warning'],
     ['창 확인 중', { ...idle, loading: true, failed: true }, 'neutral'],
     ['조회 실패', { ...idle, failed: true, hasDetectedSource: false }, 'critical'],
     ['창 미감지', { ...idle, hasDetectedSource: false }, 'warning'],

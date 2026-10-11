@@ -51,6 +51,7 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
 it.each([
   ['recognizing', '인식 중', 'informative'],
   ['complete', '인식 완료', 'informative'],
+  ['unavailable', '확인 필요', 'warning'],
   ['missing', '창 미감지', 'warning']
 ])('캡처 미리보기 %s를 상단 바와 모달에 함께 반영한다', async (state, label, tone) => {
   const selector = container.querySelector<HTMLSelectElement>('[aria-label="캡처 미리보기 상태"]')!
