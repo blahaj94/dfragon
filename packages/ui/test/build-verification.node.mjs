@@ -50,8 +50,8 @@ async function createConsumerFixture(context, styles) {
   const graph = [
     { name: 'react', version: '19.3.0', modules: ['index.js'] },
     { name: 'react-dom', version: '19.3.0', modules: ['index.js'] },
-    { name: '@seed-design/react', version: '2.6.0', modules: ['index.js'] },
-    { name: '@seed-design/css', version: '2.9.1', modules: ['base.css'] }
+    { name: '@seed-design/react', version: '3.0.0', modules: ['index.js'] },
+    { name: '@seed-design/css', version: '3.0.2', modules: ['base.css'] }
   ]
   await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
   await writeFile(join(output, 'notices/THIRD-PARTY.txt'), 'MIT License fixture\n')

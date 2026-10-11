@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/daangn/seed-design",
-  "commit": "08b3600989597f4e9017731484a409685c08aa68",
+  "commit": "d7687b85a30f62c4f2d3600c3c6f39930932b577",
   "files": [
     {
       "upstream": "docs/registry/react/ui/action-button.tsx",
@@ -12,26 +12,26 @@
     {
       "upstream": "docs/registry/react/ui/text-field.tsx",
       "local": "src/seed/text-field.tsx",
-      "sha256": "b7d87b1005376b41c7ab9569afd18b3ebe1b166a3b4dffca716b0b53dbede061",
+      "sha256": "9d40a57219b76080bad110ab5e366d111ec6cf17a1388860aacb78033a7827c4",
       "localChanges": [],
-      "localSha256": "b7d87b1005376b41c7ab9569afd18b3ebe1b166a3b4dffca716b0b53dbede061"
+      "localSha256": "9d40a57219b76080bad110ab5e366d111ec6cf17a1388860aacb78033a7827c4"
     },
     {
       "upstream": "docs/registry/react/ui/dialog.tsx",
       "local": "src/seed/dialog.tsx",
-      "sha256": "bad9ac3c92cd22a227ecacdca291cfb7a2167ce79496be1733de67f112aee30f",
+      "sha256": "34c0adedfefe0f5c90b76333e366e404ac0cae718305e15d98868d150b77cc3e",
       "localChanges": [
         {
           "reason": "Declaration이 pnpm의 private transitive 경로를 참조하지 않도록 공식 export type을 명시한다. Runtime 변경 없음.",
-          "before": "export const DialogTrigger = ContentDialog.Trigger;",
-          "after": "export const DialogTrigger: React.ForwardRefExoticComponent<DialogTriggerProps & React.RefAttributes<HTMLButtonElement>> = ContentDialog.Trigger;"
+          "before": "export const DialogTrigger = Dialog.Trigger;",
+          "after": "export const DialogTrigger: React.ForwardRefExoticComponent<DialogTriggerProps & React.RefAttributes<HTMLButtonElement>> = Dialog.Trigger;"
         },
         {
           "reason": "Apache-2.0 §4(b) changed-file 고지",
           "notice": "/*! DFragon 수정: DialogTrigger의 동일 public type을 명시했습니다. Runtime 변경 없음. 상세: packages/ui/seed-provenance.json. */"
         }
       ],
-      "localSha256": "169d56e98dbd7c0fd15c1053ee7b348532612ec2388571d72aebac08709425c4"
+      "localSha256": "0aa90965ffa2feeb6b49f65d2cea31036bb67ca3a607eadf7e55c1b8c41ba51d"
     },
     {
       "upstream": "docs/registry/react/ui/loading-indicator.tsx",
@@ -43,9 +43,9 @@
     {
       "upstream": "docs/registry/react/ui/progress-circle.tsx",
       "local": "src/seed/progress-circle.tsx",
-      "sha256": "c56e2ae9a2f297cc8e29bf7d2041207dd91a72248547e12d701071d94a1038fc",
+      "sha256": "8a7975bb23b7460247ef950e803ab94a9d7cab69b62cbcd0eff2417bbabb9b87",
       "localChanges": [],
-      "localSha256": "c56e2ae9a2f297cc8e29bf7d2041207dd91a72248547e12d701071d94a1038fc"
+      "localSha256": "8a7975bb23b7460247ef950e803ab94a9d7cab69b62cbcd0eff2417bbabb9b87"
     },
     {
       "upstream": "docs/registry/react/block/layout-01.tsx",
@@ -115,8 +115,8 @@
     "source": "docs/content/foundations/typography.mdx",
     "changes": [
       "공식 system font stack을 body에 적용한다. Root font-size를 지정하지 않고 사용자 browser 기본값을 유지한다.",
-      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @seed-design/css@2.9.1의 bg.layerDefault, fg.neutral Token을 body 환경에 연결한다. Component selector, Token 재정의 없음."
+      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @seed-design/css@3.0.2의 bg.layerDefault, fg.neutral Token을 body 환경에 연결한다. Component selector, Token 재정의 없음."
     ],
-    "packageEntryAudit": "@seed-design/css@2.9.1은 base/all 및 layered 변형만 제공하며 body font/reset entry는 없다. 2.7.0에 있던 min 변형은 2.9.1 패키지에서 빠졌다."
+    "packageEntryAudit": "@seed-design/css@3.0.2는 base/all, layered, min 변형을 제공하며 body font/reset 전용 entry는 없다. base.css의 --seed-font-family 변수는 body에 글꼴을 적용하지 않으므로 공용 foundation을 유지한다."
   }
 }

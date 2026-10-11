@@ -108,7 +108,7 @@ export function SampleEditor({ sample }: { sample: Sample }) {
             <button
               key={split}
               type="button"
-              className={`${chip} ${stylex.props(styles.chip, sample.split === split && styles.selectedChip).className}`}
+              className={`${chip.root} ${stylex.props(styles.chip, sample.split === split && styles.selectedChip).className}`}
               aria-pressed={sample.split === split}
               disabled={
                 busy ||
@@ -119,7 +119,9 @@ export function SampleEditor({ sample }: { sample: Sample }) {
               }
               onClick={() => handleAssignSplit(split)}
             >
-              {split === 'unassigned' ? '미배정' : split}
+              <span className={`${chip.label} ${stylex.props(styles.chipLabel).className}`}>
+                {split === 'unassigned' ? '미배정' : split}
+              </span>
             </button>
           ))}
         </div>

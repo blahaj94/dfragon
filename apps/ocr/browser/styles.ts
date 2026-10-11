@@ -66,10 +66,19 @@ export const styles = stylex.create({
   // StyleX rules outrank the SEED chip recipe, so restate its disabled colors and focus ring.
   chip: {
     backgroundColor: { default: colors.bgControl, ':disabled': 'var(--seed-color-bg-disabled)' },
+    // Keep the former ControlChip disabled color and opacity; the label inherits selected color and weight.
+    color: {
+      default: 'var(--seed-color-fg-neutral)',
+      ':disabled': 'var(--seed-color-fg-disabled)'
+    },
+    fontWeight: 'var(--seed-font-weight-medium)',
+    opacity: 1,
+    transition: 'none',
     boxShadow: 'none',
     outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
     outlineOffset: { default: null, ':focus-visible': 2 }
   },
+  chipLabel: { color: 'inherit', fontWeight: 'inherit' },
   selectedChip: {
     backgroundColor: { default: colors.bgBrandWeak, ':disabled': 'var(--seed-color-bg-disabled)' },
     color: { default: colors.fgBrand, ':disabled': 'var(--seed-color-fg-disabled)' },

@@ -16,8 +16,8 @@ catalog:
   '@nestjs/swagger': 12.0.2
   '@nestjs/testing': 12.1.2
   '@nestjs/typeorm': 12.0.2
-  '@seed-design/css': 2.9.1
-  '@seed-design/react': 2.6.0
+  '@seed-design/css': 3.0.2
+  '@seed-design/react': 3.0.0
   '@seed-design/vite-plugin': 2.1.1
   '@simplewebauthn/browser': 14.0.0
   '@simplewebauthn/server': 14.0.3
