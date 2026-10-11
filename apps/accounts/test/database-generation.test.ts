@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import test from 'node:test'
-import ts from 'typescript'
+import ts from 'typescript-compiler-api'
 import type { DataSource } from 'typeorm'
 
 async function generator() {

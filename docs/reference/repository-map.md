@@ -19,7 +19,7 @@ last-reviewed: 2026-10-10
 
 ## 공통 정적 검사와 정렬
 
-Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. API/Desktop의 compiler는 기존 TypeScript 5.9, Web/UI는 기존 6.0 계열이며 root TypeScript는 문장 간격 도구의 parser 전용이다.
+Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-spacing.mjs`와 직접 devDependency를 모든 프로젝트가 공유한다. 모든 app과 package의 `tsc`는 TypeScript 7.0(Go로 다시 쓴 native compiler)이다. TypeScript 7 패키지는 compiler API를 제공하지 않으므로 root TypeScript 6.0은 문장 간격 도구의 parser 전용이고, lib, UI, accounts의 테스트와 검증 스크립트는 `typescript-compiler-api` 별칭(`npm:typescript@6.0.2`)으로 compiler API를 사용한다.
 
 - `pnpm lint`, `pnpm lint:fix`: root 설정, scripts, API, Desktop, Web, UI 등 저장소 전체의 Biome lint 비수정 검사와 안전한 자동수정.
 - `pnpm format`, `pnpm format:check`: 같은 범위의 JS/TS, JSON/JSONC, CSS, HTML을 Biome로 정렬하고 JS/TS에 문장 간격 정책을 적용하거나 비수정 검사한다. YAML, Markdown과 SVG 자산은 자동 정렬 대상에 포함하지 않는다.

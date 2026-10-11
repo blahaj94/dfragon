@@ -4,7 +4,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import { isBuiltin } from 'node:module'
 import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
+import ts from 'typescript-compiler-api'
 
 function moduleSpecifiers(file, code) {
   const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest)
