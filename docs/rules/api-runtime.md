@@ -34,7 +34,7 @@ Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScri
 
 ## 의존성 관리
 
-API workspace의 직접 의존성과 버전 범위는 `apps/api/package.json`에서, API도 사용하는 공통 lint, format 도구의 직접 의존성과 버전 범위는 루트 `package.json`에서 관리합니다. 공통 도구의 적용 설정은 루트 `biome.json`에서 확인합니다. 두 manifest에서 해결된 버전과 전이 의존성은 `pnpm-lock.yaml`에서 확인합니다. 이 문서와 `auth-runtime.md`의 API, 인증 패키지 허용, 제외 목록 및 패키지별 버전 재승인 조건을 제거합니다. [Issue #302](https://github.com/blahaj94/ldb/issues/302)의 사용자 요청에 따른 이 변경은 해당 PR의 사용자 merge로 적용합니다.
+API workspace의 직접 의존성 목록은 `apps/api/package.json`에서, API도 사용하는 공통 lint, format 도구의 직접 의존성 목록은 루트 `package.json`에서 관리합니다. 두 manifest의 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정하며, manifest는 `catalog:` 또는 named catalog로 참조합니다([공통 도구 계약](convention-tooling.md#설정과-소유권)). 공통 도구의 적용 설정은 루트 `biome.json`에서 확인합니다. 두 manifest에서 해결된 버전과 전이 의존성은 `pnpm-lock.yaml`에서 확인합니다. 이 문서와 `auth-runtime.md`의 API, 인증 패키지 허용, 제외 목록 및 패키지별 버전 재승인 조건을 제거합니다. [Issue #302](https://github.com/blahaj94/ldb/issues/302)의 사용자 요청에 따른 이 변경은 해당 PR의 사용자 merge로 적용합니다.
 
 의존성 선택과 중요한 영향의 판단 경계는 [제품 계약 적용 기준](../README.md#document-class)과 [공용 모듈 경계](../architecture/overview.md#architecture-change)를 따릅니다. 필요한 선택 이유와 검증 결과는 PR 또는 기존 작업 기록에 남깁니다. 이 문서의 runtime, build, test 계약이나 API, 보안 계약을 바꾸면 해당 Rule을 함께 변경하며, API, 인증 패키지 목록이나 버전의 변경만으로 이 두 runtime Rule에 항목을 추가하지 않습니다.
 
