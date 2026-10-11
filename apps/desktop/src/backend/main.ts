@@ -149,11 +149,14 @@ function createWindow(authRuntime: AuthRuntime | null): void {
       preload: join(__dirname, '../preload/character-detail.js'),
       devUrl: shouldLoadDevUrl ? rendererDocumentUrl : undefined
     }).dispose
+    // 개발자 OCR 업로드와 자료실은 운영 OCR로 가고, 운영 OCR은 운영 accounts의 token만 받는다.
+    // 다른 인증 환경의 token을 보내면 401 뒤 재인증 요구로 로그아웃되므로 개발자 기능에는 운영 인증만 넘긴다.
+    const isProductionAuth = runtimeConfig?.environment === 'production'
     disposeDeveloper = registerDeveloperWindow(
       window,
       rendererDocumentUrl,
       app.getPath('userData'),
-      authRuntime?.coordinator
+      isProductionAuth ? authRuntime?.coordinator : undefined
     )
     try {
       disposeVersions = registerVersionsWindow({
