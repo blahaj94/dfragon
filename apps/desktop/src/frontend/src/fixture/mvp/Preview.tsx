@@ -120,7 +120,10 @@ export function Preview(): React.JSX.Element {
                   const state = event.target.value
                   setCaptureState(state)
                   const hasSource =
-                    state === 'selected' || state === 'complete' || state === 'recognizing'
+                    state === 'selected' ||
+                    state === 'complete' ||
+                    state === 'recognizing' ||
+                    state === 'unavailable'
                   setSource(hasSource ? 'preview-game' : '')
                 }}
                 {...stylex.props(styles.select)}
@@ -129,6 +132,7 @@ export function Preview(): React.JSX.Element {
                 <option value="selected">캡처 · 창 선택됨</option>
                 <option value="recognizing">캡처 · 인식 중</option>
                 <option value="complete">캡처 · 인식 완료</option>
+                <option value="unavailable">캡처 · 확인 필요</option>
                 <option value="missing">캡처 · 창 미감지</option>
                 <option value="failure">캡처 · 실패</option>
               </select>

@@ -39,6 +39,11 @@ export function getCaptureControlState({
     return { label: '인식 완료', tone: 'informative' }
   }
 
+  // 가림, 최소화, 파티 프레임 미검출로 회차가 끝나면 창 감지 표시 대신 Alt+R 전 확인이 필요함을 알린다.
+  if (phase === 'unavailable') {
+    return { label: '확인 필요', tone: 'warning' }
+  }
+
   if (loading) {
     return { label: '창 확인 중', tone: 'neutral' }
   }

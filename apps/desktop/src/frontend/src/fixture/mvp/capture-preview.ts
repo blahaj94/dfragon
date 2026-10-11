@@ -18,6 +18,10 @@ export function getCapturePreviewStatus(state: string): string {
     return 'Alt+R을 눌러 파티를 인식해 주세요.'
   }
 
+  if (state === 'unavailable') {
+    return '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
+  }
+
   if (state === 'failure') {
     return '선택한 창에서 영상을 받지 못했습니다. 창을 다시 선택해 주세요.'
   }
@@ -27,7 +31,12 @@ export function getCapturePreviewStatus(state: string): string {
 
 // 합성 시나리오를 제품 모달의 캡처 단계로 변환한다.
 export function getCapturePreviewPhase(state: string): CapturePhase {
-  if (state === 'selected' || state === 'recognizing' || state === 'complete') {
+  if (
+    state === 'selected' ||
+    state === 'recognizing' ||
+    state === 'complete' ||
+    state === 'unavailable'
+  ) {
     return state
   }
 
