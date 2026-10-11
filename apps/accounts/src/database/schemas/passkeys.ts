@@ -1,5 +1,4 @@
 import { EntitySchema } from 'typeorm'
-import type { AuthenticatorTransportFuture } from '@simplewebauthn/server'
 
 export interface Passkey {
   id: string
@@ -7,7 +6,7 @@ export interface Passkey {
   userId: string
   publicKey: Buffer
   counter: number
-  transports: AuthenticatorTransportFuture[]
+  transports: string[]
   backedUp: boolean
   deviceType: 'singleDevice' | 'multiDevice'
   createdAt: Date
