@@ -32,7 +32,7 @@ jobs:
       name: test
       deployment: false
     env:
-      # The test channel keeps its own identity and talks to the real API without login.
+      # The test channel keeps its own identity and signs in to staging accounts, separate from production passkeys.
       DFRAGON_CHANNEL: test
       # Empty means the channels.json default. Set the test environment variable to point test builds elsewhere.
       DFRAGON_TEST_API_ORIGIN: ${{ vars.DFRAGON_TEST_API_ORIGIN }}
@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           {
-            echo "Test channel build \`$TEST_VERSION\` (\`DFragon Test\`, \`dfragon-test.exe\`, no login)."
+            echo "Test channel build \`$TEST_VERSION\` (\`DFragon Test\`, \`dfragon-test.exe\`, staging accounts login)."
             echo
             echo "Download in PowerShell on a Windows PC with the GitHub CLI. It prints nothing on success, creates the folder,"
             echo "and refuses to overwrite existing files, so keep one folder per run:"
