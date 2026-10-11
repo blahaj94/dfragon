@@ -37,7 +37,7 @@
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check",
     "mvp:build": "npm run typecheck && npm run prepare:ocr-assets && electron-vite build --mode mvp-preview",
     "dev:app": "npm run prepare:ocr-assets && install-electron && node --env-file-if-exists=.env ./node_modules/electron-vite/bin/electron-vite.js dev",
-    "ui:fixture:prepare": "tsc scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module commonjs --moduleResolution node --target es2022 --strict --skipLibCheck"
+    "ui:fixture:prepare": "tsc --ignoreConfig scripts/ui-fixture-preload.cts --rootDir . --outDir node_modules/.tmp/ui-fixture --module nodenext --target es2022 --strict --skipLibCheck"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
