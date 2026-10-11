@@ -12,7 +12,7 @@ last-reviewed: 2026-10-10
 
 ## Workspace
 
-- Package manager: `pnpm@11.23.0`
+- Package manager: `pnpm@12.11.2`
 - Workspace pattern: `apps/*`, `packages/*`
 - Root package: `@dfragon`
 - Root type: ESM
