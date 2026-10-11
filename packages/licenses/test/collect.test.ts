@@ -273,13 +273,13 @@ test('고정 버전의 upstream 원문을 완전한 내용으로 보완하고 �
     'utf8'
   )
   const directory = pkg('@stylexjs/stylex', {
-    manifest: { version: '0.19.0' },
+    manifest: { version: '0.19.1' },
     documents: { NOTICE: 'Installed attribution fixture\r\n' }
   })
 
   assert.deepEqual(packageNotice(directory), {
     name: '@stylexjs/stylex',
-    version: '0.19.0',
+    version: '0.19.1',
     license: 'MIT',
     documents: [
       { name: 'NOTICE', text: 'Installed attribution fixture\r\n' },
@@ -295,13 +295,13 @@ test('원문이 없는 패키지는 등록된 버전만 보완하고 다른 버�
     'utf8'
   )
   const supported = pkg('@stylexjs/stylex', {
-    manifest: { version: '0.19.0' },
+    manifest: { version: '0.19.1' },
     documents: {}
   })
 
   assert.deepEqual(packageNotice(supported), {
     name: '@stylexjs/stylex',
-    version: '0.19.0',
+    version: '0.19.1',
     license: 'MIT',
     documents: [{ name: 'upstream/stylex-LICENSE.txt', text: original }]
   })
@@ -319,13 +319,13 @@ test('원문이 없는 패키지는 등록된 버전만 보완하고 다른 버�
 test('Koffi 플랫폼 패키지는 같은 버전의 부모 보완 원문들을 수집한다', (t) => {
   const { pkg } = createPackageFixture(t)
   const directory = pkg('@koromix/koffi-linux-x64', {
-    manifest: { version: '3.2.1', license: 'ISC' },
+    manifest: { version: '3.3.3', license: 'ISC' },
     documents: {}
   })
 
   assert.deepEqual(packageNotice(directory), {
     name: '@koromix/koffi-linux-x64',
-    version: '3.2.1',
+    version: '3.3.3',
     license: 'ISC',
     documents: [
       {
@@ -382,7 +382,7 @@ test('보완 원문의 checksum 불일치는 격리된 사본에서 빌드를 �
     pathToFileURL(source).href
   )
   const directory = pkg('@stylexjs/stylex', {
-    manifest: { version: '0.19.0' },
+    manifest: { version: '0.19.1' },
     documents: {}
   })
 
@@ -392,7 +392,7 @@ test('보완 원문의 checksum 불일치는 격리된 사본에서 빌드를 �
   writeFile('isolated-tool/notices/upstream/stylex-LICENSE.txt', `${original}\nAltered fixture\n`)
   assert.throws(() => isolatedCollector.packageNotice(directory), {
     name: 'Error',
-    message: 'License checksum mismatch for @stylexjs/stylex@0.19.0'
+    message: 'License checksum mismatch for @stylexjs/stylex@0.19.1'
   })
 })
 
