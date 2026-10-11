@@ -19,7 +19,7 @@ review-after: API 실행 기반의 첫 validation 완료 또는 지원 major 변
 | 구분 | 내용 |
 | --- | --- |
 | RFC에서 논의한 방향 | `apps/api`의 NestJS, 중앙 API, 검색 DB 저장, 캐싱 없음 |
-| 승인된 실행 계약 | Node 24 LTS, Nest 12, ESM과 TypeScript build, 아래 build, test 방식 |
+| 승인된 실행 계약 | Node 26(2026-10-28 LTS 전환 예정), Nest 12, ESM과 TypeScript build, 아래 build, test 방식 |
 | 인증, session, DB 추가 승인 | 아래 Authentication runtime contract와 연결된 canonical Rule. 실제 구현, 검증 성공은 별개 |
 | PostgreSQL 선택 상태 | Server, image, local validation의 정확한 값과 승인 상태, evidence는 [`auth-runtime.md`](auth-runtime.md)의 PostgreSQL 선택 구간만 따른다. 선택 승인과 실제 compiled ESM/DB/platform compatibility 검증은 별개다. |
 | 남은 미결정 | 운영 배포, 실제 credential과 domain, 전체 서비스 한도 및 `auth-runtime.md`의 나머지 운영, compatibility gate |
@@ -28,7 +28,7 @@ review-after: API 실행 기반의 첫 validation 완료 또는 지원 major 변
 
 ## Runtime과 dependency
 
-API만 Node `>=24.15.0 <25`를 호환 floor/major 범위로 두며, 실제 선택은 해당 major의 최신 보안 patch로 한다. `@types/node`는 24.x로 맞춘다. Node 24는 확인 시점 LTS이며 `pnpm@12.11.2`의 지원 Node 범위에 들어간다. 다른 app의 Node/types 버전이나 workspace package manager를 변경하지 않는다. [Node release 상태](https://nodejs.org/en/about/previous-releases), [pnpm 호환 표](https://pnpm.io/installation#compatibility)
+API, accounts, OCR 서버 app은 Node `>=26.11.1 <27`을 호환 floor/major 범위로 두며, 실제 선택은 해당 major의 최신 보안 patch로 한다. 하한은 실제로 검증한 patch다. 서버, Web과 공용 package의 `@types/node`는 26.x로 맞춘다. Node 26은 확인 시점 Current이고 2026-10-28에 LTS로 전환될 예정이며 `pnpm@12.11.2`의 지원 Node 범위에 들어간다. Desktop main, preload는 Electron 44.7.0이 내장한 Node 24.21.0에서 실행되므로 이 범위를 따르지 않고 `@types/node`도 Electron의 Node major에 맞춘다. 호스트 Node 26은 Desktop의 테스트, 빌드 실행기로만 쓴다. API 작업에서 다른 app의 Node/types 버전이나 workspace package manager를 변경하지 않는다. [Node release 상태](https://nodejs.org/en/about/previous-releases), [pnpm 호환 표](https://pnpm.io/installation#compatibility)
 
 Nest runtime과 testing package는 동일한 12.x release로 맞추고, TypeScript compiler는 7.0.x(native `tsc`)를 사용하며, `tsc`로 먼저 컴파일한 뒤 Node로 검증하는 방식과 `emitDecoratorMetadata` 사용은 그대로 유지합니다. Node와 Express의 type은 사용하는 runtime과 맞추며, 직접 사용하는 패키지를 전이 의존성 경로에서 가져오지 않습니다.
 
@@ -51,7 +51,7 @@ HTTP client는 Node 내장 `fetch`, test runner와 assertion은 `node:test`, `no
 - `tsconfig.build.json`은 `src/**/*.ts`만 `rootDir: src`에서 `outDir: dist`로 emit한다. Entry는 `src/main.ts` → `dist/main.js`다. Test는 production 산출물에 넣지 않는다.
 - `tsconfig.test.json`은 같은 compiler 옵션으로 `src/**/*.ts`, `test/**/*.ts`를 `rootDir: .`에서 `outDir: .test-dist`로 emit한다. Test 이름은 `test/**/*.test.ts`, 실행 대상은 `.test-dist/test/**/*.test.js`다. Typecheck는 source와 test를 함께 검사한다.
 - 매 build/test compile 전에 해당 output만 `node:fs`의 `rmSync(..., { recursive: true, force: true })`로 정리해 삭제한 test나 source의 stale 산출물을 실행하지 않는다. 두 output은 Git에서 제외한다.
-- Test는 native TS stripping이나 esbuild에 decorator 변환을 맡기지 않는다. `tsc` 선컴파일 후 Node를 실행해 production과 동일한 metadata를 검증한다. [TypeScript metadata](https://www.typescriptlang.org/tsconfig/emitDecoratorMetadata.html), [Node TS의 decorator 제한](https://nodejs.org/docs/latest-v24.x/api/typescript.html), [Node test runner](https://nodejs.org/docs/latest-v24.x/api/test.html)
+- Test는 native TS stripping이나 esbuild에 decorator 변환을 맡기지 않는다. `tsc` 선컴파일 후 Node를 실행해 production과 동일한 metadata를 검증한다. [TypeScript metadata](https://www.typescriptlang.org/tsconfig/emitDecoratorMetadata.html), [Node TS의 decorator 제한](https://nodejs.org/docs/latest-v26.x/api/typescript.html), [Node test runner](https://nodejs.org/docs/latest-v26.x/api/test.html)
 
 대안인 Vitest는 Desktop과 runner를 공유하지만 Nest의 [공식 Vitest recipe](https://docs.nestjs.com/recipes/swc#vitest)에 필요한 SWC transform, metadata 구성을 추가로 관리해야 한다. 현재 작은 API는 선컴파일과 내장 runner를 사용한다. Nest test container는 [runner와 독립적](https://docs.nestjs.com/fundamentals/testing)이다.
 

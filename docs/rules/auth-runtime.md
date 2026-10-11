@@ -12,7 +12,7 @@ review-after: runtime 호환성 또는 DB 실행 조건 변경 시
 
 # Authentication Runtime Contract
 
-이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 인증 runtime과 DB 실행 계약입니다. [`api-runtime.md`](api-runtime.md)의 Node 24/Nest 12/ESM/TypeScript 7.0 및 tsc→Node 검증 계약을 유지합니다. 정책 승인과 실제 구현, 호환성 검증 및 운영 실행은 구분하며, 후속 작업은 [제품 계약 적용 기준](../README.md#document-class)과 사용자 실행 허용 범위를 따릅니다.
+이 문서는 [PR #48의 사용자 승인](https://github.com/blahaj94/ldb/pull/48#issuecomment-5551469519)을 반영한 인증 runtime과 DB 실행 계약입니다. [`api-runtime.md`](api-runtime.md)의 Node 26/Nest 12/ESM/TypeScript 7.0 및 tsc→Node 검증 계약을 유지합니다. 정책 승인과 실제 구현, 호환성 검증 및 운영 실행은 구분하며, 후속 작업은 [제품 계약 적용 기준](../README.md#document-class)과 사용자 실행 허용 범위를 따릅니다.
 
 ## 의존성 기록과 호환성
 

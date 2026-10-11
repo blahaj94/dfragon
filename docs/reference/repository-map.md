@@ -54,7 +54,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 ### `apps/api`
 
-- Package: `@dfragon/api`, Node 24, NestJS, TypeORM ESM. `src/http.ts`는 캐릭터, 모험단 HTTP와 `/health`를 합성한다.
+- Package: `@dfragon/api`, Node 26, NestJS, TypeORM ESM. `src/http.ts`는 캐릭터, 모험단 HTTP와 `/health`를 합성한다.
 - Domain DB: `characters`, `character_api_responses`, `item_catalog`, `skill_catalog`, `set_item_catalog` 및 기존 domain migration 네 개.
 - 필수 입력: `PORT`, `DB_*`, `NEOPLE_API_KEY`. `SEARCH_TRUST_PROXY`는 선택이다. 인증 설정, JWT, 계정 DB를 사용하지 않는다.
 - `test`는 build, 타입, 단위, HTTP 검증, `test:database`는 별도 Docker PostgreSQL의 domain migration, 검색, 캐시를 검증한다.
@@ -117,7 +117,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 ### `apps/ocr`
 
-- Package: `@dfragon/ocr`, Node 24, NestJS, React/TanStack Query/StyleX, esbuild, SQLite.
+- Package: `@dfragon/ocr`, Node 26, NestJS, React/TanStack Query/StyleX, esbuild, SQLite.
 - `src`: 서버, 기존 패스키 API 연결, 원본/정답 저장, PNG 크롭, TAR 다운로드. `browser`: 관리 SPA.
 - 원본은 캡처 ID당 한 번 저장하고 크롭 좌표를 보관한다. 기존 API의 선택 설정 `ocrReturnUrl`과 `ocr` client로 로그인한다.
 - 검증: `pnpm --filter @dfragon/ocr test`, `lint`, `test:ui`. UI 검증은 설치된 Playwright Chromium과 합성 인증 fixture를 사용한다.

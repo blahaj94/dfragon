@@ -98,7 +98,7 @@ pnpm check:docs
 
 Product Images의 변경 경로를 서비스별 빌드 목록으로 바꿉니다. 앱별 경로와 공용 입력은
 [서버 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)를 따릅니다.
-새 dependency 없이 Git과 Node.js 24를 사용합니다.
+새 dependency 없이 Git과 Node.js 26을 사용합니다.
 
 `select <plan-file>`은 GitHub event 파일과 checkout된 source commit을 확인하고,
 PR의 base 또는 main push의 `before`부터 변경된 경로를 비교해 JSON 목록을 저장합니다.
@@ -171,7 +171,7 @@ pnpm verify:database
 
 Code Quality의 Static checks와 같은 검사를 로컬에서 한 번에 실행할 때는 root에서 `pnpm check:static`을 사용합니다. `lint`, `format:check`, `check:writing`, `check:docs`를 CI와 같은 순서로 실행하며 먼저 실패한 검사에서 멈춥니다.
 
-API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 24, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함), Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회, pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
+API/accounts 이미지의 실행 계약은 아래 명령으로 검사합니다. Node.js 26, 설치된 workspace 의존성(`pnpm install --frozen-lockfile`), 같은 host의 Docker daemon(Docker Desktop 포함), Buildx와 로컬에서 실행 가능한 Linux 앱 이미지가 필요합니다. PostgreSQL registry의 manifest 조회, pull을 위한 네트워크 접근도 필요합니다. [제품 이미지 안내](../docs/reference/api-start-development.md#서버-이미지)의 빌드 결과를 사용하거나, 마지막 인자를 미리 pull한 검증 대상 이미지 reference로 바꿉니다.
 
 ```bash
 node apps/api/test-support/container-deployment.mjs dfragon-api:local

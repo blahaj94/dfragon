@@ -30,7 +30,7 @@ NEOPLE_API_KEY_FILE=/absolute/path/to/neople-key \
 ```
 
 `--package-directory`는 패키지 소스 경로가 아니라 `npm install --prefix`로 사용한 디렉터리입니다.
-Node 24와 기존 workspace 의존성이 필요합니다. 명령은 먼저 API를 빌드하며, 이미 빌드했다면
+Node 26과 기존 workspace 의존성이 필요합니다. 명령은 먼저 API를 빌드하며, 이미 빌드했다면
 `pnpm --filter @dfragon/api exec node --import reflect-metadata test-support/verify-skill-calculation.mjs`에 같은 인자를
 전달할 수 있습니다. `NEOPLE_API_KEY` 직접 입력도 지원하나 `_FILE`과 동시에 지정하면 실패합니다.
 PORT, DB 설정, HTTP 서버, DB 연결은 사용하지 않습니다.

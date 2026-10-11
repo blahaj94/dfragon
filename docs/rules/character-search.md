@@ -133,7 +133,7 @@ Body는 `{"error":{"code":"<CODE>","message":"<MESSAGE>"}}`만 사용한다. Ups
 
 Node 내장 `fetch`와 abort signal로 body 수신까지 취소하고 timer를 정리한다. Deadline 이전 network/body read 실패는 502, deadline에 따른 abort는 504로 구분한다. Redirect는 따라가지 않는 안이며 3xx는 위 fallback 오류다. 늦게 끝난 작업으로 추가 응답하거나 retry하지 않는다. Event loop 지연 때문에 실제 HTTP write가 정확히 5,000ms 안에 일어난다고 보장하지 않는다.
 
-순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v24.x/api/globals.html#fetch)
+순수 adapter는 **검증된 검색 값 → 공급자 예산 확인, URL 구성, transport 1회, 전체 응답 검증/projection 또는 정제된 오류**를 담당한다. 인증 guard, user/session, DB와 활동 기록을 import하지 않는다. 공급자 전체 호출 예산은 검색, 상세, 공용 상세 adapter가 공유하며 클라이언트별 admission과 구분한다. Transport, clock/abort 경계는 test에서 fake로 제어할 수 있어야 하며 loopback upstream으로 실제 HTTP encoding, status, body, 취소를 함께 검증한다. 운영 upstream origin은 고정하고 요청 query가 URL/host를 지정하지 못하게 한다. Loopback origin과 fake credential은 test 주입에만 사용한다. [Node fetch](https://nodejs.org/docs/latest-v26.x/api/globals.html#fetch)
 
 ## 공개 검색과 호출 제한
 
