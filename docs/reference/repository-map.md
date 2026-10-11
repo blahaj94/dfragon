@@ -17,7 +17,7 @@ last-reviewed: 2026-10-10
 - Root package: `@dfragon`
 - Root type: ESM
 
-외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정확한 버전으로 정한다. 각 `package.json`은 기본 `catalog:`를 참조하고, 내부 package는 `workspace:*`를 유지한다. Desktop의 Vite 7.3.6과 `@vitejs/plugin-react` 5.2.0은 `catalog:electron`을 참조한다. `electron-vite` 5.0.0의 Vite peer 범위가 `^5.0.0 || ^6.0.0 || ^7.0.0`이므로 Vite 7 계열을 유지한다. Root TypeScript 6.0.2는 문장 간격 도구의 parser 전용 `catalog:parser`를 참조한다. `catalogMode: strict`는 `pnpm add`가 catalog 밖 버전을 추가하지 못하게 하고, 각 `package.json`이 catalog를 참조하는지는 `pnpm test:tooling`의 `scripts/test/workspace-catalog.test.mjs`가 검사한다.
+외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정확한 버전으로 정한다. 각 `package.json`은 기본 `catalog:`를 참조하고, 내부 package는 `workspace:*`를 유지한다. Desktop의 Vite 7.3.7과 `@vitejs/plugin-react` 5.2.0은 `catalog:electron`을 참조한다. `electron-vite` 5.0.0의 Vite peer 범위가 `^5.0.0 || ^6.0.0 || ^7.0.0`이므로 Vite 7 계열을 유지한다. Root TypeScript 6.0.2는 문장 간격 도구의 parser 전용 `catalog:parser`를 참조한다. `catalogMode: strict`는 `pnpm add`가 catalog 밖 버전을 추가하지 못하게 하고, 각 `package.json`이 catalog를 참조하는지는 `pnpm test:tooling`의 `scripts/test/workspace-catalog.test.mjs`가 검사한다.
 
 ## 공통 정적 검사와 정렬
 

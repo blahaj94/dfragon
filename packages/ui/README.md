@@ -6,7 +6,7 @@
 
 ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. TextField만 예외로 Snippet의 props를 그대로 받는 얇은 wrapper에서 포커스 선 변수 `--seed-color-stroke-neutral-contrast`만 `--seed-color-stroke-focus-ring`으로 지정한다. 내부 `src/seed` 경로는 package export가 아니며 provenance hash를 유지하려고 직접 고치지 않는다. IconButton, StatusBadge, Checkmark는 아래 [디자인 컴포넌트](#디자인-컴포넌트)에서 설명한다.
 
-SEED React `2.4.1`, CSS `2.7.0`, React/React DOM `19.2.8`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.26.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.0`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
+SEED React `2.6.0`, CSS `2.9.1`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.29.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.1`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
 

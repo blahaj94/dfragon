@@ -43,7 +43,7 @@ Coordinator는 새 login에서 `startTrustPeriod()`를 호출합니다. 최초 r
 | `apps/desktop/src/backend/auth/runtime-clock.ts`                             | 고정 offset 기준, 표본 폭과 power event에 따른 clock 신뢰 구간을 관리                                                                              |
 | `apps/desktop/src/backend/auth/bootstrap.ts`                                 | 단일 trusted config를 effect dependency factory에 전달하고 coordinator runtime을 노출하며, caller가 UI/IPC 뒤 한 번 `start()`하도록 보장 |
 
-Coordinator 생성 시 enabled provider, API origin과 Browser, loopback 수신기, 메인 창 활성화, HTTP, clock, entropy, credential store effect를 주입한다. Runtime dependency는 `ky@2.1.0`, `zod@4.5.4`로 고정했다. Source와 build에는 운영 origin, app identity의 fixture 기본값이 없다. Composition은 process에 주입된 동일한 trusted runtime config로 고정 HTTP client, coordinator와 `environment/apiOrigin/clientId:"desktop"` store context를 만든다.
+Coordinator 생성 시 enabled provider, API origin과 Browser, loopback 수신기, 메인 창 활성화, HTTP, clock, entropy, credential store effect를 주입한다. Runtime dependency는 `ky@2.2.0`, `zod@4.6.5`로 고정했다. Source와 build에는 운영 origin, app identity의 fixture 기본값이 없다. Composition은 process에 주입된 동일한 trusted runtime config로 고정 HTTP client, coordinator와 `environment/apiOrigin/clientId:"desktop"` store context를 만든다.
 
 현재 process 설정 key는 `DFRAGON_AUTH_API_ORIGIN`, `DFRAGON_AUTH_ENVIRONMENT`, `DFRAGON_AUTH_PROVIDERS`, `DFRAGON_AUTH_APP_IDENTITY`, `DFRAGON_AUTH_USER_DATA_PATH`다. 다섯 값이 모두 exact contract를 통과해야 하며 providers는 passkey 하나만 허용한다. 누락, 빈 값, 잘못된 provider/URL, identity/profile에는 기본값을 적용하지 않는다.
 
