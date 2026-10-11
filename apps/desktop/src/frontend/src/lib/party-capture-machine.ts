@@ -1,31 +1,61 @@
 import { assign, fromCallback, fromPromise, setup, type SnapshotFrom } from 'xstate'
-import {
-  startPartyCaptureSession,
-  type CaptureSessionInput,
-  type CaptureSessionEvent
-} from './party-capture-session'
+import type { CapturePhase, PartyOcrWorker } from '../types/capture'
+import type { WindowFrameResult } from '../../../preload/common/types/capture'
+import type { CharacterImage } from '../../../preload/common/types/character'
+import type { OcrCaptureObservation } from './capture-search'
+import { createPartyOcrWorker } from './ocr'
+import { recognizePartyFrame, type PartySlotRecognition } from './party-recognition'
+import { reportRendererDiagnostic, showRejectedOcrNickname } from './runtime-diagnostics'
 
-import type { CapturePhase } from '../types/capture'
+const PARTY_SAMPLE_SLOTS = [1, 2, 3, 4] as const
+const OCR_FAILED_STATUS =
+  '글자 인식에 실패했습니다. Alt+R을 누르거나 캐릭터 직접 검색을 사용해 주세요.'
 
-type CaptureInput = CaptureSessionInput & {
+type RoundFrame = CharacterImage & { captureId: string; frameId?: string }
+type CaptureInput = {
   selectSource: (sourceId: string) => Promise<unknown>
+  beginSearch: (signal: AbortSignal) => Promise<string | null>
   endSearch: () => void
-  resetRecognition: () => void
+  readFrame: (captureId: string) => Promise<WindowFrameResult>
+  observe: (input: { slot: number; nickname: string | null }) => void
+  observeOcr?: (input: OcrCaptureObservation) => void
 }
 
 type CaptureContext = {
   effects: CaptureInput
   selectedSourceId: string
-  autoStart: boolean
   request: object | null
+  captureId: string | null
+  frame: RoundFrame | null
+  results: PartySlotRecognition[]
+  round: number
   status: string
 }
 
 type CaptureEvent =
-  | { type: 'SELECT'; sourceId: string; autoStart: boolean; request: object }
+  | { type: 'SELECT'; sourceId: string }
   | { type: 'START'; request: object }
   | { type: 'STOP'; status?: string }
-  | CaptureSessionEvent
+
+/** 회차 결과 반영 중 수집 실패가 검색 통지를 막지 않도록 별도로 처리한다. */
+async function collectSample(frame: RoundFrame, result: PartySlotRecognition): Promise<void> {
+  if (result.kind === 'missing' || frame.frameId === undefined) {
+    return
+  }
+  try {
+    const response = await window.ocrCollection.collectOcrSample({
+      captureId: frame.captureId,
+      frameId: frame.frameId,
+      slot: PARTY_SAMPLE_SLOTS[result.slot],
+      prediction: result.prediction
+    })
+    if (response.status === 'failed') {
+      reportRendererDiagnostic('UPLOAD_FAILED')
+    }
+  } catch {
+    reportRendererDiagnostic('UPLOAD_FAILED')
+  }
+}
 
 export const partyCaptureMachine = setup({
   types: {
@@ -39,38 +69,56 @@ export const partyCaptureMachine = setup({
         await input.effects.selectSource(input.sourceId)
       }
     ),
-    captureSession: fromCallback<CaptureSessionEvent, CaptureInput>(({ input, sendBack }) =>
-      startPartyCaptureSession(input, sendBack)
+    beginSearch: fromPromise(
+      async ({ input, signal }: { input: CaptureInput; signal: AbortSignal }) => {
+        const captureId = await input.beginSearch(signal)
+        signal.throwIfAborted()
+        if (captureId === null) {
+          throw new Error('Search lifetime unavailable.')
+        }
+
+        return captureId
+      }
+    ),
+    readFrame: fromPromise(({ input }: { input: { captureId: string; effects: CaptureInput } }) =>
+      input.effects.readFrame(input.captureId)
+    ),
+    recognize: fromPromise(
+      async ({ input, signal }: { input: RoundFrame; signal: AbortSignal }) => {
+        let worker: PartyOcrWorker | null = null
+        let status = '글자 인식을 준비하지 못했습니다. Alt+R을 눌러 다시 인식해 주세요.'
+        try {
+          try {
+            worker = await createPartyOcrWorker(signal)
+            signal.throwIfAborted()
+            status = OCR_FAILED_STATUS
+            const results = await recognizePartyFrame(input, worker.recognize)
+            signal.throwIfAborted()
+
+            return results
+          } finally {
+            await worker?.terminate()
+          }
+        } catch {
+          throw new Error(status)
+        }
+      }
     ),
     lifetime: fromCallback<CaptureEvent, CaptureInput>(({ input }) => () => {
       input.endSearch()
       void input.selectSource('').catch(() => undefined)
     })
   },
-  guards: {
-    shouldAutoStart: ({ context }) => context.autoStart && context.selectedSourceId.length > 0,
-    hasSelectedSource: ({ context }) => context.selectedSourceId.length > 0
-  },
   actions: {
-    resetSearch: ({ context }) => {
-      context.effects.endSearch()
-      context.effects.resetRecognition()
-    },
-    setNotice: assign({
-      status: ({ event }) => {
-        if (!('status' in event)) {
-          return ''
-        }
-        const status = event.status
-        if (status == null) {
-          return '캡처를 중지했습니다.'
-        }
-
-        return status
-      }
+    resetSearch: ({ context }) => context.effects.endSearch(),
+    resetRecognition: assign({
+      captureId: null,
+      frame: null,
+      results: [],
+      round: ({ context }) => context.round + 1
     }),
     recordRequest: assign(({ event }) => {
-      if ('request' in event) {
+      if (event.type === 'START') {
         return { request: event.request }
       }
 
@@ -80,20 +128,43 @@ export const partyCaptureMachine = setup({
       if (event.type !== 'SELECT') {
         return {}
       }
-      const selectedSourceId = event.sourceId
-      const autoStart = event.autoStart
-      const request = event.request
       const status = event.sourceId
         ? '게임 창 선택을 확인하고 있습니다.'
         : '캡처할 게임 창을 선택해 주세요.'
 
-      return {
-        selectedSourceId,
-        autoStart,
-        request,
-        status
+      return { selectedSourceId: event.sourceId, request: null, status }
+    }),
+    applyRecognition: ({ context }) => {
+      const { effects, frame, results } = context
+      if (frame === null) {
+        return
       }
-    })
+      for (const result of results) {
+        if (result.kind === 'missing' || result.kind === 'failed') {
+          continue
+        }
+        const { slot, portrait } = result
+        if (effects.observeOcr !== undefined) {
+          if (result.kind === 'rejected') {
+            showRejectedOcrNickname(result)
+            effects.observeOcr({ slot, nickname: '', candidateNicknames: [''], portrait })
+          } else {
+            const { nickname } = result
+            effects.observeOcr({ slot, nickname, candidateNicknames: [nickname], portrait })
+          }
+        } else if (result.legacyNickname.length > 0) {
+          effects.observe({ slot, nickname: result.legacyNickname })
+        }
+      }
+    },
+    collectRecognition: ({ context }) => {
+      if (context.frame === null) {
+        return
+      }
+      for (const result of context.results) {
+        void collectSample(context.frame, result)
+      }
+    }
   }
 }).createMachine({
   id: 'partyCapture',
@@ -101,24 +172,25 @@ export const partyCaptureMachine = setup({
   context: ({ input }) => ({
     effects: input,
     selectedSourceId: '',
-    autoStart: false,
     request: null,
+    captureId: null,
+    frame: null,
+    results: [],
+    round: 0,
     status: '캡처할 게임 창을 선택해 주세요.'
   }),
   invoke: { src: 'lifetime', input: ({ context }) => context.effects },
-  // START는 전이를 선언한 상태에서만 받으며, 그 밖의 상태에서는 Alt+R을 눌러도 캡처를 시작하지 않는다.
+  // START를 선언한 상태만 Alt+R을 받는다. 중지 뒤에는 창을 다시 선택해야 한다.
   on: {
-    SELECT: { target: '.selecting', actions: ['resetSearch', 'selectSource'] },
+    SELECT: { target: '.selecting', actions: ['resetSearch', 'resetRecognition', 'selectSource'] },
     STOP: {
       target: '.stopped',
       actions: [
         'resetSearch',
+        'resetRecognition',
         assign({
           status: ({ event }) => {
-            const status = event.status
-            if (status == null) {
-              return '캡처를 중지했습니다.'
-            }
+            const status = event.status ?? '캡처를 중지했습니다.'
 
             return status
           }
@@ -130,18 +202,20 @@ export const partyCaptureMachine = setup({
     idle: {},
     selecting: {
       on: {
-        SELECT: { target: 'selecting', reenter: true, actions: ['resetSearch', 'selectSource'] }
+        SELECT: {
+          target: 'selecting',
+          reenter: true,
+          actions: ['resetSearch', 'resetRecognition', 'selectSource']
+        }
       },
-      tags: ['busy'],
       invoke: {
         src: 'registerSource',
         input: ({ context }) => ({ sourceId: context.selectedSourceId, effects: context.effects }),
         onDone: [
-          { guard: 'shouldAutoStart', target: 'capturing' },
           {
-            guard: 'hasSelectedSource',
+            guard: ({ context }) => context.selectedSourceId.length > 0,
             target: 'selected',
-            actions: assign({ status: '게임 창을 선택했습니다. 캡처 시작을 눌러 주세요.' })
+            actions: assign({ status: 'Alt+R을 눌러 파티를 인식해 주세요.' })
           },
           { target: 'idle' }
         ],
@@ -152,49 +226,168 @@ export const partyCaptureMachine = setup({
       }
     },
     selected: {
-      on: { START: { target: 'capturing', actions: ['resetSearch', 'recordRequest'] } }
+      on: { START: { target: 'capturing', actions: 'recordRequest' } }
     },
-    // 중지한 뒤에는 창을 다시 선택해야 캡처를 시작한다.
     stopped: {},
     capturing: {
       initial: 'search',
-      entry: assign({ status: '캡처를 준비하고 있습니다.' }),
-      invoke: { src: 'captureSession', input: ({ context }) => context.effects },
+      entry: ['resetSearch', 'resetRecognition', assign({ status: '파티를 인식하고 있습니다.' })],
       on: {
-        START: { target: 'capturing', reenter: true, actions: ['resetSearch', 'recordRequest'] },
-        FAILED: { target: 'captureFailed', actions: ['resetSearch', 'setNotice'] }
+        START: { target: 'capturing', reenter: true, actions: 'recordRequest' }
       },
       states: {
-        search: { tags: ['busy'], on: { START: {}, FRAME_REQUESTED: 'frame' } },
-        frame: {
+        search: {
           tags: ['busy'],
-          on: {
-            OCR_START: {
-              target: 'ocr',
-              actions: assign({ status: '글자 인식을 준비하고 있습니다. 잠시 기다려 주세요.' })
+          // Main에 수명이 생긴 뒤 begin 응답이 도착할 때까지 중복 시작을 막는다.
+          on: { START: {} },
+          invoke: {
+            src: 'beginSearch',
+            input: ({ context }) => context.effects,
+            onDone: {
+              target: 'frame',
+              actions: assign({ captureId: ({ event }) => event.output })
+            },
+            onError: {
+              target: '#partyCapture.captureFailed',
+              actions: [
+                () => reportRendererDiagnostic('CAPTURE_START_FAILED'),
+                assign({ status: '검색을 시작하지 못했습니다. 창을 다시 선택해 주세요.' })
+              ]
             }
           }
         },
-        ocr: { tags: ['busy'], on: { READY: { target: 'active', actions: 'setNotice' } } },
-        active: { on: { READY: { actions: 'setNotice' } } }
+        frame: {
+          tags: ['busy'],
+          invoke: {
+            src: 'readFrame',
+            // 검색 시작 actor의 성공 전이에서만 captureId가 기록된다.
+            input: ({ context }) => ({ captureId: context.captureId!, effects: context.effects }),
+            onDone: [
+              {
+                guard: ({ event }) => event.output.kind === 'frame',
+                target: 'recognizing',
+                actions: assign({
+                  frame: ({ context, event }) => {
+                    if (event.output.kind !== 'frame') {
+                      return null
+                    }
+
+                    return {
+                      ...event.output.image,
+                      captureId: context.captureId!,
+                      frameId: event.output.frameId
+                    }
+                  }
+                })
+              },
+              {
+                guard: ({ event }) => event.output.kind === 'waiting',
+                target: 'unavailable',
+                actions: assign({
+                  status: ({ event }) => {
+                    if (event.output.kind === 'waiting' && event.output.reason === 'covered') {
+                      return '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
+                    }
+
+                    return '게임 화면을 읽지 못했습니다. 창이 최소화되지 않았는지 확인한 뒤 Alt+R을 누르세요.'
+                  }
+                })
+              },
+              {
+                target: '#partyCapture.captureFailed',
+                actions: [
+                  () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
+                  assign({ status: '화면 캡처는 Windows에서 사용할 수 있습니다.' })
+                ]
+              }
+            ],
+            onError: {
+              target: '#partyCapture.captureFailed',
+              actions: [
+                () => reportRendererDiagnostic('CAPTURE_READ_FAILED'),
+                assign({ status: '캡처 연결이 종료되었습니다. 창을 다시 선택해 주세요.' })
+              ]
+            }
+          }
+        },
+        recognizing: {
+          tags: ['busy'],
+          invoke: {
+            src: 'recognize',
+            // frame 상태의 성공 전이에서 확보한 회차 프레임만 인식한다.
+            input: ({ context }) => context.frame!,
+            onDone: [
+              {
+                guard: ({ event }) => event.output.some((result) => result.kind === 'failed'),
+                target: '#partyCapture.captureFailed',
+                actions: [
+                  assign({ results: ({ event }) => event.output }),
+                  // captureFailed의 END가 원본을 지우기 전에 검출 슬롯 수집을 요청한다.
+                  'collectRecognition',
+                  () => reportRendererDiagnostic('OCR_FAILED'),
+                  assign({ status: OCR_FAILED_STATUS })
+                ]
+              },
+              {
+                guard: ({ event }) => event.output.every((result) => result.kind === 'missing'),
+                target: 'unavailable',
+                actions: assign({
+                  status:
+                    '파티 프레임을 찾지 못했습니다. 파티 프레임이 보이게 한 뒤 Alt+R을 누르세요.'
+                })
+              },
+              {
+                target: 'complete',
+                actions: [
+                  assign({ results: ({ event }) => event.output }),
+                  'applyRecognition',
+                  'collectRecognition'
+                ]
+              }
+            ],
+            onError: {
+              target: '#partyCapture.captureFailed',
+              actions: [
+                () => reportRendererDiagnostic('OCR_FAILED'),
+                assign({
+                  status: ({ event }) => {
+                    if (event.error instanceof Error) {
+                      return event.error.message
+                    }
+
+                    return OCR_FAILED_STATUS
+                  }
+                })
+              ]
+            }
+          }
+        },
+        complete: {
+          entry: assign({ status: '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.' })
+        },
+        unavailable: {}
       }
     },
     selectionFailed: {},
-    // 캡처 실패는 확인을 마친 창 선택을 유지하므로 창을 다시 고르지 않고 재시작할 수 있다.
     captureFailed: {
-      on: { START: { target: 'capturing', actions: ['resetSearch', 'recordRequest'] } }
+      entry: ['resetSearch', 'resetRecognition'],
+      on: { START: { target: 'capturing', actions: 'recordRequest' } }
     }
   }
 })
 
-// 목록 조회 상태와 독립적인 캡처 수명을 UI가 사용할 단계로 변환한다.
+/** 검색 수명은 유지하면서 회차 진행과 완료를 UI 단계로 구분한다. */
 export function getCapturePhase(snapshot: SnapshotFrom<typeof partyCaptureMachine>): CapturePhase {
-  if (snapshot.matches({ capturing: 'active' })) {
-    return 'active'
+  if (snapshot.matches({ capturing: 'complete' })) {
+    return 'complete'
+  }
+
+  if (snapshot.matches({ capturing: 'unavailable' })) {
+    return 'unavailable'
   }
 
   if (snapshot.matches('capturing')) {
-    return 'starting'
+    return 'recognizing'
   }
 
   if (snapshot.matches('selecting')) {

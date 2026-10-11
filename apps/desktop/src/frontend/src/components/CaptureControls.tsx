@@ -46,8 +46,8 @@ export function CaptureControls({
   onStop
 }: CaptureControlsProps): React.JSX.Element {
   const { light } = useColorTheme()
-  const starting = phase === 'selecting' || phase === 'starting'
-  const active = phase === 'active'
+  const active = phase === 'recognizing' || phase === 'complete'
+  const hasSelection = phase !== 'idle' && selectedSourceId.length > 0
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const detected = sources.filter(isDnfCaptureSource)
@@ -96,7 +96,7 @@ export function CaptureControls({
             portalContainer={dialogRef}
             detected={detected}
             others={others}
-            value={active || starting ? selectedSourceId : ''}
+            value={hasSelection ? selectedSourceId : ''}
             loading={loading}
             failed={failed}
             ready={ready}
@@ -116,7 +116,7 @@ export function CaptureControls({
                 닫기
               </Typo.txtM>
             </ActionButton>
-            {(active || starting) && (
+            {hasSelection && (
               <ActionButton size="medium" variant="brandSolid" onClick={onStop}>
                 <Typo.txtM as="span" weight={700}>
                   캡처 중지

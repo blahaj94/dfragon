@@ -11,21 +11,19 @@ function PartyCapture(): React.JSX.Element {
     sourcesFailed,
     selectedSourceId,
     canStartCapture,
-    starting,
+    recognizing,
     search,
     retrySearch,
-    intervalSeconds,
-    stableNicknames,
+    nicknames,
     status,
     selectSource,
     refreshSources,
-    setIntervalSeconds,
     startCapture,
     stopCapture
   } = usePartyCapture()
   const isSearchReady = search.ready
-  const cannotStartCapture = !canStartCapture || starting || !isSearchReady
-  const statusText = formatPartyCaptureStatus({ status, stableNicknames })
+  const cannotStartCapture = !canStartCapture || !isSearchReady
+  const statusText = formatPartyCaptureStatus({ status, nicknames })
 
   return (
     <main>
@@ -52,28 +50,16 @@ function PartyCapture(): React.JSX.Element {
             ))}
           </select>
         </label>
-        <label {...stylex.props(styles.field)}>
-          인식 간격
-          <select
-            value={intervalSeconds}
-            onChange={(event) => setIntervalSeconds(Number(event.target.value))}
-          >
-            <option value={1}>1초</option>
-            <option value={3}>3초</option>
-            <option value={5}>5초</option>
-          </select>
-        </label>
         <div {...stylex.props(styles.actions)}>
           <ActionButton
             type="button"
-            disabled={starting || search.captureActive}
+            disabled={recognizing || search.captureActive}
             onClick={() => refreshSources()}
           >
             창 목록 새로고침
           </ActionButton>
           <ActionButton
             disabled={cannotStartCapture}
-            loading={starting}
             type="button"
             onClick={() => void startCapture()}
           >

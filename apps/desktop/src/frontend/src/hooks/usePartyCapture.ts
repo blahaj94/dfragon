@@ -1,10 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
 import type { CapturePhase } from '../types/capture'
 import { useCaptureSources } from './useCaptureSources'
-import { usePartyRecognition, type RecognitionState } from './usePartyRecognition'
+import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { useCharacterSearch } from './useCharacterSearch'
 import { isDnfCaptureSource } from '../lib/capture-presentation'
 
@@ -12,21 +12,17 @@ type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>
   retrySearch: (slot: number) => void
   phase: CapturePhase
-  starting: boolean
+  recognizing: boolean
   sources: { id: string; name: string }[]
   selectedSourceId: string
   canStartCapture: boolean
   sourcesLoading: boolean
   sourcesFailed: boolean
-  intervalSeconds: number
-  stableNicknames: (string | null)[]
-  recognitionStates: readonly RecognitionState[]
+  nicknames: (string | null)[]
   round: number
   status: string
   selectSource: (sourceId: string) => void
-  selectAndStartCapture: (sourceId: string) => Promise<void>
   refreshSources: () => void
-  setIntervalSeconds: (seconds: number) => void
   startCapture: () => Promise<void>
   stopCapture: (nextStatus?: string) => void
 }
@@ -36,13 +32,9 @@ export function usePartyCapture({
 }: {
   identifyCharacters?: boolean
 } = {}): PartyCapture {
-  const intervalSecondsRef = useRef(3)
-  const [round, setRound] = useState(0)
-  const [intervalSeconds, setIntervalSecondsState] = useState(3)
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
   const observeOcr = identifyCharacters ? search.observeOcr : undefined
-  const recognition = usePartyRecognition(search.observe, observeOcr)
 
   // actor 자체가 멈추기 전에 대기 중인 공개 명령의 완료도 알린다.
   useEffect(() => () => stopRef.current(), [])
@@ -52,20 +44,17 @@ export function usePartyCapture({
       beginSearch: search.begin,
       readFrame: (captureId) => window.api.readCaptureFrame(captureId),
       endSearch: search.end,
-      resetRecognition: () => {
-        recognition.resetRecognition()
-        setRound((current) => current + 1)
-      },
-      getIntervalMs: () => intervalSecondsRef.current * 1000,
-      recognizePartyNicknames: recognition.recognizePartyNicknames
+      observe: search.observe,
+      observeOcr
     }
   })
   const sources = useCaptureSources()
   const phase = getCapturePhase(snapshot)
+  const canAutoSelect = snapshot.matches('idle')
   const autoAttemptedSource = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!identifyCharacters || !search.ready || snapshot.context.selectedSourceId.length > 0) {
+    if (!identifyCharacters || !search.ready || !canAutoSelect) {
       return
     }
     const games = sources.sources.filter(isDnfCaptureSource)
@@ -73,8 +62,8 @@ export function usePartyCapture({
       return
     }
     autoAttemptedSource.current = games[0].id
-    send({ type: 'SELECT', sourceId: games[0].id, autoStart: true, request: {} })
-  }, [identifyCharacters, search.ready, send, snapshot.context.selectedSourceId, sources.sources])
+    send({ type: 'SELECT', sourceId: games[0].id })
+  }, [identifyCharacters, search.ready, canAutoSelect, send, sources.sources])
 
   useEffect(() => {
     if (!identifyCharacters || window.desktopShortcut === undefined) {
@@ -96,13 +85,7 @@ export function usePartyCapture({
   })
 
   function selectSource(sourceId: string): void {
-    send({ type: 'SELECT', sourceId, autoStart: false, request: {} })
-  }
-
-  async function selectAndStartCapture(sourceId: string): Promise<void> {
-    const request = {}
-    send({ type: 'SELECT', sourceId, autoStart: true, request })
-    await waitFor(actor, (state) => state.context.request !== request || !state.hasTag('busy'))
+    send({ type: 'SELECT', sourceId })
   }
 
   async function startCapture(): Promise<void> {
@@ -111,32 +94,41 @@ export function usePartyCapture({
     await waitFor(actor, (state) => state.context.request !== request || !state.hasTag('busy'))
   }
 
-  function setIntervalSeconds(seconds: number): void {
-    intervalSecondsRef.current = seconds
-    setIntervalSecondsState(seconds)
-  }
-
   const sourceState = { ...sources }
-  const starting = phase === 'starting' || (phase === 'selecting' && snapshot.context.autoStart)
+  const recognizing = phase === 'recognizing'
+  const nicknames = Array.from({ length: PARTY_SLOT_COUNT }, (_, slot) => {
+    const result = snapshot.context.results[slot]
+    if (result == null || result.kind === 'missing' || result.kind === 'failed') {
+      return null
+    }
+
+    if (!identifyCharacters) {
+      const nickname = result.legacyNickname.length > 0 ? result.legacyNickname : null
+
+      return nickname
+    }
+
+    if (result.kind === 'recognized') {
+      return result.nickname
+    }
+
+    return null
+  })
   const selectedSourceId = snapshot.context.selectedSourceId
   const canStartCapture = snapshot.can({ type: 'START', request: {} })
 
   return {
     ...sourceState,
     phase,
-    starting,
+    recognizing,
     selectedSourceId,
     canStartCapture,
     selectSource,
-    selectAndStartCapture,
     search,
     retrySearch: search.retry,
-    intervalSeconds,
-    stableNicknames: recognition.stableNicknames,
-    recognitionStates: recognition.recognitionStates,
-    round,
+    nicknames,
+    round: snapshot.context.round,
     status: snapshot.context.status,
-    setIntervalSeconds,
     startCapture,
     stopCapture
   }

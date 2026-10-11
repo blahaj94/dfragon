@@ -27,12 +27,16 @@ export function getCaptureControlState({
   failed,
   hasDetectedSource
 }: CaptureControlInput): { label: string; tone: CaptureControlTone } {
-  if (phase === 'selecting' || phase === 'starting') {
+  if (phase === 'selecting') {
     return { label: '준비 중', tone: 'neutral' }
   }
 
-  if (phase === 'active') {
-    return { label: '캡처 중', tone: 'informative' }
+  if (phase === 'recognizing') {
+    return { label: '인식 중', tone: 'informative' }
+  }
+
+  if (phase === 'complete') {
+    return { label: '인식 완료', tone: 'informative' }
   }
 
   if (loading) {
@@ -81,14 +85,14 @@ export function getCaptureSourceNotice({
 // 상태를 첫 줄에 두고 원래 슬롯 번호와 닉네임 원문을 유지해 표시 문구를 만든다.
 export function formatPartyCaptureStatus({
   status,
-  stableNicknames
+  nicknames
 }: {
   status: string
-  stableNicknames: readonly (string | null)[]
+  nicknames: readonly (string | null)[]
 }): string {
   const lines = [
     status,
-    ...map(stableNicknames, (nickname, slot) => {
+    ...map(nicknames, (nickname, slot) => {
       const line = nickname != null && nickname.length > 0 ? `슬롯 ${slot + 1}: ${nickname}` : null
 
       return line
