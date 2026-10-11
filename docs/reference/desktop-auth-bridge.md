@@ -2,12 +2,12 @@
 type: reference
 status: active
 scope: desktop isolated authentication bridge
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-11
 ---
 
 # Desktop Auth Bridge
 
-승인된 [Desktop auth contract](../rules/desktop-auth.md)의 6 invoke와 1 event를 기존 main AuthCoordinator 및 LoginSection에 연결한다. 제품 main은 trusted 설정이 활성화된 경우 기존 auth IPC를 local renderer window에 등록하고 그 창에만 `--dfragon-auth-available` 인자를 넘긴다. Preload는 이 인자가 있을 때만 `window.auth`를 노출하므로, 설정이 없는 test 채널과 개발 실행에는 로그인 버튼이 없다. 인증 IPC가 있는 창에서 연결 조회가 실패하면 로그인 버튼으로 조회를 재시도할 수 있다. 이 문서의 auth-only fixture는 media를 차단한다. 실제 API/패스키, 시스템 브라우저, Keychain, credential file durability 접근은 이 결과에 포함하지 않는다.
+승인된 [Desktop auth contract](../rules/desktop-auth.md)의 6 invoke와 1 event를 기존 main AuthCoordinator 및 LoginSection에 연결한다. 제품 main은 trusted 설정이 활성화된 경우 기존 auth IPC를 local renderer window에 등록하고 그 창에만 `--dfragon-auth-available` 인자를 넘긴다. Preload는 이 인자가 있을 때만 `window.auth`를 노출하므로, 인증 설정 없이 실행한 개발 실행에는 로그인 버튼이 없다. test 채널은 staging accounts 설정으로 로그인 버튼을 표시한다. 인증 IPC가 있는 창에서 연결 조회가 실패하면 로그인 버튼으로 조회를 재시도할 수 있다. 이 문서의 auth-only fixture는 media를 차단한다. 실제 API/패스키, 시스템 브라우저, Keychain, credential file durability 접근은 이 결과에 포함하지 않는다.
 
 ## 구현 위치와 경계
 
