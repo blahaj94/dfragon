@@ -59,7 +59,7 @@
     "@seed-design/react": "catalog:",
     "@seed-design/vite-plugin": "catalog:",
     "@stylexjs/unplugin": "catalog:",
-    "@types/node": "catalog:",
+    "@types/node": "catalog:electron",
     "@types/pngjs": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

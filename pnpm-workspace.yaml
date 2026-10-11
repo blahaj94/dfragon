@@ -26,7 +26,7 @@ catalog:
   '@tanstack/react-query': 5.103.2
   '@types/cookie-parser': 1.4.10
   '@types/express': 5.0.6
-  '@types/node': 24.13.3
+  '@types/node': 26.6.5
   '@types/pg': 8.23.1
   '@types/pngjs': 6.0.5
   '@types/react': 19.2.18
@@ -68,7 +68,9 @@ catalog:
   zod: 4.5.4
 
 catalogs:
+  # Desktop main, preload는 Electron 44.7.0 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
   electron:
+    '@types/node': 24.19.2
     '@vitejs/plugin-react': 5.2.0
     vite: 7.3.6
   parser:
