@@ -8,7 +8,7 @@ Repository root에서 실행한다. Docker가 실행 중이어야 하며 설치�
 pnpm --filter @dfragon/api build
 pnpm --filter @dfragon/desktop exec vitest run --config scripts/search-server-integration/vitest.config.ts
 pnpm --filter @dfragon/desktop exec biome lint scripts/search-server-integration
-pnpm --filter @dfragon/desktop exec tsc --noEmit --allowJs --strict --skipLibCheck --esModuleInterop --moduleResolution bundler --module esnext --target es2023 scripts/search-server-integration/search.integration.ts scripts/search-server-integration/vitest.config.ts
+pnpm --filter @dfragon/desktop exec tsc --noEmit --ignoreConfig --allowJs --strict --skipLibCheck --esModuleInterop --moduleResolution bundler --module esnext --target es2023 scripts/search-server-integration/search.integration.ts scripts/search-server-integration/vitest.config.ts
 node --check apps/desktop/scripts/search-server-integration/runtime.mjs
 ```
 
