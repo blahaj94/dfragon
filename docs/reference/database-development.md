@@ -6,7 +6,7 @@ last-reviewed: 2026-09-06
 
 # Schema First database 개발
 
-각 서비스는 TypeORM `EntitySchema`를 먼저 수정하고 PostgreSQL과의 차이로 Migration을 생성한다. 아래 user/auth 예제는 `apps/accounts/src/database/schemas`와 `apps/accounts/src/database/migrations`를 기준으로 한다. 캐릭터, 카탈로그, 모험단은 별도 `apps/api`의 schema, migration, test-support와 명령을 사용한다. Schema file은 TypeScript interface와 column, PK, FK, unique, CHECK, index를 함께 정의한다. 새 dependency 없이 기존 TypeORM 1.1.1을 사용한다.
+각 서비스는 TypeORM `EntitySchema`를 먼저 수정하고 PostgreSQL과의 차이로 Migration을 생성한다. 아래 user/auth 예제는 `apps/accounts/src/database/schemas`와 `apps/accounts/src/database/migrations`를 기준으로 한다. 캐릭터, 카탈로그, 모험단은 별도 `apps/api`의 schema, migration, test-support와 명령을 사용한다. Schema file은 TypeScript interface와 column, PK, FK, unique, CHECK, index를 함께 정의한다. 새 dependency 없이 기존 TypeORM 1.1.2를 사용한다.
 
 [Nest database 가이드](https://docs.nestjs.com/techniques/database)의 EntitySchema와 Migration 구성을 따른다. EF Core의 model → migration → database update와 유사하지만, TypeORM은 EF의 ModelSnapshot 대신 **접속한 DB catalog와 현재 EntitySchema**를 비교한다. 따라서 생성에 사용할 개발 DB는 먼저 기존 Migration이 모두 적용된 상태여야 한다.
 
