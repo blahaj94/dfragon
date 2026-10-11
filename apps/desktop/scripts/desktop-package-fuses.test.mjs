@@ -168,7 +168,7 @@ describe('desktop package fuse configuration', () => {
     expect(productionConfig.win.executableName).not.toBe(developmentConfig.win.executableName)
   })
 
-  it('test 채널 진입 파일은 로그인 protocol과 NSIS include 없이 test identity로 패키징한다', async () => {
+  it('test 채널 진입 파일은 protocol과 NSIS include 없이 test identity로 패키징한다', async () => {
     const { getConfig, validateConfiguration } = await import(
       pathToFileURL(appBuilderConfigModulePath).href
     )

@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { readAuthRuntimeConfig } from '../src/backend/auth/runtime-config'
 import {
   channels,
@@ -10,17 +10,17 @@ import {
   readDesktopChannel,
   type ChannelName
 } from './channels'
+import channelsFile from './channels.json'
 
 const CHANNEL_NAMES: readonly ChannelName[] = ['development', 'test', 'distribution']
-const LOGIN_CHANNEL_NAMES: readonly ChannelName[] = ['development', 'distribution']
 
 const DISTRIBUTION_API_ORIGIN_FAILURE =
   /^Set DFRAGON_DISTRIBUTION_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/
 const DISTRIBUTION_ACCOUNTS_ORIGIN_FAILURE =
   /^Set DFRAGON_DISTRIBUTION_ACCOUNTS_ORIGIN to a non-loopback canonical HTTPS origin\.$/
 
-it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', () => {
-  // Rule desktop-auth-platform의 Windows MVP 배포 구성과 로컬 개발용 등록값이다.
+it('승인된 배포, 개발, test identity tuple과 packaging 값을 유지한다', () => {
+  // Rule desktop-auth-platform의 Windows MVP 배포 구성, 로컬 개발용 등록값과 test 채널 구성이다.
   // 값이 바뀌면 설치된 사용자의 profile 경로가 어긋나고,
   // README의 배포 앱, 기존 개발 앱 표와 Release workflow의 파일명 glob이 어긋난다.
   expect(channels.distribution.identity).toEqual({
@@ -37,8 +37,14 @@ it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', (
       providers: ['passkey']
     }
   })
-  // test 채널은 로그인 없이 실제 API로 검색, 캡처, OCR을 확인하는 PR 빌드다.
-  expect(channels.test.identity).toEqual({ appIdentity: 'dfragon.test' })
+  // test 채널은 운영 패스키와 분리된 staging accounts로 로그인하는 PR 빌드다.
+  expect(channels.test.identity).toEqual({
+    appIdentity: 'dfragon.test',
+    auth: {
+      environment: 'staging',
+      providers: ['passkey']
+    }
+  })
   expect(channels.distribution.packaging).toEqual({
     productName: 'DFragon',
     executableName: 'dfragon',
@@ -62,7 +68,7 @@ it('승인된 배포, 개발 identity tuple과 packaging 값을 유지한다', (
   })
 })
 
-it.each(LOGIN_CHANNEL_NAMES)('%s 채널의 tuple은 앱 runtime 설정 검증을 그대로 통과한다', (name) => {
+it.each(CHANNEL_NAMES)('%s 채널의 tuple은 앱 runtime 설정 검증을 그대로 통과한다', (name) => {
   const { identity } = channels[name]
   const { auth } = identity
   if (auth == null) {
@@ -243,25 +249,52 @@ it('main bundle에 넣는 채널 tuple은 identity와 빌드 시점에 읽은 or
   expect(() => readDesktopChannel('distribution', {})).toThrow(DISTRIBUTION_API_ORIGIN_FAILURE)
 })
 
-it('로그인 없는 test 채널의 tuple은 accounts origin 없이 실제 API를 가리킨다', () => {
+it('test 채널의 tuple은 staging accounts로 로그인하고 API만 환경변수로 바꾼다', () => {
+  const accounts = 'https://staging-accounts.dfragon.com'
   expect(readDesktopChannel('test', {})).toEqual({
     name: 'test',
-    identity: { appIdentity: 'dfragon.test' },
-    origins: { api: 'https://api.dfragon.com' }
+    identity: channels.test.identity,
+    origins: { api: 'https://api.dfragon.com', accounts }
   })
   expect(
     readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://api.example.test' })
   ).toEqual({
     name: 'test',
-    identity: { appIdentity: 'dfragon.test' },
-    origins: { api: 'https://api.example.test' }
+    identity: channels.test.identity,
+    origins: { api: 'https://api.example.test', accounts }
   })
-  expect(() => readChannelOrigin('test', 'accounts', {})).toThrow(
-    /^The test channel has no accounts origin\.$/
-  )
   expect(() =>
     readDesktopChannel('test', { DFRAGON_TEST_API_ORIGIN: 'https://localhost:3443' })
   ).toThrow(/^Set DFRAGON_TEST_API_ORIGIN to a non-loopback canonical HTTPS origin\.$/)
+})
+
+it('accounts origin이 없는 채널의 tuple은 로그인 없이 API origin만 넣는다', async () => {
+  // 지금 channels.json의 채널은 모두 로그인하므로, accounts 없는 채널은 합성 파일로 확인한다.
+  vi.resetModules()
+  vi.doMock('./channels.json', () => ({
+    default: {
+      ...channelsFile,
+      test: {
+        ...channelsFile.test,
+        identity: { appIdentity: channelsFile.test.identity.appIdentity },
+        origins: { api: channelsFile.test.origins.api }
+      }
+    }
+  }))
+  try {
+    const synthetic = await import('./channels')
+    expect(synthetic.readDesktopChannel('test', {})).toEqual({
+      name: 'test',
+      identity: { appIdentity: 'dfragon.test' },
+      origins: { api: 'https://api.dfragon.com' }
+    })
+    expect(() => synthetic.readChannelOrigin('test', 'accounts', {})).toThrow(
+      /^The test channel has no accounts origin\.$/
+    )
+  } finally {
+    vi.doUnmock('./channels.json')
+    vi.resetModules()
+  }
 })
 
 it('electron-builder 기본 진입 파일은 DFRAGON_CHANNEL로 채널을 고르고 비우면 배포 채널을 만든다', () => {

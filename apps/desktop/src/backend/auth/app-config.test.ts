@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { join, resolve } from 'node:path'
 import { readDesktopChannel } from '../../../build/channels'
 import { readAppApiOrigin, readAppAuthConfig } from './app-config'
+import type { DesktopChannel } from './desktop-channel'
 
 const DISTRIBUTION_BUILD_ENVIRONMENT = {
   DFRAGON_DISTRIBUTION_API_ORIGIN: 'https://api.example.test',
@@ -72,8 +73,25 @@ it('채널 빌드는 셸의 개발 설정을 상속하지 않고 빌드에 넣�
   })
 })
 
-it('로그인 없는 test 채널은 셸의 로그인 설정이 있어도 로그인을 켜지 않고 검색 origin만 쓴다', () => {
+it('test 채널은 운영과 분리된 staging accounts와 자기 profile로 로그인한다', () => {
+  const appData = resolve('synthetic-app-data')
   vi.stubGlobal('__DFRAGON_CHANNEL__', readDesktopChannel('test', {}))
+
+  expect(readAppAuthConfig({ getPath: () => appData })).toEqual({
+    apiOrigin: 'https://staging-accounts.dfragon.com',
+    environment: 'staging',
+    providers: ['passkey'],
+    appIdentity: 'dfragon.test',
+    userDataPath: join(appData, 'dfragon.test')
+  })
+})
+
+it('로그인 없는 채널은 셸의 로그인 설정이 있어도 로그인을 켜지 않고 검색 origin만 쓴다', () => {
+  vi.stubGlobal('__DFRAGON_CHANNEL__', {
+    name: 'test',
+    identity: { appIdentity: 'dfragon.test' },
+    origins: { api: 'https://api.dfragon.com' }
+  } satisfies DesktopChannel)
   vi.stubEnv('DFRAGON_AUTH_API_ORIGIN', 'https://localhost:3444')
   vi.stubEnv('DFRAGON_AUTH_ENVIRONMENT', 'development')
   vi.stubEnv('DFRAGON_AUTH_PROVIDERS', 'passkey')

@@ -37,7 +37,7 @@ it.each(CHANNEL_NAMES)(
   }
 )
 
-it('로그인 채널은 legacy cleanup NSIS include를 가지고 파일명은 앱 이름으로 시작한다', () => {
+it('설치형 배포, 개발 채널은 legacy cleanup NSIS include를 가지고 파일명은 앱 이름으로 시작한다', () => {
   const development = createBuilderConfig('development')
   expect(development.nsis?.include).toBe('build/development-installer.nsh')
   expect(development.nsis?.artifactName).toBe('${productName}-${version}-${arch}-setup.${ext}')
@@ -52,7 +52,7 @@ it('로그인 채널은 legacy cleanup NSIS include를 가지고 파일명은 �
   expect(distribution.nsis?.artifactName).toBe('${productName}-${version}-${arch}-setup.${ext}')
 })
 
-it('로그인 없는 test 채널은 protocol과 NSIS include 없이 공백 없는 파일명 접두어를 쓴다', () => {
+it('test 채널은 protocol과 NSIS include 없이 공백 없는 파일명 접두어를 쓴다', () => {
   const test = createBuilderConfig('test')
   expect(test.protocols).toBeUndefined()
   expect(test.nsis).not.toHaveProperty('include')
