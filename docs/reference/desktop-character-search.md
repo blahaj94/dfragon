@@ -7,9 +7,9 @@ last-reviewed: 2026-10-10
 
 # Desktop 캐릭터 검색
 
-OCR 안정화 결과의 첫 번째 이름을 네 슬롯 검색으로 연결한다. [로그인 선택 계약](../rules/desktop-auth.md#최소-화면과-capture-경계)에 따라 창 선택, 캡처, OCR, 검색과 결과는 계정 상태와 독립적이다. 제품 main은 고정 API origin만으로 공개 검색을 구성하며 provider, credential 설정이나 auth snapshot을 요구하지 않는다. 로그인과 로그아웃이 진행 중 capture를 중단하지 않는다. 자동 조회를 마친 슬롯은 Alt+R 전까지 유지하고 수동 서버, 닉네임 조회만 해당 슬롯을 교체한다.
+Alt+R로 시작한 회차 프레임 한 장의 OCR 첫 번째 이름을 네 슬롯 검색으로 연결한다. 창 선택과 던파 창 하나 자동 감지는 main에 창만 등록하며 인식은 시작하지 않는다. [로그인 선택 계약](../rules/desktop-auth.md#최소-화면과-capture-경계)에 따라 창 선택, 캡처, OCR, 검색과 결과는 계정 상태와 독립적이다. 제품 main은 고정 API origin만으로 공개 검색을 구성하며 provider, credential 설정이나 auth snapshot을 요구하지 않는다. 로그인과 로그아웃이 진행 중 capture를 중단하지 않는다. 자동 조회를 마친 슬롯은 Alt+R 전까지 유지하고 수동 서버, 닉네임 조회만 해당 슬롯을 교체한다.
 
-Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)은 개발자 수집과 같은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외하며 전체 가림과 최소화 상태에서는 대기한다. 제품의 Electron media 권한은 거절한다.
+Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-제품-캡처-정책)은 개발자 수집과 같은 공통 GDI 구현으로 선택한 창의 보이는 클라이언트 영역을 읽는다. Main이 창, 프로세스와 캡처 수명을 검증하며 다른 창에 가려진 픽셀은 제외한다. 전체 가림, 최소화나 파티 프레임 미검출로 회차 프레임을 쓸 수 없으면 안내하고 인식을 끝낸다. 자동 재읽기나 화면 복귀 후 재개는 하지 않으며 사용자가 Alt+R을 다시 누른다. 제품의 Electron media 권한은 거절한다.
 
 ## 구현 위치
 
@@ -24,7 +24,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read, event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다.                                                   |
-| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `party-capture-session.ts`, `apps/desktop/src/frontend/src/hooks/usePartyRecognition.ts`         | begin 완료 뒤 네이티브 프레임/OCR 시작, 늦은 begin의 자기 ID 정리와 stable/null 전이 통지를 연결한다. 기존 OCR 안정화, 기본 3초 간격은 유지한다.                                |
+| `apps/desktop/src/frontend/src/lib/party-capture-machine.ts`, `apps/desktop/src/frontend/src/lib/party-recognition.ts`                                     | 이전 검색, 인식 상태를 비우고 begin 완료 뒤 프레임 한 장으로 OCR과 검색을 연결한다. 늦은 begin의 자기 ID 정리와 회차 종료 뒤 결과 차단을 유지한다.                              |
 | `apps/desktop/src/frontend/src/sections/SearchResults.tsx`                                                                                                     | 네 슬롯의 상태, 후보, 고정 오류, 수동 retry를 text로 표시한다.                                                                                                          |
 | `apps/desktop/src/backend/character-detail/windows.ts`, `snapshot.ts`                                                                                          | 현재 선택의 기본 정보를 복사하고 캐릭터별 상세 창의 생성, 재사용, 읽기 권한과 종료를 관리한다.                                                                       |
 | `apps/desktop/src/preload/character-detail.ts`, `common/character-detail.ts`, `apps/desktop/src/frontend/src/pages/character-detail/CharacterSnapshotPage.tsx` | 전용 읽기 bridge의 응답을 검증하고 기본 정보와 조회 시각을 표시한다.                                                                                                 |
@@ -45,7 +45,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `readCaptureFrame(captureId)`는 현재 선택한 창에만 결합된 읽기를 실행한다. 등록 문서와 source/capture 수명이 읽기 전후에 일치해야 하며, 임의 창 ID나 좌표를 renderer에서 받지 않는다. Preload는 반환된 RGBA 크기를 검증한다. 공통 lib는 네이티브 호출을 마치기 전에 자원과 DPI를 정리한다.
 
-`party-capture-session.ts`는 최초 프레임 확인과 OCR worker 준비 후 프레임 읽기와 인식을 직렬 실행한다. 영상 스트림과 HTMLVideoElement를 만들지 않는다. `party.ts`는 RGBA 프레임에서 닉네임과 얼굴 크롭을 생성한다. 가려진 픽셀과 아직 검출하지 못한 슬롯은 다음 프레임을 기다린다. 해당 회차에서 이미 조회한 슬롯의 결과를 비우거나 다시 인식하지 않는다. 종료 후 도착한 프레임이나 OCR 결과는 버린다.
+회차를 시작하면 이전 검색, 인식 상태를 비우고 검색 수명을 시작한 뒤 프레임을 한 장만 읽어 보관한다. 영상 스트림과 HTMLVideoElement를 만들지 않는다. `party.ts`는 이 RGBA 프레임에서 네 슬롯의 닉네임과 얼굴 크롭을 생성한다. OCR, 얼굴 비교 검색과 테스트 수집에도 같은 프레임을 사용한다. 일부 슬롯이 가려지거나 미검출이면 그 슬롯은 비워 두고 검색하지 않으며 나머지는 처리한다. 처리를 마친 뒤에는 다음 Alt+R, 창 변경, 중지 전까지 일반 인식용 프레임을 읽지 않는다. 재시도와 상세 열기는 보관한 회차 입력과 결과를 사용하며 수동 조회도 새 프레임을 읽지 않는다. 진행 중이나 완료 뒤 Alt+R은 이전 회차를 정리하고 처음부터 다시 시작하며 늦은 프레임이나 OCR 결과는 버린다. 검색 수명을 시작하는 동안 누른 Alt+R은 무시한다. 창 변경은 회차와 검색 수명을 정리하고 새 창만 등록한다. 중지 뒤에는 창을 다시 선택한 다음 Alt+R을 눌러야 한다.
 
 ## OCR 식별용 HTTP 통신 준비
 
@@ -62,7 +62,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ## 얼굴 크롭의 교체 경계와 비교 입력
 
-`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 얼굴 cropper에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. `capturePartyNicknameCrops`는 기존 소비자를 위한 닉네임 전용 반환을 유지한다.
+`lib/party.ts`의 `capturePartyRecognitionInputs`는 한 번 읽은 원본 RGBA에서 닉네임과 얼굴 입력을 같은 슬롯에 묶는다. 닉네임에는 기존 OCR 전처리를 적용하고 얼굴 cropper에는 전처리하지 않은 전체 프레임, 검출된 닉네임 영역과 래스터 배율을 전달한다. 이 입력을 `lib/party-recognition.ts`의 `recognizePartyFrame`이 슬롯별로 인식한다.
 
 실제 얼굴 위치는 `lib/party-portrait.ts`의 `cropPartyPortrait`가 소유한다. 검출된 HP, MP 시작점의 왼쪽 28 기준 픽셀, 화면 위쪽 11 기준 픽셀에서 26×26 기준 픽셀 영역을 관측 래스터 배율로 투영한다. 기준은 높이 600px의 기본 HUD이며, 실제 영상에서 새로 검출한 각 슬롯의 x와 배율을 사용한다. 원본 RGBA를 복사하고 화면 밖 영역이나 처리 한도를 넘는 영역은 null로 반환한다. 해상도나 파일명, 게임 UI 설정 퍼센트로 좌표를 고정하지 않는다.
 
@@ -76,7 +76,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `연결중..` 팝업이 닉네임, 얼굴과 HP, MP의 왼쪽을 가린 표본에서는 기존 프레임 검출기가 정상 1번만 반환하고 2~4번을 제외한다. 검출하지 못한 슬롯은 닉네임과 얼굴 전체를 null로 취급하므로 OCR과 후보 검색을 시작하지 않는다. 실제 닉네임일 수 있는 `연결중` 문자열을 금지어로 처리하지 않는다.
 
-아직 조회하지 않은 슬롯은 팝업이 사라져 정상 영역이 돌아오면 두 번 연속 같은 입력의 안정화를 거친다. 전체 파티의 준비 완료를 추측하지 않고 정상으로 검출된 슬롯은 독립적으로 처리한다. 해당 회차에서 이미 조회한 슬롯은 팝업, 반짝임이나 파티원 변경으로 지우지 않는다. Alt+R만 전체 회차를 새로 시작한다. 기존 연속 OCR fixture는 제품의 결과 유지 정책과 구분한다.
+미검출 슬롯은 해당 회차에서 빈 상태로 남기며 팝업이 사라져도 자동으로 인식하지 않는다. 정상으로 검출된 슬롯은 같은 회차 프레임으로 독립적으로 처리한다. 해당 회차에서 이미 조회한 슬롯은 팝업, 반짝임이나 파티원 변경으로 지우지 않는다. 새 화면을 인식하려면 Alt+R로 전체 회차를 다시 시작한다. 레거시 회귀 테스트 화면도 같은 회차 방식을 사용한다.
 
 ### 얼굴 비교와 일치 기준
 
@@ -130,7 +130,7 @@ catalog에 없는 빈 `레어 머리 클론 아바타`와 `무기 클론 아바�
 
 ### OCR 관측 IPC와 슬롯 수명
 
-제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `usePartyRecognition`은 같은 프레임의 첫 이름과 얼굴 입력이 안정화되면 `notifyOcrCandidatesDetected`로 전달한다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 테스트 수집의 `prediction`은 공백을 제거하지 않은 모델 원문을 유지한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 이후 프레임 변화로 검색을 재실행하지 않는다. 기본 옵션을 쓰는 `fixture/legacy/LegacyApp`의 `PartyCapture`는 기존 연속 관측 경로를 유지한다.
+제품 `App`은 OCR 식별 옵션의 `usePartyCapture`를 사용한다. `lib/party-recognition.ts`의 `recognizePartyFrame`은 회차 프레임 한 장의 첫 이름과 얼굴을 슬롯별 결과로 돌려주고, `lib/party-capture-machine.ts`가 유효한 회차의 결과만 `notifyOcrCandidatesDetected`로 전달한다. 두 번 연속 같은 입력인지 기다리지 않는다. 첫 이름은 앞뒤 공백만 제거하고 두 번째 이름으로 보정하지 않는다. 공백을 제거한 첫 이름이 비어 있거나 12 code point를 넘거나 잘못된 Unicode이면 해당 슬롯을 조회 실패로 전달하고, 이유와 모델 원문을 renderer DevTools Console에만 표시한다. 테스트 수집의 `prediction`은 공백을 제거하지 않은 모델 원문을 유지한다. 슬롯 OCR에 예외가 있으면 검색 통지 없이 검출된 모든 슬롯을 먼저 수집하고 `OCR_FAILED`로 회차를 종료한다. 실패 슬롯은 `prediction: null`로 보내며 수집 요청은 원본 프레임을 지우는 END보다 먼저 전송한다. 비교에서 제외한 픽셀의 변화는 같은 얼굴로 취급한다. 조회를 시작한 슬롯은 해당 회차에서 고정하며 추가 프레임을 읽거나 검색을 재실행하지 않는다. `fixture/legacy/LegacyApp`의 `PartyCapture`도 같은 회차 방식을 사용한다. 이 화면의 캡처 시작 버튼은 Alt+R과 같은 회차 시작을 보내며 인식 간격 선택은 제공하지 않는다.
 
 IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNicknames, portrait }`다. Main은 기존 sender, main frame, exact document 검사를 적용하고 후보 개수, 이름, 별칭의 일치, 이미지와 마스크 크기, 배율을 검증한다. 얼굴은 최대 512px/축, 262,144픽셀이며 원본 버퍼를 복사해 보관한다. 이 데이터는 로컬 프로세스 사이에서만 전달하고 API에 업로드하지 않는다.
 
@@ -148,7 +148,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
 
-창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 얼굴 cropper와 Stay 공급원, 초기 윤곽 정책이 제품에 연결되어 일반 캡처의 선택 결과와 상세 창까지 이어진다. API의 candidates와 appearance endpoint가 배포되어야 하며 Windows 실제 게임에서의 연속 캡처 검증은 별도로 필요하다.
+창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 얼굴 cropper와 Stay 공급원, 초기 윤곽 정책이 제품에 연결되어 일반 캡처의 선택 결과와 상세 창까지 이어진다. API의 candidates와 appearance endpoint가 배포되어야 하며 Windows 실제 게임에서의 회차별 캡처 검증은 별도로 필요하다.
 
 ## PaddleOCR와 실제 게임 인식 영역
 
@@ -156,7 +156,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 일반 캡처는 [공용 파티 프레임 검출기](desktop-party-geometry.md)가 HP, MP와 주변 경계에서 확인한 닉네임 영역만 원본 크기로 자른다. BT.601 회색 변환과 Otsu 반전 이진화로 밝은 글자를 검게, 어두운 배경을 희게 만든다. 모델 worker에서 높이 48픽셀, 너비 최대 320픽셀로 한 번 리사이즈하고 실제 검은 글자 경계를 입력 폭 320의 가로 중앙으로 이동한다. 글자 크기와 세로 위치는 유지하며 새 좌우 여백은 이진화한 배경과 같은 흰색(정규화 값 1)으로 채운다. 구두점을 제거하는 잡음 필터나 세로 크롭은 추가하지 않는다. 제품 전처리 평가도 같은 중심화 경로를 사용하고 원본 평가만 기존 왼쪽 정렬을 유지한다. CTC 후보 디코더의 1위 문자열만 검색에 사용하며 모델 점수는 정답 확률이나 검색 허용 조건이 아니다.
 
-`createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 capture의 결과는 기존 signal, 검색 수명 검사에서 차단하며, 두 번 연속 관측 일치와 공개 검색 연결은 유지한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
+`createPartyOcrWorker`는 기존 인식 결과 소비 형태와 `terminate`를 유지한다. Capture AbortSignal을 받아 초기화, 인식 중에도 worker를 종료하고 대기 요청을 거절한다. 응답이 없는 요청은 30초 뒤 종료한다. 이전 회차의 결과는 기존 signal, 검색 수명 검사에서 차단하며 회차 프레임의 첫 OCR 결과를 공개 검색으로 연결한다. 검색은 인증과 독립적이며 sender, source, capture 검사는 유지한다.
 
 [PR #462](https://github.com/blahaj94/ldb/pull/462)에서 Windows 설치 앱의 실제 선택 창 → 영상 → 한 슬롯의 정확한 OCR → 인증 검색, 결과 표시를 확인했다. 이는 당시 Tesseract 빌드의 관측이며 PaddleOCR 전환의 실제 검색 완료 증거와 구분한다. 이번 PaddleOCR 비교는 선택한 게임 창의 허용된 닉네임 영역에서 실제 모델 실행을 확인했으나, 진단 중 검색 전송은 차단했다. UI 100%, 돋움은 비교 조건이며 제품의 지원 배율을 확장한 것이 아니다.
 
@@ -172,7 +172,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `decodeCtc(data, steps, characters)`는 같은 후보 목록의 첫 `nickname` 문자열을 반환한다. Worker는 후보를 한 번 계산한 뒤 `{ text, confidence, candidates }`를 반환한다. `text`와 `confidence`는 각각 1위 닉네임과 `modelScore`를 유지하고, `candidates`에는 최대 두 개의 원문, 순위, 모델 점수를 전달한다. 빈 문자열이나 같은 이름을 worker 경계에서 보정하거나 제거하지 않는다.
 
-`createPartyOcrWorker`는 후보 개수, 1부터 시작하는 연속 순위, 유한한 0~100 점수의 내림차순과 1위 호환 필드의 일치를 확인한다. 초기화와 인식, 실패가 섞인 응답은 거절하고 기존 worker 종료, 취소, 시간 초과 처리를 유지한다. 이 전달 변경만으로 기존 닉네임 안정화나 검색 정책을 바꾸지 않는다. 개발자 평가는 **모델 점수**를 저장된 정답과 비교한 일치율, CER과 구분한다.
+`createPartyOcrWorker`는 후보 개수, 1부터 시작하는 연속 순위, 유한한 0~100 점수의 내림차순과 1위 호환 필드의 일치를 확인한다. 초기화와 인식, 실패가 섞인 응답은 거절하고 기존 worker 종료, 취소, 시간 초과 처리를 유지한다. 후보를 여러 개 전달해도 회차의 검색에는 첫 후보만 사용한다. 개발자 평가는 **모델 점수**를 저장된 정답과 비교한 일치율, CER과 구분한다.
 
 ## UI 구성
 
@@ -186,7 +186,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 제품과 개발자 평가의 `party` 전처리는 같은 worker 경로다. 별도 학습 저장소의 전처리와 학습된 가중치의 실제 입력분포 일치는 이 변경에서 검증하지 않았다. 글자 가운데 정렬의 픽셀 검증을 인식률 향상으로 보고하지 않으며 새 val, test에서 완전 일치율과 CER을 재평가해야 한다. 기본 모델을 자동 교체하거나 학습 작업을 실행하지 않는다.
 
-캡처 화면은 게임 창, 인식 간격, 캡처 시작/중지를 한국어로 표시한다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 대기나 오인식 때 닉네임 수정, 직접 검색으로 이어진다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 프레임 읽기, OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 검색, 캡처 수명은 바꾸지 않는다.
+캡처 화면은 게임 창과 캡처 중지를 한국어로 표시한다. 제품은 별도 시작 버튼 없이 Alt+R로 회차를 시작하며 레거시 화면의 캡처 시작 버튼도 같은 동작을 수행한다. 주기적인 반복 인식과 간격 선택은 제공하지 않는다. 1920×1080 테두리 없는 창 모드, UI 배율 50%와 닉네임이 보이는 상태를 안내하며, 인식 실패나 오인식 때 닉네임 수정, 직접 검색으로 이어진다. 창 선택, 캡처 준비, OCR 준비, 실행, 종료 상태는 계속 유지되는 `role="status"` 영역에서 표시한다. 상단 바 상태 배지는 회차 진행 중 `인식 중`, 완료 뒤 `인식 완료`, 안내 후 끝난 회차는 `확인 필요`이며 창 등록 중 `준비 중`과 창 감지 표시는 유지한다. 창 목록 실패는 게임 실행 후 앱 다시 열기, 선택 실패는 창 다시 선택, 회차 프레임을 쓸 수 없으면 Alt+R로 다시 시작하도록 안내한다. OCR 실패는 해당 단계의 복구 안내를 제공한다. 외부 오류 원문을 화면으로 전달하지 않는다. 지원 해상도, 배율과 main의 검색, 캡처 수명 검사는 바꾸지 않는다.
 
 기존 `@dfragon/ui`의 ActionButton, ContentStack, ExampleSection, SupportingText를 조합한다. 후보의 ordered list와 슬롯별 이름 있는 section은 DFragon composition이며 공용 자산의 외형을 덮어쓰는 CSS, style은 없다. 각 슬롯에는 “슬롯 1 검색” 형태의 접근 가능한 이름, 진행 시 `aria-busy`와 상태 안내가 있다. Retry의 loading과 disabled는 함께 적용하며 한 슬롯의 진행이 다른 슬롯 버튼을 막지 않는다.
 
@@ -212,7 +212,7 @@ git diff --check
 
 `ManualSearch.tsx`는 캡처 없이 독립 검색 폼과 결과를 제공한다. `manual-ipc.ts`는 별도의 `createCaptureSearchLifetime` 인스턴스로 기존 HTTP, 입력, 오류, 429, 취소 구현을 재사용한다. 직접 검색의 시작과 종료는 실제 캡처 수명을 변경하지 않는다. 공유 DTO의 이름을 제품 안내에 노출하지 않는다.
 
-`SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 뒤에 관측한 OCR은 임시로 보관해 ‘OCR 다시 사용’ 때 반영하며, 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
+`SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 해당 회차의 OCR 결과는 보관해 ‘OCR 다시 사용’ 때 반영하며 새 프레임을 읽지 않는다. 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
 
 관련 UI, hook, IPC 검증은 합성 이름을 사용한다. 실제 설치 앱과 게임 확인 결과는 이번 PR에서 fixture 성공과 구분해 기록한다. 추가 OCR 튜닝은 #463의 MVP 이후 범위를 유지한다.
 

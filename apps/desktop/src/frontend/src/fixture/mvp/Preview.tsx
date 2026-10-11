@@ -77,7 +77,7 @@ export function Preview(): React.JSX.Element {
                 status={getCapturePreviewStatus(captureState)}
                 onSelect={(id) => {
                   setSource(id)
-                  setCaptureState(id ? 'active' : 'idle')
+                  setCaptureState(id ? 'selected' : 'idle')
                 }}
                 onRefresh={() => {}}
                 onStop={() => {
@@ -119,13 +119,20 @@ export function Preview(): React.JSX.Element {
                 onChange={(event) => {
                   const state = event.target.value
                   setCaptureState(state)
-                  setSource(state === 'active' || state === 'starting' ? 'preview-game' : '')
+                  const hasSource =
+                    state === 'selected' ||
+                    state === 'complete' ||
+                    state === 'recognizing' ||
+                    state === 'unavailable'
+                  setSource(hasSource ? 'preview-game' : '')
                 }}
                 {...stylex.props(styles.select)}
               >
                 <option value="idle">캡처 · 대기</option>
-                <option value="starting">캡처 · 준비 중</option>
-                <option value="active">캡처 · 캡처 중</option>
+                <option value="selected">캡처 · 창 선택됨</option>
+                <option value="recognizing">캡처 · 인식 중</option>
+                <option value="complete">캡처 · 인식 완료</option>
+                <option value="unavailable">캡처 · 확인 필요</option>
                 <option value="missing">캡처 · 창 미감지</option>
                 <option value="failure">캡처 · 실패</option>
               </select>

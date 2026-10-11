@@ -83,9 +83,7 @@ function App(): React.JSX.Element {
             phase={capture.phase}
             ready={capture.search.ready}
             status={captureNotice}
-            onSelect={(id) => {
-              void capture.selectAndStartCapture(id)
-            }}
+            onSelect={capture.selectSource}
             onRefresh={capture.refreshSources}
             onStop={() => capture.stopCapture()}
           />
@@ -115,13 +113,12 @@ function App(): React.JSX.Element {
             basicOnly
             inputEnabled
             onLookup={capture.search.lookupSlot}
-            loadingSlots={capture.recognitionStates.map(
-              (state, slot) =>
-                !capture.search.manualSlots[slot] && (state === 'pending' || capture.starting)
+            loadingSlots={capture.search.manualSlots.map(
+              (manual) => !manual && capture.recognizing
             )}
             slotNotices={slotNotices}
             onSlotDetail={capture.search.openDetails}
-            nicknames={capture.stableNicknames}
+            nicknames={capture.nicknames}
           />
         </div>
         {showDeveloperWorkbench && (

@@ -3,6 +3,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
 import type { WindowFrameResult } from '../../../../preload/common/types/capture'
 import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
+import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
 import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
 import {
   CAPTURE_ID,
@@ -13,14 +14,14 @@ import {
   type ObservationTestApi
 } from '../../../../preload/api/search-test-fixture'
 import { LegacyApp } from '../../fixture/legacy/LegacyApp'
+import type { PartyOcrWorker } from '../../types/capture'
 import type { PartyFrameSource } from '../../lib/party'
 
 const media = vi.hoisted(() => {
   const crops = vi.fn()
   const worker = vi.fn()
-  const loop = vi.fn()
 
-  return { crops, worker, loop }
+  return { crops, worker }
 })
 vi.mock('../../lib/ocr', async (original) => {
   const originalModule = await original<typeof import('../../lib/ocr')>()
@@ -35,7 +36,6 @@ vi.mock('../../lib/party', async (original) => {
 
   return {
     ...originalModule,
-    capturePartyNicknameCrops: media.crops,
     capturePartyRecognitionInputs: (frame: PartyFrameSource) =>
       media.crops(frame).map((nickname: HTMLCanvasElement | null, slot: number) => {
         if (nickname === null) {
@@ -46,16 +46,6 @@ vi.mock('../../lib/party', async (original) => {
       })
   }
 })
-vi.mock('../../lib/recognition', async (original) => {
-  const originalModule = await original<typeof import('../../lib/recognition')>()
-
-  return {
-    ...originalModule,
-    runSerialLoop: media.loop
-  }
-})
-
-type Loop = { signal: AbortSignal; getIntervalMs: () => number; runCycle: () => Promise<void> }
 const cleanup: Array<() => Promise<void>> = []
 
 type AuthSnapshotInput = Readonly<{
@@ -85,7 +75,10 @@ export function authSnapshot({
 
 type CaptureResources = {
   frame: WindowFrameResult
-  worker: { recognize: ReturnType<typeof vi.fn>; terminate: ReturnType<typeof vi.fn> }
+  worker: {
+    recognize: ReturnType<typeof vi.fn<PartyOcrWorker['recognize']>>
+    terminate: ReturnType<typeof vi.fn<PartyOcrWorker['terminate']>>
+  }
 }
 type RendererFixture = {
   container: HTMLDivElement
@@ -96,6 +89,7 @@ type RendererFixture = {
     readCaptureFrame: ReturnType<typeof vi.fn>
     notifyStableNicknameDetected: Mocked<ObservationTestApi>['notifyStableNicknameDetected']
     notifyOcrCandidatesDetected: Mocked<ObservationTestApi>['notifyOcrCandidatesDetected']
+    onDesktopShortcut: Mocked<DesktopShortcutApi>['onDesktopShortcut']
   }
   auth: Mocked<AuthApi>
   resources: CaptureResources
@@ -106,8 +100,8 @@ type RendererFixture = {
   button: (label: string, within?: ParentNode) => HTMLButtonElement
   select: (source?: string) => Promise<void>
   click: (label: string) => Promise<void>
+  restart: () => Promise<void>
   start: () => Promise<void>
-  cycle: (count?: number) => Promise<void>
   emit: (snapshot: SearchSnapshot) => Promise<void>
   emitAuth: (snapshot: AuthSnapshot) => Promise<void>
   current: () => SearchSnapshot
@@ -120,14 +114,14 @@ export function captureResources(): CaptureResources {
     image: { width: 1920, height: 1080, rgba: new Uint8Array(1920 * 1080 * 4) }
   }
   const worker = {
-    recognize: vi.fn().mockResolvedValue({
+    recognize: vi.fn<PartyOcrWorker['recognize']>().mockResolvedValue({
       data: {
         text: 'ALICE',
         confidence: 90,
         candidates: [{ rank: 1, modelScore: 90, nickname: 'ALICE' }]
       }
     }),
-    terminate: vi.fn().mockResolvedValue(undefined)
+    terminate: vi.fn<PartyOcrWorker['terminate']>().mockResolvedValue(undefined)
   }
 
   return { frame, worker }
@@ -176,6 +170,7 @@ export function createRendererFixture(): RendererFixture {
       })
   }
   const capture = {
+    onDesktopShortcut: vi.fn<DesktopShortcutApi['onDesktopShortcut']>().mockReturnValue(() => {}),
     readCaptureFrame,
     listCaptureSources: vi.fn().mockResolvedValue([
       { id: 'game', name: 'Synthetic game' },
@@ -245,10 +240,13 @@ export function createRendererFixture(): RendererFixture {
   }
   Object.defineProperty(window, 'api', { configurable: true, value: capture })
   Object.defineProperty(window, 'auth', { configurable: true, value: auth })
+  Object.defineProperty(window, 'desktopShortcut', {
+    configurable: true,
+    value: { onDesktopShortcut: capture.onDesktopShortcut }
+  })
   Object.defineProperty(window, 'search', { configurable: true, value: search })
   media.worker.mockResolvedValue(resources.worker)
   media.crops.mockReturnValue([null, null, null, null])
-  media.loop.mockImplementation(() => new Promise<void>(() => undefined))
 
   async function unmount(): Promise<void> {
     if (mounted) {
@@ -284,13 +282,6 @@ export function createRendererFixture(): RendererFixture {
     await select()
     await click('캡처 시작')
   }
-  async function cycle(count = 1): Promise<void> {
-    const loop = media.loop.mock.calls.at(-1)?.[0] as Loop | undefined
-    expect(loop, '실제 capture의 OCR loop').toBeDefined()
-    for (let index = 0; index < count; index += 1) {
-      await act(async () => loop!.runCycle())
-    }
-  }
   async function emit(snapshot: SearchSnapshot): Promise<void> {
     currentSearch = snapshot
     await act(async () => {
@@ -324,7 +315,9 @@ export function createRendererFixture(): RendererFixture {
     select,
     click,
     start,
-    cycle,
+    restart: async () => {
+      await act(async () => capture.onDesktopShortcut.mock.lastCall![0]('restart-search'))
+    },
     emit,
     emitAuth,
     current: () => currentSearch,

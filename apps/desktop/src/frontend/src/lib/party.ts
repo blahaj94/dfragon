@@ -31,17 +31,6 @@ export type PartyRecognitionInput = {
 
 export type PartyFrameSource = (CharacterImage & { captureId?: string; frameId?: string }) | null
 
-/** 현재 RGBA의 HP, MP 프레임에서 닉네임을 찾아 원본 크기의 반전 이진화 OCR 입력을 만든다. */
-export function capturePartyNicknameCrops(source: PartyFrameSource): (HTMLCanvasElement | null)[] {
-  return capturePartyRecognitionInputs(source).map((input) => {
-    if (input === null) {
-      return null
-    }
-
-    return input.nickname
-  })
-}
-
 /** 같은 프레임의 닉네임과 교체 가능한 얼굴 크롭 결과를 슬롯 번호와 함께 묶는다. */
 export function capturePartyRecognitionInputs(
   source: PartyFrameSource,
@@ -80,7 +69,7 @@ export function capturePartyRecognitionInputs(
     geometry = detectPartyFrameGeometry({ width, height, rgba })
   } catch (error) {
     if (error instanceof PartyFrameGeometryError && error.reason !== 'invalid-frame') {
-      // 프레임이 사라지거나 모호하면 이전 이름을 비우고 다음 캡처 프레임에서 다시 검출한다.
+      // 프레임이 없거나 모호하면 빈 회차 결과로 돌려준다.
       return crops
     }
     throw error

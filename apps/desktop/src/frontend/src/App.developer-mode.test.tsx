@@ -6,7 +6,7 @@ import { ColorThemeProvider } from './components/ColorThemeProvider'
 import App from './App'
 
 const capture = vi.hoisted(() => {
-  const selectAndStartCapture = vi.fn()
+  const selectSource = vi.fn()
   const refreshSources = vi.fn()
   const stopCapture = vi.fn()
 
@@ -30,15 +30,14 @@ const capture = vi.hoisted(() => {
     retrySearch: vi.fn(),
     selectedSourceId: '',
     status: '캡처 대기',
-    stableNicknames: [null, null, null, null],
-    recognitionStates: ['idle', 'idle', 'idle', 'idle'],
+    nicknames: [null, null, null, null],
     round: 0,
-    starting: false,
+    recognizing: false,
     sources: [],
     sourcesLoading: false,
     sourcesFailed: false,
     phase: 'idle',
-    selectAndStartCapture,
+    selectSource,
     refreshSources,
     stopCapture
   }

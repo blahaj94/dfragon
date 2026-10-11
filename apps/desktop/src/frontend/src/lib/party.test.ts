@@ -1,7 +1,9 @@
 import { Buffer } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { CharacterImage } from '../../../preload/common/types/character'
-import { capturePartyNicknameCrops, capturePartyRecognitionInputs } from './party'
+import { capturePartyRecognitionInputs } from './party'
+import { recognizePartyFrame } from './party-recognition'
+import type { PartyOcrWorker } from '../types/capture'
 import type { PartyPortraitCropper } from './party-portrait'
 
 type NicknameCanvas = {
@@ -174,9 +176,14 @@ it.each([
   [3840, 2160]
 ])('%i×%i 프레임에서 관측한 1, 3번만 크롭하고 원본 크기와 전처리를 유지한다', (width, height) => {
   const setup = captureCanvas(width, height, [42, 324])
-  const crops = capturePartyNicknameCrops(setup.frame)
+  const crops = capturePartyRecognitionInputs(setup.frame)
 
-  expect(crops).toEqual([setup.nicknames[0], null, setup.nicknames[1], null])
+  expect(crops.map((input) => input?.nickname ?? null)).toEqual([
+    setup.nicknames[0],
+    null,
+    setup.nicknames[1],
+    null
+  ])
   expect(setup.getImageData).toHaveBeenCalledWith(42, 10, 73, 16)
   expect(setup.getImageData).toHaveBeenCalledWith(324, 10, 73, 16)
   expect(setup.nicknames[0]).toMatchObject({ width: 73, height: 16 })
@@ -186,20 +193,25 @@ it.each([
 
 it('캡처 중 해상도와 프레임 위치가 바뀌면 새 좌표를 검출하고 미검출 뒤 다시 복구한다', () => {
   const setup = captureCanvas(1280, 720, [42])
-  expect(capturePartyNicknameCrops(setup.frame)[0]).not.toBeNull()
+  expect(capturePartyRecognitionInputs(setup.frame)[0]).not.toBeNull()
 
   setup.nextFrame(2560, 1440, [])
-  expect(capturePartyNicknameCrops(setup.frame)).toEqual([null, null, null, null])
+  expect(capturePartyRecognitionInputs(setup.frame)).toEqual([null, null, null, null])
 
   setup.nextFrame(2560, 1440, [190])
-  const crops = capturePartyNicknameCrops(setup.frame)
-  expect(crops).toEqual([null, setup.nicknames[1], null, null])
+  const crops = capturePartyRecognitionInputs(setup.frame)
+  expect(crops.map((input) => input?.nickname ?? null)).toEqual([
+    null,
+    setup.nicknames[1],
+    null,
+    null
+  ])
   expect(setup.getImageData).toHaveBeenLastCalledWith(190, 10, 73, 16)
 })
 
 it('HP, MP 띠가 이어져 슬롯을 판별할 수 없으면 OCR에 크롭을 넘기지 않는다', () => {
   const setup = captureCanvas(1920, 1080, [138, 237])
-  expect(capturePartyNicknameCrops(setup.frame)).toEqual([null, null, null, null])
+  expect(capturePartyRecognitionInputs(setup.frame)).toEqual([null, null, null, null])
   expect(setup.nicknames).toHaveLength(0)
 })
 
@@ -222,12 +234,6 @@ it('연결중 팝업으로 가려진 슬롯은 OCR과 얼굴 크롭에서 제외
   )
 })
 
-it('기존 닉네임 전용 경로도 연결중 슬롯을 OCR 입력으로 보내지 않는다', () => {
-  const setup = captureCanvas(1920, 1080, [42, 183, 324, 465], [183, 324, 465])
-
-  expect(capturePartyNicknameCrops(setup.frame)).toEqual([setup.nicknames[0], null, null, null])
-})
-
 it.each([
   [0, 0],
   [8193, 600],
@@ -237,7 +243,7 @@ it.each([
   vi.stubGlobal('document', { createElement })
   const frame = { width, height, rgba: new Uint8Array(0) }
 
-  expect(capturePartyNicknameCrops(frame)).toEqual([null, null, null, null])
+  expect(capturePartyRecognitionInputs(frame)).toEqual([null, null, null, null])
   expect(createElement).not.toHaveBeenCalled()
 })
 
@@ -261,4 +267,42 @@ it.each([
   setup.frame.rgba[(y * 1280 + x) * 4 + 3] = 0
 
   expect(capturePartyRecognitionInputs(setup.frame)).toEqual([null, null, null, null])
+})
+
+it('회차 한 장의 네 슬롯 닉네임 픽셀과 얼굴 원문을 함께 인식 결과로 돌려준다', async () => {
+  const setup = captureCanvas(1280, 720, [42, 183, 324, 465])
+  // 각 얼굴 중앙에 슬롯별 원문을 심어 다른 프레임이나 다른 슬롯의 얼굴 사용을 검출한다.
+  for (const [slot, left] of [14, 155, 296, 437].entries()) {
+    setup.frame.rgba.set([slot + 11, 50, 90, 255], (24 * 1280 + left + 13) * 4)
+  }
+  const recognize = vi.fn<PartyOcrWorker['recognize']>(async (image) => {
+    const slot = setup.nicknames.findIndex((nickname) => Object.is(nickname, image))
+    const data = setup.nicknames[slot].getContext().putImageData.mock.calls[0][0].data
+    expect(Array.from(data.slice(0, 12))).toEqual([0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255])
+    const text = `슬롯${slot}`
+
+    return {
+      data: { text, confidence: 1, candidates: [{ nickname: text, rank: 1, modelScore: 1 }] }
+    }
+  })
+
+  const results = await recognizePartyFrame(setup.frame, recognize)
+
+  expect(recognize).toHaveBeenCalledTimes(4)
+  expect(setup.nicknames).toHaveLength(4)
+  for (const [slot, result] of results.entries()) {
+    expect(result).toMatchObject({
+      kind: 'recognized',
+      slot,
+      nickname: `슬롯${slot}`,
+      prediction: `슬롯${slot}`
+    })
+    if (result.kind === 'missing') {
+      throw new Error('Expected a detected party slot')
+    }
+    expect(result.portrait?.image).toMatchObject({ width: 26, height: 26 })
+    expect(
+      Array.from(result.portrait!.image.rgba.slice((13 * 26 + 13) * 4, (13 * 26 + 14) * 4))
+    ).toEqual([slot + 11, 50, 90, 255])
+  }
 })

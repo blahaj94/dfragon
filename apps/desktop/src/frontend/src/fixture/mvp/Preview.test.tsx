@@ -49,8 +49,9 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
 })
 
 it.each([
-  ['starting', '준비 중', 'neutral'],
-  ['active', '캡처 중', 'informative'],
+  ['recognizing', '인식 중', 'informative'],
+  ['complete', '인식 완료', 'informative'],
+  ['unavailable', '확인 필요', 'warning'],
   ['missing', '창 미감지', 'warning']
 ])('캡처 미리보기 %s를 상단 바와 모달에 함께 반영한다', async (state, label, tone) => {
   const selector = container.querySelector<HTMLSelectElement>('[aria-label="캡처 미리보기 상태"]')!
@@ -66,4 +67,27 @@ it.each([
   )
   const dialog = document.querySelector('[role="dialog"]')!
   expect(dialog.querySelector('[role="status"]')?.textContent).toBe(label)
+})
+
+it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨 상태를 표시한다', async () => {
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.click()
+  )
+  const dialog = document.querySelector('[role="dialog"]')!
+  await act(async () =>
+    dialog.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!.click()
+  )
+  const option = document.querySelector<HTMLElement>(
+    '[role="menuitemradio"][aria-label="던전앤파이터"]'
+  )!
+  expect(option).not.toBeNull()
+  await act(async () => option.click())
+
+  const selector = container.querySelector<HTMLSelectElement>('[aria-label="캡처 미리보기 상태"]')!
+  expect(selector.value).toBe('selected')
+  expect(selector.selectedOptions[0].textContent).toBe('캡처 · 창 선택됨')
+  expect(dialog.textContent).toContain('Alt+R을 눌러 파티를 인식해 주세요.')
+  expect(dialog.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
+    '던전앤파이터'
+  )
 })

@@ -60,7 +60,7 @@ function topBarText(): string | null {
   return header.textContent
 }
 
-it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR을 준비한다', async () => {
+it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다린다', async () => {
   const f = createRendererFixture()
   f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
   await f.mount(
@@ -68,73 +68,88 @@ it('앱 시작 때 실행 중인 던파가 하나면 자동으로 캡처와 OCR�
       <App />
     </ColorThemeProvider>
   )
-  expect(f.capture.listCaptureSources).toHaveBeenCalledOnce()
-  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(media.worker).toHaveBeenCalledOnce()
+  expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
+  expect(media.worker).not.toHaveBeenCalled()
+  expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
   await click('화면 캡처')
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
     '던전앤파이터'
   )
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
-  expect(topBarText()).toContain('캡처 중')
-  expect(f.capture.selectCaptureSource).toHaveBeenCalledWith('game')
-  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'Alt+R을 눌러 파티를 인식해 주세요.'
+  )
+  expect(topBarText()).toContain('창 감지됨')
 })
 
-it('카메라에서 시작하고 모달, 로그인 상태가 바뀌어도 캡처와 카드 인식값을 유지한다', async () => {
+it('창 선택 뒤 Alt+R로 한 번 인식하고 모달, 로그인 변경 뒤에도 이름과 검색 수명을 유지한다', async () => {
   const f = createRendererFixture()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
+  f.resources.worker.recognize.mockReturnValueOnce(pending.promise)
   await f.mount(
     <ColorThemeProvider>
       <App />
     </ColorThemeProvider>
   )
   await click('화면 캡처')
-  expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await select('game')
-  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
-  expect(topBarText()).toContain('캡처 중')
-  await f.cycle(3)
-  expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledOnce()
-  expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledWith(
-    expect.objectContaining({
-      nickname: 'ALICE',
-      candidateNicknames: ['ALICE'],
-      portrait: null
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
+  await f.restart()
+  expect(topBarText()).toContain('인식 중')
+  await act(async () =>
+    pending.resolve({
+      data: {
+        text: 'ALICE',
+        confidence: 1,
+        candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
+      }
     })
+  )
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
+  expect(topBarText()).toContain('인식 완료')
+  expect(f.capture.notifyOcrCandidatesDetected).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ nickname: 'ALICE', candidateNicknames: ['ALICE'], portrait: null })
   )
   expect(f.capture.notifyStableNicknameDetected).not.toHaveBeenCalled()
   expect(f.container.textContent).toContain('얼굴 인식 대기')
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     'ALICE'
   )
+  const captureId = f.current().captureId
+  expect(captureId).not.toBeNull()
   await click('닫기')
   const cards = [...f.container.querySelectorAll('article')]
-
   await f.emitAuth(authSnapshot({ revision: 2, signedIn: false }))
   expect(
     [...f.container.querySelectorAll('article')].every((card, index) => card === cards[index])
   ).toBe(true)
-
+  expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
+    'ALICE'
+  )
+  expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'end', captureId })
   await click('화면 캡처')
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중지')
   await click('캡처 중지')
-
-  expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
+  expect(f.search.controlCharacterSearch).toHaveBeenCalledWith({ action: 'end', captureId })
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
     ''
   )
+  await f.restart()
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
   await select('game')
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
+  await f.restart()
   expect(
     f.search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
   ).toHaveLength(2)
 })
 
-it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대상으로 시작한다', async () => {
+it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다', async () => {
   const f = createRendererFixture()
   const next = captureResources()
-  f.readCaptureFrame.mockResolvedValueOnce(f.resources.frame).mockResolvedValueOnce(next.frame)
+  const pending = Promise.withResolvers<Awaited<ReturnType<typeof f.resources.worker.recognize>>>()
+  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
+  f.resources.worker.recognize.mockReturnValueOnce(pending.promise)
   media.worker.mockResolvedValueOnce(f.resources.worker).mockResolvedValueOnce(next.worker)
   await f.mount(
     <ColorThemeProvider>
@@ -143,29 +158,34 @@ it('캡처 중 다른 창을 선택하면 기존 stream을 정리하고 새 대�
   )
   await click('화면 캡처')
   await select('game')
-  const firstLoop = media.loop.mock.calls[0][0]
+  await f.restart()
+  const signal = media.worker.mock.calls[0][0] as AbortSignal
   await select('next')
+  expect(signal.aborted).toBe(true)
   expect(f.capture.selectCaptureSource).toHaveBeenLastCalledWith('next')
-  expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
-
+  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
+  await act(async () =>
+    pending.resolve({
+      data: {
+        text: 'OLD',
+        confidence: 1,
+        candidates: [{ nickname: 'OLD', rank: 1, modelScore: 1 }]
+      }
+    })
+  )
   expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
-  expect(firstLoop.signal.aborted).toBe(true)
-
-  expect(next.worker.terminate).not.toHaveBeenCalled()
+  expect(f.capture.notifyOcrCandidatesDetected).not.toHaveBeenCalled()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
-
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
-  expect(topBarText()).toContain('캡처 중')
-
-  await click('캡처 중지')
-
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'Alt+R을 눌러 파티를 인식해 주세요.'
+  )
+  await f.restart()
+  expect(f.readCaptureFrame).toHaveBeenCalledTimes(2)
+  expect(topBarText()).toContain('인식 완료')
   expect(next.worker.terminate).toHaveBeenCalledOnce()
-  expect(media.loop.mock.calls[1][0].signal.aborted).toBe(true)
-
-  expect(f.resources.worker.terminate).toHaveBeenCalledOnce()
 })
 
-it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처를 교체하지 않는다', async () => {
+it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 바꾸거나 캡처하지 않는다', async () => {
   const f = createRendererFixture()
   const firstSelection = Promise.withResolvers<{ id: string; name: string }>()
   f.capture.selectCaptureSource.mockReturnValueOnce(firstSelection.promise)
@@ -176,19 +196,14 @@ it('연속 창 선택에서 먼저 고른 창의 늦은 등록은 현재 캡처�
   )
   await click('화면 캡처')
   await select('game')
-  expect(f.readCaptureFrame).not.toHaveBeenCalled()
-
   await select('next')
-  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
   await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
-
-  expect(f.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(media.worker).toHaveBeenCalledOnce()
-
+  expect(f.readCaptureFrame).not.toHaveBeenCalled()
+  expect(media.worker).not.toHaveBeenCalled()
   expect(document.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain('Next game')
-  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('캡처 중, 1920×1080')
-  expect(topBarText()).toContain('캡처 중')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+    'Alt+R을 눌러 파티를 인식해 주세요.'
+  )
 })
 
 it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시작하지 않는다', async () => {

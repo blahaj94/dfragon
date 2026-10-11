@@ -6,8 +6,10 @@ describe('getCaptureControlState', () => {
 
   // 디자인 캡처 모달의 StatusBadge 톤을 공용 StatusBadge가 받는 SEED Badge tone 이름으로 옮긴 기대값이다.
   it.each([
-    ['준비 중', { ...idle, phase: 'starting', loading: true }, 'neutral'],
-    ['캡처 중', { ...idle, phase: 'active', failed: true }, 'informative'],
+    ['준비 중', { ...idle, phase: 'selecting', loading: true }, 'neutral'],
+    ['인식 중', { ...idle, phase: 'recognizing', loading: true }, 'informative'],
+    ['인식 완료', { ...idle, phase: 'complete', failed: true }, 'informative'],
+    ['확인 필요', { ...idle, phase: 'unavailable', loading: true }, 'warning'],
     ['창 확인 중', { ...idle, loading: true, failed: true }, 'neutral'],
     ['조회 실패', { ...idle, failed: true, hasDetectedSource: false }, 'critical'],
     ['창 미감지', { ...idle, hasDetectedSource: false }, 'warning'],
@@ -19,17 +21,17 @@ describe('getCaptureControlState', () => {
 
 describe('formatPartyCaptureStatus', () => {
   it('omits an empty status without separators for empty slots', () => {
-    expect(
-      formatPartyCaptureStatus({ status: '', stableNicknames: [null, '', 'Alice', null] })
-    ).toBe('슬롯 3: Alice')
-    expect(formatPartyCaptureStatus({ status: '', stableNicknames: [null, ''] })).toBe('')
+    expect(formatPartyCaptureStatus({ status: '', nicknames: [null, '', 'Alice', null] })).toBe(
+      '슬롯 3: Alice'
+    )
+    expect(formatPartyCaptureStatus({ status: '', nicknames: [null, ''] })).toBe('')
   })
 
   it('preserves whitespace and embedded newlines in status and nicknames', () => {
     expect(
       formatPartyCaptureStatus({
         status: ' Capture\nready. ',
-        stableNicknames: [' ', null, 'Alice\nBob', '']
+        nicknames: [' ', null, 'Alice\nBob', '']
       })
     ).toBe(' Capture\nready. \n슬롯 1:  \n슬롯 3: Alice\nBob')
   })
