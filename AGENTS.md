@@ -10,7 +10,7 @@
 
 ## 설치
 
-- Node.js 24(API, accounts, OCR의 `engines`는 `>=24.15.0 <25`)와 pnpm 11.23.0(root `package.json`의 `packageManager`)을 쓴다.
+- Node.js 24(API, accounts, OCR의 `engines`는 `>=24.15.0 <25`)와 pnpm 12.11.2(root `package.json`의 `packageManager`)을 쓴다.
 - 의존성은 `pnpm install --frozen-lockfile`로 설치한다.
 - Desktop을 CI와 같은 입력으로 테스트, 빌드하려면 `git submodule update --init --recursive apps/desktop/models/finetuned`로 OCR 모델 submodule을 받는다.
 

@@ -32,7 +32,7 @@ Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 sig
 
 ## Windows synthetic native fixture
 
-일반 권한의 Windows에서 `corepack pnpm@11.23.0 --filter @dfragon/desktop test:windows-native`를 실행합니다. `scripts/windows-security-fixture/native.fixture.ts`는 기존 Koffi와 public native 경계로 synthetic byte 파일만 만들고, fixture 전용 typecheck 후 실제 Win32 관측을 JSON 한 줄로 출력합니다. 기본 Desktop test에는 격리 helper의 테스트만 포함하며, native 실행은 이 명시적인 command로 분리합니다. Electron, safeStorage, DPAPI, 실제 credential과 계정 이름 조회는 사용하지 않습니다.
+일반 권한의 Windows에서 `pnpm --filter @dfragon/desktop test:windows-native`를 실행합니다. Node 25부터 corepack이 빠졌고, root `devEngines.packageManager`가 `onFail: download`로 `pnpm@12.11.2`를 맞춥니다. `scripts/windows-security-fixture/native.fixture.ts`는 기존 Koffi와 public native 경계로 synthetic byte 파일만 만들고, fixture 전용 typecheck 후 실제 Win32 관측을 JSON 한 줄로 출력합니다. 기본 Desktop test에는 격리 helper의 테스트만 포함하며, native 실행은 이 명시적인 command로 분리합니다. Electron, safeStorage, DPAPI, 실제 credential과 계정 이름 조회는 사용하지 않습니다.
 
 표준 임시 directory 아래 무작위 root와 별도 manifest를 exclusive 생성합니다. 절대경로 containment와 ancestor의 reparse 여부를 검사하며, 작업 소유 자식만 생성합니다. HANDLE과 LocalFree 대상은 finally에서 해제하고 실제 반환값을 계수합니다. Cleanup은 manifest의 nonce와 root를 재확인하고 junction 자체만 제거합니다. 모르는 reparse는 순회하지 않으며, 자원 해제나 cleanup이 불명확하면 manifest를 보존하고 실패합니다. 비정상 종료 후 manifest를 근거로 자동 재귀 삭제하는 기능은 없습니다. 같은 계정의 악의적인 동시 경로 교체나 crash 내구성을 보장하는 도구가 아닙니다.
 

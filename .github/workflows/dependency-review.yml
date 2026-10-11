@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # GitHub's static graph reads only the pnpm binary document of the pnpm 11 lockfile.
+  # GitHub's static graph reads only the pnpm binary document of the pnpm 11 or later lockfile.
   # Submit the workspace document so alerts and review include transitive dependencies.
   submit:
     name: Submit pnpm dependencies
