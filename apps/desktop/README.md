@@ -178,13 +178,13 @@ git -C apps/desktop/models/finetuned fetch origin
 git -C apps/desktop/models/finetuned checkout <모델을-포함한-커밋-SHA>
 ```
 
-[`ocr-model.config.mjs`](ocr-model.config.mjs)에는 `bundledOcrModel`, `fineTunedOcrModel` 두 설정이 있습니다. 실제 모델과 사전이 준비되면 마지막 줄 하나를 다음처럼 바꿉니다.
+[`ocr-model.config.mjs`](ocr-model.config.mjs)에는 `bundledOcrModel`, `fineTunedOcrModel` 두 설정이 있습니다. 마지막 줄 하나가 빌드에 넣을 모델을 정하며 현재 값은 다음과 같습니다.
 
 ```js
 export default fineTunedOcrModel
 ```
 
-`fineTunedOcrModel`은 `models/finetuned/model.onnx`, `models/finetuned/characters.txt`를 사용합니다. 경로는 `apps/desktop` 기준이며 다른 로컬 모델을 사용하려면 해당 설정의 이름과 경로를 수정할 수 있습니다. 현재 scaffold에는 실제 모델이 없으므로 기본 선택은 `bundledOcrModel`입니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
+`fineTunedOcrModel`은 `models/finetuned/model.onnx`, `models/finetuned/characters.txt`를 사용합니다. 경로는 `apps/desktop` 기준이며 다른 로컬 모델을 사용하려면 해당 설정의 이름과 경로를 수정할 수 있습니다. 현재 선택은 `fineTunedOcrModel`이고 submodule은 모델 저장소의 13에폭 모델 커밋을 고정합니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
 
 ```sh
 # 파일과 모델 호환성만 먼저 확인

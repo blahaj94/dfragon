@@ -12,5 +12,5 @@ export const fineTunedOcrModel = {
   dictionaryPath: 'models/finetuned/characters.txt'
 }
 
-// 모델과 사전을 submodule에 추가하고 부모의 고정 커밋을 갱신한 뒤 fineTunedOcrModel로 전환한다.
-export default bundledOcrModel
+// submodule의 고정 커밋이 가리키는 파인튜닝 모델을 사용한다. 기본 모델로 돌아가려면 bundledOcrModel로 바꾼다.
+export default fineTunedOcrModel
