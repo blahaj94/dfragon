@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
+import ts from 'typescript-compiler-api'
 
 const consumer = new URL('./fixtures/public-consumer.ts', import.meta.url)
 
