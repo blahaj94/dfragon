@@ -9,29 +9,29 @@ catalog:
   '@electron-toolkit/preload': 3.0.2
   '@electron-toolkit/tsconfig': 2.0.0
   '@electron-toolkit/utils': 4.0.0
-  '@karrotmarket/react-monochrome-icon': 1.26.0
+  '@karrotmarket/react-monochrome-icon': 1.29.0
   '@nestjs/common': 12.1.2
   '@nestjs/core': 12.1.2
   '@nestjs/platform-express': 12.1.2
   '@nestjs/swagger': 12.0.2
   '@nestjs/testing': 12.1.2
   '@nestjs/typeorm': 12.0.2
-  '@seed-design/css': 2.7.0
-  '@seed-design/react': 2.4.1
-  '@seed-design/vite-plugin': 2.1.0
+  '@seed-design/css': 2.9.1
+  '@seed-design/react': 2.6.0
+  '@seed-design/vite-plugin': 2.1.1
   '@simplewebauthn/browser': 13.3.0
   '@simplewebauthn/server': 13.3.3
-  '@stylexjs/stylex': 0.19.0
-  '@stylexjs/unplugin': 0.19.0
+  '@stylexjs/stylex': 0.19.1
+  '@stylexjs/unplugin': 0.19.1
   '@tanstack/react-query': 5.104.1
   '@types/cookie-parser': 1.4.10
   '@types/express': 5.0.6
   '@types/node': 26.6.5
   '@types/pg': 8.23.1
   '@types/pngjs': 6.0.5
-  '@types/react': 19.2.18
-  '@types/react-dom': 19.2.5
-  '@vitejs/plugin-react': 6.1.1
+  '@types/react': 19.3.0
+  '@types/react-dom': 19.3.0
+  '@vitejs/plugin-react': 6.1.2
   '@xstate/react': 6.1.0
   cookie-parser: 1.4.7
   dotenv-cli: 11.0.0
@@ -43,35 +43,35 @@ catalog:
   iconv-lite: 0.7.3
   ipaddr.js: 2.5.0
   jose: 6.2.12
-  jsdom: 30.0.1
-  koffi: 3.2.1
-  ky: 2.1.0
-  onnxruntime-web: 1.24.3
+  jsdom: 30.1.2
+  koffi: 3.3.3
+  ky: 2.2.0
+  onnxruntime-web: 1.30.0
   pg: 8.23.1
   playwright: 1.64.0
   pngjs: 7.0.0
   raw-body: 3.0.2
-  react: 19.2.8
-  react-dom: 19.2.8
+  react: 19.3.0
+  react-dom: 19.3.0
   reflect-metadata: 0.2.2
-  remeda: 2.50.0
+  remeda: 2.51.0
   rxjs: 7.8.2
   tar: 7.5.22
   tar-stream: 3.2.2
   typeorm: 1.1.2
   typescript: 7.0.2
   'typescript-compiler-api': 'npm:typescript@6.0.2'
-  vite: 8.2.2
+  vite: 8.3.4
   vitest: 4.1.11
   xstate: 5.33.2
-  zod: 4.5.4
+  zod: 4.6.5
 
 catalogs:
   # Desktop main, preload는 Electron 44.7.0 내장 Node 24.21.0에서 실행되므로 Node 타입도 24에 맞춘다.
   electron:
     '@types/node': 24.19.2
     '@vitejs/plugin-react': 5.2.0
-    vite: 7.3.6
+    vite: 7.3.7
   parser:
     typescript: 6.0.2
 

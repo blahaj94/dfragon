@@ -35,14 +35,57 @@ async function createLibraryFixture(context) {
   return output
 }
 
-function inspect(output) {
-  const result = spawnSync(process.execPath, [verifyScript, 'library', output], {
+function inspect(output, mode = 'library') {
+  const result = spawnSync(process.execPath, [verifyScript, mode, output], {
     encoding: 'utf8',
     timeout: 10_000
   })
   assert.ifError(result.error)
 
   return result
+}
+
+async function createConsumerFixture(context, styles) {
+  const output = await createLibraryFixture(context)
+  const graph = [
+    { name: 'react', version: '19.3.0', modules: ['index.js'] },
+    { name: 'react-dom', version: '19.3.0', modules: ['index.js'] },
+    { name: '@seed-design/react', version: '2.6.0', modules: ['index.js'] },
+    { name: '@seed-design/css', version: '2.9.1', modules: ['base.css'] }
+  ]
+  await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
+  await writeFile(join(output, 'notices/THIRD-PARTY.txt'), 'MIT License fixture\n')
+  await writeFile(join(output, 'styles.css'), styles)
+
+  return output
+}
+
+test('SEED 글꼴 변수와 공용 font-family 선언이 함께 있어도 한 번의 적용으로 센다', async (context) => {
+  const output = await createConsumerFixture(
+    context,
+    ':root{--seed-font-family:"Apple SD Gothic Neo",sans-serif}body{margin:0;font-family:"Apple SD Gothic Neo",sans-serif}'
+  )
+  const result = inspect(output, 'consumer')
+  assert.equal(result.status, 0, result.stderr)
+})
+
+for (const { name, styles } of [
+  {
+    name: '글꼴 변수만 있고 공용 font-family 선언이 없는 경우',
+    styles: ':root{--seed-font-family:"Apple SD Gothic Neo",sans-serif}'
+  },
+  {
+    name: '공용 font-family 선언이 두 번 출력된 경우',
+    styles:
+      'body{font-family:"Apple SD Gothic Neo",sans-serif}.duplicate{font-family:"Apple SD Gothic Neo",sans-serif}'
+  }
+]) {
+  test(`${name} 소비자 빌드 검사에 실패한다`, async (context) => {
+    const output = await createConsumerFixture(context, styles)
+    const result = inspect(output, 'consumer')
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /Shared foundation font stack once/)
+  })
 }
 
 test('공개 ESM, 선언 파일과 React 전용 Typo 산출물을 허용한다', async (context) => {

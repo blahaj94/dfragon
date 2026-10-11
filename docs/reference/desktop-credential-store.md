@@ -16,7 +16,7 @@ Main은 Electron에 적용, read-back 확인한 trusted config 하나를 bootstr
 
 Windows profile과 credential adapter는 기본 composition에서 실제 Koffi/Win32 호출을 사용한다. 검증 완료를 나타내던 고정 capability와 `unknown`에 의한 일괄 차단은 제거했다. Profile 준비는 실제 SID/ACL, reparse, directory sync가 실패할 때 `preparation-failed`로 끝나며, store는 권한, 암호화, 파일 작업 실패를 기존 `storageBlocked/SECURE_STORAGE_UNAVAILABLE` 등으로 처리한다. 성공한 파일 작업은 해당 호출의 완료이며 물리 정전 내구성 보장이 아니다. 광범위한 사전 장애/OS 검증을 배포 조건으로 두지 않는 기준은 [platform](../rules/desktop-auth-platform.md#기능-완료와-배포-후-검증)을 따른다.
 
-Windows boundary dependency는 `koffi` **3.2.1**이다. `npmRebuild:false`와 Electron-builder의 `.node` smart unpack을 사용하며, 선택한 target의 native variant가 설치 파일에 포함되어 실제로 로드되어야 한다. Lockfile이나 설정 검사만으로 package 실행 성공을 주장하지 않는다. 모든 OS/CPU variant를 미리 설치, 검증하는 절차는 요구하지 않는다.
+Windows boundary dependency는 `koffi` **3.3.3**이다. `npmRebuild:false`와 Electron-builder의 `.node` smart unpack을 사용하며, 선택한 target의 native variant가 설치 파일에 포함되어 실제로 로드되어야 한다. Lockfile이나 설정 검사만으로 package 실행 성공을 주장하지 않는다. 모든 OS/CPU variant를 미리 설치, 검증하는 절차는 요구하지 않는다.
 
 ## Windows flush 호출과 실패 경계
 
@@ -24,7 +24,7 @@ Windows boundary dependency는 `koffi` **3.2.1**이다. `npmRebuild:false`와 El
 
 Windows 파일 교체에서 write 또는 첫 file flush 실패는 rename을 시작하지 않고 `failed`입니다. Rename 호출 이후 file flush, directory sync 또는 close 실패는 `unknown`이며 marker가 복원을 차단합니다. Marker 삭제 뒤 directory sync 실패는 재확립 결과에 따라 `save-failed`와 `clear-unconfirmed`로 나뉩니다. 재확립도 실패하면 새 credential만 남아 다음 실행에서 복원될 가능성을 유지합니다.
 
-Native 테스트는 실제 Koffi 3.2.1의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. Mock 결과와 실제 Win32, DPAPI 관측을 구분하며, namespace 내구성 시험을 배포 gate로 두지 않습니다.
+Native 테스트는 실제 Koffi 3.3.3의 `uint32_t` encode로 JavaScript의 signed 접근 mask가 필요한 DWORD 값을 보존하는지 확인합니다. 주입 테스트는 flush 권한과 인수, 잘못된 HANDLE, 보안 검사 거절, flush 실패/예외와 close 실패를 검증합니다. Store 테스트는 위 교체 실패와 marker 재확립의 두 결과를 기존 공통 protocol을 통해 확인합니다. Mock 결과와 실제 Win32, DPAPI 관측을 구분하며, namespace 내구성 시험을 배포 gate로 두지 않습니다.
 
 파일 이름 교체의 `FILE_RENAME_INFO`는 UTF-16 경로 뒤에 NUL WCHAR를 포함해 할당하고, `FileNameLength`에는 종료 문자를 제외한 경로 byte 수를 기록합니다. `SetFileInformationByHandle`에는 종료 문자까지 포함한 전체 buffer 크기를 전달합니다. [Microsoft의 구조체 설명](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_rename_info)은 길이 필드와 별도로 `FileName`을 NUL-terminated 문자열로 정의합니다. 종료 공간이 없던 구현의 실제 Windows 정상 대조에서 `transition.v1` 뒤에 예상하지 못한 문자가 붙었고 다음 credential commit이 실패했습니다. ASCII, 한글, 비BMP 경로의 byte 길이와 종료 공간을 회귀 검사하며, 기존 실패 자료와 namespace 내구성 미검증은 유지합니다.
 

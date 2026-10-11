@@ -108,7 +108,7 @@ for (const source of provenance.files) {
 
 const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
 const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
-const FOUNDATION_FONT_FAMILY_PATTERN = /Apple SD Gothic Neo/g
+const FOUNDATION_FONT_FAMILY_PATTERN = /(?:^|[;{])\s*font-family\s*:[^;}]*Apple SD Gothic Neo/g
 
 if (isLibrary) {
   assert.equal(graph.length, 0, 'Library must externalize all runtime dependencies')
@@ -169,10 +169,10 @@ if (isLibrary) {
   }
 } else {
   const expectedVersions = {
-    react: '19.2.8',
-    'react-dom': '19.2.8',
-    '@seed-design/react': '2.4.1',
-    '@seed-design/css': '2.7.0'
+    react: '19.3.0',
+    'react-dom': '19.3.0',
+    '@seed-design/react': '2.6.0',
+    '@seed-design/css': '2.9.1'
   }
   for (const [name, version] of Object.entries(expectedVersions)) {
     const copies = graph.filter((dependency) => {

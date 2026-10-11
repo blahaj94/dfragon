@@ -101,7 +101,7 @@
       "../licenses/notices/ui/SEED-NOTICE"
     ],
     "icons": {
-      "package": "@karrotmarket/react-monochrome-icon@1.26.0",
+      "package": "@karrotmarket/react-monochrome-icon@1.29.0",
       "repository": "https://github.com/daangn/seed-icon-v3",
       "files": [
         "../licenses/notices/ui/ICONS-LICENSE",
@@ -115,8 +115,8 @@
     "source": "docs/content/foundations/typography.mdx",
     "changes": [
       "공식 system font stack을 body에 적용한다. Root font-size를 지정하지 않고 사용자 browser 기본값을 유지한다.",
-      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @seed-design/css@2.7.0의 bg.layerDefault, fg.neutral Token을 body 환경에 연결한다. Component selector, Token 재정의 없음."
+      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @seed-design/css@2.9.1의 bg.layerDefault, fg.neutral Token을 body 환경에 연결한다. Component selector, Token 재정의 없음."
     ],
-    "packageEntryAudit": "@seed-design/css@2.7.0은 base/all 및 layered/min 변형만 제공하며 body font/reset entry는 없다."
+    "packageEntryAudit": "@seed-design/css@2.9.1은 base/all 및 layered 변형만 제공하며 body font/reset entry는 없다. 2.7.0에 있던 min 변형은 2.9.1 패키지에서 빠졌다."
   }
 }
