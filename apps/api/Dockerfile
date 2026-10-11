@@ -1,5 +1,4 @@
-ARG NODE_IMAGE=docker.io/library/node:26-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567
-FROM ${NODE_IMAGE} AS build
+FROM docker.io/library/node:26-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS build
 WORKDIR /workspace
 RUN npm install --global pnpm@12.11.2
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -21,7 +20,7 @@ RUN pnpm --filter @dfragon/api test \
     && pnpm --filter @dfragon/api deploy --legacy --prod /production
 COPY packages/licenses/notices/upstream/remeda-2.51.0-LICENSE.txt apps/api/dist/notices/remeda-2.51.0-LICENSE.txt
 
-FROM ${NODE_IMAGE} AS runtime
+FROM docker.io/library/node:26-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 ARG SOURCE_COMMIT=""
 ENV NODE_ENV=production
 WORKDIR /app
