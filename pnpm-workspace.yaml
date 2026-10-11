@@ -10,12 +10,12 @@ catalog:
   '@electron-toolkit/tsconfig': 2.0.0
   '@electron-toolkit/utils': 4.0.0
   '@karrotmarket/react-monochrome-icon': 1.26.0
-  '@nestjs/common': 12.0.1
-  '@nestjs/core': 12.0.1
-  '@nestjs/platform-express': 12.0.1
-  '@nestjs/swagger': 12.0.1
-  '@nestjs/testing': 12.0.1
-  '@nestjs/typeorm': 12.0.1
+  '@nestjs/common': 12.1.2
+  '@nestjs/core': 12.1.2
+  '@nestjs/platform-express': 12.1.2
+  '@nestjs/swagger': 12.0.2
+  '@nestjs/testing': 12.1.2
+  '@nestjs/typeorm': 12.0.2
   '@seed-design/css': 2.7.0
   '@seed-design/react': 2.4.1
   '@seed-design/vite-plugin': 2.1.0
@@ -23,7 +23,7 @@ catalog:
   '@simplewebauthn/server': 13.3.3
   '@stylexjs/stylex': 0.19.0
   '@stylexjs/unplugin': 0.19.0
-  '@tanstack/react-query': 5.103.2
+  '@tanstack/react-query': 5.104.1
   '@types/cookie-parser': 1.4.10
   '@types/express': 5.0.6
   '@types/node': 26.6.5
@@ -31,7 +31,6 @@ catalog:
   '@types/pngjs': 6.0.5
   '@types/react': 19.2.18
   '@types/react-dom': 19.2.5
-  '@types/tar-stream': 3.1.4
   '@vitejs/plugin-react': 6.1.1
   '@xstate/react': 6.1.0
   cookie-parser: 1.4.7
@@ -40,7 +39,7 @@ catalog:
   electron-builder: 26.15.3
   electron-vite: 5.0.0
   esbuild: 0.28.2
-  express: 5.2.1
+  express: 5.3.0
   iconv-lite: 0.7.3
   ipaddr.js: 2.5.0
   jose: 6.2.12
@@ -48,8 +47,8 @@ catalog:
   koffi: 3.2.1
   ky: 2.1.0
   onnxruntime-web: 1.24.3
-  pg: 8.23.0
-  playwright: 1.62.1
+  pg: 8.23.1
+  playwright: 1.64.0
   pngjs: 7.0.0
   raw-body: 3.0.2
   react: 19.2.8
@@ -58,8 +57,8 @@ catalog:
   remeda: 2.50.0
   rxjs: 7.8.2
   tar: 7.5.22
-  tar-stream: 3.1.7
-  typeorm: 1.1.1
+  tar-stream: 3.2.2
+  typeorm: 1.1.2
   typescript: 7.0.2
   'typescript-compiler-api': 'npm:typescript@6.0.2'
   vite: 8.2.2

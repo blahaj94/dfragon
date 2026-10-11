@@ -755,7 +755,10 @@ test('합성 owner 인증 인계와 CSRF 경계를 확인하고 인증된 이미
       extract = tar.extract()
     extract.on('entry', (header, stream, next) => {
       const chunks: Buffer[] = []
-      stream.on('data', (chunk) => chunks.push(chunk))
+      stream.on('data', (chunk) => {
+        assert(Buffer.isBuffer(chunk))
+        chunks.push(chunk)
+      })
       stream.on('end', () => {
         entries.set(header.name, Buffer.concat(chunks))
         next()
@@ -1021,7 +1024,10 @@ test('공대 10~12행도 보호된 조회와 브라우저 정답, 필터, 전체
     const extract = tar.extract()
     extract.on('entry', (header, stream, next) => {
       const chunks: Buffer[] = []
-      stream.on('data', (chunk) => chunks.push(chunk))
+      stream.on('data', (chunk) => {
+        assert(Buffer.isBuffer(chunk))
+        chunks.push(chunk)
+      })
       stream.on('end', () => {
         entries.set(header.name, Buffer.concat(chunks))
         next()
