@@ -65,7 +65,10 @@ test('TAR 전송 시작 후 정답, 제외, 분할, 자료가 바뀌어도 시�
     assert.equal(header.mode, 0o600)
     assert.equal(entries.has(header.name), false)
     const chunks: Buffer[] = []
-    stream.on('data', (chunk: Buffer) => chunks.push(chunk))
+    stream.on('data', (chunk) => {
+      assert(Buffer.isBuffer(chunk))
+      chunks.push(chunk)
+    })
     stream.on('end', () => {
       entries.set(header.name, Buffer.concat(chunks))
       next()
