@@ -68,12 +68,14 @@ SEED에 같은 이름의 컴포넌트가 없거나 그대로 쓰면 의미, 배�
 
 | 디자인 | 구현 | 이유 |
 | --- | --- | --- |
-| `Chip`(정답 입력 필터) | SEED `Chip.Root`에 `aria-pressed`, 선택 칩은 `bg.brand.weak`, `border.brand`, `fg.brand` 700 | 설치한 `@seed-design/react` 2.6.0에는 `Chip.Toggle`이 없습니다. `ControlChip`은 deprecated이고 키보드 포커스 표시를 지우며, `SegmentedControl`은 radio로 의미가 바뀝니다 |
+| `Chip`(정답 입력 필터) | SEED `Chip.Button`에 `aria-pressed`, 선택 칩은 `bg.brand.weak`, `border.brand`, `fg.brand` 700 | SEED 3.0에 `Chip.Toggle`이 추가됐지만 이번 마이그레이션에서는 기존 버튼과 `aria-pressed` 동작을 유지합니다. `Chip.Toggle` 전환은 별도로 검토합니다 |
 | `Checkbox`(저장 포함) | SEED `Checkbox.Root.Primitive` 안에 `@dfragon/ui`의 `Checkmark`(`Control`, `Indicator`)와 `HiddenInput` | styled `Checkbox.Root`는 최소 높이 32와 체크 위치 여백 때문에 고정 높이 행의 머리 줄을 늘리거나 체크 위치를 어긋나게 합니다. 비활성은 SEED 표현(`--seed-color-bg-disabled` 배경, `--seed-color-stroke-neutral-muted` 테두리)을 그대로 씁니다. 체크 표시는 공식 checkbox Snippet과 같은 `IconCheckmarkFatFill` 12px라 디자인 시안의 16px 체크와 다릅니다 |
-| `StatusBadge` | `@dfragon/ui`의 `StatusBadge`: SEED `Badge` large에 `bg.inset`과 같은 값의 gray-100 알약, `currentColor` 8px 점과 상태색 글자 | SEED `weak` 배경은 tone마다 색이 달라 디자인의 `bg.inset` 알약과 다릅니다. 캡처 모달과 개발자 창 검출 상태가 같은 컴포넌트를 쓰며, tone `neutral`, `informative`, `critical`, `warning`, `positive`의 글자색은 `fg.subtle`, `fg.info`, `fg.danger`, `fg.warning`, `fg.success`와 같은 값의 SEED `fg` 변수입니다. 글자는 SEED large의 12px medium이고 좌우 여백은 8입니다 |
+| `StatusBadge` | `@dfragon/ui`의 `StatusBadge`: SEED `Badge.Root`, `Badge.Label` large에 `bg.inset`과 같은 값의 gray-100 알약, `currentColor` 8px 점과 상태색 글자 | SEED `weak` 배경은 tone마다 색이 달라 디자인의 `bg.inset` 알약과 다릅니다. 캡처 모달과 개발자 창 검출 상태가 같은 컴포넌트를 쓰며, tone `neutral`, `informative`, `critical`, `warning`, `positive`의 글자색은 `fg.subtle`, `fg.info`, `fg.danger`, `fg.warning`, `fg.success`와 같은 값의 SEED `fg` 변수입니다. 글자는 SEED large의 12px medium이고 좌우 여백은 8입니다 |
 | `Switch`(개발자 모드) | SEED `Switch` size 24 | 디자인 36 × 20에 가장 가까운 단계입니다. 꺼짐 트랙은 SEED 기본색입니다 |
 | `SelectTrigger`, `Menu` | SEED `Select` medium과 화면 범위 StyleX | 캡처 주기는 폭 160, `bg.control` 트리거로 맞춥니다. 서버 선택의 24 트리거와 32 항목은 SEED 크기 단계에 없어 StyleX로 맞춥니다. 열림 상태의 `chevron-up`은 SEED Select가 `data-open`에서 `chevron-down`을 뒤집어 표시합니다 |
 | `Tab`(개발자 작업 공간) | 기존 `role="tablist"`의 `ActionButton` medium에 선택 탭 아래 2px `bg.brand.solid` | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유합니다. 값마다 내용을 나누는 SEED `Tabs` 전환은 마운트 방식과 함께 따로 정합니다 |
+
+SEED 3의 `Select.Trigger`, `Select.Item`, `Menu.Item`은 자식을 `.seed-content-scale` 요소로 감싼다. 서버 선택과 캡처 메뉴는 공개 slot에 스타일을 주고 직계 자식 selector나 DOM 접근에 의존하지 않으므로 구조 수정은 필요 없다. 누르는 동안 배경 대신 내용만 줄어드는 SEED 3의 피드백을 따른다. CSS 3.0.2의 Dialog, 메뉴 배치는 safe area inset도 피하며, inset이 없는 Desktop 창의 기준 배치는 유지한다.
 
 ## 검증
 

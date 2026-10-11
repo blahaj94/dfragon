@@ -6,16 +6,16 @@
 
 ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. TextField만 예외로 Snippet의 props를 그대로 받는 얇은 wrapper에서 포커스 선 변수 `--seed-color-stroke-neutral-contrast`만 `--seed-color-stroke-focus-ring`으로 지정한다. 내부 `src/seed` 경로는 package export가 아니며 provenance hash를 유지하려고 직접 고치지 않는다. IconButton, StatusBadge, Checkmark는 아래 [디자인 컴포넌트](#디자인-컴포넌트)에서 설명한다.
 
-SEED React `2.6.0`, CSS `2.9.1`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.29.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.1`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
+SEED React `3.0.0`, CSS `3.0.2`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.29.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.1`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
-Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다.
+Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다. 공용 Dialog는 2.x의 `ContentDialog`, 3.x의 `Dialog`를 사용하는 일반 대화상자다. `role="dialog"`, Escape 닫기, trigger 포커스 복귀를 유지하며 `AlertDialog`로 바꾸지 않는다.
 
 ## 디자인 컴포넌트
 
 SEED에 같은 역할이 없는 디자인 컴포넌트는 SEED Component를 조합한 DFragon 구성이다. 외형은 SEED CSS 변수만 쓰는 StyleX로 소유하고 공개 타입은 style, className을 받지 않는다. 기준 디자인은 dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/main/design/components.md)다.
 
 - `IconButton`: 디자인 IconButton md. SEED `medium` `iconOnly` ActionButton에 24px `Icon`과 여백 `--seed-dimension-x2`를 둔 40 정사각형이다. `variant`는 `neutralWeak`, `ghost` 중 하나이고 `aria-label`과 `icon`이 필수다. 나머지 ActionButton prop과 React 19의 `ref` prop을 전달하므로 `DialogTrigger asChild` 안에서 쓸 수 있다.
-- `StatusBadge`: SEED `Badge` large weak를 `--seed-color-palette-gray-100` 알약(`--seed-radius-full`)으로 두고 `currentColor` 8px 점과 글자를 tone 색으로 칠한다. `StatusBadgeTone`의 `neutral`, `informative`, `critical`, `warning`, `positive`는 각각 `--seed-color-fg-neutral-subtle`, `--seed-color-fg-informative`, `--seed-color-fg-critical`, `--seed-color-fg-warning`, `--seed-color-fg-positive`를 쓴다. 상태 변화를 알려야 하는 곳만 `role="status"`를 전달한다.
+- `StatusBadge`: SEED `Badge.Root`, `Badge.Label`의 large weak를 `--seed-color-palette-gray-100` 알약(`--seed-radius-full`)으로 두고 `currentColor` 8px 점과 글자를 tone 색으로 칠한다. `StatusBadgeTone`의 `neutral`, `informative`, `critical`, `warning`, `positive`는 각각 `--seed-color-fg-neutral-subtle`, `--seed-color-fg-informative`, `--seed-color-fg-critical`, `--seed-color-fg-warning`, `--seed-color-fg-positive`를 쓴다. 상태 변화를 알려야 하는 곳만 `role="status"`를 전달한다.
 - `Checkmark`: 공식 checkbox Snippet의 `Checkbox.Control`과 `Checkbox.Indicator` 단위다. 반드시 SEED `Checkbox.Root`나 `Checkbox.Root.Primitive` 안에서 쓰고, label 배치와 `Checkbox.HiddenInput`의 접근 가능한 이름은 화면이 Root와 함께 둔다. 체크 아이콘은 공식 Snippet과 같은 `IconCheckmarkFatFill`을 SEED 기본 12px로 그린다. 꺼짐 상태는 `--seed-color-palette-gray-100` 배경과 `--seed-color-palette-gray-500` 테두리이며 켜짐, hover, 눌림, 비활성은 SEED 색을 그대로 쓴다.
 
 ```tsx
@@ -101,7 +101,7 @@ Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 Ty
 
 ## Source와 고지
 
-`seed-provenance.json`이 upstream repository, 고정 SHA, source path, 원본/local hash, 전이 Snippet, local diff를 기록한다. 기준 SHA는 `08b3600989597f4e9017731484a409685c08aa68`이다. ActionButton → LoadingIndicator → ProgressCircle과 Dialog → ActionButton, TextField/Dialog의 공식 icon 의존을 포함한다. `LayoutBlock`은 실제 registry id `layout-01`, source `docs/registry/react/block/layout-01.tsx`의 Header+Content+Footer 구조와 공식 반응형 조건을 유지하고 header/footer/children content slot만 연결한 DFragon composition이다.
+`seed-provenance.json`이 upstream repository, 고정 SHA, source path, 원본/local hash, 전이 Snippet, local diff를 기록한다. 기준 SHA는 `d7687b85a30f62c4f2d3600c3c6f39930932b577`이다. ActionButton → LoadingIndicator → ProgressCircle과 Dialog → ActionButton, TextField/Dialog의 공식 icon 의존을 포함한다. `LayoutBlock`은 실제 registry id `layout-01`, source `docs/registry/react/block/layout-01.tsx`의 Header+Content+Footer 구조와 공식 반응형 조건을 유지하고 header/footer/children content slot만 연결한 DFragon composition이다.
 
 `node packages/ui/scripts/prepare-seed-source.mjs`는 고정 source hash를 확인한 뒤 Snippet을 생성한다. Source 직접 수정 대신 이 생성 script에서 필요한 변환을 관리한다. DialogTrigger의 동일한 public type을 명시해 declaration의 pnpm private 경로 참조를 방지하고 LayoutBlock content slot을 연결하는 변환을 적용한다. Interaction과 시각 값은 변경하지 않는다. TypeScript는 build-time `node` type을 명시하며 library declaration에는 Node runtime을 노출하지 않는다.
 
