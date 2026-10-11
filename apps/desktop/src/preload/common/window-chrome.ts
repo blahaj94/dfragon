@@ -1,6 +1,6 @@
 export type WindowChromeTheme = 'light' | 'dark'
 
-// SEED @seed-design/css 2.9.1 base.css의 gray-200(dark), gray-00(light)은
+// SEED @seed-design/css 3.0.2 base.css의 gray-200(dark), gray-00(light)은
 // Desktop bg.surface, gray-1000은 fg.default에 대응한다.
 export const WINDOW_CHROME_COLORS = {
   dark: { color: '#1d2025', symbolColor: '#f3f4f5' },

@@ -14,15 +14,17 @@ export type StatusBadgeProps = {
 // DFragon 디자인 컴포넌트: SEED large Badge를 gray-100 알약으로 두고 8px 점과 글자를 상태색으로 칠한다.
 export function StatusBadge({ tone, role, children }: StatusBadgeProps) {
   return (
-    <Badge
+    <Badge.Root
       size="large"
       variant="weak"
       tone={tone}
       role={role}
       {...stylex.props(styles.badge, styles[tone])}
     >
-      <span aria-hidden="true" {...stylex.props(styles.dot)} />
-      {children}
-    </Badge>
+      <Badge.Label>
+        <span aria-hidden="true" {...stylex.props(styles.dot)} />
+        {children}
+      </Badge.Label>
+    </Badge.Root>
   )
 }

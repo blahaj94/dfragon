@@ -129,7 +129,7 @@ export function DeveloperLabelingSection({
           const selected = filter === id
 
           return (
-            <Chip.Root
+            <Chip.Button
               key={id}
               type="button"
               size="small"
@@ -140,7 +140,7 @@ export function DeveloperLabelingSection({
               <Chip.Label {...stylex.props(selected && styles.filterSelectedLabel)}>
                 {label}
               </Chip.Label>
-            </Chip.Root>
+            </Chip.Button>
           )
         })}
       </div>

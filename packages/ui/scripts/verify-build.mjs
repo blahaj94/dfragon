@@ -171,8 +171,8 @@ if (isLibrary) {
   const expectedVersions = {
     react: '19.3.0',
     'react-dom': '19.3.0',
-    '@seed-design/react': '2.6.0',
-    '@seed-design/css': '2.9.1'
+    '@seed-design/react': '3.0.0',
+    '@seed-design/css': '3.0.2'
   }
   for (const [name, version] of Object.entries(expectedVersions)) {
     const copies = graph.filter((dependency) => {

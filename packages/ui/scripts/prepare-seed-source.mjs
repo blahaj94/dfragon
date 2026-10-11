@@ -4,9 +4,9 @@ import { readFile, writeFile } from 'node:fs/promises'
 const root = new URL('../', import.meta.url)
 const manifestUrl = new URL('seed-provenance.json', root)
 const provenance = JSON.parse(await readFile(manifestUrl, 'utf8'))
-const triggerExport = 'export const DialogTrigger = ContentDialog.Trigger;'
+const triggerExport = 'export const DialogTrigger = Dialog.Trigger;'
 const portableTriggerExport =
-  'export const DialogTrigger: React.ForwardRefExoticComponent<DialogTriggerProps & React.RefAttributes<HTMLButtonElement>> = ContentDialog.Trigger;'
+  'export const DialogTrigger: React.ForwardRefExoticComponent<DialogTriggerProps & React.RefAttributes<HTMLButtonElement>> = Dialog.Trigger;'
 
 for (const file of provenance.files) {
   const url = `https://raw.githubusercontent.com/daangn/seed-design/${provenance.commit}/${file.upstream}`

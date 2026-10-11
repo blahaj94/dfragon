@@ -198,11 +198,11 @@ catalogs:
       specifier: 12.0.2
       version: 12.0.2
     '@seed-design/css':
-      specifier: 2.9.1
-      version: 2.9.1
+      specifier: 3.0.2
+      version: 3.0.2
     '@seed-design/react':
-      specifier: 2.6.0
-      version: 2.6.0
+      specifier: 3.0.0
+      version: 3.0.0
     '@seed-design/vite-plugin':
       specifier: 2.1.1
       version: 2.1.1
@@ -408,7 +408,7 @@ importers:
         version: 12.0.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.1.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@1.1.2(pg@8.23.1)(supports-color@7.2.0))
       '@seed-design/css':
         specifier: 'catalog:'
-        version: 2.9.1
+        version: 3.0.2
       '@simplewebauthn/browser':
         specifier: 'catalog:'
         version: 14.0.0
@@ -585,13 +585,13 @@ importers:
         version: 2.0.0(@types/node@24.19.2)
       '@seed-design/css':
         specifier: 'catalog:'
-        version: 2.9.1
+        version: 3.0.2
       '@seed-design/react':
         specifier: 'catalog:'
-        version: 2.6.0(@seed-design/css@2.9.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.0.0(@seed-design/css@3.0.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/vite-plugin':
         specifier: 'catalog:'
-        version: 2.1.1(@seed-design/css@2.9.1)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))
+        version: 2.1.1(@seed-design/css@3.0.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))
       '@stylexjs/unplugin':
         specifier: 'catalog:'
         version: 0.19.1(supports-color@7.2.0)(unplugin@2.3.11)
@@ -654,7 +654,7 @@ importers:
         version: 12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@7.2.0))(@nestjs/core@12.1.2)(supports-color@7.2.0)
       '@seed-design/css':
         specifier: 'catalog:'
-        version: 2.9.1
+        version: 3.0.2
       '@stylexjs/stylex':
         specifier: 'catalog:'
         version: 0.19.1
@@ -739,10 +739,10 @@ importers:
         version: link:../../packages/ui
       '@seed-design/css':
         specifier: 'catalog:'
-        version: 2.9.1
+        version: 3.0.2
       '@seed-design/react':
         specifier: 'catalog:'
-        version: 2.6.0(@seed-design/css@2.9.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.0.0(@seed-design/css@3.0.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stylexjs/stylex':
         specifier: 'catalog:'
         version: 0.19.1
@@ -758,7 +758,7 @@ importers:
         version: link:../../packages/licenses
       '@seed-design/vite-plugin':
         specifier: 'catalog:'
-        version: 2.1.1(@seed-design/css@2.9.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
+        version: 2.1.1(@seed-design/css@3.0.2)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
       '@stylexjs/unplugin':
         specifier: 'catalog:'
         version: 0.19.1(supports-color@7.2.0)(unplugin@2.3.11)
@@ -826,13 +826,13 @@ importers:
         version: link:../licenses
       '@seed-design/css':
         specifier: 'catalog:'
-        version: 2.9.1
+        version: 3.0.2
       '@seed-design/react':
         specifier: 'catalog:'
-        version: 2.6.0(@seed-design/css@2.9.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.0.0(@seed-design/css@3.0.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/vite-plugin':
         specifier: 'catalog:'
-        version: 2.1.1(@seed-design/css@2.9.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
+        version: 2.1.1(@seed-design/css@3.0.2)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
       '@stylexjs/stylex':
         specifier: 'catalog:'
         version: 0.19.1
@@ -2222,8 +2222,8 @@ packages:
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
 
-  '@seed-design/css@2.9.1':
-    resolution: {integrity: sha512-Q/9ShPB5cq/HBud3dt0h/p6IpmVlAKf0ppmf9b4/fa0T6dzpUZyt9+rAn9T3cEZFauToaJwHxoPUw0R8kq383Q==}
+  '@seed-design/css@3.0.2':
+    resolution: {integrity: sha512-JSfVedcLipsMq2X0Wbp17dUwjxKxaCjY0VFKs8GevZlyFxFRUzOfTaE26NohDWnJGYC+xNaMou4laCC/TWAL4g==}
 
   '@seed-design/dom-utils@2.1.0':
     resolution: {integrity: sha512-nbghUGIT02bKMD4JsTSjU8RamUlOVSZkWy/iK7I56B/zQu8ZN4aLtQCxmg51e/oog2p1aTikNww1WUJMTYstJA==}
@@ -2243,13 +2243,6 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react-avatar@2.0.1':
-    resolution: {integrity: sha512-raQDroT104eEEKTwRx2jcukHEB1Zw96doV0wBpfndc3UaZbGRf7JJmWyiofQAs7MDH9/ooFYKpQ5+5Cg7P96CA==}
-    deprecated: No longer maintained. Use Image from @seed-design/react-image instead.
-    peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-
   '@seed-design/react-checkbox@2.0.1':
     resolution: {integrity: sha512-2QvXb4582GkqHUwFVGry3v4711J2FBotjqFhVRJdXVBXYDT9eAf5gQU9PI+gIAP9Lt23nnUA7NhF+JJlF5+kgA==}
     peerDependencies:
@@ -2262,8 +2255,8 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react-date-picker@1.2.0':
-    resolution: {integrity: sha512-OHgw7if83SybmCFOrpvd3M1j6vyftMrg6SThOoQ22qxSAXpwYOPT3vt5RM7XlYEKew4355Z/PDCzbSYh4ljbGw==}
+  '@seed-design/react-date-picker@1.3.0':
+    resolution: {integrity: sha512-VOsZPddd7AhcwOdrE/yqumz5G8qtMzN8R/KELCMEsB+nCNcQHz01BLE0aFMPPnMzgY6oXL/nlvC6aGIMSGUF4A==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -2280,8 +2273,8 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react-drawer@2.0.7':
-    resolution: {integrity: sha512-Z8eCMEEjRTOgwA7sW2MFXK2j/GdbAS1/8mDOSf0ogek6k9LMMYeXgZ5Zh2FZEgXfWxFe6Peyhh9BQj9UZYBuZQ==}
+  '@seed-design/react-drawer@3.0.0':
+    resolution: {integrity: sha512-fg8skAQmIJAEckD5fS6pfk/z89jCg/A2kSkKwvAAn/mU3GnwDFmXxrEbYCTQvaORHFI2gIJaUYNOWNZaMQoh9g==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -2316,6 +2309,12 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
+  '@seed-design/react-floating@1.1.1':
+    resolution: {integrity: sha512-3ccpE4Ryw91JiO6n5aKJ8Od3sGNKeH4u8h2bVg89JfLz2UNewzUTRcglqU27t6jrIBWO/J7ksBEp+c95viuZGw==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
   '@seed-design/react-image@1.1.0':
     resolution: {integrity: sha512-ZJBr0rW/xIzCcgkSpdGMv9uNEgnaYIfsOrp4YWOtj/ZSK+FSE6o5JPiC5FO0kbpPMVske91AOK92z9a6tAeSWg==}
     peerDependencies:
@@ -2340,8 +2339,14 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react-popover@2.0.1':
-    resolution: {integrity: sha512-TD2WYUEUwuDjiFVZUHHMz8DbeqfmJyQiwAoAoqaJsLyMuTW/gEQaHyU06QHwMEJd0RsSKcLAWC3Pf/4qC6aaWA==}
+  '@seed-design/react-pagination@1.0.0':
+    resolution: {integrity: sha512-uhgO10kwSzOmae/74nSWurHNCPEHOhkkzopOFnEf0hRW/mbIb5SGzGCO6rCLEnhwt5r8KESmO9LXgbcnZmAAkQ==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
+  '@seed-design/react-popover@3.0.0':
+    resolution: {integrity: sha512-hkw+VKh2MPQmyzGcdr7t6RzMvB5SHC27ZiLar1tetjDw1hBdUPwNAXDi6OEImISESQ1FmCcsdn3dde+RLbjQGQ==}
     peerDependencies:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
@@ -2370,6 +2375,12 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
+  '@seed-design/react-primitive@2.0.2':
+    resolution: {integrity: sha512-EPUogt8zik+oyP2lhmMKohydOSZH1xZbwrQoWQi0rN1pGV7agMFhOZP/XouFDBqey/q4VyizTYqHh4hioNROVg==}
+    peerDependencies:
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
+
   '@seed-design/react-progress@2.0.1':
     resolution: {integrity: sha512-JpAflQSQ9FX9w2lIhn7FaU/q4Px4Ktc3Ea8iLd3xSMFrQuJLrH/8ha8SYXDBgZyN3MLj6A9bH9cHSSrXVJTTEw==}
     peerDependencies:
@@ -2394,10 +2405,10 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react-scale-feedback@1.0.0':
-    resolution: {integrity: sha512-zkZRdH9jPifxJ98LQUz4Yr7LBdDI6lalnuotFiFEn9Q9gKVq84jdA0zuOzUH0HIWtSAKNZR1TLwpNAFE4E48PQ==}
+  '@seed-design/react-scale-feedback@2.0.0':
+    resolution: {integrity: sha512-FVbjveGZh8TrfEnj0mmkEuQs+tU7/yhM6dNcvPAIPI4CWPf2SQQ6phznTnCxAjbmydhyC265X57kjNwrZ8uvIQ==}
     peerDependencies:
-      '@seed-design/css': ^2.6.0
+      '@seed-design/css': ^3.0.0
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
@@ -2485,10 +2496,10 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
-  '@seed-design/react@2.6.0':
-    resolution: {integrity: sha512-gGbsiVBmvzNclZa4Q/PfM3nGb3oZjS4JZ4tWUWEZPWIHRO2lqyjLIgd8pPWvV2fz4X/ZcqfvabQv5cNAKPG9RA==}
+  '@seed-design/react@3.0.0':
+    resolution: {integrity: sha512-19vHA8d3mv8NUP+UUKEo1nLmctH8aM00wuef7A5twPAFkvcNT3TZDY8oxi8kAKeD+pn+XRI22uu4TrKZWbtMpQ==}
     peerDependencies:
-      '@seed-design/css': ^2.9.0
+      '@seed-design/css': ^3.0.0
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
 
@@ -5956,7 +5967,7 @@ snapshots:
 
   '@scarf/scarf@1.4.0': {}
 
-  '@seed-design/css@2.9.1': {}
+  '@seed-design/css@3.0.2': {}
 
   '@seed-design/dom-utils@2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -5980,18 +5991,6 @@ snapshots:
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.3.0)(react@19.3.0)
-      '@seed-design/dom-utils': 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-primitive': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-    transitivePeerDependencies:
-      - '@types/react'
-
-  '@seed-design/react-avatar@2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
-    dependencies:
-      '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-use-callback-ref': 1.1.4(@types/react@19.3.0)(react@19.3.0)
-      '@radix-ui/react-use-layout-effect': 1.1.4(@types/react@19.3.0)(react@19.3.0)
       '@seed-design/dom-utils': 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-primitive': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react: 19.3.0
@@ -6023,7 +6022,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seed-design/react-date-picker@1.2.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@seed-design/react-date-picker@1.3.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@internationalized/date': 3.12.4
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.3.0)(react@19.3.0)
@@ -6060,7 +6059,7 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seed-design/react-drawer@2.0.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@seed-design/react-drawer@3.0.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-focus-scope': 1.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -6069,7 +6068,7 @@ snapshots:
       '@seed-design/react-dismissible-layer': 1.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-presence': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-prevent-scroll': 1.0.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-primitive': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-primitive': 2.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-use-controllable-state': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       aria-hidden: 1.2.6
       react: 19.3.0
@@ -6132,6 +6131,15 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
+  '@seed-design/react-floating@1.1.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@floating-ui/react': 0.27.20(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-use-controllable-state': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - '@types/react'
+
   '@seed-design/react-image@1.1.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
@@ -6183,17 +6191,30 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  '@seed-design/react-popover@2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@seed-design/react-pagination@1.0.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@floating-ui/react': 0.27.20(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
       '@seed-design/dom-utils': 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-floating': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-primitive': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-use-controllable-state': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
       - '@types/react'
+
+  '@seed-design/react-popover@3.0.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@floating-ui/react': 0.27.20(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
+      '@radix-ui/react-focus-scope': 1.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/dom-utils': 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-dismissible-layer': 1.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-floating': 1.1.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-presence': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-primitive': 2.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
 
   '@seed-design/react-portal@2.0.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
@@ -6215,6 +6236,14 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
 
   '@seed-design/react-primitive@2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - '@types/react'
+
+  '@seed-design/react-primitive@2.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
       react: 19.3.0
@@ -6265,11 +6294,11 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seed-design/react-scale-feedback@1.0.0(@seed-design/css@2.9.1)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@seed-design/react-scale-feedback@2.0.0(@seed-design/css@3.0.2)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
-      '@seed-design/css': 2.9.1
+      '@seed-design/css': 3.0.2
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
     transitivePeerDependencies:
@@ -6435,22 +6464,21 @@ snapshots:
     transitivePeerDependencies:
       - '@types/react'
 
-  '@seed-design/react@2.6.0(@seed-design/css@2.9.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@seed-design/react@3.0.0(@seed-design/css@3.0.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@radix-ui/react-compose-refs': 1.1.5(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-slot': 1.3.3(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.3.0)(react@19.3.0)
       '@radix-ui/react-use-layout-effect': 1.1.4(@types/react@19.3.0)(react@19.3.0)
-      '@seed-design/css': 2.9.1
+      '@seed-design/css': 3.0.2
       '@seed-design/dom-utils': 2.1.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-accordion': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-attachment-display': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-avatar': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-checkbox': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-collapsible': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-date-picker': 1.2.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-date-picker': 1.3.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-dialog': 2.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-drawer': 2.0.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-drawer': 3.0.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-field': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-field-button': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-fieldset': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -6459,14 +6487,15 @@ snapshots:
       '@seed-design/react-menu': 2.0.4(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-middle-truncate': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-navigation-menu': 2.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-popover': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-pagination': 1.0.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-popover': 3.0.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-portal': 2.0.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-primitive': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-primitive': 2.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-progress': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-pull-to-refresh': 2.1.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-quantity-picker': 1.0.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-radio-group': 2.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/react-scale-feedback': 1.0.0(@seed-design/css@2.9.1)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@seed-design/react-scale-feedback': 2.0.0(@seed-design/css@3.0.2)(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-segmented-control': 2.0.2(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-select': 1.0.3(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@seed-design/react-side-navigation': 1.0.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -6488,14 +6517,14 @@ snapshots:
       - '@types/react-dom'
       - embla-carousel
 
-  '@seed-design/vite-plugin@2.1.1(@seed-design/css@2.9.1)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))':
+  '@seed-design/vite-plugin@2.1.1(@seed-design/css@3.0.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))':
     dependencies:
-      '@seed-design/css': 2.9.1
+      '@seed-design/css': 3.0.2
       vite: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)
 
-  '@seed-design/vite-plugin@2.1.1(@seed-design/css@2.9.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))':
+  '@seed-design/vite-plugin@2.1.1(@seed-design/css@3.0.2)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))':
     dependencies:
-      '@seed-design/css': 2.9.1
+      '@seed-design/css': 3.0.2
       vite: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)
 
   '@simplewebauthn/browser@14.0.0': {}
