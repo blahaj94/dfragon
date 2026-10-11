@@ -44,7 +44,6 @@
     "@types/pngjs": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@types/tar-stream": "catalog:",
     "esbuild": "catalog:",
     "jsdom": "catalog:",
     "typescript": "catalog:",
