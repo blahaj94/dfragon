@@ -19,9 +19,10 @@ function sanitized(error: unknown) {
   const hasNoCause = !Object.hasOwn(error, 'cause')
   assert.ok(hasNoCause)
   for (const secret of [active.privateKeyPem, previous.privateKeyPem, 'sensitive-invalid-key']) {
-    const isInspectedErrorSanitized = !inspect(error).includes(secret)
+    // assert.ok의 단언이 루프 안에서 error의 narrowing과 순환하므로 타입을 명시한다(@types/node 26).
+    const isInspectedErrorSanitized: boolean = !inspect(error).includes(secret)
     assert.ok(isInspectedErrorSanitized)
-    const isSerializedErrorSanitized = !JSON.stringify(error).includes(secret)
+    const isSerializedErrorSanitized: boolean = !JSON.stringify(error).includes(secret)
     assert.ok(isSerializedErrorSanitized)
   }
 

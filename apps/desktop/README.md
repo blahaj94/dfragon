@@ -65,7 +65,7 @@ workflow 실행 시점의 최신 main 대신 실제 checkout한 commit을 기록
 
 현재 소스를 빌드하면 카드의 서버, 닉네임 수정과 기본 정보 상세 창이 포함됩니다. 초기 윤곽 기준으로 자동 식별하며 API의 candidates와 appearance endpoint 배포가 필요합니다. 장비 카드 연결은 후속입니다.
 
-Node.js 24와 저장소의 pnpm을 준비한 Windows x64에서 저장소 루트 기준으로 실행합니다.
+Node.js 26과 저장소의 pnpm을 준비한 Windows x64에서 저장소 루트 기준으로 실행합니다.
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -152,7 +152,7 @@ pnpm --filter @dfragon/desktop dev
 
 게임이 도는 Windows PC에 저장소를 받아 소스로 실행하면 빌드, 업로드, 다운로드 왕복 없이 수정을 바로 확인할 수 있습니다. 개발 실행도 캡처는 같은 Windows GDI 모듈, OCR과 검색은 같은 코드로 동작합니다. 패키징에서만 생기는 동작(asar, fuses, 관리자 권한 manifest, 포터블 압축 해제)은 아래 포터블 빌드나 PR의 Windows Test Build로 확인합니다.
 
-1. Node.js 24와 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [파인튜닝 OCR 모델](#파인튜닝-ocr-모델로-빌드하기) 절의 submodule 명령을 한 번 실행합니다.
+1. Node.js 26과 저장소의 pnpm, Git, GitHub CLI를 준비하고 저장소를 받은 뒤 [파인튜닝 OCR 모델](#파인튜닝-ocr-모델로-빌드하기) 절의 submodule 명령을 한 번 실행합니다.
 2. `pnpm install --frozen-lockfile`로 의존성을 설치합니다. 패키지 registry 토큰은 필요하지 않습니다.
 3. 검색만 실제 API로 확인하려면 `apps/desktop/.env`에 `DFRAGON_API_ORIGIN=<배포 API origin>` 한 줄만 둡니다. 로그인까지 보려면 [카드 화면 개발](#카드-화면-개발) 절의 `.env` 설정을 따릅니다. 개발 실행은 패키지가 아니므로 [테스트 버전 자료 수집](#테스트-버전-자료-수집)이 켜집니다.
 4. `pnpm --filter @dfragon/desktop dev`를 실행하고 게임 창을 띄웁니다. 던파가 관리자 권한으로 실행 중이면 이 명령도 관리자 권한 PowerShell에서 실행합니다. 권한이 낮으면 게임 창이 활성일 때 Alt+R, Alt+Print Screen 단축키를 받지 못하고, 개발자 모드의 Print Screen 수집은 관리자 권한 필요로 거절됩니다. 패키지는 실행할 때 관리자 권한을 요청하도록 빌드되므로 이 차이가 없습니다. 소스를 고치면 renderer는 즉시, main은 다시 시작할 때 반영됩니다.
