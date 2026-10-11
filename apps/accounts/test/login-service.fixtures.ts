@@ -234,18 +234,11 @@ export function managementFixture(count = 2) {
   return { invoke, service, cookie, row, keys, now, events, configuration, state }
 }
 
-export function registrationResponse(
-  fixture: ReturnType<typeof managementFixture>,
-  {
-    challenge = fixture.row.webauthnChallenge,
-    origin = fixture.configuration.apiOrigin,
-    rpId = fixture.configuration.rpId,
-    flags = 0x45
-  } = {}
-): RegistrationResponseJSON {
+function es256CredentialPublicKey() {
   const { publicKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
   const jwk = publicKey.export({ format: 'jwk' })
-  const coseKey = isoCBOR.encode(
+
+  return isoCBOR.encode(
     new Map<number, number | Uint8Array>([
       [1, 2],
       [3, -7],
@@ -254,6 +247,18 @@ export function registrationResponse(
       [-3, Buffer.from(jwk.y!, 'base64url')]
     ])
   )
+}
+
+export function registrationResponse(
+  fixture: ReturnType<typeof managementFixture>,
+  {
+    challenge = fixture.row.webauthnChallenge,
+    origin = fixture.configuration.apiOrigin,
+    rpId = fixture.configuration.rpId,
+    flags = 0x45,
+    credentialPublicKey = es256CredentialPublicKey()
+  } = {}
+): RegistrationResponseJSON {
   const credentialId = randomBytes(32)
   const id = credentialId.toString('base64url')
   const credentialLength = Buffer.alloc(2)
@@ -267,7 +272,7 @@ export function registrationResponse(
     Buffer.alloc(16),
     credentialLength,
     credentialId,
-    coseKey
+    credentialPublicKey
   ])
   const encoded = isoCBOR.encode(
     new Map<string, string | Uint8Array | Map<string, never>>([

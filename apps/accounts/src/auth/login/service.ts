@@ -5,6 +5,7 @@ import {
   verifyRegistrationResponse,
   verifyAuthenticationResponse
 } from '@simplewebauthn/server'
+import { COSEALG } from '@simplewebauthn/server/helpers'
 import type { RegistrationResponseJSON, AuthenticationResponseJSON } from '@simplewebauthn/server'
 import type { EntityManager } from 'typeorm'
 import { PRODUCT_NAME } from '@dfragon/lib'
@@ -37,6 +38,8 @@ import {
   requestExpired
 } from './state.js'
 import { exchangeLogin } from './exchange.js'
+
+const SUPPORTED_REGISTRATION_ALGORITHM_IDS = [COSEALG.EdDSA, COSEALG.ES256, COSEALG.RS256]
 
 const invalid = () => new LoginFailure(LOGIN_ERRORS.REQUEST_INVALID)
 const badPasskey = () => new LoginFailure(LOGIN_ERRORS.PASSKEY)
@@ -170,6 +173,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       userID: new Uint8Array(Buffer.from(userId)),
       userName: `${PRODUCT_NAME} ${userId.slice(0, 8)}`,
       userDisplayName: `${PRODUCT_NAME} 계정`,
+      supportedAlgorithmIDs: SUPPORTED_REGISTRATION_ALGORITHM_IDS,
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'required', userVerification: 'required' },
       excludeCredentials: keys.map((key) => ({ id: key.id, transports: key.transports }))
@@ -271,6 +275,7 @@ export function createLoginService(dependencies: LoginDependencies): LoginHttpSe
       try {
         result = await verifyRegistrationResponse({
           response: response as RegistrationResponseJSON,
+          supportedAlgorithmIDs: SUPPORTED_REGISTRATION_ALGORITHM_IDS,
           expectedChallenge,
           expectedOrigin: configuration.apiOrigin,
           expectedRPID: configuration.rpId,
