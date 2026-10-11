@@ -19,7 +19,7 @@ last-reviewed: 2026-10-10
 
 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정확한 버전으로 정한다. 각 `package.json`은 기본 `catalog:`를 참조하고, 내부 package는 `workspace:*`를 유지한다. Desktop의 Vite 7.3.7과 `@vitejs/plugin-react` 5.2.0은 `catalog:electron`을 참조한다. `electron-vite` 5.0.0의 Vite peer 범위가 `^5.0.0 || ^6.0.0 || ^7.0.0`이므로 Vite 7 계열을 유지한다. Root TypeScript 6.0.2는 문장 간격 도구의 parser 전용 `catalog:parser`를 참조한다. `catalogMode: strict`는 `pnpm add`가 catalog 밖 버전을 추가하지 못하게 하고, 각 `package.json`이 catalog를 참조하는지는 `pnpm test:tooling`의 `scripts/test/workspace-catalog.test.mjs`가 검사한다.
 
-Dependabot은 catalog 값의 갱신을 제안한다. 기본 catalog와 named catalog에 서로 다른 major가 공존하는 `vite`, `@vitejs/plugin-react`, `@types/node`, `typescript`는 major 갱신을 ignore하고, npm 별칭인 `typescript-compiler-api`는 모든 갱신을 ignore한다. `packages/licenses/overrides.json`의 `이름@버전` 키로 원문을 고정한 패키지는 버전 갱신 PR이 `Missing license text`로 빌드에서 실패할 수 있다. 이 실패는 원문 누락을 막는 의도된 게이트이므로 사람이 해당 키와 원문을 갱신해 같은 PR에 추가한다([원문 보완 안내](../../packages/licenses/README.md#원본과-수집-범위)).
+Dependabot은 catalog 값의 갱신을 제안한다. 기본 catalog와 named catalog에 함께 있는 `vite`, `@vitejs/plugin-react`, `@types/node`, `typescript`와 npm 별칭인 `typescript-compiler-api`는 모든 갱신을 ignore하고 사람이 직접 올린다. Dependabot은 named catalog의 버전을 현재 값으로 읽고도 새 값을 기본 catalog에 써서, minor, patch 갱신으로도 기본 catalog의 major를 내릴 수 있다(#691에서 TypeScript 7이 6.0.3으로 바뀜). `packages/licenses/overrides.json`의 `이름@버전` 키로 원문을 고정한 패키지는 버전 갱신 PR이 `Missing license text`로 빌드에서 실패할 수 있다. 이 실패는 원문 누락을 막는 의도된 게이트이므로 사람이 해당 키와 원문을 갱신해 같은 PR에 추가한다([원문 보완 안내](../../packages/licenses/README.md#원본과-수집-범위)).
 
 ## 공통 정적 검사와 정렬
 
