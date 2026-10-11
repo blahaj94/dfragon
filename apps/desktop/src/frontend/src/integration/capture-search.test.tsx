@@ -15,6 +15,7 @@ it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 medi
   const fixture = createRendererFixture()
   await fixture.emitAuth(authSnapshot({ signedIn: false }))
   await fixture.mount()
+  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await fixture.start()
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
     action: 'begin'
@@ -22,11 +23,8 @@ it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 medi
   const beginOrder = fixture.search.controlCharacterSearch.mock.invocationCallOrder.at(-1)!
   expect(beginOrder).toBeLessThan(fixture.readCaptureFrame.mock.invocationCallOrder[0])
   expect(fixture.readCaptureFrame).toHaveBeenCalledOnce()
-  expect(media.loop).toHaveBeenCalledOnce()
-  expect(media.loop.mock.calls[0][0].getIntervalMs()).toBe(3000)
-
-  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(2)
+  expect(media.worker).toHaveBeenCalledOnce()
+  expect(fixture.resources.worker.recognize).toHaveBeenCalledOnce()
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledExactlyOnceWith({
     captureId: CAPTURE_ID,
     slot: 0,
@@ -35,7 +33,7 @@ it('비로그인 Start는 검색 세션을 begin한 뒤 반환 captureId의 medi
   })
 })
 
-it('begin 완료 전 중복 Start는 새 begin, media를 만들지 않고 진행 상태로 차단한다', async () => {
+it('begin 완료 전 Start 버튼은 비활성화하고 진행 중인 회차를 유지한다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
   const begin = Promise.withResolvers<SearchCommandResult>()
@@ -46,6 +44,11 @@ it('begin 완료 전 중복 Start는 새 begin, media를 만들지 않고 진행
   })
   expect(fixture.button('캡처 시작').disabled).toBe(true)
   await fixture.click('캡처 시작')
+  expect(
+    fixture.search.controlCharacterSearch.mock.calls.filter(
+      ([command]) => command.action === 'begin'
+    )
+  ).toHaveLength(1)
   expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
   begin.resolve({ ok: true, snapshot: searchSnapshot() })
   await act(async () => undefined)
@@ -80,39 +83,63 @@ it.each(['캡처 중지', 'source', 'unmount'] as const)(
   }
 )
 
-it.each(['캡처 중지', 'source', 'unmount', 'media failed', 'OCR failed'] as const)(
-  '%s는 현재 capture ID를 end하고 stream, worker, loop를 정리한다',
+it.each(['캡처 중지', 'source', 'unmount'] as const)(
+  '%s는 진행 중인 OCR을 취소하고 현재 capture ID와 worker를 정리한다',
   async (transition) => {
     const fixture = createRendererFixture()
-    const loop = Promise.withResolvers<void>()
-    media.loop.mockReturnValue(loop.promise)
-    const isMediaFailure = transition === 'media failed'
-    if (isMediaFailure) {
-      fixture.readCaptureFrame.mockRejectedValueOnce(new Error('Synthetic media failure'))
-    }
+    const recognition =
+      Promise.withResolvers<Awaited<ReturnType<typeof fixture.resources.worker.recognize>>>()
+    media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
+    fixture.resources.worker.recognize.mockReturnValueOnce(recognition.promise)
+    media.worker.mockImplementationOnce(async (signal: AbortSignal) => {
+      signal.addEventListener('abort', () => recognition.reject(signal.reason), { once: true })
+
+      return fixture.resources.worker
+    })
     await fixture.mount()
     await fixture.start()
-    const isStop = transition === '캡처 중지'
-    const isSource = transition === 'source'
-    const isUnmount = transition === 'unmount'
-    const isOcrFailure = transition === 'OCR failed'
-    if (isStop) {
+    expect(fixture.resources.worker.recognize).toHaveBeenCalledOnce()
+    expect(fixture.resources.worker.terminate).not.toHaveBeenCalled()
+    const signal = media.worker.mock.calls[0][0] as AbortSignal
+    expect(signal.aborted).toBe(false)
+    if (transition === '캡처 중지') {
       await fixture.click('캡처 중지')
-    } else if (isSource) {
+    } else if (transition === 'source') {
       await fixture.select('next')
-    } else if (isUnmount) {
+    } else {
       await fixture.unmount()
-    } else if (isOcrFailure) {
-      await act(async () => loop.reject(new Error('Synthetic OCR failure')))
     }
+    expect(signal.aborted).toBe(true)
+    expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
     expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
       action: 'end',
       captureId: CAPTURE_ID
     })
-    if (!isMediaFailure) {
-      expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
-      expect(media.loop.mock.calls[0][0].signal.aborted).toBe(true)
+    expect(fixture.capture.notifyStableNicknameDetected).not.toHaveBeenCalled()
+    expect(fixture.container.textContent).not.toContain('ALICE')
+  }
+)
+
+it.each(['media failed', 'OCR failed'] as const)(
+  '%s는 현재 capture ID를 종료하고 생성한 worker를 정리한다',
+  async (failure) => {
+    const fixture = createRendererFixture()
+    if (failure === 'media failed') {
+      fixture.readCaptureFrame.mockRejectedValueOnce(new Error('Synthetic media failure'))
+    } else {
+      media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
+      fixture.resources.worker.recognize.mockRejectedValueOnce(new Error('Synthetic OCR failure'))
     }
+    await fixture.mount()
+    await fixture.start()
+    expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
+      action: 'end',
+      captureId: CAPTURE_ID
+    })
+    const createdWorkerCount = failure === 'OCR failed' ? 1 : 0
+    expect(media.worker).toHaveBeenCalledTimes(createdWorkerCount)
+    expect(fixture.resources.worker.terminate).toHaveBeenCalledTimes(createdWorkerCount)
+    expect(fixture.capture.notifyStableNicknameDetected).not.toHaveBeenCalled()
     expect(fixture.container.textContent).not.toContain('ALICE')
   }
 )
@@ -166,54 +193,39 @@ it('새 capture의 늦은 이전 media 실패가 새 ID를 end하지 않는다',
     captureId: nextId
   })
 
-  expect(next.worker.terminate).not.toHaveBeenCalled()
+  expect(next.worker.terminate).toHaveBeenCalledOnce()
 })
 
-it('stable 값이 null이 되는 전이마다 revision을 올려 clear 한 번만 보내고 기존 안정화 주기를 유지한다', async () => {
+it('새 회차는 이전 capture를 종료하고 첫 관측 revision부터 시작한다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
+  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await fixture.start()
-  const crop = document.createElement('canvas')
-  media.crops.mockReturnValue([crop, null, null, null])
-  await fixture.cycle(2)
-  await fixture.cycle(2)
-  expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledTimes(1)
-  fixture.resources.worker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
-  await fixture.cycle()
-  expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
-    action: 'clear',
-    captureId: CAPTURE_ID,
-    slot: 0,
-    observationRevision: 2
+  fixture.resources.worker.recognize.mockResolvedValue({
+    data: { text: 'BOB', confidence: 1, candidates: [{ nickname: 'BOB', rank: 1, modelScore: 1 }] }
   })
-  await fixture.cycle()
+  await fixture.click('캡처 시작')
+  expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
+    action: 'end',
+    captureId: CAPTURE_ID
+  })
+  expect(fixture.current().captureId).not.toBe(CAPTURE_ID)
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenLastCalledWith({
-    captureId: CAPTURE_ID,
+    captureId: fixture.current().captureId,
     slot: 0,
-    observationRevision: 3,
+    observationRevision: 1,
     nickname: 'BOB'
   })
-  media.crops.mockReturnValue([null, null, null, null])
-  await fixture.cycle(3)
-  const clears = fixture.search.controlCharacterSearch.mock.calls.filter(([command]) => {
-    const isClear = command.action === 'clear'
-
-    return isClear
-  })
-  expect(clears.map(([command]) => command)).toEqual([
-    { action: 'clear', captureId: CAPTURE_ID, slot: 0, observationRevision: 2 },
-    { action: 'clear', captureId: CAPTURE_ID, slot: 0, observationRevision: 4 }
-  ])
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledTimes(2)
+  expect(fixture.readCaptureFrame).toHaveBeenCalledTimes(2)
 })
 
 it('로그인과 로그아웃은 진행 중 캡처와 표시된 검색 결과를 유지한다', async () => {
   const fixture = createRendererFixture()
   await fixture.emitAuth(authSnapshot({ signedIn: false }))
   await fixture.mount()
-  await fixture.start()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(2)
+  await fixture.start()
   expect(fixture.container.textContent).toContain('ALICE')
 
   await fixture.emitAuth(authSnapshot({ revision: 2, signedIn: true }))
@@ -228,27 +240,25 @@ it('로그인과 로그아웃은 진행 중 캡처와 표시된 검색 결과를
     fixture.search.controlCharacterSearch.mock.calls.filter(([input]) => input.action === 'begin')
   ).toHaveLength(1)
 
-  expect(fixture.resources.worker.terminate).not.toHaveBeenCalled()
-  expect(media.loop.mock.calls[0][0].signal.aborted).toBe(false)
+  expect(fixture.resources.worker.terminate).toHaveBeenCalledOnce()
 })
 
-it('빈 OCR 문자열은 기존 stable 값을 clear 한 번으로 무효화하고 빈 frame마다 전송하지 않는다', async () => {
+it('빈 OCR 회차는 이전 capture를 종료하고 빈 이름을 통지하지 않는다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
-  await fixture.start()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(2)
-  fixture.resources.worker.recognize.mockResolvedValue({ data: { text: '' } })
-  await fixture.cycle(3)
-  const clears = fixture.search.controlCharacterSearch.mock.calls.filter(([command]) => {
-    const isClear = command.action === 'clear'
-
-    return isClear
+  await fixture.start()
+  fixture.resources.worker.recognize.mockResolvedValue({
+    data: { text: '', confidence: 1, candidates: [] }
   })
-  expect(clears).toEqual([
-    [{ action: 'clear', captureId: CAPTURE_ID, slot: 0, observationRevision: 2 }]
-  ])
+  await fixture.click('캡처 시작')
+  expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
+    action: 'end',
+    captureId: CAPTURE_ID
+  })
+  expect(fixture.container.textContent).not.toContain('ALICE')
   expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenCalledOnce()
+  expect(fixture.readCaptureFrame).toHaveBeenCalledTimes(2)
 })
 
 it.each(['ended', 'other capture'] as const)(

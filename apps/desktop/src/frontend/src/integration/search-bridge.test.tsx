@@ -32,9 +32,8 @@ function state(fixture: Fixture, slot: SearchSlot, revision?: number): SearchSna
 async function recognizedFixture(): Promise<Fixture> {
   const fixture = createRendererFixture()
   await fixture.mount()
-  await fixture.start()
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(2)
+  await fixture.start()
 
   return fixture
 }
@@ -84,8 +83,7 @@ it('다른 capture ID와 현재 관측보다 오래된 slot은 새 event revisio
   const response = state(fixture, searchSlot({ state: 'success', rows: [searchRow] }))
   await fixture.emit({ ...response, captureId: '00000000-0000-4000-8000-000000000099' })
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
-  fixture.resources.worker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
-  await fixture.cycle(2)
+  await fixture.click('닉네임 수정')
   await fixture.emit({ ...response, revision: 20 })
   expect(fixture.container.textContent).not.toContain(searchRow.characterId)
   expect(fixture.search.controlCharacterSearch).toHaveBeenCalledWith({
@@ -115,13 +113,18 @@ it.each(['clear', 'new observation'] as const)(
     expect(fixture.container.textContent).toContain(searchRow.characterId)
     const clear = Promise.withResolvers<SearchCommandResult>()
     fixture.search.controlCharacterSearch.mockReturnValueOnce(clear.promise)
-    fixture.resources.worker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
-    await fixture.cycle()
+    await fixture.click('닉네임 수정')
     expect(fixture.container.textContent).not.toContain(searchRow.characterId)
     const isNewObservation = transition === 'new observation'
     if (isNewObservation) {
       fixture.capture.notifyStableNicknameDetected.mockReturnValueOnce(new Promise(() => undefined))
-      await fixture.cycle()
+      await submitNickname(fixture, 'BOB')
+      expect(fixture.capture.notifyStableNicknameDetected).toHaveBeenLastCalledWith({
+        captureId: CAPTURE_ID,
+        slot: 0,
+        observationRevision: 4,
+        nickname: 'BOB'
+      })
     }
     await fixture.emit(state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 30))
     expect(fixture.container.textContent).not.toContain(searchRow.characterId)
@@ -133,6 +136,10 @@ it.each(['clear', 'new observation'] as const)(
 it('notify 응답 유실은 read로만 확인하며 같은 OCR 통지를 자동 재전송하지 않는다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
+  const pending =
+    Promise.withResolvers<Awaited<ReturnType<typeof fixture.resources.worker.recognize>>>()
+  fixture.resources.worker.recognize.mockReturnValueOnce(pending.promise)
+  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
   await fixture.start()
   const completed = state(
     fixture,
@@ -144,8 +151,15 @@ it('notify 응답 유실은 read로만 확인하며 같은 OCR 통지를 자동 
   )
   fixture.search.controlCharacterSearch.mockResolvedValueOnce({ ok: true, snapshot: completed })
   const beforeReads = fixture.search.controlCharacterSearch.mock.calls.length
-  media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(4)
+  await act(async () =>
+    pending.resolve({
+      data: {
+        text: 'ALICE',
+        confidence: 1,
+        candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
+      }
+    })
+  )
   expect(fixture.search.controlCharacterSearch.mock.calls.slice(beforeReads)).toEqual([
     [{ action: 'read' }]
   ])
@@ -212,11 +226,10 @@ it.each(invalidSearchSnapshots)(
 it('새 success event 뒤 늦은 notify invoke의 pending snapshot은 표시를 되돌리지 않는다', async () => {
   const fixture = createRendererFixture()
   await fixture.mount()
-  await fixture.start()
   const acknowledgment = Promise.withResolvers<SearchCommandResult>()
   fixture.capture.notifyStableNicknameDetected.mockReturnValueOnce(acknowledgment.promise)
   media.crops.mockReturnValue([document.createElement('canvas'), null, null, null])
-  await fixture.cycle(2)
+  await fixture.start()
   await fixture.emit(state(fixture, searchSlot({ state: 'success', rows: [searchRow] }), 10))
   expect(fixture.container.textContent).toContain(searchRow.characterId)
   acknowledgment.resolve({ ok: true, snapshot: state(fixture, searchSlot(), 9) })
@@ -234,8 +247,7 @@ it('clear 응답 유실은 read만 수행하며 조회가 옛 관측이면 지�
     .mockRejectedValueOnce(new Error('Synthetic clear response loss'))
     .mockResolvedValueOnce({ ok: true, snapshot: { ...previous, revision: 11 } })
   const before = fixture.search.controlCharacterSearch.mock.calls.length
-  media.crops.mockReturnValue([null, null, null, null])
-  await fixture.cycle(3)
+  await fixture.click('닉네임 수정')
   expect(fixture.search.controlCharacterSearch.mock.calls.slice(before)).toEqual([
     [{ action: 'clear', captureId: CAPTURE_ID, slot: 0, observationRevision: 2 }],
     [{ action: 'read' }]
@@ -303,7 +315,6 @@ it.each(['buffered', 'late'] as const)(
     })
     expect(fixture.readCaptureFrame).not.toHaveBeenCalled()
     expect(media.worker).not.toHaveBeenCalled()
-    expect(media.loop).not.toHaveBeenCalled()
     expect(fixture.container.textContent).toContain('검색 연결을 확인할 수 없습니다')
   }
 )
@@ -346,3 +357,14 @@ it.each(['pending', 'failed'] as const)(
     }
   }
 )
+
+async function submitNickname(fixture: Fixture, nickname: string): Promise<void> {
+  const input = fixture.container.querySelector<HTMLInputElement>(
+    'form[aria-label="슬롯 1 닉네임 수정"] input'
+  )!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, nickname)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await fixture.click('수정한 이름 검색')
+}

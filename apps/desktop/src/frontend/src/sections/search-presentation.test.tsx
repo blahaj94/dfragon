@@ -22,10 +22,9 @@ type Fixture = ReturnType<typeof createRendererFixture>
 async function recognized(): Promise<Fixture> {
   const fixture = createRendererFixture()
   await fixture.mount()
-  await fixture.start()
   const crop = document.createElement('canvas')
   media.crops.mockReturnValue([crop, crop, crop, crop])
-  await fixture.cycle(2)
+  await fixture.start()
 
   return fixture
 }

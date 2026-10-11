@@ -9,7 +9,6 @@ const capture = vi.hoisted(() => {
   const retrySearch = vi.fn()
   const selectSource = vi.fn()
   const refreshSources = vi.fn()
-  const setIntervalSeconds = vi.fn()
   const startCapture = vi.fn()
   const stopCapture = vi.fn()
 
@@ -17,7 +16,7 @@ const capture = vi.hoisted(() => {
     sources: [{ id: 'example-window', name: 'Example window' }],
     selectedSourceId: '',
     canStartCapture: false,
-    starting: false,
+    recognizing: false,
     search: {
       ready: true,
       slots: [],
@@ -26,12 +25,10 @@ const capture = vi.hoisted(() => {
       captureActive: false
     },
     retrySearch,
-    intervalSeconds: 3,
-    stableNicknames: [null, null, null, null],
+    nicknames: [null, null, null, null],
     status: 'Ready',
     selectSource,
     refreshSources,
-    setIntervalSeconds,
     startCapture,
     stopCapture
   }
@@ -84,18 +81,16 @@ it('refreshes the window list while idle and disables refresh during capture', a
   expect(capture.refreshSources).toHaveBeenCalledTimes(1)
 })
 
-it('preserves selection values and numeric OCR interval callback', async () => {
-  const [source, interval] = container.querySelectorAll('select')
+it('선택한 창을 전달하고 인식 간격 입력을 표시하지 않는다', async () => {
+  const [source] = container.querySelectorAll('select')
+  expect(container.querySelectorAll('select')).toHaveLength(1)
 
   await act(async () => {
     source.value = 'example-window'
     source.dispatchEvent(new Event('change', { bubbles: true }))
-    interval.value = '5'
-    interval.dispatchEvent(new Event('change', { bubbles: true }))
   })
 
   expect(capture.selectSource).toHaveBeenCalledExactlyOnceWith('example-window')
-  expect(capture.setIntervalSeconds).toHaveBeenCalledExactlyOnceWith(5)
 })
 
 it('blocks Start when capture cannot start and preserves allowed Start and Stop callbacks', async () => {

@@ -85,7 +85,13 @@ const electron = vi.hoisted(() => {
 vi.mock('electron', () => electron)
 
 const ocrWorker = vi.hoisted(() => {
-  const recognize = vi.fn(async () => ({ data: { text: 'ALICE' } }))
+  const recognize = vi.fn(async () => ({
+    data: {
+      text: 'ALICE',
+      confidence: 1,
+      candidates: [{ nickname: 'ALICE', rank: 1, modelScore: 1 }]
+    }
+  }))
   const terminate = vi.fn(async () => undefined)
 
   return { recognize, terminate }
@@ -318,9 +324,9 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
     await waitForCondition(() => expect(button(container, '캡처 시작').disabled).toBe(false))
 
     await click(container, '캡처 시작')
-    await waitForText(container, '캡처 중, 1920×1080')
+    await waitForText(container, '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
     expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
-    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).toHaveBeenCalledOnce()
 
     const searchState = await searchApi.controlCharacterSearch({ action: 'read' })
     expect(searchState.ok).toBe(true)
@@ -328,10 +334,9 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
       throw new Error('Integrated capture should own a search capture')
     }
     const captureId = searchState.snapshot.captureId
-    await waitForCondition(
-      () => expect(ocrWorker.recognize.mock.calls.length).toBeGreaterThanOrEqual(2),
-      { timeout: 5_000 }
-    )
+    await waitForCondition(() => expect(ocrWorker.recognize).toHaveBeenCalledOnce(), {
+      timeout: 5_000
+    })
     await waitForCondition(() => expect(observedRequests).toHaveLength(1), { timeout: 5_000 })
     expect(observedRequests[0]?.url).toBe(`${config.apiOrigin}/characters?characterName=ALICE`)
     expect(observedRequests[0]?.headers.has('authorization')).toBe(false)
@@ -384,7 +389,7 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
     })
     expect(harness.http.exchange).not.toHaveBeenCalled()
     expect(container.textContent).toContain('live-character')
-    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).toHaveBeenCalledOnce()
     expect((await searchApi.controlCharacterSearch({ action: 'read' })).snapshot.captureId).toBe(
       captureId
     )
@@ -401,7 +406,18 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
     expect(container.textContent).toContain('live-character')
     expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
 
-    ocrWorker.recognize.mockResolvedValue({ data: { text: 'BOB' } })
+    await click(container, '닉네임 수정')
+    const nicknameInput = container.querySelector<HTMLInputElement>(
+      'form[aria-label="슬롯 1 닉네임 수정"] input'
+    )!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(
+        nicknameInput,
+        'BOB'
+      )
+      nicknameInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await click(container, '수정한 이름 검색')
     await waitForCondition(() => expect(observedRequests).toHaveLength(2), { timeout: 10_000 })
     expect(observedRequests[1]?.url).toBe(`${config.apiOrigin}/characters?characterName=BOB`)
     expect(observedRequests[1]?.headers.has('authorization')).toBe(false)
@@ -418,7 +434,7 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
       expect.any(AbortSignal)
     )
     expect(harness.store.inspection).toEqual({ status: 'empty' })
-    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).toHaveBeenCalledOnce()
     expect(fixtureWindow.contents.send.mock.calls.map(([channel]) => channel)).toContain(
       'authStateChanged'
     )
@@ -460,14 +476,16 @@ it('로그인 전 검색부터 로그인 취소, 로그인, 로그아웃, 재로
       const nextSource = container.querySelector('select') as HTMLSelectElement | null
       expect(nextSource?.options).toHaveLength(2)
       expect(nextSource?.value).toBe(RENDERER_SOURCE_ID)
-      expect(container.textContent).toContain('캡처 중, 1920×1080')
+      expect(container.textContent).toContain(
+        '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.'
+      )
     })
     expect(container.textContent).toContain('late-character')
     expect(nativeFrame.bind).toHaveBeenCalledExactlyOnceWith(RENDERER_SOURCE_ID)
+    expect(nativeFrame.read).toHaveBeenCalledOnce()
     expect(harness.http.exchange).toHaveBeenCalledTimes(2)
-    expect(ocrWorker.terminate).not.toHaveBeenCalled()
+    expect(ocrWorker.terminate).toHaveBeenCalledOnce()
     await click(container, '캡처 중지')
-    await waitForCondition(() => expect(ocrWorker.terminate).toHaveBeenCalledOnce())
     expect(container.textContent).not.toContain('late-character')
     expect(
       (await searchApi.controlCharacterSearch({ action: 'read' })).snapshot.captureId

@@ -8,7 +8,6 @@ import PartyCapture from './PartyCapture'
 const capture = vi.hoisted(() => {
   const retrySearch = vi.fn()
   const selectSource = vi.fn()
-  const setIntervalSeconds = vi.fn()
   const startCapture = vi.fn()
   const stopCapture = vi.fn()
 
@@ -16,14 +15,12 @@ const capture = vi.hoisted(() => {
     sources: [],
     selectedSourceId: '',
     canStartCapture: false,
-    starting: false,
+    recognizing: false,
     search: { ready: true, slots: [], retryPending: [], connectionFailed: false },
     retrySearch,
-    intervalSeconds: 3,
-    stableNicknames: [null, '', 'Alice', null],
+    nicknames: [null, '', 'Alice', null],
     status: 'Capture ready.',
     selectSource,
-    setIntervalSeconds,
     startCapture,
     stopCapture
   }
