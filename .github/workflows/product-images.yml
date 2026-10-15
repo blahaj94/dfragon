@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '26'
       - name: Select images changed by the PR
@@ -49,7 +49,7 @@ jobs:
       # Its plan includes every commit in that push, not just head_sha's last commit.
       - name: Download the tested main image plan
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: product-image-plan
           path: ${{ runner.temp }}
@@ -63,7 +63,7 @@ jobs:
         run: node scripts/product-image-plan.mjs baseline
       - name: Download the previous successful image plan
         if: github.event_name == 'workflow_run' && steps.baseline.outputs.run_id != ''
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: product-image-plan
           path: ${{ runner.temp }}/image-baseline
@@ -87,7 +87,7 @@ jobs:
       # Only a fully successful build/publication run becomes the next baseline.
       - name: Save the publication plan for the next main run
         if: github.event_name == 'workflow_run'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: product-image-plan
           path: ${{ runner.temp }}/product-image-plan.json
@@ -151,7 +151,7 @@ jobs:
             '. == {service: $service, commit: $commit}' "$RUNNER_TEMP/build-info.json" >/dev/null
       - name: Transfer the main image to the publishing job
         if: github.event_name == 'workflow_run'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: built-image-${{ matrix.service }}
           path: ${{ runner.temp }}/image.tar
@@ -187,7 +187,7 @@ jobs:
       # Download only from this workflow run. Never consume PR workflow artifacts.
       # This job does not checkout source or execute code inside the image.
       - name: Download the built image
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: built-image-${{ matrix.service }}
           path: ${{ runner.temp }}/built-image
@@ -243,7 +243,7 @@ jobs:
           # Storage records are only available to organization-owned repositories.
           create-storage-record: false
       - name: Upload image handoff
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: image-handoff-${{ matrix.service }}
           path: ${{ runner.temp }}/image-handoff/${{ matrix.service }}.json
