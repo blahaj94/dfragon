@@ -35,6 +35,10 @@ async function createLibraryFixture(context) {
   )
   await writeFile(join(output, 'index.d.ts'), 'export declare const ActionButton: unknown;\n')
   await writeFile(join(output, 'typo.d.ts'), 'export declare const Typo: unknown;\n')
+  await writeFile(
+    join(output, 'tokens.stylex.d.ts'),
+    'export declare const colors: { signal: string };\n'
+  )
 
   return output
 }
@@ -129,6 +133,14 @@ test('Typo가 순수 React chunk를 통해 구현을 재수출해도 허용한�
   )
   const result = inspect(output)
   assert.equal(result.status, 0, result.stderr)
+})
+
+test('tokens.stylex.d.ts가 없으면 실패한다', async (context) => {
+  const output = await createLibraryFixture(context)
+  await rm(join(output, 'tokens.stylex.d.ts'))
+  const result = inspect(output)
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /Token declaration: tokens\.stylex\.d\.ts/)
 })
 
 test('생성 JS 목록에 tokens.stylex.js가 없으면 실패한다', async (context) => {
