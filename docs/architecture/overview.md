@@ -67,10 +67,10 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |
-| `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
+| `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
 | `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다. |
-| `apps/ocr/browser` | 관리 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens`와 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
-| `apps/accounts/browser` | 인증 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens`와 `@dfragon/ui/typo`를 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다. |
+| `apps/ocr/browser` | 관리 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens.stylex`와 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
+| `apps/accounts/browser` | 인증 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens.stylex`와 `@dfragon/ui/typo`를 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다. |
 | 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다. |
 
 공용 Component는 Base UI 부품의 semantic API와 접근성 동작을 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다. 화면별 스타일 허용 범위와 필요한 Example, 토큰, version, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
@@ -80,7 +80,7 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 - `@dfragon/ui`는 `@base-ui/react`, `@stylexjs/stylex`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. 소비 app, Example은 manifest, lockfile에 기록된 호환 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
 - Library를 bundle하면 `@base-ui/react`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 Base UI runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에서 제거한다.
 - Library source에서 CSS를 직접 import하지 않는다. `tokens.css`와 `foundation.css`는 package export로 제공하고, 각 소비 app, Example의 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다. `data-theme`으로 모드를 정하는 Theme 초기화는 소비 앱이 책임진다. Base UI는 스타일을 제공하지 않으므로 별도 vendor CSS를 두지 않는다.
-- Library의 StyleX는 `--df-*` 변수만 참조하고 `defineVars`, 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/tokens`는 StyleX와 React 없는 문자열 상수 entry, `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+- Library의 StyleX는 `--df-*` 변수만 참조한다. 토큰 상수는 `stylex.defineConsts`로 정의하며 `defineVars`, `createTheme`, 앱 테마는 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/tokens.stylex`는 React 없는 `defineConsts` entry라 소비 앱의 StyleX 컴파일이 필요하고, `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
 - Base UI는 별도 bundler plugin 없이 소비한다. Desktop의 electron-vite renderer와 실제 Electron(CSP 포함) 호환성은 Desktop 이행 PR에서 확인한다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
 - 아이콘은 `@dfragon/ui`와 앱이 소유한 SVG 컴포넌트로 그린다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
 
