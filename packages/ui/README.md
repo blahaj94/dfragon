@@ -131,7 +131,7 @@ Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 Ty
 
 ## 소비 entry와 실제 UI 확인
 
-각 browser entry는 base.css, `@dfragon/ui/tokens.css` 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
+각 browser entry는 base.css, `@dfragon/ui/tokens.css` 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화(여백, `--df-fg-default` 글자색, `--df-bg-canvas` 바탕)만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
 
 Web은 기존 counter를 ActionButton으로 바꾸고 충돌하던 counter CSS, root 18px font 초기화를 제거했다. 기존 설명, link, counter 의미를 유지한다. Desktop은 renderer의 Start/Stop만 ActionButton으로 바꾸며 source 선택, interval, callback, disabled 의미와 capture 구현을 보존한다. Desktop의 React, UI package는 기존 renderer dependency 배치에 맞춰 devDependency로 설치하고 renderer bundle에 포함한다.
 
