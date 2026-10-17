@@ -29,6 +29,7 @@
 !packages/lib/src/**
 !packages/ui/
 !packages/ui/package.json
+!packages/ui/tokens.css
 !packages/ui/foundation.css
 !packages/ui/stylex.config.ts
 !packages/ui/src/
