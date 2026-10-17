@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-18
 ---
 
 # Architecture Overview
@@ -63,28 +63,26 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 ## Shared UI boundary
 
-[Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)과 현재 `packages/ui` 구성을 바탕으로 아래 UI 경계를 채택한다. 이 절은 이번 PR의 사용자 merge 후 active 계약으로 적용하며, 과거 proposed 문구가 새 화면 구현의 재승인 조건이 되지 않게 한다. UI 내부 배치, 스타일, Example 범위는 [Design System](../rules/design-system.md)을 따른다.
+2026-10-18 결정으로 browser UI에서 SEED Design을 걷어내고 `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하는 아래 UI 경계를 채택한다. [Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)은 이력으로 보존하며 이 결정으로 대체한다. 이 절은 이번 PR의 사용자 merge 후 active 계약으로 적용하고, 코드 이행은 후속 PR에서 단계적으로 진행한다. 이행 중 남은 SEED 코드의 peer, external, `base.css` import 경계와 그 검사(`packages/ui/scripts/verify-build.mjs`)는 그 코드를 지우는 이행 PR에서 함께 바꾼다. UI 내부 배치, 스타일, 토큰, Example 범위와 이행 기준은 [Design System](../rules/design-system.md)을 따른다.
 
-| 대상                               | 책임과 dependency direction                                                                                                                                                                                                                                                |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/ui`의 `@dfragon/ui`          | Browser React shared package 하나로 공식 SEED styled Component, Snippet과 실제로 공유하는 Layout, composition, 디자인 컴포넌트를 제공한다. `@dfragon/ui` → SEED/React, StyleX runtime, 필요한 공식 icon 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
-| `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다.                                                                                                      |
-| `apps/ocr/browser` | 관리 React 화면에서 SEED recipe, token과 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
-| `apps/accounts/browser`                 | 인증 React 화면에서 `@dfragon/ui/typo`만 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다.                                                                                                                           |
-| 독립 Vite Example entry            | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다.                                                                                                        |
+| 대상 | 책임과 dependency direction |
+| --- | --- |
+| `packages/ui`의 `@dfragon/ui` | Browser React shared package 하나로 자체 토큰(`tokens.css`, `tokens`), Base UI 기반 공용 Component, 공용 형태와 실제로 공유하는 Layout, composition, 디자인 컴포넌트, Typo를 제공한다. `@dfragon/ui` → Base UI/React, StyleX runtime 방향으로 연결하며 app source, 앱 테마, API client, backend, Electron main/preload, IPC, 인증, domain을 import하지 않는다. |
+| `apps/web`, `apps/desktop` renderer | `@dfragon/ui`를 소비하고 제품 data, event, behavior와 app별 platform 연결을 맡는다. 서로의 source를 import하지 않는다. Desktop main/preload는 UI package를 소비하지 않는다. |
+| `apps/ocr/browser` | 관리 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens`와 `@dfragon/ui/typo`를 소비한다. 서버 runtime은 UI를 import하지 않는다. |
+| `apps/accounts/browser` | 인증 React 화면에서 `@dfragon/ui/tokens.css`, `@dfragon/ui/tokens`와 `@dfragon/ui/typo`를 소비한다. API server runtime은 UI를 import하지 않으며, browser build는 해당 public source entry를 해석한다. |
+| 독립 Vite Example entry | 필요한 상태를 실제 화면에서 확인하기 어려울 때 같은 `@dfragon/ui` public API와 합성 content로 확인한다. 새 화면마다 Component, Pattern, Template 예제를 갖출 의무는 없다. |
 
-공식 요소를 불필요하게 재명명, wrapper로 감싸지 않고 SEED 이름과 semantic API를 유지한다. SEED에 같은 역할이 없는 디자인 컴포넌트는 SEED Component를 조합한 DFragon 구성으로 제공한다. 화면별 스타일 허용 범위와 필요한 Example, version, Snippet source, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
+공용 Component는 Base UI 부품의 semantic API와 접근성 동작을 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다. 화면별 스타일 허용 범위와 필요한 Example, 토큰, version, 영향 검증은 [`design-system.md`](../rules/design-system.md)가 canonical Rule이다.
 
 ### Dependency와 CSS 소유
 
-[공식 Library Authors 가이드](https://seed-design.io/react/getting-started/library-authors)를 따른다.
-
-- `@dfragon/ui`는 `@seed-design/react`, `@seed-design/css`, `@stylexjs/stylex`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. SEED React와 CSS의 peer 범위를 각각 명시하고, 소비 app, Example은 manifest, lockfile에 기록된 호환 SEED 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
-- Library를 bundle하면 `@seed-design/*`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 SEED runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다.
-- Library source에서 `@seed-design/css/*.css`를 직접 import하지 않는다. 선택한 공식 Vite 통합은 `base.css`와 Component recipe CSS를 사용하는 경로다. 이 경로에서 각 소비 app, Example의 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 Theme 초기화 책임을 가진다. SEED recipe가 연결하는 Component CSS를 library의 별도 CSS 사본으로 vendor하지 않는다.
-- Library의 StyleX는 SEED CSS 변수만 참조하고 `defineVars`, 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
-- Web, Desktop renderer, Example은 공식 `@seed-design/vite-plugin` 통합을 사용한다. Desktop의 electron-vite renderer 설정과 실제 Electron 실행 호환성은 후속 검증 대상이다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
-- 공식 icon package는 필요한 Snippet의 runtime dependency로, CLI는 authoring 도구로 구분한다. CLI를 제품 runtime에 포함하지 않는다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
+- `@dfragon/ui`는 `@base-ui/react`, `@stylexjs/stylex`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. 소비 app, Example은 manifest, lockfile에 기록된 호환 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
+- Library를 bundle하면 `@base-ui/react`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 Base UI runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에서 제거한다.
+- Library source에서 CSS를 직접 import하지 않는다. `tokens.css`와 `foundation.css`는 package export로 제공하고, 각 소비 app, Example의 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다. `data-theme`으로 모드를 정하는 Theme 초기화는 소비 앱이 책임진다. Base UI는 스타일을 제공하지 않으므로 별도 vendor CSS를 두지 않는다.
+- Library의 StyleX는 `--df-*` 변수만 참조하고 `defineVars`, 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/tokens`는 StyleX와 React 없는 문자열 상수 entry, `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+- Base UI는 별도 bundler plugin 없이 소비한다. Desktop의 electron-vite renderer와 실제 Electron(CSP 포함) 호환성은 Desktop 이행 PR에서 확인한다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
+- 아이콘은 `@dfragon/ui`와 앱이 소유한 SVG 컴포넌트로 그린다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
 
 Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Electron 호환성, CSS 중복 없음, accessibility, 시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example, 사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
 
