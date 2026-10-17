@@ -123,8 +123,14 @@
  * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
  * 카드 위에서만 쓰는 card.*, bracket.*, hazard, gridLine, tier.ranker{Surface,Well,Outline}와
  * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
+ *
+ * 앱이 아직 data-theme을 넣지 않는 동안에는 SEED 라이트 모드(light-only, system의 light)를 따른다.
+ * data-theme이 있으면 그 값을 우선한다. 앱별 SEED 제거 PR이 data-theme으로 옮긴 뒤
+ * SEED 잔여 삭제 PR에서 data-seed-color-mode 선택자를 지운다.
  */
-:root[data-theme='light'] {
+:root[data-theme='light'],
+:root:not([data-theme])[data-seed-color-mode='light-only'],
+:root:not([data-theme])[data-seed-color-mode='system'][data-seed-user-color-scheme='light'] {
   --df-bg-canvas: #f3f4f5; /* provisional */
   --df-bg-bar: #ffffff; /* provisional */
   --df-bg-surface: #ffffff; /* provisional */
