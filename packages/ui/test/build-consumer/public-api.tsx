@@ -1,3 +1,4 @@
+import * as stylex from '@stylexjs/stylex'
 import { createRef } from 'react'
 import {
   ActionButton,
@@ -18,6 +19,7 @@ import {
   TextField,
   TextFieldInput,
   Typo,
+  shapes,
   typographyVariants
 } from '@dfragon/ui'
 import type {
@@ -41,6 +43,7 @@ import type {
 } from '@dfragon/ui'
 import { Typo as StandaloneTypo, typographyVariants as standaloneVariants } from '@dfragon/ui/typo'
 import type { TypoProps as StandaloneTypoProps } from '@dfragon/ui/typo'
+import { colors, motion } from '@dfragon/ui/tokens.stylex'
 
 // 별도 tsconfig는 source alias 없이 package export의 dist declaration을 해석한다.
 export const components = [
@@ -114,6 +117,12 @@ export const link = (
     React 전용 entry
   </StandaloneTypo.txtM>
 )
+
+// 소비자 compiler가 package export의 토큰 상수와 dist의 공용 형태를 함께 정적 CSS로 만든다.
+const consumerStyles = stylex.create({
+  signal: { backgroundColor: colors.signal, transitionDuration: motion.durHover }
+})
+export const primaryShape = <div {...stylex.props(consumerStyles.signal, shapes.cutTopRight)} />
 
 // @ts-expect-error 공개 ActionButton은 화면별 className override를 허용하지 않는다.
 export const unsupportedAppearance = <ActionButton className="override" />

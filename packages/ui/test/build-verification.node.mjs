@@ -9,7 +9,10 @@ import { test } from 'node:test'
 const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import.meta.url))
 const notice = '/*! DFragon modified SEED source: test fixture */\n'
-const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nexport { ActionButton, React, jsx, stylex };\n`
+const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nimport { colors } from "./tokens.stylex.js";\nexport { ActionButton, React, colors, jsx, stylex };\n`
+const tokensSource = `${notice}import * as stylex from "@stylexjs/stylex";\nconst colors = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { colors };\n`
+const libraryFiles = ['index.js', 'tokens.stylex.js', 'typo.js']
+const tokensStyles = ':root{--df-brand-dragon:#e83830}'
 
 // 실제 고지, provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
@@ -19,12 +22,13 @@ async function createLibraryFixture(context) {
   await cp(join(uiRoot, '../licenses/notices/ui'), join(output, 'notices'), { recursive: true })
   await cp(join(uiRoot, 'seed-provenance.json'), join(output, 'notices/seed-provenance.json'))
   await writeFile(join(output, 'notices/bundle-modules.json'), '[]')
-  await writeFile(join(output, 'notices/bundle-files.json'), '["index.js","typo.js"]')
+  await writeFile(join(output, 'notices/bundle-files.json'), JSON.stringify(libraryFiles))
   await writeFile(
     join(output, 'notices/DFRAGON-MODIFICATIONS.txt'),
     'DialogTrigger declaration; Layout header/footer/children.\n'
   )
   await writeFile(join(output, 'index.js'), indexSource)
+  await writeFile(join(output, 'tokens.stylex.js'), tokensSource)
   await writeFile(
     join(output, 'typo.js'),
     `${notice}import { jsx } from 'react/jsx-runtime';\nexport const Typo = jsx;\n`
@@ -55,7 +59,7 @@ async function createConsumerFixture(context, styles) {
   ]
   await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
   await writeFile(join(output, 'notices/THIRD-PARTY.txt'), 'MIT License fixture\n')
-  await writeFile(join(output, 'styles.css'), styles)
+  await writeFile(join(output, 'styles.css'), `${tokensStyles}${styles}`)
 
   return output
 }
@@ -88,6 +92,24 @@ for (const { name, styles } of [
   })
 }
 
+const foundationStyles = 'body{font-family:"Apple SD Gothic Neo",sans-serif}'
+for (const { name, styles } of [
+  { name: 'tokens.css를 import하지 않은 경우', styles: foundationStyles },
+  {
+    name: 'tokens.css가 두 번 출력된 경우',
+    styles: `${tokensStyles}${tokensStyles}${foundationStyles}`
+  }
+]) {
+  test(`${name} 소비자 빌드 검사에 실패한다`, async (context) => {
+    const output = await createConsumerFixture(context, '')
+    // fixture의 기본 tokens.css 한 번을 덮어써 import 횟수만 바꾼다.
+    await writeFile(join(output, 'styles.css'), styles)
+    const result = inspect(output, 'consumer')
+    assert.notEqual(result.status, 0)
+    assert.match(result.stderr, /Consumer must import tokens\.css once/)
+  })
+}
+
 test('공개 ESM, 선언 파일과 React 전용 Typo 산출물을 허용한다', async (context) => {
   const output = await createLibraryFixture(context)
   const result = inspect(output)
@@ -103,10 +125,18 @@ test('Typo가 순수 React chunk를 통해 구현을 재수출해도 허용한�
   )
   await writeFile(
     join(output, 'notices/bundle-files.json'),
-    '["index.js","typo.js","react-helper.js"]'
+    JSON.stringify([...libraryFiles, 'react-helper.js'])
   )
   const result = inspect(output)
   assert.equal(result.status, 0, result.stderr)
+})
+
+test('생성 JS 목록에 tokens.stylex.js가 없으면 실패한다', async (context) => {
+  const output = await createLibraryFixture(context)
+  await writeFile(join(output, 'notices/bundle-files.json'), '["index.js","typo.js"]')
+  const result = inspect(output)
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /Shared tokens stay in tokens\.stylex\.js/)
 })
 
 for (const file of ['index.js', 'index.d.ts', 'typo.js', 'typo.d.ts']) {
@@ -115,7 +145,7 @@ for (const file of ['index.js', 'index.d.ts', 'typo.js', 'typo.d.ts']) {
     await rm(join(output, file))
     // 목록에서 함께 사라져도 package export에 필요한 파일 누락을 잡아야 한다.
     if (file.endsWith('.js')) {
-      const remaining = ['index.js', 'typo.js'].filter((entry) => entry !== file)
+      const remaining = libraryFiles.filter((entry) => entry !== file)
       await writeFile(join(output, 'notices/bundle-files.json'), JSON.stringify(remaining))
     }
     const result = inspect(output)
@@ -167,6 +197,24 @@ for (const { name, file, source, failure } of [
     file: 'index.js',
     source: `${indexSource}import '@stylexjs/stylex/lib/stylex-inject';\n`,
     failure: /Library must import only @stylexjs\/stylex/
+  },
+  {
+    name: '토큰 상수가 다른 이름으로 export된 경우',
+    file: 'tokens.stylex.js',
+    source: `${notice}import * as stylex from "@stylexjs/stylex";\nconst t = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { t as colors };\n`,
+    failure: /Token constants keep the same export name: t/
+  },
+  {
+    name: 'tokens.stylex.js에 토큰 상수가 없는 경우',
+    file: 'tokens.stylex.js',
+    source: `${notice}export const colors = { signal: "var(--df-signal)" };\n`,
+    failure: /Token constants: tokens\.stylex\.js/
+  },
+  {
+    name: '토큰 상수가 index.js에 합쳐진 경우',
+    file: 'index.js',
+    source: `${notice}import * as stylex from "@stylexjs/stylex";\nexport const colors = stylex.defineConsts({ signal: "var(--df-signal)" });\n`,
+    failure: /defineConsts only in tokens\.stylex\.js: index\.js/
   },
   {
     name: 'library JS가 소비자 소유 CSS를 가져오는 경우',

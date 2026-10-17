@@ -26,7 +26,10 @@ test('소비자 compiler가 library의 StyleX 선언을 산출 CSS의 atomic cla
     'padding:var(--seed-dimension-x2)',
     'border-radius:var(--seed-radius-full)',
     '--seed-color-stroke-neutral-weak:var(--seed-color-palette-gray-500)',
-    '--seed-color-stroke-neutral-contrast:var(--seed-color-stroke-focus-ring)'
+    '--seed-color-stroke-neutral-contrast:var(--seed-color-stroke-focus-ring)',
+    // dist의 shapes가 별도 tokens.stylex.js의 상수를, 소비자 source가 package export의 상수를 쓴다.
+    'clip-path:polygon(00,calc(100%-var(--df-cut))0,100%var(--df-cut),100%100%,0100%)',
+    'background-color:var(--df-signal)'
   ]) {
     const atomicRule = new RegExp(
       `\\.x[a-z0-9]+(?::not\\(#\\\\#\\))*\\{${RegExp.escape(declaration)};?\\}`
