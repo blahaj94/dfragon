@@ -2,8 +2,8 @@
 type: rule
 status: active
 scope: accounts and Desktop passkey authentication
-last-reviewed: 2026-10-11
-evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성"
+last-reviewed: 2026-10-17
+evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성. 2026-10-17 사용자 결정: 회원가입 페이지를 없애고 새 계정 만들기에서 바로 등록"
 ---
 
 # 패스키 인증
@@ -16,12 +16,13 @@ evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loop
 - WebAuthn discoverable credential을 등록한다. `residentKey: required`, `userVerification: required`, attestation `none`을 사용하고 서버 검증에서도 UV를 요구한다. 기기 종류를 platform으로 제한하지 않아 브라우저의 휴대폰 hybrid QR, 보안 키를 사용할 수 있다.
 - HTTPS 인증 origin과 RP ID는 서버 설정으로 고정한다. RP ID는 인증 origin의 hostname과 같아야 한다. 운영 인증 origin/RP는 accounts.dfragon.com 하나다. 이전 API 주소의 패스키 로그인과 RP 이전 경로는 제공하지 않는다.
 - 등록 옵션, 서명 검증, 브라우저 JSON 변환은 SimpleWebAuthn에 맡긴다. 등록 알고리즘 목록은 저장소가 EdDSA(-8), ES256(-7), RS256(-257) 순서로 고정하고 등록 검증에서도 같은 목록만 허용한다. 브라우저 origin, RP ID, challenge, 서명, UV와 저장 credential ID, 회원 user handle을 모두 확인한다. 회원 ID의 UTF-8 bytes를 user handle로 사용하며 이메일, 실명을 넣지 않는다.
+- 가입은 로그인 페이지의 `새 계정 만들기`에서 바로 시작한다. 이 버튼은 별도 회원가입 페이지로 이동하지 않고 그 자리에서 첫 패스키 등록(register 목적 challenge)을 요청한다. 패스키 생성을 취소하거나 실패하면 같은 로그인 페이지에 남아 다시 누를 수 있다. 회원가입 페이지와 그 페이지의 `패스키로 회원가입` 버튼, 기존 계정 안내, 예비 패스키 안내는 두지 않는다(2026-10-17 사용자 결정: 같은 행동을 버튼 두 번으로 나누지 않는다).
 - 첫 패스키 등록 검증 성공 후 회원과 credential을 같은 transaction으로 만든다. 앱 복귀 전에 브라우저 탭을 닫아도 생성된 패스키로 다시 로그인할 수 있다. 사용자 한 명이 새 패스키로 별도 계정을 만드는 것은 허용하며 1인 1계정을 보장하지 않는다.
 - 패스키 credential ID는 전역 PK다. 기존 키를 다른 계정에 연결하는 upsert를 하지 않는다. 동기화된 동일 패스키는 동일 계정에 접근한다.
 
 ## Desktop과 브라우저 연결
 
-Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/src/auth/login/input.ts`는 요청의 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). `apps/accounts/browser/return-target.ts`는 브라우저가 이동하기 전에 code가 붙은 복귀 주소를 검증한다. 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 둔다.
+Desktop main이 S256 challenge와 loopback 복귀 주소 `returnUrl: http://127.0.0.1:<port>/auth/callback`으로 `/auth/login-requests`를 호출하고 응답의 URL만 Electron `shell.openExternal`로 시스템 기본 브라우저에서 연다. 서버의 `apps/accounts/src/auth/login/input.ts`는 요청의 `returnUrl`이 이 형식과 정확히 일치할 때만 받으며 포트(1024~65535)만 가변이다(RFC 8252 7.3). `apps/accounts/browser/return-target.ts`는 브라우저가 이동하기 전에 code가 붙은 복귀 주소를 검증한다. 기존 길이, control/공백/backslash 금지 검사와 `<returnTarget>?code=<canonical-code>` 정확 일치 규칙은 유지한다. 현재 API의 `provider` 값은 `passkey` 하나다. 로그인 화면은 `패스키로 로그인`, `새 계정 만들기`만 두며 가입도 이 화면에서 끝난다.
 
 accounts는 Desktop 요청의 `returnUrl`을 검증해 해당 요청 행에 저장하고 인증 완료 때 그 값만 사용한다. Scheme은 `http`, host는 정확히 `127.0.0.1`, path는 `/auth/callback`이며 포트는 선행 0 없는 10진수 1024~65535다. Userinfo, query, fragment 없이 URL 정규화 결과와 원문이 같아야 한다. 서버 `passkey.returnUrl` 설정은 사용하지 않는다. OCR의 고정 `ocrReturnUrl` 흐름은 유지한다.
 
@@ -39,7 +40,7 @@ OCR은 선택 설정 `ocrReturnUrl`과 `clientId: ocr`를 사용한다. accounts
 
 휴대폰 패스키는 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리한다. DFragon 화면에는 휴대폰 버튼, QR, 확인 번호가 없고 패스키 응답 검증은 서버가 한다. 휴대폰의 기존 패스키는 별도 계정 이관 없이 같은 RP에서 사용한다.
 
-2026-10-10 사용자 결정에 따라 DFragon 자체 휴대폰 QR 로그인과 패스키 관리 QR을 제거했다. `GET /auth/login/phone`, QR 생성, 상태 조회, claim, 직접 로그인 전환, 취소와 phone action, phone cookie를 더 이상 제공하지 않는다. 로그인 페이지는 `패스키로 로그인`, `새 계정 만들기`만 표시하고 회원가입 페이지는 `패스키로 회원가입` 하나만 표시한다. 휴대폰 버튼, QR 화면, 확인 번호, 남은 시간과 닫기 버튼은 제거했다. 2026-09-26 Penpot 리뷰에서 정한 자체 휴대폰 화면 동작은 폐기했다.
+2026-10-10 사용자 결정에 따라 DFragon 자체 휴대폰 QR 로그인과 패스키 관리 QR을 제거했다. `GET /auth/login/phone`, QR 생성, 상태 조회, claim, 직접 로그인 전환, 취소와 phone action, phone cookie를 더 이상 제공하지 않는다. 로그인 페이지는 `패스키로 로그인`, `새 계정 만들기`만 표시한다. 회원가입 페이지는 2026-10-17에 없앴다. 휴대폰 버튼, QR 화면, 확인 번호, 남은 시간과 닫기 버튼은 제거했다. 2026-09-26 Penpot 리뷰에서 정한 자체 휴대폰 화면 동작은 폐기했다.
 
 ## 예비 패스키 관리
 
