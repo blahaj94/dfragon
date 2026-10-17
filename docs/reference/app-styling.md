@@ -6,7 +6,7 @@ scope: all application browser surfaces
 
 # 앱 공통 StyleX
 
-Desktop renderer, API 패스키 페이지, OCR 관리 SPA, Web은 화면 스타일을 StyleX로 작성한다. SEED의 Component, recipe, Token과 `@dfragon/ui`는 그대로 사용한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다.
+Desktop renderer, API 패스키 페이지, OCR 관리 SPA, Web은 화면 스타일을 StyleX로 작성한다. 공통 UI 책임은 [Design System](../rules/design-system.md)을 따른다. Design System은 2026-10-18에 SEED를 걷어내고 `@dfragon/ui`의 자체 토큰과 Base UI 기반 Component로 옮기는 방향으로 바뀌었다. 코드는 [이행 기준](../rules/design-system.md#적용-상태와-범위)에 따라 단계적으로 옮기며, 아래는 아직 SEED가 남아 있는 현재 구현을 설명한다.
 
 ## 공통 설정과 소비 경로
 
@@ -17,11 +17,11 @@ StyleX runtime과 compiler 버전은 `pnpm-workspace.yaml`의 catalog에서 관�
 API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild용 플러그인 진입점이다. 기존 browser build가 esbuild로 React, TypeScript와 npm 의존성을 브라우저용 JS, CSS로 묶으므로 여기에 StyleX 변환을 연결한다. 패스키 API는 그 정적 산출물을 직접 제공한다. `build.mjs`는 Node에서 실행하는 ESM 빌드 스크립트이며, 브라우저가 이 파일이나 compiler를 실행하지 않는다. 앱마다 bundler는 유지하고 StyleX 옵션, 버전을 공유한다.
 
 - `runtimeInjection: false`: production CSS를 빌드 시 추출해 기존 CSP와 정적 stylesheet 경로를 유지한다.
-- `useCSSLayers: false`: 기존 SEED 스타일과 같은 cascade에서 조합한다.
+- `useCSSLayers: false`: SEED, 공용 토큰 CSS 같은 전역 기반 스타일과 같은 cascade에서 조합한다.
 - Vite에서는 StyleX를 React plugin보다 먼저 실행한다. Vitest는 HTTP/HMR timer가 없는 Rollup adapter를 사용한다.
 - esbuild는 `metafile: true`와 StyleX plugin을 함께 사용한다. 기존 CSS 출력에 추출한 스타일을 합치므로 HTML의 stylesheet 링크는 유지된다.
-- Browser entry는 SEED `base.css`와 공용 `foundation.css`를 한 번 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
-- Desktop renderer entry는 `base.css` 다음에 `apps/desktop/src/frontend/src/assets/seed-brand.css`를 import해 SEED brand 토큰을 메인 컬러 파랑으로 다시 매핑한다. 허용 범위는 [Design System의 전역 override 예외](../rules/design-system.md#화면별-스타일-조정)를 따르며, 다른 앱의 SEED brand 표현은 당근 주황 그대로다.
+- 현재 browser entry는 SEED `base.css`와 공용 `foundation.css`를 한 번 import한다. 이행 뒤에는 `@dfragon/ui/tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
+- 현재 Desktop renderer entry는 `base.css` 다음에 `apps/desktop/src/frontend/src/assets/seed-brand.css`를 import해 SEED brand 토큰을 파랑으로 다시 매핑한다. 이 파일은 [Design System의 이행 기준](../rules/design-system.md#적용-상태와-범위)에 따라 Desktop SEED 제거 PR에서 삭제한다. 다른 앱의 SEED brand 표현은 당근 주황 그대로다.
 
 | 소비자 | 연결 위치 |
 | --- | --- |
@@ -32,7 +32,7 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 | 공용 UI Example, test | `packages/ui/examples/vite.config.ts`, `packages/ui/vitest.config.ts` |
 | 공용 UI 산출물 소비 검사 | `packages/ui/test/build-consumer/vite.config.ts` |
 
-공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. 공용 UI library의 기존 SEED 배포/CSS 소유 경계는 유지한다. 공용 UI의 디자인 컴포넌트와 TextField 포커스 색은 SEED CSS 변수만 쓰는 `stylex.create`이며, library build는 이를 컴파일하지 않고 CSS도 내지 않는다. 위 소비자의 compiler가 앱 스타일과 함께 정적 CSS로 추출하므로 `@dfragon/ui` 기본 entry를 쓰는 앱은 StyleX compiler를 연결해야 한다. `@dfragon/ui/typo`는 StyleX를 쓰지 않는다.
+공식 [unplugin 설정](https://stylexjs.com/docs/api/configuration/unplugin/)과 [Vite 연결](https://stylexjs.com/docs/learn/installation/vite/)을 따른다. 공용 UI library의 배포/CSS 소유 경계는 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다. 현재 공용 UI의 디자인 컴포넌트와 TextField 포커스 색은 SEED CSS 변수를 쓰는 `stylex.create`이고 이행 뒤에는 `--df-*` 변수를 쓴다. Library build는 이를 컴파일하지 않고 CSS도 내지 않는다. 위 소비자의 compiler가 앱 스타일과 함께 정적 CSS로 추출하므로 `@dfragon/ui` 기본 entry를 쓰는 앱은 StyleX compiler를 연결해야 한다. `@dfragon/ui/typo`는 StyleX를 쓰지 않는다.
 
 ## 작성 예시
 
