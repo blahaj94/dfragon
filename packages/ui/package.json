@@ -8,6 +8,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./tokens.css": "./tokens.css",
+    "./tokens.stylex": "./src/tokens.stylex.ts",
     "./foundation.css": "./foundation.css",
     "./typo": {
       "types": "./dist/typo.d.ts",
@@ -17,7 +19,7 @@
   },
   "scripts": {
     "test": "pnpm typecheck && vitest run && pnpm test:tooling",
-    "test:tooling": "node --test test/build-verification.node.mjs",
+    "test:tooling": "node --test test/build-verification.node.mjs test/tokens.node.mjs",
     "test:consumer-lifecycle": "node --test --test-timeout=25000 test/consumer-process-lifecycle.node.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint",
@@ -63,6 +65,8 @@
     "dist",
     "seed-provenance.json",
     "README.md",
+    "tokens.css",
+    "src/tokens.stylex.ts",
     "foundation.css",
     "stylex.config.ts"
   ]

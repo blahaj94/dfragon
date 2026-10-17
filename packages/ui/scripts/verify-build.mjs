@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
-import { readFile, readdir } from 'node:fs/promises'
+import { access, readFile, readdir } from 'node:fs/promises'
 import { isBuiltin } from 'node:module'
 import { dirname, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +32,58 @@ function moduleSpecifiers(file, code) {
   return specifiers
 }
 
+// 소비자 StyleX는 import 경로가 .stylex로 끝나는 파일에서, 같은 이름으로 export된 defineConsts만 읽는다.
+function defineConstsBindings(file, code) {
+  const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest)
+  const bindings = []
+  const sameNameExports = new Set()
+  function visit(node) {
+    if (ts.isVariableStatement(node)) {
+      const isExportedDeclaration =
+        node.modifiers?.some((modifier) => {
+          const isExportModifier = modifier.kind === ts.SyntaxKind.ExportKeyword
+
+          return isExportModifier
+        }) === true
+      for (const declaration of node.declarationList.declarations) {
+        const initializer = declaration.initializer
+        const isConstsCall =
+          ts.isIdentifier(declaration.name) &&
+          initializer !== undefined &&
+          ts.isCallExpression(initializer) &&
+          ts.isPropertyAccessExpression(initializer.expression) &&
+          initializer.expression.name.text === 'defineConsts'
+        if (isConstsCall) {
+          bindings.push({ name: declaration.name.text, isExportedDeclaration })
+        }
+      }
+    }
+
+    const isLocalExportList =
+      ts.isExportDeclaration(node) &&
+      !node.moduleSpecifier &&
+      node.exportClause &&
+      ts.isNamedExports(node.exportClause)
+    if (isLocalExportList) {
+      for (const specifier of node.exportClause.elements) {
+        const localName = specifier.propertyName?.text ?? specifier.name.text
+        const isSameName = localName === specifier.name.text
+        if (isSameName) {
+          sameNameExports.add(localName)
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(source)
+
+  return bindings.map((binding) => {
+    const isNamedExport = binding.isExportedDeclaration || sameNameExports.has(binding.name)
+
+    return { name: binding.name, isNamedExport }
+  })
+}
+
 const [mode, outputPath] = process.argv.slice(2)
 const isLibrary = mode === 'library'
 const isConsumer = mode === 'consumer'
@@ -45,6 +97,9 @@ if (isLibrary) {
   for (const [entry, conditions] of Object.entries(manifest.exports)) {
     const isAsset = typeof conditions === 'string'
     if (isAsset) {
+      await access(resolve(uiRoot, conditions)).catch(() => {
+        assert.fail(`Public export file: ${entry} ${conditions}`)
+      })
       continue
     }
     for (const condition of ['import', 'types']) {
@@ -108,6 +163,8 @@ for (const source of provenance.files) {
 
 const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
 const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
+// tokens.css에서 한 번만 정의하는 변수로 import 횟수를 센다.
+const TOKENS_DEFINITION_PATTERN = /--df-brand-dragon\s*:/g
 const FOUNDATION_FONT_FAMILY_PATTERN = /(?:^|[;{])\s*font-family\s*:[^;}]*Apple SD Gothic Neo/g
 
 if (isLibrary) {
@@ -141,6 +198,26 @@ if (isLibrary) {
     }
   }
 
+  const tokenFiles = javaScriptFiles.filter((file) => {
+    const isStylexFile = file.endsWith('.stylex.js')
+
+    return isStylexFile
+  })
+  assert.deepEqual(tokenFiles, ['tokens.stylex.js'], 'Shared tokens stay in tokens.stylex.js')
+  for (const file of javaScriptFiles) {
+    const code = await readFile(resolve(output, file), 'utf8')
+    const bindings = defineConstsBindings(file, code)
+    const isTokenFile = tokenFiles.includes(file)
+    if (!isTokenFile) {
+      assert.equal(bindings.length, 0, `defineConsts only in tokens.stylex.js: ${file}`)
+      continue
+    }
+    const hasBindings = bindings.length > 0
+    assert.ok(hasBindings, `Token constants: ${file}`)
+    for (const binding of bindings) {
+      assert.ok(binding.isNamedExport, `Token constants keep the same export name: ${binding.name}`)
+    }
+  }
   const visited = new Set()
   async function verifyTypo(file) {
     if (visited.has(file)) {
@@ -196,6 +273,11 @@ if (isLibrary) {
   assert.equal(baseImports.length, 1, 'Consumer must import base.css once')
   assert.equal(cssFiles.length, 1, 'Consumer must emit one combined stylesheet')
   const styles = await readFile(resolve(output, cssFiles[0]), 'utf8')
+  assert.equal(
+    styles.match(TOKENS_DEFINITION_PATTERN)?.length,
+    1,
+    'Consumer must import tokens.css once'
+  )
   assert.equal(
     styles.match(FOUNDATION_FONT_FAMILY_PATTERN)?.length,
     1,
