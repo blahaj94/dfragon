@@ -111,11 +111,11 @@
   },
   "foundation": {
     "local": "foundation.css",
-    "localSha256": "ce22e17499fc43c85fce96fe471c88c444eeff1719b8df81a3b46432d7aab1cc",
+    "localSha256": "25e3581b22e70a8691ac435aafcfba146697cdb3a835995b0b9b71a5710efb54",
     "source": "docs/content/foundations/typography.mdx",
     "changes": [
       "공식 system font stack을 body에 적용한다. Root font-size를 지정하지 않고 사용자 browser 기본값을 유지한다.",
-      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @seed-design/css@3.0.2의 bg.layerDefault, fg.neutral Token을 body 환경에 연결한다. Component selector, Token 재정의 없음."
+      "DFragon 초기화: full-viewport Layout의 body 기본 여백을 제거하고 @dfragon/ui/tokens.css의 --df-bg-canvas, --df-fg-default 토큰을 body 환경에 연결한다. Component selector, Token 재정의 없음."
     ],
     "packageEntryAudit": "@seed-design/css@3.0.2는 base/all, layered, min 변형을 제공하며 body font/reset 전용 entry는 없다. base.css의 --seed-font-family 변수는 body에 글꼴을 적용하지 않으므로 공용 foundation을 유지한다."
   }
