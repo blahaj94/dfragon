@@ -204,6 +204,8 @@ if (isLibrary) {
     return isStylexFile
   })
   assert.deepEqual(tokenFiles, ['tokens.stylex.js'], 'Shared tokens stay in tokens.stylex.js')
+  const hasTokenDeclaration = files.includes('tokens.stylex.d.ts')
+  assert.ok(hasTokenDeclaration, 'Token declaration: tokens.stylex.d.ts')
   for (const file of javaScriptFiles) {
     const code = await readFile(resolve(output, file), 'utf8')
     const bindings = defineConstsBindings(file, code)
