@@ -28,7 +28,9 @@ last-reviewed: 2026-10-18
 
 - `@dfragon/ui/tokens.css`(package root의 `tokens.css`)가 `--df-*` 변수를 정의한다. `:root`가 다크 기본값이고 `:root[data-theme='light']`가 라이트 값이다. `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다.
 - 모든 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다.
-- `@dfragon/ui/tokens`(source `src/tokens.ts`)는 StyleX와 React가 없는 entry다. `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수 맵으로 제공한다. `defineVars`, `createTheme`를 쓰지 않으므로 모드 전환은 CSS만으로 끝나고 portal마다 테마를 다시 바르지 않는다.
+- `@dfragon/ui/tokens.stylex`(source `src/tokens.stylex.ts`)는 `stylex.defineConsts`로 `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수로 제공한다. React는 쓰지 않지만 소비 앱의 StyleX 컴파일이 필요한 entry다.
+- StyleX compiler는 import 경로가 `.stylex`로 끝나는 모듈의 값만 다른 파일에서 정적으로 읽고, 그 경로를 bundler alias가 아닌 package exports로 해석한다. 그래서 entry 이름에 `.stylex`를 붙이고 `@dfragon/ui` 내부도 `./tokens.stylex`로 가져온다. `src/shapes.ts`처럼 `stylex.create`만 쓰는 파일은 이 이름 규칙의 대상이 아니다.
+- `defineVars`, `createTheme`, runtime 테마는 쓰지 않는다. 컴파일 결과에는 `var(--df-…)` 값이 그대로 들어가고 새 `:root` 변수가 생기지 않으므로, 모드 전환은 `tokens.css`만으로 끝나고 portal마다 테마를 다시 바르지 않는다.
 - `@dfragon/ui` source의 `src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`를 제공한다.
 - 모드는 `document.documentElement.dataset.theme`에 `'light'` 또는 `'dark'`를 넣어 바꾼다. SEED의 `data-seed-color-mode`를 대신한다.
 
@@ -124,7 +126,7 @@ Desktop, API 패스키, OCR, Web의 화면별 간격, 정렬, 너비, 영역 pad
 
 컴포넌트 전용 StyleX는 옆의 `{name}.style.ts`에 module scope의 `stylex.create`와 named export로 둔다. JSX는 `stylex.props(base, condition && variant)`로 필요한 스타일을 합성한다. 다른 `className`과 함께 쓰면 한쪽을 덮어쓰지 않도록 합친다. 전용 스타일이 없는 컴포넌트에 빈 파일을 만들지 않는다.
 
-공용 색, 간격, 반지름, 모션은 `@dfragon/ui/tokens`의 상수를 쓴다. 앱에만 필요한 StyleX 변수, 테마가 있으면 앱의 `.stylex.ts`에서 `defineVars`, `createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. `@dfragon/ui`의 StyleX는 `--df-*` 변수만 참조한다. 여러 화면이 쓰는 디자인 값에 토큰이 없으면 dfragon-design `tokens.json`과 `tokens.css`에 토큰을 추가해 쓴다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
+공용 색, 간격, 반지름, 모션은 `@dfragon/ui/tokens.stylex`의 상수를 쓴다. 앱에만 필요한 StyleX 변수, 테마가 있으면 앱의 `.stylex.ts`에서 `defineVars`, `createTheme`를 사용한다. 앱 고유 배치는 앱이, 실제 여러 화면이 공유하는 UI는 `@dfragon/ui`가 소유한다. `@dfragon/ui`의 StyleX는 `--df-*` 변수만 참조하며, 토큰 상수의 `defineConsts` 외에 `defineVars`, `createTheme`를 쓰지 않는다. 여러 화면이 쓰는 디자인 값에 토큰이 없으면 dfragon-design `tokens.json`과 `tokens.css`에 토큰을 추가해 쓴다. StyleX API를 다시 감싼 runtime wrapper는 만들지 않는다.
 
 라이브러리 내부 DOM을 가정한 selector, 다른 화면에 퍼지는 전역 override, focus 표시, disabled/loading 차단, 접근 가능한 이름을 깨는 변경은 피한다. 여러 사용처가 공유해야 하는 의미나 중요한 interaction 변경은 공용 정의에서 처리하고 영향을 확인한다. 스타일 조정으로 제품 동작, 접근성 결함을 숨기지 않는다.
 
