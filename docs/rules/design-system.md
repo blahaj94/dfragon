@@ -9,16 +9,16 @@ last-reviewed: 2026-10-18
 
 ## 적용 상태와 범위
 
-2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어낸다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [택티컬 디자인 규칙](#택티컬-디자인-규칙)으로 다시 그리고, OCR, Accounts, Web은 SEED만 걷어내며 화면 배치는 유지한다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며 2026-10-18 결정으로 대체한다.
+2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어낸다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그리고, OCR, Accounts, Web은 SEED만 걷어내며 화면 배치는 유지한다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며 2026-10-18 결정으로 대체한다.
 
-이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 후속 PR에서 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제, Desktop 택티컬 적용 순서로 단계적으로 진행하며, 이행 중에는 SEED 코드가 남아 있다.
+이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 후속 PR에서 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제, Desktop DFragon 디자인 적용 순서로 단계적으로 진행하며, 이행 중에는 SEED 코드가 남아 있다.
 
 - 해당 앱의 이행 PR 전까지 기존 SEED 사용처는 고쳐 쓸 수 있다. `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
 - 남은 SEED 코드의 의존성, CSS 경계와 그 검사는 그 코드를 지우는 이행 PR에서 함께 바꾼다. Desktop의 SEED brand 재매핑(`apps/desktop/src/frontend/src/assets/seed-brand.css`)은 Desktop SEED 제거 PR에서 삭제하며 대신할 전역 override 예외는 두지 않는다.
-- 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 택티컬 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
+- 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
 - 공대 12인 화면과 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 데이터 연결은 별도 과제다.
 
-디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/blahaj94/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. 택티컬 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
+디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/blahaj94/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. DFragon 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
 
 공용 자산과 Base UI를 우선 사용해 필요한 화면을 완성한다. 공용화와 예제 구축을 제품 화면의 선행 작업으로 만들지 않는다.
 
@@ -68,12 +68,12 @@ last-reviewed: 2026-10-18
 | `Typo` | 변경 없음. 아래 [Typo의 명시적 예외](#typo의-명시적-예외)를 따른다 |
 
 - 키보드 조작, 포커스 이동과 복귀, ARIA 같은 interaction과 접근성은 Base UI가 책임진다. 공용 Component는 Base UI 부품의 semantic API를 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다.
-- 이행 중에는 `ActionButton`을 `Button`으로, `StatusBadge`를 `StatusChip`으로 잇는 alias를 두고 Desktop 택티컬 적용의 마지막 PR에서 제거한다.
+- 이행 중에는 `ActionButton`을 `Button`으로, `StatusBadge`를 `StatusChip`으로 잇는 alias를 두고 Desktop DFragon 디자인 적용의 마지막 PR에서 제거한다.
 - `@base-ui/react`는 `@dfragon/ui`의 peer dependency이자 build external이다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에서 제거한다. Package, CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 - 업데이트에서는 바뀐 API, peer 조건, 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 - Base UI, Barlow Condensed처럼 새로 들이는 외부 코드와 자산의 license, NOTICE는 `@dfragon/licenses`의 고지 수집에 포함한다.
 
-## 택티컬 디자인 규칙
+## DFragon 디자인 규칙
 
 Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 토큰과 Component가 주는 외형을 받되 화면 배치는 다시 그리지 않는다. 상세 값과 예시는 dfragon-design 문서를 따른다.
 
