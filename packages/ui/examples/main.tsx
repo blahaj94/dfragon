@@ -1,6 +1,7 @@
 import { StrictMode, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@seed-design/css/base.css'
+import '@dfragon/ui/tokens.css'
 import '@dfragon/ui/foundation.css'
 import {
   ActionButton,

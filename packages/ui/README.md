@@ -4,11 +4,33 @@
 
 ## Public API와 CSS 책임
 
-ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. TextField만 예외로 Snippet의 props를 그대로 받는 얇은 wrapper에서 포커스 선 변수 `--seed-color-stroke-neutral-contrast`만 `--seed-color-stroke-focus-ring`으로 지정한다. 내부 `src/seed` 경로는 package export가 아니며 provenance hash를 유지하려고 직접 고치지 않는다. IconButton, StatusBadge, Checkmark는 아래 [디자인 컴포넌트](#디자인-컴포넌트)에서 설명한다.
+ActionButton, TextField/TextFieldInput, DialogRoot/Trigger/Content/Body/Footer/Action과 LayoutBlock을 제공한다. ContentStack, ExampleSection, SupportingText는 중립 Example을 위한 DFragon composition이며 공식 block의 gap=x6와 Text 역할별 기본값을 공유한다. 공식 이름, semantic prop, ref를 유지하며 runtime wrapper 없이 public prop type에서 임의 style, className, 시각 값 override를 제외한다. TextField만 예외로 Snippet의 props를 그대로 받는 얇은 wrapper에서 포커스 선 변수 `--seed-color-stroke-neutral-contrast`만 `--seed-color-stroke-focus-ring`으로 지정한다. 내부 `src/seed` 경로는 package export가 아니며 provenance hash를 유지하려고 직접 고치지 않는다. IconButton, StatusBadge, Checkmark는 아래 [디자인 컴포넌트](#디자인-컴포넌트)에서, 토큰과 `shapes`는 [토큰](#토큰)에서 설명한다.
 
-SEED React `3.0.0`, CSS `3.0.2`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.29.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`를 한 번 import하고 공식 Vite plugin `2.1.1`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
+SEED React `3.0.0`, CSS `3.0.2`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. 공식 icon `1.29.0`은 dependency다. Library build는 SEED, React, React DOM, JSX runtime, StyleX, icon을 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@seed-design/css/base.css`, `@dfragon/ui/tokens.css`를 한 번씩 import하고 공식 Vite plugin `2.1.1`을 연결한다. Plugin의 기본 system Theme 초기화와 recipe가 가져오는 CSS를 그대로 사용한다.
 
 Loading은 disabled를 포함하지 않는 공식 상태다. Busy 작업에서 activation을 차단하려면 `loading`과 `disabled`를 함께 전달한다. TextField는 공식 grapheme callback의 `value`를 controlled state에 연결하며 callback 횟수 보장을 추가하지 않는다. Dialog의 기본 outside interaction 닫기 정책은 공식 Snippet의 `false`다. 공용 Dialog는 2.x의 `ContentDialog`, 3.x의 `Dialog`를 사용하는 일반 대화상자다. `role="dialog"`, Escape 닫기, trigger 포커스 복귀를 유지하며 `AlertDialog`로 바꾸지 않는다.
+
+## 토큰
+
+DFragon 디자인 토큰은 CSS custom property와 StyleX 상수 두 형태로 제공한다. 값과 이름은 dfragon-design `design/tokens.json`을 손으로 옮긴 것이며 기준 commit은 `tokens.css` 머리말에 적는다.
+
+- `@dfragon/ui/tokens.css`: `--df-*` 변수. `:root`가 다크 기본값, `:root[data-theme='light']`가 라이트 값이며 `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다. 앱이 `data-theme`을 넣기 전에는 SEED 라이트 모드(`data-seed-color-mode`의 `light-only`, `system`과 `data-seed-user-color-scheme='light'`)에서도 라이트 값을 쓴다. 이 SEED 선택자는 SEED 잔여 삭제 PR에서 지운다. Library JS는 이 파일을 import하지 않는다.
+- `@dfragon/ui/tokens.stylex`: `colors`, `space`, `radius`, `shape`, `size`, `motion`, `font`. `stylex.defineConsts`로 `'var(--df-…)'` 문자열을 정의하며 `defineVars`, `createTheme`를 쓰지 않으므로 모드 전환은 CSS만으로 끝난다. StyleX compiler는 import 경로가 `.stylex`로 끝나는 파일의 `defineConsts`만 다른 파일에서 읽으므로 export 이름에 `.stylex`를 둔다. Package export는 source(`src/tokens.stylex.ts`)를 가리켜 소비 앱이 library를 먼저 빌드하지 않아도 compiler가 해석한다. 컴파일 없이 실행하면 `defineConsts`가 오류를 낸다.
+- `shapes`: 기본 entry의 공용 `stylex.create`. `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`.
+
+Library build는 `tokens.stylex`를 별도 entry로 두어 `dist/tokens.stylex.js`에 남기고 `index.js`가 이 파일을 import한다. Compiler는 `defineConsts` 결과가 같은 이름으로 export될 때만 받아들이므로 library build는 식별자를 줄이지 않는다(`minify: false`).
+
+```tsx
+import * as stylex from '@stylexjs/stylex'
+import { shapes } from '@dfragon/ui'
+import { colors, motion, space } from '@dfragon/ui/tokens.stylex'
+
+const styles = stylex.create({
+  primary: { backgroundColor: colors.signal, color: colors.onSignal, padding: space.s8, transitionDuration: motion.durHover }
+})
+
+<button {...stylex.props(styles.primary, shapes.cutTopRight)}>검색</button>
+```
 
 ## 디자인 컴포넌트
 
@@ -72,7 +94,7 @@ import { Typo } from '@dfragon/ui'
 
 `@dfragon/ui/stylex-config`는 모든 앱과 Example, test가 사용하는 빌드 전용 compiler 옵션이다. Browser runtime에서 import하지 않는다. StyleX 버전은 workspace catalog에 둔다. 앱별 adapter 연결과 스타일 작성법은 [앱 공통 StyleX](../../docs/reference/app-styling.md)를 따른다. 이 entry를 쓰기 위해 UI library를 먼저 빌드할 필요는 없다.
 
-Library의 StyleX는 SEED CSS 변수만 참조하고 `defineVars`나 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 `stylex.create`를 그대로 내보낸다. 소비 앱과 Example, test의 StyleX compiler가 이 옵션으로 정적 CSS를 만들며, compiler 없이 전체 entry를 실행하면 `stylex.create`가 실행 시점에 오류를 낸다. 주입 runtime(`@stylexjs/stylex/lib/stylex-inject`)은 정적 stylesheet와 CSP 경로를 깨므로 쓰지 않는다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
+Library의 StyleX는 SEED CSS 변수와 `--df-*` 변수만 참조하고 `defineVars`나 앱 테마를 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 `stylex.create`를 그대로 내보낸다. 소비 앱과 Example, test의 StyleX compiler가 이 옵션으로 정적 CSS를 만들며, compiler 없이 전체 entry를 실행하면 `stylex.create`가 실행 시점에 오류를 낸다. 주입 runtime(`@stylexjs/stylex/lib/stylex-inject`)은 정적 stylesheet와 CSP 경로를 깨므로 쓰지 않는다. `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
 
 ## Command
 
@@ -83,11 +105,11 @@ Library의 StyleX는 SEED CSS 변수만 참조하고 `defineVars`나 앱 테마�
 - `pnpm --filter @dfragon/ui test`: typecheck → Vitest interaction, Typo → 빌드 검사 도구의 Node 회귀를 실행한다. Layout 크기 관측만 jsdom에서 격리한다.
 - `pnpm --filter @dfragon/ui exec vitest run test/interaction.test.tsx`: 선택한 runtime 테스트만 실행한다. 파일 인수를 aggregate `test`에 전달하지 않는다.
 - `pnpm --filter @dfragon/ui typecheck`: src, test, examples를 실제 `tsc --noEmit`으로 검사한다.
-- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export, private declaration, Typo의 전이 dependency, CSS와 StyleX 주입 runtime import 거부를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
+- `pnpm --filter @dfragon/ui test:tooling`: 임시 산출물로 누락 export, private declaration, Typo의 전이 dependency, CSS와 StyleX 주입 runtime import 거부, 토큰 상수의 위치와 export 이름, `tokens.css` 변수 정의를 확인한다. library 선행 build나 소비 앱의 산출물 삭제 없이 실행한다.
 - `pnpm --filter @dfragon/ui test:consumer-lifecycle`: POSIX detached child/group 종료의 실패, 기한, 오류 보존 검사. 일반 `test`와 분리하며 현재 macOS에서 검증한다.
 - `pnpm --filter @dfragon/ui lint`
 - `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`: StyleX를 포함한 external, `@stylexjs/stylex` 외 StyleX import 없음, CSS 없음, source/고지 hash 검증.
-- `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React/SEED 사본, base.css 1회, stylesheet 1개, 고지 확인.
+- `node packages/ui/scripts/verify-build.mjs consumer <산출물 경로>`: 단일 React/SEED 사본, base.css 1회, tokens.css 1회, stylesheet 1개, 고지 확인.
 - `pnpm install --frozen-lockfile`
 - `node --test packages/ui/scripts/test-consumer-resolution.mjs`: 전용 checkout의 cold consumer command 회귀. 격리, 삭제되는 산출물, Desktop 경계는 `test/consumer-resolution.md`를 먼저 확인한다.
 
@@ -109,7 +131,7 @@ Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 Ty
 
 ## 소비 entry와 실제 UI 확인
 
-각 browser entry는 base.css 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
+각 browser entry는 base.css, `@dfragon/ui/tokens.css` 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 공식 Typography의 system font stack과 body 초기화(여백, `--df-fg-default` 글자색, `--df-bg-canvas` 바탕)만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
 
 Web은 기존 counter를 ActionButton으로 바꾸고 충돌하던 counter CSS, root 18px font 초기화를 제거했다. 기존 설명, link, counter 의미를 유지한다. Desktop은 renderer의 Start/Stop만 ActionButton으로 바꾸며 source 선택, interval, callback, disabled 의미와 capture 구현을 보존한다. Desktop의 React, UI package는 기존 renderer dependency 배치에 맞춰 devDependency로 설치하고 renderer bundle에 포함한다.
 

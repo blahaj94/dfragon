@@ -1,0 +1,167 @@
+/*
+ * DFragon 디자인 토큰. 값과 이름은 dfragon-design design/tokens.json 기준이며,
+ * 기준 commit은 bc120e5(dfragon-design PR #31)다. 두 저장소 사이에 자동 동기화가 없으므로
+ * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
+ *
+ * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다.
+ * 라이트 값 중 provisional 표시는 디자인 저장소가 라이트 값을 정하기 전의 임시 값이다.
+ * StyleX에서는 같은 이름의 문자열 상수를 @dfragon/ui/tokens.stylex에서 가져온다.
+ */
+:root {
+  /* 의미 색(semantic-dark) */
+  --df-bg-canvas: #0f0f11;
+  --df-bg-bar: #121214;
+  --df-bg-surface: #17171a;
+  --df-bg-inset: #1e1e22;
+  --df-bg-stripe: #1e1e22;
+  --df-bg-control: #26262b;
+  --df-bg-control-hover: #2c2c31;
+  --df-bg-well: #121214;
+  --df-bg-success-weak: #3dd68c1f;
+  --df-bg-danger-weak: #ff6e6029;
+  --df-bg-overlay: #00000074;
+  --df-signal: #f8e8c8;
+  --df-on-signal: #111012;
+  --df-brand-logo: #e83830;
+  --df-fg-default: #f1ede6;
+  --df-fg-muted: #ada9a2;
+  --df-fg-subtle: #85817b;
+  --df-fg-placeholder: #85817b;
+  --df-fg-disabled: #44444b;
+  --df-fg-success: #3dd68c;
+  --df-fg-danger: #ff6e60;
+  --df-fg-adventure: #93e5c0;
+  --df-border-default: #2c2c31;
+  --df-border-strong: #44444b;
+  --df-border-danger: #ff6e60;
+  --df-tier-top: #ffb400;
+  --df-tier-ranker: #50e3c2;
+  --df-tier-ranker-surface: #141b1a;
+  --df-tier-ranker-well: #0f1716;
+  --df-tier-ranker-outline: #50e3c259;
+  --df-card-bg: #17171a;
+  --df-card-bg-waiting: #141416;
+  --df-card-inset: #1e1e22;
+  --df-card-stripe: #1e1e22;
+  --df-card-control: #26262b;
+  --df-card-control-hover: #2c2c31;
+  --df-card-border: #2c2c31;
+  --df-card-border-strong: #44444b;
+  --df-card-divider: #222226;
+  --df-card-fg: #f1ede6;
+  --df-card-fg-muted: #ada9a2;
+  --df-card-fg-subtle: #85817b;
+  --df-card-fg-adventure: #93e5c0;
+  --df-card-signal: #f8e8c8;
+  --df-card-on-signal: #111012;
+  --df-bracket-default: #44444b;
+  --df-bracket-selected: #f8e8c8;
+  --df-bracket-danger: #ff6e60;
+  --df-bracket-top: #ffb400;
+  --df-bracket-ranker: #50e3c2;
+  --df-hazard: #ff6e601a;
+  --df-grid-line: #ffffff09;
+
+  /* 브랜드 색(brand). 두 모드에서 같다 */
+  --df-brand-dragon: #e83830;
+  --df-brand-cream: #f8e8c8;
+  --df-brand-outline: #000000;
+
+  /* 게임 색(game): 희귀도, 마법부여, 강화와 증폭, 속성. 두 모드에서 같다 */
+  --df-rarity-common: #ffffff;
+  --df-rarity-uncommon: #68d5ed;
+  --df-rarity-rare: #b36bff;
+  --df-rarity-unique: #ff00ff;
+  --df-rarity-epic: #ffb400;
+  --df-rarity-legendary: #ff7800;
+  --df-rarity-chronicle: #ff6666;
+  --df-rarity-primordial: #50e3c2;
+  --df-enchant-final: #50e3c2;
+  --df-enchant-semi: #ffb400;
+  --df-enchant-other: #ffffff;
+  --df-game-enhance: #68d5ed;
+  --df-game-amplify: #ff75f5;
+  --df-attr-fire: #ff9d85;
+  --df-attr-water: #83caff;
+  --df-attr-light: #e9be6b;
+  --df-attr-dark: #beadf2;
+
+  /* 간격, 반지름, 형태, 크기(layout) */
+  --df-space-4: 4px;
+  --df-space-8: 8px;
+  --df-space-12: 12px;
+  --df-space-16: 16px;
+  --df-space-24: 24px;
+  --df-radius-panel: 0;
+  --df-radius-control: 2px;
+  --df-cut: 8px;
+  --df-grid-cell: 24px;
+  --df-hazard-stripe: 10px;
+  --df-size-topbar: 56px;
+  --df-size-control-sm: 32px;
+  --df-size-control-md: 40px;
+  --df-size-control-lg: 48px;
+
+  /* 모션(motion) */
+  --df-ease: cubic-bezier(0.2, 0, 0, 1);
+  --df-dur-hover: 120ms;
+  --df-dur-state: 180ms;
+  --df-dur-count: 400ms;
+  --df-cycle: 4s;
+  --df-beat: 0.9s;
+
+  /* 글꼴(typography). UI 글꼴은 Desktop, OCR 전역 글꼴 CSS의 body 대체 순서와 같다 */
+  --df-font-ui:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --df-font-num:
+    'Barlow Condensed', 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+/*
+ * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
+ * 카드 위에서만 쓰는 card.*, bracket.*, hazard, gridLine, tier.ranker{Surface,Well,Outline}와
+ * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
+ *
+ * 앱이 아직 data-theme을 넣지 않는 동안에는 SEED 라이트 모드(light-only, system의 light)를 따른다.
+ * data-theme이 있으면 그 값을 우선한다. 앱별 SEED 제거 PR이 data-theme으로 옮긴 뒤
+ * SEED 잔여 삭제 PR에서 data-seed-color-mode 선택자를 지운다.
+ */
+:root[data-theme='light'],
+:root:not([data-theme])[data-seed-color-mode='light-only'],
+:root:not([data-theme])[data-seed-color-mode='system'][data-seed-user-color-scheme='light'] {
+  --df-bg-canvas: #f3f4f5; /* provisional */
+  --df-bg-bar: #ffffff; /* provisional */
+  --df-bg-surface: #ffffff; /* provisional */
+  --df-bg-inset: #f7f8f9; /* provisional */
+  --df-bg-stripe: #f3f4f5; /* provisional */
+  --df-bg-control: #eeeff1; /* provisional */
+  --df-bg-control-hover: #dcdee3; /* provisional */
+  --df-bg-success-weak: #edfaf6; /* provisional */
+  --df-bg-danger-weak: #fdf0f0; /* provisional */
+  --df-bg-overlay: #00000074; /* provisional */
+  --df-signal: #2a2520; /* provisional */
+  --df-on-signal: #f8e8c8; /* provisional */
+  --df-fg-default: #1a1c20; /* provisional */
+  --df-fg-muted: #555d6d; /* provisional */
+  --df-fg-subtle: #868b94; /* provisional */
+  --df-fg-placeholder: #b0b3ba; /* provisional */
+  --df-fg-disabled: #d1d3d8; /* provisional */
+  --df-fg-success: #079171; /* provisional */
+  --df-fg-danger: #fa342c; /* provisional */
+  --df-fg-adventure: #00745f; /* provisional */
+  --df-border-default: #dcdee3; /* provisional */
+  --df-border-strong: #d1d3d8; /* provisional */
+  --df-border-danger: #fa342c; /* provisional */
+  --df-tier-top: #ffb400; /* provisional */
+  --df-tier-ranker: #50e3c2; /* provisional */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --df-dur-hover: 0ms;
+    --df-dur-state: 0ms;
+    --df-dur-count: 0ms;
+  }
+}

@@ -14,6 +14,7 @@ COPY apps/ocr apps/ocr
 COPY packages/licenses/src packages/licenses/src
 COPY packages/licenses/notices packages/licenses/notices
 COPY packages/licenses/overrides.json packages/licenses/overrides.json
+COPY packages/ui/tokens.css packages/ui/tokens.css
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
