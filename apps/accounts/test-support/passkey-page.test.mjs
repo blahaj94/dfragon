@@ -41,10 +41,12 @@ test('빌드된 패스키 HTML은 표시 값을 escape하고 같은 origin 자�
     'form-action': "'none'",
     'frame-ancestors': "'none'"
   })
-  const scripts = [...first.html.matchAll(/<script\b[^>]*>/gi)]
-  assert.equal(scripts.length, 1)
-  assert.ok(scripts[0][0].includes(`nonce="${nonce}"`))
-  assert.ok(scripts[0][0].includes('src="/auth/passkeys/client.js"'))
+  const scripts = [...first.html.matchAll(/<script\b[^>]*>/gi)].map(([tag]) => tag)
+  assert.deepEqual(scripts, [
+    `<script nonce="${nonce}">`,
+    `<script nonce="${nonce}" src="/auth/passkeys/client.js" defer>`
+  ])
+  assert.ok(first.html.indexOf(scripts[0]) < first.html.indexOf('</head>'))
   assert.notEqual(first.policy, second.policy)
   assert.match(first.html, /href="\/auth\/passkeys\/client.css"/)
   assert.match(first.html, /href="\/auth\/passkeys\/icon.png"/)

@@ -22,6 +22,7 @@ COPY packages/ui/tokens.css packages/ui/tokens.css
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
+COPY packages/ui/src/tokens.stylex.ts packages/ui/src/tokens.stylex.ts
 COPY packages/licenses/notices/upstream/stylex-LICENSE.txt packages/licenses/notices/upstream/stylex-LICENSE.txt
 RUN pnpm --filter @dfragon/accounts test \
     && pnpm --filter @dfragon/accounts deploy --legacy --prod /production

@@ -268,6 +268,15 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
     }
     mark('signup through actual browser bundle and WebAuthn verifier')
     const first = await begin()
+    mark('CSP 아래에서 시스템 색 모드가 data-theme에 반영되고 변경을 따른다')
+    // Playwright 기본 colorScheme은 light라 첫 값은 페이지 로드 때 실행한 script가 넣은 값이다.
+    assert.equal(
+      await page.evaluate(() => globalThis.document.documentElement.dataset.theme),
+      'light'
+    )
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.waitForFunction(() => globalThis.document.documentElement.dataset.theme === 'dark')
+    await page.emulateMedia({ colorScheme: 'light' })
     assert.deepEqual(await page.getByRole('button').allTextContents(), [
       '패스키로 로그인',
       '새 계정 만들기'
