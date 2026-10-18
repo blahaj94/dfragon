@@ -62,7 +62,7 @@ async function render(
     root.render(
       <RaidPage
         id="raid-cards"
-        status=""
+        notice=""
         collapsed={false}
         onToggleCollapsed={vi.fn()}
         lastCapturedAt={null}
@@ -178,7 +178,7 @@ it('머리의 안내와 숨김 상태를 보이고 접기 버튼이 카드 영�
   const toggle = vi.fn()
   await render({
     characters: [member],
-    status: '캐릭터 정보 창을 열지 못했습니다.',
+    notice: '캐릭터 정보 창을 열지 못했습니다.',
     onToggleCollapsed: toggle
   })
   expect(container.querySelector('[role="status"]')?.textContent).toBe(
