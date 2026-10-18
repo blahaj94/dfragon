@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './styles.js'
-import { darkTheme } from './theme.stylex.js'
 import { useColorMode } from './hooks/use-color-mode.js'
 import { useOcrSession } from './hooks/use-ocr-session.js'
 import { useSampleWorkspace } from './hooks/use-sample-workspace.js'
@@ -218,9 +217,7 @@ export function App() {
   }
 
   return (
-    <div
-      {...stylex.props(styles.root, mode === 'dark' && darkTheme, mode === 'dark' && styles.dark)}
-    >
+    <div {...stylex.props(styles.root, mode === 'dark' && styles.dark)}>
       <main {...stylex.props(styles.main)}>
         <header {...stylex.props(styles.header)}>
           <div {...stylex.props(styles.eyebrow, styles.brand)}>DFragon / Developer</div>

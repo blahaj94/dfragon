@@ -25,6 +25,7 @@
 !packages/ui/stylex.config.ts
 !packages/ui/src/
 !packages/ui/src/typo.tsx
+!packages/ui/src/tokens.stylex.ts
 !packages/licenses/
 !packages/licenses/package.json
 !packages/licenses/src/

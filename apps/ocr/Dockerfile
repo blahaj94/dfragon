@@ -18,6 +18,7 @@ COPY packages/ui/tokens.css packages/ui/tokens.css
 COPY packages/ui/foundation.css packages/ui/foundation.css
 COPY packages/ui/stylex.config.ts packages/ui/stylex.config.ts
 COPY packages/ui/src/typo.tsx packages/ui/src/typo.tsx
+COPY packages/ui/src/tokens.stylex.ts packages/ui/src/tokens.stylex.ts
 RUN pnpm --filter @dfragon/ocr build && pnpm --filter @dfragon/ocr deploy --legacy --prod /production
 FROM docker.io/library/node:26-bookworm-slim@sha256:86f07bc9c5dce4578cf37e5a418b7bfc7f817cda25cde66e2b66e95ed86c4567 AS runtime
 ARG SOURCE_COMMIT=""

@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from './theme.stylex.js'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   root: {
@@ -29,7 +29,7 @@ export const styles = stylex.create({
     marginBottom: { default: 26, '@media (max-width: 760px)': 24 }
   },
   brand: { gridColumn: '1 / -1' },
-  eyebrow: { fontSize: 12, lineHeight: '24px', color: colors.fgBrand },
+  eyebrow: { fontSize: 12, lineHeight: '24px', color: colors.fgSubtle },
   heading: { margin: 0 },
   title: { gridColumn: 1, gridRow: 2 },
   fileActions: {
@@ -47,7 +47,7 @@ export const styles = stylex.create({
     gridRow: 2
   },
   headerButton: { flexGrow: { default: 0, '@media (max-width: 760px)': 1 } },
-  themeButton: { width: 40, padding: 0, flexShrink: 0 },
+  themeButton: { width: 40, paddingInline: 0, flexShrink: 0 },
   paragraph: { lineHeight: 1.5, margin: 0 },
   muted: { color: colors.fgSubtle, fontSize: 12, margin: '4px 0 0' },
   actions: { display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
@@ -63,26 +63,27 @@ export const styles = stylex.create({
     minWidth: 0
   },
   splitButtons: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-  // StyleX rules outrank the SEED chip recipe, so restate its disabled colors and focus ring.
+  // The chip class in buttons.ts owns shape and focus; colors and the selected state merge here.
   chip: {
-    backgroundColor: { default: colors.bgControl, ':disabled': 'var(--seed-color-bg-disabled)' },
-    // Keep the former ControlChip disabled color and opacity; the label inherits selected color and weight.
-    color: {
-      default: 'var(--seed-color-fg-neutral)',
-      ':disabled': 'var(--seed-color-fg-disabled)'
+    backgroundColor: {
+      default: colors.bgControl,
+      ':hover:not(:disabled)': colors.bgControlHover,
+      ':disabled': colors.bgControl
     },
-    fontWeight: 'var(--seed-font-weight-medium)',
-    opacity: 1,
-    transition: 'none',
-    boxShadow: 'none',
-    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
-    outlineOffset: { default: null, ':focus-visible': 2 }
+    // The label inherits the selected color and weight.
+    color: { default: colors.fgDefault, ':disabled': colors.fgDisabled },
+    fontWeight: 500
   },
   chipLabel: { color: 'inherit', fontWeight: 'inherit' },
+  // The signal outline stays while disabled so the current split remains visible.
   selectedChip: {
-    backgroundColor: { default: colors.bgBrandWeak, ':disabled': 'var(--seed-color-bg-disabled)' },
-    color: { default: colors.fgBrand, ':disabled': 'var(--seed-color-fg-disabled)' },
-    boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`,
+    backgroundColor: {
+      default: colors.signal,
+      ':hover:not(:disabled)': colors.signal,
+      ':disabled': colors.bgControl
+    },
+    color: { default: colors.onSignal, ':disabled': colors.fgDisabled },
+    boxShadow: `inset 0 0 0 1px ${colors.signal}`,
     fontWeight: 700
   },
   control: {
@@ -100,7 +101,7 @@ export const styles = stylex.create({
     width: '100%',
     height: 40,
     color: colors.fgDefault,
-    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
+    outline: { default: null, ':focus-visible': `2px solid ${colors.signal}` },
     outlineOffset: { default: null, ':focus-visible': -1 },
     opacity: { default: 1, ':disabled': 0.5 },
     '::placeholder': { color: colors.fgPlaceholder }
@@ -141,7 +142,7 @@ export const styles = stylex.create({
   },
   statLabel: { fontSize: 12, lineHeight: '20px', color: colors.fgSubtle },
   statValue: { display: 'block', marginTop: 4, fontSize: 24, lineHeight: '34px', fontWeight: 600 },
-  accent: { color: colors.fgBrand },
+  accent: { color: colors.fgDefault },
   upload: {
     backgroundColor: colors.bgSurface,
     borderWidth: 1,
@@ -240,13 +241,12 @@ export const styles = stylex.create({
     cursor: 'pointer',
     color: colors.fgDefault,
     overflow: 'hidden',
-    outline: { default: null, ':focus-visible': `2px solid ${colors.borderFocus}` },
+    outline: { default: null, ':focus-visible': `2px solid ${colors.signal}` },
     outlineOffset: 2
   },
   selectedSample: {
-    borderColor: colors.borderBrand,
-    backgroundColor: colors.bgBrandWeak,
-    color: colors.fgBrand
+    borderColor: colors.signal,
+    backgroundColor: colors.bgControl
   },
   excludedSample: { opacity: 0.65 },
   sampleTitle: {
@@ -269,7 +269,7 @@ export const styles = stylex.create({
     display: 'block',
     fontSize: 12,
     lineHeight: '18px',
-    color: colors.fgBrand,
+    color: colors.fgDefault,
     margin: '4px 4px 0'
   },
   unassigned: { color: colors.fgMuted },
@@ -279,7 +279,7 @@ export const styles = stylex.create({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bgPreview,
+    backgroundColor: colors.bgWell,
     borderRadius: 6,
     overflow: 'hidden'
   },
@@ -322,7 +322,7 @@ export const styles = stylex.create({
     whiteSpace: 'nowrap'
   },
   largePreview: {
-    backgroundColor: colors.bgPreview,
+    backgroundColor: colors.bgWell,
     height: 104,
     padding: '12px',
     display: 'flex',
@@ -346,7 +346,12 @@ export const styles = stylex.create({
   },
   metadataLabel: { fontSize: 12, lineHeight: '18px', color: colors.fgSubtle },
   metadataValue: { fontSize: 14, lineHeight: '22px', margin: 0, overflowWrap: 'anywhere' },
-  originalLink: { fontSize: 14, lineHeight: '22px', color: colors.fgBrand, textDecoration: 'none' },
+  originalLink: {
+    fontSize: 14,
+    lineHeight: '22px',
+    color: colors.fgDefault,
+    textDecoration: 'underline'
+  },
   editorStatus: { fontSize: 14, margin: '12px 0 0', color: colors.fgSuccess },
   pagination: {
     display: 'flex',
@@ -388,8 +393,8 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     margin: '0 auto 20px',
-    backgroundColor: colors.bgBrandWeak,
-    color: colors.fgBrand,
+    backgroundColor: colors.bgControl,
+    color: colors.fgDefault,
     borderRadius: 16
   },
   loginButton: { width: '100%', marginTop: 32 },
