@@ -114,11 +114,11 @@ const raidMembers = [
   ['샘플나이트', '眞 엘븐나이트', 133410, 2950, 'top'],
   ['샘플퇴마', '眞 퇴마사', 112640, 31544, undefined],
   ['샘플뮤즈', '眞 뮤즈', 127310, 9821, undefined],
-  ['샘플닌자', '眞 쿠노이치', 119900, 23310, undefined]
+  ['샘플닌자', '眞 쿠노이치', 119900, null, undefined]
 ] as const
 
-// 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 공대 데이터와
-// 단계 기준이 아직 없어 이름, 단계, 순위, 숫자는 모두 합성 값이다.
+// 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 이름, 단계, 순위, 숫자는
+// 모두 합성 값이다. 순위가 없는 공대원은 제품 검색 응답처럼 길드와 장비 점수도 없어 `-`로 보인다.
 export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
   ...raidMembers.map(([name, job, fame, serverRank, tier]) => ({
     ...previewCharacter,
@@ -126,7 +126,8 @@ export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
     job,
     fame,
     serverRank,
-    tier
+    tier,
+    ...(serverRank === null && { guild: null, equipmentScore: null })
   })),
   null
 ]

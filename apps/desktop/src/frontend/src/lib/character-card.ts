@@ -1,6 +1,7 @@
-import type { CharacterSummary } from '../../../preload/common/types/character'
+import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { serverNames } from '../constants/servers'
+import { MISSING_VALUE } from '../constants/cards'
 import type { CardCharacter } from '../types/cards'
 import type { ServerId } from '../types/servers'
 
@@ -10,12 +11,14 @@ function isServerId(value: string): value is ServerId {
 }
 
 /** 식별된 기본 정보만 카드 값으로 옮기고 미수신 값이나 장비 평가를 만들어내지 않는다. */
-export function toCharacterCard(summary: CharacterSummary | undefined): CardCharacter | null {
+export function toCharacterCard(
+  summary: SelectedCharacterSummary | undefined
+): CardCharacter | null {
   if (summary == null || !isServerId(summary.serverId)) {
     return null
   }
-  const adventure = summary.adventureName ?? '—'
-  const job = summary.jobGrowName ?? summary.jobName ?? '—'
+  const adventure = summary.adventureName ?? MISSING_VALUE
+  const job = summary.jobGrowName ?? summary.jobName ?? MISSING_VALUE
 
   return {
     characterId: summary.characterId,
@@ -24,6 +27,9 @@ export function toCharacterCard(summary: CharacterSummary | undefined): CardChar
     job,
     serverId: summary.serverId,
     fame: summary.fame,
+    guild: summary.guildName,
+    equipmentScore: summary.equipmentScore,
+    serverRank: summary.serverRank,
     level: summary.level,
     image: summary.imageUrl,
     equipment: [],

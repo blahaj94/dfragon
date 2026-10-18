@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { characterSummarySchema } from './character-summary'
+import { selectedCharacterSummarySchema } from './character-summary'
 import {
   CHARACTER_SELECTION_METHODS,
   SEARCH_COMMAND_ERRORS,
@@ -57,7 +57,7 @@ const slot = z
     ]),
     rows: z.array(row),
     error: error.nullable(),
-    selected: characterSummarySchema.optional(),
+    selected: selectedCharacterSummarySchema.optional(),
     selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional()
   })
   .refine((value) => {

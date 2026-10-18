@@ -21,15 +21,16 @@ export interface CardCharacter {
   characterId?: string
   name: string
   adventure: string
-  /** 길드 이름. 검색 응답에는 아직 없어 합성 미리보기만 채운다. */
-  guild?: string
+  /** 길드 이름. 상세 응답에 길드가 없으면 null이다. */
+  guild?: string | null
   job: string
   serverId: ServerId
   fame: number | null
   level?: number | null
-  equipmentScore?: number
-  /** 서버 순위. 검색 응답에는 아직 없어 합성 미리보기만 채운다. */
-  serverRank?: number
+  /** 장비 점수. 검색 응답에 대응 필드가 아직 없어 제품에서는 null이고 합성 미리보기만 채운다. */
+  equipmentScore?: number | null
+  /** 서버 순위. 검색 응답에 대응 필드가 아직 없어 제품에서는 null이고 합성 미리보기만 채운다. */
+  serverRank?: number | null
   /** 상위, 랭커 단계. 검색 응답에는 없어 합성 미리보기만 채운다. */
   tier?: CharacterTier
   image?: string

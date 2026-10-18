@@ -35,20 +35,35 @@ export function characterImageUrl(identity: CharacterIdentity): string {
   return `${CHARACTER_IMAGE_ORIGIN}/df/servers/${identity.serverId}/characters/${identity.characterId}?zoom=${CHARACTER_IMAGE_ZOOM}`
 }
 
-export const characterSummarySchema = z
-  .strictObject({
-    ...characterIdentitySchema.shape,
-    characterName: nonblank,
-    serverName: z.string(),
-    adventureName: z.string().nullable(),
-    jobName: z.string().nullable(),
-    jobGrowName: z.string().nullable(),
-    level: z.number().nullable(),
-    fame: z.number().nullable(),
-    imageUrl: z.string()
-  })
-  .refine(
-    (summary) =>
-      summary.serverName === CHARACTER_SERVER_NAMES[summary.serverId] &&
-      summary.imageUrl === characterImageUrl(summary)
+const characterSummaryShape = {
+  ...characterIdentitySchema.shape,
+  characterName: nonblank,
+  serverName: z.string(),
+  adventureName: z.string().nullable(),
+  jobName: z.string().nullable(),
+  jobGrowName: z.string().nullable(),
+  level: z.number().nullable(),
+  fame: z.number().nullable(),
+  imageUrl: z.string()
+}
+
+/** 서버 이름과 이미지 URL이 식별자에서 만든 고정 값인지 확인한다. */
+function hasFixedServerAndImage(summary: z.infer<z.ZodObject<typeof characterSummaryShape>>) {
+  return (
+    summary.serverName === CHARACTER_SERVER_NAMES[summary.serverId] &&
+    summary.imageUrl === characterImageUrl(summary)
   )
+}
+
+export const characterSummarySchema = z
+  .strictObject(characterSummaryShape)
+  .refine(hasFixedServerAndImage)
+
+export const selectedCharacterSummarySchema = z
+  .strictObject({
+    ...characterSummaryShape,
+    guildName: z.string().nullable(),
+    equipmentScore: z.number().nullable(),
+    serverRank: z.int().positive().nullable()
+  })
+  .refine(hasFixedServerAndImage)

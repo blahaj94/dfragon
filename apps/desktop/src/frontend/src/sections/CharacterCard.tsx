@@ -23,7 +23,7 @@ import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
-import { cardFaces, tierLabels } from '../constants/cards'
+import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
 import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
 
 export function CharacterCard({
@@ -166,7 +166,7 @@ export function CharacterCard({
             </div>
           )}
           <span {...stylex.props(styles.spacer)} />
-          {characterFound && character.serverRank != null && (
+          {characterFound && (
             <span
               {...stylex.props(
                 styles.rank,
@@ -175,8 +175,14 @@ export function CharacterCard({
                 tier === 'ranker' && shapes.cutTopRight
               )}
             >
-              <span aria-hidden="true">#{character.serverRank}</span>
-              <span {...stylex.props(shapes.srOnly)}>서버 순위 {character.serverRank}위</span>
+              <span aria-hidden="true">
+                {character.serverRank == null ? MISSING_VALUE : `#${character.serverRank}`}
+              </span>
+              <span {...stylex.props(shapes.srOnly)}>
+                {character.serverRank == null
+                  ? '서버 순위 없음'
+                  : `서버 순위 ${character.serverRank}위`}
+              </span>
             </span>
           )}
           {frameState === 'selected' && (
@@ -279,14 +285,10 @@ export function CharacterCard({
                     <Typo.caption weight={600} {...stylex.props(styles.adventure)}>
                       {character.adventure}
                     </Typo.caption>
-                    {character.guild && (
-                      <>
-                        <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
-                        <Typo.caption weight={600} {...stylex.props(styles.guild)}>
-                          {character.guild}
-                        </Typo.caption>
-                      </>
-                    )}
+                    <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
+                    <Typo.caption weight={600} {...stylex.props(styles.guild)}>
+                      {character.guild ?? MISSING_VALUE}
+                    </Typo.caption>
                   </>
                 ) : (
                   <Typo.caption
@@ -408,8 +410,8 @@ export function CharacterCard({
   )
 }
 
-// 명성과 장비 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `—`를 흐리게 둔다.
-// 상위, 랭커 카드는 값을 단계 색으로 그린다.
+// 명성과 장비 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
+// 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그린다.
 function StatValue({
   value,
   vacant,
@@ -422,7 +424,7 @@ function StatValue({
   if (value == null) {
     return (
       <dd {...stylex.props(styles.statValue, styles.statMissing, vacant && styles.statVacant)}>
-        —
+        {MISSING_VALUE}
       </dd>
     )
   }
