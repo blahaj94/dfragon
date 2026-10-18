@@ -58,6 +58,9 @@ export const styles = stylex.create({
   },
   numberSelected: { backgroundColor: colors.cardSignal, color: colors.cardOnSignal },
   numberWaiting: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
+  // 상위, 랭커 카드의 번호 칩은 단계 색 면이다(dfragon-design colors.md의 카드 상태와 꺾쇠).
+  numberTop: { backgroundColor: colors.tierTop, color: colors.cardOnSignal },
+  numberRanker: { backgroundColor: colors.tierRanker, color: colors.cardOnSignal },
   server: { display: 'flex', flexShrink: 0, minWidth: 0, maxWidth: '50%' },
   spacer: { flex: 1, minWidth: 0 },
   // 서버 순위(numeric.rank 18 600).
@@ -69,6 +72,29 @@ export const styles = stylex.create({
     fontWeight: 600,
     color: colors.cardFgMuted,
     whiteSpace: 'nowrap'
+  },
+  // 상위 순위는 단계 색 테두리, 랭커 순위는 오른쪽 위를 자른 단계 색 면이다.
+  rankTop: {
+    display: { default: 'inline-flex', [NARROW_HEADER]: 'none' },
+    alignItems: 'center',
+    boxSizing: 'border-box',
+    height: 24,
+    paddingInline: space.s8,
+    borderWidth: 1.5,
+    borderStyle: 'solid',
+    borderColor: colors.tierTop,
+    fontWeight: 700,
+    color: colors.tierTop
+  },
+  rankRanker: {
+    display: { default: 'inline-flex', [NARROW_HEADER]: 'none' },
+    alignItems: 'center',
+    height: 24,
+    paddingInlineStart: space.s8,
+    paddingInlineEnd: space.s12,
+    fontWeight: 700,
+    backgroundColor: colors.tierRanker,
+    color: colors.cardOnSignal
   },
   dots: { display: 'flex', flexShrink: 0, gap: space.s4, paddingInlineEnd: space.s4 },
   dot: {
@@ -142,6 +168,29 @@ export const styles = stylex.create({
     transitionTimingFunction: `${motion.ease}, ${motion.ease}, linear, linear`
   },
   wellCollapsed: { height: 0, minHeight: 0, opacity: 0, visibility: 'hidden' },
+  // 상위, 랭커 카드의 그림 칸 아래 2px 단계 색 선. 캐릭터 그림 위에 그리도록 그림 칸의 마지막 층에 둔다.
+  // 랭커는 그림 칸 면도 단계 면이다.
+  wellTop: {
+    '::after': {
+      content: '""',
+      position: 'absolute',
+      insetInline: 0,
+      bottom: 0,
+      height: 2,
+      backgroundColor: colors.tierTop
+    }
+  },
+  wellRanker: {
+    backgroundColor: colors.tierRankerWell,
+    '::after': {
+      content: '""',
+      position: 'absolute',
+      insetInline: 0,
+      bottom: 0,
+      height: 2,
+      backgroundColor: colors.tierRanker
+    }
+  },
   portrait: { position: 'absolute', inset: 0 },
   topNotice: {
     position: 'absolute',
@@ -256,6 +305,7 @@ export const styles = stylex.create({
     borderTopColor: colors.cardBorder
   },
   statsVacant: { borderTopStyle: 'dashed' },
+  statsRanker: { borderTopColor: colors.tierRankerOutline },
   statRow: {
     boxSizing: 'border-box',
     display: 'flex',
@@ -283,6 +333,8 @@ export const styles = stylex.create({
     color: colors.cardFg
   },
   statMissing: { color: colors.cardBorderStrong },
+  statTop: { color: colors.tierTop },
+  statRanker: { color: colors.tierRanker },
   statVacant: { color: colors.cardBorder },
   faces: { ...collapseTransition, flexShrink: 0, maxHeight: 41, overflow: 'hidden' },
   facesVacant: {

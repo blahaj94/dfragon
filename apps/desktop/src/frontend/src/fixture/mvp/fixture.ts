@@ -79,3 +79,26 @@ export const previewCharacter: CardCharacter = {
       return slot
     })
 }
+
+// 상위 유저 매칭 캔버스처럼 기본, 상위, 랭커 카드를 나란히 둔다. 단계를 나누는 기준이 아직 없어
+// 단계, 순위, 숫자는 모두 합성 값이다.
+export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
+  previewCharacter,
+  {
+    ...previewCharacter,
+    name: '미리보기상위',
+    tier: 'top',
+    fame: 131204,
+    equipmentScore: 452310,
+    serverRank: 4432
+  },
+  {
+    ...previewCharacter,
+    name: '미리보기랭커',
+    tier: 'ranker',
+    fame: 138960,
+    equipmentScore: 498725,
+    serverRank: 37
+  },
+  null
+]

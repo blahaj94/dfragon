@@ -23,8 +23,8 @@ import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
-import { cardFaces } from '../constants/cards'
-import type { CardCharacter, SlotState } from '../types/cards'
+import { cardFaces, tierLabels } from '../constants/cards'
+import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
 
 export function CharacterCard({
   character,
@@ -104,8 +104,10 @@ export function CharacterCard({
   const message = inputNotice || notice || emptyMessage
   const frameState = getCharacterCardFrameState({
     state,
-    editing: nameFocused || dirty || editing
+    editing: nameFocused || dirty || editing,
+    tier: characterFound ? character.tier : undefined
   })
+  const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const showRetry = state === 'failure' && onRetry != null
 
   function submit(nextServerId = serverId): void {
@@ -138,11 +140,16 @@ export function CharacterCard({
               styles.number,
               shapes.cutTopRight,
               frameState === 'selected' && styles.numberSelected,
-              frameState === 'waiting' && styles.numberWaiting
+              frameState === 'waiting' && styles.numberWaiting,
+              tier === 'top' && styles.numberTop,
+              tier === 'ranker' && styles.numberRanker
             )}
           >
             {String(slot).padStart(2, '0')}
           </span>
+          {tier !== undefined && (
+            <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
+          )}
           {showCharacter && (inputEnabled || characterFound) && (
             <div {...stylex.props(styles.server)}>
               <ServerSelect
@@ -160,7 +167,14 @@ export function CharacterCard({
           )}
           <span {...stylex.props(styles.spacer)} />
           {characterFound && character.serverRank != null && (
-            <span {...stylex.props(styles.rank)}>
+            <span
+              {...stylex.props(
+                styles.rank,
+                tier === 'top' && styles.rankTop,
+                tier === 'ranker' && styles.rankRanker,
+                tier === 'ranker' && shapes.cutTopRight
+              )}
+            >
               <span aria-hidden="true">#{character.serverRank}</span>
               <span {...stylex.props(shapes.srOnly)}>서버 순위 {character.serverRank}위</span>
             </span>
@@ -217,7 +231,9 @@ export function CharacterCard({
                 shapes.gridWell,
                 frameState === 'failure' && shapes.hazardStripes,
                 styles.well,
-                collapsed && styles.wellCollapsed
+                collapsed && styles.wellCollapsed,
+                tier === 'top' && styles.wellTop,
+                tier === 'ranker' && styles.wellRanker
               )}
             >
               {characterFound && (
@@ -336,12 +352,22 @@ export function CharacterCard({
               </Tabs.Panel>
             </>
           )}
-          <dl {...stylex.props(styles.stats, vacant && styles.statsVacant)}>
+          <dl
+            {...stylex.props(
+              styles.stats,
+              vacant && styles.statsVacant,
+              tier === 'ranker' && styles.statsRanker
+            )}
+          >
             <div {...stylex.props(styles.statRow)}>
               <Typo.caption as="dt" {...stylex.props(styles.statLabel)}>
                 명성
               </Typo.caption>
-              <StatValue value={characterFound ? character.fame : null} vacant={vacant} />
+              <StatValue
+                value={characterFound ? character.fame : null}
+                vacant={vacant}
+                tier={tier}
+              />
             </div>
             <div
               {...stylex.props(
@@ -356,6 +382,7 @@ export function CharacterCard({
               <StatValue
                 value={characterFound ? (character.equipmentScore ?? null) : null}
                 vacant={vacant}
+                tier={tier}
               />
             </div>
           </dl>
@@ -382,12 +409,15 @@ export function CharacterCard({
 }
 
 // 명성과 장비 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `—`를 흐리게 둔다.
+// 상위, 랭커 카드는 값을 단계 색으로 그린다.
 function StatValue({
   value,
-  vacant
+  vacant,
+  tier
 }: {
   value: number | null
   vacant: boolean
+  tier?: CharacterTier
 }): React.JSX.Element {
   if (value == null) {
     return (
@@ -398,7 +428,13 @@ function StatValue({
   }
 
   return (
-    <dd {...stylex.props(styles.statValue)}>
+    <dd
+      {...stylex.props(
+        styles.statValue,
+        tier === 'top' && styles.statTop,
+        tier === 'ranker' && styles.statRanker
+      )}
+    >
       <NumericText value={value} />
     </dd>
   )
