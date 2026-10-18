@@ -4,6 +4,7 @@ import type {
   SearchApi,
   SearchCommandResult,
   SearchControl,
+  SearchSlotCount,
   SearchSnapshot
 } from '../../../preload/common/types/search'
 import { parseSearchResult } from '../../../preload/common/search/snapshot'
@@ -11,6 +12,7 @@ import { readSearchSnapshot, searchConnectionMachine } from './search-connection
 
 type ConnectionOptions = {
   api: SearchApi
+  slotCount: SearchSlotCount
   onSnapshot: (snapshot: SearchSnapshot | null) => void
   onFailure: () => void
   onRunChanged: () => void
@@ -26,7 +28,8 @@ export type SearchConnection = {
 
 /** 호출별 actor를 클로저에 격리하고 연결, 명령, 정리 함수를 반환한다. */
 export function createSearchConnection(options: ConnectionOptions): SearchConnection {
-  let currentActor = createActor(searchConnectionMachine, { input: { api: options.api } })
+  const target = { api: options.api, slotCount: options.slotCount }
+  let currentActor = createActor(searchConnectionMachine, { input: target })
 
   // 현재 actor의 동기화 상태를 호출 시점에 읽는다.
   function isReady(): boolean {
@@ -41,7 +44,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
       return
     }
     currentActor.stop()
-    const actor = createActor(searchConnectionMachine, { input: { api: options.api } })
+    const actor = createActor(searchConnectionMachine, { input: target })
     currentActor = actor
     let previous: SnapshotFrom<typeof searchConnectionMachine> | undefined
     actor.subscribe((state) => {
@@ -84,7 +87,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
   ): Promise<SearchCommandResult | null> {
     const actor = currentActor
     try {
-      const result = parseSearchResult(await send())
+      const result = parseSearchResult(await send(), options.slotCount)
       if (result == null) {
         throw new Error('Invalid search bridge response')
       }
@@ -98,7 +101,7 @@ export function createSearchConnection(options: ConnectionOptions): SearchConnec
     } catch {
       if (actor.getSnapshot().status === 'active') {
         try {
-          const snapshot = await readSearchSnapshot(options.api)
+          const snapshot = await readSearchSnapshot(target)
           if (actor.getSnapshot().status === 'active') {
             actor.send({ type: 'READ_SUCCEEDED', snapshot })
           }

@@ -2,9 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createCaptureSearch, type CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
+import type { SearchApi, SearchSlotCount } from '../../../preload/common/types/search'
 
-/** 게임 캡처가 없어도 실행할 수 있는 서버 지정 조회의 연결과 요청 수명을 소유한다. */
-export function useManualCharacterLookup(): {
+/**
+ * 게임 캡처가 없어도 실행할 수 있는 서버 지정 조회의 연결과 요청 수명을 소유한다. 파티 카드와 공대
+ * 카드는 각자의 API와 슬롯 수로 이 hook을 따로 써서 서로의 자리를 덮어쓰지 않는다.
+ */
+export function useManualCharacterLookup(
+  api: SearchApi | undefined,
+  slotCount: SearchSlotCount
+): {
   view: SearchView
   startingSlots: readonly boolean[]
   bridge: React.RefObject<CaptureSearch | null>
@@ -15,23 +22,24 @@ export function useManualCharacterLookup(): {
   const session = useRef<{ controller: AbortController; starting: Promise<string | null> } | null>(
     null
   )
-  const revisions = useRef([0, 0, 0, 0])
-  const [startingSlots, setStartingSlots] = useState([false, false, false, false])
-  const [view, setView] = useState<SearchView>({
+  const revisions = useRef(Array.from({ length: slotCount }, () => 0))
+  const [startingSlots, setStartingSlots] = useState(() =>
+    Array.from({ length: slotCount }, () => false)
+  )
+  const [view, setView] = useState<SearchView>(() => ({
     ready: false,
-    slots: emptySearchSlots(),
-    retryPending: [false, false, false, false],
+    slots: emptySearchSlots(slotCount),
+    retryPending: Array.from({ length: slotCount }, () => false),
     connectionFailed: false
-  })
-  const api = window.manualSearch
+  }))
 
   const reset = useCallback(() => {
     session.current?.controller.abort()
     session.current = null
-    revisions.current = [0, 0, 0, 0]
-    setStartingSlots([false, false, false, false])
+    revisions.current = Array.from({ length: slotCount }, () => 0)
+    setStartingSlots(Array.from({ length: slotCount }, () => false))
     bridge.current?.end()
-  }, [])
+  }, [slotCount])
 
   useEffect(() => {
     if (api === undefined) {
@@ -39,9 +47,9 @@ export function useManualCharacterLookup(): {
     }
     const connection = createCaptureSearch({
       api,
-      notify: api.notifyManualNickname,
       onChange: setView,
-      onInvalidated: reset
+      onInvalidated: reset,
+      slotCount
     })
     bridge.current = connection
     connection.connect()
@@ -51,7 +59,7 @@ export function useManualCharacterLookup(): {
       bridge.current = null
       connection.dispose()
     }
-  }, [api, reset])
+  }, [api, reset, slotCount])
 
   const lookup = useCallback(
     (slot: number, nickname: string, serverId: string) => {

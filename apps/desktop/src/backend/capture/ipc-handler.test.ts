@@ -252,6 +252,7 @@ describe('capture main document and source boundary', () => {
       'collectOcrSample',
       'controlCharacterSearch',
       'controlManualSearch',
+      'controlRaidSearch',
       'listCaptureSources',
       'notifyManualNickname',
       'notifyOcrCandidatesDetected',

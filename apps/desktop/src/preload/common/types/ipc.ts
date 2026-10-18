@@ -38,6 +38,7 @@ interface AsyncIPCFunctions
   notifyOcrCandidatesDetected: (observation: OcrSearchObservation) => Promise<SearchCommandResult>
   notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
   controlManualSearch: (control: SearchControl) => Promise<SearchCommandResult>
+  controlRaidSearch: (control: SearchControl) => Promise<SearchCommandResult>
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
 
   // Used inside tests, so we can be a bit lenient with the type checking here

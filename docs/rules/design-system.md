@@ -16,7 +16,7 @@ last-reviewed: 2026-10-18
 - `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
 - Desktop의 이전 brand 색 재매핑 CSS는 삭제했으며 대신할 전역 override 예외는 두지 않는다.
 - 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
-- 공대 12인 화면과 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 데이터 연결은 별도 과제다.
+- 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 공대 12인 화면은 자리별 서버, 이름 조회까지 연결했고 공대 캡처와 티어 기준은 별도 과제다.
 
 디자인 원본은 디자인 인계 저장소 [dfragon-design](https://github.com/blahaj94/dfragon-design)의 markdown 문서와 손으로 관리하는 `design/tokens.json`이다. DFragon 디자인 시안 캔버스는 시각 참고이며, Penpot 보드와 PNG 미리보기는 superseded다.
 

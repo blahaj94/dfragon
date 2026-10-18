@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 import type { AsyncIPCFunctions } from '../common/types/ipc'
-import type { SearchCommandResult } from '../common/types/search'
+import { SEARCH_SLOT_COUNTS, type SearchCommandResult } from '../common/types/search'
 import { parseSearchResult } from '../common/search/snapshot'
 
 type SearchChannel =
@@ -9,12 +9,17 @@ type SearchChannel =
   | 'notifyOcrCandidatesDetected'
   | 'controlManualSearch'
   | 'notifyManualNickname'
+  | 'controlRaidSearch'
+
 export async function invokeSearchCommand<Channel extends SearchChannel>(
   channel: Channel,
   ...args: Parameters<AsyncIPCFunctions[Channel]>
 ): Promise<SearchCommandResult> {
   const value: unknown = await ipcRenderer.invoke(channel, ...args)
-  const result = parseSearchResult(value)
+  // 공대 조회 수명만 12자리이고 나머지 검색 채널은 파티 4자리다.
+  const slotCount =
+    channel === 'controlRaidSearch' ? SEARCH_SLOT_COUNTS.raid : SEARCH_SLOT_COUNTS.party
+  const result = parseSearchResult(value, slotCount)
   const isValid = result != null
   if (!isValid) {
     throw new Error('검색 연결의 응답을 확인하지 못했습니다.')

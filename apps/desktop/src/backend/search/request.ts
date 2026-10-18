@@ -6,7 +6,7 @@ import type {
 } from '../../preload/common/types/search'
 import type {
   CharacterDetails,
-  CharacterSummary,
+  SelectedCharacterSummary,
   CharacterJsonValue,
   CharacterImage,
   CharacterPortrait
@@ -48,7 +48,7 @@ export type SearchOutcome =
       kind: 'success'
       rows: readonly CharacterSearchRow[]
       selected?: {
-        summary: CharacterSummary
+        summary: SelectedCharacterSummary
         details: CharacterDetails
         selectionMethod: CharacterSelectionMethod
       }
@@ -159,7 +159,8 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
   const jobGrowName = displayText(character.jobGrowName)
   const level = displayNumber(character.level)
   const detailFame = displayNumber(character.fame)
-  const summary: CharacterSummary = {
+  const guildName = displayText(character.guildName)
+  const summary: SelectedCharacterSummary = {
     characterId: character.characterId,
     characterName: character.characterName,
     serverId: character.serverId,
@@ -169,7 +170,12 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     jobGrowName,
     level,
     fame: detailFame,
-    imageUrl: candidate.imageUrl
+    imageUrl: candidate.imageUrl,
+    guildName,
+    // 상세 응답에 장비 점수와 서버 순위의 대응 필드가 아직 없다. 값을 계산하거나 추정하지 않고
+    // 카드까지 null로 보내 `-`로 표시한다.
+    equipmentScore: null,
+    serverRank: null
   }
 
   return { kind: 'success', rows, selected: { summary, details, selectionMethod } }

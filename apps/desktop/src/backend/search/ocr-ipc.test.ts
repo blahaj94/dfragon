@@ -31,7 +31,8 @@ function details(): CharacterDetails {
       fame: 71000,
       adventureName: '모험단',
       jobName: '귀검사',
-      jobGrowName: '웨펀마스터'
+      jobGrowName: '웨펀마스터',
+      guildName: '합성길드'
     },
     status: { status: [], buff: null },
     equipment: { equipment: [], setItemInfo: [] },
@@ -162,7 +163,11 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       adventureName: '모험단',
       jobName: '귀검사',
       jobGrowName: '웨펀마스터',
-      imageUrl
+      imageUrl,
+      guildName: '합성길드',
+      // 상세 응답에 대응 필드가 없어 값을 만들지 않는다.
+      equipmentScore: null,
+      serverRank: null
     })
     expect(snapshot.slots[0]).not.toHaveProperty('details')
     expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)

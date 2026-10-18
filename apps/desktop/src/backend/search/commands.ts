@@ -1,4 +1,8 @@
-import { SEARCH_ACTIONS } from '../../preload/common/types/search'
+import {
+  SEARCH_ACTIONS,
+  SEARCH_SLOT_COUNTS,
+  type SearchSlotCount
+} from '../../preload/common/types/search'
 import { z } from 'zod'
 import { CHARACTER_SERVER_NAMES } from '../../preload/common/search/character-summary'
 import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
@@ -14,39 +18,56 @@ const SEARCH_ID_PATTERN = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{
 const uuid = text.regex(SEARCH_ID_PATTERN)
 const safeInteger = z.int()
 const observationRevision = safeInteger.positive()
-const slot = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
-const controlSchema = z.discriminatedUnion('action', [
-  z.strictObject({ action: z.literal(SEARCH_ACTIONS.READ) }),
-  z.strictObject({ action: z.literal(SEARCH_ACTIONS.BEGIN) }),
-  z.strictObject({
-    action: z.literal(SEARCH_ACTIONS.LOOKUP),
-    captureId: uuid,
-    slot,
-    observationRevision,
-    nickname: text.max(MAX_NICKNAME_INPUT_LENGTH),
-    serverId: z.enum(Object.keys(CHARACTER_SERVER_NAMES))
-  }),
-  z.strictObject({ action: z.literal(SEARCH_ACTIONS.END), captureId: uuid }),
-  z.strictObject({
-    action: z.literal(SEARCH_ACTIONS.CLEAR),
-    captureId: uuid,
-    slot,
-    observationRevision
-  }),
-  z.strictObject({
-    action: z.literal(SEARCH_ACTIONS.RETRY),
-    captureId: uuid,
-    slot,
-    requestId: uuid
-  })
-])
+// 슬롯 번호는 0부터 검색 수명의 슬롯 수 미만이다.
+function slotIndex(slotCount: SearchSlotCount) {
+  return safeInteger.min(0).max(slotCount - 1)
+}
+const partySlot = slotIndex(SEARCH_SLOT_COUNTS.party)
+function createControlSchema(slotCount: SearchSlotCount) {
+  const slot = slotIndex(slotCount)
+
+  return z.discriminatedUnion('action', [
+    z.strictObject({ action: z.literal(SEARCH_ACTIONS.READ) }),
+    z.strictObject({ action: z.literal(SEARCH_ACTIONS.BEGIN) }),
+    z.strictObject({
+      action: z.literal(SEARCH_ACTIONS.LOOKUP),
+      captureId: uuid,
+      slot,
+      observationRevision,
+      nickname: text.max(MAX_NICKNAME_INPUT_LENGTH),
+      serverId: z.enum(Object.keys(CHARACTER_SERVER_NAMES))
+    }),
+    z.strictObject({ action: z.literal(SEARCH_ACTIONS.END), captureId: uuid }),
+    z.strictObject({
+      action: z.literal(SEARCH_ACTIONS.CLEAR),
+      captureId: uuid,
+      slot,
+      observationRevision
+    }),
+    z.strictObject({
+      action: z.literal(SEARCH_ACTIONS.RETRY),
+      captureId: uuid,
+      slot,
+      requestId: uuid
+    })
+  ])
+}
+const controlSchemas = {
+  [SEARCH_SLOT_COUNTS.party]: createControlSchema(SEARCH_SLOT_COUNTS.party),
+  [SEARCH_SLOT_COUNTS.raid]: createControlSchema(SEARCH_SLOT_COUNTS.raid)
+}
 const observationSchema = z.strictObject({
   captureId: uuid,
-  slot,
+  slot: partySlot,
   observationRevision,
   nickname: text
 })
-const selectionSchema = z.strictObject({ captureId: uuid, slot, requestId: uuid })
+// 상세 창 참조는 파티와 공대 검색 수명을 모두 가리킬 수 있다. 각 수명이 자기 슬롯 수를 다시 검사한다.
+const selectionSchema = z.strictObject({
+  captureId: uuid,
+  slot: slotIndex(SEARCH_SLOT_COUNTS.raid),
+  requestId: uuid
+})
 
 export function parseCharacterSelection(args: unknown[]): CharacterSelectionReference | null {
   return parseCommand({ args, schema: selectionSchema })
@@ -142,8 +163,11 @@ function parseCommand<T extends object>({
   return parsed.data
 }
 
-export function parseSearchControl(args: unknown[]): SearchControl | null {
-  return parseCommand({ args, schema: controlSchema })
+export function parseSearchControl(
+  args: unknown[],
+  slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
+): SearchControl | null {
+  return parseCommand({ args, schema: controlSchemas[slotCount] })
 }
 
 export function parseSearchObservation(args: unknown[]): SearchObservation | null {

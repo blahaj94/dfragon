@@ -13,7 +13,7 @@ import {
 import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import { remainingRetryAfter, type RetryAfter } from './retry-after'
-import { SEARCH_ERRORS } from '../../preload/common/types/search'
+import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
 import type {
   SearchCommandError,
   SearchCommandResult,
@@ -23,6 +23,7 @@ import type {
   OcrSearchObservation,
   OcrSearchInput,
   SearchSlot,
+  SearchSlotCount,
   SearchSnapshot
 } from '../../preload/common/types/search'
 
@@ -36,6 +37,8 @@ type Options = {
   publish: (snapshot: SearchSnapshot) => void
   isCurrent: (binding: CaptureBinding) => boolean
   runtime?: SearchRuntime
+  /** 이 수명이 소유하는 슬롯 수. 기본은 파티 네 자리다. */
+  slotCount?: SearchSlotCount
 }
 
 function idleSlot({
@@ -111,11 +114,15 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   const runId = randomUUID()
   let revision = 0
   let binding: CaptureBinding | null = null
-  let slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
-  const ocrInputs: Array<OcrSearchInput | null> = [null, null, null, null]
-  const manualServers: Array<string | null> = [null, null, null, null]
-  const selectedDetails: Array<CharacterDetails | null> = [null, null, null, null]
-  const actors = [0, 1, 2, 3].map(() =>
+  const slotIndexes = Array.from(
+    { length: options.slotCount ?? SEARCH_SLOT_COUNTS.party },
+    (_, slot) => slot
+  )
+  let slots = slotIndexes.map((slot) => idleSlot({ slot }))
+  const ocrInputs: Array<OcrSearchInput | null> = slotIndexes.map(() => null)
+  const manualServers: Array<string | null> = slotIndexes.map(() => null)
+  const selectedDetails: Array<CharacterDetails | null> = slotIndexes.map(() => null)
+  const actors = slotIndexes.map(() =>
     createActor(slotLifetimeMachine, {
       input: { canComplete, complete, ready: finishRateWait }
     }).start()
@@ -178,10 +185,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return
     }
     binding = null
-    for (const slot of [0, 1, 2, 3]) {
+    for (const slot of slotIndexes) {
       cancelSlot(slot)
     }
-    slots = [0, 1, 2, 3].map((slot) => idleSlot({ slot }))
+    slots = slotIndexes.map((slot) => idleSlot({ slot }))
     emit()
   }
 

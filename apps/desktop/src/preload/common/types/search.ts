@@ -1,4 +1,8 @@
-import type { CharacterPortrait, CharacterSummary } from './character'
+import type { CharacterPortrait, SelectedCharacterSummary } from './character'
+
+/** 검색 수명 하나가 소유하는 슬롯 수. 파티 캡처와 파티 카드 조회는 4, 공대 카드 조회는 12다. */
+export const SEARCH_SLOT_COUNTS = { party: 4, raid: 12 } as const
+export type SearchSlotCount = (typeof SEARCH_SLOT_COUNTS)[keyof typeof SEARCH_SLOT_COUNTS]
 
 export const SEARCH_ACTIONS = {
   READ: 'read',
@@ -104,7 +108,7 @@ export type SearchSlot = Readonly<{
     | 'waiting-policy'
   rows: readonly CharacterSearchRow[]
   error: SearchError | null
-  selected?: CharacterSummary
+  selected?: SelectedCharacterSummary
   selectionMethod?: CharacterSelectionMethod
 }>
 

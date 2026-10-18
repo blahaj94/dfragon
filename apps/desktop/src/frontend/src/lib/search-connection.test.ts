@@ -1,9 +1,10 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
-import type {
-  SearchApi,
-  SearchCommandResult,
-  SearchSnapshot
+import {
+  SEARCH_SLOT_COUNTS,
+  type SearchApi,
+  type SearchCommandResult,
+  type SearchSnapshot
 } from '../../../preload/common/types/search'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
 import { createSearchConnection, type SearchConnection } from './search-connection'
@@ -31,6 +32,7 @@ function fixture(): {
   const onFailure = vi.fn()
   const onRunChanged = vi.fn()
   const connection = createSearchConnection({
+    slotCount: SEARCH_SLOT_COUNTS.party,
     api: {
       controlCharacterSearch: control,
       onCharacterSearchChanged: (listener) => {

@@ -1,10 +1,12 @@
 import { z } from 'zod'
-import { characterSummarySchema } from './character-summary'
+import { selectedCharacterSummarySchema } from './character-summary'
 import {
   CHARACTER_SELECTION_METHODS,
   SEARCH_COMMAND_ERRORS,
   SEARCH_ERRORS,
+  SEARCH_SLOT_COUNTS,
   type SearchCommandResult,
+  type SearchSlotCount,
   type SearchSnapshot
 } from '../types/search'
 
@@ -37,7 +39,10 @@ const error = z
   })
 const slot = z
   .strictObject({
-    slot: z.int().min(0).max(3),
+    slot: z
+      .int()
+      .min(0)
+      .max(SEARCH_SLOT_COUNTS.raid - 1),
     observationRevision: revision,
     requestId: uuid.nullable(),
     nickname: z.string().nullable(),
@@ -52,7 +57,7 @@ const slot = z
     ]),
     rows: z.array(row),
     error: error.nullable(),
-    selected: characterSummarySchema.optional(),
+    selected: selectedCharacterSummarySchema.optional(),
     selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional()
   })
   .refine((value) => {
@@ -105,42 +110,51 @@ const slot = z
 
     return hasNoResult
   })
-const snapshotSchema = z
-  .strictObject({
-    runId: uuid,
-    revision,
-    captureId: uuid.nullable(),
-    slots: z.array(slot).length(4)
-  })
-  .refine((value) => {
-    const hasOrderedSlots = value.slots.every((slot, index) => {
-      const isExpectedSlot = slot.slot === index
-
-      return isExpectedSlot
+// 검색 수명마다 슬롯 수가 정해져 있어 채널이 기대하는 수와 정확히 같은 snapshot만 받는다.
+function createSchemas(slotCount: SearchSlotCount) {
+  const snapshot = z
+    .strictObject({
+      runId: uuid,
+      revision,
+      captureId: uuid.nullable(),
+      slots: z.array(slot).length(slotCount)
     })
-    const hasCapture = value.captureId != null
-    const hasOnlyResetSlots = value.slots.every((slot) => {
-      const isIdle = slot.state === 'idle'
-      const isReset = slot.observationRevision === 0
-      const isResetSlot = isIdle && isReset
+    .refine((value) => {
+      const hasOrderedSlots = value.slots.every((slot, index) => {
+        const isExpectedSlot = slot.slot === index
 
-      return isResetSlot
-    })
-    const hasValidLifetime = hasCapture || hasOnlyResetSlots
-    const isValid = hasOrderedSlots && hasValidLifetime
+        return isExpectedSlot
+      })
+      const hasCapture = value.captureId != null
+      const hasOnlyResetSlots = value.slots.every((slot) => {
+        const isIdle = slot.state === 'idle'
+        const isReset = slot.observationRevision === 0
+        const isResetSlot = isIdle && isReset
 
-    return isValid
-  })
-const resultSchema = z.discriminatedUnion('ok', [
-  z.strictObject({ ok: z.literal(true), snapshot: snapshotSchema }),
-  z.strictObject({
-    ok: z.literal(false),
-    snapshot: snapshotSchema,
-    error: z.strictObject({
-      code: z.enum(SEARCH_COMMAND_ERRORS)
+        return isResetSlot
+      })
+      const hasValidLifetime = hasCapture || hasOnlyResetSlots
+      const isValid = hasOrderedSlots && hasValidLifetime
+
+      return isValid
     })
-  })
-])
+  const result = z.discriminatedUnion('ok', [
+    z.strictObject({ ok: z.literal(true), snapshot }),
+    z.strictObject({
+      ok: z.literal(false),
+      snapshot,
+      error: z.strictObject({
+        code: z.enum(SEARCH_COMMAND_ERRORS)
+      })
+    })
+  ])
+
+  return { snapshot, result }
+}
+const schemas = {
+  [SEARCH_SLOT_COUNTS.party]: createSchemas(SEARCH_SLOT_COUNTS.party),
+  [SEARCH_SLOT_COUNTS.raid]: createSchemas(SEARCH_SLOT_COUNTS.raid)
+}
 
 function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
   const isParsedObject = parsed != null && typeof parsed === 'object'
@@ -167,8 +181,11 @@ function hasExactOwnShape(input: unknown, parsed: unknown): boolean {
   return isExact
 }
 
-export function parseSearchSnapshot(value: unknown): SearchSnapshot | null {
-  const parsed = snapshotSchema.safeParse(value)
+export function parseSearchSnapshot(
+  value: unknown,
+  slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
+): SearchSnapshot | null {
+  const parsed = schemas[slotCount].snapshot.safeParse(value)
   const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
   if (isValid) {
     return parsed.data
@@ -177,8 +194,11 @@ export function parseSearchSnapshot(value: unknown): SearchSnapshot | null {
   return null
 }
 
-export function parseSearchResult(value: unknown): SearchCommandResult | null {
-  const parsed = resultSchema.safeParse(value)
+export function parseSearchResult(
+  value: unknown,
+  slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
+): SearchCommandResult | null {
+  const parsed = schemas[slotCount].result.safeParse(value)
   const isValid = parsed.success && hasExactOwnShape(value, parsed.data)
   if (isValid) {
     return parsed.data

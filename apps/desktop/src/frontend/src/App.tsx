@@ -10,7 +10,7 @@ import { PartyHeader } from './components/PartyHeader'
 import { usePartyCollapse } from './hooks/usePartyCollapse'
 import { PartyPage } from './pages/party/PartyPage'
 import { RaidPage } from './pages/raid/RaidPage'
-import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from './constants/cards'
+import { useRaidSearch } from './hooks/useRaidSearch'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
@@ -18,21 +18,15 @@ import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
-import { characterSlotNotice, toCharacterCard } from './lib/character-card'
+import { searchSlotNotice, toCharacterCard } from './lib/character-card'
 import { getCaptureControlState, isDnfCaptureSource } from './lib/capture-presentation'
-
-// 공대 데이터와 캡처는 아직 연결하지 않아 제품의 공대 화면은 12자리를 모두 빈 카드로 둔다.
-// 공대원을 채운 화면은 합성 미리보기에서만 확인한다.
-const EMPTY_RAID: readonly null[] = Array.from(
-  { length: RAID_PARTY_COUNT * RAID_PARTY_SIZE },
-  () => null
-)
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
   useWindowChromeTheme(light)
   const developerMode = useDeveloperMode()
   const capture = usePartyCapture({ identifyCharacters: true })
+  const raid = useRaidSearch()
   const updateNotice = useUpdateNotice()
   // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
   const authApi = window.auth
@@ -61,16 +55,16 @@ function App(): React.JSX.Element {
     failed: capture.sourcesFailed,
     hasDetectedSource: capture.sources.some(isDnfCaptureSource)
   })
-  const slotNotices = capture.search.slots.map((slot) => {
-    const notice = characterSlotNotice(slot)
-    if (slot.state === 'failure' || slot.state === 'empty') {
-      const message = notice ?? '검색 결과가 없습니다.'
-
-      return `${message} Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.`
-    }
-
-    return notice
-  })
+  const slotNotices = capture.search.slots.map((slot) =>
+    searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
+  )
+  // 공대 캡처는 아직 연결하지 않아 공대 자리는 서버와 이름 조회로만 채운다.
+  const raidSlotNotices = raid.slots.map((slot) =>
+    searchSlotNotice(slot, '서버와 이름을 다시 조회해 주세요.')
+  )
+  const raidStatus = raid.connectionFailed
+    ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    : raid.detailNotice
 
   function openDeveloperWorkbench(): void {
     if (!developerModeEnabled) {
@@ -148,14 +142,20 @@ function App(): React.JSX.Element {
               nicknames={capture.nicknames}
             />
           </div>
-          {searchMode === 'raid' && (
-            <RaidPage
-              id={raidCardsId}
-              characters={EMPTY_RAID}
-              collapsed={party.collapsed}
-              onToggleCollapsed={party.toggleCollapsed}
-            />
-          )}
+          {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
+          <RaidPage
+            id={raidCardsId}
+            hidden={searchMode !== 'raid'}
+            status={raidStatus}
+            slots={raid.slots.map((slot) => slot.state)}
+            characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}
+            basicOnly
+            slotNotices={raidSlotNotices}
+            collapsed={party.collapsed}
+            onToggleCollapsed={party.toggleCollapsed}
+            onLookup={raid.lookupSlot}
+            onSlotDetail={raid.openDetails}
+          />
         </div>
         {showDeveloperWorkbench && (
           <div {...stylex.props(styles.workbench)}>

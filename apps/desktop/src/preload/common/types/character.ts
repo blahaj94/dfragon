@@ -14,6 +14,17 @@ export type CharacterSummary = CharacterIdentity &
     imageUrl: string
   }>
 
+/**
+ * 검색 슬롯이 카드에 넘기는 선택 요약. 장비 점수와 서버 순위는 API 응답에 대응 필드가 아직 없어
+ * main이 null로 보낸다.
+ */
+export type SelectedCharacterSummary = CharacterSummary &
+  Readonly<{
+    guildName: string | null
+    equipmentScore: number | null
+    serverRank: number | null
+  }>
+
 export type CharacterCandidate = CharacterSearchRow &
   Readonly<{ serverName: string; imageUrl: string }>
 

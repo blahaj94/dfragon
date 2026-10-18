@@ -1,9 +1,14 @@
 import { expect, it } from 'vitest'
-import type { CharacterSummary } from '../../../preload/common/types/character'
+import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
-import { canRetryCharacterSlot, characterSlotNotice, toCharacterCard } from './character-card'
+import {
+  canRetryCharacterSlot,
+  characterSlotNotice,
+  searchSlotNotice,
+  toCharacterCard
+} from './character-card'
 
-const summary: CharacterSummary = {
+const summary: SelectedCharacterSummary = {
   characterId: 'fixture-character',
   characterName: '실제이름',
   serverId: 'cain',
@@ -13,7 +18,10 @@ const summary: CharacterSummary = {
   jobGrowName: null,
   level: 115,
   fame: 0,
-  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1'
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1',
+  guildName: null,
+  equipmentScore: null,
+  serverRank: null
 }
 
 it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만들어내지 않는다', () => {
@@ -21,10 +29,13 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만�
     characterId: 'fixture-character',
     name: '실제이름',
     serverId: 'cain',
-    adventure: '—',
+    adventure: '-',
     job: '직업',
     level: 115,
     fame: 0,
+    guild: null,
+    equipmentScore: null,
+    serverRank: null,
     image: summary.imageUrl,
     equipment: [],
     oath: []
@@ -32,8 +43,11 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만�
   expect(toCharacterCard({ ...summary, fame: null, level: null, jobName: null })).toMatchObject({
     fame: null,
     level: null,
-    job: '—'
+    job: '-'
   })
+  expect(
+    toCharacterCard({ ...summary, guildName: '길드', equipmentScore: 414806, serverRank: 37 })
+  ).toMatchObject({ guild: '길드', equipmentScore: 414806, serverRank: 37 })
   expect(toCharacterCard(undefined)).toBeNull()
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeNull()
 })
@@ -83,4 +97,26 @@ it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () =
   expect(characterSlotNotice(slot)).toBe('외형 미확인, 최고 명성 후보입니다.')
   expect(characterSlotNotice({ ...slot, selectionMethod: 'portrait' })).toBeUndefined()
   expect(characterSlotNotice({ ...slot, selectionMethod: 'manual' })).toBeUndefined()
+})
+
+it('실패와 결과 0건 안내에만 화면별 다음 조회 방법을 덧붙인다', () => {
+  const slot: SearchSlot = {
+    slot: 5,
+    observationRevision: 1,
+    requestId: 'request',
+    nickname: '이름',
+    state: 'empty',
+    rows: [],
+    error: null
+  }
+  expect(searchSlotNotice(slot, '서버와 이름을 다시 조회해 주세요.')).toBe(
+    '검색 결과가 없습니다. 서버와 이름을 다시 조회해 주세요.'
+  )
+  expect(
+    searchSlotNotice(
+      { ...slot, state: 'failure', error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } },
+      '다음 안내'
+    )
+  ).toBe('검색 시간이 초과됐습니다. 다시 시도해 주세요. 다음 안내')
+  expect(searchSlotNotice({ ...slot, state: 'pending' }, '다음 안내')).toBeUndefined()
 })

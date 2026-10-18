@@ -8,6 +8,7 @@ import {
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
 import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
+import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 
 type CharacterSearch = SearchView & {
@@ -37,7 +38,7 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     bridge: manualBridge,
     lookup: manualLookup,
     reset: resetManual
-  } = useManualCharacterLookup()
+  } = useManualCharacterLookup(window.manualSearch, SEARCH_SLOT_COUNTS.party)
   const detailPendingRef = useRef(new Set<string>())
   const [detailFailure, setDetailFailure] = useState<CharacterSelectionReference | null>(null)
   const manualSlotsRef = useRef(new Set<number>())

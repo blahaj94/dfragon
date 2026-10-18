@@ -33,7 +33,10 @@ function currentView(): SearchView {
     jobName: null,
     jobGrowName: null,
     level: null,
-    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
+    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
+    guildName: null,
+    equipmentScore: null,
+    serverRank: null
   }
   const slots = emptySearchSlots().map((slot) => {
     if (reference?.slot === slot.slot) {

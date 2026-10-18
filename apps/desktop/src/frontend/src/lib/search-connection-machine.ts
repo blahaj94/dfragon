@@ -1,6 +1,10 @@
 import { assign, enqueueActions, fromCallback, fromPromise, setup } from 'xstate'
 import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
-import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
+import type {
+  SearchApi,
+  SearchSlotCount,
+  SearchSnapshot
+} from '../../../preload/common/types/search'
 import { parseSearchResult, parseSearchSnapshot } from '../../../preload/common/search/snapshot'
 
 type ConnectionEvent =
@@ -12,16 +16,20 @@ type ConnectionEvent =
   | { type: 'READ_FAILED' }
   | { type: 'RUN_CHANGED' }
 
-type ConnectionContext = {
-  api: SearchApi
+type ConnectionTarget = { api: SearchApi; slotCount: SearchSlotCount }
+type ConnectionContext = ConnectionTarget & {
   snapshot: SearchSnapshot | null
   queued: SearchSnapshot | null
 }
 
 /** 초기 동기화와 응답 유실 복구에서 같은 검증 경계로 검색 상태를 조회한다. */
-export async function readSearchSnapshot(api: SearchApi): Promise<SearchSnapshot> {
+export async function readSearchSnapshot({
+  api,
+  slotCount
+}: ConnectionTarget): Promise<SearchSnapshot> {
   const result = parseSearchResult(
-    await api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ })
+    await api.controlCharacterSearch({ action: SEARCH_ACTIONS.READ }),
+    slotCount
   )
   if (result == null) {
     throw new Error('Invalid search bridge response')
@@ -35,14 +43,14 @@ export async function readSearchSnapshot(api: SearchApi): Promise<SearchSnapshot
 export const searchConnectionMachine = setup({
   types: {
     context: {} as ConnectionContext,
-    input: {} as { api: SearchApi },
+    input: {} as ConnectionTarget,
     events: {} as ConnectionEvent
   },
   actors: {
-    subscription: fromCallback<ConnectionEvent, SearchApi>(({ input: api, sendBack }) => {
+    subscription: fromCallback<ConnectionEvent, ConnectionTarget>(({ input, sendBack }) => {
       try {
-        const unsubscribe = api.onCharacterSearchChanged((value) => {
-          const snapshot = parseSearchSnapshot(value)
+        const unsubscribe = input.api.onCharacterSearchChanged((value) => {
+          const snapshot = parseSearchSnapshot(value, input.slotCount)
           if (snapshot != null) {
             sendBack({ type: 'SNAPSHOT', snapshot })
           }
@@ -56,7 +64,7 @@ export const searchConnectionMachine = setup({
         return undefined
       }
     }),
-    read: fromPromise(({ input: api }: { input: SearchApi }) => readSearchSnapshot(api))
+    read: fromPromise(({ input }: { input: ConnectionTarget }) => readSearchSnapshot(input))
   },
   actions: {
     acceptSnapshot: enqueueActions(
@@ -101,12 +109,20 @@ export const searchConnectionMachine = setup({
   }
 }).createMachine({
   id: 'searchConnection',
-  context: ({ input }) => ({ api: input.api, snapshot: null, queued: null }),
+  context: ({ input }) => ({
+    api: input.api,
+    slotCount: input.slotCount,
+    snapshot: null,
+    queued: null
+  }),
   initial: 'connected',
   states: {
     connected: {
       type: 'parallel',
-      invoke: { src: 'subscription', input: ({ context }) => context.api },
+      invoke: {
+        src: 'subscription',
+        input: ({ context }) => ({ api: context.api, slotCount: context.slotCount })
+      },
       on: {
         RUN_CHANGED: '#searchConnection.replaced',
         RESULT: {
@@ -131,7 +147,7 @@ export const searchConnectionMachine = setup({
               on: { SNAPSHOT: { actions: 'queueSnapshot' } },
               invoke: {
                 src: 'read',
-                input: ({ context }) => context.api,
+                input: ({ context }) => ({ api: context.api, slotCount: context.slotCount }),
                 onDone: {
                   target: 'listening',
                   actions: [
