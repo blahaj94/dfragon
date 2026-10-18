@@ -70,7 +70,7 @@ last-reviewed: 2026-10-18
 | `Typo` | 변경 없음. 아래 [Typo의 명시적 예외](#typo의-명시적-예외)를 따른다 |
 
 - 키보드 조작, 포커스 이동과 복귀, ARIA 같은 interaction과 접근성은 Base UI가 책임진다. 공용 Component는 Base UI 부품의 semantic API를 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다.
-- 이행 중에는 `ActionButton`을 `Button`으로, `StatusBadge`를 `StatusChip`으로 잇는 alias를 두고 Desktop DFragon 디자인 적용의 마지막 PR에서 제거한다.
+- 이행 중에 두었던 `ActionButton`, `StatusBadge` alias와 `asChild` 같은 이전 prop 이름은 Desktop DFragon 디자인 적용의 마지막 PR에서 제거했다. 버튼은 `Button`, 상태 표시는 `StatusChip`을 쓰고 요소 합성은 Base UI의 `render`로 한다.
 - `@base-ui/react`는 `@dfragon/ui`의 peer dependency이자 build external이다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에 두지 않는다. Package, CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 - 업데이트에서는 바뀐 API, peer 조건, 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 - Base UI, Barlow Condensed처럼 새로 들이는 외부 코드와 자산의 license, NOTICE는 `@dfragon/licenses`의 고지 수집에 포함한다.
@@ -90,7 +90,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 ## Typo의 명시적 예외
 
-이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 추가하는 범위로 채택한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드, 상세 미리보기, 설정, 캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`, 이행용 `asChild`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
+이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 추가하는 범위로 채택한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드, 상세 미리보기, 설정, 캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
 
 ## 글꼴과 한국어 타이포그래피
 

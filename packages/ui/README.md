@@ -23,8 +23,6 @@
 
 공개 타입은 semantic prop과 ref를 유지하며 `className`, `style`을 받지 않는다. 기존 화면이 배치용 `stylex.props`를 펼쳐 넘기는 경로는 구현이 받아 자기 class 뒤에 합친다. Base UI 부품 그대로인 `Select.Root`, `Menu.Root` 같은 부품은 Base UI 문서의 API를 따른다. Select 목록을 열면 Base UI가 스크롤 막대를 숨기는 `<style>` 하나를 `head`에 넣는다. 그 밖의 위치 계산은 `style` 속성으로만 쓴다.
 
-SEED에서 옮기는 동안 기존 이름을 남긴다. `ActionButton`(variant `brandSolid`는 `primary`, `neutral*`, `brandOutline`은 `secondary`, `criticalSolid`는 `danger`, size `xsmall`, `small`은 `sm`), `StatusBadge`(tone `positive`는 `success`, `critical`은 `danger`, `warning`은 `waiting`, `informative`는 `neutral`), `DialogTrigger`와 `TextFieldInput`의 `asChild`(`render`와 같음), `IconButton`의 효과 없는 `variant`, `TextField`의 `size` `medium`, `large`는 Desktop DFragon 디자인 적용의 마지막 PR에서 지운다.
-
 `@base-ui/react`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. Library build는 Base UI, React, React DOM, JSX runtime, StyleX를 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@dfragon/ui/tokens.css`, `@dfragon/ui/foundation.css`를 한 번씩 import한다.
 
 ## 토큰
