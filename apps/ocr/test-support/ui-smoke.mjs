@@ -499,7 +499,7 @@ try {
     .getByRole('button', { name: /샘플고래.*train/ })
     .first()
     .click()
-  assert.equal(await page.locator('html').getAttribute('data-seed-color-mode'), 'dark-only')
+  assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark')
   await screenshot('desktop-dark')
   await page.getByRole('button', { name: '라이트 테마로 전환', exact: true }).click()
   for (const width of [500, 390]) {

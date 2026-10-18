@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from './theme.stylex.js'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const layout = stylex.create({
   fields: { display: 'flex', flexWrap: 'wrap', gap: 16, marginBlock: 16 },
