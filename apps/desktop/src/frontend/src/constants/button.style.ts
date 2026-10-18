@@ -1,14 +1,14 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from './theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const buttonStyles = stylex.create({
-  // Design secondary button: bg.control whatever surface it sits on. SEED neutralWeak is one
-  // gray step lighter and, in light mode, the same gray as bg.canvas.
+  // Design secondary button: bg.control whatever surface it sits on. Disabled keeps bg.control
+  // and the button's own fg.disabled text.
   secondary: {
     backgroundColor: {
       default: colors.bgControl,
       ':hover:not(:disabled)': colors.bgControlHover,
-      ':disabled': 'var(--seed-color-bg-disabled)'
+      ':disabled': colors.bgControl
     }
   }
 })

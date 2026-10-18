@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 // 이전 공용 LayoutBlock의 머리, 본문, 바닥 세 칸 배치를 이 화면에서 그대로 그린다.
 export const styles = stylex.create({

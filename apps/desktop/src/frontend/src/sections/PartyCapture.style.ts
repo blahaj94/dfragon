@@ -1,15 +1,16 @@
 import * as stylex from '@stylexjs/stylex'
+import { space } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   field: {
     display: 'flex',
     alignItems: 'center',
-    gap: 'var(--seed-dimension-x2)'
+    gap: space.s8
   },
   actions: {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: 'var(--seed-dimension-x3)'
+    gap: space.s12
   },
   status: {
     whiteSpace: 'pre-wrap',

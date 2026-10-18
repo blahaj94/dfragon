@@ -1,9 +1,9 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   camera: { color: colors.fgDefault },
-  cameraActive: { color: colors.fgBrand },
+  cameraActive: { color: colors.signal },
   dialog: {
     width: 480,
     maxWidth: 'calc(100vw - 32px)',

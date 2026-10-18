@@ -2,7 +2,6 @@ import { PRODUCT_NAME } from '@dfragon/lib'
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Typo } from '@dfragon/ui'
-import { lightTheme } from './constants/theme.stylex'
 import { useColorTheme } from './hooks/useColorTheme'
 import { useWindowChromeTheme } from './hooks/useWindowChromeTheme'
 import { usePartyCapture } from './hooks/usePartyCapture'
@@ -70,7 +69,7 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <main {...stylex.props(styles.app, light && lightTheme)}>
+    <main {...stylex.props(styles.app)}>
       <TopBar
         captureStatus={captureStatus}
         showCapture={!showDeveloperWorkbench}

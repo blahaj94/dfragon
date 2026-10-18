@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { lightTheme } from '../../constants/theme.stylex'
 import { CaptureControls } from '../../components/CaptureControls'
 import { TopBar } from '../../components/TopBar'
 import { SettingsSection } from '../../sections/SettingsSection'
@@ -52,10 +51,7 @@ export function Preview(): React.JSX.Element {
   }
 
   return (
-    <main
-      data-seed-color-mode={light ? 'light-only' : 'dark-only'}
-      {...stylex.props(styles.app, light && lightTheme)}
-    >
+    <main {...stylex.props(styles.app)}>
       {detail ? (
         <div {...stylex.props(styles.content)}>
           <CharacterDetailPage character={character} onClose={() => window.close()} />

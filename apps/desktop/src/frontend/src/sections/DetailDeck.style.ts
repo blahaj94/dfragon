@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   header: {
@@ -21,7 +21,7 @@ export const styles = stylex.create({
   scores: { display: 'flex', gap: 48, margin: 0, alignItems: 'center', paddingRight: 24 },
   label: { color: colors.fgMuted, paddingBottom: 8 },
   score: { margin: 0 },
-  fame: { color: colors.fgBrand },
+  fame: { color: colors.fgDefault },
   scroll: { overflowX: 'auto', paddingBottom: 0 },
   deck: { position: 'relative', minWidth: 1072, height: 512, marginTop: 4 },
   card: (rank: number) => ({
@@ -54,7 +54,7 @@ export const styles = stylex.create({
     cursor: selected ? 'default' : 'pointer',
     textAlign: 'right',
     padding: 0,
-    ':focus-visible': { outline: `2px solid ${colors.borderFocus}`, outlineOffset: -4 }
+    ':focus-visible': { outline: `2px solid ${colors.signal}`, outlineOffset: -4 }
   }),
   tabLabel: {
     position: 'absolute',

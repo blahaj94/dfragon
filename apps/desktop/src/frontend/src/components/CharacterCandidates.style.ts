@@ -1,42 +1,43 @@
 import * as stylex from '@stylexjs/stylex'
+import { colors, space } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   list: {
     listStyle: 'none',
     padding: 0,
-    marginTop: 'var(--seed-dimension-x3)',
+    marginTop: space.s12,
     marginBottom: 0,
     marginInline: 0,
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: 'var(--seed-color-stroke-neutral-muted)',
-    borderRadius: 'var(--seed-radius-r3)',
-    backgroundColor: 'var(--seed-color-bg-layer-default)'
+    borderColor: colors.borderDefault,
+    borderRadius: 12,
+    backgroundColor: colors.bgSurface
   },
   item: {
-    padding: 'var(--seed-dimension-x4)',
+    padding: space.s16,
     overflowWrap: 'anywhere'
   },
   separator: {
     borderTopWidth: 1,
     borderTopStyle: 'solid',
-    borderTopColor: 'var(--seed-color-stroke-neutral-muted)'
+    borderTopColor: colors.borderDefault
   },
   overview: {
     display: 'flex',
     flexWrap: 'wrap',
     alignItems: 'baseline',
-    rowGap: 'var(--seed-dimension-x3)',
-    columnGap: 'var(--seed-dimension-x6)'
+    rowGap: space.s12,
+    columnGap: space.s24
   },
   identity: {
     flex: '1 1 10rem',
     minWidth: 0
   },
   name: {
-    color: 'var(--seed-color-fg-neutral)',
-    fontSize: 'var(--seed-font-size-t4)',
-    lineHeight: 'var(--seed-line-height-t4)'
+    color: colors.fgDefault,
+    fontSize: 14,
+    lineHeight: '19px'
   },
   fame: {
     flex: '0 1 auto',
@@ -48,32 +49,32 @@ export const styles = stylex.create({
     fontVariantNumeric: 'tabular-nums'
   },
   supporting: {
-    color: 'var(--seed-color-fg-neutral-subtle)',
-    fontSize: 'var(--seed-font-size-t2)',
-    lineHeight: 'var(--seed-line-height-t2)'
+    color: colors.fgSubtle,
+    fontSize: 12,
+    lineHeight: '16px'
   },
   fameValue: {
     margin: 0,
-    fontSize: 'var(--seed-font-size-t4)',
-    lineHeight: 'var(--seed-line-height-t4)',
+    fontSize: 14,
+    lineHeight: '19px',
     fontWeight: 600
   },
   details: {
-    marginTop: 'var(--seed-dimension-x2)'
+    marginTop: space.s8
   },
   summary: {
     width: 'fit-content',
     maxWidth: '100%',
     cursor: 'pointer',
-    borderRadius: 'var(--seed-radius-r1)',
+    borderRadius: 4,
     outline: {
       default: null,
-      ':focus-visible': '2px solid var(--seed-color-stroke-focus-ring)'
+      ':focus-visible': `2px solid ${colors.signal}`
     },
     outlineOffset: { default: null, ':focus-visible': 2 }
   },
   identifiers: {
-    marginTop: 'var(--seed-dimension-x2)',
+    marginTop: space.s8,
     marginBottom: 0,
     marginInline: 0
   },
@@ -81,11 +82,11 @@ export const styles = stylex.create({
     display: 'flex',
     flexWrap: 'wrap',
     rowGap: 0,
-    columnGap: 'var(--seed-dimension-x2)'
+    columnGap: space.s8
   },
   identifierValue: {
     minWidth: 0,
     margin: 0,
-    color: 'var(--seed-color-fg-neutral)'
+    color: colors.fgDefault
   }
 })

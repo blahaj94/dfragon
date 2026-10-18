@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   notice: {
@@ -12,7 +12,7 @@ export const styles = stylex.create({
     marginBottom: 16,
     borderLeftWidth: 4,
     borderLeftStyle: 'solid',
-    borderLeftColor: colors.borderBrand,
+    borderLeftColor: colors.signal,
     borderRadius: 8,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault

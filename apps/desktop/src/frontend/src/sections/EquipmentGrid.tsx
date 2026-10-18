@@ -1,6 +1,6 @@
 import { equipmentPositions } from '../constants/equipment'
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 import type { CardCharacter } from '../types/cards'
 import { CardImage } from '../components/CardImage'
 import { styles } from './EquipmentGrid.style'

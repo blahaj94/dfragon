@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 // 숨김 기준은 OS 창 버튼 자리를 뺀 상단 바 내용 폭이다. 로그인 버튼이 있을 때 도구 묶음 224px,
 // 로고 103px, 가장 긴 배지 80px과 간격을 더한 값에서 배지를, 배지 없이 모자라면 제품 이름을 숨긴다.
@@ -20,7 +20,7 @@ export const styles = stylex.create({
     paddingRight:
       'max(24px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 16px))',
     containerType: 'inline-size',
-    backgroundColor: colors.bgSurface,
+    backgroundColor: colors.bgBar,
     color: colors.fgDefault,
     position: 'relative'
   },
