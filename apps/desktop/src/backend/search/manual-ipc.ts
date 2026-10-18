@@ -30,6 +30,7 @@ export function registerManualSearchIpc({
   requireSender,
   windowGeneration,
   sourceGeneration,
+  isCurrentCaptureSource,
   isCurrentDocument,
   publish
 }: {
@@ -39,12 +40,16 @@ export function registerManualSearchIpc({
   windowGeneration: () => number
   /** BEGIN 때의 창 선택 세대. 공대 캡처의 프레임 요청이 회차를 시작한 창인지 비교한다. */
   sourceGeneration: () => number
+  /** 공대 캡처의 OCR 관측과 그 요청이 회차를 시작한 게임 창 선택에 아직 묶여 있는지 */
+  isCurrentCaptureSource: (binding: CaptureBinding) => boolean
   isCurrentDocument: (generation: number) => boolean
   publish: (channel: ManualSearchChangedChannel, snapshot: SearchSnapshot) => void
 }): {
   /** 현재 수명의 결합. 조회만 하는 수명이면 창 선택 세대는 프레임 읽기에 쓰이지 않는다. */
   readonly current: CaptureBinding | null
   invalidate: () => void
+  /** 게임 창이 바뀌거나 캡처를 멈추면 진행 중인 OCR 기원 요청을 끝낸다. */
+  cancelOcrRequests: () => void
   dispose: () => void
   selection: CaptureSearchLifetime['selection']
 } {
@@ -58,6 +63,7 @@ export function registerManualSearchIpc({
     runtime: lifetimeRuntime,
     slotCount,
     isCurrent: (binding) => isCurrentDocument(binding.windowGeneration),
+    isCurrentOcr: isCurrentCaptureSource,
     publish: (snapshot) => publish(changedChannel, snapshot)
   })
 
@@ -121,6 +127,7 @@ export function registerManualSearchIpc({
     },
     selection: lifetime.selection,
     invalidate: () => lifetime.invalidate(),
+    cancelOcrRequests: () => lifetime.cancelOcrRequests(),
     dispose: () => {
       lifetime.invalidate()
       ipcMain.removeHandler(controlChannel)

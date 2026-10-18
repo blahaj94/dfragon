@@ -66,6 +66,10 @@ function clearSource(): void {
   selectingSource = false
   sourceSelectionGeneration += 1
   search?.invalidate()
+  // 카드 조회 결과는 남기고, 이전 창으로 시작한 공대 캡처의 진행 중 OCR 요청만 끝낸다.
+  for (const cardSearch of cardSearches) {
+    cardSearch.cancelOcrRequests()
+  }
 }
 
 function invalidateCardSearches(): void {
@@ -227,6 +231,7 @@ function registerCaptureIpc(
       requireSender: requireSearchSender,
       windowGeneration: () => windowGeneration,
       sourceGeneration: () => sourceSelectionGeneration,
+      isCurrentCaptureSource: isCurrentSearch,
       isCurrentDocument: (generation) =>
         generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
       publish: (channel, snapshot) => {
