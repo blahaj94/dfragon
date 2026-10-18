@@ -57,7 +57,6 @@
   },
   "files": [
     "dist",
-    "seed-provenance.json",
     "README.md",
     "tokens.css",
     "src/tokens.stylex.ts",

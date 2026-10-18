@@ -10,11 +10,7 @@ const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
 export default defineConfig({
   base: './',
   root: fileURLToPath(new URL('./', import.meta.url)),
-  plugins: [
-    stylex.vite(stylexOptions),
-    react(),
-    uiNotices({ uiRoot: fileURLToPath(new URL('../', import.meta.url)) })
-  ],
+  plugins: [stylex.vite(stylexOptions), react(), uiNotices()],
   resolve: {
     alias: [
       {

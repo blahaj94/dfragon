@@ -1,19 +1,16 @@
 import { collectPackages, findPackageRoot } from './collect.ts'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const noticeRoot = fileURLToPath(new URL('../notices/ui/', import.meta.url))
 
 type BundleContext = {
   getModuleIds(): IterableIterator<string>
   emitFile(asset: { type: 'asset'; fileName: string; source: string }): string
 }
 
-// 각 build 입력 graph의 dependency 고지와 module provenance를 보존한다.
+// 각 build 입력 graph의 dependency 고지와 module 목록을 보존한다.
 // Tree-shaking 전 입력도 포함해 고지와 중복 사본 검사를 보수적으로 수행한다.
 // Vite 7(Electron)과 Vite 8에서 공통으로 제공하는 Rollup hook만 사용한다.
-export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot?: string }) {
+export function uiNotices({ runtimeRoot }: { runtimeRoot?: string } = {}) {
   return {
     name: 'dfragon-ui-notices',
     generateBundle(
@@ -21,50 +18,20 @@ export function uiNotices({ uiRoot, runtimeRoot }: { uiRoot: string; runtimeRoot
       _options: unknown,
       bundle: Record<string, { type: 'asset' | 'chunk'; code?: string }>
     ) {
-      const provenance = JSON.parse(readFileSync(join(uiRoot, 'seed-provenance.json'), 'utf8'))
-      const changes: string[] = []
-      for (const source of provenance.files) {
-        const isModifiedSource = source.localChanges.length > 0
-        if (!isModifiedSource) {
-          continue
-        }
-        changes.push(`${source.local}:\n${JSON.stringify(source.localChanges, null, 2)}`)
-      }
-      this.emitFile({
-        type: 'asset',
-        fileName: 'notices/DFRAGON-MODIFICATIONS.txt',
-        source: changes.join('\n\n')
-      })
       const generatedJavaScriptFiles: string[] = []
       for (const [fileName, chunk] of Object.entries(bundle)) {
         const isJavaScript = chunk.type === 'chunk'
         const hasCode = typeof chunk.code === 'string'
-        const shouldMarkSource = isJavaScript && hasCode
-        if (!shouldMarkSource) {
+        const isGeneratedJavaScript = isJavaScript && hasCode
+        if (!isGeneratedJavaScript) {
           continue
         }
         generatedJavaScriptFiles.push(fileName)
-        chunk.code =
-          '/*! DFragon modified SEED source: see notices/DFRAGON-MODIFICATIONS.txt and notices/seed-provenance.json. */\n' +
-          chunk.code
       }
       this.emitFile({
         type: 'asset',
         fileName: 'notices/bundle-files.json',
         source: JSON.stringify(generatedJavaScriptFiles, null, 2)
-      })
-      for (const name of readdirSync(noticeRoot)) {
-        this.emitFile({
-          type: 'asset',
-          fileName: `notices/${name}`,
-          source: readFileSync(join(noticeRoot, name), 'utf8')
-        })
-      }
-
-      this.emitFile({
-        type: 'asset',
-        fileName: 'notices/seed-provenance.json',
-        source: readFileSync(join(uiRoot, 'seed-provenance.json'), 'utf8')
       })
 
       const packages = new Map<

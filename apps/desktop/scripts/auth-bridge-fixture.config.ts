@@ -22,7 +22,7 @@ export default defineConfig({
     root: resolve('src/frontend/src/fixture/auth-bridge'),
     plugins: [
       ...rendererTransforms(),
-      uiNotices({ uiRoot: resolve('../../packages/ui') }),
+      uiNotices(),
       desktopLicenseCatalog({
         runtimeRoot: resolve('.'),
         uiRoot: resolve('../../packages/ui'),
