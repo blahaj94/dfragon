@@ -30,6 +30,8 @@ export function toCharacterCard(
     guild: summary.guildName,
     equipmentScore: summary.equipmentScore,
     serverRank: summary.serverRank,
+    // 공대 카드의 스탯 한 줄(공격력 증가, 증폭, 버프 수치 등)은 검색 응답에 대응 필드가 없어 추정하지 않는다.
+    stats: null,
     level: summary.level,
     image: summary.imageUrl,
     equipment: [],

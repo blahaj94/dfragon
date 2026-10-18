@@ -169,13 +169,15 @@ function App(): React.JSX.Element {
             resetKey={String(raidCapture.round)}
             slots={raid.slots.map((slot) => slot.state)}
             characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}
-            basicOnly
             slotNotices={raidSlotNotices}
             nicknames={raidCapture.nicknames}
             loadingSlots={raid.manualSlots.map((manual) => !manual && raidCapture.recognizing)}
             lastCapturedAt={raidCapture.lastCompletedAt}
             canCapture={raidCapture.canStartCapture}
             onCapture={raidCapture.startRound}
+            seatOrder={raidCapture.seatOrder}
+            canMoveSeats={raidCapture.canMoveSeats}
+            onSwapSeats={raidCapture.swapSeats}
             collapsed={party.collapsed}
             onToggleCollapsed={party.toggleCollapsed}
             onLookup={raid.lookupSlot}

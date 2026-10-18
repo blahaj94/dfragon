@@ -20,6 +20,7 @@ import { styles } from './Preview.style'
 import { previewCharacter, raidPreviewCharacters, tierPreviewCharacters } from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
+import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
@@ -31,6 +32,8 @@ export function Preview(): React.JSX.Element {
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
   const party = usePartyCollapse()
+  // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
+  const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const partyCardsId = useId()
   const raidCardsId = useId()
   // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
@@ -153,6 +156,9 @@ export function Preview(): React.JSX.Element {
                 setCaptureState('complete')
                 setCompletedAt(Date.now())
               }}
+              seatOrder={seatOrder}
+              canMoveSeats={phase !== 'recognizing'}
+              onSwapSeats={(from, to) => setSeatOrder((order) => swapSeats(order, from, to))}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
               onSlotDetail={openDetail}
