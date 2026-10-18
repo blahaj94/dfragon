@@ -102,3 +102,31 @@ export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
   },
   null
 ]
+
+const raidMembers = [
+  ['미리보기검사', '眞 웨펀마스터', 125850, 18240, undefined],
+  ['샘플크루', '眞 크루세이더', 131204, 4432, 'top'],
+  ['샘플마도', '眞 엘레멘탈마스터', 118420, 25110, undefined],
+  ['샘플거너', '眞 레인저', 121300, 21876, undefined],
+  ['샘플격투', '眞 스트라이커', 138960, 37, 'ranker'],
+  ['샘플인챈', '眞 인챈트리스', 129770, 6120, undefined],
+  ['샘플소울', '眞 소울브링어', 116080, 28903, undefined],
+  ['샘플나이트', '眞 엘븐나이트', 133410, 2950, 'top'],
+  ['샘플퇴마', '眞 퇴마사', 112640, 31544, undefined],
+  ['샘플뮤즈', '眞 뮤즈', 127310, 9821, undefined],
+  ['샘플닌자', '眞 쿠노이치', 119900, 23310, undefined]
+] as const
+
+// 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 공대 데이터와
+// 단계 기준이 아직 없어 이름, 단계, 순위, 숫자는 모두 합성 값이다.
+export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
+  ...raidMembers.map(([name, job, fame, serverRank, tier]) => ({
+    ...previewCharacter,
+    name,
+    job,
+    fame,
+    serverRank,
+    tier
+  })),
+  null
+]

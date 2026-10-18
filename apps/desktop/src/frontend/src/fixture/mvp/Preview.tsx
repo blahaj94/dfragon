@@ -9,6 +9,7 @@ import { SettingsSection } from '../../sections/SettingsSection'
 import { getCaptureControlState, isDnfCaptureSource } from '../../lib/capture-presentation'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
+import { RaidPage } from '../../pages/raid/RaidPage'
 import { scenarios } from './scenarios'
 import {
   getCapturePreviewSources,
@@ -17,7 +18,7 @@ import {
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
-import { previewCharacter, tierPreviewCharacters } from './fixture'
+import { previewCharacter, raidPreviewCharacters, tierPreviewCharacters } from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 
@@ -30,6 +31,7 @@ export function Preview(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
   const party = usePartyCollapse()
   const partyCardsId = useId()
+  const raidCardsId = useId()
   const sources = getCapturePreviewSources(captureState)
   const phase = getCapturePreviewPhase(captureState)
   const captureStatus = getCaptureControlState({
@@ -131,7 +133,16 @@ export function Preview(): React.JSX.Element {
                 onDetail={openDetail}
               />
             </div>
-            {searchMode === 'raid' && <section aria-label="공대" />}
+            {searchMode === 'raid' && (
+              <div {...stylex.props(styles.page)}>
+                <RaidPage
+                  id={raidCardsId}
+                  characters={raidPreviewCharacters}
+                  collapsed={party.collapsed}
+                  onToggleCollapsed={party.toggleCollapsed}
+                />
+              </div>
+            )}
             <footer {...stylex.props(styles.footer)}>
               <span>DFragon Desktop</span>
               <select
