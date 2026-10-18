@@ -93,9 +93,9 @@ it('후보가 여러 개여도 임의로 선택하지 않고 발견한 개수를
 it('감지된 게임을 먼저 표시하고 선택 표시와 직접 선택을 연결한다', async () => {
   await openDialog()
   await click(trigger())
+  // 목록은 body portal에 그려지지만 모달이 바깥을 가리는 범위에 들지 않아 누를 수 있어야 한다.
   const menu = document.querySelector('[role="menu"]')!
-  expect(menu.closest('[role="dialog"]')).not.toBeNull()
-  expect(menu.closest('[aria-hidden="true"]')).toBeNull()
+  expect(menu.closest('[aria-hidden="true"], [inert]')).toBeNull()
   const items = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')]
   expect(items.map((item) => item.getAttribute('aria-label'))).toEqual([
     '던전앤파이터',
