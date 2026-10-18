@@ -48,6 +48,12 @@ jobs:
           node-version: '26'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Fork PRs get no secrets, and an unpublished engine is skipped, so those builds ship without a score engine.
+      - name: Prepare score engine
+        env:
+          DFRAGON_SCORE_ENGINE_TOKEN: ${{ secrets.DFRAGON_SCORE_ENGINE_TOKEN }}
+          DFRAGON_SCORE_ENGINE_REPOSITORY: ${{ vars.DFRAGON_SCORE_ENGINE_REPOSITORY }}
+        run: pnpm --filter @dfragon/desktop prepare:score-engine
       - run: pnpm --filter @dfragon/desktop build:test
       - name: Package the test channel portable executable
         shell: bash
