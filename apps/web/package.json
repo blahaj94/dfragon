@@ -19,8 +19,6 @@
     "react-dom": "catalog:",
     "@base-ui/react": "catalog:",
     "@dfragon/ui": "workspace:*",
-    "@seed-design/react": "catalog:",
-    "@seed-design/css": "catalog:",
     "@stylexjs/stylex": "catalog:"
   },
   "devDependencies": {
@@ -32,7 +30,6 @@
     "vite": "catalog:",
     "vitest": "catalog:",
     "jsdom": "catalog:",
-    "@seed-design/vite-plugin": "catalog:",
     "@dfragon/licenses": "workspace:*",
     "@stylexjs/unplugin": "catalog:"
   }

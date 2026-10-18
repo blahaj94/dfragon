@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActionButton } from '@dfragon/ui'
+import { Button } from '@dfragon/ui'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
@@ -34,9 +34,9 @@ function App() {
             <code {...stylex.props(styles.code)}>HMR</code>
           </p>
         </div>
-        <ActionButton type="button" onClick={() => setCount((count) => count + 1)}>
+        <Button type="button" variant="primary" onClick={() => setCount((count) => count + 1)}>
           Count is {count}
-        </ActionButton>
+        </Button>
       </section>
 
       <div {...stylex.props(styles.ticks)}></div>
