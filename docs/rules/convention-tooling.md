@@ -30,7 +30,7 @@ Root의 `biome.json`, `scripts/biome/`의 GritQL lint 플러그인, `scripts/sta
 - Biome는 정확한 버전으로 고정한다. 버전을 바꾸면 포맷 결과와 nursery 규칙이 달라질 수 있으므로 `pnpm format` 결과 diff와 `pnpm test:tooling`을 함께 확인한다.
 - 외부 의존성 버전은 `pnpm-workspace.yaml`의 catalog에서만 정확한 버전으로 정하고, 각 `package.json`의 dependencies, devDependencies, peerDependencies는 `catalog:` 또는 named catalog를 참조한다. 내부 package는 `workspace:*`를 유지한다.
 - Root TypeScript는 문장 간격 도구의 parser 전용이다. App compiler/runtime을 이 설정 정리로 교체하지 않는다.
-- Generated/vendor, OCR, 고정 SEED source, provenance, lockfile, license/notice의 소유 규칙과 기존 ignore를 유지한다. 제외 범위는 `biome.json`의 `files.includes`와 Git ignore 연동이 정하며, 문장 간격 도구도 같은 includes와 Git ignore 기준을 따른다. `build`라는 경로 이름만으로 직접 관리 generator source를 제외하지 않는다. Broad 자동수정으로 무관한 파일을 바꾸지 않는다.
+- Generated/vendor, OCR, lockfile, license/notice의 소유 규칙과 기존 ignore를 유지한다. 제외 범위는 `biome.json`의 `files.includes`와 Git ignore 연동이 정하며, 문장 간격 도구도 같은 includes와 Git ignore 기준을 따른다. `build`라는 경로 이름만으로 직접 관리 generator source를 제외하지 않는다. Broad 자동수정으로 무관한 파일을 바꾸지 않는다.
 
 ## 검증과 CI
 

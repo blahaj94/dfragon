@@ -63,7 +63,7 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 
 ## Shared UI boundary
 
-2026-10-18 결정으로 browser UI에서 SEED Design을 걷어내고 `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하는 아래 UI 경계를 채택한다. [Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)은 이력으로 보존하며 이 결정으로 대체한다. 이 절은 이번 PR의 사용자 merge 후 active 계약으로 적용하고, 코드 이행은 후속 PR에서 단계적으로 진행한다. 이행 중 남은 SEED 코드의 peer, external, `base.css` import 경계와 그 검사(`packages/ui/scripts/verify-build.mjs`)는 그 코드를 지우는 이행 PR에서 함께 바꾼다. UI 내부 배치, 스타일, 토큰, Example 범위와 이행 기준은 [Design System](../rules/design-system.md)을 따른다.
+2026-10-18 결정으로 browser UI에서 SEED Design을 걷어내고 `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하는 아래 UI 경계를 채택한다. [Issue #86의 SEED 채택 결정](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)은 이력으로 보존하며 이 결정으로 대체한다. 이 절은 채택 PR의 사용자 merge 후 active 계약으로 적용했고, 코드 이행을 마쳐 저장소에 SEED 코드, 의존성과 그 경계 검사가 남아 있지 않다. 아래 경계의 build 산출물 검사는 `packages/ui/scripts/verify-build.mjs`가 맡는다. UI 내부 배치, 스타일, 토큰, Example 범위와 이행 기준은 [Design System](../rules/design-system.md)을 따른다.
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |
@@ -78,10 +78,10 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 ### Dependency와 CSS 소유
 
 - `@dfragon/ui`는 `@base-ui/react`, `@stylexjs/stylex`, React, React DOM을 peer dependency로 선언한다. 개발, test에 필요한 사본은 dev dependency로 둔다. 소비 app, Example은 manifest, lockfile에 기록된 호환 조합을 제공한다. React도 소비 환경과 일치시키며 검증하지 않은 지원 범위를 주장하지 않는다.
-- Library를 bundle하면 `@base-ui/react`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 Base UI runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에서 제거한다.
+- Library를 bundle하면 `@base-ui/react`, `@stylexjs/stylex`와 React, React DOM 및 JSX runtime entry를 external 처리한다. 산출물에 별도 Base UI runtime, StyleX runtime, CSS 또는 React 사본이 포함되지 않는지 확인한다. Peer 선언만으로 external 처리가 보장된다고 가정하지 않는다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에 두지 않는다.
 - Library source에서 CSS를 직접 import하지 않는다. `tokens.css`와 `foundation.css`는 package export로 제공하고, 각 소비 app, Example의 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다. `data-theme`으로 모드를 정하는 Theme 초기화는 소비 앱이 책임진다. Base UI는 스타일을 제공하지 않으므로 별도 vendor CSS를 두지 않는다.
 - Library의 StyleX는 `--df-*` 변수만 참조한다. 토큰 상수는 `stylex.defineConsts`로 정의하며 `defineVars`, `createTheme`, 앱 테마는 쓰지 않는다. Library build는 StyleX를 컴파일하지 않고 CSS를 내지 않으며, 소비 앱이 `@dfragon/ui/stylex-config`로 변환한다. `@dfragon/ui/tokens.stylex`는 React 없는 `defineConsts` entry라 소비 앱의 StyleX 컴파일이 필요하고, `@dfragon/ui/typo`는 StyleX 없는 React 전용 entry로 유지한다.
-- Base UI는 별도 bundler plugin 없이 소비한다. Desktop의 electron-vite renderer와 실제 Electron(CSP 포함) 호환성은 Desktop 이행 PR에서 확인한다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
+- Base UI는 별도 bundler plugin 없이 소비한다. Desktop의 electron-vite renderer와 실제 Electron(CSP 포함) 호환성은 [Desktop 이행 PR](https://github.com/blahaj94/dfragon/pull/704)에서 확인했다. 하나의 alias만을 위해 `vite-tsconfig-paths`를 추가하지 않고 기존 Vite의 `resolve.alias`를 사용한다.
 - 아이콘은 `@dfragon/ui`와 앱이 소유한 SVG 컴포넌트로 그린다. Dependency, 역할 변경은 [제품 계약 적용 기준](../README.md#document-class)과 해당 runtime, 배포 계약을 따른다.
 
 Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Electron 호환성, CSS 중복 없음, accessibility, 시각 일치 성공을 보증하지 않는다. 변경한 library 산출물과 영향받는 소비 환경을 검증하며 기존 Example, 사용 안내가 틀려진 부분은 같은 PR에서 고친다. 모든 소비 환경과 예제를 매번 재검증하지 않는다.
