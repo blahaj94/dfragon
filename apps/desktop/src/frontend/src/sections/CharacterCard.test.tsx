@@ -168,3 +168,144 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
   )
   expect(container.querySelector('input')!.value).toBe('다음OCR')
 })
+
+const found: CardCharacter = {
+  name: '찾은이름',
+  serverId: 'cain',
+  adventure: '찾은모험단',
+  guild: '찾은길드',
+  job: '찾은직업',
+  fame: 125850,
+  equipmentScore: 414806,
+  serverRank: 18240,
+  equipment: [],
+  oath: []
+}
+
+function card(): HTMLElement {
+  return container.querySelector('article')!
+}
+
+// 오른쪽 위의 상태 표시. 그림 칸의 이미지 대체 표시는 제외한다.
+function statusMark(): Element | null {
+  return card().querySelector('[role="img"]:not([aria-label$="이미지 없음"])')
+}
+
+// 화면에 보이는 글자. 보조 기술용 알림 영역은 뺀다.
+function visibleText(): string {
+  const copy = card().cloneNode(true) as HTMLElement
+  for (const live of copy.querySelectorAll('[aria-live]')) {
+    live.remove()
+  }
+
+  if (copy.textContent == null) {
+    return ''
+  }
+
+  return copy.textContent
+}
+
+function faceTab(label: string): HTMLButtonElement {
+  return [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(
+    (tab) => tab.textContent === label
+  )!
+}
+
+it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 이름을 글자로 다시 쓰지 않는다', async () => {
+  await render({ state: 'success', character: found, onDetail: vi.fn() })
+  expect(card().getAttribute('data-state')).toBe('default')
+  expect(statusMark()).toBeNull()
+
+  await render({ state: 'failure', character: undefined })
+  expect(card().getAttribute('data-state')).toBe('failure')
+  expect(card().querySelector('[role="img"][aria-label="검색 실패"]')?.textContent).toBe('!')
+  expect(visibleText()).not.toContain('검색 실패')
+  expect(card().textContent).toContain('검색 실패')
+  const detail = card().querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')
+  expect(detail?.disabled).toBe(true)
+
+  await render({ state: 'empty', character: undefined })
+  expect(card().getAttribute('data-state')).toBe('failure')
+  expect(visibleText()).toContain('검색 결과가 없습니다')
+
+  await render({ state: 'waiting-portrait', character: undefined })
+  expect(card().getAttribute('data-state')).toBe('waiting')
+  expect(card().querySelector('[role="img"][aria-label="얼굴 인식 대기"] svg')).not.toBeNull()
+  expect(card().querySelector('[aria-label="1번 캐릭터 상세 열기"]')).toBeNull()
+
+  await render({ state: 'idle', character: undefined })
+  expect(card().getAttribute('data-state')).toBe('waiting')
+  expect(statusMark()).toBeNull()
+})
+
+it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표시를 보이고 조회하면 돌아온다', async () => {
+  const lookup = vi.fn()
+  await render({ state: 'success', character: found, onLookup: lookup })
+  const input = container.querySelector('input')!
+  await act(async () => input.focus())
+  expect(card().getAttribute('data-state')).toBe('selected')
+  expect(card().querySelector('[role="img"][aria-label="이름 수정 중"]')).not.toBeNull()
+  await act(async () => input.blur())
+  expect(card().getAttribute('data-state')).toBe('default')
+
+  await enterName('고친이름')
+  expect(card().getAttribute('data-state')).toBe('selected')
+  expect(card().textContent).toContain('Enter로 조회')
+  await act(async () =>
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+  )
+  expect(lookup).toHaveBeenCalledExactlyOnceWith('고친이름', 'cain')
+  await render({ state: 'pending', nickname: '고친이름', onLookup: lookup })
+  expect(card().getAttribute('data-state')).toBe('default')
+  expect(statusMark()).toBeNull()
+})
+
+it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을 구분하며 소속과 순위를 보인다', async () => {
+  await render({ state: 'success', character: { ...found, fame: 0, equipmentScore: undefined } })
+  const terms = [...card().querySelectorAll('dt')]
+  expect(terms.map((term) => term.textContent)).toEqual(['명성', '장비 점수'])
+  const [fame, score] = terms.map((term) => term.nextElementSibling!)
+  expect(fame.querySelector('[aria-hidden="true"]')?.textContent).toBe('0')
+  expect(score.textContent).toBe('—')
+  expect(card().textContent).toContain('찾은모험단')
+  expect(card().textContent).toContain('찾은길드')
+  expect(card().textContent).toContain('서버 순위 18240위')
+
+  await render({ state: 'success', character: found })
+  expect(card().querySelectorAll('dd')[1].querySelector('[aria-hidden="true"]')?.textContent).toBe(
+    '414,806'
+  )
+})
+
+it('면 탭으로 장비, 서약, 투자 현황을 고르고 이름과 서버는 캐릭터 면에만 둔다', async () => {
+  const character: CardCharacter = {
+    ...found,
+    equipment: [{ id: 'WEAPON', label: '무기', rarityColor: '#ffb400', enhancement: '+13' }]
+  }
+  await render({ state: 'success', character, basicOnly: false })
+  expect(faceTab('캐릭터').getAttribute('aria-selected')).toBe('true')
+  expect(container.querySelector('input')).not.toBeNull()
+
+  await act(async () => faceTab('장비').click())
+  expect(faceTab('장비').getAttribute('aria-selected')).toBe('true')
+  expect(container.querySelector('input')).toBeNull()
+  expect(container.querySelector('[aria-label="1번 서버"]')).toBeNull()
+  expect(container.querySelector('[role="tabpanel"] [title="무기"]')).not.toBeNull()
+
+  await act(async () => faceTab('투자 현황').click())
+  expect(container.querySelector('[role="tabpanel"] table')).not.toBeNull()
+})
+
+it('접힌 동안은 캐릭터 면을 보이고 펼치면 고른 면으로 돌아온다', async () => {
+  await render({ state: 'success', character: found, basicOnly: false })
+  await act(async () => faceTab('서약').click())
+  expect(container.querySelector('input')).toBeNull()
+
+  await render({ state: 'success', character: found, basicOnly: false, collapsed: true })
+  expect(container.querySelector<HTMLInputElement>('input')?.value).toBe('찾은이름')
+  expect(faceTab('캐릭터').getAttribute('aria-selected')).toBe('true')
+
+  await render({ state: 'success', character: found, basicOnly: false, collapsed: false })
+  expect(faceTab('서약').getAttribute('aria-selected')).toBe('true')
+  expect(container.querySelector('input')).toBeNull()
+})
