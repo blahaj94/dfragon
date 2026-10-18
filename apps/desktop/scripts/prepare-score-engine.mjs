@@ -125,6 +125,11 @@ export async function prepareScoreEngine({
   return { kind: 'installed', path }
 }
 
+const REQUIRED_REASONS = {
+  'no-token': 'DFRAGON_SCORE_ENGINE_TOKEN is not set',
+  'unsupported-target': 'no score engine asset for this platform'
+}
+
 const SKIP_MESSAGES = {
   unpublished: 'Score engine release is not published yet. Building without the score engine.',
   'no-token': 'DFRAGON_SCORE_ENGINE_TOKEN is not set. Building without the score engine.',
@@ -139,7 +144,7 @@ const SKIP_MESSAGES = {
  */
 export function assertScoreEngineIncluded(result) {
   if (result.kind === 'skipped' && result.reason !== 'unpublished') {
-    throw new Error(SKIP_MESSAGES[result.reason])
+    throw new Error(`Release builds require the score engine: ${REQUIRED_REASONS[result.reason]}.`)
   }
 }
 
