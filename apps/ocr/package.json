@@ -21,7 +21,6 @@
     "@nestjs/common": "catalog:",
     "@nestjs/core": "catalog:",
     "@nestjs/platform-express": "catalog:",
-    "@seed-design/css": "catalog:",
     "@stylexjs/stylex": "catalog:",
     "@tanstack/react-query": "catalog:",
     "cookie-parser": "catalog:",

@@ -16,10 +16,9 @@ export function useColorMode() {
       return 'light'
     }
   })
-  // Theme tokens read SEED palette steps from this attribute, so it changes before paint with
-  // darkTheme.
+  // tokens.css picks the --df-* values from this attribute, so it changes before paint.
   useLayoutEffect(() => {
-    document.documentElement.dataset.seedColorMode = `${mode}-only`
+    document.documentElement.dataset.theme = mode
     try {
       localStorage.setItem(STORAGE_KEY, mode)
     } catch {
