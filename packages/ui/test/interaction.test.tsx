@@ -629,6 +629,35 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     await vi.waitFor(() => expect(queryByRole('dialog')).toBeNull())
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
   })
+
+  // jsdom은 계산된 크기를 모르므로 크기마다 다른 StyleX class가 붙는지만 확인한다.
+  it('상단 바 크기 bar는 기본 md와 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <IconButton aria-label="기본" icon={<SettingsIcon />} />
+        <IconButton aria-label="상단 바" size="bar" icon={<SettingsIcon />} />
+      </>
+    )
+
+    expect(getByRole('button', '상단 바').className).not.toBe(getByRole('button', '기본').className)
+  })
+
+  it('DialogContent lg는 기본 sm과 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <DialogRoot defaultOpen>
+          <DialogContent title="작은 대화상자" />
+        </DialogRoot>
+        <DialogRoot defaultOpen>
+          <DialogContent size="lg" title="큰 대화상자" />
+        </DialogRoot>
+      </>
+    )
+    const small = await vi.waitFor(() => getByRole('dialog', '작은 대화상자'))
+    const large = getByRole('dialog', '큰 대화상자')
+
+    expect(large.className).not.toBe(small.className)
+  })
 })
 
 const servers = [

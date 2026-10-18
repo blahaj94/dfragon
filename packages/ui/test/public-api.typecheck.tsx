@@ -102,12 +102,14 @@ expectTypeOf<ButtonProps['variant']>().toEqualTypeOf<
 >()
 expectTypeOf<ButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'lg' | undefined>()
 expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
+expectTypeOf<IconButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'bar' | undefined>()
 expectTypeOf<ProgressCircleProps['ref']>().toEqualTypeOf<Ref<SVGSVGElement> | undefined>()
 expectTypeOf<TextFieldProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<TextFieldProps['fieldRef']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<TextFieldInputProps['ref']>().toEqualTypeOf<Ref<HTMLInputElement> | undefined>()
 expectTypeOf<DialogTriggerProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<DialogContentProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
+expectTypeOf<DialogContentProps['size']>().toEqualTypeOf<'sm' | 'lg' | undefined>()
 expectTypeOf<DialogBodyProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogFooterProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
@@ -196,6 +198,7 @@ export const componentExamples = (
           title={<span>작업 상세</span>}
           description="진행 상태를 확인하세요."
           showCloseButton={false}
+          size="lg"
           onKeyDown={(event) => {
             expectTypeOf(event).toExtend<KeyboardEvent<HTMLDivElement>>()
           }}
@@ -416,6 +419,8 @@ export const invalidComponentExamples = (
     <DialogTrigger ref={inputRef}>열기</DialogTrigger>
     {/* @ts-expect-error DialogTrigger는 자식 요소 합성에 render를 쓴다. */}
     <DialogTrigger asChild>열기</DialogTrigger>
+    {/* @ts-expect-error DialogContent 크기는 디자인 대화상자 sm, lg 중 하나다. */}
+    <DialogContent size="md" title="상세" />
     {/* @ts-expect-error DialogContent의 className은 공개 prop이 아니다. */}
     <DialogContent className="wide" title="상세" />
     {/* @ts-expect-error DialogFooter의 className은 공개 prop이 아니다. */}
