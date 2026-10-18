@@ -149,6 +149,16 @@ pnpm --filter @dfragon/desktop dev
 
 `pnpm --filter @dfragon/desktop auth:fixture:build` 후 `pnpm --filter @dfragon/desktop auth:fixture:smoke`는 새 카드 화면과 실제 coordinator, main/preload IPC의 로그인, 취소, renderer reload, 저장 완료 후 상태 반영, 로그아웃을 검증합니다. 로그인 복귀는 main의 GET 요청으로 실제 127.0.0.1 수신기를 거쳐 완료 HTML과 한 번만 수신하는 동작을 확인합니다. API 호출, 브라우저 열기, 저장소는 합성 효과이며 실제 브라우저, 패스키 인증이나 앱 프로세스 재시작 후 저장소 복원 성공을 뜻하지 않습니다.
 
+## 장비 점수 엔진
+
+카드의 장비 점수(버퍼는 버프 점수)와 스위칭 Lv, 30레벨과 50레벨 버프는 비공개 엔진 저장소가 만든 네이티브 라이브러리를 main이 불러 계산합니다. 엔진이 없어도 빌드와 실행은 그대로 되고 카드의 점수 칸만 `-`입니다. 엔진 경계와 입력 변환은 [카드 전달과 점수 엔진](../../docs/reference/desktop-character-search.md#카드-전달과-점수-엔진)에 있습니다.
+
+- **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
+- **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 첫 점수 계산 때 한 번만 엽니다.
+- **자산 입수**: `pnpm --filter @dfragon/desktop prepare:score-engine`이 `score-engine.config.mjs`의 tag와 자산 이름으로 Release 자산을 받아 SHA256을 대조하고 `resources/score/`에 둡니다. 토큰 `DFRAGON_SCORE_ENGINE_TOKEN`과 저장소 `DFRAGON_SCORE_ENGINE_REPOSITORY`(`<owner>/<name>`)를 환경변수로 받으며, 토큰이 없으면 건너뜁니다. 받은 폴더는 스스로 Git에서 제외합니다. 지금은 Release가 없어 설정의 `published`가 `false`(미발행)이고 항상 건너뜁니다.
+- **CI**: Windows Test Build와 Windows Portable workflow가 build 전에 이 명령을 실행하고, secret `DFRAGON_SCORE_ENGINE_TOKEN`과 variable `DFRAGON_SCORE_ENGINE_REPOSITORY`를 씁니다. 두 값은 저장소 소유자가 설정합니다. 포크 PR은 secret을 받지 못해 엔진 없이 빌드합니다. Windows Portable은 `--require`로 실행해 엔진이 발행된 뒤 토큰이나 자산이 없으면 실패합니다.
+- **실패 표시**: 파일이 없거나 열 수 없거나 계산, 결과 검증이 실패하면 점수만 null이고 카드의 다른 값은 그대로입니다. 진단 창에 엔진을 불러오지 못했거나 계산하지 못했다는 문구가 남고, 계산이 50ms를 넘으면 느린 계산 문구가 남습니다.
+
 ## Windows PC에서 소스로 실행
 
 게임이 도는 Windows PC에 저장소를 받아 소스로 실행하면 빌드, 업로드, 다운로드 왕복 없이 수정을 바로 확인할 수 있습니다. 개발 실행도 캡처는 같은 Windows GDI 모듈, OCR과 검색은 같은 코드로 동작합니다. 패키징에서만 생기는 동작(asar, fuses, 관리자 권한 manifest, 포터블 압축 해제)은 아래 포터블 빌드나 PR의 Windows Test Build로 확인합니다.
