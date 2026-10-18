@@ -65,132 +65,128 @@ export function Preview(): React.JSX.Element {
     window.open(url.href, 'dfragon-mvp-detail')
   }
 
+  if (detail) {
+    return <CharacterDetailPage character={character} />
+  }
+
   return (
     <main {...stylex.props(styles.app)}>
-      {detail ? (
-        <div {...stylex.props(styles.content)}>
-          <CharacterDetailPage character={character} onClose={() => window.close()} />
-        </div>
-      ) : (
-        <>
-          <TopBar
-            nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
-            captureStatus={captureStatus}
-            showCapture
-            settings={<SettingsSection />}
-            capture={
-              <CaptureControls
-                sources={sources}
-                selectedSourceId={source}
-                loading={false}
-                failed={false}
-                phase={phase}
-                ready
-                status={getCapturePreviewStatus(captureState)}
-                onSelect={(id) => {
-                  setSource(id)
-                  setCaptureState(id ? 'selected' : 'idle')
-                }}
-                onRefresh={() => {}}
-                onStop={() => {
-                  setSource('')
-                  setCaptureState('idle')
-                }}
-              />
-            }
+      <TopBar
+        nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
+        captureStatus={captureStatus}
+        showCapture
+        settings={<SettingsSection />}
+        capture={
+          <CaptureControls
+            sources={sources}
+            selectedSourceId={source}
+            loading={false}
+            failed={false}
+            phase={phase}
+            ready
+            status={getCapturePreviewStatus(captureState)}
+            onSelect={(id) => {
+              setSource(id)
+              setCaptureState(id ? 'selected' : 'idle')
+            }}
+            onRefresh={() => {}}
+            onStop={() => {
+              setSource('')
+              setCaptureState('idle')
+            }}
           />
-          <div {...stylex.props(styles.content)}>
-            <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
-              <PartyHeader
-                status={getCapturePreviewStatus(captureState) || '캡처 대기'}
-                collapsed={party.collapsed}
-                onToggleCollapsed={party.toggleCollapsed}
-                controls={partyCardsId}
-              />
-              <PartyPage
-                id={partyCardsId}
-                collapsed={party.collapsed}
-                character={character}
-                characters={characters}
-                basicOnly={identification}
-                nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
-                slotNotices={
-                  identification
-                    ? [
-                        undefined,
-                        undefined,
-                        undefined,
-                        '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-                      ]
-                    : undefined
-                }
-                onRetry={identification ? () => setScenario('pending') : undefined}
-                retryEnabled={identification ? [false, false, false, true] : undefined}
-                slots={scenarios[scenario]}
-                resetKey={scenario}
-                compareFaces={scenario === 'faces' || scenario === 'missing'}
-                inputEnabled
-                onDetail={openDetail}
-              />
-            </div>
-            {searchMode === 'raid' && (
-              <div {...stylex.props(styles.page)}>
-                <RaidPage
-                  id={raidCardsId}
-                  characters={raidPreviewCharacters}
-                  collapsed={party.collapsed}
-                  onToggleCollapsed={party.toggleCollapsed}
-                />
-              </div>
-            )}
-            <footer {...stylex.props(styles.footer)}>
-              <span>DFragon Desktop</span>
-              <select
-                aria-label="캡처 미리보기 상태"
-                value={captureState}
-                onChange={(event) => {
-                  const state = event.target.value
-                  setCaptureState(state)
-                  const hasSource =
-                    state === 'selected' ||
-                    state === 'complete' ||
-                    state === 'recognizing' ||
-                    state === 'unavailable'
-                  setSource(hasSource ? 'preview-game' : '')
-                }}
-                {...stylex.props(styles.select)}
-              >
-                <option value="idle">캡처 · 대기</option>
-                <option value="selected">캡처 · 창 선택됨</option>
-                <option value="recognizing">캡처 · 인식 중</option>
-                <option value="complete">캡처 · 인식 완료</option>
-                <option value="unavailable">캡처 · 확인 필요</option>
-                <option value="missing">캡처 · 창 미감지</option>
-                <option value="failure">캡처 · 실패</option>
-              </select>
-              <select
-                aria-label="미리보기 상태"
-                value={scenario}
-                onChange={(event) => setScenario(event.target.value)}
-                {...stylex.props(styles.select)}
-              >
-                <option value="states">기본 · 상태 비교</option>
-                <option value="faces">네 면 비교</option>
-                <option value="pending">검색 중 · 결과 없음</option>
-                <option value="missing">누락 · 이미지 실패</option>
-                <option value="identification">자동 식별 상태</option>
-                <option value="tiers">상위, 랭커 단계</option>
-              </select>
-            </footer>
-            <p {...stylex.props(styles.notice)}>
-              합성 데이터 미리보기, 카드 아래 면 탭으로 넘기고, 우측 상단에서 상세를 여세요.
-              <br />
-              캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력, 서버 선택은
-              조작 확인용이며 검색되지 않습니다. 마법부여 등급은 디자인 예시입니다.
-            </p>
+        }
+      />
+      <div {...stylex.props(styles.content)}>
+        <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+          <PartyHeader
+            status={getCapturePreviewStatus(captureState) || '캡처 대기'}
+            collapsed={party.collapsed}
+            onToggleCollapsed={party.toggleCollapsed}
+            controls={partyCardsId}
+          />
+          <PartyPage
+            id={partyCardsId}
+            collapsed={party.collapsed}
+            character={character}
+            characters={characters}
+            basicOnly={identification}
+            nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
+            slotNotices={
+              identification
+                ? [
+                    undefined,
+                    undefined,
+                    undefined,
+                    '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+                  ]
+                : undefined
+            }
+            onRetry={identification ? () => setScenario('pending') : undefined}
+            retryEnabled={identification ? [false, false, false, true] : undefined}
+            slots={scenarios[scenario]}
+            resetKey={scenario}
+            compareFaces={scenario === 'faces' || scenario === 'missing'}
+            inputEnabled
+            onDetail={openDetail}
+          />
+        </div>
+        {searchMode === 'raid' && (
+          <div {...stylex.props(styles.page)}>
+            <RaidPage
+              id={raidCardsId}
+              characters={raidPreviewCharacters}
+              collapsed={party.collapsed}
+              onToggleCollapsed={party.toggleCollapsed}
+            />
           </div>
-        </>
-      )}
+        )}
+        <footer {...stylex.props(styles.footer)}>
+          <span>DFragon Desktop</span>
+          <select
+            aria-label="캡처 미리보기 상태"
+            value={captureState}
+            onChange={(event) => {
+              const state = event.target.value
+              setCaptureState(state)
+              const hasSource =
+                state === 'selected' ||
+                state === 'complete' ||
+                state === 'recognizing' ||
+                state === 'unavailable'
+              setSource(hasSource ? 'preview-game' : '')
+            }}
+            {...stylex.props(styles.select)}
+          >
+            <option value="idle">캡처 · 대기</option>
+            <option value="selected">캡처 · 창 선택됨</option>
+            <option value="recognizing">캡처 · 인식 중</option>
+            <option value="complete">캡처 · 인식 완료</option>
+            <option value="unavailable">캡처 · 확인 필요</option>
+            <option value="missing">캡처 · 창 미감지</option>
+            <option value="failure">캡처 · 실패</option>
+          </select>
+          <select
+            aria-label="미리보기 상태"
+            value={scenario}
+            onChange={(event) => setScenario(event.target.value)}
+            {...stylex.props(styles.select)}
+          >
+            <option value="states">기본 · 상태 비교</option>
+            <option value="faces">네 면 비교</option>
+            <option value="pending">검색 중 · 결과 없음</option>
+            <option value="missing">누락 · 이미지 실패</option>
+            <option value="identification">자동 식별 상태</option>
+            <option value="tiers">상위, 랭커 단계</option>
+          </select>
+        </footer>
+        <p {...stylex.props(styles.notice)}>
+          합성 데이터 미리보기, 카드 아래 면 탭으로 넘기고, 우측 상단에서 상세를 여세요.
+          <br />
+          캡처 모달은 합성 창으로 동작하며 실제 화면을 캡처하지 않습니다. 이름 입력, 서버 선택은
+          조작 확인용이며 검색되지 않습니다. 마법부여 등급은 디자인 예시입니다.
+        </p>
+      </div>
     </main>
   )
 }
