@@ -28,7 +28,7 @@ export const styles = stylex.create({
       ':is([data-disabled])': colors.bgControl
     },
     transitionProperty: 'background-color, border-color',
-    transitionDuration: motion.durHover,
+    transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
   indicator: { display: 'inline-flex', fontSize: 14 }

@@ -30,7 +30,7 @@ export const styles = stylex.create({
       [DISABLED]: colors.bgControl
     },
     transitionProperty: 'background-color, border-color',
-    transitionDuration: motion.durHover,
+    transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
   check: {
