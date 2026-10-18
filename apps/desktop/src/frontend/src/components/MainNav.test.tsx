@@ -1,0 +1,95 @@
+// @vitest-environment jsdom
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { MainNav, type SearchMode } from './MainNav'
+
+let root: Root
+let container: HTMLDivElement
+
+beforeEach(() => {
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+  container = document.createElement('div')
+  document.body.append(container)
+  root = createRoot(container)
+})
+
+afterEach(async () => {
+  await act(async () => root.unmount())
+  container.remove()
+  vi.unstubAllGlobals()
+})
+
+async function render(searchMode: SearchMode, onSearchModeChange = vi.fn()): Promise<void> {
+  await act(async () =>
+    root.render(<MainNav searchMode={searchMode} onSearchModeChange={onSearchModeChange} />)
+  )
+}
+
+function trigger(): HTMLButtonElement {
+  return container.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!
+}
+
+function menuItems(): HTMLElement[] {
+  return [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')]
+}
+
+async function key(target: Element, name: string): Promise<void> {
+  await act(async () => {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }))
+  })
+}
+
+it('검색은 현재 화면이고 현재 하위 이름을 함께 보이며, 나머지 메뉴는 누를 수 없다고 알린다', async () => {
+  await render('raid')
+  const nav = container.querySelector('nav[aria-label="주 메뉴"]')!
+  const buttons = [...nav.querySelectorAll('button')]
+
+  expect(buttons.map((button) => button.textContent)).toEqual([
+    '검색공대',
+    '캐릭터',
+    '도구',
+    '플래너'
+  ])
+  expect(trigger().getAttribute('aria-current')).toBe('page')
+  expect(buttons.slice(1).map((button) => button.getAttribute('aria-disabled'))).toEqual([
+    'true',
+    'true',
+    'true'
+  ])
+})
+
+it('하위 메뉴는 파티와 공대 중 현재 항목을 표시하고 고르면 닫힌다', async () => {
+  const onSearchModeChange = vi.fn()
+  await render('party', onSearchModeChange)
+  await act(async () => trigger().click())
+
+  expect(document.querySelector('[role="menu"]')?.getAttribute('aria-label')).toBe('검색')
+  expect(menuItems().map((item) => [item.textContent, item.getAttribute('aria-checked')])).toEqual([
+    ['파티', 'true'],
+    ['공대', 'false']
+  ])
+  await act(async () => menuItems()[1].click())
+
+  expect(onSearchModeChange).toHaveBeenCalledExactlyOnceWith('raid')
+  expect(document.querySelector('[role="menu"]')).toBeNull()
+})
+
+it('화살표로 항목을 옮기고 Escape로 닫으면 검색 버튼으로 포커스가 돌아온다', async () => {
+  const onSearchModeChange = vi.fn()
+  await render('party', onSearchModeChange)
+  trigger().focus()
+  await key(trigger(), 'ArrowDown')
+  const menu = document.querySelector('[role="menu"]')!
+  expect(menu).not.toBeNull()
+  // Base UI는 키보드로 연 메뉴의 첫 항목에 다음 frame에서 포커스를 옮긴다.
+  await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('파티'))
+
+  await key(document.activeElement!, 'ArrowDown')
+  await vi.waitFor(() => expect(document.activeElement?.textContent).toBe('공대'))
+  await key(menu, 'Escape')
+
+  expect(document.querySelector('[role="menu"]')).toBeNull()
+  expect(document.activeElement).toBe(trigger())
+  expect(onSearchModeChange).not.toHaveBeenCalled()
+})

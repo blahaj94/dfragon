@@ -3,7 +3,6 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
-import brandIcon from '../../../resources/brand.png'
 import { searchSnapshot } from '../../preload/api/search-test-fixture'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
@@ -125,20 +124,19 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  const topBarImage = container.querySelector<HTMLImageElement>('main > header img')!
-  const footerImage = container.querySelector<HTMLImageElement>('footer img')!
-  expect(topBarImage.getAttribute('src')).toBe(brandIcon)
-  expect(topBarImage.getAttribute('alt')).toBe('')
-  expect([topBarImage.width, topBarImage.height]).toEqual([24, 24])
-  expect(footerImage.getAttribute('src')).toBe(brandIcon)
-  expect([footerImage.width, footerImage.height]).toEqual([28, 28])
-  expect([...container.querySelectorAll('img')]).toEqual([topBarImage, footerImage])
+  // 로고는 이미지 대신 brand.logo 면의 마크이고, 푸터 없이 캡처 진행 문구를 파티 머리에서 알린다.
+  expect(container.querySelectorAll('img')).toHaveLength(0)
+  expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
   expect(container.querySelector('header [role="status"]')).toBeNull()
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
-  expect(container.textContent).toContain('캡처 대기')
+  const partyHeading = container.querySelector('h1')!
+  expect(partyHeading.textContent).toBe('파티')
+  expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe(
+    '캡처 대기'
+  )
   expect(container.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.disabled).toBe(
     false
   )
@@ -383,6 +381,67 @@ it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 
     )
     expect(document.documentElement.dataset.theme).toBe('dark')
     expect(setTheme.mock.calls).toEqual([['dark'], ['light'], ['dark']])
+  } finally {
+    Reflect.deleteProperty(window, 'windowChrome')
+  }
+})
+
+it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 파티로 돌아오면 같은 카드를 보인다', async () => {
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider>
+        <App />
+      </ColorThemeProvider>
+    )
+  )
+  const cards = [...container.querySelectorAll('article')]
+  const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
+  expect(trigger.getAttribute('aria-current')).toBe('page')
+  expect(trigger.textContent).toBe('검색파티')
+
+  await act(async () => trigger.click())
+  const raid = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+    (item) => item.textContent === '공대'
+  )!
+  await act(async () => raid.click())
+  expect(trigger.textContent).toBe('검색공대')
+  expect(container.querySelector('section[aria-label="공대"]')).not.toBeNull()
+  expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
+
+  await act(async () => trigger.click())
+  const partyItem = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
+    (item) => item.textContent === '파티'
+  )!
+  await act(async () => partyItem.click())
+  expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
+  expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).toBeNull()
+  expect([...container.querySelectorAll('article')]).toEqual(cards)
+})
+
+it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 창 높이를 400으로 요청한다', async () => {
+  const setContentHeight = vi.fn<WindowChromeApi['setContentHeight']>(async () => {})
+  Object.defineProperty(window, 'windowChrome', {
+    configurable: true,
+    value: { setTheme: vi.fn(async () => {}), setContentHeight }
+  })
+  try {
+    await act(async () =>
+      root.render(
+        <ColorThemeProvider>
+          <App />
+        </ColorThemeProvider>
+      )
+    )
+    const fold = container.querySelector<HTMLButtonElement>('[aria-label="카드 접기"]')!
+    const cards = container.querySelector('[aria-label="파티 캐릭터"]')!
+    expect(fold.getAttribute('aria-expanded')).toBe('true')
+    expect(fold.getAttribute('aria-controls')).toBe(cards.id)
+
+    await act(async () => fold.click())
+    expect(fold.getAttribute('aria-label')).toBe('카드 펼치기')
+    expect(fold.getAttribute('aria-expanded')).toBe('false')
+    await vi.waitFor(() => expect(setContentHeight).toHaveBeenCalledExactlyOnceWith(400))
+    expect(container.querySelectorAll('article')).toHaveLength(4)
   } finally {
     Reflect.deleteProperty(window, 'windowChrome')
   }

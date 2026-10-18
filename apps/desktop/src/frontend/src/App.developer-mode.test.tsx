@@ -155,6 +155,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
 
   const topBar = container.querySelector('main > header')!
   expect(topBar.querySelector('[aria-label="화면 캡처"]')).not.toBeNull()
+  expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).not.toBeNull()
   expect(topBar.textContent).toContain('창 미감지')
 
   await click('설정')
@@ -169,6 +170,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).not.toBeNull()
   expect(container.querySelector('main > header')).toBe(topBar)
   expect(topBar.querySelector('[aria-label="화면 캡처"]')).toBeNull()
+  expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).toBeNull()
   expect(topBar.textContent).not.toContain('창 미감지')
   expect(topBar.textContent).toContain('DFragon')
   expect(topBar.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
@@ -186,6 +188,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
   await click('일반 화면으로 돌아가기')
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).toBeNull()
   expect(topBar.querySelector('[aria-label="화면 캡처"]')).not.toBeNull()
+  expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).not.toBeNull()
   expect(topBar.textContent).toContain('창 미감지')
   expect(container.querySelector('[aria-label="파티 캐릭터"]')?.closest('[hidden]')).toBeNull()
 })

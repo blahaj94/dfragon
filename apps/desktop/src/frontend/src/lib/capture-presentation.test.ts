@@ -4,17 +4,17 @@ import { formatPartyCaptureStatus, getCaptureControlState } from './capture-pres
 describe('getCaptureControlState', () => {
   const idle = { phase: 'idle', loading: false, failed: false, hasDetectedSource: true } as const
 
-  // 디자인 캡처 모달의 상태 톤을 공용 StatusBadge alias가 받는 이전 tone 이름(positive, critical 등)으로 옮긴 기대값이다.
+  // dfragon-design colors.md의 상태 표현 네 톤이다. 주의 색이 없어 확인 필요, 창 미감지는 waiting이다.
   it.each([
     ['준비 중', { ...idle, phase: 'selecting', loading: true }, 'neutral'],
-    ['인식 중', { ...idle, phase: 'recognizing', loading: true }, 'informative'],
-    ['인식 완료', { ...idle, phase: 'complete', failed: true }, 'informative'],
-    ['확인 필요', { ...idle, phase: 'unavailable', loading: true }, 'warning'],
+    ['인식 중', { ...idle, phase: 'recognizing', loading: true }, 'neutral'],
+    ['인식 완료', { ...idle, phase: 'complete', failed: true }, 'neutral'],
+    ['확인 필요', { ...idle, phase: 'unavailable', loading: true }, 'waiting'],
     ['창 확인 중', { ...idle, loading: true, failed: true }, 'neutral'],
-    ['조회 실패', { ...idle, failed: true, hasDetectedSource: false }, 'critical'],
-    ['창 미감지', { ...idle, hasDetectedSource: false }, 'warning'],
-    ['창 감지됨', idle, 'positive']
-  ] as const)('%s 상태를 우선순위대로 고르고 배지 tone을 함께 정한다', (label, input, tone) => {
+    ['조회 실패', { ...idle, failed: true, hasDetectedSource: false }, 'danger'],
+    ['창 미감지', { ...idle, hasDetectedSource: false }, 'waiting'],
+    ['창 감지됨', idle, 'success']
+  ] as const)('%s 상태를 우선순위대로 고르고 상태 칩 tone을 함께 정한다', (label, input, tone) => {
     expect(getCaptureControlState(input)).toEqual({ label, tone })
   })
 })
