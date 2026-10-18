@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
 import { partyCaptureMachine, getCapturePhase } from '../lib/party-capture-machine'
@@ -21,6 +21,10 @@ type PartyCapture = {
   nicknames: (string | null)[]
   round: number
   status: string
+  /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 없으면 null이다. */
+  lastCompletedAt: number | null
+  /** Alt+R과 같은 회차 시작. 받을 수 없는 상태에서는 Alt+R처럼 아무 일도 하지 않는다. */
+  startRound: () => void
   selectSource: (sourceId: string) => void
   refreshSources: () => void
   startCapture: () => Promise<void>
@@ -65,6 +69,10 @@ export function usePartyCapture({
     send({ type: 'SELECT', sourceId: games[0].id })
   }, [identifyCharacters, search.ready, canAutoSelect, send, sources.sources])
 
+  // Alt+R과 파티 머리의 캡처 버튼이 같은 START를 보낸다. 받을 수 없는 상태의 거절과 진행 중 재시작은
+  // 둘 다 machine이 정한다.
+  const startRound = useCallback(() => send({ type: 'START', request: {} }), [send])
+
   useEffect(() => {
     if (!identifyCharacters || window.desktopShortcut === undefined) {
       return
@@ -72,10 +80,10 @@ export function usePartyCapture({
 
     return window.desktopShortcut.onDesktopShortcut((shortcut) => {
       if (shortcut === 'restart-search') {
-        send({ type: 'START', request: {} })
+        startRound()
       }
     })
-  }, [identifyCharacters, send])
+  }, [identifyCharacters, startRound])
 
   function stopCapture(status?: string): void {
     send({ type: 'STOP', status })
@@ -129,6 +137,8 @@ export function usePartyCapture({
     nicknames,
     round: snapshot.context.round,
     status: snapshot.context.status,
+    lastCompletedAt: snapshot.context.completedAt,
+    startRound,
     startCapture,
     stopCapture
   }

@@ -30,6 +30,8 @@ type CaptureContext = {
   results: PartySlotRecognition[]
   round: number
   status: string
+  /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 창을 바꾸거나 중지하면 비운다. */
+  completedAt: number | null
 }
 
 type CaptureEvent =
@@ -111,6 +113,8 @@ export const partyCaptureMachine = setup({
   },
   actions: {
     resetSearch: ({ context }) => context.effects.endSearch(),
+    // 새 회차는 이전 완료 시각을 남겨 두고, 창 변경과 중지만 카드와 함께 완료 시각을 비운다.
+    clearCompletion: assign({ completedAt: null }),
     resetRecognition: assign({
       captureId: null,
       frame: null,
@@ -177,17 +181,22 @@ export const partyCaptureMachine = setup({
     frame: null,
     results: [],
     round: 0,
-    status: '캡처할 게임 창을 선택해 주세요.'
+    status: '캡처할 게임 창을 선택해 주세요.',
+    completedAt: null
   }),
   invoke: { src: 'lifetime', input: ({ context }) => context.effects },
   // START를 선언한 상태만 Alt+R을 받는다. 중지 뒤에는 창을 다시 선택해야 한다.
   on: {
-    SELECT: { target: '.selecting', actions: ['resetSearch', 'resetRecognition', 'selectSource'] },
+    SELECT: {
+      target: '.selecting',
+      actions: ['resetSearch', 'resetRecognition', 'clearCompletion', 'selectSource']
+    },
     STOP: {
       target: '.stopped',
       actions: [
         'resetSearch',
         'resetRecognition',
+        'clearCompletion',
         assign({
           status: ({ event }) => {
             const status = event.status ?? '캡처를 중지했습니다.'
@@ -205,7 +214,7 @@ export const partyCaptureMachine = setup({
         SELECT: {
           target: 'selecting',
           reenter: true,
-          actions: ['resetSearch', 'resetRecognition', 'selectSource']
+          actions: ['resetSearch', 'resetRecognition', 'clearCompletion', 'selectSource']
         }
       },
       invoke: {
@@ -363,7 +372,10 @@ export const partyCaptureMachine = setup({
           }
         },
         complete: {
-          entry: assign({ status: '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.' })
+          entry: assign({
+            status: '인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.',
+            completedAt: () => Date.now()
+          })
         },
         unavailable: {}
       }
