@@ -33,36 +33,6 @@ function createCatalogFixture(t: Pick<TestContext, 'after'>) {
 function expectedStaticEntries(): NoticeEntry[] {
   const entries: NoticeEntry[] = [
     {
-      name: 'SEED Design',
-      version: '',
-      license: 'Apache-2.0',
-      documents: [
-        {
-          name: 'SEED-NOTICE',
-          text: readFileSync(new URL('../notices/ui/SEED-NOTICE', import.meta.url), 'utf8')
-        },
-        {
-          name: 'SEED-LICENSE',
-          text: readFileSync(new URL('../notices/ui/SEED-LICENSE', import.meta.url), 'utf8')
-        }
-      ]
-    },
-    {
-      name: 'Seed Icon',
-      version: '',
-      license: 'Apache-2.0',
-      documents: [
-        {
-          name: 'ICONS-NOTICE',
-          text: readFileSync(new URL('../notices/ui/ICONS-NOTICE', import.meta.url), 'utf8')
-        },
-        {
-          name: 'ICONS-LICENSE',
-          text: readFileSync(new URL('../notices/ui/ICONS-LICENSE', import.meta.url), 'utf8')
-        }
-      ]
-    },
-    {
       name: 'Lucide',
       version: '',
       license: 'ISC · MIT',
@@ -254,45 +224,6 @@ test('실제 UI peer와 앱, UI production의 전이 의존성을 포함하고 �
   assert.equal(plugin.resolveId('\0virtual:dfragon-desktop-licenses'), null)
   assert.equal(plugin.load('virtual:dfragon-desktop-licenses'), null)
   assert.equal(plugin.load('unrelated'), null)
-})
-
-test('앱이 직접 번들하는 renderer 의존성과 그 전이 의존성을 포함한다', (t) => {
-  const fixture = createCatalogFixture(t)
-  fixture.writeManifest('desktop', {
-    devDependencies: { 'renderer-kit': '1', 'build-tool': '1' }
-  })
-  // 앱 쪽 node_modules에만 두어 uiRoot가 아닌 runtimeRoot에서 찾는지 확인한다.
-  const desktopRoot = fixture.options.runtimeRoot
-  fixture.pkg('renderer-kit', {
-    manifest: { dependencies: { 'renderer-child': '1' } },
-    documents: { LICENSE: 'Renderer kit fixture original\n' },
-    from: desktopRoot
-  })
-  fixture.pkg('renderer-child', {
-    documents: { LICENSE: 'Renderer child fixture original\n' },
-    from: desktopRoot
-  })
-  fixture.pkg('build-tool', { documents: {} })
-
-  const catalog = collectDesktopCatalog({
-    ...fixture.options,
-    rendererDependencies: ['renderer-kit']
-  })
-
-  assert.deepEqual(catalog.slice(expectedStaticEntries().length), [
-    {
-      name: 'renderer-child',
-      version: '1.0.0',
-      license: 'MIT',
-      documents: [{ name: 'LICENSE', text: 'Renderer child fixture original\n' }]
-    },
-    {
-      name: 'renderer-kit',
-      version: '1.0.0',
-      license: 'MIT',
-      documents: [{ name: 'LICENSE', text: 'Renderer kit fixture original\n' }]
-    }
-  ])
 })
 
 test('알려진 guid-typescript 원문 공백을 catalog에서도 추정 없이 확인 필요 상태로 표시한다', (t) => {

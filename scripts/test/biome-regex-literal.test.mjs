@@ -148,8 +148,7 @@ test('기존 생성물과 의존성의 전역 ignore를 유지한다', async () 
   const ignoredFiles = [
     'node_modules/sample/index.js',
     'apps/api/dist/main.js',
-    'apps/desktop/src/frontend/public/ocr/worker.js',
-    'packages/ui/src/seed/components/button.tsx'
+    'apps/desktop/src/frontend/public/ocr/worker.js'
   ]
   const source = 'export const valid = /item/.test("item")'
   const files = [checkedFile, ...ignoredFiles]

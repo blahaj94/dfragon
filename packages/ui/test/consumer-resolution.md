@@ -39,9 +39,9 @@ Issue #224의 통합 RED에서 10개 중 7개가 새 요구 assertion으로 실�
 
 ### 빌드 산출물과 검사 도구
 
-`pnpm --filter @dfragon/ui test:tooling`은 임시 library fixture로 공개 ESM, declaration 누락, pnpm 내부 타입 경로, Typo의 전이 SEED import와 library CSS import를 거부하는지 확인합니다. 순수 React chunk를 통한 재수출은 허용합니다. 실제 source, 고지 hash 검사는 유지하며 소비 앱 output/cache는 삭제하지 않습니다.
+`pnpm --filter @dfragon/ui test:tooling`은 임시 library fixture로 공개 ESM, declaration 누락, pnpm 내부 타입 경로, Typo의 Base UI, StyleX import, Base UI external 누락과 library CSS import를 거부하는지 확인합니다. 순수 React chunk를 통한 재수출은 허용합니다. 소비자 fixture로 React와 Base UI 단일 사본, `tokens.css`와 공용 글꼴 선언 1회도 확인합니다. 소비 앱 output/cache는 삭제하지 않습니다.
 
-`build`는 library 생성 후 `verify:build`를 실행합니다. 별도 TypeScript fixture는 source alias와 자동 Node type 없이 dist의 공개 타입, 태그별 속성, ref, 거부 사례를 검사합니다. Vite fixture는 실제 package export와 CSS를 해석하고, Node ESM smoke는 React 전용 `@dfragon/ui/typo`를 가져와 native element로 렌더링합니다. 전체 UI는 SEED CSS 때문에 Node 직접 import 대상이 아닙니다. 이 산출물 검사는 UI의 src/test/examples typecheck나 cold consumer 검사를 대신하지 않습니다.
+`build`는 library 생성 후 `verify:build`를 실행합니다. 별도 TypeScript fixture는 source alias와 자동 Node type 없이 dist의 공개 타입, 태그별 속성, ref, 거부 사례를 검사합니다. Vite fixture는 실제 package export와 CSS를 해석하고, Node ESM smoke는 React 전용 `@dfragon/ui/typo`를 가져와 native element로 렌더링합니다. 전체 UI는 소비 앱의 StyleX compile이 필요해 Node 직접 import 대상이 아닙니다. 이 산출물 검사는 UI의 src/test/examples typecheck나 cold consumer 검사를 대신하지 않습니다.
 
 ### 기존 cold import 회귀
 

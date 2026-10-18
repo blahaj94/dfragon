@@ -11,10 +11,10 @@ last-reviewed: 2026-10-18
 
 2026-10-18 결정으로 모든 workspace의 browser UI에서 SEED Design을 걷어낸다. `@dfragon/ui`가 자체 토큰과 Base UI 기반 공용 Component를 소유하고, 외형은 StyleX로 직접 그린다. Desktop은 아래 [DFragon 디자인 규칙](#dfragon-디자인-규칙)으로 다시 그리고, OCR, Accounts, Web은 SEED만 걷어내며 화면 배치는 유지한다. [PR #89의 이전 결정](https://github.com/blahaj94/ldb/pull/89)과 [SEED 채택 근거](https://github.com/blahaj94/ldb/issues/86#issuecomment-5560112909)는 이력으로 보존하며 2026-10-18 결정으로 대체한다.
 
-이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 후속 PR에서 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제, Desktop DFragon 디자인 적용 순서로 단계적으로 진행하며, 이행 중에는 SEED 코드가 남아 있다.
+이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제 순서로 마쳐 저장소에 SEED 코드와 의존성이 남아 있지 않다. Desktop DFragon 디자인 적용은 후속 PR에서 화면별로 진행한다.
 
-- 해당 앱의 이행 PR 전까지 기존 SEED 사용처는 고쳐 쓸 수 있다. `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
-- 남은 SEED 코드의 의존성, CSS 경계와 그 검사는 그 코드를 지우는 이행 PR에서 함께 바꾼다. Desktop의 SEED brand 재매핑(`seed-brand.css`)은 Desktop SEED 제거 PR에서 삭제했으며 대신할 전역 override 예외는 두지 않는다.
+- `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
+- Desktop의 이전 brand 색 재매핑 CSS는 삭제했으며 대신할 전역 override 예외는 두지 않는다.
 - 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
 - 공대 12인 화면과 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 데이터 연결은 별도 과제다.
 
@@ -26,13 +26,13 @@ last-reviewed: 2026-10-18
 
 공용 디자인 값은 `@dfragon/ui`가 CSS custom property와 StyleX용 문자열 상수로 제공한다.
 
-- `@dfragon/ui/tokens.css`(package root의 `tokens.css`)가 `--df-*` 변수를 정의한다. `:root`가 다크 기본값이고 `:root[data-theme='light']`가 라이트 값이다. `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다.
+- `@dfragon/ui/tokens.css`(`packages/ui/tokens.css`)가 `--df-*` 변수를 정의한다. `:root`가 다크 기본값이고 `:root[data-theme='light']`가 라이트 값이다. `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다.
 - 모든 browser entry가 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다.
-- `@dfragon/ui/tokens.stylex`(source `src/tokens.stylex.ts`)는 `stylex.defineConsts`로 `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수로 제공한다. React는 쓰지 않지만 소비 앱의 StyleX 컴파일이 필요한 entry다.
+- `@dfragon/ui/tokens.stylex`(`packages/ui/src/tokens.stylex.ts`)는 `stylex.defineConsts`로 `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수로 제공한다. React는 쓰지 않지만 소비 앱의 StyleX 컴파일이 필요한 entry다.
 - StyleX compiler는 import 경로가 `.stylex`로 끝나는 모듈의 값만 다른 파일에서 정적으로 읽고, 그 경로를 bundler alias가 아닌 package exports로 해석한다. 그래서 entry 이름에 `.stylex`를 붙이고 `@dfragon/ui` 내부도 `./tokens.stylex`로 가져온다. `src/shapes.ts`처럼 `stylex.create`만 쓰는 파일은 이 이름 규칙의 대상이 아니다.
 - `defineVars`, `createTheme`, runtime 테마는 쓰지 않는다. 컴파일 결과에는 `var(--df-…)` 값이 그대로 들어가고 새 `:root` 변수가 생기지 않으므로, 모드 전환은 `tokens.css`만으로 끝나고 portal마다 테마를 다시 바르지 않는다.
-- `@dfragon/ui` source의 `src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`를 제공한다.
-- 모드는 `document.documentElement.dataset.theme`에 `'light'` 또는 `'dark'`를 넣어 바꾼다. SEED의 `data-seed-color-mode`를 대신한다.
+- `packages/ui/src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`를 제공한다.
+- 모드는 `document.documentElement.dataset.theme`에 `'light'` 또는 `'dark'`를 넣어 바꾼다.
 
 색 토큰은 현재 Desktop 색 토큰의 이름(`bgCanvas`, `bgSurface`, `bgInset`, `bgControl*`, `borderDefault`, `borderStrong`, `fgDefault`, `fgMuted`, `fgSubtle`, `fgSuccess`, `fgDanger`, `card*`, 희귀도, 강화, 게임, 속성 색)을 유지하고 다음을 바꾼다.
 
@@ -71,7 +71,7 @@ last-reviewed: 2026-10-18
 
 - 키보드 조작, 포커스 이동과 복귀, ARIA 같은 interaction과 접근성은 Base UI가 책임진다. 공용 Component는 Base UI 부품의 semantic API를 유지하고 외형만 StyleX로 그린다. 같은 역할의 Component를 이름만 바꿔 다시 감싸지 않는다.
 - 이행 중에는 `ActionButton`을 `Button`으로, `StatusBadge`를 `StatusChip`으로 잇는 alias를 두고 Desktop DFragon 디자인 적용의 마지막 PR에서 제거한다.
-- `@base-ui/react`는 `@dfragon/ui`의 peer dependency이자 build external이다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에서 제거한다. Package, CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
+- `@base-ui/react`는 `@dfragon/ui`의 peer dependency이자 build external이다. `@seed-design/*`, `@karrotmarket/*`는 dependency와 external에 두지 않는다. Package, CSS의 책임은 [Shared UI boundary](../architecture/overview.md#shared-ui-boundary)를 따른다.
 - 업데이트에서는 바뀐 API, peer 조건, 실제 소비 경로의 호환성을 확인한다. 통상적인 호환 패치에는 별도 Rule 승인이나 전체 시각 matrix 재실행을 요구하지 않는다. 중요 동작이나 디자인 방향을 바꾸는 선택은 [제품 계약 적용 기준](../README.md#document-class)을 따른다.
 - Base UI, Barlow Condensed처럼 새로 들이는 외부 코드와 자산의 license, NOTICE는 `@dfragon/licenses`의 고지 수집에 포함한다.
 
@@ -90,7 +90,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 
 ## Typo의 명시적 예외
 
-이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 추가하는 범위로 채택한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드, 상세 미리보기, 설정, 캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(SEED의 `asChild`, Base UI 이행 뒤 `render`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
+이번 Typo 요청은 `@dfragon/ui`에 외부 UI 라이브러리 없이 React와 TypeScript로 구현한 `Typo.h1`–`h6`, `txtL`, `txtM`, `txtS`, `caption`을 추가하는 범위로 채택한다. 지정한 크기, 행간, 굵기는 `typographyVariants`에서 관리하며 semantic 기본 태그, HTML `as`, 기본 attribute, event와 `className`, `style`, `color`, `align`, `weight`를 지원한다. 공용 컴포넌트 추가는 PR #504에서 채택했다. 2026-09-19 후속 요청은 Penpot 클라이언트 시안과 Desktop의 현재 카드, 상세 미리보기, 설정, 캡처 화면, API가 제공하는 패스키 인증 browser 화면에 이 규격을 적용하는 범위다. 기존 공용 Component의 interaction은 유지하며 label에는 Typo를 조합한다. 라이브러리가 생성하는 서버 선택 텍스트는 공개 `typographyVariants`를 적용하고, 검색 input은 TextField의 요소 합성 API(`render`, 이행용 `asChild`)에 Typo를 연결한다. focus가 필요한 HTML element는 태그에 맞는 `ref`를 전달한다. 이 적용 범위와 browser 전용 소비 경로는 해당 PR의 사용자 merge 후 채택한다.
 
 ## 글꼴과 한국어 타이포그래피
 

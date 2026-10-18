@@ -72,5 +72,3 @@ export { ActionButton } from './action-button'
 export type { ActionButtonProps } from './action-button'
 export { StatusBadge } from './status-chip'
 export type { StatusBadgeProps, StatusBadgeTone } from './status-chip'
-// SEED Checkbox.Root 안에서만 쓰는 상자 모양. Desktop SEED 제거 PR에서 지운다.
-export { Checkmark } from './checkmark'

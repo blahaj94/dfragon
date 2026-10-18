@@ -28,8 +28,6 @@ updates:
         patterns: ['vite', 'vitest', '@vitejs/*', '@vitest/*']
       react:
         patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
-      seed:
-        patterns: ['@seed-design/*', '@karrotmarket/*']
       base-ui:
         patterns: ['@base-ui/*']
       electron:

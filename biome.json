@@ -16,9 +16,6 @@
       "!**/.test-dist",
       "!**/coverage",
       "!apps/desktop/src/frontend/public/ocr",
-      "!packages/ui/src/seed",
-      "!packages/ui/foundation.css",
-      "!packages/ui/seed-provenance.json",
       "!packages/licenses/notices",
       "!**/package-lock.json",
       "!**/*.svg"

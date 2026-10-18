@@ -5,7 +5,6 @@ import {
   Button,
   CardFrame,
   Checkbox,
-  Checkmark,
   Chip,
   ContentStack,
   CornerBrackets,
@@ -67,7 +66,6 @@ export const components = [
   Button,
   CardFrame,
   Checkbox,
-  Checkmark,
   Chip,
   ContentStack,
   CornerBrackets,
@@ -177,5 +175,5 @@ export const primaryShape = <div {...stylex.props(consumerStyles.signal, shapes.
 export const unsupportedAppearance = <Button className="override" />
 // @ts-expect-error 기본 p 태그에는 anchor 전용 href를 전달할 수 없다.
 export const unsupportedNativeAttribute = <StandaloneTypo.txtM href="/example" />
-// @ts-expect-error 고정 upstream의 내부 source는 package export가 아니다.
-export type InternalSeedEntry = typeof import('@dfragon/ui/src/seed/action-button')
+// @ts-expect-error 내부 source는 package export가 아니다.
+export type InternalSourceEntry = typeof import('@dfragon/ui/src/button')

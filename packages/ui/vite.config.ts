@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { uiNotices } from '@dfragon/licenses/vite'
@@ -14,7 +13,7 @@ function isExternal(id: string) {
 }
 
 export default defineConfig({
-  plugins: [react(), uiNotices({ uiRoot: fileURLToPath(new URL('./', import.meta.url)) })],
+  plugins: [react(), uiNotices()],
   build: {
     // 소비자 StyleX는 defineConsts 결과가 같은 이름으로 export될 때만 받아들이므로 식별자를 줄이지 않는다.
     minify: false,

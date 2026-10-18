@@ -10,14 +10,11 @@ const moduleId = 'virtual:dfragon-desktop-licenses'
 export function collectDesktopCatalog({
   runtimeRoot,
   uiRoot,
-  ocrRoot,
-  rendererDependencies = []
+  ocrRoot
 }: {
   runtimeRoot: string
   uiRoot: string
   ocrRoot: string
-  /** Renderer packages the app bundles itself but installs as dev dependencies, resolved from runtimeRoot. */
-  rendererDependencies?: string[]
 }): NoticeEntry[] {
   const document = (root: string, name: string) => {
     const text = readFileSync(join(root, name), 'utf8')
@@ -25,22 +22,6 @@ export function collectDesktopCatalog({
     return { name, text }
   }
   const entries: NoticeEntry[] = [
-    {
-      name: 'SEED Design',
-      version: '',
-      license: 'Apache-2.0',
-      documents: ['SEED-NOTICE', 'SEED-LICENSE'].map((name) =>
-        document(join(noticeRoot, 'ui'), name)
-      )
-    },
-    {
-      name: 'Seed Icon',
-      version: '',
-      license: 'Apache-2.0',
-      documents: ['ICONS-NOTICE', 'ICONS-LICENSE'].map((name) =>
-        document(join(noticeRoot, 'ui'), name)
-      )
-    },
     {
       name: 'Lucide',
       version: '',
@@ -75,13 +56,11 @@ export function collectDesktopCatalog({
     }
   ]
   const manifest = JSON.parse(readFileSync(join(uiRoot, 'package.json'), 'utf8'))
-  const peerRoots = [
-    ...Object.keys(manifest.peerDependencies ?? {}).map((name) => resolvePackageRoot(name, uiRoot)),
-    ...rendererDependencies.map((name) => resolvePackageRoot(name, runtimeRoot))
-  ]
+  const peerRoots = Object.keys(manifest.peerDependencies ?? {}).map((name) =>
+    resolvePackageRoot(name, uiRoot)
+  )
   const packages = new Map<string, NoticeEntry>()
-  // UI peers and renderer dependencies are runtime inputs even though the Desktop manifest installs
-  // them as dev dependencies.
+  // UI peers are runtime inputs even though the Desktop manifest installs them as dev dependencies.
   for (const root of [runtimeRoot, uiRoot, ...peerRoots]) {
     const inputs = peerRoots.includes(root) ? [join(root, 'package.json')] : []
     for (const entry of collectPackages(inputs, root)) {

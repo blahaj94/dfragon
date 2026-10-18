@@ -14,7 +14,6 @@ import {
   Button,
   CardFrame,
   Checkbox,
-  Checkmark,
   Chip,
   ContentStack,
   CornerBrackets,
@@ -245,9 +244,6 @@ export const designExamples = (
       찾는 중
     </StatusChip>
     <StatusBadge tone="positive">창 감지됨</StatusBadge>
-    <label>
-      <Checkmark />
-    </label>
     <Kbd>Alt</Kbd>
     <CardFrame state="ranker" as="article" aria-label="랭커 카드">
       <NumericText value={125850} format={(value) => `${value}`} countUp={false} />
@@ -322,8 +318,6 @@ export const invalidDesignExamples = (
     <StatusChip tone="warning">상태</StatusChip>
     {/* @ts-expect-error StatusBadge tone은 이행 전 tone 중 하나여야 한다. */}
     <StatusBadge tone="brand">상태</StatusBadge>
-    {/* @ts-expect-error Checkmark는 외형 prop을 받지 않는다. */}
-    <Checkmark className="box" />
     {/* @ts-expect-error CardFrame state는 정해진 카드 상태 중 하나여야 한다. */}
     <CardFrame state="warning" />
     {/* @ts-expect-error Select trigger 크기는 xs, sm, md 중 하나다. */}

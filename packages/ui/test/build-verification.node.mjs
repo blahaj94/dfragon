@@ -1,38 +1,34 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 
-const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import.meta.url))
-const notice = '/*! DFragon modified SEED source: test fixture */\n'
-const indexSource = `${notice}import { Dialog } from "@base-ui/react/dialog";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nimport { colors } from "./tokens.stylex.js";\nexport { Dialog, React, colors, jsx, stylex };\n`
-const tokensSource = `${notice}import * as stylex from "@stylexjs/stylex";\nconst colors = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { colors };\n`
+const indexSource = `import { Dialog } from "@base-ui/react/dialog";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nimport { colors } from "./tokens.stylex.js";\nexport { Dialog, React, colors, jsx, stylex };\n`
+const tokensSource = `import * as stylex from "@stylexjs/stylex";\nconst colors = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { colors };\n`
 const libraryFiles = ['index.js', 'tokens.stylex.js', 'typo.js']
 const tokensStyles = ':root{--df-brand-dragon:#e83830}'
-const foundationStyles = 'body{font-family:"Apple SD Gothic Neo",sans-serif}'
+const foundationStyles =
+  'body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif}'
+// 앱 전역 글꼴 CSS도 대체 글꼴로 같은 이름을 쓴다. 이 선언은 공용 font stack으로 세지 않는다.
+const appFontStyles =
+  "body{font-family:'Pretendard Variable',system-ui,'Apple SD Gothic Neo',sans-serif}"
 
-// 실제 고지, provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
+// 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
   const output = await mkdtemp(join(tmpdir(), 'dfragon-ui-build-'))
   context.after(() => rm(output, { recursive: true, force: true }))
   await mkdir(join(output, 'notices'))
-  await cp(join(uiRoot, '../licenses/notices/ui'), join(output, 'notices'), { recursive: true })
-  await cp(join(uiRoot, 'seed-provenance.json'), join(output, 'notices/seed-provenance.json'))
   await writeFile(join(output, 'notices/bundle-modules.json'), '[]')
   await writeFile(join(output, 'notices/bundle-files.json'), JSON.stringify(libraryFiles))
-  await writeFile(
-    join(output, 'notices/DFRAGON-MODIFICATIONS.txt'),
-    'DialogTrigger declaration; Layout header/footer/children.\n'
-  )
   await writeFile(join(output, 'index.js'), indexSource)
   await writeFile(join(output, 'tokens.stylex.js'), tokensSource)
   await writeFile(
     join(output, 'typo.js'),
-    `${notice}import { jsx } from 'react/jsx-runtime';\nexport const Typo = jsx;\n`
+    `import { jsx } from 'react/jsx-runtime';\nexport const Typo = jsx;\n`
   )
   await writeFile(join(output, 'index.d.ts'), 'export declare const ActionButton: unknown;\n')
   await writeFile(join(output, 'typo.d.ts'), 'export declare const Typo: unknown;\n')
@@ -59,8 +55,7 @@ async function createConsumerFixture(context, styles) {
   const graph = [
     { name: 'react', version: '19.3.0', modules: ['index.js'] },
     { name: 'react-dom', version: '19.3.0', modules: ['index.js'] },
-    { name: '@seed-design/react', version: '3.0.0', modules: ['index.js'] },
-    { name: '@seed-design/css', version: '3.0.2', modules: ['base.css'] }
+    { name: '@base-ui/react', version: '1.9.0', modules: ['esm/index.js'] }
   ]
   await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
   await writeFile(join(output, 'notices/THIRD-PARTY.txt'), 'MIT License fixture\n')
@@ -69,12 +64,17 @@ async function createConsumerFixture(context, styles) {
   return output
 }
 
-test('SEED React와 Base UI가 번들에 없어도 소비자 빌드를 허용한다', async (context) => {
+test('Base UI 사본 하나와 tokens.css, 공용 글꼴 한 번이 있는 소비자 빌드를 허용한다', async (context) => {
+  const output = await createConsumerFixture(context, foundationStyles)
+  const result = inspect(output, 'consumer')
+  assert.equal(result.status, 0, result.stderr)
+})
+
+test('Base UI가 번들에 없어도 소비자 빌드를 허용한다', async (context) => {
   const output = await createConsumerFixture(context, foundationStyles)
   const graph = [
     { name: 'react', version: '19.3.0', modules: ['index.js'] },
-    { name: 'react-dom', version: '19.3.0', modules: ['index.js'] },
-    { name: '@seed-design/css', version: '3.0.2', modules: ['base.css'] }
+    { name: 'react-dom', version: '19.3.0', modules: ['index.js'] }
   ]
   await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
   const result = inspect(output, 'consumer')
@@ -84,20 +84,26 @@ test('SEED React와 Base UI가 번들에 없어도 소비자 빌드를 허용한
 test('Base UI 사본이 둘 번들되면 소비자 빌드 검사에 실패한다', async (context) => {
   const output = await createConsumerFixture(context, foundationStyles)
   const graph = JSON.parse(await readFile(join(output, 'notices/bundle-modules.json'), 'utf8'))
-  graph.push(
-    { name: '@base-ui/react', version: '1.9.0', modules: ['esm/index.js'] },
-    { name: '@base-ui/react', version: '1.8.0', modules: ['esm/index.js'] }
-  )
+  graph.push({ name: '@base-ui/react', version: '1.8.0', modules: ['esm/index.js'] })
   await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
   const result = inspect(output, 'consumer')
   assert.notEqual(result.status, 0)
   assert.match(result.stderr, /Single bundled copy: @base-ui\/react/)
 })
 
-test('SEED 글꼴 변수와 공용 font-family 선언이 함께 있어도 한 번의 적용으로 센다', async (context) => {
+test('글꼴 변수와 앱 전역 글꼴 선언이 함께 있어도 공용 font stack은 한 번으로 센다', async (context) => {
   const output = await createConsumerFixture(
     context,
-    ':root{--seed-font-family:"Apple SD Gothic Neo",sans-serif}body{margin:0;font-family:"Apple SD Gothic Neo",sans-serif}'
+    `:root{--app-font-family:"Apple SD Gothic Neo",sans-serif}${foundationStyles}${appFontStyles}`
+  )
+  const result = inspect(output, 'consumer')
+  assert.equal(result.status, 0, result.stderr)
+})
+
+test('minify가 따옴표를 지운 공용 font stack도 한 번으로 센다', async (context) => {
+  const output = await createConsumerFixture(
+    context,
+    'body{margin:0;font-family:-apple-system,BlinkMacSystemFont,Apple SD Gothic Neo,sans-serif}'
   )
   const result = inspect(output, 'consumer')
   assert.equal(result.status, 0, result.stderr)
@@ -105,13 +111,12 @@ test('SEED 글꼴 변수와 공용 font-family 선언이 함께 있어도 한 �
 
 for (const { name, styles } of [
   {
-    name: '글꼴 변수만 있고 공용 font-family 선언이 없는 경우',
-    styles: ':root{--seed-font-family:"Apple SD Gothic Neo",sans-serif}'
+    name: '글꼴 변수와 앱 전역 글꼴 선언만 있고 공용 font stack이 없는 경우',
+    styles: `:root{--app-font-family:"Apple SD Gothic Neo",sans-serif}${appFontStyles}`
   },
   {
-    name: '공용 font-family 선언이 두 번 출력된 경우',
-    styles:
-      'body{font-family:"Apple SD Gothic Neo",sans-serif}.duplicate{font-family:"Apple SD Gothic Neo",sans-serif}'
+    name: '공용 font stack이 두 번 출력된 경우',
+    styles: `${foundationStyles}${foundationStyles.replace('body', '.duplicate')}`
   }
 ]) {
   test(`${name} 소비자 빌드 검사에 실패한다`, async (context) => {
@@ -147,10 +152,10 @@ test('공개 ESM, 선언 파일과 React 전용 Typo 산출물을 허용한다',
 
 test('Typo가 순수 React chunk를 통해 구현을 재수출해도 허용한다', async (context) => {
   const output = await createLibraryFixture(context)
-  await writeFile(join(output, 'typo.js'), `${notice}export { Typo } from './react-helper.js';\n`)
+  await writeFile(join(output, 'typo.js'), `export { Typo } from './react-helper.js';\n`)
   await writeFile(
     join(output, 'react-helper.js'),
-    `${notice}import { createElement } from 'react';\nexport const Typo = createElement;\n`
+    `import { createElement } from 'react';\nexport const Typo = createElement;\n`
   )
   await writeFile(
     join(output, 'notices/bundle-files.json'),
@@ -214,19 +219,19 @@ for (const { name, file, source, failure } of [
   {
     name: 'Typo가 Base UI runtime을 가져오는 경우',
     file: 'typo.js',
-    source: `${notice}export { Field } from '@base-ui/react/field';\n`,
+    source: `export { Field } from '@base-ui/react/field';\n`,
     failure: /React-only Typo entry/
   },
   {
     name: 'Typo가 다른 library chunk를 통해 공용 runtime을 가져오는 경우',
     file: 'typo.js',
-    source: `${notice}export { Typo } from './index.js';\n`,
+    source: `export { Typo } from './index.js';\n`,
     failure: /React-only Typo entry/
   },
   {
     name: 'Typo가 StyleX runtime을 가져오는 경우',
     file: 'typo.js',
-    source: `${notice}import * as stylex from '@stylexjs/stylex';\nexport const Typo = stylex.props;\n`,
+    source: `import * as stylex from '@stylexjs/stylex';\nexport const Typo = stylex.props;\n`,
     failure: /React-only Typo entry/
   },
   {
@@ -238,19 +243,19 @@ for (const { name, file, source, failure } of [
   {
     name: '토큰 상수가 다른 이름으로 export된 경우',
     file: 'tokens.stylex.js',
-    source: `${notice}import * as stylex from "@stylexjs/stylex";\nconst t = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { t as colors };\n`,
+    source: `import * as stylex from "@stylexjs/stylex";\nconst t = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { t as colors };\n`,
     failure: /Token constants keep the same export name: t/
   },
   {
     name: 'tokens.stylex.js에 토큰 상수가 없는 경우',
     file: 'tokens.stylex.js',
-    source: `${notice}export const colors = { signal: "var(--df-signal)" };\n`,
+    source: `export const colors = { signal: "var(--df-signal)" };\n`,
     failure: /Token constants: tokens\.stylex\.js/
   },
   {
     name: '토큰 상수가 index.js에 합쳐진 경우',
     file: 'index.js',
-    source: `${notice}import * as stylex from "@stylexjs/stylex";\nexport const colors = stylex.defineConsts({ signal: "var(--df-signal)" });\n`,
+    source: `import * as stylex from "@stylexjs/stylex";\nexport const colors = stylex.defineConsts({ signal: "var(--df-signal)" });\n`,
     failure: /defineConsts only in tokens\.stylex\.js: index\.js/
   },
   {

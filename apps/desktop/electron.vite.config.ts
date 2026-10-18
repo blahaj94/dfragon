@@ -40,7 +40,7 @@ export default defineConfig(({ mode, command }) => {
   ]
   const rendererPlugins = [
     ...rendererTransforms(),
-    uiNotices({ uiRoot: resolve('../../packages/ui'), runtimeRoot: resolve('.') }),
+    uiNotices({ runtimeRoot: resolve('.') }),
     desktopNotices(),
     desktopLicenseCatalog({
       runtimeRoot: resolve('.'),
