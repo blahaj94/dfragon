@@ -20,8 +20,8 @@ API와 OCR의 `@stylexjs/unplugin/esbuild` import는 StyleX compiler의 esbuild�
 - `useCSSLayers: false`: SEED, 공용 토큰 CSS 같은 전역 기반 스타일과 같은 cascade에서 조합한다.
 - Vite에서는 StyleX를 React plugin보다 먼저 실행한다. Vitest는 HTTP/HMR timer가 없는 Rollup adapter를 사용한다.
 - esbuild는 `metafile: true`와 StyleX plugin을 함께 사용한다. 기존 CSS 출력에 추출한 스타일을 합치므로 HTML의 stylesheet 링크는 유지된다.
-- 현재 browser entry는 SEED `base.css`, `@dfragon/ui/tokens.css`, 공용 `foundation.css` 순서로 한 번 import한다. 이행 뒤에는 `base.css`를 빼고 `tokens.css`, `foundation.css`, 앱 전역 글꼴 CSS 순서로 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
-- 현재 Desktop renderer entry는 `base.css` 다음에 `apps/desktop/src/frontend/src/assets/seed-brand.css`를 import해 SEED brand 토큰을 파랑으로 다시 매핑한다. 이 파일은 [Design System의 이행 기준](../rules/design-system.md#적용-상태와-범위)에 따라 Desktop SEED 제거 PR에서 삭제한다. 다른 앱의 SEED brand 표현은 당근 주황 그대로다.
+- Desktop renderer entry는 `@dfragon/ui/tokens.css`, 공용 `foundation.css`, 앱 전역 글꼴 CSS 순서로 한 번 import한다. 아직 SEED를 쓰는 다른 browser entry는 SEED `base.css`, `tokens.css`, `foundation.css` 순서이며, 이행 뒤에는 `base.css`를 빼고 Desktop과 같은 순서로 import한다. 글꼴, reset 같은 전역 기반 CSS와 vendor CSS는 StyleX로 복제하지 않는다.
+- Desktop의 SEED brand 재매핑 파일(`seed-brand.css`)은 [Design System의 이행 기준](../rules/design-system.md#적용-상태와-범위)에 따라 Desktop SEED 제거 PR에서 삭제했다. 다른 앱의 SEED brand 표현은 당근 주황 그대로다.
 
 | 소비자 | 연결 위치 |
 | --- | --- |
