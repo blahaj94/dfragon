@@ -125,7 +125,9 @@ const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
 const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
 // tokens.css에서 한 번만 정의하는 변수로 import 횟수를 센다.
 const TOKENS_DEFINITION_PATTERN = /--df-brand-dragon\s*:/g
-const FOUNDATION_FONT_FAMILY_PATTERN = /(?:^|[;{])\s*font-family\s*:[^;}]*Apple SD Gothic Neo/g
+// foundation.css의 system font stack 첫머리로 센다. 앱 전역 글꼴 CSS의 대체 글꼴 목록은 세지 않는다.
+const FOUNDATION_FONT_FAMILY_PATTERN =
+  /(?:^|[;{])\s*font-family\s*:\s*-apple-system\s*,\s*BlinkMacSystemFont\s*,\s*['"]?Apple SD Gothic Neo/g
 
 if (isLibrary) {
   assert.equal(graph.length, 0, 'Library must externalize all runtime dependencies')
@@ -256,4 +258,4 @@ if (isLibrary) {
   assert.ok(hasMitLicense, 'Bundled dependency license text retained')
 }
 
-console.log(`${mode}: public exports, dependency boundary and CSS checks passed`)
+console.log(`${mode}: build output checks passed`)
