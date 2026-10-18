@@ -112,6 +112,8 @@ it('공대에서 접은 직후 카드 전환이 끝나기 전에 파티로 바�
 
   await act(async () => toggle())
   await act(async () => vi.advanceTimersByTime(100))
+  // 전환 중에 벽시계가 한 시간 뒤로 조정돼도 남은 시간은 단조 시계로 잰다.
+  vi.setSystemTime(Date.now() - 3_600_000)
   await act(async () => root.render(<Harness collapsedHeight={400} />))
   await act(async () => vi.advanceTimersByTime(PARTY_COLLAPSE_TRANSITION_MS - 100 - 1))
   expect(setContentHeight).not.toHaveBeenCalled()
