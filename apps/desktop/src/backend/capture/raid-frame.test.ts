@@ -37,16 +37,17 @@ it('공대 상세 창의 12행을 화면 순서로 돌려주고 빈 행은 null,
   expect(result.nicknames.map((nickname) => nickname !== null)).toEqual(
     Array.from({ length: 12 }, (_, row) => row < 9)
   )
+  // 큰 픽셀 배열은 요소마다 비교하는 toEqual 대신 바이트 비교로 확인한다(1067×600 프레임은 수 초가 걸린다).
   for (const [row, nickname] of result.nicknames.slice(0, 9).entries()) {
-    expect(nickname).toEqual({
-      width: NICKNAME.width,
-      height: NICKNAME.height,
-      rgba: nicknamePixels({ ...frame, rgba: original }, row)
-    })
+    expect(Object.keys(nickname!)).toEqual(['width', 'height', 'rgba'])
+    expect([nickname?.width, nickname?.height]).toEqual([NICKNAME.width, NICKNAME.height])
+    expect(nickname!.rgba).toBeInstanceOf(Uint8Array)
+    const expected = nicknamePixels({ ...frame, rgba: original }, row)
+    expect(Buffer.from(nickname!.rgba).equals(Buffer.from(expected))).toBe(true)
   }
   // 전달한 크롭을 바꿔도 회차 프레임은 그대로다.
   result.nicknames[0]!.rgba.fill(0)
-  expect(frame.rgba).toEqual(original)
+  expect(Buffer.from(frame.rgba).equals(Buffer.from(original))).toBe(true)
 })
 
 it('다른 창에 가려 투명하게 제외된 픽셀이 있는 행만 읽지 않는다', () => {
