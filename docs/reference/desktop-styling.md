@@ -76,7 +76,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
-| 공대 화면 | 캐릭터 카드와 같은 `CharacterCard` | 파티 카드 네 장씩 세 줄을 쌓고 카드 영역만 세로로 스크롤합니다. 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 두어 카드 폭이 파티 화면과 같습니다 |
+| 공대 화면 | 캐릭터 카드와 같은 `CharacterCard` | 카드를 기준 창의 파티 카드 크기 296 × 632로 고정하고 네 장씩 세 줄을 쌓습니다. 카드 영역만 가로, 세로로 스크롤하며 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 두어 기준 창에서 카드가 파티 화면과 같은 자리에 놓입니다 |
 | 보조 창 상단 바 | `WindowBar` | 상세 창. 메인 상단 바와 같은 높이, 면, OS 창 버튼 자리 규칙을 씁니다 |
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
