@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react'
 
-// 각진 모래시계(dfragon-design icons.md의 DFragon 아이콘). 대기, 확인 필요, 창을 찾는 중을 주의 색 대신
-// 이 모양으로 보인다. 위아래로 맞붙은 두 삼각형이다.
+// 각진 모래시계(dfragon-design icons.md의 DFragon 아이콘). 카드의 인식 대기를 중립색으로 보인다. 확인 필요,
+// 창을 찾는 중 같은 주의 상태는 이 아이콘 대신 주의 색이 맡는다. 위아래로 맞붙은 두 삼각형이다.
 export function HourglassIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
   return (
     <svg
