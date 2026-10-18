@@ -38,8 +38,3 @@ export function DashIcon(props: IconProps) {
 export function CloseIcon(props: IconProps) {
   return <LineIcon d="M6 6l12 12M18 6 6 18" {...props} />
 }
-
-// 대기 상태 표시. 위아래로 맞붙은 두 삼각형으로 그린 각진 모래시계다(dfragon-design icons.md).
-export function HourglassIcon(props: IconProps) {
-  return <LineIcon d="M6 3h12l-6 9zM12 12l6 9H6z" {...props} />
-}

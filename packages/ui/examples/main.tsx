@@ -220,14 +220,17 @@ function Examples() {
         <ExampleSection title="상태 표시">
           <div {...stylex.props(styles.row)}>
             <StatusChip tone="success">연결됨</StatusChip>
-            <StatusChip tone="waiting">찾는 중</StatusChip>
+            <StatusChip tone="warning">확인 필요</StatusChip>
+            <StatusChip tone="signal" busy>
+              인식 중
+            </StatusChip>
             <StatusChip tone="danger">실패</StatusChip>
-            <StatusChip tone="neutral">대기</StatusChip>
+            <StatusChip tone="neutral">준비 중</StatusChip>
             <StatusChip tone="success" size="md">
               창 감지됨
             </StatusChip>
-            <StatusChip tone="waiting" size="md">
-              창 확인 중
+            <StatusChip tone="warning" size="md">
+              창 미감지
             </StatusChip>
             <ProgressCircle size="24" aria-label="불러오는 중" />
             <ProgressCircle size="24" value={60} aria-label="60% 진행" />

@@ -51,6 +51,8 @@ export type {
 } from './dialog'
 export { StatusChip } from './status-chip'
 export type { StatusChipProps, StatusChipTone } from './status-chip'
+export { StepDots } from './step-dots'
+export type { StepDotsProps } from './step-dots'
 export { LoadingIndicator } from './loading-indicator'
 export type { LoadingIndicatorProps } from './loading-indicator'
 export { ProgressCircle } from './progress-circle'
