@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ActionButton,
   Button,
+  CardFrame,
   Checkbox,
   Chip,
   DialogAction,
@@ -982,5 +983,44 @@ describe('NumericText의 최종값 읽기', () => {
 
     expect(container.textContent).toBe('125,850125,850')
     expect(container.querySelector('[aria-hidden="true"]')?.textContent).toBe('125,850')
+  })
+})
+
+describe('CardFrame의 상태별 장식', () => {
+  // 카드 내용은 화면이 넘긴 자식뿐이고, 나머지 자식은 보조 기술에서 숨긴 장식이다.
+  async function decorations(state: 'default' | 'waiting' | 'top' | 'ranker') {
+    await render(
+      <CardFrame state={state} as="article" aria-label="1번 슬롯">
+        <p>내용</p>
+      </CardFrame>
+    )
+    const card = container.querySelector('article')
+    const extras = [...(card?.children ?? [])].filter((child) => child.tagName !== 'P')
+
+    return { card, extras }
+  }
+
+  it('상위와 랭커는 꺾쇠 네 개 밖에 빛줄기 층을 하나 더 두고 모두 보조 기술에서 숨긴다', async () => {
+    const top = await decorations('top')
+    expect(top.card?.getAttribute('data-state')).toBe('top')
+    expect(top.extras).toHaveLength(5)
+    expect(top.extras.every((child) => child.getAttribute('aria-hidden') === 'true')).toBe(true)
+    expect(top.card?.textContent).toBe('내용')
+    // 장식 층 안에 빛줄기 하나를 둔다.
+    expect(top.extras[0]?.children).toHaveLength(1)
+    const topLayer = top.extras[0]?.className
+    const topSweep = top.extras[0]?.firstElementChild?.className
+
+    const ranker = await decorations('ranker')
+    expect(ranker.extras).toHaveLength(5)
+    expect(ranker.extras[0]?.children).toHaveLength(1)
+    // 랭커 층에는 스캔선이 깔리고 빛줄기도 상위의 금색 띠와 다른 청록 띠다.
+    expect(ranker.extras[0]?.className).not.toBe(topLayer)
+    expect(ranker.extras[0]?.firstElementChild?.className).not.toBe(topSweep)
+  })
+
+  it('기본 카드는 꺾쇠만, 대기 카드는 장식 없이 그린다', async () => {
+    expect((await decorations('default')).extras).toHaveLength(4)
+    expect((await decorations('waiting')).extras).toHaveLength(0)
   })
 })
