@@ -59,6 +59,7 @@ const styles = stylex.create({
 - **신호색**: `signal`, `onSignal`은 선택, 주 버튼, 포커스에 씁니다. 개발자 작업 공간의 선택 탭 아래 2px 선이 `signal`입니다.
 - **카드 면**: `card*`, `bracket*`, `hazard`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`, 실패 `!` 칸의 `fgDanger`, `bgDangerWeak` 같은 상태색은 의미 토큰을 그대로 씁니다. 그래서 라이트 모드의 `!` 칸은 어두운 카드 위의 밝은 칸입니다. 상세 창의 카드 더미도 모든 카드가 `CardFrame`의 `cardBg` 면이고, 앞 카드의 오른쪽 끝에 1px `cardBorder` 선을 그어 겹친 카드를 나눕니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
 - **크롭 미리보기**: 개발자 화면의 게임 크롭 칸은 두 모드에서 같은 어두운 면인 `bgWell`을 씁니다.
+- **설정, 개발자 화면의 면**: 대화상자, 패널, 크롭 칸은 반지름 0(`radius.panel`)에 테두리 없이 `bgSurface`, `bgInset`, `bgWell` 면으로 구분합니다. 개발자 업로드 안내만 왼쪽 5px 띠의 색으로 상태를 보입니다.
 - **상단 바**: 상단 바 면은 `bgBar`이며 창 버튼 띠 색(`preload/common/window-chrome.ts`)과 맞춥니다.
 - **게임 색**: 마법부여 `enchant*`, 강화 `gameEnhance`, 증폭 `gameAmplify`는 두 모드에서 같은 값입니다. 투자 현황의 강화 열은 `EquipmentSlot.enhancement`가 강화와 증폭을 구분하지 않아 모두 `gameAmplify`로 표시합니다.
 
@@ -81,6 +82,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |
 | 개발자 모드 | `<label>` 안의 `Switch` | 설정 대화상자 |
 | 저장 포함 | `Checkbox` | 파티, 참가자 수집 화면 |
+| 저장 단축키 | `Kbd` | 개발자 참가자 수집 화면의 `Print Screen` |
 | 정답 입력 필터 | `Chip`(`pressed`, `onPressedChange`) | 개발자 정답 입력 화면 |
 | 게임 연결 상태 | `StatusChip` `size="md"` | 상단 바. 높이 28, 오른쪽 위를 자른 칩입니다 |
 | 캡처, 검출 상태 | `StatusChip` | 캡처 모달, 개발자 참가자 수집 화면 |
