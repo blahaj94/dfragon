@@ -63,9 +63,17 @@ export function CaptureControls({
   // 창 목록 조회가 끝날 때마다 새 목록 배열이 오고, 그 순간부터 다음 자동 조회까지 15초를 잰다. 목록을
   // 늦게 열어도 재조회 진행 막대가 실제 남은 시간과 맞도록 상단 바에 늘 있는 이 컴포넌트가 시작 시각을
   // 기억한다.
-  const [retry, setRetry] = useState(() => ({ sources, startedAt: Date.now() }))
+  // 벽시계가 바뀌어도 실제 타이머와 어긋나지 않도록 단조 시계로 잰다.
+  const [retry, setRetry] = useState(() => ({ sources, startedAt: performance.now() }))
   if (retry.sources !== sources) {
-    setRetry({ sources, startedAt: Date.now() })
+    setRetry({ sources, startedAt: performance.now() })
+  }
+  // 확인 필요와 캡처 실패의 안내 앞에는 상태 색 `!` 칸을 둔다.
+  let markLabel: string | null = null
+  if (phase === 'unavailable') {
+    markLabel = '주의'
+  } else if (phase === 'failed') {
+    markLabel = '실패'
   }
 
   return (
@@ -94,6 +102,11 @@ export function CaptureControls({
             {state.label}
           </StatusChip>
         </DialogTrigger>
+        {/* 대화상자를 닫은 동안에도 캡처 진행 문구를 보조 기술에 알린다. 대화상자가 열리면 바깥 내용은
+            가려지고 대화상자 안의 안내가 같은 문구를 알리므로 두 번 읽히지 않는다. */}
+        <span role="status" data-capture-announcer="" {...stylex.props(shapes.srOnly)}>
+          {status}
+        </span>
       </span>
       <DialogContent
         showCloseButton={false}
@@ -145,11 +158,15 @@ export function CaptureControls({
           />
           {status && (
             <p role="status" {...stylex.props(styles.notice)}>
-              {phase === 'unavailable' && (
+              {markLabel != null && (
                 <span
                   role="img"
-                  aria-label="주의"
-                  {...stylex.props(shapes.cutTopRight, styles.warningMark)}
+                  aria-label={markLabel}
+                  {...stylex.props(
+                    shapes.cutTopRight,
+                    styles.mark,
+                    phase === 'failed' ? styles.failureMark : styles.warningMark
+                  )}
                 >
                   !
                 </span>

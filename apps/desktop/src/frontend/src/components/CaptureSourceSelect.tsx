@@ -17,7 +17,10 @@ type CaptureSourceSelectProps = {
   loading: boolean
   failed: boolean
   ready: boolean
-  /** 마지막 창 목록 조회가 끝난 시각(ms). 다음 자동 조회까지의 진행 막대가 이 시각부터 찬다. */
+  /**
+   * 마지막 창 목록 조회가 끝난 시각(`performance.now()` ms). 다음 자동 조회까지의 진행 막대가 이 시각부터
+   * 찬다.
+   */
   retryStartedAt: number
   onSelect: (id: string) => void
   onRefresh: () => void
@@ -142,7 +145,7 @@ export function CaptureSourceSelect({
 // 앞당겨 시작하므로 실제 재조회 타이머와 같은 순간에 찬다. 조회가 끝나 시작 시각이 바뀌면 key로 새로
 // 그려 처음부터 다시 찬다. 동작 줄이기에서는 연 순간의 위치에서 멈춘다.
 function RetryProgress({ startedAt }: { startedAt: number }): React.JSX.Element {
-  const [shownAt] = useState(() => Date.now())
+  const [shownAt] = useState(() => performance.now())
 
   return (
     <span aria-hidden="true" {...stylex.props(styles.retryTrack)}>

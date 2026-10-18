@@ -117,20 +117,24 @@ export const styles = stylex.create({
     color: colors.fgMuted,
     overflowWrap: 'anywhere'
   },
-  // 확인 필요 안내 앞의 `!` 칸. 카드의 검색 실패 칸과 같은 모양을 주의 색으로 그린다(shapes.cutTopRight와 함께).
-  warningMark: {
+  // 확인 필요, 캡처 실패 안내 앞의 `!` 칸. 카드의 검색 실패 칸과 같은 모양이다(shapes.cutTopRight와 함께).
+  mark: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     width: 18,
     height: 18,
-    backgroundColor: `color-mix(in srgb, ${colors.fgWarning} 16%, transparent)`,
-    color: colors.fgWarning,
     fontFamily: font.num,
     fontSize: 14,
     fontWeight: 700
   },
+  warningMark: {
+    backgroundColor: `color-mix(in srgb, ${colors.fgWarning} 16%, transparent)`,
+    color: colors.fgWarning
+  },
+  // 캡처 실패는 카드의 검색 실패 `!` 칸과 같은 위험 색이다.
+  failureMark: { backgroundColor: colors.bgDangerWeak, color: colors.fgDanger },
   actions: {
     display: 'flex',
     justifyContent: 'flex-end',

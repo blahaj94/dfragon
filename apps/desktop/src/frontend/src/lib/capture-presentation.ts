@@ -45,6 +45,11 @@ export function getCaptureControlState({
     return { label: '확인 필요', tone: 'warning', busy: false }
   }
 
+  // 창 등록 실패나 회차 시작, 인식 실패로 끝난 회차. 창 감지 표시로 덮지 않고 실패를 알린다.
+  if (phase === 'failed') {
+    return { label: '캡처 실패', tone: 'danger', busy: false }
+  }
+
   if (loading) {
     return { label: '창 확인 중', tone: 'neutral', busy: false }
   }
