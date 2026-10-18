@@ -12,6 +12,7 @@ import {
 import { registerCaptureIpc, registerCaptureWindow, collectCurrentCapture } from './ipc-handler'
 import type { WindowFrameResult } from '../../preload/common/types/capture'
 import type { OcrCollection } from '../ocr-collection/collection'
+import { raidFrame } from '../lib/raid-window-test-fixture'
 
 const nativeFrame = vi.hoisted(() => {
   const read = vi.fn<() => Promise<WindowFrameResult>>()
@@ -20,6 +21,11 @@ const nativeFrame = vi.hoisted(() => {
   return { read, bind }
 })
 vi.mock('./native-frame', () => ({ bindWindowFrame: nativeFrame.bind }))
+vi.mock('../lib/raid-heading.png?asset', async () => {
+  const { fileURLToPath } = await import('node:url')
+
+  return { default: fileURLToPath(new URL('../lib/raid-heading.png', import.meta.url)) }
+})
 
 const electron = vi.hoisted(() => {
   const getSources = vi.fn()
@@ -256,9 +262,11 @@ describe('capture main document and source boundary', () => {
       'listCaptureSources',
       'notifyManualNickname',
       'notifyOcrCandidatesDetected',
+      'notifyRaidOcrCandidatesDetected',
       'notifyStableNicknameDetected',
       'openCharacterDetails',
       'readCaptureFrame',
+      'readRaidCaptureFrame',
       'selectCaptureSource'
     ])
     expect(
@@ -702,6 +710,113 @@ describe('선택한 창의 네이티브 프레임 IPC', () => {
       }
 
       await expect(f.invoke('readCaptureFrame', begun.snapshot.captureId)).rejects.toThrow()
+      expect(nativeFrame.read).not.toHaveBeenCalled()
+    }
+  )
+})
+
+async function beginRaid(fixture: Awaited<ReturnType<typeof setup>>): Promise<string> {
+  const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
+    snapshot: { captureId: string }
+  }
+
+  return begun.snapshot.captureId
+}
+
+describe('공대 캡처 회차의 프레임 IPC', () => {
+  it('창 등록 뒤 시작한 공대 수명만 프레임을 한 장 읽고 12행 닉네임 크롭만 돌려준다', async () => {
+    const f = await setup(false)
+    nativeFrame.read.mockResolvedValue({ kind: 'frame', image: raidFrame(7) })
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const raidId = await beginRaid(f)
+
+    const result = (await f.invoke('readRaidCaptureFrame', raidId)) as {
+      kind: string
+      nicknames: ({ width: number; height: number } | null)[]
+    }
+
+    expect(Object.keys(result)).toEqual(['kind', 'nicknames'])
+    expect(result.kind).toBe('rows')
+    expect(result.nicknames.map((nickname) => nickname?.width ?? null)).toEqual([
+      ...Array.from({ length: 7 }, () => 86),
+      ...Array.from({ length: 5 }, () => null)
+    ])
+    expect(nativeFrame.bind).toHaveBeenCalledWith(sources[0].id)
+    expect(nativeFrame.read).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('파티 캡처, 오래된 공대 수명, 추가 인자로는 공대 프레임을 읽지 않는다', async () => {
+    const f = await setup(false)
+    nativeFrame.read.mockResolvedValue({ kind: 'unsupported' })
+    await f.invoke('selectCaptureSource', sources[0].id)
+    const party = (await f.invoke('controlCharacterSearch', { action: 'begin' })) as {
+      snapshot: { captureId: string }
+    }
+    const stale = await beginRaid(f)
+    const raidId = await beginRaid(f)
+
+    for (const args of [[party.snapshot.captureId], [stale], [raidId, 'window:999:0'], []]) {
+      await expect(f.invoke('readRaidCaptureFrame', ...args)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    }
+    // 공대 수명의 ID로 파티 캡처 프레임을 읽을 수도 없다.
+    await expect(f.invoke('readCaptureFrame', raidId)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    expect(nativeFrame.read).not.toHaveBeenCalled()
+    await expect(f.invoke('readRaidCaptureFrame', raidId)).resolves.toEqual({ kind: 'unsupported' })
+  })
+
+  it('창을 등록하기 전이나 창을 바꾸기 전에 시작한 공대 수명으로는 읽지 않는다', async () => {
+    const f = await setup(false)
+    nativeFrame.read.mockResolvedValue({ kind: 'unsupported' })
+    const beforeSource = await beginRaid(f)
+    await expect(f.invoke('readRaidCaptureFrame', beforeSource)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+    await f.invoke('selectCaptureSource', sources[0].id)
+    await expect(f.invoke('readRaidCaptureFrame', beforeSource)).rejects.toThrow(
+      'CAPTURE_NOT_ALLOWED'
+    )
+    const current = await beginRaid(f)
+    await f.invoke('selectCaptureSource', sources[0].id)
+    await expect(f.invoke('readRaidCaptureFrame', current)).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+    expect(nativeFrame.read).not.toHaveBeenCalled()
+  })
+
+  it.each(['new round', 'source', 'document'] as const)(
+    '%s 뒤 늦은 공대 프레임 응답은 전달하지 않는다',
+    async (change) => {
+      const f = await setup(false)
+      const pending = deferred<WindowFrameResult>()
+      nativeFrame.read.mockReturnValueOnce(pending.promise)
+      await f.invoke('selectCaptureSource', sources[0].id)
+      const raidId = await beginRaid(f)
+      const response = f.invoke('readRaidCaptureFrame', raidId)
+      const rejected = expect(response).rejects.toThrow('CAPTURE_NOT_ALLOWED')
+      await vi.waitFor(() => expect(nativeFrame.read).toHaveBeenCalledOnce())
+      if (change === 'new round') {
+        await beginRaid(f)
+      } else if (change === 'source') {
+        await f.invoke('selectCaptureSource', sources[0].id)
+      } else {
+        f.documentEvents.emit('did-start-navigation', {}, rendererUrl, false, true)
+      }
+      pending.resolve({ kind: 'frame', image: raidFrame(12) })
+      await rejected
+    }
+  )
+
+  it.each(['다른 문서', '신뢰하지 않는 sender'])(
+    '%s에서는 공대 프레임 읽기를 시작하지 않는다',
+    async (condition) => {
+      const f = await setup(false)
+      await f.invoke('selectCaptureSource', sources[0].id)
+      const raidId = await beginRaid(f)
+      if (condition === '다른 문서') {
+        f.mainFrame.url = 'file:///other.html'
+      } else {
+        Object.assign(f.event, { sender: {} })
+      }
+
+      await expect(f.invoke('readRaidCaptureFrame', raidId)).rejects.toThrow('SEARCH_NOT_ALLOWED')
       expect(nativeFrame.read).not.toHaveBeenCalled()
     }
   )

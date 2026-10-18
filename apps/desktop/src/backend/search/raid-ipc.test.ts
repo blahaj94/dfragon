@@ -194,5 +194,114 @@ it('공대 조회 IPC도 신뢰하지 않는 sender는 HTTP 전에 거절한다'
   await expect(fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 0))).rejects.toThrow(
     'SEARCH_NOT_ALLOWED'
   )
+  await expect(
+    fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 0))
+  ).rejects.toThrow('SEARCH_NOT_ALLOWED')
   expect(fixture.fetchSearch).not.toHaveBeenCalled()
+})
+
+// 공대 캡처의 OCR 관측. 공대 상세 창에는 얼굴이 없어 portrait는 늘 null이다.
+function ocr(captureId: string, slot: number, observationRevision = 1, nickname = '가나') {
+  return {
+    captureId,
+    slot,
+    observationRevision,
+    nickname,
+    candidateNicknames: [nickname],
+    portrait: null
+  }
+}
+
+it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 명성 캐릭터를 고르고 범위 밖은 HTTP 전에 거절한다', async () => {
+  const fixture = await createSearchFixture(false, 'raid', policy)
+  for (const slot of [-1, 12, 1.5]) {
+    expect(
+      await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, slot))
+    ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
+  }
+  expect(
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', {
+      ...ocr(fixture.captureId, 0),
+      serverId: 'cain'
+    })
+  ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
+  expect(fixture.fetchSearch).not.toHaveBeenCalled()
+
+  const other = {
+    ...candidate,
+    characterId: 'synthetic-other',
+    serverId: 'bakal',
+    serverName: '바칼',
+    fame: 1
+  }
+  const otherImageUrl =
+    'https://img-api.neople.co.kr/df/servers/bakal/characters/synthetic-other?zoom=1'
+  fixture.fetchSearch
+    .mockResolvedValueOnce(
+      jsonResponse({
+        body: {
+          rows: [
+            { ...candidate, imageUrl },
+            { ...other, imageUrl: otherImageUrl }
+          ]
+        }
+      })
+    )
+    .mockResolvedValueOnce(
+      jsonResponse({ body: { ...details, character: { ...details.character, ...other } } })
+    )
+  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 11))
+  await vi.waitFor(async () => expect((await fixture.read()).slots[11].state).toBe('success'))
+  const snapshot = await fixture.read()
+  expect(snapshot.slots[11]).toMatchObject({
+    nickname: '가나',
+    selectionMethod: 'highest-fame',
+    selected: { characterId: 'synthetic-other', serverId: 'bakal' }
+  })
+  // 이름 후보 검색은 서버를 고르지 않고 상세는 고른 후보의 서버로 한 번만 조회한다.
+  const urls = fixture.fetchSearch.mock.calls.map(([input]) => new Request(input).url)
+  expect(urls).toHaveLength(2)
+  expect(urls[0]).toContain('/characters/candidates?characterName=')
+  expect(urls[1]).toContain('/characters/bakal/synthetic-other')
+  expect(snapshot.slots.slice(0, 11).every((slot) => slot.state === 'idle')).toBe(true)
+  expect(fixture.published).toHaveBeenCalledWith('raidSearchChanged', snapshot)
+})
+
+it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이지 않는다', async () => {
+  const fixture = await createSearchFixture(false, 'raid', policy)
+  const party = (await fixture.invoke('controlManualSearch', { action: 'begin' })) as {
+    snapshot: { captureId: string }
+  }
+  expect(
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(party.snapshot.captureId, 0))
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  // 파티 캡처 채널은 파티 캡처 수명의 네 자리만 받는다.
+  expect(
+    await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 11))
+  ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
+  expect(
+    await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 0))
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  expect(fixture.fetchSearch).not.toHaveBeenCalled()
+})
+
+it('새 공대 회차가 수명을 다시 시작하면 이전 회차의 늦은 식별 결과를 버린다', async () => {
+  const fixture = await createSearchFixture(false, 'raid', policy)
+  const response = deferred<Response>()
+  fixture.fetchSearch.mockReturnValueOnce(response.promise)
+  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3))
+  await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
+  const request = new Request(...fixture.fetchSearch.mock.calls[0])
+
+  await fixture.invoke('controlRaidSearch', { action: 'begin' })
+  const next = await fixture.read()
+  expect(next.captureId).not.toBe(fixture.captureId)
+  expect(request.signal.aborted).toBe(true)
+  expect(
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3, 2))
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  response.resolve(jsonResponse({ body: { rows: [{ ...candidate, imageUrl }] } }))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(await fixture.read()).toEqual(next)
+  expect(next.slots[3].state).toBe('idle')
 })
