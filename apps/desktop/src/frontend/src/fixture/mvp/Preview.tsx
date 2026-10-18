@@ -17,8 +17,9 @@ import {
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
-import { previewCharacter } from './fixture'
+import { previewCharacter, tierPreviewCharacters } from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
+import type { CardCharacter } from '../../types/cards'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
@@ -46,6 +47,12 @@ export function Preview(): React.JSX.Element {
     fame: null,
     equipment: [],
     oath: []
+  }
+  let characters: readonly (CardCharacter | null)[] | undefined
+  if (identification) {
+    characters = [identifiedCharacter, null, null, null]
+  } else if (scenario === 'tiers') {
+    characters = tierPreviewCharacters
   }
   const openDetail = (): void => {
     const url = new URL(window.location.href)
@@ -102,7 +109,7 @@ export function Preview(): React.JSX.Element {
                 id={partyCardsId}
                 collapsed={party.collapsed}
                 character={character}
-                characters={identification ? [identifiedCharacter, null, null, null] : undefined}
+                characters={characters}
                 basicOnly={identification}
                 nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
                 slotNotices={
@@ -161,6 +168,7 @@ export function Preview(): React.JSX.Element {
                 <option value="pending">검색 중 · 결과 없음</option>
                 <option value="missing">누락 · 이미지 실패</option>
                 <option value="identification">자동 식별 상태</option>
+                <option value="tiers">상위, 랭커 단계</option>
               </select>
             </footer>
             <p {...stylex.props(styles.notice)}>
