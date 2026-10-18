@@ -10,12 +10,12 @@ import { CheckIcon } from './CheckIcon'
 import { styles } from './DeveloperUploadNotice.style'
 
 const titles: Record<DeveloperUploadStatus, string> = {
-  signedOut: '로컬 저장 완료 · 서버 전송 안 됨',
+  signedOut: '로컬 저장 완료, 서버 전송 안 됨',
   uploading: '서버 업로드 중',
   uploaded: '서버 업로드 완료',
   failed: '서버 업로드 확인 실패',
-  ownerRequired: '서버 전송 안 됨 · 계정 확인 필요',
-  storageFull: '서버 전송 안 됨 · 저장 공간 부족'
+  ownerRequired: '서버 전송 안 됨, 계정 확인 필요',
+  storageFull: '서버 전송 안 됨, 저장 공간 부족'
 }
 
 const messages: Record<DeveloperUploadStatus, string> = {
@@ -62,7 +62,7 @@ export function DeveloperUploadNotice({
     tone = 'busy'
     if (capture?.phase === 'capturing' || capture?.phase === 'saving') {
       title =
-        capture.phase === 'capturing' ? 'Print Screen 입력 확인 · 캡처 중' : '로컬 크롭 저장 중'
+        capture.phase === 'capturing' ? 'Print Screen 입력 확인, 캡처 중' : '로컬 크롭 저장 중'
       detail =
         '이번 캡처를 처리하고 있습니다. 완료 전까지 추가 Print Screen 입력은 저장하지 않습니다.'
     }
@@ -104,11 +104,11 @@ export function DeveloperUploadNotice({
           <div {...stylex.props(styles.metadata)}>
             <Typo.caption>
               캡처 #{capture.attempt}
-              {' · '}
+              {', '}
               {new Date(capture.startedAt).toLocaleTimeString('ko-KR', { hour12: false })}
             </Typo.caption>
             {busy ? (
-              <Typo.caption>처리 중 · {elapsed}초 경과</Typo.caption>
+              <Typo.caption>처리 중, {elapsed}초 경과</Typo.caption>
             ) : (
               (collection?.lastSavedCount ?? 0) > 0 && (
                 <Typo.caption>로컬 크롭 {collection?.lastSavedCount}개 저장</Typo.caption>

@@ -39,7 +39,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
           {selected.name}
         </Typo.h4>
         <Typo.txtS {...stylex.props(styles.description)}>
-          {[selected.version, selected.license].filter(Boolean).join(' · ')}
+          {[selected.version, selected.license].filter(Boolean).join(', ')}
         </Typo.txtS>
         {selected.documents.map((document, index) => (
           <section

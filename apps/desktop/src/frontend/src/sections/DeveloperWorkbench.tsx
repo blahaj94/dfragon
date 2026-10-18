@@ -514,7 +514,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
             <details aria-label="모델 성능 평가" {...stylex.props(styles.evaluation)}>
               <summary {...stylex.props(styles.evaluationSummary)}>모델 성능 평가</summary>
               <div {...stylex.props(styles.evaluationBody)}>
-                <Typo.txtS>탑재된 PP-OCRv5 한국어 인식 모델 · 닉네임 한 줄 기준</Typo.txtS>
+                <Typo.txtS>탑재된 PP-OCRv5 한국어 인식 모델, 닉네임 한 줄 기준</Typo.txtS>
                 <div {...stylex.props(styles.actions)}>
                   <Button
                     size="sm"
@@ -562,7 +562,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                 </Typo.caption>
                 <div role="status" {...stylex.props(styles.evaluationSummaryGrid)}>
                   <Typo.txtS>
-                    평가 성공 {summary.completed}개 · 실패 {summary.failed}개
+                    평가 성공 {summary.completed}개, 실패 {summary.failed}개
                   </Typo.txtS>
                   <Typo.txtS>
                     원문 일치율{' '}

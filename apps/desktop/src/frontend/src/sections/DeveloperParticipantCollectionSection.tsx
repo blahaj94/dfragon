@@ -178,7 +178,7 @@ export function DeveloperParticipantCollectionSection({
             if (crop) {
               rowLabel = included ? '저장 포함' : '저장 안 함'
             } else if (popup) {
-              rowLabel = raid ? '빈 행' : '빈 행 · 저장 안 함'
+              rowLabel = raid ? '빈 행' : '빈 행, 저장 안 함'
             } else {
               rowLabel = '검출 대기'
             }

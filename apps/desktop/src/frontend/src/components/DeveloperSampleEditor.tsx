@@ -8,14 +8,14 @@ import { DEVELOPER_COLLECTION_LABELS } from '../constants/developer'
 
 function getSourceTitleSuffix(source: DeveloperWorkbenchSample['source']): string {
   if (!source) {
-    return ' · 기존 이미지'
+    return ', 기존 이미지'
   }
 
   if (source.kind === 'raid') {
-    return ` · 공대원창 ${source.slot}행 크롭`
+    return `, 공대원창 ${source.slot}행 크롭`
   }
 
-  return ` · ${source.slot}번 크롭`
+  return `, ${source.slot}번 크롭`
 }
 
 function getImageStatusMessage(failed: boolean): string {
@@ -90,7 +90,7 @@ export function DeveloperSampleEditor({
         {getSourceTitleSuffix(source)}
       </Typo.h4>
       <Typo.caption {...stylex.props(styles.muted)}>
-        {[capturedAtText, `${sample.width} × ${sample.height}px`].filter(Boolean).join(' · ')}
+        {[capturedAtText, `${sample.width} × ${sample.height}px`].filter(Boolean).join(', ')}
       </Typo.caption>
       <div {...stylex.props(styles.imageArea)}>
         {image ? (
@@ -113,7 +113,7 @@ export function DeveloperSampleEditor({
       {source && (
         <Typo.caption {...stylex.props(styles.muted)}>
           원본 {source.frameWidth} × {source.frameHeight}px
-          {Number.isFinite(source.scale) ? ` · 감지 배율 ${source.scale.toFixed(2)}×` : ''}
+          {Number.isFinite(source.scale) ? `, 감지 배율 ${source.scale.toFixed(2)}×` : ''}
         </Typo.caption>
       )}
       <form
@@ -148,7 +148,7 @@ export function DeveloperSampleEditor({
         </TextField>
         <Typo.caption as="p" {...stylex.props(styles.muted)}>
           {readOnly
-            ? `자료실 정답 · ${DEVELOPER_COLLECTION_LABELS[sample.remote!.kind]} · ${sample.remote!.split}`
+            ? `자료실 정답, ${DEVELOPER_COLLECTION_LABELS[sample.remote!.kind]}, ${sample.remote!.split}`
             : '정답을 직접 입력합니다. 빈 입력은 저장할 수 없습니다.'}
         </Typo.caption>
         {!readOnly && (

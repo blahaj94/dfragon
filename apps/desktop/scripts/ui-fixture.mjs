@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
     callback(false)
   )
 
-  const title = `DFragon UI fixture — ${mode} · ${theme}`
+  const title = `DFragon UI fixture — ${mode}, ${theme}`
   const width = isMvp || isDeveloper ? 900 : 1100
   let height = 800
   if (isMvp) {

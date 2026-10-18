@@ -158,13 +158,13 @@ export function Preview(): React.JSX.Element {
             }}
             {...stylex.props(styles.select)}
           >
-            <option value="idle">캡처 · 대기</option>
-            <option value="selected">캡처 · 창 선택됨</option>
-            <option value="recognizing">캡처 · 인식 중</option>
-            <option value="complete">캡처 · 인식 완료</option>
-            <option value="unavailable">캡처 · 확인 필요</option>
-            <option value="missing">캡처 · 창 미감지</option>
-            <option value="failure">캡처 · 실패</option>
+            <option value="idle">캡처, 대기</option>
+            <option value="selected">캡처, 창 선택됨</option>
+            <option value="recognizing">캡처, 인식 중</option>
+            <option value="complete">캡처, 인식 완료</option>
+            <option value="unavailable">캡처, 확인 필요</option>
+            <option value="missing">캡처, 창 미감지</option>
+            <option value="failure">캡처, 실패</option>
           </select>
           <select
             aria-label="미리보기 상태"
@@ -172,10 +172,10 @@ export function Preview(): React.JSX.Element {
             onChange={(event) => setScenario(event.target.value)}
             {...stylex.props(styles.select)}
           >
-            <option value="states">기본 · 상태 비교</option>
+            <option value="states">기본, 상태 비교</option>
             <option value="faces">네 면 비교</option>
-            <option value="pending">검색 중 · 결과 없음</option>
-            <option value="missing">누락 · 이미지 실패</option>
+            <option value="pending">검색 중, 결과 없음</option>
+            <option value="missing">누락, 이미지 실패</option>
             <option value="identification">자동 식별 상태</option>
             <option value="tiers">상위, 랭커 단계</option>
           </select>

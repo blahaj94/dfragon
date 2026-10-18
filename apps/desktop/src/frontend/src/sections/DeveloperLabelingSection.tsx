@@ -145,7 +145,7 @@ export function DeveloperLabelingSection({
             이전 페이지
           </Button>
           <Typo.txtS role="status">
-            {pagination.page + 1} / {pagination.pageCount} 페이지 · {pagination.total}개
+            {pagination.page + 1} / {pagination.pageCount} 페이지, {pagination.total}개
           </Typo.txtS>
           <Button
             size="sm"
