@@ -18,6 +18,8 @@ import type {
 import { SearchHttpFailure } from './http'
 import { createPortraitEdgeMatcher } from './portrait-edges'
 import type { StayImageSource } from './stay-images'
+import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
+import { dealerCard } from '../../preload/common/search/card-test-fixture'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 
@@ -474,5 +476,125 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
     expect(f.image.mock.calls[0][0].signal.aborted).toBe(true)
     expect(f.getDetails).not.toHaveBeenCalled()
+  })
+})
+
+describe('선택한 캐릭터 카드와 점수 엔진', () => {
+  const engineResult: ScoreEngineResult = {
+    calculator: 'equipment',
+    score: 1741,
+    skipped: null,
+    versions: { package: '0.1.0', rules_rev: 'rev12', bundle_id: 'phase31-rev12' },
+    display: { role: 'dealer', switchingLevel: 3, buff30: null, buff50: null }
+  }
+
+  function cardRequest(
+    f: ReturnType<typeof fixture>,
+    score: ScoreEngine,
+    card: unknown = dealerCard
+  ) {
+    f.getDetails.mockImplementation(async ({ characterId }) => ({
+      ...details(characterId),
+      card: card as CharacterDetails['card']
+    }))
+
+    return (isCurrent: () => boolean = () => true) =>
+      runSearchRequest({
+        runtime: {
+          clock: f.clock,
+          http: vi.fn(),
+          identification: {
+            candidates: f.candidates,
+            image: f.image,
+            details: f.getDetails,
+            matchesPortrait: f.matchesPortrait
+          },
+          score
+        },
+        nickname: '첫이름',
+        startedAt: f.input.startedAt,
+        signal: f.controller.signal,
+        isCurrent,
+        ocrInput: { candidateNicknames: ['첫이름'], portrait: null }
+      })
+  }
+
+  it('검증한 카드에 엔진 점수를 채우고 요약의 장비 점수와 서버 순위로 옮긴다', async () => {
+    const f = fixture()
+    const score = vi.fn<ScoreEngine>(() => engineResult)
+
+    const outcome = await cardRequest(f, score)()
+
+    expect(outcome).toMatchObject({
+      kind: 'success',
+      selected: {
+        summary: {
+          equipmentScore: 1741,
+          serverRank: 12,
+          card: {
+            stats: { switchingLevel: 3 },
+            score: { calculator: 'equipment', value: 1741, skipped: null }
+          }
+        }
+      }
+    })
+    expect(score).toHaveBeenCalledOnce()
+  })
+
+  it('카드 검증에 실패하면 엔진을 부르지 않고 카드만 null로 두어 나머지 요약은 전달한다', async () => {
+    const f = fixture()
+    const score = vi.fn<ScoreEngine>(() => engineResult)
+
+    const outcome = await cardRequest(f, score, { ...dealerCard, extra: true })()
+
+    expect(outcome).toMatchObject({
+      kind: 'success',
+      selected: {
+        summary: { characterId: 'high', equipmentScore: null, serverRank: null, card: null }
+      }
+    })
+    expect(score).not.toHaveBeenCalled()
+  })
+
+  it.each(['만료', '이전 요청', '취소'] as const)(
+    '엔진 계산 중 %s 판정이 나면 늦은 카드 결과를 발행하지 않는다',
+    async (reason) => {
+      const f = fixture()
+      let current = true
+      const score = vi.fn<ScoreEngine>(() => {
+        if (reason === '만료') {
+          f.clock.elapseWithoutTimers(15_000)
+        } else if (reason === '이전 요청') {
+          current = false
+        } else {
+          f.controller.abort()
+        }
+
+        return engineResult
+      })
+
+      const outcome = await cardRequest(f, score)(() => current)
+
+      expect(score).toHaveBeenCalledOnce()
+      if (reason === '만료') {
+        expect(outcome).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
+      } else {
+        expect(outcome).toBeNull()
+      }
+    }
+  )
+
+  it('상세 조회 뒤 15초 경계에 닿으면 엔진을 부르지 않는다', async () => {
+    const f = fixture()
+    const score = vi.fn<ScoreEngine>(() => engineResult)
+    const request = cardRequest(f, score)
+    f.getDetails.mockImplementationOnce(async ({ characterId }) => {
+      f.clock.elapseWithoutTimers(15_000)
+
+      return { ...details(characterId), card: dealerCard as CharacterDetails['card'] }
+    })
+
+    expect(await request()).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
+    expect(score).not.toHaveBeenCalled()
   })
 })

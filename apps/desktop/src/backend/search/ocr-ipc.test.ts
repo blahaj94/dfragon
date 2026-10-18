@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CharacterDetails, CharacterPortrait } from '../../preload/common/types/character'
 import type { OcrSearchObservation } from '../../preload/common/types/search'
 import { parseSearchSnapshot } from '../../preload/common/search/snapshot'
+import { dealerCard } from '../../preload/common/search/card-test-fixture'
 import { deferred } from '../auth/auth-test-fixtures'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
@@ -138,6 +139,32 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect(fixture.fetchSearch).not.toHaveBeenCalled()
   })
 
+  it('상세 응답의 card를 검증해 엔진 없이도 점수 null인 카드를 renderer snapshot에 담는다', async () => {
+    const apiScore = {
+      calculator: 'equipment',
+      value: 9999,
+      skipped: null,
+      versions: { package: 'api', rulesRev: 'api', bundleId: 'api' }
+    }
+    const fixture = await createSearchFixture(false, 'capture', policy)
+    fixture.fetchSearch
+      .mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
+      .mockResolvedValueOnce(imageResponse())
+      .mockResolvedValueOnce(
+        jsonResponse({ body: { ...details(), card: { ...dealerCard, score: apiScore } } })
+      )
+    await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
+    await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
+    const snapshot = await fixture.read()
+
+    expect(snapshot.slots[0].selected).toMatchObject({
+      equipmentScore: null,
+      serverRank: 12,
+      card: dealerCard
+    })
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+  })
+
   it('첫 일치 후보까지만 이미지 비교 후 5필드 행과 실제 상세 요약을 발행한다', async () => {
     const fixture = await createSearchFixture(false, 'capture', policy)
     const earlier = {
@@ -165,9 +192,10 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       jobGrowName: '웨펀마스터',
       imageUrl,
       guildName: '합성길드',
-      // 상세 응답에 대응 필드가 없어 값을 만들지 않는다.
+      // 상세 응답에 card가 없으면 점수와 순위를 만들지 않는다.
       equipmentScore: null,
-      serverRank: null
+      serverRank: null,
+      card: null
     })
     expect(snapshot.slots[0]).not.toHaveProperty('details')
     expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
