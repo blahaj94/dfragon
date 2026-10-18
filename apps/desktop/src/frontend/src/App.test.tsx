@@ -405,7 +405,15 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 �
   )!
   await act(async () => raid.click())
   expect(trigger.textContent).toBe('검색공대')
-  expect(container.querySelector('section[aria-label="공대"]')).not.toBeNull()
+  const raidSection = container.querySelector('section[aria-label="공대"]')!
+  expect(raidSection).not.toBeNull()
+  // 공대 데이터가 연결되기 전이라 제품은 세 파티 12자리를 모두 빈 카드로 둔다.
+  const raidCards = [...raidSection.querySelectorAll('article')]
+  expect(raidCards).toHaveLength(12)
+  expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
+  expect(
+    [...raidSection.querySelectorAll('[role="group"]')].map((group) => group.ariaLabel)
+  ).toEqual(['1파티', '2파티', '3파티'])
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
 
   await act(async () => trigger.click())
