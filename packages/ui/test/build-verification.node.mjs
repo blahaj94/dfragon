@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,10 +9,11 @@ import { test } from 'node:test'
 const uiRoot = fileURLToPath(new URL('../', import.meta.url))
 const verifyScript = fileURLToPath(new URL('../scripts/verify-build.mjs', import.meta.url))
 const notice = '/*! DFragon modified SEED source: test fixture */\n'
-const indexSource = `${notice}import { ActionButton } from "@seed-design/react";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nimport { colors } from "./tokens.stylex.js";\nexport { ActionButton, React, colors, jsx, stylex };\n`
+const indexSource = `${notice}import { Dialog } from "@base-ui/react/dialog";\nimport * as stylex from "@stylexjs/stylex";\nimport React from "react";\nimport { jsx } from "react/jsx-runtime";\nimport { colors } from "./tokens.stylex.js";\nexport { Dialog, React, colors, jsx, stylex };\n`
 const tokensSource = `${notice}import * as stylex from "@stylexjs/stylex";\nconst colors = stylex.defineConsts({ signal: "var(--df-signal)" });\nexport { colors };\n`
 const libraryFiles = ['index.js', 'tokens.stylex.js', 'typo.js']
 const tokensStyles = ':root{--df-brand-dragon:#e83830}'
+const foundationStyles = 'body{font-family:"Apple SD Gothic Neo",sans-serif}'
 
 // 실제 고지, provenance는 보존하고 검사하려는 bundle 경계만 작은 임시 산출물로 만든다.
 async function createLibraryFixture(context) {
@@ -68,6 +69,31 @@ async function createConsumerFixture(context, styles) {
   return output
 }
 
+test('SEED React와 Base UI가 번들에 없어도 소비자 빌드를 허용한다', async (context) => {
+  const output = await createConsumerFixture(context, foundationStyles)
+  const graph = [
+    { name: 'react', version: '19.3.0', modules: ['index.js'] },
+    { name: 'react-dom', version: '19.3.0', modules: ['index.js'] },
+    { name: '@seed-design/css', version: '3.0.2', modules: ['base.css'] }
+  ]
+  await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
+  const result = inspect(output, 'consumer')
+  assert.equal(result.status, 0, result.stderr)
+})
+
+test('Base UI 사본이 둘 번들되면 소비자 빌드 검사에 실패한다', async (context) => {
+  const output = await createConsumerFixture(context, foundationStyles)
+  const graph = JSON.parse(await readFile(join(output, 'notices/bundle-modules.json'), 'utf8'))
+  graph.push(
+    { name: '@base-ui/react', version: '1.9.0', modules: ['esm/index.js'] },
+    { name: '@base-ui/react', version: '1.8.0', modules: ['esm/index.js'] }
+  )
+  await writeFile(join(output, 'notices/bundle-modules.json'), JSON.stringify(graph))
+  const result = inspect(output, 'consumer')
+  assert.notEqual(result.status, 0)
+  assert.match(result.stderr, /Single bundled copy: @base-ui\/react/)
+})
+
 test('SEED 글꼴 변수와 공용 font-family 선언이 함께 있어도 한 번의 적용으로 센다', async (context) => {
   const output = await createConsumerFixture(
     context,
@@ -96,7 +122,6 @@ for (const { name, styles } of [
   })
 }
 
-const foundationStyles = 'body{font-family:"Apple SD Gothic Neo",sans-serif}'
 for (const { name, styles } of [
   { name: 'tokens.css를 import하지 않은 경우', styles: foundationStyles },
   {
@@ -187,9 +212,9 @@ for (const { name, file, source, failure } of [
     failure: /Portable browser declaration: typo\.d\.ts/
   },
   {
-    name: 'Typo가 SEED runtime을 가져오는 경우',
+    name: 'Typo가 Base UI runtime을 가져오는 경우',
     file: 'typo.js',
-    source: `${notice}export { Text } from '@seed-design/react';\n`,
+    source: `${notice}export { Field } from '@base-ui/react/field';\n`,
     failure: /React-only Typo entry/
   },
   {
@@ -231,8 +256,28 @@ for (const { name, file, source, failure } of [
   {
     name: 'library JS가 소비자 소유 CSS를 가져오는 경우',
     file: 'index.js',
-    source: `${indexSource}import '@seed-design/css/base.css';\n`,
+    source: `${indexSource}import '@dfragon/ui/tokens.css';\n`,
     failure: /Library must not import CSS/
+  },
+  {
+    name: 'library JS가 SEED runtime을 가져오는 경우',
+    file: 'index.js',
+    source: `${indexSource}import { ActionButton } from '@seed-design/react';\nexport { ActionButton };\n`,
+    failure: /Library must not import SEED/
+  },
+  {
+    name: 'library JS가 SEED 아이콘을 가져오는 경우',
+    file: 'index.js',
+    source: `${indexSource}import '@karrotmarket/react-monochrome-icon';\n`,
+    failure: /Library must not import SEED/
+  },
+  {
+    name: 'index.js가 Base UI를 external로 가져오지 않는 경우',
+    file: 'index.js',
+    source: indexSource
+      .replace('import { Dialog } from "@base-ui/react/dialog";\n', '')
+      .replace('Dialog, ', ''),
+    failure: /External import: @base-ui\/react/
   }
 ]) {
   test(`${name} 빌드 경계 검사에 실패한다`, async (context) => {
