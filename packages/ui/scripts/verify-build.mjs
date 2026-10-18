@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { createHash } from 'node:crypto'
 import { access, readFile, readdir } from 'node:fs/promises'
 import { isBuiltin } from 'node:module'
 import { dirname, relative, resolve } from 'node:path'
@@ -116,50 +115,11 @@ const javaScriptFiles = JSON.parse(
 )
 const hasJavaScriptFiles = javaScriptFiles.length > 0
 assert.ok(hasJavaScriptFiles, 'Generated JS bundle list must not be empty')
-for (const file of javaScriptFiles) {
-  const code = await readFile(resolve(output, file), 'utf8')
-  const hasModificationNotice = code.startsWith('/*! DFragon modified SEED source:')
-  assert.ok(hasModificationNotice, `Distributed modification notice: ${file}`)
-}
-const changes = await readFile(resolve(output, 'notices/DFRAGON-MODIFICATIONS.txt'), 'utf8')
-const mentionsDialogTrigger = changes.includes('DialogTrigger')
-assert.ok(mentionsDialogTrigger)
-const mentionsLayoutSlots = changes.includes('header/footer/children')
-assert.ok(mentionsLayoutSlots)
 const cssFiles = files.filter((file) => {
   const isStylesheet = file.endsWith('.css')
 
   return isStylesheet
 })
-
-for (const name of await readdir(resolve(uiRoot, '../licenses/notices/ui'))) {
-  assert.equal(
-    await readFile(resolve(output, 'notices', name), 'utf8'),
-    await readFile(resolve(uiRoot, '../licenses/notices/ui', name), 'utf8'),
-    `Preserved notice: ${name}`
-  )
-}
-const provenanceText = await readFile(resolve(uiRoot, 'seed-provenance.json'), 'utf8')
-assert.equal(
-  await readFile(resolve(output, 'notices/seed-provenance.json'), 'utf8'),
-  provenanceText
-)
-const provenance = JSON.parse(provenanceText)
-const foundationBytes = await readFile(resolve(uiRoot, provenance.foundation.local))
-assert.equal(
-  createHash('sha256').update(foundationBytes).digest('hex'),
-  provenance.foundation.localSha256
-)
-for (const source of provenance.files) {
-  const bytes = await readFile(resolve(uiRoot, source.local))
-  const isModifiedSource = source.localChanges.length > 0
-  if (isModifiedSource) {
-    const hasSourceModificationNotice = bytes.toString().includes('/*! DFragon 수정:')
-    assert.ok(hasSourceModificationNotice)
-  }
-  const hash = createHash('sha256').update(bytes).digest('hex')
-  assert.equal(hash, source.localSha256 ?? source.sha256, source.local)
-}
 
 const NONPORTABLE_DECLARATION_PATTERN = /node:|NodeJS|\.pnpm/
 const STYLESHEET_IMPORT_PATTERN = /\.css(?:$|\?)/
@@ -195,7 +155,8 @@ if (isLibrary) {
         isAllowedStylexImport,
         `Library must import only @stylexjs/stylex: ${file} ${specifier}`
       )
-      // SEED와 SEED 아이콘은 공용 Component의 의존성이 아니다. 남은 src/seed source는 package export가 아니다.
+      // 걷어낸 SEED와 SEED 아이콘은 다시 들이지 않는다(Design System). 해석하지 못한 import가
+      // external로 남는 경우도 막는다.
       const isSeedPackage =
         specifier.startsWith('@seed-design/') || specifier.startsWith('@karrotmarket/')
       assert.equal(isSeedPackage, false, `Library must not import SEED: ${file} ${specifier}`)
@@ -267,36 +228,17 @@ if (isLibrary) {
   }
   const expectedVersions = {
     react: '19.3.0',
-    'react-dom': '19.3.0',
-    '@seed-design/css': '3.0.2'
+    'react-dom': '19.3.0'
   }
   for (const [name, version] of Object.entries(expectedVersions)) {
     const copies = bundledCopies(name)
     assert.equal(copies.length, 1, `Single bundled copy: ${name}`)
     assert.equal(copies[0].version, version, name)
   }
-  // 공용 Component가 SEED React 대신 Base UI를 쓰므로, 화면이 쓰는 부품이 없으면 번들에 없을 수 있다.
+  // 화면이 공용 Component의 Base UI 부품을 쓰지 않으면 번들에 없을 수 있다.
   // 들어 있다면 사본은 하나여야 한다.
-  const optionalVersions = { '@seed-design/react': '3.0.0', '@base-ui/react': null }
-  for (const [name, version] of Object.entries(optionalVersions)) {
-    const copies = bundledCopies(name)
-    assert.ok(copies.length <= 1, `Single bundled copy: ${name}`)
-    const hasVersionCheck = copies.length === 1 && version != null
-    if (hasVersionCheck) {
-      assert.equal(copies[0].version, version, name)
-    }
-  }
-  const seedCss = graph.find((dependency) => {
-    const isSeedCss = dependency.name === '@seed-design/css'
-
-    return isSeedCss
-  })
-  const baseImports = seedCss.modules.filter((file) => {
-    const isBaseEntry = file === 'base.css'
-
-    return isBaseEntry
-  })
-  assert.equal(baseImports.length, 1, 'Consumer must import base.css once')
+  const baseUiCopies = bundledCopies('@base-ui/react')
+  assert.ok(baseUiCopies.length <= 1, 'Single bundled copy: @base-ui/react')
   assert.equal(cssFiles.length, 1, 'Consumer must emit one combined stylesheet')
   const styles = await readFile(resolve(output, cssFiles[0]), 'utf8')
   assert.equal(
@@ -314,4 +256,4 @@ if (isLibrary) {
   assert.ok(hasMitLicense, 'Bundled dependency license text retained')
 }
 
-console.log(`${mode}: source/notice hashes, dependency boundary and CSS checks passed`)
+console.log(`${mode}: public exports, dependency boundary and CSS checks passed`)

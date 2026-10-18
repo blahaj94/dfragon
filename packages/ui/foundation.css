@@ -1,4 +1,4 @@
-/* 고정 SEED Typography의 system font stack과 DFragon 토큰(tokens.css)의 body 색. Component recipe와 Token은 덮어쓰지 않는다. */
+/* 공용 body 초기화. system font stack과 DFragon 토큰(tokens.css)의 글자색, 바탕을 정한다. 토큰 값은 덮어쓰지 않는다. */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
