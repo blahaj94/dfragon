@@ -85,6 +85,17 @@ function expectedStaticEntries(): NoticeEntry[] {
       ]
     },
     {
+      name: 'Barlow Condensed',
+      version: '',
+      license: 'OFL-1.1',
+      documents: [
+        {
+          name: 'BARLOW-LICENSE',
+          text: readFileSync(new URL('../notices/desktop/BARLOW-LICENSE', import.meta.url), 'utf8')
+        }
+      ]
+    },
+    {
       name: 'PaddleOCR',
       version: '',
       license: 'Apache-2.0',
