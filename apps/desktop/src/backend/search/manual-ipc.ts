@@ -51,8 +51,11 @@ export function registerManualSearchIpc({
   const slotCount = SEARCH_SLOT_COUNTS[kind]
   const { control: controlChannel, changed: changedChannel } = CHANNELS[kind]
   // The shared DTO calls its session ID captureId; this instance never grants media access.
+  // 공대 캡처의 OCR 이름은 얼굴 비교 대신 공대 후보 선택 함수로 식별한다.
+  const lifetimeRuntime: SearchRuntime | undefined =
+    kind === 'raid' && runtime !== undefined ? { ...runtime, ocrIdentification: 'raid' } : runtime
   const lifetime = createCaptureSearchLifetime({
-    runtime,
+    runtime: lifetimeRuntime,
     slotCount,
     isCurrent: (binding) => isCurrentDocument(binding.windowGeneration),
     publish: (snapshot) => publish(changedChannel, snapshot)

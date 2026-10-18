@@ -6,6 +6,8 @@ import type {
   CharacterImage,
   CharacterPortrait
 } from '../../preload/common/types/character'
+import { orderedCandidates } from './candidate-order'
+import { selectRaidCandidate, type RaidObservedValues } from './raid-candidate'
 
 const MAX_OCR_NAMES = 2
 const MAX_NAME_CODE_POINTS = 12
@@ -51,25 +53,6 @@ export function isCharacterSearchNickname(nickname: string | undefined): nicknam
   )
 }
 
-/** 명성이 같은 후보는 API 순서를 유지하고 null은 0을 포함한 모든 명성 뒤에 둔다. */
-function orderedCandidates(candidates: readonly CharacterCandidate[]): CharacterCandidate[] {
-  return candidates.toSorted((left, right) => {
-    if (left.fame === right.fame) {
-      return 0
-    }
-
-    if (left.fame === null) {
-      return 1
-    }
-
-    if (right.fame === null) {
-      return -1
-    }
-
-    return right.fame - left.fame
-  })
-}
-
 /** 첫 이름의 외형을 순서대로 비교하고 확인하지 못하면 최고 명성 후보를 제시한다. */
 export function createCharacterIdentifier(services: IdentificationServices) {
   return async (input: CharacterIdentificationInput): Promise<CharacterIdentification> => {
@@ -104,6 +87,31 @@ export function createCharacterIdentifier(services: IdentificationServices) {
     }
 
     return selectCandidate(services, highest, nickname, 'highest-fame')
+  }
+}
+
+/**
+ * 공대 캡처의 OCR 첫 이름으로 후보를 찾고 공대 후보 선택 함수가 고른 캐릭터의 상세를 조회한다. 공대 상세
+ * 창에는 얼굴이 없어 외형을 비교하지 않는다.
+ */
+export function createRaidCharacterIdentifier(
+  services: Pick<IdentificationServices, 'findCandidates' | 'getDetails'>
+) {
+  return async (input: {
+    nicknames: readonly string[]
+    observed: RaidObservedValues
+  }): Promise<CharacterIdentification> => {
+    const nickname = input.nicknames[0]
+    if (input.nicknames.length > MAX_OCR_NAMES || !isCharacterSearchNickname(nickname)) {
+      return { kind: 'invalid-input' }
+    }
+    const candidates = await services.findCandidates(nickname)
+    const selection = selectRaidCandidate({ name: nickname, observed: input.observed, candidates })
+    if (selection === null) {
+      return { kind: 'unmatched' }
+    }
+
+    return selectCandidate(services, selection.candidate, nickname, selection.selectionMethod)
   }
 }
 
