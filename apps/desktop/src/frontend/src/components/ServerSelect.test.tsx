@@ -123,6 +123,51 @@ it('서버를 고르지 않으면 트리거에 서버를 표시하고 선택된 
   expect(options.filter((item) => item.getAttribute('aria-selected') === 'true')).toEqual([])
 })
 
+it('카드 위 칩과 목록을 카드 면으로 그리고 키보드로 열어 고른다', async () => {
+  const onValueChange = vi.fn()
+  await act(async () =>
+    root.render(
+      <ServerSelect
+        label="1번 서버"
+        value="siroco"
+        options={[
+          { id: 'cain', label: '카인' },
+          { id: 'diregie', label: '디레지에' },
+          { id: 'siroco', label: '시로코' }
+        ]}
+        onValueChange={onValueChange}
+      />
+    )
+  )
+  const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
+  expect(trigger.dataset.surface).toBe('card')
+  trigger.focus()
+  await act(async () =>
+    trigger.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+    )
+  )
+  const listbox = await vi.waitFor(() => document.querySelector('[role="listbox"]')!)
+  const options = [...listbox.querySelectorAll<HTMLElement>('[role="option"]')]
+  expect(options.map((option) => option.dataset.surface)).toEqual(['card', 'card', 'card'])
+  const current = options.find((option) => option.textContent === '시로코')!
+  await vi.waitFor(() => expect(document.activeElement).toBe(current))
+  await act(async () =>
+    current.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true })
+    )
+  )
+  const previous = options.find((option) => option.textContent === '디레지에')!
+  await vi.waitFor(() => expect(document.activeElement).toBe(previous))
+  await act(async () =>
+    previous.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    )
+  )
+  expect(onValueChange).toHaveBeenCalledExactlyOnceWith('diregie')
+  await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+})
+
 it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 유지한다', async () => {
   await act(async () =>
     root.render(<CharacterCard slot={1} state="success" character={previewCharacter} />)

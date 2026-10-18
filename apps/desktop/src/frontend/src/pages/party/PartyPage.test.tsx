@@ -8,6 +8,19 @@ import type { CardCharacter } from '../../types/cards'
 
 const CHARACTER_NAME_INPUT_SELECTOR = 'input[aria-label$="번 캐릭터 이름"]'
 
+// 명성, 장비 점수 칸에서 화면에 보이는 값. 올라가는 숫자는 보조 기술용 최종값과 따로 그린다.
+function statText(scope: Element, label: string): string | null {
+  const term = [...scope.querySelectorAll('dt')].find((item) => item.textContent === label)
+  const value = term?.nextElementSibling
+  const shown = value?.querySelector('[aria-hidden="true"]') ?? value
+
+  if (shown == null) {
+    return null
+  }
+
+  return shown.textContent
+}
+
 let root: Root
 let container: HTMLDivElement
 const character: CardCharacter = {
@@ -72,10 +85,20 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
     '선택된이름'
   )
   expect(slot.textContent).toContain('카인')
-  expect(slot.textContent).toContain('명성 0')
-  expect(slot.textContent).not.toContain('수정 중')
+  expect(statText(slot, '명성')).toBe('0')
+  expect(statText(slot, '장비 점수')).toBe('—')
+  expect(slot.getAttribute('data-state')).toBe('default')
+  expect(slot.querySelector('[aria-label="이름 수정 중"]')).toBeNull()
   expect(slot.querySelector('img')?.getAttribute('src')).toBe(character.image)
-  expect(slot.querySelector('[aria-label*="다음 면"]')).toBeNull()
+  // 제품은 기본 정보 면만 연결하므로 다른 면 탭은 누를 수 없다.
+  const faceTabs = [...slot.querySelectorAll('[role="tab"]')]
+  expect(faceTabs.map((tab) => tab.textContent)).toEqual(['캐릭터', '장비', '서약', '투자 현황'])
+  expect(faceTabs.map((tab) => tab.getAttribute('aria-disabled'))).toEqual([
+    'false',
+    'true',
+    'true',
+    'true'
+  ])
   const button = slot.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!
   expect(button.disabled).toBe(false)
   await act(async () => button.click())
@@ -101,11 +124,22 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
   expect(slots[1].querySelector<HTMLInputElement>(CHARACTER_NAME_INPUT_SELECTOR)?.value).toBe(
     '다른이름'
   )
-  expect(slots[1].textContent).toContain('명성 —')
+  expect(statText(slots[1], '명성')).toBe('—')
+  expect(slots[2].querySelector('[role="img"][aria-label="얼굴 인식 대기"]')).not.toBeNull()
+  expect(slots[3].querySelector('[role="img"][aria-label="자동 식별 준비 중"]')).not.toBeNull()
   expect(slots[2].textContent).toContain('얼굴 인식 대기')
   expect(slots[3].textContent).toContain('자동 식별 준비 중')
+  expect([...slots].map((slot) => slot.getAttribute('data-state'))).toEqual([
+    'default',
+    'default',
+    'waiting',
+    'waiting'
+  ])
   expect(slots[2].querySelector('img')).toBeNull()
   expect(slots[3].querySelector('img')).toBeNull()
+  // 인식 대기 카드는 상세 열기와 면 탭이 없다.
+  expect(slots[2].querySelector('[aria-label="3번 캐릭터 상세 열기"]')).toBeNull()
+  expect(slots[2].querySelector('[role="tablist"]')).toBeNull()
 })
 
 it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬롯만 요청한다', async () => {
