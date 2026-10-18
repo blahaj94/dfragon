@@ -1,26 +1,21 @@
-import { Text, VStack } from '@seed-design/react'
+import * as stylex from '@stylexjs/stylex'
 import type { PropsWithChildren } from 'react'
+import { styles } from './composition.style'
 
-// DFragon composition: layout-01의 content 간격을 같은 역할의 모든 예제 영역에 적용한다.
+// 예제와 단순 화면의 세로 묶음. 내용 사이 간격은 24px로 같다.
 export function ContentStack({ children }: PropsWithChildren) {
-  return <VStack gap="x6">{children}</VStack>
+  return <div {...stylex.props(styles.stack)}>{children}</div>
 }
 
 export function ExampleSection({ title, children }: PropsWithChildren<{ title: string }>) {
   return (
-    <VStack gap="x6" as="section">
-      <Text as="h2" textStyle="t5Medium">
-        {title}
-      </Text>
+    <section {...stylex.props(styles.stack)}>
+      <h2 {...stylex.props(styles.heading)}>{title}</h2>
       {children}
-    </VStack>
+    </section>
   )
 }
 
 export function SupportingText({ children }: PropsWithChildren) {
-  return (
-    <Text as="p" textStyle="t3Regular" color="fg.neutralSubtle">
-      {children}
-    </Text>
-  )
+  return <p {...stylex.props(styles.supporting)}>{children}</p>
 }

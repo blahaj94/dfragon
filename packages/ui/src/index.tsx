@@ -1,52 +1,76 @@
-import type { ComponentType } from 'react'
-import type { PublicProps } from './public-props'
-import { ActionButton as SeedActionButton } from './seed/action-button'
-import { ProgressCircle as SeedProgressCircle } from './seed/progress-circle'
-import { TextFieldInput as SeedTextFieldInput } from './seed/text-field'
-import {
-  DialogRoot as SeedDialogRoot,
-  DialogTrigger as SeedDialogTrigger,
-  DialogContent as SeedDialogContent,
-  DialogBody as SeedDialogBody,
-  DialogFooter as SeedDialogFooter,
-  DialogAction as SeedDialogAction
-} from './seed/dialog'
-
-// TextField를 제외한 공식 Snippet은 runtime wrapper 없이 제공한다. 디자인 컴포넌트와 TextField
-// 포커스 색은 SEED 변수만 쓰는 StyleX로 외형을 소유한다.
-export type ActionButtonProps = PublicProps<typeof SeedActionButton>
-export const ActionButton: ComponentType<ActionButtonProps> = SeedActionButton
-
-export type ProgressCircleProps = PublicProps<typeof SeedProgressCircle>
-export const ProgressCircle: ComponentType<ProgressCircleProps> = SeedProgressCircle
-
-export { TextField } from './text-field'
-export type { TextFieldProps } from './text-field'
-export type TextFieldInputProps = PublicProps<typeof SeedTextFieldInput>
-export const TextFieldInput: ComponentType<TextFieldInputProps> = SeedTextFieldInput
-
-export type DialogRootProps = PublicProps<typeof SeedDialogRoot>
-export const DialogRoot: ComponentType<DialogRootProps> = SeedDialogRoot
-export type DialogTriggerProps = PublicProps<typeof SeedDialogTrigger>
-export const DialogTrigger: ComponentType<DialogTriggerProps> = SeedDialogTrigger
-export type DialogContentProps = Omit<PublicProps<typeof SeedDialogContent>, 'layerIndex'>
-export const DialogContent: ComponentType<DialogContentProps> = SeedDialogContent
-export type DialogBodyProps = PublicProps<typeof SeedDialogBody>
-export const DialogBody: ComponentType<DialogBodyProps> = SeedDialogBody
-export type DialogFooterProps = PublicProps<typeof SeedDialogFooter>
-export const DialogFooter: ComponentType<DialogFooterProps> = SeedDialogFooter
-export type DialogActionProps = PublicProps<typeof SeedDialogAction>
-export const DialogAction: ComponentType<DialogActionProps> = SeedDialogAction
-
+// 동작 프리미티브는 Base UI이고 외형은 --df-* 토큰만 쓰는 StyleX로 그린다.
+export { Button } from './button'
+export type { ButtonProps, ButtonSize, ButtonVariant } from './button'
 export { IconButton } from './icon-button'
 export type { IconButtonProps } from './icon-button'
-export { StatusBadge } from './status-badge'
-export type { StatusBadgeProps, StatusBadgeTone } from './status-badge'
-export { Checkmark } from './checkmark'
-
-export { default as LayoutBlock } from './seed/layout-01'
-export type { LayoutBlockProps } from './seed/layout-01'
+export { TextField, TextFieldInput } from './text-field'
+export type { TextFieldInputProps, TextFieldProps, TextFieldValueChangeDetails } from './text-field'
+export { Select } from './select'
+export type {
+  SelectGroupLabelProps,
+  SelectItemProps,
+  SelectPopupProps,
+  SelectSeparatorProps,
+  SelectTriggerProps,
+  SelectValueProps
+} from './select'
+export { Menu } from './menu'
+export type {
+  MenuGroupLabelProps,
+  MenuItemProps,
+  MenuPopupProps,
+  MenuRadioItemProps,
+  MenuSeparatorProps
+} from './menu'
+export { Tabs } from './tabs'
+export type { TabsListProps, TabsTabProps } from './tabs'
+export { Switch } from './switch'
+export type { SwitchProps } from './switch'
+export { Checkbox } from './checkbox'
+export type { CheckboxProps } from './checkbox'
+export { Chip } from './chip'
+export type { ChipProps } from './chip'
+export { Tooltip } from './tooltip'
+export type { TooltipPopupProps } from './tooltip'
+export {
+  DialogAction,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogRoot,
+  DialogTrigger
+} from './dialog'
+export type {
+  DialogActionProps,
+  DialogBodyProps,
+  DialogContentProps,
+  DialogFooterProps,
+  DialogRootProps,
+  DialogTriggerProps
+} from './dialog'
+export { StatusChip } from './status-chip'
+export type { StatusChipProps, StatusChipTone } from './status-chip'
+export { LoadingIndicator } from './loading-indicator'
+export type { LoadingIndicatorProps } from './loading-indicator'
+export { ProgressCircle } from './progress-circle'
+export type { ProgressCircleProps } from './progress-circle'
+export { Kbd } from './kbd'
+export type { KbdProps } from './kbd'
+export { CornerBrackets } from './corner-brackets'
+export type { CornerBracketsProps, CornerBracketsTone } from './corner-brackets'
+export { CardFrame } from './card-frame'
+export type { CardFrameProps, CardFrameState } from './card-frame'
+export { NumericText } from './numeric-text'
+export type { NumericTextProps } from './numeric-text'
 export { ContentStack, ExampleSection, SupportingText } from './composition'
 export { shapes } from './shapes'
 export { Typo, typographyVariants } from './typo'
 export type { TypoProps, TypoTag, TypoVariant } from './typo'
+
+// SEED에서 옮기는 동안만 두는 이름. Desktop DFragon 디자인 적용의 마지막 PR에서 지운다.
+export { ActionButton } from './action-button'
+export type { ActionButtonProps } from './action-button'
+export { StatusBadge } from './status-chip'
+export type { StatusBadgeProps, StatusBadgeTone } from './status-chip'
+// SEED Checkbox.Root 안에서만 쓰는 상자 모양. Desktop SEED 제거 PR에서 지운다.
+export { Checkmark } from './checkmark'
