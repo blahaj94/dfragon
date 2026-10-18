@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 // 목록 면, 항목 hover와 현재 항목 표시는 @dfragon/ui Menu가 그린다. 여기서는 trigger와
 // 항목 안 배치, 공용 Menu가 정하지 않는 속성(최소 높이, 세로 여백, 최대 폭)만 둔다.
@@ -11,7 +11,7 @@ export const styles = stylex.create({
     width: '100%',
     height: 40,
     paddingInline: 12,
-    borderRadius: 8,
+    borderRadius: radius.control,
     borderWidth: 1,
     borderStyle: 'solid',
     boxSizing: 'border-box',
@@ -56,7 +56,7 @@ export const styles = stylex.create({
     flexShrink: 0,
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.control,
     backgroundColor: colors.bgControl,
     color: colors.fgMuted
   },

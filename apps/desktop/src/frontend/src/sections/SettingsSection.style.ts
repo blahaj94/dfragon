@@ -1,17 +1,11 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   dialog: {
     // OS 창 버튼 띠 아래에서 가운데에 놓는다. 창 버튼은 웹 내용보다 먼저 클릭을 받는다.
     marginTop: 'env(titlebar-area-height, 0px)',
     maxHeight: 'calc(100dvh - env(titlebar-area-height, 0px) - 24px)',
-    backgroundColor: colors.bgSurface,
-    color: colors.fgDefault,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
     overflow: 'hidden'
   },
   body: {
@@ -40,13 +34,12 @@ export const styles = stylex.create({
     paddingBottom: 4,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
-  // NavItem: the shared medium button keeps the 40px height; only the inline padding narrows to 12.
+  // 메뉴 항목은 공용 ghost Button md(높이 40, 반지름 2)이고 좌우 여백만 12로 줄인다.
   menu: {
     display: 'flex',
     width: '100%',
     justifyContent: 'flex-start',
     paddingInline: 12,
-    borderRadius: 8,
     color: colors.fgSubtle,
     textAlign: 'left'
   },
@@ -82,7 +75,7 @@ export const styles = stylex.create({
     justifyContent: 'space-between',
     gap: 12,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgInset,
     cursor: 'pointer'
   },

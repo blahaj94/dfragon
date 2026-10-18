@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   heading: { paddingBlock: 12, overflowWrap: 'anywhere' },
@@ -13,7 +13,6 @@ export const styles = stylex.create({
   // The design table counts its header row, so its bg.stripe rows are the first, third and
   // following odd entries of this header-less list.
   item: {
-    borderRadius: 4,
     backgroundColor: { default: null, ':nth-child(odd)': colors.bgStripe }
   },
   // Design two-line row is 48: a 16/24 name over a 12/18 line with 3px above and below.
@@ -29,7 +28,7 @@ export const styles = stylex.create({
     paddingBlock: 3,
     paddingInline: 12,
     gap: 12,
-    borderRadius: 4,
+    borderRadius: radius.panel,
     color: colors.fgDefault,
     whiteSpace: 'normal'
   },
@@ -56,7 +55,12 @@ export const styles = stylex.create({
     height: 24,
     color: colors.fgSubtle
   },
-  document: { backgroundColor: colors.bgInset, borderRadius: 12, padding: 16, marginTop: 16 },
+  document: {
+    backgroundColor: colors.bgInset,
+    borderRadius: radius.panel,
+    padding: 16,
+    marginTop: 16
+  },
   documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
   original: {
     fontFamily: 'inherit',

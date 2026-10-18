@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 },
@@ -11,15 +11,20 @@ export const styles = stylex.create({
     padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     flexWrap: 'wrap'
   },
   connectionText: { display: 'flex', flexDirection: 'column', gap: 8 },
-  connectedDot: { color: colors.fgSuccess },
+  // 연결 상태 점은 디자인 상태 점처럼 사각형이다.
+  connectedDot: {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    marginInlineEnd: 8,
+    verticalAlign: 'middle',
+    backgroundColor: colors.fgSuccess
+  },
   heading: { display: 'flex', flexDirection: 'column', gap: 12 },
   muted: { color: colors.fgMuted },
   saveGuide: {
@@ -29,29 +34,10 @@ export const styles = stylex.create({
     padding: 16,
     minHeight: 88,
     boxSizing: 'border-box',
-    borderRadius: 12,
-    backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault
+    borderRadius: radius.panel,
+    backgroundColor: colors.bgSurface
   },
-  keycap: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    width: 112,
-    height: 40,
-    boxSizing: 'border-box',
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    backgroundColor: colors.bgControl,
-    borderRadius: 4,
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 700
-  },
+  keycap: { display: 'flex', flexShrink: 0 },
   guideText: { display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 },
   previews: {
     display: 'grid',
@@ -70,10 +56,7 @@ export const styles = stylex.create({
     minWidth: 0,
     minHeight: { default: 372, '@media (max-width: 760px)': 332 },
     backgroundColor: colors.bgSurface,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12
+    borderRadius: radius.panel
   },
   windowArea: {
     display: 'flex',
@@ -132,10 +115,7 @@ export const styles = stylex.create({
     height: 84,
     boxSizing: 'border-box',
     padding: '10px 16px',
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     minWidth: 0
   },
@@ -157,7 +137,7 @@ export const styles = stylex.create({
     justifyContent: 'center',
     height: 34,
     backgroundColor: colors.bgWell,
-    borderRadius: 4,
+    borderRadius: radius.panel,
     overflow: 'hidden'
   },
   cropImage: {
@@ -181,7 +161,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     gap: 12,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgInset,
     color: colors.fgDefault
   }

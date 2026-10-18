@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   notice: {
@@ -10,10 +10,11 @@ export const styles = stylex.create({
     alignItems: 'flex-start',
     gap: 12,
     padding: 16,
-    borderWidth: 1,
+    // 테두리 없이 면으로 구분하고 왼쪽 띠 색으로 상태를 보인다.
+    borderWidth: 0,
     borderLeftWidth: 5,
     borderStyle: 'solid',
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault,
     minWidth: 0

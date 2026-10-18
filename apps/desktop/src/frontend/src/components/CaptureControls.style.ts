@@ -7,13 +7,7 @@ export const styles = stylex.create({
   keys: { display: 'inline-flex', gap: 4 },
   dialog: {
     // OS 창 버튼 띠 아래에서 가운데에 놓는다. 창 버튼은 웹 내용보다 먼저 클릭을 받는다.
-    marginTop: 'env(titlebar-area-height, 0px)',
-    backgroundColor: colors.bgSurface,
-    color: colors.fgDefault,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12
+    marginTop: 'env(titlebar-area-height, 0px)'
   },
   heading: {
     display: 'flex',

@@ -1,6 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { Button, Checkbox, StatusChip, Typo } from '@dfragon/ui'
+import { Button, Checkbox, Kbd, StatusChip, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
@@ -72,7 +72,8 @@ export function DeveloperParticipantCollectionSection({
           <Typo.h6 as="p">
             {connected ? (
               <>
-                <span {...stylex.props(styles.connectedDot)}>●</span> 던전앤파이터 연결됨
+                <span aria-hidden="true" {...stylex.props(styles.connectedDot)} />
+                던전앤파이터 연결됨
               </>
             ) : (
               '던전앤파이터 연결 확인 중'
@@ -95,7 +96,9 @@ export function DeveloperParticipantCollectionSection({
       </div>
 
       <div {...stylex.props(styles.saveGuide)}>
-        <kbd {...stylex.props(styles.keycap)}>Print Screen</kbd>
+        <span {...stylex.props(styles.keycap)}>
+          <Kbd>Print Screen</Kbd>
+        </span>
         <div {...stylex.props(styles.guideText)}>
           <Typo.h6 as="p">현재 저장 대상 {count}개</Typo.h6>
           <Typo.txtS {...stylex.props(styles.muted)}>
