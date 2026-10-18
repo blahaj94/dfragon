@@ -58,10 +58,54 @@ function trigger(): HTMLButtonElement {
   return document.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]')!
 }
 
+function chip(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('button[aria-label^="화면 캡처"]')!
+}
+
 async function openDialog(): Promise<void> {
   await render()
-  await click(document.querySelector<HTMLButtonElement>('button[aria-label="화면 캡처"]')!)
+  await click(chip())
 }
+
+it.each([
+  ['complete', false, false, '인식 완료', 'neutral'],
+  ['unavailable', false, false, '확인 필요', 'waiting'],
+  ['idle', false, true, '조회 실패', 'danger'],
+  ['idle', false, false, '창 감지됨', 'success']
+] as const)(
+  '게임 연결 상태 칩이 %s 단계(목록 조회 중 %s, 실패 %s)에서 %s를 tone %s로 보이는 대화상자 버튼이다',
+  async (phase, loading, failed, label, tone) => {
+    props.phase = phase
+    props.loading = loading
+    props.failed = failed
+    await render()
+    const button = chip()
+    expect(button.tagName).toBe('BUTTON')
+    expect(button.getAttribute('aria-label')).toBe(`화면 캡처, ${label}`)
+    expect(button.getAttribute('aria-haspopup')).toBe('dialog')
+    const status = button.querySelector(`[data-tone="${tone}"]`)!
+    expect(status.textContent).toBe(label)
+    // 상단 바의 칩은 상태가 바뀔 때마다 읽지 않는다. 알림은 대화상자 안의 칩만 한다.
+    expect(document.querySelector('[role="status"], [aria-live]')).toBeNull()
+    expect(document.querySelector('kbd')).toBeNull()
+  }
+)
+
+it('게임 연결 상태 칩으로 연 대화상자를 닫으면 포커스가 칩으로 돌아온다', async () => {
+  await render()
+  const button = chip()
+  button.focus()
+  await click(button)
+  const dialog = document.querySelector<HTMLElement>('[role="dialog"]')!
+  expect(dialog).not.toBeNull()
+  expect(props.onRefresh).toHaveBeenCalledOnce()
+  await act(async () => {
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  })
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  await vi.waitFor(() => expect(document.activeElement).toBe(chip()))
+  expect(props.onStop).not.toHaveBeenCalled()
+})
 
 it('자동 감지한 창은 선택 전에 표시하고 사용자 클릭 전에는 캡처를 시작하지 않는다', async () => {
   props.phase = 'idle'
