@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: application-browser-ui
-last-reviewed: 2026-10-18
+last-reviewed: 2026-10-19
 ---
 
 # Design System Contract
