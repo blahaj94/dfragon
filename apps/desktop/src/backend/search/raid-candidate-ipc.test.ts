@@ -89,11 +89,16 @@ it('공대 수명의 OCR 이름은 공대 후보 선택 함수가 고른 캐릭�
     return { candidate: picked, selectionMethod: 'highest-fame' }
   })
   const fixture = await createSearchFixture(false, 'raid', policy)
+  // 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다.
+  await fixture.invoke('selectCaptureSource', 'window:search-fixture')
+  const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
+    snapshot: { captureId: string }
+  }
   fixture.fetchSearch
     .mockResolvedValueOnce(jsonResponse({ body: { rows: [highest, chosen] } }))
     .mockResolvedValueOnce(jsonResponse({ body: detailsOf(chosen) }))
 
-  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 4))
+  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(begun.snapshot.captureId, 4))
 
   await vi.waitFor(async () => expect((await fixture.read()).slots[4].state).toBe('success'))
   expect((await fixture.read()).slots[4].selected).toMatchObject({

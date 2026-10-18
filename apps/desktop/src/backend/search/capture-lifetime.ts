@@ -39,6 +39,11 @@ type Options = {
   runtime?: SearchRuntime
   /** 이 수명이 소유하는 슬롯 수. 기본은 파티 네 자리다. */
   slotCount?: SearchSlotCount
+  /**
+   * OCR 관측과 그 요청에만 더 요구하는 유효성. 공대 카드 수명은 회차를 시작한 게임 창 선택이 그대로인지 본다.
+   * 서버를 고른 조회는 이 조건과 무관하다. 없으면 `isCurrent`만 본다.
+   */
+  isCurrentOcr?: (binding: CaptureBinding) => boolean
 }
 
 function idleSlot({
@@ -98,6 +103,8 @@ export type CaptureSearchLifetime = {
   begin: (binding: Omit<CaptureBinding, 'captureId'>) => SearchCommandResult
   end: (captureId: string) => SearchCommandResult
   invalidate: () => void
+  /** 진행 중인 OCR 기원 요청을 취소하고 그 자리를 비운다. 끝난 자리와 서버를 고른 조회는 유지한다. */
+  cancelOcrRequests: () => void
   observe: (input: SearchObservation) => SearchCommandResult
   observeOcr: (input: OcrSearchObservation) => SearchCommandResult
   lookup: (input: ManualCharacterLookup) => SearchCommandResult
@@ -241,8 +248,39 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     return result()
   }
 
+  // OCR 기원 관측과 요청은 수명의 유효성에 더해 OCR 전용 조건(공대는 회차의 게임 창 선택)도 만족해야 한다.
+  function isCurrentOcrBinding(currentBinding: CaptureBinding): boolean {
+    const isCurrentOcr = options.isCurrentOcr
+    if (isCurrentOcr === undefined) {
+      return true
+    }
+
+    return isCurrentOcr(currentBinding)
+  }
+
+  function cancelOcrRequests(): void {
+    let changed = false
+    for (const slot of slotIndexes) {
+      const isOcrRequest = ocrInputs[slot] !== null
+      const isPending = slots[slot].state === 'pending'
+      if (isOcrRequest && isPending) {
+        cancelSlot(slot)
+        slots[slot] = idleSlot({ slot, observationRevision: slots[slot].observationRevision })
+        changed = true
+      }
+    }
+
+    if (changed) {
+      emit()
+    }
+  }
+
   function observeOcr(input: OcrSearchObservation): SearchCommandResult {
-    if (binding?.captureId !== input.captureId || !options.isCurrent(binding)) {
+    if (
+      binding?.captureId !== input.captureId ||
+      !options.isCurrent(binding) ||
+      !isCurrentOcrBinding(binding)
+    ) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
     const previous = slots[input.slot]
@@ -414,6 +452,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const startedAt = runtime.clock.read().monotonicMs
     const ocrInput = 'candidateNicknames' in input ? cloneOcrInput(input) : null
     const manualServerId = 'serverId' in input ? input.serverId : undefined
+    // 이전 창으로 시작한 OCR 입력은 자리를 지우기 전에 거절해 OCR 기원을 잃은 채 다시 시도되지 않게 한다.
+    if (ocrInput !== null && binding !== null && !isCurrentOcrBinding(binding)) {
+      return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
+    }
     cancelSlot(input.slot)
     const currentBinding = binding
     const hasBinding = currentBinding != null
@@ -428,6 +470,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     if (!hasPermission) {
       return result(SEARCH_COMMAND_ERRORS.STALE_SEARCH)
     }
+
     const requestId = randomUUID()
     const isCharacterLookup = ocrInput !== null || manualServerId !== undefined
     const isValidInput = isCharacterLookup
@@ -601,6 +644,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     begin,
     end,
     invalidate,
+    cancelOcrRequests,
     observe,
     observeOcr,
     lookup,
