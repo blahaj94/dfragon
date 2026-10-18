@@ -1,5 +1,10 @@
 import type { AuthSnapshot, AuthCommandResult, AuthProvider } from './auth'
-import type { CaptureSource, StableNicknameDetection, WindowFrameResult } from './capture'
+import type {
+  CaptureSource,
+  RaidFrameResult,
+  StableNicknameDetection,
+  WindowFrameResult
+} from './capture'
 import type {
   SearchControl,
   SearchCommandResult,
@@ -39,6 +44,10 @@ interface AsyncIPCFunctions
   notifyManualNickname: (observation: SearchObservation) => Promise<SearchCommandResult>
   controlManualSearch: (control: SearchControl) => Promise<SearchCommandResult>
   controlRaidSearch: (control: SearchControl) => Promise<SearchCommandResult>
+  readRaidCaptureFrame: (captureId: string) => Promise<RaidFrameResult>
+  notifyRaidOcrCandidatesDetected: (
+    observation: OcrSearchObservation
+  ) => Promise<SearchCommandResult>
   controlCharacterSearch: (control: SearchControl) => Promise<SearchCommandResult>
 
   // Used inside tests, so we can be a bit lenient with the type checking here

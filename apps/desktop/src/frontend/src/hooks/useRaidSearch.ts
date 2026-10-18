@@ -1,34 +1,74 @@
 import { useCallback, useRef, useState } from 'react'
 import { SEARCH_SLOT_COUNTS, type SearchSlot } from '../../../preload/common/types/search'
 import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
+import type { OcrCaptureObservation } from '../lib/capture-search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 
 type RaidSearch = {
   slots: readonly SearchSlot[]
   connectionFailed: boolean
   detailNotice: string
+  /** 이번 회차가 시작된 뒤 사용자가 서버와 이름으로 조회한 자리. 회차의 OCR 결과가 덮지 않는다. */
+  manualSlots: readonly boolean[]
   lookupSlot: (slot: number, nickname: string, serverId: string) => void
   openDetails: (slot: number) => void
+  /** 공대 캡처 회차를 위해 공대 수명을 새로 시작한다. 12자리와 직접 조회 표시를 비운다. */
+  beginRound: (signal: AbortSignal) => Promise<string | null>
+  observeOcr: (input: OcrCaptureObservation) => void
 }
 
+const emptyManualSlots = (): boolean[] =>
+  Array.from({ length: SEARCH_SLOT_COUNTS.raid }, () => false)
+
 /**
- * 공대 12자리의 서버 지정 조회와 상세 창 열기를 소유한다. 파티 카드와 다른 main 검색 수명을 써서
- * 파티 네 자리와 공대 12자리가 서로의 결과를 덮어쓰지 않는다.
+ * 공대 12자리의 서버 지정 조회, 공대 캡처의 이름 식별과 상세 창 열기를 소유한다. 파티 카드와 다른 main
+ * 검색 수명을 써서 파티 네 자리와 공대 12자리가 서로의 결과를 덮어쓰지 않는다.
  */
 export function useRaidSearch(): RaidSearch {
-  const { view, startingSlots, bridge, lookup } = useManualCharacterLookup(
+  const {
+    view,
+    startingSlots,
+    bridge,
+    lookup,
+    beginRound: beginLookupRound,
+    observeOcr: observeLookupOcr
+  } = useManualCharacterLookup(
     window.raidSearch,
-    SEARCH_SLOT_COUNTS.raid
+    SEARCH_SLOT_COUNTS.raid,
+    window.raidSearch?.notifyOcrCandidatesDetected
   )
   const detailPendingRef = useRef(new Set<string>())
   const [detailFailure, setDetailFailure] = useState<CharacterSelectionReference | null>(null)
+  const manualSlotsRef = useRef(new Set<number>())
+  const [manualSlots, setManualSlots] = useState<readonly boolean[]>(emptyManualSlots)
 
   const lookupSlot = useCallback(
     (slot: number, nickname: string, serverId: string): void => {
       setDetailFailure(null)
+      manualSlotsRef.current.add(slot)
+      setManualSlots((slots) => slots.map((manual, index) => manual || index === slot))
       lookup(slot, nickname, serverId)
     },
     [lookup]
+  )
+  const beginRound = useCallback(
+    (signal: AbortSignal): Promise<string | null> => {
+      setDetailFailure(null)
+      manualSlotsRef.current.clear()
+      setManualSlots(emptyManualSlots())
+
+      return beginLookupRound(signal)
+    },
+    [beginLookupRound]
+  )
+  // 회차 진행 중 사용자가 직접 조회한 자리는 늦게 끝난 OCR 결과로 바꾸지 않는다.
+  const observeOcr = useCallback(
+    (input: OcrCaptureObservation): void => {
+      if (!manualSlotsRef.current.has(input.slot)) {
+        observeLookupOcr(input)
+      }
+    },
+    [observeLookupOcr]
   )
   const openDetails = useCallback(
     (slot: number): void => {
@@ -85,7 +125,10 @@ export function useRaidSearch(): RaidSearch {
     slots,
     connectionFailed: view.connectionFailed,
     detailNotice,
+    manualSlots,
     lookupSlot,
-    openDetails
+    openDetails,
+    beginRound,
+    observeOcr
   }
 }

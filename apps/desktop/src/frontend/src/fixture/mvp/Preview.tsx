@@ -145,6 +145,12 @@ export function Preview(): React.JSX.Element {
               status=""
               slots={raidPreviewCharacters.map((member) => (member == null ? 'idle' : 'success'))}
               characters={raidPreviewCharacters}
+              lastCapturedAt={captureState === 'complete' ? completedAt : null}
+              canCapture={canCapture}
+              onCapture={() => {
+                setCaptureState('complete')
+                setCompletedAt(Date.now())
+              }}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
               onSlotDetail={openDetail}

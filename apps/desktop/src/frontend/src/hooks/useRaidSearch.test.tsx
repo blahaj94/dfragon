@@ -19,9 +19,12 @@ import {
 const moduleMocks = vi.hoisted(() => ({ create: vi.fn<typeof createCaptureSearch>() }))
 vi.mock('../lib/capture-search', () => ({ createCaptureSearch: moduleMocks.create }))
 
-const raidApi: SearchApi = {
+const raidApi: SearchApi & {
+  notifyOcrCandidatesDetected: AsyncIPCFunctions['notifyRaidOcrCandidatesDetected']
+} = {
   controlCharacterSearch: vi.fn<SearchApi['controlCharacterSearch']>(),
-  onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>()
+  onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(),
+  notifyOcrCandidatesDetected: vi.fn<AsyncIPCFunctions['notifyRaidOcrCandidatesDetected']>()
 }
 const open = vi.fn<AsyncIPCFunctions['openCharacterDetails']>()
 const NOTICE = '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.'
@@ -150,4 +153,79 @@ it('창을 여는 동안 그 자리를 다시 조회했다면 늦은 실패를 �
   reference = { ...reference, requestId: '00000000-0000-4000-8000-000000000088' }
   await act(async () => pending.resolve({ ok: false }))
   expect(value.detailNotice).toBe('')
+})
+
+function ocr(slot: number, nickname = '공대원') {
+  return { slot, nickname, candidateNicknames: [nickname], portrait: null }
+}
+
+it('공대 캡처의 이름 관측은 공대 수명의 OCR 채널로 연결하고 그 자리에 그대로 알린다', async () => {
+  expect(moduleMocks.create.mock.lastCall![0]).toMatchObject({
+    api: raidApi,
+    notifyOcr: raidApi.notifyOcrCandidatesDetected,
+    slotCount: 12
+  })
+  await act(async () => value.observeOcr(ocr(11)))
+  expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(11))
+})
+
+it('회차는 수명을 새로 시작하고 그 뒤의 서버 지정 조회는 회차의 수명을 기다려 쓴다', async () => {
+  const controller = new AbortController()
+  let started: Promise<string | null> | undefined
+  await act(async () => {
+    started = value.beginRound(controller.signal)
+  })
+  expect(bridge.begin).toHaveBeenCalledOnce()
+
+  await act(async () => value.lookupSlot(2, '직접조회', 'cain'))
+  expect(bridge.begin).toHaveBeenCalledOnce()
+  expect(value.slots[2].state).toBe('pending')
+  await act(async () => begin.resolve(CAPTURE_ID))
+  await expect(started).resolves.toBe(CAPTURE_ID)
+  expect(bridge.lookup).toHaveBeenCalledExactlyOnceWith({
+    slot: 2,
+    nickname: '직접조회',
+    serverId: 'cain'
+  })
+})
+
+it('회차 중 직접 조회한 자리는 늦게 끝난 OCR 이름으로 덮지 않고 다음 회차에서 다시 받는다', async () => {
+  await act(async () => {
+    void value.beginRound(new AbortController().signal)
+  })
+  await act(async () => begin.resolve(CAPTURE_ID))
+  await act(async () => value.lookupSlot(5, '직접조회', 'cain'))
+  expect(value.manualSlots[5]).toBe(true)
+
+  await act(async () => {
+    value.observeOcr(ocr(5))
+    value.observeOcr(ocr(6))
+  })
+  expect(bridge.observe).toHaveBeenCalledExactlyOnceWith(ocr(6))
+
+  await act(async () => {
+    void value.beginRound(new AbortController().signal)
+  })
+  expect(value.manualSlots.every((manual) => !manual)).toBe(true)
+  await act(async () => value.observeOcr(ocr(5)))
+  expect(bridge.observe).toHaveBeenLastCalledWith(ocr(5))
+})
+
+it('수명 시작 중 회차가 취소되면 기다리던 조회의 진행 표시를 거두고 다음 조회가 수명을 다시 시작한다', async () => {
+  const controller = new AbortController()
+  await act(async () => {
+    void value.beginRound(controller.signal)
+  })
+  await act(async () => value.lookupSlot(3, '직접조회', 'cain'))
+  expect(value.slots[3].state).toBe('pending')
+
+  await act(async () => controller.abort())
+  expect(value.slots[3].state).toBe('idle')
+  await act(async () => begin.resolve(null))
+  expect(value.connectionFailed).toBe(false)
+  expect(bridge.lookup).not.toHaveBeenCalled()
+
+  begin = Promise.withResolvers<string | null>()
+  await act(async () => value.lookupSlot(3, '직접조회', 'cain'))
+  expect(bridge.begin).toHaveBeenCalledTimes(2)
 })

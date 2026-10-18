@@ -14,8 +14,10 @@ import type {
 import {
   createCharacterIdentifier,
   createManualCharacterLookup,
+  createRaidCharacterIdentifier,
   type IdentificationServices
 } from './identify'
+import { NO_RAID_OBSERVED_VALUES } from './raid-candidate'
 import { SearchHttpFailure, type SearchHttp } from './http'
 import type {
   CharacterCandidatesHttp,
@@ -42,6 +44,11 @@ export type SearchRuntime = {
   http: SearchHttp
   clock: AuthClock
   identification?: IdentificationAdapters
+  /**
+   * OCR 이름의 식별 방식. 파티 캡처는 얼굴 비교(`portrait`, 기본), 공대 캡처는 공대 후보 선택 함수(`raid`)를
+   * 쓴다. 공대 검색 수명만 `raid`로 둔다.
+   */
+  ocrIdentification?: 'portrait' | 'raid'
 }
 export type SearchOutcome =
   | {
@@ -128,8 +135,14 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
 
         return lookup({ nickname: input.nickname, serverId: input.manualServerId })
       }
-      const identify = createCharacterIdentifier(services)
       const nicknames = input.ocrInput?.candidateNicknames ?? []
+      if (input.runtime.ocrIdentification === 'raid') {
+        // 공대 창의 명성, 장비 점수는 아직 읽지 않아 빈 관측값을 넘긴다.
+        const identifyRaid = createRaidCharacterIdentifier(services)
+
+        return identifyRaid({ nicknames, observed: NO_RAID_OBSERVED_VALUES })
+      }
+      const identify = createCharacterIdentifier(services)
       const portrait = input.ocrInput?.portrait ?? null
 
       return identify({ nicknames, portrait })

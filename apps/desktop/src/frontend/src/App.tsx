@@ -10,7 +10,7 @@ import { PartyHeader } from './components/PartyHeader'
 import { usePartyCollapse } from './hooks/usePartyCollapse'
 import { PartyPage } from './pages/party/PartyPage'
 import { RaidPage } from './pages/raid/RaidPage'
-import { useRaidSearch } from './hooks/useRaidSearch'
+import { useRaidCapture } from './hooks/useRaidCapture'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
@@ -19,26 +19,43 @@ import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { searchSlotNotice, toCharacterCard } from './lib/character-card'
+import { getRaidScreenCapture } from './lib/capture-presentation'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
   useWindowChromeTheme(light)
   const developerMode = useDeveloperMode()
-  const capture = usePartyCapture({ identifyCharacters: true })
-  const raid = useRaidSearch()
+  const [searchMode, setSearchMode] = useState<SearchMode>('party')
+  // Alt+R은 지금 보이는 화면의 회차만 시작한다. 게임 창 선택과 중지는 파티 캡처가 소유한다.
+  const capture = usePartyCapture({
+    identifyCharacters: true,
+    receivesShortcut: searchMode === 'party'
+  })
+  const raidCapture = useRaidCapture({
+    sourceId: capture.selectedSourceId,
+    sourceReady: capture.sourceReady,
+    receivesShortcut: searchMode === 'raid'
+  })
+  const raid = raidCapture.search
   const updateNotice = useUpdateNotice()
   // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
   const authApi = window.auth
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
-  const [searchMode, setSearchMode] = useState<SearchMode>('party')
   const party = usePartyCollapse()
   const partyCardsId = useId()
   const raidCardsId = useId()
+  const raidScreenCapture = getRaidScreenCapture({
+    party: { phase: capture.phase, status: capture.status, sourceReady: capture.sourceReady },
+    raid: { phase: raidCapture.phase, status: raidCapture.status }
+  })
+  // 상태 칩과 캡처 모달은 보이는 화면의 회차를 알린다.
+  const screenCapture =
+    searchMode === 'raid' ? raidScreenCapture : { phase: capture.phase, status: capture.status }
   let captureNotice = ''
   if (capture.search.connectionFailed) {
     captureNotice = '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
   } else if (capture.selectedSourceId) {
-    captureNotice = capture.status
+    captureNotice = screenCapture.status
   }
   const partyStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
   const developerModeEnabled = developerMode.status === 'ready' && developerMode.enabled
@@ -54,13 +71,17 @@ function App(): React.JSX.Element {
   const slotNotices = capture.search.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
   )
-  // 공대 캡처는 아직 연결하지 않아 공대 자리는 서버와 이름 조회로만 채운다.
   const raidSlotNotices = raid.slots.map((slot) =>
-    searchSlotNotice(slot, '서버와 이름을 다시 조회해 주세요.')
+    searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
   )
-  const raidStatus = raid.connectionFailed
-    ? '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
-    : raid.detailNotice
+  let raidStatus = '캡처 대기'
+  if (raid.connectionFailed) {
+    raidStatus = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+  } else if (raid.detailNotice) {
+    raidStatus = raid.detailNotice
+  } else if (capture.selectedSourceId) {
+    raidStatus = raidScreenCapture.status
+  }
 
   function openDeveloperWorkbench(): void {
     if (!developerModeEnabled) {
@@ -86,7 +107,7 @@ function App(): React.JSX.Element {
             selectedSourceId={capture.selectedSourceId}
             loading={capture.sourcesLoading}
             failed={capture.sourcesFailed}
-            phase={capture.phase}
+            phase={screenCapture.phase}
             ready={capture.search.ready}
             status={captureNotice}
             onSelect={capture.selectSource}
@@ -146,10 +167,16 @@ function App(): React.JSX.Element {
             id={raidCardsId}
             hidden={searchMode !== 'raid'}
             status={raidStatus}
+            resetKey={String(raidCapture.round)}
             slots={raid.slots.map((slot) => slot.state)}
             characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}
             basicOnly
             slotNotices={raidSlotNotices}
+            nicknames={raidCapture.nicknames}
+            loadingSlots={raid.manualSlots.map((manual) => !manual && raidCapture.recognizing)}
+            lastCapturedAt={raidCapture.lastCompletedAt}
+            canCapture={raidCapture.canStartCapture}
+            onCapture={raidCapture.startRound}
             collapsed={party.collapsed}
             onToggleCollapsed={party.toggleCollapsed}
             onLookup={raid.lookupSlot}

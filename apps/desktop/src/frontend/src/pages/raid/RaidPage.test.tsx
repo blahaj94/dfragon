@@ -65,6 +65,9 @@ async function render(
         status=""
         collapsed={false}
         onToggleCollapsed={vi.fn()}
+        lastCapturedAt={null}
+        canCapture
+        onCapture={vi.fn()}
         basicOnly
         {...props}
         slots={slots}
