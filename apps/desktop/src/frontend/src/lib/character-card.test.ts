@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest'
 import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
+import { dealerCard } from '../testing/fixtures/character-cards'
 import {
   canRetryCharacterSlot,
   characterSlotNotice,
@@ -25,7 +26,7 @@ const summary: SelectedCharacterSummary = {
   card: null
 }
 
-it('선택한 기본 정보와 명성 0을 보존하고 장비, 평가와 공대 스탯을 만들어내지 않는다', () => {
+it('선택한 기본 정보와 명성 0을 보존하고 main이 넘기지 않은 카드 값과 장비를 만들어내지 않는다', () => {
   expect(toCharacterCard(summary)).toEqual({
     characterId: 'fixture-character',
     name: '실제이름',
@@ -35,9 +36,7 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비, 평가와 공대
     level: 115,
     fame: 0,
     guild: null,
-    equipmentScore: null,
-    serverRank: null,
-    stats: null,
+    card: null,
     image: summary.imageUrl,
     equipment: [],
     oath: []
@@ -47,9 +46,16 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비, 평가와 공대
     level: null,
     job: '-'
   })
+  // 카드 값은 main이 검증한 그대로 옮기고, 이전 요약의 점수와 순위 자리는 쓰지 않는다.
   expect(
-    toCharacterCard({ ...summary, guildName: '길드', equipmentScore: 414806, serverRank: 37 })
-  ).toMatchObject({ guild: '길드', equipmentScore: 414806, serverRank: 37 })
+    toCharacterCard({
+      ...summary,
+      guildName: '길드',
+      equipmentScore: 414806,
+      serverRank: 37,
+      card: dealerCard
+    })
+  ).toMatchObject({ guild: '길드', card: dealerCard })
   expect(toCharacterCard(undefined)).toBeNull()
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeNull()
 })

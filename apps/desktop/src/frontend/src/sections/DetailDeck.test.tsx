@@ -27,6 +27,7 @@ const character: CardCharacter = {
   job: '상세직업',
   serverId: 'cain',
   fame: 125850,
+  card: null,
   equipment: [],
   oath: []
 }

@@ -31,6 +31,7 @@ const character: CardCharacter = {
   job: '직업',
   level: 115,
   fame: 0,
+  card: null,
   equipment: [],
   oath: [],
   image: 'https://img-api.neople.co.kr/df/servers/cain/characters/matched-id?zoom=1'
@@ -65,8 +66,7 @@ async function render(props: ComponentProps<typeof PartyPage>): Promise<void> {
 it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버를 표시한다', async () => {
   await render({
     slots: ['pending', 'idle', 'idle', 'idle'],
-    nicknames: ['OCR첫후보'],
-    basicOnly: true
+    nicknames: ['OCR첫후보']
   })
   expect(container.querySelector<HTMLInputElement>(CHARACTER_NAME_INPUT_SELECTOR)?.value).toBe(
     'OCR첫후보'
@@ -76,7 +76,6 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
     slots: ['success', 'idle', 'idle', 'idle'],
     characters: [character],
     nicknames: ['OCR첫후보'],
-    basicOnly: true,
     onDetail: detail
   })
 
@@ -90,14 +89,13 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
   expect(slot.getAttribute('data-state')).toBe('default')
   expect(slot.querySelector('[aria-label="이름 수정 중"]')).toBeNull()
   expect(slot.querySelector('img')?.getAttribute('src')).toBe(character.image)
-  // 제품은 기본 정보 면만 연결하므로 다른 면 탭은 누를 수 없다.
+  // 조회를 마친 제품 카드는 카드 값이 아직 없어도 세 면을 모두 고를 수 있다.
   const faceTabs = [...slot.querySelectorAll('[role="tab"]')]
-  expect(faceTabs.map((tab) => tab.textContent)).toEqual(['캐릭터', '장비', '서약', '투자 현황'])
+  expect(faceTabs.map((tab) => tab.textContent)).toEqual(['캐릭터', '장비', '기타'])
   expect(faceTabs.map((tab) => tab.getAttribute('aria-disabled'))).toEqual([
     'false',
-    'true',
-    'true',
-    'true'
+    'false',
+    'false'
   ])
   const button = slot.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!
   expect(button.disabled).toBe(false)
@@ -114,8 +112,7 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
       null,
       null
     ],
-    nicknames: [null, null, '얼굴대기', '기준대기'],
-    basicOnly: true
+    nicknames: [null, null, '얼굴대기', '기준대기']
   })
   const slots = container.querySelectorAll('article')
   expect(slots[0].querySelector<HTMLInputElement>(CHARACTER_NAME_INPUT_SELECTOR)?.value).toBe(
@@ -146,7 +143,6 @@ it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬�
   const retry = vi.fn()
   const props: ComponentProps<typeof PartyPage> = {
     slots: ['failure', 'idle', 'idle', 'idle'],
-    basicOnly: true,
     onRetry: retry,
     slotNotices: ['12초 후 다시 시도할 수 있습니다.'],
     retryEnabled: [false]

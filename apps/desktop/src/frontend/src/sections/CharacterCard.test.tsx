@@ -4,7 +4,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from './CharacterCard'
 import type { ServerSelect } from '../components/ServerSelect'
-import type { CardCharacter } from '../types/cards'
+import { bufferCard, dealerCard } from '../testing/fixtures/character-cards'
+import type { CardCharacter, CharacterCard as CardValues } from '../types/cards'
 
 vi.mock('../components/ServerSelect', () => ({
   ServerSelect: ({
@@ -45,7 +46,7 @@ afterEach(async () => {
 
 async function render(props: Partial<ComponentProps<typeof CharacterCard>> = {}): Promise<void> {
   await act(async () =>
-    root.render(<CharacterCard state="idle" slot={1} inputEnabled basicOnly {...props} />)
+    root.render(<CharacterCard state="idle" slot={1} inputEnabled {...props} />)
   )
 }
 
@@ -120,6 +121,7 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
     adventure: '',
     job: '',
     fame: null,
+    card: null,
     equipment: [],
     oath: []
   }
@@ -161,7 +163,6 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
         slot={1}
         nickname="다음OCR"
         inputEnabled
-        basicOnly
         onLookup={lookup}
       />
     )
@@ -176,8 +177,7 @@ const found: CardCharacter = {
   guild: '찾은길드',
   job: '찾은직업',
   fame: 125850,
-  equipmentScore: 414806,
-  serverRank: 18240,
+  card: dealerCard,
   equipment: [],
   oath: []
 }
@@ -203,6 +203,13 @@ function visibleText(): string {
   }
 
   return copy.textContent
+}
+
+// 명성과 장비 점수 칸의 값. 스탯 한 줄의 dt와 섞이지 않도록 라벨로 찾는다.
+function statValue(label: string): HTMLElement {
+  const term = [...card().querySelectorAll('dt')].find((item) => item.textContent === label)!
+
+  return term.nextElementSibling as HTMLElement
 }
 
 function faceTab(label: string): HTMLButtonElement {
@@ -261,28 +268,30 @@ it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표�
 })
 
 it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을 구분하며 소속과 순위를 보인다', async () => {
-  await render({ state: 'success', character: { ...found, fame: 0, equipmentScore: undefined } })
-  const terms = [...card().querySelectorAll('dt')]
-  expect(terms.map((term) => term.textContent)).toEqual(['명성', '장비 점수'])
-  const [fame, score] = terms.map((term) => term.nextElementSibling!)
+  await render({
+    state: 'success',
+    character: { ...found, fame: 0, card: { ...dealerCard, score: null } }
+  })
+  const fame = statValue('명성')
+  const score = statValue('장비 점수')
   expect(fame.querySelector('[aria-hidden="true"]')?.textContent).toBe('0')
   expect(score.textContent).toBe('-')
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
-  expect(card().textContent).toContain('서버 순위 18240위')
+  expect(card().textContent).toContain('서버 순위 18240위, DFragon이 수집한 캐릭터 52,310명 기준')
 
   await render({ state: 'success', character: found })
-  expect(card().querySelectorAll('dd')[1].querySelector('[aria-hidden="true"]')?.textContent).toBe(
-    '414,806'
-  )
+  const scoreValue = statValue('장비 점수')
+  expect(scoreValue.querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  expect(scoreValue.textContent).toContain('DFragon 계산값')
 })
 
 it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 0이나 빈칸 대신 -로 보인다', async () => {
   await render({
     state: 'success',
-    character: { ...found, guild: null, serverRank: null, fame: null, equipmentScore: null }
+    character: { ...found, guild: null, fame: null, card: null }
   })
-  const values = [...card().querySelectorAll('dd')]
+  const values = [statValue('명성'), statValue('장비 점수')]
   expect(values.map((value) => value.textContent)).toEqual(['-', '-'])
   expect(values.some((value) => value.querySelector('[aria-hidden="true"]') != null)).toBe(false)
   expect(card().textContent).toContain('찾은모험단-')
@@ -292,20 +301,20 @@ it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 0이
 
 it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단계 이름을 보조 기술에 전한다', async () => {
   await render({ state: 'success', character: found })
-  const defaultValue = card().querySelector('dd')!.className
+  const defaultValue = statValue('명성').className
   expect(card().textContent).not.toContain('단계')
 
   await render({ state: 'success', character: { ...found, tier: 'top' } })
   expect(card().getAttribute('data-state')).toBe('top')
   expect(card().textContent).toContain('상위 단계')
   expect(card().textContent).toContain('서버 순위 18240위')
-  const topValue = card().querySelector('dd')!.className
+  const topValue = statValue('명성').className
   expect(topValue).not.toBe(defaultValue)
 
   await render({ state: 'success', character: { ...found, tier: 'ranker' } })
   expect(card().getAttribute('data-state')).toBe('ranker')
   expect(card().textContent).toContain('랭커 단계')
-  expect(card().querySelector('dd')!.className).not.toBe(topValue)
+  expect(statValue('명성').className).not.toBe(topValue)
 
   // 조회 실패에는 단계를 보이지 않고, 이름을 고치면 단계보다 수정 중 표시가 앞선다.
   await render({ state: 'failure', character: { ...found, tier: 'ranker' } })
@@ -316,35 +325,144 @@ it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단
   expect(card().getAttribute('data-state')).toBe('selected')
 })
 
-it('면 탭으로 장비, 서약, 투자 현황을 고르고 이름과 서버는 캐릭터 면에만 둔다', async () => {
-  const character: CardCharacter = {
-    ...found,
-    equipment: [{ id: 'WEAPON', label: '무기', rarityColor: '#ffb400', enhancement: '+13' }]
-  }
-  await render({ state: 'success', character, basicOnly: false })
+it('면 탭은 캐릭터, 장비, 기타 세 개이고 면을 바꿔도 머리의 서버 선택과 상세 열기는 그대로다', async () => {
+  const detail = vi.fn()
+  await render({ state: 'success', character: found, onDetail: detail })
+  expect([...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual([
+    '캐릭터',
+    '장비',
+    '기타'
+  ])
   expect(faceTab('캐릭터').getAttribute('aria-selected')).toBe('true')
-  expect(container.querySelector('input')).not.toBeNull()
+  expect(container.querySelector('[aria-label="1번 캐릭터 이름"]')).not.toBeNull()
 
   await act(async () => faceTab('장비').click())
   expect(faceTab('장비').getAttribute('aria-selected')).toBe('true')
-  expect(container.querySelector('input')).toBeNull()
-  expect(container.querySelector('[aria-label="1번 서버"]')).toBeNull()
-  expect(container.querySelector('[role="tabpanel"] [title="무기"]')).not.toBeNull()
+  // 이름 입력은 캐릭터 면에만 두고, 머리의 서버 선택과 상세 열기는 어느 면에서나 같은 자리에 남는다.
+  expect(container.querySelector('[aria-label="1번 캐릭터 이름"]')).toBeNull()
+  expect(container.querySelector('[aria-label="1번 서버"]')).not.toBeNull()
+  const server = container.querySelector<HTMLSelectElement>('[aria-label="1번 서버"]')!
+  await act(async () => {
+    server.value = 'cain'
+    server.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!.click()
+  )
+  expect(detail).toHaveBeenCalledOnce()
+  expect(faceTab('장비').getAttribute('aria-selected')).toBe('true')
 
-  await act(async () => faceTab('투자 현황').click())
+  await act(async () => faceTab('기타').click())
   expect(container.querySelector('[role="tabpanel"] table')).not.toBeNull()
 })
 
+it('캐릭터 면은 직업과 이름 아래 스탯 한 줄을 역할 라벨로 보인다', async () => {
+  await render({ state: 'success', character: found })
+  const panel = container.querySelector('[role="tabpanel"]')!
+  const terms = [...panel.querySelectorAll('dt')].map((term) => term.textContent)
+  expect(terms).toEqual(['공격력 증가', '공격력 증폭', '크리티컬', '스위칭'])
+  expect(panel.textContent).toContain('찾은직업')
+
+  await render({ state: 'success', character: { ...found, card: bufferCard } })
+  const bufferTerms = [...container.querySelectorAll('[role="tabpanel"] dt')].map(
+    (term) => term.textContent
+  )
+  expect(bufferTerms).toEqual(['마을 지능', '30레벨 버프', '50레벨 버프', '스위칭'])
+  expect(statValue('장비 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('55,358')
+})
+
+it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 전한다', async () => {
+  const skipped: CardValues = {
+    ...dealerCard,
+    score: {
+      calculator: 'equipment',
+      value: null,
+      skipped: { kind: 'resolution', message: 'ValueError: switching item has no candidate' },
+      versions: { package: 'dnfscore', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
+    }
+  }
+  await render({ state: 'success', character: { ...found, card: skipped } })
+  const score = statValue('장비 점수')
+  expect(score.firstChild?.textContent).toBe('-')
+  expect(score.textContent).toBe('-계산하지 못함, 아이템을 판별하지 못함')
+  expect(card().textContent).not.toContain('ValueError')
+})
+
+it('장비 면은 세트와 서약 섹션, 묵언의 진의 단계 이름과 희귀도 개수를 보인다', async () => {
+  await render({ state: 'success', character: found, initialFace: 1 })
+  const set = container.querySelector('section[aria-label="세트"]')!
+  expect(set.textContent).toContain('환상의 에테리얼 오브 아츠 세트')
+  expect(set.textContent).toContain('세트 포인트')
+  expect(set.textContent).toContain('2,625')
+  expect(set.textContent).toContain('태초 3')
+  expect(set.querySelector('img')?.getAttribute('src')).toBe(
+    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  )
+
+  const oath = container.querySelector('section[aria-label="서약"]')!
+  expect(oath.textContent).toContain('여우 : 초월')
+  expect(oath.textContent).toContain('서약 포인트')
+  const steps = [
+    ...oath.querySelectorAll('[role="list"][aria-label="묵언의 진의"] [role="listitem"]')
+  ]
+  expect(steps.map((step) => step.getAttribute('aria-label'))).toEqual([
+    '1단계 강인한 통찰',
+    '2단계 포용의 권능',
+    '3단계 심연의 고동',
+    '4단계 신념의 대가',
+    '5단계 이어진 걸음',
+    '6단계 영원의 궤적',
+    '7단계 만물의 흐름',
+    '8단계 순례자의 길',
+    '9단계 비어 있음'
+  ])
+})
+
+it('기타 면은 12부위를 부위와 아이템 이름, 강화나 증폭 종류, 마법부여 등급 이름으로 전한다', async () => {
+  await render({ state: 'success', character: found, initialFace: 2 })
+  const table = container.querySelector('[role="tabpanel"] table')!
+  expect(table.getAttribute('aria-label')).toBe('강화와 마법부여')
+  const rows = [...table.querySelectorAll('tbody tr')]
+  expect(rows).toHaveLength(12)
+  const weapon = rows[0]
+  expect(weapon.querySelector('th')?.textContent).toContain('무기, 검은 질병의 멸룡검 발뭉')
+  expect(weapon.textContent).toContain('강화 13')
+  expect(weapon.querySelector('[role="img"]')?.getAttribute('aria-label')).toBe('마법부여 종결')
+  expect(rows[6].textContent).toContain('증폭 10')
+  // 등급표에 없는 마법부여는 등급 그림 없이 `-`와 미평가로 전한다.
+  expect(rows[9].querySelector('[role="img"]')).toBeNull()
+  expect(rows[9].textContent).toContain('마법부여 미평가')
+})
+
+it('카드 값이 아직 없어도 세 면을 고를 수 있고 각 면은 값 대신 없다는 안내와 -를 보인다', async () => {
+  await render({ state: 'success', character: { ...found, card: null } })
+  await act(async () => faceTab('장비').click())
+  expect(container.querySelector('section[aria-label="세트"]')?.textContent).toContain(
+    '세트 정보 없음'
+  )
+  expect(container.querySelector('section[aria-label="서약"]')?.textContent).toContain(
+    '서약 정보 없음'
+  )
+  await act(async () => faceTab('기타').click())
+  expect(container.querySelector('tbody tr')?.textContent).toContain('무기, 장착 정보 없음')
+})
+
+it('조회를 마치지 않은 카드는 장비와 기타 면을 고를 수 없다', async () => {
+  await render({ state: 'pending', character: found })
+  expect(faceTab('장비').getAttribute('aria-disabled')).toBe('true')
+  expect(faceTab('기타').getAttribute('aria-disabled')).toBe('true')
+})
+
 it('접힌 동안은 캐릭터 면을 보이고 펼치면 고른 면으로 돌아온다', async () => {
-  await render({ state: 'success', character: found, basicOnly: false })
-  await act(async () => faceTab('서약').click())
+  await render({ state: 'success', character: found })
+  await act(async () => faceTab('기타').click())
   expect(container.querySelector('input')).toBeNull()
 
-  await render({ state: 'success', character: found, basicOnly: false, collapsed: true })
+  await render({ state: 'success', character: found, collapsed: true })
   expect(container.querySelector<HTMLInputElement>('input')?.value).toBe('찾은이름')
   expect(faceTab('캐릭터').getAttribute('aria-selected')).toBe('true')
 
-  await render({ state: 'success', character: found, basicOnly: false, collapsed: false })
-  expect(faceTab('서약').getAttribute('aria-selected')).toBe('true')
+  await render({ state: 'success', character: found, collapsed: false })
+  expect(faceTab('기타').getAttribute('aria-selected')).toBe('true')
   expect(container.querySelector('input')).toBeNull()
 })
