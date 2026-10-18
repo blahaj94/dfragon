@@ -1,24 +1,48 @@
 import * as stylex from '@stylexjs/stylex'
-import { Icon } from '@seed-design/react'
-import type { ReactNode } from 'react'
-import { ActionButton } from './seed/action-button'
-import type { PublicProps } from './public-props'
+import type { ComponentType, ReactNode } from 'react'
+import { controlStyles } from './control.style'
+import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
 import { styles } from './icon-button.style'
 
-export type IconButtonProps = Omit<
-  PublicProps<typeof ActionButton>,
-  'size' | 'layout' | 'variant' | 'children'
-> & {
-  variant: 'neutralWeak' | 'ghost'
+export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
   'aria-label': string
   icon: ReactNode
+  /** sm 32, md 40px 정사각형. 아이콘은 각각 16, 24px이다. @default 'md' */
+  size?: 'sm' | 'md'
+  /**
+   * @deprecated SEED ActionButton 시절의 이름이다. 외형에 영향이 없으며 ActionButton alias와 함께 지운다.
+   */
+  variant?: 'neutralWeak' | 'ghost'
 }
 
-// DFragon 디자인 컴포넌트: IconButton md는 SEED medium iconOnly 버튼 안에 24px Icon을 둔 40 정사각형이다.
-export function IconButton({ icon, ...buttonProps }: IconButtonProps) {
+function IconButtonImpl({
+  icon,
+  size = 'md',
+  variant: _variant,
+  className,
+  style,
+  ...buttonProps
+}: IconButtonProps & ForwardedStyle) {
   return (
-    <ActionButton size="medium" layout="iconOnly" {...buttonProps} {...stylex.props(styles.square)}>
-      <Icon svg={icon} size="x6" />
-    </ActionButton>
+    <button
+      {...buttonProps}
+      {...withForwardedStyle(
+        stylex.props(
+          styles.root,
+          controlStyles.focusRing,
+          controlStyles.hoverTransition,
+          styles[size]
+        ),
+        { className, style }
+      )}
+    >
+      <span aria-hidden="true" {...stylex.props(styles.icon)}>
+        {icon}
+      </span>
+    </button>
   )
 }
+
+// 아이콘만 보이는 버튼. 접근 가능한 이름은 aria-label로 받는다. 나머지 button prop과 ref를 그대로
+// 전달하므로 Base UI trigger의 render 대상으로 쓸 수 있다.
+export const IconButton: ComponentType<IconButtonProps> = IconButtonImpl

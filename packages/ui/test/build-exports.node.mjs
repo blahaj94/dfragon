@@ -23,10 +23,11 @@ test('소비자 compiler가 library의 StyleX 선언을 산출 CSS의 atomic cla
   )
   const rules = stylesheet.replace(WHITESPACE_PATTERN, '')
   for (const declaration of [
-    'padding:var(--seed-dimension-x2)',
-    'border-radius:var(--seed-radius-full)',
-    '--seed-color-stroke-neutral-weak:var(--seed-color-palette-gray-500)',
-    '--seed-color-stroke-neutral-contrast:var(--seed-color-stroke-focus-ring)',
+    // dist의 공용 Component 선언이 tokens.stylex.js 상수를 var(--df-*)로 풀어 쓴다.
+    'height:var(--df-size-control-sm)',
+    'border-top-color:var(--df-signal)',
+    'font-family:var(--df-font-num)',
+    'outline-color:var(--df-signal)',
     // dist의 shapes가 별도 tokens.stylex.js의 상수를, 소비자 source가 package export의 상수를 쓴다.
     'clip-path:polygon(00,calc(100%-var(--df-cut))0,100%var(--df-cut),100%100%,0100%)',
     'background-color:var(--df-signal)'

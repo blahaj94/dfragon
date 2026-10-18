@@ -17,6 +17,7 @@
   "dependencies": {
     "react": "catalog:",
     "react-dom": "catalog:",
+    "@base-ui/react": "catalog:",
     "@dfragon/ui": "workspace:*",
     "@seed-design/react": "catalog:",
     "@seed-design/css": "catalog:",

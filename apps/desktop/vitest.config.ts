@@ -15,7 +15,9 @@ export default defineConfig({
     desktopLicenseCatalog({
       runtimeRoot: fileURLToPath(new URL('.', import.meta.url)),
       uiRoot: fileURLToPath(new URL('../../packages/ui', import.meta.url)),
-      ocrRoot: fileURLToPath(new URL('assets/ocr', import.meta.url))
+      ocrRoot: fileURLToPath(new URL('assets/ocr', import.meta.url)),
+      // 제품 renderer와 같은 고지 입력. Desktop SEED 제거 PR에서 지운다.
+      rendererDependencies: ['@seed-design/react', '@seed-design/css']
     })
   ],
   resolve: {

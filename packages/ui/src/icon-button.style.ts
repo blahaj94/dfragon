@@ -1,7 +1,27 @@
 import * as stylex from '@stylexjs/stylex'
+import { colors, radius, size } from './tokens.stylex'
 
 export const styles = stylex.create({
-  // SEED medium iconOnly의 좌우 여백 10에 24 아이콘을 넣으면 폭이 44가 되므로,
-  // 디자인 IconButton의 40 정사각형에 맞춰 여백만 줄인다.
-  square: { padding: 'var(--seed-dimension-x2)' }
+  // 회색 면 없이 아이콘 색만 한 단계 밝혀 hover를 보인다.
+  root: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    padding: 0,
+    margin: 0,
+    borderWidth: 0,
+    borderRadius: radius.control,
+    backgroundColor: 'transparent',
+    color: {
+      default: colors.fgMuted,
+      ':hover:not(:disabled)': colors.fgDefault,
+      ':disabled': colors.fgDisabled
+    },
+    cursor: { default: 'pointer', ':disabled': 'not-allowed' }
+  },
+  sm: { width: size.controlSm, height: size.controlSm, fontSize: 16 },
+  md: { width: size.controlMd, height: size.controlMd, fontSize: 24 },
+  // 화면이 넘긴 SVG를 아이콘 칸에 맞춘다.
+  icon: { display: 'inline-flex', width: '1em', height: '1em' }
 })

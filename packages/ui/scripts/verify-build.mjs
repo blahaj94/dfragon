@@ -195,6 +195,10 @@ if (isLibrary) {
         isAllowedStylexImport,
         `Library must import only @stylexjs/stylex: ${file} ${specifier}`
       )
+      // SEED와 SEED 아이콘은 공용 Component의 의존성이 아니다. 남은 src/seed source는 package export가 아니다.
+      const isSeedPackage =
+        specifier.startsWith('@seed-design/') || specifier.startsWith('@karrotmarket/')
+      assert.equal(isSeedPackage, false, `Library must not import SEED: ${file} ${specifier}`)
     }
   }
 
@@ -242,25 +246,45 @@ if (isLibrary) {
   await verifyTypo('typo.js')
   const index = await readFile(resolve(output, 'index.js'), 'utf8')
   const imports = moduleSpecifiers('index.js', index)
-  for (const external of ['@seed-design/react', '@stylexjs/stylex', 'react', 'react/jsx-runtime']) {
+  for (const external of ['@stylexjs/stylex', 'react', 'react/jsx-runtime']) {
     const hasExternalImport = imports.includes(external)
     assert.ok(hasExternalImport, `External import: ${external}`)
   }
+  // 공용 Component는 Base UI 부품을 subpath(@base-ui/react/dialog 등)로 가져온다.
+  const hasBaseUiImport = imports.some((specifier) => {
+    const isBaseUi = specifier === '@base-ui/react' || specifier.startsWith('@base-ui/react/')
+
+    return isBaseUi
+  })
+  assert.ok(hasBaseUiImport, 'External import: @base-ui/react')
 } else {
-  const expectedVersions = {
-    react: '19.3.0',
-    'react-dom': '19.3.0',
-    '@seed-design/react': '3.0.0',
-    '@seed-design/css': '3.0.2'
-  }
-  for (const [name, version] of Object.entries(expectedVersions)) {
-    const copies = graph.filter((dependency) => {
+  function bundledCopies(name) {
+    return graph.filter((dependency) => {
       const hasExpectedName = dependency.name === name
 
       return hasExpectedName
     })
+  }
+  const expectedVersions = {
+    react: '19.3.0',
+    'react-dom': '19.3.0',
+    '@seed-design/css': '3.0.2'
+  }
+  for (const [name, version] of Object.entries(expectedVersions)) {
+    const copies = bundledCopies(name)
     assert.equal(copies.length, 1, `Single bundled copy: ${name}`)
     assert.equal(copies[0].version, version, name)
+  }
+  // 공용 Component가 SEED React 대신 Base UI를 쓰므로, 화면이 쓰는 부품이 없으면 번들에 없을 수 있다.
+  // 들어 있다면 사본은 하나여야 한다.
+  const optionalVersions = { '@seed-design/react': '3.0.0', '@base-ui/react': null }
+  for (const [name, version] of Object.entries(optionalVersions)) {
+    const copies = bundledCopies(name)
+    assert.ok(copies.length <= 1, `Single bundled copy: ${name}`)
+    const hasVersionCheck = copies.length === 1 && version != null
+    if (hasVersionCheck) {
+      assert.equal(copies[0].version, version, name)
+    }
   }
   const seedCss = graph.find((dependency) => {
     const isSeedCss = dependency.name === '@seed-design/css'
