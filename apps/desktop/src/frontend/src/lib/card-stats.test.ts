@@ -54,3 +54,22 @@ it('모르는 값은 0으로 바꾸지 않고 단위 없는 -로, 스탯이 없�
     ])
   }
 })
+
+it('1억% 미만의 공격력 증가는 만% 정수로 줄인다', () => {
+  const dealer = {
+    role: 'dealer',
+    amplification: null,
+    critical: null,
+    switchingLevel: null
+  } as const
+  expect(toCardStatItems({ ...dealer, attackIncrease: 98_600_000 })[0]).toEqual({
+    label: '공격력 증가',
+    value: '9,860',
+    unit: '만%'
+  })
+  expect(toCardStatItems({ ...dealer, attackIncrease: 100_000_000 })[0]).toEqual({
+    label: '공격력 증가',
+    value: '1.00',
+    unit: '억%'
+  })
+})

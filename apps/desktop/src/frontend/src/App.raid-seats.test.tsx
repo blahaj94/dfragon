@@ -238,6 +238,7 @@ it('공대 캡처가 인식하는 동안은 자리를 옮기지 않고, 회차�
   await vi.waitFor(() => expect(raidMocks.recognize).toHaveBeenCalledOnce())
   expect(seats()[0].getAttribute('aria-label')).toBe('1번 자리')
   expect(seats()[0].getAttribute('draggable')).toBe('false')
+  // 인식 중 맞바꾸기가 받아들여졌다면 아래에서 1행 이름이 2번 자리에 보인다.
   await moveRight(seats()[0])
   expect(seats()[0].getAttribute('aria-label')).toBe('1번 자리')
 
