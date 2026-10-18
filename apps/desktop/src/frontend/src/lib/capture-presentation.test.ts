@@ -4,7 +4,7 @@ import { formatPartyCaptureStatus, getCaptureControlState } from './capture-pres
 describe('getCaptureControlState', () => {
   const idle = { phase: 'idle', loading: false, failed: false, hasDetectedSource: true } as const
 
-  // 디자인 캡처 모달의 StatusBadge 톤을 공용 StatusBadge가 받는 SEED Badge tone 이름으로 옮긴 기대값이다.
+  // 디자인 캡처 모달의 상태 톤을 공용 StatusBadge alias가 받는 이전 tone 이름(positive, critical 등)으로 옮긴 기대값이다.
   it.each([
     ['준비 중', { ...idle, phase: 'selecting', loading: true }, 'neutral'],
     ['인식 중', { ...idle, phase: 'recognizing', loading: true }, 'informative'],
