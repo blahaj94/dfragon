@@ -7,7 +7,7 @@ import type { OcrNicknameRejection } from './runtime-diagnostics'
 const MAX_NICKNAME_CODE_POINTS = 12
 const UNPAIRED_SURROGATE_PATTERN = /[\uD800-\uDFFF]/u
 
-type FirstCandidate =
+export type FirstCandidate =
   | { kind: 'recognized'; nickname: string }
   | { kind: 'rejected'; rejection: OcrNicknameRejection; text: string | null }
 
@@ -53,8 +53,11 @@ export async function recognizePartyFrame(
   return results
 }
 
-/** 첫 후보의 앞뒤 공백만 제거하며 잘못된 후보를 낮은 순위의 이름으로 대체하지 않는다. */
-function firstCandidate(result: PartyOcrResult): FirstCandidate {
+/**
+ * 첫 후보의 앞뒤 공백만 제거하며 잘못된 후보를 낮은 순위의 이름으로 대체하지 않는다. 파티와 공대 캡처가 같은
+ * 판정을 쓴다.
+ */
+export function firstCandidate(result: PartyOcrResult): FirstCandidate {
   const text = result.candidates[0]?.nickname
   if (text == null) {
     return { kind: 'rejected', rejection: 'missing', text: null }

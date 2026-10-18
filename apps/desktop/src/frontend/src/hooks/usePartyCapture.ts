@@ -7,6 +7,7 @@ import { useCaptureSources } from './useCaptureSources'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { useCharacterSearch } from './useCharacterSearch'
 import { isDnfCaptureSource } from '../lib/capture-presentation'
+import { useRestartShortcut } from './useRestartShortcut'
 
 type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>
@@ -15,6 +16,8 @@ type PartyCapture = {
   recognizing: boolean
   sources: { id: string; name: string }[]
   selectedSourceId: string
+  /** 창 등록을 마쳐 회차가 프레임을 읽을 수 있는 상태인지. 공대 캡처도 이 등록을 쓴다. */
+  sourceReady: boolean
   canStartCapture: boolean
   sourcesLoading: boolean
   sourcesFailed: boolean
@@ -32,9 +35,12 @@ type PartyCapture = {
 }
 
 export function usePartyCapture({
-  identifyCharacters = false
+  identifyCharacters = false,
+  receivesShortcut = true
 }: {
   identifyCharacters?: boolean
+  /** 파티 화면이 보일 때만 Alt+R을 받는다. 공대 화면에서는 공대 캡처가 받는다. */
+  receivesShortcut?: boolean
 } = {}): PartyCapture {
   const stopRef = useRef<() => void>(() => {})
   const search = useCharacterSearch(() => stopRef.current())
@@ -72,18 +78,7 @@ export function usePartyCapture({
   // Alt+R과 파티 머리의 캡처 버튼이 같은 START를 보낸다. 받을 수 없는 상태의 거절과 진행 중 재시작은
   // 둘 다 machine이 정한다.
   const startRound = useCallback(() => send({ type: 'START', request: {} }), [send])
-
-  useEffect(() => {
-    if (!identifyCharacters || window.desktopShortcut === undefined) {
-      return
-    }
-
-    return window.desktopShortcut.onDesktopShortcut((shortcut) => {
-      if (shortcut === 'restart-search') {
-        startRound()
-      }
-    })
-  }, [identifyCharacters, startRound])
+  useRestartShortcut(identifyCharacters && receivesShortcut, startRound)
 
   function stopCapture(status?: string): void {
     send({ type: 'STOP', status })
@@ -124,12 +119,18 @@ export function usePartyCapture({
   })
   const selectedSourceId = snapshot.context.selectedSourceId
   const canStartCapture = snapshot.can({ type: 'START', request: {} })
+  // 회차를 받는 상태(창 등록 뒤, 회차 진행과 실패 뒤)는 main에 창이 등록된 상태다. 중지 뒤에는 다시 골라야 한다.
+  const sourceReady =
+    snapshot.matches('selected') ||
+    snapshot.matches('capturing') ||
+    snapshot.matches('captureFailed')
 
   return {
     ...sourceState,
     phase,
     recognizing,
     selectedSourceId,
+    sourceReady,
     canStartCapture,
     selectSource,
     search,

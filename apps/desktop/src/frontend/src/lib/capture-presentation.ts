@@ -59,6 +59,29 @@ export function getCaptureControlState({
   return { label: '창 감지됨', tone: 'success' }
 }
 
+/**
+ * 공대 화면에서 상단 바 상태 칩, 캡처 모달과 공대 머리가 보일 캡처 단계와 문구를 고른다. 게임 창이 등록된
+ * 동안은 공대 회차의 단계와 문구를 보이며 회차 전에는 창 등록 상태(`selected`)로 둔다. 등록 전, 등록 중,
+ * 등록 실패, 중지 뒤에는 창 선택을 소유한 파티 캡처의 단계와 문구를 그대로 보인다.
+ */
+export function getRaidScreenCapture({
+  party,
+  raid
+}: {
+  party: { phase: CapturePhase; status: string; sourceReady: boolean }
+  raid: { phase: CapturePhase; status: string }
+}): { phase: CapturePhase; status: string } {
+  if (!party.sourceReady) {
+    return { phase: party.phase, status: party.status }
+  }
+
+  if (raid.phase === 'idle') {
+    return { phase: 'selected', status: raid.status }
+  }
+
+  return { phase: raid.phase, status: raid.status }
+}
+
 // 창 목록 조회 결과에 맞는 안내 문구를 결정한다.
 export function getCaptureSourceNotice({
   failed,
