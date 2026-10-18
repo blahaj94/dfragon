@@ -3,6 +3,7 @@ import * as capture from './api/capture'
 import * as auth from './api/auth'
 import * as search from './api/search'
 import * as manualSearch from './api/manual-search'
+import * as raidSearch from './api/raid-search'
 import * as developer from './api/developer'
 import * as versions from './api/versions'
 import * as desktopShortcut from './api/desktop-shortcut'
@@ -21,6 +22,7 @@ if (process.argv.includes(AUTH_AVAILABLE_ARGUMENT)) {
 contextBridge.exposeInMainWorld('search', search)
 
 contextBridge.exposeInMainWorld('manualSearch', manualSearch)
+contextBridge.exposeInMainWorld('raidSearch', raidSearch)
 
 contextBridge.exposeInMainWorld('developer', developer)
 

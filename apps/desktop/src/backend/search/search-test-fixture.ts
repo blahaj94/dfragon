@@ -55,7 +55,7 @@ export function jsonResponse({
 
 export async function createSearchFixture(
   signedIn = false,
-  searchKind: 'capture' | 'manual' = 'capture',
+  searchKind: 'capture' | 'manual' | 'raid' = 'capture',
   portraitMatchPolicy?: PortraitMatchPolicy,
   details?: Parameters<typeof registerCaptureIpc>[1],
   portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
@@ -130,7 +130,11 @@ export async function createSearchFixture(
 
     return handler(event, ...args)
   }
-  const controlChannel = searchKind === 'manual' ? 'controlManualSearch' : 'controlCharacterSearch'
+  const controlChannel = {
+    capture: 'controlCharacterSearch',
+    manual: 'controlManualSearch',
+    raid: 'controlRaidSearch'
+  }[searchKind]
   const observationChannel =
     searchKind === 'manual' ? 'notifyManualNickname' : 'notifyStableNicknameDetected'
   const read = async (): Promise<SearchSnapshot> => {
@@ -153,7 +157,14 @@ export async function createSearchFixture(
     slot: number
     observationRevision: number
     nickname: string
-  }): Promise<unknown> => invoke(observationChannel, { captureId, ...input })
+  }): Promise<unknown> => {
+    // 공대 수명은 이름 통지 채널이 없어 서버를 함께 고른 조회로 관측한다.
+    if (searchKind === 'raid') {
+      return invoke(controlChannel, { action: 'lookup', captureId, ...input, serverId: 'cain' })
+    }
+
+    return invoke(observationChannel, { captureId, ...input })
+  }
 
   const replaceDocument = (): void => {
     registerCaptureWindow(window as unknown as BrowserWindow, rendererUrl)

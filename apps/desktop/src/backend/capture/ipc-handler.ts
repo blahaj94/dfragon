@@ -31,7 +31,7 @@ import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portr
 import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
 import { createStayImageSource } from '../search/stay-images'
 import type { SearchRuntime } from '../search/request'
-import { registerManualSearchIpc } from '../search/manual-ipc'
+import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
 import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
@@ -46,7 +46,8 @@ let selectedSourceId: string | null = null
 let readSelectedFrame: ReadWindowFrame | null = null
 let selectingSource = false
 let search: CaptureSearchLifetime | undefined
-let manualSearch: ReturnType<typeof registerManualSearchIpc> | undefined
+// 파티 카드와 공대 카드의 서버 지정 조회. 캡처와 별도 수명이고 문서가 바뀌면 함께 무효화한다.
+let cardSearches: ReturnType<typeof registerManualSearchIpc>[] = []
 let ocrCollection: OcrCollection | undefined
 
 async function getWindowSources(): Promise<Electron.DesktopCapturerSource[]> {
@@ -64,6 +65,12 @@ function clearSource(): void {
   selectingSource = false
   sourceSelectionGeneration += 1
   search?.invalidate()
+}
+
+function invalidateCardSearches(): void {
+  for (const cardSearch of cardSearches) {
+    cardSearch.invalidate()
+  }
 }
 
 function isTrustedFrame(window: BrowserWindow | null, frame: WebFrameMain | null): boolean {
@@ -211,20 +218,24 @@ function registerCaptureIpc(
       }
     }
   })
-  manualSearch?.invalidate()
-  const manual = registerManualSearchIpc({
-    runtime,
-    requireSender: requireSearchSender,
-    windowGeneration: () => windowGeneration,
-    isCurrentDocument: (generation) =>
-      generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
-    publish: (snapshot) => {
-      if (isTrustedFrame(captureWindow, currentMainFrame())) {
-        captureWindow!.webContents.send('manualSearchChanged', snapshot)
+  invalidateCardSearches()
+  const registerCardSearch = (kind: ManualSearchKind): ReturnType<typeof registerManualSearchIpc> =>
+    registerManualSearchIpc({
+      kind,
+      runtime,
+      requireSender: requireSearchSender,
+      windowGeneration: () => windowGeneration,
+      isCurrentDocument: (generation) =>
+        generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
+      publish: (channel, snapshot) => {
+        if (isTrustedFrame(captureWindow, currentMainFrame())) {
+          captureWindow!.webContents.send(channel, snapshot)
+        }
       }
-    }
-  })
-  manualSearch = manual
+    })
+  const manual = registerCardSearch('party')
+  const raid = registerCardSearch('raid')
+  cardSearches = [manual, raid]
   search = lifetime
   clearSource()
   addHandler('openCharacterDetails', async (event, ...args) => {
@@ -239,14 +250,16 @@ function registerCaptureIpc(
     ) {
       return { ok: false }
     }
-    const selected = lifetime.selection(reference) ?? manual.selection(reference)
+    const selected =
+      lifetime.selection(reference) ?? manual.selection(reference) ?? raid.selection(reference)
     if (selected === null) {
       return { ok: false }
     }
     const isCurrent = (): boolean => {
       try {
         requireSearchSender(event)
-        const currentSelected = lifetime.selection(reference) ?? manual.selection(reference)
+        const currentSelected =
+          lifetime.selection(reference) ?? manual.selection(reference) ?? raid.selection(reference)
 
         return (
           captureWindow === owner &&
@@ -458,6 +471,7 @@ function registerCaptureIpc(
 
   return () => {
     manual.dispose()
+    raid.dispose()
     clearSource()
     ocrCollection?.dispose()
     ocrCollection = undefined
@@ -510,7 +524,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
   documentUrl = rendererDocumentUrl
   windowGeneration += 1
   clearSource()
-  manualSearch?.invalidate()
+  invalidateCardSearches()
   window.webContents.session.setDisplayMediaRequestHandler((_request, callback) => {
     try {
       callback(null)
@@ -527,7 +541,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
-    manualSearch?.invalidate()
+    invalidateCardSearches()
   })
   window.webContents.on('destroyed', () => {
     const isCurrentWindow = captureWindow === window
@@ -536,7 +550,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
-    manualSearch?.invalidate()
+    invalidateCardSearches()
   })
   window.webContents.on('render-process-gone', () => {
     const isCurrentWindow = captureWindow === window
@@ -545,7 +559,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     }
     windowGeneration += 1
     clearSource()
-    manualSearch?.invalidate()
+    invalidateCardSearches()
   })
   window.on('closed', () => {
     const isCurrentWindow = captureWindow === window
@@ -556,7 +570,7 @@ function registerCaptureWindow(window: BrowserWindow, rendererDocumentUrl: strin
     documentUrl = null
     windowGeneration += 1
     clearSource()
-    manualSearch?.invalidate()
+    invalidateCardSearches()
   })
 }
 
