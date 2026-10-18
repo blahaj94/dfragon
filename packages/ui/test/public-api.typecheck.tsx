@@ -10,7 +10,6 @@ import {
 } from 'react'
 import { expectTypeOf } from 'vitest'
 import {
-  ActionButton,
   Button,
   CardFrame,
   Checkbox,
@@ -31,7 +30,6 @@ import {
   NumericText,
   ProgressCircle,
   Select,
-  StatusBadge,
   StatusChip,
   SupportingText,
   Switch,
@@ -41,7 +39,6 @@ import {
   Tooltip,
   Typo,
   typographyVariants,
-  type ActionButtonProps,
   type ButtonProps,
   type CardFrameState,
   type CheckboxProps,
@@ -61,7 +58,6 @@ import {
   type SelectItemProps,
   type SelectPopupProps,
   type SelectTriggerProps,
-  type StatusBadgeTone,
   type StatusChipProps,
   type StatusChipTone,
   type SwitchProps,
@@ -76,7 +72,6 @@ import {
 // 공개 props는 semantic 옵션과 native ref를 보존하고 화면별 외형 override를 노출하지 않는다.
 type PublicPropKeys =
   | keyof ButtonProps
-  | keyof ActionButtonProps
   | keyof IconButtonProps
   | keyof ProgressCircleProps
   | keyof TextFieldProps
@@ -106,7 +101,6 @@ expectTypeOf<ButtonProps['variant']>().toEqualTypeOf<
   'primary' | 'secondary' | 'ghost' | 'danger' | undefined
 >()
 expectTypeOf<ButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'lg' | undefined>()
-expectTypeOf<ActionButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<ProgressCircleProps['ref']>().toEqualTypeOf<Ref<SVGSVGElement> | undefined>()
 expectTypeOf<TextFieldProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
@@ -120,9 +114,6 @@ expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | 
 expectTypeOf<DialogRootProps>().not.toHaveProperty('ref')
 expectTypeOf<StatusChipTone>().toEqualTypeOf<'neutral' | 'success' | 'danger' | 'waiting'>()
 expectTypeOf<StatusChipProps['size']>().toEqualTypeOf<'sm' | 'md' | undefined>()
-expectTypeOf<StatusBadgeTone>().toEqualTypeOf<
-  'neutral' | 'informative' | 'critical' | 'warning' | 'positive'
->()
 expectTypeOf<ControlSurface>().toEqualTypeOf<'default' | 'card'>()
 expectTypeOf<SelectTriggerProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
 expectTypeOf<SelectPopupProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
@@ -158,9 +149,6 @@ export const componentExamples = (
       >
         실행
       </Button>
-      <ActionButton variant="neutralOutline" size="xsmall" layout="withText">
-        이행 중 이름
-      </ActionButton>
       <ProgressCircle ref={svgRef} value={50} size="24" tone="brand" aria-label="진행률" />
       <LoadingIndicator>불러오는 중</LoadingIndicator>
       <TextField
@@ -240,13 +228,9 @@ export const designExamples = (
       }}
     />
     <DialogRoot>
-      <DialogTrigger asChild>
-        <IconButton
-          variant="neutralWeak"
-          aria-label="화면 캡처"
-          icon={<svg aria-hidden="true" />}
-        />
-      </DialogTrigger>
+      <DialogTrigger
+        render={<IconButton aria-label="화면 캡처" icon={<svg aria-hidden="true" />} />}
+      />
     </DialogRoot>
     <StatusChip tone="waiting" role="status">
       찾는 중
@@ -254,7 +238,6 @@ export const designExamples = (
     <StatusChip tone="success" size="md">
       창 감지됨
     </StatusChip>
-    <StatusBadge tone="positive">창 감지됨</StatusBadge>
     <Kbd>Alt</Kbd>
     <CardFrame state="ranker" as="article" aria-label="랭커 카드">
       <NumericText value={125850} format={(value) => `${value}`} countUp={false} />
@@ -327,8 +310,8 @@ export const invalidDesignExamples = (
     <IconButton className="square" aria-label="설정" icon={<svg />} />
     {/* @ts-expect-error StatusChip tone은 디자인 상태 tone 중 하나여야 한다. 주의 색은 없다. */}
     <StatusChip tone="warning">상태</StatusChip>
-    {/* @ts-expect-error StatusBadge tone은 이행 전 tone 중 하나여야 한다. */}
-    <StatusBadge tone="brand">상태</StatusBadge>
+    {/* @ts-expect-error IconButton은 외형 variant를 받지 않는다. */}
+    <IconButton variant="ghost" aria-label="설정" icon={<svg />} />
     {/* @ts-expect-error CardFrame state는 정해진 카드 상태 중 하나여야 한다. */}
     <CardFrame state="warning" />
     {/* @ts-expect-error Select trigger 크기는 xs, sm, md 중 하나다. */}
@@ -417,18 +400,22 @@ export const invalidComponentExamples = (
     <Button style={{ padding: 8 }}>실행</Button>
     {/* @ts-expect-error Button variant는 디자인 변형 중 하나여야 한다. */}
     <Button variant="brandSolid">실행</Button>
-    {/* @ts-expect-error ActionButton variant는 이행 전 SEED 값 중 하나여야 한다. */}
-    <ActionButton variant="invalid">실행</ActionButton>
     {/* @ts-expect-error TextField의 임의 className은 공개 prop이 아니다. */}
     <TextField className="field">{null}</TextField>
     {/* @ts-expect-error TextField는 입력 하나를 children으로 요구한다. */}
     <TextField label="이름" />
+    {/* @ts-expect-error TextField 크기는 sm, md, lg 중 하나다. */}
+    <TextField size="medium">{null}</TextField>
+    {/* @ts-expect-error TextFieldInput은 자식 요소 합성에 render를 쓴다. */}
+    <TextFieldInput asChild />
     {/* @ts-expect-error ProgressCircle의 ref는 SVG element를 가리킨다. */}
     <ProgressCircle ref={inputRef} />
     {/* @ts-expect-error TextFieldInput의 ref는 input element를 가리킨다. */}
     <TextFieldInput ref={buttonRef} />
     {/* @ts-expect-error DialogTrigger의 ref는 button element를 가리킨다. */}
     <DialogTrigger ref={inputRef}>열기</DialogTrigger>
+    {/* @ts-expect-error DialogTrigger는 자식 요소 합성에 render를 쓴다. */}
+    <DialogTrigger asChild>열기</DialogTrigger>
     {/* @ts-expect-error DialogContent의 className은 공개 prop이 아니다. */}
     <DialogContent className="wide" title="상세" />
     {/* @ts-expect-error DialogFooter의 className은 공개 prop이 아니다. */}

@@ -2,7 +2,6 @@ import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  ActionButton,
   Button,
   CardFrame,
   Checkbox,
@@ -15,14 +14,13 @@ import {
   Menu,
   NumericText,
   Select,
-  StatusBadge,
   StatusChip,
   Switch,
   Tabs,
   TextField,
   TextFieldInput,
   Typo,
-  type ActionButtonProps,
+  type ButtonProps,
   type ControlSurface,
   type DialogRootProps,
   type IconButtonProps,
@@ -151,18 +149,18 @@ async function settle() {
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
 }
 
-describe('Button과 ActionButton의 클릭과 disabled, loading 상태', () => {
+describe('Button의 클릭과 disabled, loading 상태', () => {
   it.each([
     { title: '활성 버튼은 클릭을 전달한다', loading: false, disabled: false },
     { title: 'disabled 버튼은 클릭을 차단한다', loading: false, disabled: true },
     { title: 'loading만 지정한 버튼은 클릭을 전달한다', loading: true, disabled: false },
     { title: 'loading과 disabled를 함께 지정하면 클릭을 차단한다', loading: true, disabled: true }
   ])('$title', async ({ loading, disabled }) => {
-    const onClick = vi.fn<NonNullable<ActionButtonProps['onClick']>>()
+    const onClick = vi.fn<NonNullable<ButtonProps['onClick']>>()
     await render(
-      <ActionButton loading={loading} disabled={disabled} onClick={onClick}>
+      <Button loading={loading} disabled={disabled} onClick={onClick}>
         실행
-      </ActionButton>
+      </Button>
     )
     const button = getByRole('button', '실행')
 
@@ -364,10 +362,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     )
   })
 
-  it.each([
-    { title: 'render', compose: 'render' },
-    { title: '이행 중 asChild', compose: 'asChild' }
-  ])('합성 방식 $title: Typo input에 label과 값이 연결된다', async ({ compose }) => {
+  it('render로 합성한 Typo input에 label과 값이 연결된다', async () => {
     const ref = createRef<HTMLInputElement>()
     function SearchField() {
       const [query, setQuery] = useState('')
@@ -379,11 +374,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value={query}
           onValueChange={({ value }) => setQuery(value)}
         >
-          {compose === 'render' ? (
-            <TextFieldInput render={input} />
-          ) : (
-            <TextFieldInput asChild>{input}</TextFieldInput>
-          )}
+          <TextFieldInput render={input} />
         </TextField>
       )
     }
@@ -405,9 +396,7 @@ type DialogExampleProps = Pick<
 function DialogExample(props: DialogExampleProps) {
   return (
     <DialogRoot {...props}>
-      <DialogTrigger asChild>
-        <Button>상세 정보 열기</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button />}>상세 정보 열기</DialogTrigger>
       <DialogContent title="상세 정보" description="입력한 내용을 확인해 주세요.">
         <DialogAction>확인하고 닫기</DialogAction>
       </DialogContent>
@@ -615,41 +604,31 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     expect(onClick).not.toHaveBeenCalled()
   })
 
-  it.each([
-    { title: 'render', compose: 'render' },
-    { title: '이행 중 asChild', compose: 'asChild' }
-  ])(
-    'DialogTrigger 합성 방식 $title: dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다',
-    async ({ compose }) => {
-      const icon = <IconButton aria-label="설정" icon={<SettingsIcon />} />
-      await render(
-        <DialogRoot>
-          {compose === 'render' ? (
-            <DialogTrigger render={icon} />
-          ) : (
-            <DialogTrigger asChild>{icon}</DialogTrigger>
-          )}
-          <DialogContent title="설정">
-            <DialogAction>닫기</DialogAction>
-          </DialogContent>
-        </DialogRoot>
-      )
-      const trigger = getByRole('button', '설정')
-      expect(allByRole('button').length).toBe(1)
-      expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
-      trigger.focus()
+  it('render로 합성한 DialogTrigger는 dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다', async () => {
+    const icon = <IconButton aria-label="설정" icon={<SettingsIcon />} />
+    await render(
+      <DialogRoot>
+        <DialogTrigger render={icon} />
+        <DialogContent title="설정">
+          <DialogAction>닫기</DialogAction>
+        </DialogContent>
+      </DialogRoot>
+    )
+    const trigger = getByRole('button', '설정')
+    expect(allByRole('button').length).toBe(1)
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
+    trigger.focus()
 
-      await click(trigger)
-      const dialog = getByRole('dialog', '설정')
-      expect(trigger.getAttribute('aria-expanded')).toBe('true')
-      await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+    await click(trigger)
+    const dialog = getByRole('dialog', '설정')
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
 
-      await press(document.activeElement as HTMLElement, 'Escape')
+    await press(document.activeElement as HTMLElement, 'Escape')
 
-      await vi.waitFor(() => expect(queryByRole('dialog')).toBeNull())
-      await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
-    }
-  )
+    await vi.waitFor(() => expect(queryByRole('dialog')).toBeNull())
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
 })
 
 const servers = [
@@ -957,12 +936,12 @@ describe('Switch, Checkbox, Chip의 켜짐 상태', () => {
   })
 })
 
-describe('StatusChip과 StatusBadge의 상태 알림 범위', () => {
+describe('StatusChip의 상태 알림 범위', () => {
   it('호출자가 status 영역을 요청하면 상태 글자만 알린다', async () => {
     await render(
-      <StatusBadge tone="positive" role="status">
+      <StatusChip tone="success" role="status">
         창 감지됨
-      </StatusBadge>
+      </StatusChip>
     )
 
     expect(getByRole('status').textContent).toBe('창 감지됨')

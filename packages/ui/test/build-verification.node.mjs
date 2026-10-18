@@ -30,7 +30,7 @@ async function createLibraryFixture(context) {
     join(output, 'typo.js'),
     `import { jsx } from 'react/jsx-runtime';\nexport const Typo = jsx;\n`
   )
-  await writeFile(join(output, 'index.d.ts'), 'export declare const ActionButton: unknown;\n')
+  await writeFile(join(output, 'index.d.ts'), 'export declare const Button: unknown;\n')
   await writeFile(join(output, 'typo.d.ts'), 'export declare const Typo: unknown;\n')
   await writeFile(
     join(output, 'tokens.stylex.d.ts'),
