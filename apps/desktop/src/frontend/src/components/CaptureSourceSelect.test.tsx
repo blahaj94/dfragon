@@ -71,6 +71,10 @@ function searchingNotice(): HTMLElement {
   return document.querySelector<HTMLElement>('[role="menu"] [role="status"]')!
 }
 
+function announcer(): HTMLElement {
+  return document.querySelector<HTMLElement>('[data-capture-announcer]')!
+}
+
 function retryProgress(): HTMLElement | null {
   return document.querySelector<HTMLElement>('[data-retry-progress]')
 }
@@ -98,8 +102,9 @@ it.each([
     expect(button.getAttribute('aria-haspopup')).toBe('dialog')
     const status = button.querySelector(`[data-tone="${tone}"]`)!
     expect(status.textContent).toBe(label)
-    // 상단 바의 칩은 상태가 바뀔 때마다 읽지 않는다. 알림은 대화상자 안의 칩만 한다.
-    expect(document.querySelector('[role="status"], [aria-live]')).toBeNull()
+    // 상단 바의 칩은 상태가 바뀔 때마다 읽지 않는다. 대화상자를 닫은 동안의 알림은 화면 밖 캡처
+    // 안내 하나만 한다.
+    expect([...document.querySelectorAll('[role="status"], [aria-live]')]).toEqual([announcer()])
     expect(document.querySelector('kbd')).toBeNull()
   }
 )
@@ -314,8 +319,8 @@ it('확인 필요 안내 앞에만 주의 칸을 두고, 창을 고르기 전에
 })
 
 it('창을 찾는 동안 재조회 진행 막대가 마지막 조회 완료부터 15초 주기로 차고 새 조회 때 다시 시작한다', async () => {
-  const start = Date.parse('2026-10-19T12:00:00Z')
-  const now = vi.spyOn(Date, 'now').mockReturnValue(start)
+  const start = 120_000
+  const now = vi.spyOn(performance, 'now').mockReturnValue(start)
   props.phase = 'idle'
   props.selectedSourceId = ''
   props.sources = []
@@ -352,4 +357,50 @@ it('던파 창이 있거나 조회가 실패하면 찾는 중 안내와 진행 �
   await click(trigger())
   expect(retryProgress()).toBeNull()
   expect(document.body.textContent).toContain('창 목록을 불러오지 못했습니다')
+})
+
+it('대화상자를 닫은 동안 화면 밖 안내가 캡처 문구를 알리고, 연 동안에는 대화상자 안 안내만 알린다', async () => {
+  props.phase = 'unavailable'
+  props.status = '게임 창이 가려져 있습니다. 게임 창을 앞으로 가져온 뒤 Alt+R을 누르세요.'
+  await render()
+  expect(announcer().textContent).toBe(props.status)
+  expect(announcer().closest('[aria-hidden="true"], [inert]')).toBeNull()
+  await click(chip())
+  // 모달이 바깥을 가리므로 화면 밖 안내는 보조 기술에서 빠지고 대화상자 안 안내가 같은 문구를 알린다.
+  expect(announcer().closest('[aria-hidden="true"], [inert]')).not.toBeNull()
+  expect(dialog().querySelector('p[role="status"]')?.textContent).toBe(`!${props.status}`)
+  await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="닫기"]')!)
+  await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
+  props.phase = 'failed'
+  props.status = '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.'
+  await render()
+  expect(announcer().textContent).toBe(props.status)
+})
+
+it('캡처가 실패로 끝나면 창 감지 대신 위험 톤의 캡처 실패와 실패 안내를 보인다', async () => {
+  props.phase = 'failed'
+  props.status = '게임 창을 선택하지 못했습니다. 창을 다시 선택해 주세요.'
+  await render()
+  expect(chip().getAttribute('aria-label')).toBe('화면 캡처, 캡처 실패')
+  expect(chip().querySelector('[data-tone]')?.getAttribute('data-tone')).toBe('danger')
+  await click(chip())
+  const notice = dialog().querySelector<HTMLElement>('p[role="status"]')!
+  const failureMark = notice.querySelector('[role="img"]')!
+  expect(failureMark.getAttribute('aria-label')).toBe('실패')
+  expect(notice.textContent).toBe(`!${props.status}`)
+  // 실패 `!` 칸은 확인 필요의 주의 색 칸과 다른 위험 색이다.
+  const failureClass = failureMark.className
+  props.phase = 'unavailable'
+  await render()
+  const warningMark = dialog().querySelector('p[role="status"] [role="img"]')!
+  expect(warningMark.getAttribute('aria-label')).toBe('주의')
+  expect(warningMark.className).not.toBe(failureClass)
+  props.phase = 'failed'
+  await render()
+  const corner = dialog().querySelector<HTMLElement>(':scope > [aria-hidden="true"]')!
+  expect(corner.dataset.tone).toBe('danger')
+  // 등록한 창이 남아 있으므로 캡처를 멈출 수 있다.
+  expect(
+    [...dialog().querySelectorAll('button')].some((button) => button.textContent === '캡처 중지')
+  ).toBe(true)
 })
