@@ -9,8 +9,8 @@ import type { WindowChromeApi } from '../../../preload/common/types/window-chrom
 
 let container: HTMLDivElement
 let root: Root
-function Harness(): React.JSX.Element {
-  const { collapsed, toggleCollapsed } = usePartyCollapse()
+function Harness({ collapsedHeight }: { collapsedHeight?: number }): React.JSX.Element {
+  const { collapsed, toggleCollapsed } = usePartyCollapse(collapsedHeight)
 
   return <button type="button" aria-expanded={!collapsed} onClick={toggleCollapsed} />
 }
@@ -77,6 +77,32 @@ it('접으면 카드 전환이 끝난 뒤 창을 400으로 줄이고, 펼치면 
   await act(async () => vi.advanceTimersByTime(0))
   expect(isCollapsed()).toBe(false)
   expect(setContentHeight.mock.calls).toEqual([[400], [800]])
+})
+
+it('공대 화면은 접으면 카드 전환 뒤 창을 560으로 줄이고, 접은 채 화면을 바꾸면 그 화면의 접은 높이로 바로 맞춘다', async () => {
+  const setContentHeight = vi.fn(async () => {})
+  installApi(setContentHeight)
+  await act(async () => root.render(<Harness collapsedHeight={560} />))
+
+  await act(async () => toggle())
+  await act(async () => vi.advanceTimersByTime(PARTY_COLLAPSE_TRANSITION_MS - 1))
+  expect(setContentHeight).not.toHaveBeenCalled()
+  await act(async () => vi.advanceTimersByTime(1))
+  expect(setContentHeight.mock.calls).toEqual([[560]])
+
+  await act(async () => root.render(<Harness collapsedHeight={400} />))
+  await act(async () => vi.advanceTimersByTime(0))
+  expect(setContentHeight.mock.calls).toEqual([[560], [400]])
+  await act(async () => root.render(<Harness collapsedHeight={560} />))
+  await act(async () => vi.advanceTimersByTime(0))
+  expect(setContentHeight.mock.calls).toEqual([[560], [400], [560]])
+
+  // 펼친 동안 화면을 바꾸면 창 높이는 800 그대로다.
+  await act(async () => toggle())
+  await act(async () => vi.advanceTimersByTime(0))
+  await act(async () => root.render(<Harness collapsedHeight={400} />))
+  await act(async () => vi.runAllTimers())
+  expect(setContentHeight.mock.calls).toEqual([[560], [400], [560], [800]])
 })
 
 it('동작 줄이기 설정에서는 접을 때도 기다리지 않고 창을 줄인다', async () => {
