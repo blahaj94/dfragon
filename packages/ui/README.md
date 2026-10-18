@@ -17,7 +17,7 @@
 | `DialogRoot`, `DialogTrigger`, `DialogContent`, `DialogBody`, `DialogFooter`, `DialogAction` | `Dialog` | 기본은 바깥 누름으로 닫지 않는다(`disablePointerDismissal` 기본 `true`). `DialogContent`가 Portal, Backdrop, Popup과 제목, 설명, 닫기 버튼을 둔다. Dialog 안에 펼친 메뉴, 목록에서 누른 Escape는 그 목록만 닫는다. |
 | `StatusChip` | `span` | tone `neutral`, `success`(옅은 성공 면), `danger`(옅은 위험 면), `waiting`(면 없이 `fg.subtle`과 각진 모래시계). `size` `sm`은 높이 24 칩, `md`는 상단 바 게임 연결 상태의 높이 28, 오른쪽 위를 자른 칩이다. 상태 변화를 알릴 곳만 `role="status"`를 넘긴다. |
 | `LoadingIndicator`, `ProgressCircle` | 자체 SVG | 값이 없으면 `steps()`로 끊어 도는 호, 있으면 진행 호. |
-| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 꺾쇠만 바꾸고 사선은 화면이 그림 칸에 `shapes.hazardStripes`로 깐다), Barlow Condensed 숫자와 400ms 증가. |
+| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 꺾쇠만 바꾸고 사선은 화면이 그림 칸에 `shapes.hazardStripes`로 깐다. `top`, `ranker`는 `motion.cycle` 주기의 6~30%에 옅은 단계 색 빛줄기가 카드를 지나가고, `ranker`는 카드에 `shapes.scanlines`를 깐다. 동작 줄이기에서는 빛줄기를 그리지 않는다), Barlow Condensed 숫자와 400ms 증가. |
 | `ContentStack`, `ExampleSection`, `SupportingText` | plain | 예제와 단순 화면의 세로 묶음, 제목, 보조 글자. |
 | `Typo` | plain | 아래 [Typo](#typo). |
 
