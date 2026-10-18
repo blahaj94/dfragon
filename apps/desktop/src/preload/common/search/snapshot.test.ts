@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { parseSearchSnapshot } from './snapshot'
-import { searchRow, searchSlot, withSearchSlot } from '../../api/search-test-fixture'
+import { parseSearchResult, parseSearchSnapshot } from './snapshot'
+import {
+  searchRow,
+  searchSlot,
+  searchSnapshot,
+  withSearchSlot
+} from '../../api/search-test-fixture'
+import { SEARCH_SLOT_COUNTS } from '../types/search'
 
 const selected = {
   ...searchRow,
@@ -92,5 +98,29 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
         withSearchSlot(searchSlot({ state: 'success', rows: [searchRow, searchRow], selected }))
       )
     ).toBeNull()
+  })
+})
+
+describe('검색 수명별 슬롯 수', () => {
+  const raidSnapshot = searchSnapshot({
+    slots: Array.from({ length: SEARCH_SLOT_COUNTS.raid }, (_, slot) => ({
+      ...searchSnapshot().slots[0],
+      slot
+    }))
+  })
+
+  it('공대 채널은 순서대로 놓인 12자리만 받는다', () => {
+    expect(parseSearchSnapshot(raidSnapshot, SEARCH_SLOT_COUNTS.raid)).toEqual(raidSnapshot)
+    expect(
+      parseSearchResult({ ok: true, snapshot: raidSnapshot }, SEARCH_SLOT_COUNTS.raid)
+    ).toEqual({ ok: true, snapshot: raidSnapshot })
+    expect(parseSearchSnapshot(searchSnapshot(), SEARCH_SLOT_COUNTS.raid)).toBeNull()
+    const reversed = { ...raidSnapshot, slots: [...raidSnapshot.slots].reverse() }
+    expect(parseSearchSnapshot(reversed, SEARCH_SLOT_COUNTS.raid)).toBeNull()
+  })
+
+  it('파티 채널은 12자리 snapshot을 받지 않는다', () => {
+    expect(parseSearchSnapshot(raidSnapshot)).toBeNull()
+    expect(parseSearchResult({ ok: true, snapshot: raidSnapshot })).toBeNull()
   })
 })

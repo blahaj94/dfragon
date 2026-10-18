@@ -4,7 +4,11 @@ import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
-import type { ManualSearchApi, SearchCommandResult } from '../../../preload/common/types/search'
+import {
+  SEARCH_SLOT_COUNTS,
+  type ManualSearchApi,
+  type SearchCommandResult
+} from '../../../preload/common/types/search'
 
 let current: ReturnType<typeof useManualCharacterLookup>
 let root: ReturnType<typeof createRoot>
@@ -16,7 +20,7 @@ const api: ManualSearchApi = {
 }
 
 function Harness(): null {
-  const value = useManualCharacterLookup()
+  const value = useManualCharacterLookup(api, SEARCH_SLOT_COUNTS.party)
   useLayoutEffect(() => {
     current = value
   })

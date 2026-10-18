@@ -11,7 +11,10 @@ const portrait = {
 }
 const policy = { maxMeanChannelError: 0, minCoverage: 1, minComparedPixels: 1 }
 
-async function selectedFixture(searchKind: 'capture' | 'manual' = 'capture'): Promise<
+async function selectedFixture(
+  searchKind: 'capture' | 'manual' | 'raid' = 'capture',
+  slot = 0
+): Promise<
   Awaited<ReturnType<typeof createSearchFixture>> & {
     reference: CharacterSelectionReference
     details: CharacterDetails
@@ -89,18 +92,18 @@ async function selectedFixture(searchKind: 'capture' | 'manual' = 'capture'): Pr
       portrait
     })
   } else {
-    await fixture.invoke('controlManualSearch', {
+    await fixture.invoke(searchKind === 'raid' ? 'controlRaidSearch' : 'controlManualSearch', {
       action: 'lookup',
       captureId: fixture.captureId,
-      slot: 0,
+      slot,
       observationRevision: 1,
       nickname: '가나',
       serverId: 'cain'
     })
   }
-  await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
-  const requestId = (await fixture.read()).slots[0].requestId!
-  const reference = { captureId: fixture.captureId, slot: 0, requestId }
+  await vi.waitFor(async () => expect((await fixture.read()).slots[slot].state).toBe('success'))
+  const requestId = (await fixture.read()).slots[slot].requestId!
+  const reference = { captureId: fixture.captureId, slot, requestId }
 
   return { ...fixture, reference, details, openSelected }
 }
@@ -115,6 +118,26 @@ describe('현재 선택으로만 여는 상세 창 IPC', () => {
     await fixture.invoke('controlManualSearch', { action: 'end', captureId: fixture.captureId })
     expect(isCurrent()).toBe(false)
     expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: false })
+    expect(fixture.openSelected).toHaveBeenCalledTimes(1)
+  })
+
+  it('공대 12번째 자리의 선택도 열고 그 자리를 다시 조회하면 이전 참조를 거절한다', async () => {
+    const fixture = await selectedFixture('raid', 11)
+    expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: true })
+    expect(fixture.openSelected.mock.calls[0][1]).toEqual(fixture.details)
+    const isCurrent = fixture.openSelected.mock.calls[0][2]
+    expect(isCurrent()).toBe(true)
+    await fixture.invoke('controlRaidSearch', {
+      action: 'clear',
+      captureId: fixture.captureId,
+      slot: 11,
+      observationRevision: 2
+    })
+    expect(isCurrent()).toBe(false)
+    expect(await fixture.invoke('openCharacterDetails', fixture.reference)).toEqual({ ok: false })
+    expect(
+      await fixture.invoke('openCharacterDetails', { ...fixture.reference, slot: 12 })
+    ).toEqual({ ok: false })
     expect(fixture.openSelected).toHaveBeenCalledTimes(1)
   })
 
