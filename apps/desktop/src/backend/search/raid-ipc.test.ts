@@ -212,8 +212,20 @@ function ocr(captureId: string, slot: number, observationRevision = 1, nickname 
   }
 }
 
-it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 명성 캐릭터를 고르고 범위 밖은 HTTP 전에 거절한다', async () => {
+// 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다. OCR 관측은 이 창 선택에 묶인다.
+const CAPTURE_SOURCE = 'window:search-fixture'
+async function createRaidRoundFixture() {
   const fixture = await createSearchFixture(false, 'raid', policy)
+  await fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
+  const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
+    snapshot: { captureId: string }
+  }
+
+  return { ...fixture, captureId: begun.snapshot.captureId }
+}
+
+it('공대 OCR 관측은 12번째 자리까지 받아 이름 후보 중 최고 명성 캐릭터를 고르고 범위 밖은 HTTP 전에 거절한다', async () => {
+  const fixture = await createRaidRoundFixture()
   for (const slot of [-1, 12, 1.5]) {
     expect(
       await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, slot))
@@ -286,7 +298,7 @@ it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이�
 })
 
 it('새 공대 회차가 수명을 다시 시작하면 이전 회차의 늦은 식별 결과를 버린다', async () => {
-  const fixture = await createSearchFixture(false, 'raid', policy)
+  const fixture = await createRaidRoundFixture()
   const response = deferred<Response>()
   fixture.fetchSearch.mockReturnValueOnce(response.promise)
   await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3))
@@ -304,4 +316,115 @@ it('새 공대 회차가 수명을 다시 시작하면 이전 회차의 늦은 �
   await new Promise((resolve) => setTimeout(resolve, 0))
   expect(await fixture.read()).toEqual(next)
   expect(next.slots[3].state).toBe('idle')
+})
+
+it.each([
+  ['게임 창 다시 선택', CAPTURE_SOURCE],
+  ['캡처 중지', '']
+])(
+  '%s 뒤에는 공대 회차의 늦은 OCR 결과와 이전 회차의 OCR 통지를 버리고 직접 조회한 자리는 유지한다',
+  async (_change, nextSource) => {
+    const fixture = await createRaidRoundFixture()
+    // 5번 자리는 사용자가 서버와 이름으로 직접 조회해 끝냈다.
+    respondFound(fixture)
+    await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 5))
+    await vi.waitFor(async () => expect((await fixture.read()).slots[5].state).toBe('success'))
+    // 3번 자리는 회차의 OCR 이름으로 후보를 찾는 중이다.
+    const response = deferred<Response>()
+    fixture.fetchSearch.mockReturnValueOnce(response.promise)
+    await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 3))
+    await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(3))
+    const request = new Request(...fixture.fetchSearch.mock.calls[2])
+
+    await fixture.invoke('selectCaptureSource', nextSource)
+
+    expect(request.signal.aborted).toBe(true)
+    const afterChange = await fixture.read()
+    expect(afterChange.captureId).toBe(fixture.captureId)
+    expect(afterChange.slots[3].state).toBe('idle')
+    expect(afterChange.slots[5]).toMatchObject({
+      state: 'success',
+      selectionMethod: 'manual',
+      selected: { characterName: '가나' }
+    })
+    // 이전 창으로 시작한 회차의 늦은 OCR 통지는 받지 않는다.
+    expect(
+      await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 4))
+    ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+    response.resolve(jsonResponse({ body: { rows: [{ ...candidate, imageUrl }] } }))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(await fixture.read()).toEqual(afterChange)
+    expect(fixture.fetchSearch).toHaveBeenCalledTimes(3)
+
+    // 직접 조회는 창과 무관해 같은 수명에서 계속 쓸 수 있다.
+    respondFound(fixture)
+    await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 6))
+    await vi.waitFor(async () => expect((await fixture.read()).slots[6].state).toBe('success'))
+  }
+)
+
+it('창 선택을 시작하면 그 사이에 도착한 늦은 OCR 응답도 반영하지 않는다', async () => {
+  const fixture = await createRaidRoundFixture()
+  const response = deferred<Response>()
+  fixture.fetchSearch.mockReturnValueOnce(response.promise)
+  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 2))
+  await vi.waitFor(() => expect(fixture.fetchSearch).toHaveBeenCalledTimes(1))
+
+  // 창 선택이 진행 중인 동안(등록 완료 전) 도착한 응답도 버린다.
+  const pendingSources = deferred<{ id: string; name: string }[]>()
+  fixture.getSources.mockReturnValueOnce(pendingSources.promise)
+  const selecting = fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
+  response.resolve(jsonResponse({ body: { rows: [{ ...candidate, imageUrl }] } }))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect((await fixture.read()).slots[2].state).not.toBe('success')
+  pendingSources.resolve([{ id: CAPTURE_SOURCE, name: 'Synthetic search window' }])
+  await selecting
+  expect((await fixture.read()).slots[2].state).toBe('idle')
+})
+
+it('창을 바꾼 뒤에는 이전 회차의 OCR 실패를 다시 시도하지 않고 직접 조회한 실패는 다시 시도한다', async () => {
+  const fixture = await createRaidRoundFixture()
+  const failure = () =>
+    jsonResponse({ status: 503, body: { error: { code: 'NEOPLE_UNAVAILABLE', message: '' } } })
+  fixture.fetchSearch.mockResolvedValueOnce(failure()).mockResolvedValueOnce(failure())
+  await fixture.invoke('notifyRaidOcrCandidatesDetected', ocr(fixture.captureId, 1))
+  await fixture.invoke('controlRaidSearch', lookup(fixture.captureId, 2))
+  await vi.waitFor(async () => {
+    const slots = (await fixture.read()).slots
+    expect([slots[1].state, slots[2].state]).toEqual(['failure', 'failure'])
+  })
+  const failed = (await fixture.read()).slots
+
+  await fixture.invoke('selectCaptureSource', CAPTURE_SOURCE)
+  const calls = fixture.fetchSearch.mock.calls.length
+
+  expect(
+    await fixture.invoke('controlRaidSearch', {
+      action: 'retry',
+      captureId: fixture.captureId,
+      slot: 1,
+      requestId: failed[1].requestId
+    })
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  // 거절한 뒤에도 그 자리는 OCR 기원을 잃지 않아 다시 시도해도 같은 이유로 거절된다.
+  expect(
+    await fixture.invoke('controlRaidSearch', {
+      action: 'retry',
+      captureId: fixture.captureId,
+      slot: 1,
+      requestId: failed[1].requestId
+    })
+  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  expect(fixture.fetchSearch).toHaveBeenCalledTimes(calls)
+  expect((await fixture.read()).slots[1].state).toBe('failure')
+  respondFound(fixture)
+  expect(
+    await fixture.invoke('controlRaidSearch', {
+      action: 'retry',
+      captureId: fixture.captureId,
+      slot: 2,
+      requestId: failed[2].requestId
+    })
+  ).toMatchObject({ ok: true })
+  await vi.waitFor(async () => expect((await fixture.read()).slots[2].state).toBe('success'))
 })
