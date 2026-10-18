@@ -144,7 +144,8 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
       </ColorThemeProvider>
     )
   )
-  await click('설정')
+  // 다시 렌더링해도 설정 dialog는 열린 채로 남는다. 열린 modal 뒤의 trigger는 누를 수 없다.
+  expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await click('개발자 모드')
   expect(developerSwitch()?.checked).toBe(true)
   await click('개발 도구 열기')

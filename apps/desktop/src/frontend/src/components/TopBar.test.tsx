@@ -48,7 +48,7 @@ it('상단 바는 로고, 상태, 카메라, 테마, 로그인, 설정 순서로
   expect([mark.width, mark.height]).toEqual([24, 24])
   const name = mark.nextElementSibling!
   expect(name.textContent).toBe('DFragon')
-  const badge = header.querySelector('[class*="tone_informative"]')!
+  const badge = header.querySelector('[data-tone]')!
   const buttons = [...header.querySelectorAll('button')]
   expect(buttons.map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual([
     '화면 캡처',
@@ -64,16 +64,17 @@ it('상단 바는 로고, 상태, 카메라, 테마, 로그인, 설정 순서로
   }
 })
 
+// 이전 tone 이름은 StatusChip tone으로 바뀌어 표시된다. 주의 상태는 따로 색을 두지 않고 waiting이다.
 it.each([
-  ['캡처 중', 'informative'],
-  ['준비 중', 'neutral'],
-  ['창 미감지', 'warning'],
-  ['조회 실패', 'critical'],
-  ['창 감지됨', 'positive']
-] as const)('상태 %s와 tone %s를 live region 없이 표시한다', async (label, tone) => {
+  ['캡처 중', 'informative', 'neutral'],
+  ['준비 중', 'neutral', 'neutral'],
+  ['창 미감지', 'warning', 'waiting'],
+  ['조회 실패', 'critical', 'danger'],
+  ['창 감지됨', 'positive', 'success']
+] as const)('상태 %s와 tone %s를 live region 없이 표시한다', async (label, tone, chipTone) => {
   await render({ captureStatus: { label, tone } })
   const header = container.querySelector('header')!
-  const badge = header.querySelector(`[class*="tone_${tone}"]`)!
+  const badge = header.querySelector(`[data-tone="${chipTone}"]`)!
   expect(badge.textContent).toBe(label)
   expect(badge.getAttribute('role')).toBeNull()
   expect(header.querySelector('[role="status"], [aria-live]')).toBeNull()

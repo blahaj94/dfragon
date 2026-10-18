@@ -68,7 +68,8 @@ afterEach(async () => {
 })
 
 function button(label: string): HTMLButtonElement {
-  const result = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+  // 설정 dialog는 body의 portal에 그려지므로 문서 전체에서 찾는다.
+  const result = [...document.querySelectorAll<HTMLButtonElement>('button')].find(
     (candidate) =>
       candidate.getAttribute('aria-label') === label || candidate.textContent?.includes(label)
   )
@@ -84,7 +85,7 @@ async function click(label: string): Promise<void> {
 }
 
 async function toggle(label: string): Promise<void> {
-  const input = [...container.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
+  const input = [...document.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
     (candidate) => candidate.labels?.[0]?.textContent === label
   )
   if (input == null) {
