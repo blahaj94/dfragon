@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import type { CharacterSummary } from '../../../preload/common/types/character'
+import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
 import {
   canRetryCharacterSlot,
@@ -8,7 +8,7 @@ import {
   toCharacterCard
 } from './character-card'
 
-const summary: CharacterSummary = {
+const summary: SelectedCharacterSummary = {
   characterId: 'fixture-character',
   characterName: '실제이름',
   serverId: 'cain',
@@ -18,7 +18,10 @@ const summary: CharacterSummary = {
   jobGrowName: null,
   level: 115,
   fame: 0,
-  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1'
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1',
+  guildName: null,
+  equipmentScore: null,
+  serverRank: null
 }
 
 it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만들어내지 않는다', () => {
@@ -26,10 +29,13 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만�
     characterId: 'fixture-character',
     name: '실제이름',
     serverId: 'cain',
-    adventure: '—',
+    adventure: '-',
     job: '직업',
     level: 115,
     fame: 0,
+    guild: null,
+    equipmentScore: null,
+    serverRank: null,
     image: summary.imageUrl,
     equipment: [],
     oath: []
@@ -37,8 +43,11 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만�
   expect(toCharacterCard({ ...summary, fame: null, level: null, jobName: null })).toMatchObject({
     fame: null,
     level: null,
-    job: '—'
+    job: '-'
   })
+  expect(
+    toCharacterCard({ ...summary, guildName: '길드', equipmentScore: 414806, serverRank: 37 })
+  ).toMatchObject({ guild: '길드', equipmentScore: 414806, serverRank: 37 })
   expect(toCharacterCard(undefined)).toBeNull()
   expect(toCharacterCard({ ...summary, serverId: 'unknown' })).toBeNull()
 })

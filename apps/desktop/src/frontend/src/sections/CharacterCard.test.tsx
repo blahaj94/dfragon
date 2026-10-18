@@ -266,7 +266,7 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(terms.map((term) => term.textContent)).toEqual(['명성', '장비 점수'])
   const [fame, score] = terms.map((term) => term.nextElementSibling!)
   expect(fame.querySelector('[aria-hidden="true"]')?.textContent).toBe('0')
-  expect(score.textContent).toBe('—')
+  expect(score.textContent).toBe('-')
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
   expect(card().textContent).toContain('서버 순위 18240위')
@@ -275,6 +275,19 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(card().querySelectorAll('dd')[1].querySelector('[aria-hidden="true"]')?.textContent).toBe(
     '414,806'
   )
+})
+
+it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 0이나 빈칸 대신 -로 보인다', async () => {
+  await render({
+    state: 'success',
+    character: { ...found, guild: null, serverRank: null, fame: null, equipmentScore: null }
+  })
+  const values = [...card().querySelectorAll('dd')]
+  expect(values.map((value) => value.textContent)).toEqual(['-', '-'])
+  expect(values.some((value) => value.querySelector('[aria-hidden="true"]') != null)).toBe(false)
+  expect(card().textContent).toContain('찾은모험단-')
+  expect(card().textContent).toContain('서버 순위 없음')
+  expect(card().textContent).not.toContain('#')
 })
 
 it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단계 이름을 보조 기술에 전한다', async () => {

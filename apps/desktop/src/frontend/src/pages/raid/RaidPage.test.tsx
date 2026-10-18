@@ -161,6 +161,16 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 상세 열�
   expect(detail).toHaveBeenCalledExactlyOnceWith(0)
 })
 
+it('검색 응답에 없는 길드, 서버 순위, 장비 점수는 -로 보인다', async () => {
+  await render({
+    characters: [{ ...member, guild: null, serverRank: null, equipmentScore: null, fame: null }]
+  })
+  const first = cards()[0]
+  expect([...first.querySelectorAll('dd')].map((value) => value.textContent)).toEqual(['-', '-'])
+  expect(first.textContent).toContain('서버 순위 없음')
+  expect(first.textContent).toContain('공대모험단-')
+})
+
 it('머리의 안내와 숨김 상태를 보이고 접기 버튼이 카드 영역을 가리킨다', async () => {
   const toggle = vi.fn()
   await render({

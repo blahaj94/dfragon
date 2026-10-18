@@ -77,7 +77,12 @@ it('공대 수명은 12자리를 갖고 12번째 자리까지 조회하며 범�
   const snapshot = await fixture.read()
   expect(snapshot.slots[11]).toMatchObject({
     selectionMethod: 'manual',
-    selected: { characterName: '가나' }
+    selected: {
+      characterName: '가나',
+      guildName: '합성길드',
+      equipmentScore: null,
+      serverRank: null
+    }
   })
   expect(snapshot.slots.slice(0, 11).every((slot) => slot.state === 'idle')).toBe(true)
   expect(fixture.published).toHaveBeenCalledWith('raidSearchChanged', snapshot)
