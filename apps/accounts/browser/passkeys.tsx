@@ -1,13 +1,11 @@
 import { Typo } from '@dfragon/ui/typo'
 import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import '@seed-design/css/base.css'
 import '@dfragon/ui/tokens.css'
 import '../../../packages/ui/foundation.css'
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './passkeys.style'
 import { parseReturnTarget } from './return-target'
-import { actionButton } from '@seed-design/css/recipes/action-button'
 import {
   startAuthentication,
   startRegistration,
@@ -24,9 +22,6 @@ const management = root.dataset.purpose === 'manage'
 // 앱에서 다시 시작하라는 안내는 Desktop 로그인에만 맞다. OCR과 관리 화면은 앱 로그인이 아니다.
 const isDesktopLogin = !management && (root.dataset.webReturnUrl ?? '') === ''
 const supportsPasskeys = browserSupportsWebAuthn()
-const primaryButton = actionButton({ variant: 'neutralSolid', size: 'large' })
-const secondaryButton = actionButton({ variant: 'neutralOutline', size: 'large' })
-const removeButton = actionButton({ variant: 'neutralOutline', size: 'medium' })
 const LOGIN_RESTART_MESSAGE = '앱에서 새 로그인을 시작하세요.'
 const LOGIN_REQUEST_INVALID_CODE = 'LOGIN_REQUEST_INVALID'
 
@@ -272,7 +267,13 @@ function PasskeyPage() {
           <div {...stylex.props(styles.actions, styles.signupActions)}>
             <button
               id="signup-passkey"
-              className={`${primaryButton} ${stylex.props(styles.button, styles.action).className}`}
+              {...stylex.props(
+                styles.button,
+                styles.control,
+                styles.large,
+                styles.primary,
+                styles.action
+              )}
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('register'))}
             >
@@ -296,7 +297,13 @@ function PasskeyPage() {
           <div {...stylex.props(!management && styles.actions)}>
             <button
               id="authenticate"
-              className={`${primaryButton} ${stylex.props(styles.button, !management && styles.action).className}`}
+              {...stylex.props(
+                styles.button,
+                styles.control,
+                styles.large,
+                styles.primary,
+                !management && styles.action
+              )}
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('authenticate'))}
             >
@@ -308,7 +315,13 @@ function PasskeyPage() {
           {!management && (
             <button
               id="register"
-              className={`${secondaryButton} ${stylex.props(styles.button, styles.register).className}`}
+              {...stylex.props(
+                styles.button,
+                styles.control,
+                styles.large,
+                styles.secondary,
+                styles.register
+              )}
               disabled={busy}
               onClick={() => {
                 setStatus({ message: supportsPasskeys ? '' : unsupportedMessage })
@@ -339,7 +352,7 @@ function PasskeyPage() {
                   {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '아직 없음'}
                 </Typo.txtM>
                 <button
-                  className={`${removeButton} ${stylex.props(styles.button).className}`}
+                  {...stylex.props(styles.button, styles.control, styles.medium, styles.secondary)}
                   disabled={busy || screen.keys.length === 1}
                   onClick={() => void run(() => removeKey(key))}
                 >
@@ -352,7 +365,7 @@ function PasskeyPage() {
           </ul>
           <button
             id="add"
-            className={`${primaryButton} ${stylex.props(styles.button).className}`}
+            {...stylex.props(styles.button, styles.control, styles.large, styles.primary)}
             disabled={busy || !supportsPasskeys}
             onClick={() => void run(() => authenticate('add'))}
           >
@@ -366,7 +379,7 @@ function PasskeyPage() {
           </Typo.txtM>
           <button
             id="end"
-            className={`${secondaryButton} ${stylex.props(styles.button).className}`}
+            {...stylex.props(styles.button, styles.control, styles.large, styles.secondary)}
             disabled={busy}
             onClick={() =>
               void run(async () => {
@@ -386,7 +399,13 @@ function PasskeyPage() {
           <Typo.txtM {...stylex.props(styles.completeHeading)}>인증 완료</Typo.txtM>
           <a
             id="return"
-            className={`${secondaryButton} ${stylex.props(styles.button, styles.returnButton).className}`}
+            {...stylex.props(
+              styles.button,
+              styles.control,
+              styles.large,
+              styles.secondary,
+              styles.returnButton
+            )}
             href={screen.returnUrl}
           >
             <Typo.txtM as="span" weight={700}>
