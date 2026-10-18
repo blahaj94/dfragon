@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, motion, space } from './tokens.stylex'
+import { colors, motion, size, space } from './tokens.stylex'
 
 export const styles = stylex.create({
   list: {
@@ -43,5 +43,31 @@ export const styles = stylex.create({
     transitionProperty: 'left, width',
     transitionDuration: motion.durHover,
     transitionTimingFunction: motion.ease
-  }
+  },
+  // 카드 면 탭. 카드 아래 높이 40 줄을 탭이 나눠 채우고 위쪽 1px 선 위에 현재 탭 선을 둔다.
+  cardList: {
+    gap: 0,
+    borderBottomWidth: 0,
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
+    borderTopColor: colors.cardBorder
+  },
+  cardTab: {
+    flex: '1 1 0',
+    minWidth: 0,
+    justifyContent: 'center',
+    height: size.controlMd,
+    paddingInline: space.s4,
+    fontSize: 13,
+    color: {
+      default: colors.cardFgSubtle,
+      ':hover': colors.cardFg,
+      ':is([data-active])': colors.cardFg,
+      ':is([data-disabled])': colors.cardBorderStrong
+    },
+    outlineColor: colors.cardSignal,
+    // 카드 바깥과 옆 탭으로 넘치지 않게 포커스 선을 탭 안쪽에 그린다.
+    outlineOffset: -2
+  },
+  cardIndicator: { top: -1, bottom: 'auto', backgroundColor: colors.cardSignal }
 })

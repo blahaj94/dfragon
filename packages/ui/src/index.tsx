@@ -5,6 +5,7 @@ export { IconButton } from './icon-button'
 export type { IconButtonProps } from './icon-button'
 export { TextField, TextFieldInput } from './text-field'
 export type { TextFieldInputProps, TextFieldProps, TextFieldValueChangeDetails } from './text-field'
+export type { ControlSurface } from './surface'
 export { Select } from './select'
 export type {
   SelectGroupLabelProps,

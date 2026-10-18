@@ -38,12 +38,7 @@ function CardFrameImpl({
       'data-state': state,
       ...props,
       ...withForwardedStyle(
-        stylex.props(
-          styles.root,
-          state === 'failure' && styles.failure,
-          isWaiting && styles.waiting,
-          state === 'ranker' && styles.ranker
-        ),
+        stylex.props(styles.root, isWaiting && styles.waiting, state === 'ranker' && styles.ranker),
         { className, style }
       )
     },
@@ -53,4 +48,5 @@ function CardFrameImpl({
 }
 
 // 카드 면과 상태 꺾쇠. 상태 색은 꺾쇠로만 보이고 테두리 전체를 칠하지 않는다.
+// 실패의 사선은 카드 면이 아니라 그림 칸에만 깔므로 화면이 그림 칸에 shapes.hazardStripes를 합성한다.
 export const CardFrame: ComponentType<CardFrameProps> = CardFrameImpl
