@@ -14,15 +14,106 @@ export type CharacterSummary = CharacterIdentity &
     imageUrl: string
   }>
 
+export type CharacterCardRole = 'dealer' | 'buffer'
+export type CharacterScoreCalculator = 'equipment' | 'buff'
+export type CharacterCardPoint = Readonly<{ current: number; min: number; max: number }>
+export type CharacterRarityCount = Readonly<{ rarity: string; count: number }>
+
+export type CharacterCardStats =
+  | Readonly<{
+      role: 'dealer'
+      attackIncrease: number | null
+      amplification: number | null
+      critical: number | null
+      switchingLevel: number | null
+    }>
+  | Readonly<{
+      role: 'buffer'
+      townIntelligence: number | null
+      buff30: number | null
+      buff50: number | null
+      switchingLevel: number | null
+    }>
+
+export type CharacterCardScore = Readonly<{
+  calculator: CharacterScoreCalculator
+  value: number | null
+  skipped: Readonly<{ kind: string; message: string }> | null
+  versions: Readonly<{ package: string; rulesRev: string; bundleId: string }>
+}>
+
+export type CharacterCardInvestment = Readonly<{
+  slotId: string
+  slotName: string
+  itemId: string | null
+  itemName: string | null
+  rarity: string | null
+  reinforce: Readonly<{
+    kind: 'reinforce' | 'amplify'
+    value: number
+    amplificationName: string | null
+  }> | null
+  enchant: Readonly<{
+    status: readonly Readonly<{ name: string; value: number | string }>[]
+    grade: '종결' | '준종결' | '기타' | null
+  }> | null
+}>
+
 /**
- * 검색 슬롯이 카드에 넘기는 선택 요약. 장비 점수와 서버 순위는 API 응답에 대응 필드가 아직 없어
- * main이 null로 보낸다.
+ * API 상세 응답의 카드 투영에 main이 점수 엔진 결과를 채운 값. 모르는 값은 null이며 0이나 빈 값으로
+ * 바꾸지 않는다. 형태는 API 응답의 `card`와 같다.
+ */
+export type CharacterCard = Readonly<{
+  role: CharacterCardRole | null
+  stats: CharacterCardStats | null
+  score: CharacterCardScore | null
+  serverRank: Readonly<{
+    rank: number
+    total: number
+    basis: 'fame'
+    scope: 'stored'
+    observedAt: string
+  }> | null
+  set: Readonly<{
+    setItemId: string
+    name: string
+    rarityName: string | null
+    point: CharacterCardPoint | null
+    imageItemId: string | null
+    slots: readonly Readonly<{ slotId: string; rarity: string | null }>[]
+    rarityCounts: readonly CharacterRarityCount[]
+  }> | null
+  oath: Readonly<{
+    itemId: string
+    name: string
+    rarity: string | null
+    point: number | null
+    setName: string | null
+    optionName: string | null
+    setPoint: CharacterCardPoint | null
+    upgrades: readonly Readonly<{ step: number; stepName: string; optionName: string }>[]
+    crystals: readonly Readonly<{
+      slotNo: number
+      itemId: string
+      name: string
+      rarity: string | null
+      setPoint: number | null
+    }>[]
+    rarityCounts: readonly CharacterRarityCount[]
+  }> | null
+  investment: readonly CharacterCardInvestment[]
+}>
+
+/**
+ * 검색 슬롯이 카드에 넘기는 선택 요약. `card`는 main이 검증하지 못하면 null이고 나머지 요약은 그대로
+ * 보낸다. `equipmentScore`와 `serverRank`는 `card`의 점수 값과 순위를 그대로 옮긴 값이다.
  */
 export type SelectedCharacterSummary = CharacterSummary &
   Readonly<{
     guildName: string | null
     equipmentScore: number | null
     serverRank: number | null
+    card: CharacterCard | null
   }>
 
 export type CharacterCandidate = CharacterSearchRow &
