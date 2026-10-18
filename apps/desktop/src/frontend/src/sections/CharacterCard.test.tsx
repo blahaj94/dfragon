@@ -277,6 +277,32 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   )
 })
 
+it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단계 이름을 보조 기술에 전한다', async () => {
+  await render({ state: 'success', character: found })
+  const defaultValue = card().querySelector('dd')!.className
+  expect(card().textContent).not.toContain('단계')
+
+  await render({ state: 'success', character: { ...found, tier: 'top' } })
+  expect(card().getAttribute('data-state')).toBe('top')
+  expect(card().textContent).toContain('상위 단계')
+  expect(card().textContent).toContain('서버 순위 18240위')
+  const topValue = card().querySelector('dd')!.className
+  expect(topValue).not.toBe(defaultValue)
+
+  await render({ state: 'success', character: { ...found, tier: 'ranker' } })
+  expect(card().getAttribute('data-state')).toBe('ranker')
+  expect(card().textContent).toContain('랭커 단계')
+  expect(card().querySelector('dd')!.className).not.toBe(topValue)
+
+  // 조회 실패에는 단계를 보이지 않고, 이름을 고치면 단계보다 수정 중 표시가 앞선다.
+  await render({ state: 'failure', character: { ...found, tier: 'ranker' } })
+  expect(card().getAttribute('data-state')).toBe('failure')
+  expect(card().textContent).not.toContain('랭커 단계')
+  await render({ state: 'success', character: { ...found, tier: 'ranker' } })
+  await enterName('고친이름')
+  expect(card().getAttribute('data-state')).toBe('selected')
+})
+
 it('면 탭으로 장비, 서약, 투자 현황을 고르고 이름과 서버는 캐릭터 면에만 둔다', async () => {
   const character: CardCharacter = {
     ...found,
