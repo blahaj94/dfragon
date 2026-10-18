@@ -25,7 +25,7 @@ export const styles = stylex.create({
     },
     backgroundColor: {
       default: colors.bgControl,
-      ':hover:not(:disabled)': colors.bgControlHover,
+      ':hover:not(:disabled, [data-popup-open])': colors.bgControlHover,
       ':is([data-popup-open])': colors.signal
     }
   },
@@ -44,5 +44,19 @@ export const styles = stylex.create({
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease
   },
-  item: { height: 28, fontSize: 13 }
+  item: { height: 28, fontSize: 13 },
+  // 캐릭터 카드 위의 칩. 라이트 모드에서도 카드가 다크이므로 card* 토큰으로 그린다.
+  cardTrigger: {
+    color: {
+      default: colors.cardFg,
+      ':is([data-popup-open])': colors.cardOnSignal,
+      ':disabled': colors.cardFgSubtle
+    },
+    backgroundColor: {
+      default: colors.cardControl,
+      ':hover:not(:disabled, [data-popup-open])': colors.cardControlHover,
+      ':is([data-popup-open])': colors.cardSignal
+    },
+    outlineColor: colors.cardSignal
+  }
 })
