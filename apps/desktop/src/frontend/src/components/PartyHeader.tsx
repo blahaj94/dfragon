@@ -8,12 +8,13 @@ import { SnapshotIcon } from './SnapshotIcon'
 import { styles } from './PartyHeader.style'
 
 /**
- * 파티 카드 위의 머리. 왼쪽에 제목, 채운 자리 수, 캡처 진행 문구를, 오른쪽에 접기 버튼, 마지막 캡처
- * 시간, 스냅샷 버튼, 캡처 주 버튼을 둔다. 캡처 버튼은 Alt+R과 같은 회차 시작을 요청하고, 스냅샷은
+ * 파티 카드 위의 머리. 왼쪽에 제목, 채운 자리 수, 상세 열기 실패 안내를, 오른쪽에 접기 버튼, 마지막
+ * 캡처 시간, 스냅샷 버튼, 캡처 주 버튼을 둔다. 캡처 진행 상태는 상단 바 상태 칩과 캡처 대화상자가
+ * 보이므로 여기에 문구로 되풀이하지 않는다. 캡처 버튼은 Alt+R과 같은 회차 시작을 요청하고, 스냅샷은
  * 기능을 연결하기 전이라 누를 수 없다.
  */
 export function PartyHeader({
-  status,
+  notice,
   filledCount,
   lastCapturedAt,
   canCapture,
@@ -22,7 +23,8 @@ export function PartyHeader({
   onToggleCollapsed,
   controls
 }: {
-  status: string
+  /** 상세 정보 창을 열지 못했을 때처럼 카드에서 누른 동작의 실패 안내. 없으면 빈 문자열이다. */
+  notice: string
   /** 캐릭터를 찾은 자리 수 */
   filledCount: number
   /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 없으면 null이다. */
@@ -45,8 +47,8 @@ export function PartyHeader({
           {filledCount}
           <span {...stylex.props(styles.total)}>/{PARTY_SLOT_COUNT}</span>
         </span>
-        <span role="status" {...stylex.props(styles.status)}>
-          {status}
+        <span role="status" {...stylex.props(styles.notice)}>
+          {notice}
         </span>
       </div>
       <div {...stylex.props(styles.actions)}>

@@ -23,7 +23,7 @@ export const styles = stylex.create({
     lineHeight: 1
   },
   total: { color: colors.fgSubtle },
-  status: {
+  notice: {
     minWidth: 0,
     color: colors.fgMuted,
     fontSize: 13,

@@ -100,7 +100,7 @@ export function Preview(): React.JSX.Element {
       <div {...stylex.props(styles.content)}>
         <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
           <PartyHeader
-            status={getCapturePreviewStatus(captureState) || '캡처 대기'}
+            notice=""
             filledCount={scenarios[scenario].filter((state) => state === 'success').length}
             lastCapturedAt={captureState === 'complete' ? completedAt : null}
             canCapture={canCapture}

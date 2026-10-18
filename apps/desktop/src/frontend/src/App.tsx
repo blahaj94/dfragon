@@ -57,7 +57,6 @@ function App(): React.JSX.Element {
   } else if (capture.selectedSourceId) {
     captureNotice = screenCapture.status
   }
-  const partyStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
   const developerModeEnabled = developerMode.status === 'ready' && developerMode.enabled
   // 상단 바의 설정은 작업 공간에서도 보인다. 개발자 모드를 껐다 다시 켤 때 캡처 중지 없이
   // 작업 공간이 다시 열리지 않도록, 개발자 모드가 꺼지면 열림 상태도 닫는다.
@@ -136,7 +135,7 @@ function App(): React.JSX.Element {
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
           <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
-              status={capture.search.detailNotice || partyStatus}
+              notice={capture.search.detailNotice}
               filledCount={filledPartySlots}
               lastCapturedAt={capture.lastCompletedAt}
               canCapture={capture.canStartCapture}
