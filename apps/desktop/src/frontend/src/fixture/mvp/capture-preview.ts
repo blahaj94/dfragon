@@ -1,9 +1,10 @@
 import type { CapturePhase } from '../../types/capture'
 
 // 미리보기 상태에 맞는 합성 캡처 창 목록을 반환한다.
+// 창 미감지는 던파 창 없이 다른 창만 열려 있는 경우다.
 export function getCapturePreviewSources(state: string): { id: string; name: string }[] {
   if (state === 'missing') {
-    return []
+    return [{ id: 'preview-window', name: '테스트 창' }]
   }
 
   return [
@@ -32,6 +33,7 @@ export function getCapturePreviewStatus(state: string): string {
 // 합성 시나리오를 제품 모달의 캡처 단계로 변환한다.
 export function getCapturePreviewPhase(state: string): CapturePhase {
   if (
+    state === 'selecting' ||
     state === 'selected' ||
     state === 'recognizing' ||
     state === 'complete' ||

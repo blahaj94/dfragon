@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav, type SearchMode } from '../../components/MainNav'
@@ -33,7 +33,9 @@ export function Preview(): React.JSX.Element {
   const party = usePartyCollapse()
   const partyCardsId = useId()
   const raidCardsId = useId()
-  const sources = getCapturePreviewSources(captureState)
+  // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
+  // 바뀔 때만 새 목록을 만든다.
+  const sources = useMemo(() => getCapturePreviewSources(captureState), [captureState])
   const phase = getCapturePreviewPhase(captureState)
   // 제품에서 Alt+R을 받는 단계만 캡처 버튼을 누를 수 있다.
   const canCapture =
@@ -167,6 +169,7 @@ export function Preview(): React.JSX.Element {
               setCaptureState(state)
               setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
               const hasSource =
+                state === 'selecting' ||
                 state === 'selected' ||
                 state === 'complete' ||
                 state === 'recognizing' ||
@@ -176,6 +179,7 @@ export function Preview(): React.JSX.Element {
             {...stylex.props(styles.select)}
           >
             <option value="idle">캡처, 대기</option>
+            <option value="selecting">캡처, 준비 중</option>
             <option value="selected">캡처, 창 선택됨</option>
             <option value="recognizing">캡처, 인식 중</option>
             <option value="complete">캡처, 인식 완료</option>
