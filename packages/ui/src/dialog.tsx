@@ -54,12 +54,15 @@ export type DialogContentProps = Omit<PublicProps<typeof Dialog.Popup>, 'title' 
   description?: ReactNode
   /** @default true */
   showCloseButton?: boolean
+  /** sm은 폭 480, lg는 800 × 600이다. @default 'sm' */
+  size?: 'sm' | 'lg'
 }
 
 function DialogContentImpl({
   title,
   description,
   showCloseButton = true,
+  size = 'sm',
   children,
   className,
   style,
@@ -72,7 +75,7 @@ function DialogContentImpl({
       <Dialog.Backdrop {...stylex.props(styles.backdrop)} />
       <Dialog.Popup
         {...popupProps}
-        {...withForwardedStyle(stylex.props(styles.popup), { className, style })}
+        {...withForwardedStyle(stylex.props(styles.popup, styles[size]), { className, style })}
       >
         {showsHeader && (
           <div {...stylex.props(styles.header)}>

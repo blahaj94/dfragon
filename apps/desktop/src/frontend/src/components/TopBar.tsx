@@ -63,6 +63,7 @@ export function TopBar({
           {showCapture && capture}
           <span {...stylex.props(windowChromeStyles.noDrag)}>
             <IconButton
+              size="bar"
               aria-label={light ? '다크 테마' : '라이트 테마'}
               onClick={toggleTheme}
               icon={light ? <MoonIcon /> : <SunIcon />}

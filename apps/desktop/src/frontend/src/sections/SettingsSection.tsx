@@ -174,10 +174,21 @@ export function SettingsSection({
     >
       <span {...stylex.props(windowChromeStyles.noDrag)}>
         <DialogTrigger
-          render={<IconButton aria-label="설정" aria-haspopup="dialog" icon={<SettingsIcon />} />}
+          render={
+            <IconButton
+              size="bar"
+              aria-label="설정"
+              aria-haspopup="dialog"
+              icon={<SettingsIcon />}
+            />
+          }
         />
       </span>
-      <DialogContent title={<Typo.h5 as="span">설정</Typo.h5>} {...stylex.props(styles.dialog)}>
+      <DialogContent
+        size="lg"
+        title={<Typo.h5 as="span">설정</Typo.h5>}
+        {...stylex.props(styles.dialog)}
+      >
         {open && (
           <div {...stylex.props(styles.body)}>
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">

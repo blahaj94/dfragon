@@ -22,6 +22,8 @@ export const styles = stylex.create({
   },
   sm: { width: size.controlSm, height: size.controlSm, fontSize: 16 },
   md: { width: size.controlMd, height: size.controlMd, fontSize: 24 },
+  // 상단 바 도구 버튼 36은 dfragon-design layout.md가 정한 컨트롤 높이 단계의 예외다.
+  bar: { width: 36, height: 36, fontSize: 20 },
   // 화면이 넘긴 SVG를 아이콘 칸에 맞춘다.
   icon: { display: 'inline-flex', width: '1em', height: '1em' }
 })
