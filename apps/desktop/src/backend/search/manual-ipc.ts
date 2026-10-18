@@ -5,8 +5,12 @@ import {
 } from '../../preload/common/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
-import { createCaptureSearchLifetime, type CaptureSearchLifetime } from './capture-lifetime'
-import { parseSearchControl, parseSearchObservation } from './commands'
+import {
+  createCaptureSearchLifetime,
+  type CaptureBinding,
+  type CaptureSearchLifetime
+} from './capture-lifetime'
+import { parseOcrSearchObservation, parseSearchControl, parseSearchObservation } from './commands'
 import type { SearchRuntime } from './request'
 import type { SearchSnapshot } from '../../preload/common/types/search'
 
@@ -25,6 +29,7 @@ export function registerManualSearchIpc({
   runtime,
   requireSender,
   windowGeneration,
+  sourceGeneration,
   isCurrentDocument,
   publish
 }: {
@@ -32,9 +37,13 @@ export function registerManualSearchIpc({
   runtime?: SearchRuntime
   requireSender: (event: IpcMainInvokeEvent) => void
   windowGeneration: () => number
+  /** BEGIN 때의 창 선택 세대. 공대 캡처의 프레임 요청이 회차를 시작한 창인지 비교한다. */
+  sourceGeneration: () => number
   isCurrentDocument: (generation: number) => boolean
   publish: (channel: ManualSearchChangedChannel, snapshot: SearchSnapshot) => void
 }): {
+  /** 현재 수명의 결합. 조회만 하는 수명이면 창 선택 세대는 프레임 읽기에 쓰이지 않는다. */
+  readonly current: CaptureBinding | null
   invalidate: () => void
   dispose: () => void
   selection: CaptureSearchLifetime['selection']
@@ -70,7 +79,10 @@ export function registerManualSearchIpc({
         // An explicit new begin also recovers a session whose reply was lost.
         lifetime.invalidate()
 
-        return lifetime.begin({ windowGeneration: windowGeneration(), sourceGeneration: 0 })
+        return lifetime.begin({
+          windowGeneration: windowGeneration(),
+          sourceGeneration: sourceGeneration()
+        })
     }
   })
 
@@ -87,7 +99,23 @@ export function registerManualSearchIpc({
     })
   }
 
+  // 공대 캡처의 OCR 관측은 서버 없이 이름으로 식별하므로 공대 수명에만 연다. 파티 캡처는 캡처 수명의 채널을 쓴다.
+  if (kind === 'raid') {
+    addHandler('notifyRaidOcrCandidatesDetected', (event, ...args) => {
+      requireSender(event)
+      const observation = parseOcrSearchObservation(args, slotCount)
+      if (observation === null) {
+        return lifetime.result(SEARCH_COMMAND_ERRORS.INVALID_SEARCH_COMMAND)
+      }
+
+      return lifetime.observeOcr(observation)
+    })
+  }
+
   return {
+    get current() {
+      return lifetime.current
+    },
     selection: lifetime.selection,
     invalidate: () => lifetime.invalidate(),
     dispose: () => {
@@ -95,6 +123,10 @@ export function registerManualSearchIpc({
       ipcMain.removeHandler(controlChannel)
       if (kind === 'party') {
         ipcMain.removeHandler('notifyManualNickname')
+      }
+
+      if (kind === 'raid') {
+        ipcMain.removeHandler('notifyRaidOcrCandidatesDetected')
       }
     }
   }

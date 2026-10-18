@@ -4,7 +4,6 @@ import { PNG } from 'pngjs'
 import { flatMap, map } from 'remeda'
 import {
   cropDNFPartyParticipantNicknames,
-  cropDNFRaidParticipantNicknames,
   type DNFParticipantCropResult,
   type DNFParticipantFrame,
   type DNFRaidParticipantCropResult,
@@ -12,7 +11,7 @@ import {
 } from '@dfragon/lib'
 import type { CapturedPartyFrame, CapturedPartySlot } from './collection-session'
 import referenceHeadingPath from './participant-heading.png?asset'
-import raidHeadingPath from './raid-heading.png?asset'
+import { cropRaidWindowNicknames } from '../lib/raid-window'
 
 type PopupKind = 'participants' | 'raid'
 type PartyRows = Extract<DNFParticipantCropResult, { status: 'found' }>['rows']
@@ -23,19 +22,16 @@ type ParticipantRow = {
   nickname: DNFRectangle
   crop: DNFParticipantFrame | null
 }
-const headings = new Map<PopupKind, DNFParticipantFrame>()
+let participantHeading: DNFParticipantFrame | null = null
 
-// Decode the bundled, lossless UI-0% column headings once, without gamma/alpha conversion.
-function getParticipantHeading(kind: PopupKind): DNFParticipantFrame {
-  let heading = headings.get(kind)
-  if (heading == null) {
-    const path = kind === 'raid' ? raidHeadingPath : referenceHeadingPath
-    const { width, height, data } = PNG.sync.read(readFileSync(path))
-    heading = { width, height, rgba: data }
-    headings.set(kind, heading)
+// Decode the bundled, lossless UI-0% column heading once, without gamma/alpha conversion.
+function getParticipantHeading(): DNFParticipantFrame {
+  if (participantHeading == null) {
+    const { width, height, data } = PNG.sync.read(readFileSync(referenceHeadingPath))
+    participantHeading = { width, height, rgba: data }
   }
 
-  return heading
+  return participantHeading
 }
 
 /** Copies a detected dialog and occupied nicknames from the very same client frame. */
@@ -47,11 +43,10 @@ export function captureParticipantWindow(
   frame: CapturedPartyFrame
   coverage: { x: number; y: number; width: number; height: number }
 } {
-  const heading = getParticipantHeading(kind)
   const result =
     kind === 'raid'
-      ? cropDNFRaidParticipantNicknames(frame, heading)
-      : cropDNFPartyParticipantNicknames(frame, heading)
+      ? cropRaidWindowNicknames(frame)
+      : cropDNFPartyParticipantNicknames(frame, getParticipantHeading())
   if (result.status !== 'found') {
     const notFound =
       kind === 'raid'

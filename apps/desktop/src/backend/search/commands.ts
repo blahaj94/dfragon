@@ -116,13 +116,21 @@ const portraitSchema = z
           mask.every((value) => value === 0 || value === 1)))
     )
   })
-const ocrObservationSchema = observationSchema
-  .extend({
-    nickname: ocrNickname,
-    candidateNicknames: z.array(text.max(MAX_NICKNAME_INPUT_LENGTH)).min(1).max(MAX_OCR_NAMES),
-    portrait: portraitSchema.nullable()
-  })
-  .refine((input) => input.nickname === input.candidateNicknames[0])
+function createOcrObservationSchema(slotCount: SearchSlotCount) {
+  return observationSchema
+    .extend({
+      slot: slotIndex(slotCount),
+      nickname: ocrNickname,
+      candidateNicknames: z.array(text.max(MAX_NICKNAME_INPUT_LENGTH)).min(1).max(MAX_OCR_NAMES),
+      portrait: portraitSchema.nullable()
+    })
+    .refine((input) => input.nickname === input.candidateNicknames[0])
+}
+// 파티 캡처는 네 자리, 공대 캡처는 12자리의 OCR 관측을 받는다.
+const ocrObservationSchemas = {
+  [SEARCH_SLOT_COUNTS.party]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.party),
+  [SEARCH_SLOT_COUNTS.raid]: createOcrObservationSchema(SEARCH_SLOT_COUNTS.raid)
+}
 
 function parseCommand<T extends object>({
   args,
@@ -174,8 +182,11 @@ export function parseSearchObservation(args: unknown[]): SearchObservation | nul
   return parseCommand({ args, schema: observationSchema })
 }
 
-export function parseOcrSearchObservation(args: unknown[]): OcrSearchObservation | null {
-  const parsed = parseCommand({ args, schema: ocrObservationSchema })
+export function parseOcrSearchObservation(
+  args: unknown[],
+  slotCount: SearchSlotCount = SEARCH_SLOT_COUNTS.party
+): OcrSearchObservation | null {
+  const parsed = parseCommand({ args, schema: ocrObservationSchemas[slotCount] })
   if (parsed === null || !hasExactOcrShape(args[0], parsed)) {
     return null
   }

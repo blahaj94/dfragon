@@ -34,6 +34,7 @@ import type { SearchRuntime } from '../search/request'
 import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
+import { toRaidFrameResult } from './raid-frame'
 import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
 import type { OcrCollectionResult } from '../../preload/common/types/ocr-collection'
 import type { OcrCollection } from '../ocr-collection/collection'
@@ -225,6 +226,7 @@ function registerCaptureIpc(
       runtime,
       requireSender: requireSearchSender,
       windowGeneration: () => windowGeneration,
+      sourceGeneration: () => sourceSelectionGeneration,
       isCurrentDocument: (generation) =>
         generation === windowGeneration && isTrustedFrame(captureWindow, currentMainFrame()),
       publish: (channel, snapshot) => {
@@ -379,6 +381,31 @@ function registerCaptureIpc(
     return result
   })
 
+  // 공대 캡처 회차는 공대 수명의 BEGIN이 기록한 창 선택과 같은 창에서만 프레임 한 장을 읽고, 공대 상세 창의
+  // 닉네임 크롭만 돌려준다. 읽는 동안 회차, 창, 문서가 바뀌면 결과를 전달하지 않는다.
+  addHandler('readRaidCaptureFrame', async (event, ...args) => {
+    requireSearchSender(event)
+    const binding = raid.current
+    const readFrame = readSelectedFrame
+    if (
+      args.length !== 1 ||
+      typeof args[0] !== 'string' ||
+      binding == null ||
+      binding.captureId !== args[0] ||
+      !isCurrentSearch(binding) ||
+      readFrame === null
+    ) {
+      throw new Error('CAPTURE_NOT_ALLOWED')
+    }
+    const result = await readFrame()
+    requireSearchSender(event)
+    if (raid.current !== binding || !isCurrentSearch(binding) || readSelectedFrame !== readFrame) {
+      throw new Error('CAPTURE_NOT_ALLOWED')
+    }
+
+    return toRaidFrameResult(result)
+  })
+
   addHandler('collectOcrSample', (event, ...args) => {
     requireSearchSender(event)
     const input = parseCollectOcrSample(args)
@@ -478,6 +505,7 @@ function registerCaptureIpc(
     ipcMain.removeHandler('listCaptureSources')
     ipcMain.removeHandler('selectCaptureSource')
     ipcMain.removeHandler('readCaptureFrame')
+    ipcMain.removeHandler('readRaidCaptureFrame')
     ipcMain.removeHandler('collectOcrSample')
     ipcMain.removeHandler('notifyStableNicknameDetected')
     ipcMain.removeHandler('notifyOcrCandidatesDetected')
