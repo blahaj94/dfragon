@@ -21,7 +21,8 @@ const summary: SelectedCharacterSummary = {
   imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/fixture-character?zoom=1',
   guildName: null,
   equipmentScore: null,
-  serverRank: null
+  serverRank: null,
+  card: null
 }
 
 it('선택한 기본 정보와 명성 0을 보존하고 장비, 평가와 공대 스탯을 만들어내지 않는다', () => {
