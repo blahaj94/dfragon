@@ -1,5 +1,6 @@
 import type { SVGProps } from 'react'
 
+// 마름모 해(dfragon-design icons.md의 DFragon 아이콘). 가운데 마름모와 여덟 방향의 짧은 선이다.
 export function SunIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
   return (
     <svg
@@ -8,19 +9,13 @@ export function SunIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2" />
-      <path d="M12 20v2" />
-      <path d="m4.93 4.93 1.41 1.41" />
-      <path d="m17.66 17.66 1.41 1.41" />
-      <path d="M2 12h2" />
-      <path d="M20 12h2" />
-      <path d="m6.34 17.66-1.41 1.41" />
-      <path d="m19.07 4.93-1.41 1.41" />
+      <polygon points="12 7 17 12 12 17 7 12" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+      <path d="m5 5 1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5" />
     </svg>
   )
 }

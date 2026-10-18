@@ -8,8 +8,8 @@ export function MonitorIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
       <rect width="20" height="14" x="2" y="3" rx="2" />

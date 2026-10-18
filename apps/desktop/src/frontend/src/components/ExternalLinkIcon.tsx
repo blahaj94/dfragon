@@ -8,8 +8,8 @@ export function ExternalLinkIcon(props: SVGProps<SVGSVGElement>): React.JSX.Elem
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
       <path d="M15 3h6v6m-11 5L21 3" />
