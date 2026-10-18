@@ -32,6 +32,9 @@ const capture = vi.hoisted(() => {
     status: '캡처 대기',
     nicknames: [null, null, null, null],
     round: 0,
+    lastCompletedAt: null,
+    canStartCapture: false,
+    startRound: vi.fn(),
     recognizing: false,
     sources: [],
     sourcesLoading: false,
@@ -45,7 +48,7 @@ const capture = vi.hoisted(() => {
 
 vi.mock('./hooks/usePartyCapture', () => ({ usePartyCapture: () => capture }))
 vi.mock('./components/CaptureControls', () => ({
-  CaptureControls: () => <button aria-label="화면 캡처">화면 캡처</button>
+  CaptureControls: () => <button aria-label="화면 캡처, 창 미감지">창 미감지</button>
 }))
 vi.mock('./sections/LoginSection', () => ({ LoginSection: () => null }))
 
@@ -154,7 +157,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
   await renderApp()
 
   const topBar = container.querySelector('main > header')!
-  expect(topBar.querySelector('[aria-label="화면 캡처"]')).not.toBeNull()
+  expect(topBar.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
   expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).not.toBeNull()
   expect(topBar.textContent).toContain('창 미감지')
 
@@ -169,7 +172,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
   )
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).not.toBeNull()
   expect(container.querySelector('main > header')).toBe(topBar)
-  expect(topBar.querySelector('[aria-label="화면 캡처"]')).toBeNull()
+  expect(topBar.querySelector('[aria-label^="화면 캡처"]')).toBeNull()
   expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).toBeNull()
   expect(topBar.textContent).not.toContain('창 미감지')
   expect(topBar.textContent).toContain('DFragon')
@@ -187,7 +190,7 @@ it('stops normal capture and preserves the party page while the workbench is ope
 
   await click('일반 화면으로 돌아가기')
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).toBeNull()
-  expect(topBar.querySelector('[aria-label="화면 캡처"]')).not.toBeNull()
+  expect(topBar.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
   expect(topBar.querySelector('nav[aria-label="주 메뉴"]')).not.toBeNull()
   expect(topBar.textContent).toContain('창 미감지')
   expect(container.querySelector('[aria-label="파티 캐릭터"]')?.closest('[hidden]')).toBeNull()
@@ -213,5 +216,5 @@ it('작업 공간에서 개발자 모드를 끄면 작업 공간을 닫고, 다�
   expect(developer.setEnabled).toHaveBeenLastCalledWith(true)
   expect(container.querySelector('[aria-label="개발자 작업 공간"]')).toBeNull()
   expect(capture.stopCapture).toHaveBeenCalledOnce()
-  expect(container.querySelector('main > header [aria-label="화면 캡처"]')).not.toBeNull()
+  expect(container.querySelector('main > header [aria-label^="화면 캡처"]')).not.toBeNull()
 })

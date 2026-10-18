@@ -42,6 +42,14 @@ async function click(label: string): Promise<void> {
   expect(button).toBeDefined()
   await act(async () => button!.click())
 }
+// 상단 바의 게임 연결 상태 칩이 캡처 대화상자를 연다. 칩의 이름은 현재 상태를 함께 담는다.
+async function openCaptureDialog(): Promise<void> {
+  const chip = document.querySelector<HTMLButtonElement>(
+    'main > header button[aria-label^="화면 캡처, "]'
+  )
+  expect(chip).not.toBeNull()
+  await act(async () => chip!.click())
+}
 async function select(id: string): Promise<void> {
   const trigger = document.querySelector<HTMLButtonElement>(CAPTURE_SOURCE_TRIGGER)!
   await act(async () => trigger.click())
@@ -75,7 +83,7 @@ it('앱 시작 때 던파가 하나면 등록만 하고 Alt+R 전까지 기다�
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
   expect(media.worker).not.toHaveBeenCalled()
   expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'begin' })
-  await click('화면 캡처')
+  await openCaptureDialog()
   expect(document.querySelector(CAPTURE_SOURCE_TRIGGER)?.textContent).toContain('던전앤파이터')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
     'Alt+R을 눌러 파티를 인식해 주세요.'
@@ -93,7 +101,7 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달, 로그인 변경 뒤에
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   await select('game')
   expect(f.readCaptureFrame).not.toHaveBeenCalled()
   await f.restart()
@@ -129,7 +137,7 @@ it('창 선택 뒤 Alt+R로 한 번 인식하고 모달, 로그인 변경 뒤에
     'ALICE'
   )
   expect(f.search.controlCharacterSearch).not.toHaveBeenCalledWith({ action: 'end', captureId })
-  await click('화면 캡처')
+  await openCaptureDialog()
   await click('캡처 중지')
   expect(f.search.controlCharacterSearch).toHaveBeenCalledWith({ action: 'end', captureId })
   expect(f.container.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
@@ -157,7 +165,7 @@ it('다른 창 선택은 진행 중 OCR을 취소하고 새 창만 등록한다'
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   await select('game')
   await f.restart()
   const signal = media.worker.mock.calls[0][0] as AbortSignal
@@ -195,7 +203,7 @@ it('연속 창 선택에서 이전 등록의 늦은 응답은 현재 선택을 �
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   await select('game')
   await select('next')
   await act(async () => firstSelection.resolve({ id: 'game', name: 'Synthetic game' }))
@@ -216,7 +224,7 @@ it('창 등록 중 화면을 해제하면 늦은 완료가 캡처나 OCR을 시�
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   await select('game')
   await f.unmount()
   await act(async () => selection.resolve({ id: 'game', name: 'Synthetic game' }))
@@ -236,7 +244,7 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('조회 실패')
   expect(topBarText()).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
@@ -259,7 +267,7 @@ it('창 등록 대기 중에도 중지할 수 있고 늦은 완료가 중지 상
       <App />
     </ColorThemeProvider>
   )
-  await click('화면 캡처')
+  await openCaptureDialog()
   await select('game')
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('준비 중')
   expect(topBarText()).toContain('준비 중')

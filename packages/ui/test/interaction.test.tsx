@@ -11,6 +11,7 @@ import {
   DialogRoot,
   DialogTrigger,
   IconButton,
+  Kbd,
   Menu,
   NumericText,
   Select,
@@ -631,15 +632,21 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
   })
 
   // jsdom은 계산된 크기를 모르므로 크기마다 다른 StyleX class가 붙는지만 확인한다.
-  it('상단 바 크기 bar는 기본 md와 다른 외형을 쓴다', async () => {
+  it('상단 바 크기 bar와 머리 도구 크기 lg는 기본 md와 다른 외형을 쓴다', async () => {
     await render(
       <>
         <IconButton aria-label="기본" icon={<SettingsIcon />} />
         <IconButton aria-label="상단 바" size="bar" icon={<SettingsIcon />} />
+        <IconButton aria-label="머리 도구" size="lg" icon={<SettingsIcon />} />
       </>
     )
+    const plain = getByRole('button', '기본').className
 
-    expect(getByRole('button', '상단 바').className).not.toBe(getByRole('button', '기본').className)
+    expect(getByRole('button', '상단 바').className).not.toBe(plain)
+    expect(getByRole('button', '머리 도구').className).not.toBe(plain)
+    expect(getByRole('button', '머리 도구').className).not.toBe(
+      getByRole('button', '상단 바').className
+    )
   })
 
   it('DialogContent lg는 기본 sm과 다른 외형을 쓴다', async () => {
@@ -982,6 +989,23 @@ describe('StatusChip의 상태 알림 범위', () => {
     expect(container.textContent).toBe('파티원창 찾는 중')
     expect(container.querySelector('[role]')).toBeNull()
     expect(container.querySelector('[aria-live]')).toBeNull()
+  })
+})
+
+describe('Kbd의 면', () => {
+  it('신호색 면의 키캡은 기본 키캡과 다른 외형을 쓰고 면을 data 속성으로 드러낸다', async () => {
+    await render(
+      <>
+        <Kbd>Alt</Kbd>
+        <Kbd surface="signal">R</Kbd>
+      </>
+    )
+    const [plain, signal] = [...container.querySelectorAll('kbd')]
+
+    expect(plain.dataset.surface).toBe('default')
+    expect(signal.dataset.surface).toBe('signal')
+    expect(signal.className).not.toBe(plain.className)
+    expect(signal.textContent).toBe('R')
   })
 })
 

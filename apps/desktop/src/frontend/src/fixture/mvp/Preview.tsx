@@ -6,7 +6,6 @@ import { PartyHeader } from '../../components/PartyHeader'
 import { TopBar } from '../../components/TopBar'
 import { usePartyCollapse } from '../../hooks/usePartyCollapse'
 import { SettingsSection } from '../../sections/SettingsSection'
-import { getCaptureControlState, isDnfCaptureSource } from '../../lib/capture-presentation'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
 import { RaidPage } from '../../pages/raid/RaidPage'
@@ -28,18 +27,20 @@ export function Preview(): React.JSX.Element {
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
+  // 합성 인식 완료 시각. 미리보기에서 인식 완료를 고르면 12초 전으로, 캡처 버튼을 누르면 지금으로 둔다.
+  const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
   const party = usePartyCollapse()
   const partyCardsId = useId()
   const raidCardsId = useId()
   const sources = getCapturePreviewSources(captureState)
   const phase = getCapturePreviewPhase(captureState)
-  const captureStatus = getCaptureControlState({
-    phase,
-    loading: false,
-    failed: false,
-    hasDetectedSource: sources.some(isDnfCaptureSource)
-  })
+  // 제품에서 Alt+R을 받는 단계만 캡처 버튼을 누를 수 있다.
+  const canCapture =
+    phase === 'selected' ||
+    phase === 'recognizing' ||
+    phase === 'complete' ||
+    phase === 'unavailable'
   const detail = query.get('detail') === 'sample'
   const character = getCharacterPreview(scenario, previewCharacter)
   const identification = scenario === 'identification'
@@ -73,7 +74,6 @@ export function Preview(): React.JSX.Element {
     <main {...stylex.props(styles.app)}>
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
-        captureStatus={captureStatus}
         showCapture
         settings={<SettingsSection />}
         capture={
@@ -101,6 +101,13 @@ export function Preview(): React.JSX.Element {
         <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
           <PartyHeader
             status={getCapturePreviewStatus(captureState) || '캡처 대기'}
+            filledCount={scenarios[scenario].filter((state) => state === 'success').length}
+            lastCapturedAt={captureState === 'complete' ? completedAt : null}
+            canCapture={canCapture}
+            onCapture={() => {
+              setCaptureState('complete')
+              setCompletedAt(Date.now())
+            }}
             collapsed={party.collapsed}
             onToggleCollapsed={party.toggleCollapsed}
             controls={partyCardsId}
@@ -152,6 +159,7 @@ export function Preview(): React.JSX.Element {
             onChange={(event) => {
               const state = event.target.value
               setCaptureState(state)
+              setCompletedAt(state === 'complete' ? Date.now() - 12_000 : null)
               const hasSource =
                 state === 'selected' ||
                 state === 'complete' ||

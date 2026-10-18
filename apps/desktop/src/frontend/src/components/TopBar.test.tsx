@@ -27,8 +27,11 @@ async function render(props: Partial<ComponentProps<typeof TopBar>> = {}): Promi
       <ColorThemeProvider initialTheme="dark">
         <TopBar
           nav={<nav aria-label="주 메뉴">내비</nav>}
-          captureStatus={{ label: '캡처 중', tone: 'neutral' }}
-          capture={<button aria-label="화면 캡처">카메라</button>}
+          capture={
+            <button aria-label="화면 캡처, 창 감지됨">
+              <span data-tone="success">창 감지됨</span>
+            </button>
+          }
           settings={<button aria-label="설정">설정</button>}
           showCapture
           {...props}
@@ -47,7 +50,7 @@ function textOrLabel(element: Element): string | null {
   return element.textContent
 }
 
-it('상단 바는 로고, 내비, 게임 연결 상태, 카메라, 테마, 로그인, 설정 순서로 표시한다', async () => {
+it('상단 바는 로고, 내비, 게임 연결 상태, 테마, 로그인, 설정 순서로 표시하고 카메라 버튼은 없다', async () => {
   await render()
   const header = container.querySelector('header')!
   expect(container.querySelectorAll('header')).toHaveLength(1)
@@ -57,27 +60,19 @@ it('상단 바는 로고, 내비, 게임 연결 상태, 카메라, 테마, 로�
   const nav = header.querySelector('nav')!
   const status = header.querySelector('[data-tone]')!
   const buttons = [...header.querySelectorAll('button')]
-  expect(buttons.map(textOrLabel)).toEqual(['화면 캡처', '라이트 테마', '로그인', '설정'])
-  const items = [name, nav, status, ...buttons]
+  expect(buttons.map(textOrLabel)).toEqual([
+    '화면 캡처, 창 감지됨',
+    '라이트 테마',
+    '로그인',
+    '설정'
+  ])
+  expect(header.querySelector('kbd')).toBeNull()
+  const items = [name, nav, status, ...buttons.slice(1)]
   for (let index = 1; index < items.length; index++) {
     expect(
       items[index - 1].compareDocumentPosition(items[index]) & Node.DOCUMENT_POSITION_FOLLOWING
     ).not.toBe(0)
   }
-})
-
-it.each([
-  ['캡처 중', 'neutral'],
-  ['창 미감지', 'waiting'],
-  ['조회 실패', 'danger'],
-  ['창 감지됨', 'success']
-] as const)('게임 연결 상태 %s를 tone %s로 live region 없이 표시한다', async (label, tone) => {
-  await render({ captureStatus: { label, tone } })
-  const header = container.querySelector('header')!
-  const chip = header.querySelector(`[data-tone="${tone}"]`)!
-  expect(chip.textContent).toBe(label)
-  expect(chip.getAttribute('role')).toBeNull()
-  expect(header.querySelector('[role="status"], [aria-live]')).toBeNull()
 })
 
 it('테마를 전환하면 다음 테마의 버튼 이름이 바뀐다', async () => {
@@ -132,11 +127,11 @@ it('계정 요소가 아무것도 그리지 않으면 빈 감싼 span을 남기�
   expect(container.textContent).not.toContain('로그인')
 })
 
-it('캡처를 숨기면 상태 칩과 카메라만 사라지고 나머지 도구를 유지한다', async () => {
+it('캡처를 숨기면 상태 칩만 사라지고 나머지 도구를 유지한다', async () => {
   await render({ showCapture: false })
-  expect(container.textContent).not.toContain('캡처 중')
+  expect(container.textContent).not.toContain('창 감지됨')
   expect(container.querySelector('[data-tone]')).toBeNull()
-  expect(container.querySelector('[aria-label="화면 캡처"]')).toBeNull()
+  expect(container.querySelector('[aria-label^="화면 캡처"]')).toBeNull()
   expect(container.textContent).toContain('DFragon')
   expect(container.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
   expect(container.textContent).toContain('로그인')

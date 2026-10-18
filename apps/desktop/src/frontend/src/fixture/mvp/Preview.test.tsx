@@ -34,7 +34,7 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
   expect(header.tagName).toBe('HEADER')
   expect(header.textContent).toContain('DFragon')
   expect(header.textContent).toContain('창 감지됨')
-  expect(header.querySelector('[aria-label="화면 캡처"]')).not.toBeNull()
+  expect(header.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
   expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
   expect(header.querySelector('[aria-label="설정"]')).not.toBeNull()
   const login = [...header.querySelectorAll('button')].find(
@@ -63,7 +63,7 @@ it.each([
   expect(header.querySelector(`[data-tone="${tone}"]`)?.textContent).toBe(label)
   expect(header.querySelector('[role="status"]')).toBeNull()
   await act(async () =>
-    header.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.click()
+    header.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
   const dialog = document.querySelector('[role="dialog"]')!
   expect(dialog.querySelector('[role="status"]')?.textContent).toBe(label)
@@ -71,7 +71,7 @@ it.each([
 
 it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨 상태를 표시한다', async () => {
   await act(async () =>
-    container.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.click()
+    container.querySelector<HTMLButtonElement>('[aria-label^="화면 캡처"]')!.click()
   )
   const dialog = document.querySelector('[role="dialog"]')!
   await act(async () =>

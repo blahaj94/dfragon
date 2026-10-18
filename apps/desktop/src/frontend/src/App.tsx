@@ -19,7 +19,6 @@ import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { searchSlotNotice, toCharacterCard } from './lib/character-card'
-import { getCaptureControlState, isDnfCaptureSource } from './lib/capture-presentation'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
@@ -49,12 +48,9 @@ function App(): React.JSX.Element {
     setWorkbenchOpen(false)
   }
   const showDeveloperWorkbench = workbenchOpen && developerModeEnabled
-  const captureStatus = getCaptureControlState({
-    phase: capture.phase,
-    loading: capture.sourcesLoading,
-    failed: capture.sourcesFailed,
-    hasDetectedSource: capture.sources.some(isDnfCaptureSource)
-  })
+  const filledPartySlots = capture.search.slots.filter(
+    (slot) => slot.state === 'success' && slot.selected != null
+  ).length
   const slotNotices = capture.search.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
   )
@@ -83,7 +79,6 @@ function App(): React.JSX.Element {
             <MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />
           )
         }
-        captureStatus={captureStatus}
         showCapture={!showDeveloperWorkbench}
         capture={
           <CaptureControls
@@ -121,6 +116,10 @@ function App(): React.JSX.Element {
           <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
               status={capture.search.detailNotice || partyStatus}
+              filledCount={filledPartySlots}
+              lastCapturedAt={capture.lastCompletedAt}
+              canCapture={capture.canStartCapture}
+              onCapture={capture.startRound}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
               controls={partyCardsId}

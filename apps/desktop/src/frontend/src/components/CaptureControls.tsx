@@ -9,12 +9,10 @@ import {
   DialogContent,
   DialogBody,
   DialogFooter,
-  Kbd,
   StatusChip
 } from '@dfragon/ui'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
-import { CameraIcon } from './CameraIcon'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
@@ -43,7 +41,6 @@ export function CaptureControls({
   onRefresh,
   onStop
 }: CaptureControlsProps): React.JSX.Element {
-  const active = phase === 'recognizing' || phase === 'complete'
   const hasSelection = phase !== 'idle' && selectedSourceId.length > 0
   const [open, setOpen] = useState(false)
   const detected = sources.filter(isDnfCaptureSource)
@@ -66,22 +63,20 @@ export function CaptureControls({
       }}
     >
       <span {...stylex.props(windowChromeStyles.noDrag)}>
-        {/* 캡처 버튼은 상단 바에 둔다. 키캡은 회차를 시작하는 단축키 Alt+R을 알리는 표시이고, 버튼은
-            캡처할 창을 고르는 대화상자를 연다. */}
+        {/* 상단 바의 게임 연결 상태 칩이 캡처할 창을 고르는 대화상자를 연다. 회차는 Alt+R이나 파티 머리의
+            캡처 버튼이 시작한다. */}
         <DialogTrigger
           render={
-            <Button variant="ghost" size="sm" aria-label="화면 캡처" aria-haspopup="dialog" />
+            <button
+              type="button"
+              aria-label={`화면 캡처, ${state.label}`}
+              {...stylex.props(styles.trigger)}
+            />
           }
         >
-          <CameraIcon
-            width={20}
-            height={20}
-            {...stylex.props(styles.camera, active && styles.cameraActive)}
-          />
-          <span aria-hidden="true" {...stylex.props(styles.keys)}>
-            <Kbd>Alt</Kbd>
-            <Kbd>R</Kbd>
-          </span>
+          <StatusChip tone={state.tone} size="md">
+            {state.label}
+          </StatusChip>
         </DialogTrigger>
       </span>
       <DialogContent

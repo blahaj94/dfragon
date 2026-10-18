@@ -1,9 +1,8 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
-import { Button, IconButton, shapes, StatusChip, Typo } from '@dfragon/ui'
+import { Button, IconButton, shapes, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { useColorTheme } from '../hooks/useColorTheme'
-import type { CaptureControlTone } from '../lib/capture-presentation'
 import { MoonIcon } from './MoonIcon'
 import { SunIcon } from './SunIcon'
 import { windowChromeStyles } from '../constants/window-chrome.style'
@@ -15,7 +14,6 @@ import { styles } from './TopBar.style'
  */
 export function TopBar({
   nav,
-  captureStatus,
   capture,
   account,
   settings,
@@ -23,7 +21,7 @@ export function TopBar({
 }: {
   /** 상단 내비. null이면 로고 옆 구분선과 함께 숨긴다. */
   nav: ReactNode
-  captureStatus: { label: string; tone: CaptureControlTone }
+  /** 게임 연결 상태 칩. 누르면 캡처할 창을 고르는 대화상자를 연다. */
   capture: ReactNode
   /**
    * 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. 넘기는 요소는 상단 바 끌기에서
@@ -53,14 +51,11 @@ export function TopBar({
       <div {...stylex.props(styles.end)}>
         {showCapture && (
           <span {...stylex.props(styles.status)}>
-            <StatusChip tone={captureStatus.tone} size="md">
-              {captureStatus.label}
-            </StatusChip>
+            {capture}
             <span aria-hidden="true" {...stylex.props(styles.divider)} />
           </span>
         )}
         <div {...stylex.props(styles.tools)}>
-          {showCapture && capture}
           <span {...stylex.props(windowChromeStyles.noDrag)}>
             <IconButton
               size="bar"

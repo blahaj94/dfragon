@@ -22,5 +22,11 @@ export const styles = stylex.create({
     fontWeight: 700,
     fontVariantNumeric: 'tabular-nums',
     lineHeight: 1
+  },
+  // 신호색 주 버튼 안의 키캡은 버튼 글자색을 따르고 외곽은 그 색의 55%다. 버튼이 비활성으로 바뀌어도
+  // 글자색을 따라 함께 흐려진다.
+  signal: {
+    borderColor: 'color-mix(in srgb, currentColor 55%, transparent)',
+    color: 'inherit'
   }
 })

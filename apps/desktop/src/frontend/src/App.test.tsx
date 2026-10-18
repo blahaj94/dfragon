@@ -139,9 +139,9 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe(
     '캡처 대기'
   )
-  expect(container.querySelector<HTMLButtonElement>('[aria-label="화면 캡처"]')!.disabled).toBe(
-    false
-  )
+  const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
+  expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
+  expect(chip.disabled).toBe(false)
   const login = [...container.querySelectorAll('button')].find(
     (button) => button.textContent === '로그인'
   )!
