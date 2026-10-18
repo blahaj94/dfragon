@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
-import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
 import { readDesktopSourceInfo } from './build/build-info'
@@ -41,15 +40,12 @@ export default defineConfig(({ mode, command }) => {
   ]
   const rendererPlugins = [
     ...rendererTransforms(),
-    seedDesignPlugin(),
     uiNotices({ uiRoot: resolve('../../packages/ui'), runtimeRoot: resolve('.') }),
     desktopNotices(),
     desktopLicenseCatalog({
       runtimeRoot: resolve('.'),
       uiRoot: resolve('../../packages/ui'),
-      ocrRoot: resolve('assets/ocr'),
-      // 화면이 SEED를 직접 import하는 동안 설정 화면 고지에 남긴다. Desktop SEED 제거 PR에서 지운다.
-      rendererDependencies: ['@seed-design/react', '@seed-design/css']
+      ocrRoot: resolve('assets/ocr')
     }),
     ...(mode === 'mvp-preview'
       ? [
