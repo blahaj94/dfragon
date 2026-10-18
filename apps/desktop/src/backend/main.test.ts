@@ -550,11 +550,11 @@ it.each([
 
 it.each([
   ['win32', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
-  ['win32', true, { color: '#1d2025', symbolColor: '#f3f4f5', height: 56 }, '#1d2025'],
+  ['win32', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
   ['linux', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
-  ['linux', true, { color: '#1d2025', symbolColor: '#f3f4f5', height: 56 }, '#1d2025'],
+  ['linux', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
   ['darwin', false, { height: 56 }, '#ffffff'],
-  ['darwin', true, { height: 56 }, '#1d2025']
+  ['darwin', true, { height: 56 }, '#121214']
 ] as const)(
   '%s의 시스템 다크 모드 %s에 맞춰 제목 표시줄과 초기 창 색상을 설정한다',
   async (platform, shouldUseDarkColors, titleBarOverlay, backgroundColor) => {
