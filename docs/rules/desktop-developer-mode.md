@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: desktop-developer-mode
-last-reviewed: 2026-10-11
+last-reviewed: 2026-10-19
 ---
 
 # Desktop 개발자 모드

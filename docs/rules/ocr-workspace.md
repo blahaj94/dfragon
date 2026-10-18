@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/ocr and OCR passkey callback
-last-reviewed: 2026-10-18
+last-reviewed: 2026-10-19
 ---
 
 # OCR 자료실
