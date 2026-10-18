@@ -8,7 +8,6 @@ import { desktopNotices } from '../src/vite.ts'
 import { createPackageFixture } from './fixtures.ts'
 
 const noticeFiles = {
-  ui: ['ICONS-LICENSE', 'ICONS-NOTICE', 'SEED-LICENSE', 'SEED-NOTICE'],
   lib: ['iconv-lite-LICENSE'],
   desktop: ['BARLOW-LICENSE', 'FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']
 }
@@ -40,7 +39,7 @@ test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포
   }
 })
 
-for (const group of ['ui', 'lib', 'desktop'] as const) {
+for (const group of ['lib', 'desktop'] as const) {
   test(`${group} CLI는 지정한 출력 디렉터리에 원문을 복사하고 기존 앱 파일을 보존한다`, (t) => {
     const fixture = createPackageFixture(t)
     const destination = join(fixture.root, 'dist', 'notices')
@@ -92,7 +91,8 @@ test('CLI는 존재하지 않는 중첩 출력 디렉터리를 만든다', (t) =
 
 for (const scenario of [
   { name: '지원하지 않는 고지 그룹', arguments: ['upstream'], includeDestination: true },
-  { name: '출력 경로 누락', arguments: ['ui'], includeDestination: false },
+  { name: '삭제한 ui 고지 그룹', arguments: ['ui'], includeDestination: true },
+  { name: '출력 경로 누락', arguments: ['lib'], includeDestination: false },
   { name: '그룹과 출력 경로 누락', arguments: [], includeDestination: false }
 ]) {
   test(`CLI는 ${scenario.name}을 실패로 처리하고 출력 디렉터리를 만들지 않는다`, (t) => {
@@ -111,7 +111,7 @@ for (const scenario of [
     assert.equal(result.status, 1)
     assert.equal(result.signal, null)
     assert.equal(result.stdout, '')
-    assert.match(result.stderr, /Use dfragon-copy-notices ui\|lib\|desktop <output directory>/)
+    assert.match(result.stderr, /Use dfragon-copy-notices lib\|desktop <output directory>/)
     assert.equal(existsSync(destination), false)
     assert.deepEqual(readdirSync(fixture.root), [])
   })
