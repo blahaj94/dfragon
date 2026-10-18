@@ -30,7 +30,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `pnpm test:format-policy`: Biome 포맷 뒤 문장 간격 도구의 블록 첫 `return` 처리, 이후 `return` 빈 줄, 연속된 블록 `if` 사이 빈 줄, `else if` 연결, ASI, 확장자별 결과와 CLI 범위, 수렴을 검사한다.
 - 각 workspace에서도 `pnpm --filter @dfragon/api lint`처럼 같은 네 명령을 사용한다. Workspace에 등록하지 않은 scripts는 `pnpm --dir scripts lint`와 `format:check` 등으로 직접 실행한다.
 
-각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, 고정 SEED source, foundation/provenance, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
+각 leaf의 명령은 root `biome.json`을 자동으로 찾아 실행 위치 아래 파일만 처리한다. 생성물, OCR, lockfile, license/notice와 기존 Desktop root tsconfig의 정렬 제외를 유지한다. 직접 관리하는 `packages/licenses/src`는 검사, 정렬 대상이다. 세부 범위는 실행되는 config와 Git ignore를 따른다.
 
 `.github/workflows/code-quality.yml`은 read-only 권한으로 PR과 main push에서 각 app, package의 `test`, API와 accounts의 Docker PostgreSQL `test:database`, Desktop `typecheck`, Web `build`, 루트 도구 테스트, root Biome lint, format 비수정 검사와 표기, 문서 링크와 경로 검사를 실행한다. UI `test`와 Web `build`는 각 typecheck를 포함하므로 같은 범위의 leaf 검사를 CI에서 중복 실행하지 않는다. 검사는 독립 job으로 병렬 실행하고, main ruleset의 required check인 `lint-and-format` job이 모든 검사 job의 성공을 확인한다. 로컬에서는 `pnpm verify`가 Docker를 쓰지 않는 검사 job, `pnpm verify:database`가 두 `test:database` job과 Desktop 검색 통합 job의 run 명령을 같은 순서로 실행한다. 적용 승인과 동작 보존 기준은 [`convention-tooling.md`](../rules/convention-tooling.md)를 따른다.
 
@@ -109,7 +109,7 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
   - UI 의존 방향은 `pages → sections → components`다. 하위 UI는 상위 section, page나 fixture를 import하지 않고 데이터와 callback을 받는다. 같은 계층의 작은 단위를 조합할 수 있으며 모든 사용처가 세 단계를 거칠 필요는 없다. 테스트, fixture의 조합은 이 제품 의존 규칙과 구분한다.
   - 스타일은 사용하는 UI 옆에 두고 named export로 가져온다. 독립 사용 가능한 UI는 파일명과 export 이름을 맞춰 직접 import한다. 단순 태그까지 컴포넌트로 만들거나, 재수출 전용 파일, 불필요한 wrapper로 계층을 채우지 않는다. UI와 독립적인 검색 연결, OCR 구현은 `lib`에 두고, React 상태 연결은 `hooks`와 UI가 담당한다.
 - 기본 앱: `pnpm --filter @dfragon/desktop dev`와 `dev:app`은 새 카드 화면을 연다. 빈 슬롯 네 개, 테마 전환과 인증 설정이 있을 때 상단 로그인 버튼의 시스템 브라우저 진입, 진행 중 취소, 실패 후 재시도를 제공한다. 카메라 버튼의 CaptureControls 모달은 창 등록, 대상 변경, 중지를 연결한다. 던파 창 하나 자동 감지도 등록만 하며 Alt+R마다 한 프레임으로 네 슬롯을 인식하고 OCR 첫 후보를 카드에 표시한다. 미검출 슬롯은 비워 두고 화면 복귀 후 자동 재개나 주기적인 반복 인식을 하지 않는다. 검색 결과, 이름 수정, 상세 연결은 후속이다. 인증 연결은 `useAuthBridge`와 main/preload IPC를 재사용한다. 구버전 조합 `fixture/legacy/LegacyApp`은 기존 기능 테스트에서만 사용하며 캡처 시작 버튼도 같은 회차 시작을 보낸다. 합성 메인, 상세, 캡처 상태 미리보기는 `dev:preview`, 빌드 미리보기는 `mvp:build` 후 `ui:fixture mvp dark`로 실행한다. 전용 build mode만 미리보기 HTML, 데이터, 이미지를 포함한다. [디자인 이관](desktop-mvp-design-handoff.md)을 참고한다.
-- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 SEED, `@dfragon/ui`를 함께 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
+- Renderer 스타일: StyleX가 화면별 CSS를 컴파일하며 `@dfragon/ui`의 토큰과 Component를 사용한다. 제품, test, fixture의 공통 변환과 작성법은 [Desktop 스타일](desktop-styling.md)을 참고한다.
 - Command:
   - `pnpm --filter @dfragon/desktop dev`
   - `pnpm --filter @dfragon/desktop test`
@@ -129,13 +129,12 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 - Desktop, API 패스키, OCR, Web은 `@dfragon/ui/stylex-config`와 workspace catalog를 공유한다. [앱 공통 StyleX](app-styling.md)에 연결 위치, 작성, 검증 범위를 정리한다.
 
-- 실제 검증 환경, 결과, upstream Motion 지원 제한: `docs/reference/ui-validation.md`.
-- `packages/ui`: `@dfragon/ui`, 공식 SEED Snippet, Layout, SEED를 조합한 디자인 컴포넌트(`IconButton`, `StatusBadge`, `Checkmark`)와 중립 Example. Package/peer/CSS 소유, 고정 source, 고지, 명령은 `packages/ui/README.md`를 따른다.
+- 최초 구현의 검증 이력(superseded): `docs/reference/ui-validation.md`.
+- `packages/ui`: `@dfragon/ui`, DFragon 디자인 토큰(`tokens.css`, `tokens.stylex`), Base UI 기반 공용 Component, Typo와 중립 Example. Package/peer/CSS 소유, 고지, 명령은 `packages/ui/README.md`를 따른다.
 - Library: `pnpm --filter @dfragon/ui test`, `typecheck`, `lint`, `build`.
 - 독립 Example: `pnpm --filter @dfragon/ui dev:examples`, `build:examples`, `preview:examples`. 별도 app workspace는 만들지 않는다.
 - Web/Desktop renderer/Example의 source resolution과 cold regression: `packages/ui/README.md`, `packages/ui/test/consumer-resolution.md`. 소비 command는 사전 library build를 요구하지 않는다.
-- 각 consumer는 SEED base.css와 별도 공용 foundation.css를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 SEED/React/JSX runtime과 StyleX를 external 처리한다. 디자인 컴포넌트의 `stylex.create`는 각 consumer의 StyleX compiler가 정적 CSS로 바꾼다.
-- Source 재생성, hash/local diff: `packages/ui/scripts/prepare-seed-source.mjs`, `packages/ui/seed-provenance.json`.
+- 각 consumer는 공용 `tokens.css`와 `foundation.css`를 browser entry에서 한 번 import한다. Library JS는 CSS를 import하지 않고 Base UI, React/JSX runtime과 StyleX를 external 처리한다. 공용 Component의 `stylex.create`는 각 consumer의 StyleX compiler가 정적 CSS로 바꾼다.
 - 산출물 검증: `node packages/ui/scripts/verify-build.mjs library packages/ui/dist`, `consumer` mode로 Example, Web, Desktop renderer 산출물을 검사한다. 입력 graph의 미사용 dependency도 보수적으로 고지에 포함한다.
 - Test-only Electron UI: `apps/desktop/scripts/ui-fixture.mjs`와 `ui-fixture-preload.cts`. `pnpm --filter @dfragon/desktop ui:fixture desktop light` 또는 `example dark`로 실제 production renderer/Example을 연다. 제품 main/preload 대신 synthetic source/선택 bridge와 media 거절 stub을 사용하며 capture/OCR 성공을 검증하지 않는다.
 

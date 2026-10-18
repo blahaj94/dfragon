@@ -1,12 +1,15 @@
 ---
 type: reference
-status: active
+status: historical
 enforcement: autonomous
 scope: shared-ui-validation
-last-reviewed: 2026-09-07
+last-reviewed: 2026-10-18
 ---
 
 # 공용 UI 검증 기록
+
+> [!NOTE]
+> 이 문서는 superseded다. SEED Snippet으로 만든 최초 공용 UI의 검증 이력이며, 2026-10-18 결정으로 SEED를 걷어내고 공용 Component를 Base UI와 DFragon 디자인 토큰으로 다시 만들었다. 아래 source, package, 경로, 명령, 관측은 당시 revision에만 해당한다. 현재 공용 UI와 검사는 [`@dfragon/ui` 안내](../../packages/ui/README.md)와 [Design System](../rules/design-system.md)을 따른다.
 
 Issue #103의 최초 구현 검증이다. 최종 runtime/source head는 `abb40ca926c8920ebbe8aa8a9094a378235e5e89`이며, 이 기록의 추가는 문서 변경만 포함한다. 초기 넓은 interaction matrix는 `1643e73025fecf1058dcbfe2b8ad6bf706cd24f6`에서 시작했다. 이후 차이는 changed-file 고지와 artifact 검사이며, 최종 head의 Example dev reload, production Example/Web, 실제 Electron renderer를 다시 확인했다.
 
