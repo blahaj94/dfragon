@@ -26,7 +26,7 @@ async function render(props: Partial<ComponentProps<typeof PartyHeader>> = {}): 
   await act(async () =>
     root.render(
       <PartyHeader
-        status="조회 완료"
+        notice=""
         filledCount={2}
         lastCapturedAt={null}
         canCapture
@@ -52,11 +52,10 @@ function captureButton(): HTMLButtonElement {
   return container.querySelector<HTMLButtonElement>('[aria-label="파티 캡처, 단축키 Alt R"]')!
 }
 
-it('제목, 채운 자리 수, 진행 문구 뒤에 접기, 마지막 캡처, 스냅샷, 캡처 버튼 순서로 둔다', async () => {
+it('제목과 채운 자리 수 뒤에 접기, 마지막 캡처, 스냅샷, 캡처 버튼 순서로 둔다', async () => {
   await render()
   expect(container.querySelector('h1')?.textContent).toBe('파티')
   expect(container.textContent).toContain('2/4')
-  expect(container.querySelector('[role="status"]')?.textContent).toBe('조회 완료')
   const buttons = [...container.querySelectorAll('button')].map((button) =>
     button.getAttribute('aria-label')
   )
@@ -77,6 +76,15 @@ it('제목, 채운 자리 수, 진행 문구 뒤에 접기, 마지막 캡처, �
   expect(
     container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.disabled
   ).toBe(true)
+})
+
+it('상세 열기 실패 안내만 status 영역에 보이고 없으면 영역을 비워 둔다', async () => {
+  await render()
+  const status = container.querySelector('[role="status"]')!
+  expect(status.textContent).toBe('')
+  await render({ notice: '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.' })
+  expect(container.querySelector('[role="status"]')).toBe(status)
+  expect(status.textContent).toBe('캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.')
 })
 
 it('캡처 버튼은 누를 수 있을 때만 회차 시작을 요청한다', async () => {

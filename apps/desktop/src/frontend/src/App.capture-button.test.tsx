@@ -56,7 +56,14 @@ async function press(f: Fixture, trigger: Trigger): Promise<void> {
   await act(async () => captureButton().click())
 }
 
-function partyStatus(): string | null {
+// 파티 머리는 캡처 진행 문구를 되풀이하지 않으므로 상단 바 상태 칩의 접근 가능한 이름으로 상태를 읽는다.
+function captureState(): string | null {
+  return document
+    .querySelector('main > header button[aria-label^="화면 캡처, "]')!
+    .getAttribute('aria-label')
+}
+
+function partyNotice(): string | null {
   const heading = [...document.querySelectorAll('h1')].find((h1) => h1.textContent === '파티')!
 
   return heading.parentElement!.querySelector('[role="status"]')!.textContent
@@ -132,25 +139,24 @@ it.each(triggers)(
     await press(f, trigger)
     expect(beginCount(f)).toBe(0)
     expect(f.readCaptureFrame).not.toHaveBeenCalled()
-    expect(partyStatus()).toBe('캡처 대기')
+    expect(captureState()).toBe('화면 캡처, 창 미감지')
   }
 )
 
 it.each(triggers)(
-  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 결과 문구로 끝난다',
+  '창을 등록한 뒤 %s은 같은 회차를 시작하고 같은 상태로 끝나며 파티 머리에 진행 문구를 두지 않는다',
   async (trigger) => {
     const f = createRendererFixture()
     f.capture.listCaptureSources.mockResolvedValue([{ id: 'game', name: '던전앤파이터' }])
     await mount(f)
-    expect(partyStatus()).toBe('Alt+R을 눌러 파티를 인식해 주세요.')
+    expect(captureState()).toBe('화면 캡처, 창 감지됨')
     expect(captureButton().disabled).toBe(false)
     await press(f, trigger)
     expect(beginCount(f)).toBe(1)
     expect(f.readCaptureFrame).toHaveBeenCalledOnce()
     // 합성 프레임에는 파티 프레임이 없어 두 경로 모두 같은 안내로 회차를 끝낸다.
-    expect(partyStatus()).toBe(
-      '파티 프레임을 찾지 못했습니다. 파티 프레임이 보이게 한 뒤 Alt+R을 누르세요.'
-    )
+    expect(captureState()).toBe('화면 캡처, 확인 필요')
+    expect(partyNotice()).toBe('')
     expect(captureButton().disabled).toBe(false)
   }
 )
@@ -166,7 +172,7 @@ it.each(triggers)('검색 수명을 시작하는 동안 누른 %s은 무시한�
   await mount(f)
   await f.restart()
   expect(beginCount(f)).toBe(1)
-  expect(partyStatus()).toBe('파티를 인식하고 있습니다.')
+  expect(captureState()).toBe('화면 캡처, 인식 중')
   expect(captureButton().disabled).toBe(true)
   await press(f, trigger)
   expect(beginCount(f)).toBe(1)
@@ -186,11 +192,11 @@ it.each(triggers)('캡처를 중지한 뒤 %s은 회차를 시작하지 않는�
     (button) => button.textContent === '캡처 중지'
   )!
   await act(async () => stop.click())
-  expect(partyStatus()).toBe('캡처를 중지했습니다.')
+  expect(captureState()).toBe('화면 캡처, 창 감지됨')
   expect(captureButton().disabled).toBe(true)
   await press(f, trigger)
   expect(beginCount(f)).toBe(0)
-  expect(partyStatus()).toBe('캡처를 중지했습니다.')
+  expect(captureState()).toBe('화면 캡처, 창 감지됨')
 })
 
 it.each(triggers)(
@@ -209,7 +215,7 @@ it.each(triggers)(
     })
     await mount(f)
     await f.restart()
-    expect(partyStatus()).toBe('파티를 인식하고 있습니다.')
+    expect(captureState()).toBe('화면 캡처, 인식 중')
     expect(captureButton().disabled).toBe(false)
     const firstRound = media.worker.mock.calls[0][0] as AbortSignal
     await press(f, trigger)
@@ -228,7 +234,7 @@ it.each(triggers)(
     expect(f.capture.notifyOcrCandidatesDetected).not.toHaveBeenCalledWith(
       expect.objectContaining({ nickname: 'OLD' })
     )
-    expect(partyStatus()).toBe('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
+    expect(captureState()).toBe('화면 캡처, 인식 완료')
     expect(document.querySelector<HTMLInputElement>('[aria-label="1번 캐릭터 이름"]')!.value).toBe(
       'NEW'
     )
@@ -261,7 +267,7 @@ it.each(triggers)(
     await mount(f)
     expect(lastCapture()).toBe('-')
     await press(f, trigger)
-    expect(partyStatus()).toBe('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
+    expect(captureState()).toBe('화면 캡처, 인식 완료')
     expect(lastCapture()).toBe('0초 전')
     expect(document.querySelector('time')).not.toBeNull()
     await act(async () =>
@@ -295,7 +301,7 @@ it('새 회차가 진행되는 동안 이전 완료 시각을 유지하고 다�
   await press(f, '캡처 버튼')
   expect(lastCapture()).toBe('0초 전')
   await press(f, '캡처 버튼')
-  expect(partyStatus()).toBe('파티를 인식하고 있습니다.')
+  expect(captureState()).toBe('화면 캡처, 인식 중')
   expect(lastCapture()).toBe('0초 전')
   await chooseSource('Next game')
   expect(lastCapture()).toBe('-')
