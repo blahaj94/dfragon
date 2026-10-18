@@ -23,8 +23,8 @@ type RaidCapture = {
   seatOrder: SeatOrder
   /** 공대 회차가 인식하는 동안은 자리를 맞바꾸지 않는다. */
   canMoveSeats: boolean
-  /** 두 화면 자리를 맞바꾼다. 맞바꿀 수 없는 동안에는 아무 일도 하지 않는다. */
-  swapSeats: (from: number, to: number) => void
+  /** 두 화면 자리를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안이나 같은 자리면 false다. */
+  swapSeats: (from: number, to: number) => boolean
 }
 
 /**
@@ -89,10 +89,17 @@ export function useRaidCapture({
   })
   const canStartCapture = snapshot.can({ type: 'START' })
   const canMoveSeats = !recognizing
-  const moveSeats = (from: number, to: number): void => {
-    if (canMoveSeats) {
-      setSeatOrder((order) => swapSeats(order, from, to))
+  const moveSeats = (from: number, to: number): boolean => {
+    if (!canMoveSeats) {
+      return false
     }
+    const next = swapSeats(seatOrder, from, to)
+    if (next === seatOrder) {
+      return false
+    }
+    setSeatOrder(next)
+
+    return true
   }
 
   return {

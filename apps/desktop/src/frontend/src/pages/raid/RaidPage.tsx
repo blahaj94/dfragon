@@ -73,8 +73,8 @@ export function RaidPage({
   seatOrder: SeatOrder
   /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
   canMoveSeats: boolean
-  /** 두 화면 자리(0~11)를 맞바꾼다. */
-  onSwapSeats: (from: number, to: number) => void
+  /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
+  onSwapSeats: (from: number, to: number) => boolean
   /** 마지막으로 인식을 마친 공대 회차의 완료 시각(ms). 없으면 null이다. */
   lastCapturedAt: number | null
   /** Alt+R이 지금 공대 회차를 시작할 수 있는지. 아니면 버튼도 누를 수 없다. */
@@ -89,7 +89,19 @@ export function RaidPage({
 }): React.JSX.Element {
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
-  const [moveNotice, setMoveNotice] = useState('')
+  // 끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 끌기를
+  // 끝낸 것으로 본다.
+  const [dragBasis, setDragBasis] = useState({ resetKey, seatOrder })
+  if (dragBasis.resetKey !== resetKey || dragBasis.seatOrder !== seatOrder) {
+    setDragBasis({ resetKey, seatOrder })
+    setDragging(null)
+    setDropTarget(null)
+  } else if (!canMoveSeats && (dragging !== null || dropTarget !== null)) {
+    setDragging(null)
+    setDropTarget(null)
+  }
+  // 맞바꾼 알림. 같은 쌍을 다시 맞바꿔도 다시 읽히도록 두 알림 영역을 번갈아 채운다.
+  const [moveNotice, setMoveNotice] = useState({ text: '', sequence: 0 })
   const seatElements = useRef(new Map<number, HTMLDivElement>())
   // 키보드로 옮긴 카드. 카드가 새 자리로 옮겨 그려진 뒤 다시 포커스해 이어서 옮길 수 있게 한다.
   const movedSlot = useRef<number | null>(null)
@@ -101,14 +113,26 @@ export function RaidPage({
   useLayoutEffect(() => {
     const slot = movedSlot.current
     movedSlot.current = null
-    if (slot !== null) {
-      seatElements.current.get(slot)?.focus()
+    const element = slot === null ? undefined : seatElements.current.get(slot)
+    // 카드를 옮기면서 포커스를 잃었을 때만 되돌린다. 포커스가 남아 있으면 같은 카드를 다시 읽히지 않는다.
+    if (element !== undefined && document.activeElement !== element) {
+      element.focus()
     }
   }, [seatOrder])
 
-  function swap(from: number, to: number): void {
-    onSwapSeats(from, to)
-    setMoveNotice(`${from + 1}번 자리와 ${to + 1}번 자리를 맞바꿨습니다.`)
+  /** 두 자리를 맞바꾸고, 맞바꿨을 때만 알린다. */
+  function swap(from: number, to: number): boolean {
+    const swapped = onSwapSeats(from, to)
+    if (swapped) {
+      const text = `${from + 1}번 자리와 ${to + 1}번 자리를 맞바꿨습니다.`
+      setMoveNotice((previous) => {
+        const sequence = previous.sequence + 1
+
+        return { text, sequence }
+      })
+    }
+
+    return swapped
   }
 
   function endDrag(): void {
@@ -170,12 +194,14 @@ export function RaidPage({
               return
             }
             event.preventDefault()
-            movedSlot.current = slot
-            swap(seat, target)
+            if (swap(seat, target)) {
+              movedSlot.current = slot
+            }
           },
           onDragStart: (event) => {
-            // 이름 칸의 선택한 글자를 끄는 동작은 자리 맞바꾸기가 아니다.
-            if (event.target !== event.currentTarget || !canMoveSeats) {
+            // 이름 칸의 선택한 글자를 끄는 동작은 자리 맞바꾸기가 아니다. 맞바꿀 수 없는 동안 시작한 끌기는
+            // 다음 그리기에서 끝낸 것으로 본다.
+            if (event.target !== event.currentTarget) {
               return
             }
             event.dataTransfer.effectAllowed = 'move'
@@ -184,7 +210,7 @@ export function RaidPage({
             setDropTarget(null)
           },
           onDragOver: (event) => {
-            if (dragging === null || !canMoveSeats) {
+            if (dragging === null || !event.dataTransfer.types.includes(SEAT_DRAG_TYPE)) {
               return
             }
             event.preventDefault()
@@ -200,13 +226,13 @@ export function RaidPage({
             }
           },
           onDrop: (event) => {
-            if (dragging === null) {
+            if (dragging === null || !event.dataTransfer.types.includes(SEAT_DRAG_TYPE)) {
               return
             }
             // 이름 칸에 놓아도 끈 자리 번호가 입력되지 않게 기본 동작을 막는다.
             event.preventDefault()
             const from = seatOrder.indexOf(dragging)
-            if (canMoveSeats && from !== seat) {
+            if (from !== seat) {
               swap(from, seat)
             }
             endDrag()
@@ -271,7 +297,10 @@ export function RaidPage({
         Alt와 방향키로 위, 아래, 왼쪽, 오른쪽 자리와 맞바꿉니다.
       </span>
       <span role="status" {...stylex.props(shapes.srOnly)}>
-        {moveNotice}
+        {moveNotice.sequence % 2 === 1 ? moveNotice.text : ''}
+      </span>
+      <span role="status" {...stylex.props(shapes.srOnly)}>
+        {moveNotice.sequence % 2 === 0 ? moveNotice.text : ''}
       </span>
     </section>
   )

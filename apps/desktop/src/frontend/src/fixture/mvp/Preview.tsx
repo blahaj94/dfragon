@@ -161,7 +161,15 @@ export function Preview(): React.JSX.Element {
               }}
               seatOrder={seatOrder}
               canMoveSeats={phase !== 'recognizing'}
-              onSwapSeats={(from, to) => setSeatOrder((order) => swapSeats(order, from, to))}
+              onSwapSeats={(from, to) => {
+                const next = swapSeats(seatOrder, from, to)
+                if (phase === 'recognizing' || next === seatOrder) {
+                  return false
+                }
+                setSeatOrder(next)
+
+                return true
+              }}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
               onSlotDetail={openDetail}
