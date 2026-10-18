@@ -82,7 +82,7 @@ async function render(
         onCapture={vi.fn()}
         seatOrder={createSeatOrder()}
         canMoveSeats
-        onSwapSeats={vi.fn()}
+        onSwapSeats={vi.fn(() => true)}
         {...props}
         slots={slots}
         characters={characters}
@@ -115,14 +115,27 @@ async function pressAlt(target: HTMLElement, key: string, altKey = true): Promis
   )
 }
 
-// jsdom에는 DragEvent가 없어 React가 읽는 dataTransfer만 붙인 이벤트로 끌기를 흉내 낸다.
-async function drag(type: string, target: HTMLElement): Promise<{ setData: () => void }> {
-  const dataTransfer = { setData: vi.fn(), effectAllowed: '', dropEffect: '' }
+const SEAT_DRAG_TYPE = 'application/x-dfragon-raid-seat'
+
+// jsdom에는 DragEvent가 없어 React가 읽는 dataTransfer만 붙인 이벤트로 끌기를 흉내 낸다. 기본은 자리 끌기
+// 형식이 담긴 끌기다.
+async function drag(
+  type: string,
+  target: HTMLElement,
+  types: string[] = [SEAT_DRAG_TYPE]
+): Promise<{ event: Event; setData: () => void }> {
+  const dataTransfer = { types, setData: vi.fn(), effectAllowed: '', dropEffect: '' }
   const event = new Event(type, { bubbles: true, cancelable: true })
   Object.defineProperty(event, 'dataTransfer', { value: dataTransfer })
   await act(async () => target.dispatchEvent(event))
 
-  return dataTransfer
+  return { event, setData: dataTransfer.setData }
+}
+
+function moveNotices(): (string | null)[] {
+  return [...container.querySelectorAll('section > [role="status"]')].map(
+    (region) => region.textContent
+  )
 }
 
 function classesOf(style: stylex.StyleXStyles): string[] {
@@ -244,7 +257,7 @@ it('맞바꾸면 카드가 입력 중인 이름과 함께 다른 파티의 자�
 })
 
 it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고 옮긴 카드에 포커스를 되돌린다', async () => {
-  const swap = vi.fn()
+  const swap = vi.fn(() => true)
   await render({ characters: [member], onSwapSeats: swap })
   const first = seats()[0]
   await act(async () => first.focus())
@@ -278,11 +291,11 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
 })
 
 it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이름 칸 글자를 끄는 동작은 자리를 옮기지 않는다', async () => {
-  const swap = vi.fn()
+  const swap = vi.fn(() => true)
   await render({ characters: [member], onSwapSeats: swap })
 
-  const transfer = await drag('dragstart', seats()[1])
-  expect(transfer.setData).toHaveBeenCalledWith('application/x-dfragon-raid-seat', '2')
+  const start = await drag('dragstart', seats()[1])
+  expect(start.setData).toHaveBeenCalledWith(SEAT_DRAG_TYPE, '2')
   await drag('dragover', seats()[4])
   expect(seats()[4].className).not.toBe(seats()[3].className)
   await drag('drop', seats()[4])
@@ -297,7 +310,7 @@ it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이�
 })
 
 it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자리 이름에서 옮기기 안내를 뺀다', async () => {
-  const swap = vi.fn()
+  const swap = vi.fn(() => true)
   await render({ characters: [member], onSwapSeats: swap, canMoveSeats: false })
 
   const first = seats()[0]
@@ -309,6 +322,92 @@ it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자�
   await drag('dragover', seats()[4])
   await drag('drop', seats()[4])
   expect(swap).not.toHaveBeenCalled()
+})
+
+it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend 없이도 끌기를 끝내고 흐린 표시와 놓기를 거둔다', async () => {
+  const swap = vi.fn(() => true)
+  const idleClass = (): string => seats()[2].className
+  await render({ characters: [member], onSwapSeats: swap })
+
+  await drag('dragstart', seats()[1])
+  expect(seats()[1].className).not.toBe(idleClass())
+  await render({ characters: [member], onSwapSeats: swap, resetKey: 'next-round' })
+  expect(seats()[1].className).toBe(idleClass())
+  await drag('dragover', seats()[4])
+  await drag('drop', seats()[4])
+  expect(swap).not.toHaveBeenCalled()
+
+  await drag('dragstart', seats()[1])
+  await render({
+    characters: [member],
+    onSwapSeats: swap,
+    resetKey: 'next-round',
+    seatOrder: swapSeats(createSeatOrder(), 6, 7)
+  })
+  expect(seats()[1].className).toBe(idleClass())
+  await drag('drop', seats()[4])
+  expect(swap).not.toHaveBeenCalled()
+})
+
+it('끄는 동안 맞바꿀 수 없게 되면 끌기를 끝내 다시 맞바꿀 수 있게 돼도 그 끌기로는 놓지 않는다', async () => {
+  const swap = vi.fn(() => true)
+  await render({ characters: [member], onSwapSeats: swap })
+
+  await drag('dragstart', seats()[1])
+  await render({ characters: [member], onSwapSeats: swap, canMoveSeats: false })
+  await render({ characters: [member], onSwapSeats: swap })
+  await drag('dragover', seats()[4])
+  await drag('drop', seats()[4])
+  expect(swap).not.toHaveBeenCalled()
+})
+
+it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 자리로 받지 않는다', async () => {
+  const swap = vi.fn(() => true)
+  await render({ characters: [member], onSwapSeats: swap })
+
+  await drag('dragstart', seats()[1])
+  const over = await drag('dragover', seats()[4], ['text/plain'])
+  const drop = await drag('drop', seats()[4], ['text/plain'])
+  expect(over.event.defaultPrevented).toBe(false)
+  expect(drop.event.defaultPrevented).toBe(false)
+  expect(swap).not.toHaveBeenCalled()
+})
+
+it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 그 카드로 포커스를 가져가지 않는다', async () => {
+  const swap = vi.fn(() => false)
+  await render({ characters: [member], onSwapSeats: swap })
+  await act(async () => seats()[0].focus())
+
+  await pressAlt(seats()[0], 'ArrowRight')
+  expect(swap).toHaveBeenCalledExactlyOnceWith(0, 1)
+  expect(moveNotices()).toEqual(['', ''])
+
+  const capture = container.querySelector<HTMLButtonElement>(
+    '[aria-label="공대 캡처, 단축키 Alt R"]'
+  )!
+  await act(async () => capture.focus())
+  // 회차 시작처럼 다른 이유로 배치가 바뀐다.
+  await render({
+    characters: [member],
+    onSwapSeats: swap,
+    seatOrder: swapSeats(createSeatOrder(), 0, 1)
+  })
+  expect(document.activeElement).toBe(capture)
+})
+
+it('같은 두 자리를 연달아 맞바꿔도 알림 영역을 번갈아 채워 다시 읽히게 한다', async () => {
+  await render({ characters: [member] })
+  const text = '1번 자리와 2번 자리를 맞바꿨습니다.'
+
+  // 매번 한 영역에만 문구가 있고, 두 번째 알림은 비어 있던 다른 영역이 받아 새 내용으로 읽힌다.
+  await pressAlt(seats()[0], 'ArrowRight')
+  const first = moveNotices()
+  expect(first.filter((notice) => notice === text)).toHaveLength(1)
+  expect(first.filter((notice) => notice === '')).toHaveLength(1)
+  await pressAlt(seats()[0], 'ArrowRight')
+  const second = moveNotices()
+  expect(second.filter((notice) => notice === text)).toHaveLength(1)
+  expect(second.indexOf(text)).not.toBe(first.indexOf(text))
 })
 
 it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안내는 스탯 한 줄 자리에 보인다', async () => {
