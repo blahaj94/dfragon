@@ -34,7 +34,7 @@ import { createOcrCollection } from './ocr-collection/collection'
 import { isOcrCollectionEnabled } from './ocr-collection/policy'
 import { registerDiagnosticsWindow } from './diagnostics/ipc-handler'
 import { registerWindowChromeWindow } from './window-chrome/ipc-handler'
-import { WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
+import { MAIN_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../preload/common/window-chrome'
 import { getTitleBarOverlay } from './window-chrome/title-bar-overlay'
 import { registerMainDiagnosticErrors, reportDiagnostic } from './diagnostics/log'
 import {
@@ -101,10 +101,13 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   authAppLifecycle.prepareWindow()
   const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
   const window = new BrowserWindow({
-    width: 900,
-    height: 670,
-    // Windows 창 버튼(138)과 상단 바 여백, 로그인 버튼이 있는 도구 묶음이 겹치지 않는 최소 폭이다.
-    minWidth: 460,
+    width: MAIN_WINDOW_SIZE.width,
+    height: MAIN_WINDOW_SIZE.height,
+    // dfragon-design layout.md의 최소 창이다. 이 폭에서 상단 바는 제품 이름만 숨기면 Windows 창 버튼(138)과
+    // 내비, 상태 칩, 로그인 버튼이 있는 도구 묶음이 겹치지 않고, 파티 카드 네 장이 한 줄에 들어간다.
+    // 접은 창은 renderer 요청으로 최소 높이를 낮춘다.
+    minWidth: MAIN_WINDOW_SIZE.minWidth,
+    minHeight: MAIN_WINDOW_SIZE.minHeight,
     show: false,
     autoHideMenuBar: true,
     titleBarStyle: 'hidden',

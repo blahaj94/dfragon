@@ -39,7 +39,7 @@ export function CloseIcon(props: IconProps) {
   return <LineIcon d="M6 6l12 12M18 6 6 18" {...props} />
 }
 
-// 대기 상태 표시. 위아래 막대와 각진 모래 두 삼각형으로 그린다.
+// 대기 상태 표시. 위아래로 맞붙은 두 삼각형으로 그린 각진 모래시계다(dfragon-design icons.md).
 export function HourglassIcon(props: IconProps) {
-  return <LineIcon d="M6 3h12M6 21h12M8 3v3l4 6-4 6v3M16 3v3l-4 6 4 6v3" {...props} />
+  return <LineIcon d="M6 3h12l-6 9zM12 12l6 9H6z" {...props} />
 }

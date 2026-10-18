@@ -221,6 +221,12 @@ function Examples() {
             <StatusChip tone="waiting">찾는 중</StatusChip>
             <StatusChip tone="danger">실패</StatusChip>
             <StatusChip tone="neutral">대기</StatusChip>
+            <StatusChip tone="success" size="md">
+              창 감지됨
+            </StatusChip>
+            <StatusChip tone="waiting" size="md">
+              창 확인 중
+            </StatusChip>
             <ProgressCircle size="24" aria-label="불러오는 중" />
             <ProgressCircle size="24" value={60} aria-label="60% 진행" />
             <Kbd>Alt</Kbd>

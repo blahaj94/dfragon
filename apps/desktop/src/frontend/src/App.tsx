@@ -1,12 +1,13 @@
-import { PRODUCT_NAME } from '@dfragon/lib'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Typo } from '@dfragon/ui'
 import { useColorTheme } from './hooks/useColorTheme'
 import { useWindowChromeTheme } from './hooks/useWindowChromeTheme'
 import { usePartyCapture } from './hooks/usePartyCapture'
 import { CaptureControls } from './components/CaptureControls'
 import { TopBar } from './components/TopBar'
+import { MainNav, type SearchMode } from './components/MainNav'
+import { PartyHeader } from './components/PartyHeader'
+import { usePartyCollapse } from './hooks/usePartyCollapse'
 import { PartyPage } from './pages/party/PartyPage'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
@@ -15,7 +16,6 @@ import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
-import brandIcon from '../../../resources/brand.png'
 import { characterSlotNotice, toCharacterCard } from './lib/character-card'
 import { getCaptureControlState, isDnfCaptureSource } from './lib/capture-presentation'
 
@@ -28,13 +28,16 @@ function App(): React.JSX.Element {
   // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
   const authApi = window.auth
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
+  const [searchMode, setSearchMode] = useState<SearchMode>('party')
+  const party = usePartyCollapse()
+  const partyCardsId = useId()
   let captureNotice = ''
   if (capture.search.connectionFailed) {
     captureNotice = '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
   } else if (capture.selectedSourceId) {
     captureNotice = capture.status
   }
-  const footerStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
+  const partyStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
   const developerModeEnabled = developerMode.status === 'ready' && developerMode.enabled
   // 상단 바의 설정은 작업 공간에서도 보인다. 개발자 모드를 껐다 다시 켤 때 캡처 중지 없이
   // 작업 공간이 다시 열리지 않도록, 개발자 모드가 꺼지면 열림 상태도 닫는다.
@@ -71,6 +74,11 @@ function App(): React.JSX.Element {
   return (
     <main {...stylex.props(styles.app)}>
       <TopBar
+        nav={
+          showDeveloperWorkbench ? null : (
+            <MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />
+          )
+        }
         captureStatus={captureStatus}
         showCapture={!showDeveloperWorkbench}
         capture={
@@ -96,7 +104,7 @@ function App(): React.JSX.Element {
         }
       />
       <div {...stylex.props(styles.content)}>
-        <div hidden={showDeveloperWorkbench}>
+        <div hidden={showDeveloperWorkbench} {...stylex.props(styles.page)}>
           {updateNotice.notice != null && (
             <UpdateNotice
               tag={updateNotice.notice.tag}
@@ -105,34 +113,38 @@ function App(): React.JSX.Element {
               onDismiss={updateNotice.dismiss}
             />
           )}
-          <PartyPage
-            resetKey={String(capture.round)}
-            slots={capture.search.slots.map((slot) => slot.state)}
-            characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
-            basicOnly
-            inputEnabled
-            onLookup={capture.search.lookupSlot}
-            loadingSlots={capture.search.manualSlots.map(
-              (manual) => !manual && capture.recognizing
-            )}
-            slotNotices={slotNotices}
-            onSlotDetail={capture.search.openDetails}
-            nicknames={capture.nicknames}
-          />
+          {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
+          <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+            <PartyHeader
+              status={capture.search.detailNotice || partyStatus}
+              collapsed={party.collapsed}
+              onToggleCollapsed={party.toggleCollapsed}
+              controls={partyCardsId}
+            />
+            <PartyPage
+              id={partyCardsId}
+              collapsed={party.collapsed}
+              resetKey={String(capture.round)}
+              slots={capture.search.slots.map((slot) => slot.state)}
+              characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
+              basicOnly
+              inputEnabled
+              onLookup={capture.search.lookupSlot}
+              loadingSlots={capture.search.manualSlots.map(
+                (manual) => !manual && capture.recognizing
+              )}
+              slotNotices={slotNotices}
+              onSlotDetail={capture.search.openDetails}
+              nicknames={capture.nicknames}
+            />
+          </div>
+          {/* 공대 화면이 채울 자리다. */}
+          {searchMode === 'raid' && <section aria-label="공대" />}
         </div>
         {showDeveloperWorkbench && (
           <div {...stylex.props(styles.workbench)}>
             <DeveloperWorkbench onClose={() => setWorkbenchOpen(false)} />
           </div>
-        )}
-        {!showDeveloperWorkbench && (
-          <footer {...stylex.props(styles.footer)}>
-            <div {...stylex.props(styles.brand)}>
-              <img src={brandIcon} width={28} height={28} alt="" />
-              <Typo.caption>{PRODUCT_NAME} Desktop</Typo.caption>
-            </div>
-            <Typo.caption role="status">{capture.search.detailNotice || footerStatus}</Typo.caption>
-          </footer>
         )}
       </div>
     </main>

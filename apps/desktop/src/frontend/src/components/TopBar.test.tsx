@@ -2,7 +2,6 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import brandIcon from '../../../../resources/brand.png'
 import { ColorThemeProvider } from './ColorThemeProvider'
 import { TopBar } from './TopBar'
 
@@ -27,7 +26,8 @@ async function render(props: Partial<ComponentProps<typeof TopBar>> = {}): Promi
     root.render(
       <ColorThemeProvider initialTheme="dark">
         <TopBar
-          captureStatus={{ label: '캡처 중', tone: 'informative' }}
+          nav={<nav aria-label="주 메뉴">내비</nav>}
+          captureStatus={{ label: '캡처 중', tone: 'neutral' }}
           capture={<button aria-label="화면 캡처">카메라</button>}
           settings={<button aria-label="설정">설정</button>}
           showCapture
@@ -38,25 +38,27 @@ async function render(props: Partial<ComponentProps<typeof TopBar>> = {}): Promi
   )
 }
 
-it('상단 바는 로고, 상태, 카메라, 테마, 로그인, 설정 순서로 표시한다', async () => {
+function textOrLabel(element: Element): string | null {
+  const label = element.getAttribute('aria-label')
+  if (label != null) {
+    return label
+  }
+
+  return element.textContent
+}
+
+it('상단 바는 로고, 내비, 게임 연결 상태, 카메라, 테마, 로그인, 설정 순서로 표시한다', async () => {
   await render()
   const header = container.querySelector('header')!
   expect(container.querySelectorAll('header')).toHaveLength(1)
-  const mark = header.querySelector('img')!
-  expect(mark.getAttribute('src')).toBe(brandIcon)
-  expect(mark.getAttribute('alt')).toBe('')
-  expect([mark.width, mark.height]).toEqual([24, 24])
-  const name = mark.nextElementSibling!
-  expect(name.textContent).toBe('DFragon')
-  const badge = header.querySelector('[data-tone]')!
+  expect(header.querySelector('img')).toBeNull()
+  const name = [...header.querySelectorAll('span')].find((span) => span.textContent === 'DFragon')!
+  expect(name).toBeDefined()
+  const nav = header.querySelector('nav')!
+  const status = header.querySelector('[data-tone]')!
   const buttons = [...header.querySelectorAll('button')]
-  expect(buttons.map((button) => button.getAttribute('aria-label') ?? button.textContent)).toEqual([
-    '화면 캡처',
-    '라이트 테마',
-    '로그인',
-    '설정'
-  ])
-  const items = [name, badge, ...buttons]
+  expect(buttons.map(textOrLabel)).toEqual(['화면 캡처', '라이트 테마', '로그인', '설정'])
+  const items = [name, nav, status, ...buttons]
   for (let index = 1; index < items.length; index++) {
     expect(
       items[index - 1].compareDocumentPosition(items[index]) & Node.DOCUMENT_POSITION_FOLLOWING
@@ -64,19 +66,17 @@ it('상단 바는 로고, 상태, 카메라, 테마, 로그인, 설정 순서로
   }
 })
 
-// 이전 tone 이름은 StatusChip tone으로 바뀌어 표시된다. 주의 상태는 따로 색을 두지 않고 waiting이다.
 it.each([
-  ['캡처 중', 'informative', 'neutral'],
-  ['준비 중', 'neutral', 'neutral'],
-  ['창 미감지', 'warning', 'waiting'],
-  ['조회 실패', 'critical', 'danger'],
-  ['창 감지됨', 'positive', 'success']
-] as const)('상태 %s와 tone %s를 live region 없이 표시한다', async (label, tone, chipTone) => {
+  ['캡처 중', 'neutral'],
+  ['창 미감지', 'waiting'],
+  ['조회 실패', 'danger'],
+  ['창 감지됨', 'success']
+] as const)('게임 연결 상태 %s를 tone %s로 live region 없이 표시한다', async (label, tone) => {
   await render({ captureStatus: { label, tone } })
   const header = container.querySelector('header')!
-  const badge = header.querySelector(`[data-tone="${chipTone}"]`)!
-  expect(badge.textContent).toBe(label)
-  expect(badge.getAttribute('role')).toBeNull()
+  const chip = header.querySelector(`[data-tone="${tone}"]`)!
+  expect(chip.textContent).toBe(label)
+  expect(chip.getAttribute('role')).toBeNull()
   expect(header.querySelector('[role="status"], [aria-live]')).toBeNull()
 })
 
@@ -132,12 +132,23 @@ it('계정 요소가 아무것도 그리지 않으면 빈 감싼 span을 남기�
   expect(container.textContent).not.toContain('로그인')
 })
 
-it('캡처를 숨기면 배지와 카메라만 사라지고 나머지 도구를 유지한다', async () => {
+it('캡처를 숨기면 상태 칩과 카메라만 사라지고 나머지 도구를 유지한다', async () => {
   await render({ showCapture: false })
   expect(container.textContent).not.toContain('캡처 중')
+  expect(container.querySelector('[data-tone]')).toBeNull()
   expect(container.querySelector('[aria-label="화면 캡처"]')).toBeNull()
-  expect(container.querySelector('img')?.nextElementSibling?.textContent).toBe('DFragon')
+  expect(container.textContent).toContain('DFragon')
   expect(container.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
   expect(container.textContent).toContain('로그인')
   expect(container.querySelector('[aria-label="설정"]')).not.toBeNull()
+})
+
+it('내비가 null이면 내비와 로고 옆 구분선을 그리지 않는다', async () => {
+  await render({ nav: null, showCapture: false })
+  const header = container.querySelector('header')!
+  expect(header.querySelector('nav')).toBeNull()
+  // 로고 바로 다음이 구분선 없이 도구 버튼 묶음이다.
+  const brand = [...header.querySelectorAll('span')].find((span) => span.textContent === 'DFragon')!
+    .parentElement!
+  expect(brand.nextElementSibling?.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
 })

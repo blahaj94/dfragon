@@ -8,8 +8,8 @@ export function ChevronRightIcon(props: SVGProps<SVGSVGElement>): React.JSX.Elem
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
       <path d="m9 18 6-6-6-6" />

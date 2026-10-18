@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CaptureControls } from '../../components/CaptureControls'
+import { MainNav, type SearchMode } from '../../components/MainNav'
+import { PartyHeader } from '../../components/PartyHeader'
 import { TopBar } from '../../components/TopBar'
+import { usePartyCollapse } from '../../hooks/usePartyCollapse'
 import { SettingsSection } from '../../sections/SettingsSection'
 import { getCaptureControlState, isDnfCaptureSource } from '../../lib/capture-presentation'
 import { PartyPage } from '../../pages/party/PartyPage'
@@ -23,6 +26,9 @@ export function Preview(): React.JSX.Element {
   const [scenario, setScenario] = useState('states')
   const [captureState, setCaptureState] = useState('idle')
   const [source, setSource] = useState('')
+  const [searchMode, setSearchMode] = useState<SearchMode>('party')
+  const party = usePartyCollapse()
+  const partyCardsId = useId()
   const sources = getCapturePreviewSources(captureState)
   const phase = getCapturePreviewPhase(captureState)
   const captureStatus = getCaptureControlState({
@@ -59,6 +65,7 @@ export function Preview(): React.JSX.Element {
       ) : (
         <>
           <TopBar
+            nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
             captureStatus={captureStatus}
             showCapture
             settings={<SettingsSection />}
@@ -84,29 +91,40 @@ export function Preview(): React.JSX.Element {
             }
           />
           <div {...stylex.props(styles.content)}>
-            <PartyPage
-              character={character}
-              characters={identification ? [identifiedCharacter, null, null, null] : undefined}
-              basicOnly={identification}
-              nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
-              slotNotices={
-                identification
-                  ? [
-                      undefined,
-                      undefined,
-                      undefined,
-                      '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-                    ]
-                  : undefined
-              }
-              onRetry={identification ? () => setScenario('pending') : undefined}
-              retryEnabled={identification ? [false, false, false, true] : undefined}
-              slots={scenarios[scenario]}
-              resetKey={scenario}
-              compareFaces={scenario === 'faces' || scenario === 'missing'}
-              inputEnabled
-              onDetail={openDetail}
-            />
+            <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+              <PartyHeader
+                status={getCapturePreviewStatus(captureState) || '캡처 대기'}
+                collapsed={party.collapsed}
+                onToggleCollapsed={party.toggleCollapsed}
+                controls={partyCardsId}
+              />
+              <PartyPage
+                id={partyCardsId}
+                collapsed={party.collapsed}
+                character={character}
+                characters={identification ? [identifiedCharacter, null, null, null] : undefined}
+                basicOnly={identification}
+                nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
+                slotNotices={
+                  identification
+                    ? [
+                        undefined,
+                        undefined,
+                        undefined,
+                        '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+                      ]
+                    : undefined
+                }
+                onRetry={identification ? () => setScenario('pending') : undefined}
+                retryEnabled={identification ? [false, false, false, true] : undefined}
+                slots={scenarios[scenario]}
+                resetKey={scenario}
+                compareFaces={scenario === 'faces' || scenario === 'missing'}
+                inputEnabled
+                onDetail={openDetail}
+              />
+            </div>
+            {searchMode === 'raid' && <section aria-label="공대" />}
             <footer {...stylex.props(styles.footer)}>
               <span>DFragon Desktop</span>
               <select

@@ -567,7 +567,10 @@ it.each([
 
       expect(mocks.constructWindow).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({
-          minWidth: 460,
+          width: 1280,
+          height: 800,
+          minWidth: 1024,
+          minHeight: 640,
           titleBarStyle: 'hidden',
           titleBarOverlay,
           backgroundColor

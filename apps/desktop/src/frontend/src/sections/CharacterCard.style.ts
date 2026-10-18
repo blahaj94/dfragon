@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, motion } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   card: {
@@ -13,8 +13,13 @@ export const styles = stylex.create({
     borderRadius: 12,
     backgroundColor: colors.cardBg,
     color: colors.cardFg,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    transitionProperty: 'height',
+    transitionDuration: motion.durState,
+    transitionTimingFunction: motion.ease
   },
+  // 접힌 카드는 아래쪽에 붙은 서버, 이름, 모험단, 명성만 남긴다. 카드 디자인 적용 전의 임시 높이다.
+  collapsed: { height: 168 },
   failure: { borderWidth: 2, borderStyle: 'solid', borderColor: colors.borderDanger },
   turn: {
     position: 'absolute',
@@ -29,7 +34,16 @@ export const styles = stylex.create({
   },
   content: { position: 'absolute', inset: 0, pointerEvents: 'none' },
   progress: { position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' },
-  portrait: { position: 'absolute', inset: '10px 12px 50px', opacity: 1 },
+  portrait: {
+    position: 'absolute',
+    inset: '10px 12px 50px',
+    opacity: 1,
+    transitionProperty: 'opacity',
+    transitionDuration: motion.durHover,
+    transitionTimingFunction: 'linear'
+  },
+  // 접을 때 사라지는 부분의 불투명도는 motion.md의 예외대로 120ms 직선으로 줄인다.
+  portraitCollapsed: { opacity: 0, visibility: 'hidden' },
   identity: {
     position: 'absolute',
     bottom: 8,

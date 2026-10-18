@@ -27,6 +27,7 @@ export function CharacterCard({
   retryEnabled = false,
   retryPending = false,
   loading = false,
+  collapsed = false,
   onLookup
 }: {
   character?: CardCharacter
@@ -42,6 +43,8 @@ export function CharacterCard({
   retryEnabled?: boolean
   retryPending?: boolean
   loading?: boolean
+  /** 파티 머리의 접기. 그림을 숨기고 높이를 줄인 임시 모양이며 카드 디자인 적용에서 다시 그린다. */
+  collapsed?: boolean
   onLookup?: (nickname: string, serverId: string) => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
@@ -102,7 +105,11 @@ export function CharacterCard({
     <article
       aria-label={`${slot}번 슬롯`}
       aria-busy={busy}
-      {...stylex.props(styles.card, state === 'failure' && styles.failure)}
+      {...stylex.props(
+        styles.card,
+        collapsed && styles.collapsed,
+        state === 'failure' && styles.failure
+      )}
     >
       {canTurn && (
         <button
@@ -124,7 +131,7 @@ export function CharacterCard({
         )}
         {state === 'success' && character != null && showCharacter && (
           <>
-            <div {...stylex.props(styles.portrait)}>
+            <div {...stylex.props(styles.portrait, collapsed && styles.portraitCollapsed)}>
               <CardImage src={character.image} label="캐릭터" portrait />
             </div>
             <div {...stylex.props(styles.identity)}>

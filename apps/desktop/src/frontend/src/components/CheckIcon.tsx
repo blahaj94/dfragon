@@ -8,8 +8,8 @@ export function CheckIcon(props: SVGProps<SVGSVGElement>): React.JSX.Element {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       {...props}
     >
       <path d="M20 6 9 17l-5-5" />

@@ -116,6 +116,7 @@ expectTypeOf<DialogFooterProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | und
 expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<DialogRootProps>().not.toHaveProperty('ref')
 expectTypeOf<StatusChipTone>().toEqualTypeOf<'neutral' | 'success' | 'danger' | 'waiting'>()
+expectTypeOf<StatusChipProps['size']>().toEqualTypeOf<'sm' | 'md' | undefined>()
 expectTypeOf<StatusBadgeTone>().toEqualTypeOf<
   'neutral' | 'informative' | 'critical' | 'warning' | 'positive'
 >()
@@ -242,6 +243,9 @@ export const designExamples = (
     </DialogRoot>
     <StatusChip tone="waiting" role="status">
       찾는 중
+    </StatusChip>
+    <StatusChip tone="success" size="md">
+      창 감지됨
     </StatusChip>
     <StatusBadge tone="positive">창 감지됨</StatusBadge>
     <Kbd>Alt</Kbd>

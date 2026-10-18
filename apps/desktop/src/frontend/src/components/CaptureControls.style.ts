@@ -2,8 +2,9 @@ import * as stylex from '@stylexjs/stylex'
 import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
-  camera: { color: colors.fgDefault },
+  camera: { flexShrink: 0, color: colors.fgDefault },
   cameraActive: { color: colors.signal },
+  keys: { display: 'inline-flex', gap: 4 },
   dialog: {
     width: 480,
     maxWidth: 'calc(100vw - 32px)',

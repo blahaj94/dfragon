@@ -9,7 +9,27 @@ export const WINDOW_CHROME_COLORS = {
 
 export const WINDOW_CHROME_HEIGHT = 56
 
+// dfragon-design layout.md의 기준 창, 최소 창과 파티 카드를 접은 창의 높이다. 접은 높이 400은 최소
+// 높이 640의 예외라, 접은 동안은 최소 높이를 접은 높이로 낮춘다.
+export const MAIN_WINDOW_SIZE = {
+  width: 1280,
+  height: 800,
+  minWidth: 1024,
+  minHeight: 640,
+  collapsedHeight: 400
+} as const
+
 /** 창 색상에 허용된 테마만 변환 없이 확인한다. */
 export function isWindowChromeTheme(value: unknown): value is WindowChromeTheme {
   return value === 'light' || value === 'dark'
+}
+
+/** 메인 창 내용 높이로 접은 높이와 기준 높이 사이의 정수만 변환 없이 허용한다. */
+export function isMainWindowContentHeight(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= MAIN_WINDOW_SIZE.collapsedHeight &&
+    value <= MAIN_WINDOW_SIZE.height
+  )
 }
