@@ -2,7 +2,6 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-// public/color-theme.js는 타입 선언이 없는 일반 script라 tsc 범위(src) 밖에서 검사한다.
 const DARK_QUERY = '(prefers-color-scheme: dark)'
 
 function stubSystemColorScheme(initialScheme: 'light' | 'dark') {
@@ -20,6 +19,7 @@ function stubSystemColorScheme(initialScheme: 'light' | 'dark') {
   }
 }
 
+// public/color-theme.js는 타입 선언이 없는 일반 script라 tsc 범위(src) 밖에서 검사한다.
 async function loadColorThemeScript() {
   vi.resetModules()
   await import('../public/color-theme.js')
