@@ -24,7 +24,7 @@ const summary: SelectedCharacterSummary = {
   serverRank: null
 }
 
-it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만들어내지 않는다', () => {
+it('선택한 기본 정보와 명성 0을 보존하고 장비, 평가와 공대 스탯을 만들어내지 않는다', () => {
   expect(toCharacterCard(summary)).toEqual({
     characterId: 'fixture-character',
     name: '실제이름',
@@ -36,6 +36,7 @@ it('선택한 기본 정보와 명성 0을 보존하고 장비나 평가를 만�
     guild: null,
     equipmentScore: null,
     serverRank: null,
+    stats: null,
     image: summary.imageUrl,
     equipment: [],
     oath: []
