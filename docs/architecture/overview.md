@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: architecture
-last-reviewed: 2026-10-18
+last-reviewed: 2026-10-19
 ---
 
 # Architecture Overview
@@ -60,6 +60,20 @@ accounts 서비스가 패스키로 회원을 인증하고 별도 PostgreSQL에 �
 탈퇴 D1–D5와 공개 복원의 삭제 보존, 최신성, 옛 자격 폐기 조건은 [탈퇴 계약](../rules/auth-withdrawal-proposal.md)을 따른다. 한 운영자, 단일 서버를 허용하고 공개 복원은 선택 기능으로 유지한다. API/accounts와 각각의 PostgreSQL, volume, 역할 분리는 유지하며 같은 host의 분리를 물리 장애 격리로, 같은 운영자의 계정 분리를 독립 관리자에 의한 침해 방지로 설명하지 않는다. 서버 배치, 배포, 백업, 복구 실행은 [저장소 책임 경계](../reference/api-start-development.md#서버-이미지)의 인프라 담당 범위다. [PR #132](https://github.com/blahaj94/ldb/pull/132)의 3대, journal/witness 설계는 이전 결정 이력이며 새 기능의 기본 착수 조건이 아니다.
 
 설계와 실제 구현, 환경 검증을 구분한다. 현재 사용자 요청에 포함된 구현, 비운영 검증에는 과거 설계 작업의 착수 제외를 다시 적용하지 않는다. 미제공 복원 기능이 독립 작업을 막지 않으며, 실제 credential, 인증 도메인 설정, 운영 DB, 배포 권한과 유효한 명시적 금지는 유지한다.
+
+## 점수 엔진 경계
+
+2026-10-19 결정으로 비공개 저장소가 만든 C 네이티브 점수 엔진(Windows DLL, macOS dylib)을 Desktop main이 `koffi`로 불러 쓰는 아래 경계를 채택한다. 추적은 [Issue #716](https://github.com/blahaj94/dfragon/issues/716)이다. 이 절은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+
+| 대상 | 책임 |
+| --- | --- |
+| 비공개 엔진 저장소 | 엔진의 소스, 계산 데이터, 빌드, Release를 소유한다. |
+| 이 저장소 | 엔진을 불러 쓰는 로더와 바이너리 입수 script만 둔다. 엔진의 소스, 데이터, 바이너리를 commit하지 않는다. |
+| `apps/desktop` main | 엔진을 `koffi`로 로드하고 호출하는 유일한 실행 위치다. |
+| renderer, preload, `apps/api`, `apps/accounts`, `apps/ocr`, `apps/web` | 엔진을 로드하거나 import하지 않는다. renderer는 main이 계산해 전달한 결과만 받는다. |
+
+- **빌드 조건**: 엔진 바이너리는 CI secret으로 입수한다. 엔진 없는 빌드를 허용한다.
+- **코드 노출 한계**: 컴파일된 코드도 역공학으로 해석할 수 있다. 이 경계는 소스와 데이터를 공개 저장소 밖에 두는 소유 분리이며, Desktop에 실린 바이너리의 로직이 끝까지 숨겨진다고 보장하지 않는다.
 
 ## Shared UI boundary
 
