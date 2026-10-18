@@ -208,6 +208,7 @@ PR #149의 `SEARCH_AUTH_NOT_READY`와 인증 회복 오류는 공개 검색 전�
 
 - 직접 검색은 source 선택, 캡처, OCR 없이 사용할 수 있다. 별도 검색 수명을 사용하므로 캡처 Stop/source 변경과 서로의 결과를 지우지 않는다. 등록 document 종료, navigation, renderer 종료는 모두 정리한다. 수동 검색 ID로 캡처 프레임을 읽거나 캡처 검색을 조작할 수 없다.
 - Preload의 `window.manualSearch`는 기존 `SearchApi`의 control/subscribe shape와 `notifyManualNickname(SearchObservation)`을 제공한다. IPC는 `controlManualSearch`, `notifyManualNickname`, `manualSearchChanged`다. 동일한 sender/main frame/exact document, exact own key, DTO 검사를 적용한다. Shared DTO의 `captureId`는 수동 채널에서는 독립 검색 세션 ID이며 캡처 프레임 읽기 권한이 아니다.
+- 공대 카드는 같은 control/subscribe shape의 `window.raidSearch`를 쓰며 IPC는 `controlRaidSearch`, `raidSearchChanged`다. 이 수명은 12자리이고 서버 없는 이름 통지 채널은 두지 않는다. 같은 sender, main frame, exact document, exact own key, DTO 검사를 적용한다.
 - 수동 `begin`은 이전 수동 세션을 종료하고 새 수명을 만든다. 시작 응답 유실 후 사용자 재검색으로 복구할 수 있고 늦은 이전 `end`, HTTP 결과는 새 세션에 영향을 주지 않는다. 캡처 `begin`의 source 전제는 유지한다.
 - 슬롯에서 ‘닉네임 수정’을 선택하면 해당 슬롯의 이전 검색을 취소하고 자동 검색 제출을 멈춘다. 다른 슬롯의 회차 처리는 계속 동작한다. 편집 입력과 수정 검색 결과는 이후 도착한 OCR로 덮어쓰지 않으며 ‘OCR 다시 사용’을 누르면 보관한 회차의 OCR 결과로 자동 검색을 재개한다. 이때 새 프레임은 읽지 않는다. Stop/source 변경, capture 종료 시 수정 모드를 해제한다.
 - 검색은 Enter 또는 명시적 버튼으로 제출하며 한글 조합 중 Enter는 제출하지 않는다. 중복된 진행 요청은 추가로 보내지 않고 새로운 이름은 이전 요청을 취소, 교체한다. 오류, 빈 결과, 429, 수동 retry는 기존 결과 UI를 재사용한다. 화면 입력값, 닉네임, 검색 결과를 log나 영구 저장소에 추가 기록하지 않는다.
