@@ -101,18 +101,6 @@ function PasskeyPage() {
   const signupHeading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    const preference = window.matchMedia('(prefers-color-scheme: dark)')
-    const updateTheme = () => {
-      document.documentElement.dataset.seedColorMode = 'system'
-      document.documentElement.dataset.seedUserColorScheme = preference.matches ? 'dark' : 'light'
-    }
-    updateTheme()
-    preference.addEventListener('change', updateTheme)
-
-    return () => preference.removeEventListener('change', updateTheme)
-  }, [])
-
-  useEffect(() => {
     if (screen.kind === 'signup') {
       signupHeading.current?.focus()
     }
