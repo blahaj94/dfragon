@@ -3,7 +3,6 @@ import { stylexOptions } from '@dfragon/ui/stylex-config'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices } from '@dfragon/licenses/vite'
 
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
@@ -12,7 +11,6 @@ export default defineConfig({
   plugins: [
     stylex.vite(stylexOptions),
     react(),
-    seedDesignPlugin(),
     uiNotices({ uiRoot: fileURLToPath(new URL('../../packages/ui/', import.meta.url)) })
   ],
   resolve: {

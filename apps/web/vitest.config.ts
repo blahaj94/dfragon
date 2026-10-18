@@ -5,7 +5,6 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
-const SEED_DESIGN_IMPORT_PATTERN = /@seed-design\//
 
 export default defineConfig({
   plugins: [stylex.rollup(stylexOptions), react()],
@@ -19,7 +18,6 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    setupFiles: ['./test/setup.ts'],
-    server: { deps: { inline: [SEED_DESIGN_IMPORT_PATTERN] } }
+    setupFiles: ['./test/setup.ts']
   }
 })
