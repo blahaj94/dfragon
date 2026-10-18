@@ -130,8 +130,26 @@ function raidCaptureButton(): HTMLButtonElement {
   return button!
 }
 
-function raidStatus(): string | null {
+// 공대 머리는 캡처 진행 문구를 두지 않으므로 공대 회차 문구는 상단 바의 화면 밖 캡처 안내로 읽는다.
+function announcement(): string | null {
+  return document.querySelector('[data-capture-announcer]')!.textContent
+}
+
+function raidNotice(): string | null {
   return raidSection().querySelector('[role="status"]')!.textContent
+}
+
+// 보조 기술이 읽는 live region 중 같은 캡처 문구를 알리는 곳은 하나뿐이고 공대 머리에도 보이지 않는다.
+// 캡처 대화상자가 열려 있으면 바깥의 화면 밖 안내는 가려지고 대화상자 안 안내가 그 하나다.
+function expectSingleAnnouncement(text: string): void {
+  expect(announcement()).toBe(text)
+  const regions = [...document.querySelectorAll('[role="status"], [aria-live]')].filter(
+    (region) =>
+      region.textContent?.endsWith(text) && region.closest('[aria-hidden="true"], [inert]') == null
+  )
+  expect(regions).toHaveLength(1)
+  expect(raidSection().textContent).not.toContain(text)
+  expect(raidNotice()).toBe('')
 }
 
 function chipLabel(): string | null {
@@ -176,7 +194,7 @@ it('공대 머리에 파티와 같은 모양의 캡처 버튼과 마지막 캡�
   expect(button.getAttribute('aria-keyshortcuts')).toBe('Alt+R')
   expect([...button.querySelectorAll('kbd')].map((kbd) => kbd.textContent)).toEqual(['Alt', 'R'])
   expect(raidSection().textContent).toContain('마지막 캡처')
-  expect(raidStatus()).toBe('Alt+R을 눌러 공대를 인식해 주세요.')
+  expectSingleAnnouncement('Alt+R을 눌러 공대를 인식해 주세요.')
   await act(async () => button.click())
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
@@ -207,7 +225,7 @@ it.each(triggers)(
     ])
     expect(partyBegins(f)).toBe(0)
     expect(f.readCaptureFrame).not.toHaveBeenCalled()
-    expect(raidStatus()).toBe('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
+    expectSingleAnnouncement('인식을 마쳤습니다. 다시 인식하려면 Alt+R을 누르세요.')
     const names = [
       ...raidSection().querySelectorAll<HTMLInputElement>('input[aria-label$="캐릭터 이름"]')
     ]
@@ -268,7 +286,10 @@ it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시�
   )
   await showScreen('공대')
   expect(raidCaptureButton().disabled).toBe(true)
-  expect(raidStatus()).toBe('캡처 대기')
+  // 창을 등록하기 전에는 알릴 캡처 문구가 없고 공대 머리에도 `캡처 대기`를 두지 않는다.
+  expect(announcement()).toBe('')
+  expect(raidNotice()).toBe('')
+  expect(raidSection().textContent).not.toContain('캡처 대기')
 
   await press(f, trigger)
 
@@ -276,7 +297,7 @@ it.each(triggers)('창을 등록하기 전 공대 화면의 %s은 회차를 시�
   expect(raid.readCaptureFrame).not.toHaveBeenCalled()
 })
 
-it('공대 상세 창이 없으면 공대 머리와 상태 칩이 확인 필요를 알리고 이름을 알리지 않는다', async () => {
+it('공대 상세 창이 없으면 화면 밖 캡처 안내와 상태 칩이 확인 필요를 알리고 이름을 알리지 않는다', async () => {
   const f = createRendererFixture()
   const raid = stubRaidSearch()
   raid.readCaptureFrame.mockResolvedValue({ kind: 'missing', reason: 'not-found' })
@@ -286,9 +307,12 @@ it('공대 상세 창이 없으면 공대 머리와 상태 칩이 확인 필요�
   await act(async () => raidCaptureButton().click())
 
   await vi.waitFor(() =>
-    expect(raidStatus()).toBe(
+    expect(announcement()).toBe(
       '공대 상세 창을 찾지 못했습니다. 12인 공대 상세 창을 연 뒤 Alt+R을 누르세요.'
     )
+  )
+  expectSingleAnnouncement(
+    '공대 상세 창을 찾지 못했습니다. 12인 공대 상세 창을 연 뒤 Alt+R을 누르세요.'
   )
   expect(chipLabel()).toBe('화면 캡처, 확인 필요')
   expect(raid.notifyOcr).not.toHaveBeenCalled()
@@ -320,6 +344,6 @@ it('공대 회차 중 캡처를 중지하면 회차를 끝내고 늦은 이름�
   await act(async () => late.resolve(recognized))
 
   expect(raid.notifyOcr).not.toHaveBeenCalled()
-  expect(raidStatus()).toBe('캡처를 중지했습니다.')
+  expectSingleAnnouncement('캡처를 중지했습니다.')
   expect(raidCaptureButton().disabled).toBe(true)
 })

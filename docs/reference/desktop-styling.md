@@ -85,8 +85,9 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 저장 포함 | `Checkbox` | 파티, 참가자 수집 화면 |
 | 저장 단축키 | `Kbd` | 개발자 참가자 수집 화면의 `Print Screen` |
 | 정답 입력 필터 | `Chip`(`pressed`, `onPressedChange`) | 개발자 정답 입력 화면 |
-| 게임 연결 상태 | `StatusChip` `size="md"` | 상단 바. 높이 28, 오른쪽 위를 자른 칩입니다 |
-| 캡처, 검출 상태 | `StatusChip` | 캡처 모달, 개발자 참가자 수집 화면 |
+| 게임 연결 상태 | `StatusChip` `size="md"` | 상단 바. 높이 28, 오른쪽 위를 자른 칩입니다. 확인 필요와 창 미감지는 `warning`, 인식 중은 `signal`과 `busy`입니다 |
+| 캡처, 검출 상태 | `StatusChip` | 캡처 모달, 개발자 참가자 수집 화면. 개발자 화면의 `찾는 중`도 `warning`입니다 |
+| 창을 찾는 중 | `StepDots` `size={5}` | 캡처 창 목록의 `던전앤파이터 찾는 중` 옆 |
 | 설정, 캡처 대화상자 | `DialogRoot`, `DialogContent` | 바깥을 눌러도 닫히지 않습니다 |
 | 개발자 작업 공간 탭 | 기존 `role="tablist"`의 `Button` ghost와 선택 탭 아래 2px `signal` 선 | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유해 공용 `Tabs`로 옮기지 않았습니다 |
 

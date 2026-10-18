@@ -126,19 +126,23 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     expect(slot.querySelector('img')).toBeNull()
   }
   expect(container.querySelector('form')).toBeNull()
-  // 로고는 이미지 대신 brand.logo 면의 마크이고, 푸터 없이 캡처 진행 문구를 파티 머리에서 알린다.
+  // 로고는 이미지 대신 brand.logo 면의 마크이고, 푸터가 없다. 캡처 상태는 상단 바 상태 칩이 보이며
+  // 파티 머리는 캡처 진행 문구를 되풀이하지 않는다.
   expect(container.querySelectorAll('img')).toHaveLength(0)
   expect(container.querySelector('footer')).toBeNull()
   expect(container.querySelector('main')?.firstElementChild?.tagName).toBe('HEADER')
   expect(container.querySelector('header')?.textContent).toContain('창 미감지')
-  expect(container.querySelector('header [role="status"]')).toBeNull()
+  // 상단 바의 live region은 화면 밖 캡처 안내 하나뿐이고 칩 자체는 알리지 않는다.
+  expect(
+    [...container.querySelectorAll('header [role="status"]')].map((region) =>
+      region.hasAttribute('data-capture-announcer')
+    )
+  ).toEqual([true])
   expect(container.querySelector('[aria-label="미리보기 상태"]')).toBeNull()
   expect(container.textContent).not.toContain('닉네임 수정')
   const partyHeading = container.querySelector('h1')!
   expect(partyHeading.textContent).toBe('파티')
-  expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe(
-    '캡처 대기'
-  )
+  expect(partyHeading.parentElement?.querySelector('[role="status"]')?.textContent).toBe('')
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)

@@ -2,6 +2,8 @@
  * DFragon 디자인 토큰. 값과 이름은 dfragon-design design/tokens.json 기준이며,
  * 기준 commit은 bc120e5(dfragon-design PR #31)다. 두 저장소 사이에 자동 동기화가 없으므로
  * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
+ * 주의 톤 --df-fg-warning, --df-bg-warning-weak는 2026-10-19 사용자 결정으로 DFragon 디자인 캔버스의
+ * 캡처 보드 값(#FFB400, 12% 면)을 먼저 들였고, 아직 tokens.json에는 없다.
  *
  * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다. color-scheme도 같은 모드로 정해
  * 스크롤 막대, 폼 컨트롤 같은 브라우저 기본 부품이 모드를 따른다.
@@ -22,6 +24,7 @@
   --df-bg-well: #121214;
   --df-bg-success-weak: #3dd68c1f;
   --df-bg-danger-weak: #ff6e6029;
+  --df-bg-warning-weak: #ffb4001f;
   --df-bg-overlay: #00000074;
   --df-signal: #f8e8c8;
   --df-on-signal: #111012;
@@ -33,6 +36,7 @@
   --df-fg-disabled: #44444b;
   --df-fg-success: #3dd68c;
   --df-fg-danger: #ff6e60;
+  --df-fg-warning: #ffb400;
   --df-fg-adventure: #93e5c0;
   --df-border-default: #2c2c31;
   --df-border-strong: #44444b;
@@ -139,6 +143,7 @@
   --df-bg-control-hover: #dcdee3; /* provisional */
   --df-bg-success-weak: #edfaf6; /* provisional */
   --df-bg-danger-weak: #fdf0f0; /* provisional */
+  --df-bg-warning-weak: #fff5dc; /* provisional */
   --df-bg-overlay: #00000074; /* provisional */
   --df-signal: #2a2520; /* provisional */
   --df-on-signal: #f8e8c8; /* provisional */
@@ -149,6 +154,7 @@
   --df-fg-disabled: #d1d3d8; /* provisional */
   --df-fg-success: #079171; /* provisional */
   --df-fg-danger: #fa342c; /* provisional */
+  --df-fg-warning: #b36b00; /* provisional */
   --df-fg-adventure: #00745f; /* provisional */
   --df-border-default: #dcdee3; /* provisional */
   --df-border-strong: #d1d3d8; /* provisional */

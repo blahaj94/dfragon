@@ -85,7 +85,7 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <StatusChip tone={popup ? 'success' : 'waiting'}>
+        <StatusChip tone={popup ? 'success' : 'warning'}>
           {windowName} {popup ? '찾음' : '찾는 중'}
         </StatusChip>
       </div>

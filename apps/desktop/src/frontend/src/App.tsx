@@ -57,7 +57,6 @@ function App(): React.JSX.Element {
   } else if (capture.selectedSourceId) {
     captureNotice = screenCapture.status
   }
-  const partyStatus = capture.selectedSourceId ? capture.status : '캡처 대기'
   const developerModeEnabled = developerMode.status === 'ready' && developerMode.enabled
   // 상단 바의 설정은 작업 공간에서도 보인다. 개발자 모드를 껐다 다시 켤 때 캡처 중지 없이
   // 작업 공간이 다시 열리지 않도록, 개발자 모드가 꺼지면 열림 상태도 닫는다.
@@ -74,13 +73,13 @@ function App(): React.JSX.Element {
   const raidSlotNotices = raid.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
   )
-  let raidStatus = '캡처 대기'
+  // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
+  // 안내와 캡처 대화상자가 알린다.
+  let raidNotice = ''
   if (raid.connectionFailed) {
-    raidStatus = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    raidNotice = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
   } else if (raid.detailNotice) {
-    raidStatus = raid.detailNotice
-  } else if (capture.selectedSourceId) {
-    raidStatus = raidScreenCapture.status
+    raidNotice = raid.detailNotice
   }
 
   function openDeveloperWorkbench(): void {
@@ -136,7 +135,7 @@ function App(): React.JSX.Element {
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
           <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
-              status={capture.search.detailNotice || partyStatus}
+              notice={capture.search.detailNotice}
               filledCount={filledPartySlots}
               lastCapturedAt={capture.lastCompletedAt}
               canCapture={capture.canStartCapture}
@@ -166,7 +165,7 @@ function App(): React.JSX.Element {
           <RaidPage
             id={raidCardsId}
             hidden={searchMode !== 'raid'}
-            status={raidStatus}
+            notice={raidNotice}
             resetKey={String(raidCapture.round)}
             slots={raid.slots.map((slot) => slot.state)}
             characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}

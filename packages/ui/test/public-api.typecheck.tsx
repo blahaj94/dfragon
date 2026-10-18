@@ -31,6 +31,7 @@ import {
   ProgressCircle,
   Select,
   StatusChip,
+  StepDots,
   SupportingText,
   Switch,
   Tabs,
@@ -62,6 +63,7 @@ import {
   type SelectTriggerProps,
   type StatusChipProps,
   type StatusChipTone,
+  type StepDotsProps,
   type SwitchProps,
   type TabsListProps,
   type TabsTabProps,
@@ -116,7 +118,11 @@ expectTypeOf<DialogBodyProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undef
 expectTypeOf<DialogFooterProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<DialogActionProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
 expectTypeOf<DialogRootProps>().not.toHaveProperty('ref')
-expectTypeOf<StatusChipTone>().toEqualTypeOf<'neutral' | 'success' | 'danger' | 'waiting'>()
+expectTypeOf<StatusChipTone>().toEqualTypeOf<
+  'neutral' | 'success' | 'danger' | 'warning' | 'signal'
+>()
+expectTypeOf<StatusChipProps['busy']>().toEqualTypeOf<boolean | undefined>()
+expectTypeOf<StepDotsProps['size']>().toEqualTypeOf<4 | 5 | undefined>()
 expectTypeOf<StatusChipProps['size']>().toEqualTypeOf<'sm' | 'md' | undefined>()
 expectTypeOf<ControlSurface>().toEqualTypeOf<'default' | 'card'>()
 expectTypeOf<SelectTriggerProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
@@ -239,9 +245,10 @@ export const designExamples = (
         render={<IconButton aria-label="화면 캡처" icon={<svg aria-hidden="true" />} />}
       />
     </DialogRoot>
-    <StatusChip tone="waiting" role="status">
-      찾는 중
+    <StatusChip tone="signal" role="status" busy>
+      인식 중
     </StatusChip>
+    <StepDots size={5} />
     <StatusChip tone="success" size="md">
       창 감지됨
     </StatusChip>
@@ -316,8 +323,10 @@ export const invalidDesignExamples = (
     <IconButton icon={<svg aria-hidden="true" />} />
     {/* @ts-expect-error IconButton의 임의 className은 공개 prop이 아니다. */}
     <IconButton className="square" aria-label="설정" icon={<svg />} />
-    {/* @ts-expect-error StatusChip tone은 디자인 상태 tone 중 하나여야 한다. 주의 색은 없다. */}
-    <StatusChip tone="warning">상태</StatusChip>
+    {/* @ts-expect-error StatusChip tone은 디자인 상태 tone 중 하나여야 한다. 대기 톤은 주의 톤으로 바뀌었다. */}
+    <StatusChip tone="waiting">상태</StatusChip>
+    {/* @ts-expect-error StepDots는 상태 칩과 목록 안내의 두 크기만 받는다. */}
+    <StepDots size={6} />
     {/* @ts-expect-error IconButton은 외형 variant를 받지 않는다. */}
     <IconButton variant="ghost" aria-label="설정" icon={<svg />} />
     {/* @ts-expect-error CardFrame state는 정해진 카드 상태 중 하나여야 한다. */}

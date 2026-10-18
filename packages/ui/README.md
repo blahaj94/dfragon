@@ -15,7 +15,8 @@
 | `Switch`, `Checkbox`, `Chip` | `Switch`, `Checkbox`, `Toggle` | 한 요소로 쓰는 켜고 끄는 컨트롤. 이름은 감싼 label이나 `aria-label`로 준다. |
 | `Tooltip` | `Tooltip` | `Provider`, `Root`, `Trigger`, `Popup`. |
 | `DialogRoot`, `DialogTrigger`, `DialogContent`, `DialogBody`, `DialogFooter`, `DialogAction` | `Dialog` | 기본은 바깥 누름으로 닫지 않는다(`disablePointerDismissal` 기본 `true`). `DialogContent`가 Portal, Backdrop, Popup과 제목, 설명, 닫기 버튼을 두며 `size` `sm`은 폭 480, `lg`는 800 × 600이다. Dialog 안에 펼친 메뉴, 목록에서 누른 Escape는 그 목록만 닫는다. |
-| `StatusChip` | `span` | tone `neutral`, `success`(옅은 성공 면), `danger`(옅은 위험 면), `waiting`(면 없이 `fg.subtle`과 각진 모래시계). `size` `sm`은 높이 24 칩, `md`는 상단 바 게임 연결 상태의 높이 28, 오른쪽 위를 자른 칩이다. 상태 변화를 알릴 곳만 `role="status"`를 넘긴다. |
+| `StatusChip` | `span` | tone `neutral`(`fg.subtle`), `success`, `danger`, `warning`(주의, `fg.warning`), `signal`(진행 중인 일)이고, 모두 글자색 사각 점과 같은 색 12% 안팎의 옅은 면이다. `success` 점은 박자 두 번 주기로 깜박인다. `busy`면 사각 점 대신 `StepDots`를 둔다. `size` `sm`은 높이 24, `md`는 상단 바 게임 연결 상태의 높이 28이며 둘 다 오른쪽 위를 자른다. 상태 변화를 알릴 곳만 `role="status"`를 넘긴다. |
+| `StepDots` | plain | 글자색 사각 점 세 개가 `motion.beat`마다 `steps()`로 차례로 켜진다. `size` 4(상태 칩 안, 3px 간격)와 5(목록 안내, 4px 간격). 동작 줄이기에서는 모두 켠 채 멈추고, 보조 기술에는 숨긴다. |
 | `LoadingIndicator`, `ProgressCircle` | 자체 SVG | 값이 없으면 `steps()`로 끊어 도는 호, 있으면 진행 호. |
 | `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700. `surface="signal"`은 주 버튼 안의 키캡으로 버튼 글자색과 그 55% 외곽선을 쓴다), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 꺾쇠만 바꾸고 사선은 화면이 그림 칸에 `shapes.hazardStripes`로 깐다. `top`, `ranker`는 `motion.cycle` 주기의 6~30%에 옅은 단계 색 빛줄기가 카드를 지나가고, `ranker`는 카드에 `shapes.scanlines`를 깐다. 동작 줄이기에서는 빛줄기를 그리지 않는다), Barlow Condensed 숫자와 400ms 증가. |
 | `ContentStack`, `ExampleSection`, `SupportingText` | plain | 예제와 단순 화면의 세로 묶음, 제목, 보조 글자. |

@@ -248,7 +248,7 @@ it('빈 목록과 조회 실패를 표시하고 새로고침으로 복구한다'
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain('조회 실패')
   expect(topBarText()).toContain('조회 실패')
   f.capture.listCaptureSources.mockResolvedValue([])
-  await click('캡처할 프로세스 선택')
+  await click('게임 창 선택')
   const refresh = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((item) =>
     item.textContent?.includes('창 목록 새로고침')
   )!

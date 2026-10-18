@@ -34,7 +34,7 @@ export const styles = stylex.create({
   title: { display: 'flex', alignItems: 'baseline', gap: space.s12, minWidth: 0 },
   // 파티 머리처럼 접기, 마지막 캡처, 캡처 버튼을 16 간격으로 둔다.
   actions: { display: 'flex', alignItems: 'center', gap: space.s16, flexShrink: 0 },
-  status: { color: colors.fgMuted, minWidth: 0, overflowWrap: 'anywhere' },
+  notice: { color: colors.fgMuted, minWidth: 0, overflowWrap: 'anywhere' },
   parties: {
     display: 'flex',
     flexDirection: 'column',

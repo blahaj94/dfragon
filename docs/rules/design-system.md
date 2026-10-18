@@ -37,7 +37,8 @@ last-reviewed: 2026-10-19
 색 토큰은 현재 Desktop 색 토큰의 이름(`bgCanvas`, `bgSurface`, `bgInset`, `bgControl*`, `borderDefault`, `borderStrong`, `fgDefault`, `fgMuted`, `fgSubtle`, `fgSuccess`, `fgDanger`, `card*`, 희귀도, 강화, 게임, 속성 색)을 유지하고 다음을 바꾼다.
 
 - 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), `bracket*`, `hazard`, `gridLine`
-- 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `fgWarning`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
+- 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
+- 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 
 라이트 모드는 유지한다. 라이트 값은 현재 값에서 임시로 가져온 `provisional`이며, `signal`과 티어 색처럼 대응 값이 없는 토큰도 임시 값이다. dfragon-design이 라이트 값을 정하면 함께 바꾼다.
 
@@ -61,7 +62,8 @@ last-reviewed: 2026-10-19
 | `TextField`, `TextFieldInput` | Base UI `Field`, `Input` 기반 입력 |
 | `Select`, `Menu`, `Switch`, `Checkbox`, `Chip`(`Toggle`), `Tabs`, `Tooltip` | 같은 이름의 Base UI 부품 기반 |
 | `DialogRoot`, `DialogTrigger`, `DialogContent`, `DialogBody`, `DialogFooter`, `DialogAction` | Base UI `Dialog` 기반. 기존 이름 유지 |
-| `StatusChip` | tone `neutral`, `success`, `danger`, `waiting`. `waiting`은 중립색과 각진 모래시계 아이콘 |
+| `StatusChip` | tone `neutral`, `success`, `danger`, `warning`, `signal`. 글자색 사각 점과 옅은 면, 진행 중이면 `busy`로 점 세 개 |
+| `StepDots` | 진행 중임을 보이는 사각 점 세 개 |
 | `LoadingIndicator`, `ProgressCircle` | 자체 SVG |
 | `Kbd`, `CornerBrackets` | 단축키 표시, 네 모서리 꺾쇠 |
 | `CardFrame` | state `default`, `selected`, `failure`, `waiting`, `top`, `ranker` |
@@ -79,8 +81,8 @@ last-reviewed: 2026-10-19
 
 Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 토큰과 Component가 주는 외형을 받되 화면 배치는 다시 그리지 않는다. 상세 값과 예시는 dfragon-design 문서를 따른다.
 
-- 색: 무채색 바탕 위에 신호색 하나만 쓴다. 신호색 `signal`(`#F8E8C8`)은 선택, 주 버튼, 포커스에만 쓴다. 희귀도 색은 유지하고, 로고 빨강 `brandLogo`(`#E83830`)는 로고 마크에만 쓴다.
-- 주의 상태: warning 색을 따로 두지 않고 중립색과 각진 모래시계 아이콘으로 표현한다.
+- 색: 무채색 바탕 위에 신호색 하나를 쓴다. 신호색 `signal`(`#F8E8C8`)은 선택, 주 버튼, 포커스와 진행 중인 캡처 회차에 쓴다. 희귀도 색은 유지하고, 로고 빨강 `brandLogo`(`#E83830`)는 로고 마크에만 쓴다.
+- 주의 상태: 확인 필요, 창 미감지처럼 사용자가 살펴야 하는 상태는 주의 색 `fgWarning`(`#FFB400`) 글자와 사각 점, 옅은 면 `bgWarningWeak`으로 표현한다. 카드의 인식 대기는 계속 중립색 점선과 각진 모래시계다.
 - 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Pretendard를 그대로 쓴다.
 - 형태: 패널과 카드는 반지름 0이며 테두리 없이 면으로 구분한다. 입력, 칩, 보조 버튼은 반지름 2px이다. 누를 수 있는 주 행동에만 오른쪽 위 모서리를 8px 자른다.
 - 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(hazard 줄무늬), 대기(dashed)를 구분한다.

@@ -16,47 +16,53 @@ type CaptureControlInput = {
 }
 
 // `@dfragon/ui` StatusChip의 tone이다. lib는 UI 계층을 import하지 않으므로 같은 이름을 따로 두고,
-// 상단 바와 캡처 모달의 tone 전달에서 이 값이 StatusChipTone에 속하는지 타입 검사가 확인한다. 주의
-// 색은 없으므로 확인이 필요한 상태는 중립색과 모래시계의 waiting이다.
-export type CaptureControlTone = 'neutral' | 'success' | 'danger' | 'waiting'
+// 상단 바와 캡처 모달의 tone 전달에서 이 값이 StatusChipTone에 속하는지 타입 검사가 확인한다.
+// DFragon 디자인 캔버스의 캡처 보드대로 진행하는 회차는 signal, 사용자가 살펴야 하는 상태는 주황 warning이다.
+export type CaptureControlTone = 'neutral' | 'success' | 'danger' | 'warning' | 'signal'
 
 // 캡처 진행 상태를 우선하여 상단 바와 캡처 모달에 표시할 상태 이름과 상태 칩 tone을 결정한다.
+// busy는 회차를 인식하는 동안이라 상태 칩이 사각 점 대신 차례로 켜지는 점을 보이는지다.
 export function getCaptureControlState({
   phase,
   loading,
   failed,
   hasDetectedSource
-}: CaptureControlInput): { label: string; tone: CaptureControlTone } {
+}: CaptureControlInput): { label: string; tone: CaptureControlTone; busy: boolean } {
   if (phase === 'selecting') {
-    return { label: '준비 중', tone: 'neutral' }
+    return { label: '준비 중', tone: 'neutral', busy: false }
   }
 
   if (phase === 'recognizing') {
-    return { label: '인식 중', tone: 'neutral' }
+    return { label: '인식 중', tone: 'signal', busy: true }
   }
 
   if (phase === 'complete') {
-    return { label: '인식 완료', tone: 'neutral' }
+    return { label: '인식 완료', tone: 'signal', busy: false }
   }
 
   // 가림, 최소화, 파티 프레임 미검출로 회차가 끝나면 창 감지 표시 대신 Alt+R 전 확인이 필요함을 알린다.
   if (phase === 'unavailable') {
-    return { label: '확인 필요', tone: 'waiting' }
+    return { label: '확인 필요', tone: 'warning', busy: false }
+  }
+
+  // 창 등록 실패나 회차 시작, 인식 실패로 끝난 회차. 창 감지 표시로 덮지 않고 실패를 알린다.
+  if (phase === 'failed') {
+    return { label: '캡처 실패', tone: 'danger', busy: false }
   }
 
   if (loading) {
-    return { label: '창 확인 중', tone: 'neutral' }
+    return { label: '창 확인 중', tone: 'neutral', busy: false }
   }
 
   if (failed) {
-    return { label: '조회 실패', tone: 'danger' }
+    return { label: '조회 실패', tone: 'danger', busy: false }
   }
 
   if (!hasDetectedSource) {
-    return { label: '창 미감지', tone: 'waiting' }
+    return { label: '창 미감지', tone: 'warning', busy: false }
   }
 
-  return { label: '창 감지됨', tone: 'success' }
+  return { label: '창 감지됨', tone: 'success', busy: false }
 }
 
 /**
@@ -80,34 +86,6 @@ export function getRaidScreenCapture({
   }
 
   return { phase: raid.phase, status: raid.status }
-}
-
-// 창 목록 조회 결과에 맞는 안내 문구를 결정한다.
-export function getCaptureSourceNotice({
-  failed,
-  hasOtherSources
-}: {
-  failed: boolean
-  hasOtherSources: boolean
-}): { title: string; description: string } {
-  if (failed) {
-    return {
-      title: '창 목록을 불러오지 못했습니다',
-      description: '15초마다 다시 확인합니다. 직접 새로고침할 수도 있습니다.'
-    }
-  }
-
-  if (hasOtherSources) {
-    return {
-      title: '던파 창 미감지',
-      description: '15초마다 자동으로 다시 찾습니다.'
-    }
-  }
-
-  return {
-    title: '던파 창 미감지',
-    description: '게임을 실행하면 15초마다 자동으로 찾습니다.'
-  }
 }
 
 // 상태를 첫 줄에 두고 원래 슬롯 번호와 닉네임 원문을 유지해 표시 문구를 만든다.

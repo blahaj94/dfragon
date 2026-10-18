@@ -16,6 +16,7 @@ import {
   NumericText,
   Select,
   StatusChip,
+  StepDots,
   Switch,
   Tabs,
   TextField,
@@ -984,11 +985,67 @@ describe('StatusChip의 상태 알림 범위', () => {
   })
 
   it('호출자가 요청하지 않으면 live region을 만들지 않는다', async () => {
-    await render(<StatusChip tone="waiting">파티원창 찾는 중</StatusChip>)
+    await render(<StatusChip tone="warning">파티원창 찾는 중</StatusChip>)
 
     expect(container.textContent).toBe('파티원창 찾는 중')
     expect(container.querySelector('[role]')).toBeNull()
     expect(container.querySelector('[aria-live]')).toBeNull()
+  })
+})
+
+describe('StatusChip의 tone과 진행 표시', () => {
+  it('tone마다 다른 외형을 쓰고 진행 중이면 사각 점 대신 점 세 개를 둔다', async () => {
+    await render(
+      <>
+        <StatusChip tone="neutral">준비 중</StatusChip>
+        <StatusChip tone="success">창 감지됨</StatusChip>
+        <StatusChip tone="danger">조회 실패</StatusChip>
+        <StatusChip tone="warning">확인 필요</StatusChip>
+        <StatusChip tone="signal">인식 완료</StatusChip>
+        <StatusChip tone="signal" busy>
+          인식 중
+        </StatusChip>
+      </>
+    )
+    const chips = [...container.querySelectorAll<HTMLElement>('[data-tone]')]
+    const [neutral, success, danger, warning, done, busy] = chips
+
+    expect(chips.map((chip) => chip.dataset.tone)).toEqual([
+      'neutral',
+      'success',
+      'danger',
+      'warning',
+      'signal',
+      'signal'
+    ])
+    expect(
+      new Set([neutral, success, danger, warning, done].map((chip) => chip.className)).size
+    ).toBe(5)
+    // 진행 중이 아닌 칩은 사각 점 하나, 진행 중인 칩은 보조 기술에 숨긴 점 세 개다.
+    expect(done.hasAttribute('data-busy')).toBe(false)
+    expect(done.querySelectorAll('[aria-hidden="true"]')).toHaveLength(1)
+    expect(busy.hasAttribute('data-busy')).toBe(true)
+    const dots = busy.querySelector('[aria-hidden="true"]')!
+    expect(dots.children).toHaveLength(3)
+    expect(busy.textContent).toBe('인식 중')
+  })
+})
+
+describe('StepDots', () => {
+  it('세 점이 서로 다른 지연으로 차례로 켜지고 크기에 따라 점 모양이 다르다', async () => {
+    await render(
+      <>
+        <StepDots />
+        <StepDots size={5} />
+      </>
+    )
+    const [small, large] = [...container.children]
+    const delays = [...small.children].map((dot) => dot.className)
+
+    expect(small.getAttribute('aria-hidden')).toBe('true')
+    expect(small.children).toHaveLength(3)
+    expect(new Set(delays).size).toBe(3)
+    expect(large.children[0].className).not.toBe(small.children[0].className)
   })
 })
 
