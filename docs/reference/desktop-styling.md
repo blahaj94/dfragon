@@ -70,13 +70,13 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 화면 | 구현 | 참고 |
 | --- | --- | --- |
 | 버튼 | `Button` | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
-| 상단 바의 테마, 설정 버튼, 파티 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바는 `bar`, 파티 머리는 `bg.inset` 면에 오른쪽 위를 자른 48 정사각형 `lg`입니다 |
+| 상단 바의 테마, 설정 버튼, 파티와 공대 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바는 `bar`, 파티와 공대 머리는 `bg.inset` 면에 오른쪽 위를 자른 48 정사각형 `lg`입니다 |
 | 상단 바의 게임 연결 상태 | `StatusChip` `size="md"`를 감싼 `DialogTrigger` native button | 누르면 캡처 대화상자를 엽니다. 칩의 자른 모서리에 가리지 않게 포커스 선을 버튼 바깥에 둡니다 |
 | 파티 머리의 캡처 버튼 | `Button` `primary` `lg`와 `Kbd` `surface="signal"` | 카메라 아이콘, 구분선, `Alt`, `R` 키캡을 둡니다. 키캡과 구분선은 버튼 글자색을 따라 비활성에서도 함께 흐려집니다 |
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
-| 공대 화면 | 캐릭터 카드와 같은 `CharacterCard` | 카드를 기준 창의 파티 카드 크기 296 × 632로 고정하고 네 장씩 세 줄을 쌓습니다. 카드 영역만 가로, 세로로 스크롤하며 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 두어 기준 창에서 카드가 파티 화면과 같은 자리에 놓입니다 |
+| 공대 화면 | 축약 카드 `sections/RaidCard`(`CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText`) | DFragon 디자인 캔버스 공대 보드의 배치입니다. 32 폭 파티 라벨 열과 288 × 205.33(접으면 288 × 125.33) 고정 카드 네 열, 세 줄을 거터 12로 두고, 보드 영역만 가로, 세로로 스크롤하며 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 둡니다. 카드 면에 `className`을 줄 수 없어 끌기, 포커스 선(바깥 2px `signal`), 놓을 자리의 안쪽 2px 선은 카드를 감싼 자리 요소가 그립니다 |
 | 보조 창 상단 바 | `WindowBar` | 상세 창. 메인 상단 바와 같은 높이, 면, OS 창 버튼 자리 규칙을 씁니다 |
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |

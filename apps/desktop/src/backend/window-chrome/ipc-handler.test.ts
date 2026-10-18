@@ -286,6 +286,24 @@ describe('창 내용 높이', () => {
     )
   })
 
+  it('공대를 접은 높이 560도 받고, 파티의 접은 높이 400에서 늘릴 때는 높이를 바꾼 뒤 최소 높이를 맞춘다', async () => {
+    const f = fixture()
+    await f.setContentHeight(f.event, 560)
+
+    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 560)
+    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 560)
+
+    await f.setContentHeight(f.event, 400)
+    vi.clearAllMocks()
+    await f.setContentHeight(f.event, 560)
+
+    expect(f.window.setContentSize).toHaveBeenCalledExactlyOnceWith(1280, 560)
+    expect(f.window.setMinimumSize).toHaveBeenCalledExactlyOnceWith(1024, 560)
+    expect(f.window.setContentSize.mock.invocationCallOrder[0]).toBeLessThan(
+      f.window.setMinimumSize.mock.invocationCallOrder[0]
+    )
+  })
+
   it('창이 놓인 화면의 작업 영역보다 높게 늘리지 않는다', async () => {
     mocks.workAreaHeight = 728
     const f = fixture()

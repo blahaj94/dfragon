@@ -18,6 +18,7 @@ import {
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ServerSelect } from '../components/ServerSelect'
+import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
 import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
@@ -61,34 +62,8 @@ export function CharacterCard({
   onLookup?: (nickname: string, serverId: string) => void
 }): React.JSX.Element {
   const [face, setFace] = useState(initialFace)
-  const [name, setName] = useState(nickname ?? character?.name ?? '')
-  const [serverId, setServerId] = useState<string>(character?.serverId ?? '')
-  const [dirty, setDirty] = useState(false)
-  const [nameFocused, setNameFocused] = useState(false)
-  const [submitted, setSubmitted] = useState<{ nickname: string; serverId: string } | null>(null)
-  const [inputNotice, setInputNotice] = useState('')
-  const incomingName = character?.name ?? nickname
-  const incomingServerId = character?.serverId
-  const [previousSource, setPreviousSource] = useState({
-    name: incomingName,
-    serverId: incomingServerId
-  })
-  const acceptsSource =
-    submitted === null ||
-    (character?.name === submitted.nickname && character?.serverId === submitted.serverId)
-  if (previousSource.name !== incomingName || previousSource.serverId !== incomingServerId) {
-    setPreviousSource({ name: incomingName, serverId: incomingServerId })
-    if (!dirty && acceptsSource) {
-      if (incomingName !== undefined) {
-        setName(incomingName)
-      }
-
-      if (incomingServerId !== undefined) {
-        setServerId(incomingServerId)
-      }
-    }
-  }
-  const editing = character != null && (name !== character.name || serverId !== character.serverId)
+  const draft = useLookupDraft({ character, nickname, onLookup })
+  const { name, serverId, inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
   const canTurn = hasCharacter && !basicOnly
   // 접힌 카드는 캐릭터 면만 보이고, 펼치면 고른 면으로 돌아온다.
@@ -104,31 +79,11 @@ export function CharacterCard({
   const message = inputNotice || notice || emptyMessage
   const frameState = getCharacterCardFrameState({
     state,
-    editing: nameFocused || dirty || editing,
+    editing: draft.active,
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const showRetry = state === 'failure' && onRetry != null
-
-  function submit(nextServerId = serverId): void {
-    if (nextServerId.length === 0) {
-      setInputNotice('서버를 선택해 주세요.')
-
-      return
-    }
-
-    if (name.trim().length === 0) {
-      setInputNotice('캐릭터 이름을 입력해 주세요.')
-
-      return
-    }
-    const nickname = name.trim()
-    setDirty(false)
-    setName(nickname)
-    setSubmitted({ nickname, serverId: nextServerId })
-    setInputNotice('')
-    onLookup?.(nickname, nextServerId)
-  }
 
   return (
     <div {...stylex.props(styles.slot)}>
@@ -157,11 +112,7 @@ export function CharacterCard({
                 value={serverId}
                 disabled={!inputEnabled}
                 options={Object.entries(serverNames).map(([id, label]) => ({ id, label }))}
-                onValueChange={(value) => {
-                  setDirty(true)
-                  setServerId(value)
-                  submit(value)
-                }}
+                onValueChange={draft.changeServer}
               />
             </div>
           )}
@@ -309,16 +260,12 @@ export function CharacterCard({
                   disabled={!inputEnabled}
                   placeholder="캐릭터명 입력"
                   style={name ? undefined : typographyVariants.h6}
-                  onFocus={() => setNameFocused(true)}
-                  onBlur={() => setNameFocused(false)}
-                  onChange={(event) => {
-                    setDirty(true)
-                    setName(event.target.value)
-                    setInputNotice('')
-                  }}
+                  onFocus={draft.focusName}
+                  onBlur={draft.blurName}
+                  onChange={(event) => draft.changeName(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      submit()
+                      draft.submit()
                     }
                   }}
                   {...stylex.props(

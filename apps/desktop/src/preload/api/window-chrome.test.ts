@@ -30,7 +30,7 @@ it('객체를 문자열로 변환해 보내지 않는다', async () => {
   expect(mocks.invoke).not.toHaveBeenCalled()
 })
 
-it.each([400, 640, 800])('창 내용 높이 %d를 고정 채널과 값 그대로 보낸다', async (height) => {
+it.each([400, 560, 640, 800])('창 내용 높이 %d를 고정 채널과 값 그대로 보낸다', async (height) => {
   mocks.invoke.mockResolvedValue(undefined)
   await expect(setContentHeight(height)).resolves.toBeUndefined()
   expect(mocks.invoke).toHaveBeenCalledExactlyOnceWith('setWindowContentHeight', height)

@@ -1,9 +1,9 @@
 /*
  * DFragon 디자인 토큰. 값과 이름은 dfragon-design design/tokens.json 기준이며,
- * 기준 commit은 bc120e5(dfragon-design PR #31)다. 두 저장소 사이에 자동 동기화가 없으므로
+ * 기준 commit은 f219773(dfragon-design PR #37, merge 대기)이다. 두 저장소 사이에 자동 동기화가 없으므로
  * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
  * 주의 톤 --df-fg-warning, --df-bg-warning-weak는 2026-10-19 사용자 결정으로 DFragon 디자인 캔버스의
- * 캡처 보드 값(#FFB400, 12% 면)을 먼저 들였고, 아직 tokens.json에는 없다.
+ * 캡처 보드 값(#FFB400, 12% 면)을 들였고, 같은 값을 tokens.json에 넣은 PR #37은 아직 merge되지 않았다.
  *
  * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다. color-scheme도 같은 모드로 정해
  * 스크롤 막대, 폼 컨트롤 같은 브라우저 기본 부품이 모드를 따른다.

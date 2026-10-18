@@ -438,9 +438,17 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 
   const raidCards = [...raidSection.querySelectorAll('article')]
   expect(raidCards).toHaveLength(12)
   expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
+  // 자리마다 속한 파티를 설명으로 전한다.
   expect(
-    [...raidSection.querySelectorAll('[role="group"]')].map((group) => group.ariaLabel)
-  ).toEqual(['1파티', '2파티', '3파티'])
+    [...raidSection.querySelectorAll('[aria-label*="번 자리"]')].map(
+      (seat) =>
+        document.getElementById(seat.getAttribute('aria-describedby')!.split(' ')[0])!.textContent
+    )
+  ).toEqual([
+    ...Array.from({ length: 4 }, () => '1파티'),
+    ...Array.from({ length: 4 }, () => '2파티'),
+    ...Array.from({ length: 4 }, () => '3파티')
+  ])
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
 
   // 빈 공대 자리에서 이름을 넣고 서버를 고르면 공대 검색 채널로 그 자리만 조회한다.

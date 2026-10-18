@@ -1,4 +1,4 @@
-import type { CardCharacter, EquipmentSlot } from '../../types/cards'
+import type { CardCharacter, CardStats, EquipmentSlot } from '../../types/cards'
 import characterImage from './assets/character.png'
 
 const images = import.meta.glob<string>('./assets/item-*.png', {
@@ -117,17 +117,42 @@ const raidMembers = [
   ['샘플닌자', '眞 쿠노이치', 119900, null, undefined]
 ] as const
 
+// 공대 카드 스탯 한 줄의 합성 값. 딜러는 공격력 증가, 증폭, 크리티컬, 스위칭 레벨, 버퍼는 마을 지능과 버프
+// 수치, 스위칭 레벨이다.
+function dealerStats(seed: number): CardStats {
+  return {
+    role: 'dealer',
+    attackIncrease: 107_000_000 + seed * 3_000_000,
+    amplification: 2760 + seed * 23,
+    critical: 92.5 + (seed % 3) * 2.5,
+    switchingLevel: 18 + (seed % 3)
+  }
+}
+
+function bufferStats(seed: number): CardStats {
+  return {
+    role: 'buffer',
+    townIntelligence: 31_420 + seed * 120,
+    buff30: 1_284_000 + seed * 10_000,
+    buff50: 3_926_000 + seed * 30_000,
+    switchingLevel: 18 + (seed % 3)
+  }
+}
+
+const bufferJobs = new Set(['眞 크루세이더', '眞 인챈트리스', '眞 뮤즈'])
+
 // 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 이름, 단계, 순위, 숫자는
-// 모두 합성 값이다. 순위가 없는 공대원은 제품 검색 응답처럼 길드와 장비 점수도 없어 `-`로 보인다.
+// 모두 합성 값이다. 순위가 없는 공대원은 제품 검색 응답처럼 길드, 장비 점수와 스탯도 없어 `-`로 보인다.
 export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
-  ...raidMembers.map(([name, job, fame, serverRank, tier]) => ({
+  ...raidMembers.map(([name, job, fame, serverRank, tier], index) => ({
     ...previewCharacter,
     name,
     job,
     fame,
     serverRank,
     tier,
-    ...(serverRank === null && { guild: null, equipmentScore: null })
+    stats: bufferJobs.has(job) ? bufferStats(index) : dealerStats(index),
+    ...(serverRank === null && { guild: null, equipmentScore: null, stats: null })
   })),
   null
 ]
