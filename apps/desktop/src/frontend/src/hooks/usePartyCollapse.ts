@@ -36,7 +36,8 @@ export function usePartyCollapse(collapsedHeight: number = MAIN_WINDOW_SIZE.coll
     collapsed,
     height: MAIN_WINDOW_SIZE.height
   })
-  // 접은 카드 전환이 끝나는 시각. 전환 중에 화면을 바꿔 접은 높이가 달라져도 남은 시간만큼 기다린다.
+  // 접은 카드 전환이 끝나는 시각(performance.now). 전환 중에 화면을 바꿔 접은 높이가 달라져도 남은 시간만큼
+  // 기다린다. 벽시계는 시스템 시각 조정에 따라 뒤로 갈 수 있어 단조 시계로 잰다.
   const transitionEndsAt = useRef<number | null>(null)
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export function usePartyCollapse(collapsedHeight: number = MAIN_WINDOW_SIZE.coll
     const collapsing = collapsed && !applied.current.collapsed
     applied.current = { collapsed, height }
     if (collapsing && !prefersReducedMotion()) {
-      transitionEndsAt.current = Date.now() + PARTY_COLLAPSE_TRANSITION_MS
+      transitionEndsAt.current = performance.now() + PARTY_COLLAPSE_TRANSITION_MS
     } else if (!collapsed) {
       transitionEndsAt.current = null
     }
@@ -56,7 +57,7 @@ export function usePartyCollapse(collapsedHeight: number = MAIN_WINDOW_SIZE.coll
       return
     }
     const endsAt = transitionEndsAt.current
-    const delay = endsAt === null ? 0 : Math.max(0, endsAt - Date.now())
+    const delay = endsAt === null ? 0 : Math.max(0, endsAt - performance.now())
     const timer = window.setTimeout(() => {
       void bridge.setContentHeight(height).catch(() => {
         // 창 높이를 바꾸지 못해도 카드 접기는 화면 안에서 유지한다. 다음 전환에서 다시 맞춘다.
