@@ -51,10 +51,12 @@ const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
 export const previewCharacter: CardCharacter = {
   name: '미리보기검사',
   adventure: '샘플모험단',
+  guild: '샘플길드',
   job: '眞 웨펀마스터',
   serverId: 'siroco',
   fame: 125850,
   equipmentScore: 414806,
+  serverRank: 18240,
   image: characterImage,
   equipment,
   oath: equipment

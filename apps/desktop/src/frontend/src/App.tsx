@@ -114,7 +114,7 @@ function App(): React.JSX.Element {
             />
           )}
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+          <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
               status={capture.search.detailNotice || partyStatus}
               collapsed={party.collapsed}

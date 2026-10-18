@@ -44,7 +44,11 @@ export function PartyPage({
   onLookup?: (slot: number, nickname: string, serverId: string) => void
 }): React.JSX.Element {
   return (
-    <section id={id} aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
+    <section
+      id={id}
+      aria-label="파티 캐릭터"
+      {...stylex.props(styles.grid, collapsed && styles.collapsed)}
+    >
       {slots.map((state, index) => {
         const selected = characters == null ? character : (characters[index] ?? undefined)
         const observedNickname = nicknames?.[index] ?? undefined
