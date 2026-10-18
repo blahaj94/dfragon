@@ -116,17 +116,13 @@ Vitest는 TypeScript를 변환해 runtime assertion을 실행한다. Public API�
 
 Web, Desktop renderer, Example은 Vite/Vitest의 exact `@dfragon/ui` alias와 TypeScript paths로 public source entry를 직접 해석한다. 소비 command 전에 library build를 실행할 필요가 없으며 dev에는 source 변경이 직접 반영된다. Exact alias는 `@dfragon/ui/foundation.css` subpath를 바꾸지 않는다. Package export의 ESM/declaration 산출물은 별도 library build로 계속 검증한다.
 
-## Source와 고지
+## 고지
 
-`seed-provenance.json`이 upstream repository, 고정 SHA, source path, 원본/local hash, 전이 Snippet, local diff를 기록한다. 기준 SHA는 `d7687b85a30f62c4f2d3600c3c6f39930932b577`이다. ActionButton → LoadingIndicator → ProgressCircle과 Dialog → ActionButton, TextField/Dialog의 공식 icon 의존을 포함한다. `LayoutBlock`은 실제 registry id `layout-01`, source `docs/registry/react/block/layout-01.tsx`의 Header+Content+Footer 구조와 공식 반응형 조건을 유지하고 header/footer/children content slot만 연결한 DFragon composition이다.
-
-`node packages/ui/scripts/prepare-seed-source.mjs`는 고정 source hash를 확인한 뒤 Snippet을 생성한다. Source 직접 수정 대신 이 생성 script에서 필요한 변환을 관리한다. DialogTrigger의 동일한 public type을 명시해 declaration의 pnpm private 경로 참조를 방지하고 LayoutBlock content slot을 연결하는 변환을 적용한다. Interaction과 시각 값은 변경하지 않는다. TypeScript는 build-time `node` type을 명시하며 library declaration에는 Node runtime을 노출하지 않는다.
-
-원본 LICENSE/NOTICE는 [`@dfragon/licenses`](../licenses/README.md)의 `notices/ui`에 보존한다. 공용 `uiNotices` plugin은 각 build에서 고지, source provenance와 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE, module 목록을 산출물 `notices`에 기록한다. 수정 source 자체와 해당 declaration에 DFragon changed-file 고지를 넣고, `notices/bundle-files.json`에 기록된 생성 JS bundle의 banner와 `notices/DFRAGON-MODIFICATIONS.txt`에도 변경 내역을 보존한다. Absolute filesystem path는 이 목록에 저장하지 않는다.
+Library, Example, Web, Desktop renderer build는 [`@dfragon/licenses`](../licenses/README.md)의 공용 `uiNotices` plugin으로 bundle 입력 graph(미사용 입력 포함)의 dependency license/NOTICE와 module 목록, 생성 JS chunk 목록을 산출물 `notices`에 기록한다. Absolute filesystem path는 이 목록에 저장하지 않는다. `@dfragon/ui`에는 외부 source를 복사해 고친 코드가 없어 별도 수정 고지를 두지 않는다.
 
 ## 소비 entry와 실제 UI 확인
 
-각 browser entry는 `@dfragon/ui/tokens.css` 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 system font stack과 body 초기화(여백, `--df-fg-default` 글자색, `--df-bg-canvas` 바탕)만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다. Source 근거, DFragon 초기화 차이는 `seed-provenance.json`의 foundation 항목에 있다.
+각 browser entry는 `@dfragon/ui/tokens.css` 다음에 `@dfragon/ui/foundation.css`를 한 번 import한다. 이 별도 public asset은 system font stack과 body 초기화(여백, `--df-fg-default` 글자색, `--df-bg-canvas` 바탕)만 담당하며 library JS가 import하거나 dist에 CSS bundle로 출력하지 않는다. Root font-size는 지정하지 않는다.
 
 Web은 counter 버튼에 `Button`을 쓴다. Desktop renderer는 공용 Component와 토큰을 화면에서 직접 쓴다. Desktop의 React, UI package, Base UI는 기존 renderer dependency 배치에 맞춰 devDependency로 설치하고 renderer bundle에 포함한다.
 
@@ -136,7 +132,5 @@ Browser에서는 `dev:examples`와 `preview:examples`, Web의 `dev`, `preview`�
 - `pnpm --filter @dfragon/desktop ui:fixture example dark`
 
 두 번째 인자는 `system`, `light`, `dark`이며 fixture process의 Theme만 변경한다. 제품 main/preload/auth는 로드하지 않는다. Source 목록과 선택은 synthetic bridge이며 native media API는 거절 stub으로 교체한다. Stub 설치 확인 전 window를 보이지 않고 실패 시 종료하며 fallback하지 않는다. Start는 `UI fixture: media capture blocked.` 상태로 callback 진입만 확인하고 stream, OCR를 실행하지 않는다. 실제 capture 성공이나 OS permission 검증은 이 evidence의 범위가 아니다. Desktop App component test와 fixture 검증의 경계를 구분한다.
-
-Changed-file 검사는 생성 bundle 목록을 대상으로 한다. Desktop의 기존 OCR worker처럼 수정하지 않고 복사하는 third-party asset에 DFragon 수정 고지를 임의로 붙이지 않는다.
 
 최초 구현의 실제 환경과 검증 결과는 superseded로 표시한 `docs/reference/ui-validation.md`에 이력으로 남아 있다.
