@@ -98,7 +98,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
-  delete document.documentElement.dataset.seedColorMode
+  delete document.documentElement.dataset.theme
   vi.unstubAllGlobals()
 })
 
@@ -314,7 +314,7 @@ it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확�
   expect(document.body.textContent).not.toContain('패스키로 계속하기')
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await click('라이트 테마')
-  expect(document.documentElement.dataset.seedColorMode).toBe('light-only')
+  expect(document.documentElement.dataset.theme).toBe('light')
   expect([...container.querySelectorAll('article')]).toEqual(cards)
 })
 
@@ -369,19 +369,19 @@ it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 
         </ColorThemeProvider>
       )
     )
-    expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
+    expect(document.documentElement.dataset.theme).toBe('dark')
     expect(setTheme.mock.calls).toEqual([['dark']])
 
     await act(async () =>
       container.querySelector<HTMLButtonElement>('[aria-label="라이트 테마"]')!.click()
     )
-    expect(document.documentElement.dataset.seedColorMode).toBe('light-only')
+    expect(document.documentElement.dataset.theme).toBe('light')
     expect(setTheme.mock.calls).toEqual([['dark'], ['light']])
 
     await act(async () =>
       container.querySelector<HTMLButtonElement>('[aria-label="다크 테마"]')!.click()
     )
-    expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
+    expect(document.documentElement.dataset.theme).toBe('dark')
     expect(setTheme.mock.calls).toEqual([['dark'], ['light'], ['dark']])
   } finally {
     Reflect.deleteProperty(window, 'windowChrome')

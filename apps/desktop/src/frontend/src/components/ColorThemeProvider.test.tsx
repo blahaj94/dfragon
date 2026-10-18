@@ -36,7 +36,8 @@ afterEach(async () => {
   await act(async () => root.unmount())
   container.remove()
   portal.remove()
-  delete document.documentElement.dataset.seedColorMode
+  delete document.documentElement.dataset.theme
+  document.documentElement.style.colorScheme = ''
   vi.unstubAllGlobals()
 })
 
@@ -55,17 +56,17 @@ it('중첩 화면과 body 포털의 소비자가 같은 테마를 읽고 어느 
   )
   expect(container.textContent).toBe('dark')
   expect(portal.textContent).toBe('dark')
-  expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
+  expect(document.documentElement.dataset.theme).toBe('dark')
 
   await act(async () => container.querySelector('button')!.click())
   expect(container.textContent).toBe('light')
   expect(portal.textContent).toBe('light')
-  expect(document.documentElement.dataset.seedColorMode).toBe('light-only')
+  expect(document.documentElement.dataset.theme).toBe('light')
 
   await act(async () => portal.querySelector('button')!.click())
   expect(container.textContent).toBe('dark')
   expect(portal.textContent).toBe('dark')
-  expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
+  expect(document.documentElement.dataset.theme).toBe('dark')
 })
 
 it.each([
@@ -85,15 +86,17 @@ it.each([
       )
     )
     expect(container.textContent).toBe(expected)
-    expect(document.documentElement.dataset.seedColorMode).toBe(`${expected}-only`)
+    expect(document.documentElement.dataset.theme).toBe(expected)
+    expect(document.documentElement.style.colorScheme).toBe(expected)
   }
 )
 
-it.each([undefined, 'system'] as const)(
-  'Provider를 해제하면 기존 SEED 테마(%s)를 복원한다',
-  async (previousMode) => {
-    if (previousMode != null) {
-      document.documentElement.dataset.seedColorMode = previousMode
+it.each([undefined, 'light'] as const)(
+  'Provider를 해제하면 기존 테마(%s)와 color-scheme을 복원한다',
+  async (previousTheme) => {
+    if (previousTheme != null) {
+      document.documentElement.dataset.theme = previousTheme
+      document.documentElement.style.colorScheme = previousTheme
     }
     await act(async () =>
       root.render(
@@ -104,6 +107,7 @@ it.each([undefined, 'system'] as const)(
     )
     await act(async () => container.querySelector('button')!.click())
     await act(async () => root.render(null))
-    expect(document.documentElement.dataset.seedColorMode).toBe(previousMode)
+    expect(document.documentElement.dataset.theme).toBe(previousTheme)
+    expect(document.documentElement.style.colorScheme).toBe(previousTheme ?? '')
   }
 )

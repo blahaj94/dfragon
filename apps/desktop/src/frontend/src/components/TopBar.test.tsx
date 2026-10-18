@@ -87,13 +87,13 @@ it('테마를 전환하면 다음 테마의 버튼 이름이 바뀐다', async (
   )
   expect(container.querySelector('[aria-label="라이트 테마"]')).toBeNull()
   expect(container.querySelector('[aria-label="다크 테마"]')).not.toBeNull()
-  expect(document.documentElement.dataset.seedColorMode).toBe('light-only')
+  expect(document.documentElement.dataset.theme).toBe('light')
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="다크 테마"]')!.click()
   )
   expect(container.querySelector('[aria-label="다크 테마"]')).toBeNull()
   expect(container.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
-  expect(document.documentElement.dataset.seedColorMode).toBe('dark-only')
+  expect(document.documentElement.dataset.theme).toBe('dark')
 })
 
 it('계정을 생략하면 비활성 로그인 자리 버튼을 표시한다', async () => {
