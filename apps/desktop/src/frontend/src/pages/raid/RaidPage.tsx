@@ -78,7 +78,6 @@ export function RaidPage({
         </div>
         <div {...stylex.props(styles.actions)}>
           <IconButton
-            size="lg"
             aria-label={collapsed ? '카드 펼치기' : '카드 접기'}
             aria-expanded={!collapsed}
             aria-controls={id}
