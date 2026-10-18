@@ -10,11 +10,14 @@ const moduleId = 'virtual:dfragon-desktop-licenses'
 export function collectDesktopCatalog({
   runtimeRoot,
   uiRoot,
-  ocrRoot
+  ocrRoot,
+  rendererDependencies = []
 }: {
   runtimeRoot: string
   uiRoot: string
   ocrRoot: string
+  /** Renderer packages the app bundles itself but installs as dev dependencies, resolved from runtimeRoot. */
+  rendererDependencies?: string[]
 }): NoticeEntry[] {
   const document = (root: string, name: string) => {
     const text = readFileSync(join(root, name), 'utf8')
@@ -66,11 +69,13 @@ export function collectDesktopCatalog({
     }
   ]
   const manifest = JSON.parse(readFileSync(join(uiRoot, 'package.json'), 'utf8'))
-  const peerRoots = Object.keys(manifest.peerDependencies ?? {}).map((name) =>
-    resolvePackageRoot(name, uiRoot)
-  )
+  const peerRoots = [
+    ...Object.keys(manifest.peerDependencies ?? {}).map((name) => resolvePackageRoot(name, uiRoot)),
+    ...rendererDependencies.map((name) => resolvePackageRoot(name, runtimeRoot))
+  ]
   const packages = new Map<string, NoticeEntry>()
-  // UI peers are runtime inputs even though the Desktop manifest installs them as dev dependencies.
+  // UI peers and renderer dependencies are runtime inputs even though the Desktop manifest installs
+  // them as dev dependencies.
   for (const root of [runtimeRoot, uiRoot, ...peerRoots]) {
     const inputs = peerRoots.includes(root) ? [join(root, 'package.json')] : []
     for (const entry of collectPackages(inputs, root)) {

@@ -47,7 +47,9 @@ export default defineConfig(({ mode, command }) => {
     desktopLicenseCatalog({
       runtimeRoot: resolve('.'),
       uiRoot: resolve('../../packages/ui'),
-      ocrRoot: resolve('assets/ocr')
+      ocrRoot: resolve('assets/ocr'),
+      // 화면이 SEED를 직접 import하는 동안 설정 화면 고지에 남긴다. Desktop SEED 제거 PR에서 지운다.
+      rendererDependencies: ['@seed-design/react', '@seed-design/css']
     }),
     ...(mode === 'mvp-preview'
       ? [
