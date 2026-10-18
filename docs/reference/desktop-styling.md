@@ -70,8 +70,9 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 화면 | 구현 | 참고 |
 | --- | --- | --- |
 | 버튼 | `Button` | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
-| 상단 바의 테마, 설정 버튼, 파티 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다 |
-| 상단 바의 캡처 버튼 | `Button` `ghost` `sm`과 `Kbd` | 카메라 아이콘 옆에 `Alt`, `R` 키캡을 둡니다 |
+| 상단 바의 테마, 설정 버튼, 파티 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바는 `bar`, 파티 머리는 `bg.inset` 면에 오른쪽 위를 자른 48 정사각형 `lg`입니다 |
+| 상단 바의 게임 연결 상태 | `StatusChip` `size="md"`를 감싼 `DialogTrigger` native button | 누르면 캡처 대화상자를 엽니다. 칩의 자른 모서리에 가리지 않게 포커스 선을 버튼 바깥에 둡니다 |
+| 파티 머리의 캡처 버튼 | `Button` `primary` `lg`와 `Kbd` `surface="signal"` | 카메라 아이콘, 구분선, `Alt`, `R` 키캡을 둡니다. 키캡과 구분선은 버튼 글자색을 따라 비활성에서도 함께 흐려집니다 |
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
