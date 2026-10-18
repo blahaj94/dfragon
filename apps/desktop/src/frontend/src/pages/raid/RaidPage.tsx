@@ -16,12 +16,13 @@ const parties = Array.from({ length: RAID_PARTY_COUNT }, (_, party) =>
  * 공대 12인 화면. 파티 화면과 같은 캐릭터 카드를 네 장씩 세 파티로 쌓고, 머리는 고정한 채 카드 영역만
  * 스크롤한다. 카드는 창 크기와 상관없이 기준 창 1280×800의 파티 카드 크기로 고정이라 창이 작으면 카드
  * 영역이 가로와 세로로 스크롤한다. 접힘은 파티와 같은 상태를 쓴다. 머리 오른쪽에 접기 버튼, 마지막 캡처
- * 시간, Alt+R과 같은 회차를 시작하는 캡처 버튼을 둔다.
+ * 시간, Alt+R과 같은 회차를 시작하는 캡처 버튼을 둔다. 캡처 진행 상태는 상단 바 상태 칩과 캡처 대화상자가
+ * 보이고 화면 밖 캡처 안내가 알리므로, 머리에는 캡처 진행 문구를 두지 않는다.
  */
 export function RaidPage({
   id,
   hidden = false,
-  status,
+  notice,
   slots,
   characters,
   basicOnly = false,
@@ -41,8 +42,8 @@ export function RaidPage({
   id: string
   /** 파티를 보는 동안에도 자리별 입력과 검색 상태를 지키려고 그린 채 숨긴다. */
   hidden?: boolean
-  /** 머리의 안내. 검색 연결 실패나 상세 창 열기 실패를 알린다. */
-  status: string
+  /** 머리의 안내. 검색 연결 실패나 상세 창 열기 실패처럼 캡처 진행이 아닌 안내만 담는다. */
+  notice: string
   /** 1번부터 12번 자리의 검색 상태 */
   slots: readonly SlotState[]
   /** 1번부터 12번 자리의 캐릭터. 조회하지 않았거나 찾지 못한 자리는 null이다. */
@@ -72,8 +73,8 @@ export function RaidPage({
           <Typo.h4 as="h1" weight={700}>
             공대
           </Typo.h4>
-          <Typo.caption role="status" {...stylex.props(styles.status)}>
-            {status}
+          <Typo.caption role="status" {...stylex.props(styles.notice)}>
+            {notice}
           </Typo.caption>
         </div>
         <div {...stylex.props(styles.actions)}>

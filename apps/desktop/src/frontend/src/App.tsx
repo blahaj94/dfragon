@@ -73,13 +73,13 @@ function App(): React.JSX.Element {
   const raidSlotNotices = raid.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
   )
-  let raidStatus = '캡처 대기'
+  // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
+  // 안내와 캡처 대화상자가 알린다.
+  let raidNotice = ''
   if (raid.connectionFailed) {
-    raidStatus = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
+    raidNotice = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
   } else if (raid.detailNotice) {
-    raidStatus = raid.detailNotice
-  } else if (capture.selectedSourceId) {
-    raidStatus = raidScreenCapture.status
+    raidNotice = raid.detailNotice
   }
 
   function openDeveloperWorkbench(): void {
@@ -165,7 +165,7 @@ function App(): React.JSX.Element {
           <RaidPage
             id={raidCardsId}
             hidden={searchMode !== 'raid'}
-            status={raidStatus}
+            notice={raidNotice}
             resetKey={String(raidCapture.round)}
             slots={raid.slots.map((slot) => slot.state)}
             characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}

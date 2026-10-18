@@ -144,7 +144,7 @@ export function Preview(): React.JSX.Element {
           <div {...stylex.props(styles.page)}>
             <RaidPage
               id={raidCardsId}
-              status=""
+              notice=""
               slots={raidPreviewCharacters.map((member) => (member == null ? 'idle' : 'success'))}
               characters={raidPreviewCharacters}
               lastCapturedAt={captureState === 'complete' ? completedAt : null}
