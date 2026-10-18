@@ -19,6 +19,15 @@ export const MAIN_WINDOW_SIZE = {
   collapsedHeight: 400
 } as const
 
+// dfragon-design layout.md의 보조 창이다. 상세 창은 메인과 같은 기준 창으로 열고, 최소 창은 작업자가
+// 메인과 같게 정했다.
+export const DETAIL_WINDOW_SIZE = {
+  width: 1280,
+  height: 800,
+  minWidth: 1024,
+  minHeight: 640
+} as const
+
 /** 창 색상에 허용된 테마만 변환 없이 확인한다. */
 export function isWindowChromeTheme(value: unknown): value is WindowChromeTheme {
   return value === 'light' || value === 'dark'
