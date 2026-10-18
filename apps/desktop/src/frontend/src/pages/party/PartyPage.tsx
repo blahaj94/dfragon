@@ -19,6 +19,8 @@ export function PartyPage({
   retryEnabled,
   retryPending,
   loadingSlots,
+  collapsed = false,
+  id,
   onLookup
 }: {
   character?: CardCharacter
@@ -36,10 +38,13 @@ export function PartyPage({
   retryEnabled?: readonly boolean[]
   retryPending?: readonly boolean[]
   loadingSlots?: readonly boolean[]
+  collapsed?: boolean
+  /** 파티 머리의 접기 버튼이 가리킬 카드 영역의 id */
+  id?: string
   onLookup?: (slot: number, nickname: string, serverId: string) => void
 }): React.JSX.Element {
   return (
-    <section aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
+    <section id={id} aria-label="파티 캐릭터" {...stylex.props(styles.grid)}>
       {slots.map((state, index) => {
         const selected = characters == null ? character : (characters[index] ?? undefined)
         const observedNickname = nicknames?.[index] ?? undefined
@@ -67,6 +72,7 @@ export function PartyPage({
             retryEnabled={retryEnabled?.[index]}
             retryPending={retryPending?.[index]}
             loading={loadingSlots?.[index]}
+            collapsed={collapsed}
             onLookup={
               onLookup === undefined
                 ? undefined

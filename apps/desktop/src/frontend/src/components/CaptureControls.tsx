@@ -4,13 +4,14 @@ import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
   Typo,
   ActionButton,
+  Button,
   DialogRoot,
   DialogTrigger,
   DialogContent,
   DialogBody,
   DialogFooter,
-  IconButton,
-  StatusBadge
+  Kbd,
+  StatusChip
 } from '@dfragon/ui'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
@@ -66,13 +67,22 @@ export function CaptureControls({
       }}
     >
       <span {...stylex.props(windowChromeStyles.noDrag)}>
-        <DialogTrigger asChild>
-          <IconButton
-            variant="neutralWeak"
-            aria-label="화면 캡처"
-            aria-haspopup="dialog"
-            icon={<CameraIcon {...stylex.props(styles.camera, active && styles.cameraActive)} />}
+        {/* 캡처 버튼은 상단 바에 둔다. 키캡은 회차를 시작하는 단축키 Alt+R을 알리는 표시이고, 버튼은
+            캡처할 창을 고르는 대화상자를 연다. */}
+        <DialogTrigger
+          render={
+            <Button variant="ghost" size="sm" aria-label="화면 캡처" aria-haspopup="dialog" />
+          }
+        >
+          <CameraIcon
+            width={20}
+            height={20}
+            {...stylex.props(styles.camera, active && styles.cameraActive)}
           />
+          <span aria-hidden="true" {...stylex.props(styles.keys)}>
+            <Kbd>Alt</Kbd>
+            <Kbd>R</Kbd>
+          </span>
         </DialogTrigger>
       </span>
       <DialogContent
@@ -80,9 +90,9 @@ export function CaptureControls({
         title={
           <Typo.h5 as="span" {...stylex.props(styles.heading)}>
             화면 캡처
-            <StatusBadge tone={state.tone} role="status">
+            <StatusChip tone={state.tone} role="status">
               {state.label}
-            </StatusBadge>
+            </StatusChip>
           </Typo.h5>
         }
       >

@@ -15,12 +15,12 @@ type CaptureControlInput = {
   hasDetectedSource: boolean
 }
 
-// `@dfragon/ui` StatusBadge의 tone이다. lib는 UI 계층을 import하지 않으므로 같은 이름을 따로 두고,
-// CaptureControls의 tone 전달에서 이 값이 StatusBadgeTone에 속하는지 타입 검사가 확인한다. 디자인
-// StatusBadge의 info, success, danger는 각각 informative, positive, critical에 대응한다.
-export type CaptureControlTone = 'neutral' | 'informative' | 'positive' | 'warning' | 'critical'
+// `@dfragon/ui` StatusChip의 tone이다. lib는 UI 계층을 import하지 않으므로 같은 이름을 따로 두고,
+// 상단 바와 캡처 모달의 tone 전달에서 이 값이 StatusChipTone에 속하는지 타입 검사가 확인한다. 주의
+// 색은 없으므로 확인이 필요한 상태는 중립색과 모래시계의 waiting이다.
+export type CaptureControlTone = 'neutral' | 'success' | 'danger' | 'waiting'
 
-// 캡처 진행 상태를 우선하여 상단 바와 캡처 모달에 표시할 상태 이름과 배지 tone을 결정한다.
+// 캡처 진행 상태를 우선하여 상단 바와 캡처 모달에 표시할 상태 이름과 상태 칩 tone을 결정한다.
 export function getCaptureControlState({
   phase,
   loading,
@@ -32,16 +32,16 @@ export function getCaptureControlState({
   }
 
   if (phase === 'recognizing') {
-    return { label: '인식 중', tone: 'informative' }
+    return { label: '인식 중', tone: 'neutral' }
   }
 
   if (phase === 'complete') {
-    return { label: '인식 완료', tone: 'informative' }
+    return { label: '인식 완료', tone: 'neutral' }
   }
 
   // 가림, 최소화, 파티 프레임 미검출로 회차가 끝나면 창 감지 표시 대신 Alt+R 전 확인이 필요함을 알린다.
   if (phase === 'unavailable') {
-    return { label: '확인 필요', tone: 'warning' }
+    return { label: '확인 필요', tone: 'waiting' }
   }
 
   if (loading) {
@@ -49,14 +49,14 @@ export function getCaptureControlState({
   }
 
   if (failed) {
-    return { label: '조회 실패', tone: 'critical' }
+    return { label: '조회 실패', tone: 'danger' }
   }
 
   if (!hasDetectedSource) {
-    return { label: '창 미감지', tone: 'warning' }
+    return { label: '창 미감지', tone: 'waiting' }
   }
 
-  return { label: '창 감지됨', tone: 'positive' }
+  return { label: '창 감지됨', tone: 'success' }
 }
 
 // 창 목록 조회 결과에 맞는 안내 문구를 결정한다.

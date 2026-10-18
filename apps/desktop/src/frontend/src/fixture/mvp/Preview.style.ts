@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, space } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   app: {
@@ -11,7 +11,12 @@ export const styles = stylex.create({
     color: colors.fgDefault
   },
   // OS 창 버튼은 창 위쪽에 고정되므로 상단 바도 고정하고 그 아래 내용만 스크롤한다.
-  content: { flex: 1, minHeight: 0, overflowY: 'auto', padding: '16px 24px' },
+  content: { flex: 1, minHeight: 0, overflowY: 'auto', padding: space.s24 },
+  page: {
+    display: { default: 'flex', ':is([hidden])': 'none' },
+    flexDirection: 'column',
+    gap: space.s16
+  },
   footer: {
     display: 'flex',
     flexWrap: 'wrap',
