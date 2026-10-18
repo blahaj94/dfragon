@@ -135,9 +135,12 @@ export function Preview(): React.JSX.Element {
           <div {...stylex.props(styles.page)}>
             <RaidPage
               id={raidCardsId}
+              status=""
+              slots={raidPreviewCharacters.map((member) => (member == null ? 'idle' : 'success'))}
               characters={raidPreviewCharacters}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
+              onSlotDetail={openDetail}
             />
           </div>
         )}

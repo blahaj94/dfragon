@@ -68,3 +68,15 @@ export function characterSlotNotice(slot: SearchSlot): string | undefined {
 
   return SEARCH_ERRORS[code].message
 }
+
+/** 실패와 결과 0건 카드의 안내에 다음 조회 방법을 덧붙인다. 그 밖의 상태는 정제된 안내만 쓴다. */
+export function searchSlotNotice(slot: SearchSlot, nextStep: string): string | undefined {
+  const notice = characterSlotNotice(slot)
+  if (slot.state === 'failure' || slot.state === 'empty') {
+    const message = notice ?? '검색 결과가 없습니다.'
+
+    return `${message} ${nextStep}`
+  }
+
+  return notice
+}
