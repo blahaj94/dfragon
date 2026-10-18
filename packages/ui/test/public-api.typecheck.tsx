@@ -46,6 +46,7 @@ import {
   type CardFrameState,
   type CheckboxProps,
   type ChipProps,
+  type ControlSurface,
   type DialogActionProps,
   type DialogBodyProps,
   type DialogContentProps,
@@ -64,6 +65,7 @@ import {
   type StatusChipProps,
   type StatusChipTone,
   type SwitchProps,
+  type TabsListProps,
   type TabsTabProps,
   type TextFieldInputProps,
   type TextFieldProps,
@@ -90,6 +92,7 @@ type PublicPropKeys =
   | keyof MenuPopupProps
   | keyof MenuItemProps
   | keyof MenuRadioItemProps
+  | keyof TabsListProps
   | keyof TabsTabProps
   | keyof SwitchProps
   | keyof CheckboxProps
@@ -120,6 +123,10 @@ expectTypeOf<StatusChipProps['size']>().toEqualTypeOf<'sm' | 'md' | undefined>()
 expectTypeOf<StatusBadgeTone>().toEqualTypeOf<
   'neutral' | 'informative' | 'critical' | 'warning' | 'positive'
 >()
+expectTypeOf<ControlSurface>().toEqualTypeOf<'default' | 'card'>()
+expectTypeOf<SelectTriggerProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
+expectTypeOf<SelectPopupProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
+expectTypeOf<TabsListProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
 expectTypeOf<CardFrameState>().toEqualTypeOf<
   'default' | 'selected' | 'failure' | 'waiting' | 'top' | 'ranker'
 >()
@@ -295,7 +302,7 @@ export const behaviorExamples = (
       </Menu.Popup>
     </Menu.Root>
     <Tabs.Root defaultValue="collection">
-      <Tabs.List aria-label="도구">
+      <Tabs.List aria-label="도구" surface="card">
         <Tabs.Tab value="collection">수집</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="collection">수집 패널</Tabs.Panel>
