@@ -3,7 +3,7 @@ type: rule
 status: active
 enforcement: approval-required
 scope: apps/desktop authentication process IPC and screens
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-18
 rationale: renderer가 credential이나 인증 성공을 소유하지 않고 후속 구현자가 process 경계를 추측하지 않도록 한다.
 evidence: "PR #60 사용자 승인: https://github.com/blahaj94/ldb/pull/60#issuecomment-5553807475 ; 설계 근거: Issue #55; 서버 기반 PR #48 승인, PR #53 merge; 2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, Penpot 03 페이지 재구성"
 exceptions: 설계 승인은 제품 구현 착수, 실제 인증 및 OS 등록, credential 저장소 변경을 포함하지 않는다.
@@ -128,7 +128,7 @@ review-after: 초기 restore, paused retry의 저장 지연, clock 회귀와 화
 
 - Renderer는 회차 프레임의 OCR 첫 후보로 확정한 결과와 그 결과의 무효화만 전달한다. HTTP와 응답 검증은 main이 소유하며 검색에는 token을 사용하지 않는다. 고정 `GET /characters`에 확정한 nickname을 `characterName`으로 보내고 선택 query는 생략한다. 입력 길이, 정규화, 응답 field, 후보 순서, 오류, quota는 [서버 검색](character-search.md)을 그대로 소비하며 Desktop에서 재정의하지 않는다.
 - Main은 등록 renderer document와 선택 source, capture 수명을 검사하고 고정 공개 검색 endpoint를 호출한다. Renderer가 보내는 식별자는 상관관계 확인용이며 권한 증거가 아니다.
-- Main은 Start마다 새 `captureId`를 만들고 등록 renderer document, 선택 source generation에 결합한다. 프레임 읽기와 OCR 시작, 완료도 이 수명에 속해야 한다. Source 변경, 프레임 읽기 실패, Stop, capture unmount, renderer reload/navigation/destruction은 이 수명을 끝낸다. 선택한 창이 가려지거나 최소화, 종료, 이동 중이라는 main의 프레임 응답만으로 이 수명을 끝내지는 않는다. Renderer는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)에 따라 안내 후 해당 회차의 인식을 끝내며 화면 복귀를 기다리거나 다시 읽지 않는다. 캡처 실패는 확인을 마친 source 선택을 지우지 않으므로 source를 다시 고르지 않고 새 Start로 캡처를 다시 시작할 수 있다. 제품 화면에는 별도 시작 버튼이 없어 [테스트 버전 자동 캡처](desktop-windows-capture.md#테스트-버전-자동-캡처와-자료-수집)의 전경 조건을 따르는 Alt+R이 이 Start를 보낸다. 새 Start 전에는 이전 회차와 검색 수명을 정리한다. 창 선택은 등록만 하며 Start를 보내지 않는다. 창 선택 실패와 Stop 뒤에는 Start로 캡처를 시작하지 않으며 창을 다시 선택한 다음 Alt+R을 눌러야 한다. 제품에서 Stop은 화면 캡처 창의 ‘캡처 중지’, 개발 도구 열기와 검색 연결 무효화(검색 run 교체, main의 캡처 종료)가 보낸다.
+- Main은 Start마다 새 `captureId`를 만들고 등록 renderer document, 선택 source generation에 결합한다. 프레임 읽기와 OCR 시작, 완료도 이 수명에 속해야 한다. Source 변경, 프레임 읽기 실패, Stop, capture unmount, renderer reload/navigation/destruction은 이 수명을 끝낸다. 선택한 창이 가려지거나 최소화, 종료, 이동 중이라는 main의 프레임 응답만으로 이 수명을 끝내지는 않는다. Renderer는 [Windows 제품 캡처 정책](desktop-windows-capture.md#windows-제품-캡처-정책)에 따라 안내 후 해당 회차의 인식을 끝내며 화면 복귀를 기다리거나 다시 읽지 않는다. 캡처 실패는 확인을 마친 source 선택을 지우지 않으므로 source를 다시 고르지 않고 새 Start로 캡처를 다시 시작할 수 있다. 제품 화면에서는 [테스트 버전 자동 캡처](desktop-windows-capture.md#테스트-버전-자동-캡처와-자료-수집)의 전경 조건을 따르는 Alt+R과 파티 머리의 캡처 버튼이 같은 경로로 이 Start를 보낸다. 새 Start 전에는 이전 회차와 검색 수명을 정리한다. 창 선택은 등록만 하며 Start를 보내지 않는다. 창 선택 실패와 Stop 뒤에는 Start로 캡처를 시작하지 않으며 창을 다시 선택한 다음 Alt+R이나 캡처 버튼을 눌러야 한다. 제품에서 Stop은 화면 캡처 창의 ‘캡처 중지’, 개발 도구 열기와 검색 연결 무효화(검색 run 교체, main의 캡처 종료)가 보낸다.
 - Renderer는 capture instance와 slot별 `observationRevision`을 소유한다. 현재 OCR 입력을 무효화하는 전이에는 `clear`를 한 번 보내고 새 확정 결과에는 기존 notify를 보내며, 두 전이 모두 revision을 증가시킨다. 회차 프레임에서 검출되지 않은 슬롯은 비워 두고 검색하지 않는다. OCR 확정과 회차 진행은 [Desktop MVP 카드 UI](desktop-mvp-ui.md#캡처-모달)를 따르며 main의 입력, revision 검사는 유지한다.
 - Main은 slot별 최신 observation revision과 검색별 새 `requestId`를 소유한다. 낮거나 같은 observation revision의 중복, 역순 입력은 작업을 만들지 않는다. Clear 없이 같은 nickname의 더 큰 revision을 받으면 requestId를 유지하며 진행 요청의 수용 observationRevision과 현재 결과의 revision을 함께 올리고 snapshot을 발행한다. 완료 검사는 승격한 수용 revision을 사용하며 시작 시 고정한 옛 revision만 비교해 pending으로 남기지 않는다. 새 검색이나 실패 재시도는 만들지 않는다. 다른 slot은 서로의 결과를 지우거나 요청 순서를 기다리지 않는다.
 
