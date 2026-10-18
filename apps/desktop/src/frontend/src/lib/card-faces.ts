@@ -62,9 +62,13 @@ export type EquipmentFaceView = {
 /** 기타 면 12행의 강화나 증폭 칸. 강화는 `game.enhance`, 증폭은 `game.amplify` 색이다. */
 export type ReinforceView = { text: string; tone: 'enhance' | 'amplify' | 'missing'; label: string }
 
+type EnchantGrade = NonNullable<
+  NonNullable<CharacterCard['investment'][number]['enchant']>['grade']
+>
+
 /** 기타 면 12행의 마법부여 칸. 등급이 있으면 3점 중 `filled`개를 등급 색으로 칠하고 없으면 `-`다. */
 export type EnchantView =
-  | { grade: '종결' | '준종결' | '기타'; filled: number; label: string }
+  | { grade: EnchantGrade; filled: number; label: string }
   | { grade: null; text: string; label: string }
 
 export type InvestmentRowView = {
@@ -134,7 +138,7 @@ const slotNames: Readonly<Record<string, string>> = {
   EARRING: '귀걸이'
 }
 
-const gradeFill = { 종결: 3, 준종결: 2, 기타: 1 } as const
+const gradeFill = { 종결: 3, 준종결: 2, 기타: 1 } as const satisfies Record<EnchantGrade, number>
 
 /** Neople 희귀도 이름을 색 토큰 키로 바꾼다. `유니크 Ⅱ`처럼 단계가 붙은 이름은 앞 단어로 고른다. */
 export function toRarityTone(rarity: string | null | undefined): RarityTone {
