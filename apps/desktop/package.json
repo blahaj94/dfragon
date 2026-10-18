@@ -53,6 +53,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@base-ui/react": "catalog:",
     "@electron-toolkit/tsconfig": "catalog:",
     "@dfragon/ui": "workspace:*",
     "@seed-design/css": "catalog:",

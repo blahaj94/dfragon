@@ -4,14 +4,13 @@ import react from '@vitejs/plugin-react'
 import { uiNotices } from '@dfragon/licenses/vite'
 
 function isExternal(id: string) {
-  const isSeed = id.startsWith('@seed-design/')
+  const isBaseUi = id === '@base-ui/react' || id.startsWith('@base-ui/react/')
   const isReact = id === 'react' || id.startsWith('react/')
   const isReactDom = id === 'react-dom' || id.startsWith('react-dom/')
   const isStylex = id === '@stylexjs/stylex' || id.startsWith('@stylexjs/stylex/')
-  const isOfficialIcon = id.startsWith('@karrotmarket/react-monochrome-icon')
-  const isPeerOrIcon = isSeed || isReact || isReactDom || isStylex || isOfficialIcon
+  const isPeer = isBaseUi || isReact || isReactDom || isStylex
 
-  return isPeerOrIcon
+  return isPeer
 }
 
 export default defineConfig({

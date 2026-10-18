@@ -33,16 +33,14 @@
     "format:check": "biome format && node ../../scripts/statement-spacing.mjs --check"
   },
   "peerDependencies": {
-    "@seed-design/react": "catalog:",
-    "@seed-design/css": "catalog:",
+    "@base-ui/react": "catalog:",
     "@stylexjs/stylex": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
-  "dependencies": {
-    "@karrotmarket/react-monochrome-icon": "catalog:"
-  },
   "devDependencies": {
+    "@base-ui/react": "catalog:",
+    "@karrotmarket/react-monochrome-icon": "catalog:",
     "@seed-design/react": "catalog:",
     "@seed-design/css": "catalog:",
     "@seed-design/vite-plugin": "catalog:",
