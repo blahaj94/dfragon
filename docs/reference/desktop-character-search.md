@@ -146,7 +146,7 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 제품은 고정 `character-detail.html`과 전용 preload를 사용한다. `window.characterDetail.read()`만 노출하며 capture, auth, developer bridge는 포함하지 않는다. Main reader는 등록된 상세 창의 WebContents와 현재 main frame, 정확한 document URL, detached와 destroyed 상태를 매번 검사한다. 별도 메모리 session에서 권한 요청과 미디어 접근을 거절하고, 팝업, 외부 탐색과 redirect, webview를 차단한다. 공급자 전체 JSON은 main에 남기며 상세 renderer에는 검증한 기본 요약과 조회 시각만 복사해 전달한다.
 
-`CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
+상세 창은 1280×800(최소 1024×640)이고 메인 창처럼 `titleBarStyle: 'hidden'`과 높이 56의 `titleBarOverlay`로 OS 창 버튼을 화면의 상단 바 `WindowBar` 안에 그린다. 창 버튼과 창 배경 색은 창을 연 순간의 `nativeTheme`으로 정한다. 상세 화면은 시스템 테마로 그리고 테마 전환이 없어 창 색 IPC를 두지 않으며, 상세 preload와 IPC, CSP는 바뀌지 않는다. `CharacterSnapshotPage`는 이미지, 이름, 서버, 모험단, 직업, 전직, 실제 레벨과 명성, 마지막 조회 시각과 정보 유효 시각을 표시한다. 누락된 값은 `정보 없음`으로 표시하며 고정 레벨, 계산한 장비 점수나 예시 마법부여 등급을 넣지 않는다. 기존 `CharacterDetailPage`와 `DetailDeck`의 장비, 서약, 투자 카드 조합은 합성 미리보기로 남는다. 장비 카드 확장과 마법부여 평가는 이 연결에 포함하지 않는다.
 
 창 수명과 IPC, 기본 정보 화면의 합성 검증은 실제 얼굴 식별 완료와 구분한다. 얼굴 cropper와 Stay 공급원, 초기 윤곽 정책이 제품에 연결되어 일반 캡처의 선택 결과와 상세 창까지 이어진다. API의 candidates와 appearance endpoint가 배포되어야 하며 Windows 실제 게임에서의 회차별 캡처 검증은 별도로 필요하다.
 
