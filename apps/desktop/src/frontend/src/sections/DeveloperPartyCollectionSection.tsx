@@ -1,7 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { Checkmark, Typo } from '@dfragon/ui'
-import { Checkbox } from '@seed-design/react'
+import { Checkbox, Typo } from '@dfragon/ui'
 import { useEffect, useRef } from 'react'
 import { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import type { DeveloperPartySlotNumber } from '../lib/developer-party'
@@ -131,17 +130,16 @@ export function DeveloperPartyCollectionSection({
 
             return (
               <article key={slotNumber} {...stylex.props(styles.crop)}>
-                <Checkbox.Root.Primitive
-                  checked={included}
-                  onCheckedChange={(checked) => collection.setSlotIncluded(slotNumber, checked)}
-                  {...stylex.props(styles.cropHeader)}
-                >
+                <label {...stylex.props(styles.cropHeader)}>
                   <Typo.txtM as="span" weight={700}>
                     {slotNumber}
                   </Typo.txtM>
-                  <Checkmark />
-                  <Checkbox.HiddenInput aria-label={`${slotNumber}번 크롭 저장`} />
-                </Checkbox.Root.Primitive>
+                  <Checkbox
+                    aria-label={`${slotNumber}번 크롭 저장`}
+                    checked={included}
+                    onCheckedChange={(checked) => collection.setSlotIncluded(slotNumber, checked)}
+                  />
+                </label>
                 <div {...stylex.props(styles.cropImageArea, !included && styles.unchecked)}>
                   {preview ? (
                     <img

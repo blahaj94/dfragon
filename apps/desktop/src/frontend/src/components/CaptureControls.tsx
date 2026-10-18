@@ -1,5 +1,4 @@
-import { useColorTheme } from '../hooks/useColorTheme'
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
@@ -13,7 +12,6 @@ import {
   IconButton,
   StatusBadge
 } from '@dfragon/ui'
-import { lightTheme } from '../constants/theme.stylex'
 import { styles } from './CaptureControls.style'
 import { CaptureSourceSelect } from './CaptureSourceSelect'
 import { CameraIcon } from './CameraIcon'
@@ -45,11 +43,9 @@ export function CaptureControls({
   onRefresh,
   onStop
 }: CaptureControlsProps): React.JSX.Element {
-  const { light } = useColorTheme()
   const active = phase === 'recognizing' || phase === 'complete'
   const hasSelection = phase !== 'idle' && selectedSourceId.length > 0
   const [open, setOpen] = useState(false)
-  const dialogRef = useRef<HTMLDivElement>(null)
   const detected = sources.filter(isDnfCaptureSource)
   const others = sources.filter((source) => !detected.includes(source))
   const state = getCaptureControlState({
@@ -80,8 +76,7 @@ export function CaptureControls({
         </DialogTrigger>
       </span>
       <DialogContent
-        ref={dialogRef}
-        {...stylex.props(styles.dialog, light && lightTheme)}
+        {...stylex.props(styles.dialog)}
         title={
           <Typo.h5 as="span" {...stylex.props(styles.heading)}>
             화면 캡처
@@ -93,7 +88,6 @@ export function CaptureControls({
       >
         <DialogBody>
           <CaptureSourceSelect
-            portalContainer={dialogRef}
             detected={detected}
             others={others}
             value={hasSelection ? selectedSourceId : ''}

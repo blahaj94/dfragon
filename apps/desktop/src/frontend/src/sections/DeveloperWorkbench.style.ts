@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   workbench: {
@@ -33,7 +33,7 @@ export const styles = stylex.create({
     borderBottomColor: 'transparent',
     color: colors.fgSubtle
   },
-  tabSelected: { borderBottomColor: colors.bgBrandSolid, color: colors.fgDefault },
+  tabSelected: { borderBottomColor: colors.signal, color: colors.fgDefault },
   separator: { width: '100%', height: 1, backgroundColor: colors.borderDefault },
   tabPanel: { marginTop: 24, minWidth: 0 },
   captureInterval: {
@@ -43,16 +43,8 @@ export const styles = stylex.create({
     gap: 8,
     marginBottom: 16
   },
-  // Design SelectTrigger: 160 wide on bg.control with a fg.subtle chevron and a 2px
-  // border.focus ring while open. SEED medium already gives the 40px height and 8px radius.
-  captureIntervalTrigger: {
-    width: 160,
-    boxShadow: 'none',
-    backgroundColor: { default: colors.bgControl, ':hover': colors.bgControlHover },
-    color: colors.fgDefault,
-    ':is([data-open])': { boxShadow: `inset 0 0 0 2px ${colors.borderFocus}` }
-  },
-  captureIntervalChevron: { color: colors.fgSubtle },
+  // 화면이 정한 trigger 폭. 높이, 면과 열린 상태는 공용 Select의 md 크기가 그린다.
+  captureIntervalTrigger: { width: 160 },
   panel: {
     display: 'flex',
     flexDirection: 'column',

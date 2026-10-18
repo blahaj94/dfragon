@@ -1,6 +1,8 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
+// 목록 면, 항목 hover와 현재 항목 표시는 @dfragon/ui Menu가 그린다. 여기서는 trigger와
+// 항목 안 배치, 공용 Menu가 정하지 않는 속성(최소 높이, 세로 여백, 최대 폭)만 둔다.
 export const styles = stylex.create({
   trigger: {
     display: 'flex',
@@ -21,11 +23,11 @@ export const styles = stylex.create({
     cursor: 'pointer',
     transition: 'background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease',
     ':hover:not(:disabled)': { backgroundColor: colors.bgControlHover },
-    ':focus-visible': { outline: `2px solid ${colors.borderFocus}`, outlineOffset: 2 },
+    ':focus-visible': { outline: `2px solid ${colors.signal}`, outlineOffset: 2 },
     ':disabled': { opacity: 0.4, cursor: 'not-allowed' },
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
-  open: { borderColor: colors.borderFocus, boxShadow: `0 0 0 1px ${colors.borderFocus}` },
+  open: { borderColor: colors.signal, boxShadow: `0 0 0 1px ${colors.signal}` },
   value: {
     flex: 1,
     minWidth: 0,
@@ -44,51 +46,9 @@ export const styles = stylex.create({
     '@media (prefers-reduced-motion: reduce)': { transition: 'none' }
   },
   rotated: { transform: 'rotate(180deg)' },
-  positioner: { color: colors.fgDefault },
-  content: {
-    width: 'var(--seed-menu-reference-width)',
-    maxWidth: 'calc(100vw - 16px)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    boxSizing: 'border-box',
-    borderColor: colors.borderDefault,
-    backgroundColor: colors.bgSurface,
-    boxShadow: 'var(--seed-shadow-s3)',
-    '@media (prefers-reduced-motion: reduce)': { animationDuration: '0s' }
-  },
-  scroll: { padding: 8, gap: 8, maxHeight: 'min(360px, var(--seed-menu-available-height, 360px))' },
-  group: { '::before': { display: 'none' } },
-  groupLabel: {
-    padding: '0 8px 8px',
-    color: colors.fgSubtle
-  },
-  option: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    minHeight: 52,
-    boxSizing: 'border-box',
-    padding: '7px 12px',
-    borderRadius: 8,
-    color: colors.fgDefault,
-    backgroundColor: 'transparent',
-    cursor: 'pointer',
-    ':hover:not([aria-disabled="true"])': { backgroundColor: colors.bgControlHover },
-    ':focus': {
-      backgroundColor: colors.bgControlHover,
-      outline: `2px solid ${colors.borderFocus}`,
-      outlineOffset: -2
-    },
-    ':active': { backgroundColor: colors.bgControlHover },
-    ':is([aria-disabled="true"])': { opacity: 0.4, cursor: 'not-allowed' }
-  },
-  selected: {
-    backgroundColor: colors.bgBrandWeak,
-    ':hover:not([aria-disabled="true"])': { backgroundColor: colors.bgBrandWeak },
-    ':focus': { backgroundColor: colors.bgBrandWeak },
-    ':active': { backgroundColor: colors.bgBrandWeak }
-  },
+  // trigger와 같은 폭으로 펼치고 긴 창 이름은 항목 안에서 말줄임한다.
+  popup: { width: 'var(--anchor-width)', maxWidth: 'calc(100vw - 16px)' },
+  option: { minHeight: 52, paddingBlock: 7 },
   iconTile: {
     display: 'flex',
     alignItems: 'center',
@@ -100,20 +60,13 @@ export const styles = stylex.create({
     backgroundColor: colors.bgControl,
     color: colors.fgMuted
   },
-  selectedTile: { color: colors.fgBrand },
+  selectedTile: { color: colors.signal },
   itemBody: { display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, flex: 1 },
-  itemLabel: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: colors.fgDefault
-  },
-  selectedLabel: { color: colors.fgBrand },
+  itemLabel: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   description: { color: colors.fgMuted },
-  check: { width: 16, height: 16, flexShrink: 0, color: colors.fgBrand },
+  check: { width: 16, height: 16, flexShrink: 0, color: colors.signal },
   notice: { padding: '4px 8px 12px', color: colors.fgMuted },
   noticeTitle: { paddingBottom: 6, color: colors.fgDefault },
-  divider: { height: 1, margin: '2px 8px', backgroundColor: colors.borderDefault, flexShrink: 0 },
-  refresh: { minHeight: 36, gap: 8, color: colors.fgMuted },
+  refresh: { minHeight: 36 },
   refreshIcon: { flexShrink: 0, width: 16, height: 16 }
 })

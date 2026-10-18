@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   dialog: {
@@ -42,7 +42,7 @@ export const styles = stylex.create({
     paddingBottom: 4,
     display: { default: 'block', '@media (max-width: 600px)': 'none' }
   },
-  // NavItem: SEED medium keeps the 40px height and radius; only the inline padding narrows to 12.
+  // NavItem: the shared medium button keeps the 40px height; only the inline padding narrows to 12.
   menu: {
     display: 'flex',
     width: '100%',
@@ -52,7 +52,7 @@ export const styles = stylex.create({
     color: colors.fgSubtle,
     textAlign: 'left'
   },
-  menuSelected: { backgroundColor: colors.bgBrandWeak, color: colors.fgDefault },
+  menuSelected: { backgroundColor: colors.bgInset, color: colors.fgDefault },
   appName: {
     marginTop: 'auto',
     paddingInline: 12,
@@ -81,10 +81,12 @@ export const styles = stylex.create({
     display: 'flex',
     width: '100%',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 12,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: colors.bgInset
+    backgroundColor: colors.bgInset,
+    cursor: 'pointer'
   },
   developerStatus: { paddingTop: 16, color: colors.fgMuted },
   developerActions: { paddingTop: 16 }

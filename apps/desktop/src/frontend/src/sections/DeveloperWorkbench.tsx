@@ -1,10 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Typo } from '@dfragon/ui'
-import { Select } from '@seed-design/react'
+import { ActionButton, Select, Typo } from '@dfragon/ui'
 import { paginate } from '@dfragon/lib/utils/pagination'
-import { CheckIcon } from '../components/CheckIcon'
-import { ChevronDownIcon } from '../components/ChevronDownIcon'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
@@ -30,6 +27,11 @@ import {
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
 const REMOTE_PAGE_SIZE = 50
+// Select가 trigger의 값 글자와 목록 항목을 같은 이름으로 그리도록 한 곳에서 만든다.
+const previewIntervalItems = DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => ({
+  value: String(intervalMs),
+  label: `${intervalMs / 1000}초`
+}))
 const workbenchTabs = ['collection', 'participants', 'raid', 'labeling'] as const
 type WorkbenchTab = (typeof workbenchTabs)[number]
 
@@ -366,43 +368,28 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <div {...stylex.props(styles.captureInterval)}>
             <Typo.txtS as="span">캡처 주기</Typo.txtS>
             <Select.Root
-              size="medium"
-              value={[String(previewIntervalMs)]}
-              onValueChange={(values) => {
-                if (values[0] != null) {
-                  setPreviewIntervalMs(Number(values[0]))
+              value={String(previewIntervalMs)}
+              onValueChange={(value: string | null) => {
+                if (value != null) {
+                  setPreviewIntervalMs(Number(value))
                 }
               }}
-              placement="bottom-start"
-              strategy="fixed"
-              gutter={4}
+              items={previewIntervalItems}
             >
               <Select.Trigger
+                size="md"
                 aria-label="캡처 주기"
                 {...stylex.props(styles.captureIntervalTrigger)}
               >
                 <Select.Value />
-                <Select.SuffixIcon
-                  svg={<ChevronDownIcon />}
-                  {...stylex.props(styles.captureIntervalChevron)}
-                />
               </Select.Trigger>
-              <Select.Positioner>
-                <Select.Content aria-label="캡처 주기">
-                  <Select.ScrollArea>
-                    {DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => (
-                      <Select.Item
-                        key={intervalMs}
-                        value={String(intervalMs)}
-                        label={`${intervalMs / 1000}초`}
-                      >
-                        <Select.ItemLabel />
-                        <Select.ItemIndicator selected={<CheckIcon />} />
-                      </Select.Item>
-                    ))}
-                  </Select.ScrollArea>
-                </Select.Content>
-              </Select.Positioner>
+              <Select.Popup aria-label="캡처 주기">
+                {previewIntervalItems.map((item) => (
+                  <Select.Item key={item.value} value={item.value}>
+                    <Select.ItemText>{item.label}</Select.ItemText>
+                  </Select.Item>
+                ))}
+              </Select.Popup>
             </Select.Root>
           </div>
         )}

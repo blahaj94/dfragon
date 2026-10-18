@@ -1,6 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Typo } from '@dfragon/ui'
-import { Chip } from '@seed-design/react'
+import { ActionButton, Chip, Typo } from '@dfragon/ui'
 import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail'
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
@@ -129,18 +128,9 @@ export function DeveloperLabelingSection({
           const selected = filter === id
 
           return (
-            <Chip.Button
-              key={id}
-              type="button"
-              size="small"
-              aria-pressed={selected}
-              onClick={() => onFilterChange(id)}
-              {...stylex.props(selected && styles.filterSelected)}
-            >
-              <Chip.Label {...stylex.props(selected && styles.filterSelectedLabel)}>
-                {label}
-              </Chip.Label>
-            </Chip.Button>
+            <Chip key={id} pressed={selected} onPressedChange={() => onFilterChange(id)}>
+              {label}
+            </Chip>
           )
         })}
       </div>
