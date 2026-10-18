@@ -122,7 +122,7 @@ pnpm --filter @dfragon/desktop ui:fixture mvp dark
 
 우측 상단 상세 버튼은 격리 fixture의 별도 창을 연다. 같은 미리보기 대상은 이름 있는 창을 재사용하고 메인 fixture 종료 시 함께 닫는다. 이는 합성 화면 확인용 동작이며 제품 BrowserWindow 수명 정책의 결정이나 구현을 대신하지 않는다. 상세 카드는 180ms로 전환하고 모션 감소 설정에서는 이동을 생략한다. 작은 상세창에서는 가로 스크롤로 나머지 카드에 접근한다.
 
-하단 **미리보기 상태**의 `상위, 랭커 단계`는 기본, 상위, 랭커 카드와 빈 카드를 나란히 보인다. 상위, 랭커는 `CardCharacter.tier`를 채운 합성 데이터이고, `getCharacterCardFrameState`가 조회를 마친 카드에만 `CardFrame`의 `top`, `ranker`를 고른다. 빛줄기와 랭커 스캔선은 `CardFrame`이 그리고, 번호 칩, 서버 순위, 숫자 값, 그림 칸 아래 2px 선은 `CharacterCard.style.ts`의 단계 스타일이 그린다.
+하단 **미리보기 상태**의 `상위, 랭커 단계`는 기본, 상위, 랭커 카드와 빈 카드를 나란히 보인다. 상위, 랭커는 `CardCharacter.tier`를 채운 합성 데이터이고, `getCharacterCardFrameState`가 조회를 마친 카드에만 `CardFrame`의 `top`, `ranker`를 고른다. 빛줄기와 랭커 스캔선은 `CardFrame`이 그리고, 번호 칩, 서버 순위, 숫자 값, 그림 칸 아래 2px 선은 `CharacterCard.style.ts`의 단계 스타일이 그린다. 상단 내비에서 공대를 고르면 `pages/raid/RaidPage.tsx`가 합성 공대원 11명과 빈 자리 하나를 `components/RaidCard.tsx` 축약 카드 12장으로 보인다. 제품 `App.tsx`의 공대 화면은 공대 데이터가 없어 12자리를 모두 빈 카드로 둔다.
 
 실제 검색 연결, 429 재시도와 OCR 복귀, 상세 API, main/preload, 제품 별도 창, Windows 실행은 후속이다. 제품 HTML의 현재 `img-src 'self' data:`는 원격 이미지를 차단한다. 미리보기는 로컬 자산을 사용하며, 실제 이미지 연결 시 [이미지 로딩 계약](../rules/desktop-mvp-ui.md#표현과-이미지)의 고정 origin 허용을 적용한다.
 

@@ -74,6 +74,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
+| 공대 카드 | `CardFrame`, `NumericText` | 그림 칸과 면 탭 없는 축약 카드. 서버는 칩 모양의 글자입니다 |
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |
