@@ -279,6 +279,7 @@ it('명성과 장비 점수를 라벨과 값으로 두고 0과 알 수 없음을
   expect(card().textContent).toContain('찾은모험단')
   expect(card().textContent).toContain('찾은길드')
   expect(card().textContent).toContain('서버 순위 18240위, DFragon이 수집한 캐릭터 52,310명 기준')
+  expect(visibleText()).toContain('#18240')
 
   await render({ state: 'success', character: found })
   const scoreValue = statValue('장비 점수')
@@ -327,7 +328,8 @@ it('상위, 랭커 단계를 꺾쇠 상태와 단계 색 숫자로 보이고 단
 
 it('면 탭은 캐릭터, 장비, 기타 세 개이고 면을 바꿔도 머리의 서버 선택과 상세 열기는 그대로다', async () => {
   const detail = vi.fn()
-  await render({ state: 'success', character: found, onDetail: detail })
+  const lookup = vi.fn()
+  await render({ state: 'success', character: found, onDetail: detail, onLookup: lookup })
   expect([...container.querySelectorAll('[role="tab"]')].map((tab) => tab.textContent)).toEqual([
     '캐릭터',
     '장비',
@@ -343,9 +345,16 @@ it('면 탭은 캐릭터, 장비, 기타 세 개이고 면을 바꿔도 머리�
   expect(container.querySelector('[aria-label="1번 서버"]')).not.toBeNull()
   const server = container.querySelector<HTMLSelectElement>('[aria-label="1번 서버"]')!
   await act(async () => {
-    server.value = 'cain'
+    server.value = 'bakal'
     server.dispatchEvent(new Event('change', { bubbles: true }))
   })
+  // 장비 면에서 서버를 바꾸면 찾은 이름으로 다시 조회하고, 결과가 오면 고른 장비 면으로 돌아온다.
+  expect(lookup).toHaveBeenCalledExactlyOnceWith('찾은이름', 'bakal')
+  await render({ state: 'pending', nickname: '찾은이름', onDetail: detail, onLookup: lookup })
+  expect(faceTab('캐릭터').getAttribute('aria-selected')).toBe('true')
+  const moved: CardCharacter = { ...found, serverId: 'bakal' }
+  await render({ state: 'success', character: moved, onDetail: detail, onLookup: lookup })
+  expect(faceTab('장비').getAttribute('aria-selected')).toBe('true')
   await act(async () =>
     container.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!.click()
   )
@@ -356,7 +365,7 @@ it('면 탭은 캐릭터, 장비, 기타 세 개이고 면을 바꿔도 머리�
   expect(container.querySelector('[role="tabpanel"] table')).not.toBeNull()
 })
 
-it('캐릭터 면은 직업과 이름 아래 스탯 한 줄을 역할 라벨로 보인다', async () => {
+it('캐릭터 면은 직업과 역할 라벨의 스탯 한 줄을 보인다', async () => {
   await render({ state: 'success', character: found })
   const panel = container.querySelector('[role="tabpanel"]')!
   const terms = [...panel.querySelectorAll('dt')].map((term) => term.textContent)
@@ -444,7 +453,11 @@ it('카드 값이 아직 없어도 세 면을 고를 수 있고 각 면은 값 �
     '서약 정보 없음'
   )
   await act(async () => faceTab('기타').click())
-  expect(container.querySelector('tbody tr')?.textContent).toContain('무기, 장착 정보 없음')
+  const weapon = container.querySelector('tbody tr')!
+  expect(weapon.textContent).toContain('무기, 장착 정보 없음')
+  expect(weapon.querySelector('th [aria-hidden="true"]')?.textContent).toBe('-')
+  expect(weapon.textContent).toContain('강화 정보 없음')
+  expect(weapon.textContent).toContain('마법부여 없음')
 })
 
 it('조회를 마치지 않은 카드는 장비와 기타 면을 고를 수 없다', async () => {
