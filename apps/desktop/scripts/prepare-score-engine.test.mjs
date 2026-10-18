@@ -207,22 +207,27 @@ describe('점수 엔진 자산 준비', () => {
         fetch: transport
       })
     ).rejects.toThrow('not an HTTPS address')
-    expect(transport).toHaveBeenCalledTimes(2)
+    expect(transport).not.toHaveBeenCalledWith('http://objects.example.test/x', expect.anything())
   })
 
   it.each([
-    ['미발행', { kind: 'skipped', reason: 'unpublished' }, false],
-    ['배치 완료', { kind: 'installed', path: '/synthetic/dnfscore.dll' }, false],
-    ['토큰 없음', { kind: 'skipped', reason: 'no-token' }, true],
-    ['자산 없는 플랫폼', { kind: 'skipped', reason: 'unsupported-target' }, true]
-  ])('--require 빌드는 %s 결과에서 엔진이 빠졌을 때만 실패한다', (_name, result, fails) => {
-    const check = () => assertScoreEngineIncluded(result)
+    ['미발행', { kind: 'skipped', reason: 'unpublished' }],
+    ['배치 완료', { kind: 'installed', path: '/synthetic/dnfscore.dll' }]
+  ])('Release 필수 판정은 %s 결과를 통과시킨다', (_name, result) => {
+    expect(() => assertScoreEngineIncluded(result)).not.toThrow()
+  })
 
-    if (fails) {
-      expect(check).toThrow('Building without the score engine')
-    } else {
-      expect(check).not.toThrow()
-    }
+  it.each([
+    ['토큰 없음', { kind: 'skipped', reason: 'no-token' }, 'DFRAGON_SCORE_ENGINE_TOKEN is not set'],
+    [
+      '자산 없는 플랫폼',
+      { kind: 'skipped', reason: 'unsupported-target' },
+      'no score engine asset for this platform'
+    ]
+  ])('Release 필수 판정은 %s 결과를 엔진 누락으로 실패시킨다', (_name, result, reason) => {
+    expect(() => assertScoreEngineIncluded(result)).toThrow(
+      `Release builds require the score engine: ${reason}.`
+    )
   })
 
   it('배치하는 파일 이름은 main이 찾는 플랫폼별 라이브러리 이름과 같다', () => {
