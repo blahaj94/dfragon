@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { bufferCard, dealerCard } from '../../preload/common/search/card-test-fixture'
 import { characterCardSchema } from '../../preload/common/search/character-summary'
-import type { CharacterCard, CharacterDetails } from '../../preload/common/types/character'
+import type { CharacterDetails } from '../../preload/common/types/character'
 import { apiDetailsFromEngineInput, readEngineInput } from '../score/details-test-fixture'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
 import { toScoreEngineInput } from '../score/input'
@@ -74,10 +74,15 @@ describe('API 카드와 엔진 결과 조립', () => {
   })
 
   it('엔진 표시 역할이 카드 스탯과 다르면 API가 보낸 중간값도 null로 두고 점수만 둔다', () => {
-    const apiStats = { ...dealerCard.stats, switchingLevel: 9 } as CharacterCard['stats']
     const details = apiDetailsFromEngineInput(readEngineInput('dealer-blade'), {
       ...dealerCard,
-      stats: apiStats
+      stats: {
+        role: 'dealer',
+        attackIncrease: 34458,
+        amplification: 302,
+        critical: 117.5,
+        switchingLevel: 9
+      }
     })
     const score: ScoreEngine = () => ({ ...dealerResult, display: bufferResult.display })
 
