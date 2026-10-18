@@ -1,7 +1,7 @@
 import { getSearchResultStatus } from '../lib/search-presentation'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
-import { ActionButton, ContentStack, ExampleSection, SupportingText } from '@dfragon/ui'
+import { Button, ContentStack, ExampleSection, SupportingText } from '@dfragon/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { CharacterCandidates } from '../components/CharacterCandidates'
 import { styles } from './SlotResult.style'
@@ -69,14 +69,15 @@ export function SlotResult({
             </SupportingText>
           )}
           {canRetry && (
-            <ActionButton
+            <Button
+              variant="primary"
               type="button"
               disabled={isRetryDisabled}
               loading={retryPending}
               onClick={() => retry(slot.slot)}
             >
               다시 시도
-            </ActionButton>
+            </Button>
           )}
         </ContentStack>
       </ExampleSection>

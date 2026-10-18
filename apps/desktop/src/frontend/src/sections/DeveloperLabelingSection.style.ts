@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 },
@@ -21,10 +21,7 @@ export const styles = stylex.create({
     minWidth: 0,
     minHeight: { default: 530, '@media (max-width: 640px)': 'auto' },
     padding: 16,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault
   },
@@ -56,10 +53,7 @@ export const styles = stylex.create({
     flexDirection: 'column',
     gap: 12,
     padding: 16,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault
   },

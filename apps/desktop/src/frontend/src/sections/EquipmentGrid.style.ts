@@ -17,16 +17,19 @@ export const styles = stylex.create({
     gridTemplateColumns: '64px 64px minmax(80px, 1fr) 64px 64px',
     position: 'relative'
   },
+  // 슬롯은 반지름 없는 들어간 면이고 희귀도는 아래 2px 바로만 보인다.
   slot: {
-    borderWidth: 2,
-    borderStyle: 'solid',
-    borderRadius: 4,
+    boxSizing: 'border-box',
+    borderWidth: 0,
+    borderBottomWidth: 2,
+    borderBottomStyle: 'solid',
+    borderRadius: 0,
     aspectRatio: '1',
     overflow: 'hidden',
     minWidth: 0,
     backgroundColor: colors.cardInset
   },
-  rarity: (color: string) => ({ borderColor: color }),
+  rarity: (color: string) => ({ borderBottomColor: color }),
   position: (column: number, row: number) => ({ gridColumn: column, gridRow: row }),
   portrait: { position: 'absolute', left: '29%', top: 0, width: '42%', height: '100%' }
 })

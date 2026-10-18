@@ -73,5 +73,24 @@ export const listboxStyles = stylex.create({
     height: 1,
     marginBlock: space.s4,
     backgroundColor: colors.borderDefault
-  }
+  },
+  // 캐릭터 카드에서 연 목록. 라이트 모드에서도 카드와 같은 다크 면과 카드 신호색을 쓴다.
+  cardPopup: {
+    borderTopColor: colors.cardSignal,
+    backgroundColor: colors.cardInset,
+    boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}`,
+    color: colors.cardFgMuted
+  },
+  cardItem: {
+    color: {
+      default: 'inherit',
+      ':is([data-highlighted])': colors.cardFg,
+      ':is([data-selected], [data-checked])': colors.cardSignal,
+      ':is([data-disabled])': colors.cardBorderStrong
+    },
+    backgroundColor: { default: 'transparent', ':is([data-highlighted])': colors.cardControlHover }
+  },
+  cardMarker: { backgroundColor: colors.cardSignal },
+  cardGroupLabel: { color: colors.cardFgSubtle },
+  cardSeparator: { backgroundColor: colors.cardBorder }
 })

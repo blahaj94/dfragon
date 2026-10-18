@@ -60,10 +60,16 @@ async function render(): Promise<void> {
   })
 }
 
+// 값 칸에 보이는 글자. 숫자 값은 보조 기술용 최종값을 따로 두므로 화면에 그린 글자만 읽는다.
 function field(label: string): string | null | undefined {
   const term = [...container.querySelectorAll('dt')].find((item) => item.textContent === label)
+  const value = term?.nextElementSibling
+  const drawn = value?.querySelector('[aria-hidden="true"]')
+  if (drawn != null) {
+    return drawn.textContent
+  }
 
-  return term?.nextElementSibling?.textContent
+  return value?.textContent
 }
 
 it('창에 전달된 캐릭터의 실제 기본 정보와 조회 시각을 표시한다', async () => {
@@ -71,6 +77,7 @@ it('창에 전달된 캐릭터의 실제 기본 정보와 조회 시각을 표�
 
   await render()
 
+  expect(container.querySelector('header h1')?.textContent).toBe('캐릭터 상세')
   expect(container.querySelector('h2')?.textContent).toBe('선택한캐릭터')
   expect(field('서버')).toBe('카인')
   expect(field('모험단')).toBe('함께하는모험단')
@@ -79,6 +86,8 @@ it('창에 전달된 캐릭터의 실제 기본 정보와 조회 시각을 표�
   expect(field('레벨')).toBe('115')
   expect(field('명성')).toBe('78,000')
   expect(container.querySelector('img')?.getAttribute('src')).toBe(snapshot.character.imageUrl)
+  // 정상 화면에는 별도 닫기 버튼 없이 OS 창 버튼으로 닫는다.
+  expect(container.querySelector('button')).toBeNull()
   expect([...container.querySelectorAll('time')].map((time) => time.dateTime)).toEqual([
     '2026-10-07T01:00:00.000Z',
     '2026-10-07T02:00:00.000Z'

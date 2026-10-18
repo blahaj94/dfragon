@@ -14,9 +14,19 @@ export const styles = stylex.create({
   // 네 변 여백 24이고 푸터는 두지 않는다(dfragon-design layout.md).
   content: { flex: 1, minHeight: 0, overflowY: 'auto', padding: space.s24 },
   // 알림, 파티 머리, 카드 사이는 16이다. hidden 속성이 display를 이기도록 숨긴 동안은 그리지 않는다.
+  // 펼친 카드가 남은 높이를 채우도록 콘텐츠 영역 높이까지 늘어난다.
   page: {
     display: { default: 'flex', ':is([hidden])': 'none' },
     flexDirection: 'column',
+    minHeight: '100%',
+    gap: space.s16
+  },
+  // 파티 머리와 카드. 내용 높이와 무관하게 남은 높이를 나눠 받아 카드가 창 높이에 맞춰 줄어든다.
+  party: {
+    display: { default: 'flex', ':is([hidden])': 'none' },
+    flexDirection: 'column',
+    flex: '1 1 0',
+    minHeight: 0,
     gap: space.s16
   },
   workbench: { minHeight: '100%' }

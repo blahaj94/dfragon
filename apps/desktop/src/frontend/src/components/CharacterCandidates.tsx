@@ -34,7 +34,7 @@ export function CharacterCandidates({
           <details {...stylex.props(styles.supporting, styles.details)}>
             <summary
               {...stylex.props(styles.summary)}
-              aria-label={`${row.characterName} · ${row.serverName ?? row.serverId} 식별 정보`}
+              aria-label={`${row.characterName}, ${row.serverName ?? row.serverId} 식별 정보`}
             >
               식별 정보
             </summary>

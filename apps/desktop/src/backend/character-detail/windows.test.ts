@@ -14,13 +14,15 @@ const electron = vi.hoisted(() => {
   const fromPartition = vi.fn()
   const handle = vi.fn()
   const removeHandler = vi.fn()
+  const nativeTheme = { shouldUseDarkColors: true }
 
-  return { BrowserWindow, fromPartition, handle, removeHandler }
+  return { BrowserWindow, fromPartition, handle, removeHandler, nativeTheme }
 })
 
 vi.mock('electron', () => ({
   BrowserWindow: electron.BrowserWindow,
   ipcMain: { handle: electron.handle, removeHandler: electron.removeHandler },
+  nativeTheme: electron.nativeTheme,
   session: { fromPartition: electron.fromPartition }
 }))
 
@@ -91,7 +93,10 @@ function details(characterId = 'character-1'): CharacterDetails {
 type Windows = ReturnType<typeof registerCharacterDetailWindows>
 const registrations: Windows[] = []
 
-function fixture(devUrl?: string): {
+function fixture(
+  devUrl?: string,
+  platform: NodeJS.Platform = 'win32'
+): {
   owner: TestWindow
   ownerWindow: BrowserWindow
   created: TestWindow[]
@@ -124,7 +129,8 @@ function fixture(devUrl?: string): {
     owner: ownerWindow,
     entry: ENTRY,
     preload: PRELOAD,
-    devUrl
+    devUrl,
+    platform
   })
   registrations.push(windows)
   const handler = electron.handle.mock.calls[0][1] as ReadHandler
@@ -147,7 +153,10 @@ function fixture(devUrl?: string): {
   return { owner, ownerWindow, created, windows, read, invokeRead, session }
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  electron.nativeTheme.shouldUseDarkColors = true
+})
 afterEach(() => {
   for (const windows of registrations.splice(0)) {
     windows.dispose()
@@ -497,6 +506,31 @@ describe('캐릭터 상세 창 IPC와 문서 경계', () => {
     }
     expect(window.loadFile).toHaveBeenCalledWith(ENTRY)
   })
+
+  it.each([
+    ['win32', true, { color: '#121214', symbolColor: '#f1ede6', height: 56 }, '#121214'],
+    ['win32', false, { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }, '#ffffff'],
+    ['darwin', true, { height: 56 }, '#121214']
+  ] as const)(
+    '%s, 다크 %s에서 1280x800 창의 OS 제목줄을 숨기고 시스템 테마의 상단 바 색으로 창 버튼을 그린다',
+    async (platform, dark, overlay, background) => {
+      electron.nativeTheme.shouldUseDarkColors = dark
+      const f = fixture(undefined, platform)
+      await f.windows.open(details(), () => true)
+      const options = electron.BrowserWindow.mock.calls[0][0]
+
+      expect(options).toMatchObject({
+        width: 1280,
+        height: 800,
+        minWidth: 1024,
+        minHeight: 640,
+        titleBarStyle: 'hidden',
+        backgroundColor: background
+      })
+      expect(options.titleBarOverlay).toEqual(overlay)
+      expect(options.frame).toBeUndefined()
+    }
+  )
 
   it.each(['foreign-document', 'renderer-gone'] as const)(
     '%s 이후에는 창을 폐기한다',

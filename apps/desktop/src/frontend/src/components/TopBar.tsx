@@ -1,5 +1,5 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
-import { ActionButton, IconButton, shapes, StatusChip, Typo } from '@dfragon/ui'
+import { Button, IconButton, shapes, StatusChip, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { useColorTheme } from '../hooks/useColorTheme'
@@ -63,6 +63,7 @@ export function TopBar({
           {showCapture && capture}
           <span {...stylex.props(windowChromeStyles.noDrag)}>
             <IconButton
+              size="bar"
               aria-label={light ? '다크 테마' : '라이트 테마'}
               onClick={toggleTheme}
               icon={light ? <MoonIcon /> : <SunIcon />}
@@ -70,11 +71,11 @@ export function TopBar({
           </span>
           {account === undefined ? (
             <span {...stylex.props(windowChromeStyles.noDrag)}>
-              <ActionButton size="medium" variant="neutralWeak" disabled>
+              <Button disabled>
                 <Typo.txtM as="span" weight={700}>
                   로그인
                 </Typo.txtM>
-              </ActionButton>
+              </Button>
             </span>
           ) : (
             account

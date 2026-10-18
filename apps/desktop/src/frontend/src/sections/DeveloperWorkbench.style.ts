@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   workbench: {
@@ -22,8 +22,8 @@ export const styles = stylex.create({
   heading: { display: 'flex', flexDirection: 'column', gap: 4 },
   muted: { color: colors.fgMuted },
   tabs: { display: 'flex', flexWrap: 'wrap', minHeight: 40 },
-  // Design Tab: label width with 12px sides, txtM 700, and a 2px bg.brand.solid underline
-  // sitting on the tab bar line.
+  // Design Tab: label width with 12px sides, txtM 700, and a 2px signal underline sitting on the
+  // tab bar line.
   tab: {
     minWidth: 0,
     paddingInline: 12,
@@ -50,10 +50,7 @@ export const styles = stylex.create({
     flexDirection: 'column',
     gap: 12,
     padding: 16,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     minWidth: 0
   },
@@ -61,10 +58,7 @@ export const styles = stylex.create({
   error: { color: colors.fgDanger },
   evaluation: {
     marginTop: 16,
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: colors.borderDefault,
-    borderRadius: 12,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgSurface,
     color: colors.fgDefault
   },

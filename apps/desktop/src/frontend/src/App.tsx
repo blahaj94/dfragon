@@ -9,6 +9,8 @@ import { MainNav, type SearchMode } from './components/MainNav'
 import { PartyHeader } from './components/PartyHeader'
 import { usePartyCollapse } from './hooks/usePartyCollapse'
 import { PartyPage } from './pages/party/PartyPage'
+import { RaidPage } from './pages/raid/RaidPage'
+import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from './constants/cards'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
@@ -18,6 +20,13 @@ import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { characterSlotNotice, toCharacterCard } from './lib/character-card'
 import { getCaptureControlState, isDnfCaptureSource } from './lib/capture-presentation'
+
+// 공대 데이터와 캡처는 아직 연결하지 않아 제품의 공대 화면은 12자리를 모두 빈 카드로 둔다.
+// 공대원을 채운 화면은 합성 미리보기에서만 확인한다.
+const EMPTY_RAID: readonly null[] = Array.from(
+  { length: RAID_PARTY_COUNT * RAID_PARTY_SIZE },
+  () => null
+)
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
@@ -31,6 +40,7 @@ function App(): React.JSX.Element {
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
   const party = usePartyCollapse()
   const partyCardsId = useId()
+  const raidCardsId = useId()
   let captureNotice = ''
   if (capture.search.connectionFailed) {
     captureNotice = '캡처 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
@@ -114,7 +124,7 @@ function App(): React.JSX.Element {
             />
           )}
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
+          <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
               status={capture.search.detailNotice || partyStatus}
               collapsed={party.collapsed}
@@ -138,8 +148,14 @@ function App(): React.JSX.Element {
               nicknames={capture.nicknames}
             />
           </div>
-          {/* 공대 화면이 채울 자리다. */}
-          {searchMode === 'raid' && <section aria-label="공대" />}
+          {searchMode === 'raid' && (
+            <RaidPage
+              id={raidCardsId}
+              characters={EMPTY_RAID}
+              collapsed={party.collapsed}
+              onToggleCollapsed={party.toggleCollapsed}
+            />
+          )}
         </div>
         {showDeveloperWorkbench && (
           <div {...stylex.props(styles.workbench)}>

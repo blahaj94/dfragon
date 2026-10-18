@@ -7,23 +7,21 @@
 | Component | 바탕 | 요약 |
 | --- | --- | --- |
 | `Button` | native `button` | `variant` `primary`, `secondary`(기본), `ghost`, `danger`와 `size` `sm`, `md`(기본), `lg`(32, 40, 48px). `primary`는 신호색 면에 오른쪽 위 8px를 자른다. `loading`은 진행 원을 겹치고 클릭을 막지 않는다. |
-| `IconButton` | native `button` | 회색 면 없이 hover 때 아이콘이 밝아진다. `aria-label`, `icon` 필수, `size` `sm`, `md`. |
+| `IconButton` | native `button` | 회색 면 없이 hover 때 아이콘이 밝아진다. `aria-label`, `icon` 필수, `size` `sm` 32, `md` 40, `bar` 36(상단 바 도구 버튼, 아이콘 20). |
 | `TextField`, `TextFieldInput` | `Field`, `Input` | label, 설명, 오류(`invalid`일 때)를 입력에 연결한다. `value`, `onValueChange({ value })`, `size` `sm`, `md`, `lg`. 입력 요소 합성은 `render`. |
-| `Select` | `Select` | `Root`, `Trigger`(칩, `size` `xs`, `sm`, `md`), `Value`, `Popup`(Portal, Positioner, Popup, List), `Item`, `ItemText`, `Group`, `GroupLabel`, `Separator`. |
+| `Select` | `Select` | `Root`, `Trigger`(칩, `size` `xs`, `sm`, `md`), `Value`, `Popup`(Portal, Positioner, Popup, List), `Item`, `ItemText`, `Group`, `GroupLabel`, `Separator`. 캐릭터 카드 위에서는 `Trigger`와 `Popup`에 `surface="card"`를 넘겨 라이트 모드에서도 `card*` 토큰으로 그린다. |
 | `Menu` | `Menu` | `Root`, `Trigger`(외형 없음, `render`로 연결), `Popup`, `Item`, `RadioGroup`, `RadioItem`, `Group`, `GroupLabel`, `Separator`. |
-| `Tabs` | `Tabs` | `Root`, `List`(현재 탭 2px 선 포함), `Tab`, `Panel`. |
+| `Tabs` | `Tabs` | `Root`, `List`(현재 탭 2px 선 포함), `Tab`, `Panel`. `List`의 `surface="card"`는 카드 면 탭이다. 탭이 폭을 나눠 채우고(높이 40, 글자 13) 현재 탭 선이 위쪽에 있으며 `card*` 토큰으로 그린다. |
 | `Switch`, `Checkbox`, `Chip` | `Switch`, `Checkbox`, `Toggle` | 한 요소로 쓰는 켜고 끄는 컨트롤. 이름은 감싼 label이나 `aria-label`로 준다. |
 | `Tooltip` | `Tooltip` | `Provider`, `Root`, `Trigger`, `Popup`. |
-| `DialogRoot`, `DialogTrigger`, `DialogContent`, `DialogBody`, `DialogFooter`, `DialogAction` | `Dialog` | 기본은 바깥 누름으로 닫지 않는다(`disablePointerDismissal` 기본 `true`). `DialogContent`가 Portal, Backdrop, Popup과 제목, 설명, 닫기 버튼을 둔다. Dialog 안에 펼친 메뉴, 목록에서 누른 Escape는 그 목록만 닫는다. |
+| `DialogRoot`, `DialogTrigger`, `DialogContent`, `DialogBody`, `DialogFooter`, `DialogAction` | `Dialog` | 기본은 바깥 누름으로 닫지 않는다(`disablePointerDismissal` 기본 `true`). `DialogContent`가 Portal, Backdrop, Popup과 제목, 설명, 닫기 버튼을 두며 `size` `sm`은 폭 480, `lg`는 800 × 600이다. Dialog 안에 펼친 메뉴, 목록에서 누른 Escape는 그 목록만 닫는다. |
 | `StatusChip` | `span` | tone `neutral`, `success`(옅은 성공 면), `danger`(옅은 위험 면), `waiting`(면 없이 `fg.subtle`과 각진 모래시계). `size` `sm`은 높이 24 칩, `md`는 상단 바 게임 연결 상태의 높이 28, 오른쪽 위를 자른 칩이다. 상태 변화를 알릴 곳만 `role="status"`를 넘긴다. |
 | `LoadingIndicator`, `ProgressCircle` | 자체 SVG | 값이 없으면 `steps()`로 끊어 도는 호, 있으면 진행 호. |
-| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700), 네 모서리 꺾쇠, 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`), Barlow Condensed 숫자와 400ms 증가. |
+| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 꺾쇠만 바꾸고 사선은 화면이 그림 칸에 `shapes.hazardStripes`로 깐다. `top`, `ranker`는 `motion.cycle` 주기의 6~30%에 옅은 단계 색 빛줄기가 카드를 지나가고, `ranker`는 카드에 `shapes.scanlines`를 깐다. 동작 줄이기에서는 빛줄기를 그리지 않는다), Barlow Condensed 숫자와 400ms 증가. |
 | `ContentStack`, `ExampleSection`, `SupportingText` | plain | 예제와 단순 화면의 세로 묶음, 제목, 보조 글자. |
 | `Typo` | plain | 아래 [Typo](#typo). |
 
 공개 타입은 semantic prop과 ref를 유지하며 `className`, `style`을 받지 않는다. 기존 화면이 배치용 `stylex.props`를 펼쳐 넘기는 경로는 구현이 받아 자기 class 뒤에 합친다. Base UI 부품 그대로인 `Select.Root`, `Menu.Root` 같은 부품은 Base UI 문서의 API를 따른다. Select 목록을 열면 Base UI가 스크롤 막대를 숨기는 `<style>` 하나를 `head`에 넣는다. 그 밖의 위치 계산은 `style` 속성으로만 쓴다.
-
-SEED에서 옮기는 동안 기존 이름을 남긴다. `ActionButton`(variant `brandSolid`는 `primary`, `neutral*`, `brandOutline`은 `secondary`, `criticalSolid`는 `danger`, size `xsmall`, `small`은 `sm`), `StatusBadge`(tone `positive`는 `success`, `critical`은 `danger`, `warning`은 `waiting`, `informative`는 `neutral`), `DialogTrigger`와 `TextFieldInput`의 `asChild`(`render`와 같음), `IconButton`의 효과 없는 `variant`, `TextField`의 `size` `medium`, `large`는 Desktop DFragon 디자인 적용의 마지막 PR에서 지운다.
 
 `@base-ui/react`, React/React DOM `19.3.0`과 workspace catalog 버전의 `@stylexjs/stylex`는 peer이며 소비 환경과 같은 개발 사본을 사용한다. Library build는 Base UI, React, React DOM, JSX runtime, StyleX를 external 처리하고 CSS를 출력하지 않는다. 각 browser entry가 `@dfragon/ui/tokens.css`, `@dfragon/ui/foundation.css`를 한 번씩 import한다.
 

@@ -35,7 +35,7 @@ export function CaptureSourceSelect({
   const selected = [...detected, ...others].find((source) => source.id === value)
   let label = '캡처할 프로세스 선택'
   if (value) {
-    label = selected?.name ?? '선택한 창 · 목록에서 사라짐'
+    label = selected?.name ?? '선택한 창, 목록에서 사라짐'
   } else if (!failed && detected.length === 1) {
     label = `${detected[0].name}, 감지됨`
   } else if (!failed && detected.length > 1) {
@@ -107,7 +107,7 @@ export function CaptureSourceSelect({
                         {source.name}
                       </Typo.txtS>
                       <Typo.caption {...stylex.props(styles.description)}>
-                        {group.detected ? '게임 창 · 감지됨' : '열려 있는 창'}
+                        {group.detected ? '게임 창, 감지됨' : '열려 있는 창'}
                       </Typo.caption>
                     </span>
                     {source.id === value && <CheckIcon {...stylex.props(styles.check)} />}

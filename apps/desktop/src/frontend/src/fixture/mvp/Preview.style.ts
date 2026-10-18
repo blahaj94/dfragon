@@ -12,9 +12,11 @@ export const styles = stylex.create({
   },
   // OS 창 버튼은 창 위쪽에 고정되므로 상단 바도 고정하고 그 아래 내용만 스크롤한다.
   content: { flex: 1, minHeight: 0, overflowY: 'auto', padding: space.s24 },
+  // 제품 화면처럼 펼친 카드가 콘텐츠 영역 높이를 채운다. 미리보기 조작부는 그 아래로 스크롤한다.
   page: {
     display: { default: 'flex', ':is([hidden])': 'none' },
     flexDirection: 'column',
+    minHeight: '100%',
     gap: space.s16
   },
   footer: {

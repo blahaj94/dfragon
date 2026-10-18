@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   // A two line list row uses the design lg height 48. The shared small height 32 is lifted so the
@@ -30,7 +30,7 @@ export const styles = stylex.create({
     width: 72,
     height: 44,
     overflow: 'hidden',
-    borderRadius: 4,
+    borderRadius: radius.panel,
     backgroundColor: colors.bgWell
   },
   image: { maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', imageRendering: 'pixelated' },

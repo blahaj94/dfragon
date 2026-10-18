@@ -5,5 +5,6 @@ export const scenarios: Record<string, SlotState[]> = {
   faces: ['success', 'success', 'success', 'success'],
   pending: ['pending', 'empty', 'failure', 'idle'],
   missing: ['success', 'success', 'success', 'success'],
-  identification: ['success', 'waiting-portrait', 'waiting-policy', 'failure']
+  identification: ['success', 'waiting-portrait', 'waiting-policy', 'failure'],
+  tiers: ['success', 'success', 'success', 'idle']
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
-  ActionButton,
+  Button,
   ContentStack,
   ExampleSection,
   SupportingText,
@@ -147,9 +147,9 @@ export function ManualSearch({ api }: { api?: ManualSearchApi }): React.JSX.Elem
               }}
             />
           </TextField>
-          <ActionButton type="submit" disabled={api == null || !view.ready}>
+          <Button variant="primary" type="submit" disabled={api == null || !view.ready}>
             검색
-          </ActionButton>
+          </Button>
         </form>
         {feedback != null && <div role="alert">{feedback}</div>}
         {(api == null || view.connectionFailed) && (

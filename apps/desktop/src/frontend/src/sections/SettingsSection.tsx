@@ -4,8 +4,8 @@ import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
+  Button,
   Typo,
-  ActionButton,
   DialogContent,
   DialogRoot,
   DialogTrigger,
@@ -77,11 +77,11 @@ export function SettingsSection({
       return (
         <div role="alert">
           <Typo.txtM>개발자 모드 설정을 불러오거나 저장하지 못했습니다.</Typo.txtM>
-          <ActionButton size="small" variant="neutralWeak" onClick={mode.retry}>
+          <Button size="sm" onClick={mode.retry}>
             <Typo.txtS as="span" weight={700}>
               다시 시도
             </Typo.txtS>
-          </ActionButton>
+          </Button>
         </div>
       )
     }
@@ -101,9 +101,8 @@ export function SettingsSection({
         </Typo.txtS>
         {mode.enabled && onOpenDeveloperWorkbench && (
           <div {...stylex.props(styles.developerActions)}>
-            <ActionButton
-              size="medium"
-              variant="brandSolid"
+            <Button
+              variant="primary"
               onClick={() => {
                 setOpen(false)
                 onOpenDeveloperWorkbench()
@@ -112,7 +111,7 @@ export function SettingsSection({
               <Typo.txtM as="span" weight={700}>
                 개발 도구 열기
               </Typo.txtM>
-            </ActionButton>
+            </Button>
           </div>
         )}
       </>
@@ -137,11 +136,11 @@ export function SettingsSection({
           {failed ? (
             <div role="alert">
               <Typo.txtM>라이선스 정보를 불러오지 못했습니다.</Typo.txtM>
-              <ActionButton size="small" variant="neutralWeak" onClick={() => void loadNotices()}>
+              <Button size="sm" onClick={() => void loadNotices()}>
                 <Typo.txtS as="span" weight={700}>
                   다시 시도
                 </Typo.txtS>
-              </ActionButton>
+              </Button>
             </div>
           ) : (
             <Typo.txtM role="status">라이선스 정보를 불러오는 중입니다.</Typo.txtM>
@@ -174,22 +173,27 @@ export function SettingsSection({
       }}
     >
       <span {...stylex.props(windowChromeStyles.noDrag)}>
-        <DialogTrigger asChild>
-          <IconButton
-            variant="ghost"
-            aria-label="설정"
-            aria-haspopup="dialog"
-            icon={<SettingsIcon />}
-          />
-        </DialogTrigger>
+        <DialogTrigger
+          render={
+            <IconButton
+              size="bar"
+              aria-label="설정"
+              aria-haspopup="dialog"
+              icon={<SettingsIcon />}
+            />
+          }
+        />
       </span>
-      <DialogContent title={<Typo.h5 as="span">설정</Typo.h5>} {...stylex.props(styles.dialog)}>
+      <DialogContent
+        size="lg"
+        title={<Typo.h5 as="span">설정</Typo.h5>}
+        {...stylex.props(styles.dialog)}
+      >
         {open && (
           <div {...stylex.props(styles.body)}>
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">
               <Typo.caption {...stylex.props(styles.group)}>앱 정보</Typo.caption>
-              <ActionButton
-                size="medium"
+              <Button
                 variant="ghost"
                 aria-current={selectedSection === 'versions' ? 'page' : undefined}
                 {...stylex.props(
@@ -199,9 +203,8 @@ export function SettingsSection({
                 onClick={() => setSelectedSection('versions')}
               >
                 <Typo.txtM as="span">버전 정보</Typo.txtM>
-              </ActionButton>
-              <ActionButton
-                size="medium"
+              </Button>
+              <Button
                 variant="ghost"
                 aria-current={selectedSection === 'licenses' ? 'page' : undefined}
                 {...stylex.props(
@@ -211,9 +214,8 @@ export function SettingsSection({
                 onClick={() => setSelectedSection('licenses')}
               >
                 <Typo.txtM as="span">라이선스 사용고지</Typo.txtM>
-              </ActionButton>
-              <ActionButton
-                size="medium"
+              </Button>
+              <Button
                 variant="ghost"
                 aria-current={selectedSection === 'developer' ? 'page' : undefined}
                 {...stylex.props(
@@ -223,7 +225,7 @@ export function SettingsSection({
                 onClick={() => setSelectedSection('developer')}
               >
                 <Typo.txtM as="span">개발자 모드</Typo.txtM>
-              </ActionButton>
+              </Button>
               <div {...stylex.props(styles.appName)}>
                 <img src={brandIcon} width={32} height={32} alt="" />
                 <Typo.caption>{PRODUCT_NAME} Desktop</Typo.caption>

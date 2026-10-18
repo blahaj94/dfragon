@@ -56,7 +56,7 @@ app.whenReady().then(async () => {
     callback(false)
   )
 
-  const title = `DFragon UI fixture — ${mode} · ${theme}`
+  const title = `DFragon UI fixture — ${mode}, ${theme}`
   const width = isMvp || isDeveloper ? 900 : 1100
   let height = 800
   if (isMvp) {
@@ -92,14 +92,21 @@ app.whenReady().then(async () => {
     if (!isPreviewDetail) {
       return { action: 'deny' }
     }
+    // 색은 preload/common/window-chrome.ts의 WINDOW_CHROME_COLORS와 같은 상단 바 색이다.
+    const titleBarOverlay = nativeTheme.shouldUseDarkColors
+      ? { color: '#121214', symbolColor: '#f1ede6', height: 56 }
+      : { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }
 
     return {
       action: 'allow',
+      // 제품 상세 창처럼 1280x800에 OS 제목줄을 숨기고 OS 창 버튼을 상단 바 안에 그린다.
       overrideBrowserWindowOptions: {
         show: true,
-        width: 1120,
-        height: 680,
+        width: 1280,
+        height: 800,
         useContentSize: true,
+        titleBarStyle: 'hidden',
+        titleBarOverlay,
         webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false }
       }
     }

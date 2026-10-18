@@ -1,6 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Checkbox, StatusBadge, Typo } from '@dfragon/ui'
+import { Button, Checkbox, Kbd, StatusChip, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
@@ -72,7 +72,8 @@ export function DeveloperParticipantCollectionSection({
           <Typo.h6 as="p">
             {connected ? (
               <>
-                <span {...stylex.props(styles.connectedDot)}>●</span> 던전앤파이터 연결됨
+                <span aria-hidden="true" {...stylex.props(styles.connectedDot)} />
+                던전앤파이터 연결됨
               </>
             ) : (
               '던전앤파이터 연결 확인 중'
@@ -84,9 +85,9 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <StatusBadge tone={popup ? 'positive' : 'warning'}>
+        <StatusChip tone={popup ? 'success' : 'waiting'}>
           {windowName} {popup ? '찾음' : '찾는 중'}
-        </StatusBadge>
+        </StatusChip>
       </div>
 
       <div {...stylex.props(styles.heading)}>
@@ -95,7 +96,9 @@ export function DeveloperParticipantCollectionSection({
       </div>
 
       <div {...stylex.props(styles.saveGuide)}>
-        <kbd {...stylex.props(styles.keycap)}>Print Screen</kbd>
+        <span {...stylex.props(styles.keycap)}>
+          <Kbd>Print Screen</Kbd>
+        </span>
         <div {...stylex.props(styles.guideText)}>
           <Typo.h6 as="p">현재 저장 대상 {count}개</Typo.h6>
           <Typo.txtS {...stylex.props(styles.muted)}>
@@ -116,14 +119,9 @@ export function DeveloperParticipantCollectionSection({
             </>
           )}
           {saved > 0 && onLabeling && (
-            <ActionButton
-              size="small"
-              variant="neutralWeak"
-              {...stylex.props(buttonStyles.secondary)}
-              onClick={onLabeling}
-            >
+            <Button size="sm" {...stylex.props(buttonStyles.secondary)} onClick={onLabeling}>
               정답 입력으로
-            </ActionButton>
+            </Button>
           )}
         </div>
       )}
@@ -180,7 +178,7 @@ export function DeveloperParticipantCollectionSection({
             if (crop) {
               rowLabel = included ? '저장 포함' : '저장 안 함'
             } else if (popup) {
-              rowLabel = raid ? '빈 행' : '빈 행 · 저장 안 함'
+              rowLabel = raid ? '빈 행' : '빈 행, 저장 안 함'
             } else {
               rowLabel = '검출 대기'
             }

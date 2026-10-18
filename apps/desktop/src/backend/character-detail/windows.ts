@@ -1,7 +1,9 @@
-import { BrowserWindow, ipcMain, session, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, ipcMain, nativeTheme, session, type IpcMainInvokeEvent } from 'electron'
 import { pathToFileURL } from 'node:url'
 import { addHandler } from '../ipc'
 import { validateDevRendererUrl } from '../renderer-document'
+import { getTitleBarOverlay } from '../window-chrome/title-bar-overlay'
+import { DETAIL_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../../preload/common/window-chrome'
 import { createCharacterDetailSnapshot } from './snapshot'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import type { CharacterDetailSnapshot } from '../../preload/common/types/character-detail'
@@ -26,12 +28,14 @@ export function registerCharacterDetailWindows({
   owner,
   entry,
   preload,
-  devUrl
+  devUrl,
+  platform = process.platform
 }: {
   owner: BrowserWindow
   entry: string
   preload: string
   devUrl?: string
+  platform?: NodeJS.Platform
 }): DetailWindows {
   const documentUrl =
     devUrl === undefined
@@ -107,13 +111,20 @@ export function registerCharacterDetailWindows({
 
       return true
     }
+    // 상세 화면은 시스템 테마로 그리고(theme-init.js) 테마 전환이 없다. 그래서 OS 제목줄 대신 화면의
+    // 상단 바 안에 그리는 OS 창 버튼과 창 배경도 연 순간의 시스템 테마 상단 바 색으로 정하고, 메인 창의
+    // 창 색 IPC는 이 창에 두지 않는다.
+    const theme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
     const window = new BrowserWindow({
-      width: 540,
-      height: 650,
-      minWidth: 360,
-      minHeight: 460,
+      width: DETAIL_WINDOW_SIZE.width,
+      height: DETAIL_WINDOW_SIZE.height,
+      minWidth: DETAIL_WINDOW_SIZE.minWidth,
+      minHeight: DETAIL_WINDOW_SIZE.minHeight,
       show: false,
       autoHideMenuBar: true,
+      titleBarStyle: 'hidden',
+      titleBarOverlay: getTitleBarOverlay(platform, theme),
+      backgroundColor: WINDOW_CHROME_COLORS[theme].color,
       title: `${snapshot.character.characterName} (${snapshot.character.serverName}) - 캐릭터 정보`,
       webPreferences: {
         preload,

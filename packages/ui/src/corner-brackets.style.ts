@@ -25,6 +25,24 @@ const lockBottomRight = stylex.keyframes({
   '8%, 100%': { transform: 'none', opacity: 1 }
 })
 
+// 선택, 이름 수정 중: 박자 두 번에 한 번 꺾쇠가 바깥 4px에서 제자리로 조여 든다(motion.md).
+const pulseTopLeft = stylex.keyframes({
+  '0%': { transform: 'translate(-4px, -4px)', opacity: 0.5 },
+  '30%, 100%': { transform: 'none', opacity: 1 }
+})
+const pulseTopRight = stylex.keyframes({
+  '0%': { transform: 'translate(4px, -4px)', opacity: 0.5 },
+  '30%, 100%': { transform: 'none', opacity: 1 }
+})
+const pulseBottomLeft = stylex.keyframes({
+  '0%': { transform: 'translate(-4px, 4px)', opacity: 0.5 },
+  '30%, 100%': { transform: 'none', opacity: 1 }
+})
+const pulseBottomRight = stylex.keyframes({
+  '0%': { transform: 'translate(4px, 4px)', opacity: 0.5 },
+  '30%, 100%': { transform: 'none', opacity: 1 }
+})
+
 export const styles = stylex.create({
   corner: {
     position: 'absolute',
@@ -50,6 +68,26 @@ export const styles = stylex.create({
   cycle: {
     animationDuration: motion.cycle,
     animationIterationCount: 'infinite'
+  },
+  pulse: {
+    animationDuration: `calc(${motion.beat} * 2)`,
+    animationIterationCount: 'infinite',
+    animationTimingFunction: motion.ease
+  },
+  pulseTopLeft: {
+    animationName: { default: pulseTopLeft, '@media (prefers-reduced-motion: reduce)': 'none' }
+  },
+  pulseTopRight: {
+    animationName: { default: pulseTopRight, '@media (prefers-reduced-motion: reduce)': 'none' }
+  },
+  pulseBottomLeft: {
+    animationName: { default: pulseBottomLeft, '@media (prefers-reduced-motion: reduce)': 'none' }
+  },
+  pulseBottomRight: {
+    animationName: {
+      default: pulseBottomRight,
+      '@media (prefers-reduced-motion: reduce)': 'none'
+    }
   },
   breathe: {
     animationName: { default: breathe, '@media (prefers-reduced-motion: reduce)': 'none' },

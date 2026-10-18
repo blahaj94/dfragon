@@ -1,7 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 import { createRef } from 'react'
 import {
-  ActionButton,
   Button,
   CardFrame,
   Checkbox,
@@ -22,7 +21,6 @@ import {
   NumericText,
   ProgressCircle,
   Select,
-  StatusBadge,
   StatusChip,
   SupportingText,
   Switch,
@@ -35,7 +33,6 @@ import {
   typographyVariants
 } from '@dfragon/ui'
 import type {
-  ActionButtonProps,
   ButtonProps,
   CardFrameProps,
   DialogActionProps,
@@ -47,8 +44,6 @@ import type {
   IconButtonProps,
   ProgressCircleProps,
   SelectPopupProps,
-  StatusBadgeProps,
-  StatusBadgeTone,
   StatusChipProps,
   TextFieldInputProps,
   TextFieldProps,
@@ -62,7 +57,6 @@ import { colors, motion } from '@dfragon/ui/tokens.stylex'
 
 // 별도 tsconfig는 source alias 없이 package export의 dist declaration을 해석한다.
 export const components = [
-  ActionButton,
   Button,
   CardFrame,
   Checkbox,
@@ -81,7 +75,6 @@ export const components = [
   LoadingIndicator,
   NumericText,
   ProgressCircle,
-  StatusBadge,
   StatusChip,
   SupportingText,
   Switch,
@@ -95,7 +88,6 @@ export const components = [
 
 export type PublicProps = {
   button: ButtonProps
-  action: ActionButtonProps
   progress: ProgressCircleProps
   field: TextFieldProps
   input: TextFieldInputProps
@@ -108,8 +100,6 @@ export type PublicProps = {
   iconButton: IconButtonProps
   selectPopup: SelectPopupProps
   statusChip: StatusChipProps
-  statusBadge: StatusBadgeProps
-  statusTone: StatusBadgeTone
   card: CardFrameProps
   typo: TypoProps<'button'>
   standaloneTypo: StandaloneTypoProps<'a'>
@@ -122,7 +112,6 @@ export const button = (
     산출물 소비자
   </Button>
 )
-export const legacyButton = <ActionButton variant="neutralOutline">이행 중 이름</ActionButton>
 export const input = <TextFieldInput ref={createRef<HTMLInputElement>()} placeholder="입력" />
 export const iconButton = (
   <IconButton

@@ -1,6 +1,6 @@
 import type { SlotEditing } from '../types/search'
 import { useState } from 'react'
-import { ActionButton, ContentStack, SupportingText, TextField, TextFieldInput } from '@dfragon/ui'
+import { Button, ContentStack, SupportingText, TextField, TextFieldInput } from '@dfragon/ui'
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { validManualNickname } from '../lib/manual-input'
 
@@ -24,7 +24,8 @@ export function SlotNicknameEditor({
   const blocked = samePending || sameRateWait
   if (!manual) {
     return (
-      <ActionButton
+      <Button
+        variant="primary"
         type="button"
         disabled={!active}
         onClick={() => {
@@ -34,7 +35,7 @@ export function SlotNicknameEditor({
         }}
       >
         닉네임 수정
-      </ActionButton>
+      </Button>
     )
   }
 
@@ -74,12 +75,12 @@ export function SlotNicknameEditor({
         <SupportingText>
           이 슬롯의 자동 검색을 멈췄습니다. 수정한 이름으로 검색하세요.
         </SupportingText>
-        <ActionButton type="submit" disabled={blocked} loading={samePending}>
+        <Button variant="primary" type="submit" disabled={blocked} loading={samePending}>
           수정한 이름 검색
-        </ActionButton>
-        <ActionButton type="button" onClick={() => editing.resumeOcr(slot.slot)}>
+        </Button>
+        <Button variant="primary" type="button" onClick={() => editing.resumeOcr(slot.slot)}>
           OCR 다시 사용
-        </ActionButton>
+        </Button>
       </ContentStack>
     </form>
   )

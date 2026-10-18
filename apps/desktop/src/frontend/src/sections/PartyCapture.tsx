@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, ContentStack, SupportingText } from '@dfragon/ui'
+import { Button, ContentStack, SupportingText } from '@dfragon/ui'
 import { SearchResults } from './SearchResults'
 import { styles } from './PartyCapture.style'
 import { usePartyCapture } from '../hooks/usePartyCapture'
@@ -51,23 +51,25 @@ function PartyCapture(): React.JSX.Element {
           </select>
         </label>
         <div {...stylex.props(styles.actions)}>
-          <ActionButton
+          <Button
+            variant="primary"
             type="button"
             disabled={recognizing || search.captureActive}
             onClick={() => refreshSources()}
           >
             창 목록 새로고침
-          </ActionButton>
-          <ActionButton
+          </Button>
+          <Button
+            variant="primary"
             disabled={cannotStartCapture}
             type="button"
             onClick={() => void startCapture()}
           >
             캡처 시작
-          </ActionButton>
-          <ActionButton type="button" onClick={() => stopCapture()}>
+          </Button>
+          <Button variant="primary" type="button" onClick={() => stopCapture()}>
             캡처 중지
-          </ActionButton>
+          </Button>
         </div>
         <pre role="status" {...stylex.props(styles.status)}>
           {statusText}

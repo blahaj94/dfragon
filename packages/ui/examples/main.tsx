@@ -22,6 +22,7 @@ import {
   NumericText,
   ProgressCircle,
   Select,
+  shapes,
   StatusChip,
   SupportingText,
   Switch,
@@ -48,7 +49,8 @@ const styles = stylex.create({
     gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
     gap: space.s16
   },
-  card: { height: 96, padding: space.s12, justifyContent: 'space-between' },
+  card: { display: 'grid', gap: space.s8, padding: space.s12 },
+  well: { height: 48 },
   label: { display: 'inline-flex', alignItems: 'center', gap: space.s8, fontSize: 14 }
 })
 
@@ -236,6 +238,14 @@ function Examples() {
             {cardStates.map(({ state, label }) => (
               <CardFrame key={state} state={state} as="article" aria-label={label}>
                 <div {...stylex.props(styles.card)}>
+                  {/* 실패 사선은 카드 면이 아니라 그림 칸에만 깐다. */}
+                  <div
+                    {...stylex.props(
+                      styles.well,
+                      shapes.gridWell,
+                      state === 'failure' && shapes.hazardStripes
+                    )}
+                  />
                   <SupportingText>{label}</SupportingText>
                   <NumericText value={125850} />
                 </div>

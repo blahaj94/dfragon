@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '@dfragon/ui/tokens.stylex'
+import { colors, radius } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   editor: { display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 },
@@ -12,7 +12,7 @@ export const styles = stylex.create({
     height: 248,
     padding: 16,
     backgroundColor: colors.bgWell,
-    borderRadius: 8,
+    borderRadius: radius.panel,
     overflow: 'hidden'
   },
   image: { maxWidth: '100%', maxHeight: '100%', imageRendering: 'pixelated', objectFit: 'contain' },

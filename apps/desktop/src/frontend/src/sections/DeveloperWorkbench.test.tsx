@@ -313,7 +313,7 @@ it('shows immediate upload progress while preview is pending and ignores stale r
   }
 
   await act(async () => notify({ kind: 'hud', status: { ...status, capture } }))
-  expect(notice()).toContain('Print Screen 입력 확인 · 캡처 중')
+  expect(notice()).toContain('Print Screen 입력 확인, 캡처 중')
   expect(notice()).not.toContain('서버 업로드 완료')
   const uploading = {
     ...status,
@@ -1074,7 +1074,7 @@ it('saves and evaluates a twelfth raid crop through the existing labeling flow a
   await click('선택 이미지 평가')
   expect(evaluation.evaluate).toHaveBeenLastCalledWith([samples[0]])
   await click('OCR 자료실')
-  expect(container.textContent).toContain('자료실 정답 · 공대원창 · test')
+  expect(container.textContent).toContain('자료실 정답, 공대원창, test')
   expect(input().readOnly).toBe(true)
   await click('정답 완료 자료 평가')
   expect(evaluation.evaluate).toHaveBeenLastCalledWith([remote])

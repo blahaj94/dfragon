@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Typo } from '@dfragon/ui'
+import { Button, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { styles } from './DeveloperSampleThumbnail.style'
 
@@ -85,9 +85,9 @@ export function DeveloperSampleThumbnail({
 
   return (
     <li>
-      <ActionButton
-        size="small"
+      <Button
         variant="ghost"
+        size="sm"
         aria-pressed={selected}
         onClick={onSelect}
         {...stylex.props(styles.button, selected && styles.selected)}
@@ -109,7 +109,7 @@ export function DeveloperSampleThumbnail({
             </Typo.caption>
           </div>
         </div>
-      </ActionButton>
+      </Button>
     </li>
   )
 }

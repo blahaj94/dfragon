@@ -57,8 +57,9 @@ const styles = stylex.create({
 `@dfragon/ui/tokens.stylex`의 `colors`는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase 키로 옮긴 것입니다. 예를 들어 `bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`입니다. 값은 모두 `var(--df-…)` 문자열이고 실제 값과 라이트 값은 `packages/ui/tokens.css`가 정합니다.
 
 - **신호색**: `signal`, `onSignal`은 선택, 주 버튼, 포커스에 씁니다. 개발자 작업 공간의 선택 탭 아래 2px 선이 `signal`입니다.
-- **카드 면**: `card*`, `bracket*`, `hazard`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 명성 숫자, 포커스, 상태색은 의미 토큰을 그대로 씁니다. 상세 창의 카드 더미는 앞 카드만 `cardBg`이고 뒤 카드는 테마를 따르는 `bgSurface`입니다.
+- **카드 면**: `card*`, `bracket*`, `hazard`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`, 실패 `!` 칸의 `fgDanger`, `bgDangerWeak` 같은 상태색은 의미 토큰을 그대로 씁니다. 그래서 라이트 모드의 `!` 칸은 어두운 카드 위의 밝은 칸입니다. 상세 창의 카드 더미도 모든 카드가 `CardFrame`의 `cardBg` 면이고, 앞 카드의 오른쪽 끝에 1px `cardBorder` 선을 그어 겹친 카드를 나눕니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
 - **크롭 미리보기**: 개발자 화면의 게임 크롭 칸은 두 모드에서 같은 어두운 면인 `bgWell`을 씁니다.
+- **설정, 개발자 화면의 면**: 대화상자, 패널, 크롭 칸은 반지름 0(`radius.panel`)에 테두리 없이 `bgSurface`, `bgInset`, `bgWell` 면으로 구분합니다. 개발자 업로드 안내만 왼쪽 5px 띠의 색으로 상태를 보입니다.
 - **상단 바**: 상단 바 면은 `bgBar`이며 창 버튼 띠 색(`preload/common/window-chrome.ts`)과 맞춥니다.
 - **게임 색**: 마법부여 `enchant*`, 강화 `gameEnhance`, 증폭 `gameAmplify`는 두 모드에서 같은 값입니다. 투자 현황의 강화 열은 `EquipmentSlot.enhancement`가 강화와 증폭을 구분하지 않아 모두 `gameAmplify`로 표시합니다.
 
@@ -68,22 +69,25 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 
 | 화면 | 구현 | 참고 |
 | --- | --- | --- |
-| 버튼 | `ActionButton`(이행용 alias, `Button`과 같은 외형) | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
+| 버튼 | `Button` | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
 | 상단 바의 테마, 설정 버튼, 파티 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다 |
 | 상단 바의 캡처 버튼 | `Button` `ghost` `sm`과 `Kbd` | 카메라 아이콘 옆에 `Alt`, `R` 키캡을 둡니다 |
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
-| 서버 선택 | `Select` 칩, `size="xs"` | 라이트에서는 어두운 카드 위에 모드 색 칩이 놓입니다 |
+| 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
+| 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
+| 공대 카드 | `CardFrame`, `NumericText` | 그림 칸과 면 탭 없는 축약 카드. 서버는 칩 모양의 글자입니다 |
+| 보조 창 상단 바 | `WindowBar` | 상세 창. 메인 상단 바와 같은 높이, 면, OS 창 버튼 자리 규칙을 씁니다 |
+| 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |
 | 개발자 모드 | `<label>` 안의 `Switch` | 설정 대화상자 |
 | 저장 포함 | `Checkbox` | 파티, 참가자 수집 화면 |
+| 저장 단축키 | `Kbd` | 개발자 참가자 수집 화면의 `Print Screen` |
 | 정답 입력 필터 | `Chip`(`pressed`, `onPressedChange`) | 개발자 정답 입력 화면 |
 | 게임 연결 상태 | `StatusChip` `size="md"` | 상단 바. 높이 28, 오른쪽 위를 자른 칩입니다 |
-| 캡처, 검출 상태 | `StatusChip`, 개발자 참가자 수집 화면은 `StatusBadge`(이행용 alias) | 캡처 모달, 개발자 참가자 수집 화면 |
+| 캡처, 검출 상태 | `StatusChip` | 캡처 모달, 개발자 참가자 수집 화면 |
 | 설정, 캡처 대화상자 | `DialogRoot`, `DialogContent` | 바깥을 눌러도 닫히지 않습니다 |
-| 개발자 작업 공간 탭 | 기존 `role="tablist"`의 `ActionButton` ghost와 선택 탭 아래 2px `signal` 선 | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유해 공용 `Tabs`로 옮기지 않았습니다 |
-
-`ActionButton`, `StatusBadge` alias는 Desktop DFragon 디자인 적용의 마지막 PR에서 `Button`, `StatusChip`으로 바꾸고 지웁니다.
+| 개발자 작업 공간 탭 | 기존 `role="tablist"`의 `Button` ghost와 선택 탭 아래 2px `signal` 선 | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유해 공용 `Tabs`로 옮기지 않았습니다 |
 
 공개 옵션으로 부족한 작은 표현은 해당 요소나 감싼 요소에 화면 범위의 StyleX를 줍니다. 공용 Component의 내부 DOM 선택자는 쓰지 않습니다. 공용 Component에 넘긴 StyleX와 공용 class가 같은 속성을 덮으면 우선순위가 CSS 순서에 달려 있으므로, 배치는 감싼 요소에 주는 편이 안전합니다.
 

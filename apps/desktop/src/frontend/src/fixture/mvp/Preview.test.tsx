@@ -85,7 +85,7 @@ it('모달에서 창을 고르면 미리보기 목록과 안내도 창 선택됨
 
   const selector = container.querySelector<HTMLSelectElement>('[aria-label="캡처 미리보기 상태"]')!
   expect(selector.value).toBe('selected')
-  expect(selector.selectedOptions[0].textContent).toBe('캡처 · 창 선택됨')
+  expect(selector.selectedOptions[0].textContent).toBe('캡처, 창 선택됨')
   expect(dialog.textContent).toContain('Alt+R을 눌러 파티를 인식해 주세요.')
   expect(dialog.querySelector('button[aria-haspopup="menu"]')?.textContent).toContain(
     '던전앤파이터'

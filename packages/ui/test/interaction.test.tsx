@@ -2,8 +2,8 @@ import { act, createRef, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  ActionButton,
   Button,
+  CardFrame,
   Checkbox,
   Chip,
   DialogAction,
@@ -14,14 +14,14 @@ import {
   Menu,
   NumericText,
   Select,
-  StatusBadge,
   StatusChip,
   Switch,
   Tabs,
   TextField,
   TextFieldInput,
   Typo,
-  type ActionButtonProps,
+  type ButtonProps,
+  type ControlSurface,
   type DialogRootProps,
   type IconButtonProps,
   type TextFieldProps
@@ -81,6 +81,7 @@ const IMPLICIT_ROLES: Record<string, string> = {
   menuitem: '[role="menuitem"]',
   menuitemradio: '[role="menuitemradio"]',
   tab: '[role="tab"]',
+  tablist: '[role="tablist"]',
   tabpanel: '[role="tabpanel"]',
   switch: '[role="switch"]',
   checkbox: '[role="checkbox"]',
@@ -148,18 +149,18 @@ async function settle() {
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)))
 }
 
-describe('Button과 ActionButton의 클릭과 disabled, loading 상태', () => {
+describe('Button의 클릭과 disabled, loading 상태', () => {
   it.each([
     { title: '활성 버튼은 클릭을 전달한다', loading: false, disabled: false },
     { title: 'disabled 버튼은 클릭을 차단한다', loading: false, disabled: true },
     { title: 'loading만 지정한 버튼은 클릭을 전달한다', loading: true, disabled: false },
     { title: 'loading과 disabled를 함께 지정하면 클릭을 차단한다', loading: true, disabled: true }
   ])('$title', async ({ loading, disabled }) => {
-    const onClick = vi.fn<NonNullable<ActionButtonProps['onClick']>>()
+    const onClick = vi.fn<NonNullable<ButtonProps['onClick']>>()
     await render(
-      <ActionButton loading={loading} disabled={disabled} onClick={onClick}>
+      <Button loading={loading} disabled={disabled} onClick={onClick}>
         실행
-      </ActionButton>
+      </Button>
     )
     const button = getByRole('button', '실행')
 
@@ -361,10 +362,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
     )
   })
 
-  it.each([
-    { title: 'render', compose: 'render' },
-    { title: '이행 중 asChild', compose: 'asChild' }
-  ])('합성 방식 $title: Typo input에 label과 값이 연결된다', async ({ compose }) => {
+  it('render로 합성한 Typo input에 label과 값이 연결된다', async () => {
     const ref = createRef<HTMLInputElement>()
     function SearchField() {
       const [query, setQuery] = useState('')
@@ -376,11 +374,7 @@ describe('TextField의 controlled 입력과 접근성 연결', () => {
           value={query}
           onValueChange={({ value }) => setQuery(value)}
         >
-          {compose === 'render' ? (
-            <TextFieldInput render={input} />
-          ) : (
-            <TextFieldInput asChild>{input}</TextFieldInput>
-          )}
+          <TextFieldInput render={input} />
         </TextField>
       )
     }
@@ -402,9 +396,7 @@ type DialogExampleProps = Pick<
 function DialogExample(props: DialogExampleProps) {
   return (
     <DialogRoot {...props}>
-      <DialogTrigger asChild>
-        <Button>상세 정보 열기</Button>
-      </DialogTrigger>
+      <DialogTrigger render={<Button />}>상세 정보 열기</DialogTrigger>
       <DialogContent title="상세 정보" description="입력한 내용을 확인해 주세요.">
         <DialogAction>확인하고 닫기</DialogAction>
       </DialogContent>
@@ -612,41 +604,60 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     expect(onClick).not.toHaveBeenCalled()
   })
 
-  it.each([
-    { title: 'render', compose: 'render' },
-    { title: '이행 중 asChild', compose: 'asChild' }
-  ])(
-    'DialogTrigger 합성 방식 $title: dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다',
-    async ({ compose }) => {
-      const icon = <IconButton aria-label="설정" icon={<SettingsIcon />} />
-      await render(
-        <DialogRoot>
-          {compose === 'render' ? (
-            <DialogTrigger render={icon} />
-          ) : (
-            <DialogTrigger asChild>{icon}</DialogTrigger>
-          )}
-          <DialogContent title="설정">
-            <DialogAction>닫기</DialogAction>
-          </DialogContent>
+  it('render로 합성한 DialogTrigger는 dialog를 열고 Escape로 닫으면 focus를 버튼으로 돌려준다', async () => {
+    const icon = <IconButton aria-label="설정" icon={<SettingsIcon />} />
+    await render(
+      <DialogRoot>
+        <DialogTrigger render={icon} />
+        <DialogContent title="설정">
+          <DialogAction>닫기</DialogAction>
+        </DialogContent>
+      </DialogRoot>
+    )
+    const trigger = getByRole('button', '설정')
+    expect(allByRole('button').length).toBe(1)
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
+    trigger.focus()
+
+    await click(trigger)
+    const dialog = getByRole('dialog', '설정')
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+
+    await press(document.activeElement as HTMLElement, 'Escape')
+
+    await vi.waitFor(() => expect(queryByRole('dialog')).toBeNull())
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+
+  // jsdom은 계산된 크기를 모르므로 크기마다 다른 StyleX class가 붙는지만 확인한다.
+  it('상단 바 크기 bar는 기본 md와 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <IconButton aria-label="기본" icon={<SettingsIcon />} />
+        <IconButton aria-label="상단 바" size="bar" icon={<SettingsIcon />} />
+      </>
+    )
+
+    expect(getByRole('button', '상단 바').className).not.toBe(getByRole('button', '기본').className)
+  })
+
+  it('DialogContent lg는 기본 sm과 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <DialogRoot defaultOpen>
+          <DialogContent title="작은 대화상자" />
         </DialogRoot>
-      )
-      const trigger = getByRole('button', '설정')
-      expect(allByRole('button').length).toBe(1)
-      expect(trigger.getAttribute('aria-haspopup')).toBe('dialog')
-      trigger.focus()
+        <DialogRoot defaultOpen>
+          <DialogContent size="lg" title="큰 대화상자" />
+        </DialogRoot>
+      </>
+    )
+    const small = await vi.waitFor(() => getByRole('dialog', '작은 대화상자'))
+    const large = getByRole('dialog', '큰 대화상자')
 
-      await click(trigger)
-      const dialog = getByRole('dialog', '설정')
-      expect(trigger.getAttribute('aria-expanded')).toBe('true')
-      await vi.waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
-
-      await press(document.activeElement as HTMLElement, 'Escape')
-
-      await vi.waitFor(() => expect(queryByRole('dialog')).toBeNull())
-      await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
-    }
-  )
+    expect(large.className).not.toBe(small.className)
+  })
 })
 
 const servers = [
@@ -655,7 +666,13 @@ const servers = [
   { id: 'siroco', label: '시로코' }
 ]
 
-function ServerSelect({ onValueChange }: { onValueChange: (value: string | null) => void }) {
+function ServerSelect({
+  onValueChange,
+  surface
+}: {
+  onValueChange: (value: string | null) => void
+  surface?: ControlSurface
+}) {
   const [value, setValue] = useState<string | null>('siroco')
 
   return (
@@ -667,10 +684,10 @@ function ServerSelect({ onValueChange }: { onValueChange: (value: string | null)
       }}
       items={servers.map((server) => ({ value: server.id, label: server.label }))}
     >
-      <Select.Trigger size="xs" aria-label="서버">
+      <Select.Trigger size="xs" aria-label="서버" surface={surface}>
         <Select.Value />
       </Select.Trigger>
-      <Select.Popup aria-label="서버 목록">
+      <Select.Popup aria-label="서버 목록" surface={surface}>
         {servers.map((server) => (
           <Select.Item key={server.id} value={server.id}>
             <Select.ItemText>{server.label}</Select.ItemText>
@@ -705,6 +722,60 @@ describe('Select의 키보드 선택과 포커스 복귀', () => {
     await vi.waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('false'))
     expect(trigger.textContent).toContain('디레지에')
     await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+
+  it('카드 위 칩은 body portal의 목록 항목까지 카드 면으로 그리고 같은 키보드 조작을 유지한다', async () => {
+    const onValueChange = vi.fn<(value: string | null) => void>()
+    await render(<ServerSelect onValueChange={onValueChange} surface="card" />)
+    const trigger = getByRole('combobox', '서버')
+    expect(trigger.dataset.surface).toBe('card')
+    trigger.focus()
+
+    await press(trigger, 'ArrowDown')
+    const listbox = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
+    expect(container.contains(listbox)).toBe(false)
+    expect(listbox.closest('[data-surface]')?.getAttribute('data-surface')).toBe('card')
+    const options = allByRole('option', listbox)
+    expect(options.map((option) => option.dataset.surface)).toEqual(['card', 'card', 'card'])
+    const current = getByRole('option', '시로코', listbox)
+    await vi.waitFor(() => expect(document.activeElement).toBe(current))
+    await press(current, 'ArrowUp')
+    const previous = getByRole('option', '디레지에', listbox)
+    await vi.waitFor(() => expect(document.activeElement).toBe(previous))
+    await press(previous, 'Enter')
+
+    expect(onValueChange).toHaveBeenLastCalledWith('diregie')
+    await vi.waitFor(() => expect(document.activeElement).toBe(trigger))
+  })
+
+  it('기본 칩과 목록 항목은 모드 면으로 그리고 카드 면과 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <ServerSelect onValueChange={vi.fn()} />
+        <ServerSelect onValueChange={vi.fn()} surface="card" />
+      </>
+    )
+    const [plain, onCard] = allByRole('combobox')
+    expect(plain.dataset.surface).toBe('default')
+    expect(onCard.className).not.toBe(plain.className)
+
+    await click(plain)
+    const plainList = await vi.waitFor(() => getByRole('listbox', '서버 목록'))
+    const plainOption = getByRole('option', '카인', plainList)
+    expect(plainOption.dataset.surface).toBe('default')
+    const plainOptionClass = plainOption.className
+    await press(plainOption, 'Escape')
+    await vi.waitFor(() => expect(plain.getAttribute('aria-expanded')).toBe('false'))
+
+    await click(onCard)
+    await vi.waitFor(() => expect(onCard.getAttribute('aria-expanded')).toBe('true'))
+    const cardList = document.getElementById(onCard.getAttribute('aria-controls') ?? '')
+    if (cardList == null) {
+      throw new Error('테스트 준비: 카드 목록이 없습니다.')
+    }
+    const cardOption = getByRole('option', '카인', cardList)
+    expect(cardOption.dataset.surface).toBe('card')
+    expect(cardOption.className).not.toBe(plainOptionClass)
   })
 
   it('Escape로 닫으면 값을 바꾸지 않고 trigger로 focus를 돌려준다', async () => {
@@ -822,6 +893,31 @@ describe('Tabs의 키보드 이동과 패널 연결', () => {
     expect(panel.textContent).toBe('정답 패널')
     expect(panel.getAttribute('aria-labelledby')).toBe(labeling.id)
   })
+
+  it('카드 면 탭은 카드 면으로 표시하고 비활성 탭을 고르지 않는다', async () => {
+    await render(
+      <Tabs.Root defaultValue="character">
+        <Tabs.List aria-label="카드 면" surface="card">
+          <Tabs.Tab value="character">캐릭터</Tabs.Tab>
+          <Tabs.Tab value="equipment" disabled>
+            장비
+          </Tabs.Tab>
+        </Tabs.List>
+        <Tabs.Panel value="character">캐릭터 패널</Tabs.Panel>
+        <Tabs.Panel value="equipment">장비 패널</Tabs.Panel>
+      </Tabs.Root>
+    )
+    expect(getByRole('tablist', '카드 면').dataset.surface).toBe('card')
+    const character = getByRole('tab', '캐릭터')
+    expect(character.dataset.surface).toBe('card')
+    const equipment = getByRole('tab', '장비')
+    expect(equipment.getAttribute('aria-disabled')).toBe('true')
+
+    await click(equipment)
+
+    expect(getByRole('tab', '캐릭터').getAttribute('aria-selected')).toBe('true')
+    expect(getByRole('tabpanel').textContent).toBe('캐릭터 패널')
+  })
 })
 
 describe('Switch, Checkbox, Chip의 켜짐 상태', () => {
@@ -869,12 +965,12 @@ describe('Switch, Checkbox, Chip의 켜짐 상태', () => {
   })
 })
 
-describe('StatusChip과 StatusBadge의 상태 알림 범위', () => {
+describe('StatusChip의 상태 알림 범위', () => {
   it('호출자가 status 영역을 요청하면 상태 글자만 알린다', async () => {
     await render(
-      <StatusBadge tone="positive" role="status">
+      <StatusChip tone="success" role="status">
         창 감지됨
-      </StatusBadge>
+      </StatusChip>
     )
 
     expect(getByRole('status').textContent).toBe('창 감지됨')
@@ -895,5 +991,44 @@ describe('NumericText의 최종값 읽기', () => {
 
     expect(container.textContent).toBe('125,850125,850')
     expect(container.querySelector('[aria-hidden="true"]')?.textContent).toBe('125,850')
+  })
+})
+
+describe('CardFrame의 상태별 장식', () => {
+  // 카드 내용은 화면이 넘긴 자식뿐이고, 나머지 자식은 보조 기술에서 숨긴 장식이다.
+  async function decorations(state: 'default' | 'waiting' | 'top' | 'ranker') {
+    await render(
+      <CardFrame state={state} as="article" aria-label="1번 슬롯">
+        <p>내용</p>
+      </CardFrame>
+    )
+    const card = container.querySelector('article')
+    const extras = [...(card?.children ?? [])].filter((child) => child.tagName !== 'P')
+
+    return { card, extras }
+  }
+
+  it('상위와 랭커는 꺾쇠 네 개 밖에 빛줄기 층을 하나 더 두고 모두 보조 기술에서 숨긴다', async () => {
+    const top = await decorations('top')
+    expect(top.card?.getAttribute('data-state')).toBe('top')
+    expect(top.extras).toHaveLength(5)
+    expect(top.extras.every((child) => child.getAttribute('aria-hidden') === 'true')).toBe(true)
+    expect(top.card?.textContent).toBe('내용')
+    // 장식 층 안에 빛줄기 하나를 둔다.
+    expect(top.extras[0]?.children).toHaveLength(1)
+    const topLayer = top.extras[0]?.className
+    const topSweep = top.extras[0]?.firstElementChild?.className
+
+    const ranker = await decorations('ranker')
+    expect(ranker.extras).toHaveLength(5)
+    expect(ranker.extras[0]?.children).toHaveLength(1)
+    // 랭커 층에는 스캔선이 깔리고 빛줄기도 상위의 금색 띠와 다른 청록 띠다.
+    expect(ranker.extras[0]?.className).not.toBe(topLayer)
+    expect(ranker.extras[0]?.firstElementChild?.className).not.toBe(topSweep)
+  })
+
+  it('기본 카드는 꺾쇠만, 대기 카드는 장식 없이 그린다', async () => {
+    expect((await decorations('default')).extras).toHaveLength(4)
+    expect((await decorations('waiting')).extras).toHaveLength(0)
   })
 })

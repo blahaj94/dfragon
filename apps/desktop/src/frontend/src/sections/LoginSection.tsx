@@ -1,4 +1,4 @@
-import { ActionButton, Typo } from '@dfragon/ui'
+import { Button, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { AuthApi } from '../../../preload/common/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
@@ -28,9 +28,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
 
   return (
     <span {...stylex.props(windowChromeStyles.noDrag)}>
-      <ActionButton
-        size="medium"
-        variant="neutralWeak"
+      <Button
         aria-label={loginInProgress ? '취소' : '로그인'}
         aria-busy={inProgress}
         disabled={
@@ -66,7 +64,7 @@ export function LoginSection({ api }: { api: AuthApi }): React.JSX.Element | nul
         ) : (
           <LoginButtonLabel label="로그인" inProgress={inProgress} />
         )}
-      </ActionButton>
+      </Button>
     </span>
   )
 }

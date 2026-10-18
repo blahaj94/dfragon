@@ -7,18 +7,16 @@ import { styles } from './icon-button.style'
 export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
   'aria-label': string
   icon: ReactNode
-  /** sm 32, md 40px 정사각형. 아이콘은 각각 16, 24px이다. @default 'md' */
-  size?: 'sm' | 'md'
   /**
-   * @deprecated SEED ActionButton 시절의 이름이다. 외형에 영향이 없으며 ActionButton alias와 함께 지운다.
+   * sm 32, md 40px 정사각형이고 아이콘은 각각 16, 24px이다. bar는 상단 바 도구 버튼의 36px 정사각형에
+   * 20px 아이콘이다. @default 'md'
    */
-  variant?: 'neutralWeak' | 'ghost'
+  size?: 'sm' | 'md' | 'bar'
 }
 
 function IconButtonImpl({
   icon,
   size = 'md',
-  variant: _variant,
   className,
   style,
   ...buttonProps
