@@ -2,7 +2,7 @@ import type { SelectedCharacterSummary } from '../../../preload/common/types/cha
 import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE } from '../constants/cards'
-import type { CardCharacter } from '../types/cards'
+import type { CardCharacter, CharacterCard } from '../types/cards'
 import type { ServerId } from '../types/servers'
 
 /** 화면이 지원하는 서버인지 확인한다. */
@@ -10,15 +10,20 @@ function isServerId(value: string): value is ServerId {
   return Object.hasOwn(serverNames, value)
 }
 
-/** 식별된 기본 정보만 카드 값으로 옮기고 미수신 값이나 장비 평가를 만들어내지 않는다. */
-export function toCharacterCard(
-  summary: SelectedCharacterSummary | undefined
-): CardCharacter | null {
+/**
+ * main이 넘길 카드 값(Issue #716 3번 항목). preload의 `SelectedCharacterSummary`에 `card`가 들어오기 전까지는
+ * 없을 수 있고, 들어온 뒤에는 이 교차 타입을 preload 타입으로 바꾼다.
+ */
+type SummaryWithCard = SelectedCharacterSummary & { readonly card?: CharacterCard | null }
+
+/** 식별된 기본 정보와 main이 검증한 카드 값만 카드 값으로 옮기고 미수신 값이나 장비 평가를 만들어내지 않는다. */
+export function toCharacterCard(summary: SummaryWithCard | undefined): CardCharacter | null {
   if (summary == null || !isServerId(summary.serverId)) {
     return null
   }
   const adventure = summary.adventureName ?? MISSING_VALUE
   const job = summary.jobGrowName ?? summary.jobName ?? MISSING_VALUE
+  const card = summary.card ?? null
 
   return {
     characterId: summary.characterId,
@@ -28,10 +33,7 @@ export function toCharacterCard(
     serverId: summary.serverId,
     fame: summary.fame,
     guild: summary.guildName,
-    equipmentScore: summary.equipmentScore,
-    serverRank: summary.serverRank,
-    // 공대 카드의 스탯 한 줄(공격력 증가, 증폭, 버프 수치 등)은 검색 응답에 대응 필드가 없어 추정하지 않는다.
-    stats: null,
+    card,
     level: summary.level,
     image: summary.imageUrl,
     equipment: [],

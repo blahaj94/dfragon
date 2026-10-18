@@ -20,11 +20,12 @@ import * as stylex from '@stylexjs/stylex'
 import { ServerSelect } from '../components/ServerSelect'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
-import { EquipmentGrid } from './EquipmentGrid'
+import { EquipmentSummary } from '../components/EquipmentSummary'
 import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
+import { toCharacterFace, toEquipmentFace, toInvestmentRows } from '../lib/card-faces'
 import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
 
 export function CharacterCard({
@@ -33,7 +34,6 @@ export function CharacterCard({
   slot,
   initialFace = 0,
   inputEnabled = false,
-  basicOnly = false,
   nickname,
   onDetail,
   notice,
@@ -49,7 +49,6 @@ export function CharacterCard({
   slot: number
   initialFace?: number
   inputEnabled?: boolean
-  basicOnly?: boolean
   nickname?: string
   onDetail?: () => void
   notice?: string
@@ -65,11 +64,10 @@ export function CharacterCard({
   const draft = useLookupDraft({ character, nickname, onLookup })
   const { name, serverId, inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
-  const canTurn = hasCharacter && !basicOnly
   // 접힌 카드는 캐릭터 면만 보이고, 펼치면 고른 면으로 돌아온다.
-  const shownFace = collapsed || !canTurn ? 0 : face
-  const showCharacter = shownFace === 0
+  const shownFace = collapsed || !hasCharacter ? 0 : face
   const characterFound = state === 'success' && character != null
+  const characterFace = toCharacterFace(characterFound ? character.card : null, 'long')
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'
   const cardStatus = getCharacterCardStatus(state)
@@ -105,7 +103,7 @@ export function CharacterCard({
           {tier !== undefined && (
             <span {...stylex.props(shapes.srOnly)}>{tierLabels[tier]} 단계</span>
           )}
-          {showCharacter && (inputEnabled || characterFound) && (
+          {(inputEnabled || characterFound) && (
             <div {...stylex.props(styles.server)}>
               <ServerSelect
                 label={`${slot}번 서버`}
@@ -126,14 +124,8 @@ export function CharacterCard({
                 tier === 'ranker' && shapes.cutTopRight
               )}
             >
-              <span aria-hidden="true">
-                {character.serverRank == null ? MISSING_VALUE : `#${character.serverRank}`}
-              </span>
-              <span {...stylex.props(shapes.srOnly)}>
-                {character.serverRank == null
-                  ? '서버 순위 없음'
-                  : `서버 순위 ${character.serverRank}위`}
-              </span>
+              <span aria-hidden="true">{characterFace.serverRank.text}</span>
+              <span {...stylex.props(shapes.srOnly)}>{characterFace.serverRank.label}</span>
             </span>
           )}
           {frameState === 'selected' && (
@@ -240,6 +232,13 @@ export function CharacterCard({
                     <Typo.caption weight={600} {...stylex.props(styles.guild)}>
                       {character.guild ?? MISSING_VALUE}
                     </Typo.caption>
+                    <span {...stylex.props(styles.spacer)} />
+                    <Typo.caption
+                      weight={500}
+                      {...stylex.props(styles.job, collapsed && styles.jobHidden)}
+                    >
+                      {character.job}
+                    </Typo.caption>
                   </>
                 ) : (
                   <Typo.caption
@@ -282,22 +281,46 @@ export function CharacterCard({
                     <Typo.caption {...stylex.props(styles.hint)}>Enter로 조회</Typo.caption>
                   )}
                   {characterFound && (
-                    <Typo.txtS {...stylex.props(styles.job)}>{character.job}</Typo.txtS>
+                    <dl {...stylex.props(styles.statLine)}>
+                      {characterFace.stats.map((stat) => (
+                        <div key={stat.label} {...stylex.props(styles.statItem)}>
+                          <Typo.caption as="dt" {...stylex.props(styles.statItemLabel)}>
+                            {stat.label}
+                          </Typo.caption>
+                          <dd {...stylex.props(styles.statItemValue)}>
+                            <span
+                              {...stylex.props(
+                                styles.statItemNumber,
+                                stat.value === MISSING_VALUE && styles.statItemMissing
+                              )}
+                            >
+                              {stat.value}
+                            </span>
+                            {stat.unit !== '' && (
+                              <Typo.caption {...stylex.props(styles.statItemUnit)}>
+                                {stat.unit}
+                              </Typo.caption>
+                            )}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
                   )}
                 </div>
               )}
             </div>
           </Tabs.Panel>
-          {canTurn && (
+          {hasCharacter && (
             <>
               <Tabs.Panel value={1} {...stylex.props(styles.face)}>
-                <EquipmentGrid character={character} />
+                <FaceTitle name={character.name} job={character.job} />
+                <EquipmentFace character={character} />
               </Tabs.Panel>
               <Tabs.Panel value={2} {...stylex.props(styles.face)}>
-                <EquipmentGrid character={character} oath />
-              </Tabs.Panel>
-              <Tabs.Panel value={3} {...stylex.props(styles.face, styles.investment)}>
-                <InvestmentTable equipment={character.equipment} />
+                <FaceTitle name={character.name} job={character.job} />
+                <div {...stylex.props(styles.investment)}>
+                  <InvestmentTable rows={toInvestmentRows(character.card)} />
+                </div>
               </Tabs.Panel>
             </>
           )}
@@ -329,9 +352,10 @@ export function CharacterCard({
                 장비 점수
               </Typo.caption>
               <StatValue
-                value={characterFound ? (character.equipmentScore ?? null) : null}
+                value={characterFace.score.value}
                 vacant={vacant}
                 tier={tier}
+                description={characterFace.score.description}
               />
             </div>
           </dl>
@@ -341,7 +365,7 @@ export function CharacterCard({
             ) : (
               <Tabs.List surface="card" aria-label={`${slot}번 카드 면`}>
                 {cardFaces.map((label, index) => (
-                  <Tabs.Tab key={label} value={index} disabled={index > 0 && !canTurn}>
+                  <Tabs.Tab key={label} value={index} disabled={index > 0 && !hasCharacter}>
                     {label}
                   </Tabs.Tab>
                 ))}
@@ -357,27 +381,59 @@ export function CharacterCard({
   )
 }
 
+// 장비와 기타 면 맨 위의 이름과 직업 한 줄. 이름 입력과 서버 선택은 캐릭터 면과 머리에만 둔다.
+function FaceTitle({ name, job }: { name: string; job: string }): React.JSX.Element {
+  return (
+    <div {...stylex.props(styles.faceTitle)}>
+      <span {...stylex.props(styles.faceName)}>{name}</span>
+      <span {...stylex.props(styles.spacer)} />
+      <Typo.caption {...stylex.props(styles.faceJob)}>{job}</Typo.caption>
+    </div>
+  )
+}
+
+// 장비 면의 세트와 서약 섹션.
+function EquipmentFace({ character }: { character: CardCharacter }): React.JSX.Element {
+  const { set, oath } = toEquipmentFace(character.card)
+
+  return (
+    <div {...stylex.props(styles.equipment)}>
+      <EquipmentSummary label="세트" summary={set} />
+      <div aria-hidden="true" {...stylex.props(styles.equipmentDivider)} />
+      <EquipmentSummary label="서약" summary={oath} upgrades={oath.upgrades} />
+    </div>
+  )
+}
+
 // 명성과 장비 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
-// 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그린다.
+// 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그린다. 장비 점수는 계산값이라는
+// 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙인다.
 function StatValue({
   value,
   vacant,
-  tier
+  tier,
+  description
 }: {
   value: number | null
   vacant: boolean
   tier?: CharacterTier
+  description?: string
 }): React.JSX.Element {
+  const note = description !== undefined && (
+    <span {...stylex.props(shapes.srOnly)}>{description}</span>
+  )
   if (value == null) {
     return (
       <dd {...stylex.props(styles.statValue, styles.statMissing, vacant && styles.statVacant)}>
         {MISSING_VALUE}
+        {note}
       </dd>
     )
   }
 
   return (
     <dd
+      title={description}
       {...stylex.props(
         styles.statValue,
         tier === 'top' && styles.statTop,
@@ -385,6 +441,7 @@ function StatValue({
       )}
     >
       <NumericText value={value} />
+      {note}
     </dd>
   )
 }

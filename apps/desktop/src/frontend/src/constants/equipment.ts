@@ -35,5 +35,5 @@ export const investmentIds = [
 export const investmentAriaLabelByKind = {
   enhancement: '강화 수치',
   enchantment: '마법부여 등급',
-  both: '투자 현황'
+  both: '강화와 마법부여'
 } as const

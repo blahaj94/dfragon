@@ -1,6 +1,7 @@
 import type { CharacterTier } from '../types/cards'
 
-export const cardFaces = ['캐릭터', '장비', '서약', '투자 현황'] as const
+// 파티 카드의 면 탭(DFragon 디자인 캔버스 카드 면 보드). 공대 카드에는 면 탭이 없다.
+export const cardFaces = ['캐릭터', '장비', '기타'] as const
 export const detailFaces = ['장비', '서약', '강화', '마법부여', '스킬트리'] as const
 
 // 상위, 랭커 단계의 이름. 화면에는 꺾쇠와 색으로 보이고 보조 기술에는 이 이름으로 전한다.

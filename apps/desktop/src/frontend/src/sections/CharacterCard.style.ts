@@ -146,15 +146,44 @@ export const styles = stylex.create({
   },
   body: { display: 'flex', flexDirection: 'column', flex: '1 1 auto', minHeight: 0 },
   characterFace: { display: 'flex', flexDirection: 'column', flex: '0 1 auto', minHeight: 0 },
+  // 장비와 기타 면은 캐릭터 면의 그림 칸과 소속 자리를 채우고, 창이 낮아 넘치면 면 안에서 스크롤한다.
   face: {
+    display: 'flex',
+    flexDirection: 'column',
     flex: '1 1 auto',
     minHeight: 0,
-    overflowY: 'auto',
-    display: 'grid',
-    alignContent: 'center',
-    padding: space.s12
+    overflowY: 'auto'
   },
-  investment: { alignContent: 'start', paddingInline: space.s4 },
+  // 면 맨 위의 이름(18 700)과 직업(12) 한 줄. 높이 44다.
+  faceTitle: {
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 0,
+    height: 44,
+    minWidth: 0,
+    paddingInline: space.s16
+  },
+  faceName: {
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    fontSize: 18,
+    fontWeight: 700,
+    lineHeight: '26px',
+    color: colors.cardFg
+  },
+  faceJob: { flexShrink: 0, whiteSpace: 'nowrap', color: colors.cardFgSubtle },
+  equipment: { display: 'flex', flexDirection: 'column', paddingInline: space.s12 },
+  equipmentDivider: {
+    flexShrink: 0,
+    height: 1,
+    marginInline: space.s4,
+    backgroundColor: colors.cardDivider
+  },
+  investment: { paddingInline: space.s16 },
   // 그림 칸. 펼친 창에서는 280이고 창이 낮으면 먼저 줄어든다.
   well: {
     position: 'relative',
@@ -247,6 +276,19 @@ export const styles = stylex.create({
     backgroundColor: colors.cardBorderStrong
   },
   affiliationPlaceholder: { color: colors.cardBorderStrong },
+  // 직업은 캔버스 카드 면 보드처럼 소속 줄 오른쪽 끝에 두고, 접힌 동안 숨긴다.
+  job: {
+    flexShrink: 1,
+    minWidth: 0,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: colors.cardFgMuted,
+    transitionProperty: 'opacity, visibility',
+    transitionDuration: `${motion.durHover}, ${motion.durHover}`,
+    transitionTimingFunction: 'linear'
+  },
+  jobHidden: { opacity: 0, visibility: 'hidden' },
   // 이름은 평소 테두리 없는 글자로 보이고, 고치는 동안 카드 신호색 상자가 된다. 글자가 모험단과 같은
   // 세로줄에 오도록 상자 안쪽 여백과 테두리만큼 왼쪽으로 내민다.
   // Typo가 요소 margin을 0으로 두므로 내미는 여백은 감싼 상자에 준다.
@@ -279,18 +321,38 @@ export const styles = stylex.create({
     display: 'flex',
     flexDirection: 'column',
     gap: space.s4,
-    maxHeight: 48,
+    maxHeight: 80,
     paddingTop: space.s4,
     overflow: 'hidden'
   },
   collapsibleHidden: { maxHeight: 0, paddingTop: 0, opacity: 0, visibility: 'hidden' },
   hint: { color: colors.cardFgSubtle },
-  job: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: colors.cardFgMuted
+  // 캐릭터 면의 스탯 한 줄(캔버스 카드 면 보드). 같은 폭 세 칸과 40 폭 스위칭 칸이고, 라벨은 최소 글자
+  // 크기 12, 값은 Barlow 18 700이다.
+  statLine: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) 40px',
+    gap: 6,
+    margin: 0,
+    marginTop: 2,
+    paddingTop: space.s8,
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
+    borderTopColor: colors.cardDivider
   },
+  // 최소 창의 좁은 카드에서는 라벨을 줄이지 않고 어절 단위로 감싸며, 값은 칸 아래에 맞춘다.
+  statItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'flex-end',
+    gap: 2,
+    minWidth: 0
+  },
+  statItemLabel: { margin: 0, color: colors.cardFgSubtle },
+  statItemValue: { margin: 0, overflow: 'hidden', whiteSpace: 'nowrap', lineHeight: '22px' },
+  statItemNumber: { ...numeric, fontSize: 18, fontWeight: 700, color: colors.cardFg },
+  statItemMissing: { color: colors.cardBorderStrong },
+  statItemUnit: { marginInlineStart: 1, fontWeight: 500, color: colors.cardFgSubtle },
   // 명성과 장비 점수. 라벨은 왼쪽 12px, 값은 오른쪽에 같은 크기로 두 층 쌓는다. 남는 높이는 이 위에 둔다.
   stats: {
     display: 'flex',

@@ -154,7 +154,6 @@ function App(): React.JSX.Element {
               resetKey={String(capture.round)}
               slots={capture.search.slots.map((slot) => slot.state)}
               characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
-              basicOnly
               inputEnabled
               onLookup={capture.search.lookupSlot}
               loadingSlots={capture.search.manualSlots.map(

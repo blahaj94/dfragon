@@ -9,9 +9,7 @@ export function getCharacterPreview(scenario: string, character: CardCharacter):
   const snapshot = { ...character }
   const equipment = character.equipment.map((item) => ({
     ...item,
-    image: 'data:image/png;base64,AA==',
-    enhancement: undefined,
-    enchantment: undefined
+    image: 'data:image/png;base64,AA=='
   }))
 
   return {
