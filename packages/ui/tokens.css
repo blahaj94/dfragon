@@ -3,11 +3,14 @@
  * 기준 commit은 bc120e5(dfragon-design PR #31)다. 두 저장소 사이에 자동 동기화가 없으므로
  * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
  *
- * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다.
+ * :root가 다크 기본값이고 :root[data-theme='light']가 라이트 값이다. color-scheme도 같은 모드로 정해
+ * 스크롤 막대, 폼 컨트롤 같은 브라우저 기본 부품이 모드를 따른다.
  * 라이트 값 중 provisional 표시는 디자인 저장소가 라이트 값을 정하기 전의 임시 값이다.
  * StyleX에서는 같은 이름의 문자열 상수를 @dfragon/ui/tokens.stylex에서 가져온다.
  */
 :root {
+  color-scheme: dark;
+
   /* 의미 색(semantic-dark) */
   --df-bg-canvas: #0f0f11;
   --df-bg-bar: #121214;
@@ -123,14 +126,10 @@
  * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
  * 카드 위에서만 쓰는 card.*, bracket.*, hazard, gridLine, tier.ranker{Surface,Well,Outline}와
  * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
- *
- * 앱이 아직 data-theme을 넣지 않는 동안에는 SEED 라이트 모드(light-only, system의 light)를 따른다.
- * data-theme이 있으면 그 값을 우선한다. 앱별 SEED 제거 PR이 data-theme으로 옮긴 뒤
- * SEED 잔여 삭제 PR에서 data-seed-color-mode 선택자를 지운다.
  */
-:root[data-theme='light'],
-:root:not([data-theme])[data-seed-color-mode='light-only'],
-:root:not([data-theme])[data-seed-color-mode='system'][data-seed-user-color-scheme='light'] {
+:root[data-theme='light'] {
+  color-scheme: light;
+
   --df-bg-canvas: #f3f4f5; /* provisional */
   --df-bg-bar: #ffffff; /* provisional */
   --df-bg-surface: #ffffff; /* provisional */
