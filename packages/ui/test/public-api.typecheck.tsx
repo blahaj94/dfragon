@@ -51,6 +51,8 @@ import {
   type DialogRootProps,
   type DialogTriggerProps,
   type IconButtonProps,
+  type KbdProps,
+  type KbdSurface,
   type MenuItemProps,
   type MenuPopupProps,
   type MenuRadioItemProps,
@@ -102,7 +104,7 @@ expectTypeOf<ButtonProps['variant']>().toEqualTypeOf<
 >()
 expectTypeOf<ButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'lg' | undefined>()
 expectTypeOf<IconButtonProps['ref']>().toEqualTypeOf<Ref<HTMLButtonElement> | undefined>()
-expectTypeOf<IconButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'bar' | undefined>()
+expectTypeOf<IconButtonProps['size']>().toEqualTypeOf<'sm' | 'md' | 'bar' | 'lg' | undefined>()
 expectTypeOf<ProgressCircleProps['ref']>().toEqualTypeOf<Ref<SVGSVGElement> | undefined>()
 expectTypeOf<TextFieldProps['ref']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
 expectTypeOf<TextFieldProps['fieldRef']>().toEqualTypeOf<Ref<HTMLDivElement> | undefined>()
@@ -120,6 +122,8 @@ expectTypeOf<ControlSurface>().toEqualTypeOf<'default' | 'card'>()
 expectTypeOf<SelectTriggerProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
 expectTypeOf<SelectPopupProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
 expectTypeOf<TabsListProps['surface']>().toEqualTypeOf<ControlSurface | undefined>()
+expectTypeOf<KbdSurface>().toEqualTypeOf<'default' | 'signal'>()
+expectTypeOf<KbdProps['surface']>().toEqualTypeOf<KbdSurface | undefined>()
 expectTypeOf<CardFrameState>().toEqualTypeOf<
   'default' | 'selected' | 'failure' | 'waiting' | 'top' | 'ranker'
 >()
@@ -242,6 +246,7 @@ export const designExamples = (
       창 감지됨
     </StatusChip>
     <Kbd>Alt</Kbd>
+    <Kbd surface="signal">R</Kbd>
     <CardFrame state="ranker" as="article" aria-label="랭커 카드">
       <NumericText value={125850} format={(value) => `${value}`} countUp={false} />
     </CardFrame>
