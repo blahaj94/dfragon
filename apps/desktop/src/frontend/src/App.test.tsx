@@ -3,7 +3,9 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
-import { searchSnapshot } from '../../preload/api/search-test-fixture'
+import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixture'
+import type { SearchApi } from '../../preload/common/types/search'
+import { emptySearchSlots } from './lib/slots'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
 import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
@@ -110,7 +112,7 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
     )
   )
 
-  const slots = container.querySelectorAll('article')
+  const slots = container.querySelectorAll('[aria-label="파티 캐릭터"] article')
   expect(slots).toHaveLength(4)
   for (const [index, slot] of [...slots].entries()) {
     expect(slot.getAttribute('aria-label')).toBe(`${index + 1}번 슬롯`)
@@ -155,7 +157,7 @@ it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후
       </ColorThemeProvider>
     )
   )
-  const cards = [...container.querySelectorAll('article')]
+  const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
   const loginButton = container.querySelector('header button[aria-label="로그인"]')
   await click('로그인')
   expect(container.querySelector('header button[aria-label="취소"]')).toBe(loginButton)
@@ -195,7 +197,7 @@ it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후
   expect(api.logout).toHaveBeenCalledExactlyOnceWith()
   expect(container.querySelector('header')?.textContent).toContain('로그인')
   expect(document.body.textContent).not.toContain('테스트모험가')
-  expect([...container.querySelectorAll('article')]).toEqual(cards)
+  expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
 })
 
 it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
@@ -304,7 +306,7 @@ it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확�
       </ColorThemeProvider>
     )
   )
-  const cards = [...container.querySelectorAll('article')]
+  const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
   await click('로그인')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   expect(api.getAuthState).toHaveBeenCalledTimes(2)
@@ -313,7 +315,7 @@ it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확�
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await click('라이트 테마')
   expect(document.documentElement.dataset.theme).toBe('light')
-  expect([...container.querySelectorAll('article')]).toEqual(cards)
+  expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
 })
 
 it('로그인 설정이 없어 인증 API가 없으면 로그인 버튼 없이 카드와 테마를 표시한다', async () => {
@@ -330,7 +332,7 @@ it('로그인 설정이 없어 인증 API가 없으면 로그인 버튼 없이 �
   expect(header.querySelector('[aria-label="로그인"]')).toBeNull()
   expect(header.textContent).not.toContain('로그인')
   expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
-  expect(container.querySelectorAll('article')).toHaveLength(4)
+  expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
 })
 
 it.each(['restorePaused', 'storageBlocked'] as const)(
@@ -352,7 +354,7 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     expect(api.retryAuth).toHaveBeenCalledExactlyOnceWith()
     expect(api.beginLogin).not.toHaveBeenCalled()
-    expect(container.querySelectorAll('article')).toHaveLength(4)
+    expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
   }
 )
 
@@ -386,7 +388,28 @@ it('새 기본 화면에서 다크, 라이트 테마를 전환하고 창 버튼 
   }
 })
 
-it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 파티로 돌아오면 같은 카드를 보인다', async () => {
+it('검색 하위 메뉴에서 공대를 고르면 공대 12자리를 보이고 자리별 조회는 파티 검색과 따로 보낸다', async () => {
+  let raidSnapshot = searchSnapshot({ captureId: null, slots: emptySearchSlots(12) })
+  const raidControl = vi.fn<SearchApi['controlCharacterSearch']>(async (command) => {
+    if (command.action === 'begin') {
+      raidSnapshot = { ...raidSnapshot, captureId: CAPTURE_ID, revision: raidSnapshot.revision + 1 }
+    }
+
+    return { ok: true, snapshot: raidSnapshot }
+  })
+  // 파티 카드의 서버 지정 조회 채널. 공대 자리 조회가 이쪽으로 가지 않는지 확인한다.
+  const partyManualControl = vi.fn<SearchApi['controlCharacterSearch']>(async () => ({
+    ok: true,
+    snapshot: searchSnapshot({ captureId: null })
+  }))
+  vi.stubGlobal('manualSearch', {
+    controlCharacterSearch: partyManualControl,
+    onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(() => () => {})
+  } satisfies SearchApi)
+  vi.stubGlobal('raidSearch', {
+    controlCharacterSearch: raidControl,
+    onCharacterSearchChanged: vi.fn<SearchApi['onCharacterSearchChanged']>(() => () => {})
+  } satisfies SearchApi)
   await act(async () =>
     root.render(
       <ColorThemeProvider>
@@ -394,7 +417,9 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 �
       </ColorThemeProvider>
     )
   )
-  const cards = [...container.querySelectorAll('article')]
+  const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
+  const raidSection = container.querySelector<HTMLElement>('section[aria-label="공대"]')!
+  expect(raidSection.hidden).toBe(true)
   const trigger = container.querySelector<HTMLButtonElement>('nav button[aria-haspopup="menu"]')!
   expect(trigger.getAttribute('aria-current')).toBe('page')
   expect(trigger.textContent).toBe('검색파티')
@@ -405,9 +430,7 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 �
   )!
   await act(async () => raid.click())
   expect(trigger.textContent).toBe('검색공대')
-  const raidSection = container.querySelector('section[aria-label="공대"]')!
-  expect(raidSection).not.toBeNull()
-  // 공대 데이터가 연결되기 전이라 제품은 세 파티 12자리를 모두 빈 카드로 둔다.
+  expect(raidSection.hidden).toBe(false)
   const raidCards = [...raidSection.querySelectorAll('article')]
   expect(raidCards).toHaveLength(12)
   expect(raidCards.every((card) => card.getAttribute('data-state') === 'waiting')).toBe(true)
@@ -416,14 +439,45 @@ it('검색 하위 메뉴에서 공대를 고르면 공대 자리로 바꾸고 �
   ).toEqual(['1파티', '2파티', '3파티'])
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).not.toBeNull()
 
+  // 빈 공대 자리에서 이름을 넣고 서버를 고르면 공대 검색 채널로 그 자리만 조회한다.
+  const tenth = raidCards[9]
+  const input = tenth.querySelector<HTMLInputElement>('[aria-label="10번 캐릭터 이름"]')!
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '열번째')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+  await act(async () => tenth.querySelector<HTMLButtonElement>('[aria-label="10번 서버"]')!.click())
+  const siroco = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(
+    (option) => option.textContent === '시로코'
+  )!
+  await act(async () => siroco.click())
+  await vi.waitFor(() =>
+    expect(raidControl).toHaveBeenCalledWith({
+      action: 'lookup',
+      captureId: CAPTURE_ID,
+      slot: 9,
+      observationRevision: 1,
+      nickname: '열번째',
+      serverId: 'siroco'
+    })
+  )
+  expect(
+    [
+      ...vi.mocked(window.search.controlCharacterSearch).mock.calls,
+      ...partyManualControl.mock.calls
+    ].map(([call]) => call.action)
+  ).not.toContain('lookup')
+
   await act(async () => trigger.click())
   const partyItem = [...document.querySelectorAll<HTMLElement>('[role="menuitemradio"]')].find(
     (item) => item.textContent === '파티'
   )!
   await act(async () => partyItem.click())
-  expect(container.querySelector('section[aria-label="공대"]')).toBeNull()
+  expect(raidSection.hidden).toBe(true)
   expect(container.querySelector('[aria-label="파티 캐릭터"]')!.closest('[hidden]')).toBeNull()
-  expect([...container.querySelectorAll('article')]).toEqual(cards)
+  expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
+  // 숨긴 공대 카드도 자리별 입력을 유지한다.
+  expect(input.value).toBe('열번째')
 })
 
 it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 창 높이를 400으로 요청한다', async () => {
@@ -449,7 +503,7 @@ it('파티 머리의 접기 버튼은 카드 영역을 가리키고 접은 뒤 �
     expect(fold.getAttribute('aria-label')).toBe('카드 펼치기')
     expect(fold.getAttribute('aria-expanded')).toBe('false')
     await vi.waitFor(() => expect(setContentHeight).toHaveBeenCalledExactlyOnceWith(400))
-    expect(container.querySelectorAll('article')).toHaveLength(4)
+    expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
   } finally {
     Reflect.deleteProperty(window, 'windowChrome')
   }

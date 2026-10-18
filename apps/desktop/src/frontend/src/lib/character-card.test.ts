@@ -1,7 +1,12 @@
 import { expect, it } from 'vitest'
 import type { CharacterSummary } from '../../../preload/common/types/character'
 import type { SearchSlot } from '../../../preload/common/types/search'
-import { canRetryCharacterSlot, characterSlotNotice, toCharacterCard } from './character-card'
+import {
+  canRetryCharacterSlot,
+  characterSlotNotice,
+  searchSlotNotice,
+  toCharacterCard
+} from './character-card'
 
 const summary: CharacterSummary = {
   characterId: 'fixture-character',
@@ -83,4 +88,26 @@ it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () =
   expect(characterSlotNotice(slot)).toBe('외형 미확인, 최고 명성 후보입니다.')
   expect(characterSlotNotice({ ...slot, selectionMethod: 'portrait' })).toBeUndefined()
   expect(characterSlotNotice({ ...slot, selectionMethod: 'manual' })).toBeUndefined()
+})
+
+it('실패와 결과 0건 안내에만 화면별 다음 조회 방법을 덧붙인다', () => {
+  const slot: SearchSlot = {
+    slot: 5,
+    observationRevision: 1,
+    requestId: 'request',
+    nickname: '이름',
+    state: 'empty',
+    rows: [],
+    error: null
+  }
+  expect(searchSlotNotice(slot, '서버와 이름을 다시 조회해 주세요.')).toBe(
+    '검색 결과가 없습니다. 서버와 이름을 다시 조회해 주세요.'
+  )
+  expect(
+    searchSlotNotice(
+      { ...slot, state: 'failure', error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null } },
+      '다음 안내'
+    )
+  ).toBe('검색 시간이 초과됐습니다. 다시 시도해 주세요. 다음 안내')
+  expect(searchSlotNotice({ ...slot, state: 'pending' }, '다음 안내')).toBeUndefined()
 })
