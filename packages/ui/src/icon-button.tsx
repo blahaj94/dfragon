@@ -9,16 +9,11 @@ export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
   icon: ReactNode
   /** sm 32, md 40px 정사각형. 아이콘은 각각 16, 24px이다. @default 'md' */
   size?: 'sm' | 'md'
-  /**
-   * @deprecated SEED ActionButton 시절의 이름이다. 외형에 영향이 없으며 ActionButton alias와 함께 지운다.
-   */
-  variant?: 'neutralWeak' | 'ghost'
 }
 
 function IconButtonImpl({
   icon,
   size = 'md',
-  variant: _variant,
   className,
   style,
   ...buttonProps

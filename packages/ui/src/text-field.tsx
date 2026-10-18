@@ -1,22 +1,13 @@
 import { Field } from '@base-ui/react/field'
 import { Input } from '@base-ui/react/input'
 import * as stylex from '@stylexjs/stylex'
-import {
-  createContext,
-  isValidElement,
-  useContext,
-  type ComponentType,
-  type ReactNode,
-  type Ref
-} from 'react'
+import { createContext, useContext, type ComponentType, type ReactNode, type Ref } from 'react'
 import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
 import { styles } from './text-field.style'
 
 export type TextFieldValueChangeDetails = { value: string }
 
 type TextFieldSize = 'sm' | 'md' | 'lg'
-/** @deprecated SEED TextField 크기 이름. `md`, `lg`로 옮기며 ActionButton alias와 함께 지운다. */
-type LegacyTextFieldSize = 'medium' | 'large'
 
 export type TextFieldProps = {
   label?: ReactNode
@@ -32,7 +23,7 @@ export type TextFieldProps = {
   defaultValue?: string
   onValueChange?: (details: TextFieldValueChangeDetails) => void
   /** sm 32, md 40, lg 48px 높이. @default 'md' */
-  size?: TextFieldSize | LegacyTextFieldSize
+  size?: TextFieldSize
   /** `TextFieldInput` 하나를 둔다. */
   children: ReactNode
   /** 입력 상자(테두리를 그리는 요소). */
@@ -47,14 +38,6 @@ type TextFieldContextValue = Pick<
 >
 
 const TextFieldContext = createContext<TextFieldContextValue>({})
-
-const sizes: Record<TextFieldSize | LegacyTextFieldSize, TextFieldSize> = {
-  sm: 'sm',
-  md: 'md',
-  lg: 'lg',
-  medium: 'md',
-  large: 'lg'
-}
 
 // Base UI Field가 label, 설명, 오류를 입력의 접근 가능한 이름과 설명에 연결한다.
 // value와 onValueChange는 안쪽 TextFieldInput에 전달한다.
@@ -90,7 +73,7 @@ export function TextField({
         ref={ref}
         {...stylex.props(
           styles.box,
-          styles[sizes[size]],
+          styles[size],
           invalid && styles.invalid,
           disabled && styles.disabled
         )}
@@ -113,17 +96,9 @@ export function TextField({
 
 export type TextFieldInputProps = Omit<PublicProps<typeof Input>, 'ref'> & {
   ref?: Ref<HTMLInputElement>
-  /**
-   * 자식 요소 하나를 입력으로 렌더링한다. `render`와 같으며 ActionButton alias와 함께 지운다.
-   * @deprecated `render`를 쓴다.
-   */
-  asChild?: boolean
 }
 
 function TextFieldInputImpl({
-  asChild = false,
-  children,
-  render,
   onValueChange,
   className,
   style,
@@ -131,7 +106,6 @@ function TextFieldInputImpl({
 }: TextFieldInputProps & ForwardedStyle) {
   const field = useContext(TextFieldContext)
   const fieldValueChange = field.onValueChange
-  const element = asChild && isValidElement(children) ? children : render
 
   return (
     <Input
@@ -144,7 +118,6 @@ function TextFieldInputImpl({
         onValueChange?.(value, details)
         fieldValueChange?.({ value })
       }}
-      render={element}
       {...withForwardedStyle(stylex.props(styles.input), { className, style })}
     />
   )

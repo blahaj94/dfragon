@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Chip, Typo } from '@dfragon/ui'
+import { Button, Chip, Typo } from '@dfragon/ui'
 import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail'
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
@@ -136,27 +136,25 @@ export function DeveloperLabelingSection({
       </div>
       {pagination && (
         <nav aria-label="자료실 페이지" {...stylex.props(styles.filters)}>
-          <ActionButton
-            size="small"
-            variant="neutralWeak"
+          <Button
+            size="sm"
             {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page === 0}
             onClick={() => pagination.onPageChange(pagination.page - 1)}
           >
             이전 페이지
-          </ActionButton>
+          </Button>
           <Typo.txtS role="status">
             {pagination.page + 1} / {pagination.pageCount} 페이지 · {pagination.total}개
           </Typo.txtS>
-          <ActionButton
-            size="small"
-            variant="neutralWeak"
+          <Button
+            size="sm"
             {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page + 1 >= pagination.pageCount}
             onClick={() => pagination.onPageChange(pagination.page + 1)}
           >
             다음 페이지
-          </ActionButton>
+          </Button>
         </nav>
       )}
       {error && (

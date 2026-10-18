@@ -1,6 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Checkbox, StatusBadge, Typo } from '@dfragon/ui'
+import { Button, Checkbox, StatusChip, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
@@ -84,9 +84,9 @@ export function DeveloperParticipantCollectionSection({
               : '게임 창이 보이면 자동으로 연결합니다.'}
           </Typo.txtS>
         </div>
-        <StatusBadge tone={popup ? 'positive' : 'warning'}>
+        <StatusChip tone={popup ? 'success' : 'waiting'}>
           {windowName} {popup ? '찾음' : '찾는 중'}
-        </StatusBadge>
+        </StatusChip>
       </div>
 
       <div {...stylex.props(styles.heading)}>
@@ -116,14 +116,9 @@ export function DeveloperParticipantCollectionSection({
             </>
           )}
           {saved > 0 && onLabeling && (
-            <ActionButton
-              size="small"
-              variant="neutralWeak"
-              {...stylex.props(buttonStyles.secondary)}
-              onClick={onLabeling}
-            >
+            <Button size="sm" {...stylex.props(buttonStyles.secondary)} onClick={onLabeling}>
               정답 입력으로
-            </ActionButton>
+            </Button>
           )}
         </div>
       )}

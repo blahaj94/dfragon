@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, TextField, TextFieldInput, Typo } from '@dfragon/ui'
+import { Button, TextField, TextFieldInput, Typo } from '@dfragon/ui'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperSampleEditor.style'
@@ -100,15 +100,15 @@ export function DeveloperSampleEditor({
         )}
       </div>
       {failed && (
-        <ActionButton
-          size="small"
+        <Button
           variant="ghost"
+          size="sm"
           onClick={() => {
             setRetry((value) => value + 1)
           }}
         >
           이미지 다시 읽기
-        </ActionButton>
+        </Button>
       )}
       {source && (
         <Typo.caption {...stylex.props(styles.muted)}>
@@ -126,7 +126,6 @@ export function DeveloperSampleEditor({
         }}
       >
         <TextField
-          size="medium"
           label={
             <Typo.txtS as="span" weight={700}>
               정답 닉네임
@@ -154,10 +153,9 @@ export function DeveloperSampleEditor({
         </Typo.caption>
         {!readOnly && (
           <div {...stylex.props(styles.actions)}>
-            <ActionButton
+            <Button
+              variant="primary"
               type="submit"
-              size="medium"
-              variant="brandSolid"
               disabled={saving || draft.length === 0}
               loading={saving}
               {...stylex.props(styles.primaryAction)}
@@ -165,12 +163,10 @@ export function DeveloperSampleEditor({
               <Typo.txtM as="span" weight={700}>
                 저장하고 다음
               </Typo.txtM>
-            </ActionButton>
+            </Button>
             <div {...stylex.props(styles.secondaryActions)}>
-              <ActionButton
+              <Button
                 type="button"
-                size="medium"
-                variant="neutralWeak"
                 {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={onSkip}
@@ -178,11 +174,9 @@ export function DeveloperSampleEditor({
                 <Typo.txtM as="span" weight={700}>
                   건너뛰기
                 </Typo.txtM>
-              </ActionButton>
-              <ActionButton
+              </Button>
+              <Button
                 type="button"
-                size="medium"
-                variant="neutralWeak"
                 {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
                 onClick={() => onSetExcluded(!sample.excluded)}
@@ -190,7 +184,7 @@ export function DeveloperSampleEditor({
                 <Typo.txtM as="span" weight={700}>
                   {sample.excluded ? '포함으로 복원' : '학습에서 제외'}
                 </Typo.txtM>
-              </ActionButton>
+              </Button>
             </div>
           </div>
         )}

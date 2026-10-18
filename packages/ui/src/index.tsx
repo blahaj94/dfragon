@@ -67,9 +67,3 @@ export { ContentStack, ExampleSection, SupportingText } from './composition'
 export { shapes } from './shapes'
 export { Typo, typographyVariants } from './typo'
 export type { TypoProps, TypoTag, TypoVariant } from './typo'
-
-// SEED에서 옮기는 동안만 두는 이름. Desktop DFragon 디자인 적용의 마지막 PR에서 지운다.
-export { ActionButton } from './action-button'
-export type { ActionButtonProps } from './action-button'
-export { StatusBadge } from './status-chip'
-export type { StatusBadgeProps, StatusBadgeTone } from './status-chip'

@@ -3,7 +3,6 @@ import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
   Typo,
-  ActionButton,
   Button,
   DialogRoot,
   DialogTrigger,
@@ -115,17 +114,17 @@ export function CaptureControls({
         </DialogBody>
         <DialogFooter>
           <div {...stylex.props(styles.actions)}>
-            <ActionButton size="medium" variant="neutralWeak" onClick={() => setOpen(false)}>
+            <Button onClick={() => setOpen(false)}>
               <Typo.txtM as="span" weight={700}>
                 닫기
               </Typo.txtM>
-            </ActionButton>
+            </Button>
             {hasSelection && (
-              <ActionButton size="medium" variant="brandSolid" onClick={onStop}>
+              <Button variant="primary" onClick={onStop}>
                 <Typo.txtM as="span" weight={700}>
                   캡처 중지
                 </Typo.txtM>
-              </ActionButton>
+              </Button>
             )}
           </div>
         </DialogFooter>

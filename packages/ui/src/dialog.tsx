@@ -1,6 +1,6 @@
 import { Dialog } from '@base-ui/react/dialog'
 import * as stylex from '@stylexjs/stylex'
-import { isValidElement, type ComponentType, type ReactNode, type Ref } from 'react'
+import type { ComponentType, ReactNode, Ref } from 'react'
 import { Button, type ButtonProps } from './button'
 import { CloseIcon } from './icons'
 import { IconButton } from './icon-button'
@@ -44,26 +44,9 @@ export function DialogRoot({
 
 export type DialogTriggerProps = Omit<PublicProps<typeof Dialog.Trigger>, 'ref'> & {
   ref?: Ref<HTMLButtonElement>
-  /**
-   * 자식 요소 하나를 trigger로 렌더링한다. `render`와 같으며 ActionButton alias와 함께 지운다.
-   * @deprecated `render`를 쓴다.
-   */
-  asChild?: boolean
 }
 
-function DialogTriggerImpl({ asChild = false, children, render, ...props }: DialogTriggerProps) {
-  if (asChild && isValidElement(children)) {
-    return <Dialog.Trigger render={children} {...props} />
-  }
-
-  return (
-    <Dialog.Trigger render={render} {...props}>
-      {children}
-    </Dialog.Trigger>
-  )
-}
-
-export const DialogTrigger: ComponentType<DialogTriggerProps> = DialogTriggerImpl
+export const DialogTrigger: ComponentType<DialogTriggerProps> = Dialog.Trigger
 
 export type DialogContentProps = Omit<PublicProps<typeof Dialog.Popup>, 'title' | 'ref'> & {
   ref?: Ref<HTMLDivElement>

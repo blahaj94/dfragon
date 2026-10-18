@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Typo } from '@dfragon/ui'
+import { Button, Typo } from '@dfragon/ui'
 import { ExternalLinkIcon } from './ExternalLinkIcon'
 import { styles } from './UpdateNotice.style'
 
@@ -27,17 +27,17 @@ export function UpdateNotice({
         )}
       </div>
       <div {...stylex.props(styles.actions)}>
-        <ActionButton size="small" variant="neutralWeak" onClick={onOpenRelease}>
+        <Button size="sm" onClick={onOpenRelease}>
           <Typo.txtS as="span" weight={700}>
             Release 열기
           </Typo.txtS>
           <ExternalLinkIcon width="16" height="16" />
-        </ActionButton>
-        <ActionButton size="small" variant="ghost" onClick={onDismiss}>
+        </Button>
+        <Button variant="ghost" size="sm" onClick={onDismiss}>
           <Typo.txtS as="span" weight={700}>
             닫기
           </Typo.txtS>
-        </ActionButton>
+        </Button>
       </div>
     </section>
   )

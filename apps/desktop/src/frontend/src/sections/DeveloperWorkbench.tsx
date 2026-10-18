@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Select, Typo } from '@dfragon/ui'
+import { Button, Select, Typo } from '@dfragon/ui'
 import { paginate } from '@dfragon/lib/utils/pagination'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection } from './DeveloperLabelingSection'
@@ -260,9 +260,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.h3 as="h1">개발자 작업 공간</Typo.h3>
           <Typo.txtS {...stylex.props(styles.muted)}>게임 중 수집, 정답은 나중에 입력</Typo.txtS>
         </div>
-        <ActionButton
-          size="medium"
-          variant="neutralWeak"
+        <Button
           {...stylex.props(buttonStyles.secondary)}
           disabled={dataset.saving}
           onClick={requestClose}
@@ -270,37 +268,35 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtM as="span" weight={700}>
             일반 화면으로 돌아가기
           </Typo.txtM>
-        </ActionButton>
+        </Button>
       </header>
 
       {confirmClose && (
         <div role="alert" {...stylex.props(styles.panel)}>
           <Typo.txtS>저장하지 않은 정답 입력이 있습니다.</Typo.txtS>
           <div {...stylex.props(styles.actions)}>
-            <ActionButton
-              size="small"
-              variant="neutralWeak"
+            <Button
+              size="sm"
               {...stylex.props(buttonStyles.secondary)}
               onClick={() => setConfirmClose(false)}
             >
               계속 작성
-            </ActionButton>
-            <ActionButton size="small" variant="ghost" onClick={onClose}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
               저장하지 않고 돌아가기
-            </ActionButton>
+            </Button>
           </div>
         </div>
       )}
 
       <div role="tablist" aria-label="개발자 도구" {...stylex.props(styles.tabs)}>
-        <ActionButton
+        <Button
+          variant="ghost"
           id="developer-collection-tab"
           role="tab"
           aria-selected={activeTab === 'collection'}
           aria-controls="developer-collection-panel"
           tabIndex={activeTab === 'collection' ? 0 : -1}
-          size="medium"
-          variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'collection' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('collection')}
@@ -308,15 +304,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtM as="span" weight={700}>
             이미지 수집
           </Typo.txtM>
-        </ActionButton>
-        <ActionButton
+        </Button>
+        <Button
+          variant="ghost"
           id="developer-participants-tab"
           role="tab"
           aria-selected={activeTab === 'participants'}
           aria-controls="developer-participants-panel"
           tabIndex={activeTab === 'participants' ? 0 : -1}
-          size="medium"
-          variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'participants' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('participants')}
@@ -324,15 +319,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtM as="span" weight={700}>
             파티원창 크롭
           </Typo.txtM>
-        </ActionButton>
-        <ActionButton
+        </Button>
+        <Button
+          variant="ghost"
           id="developer-raid-tab"
           role="tab"
           aria-selected={activeTab === 'raid'}
           aria-controls="developer-raid-panel"
           tabIndex={activeTab === 'raid' ? 0 : -1}
-          size="medium"
-          variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'raid' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => selectTab('raid')}
@@ -340,15 +334,14 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtM as="span" weight={700}>
             공대원창 크롭
           </Typo.txtM>
-        </ActionButton>
-        <ActionButton
+        </Button>
+        <Button
+          variant="ghost"
           id="developer-labeling-tab"
           role="tab"
           aria-selected={activeTab === 'labeling'}
           aria-controls="developer-labeling-panel"
           tabIndex={activeTab === 'labeling' ? 0 : -1}
-          size="medium"
-          variant="ghost"
           {...stylex.props(styles.tab, activeTab === 'labeling' && styles.tabSelected)}
           onKeyDown={handleTabKeyDown}
           onClick={() => {
@@ -359,7 +352,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <Typo.txtM as="span" weight={700}>
             정답 입력
           </Typo.txtM>
-        </ActionButton>
+        </Button>
       </div>
       <div aria-hidden="true" {...stylex.props(styles.separator)} />
 
@@ -409,10 +402,10 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           <>
             <div role="group" aria-label="자료 위치" {...stylex.props(styles.actions)}>
               {(['local', 'ocr'] as const).map((value) => (
-                <ActionButton
+                <Button
+                  size="sm"
                   key={value}
-                  size="small"
-                  variant={source === value ? 'neutralSolid' : 'ghost'}
+                  variant={source === value ? 'secondary' : 'ghost'}
                   aria-pressed={source === value}
                   disabled={dataset.saving}
                   onClick={() => {
@@ -425,13 +418,12 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   }}
                 >
                   {value === 'local' ? '로컬 자료' : 'OCR 자료실'}
-                </ActionButton>
+                </Button>
               ))}
               {readingRemote && (
                 <>
-                  <ActionButton
-                    size="small"
-                    variant="neutralWeak"
+                  <Button
+                    size="sm"
                     {...stylex.props(buttonStyles.secondary)}
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
@@ -441,7 +433,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     }}
                   >
                     자료실 다시 불러오기
-                  </ActionButton>
+                  </Button>
                   <label>
                     평가 분할{' '}
                     <select
@@ -524,26 +516,27 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               <div {...stylex.props(styles.evaluationBody)}>
                 <Typo.txtS>탑재된 PP-OCRv5 한국어 인식 모델 · 닉네임 한 줄 기준</Typo.txtS>
                 <div {...stylex.props(styles.actions)}>
-                  <ActionButton
-                    size="small"
-                    variant={evaluation.preprocessing === 'party' ? 'neutralSolid' : 'ghost'}
+                  <Button
+                    size="sm"
+                    variant={evaluation.preprocessing === 'party' ? 'secondary' : 'ghost'}
                     aria-pressed={evaluation.preprocessing === 'party'}
                     disabled={evaluation.running}
                     onClick={() => evaluation.setPreprocessing('party')}
                   >
                     제품 전처리
-                  </ActionButton>
-                  <ActionButton
-                    size="small"
-                    variant={evaluation.preprocessing === 'raw' ? 'neutralSolid' : 'ghost'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={evaluation.preprocessing === 'raw' ? 'secondary' : 'ghost'}
                     aria-pressed={evaluation.preprocessing === 'raw'}
                     disabled={evaluation.running}
                     onClick={() => evaluation.setPreprocessing('raw')}
                   >
                     원본 입력
-                  </ActionButton>
-                  <ActionButton
-                    size="small"
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="sm"
                     disabled={
                       evaluation.running ||
                       displayedDataset.loading ||
@@ -552,16 +545,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     onClick={() => void evaluation.evaluate(evaluationSamples)}
                   >
                     {readingRemote ? '정답 완료 자료 평가' : '전체 평가'}
-                  </ActionButton>
+                  </Button>
                   {evaluation.running && (
-                    <ActionButton
-                      size="small"
-                      variant="neutralWeak"
+                    <Button
+                      size="sm"
                       {...stylex.props(buttonStyles.secondary)}
                       onClick={evaluation.cancel}
                     >
                       평가 중지
-                    </ActionButton>
+                    </Button>
                   )}
                 </div>
                 <Typo.caption {...stylex.props(styles.muted)}>
@@ -603,9 +595,8 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       선택 이미지 평가
                     </Typo.txtM>
                     {renderSelectedResult(selected)}
-                    <ActionButton
-                      size="small"
-                      variant="neutralWeak"
+                    <Button
+                      size="sm"
                       {...stylex.props(buttonStyles.secondary)}
                       disabled={!canEvaluateSelected}
                       onClick={() => {
@@ -615,7 +606,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       }}
                     >
                       선택 이미지 평가
-                    </ActionButton>
+                    </Button>
                   </section>
                 )}
               </div>

@@ -40,26 +40,3 @@ export function StatusChip({ tone, role, size = 'sm', children }: StatusChipProp
     </span>
   )
 }
-
-/** @deprecated `StatusChip`의 tone을 쓴다. */
-export type StatusBadgeTone = 'neutral' | 'informative' | 'critical' | 'warning' | 'positive'
-
-/** @deprecated `StatusChipProps`를 쓴다. */
-export type StatusBadgeProps = Omit<StatusChipProps, 'tone'> & { tone: StatusBadgeTone }
-
-const tones: Record<StatusBadgeTone, StatusChipTone> = {
-  neutral: 'neutral',
-  informative: 'neutral',
-  critical: 'danger',
-  warning: 'waiting',
-  positive: 'success'
-}
-
-/**
- * SEED Badge 시절 tone 이름을 StatusChip tone으로 바꿔 전달한다. Desktop DFragon 디자인 적용의
- * 마지막 PR에서 지운다.
- * @deprecated `StatusChip`을 쓴다.
- */
-export function StatusBadge({ tone, ...props }: StatusBadgeProps) {
-  return <StatusChip tone={tones[tone]} {...props} />
-}

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { Typo, ActionButton, TextField, TextFieldInput } from '@dfragon/ui'
+import { Button, Typo, TextField, TextFieldInput } from '@dfragon/ui'
 import type { NoticeEntry } from '@dfragon/licenses/types'
 import { ChevronRightIcon } from './ChevronRightIcon'
 import { styles } from './OpenSourceNotices.style'
@@ -30,16 +30,11 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
   if (selected) {
     return (
       <>
-        <ActionButton
-          ref={backButton}
-          size="small"
-          variant="ghost"
-          onClick={() => setSelected(null)}
-        >
+        <Button variant="ghost" size="sm" ref={backButton} onClick={() => setSelected(null)}>
           <Typo.txtS as="span" weight={700}>
             ‹ 라이선스 목록
           </Typo.txtS>
-        </ActionButton>
+        </Button>
         <Typo.h4 as="h2" ref={heading} tabIndex={-1} {...stylex.props(styles.heading)}>
           {selected.name}
         </Typo.h4>
@@ -78,13 +73,11 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
         }
       >
         <TextFieldInput
-          asChild
+          render={<Typo.txtS as="input" />}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="이름 또는 라이선스"
-        >
-          <Typo.txtS as="input" />
-        </TextFieldInput>
+        />
       </TextField>
       <Typo.caption as="p" role="status" {...stylex.props(styles.count)}>
         {filtered.length}개 구성 요소
@@ -92,9 +85,9 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
       <ul {...stylex.props(styles.list)}>
         {filtered.map((entry) => (
           <li key={`${entry.name}@${entry.version}`} {...stylex.props(styles.item)}>
-            <ActionButton
-              size="small"
+            <Button
               variant="ghost"
+              size="sm"
               ref={(element) => {
                 if (entry === previousSelection.current && element) {
                   lastTrigger.current = element
@@ -116,7 +109,7 @@ export function OpenSourceNotices({ entries }: { entries: NoticeEntry[] }): Reac
                 {entry.license}
               </Typo.txtS>
               <ChevronRightIcon {...stylex.props(styles.rowChevron)} />
-            </ActionButton>
+            </Button>
           </li>
         ))}
       </ul>
