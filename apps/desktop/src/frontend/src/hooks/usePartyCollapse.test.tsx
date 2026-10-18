@@ -105,6 +105,20 @@ it('공대 화면은 접으면 카드 전환 뒤 창을 560으로 줄이고, 접
   expect(setContentHeight.mock.calls).toEqual([[560], [400], [560], [800]])
 })
 
+it('공대에서 접은 직후 카드 전환이 끝나기 전에 파티로 바꾸면 남은 전환 시간을 기다린 뒤 400으로 줄인다', async () => {
+  const setContentHeight = vi.fn(async () => {})
+  installApi(setContentHeight)
+  await act(async () => root.render(<Harness collapsedHeight={560} />))
+
+  await act(async () => toggle())
+  await act(async () => vi.advanceTimersByTime(100))
+  await act(async () => root.render(<Harness collapsedHeight={400} />))
+  await act(async () => vi.advanceTimersByTime(PARTY_COLLAPSE_TRANSITION_MS - 100 - 1))
+  expect(setContentHeight).not.toHaveBeenCalled()
+  await act(async () => vi.advanceTimersByTime(1))
+  expect(setContentHeight.mock.calls).toEqual([[400]])
+})
+
 it('동작 줄이기 설정에서는 접을 때도 기다리지 않고 창을 줄인다', async () => {
   stubReducedMotion(true)
   const setContentHeight = vi.fn(async () => {})
