@@ -419,8 +419,8 @@ it('arms only on the collection tab, previews four model input crops, and disarm
   expect(container.textContent).toContain('게임 화면 연결됨')
   expect(container.textContent).not.toContain('최근 저장')
 
-  const secondCheckbox = container.querySelector<HTMLInputElement>(
-    'input[aria-label="2번 크롭 저장"]'
+  const secondCheckbox = container.querySelector<HTMLElement>(
+    '[role="checkbox"][aria-label="2번 크롭 저장"]'
   )!
   await act(async () => {
     secondCheckbox.click()
@@ -709,10 +709,10 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   await click('파티원창 크롭')
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4], 'participants')
   expect(api.previewParty).toHaveBeenLastCalledWith('participants')
-  const third = (): HTMLInputElement =>
-    container.querySelector<HTMLInputElement>('input[aria-label="3번 파티원 닉네임 저장"]')!
+  const third = (): HTMLElement =>
+    container.querySelector<HTMLElement>('[role="checkbox"][aria-label="3번 파티원 닉네임 저장"]')!
   await act(async () => third().click())
-  expect(third().checked).toBe(false)
+  expect(third().getAttribute('aria-checked')).toBe('false')
 
   nextFrame = {
     ...nextFrame,
@@ -722,8 +722,8 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(container.querySelectorAll('input:disabled')).toHaveLength(4)
-  expect(third().checked).toBe(false)
+  expect(container.querySelectorAll('[role="checkbox"][aria-disabled="true"]')).toHaveLength(4)
+  expect(third().getAttribute('aria-checked')).toBe('false')
   expect(container.textContent).toContain('현재 저장 대상 0개')
 
   nextFrame = {
@@ -743,9 +743,9 @@ it('keeps four participant rows and restores saved inclusion after a row becomes
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(container.querySelectorAll('input:disabled')).toHaveLength(3)
-  expect(third().disabled).toBe(false)
-  expect(third().checked).toBe(false)
+  expect(container.querySelectorAll('[role="checkbox"][aria-disabled="true"]')).toHaveLength(3)
+  expect(third().getAttribute('aria-disabled')).not.toBe('true')
+  expect(third().getAttribute('aria-checked')).toBe('false')
   expect(container.querySelector('img[alt="3번 닉네임 원본 크롭"]')?.getAttribute('src')).toBe(
     'data:image/png;base64,crop-2x2'
   )
@@ -777,9 +777,9 @@ it('shows an empty participant row unchecked and checks it again when the partic
   }))
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   await click('파티원창 크롭')
-  const first = (): HTMLInputElement =>
-    container.querySelector<HTMLInputElement>('input[aria-label="1번 파티원 닉네임 저장"]')!
-  expect(first().checked).toBe(true)
+  const first = (): HTMLElement =>
+    container.querySelector<HTMLElement>('[role="checkbox"][aria-label="1번 파티원 닉네임 저장"]')!
+  expect(first().getAttribute('aria-checked')).toBe('true')
 
   nextFrame = {
     ...nextFrame,
@@ -792,16 +792,16 @@ it('shows an empty participant row unchecked and checks it again when the partic
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(first().disabled).toBe(true)
-  expect(first().checked).toBe(false)
+  expect(first().getAttribute('aria-disabled')).toBe('true')
+  expect(first().getAttribute('aria-checked')).toBe('false')
   expect(container.textContent).toContain('현재 저장 대상 3개')
 
   nextFrame = { ...nextFrame, slots: partyFrame().slots, participantWindow: popup }
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(first().disabled).toBe(false)
-  expect(first().checked).toBe(true)
+  expect(first().getAttribute('aria-disabled')).not.toBe('true')
+  expect(first().getAttribute('aria-checked')).toBe('true')
   expect(container.textContent).toContain('현재 저장 대상 4개')
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith([1, 2, 3, 4], 'participants')
 })
@@ -884,8 +884,8 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
 
     return { frame, previewError: null, collection: { ...status } }
   })
-  const checkbox = (label: string): HTMLInputElement =>
-    container.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!
+  const checkbox = (label: string): HTMLElement =>
+    container.querySelector<HTMLElement>(`[role="checkbox"][aria-label="${label}"]`)!
   await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
   await act(async () => checkbox('1번 크롭 저장').click())
   await click('공대원창 크롭')
@@ -893,8 +893,8 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     'raid'
   )
-  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(12)
-  expect(container.querySelectorAll('input:checked')).toHaveLength(12)
+  expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(12)
+  expect(container.querySelectorAll('[role="checkbox"][aria-checked="true"]')).toHaveLength(12)
   expect(container.textContent).toContain('현재 저장 대상 12개')
   expect(container.textContent).toContain('12 / 12명')
   expect(container.textContent).toContain('화면의 행 위치 기준')
@@ -909,30 +909,32 @@ it('keeps all twelve raid row positions, skips three empty rows, and preserves e
   await act(async () => {
     await vi.advanceTimersByTimeAsync(1000)
   })
-  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(12)
-  expect(container.querySelectorAll('input:disabled')).toHaveLength(3)
-  expect(container.querySelectorAll('input:disabled:checked')).toHaveLength(0)
+  expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(12)
+  expect(container.querySelectorAll('[role="checkbox"][aria-disabled="true"]')).toHaveLength(3)
+  expect(
+    container.querySelectorAll('[role="checkbox"][aria-disabled="true"][aria-checked="true"]')
+  ).toHaveLength(0)
   expect(container.textContent).toContain('9 / 12명')
   expect(container.textContent).toContain('현재 저장 대상 9개')
   expect(container.querySelector('img[alt="9행 닉네임 원본 크롭"]')).not.toBeNull()
   expect(container.querySelector('img[alt="10행 닉네임 원본 크롭"]')).toBeNull()
 
   await click('파티원창 크롭')
-  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(4)
+  expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(4)
   await act(async () => checkbox('2번 파티원 닉네임 저장').click())
   await click('이미지 수집')
-  expect(container.querySelectorAll('input[type="checkbox"]')).toHaveLength(4)
-  expect(checkbox('1번 크롭 저장').checked).toBe(false)
-  expect(checkbox('2번 크롭 저장').checked).toBe(true)
+  expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(4)
+  expect(checkbox('1번 크롭 저장').getAttribute('aria-checked')).toBe('false')
+  expect(checkbox('2번 크롭 저장').getAttribute('aria-checked')).toBe('true')
   await click('파티원창 크롭')
-  expect(checkbox('1번 파티원 닉네임 저장').checked).toBe(true)
-  expect(checkbox('2번 파티원 닉네임 저장').checked).toBe(false)
+  expect(checkbox('1번 파티원 닉네임 저장').getAttribute('aria-checked')).toBe('true')
+  expect(checkbox('2번 파티원 닉네임 저장').getAttribute('aria-checked')).toBe('false')
 
   nextRaidFrame = raidFrame()
   await click('공대원창 크롭')
-  expect(checkbox('10행 공대원 닉네임 저장').checked).toBe(true)
-  expect(checkbox('11행 공대원 닉네임 저장').checked).toBe(true)
-  expect(checkbox('12행 공대원 닉네임 저장').checked).toBe(false)
+  expect(checkbox('10행 공대원 닉네임 저장').getAttribute('aria-checked')).toBe('true')
+  expect(checkbox('11행 공대원 닉네임 저장').getAttribute('aria-checked')).toBe('true')
+  expect(checkbox('12행 공대원 닉네임 저장').getAttribute('aria-checked')).toBe('false')
   expect(container.textContent).toContain('현재 저장 대상 11개')
   expect(api.setPartyCollectionSlots).toHaveBeenLastCalledWith(
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
@@ -966,23 +968,25 @@ it.each([
     })
     await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
     await click('공대원창 크롭')
-    const third = (): HTMLInputElement =>
-      container.querySelector<HTMLInputElement>('input[aria-label="3행 공대원 닉네임 저장"]')!
+    const third = (): HTMLElement =>
+      container.querySelector<HTMLElement>(
+        '[role="checkbox"][aria-label="3행 공대원 닉네임 저장"]'
+      )!
     await act(async () => third().click())
     failed = true
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
     })
     expect(container.querySelectorAll('img')).toHaveLength(0)
-    expect(container.querySelectorAll('input:disabled')).toHaveLength(12)
+    expect(container.querySelectorAll('[role="checkbox"][aria-disabled="true"]')).toHaveLength(12)
     expect(container.textContent).toContain(message)
     expect(container.textContent).toContain('현재 저장 대상 0개')
     failed = false
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000)
     })
-    expect(container.querySelectorAll('input:disabled')).toHaveLength(0)
-    expect(third().checked).toBe(false)
+    expect(container.querySelectorAll('[role="checkbox"][aria-disabled="true"]')).toHaveLength(0)
+    expect(third().getAttribute('aria-checked')).toBe('false')
     expect(container.textContent).toContain('현재 저장 대상 11개')
     expect(container.textContent).not.toContain(message)
   }

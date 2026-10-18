@@ -7,7 +7,6 @@ const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
 const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
 const SHARED_LIBRARY_IMPORT_PATTERN = /^@dfragon\/lib$/
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
-const SEED_DESIGN_IMPORT_PATTERN = /@seed-design\//
 
 export default defineConfig({
   plugins: [
@@ -15,9 +14,7 @@ export default defineConfig({
     desktopLicenseCatalog({
       runtimeRoot: fileURLToPath(new URL('.', import.meta.url)),
       uiRoot: fileURLToPath(new URL('../../packages/ui', import.meta.url)),
-      ocrRoot: fileURLToPath(new URL('assets/ocr', import.meta.url)),
-      // 제품 renderer와 같은 고지 입력. Desktop SEED 제거 PR에서 지운다.
-      rendererDependencies: ['@seed-design/react', '@seed-design/css']
+      ocrRoot: fileURLToPath(new URL('assets/ocr', import.meta.url))
     })
   ],
   resolve: {
@@ -48,7 +45,6 @@ export default defineConfig({
     setupFiles: ['../../packages/ui/test/setup.ts'],
     // 파일마다 child process를 새로 띄우는 forks보다 worker thread가 빠르고, 파일 격리는 유지한다.
     // isolate: false와 vmThreads는 이 suite의 테스트가 깨져 쓰지 않는다.
-    pool: 'threads',
-    server: { deps: { inline: [SEED_DESIGN_IMPORT_PATTERN] } }
+    pool: 'threads'
   }
 })

@@ -55,9 +55,9 @@ it.each(['win32', 'linux'] as const)(
 
     expect(f.window.setTitleBarOverlay.mock.calls).toEqual([
       [{ color: '#ffffff', symbolColor: '#1a1c20', height: 56 }],
-      [{ color: '#1d2025', symbolColor: '#f3f4f5', height: 56 }]
+      [{ color: '#121214', symbolColor: '#f1ede6', height: 56 }]
     ])
-    expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#1d2025']])
+    expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#121214']])
   }
 )
 
@@ -67,7 +67,7 @@ it('macOS에서는 신호등 overlay를 바꾸지 않고 창 배경만 적용한
   await f.setTheme(f.event, 'dark')
 
   expect(f.window.setTitleBarOverlay).not.toHaveBeenCalled()
-  expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#1d2025']])
+  expect(f.window.setBackgroundColor.mock.calls).toEqual([['#ffffff'], ['#121214']])
 })
 
 it.each([

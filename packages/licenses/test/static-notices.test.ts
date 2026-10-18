@@ -10,7 +10,7 @@ import { createPackageFixture } from './fixtures.ts'
 const noticeFiles = {
   ui: ['ICONS-LICENSE', 'ICONS-NOTICE', 'SEED-LICENSE', 'SEED-NOTICE'],
   lib: ['iconv-lite-LICENSE'],
-  desktop: ['FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']
+  desktop: ['BARLOW-LICENSE', 'FONT-LICENSE', 'LUCIDE-LICENSE', 'NOTICE.md']
 }
 const copyCommand = fileURLToPath(new URL('../src/copy-notices.mjs', import.meta.url))
 
@@ -24,7 +24,12 @@ test('Desktop plugin은 중앙 글꼴, 아이콘, 자산 고지를 기존 배포
 
   assert.deepEqual(
     [...assets.keys()],
-    ['notices/desktop/FONT-LICENSE', 'notices/desktop/LUCIDE-LICENSE', 'notices/desktop/NOTICE.md']
+    [
+      'notices/desktop/BARLOW-LICENSE',
+      'notices/desktop/FONT-LICENSE',
+      'notices/desktop/LUCIDE-LICENSE',
+      'notices/desktop/NOTICE.md'
+    ]
   )
   for (const name of noticeFiles.desktop) {
     assert.equal(

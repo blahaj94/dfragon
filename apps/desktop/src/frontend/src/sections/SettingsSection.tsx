@@ -9,12 +9,10 @@ import {
   DialogContent,
   DialogRoot,
   DialogTrigger,
-  IconButton
+  IconButton,
+  Switch
 } from '@dfragon/ui'
-import { Switch } from '@seed-design/react'
 import type { NoticeEntry } from '@dfragon/licenses/types'
-import { useColorTheme } from '../hooks/useColorTheme'
-import { lightTheme } from '../constants/theme.stylex'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
 import { SettingsIcon } from '../components/SettingsIcon'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
@@ -28,7 +26,6 @@ export function SettingsSection({
   developerMode?: DeveloperModeState
   onOpenDeveloperWorkbench?: () => void
 }): React.JSX.Element {
-  const { light } = useColorTheme()
   const [open, setOpen] = useState(false)
   const [selectedSection, setSelectedSection] = useState<'licenses' | 'developer' | 'versions'>(
     'licenses'
@@ -91,21 +88,14 @@ export function SettingsSection({
 
     return (
       <>
-        <Switch.Root
-          size="24"
-          checked={mode.enabled}
-          disabled={mode.updating}
-          onCheckedChange={mode.setEnabled}
-          {...stylex.props(styles.developerSwitch)}
-        >
-          <Switch.Label>
-            <Typo.txtM as="span">개발자 모드</Typo.txtM>
-          </Switch.Label>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-          <Switch.HiddenInput />
-        </Switch.Root>
+        <label {...stylex.props(styles.developerSwitch)}>
+          <Typo.txtM as="span">개발자 모드</Typo.txtM>
+          <Switch
+            checked={mode.enabled}
+            disabled={mode.updating}
+            onCheckedChange={(checked) => mode.setEnabled(checked)}
+          />
+        </label>
         <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
           {getDeveloperStatusText()}
         </Typo.txtS>
@@ -193,10 +183,7 @@ export function SettingsSection({
           />
         </DialogTrigger>
       </span>
-      <DialogContent
-        title={<Typo.h5 as="span">설정</Typo.h5>}
-        {...stylex.props(styles.dialog, light && lightTheme)}
-      >
+      <DialogContent title={<Typo.h5 as="span">설정</Typo.h5>} {...stylex.props(styles.dialog)}>
         {open && (
           <div {...stylex.props(styles.body)}>
             <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">

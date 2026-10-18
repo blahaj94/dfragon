@@ -1,9 +1,9 @@
 export type WindowChromeTheme = 'light' | 'dark'
 
-// SEED @seed-design/css 3.0.2 base.css의 gray-200(dark), gray-00(light)은
-// Desktop bg.surface, gray-1000은 fg.default에 대응한다.
+// @dfragon/ui tokens.css의 상단 바 면 bg.bar와 글자 fg.default 값이다. preload와 main은 CSS 변수를
+// 읽을 수 없어 값을 옮겨 적으며, 토큰 값을 바꾸면 함께 고친다. 라이트 값은 provisional이다.
 export const WINDOW_CHROME_COLORS = {
-  dark: { color: '#1d2025', symbolColor: '#f3f4f5' },
+  dark: { color: '#121214', symbolColor: '#f1ede6' },
   light: { color: '#ffffff', symbolColor: '#1a1c20' }
 } as const
 

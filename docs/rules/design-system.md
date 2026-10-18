@@ -14,7 +14,7 @@ last-reviewed: 2026-10-18
 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다. 코드 이행은 후속 PR에서 토큰, 공용 Component, 앱별 SEED 제거, SEED 잔여 삭제, Desktop DFragon 디자인 적용 순서로 단계적으로 진행하며, 이행 중에는 SEED 코드가 남아 있다.
 
 - 해당 앱의 이행 PR 전까지 기존 SEED 사용처는 고쳐 쓸 수 있다. `@dfragon/ui`에 대응하는 토큰이나 Component가 있으면 새 사용처는 그것을 쓴다.
-- 남은 SEED 코드의 의존성, CSS 경계와 그 검사는 그 코드를 지우는 이행 PR에서 함께 바꾼다. Desktop의 SEED brand 재매핑(`apps/desktop/src/frontend/src/assets/seed-brand.css`)은 Desktop SEED 제거 PR에서 삭제하며 대신할 전역 override 예외는 두지 않는다.
+- 남은 SEED 코드의 의존성, CSS 경계와 그 검사는 그 코드를 지우는 이행 PR에서 함께 바꾼다. Desktop의 SEED brand 재매핑(`seed-brand.css`)은 Desktop SEED 제거 PR에서 삭제했으며 대신할 전역 override 예외는 두지 않는다.
 - 화면 계약에 남은 기존 색 이름과 상태 표현은 해당 화면의 DFragon 디자인 적용 PR에서 이 문서의 토큰과 규칙으로 옮긴다.
 - 공대 12인 화면과 상위, 랭커 티어 표시는 UI 셸과 fixture 데이터까지가 범위다. 데이터 연결은 별도 과제다.
 

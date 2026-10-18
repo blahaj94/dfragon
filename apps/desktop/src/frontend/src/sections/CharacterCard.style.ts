@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   card: {
@@ -24,7 +24,7 @@ export const styles = stylex.create({
     backgroundColor: 'transparent',
     cursor: 'pointer',
     outlineOffset: -4,
-    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` },
+    ':focus-visible': { outline: `2px solid ${colors.cardSignal}` },
     ':hover': { boxShadow: `inset 0 0 0 1px ${colors.cardBorderStrong}` }
   },
   content: { position: 'absolute', inset: 0, pointerEvents: 'none' },
@@ -45,7 +45,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    color: colors.fgBrand
+    color: colors.cardFg
   },
   muted: { color: colors.cardFgMuted },
   equipment: {
@@ -72,7 +72,7 @@ export const styles = stylex.create({
     color: colors.cardFg,
     fontFamily: 'inherit',
     outlineOffset: 2,
-    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` }
+    ':focus-visible': { outline: `2px solid ${colors.cardSignal}` }
   },
   serverAnchor: {
     position: 'absolute',
@@ -93,7 +93,7 @@ export const styles = stylex.create({
     backgroundColor: colors.cardControl,
     color: colors.cardFg,
     cursor: 'pointer',
-    ':focus-visible': { outline: `2px solid ${colors.borderFocus}` },
+    ':focus-visible': { outline: `2px solid ${colors.cardSignal}` },
     ':disabled': { opacity: 0.35, cursor: 'default' }
   },
   status: {

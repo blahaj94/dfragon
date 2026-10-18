@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: 24, minWidth: 0 },
@@ -156,7 +156,7 @@ export const styles = stylex.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: 34,
-    backgroundColor: colors.bgPreview,
+    backgroundColor: colors.bgWell,
     borderRadius: 4,
     overflow: 'hidden'
   },
@@ -182,7 +182,7 @@ export const styles = stylex.create({
     gap: 12,
     padding: 16,
     borderRadius: 8,
-    backgroundColor: colors.bgBrandWeak,
+    backgroundColor: colors.bgInset,
     color: colors.fgDefault
   }
 })

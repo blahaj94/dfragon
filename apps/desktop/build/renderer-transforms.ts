@@ -5,7 +5,7 @@ import type { PluginOption } from 'vite'
 
 export function rendererTransforms({ test = false }: { test?: boolean } = {}): PluginOption[] {
   return [
-    // Compile before React Fast Refresh; emit CSS alongside the existing SEED stylesheet.
+    // Compile before React Fast Refresh so the renderer CSS bundle carries the StyleX rules.
     // Vitest needs the compiler without the Vite adapter's HTTP/HMR timers.
     test ? stylex.rollup(stylexOptions) : stylex.vite(stylexOptions),
     react()

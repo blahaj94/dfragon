@@ -1,7 +1,6 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import { rendererTransforms } from '../build/renderer-transforms'
-import { seedDesignPlugin } from '@seed-design/vite-plugin'
 import { uiNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 export default defineConfig({
@@ -23,14 +22,11 @@ export default defineConfig({
     root: resolve('src/frontend/src/fixture/auth-bridge'),
     plugins: [
       ...rendererTransforms(),
-      seedDesignPlugin(),
       uiNotices({ uiRoot: resolve('../../packages/ui') }),
       desktopLicenseCatalog({
         runtimeRoot: resolve('.'),
         uiRoot: resolve('../../packages/ui'),
-        ocrRoot: resolve('assets/ocr'),
-        // 제품 renderer와 같은 고지 입력. Desktop SEED 제거 PR에서 지운다.
-        rendererDependencies: ['@seed-design/react', '@seed-design/css']
+        ocrRoot: resolve('assets/ocr')
       })
     ],
     resolve: {

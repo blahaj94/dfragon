@@ -63,10 +63,13 @@ async function click(label: string): Promise<void> {
   await act(async () => button(label).click())
 }
 
-function developerSwitch(): HTMLInputElement | undefined {
-  return [...document.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
-    (input) => input.labels?.[0]?.textContent === '개발자 모드'
-  )
+// Base UI Switch는 감싼 label을 aria-labelledby로 연결하므로 접근 가능한 이름으로 찾는다.
+function developerSwitch(): HTMLElement | undefined {
+  return [...document.querySelectorAll<HTMLElement>('[role="switch"]')].find((element) => {
+    const labelId = element.getAttribute('aria-labelledby')
+
+    return labelId != null && document.getElementById(labelId)?.textContent === '개발자 모드'
+  })
 }
 
 it('설정에서 전체 고지를 안전한 텍스트로 표시하고 목록 포커스를 복원한다', async () => {
@@ -128,7 +131,7 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
   await click('개발자 모드')
   expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('개발자 모드')
   expect(document.body.textContent).toContain('개발자 모드 꺼짐')
-  expect(developerSwitch()?.checked).toBe(false)
+  expect(developerSwitch()?.getAttribute('aria-checked')).toBe('false')
   expect(document.body.textContent).not.toContain('개발 도구 열기')
   await act(async () => developerSwitch()!.click())
   expect(setEnabled).toHaveBeenCalledExactlyOnceWith(true)
@@ -147,7 +150,7 @@ it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정�
   // 다시 렌더링해도 설정 dialog는 열린 채로 남는다. 열린 modal 뒤의 trigger는 누를 수 없다.
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
   await click('개발자 모드')
-  expect(developerSwitch()?.checked).toBe(true)
+  expect(developerSwitch()?.getAttribute('aria-checked')).toBe('true')
   await click('개발 도구 열기')
   expect(openDeveloperWorkbench).toHaveBeenCalledExactlyOnceWith()
   expect(document.querySelector('[role="dialog"]')).toBeNull()
@@ -173,7 +176,7 @@ it('개발자 모드 설정을 저장하는 동안 스위치를 바꿀 수 없�
   await click('설정')
   await click('개발자 모드')
   expect(document.body.textContent).toContain('개발자 모드 설정 저장 중')
-  expect(developerSwitch()?.disabled).toBe(true)
+  expect(developerSwitch()?.getAttribute('aria-disabled')).toBe('true')
   await act(async () => developerSwitch()!.click())
   expect(setEnabled).not.toHaveBeenCalled()
 })

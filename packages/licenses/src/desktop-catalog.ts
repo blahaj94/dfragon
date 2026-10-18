@@ -54,6 +54,12 @@ export function collectDesktopCatalog({
       documents: [document(join(noticeRoot, 'desktop'), 'FONT-LICENSE')]
     },
     {
+      name: 'Barlow Condensed',
+      version: '',
+      license: 'OFL-1.1',
+      documents: [document(join(noticeRoot, 'desktop'), 'BARLOW-LICENSE')]
+    },
+    {
       name: 'PaddleOCR',
       version: '',
       license: 'Apache-2.0',

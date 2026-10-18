@@ -1,9 +1,7 @@
 import { ActionButton, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { CardImage } from '../../components/CardImage'
-import { lightTheme } from '../../constants/theme.stylex'
 import { useCharacterDetail } from '../../hooks/useCharacterDetail'
-import { useColorTheme } from '../../hooks/useColorTheme'
 import { styles } from './CharacterSnapshotPage.style'
 
 const localDateTime = new Intl.DateTimeFormat('ko-KR', {
@@ -26,7 +24,6 @@ function displayValue(value: string | number | null): string {
 
 export function CharacterSnapshotPage(): React.JSX.Element {
   const detail = useCharacterDetail()
-  const { light } = useColorTheme()
   let body: React.JSX.Element
   if (detail.status === 'loading') {
     body = <Typo.txtM role="status">캐릭터 정보를 불러오는 중입니다.</Typo.txtM>
@@ -84,7 +81,7 @@ export function CharacterSnapshotPage(): React.JSX.Element {
   }
 
   return (
-    <main {...stylex.props(styles.page, light && lightTheme)}>
+    <main {...stylex.props(styles.page)}>
       <header {...stylex.props(styles.header)}>
         <Typo.h1>캐릭터 상세</Typo.h1>
         <ActionButton size="small" variant="ghost" onClick={() => window.close()}>

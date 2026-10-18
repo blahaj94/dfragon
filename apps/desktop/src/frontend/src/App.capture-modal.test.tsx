@@ -50,7 +50,7 @@ async function select(id: string): Promise<void> {
   await act(async () => option!.click())
 }
 
-// SEED 대화상자는 portal 없이 카메라 버튼 옆에 그려지므로 모달 문구를 뺀 상단 바 글자만 읽는다.
+// 캡처 대화상자 문구가 섞이지 않도록 대화상자를 뺀 상단 바 글자만 읽는다.
 function topBarText(): string | null {
   const header = document.querySelector('main > header')!.cloneNode(true) as HTMLElement
   for (const dialog of header.querySelectorAll('[role="dialog"]')) {

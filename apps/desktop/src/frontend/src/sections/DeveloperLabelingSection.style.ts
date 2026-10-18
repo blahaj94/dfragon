@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors } from '../constants/theme.stylex'
+import { colors } from '@dfragon/ui/tokens.stylex'
 
 export const styles = stylex.create({
   section: { display: 'flex', flexDirection: 'column', gap: 12, minWidth: 0 },
@@ -29,13 +29,6 @@ export const styles = stylex.create({
     color: colors.fgDefault
   },
   filters: { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, minHeight: 36 },
-  // Design Chip on state: bg.brand.weak with a border.brand outline and fg.brand 700 text.
-  // SEED chips mark selection with a neutral inverted fill, so the filter sets these colors.
-  filterSelected: {
-    backgroundColor: colors.bgBrandWeak,
-    boxShadow: `inset 0 0 0 1px ${colors.borderBrand}`
-  },
-  filterSelectedLabel: { color: colors.fgBrand, fontWeight: 700 },
   list: {
     display: 'flex',
     flexDirection: 'column',

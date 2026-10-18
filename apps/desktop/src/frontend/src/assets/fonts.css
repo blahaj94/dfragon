@@ -7,6 +7,28 @@
   font-display: swap;
 }
 
+/*
+ * 숫자 글꼴 Barlow Condensed 1.408의 600, 700 굵기. 기본 라틴 문자(U+0020-007E)로 줄였고 이름은
+ * tokens.css의 --df-font-num이 쓴다. 출처, subset 명령은 packages/licenses/notices/desktop에 있다.
+ */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/BarlowCondensed-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('./fonts/BarlowCondensed-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0020-007E;
+}
+
 /* foundation.css 다음에 import해 UI 글꼴과 한국어 줄바꿈 기준을 body에서 한 번 정한다. */
 body {
   font-family:

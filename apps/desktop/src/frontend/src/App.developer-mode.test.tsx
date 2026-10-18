@@ -85,14 +85,19 @@ async function click(label: string): Promise<void> {
 }
 
 async function toggle(label: string): Promise<void> {
-  const input = [...document.querySelectorAll<HTMLInputElement>('input[role="switch"]')].find(
-    (candidate) => candidate.labels?.[0]?.textContent === label
+  // Base UI Switch는 감싼 label을 aria-labelledby로 연결하므로 접근 가능한 이름으로 찾는다.
+  const control = [...document.querySelectorAll<HTMLElement>('[role="switch"]')].find(
+    (candidate) => {
+      const labelId = candidate.getAttribute('aria-labelledby')
+
+      return labelId != null && document.getElementById(labelId)?.textContent === label
+    }
   )
-  if (input == null) {
+  if (control == null) {
     throw new Error(`Missing ${label} switch`)
   }
 
-  await act(async () => input.click())
+  await act(async () => control.click())
 }
 
 function installDeveloperApi() {

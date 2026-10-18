@@ -1,7 +1,6 @@
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import * as stylex from '@stylexjs/stylex'
-import { ActionButton, Checkmark, StatusBadge, Typo } from '@dfragon/ui'
-import { Checkbox } from '@seed-design/react'
+import { ActionButton, Checkbox, StatusBadge, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
@@ -196,10 +195,7 @@ export function DeveloperParticipantCollectionSection({
 
             return (
               <article key={slot} {...stylex.props(styles.row, raid && styles.raidRow)}>
-                <Checkbox.Root.Primitive
-                  checked={included && crop != null}
-                  disabled={!crop}
-                  onCheckedChange={(checked) => collection.setSlotIncluded(slot, checked)}
+                <label
                   {...stylex.props(
                     styles.rowHeader,
                     raid && styles.raidRowHeader,
@@ -211,13 +207,15 @@ export function DeveloperParticipantCollectionSection({
                     {raid ? '행' : '번'}
                   </Typo.txtS>
                   <Typo.caption {...stylex.props(styles.rowLabel)}>{rowLabel}</Typo.caption>
-                  <Checkmark />
-                  <Checkbox.HiddenInput
+                  <Checkbox
                     aria-label={
                       raid ? `${slot}행 공대원 닉네임 저장` : `${slot}번 파티원 닉네임 저장`
                     }
+                    checked={included && crop != null}
+                    disabled={!crop}
+                    onCheckedChange={(checked) => collection.setSlotIncluded(slot, checked)}
                   />
-                </Checkbox.Root.Primitive>
+                </label>
                 <div {...stylex.props(styles.cropArea, crop && !included && styles.unchecked)}>
                   {crop ? (
                     <img

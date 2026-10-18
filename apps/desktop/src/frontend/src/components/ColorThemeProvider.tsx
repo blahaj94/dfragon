@@ -18,15 +18,20 @@ export function ColorThemeProvider({
 
   useEffect(() => {
     const root = document.documentElement
-    const previousMode = root.dataset.seedColorMode
-    root.dataset.seedColorMode = light ? 'light-only' : 'dark-only'
+    const previousTheme = root.dataset.theme
+    const previousColorScheme = root.style.colorScheme
+    const theme = light ? 'light' : 'dark'
+    // tokens.css가 data-theme으로 색을 고르고, color-scheme은 스크롤 막대 같은 기본 컨트롤을 맞춘다.
+    root.dataset.theme = theme
+    root.style.colorScheme = theme
 
     return () => {
-      if (previousMode == null) {
-        delete root.dataset.seedColorMode
+      if (previousTheme == null) {
+        delete root.dataset.theme
       } else {
-        root.dataset.seedColorMode = previousMode
+        root.dataset.theme = previousTheme
       }
+      root.style.colorScheme = previousColorScheme
     }
   }, [light])
 

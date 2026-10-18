@@ -585,15 +585,6 @@ importers:
       '@electron-toolkit/tsconfig':
         specifier: 'catalog:'
         version: 2.0.0(@types/node@24.19.2)
-      '@seed-design/css':
-        specifier: 'catalog:'
-        version: 3.0.2
-      '@seed-design/react':
-        specifier: 'catalog:'
-        version: 3.0.0(@seed-design/css@3.0.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(embla-carousel@8.6.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@seed-design/vite-plugin':
-        specifier: 'catalog:'
-        version: 2.1.1(@seed-design/css@3.0.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))
       '@stylexjs/unplugin':
         specifier: 'catalog:'
         version: 0.19.1(supports-color@7.2.0)(unplugin@2.3.11)
@@ -6573,11 +6564,6 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
       - embla-carousel
-
-  '@seed-design/vite-plugin@2.1.1(@seed-design/css@3.0.2)(vite@7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0))':
-    dependencies:
-      '@seed-design/css': 3.0.2
-      vite: 7.3.7(@types/node@24.19.2)(jiti@2.7.0)(lightningcss@1.33.0)
 
   '@seed-design/vite-plugin@2.1.1(@seed-design/css@3.0.2)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))':
     dependencies:
