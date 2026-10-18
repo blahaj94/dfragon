@@ -9,14 +9,16 @@ export const WINDOW_CHROME_COLORS = {
 
 export const WINDOW_CHROME_HEIGHT = 56
 
-// dfragon-design layout.md의 기준 창, 최소 창과 파티 카드를 접은 창의 높이다. 접은 높이 400은 최소
-// 높이 640의 예외라, 접은 동안은 최소 높이를 접은 높이로 낮춘다.
+// dfragon-design layout.md의 기준 창, 최소 창과 파티 카드를 접은 창의 높이다. 공대 카드를 접은 창 높이
+// 560은 DFragon 디자인 캔버스 공대 보드의 값이다. 접은 높이는 최소 높이 640의 예외라, 접은 동안은 최소
+// 높이를 접은 높이로 낮춘다.
 export const MAIN_WINDOW_SIZE = {
   width: 1280,
   height: 800,
   minWidth: 1024,
   minHeight: 640,
-  collapsedHeight: 400
+  collapsedHeight: 400,
+  raidCollapsedHeight: 560
 } as const
 
 // dfragon-design layout.md의 보조 창이다. 상세 창은 메인과 같은 기준 창으로 열고, 최소 창은 작업자가

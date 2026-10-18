@@ -21,6 +21,7 @@ import { previewCharacter, raidPreviewCharacters, tierPreviewCharacters } from '
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
+import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)
@@ -31,7 +32,9 @@ export function Preview(): React.JSX.Element {
   // 합성 인식 완료 시각. 미리보기에서 인식 완료를 고르면 12초 전으로, 캡처 버튼을 누르면 지금으로 둔다.
   const [completedAt, setCompletedAt] = useState<number | null>(null)
   const [searchMode, setSearchMode] = useState<SearchMode>('party')
-  const party = usePartyCollapse()
+  const party = usePartyCollapse(
+    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidCollapsedHeight : MAIN_WINDOW_SIZE.collapsedHeight
+  )
   // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
   const partyCardsId = useId()

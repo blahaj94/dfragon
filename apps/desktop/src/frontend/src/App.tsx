@@ -20,6 +20,7 @@ import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { searchSlotNotice, toCharacterCard } from './lib/character-card'
 import { getRaidScreenCapture } from './lib/capture-presentation'
+import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()
@@ -41,7 +42,10 @@ function App(): React.JSX.Element {
   // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
   const authApi = window.auth
   const [workbenchOpen, setWorkbenchOpen] = useState(false)
-  const party = usePartyCollapse()
+  // 접힘은 파티와 공대가 함께 쓰고, 접은 창 높이는 보이는 화면을 따른다.
+  const party = usePartyCollapse(
+    searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidCollapsedHeight : MAIN_WINDOW_SIZE.collapsedHeight
+  )
   const partyCardsId = useId()
   const raidCardsId = useId()
   const raidScreenCapture = getRaidScreenCapture({
