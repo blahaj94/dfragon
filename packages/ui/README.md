@@ -31,7 +31,7 @@ SEED에서 옮기는 동안 기존 이름을 남긴다. `ActionButton`(variant `
 
 DFragon 디자인 토큰은 CSS custom property와 StyleX 상수 두 형태로 제공한다. 값과 이름은 dfragon-design `design/tokens.json`을 손으로 옮긴 것이며 기준 commit은 `tokens.css` 머리말에 적는다.
 
-- `@dfragon/ui/tokens.css`: `--df-*` 변수. `:root`가 다크 기본값, `:root[data-theme='light']`가 라이트 값이며 `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다. 앱이 `data-theme`을 넣기 전에는 SEED 라이트 모드(`data-seed-color-mode`의 `light-only`, `system`과 `data-seed-user-color-scheme='light'`)에서도 라이트 값을 쓴다. 이 SEED 선택자는 SEED 잔여 삭제 PR에서 지운다. Library JS는 이 파일을 import하지 않는다.
+- `@dfragon/ui/tokens.css`: `--df-*` 변수. `:root`가 다크 기본값, `:root[data-theme='light']`가 라이트 값이며 `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다. `color-scheme`도 같은 선택자에서 `dark`, `light`로 정해 스크롤 막대 같은 브라우저 기본 부품이 모드를 따른다. `data-theme`이 없으면 다크다. Library JS는 이 파일을 import하지 않는다.
 - `@dfragon/ui/tokens.stylex`: `colors`, `space`, `radius`, `shape`, `size`, `motion`, `font`. `stylex.defineConsts`로 `'var(--df-…)'` 문자열을 정의하며 `defineVars`, `createTheme`를 쓰지 않으므로 모드 전환은 CSS만으로 끝난다. StyleX compiler는 import 경로가 `.stylex`로 끝나는 파일의 `defineConsts`만 다른 파일에서 읽으므로 export 이름에 `.stylex`를 둔다. Package export는 source(`src/tokens.stylex.ts`)를 가리켜 소비 앱이 library를 먼저 빌드하지 않아도 compiler가 해석한다. 컴파일 없이 실행하면 `defineConsts`가 오류를 낸다.
 - `shapes`: 기본 entry의 공용 `stylex.create`. `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`.
 
