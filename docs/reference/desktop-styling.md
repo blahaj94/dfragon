@@ -69,14 +69,17 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 화면 | 구현 | 참고 |
 | --- | --- | --- |
 | 버튼 | `ActionButton`(이행용 alias, `Button`과 같은 외형) | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
-| 상단 바의 캡처, 테마, 설정 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다 |
+| 상단 바의 테마, 설정 버튼, 파티 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다 |
+| 상단 바의 캡처 버튼 | `Button` `ghost` `sm`과 `Kbd` | 카메라 아이콘 옆에 `Alt`, `R` 키캡을 둡니다 |
+| 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"` | 라이트에서는 어두운 카드 위에 모드 색 칩이 놓입니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |
 | 개발자 모드 | `<label>` 안의 `Switch` | 설정 대화상자 |
 | 저장 포함 | `Checkbox` | 파티, 참가자 수집 화면 |
 | 정답 입력 필터 | `Chip`(`pressed`, `onPressedChange`) | 개발자 정답 입력 화면 |
-| 캡처, 검출 상태 | `StatusBadge`(이행용 alias, `StatusChip`과 같은 외형) | 상단 바, 캡처 모달, 개발자 참가자 수집 화면 |
+| 게임 연결 상태 | `StatusChip` `size="md"` | 상단 바. 높이 28, 오른쪽 위를 자른 칩입니다 |
+| 캡처, 검출 상태 | `StatusChip`, 개발자 참가자 수집 화면은 `StatusBadge`(이행용 alias) | 캡처 모달, 개발자 참가자 수집 화면 |
 | 설정, 캡처 대화상자 | `DialogRoot`, `DialogContent` | 바깥을 눌러도 닫히지 않습니다 |
 | 개발자 작업 공간 탭 | 기존 `role="tablist"`의 `ActionButton` ghost와 선택 탭 아래 2px `signal` 선 | 세 수집 탭이 섹션 인스턴스 하나와 단축키 수명을 공유해 공용 `Tabs`로 옮기지 않았습니다 |
 
