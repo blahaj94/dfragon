@@ -2,6 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import type { ComponentType, ReactNode } from 'react'
 import { controlStyles } from './control.style'
 import { type ForwardedStyle, type PublicProps, withForwardedStyle } from './public-props'
+import { shapes } from './shapes'
 import { styles } from './icon-button.style'
 
 export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
@@ -9,9 +10,10 @@ export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
   icon: ReactNode
   /**
    * sm 32, md 40px 정사각형이고 아이콘은 각각 16, 24px이다. bar는 상단 바 도구 버튼의 36px 정사각형에
-   * 20px 아이콘이다. @default 'md'
+   * 20px 아이콘이다. lg는 화면 머리 도구의 48px 정사각형에 24px 아이콘이며 bg.inset 면에 오른쪽 위를
+   * 자른다. @default 'md'
    */
-  size?: 'sm' | 'md' | 'bar'
+  size?: 'sm' | 'md' | 'bar' | 'lg'
 }
 
 function IconButtonImpl({
@@ -29,7 +31,8 @@ function IconButtonImpl({
           styles.root,
           controlStyles.focusRing,
           controlStyles.hoverTransition,
-          styles[size]
+          styles[size],
+          size === 'lg' && shapes.cutTopRight
         ),
         { className, style }
       )}
