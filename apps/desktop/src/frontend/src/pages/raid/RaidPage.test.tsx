@@ -473,9 +473,14 @@ it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 �
 })
 
 it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계는 명성에만 단계 색을 칠한다', async () => {
-  const termValue = (seat: HTMLElement, label: string): Element | undefined =>
-    [...seat.querySelectorAll('dt')].find((term) => term.textContent === label)
-      ?.nextElementSibling ?? undefined
+  const termValue = (seat: HTMLElement, label: string): Element | undefined => {
+    const term = [...seat.querySelectorAll('dt')].find((item) => item.textContent === label)
+    if (term == null) {
+      return undefined
+    }
+
+    return term.nextElementSibling!
+  }
   const dealer = { ...member, card: dealerCard }
   await render({
     characters: [
