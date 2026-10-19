@@ -11,7 +11,6 @@ import type {
   SearchObservation,
   OcrSearchObservation
 } from './search'
-import type { BuildVersions } from './build-versions'
 import type { CollectOcrSample, OcrCollectionResult } from './ocr-collection'
 import type { DiagnosticIPCFunctions } from './diagnostics'
 import type { UpdateNoticeIPCFunctions } from './update-notice'
@@ -29,7 +28,6 @@ interface AsyncIPCFunctions
   collectOcrSample: (input: CollectOcrSample) => Promise<OcrCollectionResult>
   readCharacterDetail: () => Promise<CharacterDetailSnapshot>
   openCharacterDetails: (input: CharacterSelectionReference) => Promise<OpenCharacterDetailResult>
-  getBuildVersions: () => Promise<BuildVersions>
   getAuthState: () => Promise<AuthSnapshot>
   beginLogin: (input: { provider: AuthProvider }) => Promise<AuthCommandResult>
   cancelLogin: (input: { attemptId: string }) => Promise<AuthCommandResult>

@@ -5,7 +5,6 @@ import * as search from './api/search'
 import * as manualSearch from './api/manual-search'
 import * as raidSearch from './api/raid-search'
 import * as developer from './api/developer'
-import * as versions from './api/versions'
 import * as desktopShortcut from './api/desktop-shortcut'
 import * as ocrCollection from './api/ocr-collection'
 import * as diagnostics from './api/diagnostics'
@@ -25,8 +24,6 @@ contextBridge.exposeInMainWorld('manualSearch', manualSearch)
 contextBridge.exposeInMainWorld('raidSearch', raidSearch)
 
 contextBridge.exposeInMainWorld('developer', developer)
-
-contextBridge.exposeInMainWorld('versions', versions)
 
 contextBridge.exposeInMainWorld('desktopShortcut', desktopShortcut)
 contextBridge.exposeInMainWorld('ocrCollection', ocrCollection)

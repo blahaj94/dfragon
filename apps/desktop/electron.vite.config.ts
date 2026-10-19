@@ -1,12 +1,10 @@
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'electron-vite'
 import type { Plugin } from 'vite'
 import { rendererTransforms } from './build/renderer-transforms'
 import { uiNotices, desktopNotices, desktopLicenseCatalog } from '@dfragon/licenses/vite'
 import { readChannelNameFromMode, readDesktopChannel } from './build/channels'
-import { readDesktopSourceInfo } from './build/build-info'
 
 const LIB_IMPORT_PATTERN = /^@dfragon\/lib$/
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
@@ -17,9 +15,6 @@ const UI_IMPORT_PATTERN = /^@dfragon\/ui$/
 export default defineConfig(({ mode, command }) => {
   const libAlias = resolve('../../packages/lib/src/index.ts')
   const shapeCheckAlias = resolve('../../packages/lib/src/utils/shape-check.ts')
-  const desktopBuild = JSON.stringify(
-    readDesktopSourceInfo(fileURLToPath(new URL('.', import.meta.url)))
-  )
   const channelName = readChannelNameFromMode(mode)
   const desktopChannel = JSON.stringify(
     channelName == null ? null : readDesktopChannel(channelName)
@@ -91,7 +86,6 @@ export default defineConfig(({ mode, command }) => {
         ]
       },
       define: {
-        __DFRAGON_DESKTOP_BUILD__: desktopBuild,
         __DFRAGON_CHANNEL__: desktopChannel
       },
       build: {
