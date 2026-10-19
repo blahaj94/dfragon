@@ -20,8 +20,6 @@ import {
 } from './auth/runtime-config'
 import { readAppApiOrigin, readAppAuthConfig, readAppChannelName } from './auth/app-config'
 import { registerDeveloperWindow } from './developer/ipc-handler'
-import { registerVersionsWindow } from './versions/ipc-handler'
-import { readDesktopBuildInfo } from './versions/desktop-info'
 import { fetchApi } from './api-fetch'
 import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
@@ -127,7 +125,6 @@ function createWindow(authRuntime: AuthRuntime | null): void {
   })
   let nextDisposeAuthIpc: (() => void) | undefined
   let disposeDeveloper: (() => void) | undefined
-  let disposeVersions: (() => void) | undefined
   let disposeUpdateNotice: (() => void) | undefined
   let disposeCharacterDetails: (() => void) | undefined
   let disposeShortcuts: (() => void) | undefined
@@ -162,17 +159,6 @@ function createWindow(authRuntime: AuthRuntime | null): void {
       app.getPath('userData'),
       isProductionAuth ? authRuntime?.coordinator : undefined
     )
-    try {
-      disposeVersions = registerVersionsWindow({
-        window,
-        documentUrl: rendererDocumentUrl,
-        desktop: () => readDesktopBuildInfo(app.getVersion()),
-        apiOrigin: readAppApiOrigin(),
-        accountsOrigin: runtimeConfig?.apiOrigin ?? null
-      })
-    } catch {
-      // Metadata availability does not control capture or authentication startup.
-    }
     try {
       disposeUpdateNotice = registerUpdateNoticeWindow({
         window,
@@ -219,7 +205,6 @@ function createWindow(authRuntime: AuthRuntime | null): void {
     disposeDiagnostics?.()
     disposeWindowChrome?.()
     disposeCharacterDetails?.()
-    disposeVersions?.()
     disposeUpdateNotice?.()
     disposeDeveloper?.()
     try {

@@ -45,24 +45,6 @@ contextBridge.exposeInMainWorld('ocrCollection', {
   collectOcrSample: async () => ({ status: 'skipped' })
 })
 
-// Public synthetic metadata only; the UI fixture never contacts real services.
-contextBridge.exposeInMainWorld('versions', {
-  getBuildVersions: async () => {
-    const desktopCommit = 'a'.repeat(40)
-    const apiCommit = 'b'.repeat(40)
-    const accountsCommit = 'c'.repeat(40)
-
-    return {
-      desktop: { version: '1.0.0', commit: desktopCommit, dirty: false },
-      servers: {
-        api: { status: 'available', commit: apiCommit },
-        accounts: { status: 'available', commit: accountsCommit },
-        ocr: { status: 'unsupported' }
-      }
-    }
-  }
-})
-
 const developerFixture = process.argv.find((argument) =>
   argument.startsWith('--developer-fixture=')
 )

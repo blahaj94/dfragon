@@ -6,7 +6,6 @@ declare global {
     manualSearch: typeof import('./api/manual-search')
     raidSearch: typeof import('./api/raid-search')
     developer: typeof import('./api/developer')
-    versions: typeof import('./api/versions')
     desktopShortcut: typeof import('./api/desktop-shortcut')
     ocrCollection: typeof import('./api/ocr-collection')
     diagnostics: typeof import('./api/diagnostics')
