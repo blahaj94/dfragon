@@ -19,7 +19,7 @@ import { createCharacterImageCache, createCharacterImageSource } from './charact
 import { SearchHttpFailure } from './http'
 import { createPortraitColorScorer, type PortraitColorScorer } from './portrait-color'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
-import { PortraitMatchBudgetExceededError } from './portrait-raster'
+import { PortraitComparisonBudgetExceededError } from './portrait-raster'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
 import { dealerCard } from '../../preload/common/search/card-test-fixture'
 
@@ -229,7 +229,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(loading.scorePortrait).not.toHaveBeenCalled()
 
     const comparing = fixture()
-    comparing.scorePortrait.mockRejectedValueOnce(new PortraitMatchBudgetExceededError())
+    comparing.scorePortrait.mockRejectedValueOnce(new PortraitComparisonBudgetExceededError())
     expect(await comparing.identify(comparing.input)).toMatchObject({
       kind: 'success',
       selected: { selectionMethod: 'highest-fame', details: details('high') }
@@ -353,7 +353,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
         } else {
           f.clock.elapseWithoutTimers(15_000)
         }
-        throw new PortraitMatchBudgetExceededError()
+        throw new PortraitComparisonBudgetExceededError()
       })
 
       const outcome = await f.identify(f.input)
