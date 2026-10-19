@@ -4,7 +4,8 @@ import { isRecord } from './values.js'
 
 export interface EnchantGradeEntry {
   status: EnchantStatus[]
-  cardName?: string
+  // Different cards that give the same options share one entry that lists every card name.
+  cardNames?: string[]
 }
 
 export interface EnchantGradeTable {
@@ -45,15 +46,19 @@ function parseEntry(value: unknown): EnchantGradeEntry {
 
     return { name: option.name, value: option.value }
   })
-  if (value.cardName !== undefined && typeof value.cardName !== 'string') {
+  if (value.cardNames === undefined) {
+    return { status }
+  }
+  const cardNames = value.cardNames
+  const isNameList =
+    Array.isArray(cardNames) &&
+    cardNames.length > 0 &&
+    cardNames.every((name) => typeof name === 'string' && name !== '')
+  if (!isNameList) {
     throw new Error(invalidTable)
   }
 
-  if (value.cardName === undefined) {
-    return { status }
-  }
-
-  return { status, cardName: value.cardName }
+  return { status, cardNames }
 }
 
 // The table is a repository file, so a malformed table fails at startup instead of grading silently.

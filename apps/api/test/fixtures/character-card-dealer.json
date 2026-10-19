@@ -5972,7 +5972,7 @@
               "value": "3%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -6070,7 +6070,7 @@
               "value": "3%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -6127,7 +6127,7 @@
               "value": "3%"
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {
@@ -6152,7 +6152,7 @@
               "value": "1%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -6202,7 +6202,7 @@
               "value": "1%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -6256,7 +6256,7 @@
               "value": 35
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {

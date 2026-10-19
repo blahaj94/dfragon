@@ -5619,7 +5619,7 @@
               "value": "7%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5652,7 +5652,7 @@
               "value": 100
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5685,7 +5685,7 @@
               "value": 100
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5759,7 +5759,7 @@
               "value": "7%"
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5792,7 +5792,7 @@
               "value": 100
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {
@@ -5825,7 +5825,7 @@
               "value": 90
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {
@@ -5858,7 +5858,7 @@
               "value": 90
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {
@@ -5891,7 +5891,7 @@
               "value": 90
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5924,7 +5924,7 @@
               "value": 100
             }
           ],
-          "grade": null
+          "grade": "종결"
         }
       },
       {
@@ -5957,7 +5957,7 @@
               "value": 100
             }
           ],
-          "grade": null
+          "grade": "준종결"
         }
       },
       {

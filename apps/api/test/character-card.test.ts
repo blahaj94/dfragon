@@ -426,7 +426,7 @@ test(titles.enchant, () => {
       WEAPON: {
         종결: [
           {
-            cardName: '종결 카드',
+            cardNames: ['종결 카드', '같은 옵션의 다른 카드'],
             status: [
               { name: '암속성강화', value: 13 },
               { name: '공격력', value: '3%' }
@@ -492,7 +492,22 @@ test(titles.table, () => {
     { ...valid, slots: { WEAPON: { 종결: [{ status: [] }] } } },
     { ...valid, slots: { WEAPON: { 종결: [{ status: [{ name: '', value: 13 }] }] } } },
     { ...valid, slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: null }] }] } } },
-    { ...valid, slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: 1 }], cardName: 1 }] } } }
+    {
+      ...valid,
+      slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: 1 }], cardNames: 1 }] } }
+    },
+    {
+      ...valid,
+      slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: 1 }], cardNames: [] }] } }
+    },
+    {
+      ...valid,
+      slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: 1 }], cardNames: [''] }] } }
+    },
+    {
+      ...valid,
+      slots: { WEAPON: { 종결: [{ status: [{ name: '힘', value: 1 }], cardNames: [1] }] } }
+    }
   ]) {
     assert.throws(() => parseEnchantGradeTable(invalid), /Invalid enchant grade table/)
   }
