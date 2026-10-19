@@ -42,13 +42,15 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 성공 응답은 `{"rows":[...]}`다. 각 행은 기존 `characterId`, `characterName`, `serverId`, `serverName`, `fame`에 `imageUrl`을 추가한다. `imageUrl`은 검증한 식별자로 구성한 `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=1`이다. 네오플의 전체 캐릭터 이미지 URL이며 얼굴만 잘린 이미지가 아니다. API는 이미지를 다운로드, 변환, 저장하거나 중계하지 않는다.
 
+각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가하며, 우리 DB의 `characters`에 저장된 모험단명이다. 상세 조회로 저장된 적이 없는 캐릭터는 null이고, 이를 채우려고 Neople을 더 호출하지 않는다. DB 조회가 실패해도 후보 응답은 실패시키지 않고 모든 행의 `adventureName`을 null로 둔다.
+
 정렬 순서는 아래와 같다.
 
 1. `fame !== null`인 후보를 명성 내림차순으로 반환한다. `0`도 이 그룹에 포함한다.
 2. 명성이 같으면 Neople 응답 순서를 유지한다.
 3. `fame === null`인 후보를 나머지 후보 뒤에 Neople 응답 순서대로 붙인다. 공급자 응답에서 명성이 누락된 경우에도 기존 정제 규칙에 따라 null이다.
 
-검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로는 같은 IP별 최근 60초 10회 한도를 공유하며, 공급자 전체 호출 예산도 함께 소비한다. 후보 API는 DB와 상세 서비스를 호출하지 않는다.
+검색 결과가 없으면 200과 빈 `rows`다. 공급자 오류, 통신 실패, 호출 제한을 빈 결과로 바꾸지 않는다. 기존 검색과 동일한 오류, 5초 upstream deadline, 자동 retry 없음 정책을 사용한다. 두 검색 경로는 같은 IP별 최근 60초 10회 한도를 공유하며, 공급자 전체 호출 예산도 함께 소비한다. 후보 API는 상세 서비스를 호출하지 않으며, DB는 위 모험단명을 읽을 때만 쓴다.
 
 ### Desktop의 식별 흐름
 
