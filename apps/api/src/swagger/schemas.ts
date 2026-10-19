@@ -258,6 +258,18 @@ export const apiSchemas: Record<string, SchemaObject> = {
         serverId: { type: 'string', enum: [...NEOPLE_SERVER_NAMES.keys()] },
         serverName: text,
         fame: { type: 'number', nullable: true },
+        jobName: {
+          type: 'string',
+          nullable: true,
+          description:
+            'Neople 검색 응답의 jobName. 문자열이 아니거나 비어 있으면 null이며 상세를 조회하지 않습니다.'
+        },
+        jobGrowName: {
+          type: 'string',
+          nullable: true,
+          description:
+            'Neople 검색 응답의 jobGrowName. 문자열이 아니거나 비어 있으면 null이며 상세를 조회하지 않습니다.'
+        },
         imageUrl: {
           type: 'string',
           format: 'uri',
