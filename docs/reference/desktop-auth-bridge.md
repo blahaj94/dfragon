@@ -52,7 +52,7 @@ pnpm --filter @dfragon/desktop auth:fixture
 
 Build command는 전용 TypeScript 검사 후 Electron Vite build를 수행한다. 실행 entry는 `apps/desktop/out/auth-bridge-fixture/main/main.cjs`다. 고정 window title은 **DFragon Auth Bridge fixture**다.
 
-수동 실행에서는 현재 카드 화면의 **로그인** 버튼으로 로그인 대기에 들어가며 자동으로 완료하지 않는다. 진행 중에는 같은 버튼이 **취소**로 바뀌어 현재 시도를 취소할 수 있다. 앱 메뉴의 **Complete login**으로 실제 loopback 수신기에 synthetic code를 전달하면 로그인 버튼이 사라지고 네 카드는 유지된다. 계정 메뉴와 환영 화면은 없다. 종료 메뉴나 창 닫기로 앱을 종료하면 launcher가 임시 profile을 삭제하고 부재를 확인한다.
+수동 실행에서는 설정 대화상자 메뉴 아래쪽의 **로그인** 버튼으로 로그인 대기에 들어가며 자동으로 완료하지 않는다. 진행 중에는 같은 버튼이 **취소**로 바뀌어 현재 시도를 취소할 수 있다. 앱 메뉴의 **Complete login**으로 실제 loopback 수신기에 synthetic code를 전달하면 로그인 버튼이 사라지고 네 카드는 유지된다. 계정 메뉴와 환영 화면은 없다. 종료 메뉴나 창 닫기로 앱을 종료하면 launcher가 임시 profile을 삭제하고 부재를 확인한다.
 
 자동 smoke는 현재 **로그인**, **취소** 버튼을 사용한다. 로그아웃은 fixture에서 실제 preload 명령으로 주입하며, 제품의 로그아웃 UI를 검증했다고 취급하지 않는다. 로그인 복귀는 실제 127.0.0.1 수신기의 완료 HTML과 단일 수신을 확인한다. Empty-store start, begin/cancel, event payload의 raw event 제거, canary 비노출, unsubscribe, waiting 상태 reload, credential commit 보류 중 signedIn 비노출, 로그인 완료 뒤 버튼 소멸, 로그아웃 뒤 재표시와 카드 DOM 유지, fake effect 횟수를 확인한다. `Auth bridge fixture smoke PASS`와 `cleanup PASS`, process exit 0을 함께 확인한다. 실패 진단은 고정 stage와 PASS/FAIL만 출력하며 credential, URL, raw error를 출력하지 않는다. 강제 process 종료나 host crash의 profile 정리는 정상 종료 evidence에 포함하지 않는다.
 
