@@ -221,18 +221,18 @@ function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
     } else {
       screenJobField.neither += 1
     }
-    const screenValue = parseDNFRaidValueNotation(row.expected.valueText)
-    if (row.columnKind === 'fame' && screenValue !== null && correct.fame !== null) {
-      fameDifferences.push(distanceToNotation(screenValue, correct.fame))
+    const screenNotation = parseDNFRaidValueNotation(row.expected.valueText)
+    if (row.columnKind === 'fame' && screenNotation !== null && correct.fame !== null) {
+      fameDifferences.push(distanceToNotation(screenNotation, correct.fame))
     }
 
     if (
       row.columnKind === 'equipment-score' &&
       row.expected.uniqueName === true &&
-      screenValue !== null &&
+      screenNotation !== null &&
       correct.engineScore !== null
     ) {
-      engineErrors.push(distanceToNotation(screenValue, correct.engineScore))
+      engineErrors.push(distanceToNotation(screenNotation, correct.engineScore))
     }
     const sameJob = row.expected.candidates.filter(
       (candidate) =>
