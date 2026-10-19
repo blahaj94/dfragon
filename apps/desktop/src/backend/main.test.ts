@@ -15,9 +15,6 @@ const mocks = vi.hoisted(() => {
   const loadFile = vi.fn()
   const registerWindow = vi.fn()
   const registerDeveloperWindow = vi.fn(() => vi.fn())
-  const registerVersionsWindow = vi.fn<
-    typeof import('./versions/ipc-handler').registerVersionsWindow
-  >(() => vi.fn())
   const disposeCharacterDetails = vi.fn()
   const openSelectedCharacterDetail =
     vi.fn<typeof import('./character-detail/windows').openSelectedCharacterDetail>()
@@ -92,7 +89,6 @@ const mocks = vi.hoisted(() => {
     loadFile,
     registerWindow,
     registerDeveloperWindow,
-    registerVersionsWindow,
     registerCharacterDetailWindows,
     openSelectedCharacterDetail,
     disposeCharacterDetails,
@@ -205,9 +201,6 @@ vi.mock('@electron-toolkit/utils', () => {
 })
 vi.mock('./developer/ipc-handler', () => ({
   registerDeveloperWindow: mocks.registerDeveloperWindow
-}))
-vi.mock('./versions/ipc-handler', () => ({
-  registerVersionsWindow: mocks.registerVersionsWindow
 }))
 vi.mock('./character-detail/windows', () => ({
   registerCharacterDetailWindows: mocks.registerCharacterDetailWindows,
@@ -479,23 +472,6 @@ it('인증 미구성 기본 entry는 legacy를 포함한 media permission을 명
   expect(callback).toHaveBeenCalledExactlyOnceWith(false)
 })
 
-it('version metadata uses separate product and account origins and does not depend on login state', async () => {
-  stubTrustedRuntimeEnvironment()
-  vi.stubEnv('DFRAGON_API_ORIGIN', 'https://game.synthetic.test')
-  await import('./main')
-  await mocks.bootstrap
-
-  expect(mocks.registerVersionsWindow).toHaveBeenCalledWith({
-    window: mocks.windows[0],
-    documentUrl: expect.stringContaining('/frontend/index.html'),
-    desktop: expect.any(Function),
-    apiOrigin: 'https://game.synthetic.test',
-    accountsOrigin: 'https://api.synthetic.test'
-  })
-  const desktop = mocks.registerVersionsWindow.mock.calls[0][0].desktop
-  expect(desktop()).toEqual({ version: '6.7.8', commit: null, dirty: null })
-})
-
 it('배포 채널만 새 버전 확인을 시작하고 앱 종료 때 정리한다', async () => {
   vi.stubGlobal(
     '__DFRAGON_CHANNEL__',
@@ -617,20 +593,6 @@ it('창 색상 IPC 등록 실패에도 캡처와 인증을 시작하고 창을 �
   showWindow()
 
   expect(window.show).toHaveBeenCalledOnce()
-  expect(mocks.registerCapture).toHaveBeenCalledOnce()
-  expect(mocks.registerAuth).toHaveBeenCalledOnce()
-  expect(mocks.loadFile).toHaveBeenCalledOnce()
-  expect(mocks.runtime?.start).toHaveBeenCalledOnce()
-})
-
-it('capture and authentication still start when version metadata registration fails', async () => {
-  stubTrustedRuntimeEnvironment()
-  mocks.registerVersionsWindow.mockImplementationOnce(() => {
-    throw new Error('synthetic metadata registration failure')
-  })
-  await import('./main')
-  await mocks.bootstrap
-
   expect(mocks.registerCapture).toHaveBeenCalledOnce()
   expect(mocks.registerAuth).toHaveBeenCalledOnce()
   expect(mocks.loadFile).toHaveBeenCalledOnce()

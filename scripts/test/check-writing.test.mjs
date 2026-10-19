@@ -36,7 +36,7 @@ test('DFragon 표기, 식별자, 합니다체와 하세요체는 통과한다', 
     'allowed.md': [
       'DFragon Desktop은 던파 창을 찾습니다.',
       'DFRAGON_DISTRIBUTION_API_ORIGIN=https://api.example.test',
-      '__DFRAGON_DESKTOP_BUILD__, @dfragon/ui, dfragon://auth/callback, notices/DFRAGON-MODIFICATIONS.txt',
+      '__DFRAGON_CHANNEL__, @dfragon/ui, dfragon://auth/callback, notices/DFRAGON-MODIFICATIONS.txt',
       '창 목록을 불러오지 못했습니다. 닉네임을 입력하세요. 다시 로그인해 주세요.',
       "confirm: '저장하시겠습니까?'",
       '필요한 값이 없습니다. 주요 항목과 개요, 해요체 설명',
