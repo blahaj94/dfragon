@@ -46,6 +46,12 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
 
+## Skill data
+
+- Package: `@dfragon/skill-layouts`, 위치: `packages/skill-layouts`. 직업(`jobId`)과 전직(`jobGrowId`)별 고정 11열 스킬트리 배치 `layouts.json`(71개 전직, 3388칸)을 제공한다. 칸은 네오플 skillId, 행, 열, 이름, 종류, 습득 레벨과 각성기 여부다. 코드와 build 명령은 없다. [형식과 출처](../../packages/skill-layouts/README.md)를 참고한다.
+- Package: `@dfragon/icons`, 위치: `packages/icons`. 제품이 번들하는 게임 아이콘이다. 지금은 `skills.json`(`jobId/skillId` → 파일)과 `skills/`의 28 × 28 스킬 아이콘 PNG만 있다. [출처와 권리](../../packages/icons/README.md)를 참고한다.
+- Desktop 상세 창 스킬 탭이 두 패키지를 소비한다. 두 패키지의 데이터는 `scripts/import-skill-data.mjs`로 외부 수집본에서 함께 다시 만들며 손으로 고치지 않는다.
+
 ## Models
 
 - Package: `@dfragon/models`, 위치: `packages/models`. 빌드에 넣는 학습 모델 파일과 점수 엔진 바이너리를 submodule의 고정 커밋으로 제공한다. 코드와 build 명령은 없다.
