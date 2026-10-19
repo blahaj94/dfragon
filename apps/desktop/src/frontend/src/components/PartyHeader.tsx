@@ -4,14 +4,13 @@ import { PARTY_SLOT_COUNT } from '../constants/capture'
 import { CameraIcon } from './CameraIcon'
 import { FoldIcon } from './FoldIcon'
 import { LastCaptureTime } from './LastCaptureTime'
-import { SnapshotIcon } from './SnapshotIcon'
+import { SnapshotToggle } from './SnapshotToggle'
 import { styles } from './PartyHeader.style'
 
 /**
  * 파티 카드 위의 머리. 왼쪽에 제목, 채운 자리 수, 상세 열기 실패 안내를, 오른쪽에 접기 버튼, 마지막
- * 캡처 시간, 스냅샷 버튼, 캡처 주 버튼을 둔다. 캡처 진행 상태는 상단 바 상태 칩과 캡처 대화상자가
- * 보이므로 여기에 문구로 되풀이하지 않는다. 캡처 버튼은 Alt+R과 같은 회차 시작을 요청하고, 스냅샷은
- * 기능을 연결하기 전이라 누를 수 없다.
+ * 캡처 시간, 스냅샷 토글, 캡처 주 버튼을 둔다. 캡처 진행 상태는 상단 바 상태 칩과 캡처 대화상자가
+ * 보이므로 여기에 문구로 되풀이하지 않는다. 캡처 버튼은 Alt+R과 같은 회차 시작을 요청한다.
  */
 export function PartyHeader({
   notice,
@@ -19,6 +18,9 @@ export function PartyHeader({
   lastCapturedAt,
   canCapture,
   onCapture,
+  snapshotActive,
+  onTakeSnapshot,
+  onClearSnapshot,
   collapsed,
   onToggleCollapsed,
   controls
@@ -32,6 +34,11 @@ export function PartyHeader({
   /** Alt+R이 지금 회차를 시작할 수 있는지. 아니면 버튼도 누를 수 없다. */
   canCapture: boolean
   onCapture: () => void
+  /** 모험단 순번 스냅샷을 켜 둔 상태 */
+  snapshotActive: boolean
+  onTakeSnapshot: () => void
+  /** 끄기 확인을 거친 뒤 스냅샷을 지운다. */
+  onClearSnapshot: () => void
   collapsed: boolean
   onToggleCollapsed: () => void
   /** 접기 버튼이 펼치고 접는 카드 영역의 id */
@@ -61,11 +68,11 @@ export function PartyHeader({
           icon={<FoldIcon collapsed={collapsed} />}
         />
         <LastCaptureTime key={lastCapturedAt ?? 'none'} at={lastCapturedAt} />
-        <IconButton
-          size="lg"
-          aria-label="파티 모험단 순번 스냅샷"
-          disabled
-          icon={<SnapshotIcon />}
+        <SnapshotToggle
+          label="파티 모험단 순번 스냅샷"
+          active={snapshotActive}
+          onTake={onTakeSnapshot}
+          onClear={onClearSnapshot}
         />
         <Button
           variant="primary"

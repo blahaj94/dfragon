@@ -51,7 +51,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function selected(name: string): SelectedCharacterSummary {
+function selected(name: string, adventureName = '합성모험단'): SelectedCharacterSummary {
   const character = { serverId: 'siroco', characterId: 'synthetic-character' }
 
   return {
@@ -59,7 +59,7 @@ function selected(name: string): SelectedCharacterSummary {
     characterName: name,
     serverId: 'siroco',
     serverName: '시로코',
-    adventureName: '합성모험단',
+    adventureName,
     jobName: '합성직업',
     jobGrowName: null,
     level: 115,
@@ -253,4 +253,84 @@ it('공대 캡처가 인식하는 동안은 자리를 옮기지 않고, 회차�
   // 인식을 마친 뒤에는 다시 옮길 수 있고 인식한 이름도 카드와 함께 옮겨 간다.
   await moveRight(seats()[0])
   expect(names().slice(0, 2)).toEqual(['둘째공대원', '첫째공대원'])
+})
+
+// 조회를 마친 슬롯. 모험단명만 다르게 줘서 같은 사람인지 모험단으로 가른다.
+function foundSlot(slot: number, name: string, adventure: string): SearchSlot {
+  return {
+    ...searchSlot({
+      slot,
+      nickname: name,
+      state: 'success',
+      rows: [{ ...searchRow, characterName: name, serverId: 'siroco', serverName: '시로코' }]
+    }),
+    selected: selected(name, adventure),
+    selectionMethod: 'manual'
+  }
+}
+
+function snapshotButton(): HTMLButtonElement {
+  return document.querySelector<HTMLButtonElement>('[aria-label="공대 모험단 순번 스냅샷"]')!
+}
+
+function chipsOf(seat: HTMLElement): string[] {
+  return [...seat.querySelectorAll('[role="img"][aria-label^="스냅샷"]')].map(
+    (chip) => chip.getAttribute('aria-label')!
+  )
+}
+
+it('공대 스냅샷을 켠 뒤 자리를 옮기면 바뀐 카드에 순번 칩이, 새 모험단에 경고가 보이고 지우면 모두 걷힌다', async () => {
+  const f = createRendererFixture()
+  const raid = stubRaidSearch()
+  await mount(f)
+  await showRaid()
+  await lookup(seats()[0], '첫째')
+  await lookup(seats()[1], '둘째')
+  await vi.waitFor(() => expect(raid.lookups()).toHaveLength(2))
+  await act(async () =>
+    raid.publish([
+      foundSlot(0, '첫째', '가모험단'),
+      foundSlot(1, '둘째', '나모험단'),
+      ...raid.current().slots.slice(2)
+    ])
+  )
+
+  await act(async () => snapshotButton().click())
+  expect(snapshotButton().getAttribute('aria-pressed')).toBe('true')
+  expect(seats().flatMap(chipsOf)).toEqual([])
+
+  // 자리를 맞바꾸면 두 카드 모두 스냅샷 때의 자리를 칩으로 보인다. 칩은 카드의 현재 자리 기준이다.
+  await moveRight(seats()[0])
+  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 2'])
+  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
+
+  // 스냅샷에 없는 모험단은 빈 자리에 들어와도 경고한다.
+  await lookup(seats()[2], '낯선사람')
+  await vi.waitFor(() => expect(raid.lookups()).toHaveLength(3))
+  await act(async () =>
+    raid.publish([
+      ...raid.current().slots.slice(0, 2),
+      foundSlot(2, '낯선사람', '다른모험단'),
+      ...raid.current().slots.slice(3)
+    ])
+  )
+  expect(chipsOf(seats()[0])).toEqual(['스냅샷 순번 2'])
+  expect(chipsOf(seats()[1])).toEqual(['스냅샷 순번 1'])
+  expect(chipsOf(seats()[2])).toEqual(['스냅샷에 없는 모험단'])
+
+  // 끄기는 확인을 거치고, 취소하면 스냅샷이 남는다.
+  await act(async () => snapshotButton().click())
+  const choice = (name: string) =>
+    [...document.querySelectorAll<HTMLButtonElement>('[role="alertdialog"] button')].find(
+      (button) => button.textContent === name
+    )!
+  await act(async () => choice('취소').click())
+  await vi.waitFor(() => expect(document.querySelector('[role="alertdialog"]')).toBeNull())
+  expect(snapshotButton().getAttribute('aria-pressed')).toBe('true')
+  expect(chipsOf(seats()[2])).toEqual(['스냅샷에 없는 모험단'])
+
+  await act(async () => snapshotButton().click())
+  await act(async () => choice('지우기').click())
+  expect(snapshotButton().getAttribute('aria-pressed')).toBe('false')
+  expect(seats().flatMap(chipsOf)).toEqual([])
 })

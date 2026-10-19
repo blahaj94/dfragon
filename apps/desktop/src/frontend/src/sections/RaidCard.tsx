@@ -5,6 +5,8 @@ import { CardImage } from '../components/CardImage'
 import { ExternalLinkIcon } from '../components/ExternalLinkIcon'
 import { HourglassIcon } from '../components/HourglassIcon'
 import { ServerSelect } from '../components/ServerSelect'
+import { SnapshotChip } from '../components/SnapshotChip'
+import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import {
   getCharacterCardFrameState,
@@ -12,6 +14,7 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import { toCharacterFace } from '../lib/card-faces'
+import type { SnapshotMark } from '../lib/adventure-snapshot'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
 import type { CardCharacter, SlotState } from '../types/cards'
@@ -41,6 +44,7 @@ export function RaidCard({
   character,
   state,
   nickname,
+  snapshotMark,
   loading = false,
   collapsed = false,
   notice,
@@ -54,6 +58,8 @@ export function RaidCard({
   state: SlotState
   /** 공대 캡처가 인식한 이름. 캐릭터를 찾기 전까지 이름 칸에 보인다. */
   nickname?: string
+  /** 모험단 순번 스냅샷과 비교한 표시. 자리가 같거나 스냅샷이 없으면 undefined다. */
+  snapshotMark?: SnapshotMark
   loading?: boolean
   /** 그림 칸, 직업, 스탯 한 줄을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
   collapsed?: boolean
@@ -126,6 +132,7 @@ export function RaidCard({
               onValueChange={draft.changeServer}
             />
           </div>
+          {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="raid" />}
           <span {...stylex.props(styles.spacer)} />
           {characterFound && frameState !== 'selected' && (
             <span
@@ -181,7 +188,6 @@ export function RaidCard({
           <div
             {...stylex.props(
               shapes.gridWell,
-              frameState === 'failure' && shapes.hazardStripes,
               styles.well,
               collapsed && styles.hidden,
               tier === 'top' && styles.wellTop,
@@ -292,6 +298,7 @@ export function RaidCard({
             />
           </div>
         </dl>
+        {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
         <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
           {hasCharacter ? character?.name : status}
         </span>

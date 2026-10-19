@@ -171,3 +171,52 @@ export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
   }),
   null
 ]
+
+function withAdventure(character: CardCharacter, name: string, adventure: string): CardCharacter {
+  return { ...character, name, adventure }
+}
+
+// 공대원에게 자리 번호별 합성 모험단을 준다. 빈 자리는 vacant로 채운다.
+function withSampleAdventure(
+  member: CardCharacter | null,
+  index: number,
+  vacant: CardCharacter | null
+): CardCharacter | null {
+  if (member === null) {
+    return vacant
+  }
+
+  return { ...member, adventure: `샘플모험단 ${index + 1}` }
+}
+
+const snapshotMembers = {
+  first: withAdventure(previewCharacter, '미리보기검사', '첫째모험단'),
+  second: withAdventure(bufferPreviewCharacter, '미리보기인챈', '둘째모험단'),
+  third: withAdventure(previewCharacter, '미리보기소울', '셋째모험단'),
+  thirdOther: withAdventure(previewCharacter, '미리보기부캐', '셋째모험단'),
+  fourth: withAdventure(previewCharacter, '미리보기퇴마', '넷째모험단'),
+  stranger: withAdventure(previewCharacter, '미리보기외부', '낯선모험단')
+}
+
+// 모험단 순번 스냅샷 미리보기의 파티. 첫 회차에서 스냅샷을 켠 뒤 캡처 버튼을 누르면 다음 회차가 되어 1번과
+// 2번의 자리가 바뀌고, 3번은 같은 모험단의 다른 캐릭터가 들어오고, 4번은 스냅샷에 없는 모험단이 들어온다.
+// 캡처를 한 번 더 누르면 처음 회차로 돌아온다. 이름과 모험단은 모두 합성 값이다.
+export const snapshotPreviewPartyRounds: readonly (readonly CardCharacter[])[] = [
+  [snapshotMembers.first, snapshotMembers.second, snapshotMembers.third, snapshotMembers.fourth],
+  [
+    snapshotMembers.second,
+    snapshotMembers.first,
+    snapshotMembers.thirdOther,
+    snapshotMembers.stranger
+  ]
+]
+
+// 모험단 순번 스냅샷 미리보기의 공대. 공대원마다 다른 모험단이고 빈 자리가 하나 있다. 캡처 버튼을 누르면
+// 다음 회차가 되어 빈 자리에 스냅샷에 없는 모험단의 공대원이 들어온다. 캡처를 한 번 더 누르면 처음 회차로
+// 돌아온다.
+export const snapshotPreviewRaidRounds: readonly (readonly (CardCharacter | null)[])[] = [
+  raidPreviewCharacters.map((member, index) => withSampleAdventure(member, index, null)),
+  raidPreviewCharacters.map((member, index) =>
+    withSampleAdventure(member, index, snapshotMembers.stranger)
+  )
+]

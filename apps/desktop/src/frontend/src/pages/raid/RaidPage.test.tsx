@@ -84,6 +84,10 @@ async function render(
         lastCapturedAt={null}
         canCapture
         onCapture={vi.fn()}
+        snapshotActive={false}
+        snapshotMarks={[]}
+        onTakeSnapshot={vi.fn()}
+        onClearSnapshot={vi.fn()}
         seatOrder={createSeatOrder()}
         canMoveSeats
         onSwapSeats={vi.fn(() => true)}
@@ -478,7 +482,7 @@ it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 -로
   expect(first.textContent).toContain('공대모험단-')
 })
 
-it('머리에 안내, 비활성 스냅샷, 공대 캡처 버튼을 두고 접기 버튼이 보드 영역을 가리킨다', async () => {
+it('머리에 안내, 스냅샷 토글, 공대 캡처 버튼을 두고 접기 버튼이 보드 영역을 가리킨다', async () => {
   const toggle = vi.fn()
   await render({
     characters: [member],
@@ -489,8 +493,10 @@ it('머리에 안내, 비활성 스냅샷, 공대 캡처 버튼을 두고 접기
     '캐릭터 정보 창을 열지 못했습니다.'
   )
   expect(
-    container.querySelector<HTMLButtonElement>('[aria-label="공대 모험단 순번 스냅샷"]')?.disabled
-  ).toBe(true)
+    container
+      .querySelector<HTMLButtonElement>('[aria-label="공대 모험단 순번 스냅샷"]')
+      ?.getAttribute('aria-pressed')
+  ).toBe('false')
   expect(container.querySelector('[aria-label="공대 캡처, 단축키 Alt R"]')).not.toBeNull()
   const fold = container.querySelector<HTMLButtonElement>('[aria-label="카드 접기"]')!
   expect(fold.getAttribute('aria-controls')).toBe('raid-cards')
@@ -548,4 +554,32 @@ it('접힌 동안은 그림 칸, 직업, 스탯 한 줄을 숨기고 이름 입�
   ])
   // 그림 칸(이미지가 없어 대체 표시 —)과 직업이 숨김 스타일을 받는다.
   expect(hiddenParts().map((element) => element.textContent)).toEqual(['—', '공대직업'])
+})
+
+it('스냅샷 표시는 화면 자리 순서대로 그 자리 카드에 칩과 경고로 들어간다', async () => {
+  const seatOrder = swapSeats(createSeatOrder(), 0, 1)
+  await render({
+    characters: [member, { ...member, adventure: '둘째모험단' }],
+    seatOrder,
+    snapshotActive: true,
+    snapshotMarks: [{ kind: 'moved', seat: 2 }, { kind: 'absent' }, ...Array(10).fill(undefined)]
+  })
+
+  const [first, second, third] = seats()
+  expect(first.querySelector('[aria-label="스냅샷 순번 2"]')).not.toBeNull()
+  expect(first.querySelector('[aria-label="스냅샷에 없는 모험단"]')).toBeNull()
+  expect(second.querySelector('[aria-label="스냅샷에 없는 모험단"]')).not.toBeNull()
+  expect(third.querySelector('[aria-label^="스냅샷"]')).toBeNull()
+  expect(container.querySelectorAll('[aria-label^="스냅샷 순번"]')).toHaveLength(1)
+})
+
+it('꺼진 스냅샷 버튼을 누르면 onTakeSnapshot을 부른다', async () => {
+  const onTakeSnapshot = vi.fn()
+  await render({ onTakeSnapshot })
+  const button = container.querySelector<HTMLButtonElement>(
+    '[aria-label="공대 모험단 순번 스냅샷"]'
+  )!
+  await act(async () => button.click())
+
+  expect(onTakeSnapshot).toHaveBeenCalledOnce()
 })

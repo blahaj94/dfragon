@@ -241,6 +241,56 @@ it('검색 상태를 꺾쇠 상태와 오른쪽 위 표시로 보이고 상태 �
   expect(statusMark()).toBeNull()
 })
 
+// 카드 바로 아래의 장식 요소 수. 꺾쇠 네 개와 스냅샷에 없는 모험단의 덮는 층이 여기 들어간다.
+function decorationCount(): number {
+  return card().querySelectorAll(':scope > span[aria-hidden="true"]').length
+}
+
+it('스냅샷과 자리가 다른 카드는 서버 칩 뒤에 스냅샷 순번 칩을 보이고 카드 조작은 그대로 쓴다', async () => {
+  const detail = vi.fn()
+  await render({ state: 'success', character: found, onDetail: detail })
+  const decorations = decorationCount()
+  await render({
+    state: 'success',
+    character: found,
+    onDetail: detail,
+    snapshotMark: { kind: 'moved', seat: 3 }
+  })
+  const chip = card().querySelector('[role="img"][aria-label="스냅샷 순번 3"]')!
+  const server = card().querySelector('select')!
+  expect(chip.textContent).toBe('3')
+  expect(server.compareDocumentPosition(chip) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
+  expect(card().querySelector('[aria-label="스냅샷에 없는 모험단"]')).toBeNull()
+  expect(decorationCount()).toBe(decorations)
+  expect(card().getAttribute('data-state')).toBe('default')
+  await act(async () =>
+    card().querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!.click()
+  )
+  expect(detail).toHaveBeenCalledOnce()
+})
+
+it('스냅샷에 없는 모험단 카드는 ! 칩과 카드를 덮는 장식 층을 보이고 꺾쇠 상태는 그대로 둔다', async () => {
+  await render({ state: 'success', character: found })
+  const decorations = decorationCount()
+  await render({ state: 'success', character: found, snapshotMark: { kind: 'absent' } })
+
+  const chip = card().querySelector('[role="img"][aria-label="스냅샷에 없는 모험단"]')!
+  expect(chip.textContent).toBe('!')
+  expect(decorationCount()).toBe(decorations + 1)
+  expect(card().getAttribute('data-state')).toBe('default')
+  expect(card().querySelector('[aria-label^="스냅샷 순번"]')).toBeNull()
+})
+
+it('스냅샷 표시를 걷으면 칩과 덮는 층이 함께 사라진다', async () => {
+  await render({ state: 'success', character: found })
+  const decorations = decorationCount()
+  await render({ state: 'success', character: found, snapshotMark: { kind: 'absent' } })
+  await render({ state: 'success', character: found })
+
+  expect(card().querySelector('[aria-label^="스냅샷"]')).toBeNull()
+  expect(decorationCount()).toBe(decorations)
+})
+
 it('이름에 들어가거나 고치는 동안 선택 상태와 수정 중 표시를 보이고 조회하면 돌아온다', async () => {
   const lookup = vi.fn()
   await render({ state: 'success', character: found, onLookup: lookup })

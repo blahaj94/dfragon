@@ -31,6 +31,9 @@ async function render(props: Partial<ComponentProps<typeof PartyHeader>> = {}): 
         lastCapturedAt={null}
         canCapture
         onCapture={() => {}}
+        snapshotActive={false}
+        onTakeSnapshot={() => {}}
+        onClearSnapshot={() => {}}
         collapsed={false}
         onToggleCollapsed={() => {}}
         controls="party-cards"
@@ -73,9 +76,17 @@ it('제목과 채운 자리 수 뒤에 접기, 마지막 캡처, 스냅샷, 캡�
     expect(before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
   }
   expect(fold.getAttribute('aria-controls')).toBe('party-cards')
-  expect(
-    container.querySelector<HTMLButtonElement>('[aria-label="파티 모험단 순번 스냅샷"]')!.disabled
-  ).toBe(true)
+})
+
+it('스냅샷 버튼은 켜짐 상태를 aria-pressed로 전하고 이름은 켜고 꺼도 같다', async () => {
+  await render({ snapshotActive: false })
+  const button = container.querySelector<HTMLButtonElement>(
+    '[aria-label="파티 모험단 순번 스냅샷"]'
+  )!
+  expect(button.getAttribute('aria-pressed')).toBe('false')
+  await render({ snapshotActive: true })
+  expect(button.getAttribute('aria-pressed')).toBe('true')
+  expect(button.getAttribute('aria-label')).toBe('파티 모험단 순번 스냅샷')
 })
 
 it('상세 열기 실패 안내만 status 영역에 보이고 없으면 영역을 비워 둔다', async () => {
