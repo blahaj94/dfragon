@@ -29,6 +29,7 @@ export function CharacterDetailPage({
       }}
       card={character.card}
       itemTexts={character.itemTexts}
+      skills={character.skills ?? null}
       fetchedAt={fetchedAt}
       itemImages={character.itemImages}
       onClose={closeWindow}

@@ -74,8 +74,10 @@
     "typescript": "catalog:",
     "vite": "catalog:electron",
     "vitest": "catalog:",
+    "@dfragon/icons": "workspace:*",
     "@dfragon/licenses": "workspace:*",
     "@dfragon/lib": "workspace:*",
-    "@dfragon/models": "workspace:*"
+    "@dfragon/models": "workspace:*",
+    "@dfragon/skill-layouts": "workspace:*"
   }
 }

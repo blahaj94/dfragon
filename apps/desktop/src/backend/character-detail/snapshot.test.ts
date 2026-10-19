@@ -81,6 +81,7 @@ describe('캐릭터 상세 창 snapshot', () => {
       },
       card: null,
       itemTexts: {},
+      skills: null,
       freshness: {
         lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
         expiresAt: '2026-10-07T00:05:00.000Z'
@@ -241,6 +242,180 @@ describe('캐릭터 상세 창 snapshot', () => {
     )
 
     expect(snapshot.itemTexts.weapon).toEqual({ explain: limit, buff: null, flavor: null })
+  })
+
+  // API 상세 응답의 스킬 스타일. `style`은 Neople 스킬 스타일 원문, `skillDetails`는 API가 붙인 공용 상세다.
+  function withSkills(style: JsonObject, skillDetails: JsonObject): CharacterDetails {
+    const source = details()
+
+    return {
+      ...source,
+      character: { ...source.character, jobId: 'job-1', jobGrowId: 'grow-1' },
+      skillStyle: { hash: 'hash', style, skillDetails }
+    }
+  }
+
+  function skillDetail(data: JsonObject | null, status = 'fresh'): CharacterJsonValue {
+    const fetchedAt = data === null ? null : '2026-10-07T00:00:00.000Z'
+
+    return { data, fetchedAt, status }
+  }
+
+  const levelRows = [
+    { level: 59, coolTime: 6.5 },
+    { level: 60, coolTime: 6 }
+  ]
+
+  it('습득, 패시브 스킬의 레벨과 공용 상세의 설명, 현재 레벨 쿨타임, VP 이름과 고른 VP를 담는다', () => {
+    const snapshot = createCharacterDetailSnapshot(
+      withSkills(
+        {
+          active: [{ skillId: 'active-1', name: '귀참', level: 60, requiredLevel: 1 }],
+          passive: [{ skillId: 'passive-1', name: '검기상인', level: 5, requiredLevel: 20 }],
+          evolution: [{ skillId: 'active-1', type: 2 }],
+          enhancement: [],
+          chain: null
+        },
+        {
+          'active-1': skillDetail({
+            name: '귀참',
+            desc: '전방을 벤다.\n\n[충전 시]\n더 넓게 벤다.',
+            levelInfo: { optionDesc: '', rows: levelRows },
+            evolution: [
+              { type: 2, name: '두 번째 진화' },
+              { type: 1, name: '첫 번째 진화' },
+              { type: 3, name: ' ' }
+            ]
+          }),
+          'passive-1': skillDetail({ name: '검기상인', desc: '', levelInfo: { rows: [] } })
+        }
+      ),
+      null
+    )
+
+    expect(snapshot.skills).toEqual({
+      jobId: 'job-1',
+      jobGrowId: 'grow-1',
+      learned: {
+        'active-1': {
+          name: '귀참',
+          level: 60,
+          description: '전방을 벤다.\n\n[충전 시]\n더 넓게 벤다.',
+          coolTime: 6,
+          vpNames: ['첫 번째 진화', '두 번째 진화'],
+          vpName: '두 번째 진화'
+        },
+        'passive-1': {
+          name: '검기상인',
+          level: 5,
+          description: null,
+          coolTime: null,
+          vpNames: [],
+          vpName: null
+        }
+      }
+    })
+  })
+
+  it.each([
+    ['unavailable 상태', skillDetail(null, 'unavailable')],
+    ['data가 없는', skillDetail(null)],
+    ['모르는 상태', skillDetail({ desc: '설명', levelInfo: { rows: levelRows } }, 'pending')]
+  ])('공용 상세가 %s 스킬은 이름과 레벨만 담는다', (_, detail) => {
+    const snapshot = createCharacterDetailSnapshot(
+      withSkills(
+        {
+          active: [{ skillId: 'active-1', name: '귀참', level: 60 }],
+          evolution: [{ skillId: 'active-1', type: 1 }]
+        },
+        { 'active-1': detail }
+      ),
+      null
+    )
+
+    expect(snapshot.skills?.learned['active-1']).toEqual({
+      name: '귀참',
+      level: 60,
+      description: null,
+      coolTime: null,
+      vpNames: [],
+      vpName: null
+    })
+  })
+
+  it('stale 상세도 이전 저장값이므로 쓰고, 쿨타임이 음수이거나 숫자가 아니면 없는 값이다', () => {
+    const snapshot = createCharacterDetailSnapshot(
+      withSkills(
+        {
+          active: [
+            { skillId: 'stale', name: '스테일', level: 1 },
+            { skillId: 'negative', name: '음수', level: 1 },
+            { skillId: 'text', name: '문자열', level: 1 }
+          ]
+        },
+        {
+          stale: skillDetail(
+            { desc: '설명', levelInfo: { rows: [{ level: 1, coolTime: 0 }] } },
+            'stale'
+          ),
+          negative: skillDetail({ levelInfo: { rows: [{ level: 1, coolTime: -1 }] } }),
+          text: skillDetail({ levelInfo: { rows: [{ level: 1, coolTime: '5' }] } })
+        }
+      ),
+      null
+    )
+
+    expect(snapshot.skills?.learned.stale).toMatchObject({ description: '설명', coolTime: 0 })
+    expect(snapshot.skills?.learned.negative.coolTime).toBeNull()
+    expect(snapshot.skills?.learned.text.coolTime).toBeNull()
+  })
+
+  it('이름이나 레벨이 틀린 항목과 잘못된 skillId는 빼고, 같은 skillId는 처음 항목을 쓴다', () => {
+    const snapshot = createCharacterDetailSnapshot(
+      withSkills(
+        {
+          active: [
+            { skillId: 'skill-1', name: '처음', level: 3 },
+            { skillId: 'no-name', name: ' ', level: 1 },
+            { skillId: 'bad-level', name: '레벨', level: 1.5 },
+            { skillId: '../escape', name: '경로', level: 1 },
+            null
+          ],
+          passive: [{ skillId: 'skill-1', name: '나중', level: 9 }]
+        },
+        {}
+      ),
+      null
+    )
+
+    expect(snapshot.skills?.learned).toEqual({
+      'skill-1': {
+        name: '처음',
+        level: 3,
+        description: null,
+        coolTime: null,
+        vpNames: [],
+        vpName: null
+      }
+    })
+  })
+
+  it.each([
+    ['직업 ID가 없는', { jobId: null }, { active: [] }],
+    ['전직 ID가 문자열이 아닌', { jobGrowId: 7 }, { active: [] }],
+    ['스킬 스타일 style이 없는', {}, null]
+  ])('%s 캐릭터는 스킬 탭 값을 null로 둔다', (_, character, style) => {
+    const source = withSkills(style ?? {}, {})
+    const snapshot = createCharacterDetailSnapshot(
+      {
+        ...source,
+        character: { ...source.character, ...character },
+        skillStyle: style === null ? { hash: 'hash' } : source.skillStyle
+      },
+      null
+    )
+
+    expect(snapshot.skills).toBeNull()
   })
 
   it('원본 객체의 후속 변경이 이미 만든 snapshot을 바꾸지 않는다', () => {

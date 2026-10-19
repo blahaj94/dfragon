@@ -15,7 +15,12 @@ import {
   oneOf
 } from '@dfragon/lib/utils/shape-check'
 import type { CharacterCard } from './types/character'
-import type { CharacterDetailItemTexts, CharacterDetailSnapshot } from './types/character-detail'
+import type {
+  CharacterDetailItemTexts,
+  CharacterDetailSkill,
+  CharacterDetailSkills,
+  CharacterDetailSnapshot
+} from './types/character-detail'
 
 // 제한된 preload는 일반 앱 preload의 runtime 모듈을 공유하지 않는다. 두 preload가 같은 모듈을 쓰면 공유
 // chunk가 생겨 sandbox preload가 불러오지 못하므로, 카드 값 검사도 일반 preload의 zod 스키마
@@ -38,6 +43,8 @@ const ITEM_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
 const DETAIL_ITEM_TEXT_MAX_ITEMS = 24
 /** 설명 상자 문구 하나의 최대 길이. main은 이보다 긴 원문을 넘기지 않는다. */
 export const CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH = 2000
+// 한 직업의 습득, 패시브 스킬은 100개를 넘지 않는다. 직업 개편으로 늘어날 여유를 두고 200개까지만 받는다.
+const DETAIL_SKILL_MAX_COUNT = 200
 const DETAIL_CHARACTER_KEYS = [
   'serverId',
   'characterId',
@@ -169,6 +176,50 @@ const itemText = exactObject({
   flavor: nullable(isItemTextValue)
 })
 
+const detailSkill = exactObject({
+  name: isNonblankString,
+  level: isNonNegativeSafeInteger,
+  description: nullable(isItemTextValue),
+  coolTime: nullable((value) => isFiniteNumber(value) && value >= 0),
+  vpNames: listOf(isNonblankString),
+  vpName: nullable(isNonblankString)
+})
+
+// 고른 VP는 그 스킬의 VP 이름 중 하나다.
+function isDetailSkill(value: unknown): value is CharacterDetailSkill {
+  if (!detailSkill(value) || !isRecord(value)) {
+    return false
+  }
+  const { vpNames, vpName } = value
+
+  return vpName === null || (Array.isArray(vpNames) && vpNames.includes(vpName))
+}
+
+/** 스킬 탭에 스킬을 둘 수 있는 jobId, jobGrowId, skillId인지 확인한다. API catalog id 규칙과 같다. */
+export function isCharacterDetailSkillId(value: unknown): value is string {
+  return typeof value === 'string' && ITEM_ID_PATTERN.test(value)
+}
+
+function isDetailSkills(value: unknown): value is CharacterDetailSkills {
+  if (!hasExactKeys(value, ['jobId', 'jobGrowId', 'learned'])) {
+    return false
+  }
+  const { jobId, jobGrowId, learned } = value
+  if (
+    !isCharacterDetailSkillId(jobId) ||
+    !isCharacterDetailSkillId(jobGrowId) ||
+    !isRecord(learned)
+  ) {
+    return false
+  }
+  const keys = Reflect.ownKeys(learned)
+
+  return (
+    keys.length <= DETAIL_SKILL_MAX_COUNT &&
+    keys.every((key) => isCharacterDetailSkillId(key) && isDetailSkill(learned[key]))
+  )
+}
+
 /** 설명 상자 문구를 둘 수 있는 itemId인지 확인한다. */
 export function isCharacterDetailItemId(value: unknown): value is string {
   return typeof value === 'string' && ITEM_ID_PATTERN.test(value)
@@ -192,15 +243,16 @@ export function isCharacterDetailCard(value: unknown): value is CharacterCard {
 }
 
 export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSnapshot {
-  if (!hasExactKeys(value, ['character', 'card', 'itemTexts', 'freshness'])) {
+  if (!hasExactKeys(value, ['character', 'card', 'itemTexts', 'skills', 'freshness'])) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
-  const { character, card, itemTexts, freshness } = value
+  const { character, card, itemTexts, skills, freshness } = value
   if (
     !hasExactKeys(character, DETAIL_CHARACTER_KEYS) ||
     !hasExactKeys(freshness, ['lastSuccessfulFetchAt', 'expiresAt']) ||
     (card !== null && !isCharacterDetailCard(card)) ||
-    !isItemTexts(itemTexts)
+    !isItemTexts(itemTexts) ||
+    (skills !== null && !isDetailSkills(skills))
   ) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
@@ -256,12 +308,14 @@ export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSna
   }
   const parsedCard = card === null ? null : structuredClone(card)
   const parsedItemTexts = structuredClone(itemTexts)
+  const parsedSkills = skills === null ? null : structuredClone(skills)
   const parsedFreshness = { lastSuccessfulFetchAt, expiresAt }
 
   return {
     character: parsedCharacter,
     card: parsedCard,
     itemTexts: parsedItemTexts,
+    skills: parsedSkills,
     freshness: parsedFreshness
   }
 }
