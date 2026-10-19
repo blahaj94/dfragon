@@ -23,7 +23,29 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 
 11개가 모두 성공해야 한 transaction으로 저장한다. 하나라도 실패하면 기존 저장값을 유지하고 오류를 반환한다. 실패 때 이전 값을 성공 응답처럼 돌려주거나 부분 갱신하지 않는다. DB 저장, commit이 성공한 뒤 저장값을 정제해 응답한다. 여러 upstream 호출이 게임 서버의 같은 순간을 나타낸다고 보장하지는 않는다.
 
-응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
+응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`, `card`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
+
+## 카드 투영
+
+응답 최상위 `card`는 저장된 섹션을 Desktop 카드의 세 면(캐릭터, 장비, 기타)에 맞춰 정규화한 값이다. 형태는 Desktop `SelectedCharacterSummary.card`와 같은 공유 계약이며 [#716](https://github.com/blahaj94/dfragon/issues/716)의 공유 계약을 따른다. 기존 응답 필드는 바꾸지 않는다. `apps/api/src/characters/card/project.ts`의 순수 함수가 DB, HTTP 없이 만들며 캐시 적중과 갱신 응답에 모두 붙인다. 모르는 값은 null이고 0이나 빈 값으로 바꾸지 않는다. Desktop이 strict 스키마로 검증하므로 빈 문자열과 유한하지 않은 숫자도 null로 둔다. 이미지 URL은 넣지 않고 Desktop renderer가 itemId로 만든다.
+
+- `role`: 기본정보 `jobGrowName`에서 앞의 `眞`을 뺀 이름이 크루세이더, 인챈트리스, 패러메딕, 뮤즈면 `buffer`, 다른 문자열이면 `dealer`, 문자열이 아니면 null이다. Desktop은 이 값으로 점수 계산기를 고른다.
+- `stats`: 능력치 `status`의 마을 값이다. 딜러는 공격력 증가, 공격력 증폭, 물리와 마법 크리티컬 중 큰 값이고 버퍼는 지능이다. 직업의 공격 유형을 API가 알지 못하므로 크리티컬은 항상 둘 중 큰 값이다. 숫자와 `48.3%` 같은 숫자 문자열을 받고 그 밖의 값은 null이다. 역할이 null이면 `stats`도 null이다.
+- 점수 엔진의 값: `stats`의 `switchingLevel`, `buff30`, `buff50`과 `score`는 Desktop main이 네이티브 점수 엔진으로 채우며 API 응답에서는 항상 null이다. 서버는 점수를 계산하지 않는다.
+- `set`: 장비 `setItemInfo` 중 `slotInfo`가 가장 많은 항목이며 같으면 앞의 것이다. `setItemId`나 이름이 없는 항목은 후보에서 뺀다. `active.setPoint`의 current, min, max가 모두 숫자일 때만 `point`를 둔다. `imageItemId`는 같은 `setItemId`를 가진 장착 아이템 중 첫 번째다.
+- `oath`: 서약 `info`에 itemId와 이름이 있을 때만 만든다. `setInfo`의 세트 이름, 옵션 이름, 세트 포인트와 결정(`crystal`) 목록을 담는다. 묵언의 진의는 `oathUpgrade.options`의 목록 위치를 단계 번호로 쓰며 `oathUpgrade`가 null이면 빈 목록이다.
+- 희귀도 개수: 세트는 `slotInfo`, 서약은 결정의 희귀도를 처음 나온 순서로 센다. 희귀도가 없는 항목은 세지 않는다.
+- `investment`: 무기, 상의, 머리어깨, 하의, 벨트, 신발, 목걸이, 팔찌, 반지, 보조장비, 마법석, 귀걸이의 12부위 고정 순서이며 칭호는 넣지 않는다. 빈 슬롯은 아이템 필드가 null이다. `reinforce`가 숫자일 때 `amplificationName`이 있으면 증폭(`amplify`), 없으면 강화(`reinforce`)다. 마법부여는 `status` 옵션만 담고 `reinforceSkill`만 있는 마법부여는 빈 목록이다.
+
+### 마법부여 등급
+
+`apps/api/src/characters/card/enchant-grades.json`의 부위별 종결, 준종결, 기타 항목과 장착 마법부여 `status`의 옵션 이름, 값이 순서와 무관하게 모두 같을 때만 그 등급이다. 같은 옵션이 여러 등급에 있으면 종결, 준종결, 기타 순으로 앞의 등급이다. 표에 없거나 옵션이 없으면 null(미평가)이며 기타로 바꾸지 않는다. 표의 형식이 틀리면 API가 시작하지 않는다. 표의 내용은 #716의 2번 항목이 정하며, 그 전까지는 같은 형식의 빈 표라 모든 등급이 null이다.
+
+### 명성 순위
+
+`serverRank`는 우리 DB에 수집된 모든 서버 캐릭터 기준의 명성 순위다. 던전앤파이터는 서버가 나뉘어 있어도 통합 서버이므로 서버를 나누지 않는다. 필드 이름은 Desktop과의 공유 계약대로 `serverRank`를 유지한다. 전체 유저 순위가 아니므로 `scope: "stored"`, `basis: "fame"`을 붙인다. 순위는 명성이 더 큰 캐릭터 수에 1을 더한 값이며 동점은 같은 순위다. `total`은 명성이 있는 캐릭터 수이고 `observedAt`은 순위를 센 DB 시각이다. 대상 캐릭터의 명성이 null이면 `serverRank`는 null이다. 두 개수와 대상 명성은 한 statement에서 센다. 다른 캐릭터의 명성은 각자 마지막으로 갱신된 값이므로 순위는 관측 시점이 서로 다른 값을 비교한다.
+
+순위는 상세 저장값을 확정한 뒤 별도 READ COMMITTED transaction에서 2초 statement 제한으로 센다. 제한 초과나 DB 실패는 `serverRank`만 null로 두고 카드와 상세 응답은 실패시키지 않는다. 연결 종료와 서버 종료는 기존처럼 요청 전체를 중단한다. 이 투영과 순위 계약은 같은 PR의 사용자 merge로 채택하며, 같은 서버로 순위를 세던 #716의 초안은 2026-10-19 담당자 결정으로 모든 서버 기준으로 바꿨다.
 
 ## 외형 조회
 
