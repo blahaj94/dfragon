@@ -334,7 +334,7 @@ function scoreGlyphTemplates(
   glyphs: DNFRaidMetadataTemplates['equipmentScoreGlyphs']
 ): ScoreGlyphTemplate[] {
   if (!Array.isArray(glyphs) || glyphs.length < 1 || glyphs.length > 26) {
-    throw new RangeError('DNF raid metadata requires a bounded score reference set.')
+    throw new RangeError('DNF raid metadata requires bounded party and score reference sets.')
   }
 
   return Array.from(glyphs, (template) => {
