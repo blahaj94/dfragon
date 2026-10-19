@@ -174,19 +174,19 @@ CI를 기다리지 않고 포터블을 만들려면 같은 PC에서 `pnpm --filt
 
 ## 파인튜닝 OCR 모델로 빌드하기
 
-파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `apps/desktop/models/finetuned` submodule에서 특정 커밋을 고정합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
+파인튜닝 모델은 공개 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 루트 `model.onnx`, `characters.txt` 한 쌍으로 관리합니다. 부모 저장소는 `packages/models/ocr-finetuned` submodule에서 특정 커밋을 고정하고, workspace 패키지 `@dfragon/models`로 Desktop에 제공합니다. 모델 저장소에 파일을 올리는 것만으로 기존 빌드의 모델이 바뀌지는 않습니다.
 
 처음 checkout할 때 실행합니다. Code Quality, Windows Test Build와 Windows Portable CI도 고정된 submodule 커밋을 가져옵니다.
 
 ```sh
-git submodule update --init --recursive apps/desktop/models/finetuned
+git submodule update --init --recursive packages/models/ocr-finetuned
 ```
 
 실제 모델을 업로드한 뒤 부모의 작업 브랜치에서 해당 커밋으로 갱신합니다. 빌드 중 최신 브랜치를 자동으로 가져오지 않습니다.
 
 ```sh
-git -C apps/desktop/models/finetuned fetch origin
-git -C apps/desktop/models/finetuned checkout <모델을-포함한-커밋-SHA>
+git -C packages/models/ocr-finetuned fetch origin
+git -C packages/models/ocr-finetuned checkout <모델을-포함한-커밋-SHA>
 ```
 
 [`ocr-model.config.mjs`](ocr-model.config.mjs)에는 `bundledOcrModel`, `fineTunedOcrModel` 두 설정이 있습니다. 마지막 줄 하나가 빌드에 넣을 모델을 정하며 현재 값은 다음과 같습니다.
@@ -195,7 +195,7 @@ git -C apps/desktop/models/finetuned checkout <모델을-포함한-커밋-SHA>
 export default fineTunedOcrModel
 ```
 
-`fineTunedOcrModel`은 `models/finetuned/model.onnx`, `models/finetuned/characters.txt`를 사용합니다. 경로는 `apps/desktop` 기준이며 다른 로컬 모델을 사용하려면 해당 설정의 이름과 경로를 수정할 수 있습니다. 현재 선택은 `fineTunedOcrModel`이고 submodule은 모델 저장소의 13에폭 모델 커밋을 고정합니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
+`fineTunedOcrModel`은 `@dfragon/models/ocr-finetuned/model.onnx`, `@dfragon/models/ocr-finetuned/characters.txt`를 패키지 이름으로 찾아 사용합니다. 다른 로컬 모델을 사용하려면 해당 설정의 이름을 바꾸고 경로를 `apps/desktop` 기준 상대 경로나 절대 경로로 지정합니다. 현재 선택은 `fineTunedOcrModel`이고 submodule은 모델 저장소의 13에폭 모델 커밋을 고정합니다. 기본 vendor 파일과 고정 체크섬은 수정하지 않습니다.
 
 ```sh
 # 파일과 모델 호환성만 먼저 확인
@@ -205,7 +205,7 @@ pnpm --filter @dfragon/desktop prepare:ocr-assets
 pnpm --filter @dfragon/desktop build
 
 # 검증한 submodule 커밋과 모델 선택을 함께 PR에 포함
-git add apps/desktop/models/finetuned apps/desktop/ocr-model.config.mjs
+git add packages/models/ocr-finetuned apps/desktop/ocr-model.config.mjs
 ```
 
 `dev`, `build:development`, `build:distribution`과 Windows 패키징도 같은 설정을 사용합니다. 모델이나 설정을 바꾸면 개발 프로세스를 다시 시작하거나 다시 빌드합니다. 일반 캡처와 개발자 평가에 같은 모델이 적용되며, 앱 화면에서 바꾸거나 서버에서 내려받는 기능은 아닙니다. submodule을 초기화하지 않았거나 선택한 커밋에 모델 파일이 없으면 빌드를 실패시키고 기본 모델로 대체하지 않습니다. 기본 모델로 돌아가려면 마지막 줄을 `export default bundledOcrModel`로 되돌립니다.

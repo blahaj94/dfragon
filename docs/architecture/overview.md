@@ -22,6 +22,7 @@ packages/
   ui/
   lib/
   licenses/
+  models/
 scripts/
 ```
 
@@ -33,6 +34,7 @@ scripts/
 - `packages/ui`: 현재 tracked shared UI package `@dfragon/ui`. 실제 구현, 명령은 [Repository Map](../reference/repository-map.md#shared-ui)에서 확인한다.
 - `packages/lib`: 앱과 UI에 의존하지 않는 공용 순수 함수 `@dfragon/lib`. 아래 Shared library boundary를 따른다.
 - `packages/licenses`: 빌드 시 고지 원문, 수집, 배포 자료를 관리하는 `@dfragon/licenses`. 제품 runtime에서 import하지 않는다.
+- `packages/models`: 빌드에 넣는 학습 모델 파일을 제공하는 `@dfragon/models`. 아래 Model package boundary를 따른다.
 - `scripts`: repository 생성, 관리 script.
 
 상세한 file과 command 현황은 [`../reference/repository-map.md`](../reference/repository-map.md)를 따른다.
@@ -107,6 +109,17 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 ## License tooling boundary
 
 `@dfragon/licenses`는 UI, Web, Desktop, 공용 library의 **빌드 도구 의존성**으로 고지 원문, 수집, 산출물 생성을 담당한다. 제품 runtime 의존성으로 연결하지 않는다. 소유 app/package는 source provenance와 사용 자산을 전달하고, 중앙 도구는 소유 앱의 제품 코드를 import하지 않는다. 기존 고지 원문의 중앙 관리와 빌드 수집 도구 이전을 이번 요청의 적용 범위로 채택하며 사용자 merge 후 적용한다. 기존 LICENSE/NOTICE와 source 수정 표시는 보존한다. 확인되지 않은 원문과 법률상 추가 조건을 수집 성공으로 대체하지 않는다. [사용법과 한계](../../packages/licenses/README.md)를 따른다.
+
+## Model package boundary
+
+2026-10-19 사용자 요청으로 Desktop 폴더 안의 OCR 파인튜닝 모델 submodule을 `packages/models`의 workspace package `@dfragon/models`로 옮기는 아래 경계를 채택한다. 모델 파일의 위치를 앱 폴더 밖에서 찾을 수 있게 하는 저장소 구조 정리이며 빌드에 넣는 모델은 바꾸지 않는다. 이 절은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+
+| 대상 | 책임과 dependency direction |
+| --- | --- |
+| `packages/models`의 `@dfragon/models` | 모델 저장소를 submodule로 고정 커밋에 묶고 `exports`로 모델, 사전 파일 경로를 제공한다. 코드와 dependency가 없으며 앱 source를 참조하지 않는다. |
+| `apps/desktop` | 빌드 설정에서 패키지 이름으로 모델 파일을 찾아 renderer 자원으로 복사한다. 어떤 모델을 넣을지와 호환성 검증은 Desktop이 소유한다. |
+
+모델 원본과 학습은 모델 저장소가 소유하며 이 저장소에 모델 파일을 commit하지 않는다. 사용법과 갱신 절차는 [패키지 안내](../../packages/models/README.md)를 따른다.
 
 ## Architecture change
 

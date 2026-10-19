@@ -147,7 +147,7 @@ pnpm verify
 pnpm verify:database
 ```
 
-- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. CI의 Desktop job은 OCR 모델 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive apps/desktop/models/finetuned`를 실행합니다.
+- `pnpm install --frozen-lockfile`로 의존성을 설치합니다. CI의 Desktop job은 OCR 모델 submodule도 받으므로 같은 입력으로 확인하려면 `git submodule update --init --recursive packages/models/ocr-finetuned`를 실행합니다.
 - Desktop 테스트는 HOME의 모든 상위 디렉터리가 root나 현재 사용자 소유이고 group, other 쓰기 권한이 없어야 통과합니다. [Desktop 테스트 범위](../apps/desktop/README.md#테스트-범위와-실행)를 참고합니다.
 - `verify:database`에는 같은 host의 Docker daemon(Docker Desktop 포함)과 Buildx, 고정 PostgreSQL 이미지를 받을 네트워크, accounts 패스키 시나리오용 Playwright Chromium이 필요합니다. Chromium은 `pnpm exec playwright install chromium`으로 한 번 설치하고, Linux에서 브라우저 시스템 라이브러리가 없으면 CI처럼 `--with-deps`를 붙입니다.
 
