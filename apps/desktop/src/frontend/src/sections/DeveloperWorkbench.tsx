@@ -9,7 +9,7 @@ import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
 import { summarizeDeveloperEvaluation, type DeveloperEvaluation } from '../lib/developer-evaluation'
 import { normalizeNickname } from '../lib/recognition'
-import type { DeveloperPartySlotNumber, DeveloperWorkbenchSample } from '../lib/developer-party'
+import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import {
   queryDeveloperWorkbenchSamples,
   selectDeveloperEvaluationSamples,
@@ -19,12 +19,10 @@ import {
 } from '../lib/developer-workbench-samples'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperWorkbench.style'
-import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import {
   DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS,
   DEVELOPER_PREVIEW_INTERVALS_MS
 } from '../constants/developer'
-import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
 
 const REMOTE_PAGE_SIZE = 50
 // Select가 trigger의 값 글자와 목록 항목을 같은 이름으로 그리도록 한 곳에서 만든다.
@@ -50,13 +48,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selectionRevision = useRef(0)
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [slotsByKind, setSlotsByKind] = useState<
-    Record<DeveloperCollectionKind, DeveloperPartySlotNumber[]>
-  >({
-    hud: [...DEVELOPER_COLLECTION_SLOTS.hud],
-    participants: [...DEVELOPER_COLLECTION_SLOTS.participants],
-    raid: [...DEVELOPER_COLLECTION_SLOTS.raid]
-  })
   const collectionKind = activeTab === 'participants' || activeTab === 'raid' ? activeTab : 'hud'
   const [confirmClose, setConfirmClose] = useState(false)
   const [notice, setNotice] = useState('')
@@ -393,10 +384,6 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           onLabeling={() => selectTab('labeling')}
           onSaved={() => void dataset.refresh()}
           onDisarmed={() => void dataset.refresh()}
-          slots={slotsByKind[collectionKind]}
-          onSlotsChange={(slots) =>
-            setSlotsByKind((previous) => ({ ...previous, [collectionKind]: slots }))
-          }
         />
         {activeTab === 'labeling' && (
           <>
