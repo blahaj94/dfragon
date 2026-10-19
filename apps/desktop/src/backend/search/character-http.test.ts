@@ -325,6 +325,23 @@ describe('캐릭터 PNG HTTP', () => {
     expect(fetch).toHaveBeenCalledOnce()
   })
 
+  it('이미지 429는 수신 시각과 Retry-After를 보존한 호출 제한으로 알리고 재시도하지 않는다', async () => {
+    const fetch = vi
+      .fn<typeof globalThis.fetch>()
+      .mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '7' } }))
+    const clock: Pick<AuthClock, 'read'> = {
+      read: () => ({ monotonicMs: 1234, wallMs: 5678, discontinuous: false })
+    }
+    const read = createCharacterImageHttp({ fetch, clock })
+
+    await expect(read({ ...identity, signal: signal() })).rejects.toMatchObject({
+      code: 'SEARCH_RATE_LIMITED',
+      retryAfterSeconds: 7,
+      retryAfterReceivedAt: 1234
+    })
+    expect(fetch).toHaveBeenCalledOnce()
+  })
+
   it.each(['중복 IHDR', '크기보다 큰 interlace 압축 데이터'])(
     '%s를 pngjs 디코더 전에 거부한다',
     async (kind) => {
