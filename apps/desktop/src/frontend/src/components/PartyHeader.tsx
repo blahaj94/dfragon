@@ -19,6 +19,7 @@ export function PartyHeader({
   canCapture,
   onCapture,
   snapshotActive,
+  snapshotRound,
   onTakeSnapshot,
   onClearSnapshot,
   collapsed,
@@ -36,6 +37,8 @@ export function PartyHeader({
   onCapture: () => void
   /** 모험단 순번 스냅샷을 켜 둔 상태 */
   snapshotActive: boolean
+  /** 스냅샷을 켠 뒤 몇 번째 파티인지. 스냅샷이 없으면 null이라 번호를 보이지 않는다. */
+  snapshotRound: number | null
   onTakeSnapshot: () => void
   /** 끄기 확인을 거친 뒤 스냅샷을 지운다. */
   onClearSnapshot: () => void
@@ -54,6 +57,11 @@ export function PartyHeader({
           {filledCount}
           <span {...stylex.props(styles.total)}>/{PARTY_SLOT_COUNT}</span>
         </span>
+        {snapshotRound !== null && (
+          <span aria-label={`${snapshotRound}번째 파티`} role="img" {...stylex.props(styles.round)}>
+            #{snapshotRound}
+          </span>
+        )}
         <span role="status" {...stylex.props(styles.notice)}>
           {notice}
         </span>

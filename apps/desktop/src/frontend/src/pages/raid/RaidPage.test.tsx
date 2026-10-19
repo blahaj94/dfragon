@@ -86,6 +86,7 @@ async function render(
         canCapture
         onCapture={vi.fn()}
         snapshotActive={false}
+        snapshotRound={null}
         snapshotMarks={[]}
         onTakeSnapshot={vi.fn()}
         onClearSnapshot={vi.fn()}
@@ -610,6 +611,16 @@ it('스냅샷 표시는 화면 자리 순서대로 그 자리 카드에 칩과 �
   expect(second.querySelector('[aria-label="스냅샷에 없는 모험단"]')).not.toBeNull()
   expect(third.querySelector('[aria-label^="스냅샷"]')).toBeNull()
   expect(container.querySelectorAll('[aria-label^="스냅샷 순번"]')).toHaveLength(1)
+})
+
+it('공대 인원수 바로 뒤에 스냅샷 회차 번호를 보이고 스냅샷이 없으면 숨긴다', async () => {
+  await render({ snapshotActive: false, snapshotRound: null })
+  expect(container.querySelector('[aria-label$="번째 공대"]')).toBeNull()
+
+  await render({ snapshotActive: true, snapshotRound: 3 })
+  const round = container.querySelector('[aria-label="3번째 공대"]')!
+  expect(round.textContent).toBe('#3')
+  expect(round.previousElementSibling?.textContent).toContain('/12')
 })
 
 it('꺼진 스냅샷 버튼을 누르면 onTakeSnapshot을 부른다', async () => {

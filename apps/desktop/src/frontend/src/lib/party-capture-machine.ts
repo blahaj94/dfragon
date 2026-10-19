@@ -29,6 +29,8 @@ type CaptureContext = {
   frame: RoundFrame | null
   results: PartySlotRecognition[]
   round: number
+  /** START를 받아 회차를 시작한 횟수. 실패하거나 취소된 회차도 센다. 창 선택과 중지는 세지 않는다. */
+  startedRounds: number
   status: string
   /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 창을 바꾸거나 중지하면 비운다. */
   completedAt: number | null
@@ -121,6 +123,7 @@ export const partyCaptureMachine = setup({
       results: [],
       round: ({ context }) => context.round + 1
     }),
+    countStart: assign({ startedRounds: ({ context }) => context.startedRounds + 1 }),
     recordRequest: assign(({ event }) => {
       if (event.type === 'START') {
         return { request: event.request }
@@ -181,6 +184,7 @@ export const partyCaptureMachine = setup({
     frame: null,
     results: [],
     round: 0,
+    startedRounds: 0,
     status: '캡처할 게임 창을 선택해 주세요.',
     completedAt: null
   }),
@@ -235,14 +239,14 @@ export const partyCaptureMachine = setup({
       }
     },
     selected: {
-      on: { START: { target: 'capturing', actions: 'recordRequest' } }
+      on: { START: { target: 'capturing', actions: ['countStart', 'recordRequest'] } }
     },
     stopped: {},
     capturing: {
       initial: 'search',
       entry: ['resetSearch', 'resetRecognition', assign({ status: '파티를 인식하고 있습니다.' })],
       on: {
-        START: { target: 'capturing', reenter: true, actions: 'recordRequest' }
+        START: { target: 'capturing', reenter: true, actions: ['countStart', 'recordRequest'] }
       },
       states: {
         search: {
@@ -383,7 +387,7 @@ export const partyCaptureMachine = setup({
     selectionFailed: {},
     captureFailed: {
       entry: ['resetSearch', 'resetRecognition'],
-      on: { START: { target: 'capturing', actions: 'recordRequest' } }
+      on: { START: { target: 'capturing', actions: ['countStart', 'recordRequest'] } }
     }
   }
 })

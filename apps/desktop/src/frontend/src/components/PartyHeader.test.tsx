@@ -32,6 +32,7 @@ async function render(props: Partial<ComponentProps<typeof PartyHeader>> = {}): 
         canCapture
         onCapture={() => {}}
         snapshotActive={false}
+        snapshotRound={null}
         onTakeSnapshot={() => {}}
         onClearSnapshot={() => {}}
         collapsed={false}
@@ -87,6 +88,16 @@ it('스냅샷 버튼은 켜짐 상태를 aria-pressed로 전하고 이름은 켜
   await render({ snapshotActive: true })
   expect(button.getAttribute('aria-pressed')).toBe('true')
   expect(button.getAttribute('aria-label')).toBe('파티 모험단 순번 스냅샷')
+})
+
+it('인원수 바로 뒤에 스냅샷 회차 번호를 보이고 스냅샷이 없으면 숨긴다', async () => {
+  await render({ snapshotActive: false, snapshotRound: null })
+  expect(container.querySelector('[aria-label$="번째 파티"]')).toBeNull()
+
+  await render({ snapshotActive: true, snapshotRound: 2 })
+  const round = container.querySelector('[aria-label="2번째 파티"]')!
+  expect(round.textContent).toBe('#2')
+  expect(round.previousElementSibling?.textContent).toContain('2/4')
 })
 
 it('상세 열기 실패 안내만 status 영역에 보이고 없으면 영역을 비워 둔다', async () => {

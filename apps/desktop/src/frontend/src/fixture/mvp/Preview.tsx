@@ -90,7 +90,8 @@ export function Preview(): React.JSX.Element {
       }
 
       return shown.adventure
-    })
+    }),
+    partyRound
   )
   const raidSnapshot = useAdventureSnapshot(
     seatOrder.map((slot) => {
@@ -100,7 +101,8 @@ export function Preview(): React.JSX.Element {
       }
 
       return adventure
-    })
+    }),
+    raidRound
   )
   const openDetail = (): void => {
     const url = new URL(window.location.href)
@@ -153,6 +155,7 @@ export function Preview(): React.JSX.Element {
               setPartyRound((round) => round + 1)
             }}
             snapshotActive={partySnapshot.active}
+            snapshotRound={partySnapshot.round}
             onTakeSnapshot={partySnapshot.take}
             onClearSnapshot={partySnapshot.clear}
             collapsed={party.collapsed}
@@ -200,6 +203,7 @@ export function Preview(): React.JSX.Element {
                 setRaidRound((round) => round + 1)
               }}
               snapshotActive={raidSnapshot.active}
+              snapshotRound={raidSnapshot.round}
               snapshotMarks={raidSnapshot.marks}
               onTakeSnapshot={raidSnapshot.take}
               onClearSnapshot={raidSnapshot.clear}
