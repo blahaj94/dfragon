@@ -24,6 +24,16 @@ async function click(label: string): Promise<void> {
   await act(async () => button.click())
 }
 
+// 로그인 버튼은 설정 대화상자의 메뉴 아래쪽에 있다.
+async function openSettings(): Promise<void> {
+  await click('설정')
+  expect(settingsMenu()).not.toBeNull()
+}
+
+function settingsMenu(): Element {
+  return document.querySelector('[role="dialog"] nav[aria-label="설정 메뉴"]')!
+}
+
 function publish(change: Partial<AuthSnapshot>): AuthSnapshot {
   snapshot = { ...snapshot, ...change, revision: snapshot.revision + 1 }
   listeners.forEach((listener) => listener(snapshot))
@@ -146,14 +156,16 @@ it('기본 앱은 빈 카드 네 개에서 이름과 서버를 바로 수정할 
   const chip = container.querySelector<HTMLButtonElement>('header button[aria-label^="화면 캡처"]')!
   expect(chip.getAttribute('aria-label')).toBe('화면 캡처, 창 미감지')
   expect(chip.disabled).toBe(false)
-  const login = [...container.querySelectorAll('button')].find(
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(container.querySelector('header')?.textContent).not.toContain('로그인')
+  await openSettings()
+  const login = [...settingsMenu().querySelectorAll('button')].find(
     (button) => button.textContent === '로그인'
   )!
   expect(login.disabled).toBe(false)
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
+it('설정의 취소, 로그인 실패, 성공과 외부 로그아웃 이후에도 카드를 유지한다', async () => {
   await act(async () =>
     root.render(
       <ColorThemeProvider>
@@ -162,25 +174,26 @@ it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후
     )
   )
   const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
-  const loginButton = container.querySelector('header button[aria-label="로그인"]')
+  await openSettings()
+  const loginButton = settingsMenu().querySelector('button[aria-label="로그인"]')
   await click('로그인')
-  expect(container.querySelector('header button[aria-label="취소"]')).toBe(loginButton)
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(settingsMenu().querySelector('button[aria-label="취소"]')).toBe(loginButton)
+  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
   expect(api.beginLogin).toHaveBeenCalledExactlyOnceWith({ provider: 'passkey' })
-  expect(container.querySelector('header')?.textContent).toContain('취소')
-  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
+  expect(settingsMenu().textContent).toContain('취소')
+  expect(settingsMenu().querySelector('[aria-busy="true"]')).not.toBeNull()
   await click('취소')
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
   expect(api.beginLogin).toHaveBeenCalledTimes(1)
   expect(api.cancelLogin).toHaveBeenCalledExactlyOnceWith({ attemptId: 'test-attempt' })
-  expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
+  expect(settingsMenu().textContent).toContain('로그인')
+  expect(settingsMenu().querySelector('[aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({ phase: 'signedOut', login: null, notice: 'NETWORK_UNAVAILABLE' })
   })
-  expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [aria-busy="true"]')).toBeNull()
+  expect(settingsMenu().textContent).toContain('로그인')
+  expect(settingsMenu().querySelector('[aria-busy="true"]')).toBeNull()
   await click('로그인')
   await act(async () => {
     publish({
@@ -191,15 +204,15 @@ it('상단 바의 취소, 로그인 실패, 성공과 외부 로그아웃 이후
       entry: 'welcome'
     })
   })
-  expect(container.querySelector('header button[aria-label="로그인"]')).toBeNull()
-  expect(container.querySelector('header button[aria-label="취소"]')).toBeNull()
+  expect(settingsMenu().querySelector('button[aria-label="로그인"]')).toBeNull()
+  expect(settingsMenu().querySelector('button[aria-label="취소"]')).toBeNull()
   expect(document.body.textContent).not.toContain('내 계정')
   expect(document.body.textContent).not.toContain('테스트모험가')
   await act(async () => {
     await api.logout()
   })
   expect(api.logout).toHaveBeenCalledExactlyOnceWith()
-  expect(container.querySelector('header')?.textContent).toContain('로그인')
+  expect(settingsMenu().textContent).toContain('로그인')
   expect(document.body.textContent).not.toContain('테스트모험가')
   expect([...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]).toEqual(cards)
 })
@@ -229,7 +242,8 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
       )
     )
 
-    const cancel = container.querySelector<HTMLButtonElement>('header button[aria-label="취소"]')!
+    await openSettings()
+    const cancel = settingsMenu().querySelector<HTMLButtonElement>('button[aria-label="취소"]')!
     expect(cancel.textContent).toBe('취소')
     expect(cancel.disabled).toBe(false)
     expect(cancel.getAttribute('aria-busy')).toBe('true')
@@ -245,7 +259,7 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
       [{ attemptId: 'current-attempt' }]
     ])
     expect(api.beginLogin).not.toHaveBeenCalled()
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
     expect(listeners.size).toBe(1)
 
     await act(async () => {
@@ -260,9 +274,9 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
         }
       })
     })
-    expect(container.querySelector('header button[aria-label="취소"]')).toBeNull()
+    expect(settingsMenu().querySelector('button[aria-label="취소"]')).toBeNull()
     expect(
-      container.querySelector<HTMLButtonElement>('header button[aria-label="로그인"]')?.disabled
+      settingsMenu().querySelector<HTMLButtonElement>('button[aria-label="로그인"]')?.disabled
     ).toBe(false)
   }
 )
@@ -276,12 +290,13 @@ it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고
       </ColorThemeProvider>
     )
   )
-  expect(container.querySelector('header')?.textContent).toContain('로그인')
-  expect(container.querySelector('header [aria-busy="true"]')).not.toBeNull()
+  await openSettings()
+  expect(settingsMenu().textContent).toContain('로그인')
+  expect(settingsMenu().querySelector('[aria-busy="true"]')).not.toBeNull()
   await act(async () => {
     publish({ phase: 'signedIn', user: { nickname: '복원모험가' }, entry: 'home' })
   })
-  expect(container.querySelector('header button[aria-label="로그인"]')).toBeNull()
+  expect(settingsMenu().querySelector('button[aria-label="로그인"]')).toBeNull()
   await act(async () => root.unmount())
   expect(listeners.size).toBe(0)
   root = createRoot(container)
@@ -292,6 +307,7 @@ it('재실행 조회가 로그인 상태면 계정 메뉴를 표시하지 않고
       </ColorThemeProvider>
     )
   )
+  await openSettings()
   expect(document.body.textContent).not.toContain('내 계정')
   expect(document.body.textContent).not.toContain('복원모험가')
   expect(document.body.textContent).not.toContain('시작하기')
@@ -309,11 +325,13 @@ it('인증 연결 실패 중에도 카드, 테마를 유지하고 연결 재확�
     )
   )
   const cards = [...container.querySelectorAll('[aria-label="파티 캐릭터"] article')]
+  await openSettings()
   await click('로그인')
-  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
   expect(api.getAuthState).toHaveBeenCalledTimes(2)
   expect(api.beginLogin).not.toHaveBeenCalled()
   expect(document.body.textContent).not.toContain('패스키로 계속하기')
+  await click('닫기')
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull())
   await click('라이트 테마')
   expect(document.documentElement.dataset.theme).toBe('light')
@@ -331,9 +349,11 @@ it('로그인 설정이 없어 인증 API가 없으면 로그인 버튼 없이 �
   )
 
   const header = container.querySelector('header')!
-  expect(header.querySelector('[aria-label="로그인"]')).toBeNull()
   expect(header.textContent).not.toContain('로그인')
   expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
+  await openSettings()
+  expect(settingsMenu().querySelector('[aria-label="로그인"]')).toBeNull()
+  expect(settingsMenu().textContent).not.toContain('로그인')
   expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)
 })
 
@@ -352,8 +372,9 @@ it.each(['restorePaused', 'storageBlocked'] as const)(
         </ColorThemeProvider>
       )
     )
+    await openSettings()
     await click('로그인')
-    expect(document.querySelector('[role="dialog"]')).toBeNull()
+    expect(document.querySelectorAll('[role="dialog"]')).toHaveLength(1)
     expect(api.retryAuth).toHaveBeenCalledExactlyOnceWith()
     expect(api.beginLogin).not.toHaveBeenCalled()
     expect(container.querySelectorAll('[aria-label="파티 캐릭터"] article')).toHaveLength(4)

@@ -37,15 +37,31 @@ it('미리보기는 앱 첫 줄의 상단 바와 그 아래 파티 콘텐츠를 
   expect(header.querySelector('[aria-label^="화면 캡처"]')).not.toBeNull()
   expect(header.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
   expect(header.querySelector('[aria-label="설정"]')).not.toBeNull()
-  const login = [...header.querySelectorAll('button')].find(
-    (button) => button.textContent === '로그인'
-  )!
-  expect(login.disabled).toBe(true)
+  expect(header.textContent).not.toContain('로그인')
   const party = main.querySelector('[aria-label="파티 캐릭터"]')!
   expect(party).not.toBeNull()
   expect(party.closest('header')).toBeNull()
   expect(header.compareDocumentPosition(party) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
   expect(main.querySelectorAll('article')).toHaveLength(4)
+})
+
+it('미리보기 설정 대화상자에서 합성 로그인과 개발자 모드를 조작한다', async () => {
+  await act(async () =>
+    container.querySelector<HTMLButtonElement>('header [aria-label="설정"]')!.click()
+  )
+  const menu = document.querySelector('[role="dialog"] nav[aria-label="설정 메뉴"]')!
+  const login = menu.querySelector<HTMLButtonElement>('button[aria-label="로그인"]')!
+  expect(login.disabled).toBe(false)
+  await act(async () => login.click())
+  expect(menu.querySelector('button[aria-label="취소"]')).not.toBeNull()
+  const developer = [...menu.querySelectorAll('button')].find(
+    (button) => button.textContent === '개발자 모드'
+  )!
+  await act(async () => developer.click())
+  expect(document.body.textContent).not.toContain('개발 도구 열기')
+  await act(async () => document.querySelector<HTMLElement>('[role="switch"]')!.click())
+  expect(document.querySelector('[role="switch"]')?.getAttribute('aria-checked')).toBe('true')
+  expect(document.body.textContent).toContain('개발 도구 열기')
 })
 
 it.each([
