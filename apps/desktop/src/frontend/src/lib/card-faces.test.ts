@@ -1,5 +1,8 @@
 import { expect, it } from 'vitest'
 import { bufferCard, dealerCard } from '../testing/fixtures/character-cards'
+import { apiBufferCard, apiDealerCard } from '../testing/fixtures/api-character-cards'
+import apiBufferFixture from '../../../../../api/test/fixtures/character-card-buffer.json'
+import apiDealerFixture from '../../../../../api/test/fixtures/character-card-dealer.json'
 import type { CharacterCard } from '../types/cards'
 import {
   itemImageUrl,
@@ -243,6 +246,44 @@ it('기타 면은 강화와 증폭을 종류로 구분하고 등급표에 없는
   expect(rows[3].enchant).toEqual({ grade: '기타', filled: 1, label: '마법부여 기타' })
   // 마법부여는 있지만 판정 기준이 없는 부위는 미평가 `-`다.
   expect(rows[9].enchant).toEqual({ grade: null, text: '-', label: '마법부여 미평가' })
+})
+
+it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우기 전의 점수는 비우고 순위는 -로 둔다', () => {
+  // 옮긴 사본이 API fixture의 card와 같아야 계약 교차 확인이 유효하다.
+  expect(apiDealerCard).toEqual(apiDealerFixture.card)
+  expect(apiBufferCard).toEqual(apiBufferFixture.card)
+
+  const dealer = toCharacterFace(apiDealerCard, 'long')
+  expect(dealer.stats.map((stat) => stat.label)).toEqual([
+    '공격력 증가',
+    '공격력 증폭',
+    '크리티컬',
+    '스위칭'
+  ])
+  expect(dealer.stats[1]).toEqual({ label: '공격력 증폭', value: '73', unit: '%' })
+  expect(dealer.score).toEqual({ value: null, description: undefined })
+  expect(dealer.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
+  expect(toCharacterFace(apiBufferCard, 'long').stats[0]).toEqual({
+    label: '마을 지능',
+    value: '5,847',
+    unit: ''
+  })
+
+  const { set, oath } = toEquipmentFace(apiDealerCard)
+  expect(set).toMatchObject({ missing: false, name: '로열 페어리 세트', point: '2,615' })
+  expect(oath).toMatchObject({ missing: false, imageLabel: '세계를 태우는 용투 서약' })
+  // 업그레이드 없는 서약은 묵언의 진의가 모두 비어 있다.
+  expect(
+    toEquipmentFace(apiBufferCard)
+      .oath.upgrades.flat()
+      .every((cell) => !cell.filled)
+  ).toBe(true)
+
+  const rows = toInvestmentRows(apiDealerCard)
+  expect(rows).toHaveLength(12)
+  expect(rows.every((row) => row.itemTone !== 'missing')).toBe(true)
+  // 등급표가 비어 있는 동안 API는 등급을 null로 주고, 기타 면은 그 등급을 기타로 바꾸지 않는다.
+  expect(rows.filter((row) => row.enchant.grade !== null)).toEqual([])
 })
 
 it('희귀도 이름을 색 토큰 키로 바꾸고 단계가 붙은 이름과 모르는 이름을 구분한다', () => {
