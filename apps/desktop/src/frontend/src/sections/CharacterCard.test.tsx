@@ -679,14 +679,32 @@ it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 �
   )
 })
 
-it('접힌 카드는 후보 줄 대신 머리에 후보 수만 남기고, 미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
+it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 후보는 서버를 대신 보인다', async () => {
+  const pick = vi.fn()
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
-  await render({ state: 'success', character: found, picker, collapsed: true })
+  await render({
+    state: 'success',
+    character: found,
+    picker,
+    collapsed: true,
+    onPickCandidate: pick
+  })
 
-  expect(card().querySelector('[role="group"]')).toBeNull()
-  expect(card().querySelector('[aria-label="외형으로 확정하지 못함, 후보 2명"]')).not.toBeNull()
+  const groups = card().querySelectorAll('[role="group"]')
+  expect(groups).toHaveLength(1)
+  expect(groups[0].getAttribute('aria-label')).toBe('1번 후보 고르기')
+  expect(card().querySelector('[aria-label^="외형으로 확정하지 못함"]')).toBeNull()
+  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
+  expect(candidateTile('카인').textContent).toBe('찾은모험단')
+  expect(candidateTile('시로코').textContent).toBe('—시로코')
+  await act(async () => candidateTile('시로코').click())
+  expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
+})
 
+it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
+
   expect(card().querySelector('[role="group"]')).not.toBeNull()
   expect(card().getAttribute('data-state')).toBe('failure')
 })
