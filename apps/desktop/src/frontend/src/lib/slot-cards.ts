@@ -6,7 +6,7 @@ import { searchSlotNotice, toCharacterCard } from './character-card'
 /** 실패와 결과 0건 카드의 안내에 덧붙이는 다음 조회 방법. 파티와 공대가 같다. */
 const NEXT_LOOKUP_STEP = 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.'
 
-/** 검색 슬롯 하나가 카드에 그리는 값. 값 이름은 `CharacterCard`, `RaidCard`의 props를 따른다. */
+/** 검색 슬롯 하나가 카드에 그리는 값. `CharacterCard`, `RaidCard`가 이 값 하나를 받는다. */
 export type SlotCard = {
   state: SlotState
   /** 찾은 캐릭터. 조회하지 않았거나 찾지 못한 슬롯은 undefined다. */

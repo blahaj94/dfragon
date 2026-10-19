@@ -141,8 +141,7 @@ export function RaidPage({
   function renderSeat(seat: number, partyLabelId: string): React.JSX.Element {
     const slot = seatOrder[seat]
     const card = slots[slot]
-    const { state, character } = card
-    const found = state === 'success' && character != null
+    const found = card.state === 'success' && card.character != null
     let drag: 'source' | 'target' | undefined
     if (dragging === slot) {
       drag = 'source'
@@ -153,14 +152,9 @@ export function RaidPage({
     return (
       <RaidCard
         key={`${resetKey}-${slot}`}
+        card={card}
         slot={seat + 1}
-        character={character}
-        state={state}
-        nickname={found ? undefined : card.nickname}
-        snapshotMark={card.snapshotMark}
-        loading={card.loading}
         collapsed={collapsed}
-        notice={card.notice}
         onDetail={found && onSlotDetail !== undefined ? () => onSlotDetail(slot) : undefined}
         onLookup={
           onLookup === undefined

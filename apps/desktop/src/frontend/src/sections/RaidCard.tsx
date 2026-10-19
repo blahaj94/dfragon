@@ -14,10 +14,9 @@ import {
   isVacantSlot
 } from '../lib/card-presentation'
 import { type ScoreView, toCharacterFace } from '../lib/card-faces'
-import type { SnapshotMark } from '../lib/adventure-snapshot'
+import type { SlotCard } from '../lib/slot-cards'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
-import type { CardCharacter, SlotState } from '../types/cards'
 import { styles } from './RaidCard.style'
 
 /** 카드를 끌거나 키보드로 옮기는 자리 조작. 공대 화면이 자리 배치를 소유하고 카드에 연결한다. */
@@ -40,36 +39,28 @@ export type RaidCardMove = Pick<
  * 자리를 옮기는 손잡이라 끌거나 포커스한 뒤 Alt와 방향키로 이웃 자리와 맞바꾼다.
  */
 export function RaidCard({
+  card,
   slot,
-  character,
-  state,
-  nickname,
-  snapshotMark,
-  loading = false,
   collapsed = false,
-  notice,
   onDetail,
   onLookup,
   move
 }: {
+  /** 이 자리에 놓인 검색 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
+  card: SlotCard
   /** 화면의 자리 번호(1~12) */
   slot: number
-  character?: CardCharacter
-  state: SlotState
-  /** 공대 캡처가 인식한 이름. 캐릭터를 찾기 전까지 이름 칸에 보인다. */
-  nickname?: string
-  /** 모험단 순번 스냅샷과 비교한 표시. 자리가 같거나 스냅샷이 없으면 undefined다. */
-  snapshotMark?: SnapshotMark
-  loading?: boolean
   /** 그림 칸, 직업, 스탯 한 줄을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
   collapsed?: boolean
-  notice?: string
   onDetail?: () => void
   onLookup?: (nickname: string, serverId: string) => void
   move: RaidCardMove
 }): React.JSX.Element {
-  const draft = useLookupDraft({ character, nickname, onLookup })
+  const { state, character, notice, snapshotMark, loading = false } = card
   const characterFound = state === 'success' && character != null
+  // 찾은 자리는 공대 캡처가 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
+  const nickname = characterFound ? undefined : card.nickname
+  const draft = useLookupDraft({ character, nickname, onLookup })
   const hasCharacter = characterFound && !draft.editing
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'

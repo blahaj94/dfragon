@@ -27,57 +27,54 @@ import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
-import type { SnapshotMark } from '../lib/adventure-snapshot'
+import type { SlotCard } from '../lib/slot-cards'
 import {
   type ScoreView,
   toCharacterFace,
   toEquipmentFace,
   toInvestmentRows
 } from '../lib/card-faces'
-import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
+import type { CardCharacter, CharacterTier } from '../types/cards'
 
 export function CharacterCard({
-  character,
-  state,
+  card,
   slot,
   initialFace = 0,
   inputEnabled = false,
-  nickname,
-  snapshotMark,
-  onDetail,
-  notice,
-  onRetry,
-  retryEnabled = false,
-  retryPending = false,
-  loading = false,
   collapsed = false,
+  onDetail,
+  onRetry,
   onLookup
 }: {
-  character?: CardCharacter
-  state: SlotState
+  /** 이 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
+  card: SlotCard
   slot: number
   initialFace?: number
   inputEnabled?: boolean
-  nickname?: string
-  /** 모험단 순번 스냅샷과 비교한 표시. 자리가 같거나 스냅샷이 없으면 undefined다. */
-  snapshotMark?: SnapshotMark
-  onDetail?: () => void
-  notice?: string
-  onRetry?: () => void
-  retryEnabled?: boolean
-  retryPending?: boolean
-  loading?: boolean
   /** 파티 머리의 접기. 그림 칸, 직업, 면 탭을 접고 머리, 소속, 이름, 명성, 점수만 남긴다. */
   collapsed?: boolean
+  onDetail?: () => void
+  onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
 }): React.JSX.Element {
+  const {
+    state,
+    character,
+    notice,
+    snapshotMark,
+    retryEnabled = false,
+    retryPending = false,
+    loading = false
+  } = card
+  const characterFound = state === 'success' && character != null
+  // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
+  const nickname = characterFound ? undefined : card.nickname
   const [face, setFace] = useState(initialFace)
   const draft = useLookupDraft({ character, nickname, onLookup })
   const { name, serverId, inputNotice, editing } = draft
   const hasCharacter = state === 'success' && character != null && !editing
   // 접힌 카드는 캐릭터 면만 보이고, 펼치면 고른 면으로 돌아온다.
   const shownFace = collapsed || !hasCharacter ? 0 : face
-  const characterFound = state === 'success' && character != null
   const characterFace = toCharacterFace(characterFound ? character.card : null, 'long')
   const vacant = isVacantSlot(state)
   const busy = loading || state === 'pending'

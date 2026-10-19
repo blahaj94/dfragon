@@ -37,8 +37,7 @@ export function PartyPage({
       {...stylex.props(styles.grid, collapsed && styles.collapsed)}
     >
       {slots.map((card, index) => {
-        const { state, character } = card
-        const found = state === 'success' && character != null
+        const found = card.state === 'success' && card.character != null
         let detailAction = onDetail
         if (onSlotDetail !== undefined) {
           detailAction = found ? () => onSlotDetail(index) : undefined
@@ -47,19 +46,12 @@ export function PartyPage({
         return (
           <CharacterCard
             key={`${resetKey}-${index}`}
+            card={card}
             slot={index + 1}
-            character={character}
-            state={state}
-            nickname={found ? undefined : card.nickname}
-            snapshotMark={card.snapshotMark}
             inputEnabled={inputEnabled}
             initialFace={compareFaces ? index % cardFaces.length : 0}
             onDetail={detailAction}
-            notice={card.notice}
             onRetry={onRetry == null ? undefined : () => onRetry(index)}
-            retryEnabled={card.retryEnabled}
-            retryPending={card.retryPending}
-            loading={card.loading}
             collapsed={collapsed}
             onLookup={
               onLookup === undefined
