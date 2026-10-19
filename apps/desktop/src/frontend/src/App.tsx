@@ -130,9 +130,9 @@ function App(): React.JSX.Element {
             onStop={() => capture.stopCapture()}
           />
         }
-        account={authApi == null ? null : <LoginSection api={authApi} />}
         settings={
           <SettingsSection
+            account={authApi == null ? null : <LoginSection api={authApi} />}
             developerMode={developerMode}
             onOpenDeveloperWorkbench={openDeveloperWorkbench}
           />

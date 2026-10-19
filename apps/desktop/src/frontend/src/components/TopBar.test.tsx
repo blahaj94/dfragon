@@ -50,7 +50,7 @@ function textOrLabel(element: Element): string | null {
   return element.textContent
 }
 
-it('상단 바는 로고, 내비, 게임 연결 상태, 테마, 로그인, 설정 순서로 표시하고 카메라 버튼은 없다', async () => {
+it('상단 바는 로고, 내비, 게임 연결 상태, 테마, 설정 순서로 표시하고 카메라, 로그인 버튼은 없다', async () => {
   await render()
   const header = container.querySelector('header')!
   expect(container.querySelectorAll('header')).toHaveLength(1)
@@ -60,12 +60,8 @@ it('상단 바는 로고, 내비, 게임 연결 상태, 테마, 로그인, 설�
   const nav = header.querySelector('nav')!
   const status = header.querySelector('[data-tone]')!
   const buttons = [...header.querySelectorAll('button')]
-  expect(buttons.map(textOrLabel)).toEqual([
-    '화면 캡처, 창 감지됨',
-    '라이트 테마',
-    '로그인',
-    '설정'
-  ])
+  expect(buttons.map(textOrLabel)).toEqual(['화면 캡처, 창 감지됨', '라이트 테마', '설정'])
+  expect(header.textContent).not.toContain('로그인')
   expect(header.querySelector('kbd')).toBeNull()
   const items = [name, nav, status, ...buttons.slice(1)]
   for (let index = 1; index < items.length; index++) {
@@ -91,42 +87,6 @@ it('테마를 전환하면 다음 테마의 버튼 이름이 바뀐다', async (
   expect(document.documentElement.dataset.theme).toBe('dark')
 })
 
-it('계정을 생략하면 비활성 로그인 자리 버튼을 표시한다', async () => {
-  await render({ account: undefined })
-  const login = [...container.querySelectorAll('button')].find(
-    (button) => button.textContent === '로그인'
-  )!
-  expect(login.disabled).toBe(true)
-})
-
-it('계정이 null이면 로그인 자리 버튼을 표시하지 않는다', async () => {
-  await render({ account: null })
-  expect(container.textContent).not.toContain('로그인')
-  expect(container.querySelectorAll('button')).toHaveLength(3)
-})
-
-it('계정 요소를 넘기면 로그인 자리 대신 해당 요소를 표시한다', async () => {
-  const login = vi.fn()
-  await render({ account: <button onClick={login}>계정 연결</button> })
-  const account = [...container.querySelectorAll('button')].find(
-    (button) => button.textContent === '계정 연결'
-  )!
-  expect(container.textContent).not.toContain('로그인')
-  await act(async () => account.click())
-  expect(login).toHaveBeenCalledOnce()
-})
-
-it('계정 요소가 아무것도 그리지 않으면 빈 감싼 span을 남기지 않는다', async () => {
-  function SignedIn(): null {
-    return null
-  }
-
-  await render({ account: <SignedIn /> })
-  const header = container.querySelector('header')!
-  expect(header.querySelectorAll('span:empty:not([aria-hidden])')).toHaveLength(0)
-  expect(container.textContent).not.toContain('로그인')
-})
-
 it('캡처를 숨기면 상태 칩만 사라지고 나머지 도구를 유지한다', async () => {
   await render({ showCapture: false })
   expect(container.textContent).not.toContain('창 감지됨')
@@ -134,7 +94,6 @@ it('캡처를 숨기면 상태 칩만 사라지고 나머지 도구를 유지한
   expect(container.querySelector('[aria-label^="화면 캡처"]')).toBeNull()
   expect(container.textContent).toContain('DFragon')
   expect(container.querySelector('[aria-label="라이트 테마"]')).not.toBeNull()
-  expect(container.textContent).toContain('로그인')
   expect(container.querySelector('[aria-label="설정"]')).not.toBeNull()
 })
 

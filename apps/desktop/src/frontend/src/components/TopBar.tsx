@@ -1,5 +1,5 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
-import { Button, IconButton, shapes, Typo } from '@dfragon/ui'
+import { IconButton, shapes, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { useColorTheme } from '../hooks/useColorTheme'
@@ -15,7 +15,6 @@ import { styles } from './TopBar.style'
 export function TopBar({
   nav,
   capture,
-  account,
   settings,
   showCapture
 }: {
@@ -23,11 +22,7 @@ export function TopBar({
   nav: ReactNode
   /** 게임 연결 상태 칩. 누르면 캡처할 창을 고르는 대화상자를 연다. */
   capture: ReactNode
-  /**
-   * 생략하면 연결 전 자리 표시 버튼을, null이면 계정 UI 없이 표시한다. 넘기는 요소는 상단 바 끌기에서
-   * 빠지도록 자기 버튼을 `windowChromeStyles.noDrag`로 감싼다.
-   */
-  account?: ReactNode
+  /** 설정 버튼과 대화상자. 로그인 버튼은 설정 대화상자의 메뉴 아래쪽에 있다. */
   settings: ReactNode
   showCapture: boolean
 }): React.JSX.Element {
@@ -64,17 +59,6 @@ export function TopBar({
               icon={light ? <MoonIcon /> : <SunIcon />}
             />
           </span>
-          {account === undefined ? (
-            <span {...stylex.props(windowChromeStyles.noDrag)}>
-              <Button disabled>
-                <Typo.txtM as="span" weight={700}>
-                  로그인
-                </Typo.txtM>
-              </Button>
-            </span>
-          ) : (
-            account
-          )}
           {settings}
         </div>
       </div>
