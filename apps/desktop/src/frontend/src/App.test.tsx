@@ -233,11 +233,9 @@ it.each(['startingLogin', 'waitingBrowser', 'exchanging'] as const)(
     expect(cancel.textContent).toBe('취소')
     expect(cancel.disabled).toBe(false)
     expect(cancel.getAttribute('aria-busy')).toBe('true')
-    const icon = cancel.firstElementChild!
-    expect(icon.tagName).toBe('svg')
-    expect(icon.getAttribute('width')).toBe('16')
-    expect(icon.getAttribute('height')).toBe('16')
-    expect(icon.getAttribute('aria-hidden')).toBe('true')
+    const dots = cancel.firstElementChild!
+    expect(dots.querySelector('svg')).toBeNull()
+    expect(dots.querySelectorAll('span[aria-hidden="true"] > span')).toHaveLength(3)
     await click('취소')
     expect(cancel.disabled).toBe(false)
     await click('취소')
