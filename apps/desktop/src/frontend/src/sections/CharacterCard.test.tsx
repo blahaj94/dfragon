@@ -121,9 +121,7 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
     adventure: '',
     job: '',
     fame: null,
-    card: null,
-    equipment: [],
-    oath: []
+    card: null
   }
   await render({ state: 'success', character: previous, onLookup: lookup })
   const input = await enterName('수동이름')
@@ -177,9 +175,7 @@ const found: CardCharacter = {
   guild: '찾은길드',
   job: '찾은직업',
   fame: 125850,
-  card: dealerCard,
-  equipment: [],
-  oath: []
+  card: dealerCard
 }
 
 function card(): HTMLElement {
