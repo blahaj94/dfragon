@@ -75,6 +75,8 @@ export function CharacterCard({
   // 미리보기 조회가 실패해도 다른 후보를 다시 고를 수 있게 후보 줄은 캐릭터를 찾지 못한 동안에도 남긴다.
   const picker = card.picker
   const previewing = characterFound && picker?.previewServerId != null
+  // 접힌 카드는 그림 칸이 없어 이름 오른쪽에 작은 후보 타일을 둔다.
+  const compactPicker = collapsed && picker !== undefined
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const [face, setFace] = useState(initialFace)
@@ -155,16 +157,6 @@ export function CharacterCard({
               <span {...stylex.props(styles.dot)} />
               <span {...stylex.props(styles.dot, styles.dotSecond)} />
               <span {...stylex.props(styles.dot, styles.dotThird)} />
-            </span>
-          )}
-          {collapsed && picker !== undefined && (
-            <span
-              role="img"
-              aria-label={`외형으로 확정하지 못함, 후보 ${picker.choices.length}명`}
-              {...stylex.props(styles.pickMark, shapes.cutTopRight)}
-            >
-              <span aria-hidden="true" {...stylex.props(styles.pickMarkDot)} />
-              <span aria-hidden="true">{picker.choices.length}</span>
             </span>
           )}
           {frameState === 'failure' && (
@@ -260,58 +252,66 @@ export function CharacterCard({
               )}
             </div>
             <div {...stylex.props(styles.identity)}>
-              <div {...stylex.props(styles.affiliation)}>
-                {characterFound ? (
-                  <>
-                    <Typo.caption weight={600} {...stylex.props(styles.adventure)}>
-                      {character.adventure}
-                    </Typo.caption>
-                    <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
-                    <Typo.caption weight={600} {...stylex.props(styles.guild)}>
-                      {character.guild ?? MISSING_VALUE}
-                    </Typo.caption>
-                    <span {...stylex.props(styles.spacer)} />
-                    <Typo.caption
-                      weight={500}
-                      {...stylex.props(styles.job, collapsed && styles.jobHidden)}
-                    >
-                      {character.job}
-                    </Typo.caption>
-                  </>
-                ) : (
-                  <Typo.caption
-                    aria-hidden="true"
-                    weight={600}
-                    {...stylex.props(styles.affiliationPlaceholder)}
-                  >
-                    모험단
-                  </Typo.caption>
+              <div {...stylex.props(styles.identityRow)}>
+                <div {...stylex.props(styles.identityText)}>
+                  <div {...stylex.props(styles.affiliation)}>
+                    {characterFound ? (
+                      <>
+                        <Typo.caption weight={600} {...stylex.props(styles.adventure)}>
+                          {character.adventure}
+                        </Typo.caption>
+                        <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
+                        <Typo.caption weight={600} {...stylex.props(styles.guild)}>
+                          {character.guild ?? MISSING_VALUE}
+                        </Typo.caption>
+                        <span {...stylex.props(styles.spacer)} />
+                        <Typo.caption
+                          weight={500}
+                          {...stylex.props(styles.job, collapsed && styles.jobHidden)}
+                        >
+                          {character.job}
+                        </Typo.caption>
+                      </>
+                    ) : (
+                      <Typo.caption
+                        aria-hidden="true"
+                        weight={600}
+                        {...stylex.props(styles.affiliationPlaceholder)}
+                      >
+                        모험단
+                      </Typo.caption>
+                    )}
+                  </div>
+                  <div {...stylex.props(styles.nameBox)}>
+                    <Typo.h5
+                      as="input"
+                      weight={700}
+                      aria-label={`${slot}번 캐릭터 이름`}
+                      value={name}
+                      disabled={!inputEnabled}
+                      placeholder="캐릭터명 입력"
+                      style={name ? undefined : typographyVariants.h6}
+                      onFocus={draft.focusName}
+                      onBlur={draft.blurName}
+                      onChange={(event) => draft.changeName(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                          draft.submit()
+                        }
+                      }}
+                      {...stylex.props(
+                        styles.name,
+                        compactPicker && styles.nameEllipsis,
+                        frameState === 'waiting' && styles.nameWaiting,
+                        frameState === 'failure' && styles.nameFailure,
+                        draft.active && styles.nameSelected
+                      )}
+                    />
+                  </div>
+                </div>
+                {compactPicker && (
+                  <CandidateStrip slot={slot} picker={picker} onPick={onPickCandidate} compact />
                 )}
-              </div>
-              <div {...stylex.props(styles.nameBox)}>
-                <Typo.h5
-                  as="input"
-                  weight={700}
-                  aria-label={`${slot}번 캐릭터 이름`}
-                  value={name}
-                  disabled={!inputEnabled}
-                  placeholder="캐릭터명 입력"
-                  style={name ? undefined : typographyVariants.h6}
-                  onFocus={draft.focusName}
-                  onBlur={draft.blurName}
-                  onChange={(event) => draft.changeName(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      draft.submit()
-                    }
-                  }}
-                  {...stylex.props(
-                    styles.name,
-                    frameState === 'waiting' && styles.nameWaiting,
-                    frameState === 'failure' && styles.nameFailure,
-                    draft.active && styles.nameSelected
-                  )}
-                />
               </div>
               {((editing && state === 'success') || characterFound) && (
                 <div {...stylex.props(styles.collapsible, collapsed && styles.collapsibleHidden)}>

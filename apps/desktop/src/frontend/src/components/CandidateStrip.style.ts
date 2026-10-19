@@ -4,6 +4,9 @@ import { colors, motion, radius, space } from '@dfragon/ui/tokens.stylex'
 /** 타일 하나의 폭과 얼굴 칸 크기. 카드 기본 폭에서 네 장이 들어가고 다섯째 타일 끝이 보이는 크기다. */
 const TILE_WIDTH = 54
 export const FACE_SIZE = 40
+/** 접힌 카드의 작은 타일. 이름 오른쪽에 두 장 반이 보인다. */
+const COMPACT_TILE_WIDTH = 48
+export const COMPACT_FACE_SIZE = 30
 /** 후보 줄 전체 높이. 카드 그림은 이만큼 위로 비켜선다. */
 const STRIP_HEIGHT = 108
 
@@ -12,6 +15,13 @@ const STRIP_HEIGHT = 108
 const marquee = stylex.keyframes({
   '0%': { transform: 'translateX(0)' },
   '37.5%, 50%': { transform: `translateX(min(0px, calc(${TILE_WIDTH - 4}px - 100%)))` },
+  '87.5%, 100%': { transform: 'translateX(0)' }
+})
+const compactMarquee = stylex.keyframes({
+  '0%': { transform: 'translateX(0)' },
+  '37.5%, 50%': {
+    transform: `translateX(min(0px, calc(${COMPACT_TILE_WIDTH - 4}px - 100%)))`
+  },
   '87.5%, 100%': { transform: 'translateX(0)' }
 })
 
@@ -130,6 +140,24 @@ export const styles = stylex.create({
     animationDuration: '8s',
     animationTimingFunction: 'linear',
     animationIterationCount: 'infinite'
+  },
+  compactTiles: {
+    display: 'flex',
+    flexShrink: 0,
+    gap: space.s4,
+    width: COMPACT_TILE_WIDTH * 2.5 + 8,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    scrollbarWidth: 'none'
+  },
+  compactTile: { width: COMPACT_TILE_WIDTH, height: 54, gap: 2, paddingTop: 4, paddingBottom: 2 },
+  compactCheck: { width: 15, height: 15 },
+  compactFace: { width: COMPACT_FACE_SIZE, height: COMPACT_FACE_SIZE },
+  compactAdventure: { marginTop: 0 },
+  // 모험단명을 모르면 같은 칸에 서버를 흐린 글자로 대신 보인다.
+  compactServerOnly: { fontWeight: 500, color: colors.cardFgMuted },
+  compactMarquee: {
+    animationName: { default: compactMarquee, '@media (prefers-reduced-motion: reduce)': 'none' }
   },
   server: {
     fontSize: 12,

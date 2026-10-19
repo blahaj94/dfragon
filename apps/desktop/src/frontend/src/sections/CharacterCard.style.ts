@@ -28,7 +28,13 @@ const numeric = {
 
 export const styles = stylex.create({
   // 그리드 칸을 채우는 자리. 카드는 펼친 동안 파티 영역 높이를 채운다.
-  slot: { display: 'grid', gridTemplateRows: 'minmax(0, 1fr)', minWidth: 0 },
+  slot: {
+    display: 'grid',
+    gridTemplateRows: 'minmax(0, 1fr)',
+    // 접힌 카드의 후보 타일처럼 줄일 수 없는 내용이 있어도 카드가 그리드 칸보다 넓어지지 않게 한다.
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    minWidth: 0
+  },
   header: {
     display: 'flex',
     alignItems: 'center',
@@ -120,22 +126,6 @@ export const styles = stylex.create({
     color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
-  // 접힌 카드에서 후보 줄 대신 남기는 주의 표시와 후보 수(design-system.md의 주의 상태).
-  pickMark: {
-    ...numeric,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    flexShrink: 0,
-    height: 24,
-    paddingInlineStart: 7,
-    paddingInlineEnd: 9,
-    fontSize: 16,
-    fontWeight: 700,
-    backgroundColor: colors.bgWarningWeak,
-    color: colors.fgWarning
-  },
-  pickMarkDot: { width: 6, height: 6, backgroundColor: colors.fgWarning },
   detail: {
     display: 'grid',
     placeItems: 'center',
@@ -269,6 +259,8 @@ export const styles = stylex.create({
     paddingInline: space.s16,
     paddingBottom: space.s12
   },
+  identityRow: { display: 'flex', alignItems: 'center', gap: space.s8, minWidth: 0 },
+  identityText: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: 0 },
   affiliation: { display: 'flex', alignItems: 'center', gap: space.s8, minWidth: 0, height: 18 },
   adventure: {
     minWidth: 0,
@@ -305,6 +297,7 @@ export const styles = stylex.create({
     transitionTimingFunction: 'linear'
   },
   jobHidden: { opacity: 0, visibility: 'hidden' },
+  nameEllipsis: { textOverflow: 'ellipsis' },
   // 이름은 평소 테두리 없는 글자로 보이고, 고치는 동안 카드 신호색 상자가 된다. 글자가 모험단과 같은
   // 세로줄에 오도록 상자 안쪽 여백과 테두리만큼 왼쪽으로 내민다.
   // Typo가 요소 margin을 0으로 두므로 내미는 여백은 감싼 상자에 준다.
