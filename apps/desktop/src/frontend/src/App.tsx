@@ -117,15 +117,13 @@ function App(): React.JSX.Element {
           <PartyScreen
             capture={capture}
             hidden={searchMode !== 'party'}
-            collapsed={party.collapsed}
-            onToggleCollapsed={party.toggleCollapsed}
+            collapse={party}
           />
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
           <RaidScreen
             capture={raidCapture}
             hidden={searchMode !== 'raid'}
-            collapsed={party.collapsed}
-            onToggleCollapsed={party.toggleCollapsed}
+            collapse={party}
           />
         </div>
         {showDeveloperWorkbench && (

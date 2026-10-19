@@ -1,9 +1,11 @@
 import { useId } from 'react'
+import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
+import type { PartyCollapse } from '../../hooks/usePartyCollapse'
 import type { RaidCapture } from '../../hooks/useRaidCapture'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { seatValuesToSlotOrder } from '../../lib/raid-seats'
-import { toSlotCards } from '../../lib/slot-cards'
+import { filledSlotCount, toSlotCards } from '../../lib/slot-cards'
 import { RaidPage } from './RaidPage'
 
 /** 공대 화면이 공대 캡처에서 읽는 값 */
@@ -34,13 +36,12 @@ export type RaidScreenCapture = Pick<
 export function RaidScreen({
   capture,
   hidden,
-  collapsed,
-  onToggleCollapsed
+  collapse
 }: {
   capture: RaidScreenCapture
   hidden: boolean
-  collapsed: boolean
-  onToggleCollapsed: () => void
+  /** 파티와 공대가 함께 쓰는 카드 접기 */
+  collapse: PartyCollapse
 }): React.JSX.Element {
   const cardsId = useId()
   const { search, seatOrder } = capture
@@ -70,19 +71,21 @@ export function RaidScreen({
     <RaidPage
       id={cardsId}
       hidden={hidden}
-      notice={notice}
+      header={
+        <BoardHeader
+          target="공대"
+          filledCount={filledSlotCount(cards)}
+          notice={notice}
+          capture={capture}
+          snapshot={snapshot}
+          collapse={collapse}
+          controls={cardsId}
+        />
+      }
       resetKey={String(capture.round)}
       slots={cards}
-      lastCapturedAt={capture.lastCompletedAt}
-      canCapture={capture.canStartCapture}
-      onCapture={capture.startRound}
-      snapshotActive={snapshot.active}
-      snapshotRound={snapshot.round}
-      onTakeSnapshot={snapshot.take}
-      onClearSnapshot={snapshot.clear}
       seats={capture}
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
+      collapsed={collapse.collapsed}
       actions={search}
     />
   )
