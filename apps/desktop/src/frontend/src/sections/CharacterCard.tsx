@@ -28,7 +28,12 @@ import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
 import type { SnapshotMark } from '../lib/adventure-snapshot'
-import { toCharacterFace, toEquipmentFace, toInvestmentRows } from '../lib/card-faces'
+import {
+  type ScoreView,
+  toCharacterFace,
+  toEquipmentFace,
+  toInvestmentRows
+} from '../lib/card-faces'
 import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
 
 export function CharacterCard({
@@ -62,7 +67,7 @@ export function CharacterCard({
   retryEnabled?: boolean
   retryPending?: boolean
   loading?: boolean
-  /** 파티 머리의 접기. 그림 칸, 직업, 면 탭을 접고 머리, 소속, 이름, 명성, 장비 점수만 남긴다. */
+  /** 파티 머리의 접기. 그림 칸, 직업, 면 탭을 접고 머리, 소속, 이름, 명성, 점수만 남긴다. */
   collapsed?: boolean
   onLookup?: (nickname: string, serverId: string) => void
 }): React.JSX.Element {
@@ -355,12 +360,13 @@ export function CharacterCard({
               )}
             >
               <Typo.caption as="dt" {...stylex.props(styles.statLabel)}>
-                장비 점수
+                {characterFace.score.label}
               </Typo.caption>
               <StatValue
                 value={characterFace.score.value}
                 vacant={vacant}
                 tier={tier}
+                role={characterFace.score.tone}
                 description={characterFace.score.description}
               />
             </div>
@@ -412,18 +418,20 @@ function EquipmentFace({ character }: { character: CardCharacter }): React.JSX.E
   )
 }
 
-// 명성과 장비 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
-// 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그린다. 장비 점수는 계산값이라는
-// 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙인다.
+// 명성과 점수 값. 0과 알 수 없음을 구분하고 알 수 없으면 같은 크기의 `-`를 흐리게 둔다.
+// 값이 있을 때만 숫자를 세어 올린다. 상위, 랭커 카드는 값을 단계 색으로 그리고, 단계가 없는 카드의 점수는
+// 역할 색(`role`)으로 그린다. 점수는 계산값이라는 뜻이나 계산하지 못한 사유를 보조 기술에 덧붙인다.
 function StatValue({
   value,
   vacant,
   tier,
+  role,
   description
 }: {
   value: number | null
   vacant: boolean
   tier?: CharacterTier
+  role?: ScoreView['tone']
   description?: string
 }): React.JSX.Element {
   const note = description !== undefined && (
@@ -443,6 +451,8 @@ function StatValue({
       title={description}
       {...stylex.props(
         styles.statValue,
+        role === 'dealer' && styles.statDealer,
+        role === 'buffer' && styles.statBuffer,
         tier === 'top' && styles.statTop,
         tier === 'ranker' && styles.statRanker
       )}

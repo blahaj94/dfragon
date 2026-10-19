@@ -353,7 +353,7 @@ export const styles = stylex.create({
   statItemNumber: { ...numeric, fontSize: 18, fontWeight: 700, color: colors.cardFg },
   statItemMissing: { color: colors.cardBorderStrong },
   statItemUnit: { marginInlineStart: 1, fontWeight: 500, color: colors.cardFgSubtle },
-  // 명성과 장비 점수. 라벨은 왼쪽 12px, 값은 오른쪽에 같은 크기로 두 층 쌓는다. 남는 높이는 이 위에 둔다.
+  // 명성과 점수. 라벨은 왼쪽 12px, 값은 오른쪽에 같은 크기로 두 층 쌓는다. 남는 높이는 이 위에 둔다.
   stats: {
     display: 'flex',
     flexDirection: 'column',
@@ -384,7 +384,7 @@ export const styles = stylex.create({
   },
   statRowDividedVacant: { borderTopColor: colors.cardInset },
   statLabel: { margin: 0, paddingBottom: 3, whiteSpace: 'nowrap', color: colors.cardFgSubtle },
-  // 명성, 장비 점수 값(numeric.value 32 700).
+  // 명성, 점수 값(numeric.value 32 700).
   statValue: {
     ...numeric,
     minWidth: 0,
@@ -395,6 +395,8 @@ export const styles = stylex.create({
     color: colors.cardFg
   },
   statMissing: { color: colors.cardBorderStrong },
+  statDealer: { color: colors.scoreDealer },
+  statBuffer: { color: colors.scoreBuffer },
   statTop: { color: colors.tierTop },
   statRanker: { color: colors.tierRanker },
   statVacant: { color: colors.cardBorder },

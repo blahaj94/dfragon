@@ -16,7 +16,7 @@ const numeric = {
 } as const
 
 // 값은 DFragon 디자인 캔버스 공대 보드의 축약 카드다. 파티 카드보다 작은 머리 36, 그림 칸 72, 스탯 한 줄과
-// 명성, 장비 점수 바닥으로 1280×800에 12장이 스크롤 없이 들어간다.
+// 명성, 점수 바닥으로 1280×800에 12장이 스크롤 없이 들어간다.
 export const styles = stylex.create({
   // 자리. 카드 한 장을 담아 끌고 포커스를 받는다. 카드 면이 자리를 채운다.
   seat: {
@@ -301,7 +301,7 @@ export const styles = stylex.create({
     color: colors.cardFgMuted
   },
   hidden: { display: 'none' },
-  // 명성과 장비 점수. 라벨은 왼쪽 11, 값은 오른쪽 22 700이다.
+  // 명성과 점수. 라벨은 왼쪽 11, 값은 오른쪽 22 700이다.
   footer: {
     display: 'grid',
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -346,6 +346,8 @@ export const styles = stylex.create({
   },
   footerMissing: { color: colors.cardBorderStrong },
   footerVacantValue: { color: colors.cardBorder },
+  scoreDealer: { color: colors.scoreDealer },
+  scoreBuffer: { color: colors.scoreBuffer },
   fameTop: { color: colors.tierTop },
   fameRanker: { color: colors.tierRanker }
 })
