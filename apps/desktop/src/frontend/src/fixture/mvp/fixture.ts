@@ -1,4 +1,5 @@
-import type { CardCharacter, CardStats, EquipmentSlot } from '../../types/cards'
+import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
+import type { CardCharacter, CardStats, CharacterCard, EquipmentSlot } from '../../types/cards'
 import characterImage from './assets/character.png'
 
 const images = import.meta.glob<string>('./assets/item-*.png', {
@@ -24,7 +25,6 @@ const definitions = [
   ['AURA', '오라', 13],
   ['CREATURE', '크리쳐', 14]
 ] as const
-const grades = ['종결', '준종결', '기타'] as const
 const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
   const image = asset(index)
   let rarityColor: string
@@ -35,18 +35,37 @@ const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
   } else {
     rarityColor = '#ffb400'
   }
-  let enhancement: string
-  if (id === 'WEAPON') {
-    enhancement = '+13'
-  } else if (index > 6) {
-    enhancement = '+11'
-  } else {
-    enhancement = '+10'
-  }
-  const enchantment = grades[index % grades.length]
 
-  return { id, label, image, rarityColor, enhancement, enchantment }
+  return { id, label, image, rarityColor }
 })
+
+// 딜러 카드 기타 면 12부위의 로컬 아이콘 번호. 상의는 세트 대표 장비와 같은 아이템이다.
+const dealerInvestmentIcons: Readonly<Record<string, number>> = {
+  WEAPON: 22,
+  JACKET: 18,
+  SHOULDER: 23,
+  PANTS: 24,
+  WAIST: 25,
+  SHOES: 26,
+  AMULET: 27,
+  WRIST: 28,
+  RING: 29,
+  SUPPORT: 30,
+  MAGIC_STON: 31,
+  EARRING: 32
+}
+
+// 카드 값의 세트 대표 장비, 서약, 딜러 12부위 itemId에 대응하는 로컬 아이콘. 제품 CSP는 원격 그림을 허용하지만
+// 합성 미리보기는 로컬 자산만 쓰므로 itemId별 그림을 주입한다.
+const itemImages: Readonly<Record<string, string>> = Object.fromEntries(
+  [
+    [dealerCard.set?.imageItemId, asset(18)],
+    [bufferCard.set?.imageItemId, asset(19)],
+    [dealerCard.oath?.itemId, asset(20)],
+    [bufferCard.oath?.itemId, asset(21)],
+    ...dealerCard.investment.map((row) => [row.itemId, asset(dealerInvestmentIcons[row.slotId])])
+  ].filter((entry): entry is [string, string] => entry[0] != null)
+)
 
 export const previewCharacter: CardCharacter = {
   name: '미리보기검사',
@@ -55,9 +74,9 @@ export const previewCharacter: CardCharacter = {
   job: '眞 웨펀마스터',
   serverId: 'siroco',
   fame: 125850,
-  equipmentScore: 414806,
-  serverRank: 18240,
+  card: dealerCard,
   image: characterImage,
+  itemImages,
   equipment,
   oath: equipment
     .filter((item) => !['TITLE', 'AURA', 'CREATURE'].includes(item.id))
@@ -80,6 +99,42 @@ export const previewCharacter: CardCharacter = {
     })
 }
 
+// 카드 면 보드처럼 버퍼 카드의 캐릭터 면을 딜러 카드 옆에 둔다.
+export const bufferPreviewCharacter: CardCharacter = {
+  ...previewCharacter,
+  name: '미리보기인챈',
+  job: '眞 인챈트리스',
+  fame: 129770,
+  card: bufferCard
+}
+
+// 세 면 비교. 딜러 카드 셋이 캐릭터, 장비, 기타 면을, 마지막 버퍼 카드가 캐릭터 면을 처음에 보인다.
+export const facePreviewCharacters: readonly (CardCharacter | null)[] = [
+  previewCharacter,
+  previewCharacter,
+  previewCharacter,
+  bufferPreviewCharacter
+]
+
+// 합성 카드 값. 스탯, 장비 점수, 서버 순위만 바꾸고 세트, 서약, 12부위는 바탕 카드를 그대로 쓴다.
+function previewCard({
+  base = dealerCard,
+  stats,
+  score,
+  rank
+}: {
+  base?: CharacterCard
+  stats: CardStats | null
+  score: number | null
+  rank: number | null
+}): CharacterCard {
+  const role = stats?.role ?? null
+  const scoreValue = base.score == null ? null : { ...base.score, value: score }
+  const serverRank = rank == null || base.serverRank == null ? null : { ...base.serverRank, rank }
+
+  return { ...base, role, stats, score: scoreValue, serverRank }
+}
+
 // 상위 유저 매칭 캔버스처럼 기본, 상위, 랭커 카드를 나란히 둔다. 단계를 나누는 기준이 아직 없어
 // 단계, 순위, 숫자는 모두 합성 값이다.
 export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
@@ -89,16 +144,14 @@ export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
     name: '미리보기상위',
     tier: 'top',
     fame: 131204,
-    equipmentScore: 452310,
-    serverRank: 4432
+    card: previewCard({ stats: dealerCard.stats, score: 452310, rank: 4432 })
   },
   {
     ...previewCharacter,
     name: '미리보기랭커',
     tier: 'ranker',
     fame: 138960,
-    equipmentScore: 498725,
-    serverRank: 37
+    card: previewCard({ stats: dealerCard.stats, score: 498725, rank: 37 })
   },
   null
 ]
@@ -142,17 +195,30 @@ function bufferStats(seed: number): CardStats {
 const bufferJobs = new Set(['眞 크루세이더', '眞 인챈트리스', '眞 뮤즈'])
 
 // 공대 12인 화면의 합성 공대원. 세 파티 네 명씩이고 마지막 자리는 비어 있다. 이름, 단계, 순위, 숫자는
-// 모두 합성 값이다. 순위가 없는 공대원은 제품 검색 응답처럼 길드, 장비 점수와 스탯도 없어 `-`로 보인다.
+// 모두 합성 값이다. 순위가 없는 공대원은 main이 카드 값을 넘기지 않은 경우처럼 길드, 장비 점수와 스탯도
+// 없어 `-`로 보인다.
 export const raidPreviewCharacters: readonly (CardCharacter | null)[] = [
-  ...raidMembers.map(([name, job, fame, serverRank, tier], index) => ({
-    ...previewCharacter,
-    name,
-    job,
-    fame,
-    serverRank,
-    tier,
-    stats: bufferJobs.has(job) ? bufferStats(index) : dealerStats(index),
-    ...(serverRank === null && { guild: null, equipmentScore: null, stats: null })
-  })),
+  ...raidMembers.map(([name, job, fame, serverRank, tier], index) => {
+    const buffer = bufferJobs.has(job)
+    const card =
+      serverRank === null
+        ? null
+        : previewCard({
+            base: buffer ? bufferCard : dealerCard,
+            stats: buffer ? bufferStats(index) : dealerStats(index),
+            score: 414806 - index * 4210,
+            rank: serverRank
+          })
+
+    return {
+      ...previewCharacter,
+      name,
+      job,
+      fame,
+      tier,
+      card,
+      ...(serverRank === null && { guild: null })
+    }
+  }),
   null
 ]

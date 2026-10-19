@@ -7,6 +7,7 @@ import { detailFaces } from '../constants/cards'
 import type { CardCharacter } from '../types/cards'
 import { EquipmentGrid } from './EquipmentGrid'
 import { InvestmentTable } from '../components/InvestmentTable'
+import { toCharacterFace, toInvestmentRows } from '../lib/card-faces'
 
 // 명성, 장비 점수 값. 알 수 없으면 같은 크기의 `—`를 흐리게 둔다.
 function ScoreValue({ value }: { value: number | null | undefined }): React.JSX.Element {
@@ -55,7 +56,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
             <Typo.caption as="dt" {...stylex.props(styles.label)}>
               장비 점수
             </Typo.caption>
-            <ScoreValue value={character.equipmentScore} />
+            <ScoreValue value={toCharacterFace(character.card, 'long').score.value} />
           </div>
           <div {...stylex.props(styles.scoreItem)}>
             <Typo.caption as="dt" {...stylex.props(styles.label)}>
@@ -116,7 +117,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                       {(face === '강화' || face === '마법부여') && (
                         <>
                           <InvestmentTable
-                            equipment={character.equipment}
+                            rows={toInvestmentRows(character.card, character.itemImages)}
                             large
                             kind={face === '강화' ? 'enhancement' : 'enchantment'}
                           />

@@ -10,7 +10,7 @@ function isServerId(value: string): value is ServerId {
   return Object.hasOwn(serverNames, value)
 }
 
-/** 식별된 기본 정보만 카드 값으로 옮기고 미수신 값이나 장비 평가를 만들어내지 않는다. */
+/** 식별된 기본 정보와 main이 검증한 카드 값만 카드 값으로 옮기고 미수신 값이나 장비 평가를 만들어내지 않는다. */
 export function toCharacterCard(
   summary: SelectedCharacterSummary | undefined
 ): CardCharacter | null {
@@ -28,10 +28,7 @@ export function toCharacterCard(
     serverId: summary.serverId,
     fame: summary.fame,
     guild: summary.guildName,
-    equipmentScore: summary.equipmentScore,
-    serverRank: summary.serverRank,
-    // 공대 카드의 스탯 한 줄(공격력 증가, 증폭, 버프 수치 등)은 검색 응답에 대응 필드가 없어 추정하지 않는다.
-    stats: null,
+    card: summary.card,
     level: summary.level,
     image: summary.imageUrl,
     equipment: [],

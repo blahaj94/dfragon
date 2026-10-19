@@ -1,4 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
+import { cardFaces } from '../../constants/cards'
 import { CharacterCard } from '../../sections/CharacterCard'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './PartyPage.style'
@@ -10,7 +11,6 @@ export function PartyPage({
   resetKey = 'party',
   compareFaces = false,
   inputEnabled = false,
-  basicOnly = false,
   nicknames,
   onDetail,
   onSlotDetail,
@@ -27,9 +27,9 @@ export function PartyPage({
   characters?: readonly (CardCharacter | null)[]
   slots: SlotState[]
   resetKey?: string
+  /** 합성 미리보기에서 카드마다 다른 면을 처음에 펼쳐 세 면을 나란히 비교한다. */
   compareFaces?: boolean
   inputEnabled?: boolean
-  basicOnly?: boolean
   nicknames?: readonly (string | null)[]
   onDetail?: () => void
   onSlotDetail?: (slot: number) => void
@@ -68,8 +68,7 @@ export function PartyPage({
             state={state}
             nickname={displayedNickname}
             inputEnabled={inputEnabled}
-            basicOnly={basicOnly}
-            initialFace={compareFaces ? index : 0}
+            initialFace={compareFaces ? index % cardFaces.length : 0}
             onDetail={detailAction}
             notice={slotNotices?.[index]}
             onRetry={onRetry == null ? undefined : () => onRetry(index)}

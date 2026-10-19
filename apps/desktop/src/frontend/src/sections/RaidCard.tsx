@@ -11,7 +11,7 @@ import {
   getCharacterCardStatus,
   isVacantSlot
 } from '../lib/card-presentation'
-import { toCardStatItems } from '../lib/card-stats'
+import { toCharacterFace } from '../lib/card-faces'
 import { MISSING_VALUE, tierLabels } from '../constants/cards'
 import { serverNames } from '../constants/servers'
 import type { CardCharacter, SlotState } from '../types/cards'
@@ -78,6 +78,7 @@ export function RaidCard({
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
   const showStats = characterFound && message === ''
+  const characterFace = toCharacterFace(characterFound ? character.card : null, 'short')
   const showRow = !collapsed && (message !== '' || showStats)
   const { movable, drag, describedBy, ref, ...handlers } = move
 
@@ -135,14 +136,8 @@ export function RaidCard({
                 tier === 'ranker' && shapes.cutTopRight
               )}
             >
-              <span aria-hidden="true">
-                {character.serverRank == null ? MISSING_VALUE : `#${character.serverRank}`}
-              </span>
-              <span {...stylex.props(shapes.srOnly)}>
-                {character.serverRank == null
-                  ? '서버 순위 없음'
-                  : `서버 순위 ${character.serverRank}위`}
-              </span>
+              <span aria-hidden="true">{characterFace.serverRank.text}</span>
+              <span {...stylex.props(shapes.srOnly)}>{characterFace.serverRank.label}</span>
             </span>
           )}
           {frameState === 'selected' && (
@@ -254,7 +249,7 @@ export function RaidCard({
         )}
         {showRow && showStats && (
           <dl {...stylex.props(styles.stats)}>
-            {toCardStatItems(character.stats).map((stat) => (
+            {characterFace.stats.map((stat) => (
               <div key={stat.label} {...stylex.props(styles.stat)}>
                 <dt {...stylex.props(styles.statLabel)}>{stat.label}</dt>
                 <dd {...stylex.props(styles.statValue)}>
@@ -291,8 +286,9 @@ export function RaidCard({
           <div {...stylex.props(styles.footerItem)}>
             <dt {...stylex.props(styles.footerLabel)}>장비 점수</dt>
             <FooterValue
-              value={characterFound ? (character.equipmentScore ?? null) : null}
+              value={characterFace.score.value}
               vacant={vacant}
+              description={characterFace.score.description}
             />
           </div>
         </dl>
@@ -305,16 +301,22 @@ export function RaidCard({
 }
 
 // 명성과 장비 점수 값. 알 수 없으면 같은 크기의 `-`를 흐리게 두고, 값이 있을 때만 숫자를 세어 올린다.
-// 상위, 랭커 카드는 명성만 단계 색으로 그린다.
+// 상위, 랭커 카드는 명성만 단계 색으로 그린다. 장비 점수는 계산값이라는 뜻이나 계산하지 못한 사유를 보조
+// 기술에 덧붙인다.
 function FooterValue({
   value,
   vacant,
-  tone
+  tone,
+  description
 }: {
   value: number | null
   vacant: boolean
   tone?: 'top' | 'ranker'
+  description?: string
 }): React.JSX.Element {
+  const note = description !== undefined && (
+    <span {...stylex.props(shapes.srOnly)}>{description}</span>
+  )
   if (value == null) {
     return (
       <dd
@@ -325,12 +327,14 @@ function FooterValue({
         )}
       >
         {MISSING_VALUE}
+        {note}
       </dd>
     )
   }
 
   return (
     <dd
+      title={description}
       {...stylex.props(
         styles.footerValue,
         tone === 'top' && styles.fameTop,
@@ -338,6 +342,7 @@ function FooterValue({
       )}
     >
       <NumericText value={value} />
+      {note}
     </dd>
   )
 }

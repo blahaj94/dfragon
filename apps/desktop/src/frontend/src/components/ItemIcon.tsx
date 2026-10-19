@@ -1,0 +1,39 @@
+import { useState } from 'react'
+import * as stylex from '@stylexjs/stylex'
+import type { RarityTone } from '../lib/card-faces'
+import { styles, toneStyles } from './ItemIcon.style'
+
+/**
+ * 기타 면 행 왼쪽의 장비 아이콘 칸(DFragon 디자인 캔버스 카드 면 보드). 칸 테두리와 아래 2px 바가 희귀도 색이고,
+ * 그림은 장식이라 대체 문구를 비운다. 그림이 없거나 불러오지 못하면 같은 크기의 빈 칸만 남겨 줄이 밀리지 않는다.
+ */
+export function ItemIcon({
+  src,
+  tone
+}: {
+  src: string | undefined
+  tone: RarityTone | 'missing'
+}): React.JSX.Element {
+  const [failedSource, setFailedSource] = useState<string>()
+  const showImage = src !== undefined && failedSource !== src
+
+  return (
+    <span
+      aria-hidden="true"
+      data-tone={tone}
+      {...stylex.props(styles.cell, toneStyles[tone], tone === 'primordial' && styles.shine)}
+    >
+      {showImage && (
+        <img
+          src={src}
+          alt=""
+          width={22}
+          height={22}
+          draggable={false}
+          onError={() => setFailedSource(src)}
+          {...stylex.props(styles.image)}
+        />
+      )}
+    </span>
+  )
+}

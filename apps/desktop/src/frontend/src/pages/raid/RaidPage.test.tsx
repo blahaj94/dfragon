@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ServerSelect } from '../../components/ServerSelect'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
+import { dealerCard } from '../../testing/fixtures/character-cards'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { RaidPage } from './RaidPage'
 
@@ -58,8 +59,13 @@ const member: CardCharacter = {
   job: '공대직업',
   serverId: 'cain',
   fame: 120000,
-  equipmentScore: 414806,
-  serverRank: 5000,
+  // 스탯이 없는 카드 값. 스탯 한 줄은 딜러 라벨에 `-`로 자리만 둔다.
+  card: {
+    ...dealerCard,
+    role: null,
+    stats: null,
+    serverRank: { ...dealerCard.serverRank!, rank: 5000 }
+  },
   equipment: [],
   oath: []
 }
@@ -188,12 +194,16 @@ it('찾은 카드의 스탯 한 줄은 응답에 스탯이 없으면 딜러 라�
       member,
       {
         ...member,
-        stats: {
+        card: {
+          ...dealerCard,
           role: 'buffer',
-          townIntelligence: 31420,
-          buff30: 1284000,
-          buff50: null,
-          switchingLevel: 18
+          stats: {
+            role: 'buffer',
+            townIntelligence: 31420,
+            buff30: 1284000,
+            buff50: null,
+            switchingLevel: 18
+          }
         }
       }
     ]
@@ -432,9 +442,36 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안�
   expect(card(7).querySelector<HTMLButtonElement>('[aria-label$="상세 열기"]')?.disabled).toBe(true)
 })
 
+it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 계산값이나 계산하지 못한 사유를 보조 기술에 전한다', async () => {
+  await render({
+    characters: [
+      member,
+      {
+        ...member,
+        card: {
+          ...member.card!,
+          score: {
+            ...dealerCard.score!,
+            value: null,
+            skipped: { kind: 'unresolved', message: 'unresolved: equipment TITLE missing' }
+          }
+        }
+      }
+    ]
+  })
+  const scoreOf = (seat: HTMLElement): Element =>
+    [...seat.querySelectorAll('dt')].find((term) => term.textContent === '장비 점수')!
+      .nextElementSibling!
+
+  expect(scoreOf(seats()[0]).querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  expect(scoreOf(seats()[0]).textContent).toContain('DFragon 계산값')
+  expect(seats()[0].textContent).toContain('서버 순위 5000위, DFragon이 수집한 캐릭터')
+  expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
+})
+
 it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 -로 보인다', async () => {
   await render({
-    characters: [{ ...member, guild: null, serverRank: null, equipmentScore: null, fame: null }]
+    characters: [{ ...member, guild: null, card: null, fame: null }]
   })
   const first = seats()[0]
   const footer = [...first.querySelectorAll('dl')].at(-1)!

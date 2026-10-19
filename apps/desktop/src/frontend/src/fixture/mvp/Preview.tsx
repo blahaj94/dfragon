@@ -17,7 +17,12 @@ import {
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
 import { styles } from './Preview.style'
-import { previewCharacter, raidPreviewCharacters, tierPreviewCharacters } from './fixture'
+import {
+  facePreviewCharacters,
+  previewCharacter,
+  raidPreviewCharacters,
+  tierPreviewCharacters
+} from './fixture'
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
@@ -56,6 +61,8 @@ export function Preview(): React.JSX.Element {
     ...character,
     characterId: 'preview-selected',
     fame: null,
+    // main이 카드 값을 넘기지 않은 제품 카드처럼 세 면을 `-`로 보인다.
+    card: null,
     equipment: [],
     oath: []
   }
@@ -64,6 +71,8 @@ export function Preview(): React.JSX.Element {
     characters = [identifiedCharacter, null, null, null]
   } else if (scenario === 'tiers') {
     characters = tierPreviewCharacters
+  } else if (scenario === 'faces') {
+    characters = facePreviewCharacters
   }
   const openDetail = (): void => {
     const url = new URL(window.location.href)
@@ -125,7 +134,6 @@ export function Preview(): React.JSX.Element {
             collapsed={party.collapsed}
             character={character}
             characters={characters}
-            basicOnly={identification}
             nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
             slotNotices={
               identification
@@ -211,7 +219,7 @@ export function Preview(): React.JSX.Element {
             {...stylex.props(styles.select)}
           >
             <option value="states">기본, 상태 비교</option>
-            <option value="faces">네 면 비교</option>
+            <option value="faces">세 면 비교</option>
             <option value="pending">검색 중, 결과 없음</option>
             <option value="missing">누락, 이미지 실패</option>
             <option value="identification">자동 식별 상태</option>
