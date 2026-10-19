@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
-import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
-import type { SearchSlot } from '../../../preload/common/types/search'
+import type { SelectedCharacterSummary } from '@dfragon/desktop-contracts/types/character'
+import type { SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import { dealerCard } from '../testing/fixtures/character-cards'
 import {
   canRetryCharacterSlot,

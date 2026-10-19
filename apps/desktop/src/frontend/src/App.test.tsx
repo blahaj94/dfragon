@@ -3,12 +3,12 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import App from './App'
-import { CAPTURE_ID, searchSnapshot } from '../../preload/api/search-test-fixture'
-import type { SearchApi } from '../../preload/common/types/search'
+import { CAPTURE_ID, searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
+import type { SearchApi } from '@dfragon/desktop-contracts/types/search'
 import { emptySearchSlots } from './lib/slots'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
-import type { AuthApi, AuthSnapshot } from '../../preload/common/types/auth'
-import type { WindowChromeApi } from '../../preload/common/types/window-chrome'
+import type { AuthApi, AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
+import type { WindowChromeApi } from '@dfragon/desktop-contracts/types/window-chrome'
 
 let root: Root
 let container: HTMLDivElement

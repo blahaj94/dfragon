@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import type { CharacterCandidate } from '../../preload/common/types/character'
+import type { CharacterCandidate } from '@dfragon/desktop-contracts/types/character'
 import { NO_RAID_OBSERVED_VALUES, selectRaidCandidate } from './raid-candidate'
 
 function candidate(id: string, fame: number | null, serverId = 'cain'): CharacterCandidate {

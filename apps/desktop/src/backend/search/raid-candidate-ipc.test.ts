@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 import { selectRaidCandidate } from './raid-candidate'
-import type { CharacterCandidate } from '../../preload/common/types/character'
+import type { CharacterCandidate } from '@dfragon/desktop-contracts/types/character'
 
 vi.mock('./raid-candidate', async (original) => {
   const actual = await original<typeof import('./raid-candidate')>()

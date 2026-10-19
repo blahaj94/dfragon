@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { getDiagnosticHistory, onDiagnosticEntry, reportRendererDiagnostic } from './diagnostics'
-import { DIAGNOSTIC_CHANNELS } from '../common/types/diagnostics'
+import { DIAGNOSTIC_CHANNELS } from '@dfragon/desktop-contracts/types/diagnostics'
 
 const mocks = vi.hoisted(() => ({ invoke: vi.fn(), on: vi.fn(), remove: vi.fn() }))
 vi.mock('electron', () => ({

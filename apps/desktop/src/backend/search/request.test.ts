@@ -5,7 +5,7 @@ import type {
   CharacterDetails,
   CharacterImage,
   CharacterPortrait
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import { FakeClock, deferred } from '../auth/auth-test-fixtures'
 import { runSearchRequest, type IdentificationAdapters, type PortraitMatcher } from './request'
 import type { CharacterIdentificationInput } from './identify'
@@ -19,7 +19,7 @@ import { SearchHttpFailure } from './http'
 import { createPortraitEdgeMatcher } from './portrait-edges'
 import type { StayImageSource } from './stay-images'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
-import { dealerCard } from '../../preload/common/search/card-test-fixture'
+import { dealerCard } from '@dfragon/desktop-contracts/search/card-test-fixture'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 

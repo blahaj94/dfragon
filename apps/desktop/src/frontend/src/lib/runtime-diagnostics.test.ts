@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it, vi, type Mock, type MockInstance } from 'vitest'
 import { reportRendererDiagnostic, startRendererDiagnostics } from './runtime-diagnostics'
-import type { DiagnosticApi, DiagnosticEntry } from '../../../preload/common/types/diagnostics'
+import type { DiagnosticApi, DiagnosticEntry } from '@dfragon/desktop-contracts/types/diagnostics'
 
 let dispose: (() => void) | undefined
 afterEach(() => {

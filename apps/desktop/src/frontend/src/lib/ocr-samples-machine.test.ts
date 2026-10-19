@@ -1,6 +1,6 @@
 import { createActor, waitFor } from 'xstate'
 import { expect, it, vi } from 'vitest'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import { ocrSamplesMachine } from './ocr-samples-machine'
 
 it('sign-out clears server data, closes image access and ignores a late listing', async () => {

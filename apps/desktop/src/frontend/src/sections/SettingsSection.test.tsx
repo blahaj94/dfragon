@@ -5,7 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../components/ColorThemeProvider'
 import { SettingsSection } from './SettingsSection'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
-import type { BuildVersions } from '../../../preload/common/types/build-versions'
+import type { BuildVersions } from '@dfragon/desktop-contracts/types/build-versions'
 
 vi.mock('virtual:dfragon-desktop-licenses', () => ({
   default: [

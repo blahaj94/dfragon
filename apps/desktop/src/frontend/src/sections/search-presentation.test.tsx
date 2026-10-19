@@ -6,7 +6,7 @@ import {
   type SearchCommandResult,
   type SearchErrorCode,
   type SearchSlot
-} from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -14,7 +14,7 @@ import {
   searchSlot,
   searchSnapshot,
   withSearchSlot
-} from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 import { createRendererFixture, media } from '../testing/fixtures/search-renderer-test-fixture'
 import { SearchResults } from './SearchResults'
 

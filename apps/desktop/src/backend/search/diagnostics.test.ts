@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { reportSearchOutcome } from './diagnostics'
-import type { SearchErrorCode } from '../../preload/common/types/search'
-import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
+import type { SearchErrorCode } from '@dfragon/desktop-contracts/types/search'
+import type { DiagnosticCode } from '@dfragon/desktop-contracts/types/diagnostics'
 
 const report = vi.hoisted(() => vi.fn())
 vi.mock('../diagnostics/log', () => ({ reportDiagnostic: report }))

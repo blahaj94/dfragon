@@ -6,8 +6,8 @@ import {
   searchSnapshot,
   searchSlot,
   searchRow
-} from '../../../preload/api/search-test-fixture'
-import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
+import type { SearchApi, SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 import type { SearchView } from '../types/search'
 
 it('화면의 현재 선택만 상세 참조로 사용하고 clear와 종료 즉시 제거한다', async () => {

@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseSearchResult, parseSearchSnapshot } from './snapshot'
-import {
-  searchRow,
-  searchSlot,
-  searchSnapshot,
-  withSearchSlot
-} from '../../api/search-test-fixture'
+import { searchRow, searchSlot, searchSnapshot, withSearchSlot } from './search-test-fixture'
 import { SEARCH_SLOT_COUNTS } from '../types/search'
 import { characterCardSchema } from './character-summary'
 import { bufferCard, dealerCard } from './card-test-fixture'

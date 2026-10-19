@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import * as developer from './developer'
-import type { DeveloperPartyCollectionUpdate } from '../common/types/developer'
+import type { DeveloperPartyCollectionUpdate } from '@dfragon/desktop-contracts/types/developer'
 
 const renderer = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')

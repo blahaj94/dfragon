@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import * as auth from './auth'
-import type { AuthSnapshot } from '../common/types/auth'
+import type { AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
 
 const renderer = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')

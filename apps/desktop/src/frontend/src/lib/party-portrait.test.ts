@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { sameCharacterPortrait } from '../../../preload/common/search/ocr-input'
+import { sameCharacterPortrait } from '@dfragon/desktop-contracts/search/ocr-input'
 import { cropPartyPortrait, type PartyPortraitCropInput } from './party-portrait'
 
 function input(width = 1067, height = 600, x = 42, rasterScale = 1): PartyPortraitCropInput {

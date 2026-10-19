@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 import type { BrowserWindow } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerWindowChromeWindow } from './ipc-handler'
-import { WINDOW_CHROME_CHANNELS } from '../../preload/common/types/window-chrome'
+import { WINDOW_CHROME_CHANNELS } from '@dfragon/desktop-contracts/types/window-chrome'
 
 const mocks = vi.hoisted(() => ({ handle: vi.fn(), remove: vi.fn(), workAreaHeight: 1040 }))
 vi.mock('electron', () => ({

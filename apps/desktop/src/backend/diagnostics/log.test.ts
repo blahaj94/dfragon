@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { createDiagnosticLog, registerMainDiagnosticErrors } from './log'
-import { DIAGNOSTIC_HISTORY_LIMIT } from '../../preload/common/types/diagnostics'
+import { DIAGNOSTIC_HISTORY_LIMIT } from '@dfragon/desktop-contracts/types/diagnostics'
 
 it('연속해서 같은 오류가 발생하면 한 번만 기록하고 이후 다른 오류는 순서대로 남긴다', () => {
   const log = createDiagnosticLog()

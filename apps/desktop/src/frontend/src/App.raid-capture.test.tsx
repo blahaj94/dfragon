@@ -5,10 +5,10 @@ import { createRendererFixture } from './testing/fixtures/search-renderer-test-f
 import App from './App'
 import { ColorThemeProvider } from './components/ColorThemeProvider'
 import { emptySearchSlots } from './lib/slots'
-import { searchSlot, searchSnapshot } from '../../preload/api/search-test-fixture'
-import type { RaidFrameResult } from '../../preload/common/types/capture'
-import type { AsyncIPCFunctions } from '../../preload/common/types/ipc'
-import type { SearchApi, SearchSnapshot } from '../../preload/common/types/search'
+import { searchSlot, searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
+import type { RaidFrameResult } from '@dfragon/desktop-contracts/types/capture'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import type { SearchApi, SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 import type { RaidSlotRecognition } from './lib/raid-recognition'
 
 const raidMocks = vi.hoisted(() => ({ recognize: vi.fn() }))

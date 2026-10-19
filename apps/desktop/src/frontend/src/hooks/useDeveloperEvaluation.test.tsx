@@ -3,7 +3,7 @@ import { act, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useDeveloperEvaluation } from './useDeveloperEvaluation'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import { OcrWorkerUnavailableError } from '../lib/ocr'
 
 const mocks = vi.hoisted(() => {

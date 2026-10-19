@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useWindowChromeTheme } from './useWindowChromeTheme'
-import type { WindowChromeApi } from '../../../preload/common/types/window-chrome'
+import type { WindowChromeApi } from '@dfragon/desktop-contracts/types/window-chrome'
 
 function Harness({ light }: { light: boolean }): null {
   useWindowChromeTheme(light)

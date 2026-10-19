@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SearchSlot } from '../../preload/common/types/search'
+import type { SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
 type Fixture = Awaited<ReturnType<typeof createSearchFixture>>

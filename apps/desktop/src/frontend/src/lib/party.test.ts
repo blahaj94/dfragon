@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { CharacterImage } from '../../../preload/common/types/character'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import { capturePartyRecognitionInputs } from './party'
 import { recognizePartyFrame } from './party-recognition'
 import type { PartyOcrWorker } from '../types/capture'

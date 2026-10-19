@@ -6,15 +6,15 @@ import { useRaidSearch } from './useRaidSearch'
 import type { CaptureSearch, createCaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
-import type { AsyncIPCFunctions } from '../../../preload/common/types/ipc'
-import type { SearchApi, SearchSlot } from '../../../preload/common/types/search'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import type { SearchApi, SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
   searchRow,
   searchSlot
-} from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 
 const moduleMocks = vi.hoisted(() => ({ create: vi.fn<typeof createCaptureSearch>() }))
 vi.mock('../lib/capture-search', () => ({ createCaptureSearch: moduleMocks.create }))

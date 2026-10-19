@@ -2,8 +2,8 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { AuthSnapshot } from '../../../../preload/common/types/auth'
-import { searchSnapshot } from '../../../../preload/api/search-test-fixture'
+import type { AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
+import { searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
 import { LegacyApp } from './LegacyApp'
 
 let root: Root

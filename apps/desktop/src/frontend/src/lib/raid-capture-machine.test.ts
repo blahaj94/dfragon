@@ -1,7 +1,7 @@
 import { createActor, waitFor } from 'xstate'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { getRaidCapturePhase, raidCaptureMachine } from './raid-capture-machine'
-import type { RaidFrameResult } from '../../../preload/common/types/capture'
+import type { RaidFrameResult } from '@dfragon/desktop-contracts/types/capture'
 import type { RaidSlotRecognition } from './raid-recognition'
 
 const modules = vi.hoisted(() => ({

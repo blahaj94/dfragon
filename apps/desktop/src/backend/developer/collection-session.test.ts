@@ -160,7 +160,8 @@ it('publishes each capture phase immediately and only confirms success after the
 })
 
 it('uploads one saved capture, keeps local crops on failure and aborts on leaving collection', async () => {
-  const pending = deferred<import('../../preload/common/types/developer').DeveloperUploadStatus>()
+  const pending =
+    deferred<import('@dfragon/desktop-contracts/types/developer').DeveloperUploadStatus>()
   const send = vi.fn(
     async (_frame: CapturedPartyFrame, _slots: number[], _kind: string, signal: AbortSignal) => {
       signal.addEventListener('abort', () => pending.resolve('failed'), { once: true })

@@ -1,5 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
+import type {
+  CharacterCandidate,
+  CharacterDetails
+} from '@dfragon/desktop-contracts/types/character'
 import { createRaidCharacterIdentifier } from './identify'
 import { NO_RAID_OBSERVED_VALUES, selectRaidCandidate } from './raid-candidate'
 

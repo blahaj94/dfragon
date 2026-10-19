@@ -5,8 +5,8 @@ import {
   type SearchApi,
   type SearchCommandResult,
   type SearchSnapshot
-} from '../../../preload/common/types/search'
-import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/types/search'
+import { CAPTURE_ID, searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
 import { createSearchConnection, type SearchConnection } from './search-connection'
 
 const connections: SearchConnection[] = []

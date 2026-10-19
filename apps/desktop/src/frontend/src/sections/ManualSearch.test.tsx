@@ -6,13 +6,13 @@ import type {
   ManualSearchApi,
   SearchSnapshot,
   SearchCommandResult
-} from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import {
   CAPTURE_ID,
   searchRow,
   searchSlot,
   searchSnapshot
-} from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 import { ManualSearch } from './ManualSearch'
 
 let root: Root

@@ -10,7 +10,7 @@ import {
   RETURN_TARGET
 } from '../auth/auth-test-fixtures'
 import { registerCaptureIpc, registerCaptureWindow, collectCurrentCapture } from './ipc-handler'
-import type { WindowFrameResult } from '../../preload/common/types/capture'
+import type { WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
 import type { OcrCollection } from '../ocr-collection/collection'
 import { raidFrame } from '../lib/raid-window-test-fixture'
 

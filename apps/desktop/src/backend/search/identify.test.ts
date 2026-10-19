@@ -4,7 +4,7 @@ import type {
   CharacterCandidate,
   CharacterDetails,
   CharacterPortrait
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import {
   createCharacterIdentifier,
   createManualCharacterLookup,

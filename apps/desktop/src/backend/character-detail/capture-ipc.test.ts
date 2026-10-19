@@ -1,7 +1,7 @@
 import { PNG } from 'pngjs'
 import { describe, expect, it, vi, type Mock } from 'vitest'
-import type { CharacterDetails } from '../../preload/common/types/character'
-import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
+import type { CharacterDetails } from '@dfragon/desktop-contracts/types/character'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
 import type { openSelectedCharacterDetail } from './windows'
 import { candidate, createSearchFixture, jsonResponse } from '../search/search-test-fixture'
 

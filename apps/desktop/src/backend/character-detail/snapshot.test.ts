@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CharacterDetails } from '../../preload/common/types/character'
+import type { CharacterDetails } from '@dfragon/desktop-contracts/types/character'
 import { createCharacterDetailSnapshot } from './snapshot'
 
 function details(): CharacterDetails {

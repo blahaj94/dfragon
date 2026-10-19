@@ -5,15 +5,15 @@ import type {
   SearchCommandResult,
   SearchSnapshot,
   SearchObservation
-} from '../../../preload/common/types/search'
-import type { CharacterPortrait } from '../../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/search'
+import type { CharacterPortrait } from '@dfragon/desktop-contracts/types/character'
 import {
   CAPTURE_ID,
   REQUEST_ID,
   searchRow,
   searchSlot,
   searchSnapshot
-} from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 import type { SearchView } from '../types/search'
 import { createCaptureSearch, type CaptureSearch } from './capture-search'
 

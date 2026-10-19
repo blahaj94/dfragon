@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url'
 import type { BrowserWindowConstructorOptions } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { readDesktopChannel } from '../../build/channels'
-import { AUTH_AVAILABLE_ARGUMENT } from '../preload/common/types/auth'
+import { AUTH_AVAILABLE_ARGUMENT } from '@dfragon/desktop-contracts/types/auth'
 
 const syntheticProfilePath = join(process.cwd(), 'synthetic', 'dfragon-test-profile')
 

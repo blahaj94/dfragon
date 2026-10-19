@@ -3,7 +3,7 @@ import type { BrowserWindow } from 'electron'
 import { afterEach, beforeEach, expect, it, vi, type Mock } from 'vitest'
 import { registerDiagnosticsWindow } from './ipc-handler'
 import { createDiagnosticLog, type DiagnosticLog } from './log'
-import { DIAGNOSTIC_CHANNELS } from '../../preload/common/types/diagnostics'
+import { DIAGNOSTIC_CHANNELS } from '@dfragon/desktop-contracts/types/diagnostics'
 
 const mocks = vi.hoisted(() => ({ handle: vi.fn(), remove: vi.fn() }))
 vi.mock('electron', () => ({ ipcMain: { handle: mocks.handle, removeHandler: mocks.remove } }))

@@ -8,9 +8,9 @@ import {
   REQUEST_ID,
   searchSnapshot,
   searchSlot
-} from '../../../preload/api/search-test-fixture'
-import type { WindowFrameResult } from '../../../preload/common/types/capture'
-import type { SearchControl } from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
+import type { WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
+import type { SearchControl } from '@dfragon/desktop-contracts/types/search'
 import * as diagnostics from '../lib/runtime-diagnostics'
 import { usePartyCapture } from './usePartyCapture'
 

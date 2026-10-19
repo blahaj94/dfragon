@@ -1,9 +1,12 @@
 import { PNG } from 'pngjs'
 import { describe, expect, it, vi } from 'vitest'
-import type { CharacterDetails, CharacterPortrait } from '../../preload/common/types/character'
-import type { OcrSearchObservation } from '../../preload/common/types/search'
-import { parseSearchSnapshot } from '../../preload/common/search/snapshot'
-import { dealerCard } from '../../preload/common/search/card-test-fixture'
+import type {
+  CharacterDetails,
+  CharacterPortrait
+} from '@dfragon/desktop-contracts/types/character'
+import type { OcrSearchObservation } from '@dfragon/desktop-contracts/types/search'
+import { parseSearchSnapshot } from '@dfragon/desktop-contracts/search/snapshot'
+import { dealerCard } from '@dfragon/desktop-contracts/search/card-test-fixture'
 import { deferred } from '../auth/auth-test-fixtures'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 

@@ -1,6 +1,9 @@
 import type { IpcRenderer } from 'electron'
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { CharacterDetailApi, CharacterDetailSnapshot } from './common/types/character-detail'
+import type {
+  CharacterDetailApi,
+  CharacterDetailSnapshot
+} from '@dfragon/desktop-contracts/types/character-detail'
 
 const mocks = vi.hoisted(() => {
   const invoke = vi.fn<IpcRenderer['invoke']>()

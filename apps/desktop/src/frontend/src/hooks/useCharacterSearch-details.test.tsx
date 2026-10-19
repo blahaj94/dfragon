@@ -9,14 +9,14 @@ import type { SearchView } from '../types/search'
 import type {
   CharacterSelectionReference,
   OpenCharacterDetailResult
-} from '../../../preload/common/types/character-detail'
-import type { AsyncIPCFunctions } from '../../../preload/common/types/ipc'
+} from '@dfragon/desktop-contracts/types/character-detail'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
 import {
   CAPTURE_ID,
   REQUEST_ID,
   searchRow,
   searchSlot
-} from '../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 
 const moduleMocks = vi.hoisted(() => ({ create: vi.fn<typeof createCaptureSearch>() }))
 vi.mock('../lib/capture-search', () => ({ createCaptureSearch: moduleMocks.create }))

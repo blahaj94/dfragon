@@ -2,7 +2,7 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { CharacterDetailSnapshot } from '../../../../preload/common/types/character-detail'
+import type { CharacterDetailSnapshot } from '@dfragon/desktop-contracts/types/character-detail'
 import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 import { CharacterSnapshotPage } from './CharacterSnapshotPage'
 

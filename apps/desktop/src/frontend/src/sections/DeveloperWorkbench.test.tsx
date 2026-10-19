@@ -8,7 +8,7 @@ import type {
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot,
   DeveloperSample
-} from '../../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
 import { DeveloperWorkbench } from './DeveloperWorkbench'
 

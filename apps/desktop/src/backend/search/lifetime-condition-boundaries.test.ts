@@ -3,7 +3,7 @@ import { createCaptureSearchLifetime, type CaptureBinding } from './capture-life
 import { deferred, FakeClock } from '../auth/auth-test-fixtures'
 import { SearchHttpFailure } from './http'
 import type { SearchRuntime } from './request'
-import type { CharacterSearchRow, SearchSnapshot } from '../../preload/common/types/search'
+import type { CharacterSearchRow, SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 
 const rows: readonly CharacterSearchRow[] = [
   {

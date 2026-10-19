@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events'
 import type { BrowserWindow } from 'electron'
 import { beforeEach, expect, it, vi, type Mock } from 'vitest'
-import type { DesktopShortcut } from '../../preload/common/types/desktop-shortcut'
+import type { DesktopShortcut } from '@dfragon/desktop-contracts/types/desktop-shortcut'
 import { registerDesktopShortcuts } from './register'
 
 const fixtures = vi.hoisted(() => ({

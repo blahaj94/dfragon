@@ -5,7 +5,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { PARTY_COLLAPSE_TRANSITION_MS, usePartyCollapse } from './usePartyCollapse'
-import type { WindowChromeApi } from '../../../preload/common/types/window-chrome'
+import type { WindowChromeApi } from '@dfragon/desktop-contracts/types/window-chrome'
 
 let container: HTMLDivElement
 let root: Root

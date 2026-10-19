@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SearchSlot } from '../../preload/common/types/search'
+import type { SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import { createSearchFixture, jsonResponse } from './search-test-fixture'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { deferred, FakeClock } from '../auth/auth-test-fixtures'

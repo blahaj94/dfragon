@@ -1,6 +1,6 @@
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
+import type { DiagnosticCode } from '@dfragon/desktop-contracts/types/diagnostics'
 import { readEngineInput } from './details-test-fixture'
 import {
   createLazyScoreEngine,

@@ -1,6 +1,6 @@
 import { PNG } from 'pngjs'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { CharacterAppearance } from '../../preload/common/types/appearance'
+import type { CharacterAppearance } from '@dfragon/desktop-contracts/types/appearance'
 import type { CharacterAppearanceHttp } from './character-http'
 import { createStayImageSource } from './stay-images'
 

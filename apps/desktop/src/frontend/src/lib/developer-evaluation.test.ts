@@ -5,7 +5,7 @@ import {
   type DeveloperEvaluation
 } from './developer-evaluation'
 import { binarizeNicknamePixels } from './nickname-pixels'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 
 const sample = (id: string, text: string | null): DeveloperSample => ({
   id,

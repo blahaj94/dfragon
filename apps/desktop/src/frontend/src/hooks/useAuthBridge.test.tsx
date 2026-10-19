@@ -2,7 +2,11 @@
 import { act, StrictMode, useEffect, type JSX } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi, type Mocked } from 'vitest'
-import type { AuthSnapshot, AuthCommandResult, AuthApi } from '../../../preload/common/types/auth'
+import type {
+  AuthSnapshot,
+  AuthCommandResult,
+  AuthApi
+} from '@dfragon/desktop-contracts/types/auth'
 import { useAuthBridge } from './useAuthBridge'
 import { LoginPage } from '../pages/login/LoginPage'
 

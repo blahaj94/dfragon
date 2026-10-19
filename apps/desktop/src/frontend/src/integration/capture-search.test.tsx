@@ -1,9 +1,9 @@
-import type { WindowFrameResult } from '../../../preload/common/types/capture'
+import type { WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { expect, it } from 'vitest'
-import type { SearchCommandResult } from '../../../preload/common/types/search'
-import { CAPTURE_ID, searchSnapshot } from '../../../preload/api/search-test-fixture'
+import type { SearchCommandResult } from '@dfragon/desktop-contracts/types/search'
+import { CAPTURE_ID, searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
 import {
   authSnapshot,
   captureResources,

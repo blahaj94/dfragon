@@ -4,7 +4,10 @@ import { crc32, deflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
 import { describe, expect, it, vi } from 'vitest'
 import type { AuthClock } from '../auth/types'
-import type { CharacterCandidate, CharacterDetails } from '../../preload/common/types/character'
+import type {
+  CharacterCandidate,
+  CharacterDetails
+} from '@dfragon/desktop-contracts/types/character'
 import {
   CHARACTER_HTTP_LIMITS,
   createCharacterCandidatesHttp,

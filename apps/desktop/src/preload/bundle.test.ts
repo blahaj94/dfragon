@@ -3,7 +3,7 @@ import { build, normalizePath } from 'vite'
 import { resolve } from 'node:path'
 import { resolveConfig } from 'electron-vite'
 import { expect, it, vi } from 'vitest'
-import { AUTH_AVAILABLE_ARGUMENT } from './common/types/auth'
+import { AUTH_AVAILABLE_ARGUMENT } from '@dfragon/desktop-contracts/types/auth'
 
 it('electron.vite.config.ts의 실제 preload 산출물은 외부 package require 없이 feature API를 노출한다', async () => {
   const resolved = await resolveConfig(

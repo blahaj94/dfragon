@@ -5,9 +5,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { useRaidCapture } from './useRaidCapture'
 import { emptySearchSlots } from '../lib/slots'
 import type { RaidSlotRecognition } from '../lib/raid-recognition'
-import { searchSnapshot } from '../../../preload/api/search-test-fixture'
-import type { RaidFrameResult } from '../../../preload/common/types/capture'
-import type { SearchApi, SearchSnapshot } from '../../../preload/common/types/search'
+import { searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
+import type { RaidFrameResult } from '@dfragon/desktop-contracts/types/capture'
+import type { SearchApi, SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 
 const raidMocks = vi.hoisted(() => ({ recognize: vi.fn() }))
 vi.mock('../lib/raid-recognition', () => ({ recognizeRaidRows: raidMocks.recognize }))

@@ -3,7 +3,7 @@
 import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import type { DeveloperSamplesApi } from '../lib/developer-samples-machine'
 import { useDeveloperSamples } from './useDeveloperSamples'
 

@@ -2,7 +2,10 @@ import { PNG } from 'pngjs'
 import { expect, it } from 'vitest'
 import { INITIAL_PORTRAIT_EDGE_POLICY } from './portrait-policy'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
-import type { CharacterDetails, CharacterPortrait } from '../../preload/common/types/character'
+import type {
+  CharacterDetails,
+  CharacterPortrait
+} from '@dfragon/desktop-contracts/types/character'
 import { API_ORIGIN } from '../auth/auth-test-fixtures'
 
 function portrait(): CharacterPortrait {

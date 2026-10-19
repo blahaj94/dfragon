@@ -1,6 +1,6 @@
 import { setImmediate } from 'node:timers/promises'
 import { describe, expect, it } from 'vitest'
-import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
+import type { CharacterImage, CharacterPortrait } from '@dfragon/desktop-contracts/types/character'
 import {
   createPortraitMatcher,
   PORTRAIT_MATCH_LIMITS,

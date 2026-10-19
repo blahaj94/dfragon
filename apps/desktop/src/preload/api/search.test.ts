@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import type { SearchControl, ManualSearchApi } from '../common/types/search'
+import type { SearchControl, ManualSearchApi } from '@dfragon/desktop-contracts/types/search'
 import {
   CAPTURE_ID,
   REQUEST_ID,
@@ -10,7 +10,7 @@ import {
   withSearchSlot,
   type SearchTestApi,
   type ObservationTestApi
-} from './search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 
 const renderer = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')

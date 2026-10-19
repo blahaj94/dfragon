@@ -7,7 +7,7 @@ import { UpdateNotice } from '../components/UpdateNotice'
 import type {
   UpdateNoticeApi,
   UpdateNoticeSnapshot
-} from '../../../preload/common/types/update-notice'
+} from '@dfragon/desktop-contracts/types/update-notice'
 
 // App과 같은 방식으로 hook 결과를 알림 컴포넌트에 연결한다.
 function Harness(): React.JSX.Element | null {

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
+import { DEVELOPER_CHANNELS } from '@dfragon/desktop-contracts/developer-channels'
 import { registerDeveloperWindow } from './ipc-handler'
 
 const electron = vi.hoisted(() => {

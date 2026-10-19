@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import type { AuthClock } from '../auth/types'
-import type { CharacterAppearance } from '../../preload/common/types/appearance'
+import type { CharacterAppearance } from '@dfragon/desktop-contracts/types/appearance'
 import { CHARACTER_HTTP_LIMITS, createCharacterAppearanceHttp } from './character-http'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))

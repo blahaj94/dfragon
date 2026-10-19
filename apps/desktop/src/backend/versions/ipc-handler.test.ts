@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { registerVersionsWindow } from './ipc-handler'
-import type { BuildVersions } from '../../preload/common/types/build-versions'
+import type { BuildVersions } from '@dfragon/desktop-contracts/types/build-versions'
 
 const mocks = vi.hoisted(() => {
   const add = vi.fn()
