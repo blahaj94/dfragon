@@ -1,4 +1,10 @@
-import { isFiniteNumber, isNonblankString, isRecord, oneOf } from '@dfragon/lib/utils/shape-check'
+import {
+  isFiniteNumber,
+  isNonblankString,
+  isNonNegativeSafeInteger,
+  isRecord,
+  oneOf
+} from '@dfragon/lib/utils/shape-check'
 import type {
   CharacterCard,
   CharacterDetails,
@@ -8,10 +14,13 @@ import { characterImageUrl } from '../../preload/common/search/character-summary
 import {
   CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH,
   isCharacterDetailItemId,
+  isCharacterDetailSkillId,
   parseCharacterDetailSnapshot
 } from '../../preload/common/character-detail'
 import type {
   CharacterDetailItemText,
+  CharacterDetailSkill,
+  CharacterDetailSkills,
   CharacterDetailSnapshot
 } from '../../preload/common/types/character-detail'
 
@@ -117,9 +126,84 @@ function collectItemTexts(details: CharacterDetails): Record<string, CharacterDe
   return Object.fromEntries(entries)
 }
 
+// 공용 상세(`itemDetail`, `skillDetails[id]`)가 원문을 쓸 수 있는 상태면 그 data를 고른다.
+function usableDetailData(detail: unknown): Record<string, unknown> | null {
+  if (!isRecord(detail) || !isUsableItemDetailStatus(detail.status) || !isRecord(detail.data)) {
+    return null
+  }
+
+  return detail.data
+}
+
+// 현재 레벨 줄의 쿨타임(초). 레벨 줄이 없거나 쿨타임이 음수, 숫자가 아니면 없는 값이다.
+function coolTimeAt(data: Record<string, unknown> | null, level: number): number | null {
+  const levelInfo = isRecord(data?.levelInfo) ? data.levelInfo : null
+  const row = records(levelInfo?.rows).find((entry) => entry.level === level)
+  const coolTime = row?.coolTime
+  if (!isFiniteNumber(coolTime) || coolTime < 0) {
+    return null
+  }
+
+  return coolTime
+}
+
+// 상세 evolution 항목의 VP 이름을 type 순서로 고른다. 이름이 비었거나 type이 숫자가 아닌 항목은 뺀다.
+function vpEntries(data: Record<string, unknown> | null): (readonly [number, string])[] {
+  const entries = records(data?.evolution).flatMap((entry) => {
+    if (!isFiniteNumber(entry.type) || !isNonblankString(entry.name)) {
+      return []
+    }
+
+    return [[entry.type, entry.name] as const]
+  })
+
+  return entries.toSorted(([a], [b]) => a - b)
+}
+
+// 스킬 탭에 넘길 습득, 패시브 스킬. 이름이나 레벨이 틀린 항목은 빼고, 같은 skillId는 처음 항목을 쓴다.
+function collectSkills(details: CharacterDetails): CharacterDetailSkills | null {
+  const { jobId, jobGrowId } = details.character
+  const skillStyle = isRecord(details.skillStyle) ? details.skillStyle : null
+  const style = isRecord(skillStyle?.style) ? skillStyle.style : null
+  if (!isCharacterDetailSkillId(jobId) || !isCharacterDetailSkillId(jobGrowId) || style === null) {
+    return null
+  }
+  const skillDetails = isRecord(skillStyle?.skillDetails) ? skillStyle.skillDetails : {}
+  const vpTypes = new Map(records(style.evolution).map((entry) => [entry.skillId, entry.type]))
+  const learned = new Map<string, CharacterDetailSkill>()
+  for (const entry of [...records(style.active), ...records(style.passive)]) {
+    const { skillId, name, level } = entry
+    if (
+      !isCharacterDetailSkillId(skillId) ||
+      learned.has(skillId) ||
+      !isNonblankString(name) ||
+      !isNonNegativeSafeInteger(level)
+    ) {
+      continue
+    }
+    const data = usableDetailData(skillDetails[skillId])
+    const vps = vpEntries(data)
+    const vpType = vpTypes.get(skillId)
+    const selectedVp = vps.find(([type]) => type === vpType)
+    const skill = {
+      name,
+      level,
+      description: itemTextValue(data?.desc),
+      coolTime: coolTimeAt(data, level),
+      vpNames: vps.map(([, vpName]) => vpName),
+      vpName: selectedVp === undefined ? null : selectedVp[1]
+    }
+    learned.set(skillId, skill)
+  }
+  const learnedById = Object.fromEntries(learned)
+
+  return { jobId, jobGrowId, learned: learnedById }
+}
+
 /**
  * 상세 창에 넘길 값을 만든다. 기본 정보는 상세 응답에서, 카드 값은 검색이 메인 카드에 넘긴 값(점수 포함)을
- * 그대로 쓰고 점수를 다시 계산하지 않는다. 설명 상자 문구는 상세 응답의 아이템 상세에서 고른다.
+ * 그대로 쓰고 점수를 다시 계산하지 않는다. 설명 상자 문구는 상세 응답의 아이템 상세에서, 스킬 탭 값은 스킬
+ * 스타일과 스킬 공용 상세에서 고른다.
  */
 export function createCharacterDetailSnapshot(
   details: CharacterDetails,
@@ -147,7 +231,8 @@ export function createCharacterDetailSnapshot(
     guildName
   }
   const itemTexts = collectItemTexts(details)
+  const skills = collectSkills(details)
   const freshness = { ...details.freshness }
 
-  return parseCharacterDetailSnapshot({ character, card, itemTexts, freshness })
+  return parseCharacterDetailSnapshot({ character, card, itemTexts, skills, freshness })
 }

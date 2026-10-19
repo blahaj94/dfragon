@@ -134,6 +134,16 @@ main push는 Dependabot alerts의 기준을, 같은 저장소 PR은 dependency r
 
 검증: `node --test scripts/test/dependency-snapshot.test.mjs`, `node --check scripts/dependency-snapshot.mjs`.
 
+## `import-skill-data`
+
+Desktop 상세 창 스킬 탭의 직업별 배치(`packages/skill-layouts/layouts.json`)와 스킬 아이콘 sprite(`packages/icons/skills.json`, `packages/icons/skills.webp`)를 외부 수집본에서 함께 다시 만듭니다. 두 패키지의 데이터는 이 명령의 생성물이므로 손으로 고치지 않습니다.
+
+```bash
+node scripts/import-skill-data.mjs --coordinates <skill-coordinates.json> --pvf <data_layers 폴더>
+```
+
+`--coordinates`는 dcalc 좌표를 네오플 API로 대조한 수집본(schemaVersion 3), `--pvf`는 dnf-reverse-engineering의 `continuation/outputs/handoff/phase31_live/data_layers` 폴더입니다. 직업, 전직, 이름으로 네오플 스킬과 PVF 스킬을 하나로 잇지 못하거나, 11열 밖 좌표, 같은 칸의 두 스킬, 원본 PNG SHA-256 불일치, 원본 픽셀과 다른 sprite 칸이 있으면 파일을 쓰기 전에 실패하고 이전 생성물을 그대로 둡니다. 성공하면 직업, 칸, 아이콘 연결 수와 sprite 칸 수, 바이트를 출력합니다. WebP 인코딩에 root 개발 의존성 `sharp`를 씁니다. 입력과 규칙은 [`@dfragon/skill-layouts` 안내](../packages/skill-layouts/README.md#출처와-다시-만들기)에 있습니다. 결과는 `pnpm format:check`와 Desktop 테스트로 확인합니다.
+
 ## `verify`
 
 `pnpm verify`는 Code Quality workflow의 검사 job 가운데 Docker가 필요 없는 job을 로컬에서 다시 실행합니다. Root `pnpm test`도 같은 명령입니다. 정적 검사(`lint`, `format:check`, `check:writing`, `check:docs`), 루트 도구 테스트, 공용 package, Desktop test와 typecheck, API, accounts, OCR, Web job의 run 명령을 workflow와 같은 순서로 실행합니다. Docker PostgreSQL을 쓰는 API, accounts의 `test:database`와 Desktop 검색 통합은 `pnpm verify:database`로 따로 실행합니다.

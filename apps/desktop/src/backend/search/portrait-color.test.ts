@@ -324,13 +324,15 @@ describe('색 비교 정책과 입력 경계', () => {
     await expect(score(portrait(), candidate, { gridSize: 27 })).rejects.toThrow(RangeError)
   })
 
+  // 512 × 512 후보를 예산이 넘을 때까지 실제로 비교하므로 무겁다. Windows CI에서 기본 5초에 가깝게 걸려
+  // (main에서 2~4초, 테스트가 몰린 shard에서 5초 초과) 이 사례만 제한을 늘린다.
   it('계산 예산 초과를 빈 점수로 숨기지 않는다', async () => {
     const candidate = image(512, 512, () => [80, 90, 100, OPAQUE_ALPHA])
 
     await expect(score(portrait(), candidate, { gridSize: 16 })).rejects.toBeInstanceOf(
       PortraitComparisonBudgetExceededError
     )
-  })
+  }, 20_000)
 
   it('시작 전 취소 사유를 보존한다', async () => {
     const controller = new AbortController()
