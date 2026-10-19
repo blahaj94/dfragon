@@ -1,3 +1,4 @@
+import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
 import type {
   CharacterCard,
   CharacterDetails,
@@ -16,7 +17,7 @@ function optionalText(value: CharacterJsonValue | undefined): string | null {
 }
 
 function optionalNumber(value: CharacterJsonValue | undefined): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (isFiniteNumber(value)) {
     return value
   }
 

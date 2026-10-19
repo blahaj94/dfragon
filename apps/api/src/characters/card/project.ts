@@ -1,3 +1,4 @@
+import { isRecord } from '@dfragon/lib/utils/shape-check'
 import { gradeEnchant, isEnchantStatusValue } from './enchant-grades.js'
 import type { EnchantGradeTable } from './enchant-grades.js'
 import type {
@@ -13,7 +14,7 @@ import type {
   CharacterSetPoint,
   EnchantStatus
 } from './types.js'
-import { finiteOrNull, isRecord, records, textOrNull } from './values.js'
+import { finiteOrNull, records, textOrNull } from './values.js'
 
 // Only the stored sections the card reads; projectCharacterDetails output satisfies this shape.
 export interface CharacterCardSource {

@@ -1,7 +1,6 @@
+import { isFiniteNumber, isRecord } from '@dfragon/lib/utils/shape-check'
+
 // Provider JSONB is untrusted here: the card keeps only values Desktop can validate strictly.
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
 
 export function textOrNull(value: unknown): string | null {
   if (typeof value === 'string' && value !== '') {
@@ -12,7 +11,7 @@ export function textOrNull(value: unknown): string | null {
 }
 
 export function finiteOrNull(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (isFiniteNumber(value)) {
     return value
   }
 
