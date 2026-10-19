@@ -1,6 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { colors, motion, radius } from './tokens.stylex'
 
+// 정사각 스위치는 DFragon 디자인 캔버스의 설정 보드(44x22, 손잡이 14, 바깥에서 4)를 따른다.
 export const styles = stylex.create({
   root: {
     position: 'relative',
@@ -8,9 +9,9 @@ export const styles = stylex.create({
     alignItems: 'center',
     flexShrink: 0,
     boxSizing: 'border-box',
-    width: 36,
-    height: 20,
-    padding: 2,
+    width: 44,
+    height: 22,
+    padding: 3,
     margin: 0,
     borderWidth: 1,
     borderStyle: 'solid',
@@ -35,11 +36,11 @@ export const styles = stylex.create({
     width: 14,
     height: 14,
     backgroundColor: {
-      default: colors.fgMuted,
+      default: colors.fgSubtle,
       ':is([data-checked])': colors.onSignal,
       ':is([data-disabled])': colors.fgDisabled
     },
-    transform: { default: 'translateX(0)', ':is([data-checked])': 'translateX(16px)' },
+    transform: { default: 'translateX(0)', ':is([data-checked])': 'translateX(22px)' },
     transitionProperty: 'transform, background-color',
     transitionDuration: motion.durState,
     transitionTimingFunction: motion.ease

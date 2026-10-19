@@ -1,71 +1,127 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, radius } from '@dfragon/ui/tokens.stylex'
+import { colors, motion, radius } from '@dfragon/ui/tokens.stylex'
 
+// 줄 화살표 색. 줄에 마우스를 올리면 화살표만 신호색이 된다.
+const CHEVRON = '--notice-row-chevron'
+
+// 값은 DFragon 디자인 캔버스의 라이선스 사용고지, 고지 상세 보드를 따른다.
 export const styles = stylex.create({
-  heading: { paddingBlock: 12, overflowWrap: 'anywhere' },
-  description: {
-    color: colors.fgMuted,
-    paddingBottom: 20,
-    overflowWrap: 'anywhere'
-  },
-  count: { color: colors.fgMuted, paddingTop: 20, paddingBottom: 12 },
   list: { listStyle: 'none', padding: 0, margin: 0 },
-  // The design table counts its header row, so its bg.stripe rows are the first, third and
-  // following odd entries of this header-less list.
   item: {
     backgroundColor: { default: null, ':nth-child(odd)': colors.bgStripe }
   },
-  // Design two-line row is 48: a 16/24 name over a 12/18 line with 3px above and below.
+  // 줄은 48 높이에 이름, 버전 두 줄과 폭 120의 라이선스, 오른쪽 화살표다. 긴 이름과 라이선스는 줄을 늘린다.
   row: {
-    display: { default: 'flex', '@media (max-width: 600px)': 'grid' },
-    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    [CHEVRON]: { default: colors.fgSubtle, ':hover': colors.signal },
+    display: 'flex',
     alignItems: 'center',
+    gap: 16,
     width: '100%',
     minHeight: 48,
-    height: 'auto',
-    justifyContent: 'space-between',
-    textAlign: 'left',
-    paddingBlock: 3,
-    paddingInline: 12,
-    gap: 12,
+    boxSizing: 'border-box',
+    margin: 0,
+    paddingBlock: 4,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderWidth: 0,
     borderRadius: radius.panel,
+    backgroundColor: { default: 'transparent', ':hover': colors.bgControl },
     color: colors.fgDefault,
-    whiteSpace: 'normal'
+    font: 'inherit',
+    textAlign: 'left',
+    cursor: 'pointer',
+    transitionProperty: 'background-color',
+    transitionDuration: motion.durHover,
+    transitionTimingFunction: motion.ease,
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.signal,
+    outlineOffset: -2
   },
-  name: {
-    display: 'flex',
-    flexDirection: 'column',
-    flex: 1,
-    minWidth: 0,
-    overflowWrap: 'anywhere'
-  },
-  version: { color: colors.fgMuted },
+  name: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 },
+  nameText: { fontSize: 15, lineHeight: '20px', fontWeight: 600, overflowWrap: 'anywhere' },
+  nameDetail: { fontSize: 12, lineHeight: '16px', color: colors.fgSubtle },
   license: {
-    maxWidth: { default: '40%', '@media (max-width: 600px)': '100%' },
-    gridColumn: 1,
-    gridRow: 2,
+    flexShrink: 0,
+    width: 120,
+    fontSize: 13,
+    lineHeight: '18px',
     color: colors.fgMuted,
     overflowWrap: 'anywhere'
   },
-  rowChevron: {
-    gridColumn: 2,
-    gridRow: '1 / span 2',
+  rowChevron: { flexShrink: 0, width: 16, height: 16, color: `var(${CHEVRON})` },
+  // 상세를 열 때 본문을 뒤로 가기까지 올리되 본문 위 여백(24에서 위로 당긴 4를 뺀 20)은 남긴다.
+  back: {
+    alignSelf: 'flex-start',
+    scrollMarginTop: 20,
+    display: 'flex',
     flexShrink: 0,
-    width: 24,
-    height: 24,
-    color: colors.fgSubtle
+    alignItems: 'center',
+    gap: 4,
+    height: 28,
+    marginTop: -4,
+    marginLeft: -4,
+    paddingLeft: 2,
+    paddingRight: 6,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    color: { default: colors.fgMuted, ':hover': colors.fgDefault },
+    font: 'inherit',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    outlineStyle: { default: 'none', ':focus-visible': 'solid' },
+    outlineWidth: 2,
+    outlineColor: colors.signal,
+    outlineOffset: 2
   },
-  document: {
-    backgroundColor: colors.bgInset,
-    borderRadius: radius.panel,
-    padding: 16,
-    marginTop: 16
+  backIcon: { width: 16, height: 16, flexShrink: 0 },
+  heading: {
+    marginTop: 16,
+    marginBottom: 10,
+    fontSize: 24,
+    lineHeight: '32px',
+    fontWeight: 700,
+    overflowWrap: 'anywhere',
+    outlineStyle: 'none'
   },
-  documentTitle: { paddingBottom: 16, overflowWrap: 'anywhere' },
+  tags: { display: 'flex', alignItems: 'center', gap: 8 },
+  tag: {
+    display: 'flex',
+    alignItems: 'center',
+    minHeight: 24,
+    paddingLeft: 8,
+    paddingRight: 12,
+    backgroundColor: colors.bgControl,
+    color: colors.fgMuted,
+    fontSize: 12,
+    lineHeight: '18px',
+    fontWeight: 700,
+    overflowWrap: 'anywhere'
+  },
+  version: { fontSize: 12, lineHeight: '18px', color: colors.fgSubtle },
+  notice: {
+    marginTop: 20,
+    paddingBlock: 16,
+    paddingInline: 20,
+    backgroundColor: colors.bgBar,
+    color: colors.fgMuted,
+    fontSize: 13,
+    lineHeight: '22px'
+  },
+  documentTitle: {
+    margin: 0,
+    marginBottom: 8,
+    fontSize: 15,
+    lineHeight: '22px',
+    fontWeight: 700,
+    color: colors.fgDefault,
+    overflowWrap: 'anywhere'
+  },
   original: {
+    margin: 0,
     fontFamily: 'inherit',
     whiteSpace: 'pre-wrap',
-    overflowWrap: 'anywhere',
-    margin: 0
+    overflowWrap: 'anywhere'
   }
 })

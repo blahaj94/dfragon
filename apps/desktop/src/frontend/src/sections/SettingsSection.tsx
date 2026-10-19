@@ -1,35 +1,50 @@
 import { PRODUCT_NAME } from '@dfragon/lib'
-import brandIcon from '../../../../resources/brand.png'
-import { useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { windowChromeStyles } from '../constants/window-chrome.style'
 import {
   Button,
-  Typo,
   DialogContent,
   DialogRoot,
   DialogTrigger,
   IconButton,
+  shapes,
   Switch
 } from '@dfragon/ui'
 import type { NoticeEntry } from '@dfragon/licenses/types'
+import { CloseIcon } from '../components/CloseIcon'
 import { OpenSourceNotices } from '../components/OpenSourceNotices'
 import { SettingsIcon } from '../components/SettingsIcon'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
 import { styles } from './SettingsSection.style'
-import { BuildVersionsSection } from './BuildVersionsSection'
 
+const corners = [styles.topLeft, styles.topRight, styles.bottomLeft, styles.bottomRight]
+
+const menus = [
+  { id: 'licenses', label: '라이선스 사용고지' },
+  { id: 'developer', label: '개발자 모드' }
+] as const satisfies readonly { id: string; label: string }[]
+
+type SettingsMenu = (typeof menus)[number]['id']
+
+/**
+ * 상단 바의 설정 버튼과 설정 대화상자. DFragon 디자인 캔버스의 설정과 라이선스 보드대로 왼쪽 메뉴, 메뉴 아래쪽의
+ * 계정 버튼과 앱 이름, 오른쪽 본문을 둔다.
+ */
 export function SettingsSection({
+  account,
   developerMode,
   onOpenDeveloperWorkbench
 }: {
+  /** 메뉴 아래쪽에 두는 로그인 버튼. 로그인 설정이 없는 빌드는 생략한다. */
+  account?: ReactNode
   developerMode?: DeveloperModeState
   onOpenDeveloperWorkbench?: () => void
 }): React.JSX.Element {
+  const titleId = useId()
+  const developerLabelId = useId()
   const [open, setOpen] = useState(false)
-  const [selectedSection, setSelectedSection] = useState<'licenses' | 'developer' | 'versions'>(
-    'licenses'
-  )
+  const [selectedMenu, setSelectedMenu] = useState<SettingsMenu>('licenses')
   const [entries, setEntries] = useState<NoticeEntry[] | null>(null)
   const [failed, setFailed] = useState(false)
   const mode = developerMode ?? {
@@ -50,114 +65,83 @@ export function SettingsSection({
     }
   }
 
-  function getDeveloperStatusText(): string {
-    if (mode.updating) {
-      return '개발자 모드 설정 저장 중'
-    }
-
-    if (mode.enabled) {
-      return '개발자 모드 켜짐'
-    }
-
-    return '개발자 모드 꺼짐'
+  function renderError(message: string, onRetry: () => void): React.JSX.Element {
+    return (
+      <div role="alert" {...stylex.props(styles.error)}>
+        <p {...stylex.props(styles.errorText)}>
+          <span aria-hidden="true" {...stylex.props(styles.errorMark, shapes.cutTopRight)}>
+            !
+          </span>
+          {message}
+        </p>
+        <Button size="sm" onClick={() => onRetry()}>
+          다시 시도
+        </Button>
+      </div>
+    )
   }
 
-  function renderDeveloperControls(): React.JSX.Element {
+  function renderLicenses(): React.JSX.Element | null {
+    if (entries) {
+      return <OpenSourceNotices entries={entries} />
+    }
+
+    if (failed) {
+      return renderError('라이선스 정보를 불러오지 못했습니다.', () => void loadNotices())
+    }
+
+    // 불러오는 동안은 안내 문구 없이 비워 둔다. 데이터는 앱에 포함되어 곧바로 읽힌다.
+
+    return null
+  }
+
+  function renderDeveloperMode(): React.JSX.Element | null {
     if (mode.status === 'loading') {
-      return <Typo.txtM role="status">개발자 모드 설정을 불러오는 중입니다.</Typo.txtM>
+      return null
     }
 
     if (mode.status === 'unavailable') {
       return (
-        <Typo.txtM role="status">이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.</Typo.txtM>
+        <p role="status" {...stylex.props(styles.errorText)}>
+          <span aria-hidden="true" {...stylex.props(styles.errorMark, shapes.cutTopRight)}>
+            !
+          </span>
+          이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.
+        </p>
       )
     }
 
     if (mode.status === 'error') {
-      return (
-        <div role="alert">
-          <Typo.txtM>개발자 모드 설정을 불러오거나 저장하지 못했습니다.</Typo.txtM>
-          <Button size="sm" onClick={mode.retry}>
-            <Typo.txtS as="span" weight={700}>
-              다시 시도
-            </Typo.txtS>
-          </Button>
-        </div>
-      )
+      return renderError('개발자 모드 설정을 불러오거나 저장하지 못했습니다.', mode.retry)
     }
 
     return (
       <>
-        <label {...stylex.props(styles.developerSwitch)}>
-          <Typo.txtM as="span">개발자 모드</Typo.txtM>
+        {/* 줄 전체가 스위치 라벨이라 글자와 스위치를 함께 눌러 바꾼다. */}
+        <label {...stylex.props(styles.switchRow)}>
+          <span id={developerLabelId}>개발자 모드</span>
           <Switch
+            aria-labelledby={developerLabelId}
             checked={mode.enabled}
             disabled={mode.updating}
+            aria-busy={mode.updating}
             onCheckedChange={(checked) => mode.setEnabled(checked)}
           />
         </label>
-        <Typo.txtS role="status" {...stylex.props(styles.developerStatus)}>
-          {getDeveloperStatusText()}
-        </Typo.txtS>
         {mode.enabled && onOpenDeveloperWorkbench && (
           <div {...stylex.props(styles.developerActions)}>
             <Button
               variant="primary"
+              {...stylex.props(styles.developerOpen)}
               onClick={() => {
                 setOpen(false)
                 onOpenDeveloperWorkbench()
               }}
             >
-              <Typo.txtM as="span" weight={700}>
-                개발 도구 열기
-              </Typo.txtM>
+              개발 도구 열기
             </Button>
           </div>
         )}
-      </>
-    )
-  }
-
-  function renderSectionContent(): React.JSX.Element {
-    if (selectedSection === 'versions') {
-      return <BuildVersionsSection />
-    }
-
-    if (selectedSection === 'licenses') {
-      if (entries) {
-        return <OpenSourceNotices entries={entries} />
-      }
-
-      return (
-        <>
-          <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
-            라이선스 사용고지
-          </Typo.h4>
-          {failed ? (
-            <div role="alert">
-              <Typo.txtM>라이선스 정보를 불러오지 못했습니다.</Typo.txtM>
-              <Button size="sm" onClick={() => void loadNotices()}>
-                <Typo.txtS as="span" weight={700}>
-                  다시 시도
-                </Typo.txtS>
-              </Button>
-            </div>
-          ) : (
-            <Typo.txtM role="status">라이선스 정보를 불러오는 중입니다.</Typo.txtM>
-          )}
-        </>
-      )
-    }
-
-    return (
-      <>
-        <Typo.h4 as="h2" {...stylex.props(styles.heading)}>
-          개발자 모드
-        </Typo.h4>
-        <Typo.txtS as="p" {...stylex.props(styles.developerDescription)}>
-          개발 도구를 쓰려면 켜세요. 이 기기에만 저장됩니다.
-        </Typo.txtS>
-        {renderDeveloperControls()}
       </>
     )
   }
@@ -180,58 +164,69 @@ export function SettingsSection({
               aria-label="설정"
               aria-haspopup="dialog"
               icon={<SettingsIcon />}
+              {...stylex.props(styles.trigger)}
             />
           }
         />
       </span>
       <DialogContent
         size="lg"
-        title={<Typo.h5 as="span">설정</Typo.h5>}
+        showCloseButton={false}
+        aria-labelledby={titleId}
         {...stylex.props(styles.dialog)}
       >
+        {/* 대화상자는 테마를 따르는 면이라 카드 전용 꺾쇠 대신 border.strong 꺾쇠를 직접 둔다. */}
+        {corners.map((position, index) => (
+          // 네 모서리는 순서가 바뀌지 않는 고정 목록이다.
+          <span key={index} aria-hidden="true" {...stylex.props(styles.corner, position)} />
+        ))}
+        <div {...stylex.props(styles.header)}>
+          <h2 id={titleId} {...stylex.props(styles.title)}>
+            설정
+          </h2>
+          <IconButton
+            size="bar"
+            aria-label="닫기"
+            icon={<CloseIcon {...stylex.props(styles.closeIcon)} />}
+            onClick={() => setOpen(false)}
+          />
+        </div>
         {open && (
           <div {...stylex.props(styles.body)}>
-            <aside {...stylex.props(styles.sidebar)} aria-label="설정 메뉴">
-              <Typo.caption {...stylex.props(styles.group)}>앱 정보</Typo.caption>
-              <Button
-                variant="ghost"
-                aria-current={selectedSection === 'versions' ? 'page' : undefined}
-                {...stylex.props(
-                  styles.menu,
-                  selectedSection === 'versions' && styles.menuSelected
-                )}
-                onClick={() => setSelectedSection('versions')}
-              >
-                <Typo.txtM as="span">버전 정보</Typo.txtM>
-              </Button>
-              <Button
-                variant="ghost"
-                aria-current={selectedSection === 'licenses' ? 'page' : undefined}
-                {...stylex.props(
-                  styles.menu,
-                  selectedSection === 'licenses' && styles.menuSelected
-                )}
-                onClick={() => setSelectedSection('licenses')}
-              >
-                <Typo.txtM as="span">라이선스 사용고지</Typo.txtM>
-              </Button>
-              <Button
-                variant="ghost"
-                aria-current={selectedSection === 'developer' ? 'page' : undefined}
-                {...stylex.props(
-                  styles.menu,
-                  selectedSection === 'developer' && styles.menuSelected
-                )}
-                onClick={() => setSelectedSection('developer')}
-              >
-                <Typo.txtM as="span">개발자 모드</Typo.txtM>
-              </Button>
-              <div {...stylex.props(styles.appName)}>
-                <img src={brandIcon} width={32} height={32} alt="" />
-                <Typo.caption>{PRODUCT_NAME} Desktop</Typo.caption>
+            <nav aria-label="설정 메뉴" {...stylex.props(styles.sidebar)}>
+              {menus.map((menu) => {
+                const current = selectedMenu === menu.id
+
+                return (
+                  <button
+                    key={menu.id}
+                    type="button"
+                    aria-current={current ? 'page' : undefined}
+                    onClick={() => setSelectedMenu(menu.id)}
+                    {...stylex.props(
+                      styles.menu,
+                      current && styles.menuCurrent,
+                      current && shapes.cutTopRight
+                    )}
+                  >
+                    {menu.label}
+                  </button>
+                )
+              })}
+              <div {...stylex.props(styles.sidebarEnd)}>
+                {account}
+                <div {...stylex.props(styles.appName)}>
+                  <span aria-hidden="true" {...stylex.props(styles.appMark, shapes.cutTopRight)} />
+                  {PRODUCT_NAME} Desktop
+                </div>
               </div>
-            </aside>
-            <div {...stylex.props(styles.content)}>{renderSectionContent()}</div>
+            </nav>
+            <section
+              aria-label={menus.find((menu) => menu.id === selectedMenu)?.label}
+              {...stylex.props(styles.content)}
+            >
+              {selectedMenu === 'licenses' ? renderLicenses() : renderDeveloperMode()}
+            </section>
           </div>
         )}
       </DialogContent>
