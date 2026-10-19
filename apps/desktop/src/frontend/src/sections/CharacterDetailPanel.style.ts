@@ -51,7 +51,9 @@ export const styles = stylex.create({
     fontSize: 12,
     lineHeight: '16px',
     color: colors.cardFgSubtle,
-    whiteSpace: 'nowrap'
+    whiteSpace: 'nowrap',
+    // 마우스 설명(날짜와 시각)이 뜨도록 끌기 영역에서 뺀다.
+    WebkitAppRegion: 'no-drag'
   },
   close: {
     position: 'relative',

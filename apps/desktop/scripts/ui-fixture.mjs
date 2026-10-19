@@ -92,21 +92,23 @@ app.whenReady().then(async () => {
     if (!isPreviewDetail) {
       return { action: 'deny' }
     }
-    // 색은 preload/common/window-chrome.ts의 WINDOW_CHROME_COLORS와 같은 상단 바 색이다.
-    const titleBarOverlay = nativeTheme.shouldUseDarkColors
-      ? { color: '#121214', symbolColor: '#f1ede6', height: 56 }
-      : { color: '#ffffff', symbolColor: '#1a1c20', height: 56 }
 
     return {
       action: 'allow',
-      // 제품 상세 창처럼 1280x800에 OS 제목줄을 숨기고 OS 창 버튼을 상단 바 안에 그린다.
+      // 제품 상세 창처럼 내용 540x650, 폭 고정의 OS 제목줄 없는 다크 카드 패널로 연다. 값은
+      // preload/common/window-chrome.ts의 DETAIL_WINDOW_SIZE, DETAIL_WINDOW_BACKGROUND와 같다.
       overrideBrowserWindowOptions: {
         show: true,
-        width: 1280,
-        height: 800,
+        width: 540,
+        height: 650,
+        minWidth: 540,
+        maxWidth: 540,
+        minHeight: 480,
         useContentSize: true,
-        titleBarStyle: 'hidden',
-        titleBarOverlay,
+        frame: false,
+        maximizable: false,
+        fullscreenable: false,
+        backgroundColor: '#17171a',
         webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false }
       }
     }
