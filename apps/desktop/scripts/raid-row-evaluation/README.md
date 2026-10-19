@@ -78,7 +78,7 @@ pnpm --filter @dfragon/desktop run test:raid-row-evaluation
 | `ruleMatched` | 제안 규칙 `matchJobName`이 정답 `jobGrowName`과 맞다고 본 행 |
 | `ruleFalseMatched` | 제안 규칙이 manifest에 있는 다른 직업명과도 맞다고 본 행 |
 
-`matchJobName`은 정규화한 두 문자열이 같으면 `exact`, 읽은 문자열이 4자 이상이고 후보 이름이 그 문자열이나 마지막 한 글자를 뺀 문자열(5자 이상일 때)로 시작하면 `clipped-prefix`입니다. 제품 연결에서 쓸 비교 방식의 후보입니다.
+`matchJobName`은 정규화한 두 문자열이 같으면 `exact`, 읽은 문자열이 4자 이상이고 후보 이름이 그 문자열이나 마지막 한 글자를 뺀 문자열(5자 이상일 때)로 시작하면 `clipped-prefix`입니다. 칸은 `眞` 표식 자리에서 시작하므로, 읽은 문자열이 `眞`으로 시작하지 않으면 첫 글자를 표식 오인식으로 보고 뺀 문자열로도 비교합니다. 제품 연결에서 쓸 비교 방식의 후보입니다.
 
 ## 기준 이미지
 
