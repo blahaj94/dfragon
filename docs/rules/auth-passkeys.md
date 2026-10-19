@@ -2,8 +2,8 @@
 type: rule
 status: active
 scope: accounts and Desktop passkey authentication
-last-reviewed: 2026-10-17
-evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성. 2026-10-17 사용자 결정: 회원가입 페이지를 없애고 새 계정 만들기에서 바로 등록"
+last-reviewed: 2026-10-20
+evidence: "2026-10-10 사용자 결정: 시스템 브라우저 로그인과 loopback 복귀, 자체 휴대폰 QR 제거, Penpot 03 페이지 재구성. 2026-10-17 사용자 결정: 회원가입 페이지를 없애고 새 계정 만들기에서 바로 등록. 2026-10-20 사용자 결정: 인증 완료 페이지의 앱으로 돌아가기 버튼을 없애고 바로 이동은 유지하며 5초 카운트다운은 표시만 한다"
 ---
 
 # 패스키 인증
@@ -28,7 +28,7 @@ accounts는 Desktop 요청의 `returnUrl`을 검증해 해당 요청 행에 저�
 
 요청 전체 TTL은 600초다. 일회용 launch ticket을 소비하면 요청별 Secure, HttpOnly, SameSite=Lax, Path=/ `__Host-` cookie를 발급한다. Browser JSON 요청은 exact Origin과 해당 cookie를 함께 확인하며 CORS를 열지 않는다. JSON byte cap, no-store, no-referrer, nonce CSP와 frame-ancestors none을 적용한다. 인증은 브라우저/OS의 기본 패스키 인증만 제공한다. 휴대폰은 브라우저 패스키 창의 `다른 기기 사용` hybrid QR로 처리하며 지원 브라우저와 가까운 기기의 Bluetooth를 요구할 수 있다. 외부 브라우저의 세션 cookie는 브라우저가 보관하고, 로그인 요청마다 새 패스키 인증을 요구하는 정책은 유지한다.
 
-패스키 인증 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 `<returnUrl>?code=<code>`로 바로 이동하며 `앱으로 돌아가기` 버튼도 같은 주소를 연다. 복귀에는 code 하나만 싣는다. 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱은 원래 request ID, client ID, verifier로 교환한다. 서버가 credential의 존재, 소유 관계를 재확인하고 session, refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
+패스키 인증 완료 후 최대 60초의 일회용 앱 복귀 code를 발급한다. 인증 완료 페이지는 `인증 완료`와 `5초 뒤에 페이지가 닫힙니다.` 카운트다운을 보여 주고 `<returnUrl>?code=<code>`로 바로 이동한다. 복귀 버튼은 두지 않는다. 카운트다운은 표시일 뿐이며 페이지가 스크립트로 탭을 닫거나 이동을 늦추지 않는다(2026-10-20 사용자 결정: 시스템 브라우저가 연 탭은 스크립트로 닫을 수 없고 앱 로그인을 늦추지 않는다). 복귀에는 code 하나만 싣는다. 만료 뒤 페이지는 `로그인 요청이 유효하지 않습니다. 다시 로그인해 주세요.`와 `앱에서 새 로그인을 시작하세요.`를 보여 준다. 앱은 원래 request ID, client ID, verifier로 교환한다. 서버가 credential의 존재, 소유 관계를 재확인하고 session, refresh 발급과 code 소비를 같은 transaction에서 commit한다. 응답 유실 시 토큰을 재전달하지 않고 새 로그인을 시작한다. 삭제된 키의 미교환 code는 거부한다.
 
 Challenge는 요청과 register/authenticate/add 목적에 연결하고 한 번만 검증한다. 새 옵션 발급은 이전 challenge를 대체한다. 잘못된 패스키 증명은 그 브라우저의 challenge를 소비하며 다른 요청을 바꾸지 않는다. 처리 중 설정 fingerprint가 달라진 요청은 거부한다.
 

@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: accounts and Desktop passkey runtime
-last-reviewed: 2026-10-11
+last-reviewed: 2026-10-20
 ---
 
 # 패스키 실행 안내
@@ -140,9 +140,11 @@ RP ID는 `api.dfragon.com`, 당시 앱 identity/profile은 `ldb`, 복귀 주소�
 
 ## Desktop 로그인 화면과 자체 QR 제거
 
-현재 흐름 요약: Desktop 메인의 `로그인`은 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다. 페이지에는 `패스키로 로그인`, `새 계정 만들기`만 있고 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리한다. 인증 완료 페이지는 `인증 완료`를 보여 주고 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며, 앱은 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 code를 교환한다. 진행 중에는 메인 상단 바의 같은 버튼이 `취소`가 된다. 계약은 [Desktop 인증](../rules/desktop-auth.md), [lifecycle](../rules/desktop-auth-lifecycle.md), [platform](../rules/desktop-auth-platform.md)을 따른다.
+현재 흐름 요약: Desktop 메인의 `로그인`은 loopback 수신기를 연 뒤 시스템 기본 브라우저에서 accounts 로그인 페이지를 연다. 페이지에는 `패스키로 로그인`, `새 계정 만들기`만 있고 휴대폰은 브라우저 패스키 창의 hybrid QR로 처리한다. 인증 완료 페이지는 `인증 완료`와 표시용 5초 카운트다운을 보여 주고 `http://127.0.0.1:<port>/auth/callback?code=<code>`로 바로 이동하며, 앱은 `로그인 완료`, `이 탭을 닫아도 됩니다.` 페이지를 응답하고 code를 교환한다. 진행 중에는 메인 상단 바의 같은 버튼이 `취소`가 된다. 계약은 [Desktop 인증](../rules/desktop-auth.md), [lifecycle](../rules/desktop-auth-lifecycle.md), [platform](../rules/desktop-auth-platform.md)을 따른다.
 
-accounts의 `browser/passkeys.tsx`는 로그인에서 `패스키로 로그인`, `새 계정 만들기`, 회원가입에서 `패스키로 회원가입`만 표시한다. 기존 계정과 별개 계정이 생긴다는 안내, 패스키 분실과 예비 키 안내는 유지한다. 패스키 생성을 취소하면 같은 화면에서 재시도할 수 있다. WebAuthn 미지원 브라우저에는 지원 브라우저에서 열도록 안내한다. 관리 화면은 `/auth/passkeys/manage`에서 패스키 재인증 후 목록, 추가, 삭제를 제공한다.
+accounts의 `browser/passkeys.tsx`는 로그인에서 DFragon 표시, `로그인` 제목, `패스키로 로그인`, `새 계정 만들기`만 표시하고 설명 문구는 두지 않는다. `새 계정 만들기`는 별도 회원가입 화면 없이 그 자리에서 첫 패스키 등록을 시작하며, 패스키 생성을 취소하면 같은 로그인 화면에서 재시도할 수 있다. WebAuthn 미지원 브라우저에는 지원 브라우저에서 열도록 안내한다. 관리 화면은 `/auth/passkeys/manage`에서 패스키 재인증 후 목록, 추가, 삭제를 제공한다.
+
+화면 모양은 Claude 디자인 캔버스 "로그인과 회원가입" 페이지의 `AuthLogin`, `AuthExpired`, `AuthComplete` 보드를 따른다(`browser/passkeys.style.ts`). 모든 화면은 뷰포트 위아래 가운데의 최대 480px 패널(`bg.surface`, 네 모서리 꺾쇠)에 그리고, 로그인과 인증 완료는 내용을 가운데 정렬한다. 만료(`LOGIN_REQUEST_INVALID`)는 꺾쇠를 `fg.danger`로 바꾸고 오류 문구 앞에 `!` 칸을 둔다. 인증 완료는 꺾쇠를 `fg.success`로 바꾸고 `5초 뒤에 페이지가 닫힙니다.` 숫자와 줄어드는 막대를 같은 5초 주기로 보여 준다. 숫자는 1초마다 바뀌고 막대는 CSS 애니메이션이며 reduced motion에서는 막대를 멈춘다. 카운트다운은 표시일 뿐 탭을 닫지 않는다. 관리 화면은 같은 패널 모양만 쓰고 왼쪽 정렬과 기존 흐름을 유지한다. 시스템 색 모드에 따라 토큰의 라이트 값도 쓰며, 보드의 Pretendard 대신 페이지 CSP 안의 시스템 글꼴을 쓴다.
 
 자체 QR 생성, 확인 번호, 남은 시간, 상태 조회, claim과 휴대폰 승인 화면, 관리 QR은 제거했다. `RemovePhoneQrLogin1791590400000` forward migration은 활성 QR 요청을 실패로 종료하고 QR column과 상태를 제거한다. 회원, 패스키, session, refresh와 진행 중 직접 로그인, 관리 요청은 보존한다. `AddPhoneQrLogin1789601588410` 등 기존 적용 migration은 변경하지 않는다. 새 accounts는 QR column을 읽거나 쓰지 않아 이전 schema에서도 동작하지만, 이전 accounts는 column이 지워지면 로그인 요청을 처리하지 못한다. 이 설명은 QR 제거만 반영한 revision의 배포 순서다. 요청별 Desktop 복귀 주소까지 함께 배포할 때는 위의 [배포 순서](#요청별-desktop-복귀-주소-배포)를 따른다.
 
