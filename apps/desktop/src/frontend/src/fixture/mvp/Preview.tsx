@@ -20,6 +20,7 @@ import { getCharacterPreview } from './character-preview'
 import { createPreviewAuthApi } from './settings-preview'
 import { styles } from './Preview.style'
 import {
+  candidatePreviewChoices,
   facePreviewCharacters,
   previewCharacter,
   rolePreviewCharacters,
@@ -54,6 +55,10 @@ export function Preview(): React.JSX.Element {
   // 설정 대화상자의 합성 로그인과 개발자 모드. 개발 도구 열기는 미리보기에서 아무 일도 하지 않는다.
   const [authApi] = useState(createPreviewAuthApi)
   const [developerEnabled, setDeveloperEnabled] = useState(false)
+  // 후보 줄 미리보기에서 슬롯마다 미리보기 중이거나 확정한 후보의 서버
+  const [candidatePicks, setCandidatePicks] = useState<
+    readonly ({ serverId: string; confirmed: boolean } | null)[]
+  >([null, null, null, null])
   // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
   // 바뀔 때만 새 목록을 만든다.
   const sources = useMemo(() => getCapturePreviewSources(captureState), [captureState])
@@ -118,6 +123,24 @@ export function Preview(): React.JSX.Element {
   ]
   const identificationNicknames = [null, '얼굴대기', '기준대기', '오류예시']
   const identificationRetryEnabled = [false, false, false, true]
+  const candidates = scenario === 'candidates'
+  const candidatePickers = candidatePreviewChoices.map((choices, slot) => {
+    const pick = candidatePicks[slot]
+    if (!candidates || choices === null || pick?.confirmed === true) {
+      return undefined
+    }
+    const previewServerId = pick?.serverId ?? null
+    const shownServerId = previewServerId ?? choices[0].serverId
+
+    return { choices, shownServerId, previewServerId }
+  })
+  const pickCandidate = (slot: number, serverId: string): void => {
+    const pick = candidatePicks[slot]
+    const confirmed = pick?.serverId === serverId
+    setCandidatePicks(
+      candidatePicks.map((current, index) => (index === slot ? { serverId, confirmed } : current))
+    )
+  }
   const partyCards: SlotCard[] = partySlots.map((state, slot) => {
     const shown = characters === undefined ? character : characters[slot]
     const selected = shown ?? undefined
@@ -131,7 +154,8 @@ export function Preview(): React.JSX.Element {
       nickname,
       notice,
       snapshotMark: partySnapshot.marks[slot],
-      retryEnabled
+      retryEnabled,
+      picker: candidatePickers[slot]
     }
   })
   // 합성 공대 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
@@ -222,7 +246,8 @@ export function Preview(): React.JSX.Element {
             inputEnabled
             actions={{
               openDetails: openDetail,
-              retrySlot: identification ? () => setScenario('pending') : undefined
+              retrySlot: identification ? () => setScenario('pending') : undefined,
+              pickCandidate: candidates ? pickCandidate : undefined
             }}
           />
         </div>
@@ -299,7 +324,10 @@ export function Preview(): React.JSX.Element {
           <select
             aria-label="미리보기 상태"
             value={scenario}
-            onChange={(event) => setScenario(event.target.value)}
+            onChange={(event) => {
+              setScenario(event.target.value)
+              setCandidatePicks([null, null, null, null])
+            }}
             {...stylex.props(styles.select)}
           >
             <option value="states">기본, 상태 비교</option>
@@ -310,6 +338,7 @@ export function Preview(): React.JSX.Element {
             <option value="tiers">상위, 랭커 단계</option>
             <option value="roles">점수 라벨, 역할 비교</option>
             <option value="snapshot">모험단 순번 스냅샷</option>
+            <option value="candidates">후보 고르기</option>
           </select>
         </footer>
         <p {...stylex.props(styles.notice)}>

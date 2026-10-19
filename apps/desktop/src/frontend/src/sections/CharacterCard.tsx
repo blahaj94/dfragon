@@ -22,6 +22,8 @@ import { SnapshotChip } from '../components/SnapshotChip'
 import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
+import { CandidateStrip } from '../components/CandidateStrip'
+import { styles as stripStyles } from '../components/CandidateStrip.style'
 import { EquipmentSummary } from '../components/EquipmentSummary'
 import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
@@ -44,7 +46,8 @@ export function CharacterCard({
   collapsed = false,
   onDetail,
   onRetry,
-  onLookup
+  onLookup,
+  onPickCandidate
 }: {
   /** 이 슬롯이 그릴 검색 상태, 찾은 캐릭터, 인식한 이름, 안내, 진행과 스냅샷 표시 */
   card: SlotCard
@@ -56,6 +59,8 @@ export function CharacterCard({
   onDetail?: () => void
   onRetry?: () => void
   onLookup?: (nickname: string, serverId: string) => void
+  /** 후보 줄의 후보를 서버로 누른다. */
+  onPickCandidate?: (serverId: string) => void
 }): React.JSX.Element {
   const {
     state,
@@ -67,6 +72,8 @@ export function CharacterCard({
     loading = false
   } = card
   const characterFound = state === 'success' && character != null
+  const picker = characterFound ? card.picker : undefined
+  const previewing = picker?.previewServerId != null
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const [face, setFace] = useState(initialFace)
@@ -83,9 +90,10 @@ export function CharacterCard({
   // 상태 이름은 꺾쇠와 표시로 보이므로 글자로 다시 쓰지 않는다. 0건과 안내 문구만 화면에 남긴다.
   const emptyMessage = state === 'empty' ? cardStatus : ''
   const message = inputNotice || notice || emptyMessage
+  // 후보 미리보기는 확정 전이라 이름 수정과 같은 선택 상태로 보인다.
   const frameState = getCharacterCardFrameState({
     state,
-    editing: draft.active,
+    editing: draft.active || previewing,
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
@@ -138,10 +146,24 @@ export function CharacterCard({
             </span>
           )}
           {frameState === 'selected' && (
-            <span role="img" aria-label="이름 수정 중" {...stylex.props(styles.dots)}>
+            <span
+              role="img"
+              aria-label={previewing ? '후보 미리보기 중' : '이름 수정 중'}
+              {...stylex.props(styles.dots)}
+            >
               <span {...stylex.props(styles.dot)} />
               <span {...stylex.props(styles.dot, styles.dotSecond)} />
               <span {...stylex.props(styles.dot, styles.dotThird)} />
+            </span>
+          )}
+          {collapsed && picker !== undefined && (
+            <span
+              role="img"
+              aria-label={`외형으로 확정하지 못함, 후보 ${picker.choices.length}명`}
+              {...stylex.props(styles.pickMark, shapes.cutTopRight)}
+            >
+              <span aria-hidden="true" {...stylex.props(styles.pickMarkDot)} />
+              <span aria-hidden="true">{picker.choices.length}</span>
             </span>
           )}
           {frameState === 'failure' && (
@@ -194,9 +216,14 @@ export function CharacterCard({
               )}
             >
               {characterFound && (
-                <div {...stylex.props(styles.portrait)}>
+                <div
+                  {...stylex.props(styles.portrait, picker !== undefined && stripStyles.aboveStrip)}
+                >
                   <CardImage src={character.image} label="캐릭터" portrait />
                 </div>
+              )}
+              {picker !== undefined && !collapsed && (
+                <CandidateStrip slot={slot} picker={picker} onPick={onPickCandidate} />
               )}
               {characterFound && message && (
                 <Typo.caption as="p" {...stylex.props(styles.topNotice)}>
@@ -279,7 +306,7 @@ export function CharacterCard({
                     styles.name,
                     frameState === 'waiting' && styles.nameWaiting,
                     frameState === 'failure' && styles.nameFailure,
-                    frameState === 'selected' && styles.nameSelected
+                    draft.active && styles.nameSelected
                   )}
                 />
               </div>

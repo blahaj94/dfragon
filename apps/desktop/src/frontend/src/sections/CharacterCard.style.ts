@@ -120,6 +120,22 @@ export const styles = stylex.create({
     color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
+  // 접힌 카드에서 후보 줄 대신 남기는 주의 표시와 후보 수(design-system.md의 주의 상태).
+  pickMark: {
+    ...numeric,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    flexShrink: 0,
+    height: 24,
+    paddingInlineStart: 7,
+    paddingInlineEnd: 9,
+    fontSize: 16,
+    fontWeight: 700,
+    backgroundColor: colors.bgWarningWeak,
+    color: colors.fgWarning
+  },
+  pickMarkDot: { width: 6, height: 6, backgroundColor: colors.fgWarning },
   detail: {
     display: 'grid',
     placeItems: 'center',

@@ -8,5 +8,6 @@ export const scenarios: Record<string, SlotState[]> = {
   identification: ['success', 'waiting-portrait', 'waiting-policy', 'failure'],
   tiers: ['success', 'success', 'success', 'idle'],
   roles: ['success', 'success', 'success', 'success'],
-  snapshot: ['success', 'success', 'success', 'success']
+  snapshot: ['success', 'success', 'success', 'success'],
+  candidates: ['success', 'success', 'success', 'success']
 }
