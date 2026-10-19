@@ -36,6 +36,8 @@ export const colors = stylex.defineConsts({
   tierRankerSurface: 'var(--df-tier-ranker-surface)',
   tierRankerWell: 'var(--df-tier-ranker-well)',
   tierRankerOutline: 'var(--df-tier-ranker-outline)',
+  scoreDealer: 'var(--df-score-dealer)',
+  scoreBuffer: 'var(--df-score-buffer)',
   cardBg: 'var(--df-card-bg)',
   cardBgWaiting: 'var(--df-card-bg-waiting)',
   cardInset: 'var(--df-card-inset)',

@@ -20,7 +20,12 @@ it('카드 값이 없으면 세 면 모두 값 대신 -와 없다는 이름을 �
     ['크리티컬', '-'],
     ['스위칭', '-']
   ])
-  expect(character.score).toEqual({ value: null, description: undefined })
+  expect(character.score).toEqual({
+    label: '장비 점수',
+    tone: null,
+    value: null,
+    description: undefined
+  })
   expect(character.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
 
   const { set, oath } = toEquipmentFace(null)
@@ -63,8 +68,12 @@ it('딜러 카드는 딜러 스탯과 장비 점수를 보이고 순위가 수�
     { label: '크리티컬', value: '101.1', unit: '%' },
     { label: '스위칭', value: '-', unit: '' }
   ])
-  expect(face.score.value).toBe(330556)
-  expect(face.score.description).toContain('계산값')
+  expect(face.score).toEqual({
+    label: '장비 점수',
+    tone: 'dealer',
+    value: 330556,
+    description: 'DFragon 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
+  })
   expect(face.serverRank).toEqual({
     text: '#18240',
     label: '서버 순위 18240위, DFragon이 수집한 캐릭터 52,310명 기준'
@@ -78,7 +87,7 @@ it('딜러 카드는 딜러 스탯과 장비 점수를 보이고 순위가 수�
   ])
 })
 
-it('버퍼 카드는 버퍼 라벨을 쓰고 버프 점수도 장비 점수 칸 값으로 보인다', () => {
+it('버퍼 카드는 버퍼 라벨을 쓰고 점수 라벨을 버프 점수, 색을 버퍼 톤으로 정한다', () => {
   const face = toCharacterFace(bufferCard, 'long')
   expect(face.stats).toEqual([
     { label: '마을 지능', value: '7,594', unit: '' },
@@ -86,7 +95,30 @@ it('버퍼 카드는 버퍼 라벨을 쓰고 버프 점수도 장비 점수 칸 
     { label: '50레벨 버프', value: '-', unit: '' },
     { label: '스위칭', value: '-', unit: '' }
   ])
-  expect(face.score.value).toBe(55358)
+  expect(face.score).toEqual({
+    label: '버프 점수',
+    tone: 'buffer',
+    value: 55358,
+    description: 'DFragon 계산값이라 게임 버프 점수와 조금 다를 수 있습니다.'
+  })
+})
+
+it('역할을 모르는 카드는 점수 라벨을 장비 점수로 두고 역할 색을 정하지 않는다', () => {
+  expect(toCharacterFace({ ...dealerCard, role: null, stats: null }, 'long').score).toMatchObject({
+    label: '장비 점수',
+    tone: null,
+    value: 330556
+  })
+})
+
+it('점수 값이 없어도 라벨은 역할을 따라 버퍼는 버프 점수로 둔다', () => {
+  const missing = { ...bufferCard, score: null }
+  expect(toCharacterFace(missing, 'long').score).toEqual({
+    label: '버프 점수',
+    tone: 'buffer',
+    value: null,
+    description: undefined
+  })
 })
 
 it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진의 원문 메시지는 쓰지 않는다', () => {
@@ -100,6 +132,8 @@ it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진�
     }
   })
   expect(toCharacterFace(skipped('unresolved'), 'long').score).toEqual({
+    label: '장비 점수',
+    tone: 'dealer',
     value: null,
     description: '계산하지 못함, 장비 정보 부족'
   })
@@ -107,7 +141,12 @@ it('엔진이 건너뛴 점수는 값 없이 사유 종류만 전하고 엔진�
     '계산하지 못함, 입력값이 게임 스탯과 다름'
   )
   const unknown = toCharacterFace(skipped('new_kind'), 'long').score
-  expect(unknown).toEqual({ value: null, description: '계산하지 못함, 계산 제외' })
+  expect(unknown).toEqual({
+    label: '장비 점수',
+    tone: 'dealer',
+    value: null,
+    description: '계산하지 못함, 계산 제외'
+  })
   expect(unknown.description).not.toContain('TITLE')
   expect(toCharacterFace(skipped('toString'), 'long').score.description).toBe(
     '계산하지 못함, 계산 제외'
@@ -263,7 +302,12 @@ it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우
     '스위칭'
   ])
   expect(dealer.stats[1]).toEqual({ label: '공격력 증폭', value: '73', unit: '%' })
-  expect(dealer.score).toEqual({ value: null, description: undefined })
+  expect(dealer.score).toEqual({
+    label: '장비 점수',
+    tone: 'dealer',
+    value: null,
+    description: undefined
+  })
   expect(dealer.serverRank).toEqual({ text: '-', label: '서버 순위 없음' })
   expect(toCharacterFace(apiBufferCard, 'long').stats[0]).toEqual({
     label: '마을 지능',

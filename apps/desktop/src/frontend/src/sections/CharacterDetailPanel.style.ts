@@ -159,6 +159,8 @@ export const styles = stylex.create({
     lineHeight: '32px'
   },
   statMissing: { color: colors.cardBorderStrong },
+  statDealer: { color: colors.scoreDealer },
+  statBuffer: { color: colors.scoreBuffer },
   tabs: { display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 },
   // 공용 탭의 외형을 그대로 쓰고, 첫 탭 글자가 패널 안쪽 여백 20에 맞도록 줄 양옆만 띄운다.
   tabList: { flexShrink: 0, paddingInline: space.s4 },

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { CharacterCard } from './CharacterCard'
 import type { ServerSelect } from '../components/ServerSelect'
 import { bufferCard, dealerCard } from '../testing/fixtures/character-cards'
+import { toneClassesOf } from '../testing/test-support/score-tone-class'
 import type { CardCharacter, CharacterCard as CardValues } from '../types/cards'
 
 vi.mock('../components/ServerSelect', () => ({
@@ -201,7 +202,7 @@ function visibleText(): string {
   return copy.textContent
 }
 
-// 명성과 장비 점수 칸의 값. 스탯 한 줄의 dt와 섞이지 않도록 라벨로 찾는다.
+// 명성과 점수 칸의 값. 스탯 한 줄의 dt와 섞이지 않도록 라벨로 찾는다.
 function statValue(label: string): HTMLElement {
   const term = [...card().querySelectorAll('dt')].find((item) => item.textContent === label)!
 
@@ -423,7 +424,46 @@ it('캐릭터 면은 직업과 역할 라벨의 스탯 한 줄을 보인다', as
     (term) => term.textContent
   )
   expect(bufferTerms).toEqual(['마을 지능', '30레벨 버프', '50레벨 버프', '스위칭'])
-  expect(statValue('장비 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('55,358')
+  expect(statValue('버프 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('55,358')
+  expect(statValue('버프 점수').textContent).toContain('게임 버프 점수')
+  expect([...card().querySelectorAll('dt')].map((term) => term.textContent)).not.toContain(
+    '장비 점수'
+  )
+})
+
+it('점수 숫자는 딜러 파랑, 버퍼 초록으로 칠하고 역할을 모르거나 값이 없으면 기본색이다', async () => {
+  await render({ state: 'success', character: found })
+  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['dealer'])
+  expect(toneClassesOf(statValue('명성'))).toEqual([])
+
+  await render({ state: 'success', character: { ...found, card: bufferCard } })
+  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['buffer'])
+  expect(toneClassesOf(statValue('명성'))).toEqual([])
+
+  // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
+  await render({
+    state: 'success',
+    character: { ...found, card: { ...dealerCard, role: null, stats: null } }
+  })
+  expect(statValue('장비 점수').querySelector('[aria-hidden="true"]')?.textContent).toBe('330,556')
+  expect(toneClassesOf(statValue('장비 점수'))).toEqual([])
+
+  // 값이 없어 -로 보이는 점수는 역할과 상관없이 같은 기본 색이다.
+  await render({ state: 'success', character: { ...found, card: { ...dealerCard, score: null } } })
+  const dealerMissing = statValue('장비 점수')
+  expect(dealerMissing.textContent).toBe('-')
+  expect(toneClassesOf(dealerMissing)).toEqual([])
+  const missingClass = dealerMissing.className
+  await render({ state: 'success', character: { ...found, card: { ...bufferCard, score: null } } })
+  expect(statValue('버프 점수').textContent).toBe('-')
+  expect(statValue('버프 점수').className).toBe(missingClass)
+})
+
+it('상위, 랭커 카드의 점수 숫자는 역할 색 대신 단계 색을 유지한다', async () => {
+  await render({ state: 'success', character: { ...found, tier: 'top', card: bufferCard } })
+  expect(toneClassesOf(statValue('버프 점수'))).toEqual(['top'])
+  await render({ state: 'success', character: { ...found, tier: 'ranker' } })
+  expect(toneClassesOf(statValue('장비 점수'))).toEqual(['ranker'])
 })
 
 it('계산하지 못한 장비 점수는 -에 사유 종류를 보조 기술로 전한다', async () => {

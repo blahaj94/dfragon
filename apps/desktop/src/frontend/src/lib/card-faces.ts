@@ -15,8 +15,17 @@ export type RarityTone =
   | 'primordial'
   | 'unknown'
 
-/** 장비 점수 칸. 값이 있을 때만 숫자를 세어 올리고, 보조 기술에는 값의 성격이나 계산하지 못한 사유를 전한다. */
-export type ScoreView = { value: number | null; description: string | undefined }
+/**
+ * 점수 칸. 라벨은 역할을 따라 딜러와 역할을 모르는 카드는 `장비 점수`, 버퍼는 `버프 점수`이고, `tone`은 값이
+ * 있을 때 숫자에 칠할 역할 색(역할을 모르면 null)이다. 값이 있을 때만 숫자를 세어 올리고, 보조 기술에는 값의
+ * 성격이나 계산하지 못한 사유를 전한다.
+ */
+export type ScoreView = {
+  label: '장비 점수' | '버프 점수'
+  tone: 'dealer' | 'buffer' | null
+  value: number | null
+  description: string | undefined
+}
 
 /** 서버 순위 칸. 화면에는 `#18240`이나 `-`, 보조 기술에는 수집 범위를 포함한 이름을 전한다. */
 export type ServerRankView = { text: string; label: string }
@@ -109,7 +118,8 @@ const skippedReasons: Readonly<Record<string, string>> = {
   exception: '계산 오류'
 }
 
-const SCORE_NOTE = 'DFragon 계산값이라 게임 장비 점수와 조금 다를 수 있습니다.'
+const scoreNote = (label: ScoreView['label']): string =>
+  `DFragon 계산값이라 게임 ${label}와 조금 다를 수 있습니다.`
 
 /** 세트 격자의 부위 묶음. 무기 하나 뒤에 방어구 다섯, 장신구 셋, 특수 장비 셋을 캔버스 순서로 둔다. */
 export const setSlotGroups = [
@@ -189,22 +199,25 @@ function formatPoint(point: number | null | undefined): string {
   return integer.format(point)
 }
 
-function toScoreView(score: CharacterCard['score'] | undefined): ScoreView {
+function toScoreView(card: CharacterCard | null | undefined): ScoreView {
+  const score = card?.score
+  const label = card?.role === 'buffer' ? '버프 점수' : '장비 점수'
+  const labelTone = { label, tone: card?.role ?? null } as const
   if (score == null) {
-    return { value: null, description: undefined }
+    return { ...labelTone, value: null, description: undefined }
   }
 
   if (score.value != null) {
-    return { value: score.value, description: SCORE_NOTE }
+    return { ...labelTone, value: score.value, description: scoreNote(label) }
   }
 
   if (score.skipped == null) {
-    return { value: null, description: undefined }
+    return { ...labelTone, value: null, description: undefined }
   }
   const { kind } = score.skipped
   const reason = Object.hasOwn(skippedReasons, kind) ? skippedReasons[kind] : '계산 제외'
 
-  return { value: null, description: `계산하지 못함, ${reason}` }
+  return { ...labelTone, value: null, description: `계산하지 못함, ${reason}` }
 }
 
 function toServerRankView(serverRank: CharacterCard['serverRank'] | undefined): ServerRankView {
@@ -220,8 +233,9 @@ function toServerRankView(serverRank: CharacterCard['serverRank'] | undefined): 
 }
 
 /**
- * 캐릭터 면과 공대 카드에 보일 스탯 한 줄, 장비 점수, 서버 순위를 정한다. 버퍼의 버프 점수도 장비 점수 칸에
- * 둔다. 계산하지 못한 점수는 값 없이 사유 종류를, 서버 순위는 수집 범위의 순위라는 뜻을 보조 기술에 전한다.
+ * 캐릭터 면과 공대 카드에 보일 스탯 한 줄, 점수, 서버 순위를 정한다. 점수의 라벨과 색은 카드의 역할을 따른다
+ * (버퍼는 `버프 점수`와 초록, 딜러는 `장비 점수`와 파랑, 역할을 모르면 `장비 점수`와 기본색). 계산하지 못한
+ * 점수는 값 없이 사유 종류를, 서버 순위는 수집 범위의 순위라는 뜻을 보조 기술에 전한다.
  */
 export function toCharacterFace(
   card: CharacterCard | null | undefined,
@@ -229,7 +243,7 @@ export function toCharacterFace(
 ): CharacterFaceView {
   return {
     stats: toCardStatItems(card?.stats, labelLength),
-    score: toScoreView(card?.score),
+    score: toScoreView(card),
     serverRank: toServerRankView(card?.serverRank)
   }
 }

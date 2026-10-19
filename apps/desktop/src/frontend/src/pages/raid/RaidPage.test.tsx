@@ -5,7 +5,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ServerSelect } from '../../components/ServerSelect'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
-import { dealerCard } from '../../testing/fixtures/character-cards'
+import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
+import { toneClassesOf } from '../../testing/test-support/score-tone-class'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { RaidPage } from './RaidPage'
 
@@ -469,6 +470,44 @@ it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 �
   expect(scoreOf(seats()[0]).textContent).toContain('DFragon 계산값')
   expect(seats()[0].textContent).toContain('서버 순위 5000위, DFragon이 수집한 캐릭터')
   expect(scoreOf(seats()[1]).textContent).toBe('-계산하지 못함, 장비 정보 부족')
+})
+
+it('공대 카드의 점수 라벨과 색은 역할을 따르고 상위, 랭커 단계는 명성에만 단계 색을 칠한다', async () => {
+  const termValue = (seat: HTMLElement, label: string): Element | undefined => {
+    const term = [...seat.querySelectorAll('dt')].find((item) => item.textContent === label)
+    if (term == null) {
+      return undefined
+    }
+
+    return term.nextElementSibling!
+  }
+  const dealer = { ...member, card: dealerCard }
+  await render({
+    characters: [
+      dealer,
+      { ...member, card: bufferCard },
+      member,
+      { ...member, card: bufferCard, tier: 'top' },
+      { ...dealer, tier: 'ranker' },
+      { ...member, card: { ...bufferCard, score: null } }
+    ]
+  })
+  const [dealerSeat, bufferSeat, unknownSeat, topSeat, rankerSeat, missingSeat] = seats()
+
+  expect(toneClassesOf(termValue(dealerSeat, '장비 점수')!)).toEqual(['dealer'])
+  expect(termValue(bufferSeat, '장비 점수')).toBeUndefined()
+  expect(termValue(bufferSeat, '버프 점수')!.textContent).toContain('게임 버프 점수')
+  expect(toneClassesOf(termValue(bufferSeat, '버프 점수')!)).toEqual(['buffer'])
+  // 역할을 모르면 라벨은 장비 점수이고 색은 기본색이다.
+  expect(toneClassesOf(termValue(unknownSeat, '장비 점수')!)).toEqual([])
+  // 단계 색은 명성만 칠하고 점수는 역할 색을 유지한다.
+  expect(toneClassesOf(termValue(topSeat, '명성')!)).toEqual(['top'])
+  expect(toneClassesOf(termValue(topSeat, '버프 점수')!)).toEqual(['buffer'])
+  expect(toneClassesOf(termValue(rankerSeat, '명성')!)).toEqual(['ranker'])
+  expect(toneClassesOf(termValue(rankerSeat, '장비 점수')!)).toEqual(['dealer'])
+  // 값이 없어 -로 보이는 점수는 역할 색 없이 기본 색이다.
+  expect(termValue(missingSeat, '버프 점수')!.textContent).toBe('-')
+  expect(toneClassesOf(termValue(missingSeat, '버프 점수')!)).toEqual([])
 })
 
 it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 -로 보인다', async () => {

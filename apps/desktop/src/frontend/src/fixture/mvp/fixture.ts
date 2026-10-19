@@ -107,6 +107,26 @@ export const tierPreviewCharacters: readonly (CardCharacter | null)[] = [
   null
 ]
 
+// 점수 라벨과 색 비교. 딜러(장비 점수, 파랑), 버퍼(버프 점수, 초록), 역할을 모르는 카드(장비 점수, 기본색),
+// 상위 단계 버퍼(버프 점수, 단계 색)를 나란히 둔다. 역할을 모르는 카드는 스탯이 없어 스탯 한 줄이 `-`이고
+// 이름, 단계, 숫자는 모두 합성 값이다.
+export const rolePreviewCharacters: readonly (CardCharacter | null)[] = [
+  previewCharacter,
+  bufferPreviewCharacter,
+  {
+    ...previewCharacter,
+    name: '미리보기역할모름',
+    card: previewCard({ stats: null, score: 372904, rank: 9821 })
+  },
+  {
+    ...bufferPreviewCharacter,
+    name: '미리보기상위인챈',
+    tier: 'top',
+    fame: 131204,
+    card: previewCard({ base: bufferCard, stats: bufferCard.stats, score: 452310, rank: 4432 })
+  }
+]
+
 const raidMembers = [
   ['미리보기검사', '眞 웨펀마스터', 125850, 18240, undefined],
   ['샘플크루', '眞 크루세이더', 131204, 4432, 'top'],

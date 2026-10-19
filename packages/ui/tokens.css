@@ -49,6 +49,8 @@
   --df-tier-ranker-surface: #141b1a;
   --df-tier-ranker-well: #0f1716;
   --df-tier-ranker-outline: #50e3c259;
+  --df-score-dealer: #4fa3ff;
+  --df-score-buffer: #3cc985;
   --df-card-bg: #17171a;
   --df-card-bg-waiting: #141416;
   --df-card-inset: #1e1e22;
@@ -134,7 +136,7 @@
 
 /*
  * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
- * 카드 위에서만 쓰는 card.*, bracket.*, hatchAlert, gridLine, tier.ranker{Surface,Well,Outline}와
+ * 카드 위에서만 쓰는 card.*, bracket.*, hatchAlert, gridLine, tier.ranker{Surface,Well,Outline}, score.*와
  * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
  */
 :root[data-theme='light'] {

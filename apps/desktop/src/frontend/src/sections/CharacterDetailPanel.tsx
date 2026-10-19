@@ -27,7 +27,7 @@ const localDateTime = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', ti
 
 /**
  * 상세 창의 다크 카드 패널(DFragon 디자인 캔버스 상세 창 보드). 머리에 서버, 서버 순위, 조회 시각과 닫기를,
- * 그 아래 캐릭터 그림과 소속, 이름, 명성과 장비 점수를 두고 장비와 스킬 탭으로 나눈다. 장비 탭은 세트와 장비
+ * 그 아래 캐릭터 그림과 소속, 이름, 명성과 점수를 두고 장비와 스킬 탭으로 나눈다. 장비 탭은 세트와 장비
  * 12줄, 서약 본체와 결정 12줄이고 줄의 설명 상자 문구는 `itemTexts`에서 찾는다. 스킬 탭은 스킬 정보를
  * 연결하기 전이라 안내만 둔다. 머리의 빈 곳을 끌면 창을 옮긴다. `itemImages`는 합성 미리보기의 로컬 그림이다.
  */
@@ -108,8 +108,12 @@ export function CharacterDetailPanel({
                 <StatValue value={character.fame} />
               </div>
               <div {...stylex.props(styles.stat)}>
-                <dt {...stylex.props(styles.statLabel)}>장비 점수</dt>
-                <StatValue value={face.score.value} description={face.score.description} />
+                <dt {...stylex.props(styles.statLabel)}>{face.score.label}</dt>
+                <StatValue
+                  value={face.score.value}
+                  role={face.score.tone}
+                  description={face.score.description}
+                />
               </div>
             </dl>
           </div>
@@ -162,12 +166,15 @@ function FetchedTime({ at }: { at: string }): React.JSX.Element {
   )
 }
 
-// 명성과 장비 점수 값. 값이 없으면 `-`이고, 점수의 성격이나 계산하지 못한 사유는 보조 기술과 마우스 설명에 둔다.
+// 명성과 점수 값. 값이 없으면 `-`이고, 점수는 역할 색(`role`)으로 그리며 성격이나 계산하지 못한 사유는 보조
+// 기술과 마우스 설명에 둔다.
 function StatValue({
   value,
+  role,
   description
 }: {
   value: number | null
+  role?: ScoreView['tone']
   description?: ScoreView['description']
 }): React.JSX.Element {
   const note = description !== undefined && (
@@ -183,7 +190,14 @@ function StatValue({
   }
 
   return (
-    <dd title={description} {...stylex.props(styles.statValue)}>
+    <dd
+      title={description}
+      {...stylex.props(
+        styles.statValue,
+        role === 'dealer' && styles.statDealer,
+        role === 'buffer' && styles.statBuffer
+      )}
+    >
       <NumericText value={value} countUp={false} />
       {note}
     </dd>
