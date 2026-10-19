@@ -6,6 +6,7 @@ import { CharacterCard } from './CharacterCard'
 import type { ServerSelect } from '../components/ServerSelect'
 import { bufferCard, dealerCard } from '../testing/fixtures/character-cards'
 import { toneClassesOf } from '../testing/test-support/score-tone-class'
+import type { SlotCard } from '../lib/slot-cards'
 import type { CardCharacter, CharacterCard as CardValues } from '../types/cards'
 
 vi.mock('../components/ServerSelect', () => ({
@@ -45,10 +46,31 @@ afterEach(async () => {
   container.remove()
 })
 
-async function render(props: Partial<ComponentProps<typeof CharacterCard>> = {}): Promise<void> {
-  await act(async () =>
-    root.render(<CharacterCard state="idle" slot={1} inputEnabled {...props} />)
-  )
+// 카드 값과 나머지 props를 한 객체로 받아 카드 값만 `card`로 묶는다.
+type RenderProps = Partial<SlotCard> & Partial<Omit<ComponentProps<typeof CharacterCard>, 'card'>>
+
+async function render({
+  state = 'idle',
+  character,
+  nickname,
+  notice,
+  loading,
+  snapshotMark,
+  retryEnabled,
+  retryPending,
+  ...props
+}: RenderProps = {}): Promise<void> {
+  const card = {
+    state,
+    character,
+    nickname,
+    notice,
+    loading,
+    snapshotMark,
+    retryEnabled,
+    retryPending
+  }
+  await act(async () => root.render(<CharacterCard slot={1} inputEnabled {...props} card={card} />))
 }
 
 async function enterName(value: string): Promise<HTMLInputElement> {
@@ -158,9 +180,8 @@ it('제출한 수동 이름은 검색 대기와 실패 중 이전 OCR이나 캐�
     root.render(
       <CharacterCard
         key="new-round"
-        state="pending"
+        card={{ state: 'pending', nickname: '다음OCR' }}
         slot={1}
-        nickname="다음OCR"
         inputEnabled
         onLookup={lookup}
       />
