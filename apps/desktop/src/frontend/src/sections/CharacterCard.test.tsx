@@ -701,6 +701,22 @@ it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 �
   expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
 })
 
+it('후보 타일이 있는 접힌 카드는 이름 위에 흐르는 글자를 겹치고, 고치는 동안과 펼친 카드에는 겹치지 않는다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({ state: 'success', character: found, picker, collapsed: true })
+  const input = container.querySelector<HTMLInputElement>('input')!
+  const overlay = (): Element | null =>
+    input.parentElement!.querySelector('span[aria-hidden="true"]')
+
+  expect(overlay()?.textContent).toBe('찾은이름')
+
+  await act(async () => input.focus())
+  expect(overlay()).toBeNull()
+
+  await render({ state: 'success', character: found, picker })
+  expect(container.querySelector('input')!.parentElement!.querySelector('span')).toBeNull()
+})
+
 it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
