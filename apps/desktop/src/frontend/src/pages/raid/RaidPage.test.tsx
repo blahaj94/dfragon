@@ -4,6 +4,7 @@ import { act, type ComponentProps } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { ServerSelect } from '../../components/ServerSelect'
+import type { SnapshotMark } from '../../lib/adventure-snapshot'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
 import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
 import { toneClassesOf } from '../../testing/test-support/score-tone-class'
@@ -70,11 +71,32 @@ const member: CardCharacter = {
 }
 const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
-async function render(
-  props: Partial<ComponentProps<typeof RaidPage>> & { characters?: (CardCharacter | null)[] } = {}
-): Promise<void> {
-  const characters = props.characters ?? []
-  const slots = props.slots ?? idle.map((state, index) => (characters[index] ? 'success' : state))
+// 슬롯별 배열로 쓴 입력을 페이지가 받는 슬롯 카드 값으로 묶는다. 배열이 짧으면 나머지 슬롯은 비운다.
+type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots'>> & {
+  slots?: SlotState[]
+  characters?: (CardCharacter | null)[]
+  slotNotices?: (string | undefined)[]
+  snapshotMarks?: (SnapshotMark | undefined)[]
+}
+
+async function render({
+  slots: states,
+  characters = [],
+  slotNotices,
+  snapshotMarks,
+  ...props
+}: RenderProps = {}): Promise<void> {
+  const slots = (states ?? idle).map((state, index) => {
+    const shownState: SlotState = states === undefined && characters[index] ? 'success' : state
+    const character = characters[index] ?? undefined
+
+    return {
+      state: shownState,
+      character,
+      notice: slotNotices?.[index],
+      snapshotMark: snapshotMarks?.[index]
+    }
+  })
   await act(async () =>
     root.render(
       <RaidPage
@@ -87,7 +109,6 @@ async function render(
         onCapture={vi.fn()}
         snapshotActive={false}
         snapshotRound={null}
-        snapshotMarks={[]}
         onTakeSnapshot={vi.fn()}
         onClearSnapshot={vi.fn()}
         seatOrder={createSeatOrder()}
@@ -95,7 +116,6 @@ async function render(
         onSwapSeats={vi.fn(() => true)}
         {...props}
         slots={slots}
-        characters={characters}
       />
     )
   )
@@ -596,13 +616,13 @@ it('접힌 동안은 그림 칸, 직업, 스탯 한 줄을 숨기고 이름 입�
   expect(hiddenParts().map((element) => element.textContent)).toEqual(['—', '공대직업'])
 })
 
-it('스냅샷 표시는 화면 자리 순서대로 그 자리 카드에 칩과 경고로 들어간다', async () => {
+it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 칩과 경고로 들어간다', async () => {
   const seatOrder = swapSeats(createSeatOrder(), 0, 1)
   await render({
     characters: [member, { ...member, adventure: '둘째모험단' }],
     seatOrder,
     snapshotActive: true,
-    snapshotMarks: [{ kind: 'moved', seat: 2 }, { kind: 'absent' }, ...Array(10).fill(undefined)]
+    snapshotMarks: [{ kind: 'absent' }, { kind: 'moved', seat: 2 }, ...Array(10).fill(undefined)]
   })
 
   const [first, second, third] = seats()
