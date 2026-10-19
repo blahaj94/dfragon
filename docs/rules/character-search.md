@@ -42,6 +42,8 @@ Top-level은 null, array가 아닌 JSON object이고 `rows`는 array여야 한�
 
 성공 응답은 `{"rows":[...]}`다. 각 행은 기존 `characterId`, `characterName`, `serverId`, `serverName`, `fame`에 `imageUrl`을 추가한다. `imageUrl`은 검증한 식별자로 구성한 `https://img-api.neople.co.kr/df/servers/<serverId>/characters/<characterId>?zoom=1`이다. 네오플의 전체 캐릭터 이미지 URL이며 얼굴만 잘린 이미지가 아니다. API는 이미지를 다운로드, 변환, 저장하거나 중계하지 않는다.
 
+각 행에는 `jobName`, `jobGrowName`도 붙인다. 2026-10-20 [#760](https://github.com/blahaj94/dfragon/issues/760) 결정으로, Desktop이 공대원 창의 직업명과 같은 후보만 남길 수 있게 Neople 검색 응답의 두 필드를 그대로 전달한다. 문자열이 아니거나 비어 있으면 null이다. 이를 채우려고 Neople을 더 호출하거나 후보마다 상세를 조회하지 않는다. 기존 `GET /characters`는 위 다섯 필드를 유지하며 직업명을 섞지 않는다.
+
 각 행에는 `adventureName`도 붙인다. 2026-10-20 [#756](https://github.com/blahaj94/dfragon/issues/756) 결정으로 Desktop의 후보 고르기 화면에 모험단명을 보이기 위해 추가하며, 우리 DB의 `characters`에 저장된 모험단명이다. 상세 조회로 저장된 적이 없는 캐릭터는 null이고, 이를 채우려고 Neople을 더 호출하지 않는다. DB 조회가 실패해도 후보 응답은 실패시키지 않고 모든 행의 `adventureName`을 null로 둔다.
 
 정렬 순서는 아래와 같다.

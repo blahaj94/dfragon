@@ -107,7 +107,9 @@ test('native fetch는 고정 endpoint와 검색어를 encode하고 API key를 �
           characterName: '가 나+&/?',
           serverId: 'cain',
           serverName: '카인',
-          fame: 0
+          fame: 0,
+          jobName: null,
+          jobGrowName: null
         }
       ]
     })

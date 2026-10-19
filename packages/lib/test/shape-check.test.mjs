@@ -14,7 +14,8 @@ import {
   isUtcTimestamp,
   listOf,
   nullable,
-  oneOf
+  oneOf,
+  textOrNull
 } from '@dfragon/lib/utils/shape-check'
 
 const TITLES = {
@@ -73,6 +74,14 @@ test(TITLES.strings, () => {
     false,
     false,
     false
+  ])
+  assert.deepEqual(['가', ' 가 ', '', '  ', 1, null].map(textOrNull), [
+    '가',
+    ' 가 ',
+    null,
+    null,
+    null,
+    null
   ])
 })
 
