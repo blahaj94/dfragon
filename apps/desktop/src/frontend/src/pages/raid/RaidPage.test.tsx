@@ -575,7 +575,7 @@ it('스냅샷 표시는 화면 자리 순서대로 그 자리 카드에 칩과 �
   expect(container.querySelectorAll('[aria-label^="스냅샷 순번"]')).toHaveLength(1)
 })
 
-it('꺼진 스냅샷 버튼을 누르면 확인 없이 스냅샷을 켠다', async () => {
+it('꺼진 스냅샷 버튼을 누르면 onTakeSnapshot을 부른다', async () => {
   const onTakeSnapshot = vi.fn()
   await render({ onTakeSnapshot })
   const button = container.querySelector<HTMLButtonElement>(
