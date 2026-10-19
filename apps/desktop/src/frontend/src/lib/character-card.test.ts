@@ -190,7 +190,9 @@ describe('공대 카드의 선택 근거 안내', () => {
       error: { code: 'SEARCH_TIMEOUT', retryAfterSeconds: null }
     }
 
-    expect(characterSlotNotice(failed, 'raid')).toBe('검색 시간이 초과됐습니다. 다시 시도해 주세요.')
+    expect(characterSlotNotice(failed, 'raid')).toBe(
+      '검색 시간이 초과됐습니다. 다시 시도해 주세요.'
+    )
   })
 })
 
