@@ -9,6 +9,8 @@ import { enrichCharacterDetails } from '../catalog/enrich.js'
 import { characterFreshness, CHARACTER_REFRESH_COOLDOWN_MS } from './freshness.js'
 import { CharacterRefreshes } from './refreshes.js'
 import type { CatalogService } from '../catalog/service.js'
+import { enchantGrades } from '../card/enchant-grades.js'
+import { projectCharacterCard } from '../card/project.js'
 
 export interface CharacterDetailDependencies {
   store: CharacterDetailStore
@@ -17,6 +19,19 @@ export interface CharacterDetailDependencies {
 }
 
 export { parseCharacterIdentity } from '../identity.js'
+
+// A slow or failed ranking only hides serverRank; the caller still ends a canceled request.
+async function readServerRank(
+  store: CharacterDetailStore,
+  identity: CharacterIdentity,
+  signal: AbortSignal
+) {
+  try {
+    return await store.readServerRank(identity, signal)
+  } catch {
+    return null
+  }
+}
 
 export function createCharacterDetailService(deps: CharacterDetailDependencies) {
   const admission = new SearchAdmission()
@@ -90,12 +105,15 @@ export function createCharacterDetailService(deps: CharacterDetailDependencies) 
       if (!freshness) {
         throw new CharacterDetailFailure('internal')
       }
+      const serverRank = await readServerRank(deps.store, identity, signal)
+      signal.throwIfAborted()
+      const card = projectCharacterCard(projected, serverRank, enchantGrades)
       const details = deps.catalog
         ? await enrichCharacterDetails(projected, deps.catalog, signal)
         : projected
       signal.throwIfAborted()
 
-      return { ...details, freshness }
+      return { ...details, freshness, card }
     } catch (error) {
       throw characterDetailFailure(error)
     } finally {
