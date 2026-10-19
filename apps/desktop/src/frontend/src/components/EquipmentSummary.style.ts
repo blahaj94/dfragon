@@ -25,7 +25,8 @@ export const styles = stylex.create({
     alignItems: 'center',
     gap: space.s12
   },
-  image: { width: 56, height: 56 },
+  // 아이템 아이콘은 28px 안팎의 픽셀 그림이라 56으로 키울 때 흐려지지 않게 픽셀을 그대로 키운다.
+  image: { width: 56, height: 56, imageRendering: 'pixelated' },
   title: { display: 'flex', flexDirection: 'column', gap: space.s8, minWidth: 0 },
   name: {
     overflow: 'hidden',

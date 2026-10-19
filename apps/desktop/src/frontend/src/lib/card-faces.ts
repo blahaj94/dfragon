@@ -163,6 +163,18 @@ export function itemImageUrl(itemId: string | null | undefined): string | undefi
   return `${ITEM_IMAGE_ORIGIN}/df/items/${itemId}`
 }
 
+/** 아이템 그림 주소. 합성 미리보기가 그 itemId의 로컬 그림을 주었으면 그것을, 아니면 고정 origin URL을 쓴다. */
+function toItemImage(
+  itemId: string | null | undefined,
+  itemImages: Readonly<Record<string, string>> | undefined
+): string | undefined {
+  if (itemId != null && itemImages !== undefined && Object.hasOwn(itemImages, itemId)) {
+    return itemImages[itemId]
+  }
+
+  return itemImageUrl(itemId)
+}
+
 function formatPoint(point: number | null | undefined): string {
   if (point == null) {
     return MISSING_VALUE
@@ -243,7 +255,10 @@ function toRarityGroups<Slot>(
   }))
 }
 
-function toSetView(card: CharacterCard | null | undefined): SummaryView {
+function toSetView(
+  card: CharacterCard | null | undefined,
+  itemImages: Readonly<Record<string, string>> | undefined
+): SummaryView {
   const weapon = card?.investment.find((row) => row.slotId === 'WEAPON')
   const weaponTone: RarityCellView['tone'] =
     weapon?.itemId == null ? 'empty' : toRarityTone(weapon.rarity)
@@ -272,7 +287,7 @@ function toSetView(card: CharacterCard | null | undefined): SummaryView {
     missing: false,
     name: set.name,
     tone: toRarityTone(set.rarityName),
-    imageUrl: itemImageUrl(set.imageItemId),
+    imageUrl: toItemImage(set.imageItemId, itemImages),
     imageLabel: `${set.name} 대표 장비`,
     pointLabel: '세트 포인트',
     point: formatPoint(set.point?.current),
@@ -298,7 +313,10 @@ function toUpgradeCells(upgrades: { step: number; optionName: string }[]): Upgra
 
 const crystalCellId = (slotNo: number): string => `crystal-${slotNo}`
 
-function toOathView(card: CharacterCard | null | undefined): EquipmentFaceView['oath'] {
+function toOathView(
+  card: CharacterCard | null | undefined,
+  itemImages: Readonly<Record<string, string>> | undefined
+): EquipmentFaceView['oath'] {
   const oath = card?.oath ?? null
   if (oath == null) {
     return {
@@ -326,7 +344,7 @@ function toOathView(card: CharacterCard | null | undefined): EquipmentFaceView['
     missing: false,
     name,
     tone: bodyTone,
-    imageUrl: itemImageUrl(oath.itemId),
+    imageUrl: toItemImage(oath.itemId, itemImages),
     imageLabel: oath.name,
     pointLabel: '서약 포인트',
     point: formatPoint(oath.setPoint?.current),
@@ -342,9 +360,13 @@ function toOathView(card: CharacterCard | null | undefined): EquipmentFaceView['
 /**
  * 장비 면의 세트와 서약 섹션을 정한다. 세트는 그림, 이름, 세트 포인트, 무기와 세트 부위의 희귀도 격자, 희귀도
  * 개수를, 서약은 그림, 이름, 묵언의 진의 9칸, 서약 포인트, 본체와 결정의 희귀도 격자, 희귀도 개수를 보인다.
+ * `itemImages`는 합성 미리보기의 로컬 그림이고, 없으면 그림은 itemId로 만든 고정 origin URL이다.
  */
-export function toEquipmentFace(card: CharacterCard | null | undefined): EquipmentFaceView {
-  return { set: toSetView(card), oath: toOathView(card) }
+export function toEquipmentFace(
+  card: CharacterCard | null | undefined,
+  itemImages?: Readonly<Record<string, string>>
+): EquipmentFaceView {
+  return { set: toSetView(card, itemImages), oath: toOathView(card, itemImages) }
 }
 
 function toReinforceView(row: CharacterCard['investment'][number] | undefined): ReinforceView {

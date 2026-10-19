@@ -394,7 +394,7 @@ function FaceTitle({ name, job }: { name: string; job: string }): React.JSX.Elem
 
 // 장비 면의 세트와 서약 섹션.
 function EquipmentFace({ character }: { character: CardCharacter }): React.JSX.Element {
-  const { set, oath } = toEquipmentFace(character.card)
+  const { set, oath } = toEquipmentFace(character.card, character.itemImages)
 
   return (
     <div {...stylex.props(styles.equipment)}>

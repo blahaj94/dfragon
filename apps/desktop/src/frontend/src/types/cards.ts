@@ -117,6 +117,11 @@ export interface CardCharacter {
   /** 스탯, 장비 점수, 서버 순위, 세트, 서약, 강화와 마법부여. main이 넘기지 않았으면 null이다. */
   card: CharacterCard | null
   image?: string
+  /**
+   * 카드 값의 Neople itemId에 대응하는 로컬 아이템 그림. 합성 미리보기만 채우고, 제품은 비워 두어 renderer가
+   * itemId로 고정 origin URL을 만든다.
+   */
+  itemImages?: Readonly<Record<string, string>>
   equipment: EquipmentSlot[]
   oath: EquipmentSlot[]
 }

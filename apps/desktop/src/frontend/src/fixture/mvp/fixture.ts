@@ -39,6 +39,17 @@ const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
   return { id, label, image, rarityColor }
 })
 
+// 카드 값의 세트 대표 장비와 서약 itemId에 대응하는 로컬 아이콘. 제품 CSP는 원격 그림을 허용하지만 합성
+// 미리보기는 로컬 자산만 쓰므로 itemId별 그림을 주입한다.
+const itemImages: Readonly<Record<string, string>> = Object.fromEntries(
+  [
+    [dealerCard.set?.imageItemId, asset(18)],
+    [bufferCard.set?.imageItemId, asset(19)],
+    [dealerCard.oath?.itemId, asset(20)],
+    [bufferCard.oath?.itemId, asset(21)]
+  ].filter((entry): entry is [string, string] => entry[0] != null)
+)
+
 export const previewCharacter: CardCharacter = {
   name: '미리보기검사',
   adventure: '샘플모험단',
@@ -48,6 +59,7 @@ export const previewCharacter: CardCharacter = {
   fame: 125850,
   card: dealerCard,
   image: characterImage,
+  itemImages,
   equipment,
   oath: equipment
     .filter((item) => !['TITLE', 'AURA', 'CREATURE'].includes(item.id))
