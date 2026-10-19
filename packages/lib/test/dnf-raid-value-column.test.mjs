@@ -184,7 +184,9 @@ test(testTitles.invalidNotation, () => {
     ' 12,345',
     '12,345 ',
     '9007199254740993',
-    '9007199254740.9K'
+    '9007199254740.9K',
+    // 최솟값은 안전한 정수지만 최댓값 …999는 아니다.
+    '9007199254740K'
   ]) {
     assert.equal(parseDNFRaidValueNotation(text), null, text)
   }
