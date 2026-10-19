@@ -57,7 +57,7 @@ const styles = stylex.create({
 `@dfragon/ui/tokens.stylex`의 `colors`는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase 키로 옮긴 것입니다. 예를 들어 `bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`입니다. 값은 모두 `var(--df-…)` 문자열이고 실제 값과 라이트 값은 `packages/ui/tokens.css`가 정합니다.
 
 - **신호색**: `signal`, `onSignal`은 선택, 주 버튼, 포커스에 씁니다. 개발자 작업 공간의 선택 탭 아래 2px 선이 `signal`입니다.
-- **카드 면**: `card*`, `bracket*`, `hazard`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`, 실패 `!` 칸의 `fgDanger`, `bgDangerWeak` 같은 상태색은 의미 토큰을 그대로 씁니다. 그래서 라이트 모드의 `!` 칸은 어두운 카드 위의 밝은 칸입니다. 상세 창의 카드 더미도 모든 카드가 `CardFrame`의 `cardBg` 면이고, 앞 카드의 오른쪽 끝에 1px `cardBorder` 선을 그어 겹친 카드를 나눕니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
+- **카드 면**: `card*`, `bracket*`, `hazard`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`, 실패 `!` 칸의 `fgDanger`, `bgDangerWeak` 같은 상태색은 의미 토큰을 그대로 씁니다. 그래서 라이트 모드의 `!` 칸은 어두운 카드 위의 밝은 칸입니다. 상세 창도 창 전체가 `CardFrame`의 `cardBg` 면이고, 장비 줄은 `cardInset` 면에 희귀도 색 왼쪽 선을 둡니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
 - **크롭 미리보기**: 개발자 화면의 게임 크롭 칸은 두 모드에서 같은 어두운 면인 `bgWell`을 씁니다.
 - **설정, 개발자 화면의 면**: 대화상자, 패널, 크롭 칸은 반지름 0(`radius.panel`)에 테두리 없이 `bgSurface`, `bgInset`, `bgWell` 면으로 구분합니다. 개발자 업로드 안내만 왼쪽 5px 띠의 색으로 상태를 보입니다.
 - **상단 바**: 상단 바 면은 `bgBar`이며 창 버튼 띠 색(`preload/common/window-chrome.ts`)과 맞춥니다.
