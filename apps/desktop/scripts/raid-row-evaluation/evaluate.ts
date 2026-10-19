@@ -63,9 +63,9 @@ export type CandidateSummary =
       status: 'run'
       /** 화면 직업명이 후보의 jobGrowName, jobName 중 무엇과 정규화 뒤 같은지 센 값 */
       screenJobField: Readonly<{ jobGrowName: number; jobName: number; neither: number }>
-      /** 명성 열 행에서 |화면 명성 − 정답 후보 명성| */
+      /** 명성 열 행에서 정답 후보 명성이 화면 표기 범위에서 벗어난 거리 */
       fameDifferences: readonly number[]
-      /** 이름이 유일한 장비 점수 열 행에서 |화면 장비 점수 − 정답 후보 점수 엔진 값| */
+      /** 이름이 유일한 장비 점수 열 행에서 정답 후보 점수 엔진 값이 화면 표기 범위에서 벗어난 거리 */
       engineErrors: readonly number[]
       /** 직업명이 같은 동명 후보 사이에서 정답과 가장 가까운 다른 후보의 명성 차이 */
       fameGaps: readonly number[]
@@ -94,7 +94,7 @@ export type EvaluationSummary = Readonly<{
         expected: string
         read: string | null
       }>[]
-      /** 읽은 표기를 값과 반폭으로 바꾼 결과가 정답 표기의 해석과 같은 행 */
+      /** 읽은 표기를 값 범위로 바꾼 결과가 정답 표기의 해석과 같은 행 */
       notationMatched: Rate
     }>
   jobOcr: NotRun | Readonly<{ status: 'run' } & Record<JobOcrPreprocessing, JobOcrSummary>>
@@ -123,12 +123,20 @@ function withoutSpaceAndMark(text: string): string {
 function sameNotation(read: DNFRaidValueNotation | null, expected: string): boolean {
   const parsed = parseDNFRaidValueNotation(expected)
 
-  return (
-    read !== null &&
-    parsed !== null &&
-    read.value === parsed.value &&
-    read.halfWidth === parsed.halfWidth
-  )
+  return read !== null && parsed !== null && read.min === parsed.min && read.max === parsed.max
+}
+
+/** 화면 표기가 가리키는 범위 안이면 0, 밖이면 가까운 끝과의 거리다. */
+function distanceToNotation(notation: DNFRaidValueNotation, value: number): number {
+  if (value < notation.min) {
+    return notation.min - value
+  }
+
+  if (value > notation.max) {
+    return value - notation.max
+  }
+
+  return 0
 }
 
 function jobOcrSummary(
@@ -213,9 +221,9 @@ function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
     } else {
       screenJobField.neither += 1
     }
-    const screenValue = parseDNFRaidValueNotation(row.expected.valueText)?.value ?? null
+    const screenValue = parseDNFRaidValueNotation(row.expected.valueText)
     if (row.columnKind === 'fame' && screenValue !== null && correct.fame !== null) {
-      fameDifferences.push(Math.abs(screenValue - correct.fame))
+      fameDifferences.push(distanceToNotation(screenValue, correct.fame))
     }
 
     if (
@@ -224,7 +232,7 @@ function candidateSummary(rows: readonly RowObservation[]): CandidateSummary {
       screenValue !== null &&
       correct.engineScore !== null
     ) {
-      engineErrors.push(Math.abs(screenValue - correct.engineScore))
+      engineErrors.push(distanceToNotation(screenValue, correct.engineScore))
     }
     const sameJob = row.expected.candidates.filter(
       (candidate) =>

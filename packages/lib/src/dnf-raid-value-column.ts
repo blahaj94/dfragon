@@ -11,9 +11,10 @@ export type DNFRaidValueHeadingTemplates = Readonly<{
   equipmentScore: DNFParticipantFrame
 }>
 export type DNFRaidValueNotation = {
-  value: number
-  /** Half of the last displayed digit's unit; the true value lies within value ± halfWidth. */
-  halfWidth: number
+  /** Smallest whole value the notation can show. */
+  min: number
+  /** Largest whole value the notation can show; equals min when every digit is displayed. */
+  max: number
 }
 
 const headingLayout = { width: 75, height: 18 }
@@ -115,9 +116,10 @@ export function classifyDNFRaidValueColumn(
 }
 
 /**
- * Converts a visible fame or equipment-score notation such as `12,345` or `1000.4K` into its
- * value and rounding half-width. Grouped digits must use complete three-digit groups, and a
- * decimal part is accepted only with K. Returns null for any other text instead of guessing.
+ * Converts a visible fame or equipment-score notation such as `12,345` or `1000.4K` into the
+ * inclusive range of whole values it can show. K notation drops the hidden digits, so `1000.4K`
+ * is 1,000,400..1,000,499. Grouped digits must use complete three-digit groups, and a decimal
+ * part is accepted only with K. Returns null for any other text instead of guessing.
  */
 export function parseDNFRaidValueNotation(text: string): DNFRaidValueNotation | null {
   const match = RAID_VALUE_NOTATION_PATTERN.exec(text)
@@ -136,8 +138,12 @@ export function parseDNFRaidValueNotation(text: string): DNFRaidValueNotation | 
     return null
   }
   // The decimal part has at most three digits, so K values stay whole numbers.
-  const value = scaled / fractionUnit
-  const halfWidth = thousands == null ? 0 : THOUSANDS_UNIT / fractionUnit / 2
+  const min = scaled / fractionUnit
+  const hiddenUnit = thousands == null ? 1 : THOUSANDS_UNIT / fractionUnit
+  const max = min + hiddenUnit - 1
+  if (!Number.isSafeInteger(max)) {
+    return null
+  }
 
-  return { value, halfWidth }
+  return { min, max }
 }
