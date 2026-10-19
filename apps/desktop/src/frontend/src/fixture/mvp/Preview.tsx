@@ -94,7 +94,14 @@ export function Preview(): React.JSX.Element {
     })
   )
   const raidSnapshot = useAdventureSnapshot(
-    seatOrder.map((slot) => raidCharacters[slot]?.adventure ?? null)
+    seatOrder.map((slot) => {
+      const adventure = raidCharacters[slot]?.adventure
+      if (adventure == null) {
+        return null
+      }
+
+      return adventure
+    })
   )
   const openDetail = (): void => {
     const url = new URL(window.location.href)

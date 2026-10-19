@@ -227,6 +227,19 @@ function withAdventure(character: CardCharacter, name: string, adventure: string
   return { ...character, name, adventure }
 }
 
+// 공대원에게 자리 번호별 합성 모험단을 준다. 빈 자리는 vacant로 채운다.
+function withSampleAdventure(
+  member: CardCharacter | null,
+  index: number,
+  vacant: CardCharacter | null
+): CardCharacter | null {
+  if (member === null) {
+    return vacant
+  }
+
+  return { ...member, adventure: `샘플모험단 ${index + 1}` }
+}
+
 const snapshotMembers = {
   first: withAdventure(previewCharacter, '미리보기검사', '첫째모험단'),
   second: withAdventure(bufferPreviewCharacter, '미리보기인챈', '둘째모험단'),
@@ -253,10 +266,8 @@ export const snapshotPreviewPartyRounds: readonly (readonly CardCharacter[])[] =
 // 다음 회차가 되어 빈 자리에 스냅샷에 없는 모험단의 공대원이 들어온다. 캡처를 한 번 더 누르면 처음 회차로
 // 돌아온다.
 export const snapshotPreviewRaidRounds: readonly (readonly (CardCharacter | null)[])[] = [
+  raidPreviewCharacters.map((member, index) => withSampleAdventure(member, index, null)),
   raidPreviewCharacters.map((member, index) =>
-    member === null ? null : { ...member, adventure: `샘플모험단 ${index + 1}` }
-  ),
-  raidPreviewCharacters.map((member, index) =>
-    member === null ? snapshotMembers.stranger : { ...member, adventure: `샘플모험단 ${index + 1}` }
+    withSampleAdventure(member, index, snapshotMembers.stranger)
   )
 ]
