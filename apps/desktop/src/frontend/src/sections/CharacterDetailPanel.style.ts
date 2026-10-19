@@ -184,6 +184,11 @@ export const styles = stylex.create({
     gap: 20
   },
   column: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0 },
-  skills: { display: { default: 'grid', ':is([hidden])': 'none' }, placeItems: 'center' },
-  pending: { color: colors.cardFgSubtle }
+  skills: { display: { default: 'block', ':is([hidden])': 'none' } },
+  skillNotice: {
+    display: 'block',
+    paddingBlock: space.s24,
+    textAlign: 'center',
+    color: colors.cardFgSubtle
+  }
 })

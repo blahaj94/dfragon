@@ -4,11 +4,16 @@ import { CardImage } from '../components/CardImage'
 import { CloseIcon } from '../components/CloseIcon'
 import { DetailItemList } from '../components/DetailItemList'
 import { DetailSummaryHead } from '../components/DetailSummaryHead'
+import { SkillTree } from '../components/SkillTree'
 import { MISSING_VALUE } from '../constants/cards'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { type ScoreView, toCharacterFace, toEquipmentFace } from '../lib/card-faces'
-import type { CharacterDetailItemTexts } from '../../../preload/common/types/character-detail'
+import type {
+  CharacterDetailItemTexts,
+  CharacterDetailSkills
+} from '../../../preload/common/types/character-detail'
 import { toDetailEquipmentGroups, toDetailOathGroups } from '../lib/character-detail'
+import { findSkillLayout, toSkillTreeRows } from '../lib/skill-tree'
 import type { CharacterCard } from '../types/cards'
 import { styles } from './CharacterDetailPanel.style'
 
@@ -28,13 +33,14 @@ const localDateTime = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', ti
 /**
  * 상세 창의 다크 카드 패널(DFragon 디자인 캔버스 상세 창 보드). 머리에 서버, 서버 순위, 조회 시각과 닫기를,
  * 그 아래 캐릭터 그림과 소속, 이름, 명성과 점수를 두고 장비와 스킬 탭으로 나눈다. 장비 탭은 세트와 장비
- * 12줄, 서약 본체와 결정 12줄이고 줄의 설명 상자 문구는 `itemTexts`에서 찾는다. 스킬 탭은 스킬 정보를
- * 연결하기 전이라 안내만 둔다. 머리의 빈 곳을 끌면 창을 옮긴다. `itemImages`는 합성 미리보기의 로컬 그림이다.
+ * 12줄, 서약 본체와 결정 12줄이고 줄의 설명 상자 문구는 `itemTexts`에서 찾는다. 스킬 탭은 `skills`의 직업
+ * 배치로 그린 11열 스킬트리다. 머리의 빈 곳을 끌면 창을 옮긴다. `itemImages`는 합성 미리보기의 로컬 그림이다.
  */
 export function CharacterDetailPanel({
   character,
   card,
   itemTexts,
+  skills,
   fetchedAt,
   itemImages,
   onClose
@@ -42,6 +48,7 @@ export function CharacterDetailPanel({
   character: CharacterDetailIdentity
   card: CharacterCard | null
   itemTexts?: CharacterDetailItemTexts
+  skills: CharacterDetailSkills | null
   fetchedAt: string
   itemImages?: Readonly<Record<string, string>>
   onClose: () => void
@@ -142,14 +149,29 @@ export function CharacterDetailPanel({
             </section>
           </Tabs.Panel>
           <Tabs.Panel value={1} {...stylex.props(styles.tabPanel, styles.skills)}>
-            <Typo.txtS {...stylex.props(styles.pending)}>
-              스킬 정보는 아직 연결하지 않았습니다.
-            </Typo.txtS>
+            <SkillTab skills={skills} />
           </Tabs.Panel>
         </Tabs.Root>
       </CardFrame>
     </div>
   )
+}
+
+// 스킬 탭 내용. 스킬 값을 받지 못했거나 직업 배치가 없으면 빈 스킬트리 대신 안내를 둔다.
+function SkillTab({ skills }: { skills: CharacterDetailSkills | null }): React.JSX.Element {
+  if (skills === null) {
+    return <Typo.txtS {...stylex.props(styles.skillNotice)}>스킬 정보를 받지 못했습니다.</Typo.txtS>
+  }
+  const layout = findSkillLayout(skills.jobId, skills.jobGrowId)
+  if (layout === null) {
+    return (
+      <Typo.txtS {...stylex.props(styles.skillNotice)}>
+        이 전직의 스킬 배치는 아직 준비하지 않았습니다.
+      </Typo.txtS>
+    )
+  }
+
+  return <SkillTree jobId={skills.jobId} rows={toSkillTreeRows(layout, skills.learned)} />
 }
 
 // 창을 열 때 받은 정보의 조회 시각. `12초 전`처럼 상대 시간이고 마우스 설명에 날짜와 시각을 둔다.
