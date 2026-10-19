@@ -17,11 +17,13 @@ Table characters {
   character_id text [pk, not null]
   server_id text [not null]
   adventure_name text [note: 'Latest observed adventure name; mutable and shared by characters']
+  fame integer [note: 'Latest stored basic fame for ranking across all servers; null when not an integer']
   created_at timestamptz [not null]
   updated_at timestamptz [not null]
 
   indexes {
     (adventure_name, character_id) [name: 'idx_characters_adventure_name_character_id']
+    (`fame DESC`, character_id) [name: 'idx_characters_fame_character_id']
   }
 }
 

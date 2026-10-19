@@ -1,7 +1,7 @@
 ---
 type: reference
 scope: apps/api and apps/accounts database development
-last-reviewed: 2026-09-06
+last-reviewed: 2026-10-19
 ---
 
 # Schema First database 개발
@@ -119,3 +119,11 @@ COMMIT;
 이전 API는 새 column을 동기화하지 못하므로 backfill 이후 이전 API의 쓰기를 허용하지 않는다. 배포 실행 순서는 [인프라 책임](api-start-development.md#서버-이미지)이며 이 migration의 호환성 조건을 유지해야 한다. Migration의 column 추가, backfill, index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 배포 중 오류가 나면 해당 단계에서 중단하고 상태를 확인한다. 운영에서 자동 `down`은 하지 않는다. 이전 API로 복구해 다시 캐릭터를 갱신했다면 새 버전 재배포 전에 migration의 backfill SQL로 column을 재동기화해야 한다.
 
 `test-support/adventure-search.mjs`는 기존 JSONB를 가진 DB의 migration, 중복 이름, null, 서버를 가로지르는 정확 일치와 페이지 조회, 이름 변경, 이전 요청, 실패 시 rollback, HTTP 응답을 확인한다. 새 기능은 우리 DB에서 수집된 캐릭터만 찾으며 모험단의 전체 보유 목록 수집이나 클라이언트 화면은 포함하지 않는다.
+
+## 명성 column migration 호환성
+
+`AddCharacterFame1792360553578`은 `characters.fame` nullable integer column과 비고유 `(fame DESC, character_id)` B-tree index를 추가하고 기존 기본정보 JSONB의 정수 명성으로 채운다. Column은 schema diff로 생성했고 backfill과 DESC index는 생성 결과에 직접 더했다. TypeORM이 DESC 정렬을 표현하지 못하므로 `schemas/characters.ts`는 이 index를 `synchronize: false`로 두며, 적용 뒤 schema diff가 비어 있는지 `test:database`에서 확인한다. PK, FK, 원본 응답은 변경하지 않는다. 기존 테이블 단위 runtime 권한으로 새 column도 읽고 쓸 수 있으므로 새 역할, 권한 부여는 필요하지 않다. [캐릭터 상세 계약](../rules/character-details.md#저장과-중복-처리), [DBML](character-details.dbml)을 참고한다.
+
+이 migration만 적용된 API는 성공 갱신 때 명성을 동기화하지 않으므로, 그 사이 갱신된 캐릭터의 column은 기본정보와 달라질 수 있다. 동기화하는 API를 배포한 뒤 migration의 backfill SQL로 column을 다시 맞추거나 두 변경을 같은 배포에 묶는다. Column 추가, backfill, index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 운영에서 자동 `down`은 하지 않는다. `down`은 index와 column을 지우며 캐릭터 행과 원본 응답은 남긴다.
+
+`test-support/character-fame.mjs`는 기존 JSONB를 가진 DB에서 `down`과 `up`을 실행해 column, index 제거, 정수가 아닌 명성과 기본정보 없는 캐릭터의 backfill, 다른 column과 JSONB 보존, index 정의와 적용 뒤 schema diff 없음을 확인한다.
