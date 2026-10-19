@@ -64,9 +64,9 @@ pnpm --filter @dfragon/desktop run test:raid-row-evaluation
 | `coverage` | 이미지, 행 수와 해상도, 열 종류, `K` 표기, 잘린 직업명, 동명 여부별 행 수 |
 | `detection` | 열 종류별 창 검출 성공 수와 최소 `matchScore`. 명성 열 화면에서도 기존 기준 헤더로 창을 찾는지 봅니다. |
 | `columnKind` | `classifyDNFRaidValueColumn`의 판별이 manifest와 같은 이미지 수 |
-| `value` | `readDNFRaidParticipantMetadata`의 표기가 정답과 같은 행, 해상도별 결과와 실패 목록, 표기를 `parseDNFRaidValueNotation`으로 바꾼 값과 반폭이 같은 행 |
+| `value` | `readDNFRaidParticipantMetadata`의 표기가 정답과 같은 행, 해상도별 결과와 실패 목록, 표기를 `parseDNFRaidValueNotation`으로 바꾼 범위가 같은 행 |
 | `jobOcr` | 전처리별 직업명 OCR 일치. 아래 표를 봅니다. |
-| `candidates` | 화면 직업명이 후보의 `jobGrowName`, `jobName` 중 무엇과 같은지, 명성 차이, 이름이 유일한 행의 점수 엔진 오차, 같은 직업 동명 후보 사이 간격 |
+| `candidates` | 화면 직업명이 후보의 `jobGrowName`, `jobName` 중 무엇과 같은지, 명성 차이, 이름이 유일한 행의 점수 엔진 오차, 같은 직업 동명 후보 사이 간격. 차이와 오차는 후보 값이 화면 표기 범위에서 벗어난 거리입니다. |
 
 직업명 OCR은 renderer worker와 같은 WASM 엔진, 사전, CTC 디코딩을 씁니다. 전처리는 두 가지를 모두 측정합니다. `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬이고, `raw`는 원본 색 그대로입니다. 모델 입력 높이로 줄이는 단계는 canvas 대신 쌍선형 보간으로 근사하므로 브라우저와 픽셀 단위로 같지는 않습니다.
 
