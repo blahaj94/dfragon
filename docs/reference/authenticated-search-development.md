@@ -24,6 +24,8 @@ GET /characters/candidates?characterName=%EA%B0%80%EB%82%98
       "serverId": "cain",
       "serverName": "카인",
       "fame": 50000,
+      "jobName": "귀검사(남)",
+      "jobGrowName": "眞 웨펀마스터",
       "imageUrl": "https://img-api.neople.co.kr/df/servers/cain/characters/example-character-id?zoom=1",
       "adventureName": null
     }
@@ -31,7 +33,7 @@ GET /characters/candidates?characterName=%EA%B0%80%EB%82%98
 }
 ```
 
-위 식별자는 요청 형태를 보여주는 예시다. `imageUrl`은 전체 캐릭터 이미지이므로 파티원 얼굴 크롭과의 정렬, 비교, 처음 기준을 통과한 후보 선택은 Desktop에서 수행한다. API는 이미지나 상세 정보를 미리 조회하지 않는다. `adventureName`은 우리 DB에 저장된 모험단명이며, 상세 조회로 저장된 적 없는 캐릭터는 null이다. 선택 후 기존 상세 API에 반환된 서버와 캐릭터 ID를 전달한다. 구체 입력과 오류 규칙은 [OCR 식별 후보 계약](../rules/character-search.md#ocr-캐릭터-식별-후보)을 따른다.
+위 식별자는 요청 형태를 보여주는 예시다. `imageUrl`은 전체 캐릭터 이미지이므로 파티원 얼굴 크롭과의 정렬, 비교, 처음 기준을 통과한 후보 선택은 Desktop에서 수행한다. API는 이미지나 상세 정보를 미리 조회하지 않는다. `jobName`, `jobGrowName`은 Neople 검색 응답의 값으로 문자열이 아니거나 비어 있으면 null이며, 기존 `GET /characters`에는 포함하지 않는다. `adventureName`은 우리 DB에 저장된 모험단명이며, 상세 조회로 저장된 적 없는 캐릭터는 null이다. 선택 후 기존 상세 API에 반환된 서버와 캐릭터 ID를 전달한다. 구체 입력과 오류 규칙은 [OCR 식별 후보 계약](../rules/character-search.md#ocr-캐릭터-식별-후보)을 따른다.
 
 - `apps/api/src/runtime/configuration.ts`: 환경변수 또는 명시한 secret 파일에서 API 키를 읽고, 누락, 빈 값, 공백뿐인 값은 DB 연결과 listen 전에 거절한다. 키 값을 정규화하거나 오류에 노출하지 않는다.
 - `apps/api/src/runtime/application.ts`: 검증한 키로 검색, 상세, 카탈로그 어댑터를 만들어 주입한다. 서비스와 HTTP 앱 factory는 API 키를 받지 않으며 테스트는 준비한 fake 어댑터를 전달한다.

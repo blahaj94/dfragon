@@ -70,7 +70,7 @@ test('계약의 전체 서버 map을 제공하고 prototype key를 서버로 취
   assert.equal(NEOPLE_SERVER_NAMES.get('__proto__'), undefined)
 })
 
-test('후보 순서, 값을 보존하며 응답을 다섯 field로 정제한다', async () => {
+test('후보 순서, 값을 보존하며 응답을 일곱 field로 정제하고 직업명이 없으면 null로 둔다', async () => {
   const search = createNeopleCharacterSearchForTest('fake-key', {
     fetch: async () =>
       jsonResponse({
@@ -82,6 +82,8 @@ test('후보 순서, 값을 보존하며 응답을 다섯 field로 정제한다'
             serverId: 'cain',
             serverName: 'wrong upstream name',
             fame: 0,
+            jobName: '귀검사(남)',
+            jobGrowName: '眞 웨펀마스터',
             extra: 'ignored'
           },
           {
@@ -110,28 +112,36 @@ test('후보 순서, 값을 보존하며 응답을 다섯 field로 정제한다'
         characterName: ' 이름 ',
         serverId: 'cain',
         serverName: '카인',
-        fame: 0
+        fame: 0,
+        jobName: '귀검사(남)',
+        jobGrowName: '眞 웨펀마스터'
       },
       {
         characterId: 'id-2',
         characterName: '둘째',
         serverId: 'future-server',
         serverName: null,
-        fame: -1.5
+        fame: -1.5,
+        jobName: null,
+        jobGrowName: null
       },
       {
         characterId: 'id-3',
         characterName: '셋째',
         serverId: 'constructor',
         serverName: null,
-        fame: null
+        fame: null,
+        jobName: null,
+        jobGrowName: null
       },
       {
         characterId: 'id-4',
         characterName: '넷째',
         serverId: '__proto__',
         serverName: null,
-        fame: null
+        fame: null,
+        jobName: null,
+        jobGrowName: null
       }
     ]
   })
@@ -444,7 +454,15 @@ test('본문, 응답 검증이 4,999ms에 끝나면 값을 반환하고 timer를
   })
   assert.deepEqual(await search(input), {
     rows: [
-      { characterId: 'id', characterName: '이름', serverId: 'cain', serverName: '카인', fame: 1 }
+      {
+        characterId: 'id',
+        characterName: '이름',
+        serverId: 'cain',
+        serverName: '카인',
+        fame: 1,
+        jobName: null,
+        jobGrowName: null
+      }
     ]
   })
   assert.equal(signal?.aborted, false)
@@ -582,7 +600,9 @@ test('동시 검색은 controller, timer, 결과를 공유하지 않는다', asy
         characterName: '빠른검색',
         serverId: 'cain',
         serverName: '카인',
-        fame: 0
+        fame: 0,
+        jobName: null,
+        jobGrowName: null
       }
     ]
   })

@@ -1,3 +1,4 @@
+import { textOrNull } from '@dfragon/lib/utils/shape-check'
 import {
   NEOPLE_ORIGIN,
   NEOPLE_SEARCH_DEADLINE_MS,
@@ -10,8 +11,8 @@ import {
   NeopleSearchFailure
 } from '../errors/neople-search.js'
 import type {
-  CharacterCandidate,
-  CharacterSearchResult,
+  CharacterSearchRow,
+  NeopleCharacterSearchResult,
   NeopleCharacterSearchInput,
   NeopleCharacterSearchTestDependencies,
   SearchCharacters,
@@ -50,7 +51,7 @@ function projectResponse(
   status: number,
   ok: boolean,
   input: NeopleCharacterSearchInput
-): CharacterSearchResult {
+): NeopleCharacterSearchResult {
   const upstreamFailure = classifyNeopleUpstreamFailure(body, status, ok)
   const hasUpstreamFailure = upstreamFailure !== undefined
   if (hasUpstreamFailure) {
@@ -68,7 +69,7 @@ function projectResponse(
   }
 
   const upstreamRows = body.rows as unknown[]
-  const rows = upstreamRows.map((candidate): CharacterCandidate => {
+  const rows = upstreamRows.map((candidate): CharacterSearchRow => {
     const isCandidateObject = isObject(candidate)
     if (!isCandidateObject) {
       throw neopleSearchFailure('api')
@@ -130,13 +131,17 @@ function projectResponse(
     }
     const serverName = NEOPLE_SERVER_NAMES.get(serverId) ?? null
     const fame = rawFame ?? null
+    const jobName = textOrNull(candidate.jobName)
+    const jobGrowName = textOrNull(candidate.jobGrowName)
 
     return {
       characterId,
       characterName,
       serverId,
       serverName,
-      fame
+      fame,
+      jobName,
+      jobGrowName
     }
   })
 
@@ -192,7 +197,7 @@ function makeSearch(
       return true
     }
 
-    const request = async (): Promise<CharacterSearchResult> => {
+    const request = async (): Promise<NeopleCharacterSearchResult> => {
       let response: Response
       try {
         response = await dependencies.fetch(url, {

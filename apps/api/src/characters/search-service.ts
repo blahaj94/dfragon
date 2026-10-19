@@ -1,8 +1,10 @@
 import { NeopleSearchFailure, neopleSearchFailure } from '../errors/neople-search.js'
 import type {
+  CharacterCandidate,
   CharacterImageCandidate,
   CharacterSearchResult,
-  NeopleCharacterSearchInput
+  NeopleCharacterSearchInput,
+  NeopleCharacterSearchResult
 } from '../types/neople-character-search.js'
 import { parseCharacterCandidatesQuery, parseCharacterSearchQuery } from './query.js'
 import { SearchAdmission, searchClock } from './search-admission.js'
@@ -41,7 +43,7 @@ export function createCharacterSearchService(
     peerAddress: string | undefined,
     input: NeopleCharacterSearchInput,
     requestSignal?: AbortSignal
-  ): Promise<CharacterSearchResult> => {
+  ): Promise<NeopleCharacterSearchResult> => {
     const cannotStart = closed || !peerAddress
     if (cannotStart) {
       throw neopleSearchFailure('internal')
@@ -80,7 +82,19 @@ export function createCharacterSearchService(
     async search(peerAddress, originalUrl, requestSignal) {
       const input = parseCharacterSearchQuery(originalUrl)
 
-      return search(peerAddress, input, requestSignal)
+      const result = await search(peerAddress, input, requestSignal)
+      // 직업명은 후보 API의 계약이라 기존 검색 응답은 다섯 field로 유지한다.
+      const rows = result.rows.map(
+        ({ characterId, characterName, serverId, serverName, fame }): CharacterCandidate => ({
+          characterId,
+          characterName,
+          serverId,
+          serverName,
+          fame
+        })
+      )
+
+      return { rows } satisfies CharacterSearchResult
     },
     async candidates(peerAddress, originalUrl, requestSignal) {
       const input = parseCharacterCandidatesQuery(originalUrl)
