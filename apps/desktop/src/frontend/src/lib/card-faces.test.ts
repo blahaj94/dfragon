@@ -284,8 +284,38 @@ it('API 응답 fixture의 카드 값으로 세 면을 채우고 엔진이 채우
   const rows = toInvestmentRows(apiDealerCard)
   expect(rows).toHaveLength(12)
   expect(rows.every((row) => row.itemTone !== 'missing')).toBe(true)
-  // 등급표가 비어 있는 동안 API는 등급을 null로 주고, 기타 면은 그 등급을 기타로 바꾸지 않는다.
-  expect(rows.filter((row) => row.enchant.grade !== null)).toEqual([])
+  // API 등급표에 있는 마법부여만 등급이 있고, 표에 없는 마법부여는 기타로 바꾸지 않고 미평가 `-`로 둔다.
+  expect(rows.map((row) => [row.slotId, row.enchant.grade])).toEqual([
+    ['WEAPON', null],
+    ['JACKET', null],
+    ['SHOULDER', '종결'],
+    ['PANTS', null],
+    ['WAIST', '종결'],
+    ['SHOES', '준종결'],
+    ['AMULET', '종결'],
+    ['WRIST', null],
+    ['RING', '종결'],
+    ['SUPPORT', null],
+    ['MAGIC_STON', '준종결'],
+    ['EARRING', null]
+  ])
+  expect(rows[2].enchant).toEqual({ grade: '종결', filled: 3, label: '마법부여 종결' })
+  expect(rows[5].enchant).toEqual({ grade: '준종결', filled: 2, label: '마법부여 준종결' })
+  expect(rows[0].enchant).toEqual({ grade: null, text: '-', label: '마법부여 미평가' })
+  expect(toInvestmentRows(apiBufferCard).map((row) => row.enchant.grade)).toEqual([
+    '종결',
+    '종결',
+    '종결',
+    null,
+    '종결',
+    '준종결',
+    '준종결',
+    '준종결',
+    '종결',
+    '종결',
+    '준종결',
+    null
+  ])
 })
 
 it('희귀도 이름을 색 토큰 키로 바꾸고 단계가 붙은 이름과 모르는 이름을 구분한다', () => {
