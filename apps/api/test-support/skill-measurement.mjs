@@ -1,3 +1,4 @@
+import { isNonblankString } from '@dfragon/lib/utils/shape-check'
 import { buildSkillSelection } from './skill-calculation.mjs'
 
 const messages = {
@@ -22,23 +23,19 @@ export function measurementError(error) {
   return { error: { code, message } }
 }
 
-function nonempty(value) {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
 function positive(value) {
   return Number.isFinite(value) && value > 0
 }
 
 function validateObservations({ context, reference, comparison } = {}) {
   if (
-    !nonempty(context?.id) ||
+    !isNonblankString(context?.id) ||
     context.target?.kind !== 'sandbag' ||
     !Number.isInteger(context.target.level) ||
     context.target.level < 1 ||
     !Array.isArray(context.conditions) ||
     !context.conditions.length ||
-    !context.conditions.every(nonempty) ||
+    !context.conditions.every(isNonblankString) ||
     !reference ||
     !comparison ||
     reference.skillId === comparison.skillId
@@ -47,12 +44,12 @@ function validateObservations({ context, reference, comparison } = {}) {
   }
   for (const measurement of [reference, comparison]) {
     if (
-      !nonempty(measurement.skillId) ||
+      !isNonblankString(measurement.skillId) ||
       !positive(measurement.damage) ||
       !Number.isInteger(measurement.level) ||
       measurement.level < 1 ||
       !positive(measurement.multiplier?.value) ||
-      !nonempty(measurement.multiplier.source)
+      !isNonblankString(measurement.multiplier.source)
     ) {
       throw new SkillMeasurementFailure('INVALID_MEASUREMENT')
     }
@@ -181,7 +178,7 @@ function applyObservedLevels(request, metadata, overrides) {
       !Number.isInteger(level) ||
       level < 0 ||
       level > definition.maxLevel ||
-      !nonempty(source) ||
+      !isNonblankString(source) ||
       seen.has(skillId)
     ) {
       throw new SkillMeasurementFailure('INVALID_MEASUREMENT')
@@ -203,7 +200,7 @@ function statusComparison(snapshot, observed) {
   const seen = new Set()
 
   return observed.map(({ name, value }) => {
-    if (!nonempty(name) || !Number.isFinite(value) || value < 0 || seen.has(name)) {
+    if (!isNonblankString(name) || !Number.isFinite(value) || value < 0 || seen.has(name)) {
       throw new SkillMeasurementFailure('INVALID_MEASUREMENT')
     }
     seen.add(name)
