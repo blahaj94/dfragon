@@ -10,7 +10,7 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
   const app = await createApiHttpApp(
     { searchCharacters: unused },
     {
-      store: { read: unused, beginFetch: unused, saveAndRead: unused },
+      store: { read: unused, beginFetch: unused, saveAndRead: unused, readServerRank: unused },
       fetchDetails: unused
     },
     { search: unused },

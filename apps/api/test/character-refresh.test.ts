@@ -71,6 +71,9 @@ function memory(initial: CharacterApiResponse[] = []) {
       })
 
       return structuredClone(state.rows)
+    },
+    async readServerRank() {
+      return null
     }
   }
 
