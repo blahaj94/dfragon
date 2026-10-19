@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { readDNFRaidParticipantMetadata } from '@dfragon/lib'
+import { readDNFRaidParticipantMetadata, readDNFRaidParticipantValues } from '@dfragon/lib'
 
 const testTitles = {
   visibleNotation: '12행의 합성 표식을 읽고 표시된 점수 문자열을 유지한다',
@@ -14,7 +14,9 @@ const testTitles = {
   sparseReadonlyRows:
     '일부 행의 입력 순서와 화면 행 번호를 유지하고 RGBA view, 기준 이미지를 변경하지 않는다',
   regionBoundaries: '빈 행도 완전한 정수 영역을 요구하고 사각형 크기, 화면 끝 경계를 포함한다',
-  referenceSetLimits: '같은 표식, 글자의 여러 기준은 모호하지 않으며 기준 개수 상한을 포함한다'
+  referenceSetLimits: '같은 표식, 글자의 여러 기준은 모호하지 않으며 기준 개수 상한을 포함한다',
+  valuesWithoutParties: '수치만 읽을 때는 파티 표식 기준 없이 같은 표기와 빈 행 null을 돌려준다',
+  valuesValidation: '수치만 읽을 때도 프레임 상한, 행, 글자 기준을 같은 규칙으로 검증한다'
 }
 
 // 합성 글자, 배지만 사용하며 스크린샷, 게임 자산, 플레이어 데이터는 포함하지 않는다.
@@ -554,4 +556,38 @@ test(testTitles.referenceSetLimits, () => {
   ]) {
     assert.throws(() => readDNFRaidParticipantMetadata(image, rows, invalid), RangeError)
   }
+})
+
+test(testTitles.valuesWithoutParties, () => {
+  const { image, rows } = fixture([
+    { party: 'G', text: '1000.4K' },
+    { party: 'R', text: '42', occupied: false },
+    { party: '싱글', text: '123,456' }
+  ])
+  const valueRows = rows.map(({ row, occupied, equipmentScoreRegion }) => ({
+    row,
+    occupied,
+    equipmentScoreRegion
+  }))
+
+  assert.deepEqual(readDNFRaidParticipantValues(image, valueRows, templates.equipmentScoreGlyphs), [
+    { row: 1, valueText: '1000.4K' },
+    { row: 2, valueText: null },
+    { row: 3, valueText: '123,456' }
+  ])
+})
+
+test(testTitles.valuesValidation, () => {
+  const { image, rows } = fixture([{}])
+  const glyphs = templates.equipmentScoreGlyphs
+  assert.throws(
+    () => readDNFRaidParticipantValues({ ...image, width: 1921 }, rows, glyphs),
+    RangeError
+  )
+  assert.throws(() => readDNFRaidParticipantValues(image, [...rows, rows[0]], glyphs), RangeError)
+  assert.throws(() => readDNFRaidParticipantValues(image, rows, []), RangeError)
+  assert.throws(
+    () => readDNFRaidParticipantValues(image, rows, [{ character: 'k', image: glyphs[0].image }]),
+    RangeError
+  )
 })
