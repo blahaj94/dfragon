@@ -125,4 +125,5 @@ it('Escape는 스냅샷을 지우지 않고 팝오버를 닫는다', async () =>
 
   await vi.waitFor(() => expect(confirm()).toBeNull())
   expect(onClear).not.toHaveBeenCalled()
+  await vi.waitFor(() => expect(document.activeElement).toBe(toggle()))
 })
