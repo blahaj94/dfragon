@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 import { selectRaidCandidate } from './raid-candidate'
 import type { CharacterCandidate } from '../../preload/common/types/character'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 vi.mock('./raid-candidate', async (original) => {
   const actual = await original<typeof import('./raid-candidate')>()
@@ -9,8 +10,6 @@ vi.mock('./raid-candidate', async (original) => {
   return { ...actual, selectRaidCandidate: vi.fn(actual.selectRaidCandidate) }
 })
 
-// 합성 픽셀용 테스트 정책이며 운영 기준이 아니다.
-const policy = { maxMeanChannelError: 0, minCoverage: 1, minComparedPixels: 1 }
 const highest = {
   ...candidate,
   fame: 90000,
@@ -88,7 +87,7 @@ it('공대 수명의 OCR 이름은 공대 후보 선택 함수가 고른 캐릭�
 
     return { candidate: picked, selectionMethod: 'highest-fame' }
   })
-  const fixture = await createSearchFixture(false, 'raid', policy)
+  const fixture = await createSearchFixture(false, 'raid', INITIAL_PORTRAIT_COLOR_POLICY)
   // 공대 캡처 회차처럼 게임 창을 등록한 뒤 공대 수명을 시작한다.
   await fixture.invoke('selectCaptureSource', 'window:search-fixture')
   const begun = (await fixture.invoke('controlRaidSearch', { action: 'begin' })) as {
@@ -113,7 +112,7 @@ it('공대 수명의 OCR 이름은 공대 후보 선택 함수가 고른 캐릭�
 })
 
 it('파티 캡처의 OCR 이름은 공대 후보 선택 함수를 쓰지 않는다', async () => {
-  const fixture = await createSearchFixture(false, 'capture', policy)
+  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
   fixture.fetchSearch
     .mockResolvedValueOnce(jsonResponse({ body: { rows: [highest, chosen] } }))
     .mockResolvedValueOnce(jsonResponse({ body: detailsOf(highest) }))

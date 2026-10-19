@@ -6,7 +6,7 @@ import {
   type PortraitColorInput,
   type PortraitColorPolicy
 } from './portrait-color'
-import { PortraitMatchBudgetExceededError } from './portrait-raster'
+import { PortraitComparisonBudgetExceededError } from './portrait-raster'
 
 const RGBA_CHANNELS = 4
 const OPAQUE_ALPHA = 255
@@ -328,7 +328,7 @@ describe('색 비교 정책과 입력 경계', () => {
     const candidate = image(512, 512, () => [80, 90, 100, OPAQUE_ALPHA])
 
     await expect(score(portrait(), candidate, { gridSize: 16 })).rejects.toBeInstanceOf(
-      PortraitMatchBudgetExceededError
+      PortraitComparisonBudgetExceededError
     )
   })
 

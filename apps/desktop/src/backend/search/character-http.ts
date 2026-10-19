@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import { validateApiOrigin } from '../auth/protocol'
 import type { AuthClock } from '../auth/types'
-import type { CharacterAppearance } from '../../preload/common/types/appearance'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -29,27 +28,10 @@ const MAX_CHARACTER_NAME_CODE_POINTS = 12
 export const CHARACTER_HTTP_LIMITS = {
   candidateJsonBytes: 256 * 1024,
   detailJsonBytes: 8 * 1024 * 1024,
-  appearanceJsonBytes: 256 * 1024,
   ...CHARACTER_IMAGE_LIMITS
 } as const
 
 const nonblank = z.string().refine((value) => value.trim().length > 0)
-const appearanceCloneSchema = z
-  .object({ itemId: nonblank.nullable(), itemName: nonblank.nullable() })
-  .refine((clone) => (clone.itemId === null) === (clone.itemName === null))
-const appearanceSchema = identitySchema.extend({
-  characterName: nonblank,
-  jobName: nonblank,
-  jobGrowName: nonblank,
-  avatar: z.array(
-    z.object({
-      slotId: nonblank,
-      itemId: nonblank,
-      itemName: nonblank,
-      clone: appearanceCloneSchema
-    })
-  )
-})
 const candidateSchema = identitySchema
   .extend({
     characterName: nonblank,
@@ -117,7 +99,6 @@ export type CharacterCandidatesHttp = (input: {
 }) => Promise<readonly CharacterCandidate[]>
 export type CharacterImageHttp = (input: IdentityRequest) => Promise<CharacterImage>
 export type CharacterDetailsHttp = (input: IdentityRequest) => Promise<CharacterDetails>
-export type CharacterAppearanceHttp = (input: IdentityRequest) => Promise<CharacterAppearance>
 
 function validateIdentity(identity: CharacterIdentity): void {
   if (!identitySchema.safeParse(identity).success) {
@@ -207,8 +188,9 @@ export function createCharacterCandidatesHttp({
 
 /** 검증한 식별자로 고정 네오플 캐릭터 이미지 경로를 구성해 다운로드한다. */
 export function createCharacterImageHttp({
-  fetch: transport = fetchApi
-}: TransportOptions = {}): CharacterImageHttp {
+  fetch: transport = fetchApi,
+  clock
+}: TransportOptions & { clock?: Pick<AuthClock, 'read'> } = {}): CharacterImageHttp {
   const client = createCharacterHttpClient(transport)
 
   return async ({ serverId, characterId, signal }) => {
@@ -220,8 +202,15 @@ export function createCharacterImageHttp({
         headers: { Accept: 'image/png' },
         signal
       })
+      const receivedAt = clock?.read().monotonicMs ?? performance.now()
       if (response.status !== 200) {
         await response.body?.cancel().catch(() => undefined)
+        if (response.status === 429) {
+          throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
+            retryAfterSeconds: parseCharacterRetryAfter(response.headers.get('Retry-After')),
+            retryAfterReceivedAt: receivedAt
+          })
+        }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
       const bytes = await readCharacterResponseBody(
@@ -270,48 +259,6 @@ export function createCharacterDetailsHttp({
         !parsed.success ||
         parsed.data.character.serverId !== serverId ||
         parsed.data.character.characterId !== characterId
-      ) {
-        throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
-      }
-      signal.throwIfAborted()
-
-      return parsed.data
-    } catch (error) {
-      throwCharacterTransportFailure(error, signal)
-    }
-  }
-}
-
-/** 표시용 상세가 보강되기 전의 아바타 외형만 읽고 선택한 식별자를 확인한다. */
-export function createCharacterAppearanceHttp({
-  apiOrigin,
-  fetch: transport = fetchApi,
-  clock
-}: ApiOptions): CharacterAppearanceHttp {
-  const origin = validateApiOrigin(apiOrigin)
-  const client = createCharacterHttpClient(transport)
-
-  return async ({ serverId, characterId, signal }) => {
-    validateIdentity({ serverId, characterId })
-    try {
-      signal.throwIfAborted()
-      const response = await client.get(
-        `${origin}/characters/${serverId}/${characterId}/appearance`,
-        {
-          headers: { Accept: 'application/json' },
-          signal
-        }
-      )
-      const receivedAt = clock?.read().monotonicMs ?? performance.now()
-      const body = parseCharacterJson(
-        await readCharacterResponseBody(response, signal, CHARACTER_HTTP_LIMITS.appearanceJsonBytes)
-      )
-      assertApiSuccess(response, body, receivedAt, true)
-      const parsed = appearanceSchema.safeParse(body)
-      if (
-        !parsed.success ||
-        parsed.data.serverId !== serverId ||
-        parsed.data.characterId !== characterId
       ) {
         throw new SearchHttpFailure('SEARCH_RESPONSE_INVALID')
       }

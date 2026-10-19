@@ -13,10 +13,7 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
       store: { read: unused, beginFetch: unused, saveAndRead: unused, readServerRank: unused },
       fetchDetails: unused
     },
-    { search: unused },
-    undefined,
-    undefined,
-    { fetchAppearance: unused }
+    { search: unused }
   )
   try {
     await app.listen(0, '127.0.0.1')
@@ -38,28 +35,12 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
         'get /characters/candidates',
         'get /adventures/characters',
         'get /characters/{serverId}/{characterId}',
-        'get /characters/{serverId}/{characterId}/appearance',
         'post /characters/{serverId}/{characterId}/refresh'
       ].sort()
     )
     assert.equal(document.paths['/me'], undefined)
     assert.equal(document.security, undefined)
     assert.equal(document.paths['/characters'].get?.security, undefined)
-    assert.equal(
-      document.paths['/characters/{serverId}/{characterId}/appearance'].get?.security,
-      undefined
-    )
-    const appearance = document.components?.schemas?.CharacterAppearance
-    assert(appearance && 'properties' in appearance)
-    assert.equal(appearance.additionalProperties, false)
-    assert.deepEqual(Object.keys(appearance.properties ?? {}), [
-      'serverId',
-      'characterId',
-      'characterName',
-      'jobName',
-      'jobGrowName',
-      'avatar'
-    ])
     // 수동으로 기술한 request/response model을 포함해 모든 참조가 연결되어야 합니다.
     const refs = JSON.stringify(document).matchAll(/"\$ref":"#\/components\/schemas\/([^"/]+)"/g)
     for (const [, name] of refs) {
@@ -87,6 +68,10 @@ test('Swagger는 공개 API 경로만 문서화하고 DB, provider를 호출하�
       const response = await fetch(`${origin}${path}`)
       assert.equal(response.status, 404)
     }
+    // 제거된 외형 endpoint를 부르는 구 Desktop은 일반 404를 받는다.
+    const removed = await fetch(`${origin}/characters/cain/character-id/appearance`)
+    assert.equal(removed.status, 404)
+    assert.deepEqual(await removed.json(), { statusCode: 404, message: 'Not Found' })
     assert.equal(unused.mock.callCount(), 0)
   } finally {
     await app.close()

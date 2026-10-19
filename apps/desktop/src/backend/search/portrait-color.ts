@@ -1,6 +1,7 @@
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
 import {
   ALPHA_CHANNEL,
+  countComparisonStep,
   createSearchBudget,
   findOpaqueBounds,
   type OpaqueBounds,
@@ -263,7 +264,8 @@ async function findBestWindow(
       let comparedCells = 0
       let opaquePixels = 0
       for (const cell of face.cells) {
-        if (shouldYield(budget, true)) {
+        countComparisonStep(budget)
+        if (shouldYield(budget)) {
           await yieldSearch(budget, signal)
         }
         const left = originX + cell.left

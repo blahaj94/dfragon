@@ -8,15 +8,14 @@ import type {
 import type {
   CharacterDetails,
   SelectedCharacterSummary,
-  CharacterJsonValue,
-  CharacterImage,
-  CharacterPortrait
+  CharacterJsonValue
 } from '../../preload/common/types/character'
 import {
   createCharacterIdentifier,
   createManualCharacterLookup,
   createRaidCharacterIdentifier,
   type CharacterIdentification,
+  type CharacterSelectionPolicy,
   type IdentificationServices
 } from './identify'
 import { NO_RAID_OBSERVED_VALUES } from './raid-candidate'
@@ -26,22 +25,17 @@ import type {
   CharacterDetailsHttp,
   CharacterImageHttp
 } from './character-http'
-import type { StayImageSource } from './stay-images'
+import type { PortraitColorScorer } from './portrait-color'
 import { runSearchOperation, type SearchOperation, type SearchOperationFailure } from './operation'
 import { buildCharacterCard } from './card-assembler'
 import type { ScoreEngine } from '../score/engine'
 
-export type PortraitMatcher = (input: {
-  portrait: CharacterPortrait
-  candidate: CharacterImage
-  signal: AbortSignal
-}) => Promise<boolean>
-
 export type IdentificationAdapters = {
   candidates: CharacterCandidatesHttp
-  image: CharacterImageHttp | StayImageSource
+  image: CharacterImageHttp
   details: CharacterDetailsHttp
-  matchesPortrait: PortraitMatcher
+  scorePortrait: PortraitColorScorer
+  selection: CharacterSelectionPolicy
 }
 
 export type SearchRuntime = {
@@ -136,7 +130,7 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     },
     async (execution) => {
       const services = bindIdentificationServices(adapters, execution)
-      const identified = await identifyCharacter(input, services)
+      const identified = await identifyCharacter(input, services, adapters.selection)
       if (identified.kind !== 'matched') {
         return { identified, card: null }
       }
@@ -197,7 +191,8 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
 
 function identifyCharacter(
   input: RequestInput,
-  services: IdentificationServices
+  services: IdentificationServices,
+  selection: CharacterSelectionPolicy
 ): Promise<CharacterIdentification> {
   if (input.manualServerId !== undefined) {
     const lookup = createManualCharacterLookup(services)
@@ -211,7 +206,7 @@ function identifyCharacter(
 
     return identifyRaid({ nicknames, observed: NO_RAID_OBSERVED_VALUES })
   }
-  const identify = createCharacterIdentifier(services)
+  const identify = createCharacterIdentifier(services, selection)
   const portrait = input.ocrInput?.portrait ?? null
 
   return identify({ nicknames, portrait })
@@ -225,35 +220,26 @@ function bindIdentificationServices(
   return {
     findCandidates: (nickname) =>
       execution.run((signal) => adapters.candidates({ nickname, signal })),
-    loadPortraits: (identity) =>
+    loadPortrait: (identity) =>
       execution.run(async (signal) => {
         try {
-          const source = await adapters.image({ ...identity, signal })
-          if ('kind' in source) {
-            if (source.kind === 'unavailable') {
-              return null
-            }
-
-            return source.images
-          }
-
-          return [source]
+          return await adapters.image({ ...identity, signal })
         } catch (error) {
           if (error instanceof SearchHttpFailure && error.code === 'SEARCH_RATE_LIMITED') {
             throw error
           }
-          // 외형 조회 실패는 명성 대체 표시로 이어지되 취소와 만료는 실행 계층이 판정한다.
+          // 이미지 실패는 명성 대체 표시로 이어지되 취소와 만료는 실행 계층이 판정한다.
 
           return null
         }
       }),
     getDetails: (identity) => execution.run((signal) => adapters.details({ ...identity, signal })),
-    matchesPortrait: (input) =>
+    scorePortrait: (input) =>
       execution.run(async (signal) => {
         try {
-          return await adapters.matchesPortrait({ ...input, signal })
+          return await adapters.scorePortrait({ ...input, signal })
         } catch {
-          // 비교 실패는 다음 후보의 일치로 확정하지 않고 명성 대체 표시로 보낸다.
+          // 계산 예산 초과 같은 비교 실패는 다른 후보의 일치로 확정하지 않고 명성 대체 표시로 보낸다.
           return null
         }
       })

@@ -23,13 +23,12 @@ import type { openSelectedCharacterDetail } from '../character-detail/windows'
 import { createSearchHttp } from '../search/http'
 import {
   createCharacterCandidatesHttp,
-  createCharacterAppearanceHttp,
   createCharacterDetailsHttp,
   createCharacterImageHttp
 } from '../search/character-http'
-import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portrait-match'
-import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
-import { createStayImageSource } from '../search/stay-images'
+import { createCharacterImageSource } from '../search/character-image-source'
+import { createPortraitColorScorer, type PortraitColorPolicy } from '../search/portrait-color'
+import { validateSelectionPolicy, type CharacterSelectionPolicy } from '../search/identify'
 import type { SearchRuntime } from '../search/request'
 import type { ScoreEngine } from '../score/engine'
 import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
@@ -179,8 +178,7 @@ function registerCaptureIpc(
     apiOrigin: string
     fetch?: typeof fetch
     clock: AuthClock
-    portraitMatchPolicy?: PortraitMatchPolicy
-    portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
+    portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy
     score?: ScoreEngine
   },
   details?: { openSelected: typeof openSelectedCharacterDetail },
@@ -189,32 +187,25 @@ function registerCaptureIpc(
   ocrCollection = collection
   let runtime: SearchRuntime | undefined
   if (configuration != null) {
-    if (
-      configuration.portraitMatchPolicy !== undefined &&
-      configuration.portraitEdgeMatchPolicy !== undefined
-    ) {
-      throw new TypeError('Only one portrait comparison policy can be configured')
-    }
     runtime = {
       http: createSearchHttp(configuration),
       clock: configuration.clock,
       score: configuration.score
     }
-    if (configuration.portraitEdgeMatchPolicy !== undefined) {
-      const appearance = createCharacterAppearanceHttp(configuration)
-      const image = createStayImageSource({ appearance, fetch: configuration.fetch })
+    const policy = configuration.portraitColorPolicy
+    if (policy !== undefined) {
+      // 잘못된 정책은 요청마다 실패하지 않도록 등록할 때 거절한다.
+      const scorePortrait = createPortraitColorScorer(policy)
+      const { maxDistance, minMargin, maxCandidates } = policy
+      const selection = { maxDistance, minMargin, maxCandidates }
+      validateSelectionPolicy(selection)
+      // 캡처, 파티 카드, 공대 수명이 같은 runtime을 쓰므로 이미지 대기열과 캐시도 하나를 공유한다.
       runtime.identification = {
         candidates: createCharacterCandidatesHttp(configuration),
-        image,
+        image: createCharacterImageSource({ image: createCharacterImageHttp(configuration) }),
         details: createCharacterDetailsHttp(configuration),
-        matchesPortrait: createPortraitEdgeMatcher(configuration.portraitEdgeMatchPolicy)
-      }
-    } else if (configuration.portraitMatchPolicy !== undefined) {
-      runtime.identification = {
-        candidates: createCharacterCandidatesHttp(configuration),
-        image: createCharacterImageHttp(configuration),
-        details: createCharacterDetailsHttp(configuration),
-        matchesPortrait: createPortraitMatcher(configuration.portraitMatchPolicy)
+        scorePortrait,
+        selection
       }
     }
   }

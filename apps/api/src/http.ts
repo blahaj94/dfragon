@@ -16,14 +16,6 @@ import type { CharacterDetailDependencies } from './characters/details/service.j
 import { characterDetailFailure } from './characters/details/errors.js'
 import { NeopleSearchFailure, neopleSearchFailure } from './errors/neople-search.js'
 import { setupSwagger } from './swagger/setup.js'
-import {
-  CHARACTER_APPEARANCE_SERVICE,
-  CharacterAppearanceController
-} from './characters/appearance/http.js'
-import {
-  createCharacterAppearanceService,
-  type CharacterAppearanceDependencies
-} from './characters/appearance/service.js'
 import { API_BUILD_INFO, ApiVersionController, readApiBuildInfo } from './build-info.js'
 import {
   type AccessLogSink,
@@ -84,7 +76,6 @@ export async function createApiHttpApp(
   adventures?: AdventureSearchStore,
   httpsOptions?: Readonly<{ cert: Buffer; key: Buffer }>,
   buildInfoPath = '/app/build-info.json',
-  appearance?: CharacterAppearanceDependencies,
   writeAccessLog: AccessLogSink = writeAccessLogToStdout
 ): Promise<INestApplication> {
   const buildInfo = await readApiBuildInfo(buildInfoPath)
@@ -93,21 +84,12 @@ export async function createApiHttpApp(
       HealthController,
       ApiVersionController,
       CharacterSearchController,
-      ...(appearance ? [CharacterAppearanceController] : []),
       ...(details ? [CharacterDetailController] : []),
       ...(adventures ? [AdventureSearchController] : [])
     ],
     providers: [
       { provide: API_BUILD_INFO, useValue: buildInfo },
       { provide: CHARACTER_SEARCH_SERVICE, useValue: createCharacterSearchService(search) },
-      ...(appearance
-        ? [
-            {
-              provide: CHARACTER_APPEARANCE_SERVICE,
-              useValue: createCharacterAppearanceService(appearance)
-            }
-          ]
-        : []),
       ...(details
         ? [{ provide: CHARACTER_DETAIL_SERVICE, useValue: createCharacterDetailService(details) }]
         : []),

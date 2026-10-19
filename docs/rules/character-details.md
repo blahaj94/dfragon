@@ -47,16 +47,6 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 
 순위는 상세 저장값을 확정한 뒤 별도 READ COMMITTED transaction에서 2초 statement 제한으로 센다. 제한 초과나 DB 실패는 `serverRank`만 null로 두고 카드와 상세 응답은 실패시키지 않는다. 연결 종료와 서버 종료는 기존처럼 요청 전체를 중단한다. 이 투영과 순위 계약은 같은 PR의 사용자 merge로 채택하며, 같은 서버로 순위를 세던 #716의 초안은 2026-10-19 담당자 결정으로 모든 서버 기준으로 바꿨다.
 
-## 외형 조회
-
-`GET /characters/:serverId/:characterId/appearance`는 얼굴 식별에 필요한 외형만 로그인 없이 조회한다. 상세 조회와 같은 서버, ASCII 캐릭터 ID 규칙을 적용하며 query, HEAD와 본문을 거절한다. 공급자의 `/equip/avatar`를 한 번 호출하고 캐릭터 DB 읽기, 저장, 11개 상세 조회와 공용 아이템 보강은 수행하지 않는다.
-
-응답은 `serverId`, `characterId`, `characterName`, `jobName`, `jobGrowName`, `avatar`다. 각 아바타는 `slotId`, `itemId`, `itemName`, `clone: { itemId, itemName }`만 포함한다. 원본 슬롯 순서와 문자열을 유지하고 중복 슬롯, 식별 불일치와 불완전한 clone 쌍은 거절한다. 미장착 avatar null은 빈 배열로, clone 누락 또는 null은 두 필드가 null인 쌍으로 반환한다. 옵션, 엠블렘, 모험단과 길드 정보는 응답에 포함하지 않는다.
-
-외형 조회는 기존 검색과 상세의 한도와 독립적으로 IP당 최근 60초 64회다. 네 슬롯, OCR 이름 두 개, 최대 여덟 서버의 후보를 확인할 수 있는 한도이며, 예약은 공급자 호출 전에 소비하고 실패 시 반환하지 않는다. IPv6 /64와 신뢰할 프록시 정책은 기존 검색과 같다. 공급자 호출은 공통 최근 60초 600회, 동시 12회 예산을 공유한다. 서버 캐시와 주기 수집은 추가하지 않는다.
-
-API key는 runtime에서 prepared adapter를 만들 때 주입한다. 서비스는 준비된 함수를 사용하며 실행 중 key를 다시 찾지 않는다. 공급자 headers, 최대 1MiB body 수신과 검증에 하나의 5초 제한을 적용하고 연결 종료와 서버 종료를 전파한다. 자동 재시도와 redirect는 허용하지 않는다. 오류 형식과 Retry-After는 기존 캐릭터 상세 오류 계약을 따른다. 이 endpoint와 독립 호출 한도는 해당 구현 PR의 사용자 merge로 채택한다.
-
 ## 모험단명 검색
 
 `GET /adventures/characters?adventureName=...`는 로그인 없이 우리 DB에 저장된 캐릭터를 모험단명으로 검색한다. 서버 구분 없이 이름을 정확히 비교하며 부분 일치, 대소문자 변환, Unicode 정규화, 공백 제거를 하지 않는다. Neople 호출, 미수집 캐릭터 발견, 검색 시 갱신은 하지 않는다. 전체 보유 캐릭터가 아니라 마지막으로 관측된 소속 목록이라는 범위를 응답의 `scope: "stored"`로 명시한다. 결과가 없으면 200과 빈 `rows`를 반환한다.

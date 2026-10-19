@@ -7,8 +7,16 @@ import { dealerCard } from '../../preload/common/search/card-test-fixture'
 import { deferred } from '../auth/auth-test-fixtures'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
 
-// 동일한 합성 픽셀을 검증하기 위한 테스트 정책이며 운영 기준이 아니다.
-const policy = { maxMeanChannelError: 0, minCoverage: 1, minComparedPixels: 2 }
+// 2×1 합성 얼굴을 한 셀로 비교해 같은 픽셀만 고르는 테스트 정책이며 운영 기준이 아니다.
+const policy = {
+  gridSize: 1,
+  minCoverage: 1,
+  minComparedCells: 1,
+  topFraction: 1,
+  maxDistance: 0,
+  minMargin: 1,
+  maxCandidates: 2
+}
 const portrait: CharacterPortrait = {
   image: { width: 2, height: 1, rgba: new Uint8Array([20, 40, 60, 255, 80, 100, 120, 255]) },
   rasterScale: 1
@@ -17,6 +25,13 @@ const names = ['가나', '다라']
 const imageUrl =
   'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
 const matchedCandidate = { ...candidate, fame: 70000, imageUrl }
+// 얼굴과 색이 다른 낮은 명성 후보. 후보가 둘 이상이어야 2위와의 차이로 얼굴 선택을 판정한다.
+const otherCandidate = {
+  ...candidate,
+  characterId: 'other',
+  fame: 60000,
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/other?zoom=1'
+}
 
 function details(): CharacterDetails {
   const metadata = {
@@ -91,8 +106,9 @@ function observation(
 
 function resolveMatch(fixture: Fixture, detail = details()): void {
   fixture.fetchSearch
-    .mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
+    .mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate, otherCandidate] } }))
     .mockResolvedValueOnce(imageResponse())
+    .mockResolvedValueOnce(imageResponse(false))
     .mockResolvedValueOnce(jsonResponse({ body: detail }))
 }
 
@@ -147,12 +163,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
       versions: { package: 'api', rulesRev: 'api', bundleId: 'api' }
     }
     const fixture = await createSearchFixture(false, 'capture', policy)
-    fixture.fetchSearch
-      .mockResolvedValueOnce(jsonResponse({ body: { rows: [matchedCandidate] } }))
-      .mockResolvedValueOnce(imageResponse())
-      .mockResolvedValueOnce(
-        jsonResponse({ body: { ...details(), card: { ...dealerCard, score: apiScore } } })
-      )
+    resolveMatch(fixture, { ...details(), card: { ...dealerCard, score: apiScore } })
     await fixture.invoke('notifyOcrCandidatesDetected', observation(fixture))
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     const snapshot = await fixture.read()
@@ -165,7 +176,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
   })
 
-  it('첫 일치 후보까지만 이미지 비교 후 5필드 행과 실제 상세 요약을 발행한다', async () => {
+  it('명성 상위 maxCandidates명의 이미지만 비교해 가장 가까운 후보의 5필드 행과 실제 상세 요약을 발행한다', async () => {
     const fixture = await createSearchFixture(false, 'capture', policy)
     const earlier = {
       ...matchedCandidate,
@@ -174,7 +185,20 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     }
     fixture.fetchSearch
       .mockResolvedValueOnce(
-        jsonResponse({ body: { rows: [earlier, matchedCandidate, { ...earlier, fame: null }] } })
+        jsonResponse({
+          body: {
+            rows: [
+              earlier,
+              matchedCandidate,
+              {
+                ...earlier,
+                characterId: 'later',
+                fame: null,
+                imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/later?zoom=1'
+              }
+            ]
+          }
+        })
       )
       .mockResolvedValueOnce(imageResponse(false))
       .mockResolvedValueOnce(imageResponse())
@@ -183,6 +207,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('success'))
     const snapshot = await fixture.read()
     expect(snapshot.slots[0].rows).toEqual([{ ...candidate, fame: 70000 }])
+    expect(snapshot.slots[0].selectionMethod).toBe('portrait')
     expect(snapshot.slots[0].selected).toEqual({
       ...candidate,
       fame: 71000,
@@ -244,7 +269,7 @@ describe('OCR 후보 전용 IPC와 기존 캡처 수명', () => {
     expect((await fixture.read()).slots[0].selected).toBeUndefined()
     expect((await fixture.read()).slots[0].requestId).not.toBe(selected.requestId)
     await vi.waitFor(async () => expect((await fixture.read()).slots[0].state).toBe('empty'))
-    expect(new URL(new Request(...fixture.fetchSearch.mock.calls[3]).url).pathname).toBe(
+    expect(new URL(new Request(...fixture.fetchSearch.mock.calls[4]).url).pathname).toBe(
       '/characters'
     )
     await fixture.invoke('notifyOcrCandidatesDetected', {
