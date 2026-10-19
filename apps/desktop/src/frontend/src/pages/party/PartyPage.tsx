@@ -1,47 +1,30 @@
 import * as stylex from '@stylexjs/stylex'
 import { cardFaces } from '../../constants/cards'
 import { CharacterCard } from '../../sections/CharacterCard'
-import type { SnapshotMark } from '../../lib/adventure-snapshot'
-import type { CardCharacter, SlotState } from '../../types/cards'
+import type { SlotCard } from '../../lib/slot-cards'
 import { styles } from './PartyPage.style'
 
 export function PartyPage({
-  character,
-  characters,
   slots,
   resetKey = 'party',
   compareFaces = false,
   inputEnabled = false,
-  nicknames,
-  snapshotMarks,
   onDetail,
   onSlotDetail,
-  slotNotices,
   onRetry,
-  retryEnabled,
-  retryPending,
-  loadingSlots,
   collapsed = false,
   id,
   onLookup
 }: {
-  character?: CardCharacter
-  characters?: readonly (CardCharacter | null)[]
-  slots: SlotState[]
+  /** 슬롯마다 카드가 그릴 값 */
+  slots: readonly SlotCard[]
   resetKey?: string
   /** 합성 미리보기에서 카드마다 다른 면을 처음에 펼쳐 세 면을 나란히 비교한다. */
   compareFaces?: boolean
   inputEnabled?: boolean
-  nicknames?: readonly (string | null)[]
-  /** 슬롯마다 모험단 순번 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
-  snapshotMarks?: readonly (SnapshotMark | undefined)[]
   onDetail?: () => void
   onSlotDetail?: (slot: number) => void
-  slotNotices?: readonly (string | undefined)[]
   onRetry?: (slot: number) => void
-  retryEnabled?: readonly boolean[]
-  retryPending?: readonly boolean[]
-  loadingSlots?: readonly boolean[]
   collapsed?: boolean
   /** 파티 머리의 접기 버튼이 가리킬 카드 영역의 id */
   id?: string
@@ -53,33 +36,30 @@ export function PartyPage({
       aria-label="파티 캐릭터"
       {...stylex.props(styles.grid, collapsed && styles.collapsed)}
     >
-      {slots.map((state, index) => {
-        const selected = characters == null ? character : (characters[index] ?? undefined)
-        const observedNickname = nicknames?.[index] ?? undefined
-        const displayedNickname =
-          state === 'success' && selected != null ? undefined : observedNickname
+      {slots.map((card, index) => {
+        const { state, character } = card
+        const found = state === 'success' && character != null
         let detailAction = onDetail
         if (onSlotDetail !== undefined) {
-          detailAction =
-            state === 'success' && selected != null ? () => onSlotDetail(index) : undefined
+          detailAction = found ? () => onSlotDetail(index) : undefined
         }
 
         return (
           <CharacterCard
             key={`${resetKey}-${index}`}
             slot={index + 1}
-            character={selected}
+            character={character}
             state={state}
-            nickname={displayedNickname}
-            snapshotMark={snapshotMarks?.[index]}
+            nickname={found ? undefined : card.nickname}
+            snapshotMark={card.snapshotMark}
             inputEnabled={inputEnabled}
             initialFace={compareFaces ? index % cardFaces.length : 0}
             onDetail={detailAction}
-            notice={slotNotices?.[index]}
+            notice={card.notice}
             onRetry={onRetry == null ? undefined : () => onRetry(index)}
-            retryEnabled={retryEnabled?.[index]}
-            retryPending={retryPending?.[index]}
-            loading={loadingSlots?.[index]}
+            retryEnabled={card.retryEnabled}
+            retryPending={card.retryPending}
+            loading={card.loading}
             collapsed={collapsed}
             onLookup={
               onLookup === undefined

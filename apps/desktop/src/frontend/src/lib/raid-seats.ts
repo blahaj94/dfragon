@@ -27,6 +27,16 @@ export function swapSeats(order: SeatOrder, from: number, to: number): SeatOrder
   return next
 }
 
+/** 화면 자리 순서로 계산한 값을 검색 슬롯 순서로 다시 배치한다. `order`가 자리에 놓인 슬롯을 정한다. */
+export function seatValuesToSlotOrder<T>(order: SeatOrder, bySeat: readonly T[]): T[] {
+  const bySlot: T[] = []
+  for (const [seat, slot] of order.entries()) {
+    bySlot[slot] = bySeat[seat]
+  }
+
+  return bySlot
+}
+
 const seatSteps: Readonly<Record<SeatDirection, { party: number; member: number }>> = {
   up: { party: -1, member: 0 },
   down: { party: 1, member: 0 },

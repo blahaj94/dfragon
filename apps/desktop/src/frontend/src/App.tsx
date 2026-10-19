@@ -20,7 +20,8 @@ import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { slotAdventureName } from './lib/adventure-snapshot'
-import { searchSlotNotice, toCharacterCard } from './lib/character-card'
+import { filledSlotCount, toSlotCards } from './lib/slot-cards'
+import { seatValuesToSlotOrder } from './lib/raid-seats'
 import { getRaidScreenCapture } from './lib/capture-presentation'
 import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
@@ -70,12 +71,6 @@ function App(): React.JSX.Element {
     setWorkbenchOpen(false)
   }
   const showDeveloperWorkbench = workbenchOpen && developerModeEnabled
-  const filledPartySlots = capture.search.slots.filter(
-    (slot) => slot.state === 'success' && slot.selected != null
-  ).length
-  const slotNotices = capture.search.slots.map((slot) =>
-    searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
-  )
   // 모험단 순번 스냅샷은 화면 자리 기준이라 공대는 맞바꾼 배치를 따라 자리마다 모험단을 읽는다. 파티와
   // 공대가 각자 가진다.
   const partySnapshot = useAdventureSnapshot(
@@ -86,9 +81,21 @@ function App(): React.JSX.Element {
     raidCapture.seatOrder.map((slot) => slotAdventureName(raid.slots[slot])),
     raidCapture.startedRounds
   )
-  const raidSlotNotices = raid.slots.map((slot) =>
-    searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
-  )
+  const partyCards = toSlotCards({
+    slots: capture.search.slots,
+    nicknames: capture.nicknames,
+    manualSlots: capture.search.manualSlots,
+    recognizing: capture.recognizing,
+    snapshotMarks: partySnapshot.marks
+  })
+  // 공대 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
+  const raidCards = toSlotCards({
+    slots: raid.slots,
+    nicknames: raidCapture.nicknames,
+    manualSlots: raid.manualSlots,
+    recognizing: raidCapture.recognizing,
+    snapshotMarks: seatValuesToSlotOrder(raidCapture.seatOrder, raidSnapshot.marks)
+  })
   // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
   // 안내와 캡처 대화상자가 알린다.
   let raidNotice = ''
@@ -152,7 +159,7 @@ function App(): React.JSX.Element {
           <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
             <PartyHeader
               notice={capture.search.detailNotice}
-              filledCount={filledPartySlots}
+              filledCount={filledSlotCount(partyCards)}
               lastCapturedAt={capture.lastCompletedAt}
               canCapture={capture.canStartCapture}
               onCapture={capture.startRound}
@@ -168,17 +175,10 @@ function App(): React.JSX.Element {
               id={partyCardsId}
               collapsed={party.collapsed}
               resetKey={String(capture.round)}
-              slots={capture.search.slots.map((slot) => slot.state)}
-              characters={capture.search.slots.map((slot) => toCharacterCard(slot.selected))}
+              slots={partyCards}
               inputEnabled
               onLookup={capture.search.lookupSlot}
-              loadingSlots={capture.search.manualSlots.map(
-                (manual) => !manual && capture.recognizing
-              )}
-              slotNotices={slotNotices}
               onSlotDetail={capture.search.openDetails}
-              nicknames={capture.nicknames}
-              snapshotMarks={partySnapshot.marks}
             />
           </div>
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
@@ -187,17 +187,12 @@ function App(): React.JSX.Element {
             hidden={searchMode !== 'raid'}
             notice={raidNotice}
             resetKey={String(raidCapture.round)}
-            slots={raid.slots.map((slot) => slot.state)}
-            characters={raid.slots.map((slot) => toCharacterCard(slot.selected))}
-            slotNotices={raidSlotNotices}
-            nicknames={raidCapture.nicknames}
-            loadingSlots={raid.manualSlots.map((manual) => !manual && raidCapture.recognizing)}
+            slots={raidCards}
             lastCapturedAt={raidCapture.lastCompletedAt}
             canCapture={raidCapture.canStartCapture}
             onCapture={raidCapture.startRound}
             snapshotActive={raidSnapshot.active}
             snapshotRound={raidSnapshot.round}
-            snapshotMarks={raidSnapshot.marks}
             onTakeSnapshot={raidSnapshot.take}
             onClearSnapshot={raidSnapshot.clear}
             seatOrder={raidCapture.seatOrder}
