@@ -227,3 +227,26 @@ it('완료한 회차는 창 등록이 바뀌어도 결과와 완료 시각을 �
   expect(actor.getSnapshot().context.completedAt).toBe(completedAt)
   expect(actor.getSnapshot().can({ type: 'START' })).toBe(false)
 })
+
+it('시작한 회차 수는 받아들인 START마다 오르고 무시한 START와 취소된 회차는 영향이 없다', async () => {
+  const { actor } = start()
+  const pending = Promise.withResolvers<RaidSlotRecognition[]>()
+  modules.recognize.mockReturnValueOnce(pending.promise)
+  actor.send({ type: 'START' })
+  expect(actor.getSnapshot().context.startedRounds).toBe(0)
+
+  actor.send({ type: 'SOURCE', sourceId: 'game' })
+  actor.send({ type: 'START' })
+  actor.send({ type: 'START' })
+  expect(actor.getSnapshot().context.startedRounds).toBe(1)
+  await waitFor(actor, (state) => state.matches({ capturing: 'recognizing' }))
+
+  actor.send({ type: 'SOURCE', sourceId: null })
+  pending.resolve(recognized)
+  await vi.waitFor(() => expect(terminate).toHaveBeenCalledOnce())
+  expect(actor.getSnapshot().context.startedRounds).toBe(1)
+
+  actor.send({ type: 'SOURCE', sourceId: 'game' })
+  actor.send({ type: 'START' })
+  expect(actor.getSnapshot().context.startedRounds).toBe(2)
+})
