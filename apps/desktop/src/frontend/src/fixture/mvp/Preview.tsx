@@ -20,9 +20,11 @@ import { styles } from './Preview.style'
 import {
   facePreviewCharacters,
   previewCharacter,
-  raidPreviewCharacters,
+  snapshotPreviewPartyRounds,
+  snapshotPreviewRaidRounds,
   tierPreviewCharacters
 } from './fixture'
+import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
@@ -42,6 +44,9 @@ export function Preview(): React.JSX.Element {
   )
   // 합성 공대 보드의 자리 배치. 카드를 끌거나 Alt와 방향키로 맞바꿔 본다.
   const [seatOrder, setSeatOrder] = useState(createSeatOrder)
+  // 모험단 순번 스냅샷 미리보기의 회차. 파티와 공대 모두 캡처 버튼을 누를 때마다 다른 회차로 바뀐다.
+  const [partyRound, setPartyRound] = useState(0)
+  const [raidRound, setRaidRound] = useState(0)
   const partyCardsId = useId()
   const raidCardsId = useId()
   // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
@@ -73,7 +78,31 @@ export function Preview(): React.JSX.Element {
     characters = tierPreviewCharacters
   } else if (scenario === 'faces') {
     characters = facePreviewCharacters
+  } else if (scenario === 'snapshot') {
+    characters = snapshotPreviewPartyRounds[partyRound % snapshotPreviewPartyRounds.length]
   }
+  const partySlots = scenarios[scenario]
+  const raidCharacters = snapshotPreviewRaidRounds[raidRound % snapshotPreviewRaidRounds.length]
+  const partySnapshot = useAdventureSnapshot(
+    partySlots.map((state, slot) => {
+      const shown = characters === undefined ? character : characters[slot]
+      if (state !== 'success' || shown == null) {
+        return null
+      }
+
+      return shown.adventure
+    })
+  )
+  const raidSnapshot = useAdventureSnapshot(
+    seatOrder.map((slot) => {
+      const adventure = raidCharacters[slot]?.adventure
+      if (adventure == null) {
+        return null
+      }
+
+      return adventure
+    })
+  )
   const openDetail = (): void => {
     const url = new URL(window.location.href)
     url.search = new URLSearchParams({
@@ -118,13 +147,17 @@ export function Preview(): React.JSX.Element {
         <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
           <PartyHeader
             notice=""
-            filledCount={scenarios[scenario].filter((state) => state === 'success').length}
+            filledCount={partySlots.filter((state) => state === 'success').length}
             lastCapturedAt={captureState === 'complete' ? completedAt : null}
             canCapture={canCapture}
             onCapture={() => {
               setCaptureState('complete')
               setCompletedAt(Date.now())
+              setPartyRound((round) => round + 1)
             }}
+            snapshotActive={partySnapshot.active}
+            onTakeSnapshot={partySnapshot.take}
+            onClearSnapshot={partySnapshot.clear}
             collapsed={party.collapsed}
             onToggleCollapsed={party.toggleCollapsed}
             controls={partyCardsId}
@@ -147,7 +180,8 @@ export function Preview(): React.JSX.Element {
             }
             onRetry={identification ? () => setScenario('pending') : undefined}
             retryEnabled={identification ? [false, false, false, true] : undefined}
-            slots={scenarios[scenario]}
+            slots={partySlots}
+            snapshotMarks={partySnapshot.marks}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
@@ -159,14 +193,19 @@ export function Preview(): React.JSX.Element {
             <RaidPage
               id={raidCardsId}
               notice=""
-              slots={raidPreviewCharacters.map((member) => (member == null ? 'idle' : 'success'))}
-              characters={raidPreviewCharacters}
+              slots={raidCharacters.map((member) => (member == null ? 'idle' : 'success'))}
+              characters={raidCharacters}
               lastCapturedAt={captureState === 'complete' ? completedAt : null}
               canCapture={canCapture}
               onCapture={() => {
                 setCaptureState('complete')
                 setCompletedAt(Date.now())
+                setRaidRound((round) => round + 1)
               }}
+              snapshotActive={raidSnapshot.active}
+              snapshotMarks={raidSnapshot.marks}
+              onTakeSnapshot={raidSnapshot.take}
+              onClearSnapshot={raidSnapshot.clear}
               seatOrder={seatOrder}
               canMoveSeats={phase !== 'recognizing'}
               onSwapSeats={(from, to) => {
@@ -224,6 +263,7 @@ export function Preview(): React.JSX.Element {
             <option value="missing">누락, 이미지 실패</option>
             <option value="identification">자동 식별 상태</option>
             <option value="tiers">상위, 랭커 단계</option>
+            <option value="snapshot">모험단 순번 스냅샷</option>
           </select>
         </footer>
         <p {...stylex.props(styles.notice)}>

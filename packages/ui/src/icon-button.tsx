@@ -14,11 +14,17 @@ export type IconButtonProps = Omit<PublicProps<'button'>, 'children'> & {
    * 자른다. @default 'md'
    */
   size?: 'sm' | 'md' | 'bar' | 'lg'
+  /**
+   * 켜고 끄는 토글 버튼의 켜짐 상태. 값을 주면 `aria-pressed`로 전하고, 켜진 동안 아이콘과 안쪽 2px 선이
+   * 신호색이다. 값이 없으면 토글이 아니다.
+   */
+  pressed?: boolean
 }
 
 function IconButtonImpl({
   icon,
   size = 'md',
+  pressed,
   className,
   style,
   ...buttonProps
@@ -26,13 +32,15 @@ function IconButtonImpl({
   return (
     <button
       {...buttonProps}
+      aria-pressed={pressed ?? buttonProps['aria-pressed']}
       {...withForwardedStyle(
         stylex.props(
           styles.root,
           controlStyles.focusRing,
           controlStyles.hoverTransition,
           styles[size],
-          size === 'lg' && shapes.cutTopRight
+          size === 'lg' && shapes.cutTopRight,
+          pressed === true && styles.pressed
         ),
         { className, style }
       )}

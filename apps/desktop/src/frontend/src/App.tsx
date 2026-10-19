@@ -11,6 +11,7 @@ import { usePartyCollapse } from './hooks/usePartyCollapse'
 import { PartyPage } from './pages/party/PartyPage'
 import { RaidPage } from './pages/raid/RaidPage'
 import { useRaidCapture } from './hooks/useRaidCapture'
+import { useAdventureSnapshot } from './hooks/useAdventureSnapshot'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
@@ -18,6 +19,7 @@ import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
+import { slotAdventureName } from './lib/adventure-snapshot'
 import { searchSlotNotice, toCharacterCard } from './lib/character-card'
 import { getRaidScreenCapture } from './lib/capture-presentation'
 import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
@@ -73,6 +75,12 @@ function App(): React.JSX.Element {
   ).length
   const slotNotices = capture.search.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
+  )
+  // 모험단 순번 스냅샷은 화면 자리 기준이라 공대는 맞바꾼 배치를 따라 자리마다 모험단을 읽는다. 파티와
+  // 공대가 각자 가진다.
+  const partySnapshot = useAdventureSnapshot(capture.search.slots.map(slotAdventureName))
+  const raidSnapshot = useAdventureSnapshot(
+    raidCapture.seatOrder.map((slot) => slotAdventureName(raid.slots[slot]))
   )
   const raidSlotNotices = raid.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
@@ -144,6 +152,9 @@ function App(): React.JSX.Element {
               lastCapturedAt={capture.lastCompletedAt}
               canCapture={capture.canStartCapture}
               onCapture={capture.startRound}
+              snapshotActive={partySnapshot.active}
+              onTakeSnapshot={partySnapshot.take}
+              onClearSnapshot={partySnapshot.clear}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
               controls={partyCardsId}
@@ -162,6 +173,7 @@ function App(): React.JSX.Element {
               slotNotices={slotNotices}
               onSlotDetail={capture.search.openDetails}
               nicknames={capture.nicknames}
+              snapshotMarks={partySnapshot.marks}
             />
           </div>
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
@@ -178,6 +190,10 @@ function App(): React.JSX.Element {
             lastCapturedAt={raidCapture.lastCompletedAt}
             canCapture={raidCapture.canStartCapture}
             onCapture={raidCapture.startRound}
+            snapshotActive={raidSnapshot.active}
+            snapshotMarks={raidSnapshot.marks}
+            onTakeSnapshot={raidSnapshot.take}
+            onClearSnapshot={raidSnapshot.clear}
             seatOrder={raidCapture.seatOrder}
             canMoveSeats={raidCapture.canMoveSeats}
             onSwapSeats={raidCapture.swapSeats}

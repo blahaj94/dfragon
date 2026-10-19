@@ -61,7 +61,7 @@ export const styles = stylex.create({
   bottomRight: { bottom: -1, right: -1, borderBottomWidth: 2, borderRightWidth: 2 },
   default: { borderColor: colors.bracketDefault },
   selected: { borderColor: colors.bracketSelected },
-  danger: { borderColor: colors.bracketDanger },
+  failure: { borderColor: colors.bracketFailure },
   top: { borderColor: colors.bracketTop },
   ranker: { borderColor: colors.bracketRanker },
   // 반복 효과는 motion.cycle 한 주기에 묶고, 동작 줄이기 설정에서는 멈춘다.

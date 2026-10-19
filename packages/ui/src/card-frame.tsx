@@ -18,7 +18,7 @@ export type CardFrameProps = Omit<HTMLAttributes<HTMLElement>, 'className' | 'st
 const bracketTones: Record<Exclude<CardFrameState, 'waiting'>, CornerBracketsTone> = {
   default: 'default',
   selected: 'selected',
-  failure: 'danger',
+  failure: 'failure',
   top: 'top',
   ranker: 'ranker'
 }
@@ -56,6 +56,5 @@ function CardFrameImpl({
 }
 
 // 카드 면과 상태 꺾쇠. 상태 색은 꺾쇠로만 보이고 테두리 전체를 칠하지 않는다.
-// 실패의 사선은 카드 면이 아니라 그림 칸에만 깔므로 화면이 그림 칸에 shapes.hazardStripes를 합성한다.
 // 상위와 랭커는 motion.cycle 한 주기에 한 번 빛줄기가 카드를 지나가고, 랭커는 카드에 스캔선을 깐다.
 export const CardFrame: ComponentType<CardFrameProps> = CardFrameImpl

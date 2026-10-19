@@ -163,3 +163,18 @@ it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬�
   await act(async () => findRetry().click())
   expect(retry).toHaveBeenCalledExactlyOnceWith(0)
 })
+
+it('슬롯 번호대로 스냅샷 표시를 그 슬롯의 카드에 전한다', async () => {
+  await render({
+    slots: ['success', 'success', 'success', 'idle'],
+    characters: [character, character, character],
+    snapshotMarks: [undefined, { kind: 'moved', seat: 1 }, { kind: 'absent' }]
+  })
+
+  const slots = [...container.querySelectorAll('article')]
+  expect(
+    slots.map((slot) =>
+      slot.querySelector('[role="img"][aria-label^="스냅샷"]')?.getAttribute('aria-label')
+    )
+  ).toEqual([undefined, '스냅샷 순번 1', '스냅샷에 없는 모험단', undefined])
+})

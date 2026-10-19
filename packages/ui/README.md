@@ -7,7 +7,7 @@
 | Component | 바탕 | 요약 |
 | --- | --- | --- |
 | `Button` | native `button` | `variant` `primary`, `secondary`(기본), `ghost`, `danger`와 `size` `sm`, `md`(기본), `lg`(32, 40, 48px). `primary`는 신호색 면에 오른쪽 위 8px를 자른다. `loading`은 진행 원을 겹치고 클릭을 막지 않는다. |
-| `IconButton` | native `button` | 회색 면 없이 hover 때 아이콘이 밝아진다. `aria-label`, `icon` 필수, `size` `sm` 32, `md` 40, `bar` 36(상단 바 도구 버튼, 아이콘 20), `lg` 48(화면 머리 도구 버튼, 아이콘 24. `bg.inset` 면에 오른쪽 위를 자르고 포커스 선을 면 안쪽에 그린다). |
+| `IconButton` | native `button` | 회색 면 없이 hover 때 아이콘이 밝아진다. `aria-label`, `icon` 필수, `size` `sm` 32, `md` 40, `bar` 36(상단 바 도구 버튼, 아이콘 20), `lg` 48(화면 머리 도구 버튼, 아이콘 24. `bg.inset` 면에 오른쪽 위를 자르고 포커스 선을 면 안쪽에 그린다). `pressed`를 주면 켜고 끄는 토글로 `aria-pressed`를 전하고 켜진 동안 아이콘과 안쪽 2px 선이 신호색이다. |
 | `TextField`, `TextFieldInput` | `Field`, `Input` | label, 설명, 오류(`invalid`일 때)를 입력에 연결한다. `value`, `onValueChange({ value })`, `size` `sm`, `md`, `lg`. 입력 요소 합성은 `render`. |
 | `Select` | `Select` | `Root`, `Trigger`(칩, `size` `xs`, `sm`, `md`), `Value`, `Popup`(Portal, Positioner, Popup, List), `Item`, `ItemText`, `Group`, `GroupLabel`, `Separator`. 캐릭터 카드 위에서는 `Trigger`와 `Popup`에 `surface="card"`를 넘겨 라이트 모드에서도 `card*` 토큰으로 그린다. |
 | `Menu` | `Menu` | `Root`, `Trigger`(외형 없음, `render`로 연결), `Popup`, `Item`, `RadioGroup`, `RadioItem`, `Group`, `GroupLabel`, `Separator`. |
@@ -18,7 +18,7 @@
 | `StatusChip` | `span` | tone `neutral`(`fg.subtle`), `success`, `danger`, `warning`(주의, `fg.warning`), `signal`(진행 중인 일)이고, 모두 글자색 사각 점과 같은 색 12% 안팎의 옅은 면이다. `success` 점은 박자 두 번 주기로 깜박인다. `busy`면 사각 점 대신 `StepDots`를 둔다. `size` `sm`은 높이 24, `md`는 상단 바 게임 연결 상태의 높이 28이며 둘 다 오른쪽 위를 자른다. 상태 변화를 알릴 곳만 `role="status"`를 넘긴다. |
 | `StepDots` | plain | 글자색 사각 점 세 개가 `motion.beat`마다 `steps()`로 차례로 켜진다. `size` 4(상태 칩 안, 3px 간격)와 5(목록 안내, 4px 간격). 동작 줄이기에서는 모두 켠 채 멈추고, 보조 기술에는 숨긴다. |
 | `LoadingIndicator`, `ProgressCircle` | 자체 SVG | 값이 없으면 `steps()`로 끊어 도는 호, 있으면 진행 호. |
-| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700. `surface="signal"`은 주 버튼 안의 키캡으로 버튼 글자색과 그 55% 외곽선을 쓴다), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 꺾쇠만 바꾸고 사선은 화면이 그림 칸에 `shapes.hazardStripes`로 깐다. `top`, `ranker`는 `motion.cycle` 주기의 6~30%에 옅은 단계 색 빛줄기가 카드를 지나가고, `ranker`는 카드에 `shapes.scanlines`를 깐다. 동작 줄이기에서는 빛줄기를 그리지 않는다), Barlow Condensed 숫자와 400ms 증가. |
+| `Kbd`, `CornerBrackets`, `CardFrame`, `NumericText` | plain | 단축키(22px 키캡, Barlow Condensed 14 700. `surface="signal"`은 주 버튼 안의 키캡으로 버튼 글자색과 그 55% 외곽선을 쓴다), 네 모서리 꺾쇠(`selected`는 박자 두 번마다 바깥 4px에서 조여 든다), 카드 상태(`default`, `selected`, `failure`, `waiting`, `top`, `ranker`. `failure`는 노란 꺾쇠(`bracketFailure`)로 보이고 그림 칸은 바꾸지 않는다. `top`, `ranker`는 `motion.cycle` 주기의 6~30%에 옅은 단계 색 빛줄기가 카드를 지나가고, `ranker`는 카드에 `shapes.scanlines`를 깐다. 동작 줄이기에서는 빛줄기를 그리지 않는다), Barlow Condensed 숫자와 400ms 증가. |
 | `ContentStack`, `ExampleSection`, `SupportingText` | plain | 예제와 단순 화면의 세로 묶음, 제목, 보조 글자. |
 | `Typo` | plain | 아래 [Typo](#typo). |
 
@@ -32,7 +32,7 @@ DFragon 디자인 토큰은 CSS custom property와 StyleX 상수 두 형태로 �
 
 - `@dfragon/ui/tokens.css`: `--df-*` 변수. `:root`가 다크 기본값, `:root[data-theme='light']`가 라이트 값이며 `prefers-reduced-motion: reduce`에서 `--df-dur-*`를 0으로 둔다. `color-scheme`도 같은 선택자에서 `dark`, `light`로 정해 스크롤 막대 같은 브라우저 기본 부품이 모드를 따른다. `data-theme`이 없으면 다크다. Library JS는 이 파일을 import하지 않는다.
 - `@dfragon/ui/tokens.stylex`: `colors`, `space`, `radius`, `shape`, `size`, `motion`, `font`. `stylex.defineConsts`로 `'var(--df-…)'` 문자열을 정의하며 `defineVars`, `createTheme`를 쓰지 않으므로 모드 전환은 CSS만으로 끝난다. StyleX compiler는 import 경로가 `.stylex`로 끝나는 파일의 `defineConsts`만 다른 파일에서 읽으므로 export 이름에 `.stylex`를 둔다. Package export는 source(`src/tokens.stylex.ts`)를 가리켜 소비 앱이 library를 먼저 빌드하지 않아도 compiler가 해석한다. 컴파일 없이 실행하면 `defineConsts`가 오류를 낸다.
-- `shapes`: 기본 entry의 공용 `stylex.create`. `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`.
+- `shapes`: 기본 entry의 공용 `stylex.create`. `cutTopRight`, `cutBottomRight`, `gridWell`, `alertHatch`, `scanlines`, `srOnly`.
 
 Library build는 `tokens.stylex`를 별도 entry로 두어 `dist/tokens.stylex.js`에 남기고 `index.js`가 이 파일을 import한다. Compiler는 `defineConsts` 결과가 같은 이름으로 export될 때만 받아들이므로 library build는 식별자를 줄이지 않는다(`minify: false`).
 

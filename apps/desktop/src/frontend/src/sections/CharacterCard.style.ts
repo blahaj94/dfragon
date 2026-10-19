@@ -116,8 +116,8 @@ export const styles = stylex.create({
     ...numeric,
     fontSize: 18,
     fontWeight: 700,
-    backgroundColor: colors.bgDangerWeak,
-    color: colors.fgDanger
+    backgroundColor: colors.cardFailureWeak,
+    color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
   detail: {
@@ -314,7 +314,7 @@ export const styles = stylex.create({
     '::placeholder': { color: colors.cardFgSubtle }
   },
   nameWaiting: { borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bgWell },
-  nameFailure: { borderColor: colors.fgDanger },
+  nameFailure: { borderColor: colors.cardFailure },
   nameSelected: { borderWidth: 2, borderColor: colors.cardSignal, backgroundColor: colors.bgWell },
   collapsible: {
     ...collapseTransition,

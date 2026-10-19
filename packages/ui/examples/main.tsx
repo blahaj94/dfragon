@@ -241,14 +241,7 @@ function Examples() {
             {cardStates.map(({ state, label }) => (
               <CardFrame key={state} state={state} as="article" aria-label={label}>
                 <div {...stylex.props(styles.card)}>
-                  {/* 실패 사선은 카드 면이 아니라 그림 칸에만 깐다. */}
-                  <div
-                    {...stylex.props(
-                      styles.well,
-                      shapes.gridWell,
-                      state === 'failure' && shapes.hazardStripes
-                    )}
-                  />
+                  <div {...stylex.props(styles.well, shapes.gridWell)} />
                   <SupportingText>{label}</SupportingText>
                   <NumericText value={125850} />
                 </div>

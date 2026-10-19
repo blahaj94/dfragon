@@ -650,6 +650,22 @@ describe('IconButton의 이름, 클릭, disabled와 Dialog trigger 연결', () =
     )
   })
 
+  it('pressed 값을 주면 aria-pressed로 켜짐을 전하고 켜진 버튼은 다른 외형을 쓴다', async () => {
+    await render(
+      <>
+        <IconButton aria-label="꺼짐" size="lg" pressed={false} icon={<SettingsIcon />} />
+        <IconButton aria-label="켜짐" size="lg" pressed icon={<SettingsIcon />} />
+        <IconButton aria-label="토글 아님" size="lg" icon={<SettingsIcon />} />
+      </>
+    )
+
+    expect(getByRole('button', '꺼짐').getAttribute('aria-pressed')).toBe('false')
+    expect(getByRole('button', '켜짐').getAttribute('aria-pressed')).toBe('true')
+    expect(getByRole('button', '토글 아님').hasAttribute('aria-pressed')).toBe(false)
+    expect(getByRole('button', '켜짐').className).not.toBe(getByRole('button', '꺼짐').className)
+    expect(getByRole('button', '꺼짐').className).toBe(getByRole('button', '토글 아님').className)
+  })
+
   it('DialogContent lg는 기본 sm과 다른 외형을 쓴다', async () => {
     await render(
       <>

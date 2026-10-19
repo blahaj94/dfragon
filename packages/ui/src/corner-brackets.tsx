@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { styles } from './corner-brackets.style'
 
-export type CornerBracketsTone = 'default' | 'selected' | 'danger' | 'top' | 'ranker'
+export type CornerBracketsTone = 'default' | 'selected' | 'failure' | 'top' | 'ranker'
 
 export type CornerBracketsProps = {
   /**
