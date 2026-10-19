@@ -463,6 +463,23 @@ it('조회 중, 실패, 결과 0건은 자리마다 따로 보이고 실패 안�
   expect(card(7).querySelector<HTMLButtonElement>('[aria-label$="상세 열기"]')?.disabled).toBe(true)
 })
 
+it('찾은 카드에 추정 안내가 있으면 스탯 한 줄 대신 안내를 보이고 확정한 카드는 안내 없이 스탯 줄을 보인다', async () => {
+  const notices: (string | undefined)[] = Array.from({ length: 12 }, () => undefined)
+  notices[1] = '장비 점수로 추정한 후보입니다.'
+  await render({
+    characters: [member, member],
+    slots: ['success', 'success', ...idle.slice(2)],
+    slotNotices: notices
+  })
+
+  const card = (index: number): HTMLElement => seats()[index].querySelector('article')!
+  expect(card(0).querySelector('p')).toBeNull()
+  expect(card(0).querySelectorAll('dl')).toHaveLength(2)
+  expect(card(1).querySelector('p')?.textContent).toBe('장비 점수로 추정한 후보입니다.')
+  // 안내가 스탯 한 줄 자리를 쓰므로 명성과 장비 점수 줄만 남는다.
+  expect(card(1).querySelectorAll('dl')).toHaveLength(1)
+})
+
 it('공대 카드의 장비 점수와 서버 순위는 카드 값에서 오고 계산값이나 계산하지 못한 사유를 보조 기술에 전한다', async () => {
   await render({
     characters: [

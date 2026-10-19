@@ -73,6 +73,15 @@ describe('toSlotCards', () => {
     expect(pending.notice).toBeUndefined()
   })
 
+  it('공대 화면은 최고 명성 선택에 직업과 수치 안내를, 파티 화면은 외형 안내를 쓴다', () => {
+    const slots = [slot('success', { selected: summary, selectionMethod: 'highest-fame' })]
+
+    expect(toSlotCards(input(slots, { screen: 'raid' }))[0].notice).toBe(
+      '직업과 수치 미확인, 최고 명성 후보입니다.'
+    )
+    expect(toSlotCards(input(slots))[0].notice).toBe('외형 미확인, 최고 명성 후보입니다.')
+  })
+
   it('인식하는 동안 직접 조회하지 않은 슬롯만 진행 중으로 보인다', () => {
     const slots = [slot('idle'), slot('idle')]
     const manualSlots = [true, false]
