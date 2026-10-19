@@ -22,33 +22,36 @@ it('수치 글자 sprite를 0~9, 쉼표, 마침표, K 순서로 잘라 판독기
   expect(() => readDNFRaidParticipantValues(frame, [], glyphs)).not.toThrow()
 })
 
-it('잘라 낸 글자를 수치 칸에 이어 그리면 판독기가 같은 표기로 읽는다', () => {
-  const glyphs = sliceRaidValueGlyphs(readSprite())
-  const text = '12,345.6K'
-  // 수치 칸(UI 0%, 75×17)을 글자 배경색으로 채운 뒤 글자를 왼쪽부터 붙인다.
-  const width = 75
-  const height = 17
-  const rgba = new Uint8Array(width * height * 4)
-  const background = glyphs[0].image.rgba.subarray(0, 4)
-  for (let offset = 0; offset < rgba.length; offset += 4) {
-    rgba.set(background, offset)
-  }
-  let left = 0
-  for (const character of text) {
-    const glyph = glyphs.find((entry) => entry.character === character)!.image
-    for (let y = 0; y < height; y += 1) {
-      const row = glyph.rgba.subarray(y * glyph.width * 4, (y + 1) * glyph.width * 4)
-      rgba.set(row, (y * width + left) * 4)
+// 두 표기로 sprite의 13글자를 모두 한 번 이상 그린다.
+it.each(['12,345.6K', '7,890'])(
+  '잘라 낸 글자로 수치 칸에 %s를 그리면 판독기가 같은 표기로 읽는다',
+  (text) => {
+    const glyphs = sliceRaidValueGlyphs(readSprite())
+    // 수치 칸(UI 0%, 75×17)을 글자 배경색으로 채운 뒤 글자를 왼쪽부터 붙인다.
+    const width = 75
+    const height = 17
+    const rgba = new Uint8Array(width * height * 4)
+    const background = glyphs[0].image.rgba.subarray(0, 4)
+    for (let offset = 0; offset < rgba.length; offset += 4) {
+      rgba.set(background, offset)
     }
-    left += glyph.width
-  }
-  const region = { x: 0, y: 0, width, height }
-  const rows = [{ row: 1 as const, occupied: true, equipmentScoreRegion: region }]
+    let left = 0
+    for (const character of text) {
+      const glyph = glyphs.find((entry) => entry.character === character)!.image
+      for (let y = 0; y < height; y += 1) {
+        const row = glyph.rgba.subarray(y * glyph.width * 4, (y + 1) * glyph.width * 4)
+        rgba.set(row, (y * width + left) * 4)
+      }
+      left += glyph.width
+    }
+    const region = { x: 0, y: 0, width, height }
+    const rows = [{ row: 1 as const, occupied: true, equipmentScoreRegion: region }]
 
-  expect(readDNFRaidParticipantValues({ width, height, rgba }, rows, glyphs)).toEqual([
-    { row: 1, valueText: text }
-  ])
-})
+    expect(readDNFRaidParticipantValues({ width, height, rgba }, rows, glyphs)).toEqual([
+      { row: 1, valueText: text }
+    ])
+  }
+)
 
 it('표와 폭이 다른 sprite는 자르지 않는다', () => {
   const sprite = readSprite()
