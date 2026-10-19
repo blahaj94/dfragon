@@ -207,8 +207,9 @@ export function createCharacterCandidatesHttp({
 
 /** 검증한 식별자로 고정 네오플 캐릭터 이미지 경로를 구성해 다운로드한다. */
 export function createCharacterImageHttp({
-  fetch: transport = fetchApi
-}: TransportOptions = {}): CharacterImageHttp {
+  fetch: transport = fetchApi,
+  clock
+}: TransportOptions & { clock?: Pick<AuthClock, 'read'> } = {}): CharacterImageHttp {
   const client = createCharacterHttpClient(transport)
 
   return async ({ serverId, characterId, signal }) => {
@@ -220,8 +221,15 @@ export function createCharacterImageHttp({
         headers: { Accept: 'image/png' },
         signal
       })
+      const receivedAt = clock?.read().monotonicMs ?? performance.now()
       if (response.status !== 200) {
         await response.body?.cancel().catch(() => undefined)
+        if (response.status === 429) {
+          throw new SearchHttpFailure('SEARCH_RATE_LIMITED', {
+            retryAfterSeconds: parseCharacterRetryAfter(response.headers.get('Retry-After')),
+            retryAfterReceivedAt: receivedAt
+          })
+        }
         throw new SearchHttpFailure('NEOPLE_API_ERROR')
       }
       const bytes = await readCharacterResponseBody(

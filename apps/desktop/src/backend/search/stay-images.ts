@@ -10,6 +10,7 @@ import {
   readCharacterResponseBody,
   throwCharacterTransportFailure
 } from './character-response'
+import { CompletedCache } from './completed-cache'
 import { SearchHttpFailure } from './http'
 
 const CATALOG_ORIGIN = 'https://bbscdn.df.nexon.com'
@@ -97,63 +98,6 @@ type CatalogRow = z.infer<typeof catalogSchema>[number]
 type CatalogValue =
   | { kind: 'avatar'; rows: readonly CatalogRow[] }
   | { kind: 'animation'; motions: readonly string[] }
-type CacheEntry<T> = { value: T; bytes: number; expiresAt: number }
-
-/** 완료한 성공값만 공유하므로 서로 다른 호출자의 취소 신호를 묶지 않는다. */
-class CompletedCache<T> {
-  private readonly entries = new Map<string, CacheEntry<T>>()
-  private bytes = 0
-
-  constructor(
-    private readonly maximumEntries: number,
-    private readonly ttlMs: number
-  ) {}
-
-  read(key: string): T | undefined {
-    const entry = this.entries.get(key)
-    if (!entry) {
-      return undefined
-    }
-
-    if (performance.now() >= entry.expiresAt) {
-      this.remove(key, entry)
-
-      return undefined
-    }
-    this.entries.delete(key)
-    this.entries.set(key, entry)
-
-    return entry.value
-  }
-
-  write(key: string, value: T, bytes: number): void {
-    const now = performance.now()
-    for (const [storedKey, entry] of this.entries) {
-      if (storedKey === key || now >= entry.expiresAt) {
-        this.remove(storedKey, entry)
-      }
-    }
-    if (bytes > CACHE_MAX_BYTES) {
-      return
-    }
-    while (this.entries.size >= this.maximumEntries || this.bytes + bytes > CACHE_MAX_BYTES) {
-      const oldest = this.entries.entries().next().value
-      if (!oldest) {
-        break
-      }
-      this.remove(oldest[0], oldest[1])
-    }
-    const expiresAt = now + this.ttlMs
-    this.entries.set(key, { value, bytes, expiresAt })
-    this.bytes += bytes
-  }
-
-  private remove(key: string, entry: CacheEntry<T>): void {
-    this.entries.delete(key)
-    this.bytes -= entry.bytes
-  }
-}
-
 type StayResources = {
   catalog: (job: number, part: ShowroomPart, signal: AbortSignal) => Promise<readonly CatalogRow[]>
   motions: (job: number, signal: AbortSignal) => Promise<readonly string[]>
@@ -179,8 +123,16 @@ async function requireShowroomSuccess(response: Response): Promise<void> {
 
 function createStayResources(transport: typeof fetch): StayResources {
   const client = createCharacterHttpClient(transport)
-  const catalogs = new CompletedCache<CatalogValue>(CATALOG_CACHE_ENTRIES, CATALOG_CACHE_TTL_MS)
-  const renders = new CompletedCache<CharacterImage>(RENDER_CACHE_ENTRIES, RENDER_CACHE_TTL_MS)
+  const catalogs = new CompletedCache<CatalogValue>({
+    maximumEntries: CATALOG_CACHE_ENTRIES,
+    maximumBytes: CACHE_MAX_BYTES,
+    ttlMs: CATALOG_CACHE_TTL_MS
+  })
+  const renders = new CompletedCache<CharacterImage>({
+    maximumEntries: RENDER_CACHE_ENTRIES,
+    maximumBytes: CACHE_MAX_BYTES,
+    ttlMs: RENDER_CACHE_TTL_MS
+  })
 
   async function readCatalog(
     job: number,
