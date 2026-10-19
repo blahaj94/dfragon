@@ -1,20 +1,21 @@
-import { setImmediate } from 'node:timers/promises'
 import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
+import {
+  ALPHA_CHANNEL,
+  createSearchBudget,
+  findOpaqueBounds,
+  PORTRAIT_MATCH_LIMITS,
+  RGBA_CHANNELS,
+  rasterizePortrait,
+  type SearchBudget,
+  shouldYield,
+  validateImage,
+  yieldSearch
+} from './portrait-raster'
 
-const RGBA_CHANNELS = 4
+export { PORTRAIT_MATCH_LIMITS, PortraitMatchBudgetExceededError } from './portrait-raster'
+
 const RGB_CHANNELS = 3
-const ALPHA_CHANNEL = 3
 const MAX_CHANNEL_VALUE = 255
-const PIXEL_CENTER = 0.5
-
-/** 계산량 한도이며 캐릭터 일치 여부를 결정하는 허용 오차가 아니다. */
-export const PORTRAIT_MATCH_LIMITS = {
-  imageDimension: 2048,
-  imagePixels: 1024 * 1024,
-  normalizedDimension: 256,
-  evaluatedPixels: 32 * 1024 * 1024,
-  workPerYield: 16 * 1024
-} as const
 
 export type PortraitScore = Readonly<{
   meanChannelError: number
@@ -38,105 +39,25 @@ type PortraitMatchInput = Readonly<{
 }>
 type Sample = Readonly<{ x: number; y: number; red: number; green: number; blue: number }>
 type NormalizedPortrait = Readonly<{ width: number; height: number; samples: readonly Sample[] }>
-type OpaqueBounds = Readonly<{ left: number; top: number; right: number; bottom: number }>
-type SearchBudget = { evaluatedPixels: number; workSinceYield: number }
-
-export class PortraitMatchBudgetExceededError extends Error {
-  constructor() {
-    super('Portrait comparison exceeded its pixel evaluation budget')
-    this.name = 'PortraitMatchBudgetExceededError'
-  }
-}
-
-function validateImage(image: CharacterImage): void {
-  if (
-    image == null ||
-    !Number.isSafeInteger(image.width) ||
-    !Number.isSafeInteger(image.height) ||
-    image.width < 1 ||
-    image.height < 1 ||
-    image.width > PORTRAIT_MATCH_LIMITS.imageDimension ||
-    image.height > PORTRAIT_MATCH_LIMITS.imageDimension ||
-    image.width * image.height > PORTRAIT_MATCH_LIMITS.imagePixels ||
-    !(image.rgba instanceof Uint8Array) ||
-    image.rgba.length !== image.width * image.height * RGBA_CHANNELS
-  ) {
-    throw new TypeError('Invalid character portrait image')
-  }
-}
-
-function shouldYield(budget: SearchBudget, comparing = false): boolean {
-  if (comparing) {
-    budget.evaluatedPixels += 1
-    if (budget.evaluatedPixels > PORTRAIT_MATCH_LIMITS.evaluatedPixels) {
-      throw new PortraitMatchBudgetExceededError()
-    }
-  }
-  budget.workSinceYield += 1
-
-  return budget.workSinceYield >= PORTRAIT_MATCH_LIMITS.workPerYield
-}
-
-async function yieldSearch(budget: SearchBudget, signal: AbortSignal): Promise<void> {
-  await setImmediate()
-  signal.throwIfAborted()
-  budget.workSinceYield = 0
-}
 
 async function normalizePortrait(
   portrait: CharacterPortrait,
   budget: SearchBudget,
   signal: AbortSignal
 ): Promise<NormalizedPortrait | null> {
-  if (portrait == null || !Number.isFinite(portrait.rasterScale) || portrait.rasterScale <= 0) {
-    throw new TypeError('Invalid portrait raster scale')
-  }
-  validateImage(portrait.image)
-  const { image, rasterScale, validMask } = portrait
-  const width = Math.round(image.width / rasterScale)
-  const height = Math.round(image.height / rasterScale)
-  if (
-    width < 1 ||
-    height < 1 ||
-    width > PORTRAIT_MATCH_LIMITS.normalizedDimension ||
-    height > PORTRAIT_MATCH_LIMITS.normalizedDimension
-  ) {
-    throw new RangeError('Normalized portrait dimensions exceed the supported range')
-  }
-
-  if (validMask !== undefined) {
-    if (!(validMask instanceof Uint8Array) || validMask.length !== image.width * image.height) {
-      throw new TypeError('Invalid portrait mask dimensions')
-    }
-    for (const value of validMask) {
-      if (value !== 0 && value !== 1) {
-        throw new TypeError('Portrait mask values must be zero or one')
-      }
-
-      if (shouldYield(budget)) {
-        await yieldSearch(budget, signal)
-      }
-    }
-  }
-
+  const { width, height, rgba, valid } = await rasterizePortrait(portrait, budget, signal)
   const samples: Sample[] = []
   let informative = false
-  // 최근접 샘플링으로 원본 픽셀을 보존한다. 좌표와 UI 배율 추정은 크롭 제공자의 책임이다.
   for (let y = 0; y < height; y += 1) {
-    const sourceY = Math.min(image.height - 1, Math.floor((y + PIXEL_CENTER) * rasterScale))
     for (let x = 0; x < width; x += 1) {
-      if (shouldYield(budget)) {
-        await yieldSearch(budget, signal)
-      }
-      const sourceX = Math.min(image.width - 1, Math.floor((x + PIXEL_CENTER) * rasterScale))
-      const pixel = sourceY * image.width + sourceX
-      const offset = pixel * RGBA_CHANNELS
-      if (image.rgba[offset + ALPHA_CHANNEL] === 0 || validMask?.[pixel] === 0) {
+      const pixel = y * width + x
+      if (valid[pixel] === 0) {
         continue
       }
-      const red = image.rgba[offset]
-      const green = image.rgba[offset + 1]
-      const blue = image.rgba[offset + 2]
+      const offset = pixel * RGBA_CHANNELS
+      const red = rgba[offset]
+      const green = rgba[offset + 1]
+      const blue = rgba[offset + 2]
       const first = samples[0]
       if (first && (red !== first.red || green !== first.green || blue !== first.blue)) {
         informative = true
@@ -152,44 +73,13 @@ async function normalizePortrait(
   return { width, height, samples }
 }
 
-async function findOpaqueBounds(
-  candidate: CharacterImage,
-  budget: SearchBudget,
-  signal: AbortSignal
-): Promise<OpaqueBounds | null> {
-  let left = candidate.width
-  let top = candidate.height
-  let right = -1
-  let bottom = -1
-  for (let y = 0; y < candidate.height; y += 1) {
-    for (let x = 0; x < candidate.width; x += 1) {
-      if (shouldYield(budget)) {
-        await yieldSearch(budget, signal)
-      }
-      const offset = (y * candidate.width + x) * RGBA_CHANNELS
-      if (candidate.rgba[offset + ALPHA_CHANNEL] !== 0) {
-        left = Math.min(left, x)
-        top = Math.min(top, y)
-        right = Math.max(right, x)
-        bottom = Math.max(bottom, y)
-      }
-    }
-  }
-
-  if (right < left) {
-    return null
-  }
-
-  return { left, top, right, bottom }
-}
-
 async function findPortraitAlignment(
   { portrait, candidate, signal }: PortraitMatchInput,
   policy?: PortraitMatchPolicy
 ): Promise<PortraitScore | null> {
   signal.throwIfAborted()
   validateImage(candidate)
-  const budget: SearchBudget = { evaluatedPixels: 0, workSinceYield: 0 }
+  const budget = createSearchBudget()
   const normalized = await normalizePortrait(portrait, budget, signal)
   signal.throwIfAborted()
   if (normalized == null) {
