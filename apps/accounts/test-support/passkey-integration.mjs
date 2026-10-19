@@ -121,14 +121,8 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         })
       ).authenticatorId
     let authenticator = await newAuthenticator()
-    let manualReturn = false
-    await context.route('http://127.0.0.1:*/auth/callback?*', (route) => {
-      if (!manualReturn) {
-        return route.abort('aborted')
-      }
-
-      return route.fulfill({ status: 200, contentType: 'text/html', body: '<p>로그인 완료</p>' })
-    })
+    // 앱 수신기가 없으므로 복귀 이동을 막아 인증 완료 페이지에 남긴다.
+    await context.route('http://127.0.0.1:*/auth/callback?*', (route) => route.abort('aborted'))
     let nextReturnPort = 49152
     const post = (path, body, headers = {}) =>
       context.request.post(`${origin}${path}`, { data: body, headers })
@@ -155,7 +149,6 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         'SELECT return_url FROM auth_login_requests WHERE id=$1',
         [input.requestId]
       )
-      manualReturn = false
       const automatic = page.waitForRequest((request) =>
         request.url().startsWith(stored.return_url + '?')
       )
@@ -166,15 +159,16 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         await page.locator('#complete').getByText('인증 완료', { exact: true }).count(),
         1
       )
-      const href = await page.locator('#return').getAttribute('href')
-      assert.equal(await page.locator('#return').textContent(), '앱으로 돌아가기')
-      assert.equal(returned.url(), href)
+      assert.equal(
+        await page.locator('#complete [role="timer"]').getAttribute('aria-label'),
+        '5초 뒤에 페이지가 닫힙니다'
+      )
+      assert.equal(await page.locator('#complete a, #complete button').count(), 0)
+      const href = returned.url()
       const code = new URL(href).searchParams.get('code')
       assert.equal(href, `${stored.return_url}?code=${code}`)
       assert.equal(Buffer.from(code, 'base64url').length, 32)
       assert.equal(Buffer.from(code, 'base64url').toString('base64url'), code)
-      manualReturn = true
-      await Promise.all([page.waitForURL(href), page.locator('#return').click()])
 
       return { ...input, code }
     }
@@ -282,16 +276,6 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
       '새 계정 만들기'
     ])
     const usersBeforeSignup = await source.query('SELECT count(*)::int AS n FROM users')
-    await page.locator('#register').click()
-    await page.locator('#signup-heading').waitFor({ state: 'visible' })
-    assert.deepEqual(await page.getByRole('button').allTextContents(), ['패스키로 회원가입'])
-    assert.equal(
-      await page
-        .locator('#signup-heading')
-        .evaluate((el) => el === globalThis.document.activeElement),
-      true
-    )
-    assert.deepEqual(await source.query('SELECT count(*)::int AS n FROM users'), usersBeforeSignup)
     await page.evaluate(() => {
       const create = navigator.credentials.create.bind(navigator.credentials)
       navigator.credentials.create = () => {
@@ -300,19 +284,23 @@ export async function assertPasskeyIntegration(source, mark = () => {}) {
         return Promise.reject(new DOMException('Cancelled', 'NotAllowedError'))
       }
     })
-    await page.locator('#signup-passkey').click()
+    // 새 계정 만들기는 회원가입 페이지 없이 그 자리에서 패스키 등록을 시작한다.
+    await page.locator('#register').click()
     await page
       .getByText('인증이 취소되었거나 시간이 지났습니다. 다시 시도해 주세요.', { exact: true })
       .waitFor()
-    assert.equal(await page.locator('#signup').isVisible(), true)
+    assert.deepEqual(await page.getByRole('button').allTextContents(), [
+      '패스키로 로그인',
+      '새 계정 만들기'
+    ])
     assert.deepEqual(await source.query('SELECT count(*)::int AS n FROM users'), usersBeforeSignup)
     if (process.env.DFRAGON_PASSKEY_ARTIFACTS) {
       await page.screenshot({
-        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'passkey-signup.png'),
+        path: join(process.env.DFRAGON_PASSKEY_ARTIFACTS, 'passkey-login.png'),
         fullPage: true
       })
     }
-    const registered = await complete(first, 'signup-passkey')
+    const registered = await complete(first, 'register')
     const exchanges = await Promise.all([
       post('/auth/exchange', registered),
       post('/auth/exchange', registered)

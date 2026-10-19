@@ -46,7 +46,6 @@ type Passkey = {
 type Verification = { managed: true } | { returnUrl: string }
 type Screen =
   | { kind: 'entry' }
-  | { kind: 'signup' }
   | { kind: 'management'; keys: Passkey[] }
   | { kind: 'complete'; returnUrl: string }
   | { kind: 'ended' }
@@ -72,16 +71,63 @@ async function api<T>(action: string, values: Record<string, unknown> = {}): Pro
   return body
 }
 
-function entryDescription() {
-  if (management) {
-    return '관리할 계정의 패스키로 다시 인증해 주세요.'
-  }
+type PanelTone = 'default' | 'danger' | 'success'
+
+const CLOSE_COUNTDOWN_SECONDS = 5
+const PANEL_CORNERS = [
+  styles.cornerTopLeft,
+  styles.cornerTopRight,
+  styles.cornerBottomLeft,
+  styles.cornerBottomRight
+]
+const CORNER_TONE_STYLES = {
+  default: null,
+  danger: styles.cornerDanger,
+  success: styles.cornerSuccess
+} satisfies Record<PanelTone, unknown>
+
+function PanelCorners({ tone }: { tone: PanelTone }) {
+  const toneStyle = CORNER_TONE_STYLES[tone]
+
+  return PANEL_CORNERS.map((position, index) => (
+    <span key={index} aria-hidden="true" {...stylex.props(styles.corner, position, toneStyle)} />
+  ))
+}
+
+/** 숫자는 1초마다 줄이고 막대는 같은 5초 CSS 애니메이션으로 줄인다. 둘 다 화면에 들어올 때 시작한다. */
+function CloseCountdown() {
+  const [remaining, setRemaining] = useState(CLOSE_COUNTDOWN_SECONDS)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setRemaining((value) => Math.max(value - 1, 0))
+    }, 1000)
+    const stop = window.setTimeout(
+      () => window.clearInterval(timer),
+      CLOSE_COUNTDOWN_SECONDS * 1000
+    )
+
+    return () => {
+      window.clearInterval(timer)
+      window.clearTimeout(stop)
+    }
+  }, [])
 
   return (
     <>
-      아이디, 비밀번호 없이 패스키로 로그인합니다.
-      <br />
-      휴대폰 패스키는 브라우저 안내에서 휴대폰을 선택하세요.
+      <p
+        role="timer"
+        aria-label={`${CLOSE_COUNTDOWN_SECONDS}초 뒤에 페이지가 닫힙니다`}
+        {...stylex.props(styles.countdown)}
+      >
+        <span aria-hidden="true" {...stylex.props(styles.countdownNumber)}>
+          {remaining}
+        </span>
+        초 뒤에 페이지가 닫힙니다.
+      </p>
+      <div aria-hidden="true" {...stylex.props(styles.closeBar)}>
+        <i {...stylex.props(styles.closeBarFill)} />
+      </div>
     </>
   )
 }
@@ -98,13 +144,6 @@ function PasskeyPage() {
   // Refs guard events and in-flight responses before React commits the next render.
   const busyRef = useRef(false)
   const endedRef = useRef(false)
-  const signupHeading = useRef<HTMLHeadingElement>(null)
-
-  useEffect(() => {
-    if (screen.kind === 'signup') {
-      signupHeading.current?.focus()
-    }
-  }, [screen.kind])
 
   useEffect(() => {
     if (screen.kind === 'complete') {
@@ -201,13 +240,20 @@ function PasskeyPage() {
     }
   }
 
-  const signup = screen.kind === 'signup'
+  const expired = status.code === LOGIN_REQUEST_INVALID_CODE
+  let tone: PanelTone = 'default'
+  if (screen.kind === 'complete') {
+    tone = 'success'
+  } else if (expired) {
+    tone = 'danger'
+  }
 
   return (
-    <div {...stylex.props(styles.page, !management && styles.authPage)} data-screen={screen.kind}>
-      {!signup && (
-        <>
-          {management && (
+    <div {...stylex.props(styles.page)} data-screen={screen.kind}>
+      <section {...stylex.props(styles.panel, !management && styles.centered)}>
+        <PanelCorners tone={tone} />
+        {management ? (
+          <>
             <div {...stylex.props(styles.brand)}>
               <img
                 {...stylex.props(styles.icon)}
@@ -220,204 +266,158 @@ function PasskeyPage() {
                 DFragon Account
               </Typo.caption>
             </div>
-          )}
-          <Typo.h3 as="h1" {...stylex.props(styles.heading, !management && styles.authHeading)}>
-            {management ? '패스키 관리' : '로그인'}
-          </Typo.h3>
-        </>
-      )}
-      {signup && (
-        <section id="signup" aria-labelledby="signup-heading">
-          <Typo.h3
-            as="h1"
-            id="signup-heading"
-            {...stylex.props(styles.authHeading)}
-            ref={signupHeading}
-            tabIndex={-1}
-          >
-            회원가입
-          </Typo.h3>
-          <Typo.txtM {...stylex.props(styles.paragraph, styles.signupIntro)}>
-            아이디, 비밀번호 없이 가입합니다.
-            <br />
-            브라우저 안내에 따라 패스키를 만드세요.
-          </Typo.txtM>
-          <div {...stylex.props(styles.signupNotice)}>
-            <Typo.txtM as="h2" weight={700} {...stylex.props(styles.noticeHeading)}>
-              이미 계정이 있다면
+            <Typo.h3 as="h1" {...stylex.props(styles.heading)}>
+              패스키 관리
+            </Typo.h3>
+          </>
+        ) : (
+          <>
+            <div {...stylex.props(styles.mark)}>
+              <i aria-hidden="true" {...stylex.props(styles.markSquare)} />
+              DFragon
+            </div>
+            <h1 {...stylex.props(styles.title)}>로그인</h1>
+          </>
+        )}
+        {screen.kind === 'entry' && management && (
+          <section id="entry">
+            <Typo.txtM {...stylex.props(styles.paragraph)}>
+              관리할 계정의 패스키로 다시 인증해 주세요.
             </Typo.txtM>
-            <Typo.txtS {...stylex.props(styles.paragraph, styles.noPadding)}>
-              기존 패스키로 로그인하세요.
-              <br />
-              새로 가입하면 별도 계정이 됩니다.
-            </Typo.txtS>
-          </div>
-          <div {...stylex.props(styles.actions, styles.signupActions)}>
-            <button
-              id="signup-passkey"
-              {...stylex.props(
-                styles.button,
-                styles.control,
-                styles.large,
-                styles.primary,
-                styles.action
-              )}
-              disabled={busy || !supportsPasskeys}
-              onClick={() => void run(() => authenticate('register'))}
-            >
-              <Typo.txtM as="span" weight={700}>
-                패스키로 회원가입
-              </Typo.txtM>
-            </button>
-          </div>
-          <Typo.txtS {...stylex.props(styles.paragraph, styles.signupRecovery)}>
-            패스키를 모두 잃으면 복구할 수 없습니다.
-            <br />
-            가입 후 예비 패스키를 추가하세요.
-          </Typo.txtS>
-        </section>
-      )}
-      {screen.kind === 'entry' && (
-        <section id="entry">
-          <Typo.txtM {...stylex.props(styles.paragraph, !management && styles.entryDescription)}>
-            {entryDescription()}
-          </Typo.txtM>
-          <div {...stylex.props(!management && styles.actions)}>
             <button
               id="authenticate"
-              {...stylex.props(
-                styles.button,
-                styles.control,
-                styles.large,
-                styles.primary,
-                !management && styles.action
-              )}
+              {...stylex.props(styles.button, styles.control, styles.large, styles.primary)}
               disabled={busy || !supportsPasskeys}
               onClick={() => void run(() => authenticate('authenticate'))}
             >
               <Typo.txtM as="span" weight={700}>
-                {management ? '패스키로 인증하기' : '패스키로 로그인'}
+                패스키로 인증하기
               </Typo.txtM>
             </button>
-          </div>
-          {!management && (
+          </section>
+        )}
+        {screen.kind === 'entry' && !management && (
+          <section id="entry" {...stylex.props(styles.loginActions)}>
+            <button
+              id="authenticate"
+              {...stylex.props(styles.control, styles.loginButton, styles.primary)}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('authenticate'))}
+            >
+              패스키로 로그인
+            </button>
             <button
               id="register"
-              {...stylex.props(
-                styles.button,
-                styles.control,
-                styles.large,
-                styles.secondary,
-                styles.register
-              )}
-              disabled={busy}
-              onClick={() => {
-                setStatus({ message: supportsPasskeys ? '' : unsupportedMessage })
-                setScreen({ kind: 'signup' })
-              }}
+              {...stylex.props(styles.control, styles.loginButton, styles.filled)}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('register'))}
+            >
+              새 계정 만들기
+            </button>
+          </section>
+        )}
+        {screen.kind === 'management' && (
+          <section id="management">
+            <Typo.txtM {...stylex.props(styles.paragraph)}>
+              예비 패스키를 추가해 두세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.
+            </Typo.txtM>
+            <ul id="keys" {...stylex.props(styles.keys)}>
+              {screen.keys.map((key, index) => (
+                <li key={key.id} {...stylex.props(styles.key)}>
+                  <Typo.txtM as="strong" weight={700}>
+                    패스키 {index + 1}
+                    {key.current ? ' · 지금 사용 중' : ''}
+                  </Typo.txtM>
+                  <Typo.txtM {...stylex.props(styles.paragraph)}>
+                    주소: {key.rpId} · 등록: {new Date(key.createdAt).toLocaleString()} · 최근 사용:{' '}
+                    {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '아직 없음'}
+                  </Typo.txtM>
+                  <button
+                    {...stylex.props(
+                      styles.button,
+                      styles.control,
+                      styles.medium,
+                      styles.secondary
+                    )}
+                    disabled={busy || screen.keys.length === 1}
+                    onClick={() => void run(() => removeKey(key))}
+                  >
+                    <Typo.txtM as="span" weight={700}>
+                      {screen.keys.length === 1 ? '마지막 패스키는 삭제할 수 없습니다' : '삭제'}
+                    </Typo.txtM>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              id="add"
+              {...stylex.props(styles.button, styles.control, styles.large, styles.primary)}
+              disabled={busy || !supportsPasskeys}
+              onClick={() => void run(() => authenticate('add'))}
             >
               <Typo.txtM as="span" weight={700}>
-                새 계정 만들기
+                예비 패스키 추가
               </Typo.txtM>
             </button>
-          )}
-        </section>
-      )}
-      {screen.kind === 'management' && (
-        <section id="management">
-          <Typo.txtM {...stylex.props(styles.paragraph)}>
-            예비 패스키를 추가해 두세요. 모든 패스키를 잃으면 계정을 복구할 수 없습니다.
-          </Typo.txtM>
-          <ul id="keys" {...stylex.props(styles.keys)}>
-            {screen.keys.map((key, index) => (
-              <li key={key.id} {...stylex.props(styles.key)}>
-                <Typo.txtM as="strong" weight={700}>
-                  패스키 {index + 1}
-                  {key.current ? ' · 지금 사용 중' : ''}
-                </Typo.txtM>
-                <Typo.txtM {...stylex.props(styles.paragraph)}>
-                  주소: {key.rpId} · 등록: {new Date(key.createdAt).toLocaleString()} · 최근 사용:{' '}
-                  {key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : '아직 없음'}
-                </Typo.txtM>
-                <button
-                  {...stylex.props(styles.button, styles.control, styles.medium, styles.secondary)}
-                  disabled={busy || screen.keys.length === 1}
-                  onClick={() => void run(() => removeKey(key))}
-                >
-                  <Typo.txtM as="span" weight={700}>
-                    {screen.keys.length === 1 ? '마지막 패스키는 삭제할 수 없습니다' : '삭제'}
-                  </Typo.txtM>
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button
-            id="add"
-            {...stylex.props(styles.button, styles.control, styles.large, styles.primary)}
-            disabled={busy || !supportsPasskeys}
-            onClick={() => void run(() => authenticate('add'))}
-          >
-            <Typo.txtM as="span" weight={700}>
-              예비 패스키 추가
+            <Typo.txtM {...stylex.props(styles.paragraph)}>
+              여기서 삭제해도 이미 로그인한 기기는 로그아웃되지 않으며, 기기의 패스키 저장소에서도
+              별도로 삭제해야 합니다.
             </Typo.txtM>
-          </button>
-          <Typo.txtM {...stylex.props(styles.paragraph)}>
-            여기서 삭제해도 이미 로그인한 기기는 로그아웃되지 않으며, 기기의 패스키 저장소에서도
-            별도로 삭제해야 합니다.
-          </Typo.txtM>
-          <button
-            id="end"
-            {...stylex.props(styles.button, styles.control, styles.large, styles.secondary)}
-            disabled={busy}
-            onClick={() =>
-              void run(async () => {
-                await api('end')
-                finish('패스키 관리를 마쳤습니다. 이 창을 닫아도 됩니다.')
-              })
-            }
-          >
-            <Typo.txtM as="span" weight={700}>
-              관리 마치기
-            </Typo.txtM>
-          </button>
-        </section>
-      )}
-      {screen.kind === 'complete' && (
-        <section id="complete">
-          <Typo.txtM {...stylex.props(styles.completeHeading)}>인증 완료</Typo.txtM>
-          <a
-            id="return"
-            {...stylex.props(
-              styles.button,
-              styles.control,
-              styles.large,
-              styles.secondary,
-              styles.returnButton
-            )}
-            href={screen.returnUrl}
-          >
-            <Typo.txtM as="span" weight={700}>
-              앱으로 돌아가기
-            </Typo.txtM>
-          </a>
-          <Typo.caption {...stylex.props(styles.paragraph, styles.returnHint)}>
-            자동으로 돌아가지 않으면 버튼을 누르세요.
-          </Typo.caption>
-        </section>
-      )}
-      <Typo.txtM
-        id="status"
-        role="status"
-        aria-live="polite"
-        {...stylex.props(
-          styles.paragraph,
-          styles.status,
-          status.code === LOGIN_REQUEST_INVALID_CODE && styles.expiredStatus,
-          !management && status.message === '' && styles.emptyStatus
+            <button
+              id="end"
+              {...stylex.props(styles.button, styles.control, styles.large, styles.secondary)}
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await api('end')
+                  finish('패스키 관리를 마쳤습니다. 이 창을 닫아도 됩니다.')
+                })
+              }
+            >
+              <Typo.txtM as="span" weight={700}>
+                관리 마치기
+              </Typo.txtM>
+            </button>
+          </section>
         )}
-      >
-        {status.message}
-      </Typo.txtM>
+        {screen.kind === 'complete' && (
+          <section id="complete" {...stylex.props(styles.completeContent)}>
+            <p {...stylex.props(styles.completeStatus)}>
+              <span aria-hidden="true" {...stylex.props(styles.completeDot)} />
+              인증 완료
+            </p>
+            <CloseCountdown />
+          </section>
+        )}
+        {management ? (
+          <Typo.txtM
+            id="status"
+            role="status"
+            aria-live="polite"
+            {...stylex.props(styles.paragraph, styles.status)}
+          >
+            {status.message}
+          </Typo.txtM>
+        ) : (
+          <div
+            {...stylex.props(styles.loginStatusRow, status.message === '' && styles.emptyStatusRow)}
+          >
+            {expired && (
+              <span aria-hidden="true" {...stylex.props(styles.alertMark)}>
+                !
+              </span>
+            )}
+            <p
+              id="status"
+              role="status"
+              aria-live="polite"
+              {...stylex.props(styles.loginStatus, expired && styles.expiredStatus)}
+            >
+              {status.message}
+            </p>
+          </div>
+        )}
+      </section>
     </div>
   )
 }
