@@ -7,6 +7,14 @@ const dotBlink = stylex.keyframes({
   '33.333%, 100%': { opacity: 0.25 }
 })
 
+// 접힌 카드에서 칸보다 긴 소속과 이름은 일정한 속도로 3초 동안 끝까지 흐르고 1초 쉰 뒤 3초 동안 돌아와
+// 1초 쉰다. 이동 거리는 글자 폭에서 감싼 칸(container) 폭을 뺀 만큼이라 칸에 들어가면 움직이지 않는다.
+const marquee = stylex.keyframes({
+  '0%': { transform: 'translateX(0)' },
+  '37.5%, 50%': { transform: 'translateX(min(0px, calc(100cqw - 100%)))' },
+  '87.5%, 100%': { transform: 'translateX(0)' }
+})
+
 // 접을 때 사라지는 부분은 높이를 상태 전환 시간에 줄이고, 불투명도는 motion.md의 예외대로 120ms
 // 직선으로 줄인다. visibility도 같은 시간 뒤 숨겨 접힌 동안 포커스와 보조 기술에서 빠진다.
 const collapseTransition = {
@@ -28,7 +36,13 @@ const numeric = {
 
 export const styles = stylex.create({
   // 그리드 칸을 채우는 자리. 카드는 펼친 동안 파티 영역 높이를 채운다.
-  slot: { display: 'grid', gridTemplateRows: 'minmax(0, 1fr)', minWidth: 0 },
+  slot: {
+    display: 'grid',
+    gridTemplateRows: 'minmax(0, 1fr)',
+    // 접힌 카드의 후보 타일처럼 줄일 수 없는 내용이 있어도 카드가 그리드 칸보다 넓어지지 않게 한다.
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    minWidth: 0
+  },
   header: {
     display: 'flex',
     alignItems: 'center',
@@ -253,6 +267,8 @@ export const styles = stylex.create({
     paddingInline: space.s16,
     paddingBottom: space.s12
   },
+  identityRow: { display: 'flex', alignItems: 'center', gap: space.s8, minWidth: 0 },
+  identityText: { display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: 0 },
   affiliation: { display: 'flex', alignItems: 'center', gap: space.s8, minWidth: 0, height: 18 },
   adventure: {
     minWidth: 0,
@@ -289,10 +305,42 @@ export const styles = stylex.create({
     transitionTimingFunction: 'linear'
   },
   jobHidden: { opacity: 0, visibility: 'hidden' },
+  marqueeBox: { flex: '1 1 0', minWidth: 0, overflow: 'hidden', containerType: 'inline-size' },
+  marqueeText: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: space.s8,
+    width: 'max-content',
+    whiteSpace: 'nowrap',
+    animationName: { default: marquee, '@media (prefers-reduced-motion: reduce)': 'none' },
+    animationDuration: '8s',
+    animationTimingFunction: 'linear',
+    animationIterationCount: 'infinite'
+  },
+  // 접힌 카드의 이름 칸 위에 흐르는 이름을 겹쳐 그린다. 누르면 아래 입력 칸이 포커스를 받는다. 좌우 10은
+  // 아래 `name`의 테두리 2와 안쪽 여백 8을 더한 값이라, 둘이 바뀌면 함께 맞춘다.
+  nameMarquee: {
+    position: 'absolute',
+    insetBlock: 0,
+    insetInline: 10,
+    display: 'flex',
+    alignItems: 'center',
+    overflow: 'hidden',
+    containerType: 'inline-size',
+    pointerEvents: 'none',
+    color: colors.cardFg
+  },
+  nameUnderMarquee: { color: 'transparent' },
   // 이름은 평소 테두리 없는 글자로 보이고, 고치는 동안 카드 신호색 상자가 된다. 글자가 모험단과 같은
   // 세로줄에 오도록 상자 안쪽 여백과 테두리만큼 왼쪽으로 내민다.
   // Typo가 요소 margin을 0으로 두므로 내미는 여백은 감싼 상자에 준다.
-  nameBox: { minWidth: 0, marginTop: 3, marginBottom: -1, marginInlineStart: -10 },
+  nameBox: {
+    position: 'relative',
+    minWidth: 0,
+    marginTop: 3,
+    marginBottom: -1,
+    marginInlineStart: -10
+  },
   name: {
     boxSizing: 'border-box',
     width: '100%',

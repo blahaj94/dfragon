@@ -53,7 +53,8 @@ export function canRetryCharacterSlot(slot: SearchSlot, retryPending: boolean): 
 
 /** 정제된 오류와 남은 재시도 대기 시간을 카드에 표시한다. */
 export function characterSlotNotice(slot: SearchSlot): string | undefined {
-  if (slot.selectionMethod === 'highest-fame') {
+  // 후보 줄이 있으면 줄이 확정하지 못했다는 표시라 같은 뜻의 문구를 겹치지 않는다.
+  if (slot.selectionMethod === 'highest-fame' && slot.choices === undefined) {
     return '외형 미확인, 최고 명성 후보입니다.'
   }
 

@@ -37,7 +37,8 @@ describe('선택 상세의 main 전용 보관 수명', () => {
           {
             ...details.character,
             fame: 50000,
-            imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1'
+            imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1',
+            adventureName: null
           }
         ],
         image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
@@ -118,7 +119,8 @@ describe('선택 상세의 main 전용 보관 수명', () => {
         {
           ...details.character,
           fame: 50000,
-          imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1'
+          imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character?zoom=1',
+          adventureName: null
         }
       ],
       image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),

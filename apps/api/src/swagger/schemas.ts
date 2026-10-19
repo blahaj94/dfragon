@@ -263,6 +263,12 @@ export const apiSchemas: Record<string, SchemaObject> = {
           format: 'uri',
           description: 'Neople 전체 캐릭터 이미지 URL. Desktop에서 파티원 얼굴 영역과 비교합니다.',
           example: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-id?zoom=1'
+        },
+        adventureName: {
+          type: 'string',
+          nullable: true,
+          description:
+            '우리 DB에 저장된 모험단명. 상세 조회로 저장된 적 없거나 조회하지 못하면 null이며 Neople을 호출하지 않습니다.'
         }
       })
     }

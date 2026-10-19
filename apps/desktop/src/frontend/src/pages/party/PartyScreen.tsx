@@ -22,7 +22,13 @@ export type PartyScreenCapture = Pick<
 > & {
   search: Pick<
     PartyCapture['search'],
-    'slots' | 'manualSlots' | 'detailNotice' | 'lookupSlot' | 'openDetails'
+    | 'slots'
+    | 'manualSlots'
+    | 'detailNotice'
+    | 'lookupSlot'
+    | 'openDetails'
+    | 'candidatePickers'
+    | 'pickCandidate'
   >
 }
 
@@ -48,7 +54,8 @@ export function PartyScreen({
     nicknames: capture.nicknames,
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
-    snapshotMarks: snapshot.marks
+    snapshotMarks: snapshot.marks,
+    pickers: search.candidatePickers
   })
 
   return (

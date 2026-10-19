@@ -58,6 +58,7 @@ async function render({
   snapshotMark,
   retryEnabled,
   retryPending,
+  picker,
   ...props
 }: RenderProps = {}): Promise<void> {
   const card = {
@@ -68,7 +69,8 @@ async function render({
     loading,
     snapshotMark,
     retryEnabled,
-    retryPending
+    retryPending,
+    picker
   }
   await act(async () => root.render(<CharacterCard slot={1} inputEnabled {...props} card={card} />))
 }
@@ -609,4 +611,116 @@ it('접힌 동안은 캐릭터 면을 보이고 펼치면 고른 면으로 돌�
   await render({ state: 'success', character: found, collapsed: false })
   expect(faceTab('기타').getAttribute('aria-selected')).toBe('true')
   expect(container.querySelector('input')).toBeNull()
+})
+
+const choices = [
+  {
+    characterId: 'cain-character',
+    characterName: '찾은이름',
+    serverId: 'cain',
+    serverName: '카인',
+    fame: 125850,
+    adventureName: '찾은모험단',
+    face: { x: 150, y: 50, width: 20, height: 20 }
+  },
+  {
+    characterId: 'siroco-character',
+    characterName: '찾은이름',
+    serverId: 'siroco',
+    serverName: '시로코',
+    fame: 90000,
+    adventureName: null,
+    face: null
+  }
+]
+
+function candidateTile(server: string): HTMLButtonElement {
+  return [...card().querySelectorAll<HTMLButtonElement>('[role="group"] button')].find((button) =>
+    button.getAttribute('aria-label')?.startsWith(server)
+  )!
+}
+
+it('후보 줄은 후보마다 얼굴 창, 모험단, 서버를 보이고 지금 보이는 후보를 눌린 상태로 둔다', async () => {
+  const pick = vi.fn()
+  await render({
+    state: 'success',
+    character: found,
+    picker: { choices, shownServerId: 'cain', previewServerId: null },
+    onPickCandidate: pick
+  })
+
+  expect(card().querySelector('[role="group"]')?.getAttribute('aria-label')).toBe('1번 후보 고르기')
+  expect(candidateTile('카인').getAttribute('aria-label')).toBe('카인, 찾은모험단')
+  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
+  expect(candidateTile('시로코').getAttribute('aria-label')).toBe('시로코, 모험단 정보 없음')
+  expect(candidateTile('시로코').getAttribute('aria-pressed')).toBe('false')
+  expect(candidateTile('카인').querySelector('img')?.getAttribute('src')).toBe(
+    'https://img-api.neople.co.kr/df/servers/cain/characters/cain-character?zoom=1'
+  )
+  expect(candidateTile('시로코').querySelector('img')).toBeNull()
+  expect(card().getAttribute('data-state')).toBe('default')
+
+  await act(async () => candidateTile('시로코').click())
+  expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
+})
+
+it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 한 번 더 누르면 확정이라고 알린다', async () => {
+  await render({
+    state: 'success',
+    character: found,
+    picker: { choices, shownServerId: 'siroco', previewServerId: 'siroco' },
+    onPickCandidate: vi.fn()
+  })
+
+  expect(card().getAttribute('data-state')).toBe('selected')
+  expect(card().querySelector('[aria-label="후보 미리보기 중"]')).not.toBeNull()
+  expect(candidateTile('시로코').getAttribute('aria-label')).toBe(
+    '시로코, 모험단 정보 없음, 미리보기 중, 한 번 더 누르면 확정'
+  )
+})
+
+it('접힌 카드는 작은 후보 타일로 고르고, 모험단을 모르는 후보는 서버를 대신 보인다', async () => {
+  const pick = vi.fn()
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({
+    state: 'success',
+    character: found,
+    picker,
+    collapsed: true,
+    onPickCandidate: pick
+  })
+
+  const groups = card().querySelectorAll('[role="group"]')
+  expect(groups).toHaveLength(1)
+  expect(groups[0].getAttribute('aria-label')).toBe('1번 후보 고르기')
+  expect(card().querySelector('[aria-label^="외형으로 확정하지 못함"]')).toBeNull()
+  expect(candidateTile('카인').getAttribute('aria-pressed')).toBe('true')
+  expect(candidateTile('카인').textContent).toBe('찾은모험단')
+  expect(candidateTile('시로코').textContent).toBe('—시로코')
+  await act(async () => candidateTile('시로코').click())
+  expect(pick).toHaveBeenCalledExactlyOnceWith('siroco')
+})
+
+it('후보 타일이 있는 접힌 카드는 이름 위에 흐르는 글자를 겹치고, 고치는 동안과 펼친 카드에는 겹치지 않는다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({ state: 'success', character: found, picker, collapsed: true })
+  const input = container.querySelector<HTMLInputElement>('input')!
+  const overlay = (): Element | null =>
+    input.parentElement!.querySelector('span[aria-hidden="true"]')
+
+  expect(overlay()?.textContent).toBe('찾은이름')
+
+  await act(async () => input.focus())
+  expect(overlay()).toBeNull()
+
+  await render({ state: 'success', character: found, picker })
+  expect(container.querySelector('input')!.parentElement!.querySelector('span')).toBeNull()
+})
+
+it('미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
+  const picker = { choices, shownServerId: 'cain', previewServerId: null }
+  await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
+
+  expect(card().querySelector('[role="group"]')).not.toBeNull()
+  expect(card().getAttribute('data-state')).toBe('failure')
 })

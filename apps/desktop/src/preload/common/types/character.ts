@@ -117,7 +117,12 @@ export type SelectedCharacterSummary = CharacterSummary &
   }>
 
 export type CharacterCandidate = CharacterSearchRow &
-  Readonly<{ serverName: string; imageUrl: string }>
+  Readonly<{
+    serverName: string
+    imageUrl: string
+    /** API DB에 저장된 모험단명. 저장된 적 없거나 API가 보내지 않으면 null이다. */
+    adventureName: string | null
+  }>
 
 export type CharacterImage = Readonly<{
   width: number

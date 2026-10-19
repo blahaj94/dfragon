@@ -153,6 +153,14 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       if (slot.selected !== undefined) {
         copiedSlot.selected = { ...slot.selected }
       }
+
+      if (slot.choices !== undefined) {
+        copiedSlot.choices = slot.choices.map((choice) => {
+          const face = choice.face === null ? null : { ...choice.face }
+
+          return { ...choice, face }
+        })
+      }
       let copiedError: SearchSlot['error'] = null
       if (hasError) {
         copiedError = { ...error }
@@ -561,6 +569,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const completedSlot = { ...slots[request.slot] }
     delete completedSlot.selected
     delete completedSlot.selectionMethod
+    delete completedSlot.choices
     selections[request.slot] = null
     if (isSuccess) {
       const hasRows = result.rows.length > 0
@@ -575,6 +584,9 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
           ...slots[request.slot],
           selected: result.selected.summary,
           selectionMethod: result.selected.selectionMethod
+        }
+        if (result.selected.choices !== undefined) {
+          slots[request.slot] = { ...slots[request.slot], choices: result.selected.choices }
         }
         selections[request.slot] = {
           details: result.selected.details,

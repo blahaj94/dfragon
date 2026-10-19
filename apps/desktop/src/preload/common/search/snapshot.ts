@@ -25,6 +25,16 @@ const row = z.strictObject({
   serverName: z.string().nullable(),
   fame: z.number().nullable()
 })
+const faceWindow = z.strictObject({
+  x: z.int().nonnegative(),
+  y: z.int().nonnegative(),
+  width: z.int().positive(),
+  height: z.int().positive()
+})
+const choice = row.extend({
+  adventureName: z.string().nullable(),
+  face: faceWindow.nullable()
+})
 const error = z
   .strictObject({
     code: z.enum(Object.keys(SEARCH_ERRORS) as Array<keyof typeof SEARCH_ERRORS>),
@@ -58,11 +68,24 @@ const slot = z
     rows: z.array(row),
     error: error.nullable(),
     selected: selectedCharacterSummarySchema.optional(),
-    selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional()
+    selectionMethod: z.enum(CHARACTER_SELECTION_METHODS).optional(),
+    choices: z.array(choice).min(2).optional()
   })
   .refine((value) => {
     if (Object.hasOwn(value, 'selectionMethod') && value.selected === undefined) {
       return false
+    }
+
+    if (Object.hasOwn(value, 'choices')) {
+      const selected = value.selected
+      const choices = value.choices ?? []
+      const hasSelectedChoice = choices.some(
+        (choice) =>
+          choice.serverId === selected?.serverId && choice.characterId === selected.characterId
+      )
+      if (!hasSelectedChoice) {
+        return false
+      }
     }
 
     if (Object.hasOwn(value, 'selected')) {

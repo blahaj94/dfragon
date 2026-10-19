@@ -1,6 +1,7 @@
 import type { SearchSlot } from '../../../preload/common/types/search'
 import type { CardCharacter, SlotState } from '../types/cards'
 import type { SnapshotMark } from './adventure-snapshot'
+import type { CandidatePicker } from './candidate-picker'
 import { searchSlotNotice, toCharacterCard } from './character-card'
 
 /** 실패와 결과 0건 카드의 안내에 덧붙이는 다음 조회 방법. 파티와 공대가 같다. */
@@ -18,6 +19,8 @@ export type SlotCard = {
   loading?: boolean
   /** 모험단 순번 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
   snapshotMark?: SnapshotMark
+  /** 얼굴로 확정하지 못해 사용자가 고를 후보 줄. 없으면 undefined다. */
+  picker?: CandidatePicker
   /** 합성 미리보기만 채운다. 제품 카드는 재시도 버튼을 두지 않는다. */
   retryEnabled?: boolean
   retryPending?: boolean
@@ -32,6 +35,8 @@ export type SlotCardActions = {
   lookupSlot?: (slot: number, nickname: string, serverId: string) => void
   /** 검색 슬롯 번호의 상세 창을 연다. */
   openDetails?: (slot: number) => void
+  /** 검색 슬롯 번호의 후보 줄에서 서버로 후보를 누른다. */
+  pickCandidate?: (slot: number, serverId: string) => void
   /** 합성 미리보기만 채운다. 검색 슬롯 번호의 검색을 다시 시도한다. */
   retrySlot?: (slot: number) => void
 }
@@ -42,7 +47,8 @@ export function toSlotCards({
   nicknames,
   manualSlots,
   recognizing,
-  snapshotMarks
+  snapshotMarks,
+  pickers = []
 }: {
   slots: readonly SearchSlot[]
   /** 캡처가 인식한 슬롯별 이름. 인식하지 못한 슬롯은 null이다. */
@@ -51,12 +57,15 @@ export function toSlotCards({
   manualSlots: readonly boolean[]
   recognizing: boolean
   snapshotMarks: readonly (SnapshotMark | undefined)[]
+  /** 슬롯별 후보 줄. 후보 줄이 없는 화면은 생략한다. */
+  pickers?: readonly (CandidatePicker | null)[]
 }): SlotCard[] {
   return slots.map((slot, index) => {
     const character = toCharacterCard(slot.selected) ?? undefined
     const nickname = nicknames[index] ?? undefined
     const notice = searchSlotNotice(slot, NEXT_LOOKUP_STEP)
     const loading = !manualSlots[index] && recognizing
+    const picker = pickers[index] ?? undefined
 
     return {
       state: slot.state,
@@ -64,7 +73,8 @@ export function toSlotCards({
       nickname,
       notice,
       loading,
-      snapshotMark: snapshotMarks[index]
+      snapshotMark: snapshotMarks[index],
+      picker
     }
   })
 }

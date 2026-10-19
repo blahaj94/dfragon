@@ -1,4 +1,8 @@
-import type { CharacterSelectionMethod } from '../../preload/common/types/search'
+import type {
+  CharacterChoice,
+  CharacterFaceWindow,
+  CharacterSelectionMethod
+} from '../../preload/common/types/search'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -12,23 +16,32 @@ import { selectRaidCandidate, type RaidObservedValues } from './raid-candidate'
 const MAX_OCR_NAMES = 2
 const MAX_NAME_CODE_POINTS = 12
 
+/** 얼굴과 후보 이미지의 거리와 얼굴을 맞춘 후보 이미지 안의 창 */
+type PortraitScore = Readonly<{ distance: number; alignment: CharacterFaceWindow }>
+
 export type IdentificationServices = {
   findCandidates: (nickname: string) => Promise<readonly CharacterCandidate[]>
   /** 후보 한 명의 비교용 이미지. 받지 못하면 null이다. */
   loadPortrait: (identity: CharacterIdentity) => Promise<CharacterImage | null>
   getDetails: (identity: CharacterIdentity) => Promise<CharacterDetails>
-  /** 얼굴과 후보 이미지의 거리. 비교할 수 없으면 null이며 거리는 확률이 아니다. */
+  /**
+   * 얼굴과 후보 이미지의 거리와 얼굴을 맞춘 후보 이미지 안의 창. 비교할 수 없으면 null이며 거리는 확률이
+   * 아니다.
+   */
   scorePortrait: (input: {
     portrait: CharacterPortrait
     candidate: CharacterImage
-  }) => Promise<Readonly<{ distance: number }> | null>
+  }) => Promise<PortraitScore | null>
 }
 
-/** 얼굴 거리로 후보를 고르는 기준. 거리는 `scorePortrait`가 돌려주는 값과 같은 단위다. */
+/**
+ * 얼굴 거리로 고른 1위를 확정할지 정하는 기준. 거리는 `scorePortrait`가 돌려주는 값과 같은 단위다. 기준을
+ * 넘지 못해도 1위를 고르며, 그때는 사용자가 고를 후보를 함께 돌려준다.
+ */
 export type CharacterSelectionPolicy = Readonly<{
-  /** 1위 후보의 거리 상한(포함). */
+  /** 1위를 확정하는 거리 상한(포함). */
   maxDistance: number
-  /** 1위와 2위의 거리 차이 하한(포함). */
+  /** 1위를 확정하는 1위와 2위의 거리 차이 하한(포함). */
   minMargin: number
   /** 명성 순으로 비교할 후보 수. 2위와 비교해야 하므로 2 이상이다. */
   maxCandidates: number
@@ -43,6 +56,8 @@ export type CharacterIdentification =
       details: CharacterDetails
       nickname: string
       selectionMethod: CharacterSelectionMethod
+      /** 얼굴로 확정하지 못했을 때 사용자가 고를 후보. 확정한 선택에는 없다. */
+      choices?: readonly CharacterChoice[]
     }
 
 export type CharacterIdentificationInput = {
@@ -81,8 +96,9 @@ export function validateSelectionPolicy(policy: CharacterSelectionPolicy): void 
 }
 
 /**
- * 첫 이름의 명성 상위 후보 전원의 얼굴 거리를 구한 뒤, 가장 가까운 후보가 거리 상한과 2위와의 차이를
- * 모두 만족할 때만 얼굴로 선택한다. 그 밖에는 최고 명성 후보를 제시한다.
+ * 첫 이름의 명성 상위 후보 전원의 얼굴 거리를 구해 가장 가까운 후보를 고른다. 거리를 하나도 구하지 못하면
+ * 최고 명성 후보를 고른다. 1위가 거리 상한과 2위와의 차이를 모두 만족하고 비교한 후보 전원의 거리가 있을
+ * 때만 확정하고, 그 밖에는 사용자가 고를 후보를 함께 돌려준다.
  */
 export function createCharacterIdentifier(
   services: IdentificationServices,
@@ -102,61 +118,98 @@ export function createCharacterIdentifier(
     if (highest === undefined) {
       return { kind: 'unmatched' }
     }
-    const portrait = input.portrait
-    if (portrait !== null) {
-      const compared = candidates.slice(0, accepted.maxCandidates)
-      const matched = await findPortraitMatch(services, accepted, portrait, compared)
-      if (matched !== null) {
-        return selectCandidate(services, matched, nickname, 'portrait')
-      }
+
+    // 동명 후보가 한 명이면 고를 후보가 없어 이미지를 받지 않는다.
+    if (candidates.length === 1) {
+      return selectCandidate(services, highest, nickname, 'highest-fame')
+    }
+    const compared = candidates.slice(0, accepted.maxCandidates)
+    const scores = await scoreCandidates(services, input.portrait, compared)
+    const best = closestScore(scores)
+    if (best === null) {
+      const choices = candidates.map((candidate) => toChoice(candidate, null))
+
+      return selectCandidate(services, highest, nickname, 'highest-fame', choices)
     }
 
-    return selectCandidate(services, highest, nickname, 'highest-fame')
+    if (isConfident(accepted, scores, best)) {
+      return selectCandidate(services, best.candidate, nickname, 'portrait')
+    }
+    const choices = scores.map(({ candidate, score }) =>
+      toChoice(candidate, score?.alignment ?? null)
+    )
+
+    return selectCandidate(services, best.candidate, nickname, 'portrait', choices)
   }
 }
 
-/**
- * 후보가 한 명이면 2위와 비교할 수 없어 이미지를 받지 않는다. 이미지나 점수가 하나라도 없으면 남은 후보를
- * 받지 않고 얼굴 선택을 포기한다.
- */
-async function findPortraitMatch(
+type CandidateScore = Readonly<{
+  candidate: CharacterCandidate
+  score: PortraitScore | null
+}>
+type ScoredCandidate = Readonly<{
+  candidate: CharacterCandidate
+  score: PortraitScore
+}>
+
+/** 이미지나 점수를 얻지 못한 후보도 나머지 후보의 비교를 막지 않고 점수 없음으로 남긴다. */
+async function scoreCandidates(
   services: Pick<IdentificationServices, 'loadPortrait' | 'scorePortrait'>,
-  policy: CharacterSelectionPolicy,
-  portrait: CharacterPortrait,
+  portrait: CharacterPortrait | null,
   candidates: readonly CharacterCandidate[]
-): Promise<CharacterCandidate | null> {
-  if (candidates.length < 2) {
-    return null
+): Promise<CandidateScore[]> {
+  if (portrait === null) {
+    return candidates.map((candidate) => ({ candidate, score: null }))
   }
-  const distances: number[] = []
+  const scores: CandidateScore[] = []
   for (const candidate of candidates) {
     const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
     const image = await services.loadPortrait(identity)
     if (image === null) {
-      return null
+      scores.push({ candidate, score: null })
+      continue
     }
     const score = await services.scorePortrait({ portrait, candidate: image })
-    if (score === null) {
-      return null
-    }
-    distances.push(score.distance)
-  }
-  // 거리가 같으면 명성 순서가 앞선 후보가 1위이고, 차이가 0이라 minMargin이 0일 때만 선택된다.
-  let best = 0
-  for (let index = 1; index < distances.length; index += 1) {
-    if (distances[index] < distances[best]) {
-      best = index
-    }
-  }
-  const runnerUp = Math.min(...distances.filter((_, index) => index !== best))
-  const bestDistance = distances[best]
-  const isUnconfident =
-    bestDistance > policy.maxDistance || runnerUp - bestDistance < policy.minMargin
-  if (isUnconfident) {
-    return null
+    scores.push({ candidate, score })
   }
 
-  return candidates[best]
+  return scores
+}
+
+/** 거리가 같으면 명성 순서가 앞선 후보가 1위다. */
+function closestScore(scores: readonly CandidateScore[]): ScoredCandidate | null {
+  let best: ScoredCandidate | null = null
+  for (const { candidate, score } of scores) {
+    if (score !== null && (best === null || score.distance < best.score.distance)) {
+      best = { candidate, score }
+    }
+  }
+
+  return best
+}
+
+function isConfident(
+  policy: CharacterSelectionPolicy,
+  scores: readonly CandidateScore[],
+  best: ScoredCandidate
+): boolean {
+  const others = scores.filter(({ candidate }) => candidate !== best.candidate)
+  if (others.some(({ score }) => score === null)) {
+    return false
+  }
+  const runnerUp = Math.min(...others.map(({ score }) => score?.distance ?? Infinity))
+  const bestDistance = best.score.distance
+
+  return bestDistance <= policy.maxDistance && runnerUp - bestDistance >= policy.minMargin
+}
+
+function toChoice(
+  candidate: CharacterCandidate,
+  face: CharacterFaceWindow | null
+): CharacterChoice {
+  const { characterId, characterName, serverId, serverName, fame, adventureName } = candidate
+
+  return { characterId, characterName, serverId, serverName, fame, adventureName, face }
 }
 
 /**
@@ -212,10 +265,14 @@ async function selectCandidate(
   services: Pick<IdentificationServices, 'getDetails'>,
   candidate: CharacterCandidate,
   nickname: string,
-  selectionMethod: CharacterSelectionMethod
+  selectionMethod: CharacterSelectionMethod,
+  choices?: readonly CharacterChoice[]
 ): Promise<CharacterIdentification> {
   const identity = { serverId: candidate.serverId, characterId: candidate.characterId }
   const details = await services.getDetails(identity)
+  if (choices === undefined) {
+    return { kind: 'matched', candidate, details, nickname, selectionMethod }
+  }
 
-  return { kind: 'matched', candidate, details, nickname, selectionMethod }
+  return { kind: 'matched', candidate, details, nickname, selectionMethod, choices }
 }

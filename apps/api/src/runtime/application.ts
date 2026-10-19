@@ -1,4 +1,5 @@
 import { createAdventureSearchStore } from '../adventures/store.js'
+import { createCharacterAdventureNameStore } from '../characters/adventure-names.js'
 import type { INestApplication } from '@nestjs/common'
 import { createCharacterDetailStore } from '../characters/details/store.js'
 import { createCatalogStore } from '../characters/catalog/store.js'
@@ -59,7 +60,8 @@ export async function createApiRuntime(configuration: RuntimeConfiguration) {
     app = await createApiHttpApp(
       {
         searchCharacters: createNeopleCharacterSearch(configuration.apiKey),
-        trustedProxyHops: configuration.trustedProxyHops
+        trustedProxyHops: configuration.trustedProxyHops,
+        findAdventureNames: createCharacterAdventureNameStore(dataSource).find
       },
       {
         fetchDetails: createNeopleCharacterDetails(configuration.apiKey),

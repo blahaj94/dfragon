@@ -22,10 +22,10 @@ export function PartyPage({
   compareFaces?: boolean
   inputEnabled?: boolean
   collapsed?: boolean
-  /** 슬롯 번호로 부르는 조회, 상세 열기, 다시 시도 */
+  /** 슬롯 번호로 부르는 조회, 상세 열기, 다시 시도, 후보 고르기 */
   actions?: SlotCardActions
 }): React.JSX.Element {
-  const { lookupSlot, openDetails, retrySlot } = actions
+  const { lookupSlot, openDetails, retrySlot, pickCandidate } = actions
 
   return (
     <section
@@ -47,6 +47,9 @@ export function PartyPage({
             lookupSlot === undefined
               ? undefined
               : (nickname, serverId) => lookupSlot(index, nickname, serverId)
+          }
+          onPickCandidate={
+            pickCandidate === undefined ? undefined : (serverId) => pickCandidate(index, serverId)
           }
         />
       ))}

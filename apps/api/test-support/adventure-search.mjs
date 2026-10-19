@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { createAdventureSearchStore } from '../dist/adventures/store.js'
+import { createCharacterAdventureNameStore } from '../dist/characters/adventure-names.js'
 import { createCharacterDetailStore } from '../dist/characters/details/store.js'
 import { characterDetailSections } from '../dist/characters/details/sections.js'
 import { createApiHttpApp } from '../dist/http.js'
@@ -116,6 +117,14 @@ export async function assertAdventureSearch(source, mark = () => undefined) {
     await details.saveAndRead(identity, payloads(null), await details.beginFetch(), signal)
     assert.equal((await snapshot())[0].adventure_name, null)
     assert.equal((await search.search(input('새모험단'), signal)).rows.length, 0)
+
+    mark('후보 응답용 모험단명은 저장된 값이 있는 캐릭터만 돌려줌')
+    const adventureNames = createCharacterAdventureNameStore(source)
+    assert.deepEqual(
+      [...(await adventureNames.find([ids[0], ids[1], 'fixture-adventure-missing'], signal))],
+      [[ids[1], name]]
+    )
+    assert.equal((await adventureNames.find([], signal)).size, 0)
 
     mark('실제 DB HTTP 조회는 provider 없이 저장된 목록을 반환')
     app = await createApiHttpApp(

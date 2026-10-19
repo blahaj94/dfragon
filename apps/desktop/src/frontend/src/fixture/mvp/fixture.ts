@@ -1,3 +1,4 @@
+import type { CharacterChoice } from '../../../../preload/common/types/search'
 import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
 import type { CardCharacter, CardStats, CharacterCard } from '../../types/cards'
 import characterImage from './assets/character.png'
@@ -241,4 +242,45 @@ export const snapshotPreviewRaidRounds: readonly (readonly (CardCharacter | null
   raidPreviewCharacters.map((member, index) =>
     withSampleAdventure(member, index, snapshotMembers.stranger)
   )
+]
+
+// 후보 줄 미리보기. 얼굴 창은 합성 좌표이며, 이미지는 미리보기에서 받지 못하면 빈 칸으로 보인다.
+const previewFace = { x: 150, y: 50, width: 40, height: 40 }
+function previewChoice(
+  serverId: string,
+  serverName: string,
+  adventureName: string | null,
+  face: CharacterChoice['face'] = previewFace
+): CharacterChoice {
+  return {
+    characterId: `preview-${serverId}`,
+    characterName: '미리보기검사',
+    serverId,
+    serverName,
+    fame: null,
+    adventureName,
+    face
+  }
+}
+
+/** 슬롯마다 후보 넷, 둘, 얼굴 없는 여덟, 없음 */
+export const candidatePreviewChoices: readonly (readonly CharacterChoice[] | null)[] = [
+  [
+    previewChoice('siroco', '시로코', '샘플모험단'),
+    previewChoice('cain', '카인', '달빛아래늑대무리'),
+    previewChoice('hilder', '힐더', '새벽늑대'),
+    previewChoice('bakal', '바칼', null)
+  ],
+  [previewChoice('siroco', '시로코', '샘플모험단'), previewChoice('cain', '카인', '흰늑대')],
+  [
+    previewChoice('bakal', '바칼', '흰늑대', null),
+    previewChoice('cain', '카인', '달빛아래늑대무리', null),
+    previewChoice('siroco', '시로코', '샘플모험단'),
+    previewChoice('hilder', '힐더', null, null),
+    previewChoice('anton', '안톤', '늑대굴파수꾼', null),
+    previewChoice('prey', '프레이', '별빛사냥꾼', null),
+    previewChoice('casillas', '카시야스', null, null),
+    previewChoice('diregie', '디레지에', '푸른송곳니', null)
+  ],
+  null
 ]

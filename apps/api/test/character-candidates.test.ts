@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import test from 'node:test'
 import type { TestContext } from 'node:test'
 import { createNeopleCharacterSearchForTest } from '../src/characters/neople-character-search.js'
-import type { SearchClock } from '../src/characters/types.js'
+import type { CharacterSearchDependencies, SearchClock } from '../src/characters/types.js'
 import { createApiHttpApp } from '../src/http.js'
 import type { NeopleCharacterSearchTestDependencies } from '../src/types/neople-character-search.js'
 
@@ -26,7 +26,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 async function startApp(
   t: TestContext,
   dependencies: NeopleCharacterSearchTestDependencies,
-  clock?: SearchClock
+  clock?: SearchClock,
+  findAdventureNames?: CharacterSearchDependencies['findAdventureNames']
 ): Promise<string> {
   const searchCharacters = createNeopleCharacterSearchForTest(
     'synthetic-candidates-key',
@@ -34,7 +35,8 @@ async function startApp(
   )
   const app = await createApiHttpApp({
     searchCharacters,
-    clock
+    clock,
+    findAdventureNames
   })
   t.after(() => app.close())
   await app.listen(0, '127.0.0.1')
@@ -77,7 +79,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'hilder',
         serverName: '힐더',
         fame: 60000,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/hilder/characters/top_A-1?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/hilder/characters/top_A-1?zoom=1',
+        adventureName: null
       },
       {
         characterId: 'tie-first',
@@ -85,7 +88,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'anton',
         serverName: '안톤',
         fame: 50000,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/anton/characters/tie-first?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/anton/characters/tie-first?zoom=1',
+        adventureName: null
       },
       {
         characterId: 'tie-second',
@@ -93,7 +97,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'prey',
         serverName: '프레이',
         fame: 50000,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/prey/characters/tie-second?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/prey/characters/tie-second?zoom=1',
+        adventureName: null
       },
       {
         characterId: 'zero',
@@ -101,7 +106,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'cain',
         serverName: '카인',
         fame: 0,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/zero?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/zero?zoom=1',
+        adventureName: null
       },
       {
         characterId: 'null-first',
@@ -109,7 +115,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'siroco',
         serverName: '시로코',
         fame: null,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/siroco/characters/null-first?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/siroco/characters/null-first?zoom=1',
+        adventureName: null
       },
       {
         characterId: 'omitted',
@@ -117,7 +124,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'bakal',
         serverName: '바칼',
         fame: null,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/omitted?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/omitted?zoom=1',
+        adventureName: null
       }
     ]
   })
@@ -333,7 +341,8 @@ test('후보의 ID 검증은 256자 안전 문자를 허용하며 일반 검색�
         serverId: 'cain',
         serverName: '카인',
         fame: null,
-        imageUrl: `https://img-api.neople.co.kr/df/servers/cain/characters/${safeId}?zoom=1`
+        imageUrl: `https://img-api.neople.co.kr/df/servers/cain/characters/${safeId}?zoom=1`,
+        adventureName: null
       }
     ]
   })
@@ -397,4 +406,61 @@ test('공급자 실패는 빈 후보로 숨기지 않으며 일반 검색과 실
     })
   }
   assert.equal(calls, 10)
+})
+
+test('후보마다 저장된 모험단명을 붙이고 저장되지 않은 후보는 null로 둔다', async (t) => {
+  const requested: string[][] = []
+  const origin = await startApp(
+    t,
+    {
+      fetch: async () =>
+        jsonResponse({
+          rows: [
+            { characterId: 'stored', characterName, serverId: 'cain', fame: 200 },
+            { characterId: 'unknown', characterName, serverId: 'siroco', fame: 100 }
+          ]
+        })
+    },
+    undefined,
+    async (characterIds) => {
+      requested.push([...characterIds])
+
+      return new Map([['stored', '합성모험단']])
+    }
+  )
+
+  const response = await fetch(`${origin}${candidatePath}`)
+
+  assert.equal(response.status, 200)
+  const body = (await response.json()) as { rows: Array<{ adventureName: string | null }> }
+  assert.deepEqual(
+    body.rows.map((row) => row.adventureName),
+    ['합성모험단', null]
+  )
+  assert.deepEqual(requested, [['stored', 'unknown']])
+})
+
+test('모험단명 조회가 실패해도 후보 응답은 성공하고 모험단명만 null이다', async (t) => {
+  const origin = await startApp(
+    t,
+    {
+      fetch: async () =>
+        jsonResponse({
+          rows: [{ characterId: 'stored', characterName, serverId: 'cain', fame: 200 }]
+        })
+    },
+    undefined,
+    async () => {
+      throw new Error('synthetic database failure')
+    }
+  )
+
+  const response = await fetch(`${origin}${candidatePath}`)
+
+  assert.equal(response.status, 200)
+  const body = (await response.json()) as { rows: Array<{ adventureName: string | null }> }
+  assert.deepEqual(
+    body.rows.map((row) => row.adventureName),
+    [null]
+  )
 })

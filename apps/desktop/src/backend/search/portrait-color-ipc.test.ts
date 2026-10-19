@@ -2,6 +2,7 @@ import { PNG } from 'pngjs'
 import { expect, it, vi } from 'vitest'
 import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 import { candidate, createSearchFixture, jsonResponse } from './search-test-fixture'
+import { parseSearchSnapshot } from '../../preload/common/search/snapshot'
 import type {
   CharacterCandidate,
   CharacterDetails,
@@ -55,7 +56,8 @@ function row(characterId: string, characterName: string, fame: number): Characte
     characterId,
     characterName,
     fame,
-    imageUrl: `${IMAGE_ORIGIN}/df/servers/cain/characters/${characterId}?zoom=1`
+    imageUrl: `${IMAGE_ORIGIN}/df/servers/cain/characters/${characterId}?zoom=1`,
+    adventureName: null
   }
 }
 
@@ -150,6 +152,51 @@ it('얼굴 색 비교 식별은 API origin과 img-api만 credential 없이 부�
   const origins = new Set(calls.map((call) => new URL(call).origin))
   expect([...origins].sort()).toEqual([API_ORIGIN, IMAGE_ORIGIN].sort())
   expect(calls.some((call) => SHOWROOM_URL_PATTERN.test(call))).toBe(false)
+})
+
+// 두 후보의 이미지가 같아 거리가 같으므로 margin 0으로 확정하지 못하고 명성이 앞선 후보가 1위다.
+it('외형이 같은 후보로 확정하지 못하면 1위와 함께 모험단과 얼굴 창을 담은 후보를 renderer에 보낸다', async () => {
+  const fixture = await createSearchFixture(false, 'capture', INITIAL_PORTRAIT_COLOR_POLICY)
+  const { nickname } = slots[0]
+  const rows = [
+    { ...row('slot0-other', nickname, 90000), adventureName: '합성모험단' },
+    row('slot0-match', nickname, 1000)
+  ]
+  fixture.fetchSearch.mockImplementation(async (input, init) => {
+    const url = new URL(new Request(input, init).url)
+    if (url.pathname === '/characters/candidates') {
+      return jsonResponse({ body: { rows } })
+    }
+
+    if (url.origin === IMAGE_ORIGIN) {
+      return pngResponse(face())
+    }
+
+    return jsonResponse({ body: detailsOf(rows[0]) })
+  })
+
+  await fixture.invoke('notifyOcrCandidatesDetected', {
+    captureId: fixture.captureId,
+    slot: 0,
+    observationRevision: 1,
+    nickname,
+    candidateNicknames: [nickname],
+    portrait: portrait()
+  })
+
+  await expect.poll(async () => (await fixture.read()).slots[0].state).toBe('success')
+  const snapshot = await fixture.read()
+  const slot = snapshot.slots[0]
+  expect(slot.selectionMethod).toBe('portrait')
+  expect(slot.selected).toMatchObject({ characterId: 'slot0-other' })
+  expect(
+    slot.choices?.map(({ characterId, adventureName }) => ({ characterId, adventureName }))
+  ).toEqual([
+    { characterId: 'slot0-other', adventureName: '합성모험단' },
+    { characterId: 'slot0-match', adventureName: null }
+  ])
+  expect(slot.choices?.every((choice) => choice.face !== null)).toBe(true)
+  expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
 })
 
 it('두 슬롯의 후보 이미지는 앞 요청이 끝난 뒤에야 다음 요청을 시작한다', async () => {
