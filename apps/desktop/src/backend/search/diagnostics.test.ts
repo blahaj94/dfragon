@@ -28,3 +28,31 @@ it('취소된 결과와 일반 조회 성공은 오류로 기록하지 않는다
   reportSearchOutcome({ kind: 'success', rows: [] })
   expect(report).not.toHaveBeenCalled()
 })
+
+it('최고 명성 선택은 파티 얼굴과 공대 행 값 중 확인하지 못한 쪽의 진단 코드를 남긴다', () => {
+  const outcome = {
+    kind: 'success',
+    rows: [],
+    selected: { selectionMethod: 'highest-fame' }
+  } as unknown as Parameters<typeof reportSearchOutcome>[0]
+
+  reportSearchOutcome(outcome)
+  reportSearchOutcome(outcome, 'raid')
+
+  expect(report.mock.calls).toEqual([['SEARCH_APPEARANCE_FALLBACK'], ['SEARCH_RAID_ROW_FALLBACK']])
+})
+
+it('공대 행 값으로 고른 선택은 대체 선택으로 기록하지 않는다', () => {
+  for (const selectionMethod of ['job', 'fame', 'equipment-score']) {
+    reportSearchOutcome(
+      {
+        kind: 'success',
+        rows: [],
+        selected: { selectionMethod }
+      } as unknown as Parameters<typeof reportSearchOutcome>[0],
+      'raid'
+    )
+  }
+
+  expect(report).not.toHaveBeenCalled()
+})

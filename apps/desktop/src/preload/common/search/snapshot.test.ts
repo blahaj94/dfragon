@@ -174,6 +174,19 @@ describe('얼굴로 확정하지 못한 선택의 후보', () => {
     expect(parseSearchSnapshot(withChoices(choices))).toBeNull()
   })
 
+  it.each(['job', 'fame', 'equipment-score'] as const)(
+    '공대 행 값의 선택 근거 %s를 후보와 함께 전달한다',
+    (selectionMethod) => {
+      const snapshot = withSearchSlot({
+        ...searchSlot({ state: 'success', rows: [searchRow], selected: selected as never }),
+        selectionMethod,
+        choices: [other, { ...chosen, face: null }]
+      } as never)
+
+      expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+    }
+  )
+
   it('선택한 캐릭터 없이 후보만 보낼 수 없다', () => {
     const snapshot = withSearchSlot({
       ...searchSlot({ state: 'success', rows: [searchRow] }),
