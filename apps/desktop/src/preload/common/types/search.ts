@@ -57,6 +57,13 @@ export type CharacterSearchRow = Readonly<{
   fame: number | null
 }>
 
+/** 얼굴을 맞춘 후보 이미지 안의 창. 후보 이미지의 픽셀 좌표다. */
+export type CharacterFaceWindow = Readonly<{ x: number; y: number; width: number; height: number }>
+
+/** 얼굴로 확정하지 못했을 때 카드가 보여 주는 후보 한 명. 얼굴 창은 비교하지 못했으면 null이다. */
+export type CharacterChoice = CharacterSearchRow &
+  Readonly<{ adventureName: string | null; face: CharacterFaceWindow | null }>
+
 type SearchErrorDefinition = Readonly<{ message: string; retryable: boolean }>
 
 export const SEARCH_ERRORS = {
@@ -106,6 +113,8 @@ export type SearchSlot = Readonly<{
   error: SearchError | null
   selected?: SelectedCharacterSummary
   selectionMethod?: CharacterSelectionMethod
+  /** 선택이 애매할 때 사용자가 고를 후보. 선택한 캐릭터를 포함하며 확정한 선택에는 없다. */
+  choices?: readonly CharacterChoice[]
 }>
 
 export type SearchSnapshot = Readonly<{

@@ -1,6 +1,7 @@
 import { isFiniteNumber } from '@dfragon/lib/utils/shape-check'
 import type { AuthClock } from '../auth/types'
 import type {
+  CharacterChoice,
   CharacterSearchRow,
   CharacterSelectionMethod,
   OcrSearchInput
@@ -58,6 +59,7 @@ export type SearchOutcome =
         summary: SelectedCharacterSummary
         details: CharacterDetails
         selectionMethod: CharacterSelectionMethod
+        choices?: readonly CharacterChoice[]
       }
     }
   | SearchOperationFailure
@@ -157,7 +159,7 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
   if (identified.kind !== 'matched') {
     return { kind: 'success', rows: [] }
   }
-  const { candidate, details, selectionMethod } = identified
+  const { candidate, details, selectionMethod, choices } = identified
   const { characterId, characterName, serverId, serverName, fame } = candidate
   const rows = [{ characterId, characterName, serverId, serverName, fame }]
   const character = details.character
@@ -186,7 +188,11 @@ async function runIdentificationRequest(input: RequestInput): Promise<SearchOutc
     card
   }
 
-  return { kind: 'success', rows, selected: { summary, details, selectionMethod } }
+  if (choices === undefined) {
+    return { kind: 'success', rows, selected: { summary, details, selectionMethod } }
+  }
+
+  return { kind: 'success', rows, selected: { summary, details, selectionMethod, choices } }
 }
 
 function identifyCharacter(
