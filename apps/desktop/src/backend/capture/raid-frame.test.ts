@@ -136,19 +136,22 @@ it.each([
   expect(toRaidFrameResult(result)).toEqual(result)
 })
 
-it('행마다 읽은 수치 표기를 같은 화면 행의 결과에 붙이고 빈 행은 버린다', () => {
-  // 합성 창에는 수치 글자가 없어 판독 결과만 바꿔 행 대응을 확인한다.
+it('행마다 읽은 수치 표기를 같은 화면 행의 결과에 붙이고 빈 행과 가려진 행은 버린다', () => {
+  // 합성 창에는 수치 글자가 없어 판독 결과만 바꿔 행 대응을 확인한다. 2행을 가려 앞쪽에 빈 결과를 둔다.
   const valueTexts = Array.from({ length: 12 }, (_, row) => `${row + 1},000`)
   vi.mocked(readRaidWindowValues).mockReturnValueOnce({ valueColumn: 'fame', valueTexts })
+  const frame = raidFrame(4)
+  const covered = ((NICKNAME.y + NICKNAME.rowSpacing + 8) * frame.width + NICKNAME.x + 40) * 4
+  frame.rgba[covered + 3] = 0
 
-  const result = toRaidFrameResult({ kind: 'frame', image: raidFrame(4) })
+  const result = toRaidFrameResult({ kind: 'frame', image: frame })
 
   expect(result.kind).toBe('rows')
   if (result.kind === 'rows') {
     expect(result.valueColumn).toBe('fame')
     expect(result.rows.map((row) => row?.valueText ?? null)).toEqual([
       '1,000',
-      '2,000',
+      null,
       '3,000',
       '4,000',
       ...Array.from({ length: 8 }, () => null)
