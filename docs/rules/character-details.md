@@ -23,7 +23,29 @@ GET은 DB의 11개 섹션이 모두 있고 가장 오래된 `last_successful_fet
 
 11개가 모두 성공해야 한 transaction으로 저장한다. 하나라도 실패하면 기존 저장값을 유지하고 오류를 반환한다. 실패 때 이전 값을 성공 응답처럼 돌려주거나 부분 갱신하지 않는다. DB 저장, commit이 성공한 뒤 저장값을 정제해 응답한다. 여러 upstream 호출이 게임 서버의 같은 순간을 나타낸다고 보장하지는 않는다.
 
-응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
+응답은 `character`, `status`, `equipment`, `avatar`, `creature`, `oath`, `mistAssimilation`, `skillStyle`, `buff`, `sections`, `setDetails`, `freshness`, `card`다. 공통 신상 정보는 `character`로 모으고 반복되는 헤더를 제거한다. 장비별 옵션은 보존한다. `sections`에는 섹션별 revision, 내용 갱신 시각, 최근 성공 조회 시각을 제공한다. 최상위 `freshness.lastSuccessfulFetchAt`은 11개 섹션 중 가장 오래된 성공 조회 시각이고 `freshness.expiresAt`은 그 시각에 5분을 더한 ISO 시각이다. 내용이 같아 revision이 유지되어도 성공 갱신 때 freshness는 바뀐다. 이 시각은 공용 상세의 개별 만료 시각과 구분한다.
+
+## 카드 투영
+
+응답 최상위 `card`는 저장된 섹션을 Desktop 카드의 세 면(캐릭터, 장비, 기타)에 맞춰 정규화한 값이다. 형태는 Desktop `SelectedCharacterSummary.card`와 같은 공유 계약이며 [#716](https://github.com/blahaj94/dfragon/issues/716)의 공유 계약을 따른다. 기존 응답 필드는 바꾸지 않는다. `apps/api/src/characters/card/project.ts`의 순수 함수가 DB, HTTP 없이 만들며 캐시 적중과 갱신 응답에 모두 붙인다. 모르는 값은 null이고 0이나 빈 값으로 바꾸지 않는다. Desktop이 strict 스키마로 검증하므로 빈 문자열과 유한하지 않은 숫자도 null로 둔다. 이미지 URL은 넣지 않고 Desktop renderer가 itemId로 만든다.
+
+- `role`: 기본정보 `jobGrowName`에서 앞의 `眞`을 뺀 이름이 크루세이더, 인챈트리스, 패러메딕, 뮤즈면 `buffer`, 다른 문자열이면 `dealer`, 문자열이 아니면 null이다. Desktop은 이 값으로 점수 계산기를 고른다.
+- `stats`: 능력치 `status`의 마을 값이다. 딜러는 공격력 증가, 공격력 증폭, 물리와 마법 크리티컬 중 큰 값이고 버퍼는 지능이다. 직업의 공격 유형을 API가 알지 못하므로 크리티컬은 항상 둘 중 큰 값이다. 숫자와 `48.3%` 같은 숫자 문자열을 받고 그 밖의 값은 null이다. 역할이 null이면 `stats`도 null이다.
+- 점수 엔진의 값: `stats`의 `switchingLevel`, `buff30`, `buff50`과 `score`는 Desktop main이 네이티브 점수 엔진으로 채우며 API 응답에서는 항상 null이다. 서버는 점수를 계산하지 않는다.
+- `set`: 장비 `setItemInfo` 중 `slotInfo`가 가장 많은 항목이며 같으면 앞의 것이다. `setItemId`나 이름이 없는 항목은 후보에서 뺀다. `active.setPoint`의 current, min, max가 모두 숫자일 때만 `point`를 둔다. `imageItemId`는 같은 `setItemId`를 가진 장착 아이템 중 첫 번째다.
+- `oath`: 서약 `info`에 itemId와 이름이 있을 때만 만든다. `setInfo`의 세트 이름, 옵션 이름, 세트 포인트와 결정(`crystal`) 목록을 담는다. 묵언의 진의는 `oathUpgrade.options`의 목록 위치를 단계 번호로 쓰며 `oathUpgrade`가 null이면 빈 목록이다.
+- 희귀도 개수: 세트는 `slotInfo`, 서약은 결정의 희귀도를 처음 나온 순서로 센다. 희귀도가 없는 항목은 세지 않는다.
+- `investment`: 무기, 상의, 머리어깨, 하의, 벨트, 신발, 목걸이, 팔찌, 반지, 보조장비, 마법석, 귀걸이의 12부위 고정 순서이며 칭호는 넣지 않는다. 빈 슬롯은 아이템 필드가 null이다. `reinforce`가 숫자일 때 `amplificationName`이 있으면 증폭(`amplify`), 없으면 강화(`reinforce`)다. 마법부여는 `status` 옵션만 담고 `reinforceSkill`만 있는 마법부여는 빈 목록이다.
+
+### 마법부여 등급
+
+`apps/api/src/characters/card/enchant-grades.json`의 부위별 종결, 준종결, 기타 항목과 장착 마법부여 `status`의 옵션 이름, 값이 순서와 무관하게 모두 같을 때만 그 등급이다. 같은 옵션이 여러 등급에 있으면 종결, 준종결, 기타 순으로 앞의 등급이다. 표에 없거나 옵션이 없으면 null(미평가)이며 기타로 바꾸지 않는다. 표의 형식이 틀리면 API가 시작하지 않는다. 표의 내용은 #716의 2번 항목이 정하며, 그 전까지는 같은 형식의 빈 표라 모든 등급이 null이다.
+
+### 명성 순위
+
+`serverRank`는 우리 DB에 수집된 모든 서버 캐릭터 기준의 명성 순위다. 던전앤파이터는 서버가 나뉘어 있어도 통합 서버이므로 서버를 나누지 않는다. 필드 이름은 Desktop과의 공유 계약대로 `serverRank`를 유지한다. 전체 유저 순위가 아니므로 `scope: "stored"`, `basis: "fame"`을 붙인다. 순위는 명성이 더 큰 캐릭터 수에 1을 더한 값이며 동점은 같은 순위다. `total`은 명성이 있는 캐릭터 수이고 `observedAt`은 순위를 센 DB 시각이다. 대상 캐릭터의 명성이 null이면 `serverRank`는 null이다. 두 개수와 대상 명성은 한 statement에서 센다. 다른 캐릭터의 명성은 각자 마지막으로 갱신된 값이므로 순위는 관측 시점이 서로 다른 값을 비교한다.
+
+순위는 상세 저장값을 확정한 뒤 별도 READ COMMITTED transaction에서 2초 statement 제한으로 센다. 제한 초과나 DB 실패는 `serverRank`만 null로 두고 카드와 상세 응답은 실패시키지 않는다. 연결 종료와 서버 종료는 기존처럼 요청 전체를 중단한다. 이 투영과 순위 계약은 같은 PR의 사용자 merge로 채택하며, 같은 서버로 순위를 세던 #716의 초안은 2026-10-19 담당자 결정으로 모든 서버 기준으로 바꿨다.
 
 ## 외형 조회
 
@@ -69,7 +91,7 @@ DB에서 읽은 캐릭터 11개 섹션에 공용 상세를 연결한다. 캐릭�
 
 Migration은 기존 `basic` JSONB의 문자열 `adventureName`을 채우며 누락, null, 빈 문자열, 문자열 이외 값은 null로 둔다. 원본 JSONB와 기존 내용, 조회 시각은 변경하지 않는다. 이후 성공 갱신 transaction에서 요청 순서 경쟁을 이긴 저장된 기본정보를 기준으로 column을 동기화한다. 이름이 실제로 달라질 때만 characters.updated_at을 갱신한다. 이전 요청의 원문으로 모험단명이 되돌아가거나 실패한 갱신이 소속만 변경되면 안 된다.
 
-`characters.fame`은 서버를 나누지 않는 전체 명성 순위를 위한 nullable integer column이다. 기본정보 JSONB의 `fame`이 0 이상 2147483647 이하의 정수일 때만 채우며 누락, null, 소수, 범위 밖, 숫자 이외 값은 null이다. Migration이 기존 기본정보로 채운다. 던전앤파이터는 서버가 나뉘어 있어도 통합 서버이므로 순위는 모든 서버의 캐릭터를 함께 비교하며, 비고유 B-tree `(fame DESC, character_id)` index로 명성 비교를 지원한다. TypeORM EntitySchema가 DESC 정렬을 표현하지 못하므로 schema는 이 index의 synchronize를 끄고 migration이 정의를 소유한다. 성공 갱신 때의 동기화와 순위 조회는 이 column을 읽고 쓰는 후속 API 변경에서 정한다.
+`characters.fame`은 서버를 나누지 않는 전체 명성 순위를 위한 nullable integer column이다. 기본정보 JSONB의 `fame`이 0 이상 2147483647 이하의 정수일 때만 채우며 누락, null, 소수, 범위 밖, 숫자 이외 값은 null이다. Migration이 기존 기본정보로 채우고, 이후 성공 갱신 transaction에서 요청 순서 경쟁을 이긴 기본정보로 모험단명과 함께 동기화한다. 모험단명이나 명성이 실제로 달라질 때만 characters.updated_at을 갱신한다. 던전앤파이터는 서버가 나뉘어 있어도 통합 서버이므로 순위는 모든 서버의 캐릭터를 함께 비교하며, 비고유 B-tree `(fame DESC, character_id)` index로 명성 비교를 지원한다. TypeORM EntitySchema가 DESC 정렬을 표현하지 못하므로 schema는 이 index의 synchronize를 끄고 migration이 정의를 소유한다.
 
 이름 변경은 갱신된 캐릭터에만 반영한다. 다른 캐릭터는 각자 갱신될 때까지 이전 이름으로 검색될 수 있다. 고유 모험단 ID를 제공받지 않은 상태에서 동일 이름의 과거, 현재 사용자를 같은 계정으로 추정하거나 다른 캐릭터의 이름을 일괄 변경하지 않는다.
 
@@ -93,4 +115,4 @@ PostgreSQL의 JSONB 비교에서 같으면 payload, revision, content_updated_at
 
 TypeORM EntitySchema를 기준으로 migration을 생성, 검토하고 명시 실행한다. Runtime의 synchronize, 자동 migration은 꺼 둔다. 기존 인증 테이블과 데이터를 변경하지 않으며 운영 API 계정에는 캐릭터 두 테이블의 DML과 공용 상세 세 테이블의 SELECT, INSERT, UPDATE 권한을 별도로 적용한다. `down`은 캐릭터 데이터를 삭제하므로 격리 검증용이며 운영에서 자동 실행하지 않는다.
 
-ERD는 [DBML](../reference/character-details.dbml), 작성, 검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. 5분 캐시와 명시 갱신은 기존 column을 사용하므로 별도 migration이나 권한 변경이 필요하지 않다. `characters.fame`은 migration을 추가하지만 기존 테이블 단위 권한으로 읽고 쓰므로 운영 API 계정의 권한 변경이 필요하지 않다. `test:database`는 캐시 적중, 만료, 명시 갱신, 실패 시 보존, freshness, 공유 한도와 JSONB 동등성, revision, 원자적 rollback, 경합, 이전 요청, HTTP 정제, 한도, 연결 대기 종료, 명성 column의 backfill과 rollback을 실제 PostgreSQL에서 확인한다. 실제 Neople, 운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.
+ERD는 [DBML](../reference/character-details.dbml), 작성, 검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. 5분 캐시와 명시 갱신은 기존 column을 사용하므로 별도 migration이나 권한 변경이 필요하지 않다. `characters.fame`은 migration을 추가하지만 기존 테이블 단위 권한으로 읽고 쓰므로 운영 API 계정의 권한 변경이 필요하지 않다. `test:database`는 캐시 적중, 만료, 명시 갱신, 실패 시 보존, freshness, 공유 한도와 JSONB 동등성, revision, 원자적 rollback, 경합, 이전 요청, HTTP 정제, 한도, 연결 대기 종료, 명성 column의 backfill과 rollback, 갱신 동기화, 순위의 동점, null, 2초 제한을 실제 PostgreSQL에서 확인한다. 실제 Neople, 운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.

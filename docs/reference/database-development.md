@@ -124,6 +124,6 @@ COMMIT;
 
 `AddCharacterFame1792360553578`은 `characters.fame` nullable integer column과 비고유 `(fame DESC, character_id)` B-tree index를 추가하고 기존 기본정보 JSONB의 정수 명성으로 채운다. Column은 schema diff로 생성했고 backfill과 DESC index는 생성 결과에 직접 더했다. TypeORM이 DESC 정렬을 표현하지 못하므로 `schemas/characters.ts`는 이 index를 `synchronize: false`로 두며, 적용 뒤 schema diff가 비어 있는지 `test:database`에서 확인한다. PK, FK, 원본 응답은 변경하지 않는다. 기존 테이블 단위 runtime 권한으로 새 column도 읽고 쓸 수 있으므로 새 역할, 권한 부여는 필요하지 않다. [캐릭터 상세 계약](../rules/character-details.md#저장과-중복-처리), [DBML](character-details.dbml)을 참고한다.
 
-이 migration만 적용된 API는 성공 갱신 때 명성을 동기화하지 않으므로, 그 사이 갱신된 캐릭터의 column은 기본정보와 달라질 수 있다. 동기화하는 API를 배포한 뒤 migration의 backfill SQL로 column을 다시 맞추거나 두 변경을 같은 배포에 묶는다. Column 추가, backfill, index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 운영에서 자동 `down`은 하지 않는다. `down`은 index와 column을 지우며 캐릭터 행과 원본 응답은 남긴다.
+현재 API는 성공 갱신 transaction에서 명성을 동기화하고 [명성 순위](../rules/character-details.md#명성-순위)를 이 column으로 센다. 동기화하지 않는 이전 API로 복구해 캐릭터를 갱신했다면 새 버전 재배포 전에 migration의 backfill SQL로 column을 다시 맞춰야 한다. Column 추가, backfill, index 생성은 같은 transaction이며 테이블 잠금과 데이터량에 따른 중단 시간이 발생한다. 운영에서 자동 `down`은 하지 않는다. `down`은 index와 column을 지우며 캐릭터 행과 원본 응답은 남긴다.
 
-`test-support/character-fame.mjs`는 기존 JSONB를 가진 DB에서 `down`과 `up`을 실행해 column, index 제거, 정수가 아닌 명성과 기본정보 없는 캐릭터의 backfill, 다른 column과 JSONB 보존, index 정의와 적용 뒤 schema diff 없음을 확인한다.
+`test-support/character-fame.mjs`는 기존 JSONB를 가진 DB에서 `down`과 `up`을 실행해 column, index 제거, 정수가 아닌 명성과 기본정보 없는 캐릭터의 backfill, 다른 column과 JSONB 보존, index 정의와 적용 뒤 schema diff 없음을 확인한다. 이어서 성공 갱신의 동기화와 updated_at 유지, 늦은 요청, 실패 시 rollback, 모든 서버를 함께 센 순위의 동점과 null, 실제 잠금으로 만든 2초 statement 제한과 그때의 상세 응답을 확인한다.

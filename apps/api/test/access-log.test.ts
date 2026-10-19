@@ -67,7 +67,12 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
   const app = await createApiHttpApp(
     { searchCharacters: failWithDetail },
     {
-      store: { read: failWithDetail, beginFetch: failWithDetail, saveAndRead: failWithDetail },
+      store: {
+        read: failWithDetail,
+        beginFetch: failWithDetail,
+        saveAndRead: failWithDetail,
+        readServerRank: failWithDetail
+      },
       fetchDetails: failWithDetail
     },
     undefined,
@@ -194,6 +199,9 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
           throw new Error(secrets.errorDetail)
         },
         saveAndRead: async (): Promise<never> => {
+          throw new Error(secrets.errorDetail)
+        },
+        readServerRank: async (): Promise<never> => {
           throw new Error(secrets.errorDetail)
         }
       },

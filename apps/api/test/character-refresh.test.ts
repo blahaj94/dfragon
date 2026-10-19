@@ -71,6 +71,9 @@ function memory(initial: CharacterApiResponse[] = []) {
       })
 
       return structuredClone(state.rows)
+    },
+    async readServerRank() {
+      return null
     }
   }
 
@@ -531,4 +534,75 @@ test('명시 갱신 진행 중에도 유효한 GET 캐시는 즉시 기존 값�
     '갱신 캐릭터'
   )
   assert.equal(calls, 1)
+})
+
+test('상세 응답은 기존 필드에 card를 더하고 순위 조회 실패는 serverRank만 null로 둔다', async (t) => {
+  const { store } = memory(rowsAt(initialTime))
+  const rank = {
+    rank: 2,
+    total: 5,
+    basis: 'fame',
+    scope: 'stored',
+    observedAt: '2026-01-01T00:00:00.000Z'
+  } as const
+  let rankFailure: Error | null = null
+  store.readServerRank = async () => {
+    if (rankFailure) {
+      throw rankFailure
+    }
+
+    return rank
+  }
+  const service = createCharacterDetailService({
+    store,
+    fetchDetails: async () => payloads
+  })
+  t.after(() => service.onModuleDestroy())
+
+  const ranked = await service.get('192.0.2.1', identity, signal)
+  rankFailure = new Error('canceling statement due to statement timeout')
+  const unranked = await service.get('192.0.2.1', identity, signal)
+
+  assert.deepEqual(ranked.card.serverRank, rank)
+  assert.equal(ranked.card.investment.length, 12)
+  assert.equal(unranked.card.serverRank, null)
+  assert.deepEqual({ ...unranked.card, serverRank: rank }, ranked.card)
+  const { card: _rankedCard, ...rankedRest } = ranked
+  const { card: _unrankedCard, ...unrankedRest } = unranked
+  assert.deepEqual(unrankedRest, rankedRest)
+  assert.deepEqual(
+    Object.keys(rankedRest).sort(),
+    [
+      'avatar',
+      'buff',
+      'character',
+      'creature',
+      'equipment',
+      'freshness',
+      'mistAssimilation',
+      'oath',
+      'sections',
+      'skillStyle',
+      'status'
+    ].sort()
+  )
+})
+
+test('순위 조회 중 연결이 끊기면 card로 대체하지 않고 요청 전체를 중단한다', async (t) => {
+  const { store } = memory(rowsAt(initialTime))
+  const disconnect = new AbortController()
+  store.readServerRank = async () => {
+    disconnect.abort()
+    throw new Error('query canceled')
+  }
+  const service = createCharacterDetailService({
+    store,
+    fetchDetails: async () => payloads
+  })
+  t.after(() => service.onModuleDestroy())
+
+  await assert.rejects(
+    service.get('192.0.2.1', identity, disconnect.signal),
+    (error: unknown) => error instanceof CharacterDetailFailure && error.status === 500
+  )
 })

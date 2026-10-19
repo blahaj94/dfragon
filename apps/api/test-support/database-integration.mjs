@@ -151,7 +151,7 @@ async function main() {
       ['캐릭터 상세', assertCharacterDetails],
       ['공용 상세', assertCharacterCatalog],
       ['모험단 검색', assertAdventureSearch],
-      ['명성 column', assertCharacterFame],
+      ['명성 순위', assertCharacterFame],
       ['공개 검색', assertCharacterSearchHttpIntegration]
     ]) {
       await test(source, (part) => {
