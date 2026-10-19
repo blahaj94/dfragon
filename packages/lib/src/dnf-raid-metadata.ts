@@ -40,6 +40,11 @@ export type DNFRaidParticipantMetadata = {
    */
   equipmentScoreText: string | null
 }
+export type DNFRaidParticipantValue = {
+  row: DNFRaidParticipantPosition
+  /** Exact visible fame or equipment-score notation, as in DNFRaidParticipantMetadata. */
+  valueText: string | null
+}
 type MetadataRow = Pick<
   DNFRaidParticipantRow,
   'row' | 'occupied' | 'partyRegion' | 'equipmentScoreRegion'
@@ -296,18 +301,13 @@ function readEquipmentScore(
 
 const RAID_EQUIPMENT_SCORE_GLYPH_PATTERN = /^[0-9,.K]$/
 
-/**
- * Reads each occupied row's actual pixels using caller-owned UI-0% references.
- * Returns null independently for unsupported/ambiguous fields and for empty rows;
- * use the detector's occupied flag to distinguish those cases. No OCR engine,
- * image decoder, filesystem, capture, persistence or network access is performed.
- */
-export function readDNFRaidParticipantMetadata(
+type ScoreGlyphTemplate = { character: DNFRaidScoreGlyph; pattern: GlyphPattern }
+
+function validateRows<Row extends Pick<MetadataRow, 'row' | 'occupied'>>(
   frame: DNFParticipantFrame,
-  rows: readonly MetadataRow[],
-  templates: DNFRaidMetadataTemplates
-): DNFRaidParticipantMetadata[] {
-  validateImage(frame, 1920, 1080)
+  rows: readonly Row[],
+  regions: (row: Row) => readonly DNFRectangle[]
+): void {
   if (!Array.isArray(rows) || rows.length > 12) {
     throw new RangeError('DNF raid metadata accepts at most twelve distinct rows.')
   }
@@ -324,39 +324,20 @@ export function readDNFRaidParticipantMetadata(
       throw new RangeError('DNF raid metadata accepts at most twelve distinct rows.')
     }
     positions.add(row.row)
-    validateRegion(frame, row.partyRegion)
-    validateRegion(frame, row.equipmentScoreRegion)
+    for (const region of regions(row)) {
+      validateRegion(frame, region)
+    }
   }
-  if (
-    templates == null ||
-    !Array.isArray(templates.parties) ||
-    templates.parties.length < 1 ||
-    templates.parties.length > 8 ||
-    !Array.isArray(templates.equipmentScoreGlyphs) ||
-    templates.equipmentScoreGlyphs.length < 1 ||
-    templates.equipmentScoreGlyphs.length > 26
-  ) {
-    throw new RangeError('DNF raid metadata requires bounded party and score reference sets.')
-  }
-  const parties = Array.from(templates.parties, (template) => {
-    if (template == null || !['R', 'Y', 'G', '싱글'].includes(template.party)) {
-      throw new RangeError('DNF raid metadata party references must identify a supported badge.')
-    }
-    validateImage(template.image, metadataLayout.partyWidthPx, metadataLayout.baselineHeightPx)
-    if (
-      template.image.width !== metadataLayout.partyWidthPx ||
-      template.image.height !== metadataLayout.baselineHeightPx
-    ) {
-      throw new RangeError('DNF raid metadata party references must be 42x17.')
-    }
-    const pixels = partyPattern(template.image.rgba)
-    if (pixels.every((value) => value === 0)) {
-      throw new RangeError('DNF raid metadata party references must contain contrast.')
-    }
+}
 
-    return { party: template.party, pixels }
-  })
-  const equipmentScoreGlyphs = Array.from(templates.equipmentScoreGlyphs, (template) => {
+function scoreGlyphTemplates(
+  glyphs: DNFRaidMetadataTemplates['equipmentScoreGlyphs']
+): ScoreGlyphTemplate[] {
+  if (!Array.isArray(glyphs) || glyphs.length < 1 || glyphs.length > 26) {
+    throw new RangeError('DNF raid metadata requires a bounded score reference set.')
+  }
+
+  return Array.from(glyphs, (template) => {
     if (
       template == null ||
       typeof template.character !== 'string' ||
@@ -382,6 +363,59 @@ export function readDNFRaidParticipantMetadata(
 
     return { character: template.character, pattern: patterns[0] }
   })
+}
+
+function readRowScore(
+  frame: DNFParticipantFrame,
+  region: DNFRectangle,
+  glyphs: readonly ScoreGlyphTemplate[]
+): string | null {
+  return readEquipmentScore(
+    normalizedRegion(frame, region, metadataLayout.scoreWidthPx, metadataLayout.baselineHeightPx),
+    glyphs
+  )
+}
+
+/**
+ * Reads each occupied row's actual pixels using caller-owned UI-0% references.
+ * Returns null independently for unsupported/ambiguous fields and for empty rows;
+ * use the detector's occupied flag to distinguish those cases. No OCR engine,
+ * image decoder, filesystem, capture, persistence or network access is performed.
+ */
+export function readDNFRaidParticipantMetadata(
+  frame: DNFParticipantFrame,
+  rows: readonly MetadataRow[],
+  templates: DNFRaidMetadataTemplates
+): DNFRaidParticipantMetadata[] {
+  validateImage(frame, 1920, 1080)
+  validateRows(frame, rows, (row) => [row.partyRegion, row.equipmentScoreRegion])
+  if (
+    templates == null ||
+    !Array.isArray(templates.parties) ||
+    templates.parties.length < 1 ||
+    templates.parties.length > 8
+  ) {
+    throw new RangeError('DNF raid metadata requires bounded party and score reference sets.')
+  }
+  const parties = Array.from(templates.parties, (template) => {
+    if (template == null || !['R', 'Y', 'G', '싱글'].includes(template.party)) {
+      throw new RangeError('DNF raid metadata party references must identify a supported badge.')
+    }
+    validateImage(template.image, metadataLayout.partyWidthPx, metadataLayout.baselineHeightPx)
+    if (
+      template.image.width !== metadataLayout.partyWidthPx ||
+      template.image.height !== metadataLayout.baselineHeightPx
+    ) {
+      throw new RangeError('DNF raid metadata party references must be 42x17.')
+    }
+    const pixels = partyPattern(template.image.rgba)
+    if (pixels.every((value) => value === 0)) {
+      throw new RangeError('DNF raid metadata party references must contain contrast.')
+    }
+
+    return { party: template.party, pixels }
+  })
+  const equipmentScoreGlyphs = scoreGlyphTemplates(templates.equipmentScoreGlyphs)
 
   return rows.map((row) => {
     if (!row.occupied) {
@@ -397,20 +431,37 @@ export function readDNFRaidParticipantMetadata(
       ),
       parties
     )
-    const equipmentScoreText = readEquipmentScore(
-      normalizedRegion(
-        frame,
-        row.equipmentScoreRegion,
-        metadataLayout.scoreWidthPx,
-        metadataLayout.baselineHeightPx
-      ),
-      equipmentScoreGlyphs
-    )
+    const equipmentScoreText = readRowScore(frame, row.equipmentScoreRegion, equipmentScoreGlyphs)
 
     return {
       row: position,
       party,
       equipmentScoreText
     }
+  })
+}
+
+/**
+ * Reads only the fame or equipment-score notation of each occupied row with the same glyph
+ * references and rules as readDNFRaidParticipantMetadata, without party badge references.
+ * Returns null for empty rows and unreadable values; nothing is captured, decoded or stored.
+ */
+export function readDNFRaidParticipantValues(
+  frame: DNFParticipantFrame,
+  rows: readonly Pick<MetadataRow, 'row' | 'occupied' | 'equipmentScoreRegion'>[],
+  glyphs: DNFRaidMetadataTemplates['equipmentScoreGlyphs']
+): DNFRaidParticipantValue[] {
+  validateImage(frame, 1920, 1080)
+  validateRows(frame, rows, (row) => [row.equipmentScoreRegion])
+  const templates = scoreGlyphTemplates(glyphs)
+
+  return rows.map((row) => {
+    if (!row.occupied) {
+      return { row: row.row, valueText: null }
+    }
+
+    const valueText = readRowScore(frame, row.equipmentScoreRegion, templates)
+
+    return { row: row.row, valueText }
   })
 }
