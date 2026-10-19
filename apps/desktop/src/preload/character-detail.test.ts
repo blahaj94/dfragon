@@ -27,8 +27,10 @@ const snapshot: CharacterDetailSnapshot = {
     jobGrowName: '眞 웨펀마스터',
     level: 115,
     fame: 70000,
-    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1'
+    imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1',
+    guildName: '길드'
   },
+  card: null,
   freshness: {
     lastSuccessfulFetchAt: '2026-10-07T01:00:00.000Z',
     expiresAt: '2026-10-07T02:00:00.000Z'

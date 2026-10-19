@@ -33,8 +33,8 @@ function details(): CharacterDetails {
 }
 
 describe('캐릭터 상세 창 snapshot', () => {
-  it('기본 정보와 조회 시각만 노출하고 장비와 평가 데이터는 전달하지 않는다', () => {
-    const snapshot = createCharacterDetailSnapshot(details())
+  it('기본 정보, 길드와 조회 시각, 카드 값만 담고 상세 응답의 원문 섹션은 전달하지 않는다', () => {
+    const snapshot = createCharacterDetailSnapshot(details(), null)
 
     expect(snapshot).toEqual({
       character: {
@@ -47,8 +47,10 @@ describe('캐릭터 상세 창 snapshot', () => {
         jobGrowName: '웨펀마스터',
         level: 115,
         fame: 71000,
-        imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1'
+        imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/character-1?zoom=1',
+        guildName: '길드'
       },
+      card: null,
       freshness: {
         lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
         expiresAt: '2026-10-07T00:05:00.000Z'
@@ -58,31 +60,39 @@ describe('캐릭터 상세 창 snapshot', () => {
 
   it.each([null, 0])('명성과 레벨 %s를 다른 표시값으로 대체하지 않는다', (value) => {
     const source = details()
-    const snapshot = createCharacterDetailSnapshot({
-      ...source,
-      character: { ...source.character, fame: value, level: value, adventureName: null }
-    })
+    const snapshot = createCharacterDetailSnapshot(
+      {
+        ...source,
+        character: { ...source.character, fame: value, level: value, adventureName: null }
+      },
+      null
+    )
 
     expect(snapshot.character).toMatchObject({ fame: value, level: value, adventureName: null })
   })
 
   it('선택적 필드가 없거나 표시 타입이 아니면 null로 남긴다', () => {
     const source = details()
-    const snapshot = createCharacterDetailSnapshot({
-      ...source,
-      character: {
-        serverId: 'cain',
-        characterId: 'character-1',
-        characterName: '가나',
-        serverName: '카인',
-        jobName: {},
-        jobGrowName: [],
-        level: '115',
-        fame: Number.NaN
-      }
-    })
+    const snapshot = createCharacterDetailSnapshot(
+      {
+        ...source,
+        character: {
+          serverId: 'cain',
+          characterId: 'character-1',
+          characterName: '가나',
+          serverName: '카인',
+          jobName: {},
+          jobGrowName: [],
+          level: '115',
+          fame: Number.NaN,
+          guildName: 7
+        }
+      },
+      null
+    )
 
     expect(snapshot.character).toMatchObject({
+      guildName: null,
       adventureName: null,
       jobName: null,
       jobGrowName: null,
@@ -93,7 +103,7 @@ describe('캐릭터 상세 창 snapshot', () => {
 
   it('원본 객체의 후속 변경이 이미 만든 snapshot을 바꾸지 않는다', () => {
     const source = details()
-    const snapshot = createCharacterDetailSnapshot(source)
+    const snapshot = createCharacterDetailSnapshot(source, null)
     Object.assign(source.character, { characterName: '변경됨' })
     Object.assign(source.freshness, { expiresAt: '2026-10-07T01:00:00.000Z' })
 
