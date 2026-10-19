@@ -51,15 +51,29 @@ function paint(image, x, y, width, height, color) {
   }
 }
 
+// 1920×1080 실표본에서 게임은 UI 0% 래스터를 쌍선형 보간으로 확대해 그렸다. fixture도 같은 방식으로 확대한다.
 function copy(source, target, left, top, scale = 1) {
   const width = Math.round(source.width * scale)
   const height = Math.round(source.height * scale)
+  const position = (value, size) => Math.max(0, Math.min(size - 1, (value + 0.5) / scale - 0.5))
   for (let y = 0; y < height; y += 1) {
+    const sy = position(y, source.height)
+    const top0 = Math.floor(sy)
+    const top1 = Math.min(source.height - 1, top0 + 1)
     for (let x = 0; x < width; x += 1) {
-      const sx = Math.min(source.width - 1, Math.floor(x / scale))
-      const sy = Math.min(source.height - 1, Math.floor(y / scale))
-      const offset = (sy * source.width + sx) * 4
-      paint(target, left + x, top + y, 1, 1, source.rgba.subarray(offset, offset + 4))
+      const sx = position(x, source.width)
+      const left0 = Math.floor(sx)
+      const left1 = Math.min(source.width - 1, left0 + 1)
+      const horizontal = sx - left0
+      const vertical = sy - top0
+      const color = [0, 1, 2, 3].map((channel) => {
+        const at = (px, py) => source.rgba[(py * source.width + px) * 4 + channel]
+        const upper = at(left0, top0) * (1 - horizontal) + at(left1, top0) * horizontal
+        const lower = at(left0, top1) * (1 - horizontal) + at(left1, top1) * horizontal
+
+        return Math.round(upper * (1 - vertical) + lower * vertical)
+      })
+      paint(target, left + x, top + y, 1, 1, color)
     }
   }
 }
