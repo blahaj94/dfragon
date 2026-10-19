@@ -76,11 +76,11 @@ const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots' | 'seats' | 'actions'>> &
   Partial<ComponentProps<typeof RaidPage>['seats']> &
   NonNullable<ComponentProps<typeof RaidPage>['actions']> & {
-  slots?: SlotState[]
-  characters?: (CardCharacter | null)[]
-  slotNotices?: (string | undefined)[]
-  snapshotMarks?: (SnapshotMark | undefined)[]
-}
+    slots?: SlotState[]
+    characters?: (CardCharacter | null)[]
+    slotNotices?: (string | undefined)[]
+    snapshotMarks?: (SnapshotMark | undefined)[]
+  }
 
 async function render({
   slots: states,
@@ -89,7 +89,7 @@ async function render({
   snapshotMarks,
   seatOrder = createSeatOrder(),
   canMoveSeats = true,
-  swapSeats = vi.fn(() => true),
+  swapSeats: swap = vi.fn(() => true),
   lookupSlot,
   openDetails,
   ...props
@@ -109,18 +109,10 @@ async function render({
     root.render(
       <RaidPage
         id="raid-cards"
-        notice=""
+        header={null}
         collapsed={false}
-        onToggleCollapsed={vi.fn()}
-        lastCapturedAt={null}
-        canCapture
-        onCapture={vi.fn()}
-        snapshotActive={false}
-        snapshotRound={null}
-        onTakeSnapshot={vi.fn()}
-        onClearSnapshot={vi.fn()}
         {...props}
-        seats={{ seatOrder, canMoveSeats, swapSeats }}
+        seats={{ seatOrder, canMoveSeats, swapSeats: swap }}
         actions={{ lookupSlot, openDetails }}
         slots={slots}
       />
@@ -179,11 +171,9 @@ function classesOf(style: stylex.StyleXStyles): string[] {
   return (stylex.props(style).className ?? '').split(' ').filter(Boolean)
 }
 
-it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서로 놓고 찾은 자리 수를 머리에 보인다', async () => {
+it('파티 라벨 열 옆에 세 파티 네 자리씩 12자리를 번호 순서로 놓는다', async () => {
   await render({ characters: [member, { ...member, name: '둘째' }] })
 
-  expect(container.querySelector('h1')?.textContent).toBe('공대')
-  expect(container.textContent).toContain('2/12')
   expect(seats().map((seat) => seat.getAttribute('aria-label'))).toEqual(
     Array.from({ length: 12 }, (_, index) => `${index + 1}번 자리, 끌어서 옮기기`)
   )
@@ -416,24 +406,24 @@ it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 �
 
 it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 그 카드로 포커스를 가져가지 않는다', async () => {
   const swap = vi.fn(() => false)
-  await render({ characters: [member], swapSeats: swap })
+  const header = <button type="button">머리 버튼</button>
+  await render({ characters: [member], header, swapSeats: swap })
   await act(async () => seats()[0].focus())
 
   await pressAlt(seats()[0], 'ArrowRight')
   expect(swap).toHaveBeenCalledExactlyOnceWith(0, 1)
   expect(moveNotices()).toEqual(['', ''])
 
-  const capture = container.querySelector<HTMLButtonElement>(
-    '[aria-label="공대 캡처, 단축키 Alt R"]'
-  )!
-  await act(async () => capture.focus())
+  const headerButton = container.querySelector<HTMLButtonElement>('section > button')!
+  await act(async () => headerButton.focus())
   // 회차 시작처럼 다른 이유로 배치가 바뀐다.
   await render({
     characters: [member],
+    header,
     swapSeats: swap,
     seatOrder: swapSeats(createSeatOrder(), 0, 1)
   })
-  expect(document.activeElement).toBe(capture)
+  expect(document.activeElement).toBe(headerButton)
 })
 
 it('같은 두 자리를 연달아 맞바꿔도 알림 영역을 번갈아 채워 다시 읽히게 한다', async () => {
@@ -549,31 +539,17 @@ it('검색 응답에 없는 길드, 서버 순위, 명성, 장비 점수는 -로
   expect(first.textContent).toContain('공대모험단-')
 })
 
-it('머리에 안내, 스냅샷 토글, 공대 캡처 버튼을 두고 접기 버튼이 보드 영역을 가리킨다', async () => {
-  const toggle = vi.fn()
-  await render({
-    characters: [member],
-    notice: '캐릭터 정보 창을 열지 못했습니다.',
-    onToggleCollapsed: toggle
-  })
-  expect(container.querySelector('[role="status"]')?.textContent).toBe(
-    '캐릭터 정보 창을 열지 못했습니다.'
-  )
-  expect(
-    container
-      .querySelector<HTMLButtonElement>('[aria-label="공대 모험단 순번 스냅샷"]')
-      ?.getAttribute('aria-pressed')
-  ).toBe('false')
-  expect(container.querySelector('[aria-label="공대 캡처, 단축키 Alt R"]')).not.toBeNull()
-  const fold = container.querySelector<HTMLButtonElement>('[aria-label="카드 접기"]')!
-  expect(fold.getAttribute('aria-controls')).toBe('raid-cards')
-  expect(container.querySelectorAll('#raid-cards article')).toHaveLength(12)
-  expect(fold.getAttribute('aria-expanded')).toBe('true')
-  await act(async () => fold.click())
-  expect(toggle).toHaveBeenCalledOnce()
+it('화면이 넘긴 머리를 보드 위에 두고 숨기면 머리와 보드를 함께 숨긴다', async () => {
+  await render({ characters: [member], header: <h1>공대 머리</h1> })
+  const header = container.querySelector('section > h1')!
+  expect(header.textContent).toBe('공대 머리')
+  const board = container.querySelector('#raid-cards')!
+  expect(board.querySelectorAll('article')).toHaveLength(12)
+  expect(header.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0)
 
-  await render({ characters: [member], hidden: true })
+  await render({ characters: [member], header: <h1>공대 머리</h1>, hidden: true })
   expect(container.querySelector('section')?.hidden).toBe(true)
+  expect(container.querySelector('section')?.contains(header)).toBe(true)
 })
 
 it('보드는 창 크기와 상관없이 1280×800 배치의 카드 크기로 고정하고 넘치면 보드 영역이 스크롤한다', async () => {
@@ -610,9 +586,6 @@ it('접힌 동안은 그림 칸, 직업, 스탯 한 줄을 숨기고 이름 입�
   expect(first().querySelectorAll('dl')).toHaveLength(2)
 
   await render({ characters: [member], collapsed: true })
-  expect(container.querySelector('[aria-label="카드 펼치기"]')?.getAttribute('aria-expanded')).toBe(
-    'false'
-  )
   expect(nameOf(first())).toBe('공대원')
   expect(first().querySelectorAll('dl')).toHaveLength(1)
   expect([...first().querySelectorAll('dt')].map((term) => term.textContent)).toEqual([
@@ -628,7 +601,6 @@ it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 �
   await render({
     characters: [member, { ...member, adventure: '둘째모험단' }],
     seatOrder,
-    snapshotActive: true,
     snapshotMarks: [{ kind: 'absent' }, { kind: 'moved', seat: 2 }, ...Array(10).fill(undefined)]
   })
 
@@ -638,25 +610,4 @@ it('슬롯에 붙은 스냅샷 표시는 그 슬롯이 놓인 자리 카드에 �
   expect(second.querySelector('[aria-label="스냅샷에 없는 모험단"]')).not.toBeNull()
   expect(third.querySelector('[aria-label^="스냅샷"]')).toBeNull()
   expect(container.querySelectorAll('[aria-label^="스냅샷 순번"]')).toHaveLength(1)
-})
-
-it('공대 인원수 바로 뒤에 스냅샷 회차 번호를 보이고 스냅샷이 없으면 숨긴다', async () => {
-  await render({ snapshotActive: false, snapshotRound: null })
-  expect(container.querySelector('[aria-label$="번째 공대"]')).toBeNull()
-
-  await render({ snapshotActive: true, snapshotRound: 3 })
-  const round = container.querySelector('[aria-label="3번째 공대"]')!
-  expect(round.textContent).toBe('#3')
-  expect(round.previousElementSibling?.textContent).toContain('/12')
-})
-
-it('꺼진 스냅샷 버튼을 누르면 onTakeSnapshot을 부른다', async () => {
-  const onTakeSnapshot = vi.fn()
-  await render({ onTakeSnapshot })
-  const button = container.querySelector<HTMLButtonElement>(
-    '[aria-label="공대 모험단 순번 스냅샷"]'
-  )!
-  await act(async () => button.click())
-
-  expect(onTakeSnapshot).toHaveBeenCalledOnce()
 })
