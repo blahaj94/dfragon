@@ -72,8 +72,9 @@ export function CharacterCard({
     loading = false
   } = card
   const characterFound = state === 'success' && character != null
-  const picker = characterFound ? card.picker : undefined
-  const previewing = picker?.previewServerId != null
+  // 미리보기 조회가 실패해도 다른 후보를 다시 고를 수 있게 후보 줄은 캐릭터를 찾지 못한 동안에도 남긴다.
+  const picker = card.picker
+  const previewing = characterFound && picker?.previewServerId != null
   // 찾은 자리는 인식한 이름 대신 찾은 캐릭터 이름으로 이름 칸을 채운다.
   const nickname = characterFound ? undefined : card.nickname
   const [face, setFace] = useState(initialFace)
@@ -231,7 +232,9 @@ export function CharacterCard({
                 </Typo.caption>
               )}
               {(busy || (!characterFound && message) || showRetry) && (
-                <div {...stylex.props(styles.center)}>
+                <div
+                  {...stylex.props(styles.center, picker !== undefined && stripStyles.aboveStrip)}
+                >
                   {busy && (
                     <div role="status" aria-label={`${slot}번 캐릭터 확인 중`}>
                       <ProgressCircle size="24" tone="staticWhite" />

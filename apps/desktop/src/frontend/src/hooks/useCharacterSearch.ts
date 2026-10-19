@@ -268,6 +268,13 @@ export function useCharacterSearch(onInvalidated: () => void): CharacterSearch {
     detailFailure === null ? '' : '캐릭터 정보 창을 열지 못했습니다. 다시 시도해 주세요.'
   const slots = view.slots.map((slot) => {
     if (serverLookupSlots[slot.slot]) {
+      const manualSlot = manualView.slots[slot.slot]
+      const loading = manualStartingSlots[slot.slot] || manualSlot.state === 'pending'
+      // 후보 미리보기를 불러오는 동안에는 대기 화면 대신 지금 보이는 캐릭터를 그대로 둔다.
+      if (loading && candidatePickers[slot.slot]?.previewServerId != null) {
+        return slot
+      }
+
       if (manualStartingSlots[slot.slot]) {
         const state = 'pending' as const
 
