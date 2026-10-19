@@ -216,11 +216,13 @@ export function Preview(): React.JSX.Element {
             id={partyCardsId}
             collapsed={party.collapsed}
             slots={partyCards}
-            onRetry={identification ? () => setScenario('pending') : undefined}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
-            onDetail={openDetail}
+            actions={{
+              openDetails: openDetail,
+              retrySlot: identification ? () => setScenario('pending') : undefined
+            }}
           />
         </div>
         {searchMode === 'raid' && (
@@ -240,20 +242,22 @@ export function Preview(): React.JSX.Element {
               snapshotRound={raidSnapshot.round}
               onTakeSnapshot={raidSnapshot.take}
               onClearSnapshot={raidSnapshot.clear}
-              seatOrder={seatOrder}
-              canMoveSeats={phase !== 'recognizing'}
-              onSwapSeats={(from, to) => {
-                const next = swapSeats(seatOrder, from, to)
-                if (phase === 'recognizing' || next === seatOrder) {
-                  return false
-                }
-                setSeatOrder(next)
+              seats={{
+                seatOrder,
+                canMoveSeats: phase !== 'recognizing',
+                swapSeats: (from, to) => {
+                  const next = swapSeats(seatOrder, from, to)
+                  if (phase === 'recognizing' || next === seatOrder) {
+                    return false
+                  }
+                  setSeatOrder(next)
 
-                return true
+                  return true
+                }
               }}
               collapsed={party.collapsed}
               onToggleCollapsed={party.toggleCollapsed}
-              onSlotDetail={openDetail}
+              actions={{ openDetails: openDetail }}
             />
           </div>
         )}

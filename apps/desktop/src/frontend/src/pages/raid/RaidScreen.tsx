@@ -80,13 +80,10 @@ export function RaidScreen({
       snapshotRound={snapshot.round}
       onTakeSnapshot={snapshot.take}
       onClearSnapshot={snapshot.clear}
-      seatOrder={seatOrder}
-      canMoveSeats={capture.canMoveSeats}
-      onSwapSeats={capture.swapSeats}
+      seats={capture}
       collapsed={collapsed}
       onToggleCollapsed={onToggleCollapsed}
-      onLookup={search.lookupSlot}
-      onSlotDetail={search.openDetails}
+      actions={search}
     />
   )
 }

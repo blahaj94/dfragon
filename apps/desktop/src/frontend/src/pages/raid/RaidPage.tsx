@@ -6,7 +6,7 @@ import { FoldIcon } from '../../components/FoldIcon'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from '../../constants/cards'
-import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
+import { filledSlotCount, type SlotCard, type SlotCardActions } from '../../lib/slot-cards'
 import { neighborSeat, type SeatDirection, type SeatOrder } from '../../lib/raid-seats'
 import { RaidCard } from '../../sections/RaidCard'
 import { styles } from './RaidPage.style'
@@ -37,9 +37,7 @@ export function RaidPage({
   notice,
   slots,
   resetKey = 'raid',
-  seatOrder,
-  canMoveSeats,
-  onSwapSeats,
+  seats,
   lastCapturedAt,
   canCapture,
   onCapture,
@@ -49,8 +47,7 @@ export function RaidPage({
   onClearSnapshot,
   collapsed,
   onToggleCollapsed,
-  onLookup,
-  onSlotDetail
+  actions = {}
 }: {
   /** 접기 버튼이 가리킬 보드 영역의 id */
   id: string
@@ -62,12 +59,15 @@ export function RaidPage({
   slots: readonly SlotCard[]
   /** 캡처 회차가 바뀌면 카드의 입력 초안을 새로 그린다. */
   resetKey?: string
-  /** 화면 자리 0~11에 놓인 검색 슬롯 */
-  seatOrder: SeatOrder
-  /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
-  canMoveSeats: boolean
-  /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
-  onSwapSeats: (from: number, to: number) => boolean
+  /** 공대 캡처가 소유한 자리 배치. 필드 이름은 공대 캡처 hook과 같다. */
+  seats: {
+    /** 화면 자리 0~11에 놓인 검색 슬롯 */
+    seatOrder: SeatOrder
+    /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
+    canMoveSeats: boolean
+    /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
+    swapSeats: (from: number, to: number) => boolean
+  }
   /** 마지막으로 인식을 마친 공대 회차의 완료 시각(ms). 없으면 null이다. */
   lastCapturedAt: number | null
   /** Alt+R이 지금 공대 회차를 시작할 수 있는지. 아니면 버튼도 누를 수 없다. */
@@ -82,11 +82,11 @@ export function RaidPage({
   onClearSnapshot: () => void
   collapsed: boolean
   onToggleCollapsed: () => void
-  /** 검색 슬롯 번호로 서버와 이름을 조회한다. */
-  onLookup?: (slot: number, nickname: string, serverId: string) => void
-  /** 검색 슬롯 번호로 상세 창을 연다. */
-  onSlotDetail?: (slot: number) => void
+  /** 검색 슬롯 번호로 부르는 조회와 상세 열기 */
+  actions?: Pick<SlotCardActions, 'lookupSlot' | 'openDetails'>
 }): React.JSX.Element {
+  const { seatOrder, canMoveSeats, swapSeats } = seats
+  const { lookupSlot, openDetails } = actions
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   // 끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 끌기를
@@ -120,7 +120,7 @@ export function RaidPage({
 
   /** 두 자리를 맞바꾸고, 맞바꿨을 때만 알린다. */
   function swap(from: number, to: number): boolean {
-    const swapped = onSwapSeats(from, to)
+    const swapped = swapSeats(from, to)
     if (swapped) {
       const text = `${from + 1}번 자리와 ${to + 1}번 자리를 맞바꿨습니다.`
       setMoveNotice((previous) => {
@@ -141,7 +141,6 @@ export function RaidPage({
   function renderSeat(seat: number, partyLabelId: string): React.JSX.Element {
     const slot = seatOrder[seat]
     const card = slots[slot]
-    const found = card.state === 'success' && card.character != null
     let drag: 'source' | 'target' | undefined
     if (dragging === slot) {
       drag = 'source'
@@ -155,11 +154,11 @@ export function RaidPage({
         card={card}
         slot={seat + 1}
         collapsed={collapsed}
-        onDetail={found && onSlotDetail !== undefined ? () => onSlotDetail(slot) : undefined}
+        onDetail={openDetails === undefined ? undefined : () => openDetails(slot)}
         onLookup={
-          onLookup === undefined
+          lookupSlot === undefined
             ? undefined
-            : (nickname, serverId) => onLookup(slot, nickname, serverId)
+            : (nickname, serverId) => lookupSlot(slot, nickname, serverId)
         }
         move={{
           movable: canMoveSeats,

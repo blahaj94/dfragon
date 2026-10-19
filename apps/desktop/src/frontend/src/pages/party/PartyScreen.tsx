@@ -73,8 +73,7 @@ export function PartyScreen({
         resetKey={String(capture.round)}
         slots={cards}
         inputEnabled
-        onLookup={search.lookupSlot}
-        onSlotDetail={search.openDetails}
+        actions={search}
       />
     </div>
   )

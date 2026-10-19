@@ -23,6 +23,19 @@ export type SlotCard = {
   retryPending?: boolean
 }
 
+/**
+ * 파티, 공대 페이지가 검색 슬롯 번호로 부르는 카드 동작. 필드 이름은 검색 hook과 같아 화면 컨테이너가 검색
+ * 결과를 그대로 넘긴다. 넘기지 않은 동작은 카드에서 쓸 수 없다.
+ */
+export type SlotCardActions = {
+  /** 검색 슬롯 번호의 서버와 이름을 조회한다. */
+  lookupSlot?: (slot: number, nickname: string, serverId: string) => void
+  /** 검색 슬롯 번호의 상세 창을 연다. */
+  openDetails?: (slot: number) => void
+  /** 합성 미리보기만 채운다. 검색 슬롯 번호의 검색을 다시 시도한다. */
+  retrySlot?: (slot: number) => void
+}
+
 /** 검색 슬롯 순서로 슬롯마다 카드 값을 만든다. 슬롯별 입력은 모두 검색 슬롯 순서다. */
 export function toSlotCards({
   slots,
