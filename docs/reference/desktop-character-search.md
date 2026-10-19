@@ -151,11 +151,11 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 `backend/score/engine.ts`는 라이브러리를 `koffi`로 열어 `dnfscore_version`, `dnfscore_score`, `dnfscore_free`를 묶는다. 패키지는 `app.asar.unpacked/resources/score/`의 플랫폼별 파일만 열고, 개발 실행만 `DFRAGON_SCORE_LIBRARY`의 절대 경로를 읽는다. 라이브러리는 첫 점수 계산 때 한 번 열며 열지 못한 결과도 기억해 다시 시도하지 않는다. 엔진이 출력으로 할당한 문자열은 반환값과 관계없이 같은 엔진의 `dnfscore_free`로 해제한다. 결과는 Desktop이 쓰는 `calculator`, `score`, `skipped`, `versions`, `display`만 검사하고, 요청한 계산기와 다르거나 점수와 사유가 함께 있거나 둘 다 없으면 버린다. 파일이 없거나 열기, 호출, 결과 검증이 실패하면 점수만 null이고, 원문 오류는 경로를 담을 수 있어 진단 코드 `SCORE_ENGINE_UNAVAILABLE`, `SCORE_ENGINE_FAILED`만 남긴다.
 
-엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 검색 operation의 `run` 안에서 한다. 호출 전후에 취소, 처음 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. 50ms를 넘는 입력이 확인되면 worker로 옮기는 작업을 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
+엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 검색 operation의 `run` 안에서 한다. 호출 전후에 취소, 처음 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. Release `native-v0.1.0`을 macOS arm64 host Node에서 golden 벡터 두 건으로 부른 로컬 측정에서는 첫 호출이 엔진 준비로 약 0.4~0.9초, 이후 딜러는 약 2ms, 버퍼는 약 52ms였다. Windows와 Electron 안의 시간은 측정하지 않았으며, 첫 호출 준비와 50ms를 넘는 버퍼 계산을 worker로 옮길지는 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
 
-엔진 바이너리는 비공개 엔진 저장소의 Release 자산이다. `apps/desktop/scripts/prepare-score-engine.mjs`가 `score-engine.config.mjs`의 tag, 자산 이름, SHA256으로 자산을 받아 대조하고 `resources/score/`에 두며, electron-builder의 `asarUnpack: resources/**`가 이를 asar 밖에 둔다. 토큰이 없으면 엔진 없이 빌드한다. Release가 아직 없어 설정은 미발행 상태다. 입수와 개발 설정은 [Desktop 안내](../../apps/desktop/README.md#장비-점수-엔진)에 있다.
+엔진 바이너리는 비공개 엔진 저장소의 Release 자산이다. `apps/desktop/scripts/prepare-score-engine.mjs`가 `score-engine.config.mjs`의 tag, 자산 이름, SHA256으로 자산을 받아 대조하고 `resources/score/`에 두며, electron-builder의 `asarUnpack: resources/**`가 이를 asar 밖에 둔다. 토큰이 없으면 엔진 없이 빌드한다. 설정은 Release `native-v0.1.0`의 Windows x64와 macOS arm64 자산을 가리키며, 패키지는 Windows만 만든다. 입수와 개발 설정은 [Desktop 안내](../../apps/desktop/README.md#장비-점수-엔진)에 있다.
 
-`input.test.ts`는 엔진 저장소 golden 벡터의 입력 원문(가명 처리한 딜러 1명, 버퍼 1명)을 API 투영과 `itemDetail` 보강 규칙대로 상세 응답 모양으로 만든 뒤 엔진 입력으로 되돌려 원문과 대조한다. `engine.test.ts`는 koffi 대신 같은 모양의 라이브러리 더블로 로드 실패 정제, 출력 해제, 결과 검증과 느린 호출 진단을 확인하고, `request.test.ts`는 엔진 호출 중 만료, 취소와 이전 요청의 카드를 버리는지 확인한다. 실제 엔진의 점수 정확도와 Electron 안의 koffi 로드는 Release 뒤 수동 확인 대상이다.
+`input.test.ts`는 엔진 저장소 golden 벡터의 입력 원문(가명 처리한 딜러 1명, 버퍼 1명)을 API 투영과 `itemDetail` 보강 규칙대로 상세 응답 모양으로 만든 뒤 엔진 입력으로 되돌려 원문과 대조한다. `engine.test.ts`는 koffi 대신 같은 모양의 라이브러리 더블로 로드 실패 정제, 출력 해제, 결과 검증과 느린 호출 진단을 확인하고, `request.test.ts`는 엔진 호출 중 만료, 취소와 이전 요청의 카드를 버리는지 확인한다. 위 로컬 측정에서 실제 엔진은 두 벡터 모두 원문 입력과 상세 응답을 거친 입력에 같은 점수(딜러 1741, 버퍼 136617)를 냈다. Windows DLL과 Electron 안의 koffi 로드는 Windows 실기에서 확인할 대상이다.
 
 ## 캐릭터별 상세 창
 
