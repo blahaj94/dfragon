@@ -3,6 +3,7 @@ import type { CharacterDetails } from '../../preload/common/types/character'
 import type { IdentificationAdapters } from './request'
 import { createCaptureSearchLifetime } from './capture-lifetime'
 import { FakeClock } from '../auth/auth-test-fixtures'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
 
 const details: CharacterDetails = {
   character: {
@@ -40,8 +41,9 @@ describe('선택 상세의 main 전용 보관 수명', () => {
           }
         ],
         image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
-        matchesPortrait: async () => true,
-        details: async () => details
+        details: async () => details,
+        scorePortrait: async () => null,
+        selection: INITIAL_PORTRAIT_COLOR_POLICY
       }
       const lifetime = createCaptureSearchLifetime({
         publish: vi.fn(),
@@ -120,8 +122,9 @@ describe('선택 상세의 main 전용 보관 수명', () => {
         }
       ],
       image: async () => ({ width: 1, height: 1, rgba: new Uint8Array([1, 2, 3, 255]) }),
-      matchesPortrait: async () => true,
-      details: async () => ({ ...details, card })
+      details: async () => ({ ...details, card }),
+      scorePortrait: async () => null,
+      selection: INITIAL_PORTRAIT_COLOR_POLICY
     }
     const lifetime = createCaptureSearchLifetime({
       publish: vi.fn(),

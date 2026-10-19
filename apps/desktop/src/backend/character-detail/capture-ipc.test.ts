@@ -1,15 +1,14 @@
-import { PNG } from 'pngjs'
 import { describe, expect, it, vi, type Mock } from 'vitest'
 import type { CharacterDetails } from '../../preload/common/types/character'
 import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
 import type { openSelectedCharacterDetail } from './windows'
 import { candidate, createSearchFixture, jsonResponse } from '../search/search-test-fixture'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from '../search/portrait-policy'
 
 const portrait = {
   image: { width: 2, height: 1, rgba: new Uint8Array([30, 60, 90, 255, 40, 70, 100, 255]) },
   rasterScale: 1
 }
-const policy = { maxMeanChannelError: 0, minCoverage: 1, minComparedPixels: 1 }
 
 async function selectedFixture(
   searchKind: 'capture' | 'manual' | 'raid' = 'capture',
@@ -22,7 +21,9 @@ async function selectedFixture(
   }
 > {
   const openSelected = vi.fn<typeof openSelectedCharacterDetail>().mockResolvedValue(true)
-  const fixture = await createSearchFixture(false, searchKind, policy, { openSelected })
+  const fixture = await createSearchFixture(false, searchKind, INITIAL_PORTRAIT_COLOR_POLICY, {
+    openSelected
+  })
   const metadata = {
     revision: 1,
     contentUpdatedAt: '2026-10-07T00:00:00.000Z',
@@ -59,8 +60,7 @@ async function selectedFixture(
       expiresAt: '2026-10-07T00:05:00.000Z'
     }
   }
-  const image = new PNG({ width: 2, height: 1 })
-  image.data = Buffer.from(portrait.image.rgba)
+  // 후보가 한 명이면 2위와 비교할 수 없어 캡처도 이미지를 받지 않고 상세를 조회한다.
   fixture.fetchSearch.mockResolvedValueOnce(
     jsonResponse({
       body: {
@@ -74,13 +74,6 @@ async function selectedFixture(
       }
     })
   )
-  if (searchKind === 'capture') {
-    fixture.fetchSearch.mockResolvedValueOnce(
-      new Response(new Uint8Array(PNG.sync.write(image)), {
-        headers: { 'Content-Type': 'image/png' }
-      })
-    )
-  }
   fixture.fetchSearch.mockResolvedValueOnce(jsonResponse({ body: details }))
   if (searchKind === 'capture') {
     await fixture.invoke('notifyOcrCandidatesDetected', {
