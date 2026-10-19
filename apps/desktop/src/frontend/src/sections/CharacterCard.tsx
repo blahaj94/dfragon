@@ -82,6 +82,8 @@ export function CharacterCard({
   const [face, setFace] = useState(initialFace)
   const draft = useLookupDraft({ character, nickname, onLookup })
   const { name, serverId, inputNotice, editing } = draft
+  // 고치는 동안에는 입력 칸의 글자를 그대로 보이고, 그 밖에는 칸보다 긴 이름을 흐르게 한다.
+  const nameMarquee = compactPicker && !draft.active && name !== ''
   const hasCharacter = state === 'success' && character != null && !editing
   // 접힌 카드는 캐릭터 면만 보이고, 펼치면 고른 면으로 돌아온다.
   const shownFace = collapsed || !hasCharacter ? 0 : face
@@ -100,6 +102,18 @@ export function CharacterCard({
     tier: characterFound ? character.tier : undefined
   })
   const tier = frameState === 'top' || frameState === 'ranker' ? frameState : undefined
+  // 모험단과 길드. 접힌 카드에서 후보 타일과 함께 놓이면 흐르는 상자에 담는다.
+  const affiliation = characterFound && (
+    <>
+      <Typo.caption weight={600} {...stylex.props(styles.adventure)}>
+        {character.adventure}
+      </Typo.caption>
+      <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
+      <Typo.caption weight={600} {...stylex.props(styles.guild)}>
+        {character.guild ?? MISSING_VALUE}
+      </Typo.caption>
+    </>
+  )
   const showRetry = state === 'failure' && onRetry != null
 
   return (
@@ -255,15 +269,14 @@ export function CharacterCard({
               <div {...stylex.props(styles.identityRow)}>
                 <div {...stylex.props(styles.identityText)}>
                   <div {...stylex.props(styles.affiliation)}>
-                    {characterFound ? (
+                    {characterFound && compactPicker && (
+                      <span {...stylex.props(styles.marqueeBox)}>
+                        <span {...stylex.props(styles.marqueeText)}>{affiliation}</span>
+                      </span>
+                    )}
+                    {characterFound && !compactPicker && (
                       <>
-                        <Typo.caption weight={600} {...stylex.props(styles.adventure)}>
-                          {character.adventure}
-                        </Typo.caption>
-                        <span aria-hidden="true" {...stylex.props(styles.affiliationDivider)} />
-                        <Typo.caption weight={600} {...stylex.props(styles.guild)}>
-                          {character.guild ?? MISSING_VALUE}
-                        </Typo.caption>
+                        {affiliation}
                         <span {...stylex.props(styles.spacer)} />
                         <Typo.caption
                           weight={500}
@@ -272,7 +285,8 @@ export function CharacterCard({
                           {character.job}
                         </Typo.caption>
                       </>
-                    ) : (
+                    )}
+                    {!characterFound && (
                       <Typo.caption
                         aria-hidden="true"
                         weight={600}
@@ -301,12 +315,19 @@ export function CharacterCard({
                       }}
                       {...stylex.props(
                         styles.name,
-                        compactPicker && styles.nameEllipsis,
+                        nameMarquee && styles.nameUnderMarquee,
                         frameState === 'waiting' && styles.nameWaiting,
                         frameState === 'failure' && styles.nameFailure,
                         draft.active && styles.nameSelected
                       )}
                     />
+                    {nameMarquee && (
+                      <span aria-hidden="true" {...stylex.props(styles.nameMarquee)}>
+                        <Typo.h5 as="span" weight={700} {...stylex.props(styles.marqueeText)}>
+                          {name}
+                        </Typo.h5>
+                      </span>
+                    )}
                   </div>
                 </div>
                 {compactPicker && (
