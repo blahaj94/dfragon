@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { Button, Chip, Typo } from '@dfragon/ui'
 import { DeveloperSampleThumbnail } from '../components/DeveloperSampleThumbnail'
 import { DeveloperSampleEditor } from '../components/DeveloperSampleEditor'
-import type { DeveloperWorkbenchSample } from '../lib/developer-party'
+import type { DeveloperLabeling } from '../hooks/useDeveloperLabeling'
 import type { DeveloperLabelFilter } from '../lib/developer-workbench-samples'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperLabelingSection.style'
@@ -26,45 +26,21 @@ function getEmptySampleMessage(filter: DeveloperLabelFilter): string {
 }
 
 export function DeveloperLabelingSection({
-  samples,
-  pagination,
-  selected,
-  selectedNumber,
-  filter,
-  draft,
+  labeling,
   loading,
   saving,
-  error,
-  notice,
-  onFilterChange,
-  onSelect,
-  onDraft,
-  onSaveAndNext,
-  onSkip,
-  onSetExcluded
+  error
 }: {
-  samples: DeveloperWorkbenchSample[]
-  pagination?: {
-    page: number
-    pageCount: number
-    total: number
-    onPageChange: (page: number) => void
-  }
-  selected: DeveloperWorkbenchSample | null
-  selectedNumber: number
-  filter: DeveloperLabelFilter
-  draft: string
+  labeling: DeveloperLabeling
+  /** 지금 자료 위치의 목록을 읽는 중인지 */
   loading: boolean
+  /** 로컬 자료에 정답이나 제외 여부를 저장하는 중인지 */
   saving: boolean
+  /** 지금 자료 위치의 목록을 읽지 못한 이유 */
   error: string
-  notice: string
-  onFilterChange: (filter: DeveloperLabelFilter) => void
-  onSelect: (id: string) => void
-  onDraft: (value: string) => void
-  onSaveAndNext: () => void
-  onSkip: () => void
-  onSetExcluded: (excluded: boolean) => void
 }): React.JSX.Element {
+  const { samples, pagination, selected, filter, notice } = labeling
+
   function renderSamples(): React.JSX.Element {
     if (loading && samples.length === 0) {
       return <Typo.txtS role="status">이미지를 불러오는 중입니다.</Typo.txtS>
@@ -83,7 +59,7 @@ export function DeveloperLabelingSection({
             key={sample.id}
             sample={sample}
             selected={selected?.id === sample.id}
-            onSelect={() => onSelect(sample.id)}
+            onSelect={() => labeling.select(sample.id)}
           />
         ))}
       </ul>
@@ -96,13 +72,9 @@ export function DeveloperLabelingSection({
         <DeveloperSampleEditor
           key={selected.id}
           sample={selected}
-          number={selectedNumber}
-          draft={draft}
+          number={labeling.selectedNumber}
           saving={saving}
-          onDraft={onDraft}
-          onSaveAndNext={onSaveAndNext}
-          onSkip={onSkip}
-          onSetExcluded={onSetExcluded}
+          editing={labeling}
         />
       )
     }
@@ -128,7 +100,7 @@ export function DeveloperLabelingSection({
           const selected = filter === id
 
           return (
-            <Chip key={id} pressed={selected} onPressedChange={() => onFilterChange(id)}>
+            <Chip key={id} pressed={selected} onPressedChange={() => labeling.changeFilter(id)}>
               {label}
             </Chip>
           )
@@ -140,7 +112,7 @@ export function DeveloperLabelingSection({
             size="sm"
             {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page === 0}
-            onClick={() => pagination.onPageChange(pagination.page - 1)}
+            onClick={() => labeling.changePage(pagination.page - 1)}
           >
             이전 페이지
           </Button>
@@ -151,7 +123,7 @@ export function DeveloperLabelingSection({
             size="sm"
             {...stylex.props(buttonStyles.secondary)}
             disabled={pagination.page + 1 >= pagination.pageCount}
-            onClick={() => pagination.onPageChange(pagination.page + 1)}
+            onClick={() => labeling.changePage(pagination.page + 1)}
           >
             다음 페이지
           </Button>

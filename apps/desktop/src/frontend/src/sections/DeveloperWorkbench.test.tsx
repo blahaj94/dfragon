@@ -662,6 +662,40 @@ it.each(['save', 'exclude', 'restore'] as const)(
   }
 )
 
+it('keeps the selection when the tab changes before a delayed save finishes', async () => {
+  const rows = ['first', 'second', 'third'].map((id, index) =>
+    sample(id, `2026-09-24T00:00:0${index}.000Z`, null)
+  )
+  const { api, samples } = installApi(rows)
+  const pending = deferred<void>()
+  // 수집 탭을 오가면 목록을 다시 읽으므로 늦게 끝난 저장도 저장소의 목록에 남긴다.
+  const save = api.saveLabel.getMockImplementation()!
+  api.saveLabel.mockImplementation(async (id, text) => {
+    await pending.promise
+
+    return save(id, text)
+  })
+  await act(async () => root.render(<DeveloperWorkbench onClose={vi.fn()} />))
+  await click('정답 입력')
+  const thumbnails = container.querySelectorAll<HTMLButtonElement>(
+    'ul[aria-label="저장된 테스트 이미지"] button'
+  )
+  await act(async () => thumbnails[1].click())
+  await typeLabel('완료 라벨')
+  await click('저장하고 다음')
+  await click('이미지 수집')
+
+  pending.resolve()
+  await act(async () => pending.promise)
+  expect(samples[1].text).toBe('완료 라벨')
+  await click('정답 입력')
+
+  // 다음 이미지(third)로 넘어가지 않아 저장한 이미지가 빠진 목록의 첫 이미지를 보인다.
+  expect(container.querySelector('img[alt="선택한 저장 크롭"]')?.getAttribute('src')).toBe(
+    'data:image/svg+xml,first'
+  )
+})
+
 it('preserves a filter change while saving a label', async () => {
   const rows = [
     sample('first', '2026-09-24T00:00:00.000Z', null),

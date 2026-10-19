@@ -2,7 +2,7 @@ import { useId, useMemo, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { CaptureControls } from '../../components/CaptureControls'
 import { MainNav, type SearchMode } from '../../components/MainNav'
-import { PartyHeader } from '../../components/PartyHeader'
+import { BoardHeader } from '../../components/BoardHeader'
 import { TopBar } from '../../components/TopBar'
 import { usePartyCollapse } from '../../hooks/usePartyCollapse'
 import { LoginSection } from '../../sections/LoginSection'
@@ -30,7 +30,7 @@ import {
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
-import type { SlotCard } from '../../lib/slot-cards'
+import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
@@ -173,87 +173,98 @@ export function Preview(): React.JSX.Element {
         }
         capture={
           <CaptureControls
-            sources={sources}
-            selectedSourceId={source}
-            loading={false}
-            failed={false}
+            capture={{
+              sources,
+              selectedSourceId: source,
+              sourcesLoading: false,
+              sourcesFailed: false,
+              selectSource: (id) => {
+                setSource(id)
+                setCaptureState(id ? 'selected' : 'idle')
+              },
+              refreshSources: () => {},
+              stopCapture: () => {
+                setSource('')
+                setCaptureState('idle')
+              },
+              search: { ready: true }
+            }}
             phase={phase}
-            ready
             status={getCapturePreviewStatus(captureState)}
-            onSelect={(id) => {
-              setSource(id)
-              setCaptureState(id ? 'selected' : 'idle')
-            }}
-            onRefresh={() => {}}
-            onStop={() => {
-              setSource('')
-              setCaptureState('idle')
-            }}
           />
         }
       />
       <div {...stylex.props(styles.content)}>
         <div hidden={searchMode !== 'party'} {...stylex.props(styles.page)}>
-          <PartyHeader
-            notice=""
+          <BoardHeader
+            target="파티"
             filledCount={partySlots.filter((state) => state === 'success').length}
-            lastCapturedAt={captureState === 'complete' ? completedAt : null}
-            canCapture={canCapture}
-            onCapture={() => {
-              setCaptureState('complete')
-              setCompletedAt(Date.now())
-              setPartyRound((round) => round + 1)
+            notice=""
+            capture={{
+              lastCompletedAt: captureState === 'complete' ? completedAt : null,
+              canStartCapture: canCapture,
+              startRound: () => {
+                setCaptureState('complete')
+                setCompletedAt(Date.now())
+                setPartyRound((round) => round + 1)
+              }
             }}
-            snapshotActive={partySnapshot.active}
-            snapshotRound={partySnapshot.round}
-            onTakeSnapshot={partySnapshot.take}
-            onClearSnapshot={partySnapshot.clear}
-            collapsed={party.collapsed}
-            onToggleCollapsed={party.toggleCollapsed}
+            snapshot={partySnapshot}
+            collapse={party}
             controls={partyCardsId}
           />
           <PartyPage
             id={partyCardsId}
             collapsed={party.collapsed}
             slots={partyCards}
-            onRetry={identification ? () => setScenario('pending') : undefined}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
-            onDetail={openDetail}
+            actions={{
+              openDetails: openDetail,
+              retrySlot: identification ? () => setScenario('pending') : undefined
+            }}
           />
         </div>
         {searchMode === 'raid' && (
           <div {...stylex.props(styles.page)}>
             <RaidPage
               id={raidCardsId}
-              notice=""
+              header={
+                <BoardHeader
+                  target="공대"
+                  filledCount={filledSlotCount(raidCards)}
+                  notice=""
+                  capture={{
+                    lastCompletedAt: captureState === 'complete' ? completedAt : null,
+                    canStartCapture: canCapture,
+                    startRound: () => {
+                      setCaptureState('complete')
+                      setCompletedAt(Date.now())
+                      setRaidRound((round) => round + 1)
+                    }
+                  }}
+                  snapshot={raidSnapshot}
+                  collapse={party}
+                  controls={raidCardsId}
+                />
+              }
               slots={raidCards}
-              lastCapturedAt={captureState === 'complete' ? completedAt : null}
-              canCapture={canCapture}
-              onCapture={() => {
-                setCaptureState('complete')
-                setCompletedAt(Date.now())
-                setRaidRound((round) => round + 1)
-              }}
-              snapshotActive={raidSnapshot.active}
-              snapshotRound={raidSnapshot.round}
-              onTakeSnapshot={raidSnapshot.take}
-              onClearSnapshot={raidSnapshot.clear}
-              seatOrder={seatOrder}
-              canMoveSeats={phase !== 'recognizing'}
-              onSwapSeats={(from, to) => {
-                const next = swapSeats(seatOrder, from, to)
-                if (phase === 'recognizing' || next === seatOrder) {
-                  return false
-                }
-                setSeatOrder(next)
+              seats={{
+                seatOrder,
+                canMoveSeats: phase !== 'recognizing',
+                swapSeats: (from, to) => {
+                  const next = swapSeats(seatOrder, from, to)
+                  if (phase === 'recognizing' || next === seatOrder) {
+                    return false
+                  }
+                  setSeatOrder(next)
 
-                return true
+                  return true
+                }
               }}
               collapsed={party.collapsed}
-              onToggleCollapsed={party.toggleCollapsed}
-              onSlotDetail={openDetail}
+              actions={{ openDetails: openDetail }}
             />
           </div>
         )}

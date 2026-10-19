@@ -29,22 +29,24 @@ function getImageStatusMessage(failed: boolean): string {
 export function DeveloperSampleEditor({
   sample,
   number,
-  draft,
   saving,
-  onDraft,
-  onSaveAndNext,
-  onSkip,
-  onSetExcluded
+  editing
 }: {
   sample: DeveloperWorkbenchSample
+  /** 목록에서 몇 번째 이미지인지 */
   number: number
-  draft: string
+  /** 로컬 자료에 정답이나 제외 여부를 저장하는 중인지 */
   saving: boolean
-  onDraft: (value: string) => void
-  onSaveAndNext: () => void
-  onSkip: () => void
-  onSetExcluded: (excluded: boolean) => void
+  /** 선택한 이미지의 초안과 저장, 건너뛰기, 제외 */
+  editing: {
+    draft: string
+    changeDraft: (value: string) => void
+    saveAndNext: () => void
+    skip: () => void
+    setExcluded: (excluded: boolean) => void
+  }
 }): React.JSX.Element {
+  const { draft } = editing
   const [retry, setRetry] = useState(0)
   const [imageResult, setImageResult] = useState<
     | { sampleId: string; retry: number; status: 'loaded'; dataUrl: string }
@@ -121,7 +123,7 @@ export function DeveloperSampleEditor({
         onSubmit={(event) => {
           event.preventDefault()
           if (!readOnly && !saving && draft.length > 0) {
-            onSaveAndNext()
+            editing.saveAndNext()
           }
         }}
       >
@@ -137,7 +139,7 @@ export function DeveloperSampleEditor({
             maxLength={500}
             disabled={saving}
             readOnly={readOnly}
-            onChange={(event) => onDraft(event.target.value)}
+            onChange={(event) => editing.changeDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && event.nativeEvent.isComposing) {
                 event.preventDefault()
@@ -169,7 +171,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
-                onClick={onSkip}
+                onClick={editing.skip}
               >
                 <Typo.txtM as="span" weight={700}>
                   건너뛰기
@@ -179,7 +181,7 @@ export function DeveloperSampleEditor({
                 type="button"
                 {...stylex.props(buttonStyles.secondary)}
                 disabled={saving}
-                onClick={() => onSetExcluded(!sample.excluded)}
+                onClick={() => editing.setExcluded(!sample.excluded)}
               >
                 <Typo.txtM as="span" weight={700}>
                   {sample.excluded ? '포함으로 복원' : '학습에서 제외'}

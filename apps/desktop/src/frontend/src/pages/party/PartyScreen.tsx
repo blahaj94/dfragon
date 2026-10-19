@@ -1,8 +1,9 @@
 import { useId } from 'react'
 import * as stylex from '@stylexjs/stylex'
-import { PartyHeader } from '../../components/PartyHeader'
+import { BoardHeader } from '../../components/BoardHeader'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { PartyCapture } from '../../hooks/usePartyCapture'
+import type { PartyCollapse } from '../../hooks/usePartyCollapse'
 import { slotAdventureName } from '../../lib/adventure-snapshot'
 import { filledSlotCount, toSlotCards } from '../../lib/slot-cards'
 import { PartyPage } from './PartyPage'
@@ -32,13 +33,12 @@ export type PartyScreenCapture = Pick<
 export function PartyScreen({
   capture,
   hidden,
-  collapsed,
-  onToggleCollapsed
+  collapse
 }: {
   capture: PartyScreenCapture
   hidden: boolean
-  collapsed: boolean
-  onToggleCollapsed: () => void
+  /** 파티와 공대가 함께 쓰는 카드 접기 */
+  collapse: PartyCollapse
 }): React.JSX.Element {
   const cardsId = useId()
   const { search } = capture
@@ -53,28 +53,22 @@ export function PartyScreen({
 
   return (
     <div hidden={hidden} {...stylex.props(styles.party)}>
-      <PartyHeader
-        notice={search.detailNotice}
+      <BoardHeader
+        target="파티"
         filledCount={filledSlotCount(cards)}
-        lastCapturedAt={capture.lastCompletedAt}
-        canCapture={capture.canStartCapture}
-        onCapture={capture.startRound}
-        snapshotActive={snapshot.active}
-        snapshotRound={snapshot.round}
-        onTakeSnapshot={snapshot.take}
-        onClearSnapshot={snapshot.clear}
-        collapsed={collapsed}
-        onToggleCollapsed={onToggleCollapsed}
+        notice={search.detailNotice}
+        capture={capture}
+        snapshot={snapshot}
+        collapse={collapse}
         controls={cardsId}
       />
       <PartyPage
         id={cardsId}
-        collapsed={collapsed}
+        collapsed={collapse.collapsed}
         resetKey={String(capture.round)}
         slots={cards}
         inputEnabled
-        onLookup={search.lookupSlot}
-        onSlotDetail={search.openDetails}
+        actions={search}
       />
     </div>
   )

@@ -1,17 +1,12 @@
-import { IconButton, Typo, shapes } from '@dfragon/ui'
+import { shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import { useLayoutEffect, useRef, useState } from 'react'
-import { CaptureButton } from '../../components/CaptureButton'
-import { FoldIcon } from '../../components/FoldIcon'
-import { LastCaptureTime } from '../../components/LastCaptureTime'
-import { SnapshotToggle } from '../../components/SnapshotToggle'
+import { type ReactNode, useLayoutEffect, useRef, useState } from 'react'
 import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from '../../constants/cards'
-import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
+import type { SlotCard, SlotCardActions } from '../../lib/slot-cards'
 import { neighborSeat, type SeatDirection, type SeatOrder } from '../../lib/raid-seats'
 import { RaidCard } from '../../sections/RaidCard'
 import { styles } from './RaidPage.style'
 
-const SEAT_COUNT = RAID_PARTY_COUNT * RAID_PARTY_SIZE
 const parties = Array.from({ length: RAID_PARTY_COUNT }, (_, party) =>
   Array.from({ length: RAID_PARTY_SIZE }, (_, member) => party * RAID_PARTY_SIZE + member)
 )
@@ -25,68 +20,46 @@ const seatKeys: Readonly<Record<string, SeatDirection>> = {
 }
 
 /**
- * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 머리 아래에 파티 라벨 열과 축약 카드 네 열, 세 줄을 놓고,
- * 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며, 이 화면은 `seatOrder`로
- * 자리마다 놓인 공대 검색 슬롯을 그리고 조회, 상세 열기는 그 슬롯 번호로 알린다. 카드는 1280×800 보드의
- * 크기로 고정이라 창이 작으면 보드 영역이 가로와 세로로 스크롤한다. 캡처 진행 상태는 상단 바 상태 칩과 캡처
- * 대화상자가 보이고 화면 밖 캡처 안내가 알리므로, 머리에는 캡처 진행 문구를 두지 않는다.
+ * 공대 12인 화면(DFragon 디자인 캔버스 공대 보드). 화면이 조립한 머리 아래에 파티 라벨 열과 축약 카드 네 열,
+ * 세 줄을 놓고, 카드를 끌거나 Alt와 방향키로 자리를 맞바꾼다. 자리 배치는 화면 밖이 소유하며, 이 화면은
+ * `seatOrder`로 자리마다 놓인 공대 검색 슬롯을 그리고 조회, 상세 열기는 그 슬롯 번호로 알린다. 카드는
+ * 1280×800 보드의 크기로 고정이라 창이 작으면 보드 영역이 가로와 세로로 스크롤한다.
  */
 export function RaidPage({
   id,
   hidden = false,
-  notice,
+  header,
   slots,
   resetKey = 'raid',
-  seatOrder,
-  canMoveSeats,
-  onSwapSeats,
-  lastCapturedAt,
-  canCapture,
-  onCapture,
-  snapshotActive,
-  snapshotRound,
-  onTakeSnapshot,
-  onClearSnapshot,
+  seats,
   collapsed,
-  onToggleCollapsed,
-  onLookup,
-  onSlotDetail
+  actions = {}
 }: {
-  /** 접기 버튼이 가리킬 보드 영역의 id */
+  /** 머리의 접기 버튼이 가리킬 보드 영역의 id */
   id: string
   /** 파티를 보는 동안에도 자리별 입력과 검색 상태를 지키려고 그린 채 숨긴다. */
   hidden?: boolean
-  /** 머리의 안내. 검색 연결 실패나 상세 창 열기 실패처럼 캡처 진행이 아닌 안내만 담는다. */
-  notice: string
+  /** 보드 위에 그릴 머리. 화면이 캡처, 스냅샷, 접기를 연결해 조립한다. */
+  header: ReactNode
   /** 공대 검색 슬롯 0~11마다 카드가 그릴 값. 스냅샷 표시도 검색 슬롯 순서다. */
   slots: readonly SlotCard[]
   /** 캡처 회차가 바뀌면 카드의 입력 초안을 새로 그린다. */
   resetKey?: string
-  /** 화면 자리 0~11에 놓인 검색 슬롯 */
-  seatOrder: SeatOrder
-  /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
-  canMoveSeats: boolean
-  /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
-  onSwapSeats: (from: number, to: number) => boolean
-  /** 마지막으로 인식을 마친 공대 회차의 완료 시각(ms). 없으면 null이다. */
-  lastCapturedAt: number | null
-  /** Alt+R이 지금 공대 회차를 시작할 수 있는지. 아니면 버튼도 누를 수 없다. */
-  canCapture: boolean
-  onCapture: () => void
-  /** 모험단 순번 스냅샷을 켜 둔 상태 */
-  snapshotActive: boolean
-  /** 스냅샷을 켠 뒤 몇 번째 공대인지. 스냅샷이 없으면 null이라 번호를 보이지 않는다. */
-  snapshotRound: number | null
-  onTakeSnapshot: () => void
-  /** 끄기 확인을 거친 뒤 스냅샷을 지운다. */
-  onClearSnapshot: () => void
+  /** 공대 캡처가 소유한 자리 배치. 필드 이름은 공대 캡처 hook과 같다. */
+  seats: {
+    /** 화면 자리 0~11에 놓인 검색 슬롯 */
+    seatOrder: SeatOrder
+    /** 지금 자리를 맞바꿀 수 있는지. 공대 캡처가 인식하는 동안은 맞바꾸지 않는다. */
+    canMoveSeats: boolean
+    /** 두 화면 자리(0~11)를 맞바꾸고 맞바꿨는지 돌려준다. 맞바꿀 수 없는 동안에는 false다. */
+    swapSeats: (from: number, to: number) => boolean
+  }
   collapsed: boolean
-  onToggleCollapsed: () => void
-  /** 검색 슬롯 번호로 서버와 이름을 조회한다. */
-  onLookup?: (slot: number, nickname: string, serverId: string) => void
-  /** 검색 슬롯 번호로 상세 창을 연다. */
-  onSlotDetail?: (slot: number) => void
+  /** 검색 슬롯 번호로 부르는 조회와 상세 열기 */
+  actions?: Pick<SlotCardActions, 'lookupSlot' | 'openDetails'>
 }): React.JSX.Element {
+  const { seatOrder, canMoveSeats, swapSeats } = seats
+  const { lookupSlot, openDetails } = actions
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   // 끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend가 오지 않으므로, 그때와 맞바꿀 수 없게 될 때 끌기를
@@ -105,7 +78,6 @@ export function RaidPage({
   const seatElements = useRef(new Map<number, HTMLDivElement>())
   // 키보드로 옮긴 카드. 카드가 새 자리로 옮겨 그려진 뒤 다시 포커스해 이어서 옮길 수 있게 한다.
   const movedSlot = useRef<number | null>(null)
-  const filledCount = filledSlotCount(slots)
   const hintId = `${id}-move-hint`
 
   useLayoutEffect(() => {
@@ -120,7 +92,7 @@ export function RaidPage({
 
   /** 두 자리를 맞바꾸고, 맞바꿨을 때만 알린다. */
   function swap(from: number, to: number): boolean {
-    const swapped = onSwapSeats(from, to)
+    const swapped = swapSeats(from, to)
     if (swapped) {
       const text = `${from + 1}번 자리와 ${to + 1}번 자리를 맞바꿨습니다.`
       setMoveNotice((previous) => {
@@ -141,8 +113,6 @@ export function RaidPage({
   function renderSeat(seat: number, partyLabelId: string): React.JSX.Element {
     const slot = seatOrder[seat]
     const card = slots[slot]
-    const { state, character } = card
-    const found = state === 'success' && character != null
     let drag: 'source' | 'target' | undefined
     if (dragging === slot) {
       drag = 'source'
@@ -153,19 +123,14 @@ export function RaidPage({
     return (
       <RaidCard
         key={`${resetKey}-${slot}`}
+        card={card}
         slot={seat + 1}
-        character={character}
-        state={state}
-        nickname={found ? undefined : card.nickname}
-        snapshotMark={card.snapshotMark}
-        loading={card.loading}
         collapsed={collapsed}
-        notice={card.notice}
-        onDetail={found && onSlotDetail !== undefined ? () => onSlotDetail(slot) : undefined}
+        onDetail={openDetails === undefined ? undefined : () => openDetails(slot)}
         onLookup={
-          onLookup === undefined
+          lookupSlot === undefined
             ? undefined
-            : (nickname, serverId) => onLookup(slot, nickname, serverId)
+            : (nickname, serverId) => lookupSlot(slot, nickname, serverId)
         }
         move={{
           movable: canMoveSeats,
@@ -243,47 +208,7 @@ export function RaidPage({
 
   return (
     <section aria-label="공대" hidden={hidden} {...stylex.props(styles.page)}>
-      <div {...stylex.props(styles.header)}>
-        <div {...stylex.props(styles.title)}>
-          <Typo.h4 as="h1" weight={700} {...stylex.props(styles.heading)}>
-            공대
-          </Typo.h4>
-          <span {...stylex.props(styles.count)}>
-            {filledCount}
-            <span {...stylex.props(styles.total)}>/{SEAT_COUNT}</span>
-          </span>
-          {snapshotRound !== null && (
-            <span
-              aria-label={`${snapshotRound}번째 공대`}
-              role="img"
-              {...stylex.props(styles.round)}
-            >
-              #{snapshotRound}
-            </span>
-          )}
-          <span role="status" {...stylex.props(styles.notice)}>
-            {notice}
-          </span>
-        </div>
-        <div {...stylex.props(styles.actions)}>
-          <IconButton
-            size="lg"
-            aria-label={collapsed ? '카드 펼치기' : '카드 접기'}
-            aria-expanded={!collapsed}
-            aria-controls={id}
-            onClick={onToggleCollapsed}
-            icon={<FoldIcon collapsed={collapsed} />}
-          />
-          <LastCaptureTime key={lastCapturedAt ?? 'none'} at={lastCapturedAt} />
-          <SnapshotToggle
-            label="공대 모험단 순번 스냅샷"
-            active={snapshotActive}
-            onTake={onTakeSnapshot}
-            onClear={onClearSnapshot}
-          />
-          <CaptureButton target="공대" disabled={!canCapture} onClick={onCapture} />
-        </div>
-      </div>
+      {header}
       <div id={id} {...stylex.props(styles.scroller)}>
         <div {...stylex.props(styles.board, collapsed && styles.boardCollapsed)}>
           {parties.flatMap((seats, party) => {

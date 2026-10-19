@@ -30,17 +30,15 @@ it('서버 변경은 해당 카드만 조회하고 카드 전환, 상세 열기�
     root.render(
       <>
         <CharacterCard
+          card={{ state: 'success', character: previewCharacter }}
           slot={1}
-          state="success"
-          character={previewCharacter}
           inputEnabled
           onDetail={onDetail}
           onLookup={onLookup}
         />
         <CharacterCard
+          card={{ state: 'success', character: previewCharacter }}
           slot={2}
-          state="success"
-          character={previewCharacter}
           inputEnabled
           onDetail={onDetail}
         />
@@ -170,7 +168,7 @@ it('카드 위 칩과 목록을 카드 면으로 그리고 키보드로 열어 �
 
 it('제품의 입력 미연결 상태에서는 서버 선택도 비활성으로 유지한다', async () => {
   await act(async () =>
-    root.render(<CharacterCard slot={1} state="success" character={previewCharacter} />)
+    root.render(<CharacterCard card={{ state: 'success', character: previewCharacter }} slot={1} />)
   )
   const trigger = document.querySelector<HTMLButtonElement>('[aria-label="1번 서버"]')!
   expect(trigger.disabled).toBe(true)

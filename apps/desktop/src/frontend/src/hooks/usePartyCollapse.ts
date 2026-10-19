@@ -21,16 +21,21 @@ function prefersReducedMotion(): boolean {
   return typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches
 }
 
+/** 파티와 공대가 함께 쓰는 카드 접힘 상태와 전환 */
+export type PartyCollapse = {
+  collapsed: boolean
+  toggleCollapsed: () => void
+}
+
 /**
  * 파티와 공대 카드의 접힘 상태와 메인 창 높이를 함께 맞춘다. 접힘 상태는 두 화면이 함께 쓰고, 접은 창
  * 높이는 보이는 화면이 정한다(파티 400, 공대 560). 접을 때는 카드 전환이 끝난 뒤 창을 줄이고, 펼칠 때는
  * 카드가 펼쳐질 자리를 먼저 만들도록 창을 바로 800으로 늘린다. 접은 채 화면을 바꾸면 그 화면의 접은 높이로
  * 바로 맞추되, 접는 전환이 아직 끝나지 않았으면 남은 시간만큼 기다린다. 연달아 누르면 마지막 상태만 창에 반영한다.
  */
-export function usePartyCollapse(collapsedHeight: number = MAIN_WINDOW_SIZE.collapsedHeight): {
-  collapsed: boolean
-  toggleCollapsed: () => void
-} {
+export function usePartyCollapse(
+  collapsedHeight: number = MAIN_WINDOW_SIZE.collapsedHeight
+): PartyCollapse {
   const [collapsed, setCollapsed] = useState(false)
   const applied = useRef<{ collapsed: boolean; height: number }>({
     collapsed,

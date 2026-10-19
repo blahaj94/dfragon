@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 
-import { act, useEffect, useState } from 'react'
+import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import type { DeveloperPartySlotNumber } from '../lib/developer-party'
 import { useDeveloperPartyCollection } from './useDeveloperPartyCollection'
 
 const collection = {
@@ -33,8 +32,12 @@ function deferred<T>(): {
 }
 
 function Harness({ intervalMs = 500 }: { intervalMs?: number }): null {
-  const [slots, setSlots] = useState<DeveloperPartySlotNumber[]>([1, 2, 3, 4])
-  const value = useDeveloperPartyCollection(slots, setSlots, true, vi.fn(), 'hud', intervalMs)
+  const value = useDeveloperPartyCollection({
+    active: true,
+    kind: 'hud',
+    previewIntervalMs: intervalMs,
+    onDisarmed: vi.fn()
+  })
   useEffect(() => {
     current = value
   }, [value])

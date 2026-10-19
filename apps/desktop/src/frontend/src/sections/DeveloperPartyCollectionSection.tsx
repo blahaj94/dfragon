@@ -14,32 +14,21 @@ import { DeveloperUploadNotice } from '../components/DeveloperUploadNotice'
 const slotNumbers: DeveloperPartySlotNumber[] = [1, 2, 3, 4]
 
 export function DeveloperPartyCollectionSection({
-  onSaved,
-  slots,
-  onSlotsChange,
   active,
-  onDisarmed,
   kind = 'hud',
   previewIntervalMs,
+  onSaved,
+  onDisarmed,
   onLabeling
 }: {
-  onSaved: () => void
-  slots: DeveloperPartySlotNumber[]
-  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void
   active: boolean
-  onDisarmed: () => void
   kind?: DeveloperCollectionKind
   previewIntervalMs: number
+  onSaved: () => void
+  onDisarmed: () => void
   onLabeling?: () => void
 }): React.JSX.Element | null {
-  const collection = useDeveloperPartyCollection(
-    slots,
-    onSlotsChange,
-    active,
-    onDisarmed,
-    kind,
-    previewIntervalMs
-  )
+  const collection = useDeveloperPartyCollection({ active, kind, previewIntervalMs, onDisarmed })
   const onSavedRef = useRef(onSaved)
   const lastRevision = useRef<number | null>(null)
   const frame = collection.frame

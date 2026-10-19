@@ -1,5 +1,5 @@
 import * as stylex from '@stylexjs/stylex'
-import { colors, font, size, space } from '@dfragon/ui/tokens.stylex'
+import { colors, font, space } from '@dfragon/ui/tokens.stylex'
 
 // 카드 꺾쇠의 호버 움직임과 자리 포커스 선(바깥 4px)이 스크롤 영역 가장자리에서 잘리지 않도록 영역을 그만큼
 // 넓히고 안쪽을 비운다.
@@ -25,46 +25,6 @@ export const styles = stylex.create({
     // 콘텐츠 영역의 위 여백 24를 보드의 20으로 줄인다.
     marginTop: -4
   },
-  header: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: space.s16,
-    minHeight: size.controlLg,
-    flexShrink: 0
-  },
-  title: { display: 'flex', alignItems: 'baseline', gap: space.s12, minWidth: 0 },
-  heading: { flexShrink: 0, letterSpacing: '-0.01em' },
-  // 캐릭터를 찾은 자리 수(Barlow Condensed 28 700). 분모는 흐린 글자다.
-  count: {
-    flexShrink: 0,
-    color: colors.fgDefault,
-    fontFamily: font.num,
-    fontSize: 28,
-    fontWeight: 700,
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1
-  },
-  // 스냅샷 회차 번호(`#2`). 인원수와 같은 28px이고 `#`도 줄이지 않는다. 색은 신호색이라 다크는 크림이다.
-  round: {
-    flexShrink: 0,
-    color: colors.signal,
-    fontFamily: font.num,
-    fontSize: 28,
-    fontWeight: 700,
-    fontVariantNumeric: 'tabular-nums',
-    lineHeight: 1
-  },
-  total: { color: colors.fgSubtle },
-  notice: {
-    minWidth: 0,
-    color: colors.fgMuted,
-    fontSize: 13,
-    lineHeight: '18px',
-    overflowWrap: 'anywhere'
-  },
-  // 파티 머리처럼 접기, 마지막 캡처, 스냅샷, 캡처 버튼을 16 간격으로 둔다.
-  actions: { display: 'flex', alignItems: 'center', gap: space.s16, flexShrink: 0 },
   // 머리는 고정하고 보드만 스크롤한다. 창이 기준보다 좁거나 낮으면 가로와 세로로 스크롤한다.
   scroller: {
     flex: '1 1 0',

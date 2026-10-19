@@ -1,6 +1,6 @@
 import * as stylex from '@stylexjs/stylex'
 
-// 파티 머리의 캡처 주 버튼과 같은 값이다. Button lg의 좌우 여백 24를 캔버스의 왼쪽 14, 오른쪽 18로 맞추고
+// 파티, 공대 머리의 캡처 주 버튼. Button lg의 좌우 여백 24를 캔버스의 왼쪽 14, 오른쪽 18로 맞추고
 // 아이콘, 구분선, 키캡 사이를 14로 둔다.
 export const styles = stylex.create({
   content: {

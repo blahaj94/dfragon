@@ -1,4 +1,5 @@
 import { DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS, DEVELOPER_ERRORS } from '../constants/developer'
+import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
 import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
 import { useEffect, useRef, useState } from 'react'
 import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
@@ -49,14 +50,23 @@ function disarmCollectionSession(session: CollectionSession): Promise<void> {
   return session.disarmPromise
 }
 
-export function useDeveloperPartyCollection(
-  slots: DeveloperPartySlotNumber[],
-  onSlotsChange: (slots: DeveloperPartySlotNumber[]) => void,
-  active: boolean,
-  onDisarmed: () => void,
-  kind: DeveloperCollectionKind = 'hud',
-  previewIntervalMs = DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS
-): {
+/**
+ * 개발자 작업 공간의 HUD, 파티원창, 공대원창 수집. 수집 종류마다 고른 위치를 기억해 다른 종류를 보고
+ * 돌아와도 유지하고, 보이는 동안 main 수집을 켜고 미리보기를 주기적으로 읽는다.
+ */
+export function useDeveloperPartyCollection({
+  active,
+  kind = 'hud',
+  previewIntervalMs = DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS,
+  onDisarmed
+}: {
+  /** 수집 탭이 보이는 동안만 수집을 켠다. */
+  active: boolean
+  kind?: DeveloperCollectionKind
+  previewIntervalMs?: number
+  /** 수집을 끈 요청이 끝나면 부른다. */
+  onDisarmed: () => void
+}): {
   frame: PreviewFrame | null
   slots: DeveloperPartySlotNumber[]
   collection: DeveloperPartyCollectionStatus | null
@@ -64,6 +74,14 @@ export function useDeveloperPartyCollection(
   commandError: string
   setSlotIncluded: (slot: DeveloperPartySlotNumber, included: boolean) => void
 } {
+  const [slotsByKind, setSlotsByKind] = useState<
+    Record<DeveloperCollectionKind, DeveloperPartySlotNumber[]>
+  >(() => ({
+    hud: [...DEVELOPER_COLLECTION_SLOTS.hud],
+    participants: [...DEVELOPER_COLLECTION_SLOTS.participants],
+    raid: [...DEVELOPER_COLLECTION_SLOTS.raid]
+  }))
+  const slots = slotsByKind[kind]
   const [frame, setFrame] = useState<PreviewFrame | null>(null)
   const [collection, setCollection] = useState<DeveloperPartyCollectionStatus | null>(null)
   const [previewError, setPreviewError] = useState('')
@@ -256,7 +274,7 @@ export function useDeveloperPartyCollection(
       ? [...slotsRef.current, slot].sort((left, right) => left - right)
       : slotsRef.current.filter((selected) => selected !== slot)
     slotsRef.current = nextSlots
-    onSlotsChange(nextSlots)
+    setSlotsByKind((previous) => ({ ...previous, [kind]: nextSlots }))
 
     const session = sessionRef.current
     if (session?.active) {
