@@ -17,6 +17,7 @@ import type {
   SearchCharacters,
   SearchDependencies
 } from '../types/neople-character-search.js'
+import { textOrNull } from './card/values.js'
 import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
 const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
@@ -43,20 +44,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
   const isNotArray = !Array.isArray(value)
 
   return isNotArray
-}
-
-function textOrNull(value: unknown): string | null {
-  const isString = typeof value === 'string'
-  if (!isString) {
-    return null
-  }
-
-  const isBlank = value.trim() === ''
-  if (isBlank) {
-    return null
-  }
-
-  return value
 }
 
 function projectResponse(
