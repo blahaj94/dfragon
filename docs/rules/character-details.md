@@ -2,7 +2,7 @@
 type: rule
 status: active
 scope: apps/api character details
-last-reviewed: 2026-10-07
+last-reviewed: 2026-10-19
 ---
 
 # 캐릭터 상세 정보
@@ -69,6 +69,8 @@ DB에서 읽은 캐릭터 11개 섹션에 공용 상세를 연결한다. 캐릭�
 
 Migration은 기존 `basic` JSONB의 문자열 `adventureName`을 채우며 누락, null, 빈 문자열, 문자열 이외 값은 null로 둔다. 원본 JSONB와 기존 내용, 조회 시각은 변경하지 않는다. 이후 성공 갱신 transaction에서 요청 순서 경쟁을 이긴 저장된 기본정보를 기준으로 column을 동기화한다. 이름이 실제로 달라질 때만 characters.updated_at을 갱신한다. 이전 요청의 원문으로 모험단명이 되돌아가거나 실패한 갱신이 소속만 변경되면 안 된다.
 
+`characters.fame`은 서버를 나누지 않는 전체 명성 순위를 위한 nullable integer column이다. 기본정보 JSONB의 `fame`이 0 이상 2147483647 이하의 정수일 때만 채우며 누락, null, 소수, 범위 밖, 숫자 이외 값은 null이다. Migration이 기존 기본정보로 채운다. 던전앤파이터는 서버가 나뉘어 있어도 통합 서버이므로 순위는 모든 서버의 캐릭터를 함께 비교하며, 비고유 B-tree `(fame DESC, character_id)` index로 명성 비교를 지원한다. TypeORM EntitySchema가 DESC 정렬을 표현하지 못하므로 schema는 이 index의 synchronize를 끄고 migration이 정의를 소유한다. 성공 갱신 때의 동기화와 순위 조회는 이 column을 읽고 쓰는 후속 API 변경에서 정한다.
+
 이름 변경은 갱신된 캐릭터에만 반영한다. 다른 캐릭터는 각자 갱신될 때까지 이전 이름으로 검색될 수 있다. 고유 모험단 ID를 제공받지 않은 상태에서 동일 이름의 과거, 현재 사용자를 같은 계정으로 추정하거나 다른 캐릭터의 이름을 일괄 변경하지 않는다.
 
 `character_api_responses`는 `(character_id, section)`당 최신 응답 JSONB 하나만 저장한다. Section은 PostgreSQL enum이며 endpoint별 저장 단위다. JSONB에 객체 key 순서는 보존되지 않지만 필드, 값과 배열 순서는 유지된다. 원본 문자열, 해시, 중복 응답, 이력은 저장하지 않는다.
@@ -91,4 +93,4 @@ PostgreSQL의 JSONB 비교에서 같으면 payload, revision, content_updated_at
 
 TypeORM EntitySchema를 기준으로 migration을 생성, 검토하고 명시 실행한다. Runtime의 synchronize, 자동 migration은 꺼 둔다. 기존 인증 테이블과 데이터를 변경하지 않으며 운영 API 계정에는 캐릭터 두 테이블의 DML과 공용 상세 세 테이블의 SELECT, INSERT, UPDATE 권한을 별도로 적용한다. `down`은 캐릭터 데이터를 삭제하므로 격리 검증용이며 운영에서 자동 실행하지 않는다.
 
-ERD는 [DBML](../reference/character-details.dbml), 작성, 검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. 5분 캐시와 명시 갱신은 기존 column을 사용하므로 별도 migration이나 권한 변경이 필요하지 않다. `test:database`는 캐시 적중, 만료, 명시 갱신, 실패 시 보존, freshness, 공유 한도와 JSONB 동등성, revision, 원자적 rollback, 경합, 이전 요청, HTTP 정제, 한도, 연결 대기 종료를 실제 PostgreSQL에서 확인한다. 실제 Neople, 운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.
+ERD는 [DBML](../reference/character-details.dbml), 작성, 검증 명령은 [DB 개발 안내](../reference/database-development.md)를 따른다. 5분 캐시와 명시 갱신은 기존 column을 사용하므로 별도 migration이나 권한 변경이 필요하지 않다. `characters.fame`은 migration을 추가하지만 기존 테이블 단위 권한으로 읽고 쓰므로 운영 API 계정의 권한 변경이 필요하지 않다. `test:database`는 캐시 적중, 만료, 명시 갱신, 실패 시 보존, freshness, 공유 한도와 JSONB 동등성, revision, 원자적 rollback, 경합, 이전 요청, HTTP 정제, 한도, 연결 대기 종료, 명성 column의 backfill과 rollback을 실제 PostgreSQL에서 확인한다. 실제 Neople, 운영 DB 실행 결과는 해당 배포 기록에서 별도로 구분한다.
