@@ -1,23 +1,29 @@
 #!/usr/bin/env node
 // 직업별 스킬트리 배치(@dfragon/skill-layouts)와 스킬 아이콘(@dfragon/icons)을 외부 수집본에서 다시 만든다.
 // 배치는 dcalc 좌표를 네오플 API로 대조한 수집본(skill-coordinates.json), 아이콘과 각성기 분류는
-// dnf-reverse-engineering의 PVF 스킬 데이터 층과 아이콘 층이다. 사용법은 두 패키지의 README에 있다.
+// dnf-reverse-engineering의 PVF 스킬 데이터 층과 아이콘 층이다. 아이콘은 한 장의 무손실 WebP sprite로 묶는다.
+// 사용법은 두 패키지의 README에 있다.
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import sharp from 'sharp'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const LAYOUTS_FILE = join(ROOT, 'packages/skill-layouts/layouts.json')
 const ICONS_DIR = join(ROOT, 'packages/icons')
-const SKILL_ICONS_DIR = join(ICONS_DIR, 'skills')
+const SKILL_SPRITE_NAME = 'skills.webp'
+const SKILL_SPRITE_FILE = join(ICONS_DIR, SKILL_SPRITE_NAME)
 const SKILL_ICON_INDEX_FILE = join(ICONS_DIR, 'skills.json')
+// sprite 한 칸의 크기와 한 줄의 칸 수. 스킬 아이콘은 모두 28 × 28이다.
+const ICON_SIZE = 28
+const SPRITE_COLUMNS = 48
+const RGBA_CHANNELS = 4
 const COLUMN_COUNT = 11
 const PVF_SKILLS_DIR = 'skills/b2725b7c'
 // 전직 이름의 `眞`, 띄어쓰기, `:` 같은 구분 기호는 네오플과 PVF 표기가 달라 비교에서 뺀다.
 const NAME_NOISE_PATTERN = /[眞\s:\u00B7-]/g
-const ICON_FILE_HASH_LENGTH = 16
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -102,12 +108,81 @@ function checkLayout(job) {
   }
 }
 
+// 아이콘 PNG를 색인의 SHA-256과 대조하고 28 × 28 RGBA 픽셀로 읽는다.
+async function readIconPixels(pvfRoot, icon) {
+  const bytes = readFileSync(join(pvfRoot, 'icons', icon.file))
+  const hash = createHash('sha256').update(bytes).digest('hex')
+  if (hash !== icon.sha256) {
+    fail(`아이콘 색인과 PNG의 SHA-256이 다릅니다: ${icon.file}`)
+  }
+  const { data, info } = await sharp(bytes)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  if (info.width !== ICON_SIZE || info.height !== ICON_SIZE) {
+    fail(`28 × 28이 아닌 아이콘입니다: ${icon.file}`)
+  }
+
+  return data
+}
+
+// sprite 칸 번호의 왼쪽 위 픽셀. 칸 번호는 왼쪽에서 오른쪽, 위에서 아래 순서다.
+function cellOrigin(index) {
+  const left = (index % SPRITE_COLUMNS) * ICON_SIZE
+  const top = Math.floor(index / SPRITE_COLUMNS) * ICON_SIZE
+
+  return { left, top }
+}
+
+// 아이콘을 칸 번호 순서로 한 장에 놓은 무손실 WebP. 반투명 픽셀의 값이 합성 반올림으로 바뀌지 않게 픽셀을
+// 그대로 복사해 시트를 만들고, 투명 픽셀의 색도 보존한다(`exact`).
+async function encodeSprite(pixels) {
+  const rows = Math.ceil(pixels.length / SPRITE_COLUMNS)
+  const width = SPRITE_COLUMNS * ICON_SIZE
+  const height = rows * ICON_SIZE
+  const sheet = Buffer.alloc(width * height * RGBA_CHANNELS)
+  const rowBytes = ICON_SIZE * RGBA_CHANNELS
+  pixels.forEach((icon, index) => {
+    const { left, top } = cellOrigin(index)
+    for (let y = 0; y < ICON_SIZE; y += 1) {
+      icon.copy(sheet, ((top + y) * width + left) * RGBA_CHANNELS, y * rowBytes, (y + 1) * rowBytes)
+    }
+  })
+  const sprite = await sharp(sheet, { raw: { width, height, channels: RGBA_CHANNELS } })
+    .webp({ lossless: true, exact: true, effort: 6 })
+    .toBuffer()
+
+  return { sprite, width, height }
+}
+
+// sprite를 다시 풀어 모든 칸이 원본 아이콘 픽셀과 같은지 확인한다. 하나라도 다르면 생성을 멈춘다.
+async function checkSprite(sprite, width, height, pixels) {
+  const { data, info } = await sharp(sprite)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  if (info.width !== width || info.height !== height) {
+    fail('sprite 크기가 만든 크기와 다릅니다.')
+  }
+  const rowBytes = ICON_SIZE * RGBA_CHANNELS
+  pixels.forEach((icon, index) => {
+    const { left, top } = cellOrigin(index)
+    for (let y = 0; y < ICON_SIZE; y += 1) {
+      const start = ((top + y) * width + left) * RGBA_CHANNELS
+      const expected = icon.subarray(y * rowBytes, (y + 1) * rowBytes)
+      if (!data.subarray(start, start + rowBytes).equals(expected)) {
+        fail(`sprite의 ${index}번 칸이 원본 아이콘과 다릅니다.`)
+      }
+    }
+  })
+}
+
 // Biome JSON 포맷과 같은 모양(두 칸 들여쓰기, 끝 줄바꿈)으로 쓴다.
 function writeJson(path, value) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
 }
 
-function importSkillData({ coordinatesPath, pvfRoot }) {
+async function importSkillData({ coordinatesPath, pvfRoot }) {
   const coordinates = readJson(coordinatesPath)
   if (coordinates.schemaVersion !== 3) {
     fail('skill-coordinates.json schemaVersion 3만 읽습니다.')
@@ -115,8 +190,8 @@ function importSkillData({ coordinatesPath, pvfRoot }) {
   const pvfJobs = readPvfJobs(pvfRoot)
   const icons = readSkillIcons(pvfRoot)
   const iconIndex = readJson(join(pvfRoot, 'icons/ICON_INDEX.json'))
-  const iconFiles = new Map()
-  const pngFiles = new Map()
+  const iconHashes = new Map()
+  const iconsByHash = new Map()
   const jobs = coordinates.jobs.map((job) => {
     const pvf =
       pvfJobs.get(job.jobNameKo) ?? fail(`PVF에서 직업을 찾지 못했습니다: ${job.jobNameKo}`)
@@ -127,9 +202,8 @@ function importSkillData({ coordinatesPath, pvfRoot }) {
       const pvfSkill = matchPvfSkill(pvf, learnable, icons, skill)
       const icon = icons.get(`${pvf.job.job_id}/${pvfSkill.id}`)
       if (icon !== undefined) {
-        const file = `${icon.sha256.slice(0, ICON_FILE_HASH_LENGTH)}.png`
-        iconFiles.set(`${job.jobId}/${skill.skillId}`, file)
-        pngFiles.set(file, icon)
+        iconHashes.set(`${job.jobId}/${skill.skillId}`, icon.sha256)
+        iconsByHash.set(icon.sha256, icon)
       }
 
       return {
@@ -163,39 +237,45 @@ function importSkillData({ coordinatesPath, pvfRoot }) {
     },
     awakening: { pvfSha256Prefix: iconIndex.pvf_sha256_prefix }
   }
-  // 모든 PNG를 색인의 SHA-256과 대조한 뒤에 파일을 쓴다. 검사가 실패하면 이전 생성물을 그대로 둔다.
-  const pngs = [...pngFiles].map(([file, icon]) => {
-    const bytes = readFileSync(join(pvfRoot, 'icons', icon.file))
-    const hash = createHash('sha256').update(bytes).digest('hex')
-    if (hash !== icon.sha256) {
-      fail(`아이콘 색인과 PNG의 SHA-256이 다릅니다: ${icon.file}`)
-    }
-
-    return [file, bytes]
-  })
-  writeJson(LAYOUTS_FILE, { source: layoutSource, jobs })
-  rmSync(SKILL_ICONS_DIR, { recursive: true, force: true })
-  mkdirSync(SKILL_ICONS_DIR, { recursive: true })
-  for (const [file, bytes] of pngs) {
-    writeFileSync(join(SKILL_ICONS_DIR, file), bytes)
+  // 내용이 같은 아이콘은 한 칸을 함께 쓰고, 칸 번호는 SHA-256 순서다. 모든 검사를 마친 뒤에 파일을 쓰므로
+  // 검사가 실패하면 이전 생성물을 그대로 둔다.
+  const hashes = [...iconsByHash.keys()].sort()
+  const pixels = []
+  for (const hash of hashes) {
+    pixels.push(await readIconPixels(pvfRoot, iconsByHash.get(hash)))
   }
-  const sortedIconFiles = [...iconFiles].sort(([a], [b]) => a.localeCompare(b))
+  const { sprite, width, height } = await encodeSprite(pixels)
+  await checkSprite(sprite, width, height, pixels)
+  const cells = new Map(hashes.map((hash, index) => [hash, index]))
+  const iconCells = [...iconHashes]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, hash]) => [key, cells.get(hash)])
   const iconSource = {
     pvfSha256Prefix: iconIndex.pvf_sha256_prefix,
     npkIndexSha256: iconIndex.npk_index_sha256
   }
+  const spriteInfo = {
+    file: SKILL_SPRITE_NAME,
+    iconSize: ICON_SIZE,
+    columns: SPRITE_COLUMNS,
+    width,
+    height
+  }
+  writeJson(LAYOUTS_FILE, { source: layoutSource, jobs })
+  writeFileSync(SKILL_SPRITE_FILE, sprite)
   writeJson(SKILL_ICON_INDEX_FILE, {
     source: iconSource,
-    icons: Object.fromEntries(sortedIconFiles)
+    sprite: spriteInfo,
+    icons: Object.fromEntries(iconCells)
   })
   const skillCount = jobs.reduce((total, job) => total + job.skills.length, 0)
-  const pngCount = readdirSync(SKILL_ICONS_DIR).length
 
   return {
     jobCount: jobs.length,
     skillCount,
-    iconCount: iconFiles.size,
-    pngCount
+    iconCount: iconHashes.size,
+    cellCount: hashes.length,
+    spriteBytes: sprite.length
   }
 }
 
@@ -208,10 +288,10 @@ if (values.coordinates === undefined || values.pvf === undefined) {
   )
   process.exit(2)
 }
-const summary = importSkillData({
+const summary = await importSkillData({
   coordinatesPath: resolve(values.coordinates),
   pvfRoot: resolve(values.pvf)
 })
 console.log(
-  `직업 ${summary.jobCount}개, 스킬 ${summary.skillCount}칸, 아이콘 연결 ${summary.iconCount}개, PNG ${summary.pngCount}개`
+  `직업 ${summary.jobCount}개, 스킬 ${summary.skillCount}칸, 아이콘 연결 ${summary.iconCount}개, sprite ${summary.cellCount}칸 ${summary.spriteBytes}바이트`
 )

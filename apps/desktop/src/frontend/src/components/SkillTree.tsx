@@ -1,7 +1,7 @@
 import { Tooltip, shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { useRef } from 'react'
-import { skillIconUrl } from '../lib/skill-icons'
+import { SKILL_ICON_SPRITE_URL, type SkillIconCell, skillIconCell } from '../lib/skill-icons'
 import {
   type SkillCellView,
   type SkillMoveKey,
@@ -53,7 +53,7 @@ export function SkillTree({
             <SkillCell
               key={cell.skillId}
               cell={cell}
-              iconUrl={skillIconUrl(jobId, cell.skillId)}
+              icon={skillIconCell(jobId, cell.skillId)}
               onKeyDown={(event) => moveFocus(event, cell.skillId)}
             />
           ))}
@@ -63,30 +63,37 @@ export function SkillTree({
   )
 }
 
-function SkillIcon({ src, off }: { src: string | undefined; off: boolean }): React.JSX.Element {
-  if (src === undefined) {
+// sprite의 한 칸을 28 × 28 배경으로 그린다. 장식 그림이라 보조 기술에는 칸의 이름만 읽힌다.
+function SkillIcon({
+  icon,
+  off
+}: {
+  icon: SkillIconCell | undefined
+  off: boolean
+}): React.JSX.Element {
+  if (icon === undefined) {
     return <span aria-hidden="true" {...stylex.props(styles.icon, styles.iconMissing)} />
   }
 
   return (
-    <img
-      src={src}
-      alt=""
-      width={28}
-      height={28}
-      draggable={false}
-      {...stylex.props(styles.icon, off && styles.iconOff)}
+    <span
+      aria-hidden="true"
+      {...stylex.props(
+        styles.icon,
+        styles.iconAt(SKILL_ICON_SPRITE_URL, icon.x, icon.y),
+        off && styles.iconOff
+      )}
     />
   )
 }
 
 function SkillCell({
   cell,
-  iconUrl,
+  icon,
   onKeyDown
 }: {
   cell: SkillCellView
-  iconUrl: string | undefined
+  icon: SkillIconCell | undefined
   onKeyDown: (event: React.KeyboardEvent<HTMLLIElement>) => void
 }): React.JSX.Element {
   const off = cell.level === 0
@@ -110,7 +117,7 @@ function SkillCell({
           cell.awakening && styles.awakening
         )}
       >
-        <SkillIcon src={iconUrl} off={off} />
+        <SkillIcon icon={icon} off={off} />
         <span
           aria-hidden="true"
           {...stylex.props(
@@ -130,7 +137,7 @@ function SkillCell({
         {...stylex.props(styles.tip, shapes.cutTopRight)}
       >
         <span {...stylex.props(styles.tipHead)}>
-          <SkillIcon src={iconUrl} off={off} />
+          <SkillIcon icon={icon} off={off} />
           <span {...stylex.props(styles.tipName)}>{cell.name}</span>
           <span aria-hidden="true" {...stylex.props(styles.tipLevel)}>
             {cell.level}

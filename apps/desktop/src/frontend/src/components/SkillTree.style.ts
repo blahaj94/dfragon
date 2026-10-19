@@ -64,7 +64,18 @@ export const styles = stylex.create({
       ':focus-visible': `inset 0 0 0 2px ${colors.cardSignal}`
     }
   },
-  icon: { display: 'block', width: 28, height: 28, flexShrink: 0 },
+  icon: {
+    display: 'block',
+    width: 28,
+    height: 28,
+    flexShrink: 0,
+    backgroundRepeat: 'no-repeat'
+  },
+  // sprite의 칸 하나를 배경으로 잘라 보인다. 칸 크기와 sprite 원본 크기가 같아 배율을 바꾸지 않는다.
+  iconAt: (url: string, x: number, y: number) => ({
+    backgroundImage: `url("${url}")`,
+    backgroundPosition: `${-x}px ${-y}px`
+  }),
   // 아이콘을 뽑지 못한 스킬은 같은 크기의 빈 칸으로 자리를 지킨다.
   iconMissing: { backgroundColor: colors.cardInset },
   // 익히지 않은 스킬은 아이콘을 흐린 흑백으로 그린다.
