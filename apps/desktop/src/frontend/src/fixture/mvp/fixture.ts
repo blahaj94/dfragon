@@ -1,6 +1,7 @@
 import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
 import type { CardCharacter, CardStats, CharacterCard } from '../../types/cards'
 import characterImage from './assets/character.png'
+import { previewItemTexts } from './item-texts'
 
 const images = import.meta.glob<string>('./assets/item-*.png', {
   eager: true,
@@ -45,7 +46,8 @@ export const previewCharacter: CardCharacter = {
   fame: 125850,
   card: dealerCard,
   image: characterImage,
-  itemImages
+  itemImages,
+  itemTexts: previewItemTexts
 }
 
 // 카드 면 보드처럼 버퍼 카드의 캐릭터 면을 딜러 카드 옆에 둔다.

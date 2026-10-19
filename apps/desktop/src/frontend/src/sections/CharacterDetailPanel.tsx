@@ -7,6 +7,7 @@ import { DetailSummaryHead } from '../components/DetailSummaryHead'
 import { MISSING_VALUE } from '../constants/cards'
 import { useElapsedTime } from '../hooks/useElapsedTime'
 import { type ScoreView, toCharacterFace, toEquipmentFace } from '../lib/card-faces'
+import type { CharacterDetailItemTexts } from '../../../preload/common/types/character-detail'
 import { toDetailEquipmentGroups, toDetailOathGroups } from '../lib/character-detail'
 import type { CharacterCard } from '../types/cards'
 import { styles } from './CharacterDetailPanel.style'
@@ -27,18 +28,20 @@ const localDateTime = new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', ti
 /**
  * 상세 창의 다크 카드 패널(DFragon 디자인 캔버스 상세 창 보드). 머리에 서버, 서버 순위, 조회 시각과 닫기를,
  * 그 아래 캐릭터 그림과 소속, 이름, 명성과 장비 점수를 두고 장비와 스킬 탭으로 나눈다. 장비 탭은 세트와 장비
- * 12줄, 서약 본체와 결정 12줄이다. 스킬 탭은 스킬 정보를 연결하기 전이라 안내만 둔다. 머리의 빈 곳을 끌면 창을
- * 옮긴다. `itemImages`는 합성 미리보기의 로컬 그림이다.
+ * 12줄, 서약 본체와 결정 12줄이고 줄의 설명 상자 문구는 `itemTexts`에서 찾는다. 스킬 탭은 스킬 정보를
+ * 연결하기 전이라 안내만 둔다. 머리의 빈 곳을 끌면 창을 옮긴다. `itemImages`는 합성 미리보기의 로컬 그림이다.
  */
 export function CharacterDetailPanel({
   character,
   card,
+  itemTexts,
   fetchedAt,
   itemImages,
   onClose
 }: {
   character: CharacterDetailIdentity
   card: CharacterCard | null
+  itemTexts?: CharacterDetailItemTexts
   fetchedAt: string
   itemImages?: Readonly<Record<string, string>>
   onClose: () => void
@@ -121,7 +124,7 @@ export function CharacterDetailPanel({
               <DetailSummaryHead summary={equipment.set} />
               <DetailItemList
                 label="장비"
-                groups={toDetailEquipmentGroups(card, itemImages)}
+                groups={toDetailEquipmentGroups(card, itemTexts, itemImages)}
                 align="start"
               />
             </section>
@@ -129,7 +132,7 @@ export function CharacterDetailPanel({
               <DetailSummaryHead summary={equipment.oath} upgrades={equipment.oath.upgrades} />
               <DetailItemList
                 label="서약과 결정"
-                groups={toDetailOathGroups(card, itemImages)}
+                groups={toDetailOathGroups(card, itemTexts, itemImages)}
                 align="end"
               />
             </section>
