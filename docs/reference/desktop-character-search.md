@@ -133,7 +133,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 `backend/search/identify.ts`의 `createCharacterIdentifier`는 후보 검색, 후보 이미지 한 장 확보, 얼굴 거리 계산, 상세 조회라는 업무 연산과 선택 기준(`maxDistance`, `minMargin`, `maxCandidates`)을 받는다. 전달된 OCR 이름 중 첫 번째만 사용하고 첫 이름이 비어 있거나 잘못돼도 두 번째를 승격하지 않는다. 식별 규칙은 HTTP 구현, clock, 취소 신호, 현재 요청 여부와 실행 제어에 의존하지 않는다.
 
-`backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `highest-fame`, `manual`로 선택 근거를 전달한다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
+`backend/search/request.ts`는 일반 검색, 지정 서버 수동 조회와 OCR 식별의 요청 경계다. 요청마다 업무 연산을 `operation.ts`의 실행 범위에 연결하고, 후보 이미지 다운로드와 거리 계산을 식별기에 이어 준다. 선택된 상세는 슬롯 요약으로 투영하며 `selectionMethod`의 `portrait`, `job`, `fame`, `equipment-score`, `highest-fame`, `manual`로 선택 근거를 전달한다. `job`, `fame`, `equipment-score`는 공대 식별에서만 나온다. 선택을 확정하지 못했으면 사용자가 고를 후보를 `choices`로 함께 전달한다. HTTP 클라이언트와 이미지 큐, 캐시는 요청마다 다시 생성하지 않는다.
 
 첫 이름이 유효하면 한 번 검색한다. 후보가 없으면 조회 실패이며 두 번째 이름을 시도하지 않는다. 후보는 명성 내림차순, null 후순위로 정렬하고 상위 `maxCandidates`명 전원의 얼굴 거리를 구한 뒤에 고른다. 한 후보의 이미지나 점수가 없어도 나머지 후보를 계속 비교한다.
 
@@ -144,7 +144,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 선택한 한 캐릭터의 실제 상세를 조회한다.
 
-거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
+거리를 하나도 구하지 못한 최고 명성 선택은 얼굴 일치와 구분해 진단 코드 `SEARCH_APPEARANCE_FALLBACK`을 남기고, 공대 수명의 최고 명성 선택은 `SEARCH_RAID_ROW_FALLBACK`을 남긴다. 실행 계층은 취소와 만료를 우선하므로 중단된 요청이 대체 선택을 발행하지 않는다. 후보나 상세 조회 실패는 기존 정제된 오류로 남고 상세의 호출 제한도 원래 헤더 수신 시각을 보존한다.
 
 `backend/search/operation.ts`는 일반 검색과 식별 흐름에 처음 접수부터 15초인 공통 시간 예산을 적용한다. 요청 경계에 제공하는 `run`이 각 연산의 호출 전, 성공 후, 실패 후에 현재 요청과 남은 예산을 확인하며 전체 결과 전달 전에도 다시 확인한다. 같은 취소 신호를 HTTP와 이미지 연산에 연결하지만 식별 서비스에 검사 콜백을 전달하지 않는다. 캡처가 끝나거나 요청이 오래된 상태이면 늦은 결과를 버리고 시간 초과 후 대체 후보의 상세를 새로 조회하지 않는다. 취소, 만료와 429는 최고 명성 대체 표시보다 우선한다. 이미지 다운로드가 전체 예산을 소모하면 최고 명성 대신 시간 초과가 표시되는 한계가 있다.
 
@@ -263,7 +263,11 @@ git diff --check
 
 공대 카드의 서버, 이름 조회는 같은 `registerManualSearchIpc`의 `raid` 수명으로 실행한다. `capture/ipc-handler.ts`가 파티 카드용(`controlManualSearch`, 4자리)과 공대 카드용(`controlRaidSearch`, 12자리) 수명을 따로 등록하고, 문서 이동, 종료, renderer 종료 때 두 수명을 함께 무효화한다. `commands.ts`는 수명의 슬롯 수로 자리 번호를 검사하고, preload와 renderer의 snapshot 검사는 채널이 기대하는 슬롯 수와 정확히 같은 snapshot만 받는다. 상세 창 참조는 0 이상 11 이하 자리 번호를 받고 각 수명의 `selection`이 자기 슬롯 수를 다시 검사한다. Renderer의 `useRaidSearch.ts`는 `useManualCharacterLookup`을 공대 API와 12자리로 써서 파티 카드 조회와 다른 연결을 만든다.
 
-공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `beginRound`로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행 닉네임 크롭을 받고, `lib/raid-recognition.ts`가 파티 캡처와 같은 반전 이진화와 OCR worker로 행마다 첫 후보를 판정한다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이 알린다. Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `identify.ts`의 `createRaidCharacterIdentifier`를 쓰고, 이 식별기는 후보 선택을 `raid-candidate.ts`의 순수 함수 `selectRaidCandidate({ name, observed, candidates })`에 맡긴다. `observed`는 공대 창에서 읽을 명성과 장비 점수 표기 자리(`RaidObservedValues`)이고 지금은 모두 null이며, 함수는 최고 명성 후보를 `highest-fame`으로 돌려준다. 명성 정렬은 파티 식별과 같은 `candidate-order.ts`를 쓴다. 근사 매칭을 붙일 때는 이 함수와 관측값 판독만 바꾼다.
+공대 캡처는 같은 공대 수명을 쓴다. `hooks/useRaidCapture.ts`가 `lib/raid-capture-machine.ts`의 회차를 소유하고, 파티 캡처의 창 등록 상태를 받아 등록이 바뀌면 진행 중 회차를 끝낸다. 회차는 `useManualCharacterLookup`의 `beginRound`로 공대 수명을 새로 시작한 뒤 `window.raidSearch.readCaptureFrame`(`readRaidCaptureFrame`)으로 12행의 닉네임, 직업명 크롭과 수치 표기, 수치 열 종류를 받는다. `lib/raid-recognition.ts`는 파티 캡처와 같은 반전 이진화와 OCR worker로 행마다 닉네임 첫 후보를 판정하고, 검색할 이름이면 직업명 칸도 같은 전처리로 읽는다. 직업명 인식 실패는 그 행의 직업명만 null로 둔다. 인식한 이름은 `notifyRaidOcrCandidatesDetected`로 얼굴 없이, 그 행의 `raidRow`(`jobText`, `valueColumn`, `valueText`)와 함께 알린다. `commands.ts`는 공대 관측에만 `raidRow`를 요구하고 파티 관측에는 받지 않는다. 수치 표기는 숫자, 쉼표, 마침표, `K`로 16자까지, 직업명은 32자까지다.
+
+Main의 공대 수명은 `SearchRuntime.ocrIdentification`을 `raid`로 두어 `identify.ts`의 `createRaidCharacterIdentifier`를 쓴다. 선택 규칙은 `raid-candidate.ts`의 두 순수 함수가 데이터만 받아 정한다. `planRaidComparison({ observed, candidates })`는 `raid-job-name.ts`의 `matchJobName`으로 후보의 `jobGrowName`과 비교해 직업명 그룹을 만들고, `job`, `fame`, `equipment-score`, `highest-fame` 중 할 비교를 정한다. 장비 점수 비교면 그룹의 명성 상위 3명을 대상으로 둔다. `selectRaidCandidate(plan, equipmentScores)`는 화면 표기 범위(`parseDNFRaidValueNotation`)와의 거리로 최선 후보와 확정 여부를 정하고, 확정하지 못하면 그룹 후보를 돌려준다. 정책값은 [공대 식별 흐름](../rules/character-search.md#desktop의-공대-식별-흐름)과 같다. 명성 정렬은 파티 식별과 같은 `candidate-order.ts`를 쓴다.
+
+식별기는 장비 점수 대상의 상세를 `findComparisonDetails`로 한 명씩 차례로 조회하고, `scoreEquipment`로 카드와 같은 엔진 값을 구한다. 두 연산은 `request.ts`가 같은 실행 범위(`execution.run`)에 묶으므로 기존 취소, 만료, 15초 예산과 늦은 결과 차단이 그대로 적용된다. 상세 429는 그 후보만 점수 없음으로 두고, 그 밖의 상세 실패는 요청 실패다. 고른 후보의 상세를 이미 받았으면 다시 조회하지 않는다. 그룹 후보는 얼굴 창 없는 `choices`로 전달하며, 공대 카드는 후보 줄 없이 `lib/character-card.ts`의 공대 안내만 보인다. 이전 API가 `jobName`, `jobGrowName`을 보내지 않으면 `character-http.ts`가 null로 받아 직업명 단계를 건너뛴다.
 
 공대 보드의 자리 맞바꾸기는 renderer 배치만 바꾼다. `useRaidCapture`의 `seatOrder[화면 자리]`가 그 자리에 놓인 공대 검색 슬롯이고, `RaidPage`는 조회와 상세 열기를 그 슬롯 번호로 알린다. 그래서 main 공대 수명의 자리 번호와 요청, 취소, 늦은 응답 처리는 그대로이며 진행 중 조회와 늦은 응답은 옮겨 간 카드에 들어간다. 회차를 시작할 때(`beginRound`) 배치를 처음으로 되돌려 OCR 행 번호와 슬롯 번호, 화면 자리가 같아지고, 회차가 인식하는 동안은 `canMoveSeats`가 false라 맞바꾸지 않는다.
 

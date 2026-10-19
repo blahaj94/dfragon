@@ -1,6 +1,6 @@
 # 공대 행 판독 오프라인 평가
 
-공대 상세 창 원본에서 창 검출, 수치 열 종류(`fame`, `equipment-score`, `unknown`), 수치 표기, 직업명 OCR이 정답과 얼마나 맞는지 표본으로 측정합니다. 공대 식별의 직업명 비교 규칙과 수치 허용 오차를 정하기 위한 도구이며 제품에는 연결돼 있지 않습니다. `@dfragon/lib`의 검출, 판독 함수와 `src/backend/lib/`의 기준 이미지, renderer의 OCR 전처리와 CTC 디코딩을 그대로 import하고 네트워크는 쓰지 않습니다.
+공대 상세 창 원본에서 창 검출, 수치 열 종류(`fame`, `equipment-score`, `unknown`), 수치 표기, 직업명 OCR이 정답과 얼마나 맞는지 표본으로 측정합니다. 공대 식별의 직업명 비교 규칙과 수치 허용 오차를 정하기 위해 만든 도구입니다. `@dfragon/lib`의 검출, 판독 함수와 `src/backend/lib/`의 기준 이미지, renderer의 OCR 전처리와 CTC 디코딩, 제품의 직업명 비교 규칙(`src/backend/search/raid-job-name.ts`)을 그대로 import하고 네트워크는 쓰지 않습니다.
 
 ## 실행
 
