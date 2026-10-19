@@ -34,7 +34,10 @@ export type DNFRaidMetadataTemplates = Readonly<{
 export type DNFRaidParticipantMetadata = {
   row: DNFRaidParticipantPosition
   party: DNFRaidParty | null
-  /** Exact visible notation, including commas, decimal points and K; never converted to a number. */
+  /**
+   * Exact visible fame or equipment-score notation, including commas, decimal points and K.
+   * classifyDNFRaidValueColumn tells which value the column shows; never converted here.
+   */
   equipmentScoreText: string | null
 }
 type MetadataRow = Pick<
@@ -59,7 +62,11 @@ const scorePolicy = {
   maxGlyphs: 16
 }
 
-function validateImage(image: DNFParticipantFrame, maxWidth: number, maxHeight: number): void {
+export function validateImage(
+  image: DNFParticipantFrame,
+  maxWidth: number,
+  maxHeight: number
+): void {
   if (
     image == null ||
     !Number.isSafeInteger(image.width) ||
@@ -75,7 +82,7 @@ function validateImage(image: DNFParticipantFrame, maxWidth: number, maxHeight: 
   }
 }
 
-function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void {
+export function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void {
   if (
     region == null ||
     ![region.x, region.y, region.width, region.height].every(Number.isSafeInteger) ||
@@ -93,7 +100,7 @@ function validateRegion(image: DNFParticipantFrame, region: DNFRectangle): void 
 }
 
 /** Normalize only a disposable field copy; caller-owned source pixels are never modified. */
-function normalizedRegion(
+export function normalizedRegion(
   image: DNFParticipantFrame,
   region: DNFRectangle,
   width: number,
