@@ -443,6 +443,25 @@ it('기타 면은 12부위를 부위와 아이템 이름, 강화나 증폭 종�
   expect(rows[9].textContent).toContain('마법부여 미평가')
 })
 
+it('기타 면 행 왼쪽에 희귀도 표시의 장식 아이콘 칸을 두고 그림을 불러오지 못하면 빈 칸만 남긴다', async () => {
+  await render({ state: 'success', character: found, initialFace: 2 })
+  const weapon = container.querySelector('[role="tabpanel"] tbody tr')!
+  const icon = weapon.querySelector('th [data-tone]')!
+  expect(icon.getAttribute('data-tone')).toBe('primordial')
+  expect(icon.getAttribute('aria-hidden')).toBe('true')
+  const image = icon.querySelector('img')!
+  expect(image.getAttribute('alt')).toBe('')
+  expect(image.getAttribute('src')).toBe(
+    'https://img-api.neople.co.kr/df/items/4f7c8199cd7a85492e985ebb5daa2da8'
+  )
+  // 이름 칸은 아이콘이 생겨도 부위와 아이템 이름을 보조 기술용 글자로 담는다.
+  expect(weapon.querySelector('th')?.textContent).toContain('무기, 검은 질병의 멸룡검 발뭉')
+
+  await act(async () => image.dispatchEvent(new Event('error')))
+  expect(icon.querySelector('img')).toBeNull()
+  expect(weapon.querySelector('th [data-tone="primordial"]')).toBe(icon)
+})
+
 it('카드 값이 아직 없어도 세 면을 고를 수 있고 각 면은 값 대신 없다는 안내와 -를 보인다', async () => {
   await render({ state: 'success', character: { ...found, card: null } })
   await act(async () => faceTab('장비').click())
@@ -455,7 +474,12 @@ it('카드 값이 아직 없어도 세 면을 고를 수 있고 각 면은 값 �
   await act(async () => faceTab('기타').click())
   const weapon = container.querySelector('tbody tr')!
   expect(weapon.textContent).toContain('무기, 장착 정보 없음')
-  expect(weapon.querySelector('th [aria-hidden="true"]')?.textContent).toBe('-')
+  expect(weapon.querySelector('th span[aria-hidden="true"]:not([data-tone])')?.textContent).toBe(
+    '-'
+  )
+  // 장착 정보가 없어도 같은 크기의 빈 아이콘 칸은 남긴다.
+  expect(weapon.querySelector('[data-tone="missing"]')).not.toBeNull()
+  expect(weapon.querySelector('img')).toBeNull()
   expect(weapon.textContent).toContain('강화 정보 없음')
   expect(weapon.textContent).toContain('마법부여 없음')
 })

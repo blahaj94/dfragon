@@ -49,6 +49,7 @@ it('카드 값이 없으면 세 면 모두 값 대신 -와 없다는 이름을 �
   expect(rows[0]).toMatchObject({
     itemName: '-',
     itemTone: 'missing',
+    imageUrl: undefined,
     reinforce: { text: '-', tone: 'missing' },
     enchant: { grade: null, text: '-', label: '마법부여 없음' }
   })
@@ -238,6 +239,7 @@ it('기타 면은 강화와 증폭을 종류로 구분하고 등급표에 없는
     itemName: '검은 질병의 멸룡검 발뭉',
     itemLabel: '무기, 검은 질병의 멸룡검 발뭉',
     itemTone: 'primordial',
+    imageUrl: 'https://img-api.neople.co.kr/df/items/4f7c8199cd7a85492e985ebb5daa2da8',
     reinforce: { text: '+13', tone: 'enhance', label: '강화 13' },
     enchant: { grade: '종결', filled: 3, label: '마법부여 종결' }
   })
@@ -301,6 +303,21 @@ it('합성 미리보기가 준 itemId별 로컬 그림만 쓰고 나머지 그�
   expect(set.imageUrl).toBe(
     'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
   )
+  // 기타 면 아이콘도 주입한 그림이 있는 부위만 로컬 그림을 쓴다.
+  const weaponId = dealerCard.investment[0].itemId!
+  const rows = toInvestmentRows(dealerCard, { [weaponId]: local })
+  expect(rows[0].imageUrl).toBe(local)
+  expect(rows[1].imageUrl).toBe(
+    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  )
+  // 장착하지 않은 부위는 아이템 식별자가 없어 그림 없이 빈 칸으로 둔다.
+  const empty = toInvestmentRows({
+    ...dealerCard,
+    investment: dealerCard.investment.map((row, index) =>
+      index === 0 ? { ...row, itemId: null, itemName: null, rarity: null } : row
+    )
+  })
+  expect(empty[0]).toMatchObject({ itemTone: 'missing', imageUrl: undefined })
   // 객체의 상속 키는 주입한 그림으로 보지 않는다.
   const inherited = toEquipmentFace(
     { ...dealerCard, oath: { ...dealerCard.oath!, itemId: 'toString' } },
