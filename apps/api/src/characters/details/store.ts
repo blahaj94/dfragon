@@ -2,6 +2,7 @@ import type { DataSource } from 'typeorm'
 import { CharacterSchema } from '../../database/schemas/characters.js'
 import { CharacterApiResponseSchema } from '../../database/schemas/character-api-responses.js'
 import type { CharacterApiResponse } from '../../database/schemas/character-api-responses.js'
+import type { CharacterServerRank } from '../card/types.js'
 import { CharacterDetailFailure } from './errors.js'
 import { characterDetailSections } from './sections.js'
 import type { CharacterIdentity, CharacterPayloads } from './sections.js'
@@ -18,7 +19,18 @@ export interface CharacterDetailStore {
     requestedAt: string,
     signal: AbortSignal
   ): Promise<CharacterApiResponse[]>
+  readServerRank(
+    identity: CharacterIdentity,
+    signal: AbortSignal
+  ): Promise<CharacterServerRank | null>
 }
+
+// Only integer fame within the column range is ranked; other provider values stay unranked.
+const basicFameSql = `CASE WHEN jsonb_typeof(payload->'fame') = 'number' THEN
+  CASE WHEN (payload->>'fame')::numeric BETWEEN 0 AND 2147483647
+    AND (payload->>'fame')::numeric % 1 = 0
+  THEN (payload->>'fame')::integer END
+END`
 
 export function createCharacterDetailStore(dataSource: DataSource): CharacterDetailStore {
   return {
@@ -92,14 +104,17 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
         }
         // Derive from the winning stored basic response, never from an older incoming refresh.
         await manager.query(
-          `UPDATE characters AS c SET adventure_name = basic.adventure_name, updated_at = clock_timestamp()
+          `UPDATE characters AS c SET adventure_name = basic.adventure_name, fame = basic.fame,
+             updated_at = clock_timestamp()
            FROM (
              SELECT character_id, CASE WHEN jsonb_typeof(payload->'adventureName') = 'string'
-               THEN NULLIF(payload->>'adventureName', '') ELSE NULL END AS adventure_name
+               THEN NULLIF(payload->>'adventureName', '') ELSE NULL END AS adventure_name,
+               ${basicFameSql} AS fame
              FROM character_api_responses WHERE character_id = $1 AND section = 'basic'
            ) AS basic
            WHERE c.character_id = basic.character_id
-             AND c.adventure_name IS DISTINCT FROM basic.adventure_name`,
+             AND (c.adventure_name IS DISTINCT FROM basic.adventure_name
+               OR c.fame IS DISTINCT FROM basic.fame)`,
           [identity.characterId]
         )
         // Read the committed-to-be values rather than returning the upstream body or UPDATE parameters.
@@ -110,6 +125,34 @@ export function createCharacterDetailStore(dataSource: DataSource): CharacterDet
 
         return stored
       })
+    },
+    async readServerRank(identity, signal) {
+      return dataSource.transaction(
+        'READ COMMITTED',
+        async (manager): Promise<CharacterServerRank | null> => {
+          signal.throwIfAborted()
+          await manager.query("SET LOCAL statement_timeout = '2s'")
+          // The game servers are merged, so the rank compares stored characters of every server.
+          // Both counts and the target fame come from one statement snapshot.
+          const rows = (await manager.query(
+            `SELECT
+             (SELECT count(*)::int FROM characters AS other WHERE other.fame > target.fame) + 1 AS rank,
+             (SELECT count(*)::int FROM characters AS other WHERE other.fame IS NOT NULL) AS total,
+             clock_timestamp() AS observed_at
+           FROM characters AS target
+           WHERE target.character_id = $1 AND target.server_id = $2 AND target.fame IS NOT NULL`,
+            [identity.characterId, identity.serverId]
+          )) as Array<{ rank: number; total: number; observed_at: Date }>
+          signal.throwIfAborted()
+          const row = rows[0]
+          if (!row) {
+            return null
+          }
+          const observedAt = row.observed_at.toISOString()
+
+          return { rank: row.rank, total: row.total, basis: 'fame', scope: 'stored', observedAt }
+        }
+      )
     }
   }
 }
