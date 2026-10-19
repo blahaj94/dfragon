@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: repository
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-19
 ---
 
 # Repository Map
@@ -45,6 +45,11 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭과 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
+
+## Models
+
+- Package: `@dfragon/models`, 위치: `packages/models`. 빌드에 넣는 학습 모델 파일을 submodule의 고정 커밋으로 제공한다. 코드와 build 명령은 없다.
+- `ocr-finetuned`: 공개 모델 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 submodule이다. Desktop의 `ocr-model.config.mjs`가 `@dfragon/models/ocr-finetuned/model.onnx`, `@dfragon/models/ocr-finetuned/characters.txt`로 찾는다. [받기와 갱신](../../packages/models/README.md)을 참고한다.
 
 ## License tooling
 
