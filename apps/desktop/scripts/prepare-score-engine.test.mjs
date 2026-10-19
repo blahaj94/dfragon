@@ -12,6 +12,7 @@ const TOKEN = 'synthetic-token'
 const ASSET_URL = `https://api.github.com/repos/${REPOSITORY}/releases/assets/1`
 const STORAGE_URL = 'https://objects.example.test/signed/dnfscore.dll'
 const engineBytes = Buffer.from('synthetic engine library')
+const LOWERCASE_SHA256_PATTERN = /^[0-9a-f]{64}$/
 const config = {
   published: true,
   tag: 'v1.0.0',
@@ -57,15 +58,35 @@ afterEach(async () => {
 })
 
 describe('점수 엔진 자산 준비', () => {
-  it('저장소 설정은 아직 미발행이라 토큰이 있어도 받지 않고 엔진 없이 빌드한다', async () => {
+  it('미발행 설정은 토큰이 있어도 받지 않고 엔진 없이 빌드한다', async () => {
     const transport = releaseTransport()
     const root = await temporaryRoot()
 
-    expect(scoreEngineConfig.published).toBe(false)
-    expect(await prepareScoreEngine({ env, target: 'win32-x64', root, fetch: transport })).toEqual({
-      kind: 'skipped',
-      reason: 'unpublished'
-    })
+    expect(
+      await prepareScoreEngine({
+        config: { ...config, published: false },
+        env,
+        target: 'win32-x64',
+        root,
+        fetch: transport
+      })
+    ).toEqual({ kind: 'skipped', reason: 'unpublished' })
+    expect(transport).not.toHaveBeenCalled()
+    expect(await readdir(root)).toEqual([])
+  })
+
+  it('저장소 설정은 발행 상태이고 대상마다 SHA256 형식이 맞으며, 토큰 없이 실행하면 Release를 조회하지 않는다', async () => {
+    const transport = releaseTransport()
+    const root = await temporaryRoot()
+
+    expect(scoreEngineConfig.published).toBe(true)
+    expect(Object.keys(scoreEngineConfig.targets)).toContain('win32-x64')
+    for (const { sha256 } of Object.values(scoreEngineConfig.targets)) {
+      expect(sha256).toMatch(LOWERCASE_SHA256_PATTERN)
+    }
+    expect(
+      await prepareScoreEngine({ env: {}, target: 'win32-x64', root, fetch: transport })
+    ).toEqual({ kind: 'skipped', reason: 'no-token' })
     expect(transport).not.toHaveBeenCalled()
     expect(await readdir(root)).toEqual([])
   })
