@@ -31,12 +31,12 @@ last-reviewed: 2026-10-19
 - `@dfragon/ui/tokens.stylex`(`packages/ui/src/tokens.stylex.ts`)는 `stylex.defineConsts`로 `colors`, `space`, `radius`, `motion`, `font`를 `'var(--df-…)'` 문자열 상수로 제공한다. React는 쓰지 않지만 소비 앱의 StyleX 컴파일이 필요한 entry다.
 - StyleX compiler는 import 경로가 `.stylex`로 끝나는 모듈의 값만 다른 파일에서 정적으로 읽고, 그 경로를 bundler alias가 아닌 package exports로 해석한다. 그래서 entry 이름에 `.stylex`를 붙이고 `@dfragon/ui` 내부도 `./tokens.stylex`로 가져온다. `src/shapes.ts`처럼 `stylex.create`만 쓰는 파일은 이 이름 규칙의 대상이 아니다.
 - `defineVars`, `createTheme`, runtime 테마는 쓰지 않는다. 컴파일 결과에는 `var(--df-…)` 값이 그대로 들어가고 새 `:root` 변수가 생기지 않으므로, 모드 전환은 `tokens.css`만으로 끝나고 portal마다 테마를 다시 바르지 않는다.
-- `packages/ui/src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `hazardStripes`, `scanlines`, `srOnly`를 제공한다.
+- `packages/ui/src/shapes.ts`는 공용 `stylex.create`로 `cutTopRight`, `cutBottomRight`, `gridWell`, `scanlines`, `srOnly`를 제공한다.
 - 모드는 `document.documentElement.dataset.theme`에 `'light'` 또는 `'dark'`를 넣어 바꾼다.
 
 색 토큰은 현재 Desktop 색 토큰의 이름(`bgCanvas`, `bgSurface`, `bgInset`, `bgControl*`, `borderDefault`, `borderStrong`, `fgDefault`, `fgMuted`, `fgSubtle`, `fgSuccess`, `fgDanger`, `card*`, 희귀도, 강화, 게임, 속성 색)을 유지하고 다음을 바꾼다.
 
-- 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), `bracket*`, `hazard`, `gridLine`
+- 추가: `bgBar`, `bgWell`, `signal`(`#F8E8C8`), `onSignal`(`#111012`), `brandLogo`(`#E83830`), `fgAdventure`, `tierTop`(`#FFB400`), `tierRanker`(`#50E3C2`), `bracket*`, `gridLine`, 검색 실패의 노란색 `cardFailure`, `cardFailureWeak`(`#FFD54A`와 그 14% 면)
 - 삭제: `bgBrand*`, `fgBrand`, `fgInfo`, `borderBrand`, `borderFocus` 같은 파랑 계열 전부
 - 주의 톤: 2026-10-19 결정으로 DFragon 디자인 캔버스의 캡처 보드 값인 `fgWarning`(`#FFB400`)과 그 12% 면 `bgWarningWeak`을 다시 들인다. 라이트 값은 `provisional`이다. 이 변경은 채택 범위를 명시한 PR의 사용자 merge 후 적용한다.
 
@@ -85,7 +85,7 @@ Desktop 화면은 아래 규칙으로 그린다. OCR, Accounts, Web은 공용 �
 - 주의 상태: 확인 필요, 창 미감지처럼 사용자가 살펴야 하는 상태는 주의 색 `fgWarning`(`#FFB400`) 글자와 사각 점, 옅은 면 `bgWarningWeak`으로 표현한다. 카드의 인식 대기는 계속 중립색 점선과 각진 모래시계다.
 - 글자: 라벨은 12px로 작게, 값은 Barlow Condensed `tabular-nums`로 크게 쓴다. 한글은 Pretendard를 그대로 쓴다.
 - 형태: 패널과 카드는 반지름 0이며 테두리 없이 면으로 구분한다. 입력, 칩, 보조 버튼은 반지름 2px이다. 누를 수 있는 주 행동에만 오른쪽 위 모서리를 8px 자른다.
-- 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(hazard 줄무늬), 대기(dashed)를 구분한다.
+- 카드 상태: 테두리 전체를 칠하지 않고 네 모서리 꺾쇠로 표시한다. 기본, 선택, 실패(노란 꺾쇠), 대기(dashed)를 구분한다.
 - 모션: hover 120ms, 상태 전환 180ms, 숫자 증가 400ms와 감속 곡선 하나만 쓴다. 튕김, 흔들림, 빛 번짐은 쓰지 않으며 `prefers-reduced-motion: reduce`에서 모두 끈다.
 - 아이콘: 선 아이콘은 `stroke-linecap="square"`, `stroke-linejoin="miter"`로 그린다.
 - 라벨: 화면 라벨을 영어로 쓰지 않는다. 숫자, 단축키, 제품 이름 `DFragon`은 예외다.
