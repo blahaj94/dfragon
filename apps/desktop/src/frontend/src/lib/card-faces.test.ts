@@ -253,6 +253,21 @@ it('희귀도 이름을 색 토큰 키로 바꾸고 단계가 붙은 이름과 �
   expect(toRarityTone('constructor')).toBe('unknown')
 })
 
+it('합성 미리보기가 준 itemId별 로컬 그림만 쓰고 나머지 그림은 고정 origin URL로 둔다', () => {
+  const local = '/assets/item-20.png'
+  const { set, oath } = toEquipmentFace(dealerCard, { [dealerCard.oath!.itemId]: local })
+  expect(oath.imageUrl).toBe(local)
+  expect(set.imageUrl).toBe(
+    'https://img-api.neople.co.kr/df/items/2d23a5dc389016bdc3a3e3fd142b38ce'
+  )
+  // 객체의 상속 키는 주입한 그림으로 보지 않는다.
+  const inherited = toEquipmentFace(
+    { ...dealerCard, oath: { ...dealerCard.oath!, itemId: 'toString' } },
+    {}
+  )
+  expect(inherited.oath.imageUrl).toBe('https://img-api.neople.co.kr/df/items/toString')
+})
+
 it('아이템 이미지는 검증한 식별자로만 고정 origin URL을 만든다', () => {
   expect(itemImageUrl('15a42c9cfd0709f609b22bb590f0a1e8')).toBe(
     'https://img-api.neople.co.kr/df/items/15a42c9cfd0709f609b22bb590f0a1e8'
