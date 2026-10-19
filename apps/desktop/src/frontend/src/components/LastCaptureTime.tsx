@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { MISSING_VALUE } from '../constants/cards'
-import { toElapsedTime, getElapsedTimeRefreshDelay } from '../lib/elapsed-time'
+import { useElapsedTime } from '../hooks/useElapsedTime'
 import { styles } from './LastCaptureTime.style'
 
 /**
@@ -9,18 +8,8 @@ import { styles } from './LastCaptureTime.style'
  * 화면은 완료 시각이 바뀔 때마다 `key`로 새로 그려 현재 시각을 그 순간부터 다시 잰다.
  */
 export function LastCaptureTime({ at }: { at: number | null }): React.JSX.Element {
-  const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    if (at === null) {
-      return
-    }
-    const timer = window.setTimeout(() => setNow(Date.now()), getElapsedTimeRefreshDelay(now - at))
-
-    return () => window.clearTimeout(timer)
-  }, [at, now])
-
-  const elapsed = at === null ? null : { at, ...toElapsedTime(now - at) }
+  const time = useElapsedTime(at)
+  const elapsed = at === null || time === null ? null : { at, ...time }
 
   return (
     <div {...stylex.props(styles.root)}>

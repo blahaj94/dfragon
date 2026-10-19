@@ -2,7 +2,7 @@ import * as stylex from '@stylexjs/stylex'
 import { colors, font, space } from '@dfragon/ui/tokens.stylex'
 
 // 캔버스 카드 면 보드의 기타 면. 머리 24, 행 30에 위쪽 1px 선, 아이콘 칸 24, 아이템 이름 13 500, 강화와 증폭 Barlow 22 700,
-// 마법부여 3점은 6 × 12다. 상세 미리보기의 큰 표는 교차 행 배경을 유지한다.
+// 마법부여 3점은 6 × 12다.
 export const styles = stylex.create({
   table: {
     width: '100%',
@@ -10,7 +10,6 @@ export const styles = stylex.create({
     borderCollapse: 'collapse',
     color: colors.cardFg
   },
-  largeTable: { maxWidth: 560, marginInline: 'auto' },
   head: {
     height: 24,
     padding: 0,
@@ -44,9 +43,6 @@ export const styles = stylex.create({
     borderTopStyle: 'solid',
     borderTopColor: colors.cardDivider
   },
-  largeRow: {
-    backgroundColor: { default: colors.cardBg, ':nth-child(even)': colors.cardStripe }
-  },
   item: {
     padding: 0,
     overflow: 'hidden',
@@ -56,7 +52,6 @@ export const styles = stylex.create({
     lineHeight: '18px',
     textAlign: 'left'
   },
-  largeItem: { paddingBlock: space.s4, paddingInline: 6, fontSize: 14, lineHeight: '20px' },
   itemMissing: { color: colors.cardFgSubtle },
   // 아이콘 칸 24와 이름 사이 8(캔버스 행의 첫 두 열).
   itemInner: { display: 'flex', alignItems: 'center', gap: space.s8, minWidth: 0 },
