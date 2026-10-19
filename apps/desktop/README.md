@@ -155,8 +155,8 @@ pnpm --filter @dfragon/desktop dev
 
 - **위치**: 패키지는 `resources/score/`를 asar 밖으로 푼 `app.asar.unpacked/resources/score/dnfscore.dll`만 엽니다. 개발 실행은 `DFRAGON_SCORE_LIBRARY`에 라이브러리의 절대 경로가 있으면 그 파일을, 없으면 앱 폴더 `resources/score/`의 플랫폼별 파일(`dnfscore.dll`, `libdnfscore.dylib`, `libdnfscore.so`)을 엽니다. 패키지는 이 환경변수를 읽지 않습니다.
 - **개발 설정**: 엔진 저장소에서 직접 빌드한 라이브러리를 쓰려면 `apps/desktop/.env`에 `DFRAGON_SCORE_LIBRARY=<라이브러리 절대 경로>`를 두고 `dev`를 다시 시작합니다. 라이브러리는 첫 점수 계산 때 한 번만 엽니다.
-- **자산 입수**: `pnpm --filter @dfragon/desktop prepare:score-engine`이 `score-engine.config.mjs`의 tag와 자산 이름으로 Release 자산을 받아 SHA256을 대조하고 `resources/score/`에 둡니다. 토큰 `DFRAGON_SCORE_ENGINE_TOKEN`과 저장소 `DFRAGON_SCORE_ENGINE_REPOSITORY`(`<owner>/<name>`)를 환경변수로 받으며, 토큰이 없으면 건너뜁니다. 받은 폴더는 스스로 Git에서 제외합니다. 지금은 Release가 없어 설정의 `published`가 `false`(미발행)이고 항상 건너뜁니다.
-- **CI**: Windows Test Build와 Windows Portable workflow가 build 전에 이 명령을 실행하고, secret `DFRAGON_SCORE_ENGINE_TOKEN`과 variable `DFRAGON_SCORE_ENGINE_REPOSITORY`를 씁니다. 두 값은 저장소 소유자가 설정합니다. 포크 PR은 secret을 받지 못해 엔진 없이 빌드합니다. Windows Portable은 `--require`로 실행해 엔진이 발행된 뒤 토큰이나 자산이 없으면 실패합니다.
+- **자산 입수**: `pnpm --filter @dfragon/desktop prepare:score-engine`이 `score-engine.config.mjs`의 tag와 자산 이름으로 Release 자산을 받아 SHA256을 대조하고 `resources/score/`에 둡니다. 토큰 `DFRAGON_SCORE_ENGINE_TOKEN`과 저장소 `DFRAGON_SCORE_ENGINE_REPOSITORY`(`<owner>/<name>`)를 환경변수로 받으며, 토큰이 없으면 건너뜁니다. 받은 폴더는 스스로 Git에서 제외합니다. 설정은 Release `native-v0.1.0`을 가리키고 Windows x64와 macOS arm64 자산이 있어 Mac 개발 실행도 같은 명령으로 엔진을 받을 수 있습니다. 패키지는 Windows만 만듭니다.
+- **CI**: Windows Test Build와 Windows Portable workflow가 build 전에 이 명령을 실행하고, secret `DFRAGON_SCORE_ENGINE_TOKEN`과 `DFRAGON_SCORE_ENGINE_REPOSITORY`를 씁니다. 공개 저장소의 Actions 로그에서 variable은 가려지지 않으므로 비공개 엔진 저장소 이름도 secret으로 두며, 두 값은 저장소 소유자가 설정합니다. 포크 PR은 secret을 받지 못해 엔진 없이 빌드합니다. Windows Portable은 `--require`로 실행해 엔진이 발행된 뒤 토큰이나 자산이 없으면 실패합니다.
 - **실패 표시**: 파일이 없거나 열 수 없거나 계산, 결과 검증이 실패하면 점수만 null이고 카드의 다른 값은 그대로입니다. 진단 창에 엔진을 불러오지 못했거나 계산하지 못했다는 문구가 남고, 계산이 50ms를 넘으면 느린 계산 문구가 남습니다.
 
 ## Windows PC에서 소스로 실행
