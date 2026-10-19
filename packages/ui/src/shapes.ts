@@ -4,7 +4,7 @@ import { colors, shape, space } from './tokens.stylex'
 const cut = shape.cut
 const stripe = shape.hazardStripe
 
-// 여러 화면이 같이 쓰는 형태. 화면은 stylex.props(shapes.gridWell, failed && shapes.hazardStripes)처럼 합성한다.
+// 여러 화면이 같이 쓰는 형태. 화면은 stylex.props(shapes.gridWell, shapes.cutTopRight)처럼 합성한다.
 export const shapes = stylex.create({
   // 누를 수 있는 주 행동과 현재 위치. 오른쪽 위를 잘라 낸다.
   cutTopRight: {
@@ -19,12 +19,6 @@ export const shapes = stylex.create({
     backgroundColor: colors.bgWell,
     backgroundImage: `linear-gradient(${colors.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${colors.gridLine} 1px, transparent 1px)`,
     backgroundSize: `${shape.gridCell} ${shape.gridCell}`
-  },
-  // 검색 실패 그림 칸. 격자 대신 135도 사선을 깔고, gridWell 뒤에 합성해도 격자 크기가 남지 않게 한다.
-  hazardStripes: {
-    backgroundColor: colors.bgWell,
-    backgroundImage: `repeating-linear-gradient(135deg, ${colors.hazard} 0 ${stripe}, transparent ${stripe} calc(${stripe} * 2))`,
-    backgroundSize: 'auto'
   },
   // 랭커 카드의 옅은 가로 스캔선.
   scanlines: {

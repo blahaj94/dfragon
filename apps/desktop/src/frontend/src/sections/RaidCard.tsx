@@ -181,7 +181,6 @@ export function RaidCard({
           <div
             {...stylex.props(
               shapes.gridWell,
-              frameState === 'failure' && shapes.hazardStripes,
               styles.well,
               collapsed && styles.hidden,
               tier === 'top' && styles.wellTop,

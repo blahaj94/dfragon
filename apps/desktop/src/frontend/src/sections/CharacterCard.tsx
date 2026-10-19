@@ -178,7 +178,6 @@ export function CharacterCard({
             <div
               {...stylex.props(
                 shapes.gridWell,
-                frameState === 'failure' && shapes.hazardStripes,
                 styles.well,
                 collapsed && styles.wellCollapsed,
                 tier === 'top' && styles.wellTop,

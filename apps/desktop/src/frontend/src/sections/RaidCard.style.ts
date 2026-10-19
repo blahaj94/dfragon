@@ -125,8 +125,8 @@ export const styles = stylex.create({
     ...numeric,
     fontSize: 15,
     fontWeight: 700,
-    backgroundColor: colors.bgDangerWeak,
-    color: colors.fgDanger
+    backgroundColor: colors.cardFailureWeak,
+    color: colors.cardFailure
   },
   waitingMark: { backgroundColor: colors.cardInset, color: colors.cardFgSubtle },
   detail: {
@@ -251,7 +251,7 @@ export const styles = stylex.create({
   // 빈 이름 칸은 14 600 자리 표시 글자다.
   nameEmpty: { fontSize: 14, fontWeight: 600 },
   nameWaiting: { borderWidth: 1, borderColor: colors.cardBorder, backgroundColor: colors.bgWell },
-  nameFailure: { fontSize: 17, borderColor: colors.fgDanger, backgroundColor: colors.bgWell },
+  nameFailure: { fontSize: 17, borderColor: colors.cardFailure, backgroundColor: colors.bgWell },
   nameSelected: { fontSize: 17, borderColor: colors.cardSignal, backgroundColor: colors.bgWell },
   job: {
     overflow: 'hidden',
