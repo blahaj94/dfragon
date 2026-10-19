@@ -16,6 +16,7 @@
       "@dfragon/lib": ["../../packages/lib/src/index.ts"],
       "@dfragon/lib/ocr-contract": ["../../packages/lib/src/ocr-contract.ts"],
       "@dfragon/lib/utils/pagination": ["../../packages/lib/src/utils/pagination.ts"],
+      "@dfragon/lib/utils/shape-check": ["../../packages/lib/src/utils/shape-check.ts"],
       "@frontend/*": [
         "./src/frontend/src/*"
       ]
