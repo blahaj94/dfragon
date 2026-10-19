@@ -13,6 +13,7 @@ import { createApiRuntime } from '../dist/runtime/application.js'
 import { assertCharacterDetails } from './character-details.mjs'
 import { assertCharacterCatalog } from './character-catalog.mjs'
 import { assertAdventureSearch } from './adventure-search.mjs'
+import { assertCharacterFame } from './character-fame.mjs'
 import { assertCharacterSearchHttpIntegration } from './character-search-http-integration.mjs'
 
 // 한 단계의 정리 실패가 나머지 소유 자원의 정리를 건너뛰지 않게 한다.
@@ -88,7 +89,7 @@ async function main() {
     )
     assert.deepEqual(await publicTables(), [])
     stage = 'domain 전용 schema와 migration 반복 적용'
-    assert.equal((await source.runMigrations({ transaction: 'all' })).length, 4)
+    assert.equal((await source.runMigrations({ transaction: 'all' })).length, 5)
     assert.equal((await source.runMigrations({ transaction: 'all' })).length, 0)
     assert.deepEqual(
       (
@@ -150,6 +151,7 @@ async function main() {
       ['캐릭터 상세', assertCharacterDetails],
       ['공용 상세', assertCharacterCatalog],
       ['모험단 검색', assertAdventureSearch],
+      ['명성 column', assertCharacterFame],
       ['공개 검색', assertCharacterSearchHttpIntegration]
     ]) {
       await test(source, (part) => {
@@ -158,7 +160,7 @@ async function main() {
       process.stdout.write(`API ${name}: 통과\n`)
     }
     stage = '임시 DB의 전체 migration 되돌리기'
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await source.undoLastMigration({ transaction: 'all' })
     }
     assert.deepEqual(
