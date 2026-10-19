@@ -5,7 +5,7 @@ import { validateDevRendererUrl } from '../renderer-document'
 import { getTitleBarOverlay } from '../window-chrome/title-bar-overlay'
 import { DETAIL_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../../preload/common/window-chrome'
 import { createCharacterDetailSnapshot } from './snapshot'
-import type { CharacterDetails } from '../../preload/common/types/character'
+import type { SelectedCharacter } from '../search/capture-lifetime'
 import type { CharacterDetailSnapshot } from '../../preload/common/types/character-detail'
 
 type DetailEntry = {
@@ -18,7 +18,7 @@ type DetailEntry = {
 }
 
 type DetailWindows = {
-  open: (details: CharacterDetails, isCurrent: () => boolean) => Promise<boolean>
+  open: (selected: SelectedCharacter, isCurrent: () => boolean) => Promise<boolean>
   dispose: () => void
 }
 
@@ -81,11 +81,11 @@ export function registerCharacterDetailWindows({
     return structuredClone(detail.snapshot)
   }
 
-  async function open(details: CharacterDetails, isCurrent: () => boolean): Promise<boolean> {
+  async function open(selected: SelectedCharacter, isCurrent: () => boolean): Promise<boolean> {
     if (!ownerAlive() || !isCurrent()) {
       return false
     }
-    const snapshot = createCharacterDetailSnapshot(details)
+    const snapshot = createCharacterDetailSnapshot(selected.details, selected.card)
     const key = `${snapshot.character.serverId}:${snapshot.character.characterId}`
     const previous = entries.get(key)
     if (
@@ -101,7 +101,7 @@ export function registerCharacterDetailWindows({
     if (previous !== undefined && !previous.window.isDestroyed()) {
       const loaded = await previous.loaded
       if (!loaded && previous.discardedForStaleSelection && ownerAlive() && isCurrent()) {
-        return open(details, isCurrent)
+        return open(selected, isCurrent)
       }
 
       if (!loaded || !ownerAlive() || !isCurrent() || previous.window.isDestroyed()) {
@@ -239,7 +239,7 @@ function reveal(window: BrowserWindow): void {
 
 export async function openSelectedCharacterDetail(
   owner: BrowserWindow,
-  details: CharacterDetails,
+  selected: SelectedCharacter,
   isCurrent: () => boolean
 ): Promise<boolean> {
   const windows = owners.get(owner)
@@ -247,5 +247,5 @@ export async function openSelectedCharacterDetail(
     return false
   }
 
-  return windows.open(details, isCurrent)
+  return windows.open(selected, isCurrent)
 }

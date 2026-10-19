@@ -11,7 +11,7 @@ import {
   type RateWait
 } from './slot-lifetime-machine'
 import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
-import type { CharacterDetails } from '../../preload/common/types/character'
+import type { CharacterCard, CharacterDetails } from '../../preload/common/types/character'
 import { remainingRetryAfter, type RetryAfter } from './retry-after'
 import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
 import type {
@@ -96,6 +96,12 @@ function retryAfterForFailure(
   return retryAfter
 }
 
+/**
+ * 한 슬롯이 마지막으로 고른 캐릭터. 상세 창은 상세 응답과 메인 카드에 넘긴 카드 값(점수 포함)을 함께 쓰며,
+ * 같은 조회 결과인지 객체 identity로 확인한다.
+ */
+export type SelectedCharacter = Readonly<{ details: CharacterDetails; card: CharacterCard | null }>
+
 export type CaptureSearchLifetime = {
   readonly current: CaptureBinding | null
   snapshot: () => SearchSnapshot
@@ -108,7 +114,7 @@ export type CaptureSearchLifetime = {
   observe: (input: SearchObservation) => SearchCommandResult
   observeOcr: (input: OcrSearchObservation) => SearchCommandResult
   lookup: (input: ManualCharacterLookup) => SearchCommandResult
-  selection: (input: RequestIdentity) => CharacterDetails | null
+  selection: (input: RequestIdentity) => SelectedCharacter | null
   clear: (
     input: Extract<SearchControl, { action: typeof SEARCH_ACTIONS.CLEAR }>
   ) => SearchCommandResult
@@ -128,7 +134,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   let slots = slotIndexes.map((slot) => idleSlot({ slot }))
   const ocrInputs: Array<OcrSearchInput | null> = slotIndexes.map(() => null)
   const manualServers: Array<string | null> = slotIndexes.map(() => null)
-  const selectedDetails: Array<CharacterDetails | null> = slotIndexes.map(() => null)
+  const selections: Array<SelectedCharacter | null> = slotIndexes.map(() => null)
   const actors = slotIndexes.map(() =>
     createActor(slotLifetimeMachine, {
       input: { canComplete, complete, ready: finishRateWait }
@@ -337,7 +343,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     return result()
   }
 
-  function selection(input: RequestIdentity): CharacterDetails | null {
+  function selection(input: RequestIdentity): SelectedCharacter | null {
     if (
       !Number.isSafeInteger(input.slot) ||
       input.slot < 0 ||
@@ -347,7 +353,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
       return null
     }
 
-    return selectedDetails[input.slot]
+    return selections[input.slot]
   }
 
   function clear(
@@ -513,7 +519,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     actors[slot].send({ type: 'CANCEL' })
     ocrInputs[slot] = null
     manualServers[slot] = null
-    selectedDetails[slot] = null
+    selections[slot] = null
   }
 
   function isCurrentSlot(request: RequestIdentity): boolean {
@@ -555,7 +561,7 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
     const completedSlot = { ...slots[request.slot] }
     delete completedSlot.selected
     delete completedSlot.selectionMethod
-    selectedDetails[request.slot] = null
+    selections[request.slot] = null
     if (isSuccess) {
       const hasRows = result.rows.length > 0
       slots[request.slot] = {
@@ -570,7 +576,10 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
           selected: result.selected.summary,
           selectionMethod: result.selected.selectionMethod
         }
-        selectedDetails[request.slot] = result.selected.details
+        selections[request.slot] = {
+          details: result.selected.details,
+          card: result.selected.summary.card
+        }
       }
     } else {
       slots[request.slot] = {
