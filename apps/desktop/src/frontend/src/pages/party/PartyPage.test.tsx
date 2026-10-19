@@ -106,7 +106,7 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
     slots: ['success', 'idle', 'idle', 'idle'],
     characters: [character],
     nicknames: ['OCR첫후보'],
-    onDetail: detail
+    actions: { openDetails: detail }
   })
 
   const slot = container.querySelector('article')!
@@ -130,7 +130,7 @@ it('비동기 식별 성공은 OCR 첫 이름 대신 선택된 이름과 서버�
   const button = slot.querySelector<HTMLButtonElement>('[aria-label="1번 캐릭터 상세 열기"]')!
   expect(button.disabled).toBe(false)
   await act(async () => button.click())
-  expect(detail).toHaveBeenCalledOnce()
+  expect(detail).toHaveBeenCalledExactlyOnceWith(0)
 })
 
 it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표시한다', async () => {
@@ -173,7 +173,7 @@ it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬�
   const retry = vi.fn()
   const props: RenderProps = {
     slots: ['failure', 'idle', 'idle', 'idle'],
-    onRetry: retry,
+    actions: { retrySlot: retry },
     slotNotices: ['12초 후 다시 시도할 수 있습니다.'],
     retryEnabled: [false]
   }

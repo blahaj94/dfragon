@@ -72,7 +72,10 @@ const member: CardCharacter = {
 const idle: SlotState[] = Array.from({ length: 12 }, () => 'idle')
 
 // 슬롯별 배열로 쓴 입력을 페이지가 받는 슬롯 카드 값으로 묶는다. 배열이 짧으면 나머지 슬롯은 비운다.
-type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots'>> & {
+// 자리 배치와 슬롯 동작도 풀어 받아 `seats`, `actions`로 묶는다.
+type RenderProps = Partial<Omit<ComponentProps<typeof RaidPage>, 'slots' | 'seats' | 'actions'>> &
+  Partial<ComponentProps<typeof RaidPage>['seats']> &
+  NonNullable<ComponentProps<typeof RaidPage>['actions']> & {
   slots?: SlotState[]
   characters?: (CardCharacter | null)[]
   slotNotices?: (string | undefined)[]
@@ -84,6 +87,11 @@ async function render({
   characters = [],
   slotNotices,
   snapshotMarks,
+  seatOrder = createSeatOrder(),
+  canMoveSeats = true,
+  swapSeats = vi.fn(() => true),
+  lookupSlot,
+  openDetails,
   ...props
 }: RenderProps = {}): Promise<void> {
   const slots = (states ?? idle).map((state, index) => {
@@ -111,10 +119,9 @@ async function render({
         snapshotRound={null}
         onTakeSnapshot={vi.fn()}
         onClearSnapshot={vi.fn()}
-        seatOrder={createSeatOrder()}
-        canMoveSeats
-        onSwapSeats={vi.fn(() => true)}
         {...props}
+        seats={{ seatOrder, canMoveSeats, swapSeats }}
+        actions={{ lookupSlot, openDetails }}
         slots={slots}
       />
     )
@@ -251,8 +258,8 @@ it('자리 배치대로 슬롯을 그리고 조회와 상세 열기는 그 자�
   await render({
     characters: [member],
     seatOrder,
-    onLookup: lookup,
-    onSlotDetail: detail
+    lookupSlot: lookup,
+    openDetails: detail
   })
 
   // 슬롯 0의 캐릭터는 6번 자리에 번호 06으로 보이고 1번 자리에는 슬롯 5가 놓인다.
@@ -292,7 +299,7 @@ it('맞바꾸면 카드가 입력 중인 이름과 함께 다른 파티의 자�
 
 it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고 옮긴 카드에 포커스를 되돌린다', async () => {
   const swap = vi.fn(() => true)
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
   const first = seats()[0]
   await act(async () => first.focus())
 
@@ -305,7 +312,7 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
   await act(async () => first.blur())
   await render({
     characters: [member],
-    onSwapSeats: swap,
+    swapSeats: swap,
     seatOrder: swapSeats(createSeatOrder(), 0, 1)
   })
   expect(document.activeElement).toBe(seats()[1])
@@ -326,7 +333,7 @@ it('카드에 포커스한 채 Alt와 방향키로 이웃 자리와 맞바꾸고
 
 it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이름 칸 글자를 끄는 동작은 자리를 옮기지 않는다', async () => {
   const swap = vi.fn(() => true)
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
 
   const start = await drag('dragstart', seats()[1])
   expect(start.setData).toHaveBeenCalledWith(SEAT_DRAG_TYPE, '2')
@@ -345,7 +352,7 @@ it('카드를 다른 카드에 끌어 놓으면 두 자리를 맞바꾸고 이�
 
 it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자리 이름에서 옮기기 안내를 뺀다', async () => {
   const swap = vi.fn(() => true)
-  await render({ characters: [member], onSwapSeats: swap, canMoveSeats: false })
+  await render({ characters: [member], swapSeats: swap, canMoveSeats: false })
 
   const first = seats()[0]
   expect(first.getAttribute('aria-label')).toBe('1번 자리')
@@ -361,11 +368,11 @@ it('맞바꿀 수 없는 동안은 끌기와 Alt 방향키를 받지 않고 자�
 it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend 없이도 끌기를 끝내고 흐린 표시와 놓기를 거둔다', async () => {
   const swap = vi.fn(() => true)
   const idleClass = (): string => seats()[2].className
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
 
   await drag('dragstart', seats()[1])
   expect(seats()[1].className).not.toBe(idleClass())
-  await render({ characters: [member], onSwapSeats: swap, resetKey: 'next-round' })
+  await render({ characters: [member], swapSeats: swap, resetKey: 'next-round' })
   expect(seats()[1].className).toBe(idleClass())
   await drag('dragover', seats()[4])
   await drag('drop', seats()[4])
@@ -374,7 +381,7 @@ it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend �
   await drag('dragstart', seats()[1])
   await render({
     characters: [member],
-    onSwapSeats: swap,
+    swapSeats: swap,
     resetKey: 'next-round',
     seatOrder: swapSeats(createSeatOrder(), 6, 7)
   })
@@ -385,11 +392,11 @@ it('끌던 카드가 회차나 배치 변경으로 다시 그려지면 dragend �
 
 it('끄는 동안 맞바꿀 수 없게 되면 끌기를 끝내 다시 맞바꿀 수 있게 돼도 그 끌기로는 놓지 않는다', async () => {
   const swap = vi.fn(() => true)
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
 
   await drag('dragstart', seats()[1])
-  await render({ characters: [member], onSwapSeats: swap, canMoveSeats: false })
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap, canMoveSeats: false })
+  await render({ characters: [member], swapSeats: swap })
   await drag('dragover', seats()[4])
   await drag('drop', seats()[4])
   expect(swap).not.toHaveBeenCalled()
@@ -397,7 +404,7 @@ it('끄는 동안 맞바꿀 수 없게 되면 끌기를 끝내 다시 맞바꿀 
 
 it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 자리로 받지 않는다', async () => {
   const swap = vi.fn(() => true)
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
 
   await drag('dragstart', seats()[1])
   const over = await drag('dragover', seats()[4], ['text/plain'])
@@ -409,7 +416,7 @@ it('자리 끌기 형식이 없는 끌기는 자리 끌기 중이어도 놓을 �
 
 it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 그 카드로 포커스를 가져가지 않는다', async () => {
   const swap = vi.fn(() => false)
-  await render({ characters: [member], onSwapSeats: swap })
+  await render({ characters: [member], swapSeats: swap })
   await act(async () => seats()[0].focus())
 
   await pressAlt(seats()[0], 'ArrowRight')
@@ -423,7 +430,7 @@ it('맞바꾸기를 거절하면 알리지 않고, 다음 배치 변경에서 �
   // 회차 시작처럼 다른 이유로 배치가 바뀐다.
   await render({
     characters: [member],
-    onSwapSeats: swap,
+    swapSeats: swap,
     seatOrder: swapSeats(createSeatOrder(), 0, 1)
   })
   expect(document.activeElement).toBe(capture)
