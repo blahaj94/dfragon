@@ -112,7 +112,7 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 
 | 대상 | 책임과 dependency direction |
 | --- | --- |
-| `packages/desktop-contracts`의 `@dfragon/desktop-contracts` | IPC로 오가는 DTO 타입, 채널 이름, 오류 코드, snapshot 검증, 창 색처럼 main, preload, renderer가 같은 값을 써야 하는 정의를 소유한다. `zod`와 `@dfragon/lib`만 의존하며 Desktop source, UI, Electron, Node 전용 API를 import하지 않는다. |
+| `packages/desktop-contracts`의 `@dfragon/desktop-contracts` | IPC로 오가는 DTO 타입, 채널 이름, 오류 코드, snapshot 검증, 창 색처럼 main, preload, renderer가 같은 값을 써야 하는 정의를 소유한다. 제품 source는 `zod`와 `@dfragon/lib`만 의존하며 Desktop source, UI, Electron, Node 전용 API를 import하지 않는다. 계약 테스트는 Vitest와 Node 파일 읽기를 쓸 수 있다. |
 | `apps/desktop` main, preload, renderer | 이 패키지를 build 의존성으로 소비하고 handler, invoker, 화면 상태와 renderer 입력의 runtime 검증을 소유한다. 계약 파일을 다른 프로세스 폴더의 상대 경로로 import하지 않는다. |
 | 다른 앱 | 이 패키지를 import하지 않는다. |
 

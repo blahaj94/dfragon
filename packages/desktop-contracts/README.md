@@ -11,7 +11,7 @@ import { AUTH_AVAILABLE_ARGUMENT } from '@dfragon/desktop-contracts/types/auth'
 
 ## 경계
 
-- Desktop만 소비합니다. 소비 앱의 source, Electron, Node 전용 API에 의존하지 않으며 `zod`와 `@dfragon/lib`만 씁니다.
+- Desktop만 소비합니다. 제품 source는 소비 앱의 source, Electron, Node 전용 API에 의존하지 않으며 `zod`와 `@dfragon/lib`만 씁니다. 계약 테스트는 Vitest로 실행하고, 창 색 테스트는 `packages/ui/tokens.css`를 읽어 값을 대조합니다.
 - 별도 build 산출물이 없습니다. `exports`가 TypeScript source를 가리키고, Desktop의 TypeScript, electron-vite, Vitest가 source를 해석해 각 프로세스에 번들합니다. 그래서 Desktop은 이 패키지를 `devDependencies`에 두고 main 번들에서 external로 빼지 않습니다.
 - 프로세스별 구현은 Desktop에 남습니다. main handler는 `apps/desktop/src/backend`, preload invoker는 `apps/desktop/src/preload/api`, 화면 상태는 renderer가 소유합니다. renderer에서 온 값은 이 패키지의 타입이 있더라도 main의 신뢰 경계에서 runtime 검증합니다.
 - `search/card-test-fixture`, `search/search-test-fixture`는 Desktop 테스트와 Electron fixture가 함께 쓰는 합성 자료입니다. 제품 코드는 import하지 않습니다.

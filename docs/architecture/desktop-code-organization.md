@@ -20,6 +20,6 @@ last-reviewed: 2026-10-19
 - `src/backend/main.ts`와 `src/preload/index.ts`는 composition root로 유지한다. App lifecycle, module 등록, API 노출만 두고 feature state, handler body, domain logic은 넣지 않는다.
 - Feature 관련 implementation과 test는 process별 feature 위치에 함께 둔다. 예: `src/backend/capture/**`, `src/preload/api/capture.ts`.
 - Desktop main의 공통 Windows 화면 획득은 `src/backend/lib`가 소유한다. 일반 캡처와 개발자 수집은 같은 GDI, DPI, 픽셀 변환과 자원 정리 구현을 사용한다. 이 lib는 개발자 모드, 저장소, 검색, UI와 IPC handler에 의존하지 않으며 각 기능이 획득 결과를 자기 계약으로 변환한다. 네이티브 DLL과 Node API는 Desktop 내부에 유지하고 순수 함수용 `packages/lib`로 옮기지 않는다.
-- Main, preload, renderer가 함께 쓰는 IPC contract, DTO, 오류 코드, snapshot 검증은 `packages/desktop-contracts`의 `@dfragon/desktop-contracts`가 소유하고 각 프로세스는 `@dfragon/desktop-contracts/types/search`처럼 패키지 이름으로 import한다. 이 패키지는 Desktop source, Electron, Node 전용 API를 import하지 않는다. 프로세스별 handler, invoker, 화면 상태는 Desktop의 각 프로세스 폴더에 둔다.
+- Main, preload, renderer가 함께 쓰는 IPC contract, DTO, 오류 코드, snapshot 검증은 `packages/desktop-contracts`의 `@dfragon/desktop-contracts`가 소유하고 각 프로세스는 `@dfragon/desktop-contracts/types/search`처럼 패키지 이름으로 import한다. 이 패키지의 제품 source는 Desktop source, Electron, Node 전용 API를 import하지 않는다. 프로세스별 handler, invoker, 화면 상태는 Desktop의 각 프로세스 폴더에 둔다.
 - Backend handler와 preload invoker의 argument 및 return type은 shared IPC contract에서 파생한다.
 - TypeScript IPC contract가 있더라도 renderer에서 전달되는 값은 backend trust boundary에서 runtime validation한다.
