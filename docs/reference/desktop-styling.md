@@ -82,7 +82,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |
-| 개발자 모드 | `<label>` 안의 `Switch` | 설정 대화상자 |
+| 개발자 모드 | `<label>` 안의 `Switch` | 설정 대화상자. 44 × 22 정사각 스위치에 손잡이 14입니다 |
 | 저장 포함 | `Checkbox` | 파티, 참가자 수집 화면 |
 | 저장 단축키 | `Kbd` | 개발자 참가자 수집 화면의 `Print Screen` |
 | 정답 입력 필터 | `Chip`(`pressed`, `onPressedChange`) | 개발자 정답 입력 화면 |
