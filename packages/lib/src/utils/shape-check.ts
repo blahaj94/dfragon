@@ -48,6 +48,15 @@ export function isNonblankString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
+/** The string itself when it has a non-whitespace character, otherwise null. Never coerces. */
+export function textOrNull(value: unknown): string | null {
+  if (isNonblankString(value)) {
+    return value
+  }
+
+  return null
+}
+
 /** A safe integer that is zero or greater. */
 export function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0

@@ -1,3 +1,4 @@
+import { textOrNull } from '@dfragon/lib/utils/shape-check'
 import {
   NEOPLE_ORIGIN,
   NEOPLE_SEARCH_DEADLINE_MS,
@@ -17,7 +18,6 @@ import type {
   SearchCharacters,
   SearchDependencies
 } from '../types/neople-character-search.js'
-import { textOrNull } from './card/values.js'
 import { NeopleBudget, neopleBudget } from './provider-budget.js'
 
 const INVALID_CHARACTER_ID_CHARACTERS_PATTERN = /[^a-zA-Z0-9_-]/
