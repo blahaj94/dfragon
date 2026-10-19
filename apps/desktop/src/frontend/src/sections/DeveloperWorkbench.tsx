@@ -1,22 +1,16 @@
-import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { Button, Select, Typo } from '@dfragon/ui'
-import { paginate } from '@dfragon/lib/utils/pagination'
 import { DeveloperPartyCollectionSection } from './DeveloperPartyCollectionSection'
 import { DeveloperLabelingSection } from './DeveloperLabelingSection'
 import { useOcrSamples } from '../hooks/useOcrSamples'
 import { useDeveloperSamples } from '../hooks/useDeveloperSamples'
 import { useDeveloperEvaluation } from '../hooks/useDeveloperEvaluation'
+import { useDeveloperLabeling } from '../hooks/useDeveloperLabeling'
 import { summarizeDeveloperEvaluation, type DeveloperEvaluation } from '../lib/developer-evaluation'
 import { normalizeNickname } from '../lib/recognition'
 import type { DeveloperWorkbenchSample } from '../lib/developer-party'
-import {
-  queryDeveloperWorkbenchSamples,
-  selectDeveloperEvaluationSamples,
-  selectDeveloperWorkbenchSample,
-  nextDeveloperWorkbenchSampleId,
-  type DeveloperLabelFilter
-} from '../lib/developer-workbench-samples'
+import { selectDeveloperEvaluationSamples } from '../lib/developer-workbench-samples'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperWorkbench.style'
 import {
@@ -24,7 +18,6 @@ import {
   DEVELOPER_PREVIEW_INTERVALS_MS
 } from '../constants/developer'
 
-const REMOTE_PAGE_SIZE = 50
 // Select가 trigger의 값 글자와 목록 항목을 같은 이름으로 그리도록 한 곳에서 만든다.
 const previewIntervalItems = DEVELOPER_PREVIEW_INTERVALS_MS.map((intervalMs) => ({
   value: String(intervalMs),
@@ -37,40 +30,26 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
   const dataset = useDeveloperSamples()
   const [source, setSource] = useState<'local' | 'ocr'>('local')
   const [split, setSplit] = useState('all')
-  const [remotePage, setRemotePage] = useState(0)
   const [activeTab, setActiveTab] = useState<WorkbenchTab>('collection')
   const [previewIntervalMs, setPreviewIntervalMs] = useState(DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS)
   const remote = useOcrSamples(source === 'ocr' && activeTab === 'labeling')
   const readingRemote = source === 'ocr'
   const displayedDataset = readingRemote ? remote : dataset
   const evaluation = useDeveloperEvaluation()
-  const [filter, setFilter] = useState<DeveloperLabelFilter>('unlabeled')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const selectionRevision = useRef(0)
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const labeling = useDeveloperLabeling({
+    local: dataset,
+    samples: displayedDataset.samples,
+    source,
+    split
+  })
+  const { selected } = labeling
   const collectionKind = activeTab === 'participants' || activeTab === 'raid' ? activeTab : 'hud'
   const [confirmClose, setConfirmClose] = useState(false)
-  const [notice, setNotice] = useState('')
   const stopEvaluation = useEffectEvent(() => evaluation.cancel())
   useEffect(() => {
     stopEvaluation()
   }, [remote.revision, source, activeTab])
-  const { splitSamples, visibleSamples } = queryDeveloperWorkbenchSamples({
-    samples: displayedDataset.samples,
-    source,
-    split,
-    labelFilter: filter
-  })
-  const evaluationSamples = selectDeveloperEvaluationSamples(splitSamples, source)
-  const pagination = readingRemote
-    ? paginate(visibleSamples, { page: remotePage, pageSize: REMOTE_PAGE_SIZE })
-    : null
-  const pageSamples = pagination?.items ?? visibleSamples
-  const { selected, selectedNumber } = selectDeveloperWorkbenchSample({
-    splitSamples,
-    pageSamples,
-    selectedId
-  })
+  const evaluationSamples = selectDeveloperEvaluationSamples(labeling.splitSamples, source)
   const canEvaluateSelected =
     selected != null &&
     !selected.excluded &&
@@ -78,86 +57,15 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
     !evaluation.running &&
     !displayedDataset.loading
   const selectedResult = selected ? evaluation.results[selected.id] : undefined
-  const draft = selected ? (drafts[selected.id] ?? selected.text ?? '') : ''
   const summary = summarizeDeveloperEvaluation(evaluationSamples, evaluation.results)
-  const dirty = Object.entries(drafts).some(([id, value]) => {
-    const sample = dataset.samples.find((row) => row.id === id)
-
-    if (sample == null) {
-      return false
-    }
-
-    if (sample.text == null) {
-      return value !== ''
-    }
-
-    return value !== sample.text
-  })
-
-  function selectSample(id: string | null): void {
-    selectionRevision.current += 1
-    setSelectedId(id)
-  }
 
   function selectTab(tab: WorkbenchTab): void {
-    selectionRevision.current += 1
+    labeling.cancelAdvance()
     setActiveTab(tab)
   }
 
-  async function saveAndNext(): Promise<void> {
-    if (readingRemote || !selected || dataset.saving || draft.length === 0) {
-      return
-    }
-
-    const id = selected.id
-    const revision = selectionRevision.current
-    const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
-    const saved = await dataset.saveLabel(id, draft)
-    if (!saved) {
-      return
-    }
-
-    setDrafts((previous) => {
-      const next = { ...previous }
-      delete next[id]
-
-      return next
-    })
-    setNotice('정답을 저장했습니다.')
-    if (revision === selectionRevision.current) {
-      setSelectedId(nextId)
-    }
-  }
-
-  function skipSelected(): void {
-    if (!selected) {
-      return
-    }
-    selectSample(nextDeveloperWorkbenchSampleId(visibleSamples, selected.id) ?? selected.id)
-    setNotice('')
-  }
-
-  async function setSelectedExcluded(excluded: boolean): Promise<void> {
-    if (readingRemote || !selected || dataset.saving) {
-      return
-    }
-
-    const id = selected.id
-    const revision = selectionRevision.current
-    const nextId = nextDeveloperWorkbenchSampleId(visibleSamples, id)
-    const updated = await dataset.setSampleExcluded(id, excluded)
-    if (!updated) {
-      return
-    }
-
-    if (revision === selectionRevision.current) {
-      setSelectedId(nextId)
-    }
-    setNotice(excluded ? '크롭을 제외했습니다.' : '크롭을 다시 포함했습니다.')
-  }
-
   function requestClose(): void {
-    if (dirty) {
+    if (labeling.dirty) {
       setConfirmClose(true)
 
       return
@@ -337,7 +245,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
           onKeyDown={handleTabKeyDown}
           onClick={() => {
             selectTab('labeling')
-            setNotice('')
+            labeling.clearNotice()
           }}
         >
           <Typo.txtM as="span" weight={700}>
@@ -397,10 +305,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                   disabled={dataset.saving}
                   onClick={() => {
                     setSource(value)
-                    setRemotePage(0)
-                    setFilter(value === 'ocr' ? 'complete' : 'unlabeled')
-                    selectSample(null)
-                    setNotice('')
+                    labeling.reset(value === 'ocr' ? 'complete' : 'unlabeled')
                     evaluation.setPreprocessing(evaluation.preprocessing)
                   }}
                 >
@@ -414,8 +319,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                     {...stylex.props(buttonStyles.secondary)}
                     disabled={remote.loading || evaluation.running}
                     onClick={() => {
-                      setRemotePage(0)
-                      selectSample(null)
+                      labeling.resetPage()
                       remote.refresh()
                     }}
                   >
@@ -429,8 +333,7 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
                       disabled={evaluation.running}
                       onChange={(event) => {
                         setSplit(event.target.value)
-                        setRemotePage(0)
-                        selectSample(null)
+                        labeling.resetPage()
                       }}
                     >
                       <option value="all">전체 분할</option>
@@ -450,52 +353,10 @@ export function DeveloperWorkbench({ onClose }: { onClose: () => void }): React.
               </Typo.txtS>
             )}
             <DeveloperLabelingSection
-              samples={pageSamples}
-              pagination={
-                pagination != null && visibleSamples.length > 0
-                  ? {
-                      page: pagination.currentPage,
-                      pageCount: pagination.pageCount,
-                      total: visibleSamples.length,
-                      onPageChange: (page) => {
-                        setRemotePage(page)
-                        selectSample(null)
-                      }
-                    }
-                  : undefined
-              }
-              selected={selected}
-              selectedNumber={selectedNumber}
-              filter={filter}
-              draft={draft}
+              labeling={labeling}
               loading={displayedDataset.loading}
               saving={dataset.saving}
               error={displayedDataset.error}
-              notice={notice}
-              onFilterChange={(nextFilter) => {
-                const nextQuery = queryDeveloperWorkbenchSamples({
-                  samples: displayedDataset.samples,
-                  source,
-                  split,
-                  labelFilter: nextFilter
-                })
-                setFilter(nextFilter)
-                setRemotePage(0)
-                selectSample(nextQuery.visibleSamples[0]?.id ?? null)
-                setNotice('')
-              }}
-              onSelect={(id) => {
-                selectSample(id)
-                setNotice('')
-              }}
-              onDraft={(value) => {
-                if (selected) {
-                  setDrafts((previous) => ({ ...previous, [selected.id]: value }))
-                }
-              }}
-              onSaveAndNext={() => void saveAndNext()}
-              onSkip={skipSelected}
-              onSetExcluded={(excluded) => void setSelectedExcluded(excluded)}
             />
 
             <details aria-label="모델 성능 평가" {...stylex.props(styles.evaluation)}>
