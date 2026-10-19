@@ -56,7 +56,8 @@ export function RaidScreen({
     manualSlots: search.manualSlots,
     recognizing: capture.recognizing,
     // 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
-    snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks)
+    snapshotMarks: seatValuesToSlotOrder(seatOrder, snapshot.marks),
+    screen: 'raid'
   })
   // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
   // 안내와 캡처 대화상자가 알린다.
