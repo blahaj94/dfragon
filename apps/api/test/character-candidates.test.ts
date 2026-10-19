@@ -51,7 +51,14 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         rows: [
           { characterId: 'null-first', characterName, serverId: 'siroco', fame: null },
           { characterId: 'zero', characterName, serverId: 'cain', fame: 0 },
-          { characterId: 'tie-first', characterName, serverId: 'anton', fame: 50000 },
+          {
+            characterId: 'tie-first',
+            characterName,
+            serverId: 'anton',
+            fame: 50000,
+            jobName: 7,
+            jobGrowName: '  '
+          },
           { characterId: 'omitted', characterName, serverId: 'bakal' },
           {
             characterId: 'top_A-1',
@@ -59,6 +66,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
             serverId: 'hilder',
             serverName: '잘못된 공급자 서버명',
             fame: 60000,
+            jobName: '귀검사(남)',
+            jobGrowName: '眞 웨펀마스터',
             imageUrl: 'https://untrusted.invalid/image',
             extra: '제외할 값'
           },
@@ -79,6 +88,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'hilder',
         serverName: '힐더',
         fame: 60000,
+        jobName: '귀검사(남)',
+        jobGrowName: '眞 웨펀마스터',
         imageUrl: 'https://img-api.neople.co.kr/df/servers/hilder/characters/top_A-1?zoom=1',
         adventureName: null
       },
@@ -88,6 +99,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'anton',
         serverName: '안톤',
         fame: 50000,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: 'https://img-api.neople.co.kr/df/servers/anton/characters/tie-first?zoom=1',
         adventureName: null
       },
@@ -97,6 +110,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'prey',
         serverName: '프레이',
         fame: 50000,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: 'https://img-api.neople.co.kr/df/servers/prey/characters/tie-second?zoom=1',
         adventureName: null
       },
@@ -106,6 +121,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'cain',
         serverName: '카인',
         fame: 0,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/zero?zoom=1',
         adventureName: null
       },
@@ -115,6 +132,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'siroco',
         serverName: '시로코',
         fame: null,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: 'https://img-api.neople.co.kr/df/servers/siroco/characters/null-first?zoom=1',
         adventureName: null
       },
@@ -124,6 +143,8 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
         serverId: 'bakal',
         serverName: '바칼',
         fame: null,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/omitted?zoom=1',
         adventureName: null
       }
@@ -324,7 +345,9 @@ test('후보의 ID 검증은 256자 안전 문자를 허용하며 일반 검색�
             characterId: ' id/old ',
             characterName: '다른이름',
             serverId: 'future-server',
-            fame: -1.5
+            fame: -1.5,
+            jobName: '귀검사(남)',
+            jobGrowName: '眞 웨펀마스터'
           }
         ]
       })
@@ -341,6 +364,8 @@ test('후보의 ID 검증은 256자 안전 문자를 허용하며 일반 검색�
         serverId: 'cain',
         serverName: '카인',
         fame: null,
+        jobName: null,
+        jobGrowName: null,
         imageUrl: `https://img-api.neople.co.kr/df/servers/cain/characters/${safeId}?zoom=1`,
         adventureName: null
       }
