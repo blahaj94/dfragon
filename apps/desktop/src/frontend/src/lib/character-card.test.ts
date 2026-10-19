@@ -105,6 +105,33 @@ it('외형을 확인하지 못한 최고 명성 후보임을 명시한다', () =
   expect(characterSlotNotice({ ...slot, selectionMethod: 'manual' })).toBeUndefined()
 })
 
+it('후보 줄이 있는 최고 명성 선택은 같은 뜻의 문구를 겹치지 않는다', () => {
+  const slot: SearchSlot = {
+    slot: 0,
+    observationRevision: 1,
+    requestId: 'request',
+    nickname: '이름',
+    state: 'success',
+    rows: [],
+    error: null,
+    selected: summary,
+    selectionMethod: 'highest-fame',
+    choices: [
+      { ...summary, adventureName: null, face: null },
+      { ...summary, serverId: 'siroco', serverName: '시로코', adventureName: null, face: null }
+    ].map(({ characterId, characterName, serverId, serverName, fame, adventureName, face }) => ({
+      characterId,
+      characterName,
+      serverId,
+      serverName,
+      fame,
+      adventureName,
+      face
+    }))
+  }
+  expect(characterSlotNotice(slot)).toBeUndefined()
+})
+
 it('실패와 결과 0건 안내에만 화면별 다음 조회 방법을 덧붙인다', () => {
   const slot: SearchSlot = {
     slot: 5,
