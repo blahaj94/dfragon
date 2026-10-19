@@ -90,7 +90,7 @@ ties-to-even 반올림은 가로 파티 HUD 후보의 `floor`/`ceil` 바깥쪽 �
 
 PNG는 에디터와 PR에서 바로 확인, 교체할 수 있고, 현재 파일은 8,354바이트로 기존 Deflate/Base64 JSON의 13,294바이트보다 작다. 기존 방식은 Node 내장 zlib만으로 RGBA를 복원할 수 있지만 이미지 확인, 교체에 변환 과정이 필요하다. PNG 방식은 디코더와 배포 자산 경로를 관리하는 비용을 감수하고 원본의 가독성을 택한다. Desktop의 `pngjs`로 첫 참가자 검출 때 한 번만 디코딩하고 캐시하며, 감마 보정, 리사이즈, 알파 사전 곱셈 없이 RGBA를 읽는다. 플랫폼별 native bitmap 채널 순서에 의존하지 않는다. Electron Vite의 `?asset` import가 PNG를 main 출력에 포함하므로 개발, 설치본 모두 같은 파일을 읽는다.
 
-Desktop은 `@dfragon/lib`를 빌드 의존성으로 선언하고 TypeScript/Vite/Vitest에서 해당 workspace source를 해석해 Electron main에 번들한다. 별도 dist 생성이나 설치본의 workspace 경로에 의존하지 않는다. 검출, 수집, IPC, 복구 UI의 오류 코드는 `src/preload/common/developer-errors.ts`에서 공유하며 각 경계의 오류 허용 목록은 유지한다.
+Desktop은 `@dfragon/lib`를 빌드 의존성으로 선언하고 TypeScript/Vite/Vitest에서 해당 workspace source를 해석해 Electron main에 번들한다. 별도 dist 생성이나 설치본의 workspace 경로에 의존하지 않는다. 검출, 수집, IPC, 복구 UI의 오류 코드는 `packages/desktop-contracts/src/developer-errors.ts`에서 공유하며 각 경계의 오류 허용 목록은 유지한다.
 
 연결 테스트는 배포 헤더를 사용한 합성 팝업에서 3번만 남은 경우와 창/닉네임 원본 픽셀 보존을 확인한다. 수집 session, IPC, 작업 공간 테스트는 모드 선택, 이전 요청 무효화, 빈 행의 선택 복원, 일부 저장 실패를 확인한다. `ui:fixture`의 developer 모드에서 기본 네 행과 `participants-sparse` 시나리오를 제공하며 게임 캡처 없이 합성 픽셀로 실제 renderer를 실행한다.
 

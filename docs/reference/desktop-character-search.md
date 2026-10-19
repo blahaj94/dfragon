@@ -23,7 +23,7 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/scripts/prepare-score-engine.mjs`, `apps/desktop/score-engine.config.mjs`                                                                        | 비공개 Release 자산을 토큰으로 받아 SHA256을 대조하고 `resources/score/`에 둔다. 토큰이 없으면 건너뛴다.                                                             |
 | `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
 | `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
-| `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO, 오류 문구, feature API와 exact own shape, 상태 조합 검증을 정의한다.                                                                                        |
+| `packages/desktop-contracts/src/types/search.ts`, `search/snapshot.ts`                                                                                         | Shared DTO, 오류 문구, feature API와 exact own shape, 상태 조합 검증을 정의한다.                                                                                        |
 | `apps/desktop/src/preload/api/search.ts`, `search-command.ts`, `capture.ts`                                                                                    | `window.search`의 제어/구독과 기존 `window.api`의 확장된 OCR 통지를 연결한다. Electron event와 부적합 DTO는 전달하지 않는다.                                         |
 | `apps/desktop/src/frontend/src/lib/search-connection.ts`, `search-connection-machine.ts`                                                                       | XState actor가 구독 후 read, event 동기화와 run/revision 순서를 관리하고, 명령 응답 유실은 read로만 확인한다.                                                         |
 | `apps/desktop/src/frontend/src/lib/capture-search.ts`, `capture-search-machine.ts`, `apps/desktop/src/frontend/src/hooks/useCharacterSearch.ts`                | XState가 Start별 시작, 종료 수명을 관리하고, factory와 hook은 로컬 관측 revision, 결과 필터, 슬롯별 retry를 연결한다.                                                   |
@@ -52,7 +52,7 @@ Begin의 직접 성공 응답만 해당 Start가 소유한 ID로 사용한다. �
 
 ## OCR 식별용 HTTP 통신 준비
 
-`apps/desktop/src/backend/search/character-http.ts`는 후보 조회, 캐릭터 이미지 다운로드, 상세 조회를 위한 main 전용 클라이언트를 제공한다. 전달 가능한 데이터 형태는 `apps/desktop/src/preload/common/types/character.ts`에 두며, API 앱의 소스를 직접 import하지 않는다.
+`apps/desktop/src/backend/search/character-http.ts`는 후보 조회, 캐릭터 이미지 다운로드, 상세 조회를 위한 main 전용 클라이언트를 제공한다. 전달 가능한 데이터 형태는 `packages/desktop-contracts/src/types/character.ts`에 두며, API 앱의 소스를 직접 import하지 않는다.
 
 - `createCharacterCandidatesHttp`: 이름 하나로 고정 `GET /characters/candidates`를 호출한다. 응답의 이름, 지원 서버, 캐릭터 ID와 이미지 URL을 검증하고 공급자가 반환한 후보 순서를 유지한다.
 - `createCharacterImageHttp`: 검증한 서버와 캐릭터 ID로 네오플의 `zoom=1` 이미지 URL을 직접 구성한다. 임의 URL을 받지 않으며 PNG 다운로드와 디코딩의 크기를 제한한다. 결과는 전체 캐릭터 이미지의 원본 RGBA이며 얼굴 비교 결과가 아니다.

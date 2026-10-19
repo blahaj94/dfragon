@@ -14,8 +14,8 @@ last-reviewed: 2026-10-11
 | File                                                       | 현재 책임                                                                                                                          |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/desktop/src/backend/auth/ipc-handler.ts`             | 등록 window, main frame, exact document와 인자 검사, 정제 결과, snapshot event, async reply의 window 재검사와 dispose                 |
-| `apps/desktop/src/preload/common/types/auth.ts`            | Core의 public DTO를 type-only로 재사용하고 shared IPC contract에서 feature API를 파생                                              |
-| `apps/desktop/src/preload/common/types/ipc.ts`             | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument, return type                                         |
+| `packages/desktop-contracts/src/types/auth.ts`             | renderer에 넘기는 인증 DTO를 정의하고 shared IPC contract에서 feature API를 파생. main core의 `types.ts`가 이 DTO를 가져와 쓴다    |
+| `packages/desktop-contracts/src/types/ipc.ts`              | getAuthState/beginLogin/cancelLogin/retryAuth/managePasskeys/logout의 argument, return type                                         |
 | `apps/desktop/src/preload/api/auth.ts`                     | Feature invoke, raw Electron event를 제거한 listener wrapper와 개별 unsubscribe                                                    |
 | `apps/desktop/src/frontend/src/lib/auth-bridge-machine.ts` | XState로 구독, 초기 조회, 명령, 응답 유실 재조회의 수명과 runId/revision 순서를 관리한다. 인증 phase는 main snapshot 그대로 유지한다. |
 | `apps/desktop/src/frontend/src/hooks/useAuthBridge.ts`     | machine과 React를 연결하고 API 교체 시 이전 계정 표시를 즉시 가린다. pending, 연결 실패는 machine 상태에서 파생한다.                |

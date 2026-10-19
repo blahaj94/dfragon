@@ -3,7 +3,7 @@ type: reference
 status: active
 enforcement: autonomous
 scope: repository
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-19
 ---
 
 # Repository Map
@@ -45,6 +45,12 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 - `detectDNFRaidParticipantWindow`, `cropDNFRaidParticipantNicknames`는 같은 모양의 12행 공대창에서 현재 화면 행별 참가 여부와 닉네임 원본 크롭을 반환하며 Desktop의 공대원창 크롭 탭과 공대 캡처에서 사용한다. `readDNFRaidParticipantMetadata`의 파티, 점수 판독은 순수 객체 반환에 한정한다. [공대원창 안내](desktop-raid-participants.md)를 참고한다.
 - `validateDFNickname`은 CP949 기반 최대 12바이트 형식 검사다. 실제 게임 생성 가능 여부와 기존 검색, 계정 규칙을 대신하지 않는다. [사용법과 한계](../../packages/lib/README.md)를 참고한다.
 - `pnpm --filter @dfragon/lib test`는 build 후 공개 export, 경계값, 문자 표를 검증한다. `build`, `lint`, `format:check`도 제공한다.
+
+## Desktop IPC contract
+
+- Package: `@dfragon/desktop-contracts`, 위치: `packages/desktop-contracts`. Desktop main, preload, renderer가 함께 쓰는 IPC DTO 타입, 채널 이름, 오류 코드, snapshot 검증과 테스트 fixture를 TypeScript source로 제공한다. 예전 Desktop의 `src/preload/common`과 preload의 검색 테스트 fixture를 옮긴 것이다.
+- `src` 아래 경로가 import 경로다. `src/types/search.ts`는 `@dfragon/desktop-contracts/types/search`로 가져온다. Build 산출물이 없으며 Desktop이 source를 번들한다. [경계와 사용법](../../packages/desktop-contracts/README.md)을 참고한다.
+- `pnpm --filter @dfragon/desktop-contracts test`는 typecheck 뒤 Vitest로 계약 테스트를 실행한다. `lint`, `format:check`도 제공한다.
 
 ## License tooling
 
