@@ -6,10 +6,11 @@ import { useCharacterSearch } from './useCharacterSearch'
 import type { CaptureSearch, createCaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
-import type { CharacterChoice } from '../../../preload/common/types/search'
+import type { CharacterChoice, SearchSlot } from '../../../preload/common/types/search'
 import { REQUEST_ID, searchRow, searchSlot } from '../../../preload/api/search-test-fixture'
 
 const mocks = vi.hoisted(() => ({
+  manualSlots: null as SearchSlot[] | null,
   create: vi.fn<typeof createCaptureSearch>(),
   manualLookup: vi.fn<(slot: number, nickname: string, serverId: string) => void>()
 }))
@@ -19,7 +20,7 @@ vi.mock('./useManualCharacterLookup', () => ({
   useManualCharacterLookup: () => ({
     view: {
       ready: true,
-      slots: emptySearchSlots(),
+      slots: mocks.manualSlots ?? emptySearchSlots(),
       retryPending: [false, false, false, false],
       connectionFailed: false
     },
@@ -109,6 +110,7 @@ beforeEach(async () => {
   }
   mocks.create.mockReturnValue(bridge)
   mocks.manualLookup.mockReset()
+  mocks.manualSlots = null
   vi.stubGlobal('search', {})
   vi.stubGlobal('api', {
     openCharacterDetails: vi.fn(),
@@ -208,4 +210,16 @@ it('캡처 검색의 새 요청과 캡처 종료는 이전 미리보기와 확�
   await act(async () => value.pickCandidate(SLOT, 'cain'))
   await act(async () => value.end())
   expect(value.candidatePickers[SLOT]?.previewServerId).toBeNull()
+})
+
+it('미리보기 조회가 끝나기 전에는 대기 화면 대신 지금 보이는 캐릭터를 둔다', async () => {
+  mocks.manualSlots = emptySearchSlots().map((slot) =>
+    slot.slot === SLOT
+      ? searchSlot({ slot: SLOT, requestId: NEXT_REQUEST_ID, state: 'pending', rows: [] })
+      : slot
+  )
+  await act(async () => value.pickCandidate(SLOT, 'siroco'))
+
+  expect(value.slots[SLOT]).toMatchObject({ state: 'success', selected: { serverId: 'cain' } })
+  expect(value.candidatePickers[SLOT]?.previewServerId).toBe('siroco')
 })

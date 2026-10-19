@@ -679,13 +679,14 @@ it('미리보기 중이면 카드를 선택 상태로 보이고 그 후보에 �
   )
 })
 
-it('접힌 카드는 후보 줄 대신 머리에 후보 수만 남기고, 찾지 못한 카드는 후보 줄을 그리지 않는다', async () => {
+it('접힌 카드는 후보 줄 대신 머리에 후보 수만 남기고, 미리보기 조회가 실패해도 후보 줄은 남는다', async () => {
   const picker = { choices, shownServerId: 'cain', previewServerId: null }
   await render({ state: 'success', character: found, picker, collapsed: true })
 
   expect(card().querySelector('[role="group"]')).toBeNull()
   expect(card().querySelector('[aria-label="외형으로 확정하지 못함, 후보 2명"]')).not.toBeNull()
 
-  await render({ state: 'pending', character: undefined, picker })
-  expect(card().querySelector('[role="group"]')).toBeNull()
+  await render({ state: 'failure', character: undefined, picker, onPickCandidate: vi.fn() })
+  expect(card().querySelector('[role="group"]')).not.toBeNull()
+  expect(card().getAttribute('data-state')).toBe('failure')
 })
