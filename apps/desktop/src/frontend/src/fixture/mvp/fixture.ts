@@ -39,14 +39,31 @@ const equipment: EquipmentSlot[] = definitions.map(([id, label, index]) => {
   return { id, label, image, rarityColor }
 })
 
-// 카드 값의 세트 대표 장비와 서약 itemId에 대응하는 로컬 아이콘. 제품 CSP는 원격 그림을 허용하지만 합성
-// 미리보기는 로컬 자산만 쓰므로 itemId별 그림을 주입한다.
+// 딜러 카드 기타 면 12부위의 로컬 아이콘 번호. 상의는 세트 대표 장비와 같은 아이템이다.
+const dealerInvestmentIcons: Readonly<Record<string, number>> = {
+  WEAPON: 22,
+  JACKET: 18,
+  SHOULDER: 23,
+  PANTS: 24,
+  WAIST: 25,
+  SHOES: 26,
+  AMULET: 27,
+  WRIST: 28,
+  RING: 29,
+  SUPPORT: 30,
+  MAGIC_STON: 31,
+  EARRING: 32
+}
+
+// 카드 값의 세트 대표 장비, 서약, 딜러 12부위 itemId에 대응하는 로컬 아이콘. 제품 CSP는 원격 그림을 허용하지만
+// 합성 미리보기는 로컬 자산만 쓰므로 itemId별 그림을 주입한다.
 const itemImages: Readonly<Record<string, string>> = Object.fromEntries(
   [
     [dealerCard.set?.imageItemId, asset(18)],
     [bufferCard.set?.imageItemId, asset(19)],
     [dealerCard.oath?.itemId, asset(20)],
-    [bufferCard.oath?.itemId, asset(21)]
+    [bufferCard.oath?.itemId, asset(21)],
+    ...dealerCard.investment.map((row) => [row.itemId, asset(dealerInvestmentIcons[row.slotId])])
   ].filter((entry): entry is [string, string] => entry[0] != null)
 )
 

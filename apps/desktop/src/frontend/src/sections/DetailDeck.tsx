@@ -117,7 +117,7 @@ export function DetailDeck({ character }: { character: CardCharacter }): React.J
                       {(face === '강화' || face === '마법부여') && (
                         <>
                           <InvestmentTable
-                            rows={toInvestmentRows(character.card)}
+                            rows={toInvestmentRows(character.card, character.itemImages)}
                             large
                             kind={face === '강화' ? 'enhancement' : 'enchantment'}
                           />

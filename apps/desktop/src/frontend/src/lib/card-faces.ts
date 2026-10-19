@@ -71,11 +71,16 @@ export type EnchantView =
   | { grade: EnchantGrade; filled: number; label: string }
   | { grade: null; text: string; label: string }
 
+/**
+ * 기타 면 12행의 한 줄. 아이콘 칸과 아이템 이름은 같은 희귀도 색(`itemTone`)을 쓰고, 아이콘은 장식이라 부위와
+ * 이름은 `itemLabel`로 보조 기술에 전한다.
+ */
 export type InvestmentRowView = {
   slotId: string
   itemName: string
   itemLabel: string
   itemTone: RarityTone | 'missing'
+  imageUrl: string | undefined
   reinforce: ReinforceView
   enchant: EnchantView
 }
@@ -404,9 +409,13 @@ function toEnchantView(row: CharacterCard['investment'][number] | undefined): En
 
 /**
  * 기타 면의 12행을 무기, 상의, 머리어깨 순서로 정한다. 행마다 아이템 이름과 희귀도, 강화나 증폭 수치, 마법부여
- * 등급을 두고, 장착하지 않은 부위나 카드가 없을 때는 부위 이름에 `-` 값을 둔다.
+ * 등급과 아이콘을 두고, 장착하지 않은 부위나 카드가 없을 때는 부위 이름에 `-` 값과 빈 아이콘 칸을 둔다.
+ * `itemImages`는 합성 미리보기의 로컬 그림이고, 없으면 아이콘은 itemId로 만든 고정 origin URL이다.
  */
-export function toInvestmentRows(card: CharacterCard | null | undefined): InvestmentRowView[] {
+export function toInvestmentRows(
+  card: CharacterCard | null | undefined,
+  itemImages?: Readonly<Record<string, string>>
+): InvestmentRowView[] {
   return investmentIds.map((slotId) => {
     const row = card?.investment.find((item) => item.slotId === slotId)
     const slotName = row?.slotName ?? slotNames[slotId]
@@ -416,6 +425,7 @@ export function toInvestmentRows(card: CharacterCard | null | undefined): Invest
         itemName: MISSING_VALUE,
         itemLabel: `${slotName}, 장착 정보 없음`,
         itemTone: 'missing',
+        imageUrl: undefined,
         reinforce: toReinforceView(row),
         enchant: toEnchantView(row)
       }
@@ -426,6 +436,7 @@ export function toInvestmentRows(card: CharacterCard | null | undefined): Invest
       itemName: row.itemName,
       itemLabel: `${slotName}, ${row.itemName}`,
       itemTone: toRarityTone(row.rarity),
+      imageUrl: toItemImage(row.itemId, itemImages),
       reinforce: toReinforceView(row),
       enchant: toEnchantView(row)
     }

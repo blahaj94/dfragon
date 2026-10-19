@@ -319,7 +319,7 @@ export function CharacterCard({
               <Tabs.Panel value={2} {...stylex.props(styles.face)}>
                 <FaceTitle name={character.name} job={character.job} />
                 <div {...stylex.props(styles.investment)}>
-                  <InvestmentTable rows={toInvestmentRows(character.card)} />
+                  <InvestmentTable rows={toInvestmentRows(character.card, character.itemImages)} />
                 </div>
               </Tabs.Panel>
             </>

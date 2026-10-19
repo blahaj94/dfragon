@@ -2,6 +2,7 @@ import { shapes } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
 import { investmentAriaLabelByKind } from '../constants/equipment'
 import { rarityText } from '../constants/rarity.style'
+import { ItemIcon } from './ItemIcon'
 import type { EnchantView, InvestmentRowView } from '../lib/card-faces'
 import { gradeStyles, reinforceStyles, styles } from './InvestmentTable.style'
 
@@ -67,7 +68,12 @@ export function InvestmentTable({
                 row.itemTone === 'missing' ? styles.itemMissing : rarityText[row.itemTone]
               )}
             >
-              <span aria-hidden="true">{row.itemName}</span>
+              <span {...stylex.props(styles.itemInner)}>
+                <ItemIcon src={row.imageUrl} tone={row.itemTone} />
+                <span aria-hidden="true" {...stylex.props(styles.itemName)}>
+                  {row.itemName}
+                </span>
+              </span>
               <span {...stylex.props(shapes.srOnly)}>{row.itemLabel}</span>
             </th>
             {kind !== 'enchantment' && (
