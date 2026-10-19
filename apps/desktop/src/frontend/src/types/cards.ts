@@ -1,6 +1,7 @@
 import type { ServerId } from './servers'
 import type { SearchSlot } from '../../../preload/common/types/search'
 import type { CharacterCard } from '../../../preload/common/types/character'
+import type { CharacterDetailItemTexts } from '../../../preload/common/types/character-detail'
 
 export type SlotState = SearchSlot['state']
 
@@ -39,4 +40,6 @@ export interface CardCharacter {
    * itemId로 고정 origin URL을 만든다.
    */
   itemImages?: Readonly<Record<string, string>>
+  /** 상세 창 설명 상자의 itemId별 문구. 합성 미리보기만 채우고, 제품 상세 창은 main이 넘긴 값을 쓴다. */
+  itemTexts?: CharacterDetailItemTexts
 }

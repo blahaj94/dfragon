@@ -8,13 +8,14 @@ import {
   isNullableString,
   isOffsetTimestamp,
   isPositiveSafeInteger,
+  isRecord,
   isUtcTimestamp,
   listOf,
   nullable,
   oneOf
 } from '@dfragon/lib/utils/shape-check'
 import type { CharacterCard } from './types/character'
-import type { CharacterDetailSnapshot } from './types/character-detail'
+import type { CharacterDetailItemTexts, CharacterDetailSnapshot } from './types/character-detail'
 
 // 제한된 preload는 일반 앱 preload의 runtime 모듈을 공유하지 않는다. 두 preload가 같은 모듈을 쓰면 공유
 // chunk가 생겨 sandbox preload가 불러오지 못하므로, 카드 값 검사도 일반 preload의 zod 스키마
@@ -31,6 +32,12 @@ const DETAIL_SERVER_NAMES: Readonly<Record<string, string>> = {
   siroco: '시로코'
 }
 const CHARACTER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
+// API가 아이템 상세를 붙이는 itemId 규칙(catalog id)과 같다.
+const ITEM_ID_PATTERN = /^[a-zA-Z0-9_-]{1,256}$/
+// 장비 12부위, 서약 본체 하나, 결정 0~10번 11칸이다.
+const DETAIL_ITEM_TEXT_MAX_ITEMS = 24
+/** 설명 상자 문구 하나의 최대 길이. main은 이보다 긴 원문을 넘기지 않는다. */
+export const CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH = 2000
 const DETAIL_CHARACTER_KEYS = [
   'serverId',
   'characterId',
@@ -152,20 +159,48 @@ const characterCard = exactObject({
   investment: listOf(investment)
 })
 
+function isItemTextValue(value: unknown): boolean {
+  return isNonblankString(value) && value.length <= CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH
+}
+
+const itemText = exactObject({
+  explain: nullable(isItemTextValue),
+  buff: nullable(isItemTextValue),
+  flavor: nullable(isItemTextValue)
+})
+
+/** 설명 상자 문구를 둘 수 있는 itemId인지 확인한다. */
+export function isCharacterDetailItemId(value: unknown): value is string {
+  return typeof value === 'string' && ITEM_ID_PATTERN.test(value)
+}
+
+function isItemTexts(value: unknown): value is CharacterDetailItemTexts {
+  if (!isRecord(value)) {
+    return false
+  }
+  const keys = Reflect.ownKeys(value)
+
+  return (
+    keys.length <= DETAIL_ITEM_TEXT_MAX_ITEMS &&
+    keys.every((key) => isCharacterDetailItemId(key) && itemText(value[key]))
+  )
+}
+
 /** 상세 창에 넘길 카드 값이 메인 카드의 카드 값과 같은 모양인지 확인한다. 숫자는 유한값만 받는다. */
 export function isCharacterDetailCard(value: unknown): value is CharacterCard {
   return characterCard(value)
 }
 
 export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSnapshot {
-  if (!hasExactKeys(value, ['character', 'card', 'freshness'])) {
+  if (!hasExactKeys(value, ['character', 'card', 'itemTexts', 'freshness'])) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
-  const { character, card, freshness } = value
+  const { character, card, itemTexts, freshness } = value
   if (
     !hasExactKeys(character, DETAIL_CHARACTER_KEYS) ||
     !hasExactKeys(freshness, ['lastSuccessfulFetchAt', 'expiresAt']) ||
-    (card !== null && !isCharacterDetailCard(card))
+    (card !== null && !isCharacterDetailCard(card)) ||
+    !isItemTexts(itemTexts)
   ) {
     throw new Error('CHARACTER_DETAIL_UNAVAILABLE')
   }
@@ -220,7 +255,13 @@ export function parseCharacterDetailSnapshot(value: unknown): CharacterDetailSna
     guildName
   }
   const parsedCard = card === null ? null : structuredClone(card)
+  const parsedItemTexts = structuredClone(itemTexts)
   const parsedFreshness = { lastSuccessfulFetchAt, expiresAt }
 
-  return { character: parsedCharacter, card: parsedCard, freshness: parsedFreshness }
+  return {
+    character: parsedCharacter,
+    card: parsedCard,
+    itemTexts: parsedItemTexts,
+    freshness: parsedFreshness
+  }
 }

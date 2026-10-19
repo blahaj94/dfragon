@@ -10,12 +10,13 @@ const closeWindow = (): void => window.close()
 export function CharacterSnapshotPage(): React.JSX.Element {
   const detail = useCharacterDetail()
   if (detail.status === 'ready') {
-    const { character, card, freshness } = detail.snapshot
+    const { character, card, itemTexts, freshness } = detail.snapshot
 
     return (
       <CharacterDetailPanel
         character={character}
         card={card}
+        itemTexts={itemTexts}
         fetchedAt={freshness.lastSuccessfulFetchAt}
         onClose={closeWindow}
       />

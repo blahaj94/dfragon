@@ -28,6 +28,7 @@ export function CharacterDetailPage({
         imageUrl: character.image
       }}
       card={character.card}
+      itemTexts={character.itemTexts}
       fetchedAt={fetchedAt}
       itemImages={character.itemImages}
       onClose={closeWindow}

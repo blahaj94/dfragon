@@ -111,7 +111,17 @@ export const styles = stylex.create({
     color: colors.cardFgMuted
   },
   tipFieldLabel: { flexShrink: 0 },
-  tipFieldValue: { color: colors.cardFg, textAlign: 'right' }
+  tipFieldValue: { color: colors.cardFg, textAlign: 'right' },
+  // 아이템 설명, 버프 스킬, 플레이버 문구는 원문 줄바꿈을 지킨다. 기본은 버프 스킬 줄의 흐린 글자색이다.
+  tipText: {
+    display: 'block',
+    whiteSpace: 'pre-line',
+    overflowWrap: 'anywhere',
+    color: colors.cardFgMuted
+  },
+  tipExplain: { color: colors.cardFg },
+  tipHeading: { display: 'block', color: colors.cardSignal },
+  tipFlavor: { color: colors.cardFgSubtle }
 })
 
 export const reinforceStyles = stylex.create({
