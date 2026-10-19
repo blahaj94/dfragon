@@ -45,6 +45,16 @@ export const styles = stylex.create({
     fontVariantNumeric: 'tabular-nums',
     lineHeight: 1
   },
+  // 스냅샷 회차 번호(`#2`). 인원수와 같은 28px이고 `#`도 줄이지 않는다. 색은 신호색이라 다크는 크림이다.
+  round: {
+    flexShrink: 0,
+    color: colors.signal,
+    fontFamily: font.num,
+    fontSize: 28,
+    fontWeight: 700,
+    fontVariantNumeric: 'tabular-nums',
+    lineHeight: 1
+  },
   total: { color: colors.fgSubtle },
   notice: {
     minWidth: 0,

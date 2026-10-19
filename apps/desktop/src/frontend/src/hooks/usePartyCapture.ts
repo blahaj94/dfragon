@@ -23,6 +23,8 @@ type PartyCapture = {
   sourcesFailed: boolean
   nicknames: (string | null)[]
   round: number
+  /** 지금까지 시작한 회차 수. 실패하거나 취소된 회차도 센다. */
+  startedRounds: number
   status: string
   /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 없으면 null이다. */
   lastCompletedAt: number | null
@@ -137,6 +139,7 @@ export function usePartyCapture({
     retrySearch: search.retry,
     nicknames,
     round: snapshot.context.round,
+    startedRounds: snapshot.context.startedRounds,
     status: snapshot.context.status,
     lastCompletedAt: snapshot.context.completedAt,
     startRound,

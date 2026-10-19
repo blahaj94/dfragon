@@ -26,6 +26,8 @@ type RaidCaptureContext = {
   nicknames: readonly (CharacterImage | null)[]
   results: RaidSlotRecognition[]
   round: number
+  /** START를 받아 회차를 시작한 횟수. 실패하거나 취소된 회차도 센다. */
+  startedRounds: number
   status: string
   /** 마지막으로 인식을 마친 회차의 완료 시각(ms). 진행 중 회차를 취소하면 비운다. */
   completedAt: number | null
@@ -102,6 +104,7 @@ export const raidCaptureMachine = setup({
         return event.sourceId
       }
     }),
+    countStart: assign({ startedRounds: ({ context }) => context.startedRounds + 1 }),
     cancelRound: assign({ status: READY_STATUS, completedAt: null }),
     resetRecognition: assign({
       captureId: null,
@@ -146,6 +149,7 @@ export const raidCaptureMachine = setup({
     nicknames: [],
     results: [],
     round: 0,
+    startedRounds: 0,
     status: READY_STATUS,
     completedAt: null
   }),
@@ -153,13 +157,13 @@ export const raidCaptureMachine = setup({
   on: { SOURCE: { actions: 'recordSource' } },
   states: {
     idle: {
-      on: { START: { guard: 'hasSource', target: 'capturing' } }
+      on: { START: { guard: 'hasSource', target: 'capturing', actions: 'countStart' } }
     },
     capturing: {
       initial: 'search',
       entry: ['resetRecognition', assign({ status: '공대를 인식하고 있습니다.' })],
       on: {
-        START: { guard: 'hasSource', target: 'capturing', reenter: true }
+        START: { guard: 'hasSource', target: 'capturing', reenter: true, actions: 'countStart' }
       },
       states: {
         search: {
@@ -309,7 +313,7 @@ export const raidCaptureMachine = setup({
       }
     },
     failed: {
-      on: { START: { guard: 'hasSource', target: 'capturing' } }
+      on: { START: { guard: 'hasSource', target: 'capturing', actions: 'countStart' } }
     }
   }
 })

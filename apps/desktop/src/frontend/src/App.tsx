@@ -78,9 +78,13 @@ function App(): React.JSX.Element {
   )
   // 모험단 순번 스냅샷은 화면 자리 기준이라 공대는 맞바꾼 배치를 따라 자리마다 모험단을 읽는다. 파티와
   // 공대가 각자 가진다.
-  const partySnapshot = useAdventureSnapshot(capture.search.slots.map(slotAdventureName))
+  const partySnapshot = useAdventureSnapshot(
+    capture.search.slots.map(slotAdventureName),
+    capture.startedRounds
+  )
   const raidSnapshot = useAdventureSnapshot(
-    raidCapture.seatOrder.map((slot) => slotAdventureName(raid.slots[slot]))
+    raidCapture.seatOrder.map((slot) => slotAdventureName(raid.slots[slot])),
+    raidCapture.startedRounds
   )
   const raidSlotNotices = raid.slots.map((slot) =>
     searchSlotNotice(slot, 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.')
@@ -153,6 +157,7 @@ function App(): React.JSX.Element {
               canCapture={capture.canStartCapture}
               onCapture={capture.startRound}
               snapshotActive={partySnapshot.active}
+              snapshotRound={partySnapshot.round}
               onTakeSnapshot={partySnapshot.take}
               onClearSnapshot={partySnapshot.clear}
               collapsed={party.collapsed}
@@ -191,6 +196,7 @@ function App(): React.JSX.Element {
             canCapture={raidCapture.canStartCapture}
             onCapture={raidCapture.startRound}
             snapshotActive={raidSnapshot.active}
+            snapshotRound={raidSnapshot.round}
             snapshotMarks={raidSnapshot.marks}
             onTakeSnapshot={raidSnapshot.take}
             onClearSnapshot={raidSnapshot.clear}

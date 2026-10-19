@@ -49,6 +49,7 @@ export function RaidPage({
   canCapture,
   onCapture,
   snapshotActive,
+  snapshotRound,
   snapshotMarks,
   onTakeSnapshot,
   onClearSnapshot,
@@ -87,6 +88,8 @@ export function RaidPage({
   onCapture: () => void
   /** 모험단 순번 스냅샷을 켜 둔 상태 */
   snapshotActive: boolean
+  /** 스냅샷을 켠 뒤 몇 번째 공대인지. 스냅샷이 없으면 null이라 번호를 보이지 않는다. */
+  snapshotRound: number | null
   /** 화면 자리 0~11마다 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
   snapshotMarks: readonly (SnapshotMark | undefined)[]
   onTakeSnapshot: () => void
@@ -267,6 +270,15 @@ export function RaidPage({
             {filledCount}
             <span {...stylex.props(styles.total)}>/{SEAT_COUNT}</span>
           </span>
+          {snapshotRound !== null && (
+            <span
+              aria-label={`${snapshotRound}번째 공대`}
+              role="img"
+              {...stylex.props(styles.round)}
+            >
+              #{snapshotRound}
+            </span>
+          )}
           <span role="status" {...stylex.props(styles.notice)}>
             {notice}
           </span>
