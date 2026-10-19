@@ -375,6 +375,9 @@ export async function assertCharacterDetails(source, mark = () => undefined) {
     )
     assert.equal(body.sections.equipment.revision, 4)
     assert.equal(body.creature, null)
+    assert.equal(body.card.investment[0].reinforce.value, 15)
+    assert.equal(body.card.serverRank.rank, 1)
+    assert.equal(body.card.serverRank.scope, 'stored')
     assert.equal(providerCalls, 11)
     assert.equal(body.equipment.characterName, undefined)
     assert.equal(

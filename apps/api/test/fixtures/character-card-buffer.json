@@ -1,0 +1,5998 @@
+{
+  "sections": {
+    "basic": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null
+    },
+    "status": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "buff": [
+        {
+          "name": "모험단 버프",
+          "level": 41,
+          "status": [
+            {
+              "name": "힘",
+              "value": 290
+            },
+            {
+              "name": "지능",
+              "value": 290
+            },
+            {
+              "name": "체력",
+              "value": 290
+            },
+            {
+              "name": "정신력",
+              "value": 290
+            }
+          ]
+        },
+        {
+          "name": "무제한 길드능력치",
+          "status": [
+            {
+              "name": "힘",
+              "value": 60
+            },
+            {
+              "name": "지능",
+              "value": 60
+            },
+            {
+              "name": "체력",
+              "value": 60
+            },
+            {
+              "name": "정신력",
+              "value": 60
+            }
+          ]
+        },
+        {
+          "name": "기간제 길드능력치",
+          "status": [
+            {
+              "name": "힘",
+              "value": 40
+            },
+            {
+              "name": "지능",
+              "value": 40
+            },
+            {
+              "name": "체력",
+              "value": 40
+            },
+            {
+              "name": "정신력",
+              "value": 40
+            }
+          ]
+        }
+      ],
+      "status": [
+        {
+          "name": "HP",
+          "value": 162108
+        },
+        {
+          "name": "MP",
+          "value": 98999
+        },
+        {
+          "name": "물리 방어율",
+          "value": 37.4
+        },
+        {
+          "name": "마법 방어율",
+          "value": 38.8
+        },
+        {
+          "name": "힘",
+          "value": 5534
+        },
+        {
+          "name": "지능",
+          "value": 5847
+        },
+        {
+          "name": "체력",
+          "value": 5767
+        },
+        {
+          "name": "정신력",
+          "value": 7692
+        },
+        {
+          "name": "물리 공격",
+          "value": 1730
+        },
+        {
+          "name": "마법 공격",
+          "value": 1739
+        },
+        {
+          "name": "물리 크리티컬",
+          "value": 67.5
+        },
+        {
+          "name": "마법 크리티컬",
+          "value": 125.5
+        },
+        {
+          "name": "독립 공격",
+          "value": 2860
+        },
+        {
+          "name": "공격 속도",
+          "value": 111
+        },
+        {
+          "name": "캐스팅 속도",
+          "value": 126.3
+        },
+        {
+          "name": "이동 속도",
+          "value": 108
+        },
+        {
+          "name": "모험가 명성",
+          "value": 80521
+        },
+        {
+          "name": "적중률",
+          "value": 14
+        },
+        {
+          "name": "회피율",
+          "value": 14.5
+        },
+        {
+          "name": "HP 회복량",
+          "value": 2166
+        },
+        {
+          "name": "MP 회복량",
+          "value": 14484
+        },
+        {
+          "name": "경직도",
+          "value": 0
+        },
+        {
+          "name": "히트리커버리",
+          "value": 761
+        },
+        {
+          "name": "화속성 강화",
+          "value": 59
+        },
+        {
+          "name": "화속성 저항",
+          "value": 26
+        },
+        {
+          "name": "수속성 강화",
+          "value": 59
+        },
+        {
+          "name": "수속성 저항",
+          "value": 26
+        },
+        {
+          "name": "명속성 강화",
+          "value": 59
+        },
+        {
+          "name": "명속성 저항",
+          "value": 26
+        },
+        {
+          "name": "암속성 강화",
+          "value": 59
+        },
+        {
+          "name": "암속성 저항",
+          "value": 26
+        },
+        {
+          "name": "물리 방어",
+          "value": 59823
+        },
+        {
+          "name": "마법 방어",
+          "value": 63460
+        },
+        {
+          "name": "공격력 증가",
+          "value": 63790.5
+        },
+        {
+          "name": "버프력",
+          "value": 273839
+        },
+        {
+          "name": "공격력 증폭",
+          "value": 39
+        },
+        {
+          "name": "버프력 증폭",
+          "value": 5
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": 2260972.8
+        },
+        {
+          "name": "쿨타임 감소",
+          "value": 15
+        },
+        {
+          "name": "쿨타임 회복속도",
+          "value": 0
+        },
+        {
+          "name": "최종 쿨타임 감소율",
+          "value": 15
+        },
+        {
+          "name": "데미지 증가",
+          "value": 0
+        },
+        {
+          "name": "크리티컬 데미지 증가",
+          "value": 0
+        },
+        {
+          "name": "추가 데미지 증가",
+          "value": 0
+        },
+        {
+          "name": "모든 공격력 증가",
+          "value": 0
+        },
+        {
+          "name": "물리 공격력 증가",
+          "value": 0
+        },
+        {
+          "name": "마법 공격력 증가",
+          "value": 0
+        },
+        {
+          "name": "독립 공격력 증가",
+          "value": 0
+        },
+        {
+          "name": "힘 증가",
+          "value": 0
+        },
+        {
+          "name": "지능 증가",
+          "value": 0
+        },
+        {
+          "name": "지속피해",
+          "value": 0
+        },
+        {
+          "name": "물리 피해 감소",
+          "value": 0
+        },
+        {
+          "name": "마법 피해 감소",
+          "value": 0
+        },
+        {
+          "name": "출혈 피해 전환",
+          "value": 0
+        },
+        {
+          "name": "중독 피해 전환",
+          "value": 0
+        },
+        {
+          "name": "화상 피해 전환",
+          "value": 0
+        },
+        {
+          "name": "감전 피해 전환",
+          "value": 0
+        },
+        {
+          "name": "출혈 내성",
+          "value": 0
+        },
+        {
+          "name": "중독 내성",
+          "value": 0
+        },
+        {
+          "name": "화상 내성",
+          "value": 0
+        },
+        {
+          "name": "감전 내성",
+          "value": 0
+        },
+        {
+          "name": "빙결 내성",
+          "value": 0
+        },
+        {
+          "name": "둔화 내성",
+          "value": 0
+        },
+        {
+          "name": "기절 내성",
+          "value": 0
+        },
+        {
+          "name": "저주 내성",
+          "value": 0
+        },
+        {
+          "name": "암흑 내성",
+          "value": 0
+        },
+        {
+          "name": "석화 내성",
+          "value": 0
+        },
+        {
+          "name": "수면 내성",
+          "value": 0
+        },
+        {
+          "name": "혼란 내성",
+          "value": 0
+        },
+        {
+          "name": "구속 내성",
+          "value": 0
+        },
+        {
+          "name": "화속성 피해",
+          "value": 31.55
+        },
+        {
+          "name": "수속성 피해",
+          "value": 31.55
+        },
+        {
+          "name": "명속성 피해",
+          "value": 31.55
+        },
+        {
+          "name": "암속성 피해",
+          "value": 31.55
+        },
+        {
+          "name": "출혈 피해",
+          "value": 0
+        },
+        {
+          "name": "중독 피해",
+          "value": 0
+        },
+        {
+          "name": "화상 피해",
+          "value": 0
+        },
+        {
+          "name": "감전 피해",
+          "value": 0
+        },
+        {
+          "name": "특수 오브젝트 데미지",
+          "value": 10
+        }
+      ]
+    },
+    "equipment": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "equipment": [
+        {
+          "slotId": "WEAPON",
+          "slotName": "무기",
+          "itemId": "4c2c36b92f60155c579d36eea9786324",
+          "itemName": "시크릿 듀엣",
+          "itemTypeId": "4ffb6f14b86f5c818a925bf58022686e",
+          "itemType": "무기",
+          "itemTypeDetailId": "390e3966118b0c466ce9f8eae45e1629",
+          "itemTypeDetail": "선현궁",
+          "itemAvailableLevel": 115,
+          "itemRarity": "에픽",
+          "setItemId": null,
+          "setItemName": null,
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 110
+              },
+              {
+                "name": "지능",
+                "value": 110
+              },
+              {
+                "name": "체력",
+                "value": 110
+              },
+              {
+                "name": "정신력",
+                "value": 110
+              },
+              {
+                "name": "캐스트속도",
+                "value": "7%"
+              }
+            ]
+          },
+          "amplificationName": null,
+          "refine": 8,
+          "tune": [
+            {
+              "level": 0,
+              "status": [
+                {
+                  "name": "최종 데미지 증가",
+                  "value": "256.4%"
+                },
+                {
+                  "name": "버프력",
+                  "value": 37991
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "slotId": "TITLE",
+          "slotName": "칭호",
+          "itemId": "74711128d2d0739c4f5d38b488d2be2c",
+          "itemName": "[EVENT]세리아의 풍성한 선물 Ver.2",
+          "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+          "itemType": "액세서리",
+          "itemTypeDetailId": "691933a06ff114348a7db936fb0aec66",
+          "itemTypeDetail": "칭호",
+          "itemAvailableLevel": 1,
+          "itemRarity": "레어",
+          "setItemId": null,
+          "setItemName": null,
+          "reinforce": 0,
+          "enchant": {
+            "status": [
+              {
+                "name": "모든 속성 강화",
+                "value": 4
+              },
+              {
+                "name": "힘",
+                "value": 25
+              },
+              {
+                "name": "지능",
+                "value": 25
+              },
+              {
+                "name": "체력",
+                "value": 25
+              },
+              {
+                "name": "정신력",
+                "value": 25
+              }
+            ]
+          },
+          "amplificationName": null,
+          "refine": 0
+        },
+        {
+          "slotId": "JACKET",
+          "slotName": "상의",
+          "itemId": "b18e7187087ec03a300e22d171e83ce4",
+          "itemName": "수습 여우의 상의",
+          "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+          "itemType": "방어구",
+          "itemTypeDetailId": "3da92241d44bdafcf7554057e6479c83",
+          "itemTypeDetail": "상의",
+          "itemAvailableLevel": 115,
+          "itemRarity": "레전더리",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "8d8981a94b8bdd4e3ffad5bc05042080",
+                    "name": "퍼페티어",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+                    "name": "수호의 은총",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "6235960237fdb1b77f2c82b33614dcf4",
+                    "name": "apius::전장정보();",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "78bd107acd474518b606be1e4fd38239",
+                    "name": "계시 : 아리아",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+                    "name": "센세이션",
+                    "value": 3
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 165
+            }
+          ]
+        },
+        {
+          "slotId": "SHOULDER",
+          "slotName": "머리어깨",
+          "itemId": "4e13a0e608282e52bfd188532a7bf8b4",
+          "itemName": "수습 여우의 보호 어깨",
+          "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+          "itemType": "방어구",
+          "itemTypeDetailId": "f2976a25a516451e3e8667bac328b308",
+          "itemTypeDetail": "머리어깨",
+          "itemAvailableLevel": 115,
+          "itemRarity": "레전더리",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "8d8981a94b8bdd4e3ffad5bc05042080",
+                    "name": "퍼페티어",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+                    "name": "수호의 은총",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "6235960237fdb1b77f2c82b33614dcf4",
+                    "name": "apius::전장정보();",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "78bd107acd474518b606be1e4fd38239",
+                    "name": "계시 : 아리아",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+                    "name": "센세이션",
+                    "value": 3
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 165
+            }
+          ]
+        },
+        {
+          "slotId": "PANTS",
+          "slotName": "하의",
+          "itemId": "cceec27707a6dbd029322483c679c124",
+          "itemName": "견습 여우의 그림자 하의",
+          "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+          "itemType": "방어구",
+          "itemTypeDetailId": "7c4b28699ae7994798289f187d519992",
+          "itemTypeDetail": "하의",
+          "itemAvailableLevel": 115,
+          "itemRarity": "유니크",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "8d8981a94b8bdd4e3ffad5bc05042080",
+                    "name": "퍼페티어",
+                    "value": 4
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+                    "name": "수호의 은총",
+                    "value": 4
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "6235960237fdb1b77f2c82b33614dcf4",
+                    "name": "apius::전장정보();",
+                    "value": 4
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "78bd107acd474518b606be1e4fd38239",
+                    "name": "계시 : 아리아",
+                    "value": 4
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+                    "name": "센세이션",
+                    "value": 4
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 125
+              },
+              {
+                "name": "지능",
+                "value": 125
+              },
+              {
+                "name": "체력",
+                "value": 125
+              },
+              {
+                "name": "정신력",
+                "value": 125
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 115
+            }
+          ]
+        },
+        {
+          "slotId": "SHOES",
+          "slotName": "신발",
+          "itemId": "78e3c4947c76867534ce0b2241093809",
+          "itemName": "견습 여우의 은빛 신발",
+          "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+          "itemType": "방어구",
+          "itemTypeDetailId": "ef6fcc3b39b2bbcbf09a71da6cbafe06",
+          "itemTypeDetail": "신발",
+          "itemAvailableLevel": 115,
+          "itemRarity": "유니크",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "8d8981a94b8bdd4e3ffad5bc05042080",
+                    "name": "퍼페티어",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+                    "name": "수호의 은총",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "6235960237fdb1b77f2c82b33614dcf4",
+                    "name": "apius::전장정보();",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "78bd107acd474518b606be1e4fd38239",
+                    "name": "계시 : 아리아",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+                    "name": "센세이션",
+                    "value": 1
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 115
+            }
+          ]
+        },
+        {
+          "slotId": "WAIST",
+          "slotName": "벨트",
+          "itemId": "893d167b57f729204fb8278bf05d676f",
+          "itemName": "견습 여우의 비밀 벨트",
+          "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+          "itemType": "방어구",
+          "itemTypeDetailId": "934ed2dea99f55f775df256fc29c5d56",
+          "itemTypeDetail": "벨트",
+          "itemAvailableLevel": 115,
+          "itemRarity": "유니크",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "0dbdeaf846356f8b9380f8fbb8e97377",
+                    "name": "소악마",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "4f2e001e9a19eb7bae50ad1840dfb329",
+                    "name": "신념의 오라",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "a8574a8efa365e8e46e805a6e1d7bfef",
+                    "name": "apius::대응체계();",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "1dad88963abdc96b091fcab185a8820d",
+                    "name": "신실한 열정",
+                    "value": 2
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "de3fea2d65c597f4d55c70a02b97fc79",
+                    "name": "유명세",
+                    "value": 2
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              },
+              {
+                "name": "물리 크리티컬 히트",
+                "value": "7%"
+              },
+              {
+                "name": "마법 크리티컬 히트",
+                "value": "7%"
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 115
+            }
+          ]
+        },
+        {
+          "slotId": "AMULET",
+          "slotName": "목걸이",
+          "itemId": "e468101e457344d9824a0f1588152f06",
+          "itemName": "대 여우의 영혼 목걸이",
+          "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+          "itemType": "액세서리",
+          "itemTypeDetailId": "390e3966118b0c466ce9f8eae45e1629",
+          "itemTypeDetail": "목걸이",
+          "itemAvailableLevel": 115,
+          "itemRarity": "태초",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 90
+              },
+              {
+                "name": "지능",
+                "value": 90
+              },
+              {
+                "name": "체력",
+                "value": 90
+              },
+              {
+                "name": "정신력",
+                "value": 90
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "upgrade": false,
+              "setPoint": 265
+            }
+          ]
+        },
+        {
+          "slotId": "WRIST",
+          "slotName": "팔찌",
+          "itemId": "463cc16ca330c26a15caba314d2c1a5c",
+          "itemName": "고유 - 모독자의 조소 팔찌",
+          "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+          "itemType": "액세서리",
+          "itemTypeDetailId": "80bddf423629c28c7b4459c328fdffaf",
+          "itemTypeDetail": "팔찌",
+          "itemAvailableLevel": 115,
+          "itemRarity": "에픽",
+          "setItemId": null,
+          "setItemName": null,
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 90
+              },
+              {
+                "name": "지능",
+                "value": 90
+              },
+              {
+                "name": "체력",
+                "value": 90
+              },
+              {
+                "name": "정신력",
+                "value": 90
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "upgrade": false,
+              "setPoint": 215
+            }
+          ]
+        },
+        {
+          "slotId": "RING",
+          "slotName": "반지",
+          "itemId": "40249d82eafb0137b0e081a94c40785d",
+          "itemName": "견습 여우의 매혹 반지",
+          "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+          "itemType": "액세서리",
+          "itemTypeDetailId": "b04c7fb9b29b27b91a0a9e5a1822bc8f",
+          "itemTypeDetail": "반지",
+          "itemAvailableLevel": 115,
+          "itemRarity": "유니크",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 0,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 90
+              },
+              {
+                "name": "지능",
+                "value": 90
+              },
+              {
+                "name": "체력",
+                "value": 90
+              },
+              {
+                "name": "정신력",
+                "value": 90
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 115
+            }
+          ]
+        },
+        {
+          "slotId": "SUPPORT",
+          "slotName": "보조장비",
+          "itemId": "dd267f29006748266a62a816b5b05d48",
+          "itemName": "수습 여우의 숨결 부적 보조장비",
+          "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+          "itemType": "추가장비",
+          "itemTypeDetailId": "2fef5d81b7f59f0c75241890a8d941c9",
+          "itemTypeDetail": "보조장비",
+          "itemAvailableLevel": 115,
+          "itemRarity": "레전더리",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 6,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 165
+            }
+          ]
+        },
+        {
+          "slotId": "MAGIC_STON",
+          "slotName": "마법석",
+          "itemId": "9623d7f5197b40a96dffd78c65d57287",
+          "itemName": "고위 여우의 구슬 마법석",
+          "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+          "itemType": "추가장비",
+          "itemTypeDetailId": "fe5f3db78175f5a3196385c688d29681",
+          "itemTypeDetail": "마법석",
+          "itemAvailableLevel": 115,
+          "itemRarity": "에픽",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 3,
+          "itemGradeName": "상급",
+          "enchant": {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "8d8981a94b8bdd4e3ffad5bc05042080",
+                    "name": "퍼페티어",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+                    "name": "수호의 은총",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+                "jobName": "거너(여)",
+                "skills": [
+                  {
+                    "skillId": "6235960237fdb1b77f2c82b33614dcf4",
+                    "name": "apius::전장정보();",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "78bd107acd474518b606be1e4fd38239",
+                    "name": "계시 : 아리아",
+                    "value": 3
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+                    "name": "센세이션",
+                    "value": 3
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "힘",
+                "value": 100
+              },
+              {
+                "name": "지능",
+                "value": 100
+              },
+              {
+                "name": "체력",
+                "value": 100
+              },
+              {
+                "name": "정신력",
+                "value": 100
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 215
+            }
+          ]
+        },
+        {
+          "slotId": "EARRING",
+          "slotName": "귀걸이",
+          "itemId": "3c72626a0afb037b8b2b1f226eca6176",
+          "itemName": "고위 여우의 속삭임 귀걸이",
+          "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+          "itemType": "추가장비",
+          "itemTypeDetailId": "601834074c49bb0e48cb65a75a8667bc",
+          "itemTypeDetail": "귀걸이",
+          "itemAvailableLevel": 115,
+          "itemRarity": "에픽",
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "에테리얼 오브 아츠 세트",
+          "reinforce": 2,
+          "itemGradeName": "상급",
+          "enchant": {
+            "status": [
+              {
+                "name": "힘",
+                "value": 175
+              },
+              {
+                "name": "지능",
+                "value": 175
+              },
+              {
+                "name": "체력",
+                "value": 175
+              },
+              {
+                "name": "정신력",
+                "value": 175
+              }
+            ]
+          },
+          "amplificationName": "차원의 정신력",
+          "refine": 0,
+          "tune": [
+            {
+              "level": 0,
+              "setPoint": 215
+            }
+          ]
+        }
+      ],
+      "setItemInfo": [
+        {
+          "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+          "setItemName": "환상의 에테리얼 오브 아츠 세트",
+          "setItemRarityName": "태초",
+          "active": {
+            "explain": "여우의 오브 힘을 빌려 순간적으로 강해집니다.\n[에테리얼 오브] 활성화\n- 공격 시 오브 게이지 +11(쿨타임 1초)\n- 1초마다 오브 게이지 +6\n- 오브 최대 충전 개수 4개\n- 던전 입장 시 오브 게이지 모두 충전\n\n[에테리얼 오브] [장비 발동 옵션]\n- 발동 시 게이지가 가득찬 오브를 모두 소모하여 버프 발동\n- 소모한 오브 1개당 최종 데미지 10%증가.\n- 버프 지속시간 30초\n- 쿨타임 30초\n\n[에테리얼 오브 ON/OFF] [장비 발동 옵션]\n- on : 오브가 모두 가득 찼을 때 공격 시 자동 버프 사용\n- off : 자동 버프 사용하지 않음",
+            "explainDetail": "여우의 오브 힘을 빌려 순간적으로 강해집니다.\n[에테리얼 오브] 활성화\n- 공격 시 오브 게이지 +11(쿨타임 1초)\n- 1초마다 오브 게이지 +6\n- 오브 최대 충전 개수 4개\n- 던전 입장 시 오브 게이지 모두 충전\n\n[에테리얼 오브] [장비 발동 옵션]\n- 발동 시 게이지가 가득찬 오브를 모두 소모하여 버프 발동\n- 소모한 오브 1개당 최종 데미지 10%증가.\n- 버프 지속시간 30초\n- 쿨타임 30초\n\n[에테리얼 오브 ON/OFF] [장비 발동 옵션]\n- on : 오브가 모두 가득 찼을 때 공격 시 자동 버프 사용\n- off : 자동 버프 사용하지 않음",
+            "buffExplain": "[에테리얼 오브] 발동 시 30초간 주변 500px 내 파티원 회복 오라 발생\n- 소모한 오브 1개당 초당 HP/MP 0.25% 회복",
+            "buffExplainDetail": "[에테리얼 오브] 발동 시 30초간 주변 500px 내 파티원 회복 오라 발생\n- 소모한 오브 1개당 초당 HP/MP 0.25% 회복",
+            "status": [
+              {
+                "name": "모험가 명성",
+                "value": 23000
+              },
+              {
+                "name": "버프력",
+                "value": 50400
+              },
+              {
+                "name": "최종 데미지 증가",
+                "value": "437.2%"
+              }
+            ],
+            "setPoint": {
+              "current": 2550,
+              "min": 2550,
+              "max": 2550,
+              "adjustedPoint": 685
+            }
+          },
+          "slotInfo": [
+            {
+              "itemNo": "b18e7187087ec03a300e22d171e83ce4",
+              "slotId": "JACKET",
+              "slotName": "상의",
+              "itemRarity": "레전더리"
+            },
+            {
+              "itemNo": "4e13a0e608282e52bfd188532a7bf8b4",
+              "slotId": "SHOULDER",
+              "slotName": "머리어깨",
+              "itemRarity": "레전더리"
+            },
+            {
+              "itemNo": "cceec27707a6dbd029322483c679c124",
+              "slotId": "PANTS",
+              "slotName": "하의",
+              "itemRarity": "유니크"
+            },
+            {
+              "itemNo": "78e3c4947c76867534ce0b2241093809",
+              "slotId": "SHOES",
+              "slotName": "신발",
+              "itemRarity": "유니크"
+            },
+            {
+              "itemNo": "893d167b57f729204fb8278bf05d676f",
+              "slotId": "WAIST",
+              "slotName": "벨트",
+              "itemRarity": "유니크"
+            },
+            {
+              "itemNo": "e468101e457344d9824a0f1588152f06",
+              "slotId": "AMULET",
+              "slotName": "목걸이",
+              "itemRarity": "태초"
+            },
+            {
+              "itemNo": "463cc16ca330c26a15caba314d2c1a5c",
+              "slotId": "WRIST",
+              "slotName": "팔찌",
+              "itemRarity": "에픽"
+            },
+            {
+              "itemNo": "40249d82eafb0137b0e081a94c40785d",
+              "slotId": "RING",
+              "slotName": "반지",
+              "itemRarity": "유니크"
+            },
+            {
+              "itemNo": "dd267f29006748266a62a816b5b05d48",
+              "slotId": "SUPPORT",
+              "slotName": "보조장비",
+              "itemRarity": "레전더리"
+            },
+            {
+              "itemNo": "9623d7f5197b40a96dffd78c65d57287",
+              "slotId": "MAGIC_STON",
+              "slotName": "마법석",
+              "itemRarity": "에픽"
+            },
+            {
+              "itemNo": "3c72626a0afb037b8b2b1f226eca6176",
+              "slotId": "EARRING",
+              "slotName": "귀걸이",
+              "itemRarity": "에픽"
+            }
+          ]
+        }
+      ]
+    },
+    "avatar": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "avatar": [
+        {
+          "slotId": "HEADGEAR",
+          "slotName": "모자 아바타",
+          "itemId": "2defdc2422ff3c61f5ac1af583e79459",
+          "itemName": "레어 모자 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "c237ddf59b73cbaf916fa8a66ad34cce",
+            "itemName": "헤드라이너의 나비 베레모[A타입]"
+          },
+          "optionAbility": "정신력 55 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "붉은빛",
+              "itemId": "bdc4e36944680dd69996e837214f4d76",
+              "itemName": "찬란한 붉은빛 엠블렘[정신력]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "붉은빛",
+              "itemId": "bdc4e36944680dd69996e837214f4d76",
+              "itemName": "찬란한 붉은빛 엠블렘[정신력]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "HAIR",
+          "slotName": "머리 아바타",
+          "itemId": "970d6d278c4fa2d2e8c9e74f33a46ae1",
+          "itemName": "레어 머리 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "f7616508794f3533c51730bf1e10ec53",
+            "itemName": "헤드라이너의 웨이비 헤어[A타입]"
+          },
+          "optionAbility": "정신력 55 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "붉은빛",
+              "itemId": "bdc4e36944680dd69996e837214f4d76",
+              "itemName": "찬란한 붉은빛 엠블렘[정신력]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "붉은빛",
+              "itemId": "bdc4e36944680dd69996e837214f4d76",
+              "itemName": "찬란한 붉은빛 엠블렘[정신력]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "FACE",
+          "slotName": "얼굴 아바타",
+          "itemId": "2ee5151fe13188a556ea594222187bb5",
+          "itemName": "레어 얼굴 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "2a5c5edc80ae47c21052ed66b18b9baa",
+            "itemName": "헤드라이너의 맑은 눈[A타입]"
+          },
+          "optionAbility": "공격 속도 6.0% 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "노란빛",
+              "itemId": "f55e34b90a55737b25258590b436d686",
+              "itemName": "찬란한 노란빛 엠블렘[캐스트속도]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "노란빛",
+              "itemId": "f55e34b90a55737b25258590b436d686",
+              "itemName": "찬란한 노란빛 엠블렘[캐스트속도]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "JACKET",
+          "slotName": "상의 아바타",
+          "itemId": "cb12bb026990e7595103bb214c31960d",
+          "itemName": "레어 상의 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "a6465cbb1696232ee78600c10868560f",
+            "itemName": "헤드라이너의 보송 오프 숄더[A타입]"
+          },
+          "optionAbility": "온 더 스테이지 스킬Lv +1",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "플래티넘",
+              "itemId": "d4bac1c4bd819b45589c206d4a91073a",
+              "itemName": "플래티넘 엠블렘[센세이션]",
+              "itemRarity": "레전더리"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "녹색빛",
+              "itemId": "92c7b144df36728aa501b61c67985d90",
+              "itemName": "찬란한 녹색빛 엠블렘[마법크리티컬]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 3,
+              "slotColor": "녹색빛",
+              "itemId": "92c7b144df36728aa501b61c67985d90",
+              "itemName": "찬란한 녹색빛 엠블렘[마법크리티컬]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "PANTS",
+          "slotName": "하의 아바타",
+          "itemId": "37b761ce1173ea36d816e642aba5ba7b",
+          "itemName": "레어 하의 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "da88bc56231cf17c173becf28a140483",
+            "itemName": "헤드라이너의 치마 바지[A타입]"
+          },
+          "optionAbility": "HP MAX 400 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "플래티넘",
+              "itemId": "d4bac1c4bd819b45589c206d4a91073a",
+              "itemName": "플래티넘 엠블렘[센세이션]",
+              "itemRarity": "레전더리"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "녹색빛",
+              "itemId": "92c7b144df36728aa501b61c67985d90",
+              "itemName": "찬란한 녹색빛 엠블렘[마법크리티컬]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 3,
+              "slotColor": "녹색빛",
+              "itemId": "92c7b144df36728aa501b61c67985d90",
+              "itemName": "찬란한 녹색빛 엠블렘[마법크리티컬]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "SHOES",
+          "slotName": "신발 아바타",
+          "itemId": "0371784066078365c89897de3cacb6d8",
+          "itemName": "레어 신발 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "a9fa20a18372c458afa55649020bc861",
+            "itemName": "헤드라이너의 체인 워커[A타입]"
+          },
+          "optionAbility": "이동 속도 6.0% 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "푸른빛",
+              "itemId": "acd80700c84b04d84cd182be130c22c2",
+              "itemName": "찬란한 푸른빛 엠블렘[이동속도]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "푸른빛",
+              "itemId": "acd80700c84b04d84cd182be130c22c2",
+              "itemName": "찬란한 푸른빛 엠블렘[이동속도]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "BREAST",
+          "slotName": "목가슴 아바타",
+          "itemId": "3aaebf23928e11dafd00150b320e95cd",
+          "itemName": "레어 목가슴 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "2198dc07e24732e12a14b8a249c4e387",
+            "itemName": "헤드라이너의 피크 초커[A타입]"
+          },
+          "optionAbility": "공격 속도 6.0% 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "노란빛",
+              "itemId": "f55e34b90a55737b25258590b436d686",
+              "itemName": "찬란한 노란빛 엠블렘[캐스트속도]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "노란빛",
+              "itemId": "f55e34b90a55737b25258590b436d686",
+              "itemName": "찬란한 노란빛 엠블렘[캐스트속도]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "WAIST",
+          "slotName": "허리 아바타",
+          "itemId": "88b6d64f0766484b2cdcc898eea4dc18",
+          "itemName": "레어 허리 클론 아바타",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": "5d0afe73657300700a9052a3f20f9171",
+            "itemName": "헤드라이너의 나비 체인 벨트[A타입]"
+          },
+          "optionAbility": "회피율 5.5% 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "푸른빛",
+              "itemId": "acd80700c84b04d84cd182be130c22c2",
+              "itemName": "찬란한 푸른빛 엠블렘[이동속도]",
+              "itemRarity": "유니크"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "푸른빛",
+              "itemId": "acd80700c84b04d84cd182be130c22c2",
+              "itemName": "찬란한 푸른빛 엠블렘[이동속도]",
+              "itemRarity": "유니크"
+            }
+          ]
+        },
+        {
+          "slotId": "SKIN",
+          "slotName": "스킨 아바타",
+          "itemId": "6deee7b1e68c7ff273db1955d0dec8ac",
+          "itemName": "헤드라이너의 상앗빛 피부[A타입]",
+          "itemRarity": "커먼",
+          "clone": {
+            "itemId": null,
+            "itemName": null
+          },
+          "optionAbility": "물리 방어력 1000 증가",
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "다색",
+              "itemId": "e27634578a09d8c841d5c8033d0528d7",
+              "itemName": "빛나는 푸른빛 엠블렘[마법방어]",
+              "itemRarity": "언커먼"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "다색",
+              "itemId": "e27634578a09d8c841d5c8033d0528d7",
+              "itemName": "빛나는 푸른빛 엠블렘[마법방어]",
+              "itemRarity": "언커먼"
+            }
+          ]
+        },
+        {
+          "slotId": "AURORA",
+          "slotName": "오라 아바타",
+          "itemId": "e3a8f465174ad184ee15dafb221634d2",
+          "itemName": "[EVENT]세리아의 파스텔 버블 Ver.2",
+          "itemRarity": "레어",
+          "clone": {
+            "itemId": null,
+            "itemName": null
+          },
+          "optionAbility": null,
+          "emblems": [
+            {
+              "slotNo": 1,
+              "slotColor": "다색"
+            },
+            {
+              "slotNo": 2,
+              "slotColor": "다색"
+            }
+          ]
+        },
+        {
+          "slotId": "WEAPON",
+          "slotName": "무기 아바타",
+          "itemId": "e0011085622b7f21a88786efc62453c4",
+          "itemName": "일렉 기타",
+          "itemRarity": "커먼",
+          "clone": {
+            "itemId": null,
+            "itemName": null
+          },
+          "optionAbility": null,
+          "emblems": null
+        }
+      ]
+    },
+    "creature": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "creature": {
+        "itemId": "ece0c0fe0f7164f43337f0abd172471b",
+        "itemName": "SD 히만 스텔라",
+        "itemRarity": "레어",
+        "clone": {
+          "itemId": null,
+          "itemName": null
+        },
+        "artifact": [
+          {
+            "slotColor": "RED",
+            "itemId": "1c72c987497d0ba4f294a1561f5d47df",
+            "itemName": "비룡의 기운찬 발톱",
+            "itemAvailableLevel": 0,
+            "itemRarity": "레어"
+          },
+          {
+            "slotColor": "BLUE",
+            "itemId": "bed754addb22daf538e93ba00ee06110",
+            "itemName": "기운찬 비룡의 갈기",
+            "itemAvailableLevel": 0,
+            "itemRarity": "레어"
+          },
+          {
+            "slotColor": "GREEN",
+            "itemId": "38f71f365f1db37308f7f107d372c866",
+            "itemName": "차오르는 수호자의 망토",
+            "itemAvailableLevel": 0,
+            "itemRarity": "레어"
+          }
+        ]
+      }
+    },
+    "oath": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "oath": {
+        "info": {
+          "itemId": "316e1b0f26a3a471be2a95e33a315171",
+          "itemName": "영겁의 안개 서약",
+          "itemRarity": "에픽",
+          "setPoint": 455,
+          "oathUpgrade": null
+        },
+        "crystal": [
+          {
+            "slotNo": 0,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 1,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 2,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 3,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 4,
+            "itemId": "089e68a1c3a6103f1323dc51c231d6ab",
+            "itemName": "용투 : 완전한 광휘 결정",
+            "itemRarity": "에픽",
+            "tune": {
+              "level": 0,
+              "setPoint": 165
+            }
+          },
+          {
+            "slotNo": 5,
+            "itemId": "089e68a1c3a6103f1323dc51c231d6ab",
+            "itemName": "용투 : 완전한 광휘 결정",
+            "itemRarity": "에픽",
+            "tune": {
+              "level": 0,
+              "setPoint": 165
+            }
+          },
+          {
+            "slotNo": 6,
+            "itemId": "6edbae57d1a6f5aa7838126874324906",
+            "itemName": "용투 : 선명한 광휘 결정",
+            "itemRarity": "레전더리",
+            "tune": {
+              "level": 0,
+              "setPoint": 125
+            }
+          },
+          {
+            "slotNo": 7,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 8,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 9,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          },
+          {
+            "slotNo": 10,
+            "itemId": "a4a263850a49401e8f174ce437596486",
+            "itemName": "용투 : 희미한 광휘 결정",
+            "itemRarity": "유니크",
+            "tune": {
+              "level": 0,
+              "setPoint": 85
+            }
+          }
+        ],
+        "setInfo": {
+          "setId": 16204,
+          "setName": "야망의 용투 서약",
+          "setOptionName": "용투 : 세계를 태우는 불꽃",
+          "setRarityName": "레어 Ⅱ",
+          "active": {
+            "setPoint": {
+              "current": 905,
+              "min": 830,
+              "max": 910
+            }
+          }
+        },
+        "blessing": {
+          "status": [
+            {
+              "key": "최종 데미지 증가",
+              "value": "20%"
+            },
+            {
+              "key": "버프력",
+              "value": 3780
+            },
+            {
+              "key": "모험가 명성",
+              "value": 1890
+            }
+          ]
+        }
+      }
+    },
+    "mist_assimilation": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "mistAssimilation": {
+        "level": 92,
+        "expRate": "10.98%",
+        "status": [
+          {
+            "name": "최종 데미지 증가",
+            "value": "48.3%"
+          },
+          {
+            "name": "버프력",
+            "value": 8573
+          },
+          {
+            "name": "힘",
+            "value": 400
+          },
+          {
+            "name": "지능",
+            "value": 400
+          },
+          {
+            "name": "체력",
+            "value": 400
+          },
+          {
+            "name": "정신력",
+            "value": 400
+          },
+          {
+            "name": "모험가 명성",
+            "value": 5755
+          }
+        ]
+      }
+    },
+    "skill_style": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "skill": {
+        "hash": "eJytj01OwlAURs+zNEESSCfG4MSBpFiktSD+UX4agZFxEa6AgTFxX84cOHFJbIDTPfiSL+fe++7L971DKwnRB1+vEOi8seeTv+idkwFbYjZ0eeGUmjPWdFhxzpKEBRdUvphzyRN9Hr17IOXe2YyMqft3zib2pSzkj8zlWN7IkdqpW/tMXjPgSg5Vav0rv2lbBSIVzzCHNrprHKK0aUJN6KWaFoatHTTmuStzw1aa6Ff6l2f+/xyOKrQVqg==",
+        "style": {
+          "active": [
+            {
+              "skillId": "10b31c7e8cd2d60b9bcf3b1d3ada4b0a",
+              "name": "스킬 체인",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "7822d6d52e10964a6755f142c666b494",
+              "name": "백스텝",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "0969cd4054d93da07708108c0cc1c4b5",
+              "name": "빈틈 찌르기",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "ce26c6b69d02a440a81b552bec94f03b",
+              "name": "퀵 스탠딩",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "04883563896fe1adac7505c6146b5f59",
+              "name": "손 풀기",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "762c4e6d030eaf0abbfe1fec2b298574",
+              "name": "밤과 꿈",
+              "level": 36,
+              "requiredLevel": 10
+            },
+            {
+              "skillId": "23a5e0fba03283cb1b324a847b3fe370",
+              "name": "핫 데뷔",
+              "level": 1,
+              "requiredLevel": 10
+            },
+            {
+              "skillId": "01384bbfc346775d1267fa0bc4ca605f",
+              "name": "이펙터 온 : 파워",
+              "level": 1,
+              "requiredLevel": 15
+            },
+            {
+              "skillId": "f0cc2c950f3bdf4103c75fa496bcac34",
+              "name": "컬쳐 쇼크",
+              "level": 1,
+              "requiredLevel": 15
+            },
+            {
+              "skillId": "e4c354a89c337310aeb7041d5e742828",
+              "name": "거리 공연",
+              "level": 1,
+              "requiredLevel": 20
+            },
+            {
+              "skillId": "dc1ffbe7bfcc6dc2be737951960da9ad",
+              "name": "이펙터 온 : 그루브",
+              "level": 1,
+              "requiredLevel": 20
+            },
+            {
+              "skillId": "e49e57b2e8fbeceb0a2c56a0c63fe6c5",
+              "name": "오늘의 주인공",
+              "level": 10,
+              "requiredLevel": 20
+            },
+            {
+              "skillId": "fc7a3f4c2852c832a2f20af63d5d212f",
+              "name": "비비드",
+              "level": 1,
+              "requiredLevel": 25
+            },
+            {
+              "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+              "name": "러블리 템포",
+              "level": 10,
+              "requiredLevel": 30
+            },
+            {
+              "skillId": "c27418ae613c647527200a7ca17d97fd",
+              "name": "파핑파핑 스펙트럼",
+              "level": 1,
+              "requiredLevel": 30
+            },
+            {
+              "skillId": "92360eab6e1f378902018eca681ac629",
+              "name": "다 카포",
+              "level": 21,
+              "requiredLevel": 35
+            },
+            {
+              "skillId": "d0cdaca82892e54097f22a1f60817048",
+              "name": "파워 포르테",
+              "level": 41,
+              "requiredLevel": 40
+            },
+            {
+              "skillId": "0232c151ef3731c2dede51931a374723",
+              "name": "사운드 오브 뮤즈",
+              "level": 38,
+              "requiredLevel": 45
+            },
+            {
+              "skillId": "c61f5a010370101402b05b21916c2071",
+              "name": "온 더 스테이지",
+              "level": 14,
+              "requiredLevel": 50
+            },
+            {
+              "skillId": "202edb928046f4fa6dedf6337377efd5",
+              "name": "드랍 더 비트",
+              "level": 31,
+              "requiredLevel": 60
+            },
+            {
+              "skillId": "2a3c96b88d02372505692da0a8b54743",
+              "name": "팬 서비스",
+              "level": 1,
+              "requiredLevel": 60
+            },
+            {
+              "skillId": "bc11d28c04e01923a093d65752c55516",
+              "name": "눈부신 광경",
+              "level": 26,
+              "requiredLevel": 70
+            },
+            {
+              "skillId": "1721e94897e9961d5c98130a13392f17",
+              "name": "스페셜 오프닝",
+              "level": 23,
+              "requiredLevel": 75
+            },
+            {
+              "skillId": "ca75c965f20a150f99f54155a37400df",
+              "name": "빛의 변주",
+              "level": 21,
+              "requiredLevel": 80
+            },
+            {
+              "skillId": "6e33d47e6622ce03b6defdd912140270",
+              "name": "INTRO : 샤인 온 미",
+              "level": 7,
+              "requiredLevel": 85
+            },
+            {
+              "skillId": "51a08fd0c90f0a5276cd552047fac93d",
+              "name": "꿈꾸는 트릴로지",
+              "level": 13,
+              "requiredLevel": 95
+            },
+            {
+              "skillId": "28b583c75a49103a1d8aabf799c000a4",
+              "name": "FINALE : 특별한 이야기",
+              "level": 5,
+              "requiredLevel": 100
+            }
+          ],
+          "passive": [
+            {
+              "skillId": "5a56514f35cf0270ae8d6c65f8fefd78",
+              "name": "기본기 숙련",
+              "level": 115,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "892ef624d8bf3d7fc045f84825fd6104",
+              "name": "방어구 마스터리",
+              "level": 1,
+              "requiredLevel": 1
+            },
+            {
+              "skillId": "27bade584bb42fef68148d3a0b72bace",
+              "name": "소리의 향연",
+              "level": 1,
+              "requiredLevel": 15
+            },
+            {
+              "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+              "name": "센세이션",
+              "level": 36,
+              "requiredLevel": 15
+            },
+            {
+              "skillId": "128b9ddef2262f40723deae4407bdb42",
+              "name": "해피한 기분",
+              "level": 10,
+              "requiredLevel": 15
+            },
+            {
+              "skillId": "fc1262c19f3d0477ee8eda47b8db8696",
+              "name": "크리티컬 히트",
+              "level": 10,
+              "requiredLevel": 20
+            },
+            {
+              "skillId": "4b2c90ec226fd40e967875aa5eabefb2",
+              "name": "기분 전환",
+              "level": 1,
+              "requiredLevel": 20
+            },
+            {
+              "skillId": "1fadde0eece18649caddbca7bd58cc2f",
+              "name": "내 마음은 루바토",
+              "level": 10,
+              "requiredLevel": 30
+            },
+            {
+              "skillId": "1803b6a67047cafb9e289b4f33cc507b",
+              "name": "아드레날린 랩소디",
+              "level": 1,
+              "requiredLevel": 40
+            },
+            {
+              "skillId": "d2c6df5105577fb59fb92529a36165a0",
+              "name": "달콤한 칸타빌레",
+              "level": 10,
+              "requiredLevel": 45
+            },
+            {
+              "skillId": "de3fea2d65c597f4d55c70a02b97fc79",
+              "name": "유명세",
+              "level": 25,
+              "requiredLevel": 48
+            },
+            {
+              "skillId": "faf9cd66281078b51be2ee0b0f6c5530",
+              "name": "브랜드 뉴",
+              "level": 16,
+              "requiredLevel": 75
+            },
+            {
+              "skillId": "d296043df164385a14cb973c8c7c4d07",
+              "name": "럭키 크레센도",
+              "level": 10,
+              "requiredLevel": 75
+            },
+            {
+              "skillId": "b163d099c8cc27fdb6fd3639c2ee6df9",
+              "name": "에피소드 오브 하모니",
+              "level": 9,
+              "requiredLevel": 95
+            }
+          ],
+          "evolution": [
+            {
+              "skillId": "d0cdaca82892e54097f22a1f60817048",
+              "type": 1
+            },
+            {
+              "skillId": "0232c151ef3731c2dede51931a374723",
+              "type": 1
+            },
+            {
+              "skillId": "202edb928046f4fa6dedf6337377efd5",
+              "type": 2
+            },
+            {
+              "skillId": "bc11d28c04e01923a093d65752c55516",
+              "type": 1
+            },
+            {
+              "skillId": "ca75c965f20a150f99f54155a37400df",
+              "type": 1
+            }
+          ],
+          "enhancement": [
+            {
+              "skillId": "762c4e6d030eaf0abbfe1fec2b298574",
+              "type": 1
+            },
+            {
+              "skillId": "0232c151ef3731c2dede51931a374723",
+              "type": 2
+            },
+            {
+              "skillId": "ca75c965f20a150f99f54155a37400df",
+              "type": 2
+            }
+          ],
+          "chain": null
+        }
+      }
+    },
+    "buff_equipment": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "skill": {
+        "buff": {
+          "skillInfo": {
+            "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+            "name": "러블리 템포",
+            "option": {
+              "level": 30,
+              "desc": "지속 시간 : {value1}초\n적중률 증가 : {value2}%\n\n[뮤즈 전용 효과]\n기본 공격 및 스킬 공격력 증가율 : {value3}%\n\n[파티원 전용 효과]\n힘 증가 : {value4}\n지능 증가 : {value5}\n물리 공격력 증가 : {value6}\n마법 공격력 증가 : {value7}\n독립 공격력 증가 : {value8}\n\n[범위 정보]\n버프 적용 범위 : {value9}px",
+              "values": ["300", "40.6", "70", "488", "488", "92", "92", "92", "900"]
+            }
+          },
+          "equipment": [
+            {
+              "slotId": "TITLE",
+              "slotName": "칭호",
+              "itemId": "e1d06c515754f8cb2205a83adcb72b22",
+              "itemName": "모험가의 의지[빛]",
+              "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+              "itemType": "액세서리",
+              "itemTypeDetailId": "691933a06ff114348a7db936fb0aec66",
+              "itemTypeDetail": "칭호",
+              "itemAvailableLevel": 1,
+              "itemRarity": "레어",
+              "setItemId": null,
+              "setItemName": null,
+              "reinforce": 0,
+              "enchant": {
+                "reinforceSkill": [
+                  {
+                    "jobId": "3909d0b188e9c95311399f776e331da5",
+                    "jobName": "마법사(여)",
+                    "skills": [
+                      {
+                        "skillId": "61c8cb33dd20b4ff335e8deed70d3d9c",
+                        "name": "금단의 저주",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                    "jobName": "프리스트(남)",
+                    "skills": [
+                      {
+                        "skillId": "e4c354a89c337310aeb7041d5e742828",
+                        "name": "영광의 축복",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                    "jobName": "프리스트(여)",
+                    "skills": [
+                      {
+                        "skillId": "8c2379737c5acc935c1731f67f607655",
+                        "name": "용맹의 축복",
+                        "value": "2"
+                      }
+                    ]
+                  },
+                  {
+                    "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                    "jobName": "아처",
+                    "skills": [
+                      {
+                        "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+                        "name": "러블리 템포",
+                        "value": "2"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "amplificationName": null,
+              "refine": 0
+            }
+          ]
+        }
+      }
+    },
+    "buff_avatar": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "skill": {
+        "buff": {
+          "skillInfo": {
+            "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+            "name": "러블리 템포",
+            "option": {
+              "level": 30,
+              "desc": "지속 시간 : {value1}초\n적중률 증가 : {value2}%\n\n[뮤즈 전용 효과]\n기본 공격 및 스킬 공격력 증가율 : {value3}%\n\n[파티원 전용 효과]\n힘 증가 : {value4}\n지능 증가 : {value5}\n물리 공격력 증가 : {value6}\n마법 공격력 증가 : {value7}\n독립 공격력 증가 : {value8}\n\n[범위 정보]\n버프 적용 범위 : {value9}px",
+              "values": ["300", "40.6", "70", "488", "488", "92", "92", "92", "900"]
+            }
+          },
+          "avatar": [
+            {
+              "slotId": "JACKET",
+              "slotName": "상의 아바타",
+              "itemId": "d0b0d8aeabbfd9dd09cdd268cdd60ea9",
+              "itemName": "뮤즈의 볼레로 자켓",
+              "itemRarity": "커먼",
+              "clone": {
+                "itemId": null,
+                "itemName": null
+              },
+              "optionAbility": "러블리 템포 스킬Lv +1",
+              "emblems": [
+                {
+                  "slotNo": 1,
+                  "slotColor": "녹색빛",
+                  "itemId": "7268376c36e42c7c7fc57e8ad7a5c48a",
+                  "itemName": "빛나는 녹색빛 엠블렘[마법크리티컬]",
+                  "itemRarity": "언커먼"
+                },
+                {
+                  "slotNo": 2,
+                  "slotColor": "녹색빛",
+                  "itemId": "7268376c36e42c7c7fc57e8ad7a5c48a",
+                  "itemName": "빛나는 녹색빛 엠블렘[마법크리티컬]",
+                  "itemRarity": "언커먼"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "buff_creature": {
+      "serverId": "cain",
+      "characterId": "052613718962a9502cc3b49e8fb982d4",
+      "characterName": "anonymous",
+      "level": 115,
+      "jobId": "b9cb48777665de22c006fabaf9a560b3",
+      "jobGrowId": "37495b941da3b1661bc900e68ef3b2c6",
+      "jobName": "아처",
+      "jobGrowName": "眞 뮤즈",
+      "fame": null,
+      "adventureName": null,
+      "guildId": null,
+      "guildName": null,
+      "skill": {
+        "buff": {
+          "skillInfo": {
+            "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+            "name": "러블리 템포",
+            "option": {
+              "level": 30,
+              "desc": "지속 시간 : {value1}초\n적중률 증가 : {value2}%\n\n[뮤즈 전용 효과]\n기본 공격 및 스킬 공격력 증가율 : {value3}%\n\n[파티원 전용 효과]\n힘 증가 : {value4}\n지능 증가 : {value5}\n물리 공격력 증가 : {value6}\n마법 공격력 증가 : {value7}\n독립 공격력 증가 : {value8}\n\n[범위 정보]\n버프 적용 범위 : {value9}px",
+              "values": ["300", "40.6", "70", "488", "488", "92", "92", "92", "900"]
+            }
+          },
+          "creature": []
+        }
+      }
+    }
+  },
+  "items": {
+    "0371784066078365c89897de3cacb6d8": {
+      "itemId": "0371784066078365c89897de3cacb6d8",
+      "itemName": "레어 신발 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "14ef8c0d2cc89d419f5bbd01b223216d",
+      "itemTypeDetail": "신발",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "089e68a1c3a6103f1323dc51c231d6ab": {
+      "itemId": "089e68a1c3a6103f1323dc51c231d6ab",
+      "itemName": "용투 : 완전한 광휘 결정",
+      "itemRarity": "에픽",
+      "itemTypeId": "026c9ba2355854ea728784a828ccf1f2",
+      "itemType": "서약결정",
+      "itemTypeDetailId": "f4315d9adafb582b28996ab064234293",
+      "itemTypeDetail": "서약결정",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 2300,
+      "setItemId": "b92ca7784123b5fea9cea40144925194",
+      "setItemName": "용투장의 난 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 2300
+        },
+        {
+          "name": "공격속도",
+          "value": "2%"
+        },
+        {
+          "name": "이동속도",
+          "value": "2%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "2%"
+        },
+        {
+          "name": "버프력",
+          "value": 5700
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "23%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 165
+        }
+      ],
+      "hashtag": []
+    },
+    "1c72c987497d0ba4f294a1561f5d47df": {
+      "itemId": "1c72c987497d0ba4f294a1561f5d47df",
+      "itemName": "비룡의 기운찬 발톱",
+      "itemRarity": "레어",
+      "itemTypeId": "b83680e0bea04872f2b1ac442d6384a1",
+      "itemType": "크리쳐",
+      "itemTypeDetailId": "43deb8b171648c0e66ab3ce48b8f95db",
+      "itemTypeDetail": "아티팩트레드",
+      "itemAvailableLevel": 0,
+      "itemExplain": "크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemExplainDetail": "크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemFlavorText": "",
+      "fame": 65,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 65
+        },
+        {
+          "name": "힘",
+          "value": 20
+        },
+        {
+          "name": "체력",
+          "value": 20
+        },
+        {
+          "name": "지능",
+          "value": 20
+        },
+        {
+          "name": "정신력",
+          "value": 20
+        },
+        {
+          "name": "HP MAX",
+          "value": 200
+        },
+        {
+          "name": "MP MAX",
+          "value": 200
+        },
+        {
+          "name": "회피율",
+          "value": "4%"
+        }
+      ]
+    },
+    "2198dc07e24732e12a14b8a249c4e387": {
+      "itemId": "2198dc07e24732e12a14b8a249c4e387",
+      "itemName": "헤드라이너의 피크 초커[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "20fae8af76bf8c1bdc22d2587a21a145",
+      "itemTypeDetail": "목가슴",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "2a5c5edc80ae47c21052ed66b18b9baa": {
+      "itemId": "2a5c5edc80ae47c21052ed66b18b9baa",
+      "itemName": "헤드라이너의 맑은 눈[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "d4722756a5a43ce7a87f5d7cb703df74",
+      "itemTypeDetail": "얼굴",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "2defdc2422ff3c61f5ac1af583e79459": {
+      "itemId": "2defdc2422ff3c61f5ac1af583e79459",
+      "itemName": "레어 모자 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "39815fc766534091463f2a6b025d370e",
+      "itemTypeDetail": "모자",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "2ee5151fe13188a556ea594222187bb5": {
+      "itemId": "2ee5151fe13188a556ea594222187bb5",
+      "itemName": "레어 얼굴 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "d4722756a5a43ce7a87f5d7cb703df74",
+      "itemTypeDetail": "얼굴",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "316e1b0f26a3a471be2a95e33a315171": {
+      "itemId": "316e1b0f26a3a471be2a95e33a315171",
+      "itemName": "영겁의 안개 서약",
+      "itemRarity": "에픽",
+      "itemTypeId": "91a3f13ca73e50684e4c204d69f026d7",
+      "itemType": "서약",
+      "itemTypeDetailId": "60cd93ed9a75e6c5a9601df107e7145e",
+      "itemTypeDetail": "서약",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 0,
+      "setItemId": null,
+      "setItemName": null,
+      "oath": {
+        "point": 455
+      },
+      "hashtag": []
+    },
+    "37b761ce1173ea36d816e642aba5ba7b": {
+      "itemId": "37b761ce1173ea36d816e642aba5ba7b",
+      "itemName": "레어 하의 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "cc77ea28641f077ba22d530be29d3c7d",
+      "itemTypeDetail": "하의",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "38f71f365f1db37308f7f107d372c866": {
+      "itemId": "38f71f365f1db37308f7f107d372c866",
+      "itemName": "차오르는 수호자의 망토",
+      "itemRarity": "레어",
+      "itemTypeId": "b83680e0bea04872f2b1ac442d6384a1",
+      "itemType": "크리쳐",
+      "itemTypeDetailId": "e1a662559793a1e9f72ee1d4f8b779a5",
+      "itemTypeDetail": "아티팩트그린",
+      "itemAvailableLevel": 0,
+      "itemExplain": "공격 시 HP/MP 25% 회복(쿨타임 3분)\n100px 범위 이내의 아이템 자동 습득\n크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemExplainDetail": "공격 시 HP/MP 25% 회복(쿨타임 3분)\n100px 범위 이내의 아이템 자동 습득\n크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemFlavorText": "",
+      "fame": 65,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 65
+        },
+        {
+          "name": "물리 방어력",
+          "value": 2500
+        },
+        {
+          "name": "마법 방어력",
+          "value": 2500
+        },
+        {
+          "name": "힘",
+          "value": 15
+        },
+        {
+          "name": "체력",
+          "value": 15
+        },
+        {
+          "name": "지능",
+          "value": 15
+        },
+        {
+          "name": "정신력",
+          "value": 15
+        }
+      ]
+    },
+    "3aaebf23928e11dafd00150b320e95cd": {
+      "itemId": "3aaebf23928e11dafd00150b320e95cd",
+      "itemName": "레어 목가슴 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "20fae8af76bf8c1bdc22d2587a21a145",
+      "itemTypeDetail": "목가슴",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "3c72626a0afb037b8b2b1f226eca6176": {
+      "itemId": "3c72626a0afb037b8b2b1f226eca6176",
+      "itemName": "고위 여우의 속삭임 귀걸이",
+      "itemRarity": "에픽",
+      "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+      "itemType": "추가장비",
+      "itemTypeDetailId": "601834074c49bb0e48cb65a75a8667bc",
+      "itemTypeDetail": "귀걸이",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "그렇게 그들의 조화가 시작되었다더라.",
+      "fame": 1300,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1300
+        },
+        {
+          "name": "힘",
+          "value": 278
+        },
+        {
+          "name": "체력",
+          "value": 278
+        },
+        {
+          "name": "지능",
+          "value": 278
+        },
+        {
+          "name": "정신력",
+          "value": 278
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 11220
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "45.7%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 215
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": [
+          {
+            "name": "힘",
+            "value": 200
+          },
+          {
+            "name": "지능",
+            "value": 200
+          },
+          {
+            "name": "체력",
+            "value": 200
+          },
+          {
+            "name": "정신력",
+            "value": 200
+          }
+        ]
+      },
+      "hashtag": []
+    },
+    "40249d82eafb0137b0e081a94c40785d": {
+      "itemId": "40249d82eafb0137b0e081a94c40785d",
+      "itemName": "견습 여우의 매혹 반지",
+      "itemRarity": "유니크",
+      "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+      "itemType": "액세서리",
+      "itemTypeDetailId": "b04c7fb9b29b27b91a0a9e5a1822bc8f",
+      "itemTypeDetail": "반지",
+      "itemAvailableLevel": 115,
+      "itemExplain": "모든 속성 강화 +40",
+      "itemExplainDetail": "모든 속성 강화 +40",
+      "itemFlavorText": "",
+      "fame": 1100,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1100
+        },
+        {
+          "name": "마법 방어력",
+          "value": 4435
+        },
+        {
+          "name": "힘",
+          "value": 175
+        },
+        {
+          "name": "체력",
+          "value": 100
+        },
+        {
+          "name": "지능",
+          "value": 175
+        },
+        {
+          "name": "정신력",
+          "value": 100
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10240
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "42.8%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 115
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "463cc16ca330c26a15caba314d2c1a5c": {
+      "itemId": "463cc16ca330c26a15caba314d2c1a5c",
+      "itemName": "고유 - 모독자의 조소 팔찌",
+      "itemRarity": "에픽",
+      "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+      "itemType": "액세서리",
+      "itemTypeDetailId": "80bddf423629c28c7b4459c328fdffaf",
+      "itemTypeDetail": "팔찌",
+      "itemAvailableLevel": 115,
+      "itemExplain": "모든 속성 강화 +50\n\n해당 고유 장비는 세트 장비와 함께 장착해도 세트 포인트를 얻을 수 있습니다.",
+      "itemExplainDetail": "모든 속성 강화 +50\n\n해당 고유 장비는 세트 장비와 함께 장착해도 세트 포인트를 얻을 수 있습니다.",
+      "itemFlavorText": "이제... 너희 둘을 위한 선물을 주마.",
+      "fame": 1300,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1300
+        },
+        {
+          "name": "마법 방어력",
+          "value": 6970
+        },
+        {
+          "name": "힘",
+          "value": 153
+        },
+        {
+          "name": "체력",
+          "value": 232
+        },
+        {
+          "name": "지능",
+          "value": 100
+        },
+        {
+          "name": "정신력",
+          "value": 100
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10720
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "53.1%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "upgrade": false,
+          "setPoint": 215
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "4c2c36b92f60155c579d36eea9786324": {
+      "itemId": "4c2c36b92f60155c579d36eea9786324",
+      "itemName": "시크릿 듀엣",
+      "itemRarity": "에픽",
+      "itemTypeId": "4ffb6f14b86f5c818a925bf58022686e",
+      "itemType": "무기",
+      "itemTypeDetailId": "390e3966118b0c466ce9f8eae45e1629",
+      "itemTypeDetail": "선현궁",
+      "itemAvailableLevel": 115,
+      "itemExplain": "[조율] [장비 발동 옵션]\n[Vivace!]와 [Climax!]를 선택하여 사용합니다.\n- 던전 입장 시 [Vivace!]가 기본 적용\n- 쿨타임 300초\n\n[Vivace!]\n- 스킬 쿨타임 20% 감소 (각성기 제외)\n- 특수 오브젝트 데미지 +10%\n\n[Climax!]\n- 최종 데미지 12.3% 증가",
+      "itemExplainDetail": "[조율] [장비 발동 옵션]\n[Vivace!]와 [Climax!]를 선택하여 사용합니다.\n- 던전 입장 시 [Vivace!]가 기본 적용\n- 쿨타임 300초\n\n[Vivace!]\n- 스킬 쿨타임 20% 감소 (각성기 제외)\n- 특수 오브젝트 데미지 +10%\n\n[Climax!]\n- 최종 데미지 12.3% 증가",
+      "itemFlavorText": "우리만의 무대를 만들자!",
+      "fame": 8500,
+      "setItemId": null,
+      "setItemName": null,
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 8500
+        },
+        {
+          "name": "물리 공격력",
+          "value": 1683
+        },
+        {
+          "name": "마법 공격력",
+          "value": 1683
+        },
+        {
+          "name": "독립 공격력",
+          "value": 1683
+        },
+        {
+          "name": "힘",
+          "value": 138
+        },
+        {
+          "name": "지능",
+          "value": 138
+        },
+        {
+          "name": "정신력",
+          "value": 156
+        },
+        {
+          "name": "내구도",
+          "value": 48
+        },
+        {
+          "name": "공격력 증가",
+          "value": "14667%"
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "25.8%"
+        },
+        {
+          "name": "스킬 쿨타임 감소",
+          "value": "20%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "status": [
+            {
+              "name": "최종 데미지 증가",
+              "value": "256.4%"
+            },
+            {
+              "name": "버프력",
+              "value": 37991
+            }
+          ]
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +3\n50레벨 액티브 스킬 Lv +4\n\n장착 해제 시 자신이 시전한 30Lv 버프, 50Lv 액티브, 100Lv 액티브 스킬의 효과 삭제\n아드레날린 랩소디 버프 지속 시간 +3초\n\n최종 데미지 12.3% 증가",
+        "explainDetail": "",
+        "reinforceSkill": [
+          {
+            "jobId": null,
+            "jobName": "공통",
+            "levelRange": [
+              {
+                "minLevel": 1,
+                "maxLevel": 100,
+                "value": 2
+              }
+            ]
+          }
+        ],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "4e13a0e608282e52bfd188532a7bf8b4": {
+      "itemId": "4e13a0e608282e52bfd188532a7bf8b4",
+      "itemName": "수습 여우의 보호 어깨",
+      "itemRarity": "레전더리",
+      "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+      "itemType": "방어구",
+      "itemTypeDetailId": "f2976a25a516451e3e8667bac328b308",
+      "itemTypeDetail": "머리어깨",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1200,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1200
+        },
+        {
+          "name": "물리 방어력",
+          "value": 1126
+        },
+        {
+          "name": "힘",
+          "value": 134
+        },
+        {
+          "name": "체력",
+          "value": 134
+        },
+        {
+          "name": "지능",
+          "value": 134
+        },
+        {
+          "name": "정신력",
+          "value": 134
+        },
+        {
+          "name": "공격속도",
+          "value": "40%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "40%"
+        },
+        {
+          "name": "내구도",
+          "value": 48
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10480
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "70%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 165
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "5d0afe73657300700a9052a3f20f9171": {
+      "itemId": "5d0afe73657300700a9052a3f20f9171",
+      "itemName": "헤드라이너의 나비 체인 벨트[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "5053aacc8fe4e6dd3d9da9196da61261",
+      "itemTypeDetail": "허리",
+      "itemAvailableLevel": 0,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "6deee7b1e68c7ff273db1955d0dec8ac": {
+      "itemId": "6deee7b1e68c7ff273db1955d0dec8ac",
+      "itemName": "헤드라이너의 상앗빛 피부[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "856b48080f124cc2f162ab96ae3cca40",
+      "itemTypeDetail": "스킨",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": null,
+      "setItemName": null,
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "6edbae57d1a6f5aa7838126874324906": {
+      "itemId": "6edbae57d1a6f5aa7838126874324906",
+      "itemName": "용투 : 선명한 광휘 결정",
+      "itemRarity": "레전더리",
+      "itemTypeId": "026c9ba2355854ea728784a828ccf1f2",
+      "itemType": "서약결정",
+      "itemTypeDetailId": "f4315d9adafb582b28996ab064234293",
+      "itemTypeDetail": "서약결정",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 2000,
+      "setItemId": "b92ca7784123b5fea9cea40144925194",
+      "setItemName": "용투장의 난 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 2000
+        },
+        {
+          "name": "공격속도",
+          "value": "2%"
+        },
+        {
+          "name": "이동속도",
+          "value": "2%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "2%"
+        },
+        {
+          "name": "버프력",
+          "value": 5300
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "20%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 125
+        }
+      ],
+      "hashtag": []
+    },
+    "7268376c36e42c7c7fc57e8ad7a5c48a": {
+      "itemId": "7268376c36e42c7c7fc57e8ad7a5c48a",
+      "itemName": "빛나는 녹색빛 엠블렘[마법크리티컬]",
+      "itemRarity": "언커먼",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 26,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 26
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "1.2%"
+        }
+      ]
+    },
+    "74711128d2d0739c4f5d38b488d2be2c": {
+      "itemId": "74711128d2d0739c4f5d38b488d2be2c",
+      "itemName": "[EVENT]세리아의 풍성한 선물 Ver.2",
+      "itemRarity": "레어",
+      "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+      "itemType": "액세서리",
+      "itemTypeDetailId": "691933a06ff114348a7db936fb0aec66",
+      "itemTypeDetail": "칭호",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 790,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 790
+        },
+        {
+          "name": "힘",
+          "value": 70
+        },
+        {
+          "name": "체력",
+          "value": 70
+        },
+        {
+          "name": "지능",
+          "value": 70
+        },
+        {
+          "name": "정신력",
+          "value": 70
+        },
+        {
+          "name": "HP MAX",
+          "value": 200
+        },
+        {
+          "name": "MP MAX",
+          "value": 200
+        },
+        {
+          "name": "공격속도",
+          "value": "3%"
+        },
+        {
+          "name": "이동속도",
+          "value": "3%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "3%"
+        },
+        {
+          "name": "적중률",
+          "value": "3%"
+        },
+        {
+          "name": "물리 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "공격력 증폭",
+          "value": "18%"
+        },
+        {
+          "name": "버프력 증폭",
+          "value": "1%"
+        }
+      ],
+      "cardInfo": {
+        "enchant": [
+          {
+            "status": [
+              {
+                "name": "모든 속성 강화",
+                "value": 4
+              },
+              {
+                "name": "힘",
+                "value": 25
+              },
+              {
+                "name": "지능",
+                "value": 25
+              },
+              {
+                "name": "체력",
+                "value": 25
+              },
+              {
+                "name": "정신력",
+                "value": 25
+              },
+              {
+                "name": "모험가 명성",
+                "value": 156
+              }
+            ],
+            "upgrade": 0
+          }
+        ]
+      },
+      "itemBuff": {
+        "explain": "50레벨 액티브 스킬 Lv +2",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      }
+    },
+    "78e3c4947c76867534ce0b2241093809": {
+      "itemId": "78e3c4947c76867534ce0b2241093809",
+      "itemName": "견습 여우의 은빛 신발",
+      "itemRarity": "유니크",
+      "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+      "itemType": "방어구",
+      "itemTypeDetailId": "ef6fcc3b39b2bbcbf09a71da6cbafe06",
+      "itemTypeDetail": "신발",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1100,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1100
+        },
+        {
+          "name": "물리 방어력",
+          "value": 825
+        },
+        {
+          "name": "힘",
+          "value": 125
+        },
+        {
+          "name": "체력",
+          "value": 125
+        },
+        {
+          "name": "지능",
+          "value": 125
+        },
+        {
+          "name": "정신력",
+          "value": 125
+        },
+        {
+          "name": "이동속도",
+          "value": "39%"
+        },
+        {
+          "name": "내구도",
+          "value": 40
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10240
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "63.2%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 115
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "88b6d64f0766484b2cdcc898eea4dc18": {
+      "itemId": "88b6d64f0766484b2cdcc898eea4dc18",
+      "itemName": "레어 허리 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "5053aacc8fe4e6dd3d9da9196da61261",
+      "itemTypeDetail": "허리",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "893d167b57f729204fb8278bf05d676f": {
+      "itemId": "893d167b57f729204fb8278bf05d676f",
+      "itemName": "견습 여우의 비밀 벨트",
+      "itemRarity": "유니크",
+      "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+      "itemType": "방어구",
+      "itemTypeDetailId": "934ed2dea99f55f775df256fc29c5d56",
+      "itemTypeDetail": "벨트",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1100,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1100
+        },
+        {
+          "name": "물리 방어력",
+          "value": 550
+        },
+        {
+          "name": "힘",
+          "value": 125
+        },
+        {
+          "name": "체력",
+          "value": 125
+        },
+        {
+          "name": "지능",
+          "value": 125
+        },
+        {
+          "name": "정신력",
+          "value": 125
+        },
+        {
+          "name": "인벤토리 무게 한도",
+          "value": "3kg"
+        },
+        {
+          "name": "내구도",
+          "value": 40
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10240
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "53%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 115
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "92c7b144df36728aa501b61c67985d90": {
+      "itemId": "92c7b144df36728aa501b61c67985d90",
+      "itemName": "찬란한 녹색빛 엠블렘[마법크리티컬]",
+      "itemRarity": "유니크",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 36,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 36
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "3%"
+        }
+      ]
+    },
+    "9623d7f5197b40a96dffd78c65d57287": {
+      "itemId": "9623d7f5197b40a96dffd78c65d57287",
+      "itemName": "고위 여우의 구슬 마법석",
+      "itemRarity": "에픽",
+      "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+      "itemType": "추가장비",
+      "itemTypeDetailId": "fe5f3db78175f5a3196385c688d29681",
+      "itemTypeDetail": "마법석",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "인간과의 화합을 추구하고자 하니",
+      "fame": 1300,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1300
+        },
+        {
+          "name": "힘",
+          "value": 178
+        },
+        {
+          "name": "체력",
+          "value": 178
+        },
+        {
+          "name": "지능",
+          "value": 178
+        },
+        {
+          "name": "정신력",
+          "value": 178
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 11220
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "35.3%"
+        },
+        {
+          "name": "스킬 쿨타임 감소",
+          "value": "15%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 215
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +2",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "970d6d278c4fa2d2e8c9e74f33a46ae1": {
+      "itemId": "970d6d278c4fa2d2e8c9e74f33a46ae1",
+      "itemName": "레어 머리 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "53a7580c73d4a699010616a7716b9781",
+      "itemTypeDetail": "머리",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ]
+    },
+    "a4a263850a49401e8f174ce437596486": {
+      "itemId": "a4a263850a49401e8f174ce437596486",
+      "itemName": "용투 : 희미한 광휘 결정",
+      "itemRarity": "유니크",
+      "itemTypeId": "026c9ba2355854ea728784a828ccf1f2",
+      "itemType": "서약결정",
+      "itemTypeDetailId": "f4315d9adafb582b28996ab064234293",
+      "itemTypeDetail": "서약결정",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1700,
+      "setItemId": "b92ca7784123b5fea9cea40144925194",
+      "setItemName": "용투장의 난 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1700
+        },
+        {
+          "name": "공격속도",
+          "value": "2%"
+        },
+        {
+          "name": "이동속도",
+          "value": "2%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "2%"
+        },
+        {
+          "name": "버프력",
+          "value": 4900
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "17%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 85
+        }
+      ],
+      "hashtag": []
+    },
+    "a6465cbb1696232ee78600c10868560f": {
+      "itemId": "a6465cbb1696232ee78600c10868560f",
+      "itemName": "헤드라이너의 보송 오프 숄더[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "6c5ef32da851f993b8e90fdadb307248",
+      "itemTypeDetail": "상의",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "a9fa20a18372c458afa55649020bc861": {
+      "itemId": "a9fa20a18372c458afa55649020bc861",
+      "itemName": "헤드라이너의 체인 워커[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "14ef8c0d2cc89d419f5bbd01b223216d",
+      "itemTypeDetail": "신발",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "acd80700c84b04d84cd182be130c22c2": {
+      "itemId": "acd80700c84b04d84cd182be130c22c2",
+      "itemName": "찬란한 푸른빛 엠블렘[이동속도]",
+      "itemRarity": "유니크",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 36,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 36
+        },
+        {
+          "name": "이동속도",
+          "value": "1.5%"
+        }
+      ]
+    },
+    "b18e7187087ec03a300e22d171e83ce4": {
+      "itemId": "b18e7187087ec03a300e22d171e83ce4",
+      "itemName": "수습 여우의 상의",
+      "itemRarity": "레전더리",
+      "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+      "itemType": "방어구",
+      "itemTypeDetailId": "3da92241d44bdafcf7554057e6479c83",
+      "itemTypeDetail": "상의",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1200,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1200
+        },
+        {
+          "name": "물리 방어력",
+          "value": 1690
+        },
+        {
+          "name": "힘",
+          "value": 143
+        },
+        {
+          "name": "체력",
+          "value": 143
+        },
+        {
+          "name": "지능",
+          "value": 143
+        },
+        {
+          "name": "정신력",
+          "value": 143
+        },
+        {
+          "name": "HP MAX",
+          "value": "5%"
+        },
+        {
+          "name": "MP MAX",
+          "value": "5%"
+        },
+        {
+          "name": "내구도",
+          "value": 60
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10480
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "54.6%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 165
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "bdc4e36944680dd69996e837214f4d76": {
+      "itemId": "bdc4e36944680dd69996e837214f4d76",
+      "itemName": "찬란한 붉은빛 엠블렘[정신력]",
+      "itemRarity": "유니크",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 36,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 36
+        },
+        {
+          "name": "정신력",
+          "value": 25
+        }
+      ]
+    },
+    "bed754addb22daf538e93ba00ee06110": {
+      "itemId": "bed754addb22daf538e93ba00ee06110",
+      "itemName": "기운찬 비룡의 갈기",
+      "itemRarity": "레어",
+      "itemTypeId": "b83680e0bea04872f2b1ac442d6384a1",
+      "itemType": "크리쳐",
+      "itemTypeDetailId": "dbe9152375d9ed902c1df69e0d1ca5e5",
+      "itemTypeDetail": "아티팩트블루",
+      "itemAvailableLevel": 0,
+      "itemExplain": "크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemExplainDetail": "크리쳐 아티팩트 옵션은 크리쳐를 착용한 상태에서만 적용됩니다.",
+      "itemFlavorText": "",
+      "fame": 65,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 65
+        },
+        {
+          "name": "힘",
+          "value": 16
+        },
+        {
+          "name": "체력",
+          "value": 16
+        },
+        {
+          "name": "지능",
+          "value": 16
+        },
+        {
+          "name": "정신력",
+          "value": 16
+        },
+        {
+          "name": "HP MAX",
+          "value": 200
+        },
+        {
+          "name": "MP MAX",
+          "value": 200
+        },
+        {
+          "name": "공격속도",
+          "value": "1%"
+        },
+        {
+          "name": "이동속도",
+          "value": "1%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "1%"
+        }
+      ]
+    },
+    "c237ddf59b73cbaf916fa8a66ad34cce": {
+      "itemId": "c237ddf59b73cbaf916fa8a66ad34cce",
+      "itemName": "헤드라이너의 나비 베레모[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "39815fc766534091463f2a6b025d370e",
+      "itemTypeDetail": "모자",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "cb12bb026990e7595103bb214c31960d": {
+      "itemId": "cb12bb026990e7595103bb214c31960d",
+      "itemName": "레어 상의 클론 아바타",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "6c5ef32da851f993b8e90fdadb307248",
+      "itemTypeDetail": "상의",
+      "itemAvailableLevel": 1,
+      "itemExplain": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemExplainDetail": "능력치는 유지한 채 장착 중인 아바타의 디자인을 복사하며, 해당 아바타가 인벤토리에 없으면 재접속 시 기본 디자인의 아바타로 돌아옵니다.",
+      "itemFlavorText": "",
+      "fame": 88,
+      "setItemId": "be471bcc556f0c5f8b16c05f6eab1100",
+      "setItemName": "레어 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 88
+        }
+      ],
+      "itemReinforceSkill": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처",
+          "skills": [
+            {
+              "skillId": "0969cd4054d93da07708108c0cc1c4b5",
+              "name": "빈틈 찌르기",
+              "value": 1
+            },
+            {
+              "skillId": "4655101518604f874721b3cc249aae10",
+              "name": "풀 스윙",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    "cceec27707a6dbd029322483c679c124": {
+      "itemId": "cceec27707a6dbd029322483c679c124",
+      "itemName": "견습 여우의 그림자 하의",
+      "itemRarity": "유니크",
+      "itemTypeId": "b09752bfff1935188ea2735cd925a872",
+      "itemType": "방어구",
+      "itemTypeDetailId": "7c4b28699ae7994798289f187d519992",
+      "itemTypeDetail": "하의",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1100,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1100
+        },
+        {
+          "name": "물리 방어력",
+          "value": 1375
+        },
+        {
+          "name": "힘",
+          "value": 142
+        },
+        {
+          "name": "체력",
+          "value": 142
+        },
+        {
+          "name": "지능",
+          "value": 142
+        },
+        {
+          "name": "정신력",
+          "value": 142
+        },
+        {
+          "name": "내구도",
+          "value": 50
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10240
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "53%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 115
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "d0b0d8aeabbfd9dd09cdd268cdd60ea9": {
+      "itemId": "d0b0d8aeabbfd9dd09cdd268cdd60ea9",
+      "itemName": "뮤즈의 볼레로 자켓",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "6c5ef32da851f993b8e90fdadb307248",
+      "itemTypeDetail": "상의",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "751eabd79236bc275a0eb5bd1e2d1774",
+      "setItemName": "상급 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "d4bac1c4bd819b45589c206d4a91073a": {
+      "itemId": "d4bac1c4bd819b45589c206d4a91073a",
+      "itemName": "플래티넘 엠블렘[센세이션]",
+      "itemRarity": "레전더리",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 232,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 232
+        },
+        {
+          "name": "힘",
+          "value": 8
+        },
+        {
+          "name": "체력",
+          "value": 8
+        },
+        {
+          "name": "지능",
+          "value": 8
+        },
+        {
+          "name": "정신력",
+          "value": 8
+        }
+      ],
+      "itemReinforceSkill": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처",
+          "skills": [
+            {
+              "skillId": "0ed3148658fe37b3336ccb718dc0fdb0",
+              "name": "센세이션",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    },
+    "da88bc56231cf17c173becf28a140483": {
+      "itemId": "da88bc56231cf17c173becf28a140483",
+      "itemName": "헤드라이너의 치마 바지[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "cc77ea28641f077ba22d530be29d3c7d",
+      "itemTypeDetail": "하의",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    },
+    "dd267f29006748266a62a816b5b05d48": {
+      "itemId": "dd267f29006748266a62a816b5b05d48",
+      "itemName": "수습 여우의 숨결 부적 보조장비",
+      "itemRarity": "레전더리",
+      "itemTypeId": "87ff665868ffd50f8aef7948548439bd",
+      "itemType": "추가장비",
+      "itemTypeDetailId": "2fef5d81b7f59f0c75241890a8d941c9",
+      "itemTypeDetail": "보조장비",
+      "itemAvailableLevel": 115,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 1200,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1200
+        },
+        {
+          "name": "힘",
+          "value": 151
+        },
+        {
+          "name": "체력",
+          "value": 151
+        },
+        {
+          "name": "지능",
+          "value": 151
+        },
+        {
+          "name": "정신력",
+          "value": 151
+        },
+        {
+          "name": "물리 크리티컬 히트",
+          "value": "25%"
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "25%"
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 10980
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "44.3%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "setPoint": 165
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "e0011085622b7f21a88786efc62453c4": {
+      "itemId": "e0011085622b7f21a88786efc62453c4",
+      "itemName": "일렉 기타",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "5bf5c3063972ea25dc4748b405559827",
+      "itemTypeDetail": "무기아바타",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 72,
+      "setItemId": null,
+      "setItemName": null,
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 72
+        }
+      ]
+    },
+    "e1d06c515754f8cb2205a83adcb72b22": {
+      "itemId": "e1d06c515754f8cb2205a83adcb72b22",
+      "itemName": "모험가의 의지[빛]",
+      "itemRarity": "레어",
+      "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+      "itemType": "액세서리",
+      "itemTypeDetailId": "691933a06ff114348a7db936fb0aec66",
+      "itemTypeDetail": "칭호",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "해당 칭호에는 칭호 변경권 및 칭호 보주, 초월의 돌을 사용할 수 없습니다.",
+      "itemFlavorText": "<뮤즈 데뷔 지원 프로젝트!>",
+      "fame": 491,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 491
+        },
+        {
+          "name": "힘",
+          "value": 40
+        },
+        {
+          "name": "체력",
+          "value": 40
+        },
+        {
+          "name": "지능",
+          "value": 40
+        },
+        {
+          "name": "정신력",
+          "value": 40
+        },
+        {
+          "name": "HP MAX",
+          "value": 200
+        },
+        {
+          "name": "MP MAX",
+          "value": 200
+        },
+        {
+          "name": "공격속도",
+          "value": "3%"
+        },
+        {
+          "name": "이동속도",
+          "value": "3%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "3%"
+        },
+        {
+          "name": "적중률",
+          "value": "3%"
+        },
+        {
+          "name": "물리 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "마을 이동 속도 증가",
+          "value": "10%"
+        }
+      ],
+      "itemReinforceSkill": [
+        {
+          "jobId": null,
+          "jobName": "공통",
+          "levelRange": [
+            {
+              "minLevel": 25,
+              "maxLevel": 30,
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "cardInfo": {
+        "enchant": [
+          {
+            "reinforceSkill": [
+              {
+                "jobId": "3909d0b188e9c95311399f776e331da5",
+                "jobName": "마법사(여)",
+                "skills": [
+                  {
+                    "skillId": "61c8cb33dd20b4ff335e8deed70d3d9c",
+                    "name": "금단의 저주",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "jobId": "f6a4ad30555b99b499c07835f87ce522",
+                "jobName": "프리스트(남)",
+                "skills": [
+                  {
+                    "skillId": "e4c354a89c337310aeb7041d5e742828",
+                    "name": "영광의 축복",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+                "jobName": "프리스트(여)",
+                "skills": [
+                  {
+                    "skillId": "8c2379737c5acc935c1731f67f607655",
+                    "name": "용맹의 축복",
+                    "value": "2"
+                  }
+                ]
+              },
+              {
+                "jobId": "b9cb48777665de22c006fabaf9a560b3",
+                "jobName": "아처",
+                "skills": [
+                  {
+                    "skillId": "78be08a3f8c834d3b06fa20c6a08c5a5",
+                    "name": "러블리 템포",
+                    "value": "2"
+                  }
+                ]
+              }
+            ],
+            "status": [
+              {
+                "name": "모험가 명성",
+                "value": 156
+              }
+            ],
+            "upgrade": 0
+          }
+        ]
+      }
+    },
+    "e27634578a09d8c841d5c8033d0528d7": {
+      "itemId": "e27634578a09d8c841d5c8033d0528d7",
+      "itemName": "빛나는 푸른빛 엠블렘[마법방어]",
+      "itemRarity": "언커먼",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 26,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 26
+        },
+        {
+          "name": "마법 방어력",
+          "value": 255
+        }
+      ]
+    },
+    "e3a8f465174ad184ee15dafb221634d2": {
+      "itemId": "e3a8f465174ad184ee15dafb221634d2",
+      "itemName": "[EVENT]세리아의 파스텔 버블 Ver.2",
+      "itemRarity": "레어",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "0a68fcfd08c2b6070a9230f0acbb84a4",
+      "itemTypeDetail": "오라",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 463,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 463
+        },
+        {
+          "name": "물리 공격력",
+          "value": 50
+        },
+        {
+          "name": "마법 공격력",
+          "value": 50
+        },
+        {
+          "name": "독립 공격력",
+          "value": 50
+        },
+        {
+          "name": "힘",
+          "value": 100
+        },
+        {
+          "name": "체력",
+          "value": 100
+        },
+        {
+          "name": "지능",
+          "value": 100
+        },
+        {
+          "name": "정신력",
+          "value": 100
+        },
+        {
+          "name": "물리 크리티컬 히트",
+          "value": "5%"
+        },
+        {
+          "name": "모든 속성 강화",
+          "value": 25
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "5%"
+        },
+        {
+          "name": "마을 이동 속도 증가",
+          "value": "10%"
+        },
+        {
+          "name": "공격력 증폭",
+          "value": "2%"
+        },
+        {
+          "name": "버프력 증폭",
+          "value": "1%"
+        }
+      ]
+    },
+    "e468101e457344d9824a0f1588152f06": {
+      "itemId": "e468101e457344d9824a0f1588152f06",
+      "itemName": "대 여우의 영혼 목걸이",
+      "itemRarity": "태초",
+      "itemTypeId": "e490f8cce6bacd43bef1e2f5e0c4943d",
+      "itemType": "액세서리",
+      "itemTypeDetailId": "390e3966118b0c466ce9f8eae45e1629",
+      "itemTypeDetail": "목걸이",
+      "itemAvailableLevel": 115,
+      "itemExplain": "모든 속성 강화 +40",
+      "itemExplainDetail": "모든 속성 강화 +40",
+      "itemFlavorText": "욕심에 두 눈이 먼 짐승들은 여우를 보고 지레 겁을 먹어 도망쳤으나",
+      "fame": 1600,
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "setItemName": "에테리얼 오브 아츠 세트",
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 1600
+        },
+        {
+          "name": "마법 방어력",
+          "value": 11799
+        },
+        {
+          "name": "힘",
+          "value": 100
+        },
+        {
+          "name": "체력",
+          "value": 100
+        },
+        {
+          "name": "지능",
+          "value": 154
+        },
+        {
+          "name": "정신력",
+          "value": 235
+        },
+        {
+          "name": "공격력 증가",
+          "value": "3189%"
+        },
+        {
+          "name": "버프력",
+          "value": 11320
+        },
+        {
+          "name": "최종 데미지 증가",
+          "value": "51.2%"
+        }
+      ],
+      "tune": [
+        {
+          "level": 0,
+          "upgrade": false,
+          "setPoint": 265
+        }
+      ],
+      "itemBuff": {
+        "explain": "30레벨 버프 스킬 Lv +1\n50레벨 액티브 스킬 Lv +1",
+        "explainDetail": "",
+        "reinforceSkill": [],
+        "status": null
+      },
+      "hashtag": []
+    },
+    "ece0c0fe0f7164f43337f0abd172471b": {
+      "itemId": "ece0c0fe0f7164f43337f0abd172471b",
+      "itemName": "SD 히만 스텔라",
+      "itemRarity": "레어",
+      "itemTypeId": "b83680e0bea04872f2b1ac442d6384a1",
+      "itemType": "크리쳐",
+      "itemTypeDetailId": "64533cf3c7118c7dac0ebba80d0d4580",
+      "itemTypeDetail": "크리쳐",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "<뮤즈 데뷔 지원 프로젝트!>",
+      "fame": 810,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 810
+        },
+        {
+          "name": "힘",
+          "value": 110
+        },
+        {
+          "name": "체력",
+          "value": 110
+        },
+        {
+          "name": "지능",
+          "value": 110
+        },
+        {
+          "name": "정신력",
+          "value": 110
+        },
+        {
+          "name": "공격속도",
+          "value": "2%"
+        },
+        {
+          "name": "이동속도",
+          "value": "2%"
+        },
+        {
+          "name": "캐스트속도",
+          "value": "2%"
+        },
+        {
+          "name": "물리 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "모든 속성 강화",
+          "value": 10
+        },
+        {
+          "name": "MP MAX",
+          "value": "5%"
+        },
+        {
+          "name": "마법 크리티컬 히트",
+          "value": "3%"
+        },
+        {
+          "name": "공격력 증폭",
+          "value": "19%"
+        },
+        {
+          "name": "버프력 증폭",
+          "value": "3%"
+        }
+      ],
+      "itemReinforceSkill": [
+        {
+          "jobId": "41f1cdc2ff58bb5fdc287be0db2a8df3",
+          "jobName": "귀검사(남)",
+          "skills": [
+            {
+              "skillId": "3af805da8505fe6234a95b535610f064",
+              "name": "극한의 경지",
+              "value": 1
+            },
+            {
+              "skillId": "95103ae7c54eaedea3bbcf726520db6c",
+              "name": "팬텀 마스터리",
+              "value": 1
+            },
+            {
+              "skillId": "374f53e8989ef04a8506c8ec99d9ecdc",
+              "name": "블러드 인카넷",
+              "value": 1
+            },
+            {
+              "skillId": "949849d5791944973d60af7e2a7eefb0",
+              "name": "뇌신의 기운",
+              "value": 1
+            },
+            {
+              "skillId": "481348575c1e141925c836b59c5db3ca",
+              "name": "악귀현신",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "a7a059ebe9e6054c0644b40ef316d6e9",
+          "jobName": "격투가(여)",
+          "skills": [
+            {
+              "skillId": "547ab2b2bd860d3e37355a9cfbc1077c",
+              "name": "낙화태염성",
+              "value": 1
+            },
+            {
+              "skillId": "8ee0099656df08a0b39225f8a21d514b",
+              "name": "리미트 브레이크",
+              "value": 1
+            },
+            {
+              "skillId": "1803b6a67047cafb9e289b4f33cc507b",
+              "name": "용독술",
+              "value": 1
+            },
+            {
+              "skillId": "5892d1fa4462e561ac8f8d2c74892b0a",
+              "name": "체인 그랩",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "afdf3b989339de478e85b614d274d1ef",
+          "jobName": "거너(남)",
+          "skills": [
+            {
+              "skillId": "2e2b7efe778656690f9c8cb6e47c3932",
+              "name": "사격술",
+              "value": 1
+            },
+            {
+              "skillId": "f4a561e272cc434a4905b3aa0c0de090",
+              "name": "중화기 개조",
+              "value": 1
+            },
+            {
+              "skillId": "5cac3411ccef1af333953e0ded5e942d",
+              "name": "HS-1 친구들",
+              "value": 1
+            },
+            {
+              "skillId": "c91a62dc0a18360acf5031ac0ebf09f5",
+              "name": "전장의 영웅",
+              "value": 1
+            },
+            {
+              "skillId": "b95d9f6fc90f067c43da96dc1e861f28",
+              "name": "리컨스트럭션 바디",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "3909d0b188e9c95311399f776e331da5",
+          "jobName": "마법사(여)",
+          "skills": [
+            {
+              "skillId": "03bb5314ffd41e9458d67ef924fef38f",
+              "name": "엘레멘탈 포텐셜",
+              "value": 1
+            },
+            {
+              "skillId": "47bd4871f29defc2a0021ee9261d7a5b",
+              "name": "이클립스 하이브",
+              "value": 1
+            },
+            {
+              "skillId": "f4a561e272cc434a4905b3aa0c0de090",
+              "name": "문무겸비",
+              "value": 1
+            },
+            {
+              "skillId": "8e358ecf99ac9df31a6132aeafe378a9",
+              "name": "현자의 돌",
+              "value": 1
+            },
+            {
+              "skillId": "de20372767d014d62dc7361ac686834e",
+              "name": "어둠에 피는 장미",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "f6a4ad30555b99b499c07835f87ce522",
+          "jobName": "프리스트(남)",
+          "skills": [
+            {
+              "skillId": "c4a5b868f1e8e60cd1867a2cfab4a242",
+              "name": "디바인 플래쉬",
+              "value": 1
+            },
+            {
+              "skillId": "8d996a242c5c0efd8cfe6cb4bc6defcc",
+              "name": "썬더 해머 : 유피테르",
+              "value": 1
+            },
+            {
+              "skillId": "328867949b763ce73e243da84fd59157",
+              "name": "신선의 경지",
+              "value": 1
+            },
+            {
+              "skillId": "087d1068ff506d090710566608a17760",
+              "name": "데스블로우",
+              "value": 1
+            },
+            {
+              "skillId": "f45301a5590cccefbe0becf2f8d029f5",
+              "name": "이블 스트라이커",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "944b9aab492c15a8474f96947ceeb9e4",
+          "jobName": "거너(여)",
+          "skills": [
+            {
+              "skillId": "b501ae53638d33a32351904f31cb6aa3",
+              "name": "쏘우 블레이드",
+              "value": 1
+            },
+            {
+              "skillId": "9bc30e0f6e22b0333762d04acae7d252",
+              "name": "알파 서포트",
+              "value": 1
+            },
+            {
+              "skillId": "0fc47245af1f21c3e9217d03aa9fff0a",
+              "name": "G-오퍼레이터",
+              "value": 1
+            },
+            {
+              "skillId": "f45301a5590cccefbe0becf2f8d029f5",
+              "name": "증명의 열쇠",
+              "value": 1
+            },
+            {
+              "skillId": "a354f4930334e70b0275f5d92668ce3d",
+              "name": "apius::제한해제();",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "ddc49e9ad1ff72a00b53c6cff5b1e920",
+          "jobName": "도적",
+          "skills": [
+            {
+              "skillId": "0c3a468aee1f7ce06bf91eb3319518c1",
+              "name": "히트 블리드",
+              "value": 1
+            },
+            {
+              "skillId": "78b86e64fbb74c1db1b71c50a5ac21cd",
+              "name": "언홀리 마스터리",
+              "value": 1
+            },
+            {
+              "skillId": "f0cc2c950f3bdf4103c75fa496bcac34",
+              "name": "야타의 거울",
+              "value": 1
+            },
+            {
+              "skillId": "51a08fd0c90f0a5276cd552047fac93d",
+              "name": "베일드 어택",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "ca0f0e0e9e1d55b5f9955b03d9dd213c",
+          "jobName": "격투가(남)",
+          "skills": [
+            {
+              "skillId": "8d996a242c5c0efd8cfe6cb4bc6defcc",
+              "name": "광풍나선력",
+              "value": 1
+            },
+            {
+              "skillId": "b501ae53638d33a32351904f31cb6aa3",
+              "name": "화력개방",
+              "value": 1
+            },
+            {
+              "skillId": "a3880ba488ddca966c36c640cce927a7",
+              "name": "룰 브레이크",
+              "value": 1
+            },
+            {
+              "skillId": "734356e3ab223ae24904d8ce7fa6de17",
+              "name": "가장 강한 녀석은 누구냐?",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "a5ccbaf5538981c6ef99b236c0a60b73",
+          "jobName": "마법사(남)",
+          "skills": [
+            {
+              "skillId": "51a08fd0c90f0a5276cd552047fac93d",
+              "name": "검은 눈",
+              "value": 1
+            },
+            {
+              "skillId": "1803b6a67047cafb9e289b4f33cc507b",
+              "name": "아이스크래프트",
+              "value": 1
+            },
+            {
+              "skillId": "370586038cf40378f20d338d507a780c",
+              "name": "트루 블러드",
+              "value": 1
+            },
+            {
+              "skillId": "b5e3d014f75f3d17abdea52cca57f7e9",
+              "name": "세컨드 윈드",
+              "value": 1
+            },
+            {
+              "skillId": "5c45f69c9ebc7a784e994369d2cc3c66",
+              "name": "SSTH",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "17e417b31686389eebff6d754c3401ea",
+          "jobName": "다크나이트",
+          "skills": [
+            {
+              "skillId": "65827d506df24a870ef7d2e1aefbfeb7",
+              "name": "차원일치",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "b522a95d819a5559b775deb9a490e49a",
+          "jobName": "크리에이터",
+          "skills": [
+            {
+              "skillId": "9376d04c476cd41d60ed1974ca69ab95",
+              "name": "천지창조",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "1645c45aabb008c98406b3a16447040d",
+          "jobName": "귀검사(여)",
+          "skills": [
+            {
+              "skillId": "e0daa922b19cdc35de879e938361464e",
+              "name": "고대의 맹약",
+              "value": 1
+            },
+            {
+              "skillId": "2a0a39184de92acf1c1375e00b77404c",
+              "name": "베스퍼스",
+              "value": 1
+            },
+            {
+              "skillId": "d429147c372b549c3dadcabcba50787f",
+              "name": "마인의 검세",
+              "value": 1
+            },
+            {
+              "skillId": "ac21c02567f04a92b54dd85c091d1e5a",
+              "name": "등봉조극",
+              "value": 1
+            },
+            {
+              "skillId": "863295a0fc634cf5fcc01e82a735fd6b",
+              "name": "인퍼머스",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "0ee8fa5dc525c1a1f23fc6911e921e4a",
+          "jobName": "나이트",
+          "skills": [
+            {
+              "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+              "name": "용기의 방패",
+              "value": 1
+            },
+            {
+              "skillId": "e5c09f9132a48dc1d695968592cc5878",
+              "name": "아텐의 화신",
+              "value": 1
+            },
+            {
+              "skillId": "9f57da5cb3651d81ca7dc9f78be33d01",
+              "name": "커맨드먼트",
+              "value": 1
+            },
+            {
+              "skillId": "1ff42548e611b94781a1ae8f063dd679",
+              "name": "계승자",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "3deb7be5f01953ac8b1ecaa1e25e0420",
+          "jobName": "마창사",
+          "skills": [
+            {
+              "skillId": "6e33d47e6622ce03b6defdd912140270",
+              "name": "마창 각성",
+              "value": 1
+            },
+            {
+              "skillId": "2a3c96b88d02372505692da0a8b54743",
+              "name": "무형의 창술사",
+              "value": 1
+            },
+            {
+              "skillId": "2a0a39184de92acf1c1375e00b77404c",
+              "name": "힘의 근원",
+              "value": 1
+            },
+            {
+              "skillId": "d429147c372b549c3dadcabcba50787f",
+              "name": "심연에 드리운 어둠",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "0c1b401bb09241570d364420b3ba3fd7",
+          "jobName": "프리스트(여)",
+          "skills": [
+            {
+              "skillId": "dbf8b30c7057032af0d68fcfa289fdae",
+              "name": "라파엘의 축복",
+              "value": 1
+            },
+            {
+              "skillId": "fc458e449ee00b01dbf88d09aae65462",
+              "name": "세큐리스 말레피카룸",
+              "value": 1
+            },
+            {
+              "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+              "name": "용신의 힘",
+              "value": 1
+            },
+            {
+              "skillId": "e5c09f9132a48dc1d695968592cc5878",
+              "name": "퍼스트 프라나 : 금단의 결정체",
+              "value": 1
+            },
+            {
+              "skillId": "4e9e8942841b9767f683fb23c1ef1435",
+              "name": "불완전 연소",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "986c2b3d72ee0e4a0b7fcfbe786d4e02",
+          "jobName": "총검사",
+          "skills": [
+            {
+              "skillId": "38612d8f2561edc2eb68d5057a837bfa",
+              "name": "B.C 트레이닝",
+              "value": 1
+            },
+            {
+              "skillId": "2f5d03c7848effbc0a23f4df45d9ca46",
+              "name": "냉혈",
+              "value": 1
+            },
+            {
+              "skillId": "dcd536f1674630f01fc9667bb202b851",
+              "name": "황야의 무법자",
+              "value": 1
+            },
+            {
+              "skillId": "2ba299855fc22192cba4f73db75e9d0e",
+              "name": "코어 패러다임",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처",
+          "skills": [
+            {
+              "skillId": "faf9cd66281078b51be2ee0b0f6c5530",
+              "name": "브랜드 뉴",
+              "value": 1
+            },
+            {
+              "skillId": "8ee0099656df08a0b39225f8a21d514b",
+              "name": "유랑하는 별의 문장",
+              "value": 1
+            },
+            {
+              "skillId": "2c9d9a36c8401bddff6cdb80fab8dc24",
+              "name": "기어 업그레이드!",
+              "value": 1
+            },
+            {
+              "skillId": "dde3b443bd5e61d90c34e5ee771e2c28",
+              "name": "인요합의",
+              "value": 1
+            },
+            {
+              "skillId": "696721534394b40e78ac96e880f19e5a",
+              "name": "깨달음 그리고 매달음",
+              "value": 1
+            }
+          ]
+        },
+        {
+          "jobId": "8d4d2001cdb357e41633c234eb7501b5",
+          "jobName": "제국기사",
+          "skills": [
+            {
+              "skillId": "506e7ed77d517419a6e1c437a2cedb17",
+              "name": "철의 노래",
+              "value": 1
+            }
+          ]
+        }
+      ],
+      "creatureInfo": {
+        "skill": null,
+        "overskill": null
+      }
+    },
+    "f55e34b90a55737b25258590b436d686": {
+      "itemId": "f55e34b90a55737b25258590b436d686",
+      "itemName": "찬란한 노란빛 엠블렘[캐스트속도]",
+      "itemRarity": "유니크",
+      "itemTypeId": "8bcda5578720a4dc56b1736ccbe06c0f",
+      "itemType": "스태커블",
+      "itemTypeDetailId": "8377aede328f2c436e8a54f7fa039cf7",
+      "itemTypeDetail": "엠블렘",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 36,
+      "setItemId": null,
+      "setItemName": null,
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 36
+        },
+        {
+          "name": "캐스트속도",
+          "value": "2.2%"
+        }
+      ]
+    },
+    "f7616508794f3533c51730bf1e10ec53": {
+      "itemId": "f7616508794f3533c51730bf1e10ec53",
+      "itemName": "헤드라이너의 웨이비 헤어[A타입]",
+      "itemRarity": "커먼",
+      "itemTypeId": "5f41b95e310c27783378edde2d24c3dd",
+      "itemType": "아바타",
+      "itemTypeDetailId": "53a7580c73d4a699010616a7716b9781",
+      "itemTypeDetail": "머리",
+      "itemAvailableLevel": 1,
+      "itemExplain": "",
+      "itemExplainDetail": "",
+      "itemFlavorText": "",
+      "fame": 69,
+      "setItemId": "97e8b72f066bc86b339cad1f8e66f4f5",
+      "setItemName": "전직의 서 아바타 세트",
+      "jobs": [
+        {
+          "jobId": "b9cb48777665de22c006fabaf9a560b3",
+          "jobName": "아처"
+        }
+      ],
+      "itemStatus": [
+        {
+          "name": "모험가 명성",
+          "value": 69
+        }
+      ]
+    }
+  },
+  "card": {
+    "role": "buffer",
+    "stats": {
+      "role": "buffer",
+      "townIntelligence": 5847,
+      "buff30": null,
+      "buff50": null,
+      "switchingLevel": null
+    },
+    "score": null,
+    "serverRank": null,
+    "set": {
+      "setItemId": "93e7825053bdec4e0f4c12837cf4f57e",
+      "name": "환상의 에테리얼 오브 아츠 세트",
+      "rarityName": "태초",
+      "point": {
+        "current": 2550,
+        "min": 2550,
+        "max": 2550
+      },
+      "imageItemId": "b18e7187087ec03a300e22d171e83ce4",
+      "slots": [
+        {
+          "slotId": "JACKET",
+          "rarity": "레전더리"
+        },
+        {
+          "slotId": "SHOULDER",
+          "rarity": "레전더리"
+        },
+        {
+          "slotId": "PANTS",
+          "rarity": "유니크"
+        },
+        {
+          "slotId": "SHOES",
+          "rarity": "유니크"
+        },
+        {
+          "slotId": "WAIST",
+          "rarity": "유니크"
+        },
+        {
+          "slotId": "AMULET",
+          "rarity": "태초"
+        },
+        {
+          "slotId": "WRIST",
+          "rarity": "에픽"
+        },
+        {
+          "slotId": "RING",
+          "rarity": "유니크"
+        },
+        {
+          "slotId": "SUPPORT",
+          "rarity": "레전더리"
+        },
+        {
+          "slotId": "MAGIC_STON",
+          "rarity": "에픽"
+        },
+        {
+          "slotId": "EARRING",
+          "rarity": "에픽"
+        }
+      ],
+      "rarityCounts": [
+        {
+          "rarity": "레전더리",
+          "count": 3
+        },
+        {
+          "rarity": "유니크",
+          "count": 4
+        },
+        {
+          "rarity": "태초",
+          "count": 1
+        },
+        {
+          "rarity": "에픽",
+          "count": 3
+        }
+      ]
+    },
+    "oath": {
+      "itemId": "316e1b0f26a3a471be2a95e33a315171",
+      "name": "영겁의 안개 서약",
+      "rarity": "에픽",
+      "point": 455,
+      "setName": "야망의 용투 서약",
+      "optionName": "용투 : 세계를 태우는 불꽃",
+      "setPoint": {
+        "current": 905,
+        "min": 830,
+        "max": 910
+      },
+      "upgrades": [],
+      "crystals": [
+        {
+          "slotNo": 0,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 1,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 2,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 3,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 4,
+          "itemId": "089e68a1c3a6103f1323dc51c231d6ab",
+          "name": "용투 : 완전한 광휘 결정",
+          "rarity": "에픽",
+          "setPoint": 165
+        },
+        {
+          "slotNo": 5,
+          "itemId": "089e68a1c3a6103f1323dc51c231d6ab",
+          "name": "용투 : 완전한 광휘 결정",
+          "rarity": "에픽",
+          "setPoint": 165
+        },
+        {
+          "slotNo": 6,
+          "itemId": "6edbae57d1a6f5aa7838126874324906",
+          "name": "용투 : 선명한 광휘 결정",
+          "rarity": "레전더리",
+          "setPoint": 125
+        },
+        {
+          "slotNo": 7,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 8,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 9,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        },
+        {
+          "slotNo": 10,
+          "itemId": "a4a263850a49401e8f174ce437596486",
+          "name": "용투 : 희미한 광휘 결정",
+          "rarity": "유니크",
+          "setPoint": 85
+        }
+      ],
+      "rarityCounts": [
+        {
+          "rarity": "유니크",
+          "count": 8
+        },
+        {
+          "rarity": "에픽",
+          "count": 2
+        },
+        {
+          "rarity": "레전더리",
+          "count": 1
+        }
+      ]
+    },
+    "investment": [
+      {
+        "slotId": "WEAPON",
+        "slotName": "무기",
+        "itemId": "4c2c36b92f60155c579d36eea9786324",
+        "itemName": "시크릿 듀엣",
+        "rarity": "에픽",
+        "reinforce": {
+          "kind": "reinforce",
+          "value": 0,
+          "amplificationName": null
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 110
+            },
+            {
+              "name": "지능",
+              "value": 110
+            },
+            {
+              "name": "체력",
+              "value": 110
+            },
+            {
+              "name": "정신력",
+              "value": 110
+            },
+            {
+              "name": "캐스트속도",
+              "value": "7%"
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "JACKET",
+        "slotName": "상의",
+        "itemId": "b18e7187087ec03a300e22d171e83ce4",
+        "itemName": "수습 여우의 상의",
+        "rarity": "레전더리",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "SHOULDER",
+        "slotName": "머리어깨",
+        "itemId": "4e13a0e608282e52bfd188532a7bf8b4",
+        "itemName": "수습 여우의 보호 어깨",
+        "rarity": "레전더리",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "PANTS",
+        "slotName": "하의",
+        "itemId": "cceec27707a6dbd029322483c679c124",
+        "itemName": "견습 여우의 그림자 하의",
+        "rarity": "유니크",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 125
+            },
+            {
+              "name": "지능",
+              "value": 125
+            },
+            {
+              "name": "체력",
+              "value": 125
+            },
+            {
+              "name": "정신력",
+              "value": 125
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "WAIST",
+        "slotName": "벨트",
+        "itemId": "893d167b57f729204fb8278bf05d676f",
+        "itemName": "견습 여우의 비밀 벨트",
+        "rarity": "유니크",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            },
+            {
+              "name": "물리 크리티컬 히트",
+              "value": "7%"
+            },
+            {
+              "name": "마법 크리티컬 히트",
+              "value": "7%"
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "SHOES",
+        "slotName": "신발",
+        "itemId": "78e3c4947c76867534ce0b2241093809",
+        "itemName": "견습 여우의 은빛 신발",
+        "rarity": "유니크",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "AMULET",
+        "slotName": "목걸이",
+        "itemId": "e468101e457344d9824a0f1588152f06",
+        "itemName": "대 여우의 영혼 목걸이",
+        "rarity": "태초",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 90
+            },
+            {
+              "name": "지능",
+              "value": 90
+            },
+            {
+              "name": "체력",
+              "value": 90
+            },
+            {
+              "name": "정신력",
+              "value": 90
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "WRIST",
+        "slotName": "팔찌",
+        "itemId": "463cc16ca330c26a15caba314d2c1a5c",
+        "itemName": "고유 - 모독자의 조소 팔찌",
+        "rarity": "에픽",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 90
+            },
+            {
+              "name": "지능",
+              "value": 90
+            },
+            {
+              "name": "체력",
+              "value": 90
+            },
+            {
+              "name": "정신력",
+              "value": 90
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "RING",
+        "slotName": "반지",
+        "itemId": "40249d82eafb0137b0e081a94c40785d",
+        "itemName": "견습 여우의 매혹 반지",
+        "rarity": "유니크",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 0,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 90
+            },
+            {
+              "name": "지능",
+              "value": 90
+            },
+            {
+              "name": "체력",
+              "value": 90
+            },
+            {
+              "name": "정신력",
+              "value": 90
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "SUPPORT",
+        "slotName": "보조장비",
+        "itemId": "dd267f29006748266a62a816b5b05d48",
+        "itemName": "수습 여우의 숨결 부적 보조장비",
+        "rarity": "레전더리",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 6,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "MAGIC_STON",
+        "slotName": "마법석",
+        "itemId": "9623d7f5197b40a96dffd78c65d57287",
+        "itemName": "고위 여우의 구슬 마법석",
+        "rarity": "에픽",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 3,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 100
+            },
+            {
+              "name": "지능",
+              "value": 100
+            },
+            {
+              "name": "체력",
+              "value": 100
+            },
+            {
+              "name": "정신력",
+              "value": 100
+            }
+          ],
+          "grade": null
+        }
+      },
+      {
+        "slotId": "EARRING",
+        "slotName": "귀걸이",
+        "itemId": "3c72626a0afb037b8b2b1f226eca6176",
+        "itemName": "고위 여우의 속삭임 귀걸이",
+        "rarity": "에픽",
+        "reinforce": {
+          "kind": "amplify",
+          "value": 2,
+          "amplificationName": "차원의 정신력"
+        },
+        "enchant": {
+          "status": [
+            {
+              "name": "힘",
+              "value": 175
+            },
+            {
+              "name": "지능",
+              "value": 175
+            },
+            {
+              "name": "체력",
+              "value": 175
+            },
+            {
+              "name": "정신력",
+              "value": 175
+            }
+          ],
+          "grade": null
+        }
+      }
+    ]
+  }
+}
