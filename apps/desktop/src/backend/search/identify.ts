@@ -65,7 +65,8 @@ export function isCharacterSearchNickname(nickname: string | undefined): nicknam
   )
 }
 
-function validateSelectionPolicy(policy: CharacterSelectionPolicy): void {
+/** 식별 기준이 계약 범위인지 확인한다. 등록 시점 검증과 식별기 생성이 함께 쓴다. */
+export function validateSelectionPolicy(policy: CharacterSelectionPolicy): void {
   if (
     policy == null ||
     !Number.isFinite(policy.maxDistance) ||

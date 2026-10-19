@@ -5,9 +5,9 @@ import { createAuthCoordinator } from '../auth/coordinator'
 import type { AuthCoordinator } from '../auth/types'
 import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixtures'
 import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
-import type { PortraitMatchPolicy } from './portrait-match'
-import type { PortraitEdgeMatchPolicy } from './portrait-edges'
 import type { SearchSnapshot } from '../../preload/common/types/search'
+import type { CharacterSelectionPolicy } from './identify'
+import type { PortraitColorPolicy } from './portrait-color'
 
 vi.mock('../capture/native-frame', () => ({
   bindWindowFrame: () => () => ({ kind: 'unsupported' })
@@ -56,9 +56,8 @@ export function jsonResponse({
 export async function createSearchFixture(
   signedIn = false,
   searchKind: 'capture' | 'manual' | 'raid' = 'capture',
-  portraitMatchPolicy?: PortraitMatchPolicy,
-  details?: Parameters<typeof registerCaptureIpc>[1],
-  portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
+  portraitColorPolicy?: PortraitColorPolicy & CharacterSelectionPolicy,
+  details?: Parameters<typeof registerCaptureIpc>[1]
 ): Promise<{
   auth: AuthCoordinator
   event: IpcMainInvokeEvent
@@ -108,8 +107,7 @@ export async function createSearchFixture(
       apiOrigin: API_ORIGIN,
       fetch: fetchSearch,
       clock: harness.clock,
-      portraitMatchPolicy,
-      portraitEdgeMatchPolicy
+      portraitColorPolicy
     },
     details
   )

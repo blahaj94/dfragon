@@ -24,7 +24,7 @@ import { fetchApi } from './api-fetch'
 import { readReleaseFeed } from './update-notice/http'
 import { createUpdateNotices } from './update-notice/notices'
 import { registerUpdateNoticeWindow } from './update-notice/ipc-handler'
-import { INITIAL_PORTRAIT_EDGE_POLICY } from './search/portrait-policy'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './search/portrait-policy'
 import { createLazyScoreEngine, loadScoreEngine, resolveScoreLibraryPath } from './score/engine'
 import { registerDesktopShortcuts } from './shortcuts/register'
 import { DESKTOP_SHORTCUTS } from '../preload/common/types/desktop-shortcut'
@@ -286,7 +286,7 @@ app.whenReady().then(async () => {
           : {
               apiOrigin,
               clock: createAuthRuntimeEffects().createSearchClock(),
-              portraitEdgeMatchPolicy: INITIAL_PORTRAIT_EDGE_POLICY,
+              portraitColorPolicy: INITIAL_PORTRAIT_COLOR_POLICY,
               score: createLazyScoreEngine(() =>
                 loadScoreEngine({
                   path: resolveScoreLibraryPath({
