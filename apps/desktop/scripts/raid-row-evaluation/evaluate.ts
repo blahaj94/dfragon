@@ -1,17 +1,23 @@
 import {
+  type DNFRaidParticipantDetection,
   type DNFRaidValueColumnKind,
   type DNFRaidValueNotation,
   parseDNFRaidValueNotation
 } from '@dfragon/lib'
-import type { JobOcrPreprocessing, JobOcrReader } from './job-ocr'
+import type { JobOcrReader } from './job-ocr'
 import { matchJobName, normalizeJobName } from './job-name'
-import type { ManifestCandidate, ManifestRow } from './manifest'
+import { COLUMN_KINDS, type ManifestCandidate, type ManifestRow } from './manifest'
 
 const K_NOTATION_PATTERN = /K$/
 const WHITESPACE_PATTERN = /\s+/gu
 const AWAKENING_MARK_PATTERN = /^眞/u
 
-export const JOB_OCR_PREPROCESSINGS: readonly JobOcrPreprocessing[] = ['nickname', 'raw']
+/**
+ * `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬, `raw`는 원본 색 그대로다. 제품의 직업명
+ * 인식 경로는 아직 없으므로 두 전처리를 모두 측정한다.
+ */
+export const JOB_OCR_PREPROCESSINGS = ['nickname', 'raw'] as const
+export type JobOcrPreprocessing = (typeof JOB_OCR_PREPROCESSINGS)[number]
 
 export type RowObservation = Readonly<{
   caseId: string
@@ -28,7 +34,7 @@ export type RowObservation = Readonly<{
 export type CaseObservation = Readonly<{
   caseId: string
   resolution: string
-  detection: 'found' | 'not-found' | 'ambiguous' | 'search-limit'
+  detection: DNFRaidParticipantDetection['status']
   matchScore: number | null
   expectedKind: DNFRaidValueColumnKind
   observedKind: DNFRaidValueColumnKind | null
@@ -96,7 +102,9 @@ export type EvaluationSummary = Readonly<{
 }>
 
 function rate(values: readonly boolean[]): Rate {
-  return { matched: values.filter(Boolean).length, total: values.length }
+  const matched = values.filter(Boolean).length
+
+  return { matched, total: values.length }
 }
 
 function countBy<T extends string>(values: readonly T[]): Record<T, number> {
@@ -128,7 +136,11 @@ function jobOcrSummary(
   preprocessing: JobOcrPreprocessing,
   jobNames: readonly string[]
 ): JobOcrSummary {
-  const read = rows.map((row) => ({ row, text: row.jobText?.[preprocessing] ?? '' }))
+  const read = rows.map((row) => {
+    const text = row.jobText?.[preprocessing] ?? ''
+
+    return { row, text }
+  })
   const exactRaw = rate(read.map(({ row, text }) => text === row.expected.visibleJobText))
   const exactWithoutSpaceAndMark = rate(
     read.map(
@@ -240,9 +252,8 @@ export function summarize(
   jobOcrSkipReason: string | null
 ): EvaluationSummary {
   const rows = cases.flatMap((entry) => entry.rows)
-  const kinds: readonly DNFRaidValueColumnKind[] = ['fame', 'equipment-score', 'unknown']
   const detection = Object.fromEntries(
-    kinds.map((kind) => {
+    COLUMN_KINDS.map((kind) => {
       const matching = cases.filter((entry) => entry.expectedKind === kind)
       const scores = matching.flatMap((entry) =>
         entry.matchScore === null ? [] : [entry.matchScore]
@@ -270,7 +281,7 @@ export function summarize(
   }
   const resolutionCounts = countBy(rows.map((row) => row.resolution))
   const columnKinds = Object.fromEntries(
-    kinds.map((kind) => [kind, rows.filter((row) => row.columnKind === kind).length])
+    COLUMN_KINDS.map((kind) => [kind, rows.filter((row) => row.columnKind === kind).length])
   ) as Record<DNFRaidValueColumnKind, number>
   const kNotationRows = rows.filter((row) => K_NOTATION_PATTERN.test(row.expected.valueText)).length
   const clippedJobRows = rows.filter((row) => row.expected.jobClipped).length

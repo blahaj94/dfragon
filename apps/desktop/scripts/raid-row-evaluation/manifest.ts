@@ -5,7 +5,11 @@ import type { DNFRaidValueColumnKind } from '@dfragon/lib'
 import type { CharacterImage } from '../../src/preload/common/types/character'
 
 const MANIFEST_FILE = 'manifest.json'
-const COLUMN_KINDS: readonly DNFRaidValueColumnKind[] = ['fame', 'equipment-score', 'unknown']
+export const COLUMN_KINDS: readonly DNFRaidValueColumnKind[] = [
+  'fame',
+  'equipment-score',
+  'unknown'
+]
 
 /** 정답을 아는 상태에서 따로 모은 동명 후보 값이다. 이 도구는 네트워크를 쓰지 않는다. */
 export type ManifestCandidate = Readonly<{

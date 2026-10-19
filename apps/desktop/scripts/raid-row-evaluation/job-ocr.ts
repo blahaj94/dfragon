@@ -9,16 +9,12 @@ import {
   normalizedNicknameBgr
 } from '../../src/frontend/src/lib/paddle-recognition'
 import type { CharacterImage } from '../../src/preload/common/types/character'
+import type { JobOcrPreprocessing } from './evaluate'
 
 const RGBA_CHANNELS = 4
 const DICTIONARY_CARRIAGE_RETURN_PATTERN = /\r/g
 const DICTIONARY_FINAL_NEWLINE_PATTERN = /\n$/
 
-/**
- * `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬, `raw`는 원본 색 그대로다. 제품의 직업명
- * 인식 경로는 아직 없으므로 두 전처리를 모두 측정한다.
- */
-export type JobOcrPreprocessing = 'nickname' | 'raw'
 export type JobOcrReader = (
   crop: CharacterImage,
   preprocessing: JobOcrPreprocessing
