@@ -1,34 +1,44 @@
 // @vitest-environment jsdom
-import { act } from 'react'
+import { act, type ComponentProps } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../components/ColorThemeProvider'
 import { SettingsSection } from './SettingsSection'
 import type { DeveloperModeState } from '../hooks/useDeveloperMode'
-import type { BuildVersions } from '../../../preload/common/types/build-versions'
+
+// 불러오기 실패 경로는 이 값을 켜서 데이터 읽기를 실패시킨다.
+const licenseCatalog = vi.hoisted(() => ({ failing: false }))
 
 vi.mock('virtual:dfragon-desktop-licenses', () => ({
-  default: [
-    {
-      name: 'Example',
-      version: '1.2.3',
-      license: 'MIT',
-      documents: [
-        {
-          name: 'LICENSE',
-          text: 'Copyright Example\n<script>untrusted()</script>\nFull original text.'
-        },
-        { name: 'NOTICE', text: 'Additional attribution' }
-      ]
-    },
-    {
-      name: 'Needs original',
-      version: '1.0.0',
-      license: 'ISC · 원문 확인 필요',
-      documents: [{ name: 'LICENSE-STATUS.txt', text: 'Original not available' }]
+  get default() {
+    if (licenseCatalog.failing) {
+      throw new Error('test catalog unavailable')
     }
-  ]
+
+    return catalogEntries
+  }
 }))
+
+const catalogEntries = [
+  {
+    name: 'Example',
+    version: '1.2.3',
+    license: 'MIT',
+    documents: [
+      {
+        name: 'LICENSE',
+        text: 'Copyright Example\n<script>untrusted()</script>\nFull original text.'
+      },
+      { name: 'NOTICE', text: 'Additional attribution' }
+    ]
+  },
+  {
+    name: 'Needs original',
+    version: '1.0.0',
+    license: 'ISC · 원문 확인 필요',
+    documents: [{ name: 'LICENSE-STATUS.txt', text: 'Original not available' }]
+  }
+]
 
 let root: ReturnType<typeof createRoot>
 
@@ -50,7 +60,7 @@ afterEach(async () => {
   await act(async () => root.unmount())
   document.body.replaceChildren()
   vi.unstubAllGlobals()
-  Reflect.deleteProperty(window, 'versions')
+  licenseCatalog.failing = false
 })
 
 function button(label: string): HTMLButtonElement {
@@ -72,34 +82,80 @@ function developerSwitch(): HTMLElement | undefined {
   })
 }
 
+async function renderSettings(props: ComponentProps<typeof SettingsSection>): Promise<void> {
+  await act(async () =>
+    root.render(
+      <ColorThemeProvider initialTheme="dark">
+        <SettingsSection {...props} />
+      </ColorThemeProvider>
+    )
+  )
+}
+
+function readyMode(change: Partial<DeveloperModeState> = {}): DeveloperModeState {
+  return {
+    status: 'ready',
+    enabled: false,
+    updating: false,
+    retry: vi.fn(),
+    setEnabled: vi.fn(),
+    ...change
+  }
+}
+
+it('설정 대화상자는 두 메뉴와 메뉴 아래쪽 계정 버튼, 앱 이름을 두고 열린 동안 설정 버튼에 열림 속성을 붙인다', async () => {
+  await renderSettings({ account: <button type="button">로그인</button> })
+  const trigger = button('설정')
+  expect(trigger.hasAttribute('data-popup-open')).toBe(false)
+  await click('설정')
+  const dialog = document.querySelector('[role="dialog"]')!
+  expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('설정')
+  expect(trigger.hasAttribute('data-popup-open')).toBe(true)
+  const menu = dialog.querySelector('nav[aria-label="설정 메뉴"]')!
+  expect([...menu.querySelectorAll('button')].map((element) => element.textContent)).toEqual([
+    '라이선스 사용고지',
+    '개발자 모드',
+    '로그인'
+  ])
+  expect(menu.textContent).toContain('DFragon Desktop')
+  expect(dialog.textContent).not.toContain('버전 정보')
+  expect(dialog.textContent).not.toContain('앱 정보')
+  await click('닫기')
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+  expect(trigger.hasAttribute('data-popup-open')).toBe(false)
+})
+
 it('설정에서 전체 고지를 안전한 텍스트로 표시하고 목록 포커스를 복원한다', async () => {
   await click('설정')
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  expect(document.body.textContent).toContain('원문 확인 필요')
+  const list = document.querySelector('ul[aria-label="라이선스 사용고지"]')!
+  expect([...list.querySelectorAll('button')].map((element) => element.textContent)).toEqual([
+    'Example1.2.3MIT',
+    'Needs original1.0.0ISC · 원문 확인 필요'
+  ])
+  expect(document.querySelector('input')).toBeNull()
   await click('Example')
   expect(document.activeElement?.textContent).toBe('Example')
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('MIT')
   expect([...document.querySelectorAll('pre')].map((element) => element.textContent)).toEqual([
     'Copyright Example\n<script>untrusted()</script>\nFull original text.',
     'Additional attribution'
   ])
   expect(document.querySelector('script')).toBeNull()
-  await click('라이선스 목록')
+  const back = [...document.querySelectorAll<HTMLButtonElement>('section button')].find(
+    (element) => element.textContent === '라이선스 사용고지'
+  )!
+  await act(async () => back.click())
   expect(document.activeElement).toBe(button('Example'))
   await click('닫기')
   expect(document.querySelector('[role="dialog"]')).toBeNull()
   await click('설정')
   expect(document.querySelector('pre')).toBeNull()
-  expect(document.body.textContent).toContain('2개 구성 요소')
+  expect(document.querySelectorAll('ul[aria-label="라이선스 사용고지"] li')).toHaveLength(2)
 })
 
-it('검색 결과 없음과 Escape 닫기를 제공한다', async () => {
+it('Escape로 설정 대화상자를 닫는다', async () => {
   await click('설정')
-  const input = document.querySelector('input')!
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'absent')
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-  })
-  expect(document.body.textContent).toContain('검색 결과가 없습니다')
   await act(async () => {
     document.activeElement!.dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })
@@ -108,145 +164,78 @@ it('검색 결과 없음과 Escape 닫기를 제공한다', async () => {
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
-it('라이선스가 기본 메뉴이며 개발 모드는 명시적으로 설정할 수 있다', async () => {
-  const setEnabled = vi.fn()
+it('라이선스가 기본 메뉴이며 개발 모드는 설명, 상태 글 없이 스위치로 설정한다', async () => {
   const openDeveloperWorkbench = vi.fn()
-  const mode: DeveloperModeState = {
-    status: 'ready',
-    enabled: false,
-    updating: false,
-    retry: vi.fn(),
-    setEnabled
-  }
+  const mode = readyMode()
 
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider initialTheme="dark">
-        <SettingsSection developerMode={mode} onOpenDeveloperWorkbench={openDeveloperWorkbench} />
-      </ColorThemeProvider>
-    )
-  )
+  await renderSettings({ developerMode: mode, onOpenDeveloperWorkbench: openDeveloperWorkbench })
   await click('설정')
-  expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('라이선스')
+  expect(document.querySelector('[aria-current="page"]')?.textContent).toBe('라이선스 사용고지')
   await click('개발자 모드')
-  expect(document.querySelector('[aria-current="page"]')?.textContent).toContain('개발자 모드')
-  expect(document.body.textContent).toContain('개발자 모드 꺼짐')
+  expect(document.querySelector('[aria-current="page"]')?.textContent).toBe('개발자 모드')
+  const content = document.querySelector('section[aria-label="개발자 모드"]')!
+  expect(content.textContent).toBe('개발자 모드')
+  expect(document.querySelector('[role="status"]')).toBeNull()
   expect(developerSwitch()?.getAttribute('aria-checked')).toBe('false')
-  expect(document.body.textContent).not.toContain('개발 도구 열기')
   await act(async () => developerSwitch()!.click())
-  expect(setEnabled).toHaveBeenCalledExactlyOnceWith(true)
+  expect(mode.setEnabled).toHaveBeenCalledExactlyOnceWith(true)
   expect(openDeveloperWorkbench).not.toHaveBeenCalled()
 
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider initialTheme="dark">
-        <SettingsSection
-          developerMode={{ ...mode, enabled: true }}
-          onOpenDeveloperWorkbench={openDeveloperWorkbench}
-        />
-      </ColorThemeProvider>
-    )
-  )
+  await renderSettings({
+    developerMode: { ...mode, enabled: true },
+    onOpenDeveloperWorkbench: openDeveloperWorkbench
+  })
   // 다시 렌더링해도 설정 dialog는 열린 채로 남는다. 열린 modal 뒤의 trigger는 누를 수 없다.
   expect(document.querySelector('[role="dialog"]')).not.toBeNull()
-  await click('개발자 모드')
   expect(developerSwitch()?.getAttribute('aria-checked')).toBe('true')
+  expect(content.textContent).toBe('개발자 모드개발 도구 열기')
   await click('개발 도구 열기')
   expect(openDeveloperWorkbench).toHaveBeenCalledExactlyOnceWith()
   expect(document.querySelector('[role="dialog"]')).toBeNull()
 })
 
 it('개발자 모드 설정을 저장하는 동안 스위치를 바꿀 수 없다', async () => {
-  const setEnabled = vi.fn()
-  await act(async () =>
-    root.render(
-      <ColorThemeProvider initialTheme="dark">
-        <SettingsSection
-          developerMode={{
-            status: 'ready',
-            enabled: false,
-            updating: true,
-            retry: vi.fn(),
-            setEnabled
-          }}
-        />
-      </ColorThemeProvider>
-    )
-  )
+  const mode = readyMode({ updating: true })
+  await renderSettings({ developerMode: mode })
   await click('설정')
   await click('개발자 모드')
-  expect(document.body.textContent).toContain('개발자 모드 설정 저장 중')
   expect(developerSwitch()?.getAttribute('aria-disabled')).toBe('true')
+  expect(developerSwitch()?.getAttribute('aria-busy')).toBe('true')
   await act(async () => developerSwitch()!.click())
-  expect(setEnabled).not.toHaveBeenCalled()
+  expect(mode.setEnabled).not.toHaveBeenCalled()
 })
 
-it('shows the mode as unavailable when preload APIs are absent', async () => {
+it('preload API가 없으면 개발자 모드를 쓸 수 없는 이유만 한 줄로 보인다', async () => {
   await click('설정')
   await click('개발자 모드')
   expect(
     [...document.querySelectorAll('[role="status"]')].map((status) => status.textContent)
-  ).toEqual(['이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'])
+  ).toEqual(['!이 실행 환경에서는 개발자 모드를 사용할 수 없습니다.'])
   expect(document.querySelector('[role="switch"]')).toBeNull()
 })
 
-it('shows full app and service commits with partial failures and refreshes the deployed versions', async () => {
-  const initial: BuildVersions = {
-    desktop: { version: '2.3.4', commit: 'a'.repeat(40), dirty: true },
-    servers: {
-      api: { status: 'available', commit: 'b'.repeat(40) },
-      accounts: { status: 'unsupported' },
-      ocr: { status: 'unavailable' }
-    }
-  }
-  const getBuildVersions = vi
-    .fn()
-    .mockResolvedValueOnce(initial)
-    .mockResolvedValueOnce({
-      ...initial,
-      servers: { ...initial.servers, accounts: { status: 'available', commit: null } }
-    })
-  Object.defineProperty(window, 'versions', { configurable: true, value: { getBuildVersions } })
+it('개발자 모드 설정을 불러오거나 저장하지 못하면 오류 한 줄과 다시 시도를 보인다', async () => {
+  const mode: DeveloperModeState = { ...readyMode(), status: 'error' }
+  await renderSettings({ developerMode: mode })
   await click('설정')
-  expect(getBuildVersions).not.toHaveBeenCalled()
-  await click('버전 정보')
-  expect(document.body.textContent).toContain('버전 2.3.4')
-  expect(document.body.textContent).toContain('a'.repeat(40))
-  expect(document.body.textContent).toContain('b'.repeat(40))
-  expect(document.body.textContent).toContain('로컬 변경 포함')
-  expect(document.body.textContent).toContain('계정 서버 (accounts)버전 조회 미지원')
-  expect(document.body.textContent).toContain('OCR 서버연결 확인 필요')
-  await click('새로고침')
-  expect(getBuildVersions).toHaveBeenCalledTimes(2)
-  expect(document.body.textContent).toContain('커밋 정보 없음 (개발 빌드)')
-  expect(document.body.textContent).not.toContain('버전 조회 미지원')
+  await click('개발자 모드')
+  const alert = document.querySelector('[role="alert"]')!
+  expect(alert.querySelector('p')?.textContent).toBe(
+    '!개발자 모드 설정을 불러오거나 저장하지 못했습니다.'
+  )
+  expect(document.querySelector('[role="switch"]')).toBeNull()
+  await click('다시 시도')
+  expect(mode.retry).toHaveBeenCalledExactlyOnceWith()
 })
 
-it('keeps existing settings usable when the version bridge is absent', async () => {
+it('라이선스 정보를 불러오지 못하면 오류 한 줄과 다시 시도를 보이고 다시 시도로 목록을 연다', async () => {
+  licenseCatalog.failing = true
   await click('설정')
-  await click('버전 정보')
-  expect(document.body.textContent).toContain('이 실행 환경에서는 버전 정보를 조회할 수 없습니다.')
-  await click('라이선스 사용고지')
-  expect(document.body.textContent).toContain('2개 구성 요소')
-})
-
-it('retains the previous snapshot with a clear warning when refresh fails', async () => {
-  const getBuildVersions = vi
-    .fn()
-    .mockResolvedValueOnce({
-      desktop: { version: '1.2.3', commit: null, dirty: null },
-      servers: {
-        api: { status: 'unsupported' },
-        accounts: { status: 'unsupported' },
-        ocr: { status: 'unsupported' }
-      }
-    })
-    .mockRejectedValueOnce(new Error('private transport detail'))
-  Object.defineProperty(window, 'versions', { configurable: true, value: { getBuildVersions } })
-  await click('설정')
-  await click('버전 정보')
-  await click('새로고침')
-  expect(document.body.textContent).toContain('아래 정보는 이전 조회 결과입니다.')
-  expect(document.body.textContent).toContain('버전 1.2.3')
-  expect(document.body.textContent).not.toContain('private transport detail')
+  const alert = document.querySelector('[role="alert"]')!
+  expect(alert.querySelector('p')?.textContent).toBe('!라이선스 정보를 불러오지 못했습니다.')
+  expect(document.querySelector('ul[aria-label="라이선스 사용고지"]')).toBeNull()
+  licenseCatalog.failing = false
+  await click('다시 시도')
+  expect(document.querySelector('[role="alert"]')).toBeNull()
+  expect(document.querySelectorAll('ul[aria-label="라이선스 사용고지"] li')).toHaveLength(2)
 })
