@@ -78,7 +78,6 @@ test('접근 로그는 요청마다 allowlist field 한 줄만 남기고 credent
     undefined,
     undefined,
     undefined,
-    undefined,
     logs.sink
   )
   t.after(() => app.close())
@@ -212,7 +211,6 @@ test('5xx 응답에는 오류 class 이름, code와 message를 뺀 stack frame�
     undefined,
     undefined,
     undefined,
-    undefined,
     logs.sink
   )
   t.after(() => app.close())
@@ -278,7 +276,6 @@ test('Stack을 만든 뒤 message가 바뀌면 frame을 생략하고, 원래 오
     undefined,
     undefined,
     undefined,
-    undefined,
     logs.sink
   )
   t.after(() => app.close())
@@ -327,7 +324,6 @@ test('응답 header를 보내기 전에 연결이 끊기면 status 없이 aborte
     undefined,
     undefined,
     undefined,
-    undefined,
     logs.sink
   )
   t.after(async () => {
@@ -367,7 +363,6 @@ test('접근 로그 sink가 예외를 던져도 process를 끝내지 않고 다�
         throw new Error(secrets.errorDetail)
       }
     },
-    undefined,
     undefined,
     undefined,
     undefined,
