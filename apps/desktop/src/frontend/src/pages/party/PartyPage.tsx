@@ -1,6 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { cardFaces } from '../../constants/cards'
 import { CharacterCard } from '../../sections/CharacterCard'
+import type { SnapshotMark } from '../../lib/adventure-snapshot'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './PartyPage.style'
 
@@ -12,6 +13,7 @@ export function PartyPage({
   compareFaces = false,
   inputEnabled = false,
   nicknames,
+  snapshotMarks,
   onDetail,
   onSlotDetail,
   slotNotices,
@@ -31,6 +33,8 @@ export function PartyPage({
   compareFaces?: boolean
   inputEnabled?: boolean
   nicknames?: readonly (string | null)[]
+  /** 슬롯마다 모험단 순번 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
+  snapshotMarks?: readonly (SnapshotMark | undefined)[]
   onDetail?: () => void
   onSlotDetail?: (slot: number) => void
   slotNotices?: readonly (string | undefined)[]
@@ -67,6 +71,7 @@ export function PartyPage({
             character={selected}
             state={state}
             nickname={displayedNickname}
+            snapshotMark={snapshotMarks?.[index]}
             inputEnabled={inputEnabled}
             initialFace={compareFaces ? index % cardFaces.length : 0}
             onDetail={detailAction}

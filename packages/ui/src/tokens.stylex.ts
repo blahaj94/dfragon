@@ -59,6 +59,7 @@ export const colors = stylex.defineConsts({
   bracketRanker: 'var(--df-bracket-ranker)',
   cardFailure: 'var(--df-card-failure)',
   cardFailureWeak: 'var(--df-card-failure-weak)',
+  hatchAlert: 'var(--df-hatch-alert)',
   gridLine: 'var(--df-grid-line)',
   brandDragon: 'var(--df-brand-dragon)',
   brandCream: 'var(--df-brand-cream)',

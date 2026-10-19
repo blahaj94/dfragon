@@ -18,6 +18,8 @@ import {
 import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { ServerSelect } from '../components/ServerSelect'
+import { SnapshotChip } from '../components/SnapshotChip'
+import { SnapshotOverlay } from '../components/SnapshotOverlay'
 import { useLookupDraft } from '../hooks/useLookupDraft'
 import { CardImage } from '../components/CardImage'
 import { EquipmentSummary } from '../components/EquipmentSummary'
@@ -25,6 +27,7 @@ import { InvestmentTable } from '../components/InvestmentTable'
 import { styles } from './CharacterCard.style'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE, cardFaces, tierLabels } from '../constants/cards'
+import type { SnapshotMark } from '../lib/adventure-snapshot'
 import { toCharacterFace, toEquipmentFace, toInvestmentRows } from '../lib/card-faces'
 import type { CardCharacter, CharacterTier, SlotState } from '../types/cards'
 
@@ -35,6 +38,7 @@ export function CharacterCard({
   initialFace = 0,
   inputEnabled = false,
   nickname,
+  snapshotMark,
   onDetail,
   notice,
   onRetry,
@@ -50,6 +54,8 @@ export function CharacterCard({
   initialFace?: number
   inputEnabled?: boolean
   nickname?: string
+  /** 모험단 순번 스냅샷과 비교한 표시. 자리가 같거나 스냅샷이 없으면 undefined다. */
+  snapshotMark?: SnapshotMark
   onDetail?: () => void
   notice?: string
   onRetry?: () => void
@@ -114,6 +120,7 @@ export function CharacterCard({
               />
             </div>
           )}
+          {snapshotMark !== undefined && <SnapshotChip mark={snapshotMark} size="party" />}
           <span {...stylex.props(styles.spacer)} />
           {characterFound && (
             <span
@@ -372,6 +379,7 @@ export function CharacterCard({
             )}
           </div>
         </Tabs.Root>
+        {snapshotMark?.kind === 'absent' && <SnapshotOverlay />}
         <span aria-live="polite" {...stylex.props(shapes.srOnly)}>
           {hasCharacter ? character?.name : status}
         </span>

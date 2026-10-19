@@ -2,9 +2,9 @@
  * DFragon 디자인 토큰. 값과 이름은 dfragon-design design/tokens.json 기준이며,
  * 기준 commit은 f219773(dfragon-design PR #37, merge 대기)이다. 두 저장소 사이에 자동 동기화가 없으므로
  * 이 파일은 손으로 맞추고, 값을 바꿀 때 기준 commit도 함께 고친다.
- * 검색 실패의 노란색 --df-bracket-failure, --df-card-failure{,-weak}는 2026-10-20 담당자 요청으로
- * DFragon 디자인 캔버스 시안 값(#FFD54A, 14% 면)을 들였고(dfragon-design PR #43), 아직 tokens.json에는
- * 이 이름이 없다.
+ * 검색 실패의 노란색 --df-bracket-failure, --df-card-failure{,-weak}와 스냅샷에 없는 모험단의 빗금
+ * --df-hatch-alert는 2026-10-20 담당자 요청으로 DFragon 디자인 캔버스 시안 값(#FFD54A, 14% 면과 빗금)을
+ * 들였고(dfragon-design PR #43), 아직 tokens.json에는 이 이름이 없다.
  * 주의 톤 --df-fg-warning, --df-bg-warning-weak는 2026-10-19 사용자 결정으로 DFragon 디자인 캔버스의
  * 캡처 보드 값(#FFB400, 12% 면)을 들였고, 같은 값을 tokens.json에 넣은 PR #37은 아직 merge되지 않았다.
  *
@@ -72,6 +72,7 @@
   --df-bracket-ranker: #50e3c2;
   --df-card-failure: #ffd54a;
   --df-card-failure-weak: #ffd54a24;
+  --df-hatch-alert: #ff6e6024;
   --df-grid-line: #ffffff09;
 
   /* 브랜드 색(brand). 두 모드에서 같다 */
@@ -133,7 +134,7 @@
 
 /*
  * 라이트 모드(semantic-light). 여기 없는 색은 다크 값을 그대로 쓴다.
- * 카드 위에서만 쓰는 card.*, bracket.*, gridLine, tier.ranker{Surface,Well,Outline}와
+ * 카드 위에서만 쓰는 card.*, bracket.*, hatchAlert, gridLine, tier.ranker{Surface,Well,Outline}와
  * bg.well, brand.logo는 라이트 모드에서도 다크 값이며 provisional이 아니다.
  */
 :root[data-theme='light'] {

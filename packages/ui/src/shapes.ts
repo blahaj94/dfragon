@@ -20,6 +20,12 @@ export const shapes = stylex.create({
     backgroundImage: `linear-gradient(${colors.gridLine} 1px, transparent 1px), linear-gradient(90deg, ${colors.gridLine} 1px, transparent 1px)`,
     backgroundSize: `${shape.gridCell} ${shape.gridCell}`
   },
+  // 스냅샷에 없는 모험단 경고. 카드 전체를 덮는 135도 빗금과 안쪽 2px 선이다. 호출한 쪽이 카드 안에서
+  // 자리를 잡고 클릭을 통과시킨다.
+  alertHatch: {
+    backgroundImage: `repeating-linear-gradient(135deg, ${colors.hatchAlert} 0 ${stripe}, transparent ${stripe} calc(${stripe} * 2))`,
+    boxShadow: `inset 0 0 0 2px ${colors.bracketDanger}`
+  },
   // 랭커 카드의 옅은 가로 스캔선.
   scanlines: {
     backgroundImage: `repeating-linear-gradient(to bottom, ${colors.gridLine} 0 1px, transparent 1px ${space.s4})`

@@ -4,10 +4,11 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { CaptureButton } from '../../components/CaptureButton'
 import { FoldIcon } from '../../components/FoldIcon'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
-import { SnapshotIcon } from '../../components/SnapshotIcon'
+import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from '../../constants/cards'
 import { neighborSeat, type SeatDirection, type SeatOrder } from '../../lib/raid-seats'
 import { RaidCard } from '../../sections/RaidCard'
+import type { SnapshotMark } from '../../lib/adventure-snapshot'
 import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './RaidPage.style'
 
@@ -47,6 +48,10 @@ export function RaidPage({
   lastCapturedAt,
   canCapture,
   onCapture,
+  snapshotActive,
+  snapshotMarks,
+  onTakeSnapshot,
+  onClearSnapshot,
   collapsed,
   onToggleCollapsed,
   onLookup,
@@ -80,6 +85,13 @@ export function RaidPage({
   /** Alt+R이 지금 공대 회차를 시작할 수 있는지. 아니면 버튼도 누를 수 없다. */
   canCapture: boolean
   onCapture: () => void
+  /** 모험단 순번 스냅샷을 켜 둔 상태 */
+  snapshotActive: boolean
+  /** 화면 자리 0~11마다 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
+  snapshotMarks: readonly (SnapshotMark | undefined)[]
+  onTakeSnapshot: () => void
+  /** 끄기 확인을 거친 뒤 스냅샷을 지운다. */
+  onClearSnapshot: () => void
   collapsed: boolean
   onToggleCollapsed: () => void
   /** 검색 슬롯 번호로 서버와 이름을 조회한다. */
@@ -160,6 +172,7 @@ export function RaidPage({
         character={character}
         state={state}
         nickname={nickname}
+        snapshotMark={snapshotMarks[seat]}
         loading={loadingSlots?.[slot]}
         collapsed={collapsed}
         notice={slotNotices?.[slot]}
@@ -268,11 +281,11 @@ export function RaidPage({
             icon={<FoldIcon collapsed={collapsed} />}
           />
           <LastCaptureTime key={lastCapturedAt ?? 'none'} at={lastCapturedAt} />
-          <IconButton
-            size="lg"
-            aria-label="공대 모험단 순번 스냅샷"
-            disabled
-            icon={<SnapshotIcon />}
+          <SnapshotToggle
+            label="공대 모험단 순번 스냅샷"
+            active={snapshotActive}
+            onTake={onTakeSnapshot}
+            onClear={onClearSnapshot}
           />
           <CaptureButton target="공대" disabled={!canCapture} onClick={onCapture} />
         </div>

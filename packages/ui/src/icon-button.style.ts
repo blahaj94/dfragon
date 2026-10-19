@@ -34,6 +34,11 @@ export const styles = stylex.create({
     backgroundColor: colors.bgInset,
     outlineOffset: -4
   },
+  // 켜진 토글. 아이콘 색은 hover와 disabled 색보다 앞서고, 면 안쪽 2px 선이 켜짐을 한 번 더 보인다.
+  pressed: {
+    color: colors.signal,
+    boxShadow: `inset 0 0 0 2px ${colors.signal}`
+  },
   // 화면이 넘긴 SVG를 아이콘 칸에 맞춘다.
   icon: { display: 'inline-flex', width: '1em', height: '1em' }
 })
