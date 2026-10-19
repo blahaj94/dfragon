@@ -3,7 +3,8 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { CharacterDetailSnapshot } from '../../../../preload/common/types/character-detail'
-import { dealerCard } from '../../testing/fixtures/character-cards'
+import { bufferCard, dealerCard } from '../../testing/fixtures/character-cards'
+import { toneClassesOf } from '../../testing/test-support/score-tone-class'
 import { CharacterSnapshotPage } from './CharacterSnapshotPage'
 
 const snapshot: CharacterDetailSnapshot = {
@@ -112,6 +113,41 @@ it('창에 전달된 캐릭터의 서버, 순위, 조회 시각, 소속, 이름�
   expect(field('명성')).toBe('78,000')
   expect(field('장비 점수')).toBe('330,556')
   expect(container.querySelector('img')?.getAttribute('src')).toBe(snapshot.character.imageUrl)
+})
+
+// 값 칸 요소. 숫자의 색 class를 읽을 때 쓴다.
+function fieldElement(label: string): Element {
+  const term = [...container.querySelectorAll('dt')].find((item) => item.textContent === label)
+
+  return term!.nextElementSibling!
+}
+
+it('머리의 딜러 점수는 장비 점수 라벨과 파랑이다', async () => {
+  installRead(async () => snapshot)
+  await render()
+
+  expect(toneClassesOf(fieldElement('장비 점수'))).toEqual(['dealer'])
+  expect(toneClassesOf(fieldElement('명성'))).toEqual([])
+})
+
+it('머리의 버퍼 점수는 버프 점수 라벨과 초록이고 장비 점수 라벨은 없다', async () => {
+  installRead(async () => ({ ...snapshot, card: bufferCard }))
+  await render()
+
+  expect(field('버프 점수')).toBe('55,358')
+  expect(fieldElement('버프 점수').textContent).toContain('게임 버프 점수')
+  expect(toneClassesOf(fieldElement('버프 점수'))).toEqual(['buffer'])
+  expect([...container.querySelectorAll('dt')].map((term) => term.textContent)).not.toContain(
+    '장비 점수'
+  )
+})
+
+it('역할을 모르는 카드의 머리 점수는 장비 점수 라벨과 기본색이다', async () => {
+  installRead(async () => ({ ...snapshot, card: { ...dealerCard, role: null, stats: null } }))
+  await render()
+
+  expect(field('장비 점수')).toBe('330,556')
+  expect(toneClassesOf(fieldElement('장비 점수'))).toEqual([])
 })
 
 it('장비 탭은 세트와 장비 12줄, 서약 본체와 결정 12줄을 카드 값으로 채운다', async () => {
