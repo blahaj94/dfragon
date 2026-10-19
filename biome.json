@@ -17,6 +17,7 @@
       "!**/coverage",
       "!apps/desktop/src/frontend/public/ocr",
       "!packages/licenses/notices",
+      "!packages/models/score-engine",
       "!**/package-lock.json",
       "!**/*.svg"
     ]
