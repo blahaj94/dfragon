@@ -77,7 +77,7 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패 사선은 그림 칸에만 깝니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
 | 공대 화면 | 축약 카드 `sections/RaidCard`(`CardFrame`, `shapes.gridWell`, `shapes.hazardStripes`, `NumericText`) | DFragon 디자인 캔버스 공대 보드의 배치입니다. 32 폭 파티 라벨 열과 288 × 205.33(접으면 288 × 125.33) 고정 카드 네 열, 세 줄을 거터 12로 두고, 보드 영역만 가로, 세로로 스크롤하며 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 둡니다. 카드 면에 `className`을 줄 수 없어 끌기, 포커스 선(바깥 2px `signal`), 놓을 자리의 안쪽 2px 선은 카드를 감싼 자리 요소가 그립니다 |
-| 보조 창 상단 바 | `WindowBar` | 상세 창. 메인 상단 바와 같은 높이, 면, OS 창 버튼 자리 규칙을 씁니다 |
+| 상세 창 패널 | `CardFrame`, `shapes.gridWell`, `NumericText`, `Tabs`, `Tooltip` | DFragon 디자인 캔버스 상세 창 보드의 540 × 650 다크 카드 패널입니다. OS 제목줄 없이 머리 40의 빈 곳이 끌기 영역이고, 장비 줄과 묵언의 진의 칸의 설명 상자는 `Tooltip` Popup에 카드 토큰을 입힙니다. 상세 문서는 테마를 정하지 않아 `Tabs` 기본 외형도 다크 값으로 그립니다 |
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
 | 캡처할 창 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | 대화상자 면의 스크롤 영역에 잘리지 않도록 목록은 body portal에 그리며, 목록 폭은 trigger 폭(`var(--anchor-width)`)입니다 |

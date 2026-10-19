@@ -18,7 +18,7 @@ last-reviewed: 2026-10-10
 | 명령과 현재 파일 구조 | [scripts 안내](../scripts/README.md), [Repository Map](reference/repository-map.md) |
 | app, package 경계 | [Architecture Overview](architecture/overview.md) |
 | API runtime, 검색 | [API runtime](rules/api-runtime.md), [캐릭터 검색](rules/character-search.md), [캐릭터 상세](rules/character-details.md) |
-| Desktop MVP 카드, 상세 A안, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
+| Desktop MVP 카드, 상세 창, 입력 범위 | [Desktop MVP 카드 UI](rules/desktop-mvp-ui.md), [디자인 이관](reference/desktop-mvp-design-handoff.md) |
 | Desktop 개발자 모드, 크롭, 라벨, 모델 평가 | [Desktop 개발자 모드](rules/desktop-developer-mode.md) |
 | Desktop 새 버전 알림, 자동 업데이트 제안 | [Desktop 새 버전 알림과 업데이트 제안](rules/desktop-update-proposal.md) |
 | OCR 이미지 업로드, 정답, train/val/test, 패스키 관리 SPA | [OCR 자료실](rules/ocr-workspace.md), [앱 안내](../apps/ocr/README.md) |
