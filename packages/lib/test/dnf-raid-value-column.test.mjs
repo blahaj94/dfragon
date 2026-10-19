@@ -7,7 +7,7 @@ const testTitles = {
   scaled: '확대된 열 제목도 기준 크기로 맞춰 비교한다',
   unknown: '두 기준 어느 쪽과도 확실히 가깝지 않으면 unknown을 반환한다',
   validation: '기준 크기, 대비, 영역 경계를 검사하고 원본을 바꾸지 않는다',
-  notation: '쉼표와 K 표기를 값과 반올림 반폭으로 바꾼다',
+  notation: '쉼표와 K 표기를 표시될 수 있는 정수 범위로 바꾼다',
   invalidNotation: '형식이 다른 표기는 추측 없이 null을 반환한다'
 }
 
@@ -154,16 +154,16 @@ test(testTitles.validation, () => {
 
 test(testTitles.notation, () => {
   const cases = [
-    ['0', { value: 0, halfWidth: 0 }],
-    ['2,212', { value: 2212, halfWidth: 0 }],
-    ['12,345', { value: 12345, halfWidth: 0 }],
-    ['548,612', { value: 548612, halfWidth: 0 }],
-    ['1,234,567', { value: 1234567, halfWidth: 0 }],
-    ['1000.4K', { value: 1000400, halfWidth: 50 }],
-    ['1,000.4K', { value: 1000400, halfWidth: 50 }],
-    ['1000K', { value: 1000000, halfWidth: 500 }],
-    ['1.23K', { value: 1230, halfWidth: 5 }],
-    ['1.234K', { value: 1234, halfWidth: 0.5 }]
+    ['0', { min: 0, max: 0 }],
+    ['2,212', { min: 2212, max: 2212 }],
+    ['12,345', { min: 12345, max: 12345 }],
+    ['548,612', { min: 548612, max: 548612 }],
+    ['1,234,567', { min: 1234567, max: 1234567 }],
+    ['1000.4K', { min: 1000400, max: 1000499 }],
+    ['1,000.4K', { min: 1000400, max: 1000499 }],
+    ['1000K', { min: 1000000, max: 1000999 }],
+    ['1.23K', { min: 1230, max: 1239 }],
+    ['1.234K', { min: 1234, max: 1234 }]
   ]
   for (const [text, expected] of cases) {
     assert.deepEqual(parseDNFRaidValueNotation(text), expected, text)
