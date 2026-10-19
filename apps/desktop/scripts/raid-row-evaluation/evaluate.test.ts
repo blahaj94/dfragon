@@ -108,7 +108,15 @@ describe('평가 요약', () => {
       row: 2,
       valueText: '1000.4K',
       uniqueName: true,
-      candidates: [candidate({ correct: true, engineScore: 1_000_000, jobGrowName: null })]
+      // 후보의 jobGrowName이 없고 jobName이 화면 직업명과 같으면 jobName으로 센다.
+      candidates: [
+        candidate({
+          correct: true,
+          engineScore: 1_000_000,
+          jobName: '眞 크루세이더',
+          jobGrowName: null
+        })
+      ]
     })
     const homonymScoreRow = manifestRow({
       row: 3,
@@ -134,8 +142,7 @@ describe('평가 요약', () => {
 
     expect(summary.candidates).toEqual({
       status: 'run',
-      // 후보 jobName은 `프리스트(남)`이고 화면은 jobGrowName 형식이다. jobGrowName이 없는 후보는 neither다.
-      screenJobField: { jobGrowName: 2, jobName: 0, neither: 1 },
+      screenJobField: { jobGrowName: 2, jobName: 1, neither: 0 },
       fameDifferences: [10],
       engineErrors: [400],
       // 다른 직업 후보(명성 119,995)는 간격에서 빠진다.
