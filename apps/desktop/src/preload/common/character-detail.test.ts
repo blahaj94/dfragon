@@ -50,6 +50,7 @@ const snapshot: CharacterDetailSnapshot = {
   },
   card: null,
   itemTexts: {},
+  skills: null,
   freshness: {
     lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
     expiresAt: '2026-10-07T00:05:00.000Z'
@@ -213,5 +214,87 @@ it('최대 길이의 문구는 받는다', () => {
 
   expect(parseCharacterDetailSnapshot({ ...snapshot, itemTexts }).itemTexts.item.explain).toBe(
     explain
+  )
+})
+
+const skills = {
+  jobId: '41f1cdc2ff58bb5fdc287be0db2a8df3',
+  jobGrowId: '37495b941da3b1661bc900e68ef3b2c6',
+  learned: {
+    eb71e1d82d92c7e1d40500a0dcd77aa6: {
+      name: '귀참',
+      level: 60,
+      description: '무기에 귀신을 소환하여 전방 넓은 범위에 강력한 베기를 행한다.',
+      coolTime: 6,
+      vpNames: ['쾌속발도', '흐르는 칼날'],
+      vpName: '흐르는 칼날'
+    },
+    dcd536f1674630f01fc9667bb202b851: {
+      name: '신속한 무기 교체',
+      level: 1,
+      description: null,
+      coolTime: null,
+      vpNames: [],
+      vpName: null
+    }
+  }
+}
+
+it('스킬 탭 값은 직업 ID와 skillId별 스킬로 받고 복사해 넘긴다', () => {
+  const parsed = parseCharacterDetailSnapshot({ ...snapshot, skills })
+
+  expect(parsed.skills).toEqual(skills)
+  expect(parsed.skills).not.toBe(skills)
+  expect(parsed.skills?.learned).not.toBe(skills.learned)
+})
+
+it('습득 스킬은 200개까지 받는다', () => {
+  const skill = skills.learned.eb71e1d82d92c7e1d40500a0dcd77aa6
+  const learned = (count: number) =>
+    Object.fromEntries(Array.from({ length: count }, (_, index) => [`skill-${index}`, skill]))
+
+  expect(
+    Object.keys(
+      parseCharacterDetailSnapshot({ ...snapshot, skills: { ...skills, learned: learned(200) } })
+        .skills?.learned ?? {}
+    )
+  ).toHaveLength(200)
+  expect(() =>
+    parseCharacterDetailSnapshot({ ...snapshot, skills: { ...skills, learned: learned(201) } })
+  ).toThrow('CHARACTER_DETAIL_UNAVAILABLE')
+})
+
+const skill = skills.learned.eb71e1d82d92c7e1d40500a0dcd77aa6
+
+it.each([
+  ['undefined인', undefined],
+  ['배열인', []],
+  ['잘못된 jobId를 쓴', { ...skills, jobId: '../escape' }],
+  ['jobGrowId가 빠진', { jobId: skills.jobId, learned: skills.learned }],
+  ['필드가 더 있는', { ...skills, extra: true }],
+  ['잘못된 skillId를 쓴', { ...skills, learned: { '../escape': skill } }],
+  ['음수 레벨', { ...skills, learned: { skill: { ...skill, level: -1 } } }],
+  ['소수 레벨', { ...skills, learned: { skill: { ...skill, level: 1.5 } } }],
+  ['빈 이름', { ...skills, learned: { skill: { ...skill, name: ' ' } } }],
+  ['음수 쿨타임', { ...skills, learned: { skill: { ...skill, coolTime: -1 } } }],
+  ['빈 VP 이름', { ...skills, learned: { skill: { ...skill, vpName: '' } } }],
+  [
+    'VP 이름 목록에 없는 고른 VP',
+    { ...skills, learned: { skill: { ...skill, vpName: '다른 VP' } } }
+  ],
+  ['빈 VP 이름 목록 항목', { ...skills, learned: { skill: { ...skill, vpNames: [''] } } }],
+  [
+    '최대 길이를 넘은 설명',
+    {
+      ...skills,
+      learned: {
+        skill: { ...skill, description: 'a'.repeat(CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH + 1) }
+      }
+    }
+  ],
+  ['스킬 칸이 더 있는', { ...skills, learned: { skill: { ...skill, iconUrl: 'x' } } }]
+])('%s 스킬 탭 값은 거부한다', (_, value) => {
+  expect(() => parseCharacterDetailSnapshot({ ...snapshot, skills: value })).toThrow(
+    'CHARACTER_DETAIL_UNAVAILABLE'
   )
 })
