@@ -5,7 +5,7 @@ import {
   parseDNFRaidValueNotation
 } from '@dfragon/lib'
 import type { JobOcrReader } from './job-ocr'
-import { matchJobName, normalizeJobName } from './job-name'
+import { matchJobName, normalizeJobName } from '../../src/backend/search/raid-job-name'
 import { COLUMN_KINDS, type ManifestCandidate, type ManifestRow } from './manifest'
 
 const K_NOTATION_PATTERN = /K$/
@@ -13,8 +13,8 @@ const WHITESPACE_PATTERN = /\s+/gu
 const AWAKENING_MARK_PATTERN = /^眞/u
 
 /**
- * `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬, `raw`는 원본 색 그대로다. 제품의 직업명
- * 인식 경로는 아직 없으므로 두 전처리를 모두 측정한다.
+ * `nickname`은 공대 닉네임과 같은 반전 이진화와 가운데 정렬, `raw`는 원본 색 그대로다. 제품은 `nickname`
+ * 전처리를 쓰며, 비교를 위해 두 전처리를 모두 측정한다.
  */
 export const JOB_OCR_PREPROCESSINGS = ['nickname', 'raw'] as const
 export type JobOcrPreprocessing = (typeof JOB_OCR_PREPROCESSINGS)[number]
