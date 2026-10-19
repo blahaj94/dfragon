@@ -233,7 +233,7 @@ if (result.status === 'found') {
 }
 ```
 
-파티 구분과 장비 점수 판독은 `readDNFRaidParticipantMetadata(frame, rows, templates)`로 별도 실행합니다. 호출자가 준비한 표식, 글자 기준 이미지와 행별 픽셀에서 `party`, `equipmentScoreText`를 반환하며 판독할 수 없는 필드는 `null`입니다. R/Y/G, 싱글을 행 번호로 추정하지 않고, 점수는 `1000.4K` 같은 표시 문자열을 유지합니다. 숫자 환산, 정답 저장, 화면 연결은 하지 않습니다.
+파티 구분과 장비 점수 판독은 `readDNFRaidParticipantMetadata(frame, rows, templates)`로 별도 실행합니다. 호출자가 준비한 표식, 글자 기준 이미지와 행별 픽셀에서 `party`, `equipmentScoreText`를 반환하며 판독할 수 없는 필드는 `null`입니다. R/Y/G, 싱글을 행 번호로 추정하지 않고, 점수는 `1000.4K` 같은 표시 문자열을 유지합니다. 정답 저장, 화면 연결은 하지 않습니다. 같은 칸은 게임에서 명성으로 바뀔 수 있어, `classifyDNFRaidValueColumn`이 검출 결과의 `valueHeadingRegion`을 기준 열 제목과 비교해 `fame`, `equipment-score`, `unknown`을 정합니다. 표시 문자열은 `parseDNFRaidValueNotation`이 `{ value, halfWidth }`로 바꿉니다(`1000.4K`는 1,000,400 ± 50). 행의 `jobRegion`은 직업명 칸 좌표이며 OCR은 하지 않습니다.
 
 공대창 실측과 공개 API의 입력, 검증 범위는 [공대원창 검출 안내](../../docs/reference/desktop-raid-participants.md)를 참고합니다.
 
