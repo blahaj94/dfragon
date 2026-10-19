@@ -57,7 +57,7 @@ const styles = stylex.create({
 `@dfragon/ui/tokens.stylex`의 `colors`는 dfragon-design [색 체계](https://github.com/blahaj94/dfragon-design/blob/main/design/colors.md)의 의미 토큰을 camelCase 키로 옮긴 것입니다. 예를 들어 `bg.surface`는 `bgSurface`, `card.fgMuted`는 `cardFgMuted`입니다. 값은 모두 `var(--df-…)` 문자열이고 실제 값과 라이트 값은 `packages/ui/tokens.css`가 정합니다.
 
 - **신호색**: `signal`, `onSignal`은 선택, 주 버튼, 포커스에 씁니다. 개발자 작업 공간의 선택 탭 아래 2px 선이 `signal`입니다.
-- **카드 면**: `card*`, `bracket*`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`을 씁니다. 검색 실패의 노란색은 `bracketFailure`(꺾쇠), `cardFailure`(`!` 글자와 이름 입력 테두리), `cardFailureWeak`(`!` 칸 면)이고 모두 라이트에서도 같은 값입니다. 상세 창의 카드 더미도 모든 카드가 `CardFrame`의 `cardBg` 면이고, 앞 카드의 오른쪽 끝에 1px `cardBorder` 선을 그어 겹친 카드를 나눕니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
+- **카드 면**: `card*`, `bracket*`, `hatchAlert`, `gridLine`, `tierRanker*`, `bgWell`, `brandLogo`는 라이트 모드에서도 다크 값입니다. 라이트에서도 어두운 카드는 카드 토큰을 쓰고, 포커스와 선택은 `cardSignal`을 씁니다. 검색 실패의 노란색은 `bracketFailure`(꺾쇠), `cardFailure`(`!` 글자와 이름 입력 테두리), `cardFailureWeak`(`!` 칸 면)이고 모두 라이트에서도 같은 값입니다. 스냅샷에 없는 모험단의 칩과 덮는 층은 어두운 카드 위의 경고색이라 `bracketDanger`(칩 면은 그 16%)를 씁니다. 상세 창의 카드 더미도 모든 카드가 `CardFrame`의 `cardBg` 면이고, 앞 카드의 오른쪽 끝에 1px `cardBorder` 선을 그어 겹친 카드를 나눕니다. 상위, 랭커 카드의 단계 색은 `tierTop`, `tierRanker`, 랭커 면은 `tierRanker*`입니다.
 - **크롭 미리보기**: 개발자 화면의 게임 크롭 칸은 두 모드에서 같은 어두운 면인 `bgWell`을 씁니다.
 - **설정, 개발자 화면의 면**: 대화상자, 패널, 크롭 칸은 반지름 0(`radius.panel`)에 테두리 없이 `bgSurface`, `bgInset`, `bgWell` 면으로 구분합니다. 개발자 업로드 안내만 왼쪽 5px 띠의 색으로 상태를 보입니다.
 - **상단 바**: 상단 바 면은 `bgBar`이며 창 버튼 띠 색(`preload/common/window-chrome.ts`)과 맞춥니다.
@@ -70,13 +70,14 @@ dfragon-design [컴포넌트](https://github.com/blahaj94/dfragon-design/blob/ma
 | 화면 | 구현 | 참고 |
 | --- | --- | --- |
 | 버튼 | `Button` | 개발자 작업 공간의 보조 버튼은 `constants/button.style.ts`의 `buttonStyles.secondary`로 `bgControl`, `bgControlHover` 배경을 지정하고, 나머지 보조 버튼은 공용 `secondary` 외형을 그대로 씁니다 |
-| 상단 바의 테마, 설정 버튼, 파티와 공대 머리의 접기, 스냅샷 버튼 | `IconButton` | 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바는 `bar`, 파티와 공대 머리는 `bg.inset` 면에 오른쪽 위를 자른 48 정사각형 `lg`입니다 |
+| 상단 바의 테마, 설정 버튼, 파티와 공대 머리의 접기, 스냅샷 버튼 | `IconButton` | 스냅샷은 켜고 끄는 토글이라 `pressed`를 주어 `aria-pressed`와 켜짐 모양(아이콘과 안쪽 2px 선이 `signal`)을 씁니다. 접근 가능한 이름은 `aria-label`로 줍니다. 상단 바는 `bar`, 파티와 공대 머리는 `bg.inset` 면에 오른쪽 위를 자른 48 정사각형 `lg`입니다 |
 | 상단 바의 게임 연결 상태 | `StatusChip` `size="md"`를 감싼 `DialogTrigger` native button | 누르면 캡처 대화상자를 엽니다. 칩의 자른 모서리에 가리지 않게 포커스 선을 버튼 바깥에 둡니다 |
 | 파티 머리의 캡처 버튼 | `Button` `primary` `lg`와 `Kbd` `surface="signal"` | 카메라 아이콘, 구분선, `Alt`, `R` 키캡을 둡니다. 키캡과 구분선은 버튼 글자색을 따라 비활성에서도 함께 흐려집니다 |
 | 상단 내비의 검색 | `Menu`의 `RadioGroup`, `RadioItem`(`closeOnClick`) | trigger는 화면의 버튼(현재 항목 모양)을 `render`로 잇습니다 |
 | 서버 선택 | `Select` 칩, `size="xs"`, `surface="card"` | 칩과 body portal의 목록 모두 라이트 모드에서도 카드 토큰으로 그립니다 |
 | 캐릭터 카드 | `CardFrame`, `shapes.gridWell`, `NumericText` | 상태는 꺾쇠 색과 머리 오른쪽 표시로 보이고, 실패는 노란 꺾쇠, `!` 칸, 이름 입력 테두리입니다. 상위, 랭커는 `CardFrame` `top`, `ranker`가 빛줄기와 스캔선을 그립니다 |
 | 공대 화면 | 축약 카드 `sections/RaidCard`(`CardFrame`, `shapes.gridWell`, `NumericText`) | DFragon 디자인 캔버스 공대 보드의 배치입니다. 32 폭 파티 라벨 열과 288 × 205.33(접으면 288 × 125.33) 고정 카드 네 열, 세 줄을 거터 12로 두고, 보드 영역만 가로, 세로로 스크롤하며 스크롤 막대(8px, `borderStrong`)는 오른쪽 콘텐츠 여백 안에 둡니다. 카드 면에 `className`을 줄 수 없어 끌기, 포커스 선(바깥 2px `signal`), 놓을 자리의 안쪽 2px 선은 카드를 감싼 자리 요소가 그립니다 |
+| 모험단 순번 스냅샷 | `components/SnapshotToggle`(Base UI `Popover`, `IconButton`, `Button`), `SnapshotChip`, `SnapshotOverlay`(`shapes.alertHatch`) | 끄기 확인은 버튼에 붙은 `role="alertdialog"` 팝오버(폭 220, `bg.inset` 면, 위쪽 2px `signal` 선, `shapes.cutBottomRight`)이고 `취소`에 먼저 포커스합니다. 순번 칩은 서버 칩 뒤의 `role="img"`이며 파티는 높이 24, 공대는 높이 20입니다. 덮는 층은 `pointer-events: none`에 `aria-hidden`입니다. 판정은 React와 분리한 `lib/adventure-snapshot.ts`, 상태는 `hooks/useAdventureSnapshot.ts`의 메모리에만 둡니다 |
 | 보조 창 상단 바 | `WindowBar` | 상세 창. 메인 상단 바와 같은 높이, 면, OS 창 버튼 자리 규칙을 씁니다 |
 | 카드 면 탭 | `Tabs`, `surface="card"` | 탭이 폭을 나눠 채우고 현재 탭 위쪽에 2px `cardSignal` 선을 둡니다 |
 | 캡처 주기 | `Select`, `size="md"` | 개발자 작업 공간 |
