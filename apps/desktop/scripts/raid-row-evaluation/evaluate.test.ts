@@ -75,6 +75,13 @@ describe('직업명 비교 규칙', () => {
     expect(matchJobName('眞소드마스트', '眞 소드마스터')).toBe('clipped-prefix')
   })
 
+  it('읽은 문자열이 眞으로 시작하지 않으면 첫 글자를 표식 오인식으로 보고 뺀 문자열로도 비교한다', () => {
+    expect(matchJobName('핀소드마스터', '眞 소드마스터')).toBe('exact')
+    expect(matchJobName('핀데몬슬레이', '眞 데몬슬레이어')).toBe('clipped-prefix')
+    // 眞을 읽었다면 첫 글자를 빼지 않는다.
+    expect(matchJobName('眞핀소드마스터', '眞 소드마스터')).toBeNull()
+  })
+
   it('짧은 앞부분, 다른 직업, 후보보다 긴 문자열은 맞지 않는다', () => {
     expect(matchJobName('眞검', '眞 검귀')).toBeNull()
     expect(matchJobName('眞아수리', '眞 아수라')).toBeNull()
