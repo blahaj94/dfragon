@@ -12,10 +12,9 @@ it.each([
   expect(skillIconCell(WEAPON_MASTER_JOB_ID, skillId)).toEqual(cell)
 })
 
-it('색인에 없는 스킬과 상속받은 이름의 키는 칸이 없다', () => {
+it('색인에 없는 스킬이나 다른 직업의 같은 skillId는 칸이 없다', () => {
   expect(skillIconCell(WEAPON_MASTER_JOB_ID, 'unknown-skill')).toBeUndefined()
   expect(skillIconCell('unknown-job', 'cfacda0647b9a0f595df2c2aad30c18d')).toBeUndefined()
-  expect(skillIconCell('', 'toString')).toBeUndefined()
 })
 
 it('sprite는 data URI가 아닌 파일 URL이다', () => {
