@@ -9,7 +9,7 @@ import { useCharacterSearch } from './useCharacterSearch'
 import { isDnfCaptureSource } from '../lib/capture-presentation'
 import { useRestartShortcut } from './useRestartShortcut'
 
-type PartyCapture = {
+export type PartyCapture = {
   search: ReturnType<typeof useCharacterSearch>
   retrySearch: (slot: number) => void
   phase: CapturePhase

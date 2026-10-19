@@ -21,13 +21,5 @@ export const styles = stylex.create({
     minHeight: '100%',
     gap: space.s16
   },
-  // 파티 머리와 카드. 내용 높이와 무관하게 남은 높이를 나눠 받아 카드가 창 높이에 맞춰 줄어든다.
-  party: {
-    display: { default: 'flex', ':is([hidden])': 'none' },
-    flexDirection: 'column',
-    flex: '1 1 0',
-    minHeight: 0,
-    gap: space.s16
-  },
   workbench: { minHeight: '100%' }
 })

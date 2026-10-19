@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import * as stylex from '@stylexjs/stylex'
 import { useColorTheme } from './hooks/useColorTheme'
 import { useWindowChromeTheme } from './hooks/useWindowChromeTheme'
@@ -6,12 +6,10 @@ import { usePartyCapture } from './hooks/usePartyCapture'
 import { CaptureControls } from './components/CaptureControls'
 import { TopBar } from './components/TopBar'
 import { MainNav, type SearchMode } from './components/MainNav'
-import { PartyHeader } from './components/PartyHeader'
 import { usePartyCollapse } from './hooks/usePartyCollapse'
-import { PartyPage } from './pages/party/PartyPage'
-import { RaidPage } from './pages/raid/RaidPage'
+import { PartyScreen } from './pages/party/PartyScreen'
+import { RaidScreen } from './pages/raid/RaidScreen'
 import { useRaidCapture } from './hooks/useRaidCapture'
-import { useAdventureSnapshot } from './hooks/useAdventureSnapshot'
 import { LoginSection } from './sections/LoginSection'
 import { SettingsSection } from './sections/SettingsSection'
 import { DeveloperWorkbench } from './sections/DeveloperWorkbench'
@@ -19,9 +17,6 @@ import { useDeveloperMode } from './hooks/useDeveloperMode'
 import { useUpdateNotice } from './hooks/useUpdateNotice'
 import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
-import { slotAdventureName } from './lib/adventure-snapshot'
-import { filledSlotCount, toSlotCards } from './lib/slot-cards'
-import { seatValuesToSlotOrder } from './lib/raid-seats'
 import { getRaidScreenCapture } from './lib/capture-presentation'
 import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
 
@@ -40,7 +35,6 @@ function App(): React.JSX.Element {
     sourceReady: capture.sourceReady,
     receivesShortcut: searchMode === 'raid'
   })
-  const raid = raidCapture.search
   const updateNotice = useUpdateNotice()
   // 로그인 설정이 없는 빌드는 preload가 인증 API를 노출하지 않는다.
   const authApi = window.auth
@@ -49,8 +43,6 @@ function App(): React.JSX.Element {
   const party = usePartyCollapse(
     searchMode === 'raid' ? MAIN_WINDOW_SIZE.raidCollapsedHeight : MAIN_WINDOW_SIZE.collapsedHeight
   )
-  const partyCardsId = useId()
-  const raidCardsId = useId()
   const raidScreenCapture = getRaidScreenCapture({
     party: { phase: capture.phase, status: capture.status, sourceReady: capture.sourceReady },
     raid: { phase: raidCapture.phase, status: raidCapture.status }
@@ -71,40 +63,6 @@ function App(): React.JSX.Element {
     setWorkbenchOpen(false)
   }
   const showDeveloperWorkbench = workbenchOpen && developerModeEnabled
-  // 모험단 순번 스냅샷은 화면 자리 기준이라 공대는 맞바꾼 배치를 따라 자리마다 모험단을 읽는다. 파티와
-  // 공대가 각자 가진다.
-  const partySnapshot = useAdventureSnapshot(
-    capture.search.slots.map(slotAdventureName),
-    capture.startedRounds
-  )
-  const raidSnapshot = useAdventureSnapshot(
-    raidCapture.seatOrder.map((slot) => slotAdventureName(raid.slots[slot])),
-    raidCapture.startedRounds
-  )
-  const partyCards = toSlotCards({
-    slots: capture.search.slots,
-    nicknames: capture.nicknames,
-    manualSlots: capture.search.manualSlots,
-    recognizing: capture.recognizing,
-    snapshotMarks: partySnapshot.marks
-  })
-  // 공대 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
-  const raidCards = toSlotCards({
-    slots: raid.slots,
-    nicknames: raidCapture.nicknames,
-    manualSlots: raid.manualSlots,
-    recognizing: raidCapture.recognizing,
-    snapshotMarks: seatValuesToSlotOrder(raidCapture.seatOrder, raidSnapshot.marks)
-  })
-  // 공대 머리도 파티 머리처럼 캡처 진행 문구를 두지 않는다. 공대 회차 문구는 상단 바의 화면 밖 캡처
-  // 안내와 캡처 대화상자가 알린다.
-  let raidNotice = ''
-  if (raid.connectionFailed) {
-    raidNotice = '검색 연결을 확인하지 못했습니다. 앱 화면을 다시 열어 주세요.'
-  } else if (raid.detailNotice) {
-    raidNotice = raid.detailNotice
-  }
-
   function openDeveloperWorkbench(): void {
     if (!developerModeEnabled) {
       return
@@ -156,52 +114,18 @@ function App(): React.JSX.Element {
             />
           )}
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <div hidden={searchMode !== 'party'} {...stylex.props(styles.party)}>
-            <PartyHeader
-              notice={capture.search.detailNotice}
-              filledCount={filledSlotCount(partyCards)}
-              lastCapturedAt={capture.lastCompletedAt}
-              canCapture={capture.canStartCapture}
-              onCapture={capture.startRound}
-              snapshotActive={partySnapshot.active}
-              snapshotRound={partySnapshot.round}
-              onTakeSnapshot={partySnapshot.take}
-              onClearSnapshot={partySnapshot.clear}
-              collapsed={party.collapsed}
-              onToggleCollapsed={party.toggleCollapsed}
-              controls={partyCardsId}
-            />
-            <PartyPage
-              id={partyCardsId}
-              collapsed={party.collapsed}
-              resetKey={String(capture.round)}
-              slots={partyCards}
-              inputEnabled
-              onLookup={capture.search.lookupSlot}
-              onSlotDetail={capture.search.openDetails}
-            />
-          </div>
-          {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
-          <RaidPage
-            id={raidCardsId}
-            hidden={searchMode !== 'raid'}
-            notice={raidNotice}
-            resetKey={String(raidCapture.round)}
-            slots={raidCards}
-            lastCapturedAt={raidCapture.lastCompletedAt}
-            canCapture={raidCapture.canStartCapture}
-            onCapture={raidCapture.startRound}
-            snapshotActive={raidSnapshot.active}
-            snapshotRound={raidSnapshot.round}
-            onTakeSnapshot={raidSnapshot.take}
-            onClearSnapshot={raidSnapshot.clear}
-            seatOrder={raidCapture.seatOrder}
-            canMoveSeats={raidCapture.canMoveSeats}
-            onSwapSeats={raidCapture.swapSeats}
+          <PartyScreen
+            capture={capture}
+            hidden={searchMode !== 'party'}
             collapsed={party.collapsed}
             onToggleCollapsed={party.toggleCollapsed}
-            onLookup={raid.lookupSlot}
-            onSlotDetail={raid.openDetails}
+          />
+          {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
+          <RaidScreen
+            capture={raidCapture}
+            hidden={searchMode !== 'raid'}
+            collapsed={party.collapsed}
+            onToggleCollapsed={party.toggleCollapsed}
           />
         </div>
         {showDeveloperWorkbench && (
