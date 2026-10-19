@@ -119,7 +119,9 @@ Package의 published peer 범위는 조합 선정 evidence이며 실제 Web, Ele
 | `packages/models`의 `@dfragon/models` | 모델 저장소를 submodule로 고정 커밋에 묶고 `exports`로 모델, 사전 파일 경로를 제공한다. 코드와 dependency가 없으며 앱 source를 참조하지 않는다. |
 | `apps/desktop` | 빌드 설정에서 패키지 이름으로 모델 파일을 찾아 renderer 자원으로 복사한다. 어떤 모델을 넣을지와 호환성 검증은 Desktop이 소유한다. |
 
-모델 원본과 학습은 모델 저장소가 소유하며 이 저장소에 모델 파일을 commit하지 않는다. 사용법과 갱신 절차는 [패키지 안내](../../packages/models/README.md)를 따른다.
+2026-10-20 사용자 요청으로 점수 엔진 바이너리도 같은 패키지의 submodule(`score-engine`)로 입수 방식을 통일한다. 바이너리 저장소가 비공개라 기본 checkout에서 빠지며(`update = none`) 권한이 없는 checkout은 점수 없이 빌드한다. 어떤 엔진을 넣을지는 submodule 커밋으로 고정하고 Desktop이 플랫폼별 파일을 패키지 자원으로 복사한다. 이 문단은 채택 PR의 사용자 merge 후 다른 작업에 적용한다.
+
+모델 원본과 학습은 모델 저장소가 소유하며 이 저장소에 모델 파일을 commit하지 않는다. 점수 엔진의 소스와 빌드는 비공개 엔진 저장소가 소유한다. 사용법과 갱신 절차는 [패키지 안내](../../packages/models/README.md)를 따른다.
 
 ## Architecture change
 

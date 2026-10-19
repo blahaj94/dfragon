@@ -48,12 +48,25 @@ jobs:
           node-version: '26'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Both values are secrets so the private engine repository name stays masked in public logs.
-      # Fork PRs get no secrets, so those builds ship without a score engine.
-      - name: Prepare score engine
+      # The score engine submodule is private, so the recursive checkout skips it (update = none in .gitmodules).
+      # Builds without the token secret, such as fork PRs, continue without a score engine.
+      - name: Fetch score engine submodule
+        shell: bash
         env:
           DFRAGON_SCORE_ENGINE_TOKEN: ${{ secrets.DFRAGON_SCORE_ENGINE_TOKEN }}
-          DFRAGON_SCORE_ENGINE_REPOSITORY: ${{ secrets.DFRAGON_SCORE_ENGINE_REPOSITORY }}
+        run: |
+          if [[ -z "$DFRAGON_SCORE_ENGINE_TOKEN" ]]; then
+            echo "DFRAGON_SCORE_ENGINE_TOKEN is not set. Building without the score engine."
+            exit 0
+          fi
+          basic=$(printf 'x-access-token:%s' "$DFRAGON_SCORE_ENGINE_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$basic"
+          # A token without read access to the engine repository only drops the engine from test builds.
+          if ! git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $basic" \
+            submodule update --init --checkout --depth 1 packages/models/score-engine; then
+            echo "::warning::Could not fetch the score engine submodule. Building without the score engine."
+          fi
+      - name: Prepare score engine
         run: pnpm --filter @dfragon/desktop prepare:score-engine
       - run: pnpm --filter @dfragon/desktop build:test
       - name: Package the test channel portable executable

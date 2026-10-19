@@ -48,8 +48,9 @@ Root의 `biome.json`, `scripts/biome/`의 lint 플러그인, `scripts/statement-
 
 ## Models
 
-- Package: `@dfragon/models`, 위치: `packages/models`. 빌드에 넣는 학습 모델 파일을 submodule의 고정 커밋으로 제공한다. 코드와 build 명령은 없다.
+- Package: `@dfragon/models`, 위치: `packages/models`. 빌드에 넣는 학습 모델 파일과 점수 엔진 바이너리를 submodule의 고정 커밋으로 제공한다. 코드와 build 명령은 없다.
 - `ocr-finetuned`: 공개 모델 저장소 [dfragon-ocr-models](https://github.com/blahaj94/dfragon-ocr-models)의 submodule이다. Desktop의 `ocr-model.config.mjs`가 `@dfragon/models/ocr-finetuned/model.onnx`, `@dfragon/models/ocr-finetuned/characters.txt`로 찾는다. [받기와 갱신](../../packages/models/README.md)을 참고한다.
+- `score-engine`: 비공개 저장소 `blahaj94/dfragon-score-engine`의 submodule이며 `update = none`으로 기본 checkout에서 빠진다. Desktop의 `prepare-score-engine.mjs`가 플랫폼별 엔진 파일을 `resources/score/`에 복사한다.
 
 ## License tooling
 
