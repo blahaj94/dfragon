@@ -8,6 +8,8 @@ import {
   detectDNFRaidParticipantWindow,
   cropDNFRaidParticipantNicknames,
   readDNFRaidParticipantMetadata,
+  classifyDNFRaidValueColumn,
+  parseDNFRaidValueNotation,
   parseServerBuildInfo,
   matchesDNFSearchNicknamePolicy,
   DNF_SEARCH_NICKNAME_LIMITS,
@@ -28,6 +30,9 @@ import {
   type DNFRaidScoreGlyph,
   type DNFRaidMetadataTemplates,
   type DNFRaidParticipantMetadata,
+  type DNFRaidValueColumnKind,
+  type DNFRaidValueHeadingTemplates,
+  type DNFRaidValueNotation,
   type ServerBuildInfo,
   type ServerService
 } from '@dfragon/lib'
@@ -133,6 +138,20 @@ export function readRaidLabels(
 
     return { row, party, equipmentScoreText }
   })
+}
+
+export function readRaidValueColumn(
+  frame: DNFParticipantFrame,
+  region: DNFRectangle,
+  row: DNFRaidParticipantRow,
+  templates: DNFRaidValueHeadingTemplates,
+  text: string
+) {
+  const kind: DNFRaidValueColumnKind = classifyDNFRaidValueColumn(frame, region, templates)
+  const notation: DNFRaidValueNotation | null = parseDNFRaidValueNotation(text)
+  const jobRegion: DNFRectangle = row.jobRegion
+
+  return { kind, notation, jobRegion }
 }
 
 export function versionResponse(value: unknown, service: ServerService): ServerBuildInfo | null {

@@ -99,6 +99,7 @@ test(testTitles.rawCrops, () => {
   assert.deepEqual(result.window, { x: 185, y: 82, width: 465, height: 392 })
   assert.equal(result.scale, 1)
   assert.ok(result.matchScore > 0.99)
+  assert.deepEqual(result.valueHeadingRegion, { x: 305, y: 150, width: 75, height: 18 })
   assert.deepEqual(
     result.rows.map((row) => row.row),
     Array.from({ length: 12 }, (_, i) => i + 1)
@@ -121,6 +122,12 @@ test(testTitles.rawCrops, () => {
       x: 306,
       y: [171, 192, 213, 234, 255, 276, 297, 318, 339, 360, 381, 402][index],
       width: 75,
+      height: 17
+    })
+    assert.deepEqual(row.jobRegion, {
+      x: 482,
+      y: [171, 192, 213, 234, 255, 276, 297, 318, 339, 360, 381, 402][index],
+      width: 67,
       height: 17
     })
     assert.equal(row.nicknameCrop.width, 86)
@@ -202,11 +209,23 @@ for (const expected of scaledNicknameCases) {
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     )
     assert.equal(result.rows.length, 12)
+    assert.ok(Math.abs(result.valueHeadingRegion.x - (650 + 105 * expected.scale)) <= 2)
+    assert.ok(Math.abs(result.valueHeadingRegion.y - 250) <= 2)
+    assert.ok(Math.abs(result.valueHeadingRegion.width - 75 * expected.scale) <= 2)
+    assert.ok(Math.abs(result.valueHeadingRegion.height - 18 * expected.scale) <= 2)
     for (const [index, row] of result.rows.entries()) {
       assert.ok(Math.abs(row.nickname.x - expected.x) <= 2, `${row.row}행의 x`)
       assert.ok(Math.abs(row.nickname.y - expected.tops[index]) <= 2, `${row.row}행의 y`)
       assert.ok(Math.abs(row.nickname.width - expected.width) <= 2, `${row.row}행의 폭`)
       assert.ok(Math.abs(row.nickname.height - expected.height) <= 2, `${row.row}행의 높이`)
+      // 직업명 칸은 헤더 기준 x 282..349로 닉네임 칸과 같은 높이다.
+      assert.ok(
+        Math.abs(row.jobRegion.x - (650 + 282 * expected.scale)) <= 2,
+        `${row.row}행 직업 x`
+      )
+      assert.ok(Math.abs(row.jobRegion.y - expected.tops[index]) <= 2, `${row.row}행 직업 y`)
+      assert.ok(Math.abs(row.jobRegion.width - 67 * expected.scale) <= 2, `${row.row}행 직업 폭`)
+      assert.ok(Math.abs(row.jobRegion.height - expected.height) <= 2, `${row.row}행 직업 높이`)
     }
   })
 }
