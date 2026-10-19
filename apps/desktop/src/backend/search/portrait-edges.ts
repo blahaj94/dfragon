@@ -1,5 +1,5 @@
 import { setImmediate } from 'node:timers/promises'
-import type { CharacterImage, CharacterPortrait } from '../../preload/common/types/character'
+import type { CharacterImage, CharacterPortrait } from '@dfragon/desktop-contracts/types/character'
 import { PORTRAIT_MATCH_LIMITS, PortraitMatchBudgetExceededError } from './portrait-match'
 
 const RGBA_CHANNELS = 4

@@ -1,9 +1,9 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import type {
   DeveloperCollectionKind,
   DeveloperParticipantWindow,
   DeveloperPartySlot
-} from '../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import { captureParticipantWindow } from './participant-window'
 import { detectPartyFrameGeometry, PartyFrameGeometryError } from '@dfragon/lib'
 import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from './persistence'

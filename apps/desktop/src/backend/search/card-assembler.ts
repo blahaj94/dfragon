@@ -1,10 +1,10 @@
-import { characterCardSchema } from '../../preload/common/search/character-summary'
+import { characterCardSchema } from '@dfragon/desktop-contracts/search/character-summary'
 import type {
   CharacterCard,
   CharacterCardStats,
   CharacterDetails,
   CharacterScoreCalculator
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import { toScoreEngineInput } from '../score/input'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
 

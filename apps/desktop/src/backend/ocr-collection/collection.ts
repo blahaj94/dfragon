@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import type { CharacterImage } from '../../preload/common/types/character'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import type {
   CollectOcrSample,
   OcrCollectionResult
-} from '../../preload/common/types/ocr-collection'
+} from '@dfragon/desktop-contracts/types/ocr-collection'
 import {
   createCollectionPayload,
   detectCollectionCrops,

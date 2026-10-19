@@ -1,7 +1,7 @@
 import * as stylex from '@stylexjs/stylex'
 import { SupportingText } from '@dfragon/ui'
 import { styles } from './CharacterCandidates.style'
-import type { CharacterSearchRow } from '../../../preload/common/types/search'
+import type { CharacterSearchRow } from '@dfragon/desktop-contracts/types/search'
 
 const fameFormat = new Intl.NumberFormat('ko-KR', { maximumSignificantDigits: 21 })
 

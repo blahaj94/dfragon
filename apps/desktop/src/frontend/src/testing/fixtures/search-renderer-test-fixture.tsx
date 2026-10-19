@@ -1,10 +1,10 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, vi, type Mocked } from 'vitest'
-import type { WindowFrameResult } from '../../../../preload/common/types/capture'
-import type { AuthApi, AuthSnapshot } from '../../../../preload/common/types/auth'
-import type { DesktopShortcutApi } from '../../../../preload/common/types/desktop-shortcut'
-import type { SearchCommandResult, SearchSnapshot } from '../../../../preload/common/types/search'
+import type { WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
+import type { AuthApi, AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
+import type { DesktopShortcutApi } from '@dfragon/desktop-contracts/types/desktop-shortcut'
+import type { SearchCommandResult, SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 import {
   CAPTURE_ID,
   SEARCH_RUN,
@@ -12,7 +12,7 @@ import {
   searchSnapshot,
   type SearchTestApi,
   type ObservationTestApi
-} from '../../../../preload/api/search-test-fixture'
+} from '@dfragon/desktop-contracts/search/search-test-fixture'
 import { LegacyApp } from '../../fixture/legacy/LegacyApp'
 import type { PartyOcrWorker } from '../../types/capture'
 import type { PartyFrameSource } from '../../lib/party'

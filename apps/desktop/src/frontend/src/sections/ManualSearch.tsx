@@ -7,7 +7,7 @@ import {
   TextField,
   TextFieldInput
 } from '@dfragon/ui'
-import { SEARCH_ERRORS, type ManualSearchApi } from '../../../preload/common/types/search'
+import { SEARCH_ERRORS, type ManualSearchApi } from '@dfragon/desktop-contracts/types/search'
 import { createCaptureSearch, type CaptureSearch } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'

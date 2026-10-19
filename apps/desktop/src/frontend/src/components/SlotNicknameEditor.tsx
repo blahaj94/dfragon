@@ -1,7 +1,7 @@
 import type { SlotEditing } from '../types/search'
 import { useState } from 'react'
 import { Button, ContentStack, SupportingText, TextField, TextFieldInput } from '@dfragon/ui'
-import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
+import { SEARCH_ERRORS, type SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import { validManualNickname } from '../lib/manual-input'
 
 export function SlotNicknameEditor({

@@ -1,5 +1,5 @@
-import type { SelectedCharacterSummary } from '../../../preload/common/types/character'
-import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
+import type { SelectedCharacterSummary } from '@dfragon/desktop-contracts/types/character'
+import { SEARCH_ERRORS, type SearchSlot } from '@dfragon/desktop-contracts/types/search'
 import { serverNames } from '../constants/servers'
 import { MISSING_VALUE } from '../constants/cards'
 import type { CardCharacter } from '../types/cards'

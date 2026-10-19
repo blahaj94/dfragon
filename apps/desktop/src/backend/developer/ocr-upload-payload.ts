@@ -4,9 +4,9 @@ import { PNG } from 'pngjs'
 import type {
   DeveloperCollectionKind,
   DeveloperPartySlot
-} from '../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import { validatePartyFrame, type CapturedPartyFrame } from './collection-session'
-import { isDeveloperPartySlot } from '../../preload/common/developer-collection'
+import { isDeveloperPartySlot } from '@dfragon/desktop-contracts/developer-collection'
 
 /** Encodes one main-owned frame once so an auth retry keeps the same ID and bytes. */
 export function createOcrUploadPayload(

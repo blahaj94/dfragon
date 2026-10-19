@@ -2,14 +2,14 @@ import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import { validateApiOrigin } from '../auth/protocol'
 import type { AuthClock } from '../auth/types'
-import type { CharacterAppearance } from '../../preload/common/types/appearance'
+import type { CharacterAppearance } from '@dfragon/desktop-contracts/types/appearance'
 import type {
   CharacterCandidate,
   CharacterDetails,
   CharacterIdentity,
   CharacterImage
-} from '../../preload/common/types/character'
-import type { SearchErrorCode } from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/character'
+import type { SearchErrorCode } from '@dfragon/desktop-contracts/types/search'
 import { SearchHttpFailure } from './http'
 import { CHARACTER_IMAGE_LIMITS, decodeCharacterImage } from './character-image'
 import {
@@ -23,7 +23,7 @@ import {
   CHARACTER_SERVER_NAMES as SERVER_NAMES,
   characterIdentitySchema as identitySchema,
   characterImageUrl
-} from '../../preload/common/search/character-summary'
+} from '@dfragon/desktop-contracts/search/character-summary'
 
 const MAX_CHARACTER_NAME_CODE_POINTS = 12
 export const CHARACTER_HTTP_LIMITS = {

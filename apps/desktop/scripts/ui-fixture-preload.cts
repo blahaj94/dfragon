@@ -5,7 +5,7 @@ import type {
   DeveloperPartyPreviewFrame,
   DeveloperPartySlot,
   DeveloperSample
-} from '../src/preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import { contextBridge, ipcRenderer } from 'electron'
 
 // 제품 preload, IPC를 로드하지 않는다. Media API는 synthetic 거절 함수만 제공한다.

@@ -3,8 +3,11 @@ import {
   isRendererDiagnosticCode,
   parseDiagnosticEntry,
   parseDiagnosticHistory
-} from '../common/diagnostics'
-import { DIAGNOSTIC_CHANNELS, type DiagnosticApi } from '../common/types/diagnostics'
+} from '@dfragon/desktop-contracts/diagnostics'
+import {
+  DIAGNOSTIC_CHANNELS,
+  type DiagnosticApi
+} from '@dfragon/desktop-contracts/types/diagnostics'
 
 export const getDiagnosticHistory: DiagnosticApi['getDiagnosticHistory'] = async () => {
   const value: unknown = await ipcRenderer.invoke(DIAGNOSTIC_CHANNELS.history)

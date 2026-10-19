@@ -1,10 +1,10 @@
 import { ipcRenderer } from 'electron'
-import { isReleaseTag, parseUpdateNoticeSnapshot } from '../common/update-notice'
+import { isReleaseTag, parseUpdateNoticeSnapshot } from '@dfragon/desktop-contracts/update-notice'
 import {
   UPDATE_NOTICE_CHANNELS,
   type UpdateNoticeApi,
   type UpdateNoticeSnapshot
-} from '../common/types/update-notice'
+} from '@dfragon/desktop-contracts/types/update-notice'
 
 function requireSnapshot(value: unknown): UpdateNoticeSnapshot {
   const snapshot = parseUpdateNoticeSnapshot(value)

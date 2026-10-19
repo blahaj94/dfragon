@@ -1,7 +1,7 @@
 import type { ServerId } from './servers'
 import type { detailFaces } from '../constants/cards'
-import type { SearchSlot } from '../../../preload/common/types/search'
-import type { CharacterCard } from '../../../preload/common/types/character'
+import type { SearchSlot } from '@dfragon/desktop-contracts/types/search'
+import type { CharacterCard } from '@dfragon/desktop-contracts/types/character'
 
 export type DetailFace = (typeof detailFaces)[number]
 export type SlotState = SearchSlot['state']

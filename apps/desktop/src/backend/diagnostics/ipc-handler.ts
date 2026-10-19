@@ -1,9 +1,9 @@
 import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent, type Input } from 'electron'
-import { isRendererDiagnosticCode } from '../../preload/common/diagnostics'
+import { isRendererDiagnosticCode } from '@dfragon/desktop-contracts/diagnostics'
 import {
   DIAGNOSTIC_CHANNELS,
   type DiagnosticIPCFunctions
-} from '../../preload/common/types/diagnostics'
+} from '@dfragon/desktop-contracts/types/diagnostics'
 import { diagnosticLog, type DiagnosticLog } from './log'
 
 /** 신뢰한 메인 화면에 진단 기록과 DevTools 단축키를 연결한다. */

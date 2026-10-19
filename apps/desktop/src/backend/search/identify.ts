@@ -1,11 +1,11 @@
-import type { CharacterSelectionMethod } from '../../preload/common/types/search'
+import type { CharacterSelectionMethod } from '@dfragon/desktop-contracts/types/search'
 import type {
   CharacterCandidate,
   CharacterDetails,
   CharacterIdentity,
   CharacterImage,
   CharacterPortrait
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import { orderedCandidates } from './candidate-order'
 import { selectRaidCandidate, type RaidObservedValues } from './raid-candidate'
 

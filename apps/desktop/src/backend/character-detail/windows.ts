@@ -3,10 +3,10 @@ import { pathToFileURL } from 'node:url'
 import { addHandler } from '../ipc'
 import { validateDevRendererUrl } from '../renderer-document'
 import { getTitleBarOverlay } from '../window-chrome/title-bar-overlay'
-import { DETAIL_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '../../preload/common/window-chrome'
+import { DETAIL_WINDOW_SIZE, WINDOW_CHROME_COLORS } from '@dfragon/desktop-contracts/window-chrome'
 import { createCharacterDetailSnapshot } from './snapshot'
-import type { CharacterDetails } from '../../preload/common/types/character'
-import type { CharacterDetailSnapshot } from '../../preload/common/types/character-detail'
+import type { CharacterDetails } from '@dfragon/desktop-contracts/types/character'
+import type { CharacterDetailSnapshot } from '@dfragon/desktop-contracts/types/character-detail'
 
 type DetailEntry = {
   window: BrowserWindow

@@ -3,8 +3,8 @@ import type {
   SearchCommandResult,
   SearchControl,
   SearchSnapshot
-} from '../../../preload/common/types/search'
-import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
+import { SEARCH_ACTIONS } from '@dfragon/desktop-contracts/types/search'
 
 type BeginRequest = {
   signal: AbortSignal

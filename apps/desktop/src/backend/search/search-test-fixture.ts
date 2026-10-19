@@ -7,7 +7,7 @@ import { API_ORIGIN, REFRESH_0, createAuthHarness } from '../auth/auth-test-fixt
 import { registerCaptureIpc, registerCaptureWindow } from '../capture/ipc-handler'
 import type { PortraitMatchPolicy } from './portrait-match'
 import type { PortraitEdgeMatchPolicy } from './portrait-edges'
-import type { SearchSnapshot } from '../../preload/common/types/search'
+import type { SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 
 vi.mock('../capture/native-frame', () => ({
   bindWindowFrame: () => () => ({ kind: 'unsupported' })

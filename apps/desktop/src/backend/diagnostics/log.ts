@@ -1,9 +1,9 @@
-import { isDiagnosticCode } from '../../preload/common/diagnostics'
+import { isDiagnosticCode } from '@dfragon/desktop-contracts/diagnostics'
 import {
   DIAGNOSTIC_HISTORY_LIMIT,
   type DiagnosticCode,
   type DiagnosticEntry
-} from '../../preload/common/types/diagnostics'
+} from '@dfragon/desktop-contracts/types/diagnostics'
 
 export type DiagnosticLog = Readonly<{
   report: (code: DiagnosticCode) => void

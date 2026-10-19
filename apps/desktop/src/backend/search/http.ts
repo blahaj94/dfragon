@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import { validateApiOrigin } from '../auth/protocol'
 import type { AuthClock } from '../auth/types'
-import { SEARCH_ERRORS } from '../../preload/common/types/search'
-import type { CharacterSearchRow, SearchErrorCode } from '../../preload/common/types/search'
+import { SEARCH_ERRORS } from '@dfragon/desktop-contracts/types/search'
+import type { CharacterSearchRow, SearchErrorCode } from '@dfragon/desktop-contracts/types/search'
 
 const nonblank = z.string().refine((value) => {
   const hasText = value.trim().length > 0

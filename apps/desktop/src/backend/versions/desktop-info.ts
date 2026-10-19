@@ -1,4 +1,4 @@
-import type { BuildVersions } from '../../preload/common/types/build-versions'
+import type { BuildVersions } from '@dfragon/desktop-contracts/types/build-versions'
 
 declare const __DFRAGON_DESKTOP_BUILD__: Pick<BuildVersions['desktop'], 'commit' | 'dirty'>
 

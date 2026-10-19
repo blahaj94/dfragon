@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect } from 'react'
 import { useMachine } from '@xstate/react'
-import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
+import type { AuthApi, AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
 import type { AuthIntent } from '../types/auth'
 import { authBridgeMachine } from '../lib/auth-bridge-machine'
 

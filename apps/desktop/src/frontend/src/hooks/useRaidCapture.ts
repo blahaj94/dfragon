@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useMachine } from '@xstate/react'
 import { getRaidCapturePhase, raidCaptureMachine } from '../lib/raid-capture-machine'
-import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
+import { SEARCH_SLOT_COUNTS } from '@dfragon/desktop-contracts/types/search'
 import { createSeatOrder, swapSeats, type SeatOrder } from '../lib/raid-seats'
 import { useRaidSearch } from './useRaidSearch'
 import { useRestartShortcut } from './useRestartShortcut'

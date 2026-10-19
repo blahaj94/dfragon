@@ -1,4 +1,4 @@
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import { createPartyOcrWorker, OcrWorkerUnavailableError } from './ocr'
 import { readDeveloperImage } from './developer-images'
 import { binarizeNicknamePixels } from './nickname-pixels'

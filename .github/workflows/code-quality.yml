@@ -52,6 +52,7 @@ jobs:
       - run: pnpm --filter @dfragon/licenses test
       - run: pnpm --filter @dfragon/lib test
       - run: pnpm --filter @dfragon/ui test
+      - run: pnpm --filter @dfragon/desktop-contracts test
 
   desktop:
     name: Desktop test

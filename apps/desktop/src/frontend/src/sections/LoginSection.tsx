@@ -1,6 +1,6 @@
 import { Button, Typo } from '@dfragon/ui'
 import * as stylex from '@stylexjs/stylex'
-import type { AuthApi } from '../../../preload/common/types/auth'
+import type { AuthApi } from '@dfragon/desktop-contracts/types/auth'
 import { LoginButtonLabel } from '../components/LoginButtonLabel'
 import { RefreshIcon } from '../components/RefreshIcon'
 import { useAuthBridge } from '../hooks/useAuthBridge'

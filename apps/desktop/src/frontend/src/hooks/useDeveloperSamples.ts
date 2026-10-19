@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
 import { DEVELOPER_EVENTS } from '../constants/developer'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import { developerSamplesMachine } from '../lib/developer-samples-machine'
 
 export function useDeveloperSamples(): {

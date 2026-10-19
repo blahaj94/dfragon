@@ -4,7 +4,7 @@ import {
   WINDOW_CAPTURE_ERRORS,
   type WindowCaptureTarget
 } from '../lib/win32-window-capture'
-import type { WindowFrameResult } from '../../preload/common/types/capture'
+import type { WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
 import { reportDiagnostic } from '../diagnostics/log'
 
 export type ReadWindowFrame = () => WindowFrameResult | Promise<WindowFrameResult>

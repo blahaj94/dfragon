@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { binarizeNicknamePixels } from './nickname-pixels'
 import {
   MODEL_INPUT_HEIGHT,
@@ -14,7 +14,7 @@ import type {
   DeveloperPartySlot,
   DeveloperSample,
   DeveloperSampleSource
-} from '../../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 
 export type {
   DeveloperPartyCollectionStatus,

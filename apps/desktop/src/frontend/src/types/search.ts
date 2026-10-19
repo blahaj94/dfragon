@@ -1,4 +1,4 @@
-import type { SearchSlot } from '../../../preload/common/types/search'
+import type { SearchSlot } from '@dfragon/desktop-contracts/types/search'
 
 export type SearchView = {
   captureActive?: boolean

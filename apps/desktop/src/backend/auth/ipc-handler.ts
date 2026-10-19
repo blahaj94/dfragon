@@ -1,6 +1,6 @@
 import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
-import type { AsyncIPCFunctions } from '../../preload/common/types/ipc'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
 import type { AuthCoordinator, AuthSnapshot, AuthCommandResult } from './types'
 
 type Mutation = 'beginLogin' | 'cancelLogin' | 'retryAuth' | 'logout' | 'managePasskeys'

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { parseBuildVersions } from '../../../preload/common/build-versions'
-import type { BuildVersions, BuildVersionsApi } from '../../../preload/common/types/build-versions'
+import { parseBuildVersions } from '@dfragon/desktop-contracts/build-versions'
+import type {
+  BuildVersions,
+  BuildVersionsApi
+} from '@dfragon/desktop-contracts/types/build-versions'
 
 type VersionState =
   | { status: 'loading' | 'unavailable' | 'error'; snapshot: BuildVersions | null }

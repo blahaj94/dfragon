@@ -3,7 +3,7 @@ import '@dfragon/ui/foundation.css'
 import '../../assets/fonts.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import type { AuthApi } from '../../../../preload/common/types/auth'
+import type { AuthApi } from '@dfragon/desktop-contracts/types/auth'
 import App from '../../App'
 import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 

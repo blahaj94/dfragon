@@ -20,7 +20,7 @@ import { UpdateNotice } from './components/UpdateNotice'
 import { styles } from './App.style'
 import { searchSlotNotice, toCharacterCard } from './lib/character-card'
 import { getRaidScreenCapture } from './lib/capture-presentation'
-import { MAIN_WINDOW_SIZE } from '../../preload/common/window-chrome'
+import { MAIN_WINDOW_SIZE } from '@dfragon/desktop-contracts/window-chrome'
 
 function App(): React.JSX.Element {
   const { light } = useColorTheme()

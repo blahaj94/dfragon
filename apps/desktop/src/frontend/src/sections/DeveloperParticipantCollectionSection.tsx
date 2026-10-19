@@ -1,12 +1,12 @@
-import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import * as stylex from '@stylexjs/stylex'
 import { Button, Checkbox, Kbd, StatusChip, Typo } from '@dfragon/ui'
 import type { useDeveloperPartyCollection } from '../hooks/useDeveloperPartyCollection'
 import { getParticipantPreviewMessage } from '../lib/developer-participants'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperParticipantCollectionSection.style'
-import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
-import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
+import { DEVELOPER_COLLECTION_SLOTS } from '@dfragon/desktop-contracts/developer-collection'
+import type { DeveloperCollectionKind } from '@dfragon/desktop-contracts/types/developer'
 
 function getWindowImageAlt(raid: boolean): string {
   if (raid) {

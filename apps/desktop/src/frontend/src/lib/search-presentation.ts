@@ -1,4 +1,4 @@
-import { SEARCH_ERRORS, type SearchSlot } from '../../../preload/common/types/search'
+import { SEARCH_ERRORS, type SearchSlot } from '@dfragon/desktop-contracts/types/search'
 
 // 검색 슬롯의 결과, 오류, 대기 상태를 표시 문구로 변환한다.
 export function getSearchResultStatus(slot: SearchSlot): string {

@@ -5,7 +5,7 @@ import {
   type BuildVersions,
   type BuildVersionService,
   type ServerVersion
-} from '../../../preload/common/types/build-versions'
+} from '@dfragon/desktop-contracts/types/build-versions'
 import { styles } from './BuildVersionList.style'
 
 const serviceNames = {

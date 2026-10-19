@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
-import type { AsyncIPCFunctions } from '../common/types/ipc'
-import { parseBuildVersions } from '../common/build-versions'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import { parseBuildVersions } from '@dfragon/desktop-contracts/build-versions'
 
 export const getBuildVersions: AsyncIPCFunctions['getBuildVersions'] = async () => {
   const value: unknown = await ipcRenderer.invoke('getBuildVersions')

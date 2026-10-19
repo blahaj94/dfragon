@@ -1,6 +1,6 @@
 import { isCharacterSearchNickname } from './identify'
 import { matchesDNFSearchNicknamePolicy } from '@dfragon/lib'
-import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '@dfragon/desktop-contracts/types/search'
 import { randomUUID } from 'node:crypto'
 import { createActor } from 'xstate'
 import type { SearchOutcome, SearchRuntime } from './request'
@@ -10,10 +10,10 @@ import {
   type RequestIdentity,
   type RateWait
 } from './slot-lifetime-machine'
-import { sameOcrSearchInput } from '../../preload/common/search/ocr-input'
-import type { CharacterDetails } from '../../preload/common/types/character'
+import { sameOcrSearchInput } from '@dfragon/desktop-contracts/search/ocr-input'
+import type { CharacterDetails } from '@dfragon/desktop-contracts/types/character'
 import { remainingRetryAfter, type RetryAfter } from './retry-after'
-import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '../../preload/common/types/search'
+import { SEARCH_ERRORS, SEARCH_SLOT_COUNTS } from '@dfragon/desktop-contracts/types/search'
 import type {
   SearchCommandError,
   SearchCommandResult,
@@ -25,7 +25,7 @@ import type {
   SearchSlot,
   SearchSlotCount,
   SearchSnapshot
-} from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 
 export type CaptureBinding = Readonly<{
   captureId: string

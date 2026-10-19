@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
-import type { CharacterIdentity, CharacterImage } from '../../preload/common/types/character'
+import type { CharacterIdentity, CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import type { CharacterAppearanceHttp } from './character-http'
 import { CHARACTER_IMAGE_LIMITS, decodeCharacterImage } from './character-image'
 import {

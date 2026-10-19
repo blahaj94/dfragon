@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import type {
   DeveloperCollectionKind,
   DeveloperParticipantWindow,
@@ -8,12 +8,12 @@ import type {
   DeveloperPartySlot,
   DeveloperSampleSource,
   DeveloperUploadStatus
-} from '../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import {
   DEVELOPER_COLLECTION_SLOTS,
   isDeveloperCollectionKind,
   isDeveloperPartySlot
-} from '../../preload/common/developer-collection'
+} from '@dfragon/desktop-contracts/developer-collection'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 export type CapturedPartySlot = {

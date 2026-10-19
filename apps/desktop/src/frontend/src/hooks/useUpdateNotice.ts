@@ -3,7 +3,7 @@ import type {
   UpdateNotice,
   UpdateNoticeApi,
   UpdateNoticeSnapshot
-} from '../../../preload/common/types/update-notice'
+} from '@dfragon/desktop-contracts/types/update-notice'
 
 function readBridge(): UpdateNoticeApi | null {
   const candidate = typeof window === 'undefined' ? undefined : window.updateNotice

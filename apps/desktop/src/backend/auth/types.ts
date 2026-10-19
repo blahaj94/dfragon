@@ -1,60 +1,18 @@
-export type AuthProvider = 'passkey'
+import type {
+  AuthCommandResult,
+  AuthProvider,
+  AuthSnapshot
+} from '@dfragon/desktop-contracts/types/auth'
 
-export type AuthPhase =
-  | 'signedOut'
-  | 'startingLogin'
-  | 'waitingBrowser'
-  | 'exchanging'
-  | 'restoring'
-  | 'restorePaused'
-  | 'signedIn'
-  | 'signingOut'
-  | 'storageBlocked'
-
-export type AuthNotice =
-  | 'LOGIN_CANCELLED'
-  | 'LOGIN_EXPIRED'
-  | 'LOGIN_RETURN_INVALID'
-  | 'LOGIN_RESTART_REQUIRED'
-  | 'BROWSER_OPEN_FAILED'
-  | 'NETWORK_UNAVAILABLE'
-  | 'AUTH_SERVICE_UNAVAILABLE'
-  | 'RESTORE_RETRY_REQUIRED'
-  | 'REAUTH_REQUIRED'
-  | 'SECURE_STORAGE_UNAVAILABLE'
-  | 'TOKEN_SAVE_FAILED'
-  | 'LOCAL_CLEAR_UNCONFIRMED'
-  | 'LOGOUT_SERVER_UNCONFIRMED'
-
-export type AuthCommandError =
-  | 'INVALID_AUTH_COMMAND'
-  | 'AUTH_NOT_ALLOWED'
-  | 'AUTH_BUSY'
-  | 'STALE_ATTEMPT'
-  | 'AUTH_OPERATION_FAILED'
-
-export type AuthSnapshot = Readonly<{
-  runId: string
-  revision: number
-  phase: AuthPhase
-  providers: readonly AuthProvider[]
-  login: Readonly<{
-    attemptId: string
-    provider: AuthProvider
-    expiresAt: string | null
-  }> | null
-  user: Readonly<{ nickname: string }> | null
-  entry: 'welcome' | 'home' | null
-  notice: AuthNotice | null
-}>
-
-export type AuthCommandResult =
-  | Readonly<{ ok: true; snapshot: AuthSnapshot }>
-  | Readonly<{
-      ok: false
-      error: Readonly<{ code: AuthCommandError }>
-      snapshot: AuthSnapshot
-    }>
+// renderer에 넘기는 인증 DTO는 IPC 계약 패키지가 소유한다. 기존 main 호출부가 이 모듈에서 함께 가져온다.
+export type {
+  AuthCommandError,
+  AuthCommandResult,
+  AuthNotice,
+  AuthPhase,
+  AuthProvider,
+  AuthSnapshot
+} from '@dfragon/desktop-contracts/types/auth'
 
 export type AuthAuthorization =
   | Readonly<{

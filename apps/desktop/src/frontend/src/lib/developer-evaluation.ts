@@ -1,5 +1,5 @@
 import { filter, groupByProp, isNonNullish, map, pipe, sumBy } from 'remeda'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 
 export type EvaluationPreprocessing = 'party' | 'raw'
 export type DeveloperEvaluation =

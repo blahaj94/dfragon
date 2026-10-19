@@ -2,7 +2,7 @@ import { assign, fromCallback, setup } from 'xstate'
 import { runSearchRequest, type SearchOutcome, type SearchRuntime } from './request'
 import { waitForRetryAfter, type RetryAfter } from './retry-after'
 import { reportSearchOutcome } from './diagnostics'
-import type { OcrSearchInput } from '../../preload/common/types/search'
+import type { OcrSearchInput } from '@dfragon/desktop-contracts/types/search'
 
 export type SearchRequest = {
   captureId: string

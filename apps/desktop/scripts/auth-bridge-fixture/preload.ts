@@ -1,5 +1,5 @@
 import { contextBridge } from 'electron'
-import { searchSnapshot } from '../../src/preload/api/search-test-fixture'
+import { searchSnapshot } from '@dfragon/desktop-contracts/search/search-test-fixture'
 import * as auth from '../../src/preload/api/auth'
 
 contextBridge.exposeInMainWorld('auth', auth)

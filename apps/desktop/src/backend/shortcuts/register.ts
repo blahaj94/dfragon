@@ -3,7 +3,7 @@ import {
   DESKTOP_SHORTCUT_CHANNEL,
   DESKTOP_SHORTCUTS,
   type DesktopShortcut
-} from '../../preload/common/types/desktop-shortcut'
+} from '@dfragon/desktop-contracts/types/desktop-shortcut'
 import { createKeyboardShortcut } from '../lib/keyboard-shortcut'
 import { isCurrentProcessForeground, isDnfForeground } from '../lib/win32-window-capture'
 

@@ -2,9 +2,12 @@ import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { z } from 'zod'
 import { fetchApi } from '../api-fetch'
 import type { AuthCoordinator } from '../auth/types'
-import type { DeveloperPartySlot, DeveloperSample } from '../../preload/common/types/developer'
-import { isDeveloperPartySlot } from '../../preload/common/developer-collection'
-import { DEVELOPER_ERROR_CODES as errors } from '../../preload/common/developer-errors'
+import type {
+  DeveloperPartySlot,
+  DeveloperSample
+} from '@dfragon/desktop-contracts/types/developer'
+import { isDeveloperPartySlot } from '@dfragon/desktop-contracts/developer-collection'
+import { DEVELOPER_ERROR_CODES as errors } from '@dfragon/desktop-contracts/developer-errors'
 import { requestWithOcrAuthorizationRecovery } from './ocr-authorization-recovery'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 

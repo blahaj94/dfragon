@@ -11,7 +11,7 @@ import type {
   SearchApi,
   SearchCommandResult,
   SearchSlotCount
-} from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 
 /**
  * 게임 캡처가 없어도 실행할 수 있는 서버 지정 조회의 연결과 요청 수명을 소유한다. 파티 카드와 공대

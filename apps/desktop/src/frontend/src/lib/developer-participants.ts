@@ -1,7 +1,7 @@
 import { DEVELOPER_ERRORS } from '../constants/developer'
-import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { getDeveloperCollectionErrorMessage } from './developer-party'
-import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
+import type { DeveloperCollectionKind } from '@dfragon/desktop-contracts/types/developer'
 
 /** Describes detection/recovery without exposing algorithm or IPC details in the workbench. */
 export function getParticipantPreviewMessage(

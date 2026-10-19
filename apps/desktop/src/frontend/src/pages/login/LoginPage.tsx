@@ -2,7 +2,7 @@ import { PRODUCT_NAME } from '@dfragon/lib'
 import * as stylex from '@stylexjs/stylex'
 import type { ReactNode } from 'react'
 import { ContentStack } from '@dfragon/ui'
-import type { AuthApi } from '../../../../preload/common/types/auth'
+import type { AuthApi } from '@dfragon/desktop-contracts/types/auth'
 import { LoginSection } from '../../sections/LoginSection'
 import { styles } from './LoginPage.style'
 

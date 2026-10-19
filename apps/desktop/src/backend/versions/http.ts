@@ -6,7 +6,7 @@ import type {
   BuildVersionService,
   BuildVersions,
   ServerVersion
-} from '../../preload/common/types/build-versions'
+} from '@dfragon/desktop-contracts/types/build-versions'
 
 const VERSION_TIMEOUT_MS = 4_000
 

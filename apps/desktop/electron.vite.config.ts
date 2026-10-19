@@ -93,7 +93,7 @@ export default defineConfig(({ mode, command }) => {
       },
       build: {
         // Ky is ESM-only; bundle its default export into the CommonJS main process.
-        externalizeDeps: { exclude: ['ky', '@dfragon/lib'] },
+        externalizeDeps: { exclude: ['ky', '@dfragon/lib', '@dfragon/desktop-contracts'] },
         lib: {
           entry: backendEntry
         },

@@ -1,4 +1,4 @@
-import type { CharacterCandidate } from '../../preload/common/types/character'
+import type { CharacterCandidate } from '@dfragon/desktop-contracts/types/character'
 
 /** 명성이 같은 후보는 API 순서를 유지하고 null은 0을 포함한 모든 명성 뒤에 둔다. */
 export function orderedCandidates(candidates: readonly CharacterCandidate[]): CharacterCandidate[] {

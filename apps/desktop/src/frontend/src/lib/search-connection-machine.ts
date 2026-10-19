@@ -1,11 +1,11 @@
 import { assign, enqueueActions, fromCallback, fromPromise, setup } from 'xstate'
-import { SEARCH_ACTIONS } from '../../../preload/common/types/search'
+import { SEARCH_ACTIONS } from '@dfragon/desktop-contracts/types/search'
 import type {
   SearchApi,
   SearchSlotCount,
   SearchSnapshot
-} from '../../../preload/common/types/search'
-import { parseSearchResult, parseSearchSnapshot } from '../../../preload/common/search/snapshot'
+} from '@dfragon/desktop-contracts/types/search'
+import { parseSearchResult, parseSearchSnapshot } from '@dfragon/desktop-contracts/search/snapshot'
 
 type ConnectionEvent =
   | { type: 'SUBSCRIBED' }

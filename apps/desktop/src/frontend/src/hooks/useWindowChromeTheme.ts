@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { WindowChromeApi } from '../../../preload/common/types/window-chrome'
+import type { WindowChromeApi } from '@dfragon/desktop-contracts/types/window-chrome'
 
 function readBridge(): WindowChromeApi | null {
   const candidate = typeof window === 'undefined' ? undefined : window.windowChrome

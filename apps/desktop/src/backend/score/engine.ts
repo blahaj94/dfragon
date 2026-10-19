@@ -1,8 +1,8 @@
 import { isAbsolute, join } from 'node:path'
 import koffi from 'koffi'
 import { z } from 'zod'
-import type { CharacterScoreCalculator } from '../../preload/common/types/character'
-import type { DiagnosticCode } from '../../preload/common/types/diagnostics'
+import type { CharacterScoreCalculator } from '@dfragon/desktop-contracts/types/character'
+import type { DiagnosticCode } from '@dfragon/desktop-contracts/types/diagnostics'
 import { reportDiagnostic } from '../diagnostics/log'
 import type { ScoreEngineInput } from './input'
 

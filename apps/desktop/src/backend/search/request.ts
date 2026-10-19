@@ -3,14 +3,14 @@ import type {
   CharacterSearchRow,
   CharacterSelectionMethod,
   OcrSearchInput
-} from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import type {
   CharacterDetails,
   SelectedCharacterSummary,
   CharacterJsonValue,
   CharacterImage,
   CharacterPortrait
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import {
   createCharacterIdentifier,
   createManualCharacterLookup,

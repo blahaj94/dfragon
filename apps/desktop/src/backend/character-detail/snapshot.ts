@@ -1,7 +1,10 @@
-import type { CharacterDetails, CharacterJsonValue } from '../../preload/common/types/character'
-import { characterImageUrl } from '../../preload/common/search/character-summary'
-import { parseCharacterDetailSnapshot } from '../../preload/common/character-detail'
-import type { CharacterDetailSnapshot } from '../../preload/common/types/character-detail'
+import type {
+  CharacterDetails,
+  CharacterJsonValue
+} from '@dfragon/desktop-contracts/types/character'
+import { characterImageUrl } from '@dfragon/desktop-contracts/search/character-summary'
+import { parseCharacterDetailSnapshot } from '@dfragon/desktop-contracts/character-detail'
+import type { CharacterDetailSnapshot } from '@dfragon/desktop-contracts/types/character-detail'
 
 function optionalText(value: CharacterJsonValue | undefined): string | null {
   if (typeof value === 'string') {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { CharacterDetailSnapshot } from '../../../preload/common/types/character-detail'
+import type { CharacterDetailSnapshot } from '@dfragon/desktop-contracts/types/character-detail'
 
 type CharacterDetailState =
   | Readonly<{ status: 'loading' }>

@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
 import { makeHandlerInvoker } from '../ipc'
-import type { AuthApi, AuthSnapshot } from '../common/types/auth'
+import type { AuthApi, AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
 
 export const getAuthState = makeHandlerInvoker('getAuthState')
 export const beginLogin = makeHandlerInvoker('beginLogin')

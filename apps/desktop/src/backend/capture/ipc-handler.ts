@@ -1,4 +1,4 @@
-import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '../../preload/common/types/search'
+import { SEARCH_ACTIONS, SEARCH_COMMAND_ERRORS } from '@dfragon/desktop-contracts/types/search'
 import {
   desktopCapturer,
   ipcMain,
@@ -36,8 +36,8 @@ import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
 import { toRaidFrameResult } from './raid-frame'
-import { parseCollectOcrSample } from '../../preload/common/ocr-collection'
-import type { OcrCollectionResult } from '../../preload/common/types/ocr-collection'
+import { parseCollectOcrSample } from '@dfragon/desktop-contracts/ocr-collection'
+import type { OcrCollectionResult } from '@dfragon/desktop-contracts/types/ocr-collection'
 import type { OcrCollection } from '../ocr-collection/collection'
 
 let captureWindow: BrowserWindow | null = null

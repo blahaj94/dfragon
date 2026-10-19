@@ -1,5 +1,5 @@
 import type { AuthClock } from '../auth/types'
-import type { SearchError, SearchErrorCode } from '../../preload/common/types/search'
+import type { SearchError, SearchErrorCode } from '@dfragon/desktop-contracts/types/search'
 import { SearchHttpFailure } from './http'
 
 const SEARCH_OPERATION_TIMEOUT_MS = 15_000

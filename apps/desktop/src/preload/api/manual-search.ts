@@ -1,6 +1,6 @@
 import { ipcRenderer } from 'electron'
-import type { ManualSearchApi } from '../common/types/search'
-import { parseSearchSnapshot } from '../common/search/snapshot'
+import type { ManualSearchApi } from '@dfragon/desktop-contracts/types/search'
+import { parseSearchSnapshot } from '@dfragon/desktop-contracts/search/snapshot'
 import { invokeSearchCommand } from './search-command'
 
 export const controlCharacterSearch: ManualSearchApi['controlCharacterSearch'] = (control) =>

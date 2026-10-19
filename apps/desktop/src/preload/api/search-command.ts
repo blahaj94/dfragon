@@ -1,7 +1,10 @@
 import { ipcRenderer } from 'electron'
-import type { AsyncIPCFunctions } from '../common/types/ipc'
-import { SEARCH_SLOT_COUNTS, type SearchCommandResult } from '../common/types/search'
-import { parseSearchResult } from '../common/search/snapshot'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import {
+  SEARCH_SLOT_COUNTS,
+  type SearchCommandResult
+} from '@dfragon/desktop-contracts/types/search'
+import { parseSearchResult } from '@dfragon/desktop-contracts/search/snapshot'
 
 type SearchChannel =
   | 'controlCharacterSearch'

@@ -73,6 +73,7 @@
     "vite": "catalog:electron",
     "vitest": "catalog:",
     "@dfragon/licenses": "workspace:*",
-    "@dfragon/lib": "workspace:*"
+    "@dfragon/lib": "workspace:*",
+    "@dfragon/desktop-contracts": "workspace:*"
   }
 }

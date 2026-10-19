@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { WindowChromeApi } from '../../../preload/common/types/window-chrome'
-import { MAIN_WINDOW_SIZE } from '../../../preload/common/window-chrome'
+import type { WindowChromeApi } from '@dfragon/desktop-contracts/types/window-chrome'
+import { MAIN_WINDOW_SIZE } from '@dfragon/desktop-contracts/window-chrome'
 
 // 카드가 접히는 전환 시간이다. @dfragon/ui tokens.css의 --df-dur-state와 같은 값이며, 동작 줄이기
 // 설정에서는 tokens.css가 전환을 0으로 두므로 창 높이도 기다리지 않고 바꾼다.

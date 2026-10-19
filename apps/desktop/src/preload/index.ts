@@ -11,7 +11,7 @@ import * as ocrCollection from './api/ocr-collection'
 import * as diagnostics from './api/diagnostics'
 import * as updateNotice from './api/update-notice'
 import * as windowChrome from './api/window-chrome'
-import { AUTH_AVAILABLE_ARGUMENT } from './common/types/auth'
+import { AUTH_AVAILABLE_ARGUMENT } from '@dfragon/desktop-contracts/types/auth'
 
 contextBridge.exposeInMainWorld('api', capture)
 // 로그인 설정이 없는 빌드는 인증 IPC가 없으므로 호출할 수 없는 API를 노출하지 않는다.

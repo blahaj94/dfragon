@@ -4,7 +4,7 @@ import { ProgressCircle, Typo } from '@dfragon/ui'
 import type {
   DeveloperPartyCollectionStatus,
   DeveloperUploadStatus
-} from '../../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import { getDeveloperCollectionErrorMessage } from '../lib/developer-party'
 import { CheckIcon } from './CheckIcon'
 import { styles } from './DeveloperUploadNotice.style'

@@ -1,9 +1,9 @@
 import { ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
-import { isReleaseTag } from '../../preload/common/update-notice'
+import { isReleaseTag } from '@dfragon/desktop-contracts/update-notice'
 import {
   UPDATE_NOTICE_CHANNELS,
   type UpdateNoticeIPCFunctions
-} from '../../preload/common/types/update-notice'
+} from '@dfragon/desktop-contracts/types/update-notice'
 import type { UpdateNotices } from './notices'
 import { releasePageUrl } from './release-feed'
 

@@ -1,4 +1,7 @@
-import type { CharacterDetails, CharacterJsonValue } from '../../preload/common/types/character'
+import type {
+  CharacterDetails,
+  CharacterJsonValue
+} from '@dfragon/desktop-contracts/types/character'
 
 type JsonObject = { readonly [key: string]: CharacterJsonValue }
 

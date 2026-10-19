@@ -2,15 +2,15 @@ import {
   SEARCH_ACTIONS,
   SEARCH_SLOT_COUNTS,
   type SearchSlotCount
-} from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import { z } from 'zod'
-import { CHARACTER_SERVER_NAMES } from '../../preload/common/search/character-summary'
-import type { CharacterSelectionReference } from '../../preload/common/types/character-detail'
+import { CHARACTER_SERVER_NAMES } from '@dfragon/desktop-contracts/search/character-summary'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
 import type {
   OcrSearchObservation,
   SearchControl,
   SearchObservation
-} from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 
 const MAX_NICKNAME_INPUT_LENGTH = 24
 const text = z.string()

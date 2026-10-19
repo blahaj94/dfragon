@@ -1,6 +1,12 @@
 import { ipcRenderer } from 'electron'
-import { isMainWindowContentHeight, isWindowChromeTheme } from '../common/window-chrome'
-import { WINDOW_CHROME_CHANNELS, type WindowChromeApi } from '../common/types/window-chrome'
+import {
+  isMainWindowContentHeight,
+  isWindowChromeTheme
+} from '@dfragon/desktop-contracts/window-chrome'
+import {
+  WINDOW_CHROME_CHANNELS,
+  type WindowChromeApi
+} from '@dfragon/desktop-contracts/types/window-chrome'
 
 export const setTheme: WindowChromeApi['setTheme'] = async (theme) => {
   if (!isWindowChromeTheme(theme)) {

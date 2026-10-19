@@ -1,8 +1,8 @@
 import { ipcRenderer } from 'electron'
-import { SEARCH_SLOT_COUNTS, type SearchApi } from '../common/types/search'
-import type { AsyncIPCFunctions } from '../common/types/ipc'
-import { parseSearchSnapshot } from '../common/search/snapshot'
-import { parseRaidFrame } from '../common/capture-frame'
+import { SEARCH_SLOT_COUNTS, type SearchApi } from '@dfragon/desktop-contracts/types/search'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import { parseSearchSnapshot } from '@dfragon/desktop-contracts/search/snapshot'
+import { parseRaidFrame } from '@dfragon/desktop-contracts/capture-frame'
 import { makeHandlerInvoker } from '../ipc'
 import { invokeSearchCommand } from './search-command'
 

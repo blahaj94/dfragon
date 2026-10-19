@@ -1,7 +1,7 @@
 import { createActor } from 'xstate'
 import type { SearchView } from '../types/search'
 import { emptySearchSlots } from './slots'
-import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
+import { SEARCH_ACTIONS, SEARCH_SLOT_COUNTS } from '@dfragon/desktop-contracts/types/search'
 import {
   SEARCH_ERRORS,
   type SearchApi,
@@ -12,10 +12,10 @@ import {
   type SearchSlot,
   type SearchSlotCount,
   type SearchSnapshot
-} from '../../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import { createSearchConnection } from './search-connection'
 import { captureSearchMachine } from './capture-search-machine'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
 
 type SearchOptions = {
   api: SearchApi

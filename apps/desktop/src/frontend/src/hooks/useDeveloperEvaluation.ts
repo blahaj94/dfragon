@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react'
 import { useMachine } from '@xstate/react'
 import { waitFor } from 'xstate'
 import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from '../lib/developer-evaluation'
 import { developerEvaluationMachine } from '../lib/developer-evaluation-machine'
 

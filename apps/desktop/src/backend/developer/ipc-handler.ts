@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { ipcMain, nativeImage, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import type {
   DeveloperApi,
@@ -7,12 +7,12 @@ import type {
   DeveloperSettings,
   DeveloperPartySlot,
   DeveloperPartyPreviewResponse
-} from '../../preload/common/types/developer'
-import { DEVELOPER_CHANNELS } from '../../preload/common/developer-channels'
+} from '@dfragon/desktop-contracts/types/developer'
+import { DEVELOPER_CHANNELS } from '@dfragon/desktop-contracts/developer-channels'
 import {
   isDeveloperCollectionKind,
   isDeveloperPartySlot
-} from '../../preload/common/developer-collection'
+} from '@dfragon/desktop-contracts/developer-collection'
 import { createDeveloperStore, DeveloperStoreError } from './persistence'
 import { createDeveloperCollectionSession, previewFrame } from './collection-session'
 import { createPrintScreenShortcut } from './print-screen-shortcut'

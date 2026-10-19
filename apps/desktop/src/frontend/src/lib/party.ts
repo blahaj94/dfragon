@@ -6,7 +6,7 @@ import {
 } from '@dfragon/lib'
 import { binarizeNicknamePixels } from './nickname-pixels'
 import { PARTY_SLOT_COUNT } from '../constants/capture'
-import type { CharacterImage, CharacterPortrait } from '../../../preload/common/types/character'
+import type { CharacterImage, CharacterPortrait } from '@dfragon/desktop-contracts/types/character'
 import { cropPartyPortrait, type PartyPortraitCropper } from './party-portrait'
 
 const RGBA_CHANNELS = 4

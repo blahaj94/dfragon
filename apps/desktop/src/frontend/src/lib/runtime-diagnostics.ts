@@ -5,7 +5,7 @@ import {
   type DiagnosticApi,
   type DiagnosticEntry,
   type RendererDiagnosticCode
-} from '../../../preload/common/types/diagnostics'
+} from '@dfragon/desktop-contracts/types/diagnostics'
 
 let activeApi: DiagnosticApi | null = null
 

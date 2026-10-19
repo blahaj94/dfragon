@@ -1,5 +1,5 @@
 import { ipcMain, IpcMainInvokeEvent } from 'electron'
-import type { AsyncIPCFunctions } from '../preload/common/types/ipc'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
 
 function addHandler<ChannelName extends keyof AsyncIPCFunctions>(
   channel: ChannelName,

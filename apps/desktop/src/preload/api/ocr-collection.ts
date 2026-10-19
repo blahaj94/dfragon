@@ -1,6 +1,6 @@
 import { makeHandlerInvoker } from '../ipc'
-import type { AsyncIPCFunctions } from '../common/types/ipc'
-import { parseOcrCollectionResult } from '../common/ocr-collection'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import { parseOcrCollectionResult } from '@dfragon/desktop-contracts/ocr-collection'
 
 const invokeCollectOcrSample = makeHandlerInvoker('collectOcrSample')
 

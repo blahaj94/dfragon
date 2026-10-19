@@ -26,7 +26,7 @@ import {
 import { useColorTheme } from '../../hooks/useColorTheme'
 import type { CardCharacter } from '../../types/cards'
 import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
-import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
+import { MAIN_WINDOW_SIZE } from '@dfragon/desktop-contracts/window-chrome'
 
 export function Preview(): React.JSX.Element {
   const query = new URLSearchParams(window.location.search)

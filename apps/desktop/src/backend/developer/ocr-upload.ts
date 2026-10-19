@@ -6,7 +6,7 @@ import type {
   DeveloperCollectionKind,
   DeveloperPartySlot,
   DeveloperUploadStatus
-} from '../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import type { CapturedPartyFrame } from './collection-session'
 import { createOcrUploadLifecycle } from './ocr-upload-lifecycle'
 import { requestWithOcrAuthorizationRecovery } from './ocr-authorization-recovery'

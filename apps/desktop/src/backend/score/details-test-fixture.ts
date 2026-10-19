@@ -3,7 +3,7 @@ import type {
   CharacterCard,
   CharacterDetails,
   CharacterJsonValue
-} from '../../preload/common/types/character'
+} from '@dfragon/desktop-contracts/types/character'
 import type { ScoreEngineInput } from './input'
 
 type JsonObject = { readonly [key: string]: CharacterJsonValue }

@@ -1,6 +1,6 @@
 import { isOcrCollectionEnabled } from '../ocr-collection/policy'
-import { parseReleaseTag, type ReleaseVersion } from '../../preload/common/update-notice'
-import type { UpdateNotice } from '../../preload/common/types/update-notice'
+import { parseReleaseTag, type ReleaseVersion } from '@dfragon/desktop-contracts/update-notice'
+import type { UpdateNotice } from '@dfragon/desktop-contracts/types/update-notice'
 
 const RELEASES_URL = 'https://github.com/blahaj94/dfragon/releases'
 const RELEASE_PAGE_PREFIX = `${RELEASES_URL}/tag/`

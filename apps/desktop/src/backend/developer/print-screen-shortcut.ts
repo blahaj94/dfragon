@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { createKeyboardShortcut } from '../lib/keyboard-shortcut'
 import { createWin32KeyboardHook, type Win32KeyboardApi } from '../lib/win32-keyboard-hook'
 

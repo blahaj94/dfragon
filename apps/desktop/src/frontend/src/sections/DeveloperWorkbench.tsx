@@ -19,12 +19,12 @@ import {
 } from '../lib/developer-workbench-samples'
 import { buttonStyles } from '../constants/button.style'
 import { styles } from './DeveloperWorkbench.style'
-import { DEVELOPER_COLLECTION_SLOTS } from '../../../preload/common/developer-collection'
+import { DEVELOPER_COLLECTION_SLOTS } from '@dfragon/desktop-contracts/developer-collection'
 import {
   DEFAULT_DEVELOPER_PREVIEW_INTERVAL_MS,
   DEVELOPER_PREVIEW_INTERVALS_MS
 } from '../constants/developer'
-import type { DeveloperCollectionKind } from '../../../preload/common/types/developer'
+import type { DeveloperCollectionKind } from '@dfragon/desktop-contracts/types/developer'
 
 const REMOTE_PAGE_SIZE = 50
 // Select가 trigger의 값 글자와 목록 항목을 같은 이름으로 그리도록 한 곳에서 만든다.

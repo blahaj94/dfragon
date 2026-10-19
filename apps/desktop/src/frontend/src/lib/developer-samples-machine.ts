@@ -1,6 +1,6 @@
 import { assign, fromPromise, setup } from 'xstate'
 import { DEVELOPER_EVENTS, DEVELOPER_ERRORS } from '../constants/developer'
-import type { DeveloperApi, DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperApi, DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 
 export type DeveloperSamplesApi = Pick<
   DeveloperApi,

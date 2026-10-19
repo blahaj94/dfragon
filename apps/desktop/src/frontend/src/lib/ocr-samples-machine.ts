@@ -1,6 +1,6 @@
 import { assign, fromPromise, setup } from 'xstate'
-import type { DeveloperApi, DeveloperSample } from '../../../preload/common/types/developer'
-import { DEVELOPER_ERROR_CODES } from '../../../preload/common/developer-errors'
+import type { DeveloperApi, DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 
 type OcrSamplesApi = Pick<DeveloperApi, 'listOcrSamples' | 'closeOcrSamples'>
 const loginMessage = '앱에서 자료실 소유자 계정으로 로그인한 뒤 다시 불러오세요.'

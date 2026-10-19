@@ -1,5 +1,5 @@
 import type { PartyOcrResult, PartyOcrWorker } from '../types/capture'
-import type { CharacterImage } from '../../../preload/common/types/character'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import { binarizeNicknamePixels } from './nickname-pixels'
 import { firstCandidate, type FirstCandidate } from './party-recognition'
 

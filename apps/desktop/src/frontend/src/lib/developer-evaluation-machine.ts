@@ -1,6 +1,6 @@
 import { assign, fromPromise, setup } from 'xstate'
 import { DEVELOPER_EVENTS } from '../constants/developer'
-import type { DeveloperSample } from '../../../preload/common/types/developer'
+import type { DeveloperSample } from '@dfragon/desktop-contracts/types/developer'
 import type { DeveloperEvaluation, EvaluationPreprocessing } from './developer-evaluation'
 import { runDeveloperEvaluation, type DeveloperEvaluationRun } from './developer-evaluation-run'
 

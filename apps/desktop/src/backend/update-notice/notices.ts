@@ -1,4 +1,7 @@
-import type { UpdateNotice, UpdateNoticeSnapshot } from '../../preload/common/types/update-notice'
+import type {
+  UpdateNotice,
+  UpdateNoticeSnapshot
+} from '@dfragon/desktop-contracts/types/update-notice'
 import { readReleaseFeedTags, selectUpdateNotice } from './release-feed'
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000

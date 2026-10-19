@@ -1,5 +1,5 @@
 import { assign, enqueueActions, fromCallback, fromPromise, setup } from 'xstate'
-import type { AuthApi, AuthSnapshot } from '../../../preload/common/types/auth'
+import type { AuthApi, AuthSnapshot } from '@dfragon/desktop-contracts/types/auth'
 import type { AuthIntent } from '../types/auth'
 
 type BridgeContext = {

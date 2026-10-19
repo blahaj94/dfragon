@@ -3,7 +3,7 @@ import {
   WINDOW_CHROME_COLORS,
   WINDOW_CHROME_HEIGHT,
   type WindowChromeTheme
-} from '../../preload/common/window-chrome'
+} from '@dfragon/desktop-contracts/window-chrome'
 
 /** macOS는 overlay 색을 바꿀 수 없고 신호등 버튼만 상단 바 높이의 가운데에 둔다. */
 export function canColorTitleBarOverlay(platform: NodeJS.Platform): boolean {

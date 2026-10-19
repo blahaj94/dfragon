@@ -2,7 +2,7 @@ import {
   SEARCH_ACTIONS,
   SEARCH_COMMAND_ERRORS,
   SEARCH_SLOT_COUNTS
-} from '../../preload/common/types/search'
+} from '@dfragon/desktop-contracts/types/search'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
 import {
@@ -12,7 +12,7 @@ import {
 } from './capture-lifetime'
 import { parseOcrSearchObservation, parseSearchControl, parseSearchObservation } from './commands'
 import type { SearchRuntime } from './request'
-import type { SearchSnapshot } from '../../preload/common/types/search'
+import type { SearchSnapshot } from '@dfragon/desktop-contracts/types/search'
 
 /** 파티 카드의 네 자리 조회와 공대 카드의 12자리 조회는 서로 다른 수명과 채널을 쓴다. */
 export type ManualSearchKind = keyof typeof SEARCH_SLOT_COUNTS

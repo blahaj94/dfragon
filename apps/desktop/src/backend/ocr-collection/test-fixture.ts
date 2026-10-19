@@ -1,4 +1,4 @@
-import type { CharacterImage } from '../../preload/common/types/character'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 
 /** 독립 관측한 기본 배율의 HP, MP 앵커와 얼굴 위치를 그린다. */
 export function partyFrame(): CharacterImage {

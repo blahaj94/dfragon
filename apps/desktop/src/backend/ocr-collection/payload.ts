@@ -1,8 +1,8 @@
 import { detectPartyFrameGeometry, type PartyFrameRegion } from '@dfragon/lib'
 import { OCR_DATA_LIMITS } from '@dfragon/lib/ocr-contract'
 import { PNG } from 'pngjs'
-import type { CharacterImage } from '../../preload/common/types/character'
-import type { CollectOcrSample } from '../../preload/common/types/ocr-collection'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
+import type { CollectOcrSample } from '@dfragon/desktop-contracts/types/ocr-collection'
 
 const RGBA_CHANNELS = 4
 // 1067×600, UI 50 표본의 이름 왼쪽에 얼굴이 있고 아래에 HP/MP가 있다.

@@ -1,7 +1,7 @@
 import { makeHandlerInvoker } from '../ipc'
-import type { AsyncIPCFunctions } from '../common/types/ipc'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
 import { invokeSearchCommand } from './search-command'
-import { parseWindowFrame } from '../common/capture-frame'
+import { parseWindowFrame } from '@dfragon/desktop-contracts/capture-frame'
 
 const invokeReadCaptureFrame = makeHandlerInvoker('readCaptureFrame')
 export const readCaptureFrame: AsyncIPCFunctions['readCaptureFrame'] = async (captureId) => {

@@ -1,5 +1,5 @@
-import type { CharacterSelectionMethod } from '../../preload/common/types/search'
-import type { CharacterCandidate } from '../../preload/common/types/character'
+import type { CharacterSelectionMethod } from '@dfragon/desktop-contracts/types/search'
+import type { CharacterCandidate } from '@dfragon/desktop-contracts/types/character'
 import { orderedCandidates } from './candidate-order'
 
 /**

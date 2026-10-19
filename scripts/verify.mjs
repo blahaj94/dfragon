@@ -25,7 +25,8 @@ export const checkJobs = [
     commands: [
       workspace('@dfragon/licenses', 'test'),
       workspace('@dfragon/lib', 'test'),
-      workspace('@dfragon/ui', 'test')
+      workspace('@dfragon/ui', 'test'),
+      workspace('@dfragon/desktop-contracts', 'test')
     ]
   },
   {

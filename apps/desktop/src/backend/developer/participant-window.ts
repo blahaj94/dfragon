@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { readFileSync } from 'node:fs'
 import { PNG } from 'pngjs'
 import { flatMap, map } from 'remeda'

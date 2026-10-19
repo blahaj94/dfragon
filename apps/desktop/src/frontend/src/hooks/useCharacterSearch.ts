@@ -7,8 +7,8 @@ import {
 } from '../lib/capture-search'
 import { emptySearchSlots } from '../lib/slots'
 import type { SearchView } from '../types/search'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
-import { SEARCH_SLOT_COUNTS } from '../../../preload/common/types/search'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
+import { SEARCH_SLOT_COUNTS } from '@dfragon/desktop-contracts/types/search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 
 type CharacterSearch = SearchView & {

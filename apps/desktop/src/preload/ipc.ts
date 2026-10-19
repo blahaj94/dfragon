@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron'
-import type { AsyncIPCFunctions } from './common/types/ipc'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
 
 type PromiseOnce<T> = T extends Promise<unknown> ? T : Promise<T>
 

@@ -1,6 +1,9 @@
 import { ipcRenderer } from 'electron'
-import type { DeveloperApi, DeveloperPartyCollectionUpdate } from '../common/types/developer'
-import { DEVELOPER_CHANNELS } from '../common/developer-channels'
+import type {
+  DeveloperApi,
+  DeveloperPartyCollectionUpdate
+} from '@dfragon/desktop-contracts/types/developer'
+import { DEVELOPER_CHANNELS } from '@dfragon/desktop-contracts/developer-channels'
 
 export const onPartyCollectionStatus: DeveloperApi['onPartyCollectionStatus'] = (listener) => {
   const wrapper = (

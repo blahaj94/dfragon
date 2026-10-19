@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { parseCharacterDetailSnapshot } from './common/character-detail'
-import type { CharacterDetailApi } from './common/types/character-detail'
+import { parseCharacterDetailSnapshot } from '@dfragon/desktop-contracts/character-detail'
+import type { CharacterDetailApi } from '@dfragon/desktop-contracts/types/character-detail'
 
 const api: CharacterDetailApi = {
   async read() {

@@ -1,8 +1,8 @@
 import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron'
 import { addHandler } from '../ipc'
 import { createServerVersionReader } from './http'
-import type { AsyncIPCFunctions } from '../../preload/common/types/ipc'
-import type { BuildVersions } from '../../preload/common/types/build-versions'
+import type { AsyncIPCFunctions } from '@dfragon/desktop-contracts/types/ipc'
+import type { BuildVersions } from '@dfragon/desktop-contracts/types/build-versions'
 
 export function registerVersionsWindow({
   window,

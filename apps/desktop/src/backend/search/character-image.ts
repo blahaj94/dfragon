@@ -1,6 +1,6 @@
 import { inflateSync } from 'node:zlib'
 import { PNG } from 'pngjs'
-import type { CharacterImage } from '../../preload/common/types/character'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import { SearchHttpFailure } from './http'
 
 const PNG_SIGNATURE_HEX = '89504e470d0a1a0a'

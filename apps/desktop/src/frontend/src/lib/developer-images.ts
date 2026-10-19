@@ -1,7 +1,7 @@
 import {
   MAX_IMAGE_DIMENSION,
   MAX_IMAGE_PIXELS
-} from '../../../preload/common/developer-image-limits'
+} from '@dfragon/desktop-contracts/developer-image-limits'
 
 /** 가져온 파일과 캡처 프레임을 같은 크기 제한의 PNG 캔버스로 읽는다. */
 export async function readDeveloperImage(dataUrl: string): Promise<HTMLCanvasElement> {

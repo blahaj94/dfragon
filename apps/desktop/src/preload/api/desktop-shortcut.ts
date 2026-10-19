@@ -3,7 +3,7 @@ import {
   DESKTOP_SHORTCUT_CHANNEL,
   DESKTOP_SHORTCUTS,
   type DesktopShortcutApi
-} from '../common/types/desktop-shortcut'
+} from '@dfragon/desktop-contracts/types/desktop-shortcut'
 
 export const onDesktopShortcut: DesktopShortcutApi['onDesktopShortcut'] = (listener) => {
   const wrapper = (_event: Electron.IpcRendererEvent, value: unknown): void => {

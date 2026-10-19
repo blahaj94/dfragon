@@ -4,12 +4,12 @@ import {
   isWindowChromeTheme,
   MAIN_WINDOW_SIZE,
   WINDOW_CHROME_COLORS
-} from '../../preload/common/window-chrome'
+} from '@dfragon/desktop-contracts/window-chrome'
 import { canColorTitleBarOverlay, getTitleBarOverlay } from './title-bar-overlay'
 import {
   WINDOW_CHROME_CHANNELS,
   type WindowChromeIPCFunctions
-} from '../../preload/common/types/window-chrome'
+} from '@dfragon/desktop-contracts/types/window-chrome'
 
 /** 신뢰한 메인 화면의 테마를 OS 창 버튼과 창 배경에, 파티 카드 접기를 창 높이에 적용한다. */
 export function registerWindowChromeWindow({

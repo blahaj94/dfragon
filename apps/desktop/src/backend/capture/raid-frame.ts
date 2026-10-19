@@ -1,5 +1,5 @@
-import type { RaidFrameResult, WindowFrameResult } from '../../preload/common/types/capture'
-import type { CharacterImage } from '../../preload/common/types/character'
+import type { RaidFrameResult, WindowFrameResult } from '@dfragon/desktop-contracts/types/capture'
+import type { CharacterImage } from '@dfragon/desktop-contracts/types/character'
 import { cropRaidWindowNicknames } from '../lib/raid-window'
 
 const RGBA_CHANNELS = 4

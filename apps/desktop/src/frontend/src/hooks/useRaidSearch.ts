@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { SEARCH_SLOT_COUNTS, type SearchSlot } from '../../../preload/common/types/search'
-import type { CharacterSelectionReference } from '../../../preload/common/types/character-detail'
+import { SEARCH_SLOT_COUNTS, type SearchSlot } from '@dfragon/desktop-contracts/types/search'
+import type { CharacterSelectionReference } from '@dfragon/desktop-contracts/types/character-detail'
 import type { OcrCaptureObservation } from '../lib/capture-search'
 import { useManualCharacterLookup } from './useManualCharacterLookup'
 

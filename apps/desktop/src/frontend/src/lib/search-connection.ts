@@ -6,8 +6,8 @@ import type {
   SearchControl,
   SearchSlotCount,
   SearchSnapshot
-} from '../../../preload/common/types/search'
-import { parseSearchResult } from '../../../preload/common/search/snapshot'
+} from '@dfragon/desktop-contracts/types/search'
+import { parseSearchResult } from '@dfragon/desktop-contracts/search/snapshot'
 import { readSearchSnapshot, searchConnectionMachine } from './search-connection-machine'
 
 type ConnectionOptions = {

@@ -1,4 +1,4 @@
-import { DEVELOPER_ERROR_CODES } from '../../preload/common/developer-errors'
+import { DEVELOPER_ERROR_CODES } from '@dfragon/desktop-contracts/developer-errors'
 import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -7,12 +7,15 @@ import type {
   DeveloperSample,
   DeveloperSampleSource,
   DeveloperSettings
-} from '../../preload/common/types/developer'
+} from '@dfragon/desktop-contracts/types/developer'
 import {
   isDeveloperCollectionKind,
   isDeveloperPartySlot
-} from '../../preload/common/developer-collection'
-import { MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS } from '../../preload/common/developer-image-limits'
+} from '@dfragon/desktop-contracts/developer-collection'
+import {
+  MAX_IMAGE_DIMENSION,
+  MAX_IMAGE_PIXELS
+} from '@dfragon/desktop-contracts/developer-image-limits'
 import { isCanonicalIsoTimestamp, isValidImageDimensions } from './validation'
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
