@@ -56,7 +56,8 @@ function candidate(id: string, name = '첫이름', fame: number | null = 100): C
     serverId: 'cain',
     serverName: '카인',
     fame,
-    imageUrl
+    imageUrl,
+    adventureName: null
   }
 }
 
@@ -186,14 +187,19 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(new Set(signals).size).toBe(1)
   })
 
-  it('1위와 2위의 거리 차이가 초기 minMargin보다 작으면 최고 명성으로 표시한다', async () => {
+  it('1위와 2위의 거리 차이가 초기 minMargin보다 작으면 1위를 고르고 선택지를 함께 준다', async () => {
     const f = fixture({ high: 12, low: 10, null: 30 })
 
-    expect(await f.identify(f.input)).toMatchObject({
+    const outcome = await f.identify(f.input)
+
+    expect(outcome).toMatchObject({
       kind: 'success',
-      rows: [expect.objectContaining({ characterId: 'high' })],
-      selected: { selectionMethod: 'highest-fame', details: details('high') }
+      rows: [expect.objectContaining({ characterId: 'low' })],
+      selected: { selectionMethod: 'portrait', details: details('low') }
     })
+    expect(
+      outcome?.kind === 'success' && outcome.selected?.choices?.map((choice) => choice.characterId)
+    ).toEqual(['high', 'low', 'null'])
     expect(f.scorePortrait).toHaveBeenCalledTimes(3)
   })
 
@@ -218,23 +224,32 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.calls).toEqual([])
   })
 
-  it('이미지 로딩 실패와 비교 예산 초과는 명성 표시로 구분한다', async () => {
+  it('이미지 로딩 실패와 비교 예산 초과는 그 후보만 점수 없이 두고 선택지를 함께 준다', async () => {
     const loading = fixture()
     loading.image.mockRejectedValueOnce(new SearchHttpFailure('NEOPLE_API_ERROR'))
-    expect(await loading.identify(loading.input)).toMatchObject({
+    const loaded = await loading.identify(loading.input)
+    expect(loaded).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('high') }
+      selected: { selectionMethod: 'portrait', details: details('low') }
     })
-    expect(loading.image).toHaveBeenCalledOnce()
-    expect(loading.scorePortrait).not.toHaveBeenCalled()
+    expect(
+      loaded?.kind === 'success' &&
+        loaded.selected?.choices?.find((choice) => choice.characterId === 'high')?.face
+    ).toBeNull()
+    expect(loading.image).toHaveBeenCalledTimes(3)
+    expect(loading.scorePortrait).toHaveBeenCalledTimes(2)
 
     const comparing = fixture()
     comparing.scorePortrait.mockRejectedValueOnce(new PortraitComparisonBudgetExceededError())
-    expect(await comparing.identify(comparing.input)).toMatchObject({
+    const compared = await comparing.identify(comparing.input)
+    expect(compared).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('high') }
+      selected: { selectionMethod: 'portrait', details: details('low') }
     })
-    expect(comparing.image).toHaveBeenCalledOnce()
+    expect(
+      compared?.kind === 'success' &&
+        compared.selected?.choices?.find((choice) => choice.characterId === 'high')?.face
+    ).toBeNull()
     expect(comparing.getDetails).toHaveBeenCalledOnce()
   })
 

@@ -137,6 +137,53 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
   })
 })
 
+describe('얼굴로 확정하지 못한 선택의 후보', () => {
+  const chosen = {
+    ...searchRow,
+    adventureName: '합성모험단',
+    face: { x: 3, y: 0, width: 26, height: 26 }
+  }
+  const other = {
+    ...searchRow,
+    characterId: 'synthetic-other',
+    serverId: 'siroco',
+    serverName: '시로코',
+    adventureName: null,
+    face: null
+  }
+  const withChoices = (choices: unknown, slotSelected: unknown = selected) =>
+    withSearchSlot({
+      ...searchSlot({ state: 'success', rows: [searchRow], selected: slotSelected as never }),
+      choices
+    } as never)
+
+  it('선택한 캐릭터를 포함한 두 명 이상의 후보를 전달한다', () => {
+    const snapshot = withChoices([other, chosen])
+
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+  })
+
+  it.each([
+    ['선택한 캐릭터가 없는 후보', [other, { ...other, characterId: 'synthetic-third' }]],
+    ['후보 한 명', [chosen]],
+    ['음수 얼굴 창', [other, { ...chosen, face: { ...chosen.face, x: -1 } }]],
+    ['소수 얼굴 창', [other, { ...chosen, face: { ...chosen.face, width: 1.5 } }]],
+    ['숫자 모험단명', [other, { ...chosen, adventureName: 1 }]],
+    ['추가 정보', [other, { ...chosen, distance: 3 }]]
+  ])('%s는 snapshot 전체를 거절한다', (_name, choices) => {
+    expect(parseSearchSnapshot(withChoices(choices))).toBeNull()
+  })
+
+  it('선택한 캐릭터 없이 후보만 보낼 수 없다', () => {
+    const snapshot = withSearchSlot({
+      ...searchSlot({ state: 'success', rows: [searchRow] }),
+      choices: [other, chosen]
+    } as never)
+
+    expect(parseSearchSnapshot(snapshot)).toBeNull()
+  })
+})
+
 describe('카드 strict 스키마', () => {
   const [weapon] = dealerCard.investment
   it.each([

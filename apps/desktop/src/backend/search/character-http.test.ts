@@ -23,7 +23,8 @@ const candidate: CharacterCandidate = {
   characterName: '가나',
   serverName: '카인',
   fame: 71000,
-  imageUrl: IMAGE_URL
+  imageUrl: IMAGE_URL,
+  adventureName: null
 }
 
 function json(body: unknown, status = 200, headers?: HeadersInit): Response {

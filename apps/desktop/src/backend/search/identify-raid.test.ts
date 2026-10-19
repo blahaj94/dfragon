@@ -16,7 +16,8 @@ function candidate(id: string, fame: number | null): CharacterCandidate {
     serverId: 'cain',
     serverName: '카인',
     fame,
-    imageUrl: `https://img-api.neople.co.kr/df/servers/cain/characters/${id}?zoom=1`
+    imageUrl: `https://img-api.neople.co.kr/df/servers/cain/characters/${id}?zoom=1`,
+    adventureName: null
   }
 }
 

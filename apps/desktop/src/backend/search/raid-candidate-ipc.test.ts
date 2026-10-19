@@ -13,7 +13,8 @@ vi.mock('./raid-candidate', async (original) => {
 const highest = {
   ...candidate,
   fame: 90000,
-  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1'
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
+  adventureName: null
 }
 const chosen = {
   ...candidate,
@@ -21,7 +22,8 @@ const chosen = {
   serverId: 'bakal',
   serverName: '바칼',
   fame: 1000,
-  imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/synthetic-chosen?zoom=1'
+  imageUrl: 'https://img-api.neople.co.kr/df/servers/bakal/characters/synthetic-chosen?zoom=1',
+  adventureName: null
 }
 
 function ocr(captureId: string, slot: number) {
