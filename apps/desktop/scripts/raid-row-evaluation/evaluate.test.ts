@@ -135,16 +135,37 @@ describe('평가 요약', () => {
           expectedKind: 'fame',
           observedKind: 'fame'
         }),
-        caseOf([observation(uniqueScoreRow), observation(homonymScoreRow)], { caseId: 'case-02' })
+        caseOf([observation(uniqueScoreRow), observation(homonymScoreRow)], { caseId: 'case-02' }),
+        // 1000.4K는 1,000,400~1,000,499다. 범위 위로 벗어나면 max와의 거리, 범위 안이면 0이다.
+        caseOf(
+          [
+            observation(
+              manifestRow({
+                valueText: '1000.4K',
+                uniqueName: true,
+                candidates: [candidate({ correct: true, engineScore: 1_000_600 })]
+              })
+            ),
+            observation(
+              manifestRow({
+                row: 2,
+                valueText: '1000.4K',
+                uniqueName: true,
+                candidates: [candidate({ correct: true, engineScore: 1_000_450 })]
+              })
+            )
+          ],
+          { caseId: 'case-03' }
+        )
       ],
       null
     )
 
     expect(summary.candidates).toEqual({
       status: 'run',
-      screenJobField: { jobGrowName: 2, jobName: 1, neither: 0 },
+      screenJobField: { jobGrowName: 4, jobName: 1, neither: 0 },
       fameDifferences: [10],
-      engineErrors: [400],
+      engineErrors: [400, 101, 0],
       // 다른 직업 후보(명성 119,995)는 간격에서 빠진다.
       fameGaps: [990],
       engineGaps: [500]
