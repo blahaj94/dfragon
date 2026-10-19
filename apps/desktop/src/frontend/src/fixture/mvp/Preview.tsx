@@ -5,6 +5,7 @@ import { MainNav, type SearchMode } from '../../components/MainNav'
 import { PartyHeader } from '../../components/PartyHeader'
 import { TopBar } from '../../components/TopBar'
 import { usePartyCollapse } from '../../hooks/usePartyCollapse'
+import { LoginSection } from '../../sections/LoginSection'
 import { SettingsSection } from '../../sections/SettingsSection'
 import { PartyPage } from '../../pages/party/PartyPage'
 import { CharacterDetailPage } from '../../pages/character-detail/CharacterDetailPage'
@@ -16,6 +17,7 @@ import {
   getCapturePreviewPhase
 } from './capture-preview'
 import { getCharacterPreview } from './character-preview'
+import { createPreviewAuthApi } from './settings-preview'
 import { styles } from './Preview.style'
 import {
   facePreviewCharacters,
@@ -48,6 +50,9 @@ export function Preview(): React.JSX.Element {
   const [raidRound, setRaidRound] = useState(0)
   const partyCardsId = useId()
   const raidCardsId = useId()
+  // 설정 대화상자의 합성 로그인과 개발자 모드. 개발 도구 열기는 미리보기에서 아무 일도 하지 않는다.
+  const [authApi] = useState(createPreviewAuthApi)
+  const [developerEnabled, setDeveloperEnabled] = useState(false)
   // 캡처 창은 목록 배열이 바뀔 때 재조회가 끝난 것으로 보고 진행 막대를 다시 채우므로, 미리보기 상태가
   // 바뀔 때만 새 목록을 만든다.
   const sources = useMemo(() => getCapturePreviewSources(captureState), [captureState])
@@ -120,7 +125,19 @@ export function Preview(): React.JSX.Element {
       <TopBar
         nav={<MainNav searchMode={searchMode} onSearchModeChange={setSearchMode} />}
         showCapture
-        settings={<SettingsSection />}
+        settings={
+          <SettingsSection
+            account={<LoginSection api={authApi} />}
+            developerMode={{
+              status: 'ready',
+              enabled: developerEnabled,
+              updating: false,
+              retry: () => {},
+              setEnabled: setDeveloperEnabled
+            }}
+            onOpenDeveloperWorkbench={() => {}}
+          />
+        }
         capture={
           <CaptureControls
             sources={sources}
