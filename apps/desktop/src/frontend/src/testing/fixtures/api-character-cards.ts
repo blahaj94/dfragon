@@ -196,7 +196,7 @@ export const apiDealerCard: CharacterCard = {
           { name: '마법 크리티컬 히트', value: '5%' },
           { name: '최종 데미지 증가', value: '3%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -238,7 +238,7 @@ export const apiDealerCard: CharacterCard = {
           { name: '물리 크리티컬 히트', value: '3%' },
           { name: '마법 크리티컬 히트', value: '3%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -261,7 +261,7 @@ export const apiDealerCard: CharacterCard = {
           { name: '물리 크리티컬 히트', value: '3%' },
           { name: '마법 크리티컬 히트', value: '3%' }
         ],
-        grade: null
+        grade: '준종결'
       }
     },
     {
@@ -276,7 +276,7 @@ export const apiDealerCard: CharacterCard = {
           { name: '모든 속성 강화', value: 35 },
           { name: '최종 데미지 증가', value: '1%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -306,7 +306,7 @@ export const apiDealerCard: CharacterCard = {
           { name: '모든 속성 강화', value: 35 },
           { name: '최종 데미지 증가', value: '1%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -333,7 +333,7 @@ export const apiDealerCard: CharacterCard = {
       itemName: '무결한 순수의 마법석',
       rarity: '에픽',
       reinforce: { kind: 'reinforce', value: 0, amplificationName: null },
-      enchant: { status: [{ name: '모든 속성 강화', value: 35 }], grade: null }
+      enchant: { status: [{ name: '모든 속성 강화', value: 35 }], grade: '준종결' }
     },
     {
       slotId: 'EARRING',
@@ -503,7 +503,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '정신력', value: 110 },
           { name: '캐스트속도', value: '7%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -520,7 +520,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 100 },
           { name: '정신력', value: 100 }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -537,7 +537,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 100 },
           { name: '정신력', value: 100 }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -573,7 +573,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '물리 크리티컬 히트', value: '7%' },
           { name: '마법 크리티컬 히트', value: '7%' }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -590,7 +590,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 100 },
           { name: '정신력', value: 100 }
         ],
-        grade: null
+        grade: '준종결'
       }
     },
     {
@@ -607,7 +607,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 90 },
           { name: '정신력', value: 90 }
         ],
-        grade: null
+        grade: '준종결'
       }
     },
     {
@@ -624,7 +624,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 90 },
           { name: '정신력', value: 90 }
         ],
-        grade: null
+        grade: '준종결'
       }
     },
     {
@@ -641,7 +641,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 90 },
           { name: '정신력', value: 90 }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -658,7 +658,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 100 },
           { name: '정신력', value: 100 }
         ],
-        grade: null
+        grade: '종결'
       }
     },
     {
@@ -675,7 +675,7 @@ export const apiBufferCard: CharacterCard = {
           { name: '체력', value: 100 },
           { name: '정신력', value: 100 }
         ],
-        grade: null
+        grade: '준종결'
       }
     },
     {
