@@ -31,6 +31,7 @@ import { createPortraitMatcher, type PortraitMatchPolicy } from '../search/portr
 import { createPortraitEdgeMatcher, type PortraitEdgeMatchPolicy } from '../search/portrait-edges'
 import { createStayImageSource } from '../search/stay-images'
 import type { SearchRuntime } from '../search/request'
+import type { ScoreEngine } from '../score/engine'
 import { registerManualSearchIpc, type ManualSearchKind } from '../search/manual-ipc'
 import { findSelectedSource } from './capture-policy'
 import { bindWindowFrame, type ReadWindowFrame } from './native-frame'
@@ -180,6 +181,7 @@ function registerCaptureIpc(
     clock: AuthClock
     portraitMatchPolicy?: PortraitMatchPolicy
     portraitEdgeMatchPolicy?: PortraitEdgeMatchPolicy
+    score?: ScoreEngine
   },
   details?: { openSelected: typeof openSelectedCharacterDetail },
   collection?: OcrCollection
@@ -193,7 +195,11 @@ function registerCaptureIpc(
     ) {
       throw new TypeError('Only one portrait comparison policy can be configured')
     }
-    runtime = { http: createSearchHttp(configuration), clock: configuration.clock }
+    runtime = {
+      http: createSearchHttp(configuration),
+      clock: configuration.clock,
+      score: configuration.score
+    }
     if (configuration.portraitEdgeMatchPolicy !== undefined) {
       const appearance = createCharacterAppearanceHttp(configuration)
       const image = createStayImageSource({ appearance, fetch: configuration.fetch })

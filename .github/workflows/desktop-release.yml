@@ -87,6 +87,12 @@ jobs:
             exit 1
           fi
       - run: pnpm install --frozen-lockfile
+      # --require fails a release without the engine once it is published. Unpublished engines are skipped.
+      - name: Prepare score engine
+        env:
+          DFRAGON_SCORE_ENGINE_TOKEN: ${{ secrets.DFRAGON_SCORE_ENGINE_TOKEN }}
+          DFRAGON_SCORE_ENGINE_REPOSITORY: ${{ vars.DFRAGON_SCORE_ENGINE_REPOSITORY }}
+        run: pnpm --filter @dfragon/desktop prepare:score-engine --require
       - run: pnpm --filter @dfragon/desktop build:distribution
       - name: Package portable executable with release version
         shell: bash

@@ -67,7 +67,8 @@ function selected(name: string): SelectedCharacterSummary {
     imageUrl: characterImageUrl(character),
     guildName: null,
     equipmentScore: null,
-    serverRank: null
+    serverRank: null,
+    card: null
   }
 }
 

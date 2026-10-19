@@ -2,7 +2,7 @@
 type: reference
 status: active
 scope: desktop OCR character search implementation and verification
-last-reviewed: 2026-10-10
+last-reviewed: 2026-10-19
 ---
 
 # Desktop 캐릭터 검색
@@ -18,6 +18,9 @@ Windows 제품의 [캡처 정책](../rules/desktop-windows-capture.md#windows-�
 | `apps/desktop/src/backend/capture/ipc-handler.ts`                                                                                                              | 현재 source/document와 capture를 결합하고 검색 IPC를 같은 수명에서 검사한다. Navigation, destruction, renderer process 종료, source 변경 때 요청을 무효화한다.        |
 | `apps/desktop/src/backend/search/capture-lifetime.ts`, `slot-lifetime-machine.ts`                                                                              | 함수 factory가 슬롯 DTO, 관측 revision을 관리하고 XState actor가 슬롯별 HTTP 취소와 429 대기를 소유한다.                                                              |
 | `apps/desktop/src/backend/search/request.ts`                                                                                                                   | 입력 접수부터 HTTP, body 검증까지 하나의 검색 예산과 취소 판정을 수행한다.                                                                                            |
+| `apps/desktop/src/backend/search/card-assembler.ts`                                                                                                            | 상세 응답의 `card`를 strict 스키마로 검사하고 역할로 계산기를 골라 점수 엔진 결과를 채운다.                                                                          |
+| `apps/desktop/src/backend/score/input.ts`, `engine.ts`                                                                                                         | 상세 응답을 엔진 입력 문서로 되돌리고, koffi로 연 라이브러리의 호출, 해제, 결과 검증과 실패 정제를 맡는다.                                                           |
+| `apps/desktop/scripts/prepare-score-engine.mjs`, `apps/desktop/score-engine.config.mjs`                                                                        | 비공개 Release 자산을 토큰으로 받아 SHA256을 대조하고 `resources/score/`에 둔다. 토큰이 없으면 건너뛴다.                                                             |
 | `apps/desktop/src/backend/search/http.ts`                                                                                                                      | 고정 `GET /characters`, 선택 query 생략, HTTP/UTF-8/JSON/전체 후보 검증과 다섯 field projection을 수행한다.                                                          |
 | `apps/desktop/src/backend/search/retry-after.ts`                                                                                                               | 헤더 수신 시각부터 남은 시간을 검사하고 긴 timer를 지원 범위 안에서 나눠 예약한다.                                                                                   |
 | `apps/desktop/src/preload/common/types/search.ts`, `common/search/snapshot.ts`                                                                                 | Shared DTO, 오류 문구, feature API와 exact own shape, 상태 조합 검증을 정의한다.                                                                                        |
@@ -136,7 +139,23 @@ IPC 입력은 `{ captureId, slot, observationRevision, nickname, candidateNickna
 
 크롭 null도 후보를 조회해 최고 명성 선택을 시도한다. 비교기를 구성하지 않은 fixture나 API 미설정 상태의 `waiting-policy`는 유지한다. 제품 main은 `portraitEdgeMatchPolicy`를 구성하며 정책은 renderer가 보낼 수 없다. 기존 RGB 정책은 별도의 합성 검증 경로로만 남고 두 정책을 동시에 설정하면 거절한다. clear, 캡처 종료, source와 document 변경은 이전 요청, 얼굴과 선택 상세를 모두 비운다. 수동 카드 조회는 별도 수명에서 같은 취소와 최신성 검사를 적용한다.
 
-성공한 슬롯의 `selected`에는 검증된 기본 요약만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. Windows 실시간 캡처와 실제 캐릭터 정답을 이용한 일치 기준 검증은 여전히 후속이다.
+성공한 슬롯의 `selected`에는 검증된 기본 요약과 [카드](#카드-전달과-점수-엔진)만 넣는다. 명성, 레벨, 직업과 모험단의 잘못된 표시 타입이나 누락은 null이며 다른 값으로 추정하지 않는다. 전체 상세는 main에 남기고 현재 capture, slot, requestId가 일치할 때만 내부 `selection`으로 읽는다. 이전 선택이 새 슬롯이나 캡처를 덮어쓰지 못하게 한다. Windows 실시간 캡처와 실제 캐릭터 정답을 이용한 일치 기준 검증은 여전히 후속이다.
+
+## 카드 전달과 점수 엔진
+
+상세 응답의 `card`는 API가 저장된 섹션으로 만든 카드 투영이다. Main의 `backend/search/card-assembler.ts`가 이 값을 preload의 `characterCardSchema`(모르는 키 거절, 유한한 숫자, 비어 있지 않은 문자열)로 검사하고, 통과한 카드에 점수 엔진 결과를 채워 `SelectedCharacterSummary.card`로 보낸다. `card`가 없거나 검사에 실패하면 엔진을 부르지 않고 `card`만 null로 두며 기본 요약은 그대로 보낸다. 요약의 `equipmentScore`와 `serverRank`는 `card.score.value`와 `card.serverRank.rank`를 옮긴 값이다. Renderer에는 숫자와 enum으로 된 카드만 건너가며 포맷한 문자열은 보내지 않는다.
+
+계산기는 API가 정한 `card.role`로 고른다. `buffer`는 `buff`, 그 밖(역할을 모르는 null 포함)은 `equipment`이며 엔진에 역할 판단을 맡기지 않는다. 엔진 결과의 `display.role`이 카드 스탯의 역할과 같을 때만 `switchingLevel`과 버퍼의 `buff30`, `buff50`을 채운다. 엔진 결과가 없거나 역할이 다르면 점수처럼 API가 보낸 값과 관계없이 null로 둔다. 계산하지 못한 결과는 `score.value`가 null이고 `skipped`에 사유 종류와 문구가 남는다.
+
+`backend/score/input.ts`는 상세 응답의 basic을 뺀 10개 섹션을 엔진 입력 문서로 바꾼다. `status`, `equipment`, `avatar`, `creature`, `oath`는 같은 이름이고 `mistAssimilation`은 `mist_assimilation`, `skillStyle`은 `skill_style`, `buff.equipment`, `buff.avatar`, `buff.creature`는 `buff_equip_equipment`, `buff_equip_avatar`, `buff_equip_creature`다. API가 섹션 안쪽만 남기므로 각 문서는 `character`의 응답 머리 12칸과 원래 바깥 키(`status`와 `buff`, `equipment`와 `setItemInfo`, `skill`, `skill.buff` 등)를 붙여 Neople 응답 모양으로 되돌린다. 서버가 더한 `itemDetail`, `skillDetails`는 빼고, `itemDetail.data`가 같은 itemId의 아이템 응답이면 `items[itemId]`에 둔다. API는 장착 장비의 `engrave`에 아이템 상세를 붙이지 않으므로 그 아이템은 엔진 입력의 `items`에 들어가지 않는다.
+
+`backend/score/engine.ts`는 라이브러리를 `koffi`로 열어 `dnfscore_version`, `dnfscore_score`, `dnfscore_free`를 묶는다. 패키지는 `app.asar.unpacked/resources/score/`의 플랫폼별 파일만 열고, 개발 실행만 `DFRAGON_SCORE_LIBRARY`의 절대 경로를 읽는다. 라이브러리는 첫 점수 계산 때 한 번 열며 열지 못한 결과도 기억해 다시 시도하지 않는다. 엔진이 출력으로 할당한 문자열은 반환값과 관계없이 같은 엔진의 `dnfscore_free`로 해제한다. 결과는 Desktop이 쓰는 `calculator`, `score`, `skipped`, `versions`, `display`만 검사하고, 요청한 계산기와 다르거나 점수와 사유가 함께 있거나 둘 다 없으면 버린다. 파일이 없거나 열기, 호출, 결과 검증이 실패하면 점수만 null이고, 원문 오류는 경로를 담을 수 있어 진단 코드 `SCORE_ENGINE_UNAVAILABLE`, `SCORE_ENGINE_FAILED`만 남긴다.
+
+엔진 호출은 main에서 동기로 실행하며 상세 조회를 마친 같은 검색 operation의 `run` 안에서 한다. 호출 전후에 취소, 처음 접수부터 15초인 예산, 현재 요청 여부를 확인하므로 계산 중 캡처가 끝나거나 예산을 넘긴 카드는 발행하지 않는다. 동기 호출은 중간에 멈출 수 없어 걸린 시간이 50ms를 넘으면 `SCORE_ENGINE_SLOW`를 남긴다. 50ms를 넘는 입력이 확인되면 worker로 옮기는 작업을 따로 검토한다. Renderer와 preload는 엔진을 부르지 못하고 main이 검증해 넘긴 카드만 받는다.
+
+엔진 바이너리는 비공개 엔진 저장소의 Release 자산이다. `apps/desktop/scripts/prepare-score-engine.mjs`가 `score-engine.config.mjs`의 tag, 자산 이름, SHA256으로 자산을 받아 대조하고 `resources/score/`에 두며, electron-builder의 `asarUnpack: resources/**`가 이를 asar 밖에 둔다. 토큰이 없으면 엔진 없이 빌드한다. Release가 아직 없어 설정은 미발행 상태다. 입수와 개발 설정은 [Desktop 안내](../../apps/desktop/README.md#장비-점수-엔진)에 있다.
+
+`input.test.ts`는 엔진 저장소 golden 벡터의 입력 원문(가명 처리한 딜러 1명, 버퍼 1명)을 API 투영과 `itemDetail` 보강 규칙대로 상세 응답 모양으로 만든 뒤 엔진 입력으로 되돌려 원문과 대조한다. `engine.test.ts`는 koffi 대신 같은 모양의 라이브러리 더블로 로드 실패 정제, 출력 해제, 결과 검증과 느린 호출 진단을 확인하고, `request.test.ts`는 엔진 호출 중 만료, 취소와 이전 요청의 카드를 버리는지 확인한다. 실제 엔진의 점수 정확도와 Electron 안의 koffi 로드는 Release 뒤 수동 확인 대상이다.
 
 ## 캐릭터별 상세 창
 
@@ -220,7 +239,7 @@ git diff --check
 
 공대 수명은 문서 세대만으로 유효성을 보지만 OCR 기원 관측과 요청에는 `isCurrentOcr`(`capture/ipc-handler.ts`의 `isCurrentSearch`, 회차를 시작한 게임 창 선택 세대와 등록 상태)를 더 요구한다. 게임 창 선택이 시작되거나 캡처가 멈추면 `clearSource`가 카드 수명의 `cancelOcrRequests`를 불러 진행 중인 OCR 기원 자리만 취소하고 비운다. 이전 회차의 OCR 통지와 OCR 실패의 재시도는 `STALE_SEARCH`로 거절하며, 서버를 고른 조회와 끝난 자리는 그대로다. 회차 중 사용자가 서버와 이름으로 조회한 자리는 OCR 관측을 보내지 않는다. Alt+R은 `hooks/useRestartShortcut.ts`로 보이는 화면의 회차만 받는다. 상단 바 상태 칩과 공대 머리는 `lib/capture-presentation.ts`의 `getRaidScreenCapture`로 창 선택 상태와 공대 회차 상태를 고른다. Main의 `readRaidCaptureFrame`은 `capture/ipc-handler.ts`에, OCR 통지는 `search/manual-ipc.ts`의 공대 수명에 있다. 한 자리의 새 조회는 그 자리의 이전 요청만 취소하며, 동시 요청 수는 사용자가 조회한 자리 수를 넘지 않는다. 공개 검색의 호출 제한은 파티와 공대 조회가 함께 쓴다.
 
-선택된 요약에는 상세 응답의 `guildName`과 `equipmentScore`, `serverRank` 자리를 둔다. 상세 응답에 장비 점수와 서버 순위의 대응 필드가 없어 main은 두 값을 null로 보내고 계산하거나 추정하지 않는다. 카드는 null을 `-`로 표시한다.
+선택된 요약에는 상세 응답의 `guildName`과 `equipmentScore`, `serverRank`, `card`를 둔다. `equipmentScore`와 `serverRank`는 [검증한 카드](#카드-전달과-점수-엔진)의 점수와 수집 범위 순위이며, 카드가 없거나 엔진이 계산하지 못하면 null로 보내고 추정하지 않는다. 카드는 null을 `-`로 표시한다.
 
 `SlotNicknameEditor.tsx`와 `useCharacterSearch.ts`는 수정 중 입력을 유지하고 해당 슬롯의 OCR 검색 제출만 멈춘다. 해당 회차의 OCR 결과는 보관해 ‘OCR 다시 사용’ 때 반영하며 새 프레임을 읽지 않는다. 다른 슬롯은 계속 검색한다. Clear/revision을 통해 수정 전 검색의 늦은 결과를 차단한다. 입력 검사는 `manual-input.ts`와 main의 기존 검색 입력 검사를 사용한다.
 

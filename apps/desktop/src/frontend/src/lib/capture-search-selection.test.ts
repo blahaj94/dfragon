@@ -44,7 +44,8 @@ it('화면의 현재 선택만 상세 참조로 사용하고 clear와 종료 즉
     imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
     guildName: null,
     equipmentScore: null,
-    serverRank: null
+    serverRank: null,
+    card: null
   }
   const success = searchSlot({ state: 'success', rows: [searchRow], selected })
   snapshot = searchSnapshot({ revision: 3, slots: [success, ...snapshot.slots.slice(1)] })
@@ -114,7 +115,8 @@ it('공대 연결은 12자리 snapshot만 받아 12번째 자리 결과를 보�
     imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
     guildName: null,
     equipmentScore: null,
-    serverRank: null
+    serverRank: null,
+    card: null
   }
   const success = searchSlot({ slot: 11, state: 'success', rows: [searchRow], selected })
   snapshot = searchSnapshot({ revision: 3, slots: raidSlots([success]) })

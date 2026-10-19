@@ -7,6 +7,8 @@ import {
   withSearchSlot
 } from '../../api/search-test-fixture'
 import { SEARCH_SLOT_COUNTS } from '../types/search'
+import { characterCardSchema } from './character-summary'
+import { bufferCard, dealerCard } from './card-test-fixture'
 
 const selected = {
   ...searchRow,
@@ -19,7 +21,8 @@ const selected = {
   imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
   guildName: null,
   equipmentScore: null,
-  serverRank: null
+  serverRank: null,
+  card: null
 }
 
 describe('선택된 캐릭터 요약과 대기 snapshot', () => {
@@ -32,6 +35,23 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
 
   it('길드, 장비 점수, 서버 순위 값이 오면 그대로 전달한다', () => {
     const filled = { ...selected, guildName: '합성길드', equipmentScore: 0, serverRank: 37 }
+    const snapshot = withSearchSlot(
+      searchSlot({ state: 'success', rows: [searchRow], selected: filled })
+    )
+    expect(parseSearchSnapshot(snapshot)).toEqual(snapshot)
+  })
+
+  it.each([
+    ['딜러', dealerCard],
+    ['버퍼', bufferCard]
+  ])('%s 카드와 엔진이 채운 점수를 요약과 함께 전달한다', (_name, card) => {
+    const score = {
+      calculator: 'equipment',
+      value: 1741,
+      skipped: null,
+      versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
+    } as const
+    const filled = { ...selected, equipmentScore: 1741, serverRank: 12, card: { ...card, score } }
     const snapshot = withSearchSlot(
       searchSlot({ state: 'success', rows: [searchRow], selected: filled })
     )
@@ -114,6 +134,77 @@ describe('선택된 캐릭터 요약과 대기 snapshot', () => {
         withSearchSlot(searchSlot({ state: 'success', rows: [searchRow, searchRow], selected }))
       )
     ).toBeNull()
+  })
+})
+
+describe('카드 strict 스키마', () => {
+  const [weapon] = dealerCard.investment
+  it.each([
+    ['최상위 추가 키', { ...dealerCard, imageUrl: 'https://img-api.neople.co.kr/df/items/x' }],
+    ['스탯 추가 키', { ...dealerCard, stats: { ...dealerCard.stats, label: '공격력 증가' } }],
+    [
+      '세트 슬롯 추가 키',
+      {
+        ...dealerCard,
+        set: { ...dealerCard.set, slots: [{ slotId: 'WEAPON', rarity: null, x: 1 }] }
+      }
+    ],
+    ['투자 행 추가 키', { ...dealerCard, investment: [{ ...weapon, display: '+12' }] }],
+    ['역할 누락', { ...dealerCard, role: undefined }],
+    ['알 수 없는 역할', { ...dealerCard, role: 'tank' }],
+    [
+      '역할에 맞지 않는 스탯 칸',
+      { ...dealerCard, stats: { role: 'dealer', townIntelligence: 1, switchingLevel: null } }
+    ],
+    [
+      '문자 공격력 증가',
+      { ...dealerCard, stats: { ...dealerCard.stats, attackIncrease: '34458' } }
+    ],
+    ['무한 크리티컬', { ...dealerCard, stats: { ...dealerCard.stats, critical: Infinity } }],
+    ['NaN 증폭', { ...dealerCard, stats: { ...dealerCard.stats, amplification: Number.NaN } }],
+    ['빈 세트 이름', { ...dealerCard, set: { ...dealerCard.set, name: ' ' } }],
+    ['빈 서약 아이템', { ...dealerCard, oath: { ...dealerCard.oath, itemId: '' } }],
+    ['0위 서버 순위', { ...dealerCard, serverRank: { ...dealerCard.serverRank, rank: 0 } }],
+    [
+      '전체 범위 순위',
+      { ...dealerCard, serverRank: { ...dealerCard.serverRank, scope: 'global' } }
+    ],
+    [
+      '날짜가 아닌 관측 시각',
+      { ...dealerCard, serverRank: { ...dealerCard.serverRank, observedAt: 'now' } }
+    ],
+    [
+      '소수 강화 수치',
+      { ...dealerCard, investment: [{ ...weapon, reinforce: { ...weapon.reinforce, value: 1.5 } }] }
+    ],
+    [
+      '정하지 않은 마법부여 등급',
+      { ...dealerCard, investment: [{ ...weapon, enchant: { status: [], grade: '중간' } }] }
+    ],
+    [
+      '빈 건너뛰기 사유',
+      {
+        ...dealerCard,
+        score: {
+          calculator: 'equipment',
+          value: null,
+          skipped: { kind: 'resolution', message: '' },
+          versions: { package: '0.1.0', rulesRev: 'rev12', bundleId: 'phase31-rev12' }
+        }
+      }
+    ],
+    ['배열이 아닌 투자 현황', { ...dealerCard, investment: null }]
+  ])('%s 카드를 거절한다', (_name, invalid) => {
+    expect(characterCardSchema.safeParse(dealerCard).success).toBe(true)
+    expect(characterCardSchema.safeParse(invalid).success).toBe(false)
+  })
+
+  it('요약의 카드가 스키마를 어기면 snapshot 전체를 renderer로 전달하지 않는다', () => {
+    const invalid = { ...selected, card: { ...dealerCard, extra: true } }
+    const snapshot = withSearchSlot(
+      searchSlot({ state: 'success', rows: [searchRow], selected: invalid })
+    )
+    expect(parseSearchSnapshot(snapshot)).toBeNull()
   })
 })
 

@@ -724,7 +724,8 @@ it('완전한 trusted 설정에서 동일 document와 auth/search runtime을 제
     {
       apiOrigin: 'https://api.synthetic.test',
       clock: mocks.searchClock,
-      portraitEdgeMatchPolicy: { minSimilarity: 0.55, minCoverage: 0.8, minComparedPixels: 100 }
+      portraitEdgeMatchPolicy: { minSimilarity: 0.55, minCoverage: 0.8, minComparedPixels: 100 },
+      score: expect.any(Function)
     },
     {
       openSelected: mocks.openSelectedCharacterDetail
@@ -1260,7 +1261,8 @@ it('does not activate product auth for the unsupported OAuth provider', async ()
     {
       apiOrigin: 'https://api.synthetic.test',
       clock: mocks.searchClock,
-      portraitEdgeMatchPolicy: { minSimilarity: 0.55, minCoverage: 0.8, minComparedPixels: 100 }
+      portraitEdgeMatchPolicy: { minSimilarity: 0.55, minCoverage: 0.8, minComparedPixels: 100 },
+      score: expect.any(Function)
     },
     {
       openSelected: mocks.openSelectedCharacterDetail

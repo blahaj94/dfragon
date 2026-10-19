@@ -36,7 +36,8 @@ function currentView(): SearchView {
     imageUrl: 'https://img-api.neople.co.kr/df/servers/cain/characters/synthetic-character?zoom=1',
     guildName: null,
     equipmentScore: null,
-    serverRank: null
+    serverRank: null,
+    card: null
   }
   const slots = emptySearchSlots().map((slot) => {
     if (reference?.slot === slot.slot) {
