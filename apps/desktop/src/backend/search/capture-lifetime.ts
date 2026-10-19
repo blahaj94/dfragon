@@ -675,19 +675,20 @@ export function createCaptureSearchLifetime(options: Options): CaptureSearchLife
   }
 }
 
-/** IPC 픽셀 참조를 복사해 수동 재시도까지 동일한 관측을 보관한다. */
+/** IPC 픽셀 참조를 복사해 수동 재시도까지 동일한 관측을 보관한다. 공대 행의 값은 그대로 함께 둔다. */
 function cloneOcrInput(input: OcrSearchInput): OcrSearchInput {
   const candidateNicknames = input.candidateNicknames.slice(0, 1)
+  const raidRow = input.raidRow === undefined ? {} : { raidRow: { ...input.raidRow } }
   if (input.portrait === null) {
-    return { candidateNicknames, portrait: null }
+    return { candidateNicknames, portrait: null, ...raidRow }
   }
   const { image, rasterScale, validMask } = input.portrait
   const rgba = new Uint8Array(image.rgba)
   const portrait = { image: { width: image.width, height: image.height, rgba }, rasterScale }
   if (validMask === undefined) {
-    return { candidateNicknames, portrait }
+    return { candidateNicknames, portrait, ...raidRow }
   }
   const copiedMask = new Uint8Array(validMask)
 
-  return { candidateNicknames, portrait: { ...portrait, validMask: copiedMask } }
+  return { candidateNicknames, portrait: { ...portrait, validMask: copiedMask }, ...raidRow }
 }

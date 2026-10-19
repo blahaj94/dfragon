@@ -64,7 +64,7 @@ export const slotLifetimeMachine = setup({
           }
         }
         if (!stopped) {
-          reportSearchOutcome(outcome)
+          reportSearchOutcome(outcome, request.runtime.ocrIdentification)
           input.complete(request, outcome)
         }
       }

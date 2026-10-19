@@ -1,15 +1,23 @@
 import { reportDiagnostic } from '../diagnostics/log'
-import type { SearchOutcome } from './request'
+import type { SearchOutcome, SearchRuntime } from './request'
 
-/** 완료한 요청의 고정 상태만 기록하고 이름, 응답 본문과 요청 식별자는 남기지 않는다. */
-export function reportSearchOutcome(outcome: SearchOutcome): void {
+/**
+ * 완료한 요청의 고정 상태만 기록하고 이름, 응답 본문과 요청 식별자는 남기지 않는다. 최고 명성 선택은 파티
+ * 얼굴과 공대 행 값 중 무엇을 확인하지 못했는지 식별 방식으로 구분한다.
+ */
+export function reportSearchOutcome(
+  outcome: SearchOutcome,
+  identification: SearchRuntime['ocrIdentification'] = 'portrait'
+): void {
   if (outcome === null) {
     return
   }
 
   if (outcome.kind === 'success') {
     if (outcome.selected?.selectionMethod === 'highest-fame') {
-      reportDiagnostic('SEARCH_APPEARANCE_FALLBACK')
+      reportDiagnostic(
+        identification === 'raid' ? 'SEARCH_RAID_ROW_FALLBACK' : 'SEARCH_APPEARANCE_FALLBACK'
+      )
     }
 
     return

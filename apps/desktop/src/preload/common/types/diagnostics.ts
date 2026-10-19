@@ -11,6 +11,7 @@ export const DIAGNOSTIC_MESSAGES = {
   SEARCH_RESPONSE_INVALID: '캐릭터 조회 응답을 확인하지 못했습니다.',
   SEARCH_UNAVAILABLE: '캐릭터 조회 서비스에 연결하지 못했습니다.',
   SEARCH_APPEARANCE_FALLBACK: '외형을 확인하지 못해 최고 명성 후보를 표시합니다.',
+  SEARCH_RAID_ROW_FALLBACK: '공대 행의 직업과 수치를 확인하지 못해 최고 명성 후보를 표시합니다.',
   SCORE_ENGINE_UNAVAILABLE: '점수 엔진을 불러오지 못해 장비 점수 없이 표시합니다.',
   SCORE_ENGINE_FAILED: '점수 엔진이 장비 점수를 계산하지 못했습니다.',
   SCORE_ENGINE_SLOW: '장비 점수 계산이 50ms를 넘었습니다.',

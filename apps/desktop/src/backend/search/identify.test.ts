@@ -30,7 +30,9 @@ function candidate(id: string, name: string, fame: number | null): CharacterCand
     serverName: '카인',
     fame,
     imageUrl,
-    adventureName: null
+    adventureName: null,
+    jobName: null,
+    jobGrowName: null
   }
 }
 

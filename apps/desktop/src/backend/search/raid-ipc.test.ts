@@ -200,7 +200,8 @@ it('공대 조회 IPC도 신뢰하지 않는 sender는 HTTP 전에 거절한다'
   expect(fixture.fetchSearch).not.toHaveBeenCalled()
 })
 
-// 공대 캡처의 OCR 관측. 공대 상세 창에는 얼굴이 없어 portrait는 늘 null이다.
+// 공대 캡처의 OCR 관측. 공대 상세 창에는 얼굴이 없어 portrait는 늘 null이고, 이 파일은 수명과 채널을 보므로
+// 그 행의 직업명과 수치는 읽지 못한 값으로 둔다.
 function ocr(captureId: string, slot: number, observationRevision = 1, nickname = '가나') {
   return {
     captureId,
@@ -208,7 +209,8 @@ function ocr(captureId: string, slot: number, observationRevision = 1, nickname 
     observationRevision,
     nickname,
     candidateNicknames: [nickname],
-    portrait: null
+    portrait: null,
+    raidRow: { jobText: null, valueColumn: 'unknown', valueText: null }
   }
 }
 
@@ -291,9 +293,12 @@ it('공대 OCR 관측은 다른 수명의 ID와 파티 캡처 채널로 섞이�
   expect(
     await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 11))
   ).toMatchObject({ ok: false, error: { code: 'INVALID_SEARCH_COMMAND' } })
-  expect(
-    await fixture.invoke('notifyOcrCandidatesDetected', ocr(fixture.captureId, 0))
-  ).toMatchObject({ ok: false, error: { code: 'STALE_SEARCH' } })
+  // 파티 관측에는 공대 행 값이 없다.
+  const { raidRow: _raidRow, ...partyObservation } = ocr(fixture.captureId, 0)
+  expect(await fixture.invoke('notifyOcrCandidatesDetected', partyObservation)).toMatchObject({
+    ok: false,
+    error: { code: 'STALE_SEARCH' }
+  })
   expect(fixture.fetchSearch).not.toHaveBeenCalled()
 })
 

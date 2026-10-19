@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 import { rendererTransforms } from './build/renderer-transforms'
-import { defineConfig } from 'vitest/config'
+import { defineConfig, type Plugin } from 'vitest/config'
 import { desktopLicenseCatalog } from '@dfragon/licenses/vite'
 
 const OCR_CONTRACT_IMPORT_PATTERN = /^@dfragon\/lib\/ocr-contract$/
@@ -8,9 +8,38 @@ const PAGINATION_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/pagination$/
 const SHAPE_CHECK_IMPORT_PATTERN = /^@dfragon\/lib\/utils\/shape-check$/
 const SHARED_LIBRARY_IMPORT_PATTERN = /^@dfragon\/lib$/
 const SHARED_UI_IMPORT_PATTERN = /^@dfragon\/ui$/
+const ASSET_IMPORT_SUFFIX = '?asset'
+
+/** Electron Vite가 main 번들 옆에 내보내는 `?asset` 파일을 테스트에서는 원본 파일 경로로 읽는다. */
+function sourceAssetPaths(): Plugin {
+  return {
+    name: 'dfragon-source-asset-paths',
+    enforce: 'pre',
+    async resolveId(source, importer) {
+      if (!source.endsWith(ASSET_IMPORT_SUFFIX) || importer === undefined) {
+        return null
+      }
+      const file = source.slice(0, -ASSET_IMPORT_SUFFIX.length)
+      const resolved = await this.resolve(file, importer, { skipSelf: true })
+      if (resolved === null) {
+        return null
+      }
+
+      return `${resolved.id}${ASSET_IMPORT_SUFFIX}`
+    },
+    load(id) {
+      if (!id.endsWith(ASSET_IMPORT_SUFFIX)) {
+        return null
+      }
+
+      return `export default ${JSON.stringify(id.slice(0, -ASSET_IMPORT_SUFFIX.length))}`
+    }
+  }
+}
 
 export default defineConfig({
   plugins: [
+    sourceAssetPaths(),
     ...rendererTransforms({ test: true }),
     desktopLicenseCatalog({
       runtimeRoot: fileURLToPath(new URL('.', import.meta.url)),

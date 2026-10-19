@@ -27,6 +27,11 @@ function crop(gray: number[]): { width: number; height: number; rgba: Uint8Array
   return { width: gray.length, height: 1, rgba }
 }
 
+// 직업명 칸은 닉네임과 다른 크기로 만들어 어느 크롭을 인식했는지 구분한다.
+function row(job: ReturnType<typeof crop> | null = null) {
+  return { nickname: crop([20, 230]), job, valueText: '12,345' }
+}
+
 beforeEach(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     configurable: true,
@@ -53,12 +58,12 @@ afterEach(() => {
 
 it('크롭이 없는 행은 OCR 없이 빈 자리로 두고 행 번호를 자리 번호로 쓴다', async () => {
   recognize.mockResolvedValue(result('공대원'))
-  const nicknames = Array.from({ length: 12 }, (_, row) => (row === 2 ? crop([30, 220]) : null))
+  const rows = Array.from({ length: 12 }, (_, index) => (index === 2 ? row() : null))
 
-  const results = await recognizeRaidRows(nicknames, recognize)
+  const results = await recognizeRaidRows(rows, recognize)
 
   expect(results).toHaveLength(12)
-  expect(results[2]).toEqual({ kind: 'recognized', nickname: '공대원', slot: 2 })
+  expect(results[2]).toEqual({ kind: 'recognized', nickname: '공대원', slot: 2, jobText: null })
   expect(results.filter((item) => item.kind === 'missing').map((item) => item.slot)).toEqual([
     0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11
   ])
@@ -68,7 +73,7 @@ it('크롭이 없는 행은 OCR 없이 빈 자리로 두고 행 번호를 자리
 it('파티 캡처와 같은 반전 이진화를 거친 canvas를 인식에 넘긴다', async () => {
   recognize.mockResolvedValue(result('공대원'))
 
-  await recognizeRaidRows([crop([20, 230])], recognize)
+  await recognizeRaidRows([row()], recognize)
 
   const canvas = recognize.mock.calls[0][0]
   expect([canvas.width, canvas.height]).toEqual([2, 1])
@@ -82,18 +87,49 @@ it.each([
 ] as const)('첫 후보 %j는 검색에 쓰지 않고 %s로 거절한다', async (nickname, rejection) => {
   recognize.mockResolvedValue(result(nickname))
 
-  const [first] = await recognizeRaidRows([crop([20, 230])], recognize)
+  const [first] = await recognizeRaidRows([row(crop([20, 230, 20]))], recognize)
 
-  expect(first).toEqual({ kind: 'rejected', rejection, text: nickname, slot: 0 })
+  expect(first).toEqual({ kind: 'rejected', rejection, text: nickname, slot: 0, jobText: null })
+  // 검색하지 않을 행의 직업명은 읽지 않는다.
+  expect(recognize).toHaveBeenCalledOnce()
 })
 
 it('한 행의 인식 실패는 그 행만 실패로 남기고 다음 행을 계속 읽는다', async () => {
   recognize.mockRejectedValueOnce(new Error('worker')).mockResolvedValueOnce(result('다음'))
 
-  const results = await recognizeRaidRows([crop([20, 230]), crop([20, 230])], recognize)
+  const results = await recognizeRaidRows([row(), row()], recognize)
 
   expect(results).toEqual([
     { kind: 'failed', slot: 0 },
-    { kind: 'recognized', nickname: '다음', slot: 1 }
+    { kind: 'recognized', nickname: '다음', slot: 1, jobText: null }
   ])
+})
+
+it('직업명 칸도 닉네임과 같은 반전 이진화로 읽고 1위 문자열의 앞뒤 공백만 지운다', async () => {
+  recognize.mockResolvedValueOnce(result('공대원')).mockResolvedValueOnce(result(' 眞 크루세이더 '))
+
+  const [first] = await recognizeRaidRows([row(crop([20, 230, 20]))], recognize)
+
+  expect(first).toEqual({
+    kind: 'recognized',
+    nickname: '공대원',
+    slot: 0,
+    jobText: '眞 크루세이더'
+  })
+  const jobCanvas = recognize.mock.calls[1][0]
+  expect(jobCanvas.width).toBe(3)
+  expect([...drawn.get(jobCanvas)!]).toEqual([255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255])
+})
+
+it.each([
+  ['인식이 실패하면', () => recognize.mockRejectedValueOnce(new Error('worker'))],
+  ['1위 문자열이 비어 있으면', () => recognize.mockResolvedValueOnce(result(' '))],
+  ['1위 문자열이 상한보다 길면', () => recognize.mockResolvedValueOnce(result('가'.repeat(33)))]
+])('직업명 %s 행은 실패로 두지 않고 직업명만 null이다', async (_case, arrange) => {
+  recognize.mockResolvedValueOnce(result('공대원'))
+  arrange()
+
+  const [first] = await recognizeRaidRows([row(crop([20, 230, 20]))], recognize)
+
+  expect(first).toEqual({ kind: 'recognized', nickname: '공대원', slot: 0, jobText: null })
 })

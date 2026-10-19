@@ -39,14 +39,22 @@ describe('네이티브 프레임 응답 검증', () => {
 
 describe('공대 캡처 응답 검증', () => {
   const nickname = { width: 2, height: 1, rgba: new Uint8Array([1, 2, 3, 255, 4, 5, 6, 255]) }
-  const rows = (filled: unknown = nickname): unknown[] =>
-    Array.from({ length: 12 }, (_, row) => (row < 3 ? filled : null))
+  const row = { nickname, job: nickname, valueText: '1000.4K' }
+  const rows = (filled: unknown = row): unknown[] =>
+    Array.from({ length: 12 }, (_, index) => (index < 3 ? filled : null))
+  const result = (overrides: Record<string, unknown> = {}) => ({
+    kind: 'rows',
+    valueColumn: 'equipment-score',
+    rows: rows(),
+    ...overrides
+  })
 
-  it('12행의 닉네임 크롭과 빈 행을 화면 순서대로 전달한다', () => {
-    expect(parseRaidFrame({ kind: 'rows', nicknames: rows() })).toEqual({
-      kind: 'rows',
-      nicknames: rows()
-    })
+  it('12행의 크롭, 수치 표기와 빈 행을 화면 순서대로 전달한다', () => {
+    expect(parseRaidFrame(result())).toEqual(result())
+    const unreadable = { nickname, job: null, valueText: null }
+    expect(parseRaidFrame(result({ valueColumn: 'unknown', rows: rows(unreadable) }))).toEqual(
+      result({ valueColumn: 'unknown', rows: rows(unreadable) })
+    )
   })
 
   it.each([
@@ -63,15 +71,24 @@ describe('공대 캡처 응답 검증', () => {
     { kind: 'frame', image: nickname },
     { kind: 'missing', reason: 'internal path' },
     { kind: 'missing', reason: 'not-found', extra: true },
-    { kind: 'rows', nicknames: rows().slice(0, 11) },
-    { kind: 'rows', nicknames: [...rows(), null] },
-    { kind: 'rows', nicknames: rows(), image: nickname },
-    { kind: 'rows', nicknames: rows({ ...nickname, rgba: new Uint8Array(4) }) },
-    { kind: 'rows', nicknames: rows({ ...nickname, path: '/tmp/crop.png' }) },
-    { kind: 'rows', nicknames: rows({ width: 1025, height: 1, rgba: new Uint8Array(4100) }) },
-    { kind: 'rows', nicknames: rows({ width: 1, height: 257, rgba: new Uint8Array(1028) }) },
-    { kind: 'rows', nicknames: rows({ width: 0, height: 1, rgba: new Uint8Array() }) },
-    { kind: 'rows', nicknames: Array.from({ length: 12 }, () => undefined) }
+    result({ rows: rows().slice(0, 11) }),
+    result({ rows: [...rows(), null] }),
+    result({ image: nickname }),
+    result({ valueColumn: 'level' }),
+    { kind: 'rows', rows: rows() },
+    result({ rows: rows({ ...row, nickname: { ...nickname, rgba: new Uint8Array(4) } }) }),
+    result({ rows: rows({ ...row, job: { ...nickname, path: '/tmp/crop.png' } }) }),
+    result({
+      rows: rows({ ...row, nickname: { width: 1025, height: 1, rgba: new Uint8Array(4100) } })
+    }),
+    result({ rows: rows({ ...row, job: { width: 1, height: 257, rgba: new Uint8Array(1028) } }) }),
+    result({ rows: rows({ ...row, nickname: { width: 0, height: 1, rgba: new Uint8Array() } }) }),
+    result({ rows: rows({ ...row, valueText: '12a' }) }),
+    result({ rows: rows({ ...row, valueText: '' }) }),
+    result({ rows: rows({ ...row, valueText: 12345 }) }),
+    result({ rows: rows({ nickname, job: null }) }),
+    result({ rows: rows({ ...row, extra: true }) }),
+    result({ rows: Array.from({ length: 12 }, () => undefined) })
   ])('잘못된 공대 응답을 노출하지 않는다: %j', (value) => {
     expect(() => parseRaidFrame(value)).toThrow('CAPTURE_RESPONSE_INVALID')
   })

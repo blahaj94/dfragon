@@ -20,11 +20,14 @@ const triggers: Trigger[] = ['Alt+R', '캡처 버튼']
 const crop = { width: 86, height: 17, rgba: new Uint8Array(86 * 17 * 4) }
 const frame: RaidFrameResult = {
   kind: 'rows',
-  nicknames: Array.from({ length: 12 }, (_, row) => (row < 2 ? crop : null))
+  valueColumn: 'fame',
+  rows: Array.from({ length: 12 }, (_, row) =>
+    row < 2 ? { nickname: crop, job: crop, valueText: '12,345' } : null
+  )
 }
 const recognized: RaidSlotRecognition[] = [
-  { kind: 'recognized', nickname: '첫째공대원', slot: 0 },
-  { kind: 'recognized', nickname: '둘째공대원', slot: 1 },
+  { kind: 'recognized', nickname: '첫째공대원', slot: 0, jobText: '眞 크루세이더' },
+  { kind: 'recognized', nickname: '둘째공대원', slot: 1, jobText: '眞 크루세이더' },
   ...Array.from({ length: 10 }, (_, index) => ({ kind: 'missing' as const, slot: index + 2 }))
 ]
 
@@ -219,7 +222,8 @@ it.each(triggers)(
         slot: 0,
         nickname: '첫째공대원',
         candidateNicknames: ['첫째공대원'],
-        portrait: null
+        portrait: null,
+        raidRow: { jobText: '眞 크루세이더', valueColumn: 'fame', valueText: '12,345' }
       }),
       expect.objectContaining({ slot: 1, nickname: '둘째공대원', portrait: null })
     ])

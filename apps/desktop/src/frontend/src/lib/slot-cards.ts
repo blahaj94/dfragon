@@ -2,7 +2,7 @@ import type { SearchSlot } from '../../../preload/common/types/search'
 import type { CardCharacter, SlotState } from '../types/cards'
 import type { SnapshotMark } from './adventure-snapshot'
 import type { CandidatePicker } from './candidate-picker'
-import { searchSlotNotice, toCharacterCard } from './character-card'
+import { searchSlotNotice, toCharacterCard, type SlotCardScreen } from './character-card'
 
 /** 실패와 결과 0건 카드의 안내에 덧붙이는 다음 조회 방법. 파티와 공대가 같다. */
 const NEXT_LOOKUP_STEP = 'Alt+R로 다시 인식하거나 서버와 이름을 직접 조회해 주세요.'
@@ -48,7 +48,8 @@ export function toSlotCards({
   manualSlots,
   recognizing,
   snapshotMarks,
-  pickers = []
+  pickers = [],
+  screen = 'party'
 }: {
   slots: readonly SearchSlot[]
   /** 캡처가 인식한 슬롯별 이름. 인식하지 못한 슬롯은 null이다. */
@@ -59,11 +60,13 @@ export function toSlotCards({
   snapshotMarks: readonly (SnapshotMark | undefined)[]
   /** 슬롯별 후보 줄. 후보 줄이 없는 화면은 생략한다. */
   pickers?: readonly (CandidatePicker | null)[]
+  /** 카드가 놓인 화면. 선택 근거 안내가 화면마다 다르다. 기본은 파티다. */
+  screen?: SlotCardScreen
 }): SlotCard[] {
   return slots.map((slot, index) => {
     const character = toCharacterCard(slot.selected) ?? undefined
     const nickname = nicknames[index] ?? undefined
-    const notice = searchSlotNotice(slot, NEXT_LOOKUP_STEP)
+    const notice = searchSlotNotice(slot, NEXT_LOOKUP_STEP, screen)
     const loading = !manualSlots[index] && recognizing
     const picker = pickers[index] ?? undefined
 

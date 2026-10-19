@@ -22,12 +22,15 @@ const NEXT_ROUND = '00000000-0000-4000-8000-000000000002'
 const crop = { width: 86, height: 17, rgba: new Uint8Array(86 * 17 * 4) }
 const rows: RaidFrameResult = {
   kind: 'rows',
-  nicknames: Array.from({ length: 12 }, (_, row) => (row < 3 ? crop : null))
+  valueColumn: 'fame',
+  rows: Array.from({ length: 12 }, (_, row) =>
+    row < 3 ? { nickname: crop, job: crop, valueText: '12,345' } : null
+  )
 }
 const recognized: RaidSlotRecognition[] = [
-  { kind: 'recognized', nickname: '첫째', slot: 0 },
-  { kind: 'rejected', rejection: 'too-long', text: '가'.repeat(13), slot: 1 },
-  { kind: 'recognized', nickname: '셋째', slot: 2 },
+  { kind: 'recognized', nickname: '첫째', slot: 0, jobText: '眞 크루세이더' },
+  { kind: 'rejected', rejection: 'too-long', text: '가'.repeat(13), slot: 1, jobText: null },
+  { kind: 'recognized', nickname: '셋째', slot: 2, jobText: '眞 크루세이더' },
   ...Array.from({ length: 9 }, (_, index) => ({ kind: 'missing' as const, slot: index + 3 }))
 ]
 const terminate = vi.fn()
@@ -75,13 +78,21 @@ it('회차는 공대 수명을 시작해 프레임 한 장의 12행을 인식하
   await waitFor(actor, (state) => state.matches({ capturing: 'complete' }))
 
   expect(effects.readFrame).toHaveBeenCalledExactlyOnceWith(ROUND)
-  expect(modules.recognize).toHaveBeenCalledExactlyOnceWith(rows.nicknames, expect.any(Function))
+  expect(modules.recognize).toHaveBeenCalledExactlyOnceWith(rows.rows, expect.any(Function))
   expect(terminate).toHaveBeenCalledOnce()
-  // 공대 상세 창에는 얼굴이 없어 이름으로만 식별하고, 검색에 쓰지 못한 첫 후보는 빈 이름으로 알린다.
+  // 공대 상세 창에는 얼굴이 없어 이름과 그 행의 직업명, 수치로 식별하고, 검색에 쓰지 못한 첫 후보는 빈
+  // 이름으로 알린다.
+  const raidRow = { jobText: '眞 크루세이더', valueColumn: 'fame', valueText: '12,345' }
   expect(effects.observeOcr.mock.calls.map(([input]) => input)).toEqual([
-    { slot: 0, nickname: '첫째', candidateNicknames: ['첫째'], portrait: null },
-    { slot: 1, nickname: '', candidateNicknames: [''], portrait: null },
-    { slot: 2, nickname: '셋째', candidateNicknames: ['셋째'], portrait: null }
+    { slot: 0, nickname: '첫째', candidateNicknames: ['첫째'], portrait: null, raidRow },
+    {
+      slot: 1,
+      nickname: '',
+      candidateNicknames: [''],
+      portrait: null,
+      raidRow: { ...raidRow, jobText: null }
+    },
+    { slot: 2, nickname: '셋째', candidateNicknames: ['셋째'], portrait: null, raidRow }
   ])
   expect(modules.rejected).toHaveBeenCalledOnce()
   const snapshot = actor.getSnapshot()
@@ -108,7 +119,7 @@ it.each([
     '게임 화면을 읽지 못했습니다. 창이 최소화되지 않았는지 확인한 뒤 Alt+R을 누르세요.'
   ],
   [
-    { kind: 'rows', nicknames: Array.from({ length: 12 }, () => null) },
+    { kind: 'rows', valueColumn: 'unknown', rows: Array.from({ length: 12 }, () => null) },
     '공대원 이름을 찾지 못했습니다. 공대 상세 창이 가려지지 않게 한 뒤 Alt+R을 누르세요.'
   ]
 ] as const)('프레임 결과 %j는 확인 필요로 끝내고 다시 읽지 않는다', async (frame, status) => {
