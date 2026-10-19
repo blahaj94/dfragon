@@ -16,19 +16,8 @@ import {
 import raidHeadingPath from './raid-heading.png?asset'
 import fameHeadingPath from './raid-value-heading-fame.png?asset'
 import equipmentScoreHeadingPath from './raid-value-heading-equipment-score.png?asset'
-import glyph0Path from './raid-value-glyphs/0.png?asset'
-import glyph1Path from './raid-value-glyphs/1.png?asset'
-import glyph2Path from './raid-value-glyphs/2.png?asset'
-import glyph3Path from './raid-value-glyphs/3.png?asset'
-import glyph4Path from './raid-value-glyphs/4.png?asset'
-import glyph5Path from './raid-value-glyphs/5.png?asset'
-import glyph6Path from './raid-value-glyphs/6.png?asset'
-import glyph7Path from './raid-value-glyphs/7.png?asset'
-import glyph8Path from './raid-value-glyphs/8.png?asset'
-import glyph9Path from './raid-value-glyphs/9.png?asset'
-import glyphCommaPath from './raid-value-glyphs/comma.png?asset'
-import glyphPeriodPath from './raid-value-glyphs/period.png?asset'
-import glyphKPath from './raid-value-glyphs/K.png?asset'
+import valueGlyphsPath from './raid-value-glyphs.png?asset'
+import { sliceRaidValueGlyphs } from './raid-value-glyphs'
 
 type ValueGlyphs = DNFRaidMetadataTemplates['equipmentScoreGlyphs']
 type FoundDetection = Extract<DNFRaidParticipantDetection, { status: 'found' }>
@@ -63,23 +52,7 @@ function getValueHeadings(): DNFRaidValueHeadingTemplates {
 }
 
 function getValueGlyphs(): ValueGlyphs {
-  valueGlyphs ??= (
-    [
-      ['0', glyph0Path],
-      ['1', glyph1Path],
-      ['2', glyph2Path],
-      ['3', glyph3Path],
-      ['4', glyph4Path],
-      ['5', glyph5Path],
-      ['6', glyph6Path],
-      ['7', glyph7Path],
-      ['8', glyph8Path],
-      ['9', glyph9Path],
-      [',', glyphCommaPath],
-      ['.', glyphPeriodPath],
-      ['K', glyphKPath]
-    ] as const
-  ).map(([character, path]) => ({ character, image: readReference(path) }))
+  valueGlyphs ??= sliceRaidValueGlyphs(readReference(valueGlyphsPath))
 
   return valueGlyphs
 }
