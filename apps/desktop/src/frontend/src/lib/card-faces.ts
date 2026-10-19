@@ -228,7 +228,7 @@ export function toCharacterFace(
   }
 }
 
-function toRarityCounts(counts: { rarity: string; count: number }[]): RarityCountView[] {
+function toRarityCounts(counts: readonly { rarity: string; count: number }[]): RarityCountView[] {
   return counts.map(({ rarity, count }) => ({
     label: rarity,
     count: integer.format(count),
@@ -296,7 +296,9 @@ function toSetView(
   }
 }
 
-function toUpgradeCells(upgrades: { step: number; optionName: string }[]): UpgradeCellView[][] {
+function toUpgradeCells(
+  upgrades: readonly { step: number; optionName: string }[]
+): UpgradeCellView[][] {
   const optionByStep = new Map(upgrades.map((upgrade) => [upgrade.step, upgrade.optionName]))
   const cells = Array.from({ length: UPGRADE_STEPS }, (_, index): UpgradeCellView => {
     const step = index + 1
