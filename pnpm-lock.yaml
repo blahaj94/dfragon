@@ -567,6 +567,9 @@ importers:
       '@dfragon/licenses':
         specifier: workspace:*
         version: link:../../packages/licenses
+      '@dfragon/models':
+        specifier: workspace:*
+        version: link:../../packages/models
       '@dfragon/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -786,6 +789,8 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+
+  packages/models: {}
 
   packages/ui:
     devDependencies:
