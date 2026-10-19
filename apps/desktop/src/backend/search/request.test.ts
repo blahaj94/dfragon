@@ -7,7 +7,7 @@ import type {
   CharacterPortrait
 } from '../../preload/common/types/character'
 import { FakeClock, deferred } from '../auth/auth-test-fixtures'
-import { runSearchRequest, type IdentificationAdapters, type PortraitMatcher } from './request'
+import { runSearchRequest, type IdentificationAdapters } from './request'
 import type { CharacterIdentificationInput } from './identify'
 import type { SearchOperationContext } from './operation'
 import type {
@@ -15,18 +15,37 @@ import type {
   CharacterDetailsHttp,
   CharacterImageHttp
 } from './character-http'
+import { createCharacterImageCache, createCharacterImageSource } from './character-image-source'
 import { SearchHttpFailure } from './http'
-import { createPortraitEdgeMatcher } from './portrait-edges'
-import type { StayImageSource } from './stay-images'
+import { createPortraitColorScorer, type PortraitColorScorer } from './portrait-color'
+import { INITIAL_PORTRAIT_COLOR_POLICY } from './portrait-policy'
+import { PortraitMatchBudgetExceededError } from './portrait-raster'
 import type { ScoreEngine, ScoreEngineResult } from '../score/engine'
 import { dealerCard } from '../../preload/common/search/card-test-fixture'
 
 vi.mock('electron', () => ({ session: { fromPartition: vi.fn() } }))
 
-const portrait: CharacterPortrait = {
-  image: { width: 1, height: 1, rgba: new Uint8Array([20, 40, 60, 255]) },
-  rasterScale: 1
+const FACE_SIZE = 8
+const FACE_LEFT_SHADE = 100
+const FACE_RIGHT_SHADE = 150
+
+/**
+ * 왼쪽과 오른쪽 절반의 밝기가 다른 불투명 정사각형. shift만큼 모든 채널을 밝히면 같은 크기 얼굴과의 셀
+ * 평균 거리가 정확히 shift가 된다.
+ */
+function shadedImage(shift = 0): CharacterImage {
+  const rgba = new Uint8Array(FACE_SIZE * FACE_SIZE * 4)
+  for (let y = 0; y < FACE_SIZE; y += 1) {
+    for (let x = 0; x < FACE_SIZE; x += 1) {
+      const shade = (x < FACE_SIZE / 2 ? FACE_LEFT_SHADE : FACE_RIGHT_SHADE) + shift
+      rgba.set([shade, shade, shade, 255], (y * FACE_SIZE + x) * 4)
+    }
+  }
+
+  return { width: FACE_SIZE, height: FACE_SIZE, rgba }
 }
+
+const portrait: CharacterPortrait = { image: shadedImage(), rasterScale: 1 }
 
 function candidate(id: string, name = '첫이름', fame: number | null = 100): CharacterCandidate {
   const imageUrl = `https://img-api.neople.co.kr/df/servers/cain/characters/${id}?zoom=1`
@@ -72,13 +91,14 @@ function requestWith(adapters: IdentificationAdapters) {
     })
 }
 
-function fixture(): {
+/** 후보 high(명성 100), low(50), null(null)의 이미지를 얼굴과의 거리가 shifts인 이미지로 돌려준다. */
+function fixture(shifts: Record<string, number> = { high: 20, low: 10, null: 30 }): {
   clock: FakeClock
   controller: AbortController
   calls: string[]
   candidates: MockedFunction<CharacterCandidatesHttp>
   image: MockedFunction<CharacterImageHttp>
-  matchesPortrait: MockedFunction<PortraitMatcher>
+  scorePortrait: MockedFunction<PortraitColorScorer>
   getDetails: MockedFunction<CharacterDetailsHttp>
   identify: ReturnType<typeof requestWith>
   input: CharacterIdentificationInput & SearchOperationContext
@@ -98,9 +118,11 @@ function fixture(): {
   const image = vi.fn<CharacterImageHttp>(async ({ characterId }) => {
     calls.push(`image:${characterId}`)
 
-    return portrait.image
+    return shadedImage(shifts[characterId])
   })
-  const matchesPortrait = vi.fn<PortraitMatcher>(async () => false)
+  const scorePortrait = vi.fn<PortraitColorScorer>(
+    createPortraitColorScorer(INITIAL_PORTRAIT_COLOR_POLICY)
+  )
   const getDetails = vi.fn<CharacterDetailsHttp>(async ({ characterId }) => {
     calls.push(`details:${characterId}`)
 
@@ -110,7 +132,8 @@ function fixture(): {
     candidates,
     image,
     details: getDetails,
-    matchesPortrait
+    scorePortrait,
+    selection: INITIAL_PORTRAIT_COLOR_POLICY
   })
   const input: CharacterIdentificationInput & SearchOperationContext = {
     clock,
@@ -127,7 +150,7 @@ function fixture(): {
     calls,
     candidates,
     image,
-    matchesPortrait,
+    scorePortrait,
     getDetails,
     identify,
     input
@@ -135,135 +158,43 @@ function fixture(): {
 }
 
 describe('캐릭터 식별 요청의 실행 경계', () => {
-  it('한 후보의 Stay 자세들을 순서대로 비교하고 통과하면 다음 후보로 넘어가지 않는다', async () => {
+  it('실제 색 비교기로 후보 전원을 비교해 가장 가까운 후보를 같은 취소 신호로 선택한다', async () => {
     const f = fixture()
-    const firstImage = portrait.image
-    const secondImage = { ...portrait.image, rgba: new Uint8Array([90, 80, 70, 255]) }
-    const source = vi.fn<StayImageSource>(async ({ characterId }) => {
-      f.calls.push(`stay:${characterId}`)
 
-      return { kind: 'ready', images: [firstImage, secondImage, firstImage] }
-    })
-    f.matchesPortrait.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
-    const identify = requestWith({
-      candidates: f.candidates,
-      image: source,
-      details: f.getDetails,
-      matchesPortrait: f.matchesPortrait
-    })
-
-    expect(await identify(f.input)).toMatchObject({
-      kind: 'success',
-      rows: [expect.objectContaining({ characterId: 'high', characterName: '첫이름' })],
-      selected: { details: details('high') }
-    })
-    expect(f.matchesPortrait.mock.calls.map(([input]) => input.candidate)).toEqual([
-      firstImage,
-      secondImage
-    ])
-    expect(f.calls).toEqual(['candidates:첫이름', 'stay:high', 'details:high'])
-  })
-
-  it.each(['unknown-avatar', 'ambiguous-avatar', 'unsupported-job'] as const)(
-    '%s 외형을 불일치로 취급해 다음 후보나 이름을 선택하지 않는다',
-    async (reason) => {
-      const f = fixture()
-      const source = vi.fn<StayImageSource>(async () => ({ kind: 'unavailable', reason }))
-      const identify = requestWith({
-        candidates: f.candidates,
-        image: source,
-        details: f.getDetails,
-        matchesPortrait: f.matchesPortrait
-      })
-
-      expect(await identify(f.input)).toMatchObject({
-        kind: 'success',
-        selected: { selectionMethod: 'highest-fame', details: details('high') }
-      })
-      expect(source).toHaveBeenCalledOnce()
-      expect(f.candidates).toHaveBeenCalledOnce()
-      expect(f.matchesPortrait).not.toHaveBeenCalled()
-      expect(f.getDetails).toHaveBeenCalledOnce()
-    }
-  )
-
-  it('비어 있는 Stay 결과는 최고 명성으로 표시한다', async () => {
-    const f = fixture()
-    const source: StayImageSource = async () => ({ kind: 'ready', images: [] })
-    const identify = requestWith({
-      candidates: f.candidates,
-      image: source,
-      details: f.getDetails,
-      matchesPortrait: f.matchesPortrait
-    })
-
-    expect(await identify(f.input)).toMatchObject({
-      kind: 'success',
-      selected: { selectionMethod: 'highest-fame', details: details('high') }
-    })
-    expect(f.candidates).toHaveBeenCalledOnce()
-    expect(f.matchesPortrait).not.toHaveBeenCalled()
-  })
-
-  it('첫 Stay 비교 중 캡처가 끝나면 다음 자세나 상세를 요청하지 않는다', async () => {
-    const f = fixture()
-    const source: StayImageSource = async () => ({
-      kind: 'ready',
-      images: [portrait.image, portrait.image]
-    })
-    f.matchesPortrait.mockImplementation(async () => {
-      f.controller.abort()
-
-      return false
-    })
-    const identify = requestWith({
-      candidates: f.candidates,
-      image: source,
-      details: f.getDetails,
-      matchesPortrait: f.matchesPortrait
-    })
-
-    expect(await identify(f.input)).toBeNull()
-    expect(f.matchesPortrait).toHaveBeenCalledOnce()
-    expect(f.getDetails).not.toHaveBeenCalled()
-  })
-
-  it('색을 반전한 같은 윤곽의 첫 후보를 선택하고 다음 후보나 이름을 조회하지 않는다', async () => {
-    const f = fixture()
-    const createRamp = (direction: 'horizontal' | 'vertical', inverted = false): CharacterImage => {
-      const width = 10
-      const height = 10
-      const rgba = new Uint8Array(width * height * 4)
-      for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width; x += 1) {
-          const position = direction === 'horizontal' ? x : y
-          const brightness = 20 + position * 20
-          const value = inverted ? 255 - brightness : brightness
-          rgba.set([value, value, value, 255], (y * width + x) * 4)
-        }
-      }
-
-      return { width, height, rgba }
-    }
-    f.matchesPortrait.mockImplementation(
-      createPortraitEdgeMatcher({ minSimilarity: 0.99, minCoverage: 1, minComparedPixels: 20 })
-    )
-    f.image.mockImplementation(async ({ characterId }) => {
-      f.calls.push(`image:${characterId}`)
-      if (characterId === 'high') {
-        return createRamp('vertical')
-      }
-
-      return createRamp('horizontal', true)
-    })
-    const portrait = { image: createRamp('horizontal'), rasterScale: 1 }
-
-    expect(await f.identify({ ...f.input, portrait })).toMatchObject({
+    expect(await f.identify(f.input)).toMatchObject({
       kind: 'success',
       rows: [expect.objectContaining({ characterId: 'low', characterName: '첫이름' })],
-      selected: { details: details('low') }
+      selected: { selectionMethod: 'portrait', details: details('low') }
     })
-    expect(f.calls).toEqual(['candidates:첫이름', 'image:high', 'image:low', 'details:low'])
+    expect(f.calls).toEqual([
+      'candidates:첫이름',
+      'image:high',
+      'image:low',
+      'image:null',
+      'details:low'
+    ])
+    await expect(f.scorePortrait.mock.results[1].value).resolves.toMatchObject({
+      distance: 10,
+      comparedCells: 64
+    })
+    const signals = [
+      ...f.candidates.mock.calls.map(([input]) => input.signal),
+      ...f.image.mock.calls.map(([input]) => input.signal),
+      ...f.scorePortrait.mock.calls.map(([input]) => input.signal),
+      ...f.getDetails.mock.calls.map(([input]) => input.signal)
+    ]
+    expect(new Set(signals).size).toBe(1)
+  })
+
+  it('1위와 2위의 거리 차이가 초기 minMargin보다 작으면 최고 명성으로 표시한다', async () => {
+    const f = fixture({ high: 12, low: 10, null: 30 })
+
+    expect(await f.identify(f.input)).toMatchObject({
+      kind: 'success',
+      rows: [expect.objectContaining({ characterId: 'high' })],
+      selected: { selectionMethod: 'highest-fame', details: details('high') }
+    })
+    expect(f.scorePortrait).toHaveBeenCalledTimes(3)
   })
 
   it('크롭이 없으면 후보 조회와 상세만 실행한다', async () => {
@@ -274,36 +205,7 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       selected: { selectionMethod: 'highest-fame', details: details('high') }
     })
     expect(f.calls).toEqual(['candidates:첫이름', 'details:high'])
-    expect(f.matchesPortrait).not.toHaveBeenCalled()
-  })
-
-  it('첫 이름이 전부 불일치이면 최고 명성을 조회하고 같은 취소 신호를 사용한다', async () => {
-    const f = fixture()
-    f.matchesPortrait
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true)
-
-    expect(await f.identify(f.input)).toMatchObject({
-      kind: 'success',
-      rows: [expect.objectContaining({ characterName: '첫이름' })],
-      selected: { selectionMethod: 'highest-fame' }
-    })
-    expect(f.calls).toEqual([
-      'candidates:첫이름',
-      'image:high',
-      'image:low',
-      'image:null',
-      'details:high'
-    ])
-    const signals = [
-      ...f.candidates.mock.calls.map(([input]) => input.signal),
-      ...f.image.mock.calls.map(([input]) => input.signal),
-      ...f.matchesPortrait.mock.calls.map(([input]) => input.signal),
-      ...f.getDetails.mock.calls.map(([input]) => input.signal)
-    ]
-    expect(new Set(signals).size).toBe(1)
+    expect(f.scorePortrait).not.toHaveBeenCalled()
   })
 
   it('두 개를 초과한 후보 입력은 조회 전에 거절한다', async () => {
@@ -316,29 +218,28 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     expect(f.calls).toEqual([])
   })
 
-  it('이미지 로딩 실패와 비교 실패는 명성 표시로 구분한다', async () => {
+  it('이미지 로딩 실패와 비교 예산 초과는 명성 표시로 구분한다', async () => {
     const loading = fixture()
     loading.image.mockRejectedValueOnce(new SearchHttpFailure('NEOPLE_API_ERROR'))
     expect(await loading.identify(loading.input)).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame' }
+      selected: { selectionMethod: 'highest-fame', details: details('high') }
     })
-    expect(loading.candidates).toHaveBeenCalledOnce()
     expect(loading.image).toHaveBeenCalledOnce()
-    expect(loading.getDetails).toHaveBeenCalledOnce()
+    expect(loading.scorePortrait).not.toHaveBeenCalled()
 
     const comparing = fixture()
-    comparing.matchesPortrait.mockRejectedValueOnce(new Error('comparison budget exhausted'))
+    comparing.scorePortrait.mockRejectedValueOnce(new PortraitMatchBudgetExceededError())
     expect(await comparing.identify(comparing.input)).toMatchObject({
       kind: 'success',
-      selected: { selectionMethod: 'highest-fame' }
+      selected: { selectionMethod: 'highest-fame', details: details('high') }
     })
     expect(comparing.image).toHaveBeenCalledOnce()
     expect(comparing.getDetails).toHaveBeenCalledOnce()
   })
 
-  it.each(['후보', '외형', '상세'] as const)(
-    '%s 호출 제한은 원래 수신 시각을 유지하고 다른 후보로 넘어가지 않는다',
+  it.each(['후보', '이미지', '상세'] as const)(
+    '%s 호출 제한은 원래 수신 시각을 유지하고 명성 대체로 바꾸지 않는다',
     async (stage) => {
       const f = fixture()
       const error = new SearchHttpFailure('SEARCH_RATE_LIMITED', {
@@ -347,10 +248,15 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       })
       if (stage === '후보') {
         f.candidates.mockRejectedValueOnce(error)
-      } else if (stage === '외형') {
-        f.image.mockRejectedValueOnce(error)
+      } else if (stage === '이미지') {
+        f.image.mockImplementation(async ({ characterId }) => {
+          if (characterId === 'low') {
+            throw error
+          }
+
+          return shadedImage()
+        })
       } else {
-        f.matchesPortrait.mockResolvedValueOnce(true)
         f.getDetails.mockRejectedValueOnce(error)
       }
 
@@ -360,11 +266,14 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
         retryAfterReceivedAt: 1000
       })
       expect(f.candidates).toHaveBeenCalledOnce()
-      expect(f.image.mock.calls.length).toBe(stage === '후보' ? 0 : 1)
+      if (stage === '이미지') {
+        expect(f.image).toHaveBeenCalledTimes(2)
+        expect(f.getDetails).not.toHaveBeenCalled()
+      }
     }
   )
 
-  it('이미지 대기 중 캡처가 끝나면 비교와 상세 조회를 시작하지 않는다', async () => {
+  it('이미지 대기 중 캡처가 끝나면 늦게 온 이미지로 비교와 상세 조회를 시작하지 않는다', async () => {
     const f = fixture()
     const pendingImage = deferred<CharacterImage>()
     f.image.mockReturnValueOnce(pendingImage.promise)
@@ -375,56 +284,76 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
     f.controller.abort()
     expect(await pending).toBeNull()
     expect(signal.aborted).toBe(true)
-    pendingImage.resolve(portrait.image)
+    pendingImage.resolve(shadedImage())
     await new Promise<void>((resolve) => setImmediate(resolve))
-    expect(f.matchesPortrait).not.toHaveBeenCalled()
+    expect(f.image).toHaveBeenCalledOnce()
+    expect(f.scorePortrait).not.toHaveBeenCalled()
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
-  it('이전 관측이 된 후보 응답은 다음 이미지 조회를 시작하지 않는다', async () => {
+  it('이전 관측이 된 후보 응답은 이미지 조회를 시작하지 않는다', async () => {
     const f = fixture()
     let current = true
     f.candidates.mockImplementationOnce(async () => {
       current = false
 
-      return [candidate('stale')]
+      return [candidate('stale'), candidate('other', '첫이름', 50)]
     })
 
     expect(await f.identify({ ...f.input, isCurrent: () => current })).toBeNull()
     expect(f.image).not.toHaveBeenCalled()
   })
 
-  it('앞 단계에서 쓴 시간을 유지하고 15초 경계에서 상세 요청을 시작하지 않는다', async () => {
+  it('앞 단계에서 쓴 시간을 유지하고 15초 경계에서 다음 이미지나 상세 요청을 시작하지 않는다', async () => {
     const f = fixture()
     f.image.mockImplementationOnce(async () => {
       f.clock.elapseWithoutTimers(14_999)
 
-      return portrait.image
+      return shadedImage()
     })
-    f.matchesPortrait.mockImplementationOnce(async () => {
+    f.scorePortrait.mockImplementationOnce(async () => {
       f.clock.elapseWithoutTimers(1)
 
-      return true
+      return {
+        distance: 0,
+        coverage: 1,
+        comparedCells: 64,
+        alignment: { x: 0, y: 0, width: 8, height: 8 }
+      }
     })
 
     expect(await f.identify(f.input)).toMatchObject({
       kind: 'failure',
       error: { code: 'SEARCH_TIMEOUT' }
     })
+    expect(f.image).toHaveBeenCalledOnce()
+    expect(f.getDetails).not.toHaveBeenCalled()
+  })
+
+  it('응답 없는 이미지도 처음 접수한 시각의 15초에 종료한다', async () => {
+    const f = fixture()
+    f.image.mockReturnValueOnce(new Promise(() => undefined))
+    const pending = f.identify(f.input)
+    await vi.waitFor(() => expect(f.image).toHaveBeenCalledOnce())
+
+    f.clock.advance(15_000)
+
+    expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
+    expect(f.image.mock.calls[0][0].signal.aborted).toBe(true)
     expect(f.getDetails).not.toHaveBeenCalled()
   })
 
   it.each(['취소', '만료'] as const)(
-    '비교 중 %s되면 비교 오류보다 요청 수명 판정을 우선한다',
+    '비교 중 %s되면 비교 오류를 명성 대체로 바꾸지 않고 요청 수명 판정을 우선한다',
     async (reason) => {
       const f = fixture()
-      f.matchesPortrait.mockImplementationOnce(async () => {
+      f.scorePortrait.mockImplementationOnce(async () => {
         if (reason === '취소') {
           f.controller.abort()
         } else {
           f.clock.elapseWithoutTimers(15_000)
         }
-        throw new Error('comparison failed after interruption')
+        throw new PortraitMatchBudgetExceededError()
       })
 
       const outcome = await f.identify(f.input)
@@ -435,12 +364,12 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
       }
       expect(f.image).toHaveBeenCalledOnce()
       expect(f.getDetails).not.toHaveBeenCalled()
-      expect(f.matchesPortrait.mock.calls[0][0].signal.aborted).toBe(true)
+      expect(f.scorePortrait.mock.calls[0][0].signal.aborted).toBe(true)
     }
   )
 
   it.each(['취소', '만료', '이전 요청'] as const)(
-    '외형 오류를 복구하더라도 %s 판정 뒤에는 명성 후보의 상세를 요청하지 않는다',
+    '이미지 오류를 복구하더라도 %s 판정 뒤에는 명성 후보의 상세를 요청하지 않는다',
     async (reason) => {
       const f = fixture()
       let current = true
@@ -461,21 +390,66 @@ describe('캐릭터 식별 요청의 실행 경계', () => {
         expect(outcome).toBeNull()
       }
       expect(f.getDetails).not.toHaveBeenCalled()
-      expect(f.matchesPortrait).not.toHaveBeenCalled()
+      expect(f.scorePortrait).not.toHaveBeenCalled()
     }
   )
 
-  it('응답 없는 이미지도 처음 접수한 시각의 15초에 종료한다', async () => {
-    const f = fixture()
-    f.image.mockReturnValueOnce(new Promise(() => undefined))
-    const pending = f.identify(f.input)
-    await vi.waitFor(() => expect(f.image).toHaveBeenCalledOnce())
+  it('공유 직렬 큐에서 대기하던 슬롯의 캡처가 끝나면 그 슬롯의 이미지 요청을 시작하지 않는다', async () => {
+    const clock = new FakeClock()
+    const started: { characterId: string; resolve: (image: CharacterImage) => void }[] = []
+    const http = vi.fn<CharacterImageHttp>(
+      ({ characterId }) =>
+        new Promise((resolve) => {
+          started.push({ characterId, resolve })
+        })
+    )
+    const queued: string[] = []
+    const source = createCharacterImageSource({ image: http, cache: createCharacterImageCache() })
+    const image: CharacterImageHttp = (input) => {
+      queued.push(input.characterId)
 
-    f.clock.advance(15_000)
+      return source(input)
+    }
+    const slot = (prefix: string) => {
+      const controller = new AbortController()
+      const request = requestWith({
+        candidates: async () => [
+          candidate(`${prefix}-high`),
+          candidate(`${prefix}-low`, '첫이름', 50)
+        ],
+        image,
+        details: async ({ characterId }) => details(characterId),
+        scorePortrait: createPortraitColorScorer(INITIAL_PORTRAIT_COLOR_POLICY),
+        selection: INITIAL_PORTRAIT_COLOR_POLICY
+      })
+      const outcome = request({
+        clock,
+        startedAt: clock.monotonicMs,
+        signal: controller.signal,
+        isCurrent: () => true,
+        nicknames: ['첫이름'],
+        portrait
+      })
 
-    expect(await pending).toMatchObject({ kind: 'failure', error: { code: 'SEARCH_TIMEOUT' } })
-    expect(f.image.mock.calls[0][0].signal.aborted).toBe(true)
-    expect(f.getDetails).not.toHaveBeenCalled()
+      return { controller, outcome }
+    }
+
+    const first = slot('a')
+    await vi.waitFor(() => expect(started.map((call) => call.characterId)).toEqual(['a-high']))
+    const second = slot('b')
+    await vi.waitFor(() => expect(queued).toContain('b-high'))
+    second.controller.abort()
+    expect(await second.outcome).toBeNull()
+
+    started[0].resolve(shadedImage(20))
+    await vi.waitFor(() => expect(started).toHaveLength(2))
+    started[1].resolve(shadedImage(5))
+
+    expect(await first.outcome).toMatchObject({
+      kind: 'success',
+      selected: { selectionMethod: 'portrait', details: details('a-low') }
+    })
+    expect(http.mock.calls.map(([input]) => input.characterId)).toEqual(['a-high', 'a-low'])
   })
 })
 
@@ -507,7 +481,8 @@ describe('선택한 캐릭터 카드와 점수 엔진', () => {
             candidates: f.candidates,
             image: f.image,
             details: f.getDetails,
-            matchesPortrait: f.matchesPortrait
+            scorePortrait: f.scorePortrait,
+            selection: INITIAL_PORTRAIT_COLOR_POLICY
           },
           score
         },
