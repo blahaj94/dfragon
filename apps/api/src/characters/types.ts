@@ -14,6 +14,11 @@ export interface CharacterSearchDependencies {
   readonly trustedProxyHops?: 1
   readonly searchCharacters: SearchCharacters
   readonly clock?: SearchClock
+  /** 후보 응답에 붙일 저장된 모험단명. 없으면 모든 후보의 모험단명이 null이다. */
+  readonly findAdventureNames?: (
+    characterIds: readonly string[],
+    signal: AbortSignal
+  ) => Promise<ReadonlyMap<string, string>>
 }
 
 export interface CharacterSearchHttpService {
