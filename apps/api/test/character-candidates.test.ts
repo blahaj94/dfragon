@@ -57,7 +57,7 @@ test('후보는 명성 내림차순, 동률과 null의 공급자 순서로 정�
             serverId: 'anton',
             fame: 50000,
             jobName: 7,
-            jobGrowName: '  '
+            jobGrowName: ''
           },
           { characterId: 'omitted', characterName, serverId: 'bakal' },
           {
