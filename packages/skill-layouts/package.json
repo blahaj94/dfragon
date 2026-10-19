@@ -1,0 +1,10 @@
+{
+  "name": "@dfragon/skill-layouts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./layouts.json": "./layouts.json",
+    "./package.json": "./package.json"
+  }
+}
