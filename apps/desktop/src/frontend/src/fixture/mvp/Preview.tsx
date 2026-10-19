@@ -20,6 +20,7 @@ import { styles } from './Preview.style'
 import {
   facePreviewCharacters,
   previewCharacter,
+  rolePreviewCharacters,
   snapshotPreviewPartyRounds,
   snapshotPreviewRaidRounds,
   tierPreviewCharacters
@@ -72,6 +73,8 @@ export function Preview(): React.JSX.Element {
     characters = [identifiedCharacter, null, null, null]
   } else if (scenario === 'tiers') {
     characters = tierPreviewCharacters
+  } else if (scenario === 'roles') {
+    characters = rolePreviewCharacters
   } else if (scenario === 'faces') {
     characters = facePreviewCharacters
   } else if (scenario === 'snapshot') {
@@ -257,6 +260,7 @@ export function Preview(): React.JSX.Element {
             <option value="missing">누락, 이미지 실패</option>
             <option value="identification">자동 식별 상태</option>
             <option value="tiers">상위, 랭커 단계</option>
+            <option value="roles">점수 라벨, 역할 비교</option>
             <option value="snapshot">모험단 순번 스냅샷</option>
           </select>
         </footer>
