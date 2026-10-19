@@ -119,7 +119,7 @@ const portraitSchema = z
           mask.every((value) => value === 0 || value === 1)))
     )
   })
-// 값 범위 해석은 식별 단계가 한다.
+// 수치 표기는 판독기가 돌려주는 문자만 받는다. 값 범위 해석은 식별 단계가 한다.
 const raidRowSchema = z.strictObject({
   jobText: text.min(1).max(MAX_RAID_JOB_TEXT_LENGTH).nullable(),
   valueColumn: z.enum(RAID_VALUE_COLUMNS),
