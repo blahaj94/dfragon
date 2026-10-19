@@ -405,9 +405,18 @@ function hasStyle(element: Element | null, style: stylex.StyleXStyles): boolean 
   return expected.length > 0 && expected.every((name) => classes.includes(name))
 }
 
-// 스킬 칸의 grid 열. StyleX가 동적 스타일 값을 둔 inline 변수다.
+// StyleX가 동적 스타일 값을 둔 inline 변수. 동적 스타일은 값과 상관없이 같은 class를 쓰므로 값은 여기서 읽는다.
+function styleVar(element: Element, name: string): string {
+  if (!(element instanceof HTMLElement)) {
+    return ''
+  }
+
+  return element.style.getPropertyValue(name).trim()
+}
+
+// 스킬 칸의 grid 열.
 function gridColumnOf(element: HTMLElement): string {
-  return element.style.getPropertyValue('--x-gridColumn').trim()
+  return styleVar(element, '--x-gridColumn')
 }
 
 async function openSkillTab(): Promise<HTMLElement> {
@@ -470,12 +479,22 @@ it('익히지 않은 스킬은 아이콘을 흐리게 그리고, 각성기는 �
 
   const off = skillCell('차지 버스트, 0레벨')
   const learned = skillCell('발도, 43레벨')
-  expect(off.querySelector('img')?.getAttribute('src')).toMatch(
-    /packages\/icons\/skills\/[0-9a-f]{16}\.png/
+  const [offIcon, offLevel] = off.children
+  const [learnedIcon] = learned.children
+  // 아이콘은 sprite 한 장의 28 × 28 칸을 배경으로 자른다. 스킬마다 칸 위치가 다르다.
+  expect(styleVar(offIcon, '--x-backgroundImage')).toMatch(/packages\/icons\/skills\.webp/)
+  expect(styleVar(offIcon, '--x-backgroundPosition')).toMatch(/^(-\d+|0)px (-\d+|0)px$/)
+  expect(
+    styleVar(offIcon, '--x-backgroundPosition')
+      .split(' ')
+      .every((value) => Number.parseInt(value, 10) % 28 === 0)
+  ).toBe(true)
+  expect(styleVar(learnedIcon, '--x-backgroundPosition')).not.toBe(
+    styleVar(offIcon, '--x-backgroundPosition')
   )
-  expect(hasStyle(off.querySelector('img'), skillTreeStyles.iconOff)).toBe(true)
-  expect(hasStyle(off.querySelector('[aria-hidden="true"]'), skillTreeStyles.levelOff)).toBe(true)
-  expect(hasStyle(learned.querySelector('img'), skillTreeStyles.iconOff)).toBe(false)
+  expect(hasStyle(offIcon, skillTreeStyles.iconOff)).toBe(true)
+  expect(hasStyle(offLevel, skillTreeStyles.levelOff)).toBe(true)
+  expect(hasStyle(learnedIcon, skillTreeStyles.iconOff)).toBe(false)
   expect(hasStyle(skillCell('극 귀검술 : 폭풍식, 15레벨'), skillTreeStyles.awakening)).toBe(true)
   expect(hasStyle(skillCell('천제극섬, 5레벨'), skillTreeStyles.awakening)).toBe(true)
   expect(hasStyle(learned, skillTreeStyles.awakening)).toBe(false)
