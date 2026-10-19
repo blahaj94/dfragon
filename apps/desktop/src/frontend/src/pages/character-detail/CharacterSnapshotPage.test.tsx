@@ -21,6 +21,19 @@ const snapshot: CharacterDetailSnapshot = {
     guildName: '함께하는길드'
   },
   card: dealerCard,
+  // 무기와 상의의 설명 상자 문구. 나머지 아이템은 아이템 상세를 받지 못한 경우다.
+  itemTexts: {
+    '4f7c8199cd7a85492e985ebb5daa2da8': {
+      explain: '[용을 베는 자]\n스킬 퀵슬롯의 빈 슬롯이 3개 이상일 때 검은 용의 힘 발동',
+      buff: '30레벨 버프 스킬 Lv +3\n50레벨 액티브 스킬 Lv +4',
+      flavor: '그 피로 세상을 멸할 힘을 얻는다.'
+    },
+    '2d23a5dc389016bdc3a3e3fd142b38ce': {
+      explain: null,
+      buff: '30레벨 버프 스킬 Lv +1',
+      flavor: null
+    }
+  },
   freshness: {
     lastSuccessfulFetchAt: '2026-10-07T01:00:00.000Z',
     expiresAt: '2026-10-07T02:00:00.000Z'
@@ -241,6 +254,13 @@ function openTip(): Element | null {
   return document.querySelector('[data-open]')
 }
 
+// 열린 설명 상자 안의 칸. 위치 지정 요소 안의 설명 상자 본체가 칸을 순서대로 둔다.
+function tipBlocks(): Element[] {
+  const blocks = openTip()?.firstElementChild?.children ?? []
+
+  return [...blocks]
+}
+
 it('장비 줄에 마우스를 올리면 부위와 희귀도, 마법부여를 설명 상자로 보이고 떠나면 닫는다', async () => {
   installRead(async () => snapshot)
   await render()
@@ -254,6 +274,17 @@ it('장비 줄에 마우스를 올리면 부위와 희귀도, 마법부여를 �
   expect(openTip()?.textContent).toContain('무기 · 태초')
   expect(openTip()?.textContent).toContain('마법부여모든 속성 강화 15')
   expect(weapon.hasAttribute('data-popup-open')).toBe(true)
+  // 캔버스 상세 창 보드처럼 이름과 부위 뒤에 아이템 설명, 마법부여, 버프 스킬, 플레이버 순이다.
+  const blocks = tipBlocks()
+    .slice(2)
+    .map((block) => block.textContent)
+  expect(blocks).toEqual([
+    '[용을 베는 자]스킬 퀵슬롯의 빈 슬롯이 3개 이상일 때 검은 용의 힘 발동',
+    expect.stringMatching(/^마법부여모든 속성 강화 15/),
+    '30레벨 버프 스킬 Lv +3\n50레벨 액티브 스킬 Lv +4',
+    '그 피로 세상을 멸할 힘을 얻는다.'
+  ])
+  expect(tipBlocks()[2].firstElementChild?.textContent).toBe('[용을 베는 자]')
 
   await act(async () => weapon.dispatchEvent(new MouseEvent('mouseleave')))
   await vi.waitFor(() => expect(weapon.hasAttribute('data-popup-open')).toBe(false))
@@ -270,4 +301,21 @@ it('키보드로 서약 결정 줄에 포커스하면 설명 상자를 보인다
   })
 
   await vi.waitFor(() => expect(openTip()?.textContent).toContain('서약 결정 · 에픽'))
+})
+
+it('설명 상자 문구가 없는 아이템은 이름과 부위, 마법부여만 보인다', async () => {
+  installRead(async () => snapshot)
+  await render()
+  const shoulder = container.querySelectorAll<HTMLElement>('ul[aria-label="장비"] > li')[1]
+
+  await act(async () => {
+    shoulder.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse' }))
+    shoulder.dispatchEvent(new MouseEvent('mouseenter'))
+  })
+  await vi.waitFor(() => expect(openTip()).not.toBeNull())
+
+  const blocks = tipBlocks().map((block) => block.textContent)
+  expect(blocks).toHaveLength(3)
+  expect(blocks[1]).toMatch(/^머리어깨 · /)
+  expect(blocks[2]).toMatch(/^마법부여/)
 })

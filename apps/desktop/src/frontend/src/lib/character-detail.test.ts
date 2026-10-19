@@ -66,3 +66,44 @@ it('서약 목록은 본체 뒤에 결정 자리 0~2, 3~10을 두고 빠진 자�
   })
   expect(groups[2].rows[0]).toMatchObject({ kind: '서약 결정 · 에픽', tone: 'epic' })
 })
+
+it('설명 상자 문구는 줄의 itemId로 찾고, 아이템 설명 첫 줄의 `[...]` 제목을 떼어 둔다', () => {
+  const [weapon, jacket] = dealerCard.investment
+  const itemTexts = {
+    [weapon.itemId!]: {
+      explain: '[용을 베는 자]\n스킬 퀵슬롯의 빈 슬롯이 3개 이상일 때\n- 모든 속도 +20%',
+      buff: '30레벨 버프 스킬 Lv +3',
+      flavor: '그 피로 세상을 멸할 힘을 얻는다.'
+    },
+    [jacket.itemId!]: { explain: '모든 속성 강화 +40 [최대]', buff: null, flavor: null },
+    [dealerCard.oath!.itemId]: { explain: '[제목만]', buff: null, flavor: '서약 플레이버' }
+  }
+  const rows = toDetailEquipmentGroups(dealerCard, itemTexts).flatMap((group) => group.rows)
+  const [oath] = toDetailOathGroups(dealerCard, itemTexts)[0].rows
+
+  expect(rows.find((row) => row.id === 'WEAPON')?.text).toEqual({
+    heading: '[용을 베는 자]',
+    explain: '스킬 퀵슬롯의 빈 슬롯이 3개 이상일 때\n- 모든 속도 +20%',
+    buff: '30레벨 버프 스킬 Lv +3',
+    flavor: '그 피로 세상을 멸할 힘을 얻는다.'
+  })
+  expect(rows.find((row) => row.id === 'JACKET')?.text).toMatchObject({
+    heading: null,
+    explain: '모든 속성 강화 +40 [최대]'
+  })
+  expect(oath.text).toEqual({
+    heading: '[제목만]',
+    explain: null,
+    buff: null,
+    flavor: '서약 플레이버'
+  })
+})
+
+it('문구를 받지 못한 아이템과 장착 정보 없음 줄은 설명 상자 문구를 비운다', () => {
+  const empty = { heading: null, explain: null, buff: null, flavor: null }
+  const inherited = Object.create({ [dealerCard.investment[0].itemId!]: { explain: '상속' } })
+
+  expect(toDetailEquipmentGroups(dealerCard, {})[0].rows[0].text).toEqual(empty)
+  expect(toDetailEquipmentGroups(dealerCard, inherited)[0].rows[0].text).toEqual(empty)
+  expect(toDetailEquipmentGroups(null, {})[0].rows[0].text).toEqual(empty)
+})

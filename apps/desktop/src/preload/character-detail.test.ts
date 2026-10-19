@@ -31,6 +31,9 @@ const snapshot: CharacterDetailSnapshot = {
     guildName: '길드'
   },
   card: null,
+  itemTexts: {
+    'item-1': { explain: '모든 속성 강화 +40', buff: null, flavor: '어리석긴.' }
+  },
   freshness: {
     lastSuccessfulFetchAt: '2026-10-07T01:00:00.000Z',
     expiresAt: '2026-10-07T02:00:00.000Z'

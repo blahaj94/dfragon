@@ -1,7 +1,11 @@
 import { expect, it } from 'vitest'
 import apiBufferFixture from '../../../../api/test/fixtures/character-card-buffer.json'
 import apiDealerFixture from '../../../../api/test/fixtures/character-card-dealer.json'
-import { isCharacterDetailCard, parseCharacterDetailSnapshot } from './character-detail'
+import {
+  CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH,
+  isCharacterDetailCard,
+  parseCharacterDetailSnapshot
+} from './character-detail'
 import {
   CHARACTER_SERVER_NAMES,
   characterCardSchema,
@@ -45,6 +49,7 @@ const snapshot: CharacterDetailSnapshot = {
     guildName: null
   },
   card: null,
+  itemTexts: {},
   freshness: {
     lastSuccessfulFetchAt: '2026-10-07T00:00:00.000Z',
     expiresAt: '2026-10-07T00:05:00.000Z'
@@ -154,5 +159,59 @@ it.each(invalidCards)('%s가 있는 카드 값은 일반 preload 스키마처럼
   expect(isCharacterDetailCard(card)).toBe(false)
   expect(() => parseCharacterDetailSnapshot({ ...snapshot, card })).toThrow(
     'CHARACTER_DETAIL_UNAVAILABLE'
+  )
+})
+
+const weaponText = {
+  explain: '[용을 베는 자]\n모든 속도 +20%',
+  buff: '30레벨 버프 스킬 Lv +1',
+  flavor: null
+}
+
+it('설명 상자 문구는 itemId별로 받고 복사해 넘긴다', () => {
+  const itemTexts = { '4f7c8199cd7a85492e985ebb5daa2da8': weaponText }
+  const parsed = parseCharacterDetailSnapshot({ ...snapshot, itemTexts })
+
+  expect(parsed.itemTexts).toEqual(itemTexts)
+  expect(parsed.itemTexts).not.toBe(itemTexts)
+})
+
+it('12부위, 서약 본체, 결정 11칸을 합친 24개까지 받는다', () => {
+  const entries = (count: number) =>
+    Object.fromEntries(Array.from({ length: count }, (_, index) => [`item-${index}`, weaponText]))
+
+  expect(
+    Object.keys(parseCharacterDetailSnapshot({ ...snapshot, itemTexts: entries(24) }).itemTexts)
+  ).toHaveLength(24)
+  expect(() => parseCharacterDetailSnapshot({ ...snapshot, itemTexts: entries(25) })).toThrow(
+    'CHARACTER_DETAIL_UNAVAILABLE'
+  )
+})
+
+it.each([
+  ['배열인', [weaponText]],
+  ['null인', null],
+  ['잘못된 itemId를 쓴', { '../escape': weaponText }],
+  ['symbol 키가 있는', { [Symbol('item')]: weaponText }],
+  ['문구 칸이 빠진', { item: { explain: null, buff: null } }],
+  ['문구 칸이 더 있는', { item: { ...weaponText, itemName: '이름' } }],
+  ['문자열이 아닌 문구가 있는', { item: { ...weaponText, buff: 1 } }],
+  ['빈 문구가 있는', { item: { ...weaponText, flavor: ' ' } }],
+  [
+    '최대 길이를 넘은 문구가 있는',
+    { item: { ...weaponText, explain: 'a'.repeat(CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH + 1) } }
+  ]
+])('%s 설명 상자 문구는 거부한다', (_, itemTexts) => {
+  expect(() => parseCharacterDetailSnapshot({ ...snapshot, itemTexts })).toThrow(
+    'CHARACTER_DETAIL_UNAVAILABLE'
+  )
+})
+
+it('최대 길이의 문구는 받는다', () => {
+  const explain = 'a'.repeat(CHARACTER_DETAIL_ITEM_TEXT_MAX_LENGTH)
+  const itemTexts = { item: { ...weaponText, explain } }
+
+  expect(parseCharacterDetailSnapshot({ ...snapshot, itemTexts }).itemTexts.item.explain).toBe(
+    explain
   )
 })
