@@ -99,6 +99,7 @@ describe('로그인 loopback HTTP 수신기', () => {
     expect(response.body).toContain('data:font/woff2;base64,')
     expect(response.body).not.toContain(CODE)
     expect(response.body).not.toContain('<button')
+    expect(response.body).not.toContain('<script')
     expect(onReturn).toHaveBeenCalledExactlyOnceWith(`${listener.returnUrl}?code=${CODE}`)
     expect(currentServer().listening).toBe(false)
     await expect(send(listener.returnUrl, `/auth/callback?code=${OTHER_CODE}`)).rejects.toThrow()
