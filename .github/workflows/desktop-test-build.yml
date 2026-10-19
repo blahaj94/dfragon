@@ -61,8 +61,11 @@ jobs:
           fi
           basic=$(printf 'x-access-token:%s' "$DFRAGON_SCORE_ENGINE_TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$basic"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $basic" \
-            submodule update --init --checkout --depth 1 packages/models/score-engine
+          # A token without read access to the engine repository only drops the engine from test builds.
+          if ! git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $basic" \
+            submodule update --init --checkout --depth 1 packages/models/score-engine; then
+            echo "::warning::Could not fetch the score engine submodule. Building without the score engine."
+          fi
       - name: Prepare score engine
         run: pnpm --filter @dfragon/desktop prepare:score-engine
       - run: pnpm --filter @dfragon/desktop build:test
