@@ -6,7 +6,7 @@ import { createSeatOrder, swapSeats, type SeatOrder } from '../lib/raid-seats'
 import { useRaidSearch } from './useRaidSearch'
 import { useRestartShortcut } from './useRestartShortcut'
 
-type RaidCapture = {
+export type RaidCapture = {
   search: ReturnType<typeof useRaidSearch>
   phase: ReturnType<typeof getRaidCapturePhase>
   recognizing: boolean

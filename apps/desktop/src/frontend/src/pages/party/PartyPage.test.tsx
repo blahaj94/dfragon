@@ -4,7 +4,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ColorThemeProvider } from '../../components/ColorThemeProvider'
 import { PartyPage } from './PartyPage'
-import type { CardCharacter } from '../../types/cards'
+import type { SnapshotMark } from '../../lib/adventure-snapshot'
+import type { CardCharacter, SlotState } from '../../types/cards'
 
 const CHARACTER_NAME_INPUT_SELECTOR = 'input[aria-label$="번 캐릭터 이름"]'
 
@@ -51,11 +52,42 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-async function render(props: ComponentProps<typeof PartyPage>): Promise<void> {
+// 슬롯별 배열로 쓴 입력을 페이지가 받는 슬롯 카드 값으로 묶는다. 배열이 짧으면 나머지 슬롯은 비운다.
+type RenderProps = Omit<ComponentProps<typeof PartyPage>, 'slots'> & {
+  slots: SlotState[]
+  characters?: (CardCharacter | null)[]
+  nicknames?: (string | null)[]
+  slotNotices?: (string | undefined)[]
+  retryEnabled?: boolean[]
+  snapshotMarks?: (SnapshotMark | undefined)[]
+}
+
+async function render({
+  slots,
+  characters,
+  nicknames,
+  slotNotices,
+  retryEnabled,
+  snapshotMarks,
+  ...props
+}: RenderProps): Promise<void> {
+  const cards = slots.map((state, index) => {
+    const character = characters?.[index] ?? undefined
+    const nickname = nicknames?.[index] ?? undefined
+
+    return {
+      state,
+      character,
+      nickname,
+      notice: slotNotices?.[index],
+      retryEnabled: retryEnabled?.[index],
+      snapshotMark: snapshotMarks?.[index]
+    }
+  })
   await act(async () =>
     root.render(
       <ColorThemeProvider>
-        <PartyPage {...props} />
+        <PartyPage {...props} slots={cards} />
       </ColorThemeProvider>
     )
   )
@@ -139,7 +171,7 @@ it('네 슬롯의 서로 다른 선택과 대기 상태를 독립적으로 표�
 
 it('재시도 버튼은 제한 대기와 진행 중에는 잠기고 해당 슬롯만 요청한다', async () => {
   const retry = vi.fn()
-  const props: ComponentProps<typeof PartyPage> = {
+  const props: RenderProps = {
     slots: ['failure', 'idle', 'idle', 'idle'],
     onRetry: retry,
     slotNotices: ['12초 후 다시 시도할 수 있습니다.'],

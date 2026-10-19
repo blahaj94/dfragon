@@ -29,7 +29,8 @@ import {
 } from './fixture'
 import { useAdventureSnapshot } from '../../hooks/useAdventureSnapshot'
 import type { CardCharacter } from '../../types/cards'
-import { createSeatOrder, swapSeats } from '../../lib/raid-seats'
+import { createSeatOrder, seatValuesToSlotOrder, swapSeats } from '../../lib/raid-seats'
+import type { SlotCard } from '../../lib/slot-cards'
 import { MAIN_WINDOW_SIZE } from '../../../../preload/common/window-chrome'
 
 export function Preview(): React.JSX.Element {
@@ -109,6 +110,38 @@ export function Preview(): React.JSX.Element {
     }),
     raidRound
   )
+  const identificationNotices = [
+    undefined,
+    undefined,
+    undefined,
+    '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
+  ]
+  const identificationNicknames = [null, '얼굴대기', '기준대기', '오류예시']
+  const identificationRetryEnabled = [false, false, false, true]
+  const partyCards: SlotCard[] = partySlots.map((state, slot) => {
+    const shown = characters === undefined ? character : characters[slot]
+    const selected = shown ?? undefined
+    const nickname = identification ? (identificationNicknames[slot] ?? undefined) : undefined
+    const notice = identification ? identificationNotices[slot] : undefined
+    const retryEnabled = identification ? identificationRetryEnabled[slot] : undefined
+
+    return {
+      state,
+      character: selected,
+      nickname,
+      notice,
+      snapshotMark: partySnapshot.marks[slot],
+      retryEnabled
+    }
+  })
+  // 합성 공대 스냅샷 표시는 화면 자리 순서라 슬롯 순서로 다시 배치해 카드 값에 담는다.
+  const raidSnapshotMarks = seatValuesToSlotOrder(seatOrder, raidSnapshot.marks)
+  const raidCards: SlotCard[] = raidCharacters.map((member, slot) => {
+    const state = member == null ? 'idle' : 'success'
+    const selected = member ?? undefined
+
+    return { state, character: selected, snapshotMark: raidSnapshotMarks[slot] }
+  })
   const openDetail = (): void => {
     const url = new URL(window.location.href)
     // 상세 창은 테마와 관계없이 다크 카드 패널이다.
@@ -182,23 +215,8 @@ export function Preview(): React.JSX.Element {
           <PartyPage
             id={partyCardsId}
             collapsed={party.collapsed}
-            character={character}
-            characters={characters}
-            nicknames={identification ? [null, '얼굴대기', '기준대기', '오류예시'] : undefined}
-            slotNotices={
-              identification
-                ? [
-                    undefined,
-                    undefined,
-                    undefined,
-                    '현재 캐릭터 검색을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.'
-                  ]
-                : undefined
-            }
+            slots={partyCards}
             onRetry={identification ? () => setScenario('pending') : undefined}
-            retryEnabled={identification ? [false, false, false, true] : undefined}
-            slots={partySlots}
-            snapshotMarks={partySnapshot.marks}
             resetKey={scenario}
             compareFaces={scenario === 'faces' || scenario === 'missing'}
             inputEnabled
@@ -210,8 +228,7 @@ export function Preview(): React.JSX.Element {
             <RaidPage
               id={raidCardsId}
               notice=""
-              slots={raidCharacters.map((member) => (member == null ? 'idle' : 'success'))}
-              characters={raidCharacters}
+              slots={raidCards}
               lastCapturedAt={captureState === 'complete' ? completedAt : null}
               canCapture={canCapture}
               onCapture={() => {
@@ -221,7 +238,6 @@ export function Preview(): React.JSX.Element {
               }}
               snapshotActive={raidSnapshot.active}
               snapshotRound={raidSnapshot.round}
-              snapshotMarks={raidSnapshot.marks}
               onTakeSnapshot={raidSnapshot.take}
               onClearSnapshot={raidSnapshot.clear}
               seatOrder={seatOrder}

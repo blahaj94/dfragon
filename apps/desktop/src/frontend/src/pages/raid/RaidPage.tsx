@@ -6,10 +6,9 @@ import { FoldIcon } from '../../components/FoldIcon'
 import { LastCaptureTime } from '../../components/LastCaptureTime'
 import { SnapshotToggle } from '../../components/SnapshotToggle'
 import { RAID_PARTY_COUNT, RAID_PARTY_SIZE } from '../../constants/cards'
+import { filledSlotCount, type SlotCard } from '../../lib/slot-cards'
 import { neighborSeat, type SeatDirection, type SeatOrder } from '../../lib/raid-seats'
 import { RaidCard } from '../../sections/RaidCard'
-import type { SnapshotMark } from '../../lib/adventure-snapshot'
-import type { CardCharacter, SlotState } from '../../types/cards'
 import { styles } from './RaidPage.style'
 
 const SEAT_COUNT = RAID_PARTY_COUNT * RAID_PARTY_SIZE
@@ -37,10 +36,6 @@ export function RaidPage({
   hidden = false,
   notice,
   slots,
-  characters,
-  slotNotices,
-  nicknames,
-  loadingSlots,
   resetKey = 'raid',
   seatOrder,
   canMoveSeats,
@@ -50,7 +45,6 @@ export function RaidPage({
   onCapture,
   snapshotActive,
   snapshotRound,
-  snapshotMarks,
   onTakeSnapshot,
   onClearSnapshot,
   collapsed,
@@ -64,15 +58,8 @@ export function RaidPage({
   hidden?: boolean
   /** 머리의 안내. 검색 연결 실패나 상세 창 열기 실패처럼 캡처 진행이 아닌 안내만 담는다. */
   notice: string
-  /** 공대 검색 슬롯 0~11의 검색 상태. 아래 슬롯별 값도 모두 검색 슬롯 순서다. */
-  slots: readonly SlotState[]
-  /** 슬롯별 캐릭터. 조회하지 않았거나 찾지 못한 슬롯은 null이다. */
-  characters: readonly (CardCharacter | null)[]
-  slotNotices?: readonly (string | undefined)[]
-  /** 공대 캡처가 인식한 슬롯별 이름. 캐릭터를 찾기 전까지 카드 이름 칸에 보인다. */
-  nicknames?: readonly (string | null)[]
-  /** 공대 캡처가 인식하는 동안 진행 표시를 보일 슬롯 */
-  loadingSlots?: readonly boolean[]
+  /** 공대 검색 슬롯 0~11마다 카드가 그릴 값. 스냅샷 표시도 검색 슬롯 순서다. */
+  slots: readonly SlotCard[]
   /** 캡처 회차가 바뀌면 카드의 입력 초안을 새로 그린다. */
   resetKey?: string
   /** 화면 자리 0~11에 놓인 검색 슬롯 */
@@ -90,8 +77,6 @@ export function RaidPage({
   snapshotActive: boolean
   /** 스냅샷을 켠 뒤 몇 번째 공대인지. 스냅샷이 없으면 null이라 번호를 보이지 않는다. */
   snapshotRound: number | null
-  /** 화면 자리 0~11마다 스냅샷과 비교한 표시. 표시가 없는 자리는 undefined다. */
-  snapshotMarks: readonly (SnapshotMark | undefined)[]
   onTakeSnapshot: () => void
   /** 끄기 확인을 거친 뒤 스냅샷을 지운다. */
   onClearSnapshot: () => void
@@ -120,9 +105,7 @@ export function RaidPage({
   const seatElements = useRef(new Map<number, HTMLDivElement>())
   // 키보드로 옮긴 카드. 카드가 새 자리로 옮겨 그려진 뒤 다시 포커스해 이어서 옮길 수 있게 한다.
   const movedSlot = useRef<number | null>(null)
-  const filledCount = slots.filter(
-    (state, slot) => state === 'success' && characters[slot] != null
-  ).length
+  const filledCount = filledSlotCount(slots)
   const hintId = `${id}-move-hint`
 
   useLayoutEffect(() => {
@@ -157,10 +140,9 @@ export function RaidPage({
 
   function renderSeat(seat: number, partyLabelId: string): React.JSX.Element {
     const slot = seatOrder[seat]
-    const state = slots[slot]
-    const character = characters[slot] ?? undefined
+    const card = slots[slot]
+    const { state, character } = card
     const found = state === 'success' && character != null
-    const nickname = found ? undefined : (nicknames?.[slot] ?? undefined)
     let drag: 'source' | 'target' | undefined
     if (dragging === slot) {
       drag = 'source'
@@ -174,11 +156,11 @@ export function RaidPage({
         slot={seat + 1}
         character={character}
         state={state}
-        nickname={nickname}
-        snapshotMark={snapshotMarks[seat]}
-        loading={loadingSlots?.[slot]}
+        nickname={found ? undefined : card.nickname}
+        snapshotMark={card.snapshotMark}
+        loading={card.loading}
         collapsed={collapsed}
-        notice={slotNotices?.[slot]}
+        notice={card.notice}
         onDetail={found && onSlotDetail !== undefined ? () => onSlotDetail(slot) : undefined}
         onLookup={
           onLookup === undefined
