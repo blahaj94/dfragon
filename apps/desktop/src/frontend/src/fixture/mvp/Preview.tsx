@@ -173,22 +173,24 @@ export function Preview(): React.JSX.Element {
         }
         capture={
           <CaptureControls
-            sources={sources}
-            selectedSourceId={source}
-            loading={false}
-            failed={false}
+            capture={{
+              sources,
+              selectedSourceId: source,
+              sourcesLoading: false,
+              sourcesFailed: false,
+              selectSource: (id) => {
+                setSource(id)
+                setCaptureState(id ? 'selected' : 'idle')
+              },
+              refreshSources: () => {},
+              stopCapture: () => {
+                setSource('')
+                setCaptureState('idle')
+              },
+              search: { ready: true }
+            }}
             phase={phase}
-            ready
             status={getCapturePreviewStatus(captureState)}
-            onSelect={(id) => {
-              setSource(id)
-              setCaptureState(id ? 'selected' : 'idle')
-            }}
-            onRefresh={() => {}}
-            onStop={() => {
-              setSource('')
-              setCaptureState('idle')
-            }}
           />
         }
       />

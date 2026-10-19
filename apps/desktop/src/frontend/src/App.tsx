@@ -82,18 +82,7 @@ function App(): React.JSX.Element {
         }
         showCapture={!showDeveloperWorkbench}
         capture={
-          <CaptureControls
-            sources={capture.sources}
-            selectedSourceId={capture.selectedSourceId}
-            loading={capture.sourcesLoading}
-            failed={capture.sourcesFailed}
-            phase={screenCapture.phase}
-            ready={capture.search.ready}
-            status={captureNotice}
-            onSelect={capture.selectSource}
-            onRefresh={capture.refreshSources}
-            onStop={() => capture.stopCapture()}
-          />
+          <CaptureControls capture={capture} phase={screenCapture.phase} status={captureNotice} />
         }
         settings={
           <SettingsSection
@@ -114,17 +103,9 @@ function App(): React.JSX.Element {
             />
           )}
           {/* 파티 카드는 공대를 보는 동안에도 상태를 유지하도록 숨기기만 한다. */}
-          <PartyScreen
-            capture={capture}
-            hidden={searchMode !== 'party'}
-            collapse={party}
-          />
+          <PartyScreen capture={capture} hidden={searchMode !== 'party'} collapse={party} />
           {/* 공대 카드도 파티를 보는 동안 자리별 입력과 검색 상태를 유지하도록 숨기기만 한다. */}
-          <RaidScreen
-            capture={raidCapture}
-            hidden={searchMode !== 'raid'}
-            collapse={party}
-          />
+          <RaidScreen capture={raidCapture} hidden={searchMode !== 'raid'} collapse={party} />
         </div>
         {showDeveloperWorkbench && (
           <div {...stylex.props(styles.workbench)}>

@@ -17,17 +17,26 @@ import { CloseIcon } from './CloseIcon'
 import type { CapturePhase } from '../types/capture'
 import { getCaptureControlState, isDnfCaptureSource } from '../lib/capture-presentation'
 
-export type CaptureControlsProps = {
+/** 상단 바가 파티 캡처에서 읽는 창 목록, 선택, 중지. 필드 이름은 `usePartyCapture` 결과와 같다. */
+export type CaptureSourceControl = {
   sources: { id: string; name: string }[]
   selectedSourceId: string
-  loading: boolean
-  failed: boolean
+  sourcesLoading: boolean
+  sourcesFailed: boolean
+  selectSource: (sourceId: string) => void
+  refreshSources: () => void
+  /** 안내 문구를 넘기지 않으면 기본 중지 문구를 쓴다. */
+  stopCapture: (nextStatus?: string) => void
+  /** 검색 연결이 준비되어 창을 고를 수 있는지 */
+  search: { ready: boolean }
+}
+
+export type CaptureControlsProps = {
+  /** 게임 창 연결은 파티 캡처가 소유하고 공대 캡처도 같은 창을 쓴다. */
+  capture: CaptureSourceControl
+  /** 상태 칩과 대화상자가 알리는 단계. 보이는 화면(파티, 공대)의 회차를 따른다. */
   phase: CapturePhase
-  ready: boolean
   status: string
-  onSelect: (id: string) => void
-  onRefresh: () => void
-  onStop: () => void
 }
 
 const corners = [
@@ -38,17 +47,11 @@ const corners = [
 ]
 
 export function CaptureControls({
-  sources,
-  selectedSourceId,
-  loading,
-  failed,
+  capture,
   phase,
-  ready,
-  status,
-  onSelect,
-  onRefresh,
-  onStop
+  status
 }: CaptureControlsProps): React.JSX.Element {
+  const { sources, selectedSourceId } = capture
   const hasSelection = phase !== 'idle' && selectedSourceId.length > 0
   const [open, setOpen] = useState(false)
   const titleId = useId()
@@ -56,8 +59,8 @@ export function CaptureControls({
   const others = sources.filter((source) => !detected.includes(source))
   const state = getCaptureControlState({
     phase,
-    loading,
-    failed,
+    loading: capture.sourcesLoading,
+    failed: capture.sourcesFailed,
     hasDetectedSource: detected.length > 0
   })
   // 창 목록 조회가 끝날 때마다 새 목록 배열이 오고, 그 순간부터 다음 자동 조회까지 15초를 잰다. 목록을
@@ -82,7 +85,7 @@ export function CaptureControls({
       onOpenChange={(open) => {
         setOpen(open)
         if (open) {
-          onRefresh()
+          capture.refreshSources()
         }
       }}
     >
@@ -149,12 +152,12 @@ export function CaptureControls({
             detected={detected}
             others={others}
             value={hasSelection ? selectedSourceId : ''}
-            loading={loading}
-            failed={failed}
-            ready={ready}
+            loading={capture.sourcesLoading}
+            failed={capture.sourcesFailed}
+            ready={capture.search.ready}
             retryStartedAt={retry.startedAt}
-            onSelect={onSelect}
-            onRefresh={onRefresh}
+            onSelect={capture.selectSource}
+            onRefresh={capture.refreshSources}
           />
           {status && (
             <p role="status" {...stylex.props(styles.notice)}>
@@ -182,7 +185,11 @@ export function CaptureControls({
             </Typo.txtS>
           </Button>
           {hasSelection && (
-            <Button variant="primary" onClick={onStop} {...stylex.props(styles.primaryAction)}>
+            <Button
+              variant="primary"
+              onClick={() => capture.stopCapture()}
+              {...stylex.props(styles.primaryAction)}
+            >
               <Typo.txtS as="span" weight={700}>
                 캡처 중지
               </Typo.txtS>
