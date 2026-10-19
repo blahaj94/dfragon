@@ -662,7 +662,7 @@ it.each(['save', 'exclude', 'restore'] as const)(
   }
 )
 
-it('keeps the selection when the tab changes before a delayed save finishes', async () => {
+it('does not advance to the next sample when the tab changes before a delayed save finishes', async () => {
   const rows = ['first', 'second', 'third'].map((id, index) =>
     sample(id, `2026-09-24T00:00:0${index}.000Z`, null)
   )
